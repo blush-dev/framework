@@ -63,6 +63,8 @@ Implemented in M2 (D-065, D-069).
 | `content:list [--type] [--status]` | List every indexed entry (M4b) |
 | `content:preview <type> <name> [--hours]` | Print a signed preview link to an entry, whatever its status (D-226) |
 | `routes:list` | Show the routes, redirects, and shadowed routes (M3, D-077) |
+| `media:ids [--write] [--keep=<path>…]` | `content:ids` for media files: originals missing a valid id (counted; `-v` lists them) and shared ids; `--write` writes new ids into `user/data/media`, `--keep` renews the others; sizes of another image need none (D-487) |
+| `media:sizes [--write]` | Images whose metadata files don't list their sizes as the index has them (counts; `-v` lists), and lists naming files that aren't their sizes; `--write` writes each image's `sizes` whole (D-488) |
 | `media:index [--full]` | Build or refresh the media index, with a progress bar; `-v` lists changes, and metadata files with no media file are warnings (D-288) |
 | `media:publish [--copy]` | Link `user/media` into `public/` at the media URL, or copy the allowed files (M4c, D-099) |
 | `theme:list` | List installed themes (framework, Composer, local), the active one, and broken manifests (M5b, D-120) |

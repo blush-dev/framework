@@ -7,11 +7,13 @@
  *
  * Above them, the files missing an id and the ids files share (D-477),
  * fixed here (D-478): missing ids are added in one go, and for a shared
- * id, you choose the file that keeps it; the others get new ones.
+ * id, you choose the file that keeps it; the others get new ones. Media
+ * files have ids too (D-487), fixed the same way in a panel of their own,
+ * and images' sizes are recorded in their details from one more (D-488).
  */
 
-import { onMounted, ref } from 'vue';
-import { ApiError, request, type AssignedIds, type Health, type Violation } from '../api';
+import { computed, onMounted, ref } from 'vue';
+import { ApiError, request, type AssignedIds, type Health, type HealthIds, type Violation } from '../api';
 import AdminIcon from '../components/AdminIcon.vue';
 import { plural } from '../format';
 import { toast } from '../toast';
@@ -27,6 +29,28 @@ const strict  = ref(false);
 const loading = ref(false);
 const error   = ref('');
 const fixing  = ref<string | null>(null);
+
+interface IdGroup {
+	key: string;
+	heading: string;
+	hint: string;
+	ids: HealthIds;
+	// Where missing ids are added, and where a shared one is kept.
+	missing: string;
+	keep: string;
+}
+
+// Entries' ids, then media files' (D-487), each only when something's wrong.
+const idGroups = computed<IdGroup[]>(() => {
+	if (health.value === null) {
+		return [];
+	}
+
+	return [
+		{ key: 'entry', heading: 'Entry IDs', hint: 'Every content file needs an id of its own', ids: health.value.ids, missing: '/health/ids', keep: '/health/ids/keep' },
+		{ key: 'media', heading: 'Media IDs', hint: 'Every media file needs an id of its own; an image\'s sizes share its', ids: health.value.mediaIds, missing: '/health/media-ids', keep: '/health/media-ids/keep' }
+	].filter((group) => group.ids.missing.length > 0 || group.ids.duplicates.length > 0);
+});
 
 async function check(): Promise<void> {
 	loading.value = true;
@@ -78,6 +102,34 @@ async function fix(key: string, path: string, body: Record<string, string> = {})
 	}
 }
 
+const recording = ref(false);
+
+/**
+ * Records images' sizes in their details, says what it did, and checks
+ * again.
+ */
+async function recordSizes(): Promise<void> {
+	recording.value = true;
+
+	try {
+		const answer = await request<{ recorded: Record<string, string[]>; failed: Record<string, string> }>('POST', '/health/media-sizes');
+		const images = Object.keys(answer.recorded).length;
+		const failed = Object.entries(answer.failed);
+
+		if (failed.length) {
+			toast(`${plural(failed.length, 'image')} couldn't be changed: ${failed.map(([file, why]) => `${file} (${why})`).join('; ')}`, { kind: 'warn' });
+		} else {
+			toast(images ? `Recorded the sizes of ${plural(images, 'image')}` : 'No images you may edit needed their sizes recorded', { kind: images ? 'good' : 'info' });
+		}
+
+		await check();
+	} catch (caught) {
+		toast(caught instanceof ApiError ? caught.message : 'The sizes couldn\'t be recorded.', { kind: 'danger' });
+	} finally {
+		recording.value = false;
+	}
+}
+
 onMounted(check);
 </script>
 
@@ -110,27 +162,43 @@ onMounted(check);
 	</div>
 
 	<template v-if="health">
-		<section v-if="health.ids.missing.length || health.ids.duplicates.length" class="panel" aria-labelledby="ids-heading">
+		<section v-for="group in idGroups" :key="group.key" class="panel" :aria-labelledby="`${group.key}-ids-heading`">
 			<header class="panel__header">
-				<h2 id="ids-heading">Entry IDs</h2>
-				<p class="panel__hint">Every content file needs an id of its own</p>
+				<h2 :id="`${group.key}-ids-heading`">{{ group.heading }}</h2>
+				<p class="panel__hint">{{ group.hint }}</p>
 			</header>
-			<div v-if="health.ids.missing.length" class="ids__row">
-				<p>{{ plural(health.ids.missing.length, 'file') }} {{ health.ids.missing.length === 1 ? 'has' : 'have' }} no id, or one that isn't valid.</p>
-				<button type="button" class="button button--primary button--small" :disabled="fixing !== null" @click="fix('missing', '/health/ids')">
-					{{ fixing === 'missing' ? 'Adding…' : 'Add Missing IDs' }}
+			<div v-if="group.ids.missing.length" class="ids__row">
+				<p>{{ plural(group.ids.missing.length, 'file') }} {{ group.ids.missing.length === 1 ? 'has' : 'have' }} no id, or one that isn't valid.</p>
+				<button type="button" class="button button--primary button--small" :disabled="fixing !== null" @click="fix(`${group.key}:missing`, group.missing)">
+					{{ fixing === `${group.key}:missing` ? 'Adding…' : 'Add Missing IDs' }}
 				</button>
 			</div>
-			<div v-for="shared in health.ids.duplicates" :key="shared.id" class="ids__row ids__row--shared">
+			<div v-for="shared in group.ids.duplicates" :key="shared.id" class="ids__row ids__row--shared">
 				<p>These files share the id <code>{{ shared.id }}</code>. Keep it on one; the others get new ids.</p>
 				<ul class="ids__files">
 					<li v-for="file in shared.paths" :key="file">
 						<code>{{ file }}</code>
-						<button type="button" class="button button--small" :disabled="fixing !== null" @click="fix(`keep:${file}`, '/health/ids/keep', { path: file })">
-							{{ fixing === `keep:${file}` ? 'Keeping…' : 'Keep Here' }}<span class="visually-hidden"> ({{ file }})</span>
+						<button type="button" class="button button--small" :disabled="fixing !== null" @click="fix(`${group.key}:keep:${file}`, group.keep, { path: file })">
+							{{ fixing === `${group.key}:keep:${file}` ? 'Keeping…' : 'Keep Here' }}<span class="visually-hidden"> ({{ file }})</span>
 						</button>
 					</li>
 				</ul>
+			</div>
+		</section>
+
+		<section v-if="health.mediaSizes.images || health.mediaSizes.stale" class="panel" aria-labelledby="sizes-heading">
+			<header class="panel__header">
+				<h2 id="sizes-heading">Image Sizes</h2>
+				<p class="panel__hint">An image's other sizes are listed in its details</p>
+			</header>
+			<div class="ids__row">
+				<p>
+					<template v-if="health.mediaSizes.sizes">{{ plural(health.mediaSizes.sizes, 'size') }} of {{ plural(health.mediaSizes.images, 'image') }} {{ health.mediaSizes.sizes === 1 ? 'isn\'t' : 'aren\'t' }} recorded yet.</template>
+					<template v-if="health.mediaSizes.stale"> {{ plural(health.mediaSizes.stale, 'image') }} {{ health.mediaSizes.stale === 1 ? 'lists' : 'list' }} files that aren't {{ health.mediaSizes.stale === 1 ? 'its' : 'their' }} sizes.</template>
+				</p>
+				<button type="button" class="button button--primary button--small" :disabled="recording || fixing !== null" @click="recordSizes">
+					{{ recording ? 'Recording…' : 'Record Sizes' }}
+				</button>
 			</div>
 		</section>
 

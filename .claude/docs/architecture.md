@@ -711,13 +711,34 @@ Implemented in M4c (D-099), apart from image derivatives.
   the file changes; the location is kept apart and never answered.
   Still planned: when rendering, a value set where the media is used
   wins, then the metadata file, then embedded metadata.
-- **Variants (planned, D-239):** resized copies imported from WordPress
-  (`photo-300x200.jpg`, `-scaled`, `-rotated`, edited `-e{time}`) are
-  grouped under their original, which holds the metadata and is the
-  one library item. Variants stay on disk and are still served for old
-  links. Detection is by rule: a `-{w}x{h}` name, an original beside
-  it, and real dimensions that match (so `daisy-3x4.jpg` stays its own
-  image).
+- **Ids (D-487):** every original has a UUIDv7 `id`, last in its
+  metadata file (`MediaMetadata::ID`, not a field, like `owner`; a
+  field set can't claim either). Uploads write it with the owner;
+  `MediaIds` (report, `assignMissing`, `keep`, as `EntryIds`) backs
+  `media:ids` and Content health's `health/media-ids[/keep]`;
+  `MediaMetadataCheck` reports missing, malformed, and shared ids, by
+  the media file's path when it has no metadata file. `MediaRecord::id()`.
+  The indexer takes `written:` keys to reread after a same-second write.
+- **Sizes (D-239, D-488):** resized copies imported from WordPress
+  (`photo-300x200.jpg`) are sizes of their original. An image's
+  metadata file lists them (`sizes:`, key → `{width, height}`,
+  `MediaMetadata::$sizes`, not a field, written one to a line before
+  the `id`); `Index\MediaVariants` takes listed sizes first (first
+  image by key wins; an image that's a listed size can't have sizes),
+  then D-239's rule for the rest (a `-{w}x{h}` name, an original beside
+  it with the same extension that isn't a size, real dimensions that
+  match and are no larger, and no id of its own), as
+  `MediaRecord::$original` (snapshot v4). `MediaSizes` (report:
+  `unrecorded`, `stale`; `record()` writes each image's list whole)
+  backs `media:sizes` and Content health's `POST health/media-sizes`.
+  `MediaLibrary::query()` lists originals only; `sizes($key)` gives an
+  image's, smallest first. The admin API: `sizeCount` on items, `sizes`
+  and `original` on a file; a size goes by its image's details (PATCH
+  422), deleting an image deletes its sizes, deleting a size takes it
+  off the list, and `usedIn` counts sizes' uses (`MediaUsage::entries()`
+  takes more paths). Sizes get no id; lint warns of a size's metadata
+  file and of stale listings. **Planned:** rules as a registry, and
+  `-scaled`, `-rotated`, and edited `-e{time}` files (open-questions.md).
 - **Image derivatives:** in-house GD/Imagick adapter, always from the
   original, never from a variant (D-239); a focal point field guides
   crops. Sizes are named and declared by the theme (sites can add or

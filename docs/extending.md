@@ -932,8 +932,7 @@ code are simpler as an [icon pack](#icon-packs).
 
 ### Content types from a plugin
 
-A plugin can define [content types](content-types.md), much like a
-WordPress plugin registering post types. Write a class that implements
+A plugin can define [content types](content-types.md). Write a class that implements
 `ContentTypeSource` and returns the types:
 
 ```php

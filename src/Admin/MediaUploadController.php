@@ -31,6 +31,7 @@ use Blush\Media\MediaMetadata;
 use Blush\Media\MediaMetadataStore;
 use Blush\Media\MediaResolver;
 use Blush\Support\UrlPath;
+use Blush\Support\Uuid;
 
 /**
  * Answers `POST {path}/api/media` (D-268): one file, as the multipart
@@ -50,7 +51,7 @@ use Blush\Support\UrlPath;
  * is a file larger than its kind's largest, and one of a kind the account
  * may not upload (`media.{kind}.upload`, D-407). The file's metadata
  * records who uploaded it (`owner`), which decides who may edit or
- * delete it. Answers 201 with the file as
+ * delete it, and gives the file its id (D-487). Answers 201 with the file as
  * `GET media` describes one. PHP has the last word on size
  * (`upload_max_filesize`, `post_max_size`); `limit()` reads it, and
  * `largest()` says the most any upload may be, for the picker to show.
@@ -157,10 +158,11 @@ final readonly class MediaUploadController
 			return self::error(sprintf('%s couldn\'t be added to the library.', $name), Status::UnprocessableContent);
 		}
 
-		// Who uploaded it decides who may change it (D-407). A file whose
-		// metadata can't be written stays, with no owner.
+		// Who uploaded it decides who may change it (D-407), and every
+		// file has an id (D-487). A file whose metadata can't be written
+		// stays, with neither; `media:ids` can add the id.
 		try {
-			$this->metadata->save($file, [MediaMetadata::OWNER => $account->username]);
+			$this->metadata->save($file, [MediaMetadata::OWNER => $account->username, MediaMetadata::ID => Uuid::v7($this->clock->now())]);
 		} catch (MediaException) {
 		}
 

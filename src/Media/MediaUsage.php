@@ -35,21 +35,21 @@ final readonly class MediaUsage
 
 	/**
 	 * The entries that use a file, by its path in `user/media`
-	 * (`2026/10/photo.jpg`), each with its `id` (`null` without one), `path` (its document's path), `type` (the type's name), `typeLabel`,
+	 * (`2026/10/photo.jpg`), or any of `$also` (an image's sizes, D-488), each with its `id` (`null` without one), `path` (its document's path), `type` (the type's name), `typeLabel`,
 	 * `title` (the document's path when it isn't indexed), and `type`
 	 * (the type's singular label, or `''`).
 	 *
 	 * @return list<array{id: ?string, path: string, title: string, type: string, typeLabel: string}>
 	 */
-	public function entries(string $relative): array
+	public function entries(string $relative, string ...$also): array
 	{
-		$relative = trim($relative, '/');
+		$paths = array_values(array_filter(array_map(static fn (string $path): string => trim($path, '/'), [$relative, ...$also]), static fn (string $path): bool => $path !== ''));
 
-		if ($relative === '') {
+		if ($paths === []) {
 			return [];
 		}
 
-		$names   = array_unique([$relative, UrlPath::encode($relative)]);
+		$names   = array_unique([...$paths, ...array_map(UrlPath::encode(...), $paths)]);
 		$prefix  = '(?:' . preg_quote($this->config->url, '#') . '|/?user/media)/';
 		$pattern = '#' . $prefix . '(?:' . implode('|', array_map(static fn (string $name): string => preg_quote($name, '#'), $names)) . ')(?![A-Za-z0-9._%~-])#';
 		$found   = [];

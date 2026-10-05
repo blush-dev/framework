@@ -14377,3 +14377,144 @@ decision, add a new entry that supersedes it and mark the old one
   data in a database with eventual migration tools. We just need the
   basic config right now… Just keep this in mind as we're building
   features."
+
+### D-487: Every media original has an id; WordPress sizes are found by rule
+
+- **Date:** 2026-10-05
+- **Status:** Built.
+- **Decision:** the first step of media as records with ids (discussed
+  with the author; recorded sizes, media not being a content type,
+  grouping, and importers are in `open-questions.md`).
+  - **An id for every original, not only files that have a metadata
+    file**, so nothing (the content API, cached image sizes, albums, an
+    importer) has to cope with some files having one. A UUIDv7 (D-477),
+    an `id` key last in the file's metadata file under
+    `user/data/media/`, which this now writes for a file that had none.
+    Not a field, like `owner` (D-407): `MediaMetadata::ID`, left out of
+    `fields()`, never set by `PATCH media/{path}`, and a field set can't
+    claim `id` or `owner` (`MediaSchemas`). Read lowercase; a value that
+    isn't a UUID counts as none. New keys are written before it, and a
+    malformed one is replaced and moved last (YAML and JSON).
+  - **Uploads** write the id with the owner. `GET media` and
+    `GET media/{path}` answer `id` (`''` for none); a file's screen
+    shows it under File, or links to Content Health.
+  - **Fixing,** as for content (D-478): `MediaIds` (`report()`,
+    `assignMissing()`, `keep()`, reading the media index brought up to
+    date), `media:ids [--write] [--keep=<path>…]` (counts, with `-v`
+    listing files, since a WordPress site has thousands), and Content
+    health's `mediaIds` with `POST health/media-ids` and
+    `POST health/media-ids/keep` (`{"path"}`, a key under
+    `user/media`), changing only files whose details the account may
+    edit (`media.edit`, by owner). A file whose metadata file can't be
+    read is left alone (failed, with why).
+  - **Lint** (`MediaMetadataCheck`): errors for a media file with no id
+    (by the media file's path, since it may have no metadata file; not
+    for one whose metadata file can't be read, which already errs), a
+    malformed id (by the metadata file), and a shared id (each file);
+    a warning for a metadata file describing a size of another image.
+  - **Sizes have no id** (D-239's variants, the part built now):
+    `Index\MediaVariants` finds them on every index run, by D-239's
+    rule: a name ending `-{w}x{h}`, an image of the same name without
+    it and the same extension beside it that isn't a size itself, real
+    dimensions of `w`×`h` no larger than it, **and no id of its own**
+    (new: an id keeps a file someone uploaded or described as itself an
+    original, the escape hatch for a real crop). Kept as
+    `MediaRecord::$original` (snapshot version 4). The library still
+    lists sizes as files; grouping them is next.
+  - **Reindexing after a write** rereads the files written
+    (`MediaIndexer::index(written:)`, `MediaLibrary::refresh()`), since
+    a rewrite in the same second leaves the metadata file's modified
+    time unchanged (as content's indexer does, D-480); a saved Details
+    form now passes its file too.
+  - **`media.schema.json`** has the optional `id`.
+- **On the jtcom trial:** 4,264 files: 2,363 sizes, 1,901 originals
+  missing ids (`content:lint`: 1,901 errors). Of the 2,407 names ending
+  in `-{w}x{h}`, the 44 not taken as sizes are 39 aspect-ratio crops
+  (`daisy-3x4.jpg`, `-16x9`) and 5 sizes whose original isn't there.
+  `media:ids --write` wasn't run on the trial (the author's call).
+- **Checked:** `composer check` (`MediaIdsTest`: sizes by rule and the
+  cases that aren't, the report, assigning with a filter, keeping,
+  the id last in YAML and JSON, unreadable files left alone, lint
+  messages, and the command; `MediaMetadataCheckTest` fixtures given
+  ids; `AdminContentTest`: Content health's media ids and who may fix
+  them; `AdminPickersTest`: an upload's id); `npm run admin:build`.
+- **Why:** the author: media should have ids "to correctly address the
+  image sizes issue (content ported from WordPress) and give us a way
+  to build an image sizes feature", so "alternate versions of
+  images/media aren't marked as separate entries", and for a WordPress
+  importer and exporter later.
+
+### D-488: Images list their sizes; the library lists one item per image
+
+- **Date:** 2026-10-05
+- **Status:** Built.
+- **Decision:** the next step after D-487, from the discussion in
+  `open-questions.md` (recorded sizes), at the author's call ("the full
+  step with recorded sizes").
+  - **`sizes:` in an image's metadata file:** each size's key in
+    `user/media` mapped to its `width` and `height`, written one to a
+    line before the `id` (`MediaMetadata::SIZES`, `$sizes`; not a field,
+    like `owner` and `id`, and a field set can't claim it). Keys are
+    full media keys, not names beside the image, so an importer can
+    list sizes kept anywhere.
+  - **Listed sizes come first** (`MediaVariants`): a listed file is a
+    size whatever its name, even with an id of its own (the image's
+    list is explicit). A file two images list is the first's, by key;
+    an image that's a listed size can't have sizes. D-239's rule (with
+    D-487's no-id condition) finds the rest, so a library works before
+    it's recorded.
+  - **Recording** (`MediaSizes`): `report()` gives each image's sizes
+    not listed as they are (`unrecorded`, dimensions included) and
+    listed files that aren't its sizes (`stale`: gone, or another
+    image's); `record()` writes each such image's list whole, smallest
+    first, removing the key when none are left, skipping metadata files
+    that can't be read. `media:sizes [--write]` (counts; `-v` lists),
+    and Content health's `mediaSizes` (`sizes`, `images`, `stale`) with
+    **Record Sizes** (`POST health/media-sizes`, only images whose
+    details the account may edit).
+  - **The library lists one item per image** (`MediaLibrary::query()`
+    skips sizes, so counts, the picker, and the Media screen follow);
+    `MediaLibrary::sizes($key)` gives an image's sizes, smallest first.
+    Cards say how many sizes (`sizeCount`).
+  - **A file's screen:** an image lists its sizes (name, dimensions,
+    size, each linking to its own screen); a size says whose it is and
+    shows that image's details read-only (`original`; `may.edit` false;
+    `PATCH` answers 422). `usedIn` counts the sizes' uses
+    (`MediaUsage::entries()` takes more paths).
+  - **Deleting** an image deletes its sizes (files, published copies,
+    and any metadata files), and the confirmation says so; deleting a
+    size takes it off its image's list.
+  - **Lint:** `sizes` that isn't a map of files to whole-number widths
+    and heights is an error; a listed file that isn't the image's size
+    is a warning. `media.schema.json` has `sizes`.
+  - Pages are unchanged: they never read library details (D-272).
+- **On the jtcom trial:** 1,901 library items (was 4,264); `media:sizes`
+  finds 2,363 sizes of 802 images unrecorded (not written; the author
+  records them from Content Health); `content:lint` clean of media
+  errors.
+- **Checked:** `composer check` (`MediaSizesTest`: listed sizes first,
+  one item per image, report and record with a filter, the YAML shape,
+  a stale list emptied, a size known only by its listing, lint, and
+  the command; `AdminPickersTest`: the list's `sizeCount`, an image's
+  `sizes` and `usedIn`, a size's `original` and read-only details,
+  deleting a size and an image; `AdminContentTest`: Content health's
+  sizes and who may record them); `npm run admin:build`.
+- **Why:** the author: "let's do the full step with recorded sizes",
+  after the library still listed 4,000+ files with ids in place.
+
+### D-489: No other product named in public text or code
+
+- **Date:** 2026-10-05
+- **Decision:** the author's call. User docs (`docs/`), the admin's
+  text, CLI output and help, error messages, and code (comments and
+  tests included) don't name WordPress. Describe the behavior instead
+  ("resized copies of an image, as media brought from another system
+  often has"; "found by their names"). The project's own notes in
+  `.claude/docs/` may still name it where it explains why.
+- **Done:** removed it from `docs/media.md`, `docs/cli.md`,
+  `docs/extending.md`, `docs/content-types.md` (two comparisons to
+  plugins registering post types, which were older), the Health and
+  media file screens, `MediaVariants`, `MediaSizes`,
+  `RecordMediaSizes`, two tests, and `AGENTS.md`.
+- **Why:** the author: "Don't mention wordpress anywhere in
+  public-facing text. Or in the code."

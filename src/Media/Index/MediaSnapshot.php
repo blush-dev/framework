@@ -24,7 +24,7 @@ final readonly class MediaSnapshot
 	/**
 	 * The stored format's version; another version is rebuilt.
 	 */
-	public const int VERSION = 3;
+	public const int VERSION = 4;
 
 	/**
 	 * @param array<string, MediaRecord> $records

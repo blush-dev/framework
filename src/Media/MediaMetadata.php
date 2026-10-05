@@ -13,6 +13,8 @@ declare(strict_types=1);
 
 namespace Blush\Media;
 
+use Blush\Support\Uuid;
+
 /**
  * What the library says about a media file (D-238, D-269, D-287): the
  * values its metadata file holds, by key, for the fields its kind has
@@ -22,9 +24,12 @@ namespace Blush\Media;
  * written into Markdown, where a line break would end them. Where a file
  * is used, what's written there wins; the library's fill the gaps.
  *
- * One key isn't a field: `owner`, the username of the account that
- * uploaded the file (D-407), which the admin writes and nothing edits.
- * `fields()` is the values without it.
+ * Three keys aren't fields, and the details form doesn't edit them:
+ * `owner`, the username of the account that uploaded the file (D-407);
+ * `sizes`, an image's other sizes (D-488), their keys in `user/media`
+ * mapped to their `width` and `height`; and `id`, the file's UUID
+ * (D-487), written last, as an entry's is (D-477). `fields()` is the
+ * values without them.
  */
 final readonly class MediaMetadata
 {
@@ -32,6 +37,16 @@ final readonly class MediaMetadata
 	 * The key the uploader's username is kept under.
 	 */
 	public const string OWNER = 'owner';
+
+	/**
+	 * The key the file's id is kept under (D-487).
+	 */
+	public const string ID = 'id';
+
+	/**
+	 * The key an image's sizes are kept under (D-488).
+	 */
+	public const string SIZES = 'sizes';
 
 	public string $title;
 
@@ -46,6 +61,21 @@ final readonly class MediaMetadata
 	public string $owner;
 
 	/**
+	 * The file's id, lowercase, or `''` for a file with none, or with one
+	 * that isn't a UUID.
+	 */
+	public string $id;
+
+	/**
+	 * The image's recorded sizes (D-488), by key: each one's width and
+	 * height, `null` when it doesn't say. Entries that aren't a key and a
+	 * map are left out (`content:lint` reports them).
+	 *
+	 * @var array<string, array{width: ?int, height: ?int}>
+	 */
+	public array $sizes;
+
+	/**
 	 * @param array<string, mixed> $values
 	 */
 	public function __construct(public array $values = [])
@@ -54,16 +84,46 @@ final readonly class MediaMetadata
 		$this->alt     = self::line($values['alt'] ?? null);
 		$this->caption = self::line($values['caption'] ?? null);
 		$this->owner   = self::line($values[self::OWNER] ?? null);
+		$this->id      = Uuid::isValid($values[self::ID] ?? null) ? strtolower(self::line($values[self::ID])) : '';
+		$this->sizes   = self::readSizes($values[self::SIZES] ?? null);
 	}
 
 	/**
-	 * The field values: every value but the owner.
+	 * Reads recorded sizes: a map of keys to maps with a `width` and a
+	 * `height`.
+	 *
+	 * @return array<string, array{width: ?int, height: ?int}>
+	 */
+	public static function readSizes(mixed $value): array
+	{
+		if (! is_array($value) || array_is_list($value)) {
+			return [];
+		}
+
+		$sizes = [];
+
+		foreach ($value as $key => $size) {
+			$key = trim((string) $key, '/');
+
+			if ($key !== '' && is_array($size) && ($size === [] || ! array_is_list($size))) {
+				$sizes[$key] = [
+					'width'  => is_int($size['width'] ?? null) ? $size['width'] : null,
+					'height' => is_int($size['height'] ?? null) ? $size['height'] : null
+				];
+			}
+		}
+
+		return $sizes;
+	}
+
+	/**
+	 * The field values: every value but the owner, the sizes, and the id.
 	 *
 	 * @return array<string, mixed>
 	 */
 	public function fields(): array
 	{
-		return array_diff_key($this->values, [self::OWNER => true]);
+		return array_diff_key($this->values, [self::OWNER => true, self::SIZES => true, self::ID => true]);
 	}
 
 	/**

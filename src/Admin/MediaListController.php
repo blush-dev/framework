@@ -91,7 +91,15 @@ use Blush\Support\UrlPath;
  * `size`, `width` and `height` (images and videos), `duration` (sound
  * and video, in seconds, when known, D-291), `modified`, and its metadata,
  * `title` (D-290), `alt`, and `caption` (`''` for none; `MediaMetadataStore`),
- * and its uploader's username (`owner`, `''` for none). Only the types
+ * its uploader's username (`owner`, `''` for none), its `id` (D-487,
+ * `''` for a file with none), and how many sizes an image has
+ * (`sizeCount`, D-488). The library lists one item per image, never its
+ * sizes; `GET media/{path}` for an image lists its `sizes` (`path`,
+ * `reference`, `name`, `url`, `width`, `height`, `size`), and for a size
+ * names its `original` (`path`, `reference`, `name`, `title`), whose
+ * details it answers and goes by: a size's details can't be changed
+ * (422), and deleting an image deletes its sizes, while deleting a size
+ * takes it off its image's list. `usedIn` counts the sizes' uses too. Only the types
  * the site allows (`MediaConfig::$types`) are listed, without caption
  * tracks, and never hidden files.
  */
@@ -157,7 +165,7 @@ final readonly class MediaListController
 			per: $per
 		));
 
-		$files = array_map(fn (MediaRecord $record): array => self::describe($record->file($this->paths), $record->url, $record->key, $record->metadata(), $record->duration()), $found->records);
+		$files = array_map(fn (MediaRecord $record): array => self::describe($record->file($this->paths), $record->url, $record->key, $record->metadata(), $record->duration(), count($this->library->sizes($record->key))), $found->records);
 
 		return Response::json([
 			'search'  => $search,
@@ -189,7 +197,7 @@ final readonly class MediaListController
 			return self::error(sprintf('There\'s no "%s" in the media library.', $path), Status::NotFound);
 		}
 
-		return Response::json($this->details($file, $reference, trim($path, '/'), $this->metadata->find($file), $account), headers: ['Cache-Control' => 'no-store']);
+		return Response::json($this->details($file, $reference, trim($path, '/'), $this->describedBy($file, trim($path, '/')), $account), headers: ['Cache-Control' => 'no-store']);
 	}
 
 	public function update(ServerRequestInterface $request, string $path): ResponseInterface
@@ -206,8 +214,14 @@ final readonly class MediaListController
 			return self::error(sprintf('There\'s no "%s" in the media library.', $path), Status::NotFound);
 		}
 
-		if (! $this->permissions->mayChangeMedia($account, Capability::MediaEdit, $this->metadata->find($file)->owner)) {
+		if (! $this->permissions->mayChangeMedia($account, Capability::MediaEdit, $this->describedBy($file, trim($path, '/'))->owner)) {
 			return self::error('You aren\'t allowed to change this file\'s details.', Status::Forbidden);
+		}
+
+		$original = $this->originalOf(trim($path, '/'));
+
+		if ($original !== null) {
+			return self::error(sprintf('%s is a size of %s, whose details it goes by; change them there.', basename($path), $original), Status::UnprocessableContent);
 		}
 
 		try {
@@ -257,7 +271,7 @@ final readonly class MediaListController
 
 		try {
 			$this->metadata->save($file, $values, $names, $schema);
-			$this->library->refresh();
+			$this->library->refresh([trim($path, '/')]);
 		} catch (MediaException $error) {
 			return self::error($error->getMessage(), Status::InternalServerError);
 		}
@@ -279,32 +293,88 @@ final readonly class MediaListController
 			return self::error(sprintf('There\'s no "%s" in the media library.', $path), Status::NotFound);
 		}
 
-		if (! $this->permissions->mayChangeMedia($account, Capability::MediaDelete, $this->metadata->find($file)->owner)) {
+		$relative = trim($path, '/');
+
+		if (! $this->permissions->mayChangeMedia($account, Capability::MediaDelete, $this->describedBy($file, $relative)->owner)) {
 			return self::error('You aren\'t allowed to delete this file.', Status::Forbidden);
 		}
 
-		$relative = trim($path, '/');
+		// An image goes with its sizes (D-488).
+		$sizes = array_map(static fn (MediaRecord $size): string => $size->key, $this->sizesOf($relative));
 
-		if (! @unlink($file->path)) {
-			return self::error('The file couldn\'t be deleted from the media folder.', Status::InternalServerError);
-		}
+		foreach ([$relative, ...$sizes] as $key) {
+			$target = "{$this->paths->media}/{$key}";
 
-		// A copy `media:publish --copy` made; a linked folder already
-		// lost it with the file.
-		$published = $this->paths->public . $this->config->url . '/' . $relative;
+			if (is_file($target) && ! @unlink($target)) {
+				return self::error($key === $relative ? 'The file couldn\'t be deleted from the media folder.' : sprintf('%s couldn\'t be deleted from the media folder.', $key), Status::InternalServerError);
+			}
 
-		if (! is_link($this->paths->public . $this->config->url) && is_file($published)) {
-			@unlink($published);
+			// A copy `media:publish --copy` made; a linked folder already
+			// lost it with the file.
+			$published = $this->paths->public . $this->config->url . '/' . $key;
+
+			if (! is_link($this->paths->public . $this->config->url) && is_file($published)) {
+				@unlink($published);
+			}
 		}
 
 		try {
-			$this->metadata->forget($relative);
-			$this->library->refresh();
+			foreach ([$relative, ...$sizes] as $key) {
+				$this->metadata->forget($key);
+			}
+
+			// A size leaves its image's list.
+			$original = $this->originalOf($relative);
+			$image    = $original === null ? null : $this->resolver->fromKey($original);
+
+			if ($image !== null && isset($this->metadata->find($image)->sizes[$relative])) {
+				$this->metadata->save($image, [MediaMetadata::SIZES => array_diff_key($this->metadata->find($image)->sizes, [$relative => true]) ?: null]);
+			}
+
+			$this->library->refresh($original === null ? [] : [$original]);
 		} catch (MediaException) {
 			// The file is gone; leftover metadata is `content:lint`'s to report.
 		}
 
-		return Response::json(['deleted' => $relative], headers: ['Cache-Control' => 'no-store']);
+		return Response::json(['deleted' => $relative, 'sizes' => $sizes], headers: ['Cache-Control' => 'no-store']);
+	}
+
+	/**
+	 * The details a file goes by: its own, or for a size of an image
+	 * (D-488), the image's.
+	 */
+	private function describedBy(MediaFile $file, string $relative): MediaMetadata
+	{
+		$original = $this->originalOf($relative);
+		$image    = $original === null ? null : $this->resolver->fromKey($original);
+
+		return $this->metadata->find($image ?? $file);
+	}
+
+	/**
+	 * The key of the image a file is a size of, or `null`.
+	 */
+	private function originalOf(string $relative): ?string
+	{
+		try {
+			return $this->library->find($relative)?->original;
+		} catch (MediaException) {
+			return null;
+		}
+	}
+
+	/**
+	 * An image's sizes.
+	 *
+	 * @return list<MediaRecord>
+	 */
+	private function sizesOf(string $relative): array
+	{
+		try {
+			return $this->library->sizes($relative);
+		} catch (MediaException) {
+			return [];
+		}
 	}
 
 	/**
@@ -367,9 +437,11 @@ final readonly class MediaListController
 		// never where it was taken, only whether it says.
 		$record   = $this->library->find($relative);
 		$embedded = $record?->embedded;
+		$sizes    = $this->sizesOf($relative);
+		$original = $record?->original === null ? null : $this->library->find($record->original);
 
 		return [
-			...self::describe($file, $reference, $relative, $metadata, $record?->duration()),
+			...self::describe($file, $reference, $relative, $metadata, $record?->duration(), count($sizes)),
 			'embedded'   => ['values' => (object) ($embedded->values ?? []), 'location' => $embedded?->location !== null],
 			'fields'     => array_values(array_map(static fn (Field $field): array => $field->toForm(), $schema->fields)),
 			'sets'       => array_map(static fn (FieldSet $set): array => [
@@ -387,10 +459,25 @@ final readonly class MediaListController
 			], $result->violations),
 			'uploader'   => $metadata->owner === '' ? null : ['username' => $metadata->owner, 'name' => $owner === null ? $metadata->owner : $this->accounts->displayName($owner)],
 			'may'        => [
-				'edit'   => $this->permissions->mayChangeMedia($account, Capability::MediaEdit, $metadata->owner),
+				'edit'   => $original === null && $this->permissions->mayChangeMedia($account, Capability::MediaEdit, $metadata->owner),
 				'delete' => $this->permissions->mayChangeMedia($account, Capability::MediaDelete, $metadata->owner)
 			],
-			'usedIn'     => $this->usage->entries($relative)
+			'usedIn'     => $this->usage->entries($relative, ...array_map(static fn (MediaRecord $size): string => $size->key, $sizes)),
+			'sizes'      => array_map(fn (MediaRecord $size): array => [
+				'path'      => $size->key,
+				'reference' => $size->url,
+				'name'      => basename($size->key),
+				'url'       => $size->url,
+				'width'     => $size->width,
+				'height'    => $size->height,
+				'size'      => $size->size
+			], $sizes),
+			'original'   => $original === null ? null : [
+				'path'      => $original->key,
+				'reference' => $original->url,
+				'name'      => basename($original->key),
+				'title'     => $original->metadata()->title
+			]
 		];
 	}
 
@@ -440,7 +527,7 @@ final readonly class MediaListController
 	 *
 	 * @return array<string, mixed>
 	 */
-	public static function describe(MediaFile $file, string $reference, string $relative, MediaMetadata $metadata, ?float $duration = null): array
+	public static function describe(MediaFile $file, string $reference, string $relative, MediaMetadata $metadata, ?float $duration = null, int $sizes = 0): array
 	{
 		$folder = dirname($relative);
 
@@ -459,7 +546,9 @@ final readonly class MediaListController
 			'title'     => $metadata->title,
 			'alt'       => $metadata->alt,
 			'caption'   => $metadata->caption,
-			'owner'     => $metadata->owner
+			'owner'     => $metadata->owner,
+			'id'        => $metadata->id,
+			'sizeCount' => $sizes
 		];
 	}
 

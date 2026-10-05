@@ -383,6 +383,55 @@ Move each item to `decisions.md` once it's answered.
   - Extracting embedded artwork (D-291 notes it only; on hold, D-295):
     a cached image the library and themes can show, as a sound's
     thumbnail?
+- **Media as records: sizes, grouping, and importers** (discussed
+  2026-10-05; ids on media are D-487):
+  - **Recorded sizes** are built (D-488). Still open: image sizes Blush
+    makes, cached by id and size name (`_media/{id}/{size}.jpg`), so
+    they survive moves and renames; and WordPress's other variants
+    (`-scaled`, `-rotated`, edited `-e{time}`, D-239's open questions).
+  - **Media isn't a content type** (D-238 stands, narrowed). A content
+    type adds a body, routes (attachment pages), status, and taxonomies;
+    everything else (an id, fields, an owner, dates, the index and its
+    queries, the content API) media can have as its own kind of record,
+    stored as `data` (D-486). What would flip it: wanting attachment
+    pages, or public term archives of media.
+  - **Grouping media** (the author may want it): it depends on who it's
+    for. For the library (organizing, filtering), terms are a field in
+    the file's data file, mapped by the media index and filtered by
+    `MediaQuery`, as kind is; the media's own terms or a site's
+    taxonomies is a later choice. For the site, two shapes: tags on
+    media with public archives (routes, the one thing that pulls media
+    toward a content type), or albums and galleries, where membership
+    and order live on the group: an ordinary entry (a "galleries"
+    collection, or `:::gallery`) that references media by id, so moves
+    don't break it. Either way, groups reference ids, never paths. Taxonomy
+    fields on media sit on the Fields API, paused (D-348).
+  - **Follow-ups to D-487 and D-488** (listed 2026-10-05; the author
+    saved them for later):
+    - **The picker can't insert a size.** It lists originals only, so
+      an author can't choose a smaller copy. Let insert choose a size,
+      or wait for Blush-made sizes with `srcset`, which makes it moot?
+    - **Searching a size's file name finds nothing**, since sizes aren't
+      items; match sizes' names and answer their original?
+    - **The admin API addresses media by path** (`media/{path}`), while
+      entries moved to ids at every boundary (D-481, D-482). `media/{id}`
+      for consistency? Sizes have no id, so their screens would still
+      need a path.
+    - **A file moved or renamed by hand loses its id**: its metadata
+      file is orphaned and the moved file has none (lint reports both).
+      A move or rename action in the admin would carry the id and the
+      `sizes` list with the file.
+    - **When related work comes:** media by id in the content API
+      (D-479); Blush-made sizes cached by id; importers writing ids,
+      `sizes`, and source keys; `MediaMetadataStore` behind the `data`
+      area's interface (D-486).
+  - **Importers** (and exporters): a public API and registry for any
+    importer (an `Importer` interface; Type enum + Registry + Factory +
+    Registrar), WordPress (WXR) first, in core or as a plugin. Importers
+    write entries with ids, media with ids and `sizes`, terms, and
+    accounts or profiles. Each record keeps its source key (`imported:
+    { from: wordpress, id: 1234 }`), so a second run updates instead of
+    duplicating, and an exporter can map ids back.
 - **Rich (script) embeds** (D-184): providers such as X, Instagram,
   TikTok, and Mastodon answer oEmbed with HTML that needs their own
   `<script>`. The planned path: a provider opts in with

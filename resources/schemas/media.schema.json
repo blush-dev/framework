@@ -38,6 +38,33 @@
 				"number"
 			],
 			"description": "A longer description, for the library."
+		},
+		"sizes": {
+			"type": "object",
+			"description": "An image's other sizes: each file's path in user/media, with its width and height. media:sizes records them.",
+			"additionalProperties": {
+				"type": "object",
+				"properties": {
+					"width": {
+						"type": "integer",
+						"minimum": 1
+					},
+					"height": {
+						"type": "integer",
+						"minimum": 1
+					}
+				},
+				"required": [
+					"width",
+					"height"
+				],
+				"additionalProperties": false
+			}
+		},
+		"id": {
+			"type": "string",
+			"pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$",
+			"description": "The media file's id, a UUID, kept last. Blush writes it; media:ids adds a missing one."
 		}
 	}
 }

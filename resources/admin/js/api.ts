@@ -1011,7 +1011,22 @@ export interface Health {
 	files: { path: string; violations: Violation[] }[];
 	// Files missing a valid id, and ids files share (D-477), for fixing
 	// here (`POST health/ids`, `POST health/ids/keep`, D-478).
-	ids: { missing: string[]; duplicates: { id: string; paths: string[] }[] };
+	ids: HealthIds;
+	// The same for media files (D-487), by path in the media folder
+	// (`POST health/media-ids`, `POST health/media-ids/keep`).
+	mediaIds: HealthIds;
+	// Sizes that images' details don't list as they are (D-488), and the
+	// images they're of, and how many images list files that aren't
+	// their sizes (`POST health/media-sizes`).
+	mediaSizes: { sizes: number; images: number; stale: number };
+}
+
+/**
+ * Files missing a valid id, and the ids files share.
+ */
+export interface HealthIds {
+	missing: string[];
+	duplicates: { id: string; paths: string[] }[];
 }
 
 /**
@@ -1047,6 +1062,23 @@ export interface MediaItem {
 	caption: string;
 	// The uploader's username (D-407), `''` for none.
 	owner: string;
+	// The file's id (D-487), `''` for none.
+	id: string;
+	// How many sizes an image has (D-488); they aren't listed as items.
+	sizeCount: number;
+}
+
+/**
+ * One of an image's sizes (D-488).
+ */
+export interface MediaSize {
+	path: string;
+	reference: string;
+	name: string;
+	url: string;
+	width: number | null;
+	height: number | null;
+	size: number;
 }
 
 /**
@@ -1069,8 +1101,13 @@ export interface MediaDetail extends MediaItem {
 	uploader: { username: string; name: string } | null;
 	// What the account may do to it.
 	may: { edit: boolean; delete: boolean };
-	// The entries that use it: their document's path, title, and type.
+	// The entries that use it, or its sizes: their document's path,
+	// title, and type.
 	usedIn: { id: string | null; path: string; title: string; type: string; typeLabel: string }[];
+	// An image's sizes, smallest first (D-488).
+	sizes: MediaSize[];
+	// For a size, the image it's a size of, whose details it goes by.
+	original: { path: string; reference: string; name: string; title: string } | null;
 }
 
 export interface MediaList {

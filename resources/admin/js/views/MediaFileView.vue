@@ -21,6 +21,11 @@
  * (D-407): the file says who uploaded it, and its details are read-only
  * to someone who may not change them. It lists the entries that use it,
  * and deleting it asks first, naming them.
+ *
+ * An image lists its other sizes (D-488), such as resized copies brought
+ * from another system, which go with it when it's deleted. A size's
+ * screen says whose it is, and shows that image's details, which it
+ * goes by, read-only.
  */
 
 import { computed, ref, watch } from 'vue';
@@ -198,10 +203,12 @@ async function remove(): Promise<void> {
 		return;
 	}
 
-	const used = item.usedIn.length;
-	const body = used === 0
-		? ['It isn\'t used in any entry. This can\'t be undone.']
+	const used  = item.usedIn.length;
+	const sizes = item.sizes.length ? [`Its ${item.sizes.length === 1 ? 'other size is' : `${item.sizes.length} other sizes are`} deleted with it.`] : [];
+	const body  = used === 0
+		? [...sizes, 'It isn\'t used in any entry. This can\'t be undone.']
 		: [
+			...sizes,
 			`It's used in **${used === 1 ? '1 entry' : `${used} entries`}**: ${item.usedIn.slice(0, 5).map((entry) => entry.title).join(', ')}${used > 5 ? `, and ${used - 5} more` : ''}. They'll show a broken image or link until they're changed.`,
 			'This can\'t be undone.'
 		];
@@ -295,7 +302,8 @@ async function copy(text: string, what: string): Promise<void> {
 					<h2 id="text-heading">Details</h2>
 				</header>
 				<fieldset class="panel__body text" :disabled="!file.may.edit">
-					<p v-if="!file.may.edit" class="field__help text__note"><AdminIcon name="info" />{{ file.uploader === null ? 'No one\'s recorded as uploading this file, so only someone who may change anyone\'s files can change its details.' : `Only ${file.uploader.name}, or someone who may change anyone's files, can change its details.` }}</p>
+					<p v-if="file.original" class="field__help text__note"><AdminIcon name="info" />A size of <RouterLink :to="{ name: 'media-file', params: { path: file.original.path.split('/') } }">{{ file.original.title || file.original.name }}</RouterLink>, whose details it goes by. Change them there.</p>
+					<p v-else-if="!file.may.edit" class="field__help text__note"><AdminIcon name="info" />{{ file.uploader === null ? 'No one\'s recorded as uploading this file, so only someone who may change anyone\'s files can change its details.' : `Only ${file.uploader.name}, or someone who may change anyone's files, can change its details.` }}</p>
 					<p v-if="file.kind === 'image' && fields.some((field) => field.name === 'alt') && altText === ''" class="field__help text__warn"><AdminIcon name="triangle-alert" />No alt text. It's what the image shows, for anyone who can't see it; images inserted from the library start with it, and pages use it where they have none.</p>
 					<FieldControl
 						v-for="field in ownFields"
@@ -367,7 +375,21 @@ async function copy(text: string, what: string): Promise<void> {
 					<div v-if="file.duration !== null"><dt>Length</dt><dd>{{ formatDuration(file.duration) }}</dd></div>
 					<div><dt>Changed</dt><dd>{{ formatDate(file.modified) }}</dd></div>
 					<div><dt>Uploaded by</dt><dd :class="{ 'facts__none': file.uploader === null }">{{ file.uploader?.name ?? 'Not recorded' }}</dd></div>
+					<div><dt>ID</dt><dd v-if="file.id" class="mono">{{ file.id }}</dd><dd v-else class="facts__none">None yet; <RouterLink :to="{ name: 'health' }">add one on Content Health</RouterLink></dd></div>
 				</dl>
+			</section>
+
+			<section v-if="file.sizes.length" class="panel" aria-labelledby="sizes-heading">
+				<header class="panel__header">
+					<h2 id="sizes-heading">Sizes</h2>
+					<span class="panel__hint">{{ file.sizes.length === 1 ? '1 other size' : `${file.sizes.length} other sizes` }}</span>
+				</header>
+				<ul class="panel__body sizes">
+					<li v-for="size in file.sizes" :key="size.path">
+						<RouterLink class="mono" :to="{ name: 'media-file', params: { path: size.path.split('/') } }">{{ size.name }}</RouterLink>
+						<span class="sizes__facts">{{ mediaFacts({ width: size.width, height: size.height, duration: null, size: size.size }) }}</span>
+					</li>
+				</ul>
 			</section>
 
 			<section class="panel" aria-labelledby="used-heading">
@@ -407,6 +429,27 @@ async function copy(text: string, what: string): Promise<void> {
 </template>
 
 <style scoped>
+.sizes {
+	margin: 0;
+	list-style: none;
+}
+
+.sizes li {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: space-between;
+	gap: var(--s-1) var(--s-3);
+	padding: var(--s-1) 0;
+}
+
+.sizes a {
+	overflow-wrap: anywhere;
+}
+
+.sizes__facts {
+	color: var(--fg-3);
+}
+
 /* The form's controls, read-only as one when they can't be changed. */
 fieldset.text {
 	min-width: 0;

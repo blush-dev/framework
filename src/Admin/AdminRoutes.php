@@ -70,7 +70,10 @@ use Blush\Session\StartSession;
  *     and the trash (D-484): `POST entries/{id}/restore` and `POST
  *     entries/empty-trash`.
  *   - `GET  health`: the content's lint problems, and `POST health/ids`
- *     and `POST health/ids/keep` to fix ids (D-477, D-478).
+ *     and `POST health/ids/keep` to fix ids (D-477, D-478), and `POST
+ *     health/media-ids` and `POST health/media-ids/keep` for media's
+ *     (D-487), and `POST health/media-sizes` to record images' sizes
+ *     (D-488).
  *   - `GET  calendar`: a month of dated entries (`CalendarController`,
  *     D-368).
  *   - `GET  roles` and `GET accounts`: the site's roles and accounts
@@ -172,6 +175,9 @@ final readonly class AdminRoutes implements RouteSource
 			Route::get('/health', HealthController::class)->named('health')->middleware(Authenticate::class),
 			Route::post('/health/ids', [HealthController::class, 'assign'])->named('health.ids')->middleware(Authenticate::class),
 			Route::post('/health/ids/keep', [HealthController::class, 'keep'])->named('health.ids.keep')->middleware(Authenticate::class),
+			Route::post('/health/media-ids', [HealthController::class, 'assignMedia'])->named('health.media-ids')->middleware(Authenticate::class),
+			Route::post('/health/media-ids/keep', [HealthController::class, 'keepMedia'])->named('health.media-ids.keep')->middleware(Authenticate::class),
+			Route::post('/health/media-sizes', [HealthController::class, 'recordSizes'])->named('health.media-sizes')->middleware(Authenticate::class),
 			Route::get('/calendar', CalendarController::class)->named('calendar')->middleware(Authenticate::class),
 			Route::get('/roles', [PeopleController::class, 'roles'])->named('roles')->middleware(Authenticate::class),
 			Route::post('/roles', [RoleEditController::class, 'create'])->named('role.create')->middleware(Authenticate::class),

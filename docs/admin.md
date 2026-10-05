@@ -1380,6 +1380,14 @@ the others get new ids. Either changes only files you may edit.
 A file without an id shows **No ID** in its list, and can't be opened
 in the editor until it has one; its links lead here.
 
+**Media IDs** does the same for [media files](media.md#ids-and-image-sizes),
+by their paths in the media folder, changing only files whose details
+you may edit. A media file's screen shows its id under **File**.
+**Image Sizes** says how many [image sizes](media.md#ids-and-image-sizes)
+Blush found that aren't listed in their images' details yet; **Record
+Sizes** lists them. In the Media library, an image's sizes aren't
+items of their own: its screen lists them under **Sizes**.
+
 ## Your own admin
 
 Blush's admin is one front end for the admin's API, and you can swap in

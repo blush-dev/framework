@@ -24,13 +24,15 @@ use Blush\Media\MediaMetadata;
  * is where it is there (`2026/09/lake.jpg`), which is also where its
  * metadata file is under `user/data/media`.
  * What the file says about itself is `embedded` (D-289), read when the
- * file changes.
+ * file changes. A size of another image (`MediaVariants`, D-239) has
+ * that image's key as its `original`; it has no id of its own (D-487).
  */
 final readonly class MediaRecord
 {
 	/**
 	 * @param array<string, mixed> $metadata  Its metadata file's values.
 	 * @param ?int                 $described When its metadata file was written, or `null` without one.
+	 * @param ?string              $original  The key of the image it's a size of, or `null` for an original.
 	 */
 	public function __construct(
 		public string $key,
@@ -42,8 +44,36 @@ final readonly class MediaRecord
 		public ?int $height = null,
 		public array $metadata = [],
 		public ?int $described = null,
-		public ?EmbeddedMetadata $embedded = null
+		public ?EmbeddedMetadata $embedded = null,
+		public ?string $original = null
 	) {}
+
+	/**
+	 * Its id (D-487), or `null` when it has none, or one that isn't a UUID.
+	 */
+	public function id(): ?string
+	{
+		$id = $this->metadata()->id;
+
+		return $id === '' ? null : $id;
+	}
+
+	/**
+	 * Returns whether it's a size of another image, not media of its own.
+	 */
+	public function isVariant(): bool
+	{
+		return $this->original !== null;
+	}
+
+	/**
+	 * Returns a copy that's a size of another image, or `null` for an
+	 * original.
+	 */
+	public function withOriginal(?string $original): self
+	{
+		return clone($this, ['original' => $original]);
+	}
 
 	/**
 	 * How long a sound or video lasts, in seconds, when it says (D-291).
@@ -91,7 +121,8 @@ final readonly class MediaRecord
 			$int('height'),
 			array_combine(array_map(strval(...), array_keys($metadata)), array_values($metadata)),
 			$int('described'),
-			is_array($data['embedded'] ?? null) ? EmbeddedMetadata::fromArray($data['embedded']) : null
+			is_array($data['embedded'] ?? null) ? EmbeddedMetadata::fromArray($data['embedded']) : null,
+			is_string($data['original'] ?? null) ? $data['original'] : null
 		);
 	}
 
@@ -110,7 +141,8 @@ final readonly class MediaRecord
 			'height'    => $this->height,
 			'metadata'  => $this->metadata,
 			'described' => $this->described,
-			'embedded'  => $this->embedded?->toArray()
+			'embedded'  => $this->embedded?->toArray(),
+			'original'  => $this->original
 		];
 	}
 }

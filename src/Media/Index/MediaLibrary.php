@@ -27,10 +27,20 @@ use Blush\Media\MediaMetadata;
  * incremental index, which only reads files that changed. Elsewhere,
  * reindexing is explicit: `media:index`, publishing, or the admin, which
  * refreshes it after an upload or a change to a file's metadata.
+ *
+ * It lists one item for each original: an image's sizes (D-239, D-488)
+ * aren't items of their own, and are found under it with `sizes()`.
  */
 final class MediaLibrary
 {
 	private bool $checked = false;
+
+	/**
+	 * Each original's sizes, by key, for the snapshot they were read from.
+	 *
+	 * @var ?array{MediaSnapshot, array<string, list<MediaRecord>>}
+	 */
+	private ?array $sizes = null;
 
 	public function __construct(
 		private readonly MediaIndex $index,
@@ -59,15 +69,17 @@ final class MediaLibrary
 	}
 
 	/**
-	 * Refreshes the index now, after a change the admin made.
+	 * Refreshes the index now, after a change the admin made, reading
+	 * the files whose metadata it wrote (by key) again.
 	 *
+	 * @param  list<string> $written
 	 * @throws MediaException
 	 */
-	public function refresh(): MediaIndexReport
+	public function refresh(array $written = []): MediaIndexReport
 	{
 		$this->checked = true;
 
-		return $this->indexer->index();
+		return $this->indexer->index(written: $written);
 	}
 
 	/**
@@ -81,6 +93,37 @@ final class MediaLibrary
 	}
 
 	/**
+	 * Returns an image's sizes (D-488), by its key, smallest first.
+	 *
+	 * @return list<MediaRecord>
+	 * @throws MediaException
+	 */
+	public function sizes(string $key): array
+	{
+		$snapshot = $this->snapshot();
+
+		if ($this->sizes === null || $this->sizes[0] !== $snapshot) {
+			$sizes = [];
+
+			foreach ($snapshot->records as $record) {
+				if ($record->original !== null) {
+					$sizes[$record->original][] = $record;
+				}
+			}
+
+			foreach ($sizes as &$list) {
+				usort($list, static fn (MediaRecord $a, MediaRecord $b): int => [($a->width ?? 0) * ($a->height ?? 0), $a->key] <=> [($b->width ?? 0) * ($b->height ?? 0), $b->key]);
+			}
+
+			unset($list);
+
+			$this->sizes = [$snapshot, $sizes];
+		}
+
+		return $this->sizes[1][$key] ?? [];
+	}
+
+	/**
 	 * Finds files, newest first (then by path), a page at a time.
 	 *
 	 * @throws MediaException
@@ -89,6 +132,10 @@ final class MediaLibrary
 	{
 		$search = mb_strtolower(trim($query->search));
 		$found  = array_filter($this->snapshot()->records, static function (MediaRecord $record) use ($query, $search): bool {
+			if ($record->isVariant()) {
+				return false;
+			}
+
 			if ($query->kind !== null && $record->kind() !== $query->kind) {
 				return false;
 			}

@@ -23,6 +23,7 @@ use Blush\Media\MediaMetadataStore;
 use Blush\Http\Kernel;
 use Blush\Http\Request;
 use Blush\Http\UploadedFile;
+use Blush\Support\Uuid;
 use Psr\Http\Message\ResponseInterface;
 
 #[CoversClass(IconsController::class)]
@@ -140,6 +141,56 @@ final class AdminPickersTest extends TestCase
 	}
 
 	/**
+	 * @param positive-int $width
+	 * @param positive-int $height
+	 */
+	private function png(string $path, int $width, int $height): void
+	{
+		$image = imagecreatetruecolor($width, $height);
+		$this->assertNotFalse($image);
+		$this->writeTemporaryFile($path, '');
+		imagepng($image, $this->temporaryDirectory() . '/' . $path);
+	}
+
+	public function testListsOneItemPerImageWithItsSizes(): void
+	{
+		$this->png('user/media/2019/photo.png', 60, 40);
+		$this->png('user/media/2019/photo-30x20.png', 30, 20);
+		$this->png('user/media/2019/photo-15x10.png', 15, 10);
+		$this->writeTemporaryFile('user/data/media/2019/photo.png.yml', "alt: A photo\nsizes:\n  2019/photo-15x10.png: { width: 15, height: 10 }\n");
+		$this->writeTemporaryFile('user/content/uses-size.md', "---\ntitle: Uses a Size\nauthors: jane\n---\n![](/media/2019/photo-30x20.png)\n");
+		$this->site();
+
+		$list  = $this->media('?search=2019/photo');
+		$files = is_array($list['files'] ?? null) ? $list['files'] : [];
+
+		$this->assertSame(['photo.png'], array_column($files, 'name'), 'Sizes aren\'t items of their own (D-488).');
+		$this->assertSame([2], array_column($files, 'sizeCount'));
+
+		$image = self::json($this->send('GET', '/media/2019/photo.png'));
+		$sizes = is_array($image['sizes'] ?? null) ? $image['sizes'] : [];
+
+		$this->assertSame(['2019/photo-15x10.png', '2019/photo-30x20.png'], array_column($sizes, 'path'));
+		$this->assertSame([15, 30], array_column($sizes, 'width'), 'Smallest first.');
+		$this->assertNull($image['original'] ?? null);
+		$this->assertSame(['Uses a Size'], array_column(is_array($image['usedIn'] ?? null) ? $image['usedIn'] : [], 'title'), 'A size\'s uses are the image\'s.');
+
+		$size = self::json($this->send('GET', '/media/2019/photo-30x20.png'));
+
+		$this->assertSame(['2019/photo.png', 'A photo', false], [is_array($size['original'] ?? null) ? $size['original']['path'] ?? null : null, $size['alt'] ?? null, is_array($size['may'] ?? null) ? $size['may']['edit'] ?? null : null], 'A size goes by its image\'s details.');
+		$this->assertSame(422, $this->patch('2019/photo-30x20.png', ['alt' => 'Its own'])->getStatusCode());
+
+		$this->assertSame(200, $this->remove('2019/photo-15x10.png')->getStatusCode());
+		$this->assertStringNotContainsString('photo-15x10', (string) file_get_contents($this->temporaryDirectory() . '/user/data/media/2019/photo.png.yml'), 'A deleted size leaves its image\'s list.');
+
+		$deleted = self::json($this->remove('2019/photo.png'));
+
+		$this->assertSame(['2019/photo-30x20.png'], $deleted['sizes'] ?? null, 'An image goes with its sizes.');
+		$this->assertFileDoesNotExist($this->temporaryDirectory() . '/user/media/2019/photo-30x20.png');
+		$this->assertFileDoesNotExist($this->temporaryDirectory() . '/user/data/media/2019/photo.png.yml');
+	}
+
+	/**
 	 * Uploads a file with the multipart field `file`, as the browser would.
 	 */
 	private function upload(string $name, string $contents, int $error = UPLOAD_ERR_OK): ResponseInterface
@@ -172,6 +223,11 @@ final class AdminPickersTest extends TestCase
 		$this->assertMatchesRegularExpression('#^\d{4}/\d{2}$#', $folder, 'Filed by year and month.');
 		$this->assertSame(['My-Holiday-1.png', 'image', 1], [$file['name'] ?? null, $file['kind'] ?? null, $file['width'] ?? null], 'A name safe for a URL, with its extension lowercased.');
 		$this->assertFileExists($this->temporaryDirectory() . "/user/media/{$folder}/My-Holiday-1.png");
+		$id = $file['id'] ?? null;
+
+		$this->assertIsString($id);
+		$this->assertTrue(Uuid::isValid($id), 'Every upload has an id (D-487).');
+		$this->assertStringEndsWith("id: {$id}\n", (string) file_get_contents($this->temporaryDirectory() . "/user/data/media/{$folder}/My-Holiday-1.png.yml"), 'Kept last, after the owner.');
 
 		$again = self::json($this->upload('My Holiday (1).png', $png));
 

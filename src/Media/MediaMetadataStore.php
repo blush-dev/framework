@@ -33,7 +33,8 @@ use Blush\Support\Filesystem;
  *
  * Saving changes only the keys asked for (D-287), leaving any others,
  * and the rest of a YAML file, as they were written; a field is written
- * under whichever of its name and aliases the file already uses. A file
+ * under whichever of its name and aliases the file already uses, and a
+ * new key goes before the `id`, which stays last (D-487). A file
  * left with nothing in it is removed. A new file is YAML. A metadata file that
  * can't be read counts as none, so one bad file can't break the library;
  * `content:lint` is the place to hear about it.
@@ -121,6 +122,34 @@ final readonly class MediaMetadataStore
 		} catch (DataException) {
 			return true;
 		}
+	}
+
+	/**
+	 * Returns whether a media file's metadata can be written over: it has
+	 * no metadata file, or one that reads as a map. One that doesn't is
+	 * left for its author to fix (`content:lint` says why).
+	 */
+	public function isWritable(MediaFile $file): bool
+	{
+		$name = $this->name($file);
+
+		if ($name === null) {
+			return false;
+		}
+
+		try {
+			$path = $this->data->find($this->paths->data, $name);
+
+			if ($path === null) {
+				return true;
+			}
+
+			$data = $this->data->loadFile($path);
+		} catch (Throwable) {
+			return false;
+		}
+
+		return $data === [] || ! array_is_list($data);
 	}
 
 	/**
@@ -223,7 +252,13 @@ final readonly class MediaMetadataStore
 		$map = YamlMap::fromText($text);
 
 		foreach ($changes as [$keys, $value]) {
-			$map = $value === null ? $map->without($keys) : $map->with($keys, $value);
+			// An image's sizes go one to a line (D-488).
+			$map = match (true) {
+				$value === null                  => $map->without($keys),
+				$keys === [MediaMetadata::ID]    => $map->without($keys)->with($keys, $value),
+				$keys === [MediaMetadata::SIZES] => $map->with($keys, $value, 2, MediaMetadata::ID),
+				default                          => $map->with($keys, $value, before: MediaMetadata::ID)
+			};
 		}
 
 		return $map->text();
@@ -253,6 +288,13 @@ final readonly class MediaMetadataStore
 			} else {
 				$data[array_find($keys, static fn (string $key): bool => array_key_exists($key, $data)) ?? $keys[0]] = $value;
 			}
+		}
+
+		// The id stays last.
+		if (array_key_exists(MediaMetadata::ID, $data)) {
+			$id = $data[MediaMetadata::ID];
+			unset($data[MediaMetadata::ID]);
+			$data[MediaMetadata::ID] = $id;
 		}
 
 		return $data === [] ? '' : json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR) . "\n";

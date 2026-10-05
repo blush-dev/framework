@@ -607,6 +607,9 @@ final class AdminContentTest extends TestCase
 		$this->assertSame(403, $this->send('GET', '/health')->getStatusCode());
 		$this->assertSame(403, $this->send('POST', '/health/ids', '{}', ['X-CSRF-Token' => $token])->getStatusCode(), 'Nor fix ids.');
 		$this->assertSame(403, $this->send('POST', '/health/ids/keep', '{"path": "live.md"}', ['X-CSRF-Token' => $token])->getStatusCode());
+		$this->assertSame(403, $this->send('POST', '/health/media-ids', '{}', ['X-CSRF-Token' => $token])->getStatusCode(), 'Nor media ids.');
+		$this->assertSame(403, $this->send('POST', '/health/media-ids/keep', '{"path": "a.png"}', ['X-CSRF-Token' => $token])->getStatusCode());
+		$this->assertSame(403, $this->send('POST', '/health/media-sizes', '{}', ['X-CSRF-Token' => $token])->getStatusCode(), 'Nor record sizes.');
 	}
 
 	public function testFixesMissingAndSharedIds(): void
@@ -651,6 +654,54 @@ final class AdminContentTest extends TestCase
 
 		$this->assertSame('live.md', $content->find(self::LIVE)?->path, 'The one kept keeps it.');
 		$this->assertSame(['missing' => [], 'duplicates' => []], self::json($this->send('GET', '/health'))['ids'] ?? null);
+	}
+
+	public function testFixesMediaIds(): void
+	{
+		$png = (string) base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', true);
+
+		$this->writeTemporaryFile('user/media/2026/lake.png', $png);
+		$this->writeTemporaryFile('user/media/2026/copy.png', $png);
+		$this->writeTemporaryFile('user/media/2026/new.png', $png);
+		$this->writeTemporaryFile('user/data/media/2026/lake.png.yml', "id: " . self::LIVE . "\n");
+		$this->writeTemporaryFile('user/data/media/2026/copy.png.yml', "alt: A copy\nid: " . self::LIVE . "\n");
+		$this->site(['editor']);
+		$token = $this->token();
+
+		$this->assertSame(['missing' => ['2026/new.png'], 'duplicates' => [['id' => self::LIVE, 'paths' => ['2026/copy.png', '2026/lake.png']]]], self::json($this->send('GET', '/health'))['mediaIds'] ?? null, 'Media ids, by path in the media folder (D-487).');
+
+		$assigned = self::json($this->send('POST', '/health/media-ids', '{}', ['X-CSRF-Token' => $token]))['assigned'] ?? null;
+
+		$this->assertIsArray($assigned);
+		$this->assertSame(['2026/new.png'], array_keys($assigned));
+		$this->assertSame(422, $this->send('POST', '/health/media-ids/keep', '{"path": "2026/new.png"}', ['X-CSRF-Token' => $token])->getStatusCode(), 'Only a file that shares its id.');
+		$this->assertSame(400, $this->send('POST', '/health/media-ids/keep', '{}', ['X-CSRF-Token' => $token])->getStatusCode());
+
+		$kept = self::json($this->send('POST', '/health/media-ids/keep', '{"path": "2026/lake.png"}', ['X-CSRF-Token' => $token]))['assigned'] ?? null;
+
+		$this->assertIsArray($kept);
+		$this->assertSame(['2026/copy.png'], array_keys($kept));
+		$this->assertSame(['missing' => [], 'duplicates' => []], self::json($this->send('GET', '/health'))['mediaIds'] ?? null);
+	}
+
+	public function testRecordsImageSizes(): void
+	{
+		foreach (['photo.png' => [60, 40], 'photo-30x20.png' => [30, 20]] as $name => [$width, $height]) {
+			$image = imagecreatetruecolor($width, $height);
+			$this->assertNotFalse($image);
+			$this->writeTemporaryFile("user/media/2019/{$name}", '');
+			imagepng($image, $this->temporaryDirectory() . "/user/media/2019/{$name}");
+		}
+
+		$this->site(['editor']);
+		$token = $this->token();
+
+		$this->assertSame(['sizes' => 1, 'images' => 1, 'stale' => 0], self::json($this->send('GET', '/health'))['mediaSizes'] ?? null, 'Sizes found by rule, not yet recorded (D-488).');
+
+		$recorded = self::json($this->send('POST', '/health/media-sizes', '{}', ['X-CSRF-Token' => $token]));
+
+		$this->assertSame(['2019/photo.png' => ['2019/photo-30x20.png']], $recorded['recorded'] ?? null);
+		$this->assertSame(['sizes' => 0, 'images' => 0, 'stale' => 0], self::json($this->send('GET', '/health'))['mediaSizes'] ?? null);
 	}
 
 	public function testMakesPreviewLinksForEntriesTheAccountMayEdit(): void

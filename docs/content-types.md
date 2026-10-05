@@ -73,7 +73,7 @@ return new ContentConfig(
 ```
 
 **In a plugin**, with the same classes, when the types belong with
-code you install, like a plugin registering post types in WordPress. See
+code you install. See
 [Content types from a plugin](extending.md#content-types-from-a-plugin).
 
 ### Changing a type from code

@@ -27,7 +27,8 @@ use Blush\Field\Schema;
  * as a schema: the built-in fields (`builtIn()`), then the fields of the
  * field sets attached to the kind (`media:image`, and so on), in set name
  * order (`FieldSets::schemaFor()`). A set's field can't reuse a built-in
- * field's name.
+ * field's name, or claim `id`, `owner`, or `sizes`, which aren't fields
+ * (D-407, D-487, D-488).
  */
 final class MediaSchemas
 {
@@ -83,10 +84,18 @@ final class MediaSchemas
 		}
 
 		try {
-			return $this->schemas[$kind->value] = $this->sets->schemaFor(new MediaKindTarget($kind));
+			$schema = $this->sets->schemaFor(new MediaKindTarget($kind));
 		} catch (InvalidSchema $e) {
 			throw new InvalidConfig($e->getMessage(), previous: $e);
 		}
+
+		foreach ([MediaMetadata::ID => 'id', MediaMetadata::OWNER => 'uploader', MediaMetadata::SIZES => 'sizes'] as $key => $what) {
+			if ($schema->field($key) !== null) {
+				throw new InvalidConfig(sprintf('A field set for %s media has a field (or alias) named "%s", which is reserved for the file\'s %s; rename it.', $kind->value, $key, $what));
+			}
+		}
+
+		return $this->schemas[$kind->value] = $schema;
 	}
 
 	/**

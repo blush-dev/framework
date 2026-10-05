@@ -27,6 +27,7 @@ use Blush\Console\Commands\CreateTheme;
 use Blush\Console\Commands\ExplainView;
 use Blush\Console\Commands\Help;
 use Blush\Console\Commands\FixIds;
+use Blush\Console\Commands\FixMediaIds;
 use Blush\Console\Commands\IndexContent;
 use Blush\Console\Commands\IndexMedia;
 use Blush\Console\Commands\LintContent;
@@ -41,6 +42,7 @@ use Blush\Console\Commands\ListThemes;
 use Blush\Console\Commands\PreviewContent;
 use Blush\Console\Commands\Publish;
 use Blush\Console\Commands\PublishMedia;
+use Blush\Console\Commands\RecordMediaSizes;
 use Blush\Console\Commands\PublishThemes;
 use Blush\Console\Commands\ReinstateAccount;
 use Blush\Console\Commands\RemoveAccount;
@@ -76,8 +78,10 @@ enum BuiltInCommand: string
 	case ContentList   = 'content:list';
 	case ContentNew    = 'content:new';
 	case ContentPreview = 'content:preview';
+	case MediaIds      = 'media:ids';
 	case MediaIndex    = 'media:index';
 	case MediaPublish  = 'media:publish';
+	case MediaSizes    = 'media:sizes';
 	case ThemeList     = 'theme:list';
 	case ThemeActivate = 'theme:activate';
 	case ThemeNew      = 'theme:new';
@@ -127,8 +131,10 @@ enum BuiltInCommand: string
 			self::ContentList   => ListContent::class,
 			self::ContentNew    => CreateContent::class,
 			self::ContentPreview => PreviewContent::class,
+			self::MediaIds      => FixMediaIds::class,
 			self::MediaIndex    => IndexMedia::class,
 			self::MediaPublish  => PublishMedia::class,
+			self::MediaSizes    => RecordMediaSizes::class,
 			self::ThemeList     => ListThemes::class,
 			self::ThemeActivate => ActivateTheme::class,
 			self::ThemeNew      => CreateTheme::class,

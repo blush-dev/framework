@@ -38,7 +38,8 @@ use Blush\Support\Filesystem;
  * file, and happens by itself when the media URL or allowed types
  * changed. Metadata files are found in one walk of `user/data/media`,
  * which also finds the ones whose media file is gone (`orphans`). The
- * index is written only when something changed.
+ * index is written only when something changed. Each run also finds the
+ * images that are sizes of another (`MediaVariants`, D-239).
  */
 final readonly class MediaIndexer
 {
@@ -59,12 +60,15 @@ final readonly class MediaIndexer
 
 	/**
 	 * Indexes the media. `$progress` is called after each file with the
-	 * number done and the total.
+	 * number done and the total. `$written` are the keys of files whose
+	 * metadata was just written, which are read again even when the
+	 * write left the modified time where it was (in the same second).
 	 *
 	 * @param  ?Closure(int, int): void $progress
+	 * @param  list<string>             $written
 	 * @throws MediaException When the index can't be written.
 	 */
-	public function index(bool $full = false, ?Closure $progress = null): MediaIndexReport
+	public function index(bool $full = false, ?Closure $progress = null, array $written = []): MediaIndexReport
 	{
 		$fingerprint = $this->fingerprint();
 		$previous    = $this->index->snapshot();
@@ -72,27 +76,20 @@ final readonly class MediaIndexer
 		$files       = $this->files();
 		$described   = array_map(static fn (array $file): array => [$file['path'], $file['modified']], $this->store->files());
 		$records     = [];
-		$added       = [];
-		$changed     = [];
 		$done        = 0;
+		$reread      = array_flip($written);
 
 		foreach ($files as $key => [$size, $modified]) {
-			$old     = $previous->records[$key] ?? null;
-			$written = $described[$key] ?? null;
+			$old  = $previous->records[$key] ?? null;
+			$data = $described[$key] ?? null;
 
-			if (! $full && $old !== null && $old->size === $size && $old->modified === $modified && $old->described === ($written[1] ?? null)) {
+			if (! $full && ! isset($reread[$key]) && $old !== null && $old->size === $size && $old->modified === $modified && $old->described === ($data[1] ?? null)) {
 				$records[$key] = $old;
 			} else {
-				$record = $this->record($key, $modified, $written);
+				$record = $this->record($key, $modified, $data);
 
 				if ($record !== null) {
 					$records[$key] = $record;
-
-					if ($old === null) {
-						$added[] = $key;
-					} elseif ($old->toArray() !== $record->toArray()) {
-						$changed[] = $key;
-					}
 				}
 			}
 
@@ -103,17 +100,37 @@ final readonly class MediaIndexer
 			}
 		}
 
+		// Sizes of other images (D-239), which a file beside them can
+		// change without changing themselves.
+		$variants = MediaVariants::find($records);
+		$added    = [];
+		$changed  = [];
+
+		foreach ($records as $key => $record) {
+			if ($record->original !== ($variants[$key] ?? null)) {
+				$records[$key] = $record = $record->withOriginal($variants[$key] ?? null);
+			}
+
+			$old = $previous->records[$key] ?? null;
+
+			if ($old === null) {
+				$added[] = $key;
+			} elseif ($old !== $record && $old->toArray() !== $record->toArray()) {
+				$changed[] = $key;
+			}
+		}
+
 		$removed = array_map(strval(...), array_keys(array_diff_key($previous->records, $records)));
 		$orphans = array_map(strval(...), array_keys(array_diff_key($described, $records)));
 		sort($orphans);
 
-		$written = $full || $added !== [] || $changed !== [] || $removed !== [] || $orphans !== $previous->orphans || ! $this->index->exists();
+		$save = $full || $added !== [] || $changed !== [] || $removed !== [] || $orphans !== $previous->orphans || ! $this->index->exists();
 
-		if ($written) {
+		if ($save) {
 			$this->index->save(new MediaSnapshot($fingerprint, $this->clock->now()->getTimestamp(), $records, $orphans));
 		}
 
-		return new MediaIndexReport(count($records), $added, $changed, $removed, $orphans, $written);
+		return new MediaIndexReport(count($records), $added, $changed, $removed, $orphans, $save);
 	}
 
 	/**

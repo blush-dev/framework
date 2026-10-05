@@ -25,6 +25,7 @@ use Blush\Field\Control;
 use Blush\Field\FieldSet;
 use Blush\Field\FieldType;
 use Blush\Field\Schema;
+use Blush\Media\MediaMetadata;
 use Blush\Media\MediaSchemas;
 use Blush\Menu\Link\MenuLinkType;
 use Blush\Region\Item\RegionItemType;
@@ -347,19 +348,41 @@ final readonly class JsonSchemas
 	/**
 	 * Returns the schema for a media file's metadata file
 	 * (`user/data/media/…`, D-287): the built-in fields, every kind's and
-	 * each kind's together, since a data file doesn't say its kind. A
-	 * site's and extensions' fields differ by site, so other keys are
-	 * allowed.
+	 * each kind's together, since a data file doesn't say its kind, and
+	 * the file's `id` (D-487), which a size of another image doesn't
+	 * have, so it isn't required, and an image's `sizes` (D-488). A site's and extensions' fields differ
+	 * by site, so other keys are allowed.
 	 *
 	 * @return array<string, mixed>
 	 */
 	public function media(): array
 	{
+		$schema = MediaSchemas::allBuiltIn()->jsonSchema();
+		$fields = is_array($schema['properties'] ?? null) ? $schema['properties'] : [];
+
 		return [
 			'$schema'     => self::DRAFT,
 			'title'       => sprintf('%s media metadata', Framework::NAME),
 			'description' => 'A media file\'s metadata, kept in user/data/media: the built-in fields (alt is for images). Sites and extensions add their own.',
-			...MediaSchemas::allBuiltIn()->jsonSchema()
+			...$schema,
+			'properties'  => [
+				...$fields,
+				MediaMetadata::SIZES => [
+					'type'                 => 'object',
+					'description'          => 'An image\'s other sizes: each file\'s path in user/media, with its width and height. media:sizes records them.',
+					'additionalProperties' => [
+						'type'                 => 'object',
+						'properties'           => ['width' => ['type' => 'integer', 'minimum' => 1], 'height' => ['type' => 'integer', 'minimum' => 1]],
+						'required'             => ['width', 'height'],
+						'additionalProperties' => false
+					]
+				],
+				MediaMetadata::ID => [
+					'type'        => 'string',
+					'pattern'     => '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$',
+					'description' => 'The media file\'s id, a UUID, kept last. Blush writes it; media:ids adds a missing one.'
+				]
+			]
 		];
 	}
 

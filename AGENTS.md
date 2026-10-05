@@ -123,7 +123,10 @@ where it is, outside "any status" and every status control (D-484);
 and storage as a driver per area (content, data, accounts, sessions)
 named in config or `STORAGE_DRIVER`, with `filesystem` the only one
 for now, so a site can later keep its data in a database (D-485,
-D-486); build stored data with that in mind.
+D-486); build stored data with that in mind; and an id for every media
+original, with image sizes found by rule and given none
+(D-487), and sizes recorded in their image's details, the library
+listing one item per image (D-488).
 The Fields
 API (D-337 to D-348: field types and controls, field sets on content
 types, media, and the Settings screens, slots, and Structure → Fields)

@@ -56,16 +56,16 @@ final class MediaMetadataCheckTest extends TestCase
 		$this->writeTemporaryFile('user/content/trip/index.md', "---\ntitle: Trip\nid: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e75\n---\n");
 		$this->writeTemporaryFile('user/media/trip/shell.png', $png);
 
-		$this->writeTemporaryFile('user/data/media/2026/lake.png.yml', "alt: A lake at dawn\ncaption: Mist on the water\n");
-		$this->writeTemporaryFile('user/data/media/2026/sunset.png.json', '{"alt": "The sun going down"}');
+		$this->writeTemporaryFile('user/data/media/2026/lake.png.yml', "alt: A lake at dawn\ncaption: Mist on the water\nid: 0199b6e2-7f3a-7c41-9d2e-000000000001\n");
+		$this->writeTemporaryFile('user/data/media/2026/sunset.png.json', '{"alt": "The sun going down", "id": "0199b6e2-7f3a-7c41-9d2e-000000000002"}');
 		$this->writeTemporaryFile('user/data/media/2026/sunset.png.yml', "alt: An older description\n");
 		$this->writeTemporaryFile('user/data/media/2026/broken.png.yml', "alt: [unclosed\n");
 		$this->writeTemporaryFile('user/data/media/2026/listed.png.yml', "- A lake\n- At dawn\n");
-		$this->writeTemporaryFile('user/data/media/2026/odd.png.yml', "alt:\n  nested: value\nmood: calm\n");
+		$this->writeTemporaryFile('user/data/media/2026/odd.png.yml', "alt:\n  nested: value\nmood: calm\nid: 0199b6e2-7f3a-7c41-9d2e-000000000003\n");
 		$this->writeTemporaryFile('user/data/media/2019/gone.png.yml', "alt: Deleted\n");
 		$this->writeTemporaryFile('user/data/media/fake.png.yml', "alt: Not an image\n");
 		$this->writeTemporaryFile('user/data/media/_content/trip/beach.png.yml', "credit: Jane Doe\n");
-		$this->writeTemporaryFile('user/data/media/trip/shell.png.yml', "alt: A shell\n");
+		$this->writeTemporaryFile('user/data/media/trip/shell.png.yml', "alt: A shell\nid: 0199b6e2-7f3a-7c41-9d2e-000000000004\n");
 
 		$app = $this->scratchApplication();
 		$app->boot();

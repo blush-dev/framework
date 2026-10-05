@@ -136,8 +136,10 @@ function icon(file: MediaItem): IconName {
 	return file.kind === 'video' ? 'film' : (file.kind === 'audio' ? 'music' : (file.kind === 'document' ? 'file-text' : 'file'));
 }
 
+// Its facts, and how many sizes an image has (D-488), which aren't
+// cards of their own.
 function details(file: MediaItem): string {
-	return mediaFacts(file);
+	return [mediaFacts(file), file.sizeCount ? plural(file.sizeCount, 'size') : ''].filter((part) => part !== '').join(' · ');
 }
 
 // A library file's screen is at its path under `user/media`.
