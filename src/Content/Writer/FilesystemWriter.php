@@ -27,9 +27,10 @@ use Blush\Content\Index\Indexer;
 use Blush\Content\Index\IndexReport;
 use Blush\Content\EntryFields;
 use Blush\Content\Status;
-use Blush\Content\Parser\DocumentFormat;
-use Blush\Content\Parser\DocumentParsers;
+use Blush\Content\Parser\DocumentParser;
 use Blush\Content\Parser\InvalidDocument;
+use Blush\Content\Source\FilesystemSource;
+use Blush\Content\Storage\FilesystemStorage;
 use Blush\Content\Type\ContentType;
 use Blush\Content\Type\ContentTypes;
 use Blush\Content\Type\DateArchives;
@@ -44,8 +45,8 @@ use Blush\Support\Uuid;
  * Writes content files in `user/content` (D-228):
  *
  * - **Confined:** every path is resolved inside the content folder, and
- *   only content formats (`DocumentFormat`) are written, never anything
- *   executable (D-039).
+ *   only `.md` files are written (D-501), never anything executable
+ *   (D-039).
  * - **Safe:** edits go through `DocumentEditor`, which keeps the file's
  *   formatting and refuses results that wouldn't read back as intended;
  *   files are written atomically, one write at a time (a lock file in
@@ -70,7 +71,7 @@ final readonly class FilesystemWriter implements ContentWriter
 	public function __construct(
 		private Paths $paths,
 		private Filesystem $filesystem,
-		private DocumentParsers $parsers,
+		private DocumentParser $parser,
 		private DocumentEditor $editor,
 		private ContentTypes $types,
 		private ContentRepository $content,
@@ -89,7 +90,7 @@ final readonly class FilesystemWriter implements ContentWriter
 		$contents = $this->read($file);
 
 		try {
-			$document = $this->parsers->parse($path, $contents);
+			$document = $this->parser->parse($contents);
 		} catch (InvalidDocument $e) {
 			throw new WriteException(sprintf('%s can\'t be read: %s', $path, $e->getMessage()), previous: $e);
 		}
@@ -104,18 +105,14 @@ final readonly class FilesystemWriter implements ContentWriter
 	 * @inheritDoc
 	 */
 	#[Override]
-	public function create(ContentType $type, string $slug, EntryChanges $changes, ?DateTimeInterface $date = null, string $format = 'md'): WriteResult
+	public function create(ContentType $type, string $slug, EntryChanges $changes, ?DateTimeInterface $date = null): WriteResult
 	{
 		if (! Slug::isSlug($slug)) {
 			throw new WriteException(sprintf('"%s" isn\'t a slug; try "%s".', $slug, Slug::from($slug)));
 		}
 
-		if (DocumentFormat::tryFrom($format) === null) {
-			throw new WriteException(sprintf('"%s" isn\'t a content format.', $format));
-		}
-
 		$date ??= $this->clock->now();
-		$name   = ($type->dateArchives === DateArchives::None ? '' : $date->format('Y-m-d') . '.') . "{$slug}.{$format}";
+		$name   = ($type->dateArchives === DateArchives::None ? '' : $date->format('Y-m-d') . '.') . "{$slug}." . FilesystemStorage::EXTENSION;
 		$path     = ltrim("{$type->folder}/{$name}", '/');
 		$file   = $this->file($path);
 
@@ -136,22 +133,17 @@ final readonly class FilesystemWriter implements ContentWriter
 	 * @inheritDoc
 	 */
 	#[Override]
-	public function createAt(ContentType $type, string $key, EntryChanges $changes, string $format = 'md'): WriteResult
+	public function createAt(ContentType $type, string $key, EntryChanges $changes): WriteResult
 	{
 		if (! array_all(explode('/', $key), static fn (string $segment): bool => Slug::isSlug(ltrim($segment, '_')) && strlen(ltrim($segment, '_')) >= strlen($segment) - 1)) {
 			throw new WriteException(sprintf('"%s" isn\'t a page key: slugs separated by "/", each may start with "_".', $key));
 		}
 
-		if (DocumentFormat::tryFrom($format) === null) {
-			throw new WriteException(sprintf('"%s" isn\'t a content format.', $format));
-		}
-
-		$path   = ltrim("{$type->folder}/{$key}.{$format}", '/');
+		$path = ltrim("{$type->folder}/{$key}." . FilesystemStorage::EXTENSION, '/');
 		$file = $this->file($path);
 
-		return $this->locked(function () use ($path, $file, $type, $changes, $format): WriteResult {
-			// The page in any format is the same page.
-			if (glob(substr($file, 0, -strlen($format) - 1) . '.*') !== []) {
+		return $this->locked(function () use ($path, $file, $type, $changes): WriteResult {
+			if (file_exists($file)) {
 				throw new WriteException(sprintf('%s already exists.', $this->paths->relative($file)));
 			}
 
@@ -167,17 +159,13 @@ final readonly class FilesystemWriter implements ContentWriter
 	 * @inheritDoc
 	 */
 	#[Override]
-	public function createUnder(string $parentPath, string $slug, EntryChanges $changes, string $format = 'md'): WriteResult
+	public function createUnder(string $parentPath, string $slug, EntryChanges $changes): WriteResult
 	{
 		if (! Slug::isSlug($slug)) {
 			throw new WriteException(sprintf('"%s" isn\'t a slug; try "%s".', $slug, Slug::from($slug)));
 		}
 
-		if (DocumentFormat::tryFrom($format) === null) {
-			throw new WriteException(sprintf('"%s" isn\'t a content format.', $format));
-		}
-
-		return $this->locked(function () use ($parentPath, $slug, $changes, $format): WriteResult {
+		return $this->locked(function () use ($parentPath, $slug, $changes): WriteResult {
 			$parent = $this->content->findPath($parentPath);
 
 			if ($parent === null || ! $parent->type instanceof Tree) {
@@ -190,25 +178,24 @@ final readonly class FilesystemWriter implements ContentWriter
 
 			$type   = $parent->type;
 			$folder = ltrim("{$type->folder}/{$parent->key}", '/');
-			$path     = "{$folder}/{$slug}.{$format}";
+			$path     = "{$folder}/{$slug}." . FilesystemStorage::EXTENSION;
 			$file   = $this->file($path);
 
 			if (
 				$this->content->named($type->name, "{$parent->key}/{$slug}") !== null
-				|| glob(substr($file, 0, -strlen($format) - 1) . '.*') !== []
-				|| glob($this->folder("{$folder}/{$slug}") . '/index.*') !== []
+				|| file_exists($file)
+				|| file_exists($this->folder("{$folder}/{$slug}") . '/index.' . FilesystemStorage::EXTENSION)
 			) {
 				throw new WriteException(sprintf('There\'s already a page at %s/%s.', $parent->key, $slug));
 			}
 
 			// Edited before anything moves, so a refused edit moves nothing.
-			$contents  = $this->editor->edit($path, '', $this->withId($changes), $this->keys($type->name));
-			$extension = pathinfo($parent->path, PATHINFO_EXTENSION);
-			$moved     = [];
-			$made      = ! is_dir($this->folder($folder));
+			$contents = $this->editor->edit($path, '', $this->withId($changes), $this->keys($type->name));
+			$moved    = [];
+			$made     = ! is_dir($this->folder($folder));
 
-			if ($parent->path === "{$folder}.{$extension}") {
-				$moved = [$parent->path => $this->promote($parent->path, $folder, $extension)];
+			if ($parent->path === "{$folder}." . FilesystemStorage::EXTENSION) {
+				$moved = [$parent->path => $this->promote($parent->path, $folder)];
 			}
 
 			try {
@@ -236,11 +223,11 @@ final readonly class FilesystemWriter implements ContentWriter
 	 *
 	 * @throws WriteException When the folder already has a page.
 	 */
-	private function promote(string $path, string $folder, string $extension): string
+	private function promote(string $path, string $folder): string
 	{
 		$directory = $this->folder($folder);
 
-		if (glob("{$directory}/index.*") !== []) {
+		if (file_exists("{$directory}/index." . FilesystemStorage::EXTENSION)) {
 			throw new WriteException(sprintf('%s can\'t move into %s/: that folder already has a page. Remove one of the two, then try again.', $path, $folder));
 		}
 
@@ -250,7 +237,7 @@ final readonly class FilesystemWriter implements ContentWriter
 			throw new WriteException(sprintf('The folder %s couldn\'t be created.', $this->paths->relative($directory)));
 		}
 
-		$newPath = "{$folder}/index.{$extension}";
+		$newPath = "{$folder}/index." . FilesystemStorage::EXTENSION;
 
 		if (! @rename($this->file($path), $this->file($newPath))) {
 			if ($made) {
@@ -441,7 +428,7 @@ final readonly class FilesystemWriter implements ContentWriter
 				}
 
 				foreach ($this->filesystem->files($this->folder($from), links: false) as $relative => $absolute) {
-					if ($this->parsers->supports($relative)) {
+					if (FilesystemSource::isContent($relative)) {
 						$moved["{$from}/{$relative}"] = "{$to}/{$relative}";
 					}
 				}
@@ -453,8 +440,8 @@ final readonly class FilesystemWriter implements ContentWriter
 			$made = ! is_dir($this->folder($target));
 
 			try {
-				if ($parent !== null && $parent->path === "{$target}." . pathinfo($parent->path, PATHINFO_EXTENSION)) {
-					$promoted = $this->promote($parent->path, $target, pathinfo($parent->path, PATHINFO_EXTENSION));
+				if ($parent !== null && $parent->path === "{$target}." . FilesystemStorage::EXTENSION) {
+					$promoted = $this->promote($parent->path, $target);
 					$done[]   = [$this->file($parent->path), $this->file($promoted)];
 					$moved    = [$parent->path => $promoted, ...$moved];
 				}
@@ -630,13 +617,13 @@ final readonly class FilesystemWriter implements ContentWriter
 
 	/**
 	 * Returns the absolute path for an entry's path, confined to the content folder
-	 * and to content formats.
+	 * and to `.md` files.
 	 *
 	 * @throws WriteException
 	 */
 	private function file(string $path): string
 	{
-		if ($path === '' || str_starts_with($path, '/') || ! $this->parsers->supports($path) || str_contains($path, "\0")) {
+		if ($path === '' || str_starts_with($path, '/') || ! FilesystemSource::isContent($path) || str_contains($path, "\0")) {
 			throw new WriteException(sprintf('"%s" isn\'t a content file.', $path));
 		}
 
@@ -749,7 +736,7 @@ final readonly class FilesystemWriter implements ContentWriter
 	private function hasId(string $path, string $contents): bool
 	{
 		try {
-			return Uuid::isValid($this->parsers->parse($path, $contents)->frontMatter[EntryFields::ID] ?? null);
+			return Uuid::isValid($this->parser->parse($contents)->frontMatter[EntryFields::ID] ?? null);
 		} catch (InvalidDocument) {
 			return false;
 		}

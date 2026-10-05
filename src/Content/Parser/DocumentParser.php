@@ -14,16 +14,24 @@ declare(strict_types=1);
 namespace Blush\Content\Parser;
 
 /**
- * Parses one kind of content file into a `Document`. Parsers are
- * registered by file extension in the `DocumentParserRegistry` (D-019);
- * extensions can add formats.
+ * Parses a content document: YAML front matter, then a Markdown body
+ * (D-501). Every storage driver hands documents over in this shape; the
+ * filesystem driver keeps each as a `.md` file.
  */
-interface DocumentParser
+final readonly class DocumentParser
 {
+	public function __construct(private FrontMatter $frontMatter)
+	{}
+
 	/**
-	 * Parses a content file's contents.
+	 * Parses a document's contents.
 	 *
 	 * @throws InvalidDocument
 	 */
-	public function parse(string $contents): Document;
+	public function parse(string $contents): Document
+	{
+		[$data, $body] = $this->frontMatter->parse($contents);
+
+		return new Document($data, $body);
+	}
 }

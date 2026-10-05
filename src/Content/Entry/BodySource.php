@@ -13,16 +13,13 @@ declare(strict_types=1);
 
 namespace Blush\Content\Entry;
 
-use Blush\Content\Parser\BodyFormat;
-
 /**
- * A body as written and its format. Entries get it as a lazy ghost that
+ * A body as written, in Markdown. Entries get it as a lazy ghost that
  * reads and parses the file on first use.
  */
 final readonly class BodySource
 {
 	public function __construct(
-		public string $text = '',
-		public BodyFormat $format = BodyFormat::Markdown
+		public string $text = ''
 	) {}
 }

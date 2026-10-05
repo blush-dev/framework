@@ -14,7 +14,7 @@ declare(strict_types=1);
 namespace Blush\Admin;
 
 use Psr\Http\Message\ResponseInterface;
-use Blush\Content\Parser\DocumentFormat;
+use Blush\Content\Storage\FilesystemStorage;
 use Blush\Content\Type\ContentConfig;
 use Blush\Content\Type\ContentType;
 use Blush\Content\Type\ContentTypes;
@@ -258,15 +258,13 @@ final readonly class TypesController
 			return null;
 		}
 
-		foreach (DocumentFormat::cases() as $format) {
-			$path = "{$type->folder}/{$name}.{$format->value}";
+		$path = "{$type->folder}/{$name}." . FilesystemStorage::EXTENSION;
 
-			if (is_file("{$this->paths->content}/{$path}")) {
-				return ['id' => self::id("{$this->paths->content}/{$path}"), 'type' => $type->name, 'path' => $path, 'title' => self::title("{$this->paths->content}/{$path}") ?? $fallback];
-			}
+		if (! is_file("{$this->paths->content}/{$path}")) {
+			return null;
 		}
 
-		return null;
+		return ['id' => self::id("{$this->paths->content}/{$path}"), 'type' => $type->name, 'path' => $path, 'title' => self::title("{$this->paths->content}/{$path}") ?? $fallback];
 	}
 
 	/**

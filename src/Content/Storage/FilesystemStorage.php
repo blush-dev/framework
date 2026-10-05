@@ -18,10 +18,17 @@ use Blush\Content\Source\FilesystemSource;
 use Blush\Content\Writer\FilesystemWriter;
 
 /**
- * Content as files in `user/content`, the default.
+ * Content as files in `user/content`, the default: each document a
+ * Markdown file with front matter (`.md`, D-501).
  */
 final readonly class FilesystemStorage implements ContentStorage
 {
+	/**
+	 * The extension of a content file, without the dot. Other files in
+	 * the content folder aren't content.
+	 */
+	public const string EXTENSION = 'md';
+
 	/**
 	 * @inheritDoc
 	 */

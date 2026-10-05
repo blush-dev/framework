@@ -241,7 +241,7 @@ final class FilesystemWriterTest extends TestCase
 		$this->expectException(WriteException::class);
 		$this->expectExceptionMessage('already exists');
 
-		$this->writer()->createAt($post, '_authors/jane', new EntryChanges(), 'json');
+		$this->writer()->createAt($post, '_authors/jane', new EntryChanges());
 	}
 
 	public function testCreatesPagesUnderAPageInAFolder(): void
@@ -310,7 +310,7 @@ final class FilesystemWriterTest extends TestCase
 	public function testMovesNothingWhenTheParentsFolderHasAPage(): void
 	{
 		$this->writeTemporaryFile('user/content/services.md', "---\ntitle: Services\n---\n");
-		$this->writeTemporaryFile('user/content/services/index.yaml', "title: Other Services\n");
+		$this->writeTemporaryFile('user/content/services/index.md', "---\ntitle: Other Services\n---\n");
 		$this->app = $this->site('development');
 
 		try {
@@ -404,22 +404,15 @@ final class FilesystemWriterTest extends TestCase
 		$this->writer()->move('biography.md', null, $stale);
 	}
 
-	public function testEditsJsonAndYamlEntries(): void
+	public function testWritesOnlyMarkdownFiles(): void
 	{
-		$this->writeTemporaryFile('user/content/data.yaml', "# Kept.\ntitle: Data\nbody: Old\n");
+		$this->writeTemporaryFile('user/content/data.yaml', "title: Data\n");
 		$this->app = $this->site('development');
 
-		$this->writer()->update('notes.json', new EntryChanges(set: ['title' => 'Better Notes'], body: 'New *notes*.'));
-		$this->writer()->update('data.yaml', new EntryChanges(set: ['status' => 'draft'], body: "Line one\nLine two"));
+		$this->expectException(WriteException::class);
+		$this->expectExceptionMessage('"data.yaml" isn\'t a content file.');
 
-		$this->assertSame("{\n    \"title\": \"Better Notes\",\n    \"body\": \"New *notes*.\",\n    \"id\": \"{$this->content()->findPath('notes.json')?->id}\"\n}\n", $this->file('notes.json'));
-		$this->assertSame("# Kept.\ntitle: Data\nbody: |-\n  Line one\n  Line two\nstatus: draft\nid: {$this->content()->findPath('data.yaml')?->id}\n", $this->file('data.yaml'));
-
-		$this->writer()->update('data.yaml', new EntryChanges(set: ['summary' => 'Short.']));
-		$this->writer()->update('notes.json', new EntryChanges(set: ['summary' => 'Short.']));
-
-		$this->assertStringEndsWith("summary: Short.\nid: {$this->content()->findPath('data.yaml')?->id}\n", $this->file('data.yaml'), 'A new key goes before the id, which stays last.');
-		$this->assertStringEndsWith("\"summary\": \"Short.\",\n    \"id\": \"{$this->content()->findPath('notes.json')?->id}\"\n}\n", $this->file('notes.json'));
+		$this->writer()->update('data.yaml', new EntryChanges(set: ['title' => 'Better Data']));
 	}
 
 	public function testRenamesKeepingTheDateOrTheBundle(): void

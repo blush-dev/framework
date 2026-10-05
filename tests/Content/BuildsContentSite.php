@@ -116,7 +116,7 @@ trait BuildsContentSite
 		$this->entry('topics/art.md', 'title: Art');
 		$this->entry('profiles/justintadlock.md', 'title: Justin Tadlock', 'Writes things.');
 		$this->entry('profiles/guest.md', 'title: A Guest');
-		$this->writeTemporaryFile('user/content/notes.json', '{"title": "Notes", "body": "Some *notes*.", "id": "' . self::idFor('notes.json') . '"}');
+		$this->entry('notes.md', 'title: Notes', 'Some *notes*.');
 		$this->writeTemporaryFile('user/content/_posts/hello/photo.jpg', 'not content');
 	}
 

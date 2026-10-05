@@ -359,13 +359,19 @@ Don't edit an id by hand, and never give two files the same one. A file
 without a valid id still shows on the site, but `content:lint` reports
 it as an error. Types can't have a field named `id`.
 
-## Other formats
+## Only Markdown
 
-Besides Markdown (`.md`), an entry can be:
+Every entry is a `.md` file. Other files in `user/content/` aren't
+entries and don't show on the site. If you have entries from before this
+change in other formats, `content:lint` (and Content health in the
+admin) lists them:
 
-- **HTML** (`.html`), with the same front matter.
-- **JSON or YAML** (`.json`, `.yaml`), for data-only entries. The keys are
-  the front matter, and an optional `body` key holds Markdown.
+- **`.markdown`:** rename it to `.md`.
+- **`.html`:** rename it to `.md`. HTML in a Markdown body still
+  renders, as long as raw HTML is allowed (on the [Writing settings
+  screen](admin.md#settings)).
+- **`.json` or `.yaml`:** move its keys into the front matter of a `.md`
+  file, with its `body` (if it has one) below.
 
 ## Checking your content
 

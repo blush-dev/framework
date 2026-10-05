@@ -17,8 +17,8 @@ use RuntimeException;
 use Blush\Content\ContentException;
 
 /**
- * Thrown when a content file can't be parsed: malformed front matter, front
- * matter that isn't a map, or an extension no parser handles.
+ * Thrown when a content document can't be parsed: malformed front matter,
+ * or front matter that isn't a map.
  */
 final class InvalidDocument extends RuntimeException implements ContentException
 {

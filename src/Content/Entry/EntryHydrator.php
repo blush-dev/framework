@@ -17,7 +17,7 @@ use DateTimeImmutable;
 use ReflectionClass;
 use Psr\Clock\ClockInterface;
 use Blush\Content\Index\IndexRecord;
-use Blush\Content\Parser\DocumentParsers;
+use Blush\Content\Parser\DocumentParser;
 use Blush\Content\Source\ContentSource;
 use Blush\Content\Status;
 use Blush\Content\Type\ContentType;
@@ -41,7 +41,7 @@ final readonly class EntryHydrator
 		private ContentTypes $types,
 		private FieldContext $context,
 		private ContentSource $source,
-		private DocumentParsers $parsers,
+		private DocumentParser $parser,
 		private MarkdownParser $markdown,
 		private ClockInterface $clock,
 		private AppConfig $app,
@@ -110,9 +110,7 @@ final readonly class EntryHydrator
 	{
 		$path   = $record->path;
 		$source = new ReflectionClass(BodySource::class)->newLazyGhost(function (BodySource $source) use ($path): void {
-			$document = $this->parsers->parse($path, $this->source->read($path));
-
-			$source->__construct($document->body, $document->format);
+			$source->__construct($this->parser->parse($this->source->read($path))->body);
 		});
 
 		return new Body($source, $this->markdown, $this->cache, $record->hash, $this->app->languages->isOther($record->language) ? $record->language : '');

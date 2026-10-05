@@ -40,8 +40,10 @@ final class FilesystemSourceTest extends TestCase
 	{
 		$files = [
 			'user/content/index.md'               => 'home',
-			'user/content/b.HTML'                 => 'b',
-			'user/content/a/deep/entry.yaml'      => 'title: Deep',
+			'user/content/b.MD'                   => 'b',
+			'user/content/c.html'                 => 'c',
+			'user/content/a/deep/entry.md'        => 'title: Deep',
+			'user/content/a/deep/data.yaml'       => 'title: Data',
 			'user/content/a/deep/photo.jpg'       => 'jpg',
 			'user/content/.hidden.md'             => 'hidden',
 			'user/content/.git/config.md'         => 'git',
@@ -56,7 +58,7 @@ final class FilesystemSourceTest extends TestCase
 		$source = $this->source();
 
 		$this->assertSame(
-			['a/deep/entry.yaml', 'b.HTML', 'index.md', 'writing/notes.markdown'],
+			['a/deep/entry.md', 'b.MD', 'index.md'],
 			array_map(static fn (SourceFile $file): string => $file->path, $source->files())
 		);
 
@@ -67,7 +69,7 @@ final class FilesystemSourceTest extends TestCase
 		$this->assertSame(4, $stat->size);
 		$this->assertSame(filemtime($this->temporaryDirectory() . '/user/content/index.md'), $stat->modified);
 		$this->assertNull($source->stat('missing.md'));
-		$this->assertSame('title: Deep', $source->read('a/deep/entry.yaml'));
+		$this->assertSame('title: Deep', $source->read('a/deep/entry.md'));
 	}
 
 	public function testAMissingContentFolderIsEmpty(): void

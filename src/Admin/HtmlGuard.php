@@ -19,7 +19,6 @@ use Blush\Auth\Permissions;
 use Blush\Markdown\Html\HtmlAccess;
 use Blush\Markdown\Html\HtmlRules;
 use Blush\Markdown\Html\MarkupFinder;
-use Blush\Markdown\Html\RawMarkup;
 use Blush\Markdown\MarkdownException;
 
 /**
@@ -27,8 +26,7 @@ use Blush\Markdown\MarkdownException;
  * are trusted; this is the admin's part. What someone may add follows
  * their capabilities (`access()`), and a save is refused only for what
  * the body didn't already have, counted thing by thing (`refusal()`), so
- * anyone may edit a page someone else put HTML in, and take it out. An
- * HTML body (a `.html` entry) is HTML throughout.
+ * anyone may edit a page someone else put HTML in, and take it out.
  */
 final readonly class HtmlGuard
 {
@@ -52,7 +50,7 @@ final readonly class HtmlGuard
 	/**
 	 * Returns why a body can't be saved, or `null` when it can.
 	 */
-	public function refusal(Account $account, string $before, string $after, bool $html = false): ?string
+	public function refusal(Account $account, string $before, string $after): ?string
 	{
 		if ($before === $after) {
 			return null;
@@ -62,8 +60,8 @@ final readonly class HtmlGuard
 
 		try {
 			$added = self::added(
-				HtmlRules::problems($this->markup($before, $html), $access),
-				HtmlRules::problems($this->markup($after, $html), $access)
+				HtmlRules::problems($this->finder->find($before), $access),
+				HtmlRules::problems($this->finder->find($after), $access)
 			);
 		} catch (MarkdownException $e) {
 			return sprintf('The body couldn\'t be read for HTML: %s', $e->getMessage());
@@ -78,14 +76,6 @@ final readonly class HtmlGuard
 		return $access === HtmlAccess::None
 			? sprintf('Your role can\'t add HTML, so %s can\'t be saved. Take it out, or ask someone who can.', $list)
 			: sprintf('%s can\'t be added%s. Take it out to save.', ucfirst($list), $access === HtmlAccess::Allowed ? ' with your role' : '');
-	}
-
-	/**
-	 * @throws MarkdownException
-	 */
-	private function markup(string $body, bool $html): RawMarkup
-	{
-		return $html ? new RawMarkup([$body]) : $this->finder->find($body);
 	}
 
 	/**

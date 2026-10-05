@@ -126,7 +126,7 @@ site/
                         admin themes are planned as a fourth kind
   user/                 What the owner writes (D-166, D-418): what publishing pulls, so no
                         code. May be its own repo
-    content/            Markdown, HTML, and data entries
+    content/            Entries, as Markdown (.md) files (D-501)
     media/              Uploaded media
     data/               Other user data: menus/ and regions/ (one file each, D-199, D-201),
                         redirects, theme.json, types/ (D-042), media/ (metadata

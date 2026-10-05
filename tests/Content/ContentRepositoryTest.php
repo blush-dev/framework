@@ -26,7 +26,6 @@ use Blush\Content\Index\ArraySelector;
 use Blush\Content\Index\ContentIndex;
 use Blush\Content\Index\RecordMatcher;
 use Blush\Content\IndexedRepository;
-use Blush\Content\Parser\BodyFormat;
 use Blush\Content\Query\EntryCollection;
 use Blush\Content\Query\Order;
 use Blush\Content\Query\Paginator;
@@ -276,7 +275,6 @@ final class ContentRepositoryTest extends TestCase
 
 		$this->assertSame("<p>Hello and welcome to my site.</p>\n", $entry->body());
 		$this->assertSame('Hello and welcome to my site.', $entry->raw());
-		$this->assertSame(BodyFormat::Markdown, $source->format);
 		$this->assertFalse(new ReflectionClass(BodySource::class)->isUninitializedLazyObject($source));
 		$this->assertSame("<p>Some <em>notes</em>.</p>\n", $this->content->named('page', 'notes')?->body());
 	}

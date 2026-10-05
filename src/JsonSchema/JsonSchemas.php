@@ -388,7 +388,7 @@ final readonly class JsonSchemas
 	}
 
 	/**
-	 * Returns the schema for an entry's front matter (or a data entry):
+	 * Returns the schema for an entry's front matter:
 	 * the built-in fields, and the required `id` (D-477). A type's own
 	 * fields and its taxonomies' term fields differ by site, so other
 	 * keys are allowed (D-211).

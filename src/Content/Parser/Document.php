@@ -14,7 +14,8 @@ declare(strict_types=1);
 namespace Blush\Content\Parser;
 
 /**
- * A content file split into its front matter and its unrendered body.
+ * A content document split into its front matter and its unrendered
+ * Markdown body.
  */
 final readonly class Document
 {
@@ -23,7 +24,6 @@ final readonly class Document
 	 */
 	public function __construct(
 		public array $frontMatter = [],
-		public string $body = '',
-		public BodyFormat $format = BodyFormat::Markdown
+		public string $body = ''
 	) {}
 }

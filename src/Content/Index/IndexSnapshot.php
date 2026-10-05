@@ -69,7 +69,7 @@ final readonly class IndexSnapshot
 	 * The index format's version. A stored index with another version is
 	 * rebuilt.
 	 */
-	public const int VERSION = 6;
+	public const int VERSION = 7;
 
 	/**
 	 * @param array<string, RecordArray>                                $records   Keyed by path, sorted by path.

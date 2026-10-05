@@ -109,7 +109,7 @@ final class IndexerTest extends TestCase
 			'_posts/2003-04-15.welcome.md' => ['post', 'welcome', 'welcome', '_posts', false],
 			'_posts/hello/index.md'        => ['post', 'hello', 'hello', '_posts', false],
 			'topics/art.md'                => ['category', 'art', 'art', 'topics', false],
-			'notes.json'                   => ['page', 'notes', 'notes', '', false]
+			'notes.md'                     => ['page', 'notes', 'notes', '', false]
 		];
 
 		foreach ($cases as $id => [$type, $slug, $key, $directory, $landing]) {

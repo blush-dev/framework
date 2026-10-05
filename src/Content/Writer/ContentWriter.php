@@ -38,27 +38,27 @@ interface ContentWriter
 	public function load(string $path): EditableEntry;
 
 	/**
-	 * Creates an entry of a type from a slug: `{folder}/{slug}.{format}`,
-	 * or `{folder}/{Y-m-d}.{slug}.{format}` for types with date archives
+	 * Creates an entry of a type from a slug: `{folder}/{slug}.md`,
+	 * or `{folder}/{Y-m-d}.{slug}.md` for types with date archives
 	 * (the date defaults to now).
 	 *
-	 * @throws WriteException When the file exists or the slug or format is invalid.
+	 * @throws WriteException When the file exists or the slug is invalid.
 	 */
-	public function create(ContentType $type, string $slug, EntryChanges $changes, ?DateTimeInterface $date = null, string $format = 'md'): WriteResult;
+	public function create(ContentType $type, string $slug, EntryChanges $changes, ?DateTimeInterface $date = null): WriteResult;
 
 	/**
 	 * Creates a page a type keeps at a fixed key in its folder, undated:
-	 * `{folder}/{key}.{format}`. Each of the key's segments is a slug, and
+	 * `{folder}/{key}.md`. Each of the key's segments is a slug, and
 	 * may start with `_` to keep it out of listings, such as a people
 	 * field's `_cooks` or `_cooks/jane` (D-353).
 	 *
-	 * @throws WriteException When the file exists or the key or format is invalid.
+	 * @throws WriteException When the file exists or the key is invalid.
 	 */
-	public function createAt(ContentType $type, string $key, EntryChanges $changes, string $format = 'md'): WriteResult;
+	public function createAt(ContentType $type, string $key, EntryChanges $changes): WriteResult;
 
 	/**
 	 * Creates a page of a tree under another (D-408), undated:
-	 * `{folder}/{parent key}/{slug}.{format}`, so its key is the parent's
+	 * `{folder}/{parent key}/{slug}.md`, so its key is the parent's
 	 * and its slug. A parent kept as a file named for its key
 	 * (`about.md`) becomes its folder's page first (`about/index.md`), so
 	 * a page and its children share a folder; its key and address stay
@@ -68,9 +68,9 @@ interface ContentWriter
 	 *
 	 * @throws WriteException When the parent isn't a page of a tree, its
 	 *                        folder already has a page, the page exists,
-	 *                        or the slug or format is invalid.
+	 *                        or the slug is invalid.
 	 */
-	public function createUnder(string $parentPath, string $slug, EntryChanges $changes, string $format = 'md'): WriteResult;
+	public function createUnder(string $parentPath, string $slug, EntryChanges $changes): WriteResult;
 
 	/**
 	 * Copies an entry beside it (D-275) under a new slug, with changes

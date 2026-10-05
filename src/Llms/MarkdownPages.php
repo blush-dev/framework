@@ -16,7 +16,6 @@ namespace Blush\Llms;
 use DateTimeInterface;
 use Blush\Content\ContentRepository;
 use Blush\Content\Entry\Entry;
-use Blush\Content\Parser\BodyFormat;
 use Blush\Content\Routing\ContentUrls;
 use Blush\Content\Status;
 use Blush\Content\Type\ContentTypes;
@@ -128,7 +127,7 @@ final readonly class MarkdownPages
 		}
 
 		$lines[] = '---';
-		$body    = trim($entry->bodyFormat() === BodyFormat::Markdown ? $this->links->absolute($entry->raw()) : $entry->raw());
+		$body    = trim($this->links->absolute($entry->raw()));
 
 		return implode("\n", $lines) . "\n" . ($body === '' ? '' : "\n{$body}\n");
 	}

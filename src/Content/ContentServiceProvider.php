@@ -30,13 +30,8 @@ use Blush\Content\Index\Indexer;
 use Blush\Content\Index\PhpIndex;
 use Blush\Content\Index\RecordBuilder;
 use Blush\Content\Lint\Linter;
-use Blush\Content\Parser\DataDocumentParser;
-use Blush\Content\Parser\DocumentParserRegistrar;
-use Blush\Content\Parser\DocumentParserRegistry;
-use Blush\Content\Parser\DocumentParsers;
+use Blush\Content\Parser\DocumentParser;
 use Blush\Content\Parser\FrontMatter;
-use Blush\Content\Parser\HtmlDocumentParser;
-use Blush\Content\Parser\MarkdownDocumentParser;
 use Blush\Content\Routing\ContentRedirects;
 use Blush\Content\Routing\ContentRoutes;
 use Blush\Content\Routing\ContentSiteUrls;
@@ -74,9 +69,9 @@ use Blush\Storage\StorageArea;
 use Blush\Storage\StorageConfig;
 
 /**
- * Binds the content layer: field types, content types, document parsers,
- * the storage, the index, and the repository. Everything is built on first
- * use. The field, parser, and storage driver registries start with the
+ * Binds the content layer: field types, content types, the document
+ * parser, the storage, the index, and the repository. Everything is built
+ * on first use. The field and storage driver registries start with the
  * built-ins; an extension adds to them in a `resolving()` callback, and
  * adds content types by tagging a `ContentTypeSource` with
  * `ContentTypeSource::TAG`. The source and writer come from the storage
@@ -93,7 +88,7 @@ final class ContentServiceProvider extends ServiceProvider
 		FieldFactory::class,
 		FieldTargets::class,
 		FrontMatter::class,
-		DocumentParsers::class,
+		DocumentParser::class,
 		ContentTypeCache::class,
 		RecordBuilder::class,
 		EntryHydrator::class,
@@ -119,9 +114,6 @@ final class ContentServiceProvider extends ServiceProvider
 	protected const array TRANSIENTS = [
 		ContentTypeLoader::class,
 		FieldSetLoader::class,
-		MarkdownDocumentParser::class,
-		HtmlDocumentParser::class,
-		DataDocumentParser::class,
 		Linter::class,
 		ContentRoutes::class,
 		PageRoutes::class,
@@ -188,16 +180,6 @@ final class ContentServiceProvider extends ServiceProvider
 			static function (): FieldRegistry {
 				$registry = new FieldRegistry();
 				new FieldRegistrar($registry)->register();
-
-				return $registry;
-			}
-		);
-
-		$this->container->singleton(
-			DocumentParserRegistry::class,
-			static function (): DocumentParserRegistry {
-				$registry = new DocumentParserRegistry();
-				new DocumentParserRegistrar($registry)->register();
 
 				return $registry;
 			}

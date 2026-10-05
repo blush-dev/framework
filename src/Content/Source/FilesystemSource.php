@@ -20,17 +20,17 @@ use RecursiveIteratorIterator;
 use SplFileInfo;
 use UnexpectedValueException;
 use Override;
-use Blush\Content\Parser\DocumentParsers;
+use Blush\Content\Storage\FilesystemStorage;
 use Blush\Core\Paths;
 use Blush\Support\Filesystem;
 use Blush\Support\FilesystemException;
 
 /**
  * Reads content documents from `user/content` (the default source). A
- * document is any file whose extension a document parser handles; other
- * files (stray images or scripts) are ignored, as are hidden
- * files and folders (`.git`, `.DS_Store`). Every path is confined to the
- * content root.
+ * document is a `.md` file (D-501); other files (stray images, or
+ * entries in formats Blush no longer reads, which `content:lint` reports)
+ * are ignored, as are hidden files and folders (`.git`, `.DS_Store`).
+ * Every path is confined to the content root.
  */
 final readonly class FilesystemSource implements ContentSource
 {
@@ -38,7 +38,6 @@ final readonly class FilesystemSource implements ContentSource
 
 	public function __construct(
 		Paths $paths,
-		private DocumentParsers $parsers,
 		private Filesystem $filesystem = new Filesystem()
 	) {
 		$this->root = $paths->content;
@@ -66,7 +65,7 @@ final readonly class FilesystemSource implements ContentSource
 		$files = [];
 
 		foreach ($iterator as $file) {
-			if ($file instanceof SplFileInfo && $file->isFile() && $this->parsers->supports($file->getFilename())) {
+			if ($file instanceof SplFileInfo && $file->isFile() && self::isContent($file->getFilename())) {
 				$path         = str_replace('\\', '/', substr($file->getPathname(), strlen($this->root) + 1));
 				$files[$path] = new SourceFile($path, (int) $file->getMTime(), (int) $file->getSize());
 			}
@@ -109,6 +108,14 @@ final readonly class FilesystemSource implements ContentSource
 		return $contents === false
 			? throw new UnreadableSource(sprintf('Unable to read content file "%s".', $path))
 			: $contents;
+	}
+
+	/**
+	 * Returns whether a file is content: whether it's a `.md` file.
+	 */
+	public static function isContent(string $path): bool
+	{
+		return strtolower(pathinfo($path, PATHINFO_EXTENSION)) === FilesystemStorage::EXTENSION;
 	}
 
 	/**

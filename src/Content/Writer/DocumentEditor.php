@@ -17,30 +17,20 @@ use Closure;
 use DateTimeImmutable;
 use DateTimeZone;
 use Exception;
-use JsonException;
 use Blush\Content\EntryFields;
-use Blush\Content\Parser\DataDocumentParser;
 use Blush\Content\Parser\Document;
-use Blush\Content\Parser\DocumentFormat;
-use Blush\Content\Parser\DocumentParsers;
+use Blush\Content\Parser\DocumentParser;
 use Blush\Content\Parser\FrontMatter;
 use Blush\Content\Parser\InvalidDocument;
 
 /**
- * Applies `EntryChanges` to a content file's text, by format (D-228):
- *
- * - **Markdown and HTML:** the front matter is edited key by key
- *   (`YamlMap`), so its formatting stays; the body after it is replaced
- *   as given. A file without front matter gets a block. A body that
- *   doesn't start with a blank line keeps the blank lines the file had
- *   between its front matter and body (one, for a file without a block),
- *   so an editor can show the body without them.
- * - **YAML entries:** the whole file is the map, with the body under
- *   `body`.
- * - **JSON entries:** decoded, changed, and written back pretty-printed
- *   (key order kept).
- *
- * In every format, a new key goes before the entry's `id` (D-477), so
+ * Applies `EntryChanges` to a content document's text (D-228, D-501):
+ * the front matter is edited key by key (`YamlMap`), so its formatting
+ * stays; the body after it is replaced as given. A document without
+ * front matter gets a block. A body that doesn't start with a blank line
+ * keeps the blank lines the document had between its front matter and
+ * body (one, for a document without a block), so an editor can show the
+ * body without them. A new key goes before the entry's `id` (D-477), so
  * the id stays last.
  *
  * Every result is parsed again before it's returned. The keys that were
@@ -51,7 +41,7 @@ use Blush\Content\Parser\InvalidDocument;
  */
 final readonly class DocumentEditor
 {
-	public function __construct(private DocumentParsers $parsers)
+	public function __construct(private DocumentParser $parser)
 	{}
 
 	/**
@@ -62,19 +52,9 @@ final readonly class DocumentEditor
 	 */
 	public function edit(string $path, string $contents, EntryChanges $changes, Closure $keys): string
 	{
-		$before = $this->parse($path, $contents);
-		$format = DocumentFormat::tryFrom(strtolower(pathinfo($path, PATHINFO_EXTENSION)));
-
-		if ($format === DocumentFormat::Md || $format === DocumentFormat::Markdown || $format === DocumentFormat::Html) {
-			$changes = self::withGap($contents, $changes);
-		}
-
-		$edited = match ($format) {
-			DocumentFormat::Md, DocumentFormat::Markdown, DocumentFormat::Html => $this->editFrontMatter($contents, $changes, $keys),
-			DocumentFormat::Yaml, DocumentFormat::Yml                          => $this->editYaml($contents, $changes, $keys),
-			DocumentFormat::Json                                               => $this->editJson($contents, $changes, $keys),
-			null => throw new WriteException(sprintf('"%s" isn\'t a content file Blush can edit.', $path))
-		};
+		$before  = $this->parse($path, $contents);
+		$changes = self::withGap($contents, $changes);
+		$edited  = $this->editFrontMatter($contents, $changes, $keys);
 
 		$this->verify($path, $before, $this->parse($path, $edited), $changes, $keys);
 
@@ -82,7 +62,7 @@ final readonly class DocumentEditor
 	}
 
 	/**
-	 * Edits a Markdown or HTML file's front matter and body.
+	 * Edits a document's front matter and body.
 	 *
 	 * @param Closure(string): list<string> $keys
 	 */
@@ -139,64 +119,6 @@ final readonly class DocumentEditor
 	}
 
 	/**
-	 * Edits a YAML entry, whose body is its `body` key.
-	 *
-	 * @param Closure(string): list<string> $keys
-	 */
-	private function editYaml(string $contents, EntryChanges $changes, Closure $keys): string
-	{
-		$map = $this->apply(YamlMap::fromText($contents), $changes, $keys);
-
-		if ($changes->body !== null) {
-			$map = $map->with([DataDocumentParser::BODY], $changes->body, before: EntryFields::ID);
-		}
-
-		return $map->text();
-	}
-
-	/**
-	 * Edits a JSON entry, whose body is its `body` key.
-	 *
-	 * @param Closure(string): list<string> $keys
-	 * @throws WriteException
-	 */
-	private function editJson(string $contents, EntryChanges $changes, Closure $keys): string
-	{
-		try {
-			$data = trim($contents) === '' ? [] : json_decode($contents, true, 64, JSON_THROW_ON_ERROR);
-		} catch (JsonException $e) {
-			throw new WriteException(sprintf('The file isn\'t valid JSON: %s', $e->getMessage()), previous: $e);
-		}
-
-		if (! is_array($data)) {
-			throw new WriteException('A JSON entry must be an object.');
-		}
-
-		foreach ($changes->remove as $name) {
-			foreach ($keys($name) as $key) {
-				unset($data[$key]);
-			}
-		}
-
-		foreach ($changes->set as $name => $value) {
-			$candidates = $keys((string) $name);
-			$key        = array_find($candidates, static fn (string $key): bool => array_key_exists($key, $data)) ?? $candidates[0] ?? (string) $name;
-
-			$data = self::withKey($data, $key, $value);
-		}
-
-		if ($changes->body !== null) {
-			$data = self::withKey($data, DataDocumentParser::BODY, $changes->body);
-		}
-
-		try {
-			return json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR) . "\n";
-		} catch (JsonException $e) {
-			throw new WriteException(sprintf('The entry couldn\'t be written as JSON: %s', $e->getMessage()), previous: $e);
-		}
-	}
-
-	/**
 	 * Removes and sets front matter keys in a map.
 	 *
 	 * @param Closure(string): list<string> $keys
@@ -212,28 +134,6 @@ final readonly class DocumentEditor
 		}
 
 		return $map;
-	}
-
-	/**
-	 * Returns data with a key set: in its place, or, for a new key, at
-	 * the end, before the entry's `id` (D-477), which stays last.
-	 *
-	 * @param  array<array-key, mixed> $data
-	 * @return array<array-key, mixed>
-	 */
-	private static function withKey(array $data, string $key, mixed $value): array
-	{
-		if (array_key_exists($key, $data) || ! array_key_exists(EntryFields::ID, $data)) {
-			$data[$key] = $value;
-
-			return $data;
-		}
-
-		$id = $data[EntryFields::ID];
-
-		unset($data[EntryFields::ID]);
-
-		return [...$data, $key => $value, EntryFields::ID => $id];
 	}
 
 	/**
@@ -307,7 +207,7 @@ final readonly class DocumentEditor
 	private function parse(string $path, string $contents): Document
 	{
 		try {
-			return $this->parsers->parse($path, $contents);
+			return $this->parser->parse($contents);
 		} catch (InvalidDocument $e) {
 			throw new WriteException(sprintf('%s can\'t be read, so it can\'t be edited safely: %s', $path, $e->getMessage()), previous: $e);
 		}

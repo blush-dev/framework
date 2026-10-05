@@ -59,7 +59,9 @@ use Blush\Media\MediaMetadataCheck;
  * - notices: undeclared keys and 1.x aliases (D-081), and terms that are
  *   referenced but have no file, which become virtual terms.
  *
- * It also checks the media metadata files under `user/data/media`
+ * It also reports files in `user/content` in formats Blush no longer
+ * reads (`.html`, `.json`, and the like; `FormatCheck`, D-501), and
+ * checks the media metadata files under `user/data/media`
  * (`MediaMetadataCheck`, D-293): ones that can't be read or whose values
  * don't fit, and ones whose media file is gone; and notes field set
  * targets that attach to nothing (`FieldSetCheck`, D-337).
@@ -79,6 +81,7 @@ final readonly class Linter
 		private VariantCheck $variants,
 		private MediaMetadataCheck $media,
 		private FieldSetCheck $sets,
+		private FormatCheck $formats,
 		private AppConfig $app
 	) {}
 
@@ -148,7 +151,7 @@ final readonly class Linter
 		// Media metadata files, by their path from the site root (D-293).
 		[$metadata, $described] = $this->media->check();
 
-		return new LintReport(count($files), [...$violations, ...$described, ...$this->sets->check()], $metadata);
+		return new LintReport(count($files), [...$violations, ...$this->formats->check(), ...$described, ...$this->sets->check()], $metadata);
 	}
 
 	/**

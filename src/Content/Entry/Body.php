@@ -14,7 +14,6 @@ declare(strict_types=1);
 namespace Blush\Content\Entry;
 
 use Dom\HTMLDocument;
-use Blush\Content\Parser\BodyFormat;
 use Blush\Markdown\MarkdownException;
 use Blush\Markdown\MarkdownParser;
 
@@ -46,14 +45,6 @@ final class Body
 	public function source(): string
 	{
 		return $this->source->text;
-	}
-
-	/**
-	 * Returns the format the body is written in.
-	 */
-	public function format(): BodyFormat
-	{
-		return $this->source->format;
 	}
 
 	/**
@@ -152,7 +143,7 @@ final class Body
 	 */
 	private function render(): string
 	{
-		return $this->source->format === BodyFormat::Html ? $this->source->text : $this->markdown->toHtml($this->source->text, $this->language);
+		return $this->markdown->toHtml($this->source->text, $this->language);
 	}
 
 	/**

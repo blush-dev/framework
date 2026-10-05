@@ -999,6 +999,7 @@ decision, add a new entry that supersedes it and mark the old one
 
 ### D-085: Data files and document parsers
 - **Date:** 2026-09-25
+- **Status:** Its document parsers superseded by D-501 (entries are Markdown only; one parser, no registry).
 - **Decision:**
   - `Data\DataLoader` reads files by name through the `DataParserRegistry`
     (JSON, YAML, YML; JSON wins, D-032), reports shadowed files, confines
@@ -14903,3 +14904,34 @@ decision, add a new entry that supersedes it and mark the old one
   an editor-like manager can't, an owner changes and resets the
   administrator; `PermissionsTest`, `AccountsTest`,
   `AccountCommandsTest`); `npm run admin:build`; `doctor` on the trial.
+
+### D-501: Entries are Markdown only
+- **Date:** 2026-10-05
+- **Decision:** the author's call: one format keeps content consistent
+  and spares every tool from handling several. Supersedes D-085's
+  document parsers: the HTML and data entry formats (`.html`, `.json`,
+  `.yaml`, `.yml`), the `.markdown` extension, and the parser registry. 1.x read only `.md`, so D-078 holds.
+  - **A storage matter:** a content document is YAML front matter and a
+    Markdown body, whatever keeps it. The built-in filesystem driver
+    keeps each as a `.md` file (`FilesystemStorage::EXTENSION`, matched
+    without regard to case); a database driver (D-486) would hand over
+    the same shape.
+  - **One parser, no registry:** `DocumentParser` is a final class
+    (front matter, then body); `DocumentParsers`,
+    `DocumentParserRegistry`, `DocumentParserRegistrar`,
+    `DocumentFormat`, `BodyFormat`, and the Markdown, HTML, and data
+    parsers are gone. A plugin can't add an entry format; the Markdown
+    dialect is still Blush's to extend (D-492).
+  - **What went with them:** `Entry::bodyFormat()` and
+    `Body::format()`; the index record's `format` (the index's version
+    is 7); `DocumentEditor`'s YAML and JSON paths; the writers' `format`
+    argument (`ContentWriter::create()`, `createAt()`, `createUnder()`);
+    `HtmlGuard`'s whole-body HTML; the Markdown copies' HTML case
+    (D-395). The writer checks only for the `.md` file when creating, so
+    a leftover `about.html` doesn't block `about.md`.
+  - **Leftover files:** `FilesystemSource` reads only `.md` files.
+    `content:lint` and Content health report each file in a retired
+    format as an error, saying how to make it a `.md` file
+    (`FormatCheck`); no converter for now.
+  - Data files (`user/data`, manifests, settings) keep JSON or YAML
+    (D-032); this is entries only.

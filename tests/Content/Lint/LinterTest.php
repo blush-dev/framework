@@ -16,6 +16,7 @@ namespace Blush\Tests\Content\Lint;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Blush\Content\Lint\FieldSetCheck;
+use Blush\Content\Lint\FormatCheck;
 use Blush\Content\Lint\Linter;
 use Blush\Content\Lint\LintReport;
 use Blush\Content\Lint\VariantCheck;
@@ -25,6 +26,7 @@ use Blush\Tests\Content\BuildsContentSite;
 
 #[CoversClass(Linter::class)]
 #[CoversClass(FieldSetCheck::class)]
+#[CoversClass(FormatCheck::class)]
 #[CoversClass(LintReport::class)]
 #[CoversClass(VariantCheck::class)]
 final class LinterTest extends TestCase
@@ -252,6 +254,24 @@ final class LinterTest extends TestCase
 		$this->assertFalse($report->hasErrors());
 		$this->assertSame([], $report->violations());
 		$this->assertSame(1, $report->checked);
+	}
+
+	public function testReportsFilesInFormatsNoLongerRead(): void
+	{
+		$this->entry('index.md', 'title: Home');
+		$this->writeTemporaryFile('user/content/about.html', "---\ntitle: About\n---\n<p>Hi</p>\n");
+		$this->writeTemporaryFile('user/content/notes/old.markdown', "Old\n");
+		$this->writeTemporaryFile('user/content/data.yaml', "title: Data\n");
+		$this->writeTemporaryFile('user/content/photo.jpg', 'not content');
+
+		$report = $this->site()->container()->make(Linter::class)->lint();
+
+		$this->assertSame(1, $report->checked, 'They aren\'t read.');
+		$this->assertSame([
+			'about.html'        => ['error file: isn\'t read: entries are .md files. Rename it to .md; HTML in a Markdown body still renders.'],
+			'data.yaml'         => ['error file: isn\'t read: entries are .md files. Move its keys into the front matter of a .md file, with its body after.'],
+			'notes/old.markdown' => ['error file: isn\'t read: entries are .md files. Rename it to .md.']
+		], self::messages($report, Severity::Notice));
 	}
 
 	public function testFlagsVariantsAComponentDoesntHave(): void

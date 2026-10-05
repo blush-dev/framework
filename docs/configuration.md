@@ -376,8 +376,7 @@ title, address, dates, and summary at the top. Directives such as
 (`/about` becomes `https://example.com/about`, and media points at its
 media URL, as on the HTML page), in Markdown and in directives' URL
 options, so the copy still works once it's read elsewhere. Code and
-HTML are left exactly as written, and so is the body of an `.html`
-entry. Unlisted entries have one; drafts,
+HTML are left exactly as written. Unlisted entries have one; drafts,
 scheduled entries, and hidden entries don't. Each page links to its
 Markdown version in its `<head>`.
 

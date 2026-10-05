@@ -401,8 +401,8 @@ is in that decision.
   folder above. `index` directly in a type's folder is the landing page
   instead. Media is never kept beside an entry (D-294): only
   `user/media` is media.
-- **Data-only entries** (`.yaml`, `.json`) and other user data (menus,
-  authors, redirects) live in `user/data/`.
+- **Entries are `.md` files only** (D-501); other user data (menus,
+  redirects) lives in `user/data/`.
 - `_errors/404.md` and `_errors/500.md` are error pages (1.x's `_error/`
   folder works too, D-108).
 
@@ -504,11 +504,13 @@ Implemented in M4b (D-088).
 ### Parsers
 Implemented in M4a (D-080, D-085, D-086).
 
-- **`DocumentParsers`** (`Blush\Content\Parser`): a registry keyed by
-  extension. Built in: Markdown (`.md`, `.markdown`), HTML, and data
-  entries (`.json`, `.yaml`, `.yml`, whose `body` key is Markdown). Each
-  parser returns a `Document` (front matter, unrendered body,
-  `BodyFormat`).
+- **`DocumentParser`** (`Blush\Content\Parser`): one parser, no
+  registry (D-501). A content document is YAML front matter and a
+  Markdown body, whatever stores it; it returns a `Document` (front
+  matter, unrendered body). The filesystem driver keeps each document as
+  a `.md` file (`FilesystemStorage::EXTENSION`), and `FilesystemSource`
+  and `FilesystemWriter` read and write only those; `FormatCheck` has
+  `content:lint` report files in the formats read before D-501.
 - **Front matter:** YAML behind the `YamlParser` interface, split off by
   `FrontMatter` (1.x's `---` rules). It starts with a temporary adapter
   (symfony/yaml, objects refused, timestamps as strings); a small in-house

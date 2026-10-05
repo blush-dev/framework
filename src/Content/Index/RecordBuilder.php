@@ -15,7 +15,7 @@ namespace Blush\Content\Index;
 
 use DateTimeImmutable;
 use Blush\Content\EntryFields;
-use Blush\Content\Parser\DocumentParsers;
+use Blush\Content\Parser\DocumentParser;
 use Blush\Content\Parser\InvalidDocument;
 use Blush\Content\Source\SourceFile;
 use Blush\Content\Status;
@@ -65,7 +65,7 @@ final readonly class RecordBuilder
 
 	public function __construct(
 		private ContentTypes $types,
-		private DocumentParsers $parsers,
+		private DocumentParser $parser,
 		private FieldContext $context,
 		private AppConfig $app
 	) {}
@@ -78,7 +78,7 @@ final readonly class RecordBuilder
 	public function build(SourceFile $file, string $contents): ParsedEntry
 	{
 		$type     = $this->types->forFile($file->path);
-		$document = $this->parsers->parse($file->path, $contents);
+		$document = $this->parser->parse($contents);
 		$data     = $document->frontMatter;
 		$id       = $data[EntryFields::ID] ?? null;
 
@@ -126,7 +126,6 @@ final readonly class RecordBuilder
 			updated: $updated,
 			date: $published === null ? null : DateTimeImmutable::createFromTimestamp($published)->setTimezone($this->context->timezone)->format('YmdHis'),
 			title: is_string($values['title'] ?? null) ? $values['title'] : '',
-			format: $document->format,
 			values: $values,
 			extra: $result->extra,
 			terms: $terms,

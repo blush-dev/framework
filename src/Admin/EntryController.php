@@ -392,7 +392,7 @@ final readonly class EntryController
 				return self::error($e->getMessage(), Status::UnprocessableContent);
 			}
 
-			$html = $this->html->refusal($account, $before, $changes->body, in_array(strtolower(pathinfo($path, PATHINFO_EXTENSION)), ['html', 'htm'], true));
+			$html = $this->html->refusal($account, $before, $changes->body);
 
 			if ($html !== null) {
 				return self::error($html, Status::Forbidden, 'body');

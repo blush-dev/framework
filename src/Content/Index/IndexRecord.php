@@ -13,7 +13,6 @@ declare(strict_types=1);
 
 namespace Blush\Content\Index;
 
-use Blush\Content\Parser\BodyFormat;
 use Blush\Content\Source\SourceFile;
 use Blush\Content\Status;
 use Blush\Content\Visibility;
@@ -79,7 +78,6 @@ use Blush\Content\Visibility;
  *     updated: int,
  *     date: ?string,
  *     title: string,
- *     format: string,
  *     values: array<string, mixed>,
  *     extra: array<string, mixed>,
  *     terms: array<string, list<string>>,
@@ -121,7 +119,6 @@ final readonly class IndexRecord
 		public int $updated,
 		public ?string $date,
 		public string $title,
-		public BodyFormat $format,
 		public array $values,
 		public array $extra,
 		public array $terms,
@@ -186,7 +183,6 @@ final readonly class IndexRecord
 			updated: $data['updated'],
 			date: $data['date'],
 			title: $data['title'],
-			format: BodyFormat::tryFrom($data['format']) ?? BodyFormat::Markdown,
 			values: $data['values'],
 			extra: $data['extra'],
 			terms: $data['terms'],
@@ -264,7 +260,6 @@ final readonly class IndexRecord
 			'updated'      => $this->updated,
 			'date'         => $this->date,
 			'title'        => $this->title,
-			'format'       => $this->format->value,
 			'values'       => $this->values,
 			'extra'        => $this->extra,
 			'terms'        => $this->terms,
