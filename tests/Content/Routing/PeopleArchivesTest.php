@@ -23,16 +23,18 @@ use Blush\Content\Http\PeopleController;
 use Blush\Content\Http\PersonController;
 use Blush\Content\Http\ProfileController;
 use Blush\Content\PeopleArchives;
-use Blush\Content\Routing\ContentExportUrls;
+use Blush\Content\Routing\ContentSiteUrls;
 use Blush\Content\Routing\ContentUrls;
 use Blush\Content\Type\ContentTypes;
 use Blush\Content\Type\PeopleField;
 use Blush\Core\Application;
-use Blush\Export\UrlSource;
-use Blush\Feed\FeedExportUrls;
+use Blush\Feed\FeedSiteUrls;
 use Blush\Http\Kernel;
 use Blush\Http\Request;
 use Blush\Routing\RouteTable;
+use Blush\Routing\SiteUrl;
+use Blush\Routing\SiteUrls;
+use Blush\Routing\UrlSource;
 use Blush\Sitemap\SitemapBuilder;
 use Blush\Tests\Content\BuildsContentSite;
 use Blush\View\Hierarchy;
@@ -277,12 +279,12 @@ final class PeopleArchivesTest extends TestCase
 		);
 	}
 
-	public function testExportsAndMapsThePages(): void
+	public function testListsAndMapsThePages(): void
 	{
 		$app   = $this->boot();
 		$paths = [];
 
-		foreach ([ContentExportUrls::class, FeedExportUrls::class] as $source) {
+		foreach ([ContentSiteUrls::class, FeedSiteUrls::class] as $source) {
 			$urls = $app->container()->make($source);
 			$this->assertInstanceOf(UrlSource::class, $urls);
 
@@ -298,6 +300,12 @@ final class PeopleArchivesTest extends TestCase
 		$this->assertNotContains('/archives/authors/sam', $paths);
 		$this->assertNotContains('/profiles', $paths);
 		$this->assertSame(1, count(array_keys($paths, '/profiles/justintadlock', true)), 'Once.');
+
+		$all = array_map(static fn (SiteUrl $url): string => $url->path, [...$app->container()->make(SiteUrls::class)->all()]);
+
+		foreach (['/profiles/justintadlock', '/archives/authors/justintadlock/feed/json', '/robots.txt'] as $path) {
+			$this->assertContains($path, $all, 'Every tagged source (D-476).');
+		}
 
 		$sitemap = $app->container()->make(SitemapBuilder::class);
 		$types   = $app->container()->make(ContentTypes::class);

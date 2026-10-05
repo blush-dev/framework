@@ -749,8 +749,8 @@ own:
   cook has no archive there.
 
 Bylines link to the archive under the entry's own type and field, or to
-the profile's page when that field has no archives. The sitemap and
-static export include the archives.
+the profile's page when that field has no archives. The sitemap
+includes the archives.
 
 To give a field's list a title and an introduction, add a page named
 after the field to the type's folder: `user/content/recipes/_cooks.md`.

@@ -24,8 +24,8 @@ looked for from the site's root, so `user/media/photo.jpg` and
 `/user/media/photo.jpg` are the same file.
 
 Media always lives in `user/media`. A file kept in `user/content`, next
-to an entry, isn't media: Blush doesn't serve it, list it in the
-library, or export it.
+to an entry, isn't media: Blush doesn't serve it or list it in the
+library.
 
 ## Details about a file
 
@@ -141,5 +141,4 @@ bin/blush media:publish          # link user/media into public/
 bin/blush media:publish --copy   # copy the files, for hosts without symlinks
 ```
 
-With `--copy`, run it again whenever you add media. A [static export](going-live.md#static-export)
-includes everything either way.
+With `--copy`, run it again whenever you add media.

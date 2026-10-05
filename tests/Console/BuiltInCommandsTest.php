@@ -82,26 +82,6 @@ final class BuiltInCommandsTest extends TestCase
 		$this->assertFileExists(Serve::routerScript());
 	}
 
-	public function testServeStaticServesTheExport(): void
-	{
-		$app    = $this->application();
-		$export = $app->container()->make(Paths::class)->export;
-
-		$this->assertSame(ExitCode::Failure, $this->tester($app)->run('serve --static')->exitCode);
-
-		mkdir($export, 0775, true);
-		touch("{$export}/index.html");
-
-		$result = $this->tester($app)->run('serve --static');
-
-		$this->assertTrue($result->isSuccessful());
-		$this->assertSame([[
-			'command' => [PHP_BINARY, '-S', '127.0.0.1:8000', '-t', $export, Serve::routerScript(true)],
-			'cwd'     => $export
-		]], $this->processes->runs);
-		$this->assertFileExists(Serve::routerScript(true));
-	}
-
 	public function testServeNeedsAFrontController(): void
 	{
 		$result = $this->tester()->run('serve');

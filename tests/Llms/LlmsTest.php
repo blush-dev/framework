@@ -18,22 +18,21 @@ use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\ResponseInterface;
 use Blush\Content\Type\ContentType;
 use Blush\Core\Application;
-use Blush\Export\ExportLayout;
-use Blush\Export\ExportUrl;
 use Blush\Http\Kernel;
 use Blush\Http\Request;
 use Blush\Llms\LlmsConfig;
-use Blush\Llms\LlmsExportUrls;
 use Blush\Llms\LlmsRoutes;
 use Blush\Llms\LlmsServiceProvider;
+use Blush\Llms\LlmsSiteUrls;
 use Blush\Llms\LlmsTxt;
 use Blush\Llms\LlmsTxtController;
 use Blush\Llms\MarkdownController;
 use Blush\Llms\MarkdownPages;
+use Blush\Routing\SiteUrl;
 use Blush\Tests\Content\BuildsContentSite;
 
 #[CoversClass(LlmsConfig::class)]
-#[CoversClass(LlmsExportUrls::class)]
+#[CoversClass(LlmsSiteUrls::class)]
 #[CoversClass(LlmsRoutes::class)]
 #[CoversClass(LlmsServiceProvider::class)]
 #[CoversClass(LlmsTxt::class)]
@@ -202,7 +201,7 @@ final class LlmsTest extends TestCase
 		$this->boot();
 
 		$this->assertSame(404, $this->get('/llms-full.txt')->getStatusCode(), 'Off by default (D-402).');
-		$this->assertNotContains('/llms-full.txt', array_map(static fn (ExportUrl $url): string => $url->path, [...$this->app->container()->make(LlmsExportUrls::class)->urls()]));
+		$this->assertNotContains('/llms-full.txt', array_map(static fn (SiteUrl $url): string => $url->path, [...$this->app->container()->make(LlmsSiteUrls::class)->urls()]));
 
 		$this->boot('new Blush\\Llms\\LlmsConfig(full: true)');
 		$response = $this->get('/llms-full.txt');
@@ -214,24 +213,23 @@ final class LlmsTest extends TestCase
 		$this->assertStringContainsString("\n\nSpring is here.\n\n---\n", $body);
 		$this->assertSame(7, substr_count($body, "\ntitle: "), 'Every page llms.txt lists, and no others.');
 		$this->assertStringNotContainsString('Rainy', $body, 'Not unlisted entries.');
-		$this->assertContains('/llms-full.txt', array_map(static fn (ExportUrl $url): string => $url->path, [...$this->app->container()->make(LlmsExportUrls::class)->urls()]));
+		$this->assertContains('/llms-full.txt', array_map(static fn (SiteUrl $url): string => $url->path, [...$this->app->container()->make(LlmsSiteUrls::class)->urls()]));
 
 		$this->boot('new Blush\\Llms\\LlmsConfig(enabled: false, full: true)');
 		$this->assertSame(404, $this->get('/llms-full.txt')->getStatusCode(), 'Off with the Markdown copies.');
 	}
 
-	public function testListsExportUrls(): void
+	public function testListsSiteUrls(): void
 	{
 		$this->standardContent();
 		$this->boot();
 
-		$paths = array_map(static fn (ExportUrl $url): string => $url->path, [...$this->app->container()->make(LlmsExportUrls::class)->urls()]);
+		$paths = array_map(static fn (SiteUrl $url): string => $url->path, [...$this->app->container()->make(LlmsSiteUrls::class)->urls()]);
 
 		$this->assertSame('/llms.txt', $paths[0]);
 		$this->assertContains('/index.md', $paths);
 		$this->assertContains('/archives/rainy.md', $paths);
 		$this->assertNotContains('/archives/future.md', $paths);
-		$this->assertSame('archives/spring.md', ExportLayout::file('/archives/spring.md', 'text/markdown; charset=UTF-8'));
 	}
 
 	public function testCanBeTurnedOff(): void
@@ -242,7 +240,7 @@ final class LlmsTest extends TestCase
 		$this->assertSame(404, $this->get('/llms.txt')->getStatusCode());
 		$this->assertSame(404, $this->get('/archives/spring.md')->getStatusCode());
 		$this->assertStringNotContainsString('text/markdown', (string) $this->get('/archives/spring')->getBody());
-		$this->assertSame([], [...$this->app->container()->make(LlmsExportUrls::class)->urls()]);
+		$this->assertSame([], [...$this->app->container()->make(LlmsSiteUrls::class)->urls()]);
 	}
 
 	public function testReadsConfigArrays(): void

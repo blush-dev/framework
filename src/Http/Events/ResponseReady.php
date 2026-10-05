@@ -18,7 +18,7 @@ use Psr\Http\Message\ServerRequestInterface;
 
 /**
  * Dispatched by the kernel once the response is built, before it's
- * returned for emitting (or written out by static export). Listeners
+ * returned for emitting (or to whoever called the kernel). Listeners
  * observe; middleware is how a response is changed.
  */
 final readonly class ResponseReady

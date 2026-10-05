@@ -358,9 +358,8 @@ Markdown copy either way.
 `/llms-full.txt` has the same heading, then the Markdown copy of every
 page `llms.txt` lists, in the same order, so a tool can read the whole
 site in one request. It's off by default because it's large: about
-3.6 MB for a site of a thousand posts. A site served by PHP builds it on
-each request (it's too big for the page cache); a static export writes
-it once.
+3.6 MB for a site of a thousand posts. Blush builds it on each request
+(it's too big for the page cache).
 
 All of these can also be changed in the admin, on **Settings → AI**.
 
@@ -451,19 +450,6 @@ either way.
 | `idle` | `7200` | How many seconds a session lasts without a request |
 | `lifetime` | `43200` | How many seconds a session lasts at most |
 | `secure` | `null` | Force the cookie's `Secure` flag on or off; by default it's on over HTTPS |
-
-### Static export
-
-`config/export.php` · `Blush\Export\ExportConfig`
-
-| Option | Default | What it does |
-|---|---|---|
-| `url` | The site's URL | The URL the exported site will live at, such as `https://example.com` |
-| `crawl` | `true` | Follow links to find pages |
-| `paths` | `[]` | Extra paths to export, such as `['/hidden-page']` |
-| `exclude` | `[]` | Paths to skip; wildcards allowed (`'/drafts/*'`) |
-| `hosts` | `['apache', 'netlify']` | Which [host files](going-live.md#host-files) to write |
-| `redirectPages` | `true` | Write a page at each redirected URL that forwards the browser |
 
 ### Logging
 

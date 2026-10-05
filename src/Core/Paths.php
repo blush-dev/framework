@@ -45,7 +45,6 @@ final readonly class Paths
 		'logs'       => 'storage/logs',
 		'sessions'   => 'storage/sessions',
 		'accounts'   => 'storage/accounts',
-		'export'     => 'storage/export',
 		'extensions' => 'extensions',
 		'vendor'     => 'vendor'
 	];
@@ -65,7 +64,6 @@ final readonly class Paths
 		public string $logs,
 		public string $sessions,
 		public string $accounts,
-		public string $export,
 		public string $extensions,
 		public string $vendor
 	) {
@@ -152,7 +150,6 @@ final readonly class Paths
 			'logs'       => $this->logs,
 			'sessions'   => $this->sessions,
 			'accounts'   => $this->accounts,
-			'export'     => $this->export,
 			'extensions' => $this->extensions,
 			'vendor'     => $this->vendor
 		];

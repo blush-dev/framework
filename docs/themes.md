@@ -958,5 +958,4 @@ live site, copy them into `public/` so the web server can hand them out:
 bin/blush theme:publish
 ```
 
-Run it again after changing theme files. A [static
-export](going-live.md#static-export) includes them automatically.
+Run it again after changing theme files.

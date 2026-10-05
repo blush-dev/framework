@@ -17,7 +17,6 @@ use Override;
 use Psr\Http\Server\RequestHandlerInterface;
 use Blush\Container\Container;
 use Blush\Core\ServiceProvider;
-use Blush\Export\UrlSource;
 use Blush\Http\Kernel;
 use Blush\Routing\Sources\ConfigRedirects;
 use Blush\Routing\Sources\ConfigRoutes;
@@ -30,7 +29,8 @@ use Blush\Routing\Sources\ControllerRoutes;
  *
  * Extensions add routes by tagging a `RouteSource` with `RouteSource::TAG`
  * or a controller with `ControllerRoutes::TAG`, and redirects by tagging a
- * `RedirectSource` with `RedirectSource::TAG`.
+ * `RedirectSource` with `RedirectSource::TAG`. `SiteUrls` gathers the URLs
+ * every tagged `UrlSource` lists (D-476).
  */
 final class RoutingServiceProvider extends ServiceProvider
 {
@@ -51,7 +51,8 @@ final class RoutingServiceProvider extends ServiceProvider
 		ConfigRoutes::class,
 		ConfigRedirects::class,
 		ControllerRoutes::class,
-		RedirectExportUrls::class
+		RedirectSiteUrls::class,
+		SiteUrls::class
 	];
 
 	/**
@@ -65,7 +66,7 @@ final class RoutingServiceProvider extends ServiceProvider
 		RedirectSource::TAG => [
 			ConfigRedirects::class
 		],
-		UrlSource::TAG      => [RedirectExportUrls::class]
+		UrlSource::TAG      => [RedirectSiteUrls::class]
 	];
 
 	/**

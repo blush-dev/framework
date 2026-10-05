@@ -19,8 +19,8 @@ use Blush\Content\Type\ContentTypes;
 use Blush\Content\Type\PeopleField;
 
 /**
- * Finds who has a page (D-351), so the lists, the sitemap, and static
- * export agree:
+ * Finds who has a page (D-351), so the lists, the sitemap, and the
+ * site's URLs agree:
  *
  * - `credited()`: the profiles a people field of a type credits on at
  *   least one listed entry, real or virtual, by name. Each has an

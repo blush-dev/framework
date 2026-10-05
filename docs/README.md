@@ -13,8 +13,7 @@ you can edit, copy, and keep in git.
    or your host.
 2. **[Writing content](content.md):** add pages and posts, and learn how
    files become URLs.
-3. **[Going live](going-live.md):** publish changes, turn on caching, or
-   export a static site.
+3. **[Going live](going-live.md):** publish changes and turn on caching.
 
 ## Guides
 
@@ -30,7 +29,7 @@ you can edit, copy, and keep in git.
 | [The admin](admin.md) | Turning on the admin, its dashboard, and building your own |
 | [Accounts and roles](accounts.md) | Who can sign in to the admin, and what they can do |
 | [Configuration](configuration.md) | `.env` and every `config/` option |
-| [Going live](going-live.md) | Caching, publishing, webhooks, and static export |
+| [Going live](going-live.md) | Caching, publishing, and webhooks |
 | [Command line](cli.md) | Every `bin/blush` command |
 | [Extending Blush](extending.md) | Service providers, custom routes, commands, and extensions: plugins and icon packs |
 | [Coming from Blush 1.x](coming-from-1x.md) | What carries over and what changed |
@@ -51,7 +50,7 @@ my-site/
     lang/         Translations for your own components and icons (the `app` namespace)
     icons/        Your own SVG icons (see Components)
   public/         The web root: index.php and published files only
-  storage/        Caches, the content index, logs, exports, sessions, admin accounts, and deleted entries (never commit)
+  storage/        Caches, the content index, logs, sessions, admin accounts, and deleted entries (never commit)
   src/            Your own PHP classes (the App\ namespace)
   bin/blush       The command-line tool
 ```

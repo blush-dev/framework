@@ -37,9 +37,9 @@ use Blush\Content\Parser\DocumentParsers;
 use Blush\Content\Parser\FrontMatter;
 use Blush\Content\Parser\HtmlDocumentParser;
 use Blush\Content\Parser\MarkdownDocumentParser;
-use Blush\Content\Routing\ContentExportUrls;
 use Blush\Content\Routing\ContentRedirects;
 use Blush\Content\Routing\ContentRoutes;
+use Blush\Content\Routing\ContentSiteUrls;
 use Blush\Content\Routing\ContentUrls;
 use Blush\Content\Routing\DataRedirects;
 use Blush\Content\Routing\PageRoutes;
@@ -56,7 +56,6 @@ use Blush\Content\Writer\FilesystemWriter;
 use Blush\Core\AppConfig;
 use Blush\Core\ServiceProvider;
 use Blush\Event\Listener\ListenerRegistry;
-use Blush\Export\UrlSource;
 use Blush\Field\FieldContext;
 use Blush\Field\FieldFactory;
 use Blush\Field\FieldRegistrar;
@@ -67,6 +66,7 @@ use Blush\Field\FieldTargets;
 use Blush\Field\FieldTargetSource;
 use Blush\Routing\RedirectSource;
 use Blush\Routing\RouteSource;
+use Blush\Routing\UrlSource;
 
 /**
  * Binds the content layer: field types, content types, document parsers,
@@ -118,7 +118,7 @@ final class ContentServiceProvider extends ServiceProvider
 		Linter::class,
 		ContentRoutes::class,
 		PageRoutes::class,
-		ContentExportUrls::class,
+		ContentSiteUrls::class,
 		ContentRedirects::class,
 		DataRedirects::class,
 		RefreshRouteCache::class,
@@ -138,7 +138,7 @@ final class ContentServiceProvider extends ServiceProvider
 			ContentRoutes::class,
 			PageRoutes::class
 		],
-		UrlSource::TAG         => [ContentExportUrls::class],
+		UrlSource::TAG         => [ContentSiteUrls::class],
 		FieldTargetSource::TAG => [ContentTypeTargets::class]
 	];
 

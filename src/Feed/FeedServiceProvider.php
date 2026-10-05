@@ -14,8 +14,8 @@ declare(strict_types=1);
 namespace Blush\Feed;
 
 use Blush\Core\ServiceProvider;
-use Blush\Export\UrlSource;
 use Blush\Routing\RouteSource;
+use Blush\Routing\UrlSource;
 
 /**
  * Binds feeds: the builder, the head links, the controller, and the feed
@@ -37,7 +37,7 @@ final class FeedServiceProvider extends ServiceProvider
 	protected const array TRANSIENTS = [
 		FeedController::class,
 		FeedRoutes::class,
-		FeedExportUrls::class
+		FeedSiteUrls::class
 	];
 
 	/**
@@ -45,6 +45,6 @@ final class FeedServiceProvider extends ServiceProvider
 	 */
 	protected const array TAGS = [
 		RouteSource::TAG => [FeedRoutes::class],
-		UrlSource::TAG   => [FeedExportUrls::class]
+		UrlSource::TAG   => [FeedSiteUrls::class]
 	];
 }

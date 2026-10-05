@@ -438,7 +438,7 @@ final readonly class SettingsController
 			'requires' => ['setting' => Setting::Llms->value, 'note' => 'It needs the Markdown copies on.'],
 			'link'     => $served ? ['label' => sprintf('View llms-full.txt (%s)', self::bytes($size)), 'href' => $this->app->absoluteUrl(LlmsRoutes::FULL)] : null,
 			'warning'  => $served && $cached && $size > PageCache::MAX_BYTES
-				? sprintf('At %s, it\'s over the page cache\'s %s, so it\'s built again on every request for it. A static export writes it once.', self::bytes($size), self::bytes(PageCache::MAX_BYTES))
+				? sprintf('At %s, it\'s over the page cache\'s %s, so it\'s built again on every request for it.', self::bytes($size), self::bytes(PageCache::MAX_BYTES))
 				: null
 		];
 	}

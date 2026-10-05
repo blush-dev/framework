@@ -15,7 +15,6 @@ namespace Blush\Console;
 
 use Blush\Console\Commands\ActivateTheme;
 use Blush\Console\Commands\AddAccount;
-use Blush\Console\Commands\Build;
 use Blush\Console\Commands\CacheClear;
 use Blush\Console\Commands\CacheCompile;
 use Blush\Console\Commands\CheckIconPacks;
@@ -93,7 +92,6 @@ enum BuiltInCommand: string
 	case MenuShow      = 'menu:show';
 	case Publish       = 'publish';
 	case ScheduleRun   = 'schedule:run';
-	case Build         = 'build';
 	case AccountAdd       = 'account:add';
 	case AccountList      = 'account:list';
 	case AccountPassword  = 'account:password';
@@ -144,7 +142,6 @@ enum BuiltInCommand: string
 			self::MenuShow      => ShowMenu::class,
 			self::Publish       => Publish::class,
 			self::ScheduleRun   => RunSchedule::class,
-			self::Build         => Build::class,
 			self::AccountAdd       => AddAccount::class,
 			self::AccountList      => ListAccounts::class,
 			self::AccountPassword  => SetAccountPassword::class,

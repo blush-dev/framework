@@ -14,8 +14,8 @@ declare(strict_types=1);
 namespace Blush\Llms;
 
 use Blush\Core\ServiceProvider;
-use Blush\Export\UrlSource;
 use Blush\Routing\RouteSource;
+use Blush\Routing\UrlSource;
 
 /**
  * Binds Markdown pages and `llms.txt` (D-395).
@@ -38,7 +38,7 @@ final class LlmsServiceProvider extends ServiceProvider
 		MarkdownController::class,
 		LlmsTxtController::class,
 		LlmsRoutes::class,
-		LlmsExportUrls::class
+		LlmsSiteUrls::class
 	];
 
 	/**
@@ -46,6 +46,6 @@ final class LlmsServiceProvider extends ServiceProvider
 	 */
 	protected const array TAGS = [
 		RouteSource::TAG => [LlmsRoutes::class],
-		UrlSource::TAG   => [LlmsExportUrls::class]
+		UrlSource::TAG   => [LlmsSiteUrls::class]
 	];
 }

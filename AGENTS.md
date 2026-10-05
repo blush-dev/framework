@@ -7,7 +7,8 @@ Guidance for agents working in this repository.
 The `2.x` branch is a **full rewrite** of Blush, a flat-file CMS, targeting
 PHP 8.5. Planning and milestones M0 (setup), M1 (core), M2 (HTTP +
 Console), M3 (Routing), M4 (Content), M5 (Views + theming), M6 (Caching +
-publishing), and M7 (Static export) are **complete**. **Milestone M8
+publishing), and M7 (Static export, since removed for a plugin to
+build, D-476) are **complete**. **Milestone M8
 (Port jtcom)** is on hold after a trial port on the `jtcom-trial` branch
 of `../blush` (a test bed the author uses; never commit its site files).
 **The current focus is the admin** (M9 and M10), grown out of the setup

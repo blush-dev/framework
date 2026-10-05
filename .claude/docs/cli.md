@@ -53,7 +53,7 @@ Implemented in M2 (D-065, D-069).
 |---|---|
 | `list` | List the commands (the default) |
 | `help <command>` | Show a command's usage |
-| `serve [--host] [-p\|--port] [--static]` | Dev server (`php -S` + `resources/server.php`); `--static` previews the static export through `resources/static-server.php`, applying its `_redirects` (D-138, D-140) |
+| `serve [--host] [-p\|--port]` | Dev server (`php -S` + `resources/server.php`; `--static` removed with static export, D-476) |
 | `cache:clear [--config\|--plugins\|--container\|--routes\|--types\|--themes\|--icon-packs\|--store\|--embeds]` | Clear compiled caches and the cache store, bumping the content version (no flags: all; `--store`: only the store, D-128; `--embeds`: the oEmbed answers and the store, D-448) |
 | `cache:compile` | Compile config, plugins, themes, icon packs, routes, content types, and container plans, then clear the cache store and bump the content version (D-060, D-066, D-077, D-092, D-115, D-128) |
 | `content:index [--full]` | Build or refresh the content index, with a progress bar; `-v` lists changes (M4b, D-087) |
@@ -76,7 +76,6 @@ Implemented in M2 (D-065, D-069).
 | `menu:show <location> [--theme] [--locale]` | Print a location's menu resolved as a page sees it (labels and URLs, nested), with its problems; fails when it shows none (D-204) |
 | `component:list [--theme]` | List every component the chain can render: full name, label, registered or not, class, variants (D-266), and winning template; warn when one can't render (D-164) and about files not named for a component (D-173) |
 | `lang:missing [--locale]` | List untranslated message keys |
-| `build [--base-url] [--no-crawl] [--incremental]` | Export the site to static files in `storage/export`, rendered as production for the export's origin, with redirects and host files; `--incremental` keeps the last export's pages when nothing changed; broken links and host-file notices are warnings, failed URLs fail it (M7, D-135 to D-140) |
 | `publish [--pull\|--no-pull]` | Pull `user/` (with `PublishConfig::$git`), recompile the content types and routes, reindex, clear the store, and bump the content version, as the webhook does (D-131) |
 | `plugin:list` | List installed plugins (name, label, namespace, version, source, and on, off, or can't run, D-385), and broken manifests as warnings (D-394) |
 | `plugin:check [name]` | Check every plugin's manifest, `require`, `conflict`, and `replace` (D-435, D-436; or one plugin's), one that's off as if it were on; a plugin turned on that can't run, or a broken one config turns on, is an error and fails it, one that's off a warning (D-394), and so are a `version` Composer can't normalize (D-430) an `abandoned` plugin, which still runs (D-433), and a mismatched `lang/` catalog (D-454; an unreadable one is an error) |

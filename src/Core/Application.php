@@ -31,7 +31,6 @@ use Blush\Error\ErrorServiceProvider;
 use Blush\Event\Dispatcher;
 use Blush\Event\EventServiceProvider;
 use Blush\Embed\EmbedServiceProvider;
-use Blush\Export\ExportServiceProvider;
 use Blush\Icon\IconServiceProvider;
 use Blush\Menu\MenuServiceProvider;
 use Blush\Region\RegionServiceProvider;
@@ -90,7 +89,6 @@ class Application implements Bootable
 		HttpServiceProvider::class,
 		CacheServiceProvider::class,
 		PublishServiceProvider::class,
-		ExportServiceProvider::class,
 		EmbedServiceProvider::class,
 		IconServiceProvider::class,
 		MenuServiceProvider::class,

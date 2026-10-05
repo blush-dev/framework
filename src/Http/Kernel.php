@@ -28,8 +28,8 @@ use Blush\Http\Middleware\Pipeline;
 
 /**
  * Turns a request into a response: the one entry point for serving HTTP.
- * The web front controller, tests, the CLI, static export, and admin
- * previews all call `handle()`, and nothing in it reads PHP's globals.
+ * The web front controller, tests, the CLI, admin previews, and plugins
+ * all call `handle()`, and nothing in it reads PHP's globals.
  *
  * The request runs through `HandleErrors`, then the framework's and
  * extensions' middleware (tagged `Kernel::MIDDLEWARE`, in tag order:

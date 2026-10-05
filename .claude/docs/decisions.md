@@ -80,6 +80,7 @@ decision, add a new entry that supersedes it and mark the old one
 
 ### D-011: Static export is supported
 - **Date:** 2026-09-25
+- **Status:** Superseded by D-476 (static export removed; a plugin can build it).
 - **Decision:** Blush supports exporting a site to static files (CLI `build`
   command), using the render-anywhere kernel.
 
@@ -1954,6 +1955,7 @@ decision, add a new entry that supersedes it and mark the old one
 
 ### D-135: Static export renders with a production export application
 - **Date:** 2026-09-26
+- **Status:** Superseded by D-476 (static export removed).
 - **Decision:** `Export\ExportSite` boots a second application from the
   site's `Bootstrap` for every export, rather than rendering through the
   command's own application:
@@ -1980,6 +1982,7 @@ decision, add a new entry that supersedes it and mark the old one
 
 ### D-136: Export URLs come from sources, paging, and crawling
 - **Date:** 2026-09-26
+- **Status:** Superseded by D-476: the exporter is gone, and the URL sources stay as `Routing\UrlSource` and `SiteUrl`, gathered by `SiteUrls`.
 - **Decision:** `Export\Crawler` (in the export application) renders
   every URL through `Kernel::handle()`:
   - **Sources:** `Export\UrlSource`s tagged `UrlSource::TAG`, like route
@@ -2017,6 +2020,7 @@ decision, add a new entry that supersedes it and mark the old one
 
 ### D-137: The export's layout, assets, and manifest
 - **Date:** 2026-09-26
+- **Status:** Superseded by D-476 (static export removed).
 - **Decision:**
   - **Layout** (`Export\ExportLayout`): a URL whose last segment has an
     extension its content type uses is a file (`/robots.txt`,
@@ -2055,6 +2059,7 @@ decision, add a new entry that supersedes it and mark the old one
 
 ### D-138: `build` and `serve --static`
 - **Date:** 2026-09-26
+- **Status:** Superseded by D-476 (`build` and `serve --static` removed).
 - **Decision:**
   - `build [--base-url=] [--no-crawl]` reindexes, exports with a
     progress bar, and prints a summary. Failures (a URL that errors, a
@@ -2074,6 +2079,7 @@ decision, add a new entry that supersedes it and mark the old one
 
 ### D-139: Incremental export, and redirects in the export
 - **Date:** 2026-09-26
+- **Status:** Superseded by D-476 (static export removed); the redirect URLs stay as `Routing\RedirectSiteUrls`.
 - **Decision:**
   - **`build --incremental`** keeps the last export's rendered files, and
     renders nothing, when the manifest shows the same output folder,
@@ -2104,6 +2110,7 @@ decision, add a new entry that supersedes it and mark the old one
 
 ### D-140: Host files
 - **Date:** 2026-09-26
+- **Status:** Superseded by D-476 (static export removed).
 - **Decision:** An export tells its host what it needs through host
   files, an extensible subsystem (enum + registry + factory +
   registrar, D-019): `Export\Host\HostFormat`, `HostFilesRegistry`,
@@ -13983,3 +13990,39 @@ decision, add a new entry that supersedes it and mark the old one
   own profile.
 - **Why:** the author asked for entries lists to match the Media
   screen's **Mine** tab (D-474) rather than mark rows one by one.
+
+### D-476: Static export is removed; the site's URLs stay for plugins
+
+- **Date:** 2026-10-04
+- **Status:** Built. Supersedes D-011 and D-135 to D-140 (D-136 and
+  D-139 in part); answers "Static export's future" in
+  `open-questions.md`.
+- **Decision:**
+  - **Removed:** `Blush\Export` whole (the exporter, `ExportSite`, the
+    crawler, layout, writer, manifest, fingerprint, redirects, report,
+    `ExportConfig` and `config/export.php`, `ExportStarted` and
+    `ExportFinished`, and the `Host` formats); the `build` command;
+    `serve --static` and `resources/static-server.php`; and
+    `Paths::$export` (`storage/export`), with it the setup check's
+    storage path. A site with a `config/export.php` gets an error for a
+    class that's gone, so delete it.
+  - **Kept, renamed:** the URL sources are a seam in `Blush\Routing`:
+    `UrlSource` (tag `site.urls`, was `export.urls`), `SiteUrl` (was
+    `ExportUrl`; a path, and `page()` for a listing's later pages), and
+    the framework's sources `ContentSiteUrls`, `FeedSiteUrls`,
+    `SitemapSiteUrls`, `LlmsSiteUrls`, and `RedirectSiteUrls`. New:
+    `SiteUrls::all()` gathers every tagged source's URLs, each path once
+    (the first to list it decides its paging), as the crawler's queue
+    did. Blush doesn't visit them; a plugin (an exporter, a cache warmer,
+    a link checker) renders each through `Kernel::handle()`.
+  - **Kept:** `Bootstrap::withConfig()` and `withPaths()`, which only
+    the export used, since a plugin exporting the site needs them to
+    boot a production copy.
+  - The AI settings screen's `llms-full.txt` warning no longer says a
+    static export writes the file once.
+- **Why:** the author doesn't want static export in the framework, since
+  Blush is meant to be dynamic first; it should be a plugin if anyone
+  wants to build one. Keeping the URL list (rather than deleting it with
+  the exporter) is what makes that plugin practical: content, people
+  archives, and multilingual URLs are real work to rebuild from public
+  APIs, and the list is useful beyond export.

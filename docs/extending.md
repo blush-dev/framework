@@ -92,6 +92,37 @@ slash, and its URLs are made as written. Your routes come after the
 built-in ones, so they can't break content URLs; `bin/blush routes:list`
 shows any conflicts.
 
+### Every URL on the site
+
+`Blush\Routing\SiteUrls` lists every page Blush knows about: entries,
+listings and their terms, date archives, people archives and profiles,
+feeds, sitemaps, `robots.txt`, `llms.txt` and the Markdown pages, and
+redirects. It's for code that needs to visit every page, such as a
+static site exporter, a cache warmer, or a link checker. Blush doesn't
+visit them itself. Render each one with the kernel:
+
+```php
+$origin = $container->make(AppConfig::class)->origin();
+$kernel = $container->make(Kernel::class);
+
+foreach ($container->make(SiteUrls::class)->all() as $url) {
+	$response = $kernel->handle(Request::create($origin . $url->path));
+}
+```
+
+A listing's later pages aren't in the list. Ask `$url->page(2)`, then
+3, and so on, until you get `null` or a page that isn't a 200.
+
+If your routes serve pages, list them too. Write a class that
+implements `Blush\Routing\UrlSource` and returns a `SiteUrl` for each
+path, then tag it in your provider:
+
+```php
+protected const array TAGS = [
+	UrlSource::TAG => [App\Http\HelloUrls::class]
+];
+```
+
 ## Your own commands
 
 ```php
@@ -1151,8 +1182,8 @@ leave `name` out; one naming something else is broken.
 
 Blush announces what it's doing through events you can listen for, such as
 `Blush\Content\Events\ContentIndexed` (content changed),
-`Blush\Publish\Events\ContentPublished`, `Blush\Export\Events\ExportFinished`,
-and `Blush\Cache\Events\CacheCleared` (the cache store was emptied by
+`Blush\Publish\Events\ContentPublished`, and
+`Blush\Cache\Events\CacheCleared` (the cache store was emptied by
 `cache:clear`, the admin's Clear caches, a publish, or `cache:compile`;
 its `namespaces` say which, a good moment to purge a CDN).
 Listen in your provider's `boot()`:

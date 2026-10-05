@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Export URL.
+ * Site URL.
  *
  * @author    Justin Tadlock <justintadlock@gmail.com>
  * @copyright Copyright (c) 2026, Justin Tadlock
@@ -11,20 +11,20 @@
 
 declare(strict_types=1);
 
-namespace Blush\Export;
+namespace Blush\Routing;
 
 use Closure;
 
 /**
- * A URL path to export. A listing gives `$page`, which returns the path
- * of a later page (or `null`): the exporter renders page 2, 3, and so on
- * until one isn't a 200, so the number of pages always matches what the
- * controller serves.
+ * A URL path the site serves (D-476). A listing gives `$page`, which
+ * returns the path of a later page (or `null`): a visitor asks for page
+ * 2, 3, and so on until one isn't a 200, so the number of pages always
+ * matches what the controller serves.
  *
- *     new ExportUrl('/about');
- *     new ExportUrl('/topics', fn (int $page): ?string => $urls->collection($topics, $page));
+ *     new SiteUrl('/about');
+ *     new SiteUrl('/topics', fn (int $page): ?string => $urls->collection($topics, $page));
  */
-final readonly class ExportUrl
+final readonly class SiteUrl
 {
 	/**
 	 * @param ?Closure(int): ?string $page

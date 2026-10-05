@@ -26,10 +26,6 @@ use Blush\Core\Paths;
  * development only. Requests for files that exist are served directly;
  * everything else goes through the front controller, by way of the
  * framework's `resources/server.php` router script.
- *
- * With `--static`, it serves the static export (`build`) instead, through
- * `resources/static-server.php`, which answers as a static host would:
- * folder index files, their content types, and `404.html` (D-138).
  */
 #[Command('serve', 'Serve the site with PHP\'s built-in development server.')]
 final readonly class Serve
@@ -45,22 +41,15 @@ final readonly class Serve
 	public function __invoke(
 		Output $output,
 		#[Option('The host to listen on.')] string $host = '127.0.0.1',
-		#[Option('The port to listen on.', short: 'p')] int $port = 8000,
-		#[Option('Serve the static export instead of the site.')] bool $static = false
+		#[Option('The port to listen on.', short: 'p')] int $port = 8000
 	): ExitCode {
 		if ($port < 1 || $port > 65535) {
 			throw new InvalidInput(sprintf('The "--port" option must be between 1 and 65535; %d given.', $port));
 		}
 
-		$root = $static ? $this->paths->export : $this->paths->public;
+		$root = $this->paths->public;
 
-		if ($static && ! is_file("{$root}/index.html")) {
-			$output->error(sprintf('No static export found at %s; run build first.', $this->paths->relative($root)));
-
-			return ExitCode::Failure;
-		}
-
-		if (! $static && ! is_file("{$root}/index.php")) {
+		if (! is_file("{$root}/index.php")) {
 			$output->error(sprintf('No front controller found at %s/index.php.', $this->paths->relative($root)));
 
 			return ExitCode::Failure;
@@ -75,18 +64,17 @@ final readonly class Serve
 			"{$host}:{$port}",
 			'-t',
 			$root,
-			self::routerScript($static)
+			self::routerScript()
 		], $root);
 
 		return $code === 0 ? ExitCode::Success : ExitCode::Failure;
 	}
 
 	/**
-	 * Returns the path to the router script: the site's, or the static
-	 * export's.
+	 * Returns the path to the router script.
 	 */
-	public static function routerScript(bool $static = false): string
+	public static function routerScript(): string
 	{
-		return dirname(__DIR__, 3) . '/resources/' . ($static ? 'static-server.php' : 'server.php');
+		return dirname(__DIR__, 3) . '/resources/server.php';
 	}
 }

@@ -28,7 +28,6 @@ use Blush\Content\Type\ContentConfig;
 use Blush\Content\Type\ContentTypeCache;
 use Blush\Env\Env;
 use Blush\Embed\EmbedConfig;
-use Blush\Export\ExportConfig;
 use Blush\Extension\ComposerInstalled;
 use Blush\Extension\ExtensionState;
 use Blush\Extension\LocalAutoloader;
@@ -97,7 +96,8 @@ use Blush\Theme\Themes;
  *
  * The application is returned registered but not booted. `withConfig()`
  * and `withPaths()` return a bootstrap for a variant of the site, such as
- * the production application static export renders with (D-135).
+ * a production application a plugin renders a copy of the site with
+ * (D-135, D-476).
  */
 final readonly class Bootstrap
 {
@@ -313,7 +313,6 @@ final readonly class Bootstrap
 			new LlmsConfig(),
 			new CacheConfig(),
 			PublishConfig::fromEnv($env),
-			new ExportConfig(),
 			new EmbedConfig(),
 			new SessionConfig(),
 			new AuthConfig(),

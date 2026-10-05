@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Content export URLs.
+ * Content site URLs.
  *
  * @author    Justin Tadlock <justintadlock@gmail.com>
  * @copyright Copyright (c) 2026, Justin Tadlock
@@ -24,12 +24,12 @@ use Blush\Content\Type\Profiles;
 use Blush\Content\Type\Taxonomy;
 use Blush\Content\Visibility;
 use Blush\Core\AppConfig;
-use Blush\Export\ExportUrl;
-use Blush\Export\UrlSource;
+use Blush\Routing\SiteUrl;
+use Blush\Routing\UrlSource;
 
 /**
- * Lists every content URL for static export (D-136), listings first so
- * they keep their paging:
+ * Lists every content URL (D-136, D-476), listings first so they keep
+ * their paging:
  *
  * 1. The homepage, paged when a type is the home.
  * 2. Each public, routed type's collection, paged.
@@ -46,7 +46,7 @@ use Blush\Export\UrlSource;
  * date archives are listed for each language, and step 6 lists every
  * language's entries.
  */
-final readonly class ContentExportUrls implements UrlSource
+final readonly class ContentSiteUrls implements UrlSource
 {
 	/**
 	 * The date parts of each archive level, from the year down.
@@ -81,7 +81,7 @@ final readonly class ContentExportUrls implements UrlSource
 			$path = $this->urls->profile($profile->slug);
 
 			if ($path !== null) {
-				yield new ExportUrl($path, fn (int $page): ?string => $this->urls->profile($profile->slug, $page));
+				yield new SiteUrl($path, fn (int $page): ?string => $this->urls->profile($profile->slug, $page));
 			}
 		}
 
@@ -91,7 +91,7 @@ final readonly class ContentExportUrls implements UrlSource
 			$path = $entry->type instanceof Profiles ? null : $this->urls->entry($entry);
 
 			if ($path !== null) {
-				yield new ExportUrl($path);
+				yield new SiteUrl($path);
 			}
 		}
 	}
@@ -101,21 +101,21 @@ final readonly class ContentExportUrls implements UrlSource
 	 * homepage, and each type's collection, terms, and date archives.
 	 *
 	 * @param  array<string, ContentType> $types
-	 * @return iterable<ExportUrl>
+	 * @return iterable<SiteUrl>
 	 */
 	private function listings(array $types, ?string $language): iterable
 	{
 		$home = $this->types->homeType();
 
 		yield $home === null
-			? new ExportUrl($this->urls->home($language))
-			: new ExportUrl((string) $this->urls->collection($home, 1, $language), fn (int $page): ?string => $this->urls->collection($home, $page, $language));
+			? new SiteUrl($this->urls->home($language))
+			: new SiteUrl((string) $this->urls->collection($home, 1, $language), fn (int $page): ?string => $this->urls->collection($home, $page, $language));
 
 		foreach ($types as $type) {
 			$path = $type instanceof Profiles ? null : $this->urls->collection($type, 1, $language);
 
 			if ($path !== null) {
-				yield new ExportUrl($path, fn (int $page): ?string => $this->urls->collection($type, $page, $language));
+				yield new SiteUrl($path, fn (int $page): ?string => $this->urls->collection($type, $page, $language));
 			}
 		}
 
@@ -136,7 +136,7 @@ final readonly class ContentExportUrls implements UrlSource
 	 * Returns a taxonomy's term archives in a language. Terms are named
 	 * by their original's slug (D-455).
 	 *
-	 * @return iterable<ExportUrl>
+	 * @return iterable<SiteUrl>
 	 */
 	private function terms(ContentType $taxonomy, ?string $language): iterable
 	{
@@ -153,7 +153,7 @@ final readonly class ContentExportUrls implements UrlSource
 			$path = $this->urls->term($taxonomy, $slug, 1, $language);
 
 			if ($path !== null) {
-				yield new ExportUrl($path, fn (int $page): ?string => $this->urls->term($taxonomy, $slug, $page, $language));
+				yield new SiteUrl($path, fn (int $page): ?string => $this->urls->term($taxonomy, $slug, $page, $language));
 			}
 		}
 	}
@@ -161,7 +161,7 @@ final readonly class ContentExportUrls implements UrlSource
 	/**
 	 * Returns each of a type's people fields' lists and person archives.
 	 *
-	 * @return iterable<ExportUrl>
+	 * @return iterable<SiteUrl>
 	 */
 	private function people(ContentType $type): iterable
 	{
@@ -170,14 +170,14 @@ final readonly class ContentExportUrls implements UrlSource
 			$list   = $people === [] ? null : $this->urls->people($type, $field);
 
 			if ($list !== null) {
-				yield new ExportUrl($list);
+				yield new SiteUrl($list);
 			}
 
 			foreach ($people as $person) {
 				$path = $this->urls->person($type, $field, $person->slug);
 
 				if ($path !== null) {
-					yield new ExportUrl($path, fn (int $page): ?string => $this->urls->person($type, $field, $person->slug, $page));
+					yield new SiteUrl($path, fn (int $page): ?string => $this->urls->person($type, $field, $person->slug, $page));
 				}
 			}
 		}
@@ -186,7 +186,7 @@ final readonly class ContentExportUrls implements UrlSource
 	/**
 	 * Returns a type's date archives, every level of each.
 	 *
-	 * @return iterable<ExportUrl>
+	 * @return iterable<SiteUrl>
 	 */
 	private function dates(ContentType $type, ?string $language): iterable
 	{
@@ -212,7 +212,7 @@ final readonly class ContentExportUrls implements UrlSource
 				$path       = $this->urls->date($type, $current, 1, $language);
 
 				if ($path !== null) {
-					yield new ExportUrl($path, fn (int $page): ?string => $this->urls->date($type, $current, $page, $language));
+					yield new SiteUrl($path, fn (int $page): ?string => $this->urls->date($type, $current, $page, $language));
 				}
 			}
 		}

@@ -1,11 +1,7 @@
 # Going live
 
-You can run Blush two ways:
-
-- **As a PHP site** on your host, where you publish changes as you make
-  them. Most of this page is about that.
-- **As a [static export](#static-export):** plain HTML files you can host
-  anywhere, with no PHP at all.
+Blush runs as a PHP site on your host, where you publish changes as you
+make them.
 
 ## Before you launch
 
@@ -136,46 +132,3 @@ bin/blush schedule:run
 ```
 
 It also cleans out expired cache entries.
-
-## Static export
-
-`bin/blush build` turns your whole site into plain files: HTML pages,
-feeds, sitemaps, Markdown pages and `llms.txt`, media, and theme files. Upload them to any web host,
-including GitHub Pages, Netlify, Cloudflare Pages, or plain Apache.
-
-```sh
-bin/blush build --base-url=https://example.com
-```
-
-The files are written to `storage/export/`. Preview them exactly as a
-static host would serve them:
-
-```sh
-bin/blush serve --static
-```
-
-- `--base-url` is where the files will live. Without it, Blush uses
-  `config/export.php`'s `url`, then `APP_URL`.
-- `--incremental` skips rendering when nothing has changed since the last
-  build.
-- `--no-crawl` exports only the pages Blush knows about, without
-  following links. Normally it follows every link, which also finds
-  broken links for you; they're listed as warnings.
-
-Every page Blush can serve is exported, including listings and their
-extra pages, date archives, term pages, feeds, and your 404 page.
-Redirects are exported too. Some things can't work without PHP: the
-publish webhook, and scheduled posts going live by themselves (rebuild
-after the date passes).
-
-### Host files
-
-A static host needs to be told a few things, such as where your 404 page
-is and which URLs redirect. `build` writes these for you:
-
-- **`.htaccess`**, for Apache and most shared hosting.
-- **`_redirects` and `_headers`**, for Netlify and Cloudflare Pages.
-
-Choose which to write with `hosts` in
-[`config/export.php`](configuration.md#static-export). A file of the same
-name in your `public/` folder wins over the generated one.

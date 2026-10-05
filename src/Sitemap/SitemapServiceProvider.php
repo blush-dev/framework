@@ -14,8 +14,8 @@ declare(strict_types=1);
 namespace Blush\Sitemap;
 
 use Blush\Core\ServiceProvider;
-use Blush\Export\UrlSource;
 use Blush\Routing\RouteSource;
+use Blush\Routing\UrlSource;
 
 /**
  * Binds sitemaps and `robots.txt`.
@@ -36,7 +36,7 @@ final class SitemapServiceProvider extends ServiceProvider
 		SitemapController::class,
 		RobotsController::class,
 		SitemapRoutes::class,
-		SitemapExportUrls::class
+		SitemapSiteUrls::class
 	];
 
 	/**
@@ -44,6 +44,6 @@ final class SitemapServiceProvider extends ServiceProvider
 	 */
 	protected const array TAGS = [
 		RouteSource::TAG => [SitemapRoutes::class],
-		UrlSource::TAG   => [SitemapExportUrls::class]
+		UrlSource::TAG   => [SitemapSiteUrls::class]
 	];
 }

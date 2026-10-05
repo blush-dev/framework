@@ -9,9 +9,9 @@
 | M4 | **Content.** Source, parsers (behind interfaces), schemas, indexer, repository, query, content types from PHP and data (D-042), the built-in `author` type (D-043), `content:*` commands, media, and the PHPBench baseline. | jtcom's ~1,200 entries index and lint cleanly; query benchmarks are recorded |
 | M5 | **Views + theming.** Engine, hierarchy, components, `Head`, tokens, theme loader, default theme, built-in controllers, feeds, and sitemaps. | The default theme renders every route type |
 | M6 | **Caching + publishing.** Cache layers, content version, `PageCache`, webhook, and `publish`. | One-command publish and cache clear |
-| M7 | **Static export.** `build` plus incremental mode. | jtcom exports and serves from static files |
+| M7 | **Static export.** `build` plus incremental mode. Removed in D-476 (a plugin's job now). | jtcom exports and serves from static files |
 | M8 | **Port jtcom.** jtcom theme, config, `user/` layout, a URL-parity crawl against the live site, and a redirect map. | Every old URL returns 200 or 301; deployed (dynamically, D-142) |
-| M9 | **Admin stage 2:** operations dashboard. | Publish, clear, reindex, and export from a browser |
+| M9 | **Admin stage 2:** operations dashboard. | Publish, clear, and reindex from a browser |
 | M10 | **Admin stage 3:** editor and media library. | Create and edit entries in a browser |
 | Later | Plugin views in the view chain (D-174; on hold, D-380; a plugin's components render themselves since D-382); `SqliteIndex` + search; in-house YAML and Markdown parsers; theme distribution; custom template engine; Vite dev-server integration | — |
 
@@ -371,8 +371,6 @@ the admin with Playwright and Chrome, and delete the account, its
 sessions, and anything it created afterwards. ddev syncs files with
 Mutagen, so an edit made on the host can reach the container late: test
 write conflicts through the API, not by editing files on disk.
-Export as a background-safe action is deferred (jtcom runs
-dynamically).
 
 ### Still to scope
 
@@ -401,8 +399,7 @@ dynamically).
   then feeds and `llms.txt` per language; translations in the admin
   (uploads, a strings editor) once there's a design; a language
   switcher is on hold.
-- **Front-end search:** a JSON index that also works on a static
-  export; see `open-questions.md`.
+- **Front-end search:** a JSON index; see `open-questions.md`.
 - **Extension kinds, what's left (D-378, D-379):** admin themes as a
   fourth kind on the shared pieces (joining `AdminTheme`, D-317);
   installing from the admin, data-only kinds (icon packs) first, where
@@ -453,9 +450,8 @@ dynamically).
 - **Home's screens (D-368):** what belongs under Home besides the
   Dashboard and Content health. (1, done, D-368) The **Calendar**: a
   month of dated entries (published, scheduled, and drafts with a
-  date), read-only. Next maybe: **Publishing** (the cache, the last
-  export, and buttons to clear and export; the author is interested,
-  not decided). The calendar stays read-only: no dragging to
+  date), read-only. Next maybe: **Publishing** (the cache and a button
+  to clear it; the author is interested, not decided). The calendar stays read-only: no dragging to
   reschedule (the author's call). Activity (who
   changed what) is extension territory, not core.
 - **Relationships (D-242, planned):** a reverse index for every
@@ -493,6 +489,10 @@ Other starting points the author may pick up (none decided):
 ---
 
 ## M7 (Static export): done
+
+**Removed** 2026-10-04 (D-476): `Blush\Export`, `build`, and
+`serve --static` are gone; the URL sources stay as `Routing\UrlSource`
+and `SiteUrls` for a plugin to build on. What follows is the record.
 
 Started and finished 2026-09-26, in two slices (D-134). Exit criterion,
 **jtcom exports and serves from static files:** done (M7b, on Apache).

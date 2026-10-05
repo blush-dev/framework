@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Sitemap export URLs.
+ * Sitemap site URLs.
  *
  * @author    Justin Tadlock <justintadlock@gmail.com>
  * @copyright Copyright (c) 2026, Justin Tadlock
@@ -14,15 +14,15 @@ declare(strict_types=1);
 namespace Blush\Sitemap;
 
 use Override;
-use Blush\Export\ExportUrl;
-use Blush\Export\UrlSource;
+use Blush\Routing\SiteUrl;
+use Blush\Routing\UrlSource;
 
 /**
  * Lists `robots.txt` and, when sitemaps are on, the sitemap index (at
- * `/sitemap` and `/sitemap.xml`) and each sitemap it lists, for static
- * export (D-136).
+ * `/sitemap` and `/sitemap.xml`) and each sitemap it lists (D-136,
+ * D-476).
  */
-final readonly class SitemapExportUrls implements UrlSource
+final readonly class SitemapSiteUrls implements UrlSource
 {
 	public function __construct(
 		private SitemapBuilder $builder,
@@ -35,17 +35,17 @@ final readonly class SitemapExportUrls implements UrlSource
 	#[Override]
 	public function urls(): iterable
 	{
-		yield new ExportUrl('/robots.txt');
+		yield new SiteUrl('/robots.txt');
 
 		if (! $this->config->enabled) {
 			return;
 		}
 
-		yield new ExportUrl('/sitemap');
-		yield new ExportUrl('/sitemap.xml');
+		yield new SiteUrl('/sitemap');
+		yield new SiteUrl('/sitemap.xml');
 
 		foreach ($this->builder->index() as [$path]) {
-			yield new ExportUrl($path);
+			yield new SiteUrl($path);
 		}
 	}
 }

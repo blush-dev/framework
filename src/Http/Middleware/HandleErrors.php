@@ -30,7 +30,7 @@ use Blush\Http\Status;
  * Turns an exception thrown further down the pipeline into a 500 response,
  * after logging it. The kernel always runs it outermost, so
  * `Kernel::handle()` returns a response instead of throwing, whether it
- * was called by the front controller, a test, or static export.
+ * was called by the front controller, a test, or a plugin.
  *
  * An `HttpError` (such as the router's `NotFound` and `MethodNotAllowed`)
  * becomes a response with its own status and headers, and isn't logged:

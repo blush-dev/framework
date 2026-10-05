@@ -17,7 +17,7 @@ regions came later (D-199 to D-204). M5c (D-122 to D-124) added the feed and sit
    only for presentation logic.
 4. **Layered** (D-024). Any part of a theme can be overridden without forking
    it.
-5. **One renderer** for the web, static export, and admin preview.
+5. **One renderer** for the web, admin preview, and plugins.
 6. **Accessible by default** (D-030).
 
 ## Anatomy
@@ -424,8 +424,7 @@ to `<body>` (D-109), and `stylesheet` is a URL or a theme asset path (D-119).
   `resources/`, `src/`, `vendor/`, and `node_modules/` folders and its
   `*.config.js` files (D-168) are never served.
 - **Publishing:** `theme:publish` copies servable theme assets (never PHP,
-  views, or manifests; never a symlink) to `public/themes/{vendor}/{name}/`. Static
-  export includes them.
+  views, or manifests; never a symlink) to `public/themes/{vendor}/{name}/`.
 
 ## Media and images
 

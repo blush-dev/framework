@@ -32,14 +32,13 @@ use Blush\Content\Index\RecordBuilder;
 use Blush\Content\Lint\Linter;
 use Blush\Content\LocalizedRepository;
 use Blush\Content\Query\EntryCollection;
-use Blush\Content\Routing\ContentExportUrls;
+use Blush\Content\Routing\ContentSiteUrls;
 use Blush\Content\Routing\ContentUrls;
 use Blush\Content\Type\ContentTypes;
 use Blush\Core\AppConfig;
 use Blush\Core\Application;
 use Blush\Core\Language;
 use Blush\Core\Languages;
-use Blush\Export\ExportUrl;
 use Blush\Http\Kernel;
 use Blush\Http\Request;
 use Blush\Menu\Link\CollectionLink;
@@ -48,6 +47,7 @@ use Blush\Menu\Link\TermLink;
 use Blush\Menu\Menu;
 use Blush\Menu\MenuItem;
 use Blush\Menu\Menus;
+use Blush\Routing\SiteUrl;
 use Blush\Tests\Fixtures\Content\PostTitles;
 use Blush\Theme\ThemeResolver;
 use Blush\View\Site;
@@ -62,7 +62,7 @@ use Blush\View\ViewFactory;
 #[CoversClass(TranslatedKeys::class)]
 #[CoversClass(IndexRecord::class)]
 #[CoversClass(ContentUrls::class)]
-#[CoversClass(ContentExportUrls::class)]
+#[CoversClass(ContentSiteUrls::class)]
 #[CoversClass(LocalizedRepository::class)]
 #[CoversClass(ComponentFactory::class)]
 #[CoversClass(Component::class)]
@@ -615,11 +615,11 @@ final class MultilingualTest extends TestCase
 		return $matches[0];
 	}
 
-	public function testExportListsEveryLanguage(): void
+	public function testSiteUrlsListEveryLanguage(): void
 	{
 		$paths = array_map(
-			static fn (ExportUrl $url): string => $url->path,
-			[...$this->app->container()->make(ContentExportUrls::class)->urls()]
+			static fn (SiteUrl $url): string => $url->path,
+			[...$this->app->container()->make(ContentSiteUrls::class)->urls()]
 		);
 
 		foreach (['/fr', '/fr/topics/lart', '/fr/archives/2008/04', '/fr/archives/printemps', '/fr/a-propos', '/fr/a-propos/biographie', '/about'] as $path) {

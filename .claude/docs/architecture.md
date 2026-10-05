@@ -11,10 +11,10 @@ This is the design for the Blush 2 subsystems. Decisions it relies on are in
   functions are template escaping helpers.
 - **Render anywhere.** Only `RequestFactory::fromGlobals()` touches
   superglobals. `Kernel::handle(Request): Response` serves the web, CLI, tests,
-  static export (D-011), and admin preview.
+  admin preview, and plugins (such as a static exporter, D-476).
 - **Immutable values, lazy work.** Readonly value objects, native lazy objects,
   and nothing parsed or rendered until it's used.
-- **Zero cost when unused.** Admin, publishing webhooks, search, and export are
+- **Zero cost when unused.** Admin, publishing webhooks, and search are
   wired only when enabled.
 - **In-house first** (D-006). Temporary third-party code sits behind Blush
   interfaces.
@@ -60,7 +60,7 @@ This is the design for the Blush 2 subsystems. Decisions it relies on are in
   4. The site's providers from config
 - **`Paths`:** a readonly value object for root, config, user, content, media,
   data, public, resources, storage, cache, index, logs,
-  sessions, export, and vendor. Any path can be overridden (D-046), and
+  sessions, accounts, extensions, and vendor. Any path can be overridden (D-046), and
   `join()` confines a relative path to its base.
 - **`Env`** (`Blush\Env`, D-056): an in-house `.env` loader (read-only, no
   `putenv`; the process environment wins) with typed accessors: `string()`,
@@ -112,7 +112,6 @@ This is the design for the Blush 2 subsystems. Decisions it relies on are in
   - `ApplicationBooted` (M1), `RequestReceived` (M2), `RouteMatched` (M3), `ControllerResolved`
   - `MarkdownEnvironmentBuilding` (M4a), `EntryParsed`, `ViewRendering`, `ResponseReady` (M2)
   - `ContentIndexed` (M4b; the content version listens, M6a), `ContentWritten`, `ContentPublished`, `CacheCleared` (D-415)
-  - `ExportStarted`, `ExportFinished` (M7a)
 
 ## Data files
 
@@ -307,8 +306,13 @@ Implemented in M3 (D-073 to D-077).
   `RedirectSource`s, with pattern placeholders. They're checked only before a 404, including when a
   handler throws `NotFound`. `/public/...` URLs redirect to the canonical
   path (D-076).
-- **Route enumeration:** static export (M7) needs every concrete URL.
-  Sitemaps don't use it; they list URLs from content (D-123).
+- **Site URLs** (D-476): `SiteUrls::all()` lists every concrete URL
+  from tagged `UrlSource`s (content, feeds, sitemaps, `llms.txt` and
+  Markdown pages, literal redirects, and plugins'), each path once, a
+  listing with `SiteUrl::page()` for its later pages. Blush doesn't
+  visit them; it's for plugins (a static exporter, a cache warmer, a
+  link checker). Sitemaps don't use it; they list URLs from content
+  (D-123).
 - **Languages (D-456):** content routes and the page catch-all are
   registered again for each language besides the default under
   `/{code}`, ahead of the default's (`ContentRoutes::localized()`).
@@ -537,7 +541,7 @@ Implemented in M4a (D-080, D-085, D-086).
   A person's archive is introduced by `_{field}/{slug}` in the type's
   folder when it's published, else the profile. `PeopleArchives::
   profiles()` lists every profile with a page, for the sitemap and
-  export.
+  the site's URLs.
 
 ## Source → Index → Repository
 
@@ -688,7 +692,7 @@ Implemented in M4c (D-099), apart from image derivatives.
   original, never from a variant (D-239); a focal point field guides
   crops. Sizes are named and declared by the theme (sites can add or
   change them, in config first and the admin later), generated on demand
-  or at export, and cached in `public/_media/`, never in `user/media`.
+  and cached in `public/_media/`, never in `user/media`.
   Output includes `srcset`/`sizes` helpers.
 
 ## Views
@@ -805,8 +809,8 @@ Views use components, but the system is its own subsystem.
   `LlmsRoutes` is a system route registered last among the framework's
   (so the admin's and media's own `.md` paths win, and content routes'
   `{name}` never takes `hello.md`); themed pages link the version with
-  `<link rel="alternate" type="text/markdown">`. Both export.
-- **Search:** optional; needs `SqliteIndex` (under discussion: a JSON index that works on a static export too; see `open-questions.md`).
+  `<link rel="alternate" type="text/markdown">`. Both are site URLs.
+- **Search:** optional; needs `SqliteIndex` (under discussion: a JSON index; see `open-questions.md`).
 
 ## Caching
 
@@ -836,45 +840,6 @@ Implemented in M6a (D-127 to D-130), apart from publishing (M6b).
   `pages`, `maxAge`.
 - **Later:** page-cache files written so nginx/Apache `try_files` can
   serve them without starting PHP.
-
-## Static export (D-011)
-
-Implemented in M7 (D-135 to D-140).
-
-- **`Exporter`** (`Blush\Export`): reindexes, boots the export
-  application, copies `public/`'s files, renders every URL the crawler
-  finds, writes the 404 page, copies theme assets and media, removes what
-  the last export wrote and this one didn't, and records the manifest.
-  One export at a time; the output folder (`Paths::$export`,
-  `storage/export`) can't overlap the site's own folders.
-- **`ExportSite`:** a second application booted from the site's
-  `Bootstrap` (`withConfig()`, `withPaths()`): production, the export's
-  origin as `AppConfig::$url`, in-memory caching without the page cache,
-  and compiled caches in `storage/cache/export` (so always fresh).
-- **`Crawler`:** tagged `UrlSource`s (content, feeds, sitemaps, and
-  plugins'), `ExportConfig::$paths`, paging by asking for the next
-  page until one isn't a 200, and link crawling (`ExportConfig::$crawl`)
-  that also reports broken links.
-- **`ExportLayout`:** `/about` → `about/index.html`, `/feed` →
-  `feed/index.rss`, `/robots.txt` → `robots.txt`; index names give hosts
-  the content type (`ExportLayout::INDEXES`).
-- **`ExportWriter`** + **`ExportManifest`** (`storage/cache/export/manifest.json`):
-  unchanged files are left alone, stale ones removed, others never
-  touched.
-- **Incremental** (`build --incremental`, D-139): nothing is rendered
-  when the content version and `ExportFingerprint` (a stat of config,
-  data, media, themes, plugins, icon packs, `public/`, and code) match the
-  manifest; the previous pages are kept and assets synced.
-- **Redirects** (D-139): the table's literal redirects are export URLs
-  (rendering confirms them); every redirect met is exported, with a
-  page that redirects in the browser; patterns go to host files.
-- **Host files** (`Export\Host`, D-140; enum + registry + factory +
-  registrar): `apache` (`.htaccess`: indexes, types, redirects,
-  extensionless URLs without `DirectorySlash`, the 404) and `netlify`
-  (`_redirects`, `_headers`), chosen by `ExportConfig::$hosts`.
-- **Preview:** `serve --static` with `resources/static-server.php`, which
-  applies `_redirects`.
-- **Later:** image derivatives in the export (with `image()`).
 
 ## Embeds (D-184)
 
@@ -937,7 +902,7 @@ Implemented in M7 (D-135 to D-140).
     that hold capabilities (D-216); passkeys later. Sessions, CSRF, and
     rate limiting.
   - The admin is a JavaScript single-page application (D-215).
-  - Actions: clear caches, reindex, publish (git), export.
+  - Actions: clear caches, reindex, publish (git).
   - Content health (lint), drafts and scheduled lists, and signed preview
     URLs (built: D-225, D-226; `Blush\Preview`, signed with `APP_SECRET`).
   - A calendar of dated entries by month (built: D-368;
@@ -1289,7 +1254,7 @@ and **icon packs**; **admin themes** are planned on the same pieces.
 - **Lazy:** services (deferred and lazy objects), entry bodies, and
   Markdown rendering.
 - **Layers:** page cache (including files the web server can serve without
-  starting PHP), HTTP 304s, and static export.
+  starting PHP), and HTTP 304s.
 - **Measured:** a PHPBench suite (dev only, `composer bench`) against a
   generated jtcom-sized site. Baselines are recorded in `roadmap.md` (M4c,
   D-101); gating CI on regressions is an open question.

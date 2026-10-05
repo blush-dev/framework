@@ -4,12 +4,6 @@ Move each item to `decisions.md` once it's answered.
 
 ## Needs the author's call
 
-- **Static export's future** (raised 2026-10-04): the author is
-  considering dropping static export (M7, `build`), since Blush is
-  meant to be dynamic first, and isn't concerned with its gaps for now
-  (such as `ExportSite::boot()` dropping `description`, `dateFormat`,
-  and `timeFormat`, D-465). Other open items here lean on it (front-end
-  search, headless JSON, untranslated-content redirects).
 - **Profiles** (D-351 to D-353, D-369): who may edit their own profile
   and who may edit anyone's (capabilities the roles don't have yet; the
   revised sketch calls it the first capability that depends on the
@@ -43,10 +37,11 @@ Move each item to `decisions.md` once it's answered.
   - A read-only `view` capability (the sketch's), which needs a
     read-only editor first.
 - **Front-end search** (raised 2026-10-03; the author wants to pursue
-  it): the plan in `architecture.md` ("needs `SqliteIndex`", FTS5) only
-  works when PHP serves the site, not on a static export (D-011). The
-  idea instead: a JSON search index as a route (`/search.json`, built
-  and exported the way feeds are, `FeedExportUrls`), searched in the
+  it): the plan in `architecture.md` ("needs `SqliteIndex`", FTS5) needs
+  SQLite and leaves static copies of the site out. The idea instead: a
+  JSON search index as a route (`/search.json`, built the way feeds
+  are, and listed in the site's URLs as `FeedSiteUrls` lists feeds,
+  D-476), searched in the
   browser by a theme's template and a small script, with `/search?q=`
   answered on the server from the same records when PHP serves the
   site; wired only when enabled. To settle:
@@ -58,7 +53,8 @@ Move each item to `decisions.md` once it's answered.
     one per type, or a chunked index (Pagefind's approach: a query
     loads only the chunks its words need)?
   - Pagefind itself (a third-party tool that indexes the exported HTML
-    after export): it fits a static export but not a site PHP serves,
+    after export): it fits a static export (a plugin's job since D-476)
+    but not a site PHP serves,
     and it's not in-house (D-006). Borrow its chunking idea, not the
     tool?
   - The browser-side matcher: in-house, or a library behind a Blush
@@ -95,7 +91,7 @@ Move each item to `decisions.md` once it's answered.
     `llms.txt`, the AI screen (D-398, which settled listing only some
     types with each type's `llms` option), and `llms-full.txt` (D-402).
     Still open: answering `Accept: text/markdown` on the page's own URL
-    (a cache would then vary by `Accept`, and a static export can't);
+    (a cache would then vary by `Accept`, and a static copy can't);
     and directives rendered to plain Markdown rather than left as
     written (their URL props get full URLs, D-396), which needs each
     component's plain form, with today's as the fallback.
@@ -109,8 +105,8 @@ Move each item to `decisions.md` once it's answered.
     separate front end (Astro, Next.js, SvelteKit, an app) owns the
     pages. Content reaches it over HTTP at runtime, at build time (a
     rebuild on an outgoing webhook), or as the content API exported to
-    a folder of JSON by the static exporter, so a front end builds with
-    no PHP running. Open within it:
+    a folder of JSON by a static export plugin (D-476), so a front end
+    builds with no PHP running. Open within it:
     - Bodies: directives and components render through theme templates
       (D-382), so a front end can't render them alone. Rendered HTML
       first (core component templates), a structured tree (JSON nodes
@@ -135,7 +131,7 @@ Move each item to `decisions.md` once it's answered.
   - Shareable draft preview links already exist (signed, expiring
     links, D-226); headless preview would reuse them.
   - **An image pipeline:** resized images and modern formats (AVIF,
-    WebP) at export or on request; `srcset` helpers exist, but nothing
+    WebP) on request; `srcset` helpers exist, but nothing
     makes the files.
   - **AI features (D-397):** from plugins, on a core `Blush\Ai`
     provider layer (not built). Ideas discussed: alt text for media
@@ -180,9 +176,6 @@ Move each item to `decisions.md` once it's answered.
       the same discussion as an alternative to an `.htaccess` in each
       private folder, which would help only when the root file is
       replaced, and never for `.env`, a file at the root.
-    - Static export (`build`), once it can run in the background or in
-      steps (D-223 left it out because a build can take longer than a
-      request), and perhaps a `.zip` download of the export.
     - Reindex media (`media:index`) and republish media and theme
       assets (`media:publish`, `themes:publish`), for files uploaded
       over FTP.
@@ -199,7 +192,7 @@ Move each item to `decisions.md` once it's answered.
     Or Tools gets tabs for the site check and Content Health together.
   - **A possible shape:** Tools with tabs for Actions (built-ins and
     plugins' actions, grouped by who registered them), Status (the site
-    check), and Logs; Backups and Export once they exist.
+    check), and Logs; Backups once they exist.
 - **Translation overrides and management** (D-451; raised 2026-10-04):
   - Where uploads and management go in the admin: translations aren't
     extensions (no code, no manifest), but an **Extend** rail section
@@ -259,12 +252,12 @@ Move each item to `decisions.md` once it's answered.
   - **A placeholder swapped on a hit:** a template marks a hole
     (`$template->dynamic('name', fn)`, say), the page cache stores the
     page with a placeholder and runs only that callback on each hit.
-    Cheap, since PHP already runs for a hit, but no help to static
-    export or anything the web server serves without PHP, and the
-    callback can't touch the `<head>`.
+    Cheap, since PHP already runs for a hit, but no help to a static
+    export plugin (D-476) or anything the web server serves without
+    PHP, and the callback can't touch the `<head>`.
   - **Loading it in the browser:** the page stays cached and a small
     script fetches the fragment from an uncached endpoint. The only one
-    that works for static export and CDNs, but it needs JavaScript and
+    that works for static copies and CDNs, but it needs JavaScript and
     an endpoint.
   The proposal was the page-level opt-out first, then browser-loaded
   fragments for real holes. What's wanted depends on the use: content
@@ -400,8 +393,7 @@ Move each item to `decisions.md` once it's answered.
   dropped (D-112), so either directive components get a way to add page
   assets or the script stays inline. Also: a site's Content Security
   Policy, privacy (these scripts track visitors; a click-to-load
-  placeholder with the thumbnail may be the default), and whether static
-  export should snapshot them. Until then they render as links named by
+  placeholder with the thumbnail may be the default). Until then they render as links named by
   their title.
 - **More icons** (D-187): bundle all of Lucide (about 2,100) rather than
   the front-end subset. Brand logos are the theme's (D-203).
@@ -517,9 +509,7 @@ Move each item to `decisions.md` once it's answered.
   to browsers (`Accept: text/html`) and XML to feed readers.
 - **Subdirectory installs** (D-071): a site at `example.com/site/` needs a
   base path for routing and URL generation. Derive it from `AppConfig::$url`?
-  The M3 router and `UrlGenerator` assume the site is at the host's root,
-  and so does static export: `build --base-url` takes only an origin
-  (D-135).
+  The M3 router and `UrlGenerator` assume the site is at the host's root.
 - **CLI publishing and opcache** (found while writing `docs/`, D-141):
   `publish` from the CLI rewrites the index and compiled caches, but its
   `opcache_invalidate()` can't reach the web server's opcache. With

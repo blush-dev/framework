@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Feed export URLs.
+ * Feed site URLs.
  *
  * @author    Justin Tadlock <justintadlock@gmail.com>
  * @copyright Copyright (c) 2026, Justin Tadlock
@@ -20,16 +20,16 @@ use Blush\Content\Routing\ContentUrls;
 use Blush\Content\Type\ContentTypes;
 use Blush\Content\Type\Profiles;
 use Blush\Content\Type\Taxonomy;
-use Blush\Export\ExportUrl;
-use Blush\Export\UrlSource;
+use Blush\Routing\SiteUrl;
+use Blush\Routing\UrlSource;
 
 /**
- * Lists every feed for static export (D-136): each public, routed type's
+ * Lists every feed (D-136, D-476): each public, routed type's
  * collection feed in every configured format, a taxonomy's per-term
  * feeds for the terms listed entries reference, the per-person feeds of
  * each people field with archives, and each profile's feed (D-351).
  */
-final readonly class FeedExportUrls implements UrlSource
+final readonly class FeedSiteUrls implements UrlSource
 {
 	public function __construct(
 		private ContentRepository $content,
@@ -56,7 +56,7 @@ final readonly class FeedExportUrls implements UrlSource
 						$path = $this->urls->profileFeed($profile->slug, "single.feed{$format->routeSuffix()}");
 
 						if ($path !== null) {
-							yield new ExportUrl($path);
+							yield new SiteUrl($path);
 						}
 					}
 				}
@@ -76,14 +76,14 @@ final readonly class FeedExportUrls implements UrlSource
 				$path = $this->urls->feed($type, $key);
 
 				if ($path !== null) {
-					yield new ExportUrl($path);
+					yield new SiteUrl($path);
 				}
 
 				foreach ($terms as $term) {
 					$path = $this->urls->feed($type, $key, $term);
 
 					if ($path !== null) {
-						yield new ExportUrl($path);
+						yield new SiteUrl($path);
 					}
 				}
 
@@ -92,7 +92,7 @@ final readonly class FeedExportUrls implements UrlSource
 						$path = $this->urls->personFeed($type, $field, $profile->slug, $format->routeSuffix());
 
 						if ($path !== null) {
-							yield new ExportUrl($path);
+							yield new SiteUrl($path);
 						}
 					}
 				}

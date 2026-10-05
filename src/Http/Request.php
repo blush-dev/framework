@@ -22,8 +22,8 @@ use Psr\Http\Message\UriInterface;
 /**
  * An immutable PSR-7 server request, the one request type in Blush. It's
  * built from PHP's globals by `RequestFactory::fromGlobals()`, or directly
- * with `Request::create('/path')` anywhere else: tests, the CLI, static
- * export, and admin previews all hand one to `Kernel::handle()`.
+ * with `Request::create('/path')` anywhere else: tests, the CLI, admin
+ * previews, and plugins all hand one to `Kernel::handle()`.
  */
 final readonly class Request extends Message implements ServerRequestInterface
 {
