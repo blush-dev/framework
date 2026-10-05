@@ -37,6 +37,7 @@ use Blush\Http\Status;
 use Blush\Llms\LlmsConfig;
 use Blush\Llms\LlmsRoutes;
 use Blush\Llms\LlmsTxt;
+use Blush\Markdown\MarkdownConfig;
 use Blush\Media\Index\MediaLibrary;
 use Blush\Media\Index\MediaQuery;
 use Blush\Media\MediaConfig;
@@ -59,7 +60,7 @@ use Blush\Translation\Locales;
 /**
  * Answers `GET {path}/api/settings/{screen}` (D-309, D-324, D-325), for
  * accounts with `site.settings`: one Settings screen (`general`,
- * `reading`, `media` (D-406), `search`, `ai` (D-398), or `system`) as `groups` of settings (`key`,
+ * `reading`, `writing` (D-494), `media` (D-406), `search`, `ai` (D-398), or `system`) as `groups` of settings (`key`,
  * `title`, `hint`, and a `note`, where backticks mark code), each with
  * `items`: a `key`, `label`, the `value` to show, its `kind` (`text`,
  * `mono`, `bool`, or `list`; a `bool`'s value is `true` or `false`, a
@@ -100,6 +101,7 @@ final readonly class SettingsController
 		private ContentTypes $types,
 		private RouteConfig $routes,
 		private MediaConfig $media,
+		private MarkdownConfig $markdown,
 		private FeedConfig $feeds,
 		private SitemapConfig $sitemap,
 		private LlmsConfig $llms,
@@ -127,6 +129,7 @@ final readonly class SettingsController
 		$groups = match ($screen) {
 			'general' => $this->general($saved),
 			'reading' => $this->reading($saved),
+			'writing' => $this->writing($saved),
 			'media'   => $this->media($saved),
 			'search'  => $this->search($saved),
 			'ai'      => $this->ai($saved),
@@ -348,6 +351,41 @@ final readonly class SettingsController
 					'files'       => $files
 				]
 			]])
+		];
+	}
+
+	/**
+	 * Writing (D-494): how what's written in Markdown renders, and what
+	 * raw HTML in it does.
+	 *
+	 * @return list<array<string, mixed>>
+	 */
+	private function writing(Settings $saved): array
+	{
+		$markdown = $this->markdown;
+		$defaults = new MarkdownConfig();
+		$switch   = fn (Setting $setting, string $key, bool $value, bool $default): array => $this->edit(
+			self::item($key, $setting->field($this->types)->label, $value, $value === $default, 'bool', $setting->field($this->types)->description),
+			$saved,
+			$setting,
+			$value
+		);
+
+		return [
+			self::group('markdown', 'Markdown', 'How what\'s written renders', [
+				$switch(Setting::Mentions, 'mentions', $markdown->mentions, $defaults->mentions),
+				$switch(Setting::SmartPunctuation, 'smartPunctuation', $markdown->smartPunctuation, $defaults->smartPunctuation),
+				$switch(Setting::HeadingAnchors, 'headingAnchors', $markdown->headingAnchors, $defaults->headingAnchors),
+				$switch(Setting::Figures, 'figures', $markdown->figures, $defaults->figures)
+			]),
+			self::group('html', 'HTML', 'Raw HTML in content', [
+				$this->edit(
+					self::item('html', 'Raw HTML', $markdown->html->label(), $markdown->html === $defaults->html, help: Setting::Html->field($this->types)->description),
+					$saved,
+					Setting::Html,
+					$markdown->html->value
+				)
+			])
 		];
 	}
 

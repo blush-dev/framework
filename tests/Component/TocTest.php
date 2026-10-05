@@ -50,13 +50,16 @@ final class TocTest extends TestCase
 		## Setup
 		MD;
 
-	private function app(string $markdownConfig = ''): Application
+	/**
+	 * Heading anchors are on by default; these tests are about pages
+	 * without them, unless they say otherwise.
+	 */
+	private const string NO_ANCHORS = "<?php\n\ndeclare(strict_types=1);\n\nreturn new Blush\\Markdown\\MarkdownConfig(headingAnchors: false);\n";
+
+	private function app(string $markdownConfig = self::NO_ANCHORS): Application
 	{
 		$this->writeTemporaryFile('user/content/guide.md', self::GUIDE);
-
-		if ($markdownConfig !== '') {
-			$this->writeTemporaryFile('config/markdown.php', $markdownConfig);
-		}
+		$this->writeTemporaryFile('config/markdown.php', $markdownConfig);
 
 		$app = $this->scratchApplication();
 		$app->boot();
@@ -127,13 +130,10 @@ final class TocTest extends TestCase
 
 			declare(strict_types=1);
 
+			use Blush\Markdown\HeadingAnchorOptions;
 			use Blush\Markdown\MarkdownConfig;
-			use League\CommonMark\Extension\HeadingPermalink\HeadingPermalinkExtension;
 
-			return new MarkdownConfig(
-				options: ['heading_permalink' => ['id_prefix' => 'h', 'fragment_prefix' => 'h']],
-				extensions: [...MarkdownConfig::DEFAULT_EXTENSIONS, HeadingPermalinkExtension::class]
-			);
+			return new MarkdownConfig(anchors: new HeadingAnchorOptions(prefix: 'h'));
 			PHP;
 
 		$html = $this->page($this->app($config), '/guide');

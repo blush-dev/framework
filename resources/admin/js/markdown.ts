@@ -48,10 +48,10 @@ export interface Directive {
 
 type LineKind = 'text' | 'heading' | 'fence' | 'code' | 'open' | 'close' | 'leaf';
 
-type TokenKind = 'escape' | 'code' | 'directive' | 'link' | 'footnote' | 'autolink' | 'strong' | 'em' | 'strike' | 'attributes';
+type TokenKind = 'escape' | 'code' | 'directive' | 'link' | 'footnote' | 'autolink' | 'strong' | 'em' | 'strike' | 'marked' | 'html' | 'attributes';
 
 // The kinds in the order `INLINE` names their groups.
-const KINDS = ['escape', 'code', 'directive', 'link', 'footnote', 'autolink', 'strong', 'em', 'strike', 'attributes'] as const;
+const KINDS = ['escape', 'code', 'directive', 'link', 'footnote', 'autolink', 'html', 'strong', 'em', 'strike', 'marked', 'attributes'] as const;
 
 interface Token {
 	kind: TokenKind;
@@ -122,7 +122,7 @@ const PART       = '(?:[.#][A-Za-z0-9_-]+|[A-Za-z_:][A-Za-z0-9_:.-]*[ \\t]*=[ \\
 const ATTRIBUTES = `\\{:?[ \\t]*${PART}(?:[ \\t]+${PART})*[ \\t]*\\}`;
 
 // Inline marks, earliest first and, at one place, in this order. Strong,
-// emphasis, and struck text need something that isn't a space just
+// emphasis, struck, and highlighted text need something that isn't a space just
 // inside their marks, and underscores don't count inside a word, much as
 // CommonMark reads them.
 const WORD   = '[\\p{L}\\p{N}_]';
@@ -133,9 +133,12 @@ const INLINE = new RegExp([
 	'(?<link>!?\\[(?<label>(?:\\\\[^\\n]|[^\\]\\\\\\n])*)\\]\\([^)\\n]*\\))',
 	'(?<footnote>\\[\\^[^\\]\\s]+\\])',
 	'(?<autolink><(?:https?:\\/\\/|mailto:)[^>\\s]+>)',
+	// Raw HTML: a tag, opening or closing, or a comment (D-495).
+	String.raw`(?<html><!--.*?-->|<\/?[A-Za-z][A-Za-z0-9:-]*(?:\s+[^\s"'>\/=]+(?:\s*=\s*(?:"[^"\n]*"|'[^'\n]*'|[^\s"'=<>\x60]+))?)*\s*\/?>)`,
 	`(?<strong>\\*\\*(?!\\s)(?:.*?\\S)?\\*\\*(?!\\*)|(?<!${WORD})__(?!\\s)(?:.*?\\S)?__(?!${WORD}))`,
 	`(?<em>\\*(?![\\s*])(?:.*?[^\\s*])?\\*(?!\\*)|(?<!${WORD})_(?![\\s_])(?:.*?[^\\s_])?_(?!${WORD}))`,
 	'(?<strike>~~(?!\\s)(?:.*?\\S)?~~)',
+	'(?<marked>==(?![\\s=])(?:.*?[^\\s=])?==(?!=))',
 	`(?<attributes>${ATTRIBUTES})`
 ].join('|'), 'gu');
 
@@ -308,7 +311,7 @@ function inline(text: string, start: number, directives: Directive[], offset = 0
 			const from = source.startsWith('!') ? 2 : 1;
 
 			token.inner = inside(from, from + (groups.label?.length ?? 0));
-		} else if (kind === 'strong' || kind === 'em' || kind === 'strike') {
+		} else if (kind === 'strong' || kind === 'em' || kind === 'strike' || kind === 'marked') {
 			const size = kind === 'em' ? 1 : 2;
 
 			token.inner = inside(size, source.length - size);
@@ -364,6 +367,31 @@ export function wordCount(markdown: MarkdownOutline): number {
 
 // Each line's highlighted HTML, by what it depends on (`highlight()`).
 let lineCache = new Map<string, string>();
+
+/**
+ * What the highlighter marks as something the signed-in account couldn't
+ * add (D-495): a tag of raw HTML, or a link's address. `key` names the
+ * check, so lines are built again when it changes.
+ */
+export interface HtmlCheck {
+	key: string;
+	tag: (source: string) => boolean;
+	url: (url: string) => boolean;
+}
+
+let htmlCheck: HtmlCheck | null = null;
+
+/**
+ * Sets the check the highlighter marks HTML and addresses with, or `null`
+ * for none.
+ */
+export function setHtmlCheck(check: HtmlCheck | null): void {
+	if (check?.key !== htmlCheck?.key) {
+		lineCache = new Map();
+	}
+
+	htmlCheck = check;
+}
 
 const ESCAPES: Record<string, string> = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' };
 
@@ -510,6 +538,8 @@ function tokenHtml(text: string, token: Token, current: Current): string {
 			return attributesHtml(source);
 		case 'footnote':
 			return `<span class="md-footnote">${escape(source)}</span>`;
+		case 'html':
+			return `<span class="md-html${htmlCheck?.tag(source) === true ? ' md-refused' : ''}">${escape(source)}</span>`;
 		case 'autolink':
 			return markHtml('<') + `<span class="md-link__text">${escape(source.slice(1, -1))}</span>` + markHtml('>');
 		case 'escape':
@@ -544,11 +574,15 @@ function tokenHtml(text: string, token: Token, current: Current): string {
 function targetHtml(target: string, image: boolean): string {
 	const parts = image ? /^(\S+|<[^>\n]*>)(\s+)(["'])(.*)\3(\s*)$/.exec(target) : null;
 
+	const refused = (url: string): string => htmlCheck?.url(url.replace(/^<|>$/g, '')) === true ? ' md-refused' : '';
+
 	if (parts === null) {
-		return `<span class="md-link__url">${escape(target)}</span>`;
+		const url = /^\S*/.exec(target.trim())?.[0] ?? '';
+
+		return `<span class="md-link__url${refused(url)}">${escape(target)}</span>`;
 	}
 
-	return `<span class="md-link__url">${escape(parts[1] ?? '')}</span>${escape(parts[2] ?? '')}`
+	return `<span class="md-link__url${refused(parts[1] ?? '')}">${escape(parts[1] ?? '')}</span>${escape(parts[2] ?? '')}`
 		+ markHtml(parts[3] ?? '') + `<span class="md-image__caption">${escape(parts[4] ?? '')}</span>` + markHtml(parts[3] ?? '') + escape(parts[5] ?? '');
 }
 
@@ -1806,7 +1840,7 @@ export interface Change {
 	to: number;
 }
 
-export type InlineMark = '**' | '*' | '~~' | '`';
+export type InlineMark = '**' | '*' | '~~' | '==' | '`';
 
 // How long the run of `character` is that ends at `at`, or starts there.
 function runBefore(source: string, at: number, character: string): number {
@@ -1840,8 +1874,8 @@ function carries(run: number, mark: InlineMark): boolean {
 }
 
 /**
- * Turns strong, emphasized, struck, or code text on or off for a
- * selection (⌘B, ⌘I, ⌘⇧X, ⌘E): the marks around it, or at its ends, are
+ * Turns strong, emphasized, struck, highlighted, or code text on or off
+ * for a selection (⌘B, ⌘I, ⌘⇧X, ⌘⇧H, ⌘E): the marks around it, or at its ends, are
  * taken away, else they're added. The spaces at a selection's ends stay
  * outside the marks, which can't close on a space. With nothing
  * selected, a pair of marks goes in with the caret between them.
@@ -2141,7 +2175,7 @@ export function inProse(markdown: MarkdownOutline, offset: number): boolean {
 	return line.marks.at(-1)?.kind !== 'rule' && !(TABLE.test(line.text) && DELIMITER.test(line.text) && line.text.includes('-')) && !isAttributeLine(line);
 }
 
-export type Emphasis = 'strong' | 'em' | 'strike';
+export type Emphasis = 'strong' | 'em' | 'strike' | 'marked';
 
 /**
  * The emphasis of a kind that holds a selection (or the caret): the
@@ -2182,7 +2216,8 @@ export function emphasisAt(markdown: MarkdownOutline, start: number, end: number
 	return {
 		strong: emphasisSpan(markdown, start, end, 'strong') !== null,
 		em: emphasisSpan(markdown, start, end, 'em') !== null,
-		strike: emphasisSpan(markdown, start, end, 'strike') !== null
+		strike: emphasisSpan(markdown, start, end, 'strike') !== null,
+		marked: emphasisSpan(markdown, start, end, 'marked') !== null
 	};
 }
 
@@ -2216,11 +2251,14 @@ export function wordAt(source: string, offset: number): { start: number; end: nu
 	return start === end ? null : { start, end };
 }
 
+// The marks each kind but emphasis is written with.
+const PAIRS = { strong: '**', strike: '~~', marked: '==' } as const;
+
 /**
- * Turns strong, emphasized, or struck text on or off (admin.md §8, The
- * toolbar): emphasis holding the selection loses its marks, whichever it
- * was written with; else the marks go around it. Strong is `**` and
- * struck `~~`; emphasis is `_`, which reads apart from `**` in the
+ * Turns strong, emphasized, struck, or highlighted text on or off
+ * (admin.md §8, The toolbar): emphasis holding the selection loses its
+ * marks, whichever it was written with; else the marks go around it.
+ * Strong is `**`, struck `~~`, and highlighted `==`; emphasis is `_`, which reads apart from `**` in the
  * source, but inside a word, where `_` isn't emphasis, `*`. Nothing
  * selected means the word at the caret, which stays where it was in it;
  * with no word there either, the marks go in empty with the caret
@@ -2241,7 +2279,7 @@ export function toggleEmphasis(source: string, start: number, end: number, kind:
 	}
 
 	if (source.slice(start, end).includes('\n')) {
-		return toggleMark(source, start, end, kind === 'strong' ? '**' : (kind === 'strike' ? '~~' : '*'));
+		return toggleMark(source, start, end, kind === 'em' ? '*' : PAIRS[kind]);
 	}
 
 	const collapsed = start === end;
@@ -2259,7 +2297,7 @@ export function toggleEmphasis(source: string, start: number, end: number, kind:
 
 	const letter = /[\p{L}\p{N}]/u;
 	const inWord = letter.test(source[from - 1] ?? '') || letter.test(source[to] ?? '');
-	const mark   = kind === 'strong' ? '**' : (kind === 'strike' ? '~~' : (inWord ? '*' : '_'));
+	const mark   = kind === 'em' ? (inWord ? '*' : '_') : PAIRS[kind];
 	const text   = source.slice(0, from) + mark + source.slice(from, to) + mark + source.slice(to);
 
 	if (collapsed) {

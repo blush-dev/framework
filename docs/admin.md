@@ -360,8 +360,12 @@ side is what you do to the text, in three groups:
   when the text at the cursor is bold or italic; the **link** form
   (**Text** and **Address**, filled in from the selection, the word at
   the cursor, or the link the cursor is in, with **Remove** for a link
-  that's there); the shapes for an icon; and the **A** menu for a
-  component inside a sentence. Inside a component that holds only some
+  that's there); the **A** menu of other things that go in a sentence:
+  **Strikethrough**, **Highlight**, and **Inline code** (each lit when
+  it's on at the cursor), **Mention** (a search for a published profile
+  by name, which writes `@slug` where the cursor is; shown when
+  [mentions](#settings) are on), then any component inside a sentence;
+  and the shapes for an icon. Inside a component that holds only some
   things, such as a gallery's images, they go, the component panel
   offers only what it holds, and the media picker shows only images.
 - **Bleed**, for an element at the top of the entry: how far it reaches
@@ -451,6 +455,7 @@ With nothing selected, bold and italic act on the word at the cursor:
 | ⌘I | *Italic* (`_text_`, or `*text*` inside a word, where `_` isn't italic) |
 | ⌘E | Inline code (`` `text` ``) |
 | ⌘⇧X | Strikethrough (`~~text~~`) |
+| ⌘⇧H | Highlight (`==text==`) |
 | ⌘K | The link form, for the selected text, the word at the cursor, or the link the cursor is in. Outside the text, ⌘K opens the command palette as usual |
 | ⌘⇧K | Remove the link the cursor is in, leaving its text |
 | ⌘⌥1 to ⌘⌥6 | Make the line (or the selected lines) a heading of that level; the same keys again make it a paragraph. In a quote or list item, the heading goes inside it |
@@ -714,6 +719,12 @@ Your changes aren't lost:
   ahead once you're back online.
 - **A save that fails** (a server error, say) shows **Not saved** and a
   **Try again** button.
+- **A save that adds HTML your role can't add** is refused, naming
+  what (`<iframe>`, say). The editor marks such HTML, and links to
+  `javascript:` addresses, with a wavy red underline as you type, along
+  with any already there that someone else wrote; only what you add
+  counts, so you can still edit their words, or take it out. See
+  [Capabilities](accounts.md#capabilities).
 - **If the entry changed after you opened it** (someone else saved it,
   or its file was edited or pulled from git), the editor stops saving
   and says when it changed. **Compare** shows the fields and body lines
@@ -931,7 +942,7 @@ matter.
 
 ## Settings
 
-With `site.settings`, the **Settings** group in **Config** has six
+With `site.settings`, the **Settings** group in **Config** has seven
 screens:
 
 - **General:** the site's name, a one-line description (for
@@ -960,6 +971,17 @@ screens:
   latest entries of a collection) and feeds: the formats (RSS, Atom,
   JSON Feed; none turns feeds off), whether they carry each entry's full
   content, and how many entries each holds (1 to 100).
+- **Writing:** how Markdown renders: **Mentions** (`@name` links to
+  the profile with that slug once it's published; anyone else's stays
+  text), **Smart punctuation** (curly quotes, dashes, and ellipses),
+  **Heading anchors** (each heading links to itself), and **Images as
+  figures** (an image on a line of its own becomes a figure, its title
+  the caption), all on by default; and **Raw HTML**, what HTML written
+  in content does on the page, whoever wrote it: **Allowed** (the
+  default), **Filtered** (script, frames, forms, and styles show as
+  text, and `javascript:` links lose their address), or **Shown as
+  text**. Who may add HTML in the editor is up to their role (see
+  [Capabilities](accounts.md#capabilities)).
 - **Media:** what may be uploaded, as a grid: **All Files**, then
   Images, Videos, Audio, Documents, and Other Files, each with an
   **Uploads** switch, its **Largest file** in megabytes, and its

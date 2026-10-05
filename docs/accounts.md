@@ -183,6 +183,25 @@ browses the library for anyone who can edit entries. Editors have them
 all; Authors upload every kind and change and delete their own files;
 Contributors upload images and change their own.
 
+Raw HTML in an entry's body (tags, not HTML inside code) is by how
+much of it an account may add in the admin. Files edited on disk aren't
+checked:
+
+| Capability | Allows |
+|---|---|
+| `html.allowed` | Adding HTML from the allowed list: text-level tags such as `<kbd>`, `<abbr>`, `<sup>`, and `<span>`, blocks such as `<div>`, `<details>`, and tables, and pictures, audio, and video, with their own attributes plus `class`, `id`, `title`, `lang`, `dir`, `role`, `aria-*`, and `data-*`. No `style` |
+| `html.unfiltered` | Adding any HTML but what's always refused |
+
+Always refused, whoever you are: `<script>`, `<style>`, `<iframe>` and
+other frames, `<object>`, `<embed>`, forms and their fields, `<svg>`
+and `<math>`, `<meta>`, `<link>`, `<base>`, and `<template>`; event
+attributes such as `onclick`; and `javascript:`, `vbscript:`, `file:`,
+and (except for pictures) `data:` addresses, in HTML or in a Markdown
+link. Use a [component](components.md) for embeds and icons. Without
+either capability, no HTML can be added. Only what a save adds counts,
+so anyone who can edit an entry can change its words, or take HTML out.
+Administrators have `html.unfiltered`, and Editors `html.allowed`.
+
 The rest are for the whole site:
 
 | Capability | Allows |

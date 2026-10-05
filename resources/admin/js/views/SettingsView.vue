@@ -60,6 +60,7 @@ const props = defineProps<{ screen: string }>();
 const screens: Record<string, { title: string; hint: string }> = {
 	general: { title: 'General', hint: 'The site\'s name, language, and time, and where it runs.' },
 	reading: { title: 'Reading', hint: 'What the homepage shows, and the feeds.' },
+	writing: { title: 'Writing', hint: 'How what\'s written renders, and what raw HTML in it does.' },
 	media: { title: 'Media', hint: 'What may be uploaded, how large, and where it\'s kept.' },
 	search: { title: 'Addresses and Search', hint: 'How addresses are written, and what search engines are told.' },
 	ai: { title: 'AI', hint: 'What AI tools can read, and what AI crawlers are asked.' },

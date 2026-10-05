@@ -114,6 +114,29 @@ figure {
 	margin-inline: 0;
 }
 
+/*
+ * Heading anchors (D-494): a link to the heading, shown while the heading
+ * is hovered or holds focus. Mentions (D-493) link to a profile.
+ */
+
+.heading-anchor {
+	margin-inline-start: var(--space-s);
+	color: var(--color-muted);
+	font-weight: 400;
+	text-decoration: none;
+	opacity: 0;
+}
+
+:is(h1, h2, h3, h4, h5, h6):is(:hover, :focus-within) > .heading-anchor,
+.heading-anchor:focus-visible {
+	opacity: 1;
+}
+
+.mention {
+	font-weight: 600;
+	text-decoration: none;
+}
+
 figcaption {
 	color: var(--color-muted);
 	font-size: 0.875em;

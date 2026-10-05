@@ -18,47 +18,75 @@ use Throwable;
 use League\CommonMark\Environment\Environment;
 use League\CommonMark\Event\DocumentParsedEvent;
 use League\CommonMark\Extension\Attributes\AttributesExtension;
+use League\CommonMark\Extension\Autolink\AutolinkExtension;
+use League\CommonMark\Extension\CommonMark\CommonMarkCoreExtension;
+use League\CommonMark\Extension\CommonMark\Node\Block\HtmlBlock;
+use League\CommonMark\Extension\CommonMark\Node\Inline\AbstractWebResource;
+use League\CommonMark\Extension\CommonMark\Node\Inline\HtmlInline;
 use League\CommonMark\Extension\DescriptionList\DescriptionListExtension;
 use League\CommonMark\Extension\DescriptionList\Node\Description;
 use League\CommonMark\Extension\DescriptionList\Node\DescriptionList;
 use League\CommonMark\Extension\DescriptionList\Node\DescriptionTerm;
-use League\CommonMark\Extension\ExtensionInterface;
+use League\CommonMark\Extension\DisallowedRawHtml\DisallowedRawHtmlExtension;
+use League\CommonMark\Extension\Footnote\FootnoteExtension;
+use League\CommonMark\Extension\HeadingPermalink\HeadingPermalink;
+use League\CommonMark\Extension\HeadingPermalink\HeadingPermalinkExtension;
+use League\CommonMark\Extension\HeadingPermalink\HeadingPermalinkProcessor;
+use League\CommonMark\Extension\Highlight\HighlightExtension;
+use League\CommonMark\Extension\Mention\MentionExtension;
+use League\CommonMark\Extension\SmartPunct\SmartPunctExtension;
+use League\CommonMark\Extension\Strikethrough\StrikethroughExtension;
+use League\CommonMark\Extension\Table\TableExtension;
+use League\CommonMark\Extension\TaskList\TaskListExtension;
 use League\CommonMark\MarkdownConverter;
 use League\CommonMark\Node\Block\Paragraph;
 use League\CommonMark\Parser\MarkdownParser as CommonMarkDocumentParser;
 use League\CommonMark\Renderer\HtmlRenderer;
-use League\CommonMark\Parser\Inline\InlineParserInterface;
 use Blush\Core\AppConfig;
-use Blush\Event\Dispatcher;
 use Blush\Markdown\CommonMark\BracketedSpan;
 use Blush\Markdown\CommonMark\BracketedSpanParser;
 use Blush\Markdown\CommonMark\BracketedSpanRenderer;
+use Blush\Markdown\CommonMark\Directive\ContainerDirective;
 use Blush\Markdown\CommonMark\Directive\DirectiveExtension;
 use Blush\Markdown\CommonMark\Directive\DirectiveNodeRenderer;
+use Blush\Markdown\CommonMark\Directive\InlineDirective;
+use Blush\Markdown\CommonMark\Directive\LeafDirective;
 use Blush\Markdown\CommonMark\DescriptionAttributes;
 use Blush\Markdown\CommonMark\DescriptionListRenderer;
 use Blush\Markdown\CommonMark\FigureRenderer;
+use Blush\Markdown\CommonMark\HeadingAnchorRenderer;
+use Blush\Markdown\CommonMark\MentionLinks;
 use Blush\Markdown\CommonMark\ResolveLinks;
-use Blush\Markdown\Events\MarkdownEnvironmentBuilding;
+use Blush\Markdown\Html\HtmlRules;
+use Blush\Markdown\Html\MarkupFinder;
+use Blush\Markdown\Html\RawMarkup;
 use Blush\Media\MediaResolver;
 
 /**
  * The temporary `MarkdownParser` adapter over league/commonmark (D-045,
  * D-080), with Blush's generic directives (D-026) rendered through the
- * `DirectiveRenderer` when one is bound. The converter is built on the first conversion, from
- * `MarkdownConfig` and then any `MarkdownEnvironmentBuilding` listeners, and
- * reused after that.
+ * `DirectiveRenderer` when one is bound, and mentions linked through the
+ * `MentionResolver` (D-493). league/commonmark is never part of Blush's
+ * API (D-492): `MarkdownConfig` says how its dialect renders, and this
+ * class turns that into the library's extensions and options. The
+ * converter is built on the first conversion and reused after that.
  */
-final class CommonMarkParser implements MarkdownParser
+final class CommonMarkParser implements MarkdownParser, MarkupFinder
 {
+	/**
+	 * What a mention's name may be: letters, digits, `-`, and `_`, not
+	 * ending in a mark, as a profile's slug is.
+	 */
+	public const string MENTION = '[A-Za-z0-9](?:[A-Za-z0-9_-]*[A-Za-z0-9])?';
+
 	private ?MarkdownConverter $converter = null;
 
 	public function __construct(
 		private readonly MarkdownConfig $config,
-		private readonly Dispatcher $events,
 		private readonly ?MediaResolver $media = null,
 		private readonly ?AppConfig $app = null,
-		private readonly ?DirectiveRenderer $directives = null
+		private readonly ?DirectiveRenderer $directives = null,
+		private readonly ?MentionResolver $mentions = null
 	) {}
 
 	/**
@@ -89,6 +117,39 @@ final class CommonMarkParser implements MarkdownParser
 	}
 
 	/**
+	 * @inheritDoc
+	 *
+	 * The addresses are links' and images' (a mention's is a profile's),
+	 * and directives' option values.
+	 */
+	#[Override]
+	public function find(string $markdown): RawMarkup
+	{
+		try {
+			$document = new CommonMarkDocumentParser($this->converter()->getEnvironment())->parse($markdown);
+		} catch (MarkdownException $e) {
+			throw $e;
+		} catch (Throwable $e) {
+			throw new MarkdownException(sprintf('Unable to read Markdown: %s', $e->getMessage()), previous: $e);
+		}
+
+		$html = [];
+		$urls = [];
+
+		foreach ($document->iterator() as $node) {
+			if ($node instanceof HtmlBlock || $node instanceof HtmlInline) {
+				$html[] = $node->getLiteral();
+			} elseif ($node instanceof AbstractWebResource) {
+				$urls[] = $node->getUrl();
+			} elseif ($node instanceof ContainerDirective || $node instanceof LeafDirective || $node instanceof InlineDirective) {
+				array_push($urls, ...array_values(array_filter($node->attributes, is_string(...))));
+			}
+		}
+
+		return new RawMarkup($html, $urls);
+	}
+
+	/**
 	 * Returns the converter, building it on first use.
 	 *
 	 * @throws MarkdownException
@@ -99,77 +160,121 @@ final class CommonMarkParser implements MarkdownParser
 			return $this->converter;
 		}
 
-		self::assertClasses('extensions', $this->config->extensions, ExtensionInterface::class);
-		self::assertClasses('inlineParsers', $this->config->inlineParsers, InlineParserInterface::class);
+		$config = $this->config;
 
 		try {
-			$environment = new Environment($this->config->options);
+			$environment = new Environment($this->options());
 
-			// A config that spreads the defaults may list one again.
-			foreach (array_unique($this->config->extensions) as $extension) {
-				$environment->addExtension(new $extension());
+			// The dialect, the same on every site (D-492).
+			$dialect = [
+				new CommonMarkCoreExtension(),
+				new AutolinkExtension(),
+				new StrikethroughExtension(),
+				new TableExtension(),
+				new TaskListExtension(),
+				new FootnoteExtension(),
+				new DescriptionListExtension(),
+				new HighlightExtension(),
+				new AttributesExtension()
+			];
+
+			foreach ($dialect as $extension) {
+				$environment->addExtension($extension);
 			}
 
-			foreach ($this->config->inlineParsers as $parser) {
-				$environment->addInlineParser(new $parser());
+			if ($config->smartPunctuation) {
+				$environment->addExtension(new SmartPunctExtension());
+			}
+
+			if ($config->headingAnchors) {
+				$environment->addExtension(new HeadingPermalinkExtension());
+				$environment->addRenderer(HeadingPermalink::class, new HeadingAnchorRenderer(), 10);
+			}
+
+			if ($config->mentions && $this->mentions !== null) {
+				$environment->addExtension(new MentionExtension());
+			}
+
+			if ($config->html === RawHtml::Filter) {
+				$environment->addExtension(new DisallowedRawHtmlExtension());
 			}
 
 			$environment->addEventListener(
 				DocumentParsedEvent::class,
-				new ResolveLinks($this->media, $this->app, $this->config->absoluteLinks),
+				new ResolveLinks($this->media, $this->app, $config->absoluteLinks),
 				-100
 			);
 
-			if ($this->config->directives) {
+			if ($config->directives) {
 				$environment->addExtension(new DirectiveExtension($this->directives));
 			}
 
 			// `[text]{.class}` is a span, as in Pandoc (D-305), ahead of
 			// the closing bracket parser (30).
-			if (in_array(AttributesExtension::class, $this->config->extensions, true)) {
-				$environment->addInlineParser(new BracketedSpanParser(), 31);
-				$environment->addRenderer(BracketedSpan::class, new BracketedSpanRenderer());
-			}
+			$environment->addInlineParser(new BracketedSpanParser(), 31);
+			$environment->addRenderer(BracketedSpan::class, new BracketedSpanRenderer());
 
 			// league/commonmark's description list renderers leave out
 			// attributes (D-282).
-			if (in_array(DescriptionListExtension::class, $this->config->extensions, true)) {
-				$environment->addEventListener(DocumentParsedEvent::class, new DescriptionAttributes(), -10);
+			$environment->addEventListener(DocumentParsedEvent::class, new DescriptionAttributes(), -10);
 
-				foreach ([DescriptionList::class, DescriptionTerm::class, Description::class] as $node) {
-					$environment->addRenderer($node, new DescriptionListRenderer(), 10);
-				}
+			foreach ([DescriptionList::class, DescriptionTerm::class, Description::class] as $node) {
+				$environment->addRenderer($node, new DescriptionListRenderer(), 10);
 			}
 
-			if ($this->config->figures) {
+			if ($config->figures) {
 				$environment->addRenderer(Paragraph::class, new FigureRenderer(), 10);
 			}
 		} catch (Throwable $e) {
 			throw new MarkdownException(sprintf('Unable to build the Markdown environment: %s', $e->getMessage()), previous: $e);
 		}
 
-		$this->events->dispatch(new MarkdownEnvironmentBuilding($environment));
-
 		return $this->converter = new MarkdownConverter($environment);
 	}
 
 	/**
-	 * Checks that every configured class implements its contract.
+	 * Returns the library's options for the config.
 	 *
-	 * @param  list<string> $classes
-	 * @throws MarkdownException
+	 * @return array<string, mixed>
 	 */
-	private static function assertClasses(string $key, array $classes, string $contract): void
+	private function options(): array
 	{
-		foreach ($classes as $class) {
-			if (! is_subclass_of($class, $contract)) {
-				throw new MarkdownException(sprintf(
-					'MarkdownConfig "%s" must list %s classes; "%s" is not one.',
-					$key,
-					$contract,
-					$class
-				));
-			}
+		$config    = $this->config;
+		$anchors   = $config->anchors;
+		$footnotes = $config->footnotes;
+
+		$options = [
+			'html_input'         => $config->html === RawHtml::Escape ? 'escape' : 'allow',
+			'allow_unsafe_links' => $config->html === RawHtml::Allow,
+			'renderer'           => ['soft_break' => $config->lineBreaks ? "<br>\n" : "\n"],
+			'footnote'           => [
+				'container_class'  => $footnotes->container,
+				'container_add_hr' => $footnotes->rule,
+				'ref_class'        => $footnotes->reference,
+				'footnote_class'   => $footnotes->note,
+				'backref_class'    => $footnotes->backReference
+			],
+			'heading_permalink'  => [
+				'html_class'      => $anchors->class,
+				'symbol'          => $anchors->symbol,
+				'title'           => $anchors->title,
+				'id_prefix'       => $anchors->prefix,
+				'fragment_prefix' => $anchors->prefix,
+				'insert'          => $anchors->before ? HeadingPermalinkProcessor::INSERT_BEFORE : HeadingPermalinkProcessor::INSERT_AFTER
+			],
+			'disallowed_raw_html' => ['disallowed_tags' => HtmlRules::REFUSED]
+		];
+
+		if ($config->mentions && $this->mentions !== null) {
+			$options['mentions'] = [
+				'profile' => [
+					'prefix'    => '@',
+					'pattern'   => self::MENTION,
+					'generator' => new MentionLinks($this->mentions)
+				]
+			];
 		}
+
+		return $options;
 	}
 }

@@ -113,7 +113,8 @@ final class Body
 
 	/**
 	 * Returns how many words the rendered body has, leaving out figure
-	 * captions and navigation (such as a table of contents).
+	 * captions, navigation (such as a table of contents), and heading
+	 * anchors.
 	 *
 	 * @throws MarkdownException
 	 */
@@ -125,8 +126,10 @@ final class Body
 	}
 
 	/**
-	 * Returns the rendered body's words, leaving out figure captions and
-	 * navigation (such as a table of contents), which aren't prose.
+	 * Returns the rendered body's words, leaving out figure captions,
+	 * navigation (such as a table of contents), and what's hidden from
+	 * assistive technology (such as heading anchors' `#`), which aren't
+	 * prose.
 	 *
 	 * @return list<string>
 	 * @throws MarkdownException
@@ -135,7 +138,7 @@ final class Body
 	{
 		$document = HTMLDocument::createFromString('<!DOCTYPE html><meta charset="utf-8"><body>' . $this->html() . '</body>', LIBXML_NOERROR);
 
-		foreach ($document->querySelectorAll('figcaption, nav') as $element) {
+		foreach ($document->querySelectorAll('figcaption, nav, [aria-hidden="true"]') as $element) {
 			$element->remove();
 		}
 

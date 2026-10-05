@@ -15,11 +15,8 @@ namespace Blush\Tests\Markdown;
 
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
-use League\CommonMark\Extension\Highlight\HighlightExtension;
 use Blush\Core\AppConfig;
 use Blush\Core\Paths;
-use Blush\Event\EventDispatcher;
-use Blush\Event\Listener\ListenerRegistry;
 use Blush\Markdown\CommonMark\FigureRenderer;
 use Blush\Markdown\CommonMark\ResolveLinks;
 use Blush\Markdown\CommonMarkParser;
@@ -50,10 +47,12 @@ final class MarkdownRenderingTest extends TestCase
 	{
 		return new CommonMarkParser(
 			new MarkdownConfig(
+				smartPunctuation: false,
+				headingAnchors: false,
+				lineBreaks: false,
 				figures: $figures,
 				absoluteLinks: $absoluteLinks
 			),
-			new EventDispatcher(new ListenerRegistry()),
 			new MediaResolver(Paths::fromRoot($this->temporaryDirectory()), new MediaConfig()),
 			new AppConfig(url: 'https://example.com/blog')
 		);
@@ -66,23 +65,6 @@ final class MarkdownRenderingTest extends TestCase
 		$this->assertSame("<dl>\n<dt>Blush</dt>\n<dd>A flat-file CMS.</dd>\n</dl>\n<p>It's <mark>fast</mark>.</p>\n", $html);
 	}
 
-	public function testAnExtensionListedTwiceIsAddedOnce(): void
-	{
-		$parser = new CommonMarkParser(
-			new MarkdownConfig(extensions: [...MarkdownConfig::DEFAULT_EXTENSIONS, HighlightExtension::class]),
-			new EventDispatcher(new ListenerRegistry()),
-			new MediaResolver(Paths::fromRoot($this->temporaryDirectory()), new MediaConfig()),
-			new AppConfig(url: 'https://example.com')
-		);
-
-		$this->assertSame("<p><mark>once</mark></p>\n", $parser->toHtml('==once=='));
-	}
-
-	/**
-	 * Attributes are on by default (D-268), in the places the admin writes
-	 * them: the end of a heading's, paragraph's, or list item's last line,
-	 * and a line of their own above a quote, code block, table, or rule.
-	 */
 	public function testAttributesAreOnByDefault(): void
 	{
 		$html = $this->parser()->toHtml(<<<'MD'

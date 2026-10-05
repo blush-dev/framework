@@ -15,8 +15,6 @@ namespace Blush\Tests\Markdown;
 
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
-use Blush\Event\EventDispatcher;
-use Blush\Event\Listener\ListenerRegistry;
 use Blush\Markdown\CommonMark\Directive\ContainerDirective;
 use Blush\Markdown\CommonMark\Directive\ContainerDirectiveParser;
 use Blush\Markdown\CommonMark\Directive\ContainerDirectiveStartParser;
@@ -55,7 +53,7 @@ final class DirectiveTest extends TestCase
 	{
 		$this->directives = new EchoDirectives();
 
-		return new CommonMarkParser($config, new EventDispatcher(new ListenerRegistry()), directives: $renderer ? $this->directives : null);
+		return new CommonMarkParser($config, directives: $renderer ? $this->directives : null);
 	}
 
 	public function testParsesAttributes(): void
@@ -159,7 +157,7 @@ final class DirectiveTest extends TestCase
 
 	public function testDirectivesCanBeTurnedOff(): void
 	{
-		$this->assertSame("<p>:::callout\nTip\n:::</p>\n", $this->parser(new MarkdownConfig(directives: false))->toHtml(":::callout\nTip\n:::"));
+		$this->assertSame("<p>:::callout\nTip\n:::</p>\n", $this->parser(new MarkdownConfig(lineBreaks: false, directives: false))->toHtml(":::callout\nTip\n:::"));
 		$this->assertFalse(MarkdownConfig::fromArray(['directives' => false])->directives);
 		$this->assertTrue(new MarkdownConfig()->toArray()['directives']);
 	}

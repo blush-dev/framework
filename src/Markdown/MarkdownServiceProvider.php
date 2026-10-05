@@ -14,17 +14,27 @@ declare(strict_types=1);
 namespace Blush\Markdown;
 
 use Blush\Core\ServiceProvider;
+use Blush\Markdown\Html\MarkupFinder;
 
 /**
- * Binds the Markdown parser. An extension can replace the adapter by
- * binding its own `MarkdownParser`.
+ * Binds the Markdown parser, which is also the `MarkupFinder` (D-495).
+ * An extension can replace the adapter by binding its own
+ * `MarkdownParser` and `MarkupFinder`.
  */
 final class MarkdownServiceProvider extends ServiceProvider
 {
 	/**
 	 * @inheritDoc
 	 */
+	protected const array SINGLETONS = [
+		CommonMarkParser::class
+	];
+
+	/**
+	 * @inheritDoc
+	 */
 	protected const array SINGLETONS_IF = [
-		MarkdownParser::class => CommonMarkParser::class
+		MarkdownParser::class => CommonMarkParser::class,
+		MarkupFinder::class   => CommonMarkParser::class
 	];
 }

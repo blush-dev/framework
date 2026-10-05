@@ -66,6 +66,7 @@ use Blush\Field\FieldSetLoader;
 use Blush\Field\FieldSets;
 use Blush\Field\FieldTargets;
 use Blush\Field\FieldTargetSource;
+use Blush\Markdown\MentionResolver;
 use Blush\Routing\RedirectSource;
 use Blush\Routing\RouteSource;
 use Blush\Routing\UrlSource;
@@ -108,7 +109,8 @@ final class ContentServiceProvider extends ServiceProvider
 	 */
 	protected const array SINGLETONS_IF = [
 		ContentIndex::class      => PhpIndex::class,
-		ContentRepository::class => IndexedRepository::class
+		ContentRepository::class => IndexedRepository::class,
+		MentionResolver::class   => ProfileMentions::class
 	];
 
 	/**

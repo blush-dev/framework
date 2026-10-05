@@ -280,15 +280,26 @@ lists, autolinks, and footnotes. On top of that:
   `{.note}` at the end of a definition gives the `<dt>` or `<dd>` one.
 
 - **Highlighting:** `==text==` marks text as highlighted (`<mark>`).
+- **Mentions:** `@jane` links to the profile whose slug is `jane`, once
+  it's published, with the `mention` class. A name that isn't anyone's,
+  an address like `me@example.com`, and code stay as written.
+- **Smart punctuation:** straight quotes become curly ones, `--` an en
+  dash, `---` an em dash, and `...` an ellipsis. Code stays as written.
+- **Heading anchors:** each heading gets a link to itself (`#`), shown
+  by the default theme when the heading is hovered.
+- **Line breaks:** a line break inside a paragraph stays one (`<br>`).
 - **Spans:** text in brackets followed straight away by attributes,
   `[text]{.class #id}`, becomes a `<span>` with them, for a class or id
   on a few words. A link (`[text](/url){.class}`) or a word with a link
   reference definition stays a link, with the attributes on it.
 - Links that start with `/` become full URLs, so they still work in feeds.
-- Raw HTML is allowed.
+- Raw HTML is allowed, unless your site filters it. In the admin, who may
+  add it is up to their role (see
+  [Capabilities](accounts.md#capabilities)).
 
-You can add more CommonMark extensions, such as heading permalinks, in
-`config/markdown.php`; see
+Mentions, smart punctuation, heading anchors, figures, and raw HTML can
+be changed on the [Writing settings screen](admin.md#settings), and
+more in `config/markdown.php`; see
 [Configuration](configuration.md#markdown).
 
 ### Components

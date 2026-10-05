@@ -126,7 +126,13 @@ for now, so a site can later keep its data in a database (D-485,
 D-486); build stored data with that in mind; and an id for every media
 original, with image sizes found by rule and given none
 (D-487), and sizes recorded in their image's details, the library
-listing one item per image (D-488).
+listing one item per image (D-488); and Blush's own Markdown API over
+league/commonmark, which is never public: one dialect, settings by name
+(D-492), mentions linking to profiles (D-493), a Writing settings
+screen with smart punctuation, heading anchors, and line breaks on by
+default (D-494), raw HTML in the admin by capability, with an allowed
+list and an always-refused list (D-495), and struck, highlighted, and
+code text in the editor's inline menu (D-496).
 The Fields
 API (D-337 to D-348: field types and controls, field sets on content
 types, media, and the Settings screens, slots, and Structure → Fields)

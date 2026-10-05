@@ -23,6 +23,8 @@ use Blush\Auth\Preferences;
 use Blush\Core\AppConfig;
 use Blush\Http\Response;
 use Blush\Http\Status;
+use Blush\Markdown\Html\HtmlRules;
+use Blush\Markdown\MarkdownConfig;
 use Blush\Media\MediaConfig;
 use Blush\Session\SessionReader;
 
@@ -32,7 +34,8 @@ use Blush\Session\SessionReader;
  * script and styles and a JSON block with what the app needs to start:
  * its base path, the API's, the site's name, and the signed-in account's
  * color scheme (D-235), which is also set on `<html>` so the first frame
- * is right. Everything else comes from the API. The session is only
+ * is right, whether mentions are on (D-493), and the HTML rules
+ * (D-495), so the editor can mark what its account couldn't add. Everything else comes from the API. The session is only
  * read, never started or kept alive, so the page sets no cookies.
  *
  * The page is never cached or framed, and a strict Content Security
@@ -51,7 +54,8 @@ final readonly class ShellController
 		private AppConfig $site,
 		private SessionReader $sessions,
 		private Authenticator $authenticator,
-		private MediaConfig $media
+		private MediaConfig $media,
+		private MarkdownConfig $markdown
 	) {}
 
 	public function __invoke(ServerRequestInterface $request): ResponseInterface
@@ -86,7 +90,15 @@ final readonly class ShellController
 			'site'        => ['name' => $this->site->name, 'url' => $this->site->url],
 			'media'       => ['url' => $this->media->url],
 			'colorScheme' => $scheme?->value,
-			'adminTheme'  => $theme?->value
+			'adminTheme'  => $theme?->value,
+			'mentions'    => $this->markdown->mentions,
+			'html'        => [
+				'allowed'           => HtmlRules::ALLOWED,
+				'global'            => HtmlRules::GLOBAL,
+				'refused'           => HtmlRules::REFUSED,
+				'refusedAttributes' => HtmlRules::REFUSED_ATTRIBUTES,
+				'urlAttributes'     => HtmlRules::URL_ATTRIBUTES
+			]
 		], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
 
 		$title  = self::escape("Admin · {$this->site->name}");

@@ -14,17 +14,6 @@ declare(strict_types=1);
 namespace Blush\Markdown;
 
 use Override;
-use League\CommonMark\Extension\Attributes\AttributesExtension;
-use League\CommonMark\Extension\Autolink\AutolinkExtension;
-use League\CommonMark\Extension\CommonMark\CommonMarkCoreExtension;
-use League\CommonMark\Extension\DescriptionList\DescriptionListExtension;
-use League\CommonMark\Extension\ExtensionInterface;
-use League\CommonMark\Extension\Footnote\FootnoteExtension;
-use League\CommonMark\Extension\Highlight\HighlightExtension;
-use League\CommonMark\Extension\Strikethrough\StrikethroughExtension;
-use League\CommonMark\Extension\Table\TableExtension;
-use League\CommonMark\Extension\TaskList\TaskListExtension;
-use League\CommonMark\Parser\Inline\InlineParserInterface;
 use Blush\Config\Config;
 use Blush\Config\ConfigValues;
 use Blush\Config\InvalidConfig;
@@ -33,62 +22,42 @@ use Blush\Config\InvalidConfig;
  * Markdown settings, from `config/markdown.php`:
  *
  *     return new MarkdownConfig(
- *         options: ['renderer' => ['soft_break' => '<br />']],
- *         extensions: [...MarkdownConfig::DEFAULT_EXTENSIONS, SmartPunctExtension::class],
- *         inlineParsers: [App\Markdown\Cite::class]
+ *         html: RawHtml::Filter,
+ *         anchors: new HeadingAnchorOptions(symbol: '¶', before: true)
  *     );
  *
- * These settings are specific to the CommonMark adapter (D-080): `options`
- * is its configuration array (https://commonmark.thephpleague.com), and the
- * class lists name its extension and inline parser classes, each built
- * without constructor arguments. Raw HTML is allowed by default, since
- * authors are trusted; set `options: ['html_input' => 'escape']` to change
- * that. Extensions that need services hook in through the
- * `MarkdownEnvironmentBuilding` event instead.
- *
- * `fromArray()` also accepts the 1.x keys `config` and `inline_parsers`
- * (D-078).
+ * Blush's Markdown is one dialect on every site (D-492): CommonMark with
+ * autolinks, struck text, tables, task lists, footnotes, definition
+ * lists, highlighting, attributes, and directives, which the admin's
+ * editor writes and reads. These settings change how it renders, not
+ * what it means. The ones the Writing screen shows (D-494) can be saved
+ * in `user/data/settings.json` over this file.
  */
 final readonly class MarkdownConfig implements Config
 {
 	/**
-	 * The extensions used when none are configured: CommonMark plus the
-	 * GitHub-flavored extras, footnotes, definition lists, highlighting
-	 * (`==text==`, D-175), and attribute blocks (`{.class #id}`, D-268),
-	 * which the admin writes for a block's classes and id.
-	 *
-	 * @var list<class-string<ExtensionInterface>>
-	 */
-	public const array DEFAULT_EXTENSIONS = [
-		CommonMarkCoreExtension::class,
-		AutolinkExtension::class,
-		StrikethroughExtension::class,
-		TableExtension::class,
-		TaskListExtension::class,
-		FootnoteExtension::class,
-		DescriptionListExtension::class,
-		HighlightExtension::class,
-		AttributesExtension::class
-	];
-
-	/**
-	 * The classes aren't checked here, which would load them on every
-	 * request; `CommonMarkParser` checks them when it first converts.
-	 *
-	 * @param array<string, mixed>                       $options       CommonMark configuration.
-	 * @param list<class-string<ExtensionInterface>>    $extensions    Extensions to add, in order.
-	 * @param list<class-string<InlineParserInterface>> $inlineParsers Inline parsers to add.
-	 * @param bool                                      $figures       Whether a lone image renders as a `<figure>`.
-	 * @param bool                                      $absoluteLinks Whether root-relative links become absolute.
-	 * @param bool                                      $directives    Whether generic directives render as components (D-026).
+	 * @param bool                 $smartPunctuation Whether straight quotes, `--`, and `...` become typographic ones.
+	 * @param bool                 $headingAnchors   Whether each heading gets a link to itself.
+	 * @param bool                 $mentions         Whether `@name` links to a profile (D-493).
+	 * @param bool                 $lineBreaks       Whether a line break inside a paragraph is kept as `<br>`.
+	 * @param RawHtml              $html             What raw HTML does on a page.
+	 * @param bool                 $figures          Whether a lone image renders as a `<figure>`.
+	 * @param bool                 $absoluteLinks    Whether root-relative links become absolute.
+	 * @param bool                 $directives       Whether generic directives render as components (D-026).
+	 * @param HeadingAnchorOptions $anchors          How heading anchors look.
+	 * @param FootnoteOptions      $footnotes        How footnotes look.
 	 */
 	public function __construct(
-		public array $options = [],
-		public array $extensions = self::DEFAULT_EXTENSIONS,
-		public array $inlineParsers = [],
+		public bool $smartPunctuation = true,
+		public bool $headingAnchors = true,
+		public bool $mentions = true,
+		public bool $lineBreaks = true,
+		public RawHtml $html = RawHtml::Allow,
 		public bool $figures = true,
 		public bool $absoluteLinks = true,
-		public bool $directives = true
+		public bool $directives = true,
+		public HeadingAnchorOptions $anchors = new HeadingAnchorOptions(),
+		public FootnoteOptions $footnotes = new FootnoteOptions()
 	) {}
 
 	/**
@@ -97,31 +66,20 @@ final readonly class MarkdownConfig implements Config
 	#[Override]
 	public static function fromArray(array $data): static
 	{
-		$data = self::renamed($data, ['config' => 'options', 'inline_parsers' => 'inlineParsers']);
-
 		$values = new ConfigValues($data, self::class);
-		$values->assertKnownKeys(['options', 'extensions', 'inlineParsers', 'figures', 'absoluteLinks', 'directives']);
-
-		$options = $data['options'] ?? [];
-
-		if (! is_array($options) || ($options !== [] && array_is_list($options))) {
-			throw new InvalidConfig('MarkdownConfig "options" must be a map.');
-		}
-
-		/** @var array<string, mixed> $options */
-		/** @var list<class-string<ExtensionInterface>> $extensions Checked by `CommonMarkParser`. */
-		$extensions = $values->stringList('extensions', self::DEFAULT_EXTENSIONS);
-
-		/** @var list<class-string<InlineParserInterface>> $inlineParsers Checked by `CommonMarkParser`. */
-		$inlineParsers = $values->stringList('inlineParsers');
+		$values->assertKnownKeys(['smartPunctuation', 'headingAnchors', 'mentions', 'lineBreaks', 'html', 'figures', 'absoluteLinks', 'directives', 'anchors', 'footnotes']);
 
 		return new static(
-			options: $options,
-			extensions: $extensions,
-			inlineParsers: $inlineParsers,
+			smartPunctuation: $values->bool('smartPunctuation', true),
+			headingAnchors: $values->bool('headingAnchors', true),
+			mentions: $values->bool('mentions', true),
+			lineBreaks: $values->bool('lineBreaks', true),
+			html: $values->enum('html', RawHtml::class, RawHtml::Allow),
 			figures: $values->bool('figures', true),
 			absoluteLinks: $values->bool('absoluteLinks', true),
-			directives: $values->bool('directives', true)
+			directives: $values->bool('directives', true),
+			anchors: self::anchors($data['anchors'] ?? []),
+			footnotes: self::footnotes($data['footnotes'] ?? [])
 		);
 	}
 
@@ -132,32 +90,44 @@ final readonly class MarkdownConfig implements Config
 	public function toArray(): array
 	{
 		return [
-			'options'       => $this->options,
-			'extensions'    => $this->extensions,
-			'inlineParsers' => $this->inlineParsers,
-			'figures'       => $this->figures,
-			'absoluteLinks' => $this->absoluteLinks,
-			'directives'    => $this->directives
+			'smartPunctuation' => $this->smartPunctuation,
+			'headingAnchors'   => $this->headingAnchors,
+			'mentions'         => $this->mentions,
+			'lineBreaks'       => $this->lineBreaks,
+			'html'             => $this->html->value,
+			'figures'          => $this->figures,
+			'absoluteLinks'    => $this->absoluteLinks,
+			'directives'       => $this->directives,
+			'anchors'          => $this->anchors->toArray(),
+			'footnotes'        => $this->footnotes->toArray()
 		];
 	}
 
 	/**
-	 * Moves 1.x keys to their 2.x names. A 2.x key that's also present
-	 * wins.
+	 * Returns the heading anchor options, given them or their array.
 	 *
-	 * @param  array<array-key, mixed> $data
-	 * @param  array<string, string>   $renames
-	 * @return array<array-key, mixed>
+	 * @throws InvalidConfig
 	 */
-	private static function renamed(array $data, array $renames): array
+	private static function anchors(mixed $value): HeadingAnchorOptions
 	{
-		foreach ($renames as $old => $new) {
-			if (array_key_exists($old, $data)) {
-				$data[$new] ??= $data[$old];
-				unset($data[$old]);
-			}
-		}
+		return match (true) {
+			$value instanceof HeadingAnchorOptions => $value,
+			is_array($value)                       => HeadingAnchorOptions::fromArray($value),
+			default                                => throw new InvalidConfig('MarkdownConfig "anchors" must be a HeadingAnchorOptions.')
+		};
+	}
 
-		return $data;
+	/**
+	 * Returns the footnote options, given them or their array.
+	 *
+	 * @throws InvalidConfig
+	 */
+	private static function footnotes(mixed $value): FootnoteOptions
+	{
+		return match (true) {
+			$value instanceof FootnoteOptions => $value,
+			is_array($value)                  => FootnoteOptions::fromArray($value),
+			default                           => throw new InvalidConfig('MarkdownConfig "footnotes" must be a FootnoteOptions.')
+		};
 	}
 }

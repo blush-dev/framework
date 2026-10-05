@@ -116,7 +116,7 @@ This is the design for the Blush 2 subsystems. Decisions it relies on are in
 - **Core events** (the ones marked with a milestone exist; the rest are
   planned):
   - `ApplicationBooted` (M1), `RequestReceived` (M2), `RouteMatched` (M3), `ControllerResolved`
-  - `MarkdownEnvironmentBuilding` (M4a), `EntryParsed`, `ViewRendering`, `ResponseReady` (M2)
+  - `EntryParsed`, `ViewRendering`, `ResponseReady` (M2)
   - `ContentIndexed` (M4b; the content version listens, M6a), `ContentWritten`, `ContentPublished`, `CacheCleared` (D-415)
 
 ## Data files
@@ -514,10 +514,17 @@ Implemented in M4a (D-080, D-085, D-086).
   (symfony/yaml, objects refused, timestamps as strings); a small in-house
   YAML-subset parser is the long-term plan (D-006).
 - **Markdown:** behind the `MarkdownParser` interface (`Blush\Markdown`).
-  It starts with a CommonMark adapter configured by `MarkdownConfig`, with
-  an in-house parser as the long-term goal. The
-  `MarkdownEnvironmentBuilding` event lets extensions add syntax.
-  Attribute blocks (`{.class #id}`) are on by default (D-268).
+  It starts with a CommonMark adapter (`CommonMarkParser`), with an
+  in-house parser as the long-term goal. league/commonmark is never part
+  of the public API (D-492): the dialect is fixed (CommonMark, autolinks,
+  struck and highlighted text, tables, task lists, footnotes, definition
+  lists, attributes, directives), and `MarkdownConfig` says only how it
+  renders, by Blush names (`mentions`, `smartPunctuation`,
+  `headingAnchors`, `lineBreaks`, `html` as `RawHtml`, `figures`, and
+  `HeadingAnchorOptions` and `FootnoteOptions`). New syntax is a
+  component; replacing the parser is binding `MarkdownParser` (and
+  `MarkupFinder`). Mentions (`@slug`) link through `MentionResolver`,
+  bound to `Content\ProfileMentions` (D-493).
   1.x's rendering is built in (D-100): local media links point at the
   media URL and images get their dimensions, root-relative links become
   absolute, and a lone image becomes a `<figure>` with its title as the
@@ -527,7 +534,11 @@ Implemented in M4a (D-080, D-085, D-086).
   `:name[text]`, D-026) parsed by an in-house CommonMark extension and
   rendered through `DirectiveRenderer` as theme or site components
   (D-112). See `theming.md`.
-- Raw HTML in Markdown is controlled by config (trusted authors by default).
+- Raw HTML in Markdown: on a page, `MarkdownConfig::$html` (allowed by
+  default, D-494); in the admin, the `html.allowed` and `html.unfiltered`
+  capabilities, checked on save by `Admin\HtmlGuard` against
+  `Markdown\Html\HtmlRules` for what the save adds (D-495). Files on
+  disk are trusted.
 
 ### Taxonomies and relations
 - Terms are entries (`user/content/topics/art.md`). A term that is referenced

@@ -158,7 +158,8 @@ final readonly class EntryController
 		private ClockInterface $clock,
 		private FieldTargets $targets,
 		private AccountStore $accounts,
-		private Homepage $homepage
+		private Homepage $homepage,
+		private HtmlGuard $html
 	) {}
 
 	/**
@@ -295,6 +296,12 @@ final readonly class EntryController
 			return self::error('You aren\'t allowed to publish, so new entries must be drafts.', Status::Forbidden);
 		}
 
+		$html = $this->html->refusal($account, '', $changes->body ?? '');
+
+		if ($html !== null) {
+			return self::error($html, Status::Forbidden, 'body');
+		}
+
 		$parentKey = $input['parent'] ?? null;
 		$parent    = null;
 
@@ -375,6 +382,21 @@ final readonly class EntryController
 
 		if ($refusal !== null) {
 			return self::error($refusal, Status::Forbidden);
+		}
+
+		// Only the HTML the body didn't have counts (D-495).
+		if ($changes->body !== null) {
+			try {
+				$before = $this->writer->load($path)->body;
+			} catch (WriteException $e) {
+				return self::error($e->getMessage(), Status::UnprocessableContent);
+			}
+
+			$html = $this->html->refusal($account, $before, $changes->body, in_array(strtolower(pathinfo($path, PATHINFO_EXTENSION)), ['html', 'htm'], true));
+
+			if ($html !== null) {
+				return self::error($html, Status::Forbidden, 'body');
+			}
 		}
 
 		// A move (D-410): where to, by the new parent's key (`''` for the

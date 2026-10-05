@@ -13,54 +13,128 @@ declare(strict_types=1);
 
 namespace Blush\Tests\Markdown;
 
+use Override;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
-use League\CommonMark\Extension\CommonMark\CommonMarkCoreExtension;
-use League\CommonMark\Extension\SmartPunct\SmartPunctExtension;
 use Blush\Config\InvalidConfig;
-use Blush\Event\EventDispatcher;
-use Blush\Event\Listener\ListenerRegistry;
 use Blush\Markdown\CommonMark\BracketedSpanParser;
 use Blush\Markdown\CommonMark\BracketedSpanRenderer;
 use Blush\Markdown\CommonMark\DescriptionAttributes;
 use Blush\Markdown\CommonMark\DescriptionListRenderer;
+use Blush\Markdown\CommonMark\MentionLinks;
 use Blush\Markdown\CommonMarkParser;
-use Blush\Markdown\Events\MarkdownEnvironmentBuilding;
+use Blush\Markdown\FootnoteOptions;
+use Blush\Markdown\HeadingAnchorOptions;
 use Blush\Markdown\MarkdownConfig;
 use Blush\Markdown\MarkdownException;
-use Blush\Tests\Fixtures\Markdown\ShoutParser;
+use Blush\Markdown\MentionResolver;
+use Blush\Markdown\RawHtml;
 
 #[CoversClass(CommonMarkParser::class)]
 #[CoversClass(BracketedSpanParser::class)]
 #[CoversClass(BracketedSpanRenderer::class)]
 #[CoversClass(DescriptionAttributes::class)]
 #[CoversClass(DescriptionListRenderer::class)]
+#[CoversClass(MentionLinks::class)]
 #[CoversClass(MarkdownConfig::class)]
-#[CoversClass(MarkdownEnvironmentBuilding::class)]
+#[CoversClass(HeadingAnchorOptions::class)]
+#[CoversClass(FootnoteOptions::class)]
 #[CoversClass(MarkdownException::class)]
 final class CommonMarkParserTest extends TestCase
 {
-	private ListenerRegistry $listeners;
-
-	protected function setUp(): void
+	private function parser(MarkdownConfig $config = new MarkdownConfig(), ?MentionResolver $mentions = null): CommonMarkParser
 	{
-		$this->listeners = new ListenerRegistry();
+		return new CommonMarkParser($config, mentions: $mentions);
 	}
 
-	private function parser(MarkdownConfig $config = new MarkdownConfig()): CommonMarkParser
+	private static function people(): MentionResolver
 	{
-		return new CommonMarkParser($config, new EventDispatcher($this->listeners));
+		return new class implements MentionResolver {
+			#[Override]
+			public function url(string $name): ?string
+			{
+				return $name === 'jane' ? '/profiles/jane' : null;
+			}
+		};
 	}
 
-	public function testConvertsMarkdownWithTheDefaultExtensions(): void
+	public function testConvertsTheDialect(): void
 	{
-		$html = $this->parser()->toHtml("# Hi\n\n~~old~~ https://example.com\n\n| a |\n|---|\n| b |\n\n<b>raw</b>");
+		$html = $this->parser()->toHtml("# Hi\n\n~~old~~ ==new== https://example.com\n\n| a |\n|---|\n| b |\n\n- [x] done\n\nNote[^1]\n\n[^1]: A note.\n\n<b>raw</b>");
 
-		$this->assertStringContainsString('<h1>Hi</h1>', $html);
+		$this->assertStringContainsString('<h1>Hi', $html);
 		$this->assertStringContainsString('<del>old</del>', $html);
+		$this->assertStringContainsString('<mark>new</mark>', $html);
 		$this->assertStringContainsString('<a href="https://example.com">', $html);
 		$this->assertStringContainsString('<table>', $html);
+		$this->assertStringContainsString('type="checkbox"', $html);
+		$this->assertStringContainsString('class="footnotes"', $html);
 		$this->assertStringContainsString('<b>raw</b>', $html);
+	}
+
+	public function testRendersWithTheDefaults(): void
+	{
+		$html = $this->parser()->toHtml("## Get \"started\"\n\nOne line\nand the next -- with ...");
+
+		$this->assertStringContainsString('<h2>Get “started”<a id="get-started" href="#get-started" class="heading-anchor" aria-hidden="true" tabindex="-1" title="Link to this section">#</a></h2>', $html);
+		$this->assertStringContainsString("<p>One line<br>\nand the next – with …</p>", $html);
+	}
+
+	public function testEachSettingTurnsOff(): void
+	{
+		$html = $this->parser(new MarkdownConfig(smartPunctuation: false, headingAnchors: false, lineBreaks: false))->toHtml("## \"Hi\"\n\nOne\ntwo");
+
+		$this->assertSame("<h2>&quot;Hi&quot;</h2>\n<p>One\ntwo</p>\n", $html);
+	}
+
+	public function testAnchorsAndFootnotesTakeTheirOptions(): void
+	{
+		$parser = $this->parser(new MarkdownConfig(
+			anchors: new HeadingAnchorOptions(class: 'anchor', symbol: '¶', title: '', prefix: 'h', before: true),
+			footnotes: new FootnoteOptions(container: 'notes', reference: 'notes__ref', rule: false)
+		));
+
+		$html = $parser->toHtml("## Hi\n\nText[^a]\n\n[^a]: Note.");
+
+		$this->assertStringContainsString('<h2><a id="h-hi" href="#h-hi" class="anchor" aria-hidden="true" tabindex="-1">¶</a>Hi</h2>', $html);
+		$this->assertStringContainsString('class="notes__ref"', $html);
+		$this->assertStringContainsString('<h2 id="top"><a href="#top" class="anchor" aria-hidden="true" tabindex="-1">¶</a>Top</h2>', $parser->toHtml('## Top {#top}'), 'A heading\'s own id wins.');
+		$this->assertStringContainsString('<div class="notes" role="doc-endnotes"><ol>', $html);
+	}
+
+	public function testRawHtmlCanBeFilteredOrEscaped(): void
+	{
+		$markdown = "<b>bold</b> <script>x()</script> [go](javascript:alert(1))";
+
+		$filtered = $this->parser(new MarkdownConfig(html: RawHtml::Filter))->toHtml($markdown);
+
+		$this->assertStringContainsString('<b>bold</b>', $filtered);
+		$this->assertStringContainsString('&lt;script>', $filtered);
+		$this->assertStringContainsString('<a>go</a>', $filtered);
+
+		$escaped = $this->parser(new MarkdownConfig(html: RawHtml::Escape))->toHtml($markdown);
+
+		$this->assertStringContainsString('&lt;b&gt;bold&lt;/b&gt;', $escaped);
+	}
+
+	public function testMentionsLinkThroughTheResolver(): void
+	{
+		$parser = $this->parser(mentions: self::people());
+
+		$this->assertSame("<p>Thanks, <a class=\"mention\" href=\"/profiles/jane\">@jane</a>.</p>\n", $parser->toHtml('Thanks, @jane.'));
+		$this->assertSame("<p>Thanks, @nobody.</p>\n", $parser->toHtml('Thanks, @nobody.'), 'Nobody\'s name stays text.');
+		$this->assertStringNotContainsString('class="mention"', $parser->toHtml('Write to me@jane.example'), 'Not inside a word.');
+		$this->assertStringNotContainsString('class="mention"', $parser->toHtml('`@jane`'), 'Not in code.');
+		$this->assertSame("<p>@jane</p>\n", $this->parser(new MarkdownConfig(mentions: false), self::people())->toHtml('@jane'));
+		$this->assertSame("<p>@jane</p>\n", $this->parser()->toHtml('@jane'), 'Not without a resolver.');
+	}
+
+	public function testFindsRawHtmlAndAddressesOutsideCode(): void
+	{
+		$found = $this->parser()->find("<div class=\"x\">\nBlock\n</div>\n\nInline <span>here</span>, `<code>` and [a](/a) ![b](/b.png)\n\n    <pre>indented</pre>\n\n```\n<script>\n```\n\n::button[Go]{url=\"javascript:x\"}");
+
+		$this->assertSame(["<div class=\"x\">\nBlock\n</div>", '<span>', '</span>'], $found->html);
+		$this->assertSame(['/a', '/b.png', 'javascript:x'], $found->urls);
 	}
 
 	public function testDescriptionListsTakeAttributes(): void
@@ -93,76 +167,28 @@ final class CommonMarkParserTest extends TestCase
 		foreach ($cases as $markdown => $html) {
 			$this->assertSame("{$html}\n", $parser->toHtml((string) $markdown), (string) $markdown);
 		}
-
-		$plain = $this->parser(new MarkdownConfig(extensions: [CommonMarkCoreExtension::class]));
-
-		$this->assertSame("<p>[text]{.x}</p>\n", $plain->toHtml('[text]{.x}'), 'Only with the attributes extension.');
 	}
 
-	public function testUsesTheConfiguredOptionsExtensionsAndInlineParsers(): void
-	{
-		$parser = $this->parser(new MarkdownConfig(
-			options: ['html_input' => 'escape', 'renderer' => ['soft_break' => '<br />']],
-			extensions: [CommonMarkCoreExtension::class, SmartPunctExtension::class],
-			inlineParsers: [ShoutParser::class]
-		));
-
-		$html = $parser->toHtml("\"quoted\"\nnext !!loud <b>x</b>");
-
-		$this->assertSame("<p>“quoted”<br />next LOUD &lt;b&gt;x&lt;/b&gt;</p>\n", $html);
-	}
-
-	public function testListenersCanExtendTheEnvironmentOnce(): void
-	{
-		$built = 0;
-
-		$this->listeners->listen(MarkdownEnvironmentBuilding::class, static function (MarkdownEnvironmentBuilding $event) use (&$built): void {
-			$built++;
-			$event->environment->addInlineParser(new ShoutParser());
-		});
-
-		$parser = $this->parser();
-
-		$this->assertSame("<p>HEY</p>\n", $parser->toHtml('!!hey'));
-		$this->assertSame("<p>YOU</p>\n", $parser->toHtml('!!you'));
-		$this->assertSame(1, $built);
-	}
-
-	public function testBadOptionsFailOnFirstUse(): void
-	{
-		$this->expectException(MarkdownException::class);
-
-		$this->parser(new MarkdownConfig(options: ['max_nesting_level' => 'deep']))->toHtml('text');
-	}
-
-	public function testConfigAcceptsThe1xKeys(): void
-	{
-		$config = MarkdownConfig::fromArray([
-			'config'         => ['html_input' => 'strip'],
-			'extensions'     => [CommonMarkCoreExtension::class],
-			'inline_parsers' => [ShoutParser::class]
-		]);
-
-		$this->assertSame(['html_input' => 'strip'], $config->options);
-		$this->assertSame([ShoutParser::class], $config->inlineParsers);
-		$this->assertEquals($config, MarkdownConfig::fromArray($config->toArray()));
-		$this->assertSame(MarkdownConfig::DEFAULT_EXTENSIONS, MarkdownConfig::fromArray([])->extensions);
-	}
-
-	public function testRejectsClassesOfTheWrongKindOnFirstUse(): void
-	{
-		$parser = $this->parser(MarkdownConfig::fromArray(['extensions' => [ShoutParser::class]]));
-
-		$this->expectException(MarkdownException::class);
-		$this->expectExceptionMessage('MarkdownConfig "extensions"');
-
-		$parser->toHtml('text');
-	}
-
-	public function testConfigOptionsMustBeAMap(): void
+	public function testBadSettingsFailOnFirstUse(): void
 	{
 		$this->expectException(InvalidConfig::class);
 
-		MarkdownConfig::fromArray(['options' => ['a', 'b']]);
+		MarkdownConfig::fromArray(['html' => 'sometimes']);
+	}
+
+	public function testConfigRoundTrips(): void
+	{
+		$config = new MarkdownConfig(mentions: false, html: RawHtml::Filter, anchors: new HeadingAnchorOptions(symbol: '¶'));
+
+		$this->assertEquals($config, MarkdownConfig::fromArray($config->toArray()));
+		$this->assertEquals(new MarkdownConfig(), MarkdownConfig::fromArray([]));
+	}
+
+	public function testLibraryKeysAreUnknown(): void
+	{
+		$this->expectException(InvalidConfig::class);
+		$this->expectExceptionMessage('unknown key(s): options, extensions');
+
+		MarkdownConfig::fromArray(['options' => [], 'extensions' => []]);
 	}
 }

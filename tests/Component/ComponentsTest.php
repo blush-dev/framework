@@ -464,7 +464,7 @@ final class ComponentsTest extends TestCase
 		$this->assertStringContainsString("<aside class=\"component-callout\" role=\"note\">\n\t\t<p>Plain note.</p></aside>", $html);
 		$this->assertStringContainsString('<p>Kept as text</p>', $html);
 		$this->assertStringContainsString('<span class="badge badge--new">Site badge</span>', $html);
-		$this->assertStringContainsString('<p>A short name that isn\'t core.</p>', $html);
+		$this->assertStringContainsString('<p>A short name that isn’t core.</p>', $html);
 		$this->assertStringContainsString('Read the <span class="badge badge--tip">inline</span> notes at', $html);
 	}
 

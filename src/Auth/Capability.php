@@ -25,6 +25,11 @@ namespace Blush\Auth;
  * `.others`, as content's do. Uploading is by kind
  * (`media.{kind}.upload`, `MediaKind::uploadCapability()`), with
  * `media.*.upload` for every kind.
+ *
+ * HTML (D-495): adding raw HTML to a body in the admin, from the allowed
+ * list (`html.allowed`) or anything but what's always refused
+ * (`html.unfiltered`; `Markdown\Html\HtmlRules`). Without either, a save
+ * that adds HTML is refused. Either is enough on its own.
  */
 enum Capability: string
 {
@@ -32,6 +37,8 @@ enum Capability: string
 	case MediaEditOthers   = 'media.edit.others';
 	case MediaDelete       = 'media.delete';
 	case MediaDeleteOthers = 'media.delete.others';
+	case HtmlAllowed       = 'html.allowed';
+	case HtmlUnfiltered    = 'html.unfiltered';
 	case MenusEdit       = 'menus.edit';
 	case RegionsEdit     = 'regions.edit';
 	case SitePublish     = 'site.publish';
@@ -86,6 +93,7 @@ enum Capability: string
 		return match ($this) {
 			self::MediaEdit, self::MediaEditOthers,
 			self::MediaDelete, self::MediaDeleteOthers              => 'Media',
+			self::HtmlAllowed, self::HtmlUnfiltered                 => 'HTML',
 			self::MenusEdit, self::RegionsEdit                      => 'Structure',
 			self::SitePublish, self::CacheClear, self::SiteSettings => 'Site',
 			default                                                 => 'Users'
@@ -102,6 +110,8 @@ enum Capability: string
 			self::MediaEditOthers   => 'Edit anyone\'s files',
 			self::MediaDelete       => 'Delete their own files',
 			self::MediaDeleteOthers => 'Delete anyone\'s files',
+			self::HtmlAllowed       => 'Add HTML from the allowed list',
+			self::HtmlUnfiltered    => 'Add any HTML but what\'s always refused',
 			self::MenusEdit       => 'Edit menus',
 			self::RegionsEdit     => 'Edit regions',
 			self::SitePublish     => 'Publish the site',

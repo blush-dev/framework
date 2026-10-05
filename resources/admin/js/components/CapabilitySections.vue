@@ -80,7 +80,7 @@ const MEDIA_PRESETS: { key: string; label: string; text: string; names: string[]
 	{ key: 'none', label: 'No access', text: 'Nothing; the Media screen is left out of their admin.', names: [] }
 ];
 
-const GROUP_ICONS: Record<string, IconName> = { Media: 'image', Structure: 'layers', Site: 'globe', Users: 'users', Themes: 'paintbrush', Plugins: 'plug', 'Icon Packs': 'shapes' };
+const GROUP_ICONS: Record<string, IconName> = { Media: 'image', HTML: 'code', Structure: 'layers', Site: 'globe', Users: 'users', Themes: 'paintbrush', Plugins: 'plug', 'Icon Packs': 'shapes' };
 
 const key = (type: string, action: ContentAction): string => `content.${type}.${action}`;
 

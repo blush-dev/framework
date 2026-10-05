@@ -29,7 +29,8 @@
  * menu of **Media Library** and **Upload a File** (D-268); then, while
  * the caret is in the text, moving the top-level element it's in (⌥↑,
  * ⌥↓); what goes in a sentence, bold, italic, a link (a small form, ⌘K),
- * an icon (a library in a modal), and inline components (a short menu),
+ * the other inline elements (a short menu: struck, highlighted, and code
+ * text, then the inline components), and an icon (a library in a modal),
  * shown only where emphasis is emphasis; and how wide an element is,
  * bleed, for a top-level element. Contextual groups are hidden, not
  * disabled, and come after the fixed ones, so nothing that's always
@@ -1478,7 +1479,10 @@ useCommands(() => {
 		{ id: 'editor-icon', label: 'Insert an icon', icon: 'shapes', keywords: 'symbol glyph', run: openIcons },
 		{ id: 'editor-bold', label: 'Bold', icon: 'bold', keywords: 'strong format', shortcut: '⌘B', run: () => bodyEditor.value?.emphasis('strong') },
 		{ id: 'editor-italic', label: 'Italic', icon: 'italic', keywords: 'emphasis format', shortcut: '⌘I', run: () => bodyEditor.value?.emphasis('em') },
-		{ id: 'editor-strike', label: 'Strikethrough', icon: 'minus', keywords: 'format delete', shortcut: '⌘⇧X', run: () => bodyEditor.value?.emphasis('strike') },
+		{ id: 'editor-strike', label: 'Strikethrough', icon: 'strikethrough', keywords: 'format delete struck', shortcut: '⌘⇧X', run: () => bodyEditor.value?.emphasis('strike') },
+		{ id: 'editor-mark', label: 'Highlight', icon: 'highlighter', keywords: 'format mark', shortcut: '⌘⇧H', run: () => bodyEditor.value?.emphasis('marked') },
+		{ id: 'editor-code', label: 'Inline code', icon: 'code', keywords: 'format monospace', shortcut: '⌘E', run: () => bodyEditor.value?.code() },
+		...(canMention.value ? [{ id: 'editor-mention', label: 'Mention', icon: 'at-sign' as const, keywords: 'profile person author @', run: () => void openMention() }] : []),
 		{ id: 'editor-link', label: 'Link', icon: 'link', keywords: 'url address format', shortcut: '⌘K', run: () => void openLink() },
 		{ id: 'editor-unlink', label: 'Remove link', icon: 'link', keywords: 'url address unlink', shortcut: '⌘⇧K', run: () => bodyEditor.value?.unlink() },
 		...[1, 2, 3, 4, 5, 6].map((level) => ({ id: `editor-heading-${level}`, label: `Heading ${level}`, icon: 'heading' as const, keywords: 'title level format', shortcut: `⌘⌥${level}`, run: () => bodyEditor.value?.heading(level) })),
@@ -1820,7 +1824,7 @@ const holder = computed<ComponentDescription | undefined>(() => {
 // Nothing a container holds only some of is text, so the sentence tools
 // go inside one.
 const sentence  = computed(() => inText.value && inProse(markdown.value, caret.value) && holder.value === undefined);
-const emphasis  = computed<Record<Emphasis, boolean>>(() => sentence.value ? emphasisAt(markdown.value, Math.min(caret.value, extent.value), Math.max(caret.value, extent.value)) : { strong: false, em: false, strike: false });
+const emphasis  = computed<Record<Emphasis, boolean>>(() => sentence.value ? emphasisAt(markdown.value, Math.min(caret.value, extent.value), Math.max(caret.value, extent.value)) : { strong: false, em: false, strike: false, marked: false });
 
 // Moving the element the caret is in among its siblings (admin.md §8,
 // Reordering; D-314): a list item within its list, a paragraph within its
@@ -1960,6 +1964,116 @@ function outsideLink(event: PointerEvent): void {
 	}
 }
 
+// The mention form (D-493): a profile, found by name, written as
+// `@slug` where the caret is (in place of a selection, or the `@word`
+// it's in). Only published profiles have pages, so only they're offered.
+const canMention   = computed(() => config.mentions && profileType.value !== null);
+const mentionOpen  = ref(false);
+const mentionQuery = ref('');
+const mentionItems = ref<ReferenceItem[] | null>(null);
+const mentionIndex = ref(0);
+const mentionError = ref('');
+const mentionWrap  = ref<HTMLElement | null>(null);
+const mentionField = ref<HTMLInputElement | null>(null);
+const mentionSpot  = ref<{ start: number; end: number } | null>(null);
+let mentionSearch  = 0;
+let mentionTimer: ReturnType<typeof setTimeout> | undefined;
+
+async function findMentions(): Promise<void> {
+	const type = profileType.value;
+	const ask  = ++mentionSearch;
+
+	if (type === null) {
+		return;
+	}
+
+	try {
+		const found = await loadReferences(type, { search: mentionQuery.value.trim().replace(/^@/, ''), limit: 8 });
+
+		if (ask === mentionSearch) {
+			mentionItems.value = found.items.filter((item) => item.status === 'published');
+			mentionIndex.value = 0;
+			mentionError.value = '';
+		}
+	} catch (error) {
+		if (ask === mentionSearch) {
+			mentionItems.value = [];
+			mentionError.value = error instanceof ApiError ? error.message : 'The profiles couldn\'t be loaded.';
+		}
+	}
+}
+
+function searchMentions(): void {
+	clearTimeout(mentionTimer);
+	mentionTimer = setTimeout(() => void findMentions(), 150);
+}
+
+async function openMention(): Promise<void> {
+	if (!sentence.value || !canMention.value) {
+		return;
+	}
+
+	closeOverlays();
+
+	const start = Math.min(caret.value, extent.value);
+	const end   = Math.max(caret.value, extent.value);
+	// The `@word` the caret is in, which a pick finishes.
+	const typed = start === end ? /@[\p{L}\p{N}_-]*$/u.exec(body.value.slice(0, start)) : null;
+
+	mentionSpot.value  = typed === null ? { start, end } : { start: start - typed[0].length, end };
+	mentionQuery.value = typed === null ? body.value.slice(start, end).trim() : typed[0].slice(1);
+	mentionItems.value = null;
+	mentionOpen.value  = true;
+	void findMentions();
+	await nextTick();
+	mentionField.value?.focus();
+}
+
+function closeMention(refocus = true): void {
+	if (!mentionOpen.value) {
+		return;
+	}
+
+	mentionOpen.value = false;
+
+	if (refocus) {
+		bodyEditor.value?.focusAt(mentionSpot.value?.end ?? caret.value);
+	}
+}
+
+function chooseMention(item: ReferenceItem | undefined): void {
+	const spot = mentionSpot.value;
+
+	if (item === undefined || spot === null) {
+		return;
+	}
+
+	const text = `@${item.slug}`;
+
+	mentionOpen.value = false;
+	bodyEditor.value?.change({ text: body.value.slice(0, spot.start) + text + body.value.slice(spot.end), from: spot.start + text.length, to: spot.start + text.length });
+}
+
+function mentionKey(event: KeyboardEvent): void {
+	const count = mentionItems.value?.length ?? 0;
+
+	if (event.key === 'Escape') {
+		event.preventDefault();
+		event.stopPropagation();
+		closeMention();
+	} else if ((event.key === 'ArrowDown' || event.key === 'ArrowUp') && count > 0) {
+		event.preventDefault();
+		mentionIndex.value = (mentionIndex.value + (event.key === 'ArrowDown' ? 1 : count - 1)) % count;
+	}
+}
+
+// A press outside the mention form closes it.
+function outsideMention(event: PointerEvent): void {
+	if (mentionOpen.value && event.target instanceof Node && mentionWrap.value?.contains(event.target) !== true) {
+		closeMention(false);
+	}
+}
+
 /**
  * One thing is open at a time (admin.md §8, The toolbar): opening any of
  * the toolbar's panels, menus, or modals closes the others. Menus close
@@ -1968,6 +2082,7 @@ function outsideLink(event: PointerEvent): void {
 function closeOverlays(): void {
 	closePanel(false);
 	closeLink(false);
+	closeMention(false);
 }
 
 // Bleed (admin.md §8, Bleed; D-313): how far a top-level element reaches
@@ -2244,6 +2359,7 @@ onMounted(() => {
 	document.addEventListener('keydown', keydown);
 	document.addEventListener('pointerdown', press, true);
 	document.addEventListener('pointerdown', outsideLink);
+	document.addEventListener('pointerdown', outsideMention);
 	window.addEventListener('pagehide', pageHide);
 	window.addEventListener('keydown', reloadKey, true);
 });
@@ -2254,6 +2370,8 @@ onBeforeUnmount(() => {
 	document.removeEventListener('keydown', keydown);
 	document.removeEventListener('pointerdown', press, true);
 	document.removeEventListener('pointerdown', outsideLink);
+	document.removeEventListener('pointerdown', outsideMention);
+	clearTimeout(mentionTimer);
 	window.removeEventListener('pagehide', pageHide);
 	window.removeEventListener('keydown', reloadKey, true);
 	titleWidth?.disconnect();
@@ -2354,22 +2472,54 @@ function fieldKey(field: FieldDescription): string {
 							</p>
 						</form>
 					</span>
+					<span ref="mentionWrap" class="editor__pop">
+					<MenuButton :button-class="`button button--ghost editor__tool editor__wide${emphasis.strike || emphasis.marked ? ' is-on' : ''}`" label="More inline elements" align="start" floating @open="closeOverlays">
+						<template #button>
+							<AdminIcon name="baseline" /><AdminIcon name="chevron-down" class="editor__caret" />
+						</template>
+						<button type="button" class="menu-item" :aria-pressed="emphasis.strike" @mousedown.prevent @click="bodyEditor?.emphasis('strike')">
+							<AdminIcon name="strikethrough" /><span class="menu-item__name">Strikethrough</span><kbd class="menu-item__shortcut">⌘⇧X</kbd>
+						</button>
+						<button type="button" class="menu-item" :aria-pressed="emphasis.marked" @mousedown.prevent @click="bodyEditor?.emphasis('marked')">
+							<AdminIcon name="highlighter" /><span class="menu-item__name">Highlight</span><kbd class="menu-item__shortcut">⌘⇧H</kbd>
+						</button>
+						<button type="button" class="menu-item" @mousedown.prevent @click="bodyEditor?.code()">
+							<AdminIcon name="code" /><span class="menu-item__name">Inline code</span><kbd class="menu-item__shortcut">⌘E</kbd>
+						</button>
+						<button v-if="canMention" type="button" class="menu-item" aria-haspopup="dialog" @mousedown.prevent @click="openMention">
+							<AdminIcon name="at-sign" /><span class="menu-item__name">Mention</span>
+						</button>
+						<template v-if="inlineComponents.length">
+							<div class="menu-divider" />
+							<button v-for="component in inlineComponents" :key="component.name" type="button" class="menu-item menu-item--described" @click="chooseInline(component)">
+								<AdminIcon :name="componentIcon(component)" />
+								<span>
+									<span class="menu-item__name">{{ component.label }}<template v-if="component.source && component.source.kind !== 'site'"> · {{ component.source.label }}</template></span>
+									<span v-if="component.description" class="menu-item__text">{{ component.description }}</span>
+								</span>
+							</button>
+						</template>
+					</MenuButton>
+					<form v-if="mentionOpen" id="editor-mention" class="editor__link" role="dialog" aria-label="Mention" @submit.prevent="chooseMention(mentionItems?.[mentionIndex])" @keydown="mentionKey">
+						<div class="field">
+							<label for="editor-mention-search">Mention</label>
+							<input id="editor-mention-search" ref="mentionField" v-model="mentionQuery" type="search" autocomplete="off" spellcheck="false" placeholder="Find a profile" role="combobox" aria-autocomplete="list" aria-controls="editor-mention-list" :aria-expanded="(mentionItems?.length ?? 0) > 0" :aria-activedescendant="mentionItems?.length ? `editor-mention-${mentionIndex}` : undefined" @input="searchMentions">
+						</div>
+						<p v-if="mentionError" class="editor__mention-note" role="alert">{{ mentionError }}</p>
+						<p v-else-if="mentionItems === null" class="editor__mention-note">Finding profiles…</p>
+						<p v-else-if="mentionItems.length === 0" class="editor__mention-note">No published profile matches.</p>
+						<ul v-else id="editor-mention-list" class="editor__mentions" role="listbox" aria-label="Profiles">
+							<li v-for="(item, index) in mentionItems" :id="`editor-mention-${index}`" :key="item.slug" role="option" class="editor__mention" :class="{ 'is-active': index === mentionIndex }" :aria-selected="index === mentionIndex" @mousedown.prevent @click="chooseMention(item)" @mouseenter="mentionIndex = index">
+								<span class="editor__mention-name">{{ item.title }}</span>
+								<code class="editor__mention-slug">@{{ item.slug }}</code>
+							</li>
+						</ul>
+					</form>
+					</span>
 					<button type="button" class="button button--ghost button--icon editor__tool" title="Icon" aria-haspopup="dialog" @click="openIcons">
 						<AdminIcon name="shapes" />
 						<span class="visually-hidden">Insert an icon</span>
 					</button>
-					<MenuButton v-if="inlineComponents.length" button-class="button button--ghost editor__tool editor__wide" label="Insert an inline component" align="start" floating @open="closeOverlays">
-						<template #button>
-							<AdminIcon name="baseline" /><AdminIcon name="chevron-down" class="editor__caret" />
-						</template>
-						<button v-for="component in inlineComponents" :key="component.name" type="button" class="menu-item menu-item--described" @click="chooseInline(component)">
-							<AdminIcon :name="componentIcon(component)" />
-							<span>
-								<span class="menu-item__name">{{ component.label }}<template v-if="component.source && component.source.kind !== 'site'"> · {{ component.source.label }}</template></span>
-								<span v-if="component.description" class="menu-item__text">{{ component.description }}</span>
-							</span>
-						</button>
-					</MenuButton>
 				</template>
 
 				<template v-if="bleedTarget">
@@ -3008,6 +3158,41 @@ function fieldKey(field: FieldDescription): string {
 
 .editor__link .field {
 	margin: 0;
+}
+
+.editor__mention-note {
+	margin: 0;
+	color: var(--fg-3);
+	font-size: var(--text-sm);
+}
+
+.editor__mentions {
+	display: grid;
+	max-height: min(320px, 40vh);
+	margin: 0;
+	padding: 0;
+	overflow-y: auto;
+	list-style: none;
+}
+
+.editor__mention {
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: var(--s-3);
+	padding: var(--s-2) var(--s-3);
+	border-radius: var(--r-1);
+	color: var(--fg-2);
+	cursor: pointer;
+}
+
+.editor__mention.is-active {
+	background: var(--accent-soft);
+	color: var(--accent);
+}
+
+.editor__mention-slug {
+	color: var(--fg-3);
 }
 
 .editor__link-buttons {

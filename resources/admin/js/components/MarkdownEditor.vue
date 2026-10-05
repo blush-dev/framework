@@ -45,7 +45,8 @@
  */
 
 import { computed, nextTick, ref } from 'vue';
-import { blocks, closingFence, continuation, directiveAt, editBetween, highlight, indentedCode, intoFence, isAddress, linkAt, linked, nested, outline, pasted, quoted, safeSpot, toggleEmphasis, toggleMark, typedSpot, unmarked, withHeading, withoutLink, type Change, type Edit, type Emphasis, type MarkdownBlock, type MarkdownOutline } from '../markdown';
+import { htmlCheck } from '../html';
+import { blocks, closingFence, setHtmlCheck, continuation, directiveAt, editBetween, highlight, indentedCode, intoFence, isAddress, linkAt, linked, nested, outline, pasted, quoted, safeSpot, toggleEmphasis, toggleMark, typedSpot, unmarked, withHeading, withoutLink, type Change, type Edit, type Emphasis, type MarkdownBlock, type MarkdownOutline } from '../markdown';
 import { directiveText, type ComponentDescription } from '../components';
 
 const props = defineProps<{
@@ -92,6 +93,9 @@ const emit = defineEmits<{
 
 const markdown = computed(() => props.parsed ?? outline(model.value));
 const current  = computed(() => props.directive ?? (props.image === undefined ? directiveAt(markdown.value.directives, caret.value) : -1));
+
+// Raw HTML and addresses the account couldn't add are marked (D-495).
+setHtmlCheck(htmlCheck());
 
 const html = computed(() => highlight(markdown.value, current.value, props.image ?? -1, props.blocks ?? blocks(markdown.value)));
 
@@ -255,7 +259,9 @@ function keydown(event: KeyboardEvent): void {
 	}
 }
 
-const MARKS: Record<string, Emphasis | '`'> = { b: 'strong', i: 'em', e: '`', x: 'strike' };
+// ⌘ and a letter; struck and highlighted text take ⇧ as well.
+const MARKS: Record<string, Emphasis | '`'> = { b: 'strong', i: 'em', e: '`', x: 'strike', h: 'marked' };
+const SHIFTED = new Set(['x', 'h']);
 
 /**
  * The editing keys: formatting, a link, and nesting a list item. Returns
@@ -294,11 +300,11 @@ function shortcut(event: KeyboardEvent): boolean {
 
 	const mark = MARKS[key];
 
-	if (command && (key === 'x' ? event.shiftKey : !event.shiftKey) && mark !== undefined) {
+	if (command && SHIFTED.has(key) === event.shiftKey && mark !== undefined) {
 		event.preventDefault();
 
 		if (mark === '`') {
-			applyChange(toggleMark(element.value, element.selectionStart, element.selectionEnd, '`'));
+			code();
 		} else {
 			emphasis(mark);
 		}
@@ -370,14 +376,25 @@ function applyChange(change: Change): void {
 }
 
 /**
- * Turns strong, emphasized, or struck text on or off for the selection,
- * or the word at the caret.
+ * Turns strong, emphasized, struck, or highlighted text on or off for
+ * the selection, or the word at the caret.
  */
 function emphasis(kind: Emphasis): void {
 	const element = field.value;
 
 	if (element !== null && !props.readonly) {
 		applyChange(toggleEmphasis(element.value, element.selectionStart, element.selectionEnd, kind));
+	}
+}
+
+/**
+ * Turns inline code on or off for the selection.
+ */
+function code(): void {
+	const element = field.value;
+
+	if (element !== null && !props.readonly) {
+		applyChange(toggleMark(element.value, element.selectionStart, element.selectionEnd, '`'));
 	}
 }
 
@@ -750,7 +767,7 @@ async function change(next: Change): Promise<void> {
 	reveal();
 }
 
-defineExpose({ apply, change, focusAt, insert, insertBlock, insertText, selection, dismissSlash, emphasis, unlink, heading });
+defineExpose({ apply, change, focusAt, insert, insertBlock, insertText, selection, dismissSlash, emphasis, code, unlink, heading });
 </script>
 
 <template>
@@ -884,6 +901,24 @@ defineExpose({ apply, change, focusAt, insert, insertBlock, insertText, selectio
 .md__highlight :deep(.md-strike__text) {
 	color: var(--fg-3);
 	text-decoration: line-through;
+}
+
+/* Raw HTML reads as markup (D-495); what the account couldn't add is
+   underlined in the danger color, and a save that adds it is refused. */
+.md__highlight :deep(.md-html) {
+	color: var(--fg-3);
+}
+
+.md__highlight :deep(.md-refused) {
+	color: var(--danger);
+	text-decoration: wavy underline;
+	text-decoration-color: var(--danger);
+}
+
+/* A highlighter's yellow, as the site's <mark> is by default. */
+.md__highlight :deep(.md-marked__text) {
+	background: var(--warn-soft);
+	color: var(--fg);
 }
 
 .md__highlight :deep(.md-quote) {

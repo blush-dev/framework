@@ -1016,6 +1016,7 @@ decision, add a new entry that supersedes it and mark the old one
 
 ### D-086: Markdown config details
 - **Date:** 2026-09-25
+- **Status:** Superseded by D-492: `MarkdownConfig` no longer takes CommonMark options, extensions, or inline parsers, nor 1.x's keys.
 - **Decision:** `MarkdownConfig` (`config/markdown.php`) holds CommonMark
   `options`, `extensions`, and `inlineParsers` (1.x's `config` and
   `inline_parsers` keys are accepted). The defaults are CommonMark plus
@@ -2774,6 +2775,7 @@ decision, add a new entry that supersedes it and mark the old one
 
 ### D-176: Definition lists and highlighting are on by default
 - **Date:** 2026-09-28
+- **Status:** Both are part of the fixed dialect (D-492); there's no extension list to dedupe.
 - **Decision:** Implements D-175's Markdown part: `DescriptionListExtension`
   and `HighlightExtension` join `MarkdownConfig::DEFAULT_EXTENSIONS`.
   `CommonMarkParser` adds each configured extension once
@@ -14577,3 +14579,168 @@ decision, add a new entry that supersedes it and mark the old one
 - **Checked:** `composer check` (`DataLoaderTest`, `SettingsTest`,
   `AdminTypeEditTest::testEditsAJsonType`, `AdminPickersTest`).
 - **Why:** the author: "support $schema in json data files".
+
+### D-492: league/commonmark is behind Blush's own Markdown API
+- **Date:** 2026-10-05
+- **Decision:** the author's call: "any of our public apis for
+  developers don't have them fiddling with league's commonmark. our
+  classes are the public api and sits as an adapter over commonmark."
+  Supersedes D-086's options and extensions.
+  - **One dialect on every site:** CommonMark with autolinks, struck
+    (`~~`) and highlighted (`==`) text, tables, task lists, footnotes,
+    definition lists, attributes and bracketed spans, and directives.
+    The editor writes and reads it, so it doesn't vary by site; turning
+    syntax off isn't offered.
+  - **`MarkdownConfig` says how it renders, by Blush names:**
+    `smartPunctuation`, `headingAnchors`, `mentions`, `lineBreaks`
+    (each `true` by default), `html` (`RawHtml`: `Allow`, `Filter`,
+    `Escape`), `figures`, `absoluteLinks`, `directives`, `anchors`
+    (`HeadingAnchorOptions`: `class`, `symbol`, `title`, `prefix`,
+    `before`), and `footnotes` (`FootnoteOptions`: `container`,
+    `reference`, `note`, `backReference`, `rule`). `options`,
+    `extensions`, `inlineParsers`, and 1.x's `config` and
+    `inline_parsers` are unknown keys now ("1.x doesn't matter here").
+  - **`MarkdownEnvironmentBuilding` is gone**, and the
+    `CommonMarkParser` no longer takes the dispatcher. New syntax is a
+    component (D-171); replacing the parser is binding `MarkdownParser`
+    (and `Html\MarkupFinder`, D-495).
+  - **Heading anchors** are league's permalinks, rendered by
+    `HeadingAnchorRenderer`: a heading with its own id (`{#top}`) is
+    linked by it and the anchor takes none, and an empty title is left
+    out. Defaults: class `heading-anchor`, `#` after the text, no id
+    prefix. `Body::words()` leaves out `aria-hidden` elements, so the
+    `#` isn't in excerpts, descriptions, or word counts (it was, as
+    soon as anchors were on by default).
+  - **`RawHtml::Filter`** shows `HtmlRules::REFUSED` tags as text and
+    turns off unsafe links; `Escape` escapes all of it.
+  - **Not adopted:** league's TableOfContents (D-183's `::toc`
+    replaces it), Embed (the `embed` component), ExternalLink (not
+    taken up), DefaultAttributes, InlinesOnly, FrontMatter, and
+    NormalizeHeadings.
+- **Done:** `docs/configuration.md`, `docs/content.md`,
+  `docs/coming-from-1x.md`; the default theme styles `.heading-anchor`
+  (shown on hover or focus) and `.mention`. The jtcom trial's
+  `config/markdown.php` uses `RawHtml::Filter`, `HeadingAnchorOptions`,
+  and `FootnoteOptions` with its classes, and its one
+  `{block:table-of-contents}` is `::toc`.
+- **Checked:** `composer check` (`CommonMarkParserTest`, and the tests
+  that now turn the new defaults off where they're about something
+  else).
+
+### D-493: Mentions link to profiles
+- **Date:** 2026-10-05
+- **Decision:** the author's call: "@mentions ... should work and link
+  to the user's profile if it supports profiles."
+  - **`@slug` is a profile's slug**, not an account's (content never
+    points at accounts, D-351), linked to the profile's canonical URL
+    with the `mention` class, the text kept as written. A slug with no
+    published, routable profile, or a site whose profiles have no
+    URLs, stays text. Not inside a word (`me@example.com`) or code.
+  - **`Markdown\MentionResolver`** (`url(name)`), bound to
+    `Content\ProfileMentions`, the repository deferred as
+    `ComponentDirectives` defers the view factory. league's Mention
+    extension is used only inside the adapter (`MentionLinks`).
+  - **Caching:** bodies are cached by content version (D-130), so
+    publishing a profile re-renders the bodies that mention it.
+  - **On by default**, a switch on the Writing screen (D-494).
+  - **The editor's toolbar form** (the author's call, over a setting
+    for which URL a mention links to): Mention in the inline menu
+    (D-496) searches published profiles (`GET references/{profiles}`)
+    and writes `@slug`, replacing a selection or finishing the `@word`
+    at the caret. The command palette has Mention too. The shell config
+    says whether mentions are on.
+- **Not done:** highlighting `@slug` in the editor, and suggesting
+  names as `@` is typed.
+- **Checked:** `composer check` (`CommonMarkParserTest`,
+  `AdminSettingsTest::testShowsAndSavesTheWritingScreen` with a real
+  profile).
+
+### D-494: The Writing settings screen, and smart punctuation, anchors, and line breaks by default
+- **Date:** 2026-10-05
+- **Decision:** the author's calls: a new Writing screen; smart
+  punctuation ("We definitely want this"; the jtcom trial had it on in
+  its own config, which is why it looked on), heading anchors ("also
+  default to on"), and line breaks ("this should default to on either
+  way") are on by default; images as figures stays a setting ("thinking
+  that we'll have a block-based editor in the future").
+  - **`SettingsScreen::Writing`** (`writing`), after Reading, with
+    `markdown.mentions`, `markdown.smartPunctuation`,
+    `markdown.headingAnchors`, and `markdown.figures` (switches) in a
+    Markdown group, and `markdown.html` (radios: Allowed, Filtered,
+    Shown as text, each described) in an HTML group, saved in
+    `user/data/settings.json` over `config/markdown.php`. A change
+    re-renders bodies (their cache key holds the Markdown config).
+  - **Line breaks aren't on the screen:** a block editor would keep a
+    line break inside a paragraph as one, so `<br>` is the compatible
+    default; `lineBreaks` stays in code for a site that wants spaces.
+    The author asked whether the setting is needed; it's the
+    recommendation, open to change.
+  - **External links** (`rel`, new tabs) weren't taken up.
+- **Done:** `docs/admin.md`, `docs/configuration.md`; navigation,
+  command palette, and route for the screen.
+- **Checked:** `composer check` (`AdminSettingsTest`).
+
+### D-495: Raw HTML in the admin is by capability, with an allowed list and an always-refused list
+- **Date:** 2026-10-05
+- **Decision:** the author's calls: "Only admins and editors can write
+  any html. But we should also refuse dangerous html altogether for
+  anyone with an unfiltered html cap (administrators) ... There should
+  be an allowed list and an unfiltered list. And maybe if we make a
+  tight allowed list, we could open it to more roles." With the
+  proposal's points: a capability, enforced on save for what's added,
+  a warning in the editor, and the render setting (D-494).
+  - **`html.allowed`** (Editors) adds only `HtmlRules::ALLOWED` tags,
+    each with its own attributes plus the global ones (`class`, `id`,
+    `title`, `lang`, `dir`, `role`, `hidden`, `translate`, `aria-*`,
+    `data-*`); no `style`. **`html.unfiltered`** (Administrators, through
+    `*`) adds anything but what's always refused. Either is enough on
+    its own. A role screen group, **HTML**.
+  - **Always refused** (`HtmlRules::REFUSED`, `REFUSED_ATTRIBUTES`):
+    script, style, frames, object, embed, applet, forms and their
+    fields, svg, math, meta, link, base, template, title, noscript,
+    portal, and the old raw-text tags; `on…` attributes, `srcdoc`,
+    `formaction`; and unsafe addresses (`javascript:`, `vbscript:`,
+    `file:`, and `data:` that isn't a PNG, GIF, JPEG, or WebP), however
+    cased, spaced, or entity-encoded, in URL attributes (each `srcset`
+    candidate), Markdown links and images, and directive options.
+  - **Enforced on save, by the server** (`Admin\HtmlGuard`, from
+    `EntryController::create()` and `update()`): the body is read by
+    the parser (`Html\MarkupFinder`, so HTML in code doesn't count), its
+    problems at the account's level are counted against the saved
+    body's, and a save is refused (403, `field: body`) only for what's
+    new, named (`` `<iframe>` ``). So anyone may edit around HTML
+    someone else wrote, and take it out. A `.html` entry is HTML
+    throughout. Files edited on disk aren't checked. Only the entry
+    controller writes bodies.
+  - **The editor warns:** raw HTML is a token, and what the account
+    couldn't add, and unsafe link addresses, are marked (`html.ts`
+    mirrors the rules, sent in the shell config). It marks HTML already
+    there too, which the server would let stay.
+  - **Not done:** opening the allowed list to Authors (possible once
+    it's settled as tight enough); SVG uploads, the same risk by
+    another route, belong with the media rules.
+- **Done:** `docs/accounts.md`, `docs/admin.md`.
+- **Checked:** `composer check` (`AdminHtmlTest`, `HtmlRulesTest`).
+
+### D-496: Struck, highlighted, and code text in the editor's inline menu
+- **Date:** 2026-10-05
+- **Decision:** the author's calls: `==mark==` wasn't highlighted in
+  the editor, the toolbar lacked the other inline formats, and they
+  belong "in the inline components menu ... just after the link
+  button", not a menu of their own. And the floating menu "needs to
+  recognize the height of the screen and be scrollable ... with
+  spacing above below it."
+  - **Highlighting:** `==text==` is a `marked` token (`md-marked`, on
+    `--warn-soft`, a highlighter's yellow; not `mark`, which is the
+    markers' class). `toggleEmphasis()` and `emphasisAt()` know it; ⌘⇧H
+    toggles it.
+  - **The A menu** follows Link: Strikethrough, Highlight, Inline code
+    (`MarkdownEditor`'s new `code()`), Mention (D-493), then inline
+    components; then the icon button. Its button is pressed while
+    struck or highlighted text is at the caret.
+  - **`MenuButton`'s floating list** keeps 16px from the window's
+    edges, opens above when there's more room there, scrolls when
+    taller than its room, and refits on resize.
+- **Checked:** `npm run admin:build`; the highlighter and toggles
+  under Node.
+

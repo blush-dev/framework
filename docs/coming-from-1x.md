@@ -75,11 +75,14 @@ names. When you're ready, you can move to them (see
 | `date_archives`, `time_archives` | `dateArchives` (`day`, `second`, and others) |
 | `feed` `taxonomy` and `collection` | `feed` `categories` and `listing` |
 
-**Markdown** (`config/markdown.php`) works the same way, with
-`MarkdownConfig::fromArray()`, and accepts 1.x's `config`,
-`extensions`, and `inline_parsers` keys. Attribute syntax like
-`{.alignwide}` works without `AttributesExtension` in the list: 2.x turns
-it on by default.
+**Markdown** (`config/markdown.php`) is rewritten: 2.x doesn't take
+CommonMark's options or extension classes. Its Markdown already has
+attributes (`{.alignwide}`), definition lists, footnotes, smart
+punctuation, heading anchors, and line breaks as `<br>`, and
+`MarkdownConfig` takes the rest by name: `html: RawHtml::Filter` for
+disallowed raw HTML, and `anchors` and `footnotes` for their classes
+(see [Configuration](configuration.md#markdown)). A table of contents
+placeholder becomes the `::toc` [component](components.md).
 
 **Media URLs:** 2.x serves media from `/media`. To keep 1.x's
 `/user/media/...` URLs working, add `config/media.php`:

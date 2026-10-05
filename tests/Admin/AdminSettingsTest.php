@@ -175,6 +175,41 @@ final class AdminSettingsTest extends TestCase
 		}
 	}
 
+	public function testShowsAndSavesTheWritingScreen(): void
+	{
+		$this->writeTemporaryFile('user/content/profiles/sam.md', "---\ntitle: Sam\n---\n");
+		$this->writeTemporaryFile('user/content/hello.md', "---\ntitle: Hello\n---\nThanks, @sam and @nobody. \"Quoted\"\n\n## Part <b>one</b>\n");
+		$this->boot(roles: ['administrator']);
+		$this->login();
+
+		$page = (string) $this->visit('GET', '/hello')->getBody();
+
+		$this->assertStringContainsString('Thanks, <a class="mention" href="https://example.test/profiles/sam">@sam</a> and @nobody. “Quoted”', $page, 'A published profile is linked; nobody\'s name stays text.');
+		$this->assertStringContainsString('<h2>Part <b>one</b><a id="part-one" href="#part-one" class="heading-anchor"', $page);
+
+		$writing  = self::json($this->send('GET', '/settings/writing'));
+		$mentions = $this->setting($writing, 'markdown', 'mentions');
+		$this->assertSame(['markdown.mentions', true, true, 'config/markdown.php'], [$mentions['setting'] ?? null, $mentions['value'] ?? null, $mentions['default'] ?? null, $mentions['file'] ?? null]);
+		$html = $this->setting($writing, 'html', 'html');
+		$this->assertSame(['markdown.html', 'Allowed', 'allow'], [$html['setting'] ?? null, $html['value'] ?? null, $html['input'] ?? null]);
+		$field = is_array($html['field'] ?? null) ? $html['field'] : [];
+		$this->assertSame(['allow' => 'Allowed', 'filter' => 'Filtered', 'escape' => 'Shown as text'], $field['choices'] ?? null);
+
+		$response = $this->write('PATCH', '/settings', ['set' => ['markdown.mentions' => false, 'markdown.smartPunctuation' => false, 'markdown.headingAnchors' => false, 'markdown.html' => 'escape']]);
+		$this->assertSame(200, $response->getStatusCode(), (string) $response->getBody());
+		$this->assertSame(['markdown' => ['mentions' => false, 'smartPunctuation' => false, 'headingAnchors' => false, 'html' => 'escape']], json_decode($this->file('user/data/settings.json'), true));
+		$this->assertSame(422, $this->write('PATCH', '/settings', ['set' => ['markdown.html' => 'sometimes']])->getStatusCode());
+
+		// Settings are read at boot; the account is already there.
+		$this->app = $this->scratchApplication(['APP_ENV' => 'development', 'APP_URL' => 'https://example.test', 'APP_SECRET' => str_repeat('s', 64)]);
+		$this->app->boot();
+
+		$page = (string) $this->visit('GET', '/hello')->getBody();
+
+		$this->assertStringContainsString('Thanks, @sam and @nobody. &quot;Quoted&quot;', $page);
+		$this->assertStringContainsString('<h2>Part &lt;b&gt;one&lt;/b&gt;</h2>', $page);
+	}
+
 	public function testShowsAndSavesUntranslatedPagesOnAMultilingualSite(): void
 	{
 		$this->writeTemporaryFile('config/app.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn Blush\\Core\\AppConfig::fromArray(['environment' => 'development', 'languages' => ['fr' => 'fr_FR']]);\n");

@@ -35,6 +35,8 @@ use Blush\Field\Fields\ObjectField;
 use Blush\Field\Fields\TextField;
 use Blush\Icon\IconConfig;
 use Blush\Llms\LlmsConfig;
+use Blush\Markdown\MarkdownConfig;
+use Blush\Markdown\RawHtml;
 use Blush\Media\MediaConfig;
 use Blush\Media\MediaUploads;
 use Blush\Plugin\PluginConfig;
@@ -60,27 +62,32 @@ use Blush\Theme\ThemeConfig;
  */
 enum Setting: string
 {
-	case Name            = 'app.name';
-	case Description     = 'app.description';
-	case Locale          = 'app.locale';
-	case Untranslated    = 'app.untranslated';
-	case Timezone        = 'app.timezone';
-	case DateFormat      = 'app.dateFormat';
-	case TimeFormat      = 'app.timeFormat';
-	case Home            = 'content.home';
-	case TrailingSlash   = 'routes.trailingSlash';
-	case FeedFormats     = 'feed.formats';
-	case FeedContent     = 'feed.content';
-	case FeedLimit       = 'feed.limit';
-	case MediaUploads    = 'media.uploads';
-	case Sitemap         = 'sitemap.enabled';
-	case SitemapDisallow = 'sitemap.disallow';
-	case Llms            = 'llms.enabled';
-	case LlmsFull        = 'llms.full';
-	case BlockAi         = 'sitemap.blockAi';
-	case Theme           = 'theme.active';
-	case Plugins         = 'plugins.enabled';
-	case IconPacks       = 'icons.enabled';
+	case Name             = 'app.name';
+	case Description      = 'app.description';
+	case Locale           = 'app.locale';
+	case Untranslated     = 'app.untranslated';
+	case Timezone         = 'app.timezone';
+	case DateFormat       = 'app.dateFormat';
+	case TimeFormat       = 'app.timeFormat';
+	case Home             = 'content.home';
+	case TrailingSlash    = 'routes.trailingSlash';
+	case FeedFormats      = 'feed.formats';
+	case FeedContent      = 'feed.content';
+	case FeedLimit        = 'feed.limit';
+	case MediaUploads     = 'media.uploads';
+	case Mentions         = 'markdown.mentions';
+	case SmartPunctuation = 'markdown.smartPunctuation';
+	case HeadingAnchors   = 'markdown.headingAnchors';
+	case Figures          = 'markdown.figures';
+	case Html             = 'markdown.html';
+	case Sitemap          = 'sitemap.enabled';
+	case SitemapDisallow  = 'sitemap.disallow';
+	case Llms             = 'llms.enabled';
+	case LlmsFull         = 'llms.full';
+	case BlockAi          = 'sitemap.blockAi';
+	case Theme            = 'theme.active';
+	case Plugins          = 'plugins.enabled';
+	case IconPacks        = 'icons.enabled';
 
 	/**
 	 * The most entries a feed may hold.
@@ -126,6 +133,8 @@ enum Setting: string
 			self::Timezone, self::DateFormat, self::TimeFormat            => SettingsScreen::General,
 			self::Home, self::FeedFormats, self::FeedContent, self::FeedLimit => SettingsScreen::Reading,
 			self::MediaUploads                                            => SettingsScreen::Media,
+			self::Mentions, self::SmartPunctuation, self::HeadingAnchors,
+			self::Figures, self::Html                                     => SettingsScreen::Writing,
 			self::TrailingSlash, self::Sitemap, self::SitemapDisallow     => SettingsScreen::Search,
 			self::Llms, self::LlmsFull, self::BlockAi                     => SettingsScreen::Ai
 		};
@@ -153,6 +162,11 @@ enum Setting: string
 			self::FeedFormats     => new ListField('formats', new EnumField('', array_column(FeedFormat::cases(), 'value')))->labeled('Formats')->described('None turns every feed off.')->control(Control::Checks),
 			self::FeedContent     => new BoolField('content')->labeled('Full content')->described('Off, a feed carries each entry\'s summary only.'),
 			self::MediaUploads    => new ObjectField('uploads')->labeled('Uploads')->described('What may be uploaded, how large, and the folder under user/media it goes in.')->control(Control::Readonly),
+			self::Mentions        => new BoolField('mentions')->labeled('Mentions')->described('@name links to the profile with that slug, once it\'s published. A name that isn\'t anyone\'s stays text.'),
+			self::SmartPunctuation => new BoolField('smartPunctuation')->labeled('Smart punctuation')->described('Straight quotes become curly ones, -- and --- dashes, and ... an ellipsis. Code is left as written.'),
+			self::HeadingAnchors  => new BoolField('headingAnchors')->labeled('Heading anchors')->described('Each heading gets a link to itself, so a section can be shared.'),
+			self::Figures         => new BoolField('figures')->labeled('Images as figures')->described('An image on a line of its own becomes a figure, with its title as the caption.'),
+			self::Html            => new EnumField('html', array_column(RawHtml::cases(), 'value'))->labeled('Raw HTML')->described('What HTML written in content does on the page, whoever wrote it. Who may add HTML in the admin is up to their role.')->control(Control::Radios)->required(),
 			self::FeedLimit       => new NumberField('limit', integer: true, min: 1, max: self::FEED_LIMIT_MAX)->labeled('Entries per feed')->described(sprintf('From 1 to %d.', self::FEED_LIMIT_MAX)),
 			self::TrailingSlash   => new BoolField('trailingSlash')->labeled('Trailing slash')->described('The other form redirects, so links to either still work.'),
 			self::Sitemap         => new BoolField('enabled')->labeled('Sitemap and robots.txt')->described('Off, the site has neither, and search engines find pages by their links.'),
@@ -183,6 +197,7 @@ enum Setting: string
 			self::Home         => self::homeChoices($types),
 			self::FeedFormats  => array_combine(array_column(FeedFormat::cases(), 'value'), array_map(static fn (FeedFormat $format): string => $format->label(), FeedFormat::cases())),
 			self::BlockAi      => array_combine(array_column(AiCrawlerGroup::cases(), 'value'), array_map(static fn (AiCrawlerGroup $group): string => $group->label(), AiCrawlerGroup::cases())),
+			self::Html         => array_combine(array_column(RawHtml::cases(), 'value'), array_map(static fn (RawHtml $case): string => $case->label(), RawHtml::cases())),
 			default            => []
 		};
 	}
@@ -200,6 +215,7 @@ enum Setting: string
 		return match ($this) {
 			self::BlockAi      => array_combine(array_column(AiCrawlerGroup::cases(), 'value'), array_map(static fn (AiCrawlerGroup $group): array => ['text' => $group->description(), 'code' => implode(' · ', $group->agents())], AiCrawlerGroup::cases())),
 			self::Untranslated => array_combine(array_column(Untranslated::cases(), 'value'), array_map(static fn (Untranslated $case): array => ['text' => $case->description(), 'code' => ''], Untranslated::cases())),
+			self::Html         => array_combine(array_column(RawHtml::cases(), 'value'), array_map(static fn (RawHtml $case): array => ['text' => $case->description(), 'code' => ''], RawHtml::cases())),
 			default            => []
 		};
 	}
@@ -217,6 +233,10 @@ enum Setting: string
 			self::Llms          => 'Every page has a Markdown copy, and the site has llms.txt',
 			self::LlmsFull      => 'The site has llms-full.txt',
 			self::Home          => 'The page at user/content/index.md',
+			self::Mentions      => '@name links to a profile',
+			self::SmartPunctuation => 'Quotes, dashes, and ellipses are typographic',
+			self::HeadingAnchors => 'Headings link to themselves',
+			self::Figures       => 'A lone image is a figure',
 			default             => null
 		};
 	}
@@ -286,6 +306,7 @@ enum Setting: string
 			'icons'   => IconConfig::class,
 			'llms'    => LlmsConfig::class,
 			'media'   => MediaConfig::class,
+			'markdown' => MarkdownConfig::class,
 			default   => SitemapConfig::class
 		};
 	}
@@ -327,6 +348,7 @@ enum Setting: string
 			self::Description     => self::description($value),
 			self::Locale          => self::locale($value),
 			self::Untranslated    => self::untranslated($value),
+			self::Html            => self::html($value),
 			self::Timezone        => self::timezone($value),
 			self::DateFormat,
 			self::TimeFormat      => self::dateFormat($value),
@@ -391,6 +413,15 @@ enum Setting: string
 	{
 		return (is_string($value) ? Untranslated::tryFrom($value) : null)->value
 			?? throw new InvalidSetting(sprintf('Untranslated pages are one of: %s.', implode(', ', array_column(Untranslated::cases(), 'value'))));
+	}
+
+	/**
+	 * @throws InvalidSetting
+	 */
+	private static function html(mixed $value): string
+	{
+		return (is_string($value) ? RawHtml::tryFrom($value) : null)->value
+			?? throw new InvalidSetting(sprintf('Raw HTML is one of: %s.', implode(', ', array_column(RawHtml::cases(), 'value'))));
 	}
 
 	/**

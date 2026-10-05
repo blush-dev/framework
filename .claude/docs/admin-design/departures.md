@@ -691,6 +691,29 @@ Each is recorded in `.claude/docs/decisions.md`.
 - **Title Case** (D-268, §10) is applied to names across the admin,
   core component labels included; `titleCase()` builds names from
   parts ("Edit Page").
+- **The inline menu holds the other inline elements** (D-496, the
+  author's call: "This is all about inline elements"), where the
+  direction's sentence group has bold, italic, link, icon, and inline
+  component, with ⌘E and ⌘⇧X as keys without buttons (D-313). After
+  Link, the **A** menu lists Strikethrough (⌘⇧X), Highlight (⌘⇧H, new),
+  and Inline code (⌘E), each pressed while on (`aria-pressed`, drawn as
+  `aria-current` is), then Mention (D-493), then the inline components;
+  the icon button follows it. Mention opens a form beside the menu, as
+  the link form does: a search of published profiles, arrows to move,
+  Enter or a click to write `@slug`.
+- **A floating menu keeps 16px from the window's edges and scrolls**
+  when it's taller than the room it has, opening above its button when
+  there's more room there, and refits when the window is resized (the
+  author's call, for the inline menu).
+- **A Writing settings screen** (D-494), which the settings sketch
+  doesn't have: Markdown (Mentions, Smart punctuation, Heading anchors,
+  Images as figures, as switches) and HTML (Raw HTML, as radios), drawn
+  as every settings screen is. The HTML capabilities (D-495) are a
+  site group on a role's screen, **HTML**.
+- **Raw HTML in the editor** (D-495) is a dim token, and what the
+  account couldn't add, and `javascript:` link addresses, are drawn in
+  `--danger` with a wavy underline: color and decoration only, so no
+  character moves.
 
 ## Settled open questions
 

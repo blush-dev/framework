@@ -13,6 +13,20 @@ export interface AdminConfig {
 	colorScheme: 'system' | 'light' | 'dark' | null;
 	// The signed-in account's admin theme (D-317), or `null`.
 	adminTheme: 'neutral' | 'editorial' | null;
+	// Whether `@name` links to a profile (`MarkdownConfig`, D-493).
+	mentions: boolean;
+	// What raw HTML each level may add (`HtmlRules`, D-495).
+	html: HtmlRules;
+}
+
+export interface HtmlRules {
+	// The allowed list: tags, each with the attributes it may have
+	// beyond the global ones.
+	allowed: Record<string, string[]>;
+	global: string[];
+	refused: string[];
+	refusedAttributes: string[];
+	urlAttributes: string[];
 }
 
 function read(): AdminConfig {
