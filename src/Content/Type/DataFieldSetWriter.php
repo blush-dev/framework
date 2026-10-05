@@ -39,7 +39,7 @@ use Blush\Support\Filesystem;
  * checked as the loader checks it; each changed key is then written as
  * the set itself writes it (`FieldSet::toArray()`: no label its name
  * gives, and no field classes). Everything else in the file is left as
- * the author wrote it, comments included. A new set is a YAML file.
+ * the author wrote it, comments included. A new set is a JSON file (D-490).
  *
  * Since a set's fields join the places it targets, each change is checked
  * against all of them before it's kept: the file is written, the types
@@ -89,7 +89,7 @@ final readonly class DataFieldSetWriter
 	}
 
 	/**
-	 * Creates a set in a new YAML file, and returns every type with it.
+	 * Creates a set in a new JSON file, and returns every type with it.
 	 *
 	 * @param  array<string, mixed> $changes
 	 * @throws InvalidContentType When it can't be created or doesn't fit.
@@ -102,7 +102,7 @@ final readonly class DataFieldSetWriter
 			throw new InvalidContentType(sprintf('user/data/fields already defines "%s".', $name));
 		}
 
-		return $this->write($name, "{$this->directory()}/{$name}.yaml", [], $changes);
+		return $this->write($name, "{$this->directory()}/{$name}.json", [], $changes);
 	}
 
 	/**

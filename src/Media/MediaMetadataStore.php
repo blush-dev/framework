@@ -28,14 +28,14 @@ use Blush\Support\Filesystem;
  * the files (`media:publish` would serve it): a tree under
  * `user/data/media/` mirrors the media paths, one data file per media
  * file, and only for one that has something to say.
- * `user/media/2024/sunset.jpg` has `user/data/media/2024/sunset.jpg.yml`
- * (or `.yaml` or `.json`, read in the data loader's order).
+ * `user/media/2024/sunset.jpg` has `user/data/media/2024/sunset.jpg.json`
+ * (or `.yaml` or `.yml`, read in the data loader's order).
  *
  * Saving changes only the keys asked for (D-287), leaving any others,
  * and the rest of a YAML file, as they were written; a field is written
  * under whichever of its name and aliases the file already uses, and a
  * new key goes before the `id`, which stays last (D-487). A file
- * left with nothing in it is removed. A new file is YAML. A metadata file that
+ * left with nothing in it is removed. A new file is JSON (D-490). A metadata file that
  * can't be read counts as none, so one bad file can't break the library;
  * `content:lint` is the place to hear about it.
  */
@@ -171,7 +171,7 @@ final readonly class MediaMetadataStore
 			throw new MediaException($error->getMessage(), previous: $error);
 		}
 
-		$path ??= "{$this->paths->data}/{$name}.yml";
+		$path ??= "{$this->paths->data}/{$name}.json";
 		$text = is_file($path) ? (string) @file_get_contents($path) : '';
 
 		// Each key's names: its field's name and aliases, when it has one.

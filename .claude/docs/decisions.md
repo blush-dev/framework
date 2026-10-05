@@ -4613,6 +4613,7 @@ decision, add a new entry that supersedes it and mark the old one
 
 ### D-238: Media metadata (planned)
 - **Date:** 2026-09-29
+- **Status:** New metadata files are JSON since D-490.
 - **Decision:** Media files can carry fields (alt text, caption, and so
   on) without becoming a content type. They borrow the parts of content
   types that fit a file and leave out the rest.
@@ -5943,6 +5944,7 @@ decision, add a new entry that supersedes it and mark the old one
 
 ### D-269: Alt text and captions in the media library
 - **Date:** 2026-09-30
+- **Status:** New metadata files are JSON since D-490.
 - **Decision:** Builds the first part of D-238 (media metadata) and
   settles D-268's open item on filling images in from the library.
   - **Two fields, alt and caption** (`Media\MediaMetadata`), each one
@@ -7438,7 +7440,8 @@ decision, add a new entry that supersedes it and mark the old one
 ### D-311: Editing content types in the admin
 - **Date:** 2026-09-30
 - **Status:** Code collections and taxonomies are editable too since
-  D-349, and every URL path since D-350.
+  D-349, and every URL path since D-350. New types are JSON since
+  D-490.
 - **Decision:** Implements D-042's "editable (later) in the admin" and
   the design's type builder, for types in `user/data/types` only. The
   author chose edit, create, and delete in one pass; the prototype's
@@ -8708,6 +8711,7 @@ decision, add a new entry that supersedes it and mark the old one
 
 ### D-337: The Fields API: field sets, controls, and Structure → Fields (planned)
 - **Date:** 2026-10-01
+- **Status:** New field sets are JSON since D-490.
 - **Decision:** Fields become an API of their own, so extensions and
   sites can add fields to screens easily, with a Structure screen for
   creating and managing them. The value layer stays as it is (`Field`,
@@ -14518,3 +14522,33 @@ decision, add a new entry that supersedes it and mark the old one
   `RecordMediaSizes`, two tests, and `AGENTS.md`.
 - **Why:** the author: "Don't mention wordpress anywhere in
   public-facing text. Or in the code."
+
+### D-490: The admin writes new data files as JSON
+- **Date:** 2026-10-05
+- **Decision:** the author's call, returning to D-032's consequence
+  ("the future admin writes JSON only"), which D-238 (media metadata as
+  `.yml`), D-311 (new types as YAML), and D-337 (new field sets as
+  YAML) had drifted from.
+  - **A file the admin creates in `user/data` is JSON:**
+    `user/data/types/{name}.json` (`DataTypeWriter`, new types and a
+    code type's first change, D-349), `user/data/fields/{name}.json`
+    (`DataFieldSetWriter`), and `user/data/media/{path}.json`
+    (`MediaMetadataStore`: alt text, captions, ids, sizes). Settings,
+    accounts, and the rest were JSON already.
+  - **A YAML file someone wrote is still edited in place**, key by key
+    with `YamlMap` (comments and other keys kept), as before. The admin
+    doesn't write JSON beside it (which would shadow it) or convert it.
+  - **Reading is unchanged:** JSON, then `.yaml`, then `.yml` (D-032);
+    a shadowed file is reported as before.
+- **Not chosen:** writing JSON beside a hand-written YAML file (D-032's
+  first idea: the YAML would stop counting without the author editing
+  it) and converting it to JSON on save (its comments lost).
+- **Done:** the three writers' new-file paths and their doc comments;
+  `docs/admin.md` and `docs/content-types.md`; tests now expect JSON
+  for new files (`AdminTypeEditTest`, `AdminFieldSetsTest`,
+  `AdminPickersTest`, `MediaIdsTest`), with a hand-written YAML
+  metadata file still edited with its comment kept.
+- **Checked:** `composer check`.
+- **Why:** the author: "We should be storing these as json coming from
+  the cms itself. The goal is to support yaml if a user writes it, but
+  json takes precedence."

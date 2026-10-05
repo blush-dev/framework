@@ -123,7 +123,7 @@ final class MediaIdsTest extends TestCase
 
 		$this->assertSame(['2019/daisy-3x4.png', '2019/photo-24x24.png', '2019/photo-90x60.png', '2019/photo.png'], array_keys($assigned->ids), 'Only the files allowed.');
 		$this->assertTrue(array_all($assigned->ids, Uuid::isValid(...)));
-		$this->assertSame("id: {$assigned->ids['2019/photo.png']}\n", file_get_contents($this->temporaryDirectory() . '/user/data/media/2019/photo.png.yml'), 'A metadata file is written for a file with none.');
+		$this->assertSame(['id' => $assigned->ids['2019/photo.png']], json_decode((string) file_get_contents($this->temporaryDirectory() . '/user/data/media/2019/photo.png.json'), true), 'A metadata file is written for a file with none, as JSON (D-490).');
 
 		try {
 			$ids->keep('2019/photo.png');

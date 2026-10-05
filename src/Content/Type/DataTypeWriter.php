@@ -50,7 +50,7 @@ use Blush\Support\Filesystem;
  * value is removed from the file, and the file with it when it's empty.
  * Everything else in the file is left as the author wrote it: a JSON
  * file keeps its other keys, and a YAML file its other lines, comments
- * included. A new type is a YAML file.
+ * included. A new type is a JSON file (D-490).
  *
  * Each change is checked against every other type before it's kept: the
  * file is written, all the types are loaded again (`ContentTypeLoader`),
@@ -108,7 +108,7 @@ final readonly class DataTypeWriter
 	}
 
 	/**
-	 * Creates a type in a new YAML file, and returns every type with it.
+	 * Creates a type in a new JSON file, and returns every type with it.
 	 *
 	 * @param  array<string, mixed> $changes
 	 * @throws InvalidContentType When it can't be created or doesn't fit.
@@ -134,7 +134,7 @@ final readonly class DataTypeWriter
 			...($folder === null || trim($folder, '/') === '' ? [] : ['folder' => trim($folder, '/')])
 		];
 
-		return $this->write($name, "{$this->directory()}/{$name}.yaml", $base, $changes, ['kind', 'folder']);
+		return $this->write($name, "{$this->directory()}/{$name}.json", $base, $changes, ['kind', 'folder']);
 	}
 
 	/**
@@ -161,7 +161,7 @@ final readonly class DataTypeWriter
 			throw new InvalidContentType(sprintf('%s Fix it by hand first.', $error->getMessage()), previous: $error);
 		}
 
-		return $this->write($name, $path ?? "{$this->directory()}/{$name}.yaml", $data, $changes, code: $code);
+		return $this->write($name, $path ?? "{$this->directory()}/{$name}.json", $data, $changes, code: $code);
 	}
 
 	/**

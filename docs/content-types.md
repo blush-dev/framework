@@ -90,8 +90,9 @@ description: Writing, mostly.
 feed: false
 ```
 
-This is what the admin writes when you edit such a type, and it keeps
-only what differs from the code. A file like this can't change the
+This is what the admin writes when you edit such a type (as
+`post.json`, unless a `post.yaml` is already there, which it edits), and
+it keeps only what differs from the code. A file like this can't change the
 type's kind or folder, and the `page` type and the profiles type from
 code can't be changed this way. Delete the file to go back to the code's
 definition. With `dataTypes` off, these files aren't read either.
@@ -329,8 +330,8 @@ use Blush\Content\Type\Tree;
 new Tree('doc', folder: '_docs', icon: 'book')
 ```
 
-In YAML, that's `user/data/types/doc.yaml` with `kind: tree`, which the
-admin's **New Content Type** writes too. A tree from `config/content.php`
+In YAML, that's `user/data/types/doc.yaml` with `kind: tree`; the
+admin's **New Content Type** writes the same as `doc.json`. A tree from `config/content.php`
 can be [changed from the admin](#changing-a-type-from-code), as
 collections and taxonomies can; the `page` type can't.
 

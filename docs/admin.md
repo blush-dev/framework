@@ -759,16 +759,20 @@ its details, and the copy `media:publish --copy` made.
 
 They're kept apart from the file, in `user/data/media/`, which mirrors
 the media paths: `user/media/2026/09/lake.jpg` has
-`user/data/media/2026/09/lake.jpg.yml`:
+`user/data/media/2026/09/lake.jpg.json`:
 
-```yaml
-alt: A lake at dawn, with mist on the water.
-caption: The lake at dawn
+```json
+{
+    "alt": "A lake at dawn, with mist on the water.",
+    "caption": "The lake at dawn"
+}
 ```
 
-(or `.yaml` or `.json`). You can write these by
-hand; saving from the admin changes only the fields you changed and
-keeps the rest (keys that aren't fields are listed, as they are), and
+The admin writes new ones as JSON. You can write these by hand, in JSON
+or YAML (`lake.jpg.yml` or `.yaml`); if both exist, JSON wins. Saving
+from the admin edits the file that's there, YAML included, changing
+only the fields you changed and keeping the rest (keys that aren't
+fields are listed, as they are, and a YAML file's comments stay), and
 removes a file left with nothing in it. If you rename or
 delete a media file by hand, move or delete its metadata file too. **Upload** opens the same picker the editor uses, with only its
 Upload panel (the library is the screen behind it); **Open** goes to the
@@ -787,7 +791,7 @@ and its fields; **Type settings** on a type's list goes there too.
 Types in `user/data/types` are edited on their screen. So are
 collections, taxonomies, and [trees](content-types.md#trees) from
 `config/content.php` and plugins:
-what you change is saved in `user/data/types/{key}.yaml` over the code's
+what you change is saved in `user/data/types/{key}.json` over the code's
 definition (see [Changing a type from code](content-types.md#changing-a-type-from-code)).
 The pages and profiles types defined in code stay as they are, so their
 screens only show them.
@@ -819,7 +823,7 @@ Created** beside them:
 3. **Fields:** the fields its entries carry beside the title, slug,
    status, dates, and body.
 
-**Create type** writes `user/data/types/{key}.yaml`, the index page
+**Create type** writes `user/data/types/{key}.json`, the index page
 as `index.md` in its folder, titled with the plural name, and the
 authors page, when chosen, as `_authors.md`, titled "Authors".
 
@@ -911,7 +915,7 @@ later), help shown under the label, the kind of place to add it to
 files; or the Settings screens; a set's places are all one kind), the
 places of that kind, and its fields, edited as a type's are. **Create
 Field Set** writes
-`user/data/fields/{key}.yaml`.
+`user/data/fields/{key}.json`.
 
 A set's screen edits the same things; choose **Save** to write what you
 changed, or **Revert** to put it back. Only what you change is written,

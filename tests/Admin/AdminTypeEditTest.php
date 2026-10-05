@@ -82,6 +82,18 @@ final class AdminTypeEditTest extends TestCase
 		return (string) @file_get_contents($this->temporaryDirectory() . "/{$relative}");
 	}
 
+	/**
+	 * A JSON data file's data.
+	 *
+	 * @return array<array-key, mixed>
+	 */
+	private function data(string $relative): array
+	{
+		$data = json_decode($this->file($relative), true);
+
+		return is_array($data) ? $data : [];
+	}
+
 	public function testSetsWhetherATypeCreditsAuthorsAndWhere(): void
 	{
 		$this->site();
@@ -91,19 +103,19 @@ final class AdminTypeEditTest extends TestCase
 		$this->assertSame(201, $answer->getStatusCode(), (string) $answer->getBody());
 		$type = self::json($answer);
 		$this->assertSame([true, 'cooks', ['type' => 'recipe', 'path' => '_recipe/_authors.md', 'title' => 'Authors']], [$type['authors'] ?? null, $type['authorsWord'] ?? null, self::withoutId($type['authorsPage'] ?? null)]);
-		$this->assertSame("people:\n  authors: { archive: cooks }\n", $this->file('user/data/types/recipe.yaml'), 'Only the word differs from a collection\'s default (D-351).');
+		$this->assertSame("{\n    \"people\": {\n        \"authors\": {\n            \"archive\": \"cooks\"\n        }\n    }\n}\n", $this->file('user/data/types/recipe.json'), 'Only the word differs from a collection\'s default (D-351), in a new JSON file (D-490).');
 		$this->assertMatchesRegularExpression('/\A---\ntitle: "Authors"\nid: [0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\n---\n\z/', $this->file('user/content/_recipe/_authors.md'), 'With an id, last (D-477).');
 
 		$this->assertSame('authors', self::json($this->write('PATCH', '/types/recipe', ['set' => ['authorsWord' => null]]))['authorsWord'] ?? null);
-		$this->assertStringNotContainsString('people', $this->file('user/data/types/recipe.yaml'), 'The default is left out.');
+		$this->assertStringNotContainsString('people', $this->file('user/data/types/recipe.json'), 'The default is left out.');
 
 		$off = $this->write('PATCH', '/types/recipe', ['set' => ['authorsWord' => false]]);
 		$this->assertSame(200, $off->getStatusCode(), (string) $off->getBody());
 		$this->assertFalse(self::json($off)['authorsWord'] ?? null);
-		$this->assertSame("people:\n  authors: { archive: false }\n", $this->file('user/data/types/recipe.yaml'));
+		$this->assertSame(['people' => ['authors' => ['archive' => false]]], $this->data('user/data/types/recipe.json'));
 
 		$this->assertFalse(self::json($this->write('PATCH', '/types/recipe', ['set' => ['authors' => false]]))['authors'] ?? null);
-		$this->assertStringContainsString("people: false\n", $this->file('user/data/types/recipe.yaml'));
+		$this->assertSame(['people' => false], $this->data('user/data/types/recipe.json'));
 
 		$refused = $this->write('PATCH', '/types/recipe', ['set' => [], 'authorsPage' => true]);
 		$this->assertSame(422, $refused->getStatusCode(), 'No author archives, no authors page.');
@@ -128,7 +140,7 @@ final class AdminTypeEditTest extends TestCase
 
 		$this->assertSame(['field' => 'cooks', 'plural' => 'Cooks', 'singular' => 'Cook', 'aliases' => [], 'archive' => 'cooks', 'multiple' => true, 'required' => true, 'listPage' => ['type' => 'recipe', 'path' => '_recipe/_cooks.md', 'title' => 'Cooks']], is_array($people[0] ?? null) ? [...$people[0], 'listPage' => self::withoutId($people[0]['listPage'] ?? null)] : null);
 		$this->assertFalse(is_array($people[1] ?? null) ? $people[1]['archive'] ?? null : null);
-		$this->assertSame("people:\n  cooks: { required: true }\n  photographers: { aliases: [photographer], archive: false, multiple: false }\n", $this->file('user/data/types/recipe.yaml'), 'Only what differs from each field\'s defaults (D-353).');
+		$this->assertSame(['people' => ['cooks' => ['required' => true], 'photographers' => ['aliases' => ['photographer'], 'archive' => false, 'multiple' => false]]], $this->data('user/data/types/recipe.json'), 'Only what differs from each field\'s defaults (D-353).');
 		$this->assertMatchesRegularExpression('/\A---\ntitle: "Cooks"\nid: [0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\n---\n\z/', $this->file('user/content/_recipe/_cooks.md'), 'With an id, last (D-477).');
 		$keys = array_column(is_array($type['routes'] ?? null) ? $type['routes'] : [], 'key');
 
@@ -138,7 +150,7 @@ final class AdminTypeEditTest extends TestCase
 		$this->assertSame(422, $this->write('PATCH', '/types/recipe', ['set' => ['people' => ['single' => true]]])->getStatusCode());
 
 		$this->assertSame(200, $this->write('PATCH', '/types/recipe', ['set' => ['people' => false]])->getStatusCode());
-		$this->assertSame("people: false\n", $this->file('user/data/types/recipe.yaml'), 'A collection that credits no one.');
+		$this->assertSame(['people' => false], $this->data('user/data/types/recipe.json'), 'A collection that credits no one.');
 	}
 
 	public function testCreatesATypeWithFieldsAndAnIndexPage(): void
@@ -166,14 +178,21 @@ final class AdminTypeEditTest extends TestCase
 		$this->assertSame(201, $answer->getStatusCode(), (string) $answer->getBody());
 		$type = self::json($answer);
 		$this->assertTrue($type['editable'] ?? null);
-		$this->assertSame('user/data/types/recipe.yaml', $type['file'] ?? null);
+		$this->assertSame('user/data/types/recipe.json', $type['file'] ?? null, 'A new type is JSON (D-490).');
 		$this->assertSame(['type' => 'recipe', 'path' => 'recipes/index.md', 'title' => 'Recipes'], self::withoutId($type['index'] ?? null));
 		$this->assertSame(
-			"folder: recipes\nlabels:\n  newItem: 'Add a recipe'\ndescription: \"Dishes we cook at home.\"\nicon: book-open\nfields:\n"
-			. "  - name: servings\n    type: number\n    required: true\n    integer: true\n"
-			. "  - name: difficulty\n    type: enum\n    default: easy\n    options: [easy, hard]\n"
-			. "  - name: image\n    type: media\n    label: 'Featured image'\n",
-			$this->file('user/data/types/recipe.yaml'),
+			[
+				'folder'      => 'recipes',
+				'labels'      => ['newItem' => 'Add a recipe'],
+				'description' => 'Dishes we cook at home.',
+				'icon'        => 'book-open',
+				'fields'      => [
+					['name' => 'servings', 'type' => 'number', 'required' => true, 'integer' => true],
+					['name' => 'difficulty', 'type' => 'enum', 'default' => 'easy', 'options' => ['easy', 'hard']],
+					['name' => 'image', 'type' => 'media', 'label' => 'Featured image']
+				]
+			],
+			$this->data('user/data/types/recipe.json'),
 			'Defaults (the singular and plural a recipe type gets, public) are left out.'
 		);
 		$this->assertMatchesRegularExpression('/\A---\ntitle: "Recipes"\nid: [0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\n---\n\z/', $this->file('user/content/recipes/index.md'), 'With an id, last (D-477).');
@@ -240,7 +259,7 @@ final class AdminTypeEditTest extends TestCase
 
 		$clash = $this->write('POST', '/types', ['name' => 'dish', 'folder' => 'recipes']);
 		$this->assertSame(422, $clash->getStatusCode(), 'Two types can\'t share a folder.');
-		$this->assertFileDoesNotExist($this->temporaryDirectory() . '/user/data/types/dish.yaml', 'The new file is taken back.');
+		$this->assertFileDoesNotExist($this->temporaryDirectory() . '/user/data/types/dish.json', 'The new file is taken back.');
 
 		$this->assertSame(422, $this->write('POST', '/types', ['name' => 'recipe'])->getStatusCode(), 'The name is taken.');
 		$this->assertSame(422, $this->write('POST', '/types', ['name' => 'Bad Name'])->getStatusCode());
@@ -309,7 +328,7 @@ final class AdminTypeEditTest extends TestCase
 		$this->assertSame(201, $answer->getStatusCode(), (string) $answer->getBody());
 		$type = self::json($answer);
 		$this->assertSame(['tree', true, ['type' => 'doc', 'path' => '_docs/index.md', 'title' => 'Docs']], [$type['kind'] ?? null, $type['editable'] ?? null, self::withoutId($type['index'] ?? null)]);
-		$this->assertSame("kind: tree\nfolder: _docs\nicon: book\n", $this->file('user/data/types/doc.yaml'));
+		$this->assertSame(['kind' => 'tree', 'folder' => '_docs', 'icon' => 'book'], $this->data('user/data/types/doc.json'));
 
 		$feed = $this->write('PATCH', '/types/doc', ['set' => ['feed' => true]]);
 		$this->assertSame(422, $feed->getStatusCode(), 'A tree has no feed.');
@@ -334,22 +353,22 @@ final class AdminTypeEditTest extends TestCase
 		$answer = $this->write('PATCH', '/types/movie', ['set' => ['description' => 'Movies.', 'feed' => false]]);
 		$this->assertSame(200, $answer->getStatusCode(), (string) $answer->getBody());
 		$type = self::json($answer);
-		$this->assertSame(['config', true, ['description', 'feed'], 'user/data/types/movie.yaml', false], [$type['origin'] ?? null, $type['overridden'] ?? null, $type['overrides'] ?? null, $type['file'] ?? null, $type['feed'] ?? null]);
-		$this->assertSame("description: Movies.\nfeed: false\n", $this->file('user/data/types/movie.yaml'), 'Only what differs from the code, with a default the code doesn\'t have written out (D-349).');
+		$this->assertSame(['config', true, ['description', 'feed'], 'user/data/types/movie.json', false], [$type['origin'] ?? null, $type['overridden'] ?? null, $type['overrides'] ?? null, $type['file'] ?? null, $type['feed'] ?? null]);
+		$this->assertSame(['description' => 'Movies.', 'feed' => false], $this->data('user/data/types/movie.json'), 'Only what differs from the code, with a default the code doesn\'t have written out (D-349).');
 		$this->assertSame('/films', $type['prefix'] ?? null);
 
 		$this->assertSame(200, $this->write('PATCH', '/types/movie', ['set' => ['fields' => [['name' => 'rating', 'type' => 'number'], ['name' => 'year', 'type' => 'number']]]])->getStatusCode());
-		$this->assertStringContainsString("fields:\n  - name: rating\n", $this->file('user/data/types/movie.yaml'), 'Fields are the whole list.');
+		$this->assertSame([['name' => 'rating', 'type' => 'number'], ['name' => 'year', 'type' => 'number']], $this->data('user/data/types/movie.json')['fields'] ?? null, 'Fields are the whole list.');
 
 		$this->assertSame(200, $this->write('PATCH', '/types/movie', ['set' => ['description' => 'Films.', 'feed' => true, 'fields' => [['name' => 'rating', 'type' => 'number']]]])->getStatusCode());
-		$this->assertFileDoesNotExist($this->temporaryDirectory() . '/user/data/types/movie.yaml', 'Back at the code\'s values, the file goes.');
+		$this->assertFileDoesNotExist($this->temporaryDirectory() . '/user/data/types/movie.json', 'Back at the code\'s values, the file goes.');
 
 		$this->assertSame(200, $this->write('PATCH', '/types/movie', ['set' => ['labels' => ['plural' => 'Pictures']]])->getStatusCode());
 		$reset = $this->write('POST', '/types/movie/reset');
 		$this->assertSame(200, $reset->getStatusCode(), (string) $reset->getBody());
 		$reverted = self::json($reset);
 		$this->assertSame(['Movies', false], [is_array($reverted['labels'] ?? null) ? $reverted['labels']['plural'] ?? null : null, $reverted['overridden'] ?? null]);
-		$this->assertFileDoesNotExist($this->temporaryDirectory() . '/user/data/types/movie.yaml');
+		$this->assertFileDoesNotExist($this->temporaryDirectory() . '/user/data/types/movie.json');
 
 		$this->assertSame(422, $this->write('POST', '/types/movie/reset')->getStatusCode(), 'Nothing to reset.');
 		$this->assertSame(422, $this->write('DELETE', '/types/movie')->getStatusCode(), 'A code type isn\'t deleted here.');
@@ -366,10 +385,10 @@ final class AdminTypeEditTest extends TestCase
 		$answer = $this->write('PATCH', '/types/doc', ['set' => ['description' => 'The manual.', 'sitemap' => false, 'llms' => false]]);
 		$this->assertSame(200, $answer->getStatusCode(), (string) $answer->getBody());
 		$this->assertSame(['config', true, 'The manual.', false], [self::json($answer)['origin'] ?? null, self::json($answer)['overridden'] ?? null, self::json($answer)['description'] ?? null, self::json($answer)['llms'] ?? null]);
-		$this->assertSame("description: \"The manual.\"\nsitemap: false\nllms: false\n", $this->file('user/data/types/doc.yaml'));
+		$this->assertSame(['description' => 'The manual.', 'sitemap' => false, 'llms' => false], $this->data('user/data/types/doc.json'));
 
 		$this->assertSame(200, $this->write('POST', '/types/doc/reset')->getStatusCode());
-		$this->assertFileDoesNotExist($this->temporaryDirectory() . '/user/data/types/doc.yaml');
+		$this->assertFileDoesNotExist($this->temporaryDirectory() . '/user/data/types/doc.json');
 	}
 
 	public function testLeavesCodeFieldClassesAndThePagesTypeAlone(): void
@@ -382,7 +401,7 @@ final class AdminTypeEditTest extends TestCase
 		$this->assertSame(422, $fields->getStatusCode());
 		$this->assertStringContainsString('field classes from code', self::error($fields));
 		$this->assertSame(200, $this->write('PATCH', '/types/swatch', ['set' => ['description' => 'Colors.']])->getStatusCode(), 'The rest can change.');
-		$this->assertSame("description: Colors.\n", $this->file('user/data/types/swatch.yaml'), 'Its fields stay in code.');
+		$this->assertSame(['description' => 'Colors.'], $this->data('user/data/types/swatch.json'), 'Its fields stay in code.');
 
 		$this->assertFalse(self::json($this->send('GET', '/types/page'))['editable'] ?? null);
 		$this->assertStringContainsString('the site\'s pages', self::error($this->write('PATCH', '/types/page', ['set' => ['description' => 'x']])));

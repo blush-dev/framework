@@ -117,7 +117,7 @@ final class AdminPickersTest extends TestCase
 
 		$this->assertSame(404, $this->send('GET', '/media/_content/trip/beach.png')->getStatusCode(), 'A file beside an entry isn\'t in the library (D-294).');
 		$this->assertSame(404, $this->patch('_content/trip/beach.png', ['alt' => 'Sand and sea'])->getStatusCode());
-		$this->assertFileDoesNotExist($this->temporaryDirectory() . '/user/data/media/_content/trip/beach.png.yml');
+		$this->assertFileDoesNotExist($this->temporaryDirectory() . '/user/data/media/_content/trip/beach.png.json');
 	}
 
 	public function testChecksWhoMayUseMedia(): void
@@ -227,7 +227,7 @@ final class AdminPickersTest extends TestCase
 
 		$this->assertIsString($id);
 		$this->assertTrue(Uuid::isValid($id), 'Every upload has an id (D-487).');
-		$this->assertStringEndsWith("id: {$id}\n", (string) file_get_contents($this->temporaryDirectory() . "/user/data/media/{$folder}/My-Holiday-1.png.yml"), 'Kept last, after the owner.');
+		$this->assertSame($id, array_last((array) json_decode((string) file_get_contents($this->temporaryDirectory() . "/user/data/media/{$folder}/My-Holiday-1.png.json"), true)), 'Kept last, after the owner.');
 
 		$again = self::json($this->upload('My Holiday (1).png', $png));
 
@@ -357,20 +357,23 @@ final class AdminPickersTest extends TestCase
 		$this->assertSame(['', ''], [$file['alt'] ?? null, $file['caption'] ?? null], 'None yet.');
 
 		$saved = $this->patch('2026/new-photo.png', ['alt' => "  A red\nsquare. ", 'caption' => 'The first one']);
-		$data  = $this->temporaryDirectory() . '/user/data/media/2026/new-photo.png.yml';
+		$data  = $this->temporaryDirectory() . '/user/data/media/2026/new-photo.png.json';
 
 		$this->assertSame(200, $saved->getStatusCode(), (string) $saved->getBody());
 		$this->assertSame(['A red square.', 'The first one'], [self::json($saved)['alt'] ?? null, self::json($saved)['caption'] ?? null], 'On one line, trimmed.');
-		$this->assertSame("alt: \"A red square.\"\ncaption: \"The first one\"\n", (string) file_get_contents($data));
-		$this->assertFileDoesNotExist($this->temporaryDirectory() . '/user/media/2026/new-photo.png.yml', 'Never beside the file.');
+		$this->assertSame("{\n    \"alt\": \"A red square.\",\n    \"caption\": \"The first one\"\n}\n", (string) file_get_contents($data), 'A new file is JSON (D-490).');
+		$this->assertFileDoesNotExist($this->temporaryDirectory() . '/user/media/2026/new-photo.png.json', 'Never beside the file.');
 
 		$files = $this->media()['files'] ?? null;
 
 		$this->assertIsArray($files);
 		$this->assertSame('A red square.', is_array($files[0] ?? null) ? $files[0]['alt'] ?? null : null, 'The library lists it.');
 
-		// One changed, the other kept; keys it doesn't know stay as written.
-		file_put_contents($data, "# Credit goes here.\ncredit: Jane\n" . file_get_contents($data));
+		// One changed, the other kept; keys it doesn't know stay as written,
+		// and a YAML file someone wrote stays YAML.
+		unlink($data);
+		$data = $this->temporaryDirectory() . '/user/data/media/2026/new-photo.png.yml';
+		file_put_contents($data, "# Credit goes here.\ncredit: Jane\nalt: \"A red square.\"\ncaption: \"The first one\"\n");
 		$this->patch('2026/new-photo.png', ['caption' => '']);
 
 		$this->assertSame("# Credit goes here.\ncredit: Jane\nalt: \"A red square.\"\n", (string) file_get_contents($data));
@@ -388,7 +391,7 @@ final class AdminPickersTest extends TestCase
 		$this->patch('2026/new-photo.png', ['alt' => 'Back', 'caption' => '']);
 		$this->patch('2026/new-photo.png', ['alt' => '']);
 
-		$this->assertFileDoesNotExist($data, 'A file with nothing to say goes.');
+		$this->assertFileDoesNotExist($this->temporaryDirectory() . '/user/data/media/2026/new-photo.png.json', 'A file with nothing to say goes.');
 	}
 
 	public function testChecksChangesToMetadata(): void

@@ -125,7 +125,7 @@ final class AdminFieldSetsTest extends TestCase
 		$this->assertSame(201, $response->getStatusCode(), (string) $response->getBody());
 		$this->assertSame('pantry', self::json($response)['name'] ?? null);
 		$this->assertSame('details', self::json($response)['slot'] ?? null, 'The kind\'s default.');
-		$this->assertSame("targets:\n  - 'type:recipe'\nfields:\n  - name: shelf\n    type: text\n    control: mono\n", $this->file('pantry.yaml'), 'A label the name gives is left out.');
+		$this->assertSame(['targets' => ['type:recipe'], 'fields' => [['name' => 'shelf', 'type' => 'text', 'control' => 'mono']]], json_decode($this->file('pantry.json'), true), 'A new set is JSON (D-490), and a label the name gives is left out.');
 	}
 
 	public function testChangesOnlyWhatChanged(): void
