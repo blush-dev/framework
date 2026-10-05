@@ -242,6 +242,33 @@ Move each item to `decisions.md` once it's answered.
   deferred, D-470); fallback chains (`pt-br` → `pt`) and the default
   language under a prefix (later, D-470); and the admin's Translate action (translations aren't listed
   or editable in the admin yet).
+- **Leaving a fragment out of the page cache** (raised 2026-10-04): a
+  component, piece of text, or template part that's drawn fresh on
+  every request while the rest of the page stays cached. Today the page
+  cache (D-129) is all or nothing per response: it skips responses with
+  a cookie or `Cache-Control` of `private`, `no-store`, or `no-cache`,
+  but only code building its own `Response` (a plugin's route) can set
+  that. Themed pages come from `ThemedPageRenderer::render()` with no
+  way for a template, component, or front matter to opt out, so not
+  even a whole content page can. `$template->cache()` (D-152) is
+  opt-in, and Markdown components are kept with the body (D-130), so
+  both end up inside the cached page anyway. Options:
+  - **Page-level opt-out:** `cache: false` in front matter, or a
+    template call that marks the response `no-store`. Simplest; gives
+    up caching for the whole page.
+  - **A placeholder swapped on a hit:** a template marks a hole
+    (`$template->dynamic('name', fn)`, say), the page cache stores the
+    page with a placeholder and runs only that callback on each hit.
+    Cheap, since PHP already runs for a hit, but no help to static
+    export or anything the web server serves without PHP, and the
+    callback can't touch the `<head>`.
+  - **Loading it in the browser:** the page stays cached and a small
+    script fetches the fragment from an uncached endpoint. The only one
+    that works for static export and CDNs, but it needs JavaScript and
+    an endpoint.
+  The proposal was the page-level opt-out first, then browser-loaded
+  fragments for real holes. What's wanted depends on the use: content
+  that changes over time (a year, a random quote) or per visitor.
 - **Skeleton license** (D-070): confirm MIT for `blush-dev/blush` `2.x`.
 - **Where jtcom's content types live** (D-166, D-169): `config/content.php`
   today. Options: data types in `user/data/types/` (travel with the
