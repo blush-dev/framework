@@ -96,6 +96,17 @@ final class DirectiveTest extends TestCase
 		$this->assertSame(['url' => 'https://youtu.be/abc123'], $embed->attributes);
 	}
 
+	public function testDirectivesKnowTheMarkdownsLanguage(): void
+	{
+		$parser   = $this->parser();
+		$markdown = ":::box\nText :x[y] here.\n:::\n\n::leaf\n";
+		$html     = $parser->toHtml($markdown, 'fr');
+
+		$this->assertSame(['fr', 'fr', 'fr'], array_map(static fn (Directive $directive): string => $directive->language, $this->directives->seen));
+		$this->assertSame($parser->toHtml($markdown), $html, 'The language changes nothing else.');
+		$this->assertSame(['', '', ''], array_map(static fn (Directive $directive): string => $directive->language, array_slice($this->directives->seen, 3)));
+	}
+
 	public function testNestsContainersByFenceLength(): void
 	{
 		$html = $this->parser()->toHtml("::::outer\n:::inner\nDeep\n:::\nStill outer\n::::\nAfter");

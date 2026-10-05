@@ -321,7 +321,7 @@ final class Template
 	 */
 	public function t(string $key, mixed ...$params): string
 	{
-		return $this->views->messages->translate($key, self::named($params));
+		return $this->views->messages->translate($key, self::named($params), $this->locale());
 	}
 
 	/**
@@ -335,7 +335,7 @@ final class Template
 	 */
 	public function tGroup(string $key, mixed ...$params): array
 	{
-		return $this->views->messages->group($key, self::named($params));
+		return $this->views->messages->group($key, self::named($params), $this->locale());
 	}
 
 	/**
@@ -426,14 +426,25 @@ final class Template
 	}
 
 	/**
-	 * Returns a named route's URL.
+	 * Returns a named route's URL. On a page in another language (D-464),
+	 * it's the language's route when there is one (`es:home` for `home`,
+	 * `/es`), so a theme's links to the homepage, collections, and date
+	 * archives stay in the page's language; a route without one (a feed)
+	 * is as named.
 	 *
 	 * @param  array<string, BackedEnum|Stringable|scalar|null> $params
 	 * @throws UrlGenerationException
 	 */
 	public function route(string $name, array $params = [], bool $absolute = false): string
 	{
-		return $this->views->services->router->to($name, $params, $absolute);
+		$router   = $this->views->services->router;
+		$language = $this->context->language;
+
+		if ($language !== '' && $router->has("{$language}:{$name}")) {
+			return $router->to("{$language}:{$name}", $params, $absolute);
+		}
+
+		return $router->to($name, $params, $absolute);
 	}
 
 	/**
@@ -452,7 +463,7 @@ final class Template
 		$terms = [];
 
 		foreach ($entry->terms($taxonomy) as $slug) {
-			$term = $this->views->services->content->term($taxonomy, $slug);
+			$term = $this->views->services->content->term($taxonomy, $slug, $entry->language === '' ? null : $entry->language);
 
 			if ($term !== null && $term->isPublished() && $term->isRoutable()) {
 				$terms[] = $term;
@@ -574,24 +585,24 @@ final class Template
 	}
 
 	/**
-	 * Formats a date in the site's locale and timezone, with the site's
+	 * Formats a date in the page's locale and timezone, with the site's
 	 * date format (`app.dateFormat`, D-445) or the one given: `full`,
 	 * `long`, `medium`, or `short` (or a `DateStyle`, D-447), or else an
 	 * ICU pattern (`'MMMM y'`).
 	 */
 	public function date(DateTimeInterface $date, DateStyle|string|null $format = null): string
 	{
-		return DateFormat::format($date, $this->views->translator->locale(), $this->views->services->app->timezone, $format ?? $this->views->services->app->dateFormat);
+		return DateFormat::format($date, $this->locale() ?? $this->views->translator->locale(), $this->views->services->app->timezone, $format ?? $this->views->services->app->dateFormat);
 	}
 
 	/**
-	 * Formats a time in the site's locale and timezone, with the site's
+	 * Formats a time in the page's locale and timezone, with the site's
 	 * time format (`app.timeFormat`, D-445) or the one given, as `date()`
 	 * takes them.
 	 */
 	public function time(DateTimeInterface $date, DateStyle|string|null $format = null): string
 	{
-		return DateFormat::format($date, $this->views->translator->locale(), $this->views->services->app->timezone, null, $format ?? $this->views->services->app->timeFormat);
+		return DateFormat::format($date, $this->locale() ?? $this->views->translator->locale(), $this->views->services->app->timezone, null, $format ?? $this->views->services->app->timeFormat);
 	}
 
 	/**
@@ -603,7 +614,7 @@ final class Template
 	{
 		$app = $this->views->services->app;
 
-		return DateFormat::format($date, $this->views->translator->locale(), $app->timezone, $dateFormat ?? $app->dateFormat, $timeFormat ?? $app->timeFormat);
+		return DateFormat::format($date, $this->locale() ?? $this->views->translator->locale(), $app->timezone, $dateFormat ?? $app->dateFormat, $timeFormat ?? $app->timeFormat);
 	}
 
 	/**
@@ -613,6 +624,15 @@ final class Template
 	public function bodyClass(): string
 	{
 		return implode(' ', $this->context->classes());
+	}
+
+	/**
+	 * Returns the page's locale (its entry's, so a translation's text and
+	 * dates are in its language; D-455), or `null` for the site's.
+	 */
+	private function locale(): ?string
+	{
+		return $this->context->locale === '' ? null : $this->context->locale;
 	}
 
 	/**

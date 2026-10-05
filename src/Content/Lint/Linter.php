@@ -29,6 +29,7 @@ use Blush\Content\Type\ContentTypes;
 use Blush\Content\Type\Profiles;
 use Blush\Content\Type\Tree;
 use Blush\Content\Routing\PageRoutes;
+use Blush\Core\AppConfig;
 use Blush\Field\Fields\DateField;
 use Blush\Field\Severity;
 use Blush\Field\Violation;
@@ -75,7 +76,8 @@ final readonly class Linter
 		private RouteTable $routes,
 		private VariantCheck $variants,
 		private MediaMetadataCheck $media,
-		private FieldSetCheck $sets
+		private FieldSetCheck $sets,
+		private AppConfig $app
 	) {}
 
 	/**
@@ -110,17 +112,24 @@ final readonly class Linter
 		$snapshot = IndexSnapshot::build($records, '', 0);
 
 		foreach ($snapshot->conflicts as $key => $ids) {
-			[$locale, $type, $entryKey] = explode('/', $key, 3) + ['', '', ''];
-			$winner = $snapshot->find($locale, $type, $entryKey);
+			[$language, $type, $entryKey] = explode('/', $key, 3) + ['', '', ''];
+			$winner = $snapshot->find($language, $type, $entryKey);
 
 			foreach ($ids as $id) {
-				if ($id !== $winner) {
-					$violations[$id][] = new Violation(self::FILE, sprintf('is the same entry as %s, which wins.', $winner), Severity::Warning);
+				if ($id === $winner) {
+					continue;
 				}
+
+				$violations[$id][] = ($snapshot->records[$id]['original'] ?? null) === $winner
+					? new Violation(self::FILE, sprintf('has the default language\'s suffix beside %s, which wins; the default language needs none, so remove one.', $winner), Severity::Warning)
+					: new Violation(self::FILE, sprintf('is the same entry as %s, which wins.', $winner), Severity::Warning);
 			}
 		}
 
 		foreach ($records as $record) {
+			// With a translation's key and parent in its language (D-457).
+			$record = $snapshot->record($record->id) ?? $record;
+
 			foreach ([...$this->missingTerms($snapshot, $record), ...$this->checkParent($snapshot, $record), ...$this->checkPageAddress($record)] as $violation) {
 				$violations[$record->id][] = $violation;
 			}
@@ -246,7 +255,9 @@ final readonly class Linter
 			return [];
 		}
 
-		$below    = $type->folder === '' ? $record->id : substr($record->id, strlen($type->folder) + 1);
+		// A translation is checked by its name without the suffix (D-455).
+		$path     = $record->original ?? $record->id;
+		$below    = $type->folder === '' ? $path : substr($path, strlen($type->folder) + 1);
 		$segments = explode('/', $below);
 		$last     = array_key_last($segments);
 
@@ -268,7 +279,8 @@ final readonly class Linter
 		}
 
 		$extension = pathinfo($record->id, PATHINFO_EXTENSION);
-		$suggested = ltrim($type->folder . '/' . implode('/', $renamed) . ".{$extension}", '/');
+		$suffix    = $record->original === null ? '' : ".{$record->language}";
+		$suggested = ltrim($type->folder . '/' . implode('/', $renamed) . "{$suffix}.{$extension}", '/');
 
 		return [new Violation(self::FILE, sprintf('has an order prefix, which only collections and taxonomies use; %s don\'t. Rename it %s.', $type->labels->items, $suggested))];
 	}
@@ -307,7 +319,7 @@ final readonly class Linter
 		$key   = $record->parent;
 
 		while ($key !== null) {
-			$id = $snapshot->find($record->locale, $record->type, $key);
+			$id = $snapshot->find($record->language, $record->type, $key);
 
 			if ($id === null) {
 				return $key === $record->parent
@@ -342,11 +354,24 @@ final readonly class Linter
 			return [];
 		}
 
-		$route = $this->routes->find('GET', "/{$record->key}")?->route;
+		// Another language's pages are under its prefix (D-455).
+		$prefix = $this->app->languages->isOther($record->language) ? "/{$record->language}" : '';
+		$single = $prefix === '' ? PageRoutes::SINGLE : "{$record->language}:" . PageRoutes::SINGLE;
+		$route  = $this->routes->find('GET', "{$prefix}/{$record->key}")?->route;
 
-		return $route !== null && $route->name !== PageRoutes::SINGLE
-			? [new Violation(self::FILE, sprintf('is at /%s, but the %s route answers there, so the page can\'t be reached; move the page or change the type\'s prefix.', $record->key, $route->name ?? $route->handlerName()), Severity::Warning)]
+		return $route !== null && $route->name !== $single
+			? [new Violation(self::FILE, sprintf('is at %s/%s, but the %s route answers there, so the page can\'t be reached; move the page or change the type\'s prefix.', $prefix, $record->key, $route->name ?? $route->handlerName()), Severity::Warning)]
 			: [];
+	}
+
+	/**
+	 * Returns whether a term has an entry in any language: entries name
+	 * terms by the original's key (D-455), so a translation's entry
+	 * references a term whose file is in the default language.
+	 */
+	private function hasOriginal(IndexSnapshot $snapshot, string $taxonomy, string $slug): bool
+	{
+		return array_any($snapshot->keys, static fn (array $types): bool => isset($types[$taxonomy][$slug]));
 	}
 
 	/**
@@ -374,7 +399,7 @@ final readonly class Linter
 			$field = $people ?? $type?->termField()->name ?? $taxonomy;
 
 			foreach ($slugs as $slug) {
-				if ($snapshot->find($record->locale, $taxonomy, $slug) !== null) {
+				if ($snapshot->find($record->language, $taxonomy, $slug) !== null || $this->hasOriginal($snapshot, $taxonomy, $slug)) {
 					continue;
 				}
 

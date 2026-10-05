@@ -190,9 +190,21 @@ overrides in D-451, catalog metadata in D-452, `en` last in D-453.
 - **Available in:** views (`$template->t()`), components, controllers, the CLI,
   and later the admin.
 - **Multilingual content** (the same entry in several languages) is separate
-  from UI translation. It is architected for but not built yet (D-036): entries
-  carry a `locale`, IDs include it, and routes accept an optional locale
-  segment.
+  from UI translation (D-036, D-455, D-456). `config/app.php`'s
+  `languages` lists the languages besides the site locale's
+  (`Core\Languages`). A translation is a sibling file with the code
+  before the extension (`about.fr.md`); records carry a `language` code
+  and the unsuffixed `original` path, the index keys entries by
+  language and links translations (a translation's folders and parent
+  take their translations' keys when the snapshot is built,
+  `TranslatedKeys`, D-457), queries find the default language
+  unless given another (`language()`, `anyLanguage()`), and each other
+  language's routes are registered again under `/{code}` (named
+  `{code}:{name}`, `language` parameter). A page's locale follows its
+  language, so `$template->t()`, dates, and `$site->lang` do too, and
+  its components get a `LocalizedRepository` in its language (D-458,
+  `ViewContext::$language`), in a translation's Markdown too: the
+  parsed document carries the language to its directives (D-459).
 
 ## HTTP (custom, D-005)
 
@@ -291,8 +303,10 @@ Implemented in M3 (D-073 to D-077).
   path (D-076).
 - **Route enumeration:** static export (M7) needs every concrete URL.
   Sitemaps don't use it; they list URLs from content (D-123).
-- **Not yet:** the optional locale segment (D-036) and a base path for
-  subdirectory installs (open question).
+- **Languages (D-456):** content routes and the page catch-all are
+  registered again for each language besides the default under
+  `/{code}`, ahead of the default's (`ContentRoutes::localized()`).
+- **Not yet:** a base path for subdirectory installs (open question).
 
 ## Fields (D-337 to D-348)
 The value layer is `Blush\Field` (see Content → Types and schemas). Built
@@ -537,7 +551,8 @@ Implemented in M4b (D-087, D-090).
 - **`Indexer`:**
   - A full scan, or an incremental one that skips files whose mtime and
     size match and keeps records whose hash matches. A changed
-    fingerprint (content types, timezone, locale) forces a full scan.
+    fingerprint (content types, timezone, locale, languages) forces a
+    full scan.
   - The index is built on first use if missing; in development each
     request's first use refreshes it (`ContentConfig::$autoIndex`). In
     production, reindexing is triggered by CLI, webhook, or admin save.
@@ -587,7 +602,9 @@ Implemented in M4b (D-089).
   `$content->query()->type('post')->whereTerm('category', 'art')->orderBy('published', Order::Desc)->paginate(perPage: 10, page: $page)`
 - `Query::fromArray()` reads 1.x query arguments (a type's `collection`,
   a page's `collection` front matter) plus `status`, `visibility`,
-  `terms`, and `locale`.
+  `terms`, `locale`, and `language`.
+- A query finds the default language's entries unless given a code
+  (`language('fr')`) or `anyLanguage()` (D-456).
 - `search()` matches the title or source path in any case, and
   `either()` takes alternatives (each built from `Query::condition()`,
   which matches everything) of which an entry must match one: the OR

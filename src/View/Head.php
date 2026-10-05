@@ -115,14 +115,17 @@ final class Head implements Stringable
 	}
 
 	/**
-	 * Adds a `<link>`. Links are keyed by `rel` and `href`, so a page can
-	 * have several alternates.
+	 * Adds a `<link>`. Links are keyed by `rel`, `href`, and any
+	 * `hreflang`, so a page can have several alternates, and one URL can
+	 * be both a language's alternate and `x-default` (D-461).
 	 *
 	 * @param array<string, string|bool> $attributes
 	 */
 	public function link(string $rel, string $href, array $attributes = []): self
 	{
-		return $this->add("link:{$rel}:{$href}", 'link', ['rel' => $rel, 'href' => $href, ...$attributes]);
+		$language = $attributes['hreflang'] ?? null;
+
+		return $this->add("link:{$rel}:{$href}" . (is_string($language) ? ":{$language}" : ''), 'link', ['rel' => $rel, 'href' => $href, ...$attributes]);
 	}
 
 	/**

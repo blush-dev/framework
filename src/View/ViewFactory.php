@@ -84,11 +84,12 @@ final class ViewFactory
 	 * build manifest pairs with them; built scripts load as modules),
 	 * `$site`, the entry's presentation front matter (`layout`,
 	 * `class`, and `stylesheet`, D-027), and the page's URL path and
-	 * locale (the entry's, else the site's).
+	 * locale (a list's language's, D-455, else the entry's, else the
+	 * site's).
 	 *
 	 * @throws ThemeException When a build manifest is invalid.
 	 */
-	public function context(Views $views, ?Entry $entry = null, string $path = ''): ViewContext
+	public function context(Views $views, ?Entry $entry = null, string $path = '', ?string $language = null): ViewContext
 	{
 		$head  = new Head($this->services->app->name, origin: $this->services->app->origin());
 		$theme = $views->chain->active();
@@ -120,12 +121,15 @@ final class ViewFactory
 		}
 
 		$layout  = $entry?->field('layout');
+		$locale  = ($language === null ? null : $this->services->app->languages->find($language)?->locale) ?? $entry->locale ?? $this->services->app->locale;
+		$language ??= $entry?->language;
 		$context = new ViewContext(
 			$head,
-			['site' => Site::fromConfig($this->services->app)],
+			['site' => Site::fromConfig($this->services->app, $locale)],
 			is_string($layout) ? $layout : null,
 			$path,
-			$entry->locale ?? $this->services->app->locale
+			$locale,
+			$language !== null && $this->services->app->languages->isOther($language) ? $language : ''
 		);
 		$classes = $entry?->field('class');
 
@@ -140,14 +144,19 @@ final class ViewFactory
 
 	/**
 	 * Builds a bare context for a fragment rendered outside a page, such
-	 * as a component in Markdown.
+	 * as a component in Markdown, in a language other than the default
+	 * when it's given one (D-459): a translation's body.
 	 */
-	public function fragment(): ViewContext
+	public function fragment(string $language = ''): ViewContext
 	{
+		$found  = $language === '' ? null : $this->services->app->languages->find($language);
+		$locale = $found->locale ?? $this->services->app->locale;
+
 		return new ViewContext(
 			new Head($this->services->app->name, origin: $this->services->app->origin()),
-			['site' => Site::fromConfig($this->services->app)],
-			locale: $this->services->app->locale
+			['site' => Site::fromConfig($this->services->app, $locale)],
+			locale: $locale,
+			language: $found !== null && $this->services->app->languages->isOther($found->code) ? $found->code : ''
 		);
 	}
 

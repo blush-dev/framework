@@ -38,25 +38,41 @@ interface ContentRepository extends QueryRunner
 	public function find(string $id): ?Entry;
 
 	/**
-	 * Returns an entry by type and key (see `IndexRecord`), in a locale
-	 * (the site's by default), whatever its status. A landing page's key
-	 * is `''`.
+	 * Returns an entry by type and key (see `IndexRecord`), in a language
+	 * (by code; the site's default language when `null`), whatever its
+	 * status. A landing page's key is `''`.
 	 */
-	public function named(string $type, string $key, ?string $locale = null): ?Entry;
+	public function named(string $type, string $key, ?string $language = null): ?Entry;
 
 	/**
-	 * Returns a taxonomy term: its entry when it has a file, a virtual
-	 * entry when it's referenced but has none, or `null`.
+	 * Returns a taxonomy term: its entry when it has a file in the
+	 * language (the default when `null`), by its key there or by its
+	 * original's, a virtual entry when it's referenced but has none, or
+	 * `null`.
 	 */
-	public function term(string $taxonomy, string $slug): ?Entry;
+	public function term(string $taxonomy, string $slug, ?string $language = null): ?Entry;
+
+	/**
+	 * Returns an entry and its translations (D-455), by language code,
+	 * the entry's own included.
+	 *
+	 * @return array<string, Entry>
+	 */
+	public function translations(Entry $entry): array;
+
+	/**
+	 * Returns an entry's translation in a language (itself for its own
+	 * language), whatever its status, or `null`.
+	 */
+	public function translation(Entry $entry, string $language): ?Entry;
 
 	/**
 	 * Returns the key of an entry's parent, by the entry's type and key,
-	 * when the parent has a file (in the site's locale unless another is
-	 * given); `null` otherwise. Cheaper than `parent()` when only the key
-	 * is needed, such as for a hierarchical term's URL.
+	 * when the parent has a file (in the default language unless another
+	 * is given); `null` otherwise. Cheaper than `parent()` when only the
+	 * key is needed, such as for a hierarchical term's URL.
 	 */
-	public function parentKey(string $type, string $key, ?string $locale = null): ?string;
+	public function parentKey(string $type, string $key, ?string $language = null): ?string;
 
 	/**
 	 * Returns an entry's parent in its own type (see

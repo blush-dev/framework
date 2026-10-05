@@ -17,6 +17,7 @@ use Override;
 use Blush\Content\ContentRepository;
 use Blush\Content\Routing\ContentUrls;
 use Blush\Content\Type\ContentTypes;
+use Blush\Core\AppConfig;
 
 /**
  * Links to a type's collection: `collection: post`. Its landing page's
@@ -28,7 +29,8 @@ final class CollectionLink extends MenuLink
 	public function __construct(
 		private readonly ContentRepository $content,
 		private readonly ContentTypes $types,
-		private readonly ContentUrls $urls
+		private readonly ContentUrls $urls,
+		private readonly AppConfig $app
 	) {}
 
 	/**
@@ -68,8 +70,13 @@ final class CollectionLink extends MenuLink
 			throw new UnresolvedLink(sprintf('No public content type "%s".', $name));
 		}
 
-		$url     = $this->urls->collection($type) ?? throw new UnresolvedLink(sprintf('The "%s" type has no collection URL.', $name));
-		$landing = $this->content->named($name, '', $locale) ?? $this->content->named($name, '');
+		// On a translated page, the language's listing when it has a
+		// landing page or entries there (D-463).
+		$language = $this->app->languages->forLocale($locale)?->code;
+		$landing  = $language === null ? null : $this->content->named($name, '', $language);
+		$listed   = $language !== null && ($landing?->isPublished() === true || $this->content->query()->type($type->listedType())->language($language)->count() > 0);
+		$landing  = $listed ? $landing : $this->content->named($name, '');
+		$url      = $this->urls->collection($type, 1, $listed ? $language : null) ?? throw new UnresolvedLink(sprintf('The "%s" type has no collection URL.', $name));
 
 		return new LinkTarget($url, $landing !== null && $landing->isPublished() ? $landing->title : '');
 	}

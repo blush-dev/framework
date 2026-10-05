@@ -107,6 +107,7 @@ final readonly class RecordMatcher
 			|| ($query->directory !== null && $record['directory'] !== $query->directory)
 			|| in_array($record['directory'], $query->excludedDirectories, true)
 			|| ($query->locale !== null && $record['locale'] !== $query->locale)
+			|| ($query->language !== null && $query->language !== Query::ANY_LANGUAGE && $record['language'] !== $query->language)
 			|| ! in_array($record['visibility'], $this->visibilities, true)
 			|| ! in_array(IndexRecord::effectiveStatus($record['status'], $record['published'], $this->now)->value, $this->statuses, true)
 			|| ($query->names !== [] && ! in_array($record['slug'], $query->names, true))

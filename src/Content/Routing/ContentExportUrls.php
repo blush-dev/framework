@@ -23,6 +23,7 @@ use Blush\Content\Type\DateArchives;
 use Blush\Content\Type\Profiles;
 use Blush\Content\Type\Taxonomy;
 use Blush\Content\Visibility;
+use Blush\Core\AppConfig;
 use Blush\Export\ExportUrl;
 use Blush\Export\UrlSource;
 
@@ -40,6 +41,10 @@ use Blush\Export\UrlSource;
  * 5. Each people field's list and person archives, and each profile's
  *    page, real or virtual (D-351), paged.
  * 6. Every other published entry with a URL, unlisted ones included.
+ *
+ * On a multilingual site (D-455), the homepage, collections, terms, and
+ * date archives are listed for each language, and step 6 lists every
+ * language's entries.
  */
 final readonly class ContentExportUrls implements UrlSource
 {
@@ -52,7 +57,8 @@ final readonly class ContentExportUrls implements UrlSource
 		private ContentRepository $content,
 		private ContentTypes $types,
 		private ContentUrls $urls,
-		private PeopleArchives $archives
+		private PeopleArchives $archives,
+		private AppConfig $app
 	) {}
 
 	/**
@@ -61,32 +67,10 @@ final readonly class ContentExportUrls implements UrlSource
 	#[Override]
 	public function urls(): iterable
 	{
-		$home = $this->types->homeType();
-
-		yield $home === null
-			? new ExportUrl('/')
-			: new ExportUrl((string) $this->urls->collection($home), fn (int $page): ?string => $this->urls->collection($home, $page));
-
 		$types = array_filter($this->types->all(), static fn (ContentType $type): bool => $type->public && $type->hasUrls());
 
-		foreach ($types as $type) {
-			$path = $type instanceof Profiles ? null : $this->urls->collection($type);
-
-			if ($path !== null) {
-				yield new ExportUrl($path, fn (int $page): ?string => $this->urls->collection($type, $page));
-			}
-		}
-
-		foreach ($types as $type) {
-			if ($type instanceof Taxonomy) {
-				yield from $this->terms($type);
-			}
-		}
-
-		foreach ($types as $type) {
-			if ($type->dateArchives !== DateArchives::None) {
-				yield from $this->dates($type);
-			}
+		foreach (array_keys($this->app->languages->all()) as $code) {
+			yield from $this->listings($types, $this->app->languages->isDefault($code) ? null : $code);
 		}
 
 		foreach ($types as $type) {
@@ -101,7 +85,7 @@ final readonly class ContentExportUrls implements UrlSource
 			}
 		}
 
-		$entries = $this->content->query()->visibility(Visibility::Public, Visibility::Unlisted)->withLanding()->get();
+		$entries = $this->content->query()->visibility(Visibility::Public, Visibility::Unlisted)->withLanding()->anyLanguage()->get();
 
 		foreach ($entries as $entry) {
 			$path = $entry->type instanceof Profiles ? null : $this->urls->entry($entry);
@@ -113,23 +97,63 @@ final readonly class ContentExportUrls implements UrlSource
 	}
 
 	/**
-	 * Returns a taxonomy's term archives.
+	 * Returns the listings in a language (the default for `null`): the
+	 * homepage, and each type's collection, terms, and date archives.
+	 *
+	 * @param  array<string, ContentType> $types
+	 * @return iterable<ExportUrl>
+	 */
+	private function listings(array $types, ?string $language): iterable
+	{
+		$home = $this->types->homeType();
+
+		yield $home === null
+			? new ExportUrl($this->urls->home($language))
+			: new ExportUrl((string) $this->urls->collection($home, 1, $language), fn (int $page): ?string => $this->urls->collection($home, $page, $language));
+
+		foreach ($types as $type) {
+			$path = $type instanceof Profiles ? null : $this->urls->collection($type, 1, $language);
+
+			if ($path !== null) {
+				yield new ExportUrl($path, fn (int $page): ?string => $this->urls->collection($type, $page, $language));
+			}
+		}
+
+		foreach ($types as $type) {
+			if ($type instanceof Taxonomy) {
+				yield from $this->terms($type, $language);
+			}
+		}
+
+		foreach ($types as $type) {
+			if ($type->dateArchives !== DateArchives::None) {
+				yield from $this->dates($type, $language);
+			}
+		}
+	}
+
+	/**
+	 * Returns a taxonomy's term archives in a language. Terms are named
+	 * by their original's slug (D-455).
 	 *
 	 * @return iterable<ExportUrl>
 	 */
-	private function terms(ContentType $taxonomy): iterable
+	private function terms(ContentType $taxonomy, ?string $language): iterable
 	{
-		$files = $this->content->query()->type($taxonomy->name)->visibility(Visibility::Public, Visibility::Unlisted)->get();
+		$files  = $this->content->query()->type($taxonomy->name)->visibility(Visibility::Public, Visibility::Unlisted)->language($language)->get();
+		$counts = $this->content->termCounts($taxonomy->name, $this->content->query()->language($language));
+
+		// Another language's terms are those its own entries reference.
 		$slugs = [
-			...array_map(strval(...), array_keys($this->content->termCounts($taxonomy->name))),
-			...array_map(static fn (Entry $entry): string => $entry->key, iterator_to_array($files, false))
+			...array_map(strval(...), array_keys($language === null ? $counts : array_filter($counts))),
+			...array_map(fn (Entry $entry): string => $language === null ? $entry->key : $this->urls->originalKey($entry), iterator_to_array($files, false))
 		];
 
 		foreach (array_unique($slugs) as $slug) {
-			$path = $this->urls->term($taxonomy, $slug);
+			$path = $this->urls->term($taxonomy, $slug, 1, $language);
 
 			if ($path !== null) {
-				yield new ExportUrl($path, fn (int $page): ?string => $this->urls->term($taxonomy, $slug, $page));
+				yield new ExportUrl($path, fn (int $page): ?string => $this->urls->term($taxonomy, $slug, $page, $language));
 			}
 		}
 	}
@@ -164,11 +188,11 @@ final readonly class ContentExportUrls implements UrlSource
 	 *
 	 * @return iterable<ExportUrl>
 	 */
-	private function dates(ContentType $type): iterable
+	private function dates(ContentType $type, ?string $language): iterable
 	{
 		$seen = [];
 
-		foreach ($this->content->query()->type($type->listedType())->get() as $entry) {
+		foreach ($this->content->query()->type($type->listedType())->language($language)->get() as $entry) {
 			if ($entry->published === null) {
 				continue;
 			}
@@ -185,10 +209,10 @@ final readonly class ContentExportUrls implements UrlSource
 
 				$seen[$key] = true;
 				$current    = $parts;
-				$path       = $this->urls->date($type, $current);
+				$path       = $this->urls->date($type, $current, 1, $language);
 
 				if ($path !== null) {
-					yield new ExportUrl($path, fn (int $page): ?string => $this->urls->date($type, $current, $page));
+					yield new ExportUrl($path, fn (int $page): ?string => $this->urls->date($type, $current, $page, $language));
 				}
 			}
 		}

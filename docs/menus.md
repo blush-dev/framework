@@ -183,6 +183,14 @@ The page's language picks the text: an entry's `locale`, or your site's
 region is tried (`fr` for `fr_CA`), then your site's, then English, then
 the first one written.
 
+On a site with [translations](content.md#translations), links follow the
+page's language too, so write each link once. On a French page,
+`entry: page/about` links to `about.fr.md` with its French title,
+`term:` links to the French topic, and `collection:` links to the French
+listing when there are French entries. Anything that isn't translated
+yet links to the original. Leave `label` off entry, term, and collection
+links so the translated title shows.
+
 ## For theme authors
 
 Declare the locations your theme shows in `theme.json`. Each is a label,

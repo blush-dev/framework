@@ -44,14 +44,16 @@ final class ViewContext
 	 * @param array<string, mixed> $shared Data every template sees.
 	 * @param ?string              $layout A layout that replaces the one the page's template asks for.
 	 * @param string               $path   The page's URL path, or `''` outside a page.
-	 * @param string               $locale The page's locale (its entry's, else the site's), or `''` for the site's.
+	 * @param string               $locale   The page's locale (its entry's, else the site's), or `''` for the site's.
+	 * @param string               $language The code of the page's language when it isn't the default (D-458), or `''`.
 	 */
 	public function __construct(
 		public readonly Head $head = new Head(),
 		public private(set) array $shared = [],
 		public readonly ?string $layout = null,
 		public readonly string $path = '',
-		public readonly string $locale = ''
+		public readonly string $locale = '',
+		public readonly string $language = ''
 	) {}
 
 	/**

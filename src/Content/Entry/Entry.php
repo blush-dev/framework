@@ -43,6 +43,7 @@ final readonly class Entry implements Stringable
 	 * @param array<string, list<string>> $terms       Term slugs by taxonomy.
 	 * @param bool                        $landing     Whether this is a type folder's landing page.
 	 * @param ?SourceFile                 $source      The file, or `null` for a virtual entry.
+	 * @param string                      $language    The code of the language it's written in (D-455).
 	 */
 	public function __construct(
 		public string $id,
@@ -60,7 +61,8 @@ final readonly class Entry implements Stringable
 		public array $terms,
 		public bool $landing,
 		public ?SourceFile $source,
-		private Body $body
+		private Body $body,
+		public string $language = ''
 	) {}
 
 	/**

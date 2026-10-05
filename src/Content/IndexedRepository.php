@@ -89,11 +89,16 @@ final class IndexedRepository implements ContentRepository
 
 	/**
 	 * Returns a query with 1.x's `author` reading the profiles type
-	 * (D-351), unless a type is named `author`.
+	 * (D-351), unless a type is named `author`, and with no language
+	 * meaning the default language (D-455).
 	 */
 	private function resolved(Query $query): Query
 	{
 		$profiles = $this->types->profiles()?->name;
+
+		if ($query->language === null) {
+			$query = $query->language($this->app->languages->default->code);
+		}
 
 		return $profiles === null || $profiles === self::AUTHOR || $this->types->has(self::AUTHOR)
 			? $query
@@ -136,9 +141,9 @@ final class IndexedRepository implements ContentRepository
 	 * @inheritDoc
 	 */
 	#[Override]
-	public function named(string $type, string $key, ?string $locale = null): ?Entry
+	public function named(string $type, string $key, ?string $language = null): ?Entry
 	{
-		$id = $this->snapshot()->find($locale ?? $this->app->locale, $type, $key);
+		$id = $this->snapshot()->find($language ?? $this->app->languages->default->code, $type, $key);
 
 		return $id === null ? null : $this->find($id);
 	}
@@ -147,7 +152,48 @@ final class IndexedRepository implements ContentRepository
 	 * @inheritDoc
 	 */
 	#[Override]
-	public function term(string $taxonomy, string $slug): ?Entry
+	public function translations(Entry $entry): array
+	{
+		$ids = $entry->isVirtual() ? [] : $this->snapshot()->translations($entry->id);
+
+		if ($ids === []) {
+			return [$entry->language => $entry];
+		}
+
+		$entries = [];
+
+		// In the languages' order, the default first.
+		foreach (array_keys($this->app->languages->all()) as $code) {
+			$translation = isset($ids[$code]) ? $this->find($ids[$code]) : null;
+
+			if ($translation !== null) {
+				$entries[$code] = $translation;
+			}
+		}
+
+		return $entries;
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	#[Override]
+	public function translation(Entry $entry, string $language): ?Entry
+	{
+		if ($entry->language === $language) {
+			return $entry;
+		}
+
+		$id = $entry->isVirtual() ? null : $this->snapshot()->translations($entry->id)[$language] ?? null;
+
+		return $id === null ? null : $this->find($id);
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	#[Override]
+	public function term(string $taxonomy, string $slug, ?string $language = null): ?Entry
 	{
 		$type = $this->types->find($taxonomy);
 
@@ -155,7 +201,15 @@ final class IndexedRepository implements ContentRepository
 			return null;
 		}
 
-		$entry = $this->named($taxonomy, $slug);
+		$language ??= $this->app->languages->default->code;
+		$entry      = $this->named($taxonomy, $slug, $language);
+
+		// Entries name a term by its original's slug (D-455), which finds
+		// its translation (D-458).
+		if ($entry === null && ! $this->app->languages->isDefault($language)) {
+			$original = $this->named($taxonomy, $slug);
+			$entry    = $original === null ? null : $this->translation($original, $language);
+		}
 
 		if ($entry !== null) {
 			return $entry;
@@ -167,21 +221,28 @@ final class IndexedRepository implements ContentRepository
 			return null;
 		}
 
-		return $this->hydrator->virtual($type, $slug, $snapshot->labels[$taxonomy][$slug] ?? $slug, $snapshot->built, $this->app->locale);
+		return $this->hydrator->virtual(
+			$type,
+			$slug,
+			$snapshot->labels[$taxonomy][$slug] ?? $slug,
+			$snapshot->built,
+			$this->app->languages->find($language)->locale ?? $this->app->locale,
+			$language
+		);
 	}
 
 	/**
 	 * @inheritDoc
 	 */
 	#[Override]
-	public function parentKey(string $type, string $key, ?string $locale = null): ?string
+	public function parentKey(string $type, string $key, ?string $language = null): ?string
 	{
 		$snapshot = $this->snapshot();
-		$locale ??= $this->app->locale;
-		$id       = $snapshot->find($locale, $type, $key);
+		$language ??= $this->app->languages->default->code;
+		$id       = $snapshot->find($language, $type, $key);
 		$parent   = $id === null ? null : $snapshot->records[$id]['parent'];
 
-		return $parent !== null && $snapshot->find($locale, $type, $parent) !== null ? $parent : null;
+		return $parent !== null && $snapshot->find($language, $type, $parent) !== null ? $parent : null;
 	}
 
 	/**
@@ -190,9 +251,10 @@ final class IndexedRepository implements ContentRepository
 	#[Override]
 	public function parent(Entry $entry): ?Entry
 	{
-		$key = $entry->isVirtual() ? null : $entry->type->parentKey($entry->key, $entry->fields);
+		// The index's parent, which a translation's is in its language (D-457).
+		$key = $entry->isVirtual() ? null : $this->snapshot()->records[$entry->id]['parent'] ?? null;
 
-		return $key === null ? null : $this->named($entry->type->name, $key, $entry->locale);
+		return $key === null ? null : $this->named($entry->type->name, $key, $entry->language);
 	}
 
 	/**
@@ -207,7 +269,7 @@ final class IndexedRepository implements ContentRepository
 
 		$children = array_values(array_filter(array_map(
 			$this->find(...),
-			$this->snapshot()->children($entry->locale, $entry->type->name, $entry->key)
+			$this->snapshot()->children($entry->language, $entry->type->name, $entry->key)
 		)));
 
 		usort($children, Position::siblings(...));

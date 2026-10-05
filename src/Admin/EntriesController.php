@@ -449,7 +449,7 @@ final readonly class EntriesController
 	private function index(Query $query): ?Entry
 	{
 		foreach ($query->names('index')->get() as $entry) {
-			if ((IndexPage::is($entry) || Homepage::isRootPage($entry)) && $entry->locale === $this->app->locale) {
+			if ((IndexPage::is($entry) || Homepage::isRootPage($entry)) && $entry->language === $this->app->languages->default->code) {
 				return $entry;
 			}
 		}
@@ -469,7 +469,7 @@ final readonly class EntriesController
 
 		foreach (ThemedErrorPages::FOLDERS as $folder) {
 			foreach ($query->in($folder)->limit(null)->get() as $entry) {
-				if ($entry->locale === $this->app->locale) {
+				if ($entry->language === $this->app->languages->default->code) {
 					$pages[] = $entry;
 				}
 			}
@@ -489,7 +489,7 @@ final readonly class EntriesController
 		$names = PeoplePage::listPages($type);
 
 		foreach ($names === [] ? [] : $query->names(...$names)->exceptIn(...PeoplePage::personFolders($type))->get() as $entry) {
-			if (PeoplePage::is($entry) && $entry->locale === $this->app->locale) {
+			if (PeoplePage::is($entry) && $entry->language === $this->app->languages->default->code) {
 				return $entry;
 			}
 		}

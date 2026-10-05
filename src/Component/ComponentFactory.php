@@ -19,6 +19,8 @@ use ReflectionNamedType;
 use TypeError;
 use Blush\Container\Container;
 use Blush\Container\ContainerException;
+use Blush\Content\ContentRepository;
+use Blush\Content\LocalizedRepository;
 use Blush\View\ViewException;
 
 /**
@@ -35,25 +37,32 @@ final readonly class ComponentFactory
 	{}
 
 	/**
-	 * Builds a component.
+	 * Builds a component. On a page in another language (`$language`, a
+	 * code; D-458), a `ContentRepository` the component asks for is one
+	 * in that language (`LocalizedRepository`), so its queries and
+	 * lookups find the page's entries.
 	 *
 	 * @param  class-string<Component> $class
 	 * @param  array<string, mixed>    $props
 	 * @throws ViewException When the props don't fit the constructor.
 	 */
-	public function make(string $class, array $props): Component
+	public function make(string $class, array $props, string $language = ''): Component
 	{
 		$constructor = new ReflectionClass($class)->getConstructor();
 		$parameters  = [];
 
 		foreach ($constructor?->getParameters() ?? [] as $parameter) {
 			$name = $parameter->getName();
+			$type = $parameter->getType();
 
 			if (! array_key_exists($name, $props)) {
+				if ($language !== '' && $type instanceof ReflectionNamedType && $type->getName() === ContentRepository::class) {
+					$parameters[$name] = new LocalizedRepository($this->container->make(ContentRepository::class), $language);
+				}
+
 				continue;
 			}
 
-			$type  = $parameter->getType();
 			$value = $props[$name];
 
 			if ($type instanceof ReflectionNamedType && is_string($value)) {

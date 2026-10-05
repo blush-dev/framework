@@ -22,6 +22,7 @@ use Blush\Content\Type\ContentType;
 use Blush\Content\Type\ContentTypes;
 use Blush\Content\Visibility;
 use Blush\Core\AppConfig;
+use Blush\Core\Language;
 use Blush\Field\FieldContext;
 use Blush\Support\Slug;
 
@@ -41,6 +42,13 @@ use Blush\Support\Slug;
  *   folder makes it a draft.
  * - `published` falls back to `date`; `updated` falls back to
  *   `published`, then to the file's modification time.
+ * - On a multilingual site (D-455), a file name whose last `.` part
+ *   (before the extension) is a language code is a translation in that
+ *   language: `about.fr.md`, `2026-10-04.hello.fr.md`, and
+ *   `about/index.fr.md` read as `about.md`, `2026-10-04.hello.md`, and
+ *   `about/index.md` do, in French. The default language's code is
+ *   read too, so `about.en.md` is the English `about` (which
+ *   `content:lint` flags beside `about.md`).
  */
 final readonly class RecordBuilder
 {
@@ -69,7 +77,9 @@ final readonly class RecordBuilder
 		$values   = $result->values;
 
 		$directory = self::directoryOf($file->path);
-		$filename  = pathinfo($file->path, PATHINFO_FILENAME);
+		[$filename, $language] = $this->language(pathinfo($file->path, PATHINFO_FILENAME));
+		$suffixed  = $language !== null;
+		$language ??= $this->app->languages->default;
 		$landing   = $filename === 'index' && $directory === $type->folder;
 		$bundle    = $filename === 'index' && ! $landing;
 		$listedIn  = $bundle ? self::directoryOf($directory) : $directory;
@@ -93,7 +103,11 @@ final readonly class RecordBuilder
 			slug: $slug,
 			key: $landing ? '' : implode('/', [...$segments, $slug]),
 			directory: $listedIn,
-			locale: is_string($values['locale'] ?? null) ? $values['locale'] : $this->app->locale,
+			locale: match (true) {
+				$suffixed                          => $language->locale,
+				is_string($values['locale'] ?? null) => $values['locale'],
+				default                            => $this->app->locale
+			},
 			landing: $landing,
 			status: $this->status($values, $private),
 			visibility: $this->visibility($values, $filename, $private),
@@ -109,10 +123,33 @@ final readonly class RecordBuilder
 			modified: $file->modified,
 			size: $file->size,
 			hash: self::hash($contents),
-			parent: $landing ? null : $type->parentKey(implode('/', [...$segments, $slug]), $values)
+			parent: $landing ? null : $type->parentKey(implode('/', [...$segments, $slug]), $values),
+			language: $language->code,
+			original: $suffixed ? ltrim("{$directory}/{$filename}." . pathinfo($file->path, PATHINFO_EXTENSION), '/') : null
 		);
 
 		return new ParsedEntry($record, $result->violations, $document->frontMatter);
+	}
+
+	/**
+	 * Splits a file name (without its extension) into the name it has
+	 * without a language suffix and the suffix's language, or `null`
+	 * when it has none. Only a multilingual site's codes are read.
+	 *
+	 * @return array{string, ?Language}
+	 */
+	private function language(string $filename): array
+	{
+		$languages = $this->app->languages;
+		$position  = strrpos($filename, '.');
+
+		if ($position === false || ! $languages->isMultilingual()) {
+			return [$filename, null];
+		}
+
+		$language = $languages->find(substr($filename, $position + 1));
+
+		return $language === null ? [$filename, null] : [substr($filename, 0, $position), $language];
 	}
 
 	/**

@@ -67,7 +67,7 @@ final readonly class ThemedPageRenderer implements PageRenderer
 	public function render(ContentPage $page, ServerRequestInterface $request): ResponseInterface
 	{
 		$views   = $this->views->forChain($this->themes->forRequest($request));
-		$context = $this->views->context($views, $page->entry, $request->getUri()->getPath());
+		$context = $this->views->context($views, $page->entry, $request->getUri()->getPath(), $page->language);
 
 		$this->describe($views, $context, $page, $request);
 
@@ -128,6 +128,8 @@ final readonly class ThemedPageRenderer implements PageRenderer
 			$head->link('alternate', $markdown, ['type' => MarkdownPages::MEDIA_TYPE]);
 		}
 
+		$this->describeLanguages($head, $page, $request->getUri()->getPath());
+
 		$context->addClass("is-{$page->kind->value}");
 
 		if ($page->type !== null) {
@@ -136,6 +138,46 @@ final readonly class ThemedPageRenderer implements PageRenderer
 
 		if ($entries !== null && $entries->page > 1) {
 			$context->addClass('is-paged');
+		}
+	}
+
+	/**
+	 * Adds `hreflang` alternates (D-461) when the page is in more than one
+	 * language: a link for each language it's in, its own included, by
+	 * the language's BCP 47 tag (`fr-FR`), and `x-default` for the
+	 * default language's, when it has one.
+	 */
+	private function describeLanguages(Head $head, ContentPage $page, string $path): void
+	{
+		$languages = $this->app->languages;
+
+		if (! $languages->isMultilingual() || $page->alternateUrl === null) {
+			return;
+		}
+
+		$current = $page->language ?? $page->entry->language ?? $languages->default->code;
+		$urls    = [];
+
+		foreach (array_keys($languages->all()) as $code) {
+			$url = $code === $current ? $path : $page->alternateUrl($code);
+
+			if ($url !== null) {
+				$urls[$code] = $url;
+			}
+		}
+
+		if (count($urls) < 2) {
+			return;
+		}
+
+		foreach ($urls as $code => $url) {
+			$head->link('alternate', $url, ['hreflang' => $languages->find($code)?->tag() ?? $code]);
+		}
+
+		$default = $urls[$languages->default->code] ?? null;
+
+		if ($default !== null) {
+			$head->link('alternate', $default, ['hreflang' => 'x-default']);
 		}
 	}
 

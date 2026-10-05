@@ -47,6 +47,19 @@ use Blush\Content\Visibility;
  *   types that nest: a page's is the key of the folder it's in
  *   (`about` for `about/biography`), and a hierarchical taxonomy's term
  *   names its own in front matter. `null` for the rest.
+ * - `language` is the code of the language the entry is written in
+ *   (D-455): a translation's file-name suffix (`about.fr.md` is `fr`),
+ *   else the site's default language. `locale` is that language's
+ *   locale, or for a file without a suffix, its `locale` front matter
+ *   or the site's.
+ * - `original` is, for a file with a language suffix, the path the file
+ *   would have without it (`about.md` for `about.fr.md`), which links a
+ *   translation to its siblings; `null` for the rest.
+ * - A translation's `key` and `parent` use its language's slugs (D-457):
+ *   `about/biography.fr.md` under `about/index.fr.md` (`slug: a-propos`)
+ *   is `a-propos/biographie`, with the parent `a-propos`. The index
+ *   sets them when it's built, since they depend on other files, and
+ *   keeps the ones the file's own path gives in `untranslated`.
  *
  * @phpstan-type RecordArray array{
  *     id: string,
@@ -70,7 +83,10 @@ use Blush\Content\Visibility;
  *     modified: int,
  *     size: int,
  *     hash: string,
- *     parent: ?string
+ *     parent: ?string,
+ *     language: string,
+ *     original: ?string,
+ *     untranslated: ?array{key: string, parent: ?string}
  * }
  */
 final readonly class IndexRecord
@@ -80,7 +96,10 @@ final readonly class IndexRecord
 	 * @param array<string, mixed>                 $extra  Undeclared front matter (D-081).
 	 * @param array<string, list<string>>          $terms  Term slugs by taxonomy.
 	 * @param array<string, array<string, string>> $labels Term labels by taxonomy and slug.
-	 * @param ?string                              $parent The parent's key in the same type.
+	 * @param ?string                              $parent   The parent's key in the same type.
+	 * @param string                               $language The language's code.
+	 * @param ?string                              $original The path without a language suffix.
+	 * @param ?array{key: string, parent: ?string} $untranslated A translation's key and parent from its path alone, when the index changed them.
 	 */
 	public function __construct(
 		public string $id,
@@ -104,7 +123,10 @@ final readonly class IndexRecord
 		public int $modified,
 		public int $size,
 		public string $hash,
-		public ?string $parent = null
+		public ?string $parent = null,
+		public string $language = '',
+		public ?string $original = null,
+		public ?array $untranslated = null
 	) {}
 
 	/**
@@ -165,8 +187,43 @@ final readonly class IndexRecord
 			modified: $data['modified'],
 			size: $data['size'],
 			hash: $data['hash'],
-			parent: $data['parent']
+			parent: $data['parent'],
+			language: $data['language'],
+			original: $data['original'],
+			untranslated: $data['untranslated']
 		);
+	}
+
+	/**
+	 * Returns what links the entry with its translations (see
+	 * `groupOf()`).
+	 */
+	public function group(): string
+	{
+		return self::groupOf($this->toArray());
+	}
+
+	/**
+	 * Returns what links a record with its translations (D-455, D-460):
+	 * its path without a language suffix or extension, with a bundle's
+	 * `name/index` read as `name`, so a plain file and a bundle of one
+	 * entry link either way (`about.md` with `about/index.fr.md`, and
+	 * `about/index.md` with `about.fr.md`). A landing page's `index`
+	 * stays, since it isn't the folder's entry.
+	 *
+	 * @param RecordArray $record
+	 */
+	public static function groupOf(array $record): string
+	{
+		$path      = $record['original'] ?? $record['id'];
+		$directory = dirname($path);
+		$name      = pathinfo($path, PATHINFO_FILENAME);
+
+		if ($name === 'index' && ! $record['landing'] && $directory !== '.') {
+			return $directory;
+		}
+
+		return $directory === '.' ? $name : "{$directory}/{$name}";
 	}
 
 	/**
@@ -186,28 +243,31 @@ final readonly class IndexRecord
 	public function toArray(): array
 	{
 		return [
-			'id'         => $this->id,
-			'type'       => $this->type,
-			'slug'       => $this->slug,
-			'key'        => $this->key,
-			'directory'  => $this->directory,
-			'locale'     => $this->locale,
-			'landing'    => $this->landing,
-			'status'     => $this->status->value,
-			'visibility' => $this->visibility->value,
-			'published'  => $this->published,
-			'updated'    => $this->updated,
-			'date'       => $this->date,
-			'title'      => $this->title,
-			'format'     => $this->format->value,
-			'values'     => $this->values,
-			'extra'      => $this->extra,
-			'terms'      => $this->terms,
-			'labels'     => $this->labels,
-			'modified'   => $this->modified,
-			'size'       => $this->size,
-			'hash'       => $this->hash,
-			'parent'     => $this->parent
+			'id'           => $this->id,
+			'type'         => $this->type,
+			'slug'         => $this->slug,
+			'key'          => $this->key,
+			'directory'    => $this->directory,
+			'locale'       => $this->locale,
+			'landing'      => $this->landing,
+			'status'       => $this->status->value,
+			'visibility'   => $this->visibility->value,
+			'published'    => $this->published,
+			'updated'      => $this->updated,
+			'date'         => $this->date,
+			'title'        => $this->title,
+			'format'       => $this->format->value,
+			'values'       => $this->values,
+			'extra'        => $this->extra,
+			'terms'        => $this->terms,
+			'labels'       => $this->labels,
+			'modified'     => $this->modified,
+			'size'         => $this->size,
+			'hash'         => $this->hash,
+			'parent'       => $this->parent,
+			'language'     => $this->language,
+			'original'     => $this->original,
+			'untranslated' => $this->untranslated
 		];
 	}
 }

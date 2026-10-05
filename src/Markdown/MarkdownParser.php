@@ -21,9 +21,12 @@ namespace Blush\Markdown;
 interface MarkdownParser
 {
 	/**
-	 * Converts a Markdown string to HTML.
+	 * Converts a Markdown string to HTML. `$language` is the code of the
+	 * language it's written in when that isn't the site's default
+	 * (D-459), which its directives are given, so components in a
+	 * translation find that language's entries.
 	 *
 	 * @throws MarkdownException
 	 */
-	public function toHtml(string $markdown): string;
+	public function toHtml(string $markdown, string $language = ''): string;
 }

@@ -25,6 +25,7 @@ final readonly class Directive
 	/**
 	 * @param array<string, string>                              $attributes
 	 * @param list<array{level: int, text: string, id: string}> $outline
+	 * @param string                                             $language The code of the language the Markdown is in, when it isn't the default (D-459), or `''`.
 	 */
 	public function __construct(
 		public string $name,
@@ -32,6 +33,7 @@ final readonly class Directive
 		public array $attributes = [],
 		public string $label = '',
 		public string $content = '',
-		public array $outline = []
+		public array $outline = [],
+		public string $language = ''
 	) {}
 }

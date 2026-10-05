@@ -62,9 +62,14 @@ final class MarkdownItem extends RegionItem
 	public function render(mixed $value, array $item, RegionRender $render): string
 	{
 		$markdown = LocaleMap::text($value, $render->locale, $render->defaultLocale) ?? '';
+		$language = $render->context->language;
 
+		// Its components follow the page's language (D-459).
 		try {
-			return $this->bodies->remember('region ' . hash('xxh128', $markdown), fn (): string => $this->parser->toHtml($markdown));
+			return $this->bodies->remember(
+				'region ' . hash('xxh128', $markdown) . ($language === '' ? '' : ".{$language}"),
+				fn (): string => $this->parser->toHtml($markdown, $language)
+			);
 		} catch (MarkdownException $error) {
 			throw new RegionException($error->getMessage(), 0, $error);
 		}

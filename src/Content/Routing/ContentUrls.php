@@ -54,6 +54,14 @@ use Blush\Routing\UrlGenerationException;
  *   `{field}.single`, under its type's prefix, even for the home type
  *   (`/blog/authors/jane`).
  *
+ * - On a multilingual site (D-455), an entry in a language other than
+ *   the default is under its code (`/fr/a-propos`), and so are a
+ *   language's collections, terms, and date archives when they're asked
+ *   for in it. A term is named by its original's slug, which becomes its
+ *   translation's (`music` is `/fr/topics/musique` when
+ *   `topics/music.fr.md` has `slug: musique`). Profiles, people
+ *   archives, and feeds aren't in other languages yet.
+ *
  * `null` means the thing has no URL: a hidden entry, or values the route
  * can't take.
  */
@@ -128,23 +136,49 @@ final readonly class ContentUrls
 
 	/**
 	 * Returns what a term's `{name}` holds: its slug, after its parents'
-	 * for a hierarchical taxonomy.
+	 * for a hierarchical taxonomy. In a language other than the default,
+	 * each slug is its translation's.
 	 */
-	public function termPath(Taxonomy $taxonomy, string $slug): string
+	public function termPath(Taxonomy $taxonomy, string $slug, ?string $language = null): string
 	{
-		if (! $taxonomy->hierarchical) {
-			return $slug;
+		$path = [$slug];
+
+		if ($taxonomy->hierarchical) {
+			$content = ($this->content)();
+			$key     = $slug;
+
+			while (($key = $content->parentKey($taxonomy->name, $key)) !== null && ! in_array($key, $path, true)) {
+				array_unshift($path, $key);
+			}
 		}
 
-		$content = ($this->content)();
-		$path    = [$slug];
-		$key     = $slug;
+		return implode('/', array_map(fn (string $key): string => $this->translatedKey($taxonomy->name, $key, $language), $path));
+	}
 
-		while (($key = $content->parentKey($taxonomy->name, $key)) !== null && ! in_array($key, $path, true)) {
-			array_unshift($path, $key);
+	/**
+	 * Returns the key of an entry's original, the default language's
+	 * entry it translates, or its own key when it has none (D-455).
+	 * Entries name terms by these.
+	 */
+	public function originalKey(Entry $entry): string
+	{
+		return ($this->content)()->translation($entry, $this->app->languages->default->code)->key ?? $entry->key;
+	}
+
+	/**
+	 * Returns the key of the translation, in a language, of the default
+	 * language's entry with a key, or the key itself when there's none.
+	 */
+	public function translatedKey(string $type, string $key, ?string $language): string
+	{
+		if ($language === null || $this->app->languages->isDefault($language)) {
+			return $key;
 		}
 
-		return implode('/', $path);
+		$content  = ($this->content)();
+		$original = $content->named($type, $key);
+
+		return ($original === null ? null : $content->translation($original, $language)?->key) ?? $key;
 	}
 
 	/**
@@ -159,44 +193,66 @@ final readonly class ContentUrls
 		}
 
 		if (! $type->hasUrls()) {
-			return $type->servedAsPages() ? $this->routes->canonicalPath('/' . trim("{$type->pagePath()}/{$entry->key}", '/')) : null;
+			return $type->servedAsPages() ? $this->localized($this->routes->canonicalPath('/' . trim("{$type->pagePath()}/{$entry->key}", '/')), $entry->language) : null;
 		}
 
 		if ($entry->landing) {
-			return $this->collection($type);
+			return $this->collection($type, 1, $entry->language);
 		}
 
 		if ($type instanceof Taxonomy) {
-			return $this->term($type, $entry->key);
+			return $this->localized($this->termUrl($type, $this->termPathOf($type, $entry)), $entry->language);
 		}
 
-		return $this->build($type->routePattern('single'), $this->singleParams($entry), $type);
+		return $this->localized($this->build($type->routePattern('single'), $this->singleParams($entry), $type), $entry->language);
 	}
 
 	/**
-	 * Returns a type's collection URL path, or a later page's.
+	 * Returns a type's collection URL path, or a later page's, in a
+	 * language (the default when `null`).
 	 */
-	public function collection(ContentType $type, int $page = 1): ?string
+	public function collection(ContentType $type, int $page = 1, ?string $language = null): ?string
 	{
 		if ($type->name === $this->types->home) {
-			return $this->routes->canonicalPath($page > 1 ? "/page/{$page}" : '/');
+			return $this->localized($this->routes->canonicalPath($page > 1 ? "/page/{$page}" : '/'), $language);
 		}
 
-		return $page > 1
+		return $this->localized($page > 1
 			? $this->build($type->routePattern('collection.paged'), ['page' => (string) $page], $type)
-			: $this->build($type->routePattern('collection'), [], $type);
+			: $this->build($type->routePattern('collection'), [], $type), $language);
 	}
 
 	/**
-	 * Returns a taxonomy term's URL path, or a later page's.
+	 * Returns a taxonomy term's URL path, or a later page's, by its slug
+	 * (the default language's), in a language (the default when `null`).
 	 */
-	public function term(ContentType $taxonomy, string $slug, int $page = 1): ?string
+	public function term(ContentType $taxonomy, string $slug, int $page = 1, ?string $language = null): ?string
 	{
-		$name = $taxonomy instanceof Taxonomy ? $this->termPath($taxonomy, $slug) : $slug;
+		$name = $taxonomy instanceof Taxonomy ? $this->termPath($taxonomy, $slug, $language) : $slug;
 
-		return $page > 1
-			? $this->build($taxonomy->routePattern('single.paged'), ['name' => $name, 'page' => (string) $page], $taxonomy)
-			: $this->build($taxonomy->routePattern('single'), ['name' => $name], $taxonomy);
+		return $this->localized($this->termUrl($taxonomy, $name, $page), $language);
+	}
+
+	/**
+	 * Returns the URL path of the homepage in a language: `/`, or the
+	 * language's `/{code}`.
+	 */
+	public function home(?string $language = null): string
+	{
+		return $this->localized($this->routes->canonicalPath('/'), $language) ?? '/';
+	}
+
+	/**
+	 * Returns a URL path under a language's prefix: unchanged for the
+	 * default language (or `null`), else under `/{code}`.
+	 */
+	public function localized(?string $path, ?string $language): ?string
+	{
+		if ($path === null || $language === null || ! $this->app->languages->isOther($language)) {
+			return $path;
+		}
+
+		return $this->routes->canonicalPath('/' . $language . ($path === '/' ? '' : $path));
 	}
 
 	/**
@@ -313,13 +369,14 @@ final readonly class ContentUrls
 	}
 
 	/**
-	 * Returns a date archive's URL path, or a later page's. `$parts` are
-	 * the date parts from the year down, such as `['year' => 2008,
-	 * 'month' => 4]`, and must stop at a level the type archives.
+	 * Returns a date archive's URL path, or a later page's, in a language
+	 * (the default when `null`). `$parts` are the date parts from the
+	 * year down, such as `['year' => 2008, 'month' => 4]`, and must stop
+	 * at a level the type archives.
 	 *
 	 * @param array<string, int> $parts
 	 */
-	public function date(ContentType $type, array $parts, int $page = 1): ?string
+	public function date(ContentType $type, array $parts, int $page = 1, ?string $language = null): ?string
 	{
 		$level  = array_key_last($parts);
 		$levels = array_map(static fn (DateArchives $granularity): string => $granularity->value, $type->dateArchives->levels());
@@ -334,9 +391,9 @@ final readonly class ContentUrls
 			$values[$part] = str_pad((string) $value, $part === 'year' ? 4 : 2, '0', STR_PAD_LEFT);
 		}
 
-		return $page > 1
+		return $this->localized($page > 1
 			? $this->build($type->routePattern("collection.{$level}.paged"), [...$values, 'page' => (string) $page], $type)
-			: $this->build($type->routePattern("collection.{$level}"), $values, $type);
+			: $this->build($type->routePattern("collection.{$level}"), $values, $type), $language);
 	}
 
 	/**
@@ -369,6 +426,33 @@ final readonly class ContentUrls
 		}
 
 		return $values;
+	}
+
+	/**
+	 * Returns a term's path, or a later page's, from what its `{name}`
+	 * holds.
+	 */
+	private function termUrl(ContentType $taxonomy, string $name, int $page = 1): ?string
+	{
+		return $page > 1
+			? $this->build($taxonomy->routePattern('single.paged'), ['name' => $name, 'page' => (string) $page], $taxonomy)
+			: $this->build($taxonomy->routePattern('single'), ['name' => $name], $taxonomy);
+	}
+
+	/**
+	 * Returns what a term entry's `{name}` holds: for a translation, the
+	 * path of its original's slug in its language, which is its own key
+	 * at the end; else its slug after its parents'.
+	 */
+	private function termPathOf(Taxonomy $taxonomy, Entry $entry): string
+	{
+		if (! $this->app->languages->isOther($entry->language)) {
+			return $this->termPath($taxonomy, $entry->key);
+		}
+
+		$original = ($this->content)()->translation($entry, $this->app->languages->default->code);
+
+		return $original === null ? $entry->key : $this->termPath($taxonomy, $original->key, $entry->language);
 	}
 
 	/**

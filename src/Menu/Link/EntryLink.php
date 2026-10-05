@@ -16,6 +16,7 @@ namespace Blush\Menu\Link;
 use Override;
 use Blush\Content\ContentRepository;
 use Blush\Content\Routing\ContentUrls;
+use Blush\Core\AppConfig;
 
 /**
  * Links to an entry by type and key: `entry: page/about`, or a type's
@@ -29,7 +30,8 @@ final class EntryLink extends MenuLink
 {
 	public function __construct(
 		private readonly ContentRepository $content,
-		private readonly ContentUrls $urls
+		private readonly ContentUrls $urls,
+		private readonly AppConfig $app
 	) {}
 
 	/**
@@ -64,7 +66,7 @@ final class EntryLink extends MenuLink
 	{
 		[$type, $key] = [...explode('/', trim($value), 2), ''];
 
-		$entry = $this->content->named($type, $key, $locale) ?? $this->content->named($type, $key);
+		$entry = $this->content->named($type, $key);
 
 		if ($entry === null) {
 			throw new UnresolvedLink(sprintf('No entry "%s".', $value));
@@ -73,6 +75,11 @@ final class EntryLink extends MenuLink
 		if (! $entry->isPublished()) {
 			throw new UnresolvedLink(sprintf('The entry "%s" isn\'t published.', $value));
 		}
+
+		// On a translated page, its translation when it's published (D-463).
+		$language    = $this->app->languages->forLocale($locale)?->code;
+		$translation = $language === null ? null : $this->content->translation($entry, $language);
+		$entry       = $translation !== null && $translation->isPublished() && $translation->isRoutable() ? $translation : $entry;
 
 		$url = $this->urls->entry($entry) ?? throw new UnresolvedLink(sprintf('The entry "%s" has no URL.', $value));
 

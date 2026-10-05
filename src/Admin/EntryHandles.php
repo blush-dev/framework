@@ -27,7 +27,7 @@ use Blush\Core\AppConfig;
  *
  * An entry has no handle when its handle would find another entry (two
  * files claiming one key, or a page keyed `index` beside a landing page)
- * or when it isn't in the site's locale. The admin addresses those by
+ * or when it isn't in the default language. The admin addresses those by
  * their path, as before.
  */
 final readonly class EntryHandles
@@ -47,7 +47,7 @@ final readonly class EntryHandles
 	 */
 	public function of(Entry $entry): ?string
 	{
-		if ($entry->source === null || $entry->locale !== $this->app->locale) {
+		if ($entry->source === null || $entry->language !== $this->app->languages->default->code) {
 			return null;
 		}
 
@@ -57,7 +57,7 @@ final readonly class EntryHandles
 	}
 
 	/**
-	 * Returns the entry a type and key name, in the site's locale.
+	 * Returns the entry a type and key name, in the default language.
 	 */
 	public function find(string $type, string $key): ?Entry
 	{

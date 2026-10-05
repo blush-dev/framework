@@ -25,6 +25,8 @@ use League\CommonMark\Extension\DescriptionList\Node\DescriptionTerm;
 use League\CommonMark\Extension\ExtensionInterface;
 use League\CommonMark\MarkdownConverter;
 use League\CommonMark\Node\Block\Paragraph;
+use League\CommonMark\Parser\MarkdownParser as CommonMarkDocumentParser;
+use League\CommonMark\Renderer\HtmlRenderer;
 use League\CommonMark\Parser\Inline\InlineParserInterface;
 use Blush\Core\AppConfig;
 use Blush\Event\Dispatcher;
@@ -32,6 +34,7 @@ use Blush\Markdown\CommonMark\BracketedSpan;
 use Blush\Markdown\CommonMark\BracketedSpanParser;
 use Blush\Markdown\CommonMark\BracketedSpanRenderer;
 use Blush\Markdown\CommonMark\Directive\DirectiveExtension;
+use Blush\Markdown\CommonMark\Directive\DirectiveNodeRenderer;
 use Blush\Markdown\CommonMark\DescriptionAttributes;
 use Blush\Markdown\CommonMark\DescriptionListRenderer;
 use Blush\Markdown\CommonMark\FigureRenderer;
@@ -62,10 +65,22 @@ final class CommonMarkParser implements MarkdownParser
 	 * @inheritDoc
 	 */
 	#[Override]
-	public function toHtml(string $markdown): string
+	public function toHtml(string $markdown, string $language = ''): string
 	{
 		try {
-			return $this->converter()->convert($markdown)->getContent();
+			$converter = $this->converter();
+
+			if ($language === '') {
+				return $converter->convert($markdown)->getContent();
+			}
+
+			// The document carries its language to its directives (D-459).
+			$environment = $converter->getEnvironment();
+			$document    = new CommonMarkDocumentParser($environment)->parse($markdown);
+
+			$document->data->set(DirectiveNodeRenderer::LANGUAGE, $language);
+
+			return new HtmlRenderer($environment)->renderDocument($document)->getContent();
 		} catch (MarkdownException $e) {
 			throw $e;
 		} catch (Throwable $e) {

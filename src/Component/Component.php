@@ -379,12 +379,15 @@ abstract class Component
 	 * template's `$template->t()`, and then from the component's own
 	 * extension's (D-451), so a plugin's component can ship its text and a
 	 * theme can reword it. Without a translator (a component built outside
-	 * `Views`), it returns the key.
+	 * `Views`), it returns the key. Text is in the page's locale, so a
+	 * translation's components speak its language (D-462).
 	 */
 	protected function t(string $key, string|int|float ...$params): string
 	{
+		$locale = $this->viewContext->locale ?? '';
+
 		/** @var array<string, string|int|float> $params */
-		return $this->translator?->translate($key, $params) ?? $key;
+		return $this->translator?->translate($key, $params, $locale === '' ? null : $locale) ?? $key;
 	}
 
 	/**

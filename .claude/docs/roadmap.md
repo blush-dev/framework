@@ -385,9 +385,21 @@ dynamically).
 - **Translations and multilingual sites (D-451):** translation domains
   by `vendor/name` and overrides in `user/lang/{locale}/` that win (done,
   D-454), catalog metadata (D-452) checked by `theme:check`,
-  `plugin:check`, and `icon-pack:check` (done, D-454); next, uploads and
-  a strings editor in the admin, and multilingual sites (D-036) as a
-  2.0.0 goal; the admin's placement is open (`open-questions.md`).
+  `plugin:check`, and `icon-pack:check` (done, D-454); multilingual
+  sites (D-036) as a 2.0.0 goal: translations as suffixed sibling files
+  (`about.fr.md`) at `/fr/` URLs (D-455), with the core built (D-456:
+  `languages` config, the index, queries, routes, URLs, rendering, and
+  export); translated folder names (D-457), components following the
+  page's language in templates and Markdown (D-458, D-459), plain files
+  and bundles linking as translations (D-460), and `hreflang`
+  alternates (D-461) are done, and so are component text, date
+  archive titles, menus, and template routes in the page's language
+  (D-462 to D-464). Next, in the author's order (D-465): the `time`,
+  `progress`, `meter`, and `file` components' formatting in the page's
+  locale; untranslated content as a config option; later, sitemaps and
+  then feeds and `llms.txt` per language; translations in the admin
+  (uploads, a strings editor) once there's a design; a language
+  switcher is on hold.
 - **Front-end search:** a JSON index that also works on a static
   export; see `open-questions.md`.
 - **Extension kinds, what's left (D-378, D-379):** admin themes as a

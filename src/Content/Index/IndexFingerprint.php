@@ -18,7 +18,7 @@ use Blush\Core\AppConfig;
 
 /**
  * What index records depend on besides the files: the index format, the
- * content types, the timezone, and the locale. An index built with a
+ * content types, the timezone, the locale, and the languages (D-455). An index built with a
  * different fingerprint is stale as a whole and is rebuilt in full.
  */
 final class IndexFingerprint
@@ -39,7 +39,8 @@ final class IndexFingerprint
 			IndexSnapshot::VERSION,
 			$this->types->toArray(),
 			$this->app->timezone,
-			$this->app->locale
+			$this->app->locale,
+			$this->app->languages->toArray()
 		]));
 	}
 

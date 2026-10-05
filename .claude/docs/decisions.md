@@ -13415,3 +13415,348 @@ decision, add a new entry that supersedes it and mark the old one
   `theme:check`, `plugin:check`, and `icon-pack:check` report no catalog
   problems.
 - **Why:** the author's go on D-451 and the check (2026-10-04).
+
+### D-455: Multilingual content: a language suffix in the file name
+
+- **Date:** 2026-10-04
+- **Status:** Core built (D-456). Settles D-036's file convention; what
+  an untranslated page and list do is open (`open-questions.md`).
+  Multilingual sites are a 2.0.0 goal (D-451).
+- **Decision:**
+  - **Files:** a translation is a sibling file with the language code
+    after the slug, before the extension: `about.fr.md`,
+    `_posts/2026-10-04.hello.fr.md`, `01.about.fr.md`, and
+    `about/index.fr.md` for a bundle. When a file name's last dot part
+    is a configured language code, it's the language and the part
+    before it is the slug; anything else reads as today. The default
+    language has no suffix, so existing content doesn't change, and
+    `content:lint` flags a default-language suffix beside the plain
+    file (`about.en.md` next to `about.md`). Not a folder per language
+    (the author's call), and not the code before the slug, which sorts
+    a folder by language instead of keeping an entry beside its
+    translations. 1.x never used multilingual content, so D-078 doesn't
+    constrain this.
+  - **Linking:** a file and its suffixed siblings are translations of
+    each other; no front matter key. A translated slug is the existing
+    `slug:` (`about.fr.md` with `slug: a-propos`), still linked by its
+    file name. Taxonomy terms the same (`topics/music.fr.md`, `slug:
+    musique`); entries reference terms by the original's key.
+  - **Language codes:** lowercase and hyphenated (`fr`, `pt-br`), each
+    mapped to a locale and a label in the site's languages setting
+    (`fr` → `fr_FR`, "Français"). The code is the file suffix and the
+    URL prefix; `user/lang/{locale}/` keeps using locales (D-451).
+  - **URLs:** the default language at the root, others prefixed
+    (`/about`, `/fr/a-propos`), so no current URL moves. Per-language
+    domains aren't considered for now.
+- **Why:** the author's calls, 2026-10-04: a translation sits beside
+  its original, which a folder per language wouldn't do, and the suffix
+  after the slug keeps a folder sorted by entry (as Hugo, Kirby, and
+  Grav name them).
+
+### D-456: The multilingual core: languages, the index, queries, and `/{code}` routes
+
+- **Date:** 2026-10-04
+- **Status:** Built. Implements D-455's files and URLs; refines D-036
+  and D-088 (index keys carry a language code, not a locale). Its first
+  known gap, translated folder names, is closed by D-457.
+  Untranslated content and the rest of multilingual stay open
+  (`open-questions.md`).
+- **Decision:**
+  - **Config:** `config/app.php`'s `languages` maps codes to a locale or
+    `['locale' => …, 'label' => …]` (`Core\Languages`, of
+    `Core\Language`). The default language is the site's `locale`; its
+    code is the locale's language (`en`), unless a listed language has
+    the site's locale, which makes it the default. A listed code equal
+    to the default's is refused. A label defaults to the locale's name
+    in its own language. Config only for now; the screen is open.
+  - **Suffixes only on a multilingual site:** with no other languages,
+    `about.fr.md` reads as before (slug `fr`), so no current site
+    changes. On one, any configured code is read as a suffix, the
+    default's included, so `about.en.md` is the English `about` and
+    `content:lint` warns that it has the default's suffix beside
+    `about.md`, which wins (a plain file wins a key over one with the
+    default's suffix; a bundle still wins over both).
+  - **Records:** each has `language` (a code, always set) and
+    `original` (the path without the suffix, for a suffixed file).
+    `locale` is the suffix's language's; an unsuffixed file keeps its
+    `locale` front matter or the site's. The index (version 3) keys
+    entries and children by language, links each path's files across
+    languages (`translations`), and its fingerprint includes the
+    languages.
+  - **Queries find the default language** unless told otherwise:
+    `Query::language('fr')`, `anyLanguage()` (`*`), or the `language`
+    argument; `null` is the default, resolved by the repository. So
+    feeds, sitemaps, `llms.txt`, people archives, the admin, and every
+    existing listing show only the default language, as they did before
+    any translation existed. `ContentRepository::named()`, `term()`, and
+    `parentKey()` take a language code (was a locale) and add
+    `translations()` and `translation()`.
+  - **Routes:** each other language gets the homepage and every public
+    type's collection, date archive, single, and term routes again
+    under `/{code}`, named `{code}:{name}`, with the code as the
+    `language` parameter, ahead of the default's; and its own page
+    catch-all ahead of the default's. Profiles, people archives, and
+    feeds aren't prefixed yet. Controllers take `?string $language`; a
+    page in a language finds and lists only its entries, and one
+    without the language's file is a 404 (until the untranslated
+    setting is decided). A language without its own homepage file and
+    no home type is a 404 (the welcome page is the default's only).
+  - **URLs:** `ContentUrls` puts an entry under its language's prefix,
+    and `collection()`, `term()`, `date()`, and the new `home()` take a
+    language. Terms are named by the original's slug and turn into the
+    translation's in a language (`term($topics, 'music', 1, 'fr')` is
+    `/fr/topics/musique`); a term page reached by the original's slug
+    in a language redirects there. Entries in every language reference
+    terms by the original's key.
+  - **Rendering:** a page's locale is a list's language's, else its
+    entry's, so `$template->t()`, `tGroup()`, the date helpers, and
+    `$site->locale`/`lang` follow a translation (`<html lang="fr-FR">`).
+  - **Export:** the homepage, collections, terms (those a language's
+    entries reference, and its term files), and date archives are
+    listed for each language, and entries for all.
+  - **Known gaps, not built:** a translation under a folder keeps the
+    folder's name in its key and URL (`/fr/about/biographie`), and a
+    tree's or hierarchical taxonomy's translation finds its parent only
+    by the original's key (both closed by D-457); a French-only term with a translated slug
+    is named by that slug; a bundle and a plain file aren't linked as
+    translations (`about/index.md` and `about.fr.md`); components'
+    queries (`jtcom/post-archives`) don't follow the page's language
+    (closed by D-458 and D-459);
+    the admin lists and edits the default language only (translations
+    have no handle). The bundle-and-plain-file gap is closed by D-460.
+- **Why:** the author asked to build D-455's core (2026-10-04). Keeping
+  queries on the default language makes translations invisible to
+  everything that doesn't ask for them, so adding a language can't
+  double a site's feeds or lists; routes registered per language keep
+  the router as it is and its trailing-slash and canonical redirects
+  correct under the prefix.
+
+### D-457: A translation's folders take their translations' slugs
+
+- **Date:** 2026-10-04
+- **Status:** Built. Closes D-456's translated-folder gap.
+- **Decision:**
+  - A translation's key uses its language's slugs for the folders above
+    it: each folder whose entry has a translation in the language takes
+    that translation's key, and one without keeps its name. With
+    `about/index.fr.md` at `slug: a-propos`, `about/biography.fr.md`
+    (`slug: biographie`) is `a-propos/biographie` at
+    `/fr/a-propos/biographie`, and `about/team/jane.fr.md` is
+    `a-propos/team/jane`. Its parent follows: the translated folder
+    path for a tree, so `parent()` and `children()` work in the
+    language; for a hierarchical term, whose `parent` front matter
+    names the original's key (`parent: web`), the parent's
+    translation's key (`toile`).
+  - Done when the snapshot is built (`Index\TranslatedKeys`), since a
+    translation's key depends on other files; a record keeps its path's
+    key and parent in `untranslated`, and a stored record is put back to
+    them first, so an incremental index (which reuses unchanged
+    records) follows a parent's new slug. The index format is version 4.
+  - The page catch-all in another language looks the entry up by its
+    key below the deepest type served as pages that holds the path,
+    rather than by folder and slug. `ContentRepository::parent()` reads
+    the index's parent, which is a translation's in its language.
+    `content:lint`'s later checks read the snapshot's records.
+- **Why:** the author asked to close the gap (2026-10-04): a French
+  page under a French parent shouldn't carry the English folder name.
+
+### D-458: Components follow the page's language
+
+- **Date:** 2026-10-04
+- **Status:** Built. Closes D-456's components gap; D-459 adds
+  components in a translation's Markdown body.
+- **Decision:**
+  - **A localized repository:** on a page in a language other than the
+    default, a component's `ContentRepository` constructor parameter
+    (one its props don't fill) is a `Content\LocalizedRepository` in that
+    language. Its `query()`, `get()`, `count()`, `paginate()`,
+    `termCounts()`, `named()`, `term()`, and `parentKey()` default to the
+    page's language; a query or lookup that names a language (or
+    `anyLanguage()`) keeps it, and the rest delegate. So components such
+    as `jtcom/post-archives` work in every language unchanged. The
+    default language's pages get the plain repository, as before.
+  - **Where the language comes from:** `ViewContext::$language` (a code,
+    `''` for the default), set by `ViewFactory::context()` from a
+    list's language, else the entry's. `Views::component()` passes it to
+    `ComponentFactory::make()`. The context's locale still comes from
+    the entry when no language is given, so an unsuffixed entry with
+    `locale:` front matter keeps it.
+  - **Terms by the original's slug:** `ContentRepository::term()` in a
+    language finds the translation of the default language's term with
+    that slug when no term has it as its own key, since entries
+    reference terms by the original's slug. `$template->terms()` looks
+    terms up in the entry's language, so a French post's topics are the
+    French ones. A term page reached by the original's slug in a
+    language still redirects to the translated one.
+  - **Not covered here:** components in a Markdown body render through a
+    fragment context with no page, and bodies are cached by content, so
+    they found the default language's entries (D-459 covers them).
+- **Why:** the author asked to close the gap (2026-10-04). Giving
+  components a repository in the page's language, rather than adding a
+  language argument to every component, keeps existing components
+  working with no change and keeps no global state: the language travels
+  with the page's context.
+
+### D-459: Components in a translation's Markdown follow its language
+
+- **Date:** 2026-10-04
+- **Status:** Built. Closes the gap D-458 left.
+- **Decision:**
+  - `MarkdownParser::toHtml()` takes the code of the language the
+    Markdown is written in (`''` for the default). `CommonMarkParser`
+    parses the document, stores the code in its data
+    (`DirectiveNodeRenderer::LANGUAGE`), and renders it; each directive
+    reads it from its document, so `Directive::$language` carries it to
+    the `DirectiveRenderer`. No state is kept on the shared parser.
+  - `ComponentDirectives` renders a component in
+    `ViewFactory::fragment($language)`, a context in that language
+    (locale, `$site`, and `language`), so a component gets a
+    `LocalizedRepository` (D-458) as it does in a template.
+  - `EntryHydrator` gives a translation's `Body` its language (only a
+    language other than the default), which its body, summary, excerpt,
+    and word count render with. Their cache keys add the language, so a
+    translation whose file is the same as its original's doesn't share
+    its cached HTML.
+  - A region's Markdown item renders in the page's language, keyed by
+    it in the body cache.
+- **Why:** the author asked to close the gap (2026-10-04). Keeping the
+  language on the parsed document, rather than on the parser, keeps the
+  parser shareable and render-anywhere.
+
+### D-460: A plain file and a bundle link as translations
+
+- **Date:** 2026-10-04
+- **Status:** Built. Closes D-456's last listed gap.
+- **Decision:** translations link by entry, not by path: a record's
+  group (`IndexRecord::groupOf()`) is its path without a language suffix
+  or extension, with a bundle's `name/index` read as `name`. So
+  `about.md` and `about/index.fr.md` are translations of each other,
+  and so are `about/index.md` and `about.fr.md`; a translation may also
+  be in another format than its original (`about.md`, `about.fr.html`).
+  A landing page's `index` isn't read as its folder's entry
+  (`_posts/index` stays). The folders below a translated plain file use
+  its slug, as they do below a bundle (`team.md` with
+  `team/index.fr.md` at `slug: equipe` gives `/fr/equipe/jane` for
+  `team/jane.fr.md`). When one language has both a plain file and a
+  bundle for an entry, the bundle is its translation, as it wins the
+  key. The index format is version 5.
+- **Why:** the author asked to close the gap (2026-10-04): whether an
+  entry is written as a file or a folder with its media is a choice
+  each translation can make for itself.
+
+### D-461: `hreflang` alternates
+
+- **Date:** 2026-10-04
+- **Status:** Built. The language switcher proposed alongside it is on
+  hold (the author: there's no light/dark switcher yet either); see
+  `open-questions.md`.
+- **Decision:**
+  - **Every theme gets them:** the page renderer adds `<link
+    rel="alternate" hreflang="…" href="…">` for each language a page is
+    in, its own language included, by the language's BCP 47 tag
+    (`Language::tag()`, `fr-FR`), and `hreflang="x-default"` for the
+    default language's version when there is one. Only on a
+    multilingual site, and only when the page is in two or more
+    languages. URLs are full, from the head's origin.
+  - **Controllers say where a page is in each language:**
+    `ContentPage::$alternateUrl` is a closure from a language code to
+    the page's path there, or `null`. A single or page: its translation,
+    when published and routable (`ContentController::translationUrl()`).
+    The homepage's `index.md`: its translation's language's homepage.
+    A collection or the home type's listing: the language's landing
+    page translation (page 1), or the same page of the listing when the
+    language's entries fill it. A term: its translation file (page 1),
+    or the same page of the term's listing in the language. A date
+    archive: the same page, when the language has entries then.
+    `listsPage()` counts the listing's query in the language. Profiles,
+    people archives, and the welcome page have none.
+  - `Head::link()` keys a link by its `hreflang` too, so one URL can be
+    both a language's alternate and `x-default`.
+- **Why:** the author's call (2026-10-04): what search engines need
+  under the hood comes before a visible switcher. The closure keeps the
+  per-kind rules with the controllers that already build each page's
+  query, and gives a future switcher (and sitemaps) the same data.
+
+### D-462: Component text and date archive titles in the page's language
+
+- **Date:** 2026-10-04
+- **Status:** Built. Found while adding Spanish to the jtcom trial.
+- **Decision:**
+  - `Component::t()` translates in its view context's locale, as
+    `$template->t()` does (D-456), so a component's text (a menu's
+    label, `progress`'s, a theme component's own) is in a translation's
+    language.
+  - A date archive's title is the date as an ICU skeleton in the page's
+    language (`y`, `yMMMM`, `yMMMMd`), first letter capitalized, then
+    `@ H`, `@ H:i`, or `@ H:i:s` for the finer levels. English titles
+    are what 1.x's PHP formats gave (`December 3, 2025 @ 14:30`); in
+    Spanish, `Diciembre de 2025`.
+- **Why:** both were English on a Spanish page of the jtcom trial
+  (2026-10-04). Still in the site's locale and noted for later: the
+  `time`, `progress`, `meter`, and `file` components' number and date
+  formatting (`AppConfig::$locale`).
+
+### D-463: Menu links follow the page's language
+
+- **Date:** 2026-10-04
+- **Status:** Built. Fixes a D-456 regression: `EntryLink` and
+  `CollectionLink` passed the page's locale to `named()`, whose last
+  argument became a language code, so they never found a translation.
+- **Decision:**
+  - `Languages::forLocale()` finds the language with a page's locale
+    (`null` for a locale no language has, such as an entry's own
+    `locale` front matter, which stays in the default language), so
+    `MenuLink::resolve()` keeps its `$locale` argument. Two languages
+    can't share a locale (config refuses it).
+  - On a translated page: an `entry` link is the entry's translation,
+    with its title, when published and routable; a `term` link is the
+    term's translation (found by the original's slug) at its translated
+    URL; a `collection` link is the language's listing when the
+    language has a landing page or entries for it, with the landing
+    translation's title. Anything without a translation links to the
+    original, never to a language URL that would 404. `route` and `url`
+    links are as written.
+  - Docs recommend leaving `label` off entry, term, and collection
+    links on a multilingual site, so the translated title shows.
+- **Why:** the author asked to bring the jtcom trial's menus to 2.x
+  style with translations (2026-10-04).
+
+### D-464: `$template->route()` follows the page's language
+
+- **Date:** 2026-10-04
+- **Status:** Built.
+- **Decision:** on a page in another language, `$template->route($name)`
+  returns the language's route (`{code}:{name}`, D-456) when one
+  exists, else the route as named. So `route('home')` is `/es` on a
+  Spanish page, and `route('post.collection.month', …)` is the Spanish
+  month archive; routes no language has (feeds, profiles, a site's own)
+  are unchanged. It reads `ViewContext::$language`, so it works in a
+  translation's Markdown components too (D-459). There's no opt-out
+  yet for a theme that wants the default language's route on a
+  translated page.
+- **Why:** the author asked for the jtcom trial's header title and its
+  post-archives component links to stay in the page's language
+  (2026-10-04); every theme gets the same without changing its calls.
+
+### D-465: Multilingual next steps, as the author ordered them
+
+- **Date:** 2026-10-04
+- **Status:** Direction; nothing built.
+- **Decision:** after the jtcom trial in Spanish (D-462 to D-464), the
+  author set the order of the remaining multilingual work:
+  - **Next:** the `time`, `progress`, `meter`, and `file` components
+    format numbers and dates in the page's locale, not
+    `AppConfig::$locale` (D-462's note). To fix.
+  - **Untranslated content is a config option** (the author: "I really
+    think we need a config option"): what a language's URL does when the
+    entry has no translation (404, or a redirect to the original), and
+    likely how lists treat untranslated entries. Its shape is open
+    (`open-questions.md`); today it's a 404.
+  - **Later, together:** sitemaps per language, then feeds and
+    `llms.txt` per language.
+  - **Later, with a design:** translations in the admin (listing,
+    editing, the Translate action, uploads, a strings editor).
+  - **On hold:** a language switcher (D-461).
+- **Also noted, not prioritized:** `Export\ExportSite::boot()` builds
+  its `AppConfig` without `description`, `dateFormat`, or `timeFormat`,
+  so a static export uses their defaults.

@@ -14,9 +14,15 @@ declare(strict_types=1);
 namespace Blush\Content\Http;
 
 use DateTimeImmutable;
+use IntlDateFormatter;
+use IntlDatePatternGenerator;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
+use Blush\Content\ContentRepository;
 use Blush\Content\Query\InvalidQuery;
+use Blush\Content\Routing\ContentUrls;
+use Blush\Content\Type\ContentTypes;
+use Blush\Core\AppConfig;
 use Blush\Http\NotFound;
 
 /**
@@ -28,16 +34,31 @@ use Blush\Http\NotFound;
 final class DateArchiveController extends ContentController
 {
 	/**
-	 * The title format for each archive level, as 1.x had them.
+	 * The title of each archive level, as 1.x had them (`December 3, 2025
+	 * @ 14:30`): the date as an ICU skeleton, written the way the page's
+	 * language writes it (D-462; `3 de diciembre de 2025` in Spanish),
+	 * then any time as digits.
+	 *
+	 * @var array<string, array{string, string}>
 	 */
 	private const array TITLES = [
-		'year'   => 'Y',
-		'month'  => 'F Y',
-		'day'    => 'F j, Y',
-		'hour'   => 'F j, Y @ H',
-		'minute' => 'F j, Y @ H:i',
-		'second' => 'F j, Y @ H:i:s'
+		'year'   => ['y', ''],
+		'month'  => ['yMMMM', ''],
+		'day'    => ['yMMMMd', ''],
+		'hour'   => ['yMMMMd', 'H'],
+		'minute' => ['yMMMMd', 'H:i'],
+		'second' => ['yMMMMd', 'H:i:s']
 	];
+
+	public function __construct(
+		ContentRepository $content,
+		ContentTypes $types,
+		ContentUrls $urls,
+		PageRenderer $renderer,
+		private readonly AppConfig $app
+	) {
+		parent::__construct($content, $types, $urls, $renderer);
+	}
 
 	/**
 	 * @throws NotFound
@@ -52,7 +73,8 @@ final class DateArchiveController extends ContentController
 		?int $hour = null,
 		?int $minute = null,
 		?int $second = null,
-		int $page = 1
+		int $page = 1,
+		?string $language = null
 	): ResponseInterface {
 		$contentType = $this->type($type);
 		$parts       = array_filter(compact('year', 'month', 'day', 'hour', 'minute', 'second'), static fn (?int $part): bool => $part !== null);
@@ -62,10 +84,10 @@ final class DateArchiveController extends ContentController
 		}
 
 		if ($page === 1 && self::isPaged($request)) {
-			return self::redirect($request, $this->urls->date($contentType, $parts) ?? '/');
+			return self::redirect($request, $this->urls->date($contentType, $parts, 1, $language) ?? '/');
 		}
 
-		$query = $this->query($contentType->listingArguments())->date($year, $month, $day, $hour, $minute, $second);
+		$query = $this->query($contentType->listingArguments())->date($year, $month, $day, $hour, $minute, $second)->language($language);
 
 		$entries = $this->paginate($query, $page);
 
@@ -77,12 +99,30 @@ final class DateArchiveController extends ContentController
 
 		return $this->renderer->render(new ContentPage(
 			kind: PageKind::Date,
-			title: $date->format(self::TITLES[array_key_last($parts)]),
+			title: $this->title($date, array_key_last($parts), $language),
 			type: $contentType,
 			entries: $entries,
 			date: $parts,
-			pageUrl: fn (int $number): ?string => $this->urls->date($contentType, $parts, $number)
+			pageUrl: fn (int $number): ?string => $this->urls->date($contentType, $parts, $number, $language),
+			language: $language,
+			alternateUrl: fn (string $code): ?string => $this->listsPage($query, $page, $code) ? $this->urls->date($contentType, $parts, $page, $code) : null
 		), $request);
+	}
+
+	/**
+	 * Returns an archive's title in a language (the default for `null`).
+	 */
+	private function title(DateTimeImmutable $date, string $level, ?string $language): string
+	{
+		[$skeleton, $time] = self::TITLES[$level] ?? self::TITLES['year'];
+
+		$locale    = ($language === null ? null : $this->app->languages->find($language)?->locale) ?? $this->app->locale;
+		$pattern   = new IntlDatePatternGenerator($locale)->getBestPattern($skeleton);
+		$formatter = new IntlDateFormatter($locale, IntlDateFormatter::NONE, IntlDateFormatter::NONE, $date->getTimezone(), null, $pattern ?: null);
+		$title     = $formatter->format($date);
+		$title     = is_string($title) ? mb_ucfirst($title) : $date->format('Y');
+
+		return $time === '' ? $title : "{$title} @ {$date->format($time)}";
 	}
 
 	/**

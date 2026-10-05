@@ -30,14 +30,14 @@ final class CollectionController extends ContentController
 	 * @throws NotFound
 	 * @throws InvalidQuery
 	 */
-	public function __invoke(ServerRequestInterface $request, string $type, int $page = 1): ResponseInterface
+	public function __invoke(ServerRequestInterface $request, string $type, int $page = 1, ?string $language = null): ResponseInterface
 	{
 		$contentType = $this->type($type);
 
 		if ($page === 1 && self::isPaged($request)) {
-			return self::redirect($request, $this->urls->collection($contentType) ?? '/');
+			return self::redirect($request, $this->urls->collection($contentType, 1, $language) ?? '/');
 		}
 
-		return $this->renderer->render($this->collectionPage($contentType, $page, PageKind::Collection), $request);
+		return $this->renderer->render($this->collectionPage($contentType, $page, PageKind::Collection, $language), $request);
 	}
 }

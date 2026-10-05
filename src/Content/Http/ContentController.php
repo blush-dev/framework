@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Blush\Content\Http;
 
+use Closure;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Blush\Content\ContentRepository;
@@ -38,6 +39,9 @@ use Blush\Http\Status;
  *   exception, since an empty one isn't a real page.
  * - A single entry reached by a URL that isn't its own (a wrong date in
  *   the path, say) redirects to its URL.
+ * - A language's routes (D-455) pass its code as `$language`; `null` is
+ *   the default language. A page in a language finds and lists only
+ *   that language's entries.
  */
 abstract class ContentController
 {
@@ -65,10 +69,10 @@ abstract class ContentController
 	 * @throws NotFound
 	 * @throws InvalidQuery
 	 */
-	protected function collectionPage(ContentType $type, int $page, PageKind $kind): ContentPage
+	protected function collectionPage(ContentType $type, int $page, PageKind $kind, ?string $language = null): ContentPage
 	{
-		$landing = $this->visible($this->content->named($type->name, ''));
-		$query   = $this->query($type->listingArguments(), self::collectionArguments($landing));
+		$landing = $this->visible($this->content->named($type->name, '', $language));
+		$query   = $this->query($type->listingArguments(), self::collectionArguments($landing))->language($language);
 
 		return new ContentPage(
 			kind: $kind,
@@ -76,9 +80,40 @@ abstract class ContentController
 			entry: $landing,
 			type: $type,
 			entries: $this->paginate($query, $page),
-			pageUrl: fn (int $number): ?string => $this->urls->collection($type, $number),
-			base: $kind === PageKind::Home ? PageKind::Collection : null
+			pageUrl: fn (int $number): ?string => $this->urls->collection($type, $number, $language),
+			base: $kind === PageKind::Home ? PageKind::Collection : null,
+			language: $language,
+			alternateUrl: fn (string $code): ?string => ($page === 1 && $this->visible($this->content->named($type->name, '', $code)) !== null) || $this->listsPage($query, $page, $code)
+				? $this->urls->collection($type, $page, $code)
+				: null
 		);
+	}
+
+	/**
+	 * Returns what gives an entry's URL path in a language (D-461): its
+	 * translation's, when that's published and routable.
+	 *
+	 * @return Closure(string): ?string
+	 */
+	protected function translationUrl(Entry $entry): Closure
+	{
+		return function (string $language) use ($entry): ?string {
+			$translation = $this->visible($this->content->translation($entry, $language));
+
+			return $translation === null ? null : $this->urls->entry($translation);
+		};
+	}
+
+	/**
+	 * Returns whether a listing's query has a page in a language: page 1
+	 * when it finds anything, and a later page when it finds more than
+	 * the pages before it hold.
+	 */
+	protected function listsPage(Query $query, int $page, string $language): bool
+	{
+		$count = $query->language($language)->limit(null)->offset(0)->count();
+
+		return $page === 1 ? $count > 0 : $query->limit !== null && $count > ($page - 1) * max(1, $query->limit);
 	}
 
 	/**
@@ -130,7 +165,7 @@ abstract class ContentController
 			return null;
 		}
 
-		$entries = $this->query($arguments)->get();
+		$entries = $this->query($arguments)->language($entry->language)->get();
 
 		return new Paginator($entries, max(1, count($entries)));
 	}

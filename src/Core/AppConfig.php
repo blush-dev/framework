@@ -33,11 +33,22 @@ use Blush\Env\Env;
  * `dateFormat` and `timeFormat` are how themes show dates and times
  * (D-445): a style the language defines (`full`, `long`, `medium`, or
  * `short`) or an ICU pattern (`MMMM d, y`, `HH:mm`); see `DateFormat`.
+ *
+ * `languages` are the languages content is written in besides the
+ * site's locale (D-455), by code: `['fr' => 'fr_FR']` or `['fr' =>
+ * ['locale' => 'fr_FR', 'label' => 'Français']]`; see `Languages`.
  */
 final readonly class AppConfig implements Config
 {
 	/**
+	 * The site's languages: the default (the site locale's) and any
+	 * others.
+	 */
+	public Languages $languages;
+
+	/**
 	 * @param list<class-string<ServiceProvider>> $providers The site's own service providers.
+	 * @param array<array-key, mixed>             $languages Other languages, by code (see `Languages`).
 	 * @throws InvalidConfig
 	 */
 	public function __construct(
@@ -50,7 +61,8 @@ final readonly class AppConfig implements Config
 		public array $providers = [],
 		public string $description = '',
 		public string $dateFormat = 'long',
-		public string $timeFormat = 'short'
+		public string $timeFormat = 'short',
+		array $languages = []
 	) {
 		if (Uri::parse($url) === null || ! preg_match('#^https?://#i', $url)) {
 			throw new InvalidConfig(sprintf('AppConfig "url" must be an absolute http(s) URL; "%s" given.', $url));
@@ -77,6 +89,8 @@ final readonly class AppConfig implements Config
 				));
 			}
 		}
+
+		$this->languages = Languages::fromArray($locale, $languages);
 	}
 
 	/**
@@ -134,7 +148,7 @@ final readonly class AppConfig implements Config
 	public static function fromArray(array $data): static
 	{
 		$values = new ConfigValues($data, self::class);
-		$values->assertKnownKeys(['name', 'url', 'environment', 'debug', 'timezone', 'locale', 'providers', 'description', 'dateFormat', 'timeFormat']);
+		$values->assertKnownKeys(['name', 'url', 'environment', 'debug', 'timezone', 'locale', 'providers', 'description', 'dateFormat', 'timeFormat', 'languages']);
 
 		$environment = $data['environment'] ?? null;
 
@@ -153,7 +167,8 @@ final readonly class AppConfig implements Config
 			providers: $providers,
 			description: $values->string('description', ''),
 			dateFormat: $values->string('dateFormat', 'long'),
-			timeFormat: $values->string('timeFormat', 'short')
+			timeFormat: $values->string('timeFormat', 'short'),
+			languages: self::languagesOf($data['languages'] ?? [])
 		);
 	}
 
@@ -173,7 +188,21 @@ final readonly class AppConfig implements Config
 			'providers'   => $this->providers,
 			'description' => $this->description,
 			'dateFormat'  => $this->dateFormat,
-			'timeFormat'  => $this->timeFormat
+			'timeFormat'  => $this->timeFormat,
+			'languages'   => $this->languages->toArray()
 		];
+	}
+
+	/**
+	 * Returns the `languages` value as a map, or throws.
+	 *
+	 * @return array<array-key, mixed>
+	 * @throws InvalidConfig
+	 */
+	private static function languagesOf(mixed $languages): array
+	{
+		return is_array($languages) && ($languages === [] || ! array_is_list($languages))
+			? $languages
+			: throw new InvalidConfig('AppConfig "languages" must map language codes to locales.');
 	}
 }

@@ -121,6 +121,7 @@ site with a message naming the problem.
 | `description` | `''` | One line about the site: the summary in `llms.txt`, and the homepage's meta description and feeds' descriptions when nothing more specific describes them |
 | `dateFormat` | `'long'` | How themes show dates: `full`, `long`, `medium`, or `short` follow the site's language (`October 4, 2026` in `en_US`); an [ICU pattern](https://unicode-org.github.io/icu/userguide/format_parse/datetime/#datetime-format-syntax) such as `'d MMMM y'` keeps its order in any language |
 | `timeFormat` | `'short'` | How themes show times, the same way: `short` is `2:30 PM` in `en_US`; `'HH:mm'` is always `14:30` |
+| `languages` | `[]` | Other languages your content is written in, by code: `['fr' => 'fr_FR']`, or `['fr' => ['locale' => 'fr_FR', 'label' => 'Français']]`. See [Translations](content.md#translations) |
 
 Without `config/app.php`, these come from the `APP_*` variables.
 

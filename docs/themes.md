@@ -408,6 +408,7 @@ What a template can use:
 | `$template->component('notebook/card', title: '...')` | Render a component (see [Components](components.md)) |
 | `$template->icon('house', 'Home')` | An icon, decorative or labeled (see [Icons](components.md#icons)) |
 | `$template->permalink($entry)` | An entry's URL |
+| `$template->route('home')` | A named route's URL (`bin/blush routes:list`), with any parameters: `route('post.collection.month', ['year' => 2026, 'month' => '05'])`. On a [translated](content.md#translations) page, it's that language's version when there is one (`/es` for `home`) |
 | `$template->terms($entry, 'tag')` | An entry's terms in a taxonomy |
 | `$template->people($entry, $field)` | The profiles an entry credits through a [people field](content-types.md#crediting-people), in order; the type's first people field (its byline) when `$field` is left out |
 | `$template->bylineUrl($profile, $entry, $field)` | Where a byline links: the person's archive under the entry's type and field, such as `/blog/authors/jane`, else their profile's page, else `''` |
@@ -417,7 +418,7 @@ What a template can use:
 | `$template->parent($entry)` | A page's parent page (from its folder) or a term's parent term, if published |
 | `$template->ancestors($entry)` | Its parents from the top down, for breadcrumbs |
 | `$template->children($entry)` | A page's subpages or a term's child terms, published, by `position` and then title |
-| `$template->date($entry->published)` | A date in the site's date format and language |
+| `$template->date($entry->published)` | A date in the site's date format and the page's language; or give an [ICU pattern](https://unicode-org.github.io/icu/userguide/format_parse/datetime/#datetime-format-syntax), such as `'MMMM y'` |
 | `$template->time($entry->published)` | A time in the site's time format |
 | `$template->datetime($entry->published)` | Both, joined as the site's language joins them (`October 4, 2026 at 2:30 PM`) |
 | `$template->setting('name')` | A theme setting |
@@ -478,7 +479,8 @@ the body is cut short, such as a "Continue reading" link:
 ```
 
 Blush fills in the `<head>` for you: the title, the canonical URL,
-OpenGraph tags, feed links, and on an entry's page, a description (its
+OpenGraph tags, feed links, `hreflang` links to the page in your
+site's other [languages](content.md#translations), and on an entry's page, a description (its
 `summary`, or the start of its text) and, when the entry has an `image`
 field, `og:image` and a Twitter card. Add or replace any tag with
 `$template->head()`, or drop one with `remove()`, such as your stylesheet on

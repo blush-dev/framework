@@ -106,6 +106,76 @@ Today's the day...
 
 A `_` at the start of a folder name hides everything inside it.
 
+## Translations
+
+To write your site in more than one language, list the other languages
+in `config/app.php`. Your site's `locale` is the default language; the
+others are named by a short code:
+
+```php
+return new AppConfig(
+	locale: 'en_US',
+	languages: [
+		'fr'    => ['locale' => 'fr_FR', 'label' => 'Français'],
+		'pt-br' => 'pt_BR'
+	]
+);
+```
+
+Codes are lowercase, with hyphens (`fr`, `pt-br`). Then translate a file
+by copying it beside the original with the code before the extension:
+
+| Original | French translation | French URL |
+|---|---|---|
+| `about.md` | `about.fr.md` | `/fr/about` |
+| `about/index.md` | `about/index.fr.md` | `/fr/about` |
+| `_posts/2026-10-04.hello.md` | `_posts/2026-10-04.hello.fr.md` | The post's URL, under `/fr` |
+| `topics/music.md` | `topics/music.fr.md` | `/fr/topics/music` |
+
+A translation can be a plain file or a folder, whatever its original
+is: `about/index.md` and `about.fr.md` are translations of each other.
+
+The default language keeps its URLs; every other language's are under
+its code. Give a translation its own `slug` to translate its URL too:
+`about.fr.md` with `slug: a-propos` is at `/fr/a-propos`. Pages inside a
+translated page's folder use its translated slug: with that,
+`about/biography.fr.md` (`slug: biographie`) is at
+`/fr/a-propos/biographie`. A folder whose page isn't translated keeps
+its name.
+
+Each language lists only its own entries: `/fr` and the French
+collections, topics, and date archives show only the French
+translations. A French page is shown in French: its dates, `<html
+lang="fr-FR">`, and the theme's text when the theme is translated.
+Date archive titles are written the language's way too
+(`3 de diciembre de 2025`). Components follow the page as well, in
+templates and in Markdown: a
+`::app/recent-posts` in `about.fr.md` lists the French posts.
+
+Each page tells search engines about its versions in other languages
+with `hreflang` links in its `<head>`: a page's published translations,
+and for the homepage, collections, topics, and date archives, the same
+page in each language that has entries for it. The default language's
+version is also the `x-default`. A page in only one language has none.
+
+When you translate a topic or tag, keep the original's name in your
+entries' front matter (`category: music`, not `musique`); the French
+entries still find the French topic. The same goes for a topic's
+`parent`: write the original's name, and the French topic's parent is
+its French translation.
+
+A few things don't work in other languages yet:
+
+- A page that isn't translated has no French address: `/fr/about` is
+  "not found" until `about.fr.md` exists.
+- Feeds, sitemaps, `llms.txt`, profiles, and author archives are in the
+  default language only.
+- The admin shows and edits only the default language's entries; edit
+  translations as files.
+
+`bin/blush content:lint` warns about a file named with the default
+language's code beside the original (`about.en.md` next to `about.md`).
+
 ## Error pages
 
 Create `user/content/_errors/404.md` to write your own "not found" page:

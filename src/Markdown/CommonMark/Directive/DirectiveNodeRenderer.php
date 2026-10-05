@@ -15,6 +15,7 @@ namespace Blush\Markdown\CommonMark\Directive;
 
 use InvalidArgumentException;
 use Override;
+use League\CommonMark\Node\Block\Document;
 use League\CommonMark\Node\Node;
 use League\CommonMark\Renderer\ChildNodeRendererInterface;
 use League\CommonMark\Renderer\NodeRendererInterface;
@@ -30,6 +31,12 @@ use Blush\Markdown\DirectiveRenderer;
  */
 final readonly class DirectiveNodeRenderer implements NodeRendererInterface
 {
+	/**
+	 * The document data key holding the language the Markdown is written
+	 * in (D-459), which each directive is given.
+	 */
+	public const string LANGUAGE = 'blush_language';
+
 	public function __construct(
 		private ?DirectiveRenderer $renderer = null
 	) {}
@@ -47,7 +54,29 @@ final readonly class DirectiveNodeRenderer implements NodeRendererInterface
 			default                             => throw new InvalidArgumentException('Not a directive node: ' . $node::class)
 		};
 
+		$language = self::language($node);
+
+		if ($language !== '') {
+			$directive = new Directive($directive->name, $directive->kind, $directive->attributes, $directive->label, $directive->content, $directive->outline, $language);
+		}
+
 		return $this->renderer?->render($directive) ?? $fallback;
+	}
+
+	/**
+	 * Returns the language the node's document is written in, or `''`.
+	 */
+	private static function language(Node $node): string
+	{
+		$root = $node;
+
+		while ($root->parent() !== null) {
+			$root = $root->parent();
+		}
+
+		$language = $root instanceof Document ? $root->data->get(self::LANGUAGE, '') : '';
+
+		return is_string($language) ? $language : '';
 	}
 
 	/**

@@ -113,7 +113,7 @@ final readonly class ComponentDirectives implements DirectiveRenderer
 		}
 
 		try {
-			$html = $views->component($directive->name, $props, $directive->content, new Slots(), $factory->fragment());
+			$html = $views->component($directive->name, $props, $directive->content, new Slots(), $factory->fragment($directive->language));
 		} catch (ViewNotFound $error) {
 			if (! $outside) {
 				throw $error;

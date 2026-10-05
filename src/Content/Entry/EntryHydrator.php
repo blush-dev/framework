@@ -23,6 +23,7 @@ use Blush\Content\Status;
 use Blush\Content\Type\ContentType;
 use Blush\Content\Type\ContentTypes;
 use Blush\Content\Visibility;
+use Blush\Core\AppConfig;
 use Blush\Field\FieldContext;
 use Blush\Markdown\MarkdownParser;
 
@@ -43,6 +44,7 @@ final readonly class EntryHydrator
 		private DocumentParsers $parsers,
 		private MarkdownParser $markdown,
 		private ClockInterface $clock,
+		private AppConfig $app,
 		private ?BodyCache $cache = null
 	) {}
 
@@ -67,7 +69,8 @@ final readonly class EntryHydrator
 			terms: $record->terms,
 			landing: $record->landing,
 			source: $record->source(),
-			body: $this->body($record)
+			body: $this->body($record),
+			language: $record->language
 		);
 	}
 
@@ -76,7 +79,7 @@ final readonly class EntryHydrator
 	 * file. Its title is the term as first written, and it's as current
 	 * as the index.
 	 */
-	public function virtual(ContentType $type, string $slug, string $title, int $updated, string $locale): Entry
+	public function virtual(ContentType $type, string $slug, string $title, int $updated, string $locale, string $language = ''): Entry
 	{
 		return new Entry(
 			id: "virtual:{$type->name}/{$slug}",
@@ -94,7 +97,8 @@ final readonly class EntryHydrator
 			terms: [],
 			landing: false,
 			source: null,
-			body: new Body(new BodySource(), $this->markdown)
+			body: new Body(new BodySource(), $this->markdown),
+			language: $language
 		);
 	}
 
@@ -110,7 +114,7 @@ final readonly class EntryHydrator
 			$source->__construct($document->body, $document->format);
 		});
 
-		return new Body($source, $this->markdown, $this->cache, $record->hash);
+		return new Body($source, $this->markdown, $this->cache, $record->hash, $this->app->languages->isOther($record->language) ? $record->language : '');
 	}
 
 	/**

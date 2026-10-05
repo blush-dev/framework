@@ -17,6 +17,7 @@ use Override;
 use Blush\Content\Http\HomeController;
 use Blush\Content\Http\PageController;
 use Blush\Content\Type\ContentTypes;
+use Blush\Core\AppConfig;
 use Blush\Routing\Route;
 use Blush\Routing\RoutePriority;
 use Blush\Routing\RouteSource;
@@ -27,6 +28,11 @@ use Blush\Routing\RouteSource;
  * type is the homepage, and the page catch-all (`page.single`), which
  * serves pages at their folder paths. A site's own `/` route in
  * `config/routes.php` replaces the homepage.
+ *
+ * Each language other than the default (D-455) has its own catch-all
+ * ahead of the default's, `/{code}/{path}` (`fr:page.single`); its
+ * homepage routes are `ContentRoutes`', so a type at the root can't take
+ * them.
  */
 final readonly class PageRoutes implements RouteSource
 {
@@ -35,8 +41,10 @@ final readonly class PageRoutes implements RouteSource
 	 */
 	public const string SINGLE = 'page.single';
 
-	public function __construct(private ContentTypes $types)
-	{}
+	public function __construct(
+		private ContentTypes $types,
+		private AppConfig $app
+	) {}
 
 	/**
 	 * @inheritDoc
@@ -58,6 +66,10 @@ final readonly class PageRoutes implements RouteSource
 
 		if ($this->types->homeType() !== null) {
 			$routes[] = ContentRoutes::route('/page/{page}', HomeController::class, 'home.paged');
+		}
+
+		foreach (array_keys($this->app->languages->others()) as $code) {
+			array_push($routes, ...ContentRoutes::localized($code, [Route::get('/{path:.+}', PageController::class)->named(self::SINGLE)]));
 		}
 
 		$routes[] = Route::get('/{path:.+}', PageController::class)->named(self::SINGLE);

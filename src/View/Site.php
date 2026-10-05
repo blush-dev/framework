@@ -35,15 +35,18 @@ final readonly class Site
 	) {}
 
 	/**
-	 * Builds the site from the app config.
+	 * Builds the site from the app config, in a page's locale (a
+	 * translation's, D-455) or the site's.
 	 */
-	public static function fromConfig(AppConfig $app): self
+	public static function fromConfig(AppConfig $app, ?string $locale = null): self
 	{
+		$locale ??= $app->locale;
+
 		return new self(
 			name: $app->name,
 			url: $app->url,
-			locale: $app->locale,
-			lang: str_replace('_', '-', $app->locale),
+			locale: $locale,
+			lang: str_replace('_', '-', $locale),
 			description: $app->description
 		);
 	}

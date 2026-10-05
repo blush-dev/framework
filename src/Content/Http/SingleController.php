@@ -30,9 +30,9 @@ final class SingleController extends ContentController
 	 * @throws NotFound
 	 * @throws InvalidQuery
 	 */
-	public function __invoke(ServerRequestInterface $request, string $type, string $name): ResponseInterface
+	public function __invoke(ServerRequestInterface $request, string $type, string $name, ?string $language = null): ResponseInterface
 	{
-		$entry = $this->visible($this->content->named($this->type($type)->name, $name));
+		$entry = $this->visible($this->content->named($this->type($type)->name, $name, $language));
 
 		if ($entry === null || $entry->landing) {
 			throw new NotFound(sprintf('There is no "%s" entry named "%s".', $type, $name));
@@ -43,7 +43,8 @@ final class SingleController extends ContentController
 			title: $entry->title,
 			entry: $entry,
 			type: $entry->type,
-			entries: $this->ownCollection($entry)
+			entries: $this->ownCollection($entry),
+			alternateUrl: $this->translationUrl($entry)
 		), $request);
 	}
 }

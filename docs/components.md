@@ -521,6 +521,13 @@ final class RecentPosts extends Component
   and a value the enum doesn't have falls back to the default.
 - **`label`** gets the Markdown label (`::app/recent-posts[Latest]`), if
   the constructor takes it.
+- **The `ContentRepository` follows the page's language.** On a
+  [translated](content.md#translations) page, such as `/fr/a-propos`,
+  `$this->content->query()` finds French entries and `term()` finds French
+  topics, so `posts()` above lists the French posts, whether a template
+  or a translation's Markdown uses the component. Ask for another
+  language with `->language('en')`, or every language with
+  `->anyLanguage()`.
 - **Name the content for its role.** A component's main content is
   `$this->content()`: a `:::` block's HTML, or the escaped label for `::`
   and `:`. When it has a role, such as a caption or a title, add a method
@@ -552,7 +559,7 @@ final class RecentPosts extends Component
   (`$this->block() . '__wrapper'`), so the template is just
   `<div <?= $component->wrapperAttributes() ?>>`.
 - **`$this->t('key', name: 'value')`** translates text from the theme's
-  catalog, as `$template->t()` does.
+  catalog, as `$template->t()` does, in the page's language.
 - **`#[MediaProp]`** on a string parameter makes it a media reference:
   in Markdown, `src=photo.jpg` is found like an image's (next to the
   entry, or in the media folder) and arrives as its full URL.

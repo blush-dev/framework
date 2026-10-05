@@ -48,19 +48,23 @@ final class HomeController extends ContentController
 	 * @throws NotFound
 	 * @throws InvalidQuery
 	 */
-	public function __invoke(ServerRequestInterface $request, int $page = 1): ResponseInterface
+	public function __invoke(ServerRequestInterface $request, int $page = 1, ?string $language = null): ResponseInterface
 	{
 		$home = $this->types->homeType();
 
 		if ($home !== null) {
 			if ($page === 1 && self::isPaged($request)) {
-				return self::redirect($request, '/');
+				return self::redirect($request, $this->urls->home($language));
 			}
 
-			return $this->renderer->render($this->collectionPage($home, $page, PageKind::Home), $request);
+			return $this->renderer->render($this->collectionPage($home, $page, PageKind::Home, $language), $request);
 		}
 
-		$index = $this->visible($this->content->named($this->types->forFile('index.md')->name, ''));
+		$index = $this->visible($this->content->named($this->types->forFile('index.md')->name, '', $language));
+
+		if ($index === null && $language !== null) {
+			throw new NotFound(sprintf('There is no "%s" homepage.', $language));
+		}
 
 		if ($index === null) {
 			return $this->renderer->render(new ContentPage(kind: PageKind::Welcome, title: '', welcome: $this->welcome->make()), $request);
@@ -72,7 +76,8 @@ final class HomeController extends ContentController
 			entry: $index,
 			type: $index->type,
 			entries: $this->ownCollection($index),
-			base: PageKind::Page
+			base: PageKind::Page,
+			alternateUrl: fn (string $code): ?string => $this->visible($this->content->translation($index, $code)) === null ? null : $this->urls->home($code)
 		), $request);
 	}
 }

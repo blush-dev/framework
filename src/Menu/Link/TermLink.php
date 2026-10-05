@@ -18,6 +18,7 @@ use Blush\Content\ContentRepository;
 use Blush\Content\Routing\ContentUrls;
 use Blush\Content\Type\ContentTypes;
 use Blush\Content\Type\Taxonomy;
+use Blush\Core\AppConfig;
 
 /**
  * Links to a taxonomy term's archive: `term: category/art`. The term's
@@ -28,7 +29,8 @@ final class TermLink extends MenuLink
 	public function __construct(
 		private readonly ContentRepository $content,
 		private readonly ContentTypes $types,
-		private readonly ContentUrls $urls
+		private readonly ContentUrls $urls,
+		private readonly AppConfig $app
 	) {}
 
 	/**
@@ -75,7 +77,13 @@ final class TermLink extends MenuLink
 			throw new UnresolvedLink(sprintf('No published term "%s".', $value));
 		}
 
-		$url = $this->urls->term($taxonomy, $slug) ?? throw new UnresolvedLink(sprintf('The term "%s" has no URL.', $value));
+		// On a translated page, its translation when it has one (D-463).
+		$language    = $this->app->languages->forLocale($locale)?->code;
+		$translation = $language === null ? null : $this->content->term($name, $slug, $language);
+		$translated  = $translation !== null && ! $translation->isVirtual() && $translation->language === $language && $translation->isPublished() && $translation->isRoutable();
+		$term        = $translated ? $translation : $term;
+
+		$url = $this->urls->term($taxonomy, $slug, 1, $translated ? $language : null) ?? throw new UnresolvedLink(sprintf('The term "%s" has no URL.', $value));
 
 		return new LinkTarget($url, $term->title);
 	}

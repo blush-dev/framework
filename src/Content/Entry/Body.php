@@ -29,13 +29,15 @@ final class Body
 	private ?string $html = null;
 
 	/**
-	 * @param string $hash The source file's content hash, which keys the cache.
+	 * @param string $hash     The source file's content hash, which keys the cache.
+	 * @param string $language The code of the entry's language when it isn't the default (D-459), which its components follow, or `''`.
 	 */
 	public function __construct(
 		private readonly BodySource $source,
 		private readonly MarkdownParser $markdown,
 		private readonly ?BodyCache $cache = null,
-		private readonly string $hash = ''
+		private readonly string $hash = '',
+		private readonly string $language = ''
 	) {}
 
 	/**
@@ -63,7 +65,7 @@ final class Body
 	{
 		return $this->html ??= $this->cache === null || $this->hash === ''
 			? $this->render()
-			: $this->cache->remember("body.{$this->hash}", $this->render(...));
+			: $this->cache->remember("body.{$this->key()}", $this->render(...));
 	}
 
 	/**
@@ -73,11 +75,11 @@ final class Body
 	 */
 	public function markdown(string $markdown): string
 	{
-		$render = fn (): string => $this->markdown->toHtml($markdown);
+		$render = fn (): string => $this->markdown->toHtml($markdown, $this->language);
 
 		return $this->cache === null
 			? $render()
-			: $this->cache->remember('markdown.' . hash('xxh128', $markdown), $render);
+			: $this->cache->remember('markdown.' . hash('xxh128', $markdown) . ($this->language === '' ? '' : ".{$this->language}"), $render);
 	}
 
 	/**
@@ -106,7 +108,7 @@ final class Body
 
 		return $this->cache === null || $this->hash === ''
 			? $extract()
-			: $this->cache->remember("excerpt.{$this->hash}.{$words}." . hash('xxh32', $more), $extract);
+			: $this->cache->remember("excerpt.{$this->key()}.{$words}." . hash('xxh32', $more), $extract);
 	}
 
 	/**
@@ -119,7 +121,7 @@ final class Body
 	{
 		$count = fn (): string => (string) count($this->words());
 
-		return (int) ($this->cache === null || $this->hash === '' ? $count() : $this->cache->remember("words.{$this->hash}", $count));
+		return (int) ($this->cache === null || $this->hash === '' ? $count() : $this->cache->remember("words.{$this->key()}", $count));
 	}
 
 	/**
@@ -147,6 +149,15 @@ final class Body
 	 */
 	private function render(): string
 	{
-		return $this->source->format === BodyFormat::Html ? $this->source->text : $this->markdown->toHtml($this->source->text);
+		return $this->source->format === BodyFormat::Html ? $this->source->text : $this->markdown->toHtml($this->source->text, $this->language);
+	}
+
+	/**
+	 * Returns what keys the body's cached renderings: its hash, and its
+	 * language when it isn't the default, since its components follow it.
+	 */
+	private function key(): string
+	{
+		return $this->language === '' ? $this->hash : "{$this->hash}.{$this->language}";
 	}
 }

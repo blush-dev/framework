@@ -35,6 +35,11 @@ use Blush\Setup\Welcome;
  * that archive when there is one, else the profile itself.
  *
  * The welcome page carries its `Welcome` notes.
+ *
+ * `$alternateUrl` returns the page's URL path in another language (by
+ * code), or `null` when it has none there (D-461): a single's published
+ * translation, or the same page of a listing in a language that lists
+ * entries for it. The renderer turns them into `hreflang` alternates.
  */
 final readonly class ContentPage
 {
@@ -47,6 +52,8 @@ final readonly class ContentPage
 	 * @param ?PeopleField               $people  The people field a people list or person's archive is for.
 	 * @param ?Entry                     $profile The profile a person's archive or profile page is about.
 	 * @param ?Welcome                   $welcome The welcome page's notes.
+	 * @param ?string                    $language The code of the language the page is in (D-455), when it's a list in another language; `null` for its entry's or the default.
+	 * @param ?Closure(string): ?string  $alternateUrl Returns the page's URL path in a language, or `null`.
 	 */
 	public function __construct(
 		public PageKind $kind,
@@ -59,8 +66,19 @@ final readonly class ContentPage
 		public ?PageKind $base = null,
 		public ?PeopleField $people = null,
 		public ?Entry $profile = null,
-		public ?Welcome $welcome = null
+		public ?Welcome $welcome = null,
+		public ?string $language = null,
+		public ?Closure $alternateUrl = null
 	) {}
+
+	/**
+	 * Returns the page's URL path in a language (by code), or `null`
+	 * when it has none there.
+	 */
+	public function alternateUrl(string $language): ?string
+	{
+		return $this->alternateUrl === null ? null : ($this->alternateUrl)($language);
+	}
 
 	/**
 	 * Returns the URL path of a page of the listing.

@@ -37,26 +37,29 @@ final class TermController extends ContentController
 	 * @throws NotFound
 	 * @throws InvalidQuery
 	 */
-	public function __invoke(ServerRequestInterface $request, string $type, string $name, int $page = 1): ResponseInterface
+	public function __invoke(ServerRequestInterface $request, string $type, string $name, int $page = 1, ?string $language = null): ResponseInterface
 	{
 		$taxonomy = $this->type($type);
-		$term     = $taxonomy instanceof Taxonomy ? $this->visible($this->content->term($taxonomy->name, basename($name))) : null;
+		$term     = $taxonomy instanceof Taxonomy ? $this->visible($this->content->term($taxonomy->name, basename($name), $language)) : null;
 
 		if ($term === null) {
 			throw new NotFound(sprintf('There is no "%s" term "%s".', $type, $name));
 		}
 
+		// Entries name a term by its original's slug (D-455).
+		$slug = $language === null ? $term->slug : $this->urls->originalKey($term);
+
 		if ($page === 1 && self::isPaged($request)) {
-			return self::redirect($request, $this->urls->term($taxonomy, $term->slug) ?? '/');
+			return self::redirect($request, $this->urls->term($taxonomy, $slug, 1, $language) ?? '/');
 		}
 
-		$url = $this->urls->term($taxonomy, $term->slug, $page);
+		$url = $this->urls->term($taxonomy, $slug, $page, $language);
 
 		if ($url !== null && $url !== $request->getUri()->getPath()) {
 			return self::redirect($request, $url);
 		}
 
-		$query = $this->query($taxonomy->termArguments(), self::collectionArguments($term))->whereTerm($taxonomy->name, $term->slug);
+		$query = $this->query($taxonomy->termArguments(), self::collectionArguments($term))->whereTerm($taxonomy->name, $slug)->language($language);
 
 		return $this->renderer->render(new ContentPage(
 			kind: PageKind::Term,
@@ -64,7 +67,12 @@ final class TermController extends ContentController
 			entry: $term,
 			type: $taxonomy,
 			entries: $this->paginate($query, $page),
-			pageUrl: fn (int $number): ?string => $this->urls->term($taxonomy, $term->slug, $number)
+			pageUrl: fn (int $number): ?string => $this->urls->term($taxonomy, $slug, $number, $language),
+			alternateUrl: function (string $code) use ($taxonomy, $slug, $page, $query): ?string {
+				$term = $page === 1 ? $this->visible($this->content->term($taxonomy->name, $slug, $code)) : null;
+
+				return ($term !== null && ! $term->isVirtual()) || $this->listsPage($query, $page, $code) ? $this->urls->term($taxonomy, $slug, $page, $code) : null;
+			}
 		), $request);
 	}
 }

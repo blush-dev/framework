@@ -19,15 +19,25 @@ use Blush\Content\Status;
  * The whole content index at one moment: every record, plus lookups
  * derived from them when the index is built, so reading needs no work:
  *
- * - `keys` finds an entry by locale, type, and key (D-036: index keys
- *   include the locale). When two files claim one key, a bundle's
- *   `index` file wins over a plain file (1.x's page lookup order), and
- *   the clash is kept in `conflicts` for `content:lint`.
+ * - `keys` finds an entry by language, type, and key (D-036, D-455:
+ *   each language's entries have their own keys). When two files claim
+ *   one key, a bundle's `index` file wins over a plain file (1.x's page
+ *   lookup order), then a file without a language suffix over one with
+ *   the default language's (`about.md` over `about.en.md`), and the
+ *   clash is kept in `conflicts` for `content:lint`.
  * - `terms` is the reverse of each record's terms: the entries that
  *   reference each term, by taxonomy and slug.
  * - `labels` keeps the first label written for each term.
  * - `children` is the reverse of each record's parent: the entries
- *   under each parent, by locale, type, and parent key.
+ *   under each parent, by language, type, and parent key.
+ * - `translations` links each file to its translations (D-455): the
+ *   entries of each translation group (`IndexRecord::groupOf()`, which
+ *   links a plain file with a bundle, D-460), by language.
+ * - A translation's key and parent are put in its language first
+ *   (D-457): each folder above it that has a translation in the
+ *   language takes that translation's key, and a parent named by its
+ *   original's key takes its translation's, so `about/biography.fr.md`
+ *   is `a-propos/biographie` when `about/index.fr.md` is `a-propos`.
  * - `scheduled` is the earliest publish time still to come when the
  *   index was built, for cache invalidation.
  * - `fingerprint` identifies what the records were built with (content
@@ -43,6 +53,7 @@ use Blush\Content\Status;
  *     terms: array<string, array<string, list<string>>>,
  *     labels: array<string, array<string, string>>,
  *     children: array<string, array<string, array<string, list<string>>>>,
+ *     translations: array<string, array<string, string>>,
  *     conflicts: array<string, list<string>>,
  *     scheduled: ?int
  * }
@@ -53,15 +64,16 @@ final readonly class IndexSnapshot
 	 * The index format's version. A stored index with another version is
 	 * rebuilt.
 	 */
-	public const int VERSION = 2;
+	public const int VERSION = 5;
 
 	/**
 	 * @param array<string, RecordArray>                                $records   Keyed by ID, sorted by ID.
-	 * @param array<string, array<string, array<string, string>>>       $keys      IDs by locale, type, and key.
+	 * @param array<string, array<string, array<string, string>>>       $keys      IDs by language, type, and key.
 	 * @param array<string, array<string, list<string>>>                $terms     Referencing IDs by taxonomy and slug.
 	 * @param array<string, array<string, string>>                      $labels    Term labels by taxonomy and slug.
-	 * @param array<string, array<string, array<string, list<string>>>> $children  IDs by locale, type, and parent key.
-	 * @param array<string, list<string>>                               $conflicts IDs claiming one `locale/type/key`.
+	 * @param array<string, array<string, array<string, list<string>>>> $children  IDs by language, type, and parent key.
+	 * @param array<string, list<string>>                               $conflicts IDs claiming one `language/type/key`.
+	 * @param array<string, array<string, string>>                      $translations IDs by translation group and language.
 	 */
 	private function __construct(
 		public string $fingerprint,
@@ -72,7 +84,8 @@ final readonly class IndexSnapshot
 		public array $labels,
 		public array $children,
 		public array $conflicts,
-		public ?int $scheduled
+		public ?int $scheduled,
+		public array $translations = []
 	) {}
 
 	/**
@@ -98,21 +111,28 @@ final readonly class IndexSnapshot
 
 		ksort($byId, SORT_STRING);
 
+		$byId = new TranslatedKeys($byId)->records();
+
 		$keys      = [];
 		$claims    = [];
 		$terms     = [];
 		$labels    = [];
 		$children  = [];
 		$scheduled = null;
+		$linked    = [];
 
 		foreach ($byId as $id => $record) {
-			$claims["{$record['locale']}/{$record['type']}/{$record['key']}"][] = $id;
+			$language = $record['language'];
 
-			$current = $keys[$record['locale']][$record['type']][$record['key']] ?? null;
+			$claims["{$language}/{$record['type']}/{$record['key']}"][] = $id;
 
-			if ($current === null || (! self::isBundle($current) && self::isBundle($id))) {
-				$keys[$record['locale']][$record['type']][$record['key']] = $id;
+			$current = $keys[$language][$record['type']][$record['key']] ?? null;
+
+			if ($current === null || self::wins($record, $byId[$current])) {
+				$keys[$language][$record['type']][$record['key']] = $id;
 			}
+
+			$linked[IndexRecord::groupOf($record)][$language][] = $id;
 
 			foreach ($record['terms'] as $taxonomy => $slugs) {
 				foreach ($slugs as $slug) {
@@ -121,7 +141,7 @@ final readonly class IndexSnapshot
 			}
 
 			if ($record['parent'] !== null) {
-				$children[$record['locale']][$record['type']][$record['parent']][] = $id;
+				$children[$language][$record['type']][$record['parent']][] = $id;
 			}
 
 			foreach ($record['labels'] as $taxonomy => $termLabels) {
@@ -130,6 +150,16 @@ final readonly class IndexSnapshot
 
 			if ($record['status'] === Status::Published->value && $record['published'] !== null && $record['published'] > $built) {
 				$scheduled = min($scheduled ?? PHP_INT_MAX, $record['published']);
+			}
+		}
+
+		$translations = [];
+
+		foreach ($linked as $group => $languages) {
+			if (count($languages) > 1) {
+				foreach ($languages as $language => $ids) {
+					$translations[$group][$language] = self::preferred($ids, $byId);
+				}
 			}
 		}
 
@@ -142,7 +172,8 @@ final readonly class IndexSnapshot
 			$labels,
 			$children,
 			array_filter($claims, static fn (array $ids): bool => count($ids) > 1),
-			$scheduled
+			$scheduled,
+			$translations
 		);
 	}
 
@@ -181,11 +212,24 @@ final readonly class IndexSnapshot
 	}
 
 	/**
-	 * Returns the ID of the entry with a key in a type and locale.
+	 * Returns the ID of the entry with a key in a type and language.
 	 */
-	public function find(string $locale, string $type, string $key): ?string
+	public function find(string $language, string $type, string $key): ?string
 	{
-		return $this->keys[$locale][$type][trim($key, '/')] ?? null;
+		return $this->keys[$language][$type][trim($key, '/')] ?? null;
+	}
+
+	/**
+	 * Returns the IDs of an entry and its translations, by language
+	 * code, or `[]` when it has none.
+	 *
+	 * @return array<string, string>
+	 */
+	public function translations(string $id): array
+	{
+		$record = $this->records[$id] ?? null;
+
+		return $record === null ? [] : $this->translations[IndexRecord::groupOf($record)] ?? [];
 	}
 
 	/**
@@ -200,13 +244,13 @@ final readonly class IndexSnapshot
 
 	/**
 	 * Returns the IDs of the entries whose parent is a key in a type and
-	 * locale.
+	 * language.
 	 *
 	 * @return list<string>
 	 */
-	public function children(string $locale, string $type, string $key): array
+	public function children(string $language, string $type, string $key): array
 	{
-		return $this->children[$locale][$type][$key] ?? [];
+		return $this->children[$language][$type][$key] ?? [];
 	}
 
 	/**
@@ -234,16 +278,17 @@ final readonly class IndexSnapshot
 	public function toArray(): array
 	{
 		return [
-			'version'     => self::VERSION,
-			'fingerprint' => $this->fingerprint,
-			'built'       => $this->built,
-			'records'     => $this->records,
-			'keys'        => $this->keys,
-			'terms'       => $this->terms,
-			'labels'      => $this->labels,
-			'children'    => $this->children,
-			'conflicts'   => $this->conflicts,
-			'scheduled'   => $this->scheduled
+			'version'      => self::VERSION,
+			'fingerprint'  => $this->fingerprint,
+			'built'        => $this->built,
+			'records'      => $this->records,
+			'keys'         => $this->keys,
+			'terms'        => $this->terms,
+			'labels'       => $this->labels,
+			'children'     => $this->children,
+			'translations' => $this->translations,
+			'conflicts'    => $this->conflicts,
+			'scheduled'    => $this->scheduled
 		];
 	}
 
@@ -269,15 +314,48 @@ final readonly class IndexSnapshot
 			$data['labels'],
 			$data['children'],
 			$data['conflicts'],
-			$data['scheduled']
+			$data['scheduled'],
+			$data['translations']
 		);
 	}
 
 	/**
-	 * Returns whether an ID is a bundle's `index` file.
+	 * Returns whether a record wins a key over the one holding it: a
+	 * bundle's `index` file over a plain file, then a file without a
+	 * language suffix over one with the default language's.
+	 *
+	 * @param RecordArray $record
+	 * @param RecordArray $current
 	 */
-	private static function isBundle(string $id): bool
+	public static function wins(array $record, array $current): bool
 	{
-		return pathinfo($id, PATHINFO_FILENAME) === 'index';
+		$bundle = self::isBundle($record);
+
+		return $bundle !== self::isBundle($current)
+			? $bundle
+			: $record['original'] === null && $current['original'] !== null;
+	}
+
+	/**
+	 * Returns which of the IDs one language claims a path with links as
+	 * its translation: the one that would win its key.
+	 *
+	 * @param  non-empty-list<string>     $ids
+	 * @param  array<string, RecordArray> $records
+	 */
+	public static function preferred(array $ids, array $records): string
+	{
+		return array_reduce($ids, static fn (string $best, string $id): string => self::wins($records[$id], $records[$best]) ? $id : $best, $ids[0]);
+	}
+
+	/**
+	 * Returns whether a record is a bundle's `index` file, with or
+	 * without a language suffix.
+	 *
+	 * @param RecordArray $record
+	 */
+	private static function isBundle(array $record): bool
+	{
+		return pathinfo($record['original'] ?? $record['id'], PATHINFO_FILENAME) === 'index';
 	}
 }

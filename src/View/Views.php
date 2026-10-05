@@ -361,7 +361,7 @@ final readonly class Views
 	{
 		$parsed    = ComponentName::parse($name) ?? throw $this->invalidComponent($name);
 		$class     = $this->services->components->get($name)?->class;
-		$component = $class === null ? new TemplateComponent() : $this->services->factory->make($class, $props);
+		$component = $class === null ? new TemplateComponent() : $this->services->factory->make($class, $props, $context->language);
 
 		$variant   = $this->services->variants->resolve($parsed, $this->chain, $props['variant'] ?? null);
 

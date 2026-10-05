@@ -205,6 +205,28 @@ Move each item to `decisions.md` once it's answered.
   - Whether `user/lang/{locale}/app.json` is offered in the admin, or
     the site's own strings stay in `resources/lang`.
   - The admin's own strings, which aren't translatable yet (D-278).
+- **Untranslated content in multilingual sites** (D-455, discussed
+  2026-10-04): what `/fr/about` does when `about.fr.md` doesn't exist.
+  The author's direction (2026-10-04, D-465): **a config option**; its
+  name, values, and default are still open, and whether the admin also
+  shows it. Proposed: a site setting, **Show
+  "Page not found"** or **Redirect to the original** (a 302; the
+  default, kinder to a site translated a little at a time; never the
+  English text served at the French URL), with static export writing
+  the redirects to the host's redirect file; and, per content type, a
+  list setting: **Only this language** or **Include untranslated
+  entries** (linking to their originals). Until then (D-456), an
+  untranslated page is a 404 and a list shows only its language's
+  entries. Also open for multilingual: the languages setting's screen
+  (General?; `languages` is config only); a language switcher, on hold
+  (the author, 2026-10-04: there's no light/dark switcher yet either;
+  the proposal was a helper listing the page in each language from
+  `ContentPage::alternateUrl()`, D-461, and a core component the
+  default theme draws in its footer); feeds, sitemaps, `llms.txt`,
+  profiles, and people archives per language; and the admin's
+  Translate action (translations aren't listed or editable in the admin
+  yet). D-456's known gaps are all closed (D-457 to D-460), and
+  `hreflang` alternates are built (D-461).
 - **Skeleton license** (D-070): confirm MIT for `blush-dev/blush` `2.x`.
 - **Where jtcom's content types live** (D-166, D-169): `config/content.php`
   today. Options: data types in `user/data/types/` (travel with the
@@ -506,7 +528,6 @@ Move each item to `decisions.md` once it's answered.
   how this fits Composer-shaped manifests that fall back to
   `composer.json`, which has no such key.
 - **Repo strategy after 2.x stabilizes:** one package, or a split monorepo?
-- **Multilingual file convention** (D-036): decided when the feature is built.
 - **Theming:** see the open questions in `theming.md`.
 - **Menus and regions, later** (D-199 to D-204): entries adding
   themselves to menus from front matter (`menu:`, `weight:`); mega-menu

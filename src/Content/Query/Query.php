@@ -64,6 +64,11 @@ final readonly class Query
 	public const array DATE_PARTS = ['year', 'month', 'day', 'hour', 'minute', 'second'];
 
 	/**
+	 * The language a query finds entries of every language with.
+	 */
+	public const string ANY_LANGUAGE = '*';
+
+	/**
 	 * The 1.x and 2.x argument names `fromArray()` accepts.
 	 *
 	 * @var list<string>
@@ -71,7 +76,7 @@ final readonly class Query
 	private const array ARGUMENTS = [
 		'type', 'path', 'names', 'slug', 'names_exclude', 'number', 'offset', 'order', 'orderby', 'author',
 		'meta_key', 'meta_value', 'year', 'month', 'day', 'hour', 'minute', 'second', 'noindex', 'nocontent',
-		'status', 'visibility', 'terms', 'locale'
+		'status', 'visibility', 'terms', 'locale', 'language'
 	];
 
 	/**
@@ -95,6 +100,7 @@ final readonly class Query
 	 * @param list<list<Query>>                $alternatives  Groups of alternatives; an entry must match one in each group.
 	 * @param ?int                             $updatedSince  A Unix time entries must have been updated at or after.
 	 * @param list<string>                     $excludedDirectories Folders whose entries are left out.
+	 * @param ?string                          $language      A language code to limit entries to (D-455), `ANY_LANGUAGE` for all, or `null` for the site's default language.
 	 */
 	public function __construct(
 		public array $types = [],
@@ -117,6 +123,7 @@ final readonly class Query
 		public array $alternatives = [],
 		public ?int $updatedSince = null,
 		public array $excludedDirectories = [],
+		public ?string $language = null,
 		private ?QueryRunner $runner = null
 	) {}
 
@@ -136,7 +143,8 @@ final readonly class Query
 	 * all), `offset`, `order`, `orderby` (`date` means `published`),
 	 * `author`, `meta_key` and `meta_value`, `year` through `second`, and
 	 * `noindex`. 2.x adds `status`, `visibility`, `terms` (taxonomy names
-	 * to slugs), and `locale`.
+	 * to slugs), `locale`, and `language` (a code, or `*` for every
+	 * language).
 	 *
 	 * @param  array<array-key, mixed> $arguments
 	 * @throws InvalidQuery
@@ -233,6 +241,10 @@ final readonly class Query
 
 		if (isset($arguments['locale'])) {
 			$query = $query->locale(self::string($arguments['locale'], 'locale'));
+		}
+
+		if (isset($arguments['language'])) {
+			$query = $query->language(self::string($arguments['language'], 'language'));
 		}
 
 		return $query;
@@ -427,6 +439,26 @@ final readonly class Query
 	public function withLanding(bool $landing = true): self
 	{
 		return clone($this, ['landing' => $landing]);
+	}
+
+	/**
+	 * Returns a copy limited to a language by code (D-455), to every
+	 * language for `ANY_LANGUAGE`, or to the site's default language for
+	 * `null`, which is what a query finds unless it's told otherwise.
+	 */
+	#[NoDiscard]
+	public function language(?string $language): self
+	{
+		return clone($this, ['language' => $language]);
+	}
+
+	/**
+	 * Returns a copy that finds entries of every language.
+	 */
+	#[NoDiscard]
+	public function anyLanguage(): self
+	{
+		return $this->language(self::ANY_LANGUAGE);
 	}
 
 	/**
