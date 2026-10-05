@@ -21,6 +21,7 @@ use Blush\Admin\TypesController;
 use Blush\Content\Type\ContentTypeCache;
 use Blush\Content\Type\ContentTypes;
 use Blush\Content\Type\DataTypeWriter;
+use Blush\Support\Uuid;
 
 #[CoversClass(TypeEditController::class)]
 #[CoversClass(TypesController::class)]
@@ -28,6 +29,20 @@ use Blush\Content\Type\DataTypeWriter;
 final class AdminTypeEditTest extends TestCase
 {
 	use BootsAdmin;
+
+	/**
+	 * Returns a page as a type answers it, without its id, once that's
+	 * checked: a page written for a type has one (D-477).
+	 */
+	private static function withoutId(mixed $page): mixed
+	{
+		if (is_array($page)) {
+			self::assertTrue(Uuid::isValid($page['id'] ?? null), 'A page written for a type has an id.');
+			unset($page['id']);
+		}
+
+		return $page;
+	}
 
 	protected function tearDown(): void
 	{
@@ -75,9 +90,9 @@ final class AdminTypeEditTest extends TestCase
 
 		$this->assertSame(201, $answer->getStatusCode(), (string) $answer->getBody());
 		$type = self::json($answer);
-		$this->assertSame([true, 'cooks', ['path' => '_recipe/_authors.md', 'title' => 'Authors']], [$type['authors'] ?? null, $type['authorsWord'] ?? null, $type['authorsPage'] ?? null]);
+		$this->assertSame([true, 'cooks', ['type' => 'recipe', 'path' => '_recipe/_authors.md', 'title' => 'Authors']], [$type['authors'] ?? null, $type['authorsWord'] ?? null, self::withoutId($type['authorsPage'] ?? null)]);
 		$this->assertSame("people:\n  authors: { archive: cooks }\n", $this->file('user/data/types/recipe.yaml'), 'Only the word differs from a collection\'s default (D-351).');
-		$this->assertSame("---\ntitle: \"Authors\"\n---\n", $this->file('user/content/_recipe/_authors.md'));
+		$this->assertMatchesRegularExpression('/\A---\ntitle: "Authors"\nid: [0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\n---\n\z/', $this->file('user/content/_recipe/_authors.md'), 'With an id, last (D-477).');
 
 		$this->assertSame('authors', self::json($this->write('PATCH', '/types/recipe', ['set' => ['authorsWord' => null]]))['authorsWord'] ?? null);
 		$this->assertStringNotContainsString('people', $this->file('user/data/types/recipe.yaml'), 'The default is left out.');
@@ -111,10 +126,10 @@ final class AdminTypeEditTest extends TestCase
 		$this->assertSame(['cooks', 'photographers'], array_column(is_array($type['people'] ?? null) ? $type['people'] : [], 'field'));
 		$people = is_array($type['people'] ?? null) ? $type['people'] : [];
 
-		$this->assertSame(['field' => 'cooks', 'plural' => 'Cooks', 'singular' => 'Cook', 'aliases' => [], 'archive' => 'cooks', 'multiple' => true, 'required' => true, 'listPage' => ['path' => '_recipe/_cooks.md', 'title' => 'Cooks']], $people[0] ?? null);
+		$this->assertSame(['field' => 'cooks', 'plural' => 'Cooks', 'singular' => 'Cook', 'aliases' => [], 'archive' => 'cooks', 'multiple' => true, 'required' => true, 'listPage' => ['type' => 'recipe', 'path' => '_recipe/_cooks.md', 'title' => 'Cooks']], is_array($people[0] ?? null) ? [...$people[0], 'listPage' => self::withoutId($people[0]['listPage'] ?? null)] : null);
 		$this->assertFalse(is_array($people[1] ?? null) ? $people[1]['archive'] ?? null : null);
 		$this->assertSame("people:\n  cooks: { required: true }\n  photographers: { aliases: [photographer], archive: false, multiple: false }\n", $this->file('user/data/types/recipe.yaml'), 'Only what differs from each field\'s defaults (D-353).');
-		$this->assertSame("---\ntitle: \"Cooks\"\n---\n", $this->file('user/content/_recipe/_cooks.md'));
+		$this->assertMatchesRegularExpression('/\A---\ntitle: "Cooks"\nid: [0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\n---\n\z/', $this->file('user/content/_recipe/_cooks.md'), 'With an id, last (D-477).');
 		$keys = array_column(is_array($type['routes'] ?? null) ? $type['routes'] : [], 'key');
 
 		$this->assertContains('cooks.single', $keys);
@@ -152,7 +167,7 @@ final class AdminTypeEditTest extends TestCase
 		$type = self::json($answer);
 		$this->assertTrue($type['editable'] ?? null);
 		$this->assertSame('user/data/types/recipe.yaml', $type['file'] ?? null);
-		$this->assertSame(['path' => 'recipes/index.md', 'title' => 'Recipes'], $type['index'] ?? null);
+		$this->assertSame(['type' => 'recipe', 'path' => 'recipes/index.md', 'title' => 'Recipes'], self::withoutId($type['index'] ?? null));
 		$this->assertSame(
 			"folder: recipes\nlabels:\n  newItem: 'Add a recipe'\ndescription: \"Dishes we cook at home.\"\nicon: book-open\nfields:\n"
 			. "  - name: servings\n    type: number\n    required: true\n    integer: true\n"
@@ -161,7 +176,7 @@ final class AdminTypeEditTest extends TestCase
 			$this->file('user/data/types/recipe.yaml'),
 			'Defaults (the singular and plural a recipe type gets, public) are left out.'
 		);
-		$this->assertSame("---\ntitle: \"Recipes\"\n---\n", $this->file('user/content/recipes/index.md'));
+		$this->assertMatchesRegularExpression('/\A---\ntitle: "Recipes"\nid: [0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\n---\n\z/', $this->file('user/content/recipes/index.md'), 'With an id, last (D-477).');
 
 		$this->assertSame(200, $this->write('POST', '/types/refresh')->getStatusCode());
 
@@ -293,7 +308,7 @@ final class AdminTypeEditTest extends TestCase
 
 		$this->assertSame(201, $answer->getStatusCode(), (string) $answer->getBody());
 		$type = self::json($answer);
-		$this->assertSame(['tree', true, ['path' => '_docs/index.md', 'title' => 'Docs']], [$type['kind'] ?? null, $type['editable'] ?? null, $type['index'] ?? null]);
+		$this->assertSame(['tree', true, ['type' => 'doc', 'path' => '_docs/index.md', 'title' => 'Docs']], [$type['kind'] ?? null, $type['editable'] ?? null, self::withoutId($type['index'] ?? null)]);
 		$this->assertSame("kind: tree\nfolder: _docs\nicon: book\n", $this->file('user/data/types/doc.yaml'));
 
 		$feed = $this->write('PATCH', '/types/doc', ['set' => ['feed' => true]]);

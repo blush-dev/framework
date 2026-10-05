@@ -333,13 +333,11 @@ settings are showing is boxed (a container on its first and last lines).
 Only valid Markdown lights up, so something that stays plain won't be
 read the way you meant.
 
-Each entry's editor has its own address, from its content type and slug:
-`/admin/content/post/hello-world` edits the post `hello-world`, and a
-page's address has its folders, such as `/admin/content/page/about/team`.
-An entry that can't be found that way (another language's, or one of two
-files claiming the same slug) is edited at its file's path instead, such
-as `/admin/entries/_posts/2026-09-29.hello.md`, which works for every
-entry.
+Each entry's editor has its own address, from its content type and
+[id](content.md#ids), such as
+`/admin/content/post/0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e74`. It stays
+the same when you rename or move the entry, so a bookmark keeps
+working.
 
 There's no back button: the type's name in the top bar (**Posts** in
 *Content / Posts / Editing*) goes back to its list. The header's left
@@ -1299,7 +1297,10 @@ the entries moved there, most recent first. Each one's **⋯** button has:
 - **Restore as a draft** puts it back where it was, as a draft, even if
   it was published before; publish it again from the editor when you're
   ready. If something else now has its file name, rename or move that
-  first.
+  first. It comes back with its [id](content.md#ids); if another entry
+  has that id now (say, a copy made before it was trashed), the admin
+  says which, and you choose: **Restore with a new ID**, or leave it in
+  the trash.
 - **Preview** (or clicking its title) shows what's in it: the body, as
   the editor shows it but read-only, and its front matter. From there
   you can restore it or delete it permanently. A trashed entry isn't on
@@ -1330,7 +1331,9 @@ bin/blush content:preview post my-new-post
 bin/blush content:preview post my-new-post --hours=2
 ```
 
-Links are signed with the `APP_SECRET` in your `.env` (`bin/blush init`
+A link names the entry by its [id](content.md#ids), not its file, so it
+keeps working if the entry is renamed or moved, and it doesn't show
+your folders. Links are signed with the `APP_SECRET` in your `.env` (`bin/blush init`
 adds one), so they can't be changed to show another entry or to last
 longer. Changing `APP_SECRET` ends every link you've given out.
 Previews are never cached or indexed by search engines.
@@ -1372,6 +1375,9 @@ that isn't valid, and the ids two or more files share (usually a copied
 file). **Add Missing IDs** gives each of those files a new one. For a
 shared id, choose **Keep Here** beside the file that should keep it;
 the others get new ids. Either changes only files you may edit.
+
+A file without an id shows **No ID** in its list, and can't be opened
+in the editor until it has one; its links lead here.
 
 ## Your own admin
 
@@ -1420,8 +1426,8 @@ The API is JSON under `/admin/api`, and uses the session cookie:
 | `PATCH profile` | Change the account's own `name` (`null` or empty removes it) or `email`, or both; answers `{"name", "email", "displayName"}`. A name over 100 characters, or an email address that's missing, invalid, or another account's, is a `422` naming the `field` |
 | `GET accounts` | Every account: `{"username", "email", "name", "displayName", "roles", "author", "profile", "created", "lastLogin", "status", "link", "manages"}`. `author` is the slug of the profile it's linked to, or `null`; `profile` is that profile, when it has a file: `{"path", "id", "handle", "slug", "title", "status", "url", "uses"}` (`uses` counts the published entries crediting it), else `null`; `email` is its email address (`null` only for one made before they were asked for); `name` is its own display name or `null`; `displayName` is what the admin calls it: its name, else its profile's title, else the username; `status` is `active`, `invited`, or `suspended`; `link` is its password link's `{"expires", "expired"}` or `null`; `manages` is whether you may change it. Times are Unix |
 | `GET profiles` | Every profile, for linking accounts: `{"profiles": [{"slug", "title", "status", "account"}]}`, by name, with `status` `null` for one credited without a file and `account` the one linked to it (`{"username", "displayName"}`) or `null`. Needs `accounts.view` |
-| `GET profiles/{slug}` | A profile's screen: `{"profile", "appears", "linked", "account"}`. `profile` is `{"slug", "title", "subtitle", "avatar", "status", "virtual", "path", "id", "handle", "url", "uses"}` (`status`, `path`, `id`, and `handle` are `null` for a profile credited without a file); `appears` lists each people field of each type that credits people: `{"type", "typeLabel", "field", "label", "entries", "archive", "page"}`, where `entries` counts the published entries crediting them there, `archive` is the archive's address (or `null` without one), and `page` is the page written for it (`{"path", "id", "handle", "title", "status"}`, kept while the archive is off) or `null`; `linked` says whether an account is linked to it, and `account` is that account, as `GET accounts` has it, for whoever has `accounts.view` (else `null`). Needs to be allowed to edit the profile (your own, or anyone's with the profiles type's `edit.others`) |
-| `POST profiles/{slug}/pages` | Write the page for the profile's archive under a people field: `{"type", "field"}`, a field with archives. It's a draft at `_{field}/{slug}` in the type's folder, titled with the profile's name; answers `201` with `{"path", "handle"}`, or `409` when it exists. Needs to create entries of that type |
+| `GET profiles/{slug}` | A profile's screen: `{"profile", "appears", "linked", "account"}`. `profile` is `{"slug", "title", "subtitle", "avatar", "status", "virtual", "path", "id", "type", "handle", "url", "uses"}` (`status`, `path`, `id`, and `handle` are `null` for a profile credited without a file); `appears` lists each people field of each type that credits people: `{"type", "typeLabel", "field", "label", "entries", "archive", "page"}`, where `entries` counts the published entries crediting them there, `archive` is the archive's address (or `null` without one), and `page` is the page written for it (`{"path", "id", "handle", "title", "status"}`, kept while the archive is off) or `null`; `linked` says whether an account is linked to it, and `account` is that account, as `GET accounts` has it, for whoever has `accounts.view` (else `null`). Needs to be allowed to edit the profile (your own, or anyone's with the profiles type's `edit.others`) |
+| `POST profiles/{slug}/pages` | Write the page for the profile's archive under a people field: `{"type", "field"}`, a field with archives. It's a draft at `_{field}/{slug}` in the type's folder, titled with the profile's name; answers `201` with `{"id", "handle"}`, or `409` when it exists. Needs to create entries of that type |
 | `DELETE profiles/{slug}/pages/{type}/{field}` | Move that page to the trash, so the archive shows the profile's body again; answers `{"removed"}`. Needs to delete that page |
 | `POST accounts` | Make an account: `{"username", "email", "roles", "author", "name"}` (`email` is required; the last two are optional); a missing, invalid, or taken email address is a `422` with `field: email`; answers `201` with `{"account", "link": {"url", "expires"}}`. The link is shown only this once |
 | `PATCH accounts/{username}` | Change an account: any of `roles`, `author` (its profile's slug, `null` unlinks; a profile another account has is a `422` with `field: author`), `name` (`null` or empty removes it), `email`, and `suspended`; answers `{"account"}`. Your own account takes only `author` (with `accounts.edit`) |
@@ -1442,7 +1448,7 @@ The API is JSON under `/admin/api`, and uses the session cookie:
 | `POST {themes,plugins,icon-packs}/{vendor}/{name}/rollback` | Rolls a folder extension back to the version replacing it kept, keeping the version it replaces in its place: `{"rolledBack": {"name", "label", "version", "folder"}, "from", "refresh"}`. No kept version is a `404`; one that wouldn't run (a plugin's requirements, an active theme's missing parent) a `422`. Each extension in its list has `backup`: `{"version"}`, or `null`. Needs `extensions.{kind}.update` |
 | `DELETE {themes,plugins,icon-packs}/{vendor}/{name}/backup` | Discards the kept version: `{"discarded": true}`. Needs `extensions.{kind}.delete` |
 | `GET types` | The site's content types: `{"types": [{"name", "labels", "description", "icon", "kind", "dated", "authors", "origin", "folder", "prefix", "fields"}], "authors"}`, by plural label, taxonomies and the profiles type last. `kind` is `collection`, `taxonomy`, `tree`, or `profiles`, and each type's `authors` is whether its entries credit people. A taxonomy adds `"types"`, the types it groups (empty for every type), and `"hierarchical"`; the profiles type adds `"types"`, the types that credit people. `fields` is how many the type defines, `icon` is `null` for the kind's, and the top-level `authors` names the profiles type (`null` when the site has none). `labels` has every [label](content-types.md#names-descriptions-and-icons-in-the-admin), defaults filled in |
-| `GET types/{name}` | One type, with its own `fields`, the field `sets` added to it (`{"name", "label", "fields"}`), the `taxonomies` that group it, `public`, `feed`, `sitemap`, `llms` (whether it's listed in `llms.txt`; off by default for taxonomies and profiles), `editable` (defined in `user/data/types`, or a collection, taxonomy, or tree in a folder from code), `overridden` (from code, with a file in `user/data/types` changing it) and `overrides` (the options that file sets), `fieldsEditable`, `routes` (each address: `{"key", "path", "default", "requires", "allows", "root"}`, paths relative to the prefix), `dateArchives`, `folderPrefix` (the URL prefix its folder gives), `file`, its `index` page (`{"path", "title"}` or `null`), its `people` fields (each `{"field", "plural", "singular", "aliases", "archive", "multiple", "required", "listPage"}`: `archive` is its word or `false`, and `listPage` its list page, `{"path", "title"}` or `null`), `authorsWord` (the word its `authors` people field's archives sit under, `false` for none or without the field, `null` without URLs), and its `authorsPage` (`_authors`, `{"path", "title"}` or `null`). `GET types` adds `create` (whether types can be created here) and `urls` (whether they may set URLs) |
+| `GET types/{name}` | One type, with its own `fields`, the field `sets` added to it (`{"name", "label", "fields"}`), the `taxonomies` that group it, `public`, `feed`, `sitemap`, `llms` (whether it's listed in `llms.txt`; off by default for taxonomies and profiles), `editable` (defined in `user/data/types`, or a collection, taxonomy, or tree in a folder from code), `overridden` (from code, with a file in `user/data/types` changing it) and `overrides` (the options that file sets), `fieldsEditable`, `routes` (each address: `{"key", "path", "default", "requires", "allows", "root"}`, paths relative to the prefix), `dateArchives`, `folderPrefix` (the URL prefix its folder gives), `file`, its `index` page (`{"id", "path", "title"}` or `null`), its `people` fields (each `{"field", "plural", "singular", "aliases", "archive", "multiple", "required", "listPage"}`: `archive` is its word or `false`, and `listPage` its list page, `{"id", "path", "title"}` or `null`), `authorsWord` (the word its `authors` people field's archives sit under, `false` for none or without the field, `null` without URLs), and its `authorsPage` (`_authors`, `{"id", "path", "title"}` or `null`). `GET types` adds `create` (whether types can be created here) and `urls` (whether they may set URLs) |
 | `POST types` | Create a type in `user/data/types`: `{"name", "kind"` (`collection`, `taxonomy`, or `tree`), `"folder", "set", "index", "listPages", "authorsPage"}`; answers `201` with the type. `set` maps options to values: `labels`, `description`, `icon`, `prefix`, `authorsWord` (the word the `authors` people field's archives sit under; `false` for none, `null` for `authors`), `paths` (route keys to paths, `null` for a key's default), `public`, `sitemap`, `llms`, `feed`, `people` (its [people fields](content-types.md#crediting-people): `false`, or each field's settings by its key), `authors` (whether it has the `authors` people field), `dateArchives`, `hierarchical`, `types`, and `fields`; `index: true` adds its index page, `listPages` (people field keys) adds each one's list page, `_{field}.md` titled with its name (a `422` for a field without archives), and `authorsPage: true` is short for `listPages: ["authors"]`. Needs `site.settings` |
 | `PATCH types/{name}` | Change a `user/data/types` type, or a collection, taxonomy, or tree in a folder from code (saved in `user/data/types` over it): `{"set", "index", "listPages", "authorsPage"}`, as above (`null` removes an option); answers with the type. A change that doesn't fit is a `422` with the reason |
 | `DELETE types/{name}` | Delete a `user/data/types` type's file (its entries stay); answers `{"deleted"}` |
@@ -1460,18 +1466,17 @@ The API is JSON under `/admin/api`, and uses the session cookie:
 | `GET health` | Content problems by file, with counts (`?strict=1` adds notices), and `ids`: `{"missing", "duplicates"}`, the files missing a valid id and each id files share (`{"id", "paths"}`); needs to edit anyone's entries of some type |
 | `POST health/ids` | Give each file missing a valid id, that the account may edit, a new one: `{"assigned", "failed"}`, the new ids by path and why any file couldn't be changed |
 | `POST health/ids/keep` | Keep a shared id on `{"path"}` and give the other files sharing it (that the account may edit) new ones; answers as above, or a `422` when the file doesn't share its id |
-| `POST previews` | A preview link to an entry the account may edit, from `{"entry": path}`: `{"url", "expires"}` |
-| `GET entries/{path}` | An entry for editing (see below) |
-| `GET content/{type}/{key}` | The same, found by its handle, such as `content/post/hello` |
+| `POST previews` | A preview link to an entry the account may edit, from `{"entry": id}`: `{"url", "expires"}` |
+| `GET entries/{id}` | An entry for editing (see below) |
 | `POST entries` | Create an entry: `{"type", "title"}`, and optionally `"slug"`, `"set"`, `"body"`, `"status"` |
-| `PATCH entries/{path}` | Change an entry: `{"revision"}` plus any of `"set"`, `"remove"`, `"body"`, `"status"`, `"published"`, `"slug"` |
-| `DELETE entries/{path}?revision=…` | Move an entry to the trash |
+| `PATCH entries/{id}` | Change an entry: `{"revision"}` plus any of `"set"`, `"remove"`, `"body"`, `"status"`, `"published"`, `"slug"` |
+| `DELETE entries/{id}?revision=…` | Move an entry to the trash |
 | `POST entries/bulk` | Publish, move to draft, or trash several entries at once (see below) |
-| `POST entries/{path}/duplicate` | Copy an entry as a draft (see Duplicate above), with an id of its own; answers `201` with the copy as `GET entries/{path}` shows it. Needs to create entries of its type and to edit the entry; an index page is refused with a `422` |
-| `GET trash` | The trashed entries the account may handle, newest first (`?type=` for one type): `{"trash": [{"id", "entry", "title", "type", "bundle", "trashed", "authors", "own"}]}` |
-| `GET trash/{id}` | One trashed entry, as in `GET trash`, with its `frontMatter` and `body`; 404 if it isn't there or the account can't handle it |
-| `POST trash/restore` | Restore `{"id"}` (the trash's name for it) as a draft: answers `{"path"}`, the entry's path again; 409 when something else has its place |
-| `POST trash/delete` | Delete `{"id"}` permanently |
+| `POST entries/{id}/duplicate` | Copy an entry as a draft (see Duplicate above), with an id of its own; answers `201` with the copy as `GET entries/{id}` shows it. Needs to create entries of its type and to edit the entry; an index page is refused with a `422` |
+| `GET trash` | The trashed entries the account may handle, newest first (`?type=` for one type): `{"trash": [{"name", "path", "id", "title", "type", "bundle", "trashed", "authors", "own"}]}`: `name` is the trash's name for it, `path` the file it was, and `id` its id (or `null`) |
+| `GET trash/{name}` | One trashed entry, as in `GET trash`, with its `frontMatter` and `body`; 404 if it isn't there or the account can't handle it |
+| `POST trash/restore` | Restore `{"name"}` as a draft, with its id: answers `{"id"}`. A `409` when something else has its place, or when another entry has its id now: then the answer's `conflict` is that entry's `{"id", "title", "path"}`, and `{"name", "newId": true}` restores it with a new id |
+| `POST trash/delete` | Delete `{"name"}` permanently |
 | `POST trash/empty` | Delete everything the account may handle permanently (`{"type"}` for one type): `{"deleted"}` |
 
 Once signed in, send the token from `session` or `login` in an
@@ -1481,14 +1486,14 @@ Once signed in, send the token from `session` or `login` in an
 ### Changing several entries
 
 `POST entries/bulk` takes `action` (`publish`, `draft`, or `trash`) and
-`paths` (1 to 100 entry paths). Each entry is changed as it is now, so no
+`ids` (1 to 100 entry ids). Each entry is changed as it is now, so no
 `revision` is needed: a status change or a move to the trash doesn't
 overwrite anyone's writing. Each is checked on its own, with the same
 rules as a single change, with the entry's type's capabilities: editing
 the entry, publishing anything that isn't a draft, deleting to trash it, required
 fields filled to publish, and never an index page in the trash. The
-answer is `action`, `done` (the paths changed), and `skipped` (each with
-its `path`, `title`, and the `reason`); an entry that couldn't be changed
+answer is `action`, `done` (the ids changed), and `skipped` (each with
+its `id`, `title`, and the `reason`); an entry that couldn't be changed
 doesn't stop the rest.
 
 ### Listing entries
@@ -1659,14 +1664,16 @@ is used; `GET media/{path}`'s `usedIn` is for asking first.
 
 ### Editing entries
 
-The admin's API names an entry by its `path`, its file's path under
-`user/content`, such as `_posts/2026-09-29.hello.md`. Its `id` is the
-UUID in its front matter (see [Ids](content.md#ids)), or `null` while
-the file has none. Its `handle` is its type and key, such as
-`post/hello`, and `GET content/{type}/{key}` finds it by that; a landing
-page's key is `index`. An entry has no handle (`null`) when it isn't in
+The admin's API names an entry by its `id`, the UUID in its front
+matter (see [Ids](content.md#ids)), never by its file. A file without
+an id can't be edited until it has one (Content health adds it); lists
+show it with an `id` of `null`. Each answer also has the entry's `path`,
+its file under `user/content`, such as `_posts/2026-09-29.hello.md`,
+for showing. Its `handle` is its type and key, such as `post/hello`
+(a landing page's key is `index`), which says where it lives but isn't
+used to find it. An entry has no handle (`null`) when it isn't in
 the site's language or another file claims the same key. `GET
-entries/{path}` answers with:
+entries/{id}` answers with:
 
 - `values`: front matter by field name, read from whichever name the file
   uses (a 1.x `date` is `published`), and `extra`: anything the type

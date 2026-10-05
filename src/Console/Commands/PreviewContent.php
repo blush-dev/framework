@@ -68,6 +68,12 @@ final readonly class PreviewContent
 			return ExitCode::Failure;
 		}
 
+		if ($entry->id === null) {
+			$output->error(sprintf('%s has no id, so it can\'t have a preview link; give it one with content:ids --write.', $entry->path));
+
+			return ExitCode::Failure;
+		}
+
 		$link = $this->links->make($entry, $hours === null ? null : $hours * 3600);
 
 		$output->line($link->url, Verbosity::Quiet);

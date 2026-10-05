@@ -28,7 +28,7 @@ import { confirmAction, confirmLeave } from '../confirm';
 import { onBeforeRouteLeave, RouterLink, useRoute, useRouter } from 'vue-router';
 import AdminIcon from '../components/AdminIcon.vue';
 import FieldControl from '../components/FieldControl.vue';
-import { ApiError, request, type FieldDescription, type MediaDetail } from '../api';
+import { ApiError, entryRoute, request, type FieldDescription, type MediaDetail } from '../api';
 import { fromForm, toForm, type FormValue } from '../fields';
 import { attributeText, imageText } from '../markdown';
 import { formatDate, formatSize } from '../format';
@@ -379,8 +379,8 @@ async function copy(text: string, what: string): Promise<void> {
 					<p v-if="file.usedIn.length === 0" class="field__help">No entry uses it, by any of its addresses.</p>
 					<ul v-else class="used">
 						<li v-for="entry in file.usedIn" :key="entry.path">
-							<RouterLink :to="{ name: 'entry-file', params: { path: entry.path.split('/') } }">{{ entry.title }}</RouterLink>
-							<span v-if="entry.type" class="used__type">{{ entry.type }}</span>
+							<RouterLink :to="entryRoute(entry)">{{ entry.title }}</RouterLink>
+							<span v-if="entry.typeLabel" class="used__type">{{ entry.typeLabel }}</span>
 						</li>
 					</ul>
 				</div>

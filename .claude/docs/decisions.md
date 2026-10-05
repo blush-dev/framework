@@ -5267,6 +5267,7 @@ decision, add a new entry that supersedes it and mark the old one
 
 ### D-253: Markdown that reads as it looks, and editor addresses by handle
 - **Date:** 2026-09-30
+- **Status:** Editor addresses by handle superseded by D-483.
 - **Status:** Partially superseded by D-254 (Fira Code instead of Plex Mono's italic and semibold faces; no slug under the title).
 - **Decision:** The first Markdown-experience work (D-252), and the
   editor's address, both asked for by the author.
@@ -14161,3 +14162,84 @@ decision, add a new entry that supersedes it and mark the old one
 - **Why:** from D-477, with the author's answers: UUIDv7, last in front
   matter, strict, fixed from the admin as well as the CLI, and `id`
   renamed everywhere.
+
+### D-481: Ids at every boundary; paths stay inside the writer
+
+- **Date:** 2026-10-05
+- **Status:** Built (D-482), but for the public API (D-479, not built).
+  Amends D-479 and D-480.
+- **Decision:** Entries are named by id wherever anything outside the
+  content writer names one; source paths stay the writer's business.
+  - **Public content API (D-479):** no file paths in requests or
+    answers. A single entry by id; answers carry `id` and `url`. A
+    lookup by the site URL (`?url=/blog/hello`) for headless front ends
+    is proposed (a public address, not a file), not yet settled.
+  - **Preview links** sign the entry's id, not its path, so they survive
+    renames and moves and show nothing of the file layout. Existing
+    links stop working (they expire anyway).
+  - **Trash:** `trash.json` records the trashed entry's id. Restoring
+    one whose id another file now has is refused with the reason (which
+    entry has it), and the person chooses: restore it with a new id, or
+    leave it in the trash. Undo on Move to Trash (D-387) can restore by
+    id.
+  - **The admin API goes fully to ids:** `entries/{id}`, bulk `ids`,
+    `POST previews {"entry": id}`, and the editor's addresses and kept
+    changes keyed by id, so a rename doesn't change them. No path
+    fallback: a file without a valid id can't be opened in the editor
+    until Content health (or `content:ids`) gives it one. Lists still
+    show each entry's file.
+- **Why:** the author: nothing public should query by file path, and
+  previews, the trash, and drafts should lean on ids now that every
+  file has one (the jtcom trial's were added from the admin).
+
+### D-482: Ids at the admin's boundary, as built
+
+- **Date:** 2026-10-05
+- **Status:** Built. Builds D-481.
+- **Decision:**
+  - **Admin API:** `entries/{id}` (a UUID route constraint), bulk `ids`
+    (`done` ids, `skipped[].id`), `POST previews {"entry": id}`;
+    answers keep `path` for showing. `GET content/{type}/{key}` is a 409
+    for a file without an id. Type pages (`index`, `listPage`,
+    `authorsPage`), profile pages, and media's `usedIn` carry `id`.
+  - **The admin app:** the editor's address is `/entries/{id}` (or the
+    handle), kept changes are keyed by id, and rows select by id. A link
+    to a file without an id goes to Content Health, and its row says
+    **No ID** and can't be selected.
+  - **Previews** sign the id; `PreviewLinks::make()` refuses an entry
+    without one, as does `content:preview`.
+  - **Trash:** `TrashedEntry` is `name` (the trash's name for it),
+    `path`, and `id` (from `trash.json`, else its front matter); the
+    trash API uses `name` (`trash/{name}`, `{"name"}`). `restore()`
+    throws `IdTaken` (`id`, `holder`) when another entry has the id, and
+    `restore(..., newId: true)` gives it a new one; one without an id
+    gets one. The admin's 409 carries the `conflict` (`id`, `title`,
+    `path`), and `restoreFromTrash()` asks: **Restore with a new ID**,
+    or **Leave in the trash**.
+  - **The type editor** writes its index and list pages with an id: the
+    type may be new to the content writer, so it writes the file
+    itself, and `GET types/{name}` reads a page's id from its file.
+- **Why:** D-481, as the author approved it; the type editor's pages
+  were a write path outside `ContentWriter` that the tests caught.
+
+### D-483: The editor's address is the entry's type and id
+
+- **Date:** 2026-10-05
+- **Status:** Built. Supersedes D-253's editor addresses by handle (and
+  the `entries/{path}` fallback, already gone with D-482).
+- **Decision:**
+  - The editor is at `/admin/content/{type}/{id}` (the id a UUID route
+    constraint). It's the only address: handle addresses
+    (`/content/post/hello`) and `/entries/{id}` aren't kept, not even to
+    redirect old bookmarks (the author's call). A new entry's first save,
+    or an address naming another type, is replaced with the right one.
+  - `GET content/{type}/{key}` (finding an entry by handle) is removed
+    from the admin API; entries keep a `handle` in answers, to show and
+    for the profile screen's address (by slug).
+  - Every entry reference the admin answers carries the type's name:
+    type pages (`{"id", "type", "path", "title"}`), profiles and their
+    pages, Your Account's profile, and media's `usedIn` (`type`, with
+    the label moved to `typeLabel`).
+- **Why:** the author expected ids in the admin's addresses once ids
+  were in, and didn't want old handle bookmarks preserved.
+

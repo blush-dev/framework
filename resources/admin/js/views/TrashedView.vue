@@ -10,12 +10,13 @@
 import { computed, ref, watch } from 'vue';
 import { confirmAction } from '../confirm';
 import { RouterLink, useRoute, useRouter } from 'vue-router';
-import { ApiError, request, type TrashedDetail } from '../api';
+import { ApiError, entryRoute, request, type TrashedDetail } from '../api';
 import AdminIcon from '../components/AdminIcon.vue';
 import MarkdownEditor from '../components/MarkdownEditor.vue';
 import { formatDate } from '../format';
 import { screenTitle } from '../screen';
 import { toast } from '../toast';
+import { restoreFromTrash } from '../trash';
 import { currentType, labelsOf, loadTypes } from '../types';
 
 const route  = useRoute();
@@ -26,7 +27,7 @@ const body  = ref('');
 const error = ref('');
 const busy  = ref(false);
 
-const id       = computed(() => (Array.isArray(route.params.id) ? route.params.id : [route.params.id ?? '']).join('/'));
+const trashName = computed(() => (Array.isArray(route.params.name) ? route.params.name : [route.params.name ?? '']).join('/'));
 const labels   = computed(() => labelsOf(item.value?.type || 'entry'));
 const noun     = computed(() => labels.value.item);
 const name     = computed(() => item.value?.title || 'Untitled');
@@ -35,7 +36,7 @@ const keys     = computed(() => Object.entries(item.value?.frontMatter ?? {}).fi
 
 loadTypes().catch(() => undefined);
 
-watch(id, async (value) => {
+watch(trashName, async (value) => {
 	item.value  = null;
 	error.value = '';
 
@@ -68,10 +69,16 @@ async function restore(): Promise<void> {
 	error.value = '';
 
 	try {
-		const restored = await request<{ path: string }>('POST', '/trash/restore', { id: detail.id });
+		const restored = await restoreFromTrash(detail.name);
+
+		if (restored === null) {
+			busy.value = false;
+
+			return;
+		}
 
 		toast(`Restored “${name.value}” as a draft`);
-		await router.push({ name: 'entry-file', params: { path: restored.path.split('/') } });
+		await router.push(detail.type === null ? back.value : entryRoute({ id: restored, type: detail.type }));
 	} catch (caught) {
 		error.value = caught instanceof ApiError ? caught.message : `The ${noun.value} couldn't be restored.`;
 		busy.value  = false;
@@ -89,7 +96,7 @@ async function purge(): Promise<void> {
 	error.value = '';
 
 	try {
-		await request<void>('POST', '/trash/delete', { id: detail.id });
+		await request<void>('POST', '/trash/delete', { name: detail.name });
 
 		toast(`Deleted “${name.value}” permanently`, { kind: 'danger' });
 		await router.push(back.value);

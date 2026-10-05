@@ -38,11 +38,11 @@ function name(item: TrashedSummary): string {
 				</tr>
 			</thead>
 			<tbody>
-				<tr v-for="item in items" :key="item.id">
+				<tr v-for="item in items" :key="item.name">
 					<th scope="row">
 						<span class="entry-title">
 							<span class="entry-title__text">
-								<RouterLink class="entry-title__link" :to="{ name: 'trashed', params: { id: item.id.split('/') } }">
+								<RouterLink class="entry-title__link" :to="{ name: 'trashed', params: { name: item.name.split('/') } }">
 									<template v-if="item.title">{{ item.title }}</template>
 									<span v-else class="untitled">Untitled</span>
 								</RouterLink>
@@ -58,7 +58,7 @@ function name(item: TrashedSummary): string {
 							<button type="button" class="menu-item" :disabled="busy !== null" @click="$emit('restore', item)">
 								<AdminIcon name="refresh-cw" />Restore as a draft
 							</button>
-							<RouterLink class="menu-item" :to="{ name: 'trashed', params: { id: item.id.split('/') } }"><AdminIcon name="eye" />Preview</RouterLink>
+							<RouterLink class="menu-item" :to="{ name: 'trashed', params: { name: item.name.split('/') } }"><AdminIcon name="eye" />Preview</RouterLink>
 							<div class="menu-divider" />
 							<button type="button" class="menu-item menu-item--danger" :disabled="busy !== null" @click="$emit('purge', item)">
 								<AdminIcon name="trash-2" />Delete permanently

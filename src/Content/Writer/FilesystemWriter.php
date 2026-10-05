@@ -505,6 +505,7 @@ final readonly class FilesystemWriter implements ContentWriter
 			// A bundle's entry takes its folder (and media) with it.
 			$bundle = preg_match('#(^|/)index\.[a-z]+$#', $path) === 1 && $this->content->findPath($path)?->landing !== true;
 			$from   = $bundle ? dirname($file) : $file;
+			$id     = $this->content->findPath($path)?->id;
 			$now    = $this->clock->now();
 			$folder = sprintf('%s/%s-%s', $this->trash(), $now->format('Ymd-His'), bin2hex(random_bytes(3)));
 			$target = "{$folder}/" . $this->paths->relative($from);
@@ -520,6 +521,7 @@ final readonly class FilesystemWriter implements ContentWriter
 			// What was moved, so the trash can list and restore it.
 			$this->write("{$folder}/" . self::MANIFEST, json_encode([
 				'entry'   => $path,
+				'id'      => $id,
 				'bundle'  => $bundle,
 				'trashed' => $now->format(DateTimeInterface::ATOM)
 			], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR) . "\n");
@@ -619,7 +621,7 @@ final readonly class FilesystemWriter implements ContentWriter
 			array_push($entries, ...$this->trashedIn($folder));
 		}
 
-		usort($entries, static fn (TrashedEntry $a, TrashedEntry $b): int => [$b->trashed, $a->entry] <=> [$a->trashed, $b->entry]);
+		usort($entries, static fn (TrashedEntry $a, TrashedEntry $b): int => [$b->trashed, $a->path] <=> [$a->trashed, $b->path]);
 
 		return $entries;
 	}
@@ -628,31 +630,31 @@ final readonly class FilesystemWriter implements ContentWriter
 	 * @inheritDoc
 	 */
 	#[Override]
-	public function loadTrashed(string $trashId): EditableEntry
+	public function loadTrashed(string $name): EditableEntry
 	{
-		$trashed  = $this->findTrashed($trashId);
+		$trashed  = $this->findTrashed($name);
 		$file     = $this->trashedFile($trashed);
 		$contents = $this->read($file);
 
 		try {
-			$document = $this->parsers->parse($trashed->entry, $contents);
+			$document = $this->parsers->parse($trashed->path, $contents);
 		} catch (InvalidDocument $e) {
-			throw new WriteException(sprintf('%s can\'t be read: %s', $trashed->entry, $e->getMessage()), previous: $e);
+			throw new WriteException(sprintf('%s can\'t be read: %s', $trashed->path, $e->getMessage()), previous: $e);
 		}
 
-		return new EditableEntry($trashed->entry, $document->frontMatter, $document->body, self::revision($contents), $trashed->trashed->getTimestamp());
+		return new EditableEntry($trashed->path, $document->frontMatter, $document->body, self::revision($contents), $trashed->trashed->getTimestamp());
 	}
 
 	/**
 	 * @inheritDoc
 	 */
 	#[Override]
-	public function restore(string $trashId, EntryChanges $changes = new EntryChanges()): WriteResult
+	public function restore(string $name, EntryChanges $changes = new EntryChanges(), bool $newId = false): WriteResult
 	{
-		return $this->locked(function () use ($trashId, $changes): WriteResult {
-			$trashed = $this->findTrashed($trashId);
+		return $this->locked(function () use ($name, $changes, $newId): WriteResult {
+			$trashed = $this->findTrashed($name);
 			$file    = $this->trashedFile($trashed);
-			$target  = $this->file($trashed->entry);
+			$target  = $this->file($trashed->path);
 			$from    = $trashed->bundle ? dirname($file) : $file;
 			$to      = $trashed->bundle ? dirname($target) : $target;
 
@@ -660,16 +662,29 @@ final readonly class FilesystemWriter implements ContentWriter
 				throw new WriteException(sprintf('%s can\'t be restored: something else is there now. Move or rename it, then try again.', $this->paths->relative($to)));
 			}
 
+			$holder = $trashed->id === null || $newId ? null : $this->content->find($trashed->id);
+
+			if ($holder !== null) {
+				throw new IdTaken($trashed->id ?? '', $holder->path, sprintf(
+					'%s can\'t come back as it was: %s has its id now. Restore it with a new id, or leave it in the trash.',
+					$trashed->title() === '' ? $trashed->path : "“{$trashed->title()}”",
+					$holder->title === '' ? $holder->path : "“{$holder->title}” ({$holder->path})"
+				));
+			}
+
+			// A new id when asked for, or when it has none (D-481).
+			$changes = $newId || $trashed->id === null ? $this->withId($changes) : self::withoutId($changes);
+
 			if (! $changes->isEmpty()) {
 				$type = null;
 
 				try {
-					$type = $this->types->forFile($trashed->entry)->name;
+					$type = $this->types->forFile($trashed->path)->name;
 				} catch (InvalidContentType) {
 					// No type claims it; keys are used as given.
 				}
 
-				$this->write($file, $this->editor->edit($trashed->entry, $this->read($file), $changes, $this->keys($type)));
+				$this->write($file, $this->editor->edit($trashed->path, $this->read($file), $changes, $this->keys($type)));
 			}
 
 			if (! is_dir(dirname($to)) && ! @mkdir(dirname($to), 0775, true) && ! is_dir(dirname($to))) {
@@ -677,12 +692,12 @@ final readonly class FilesystemWriter implements ContentWriter
 			}
 
 			if (! @rename($from, $to)) {
-				throw new WriteException(sprintf('%s couldn\'t be moved back from the trash.', $trashed->entry));
+				throw new WriteException(sprintf('%s couldn\'t be moved back from the trash.', $trashed->path));
 			}
 
-			$this->tidyTrash($trashId);
+			$this->tidyTrash($name);
 
-			return new WriteResult($trashed->entry, self::revision($this->read($target)), $this->refresh());
+			return new WriteResult($trashed->path, self::revision($this->read($target)), $this->refresh());
 		});
 	}
 
@@ -690,14 +705,14 @@ final readonly class FilesystemWriter implements ContentWriter
 	 * @inheritDoc
 	 */
 	#[Override]
-	public function purge(string $trashId): void
+	public function purge(string $name): void
 	{
-		$this->locked(function () use ($trashId): void {
-			$trashed = $this->findTrashed($trashId);
+		$this->locked(function () use ($name): void {
+			$trashed = $this->findTrashed($name);
 			$file    = $this->trashedFile($trashed);
 
 			self::remove($trashed->bundle ? dirname($file) : $file);
-			$this->tidyTrash($trashId);
+			$this->tidyTrash($name);
 		});
 	}
 
@@ -721,7 +736,7 @@ final readonly class FilesystemWriter implements ContentWriter
 		$manifest = $this->manifest($folder);
 
 		if ($manifest !== null) {
-			return [$this->describeTrashed($name, $manifest['entry'], $manifest['bundle'], $manifest['trashed'])];
+			return [$this->describeTrashed($name, $manifest['entry'], $manifest['bundle'], $manifest['trashed'], $manifest['id'])];
 		}
 
 		$trashed = DateTimeImmutable::createFromFormat('!Ymd-His', substr($name, 0, 15)) ?: new DateTimeImmutable('@' . (int) filemtime($folder));
@@ -740,7 +755,7 @@ final readonly class FilesystemWriter implements ContentWriter
 	/**
 	 * Reads a trash folder's manifest, or returns `null` without one.
 	 *
-	 * @return ?array{entry: string, bundle: bool, trashed: DateTimeImmutable}
+	 * @return ?array{entry: string, bundle: bool, trashed: DateTimeImmutable, id: ?string}
 	 */
 	private function manifest(string $folder): ?array
 	{
@@ -753,13 +768,14 @@ final readonly class FilesystemWriter implements ContentWriter
 
 		$trashed = DateTimeImmutable::createFromFormat(DateTimeInterface::ATOM, $data['trashed']);
 
-		return $trashed === false ? null : ['entry' => $data['entry'], 'bundle' => $data['bundle'], 'trashed' => $trashed];
+		return $trashed === false ? null : ['entry' => $data['entry'], 'bundle' => $data['bundle'], 'trashed' => $trashed, 'id' => is_string($data['id'] ?? null) && Uuid::isValid($data['id']) ? strtolower($data['id']) : null];
 	}
 
 	/**
-	 * Describes a trashed entry, reading its front matter when it can.
+	 * Describes a trashed entry, reading its front matter when it can. Its
+	 * id is the one the manifest recorded (D-481), else its file's.
 	 */
-	private function describeTrashed(string $folder, string $entry, bool $bundle, DateTimeImmutable $trashed): TrashedEntry
+	private function describeTrashed(string $folder, string $entry, bool $bundle, DateTimeImmutable $trashed, ?string $id = null): TrashedEntry
 	{
 		$described = new TrashedEntry("{$folder}/{$entry}", $entry, $bundle, $trashed, []);
 		$contents  = @file_get_contents($this->trashedFile($described));
@@ -770,7 +786,9 @@ final readonly class FilesystemWriter implements ContentWriter
 			$frontMatter = [];
 		}
 
-		return new TrashedEntry($described->id, $entry, $bundle, $trashed, $frontMatter);
+		$id ??= is_string($frontMatter[EntryFields::ID] ?? null) && Uuid::isValid($frontMatter[EntryFields::ID]) ? strtolower($frontMatter[EntryFields::ID]) : null;
+
+		return new TrashedEntry($described->name, $entry, $bundle, $trashed, $frontMatter, $id);
 	}
 
 	/**
@@ -778,19 +796,19 @@ final readonly class FilesystemWriter implements ContentWriter
 	 *
 	 * @throws WriteException
 	 */
-	private function findTrashed(string $trashId): TrashedEntry
+	private function findTrashed(string $name): TrashedEntry
 	{
-		[$folder] = explode('/', $trashId, 2);
+		[$folder] = explode('/', $name, 2);
 
 		if (preg_match('/^\d{8}-\d{6}(-[0-9a-f]{6})?$/', $folder) === 1 && is_dir($this->trash() . "/{$folder}")) {
 			foreach ($this->trashedIn($this->trash() . "/{$folder}") as $trashed) {
-				if ($trashed->id === $trashId) {
+				if ($trashed->name === $name) {
 					return $trashed;
 				}
 			}
 		}
 
-		throw new WriteException(sprintf('There\'s no "%s" in the trash.', $trashId));
+		throw new WriteException(sprintf('There\'s no "%s" in the trash.', $name));
 	}
 
 	/**
@@ -800,12 +818,12 @@ final readonly class FilesystemWriter implements ContentWriter
 	 */
 	private function trashedFile(TrashedEntry $trashed): string
 	{
-		[$folder] = explode('/', $trashed->id, 2);
+		[$folder] = explode('/', $trashed->name, 2);
 
 		try {
-			return $this->paths->join($this->trash() . "/{$folder}/" . $this->paths->relative($this->paths->content), $trashed->entry);
+			return $this->paths->join($this->trash() . "/{$folder}/" . $this->paths->relative($this->paths->content), $trashed->path);
 		} catch (FilesystemException $e) {
-			throw new WriteException(sprintf('"%s" is outside the trash.', $trashed->id), previous: $e);
+			throw new WriteException(sprintf('"%s" is outside the trash.', $trashed->name), previous: $e);
 		}
 	}
 
@@ -813,10 +831,10 @@ final readonly class FilesystemWriter implements ContentWriter
 	 * Removes a trash folder's manifest once its entry is gone, then any
 	 * folders left empty, the trash folder itself included.
 	 */
-	private function tidyTrash(string $trashId): void
+	private function tidyTrash(string $name): void
 	{
-		[$name] = explode('/', $trashId, 2);
-		$folder = $this->trash() . "/{$name}";
+		[$top]  = explode('/', $name, 2);
+		$folder = $this->trash() . "/{$top}";
 
 		if (is_file("{$folder}/" . self::MANIFEST)) {
 			@unlink("{$folder}/" . self::MANIFEST);

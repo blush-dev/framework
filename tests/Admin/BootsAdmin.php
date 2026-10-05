@@ -15,6 +15,8 @@ namespace Blush\Tests\Admin;
 
 use Psr\Http\Message\ResponseInterface;
 use Blush\Auth\Accounts;
+use Blush\Content\ContentRepository;
+use Blush\Content\EntryIds;
 use Blush\Core\Application;
 use Blush\Http\Kernel;
 use Blush\Http\Request;
@@ -45,7 +47,7 @@ trait BootsAdmin
 	 * @param list<string>                $roles
 	 * @param array<string, ?string>      $environment
 	 */
-	private function boot(bool $enabled = true, string $config = '', array $roles = ['editor'], array $environment = []): void
+	private function boot(bool $enabled = true, string $config = '', array $roles = ['editor'], array $environment = [], bool $ids = true): void
 	{
 		$this->writeTemporaryFile('config/admin.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn new Blush\\Admin\\AdminConfig(enabled: " . ($enabled ? 'true' : 'false') . "{$config});\n");
 
@@ -57,6 +59,31 @@ trait BootsAdmin
 		$this->app = $this->scratchApplication($environment);
 		$this->app->boot();
 		$this->app->container()->make(Accounts::class)->create('jane', self::PASSWORD, $roles, 'jane', email: 'jane@example.test');
+
+		// Content has ids (D-477) unless a test is about files without them.
+		if ($ids) {
+			$this->app->container()->make(EntryIds::class)->assignMissing();
+		}
+	}
+
+	/**
+	 * Returns the id of the entry at a path.
+	 */
+	private function idOf(string $path): string
+	{
+		$id = $this->app->container()->make(ContentRepository::class)->findPath($path)?->id;
+		$this->assertIsString($id, "{$path} has an id.");
+
+		return $id;
+	}
+
+	/**
+	 * Returns the admin API's address for the entry at a path, by its id
+	 * (D-481).
+	 */
+	private function entryPath(string $path): string
+	{
+		return '/entries/' . $this->idOf($path);
 	}
 
 	/**

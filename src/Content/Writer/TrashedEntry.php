@@ -22,18 +22,20 @@ use DateTimeImmutable;
 final readonly class TrashedEntry
 {
 	/**
-	 * @param string              $id          The trash's name for it, for `restore()` and `purge()`.
-	 * @param string              $entry       The path it had, and has again once restored.
+	 * @param string              $name        The trash's name for it, for `restore()` and `purge()`.
+	 * @param string              $path        The path it had, and has again once restored.
 	 * @param bool                $bundle      Whether its bundle's folder (with media) went with it.
 	 * @param DateTimeImmutable   $trashed     When it was trashed.
 	 * @param array<mixed>        $frontMatter Its front matter, as parsed; empty when it can't be read.
+	 * @param ?string             $id          Its id (D-481), or `null` without a valid one.
 	 */
 	public function __construct(
-		public string $id,
-		public string $entry,
+		public string $name,
+		public string $path,
 		public bool $bundle,
 		public DateTimeImmutable $trashed,
-		public array $frontMatter
+		public array $frontMatter,
+		public ?string $id = null
 	) {}
 
 	/**

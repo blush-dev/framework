@@ -16,12 +16,14 @@ namespace Blush\Admin;
 use Closure;
 use JsonException;
 use Throwable;
+use Psr\Clock\ClockInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Blush\Auth\Account;
 use Blush\Auth\Capability;
 use Blush\Auth\Permissions;
 use Blush\Cache\ContentVersion;
+use Blush\Content\EntryFields;
 use Blush\Content\Index\Indexer;
 use Blush\Content\Type\ContentType;
 use Blush\Content\Type\ContentTypeCache;
@@ -37,6 +39,7 @@ use Blush\Http\Response;
 use Blush\Http\Status;
 use Blush\Routing\RouteCache;
 use Blush\Support\Filesystem;
+use Blush\Support\Uuid;
 
 /**
  * Creates, changes, and deletes the content types the site defines in
@@ -85,7 +88,8 @@ final readonly class TypeEditController
 		private AppConfig $app,
 		private Paths $paths,
 		private Filesystem $filesystem,
-		private Permissions $permissions
+		private Permissions $permissions,
+		private ClockInterface $clock
 	) {}
 
 	public function create(ServerRequestInterface $request): ResponseInterface
@@ -244,7 +248,7 @@ final readonly class TypeEditController
 		$title = json_encode($type->labels->plural, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?: '""';
 
 		try {
-			$this->filesystem->writeAtomic("{$folder}/index.md", "---\ntitle: {$title}\n---\n");
+			$this->filesystem->writeAtomic("{$folder}/index.md", $this->page($title));
 		} catch (Throwable $error) {
 			throw new InvalidContentType(sprintf('The type was saved, but its index page couldn\'t be written in %s.', $this->paths->relative($folder)), previous: $error);
 		}
@@ -274,10 +278,20 @@ final readonly class TypeEditController
 		$title = json_encode($field->plural, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?: '""';
 
 		try {
-			$this->filesystem->writeAtomic("{$folder}/{$field->listPage()}.md", "---\ntitle: {$title}\n---\n");
+			$this->filesystem->writeAtomic("{$folder}/{$field->listPage()}.md", $this->page($title));
 		} catch (Throwable $error) {
 			throw new InvalidContentType(sprintf('The type was saved, but its %s page couldn\'t be written in %s.', mb_strtolower($field->plural), $this->paths->relative($folder)), previous: $error);
 		}
+	}
+
+	/**
+	 * Returns a new page's file: its title (JSON, which YAML reads), then a
+	 * new id (D-477). The type may be new to the content writer, which is
+	 * why it's written here.
+	 */
+	private function page(string $title): string
+	{
+		return "---\ntitle: {$title}\n" . EntryFields::ID . ': ' . Uuid::v7($this->clock->now()) . "\n---\n";
 	}
 
 	/**

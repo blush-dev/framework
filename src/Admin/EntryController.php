@@ -58,13 +58,13 @@ use Blush\Support\Slug;
 /**
  * The admin's editing API (D-229), over `ContentWriter`:
  *
- * - `GET    entries/{path}`: an entry for editing, by its source path: its
- *   id (D-477, `null` without a valid one), its field values by name
+ * - `GET    entries/{id}`: an entry for editing, by its id (D-481; a
+ *   file without one can't be edited until it has one): its source
+ *   `path`, its field values by name
  *   (from whichever key or alias the file uses), other front matter,
  *   body, revision, when the file was last written (`modified`), type
  *   and field descriptions, what the account may do, and the file's
  *   problems, and its handle (`EntryHandles`, D-253), or `null`.
- * - `GET    content/{type}/{key}`: the same, found by handle.
  * - `GET    entries/new?type=…`: a new entry of a type, described the same
  *   way but not yet written (no `path`, `id`, `handle`, or `revision`), so the
  *   editor opens on it and its first save creates it (D-336). It's a
@@ -75,7 +75,7 @@ use Blush\Support\Slug;
  *   a `parent` (another of its pages, by key) to go under (D-408); a
  *   parent kept as a file becomes its folder's page, keeping its
  *   address. A parent that isn't there is a 422 with `field: "parent"`.
- * - `PATCH  entries/{path}`: changes one (`revision` required; `set`,
+ * - `PATCH  entries/{id}`: changes one (`revision` required; `set`,
  *   `remove`, `body`, `status`, `published`, `slug`, `redirect`). A new
  *   `slug` renames it (D-277): its `slug` key when the file has one,
  *   else the file, first, so a slug that's refused (not a slug, another
@@ -87,16 +87,16 @@ use Blush\Support\Slug;
  *   page already at the new place, is a 422 with `field: "parent"`. When
  *   a tree's page moves or is renamed with `redirect: true`, each
  *   published page under it gets a redirect from its old address too.
- * - `DELETE entries/{path}?revision=…`: moves it to the trash.
+ * - `DELETE entries/{id}?revision=…`: moves it to the trash.
  * - `POST   entries/bulk`: publishes, moves to draft, or trashes several
- *   (`action`: `publish`, `draft`, or `trash`; `paths`, at most 100) at
+ *   (`action`: `publish`, `draft`, or `trash`; `ids`, at most 100) at
  *   their current revisions, since a status change or a move to the
  *   trash loses no one's writing (D-301). Each entry is checked as alone:
  *   one that can't be changed (not allowed, an index page to trash, a
  *   required field empty for publishing, a write that fails) is skipped
- *   with the reason, and the rest go ahead. Answers `done` (paths) and
- *   `skipped` (`path`, `title`, `reason`).
- * - `POST   entries/{path}/duplicate`: copies it beside itself as a draft
+ *   with the reason, and the rest go ahead. Answers `done` (ids) and
+ *   `skipped` (`id`, `title`, `reason`).
+ * - `POST   entries/{id}/duplicate`: copies it beside itself as a draft
  *   titled "… (Copy)", slugged `{slug}-copy`, with the same authors,
  *   dated now if its type is dated (D-275). Needs to create entries of
  *   its type, and to edit the entry; a landing page (an index page or the homepage) can't be
@@ -151,26 +151,12 @@ final readonly class EntryController
 	/**
 	 * Answers an entry for editing.
 	 */
-	public function show(ServerRequestInterface $request, string $path): ResponseInterface
+	public function show(ServerRequestInterface $request, string $id): ResponseInterface
 	{
-		$entry = $this->content->findPath($path);
+		$entry = $this->content->find($id);
 
 		if ($entry === null) {
-			return self::error(sprintf('There\'s no "%s" entry.', $path), Status::NotFound);
-		}
-
-		return $this->edit($request, $entry);
-	}
-
-	/**
-	 * Answers an entry for editing, found by its handle (D-253).
-	 */
-	public function named(ServerRequestInterface $request, string $type, string $key): ResponseInterface
-	{
-		$entry = $this->handles->find($type, $key);
-
-		if ($entry === null || $entry->source === null) {
-			return self::error(sprintf('There\'s no "%s" entry at "%s".', $type, $key), Status::NotFound);
+			return self::error(sprintf('There\'s no entry with the id "%s".', $id), Status::NotFound);
 		}
 
 		return $this->edit($request, $entry);
@@ -328,15 +314,17 @@ final readonly class EntryController
 	/**
 	 * Changes an entry.
 	 */
-	public function update(ServerRequestInterface $request, string $path): ResponseInterface
+	public function update(ServerRequestInterface $request, string $id): ResponseInterface
 	{
 		$account = self::account($request);
 		$input   = self::input($request);
-		$entry   = $this->content->findPath($path);
+		$entry   = $this->content->find($id);
 
 		if ($entry === null) {
-			return self::error(sprintf('There\'s no "%s" entry.', $path), Status::NotFound);
+			return self::error(sprintf('There\'s no entry with the id "%s".', $id), Status::NotFound);
 		}
+
+		$path = $entry->path;
 
 		if (! $this->permissions->can($account, ContentAction::Edit, $entry)) {
 			return self::error('You aren\'t allowed to edit that entry.', Status::Forbidden);
@@ -491,14 +479,16 @@ final readonly class EntryController
 	/**
 	 * Copies an entry as a draft (D-275).
 	 */
-	public function duplicate(ServerRequestInterface $request, string $path): ResponseInterface
+	public function duplicate(ServerRequestInterface $request, string $id): ResponseInterface
 	{
 		$account = self::account($request);
-		$entry   = $this->content->findPath($path);
+		$entry   = $this->content->find($id);
 
 		if ($entry === null) {
-			return self::error(sprintf('There\'s no "%s" entry.', $path), Status::NotFound);
+			return self::error(sprintf('There\'s no entry with the id "%s".', $id), Status::NotFound);
 		}
+
+		$path = $entry->path;
 
 		if (! $this->permissions->can($account, ContentAction::Create, $entry->type->name) || ! $this->permissions->can($account, ContentAction::Edit, $entry)) {
 			return self::error('You aren\'t allowed to duplicate that entry.', Status::Forbidden);
@@ -538,14 +528,14 @@ final readonly class EntryController
 	/**
 	 * Deletes an entry (to the trash).
 	 */
-	public function delete(ServerRequestInterface $request, string $path): ResponseInterface
+	public function delete(ServerRequestInterface $request, string $id): ResponseInterface
 	{
 		$account  = self::account($request);
-		$entry    = $this->content->findPath($path);
+		$entry    = $this->content->find($id);
 		$revision = $request->getQueryParams()['revision'] ?? null;
 
 		if ($entry === null) {
-			return self::error(sprintf('There\'s no "%s" entry.', $path), Status::NotFound);
+			return self::error(sprintf('There\'s no entry with the id "%s".', $id), Status::NotFound);
 		}
 
 		if (! $this->permissions->can($account, ContentAction::Delete, $entry)) {
@@ -561,14 +551,14 @@ final readonly class EntryController
 		}
 
 		try {
-			$this->writer->delete($path, $revision);
+			$this->writer->delete($entry->path, $revision);
 		} catch (WriteConflict $e) {
 			return self::error($e->getMessage(), Status::Conflict);
 		} catch (WriteException $e) {
 			return self::error($e->getMessage(), Status::UnprocessableContent);
 		}
 
-		return self::json(['deleted' => $path]);
+		return self::json(['deleted' => $id]);
 	}
 
 	/**
@@ -579,29 +569,29 @@ final readonly class EntryController
 		$account = self::account($request);
 		$input   = self::input($request);
 		$action  = $input['action'] ?? null;
-		$paths   = $input['paths'] ?? null;
+		$ids     = $input['ids'] ?? null;
 
 		if (! in_array($action, self::BULK_ACTIONS, true)) {
 			return self::error(sprintf('"action" must be one of %s.', implode(', ', self::BULK_ACTIONS)), Status::BadRequest);
 		}
 
-		$given = is_array($paths) ? array_filter($paths, is_string(...)) : [];
+		$given = is_array($ids) ? array_filter($ids, is_string(...)) : [];
 
-		if ($given === [] || count($given) !== count((array) $paths) || count($given) > self::BULK_LIMIT) {
-			return self::error(sprintf('"paths" must list from 1 to %d entry paths.', self::BULK_LIMIT), Status::BadRequest);
+		if ($given === [] || count($given) !== count((array) $ids) || count($given) > self::BULK_LIMIT) {
+			return self::error(sprintf('"ids" must list from 1 to %d entry ids.', self::BULK_LIMIT), Status::BadRequest);
 		}
 
 		$done    = [];
 		$skipped = [];
 
-		foreach (array_values(array_unique($given)) as $path) {
-			$entry  = $this->content->findPath($path);
+		foreach (array_values(array_unique($given)) as $id) {
+			$entry  = $this->content->find($id);
 			$reason = $entry === null ? 'It\'s no longer there.' : $this->bulkChange($account, $entry, $action);
 
 			if ($reason === null) {
-				$done[] = $path;
+				$done[] = $id;
 			} else {
-				$skipped[] = ['path' => $path, 'title' => $entry->title ?? '', 'reason' => $reason];
+				$skipped[] = ['id' => $id, 'title' => $entry->title ?? '', 'reason' => $reason];
 			}
 		}
 

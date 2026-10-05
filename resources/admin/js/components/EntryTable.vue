@@ -144,7 +144,7 @@ const groups = computed(() => [
 ]);
 
 // The rows shown that can be selected, and how many of them are.
-const choosable = computed(() => groups.value.flatMap((group) => group.entries).filter(canSelect).map((entry) => entry.path));
+const choosable = computed(() => groups.value.flatMap((group) => group.entries).flatMap((entry) => canSelect(entry) && entry.id !== null ? [entry.id] : []));
 const chosen    = computed(() => choosable.value.filter((id) => selected.value.includes(id)).length);
 const allState  = computed<'true' | 'false' | 'mixed'>(() => chosen.value === 0 ? 'false' : (chosen.value === choosable.value.length ? 'true' : 'mixed'));
 
@@ -173,16 +173,19 @@ function pinIcon(entry: EntrySummary): 'house' | 'pin' {
 	return entry.homepage ? 'house' : 'pin';
 }
 
+// Selected by id (D-481); a file without one can't be changed until it has one.
 function canSelect(entry: EntrySummary): boolean {
-	return !isPinned(entry) && !entry.continued;
+	return !isPinned(entry) && !entry.continued && entry.id !== null;
 }
 
 function isSelected(entry: EntrySummary): boolean {
-	return selected.value.includes(entry.path);
+	return entry.id !== null && selected.value.includes(entry.id);
 }
 
 function choose(entry: EntrySummary): void {
-	selected.value = isSelected(entry) ? selected.value.filter((id) => id !== entry.path) : [...selected.value, entry.path];
+	if (entry.id !== null) {
+		selected.value = isSelected(entry) ? selected.value.filter((id) => id !== entry.id) : [...selected.value, entry.id];
+	}
 }
 
 // All of the page's rows, or none once all are.
@@ -269,6 +272,7 @@ async function copyLink(entry: EntrySummary): Promise<void> {
 								</template>
 								<template v-if="entry.authorsPage">{{ ' ' }}<span class="index-mark">{{ entry.peopleLabel ?? 'People' }}</span></template>
 								<template v-if="entry.errorPage !== null">{{ ' ' }}<span class="index-mark">Error {{ entry.errorPage }}</span></template>
+								<template v-if="entry.id === null">{{ ' ' }}<RouterLink class="index-mark" :to="{ name: 'health' }" title="This file has no id, so it can't be edited until it has one. Add it on Content Health.">No ID</RouterLink></template>
 								{{ ' ' }}<span v-if="entry.own && profiles" class="tag--you">You</span>
 								{{ ' ' }}<span v-if="entry.continued" class="tag" title="Listed on an earlier page; shown again above the entries under it">Continued</span>
 							</span>

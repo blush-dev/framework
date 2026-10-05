@@ -328,7 +328,7 @@ async function createLinked(): Promise<void> {
 		const created = await request<EntryDetail>('POST', '/entries', { type: profileType.value, title: current.author, slug: current.author, status: 'draft' });
 
 		await refresh();
-		await router.push(entryRoute(created));
+		await router.push(entryRoute({ id: created.id, type: created.type.name }));
 	} catch (caught) {
 		profileError.value = caught instanceof ApiError ? caught.message : 'The profile couldn\'t be created.';
 	} finally {
@@ -340,7 +340,7 @@ async function createLinked(): Promise<void> {
 async function publishProfile(): Promise<void> {
 	const page = account.value?.profile;
 
-	if (!page) {
+	if (!page?.id) {
 		return;
 	}
 
@@ -348,9 +348,9 @@ async function publishProfile(): Promise<void> {
 	profileError.value = '';
 
 	try {
-		const loaded = await request<EntryDetail>('GET', entryPath(page.path));
+		const loaded = await request<EntryDetail>('GET', entryPath(page.id));
 
-		await request<EntryDetail>('PATCH', entryPath(page.path), { revision: loaded.revision, status: 'published' });
+		await request<EntryDetail>('PATCH', entryPath(page.id), { revision: loaded.revision, status: 'published' });
 		await refresh();
 		toast(`Published ${page.title || page.slug}`);
 	} catch (caught) {

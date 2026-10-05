@@ -72,7 +72,8 @@ Move each item to `decisions.md` once it's answered.
     `{ items, total, page, pages }` with `next` and `prev` links over a
     `{ data, meta, links }` envelope), bodies (`?body=html` by default,
     `markdown`, `none`), the path setting, and caching (an `ETag`,
-    anonymous answers only). Settle before tokens and MCP, which build
+    anonymous answers only), and a lookup by site URL (`?url=`) for
+    headless routing. No file paths, ever (D-481). Settle before tokens and MCP, which build
     on it.
   - **API tokens:** the admin API is session and `X-CSRF-Token` only
     (D-220). Tokens tied to an account act with its roles and

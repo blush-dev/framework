@@ -142,7 +142,7 @@ final class AdminPeopleTest extends TestCase
 		$this->assertIsArray($accounts);
 		[$jane, $sam] = array_map(static fn (mixed $account): array => is_array($account) ? $account : [], $accounts);
 
-		$this->assertSame(['path' => 'profiles/jane.md', 'id' => '0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e71', 'handle' => 'profile/jane', 'slug' => 'jane', 'title' => 'Jane Author', 'status' => 'published', 'url' => '/profiles/jane', 'uses' => 1], $jane['profile'] ?? null);
+		$this->assertSame(['path' => 'profiles/jane.md', 'id' => '0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e71', 'type' => 'profile', 'handle' => 'profile/jane', 'slug' => 'jane', 'title' => 'Jane Author', 'status' => 'published', 'url' => '/profiles/jane', 'uses' => 1], $jane['profile'] ?? null);
 		$this->assertSame('Jane Author', $jane['displayName'] ?? null, 'One name: the profile\'s title.');
 		$this->assertArrayHasKey('profile', $sam);
 		$this->assertNull($sam['profile'], 'Not linked, so no profile (D-353).');
@@ -177,7 +177,7 @@ final class AdminPeopleTest extends TestCase
 
 		$answer = self::json($this->send('GET', '/profiles/jane'));
 
-		$this->assertSame(['slug' => 'jane', 'title' => 'Jane Author', 'subtitle' => 'Food editor', 'avatar' => null, 'status' => 'published', 'virtual' => false, 'path' => 'profiles/jane.md', 'id' => '0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e71', 'handle' => 'profile/jane', 'url' => '/profiles/jane', 'uses' => 1], $answer['profile'] ?? null);
+		$this->assertSame(['slug' => 'jane', 'title' => 'Jane Author', 'subtitle' => 'Food editor', 'avatar' => null, 'status' => 'published', 'virtual' => false, 'path' => 'profiles/jane.md', 'id' => '0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e71', 'type' => 'profile', 'handle' => 'profile/jane', 'url' => '/profiles/jane', 'uses' => 1], $answer['profile'] ?? null);
 		$this->assertSame([['type' => 'post', 'typeLabel' => 'Posts', 'field' => 'authors', 'label' => 'Authors', 'entries' => 1, 'archive' => '/posts/authors/jane', 'page' => null]], $answer['appears'] ?? null);
 		$this->assertTrue($answer['linked'] ?? null);
 		$this->assertSame('jane', is_array($answer['account'] ?? null) ? $answer['account']['username'] : null);
@@ -212,7 +212,7 @@ final class AdminPeopleTest extends TestCase
 		$written = $this->write('POST', '/profiles/jane/pages', ['type' => 'post', 'field' => 'authors']);
 
 		$this->assertSame(201, $written->getStatusCode(), (string) $written->getBody());
-		$this->assertSame('_posts/_authors/jane.md', self::json($written)['path'] ?? null);
+		$this->assertSame($this->idOf('_posts/_authors/jane.md'), self::json($written)['id'] ?? null);
 		$this->assertStringContainsString("title: \"Jane Author\"\nstatus: draft\n", (string) file_get_contents($this->temporaryDirectory() . '/user/content/_posts/_authors/jane.md'));
 		$this->assertSame(409, $this->write('POST', '/profiles/jane/pages', ['type' => 'post', 'field' => 'authors'])->getStatusCode(), 'Once.');
 		$this->assertSame(422, $this->write('POST', '/profiles/jane/pages', ['type' => 'post', 'field' => 'cooks'])->getStatusCode());
@@ -222,11 +222,11 @@ final class AdminPeopleTest extends TestCase
 		$page    = $appears['page'] ?? null;
 
 		$this->assertIsArray($page);
-		$this->assertSame(['path' => '_posts/_authors/jane.md', 'handle' => 'post/_authors/jane', 'title' => 'Jane Author', 'status' => 'draft'], array_diff_key($page, ['id' => true]));
+		$this->assertSame(['path' => '_posts/_authors/jane.md', 'type' => 'post', 'handle' => 'post/_authors/jane', 'title' => 'Jane Author', 'status' => 'draft'], array_diff_key($page, ['id' => true]));
 		$this->assertTrue(Uuid::isValid($page['id'] ?? null), 'The page written has an id (D-477).');
 		$this->assertNotContains('Jane Author', array_column(is_array($list = self::json($this->send('GET', '/entries?type=post'))['entries'] ?? null) ? $list : [], 'title'), 'It isn\'t one of the posts.');
 
-		$editor = self::json($this->send('GET', '/entries/_posts/_authors/jane.md'));
+		$editor = self::json($this->send('GET', $this->entryPath('_posts/_authors/jane.md')));
 
 		$this->assertSame(['field' => 'authors', 'label' => 'Authors', 'profile' => 'jane', 'profileTitle' => 'Jane Author'], $editor['peoplePage'] ?? null);
 		$can = $editor['can'] ?? null;
@@ -248,13 +248,13 @@ final class AdminPeopleTest extends TestCase
 		$this->profiles();
 		$this->site();
 
-		$jane = self::json($this->send('GET', '/entries/profiles/jane.md'));
-		$gwen = self::json($this->send('GET', '/entries/profiles/gwen.md'));
+		$jane = self::json($this->send('GET', $this->entryPath('profiles/jane.md')));
+		$gwen = self::json($this->send('GET', $this->entryPath('profiles/gwen.md')));
 
 		$this->assertFalse(is_array($jane['can'] ?? null) ? $jane['can']['rename'] ?? null : null, 'An account is linked by it (D-355).');
 		$this->assertTrue(is_array($gwen['can'] ?? null) ? $gwen['can']['rename'] ?? null : null, 'A guest profile can be renamed.');
 
-		$renamed = $this->write('PATCH', '/entries/profiles/jane.md', ['revision' => $jane['revision'] ?? '', 'slug' => 'jane-doe']);
+		$renamed = $this->write('PATCH', $this->entryPath('profiles/jane.md'), ['revision' => $jane['revision'] ?? '', 'slug' => 'jane-doe']);
 
 		$this->assertSame(422, $renamed->getStatusCode());
 		$this->assertStringContainsString('linked to this profile by its slug', (string) $renamed->getBody());

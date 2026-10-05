@@ -49,7 +49,7 @@ final class AdminContentTest extends TestCase
 	 * @param list<string>           $roles
 	 * @param array<string, ?string> $environment
 	 */
-	private function site(array $roles, array $environment = []): void
+	private function site(array $roles, array $environment = [], bool $ids = true): void
 	{
 		// Pages don't credit authors unless the site says so (D-329).
 		$this->writeTemporaryFile('user/data/types/page.yaml', "kind: tree\nauthors: true\n");
@@ -59,7 +59,7 @@ final class AdminContentTest extends TestCase
 		$this->writeTemporaryFile('user/content/live.md', "---\ntitle: Live\nauthors: jane\nid: " . self::LIVE . "\n---\n");
 		$this->writeTemporaryFile('user/content/broken.md', "---\ntitle: Broken\nstatus: pending\nsurprise: yes\nid: 0199b6e2-0000-7000-8000-000000000005\n---\n");
 
-		$this->boot(roles: $roles, environment: $environment);
+		$this->boot(roles: $roles, environment: $environment, ids: $ids);
 		$this->login();
 	}
 
@@ -69,9 +69,9 @@ final class AdminContentTest extends TestCase
 	private function preview(string $title, string $token): ResponseInterface
 	{
 		$entry = array_find([...$this->entries('draft'), ...$this->entries('scheduled')], static fn (array $entry): bool => $entry['title'] === $title);
-		$path  = is_array($entry) ? $entry['path'] : 'missing';
+		$id    = is_array($entry) ? $entry['id'] : 'missing';
 
-		return $this->send('POST', '/previews', json_encode(['entry' => $path]) ?: '', ['X-CSRF-Token' => $token]);
+		return $this->send('POST', '/previews', json_encode(['entry' => $id]) ?: '', ['X-CSRF-Token' => $token]);
 	}
 
 	/**
@@ -138,7 +138,7 @@ final class AdminContentTest extends TestCase
 		$this->assertSame(['Our Writers', true, false], [$page['title'] ?? null, $page['authorsPage'] ?? null, $page['can']['duplicate'] ?? null]);
 		$this->assertNull($this->list('?type=post&page=2')['authorsPage'] ?? null, 'On the first page only.');
 
-		$entry = self::json($this->send('GET', '/content/post/_authors'));
+		$entry = self::json($this->send('GET', $this->entryPath('_posts/_authors.md')));
 
 		$this->assertTrue($entry['authorsPage'] ?? null);
 		$this->assertIsArray($entry['can'] ?? null);
@@ -163,7 +163,7 @@ final class AdminContentTest extends TestCase
 		$this->assertNotContains('Not Here', $titles, 'Not among the pages.');
 		$this->assertSame([], $this->list('?type=page&page=2')['errorPages'] ?? null, 'On the first page only.');
 
-		$entry = self::json($this->send('GET', '/entries/_errors/500.md'));
+		$entry = self::json($this->send('GET', $this->entryPath('_errors/500.md')));
 		$this->assertIsArray($entry['can'] ?? null);
 		$this->assertSame([500, false, false, false], [$entry['errorPage'] ?? null, $entry['can']['rename'] ?? null, $entry['can']['move'] ?? null, $entry['can']['duplicate'] ?? null]);
 
@@ -614,7 +614,7 @@ final class AdminContentTest extends TestCase
 		$this->writeTemporaryFile('user/content/no-id.md', "---\ntitle: No ID\n---\n");
 		$this->writeTemporaryFile('user/content/bad-id.md', "---\ntitle: Bad ID\nid: 42\n---\n");
 		$this->writeTemporaryFile('user/content/copy.md', "---\ntitle: Copy\nid: " . self::LIVE . "\n---\n");
-		$this->site(['editor']);
+		$this->site(['editor'], ids: false);
 		$token = $this->token();
 
 		$health = self::json($this->send('GET', '/health'));
@@ -626,6 +626,12 @@ final class AdminContentTest extends TestCase
 		$this->assertSame(['bad-id.md', 'no-id.md'], $ids['missing'] ?? null, 'Missing ids, and ids that aren\'t UUIDs (D-477).');
 		$this->assertSame([['id' => self::LIVE, 'paths' => ['copy.md', 'live.md']]], $ids['duplicates'] ?? null);
 		$this->assertContains('no-id.md', array_column($files, 'path'), 'They\'re errors too.');
+
+		$row = array_find($this->entries('any'), static fn (array $entry): bool => $entry['path'] === 'no-id.md');
+
+		$this->assertIsArray($row);
+		$this->assertArrayHasKey('id', $row);
+		$this->assertNull($row['id'], 'Lists show it, with no id.');
 
 		$assigned = self::json($this->send('POST', '/health/ids', '{}', ['X-CSRF-Token' => $token]))['assigned'] ?? null;
 
@@ -674,7 +680,7 @@ final class AdminContentTest extends TestCase
 		$sam = $this->app->container()->make(ContentRepository::class)->named('page', 'sam-draft');
 		$this->assertNotNull($sam);
 
-		$this->assertSame(403, $this->send('POST', '/previews', json_encode(['entry' => $sam->path]) ?: '', ['X-CSRF-Token' => $token])->getStatusCode());
+		$this->assertSame(403, $this->send('POST', '/previews', json_encode(['entry' => $sam->id]) ?: '', ['X-CSRF-Token' => $token])->getStatusCode());
 	}
 
 	public function testSaysWhenPreviewLinksAreOff(): void

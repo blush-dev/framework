@@ -61,10 +61,11 @@ export interface Dashboard {
 }
 
 export interface EntrySummary {
-	// Its source path, which names it to the API, and its id (D-477),
-	// `null` while its file has no valid one.
-	path: string;
+	// Its id, which names it to the API (D-481), `null` while its file
+	// has no valid one (it can't be opened until Content Health gives it
+	// one), and its file's path under the content folder.
 	id: string | null;
+	path: string;
 	// How the admin's addresses name it (`post/hello-world`), or `null`
 	// when only its path does (D-253).
 	handle: string | null;
@@ -120,8 +121,10 @@ export type EntryStatus = 'draft' | 'scheduled' | 'published';
  * An entry in the trash (`GET trash`, D-237).
  */
 export interface TrashedSummary {
-	id: string;
-	entry: string;
+	// The trash's name for it, the path it had, and its id (D-481).
+	name: string;
+	path: string;
+	id: string | null;
 	title: string;
 	type: string | null;
 	bundle: boolean;
@@ -238,7 +241,7 @@ export interface PeopleFieldInfo {
 	multiple: boolean;
 	required: boolean;
 	// The page introducing its list of people, or `null`.
-	listPage: { path: string; title: string } | null;
+	listPage: { id: string | null; type: string; path: string; title: string } | null;
 }
 
 export interface ContentTypeDetail extends Omit<ContentTypeSummary, 'fields'> {
@@ -269,13 +272,13 @@ export interface ContentTypeDetail extends Omit<ContentTypeSummary, 'fields'> {
 	// The data file it's defined or changed in, from the site's root, or `null`.
 	file: string | null;
 	// Its index page (D-255), or `null`.
-	index: { path: string; title: string } | null;
+	index: { id: string | null; type: string; path: string; title: string } | null;
 	// How its entries credit people (D-353), in order.
 	people: PeopleFieldInfo[];
 	// The word its author archives sit under, `false` for none, or `null`
 	// for a type without URLs (D-329); and its authors page, or `null`.
 	authorsWord: string | false | null;
-	authorsPage: { path: string; title: string } | null;
+	authorsPage: { id: string | null; type: string; path: string; title: string } | null;
 	// The field sets attached to it (D-337), with how many fields each has.
 	sets: { name: string; label: string; fields: number }[];
 }
@@ -926,13 +929,12 @@ export interface FieldTypeCatalog {
 }
 
 /**
- * An entry for editing (`GET entries/{path}`, D-229).
+ * An entry for editing (`GET entries/{id}`, D-229).
  */
 export interface EntryDetail {
-	// Its source path, which names it to the API, and its id (D-477),
-	// `null` while its file has no valid one.
+	// Its id, which names it to the API (D-481), and its file's path.
+	id: string;
 	path: string;
-	id: string | null;
 	handle: string | null;
 	// The last part of its key; renaming changes it (D-277).
 	slug: string;
@@ -980,8 +982,8 @@ export interface EntryDetail {
 }
 
 // A new entry, described but not yet written (D-336): no file, so no
-// path, id, or revision.
-export type NewEntryDetail = Omit<EntryDetail, 'path' | 'revision'> & { path: null; revision: null };
+// id, path, or revision.
+export type NewEntryDetail = Omit<EntryDetail, 'id' | 'path' | 'revision'> & { id: null; path: null; revision: null };
 
 export interface Violation {
 	field: string;
@@ -994,8 +996,8 @@ export interface Violation {
  * at its `time`, both in the site's timezone. `today` is the site's date.
  */
 export interface CalendarEntry {
-	path: string;
 	id: string | null;
+	path: string;
 	handle: string | null;
 	title: string;
 	type: string;
@@ -1081,7 +1083,7 @@ export interface MediaDetail extends MediaItem {
 	// What the account may do to it.
 	may: { edit: boolean; delete: boolean };
 	// The entries that use it: their document's path, title, and type.
-	usedIn: { path: string; title: string; type: string }[];
+	usedIn: { id: string | null; path: string; title: string; type: string; typeLabel: string }[];
 }
 
 export interface MediaList {
@@ -1112,24 +1114,20 @@ export class ApiError extends Error {
 }
 
 /**
- * The editor's route for an entry: by its handle (`/content/post/hello`),
- * or by its path when it has none (D-253).
+ * The editor's route for an entry: its type and id
+ * (`/content/post/0199b6e2-…`, D-483), which stay the same through a
+ * rename or a move. An entry whose file has no id can't be edited until
+ * it has one, so it goes to Content Health, where that's fixed.
  */
-export function entryRoute(entry: { path: string; handle: string | null }): { name: string; params: Record<string, string | string[]> } {
-	if (entry.handle !== null) {
-		const [type = '', ...key] = entry.handle.split('/');
-
-		return { name: 'entry', params: { type, key } };
-	}
-
-	return { name: 'entry-file', params: { path: entry.path.split('/') } };
+export function entryRoute(entry: { id: string | null; type: string }): { name: string; params: Record<string, string | string[]> } {
+	return entry.id === null ? { name: 'health', params: {} } : { name: 'entry', params: { type: entry.type, id: entry.id } };
 }
 
 /**
- * The API path of an entry, from its source path.
+ * The API path of an entry, from its id (D-481).
  */
-export function entryPath(path: string): string {
-	return `/entries/${path.split('/').map(encodeURIComponent).join('/')}`;
+export function entryPath(id: string): string {
+	return `/entries/${encodeURIComponent(id)}`;
 }
 
 let csrfToken: string | null = null;

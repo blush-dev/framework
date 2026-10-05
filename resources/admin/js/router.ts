@@ -55,16 +55,16 @@ export const router = createRouter({
 		{ path: '/content/:type', name: 'type', component: EntriesView, meta: { title: 'Entries', contentAction: 'edit', section: 'entries', area: 'content' } },
 		// An entry is edited at its handle, its type and key (D-253); a
 		// page's key spans segments.
-		{ path: '/content/:type/:key+', name: 'entry', component: EditorView, meta: { title: 'Edit Entry', contentAction: 'edit', section: 'entries', area: 'content', bleed: true } },
+		// An entry, by its type and id (D-483).
+		{ path: '/content/:type/:id([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})', name: 'entry', component: EditorView, meta: { title: 'Edit Entry', contentAction: 'edit', section: 'entries', area: 'content', bleed: true } },
 		// A new entry opens in the editor, unsaved, until its first save
 		// writes it (D-336).
 		{ path: '/entries/new', name: 'entry-new', component: EditorView, meta: { title: 'New Entry', contentAction: 'create', section: 'entries', area: 'content', bleed: true } },
 		// An entry without a handle is edited at its source path, which
 		// also still works for the rest (the editor moves to the handle).
-		{ path: '/entries/:path+', name: 'entry-file', component: EditorView, meta: { title: 'Edit Entry', contentAction: 'edit', section: 'entries', area: 'content', bleed: true } },
 		// A trashed entry, to look at before restoring it (D-276), by the
 		// trash's id for it.
-		{ path: '/trash/:id+', name: 'trashed', component: TrashedView, meta: { title: 'In the Trash', contentAction: 'delete', section: 'entries', area: 'content' } },
+		{ path: '/trash/:name+', name: 'trashed', component: TrashedView, meta: { title: 'In the Trash', contentAction: 'delete', section: 'entries', area: 'content' } },
 		// Drafts are a tab on each type's list now (D-236).
 		{ path: '/drafts', redirect: { name: 'dashboard' } },
 		// Dated entries by month (D-368); `?month=YYYY-MM`.

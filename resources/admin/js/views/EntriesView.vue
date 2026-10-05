@@ -43,6 +43,7 @@ import TrashTable from '../components/TrashTable.vue';
 import { plural } from '../format';
 import { screenTitle } from '../screen';
 import { toast, type ToastKind } from '../toast';
+import { restoreFromTrash } from '../trash';
 import { can, canType, session } from '../session';
 import { loadReferences } from '../references';
 import { profileType, currentType, findType, labelsOf, loadTypes, types } from '../types';
@@ -416,7 +417,7 @@ function listParams(): Record<string, string> {
 const trashShown = computed(() => {
 	const needle = search.value.toLowerCase();
 
-	return (trash.value ?? []).filter((item) => needle === '' || item.title.toLowerCase().includes(needle) || item.entry.toLowerCase().includes(needle));
+	return (trash.value ?? []).filter((item) => needle === '' || item.title.toLowerCase().includes(needle) || item.path.toLowerCase().includes(needle));
 });
 
 // A skeleton guesses at the rows to come: the tab's last count, up to a
@@ -513,10 +514,16 @@ async function moveToTrash(entry: EntrySummary): Promise<void> {
 		return;
 	}
 
-	void act(entry.path, async () => {
-		const detail = await request<EntryDetail>('GET', entryPath(entry.path));
+	const id = entry.id;
 
-		await request<void>('DELETE', `${entryPath(entry.path)}?revision=${encodeURIComponent(detail.revision)}`);
+	if (id === null) {
+		return;
+	}
+
+	void act(id, async () => {
+		const detail = await request<EntryDetail>('GET', entryPath(id));
+
+		await request<void>('DELETE', `${entryPath(id)}?revision=${encodeURIComponent(detail.revision)}`);
 
 		return `Moved ${nameOf(entry)} to the trash`;
 	}, 'danger');
@@ -526,8 +533,14 @@ async function moveToTrash(entry: EntrySummary): Promise<void> {
  * Copies an entry as a draft beside it (D-275).
  */
 function duplicate(entry: EntrySummary): void {
-	void act(entry.path, async () => {
-		const copy = await request<EntryDetail>('POST', `${entryPath(entry.path)}/duplicate`);
+	const id = entry.id;
+
+	if (id === null) {
+		return;
+	}
+
+	void act(id, async () => {
+		const copy = await request<EntryDetail>('POST', `${entryPath(id)}/duplicate`);
 
 		return `Duplicated as a draft: ${nameOf(copy)}`;
 	});
@@ -553,15 +566,15 @@ const canPublish = computed(() => canType(type.value, 'publish'));
  * that couldn't, with why.
  */
 async function bulk(action: BulkAction): Promise<void> {
-	const paths = [...selected.value];
-	const count = plural(paths.length, labels.value.item, labels.value.items);
+	const ids   = [...selected.value];
+	const count = plural(ids.length, labels.value.item, labels.value.items);
 
 	if (action === 'trash' && !await confirmAction({ title: `Move ${count} to the Trash?`, body: 'You can restore them from the Trash tab.', confirm: 'Move to trash', danger: true })) {
 		return;
 	}
 
 	void act('bulk', async () => {
-		const answer = await request<{ done: string[]; skipped: { path: string; title: string; reason: string }[] }>('POST', '/entries/bulk', { action, paths });
+		const answer = await request<{ done: string[]; skipped: { id: string; title: string; reason: string }[] }>('POST', '/entries/bulk', { action, ids });
 		const moved  = plural(answer.done.length, labels.value.item, labels.value.items);
 
 		selected.value = [];
@@ -580,10 +593,10 @@ async function bulk(action: BulkAction): Promise<void> {
 }
 
 function restore(item: TrashedSummary): void {
-	void act(item.id, async () => {
-		await request<{ path: string }>('POST', '/trash/restore', { id: item.id });
+	void act(item.name, async () => {
+		const id = await restoreFromTrash(item.name);
 
-		return `Restored ${nameOf(item)} as a draft`;
+		return id === null ? 'Left in the trash' : `Restored ${nameOf(item)} as a draft`;
 	});
 }
 
@@ -592,8 +605,8 @@ async function purge(item: TrashedSummary): Promise<void> {
 		return;
 	}
 
-	void act(item.id, async () => {
-		await request<void>('POST', '/trash/delete', { id: item.id });
+	void act(item.name, async () => {
+		await request<void>('POST', '/trash/delete', { name: item.name });
 
 		return `Deleted ${nameOf(item)} permanently`;
 	}, 'danger');

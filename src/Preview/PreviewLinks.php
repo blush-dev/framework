@@ -20,8 +20,9 @@ use Blush\Core\AppConfig;
 
 /**
  * Makes and checks signed preview links (D-226). A link names an entry by
- * id and carries when it expires and an HMAC-SHA256 signature of both,
- * so it can't be changed to show another entry or to last longer:
+ * its id (D-481), so it survives a rename or move and says nothing of
+ * the file, and carries when it expires and an HMAC-SHA256 signature of
+ * both, so it can't be changed to show another entry or to last longer:
  *
  *     /_blush/preview?entry={id}&expires={time}&signature={hmac}
  *
@@ -40,15 +41,17 @@ final readonly class PreviewLinks
 	 * Makes a link to an entry's preview, lasting `$lifetime` seconds (the
 	 * configured lifetime by default).
 	 *
-	 * @throws LogicException When preview links are off (no secret).
+	 * @throws LogicException When preview links are off (no secret), or the
+	 *                        entry has no id.
 	 */
 	public function make(Entry $entry, ?int $lifetime = null): PreviewLink
 	{
+		$id      = $entry->id ?? throw new LogicException(sprintf('%s has no id, so it can\'t have a preview link; give it one with content:ids --write.', $entry->path));
 		$expires = $this->clock->now()->getTimestamp() + max(60, $lifetime ?? $this->config->lifetime);
 		$query   = http_build_query([
-			'entry'     => $entry->path,
+			'entry'     => $id,
 			'expires'   => $expires,
-			'signature' => $this->signature($entry->path, $expires)
+			'signature' => $this->signature($id, $expires)
 		], '', '&', PHP_QUERY_RFC3986);
 
 		return new PreviewLink($this->app->absoluteUrl("{$this->config->path}?{$query}"), $expires);

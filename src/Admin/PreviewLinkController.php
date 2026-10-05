@@ -28,7 +28,7 @@ use Blush\Http\Response;
 use Blush\Http\Status;
 
 /**
- * Answers `POST {path}/api/previews` with `{"entry": path}`: a signed
+ * Answers `POST {path}/api/previews` with `{"entry": id}`: a signed
  * preview link to an entry the account may edit (D-226), as `{url,
  * expires}`. Without a secret, preview links are off: a 503 says so.
  */
@@ -53,17 +53,17 @@ final readonly class PreviewLinkController
 			$input = null;
 		}
 
-		$path = is_array($input) ? ($input['entry'] ?? null) : null;
+		$id = is_array($input) ? ($input['entry'] ?? null) : null;
 
-		if (! is_string($path)) {
-			return self::json(['error' => 'Send a JSON "entry" path.'], Status::BadRequest);
+		if (! is_string($id)) {
+			return self::json(['error' => 'Send a JSON "entry" id.'], Status::BadRequest);
 		}
 
 		$account = $request->getAttribute(Account::class);
-		$entry   = $this->content->findPath($path);
+		$entry   = $this->content->find($id);
 
 		if ($entry === null) {
-			return self::json(['error' => sprintf('There\'s no "%s" entry.', $path)], Status::NotFound);
+			return self::json(['error' => sprintf('There\'s no entry with the id "%s".', $id)], Status::NotFound);
 		}
 
 		if (! $account instanceof Account || ! $this->permissions->can($account, ContentAction::Edit, $entry)) {

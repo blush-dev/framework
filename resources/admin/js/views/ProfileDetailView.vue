@@ -71,7 +71,7 @@ watch([profileType, types], ([name]) => {
 
 const profile   = computed(() => detail.value?.profile ?? null);
 const name      = computed(() => profile.value ? profile.value.title || profile.value.slug : 'Profile');
-const editRoute = computed(() => profile.value?.path ? entryRoute({ path: profile.value.path, handle: profile.value.handle }) : null);
+const editRoute = computed(() => profile.value?.id ? entryRoute({ id: profile.value.id, type: profile.value.type }) : null);
 const liveUrl   = computed(() => profile.value?.status === 'published' && profile.value.url ? new URL(profile.value.url, config.site.url).href : null);
 const yours     = computed(() => session.account?.author === slug.value);
 
@@ -80,9 +80,9 @@ const uncredited = computed(() => types.value.filter((type) => (type.kind === 'c
 
 // Publishes a draft profile, so its page and bylines go live.
 async function publish(): Promise<void> {
-	const path = profile.value?.path;
+	const id = profile.value?.id;
 
-	if (!path) {
+	if (!id) {
 		return;
 	}
 
@@ -90,9 +90,9 @@ async function publish(): Promise<void> {
 	failure.value = '';
 
 	try {
-		const loaded = await request<EntryDetail>('GET', entryPath(path));
+		const loaded = await request<EntryDetail>('GET', entryPath(id));
 
-		await request<EntryDetail>('PATCH', entryPath(path), { revision: loaded.revision, status: 'published' });
+		await request<EntryDetail>('PATCH', entryPath(id), { revision: loaded.revision, status: 'published' });
 		toast(`Published ${name.value}`);
 		await load();
 	} catch (caught) {
@@ -105,7 +105,7 @@ async function publish(): Promise<void> {
 async function trash(): Promise<void> {
 	const current = profile.value;
 
-	if (!current?.path) {
+	if (!current?.id) {
 		return;
 	}
 
@@ -124,9 +124,9 @@ async function trash(): Promise<void> {
 	failure.value = '';
 
 	try {
-		const loaded = await request<EntryDetail>('GET', entryPath(current.path));
+		const loaded = await request<EntryDetail>('GET', entryPath(current.id));
 
-		await request<void>('DELETE', `${entryPath(current.path)}?revision=${encodeURIComponent(loaded.revision)}`);
+		await request<void>('DELETE', `${entryPath(current.id)}?revision=${encodeURIComponent(loaded.revision)}`);
 		toast(`Moved ${name.value} to the trash`, { kind: 'danger' });
 		await router.push(profileType.value ? { name: 'type', params: { type: profileType.value } } : { name: 'dashboard' });
 	} catch (caught) {
@@ -273,11 +273,11 @@ async function link(): Promise<void> {
 				<a v-if="liveUrl" class="button" :href="liveUrl" target="_blank" rel="noopener"><AdminIcon name="external-link" />View<span class="visually-hidden"> (new tab)</span></a>
 				<button v-if="profile.status === 'draft' && profileType && canType(profileType, 'publish')" type="button" class="button" :disabled="busy === 'publish'" @click="publish">Publish</button>
 				<RouterLink v-if="editRoute" class="button button--primary" :to="editRoute"><AdminIcon name="pen-line" />Edit profile</RouterLink>
-				<MenuButton v-if="canUnlink || canLink || (profile.path && profileType && canType(profileType, 'delete'))" button-class="button button--icon" label="More actions" align="end">
+				<MenuButton v-if="canUnlink || canLink || (profile.id && profileType && canType(profileType, 'delete'))" button-class="button button--icon" label="More actions" align="end">
 					<template #button><AdminIcon name="ellipsis-vertical" /></template>
 					<button v-if="canUnlink" type="button" class="menu-item" @click="unlink"><AdminIcon name="unlink" />Unlink the account</button>
 					<button v-else-if="canLink" type="button" class="menu-item" @click="startLink"><AdminIcon name="link" />Link to an account</button>
-					<template v-if="profile.path && profileType && canType(profileType, 'delete')">
+					<template v-if="profile.id && profileType && canType(profileType, 'delete')">
 						<div class="menu-divider" />
 						<button type="button" class="menu-item menu-item--danger" :disabled="busy === 'trash'" @click="trash"><AdminIcon name="trash-2" />Move to trash</button>
 					</template>

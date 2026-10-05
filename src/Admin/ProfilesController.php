@@ -62,7 +62,7 @@ use Blush\Http\Status;
  * - `POST profiles/{slug}/pages` (`{"type", "field"}`): writes the page
  *   for the profile's archive under a field (`_cooks/jane` in the type's
  *   folder), a draft titled with the profile's name, and answers `201`
- *   with its `{"path", "handle"}`. Needs to create entries of that type.
+ *   with its `{"id", "handle"}`. Needs to create entries of that type.
  * - `DELETE profiles/{slug}/pages/{type}/{field}`: moves that page to the
  *   trash (D-370), so the archive shows the profile's body again. Needs
  *   to delete the page.
@@ -152,6 +152,7 @@ final readonly class ProfilesController
 				'virtual'  => $profile->isVirtual(),
 				'path'     => $profile->isVirtual() ? null : $profile->path,
 				'id'       => $profile->id,
+				'type'     => $profiles->name,
 				'handle'   => $profile->isVirtual() ? null : $this->handles->of($profile),
 				'url'      => $this->urls->profile($profile->slug),
 				'uses'     => $this->content->termCounts($profiles->name)[$profile->slug] ?? 0
@@ -198,7 +199,7 @@ final readonly class ProfilesController
 
 		$entry = $this->content->findPath($result->path);
 
-		return self::json(['path' => $result->path, 'handle' => $entry === null ? null : $this->handles->of($entry)], Status::Created);
+		return self::json(['id' => $entry?->id, 'type' => $type->name, 'handle' => $entry === null ? null : $this->handles->of($entry)], Status::Created);
 	}
 
 	public function remove(ServerRequestInterface $request, string $slug, string $type, string $field): ResponseInterface
@@ -282,7 +283,7 @@ final readonly class ProfilesController
 					'label'     => $field->plural,
 					'entries'   => $this->content->query()->type($type->name)->whereTerm($field->termKey($profiles->name), $profile->slug)->count(),
 					'archive'   => $this->urls->person($type, $field, $profile->slug),
-					'page'      => $page === null ? null : ['path' => $page->path, 'id' => $page->id, 'handle' => $this->handles->of($page), 'title' => $page->title, 'status' => $page->status->value]
+					'page'      => $page === null ? null : ['path' => $page->path, 'id' => $page->id, 'type' => $page->type->name, 'handle' => $this->handles->of($page), 'title' => $page->title, 'status' => $page->status->value]
 				];
 			}
 		}

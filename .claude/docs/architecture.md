@@ -616,6 +616,10 @@ Implemented in M4b (D-087, D-090).
   `id`, written last; `update` adds one to a file without it and never
   changes or removes one; a new key goes before an existing `id`; and
   `assignIds` gives files new ones in one reindex (D-477, D-480).
+  Trashed entries are `name`, `path`, and `id`; `restore` refuses an id
+  another entry has now (`IdTaken`) unless asked for a new one (D-482).
+  Outside the writer, entries are named by id (D-481): the admin API,
+  preview links, and the editor's addresses.
 
 ## Query
 
@@ -1041,9 +1045,8 @@ by source, keeps recents, and writes the directive text). The
   public Set Password screen), as are Content types over `GET types` and
   `GET types/{name}` (D-250) and Media over `GET media` and
   `GET media/{path}` (D-251). The editor's address is the entry's
-  handle, `content/{type}/{key}` (`EntryHandles`, `GET
-  content/{type}/{key}`), with `entries/{path}` for entries without one
-  (D-253). Entry tables show each entry's site address, not its file,
+  type and id, `content/{type}/{id}` (D-483; handles, D-253, are only
+  shown now). Entry tables show each entry's site address, not its file,
   and end in a row menu (`MenuButton`, `floating`; D-254); a
   collection's or taxonomy's landing page is its **index page**, pinned
   in a `tbody` of its own above the rest and answered apart from them

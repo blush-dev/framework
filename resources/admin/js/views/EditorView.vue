@@ -146,26 +146,20 @@ function joined(segments: string | string[] | undefined): string {
 	return Array.isArray(segments) ? segments.join('/') : String(segments ?? '');
 }
 
-// What the route names: an entry's handle (`post/hello`), its path for
-// one without a handle (D-253), or a new entry's type (D-336).
-const address = computed(() => {
-	if (route.name === 'entry-new') {
-		return { handle: false, fresh: true, name: typeof route.query.type === 'string' ? route.query.type : '' };
-	}
-
-	return route.name === 'entry'
-		? { handle: true, fresh: false, name: `${joined(route.params.type)}/${joined(route.params.key)}` }
-		: { handle: false, fresh: false, name: joined(route.params.path) };
-});
+// What the route names: an entry's id (D-483), or a new entry's type
+// (D-336).
+const address = computed(() => route.name === 'entry-new'
+	? { fresh: true, name: typeof route.query.type === 'string' ? route.query.type : '' }
+	: { fresh: false, name: joined(route.params.id) });
 
 function isAt(detail: EntryDetail | NewEntryDetail): boolean {
 	const at = address.value;
 
 	if (at.fresh) {
-		return detail.path === null && detail.type.name === at.name;
+		return detail.id === null && detail.type.name === at.name;
 	}
 
-	return at.name === (at.handle ? detail.handle : detail.path);
+	return at.name === detail.id;
 }
 
 /**
@@ -173,20 +167,20 @@ function isAt(detail: EntryDetail | NewEntryDetail): boolean {
  * id, or its type's for a new one.
  */
 function keptAs(detail: EntryDetail | NewEntryDetail): string {
-	return detail.path ?? `new:${detail.type.name}`;
+	return detail.id ?? `new:${detail.type.name}`;
 }
 
 
 /**
- * Keeps the address on the entry's handle, as it moves (a rename) or
- * when it was opened by its path.
+ * Keeps the address on the entry's type and id: a new entry's first
+ * save, or an address naming another type.
  */
 function follow(detail: EntryDetail | NewEntryDetail): void {
-	if (detail.path !== null && detail.handle !== null && !(address.value.handle && address.value.name === detail.handle)) {
-		void router.replace({ ...entryRoute(detail), query: address.value.fresh ? {} : route.query, hash: route.hash });
-	} else if (detail.path !== null && address.value.fresh) {
-		void router.replace(entryRoute(detail));
+	if (detail.id === null || (route.name === 'entry' && joined(route.params.id) === detail.id && joined(route.params.type) === detail.type.name)) {
+		return;
 	}
+
+	void router.replace({ ...entryRoute({ id: detail.id, type: detail.type.name }), query: address.value.fresh ? {} : route.query, hash: route.hash });
 }
 
 const entry    = ref<EntryDetail | NewEntryDetail | null>(null);
@@ -245,7 +239,7 @@ const peopleNoun = computed(() => {
 });
 const noun      = computed(() => entry.value?.index ? 'index page' : (peopleNoun.value ?? labels.value.item));
 const entryType = computed(() => types.value.find((type) => type.name === entry.value?.type.name));
-const fresh     = computed(() => entry.value !== null && entry.value.path === null);
+const fresh     = computed(() => entry.value !== null && entry.value.id === null);
 const editTitle = computed(() => titleCase(entry.value?.index ? 'Edit index page' : (peopleNoun.value ? `Edit ${peopleNoun.value}` : (fresh.value ? labels.value.newItem : labels.value.editItem))));
 
 // A tree's page goes under the page chosen here, or at the top: a new
@@ -278,7 +272,7 @@ watch(parent, () => {
 	parentError.value = '';
 });
 
-watch(() => treeParent.value ? `${entry.value?.type.name}:${entry.value?.path ?? ''}` : undefined, async (at) => {
+watch(() => treeParent.value ? `${entry.value?.type.name}:${entry.value?.id ?? ''}` : undefined, async (at) => {
 	const name = entry.value?.type.name;
 
 	parentItems.value = null;
@@ -407,7 +401,7 @@ function fill(detail: EntryDetail | NewEntryDetail): void {
 	entry.value = detail;
 	apply(stateOf(detail));
 
-	if (detail.path !== null) {
+	if (detail.id !== null) {
 		parent.value = detail.parent ?? '';
 	}
 
@@ -460,7 +454,7 @@ async function load(): Promise<void> {
 		const at     = address.value;
 		const path   = at.fresh
 			? `/entries/new?type=${encodeURIComponent(await freshType(at.name))}`
-			: (at.handle ? `/content/${at.name.split('/').map(encodeURIComponent).join('/')}` : entryPath(at.name));
+			: entryPath(at.name);
 		const detail = await request<EntryDetail | NewEntryDetail>('GET', path);
 
 		fill(detail);
@@ -476,7 +470,7 @@ async function load(): Promise<void> {
 		}
 
 		// A new entry starts at its title.
-		if (detail.path === null && earlier === null) {
+		if (detail.id === null && earlier === null) {
 			await nextTick();
 			titleField.value?.focus();
 		}
@@ -500,7 +494,7 @@ function restore(): void {
 	offer.value = null;
 	apply(earlier.state);
 
-	if (entry.value.path !== null && earlier.revision !== entry.value.revision) {
+	if (entry.value.id !== null && earlier.revision !== entry.value.revision) {
 		conflict.value = { theirs: entry.value, loading: false };
 	}
 }
@@ -604,7 +598,7 @@ async function save(status?: EntryStatus): Promise<void> {
 	failure.value = null;
 
 	// A new entry is named for its title, so it needs one to be written.
-	if (detail.path === null && title.value.trim() === '') {
+	if (detail.id === null && title.value.trim() === '') {
 		failure.value = { message: `Give the ${noun.value} a title to save it.`, status };
 		titleField.value?.focus();
 
@@ -670,9 +664,9 @@ async function save(status?: EntryStatus): Promise<void> {
 	waiting.value = null;
 
 	try {
-		const saved = detail.path === null
+		const saved = detail.id === null
 			? await request<EntryDetail>('POST', '/entries', created(detail, change, status))
-			: await request<EntryDetail>('PATCH', entryPath(detail.path), change);
+			: await request<EntryDetail>('PATCH', entryPath(detail.id), change);
 
 		fill(saved);
 		forget(keptAs(saved));
@@ -683,7 +677,7 @@ async function save(status?: EntryStatus): Promise<void> {
 
 		// A plain save shows in the save state; a change of status says
 		// so, and so does a new entry's first.
-		if (detail.path === null && saved.status === 'draft') {
+		if (detail.id === null && saved.status === 'draft') {
 			toast('Saved as a draft');
 		} else if (status !== undefined && status !== detail.status) {
 			toast(status === 'published' ? 'Published' : (status === 'scheduled' ? 'Scheduled' : 'Switched to draft'));
@@ -757,14 +751,14 @@ async function openConflict(status?: EntryStatus): Promise<void> {
 async function fetchTheirs(): Promise<void> {
 	const open = conflict.value;
 
-	if (open === null || entry.value === null || entry.value.path === null) {
+	if (open === null || entry.value === null || entry.value.id === null) {
 		return;
 	}
 
 	open.loading = true;
 
 	try {
-		open.theirs = await request<EntryDetail>('GET', entryPath(entry.value.path));
+		open.theirs = await request<EntryDetail>('GET', entryPath(entry.value.id));
 	} catch {
 		open.theirs = null;
 	} finally {
@@ -783,7 +777,7 @@ function keepTheirs(): void {
 	}
 
 	fill(theirs);
-	forget(theirs.path);
+	forget(theirs.id);
 	keptHere.value = false;
 }
 
@@ -870,13 +864,13 @@ function hunks(lines: DiffLine[]): (DiffLine | { kind: 'skip'; count: number })[
 async function trash(): Promise<void> {
 	const detail = entry.value;
 
-	if (detail === null || detail.path === null || !await confirmAction({ title: `Move “${detail.title || 'Untitled'}” to the Trash?`, body: 'You can restore it from the Trash tab.', confirm: 'Move to trash', danger: true })) {
+	if (detail === null || detail.id === null || !await confirmAction({ title: `Move “${detail.title || 'Untitled'}” to the Trash?`, body: 'You can restore it from the Trash tab.', confirm: 'Move to trash', danger: true })) {
 		return;
 	}
 
 	try {
-		await request<void>('DELETE', `${entryPath(detail.path)}?revision=${encodeURIComponent(detail.revision)}`);
-		forget(detail.path);
+		await request<void>('DELETE', `${entryPath(detail.id)}?revision=${encodeURIComponent(detail.revision)}`);
+		forget(detail.id);
 		initial.value = null;
 		await router.push({ name: 'type', params: { type: detail.type.name } });
 		toast(`Moved “${detail.title || 'Untitled'}” to the trash`, { kind: 'danger' });
@@ -1006,14 +1000,14 @@ async function preview(): Promise<void> {
 	const detail = entry.value;
 	const tab    = window.open('about:blank', '_blank');
 
-	if (detail === null || detail.path === null) {
+	if (detail === null || detail.id === null) {
 		tab?.close();
 
 		return;
 	}
 
 	try {
-		const link = await request<PreviewLink>('POST', '/previews', { entry: detail.path });
+		const link = await request<PreviewLink>('POST', '/previews', { entry: detail.id });
 
 		if (tab === null) {
 			window.open(link.url, '_blank', 'noopener');
@@ -2083,12 +2077,12 @@ async function copyLink(): Promise<void> {
 async function duplicate(): Promise<void> {
 	const detail = entry.value;
 
-	if (detail === null || detail.path === null) {
+	if (detail === null || detail.id === null) {
 		return;
 	}
 
 	try {
-		const copy = await request<EntryDetail>('POST', `${entryPath(detail.path)}/duplicate`);
+		const copy = await request<EntryDetail>('POST', `${entryPath(detail.id)}/duplicate`);
 
 		toast(`Duplicated as a draft: “${copy.title || 'Untitled'}”`);
 	} catch (caught) {
@@ -2411,7 +2405,7 @@ function fieldKey(field: FieldDescription): string {
 					<button type="button" class="menu-item" @click="toggleFocus">
 						<AdminIcon name="maximize-2" />{{ focusMode ? 'Leave focus mode' : 'Focus mode' }}<kbd class="menu-kbd">⌘⇧F</kbd>
 					</button>
-					<button v-if="entry.path !== null && !(entry.url && entry.status === 'published')" type="button" class="menu-item" @click="preview">
+					<button v-if="entry.id !== null && !(entry.url && entry.status === 'published')" type="button" class="menu-item" @click="preview">
 						<AdminIcon name="eye" />Preview
 					</button>
 					<a v-if="entry.url && entry.status === 'published'" class="menu-item" :href="entry.url" target="_blank" rel="noopener">

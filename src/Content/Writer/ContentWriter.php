@@ -141,17 +141,20 @@ interface ContentWriter
 	 * @throws WriteException When there's no such entry in the trash, or
 	 *                        it can't be read.
 	 */
-	public function loadTrashed(string $trashId): EditableEntry;
+	public function loadTrashed(string $name): EditableEntry;
 
 	/**
 	 * Brings an entry back from the trash to where it was, after making
 	 * the changes to it (such as `status: draft`), so it's never back
-	 * without them.
+	 * without them. It keeps its id (D-481) unless `$newId` asks for a
+	 * new one; one without an id is given one.
 	 *
+	 * @throws IdTaken When another entry has its id now; restore it with
+	 *                 `$newId`, or leave it in the trash.
 	 * @throws WriteException When there's no such entry in the trash, or
 	 *                        something now has its place.
 	 */
-	public function restore(string $trashId, EntryChanges $changes = new EntryChanges()): WriteResult;
+	public function restore(string $name, EntryChanges $changes = new EntryChanges(), bool $newId = false): WriteResult;
 
 	/**
 	 * Gives entries new ids (D-477), for `content:ids` and Content health:
@@ -168,5 +171,5 @@ interface ContentWriter
 	 *
 	 * @throws WriteException When there's no such entry in the trash.
 	 */
-	public function purge(string $trashId): void;
+	public function purge(string $name): void;
 }

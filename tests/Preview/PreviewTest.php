@@ -55,8 +55,8 @@ final class PreviewTest extends TestCase
 
 	private function boot(?string $secret = self::SECRET): void
 	{
-		$this->writeTemporaryFile('user/content/idea.md', "---\ntitle: A Secret Idea\nstatus: draft\n---\nNot yet.\n");
-		$this->writeTemporaryFile('user/content/other.md', "---\ntitle: Another Draft\nstatus: draft\n---\n");
+		$this->writeTemporaryFile('user/content/idea.md', "---\ntitle: A Secret Idea\nstatus: draft\nid: 0199b6e2-0000-7000-8000-000000000001\n---\nNot yet.\n");
+		$this->writeTemporaryFile('user/content/other.md', "---\ntitle: Another Draft\nstatus: draft\nid: 0199b6e2-0000-7000-8000-000000000002\n---\n");
 
 		$this->start($secret);
 	}
@@ -97,7 +97,7 @@ final class PreviewTest extends TestCase
 
 		$link = $this->links()->make($this->entry('idea'));
 
-		$this->assertStringStartsWith('https://example.test/_blush/preview?entry=', $link->url);
+		$this->assertStringStartsWith('https://example.test/_blush/preview?entry=0199b6e2-0000-7000-8000-000000000001&', $link->url, 'Named by its id, not its file (D-481).');
 		$this->assertSame($this->clock->now()->getTimestamp() + 604800, $link->expires);
 
 		$response = $this->visit($link->url);
@@ -148,6 +148,21 @@ final class PreviewTest extends TestCase
 		$this->start();
 
 		$this->assertSame(404, $this->visit($link->url)->getStatusCode());
+	}
+
+	public function testALinkFollowsItsEntryWhenItMoves(): void
+	{
+		$this->boot();
+
+		$link = $this->links()->make($this->entry('idea'));
+		rename($this->temporaryDirectory() . '/user/content/idea.md', $this->temporaryDirectory() . '/user/content/renamed.md');
+
+		$this->start();
+
+		$response = $this->visit($link->url);
+
+		$this->assertSame(200, $response->getStatusCode(), 'The link names the entry by id (D-481).');
+		$this->assertStringContainsString('A Secret Idea', (string) $response->getBody());
 	}
 
 	public function testIsOffWithoutASecret(): void

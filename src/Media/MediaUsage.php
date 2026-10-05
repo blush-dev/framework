@@ -35,11 +35,11 @@ final readonly class MediaUsage
 
 	/**
 	 * The entries that use a file, by its path in `user/media`
-	 * (`2026/10/photo.jpg`), each with its `path` (its document's path),
+	 * (`2026/10/photo.jpg`), each with its `id` (`null` without one), `path` (its document's path), `type` (the type's name), `typeLabel`,
 	 * `title` (the document's path when it isn't indexed), and `type`
 	 * (the type's singular label, or `''`).
 	 *
-	 * @return list<array{path: string, title: string, type: string}>
+	 * @return list<array{id: ?string, path: string, title: string, type: string, typeLabel: string}>
 	 */
 	public function entries(string $relative): array
 	{
@@ -73,9 +73,11 @@ final readonly class MediaUsage
 
 			$entry   = $this->content->findPath($file->path);
 			$found[] = [
+				'id'    => $entry?->id,
 				'path'  => $file->path,
-				'title' => $entry === null || $entry->title === '' ? $file->path : $entry->title,
-				'type'  => $entry?->type->labels->singular ?? ''
+				'title'     => $entry === null || $entry->title === '' ? $file->path : $entry->title,
+				'type'      => $entry?->type->name ?? '',
+				'typeLabel' => $entry?->type->labels->singular ?? ''
 			];
 		}
 

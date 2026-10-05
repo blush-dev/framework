@@ -624,8 +624,9 @@ Each is recorded in `.claude/docs/decisions.md`.
   and a real 600 (so bold keeps its width), and a slanted italic (it has
   none). The writing column is 640px (`--measure`), with nothing between
   the title and the body.
-- **Editor addresses by handle** (D-253): `/content/{type}/{key}`, under
-  the type's list, not the file's path.
+- **Editor addresses by type and id** (D-483, replacing D-253's
+  handles): `/content/{type}/{id}`, under the type's list, never the
+  file's path, and the same through a rename.
 - **Paths stay out of the UI** (D-254): tables show an entry's address on
   the site (`/archives/…`), not its file or folder, and untitled entries
   are "Untitled". Files belong in an info box, later.

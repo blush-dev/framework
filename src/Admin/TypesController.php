@@ -36,6 +36,7 @@ use Blush\Field\Field;
 use Blush\Field\FieldSet;
 use Blush\Http\Response;
 use Blush\Http\Status;
+use Blush\Support\Uuid;
 
 /**
  * Answers `GET {path}/api/types` (D-233, D-234): the site's content types, so
@@ -69,10 +70,10 @@ use Blush\Http\Status;
  * (each route key it answers at, with its `path` and `default` relative
  * to the prefix, the placeholders it `requires` and `allows`, and
  * whether it's at the site's `root`, as the home type's feeds are,
- * D-350), its `index` page (`{"path", "title"}`, or `null`), the
+ * D-350), its `index` page (`{"id", "type", "path", "title"}`, or `null`), the
  * word its author archives sit under (`authorsWord`: the word, `false`
  * for none, or `null` for a type without URLs, D-329), and its
- * `authorsPage` (`{"path", "title"}`, or `null`).
+ * `authorsPage` (`{"id", "type", "path", "title"}`, or `null`).
  * The list adds whether types can be created here (`create`: data types
  * are read) and whether they may set URLs (`urls`).
  *
@@ -237,7 +238,7 @@ final readonly class TypesController
 	 * A collection's or taxonomy's index page (D-255), found on disk so a
 	 * type just created has one: the `index` file in its folder.
 	 *
-	 * @return ?array{path: string, title: string}
+	 * @return ?array{id: ?string, type: string, path: string, title: string}
 	 */
 	private function index(ContentType $type): ?array
 	{
@@ -245,10 +246,11 @@ final readonly class TypesController
 	}
 
 	/**
-	 * A file in a type's folder, found on disk: `{"path", "title"}`, titled
+	 * A file in a type's folder, found on disk: `{"id", "type", "path", "title"}`
+	 * (`id` is `null` until it has one), titled
 	 * with its own `title` or the fallback, or `null`.
 	 *
-	 * @return ?array{path: string, title: string}
+	 * @return ?array{id: ?string, type: string, path: string, title: string}
 	 */
 	private function page(ContentType $type, string $name, string $fallback): ?array
 	{
@@ -260,7 +262,7 @@ final readonly class TypesController
 			$path = "{$type->folder}/{$name}.{$format->value}";
 
 			if (is_file("{$this->paths->content}/{$path}")) {
-				return ['path' => $path, 'title' => self::title("{$this->paths->content}/{$path}") ?? $fallback];
+				return ['id' => self::id("{$this->paths->content}/{$path}"), 'type' => $type->name, 'path' => $path, 'title' => self::title("{$this->paths->content}/{$path}") ?? $fallback];
 			}
 		}
 
@@ -275,6 +277,17 @@ final readonly class TypesController
 		$head = (string) @file_get_contents($path, length: 4096);
 
 		return preg_match('/^title:\s*["\']?(.+?)["\']?\s*$/m', $head, $match) === 1 ? $match[1] : null;
+	}
+
+	/**
+	 * The `id` in a file's front matter (D-477), read the way its title
+	 * is, since a page just written may not be in the index yet.
+	 */
+	private static function id(string $path): ?string
+	{
+		$head = (string) @file_get_contents($path, length: 4096);
+
+		return preg_match('/^id\s*:\s*["\']?([0-9a-fA-F-]{36})["\']?\s*$/m', $head, $match) === 1 && Uuid::isValid($match[1]) ? strtolower($match[1]) : null;
 	}
 
 	/**

@@ -21,11 +21,13 @@ use Psr\Http\Message\ServerRequestInterface;
 use Blush\Auth\Account;
 use Blush\Auth\ContentAction;
 use Blush\Auth\Permissions;
+use Blush\Content\ContentRepository;
 use Blush\Content\Type\ContentTypes;
 use Blush\Content\Type\InvalidContentType;
 use Blush\Content\Writer\ContentWriter;
 use Blush\Content\Writer\DocumentEditor;
 use Blush\Content\Writer\EntryChanges;
+use Blush\Content\Writer\IdTaken;
 use Blush\Content\Writer\TrashedEntry;
 use Blush\Content\Writer\WriteException;
 use Blush\Http\Response;
@@ -37,11 +39,15 @@ use Blush\Support\Slug;
  *
  * - `GET trash?type=`: the trashed entries the account may handle, most
  *   recently trashed first, optionally of one type.
- * - `GET trash/{id}`: one of them with its front matter and body, to
- *   look at before restoring it (D-276).
- * - `POST trash/restore` (`{"id"}`): brings one back **as a draft**, so a
- *   trashed entry is never republished without someone choosing to.
- * - `POST trash/delete` (`{"id"}`): deletes one for good.
+ * - `GET trash/{name}`: one of them, by the trash's name for it, with
+ *   its front matter and body, to look at before restoring it (D-276).
+ * - `POST trash/restore` (`{"name"}`): brings one back **as a draft**, so
+ *   a trashed entry is never republished without someone choosing to,
+ *   and answers its `id`. When another entry has its id now (D-481),
+ *   it's a 409 with the `conflict` (`{"id", "title", "path"}` of the
+ *   entry that has it), and `{"name", "newId": true}` restores it with a
+ *   new id.
+ * - `POST trash/delete` (`{"name"}`): deletes one for good.
  * - `POST trash/empty` (`{"type"?}`): deletes for good every trashed
  *   entry the account may handle (of one type, when given).
  *
@@ -54,7 +60,8 @@ final readonly class TrashController
 	public function __construct(
 		private ContentWriter $writer,
 		private ContentTypes $types,
-		private Permissions $permissions
+		private Permissions $permissions,
+		private ContentRepository $content
 	) {}
 
 	/**
@@ -78,17 +85,17 @@ final readonly class TrashController
 	/**
 	 * Answers one trashed entry, with its front matter and body.
 	 */
-	public function show(ServerRequestInterface $request, string $id): ResponseInterface
+	public function show(ServerRequestInterface $request, string $name): ResponseInterface
 	{
 		$account = self::account($request);
-		$trashed = $this->find($account, $id);
+		$trashed = $this->find($account, $name);
 
 		if ($trashed === null) {
 			return self::json(['error' => 'That isn\'t in the trash, or you can\'t see it.'], Status::NotFound);
 		}
 
 		try {
-			$file = $this->writer->loadTrashed($trashed->id);
+			$file = $this->writer->loadTrashed($trashed->name);
 		} catch (WriteException $e) {
 			return self::json(['error' => $e->getMessage()], Status::UnprocessableContent);
 		}
@@ -106,19 +113,24 @@ final readonly class TrashController
 	public function restore(ServerRequestInterface $request): ResponseInterface
 	{
 		$account = self::account($request);
-		$trashed = $this->find($account, self::input($request)['id'] ?? null);
+		$input   = self::input($request);
+		$trashed = $this->find($account, $input['name'] ?? null);
 
 		if ($trashed === null) {
 			return self::json(['error' => 'That isn\'t in the trash, or you can\'t restore it.'], Status::NotFound);
 		}
 
 		try {
-			$result = $this->writer->restore($trashed->id, new EntryChanges(set: ['status' => 'draft']));
+			$result = $this->writer->restore($trashed->name, new EntryChanges(set: ['status' => 'draft']), ($input['newId'] ?? false) === true);
+		} catch (IdTaken $e) {
+			$holder = $this->content->findPath($e->holder);
+
+			return self::json(['error' => $e->getMessage(), 'conflict' => ['id' => $e->id, 'title' => $holder->title ?? '', 'path' => $e->holder]], Status::Conflict);
 		} catch (WriteException $e) {
 			return self::json(['error' => $e->getMessage()], Status::Conflict);
 		}
 
-		return self::json(['path' => $result->path]);
+		return self::json(['id' => $this->content->findPath($result->path)?->id]);
 	}
 
 	/**
@@ -127,14 +139,14 @@ final readonly class TrashController
 	public function delete(ServerRequestInterface $request): ResponseInterface
 	{
 		$account = self::account($request);
-		$trashed = $this->find($account, self::input($request)['id'] ?? null);
+		$trashed = $this->find($account, self::input($request)['name'] ?? null);
 
 		if ($trashed === null) {
 			return self::json(['error' => 'That isn\'t in the trash, or you can\'t delete it.'], Status::NotFound);
 		}
 
 		try {
-			$this->writer->purge($trashed->id);
+			$this->writer->purge($trashed->name);
 		} catch (WriteException $e) {
 			return self::json(['error' => $e->getMessage()], Status::UnprocessableContent);
 		}
@@ -158,7 +170,7 @@ final readonly class TrashController
 
 		foreach ($this->handled($account, $type) as $trashed) {
 			try {
-				$this->writer->purge($trashed->id);
+				$this->writer->purge($trashed->name);
 				$deleted++;
 			} catch (WriteException $e) {
 				return self::json(['error' => $e->getMessage(), 'deleted' => $deleted], Status::UnprocessableContent);
@@ -184,9 +196,9 @@ final readonly class TrashController
 	/**
 	 * Finds a trashed entry the account may handle.
 	 */
-	private function find(Account $account, mixed $id): ?TrashedEntry
+	private function find(Account $account, mixed $name): ?TrashedEntry
 	{
-		return is_string($id) ? array_find($this->handled($account, null), static fn (TrashedEntry $trashed): bool => $trashed->id === $id) : null;
+		return is_string($name) ? array_find($this->handled($account, null), static fn (TrashedEntry $trashed): bool => $trashed->name === $name) : null;
 	}
 
 	/**
@@ -243,7 +255,7 @@ final readonly class TrashController
 	private function typeOf(TrashedEntry $trashed): ?string
 	{
 		try {
-			return $this->types->forFile($trashed->entry)->name;
+			return $this->types->forFile($trashed->path)->name;
 		} catch (InvalidContentType) {
 			return null;
 		}
@@ -257,8 +269,9 @@ final readonly class TrashController
 		$authors = $this->authors($trashed);
 
 		return [
+			'name'    => $trashed->name,
+			'path'    => $trashed->path,
 			'id'      => $trashed->id,
-			'entry'   => $trashed->entry,
 			'title'   => $trashed->title(),
 			'type'    => $this->typeOf($trashed),
 			'bundle'  => $trashed->bundle,

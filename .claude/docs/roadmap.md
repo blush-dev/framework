@@ -382,7 +382,9 @@ write conflicts through the API, not by editing files on disk.
   description (D-398, D-399).
   Every content file has a UUIDv7 `id`, with a fix tool in the admin
   and the CLI (built: D-477, D-478, D-480: `content:ids`, Content
-  health, `find()` by id and `findPath()` by path). Decided, next: a
+  health, `find()` by id and `findPath()` by path), and named by id at
+  every boundary: the admin API, previews, and the trash (D-481, D-482).
+  Decided, next: a
   read-only, opt-in content API at `/api/v1` beside the admin's
   (D-479); its answer shape, bodies, path, and caching are still open.
 - **Translations and multilingual sites (D-451):** translation domains

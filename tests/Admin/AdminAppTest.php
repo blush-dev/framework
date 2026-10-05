@@ -85,7 +85,7 @@ final class AdminAppTest extends TestCase
 
 		$this->assertSame(200, $this->visit('GET', '/admin/sign-in')->getStatusCode());
 		$this->assertSame(200, $this->visit('GET', '/admin/settings/site')->getStatusCode());
-		$this->assertSame(200, $this->visit('GET', '/admin/entries/_posts/2026-01-01.hello.md')->getStatusCode(), 'Editor screens name files.');
+		$this->assertSame(200, $this->visit('GET', '/admin/entries/0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e74')->getStatusCode(), 'Editor screens name entries by id.');
 		$this->assertSame(404, $this->visit('GET', '/admin/api/nothing')->getStatusCode(), 'The API\'s paths never fall through to the app.');
 
 		preg_match('#/admin/assets/js/admin\.js\?v=[0-9a-f]{8}#', $body, $match);
