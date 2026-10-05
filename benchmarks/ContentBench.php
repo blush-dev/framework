@@ -55,7 +55,7 @@ final class ContentBench
 		$indexer->index();
 
 		$this->content = $this->app->container()->make(ContentRepository::class);
-		$this->content->find('index.md');
+		$this->content->findPath('index.md');
 	}
 
 	#[Bench\Revs(1)]

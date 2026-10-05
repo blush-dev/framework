@@ -30,6 +30,7 @@ use Blush\Auth\Permissions;
 use Blush\Content\ContentRepository;
 use Blush\Content\Entry\Entry;
 use Blush\Content\Entry\Position;
+use Blush\Content\EntryFields;
 use Blush\Content\Lint\Linter;
 use Blush\Content\Routing\ContentUrls;
 use Blush\Content\Status as EntryStatus;
@@ -57,14 +58,15 @@ use Blush\Support\Slug;
 /**
  * The admin's editing API (D-229), over `ContentWriter`:
  *
- * - `GET    entries/{id}`: an entry for editing: its field values by name
+ * - `GET    entries/{path}`: an entry for editing, by its source path: its
+ *   id (D-477, `null` without a valid one), its field values by name
  *   (from whichever key or alias the file uses), other front matter,
  *   body, revision, when the file was last written (`modified`), type
  *   and field descriptions, what the account may do, and the file's
  *   problems, and its handle (`EntryHandles`, D-253), or `null`.
  * - `GET    content/{type}/{key}`: the same, found by handle.
  * - `GET    entries/new?type=…`: a new entry of a type, described the same
- *   way but not yet written (no `id`, `handle`, or `revision`), so the
+ *   way but not yet written (no `path`, `id`, `handle`, or `revision`), so the
  *   editor opens on it and its first save creates it (D-336). It's a
  *   draft crediting the account's author, with nothing else filled in.
  * - `POST   entries`: creates one (`type`, `title`, optional `slug`,
@@ -73,7 +75,7 @@ use Blush\Support\Slug;
  *   a `parent` (another of its pages, by key) to go under (D-408); a
  *   parent kept as a file becomes its folder's page, keeping its
  *   address. A parent that isn't there is a 422 with `field: "parent"`.
- * - `PATCH  entries/{id}`: changes one (`revision` required; `set`,
+ * - `PATCH  entries/{path}`: changes one (`revision` required; `set`,
  *   `remove`, `body`, `status`, `published`, `slug`, `redirect`). A new
  *   `slug` renames it (D-277): its `slug` key when the file has one,
  *   else the file, first, so a slug that's refused (not a slug, another
@@ -85,16 +87,16 @@ use Blush\Support\Slug;
  *   page already at the new place, is a 422 with `field: "parent"`. When
  *   a tree's page moves or is renamed with `redirect: true`, each
  *   published page under it gets a redirect from its old address too.
- * - `DELETE entries/{id}?revision=…`: moves it to the trash.
+ * - `DELETE entries/{path}?revision=…`: moves it to the trash.
  * - `POST   entries/bulk`: publishes, moves to draft, or trashes several
- *   (`action`: `publish`, `draft`, or `trash`; `ids`, at most 100) at
+ *   (`action`: `publish`, `draft`, or `trash`; `paths`, at most 100) at
  *   their current revisions, since a status change or a move to the
  *   trash loses no one's writing (D-301). Each entry is checked as alone:
  *   one that can't be changed (not allowed, an index page to trash, a
  *   required field empty for publishing, a write that fails) is skipped
- *   with the reason, and the rest go ahead. Answers `done` (ids) and
- *   `skipped` (`id`, `title`, `reason`).
- * - `POST   entries/{id}/duplicate`: copies it beside itself as a draft
+ *   with the reason, and the rest go ahead. Answers `done` (paths) and
+ *   `skipped` (`path`, `title`, `reason`).
+ * - `POST   entries/{path}/duplicate`: copies it beside itself as a draft
  *   titled "… (Copy)", slugged `{slug}-copy`, with the same authors,
  *   dated now if its type is dated (D-275). Needs to create entries of
  *   its type, and to edit the entry; a landing page (an index page or the homepage) can't be
@@ -149,12 +151,12 @@ final readonly class EntryController
 	/**
 	 * Answers an entry for editing.
 	 */
-	public function show(ServerRequestInterface $request, string $id): ResponseInterface
+	public function show(ServerRequestInterface $request, string $path): ResponseInterface
 	{
-		$entry = $this->content->find($id);
+		$entry = $this->content->findPath($path);
 
 		if ($entry === null) {
-			return self::error(sprintf('There\'s no "%s" entry.', $id), Status::NotFound);
+			return self::error(sprintf('There\'s no "%s" entry.', $path), Status::NotFound);
 		}
 
 		return $this->edit($request, $entry);
@@ -197,6 +199,7 @@ final readonly class EntryController
 		$fields = array_filter($this->types->schema($type->name)->fields, fn (Field $field): bool => $this->groups($field, $type, []));
 
 		return self::json([
+			'path'        => null,
 			'id'          => null,
 			'handle'      => null,
 			'slug'        => '',
@@ -243,7 +246,7 @@ final readonly class EntryController
 			return self::error('You aren\'t allowed to edit that entry.', Status::Forbidden);
 		}
 
-		return self::json($this->describe($account, $entry, $this->writer->load($entry->id)));
+		return self::json($this->describe($account, $entry, $this->writer->load($entry->path)));
 	}
 
 	/**
@@ -310,29 +313,29 @@ final readonly class EntryController
 		try {
 			$result = $parent === null
 				? $this->writer->create($type, $slug, $changes, $now)
-				: $this->writer->createUnder($parent->id, $slug, $changes);
+				: $this->writer->createUnder($parent->path, $slug, $changes);
 		} catch (WriteException $e) {
 			return self::error($e->getMessage(), Status::UnprocessableContent);
 		}
 
-		$entry = $this->content->find($result->id);
+		$entry = $this->content->findPath($result->path);
 
 		return $entry === null
 			? self::error('The entry was written but couldn\'t be read back; check content health.', Status::UnprocessableContent)
-			: self::json($this->describe($account, $entry, $this->writer->load($result->id)), Status::Created);
+			: self::json($this->describe($account, $entry, $this->writer->load($result->path)), Status::Created);
 	}
 
 	/**
 	 * Changes an entry.
 	 */
-	public function update(ServerRequestInterface $request, string $id): ResponseInterface
+	public function update(ServerRequestInterface $request, string $path): ResponseInterface
 	{
 		$account = self::account($request);
 		$input   = self::input($request);
-		$entry   = $this->content->find($id);
+		$entry   = $this->content->findPath($path);
 
 		if ($entry === null) {
-			return self::error(sprintf('There\'s no "%s" entry.', $id), Status::NotFound);
+			return self::error(sprintf('There\'s no "%s" entry.', $path), Status::NotFound);
 		}
 
 		if (! $this->permissions->can($account, ContentAction::Edit, $entry)) {
@@ -412,13 +415,13 @@ final readonly class EntryController
 			: [];
 
 		if ($move !== false && $redirect) {
-			$changes = $this->withRedirect($changes, $entry, $this->writer->load($id), true);
+			$changes = $this->withRedirect($changes, $entry, $this->writer->load($path), true);
 		}
 
 		// A `slug` key names the entry, so it's what changes; and the old
 		// address can redirect to the new one.
 		if ($rename !== null) {
-			$file    = $this->writer->load($id);
+			$file    = $this->writer->load($path);
 			$changes = $this->withRedirect($changes, $entry, $file, $redirect);
 
 			if (self::has($file, $this->keys($entry->type->name, 'slug'))) {
@@ -431,25 +434,25 @@ final readonly class EntryController
 			// Moving and renaming the file first, so a refused place or name
 			// leaves it as it was.
 			if ($move !== false) {
-				$moved    = $this->writer->move($id, $move?->id, $revision);
-				$id       = $moved->id;
+				$moved    = $this->writer->move($path, $move?->path, $revision);
+				$path       = $moved->path;
 				$revision = $moved->revision ?? $revision;
 			}
 
 			if ($rename !== null) {
-				$renamed  = $this->writer->rename($id, $rename, $revision);
-				$id       = $renamed->id;
+				$renamed  = $this->writer->rename($path, $rename, $revision);
+				$path       = $renamed->path;
 				$revision = $renamed->revision ?? $revision;
 			}
 
-			$result = $this->writer->update($id, $changes, $revision);
+			$result = $this->writer->update($path, $changes, $revision);
 		} catch (WriteConflict $e) {
 			return self::error($e->getMessage(), Status::Conflict);
 		} catch (WriteException $e) {
 			return self::error($e->getMessage(), Status::UnprocessableContent);
 		}
 
-		$updated = $this->content->find($result->id);
+		$updated = $this->content->findPath($result->path);
 
 		if ($updated !== null) {
 			$this->redirectUnder($entry, $updated, $under);
@@ -457,7 +460,7 @@ final readonly class EntryController
 
 		return $updated === null
 			? self::error('The entry was saved but couldn\'t be read back; check content health.', Status::UnprocessableContent)
-			: self::json($this->describe($account, $updated, $this->writer->load($result->id)));
+			: self::json($this->describe($account, $updated, $this->writer->load($result->path)));
 	}
 
 	/**
@@ -478,7 +481,7 @@ final readonly class EntryController
 			}
 
 			try {
-				$this->writer->update($found->id, $this->withRedirect(new EntryChanges(), $page, $this->writer->load($found->id), true));
+				$this->writer->update($found->path, $this->withRedirect(new EntryChanges(), $page, $this->writer->load($found->path), true));
 			} catch (WriteException) {
 				// The move stands; this page keeps working at its new address.
 			}
@@ -488,13 +491,13 @@ final readonly class EntryController
 	/**
 	 * Copies an entry as a draft (D-275).
 	 */
-	public function duplicate(ServerRequestInterface $request, string $id): ResponseInterface
+	public function duplicate(ServerRequestInterface $request, string $path): ResponseInterface
 	{
 		$account = self::account($request);
-		$entry   = $this->content->find($id);
+		$entry   = $this->content->findPath($path);
 
 		if ($entry === null) {
-			return self::error(sprintf('There\'s no "%s" entry.', $id), Status::NotFound);
+			return self::error(sprintf('There\'s no "%s" entry.', $path), Status::NotFound);
 		}
 
 		if (! $this->permissions->can($account, ContentAction::Create, $entry->type->name) || ! $this->permissions->can($account, ContentAction::Edit, $entry)) {
@@ -520,29 +523,29 @@ final readonly class EntryController
 		try {
 			// The copy's name is its file's, and the original's old
 			// addresses stay the original's.
-			$result = $this->writer->duplicate($id, Slug::from(($entry->slug === '' ? $title : $entry->slug) . '-copy'), new EntryChanges(set: $set, remove: ['slug', 'redirect_from']), $now);
+			$result = $this->writer->duplicate($path, Slug::from(($entry->slug === '' ? $title : $entry->slug) . '-copy'), new EntryChanges(set: $set, remove: ['slug', 'redirect_from']), $now);
 		} catch (WriteException $e) {
 			return self::error($e->getMessage(), Status::UnprocessableContent);
 		}
 
-		$copy = $this->content->find($result->id);
+		$copy = $this->content->findPath($result->path);
 
 		return $copy === null
 			? self::error('The copy was written but couldn\'t be read back; check content health.', Status::UnprocessableContent)
-			: self::json($this->describe($account, $copy, $this->writer->load($result->id)), Status::Created);
+			: self::json($this->describe($account, $copy, $this->writer->load($result->path)), Status::Created);
 	}
 
 	/**
 	 * Deletes an entry (to the trash).
 	 */
-	public function delete(ServerRequestInterface $request, string $id): ResponseInterface
+	public function delete(ServerRequestInterface $request, string $path): ResponseInterface
 	{
 		$account  = self::account($request);
-		$entry    = $this->content->find($id);
+		$entry    = $this->content->findPath($path);
 		$revision = $request->getQueryParams()['revision'] ?? null;
 
 		if ($entry === null) {
-			return self::error(sprintf('There\'s no "%s" entry.', $id), Status::NotFound);
+			return self::error(sprintf('There\'s no "%s" entry.', $path), Status::NotFound);
 		}
 
 		if (! $this->permissions->can($account, ContentAction::Delete, $entry)) {
@@ -558,14 +561,14 @@ final readonly class EntryController
 		}
 
 		try {
-			$this->writer->delete($id, $revision);
+			$this->writer->delete($path, $revision);
 		} catch (WriteConflict $e) {
 			return self::error($e->getMessage(), Status::Conflict);
 		} catch (WriteException $e) {
 			return self::error($e->getMessage(), Status::UnprocessableContent);
 		}
 
-		return self::json(['deleted' => $id]);
+		return self::json(['deleted' => $path]);
 	}
 
 	/**
@@ -576,29 +579,29 @@ final readonly class EntryController
 		$account = self::account($request);
 		$input   = self::input($request);
 		$action  = $input['action'] ?? null;
-		$ids     = $input['ids'] ?? null;
+		$paths   = $input['paths'] ?? null;
 
 		if (! in_array($action, self::BULK_ACTIONS, true)) {
 			return self::error(sprintf('"action" must be one of %s.', implode(', ', self::BULK_ACTIONS)), Status::BadRequest);
 		}
 
-		$given = is_array($ids) ? array_filter($ids, is_string(...)) : [];
+		$given = is_array($paths) ? array_filter($paths, is_string(...)) : [];
 
-		if ($given === [] || count($given) !== count((array) $ids) || count($given) > self::BULK_LIMIT) {
-			return self::error(sprintf('"ids" must list from 1 to %d entry ids.', self::BULK_LIMIT), Status::BadRequest);
+		if ($given === [] || count($given) !== count((array) $paths) || count($given) > self::BULK_LIMIT) {
+			return self::error(sprintf('"paths" must list from 1 to %d entry paths.', self::BULK_LIMIT), Status::BadRequest);
 		}
 
 		$done    = [];
 		$skipped = [];
 
-		foreach (array_values(array_unique($given)) as $id) {
-			$entry  = $this->content->find($id);
+		foreach (array_values(array_unique($given)) as $path) {
+			$entry  = $this->content->findPath($path);
 			$reason = $entry === null ? 'It\'s no longer there.' : $this->bulkChange($account, $entry, $action);
 
 			if ($reason === null) {
-				$done[] = $id;
+				$done[] = $path;
 			} else {
-				$skipped[] = ['id' => $id, 'title' => $entry->title ?? '', 'reason' => $reason];
+				$skipped[] = ['path' => $path, 'title' => $entry->title ?? '', 'reason' => $reason];
 			}
 		}
 
@@ -624,10 +627,10 @@ final readonly class EntryController
 		}
 
 		try {
-			$revision = $this->writer->load($entry->id)->revision;
+			$revision = $this->writer->load($entry->path)->revision;
 
 			if ($action === 'trash') {
-				$this->writer->delete($entry->id, $revision);
+				$this->writer->delete($entry->path, $revision);
 
 				return null;
 			}
@@ -639,7 +642,7 @@ final readonly class EntryController
 				return $refusal;
 			}
 
-			$this->writer->update($entry->id, $changes, $revision);
+			$this->writer->update($entry->path, $changes, $revision);
 		} catch (InvalidEdit | WriteException $e) {
 			return $e->getMessage();
 		}
@@ -936,7 +939,8 @@ final readonly class EntryController
 		// the front matter; a save keeps those (D-334).
 
 		return [
-			'id'          => $file->id,
+			'path'        => $file->path,
+			'id'          => $entry->id,
 			'handle'      => $this->handles->of($entry),
 			'slug'        => $entry->slug,
 			'key'         => $entry->key,
@@ -969,7 +973,7 @@ final readonly class EntryController
 				'field'    => $violation->field,
 				'message'  => $violation->message,
 				'severity' => $violation->severity->value
-			], $this->linter->lintFile($file->id))
+			], $this->linter->lintFile($file->path))
 		];
 	}
 
@@ -1049,7 +1053,8 @@ final readonly class EntryController
 
 	/**
 	 * Splits front matter into field values by name (from the first of a
-	 * field's name and aliases the file uses) and everything else.
+	 * field's name and aliases the file uses) and everything else but the
+	 * id (D-477), which is answered on its own.
 	 *
 	 * @param  array<array-key, Field> $fields
 	 * @param  array<array-key, mixed> $frontMatter
@@ -1058,7 +1063,7 @@ final readonly class EntryController
 	private static function split(array $fields, array $frontMatter): array
 	{
 		$values  = [];
-		$claimed = [];
+		$claimed = [EntryFields::ID];
 
 		foreach ($fields as $field) {
 			foreach ([$field->name, ...$field->aliases] as $key) {

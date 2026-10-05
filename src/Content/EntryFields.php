@@ -32,6 +32,12 @@ use Blush\Field\Schema;
 final class EntryFields
 {
 	/**
+	 * The front matter key holding an entry's id (D-477): a UUID, and no
+	 * field's, so no type may name a field or alias after it.
+	 */
+	public const string ID = 'id';
+
+	/**
 	 * Returns the built-in schema.
 	 */
 	public static function schema(): Schema

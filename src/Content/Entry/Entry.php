@@ -36,7 +36,7 @@ use Blush\Markdown\MarkdownException;
 final readonly class Entry implements Stringable
 {
 	/**
-	 * @param string                      $id          The source path, or `virtual:{type}/{slug}`.
+	 * @param string                      $path        The source path, or `virtual:{type}/{slug}`.
 	 * @param string                      $key         The slug with any folders below the type's (see `IndexRecord`).
 	 * @param array<string, mixed>        $fields      Typed front matter, by field name.
 	 * @param array<string, mixed>        $extra       Undeclared front matter.
@@ -44,9 +44,10 @@ final readonly class Entry implements Stringable
 	 * @param bool                        $landing     Whether this is a type folder's landing page.
 	 * @param ?SourceFile                 $source      The file, or `null` for a virtual entry.
 	 * @param string                      $language    The code of the language it's written in (D-455).
+	 * @param ?string                     $id          Its id (D-477), or `null` for a file without a valid one and a virtual entry.
 	 */
 	public function __construct(
-		public string $id,
+		public string $path,
 		public ContentType $type,
 		public string $slug,
 		public string $key,
@@ -62,7 +63,8 @@ final readonly class Entry implements Stringable
 		public bool $landing,
 		public ?SourceFile $source,
 		private Body $body,
-		public string $language = ''
+		public string $language = '',
+		public ?string $id = null
 	) {}
 
 	/**

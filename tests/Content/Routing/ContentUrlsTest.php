@@ -39,7 +39,7 @@ final class ContentUrlsTest extends TestCase
 		$content = $app->container()->make(ContentRepository::class);
 		$urls    = $app->container()->make(ContentUrls::class);
 		$types   = $app->container()->make(ContentTypes::class);
-		$entry   = static fn (string $id): Entry => $content->find($id) ?? self::fail("No entry {$id}.");
+		$entry   = static fn (string $path): Entry => $content->findPath($path) ?? self::fail("No entry {$path}.");
 
 		$this->assertSame('/archives/welcome', $urls->entry($entry('_posts/2003-04-15.welcome.md')));
 		$this->assertSame('/archives/hello', $urls->entry($entry('_posts/hello/index.md')));

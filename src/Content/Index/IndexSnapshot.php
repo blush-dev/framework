@@ -38,6 +38,9 @@ use Blush\Content\Status;
  *   language takes that translation's key, and a parent named by its
  *   original's key takes its translation's, so `about/biography.fr.md`
  *   is `a-propos/biographie` when `about/index.fr.md` is `a-propos`.
+ * - `ids` finds an entry by its id (D-477). When files share one (a
+ *   copied file), the first by path holds it, and every file sharing it
+ *   is kept in `duplicates` for `content:lint` and `content:ids`.
  * - `scheduled` is the earliest publish time still to come when the
  *   index was built, for cache invalidation.
  * - `fingerprint` identifies what the records were built with (content
@@ -55,7 +58,9 @@ use Blush\Content\Status;
  *     children: array<string, array<string, array<string, list<string>>>>,
  *     translations: array<string, array<string, string>>,
  *     conflicts: array<string, list<string>>,
- *     scheduled: ?int
+ *     scheduled: ?int,
+ *     ids: array<string, string>,
+ *     duplicates: array<string, list<string>>
  * }
  */
 final readonly class IndexSnapshot
@@ -64,16 +69,18 @@ final readonly class IndexSnapshot
 	 * The index format's version. A stored index with another version is
 	 * rebuilt.
 	 */
-	public const int VERSION = 5;
+	public const int VERSION = 6;
 
 	/**
-	 * @param array<string, RecordArray>                                $records   Keyed by ID, sorted by ID.
-	 * @param array<string, array<string, array<string, string>>>       $keys      IDs by language, type, and key.
-	 * @param array<string, array<string, list<string>>>                $terms     Referencing IDs by taxonomy and slug.
+	 * @param array<string, RecordArray>                                $records   Keyed by path, sorted by path.
+	 * @param array<string, array<string, array<string, string>>>       $keys      Paths by language, type, and key.
+	 * @param array<string, array<string, list<string>>>                $terms     Referencing paths by taxonomy and slug.
 	 * @param array<string, array<string, string>>                      $labels    Term labels by taxonomy and slug.
-	 * @param array<string, array<string, array<string, list<string>>>> $children  IDs by language, type, and parent key.
-	 * @param array<string, list<string>>                               $conflicts IDs claiming one `language/type/key`.
-	 * @param array<string, array<string, string>>                      $translations IDs by translation group and language.
+	 * @param array<string, array<string, array<string, list<string>>>> $children  Paths by language, type, and parent key.
+	 * @param array<string, list<string>>                               $conflicts Paths claiming one `language/type/key`.
+	 * @param array<string, array<string, string>>                      $translations Paths by translation group and language.
+	 * @param array<string, string>                                     $ids          Paths by id.
+	 * @param array<string, list<string>>                               $duplicates   Paths sharing each id held by more than one.
 	 */
 	private function __construct(
 		public string $fingerprint,
@@ -85,7 +92,9 @@ final readonly class IndexSnapshot
 		public array $children,
 		public array $conflicts,
 		public ?int $scheduled,
-		public array $translations = []
+		public array $translations = [],
+		public array $ids = [],
+		public array $duplicates = []
 	) {}
 
 	/**
@@ -103,15 +112,15 @@ final readonly class IndexSnapshot
 	 */
 	public static function build(iterable $records, string $fingerprint, int $built): self
 	{
-		$byId = [];
+		$byPath = [];
 
 		foreach ($records as $record) {
-			$byId[$record->id] = $record->toArray();
+			$byPath[$record->path] = $record->toArray();
 		}
 
-		ksort($byId, SORT_STRING);
+		ksort($byPath, SORT_STRING);
 
-		$byId = new TranslatedKeys($byId)->records();
+		$byPath = new TranslatedKeys($byPath)->records();
 
 		$keys      = [];
 		$claims    = [];
@@ -120,28 +129,33 @@ final readonly class IndexSnapshot
 		$children  = [];
 		$scheduled = null;
 		$linked    = [];
+		$ids       = [];
 
-		foreach ($byId as $id => $record) {
+		foreach ($byPath as $path => $record) {
 			$language = $record['language'];
 
-			$claims["{$language}/{$record['type']}/{$record['key']}"][] = $id;
+			$claims["{$language}/{$record['type']}/{$record['key']}"][] = $path;
 
 			$current = $keys[$language][$record['type']][$record['key']] ?? null;
 
-			if ($current === null || self::wins($record, $byId[$current])) {
-				$keys[$language][$record['type']][$record['key']] = $id;
+			if ($current === null || self::wins($record, $byPath[$current])) {
+				$keys[$language][$record['type']][$record['key']] = $path;
 			}
 
-			$linked[IndexRecord::groupOf($record)][$language][] = $id;
+			$linked[IndexRecord::groupOf($record)][$language][] = $path;
+
+			if ($record['id'] !== null) {
+				$ids[$record['id']][] = $path;
+			}
 
 			foreach ($record['terms'] as $taxonomy => $slugs) {
 				foreach ($slugs as $slug) {
-					$terms[$taxonomy][$slug][] = $id;
+					$terms[$taxonomy][$slug][] = $path;
 				}
 			}
 
 			if ($record['parent'] !== null) {
-				$children[$language][$record['type']][$record['parent']][] = $id;
+				$children[$language][$record['type']][$record['parent']][] = $path;
 			}
 
 			foreach ($record['labels'] as $taxonomy => $termLabels) {
@@ -157,8 +171,8 @@ final readonly class IndexSnapshot
 
 		foreach ($linked as $group => $languages) {
 			if (count($languages) > 1) {
-				foreach ($languages as $language => $ids) {
-					$translations[$group][$language] = self::preferred($ids, $byId);
+				foreach ($languages as $language => $paths) {
+					$translations[$group][$language] = self::preferred($paths, $byPath);
 				}
 			}
 		}
@@ -166,14 +180,16 @@ final readonly class IndexSnapshot
 		return new self(
 			$fingerprint,
 			$built,
-			$byId,
+			$byPath,
 			$keys,
 			$terms,
 			$labels,
 			$children,
-			array_filter($claims, static fn (array $ids): bool => count($ids) > 1),
+			array_filter($claims, static fn (array $paths): bool => count($paths) > 1),
 			$scheduled,
-			$translations
+			$translations,
+			array_map(static fn (array $paths): string => $paths[0], $ids),
+			array_filter($ids, static fn (array $paths): bool => count($paths) > 1)
 		);
 	}
 
@@ -204,15 +220,23 @@ final readonly class IndexSnapshot
 	}
 
 	/**
-	 * Returns a record by ID.
+	 * Returns a record by path.
 	 */
-	public function record(string $id): ?IndexRecord
+	public function record(string $path): ?IndexRecord
 	{
-		return isset($this->records[$id]) ? IndexRecord::fromArray($this->records[$id]) : null;
+		return isset($this->records[$path]) ? IndexRecord::fromArray($this->records[$path]) : null;
 	}
 
 	/**
-	 * Returns the ID of the entry with a key in a type and language.
+	 * Returns the path of the entry with an id, or `null`.
+	 */
+	public function path(string $id): ?string
+	{
+		return $this->ids[strtolower($id)] ?? null;
+	}
+
+	/**
+	 * Returns the path of the entry with a key in a type and language.
 	 */
 	public function find(string $language, string $type, string $key): ?string
 	{
@@ -220,20 +244,20 @@ final readonly class IndexSnapshot
 	}
 
 	/**
-	 * Returns the IDs of an entry and its translations, by language
+	 * Returns the paths of an entry and its translations, by language
 	 * code, or `[]` when it has none.
 	 *
 	 * @return array<string, string>
 	 */
-	public function translations(string $id): array
+	public function translations(string $path): array
 	{
-		$record = $this->records[$id] ?? null;
+		$record = $this->records[$path] ?? null;
 
 		return $record === null ? [] : $this->translations[IndexRecord::groupOf($record)] ?? [];
 	}
 
 	/**
-	 * Returns the IDs of the entries that reference a term.
+	 * Returns the paths of the entries that reference a term.
 	 *
 	 * @return list<string>
 	 */
@@ -243,7 +267,7 @@ final readonly class IndexSnapshot
 	}
 
 	/**
-	 * Returns the IDs of the entries whose parent is a key in a type and
+	 * Returns the paths of the entries whose parent is a key in a type and
 	 * language.
 	 *
 	 * @return list<string>
@@ -288,7 +312,9 @@ final readonly class IndexSnapshot
 			'children'     => $this->children,
 			'translations' => $this->translations,
 			'conflicts'    => $this->conflicts,
-			'scheduled'    => $this->scheduled
+			'scheduled'    => $this->scheduled,
+			'ids'          => $this->ids,
+			'duplicates'   => $this->duplicates
 		];
 	}
 
@@ -315,7 +341,9 @@ final readonly class IndexSnapshot
 			$data['children'],
 			$data['conflicts'],
 			$data['scheduled'],
-			$data['translations']
+			$data['translations'],
+			$data['ids'],
+			$data['duplicates']
 		);
 	}
 
@@ -337,15 +365,15 @@ final readonly class IndexSnapshot
 	}
 
 	/**
-	 * Returns which of the IDs one language claims a path with links as
+	 * Returns which of the paths one language claims a path with links as
 	 * its translation: the one that would win its key.
 	 *
-	 * @param  non-empty-list<string>     $ids
+	 * @param  non-empty-list<string>     $paths
 	 * @param  array<string, RecordArray> $records
 	 */
-	public static function preferred(array $ids, array $records): string
+	public static function preferred(array $paths, array $records): string
 	{
-		return array_reduce($ids, static fn (string $best, string $id): string => self::wins($records[$id], $records[$best]) ? $id : $best, $ids[0]);
+		return array_reduce($paths, static fn (string $best, string $path): string => self::wins($records[$path], $records[$best]) ? $path : $best, $paths[0]);
 	}
 
 	/**
@@ -356,6 +384,6 @@ final readonly class IndexSnapshot
 	 */
 	private static function isBundle(array $record): bool
 	{
-		return pathinfo($record['original'] ?? $record['id'], PATHINFO_FILENAME) === 'index';
+		return pathinfo($record['original'] ?? $record['path'], PATHINFO_FILENAME) === 'index';
 	}
 }

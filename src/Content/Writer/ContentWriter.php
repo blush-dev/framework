@@ -19,7 +19,9 @@ use Blush\Content\Type\ContentType;
 /**
  * Changes content (D-013, D-228): the write side of `ContentSource`, so a
  * site that stores content elsewhere binds its own. Entries are named by
- * id (their path under the content folder). Every write reindexes and
+ * their path under the content folder. Every new entry, a copy
+ * included, is given an id (D-477), written last in its front matter,
+ * and an update gives one to a file without a valid one. Every write reindexes and
  * moves the content version on, so pages show the change.
  *
  * `$revision` (from `load()` or an earlier write) guards against lost
@@ -33,7 +35,7 @@ interface ContentWriter
 	 *
 	 * @throws WriteException When there's no such file or it can't be read.
 	 */
-	public function load(string $id): EditableEntry;
+	public function load(string $path): EditableEntry;
 
 	/**
 	 * Creates an entry of a type from a slug: `{folder}/{slug}.{format}`,
@@ -60,7 +62,7 @@ interface ContentWriter
 	 * and its slug. A parent kept as a file named for its key
 	 * (`about.md`) becomes its folder's page first (`about/index.md`), so
 	 * a page and its children share a folder; its key and address stay
-	 * the same, and the result's `moved` names its new id. A parent
+	 * the same, and the result's `moved` names its new path. A parent
 	 * that's already a folder's page, or whose file name says more than
 	 * its key (an order prefix, a `slug:` of its own), stays where it is.
 	 *
@@ -68,7 +70,7 @@ interface ContentWriter
 	 *                        folder already has a page, the page exists,
 	 *                        or the slug or format is invalid.
 	 */
-	public function createUnder(string $parentId, string $slug, EntryChanges $changes, string $format = 'md'): WriteResult;
+	public function createUnder(string $parentPath, string $slug, EntryChanges $changes, string $format = 'md'): WriteResult;
 
 	/**
 	 * Copies an entry beside it (D-275) under a new slug, with changes
@@ -80,7 +82,7 @@ interface ContentWriter
 	 *
 	 * @throws WriteException When the entry can't be read or the copy written.
 	 */
-	public function duplicate(string $id, string $slug, EntryChanges $changes, ?DateTimeInterface $date = null): WriteResult;
+	public function duplicate(string $path, string $slug, EntryChanges $changes, ?DateTimeInterface $date = null): WriteResult;
 
 	/**
 	 * Changes an entry's front matter and body.
@@ -88,7 +90,7 @@ interface ContentWriter
 	 * @throws WriteConflict
 	 * @throws WriteException
 	 */
-	public function update(string $id, EntryChanges $changes, ?string $revision = null): WriteResult;
+	public function update(string $path, EntryChanges $changes, ?string $revision = null): WriteResult;
 
 	/**
 	 * Gives an entry a new slug: its file is renamed (keeping any date
@@ -98,7 +100,7 @@ interface ContentWriter
 	 * @throws WriteConflict
 	 * @throws WriteException When the new name is taken or invalid.
 	 */
-	public function rename(string $id, string $slug, ?string $revision = null): WriteResult;
+	public function rename(string $path, string $slug, ?string $revision = null): WriteResult;
 
 	/**
 	 * Moves a tree's page under another of its pages, or to the top with
@@ -107,14 +109,14 @@ interface ContentWriter
 	 * the folder of pages under it, so they come along. A new parent kept
 	 * as a file named for its key becomes its folder's page first, as in
 	 * `createUnder()`. Moving to where it already is changes nothing. The
-	 * result's `moved` names every entry that moved, old id to new.
+	 * result's `moved` names every entry that moved, old path to new.
 	 *
 	 * @throws WriteConflict
 	 * @throws WriteException When it isn't a tree's page, the parent isn't
 	 *                        one of its pages (or is the page itself, or
 	 *                        under it), or a page is already there.
 	 */
-	public function move(string $id, ?string $parentId, ?string $revision = null): WriteResult;
+	public function move(string $path, ?string $parentPath, ?string $revision = null): WriteResult;
 
 	/**
 	 * Deletes an entry: its file, or its bundle's folder, moves to the
@@ -123,7 +125,7 @@ interface ContentWriter
 	 * @throws WriteConflict
 	 * @throws WriteException
 	 */
-	public function delete(string $id, ?string $revision = null): WriteResult;
+	public function delete(string $path, ?string $revision = null): WriteResult;
 
 	/**
 	 * Returns the entries in the trash, most recently trashed first.
@@ -134,7 +136,7 @@ interface ContentWriter
 
 	/**
 	 * Reads an entry in the trash, to look at before restoring it (D-276).
-	 * Its id is the one it had, and has again once restored.
+	 * Its path is the one it had, and has again once restored.
 	 *
 	 * @throws WriteException When there's no such entry in the trash, or
 	 *                        it can't be read.
@@ -150,6 +152,16 @@ interface ContentWriter
 	 *                        something now has its place.
 	 */
 	public function restore(string $trashId, EntryChanges $changes = new EntryChanges()): WriteResult;
+
+	/**
+	 * Gives entries new ids (D-477), for `content:ids` and Content health:
+	 * each file's `id` is set to a new UUIDv7 (added last when it has
+	 * none), all in one reindex. A file that can't be read or changed is
+	 * left as it is and named in the result.
+	 *
+	 * @param list<string> $paths
+	 */
+	public function assignIds(array $paths): AssignedIds;
 
 	/**
 	 * Deletes an entry in the trash for good.

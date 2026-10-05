@@ -391,11 +391,11 @@ final readonly class EntriesController
 		while (($item = array_pop($stack)) !== null) {
 			[$entry, $depth] = $item;
 
-			if (isset($depths[$entry->id])) {
+			if (isset($depths[$entry->path])) {
 				continue;
 			}
 
-			$depths[$entry->id] = $depth;
+			$depths[$entry->path] = $depth;
 			$ordered[]          = $entry;
 			$children           = $under[$entry->key] ?? [];
 
@@ -403,13 +403,13 @@ final readonly class EntriesController
 			array_push($stack, ...array_map(static fn (Entry $child): array => [$child, $depth + 1], array_reverse($children)));
 		}
 
-		$rest = array_values(array_filter($entries, static fn (Entry $entry): bool => ! isset($depths[$entry->id])));
+		$rest = array_values(array_filter($entries, static fn (Entry $entry): bool => ! isset($depths[$entry->path])));
 		usort($rest, $byTitle);
 
 		$children = [];
 
 		foreach ($entries as $entry) {
-			$children[$entry->id] = count($under[$entry->key] ?? []);
+			$children[$entry->path] = count($under[$entry->key] ?? []);
 		}
 
 		return ['entries' => [...$ordered, ...$rest], 'depths' => $depths, 'children' => $children];
@@ -427,13 +427,13 @@ final readonly class EntriesController
 	private static function continued(array $tree, int $start): array
 	{
 		$first = $tree['entries'][$start] ?? null;
-		$want  = $first === null ? -1 : ($tree['depths'][$first->id] ?? 0) - 1;
+		$want  = $first === null ? -1 : ($tree['depths'][$first->path] ?? 0) - 1;
 		$above = [];
 
 		for ($i = $start - 1; $i >= 0 && $want >= 0; $i--) {
 			$entry = $tree['entries'][$i];
 
-			if (($tree['depths'][$entry->id] ?? 0) === $want) {
+			if (($tree['depths'][$entry->path] ?? 0) === $want) {
 				array_unshift($above, $entry);
 				$want--;
 			}
@@ -522,6 +522,7 @@ final readonly class EntriesController
 		$home    = $this->homepage->describe($entry);
 
 		return [
+			'path'        => $entry->path,
 			'id'          => $entry->id,
 			'handle'      => $this->handles->of($entry),
 			'title'       => $entry->title,
@@ -529,7 +530,6 @@ final readonly class EntriesController
 			'status'      => $entry->status->value,
 			'published'   => $entry->published?->format(DateTimeInterface::ATOM),
 			'updated'     => $entry->updated->format(DateTimeInterface::ATOM),
-			'path'        => $entry->source?->path,
 			'url'         => $this->urls->entry($entry),
 			'authors'     => $authors === null ? [] : $entry->terms($authors),
 			'own'         => $this->permissions->owns($account, $entry),
@@ -545,8 +545,8 @@ final readonly class EntriesController
 			],
 			'uses'        => $entry->type->hasTerms() ? ($counts[$entry->type->name][$entry->key] ?? 0) : null,
 			'ancestors'   => $this->ancestors($entry),
-			'depth'       => $tree === null ? null : ($tree['depths'][$entry->id] ?? 0),
-			'children'    => $tree === null ? null : ($tree['children'][$entry->id] ?? 0),
+			'depth'       => $tree === null ? null : ($tree['depths'][$entry->path] ?? 0),
+			'children'    => $tree === null ? null : ($tree['children'][$entry->path] ?? 0),
 			'continued'   => $continued,
 			...($entry->type instanceof Profiles ? ['linked' => array_key_exists($entry->key, $linked), 'account' => $linked[$entry->key] ?? null] : [])
 		];
@@ -589,10 +589,10 @@ final readonly class EntriesController
 	private function ancestors(Entry $entry): array
 	{
 		$titles = [];
-		$seen   = [$entry->id => true];
+		$seen   = [$entry->path => true];
 
-		while (($entry = $this->content->parent($entry)) !== null && ! isset($seen[$entry->id])) {
-			$seen[$entry->id] = true;
+		while (($entry = $this->content->parent($entry)) !== null && ! isset($seen[$entry->path])) {
+			$seen[$entry->path] = true;
 			array_unshift($titles, $entry->title === '' ? $entry->slug : $entry->title);
 		}
 

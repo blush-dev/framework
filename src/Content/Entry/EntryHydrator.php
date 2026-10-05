@@ -54,7 +54,7 @@ final readonly class EntryHydrator
 	public function hydrate(IndexRecord $record): Entry
 	{
 		return new Entry(
-			id: $record->id,
+			path: $record->path,
 			type: $this->types->get($record->type),
 			slug: $record->slug,
 			key: $record->key,
@@ -70,7 +70,8 @@ final readonly class EntryHydrator
 			landing: $record->landing,
 			source: $record->source(),
 			body: $this->body($record),
-			language: $record->language
+			language: $record->language,
+			id: $record->id
 		);
 	}
 
@@ -82,7 +83,7 @@ final readonly class EntryHydrator
 	public function virtual(ContentType $type, string $slug, string $title, int $updated, string $locale, string $language = ''): Entry
 	{
 		return new Entry(
-			id: "virtual:{$type->name}/{$slug}",
+			path: "virtual:{$type->name}/{$slug}",
 			type: $type,
 			slug: $slug,
 			key: $slug,
@@ -107,7 +108,7 @@ final readonly class EntryHydrator
 	 */
 	private function body(IndexRecord $record): Body
 	{
-		$path   = $record->id;
+		$path   = $record->path;
 		$source = new ReflectionClass(BodySource::class)->newLazyGhost(function (BodySource $source) use ($path): void {
 			$document = $this->parsers->parse($path, $this->source->read($path));
 

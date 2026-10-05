@@ -16,6 +16,7 @@ namespace Blush\Content\Lint;
 use Closure;
 use DateMalformedStringException;
 use DateTimeImmutable;
+use Blush\Content\EntryFields;
 use Blush\Content\Index\IndexRecord;
 use Blush\Content\Index\IndexSnapshot;
 use Blush\Content\Index\ParsedEntry;
@@ -41,8 +42,9 @@ use Blush\Media\MediaMetadataCheck;
  * Checks every content file, as `content:lint` reports it. It reads the
  * files fresh (not the index) and reports:
  *
- * - errors: files that can't be parsed, front matter values that don't
- *   fit their fields, `collection` query arguments that don't work,
+ * - errors: files that can't be parsed, an `id` that's missing, isn't a
+ *   UUID, or is another file's too (D-477), front matter values that
+ *   don't fit their fields, `collection` query arguments that don't work,
  *   terms that are their own parent or ancestor, and an order prefix
  *   (`01.about.md`) on a tree's or profiles type's file or folder, which
  *   only collections and taxonomies use (D-409; the file still works,
@@ -111,27 +113,35 @@ final readonly class Linter
 
 		$snapshot = IndexSnapshot::build($records, '', 0);
 
-		foreach ($snapshot->conflicts as $key => $ids) {
+		foreach ($snapshot->conflicts as $key => $paths) {
 			[$language, $type, $entryKey] = explode('/', $key, 3) + ['', '', ''];
 			$winner = $snapshot->find($language, $type, $entryKey);
 
-			foreach ($ids as $id) {
-				if ($id === $winner) {
+			foreach ($paths as $path) {
+				if ($path === $winner) {
 					continue;
 				}
 
-				$violations[$id][] = ($snapshot->records[$id]['original'] ?? null) === $winner
+				$violations[$path][] = ($snapshot->records[$path]['original'] ?? null) === $winner
 					? new Violation(self::FILE, sprintf('has the default language\'s suffix beside %s, which wins; the default language needs none, so remove one.', $winner), Severity::Warning)
 					: new Violation(self::FILE, sprintf('is the same entry as %s, which wins.', $winner), Severity::Warning);
 			}
 		}
 
+		foreach ($snapshot->duplicates as $paths) {
+			foreach ($paths as $path) {
+				$others = array_values(array_diff($paths, [$path]));
+
+				$violations[$path][] = new Violation(EntryFields::ID, sprintf('is also the id of %s; keep it on one file and give the others new ones with content:ids --keep, or on Content health in the admin.', implode(', ', $others)));
+			}
+		}
+
 		foreach ($records as $record) {
 			// With a translation's key and parent in its language (D-457).
-			$record = $snapshot->record($record->id) ?? $record;
+			$record = $snapshot->record($record->path) ?? $record;
 
 			foreach ([...$this->missingTerms($snapshot, $record), ...$this->checkParent($snapshot, $record), ...$this->checkPageAddress($record)] as $violation) {
-				$violations[$record->id][] = $violation;
+				$violations[$record->path][] = $violation;
 			}
 		}
 
@@ -256,7 +266,7 @@ final readonly class Linter
 		}
 
 		// A translation is checked by its name without the suffix (D-455).
-		$path     = $record->original ?? $record->id;
+		$path     = $record->original ?? $record->path;
 		$below    = $type->folder === '' ? $path : substr($path, strlen($type->folder) + 1);
 		$segments = explode('/', $below);
 		$last     = array_key_last($segments);
@@ -278,7 +288,7 @@ final readonly class Linter
 			return [];
 		}
 
-		$extension = pathinfo($record->id, PATHINFO_EXTENSION);
+		$extension = pathinfo($record->path, PATHINFO_EXTENSION);
 		$suffix    = $record->original === null ? '' : ".{$record->language}";
 		$suggested = ltrim($type->folder . '/' . implode('/', $renamed) . "{$suffix}.{$extension}", '/');
 
@@ -319,9 +329,9 @@ final readonly class Linter
 		$key   = $record->parent;
 
 		while ($key !== null) {
-			$id = $snapshot->find($record->language, $record->type, $key);
+			$path = $snapshot->find($record->language, $record->type, $key);
 
-			if ($id === null) {
+			if ($path === null) {
 				return $key === $record->parent
 					? [new Violation('parent', sprintf('"%s" has no %s entry; the term is shown at the top level.', $key, $record->type), Severity::Warning)]
 					: [];
@@ -334,7 +344,7 @@ final readonly class Linter
 			}
 
 			$chain[] = $key;
-			$key     = $snapshot->record($id)?->parent;
+			$key     = $snapshot->record($path)?->parent;
 		}
 
 		return [];

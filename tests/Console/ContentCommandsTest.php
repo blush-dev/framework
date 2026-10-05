@@ -16,18 +16,24 @@ namespace Blush\Tests\Console;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Blush\Console\Commands\CreateContent;
+use Blush\Console\Commands\FixIds;
 use Blush\Console\Commands\IndexContent;
 use Blush\Console\Commands\LintContent;
 use Blush\Console\Commands\ListContent;
 use Blush\Console\Console;
 use Blush\Console\ExitCode;
 use Blush\Console\Testing\CommandTester;
+use Blush\Content\EntryIdReport;
+use Blush\Content\EntryIds;
 use Blush\Tests\Content\BuildsContentSite;
 
 #[CoversClass(IndexContent::class)]
 #[CoversClass(LintContent::class)]
 #[CoversClass(ListContent::class)]
 #[CoversClass(CreateContent::class)]
+#[CoversClass(FixIds::class)]
+#[CoversClass(EntryIds::class)]
+#[CoversClass(EntryIdReport::class)]
 final class ContentCommandsTest extends TestCase
 {
 	use BuildsContentSite;
@@ -116,6 +122,34 @@ final class ContentCommandsTest extends TestCase
 		$this->assertStringContainsString('There is no "movie" content type; the types are page, profile, post, category.', $unknown->errors);
 	}
 
+	public function testChecksAndFixesIds(): void
+	{
+		$this->standardContent();
+		$this->writeTemporaryFile('user/content/none.md', "---\ntitle: None\n---\n");
+		$this->writeTemporaryFile('user/content/copy.md', "---\ntitle: Copy\nid: " . self::idFor('about/biography.md') . "\n---\n");
+		$tester  = $this->tester();
+		$content = $this->temporaryDirectory() . '/user/content';
+
+		$check = $tester->run('content:ids');
+
+		$this->assertSame(ExitCode::Failure, $check->exitCode);
+		$this->assertStringContainsString('missing  none.md', $check->output);
+		$this->assertStringContainsString('shared   ' . self::idFor('about/biography.md') . "\n         about/biography.md\n         copy.md", $check->output);
+		$this->assertStringContainsString('1 file is missing a valid id; add them with --write. 1 id is shared; keep each on one file with --keep={path}.', $check->errors);
+		$this->assertStringNotContainsString('id:', (string) file_get_contents("{$content}/none.md"), 'Checking changes nothing.');
+
+		$this->assertSame(ExitCode::Failure, $tester->run('content:ids --keep=none.md')->exitCode, 'Only a file that shares its id can keep it.');
+
+		$fixed = $tester->run('content:ids --write --keep=about/biography.md');
+
+		$this->assertTrue($fixed->isSuccessful(), $fixed->errors);
+		$this->assertMatchesRegularExpression('/^added    [0-9a-f-]{36}  copy\.md$/m', $fixed->output);
+		$this->assertMatchesRegularExpression('/^added    [0-9a-f-]{36}  none\.md$/m', $fixed->output);
+		$this->assertStringContainsString('Every content file has an id of its own.', $fixed->output);
+		$this->assertStringContainsString('id: ' . self::idFor('about/biography.md'), (string) file_get_contents("{$content}/about/biography.md"), 'The file kept keeps its id.');
+		$this->assertTrue($tester->run('content:ids')->isSuccessful());
+	}
+
 	public function testCreatesEntries(): void
 	{
 		$this->standardContent();
@@ -126,15 +160,16 @@ final class ContentCommandsTest extends TestCase
 
 		$this->assertTrue($post->isSuccessful());
 		$this->assertSame("Created user/content/_posts/2026-06-01.hello-world-again.md\n", $post->output);
-		$this->assertSame(
-			"---\ntitle: \"Hello, World: Again!\"\npublished: 2026-06-01 12:00:00 -05:00\n---\n\n",
-			file_get_contents("{$content}/_posts/2026-06-01.hello-world-again.md")
+		$this->assertMatchesRegularExpression(
+			'/\A---\ntitle: "Hello, World: Again!"\npublished: 2026-06-01 12:00:00 -05:00\nid: [0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\n---\n\n\z/',
+			(string) file_get_contents("{$content}/_posts/2026-06-01.hello-world-again.md"),
+			'With an id, last (D-477).'
 		);
 		$this->assertStringContainsString('hello-world-again', $tester->run('content:list --type=post')->output);
 
 		$tester->run(['content:new', 'page', 'Colophon', '--slug=credits', '--draft']);
 
-		$this->assertSame("---\ntitle: Colophon\nstatus: draft\n---\n\n", file_get_contents("{$content}/credits.md"));
+		$this->assertMatchesRegularExpression('/\A---\ntitle: Colophon\nstatus: draft\nid: [0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\n---\n\n\z/', (string) file_get_contents("{$content}/credits.md"));
 
 		$tester->run(['content:new', 'category', 'Life']);
 

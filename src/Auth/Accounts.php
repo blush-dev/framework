@@ -333,7 +333,7 @@ final readonly class Accounts
 		$type = $this->types->profiles() ?? throw new AuthException('The site has no profiles type.');
 
 		try {
-			return $this->writer->create($type, $author, new EntryChanges(set: ['title' => $name], body: "\n"), $this->clock->now())->id;
+			return $this->writer->create($type, $author, new EntryChanges(set: ['title' => $name], body: "\n"), $this->clock->now())->path;
 		} catch (WriteException $e) {
 			throw new AuthException($e->getMessage(), previous: $e);
 		}

@@ -273,7 +273,7 @@ final class AdminPickersTest extends TestCase
 		$old = self::json($this->send('GET', '/media/2020/old.png'));
 
 		$this->assertNull($old['uploader'] ?? null);
-		$this->assertSame([['id' => 'notes.md', 'title' => 'Notes', 'type' => 'Page']], $old['usedIn'] ?? null, 'Where it\'s used.');
+		$this->assertSame([['path' => 'notes.md', 'title' => 'Notes', 'type' => 'Page']], $old['usedIn'] ?? null, 'Where it\'s used.');
 		$this->assertSame(200, $this->remove('2020/old.png')->getStatusCode());
 		$this->assertFileDoesNotExist($this->temporaryDirectory() . '/user/media/2020/old.png');
 		$this->assertFileDoesNotExist($this->temporaryDirectory() . '/user/data/media/2020/old.png.yml', 'Its details go with it.');

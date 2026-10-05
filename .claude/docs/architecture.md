@@ -473,8 +473,9 @@ Implemented in M4a (D-083, D-084); kinds and option names from D-157.
 ### Entry
 Implemented in M4b (D-088).
 
-- `Content\Entry\Entry`, a readonly value object: `id` (the source path),
-  `type`, `slug`, `key` (the slug with any folders below the type's),
+- `Content\Entry\Entry`, a readonly value object: `path` (the source
+  path, or `virtual:{type}/{slug}`), `id` (the entry's UUIDv7 from its
+  `id` front matter, `null` without a valid one; D-477, D-480), `type`, `slug`, `key` (the slug with any folders below the type's),
   `title`, `status` (`Published | Draft | Scheduled`), `visibility`
   (`Public | Unlisted | Hidden`, D-082), `published`/`updated`
   (`DateTimeImmutable`, site timezone), `locale`, `fields` (typed by the
@@ -557,18 +558,27 @@ Implemented in M4b (D-087, D-090).
     queries are array filters (`ArraySelector`).
   - `SqliteIndex` (optional, later): for large sites and FTS5 search.
 - **`RecordBuilder`** turns a file into an `IndexRecord` (the 1.x file
-  conventions, D-088) and its schema violations.
+  conventions, D-088) and its schema violations. It reads `id` before
+  the schema (`EntryFields::ID`, a reserved key no field may claim), and
+  a missing or malformed id is a violation (D-477, D-480).
+- **Ids** (D-477, D-480): `IndexRecord::$path` is the source path and
+  `$id` the UUID; the snapshot (index v6) keeps `ids` (id to path, the
+  first by path) and `duplicates`. `Support\Uuid` makes v7 UUIDs and
+  checks any version. `Content\EntryIds` finds files missing a valid id
+  or sharing one, and fixes them through `ContentWriter::assignIds()`,
+  for `content:ids` and Content health.
 - **`Indexer`:**
   - A full scan, or an incremental one that skips files whose mtime and
-    size match and keeps records whose hash matches. A changed
+    size match and keeps records whose hash matches. Paths a writer just
+    wrote (`written`) are read whatever their stat says (D-480). A changed
     fingerprint (content types, timezone, locale, languages) forces a
     full scan.
   - The index is built on first use if missing; in development each
     request's first use refreshes it (`ContentConfig::$autoIndex`). In
     production, reindexing is triggered by CLI, webhook, or admin save.
   - Emits `ContentIndexed` with the `IndexReport` when it writes.
-- **`ContentRepository`** is the facade: `query()`, `find(id)`,
-  `named(type, key)`, `term()`, `termCounts()`, `parent()` and
+- **`ContentRepository`** is the facade: `query()`, `find(id)` (by the
+  UUID, D-480), `findPath(path)`, `named(type, key)`, `term()`, `termCounts()`, `parent()` and
   `children()` (from records' `parent` keys and the snapshot's reverse
   `children` map, D-257), `parentKey()` (for a hierarchical term's
   nested URL, which `ContentUrls::termPath()` builds, D-260), plus `get()`,
@@ -602,6 +612,10 @@ Implemented in M4b (D-087, D-090).
   edits Markdown and HTML front matter and YAML entries key by key
   (`YamlMap`, keeping formatting and aliases), rewrites JSON entries,
   and parses every result to confirm only the intended values changed.
+  Entries are named by path. Every new entry (a copy too) gets a new
+  `id`, written last; `update` adds one to a file without it and never
+  changes or removes one; a new key goes before an existing `id`; and
+  `assignIds` gives files new ones in one reindex (D-477, D-480).
 
 ## Query
 

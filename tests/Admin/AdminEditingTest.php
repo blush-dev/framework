@@ -49,7 +49,7 @@ final class AdminEditingTest extends TestCase
 	{
 		$types = ['post' => ['path' => '_posts', 'date_archives' => true, 'routing' => ['prefix' => 'archives']], ...$types];
 		$this->writeTemporaryFile('config/content.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn Blush\\Content\\Type\\ContentConfig::fromArray(['types' => " . var_export($types, true) . "]);\n");
-		$this->writeTemporaryFile('user/content/' . self::FLAME, "---\ntitle     : \"Rekindling the Flame\"\nauthors   : jane\ndate      : 2022-03-29 23:00:00 -6\nmood      : hopeful\n---\n\nThe body.\n");
+		$this->writeTemporaryFile('user/content/' . self::FLAME, "---\ntitle     : \"Rekindling the Flame\"\nauthors   : jane\ndate      : 2022-03-29 23:00:00 -6\nmood      : hopeful\nid        : 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e74\n---\n\nThe body.\n");
 		$this->writeTemporaryFile('user/content/_posts/2023-01-01.idea.md', "---\ntitle: An Idea\nauthors: jane\nstatus: draft\n---\n");
 		$this->writeTemporaryFile('user/content/_posts/2021-05-05.sams.md', "---\ntitle: Sam's Post\nauthors: sam\npublished: 2021-05-05 09:00:00 -05:00\n---\n");
 
@@ -148,7 +148,7 @@ final class AdminEditingTest extends TestCase
 
 		$restored = $this->call('POST', '/trash/restore', ['id' => $this->trashId(self::FLAME)]);
 
-		$this->assertSame(['id' => self::FLAME], self::json($restored));
+		$this->assertSame(['path' => self::FLAME], self::json($restored));
 		$this->assertSame('draft', $this->load(self::FLAME)['status'] ?? null, 'A restored entry is never live again by itself.');
 		$this->assertStringContainsString("mood      : hopeful\nstatus: draft\n", $this->file(self::FLAME));
 
@@ -237,13 +237,13 @@ final class AdminEditingTest extends TestCase
 
 		$response = $this->call('GET', '/content/post/flame');
 		$this->assertSame(200, $response->getStatusCode(), (string) $response->getBody());
-		$this->assertSame(self::FLAME, self::json($response)['id'] ?? null);
+		$this->assertSame(self::FLAME, self::json($response)['path'] ?? null);
 
 		$page = self::json($this->call('GET', '/content/page/about/team'));
-		$this->assertSame(['about/team.md', 'page/about/team'], [$page['id'] ?? null, $page['handle'] ?? null], 'A page\'s key has its folders.');
+		$this->assertSame(['about/team.md', 'page/about/team'], [$page['path'] ?? null, $page['handle'] ?? null], 'A page\'s key has its folders.');
 
 		$home = self::json($this->call('GET', '/content/page/index'));
-		$this->assertSame(['index.md', 'page/index'], [$home['id'] ?? null, $home['handle'] ?? null], 'A landing page is `index`.');
+		$this->assertSame(['index.md', 'page/index'], [$home['path'] ?? null, $home['handle'] ?? null], 'A landing page is `index`.');
 
 		$listed = self::json($this->call('GET', '/entries?type=post'))['entries'] ?? null;
 		$this->assertIsArray($listed);
@@ -263,7 +263,7 @@ final class AdminEditingTest extends TestCase
 		$listed = self::json($this->call('GET', '/entries?type=post'))['entries'] ?? null;
 		$this->assertIsArray($listed);
 
-		$byId  = array_column($listed, null, 'id');
+		$byId  = array_column($listed, null, 'path');
 		$flame = $byId[self::FLAME] ?? null;
 		$idea  = $byId['_posts/2023-01-01.idea.md'] ?? null;
 		$this->assertIsArray($flame);
@@ -282,11 +282,11 @@ final class AdminEditingTest extends TestCase
 
 		$list = self::json($this->call('GET', '/entries?type=post'));
 		$this->assertIsArray($list['entries'] ?? null);
-		$this->assertNotContains('_posts/index.md', array_column($list['entries'], 'id'), 'The index page isn\'t one of the posts.');
+		$this->assertNotContains('_posts/index.md', array_column($list['entries'], 'path'), 'The index page isn\'t one of the posts.');
 		$this->assertSame(3, $list['total'] ?? null, 'Nor is it counted.');
 		$index = $list['index'] ?? null;
 		$this->assertIsArray($index);
-		$this->assertSame(['_posts/index.md', true], [$index['id'] ?? null, $index['index'] ?? null]);
+		$this->assertSame(['_posts/index.md', true], [$index['path'] ?? null, $index['index'] ?? null]);
 		$this->assertSame(['delete' => false, 'duplicate' => false, 'makeHomepage' => false], $index['can'] ?? null, 'It can\'t be trashed from the list.');
 
 		$this->assertNull($this->pinned('/entries?type=post&per=1&page=2'), 'It\'s pinned on the first page only.');
@@ -302,8 +302,8 @@ final class AdminEditingTest extends TestCase
 
 		$pages = self::json($this->call('GET', '/entries?type=page'));
 		$this->assertIsArray($pages['entries'] ?? null);
-		$this->assertNotContains('index.md', array_column($pages['entries'], 'id'), 'Pages pin their root page instead (D-420).');
-		$this->assertSame('index.md', self::at($pages, 'index', 'id'));
+		$this->assertNotContains('index.md', array_column($pages['entries'], 'path'), 'Pages pin their root page instead (D-420).');
+		$this->assertSame('index.md', self::at($pages, 'index', 'path'));
 	}
 
 	public function testPinsTheRootPageAndMarksTheHomepage(): void
@@ -313,11 +313,11 @@ final class AdminEditingTest extends TestCase
 		$this->writeTemporaryFile('user/content/_posts/index.md', "---\ntitle: Writing\n---\n");
 		$this->site(['administrator']);
 
-		$marks = static fn (mixed $entry): array => is_array($entry) ? [$entry['id'] ?? null, $entry['index'] ?? null, $entry['homepage'] ?? null, $entry['rootPage'] ?? null, $entry['homeInstead'] ?? null] : [];
+		$marks = static fn (mixed $entry): array => is_array($entry) ? [$entry['path'] ?? null, $entry['index'] ?? null, $entry['homepage'] ?? null, $entry['rootPage'] ?? null, $entry['homeInstead'] ?? null] : [];
 
 		$pages = self::json($this->call('GET', '/entries?type=page'));
 		$this->assertIsArray($pages['entries'] ?? null);
-		$this->assertSame(['about.md'], array_column($pages['entries'], 'id'), 'The root page isn\'t one of the pages.');
+		$this->assertSame(['about.md'], array_column($pages['entries'], 'path'), 'The root page isn\'t one of the pages.');
 		$this->assertSame(1, $pages['total'] ?? null, 'Nor is it counted.');
 		$this->assertSame(['index.md', false, true, true, null], $marks($pages['index'] ?? null));
 		$this->assertSame(['delete' => true, 'duplicate' => false, 'makeHomepage' => false], self::at($pages, 'index', 'can'));
@@ -341,7 +341,7 @@ final class AdminEditingTest extends TestCase
 		$this->writeTemporaryFile('user/data/settings.json', '{"content": {"home": "post"}}');
 		$this->site(['administrator']);
 
-		$marks = static fn (mixed $entry): array => is_array($entry) ? [$entry['id'] ?? null, $entry['index'] ?? null, $entry['homepage'] ?? null, $entry['rootPage'] ?? null, $entry['homeInstead'] ?? null] : [];
+		$marks = static fn (mixed $entry): array => is_array($entry) ? [$entry['path'] ?? null, $entry['index'] ?? null, $entry['homepage'] ?? null, $entry['rootPage'] ?? null, $entry['homeInstead'] ?? null] : [];
 		$pages = self::json($this->call('GET', '/entries?type=page'));
 		$root  = self::json($this->call('GET', '/entries/index.md'));
 
@@ -371,7 +371,7 @@ final class AdminEditingTest extends TestCase
 
 		$docs = self::json($this->call('GET', '/entries?type=doc'));
 		$this->assertIsArray($docs['entries'] ?? null);
-		$this->assertSame(['_doc/install.md', '_doc/install/requirements.md'], array_column($docs['entries'], 'id'), 'Listed as a tree.');
+		$this->assertSame(['_doc/install.md', '_doc/install/requirements.md'], array_column($docs['entries'], 'path'), 'Listed as a tree.');
 		$this->assertSame(2, $docs['total'] ?? null);
 	}
 
@@ -417,25 +417,25 @@ final class AdminEditingTest extends TestCase
 		$list = self::json($this->call('GET', '/entries?type=post'));
 		$this->assertIsArray($list['entries'] ?? null);
 		$this->assertIsArray($list['index'] ?? null);
-		$this->assertSame(['delete' => true, 'duplicate' => true, 'makeHomepage' => false], array_column($list['entries'], 'can', 'id')[self::FLAME] ?? null);
+		$this->assertSame(['delete' => true, 'duplicate' => true, 'makeHomepage' => false], array_column($list['entries'], 'can', 'path')[self::FLAME] ?? null);
 		$this->assertSame(['delete' => false, 'duplicate' => false, 'makeHomepage' => false], $list['index']['can'] ?? null, 'Not the index page.');
 
 		$response = $this->call('POST', '/entries/' . self::FLAME . '/duplicate');
 		$copy     = self::json($response);
 
 		$this->assertSame(201, $response->getStatusCode(), (string) $response->getBody());
-		$this->assertIsString($copy['id'] ?? null);
-		$this->assertMatchesRegularExpression('#^_posts/\d{4}-\d{2}-\d{2}\.flame-copy\.md$#', $copy['id']);
+		$this->assertIsString($copy['path'] ?? null);
+		$this->assertMatchesRegularExpression('#^_posts/\d{4}-\d{2}-\d{2}\.flame-copy\.md$#', $copy['path']);
 		$this->assertSame(['Rekindling the Flame (Copy)', 'draft'], [$copy['title'] ?? null, $copy['status'] ?? null]);
 		$this->assertIsArray($copy['extra'] ?? null);
 		$this->assertSame('hopeful', $copy['extra']['mood'] ?? null, 'Everything else is copied.');
 		$this->assertIsArray($copy['values'] ?? null);
 		$this->assertSame(['jane'], (array) ($copy['values']['authors'] ?? null), 'It keeps its authors.');
-		$this->assertStringContainsString("\nThe body.\n", $this->file($copy['id']));
+		$this->assertStringContainsString("\nThe body.\n", $this->file($copy['path']));
 		$this->assertStringContainsString('Rekindling the Flame"', $this->file(self::FLAME), 'The original is untouched.');
 
 		$again = self::json($this->call('POST', '/entries/' . self::FLAME . '/duplicate'));
-		$this->assertStringEndsWith('.flame-copy-2.md', is_string($again['id'] ?? null) ? $again['id'] : '');
+		$this->assertStringEndsWith('.flame-copy-2.md', is_string($again['path'] ?? null) ? $again['path'] : '');
 
 		$this->assertSame(422, $this->call('POST', '/entries/_posts/index.md/duplicate')->getStatusCode(), 'Not the index page.');
 		$this->assertSame(404, $this->call('POST', '/entries/_posts/nope.md/duplicate')->getStatusCode());
@@ -456,7 +456,7 @@ final class AdminEditingTest extends TestCase
 	{
 		$index = self::json($this->call('GET', $path))['index'] ?? null;
 
-		return is_array($index) && is_string($index['id'] ?? null) ? $index['id'] : null;
+		return is_array($index) && is_string($index['path'] ?? null) ? $index['path'] : null;
 	}
 
 	public function testSavesChangesWithTheRevision(): void
@@ -468,7 +468,7 @@ final class AdminEditingTest extends TestCase
 		$saved    = self::json($response);
 
 		$this->assertSame(200, $response->getStatusCode(), (string) $response->getBody());
-		$this->assertSame("---\ntitle     : \"The Flame\"\nauthors   : jane\ndate      : 2022-04-01 08:00:00 -05:00\nmood      : hopeful\n---\n\nThe body.\n", $this->file(self::FLAME));
+		$this->assertSame("---\ntitle     : \"The Flame\"\nauthors   : jane\ndate      : 2022-04-01 08:00:00 -05:00\nmood      : hopeful\nid        : 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e74\n---\n\nThe body.\n", $this->file(self::FLAME));
 		$this->assertSame('The Flame', $saved['title'] ?? null);
 		$this->assertNotSame($revision, $saved['revision'] ?? null);
 
@@ -507,23 +507,23 @@ final class AdminEditingTest extends TestCase
 		$idea = '_posts/2023-01-01.idea.md';
 		$sams = '_posts/2021-05-05.sams.md';
 
-		$answer = self::json($this->call('POST', '/entries/bulk', ['action' => 'draft', 'ids' => [self::FLAME, $sams]]));
+		$answer = self::json($this->call('POST', '/entries/bulk', ['action' => 'draft', 'paths' => [self::FLAME, $sams]]));
 
 		$this->assertSame([self::FLAME, $sams], $answer['done'] ?? null);
 		$this->assertStringContainsString("\nstatus: draft\n", $this->file(self::FLAME));
 		$this->assertStringContainsString("\nstatus: draft\n", $this->file($sams));
 
-		$answer = self::json($this->call('POST', '/entries/bulk', ['action' => 'publish', 'ids' => [$idea, self::FLAME]]));
+		$answer = self::json($this->call('POST', '/entries/bulk', ['action' => 'publish', 'paths' => [$idea, self::FLAME]]));
 
 		$this->assertSame([$idea, self::FLAME], $answer['done'] ?? null);
 		$this->assertStringNotContainsString('status:', $this->file($idea));
 		$this->assertStringContainsString('published:', $this->file($idea), 'An undated entry is dated as it\'s published.');
 		$this->assertStringContainsString('date      : 2022-03-29 23:00:00 -6', $this->file(self::FLAME), 'A dated entry keeps its date.');
 
-		$answer = self::json($this->call('POST', '/entries/bulk', ['action' => 'trash', 'ids' => [$idea, '_posts/missing.md']]));
+		$answer = self::json($this->call('POST', '/entries/bulk', ['action' => 'trash', 'paths' => [$idea, '_posts/missing.md']]));
 
 		$this->assertSame([$idea], $answer['done'] ?? null);
-		$this->assertSame([['id' => '_posts/missing.md', 'title' => '', 'reason' => 'It\'s no longer there.']], $answer['skipped'] ?? null);
+		$this->assertSame([['path' => '_posts/missing.md', 'title' => '', 'reason' => 'It\'s no longer there.']], $answer['skipped'] ?? null);
 		$this->assertFileDoesNotExist($this->temporaryDirectory() . "/user/content/{$idea}");
 		$this->assertSame($idea, $this->trash()[0]['entry'] ?? null);
 	}
@@ -535,16 +535,16 @@ final class AdminEditingTest extends TestCase
 		$this->writeTemporaryFile('user/content/reviews/unrated.md', "---\ntitle: Unrated\nauthors: jane\nstatus: draft\n---\n");
 		$this->site(['author']);
 
-		$answer = self::json($this->call('POST', '/entries/bulk', ['action' => 'publish', 'ids' => ['reviews/rated.md', 'reviews/unrated.md']]));
+		$answer = self::json($this->call('POST', '/entries/bulk', ['action' => 'publish', 'paths' => ['reviews/rated.md', 'reviews/unrated.md']]));
 
 		$this->assertSame(['reviews/rated.md'], $answer['done'] ?? null);
-		$this->assertSame([['id' => 'reviews/unrated.md', 'title' => 'Unrated', 'reason' => 'Rating is required to publish.']], $answer['skipped'] ?? null);
+		$this->assertSame([['path' => 'reviews/unrated.md', 'title' => 'Unrated', 'reason' => 'Rating is required to publish.']], $answer['skipped'] ?? null);
 		$this->assertStringContainsString("\nstatus: draft\n", $this->file('reviews/unrated.md'));
 
-		$answer = self::json($this->call('POST', '/entries/bulk', ['action' => 'trash', 'ids' => ['_posts/2021-05-05.sams.md']]));
+		$answer = self::json($this->call('POST', '/entries/bulk', ['action' => 'trash', 'paths' => ['_posts/2021-05-05.sams.md']]));
 
 		$this->assertSame([], $answer['done'] ?? null);
-		$this->assertSame([['id' => '_posts/2021-05-05.sams.md', 'title' => 'Sam\'s Post', 'reason' => 'You aren\'t allowed to delete it.']], $answer['skipped'] ?? null, 'An author can\'t trash someone else\'s entry.');
+		$this->assertSame([['path' => '_posts/2021-05-05.sams.md', 'title' => 'Sam\'s Post', 'reason' => 'You aren\'t allowed to delete it.']], $answer['skipped'] ?? null, 'An author can\'t trash someone else\'s entry.');
 	}
 
 	public function testBulkChangesRefuseMalformedRequests(): void
@@ -552,10 +552,10 @@ final class AdminEditingTest extends TestCase
 		$this->site();
 
 		$requests = [
-			['action' => 'archive', 'ids' => [self::FLAME]],
-			['action' => 'draft', 'ids' => []],
-			['action' => 'draft', 'ids' => [self::FLAME, 5]],
-			['action' => 'draft', 'ids' => array_fill(0, 101, self::FLAME)],
+			['action' => 'archive', 'paths' => [self::FLAME]],
+			['action' => 'draft', 'paths' => []],
+			['action' => 'draft', 'paths' => [self::FLAME, 5]],
+			['action' => 'draft', 'paths' => array_fill(0, 101, self::FLAME)],
 			['action' => 'draft']
 		];
 
@@ -563,7 +563,7 @@ final class AdminEditingTest extends TestCase
 			$this->assertSame(400, $this->call('POST', '/entries/bulk', $request)->getStatusCode(), (string) json_encode($request));
 		}
 
-		$this->assertSame(403, $this->send('POST', '/entries/bulk', (string) json_encode(['action' => 'draft', 'ids' => [self::FLAME]]))->getStatusCode(), 'It needs the CSRF token.');
+		$this->assertSame(403, $this->send('POST', '/entries/bulk', (string) json_encode(['action' => 'draft', 'paths' => [self::FLAME]]))->getStatusCode(), 'It needs the CSRF token.');
 	}
 
 	public function testContributorsKeepEntriesAsDrafts(): void
@@ -595,12 +595,12 @@ final class AdminEditingTest extends TestCase
 		$entry    = self::json($response);
 
 		$this->assertSame(201, $response->getStatusCode(), (string) $response->getBody());
-		$this->assertIsString($entry['id'] ?? null);
-		$this->assertMatchesRegularExpression('#^_posts/\d{4}-\d{2}-\d{2}\.hello-there\.md$#', $entry['id']);
+		$this->assertIsString($entry['path'] ?? null);
+		$this->assertMatchesRegularExpression('#^_posts/\d{4}-\d{2}-\d{2}\.hello-there\.md$#', $entry['path']);
 		$this->assertSame('draft', $entry['status'] ?? null);
 		$this->assertIsArray($entry['values'] ?? null);
 		$this->assertSame(['jane'], $entry['values']['authors'] ?? null);
-		$this->assertStringContainsString("\nFirst words.\n", $this->file($entry['id']));
+		$this->assertStringContainsString("\nFirst words.\n", $this->file($entry['path']));
 
 		$this->assertSame(422, $this->call('POST', '/entries', ['type' => 'post', 'title' => 'Hello There'])->getStatusCode(), 'The same slug on the same day already exists.');
 		$this->assertSame(400, $this->call('POST', '/entries', ['type' => 'movie', 'title' => 'Nope'])->getStatusCode());
@@ -615,7 +615,7 @@ final class AdminEditingTest extends TestCase
 		$entry    = self::json($response);
 
 		$this->assertSame(201, $response->getStatusCode(), (string) $response->getBody());
-		$this->assertSame('services/writing.md', $entry['id'] ?? null);
+		$this->assertSame('services/writing.md', $entry['path'] ?? null);
 		$this->assertSame("---\ntitle: Services\n---\n", $this->file('services/index.md'), 'The parent became its folder\'s page (D-408).');
 		$this->assertSame('Services', $this->load('services/index.md')['title'] ?? null);
 
@@ -641,14 +641,14 @@ final class AdminEditingTest extends TestCase
 		$moved    = self::json($response);
 
 		$this->assertSame(200, $response->getStatusCode(), (string) $response->getBody());
-		$this->assertSame(['services/work/index.md', 'services'], [$moved['id'] ?? null, $moved['parent'] ?? null]);
+		$this->assertSame(['services/work/index.md', 'services'], [$moved['path'] ?? null, $moved['parent'] ?? null]);
 		$this->assertStringContainsString('/work', $this->file('services/work/index.md'), 'The page redirects from its old address (D-410).');
 		$this->assertStringContainsString('/work/design', $this->file('services/work/design.md'), 'So does a published page under it.');
 		$this->assertStringNotContainsString('redirect_from', $this->file('services/work/_notes.md'), 'A hidden one has no address to keep.');
 		$this->assertFileExists($this->temporaryDirectory() . '/user/content/services/index.md', 'The new parent became its folder\'s page.');
 
 		$top = $this->call('PATCH', '/entries/services/work/design.md', ['revision' => $this->revision('services/work/design.md'), 'parent' => '']);
-		$this->assertSame('design.md', self::json($top)['id'] ?? null, 'And to the top.');
+		$this->assertSame('design.md', self::json($top)['path'] ?? null, 'And to the top.');
 
 		$under = $this->call('PATCH', '/entries/services/index.md', ['revision' => $this->revision('services/index.md'), 'parent' => 'services/work']);
 		$this->assertSame(422, $under->getStatusCode(), 'Not under a page under it.');
@@ -685,8 +685,10 @@ final class AdminEditingTest extends TestCase
 		$entry    = self::json($response);
 
 		$this->assertSame(200, $response->getStatusCode(), (string) $response->getBody());
+		$this->assertArrayHasKey('path', $entry);
+		$this->assertNull($entry['path'], 'It has no file yet.');
 		$this->assertArrayHasKey('id', $entry);
-		$this->assertNull($entry['id'], 'It has no file yet.');
+		$this->assertNull($entry['id'], 'Nor an id (D-477).');
 		$this->assertArrayHasKey('revision', $entry);
 		$this->assertNull($entry['revision']);
 		$this->assertSame('draft', $entry['status'] ?? null);
@@ -708,8 +710,8 @@ final class AdminEditingTest extends TestCase
 
 		$entry = self::json($this->call('POST', '/entries', ['type' => 'post', 'title' => 'Straight In', 'body' => "First words.\n"]));
 
-		$this->assertIsString($entry['id'] ?? null);
-		$this->assertStringEndsWith("---\n\nFirst words.\n", $this->file($entry['id']));
+		$this->assertIsString($entry['path'] ?? null);
+		$this->assertStringEndsWith("---\n\nFirst words.\n", $this->file($entry['path']));
 		$this->assertSame("First words.\n", $entry['body'] ?? null);
 	}
 
@@ -739,7 +741,7 @@ final class AdminEditingTest extends TestCase
 
 		$renamed = self::json($this->call('PATCH', '/entries/' . self::FLAME, ['revision' => $this->revision(self::FLAME), 'slug' => 'the-flame']));
 
-		$this->assertSame('_posts/2022-03-29.the-flame.md', $renamed['id'] ?? null);
+		$this->assertSame('_posts/2022-03-29.the-flame.md', $renamed['path'] ?? null);
 		$this->assertSame('/archives/the-flame', $renamed['url'] ?? null);
 		$this->assertSame('the-flame', $renamed['slug'] ?? null);
 		$this->assertIsArray($renamed['can'] ?? null);
@@ -747,7 +749,7 @@ final class AdminEditingTest extends TestCase
 
 		$id       = '_posts/2022-03-29.the-flame.md';
 		$both     = self::json($this->call('PATCH', "/entries/{$id}", ['revision' => $this->revision($id), 'slug' => 'flame-again', 'set' => ['title' => 'Again']]));
-		$this->assertSame(['_posts/2022-03-29.flame-again.md', 'Again'], [$both['id'] ?? null, $both['title'] ?? null], 'A rename and a change save together.');
+		$this->assertSame(['_posts/2022-03-29.flame-again.md', 'Again'], [$both['path'] ?? null, $both['title'] ?? null], 'A rename and a change save together.');
 
 		$id       = '_posts/2022-03-29.flame-again.md';
 		$revision = $this->revision($id);
@@ -778,17 +780,17 @@ final class AdminEditingTest extends TestCase
 
 		$id    = '_posts/2020-02-02.file-name.md';
 		$keyed = self::json($this->call('PATCH', "/entries/{$id}", ['revision' => $this->revision($id), 'slug' => 'keyed-again', 'redirect' => true]));
-		$this->assertSame([$id, 'keyed-again', '/archives/keyed-again'], [$keyed['id'] ?? null, $keyed['slug'] ?? null, $keyed['url'] ?? null], 'A slug key is changed, not the file.');
+		$this->assertSame([$id, 'keyed-again', '/archives/keyed-again'], [$keyed['path'] ?? null, $keyed['slug'] ?? null, $keyed['url'] ?? null], 'A slug key is changed, not the file.');
 		$this->assertStringContainsString("slug: keyed-again\n", $this->file($id));
 		$this->assertStringContainsString('/older', $this->file($id));
 		$this->assertStringContainsString('/archives/keyed', $this->file($id), 'Old addresses stay, and the new old one joins them.');
 
 		$copy = self::json($this->call('POST', "/entries/{$id}/duplicate"));
-		$this->assertIsString($copy['id'] ?? null);
-		$this->assertStringEndsWith('.keyed-again-copy.md', $copy['id']);
+		$this->assertIsString($copy['path'] ?? null);
+		$this->assertStringEndsWith('.keyed-again-copy.md', $copy['path']);
 		$this->assertSame('keyed-again-copy', $copy['slug'] ?? null);
-		$this->assertStringNotContainsString('slug:', $this->file($copy['id']), 'A copy is named by its file.');
-		$this->assertStringNotContainsString('redirect_from', $this->file($copy['id']), 'The original keeps its old addresses.');
+		$this->assertStringNotContainsString('slug:', $this->file($copy['path']), 'A copy is named by its file.');
+		$this->assertStringNotContainsString('redirect_from', $this->file($copy['path']), 'The original keeps its old addresses.');
 	}
 
 	public function testDeletesToTheTrash(): void

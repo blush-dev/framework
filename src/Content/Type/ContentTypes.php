@@ -289,6 +289,11 @@ final class ContentTypes implements IteratorAggregate, Countable
 				: new InvalidContentType($e->getMessage(), previous: $e);
 		}
 
+		// The entry's id is no field's (D-477).
+		if ($schema->field(EntryFields::ID) !== null) {
+			throw new InvalidContentType(sprintf('Content type "%s" has a field (or alias) named "%s", which is reserved for the entry\'s id; rename it.', $name, EntryFields::ID));
+		}
+
 		return $this->schemas[$name] = $schema;
 	}
 

@@ -15,7 +15,7 @@ namespace Blush\Content\Index;
 
 /**
  * What an indexing run did: which entries it added, changed, and removed
- * (by ID), which files it couldn't parse, and whether it wrote the index.
+ * (by path), which files it couldn't parse, and whether it wrote the index.
  * A file that fails to parse is left out of the index, so its entry
  * disappears until it's fixed.
  */
@@ -49,7 +49,7 @@ final readonly class IndexReport
 	}
 
 	/**
-	 * Returns the IDs of every added, changed, or removed entry.
+	 * Returns the paths of every added, changed, or removed entry.
 	 *
 	 * @return list<string>
 	 */

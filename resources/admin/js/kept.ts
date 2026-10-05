@@ -29,9 +29,9 @@ const PREFIX = 'blush-admin-unsaved:';
 /**
  * Keeps an entry's changes; answers whether they were stored.
  */
-export function keep(id: string, revision: string, state: EditorState): boolean {
+export function keep(key: string, revision: string, state: EditorState): boolean {
 	try {
-		localStorage.setItem(PREFIX + id, JSON.stringify({ revision, kept: new Date().toISOString(), state } satisfies KeptChanges));
+		localStorage.setItem(PREFIX + key, JSON.stringify({ revision, kept: new Date().toISOString(), state } satisfies KeptChanges));
 
 		return true;
 	} catch {
@@ -42,9 +42,9 @@ export function keep(id: string, revision: string, state: EditorState): boolean 
 /**
  * The changes kept for an entry, if any.
  */
-export function kept(id: string): KeptChanges | null {
+export function kept(key: string): KeptChanges | null {
 	try {
-		const raw = localStorage.getItem(PREFIX + id);
+		const raw = localStorage.getItem(PREFIX + key);
 		const data: unknown = raw === null ? null : JSON.parse(raw);
 
 		return isKept(data) ? data : null;
@@ -53,9 +53,9 @@ export function kept(id: string): KeptChanges | null {
 	}
 }
 
-export function forget(id: string): void {
+export function forget(key: string): void {
 	try {
-		localStorage.removeItem(PREFIX + id);
+		localStorage.removeItem(PREFIX + key);
 	} catch {
 		// Nothing was stored.
 	}

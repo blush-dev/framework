@@ -45,6 +45,7 @@ See [Accounts and roles](accounts.md) and [The admin](admin.md).
 | `content:list` | List every entry. `--type=post` and `--status=draft` (or `published`, `scheduled`) narrow it down. |
 | `content:preview <type> <name>` | Print a [preview link](admin.md#previewing-drafts) to an entry, even a draft. `--hours=` sets how long it works. |
 | `content:lint` | Check front matter, and media details in `user/data/media/`, for problems. `--strict` also reports unknown keys and 1.x names. |
+| `content:ids` | List content files missing an [id](content.md#ids), and ids files share. `--write` gives each file missing one a new id; `--keep=<path>` keeps a shared id on that file and gives the others new ones (repeat it for more). |
 | `routes:list` | Show every URL pattern and redirect, and which one wins when two overlap |
 
 ## Publishing and caches

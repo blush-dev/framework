@@ -28,7 +28,7 @@ use Blush\Support\Slug;
  * any item of a list); dates match the published time in the site
  * timezone. A term condition reads the record's terms for the taxonomy,
  * or, when the taxonomy isn't a content type, a field of that name. A
- * search matches the title or ID in any case (D-230). A query's fallback
+ * search matches the title or source path in any case (D-230). A query's fallback
  * language's records match as its language's do (D-469); `ArraySelector`
  * keeps one per translation group. Each `either()`
  * group needs one of its alternatives to match, and an alternative is
@@ -114,7 +114,7 @@ final readonly class RecordMatcher
 			|| ! in_array(IndexRecord::effectiveStatus($record['status'], $record['published'], $this->now)->value, $this->statuses, true)
 			|| ($query->names !== [] && ! in_array($record['slug'], $query->names, true))
 			|| ($query->excludedNames !== [] && in_array($record['slug'], $query->excludedNames, true))
-			|| ($search !== null && mb_stripos($record['title'], $search) === false && mb_stripos($record['id'], $search) === false)
+			|| ($search !== null && mb_stripos($record['title'], $search) === false && mb_stripos($record['path'], $search) === false)
 			|| ! $this->matchesDate($record, $query->date)
 			|| ($query->updatedSince !== null && $record['updated'] < $query->updatedSince)
 			|| ! $this->matchesTerms($record, $this->terms)

@@ -216,8 +216,8 @@ final class PermissionsTest extends TestCase
 					$describe = sprintf('%s (author %s), %s', $role, $author ?? 'none', $capability->value);
 
 					$this->assertSame(
-						array_map(static fn (Entry $entry): string => $entry->id, $allowed),
-						array_map(static fn (Entry $entry): string => $entry->id, $found),
+						array_map(static fn (Entry $entry): string => $entry->path, $allowed),
+						array_map(static fn (Entry $entry): string => $entry->path, $found),
 						$describe
 					);
 
@@ -229,12 +229,12 @@ final class PermissionsTest extends TestCase
 		$this->assertGreaterThan(0, $checked);
 		$this->assertSame(
 			['mine.md', 'my-draft.md', 'my-scheduled.md', 'profiles/jane.md', 'their-draft.md'],
-			array_map(static fn (Entry $entry): string => $entry->id, $permissions->restrict($this->account('reviewer'), ContentAction::Edit, $content->query()->any())->get()->all()),
+			array_map(static fn (Entry $entry): string => $entry->path, $permissions->restrict($this->account('reviewer'), ContentAction::Edit, $content->query()->any())->get()->all()),
 			'A reviewer edits their own entries (and profile) and others\' drafts, but not others\' live entries.'
 		);
 		$this->assertSame(
 			['mine.md', 'my-draft.md', 'my-scheduled.md', 'their-draft.md'],
-			array_map(static fn (Entry $entry): string => $entry->id, $permissions->restrict($this->account('pager'), ContentAction::Edit, $content->query()->any())->get()->all()),
+			array_map(static fn (Entry $entry): string => $entry->path, $permissions->restrict($this->account('pager'), ContentAction::Edit, $content->query()->any())->get()->all()),
 			'Each type\'s capabilities are its own: publishing pages doesn\'t publish the account\'s live profile, or others\' pages.'
 		);
 	}

@@ -83,7 +83,7 @@ final readonly class PeopleJson
 	 * `status`, `url` on the site, and how many published entries credit
 	 * it (`uses`).
 	 *
-	 * @return ?array{id: string, handle: ?string, slug: string, title: string, status: string, url: ?string, uses: int}
+	 * @return ?array{path: string, id: ?string, handle: ?string, slug: string, title: string, status: string, url: ?string, uses: int}
 	 */
 	public function profile(Account $account): ?array
 	{
@@ -91,6 +91,7 @@ final readonly class PeopleJson
 		$entry    = $account->author === null || $profiles === null ? null : $this->content->named($profiles->name, $account->author);
 
 		return $entry === null ? null : [
+			'path'   => $entry->path,
 			'id'     => $entry->id,
 			'handle' => $this->handles->of($entry),
 			'slug'   => $entry->key,

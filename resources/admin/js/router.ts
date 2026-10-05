@@ -61,7 +61,7 @@ export const router = createRouter({
 		{ path: '/entries/new', name: 'entry-new', component: EditorView, meta: { title: 'New Entry', contentAction: 'create', section: 'entries', area: 'content', bleed: true } },
 		// An entry without a handle is edited at its source path, which
 		// also still works for the rest (the editor moves to the handle).
-		{ path: '/entries/:id+', name: 'entry-file', component: EditorView, meta: { title: 'Edit Entry', contentAction: 'edit', section: 'entries', area: 'content', bleed: true } },
+		{ path: '/entries/:path+', name: 'entry-file', component: EditorView, meta: { title: 'Edit Entry', contentAction: 'edit', section: 'entries', area: 'content', bleed: true } },
 		// A trashed entry, to look at before restoring it (D-276), by the
 		// trash's id for it.
 		{ path: '/trash/:id+', name: 'trashed', component: TrashedView, meta: { title: 'In the Trash', contentAction: 'delete', section: 'entries', area: 'content' } },

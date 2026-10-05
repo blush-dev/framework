@@ -94,7 +94,8 @@ export interface PasswordLink {
 
 // An account's profile: its public side (D-353).
 export interface AccountProfile {
-	id: string;
+	path: string;
+	id: string | null;
 	handle: string | null;
 	slug: string;
 	title: string;
@@ -117,7 +118,7 @@ export interface ProfileAppearance {
 	archive: string | null;
 	// The page written for that archive, or `null` when it shows the
 	// profile's own bio.
-	page: { id: string; handle: string | null; title: string; status: EntryStatus } | null;
+	page: { path: string; id: string | null; handle: string | null; title: string; status: EntryStatus } | null;
 }
 
 // A profile's screen (`GET profiles/{slug}`, D-353).
@@ -130,6 +131,7 @@ export interface ProfileDetail {
 		// `null` for a profile credited without a file.
 		status: EntryStatus | null;
 		virtual: boolean;
+		path: string | null;
 		id: string | null;
 		handle: string | null;
 		url: string | null;
@@ -161,7 +163,7 @@ export function loadProfile(slug: string): Promise<ProfileDetail> {
 }
 
 // Writes the page for a profile's archive under a type's people field.
-export function writeArchivePage(slug: string, type: string, field: string): Promise<{ id: string; handle: string | null }> {
+export function writeArchivePage(slug: string, type: string, field: string): Promise<{ path: string; handle: string | null }> {
 	return request('POST', `/profiles/${encodeURIComponent(slug)}/pages`, { type, field });
 }
 

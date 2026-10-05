@@ -198,6 +198,14 @@
 		"collection": {
 			"type": "object",
 			"description": "Lists other entries on this page."
+		},
+		"id": {
+			"type": "string",
+			"pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$",
+			"description": "The entry's id, a UUID, kept last. Blush writes it; content:ids adds a missing one."
 		}
-	}
+	},
+	"required": [
+		"id"
+	]
 }

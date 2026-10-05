@@ -365,18 +365,31 @@ final readonly class JsonSchemas
 
 	/**
 	 * Returns the schema for an entry's front matter (or a data entry):
-	 * the built-in fields. A type's own fields and its taxonomies' term
-	 * fields differ by site, so other keys are allowed (D-211).
+	 * the built-in fields, and the required `id` (D-477). A type's own
+	 * fields and its taxonomies' term fields differ by site, so other
+	 * keys are allowed (D-211).
 	 *
 	 * @return array<string, mixed>
 	 */
 	public function entry(): array
 	{
+		$schema = EntryFields::schema()->jsonSchema();
+		$fields = is_array($schema['properties'] ?? null) ? $schema['properties'] : [];
+
 		return [
 			'$schema'     => self::DRAFT,
 			'title'       => sprintf('%s entry', Framework::NAME),
 			'description' => 'An entry\'s front matter: the fields every entry understands. Content types and taxonomies add their own.',
-			...EntryFields::schema()->jsonSchema()
+			...$schema,
+			'properties'  => [
+				...$fields,
+				EntryFields::ID => [
+					'type'        => 'string',
+					'pattern'     => '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$',
+					'description' => 'The entry\'s id, a UUID, kept last. Blush writes it; content:ids adds a missing one.'
+				]
+			],
+			'required'    => [EntryFields::ID]
 		];
 	}
 

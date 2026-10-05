@@ -307,7 +307,9 @@ final class ContentTypeLoaderTest extends TestCase
 			"['types' => ['page' => ['path' => 'pages']]]"                   => 'No content type claims the content root',
 			"['home' => 'post']"                                              => 'ContentConfig "home" names "post", which isn\'t a content type.',
 			"['types' => ['title' => ['taxonomy' => true]]]"                 => 'Content type "page" has clashing fields: Schema key "title"',
-			"['types' => ['person' => ['kind' => 'profiles']]]"              => 'A site has one profiles type, but "profile", "person" are all profiles types.'
+			"['types' => ['person' => ['kind' => 'profiles']]]"              => 'A site has one profiles type, but "profile", "person" are all profiles types.',
+			"['types' => ['post' => ['fields' => ['id' => ['type' => 'text']]]]]" => 'Content type "post" has a field (or alias) named "id", which is reserved for the entry\'s id; rename it.',
+			"['types' => ['post' => ['fields' => ['code' => ['type' => 'text', 'aliases' => ['id']]]]]]" => 'Content type "post" has a field (or alias) named "id"'
 		];
 
 		foreach ($cases as $config => $message) {

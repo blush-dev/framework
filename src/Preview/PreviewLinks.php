@@ -46,9 +46,9 @@ final readonly class PreviewLinks
 	{
 		$expires = $this->clock->now()->getTimestamp() + max(60, $lifetime ?? $this->config->lifetime);
 		$query   = http_build_query([
-			'entry'     => $entry->id,
+			'entry'     => $entry->path,
 			'expires'   => $expires,
-			'signature' => $this->signature($entry->id, $expires)
+			'signature' => $this->signature($entry->path, $expires)
 		], '', '&', PHP_QUERY_RFC3986);
 
 		return new PreviewLink($this->app->absoluteUrl("{$this->config->path}?{$query}"), $expires);

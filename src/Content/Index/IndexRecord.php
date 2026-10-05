@@ -24,7 +24,10 @@ use Blush\Content\Visibility;
  * hash. Records are stored as arrays (`toArray()`) and stay arrays while
  * queries run; only the entries a query returns become objects.
  *
- * - `id` is the source path, such as `_posts/2003-04-15.welcome.md`.
+ * - `path` is the source path, such as `_posts/2003-04-15.welcome.md`.
+ * - `id` is the entry's id (D-477): the UUID in its `id` front matter,
+ *   lowercased, or `null` when it has none or it isn't a UUID (which
+ *   `content:lint` reports).
  * - `slug` is the file name after its last `.` (D-078), a bundle's folder
  *   name for `slug/index.md`, `index` for a landing page, or the `slug`
  *   front matter.
@@ -62,7 +65,7 @@ use Blush\Content\Visibility;
  *   keeps the ones the file's own path gives in `untranslated`.
  *
  * @phpstan-type RecordArray array{
- *     id: string,
+ *     path: string,
  *     type: string,
  *     slug: string,
  *     key: string,
@@ -86,7 +89,8 @@ use Blush\Content\Visibility;
  *     parent: ?string,
  *     language: string,
  *     original: ?string,
- *     untranslated: ?array{key: string, parent: ?string}
+ *     untranslated: ?array{key: string, parent: ?string},
+ *     id: ?string
  * }
  */
 final readonly class IndexRecord
@@ -100,9 +104,10 @@ final readonly class IndexRecord
 	 * @param string                               $language The language's code.
 	 * @param ?string                              $original The path without a language suffix.
 	 * @param ?array{key: string, parent: ?string} $untranslated A translation's key and parent from its path alone, when the index changed them.
+	 * @param ?string                              $id           The entry's id (D-477), or `null` without a valid one.
 	 */
 	public function __construct(
-		public string $id,
+		public string $path,
 		public string $type,
 		public string $slug,
 		public string $key,
@@ -126,7 +131,8 @@ final readonly class IndexRecord
 		public ?string $parent = null,
 		public string $language = '',
 		public ?string $original = null,
-		public ?array $untranslated = null
+		public ?array $untranslated = null,
+		public ?string $id = null
 	) {}
 
 	/**
@@ -134,7 +140,7 @@ final readonly class IndexRecord
 	 */
 	public function source(): SourceFile
 	{
-		return new SourceFile($this->id, $this->modified, $this->size);
+		return new SourceFile($this->path, $this->modified, $this->size);
 	}
 
 	/**
@@ -166,7 +172,7 @@ final readonly class IndexRecord
 	public static function fromArray(array $data): self
 	{
 		return new self(
-			id: $data['id'],
+			path: $data['path'],
 			type: $data['type'],
 			slug: $data['slug'],
 			key: $data['key'],
@@ -190,7 +196,8 @@ final readonly class IndexRecord
 			parent: $data['parent'],
 			language: $data['language'],
 			original: $data['original'],
-			untranslated: $data['untranslated']
+			untranslated: $data['untranslated'],
+			id: $data['id']
 		);
 	}
 
@@ -215,7 +222,7 @@ final readonly class IndexRecord
 	 */
 	public static function groupOf(array $record): string
 	{
-		$path      = $record['original'] ?? $record['id'];
+		$path      = $record['original'] ?? $record['path'];
 		$directory = dirname($path);
 		$name      = pathinfo($path, PATHINFO_FILENAME);
 
@@ -243,7 +250,7 @@ final readonly class IndexRecord
 	public function toArray(): array
 	{
 		return [
-			'id'           => $this->id,
+			'path'         => $this->path,
 			'type'         => $this->type,
 			'slug'         => $this->slug,
 			'key'          => $this->key,
@@ -267,7 +274,8 @@ final readonly class IndexRecord
 			'parent'       => $this->parent,
 			'language'     => $this->language,
 			'original'     => $this->original,
-			'untranslated' => $this->untranslated
+			'untranslated' => $this->untranslated,
+			'id'           => $this->id
 		];
 	}
 }

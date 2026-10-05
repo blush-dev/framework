@@ -72,7 +72,7 @@ function takesHint(item: PeopleForm): string {
 
 const taken = computed(() => new Set(people.value.map((item) => item.field)));
 
-function listPageOf(field: string): { id: string; title: string } | null {
+function listPageOf(field: string): { path: string; title: string } | null {
 	return props.saved.find((item) => item.field === field)?.listPage ?? null;
 }
 
@@ -177,7 +177,7 @@ function wantPage(field: string, on: boolean): void {
 				<template v-else>Credit still shows on the entry. Nothing routes, and any page already written is kept and marked unreachable.</template>
 			</p>
 			<template v-if="item.archives && !item.added">
-				<p v-if="listPageOf(item.field)" class="field__help">Its list page: <RouterLink class="lnk" :to="{ name: 'entry-file', params: { id: listPageOf(item.field)!.id.split('/') } }">{{ listPageOf(item.field)!.title }}</RouterLink>.</p>
+				<p v-if="listPageOf(item.field)" class="field__help">Its list page: <RouterLink class="lnk" :to="{ name: 'entry-file', params: { path: listPageOf(item.field)!.path.split('/') } }">{{ listPageOf(item.field)!.title }}</RouterLink>.</p>
 				<label v-else class="checkbox"><input type="checkbox" :checked="listPages.includes(item.field)" @change="wantPage(item.field, ($event.target as HTMLInputElement).checked)"> A page introducing the list</label>
 			</template>
 		</div>

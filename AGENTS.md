@@ -115,7 +115,10 @@ sibling order in trees and taxonomies (D-412), first on the All tab,
 with collections newest published first (D-413); and every local
 extension in `extensions/{vendor}/{name}` at the site's root, Composer's
 model, with manifests in Composer's shape (`require`, `autoload` with
-`files`) falling back to `composer.json` (D-418).
+`files`) falling back to `composer.json` (D-418); and, ahead of a read-only
+content API (D-479), a UUIDv7 `id` in every content file, with
+`content:ids` and Content health to fix files without one (D-477,
+D-478, D-480).
 The Fields
 API (D-337 to D-348: field types and controls, field sets on content
 types, media, and the Settings screens, slots, and Structure → Fields)
@@ -131,8 +134,8 @@ type sizes, or radii elsewhere (D-231).
 The dev site is `../blush` (`ddev start`, https://blush.ddev.site), on
 `jtcom-trial` for now (the skeleton itself is its `2.x` branch). Code on
 `master` (1.x) is not a reference implementation, with one exception:
-every content convention 1.x supports must keep working (D-078), because
-jtcom's content won't change.
+every content convention 1.x supports must keep working (D-078), unless
+a tool in the admin and the CLI migrates existing content (D-478).
 
 "Blush" is a working name. Keep product-name references centralized so a rename
 stays mechanical.

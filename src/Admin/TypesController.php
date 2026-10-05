@@ -69,10 +69,10 @@ use Blush\Http\Status;
  * (each route key it answers at, with its `path` and `default` relative
  * to the prefix, the placeholders it `requires` and `allows`, and
  * whether it's at the site's `root`, as the home type's feeds are,
- * D-350), its `index` page (`{"id", "title"}`, or `null`), the
+ * D-350), its `index` page (`{"path", "title"}`, or `null`), the
  * word its author archives sit under (`authorsWord`: the word, `false`
  * for none, or `null` for a type without URLs, D-329), and its
- * `authorsPage` (`{"id", "title"}`, or `null`).
+ * `authorsPage` (`{"path", "title"}`, or `null`).
  * The list adds whether types can be created here (`create`: data types
  * are read) and whether they may set URLs (`urls`).
  *
@@ -237,7 +237,7 @@ final readonly class TypesController
 	 * A collection's or taxonomy's index page (D-255), found on disk so a
 	 * type just created has one: the `index` file in its folder.
 	 *
-	 * @return ?array{id: string, title: string}
+	 * @return ?array{path: string, title: string}
 	 */
 	private function index(ContentType $type): ?array
 	{
@@ -245,10 +245,10 @@ final readonly class TypesController
 	}
 
 	/**
-	 * A file in a type's folder, found on disk: `{"id", "title"}`, titled
+	 * A file in a type's folder, found on disk: `{"path", "title"}`, titled
 	 * with its own `title` or the fallback, or `null`.
 	 *
-	 * @return ?array{id: string, title: string}
+	 * @return ?array{path: string, title: string}
 	 */
 	private function page(ContentType $type, string $name, string $fallback): ?array
 	{
@@ -257,10 +257,10 @@ final readonly class TypesController
 		}
 
 		foreach (DocumentFormat::cases() as $format) {
-			$id = "{$type->folder}/{$name}.{$format->value}";
+			$path = "{$type->folder}/{$name}.{$format->value}";
 
-			if (is_file("{$this->paths->content}/{$id}")) {
-				return ['id' => $id, 'title' => self::title("{$this->paths->content}/{$id}") ?? $fallback];
+			if (is_file("{$this->paths->content}/{$path}")) {
+				return ['path' => $path, 'title' => self::title("{$this->paths->content}/{$path}") ?? $fallback];
 			}
 		}
 

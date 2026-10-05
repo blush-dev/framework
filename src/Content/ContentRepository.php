@@ -19,9 +19,11 @@ use Blush\Content\Query\QueryRunner;
 
 /**
  * The one place the rest of the framework gets content from (D-003):
- * entries by ID or by key, terms (real or virtual), and queries.
+ * entries by id, source path, or key, terms (real or virtual), and
+ * queries.
  *
- *     $post  = $content->find('_posts/2003-04-15.welcome.md');
+ *     $post  = $content->find('0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e74');
+ *     $post  = $content->findPath('_posts/2003-04-15.welcome.md');
  *     $about = $content->named('page', 'about');
  *     $posts = $content->query()->type('post')->orderBy('published', Order::Desc)->get();
  */
@@ -33,9 +35,15 @@ interface ContentRepository extends QueryRunner
 	public function query(): Query;
 
 	/**
-	 * Returns an entry by ID (its source path), whatever its status.
+	 * Returns an entry by its id (D-477), whatever its status. When files
+	 * share an id, the first by path is found.
 	 */
 	public function find(string $id): ?Entry;
+
+	/**
+	 * Returns an entry by its source path, whatever its status.
+	 */
+	public function findPath(string $path): ?Entry;
 
 	/**
 	 * Returns an entry by type and key (see `IndexRecord`), in a language

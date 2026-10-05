@@ -36,14 +36,14 @@ namespace Blush\Content\Index;
 final class TranslatedKeys
 {
 	/**
-	 * Records by ID, with their path's keys and parents.
+	 * Records by path, with their path's keys and parents.
 	 *
 	 * @var array<string, RecordArray>
 	 */
 	private array $records = [];
 
 	/**
-	 * Default-language records' IDs by type and key: the entries
+	 * Default-language records' paths by type and key: the entries
 	 * translations name by their original keys.
 	 *
 	 * @var array<string, array<string, string>>
@@ -51,7 +51,7 @@ final class TranslatedKeys
 	private array $originals = [];
 
 	/**
-	 * Record IDs by translation group (`IndexRecord::groupOf()`) and
+	 * Record paths by translation group (`IndexRecord::groupOf()`) and
 	 * language.
 	 *
 	 * @var array<string, array<string, non-empty-list<string>>>
@@ -59,21 +59,21 @@ final class TranslatedKeys
 	private array $linked = [];
 
 	/**
-	 * Keys and parents already put in their language, by ID.
+	 * Keys and parents already put in their language, by path.
 	 *
 	 * @var array<string, array{string, ?string}>
 	 */
 	private array $resolved = [];
 
 	/**
-	 * IDs being resolved, which guards against a loop.
+	 * Paths being resolved, which guards against a loop.
 	 *
 	 * @var array<string, true>
 	 */
 	private array $busy = [];
 
 	/**
-	 * @param array<string, RecordArray> $records Keyed by ID.
+	 * @param array<string, RecordArray> $records Keyed by path.
 	 */
 	public function __construct(array $records)
 	{
@@ -164,7 +164,7 @@ final class TranslatedKeys
 	}
 
 	/**
-	 * Returns the ID of the translation, in a language, of the default
+	 * Returns the path of the translation, in a language, of the default
 	 * language's entry with a key, or `null`.
 	 */
 	private function translation(string $type, string $key, string $language): ?string

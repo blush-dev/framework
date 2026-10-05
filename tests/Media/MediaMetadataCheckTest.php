@@ -53,7 +53,7 @@ final class MediaMetadataCheckTest extends TestCase
 
 		$this->writeTemporaryFile('user/media/fake.png', 'not a PNG');
 		$this->writeTemporaryFile('user/content/trip/beach.png', $png);
-		$this->writeTemporaryFile('user/content/trip/index.md', "---\ntitle: Trip\n---\n");
+		$this->writeTemporaryFile('user/content/trip/index.md', "---\ntitle: Trip\nid: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e75\n---\n");
 		$this->writeTemporaryFile('user/media/trip/shell.png', $png);
 
 		$this->writeTemporaryFile('user/data/media/2026/lake.png.yml', "alt: A lake at dawn\ncaption: Mist on the water\n");
@@ -135,7 +135,7 @@ final class MediaMetadataCheckTest extends TestCase
 	public function testTheLinterReportsMetadataBesideContent(): void
 	{
 		$app = $this->site();
-		$this->writeTemporaryFile('user/content/about.md', "---\ntitle: About\n---\n");
+		$this->writeTemporaryFile('user/content/about.md', "---\ntitle: About\nid: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e74\n---\n");
 
 		$report = $app->container()->make(Linter::class)->lint();
 

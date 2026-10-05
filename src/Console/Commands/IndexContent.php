@@ -48,9 +48,9 @@ final readonly class IndexContent
 			$output->error(sprintf('%s: %s', $path, $message));
 		}
 
-		foreach (['Added' => $report->added, 'Changed' => $report->changed, 'Removed' => $report->removed] as $label => $ids) {
-			foreach ($ids as $id) {
-				$output->line(sprintf('%s %s', $label, $id), Verbosity::Verbose);
+		foreach (['Added' => $report->added, 'Changed' => $report->changed, 'Removed' => $report->removed] as $label => $paths) {
+			foreach ($paths as $path) {
+				$output->line(sprintf('%s %s', $label, $path), Verbosity::Verbose);
 			}
 		}
 

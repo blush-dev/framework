@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Blush\Content\Index;
 
 use DateTimeImmutable;
+use Blush\Content\EntryFields;
 use Blush\Content\Parser\DocumentParsers;
 use Blush\Content\Parser\InvalidDocument;
 use Blush\Content\Source\SourceFile;
@@ -24,7 +25,9 @@ use Blush\Content\Visibility;
 use Blush\Core\AppConfig;
 use Blush\Core\Language;
 use Blush\Field\FieldContext;
+use Blush\Field\Violation;
 use Blush\Support\Slug;
+use Blush\Support\Uuid;
 
 /**
  * Turns one content file into an index record, applying 1.x's file
@@ -49,6 +52,9 @@ use Blush\Support\Slug;
  *   `about/index.md` do, in French. The default language's code is
  *   read too, so `about.en.md` is the English `about` (which
  *   `content:lint` flags beside `about.md`).
+ * - `id` (D-477) is the entry's id, a UUID, and no field's: it's read
+ *   before the schema, so it's never an undeclared key, and a missing or
+ *   malformed one is a violation.
  */
 final readonly class RecordBuilder
 {
@@ -73,8 +79,13 @@ final readonly class RecordBuilder
 	{
 		$type     = $this->types->forFile($file->path);
 		$document = $this->parsers->parse($file->path, $contents);
-		$result   = $this->types->schema($type->name)->resolve($document->frontMatter, $this->context);
-		$values   = $result->values;
+		$data     = $document->frontMatter;
+		$id       = $data[EntryFields::ID] ?? null;
+
+		unset($data[EntryFields::ID]);
+
+		$result = $this->types->schema($type->name)->resolve($data, $this->context);
+		$values = $result->values;
 
 		$directory = self::directoryOf($file->path);
 		[$filename, $language] = $this->language(pathinfo($file->path, PATHINFO_FILENAME));
@@ -98,7 +109,7 @@ final readonly class RecordBuilder
 		[$terms, $labels] = $this->terms($type, $document->frontMatter, $values);
 
 		$record = new IndexRecord(
-			id: $file->path,
+			path: $file->path,
 			type: $type->name,
 			slug: $slug,
 			key: $landing ? '' : implode('/', [...$segments, $slug]),
@@ -125,10 +136,25 @@ final readonly class RecordBuilder
 			hash: self::hash($contents),
 			parent: $landing ? null : $type->parentKey(implode('/', [...$segments, $slug]), $values),
 			language: $language->code,
-			original: $suffixed ? ltrim("{$directory}/{$filename}." . pathinfo($file->path, PATHINFO_EXTENSION), '/') : null
+			original: $suffixed ? ltrim("{$directory}/{$filename}." . pathinfo($file->path, PATHINFO_EXTENSION), '/') : null,
+			id: is_string($id) && Uuid::isValid($id) ? strtolower($id) : null
 		);
 
-		return new ParsedEntry($record, $result->violations, $document->frontMatter);
+		return new ParsedEntry($record, [...self::checkId($id), ...$result->violations], $document->frontMatter);
+	}
+
+	/**
+	 * Returns the violation for an id that's missing or isn't a UUID.
+	 *
+	 * @return list<Violation>
+	 */
+	private static function checkId(mixed $id): array
+	{
+		return match (true) {
+			Uuid::isValid($id)          => [],
+			$id === null || $id === '' => [new Violation(EntryFields::ID, 'is missing; every entry needs one. Add it with content:ids --write, or on Content health in the admin.')],
+			default                    => [new Violation(EntryFields::ID, sprintf('"%s" isn\'t a UUID; give the entry a new one with content:ids --write, or on Content health in the admin.', is_scalar($id) ? (string) $id : get_debug_type($id)))]
+		};
 	}
 
 	/**

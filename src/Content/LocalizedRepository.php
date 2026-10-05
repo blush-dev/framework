@@ -82,6 +82,15 @@ final readonly class LocalizedRepository implements ContentRepository
 	 * @inheritDoc
 	 */
 	#[Override]
+	public function findPath(string $path): ?Entry
+	{
+		return $this->content->findPath($path);
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	#[Override]
 	public function named(string $type, string $key, ?string $language = null): ?Entry
 	{
 		return $this->content->named($type, $key, $language ?? $this->language);

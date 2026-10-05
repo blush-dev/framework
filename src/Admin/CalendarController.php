@@ -146,6 +146,7 @@ final readonly class CalendarController
 	private function describe(Entry $entry, DateTimeImmutable $published): array
 	{
 		return [
+			'path'      => $entry->path,
 			'id'        => $entry->id,
 			'handle'    => $this->handles->of($entry),
 			'title'     => $entry->title,

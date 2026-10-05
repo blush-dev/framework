@@ -219,9 +219,17 @@ final class ContentRepositoryTest extends TestCase
 
 	public function testFindsEntriesByIdAndKey(): void
 	{
-		$this->assertSame('Biography', $this->content->find('about/biography.md')?->title);
-		$this->assertNull($this->content->find('missing.md'));
-		$this->assertSame('about/index.md', $this->content->named('page', 'about')?->id);
+		$this->assertSame('Biography', $this->content->findPath('about/biography.md')?->title);
+		$this->assertNull($this->content->findPath('missing.md'));
+
+		$id = self::idFor('about/biography.md');
+
+		$this->assertSame($id, $this->content->findPath('about/biography.md')?->id);
+		$this->assertSame('about/biography.md', $this->content->find($id)?->path, 'By its id (D-477).');
+		$this->assertSame('about/biography.md', $this->content->find(strtoupper($id))?->path, 'In either case.');
+		$this->assertNull($this->content->find('0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e74'));
+		$this->assertNull($this->content->find('about/biography.md'), 'A path isn\'t an id.');
+		$this->assertSame('about/index.md', $this->content->named('page', 'about')?->path);
 		$this->assertSame('Home', $this->content->named('page', '')?->title);
 		$this->assertSame('Blog', $this->content->named('post', '')?->title);
 		$this->assertSame(Status::Draft, $this->content->named('post', 'unfinished')?->status);
@@ -233,7 +241,7 @@ final class ContentRepositoryTest extends TestCase
 		$entry = $this->content->named('post', 'spring');
 
 		$this->assertInstanceOf(Entry::class, $entry);
-		$this->assertSame('_posts/2008-04-05.spring.md', $entry->id);
+		$this->assertSame('_posts/2008-04-05.spring.md', $entry->path);
 		$this->assertSame('post', $entry->type->name);
 		$this->assertSame('spring', (string) $entry);
 		$this->assertEquals(new DateTimeImmutable('2008-04-05 09:00:00 America/Chicago'), $entry->published);
@@ -251,7 +259,7 @@ final class ContentRepositoryTest extends TestCase
 		$this->assertFalse($entry->isVirtual());
 		$this->assertSame('_posts/2008-04-05.spring.md', $entry->source?->path);
 		$this->assertFalse($this->content->named('post', '')?->isListed());
-		$this->assertFalse($this->content->find('_private.md')?->isRoutable());
+		$this->assertFalse($this->content->findPath('_private.md')?->isRoutable());
 	}
 
 	public function testBodiesAreReadOnlyWhenUsed(): void
@@ -303,12 +311,12 @@ final class ContentRepositoryTest extends TestCase
 	{
 		$art = $this->content->term('category', 'art');
 
-		$this->assertSame('topics/art.md', $art?->id);
+		$this->assertSame('topics/art.md', $art?->path);
 
 		$reviews = $this->content->term('category', 'book-reviews');
 		$this->assertNotNull($reviews);
 
-		$this->assertSame('virtual:category/book-reviews', $reviews->id);
+		$this->assertSame('virtual:category/book-reviews', $reviews->path);
 		$this->assertSame('Book Reviews', $reviews->title);
 		$this->assertTrue($reviews->isVirtual());
 		$this->assertSame('', $reviews->body());
@@ -376,6 +384,6 @@ final class ContentRepositoryTest extends TestCase
 
 		$content = $this->repository($this->site());
 
-		$this->assertSame('page', $content->find('_posts/2003-04-15.welcome.md')?->type->name);
+		$this->assertSame('page', $content->findPath('_posts/2003-04-15.welcome.md')?->type->name);
 	}
 }

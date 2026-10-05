@@ -14,8 +14,8 @@ declare(strict_types=1);
 namespace Blush\Content\Writer;
 
 /**
- * An entry's file as it is on disk, for an editor: its id (the path under
- * the content folder), its front matter as written (keys as the file has
+ * An entry's file as it is on disk, for an editor: its path under the
+ * content folder, its front matter as written (keys as the file has
  * them, aliases included), its raw body, a revision (a hash of the
  * file) to send back with changes, so a change made meanwhile isn't
  * overwritten, and when the file was last written (a Unix timestamp), if
@@ -27,7 +27,7 @@ final readonly class EditableEntry
 	 * @param array<array-key, mixed> $frontMatter
 	 */
 	public function __construct(
-		public string $id,
+		public string $path,
 		public array $frontMatter,
 		public string $body,
 		public string $revision,

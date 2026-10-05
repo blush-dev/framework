@@ -66,21 +66,14 @@ Move each item to `decisions.md` once it's answered.
   - Its records could be the content API's (below).
 - **APIs, agents, and headless** (discussed 2026-10-03; the author wants
   to explore or build most of these; nothing decided):
-  - **One content API** over two: a versioned content API
-    (`/api/v1/…`: entries, types, terms, media), REST-style JSON
-    answered by who's asking (anonymous: published, public entries
-    only; a session or token: more, and writes, by capability, through
-    `Permissions::restrict()`, as WordPress's REST API does), used by
-    front ends, exports, agents, MCP, and the admin's content screens;
-    plus admin-only endpoints for screens (counts, the calendar, lint,
-    form definitions), unversioned. Separation was discussed for
-    stability (a public API is a contract; the admin's changes with the
-    admin), shape (D-229's answers carry `violations`, `can`,
-    `revision`, `extra`, field definitions), caching (cache only
-    anonymous answers), and ids (source paths in the admin, URL paths
-    for front ends). Moving today's admin content endpoints into the
-    versioned layer is the cost. Settle before tokens and MCP, which
-    build on it.
+  - **The content API** (decided in D-479: two surfaces over one
+    domain layer, read-only first, opt-in with anonymous reads; single
+    entries by id, D-477). Still open: the answer's shape (leaning plain
+    `{ items, total, page, pages }` with `next` and `prev` links over a
+    `{ data, meta, links }` envelope), bodies (`?body=html` by default,
+    `markdown`, `none`), the path setting, and caching (an `ETag`,
+    anonymous answers only). Settle before tokens and MCP, which build
+    on it.
   - **API tokens:** the admin API is session and `X-CSRF-Token` only
     (D-220). Tokens tied to an account act with its roles and
     capabilities, can be revoked, and stop with a suspended account
@@ -339,6 +332,12 @@ Move each item to `decisions.md` once it's answered.
     then, `blush new --dev` passes `--stability=dev`.
 
 ## Later milestones
+- **Uploading a Markdown entry** (raised 2026-10-05, for the future):
+  an upload in the admin for a `.md` entry file written elsewhere, added
+  to a content type. To settle: where it lives (the entries list, New
+  entry), checks before it's written (its type's schema, a slug in use,
+  a missing or duplicate `id` given a new one, D-477), whether it lands
+  as a draft, and several files or a `.zip` at once.
 - **Hierarchy** (D-257):
   - Should a hierarchical term's page also list its child terms'
     entries, as WordPress's category archives do? An option on the

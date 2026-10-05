@@ -75,7 +75,7 @@ final class AdminTypeEditTest extends TestCase
 
 		$this->assertSame(201, $answer->getStatusCode(), (string) $answer->getBody());
 		$type = self::json($answer);
-		$this->assertSame([true, 'cooks', ['id' => '_recipe/_authors.md', 'title' => 'Authors']], [$type['authors'] ?? null, $type['authorsWord'] ?? null, $type['authorsPage'] ?? null]);
+		$this->assertSame([true, 'cooks', ['path' => '_recipe/_authors.md', 'title' => 'Authors']], [$type['authors'] ?? null, $type['authorsWord'] ?? null, $type['authorsPage'] ?? null]);
 		$this->assertSame("people:\n  authors: { archive: cooks }\n", $this->file('user/data/types/recipe.yaml'), 'Only the word differs from a collection\'s default (D-351).');
 		$this->assertSame("---\ntitle: \"Authors\"\n---\n", $this->file('user/content/_recipe/_authors.md'));
 
@@ -111,7 +111,7 @@ final class AdminTypeEditTest extends TestCase
 		$this->assertSame(['cooks', 'photographers'], array_column(is_array($type['people'] ?? null) ? $type['people'] : [], 'field'));
 		$people = is_array($type['people'] ?? null) ? $type['people'] : [];
 
-		$this->assertSame(['field' => 'cooks', 'plural' => 'Cooks', 'singular' => 'Cook', 'aliases' => [], 'archive' => 'cooks', 'multiple' => true, 'required' => true, 'listPage' => ['id' => '_recipe/_cooks.md', 'title' => 'Cooks']], $people[0] ?? null);
+		$this->assertSame(['field' => 'cooks', 'plural' => 'Cooks', 'singular' => 'Cook', 'aliases' => [], 'archive' => 'cooks', 'multiple' => true, 'required' => true, 'listPage' => ['path' => '_recipe/_cooks.md', 'title' => 'Cooks']], $people[0] ?? null);
 		$this->assertFalse(is_array($people[1] ?? null) ? $people[1]['archive'] ?? null : null);
 		$this->assertSame("people:\n  cooks: { required: true }\n  photographers: { aliases: [photographer], archive: false, multiple: false }\n", $this->file('user/data/types/recipe.yaml'), 'Only what differs from each field\'s defaults (D-353).');
 		$this->assertSame("---\ntitle: \"Cooks\"\n---\n", $this->file('user/content/_recipe/_cooks.md'));
@@ -152,7 +152,7 @@ final class AdminTypeEditTest extends TestCase
 		$type = self::json($answer);
 		$this->assertTrue($type['editable'] ?? null);
 		$this->assertSame('user/data/types/recipe.yaml', $type['file'] ?? null);
-		$this->assertSame(['id' => 'recipes/index.md', 'title' => 'Recipes'], $type['index'] ?? null);
+		$this->assertSame(['path' => 'recipes/index.md', 'title' => 'Recipes'], $type['index'] ?? null);
 		$this->assertSame(
 			"folder: recipes\nlabels:\n  newItem: 'Add a recipe'\ndescription: \"Dishes we cook at home.\"\nicon: book-open\nfields:\n"
 			. "  - name: servings\n    type: number\n    required: true\n    integer: true\n"
@@ -293,7 +293,7 @@ final class AdminTypeEditTest extends TestCase
 
 		$this->assertSame(201, $answer->getStatusCode(), (string) $answer->getBody());
 		$type = self::json($answer);
-		$this->assertSame(['tree', true, ['id' => '_docs/index.md', 'title' => 'Docs']], [$type['kind'] ?? null, $type['editable'] ?? null, $type['index'] ?? null]);
+		$this->assertSame(['tree', true, ['path' => '_docs/index.md', 'title' => 'Docs']], [$type['kind'] ?? null, $type['editable'] ?? null, $type['index'] ?? null]);
 		$this->assertSame("kind: tree\nfolder: _docs\nicon: book\n", $this->file('user/data/types/doc.yaml'));
 
 		$feed = $this->write('PATCH', '/types/doc', ['set' => ['feed' => true]]);

@@ -288,7 +288,7 @@ watch(() => [asked.value, status.value, type.value], load, { immediate: true });
 						<span class="calendar__number" aria-hidden="true">{{ day.number }}</span>
 					</p>
 					<ul v-if="day.entries.length" class="calendar__entries">
-						<li v-for="entry in day.entries" :key="entry.id">
+						<li v-for="entry in day.entries" :key="entry.path">
 							<RouterLink
 								class="calendar__entry"
 								:class="`is-${entry.status}`"

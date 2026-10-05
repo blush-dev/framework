@@ -20,6 +20,7 @@ use Blush\Admin\PeopleController;
 use Blush\Admin\CountsController;
 use Blush\Admin\ProfilesController;
 use Blush\Auth\Accounts;
+use Blush\Support\Uuid;
 
 #[CoversClass(PeopleController::class)]
 #[CoversClass(ProfilesController::class)]
@@ -82,7 +83,7 @@ final class AdminPeopleTest extends TestCase
 	private function profiles(): void
 	{
 		$this->writeTemporaryFile('user/data/types/post.yaml', "folder: _posts\n");
-		$this->writeTemporaryFile('user/content/profiles/jane.md', "---\ntitle: Jane Author\nsubtitle: Food editor\n---\nWrites.\n");
+		$this->writeTemporaryFile('user/content/profiles/jane.md', "---\ntitle: Jane Author\nsubtitle: Food editor\nid: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e71\n---\nWrites.\n");
 		$this->writeTemporaryFile('user/content/profiles/gwen.md', "---\ntitle: Gwen Guest\nstatus: draft\n---\n");
 		$this->writeTemporaryFile('user/content/_posts/one.md', "---\ntitle: One\nauthors: [jane, gwen, ghost]\n---\n");
 	}
@@ -141,7 +142,7 @@ final class AdminPeopleTest extends TestCase
 		$this->assertIsArray($accounts);
 		[$jane, $sam] = array_map(static fn (mixed $account): array => is_array($account) ? $account : [], $accounts);
 
-		$this->assertSame(['id' => 'profiles/jane.md', 'handle' => 'profile/jane', 'slug' => 'jane', 'title' => 'Jane Author', 'status' => 'published', 'url' => '/profiles/jane', 'uses' => 1], $jane['profile'] ?? null);
+		$this->assertSame(['path' => 'profiles/jane.md', 'id' => '0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e71', 'handle' => 'profile/jane', 'slug' => 'jane', 'title' => 'Jane Author', 'status' => 'published', 'url' => '/profiles/jane', 'uses' => 1], $jane['profile'] ?? null);
 		$this->assertSame('Jane Author', $jane['displayName'] ?? null, 'One name: the profile\'s title.');
 		$this->assertArrayHasKey('profile', $sam);
 		$this->assertNull($sam['profile'], 'Not linked, so no profile (D-353).');
@@ -176,7 +177,7 @@ final class AdminPeopleTest extends TestCase
 
 		$answer = self::json($this->send('GET', '/profiles/jane'));
 
-		$this->assertSame(['slug' => 'jane', 'title' => 'Jane Author', 'subtitle' => 'Food editor', 'avatar' => null, 'status' => 'published', 'virtual' => false, 'id' => 'profiles/jane.md', 'handle' => 'profile/jane', 'url' => '/profiles/jane', 'uses' => 1], $answer['profile'] ?? null);
+		$this->assertSame(['slug' => 'jane', 'title' => 'Jane Author', 'subtitle' => 'Food editor', 'avatar' => null, 'status' => 'published', 'virtual' => false, 'path' => 'profiles/jane.md', 'id' => '0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e71', 'handle' => 'profile/jane', 'url' => '/profiles/jane', 'uses' => 1], $answer['profile'] ?? null);
 		$this->assertSame([['type' => 'post', 'typeLabel' => 'Posts', 'field' => 'authors', 'label' => 'Authors', 'entries' => 1, 'archive' => '/posts/authors/jane', 'page' => null]], $answer['appears'] ?? null);
 		$this->assertTrue($answer['linked'] ?? null);
 		$this->assertSame('jane', is_array($answer['account'] ?? null) ? $answer['account']['username'] : null);
@@ -184,7 +185,7 @@ final class AdminPeopleTest extends TestCase
 		$ghost = self::json($this->send('GET', '/profiles/ghost'));
 
 		$this->assertIsArray($ghost['profile'] ?? null);
-		$this->assertSame([true, null, null], [$ghost['profile']['virtual'], $ghost['profile']['status'], $ghost['profile']['id']], 'Credited without a file.');
+		$this->assertSame([true, null, null], [$ghost['profile']['virtual'], $ghost['profile']['status'], $ghost['profile']['path']], 'Credited without a file.');
 		$this->assertFalse($ghost['linked'] ?? null);
 		$this->assertSame(404, $this->send('GET', '/profiles/nobody')->getStatusCode());
 	}
@@ -211,14 +212,18 @@ final class AdminPeopleTest extends TestCase
 		$written = $this->write('POST', '/profiles/jane/pages', ['type' => 'post', 'field' => 'authors']);
 
 		$this->assertSame(201, $written->getStatusCode(), (string) $written->getBody());
-		$this->assertSame('_posts/_authors/jane.md', self::json($written)['id'] ?? null);
+		$this->assertSame('_posts/_authors/jane.md', self::json($written)['path'] ?? null);
 		$this->assertStringContainsString("title: \"Jane Author\"\nstatus: draft\n", (string) file_get_contents($this->temporaryDirectory() . '/user/content/_posts/_authors/jane.md'));
 		$this->assertSame(409, $this->write('POST', '/profiles/jane/pages', ['type' => 'post', 'field' => 'authors'])->getStatusCode(), 'Once.');
 		$this->assertSame(422, $this->write('POST', '/profiles/jane/pages', ['type' => 'post', 'field' => 'cooks'])->getStatusCode());
 
 		$appears = $this->firstAppearance();
 
-		$this->assertSame(['id' => '_posts/_authors/jane.md', 'handle' => 'post/_authors/jane', 'title' => 'Jane Author', 'status' => 'draft'], $appears['page'] ?? null);
+		$page    = $appears['page'] ?? null;
+
+		$this->assertIsArray($page);
+		$this->assertSame(['path' => '_posts/_authors/jane.md', 'handle' => 'post/_authors/jane', 'title' => 'Jane Author', 'status' => 'draft'], array_diff_key($page, ['id' => true]));
+		$this->assertTrue(Uuid::isValid($page['id'] ?? null), 'The page written has an id (D-477).');
 		$this->assertNotContains('Jane Author', array_column(is_array($list = self::json($this->send('GET', '/entries?type=post'))['entries'] ?? null) ? $list : [], 'title'), 'It isn\'t one of the posts.');
 
 		$editor = self::json($this->send('GET', '/entries/_posts/_authors/jane.md'));

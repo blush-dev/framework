@@ -134,7 +134,7 @@ interface Row {
 
 const rows = computed<Row[]>(() => [
 	...commands.value.map((command) => ({ key: `command-${command.id}`, run: command.run })),
-	...entries.value.map((entry) => ({ key: `entry-${entry.id}`, run: () => void router.push(listRoute(entry)) }))
+	...entries.value.map((entry) => ({ key: `entry-${entry.path}`, run: () => void router.push(listRoute(entry)) }))
 ]);
 
 // Entries: the latest changed, or those matching, a moment after typing.
@@ -264,8 +264,8 @@ const commandCount = computed(() => commands.value.length);
 				<p class="palette__section" aria-hidden="true">{{ query.trim() ? 'Matching entries' : 'Recently changed' }}</p>
 				<div
 					v-for="(entry, index) in entries"
-					:id="`palette-entry-${entry.id}`"
-					:key="entry.id"
+					:id="`palette-entry-${entry.path}`"
+					:key="entry.path"
 					class="palette__item"
 					:class="{ 'is-active': commandCount + index === active }"
 					role="option"

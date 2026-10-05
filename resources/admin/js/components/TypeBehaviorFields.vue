@@ -31,11 +31,11 @@ const props = defineProps<{
 	types: ContentTypeSummary[];
 	// The index page it has, or `null`; `indexWanted` is the wizard's or
 	// the editor's choice to add one.
-	indexPage: { id: string; title: string } | null;
+	indexPage: { path: string; title: string } | null;
 	// The site's authors type's plural name, or `null` without one; the
 	// type's authors page, or `null`.
 	authorsLabel: string | null;
-	authorsPage: { id: string; title: string } | null;
+	authorsPage: { path: string; title: string } | null;
 }>();
 
 const form        = defineModel<TypeForm>({ required: true });
@@ -89,7 +89,7 @@ function grouped(name: string, on: boolean): void {
 			<label v-if="kind === 'taxonomy'" class="checkbox"><input v-model="form.hierarchical" type="checkbox"> Terms can nest under a parent</label>
 			<label v-if="kind === 'collection'" class="checkbox"><input v-model="featured" type="checkbox"> Has a featured image</label>
 			<template v-if="indexPage">
-				<p class="field__help">Its index page: <RouterLink :to="{ name: 'entry-file', params: { id: indexPage.id.split('/') } }">{{ indexPage.title }}</RouterLink>, the landing page at its prefix. It's an entry, edited like one.</p>
+				<p class="field__help">Its index page: <RouterLink :to="{ name: 'entry-file', params: { path: indexPage.path.split('/') } }">{{ indexPage.title }}</RouterLink>, the landing page at its prefix. It's an entry, edited like one.</p>
 			</template>
 			<label v-else class="checkbox"><input v-model="indexWanted" type="checkbox"> Has an index page</label>
 			<p v-if="!indexPage && indexWanted" class="field__help">An entry is created for the landing page at <code>/{{ (form.prefix || folderPrefix).replace(/^\/+|\/+$/g, '') }}</code>, titled with the plural name, and pinned at the top of its list.</p>
@@ -107,7 +107,7 @@ function grouped(name: string, on: boolean): void {
 				</div>
 				<p v-else class="field__help">{{ urls ? 'Bylines name the authors without linking anywhere.' : 'These types can\'t set their URLs, so their author archives are as the site has them.' }}</p>
 				<template v-if="form.authorArchives">
-					<p v-if="authorsPage" class="field__help">Its {{ authorsLabel.toLowerCase() }} page: <RouterLink :to="{ name: 'entry-file', params: { id: authorsPage.id.split('/') } }">{{ authorsPage.title }}</RouterLink>, which introduces the list. It's an entry, edited like one.</p>
+					<p v-if="authorsPage" class="field__help">Its {{ authorsLabel.toLowerCase() }} page: <RouterLink :to="{ name: 'entry-file', params: { path: authorsPage.path.split('/') } }">{{ authorsPage.title }}</RouterLink>, which introduces the list. It's an entry, edited like one.</p>
 					<template v-else>
 						<label class="checkbox"><input v-model="pageWanted" type="checkbox"> Has a page introducing the list</label>
 						<p v-if="pageWanted" class="field__help">An entry is created at <code>_authors</code> in the folder, titled {{ authorsLabel }}, and pinned in its list. It has no address of its own.</p>

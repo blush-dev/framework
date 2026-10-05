@@ -52,9 +52,9 @@ final readonly class ArraySelector
 		}
 
 		$matches = $this->sort($matches, $query->orderBy, $query->order, $now);
-		$ids     = array_column(array_slice($matches, $query->offset, $query->limit), 'id');
+		$paths   = array_column(array_slice($matches, $query->offset, $query->limit), 'path');
 
-		return new Selection($ids, count($matches));
+		return new Selection($paths, count($matches));
 	}
 
 	/**

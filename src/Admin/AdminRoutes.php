@@ -62,14 +62,15 @@ use Blush\Session\StartSession;
  *   - `GET  references/{type}`: what a reference field to a type can
  *     point at, for the editor's picker.
  *   - `GET  entries`: the entries the account may edit, a page at a time.
- *   - `POST entries`, and `GET`, `PATCH`, and `DELETE entries/{id}`:
+ *   - `POST entries`, and `GET`, `PATCH`, and `DELETE entries/{path}`:
  *     the editing API (`EntryController`), `POST entries/bulk` (D-301),
- *     `POST entries/{id}/duplicate`, `GET entries/new` (a new entry, not
+ *     `POST entries/{path}/duplicate`, `GET entries/new` (a new entry, not
  *     yet written, D-336),
  *     and `GET content/{type}/{key}`, an entry by its handle (D-253).
  *   - `GET  trash` and `GET trash/{id}`, and `POST trash/restore`,
  *     `trash/delete`, and `trash/empty`: the trash (`TrashController`).
- *   - `GET  health`: the content's lint problems.
+ *   - `GET  health`: the content's lint problems, and `POST health/ids`
+ *     and `POST health/ids/keep` to fix ids (D-477, D-478).
  *   - `GET  calendar`: a month of dated entries (`CalendarController`,
  *     D-368).
  *   - `GET  roles` and `GET accounts`: the site's roles and accounts
@@ -162,17 +163,19 @@ final readonly class AdminRoutes implements RouteSource
 			Route::post('/entries', [EntryController::class, 'create'])->named('entry.create')->middleware(Authenticate::class),
 			Route::post('/entries/bulk', [EntryController::class, 'bulk'])->named('entry.bulk')->middleware(Authenticate::class),
 			Route::get('/entries/new', [EntryController::class, 'blank'])->named('entry.new')->middleware(Authenticate::class),
-			Route::post('/entries/{id:.+}/duplicate', [EntryController::class, 'duplicate'])->named('entry.duplicate')->middleware(Authenticate::class),
-			Route::get('/entries/{id:.+}', [EntryController::class, 'show'])->named('entry')->middleware(Authenticate::class),
+			Route::post('/entries/{path:.+}/duplicate', [EntryController::class, 'duplicate'])->named('entry.duplicate')->middleware(Authenticate::class),
+			Route::get('/entries/{path:.+}', [EntryController::class, 'show'])->named('entry')->middleware(Authenticate::class),
 			Route::get('/content/{type:[a-z0-9_-]+}/{key:.+}', [EntryController::class, 'named'])->named('entry.named')->middleware(Authenticate::class),
-			Route::patch('/entries/{id:.+}', [EntryController::class, 'update'])->named('entry.update')->middleware(Authenticate::class),
-			Route::delete('/entries/{id:.+}', [EntryController::class, 'delete'])->named('entry.delete')->middleware(Authenticate::class),
+			Route::patch('/entries/{path:.+}', [EntryController::class, 'update'])->named('entry.update')->middleware(Authenticate::class),
+			Route::delete('/entries/{path:.+}', [EntryController::class, 'delete'])->named('entry.delete')->middleware(Authenticate::class),
 			Route::get('/trash', [TrashController::class, 'index'])->named('trash')->middleware(Authenticate::class),
 			Route::get('/trash/{id:.+}', [TrashController::class, 'show'])->named('trash.entry')->middleware(Authenticate::class),
 			Route::post('/trash/restore', [TrashController::class, 'restore'])->named('trash.restore')->middleware(Authenticate::class),
 			Route::post('/trash/delete', [TrashController::class, 'delete'])->named('trash.delete')->middleware(Authenticate::class),
 			Route::post('/trash/empty', [TrashController::class, 'empty'])->named('trash.empty')->middleware(Authenticate::class),
 			Route::get('/health', HealthController::class)->named('health')->middleware(Authenticate::class),
+			Route::post('/health/ids', [HealthController::class, 'assign'])->named('health.ids')->middleware(Authenticate::class),
+			Route::post('/health/ids/keep', [HealthController::class, 'keep'])->named('health.ids.keep')->middleware(Authenticate::class),
 			Route::get('/calendar', CalendarController::class)->named('calendar')->middleware(Authenticate::class),
 			Route::get('/roles', [PeopleController::class, 'roles'])->named('roles')->middleware(Authenticate::class),
 			Route::post('/roles', [RoleEditController::class, 'create'])->named('role.create')->middleware(Authenticate::class),

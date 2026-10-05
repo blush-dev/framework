@@ -118,7 +118,7 @@ export function typeMask(type: Pick<ContentTypeSummary, 'icon'>): string | null 
  * Where an entry in a list opens: a profile's own screen (D-353), which
  * says where it appears and links to its editor, or else the editor.
  */
-export function listRoute(entry: { id: string; type: string; handle: string | null }): { name: string; params: Record<string, string | string[]> } {
+export function listRoute(entry: { path: string; type: string; handle: string | null }): { name: string; params: Record<string, string | string[]> } {
 	if (entry.type === profileType.value && entry.handle !== null) {
 		return { name: 'profile-detail', params: { slug: entry.handle.slice(entry.handle.indexOf('/') + 1) } };
 	}

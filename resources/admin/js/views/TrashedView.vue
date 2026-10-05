@@ -68,10 +68,10 @@ async function restore(): Promise<void> {
 	error.value = '';
 
 	try {
-		const restored = await request<{ id: string }>('POST', '/trash/restore', { id: detail.id });
+		const restored = await request<{ path: string }>('POST', '/trash/restore', { id: detail.id });
 
 		toast(`Restored “${name.value}” as a draft`);
-		await router.push({ name: 'entry-file', params: { id: restored.id.split('/') } });
+		await router.push({ name: 'entry-file', params: { path: restored.path.split('/') } });
 	} catch (caught) {
 		error.value = caught instanceof ApiError ? caught.message : `The ${noun.value} couldn't be restored.`;
 		busy.value  = false;

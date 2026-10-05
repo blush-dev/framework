@@ -38,12 +38,12 @@ final class EntryCollection implements IteratorAggregate, Countable
 	private ?array $entries = null;
 
 	/**
-	 * @param list<string>                              $ids   The entries' IDs, in order.
+	 * @param list<string>                              $paths The entries' paths, in order.
 	 * @param int                                       $total How many matched in all.
-	 * @param ?Closure(list<string>): list<Entry>       $load  Builds the entries for IDs.
+	 * @param ?Closure(list<string>): list<Entry>       $load  Builds the entries for paths.
 	 */
 	public function __construct(
-		public readonly array $ids = [],
+		public readonly array $paths = [],
 		private readonly int $total = 0,
 		private readonly ?Closure $load = null
 	) {}
@@ -54,7 +54,7 @@ final class EntryCollection implements IteratorAggregate, Countable
 	public static function of(Entry ...$entries): self
 	{
 		$entries    = array_values($entries);
-		$collection = new self(array_map(static fn (Entry $entry): string => $entry->id, $entries), count($entries));
+		$collection = new self(array_map(static fn (Entry $entry): string => $entry->path, $entries), count($entries));
 
 		$collection->entries = $entries;
 
@@ -68,7 +68,7 @@ final class EntryCollection implements IteratorAggregate, Countable
 	 */
 	public function all(): array
 	{
-		return $this->entries ??= $this->load === null ? [] : ($this->load)($this->ids);
+		return $this->entries ??= $this->load === null ? [] : ($this->load)($this->paths);
 	}
 
 	/**
@@ -92,7 +92,7 @@ final class EntryCollection implements IteratorAggregate, Countable
 	 */
 	public function isEmpty(): bool
 	{
-		return $this->ids === [];
+		return $this->paths === [];
 	}
 
 	/**
@@ -117,7 +117,7 @@ final class EntryCollection implements IteratorAggregate, Countable
 	#[Override]
 	public function count(): int
 	{
-		return count($this->ids);
+		return count($this->paths);
 	}
 
 	/**

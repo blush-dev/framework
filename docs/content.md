@@ -53,8 +53,9 @@ folders of pages need no setup.
 
 ## Front matter
 
-Front matter is YAML between two `---` lines at the top of the file. Only
-`title` is needed in practice. The built-in keys:
+Front matter is YAML between two `---` lines at the top of the file.
+Every entry needs an `id` (see [Ids](#ids)); otherwise only `title` is
+needed in practice. The built-in keys:
 
 | Key | What it does |
 |---|---|
@@ -75,6 +76,7 @@ Front matter is YAML between two `---` lines at the top of the file. Only
 | `class` | Extra CSS classes for the page's `<body>` |
 | `stylesheet` | An extra stylesheet for this page |
 | `collection` | List other entries on this page (see [Content types](content-types.md#listing-entries)) |
+| `id` | The entry's id, a UUID that never changes (see [Ids](#ids)). Blush writes it, last |
 
 Any other key you add is kept and available to your theme. [Taxonomies](content-types.md#taxonomies) add
 their own keys too, such as `tag: [php, cms]`.
@@ -303,6 +305,42 @@ Back up your site before updating.
 can add their own. See [Components](components.md) for the syntax, every
 built-in component, and making your own.
 
+## Ids
+
+Every entry has an `id`: a UUID in its front matter that stays the same
+when the entry is renamed or moved, so other things can point at it.
+Blush writes one, as the last key, whenever it creates an entry (in the
+admin, with `content:new`, or as a copy), and adds one when the admin
+saves a file that doesn't have it:
+
+```yaml
+---
+title: Hello, World
+published: 2026-10-05 09:00:00 -05:00
+id: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e74
+---
+```
+
+You don't need to write it yourself. For files you add by hand, or
+content from before ids, run:
+
+```sh
+bin/blush content:ids          # list files missing an id, and ids files share
+bin/blush content:ids --write  # give each file missing one a new id
+```
+
+**Content health** in the admin does the same. A copied file shares its
+original's id, which `content:lint` reports as an error. Tell Blush
+which file keeps it, and the others get new ones:
+
+```sh
+bin/blush content:ids --keep=blog/2026-10-05.hello.md
+```
+
+Don't edit an id by hand, and never give two files the same one. A file
+without a valid id still shows on the site, but `content:lint` reports
+it as an error. Types can't have a field named `id`.
+
 ## Other formats
 
 Besides Markdown (`.md`), an entry can be:
@@ -316,6 +354,7 @@ Besides Markdown (`.md`), an entry can be:
 ```sh
 bin/blush content:lint           # report problems in front matter
 bin/blush content:lint --strict  # also unknown keys and old 1.x names
+bin/blush content:ids --write    # give files without an id one
 bin/blush content:list           # everything Blush has found
 bin/blush content:new page "Contact me"   # create a new entry
 ```
@@ -324,4 +363,5 @@ bin/blush content:new page "Contact me"   # create a new entry
 (including ones that aren't on the calendar, such as a placeholder
 `2019-00-00`, which would quietly be read as 2018-11-30), misspelled values, two files claiming the same URL, a page a content
 type's URLs hide (such as `blog/2026.md` when the blog has yearly
-archives at `/blog/2026`), and term parents that are missing or loop.
+archives at `/blog/2026`), term parents that are missing or loop, and
+ids that are missing, not valid, or shared.

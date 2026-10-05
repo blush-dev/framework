@@ -378,8 +378,8 @@ async function copy(text: string, what: string): Promise<void> {
 				<div class="panel__body">
 					<p v-if="file.usedIn.length === 0" class="field__help">No entry uses it, by any of its addresses.</p>
 					<ul v-else class="used">
-						<li v-for="entry in file.usedIn" :key="entry.id">
-							<RouterLink :to="{ name: 'entry-file', params: { id: entry.id.split('/') } }">{{ entry.title }}</RouterLink>
+						<li v-for="entry in file.usedIn" :key="entry.path">
+							<RouterLink :to="{ name: 'entry-file', params: { path: entry.path.split('/') } }">{{ entry.title }}</RouterLink>
 							<span v-if="entry.type" class="used__type">{{ entry.type }}</span>
 						</li>
 					</ul>

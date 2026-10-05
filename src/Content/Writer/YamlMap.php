@@ -107,7 +107,8 @@ final readonly class YamlMap
 
 	/**
 	 * Returns a copy that sets a value under the first of `$keys` that's
-	 * present, or adds it as `$keys[0]`. A list or map is written inline
+	 * present, or adds it as `$keys[0]`: at the end, or before `$before`'s
+	 * entry when that key is present. A list or map is written inline
 	 * (`[a, b]`, `{ a: 1 }`) unless `$inline` is deeper: at 2, its items
 	 * go on lines of their own, indented two spaces; at 3, so do the keys
 	 * of a list's maps.
@@ -115,16 +116,19 @@ final readonly class YamlMap
 	 * @param list<string> $keys The field's name first, then its aliases.
 	 */
 	#[NoDiscard]
-	public function with(array $keys, mixed $value, int $inline = 1): self
+	public function with(array $keys, mixed $value, int $inline = 1, ?string $before = null): self
 	{
 		$key   = $this->present($keys) ?? $keys[0] ?? throw new WriteException('A key is needed to set a value.');
 		$range = $this->find($key);
 		$space = $range === null ? '' : $range[2];
 		$entry = self::dump($key, $value, $space, $inline);
+		$at    = $range === null && $before !== null && $before !== $key ? $this->find($before)[0] ?? null : null;
 
-		$lines = $range === null
-			? [...$this->lines, ...$entry]
-			: [...array_slice($this->lines, 0, $range[0]), ...$entry, ...array_slice($this->lines, $range[1])];
+		$lines = match (true) {
+			$range !== null => [...array_slice($this->lines, 0, $range[0]), ...$entry, ...array_slice($this->lines, $range[1])],
+			$at !== null    => [...array_slice($this->lines, 0, $at), ...$entry, ...array_slice($this->lines, $at)],
+			default         => [...$this->lines, ...$entry]
+		};
 
 		return clone($this, ['lines' => $lines]);
 	}

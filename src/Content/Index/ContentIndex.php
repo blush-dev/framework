@@ -47,7 +47,7 @@ interface ContentIndex
 	public function clear(): void;
 
 	/**
-	 * Returns the IDs a query matches, as of a Unix time (which decides
+	 * Returns the paths a query matches, as of a Unix time (which decides
 	 * whether published entries are still scheduled).
 	 */
 	public function select(Query $query, int $now): Selection;

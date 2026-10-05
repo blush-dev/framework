@@ -51,18 +51,18 @@ use Blush\Http\Status;
  * with no file needs the latter):
  *
  * - `GET profiles/{slug}`: the `profile` (`{"slug", "title", "subtitle",
- *   "avatar", "status"` (`null` without a file), `"virtual", "id",
- *   "handle", "url", "uses"}`), where it `appears` (each people field of
+ *   "avatar", "status"` (`null` without a file), `"virtual", "path"
+ *   (`null` without a file), "id", "handle", "url", "uses"}`), where it `appears` (each people field of
  *   each type that credits people: `{"type", "typeLabel", "field",
  *   "label", "entries"` (published entries crediting them there),
  *   `"archive"` (the archive's address, or `null` without one), `"page"`
- *   (the page written for it, `{"id", "handle", "title", "status"}`, or
+ *   (the page written for it, `{"path", "id", "handle", "title", "status"}`, or
  *   `null`; kept, and unreachable, while the field has no archive)`}`), whether an account is `linked`, and, for whoever
  *   manages accounts, the `account` (as `PeopleJson::account()` has it).
  * - `POST profiles/{slug}/pages` (`{"type", "field"}`): writes the page
  *   for the profile's archive under a field (`_cooks/jane` in the type's
  *   folder), a draft titled with the profile's name, and answers `201`
- *   with its `{"id", "handle"}`. Needs to create entries of that type.
+ *   with its `{"path", "handle"}`. Needs to create entries of that type.
  * - `DELETE profiles/{slug}/pages/{type}/{field}`: moves that page to the
  *   trash (D-370), so the archive shows the profile's body again. Needs
  *   to delete the page.
@@ -150,7 +150,8 @@ final readonly class ProfilesController
 				'avatar'   => self::text($profile->field('avatar')),
 				'status'   => $profile->isVirtual() ? null : $profile->status->value,
 				'virtual'  => $profile->isVirtual(),
-				'id'       => $profile->isVirtual() ? null : $profile->id,
+				'path'     => $profile->isVirtual() ? null : $profile->path,
+				'id'       => $profile->id,
 				'handle'   => $profile->isVirtual() ? null : $this->handles->of($profile),
 				'url'      => $this->urls->profile($profile->slug),
 				'uses'     => $this->content->termCounts($profiles->name)[$profile->slug] ?? 0
@@ -195,9 +196,9 @@ final readonly class ProfilesController
 			return self::json(['error' => $error->getMessage()], Status::Conflict);
 		}
 
-		$entry = $this->content->find($result->id);
+		$entry = $this->content->findPath($result->path);
 
-		return self::json(['id' => $result->id, 'handle' => $entry === null ? null : $this->handles->of($entry)], Status::Created);
+		return self::json(['path' => $result->path, 'handle' => $entry === null ? null : $this->handles->of($entry)], Status::Created);
 	}
 
 	public function remove(ServerRequestInterface $request, string $slug, string $type, string $field): ResponseInterface
@@ -222,12 +223,12 @@ final readonly class ProfilesController
 		}
 
 		try {
-			$this->writer->delete($page->id);
+			$this->writer->delete($page->path);
 		} catch (WriteException $error) {
 			return self::json(['error' => $error->getMessage()], Status::Conflict);
 		}
 
-		return self::json(['removed' => $page->id]);
+		return self::json(['removed' => $page->path]);
 	}
 
 	/**
@@ -281,7 +282,7 @@ final readonly class ProfilesController
 					'label'     => $field->plural,
 					'entries'   => $this->content->query()->type($type->name)->whereTerm($field->termKey($profiles->name), $profile->slug)->count(),
 					'archive'   => $this->urls->person($type, $field, $profile->slug),
-					'page'      => $page === null ? null : ['id' => $page->id, 'handle' => $this->handles->of($page), 'title' => $page->title, 'status' => $page->status->value]
+					'page'      => $page === null ? null : ['path' => $page->path, 'id' => $page->id, 'handle' => $this->handles->of($page), 'title' => $page->title, 'status' => $page->status->value]
 				];
 			}
 		}

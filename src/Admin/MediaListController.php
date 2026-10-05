@@ -72,7 +72,7 @@ use Blush\Support\UrlPath;
  * groups), their `values`, keys the file keeps that aren't fields
  * (`extra`), what doesn't fit (`violations`), who uploaded it (`uploader`:
  * `username` and `name`, or `null`), what the account `may` do to it
- * (`edit`, `delete`), and the entries that use it (`usedIn`: `id`,
+ * (`edit`, `delete`), and the entries that use it (`usedIn`: `path`,
  * `title`, `type`; `MediaUsage`). `PATCH` (`update()`, `media.edit`, and
  * `media.edit.others` for a file that isn't the account's) changes them: `set` (field names to values; an empty
  * one removes it) and `remove` (field names), each value checked by its

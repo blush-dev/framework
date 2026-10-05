@@ -348,9 +348,9 @@ async function publishProfile(): Promise<void> {
 	profileError.value = '';
 
 	try {
-		const loaded = await request<EntryDetail>('GET', entryPath(page.id));
+		const loaded = await request<EntryDetail>('GET', entryPath(page.path));
 
-		await request<EntryDetail>('PATCH', entryPath(page.id), { revision: loaded.revision, status: 'published' });
+		await request<EntryDetail>('PATCH', entryPath(page.path), { revision: loaded.revision, status: 'published' });
 		await refresh();
 		toast(`Published ${page.title || page.slug}`);
 	} catch (caught) {

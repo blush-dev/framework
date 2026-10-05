@@ -55,7 +55,7 @@ final class AdminBench
 		$this->app = new Bootstrap(Paths::fromRoot(JtcomSizedSite::root()))->createApplication();
 		$this->app->boot();
 		$this->app->container()->make(Indexer::class)->index();
-		$this->app->container()->make(ContentRepository::class)->find('index.md');
+		$this->app->container()->make(ContentRepository::class)->findPath('index.md');
 
 		$this->controller  = $this->app->container()->make(EntriesController::class);
 		$this->editor      = new Account('editor', '', ['editor']);

@@ -81,7 +81,7 @@ final readonly class CreateContent
 			return ExitCode::Failure;
 		}
 
-		$output->success(sprintf('Created %s', $this->paths->relative("{$this->paths->content}/{$result->id}")));
+		$output->success(sprintf('Created %s', $this->paths->relative("{$this->paths->content}/{$result->path}")));
 
 		return ExitCode::Success;
 	}

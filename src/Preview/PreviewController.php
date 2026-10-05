@@ -52,14 +52,14 @@ final readonly class PreviewController
 	public function __invoke(ServerRequestInterface $request): ResponseInterface
 	{
 		$query     = $request->getQueryParams();
-		$id        = $query['entry'] ?? null;
+		$path      = $query['entry'] ?? null;
 		$expires   = $query['expires'] ?? null;
 		$signature = $query['signature'] ?? null;
 
-		$valid = is_string($id) && is_string($expires) && ctype_digit($expires) && is_string($signature)
-			&& $this->links->isValid($id, (int) $expires, $signature);
+		$valid = is_string($path) && is_string($expires) && ctype_digit($expires) && is_string($signature)
+			&& $this->links->isValid($path, (int) $expires, $signature);
 
-		$entry = $valid ? $this->content->find($id) : null;
+		$entry = $valid ? $this->content->findPath($path) : null;
 
 		if ($entry === null) {
 			return Response::text(

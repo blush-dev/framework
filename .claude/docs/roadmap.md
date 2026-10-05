@@ -380,6 +380,11 @@ write conflicts through the API, not by editing files on disk.
   `open-questions.md`. Markdown pages and `llms.txt` are done (D-395,
   D-396), and the AI Settings screen with AI crawler rules and a site
   description (D-398, D-399).
+  Every content file has a UUIDv7 `id`, with a fix tool in the admin
+  and the CLI (built: D-477, D-478, D-480: `content:ids`, Content
+  health, `find()` by id and `findPath()` by path). Decided, next: a
+  read-only, opt-in content API at `/api/v1` beside the admin's
+  (D-479); its answer shape, bodies, path, and caching are still open.
 - **Translations and multilingual sites (D-451):** translation domains
   by `vendor/name` and overrides in `user/lang/{locale}/` that win (done,
   D-454), catalog metadata (D-452) checked by `theme:check`,

@@ -14,16 +14,16 @@ declare(strict_types=1);
 namespace Blush\Content\Query;
 
 /**
- * What an index returns for a query: the IDs within the limit and offset,
+ * What an index returns for a query: the paths within the limit and offset,
  * in order, and how many entries matched in all.
  */
 final readonly class Selection
 {
 	/**
-	 * @param list<string> $ids
+	 * @param list<string> $paths
 	 */
 	public function __construct(
-		public array $ids = [],
+		public array $paths = [],
 		public int $total = 0
 	) {}
 }

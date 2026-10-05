@@ -18,6 +18,7 @@ use DateTimeImmutable;
 use DateTimeZone;
 use Exception;
 use JsonException;
+use Blush\Content\EntryFields;
 use Blush\Content\Parser\DataDocumentParser;
 use Blush\Content\Parser\Document;
 use Blush\Content\Parser\DocumentFormat;
@@ -38,6 +39,9 @@ use Blush\Content\Parser\InvalidDocument;
  *   `body`.
  * - **JSON entries:** decoded, changed, and written back pretty-printed
  *   (key order kept).
+ *
+ * In every format, a new key goes before the entry's `id` (D-477), so
+ * the id stays last.
  *
  * Every result is parsed again before it's returned. The keys that were
  * set must read back as the given values, removed keys must be gone,
@@ -144,7 +148,7 @@ final readonly class DocumentEditor
 		$map = $this->apply(YamlMap::fromText($contents), $changes, $keys);
 
 		if ($changes->body !== null) {
-			$map = $map->with([DataDocumentParser::BODY], $changes->body);
+			$map = $map->with([DataDocumentParser::BODY], $changes->body, before: EntryFields::ID);
 		}
 
 		return $map->text();
@@ -178,11 +182,11 @@ final readonly class DocumentEditor
 			$candidates = $keys((string) $name);
 			$key        = array_find($candidates, static fn (string $key): bool => array_key_exists($key, $data)) ?? $candidates[0] ?? (string) $name;
 
-			$data[$key] = $value;
+			$data = self::withKey($data, $key, $value);
 		}
 
 		if ($changes->body !== null) {
-			$data[DataDocumentParser::BODY] = $changes->body;
+			$data = self::withKey($data, DataDocumentParser::BODY, $changes->body);
 		}
 
 		try {
@@ -204,10 +208,32 @@ final readonly class DocumentEditor
 		}
 
 		foreach ($changes->set as $name => $value) {
-			$map = $map->with($keys((string) $name), $value);
+			$map = $map->with($keys((string) $name), $value, before: EntryFields::ID);
 		}
 
 		return $map;
+	}
+
+	/**
+	 * Returns data with a key set: in its place, or, for a new key, at
+	 * the end, before the entry's `id` (D-477), which stays last.
+	 *
+	 * @param  array<array-key, mixed> $data
+	 * @return array<array-key, mixed>
+	 */
+	private static function withKey(array $data, string $key, mixed $value): array
+	{
+		if (array_key_exists($key, $data) || ! array_key_exists(EntryFields::ID, $data)) {
+			$data[$key] = $value;
+
+			return $data;
+		}
+
+		$id = $data[EntryFields::ID];
+
+		unset($data[EntryFields::ID]);
+
+		return [...$data, $key => $value, EntryFields::ID => $id];
 	}
 
 	/**

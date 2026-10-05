@@ -118,7 +118,7 @@ final readonly class TrashController
 			return self::json(['error' => $e->getMessage()], Status::Conflict);
 		}
 
-		return self::json(['id' => $result->id]);
+		return self::json(['path' => $result->path]);
 	}
 
 	/**

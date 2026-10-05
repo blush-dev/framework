@@ -222,6 +222,27 @@ final class LinterTest extends TestCase
 		$this->assertFalse($report->hasErrors());
 	}
 
+	public function testReportsIdsThatAreMissingNotUuidsOrShared(): void
+	{
+		$this->entry('index.md', 'title: Home');
+		$this->writeTemporaryFile('user/content/none.md', "---\ntitle: None\n---\n");
+		$this->writeTemporaryFile('user/content/odd.md', "---\ntitle: Odd\nid: 42\n---\n");
+		$this->writeTemporaryFile('user/content/one.md', "---\ntitle: One\nid: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e74\n---\n");
+		$this->writeTemporaryFile('user/content/two.md', "---\ntitle: Two\nid: 0199B6E2-7F3A-7C41-9D2E-5A8F0C3B1E74\n---\n");
+
+		$linter = $this->site()->container()->make(Linter::class);
+		$errors = self::messages($linter->lint(), Severity::Error);
+
+		$this->assertSame(['error id: is missing; every entry needs one. Add it with content:ids --write, or on Content health in the admin.'], $errors['none.md'] ?? null);
+		$this->assertSame(['error id: "42" isn\'t a UUID; give the entry a new one with content:ids --write, or on Content health in the admin.'], $errors['odd.md'] ?? null);
+		$this->assertSame(['error id: is also the id of two.md; keep it on one file and give the others new ones with content:ids --keep, or on Content health in the admin.'], $errors['one.md'] ?? null, 'Ids are the same in either case.');
+		$this->assertSame(['error id: is also the id of one.md; keep it on one file and give the others new ones with content:ids --keep, or on Content health in the admin.'], $errors['two.md'] ?? null);
+		$this->assertArrayNotHasKey('index.md', $errors);
+		$this->assertSame('id', $linter->lintFile('none.md')[0]->field ?? null, 'One file is checked for its own id.');
+		$this->assertSame([], $linter->lintFile('one.md'), 'Sharing needs every file, so it\'s lint()\'s.');
+		$this->assertSame([], self::messages($linter->lint(), Severity::Notice)['index.md'] ?? [], 'The id isn\'t an undeclared key.');
+	}
+
 	public function testCleanContentHasNoErrors(): void
 	{
 		$this->entry('index.md', 'title: Home');

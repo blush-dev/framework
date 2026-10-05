@@ -23,7 +23,7 @@ final readonly class TrashedEntry
 {
 	/**
 	 * @param string              $id          The trash's name for it, for `restore()` and `purge()`.
-	 * @param string              $entry       The id it had, and has again once restored.
+	 * @param string              $entry       The path it had, and has again once restored.
 	 * @param bool                $bundle      Whether its bundle's folder (with media) went with it.
 	 * @param DateTimeImmutable   $trashed     When it was trashed.
 	 * @param array<mixed>        $frontMatter Its front matter, as parsed; empty when it can't be read.

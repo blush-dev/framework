@@ -862,6 +862,8 @@ decision, add a new entry that supersedes it and mark the old one
 
 ### D-078: Blush 1.x content behavior carries over
 - **Date:** 2026-09-25
+- **Status:** Superseded in part by D-478 (conventions may change when a
+  fix tool migrates existing content).
 - **Decision:** 2.x keeps every content convention 1.x supports, because
   jtcom's files and front matter won't change. The 2.x names are canonical,
   and the 1.x names are accepted as aliases. The inventory, taken from
@@ -14026,3 +14028,136 @@ decision, add a new entry that supersedes it and mark the old one
   the exporter) is what makes that plugin practical: content, people
   archives, and multilingual URLs are real work to rebuild from public
   APIs, and the list is useful beyond export.
+
+### D-477: Every content file has an id, a UUIDv7
+
+- **Date:** 2026-10-05
+- **Status:** Built (D-480).
+- **Decision:**
+  - **Required:** every content file has an `id`: entries of every kind
+    (collections, trees, taxonomies, profiles), index and landing pages,
+    and `_{name}` intro pages. Each translation has its own, so one id
+    is one file (translations stay grouped as D-460 has them).
+  - **A UUIDv7,** generated in-house (`random_bytes()`, no dependency):
+    standard, time-ordered, and native to databases (Postgres `uuid`,
+    MySQL `BINARY(16)`). Written lowercase with hyphens.
+  - **Where:** an `id` key in front matter for Markdown and HTML
+    documents, a top-level `id` in data documents. Written **last**, out
+    of the way of the keys people write by hand. A reserved system key:
+    no field may claim it, and the admin's forms don't show it as a
+    field (read-only on the Document tab).
+  - **Missing, duplicate, or malformed ids** are `content:lint` errors.
+    The site still renders such a file (URLs don't use ids), but the
+    content API leaves it out until it's fixed (strict).
+  - **Fixing is a tool in the CLI and the admin** (D-478): it writes
+    missing ids (a command, and a button on Content health). Duplicates
+    (a copied file) aren't guessed at: the CLI lists the pairs and takes
+    which file keeps the id, and the admin shows both and asks.
+  - **Reindexing never writes files.** Every write path assigns one:
+    New entry, Duplicate (D-275, a new id for the copy), and anything
+    else creating content through `ContentWriter`.
+  - **The index:** `IndexRecord::$id` (the source path today) is
+    renamed, the real id is added, the index version goes to v6, and
+    the repository finds an entry by id.
+  - Out of scope for now: ids for media, accounts (usernames), and types
+    (names); references stored by id, revisions and an activity log by
+    id, and translations grouped by id, each its own decision later.
+- **Why:** the content API's single-entry route needs a key that
+  survives renames (D-479), and so do references, revisions, and
+  headless front ends; a future database backend keys on it too.
+  Integers need one counter, which files (copies, branches, files
+  written by hand) don't have. The author chose UUIDv7 over a shorter
+  ULID for databases, and strict over listing entries with `id: null`.
+
+### D-478: Content conventions may change when a tool migrates them
+
+- **Date:** 2026-10-05
+- **Status:** Decided. Supersedes D-078 in part.
+- **Decision:** D-078's rule that jtcom's content won't change is
+  relaxed: a content convention may change when Blush ships a tool that
+  migrates existing content to it, **in the admin as well as the CLI**.
+  1.x conventions D-078 lists keep working unless a later decision
+  changes one this way. Ids (D-477) are the first.
+- **Why:** the author: jtcom's content can change if it needs to, as
+  long as there's a way to fix it, and the tool must be usable from the
+  admin, not only a shell.
+
+### D-479: The content API: its own surface, read-only first, opt-in
+
+- **Date:** 2026-10-05
+- **Status:** Decided, not built. Answers part of "APIs, agents, and
+  headless" in `open-questions.md`.
+- **Decision:**
+  - **Two surfaces over one domain layer, for now:** a versioned public
+    content API (`/api/v1/…`) as the contract, and the admin's API
+    staying unversioned and free to change with its screens. The rules
+    both need (D-229's permissions, from `Admin\EntryController`) move
+    into a content service both call; the admin isn't moved onto v1.
+  - **Read-only first:** types, entries (filtered, sorted, paged), one
+    entry, terms, and media. Writes wait for API tokens.
+  - **Opt-in:** a setting turns it on. Once on, anonymous reads are
+    allowed and answer only what the public site shows (published,
+    public entries).
+  - **Entries by id** (D-477) for a single entry.
+  - Still open: the answer's shape (plain `{ items, total, page, pages }`
+    with `next` and `prev` links, or an envelope), bodies (`?body=html`
+    as the default, `markdown`, `none`), its path setting, and caching
+    (an `ETag`, anonymous answers only).
+- **Why:** the author's answers: two surfaces are fine for now, so the
+  public API is a stable contract without carrying the editor's shapes
+  (`violations`, `can`, field definitions), and there's no migration of
+  the admin's endpoints; read-only covers headless front ends, search,
+  and agents before tokens exist.
+
+### D-480: Ids as built: `path` and `id` everywhere, and the fix tool
+
+- **Date:** 2026-10-05
+- **Status:** Built. Builds D-477 and D-478.
+- **Decision:**
+  - **`id` means the UUID everywhere; the source path is `path`** (the
+    author's call: rename everywhere, before a public API or database
+    exists). `IndexRecord::$path` and `$id` (index v6), `Entry::$path`
+    (`virtual:{type}/{slug}` for a virtual entry) and `$id`,
+    `WriteResult::$path`, `EditableEntry::$path`. `ContentRepository::
+    find($id)` finds by the UUID (either case; the first by path when
+    files share one) and the new `findPath($path)` by the source path;
+    the snapshot keeps `ids` and `duplicates`. A trashed entry's `id`
+    stays the trash's name for it.
+  - **The admin API** names entries by path (`entries/{path}`, bulk
+    `paths`, `skipped[].path`, `POST previews {"entry": path}`), and
+    answers `path` and `id` for an entry (lists, the editor, the
+    calendar, profiles, pages), so an entry without an id can still be
+    opened and fixed. The editor's `extra` leaves the `id` out. Preview
+    links stay signed over the path.
+  - **What counts as an id:** any UUID in its usual form, in either case
+    (one copied from another system is still unique), lowercased in the
+    index; not the nil or max UUID. New ones are v7 (`Support\Uuid`).
+    `id` is `EntryFields::ID`, read before the schema, so it's never an
+    undeclared key; a type, alias, or field set naming a field `id` is
+    an `InvalidContentType`. The entry JSON Schema requires it.
+  - **The writer owns ids:** every create (`create`, `createAt`,
+    `createUnder`, `duplicate`) writes a new one, last; `update()` adds
+    one to a file without a valid one, and its changes never set or
+    remove `id`; and a new key goes before an existing `id` (in YAML
+    front matter, YAML entries, and JSON entries), so the id stays last.
+    `assignIds($paths)` gives files new ones in one write lock and one
+    reindex (`AssignedIds`: new ids and failures by path).
+  - **The indexer re-reads what the writer wrote:** `index(written:)`
+    reads the named paths whatever their stat says. A new id is always
+    the old one's length, so a same-second rewrite looked untouched; the
+    same was true of any same-size edit.
+  - **The fix tool** (`Content\EntryIds`, one service for both):
+    `content:ids` lists files missing a valid id and shared ids (failing
+    when there are any), `--write` fixes missing ones, and `--keep=
+    <path>` (repeatable) keeps a shared id on that file and renews the
+    others. Content health answers `ids` (`missing`, `duplicates`) and
+    has `POST health/ids` and `POST health/ids/keep` (`{"path"}`), for
+    accounts that may see content health, changing only files the
+    account may edit; the screen has **Add Missing IDs** and **Keep
+    Here**. `content:lint` reports a missing, malformed, or shared id as
+    an error; `lintFile()` reports the first two.
+  - Not done: the Markdown copies (D-395) don't show the id, and the
+    jtcom trial's 1,213 files have none yet (the author runs the tool).
+- **Why:** from D-477, with the author's answers: UUIDv7, last in front
+  matter, strict, fixed from the admin as well as the CLI, and `id`
+  renamed everywhere.

@@ -10,7 +10,7 @@ import { ApiError, request, type EntrySummary, type PreviewLink } from '../api';
 import { formatDate } from '../format';
 import AdminIcon from './AdminIcon.vue';
 
-const props = defineProps<{ entry: Pick<EntrySummary, 'id' | 'title'> }>();
+const props = defineProps<{ entry: Pick<EntrySummary, 'path' | 'title'> }>();
 
 // Untitled drafts are named by their file for screen readers.
 const name = props.entry.title || 'this entry';
@@ -24,7 +24,7 @@ async function make(): Promise<void> {
 	message.value = '';
 
 	try {
-		link.value    = await request<PreviewLink>('POST', '/previews', { entry: props.entry.id });
+		link.value    = await request<PreviewLink>('POST', '/previews', { entry: props.entry.path });
 		message.value = `Preview link ready for “${name}”.`;
 	} catch (caught) {
 		message.value = caught instanceof ApiError ? caught.message : 'The preview link couldn\'t be made.';

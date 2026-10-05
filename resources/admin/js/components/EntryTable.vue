@@ -124,10 +124,10 @@ const hidden = computed(() => {
 		const inClosed = above.some((item) => item.closed);
 
 		if (inClosed) {
-			ids.add(entry.id);
+			ids.add(entry.path);
 		}
 
-		above.push({ depth: entry.depth, closed: inClosed || collapsed.value.has(entry.id) });
+		above.push({ depth: entry.depth, closed: inClosed || collapsed.value.has(entry.path) });
 	}
 
 	return ids;
@@ -140,11 +140,11 @@ const tree = computed(() => entries.some((entry) => entry.depth !== null));
 // The pinned index page's body, then the entries'.
 const groups = computed(() => [
 	...(pinned.length === 0 ? [] : [{ key: 'pinned', entries: pinned }]),
-	{ key: 'entries', entries: entries.filter((entry) => !hidden.value.has(entry.id)) }
+	{ key: 'entries', entries: entries.filter((entry) => !hidden.value.has(entry.path)) }
 ]);
 
 // The rows shown that can be selected, and how many of them are.
-const choosable = computed(() => groups.value.flatMap((group) => group.entries).filter(canSelect).map((entry) => entry.id));
+const choosable = computed(() => groups.value.flatMap((group) => group.entries).filter(canSelect).map((entry) => entry.path));
 const chosen    = computed(() => choosable.value.filter((id) => selected.value.includes(id)).length);
 const allState  = computed<'true' | 'false' | 'mixed'>(() => chosen.value === 0 ? 'false' : (chosen.value === choosable.value.length ? 'true' : 'mixed'));
 
@@ -178,11 +178,11 @@ function canSelect(entry: EntrySummary): boolean {
 }
 
 function isSelected(entry: EntrySummary): boolean {
-	return selected.value.includes(entry.id);
+	return selected.value.includes(entry.path);
 }
 
 function choose(entry: EntrySummary): void {
-	selected.value = isSelected(entry) ? selected.value.filter((id) => id !== entry.id) : [...selected.value, entry.id];
+	selected.value = isSelected(entry) ? selected.value.filter((id) => id !== entry.path) : [...selected.value, entry.path];
 }
 
 // All of the page's rows, or none once all are.
@@ -197,8 +197,8 @@ function chooseAll(): void {
 function toggle(entry: EntrySummary): void {
 	const next = new Set(collapsed.value);
 
-	if (!next.delete(entry.id)) {
-		next.add(entry.id);
+	if (!next.delete(entry.path)) {
+		next.add(entry.path);
 	}
 
 	collapsed.value = next;
@@ -243,14 +243,14 @@ async function copyLink(entry: EntrySummary): Promise<void> {
 				</tr>
 			</thead>
 			<tbody v-for="group in groups" :key="group.key" :class="{ 'table__pinned': group.key === 'pinned' }">
-				<tr v-for="entry in group.entries" :key="`${entry.id}${entry.continued ? ':continued' : ''}`" :class="{ 'is-selected': selectable && isSelected(entry) }">
+				<tr v-for="entry in group.entries" :key="`${entry.path}${entry.continued ? ':continued' : ''}`" :class="{ 'is-selected': selectable && isSelected(entry) }">
 					<td v-if="selectable" class="table__check">
 						<span v-if="isPinned(entry)" class="table__pin" :title="pinTitle(entry)"><AdminIcon :name="pinIcon(entry)" /><span class="visually-hidden">Pinned</span></span>
 						<button v-else-if="canSelect(entry)" type="button" class="check" role="checkbox" :aria-checked="isSelected(entry) ? 'true' : 'false'" :aria-label="`Select ${entry.title || 'Untitled'}`" @click="choose(entry)"><AdminIcon name="check" /></button>
 					</td>
 					<th scope="row">
 						<span class="title-cell" :style="entry.depth ? { '--depth': entry.depth } : undefined">
-						<button v-if="entry.children" type="button" class="twist" :aria-expanded="!collapsed.has(entry.id)" :aria-label="`${collapsed.has(entry.id) ? 'Expand' : 'Collapse'} ${entry.title || 'Untitled'}`" @click="toggle(entry)"><AdminIcon name="chevron-right" /></button>
+						<button v-if="entry.children" type="button" class="twist" :aria-expanded="!collapsed.has(entry.path)" :aria-label="`${collapsed.has(entry.path) ? 'Expand' : 'Collapse'} ${entry.title || 'Untitled'}`" @click="toggle(entry)"><AdminIcon name="chevron-right" /></button>
 						<span v-else-if="entry.depth !== null || (tree && group.key === 'pinned')" class="twist twist--leaf" aria-hidden="true" />
 						<span v-if="profiles" class="avatar" :class="{ 'avatar--guest': !entry.linked }" aria-hidden="true">{{ initials(entry.title || '?') }}</span>
 						<span class="entry-title">

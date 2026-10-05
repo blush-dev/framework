@@ -513,10 +513,10 @@ async function moveToTrash(entry: EntrySummary): Promise<void> {
 		return;
 	}
 
-	void act(entry.id, async () => {
-		const detail = await request<EntryDetail>('GET', entryPath(entry.id));
+	void act(entry.path, async () => {
+		const detail = await request<EntryDetail>('GET', entryPath(entry.path));
 
-		await request<void>('DELETE', `${entryPath(entry.id)}?revision=${encodeURIComponent(detail.revision)}`);
+		await request<void>('DELETE', `${entryPath(entry.path)}?revision=${encodeURIComponent(detail.revision)}`);
 
 		return `Moved ${nameOf(entry)} to the trash`;
 	}, 'danger');
@@ -526,8 +526,8 @@ async function moveToTrash(entry: EntrySummary): Promise<void> {
  * Copies an entry as a draft beside it (D-275).
  */
 function duplicate(entry: EntrySummary): void {
-	void act(entry.id, async () => {
-		const copy = await request<EntryDetail>('POST', `${entryPath(entry.id)}/duplicate`);
+	void act(entry.path, async () => {
+		const copy = await request<EntryDetail>('POST', `${entryPath(entry.path)}/duplicate`);
 
 		return `Duplicated as a draft: ${nameOf(copy)}`;
 	});
@@ -553,15 +553,15 @@ const canPublish = computed(() => canType(type.value, 'publish'));
  * that couldn't, with why.
  */
 async function bulk(action: BulkAction): Promise<void> {
-	const ids   = [...selected.value];
-	const count = plural(ids.length, labels.value.item, labels.value.items);
+	const paths = [...selected.value];
+	const count = plural(paths.length, labels.value.item, labels.value.items);
 
 	if (action === 'trash' && !await confirmAction({ title: `Move ${count} to the Trash?`, body: 'You can restore them from the Trash tab.', confirm: 'Move to trash', danger: true })) {
 		return;
 	}
 
 	void act('bulk', async () => {
-		const answer = await request<{ done: string[]; skipped: { id: string; title: string; reason: string }[] }>('POST', '/entries/bulk', { action, ids });
+		const answer = await request<{ done: string[]; skipped: { path: string; title: string; reason: string }[] }>('POST', '/entries/bulk', { action, paths });
 		const moved  = plural(answer.done.length, labels.value.item, labels.value.items);
 
 		selected.value = [];
@@ -581,7 +581,7 @@ async function bulk(action: BulkAction): Promise<void> {
 
 function restore(item: TrashedSummary): void {
 	void act(item.id, async () => {
-		await request<{ id: string }>('POST', '/trash/restore', { id: item.id });
+		await request<{ path: string }>('POST', '/trash/restore', { id: item.id });
 
 		return `Restored ${nameOf(item)} as a draft`;
 	});

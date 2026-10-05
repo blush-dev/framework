@@ -84,7 +84,7 @@ final class IndexedRepository implements ContentRepository
 	{
 		$selection = $this->fresh()->select($this->resolved($query), $this->now());
 
-		return new EntryCollection($selection->ids, $selection->total, $this->load(...));
+		return new EntryCollection($selection->paths, $selection->total, $this->load(...));
 	}
 
 	/**
@@ -139,7 +139,18 @@ final class IndexedRepository implements ContentRepository
 	#[Override]
 	public function find(string $id): ?Entry
 	{
-		$record = $this->snapshot()->record($id);
+		$path = $this->snapshot()->path($id);
+
+		return $path === null ? null : $this->findPath($path);
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	#[Override]
+	public function findPath(string $path): ?Entry
+	{
+		$record = $this->snapshot()->record($path);
 
 		return $record === null ? null : $this->hydrator->hydrate($record);
 	}
@@ -150,9 +161,9 @@ final class IndexedRepository implements ContentRepository
 	#[Override]
 	public function named(string $type, string $key, ?string $language = null): ?Entry
 	{
-		$id = $this->snapshot()->find($language ?? $this->app->languages->default->code, $type, $key);
+		$path = $this->snapshot()->find($language ?? $this->app->languages->default->code, $type, $key);
 
-		return $id === null ? null : $this->find($id);
+		return $path === null ? null : $this->findPath($path);
 	}
 
 	/**
@@ -161,9 +172,9 @@ final class IndexedRepository implements ContentRepository
 	#[Override]
 	public function translations(Entry $entry): array
 	{
-		$ids = $entry->isVirtual() ? [] : $this->snapshot()->translations($entry->id);
+		$paths = $entry->isVirtual() ? [] : $this->snapshot()->translations($entry->path);
 
-		if ($ids === []) {
+		if ($paths === []) {
 			return [$entry->language => $entry];
 		}
 
@@ -171,7 +182,7 @@ final class IndexedRepository implements ContentRepository
 
 		// In the languages' order, the default first.
 		foreach (array_keys($this->app->languages->all()) as $code) {
-			$translation = isset($ids[$code]) ? $this->find($ids[$code]) : null;
+			$translation = isset($paths[$code]) ? $this->findPath($paths[$code]) : null;
 
 			if ($translation !== null) {
 				$entries[$code] = $translation;
@@ -191,9 +202,9 @@ final class IndexedRepository implements ContentRepository
 			return $entry;
 		}
 
-		$id = $entry->isVirtual() ? null : $this->snapshot()->translations($entry->id)[$language] ?? null;
+		$path = $entry->isVirtual() ? null : $this->snapshot()->translations($entry->path)[$language] ?? null;
 
-		return $id === null ? null : $this->find($id);
+		return $path === null ? null : $this->findPath($path);
 	}
 
 	/**
@@ -246,8 +257,8 @@ final class IndexedRepository implements ContentRepository
 	{
 		$snapshot = $this->snapshot();
 		$language ??= $this->app->languages->default->code;
-		$id       = $snapshot->find($language, $type, $key);
-		$parent   = $id === null ? null : $snapshot->records[$id]['parent'];
+		$path     = $snapshot->find($language, $type, $key);
+		$parent   = $path === null ? null : $snapshot->records[$path]['parent'];
 
 		return $parent !== null && $snapshot->find($language, $type, $parent) !== null ? $parent : null;
 	}
@@ -259,7 +270,7 @@ final class IndexedRepository implements ContentRepository
 	public function parent(Entry $entry): ?Entry
 	{
 		// The index's parent, which a translation's is in its language (D-457).
-		$key = $entry->isVirtual() ? null : $this->snapshot()->records[$entry->id]['parent'] ?? null;
+		$key = $entry->isVirtual() ? null : $this->snapshot()->records[$entry->path]['parent'] ?? null;
 
 		return $key === null ? null : $this->named($entry->type->name, $key, $entry->language);
 	}
@@ -275,7 +286,7 @@ final class IndexedRepository implements ContentRepository
 		}
 
 		$children = array_values(array_filter(array_map(
-			$this->find(...),
+			$this->findPath(...),
 			$this->snapshot()->children($entry->language, $entry->type->name, $entry->key)
 		)));
 
@@ -291,11 +302,11 @@ final class IndexedRepository implements ContentRepository
 	public function termCounts(string $taxonomy, ?Query $query = null): array
 	{
 		$snapshot = $this->snapshot();
-		$listed   = array_flip($this->get(($query ?? $this->query())->limit(null)->offset(0))->ids);
+		$listed   = array_flip($this->get(($query ?? $this->query())->limit(null)->offset(0))->paths);
 		$counts   = [];
 
-		foreach ($snapshot->terms[$taxonomy] ?? [] as $slug => $ids) {
-			$counts[(string) $slug] = count(array_filter($ids, static fn (string $id): bool => isset($listed[$id])));
+		foreach ($snapshot->terms[$taxonomy] ?? [] as $slug => $paths) {
+			$counts[(string) $slug] = count(array_filter($paths, static fn (string $path): bool => isset($listed[$path])));
 		}
 
 		return $counts;
@@ -310,19 +321,19 @@ final class IndexedRepository implements ContentRepository
 		$snapshot  = $this->snapshot();
 		$redirects = [];
 
-		foreach ($snapshot->records as $id => $record) {
-			$paths = $record['values']['redirect_from'] ?? null;
+		foreach ($snapshot->records as $path => $record) {
+			$from = $record['values']['redirect_from'] ?? null;
 
-			if (! is_array($paths) || $paths === []) {
+			if (! is_array($from) || $from === []) {
 				continue;
 			}
 
-			$record = $snapshot->record((string) $id);
+			$record = $snapshot->record((string) $path);
 			$entry  = $record === null ? null : $this->hydrator->hydrate($record);
 
-			foreach ($paths as $path) {
-				if ($entry !== null && is_string($path) && ! isset($redirects[$path])) {
-					$redirects[$path] = $entry;
+			foreach ($from as $old) {
+				if ($entry !== null && is_string($old) && ! isset($redirects[$old])) {
+					$redirects[$old] = $entry;
 				}
 			}
 		}
@@ -358,18 +369,18 @@ final class IndexedRepository implements ContentRepository
 	}
 
 	/**
-	 * Hydrates entries by ID.
+	 * Hydrates entries by path.
 	 *
-	 * @param  list<string> $ids
+	 * @param  list<string> $paths
 	 * @return list<Entry>
 	 */
-	private function load(array $ids): array
+	private function load(array $paths): array
 	{
 		$snapshot = $this->snapshot();
 		$entries  = [];
 
-		foreach ($ids as $id) {
-			$record = $snapshot->record($id);
+		foreach ($paths as $path) {
+			$record = $snapshot->record($path);
 
 			if ($record !== null) {
 				$entries[] = $this->hydrator->hydrate($record);

@@ -38,6 +38,11 @@ final class AdminContentTest extends TestCase
 	use BootsAdmin;
 
 	/**
+	 * The published entry's id.
+	 */
+	private const string LIVE = '0199b6e2-0000-7000-8000-000000000004';
+
+	/**
 	 * Writes drafts by two authors, a scheduled entry, a published one,
 	 * and one with a problem, then boots the admin.
 	 *
@@ -48,11 +53,11 @@ final class AdminContentTest extends TestCase
 	{
 		// Pages don't credit authors unless the site says so (D-329).
 		$this->writeTemporaryFile('user/data/types/page.yaml', "kind: tree\nauthors: true\n");
-		$this->writeTemporaryFile('user/content/jane-draft.md', "---\ntitle: Jane's draft\nstatus: draft\nauthors: jane\n---\n");
-		$this->writeTemporaryFile('user/content/sam-draft.md', "---\ntitle: Sam's draft\nstatus: draft\nauthors: sam\n---\n");
-		$this->writeTemporaryFile('user/content/soon.md', "---\ntitle: Soon\npublished: 2099-01-01 09:00:00\nauthors: jane\n---\n");
-		$this->writeTemporaryFile('user/content/live.md', "---\ntitle: Live\nauthors: jane\n---\n");
-		$this->writeTemporaryFile('user/content/broken.md', "---\ntitle: Broken\nstatus: pending\nsurprise: yes\n---\n");
+		$this->writeTemporaryFile('user/content/jane-draft.md', "---\ntitle: Jane's draft\nstatus: draft\nauthors: jane\nid: 0199b6e2-0000-7000-8000-000000000001\n---\n");
+		$this->writeTemporaryFile('user/content/sam-draft.md', "---\ntitle: Sam's draft\nstatus: draft\nauthors: sam\nid: 0199b6e2-0000-7000-8000-000000000002\n---\n");
+		$this->writeTemporaryFile('user/content/soon.md', "---\ntitle: Soon\npublished: 2099-01-01 09:00:00\nauthors: jane\nid: 0199b6e2-0000-7000-8000-000000000003\n---\n");
+		$this->writeTemporaryFile('user/content/live.md', "---\ntitle: Live\nauthors: jane\nid: " . self::LIVE . "\n---\n");
+		$this->writeTemporaryFile('user/content/broken.md', "---\ntitle: Broken\nstatus: pending\nsurprise: yes\nid: 0199b6e2-0000-7000-8000-000000000005\n---\n");
 
 		$this->boot(roles: $roles, environment: $environment);
 		$this->login();
@@ -64,9 +69,9 @@ final class AdminContentTest extends TestCase
 	private function preview(string $title, string $token): ResponseInterface
 	{
 		$entry = array_find([...$this->entries('draft'), ...$this->entries('scheduled')], static fn (array $entry): bool => $entry['title'] === $title);
-		$id    = is_array($entry) ? $entry['id'] : 'missing';
+		$path  = is_array($entry) ? $entry['path'] : 'missing';
 
-		return $this->send('POST', '/previews', json_encode(['entry' => $id]) ?: '', ['X-CSRF-Token' => $token]);
+		return $this->send('POST', '/previews', json_encode(['entry' => $path]) ?: '', ['X-CSRF-Token' => $token]);
 	}
 
 	/**
@@ -574,8 +579,8 @@ final class AdminContentTest extends TestCase
 	public function testReportsContentHealth(): void
 	{
 		// Credited authors without entries are warnings (D-329).
-		$this->writeTemporaryFile('user/content/profiles/jane.md', "---\ntitle: Jane\n---\n");
-		$this->writeTemporaryFile('user/content/profiles/sam.md', "---\ntitle: Sam\n---\n");
+		$this->writeTemporaryFile('user/content/profiles/jane.md', "---\ntitle: Jane\nid: 0199b6e2-0000-7000-8000-000000000006\n---\n");
+		$this->writeTemporaryFile('user/content/profiles/sam.md', "---\ntitle: Sam\nid: 0199b6e2-0000-7000-8000-000000000007\n---\n");
 		$this->site(['editor']);
 
 		$health = self::json($this->send('GET', '/health'));
@@ -585,6 +590,7 @@ final class AdminContentTest extends TestCase
 		$this->assertNull($health['counts']['notice'] ?? null);
 		$this->assertIsArray($health['files'] ?? null);
 		$this->assertSame(['broken.md'], array_column($health['files'], 'path'));
+		$this->assertSame(['missing' => [], 'duplicates' => []], $health['ids'] ?? null);
 
 		$strict = self::json($this->send('GET', '/health?strict=1'));
 
@@ -596,8 +602,49 @@ final class AdminContentTest extends TestCase
 	public function testOnlyEditorsSeeContentHealth(): void
 	{
 		$this->site(['author']);
+		$token = $this->token();
 
 		$this->assertSame(403, $this->send('GET', '/health')->getStatusCode());
+		$this->assertSame(403, $this->send('POST', '/health/ids', '{}', ['X-CSRF-Token' => $token])->getStatusCode(), 'Nor fix ids.');
+		$this->assertSame(403, $this->send('POST', '/health/ids/keep', '{"path": "live.md"}', ['X-CSRF-Token' => $token])->getStatusCode());
+	}
+
+	public function testFixesMissingAndSharedIds(): void
+	{
+		$this->writeTemporaryFile('user/content/no-id.md', "---\ntitle: No ID\n---\n");
+		$this->writeTemporaryFile('user/content/bad-id.md', "---\ntitle: Bad ID\nid: 42\n---\n");
+		$this->writeTemporaryFile('user/content/copy.md', "---\ntitle: Copy\nid: " . self::LIVE . "\n---\n");
+		$this->site(['editor']);
+		$token = $this->token();
+
+		$health = self::json($this->send('GET', '/health'));
+		$ids    = $health['ids'] ?? null;
+		$files  = $health['files'] ?? null;
+
+		$this->assertIsArray($ids);
+		$this->assertIsArray($files);
+		$this->assertSame(['bad-id.md', 'no-id.md'], $ids['missing'] ?? null, 'Missing ids, and ids that aren\'t UUIDs (D-477).');
+		$this->assertSame([['id' => self::LIVE, 'paths' => ['copy.md', 'live.md']]], $ids['duplicates'] ?? null);
+		$this->assertContains('no-id.md', array_column($files, 'path'), 'They\'re errors too.');
+
+		$assigned = self::json($this->send('POST', '/health/ids', '{}', ['X-CSRF-Token' => $token]))['assigned'] ?? null;
+
+		$this->assertIsArray($assigned);
+		$this->assertSame(['bad-id.md', 'no-id.md'], array_keys($assigned));
+
+		$this->assertSame(422, $this->send('POST', '/health/ids/keep', '{"path": "soon.md"}', ['X-CSRF-Token' => $token])->getStatusCode(), 'Only a file that shares its id.');
+		$this->assertSame(400, $this->send('POST', '/health/ids/keep', '{}', ['X-CSRF-Token' => $token])->getStatusCode());
+
+		$kept = self::json($this->send('POST', '/health/ids/keep', '{"path": "live.md"}', ['X-CSRF-Token' => $token]));
+
+		$this->assertIsArray($kept['assigned'] ?? null);
+		$this->assertSame(['copy.md'], array_keys($kept['assigned']), 'The other file gets a new id.');
+		$this->assertSame([], $kept['failed'] ?? null);
+
+		$content = $this->app->container()->make(ContentRepository::class);
+
+		$this->assertSame('live.md', $content->find(self::LIVE)?->path, 'The one kept keeps it.');
+		$this->assertSame(['missing' => [], 'duplicates' => []], self::json($this->send('GET', '/health'))['ids'] ?? null);
 	}
 
 	public function testMakesPreviewLinksForEntriesTheAccountMayEdit(): void
@@ -627,7 +674,7 @@ final class AdminContentTest extends TestCase
 		$sam = $this->app->container()->make(ContentRepository::class)->named('page', 'sam-draft');
 		$this->assertNotNull($sam);
 
-		$this->assertSame(403, $this->send('POST', '/previews', json_encode(['entry' => $sam->id]) ?: '', ['X-CSRF-Token' => $token])->getStatusCode());
+		$this->assertSame(403, $this->send('POST', '/previews', json_encode(['entry' => $sam->path]) ?: '', ['X-CSRF-Token' => $token])->getStatusCode());
 	}
 
 	public function testSaysWhenPreviewLinksAreOff(): void

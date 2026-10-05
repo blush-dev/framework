@@ -222,7 +222,7 @@ use Blush\Content\Writer\EntryChanges;
 
 $entry = $writer->load('_posts/2026-09-29.hello.md');
 
-$writer->update($entry->id, new EntryChanges(
+$writer->update($entry->path, new EntryChanges(
 	set: ['status' => 'draft', 'tags' => ['news']],
 	remove: ['summary']
 ), $entry->revision);
@@ -237,8 +237,9 @@ $writer->update($entry->id, new EntryChanges(
 - **`$entry->revision`** protects against lost edits: if the file changed
   since you loaded it, `update()` throws `WriteConflict` and writes
   nothing. Leave it out to skip the check.
-- `create()`, `rename()` (a new slug; a dated file keeps its date, and a
-  an entry in its own folder, `trip/index.md`, moves the folder), `duplicate($id, $slug,
+- Entries are named by their path in `user/content`. `create()`,
+  `rename()` (a new slug; a dated file keeps its date, and a
+  an entry in its own folder, `trip/index.md`, moves the folder), `duplicate($path, $slug,
   $changes)` (a copy beside it under the first free name from `$slug`,
   dated today if it's dated, an entry's own folder copied whole),
   and `delete()` (the file moves to `storage/trash/`) work the same way.
@@ -246,6 +247,10 @@ $writer->update($entry->id, new EntryChanges(
   `restore($id, $changes)` brings an entry back after making the changes
   (such as `new EntryChanges(set: ['status' => 'draft'])`), and
   `purge($id)` deletes one for good.
+- **Ids** (see [Ids](content.md#ids)): every entry the writer creates,
+  a copy included, gets a new `id`, last in its front matter, and an
+  `update()` adds one to a file that has none. Changes never set or
+  remove `id`; `assignIds($paths)` gives files new ones.
 - Every change reindexes content and refreshes cached pages.
 
 The writer only writes content files inside `user/content`, and refuses

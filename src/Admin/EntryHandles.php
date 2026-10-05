@@ -53,7 +53,7 @@ final readonly class EntryHandles
 
 		$key = $entry->key === '' ? self::LANDING : $entry->key;
 
-		return $this->find($entry->type->name, $key)?->id === $entry->id ? "{$entry->type->name}/{$key}" : null;
+		return $this->find($entry->type->name, $key)?->path === $entry->path ? "{$entry->type->name}/{$key}" : null;
 	}
 
 	/**

@@ -61,7 +61,10 @@ export interface Dashboard {
 }
 
 export interface EntrySummary {
-	id: string;
+	// Its source path, which names it to the API, and its id (D-477),
+	// `null` while its file has no valid one.
+	path: string;
+	id: string | null;
 	// How the admin's addresses name it (`post/hello-world`), or `null`
 	// when only its path does (D-253).
 	handle: string | null;
@@ -70,7 +73,6 @@ export interface EntrySummary {
 	status: EntryStatus;
 	published: string | null;
 	updated: string;
-	path: string | null;
 	// Its path on the site, where it is or will be once published, if it
 	// has one (D-254).
 	url: string | null;
@@ -236,7 +238,7 @@ export interface PeopleFieldInfo {
 	multiple: boolean;
 	required: boolean;
 	// The page introducing its list of people, or `null`.
-	listPage: { id: string; title: string } | null;
+	listPage: { path: string; title: string } | null;
 }
 
 export interface ContentTypeDetail extends Omit<ContentTypeSummary, 'fields'> {
@@ -267,13 +269,13 @@ export interface ContentTypeDetail extends Omit<ContentTypeSummary, 'fields'> {
 	// The data file it's defined or changed in, from the site's root, or `null`.
 	file: string | null;
 	// Its index page (D-255), or `null`.
-	index: { id: string; title: string } | null;
+	index: { path: string; title: string } | null;
 	// How its entries credit people (D-353), in order.
 	people: PeopleFieldInfo[];
 	// The word its author archives sit under, `false` for none, or `null`
 	// for a type without URLs (D-329); and its authors page, or `null`.
 	authorsWord: string | false | null;
-	authorsPage: { id: string; title: string } | null;
+	authorsPage: { path: string; title: string } | null;
 	// The field sets attached to it (D-337), with how many fields each has.
 	sets: { name: string; label: string; fields: number }[];
 }
@@ -924,10 +926,13 @@ export interface FieldTypeCatalog {
 }
 
 /**
- * An entry for editing (`GET entries/{id}`, D-229).
+ * An entry for editing (`GET entries/{path}`, D-229).
  */
 export interface EntryDetail {
-	id: string;
+	// Its source path, which names it to the API, and its id (D-477),
+	// `null` while its file has no valid one.
+	path: string;
+	id: string | null;
 	handle: string | null;
 	// The last part of its key; renaming changes it (D-277).
 	slug: string;
@@ -974,9 +979,9 @@ export interface EntryDetail {
 	violations: Violation[];
 }
 
-// A new entry, described but not yet written (D-336): no file, so no id
-// or revision.
-export type NewEntryDetail = Omit<EntryDetail, 'id' | 'revision'> & { id: null; revision: null };
+// A new entry, described but not yet written (D-336): no file, so no
+// path, id, or revision.
+export type NewEntryDetail = Omit<EntryDetail, 'path' | 'revision'> & { path: null; revision: null };
 
 export interface Violation {
 	field: string;
@@ -989,7 +994,8 @@ export interface Violation {
  * at its `time`, both in the site's timezone. `today` is the site's date.
  */
 export interface CalendarEntry {
-	id: string;
+	path: string;
+	id: string | null;
 	handle: string | null;
 	title: string;
 	type: string;
@@ -1014,6 +1020,18 @@ export interface Health {
 	strict: boolean;
 	counts: { error: number; warning: number; notice: number | null };
 	files: { path: string; violations: Violation[] }[];
+	// Files missing a valid id, and ids files share (D-477), for fixing
+	// here (`POST health/ids`, `POST health/ids/keep`, D-478).
+	ids: { missing: string[]; duplicates: { id: string; paths: string[] }[] };
+}
+
+/**
+ * What fixing ids did: the new id of each file changed, by path, and
+ * why each file that couldn't be was left.
+ */
+export interface AssignedIds {
+	assigned: Record<string, string>;
+	failed: Record<string, string>;
 }
 
 /**
@@ -1063,7 +1081,7 @@ export interface MediaDetail extends MediaItem {
 	// What the account may do to it.
 	may: { edit: boolean; delete: boolean };
 	// The entries that use it: their document's path, title, and type.
-	usedIn: { id: string; title: string; type: string }[];
+	usedIn: { path: string; title: string; type: string }[];
 }
 
 export interface MediaList {
@@ -1097,21 +1115,21 @@ export class ApiError extends Error {
  * The editor's route for an entry: by its handle (`/content/post/hello`),
  * or by its path when it has none (D-253).
  */
-export function entryRoute(entry: { id: string; handle: string | null }): { name: string; params: Record<string, string | string[]> } {
+export function entryRoute(entry: { path: string; handle: string | null }): { name: string; params: Record<string, string | string[]> } {
 	if (entry.handle !== null) {
 		const [type = '', ...key] = entry.handle.split('/');
 
 		return { name: 'entry', params: { type, key } };
 	}
 
-	return { name: 'entry-file', params: { id: entry.id.split('/') } };
+	return { name: 'entry-file', params: { path: entry.path.split('/') } };
 }
 
 /**
- * The API path of an entry, from its id (its source path).
+ * The API path of an entry, from its source path.
  */
-export function entryPath(id: string): string {
-	return `/entries/${id.split('/').map(encodeURIComponent).join('/')}`;
+export function entryPath(path: string): string {
+	return `/entries/${path.split('/').map(encodeURIComponent).join('/')}`;
 }
 
 let csrfToken: string | null = null;

@@ -58,11 +58,24 @@ trait BuildsContentSite
 	}
 
 	/**
-	 * Writes a content file with front matter.
+	 * Writes a content file with front matter, starting with an id made
+	 * from its path (D-477) unless the front matter has its own `id`.
 	 */
 	private function entry(string $path, string $frontMatter, string $body = ''): void
 	{
-		$this->writeTemporaryFile("user/content/{$path}", "---\n{$frontMatter}\n---\n{$body}");
+		$id = preg_match('/^id:/m', $frontMatter) === 1 ? '' : 'id: ' . self::idFor($path) . "\n";
+
+		$this->writeTemporaryFile("user/content/{$path}", "---\n{$id}{$frontMatter}\n---\n{$body}");
+	}
+
+	/**
+	 * Returns a UUID made from a path, the same every time.
+	 */
+	private static function idFor(string $path): string
+	{
+		$hex = md5($path);
+
+		return sprintf('%s-%s-%s-%s-%s', substr($hex, 0, 8), substr($hex, 8, 4), substr($hex, 12, 4), substr($hex, 16, 4), substr($hex, 20, 12));
 	}
 
 	/**
@@ -103,7 +116,7 @@ trait BuildsContentSite
 		$this->entry('topics/art.md', 'title: Art');
 		$this->entry('profiles/justintadlock.md', 'title: Justin Tadlock', 'Writes things.');
 		$this->entry('profiles/guest.md', 'title: A Guest');
-		$this->writeTemporaryFile('user/content/notes.json', '{"title": "Notes", "body": "Some *notes*."}');
+		$this->writeTemporaryFile('user/content/notes.json', '{"title": "Notes", "body": "Some *notes*.", "id": "' . self::idFor('notes.json') . '"}');
 		$this->writeTemporaryFile('user/content/_posts/hello/photo.jpg', 'not content');
 	}
 
