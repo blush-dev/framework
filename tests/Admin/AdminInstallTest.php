@@ -49,7 +49,7 @@ final class AdminInstallTest extends TestCase
 	 *
 	 * @param list<string> $roles
 	 */
-	private function site(array $roles = ['administrator']): void
+	private function site(array $roles = ['owner']): void
 	{
 		$this->writeTemporaryFile('extensions/fixture/recipes/plugin.json', (string) json_encode(['name' => 'fixture/recipes', 'label' => 'Recipes', 'namespace' => 'recipes', 'version' => '1.0.0', 'provider' => self::PROVIDER]));
 		$this->writeTemporaryFile('config/auth.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn new Blush\\Auth\\AuthConfig(roles: [new Blush\\Auth\\Role('installer', 'Installer', ['extensions.plugins.view', 'extensions.plugins.install'])]);\n");

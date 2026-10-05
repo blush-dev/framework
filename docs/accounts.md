@@ -8,13 +8,13 @@ a **profile**: its public side on the site.
 
 ## Creating accounts
 
-`bin/blush init` offers to create the first account, an administrator,
-when there are none. After that, create them in [the admin](admin.md#accounts-and-roles)
+`bin/blush init` offers to create the first account, the site's
+[owner](#owners), when there are none. After that, create them in [the admin](admin.md#accounts-and-roles)
 (**Users → Accounts → New Account**), or with the `account:*`
 commands:
 
 ```sh
-bin/blush account:add jane --email=jane@example.com     # an administrator
+bin/blush account:add jane --email=jane@example.com     # the owner, on a site without one
 bin/blush account:add sam --email=sam@example.com --role=author --author=sam --name="Sam Smith"
 bin/blush account:list
 ```
@@ -26,7 +26,7 @@ Passwords must be at least 12 characters.
 
 | Command | What it does |
 |---|---|
-| `account:add <username>` | Create an account. `--email=` (asked for when left out), `--role=` (repeat for more; administrator by default), `--author=` (its profile; see [Profiles](#profiles)), and `--name=` (see [Names](#names)) |
+| `account:add <username>` | Create an account. `--email=` (asked for when left out), `--role=` (repeat for more; owner while the site has none, else administrator), `--author=` (its profile; see [Profiles](#profiles)), and `--name=` (see [Names](#names)) |
 | `account:list` | List the accounts, their names, emails, roles, and authors, and when each last signed in |
 | `account:password <username>` | Set a new password, which signs the account out everywhere |
 | `account:roles <username> --role=…` | Replace an account's roles |
@@ -131,7 +131,8 @@ An account can do anything any of its roles allows.
 
 | Role | Can |
 |---|---|
-| `administrator` | Everything, including managing accounts and site settings |
+| `owner` | Everything, always, including what plugins add; only an owner changes an owner (see [Owners](#owners)) |
+| `administrator` | Everything built in but installing, updating, and deleting plugins and themes: accounts, roles, settings, and every entry |
 | `editor` | Create, edit, publish, and delete anyone's entries; manage media, menus, and regions; publish the site; clear caches |
 | `author` | Create, edit, publish, and delete their own entries; upload media |
 | `contributor` | Create and edit their own drafts, but never publish |
@@ -200,7 +201,8 @@ and (except for pictures) `data:` addresses, in HTML or in a Markdown
 link. Use a [component](components.md) for embeds and icons. Without
 either capability, no HTML can be added. Only what a save adds counts,
 so anyone who can edit an entry can change its words, or take HTML out.
-Administrators have `html.unfiltered`, and Editors `html.allowed`.
+Owners and Administrators have `html.unfiltered`, and Editors
+`html.allowed`.
 
 The rest are for the whole site:
 
@@ -231,24 +233,49 @@ deleting plugins):
 | `extensions.{kind}.delete` | Deleting them, and discarding a kept version |
 
 Use `*` for the kind to grant it on every kind: `extensions.*.view`.
-Only the Administrator has them built in.
+Only the Owner and the Administrator have them built in, and the
+Administrator doesn't install, update, or delete plugins or themes:
+those put code on the site, and code can do anything, so whoever has
+them can do anything an owner can. Give them to an Administrator only
+if you'd make them an owner.
 
-Plugins can add their own.
+Plugins can add their own. The Owner has them as soon as they're
+added; give them to other roles yourself, the Administrator included.
 
 ### Your own roles
 
 Make roles in the admin (**Users → Roles → New Role**), or start one
 from an existing role with **Duplicate**. The admin can also change
-what the built-in Editor, Author, and Contributor can do (and reset
-them), but never the Administrator, who can always do everything. Roles
+what the built-in Administrator, Editor, Author, and Contributor can
+do (and reset them), but never the Owner, who can always do
+everything. Roles
 made or changed in the admin are kept in `storage/roles.json`, beside
 the accounts and, like them, out of git.
 
 Some rules keep this safe: nobody can give a role or a capability they
 don't have themselves, change an account that can do more than they
-can, or change their own account; and a change that would leave no
+can, or change their own account; only an owner can change an owner's
+account or give the Owner role; and a change that would leave no
 account (that isn't suspended) with all seven `accounts.*` and
 `roles.manage` capabilities is refused.
+
+### Owners
+
+The **Owner** role always has every capability, including those
+plugins add later, and only an owner can change an owner's account
+(its roles, standing, details, and password links) or make another
+owner. Since nobody changes their own account, an owner can't be
+suspended, removed, or demoted by anyone but another owner, and the
+last one can't be at all. So you can give someone **Administrator**,
+to run the site, and still never be locked out of it. Neither the
+admin nor `config/auth.php` can change the Owner role.
+
+A new site's first account is its owner. A site from before owners
+has none, and `bin/blush doctor` warns of it. Make one with
+`bin/blush account:roles jane --role=owner`, or, without a shell, from
+the admin: anyone who can do all an Administrator can sees **Make me
+the owner** on [Your Account](admin.md#your-account) while the site
+has no owner, and can give the role to others until it has one.
 
 Developers can also define roles in `config/auth.php`:
 

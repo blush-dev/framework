@@ -3787,6 +3787,7 @@ decision, add a new entry that supersedes it and mark the old one
 
 ### D-217: Account, role, and first-account details (planned)
 - **Date:** 2026-09-29
+- **Status:** The built-in roles partially superseded by D-500 (an owner with `*`; the administrator a list).
 - **Decision:** Settles D-216's open details.
   - **Storage:** `storage/accounts/{username}.json` (password hash,
     optional author, roles, created and last-login times; passkeys
@@ -7508,6 +7509,7 @@ decision, add a new entry that supersedes it and mark the old one
 
 ### D-312: Editing accounts and roles in the admin
 - **Date:** 2026-09-30
+- **Status:** "Not the administrator's" capabilities superseded by D-500: the owner's and the member's aren't editable; the administrator's are.
 - **Decision:** The Accounts and Roles screens (D-249) edit what they
   show. Refines D-217's roles: custom roles and changes to the built-ins
   may also be made in the admin, kept outside git; `config/auth.php`
@@ -14849,3 +14851,55 @@ decision, add a new entry that supersedes it and mark the old one
     separate.
 - **Done:** `docs/media.md`, `docs/admin.md`, `docs/cli.md`.
 - **Checked:** `composer check` (`AdminPickersTest`, `MediaTest`).
+
+### D-500: An owner role above the administrator
+- **Date:** 2026-10-05
+- **Decision:** the author's call, so a site's owner (or agency, or
+  developer) can give someone Administrator and never be locked out by
+  them. Supersedes D-217's administrator (`*`) and D-312's "the
+  administrator isn't editable".
+  - **`BuiltInRole::Owner`** (`owner`, first of the built-ins) has `*`,
+    and `*` still reaches every capability (the author's call, over
+    `*` skipping the code capabilities). Like the member, neither the
+    admin nor `config/auth.php` changes it
+    (`BuiltInRole::isFixed()`, `Roles`, `RoleOrigin::editable()`).
+  - **The administrator is a list** (the author's call, over keeping
+    `*`), editable and resettable like the other built-ins: every
+    content action on `content.*`, `media.*.upload`, every
+    `Capability`, and every extension action but installing, updating,
+    and deleting plugins and themes (`ExtensionAction::changesCode()`:
+    code can do anything, so whoever holds them can do what an owner
+    can). Icon packs have no code, so it keeps theirs. Capabilities a
+    plugin adds reach only the owner until someone gives them out.
+  - **`PeopleRules`:** only an owner changes an owner's account
+    (`manages()`) or gives the owner role (`mayGrant()`), whatever
+    another role holds. With "not yourself", the last owner can't be
+    taken away in the admin, so "someone stays in charge" is unchanged.
+    Administrators still manage each other (equal capabilities).
+  - **The first owner:** `init` and `account:add` (without `--role`)
+    make the owner while the site has none (`Accounts::hasOwner()`: an
+    owner that isn't suspended), else an administrator. Existing sites
+    aren't changed: `doctor` warns of accounts with no owner, and
+    `account:roles … --role=owner` makes one. Without a shell, while
+    there's no owner, an account that can do all the built-in
+    administrator can may give the role (`PeopleRules::mayClaim()`),
+    and make itself the owner: `PATCH accounts/{own username}` with only
+    `roles`, adding `owner` (`AccountEditController::ownClaim()`).
+    `GET accounts` says whether the viewer may (`claimable`); Your
+    Account offers **Make me the owner** then.
+  - **The admin:** the owner's role screen is the "Everything"
+    statement (not editable), saying only an owner gives it; the
+    administrator's is the capability sections. Role checks say "Only
+    an owner gives or takes it" on the owner for anyone else, and an
+    owner's account screen says why it's read-only. Wording that named
+    "another administrator" says someone who manages accounts.
+  - **The jtcom trial:** `justintadlock` is now `owner` (the author's
+    request).
+- **Done:** `docs/accounts.md` (an Owners section), `docs/admin.md`,
+  `docs/cli.md`, `docs/extending.md`, `docs/installation.md`;
+  `.claude/docs/cli.md`, `architecture.md`.
+- **Checked:** `composer check` (`AdminPeopleEditTest`: only an owner
+  changes an owner, an owner changes anyone, naming the first owner,
+  an editor-like manager can't, an owner changes and resets the
+  administrator; `PermissionsTest`, `AccountsTest`,
+  `AccountCommandsTest`); `npm run admin:build`; `doctor` on the trial.

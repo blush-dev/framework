@@ -22,8 +22,9 @@ use Blush\Media\MediaKind;
  * (`MediaKind::uploadCapability()`, D-407), each kind of extension's
  * (`ExtensionAction`, D-389), plus any a plugin registers from its
  * provider's `boot()`, and each content type's (`ContentAction`, D-359),
- * which follow the site's types. The administrator role's `*` grants all
- * of them, and the admin lists them by group.
+ * which follow the site's types. The owner's `*` (and the
+ * administrator's, until an owner changes it) grants all of them, and
+ * the admin lists them by group.
  */
 final class Capabilities
 {

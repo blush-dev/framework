@@ -26,8 +26,8 @@ bin/blush init
 them to a new `.env` file, with a secret for signing
 [preview links](admin.md#previewing-drafts). It also asks whether to turn on the
 [publish webhook](going-live.md#publishing-without-a-shell), and creates the
-`storage/` folders Blush writes to, and offers to create an administrator
-account for the admin (see [Accounts and roles](accounts.md)). It's safe
+`storage/` folders Blush writes to, and offers to create the site's
+owner account for the admin (see [Accounts and roles](accounts.md)). It's safe
 to run again: it never changes a `.env` you already have, except to add
 missing secrets.
 

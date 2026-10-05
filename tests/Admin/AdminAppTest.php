@@ -199,7 +199,7 @@ final class AdminAppTest extends TestCase
 
 	public function testExtensionsAddActionsInPhp(): void
 	{
-		$this->boot(roles: ['administrator']);
+		$this->boot(roles: ['owner']);
 
 		$container = $this->app->container();
 		$container->make(Capabilities::class)->register('shop.greet', 'Greet people');

@@ -22,6 +22,7 @@ use Blush\Admin\RoleEditController;
 use Blush\Admin\SetPasswordController;
 use Blush\Auth\Accounts;
 use Blush\Auth\AccountStore;
+use Blush\Auth\BuiltInRole;
 use Blush\Auth\PasswordLink;
 use Blush\Auth\RoleEditor;
 
@@ -347,17 +348,92 @@ final class AdminPeopleEditTest extends TestCase
 		$this->assertSame(422, $this->write('DELETE', '/roles/editor')->getStatusCode(), 'Nothing to reset.');
 	}
 
-	public function testLeavesTheAdministratorAndConfigRolesAlone(): void
+	public function testLeavesTheOwnerMemberAndConfigRolesAlone(): void
 	{
 		$this->site();
 
-		$this->assertSame(422, $this->write('PATCH', '/roles/administrator', ['capabilities' => []])->getStatusCode());
+		$this->assertSame(422, $this->write('PATCH', '/roles/owner', ['capabilities' => []])->getStatusCode());
+		$this->assertSame(422, $this->write('PATCH', '/roles/member', ['capabilities' => ['media.edit']])->getStatusCode());
 		$this->assertSame(422, $this->write('PATCH', '/roles/manager', ['capabilities' => []])->getStatusCode());
 		$this->assertSame(422, $this->write('DELETE', '/roles/manager')->getStatusCode());
 		$this->assertSame(400, $this->write('POST', '/roles', ['name' => 'all', 'label' => 'All', 'capabilities' => ['*']])->getStatusCode());
 		$this->assertSame(422, $this->write('POST', '/roles', ['name' => 'odd', 'label' => 'Odd', 'capabilities' => ['no.such.thing']])->getStatusCode());
 		$this->assertSame(422, $this->write('POST', '/roles', ['name' => 'new', 'label' => 'New', 'capabilities' => []])->getStatusCode(), 'The New Role screen is roles/new.');
 		$this->assertSame('', $this->file('storage/roles.json'));
+	}
+
+	public function testOnlyAnOwnerChangesAnOwner(): void
+	{
+		$this->site();
+		$this->accounts()->create('olive', self::OTHER, ['owner'], email: 'olive@example.test');
+		$this->accounts()->create('ada', self::OTHER, ['administrator'], email: 'ada@example.test');
+
+		$accounts = self::json($this->send('GET', '/accounts'));
+
+		$this->assertFalse($accounts['claimable'] ?? null, 'The site has an owner (D-500).');
+		$this->assertSame(403, $this->write('PATCH', '/accounts/olive', ['suspended' => true])->getStatusCode());
+		$this->assertSame(403, $this->write('PATCH', '/accounts/olive', ['roles' => ['administrator']])->getStatusCode());
+		$this->assertSame(403, $this->write('DELETE', '/accounts/olive')->getStatusCode());
+		$this->assertSame(403, $this->write('POST', '/accounts/olive/link')->getStatusCode());
+		$this->assertSame(403, $this->write('PATCH', '/accounts/ada', ['roles' => ['owner']])->getStatusCode(), 'Only an owner makes an owner.');
+		$this->assertSame(403, $this->write('PATCH', '/accounts/jane', ['roles' => ['administrator', 'owner']])->getStatusCode(), 'Nor can you make yourself one.');
+		$this->assertSame(200, $this->write('PATCH', '/accounts/ada', ['suspended' => true])->getStatusCode(), 'Administrators still manage each other.');
+		$olive = $this->store()->find('olive');
+
+		$this->assertNotNull($olive);
+		$this->assertSame(['owner'], $olive->roles);
+		$this->assertFalse($olive->suspended);
+	}
+
+	public function testAnOwnerChangesAnyone(): void
+	{
+		$this->site(['owner']);
+		$this->accounts()->create('olive', self::OTHER, ['owner'], email: 'olive@example.test');
+		$this->accounts()->create('ada', self::OTHER, ['administrator'], email: 'ada@example.test');
+
+		$this->assertSame(200, $this->write('PATCH', '/accounts/ada', ['roles' => ['owner']])->getStatusCode());
+		$this->assertSame(200, $this->write('PATCH', '/accounts/olive', ['suspended' => true])->getStatusCode());
+		$this->assertSame(204, $this->write('DELETE', '/accounts/olive')->getStatusCode());
+		$this->assertSame(['owner'], $this->store()->find('ada')?->roles);
+	}
+
+	public function testNamesTheFirstOwner(): void
+	{
+		$this->site();
+		$this->accounts()->create('sam', self::OTHER, ['editor'], email: 'sam@example.test');
+
+		$this->assertTrue(self::json($this->send('GET', '/accounts'))['claimable'] ?? null, 'No owner yet (D-500).');
+		$this->assertSame(403, $this->write('PATCH', '/accounts/jane', ['roles' => ['owner']])->getStatusCode(), 'Only adding the owner role.');
+		$this->assertSame(403, $this->write('PATCH', '/accounts/jane', ['roles' => ['administrator', 'owner'], 'name' => 'Jane'])->getStatusCode());
+
+		$claimed = $this->write('PATCH', '/accounts/jane', ['roles' => ['owner', 'administrator']]);
+
+		$this->assertSame(200, $claimed->getStatusCode(), self::error($claimed));
+		$this->assertTrue($this->store()->find('jane')?->isOwner());
+		$this->assertFalse(self::json($this->send('GET', '/accounts'))['claimable'] ?? null);
+	}
+
+	public function testAnEditorCantNameTheFirstOwner(): void
+	{
+		$this->site(['manager']);
+
+		$this->assertFalse(self::json($this->send('GET', '/accounts'))['claimable'] ?? null, 'It can\'t do all an administrator can.');
+		$this->assertSame(403, $this->write('PATCH', '/accounts/jane', ['roles' => ['manager', 'owner']])->getStatusCode());
+	}
+
+	public function testAnOwnerChangesTheAdministrator(): void
+	{
+		$this->site(['owner']);
+
+		$changed = $this->write('PATCH', '/roles/administrator', ['capabilities' => [...BuiltInRole::Administrator->capabilities(), 'extensions.plugins.install']]);
+
+		$this->assertSame(200, $changed->getStatusCode(), self::error($changed));
+		$this->assertSame('changed', self::role($changed)['origin'] ?? null);
+		$capabilities = self::role($changed)['capabilities'] ?? null;
+
+		$this->assertIsArray($capabilities);
+		$this->assertContains('extensions.plugins.install', $capabilities);
+		$this->assertSame(BuiltInRole::Administrator->capabilities(), self::role($this->write('DELETE', '/roles/administrator'))['capabilities'] ?? null, 'Resetting puts its list back.');
 	}
 
 	public function testSomeoneCanAlwaysManageAccounts(): void

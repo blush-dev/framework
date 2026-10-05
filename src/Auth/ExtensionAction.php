@@ -42,6 +42,17 @@ enum ExtensionAction: string
 	}
 
 	/**
+	 * Whether the action changes the code a site runs on a kind:
+	 * installing, updating, or deleting a plugin or theme (D-500). The
+	 * administrator role leaves these out, since whoever holds them can
+	 * do anything an owner can. Icon packs have no code.
+	 */
+	public function changesCode(ExtensionKind $kind): bool
+	{
+		return $kind !== ExtensionKind::IconPack && ($this === self::Install || $this === self::Update || $this === self::Delete);
+	}
+
+	/**
 	 * Returns the action's capability on a kind.
 	 */
 	public function on(ExtensionKind $kind): string

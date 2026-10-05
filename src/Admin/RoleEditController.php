@@ -39,7 +39,7 @@ use Blush\Http\Status;
  *   making one).
  * - `PATCH roles/{name}`: any of `label`, `description`, and
  *   `capabilities` for a custom role; `capabilities` for a built-in
- *   other than the administrator.
+ *   other than the owner and the member (D-500).
  * - `DELETE roles/{name}`: deletes a custom role no account holds, or
  *   resets a changed built-in.
  *

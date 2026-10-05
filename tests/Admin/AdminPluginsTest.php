@@ -39,7 +39,7 @@ final class AdminPluginsTest extends TestCase
 	 *
 	 * @param list<string> $roles
 	 */
-	private function site(array $roles = ['administrator'], string $config = "enabled: ['fixture/recipes', 'acme/needy', 'acme/future']"): void
+	private function site(array $roles = ['owner'], string $config = "enabled: ['fixture/recipes', 'acme/needy', 'acme/future']"): void
 	{
 		$this->writeTemporaryFile('extensions/fixture/recipes/plugin.json', json_encode([
 			'name'        => 'fixture/recipes',

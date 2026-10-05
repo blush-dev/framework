@@ -2,13 +2,14 @@
 /**
  * An account's roles as checkboxes (D-312; the prototype's role list),
  * each with what it's for. A role you can't give (it can do things you
- * can't) is shown but can't be ticked or unticked. Member (D-365) is
+ * can't, or it's the owner and you aren't one, D-500) is shown but can't
+ * be ticked or unticked. Member (D-365) is
  * what holding nothing else means: ticking another role unticks it,
  * unticking the last one ticks it, and ticking it takes the rest.
  */
 
 import AdminIcon from './AdminIcon.vue';
-import { MEMBER, type RoleInfo } from '../people';
+import { MEMBER, OWNER, type RoleInfo } from '../people';
 
 const props = defineProps<{
 	roles: RoleInfo[];
@@ -42,7 +43,7 @@ function locked(role: RoleInfo): boolean {
 			<span class="role-check__text">
 				<span class="role-check__name">{{ role.label }}</span>
 				<span v-if="role.description" class="role-check__about">{{ role.description }}</span>
-				<span v-if="!role.grantable" class="role-check__about">It can do things you can't, so you can't give or take it.</span>
+				<span v-if="!role.grantable" class="role-check__about">{{ role.name === OWNER ? 'Only an owner gives or takes it.' : 'It can do things you can\'t, so you can\'t give or take it.' }}</span>
 			</span>
 		</label>
 	</div>

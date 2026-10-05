@@ -26,6 +26,8 @@
  *
  * Your own account, and an account that can do things you can't, are
  * shown without the controls (`PeopleRules`), with a note saying why.
+ * An owner's account is changed only by an owner (D-500); while the site
+ * has none, Your Account offers to make you the owner.
  */
 
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue';
@@ -41,7 +43,7 @@ import { config } from '../config';
 import { plural } from '../format';
 import { confirmAction } from '../confirm';
 import { slugOf } from '../references';
-import { freshLink, initials, loadAccounts, loadLinkable, loadRoles, makePasswordLink, removeAccount, statusPill, updateAccount, when, type AccountInfo, type LinkableProfile, type PasswordLink, type RoleInfo, type RoleList } from '../people';
+import { claimable, freshLink, initials, loadAccounts, loadLinkable, loadRoles, makePasswordLink, removeAccount, statusPill, updateAccount, when, OWNER, type AccountInfo, type LinkableProfile, type PasswordLink, type RoleInfo, type RoleList } from '../people';
 import { screenTitle } from '../screen';
 import { can, canType, loadSession, saveOwnDetails, session } from '../session';
 import { loadTypes, profileType } from '../types';
@@ -175,8 +177,40 @@ const rolesNote = computed(() => {
 		return 'Changes take effect when you save them, not as you tick.';
 	}
 
-	return mine.value ? 'Read-only, because it\'s your own account: another administrator changes your roles.' : 'Read-only, because you can\'t change this account\'s roles.';
+	return mine.value ? 'Read-only, because it\'s your own account: someone else who manages accounts changes your roles.' : 'Read-only, because you can\'t change this account\'s roles.';
 });
+
+// Making yourself the owner of a site that has none (D-500).
+const claimBusy  = ref(false);
+const claimError = ref('');
+
+async function claimOwner(): Promise<void> {
+	const current = account.value;
+
+	if (current === undefined || !await confirmAction({
+		title: 'Make Yourself the Owner?',
+		body: [
+			'An owner can do everything, always, and only an owner can change an owner\'s account or make another owner. Nobody else can suspend, remove, or demote you.',
+			'You keep the roles you have. Once the site has an owner, only owners can make more.'
+		],
+		confirm: 'Make me the owner'
+	})) {
+		return;
+	}
+
+	claimBusy.value  = true;
+	claimError.value = '';
+
+	try {
+		await updateAccount(current.username, { roles: [...current.roles, OWNER] });
+		await refresh();
+		toast('You\'re the site\'s owner');
+	} catch (caught) {
+		claimError.value = caught instanceof ApiError ? caught.message : 'You couldn\'t be made the owner.';
+	} finally {
+		claimBusy.value = false;
+	}
+}
 
 // The public profile (D-353): linked, linked but not yet public, linked
 // to a slug with no file, or none, with what each allows. Linking picks
@@ -426,7 +460,8 @@ function selectAll(event: Event): void {
 	(event.target as HTMLInputElement).select();
 }
 
-// The Actions menu: what an administrator does to the account as a whole.
+// The Actions menu: what someone who manages accounts does to the account
+// as a whole.
 const actionsBusy  = ref(false);
 const actionsError = ref('');
 const actions      = computed(() => {
@@ -441,7 +476,7 @@ async function setSuspended(suspended: boolean): Promise<void> {
 	if (current === undefined || (suspended && !await confirmAction({
 		title: `Suspend ${current.displayName}?`,
 		body: [
-			'They stay in the list and keep their roles, but they\'re signed out and can\'t sign in until an administrator reinstates them.',
+			'They stay in the list and keep their roles, but they\'re signed out and can\'t sign in until someone reinstates them.',
 			current.profile ? `Their profile stays as it is, and its **${plural(current.profile.uses, 'byline', 'bylines')}** are untouched: suspending an account is about signing in, not about the site.` : 'Suspending an account is about signing in, not about the site.'
 		],
 		confirm: 'Suspend the account'
@@ -630,7 +665,14 @@ async function changePassword(): Promise<void> {
 		<p v-if="actionsError" class="notice notice--error" role="alert">{{ actionsError }}</p>
 		<p v-if="linkError" class="notice notice--error" role="alert">{{ linkError }}</p>
 
-		<p v-if="account && mine" class="notice"><AdminIcon name="info" /><span class="notice__text"><strong>This is your account.</strong> It's the same screen anyone who manages accounts sees, with two differences: your password, email, and theme are yours to change, and your own roles and standing aren't. Another administrator changes those.</span></p>
+		<p v-if="account && mine" class="notice"><AdminIcon name="info" /><span class="notice__text"><strong>This is your account.</strong> It's the same screen anyone who manages accounts sees, with two differences: your password, email, and theme are yours to change, and your own roles and standing aren't. Someone else who manages accounts changes those.</span></p>
+		<div v-if="account && mine && claimable" class="notice notice--warn">
+			<AdminIcon name="shield" />
+			<span class="notice__text"><strong>This site has no owner.</strong> An owner can do everything, and only an owner can change an owner's account, so nobody can lock them out. You can make yourself the owner.</span>
+			<span class="notice__buttons"><button type="button" class="button button--small" :disabled="claimBusy" @click="claimOwner">{{ claimBusy ? 'Saving…' : 'Make me the owner' }}</button></span>
+		</div>
+		<p v-if="claimError" class="notice notice--error" role="alert">{{ claimError }}</p>
+		<p v-else-if="account && !account.manages && account.roles.includes(OWNER)" class="notice"><AdminIcon name="info" /><span class="notice__text"><strong>{{ account.displayName }} is an owner,</strong> and only an owner can change an owner's details, roles, standing, and profile.</span></p>
 		<p v-else-if="account && !account.manages" class="notice"><AdminIcon name="info" /><span class="notice__text"><strong>{{ account.displayName }} can do things you can't,</strong> so its details, roles, standing, and profile aren't yours to change.</span></p>
 
 		<div v-if="account && !account.email" class="notice notice--warn">

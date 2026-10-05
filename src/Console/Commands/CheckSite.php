@@ -13,6 +13,9 @@ declare(strict_types=1);
 
 namespace Blush\Console\Commands;
 
+use Blush\Auth\AccountStore;
+use Blush\Auth\Accounts;
+use Blush\Auth\AuthException;
 use Blush\Console\Attributes\Command;
 use Blush\Console\ExitCode;
 use Blush\Console\Output;
@@ -30,7 +33,8 @@ use Blush\Setup\SetupChecks;
  * check fails, so deploy scripts can run it too. It also warns of
  * extensions that are on but can't run, since their requirements aren't
  * met (D-431): an active theme whose chain falls back to the default
- * theme, and plugins and icon packs that are on but don't run.
+ * theme, and plugins and icon packs that are on but don't run. And it
+ * warns of a site with accounts but no owner (D-500).
  *
  * It runs under the command line's PHP, which may not be the web
  * server's: a different version, extensions, `php.ini`, or user. So it
@@ -42,12 +46,14 @@ final readonly class CheckSite
 	public function __construct(
 		private SetupChecks $checks,
 		private AppConfig $app,
-		private ExtensionState $extensions
+		private ExtensionState $extensions,
+		private AccountStore $store,
+		private Accounts $accounts
 	) {}
 
 	public function __invoke(Output $output): ExitCode
 	{
-		$results = [...$this->checks->all($this->app), ...$this->extensions()];
+		$results = [...$this->checks->all($this->app), ...$this->extensions(), ...$this->owner()];
 
 		foreach ($results as $result) {
 			$output->line(sprintf(
@@ -79,6 +85,28 @@ final readonly class CheckSite
 		$output->success($summary);
 
 		return ExitCode::Success;
+	}
+
+	/**
+	 * Warns when the site has accounts but no owner that isn't suspended
+	 * (D-500), since only an owner is sure to keep the site; fails when
+	 * the accounts can't be read. Says nothing without accounts.
+	 *
+	 * @return list<CheckResult>
+	 */
+	private function owner(): array
+	{
+		try {
+			if ($this->store->isEmpty()) {
+				return [];
+			}
+
+			return [$this->accounts->hasOwner()
+				? CheckResult::pass('Owner', 'The site has an owner.')
+				: CheckResult::warning('Owner', 'No account is the site\'s owner, so administrators can lock each other out.', sprintf('Run "%s account:roles {username} --role owner", or make yourself the owner on Your Account in the admin.', Framework::BINARY))];
+		} catch (AuthException $e) {
+			return [CheckResult::failure('Accounts', $e->getMessage())];
+		}
 	}
 
 	/**

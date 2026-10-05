@@ -19,7 +19,7 @@ for even more), `-q` for errors only, `-n` to never ask questions, and
 | Command | What it does |
 |---|---|
 | `init` | Set up a new site: create `.env` (asking for the basics) with an `APP_SECRET`, create the `storage/` folders, report any Blush can't write to, and offer to create the first admin account. `--webhook` adds a `PUBLISH_SECRET`, which turns on the publish webhook. Safe to run again; it never changes an existing `.env` except to add missing secrets. |
-| `doctor` | Check that the site is set up to run: PHP and its extensions, `.env`, risky production settings, `public/`, and writable storage. Fails when something needs fixing. It also warns of extensions that are on but can't run: an active theme whose [requirements](extending.md#requirements) aren't met (so the default theme shows), and plugins and icon packs that are on but don't run. |
+| `doctor` | Check that the site is set up to run: PHP and its extensions, `.env`, risky production settings, `public/`, and writable storage. Fails when something needs fixing. It also warns of extensions that are on but can't run: an active theme whose [requirements](extending.md#requirements) aren't met (so the default theme shows), and plugins and icon packs that are on but don't run, and a site with accounts but no [owner](accounts.md#owners). |
 
 ## Accounts
 
@@ -27,7 +27,7 @@ See [Accounts and roles](accounts.md) and [The admin](admin.md).
 
 | Command | What it does |
 |---|---|
-| `account:add <username>` | Create an admin account, asking for its email address (unless `--email=` gives it) and password. `--role=` (repeat for more; administrator by default) `--author=` (its profile, which no other account may have), offering to create the profile when it has none, and `--name=` |
+| `account:add <username>` | Create an admin account, asking for its email address (unless `--email=` gives it) and password. `--role=` (repeat for more; owner while the site has none, else administrator) `--author=` (its profile, which no other account may have), offering to create the profile when it has none, and `--name=` |
 | `account:list` | List the accounts with their names, emails, roles, authors, and last sign-in |
 | `account:password <username>` | Set an account's password, signing it out everywhere |
 | `account:roles <username> --role=…` | Replace an account's roles |

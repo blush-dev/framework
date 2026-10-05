@@ -206,6 +206,14 @@ final readonly class Account
 	}
 
 	/**
+	 * Whether the account holds the owner role (D-500).
+	 */
+	public function isOwner(): bool
+	{
+		return in_array(BuiltInRole::Owner->value, $this->roles, true);
+	}
+
+	/**
 	 * Returns where the account stands.
 	 */
 	public function status(): AccountStatus

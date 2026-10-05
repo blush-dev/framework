@@ -66,7 +66,7 @@ final class Roles
 		foreach ($this->store->all() as $role) {
 			$builtIn = BuiltInRole::tryFrom($role->name);
 
-			if ($builtIn === BuiltInRole::Administrator || $builtIn === BuiltInRole::Member) {
+			if ($builtIn?->isFixed() === true) {
 				continue;
 			}
 
@@ -77,8 +77,9 @@ final class Roles
 		}
 
 		foreach ($this->config->roles as $role) {
-			// The member never has a capability (D-365), even from config.
-			if ($role->name === BuiltInRole::Member->value) {
+			// The owner always has every capability and the member none
+			// (D-500, D-365), even from config.
+			if (BuiltInRole::tryFrom($role->name)?->isFixed() === true) {
 				continue;
 			}
 

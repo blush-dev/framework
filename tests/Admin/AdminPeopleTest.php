@@ -46,12 +46,18 @@ final class AdminPeopleTest extends TestCase
 
 		$answer = self::json($this->send('GET', '/roles'));
 
-		$this->assertSame(['*'], $this->role($answer, 'administrator')['capabilities'] ?? null);
+		$this->assertSame(['*'], $this->role($answer, 'owner')['capabilities'] ?? null);
+		$administrator = $this->role($answer, 'administrator')['capabilities'] ?? null;
+
+		$this->assertIsArray($administrator);
+		$this->assertNotContains('*', $administrator, 'The administrator has a list (D-500).');
 		$this->assertSame([['username' => 'jane', 'displayName' => 'jane']], $this->role($answer, 'administrator')['accounts'] ?? null);
 		$this->assertSame([['username' => 'sam', 'displayName' => 'Sam Smith']], $this->role($answer, 'author')['accounts'] ?? null);
 		$this->assertTrue($this->role($answer, 'author')['builtIn'] ?? null);
 		$this->assertSame(['label' => 'Reviewer', 'description' => '', 'capabilities' => ['content.*.edit.others'], 'builtIn' => false, 'origin' => 'config', 'accounts' => [['username' => 'sam', 'displayName' => 'Sam Smith']], 'grantable' => true, 'editable' => false], array_diff_key($this->role($answer, 'reviewer'), ['name' => true]));
-		$this->assertFalse($this->role($answer, 'administrator')['editable'] ?? null, 'The administrator always has everything.');
+		$this->assertFalse($this->role($answer, 'owner')['editable'] ?? null, 'The owner always has everything.');
+		$this->assertTrue($this->role($answer, 'owner')['grantable'] ?? null, 'With no owner yet, an administrator may name one.');
+		$this->assertTrue($this->role($answer, 'administrator')['editable'] ?? null);
 		$this->assertTrue($this->role($answer, 'editor')['editable'] ?? null);
 		$this->assertNotSame('', $this->role($answer, 'editor')['description'] ?? '');
 		$capabilities = is_array($answer['capabilities'] ?? null) ? $answer['capabilities'] : [];

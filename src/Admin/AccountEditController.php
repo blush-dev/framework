@@ -42,7 +42,8 @@ use Blush\Http\Status;
  *   (`201`) is the `account` and its `link`: the `url` to send and when
  *   it `expires`. The link's token is in the URL's fragment, so it never
  *   reaches a server log, and it's shown this once.
- * - `PATCH accounts/{username}` (your own only for `author`, D-373):
+ * - `PATCH accounts/{username}` (your own only for `author`, D-373, and
+ *   for making yourself the owner of a site that has none, D-500):
  *   any of `roles` (`accounts.roles`),
  *   `author` (`null` unlinks), `name` (`null` or empty takes it
  *   away, D-322), and `email` (D-370; all three `accounts.edit`), and `suspended`
@@ -148,7 +149,7 @@ final readonly class AccountEditController
 		}
 
 		$input   = self::input($request);
-		$account = $this->ownLink($actor, $username, $input) ?? $this->target($actor, $username);
+		$account = $this->ownLink($actor, $username, $input) ?? $this->ownClaim($actor, $username, $input) ?? $this->target($actor, $username);
 
 		if ($account instanceof ResponseInterface) {
 			return $account;
@@ -276,6 +277,35 @@ final readonly class AccountEditController
 	}
 
 	/**
+	 * Returns the actor's own account when the change is only adding the
+	 * owner role to its roles while the site has no owner (D-500), else
+	 * `null`, for `target()` to decide.
+	 *
+	 * @param  array<mixed> $input
+	 * @throws AuthException When an account's record is damaged.
+	 */
+	private function ownClaim(Account $actor, string $username, array $input): ?Account
+	{
+		if ($username !== $actor->username || array_keys($input) !== ['roles'] || $actor->isOwner()) {
+			return null;
+		}
+
+		$roles = self::strings($input['roles']);
+		$owner = Accounts::settle([...$actor->roles, BuiltInRole::Owner->value]);
+
+		if ($roles === null) {
+			return null;
+		}
+
+		$roles = Accounts::settle($roles);
+
+		sort($roles);
+		sort($owner);
+
+		return $roles === $owner && $this->rules->mayClaim($actor) ? $actor : null;
+	}
+
+	/**
 	 * Returns the account to change, or the refusal.
 	 */
 	private function target(Account $actor, string $username): Account|ResponseInterface
@@ -283,10 +313,11 @@ final readonly class AccountEditController
 		$account = $this->store->find($username);
 
 		return match (true) {
-			$account === null                         => self::error(sprintf('There\'s no "%s" account.', $username), Status::NotFound),
-			$account->username === $actor->username   => self::error('You can\'t change your own account here. Your password is on Your profile; another administrator can change the rest.', Status::Forbidden),
-			! $this->rules->manages($actor, $account) => self::error(sprintf('%s can do things you can\'t, so you can\'t change it.', $account->username), Status::Forbidden),
-			default                                   => $account
+			$account === null                          => self::error(sprintf('There\'s no "%s" account.', $username), Status::NotFound),
+			$account->username === $actor->username    => self::error('You can\'t change your own account here. Your password is on Your profile; someone else who manages accounts can change the rest.', Status::Forbidden),
+			$account->isOwner() && ! $actor->isOwner() => self::error(sprintf('%s is an owner, and only an owner can change an owner\'s account.', $account->username), Status::Forbidden),
+			! $this->rules->manages($actor, $account)  => self::error(sprintf('%s can do things you can\'t, so you can\'t change it.', $account->username), Status::Forbidden),
+			default                                    => $account
 		};
 	}
 
@@ -309,7 +340,9 @@ final readonly class AccountEditController
 			$role = $this->roles->get($name);
 
 			if ($role !== null && ! $this->rules->mayGrant($actor, $role)) {
-				return self::error(sprintf('You can\'t give the %s role: it can do things you can\'t.', $role->label), Status::Forbidden, 'roles');
+				return self::error($name === BuiltInRole::Owner->value
+					? sprintf('Only an owner can give the %s role.', $role->label)
+					: sprintf('You can\'t give the %s role: it can do things you can\'t.', $role->label), Status::Forbidden, 'roles');
 			}
 		}
 

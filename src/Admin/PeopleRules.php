@@ -14,6 +14,9 @@ declare(strict_types=1);
 namespace Blush\Admin;
 
 use Blush\Auth\Account;
+use Blush\Auth\Accounts;
+use Blush\Auth\AuthException;
+use Blush\Auth\BuiltInRole;
 use Blush\Auth\Capabilities;
 use Blush\Auth\Capability;
 use Blush\Auth\Permissions;
@@ -34,6 +37,12 @@ use Blush\Auth\Roles;
  * - **Someone stays in charge:** after any change, an account that isn't
  *   suspended still has every capability for managing accounts and
  *   roles (`Capability::users()`).
+ * - **Owners (D-500):** only an owner changes an owner's account or gives
+ *   the owner role, whatever another role has been given. Since nobody
+ *   changes their own account, the last owner is never taken away here.
+ *   While a site has no owner (one that isn't suspended), an account that
+ *   can do all the built-in administrator can may name one, itself
+ *   included (`mayClaim()`), so a site without a shell can get one.
  *
  * The `account:*` commands don't ask: whoever runs them has the site.
  */
@@ -41,24 +50,32 @@ final readonly class PeopleRules
 {
 	public function __construct(
 		private Permissions $permissions,
-		private Capabilities $capabilities
+		private Capabilities $capabilities,
+		private Accounts $accounts
 	) {}
 
 	/**
-	 * Whether an account may change another: not itself, and not one that
-	 * can do more.
+	 * Whether an account may change another: not itself, not an owner
+	 * unless it's one, and not one that can do more.
 	 */
 	public function manages(Account $actor, Account $account): bool
 	{
 		return $actor->username !== $account->username
+			&& (! $account->isOwner() || $actor->isOwner())
 			&& array_diff($this->permissions->capabilities($account), $this->permissions->capabilities($actor)) === [];
 	}
 
 	/**
-	 * Whether an account has every registered capability a role grants.
+	 * Whether an account may give a role: it has every registered
+	 * capability the role grants, and the owner role only as an owner, or
+	 * while the site has none (`mayClaim()`).
 	 */
 	public function mayGrant(Account $actor, Role $role): bool
 	{
+		if ($role->name === BuiltInRole::Owner->value) {
+			return $actor->isOwner() || $this->mayClaim($actor);
+		}
+
 		return $this->mayGrantAll($actor, array_values(array_filter(
 			array_keys($this->capabilities->all()),
 			static fn (string $capability): bool => $role->allows($capability)
@@ -79,6 +96,20 @@ final readonly class PeopleRules
 			$capabilities,
 			fn (string $capability): bool => ! $this->capabilities->has($capability) || in_array($capability, $has, true)
 		);
+	}
+
+	/**
+	 * Whether an account may name the site's first owner (itself or
+	 * another): the site has none, and the account can do all the
+	 * built-in administrator can.
+	 *
+	 * @throws AuthException When an account's record is damaged.
+	 */
+	public function mayClaim(Account $actor): bool
+	{
+		return ! $actor->suspended
+			&& $this->mayGrantAll($actor, BuiltInRole::Administrator->capabilities())
+			&& ! $this->accounts->hasOwner();
 	}
 
 	/**

@@ -22,6 +22,15 @@ export interface CapabilityInfo {
 // a capability (D-365).
 export const MEMBER = 'member';
 
+// The role that always has everything, and that only an owner gives or
+// changes the accounts of (D-500).
+export const OWNER = 'owner';
+
+// Whether you may name the site's first owner, yourself included: it has
+// none, and you can do all an administrator can (D-500). Set by
+// `loadAccounts()`.
+export const claimable = ref(false);
+
 // The profile picker's choice for making a new profile (D-369): a slug
 // never has a ":".
 export const NEW_PROFILE = ':new';
@@ -180,7 +189,11 @@ export function loadRoles(): Promise<RoleList> {
 }
 
 export async function loadAccounts(): Promise<AccountInfo[]> {
-	return (await request<{ accounts: AccountInfo[] }>('GET', '/accounts')).accounts;
+	const answer = await request<{ accounts: AccountInfo[]; claimable: boolean }>('GET', '/accounts');
+
+	claimable.value = answer.claimable;
+
+	return answer.accounts;
 }
 
 /**

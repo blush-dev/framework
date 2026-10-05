@@ -1009,7 +1009,7 @@ Implemented in M6a (D-127 to D-130), apart from publishing (M6b).
   - `Blush\Admin`: `AdminConfig` and the JSON API under
     `{path}/api`: `GET session`, `POST login`, `POST logout`.
   - CLI: `account:add|list|password|roles|name|email|author|suspend|reinstate|remove`;
-    `init` offers the first administrator.
+    `init` offers the first account, the owner (D-500).
   - The admin edits accounts and roles (D-312): `AccountEditController`
     (new accounts with a one-time `PasswordLink`, roles, author,
     suspension, removal), `RoleEditController`, and the public

@@ -364,6 +364,16 @@ final readonly class Accounts
 	}
 
 	/**
+	 * Whether the site has an owner (D-500) that isn't suspended.
+	 *
+	 * @throws AuthException When an account's record is damaged.
+	 */
+	public function hasOwner(): bool
+	{
+		return array_any($this->store->all(), static fn (Account $account): bool => $account->isOwner() && ! $account->suspended);
+	}
+
+	/**
 	 * Returns the roles an account holds (D-365): each once, and the
 	 * member only when there's nothing else, so an account always has a
 	 * role and the member is what having none means.

@@ -47,7 +47,7 @@ use Blush\Support\FilesystemException;
  *    webhook stays off otherwise, since it runs publishing on request.
  * 3. Creates the storage folders and reports any Blush can't write to.
  * 4. In a terminal, while there are no accounts, offers to create an
- *    administrator (D-217).
+ *    owner (D-217, D-500).
  *
  * The skeleton runs it after `composer create-project`.
  */
@@ -130,13 +130,13 @@ final readonly class SetUpSite
 	}
 
 	/**
-	 * Offers to create the first account, an administrator.
+	 * Offers to create the first account, the owner (D-500).
 	 *
 	 * @throws InvalidInput
 	 */
 	private function offerAccount(Output $output, Prompt $prompt): void
 	{
-		if (! $prompt->confirm('Create an administrator account for the admin?', true)) {
+		if (! $prompt->confirm('Create an owner account for the admin?', true)) {
 			return;
 		}
 
@@ -150,7 +150,7 @@ final readonly class SetUpSite
 
 		try {
 			$password = $prompt->newSecret('Password:', 'Password again:', $this->manager->passwordProblem(...));
-			$this->manager->create($username, $password, [BuiltInRole::Administrator->value], email: $email);
+			$this->manager->create($username, $password, [BuiltInRole::Owner->value], email: $email);
 		} catch (AuthException $e) {
 			$output->error($e->getMessage());
 

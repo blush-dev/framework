@@ -86,7 +86,7 @@ Implemented in M2 (D-065, D-069).
 | `schedule:run` | Optional cron entry: move the content version on at go-live times and prune the store (D-040, D-133) |
 | `bench` | Run the performance suite (dev only, D-044). For now it's `composer bench` in the framework (D-101) |
 | `init [--webhook]` | Create `.env` from `.env.example` (asking for name, URL, timezone, and environment in a terminal), optionally add a `PUBLISH_SECRET`, create the storage folders, and report unwritable ones; idempotent (D-218) |
-| `account:add <username> [--email] [--role]... [--author] [--name]` | Create an account, asking for the email when `--email` is left out and twice for the password (needs a terminal); administrator by default (D-219, D-322, D-370) |
+| `account:add <username> [--email] [--role]... [--author] [--name]` | Create an account, asking for the email when `--email` is left out and twice for the password (needs a terminal); owner while the site has none, else administrator (D-219, D-322, D-370, D-500) |
 | `account:list` | Accounts with name, email, roles (unknown ones flagged), author, status, and last sign-in (D-219, D-312, D-322, D-370) |
 | `account:password <username>` | Set a password, which signs the account's sessions out (D-219) |
 | `account:roles <username> --role...` | Replace an account's roles (D-219) |
@@ -96,6 +96,6 @@ Implemented in M2 (D-065, D-069).
 | `account:suspend <username>` | Suspend an account: signed out, and no sign-in or password link until reinstated (D-312) |
 | `account:reinstate <username>` | Reinstate a suspended account (D-312) |
 | `account:remove <username> [--yes]` | Delete an account after confirming (D-219) |
-| `doctor` | Run every `SetupChecks` check (PHP, extensions, `.env`, production risks, `public/`, storage) with hints; fails on any failure. Also warns of extensions that are on but can't run (an active theme falling back, plugins, icon packs; D-431). No opcache check, since the CLI's PHP isn't the web server's (D-218) |
+| `doctor` | Run every `SetupChecks` check (PHP, extensions, `.env`, production risks, `public/`, storage) with hints; fails on any failure. Also warns of extensions that are on but can't run (an active theme falling back, plugins, icon packs; D-431), and of a site with accounts but no owner (D-500). No opcache check, since the CLI's PHP isn't the web server's (D-218) |
 | `generate:{provider,component,controller,command,type}` | Scaffolding (not `make:`, D-008) |
 | `new <dir>` | Create a new site from the skeleton (may live in a global installer) |

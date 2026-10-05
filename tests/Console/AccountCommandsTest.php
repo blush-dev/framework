@@ -72,15 +72,20 @@ final class AccountCommandsTest extends TestCase
 		return $this->app()->container()->make(AccountStore::class);
 	}
 
-	public function testAddsAnAdministratorByDefault(): void
+	public function testAddsAnOwnerThenAdministratorsByDefault(): void
 	{
 		$result = $this->command('account:add jane --email=jane@example.test', ['short', 'mismatched password', 'something else', self::PASSWORD, self::PASSWORD]);
 
 		$this->assertSame(ExitCode::Success, $result->exitCode, $result->errors);
 		$this->assertStringContainsString('Passwords must be at least 12 characters.', $result->errors);
 		$this->assertStringContainsString('Those didn\'t match; try again.', $result->errors);
-		$this->assertStringContainsString('Created the "jane" account (administrator).', $result->output);
-		$this->assertSame(['administrator'], $this->store()->find('jane')?->roles);
+		$this->assertStringContainsString('Created the "jane" account (owner).', $result->output);
+		$this->assertSame(['owner'], $this->store()->find('jane')?->roles, 'A site\'s first is its owner (D-500).');
+
+		$result = $this->command('account:add sam --email=sam@example.test', [self::PASSWORD, self::PASSWORD]);
+
+		$this->assertSame(ExitCode::Success, $result->exitCode, $result->errors);
+		$this->assertSame(['administrator'], $this->store()->find('sam')?->roles);
 	}
 
 	public function testAddsAnAccountWithRolesAndAnAuthor(): void

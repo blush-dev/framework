@@ -19,12 +19,14 @@ namespace Blush\Auth;
  *
  * - **Custom roles** are created, changed (label, description, and
  *   capabilities), and deleted, but not while an account holds one.
- * - **Built-in roles** other than the administrator have their
- *   capabilities changed, and deleting the change resets them.
- * - Roles from `config/auth.php`, and the administrator, aren't changed.
+ * - **Built-in roles** other than the owner and the member have their
+ *   capabilities changed, and deleting the change resets them (D-500:
+ *   the administrator's `*` comes back).
+ * - Roles from `config/auth.php`, the owner, and the member aren't
+ *   changed.
  *
- * Capabilities must be registered (`*` is the administrator's alone),
- * except ones a role already has, which stay when an extension that
+ * Capabilities must be registered (`*` is only ever kept, on a role
+ * that has it), except ones a role already has, which stay when an extension that
  * registered them is off. Each change reloads the site's `Roles` and
  * returns them.
  */
@@ -167,7 +169,7 @@ final readonly class RoleEditor
 				? sprintf('The %s role is defined in config/auth.php, so it\'s changed there.', $role->label)
 				: ($name === BuiltInRole::Member->value
 					? sprintf('The %s role never has a capability.', $role->label)
-					: sprintf('The %s role always has every capability.', $role->label)));
+					: sprintf('The %s role always has every capability, so it\'s never changed.', $role->label)));
 	}
 
 	/**

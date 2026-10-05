@@ -11,9 +11,9 @@
  * custom role. **Duplicate** starts a new role from this one's
  * capabilities.
  *
- * The administrator always has everything, and the member nothing
+ * The owner always has everything (D-500), and the member nothing
  * (D-365), so each one's capabilities are one statement rather than
- * every box. Roles from `config/auth.php`,
+ * every box. The administrator is a list, like any other built-in. Roles from `config/auth.php`,
  * and a role that can do things you can't, are shown read-only, with
  * the reason.
  */
@@ -291,7 +291,7 @@ onBeforeRouteLeave(() => !changed.value || confirmLeave());
 				<div>
 					<h3>Everything, Including What Doesn't Exist Yet</h3>
 					<p>{{ role.label }} holds every capability on every content type, and any type or capability an extension adds later is included the moment it appears. There's nothing to grant here, so there's nothing to draw.</p>
-					<p>To give someone a narrower set of powers, start a new role from Editor and take things away. At least one account must keep a role that manages accounts.</p>
+					<p>Only an owner can give this role, or change an owner's account, so whoever holds it can't be locked out. Administrator is the role to give anyone else who runs the site; an owner can change what it allows.</p>
 					<RouterLink v-if="holders.length" class="button" :to="holdersLink"><AdminIcon name="users" />{{ holders.length === 1 ? 'See the account that holds it' : 'See the accounts that hold it' }}</RouterLink>
 				</div>
 			</div>

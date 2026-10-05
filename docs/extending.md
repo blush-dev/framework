@@ -317,8 +317,8 @@ enough to finish within a request.
 ## Capabilities and signed-in routes
 
 Add a [capability](accounts.md#capabilities) for your own feature from a
-provider's `boot()`. Administrators get it automatically; give it to
-other roles in `config/auth.php`.
+provider's `boot()`. Owners get it automatically; give it to other
+roles, the Administrator included, in the admin or `config/auth.php`.
 
 ```php
 use Blush\Auth\Capabilities;

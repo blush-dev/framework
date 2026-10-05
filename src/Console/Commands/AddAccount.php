@@ -28,7 +28,9 @@ use Blush\Console\Prompt;
  * Creates an admin account (D-217), asking for its password twice without
  * showing it. It needs a terminal, so a password never lands in shell
  * history. When the account's author has no entry yet, it offers to
- * create one, the account's public name and bio (D-259).
+ * create one, the account's public name and bio (D-259). Without a
+ * `--role`, it's the owner while the site has none, else an administrator
+ * (D-500).
  */
 #[Command('account:add', 'Create an admin account.')]
 final readonly class AddAccount
@@ -44,14 +46,14 @@ final readonly class AddAccount
 		Output $output,
 		Prompt $prompt,
 		#[Argument('The username (lowercase letters, digits, ".", "_", and "-").')] string $username,
-		#[Option('A role for the account; repeat for more. Defaults to administrator.')] array $role = [],
+		#[Option('A role for the account; repeat for more. Defaults to owner while the site has none, else administrator.')] array $role = [],
 		#[Option('The slug of the author entry the account writes as.')] ?string $author = null,
 		#[Option('What the admin calls the person, quoted when it has spaces.')] ?string $name = null,
 		#[Option('Their email address, which every account needs; asked for when left out.')] ?string $email = null
 	): ExitCode {
-		$roles = $role === [] ? [BuiltInRole::Administrator->value] : $role;
-
 		try {
+			$roles = $role !== [] ? $role : [($this->accounts->hasOwner() ? BuiltInRole::Administrator : BuiltInRole::Owner)->value];
+
 			$this->accounts->checkRoles($roles);
 
 			$email = $this->accounts->checkEmail($email ?? $prompt->ask('Email address:', null, $this->emailProblem(...)));

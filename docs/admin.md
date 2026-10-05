@@ -79,8 +79,10 @@ the round button at the top right has **Your account** and **Sign out**.
 (`/admin/accounts/{your username}`; `/admin/profile` goes there): the same one an
 administrator sees from **Accounts**, with two differences. Your
 password, email address, display name, and the admin's look are yours
-to change, and your roles and standing aren't (another administrator
-changes those). It shows your username, email address, display name
+to change, and your roles and standing aren't (someone else who
+manages accounts changes those). While the site has no
+[owner](accounts.md#owners), anyone who can do all an Administrator
+can sees **Make me the owner** here. It shows your username, email address, display name
 (what the admin calls you), when the account was made and last signed
 in, your roles, and your **Public Profile**: the
 [profile](content-types.md#built-in-types) your account is linked to,
@@ -1301,8 +1303,11 @@ and **Show keys** shows each capability's key.
 - The built-in Editor, Author, and Contributor keep their names, but
   their capabilities can change; **⋮ → Reset to built-in capabilities**
   puts them back.
-- The Administrator always has every capability, so its screen says so
-  instead of listing them. Roles defined in `config/auth.php` are
+- The built-in Administrator can change too, and be reset. It starts
+  with every built-in capability but installing, updating, and deleting
+  plugins and themes.
+- The Owner always has every capability, so its screen says so
+  instead of listing them; it can't be changed. Roles defined in `config/auth.php` are
   changed there, so they're shown read-only.
 
 ### What you can't do
@@ -1314,6 +1319,8 @@ everyone out:
   or change an account that can do something you can't.
 - You can't change your own account here. Your password is on **Your
   profile**; someone else (or `bin/blush`) changes the rest.
+- Only an [owner](accounts.md#owners) can change an owner's account or
+  give the Owner role.
 - A change that would leave no account able to manage accounts and
   roles (holding all seven of those capabilities) is refused.
 - Each action has its own capability, so a role may, say, see accounts

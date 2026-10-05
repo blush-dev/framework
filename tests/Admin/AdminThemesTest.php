@@ -40,7 +40,7 @@ final class AdminThemesTest extends TestCase
 	 *
 	 * @param list<string> $roles
 	 */
-	private function site(array $roles = ['administrator'], string $active = 'acme/pocket'): void
+	private function site(array $roles = ['owner'], string $active = 'acme/pocket'): void
 	{
 		$this->writeTemporaryFile('extensions/acme/notebook/theme.json', '{"name": "acme/notebook", "label": "Notebook", "namespace": "notebook", "version": "1.2.0", "description": "Lined paper.", "support": {"docs": "https://notebook.test/docs"}}');
 		$this->writeTemporaryFile('extensions/acme/notebook/composer.json', '{"name": "acme/notebook", "authors": [{"name": "Jane Doe", "homepage": "https://example.test", "role": "Designer"}], "license": "(MIT and OFL-1.1)"}');

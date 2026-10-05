@@ -88,7 +88,9 @@ final class PermissionsTest extends TestCase
 
 		$this->assertTrue($permissions->can($this->account('editor'), Capability::SitePublish));
 		$this->assertFalse($permissions->can($this->account('author'), 'site.publish'));
-		$this->assertTrue($permissions->can($this->account('administrator'), 'anything.an.extension.adds'));
+		$this->assertTrue($permissions->can($this->account('owner'), 'anything.an.extension.adds'));
+		$this->assertFalse($permissions->can($this->account('administrator'), 'anything.an.extension.adds'), 'The administrator has a list (D-500).');
+		$this->assertTrue($permissions->can($this->account('administrator'), 'content.page.edit.others'));
 		$this->assertFalse($permissions->can($this->account('ghost'), ContentAction::Edit), 'An unknown role grants nothing.');
 		$this->assertTrue($permissions->can(new Account('two', 'hash', ['ghost', 'author']), ContentAction::Edit));
 		$this->assertTrue($permissions->can($this->account('author'), 'content.page.edit'), 'Every type\'s capability grants each type\'s.');
@@ -150,7 +152,8 @@ final class PermissionsTest extends TestCase
 		$capabilities = $this->app->container()->make(Capabilities::class);
 		$capabilities->register('shop.orders', 'Manage orders');
 
-		$this->assertContains('shop.orders', $this->permissions()->capabilities($this->account('administrator')));
+		$this->assertContains('shop.orders', $this->permissions()->capabilities($this->account('owner')));
+		$this->assertNotContains('shop.orders', $this->permissions()->capabilities($this->account('administrator')));
 		$this->assertSame(
 			['media.image.upload', 'media.edit', 'content.*.create', 'content.*.edit', 'content.*.delete', 'content.page.create', 'content.page.edit', 'content.page.delete'],
 			array_values(array_filter($this->permissions()->capabilities($this->account('contributor')), static fn (string $name): bool => ! str_starts_with($name, 'content.') || preg_match('/^content\.(\*|page)\./', $name) === 1))
@@ -173,8 +176,17 @@ final class PermissionsTest extends TestCase
 		$this->assertTrue($permissions->can($this->account('stylist'), ExtensionAction::Activate->on(ExtensionKind::Theme)));
 		$this->assertTrue($permissions->can($this->account('stylist'), ExtensionAction::View->on(ExtensionKind::IconPack)), 'Every kind\'s grants each kind\'s.');
 		$this->assertFalse($permissions->can($this->account('stylist'), ExtensionAction::Activate->on(ExtensionKind::Plugin)));
-		$this->assertTrue($permissions->can($this->account('administrator'), 'extensions.plugins.install'));
-		$this->assertFalse($permissions->can($this->account('editor'), 'extensions.themes.view'), 'Only the administrator has them built in.');
+		$this->assertTrue($permissions->can($this->account('owner'), 'extensions.plugins.install'));
+		$this->assertTrue($permissions->can($this->account('administrator'), 'extensions.plugins.activate'));
+		$this->assertTrue($permissions->can($this->account('administrator'), 'extensions.icon-packs.install'), 'Icon packs have no code.');
+
+		foreach (['plugins', 'themes'] as $kind) {
+			foreach (['install', 'update', 'delete'] as $action) {
+				$this->assertFalse($permissions->can($this->account('administrator'), "extensions.{$kind}.{$action}"), 'Changing code is the owner\'s unless given (D-500).');
+			}
+		}
+
+		$this->assertFalse($permissions->can($this->account('editor'), 'extensions.themes.view'), 'Only the owner and the administrator have them built in.');
 	}
 
 	public function testNamesExtensionCapabilities(): void

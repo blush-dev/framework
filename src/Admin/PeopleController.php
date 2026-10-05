@@ -38,7 +38,8 @@ use Blush\Http\Status;
  *   (`name`, `label`, `kind`, `icon`), and every role, as
  *   `PeopleJson::role()` describes it.
  * - `GET accounts`: every account, as `PeopleJson::account()` describes
- *   it, sorted by username.
+ *   it, sorted by username, and whether the viewer may name the site's
+ *   first owner (`claimable`, D-500: the site has none).
  *
  * Changes go through `AccountEditController` and `RoleEditController`
  * (D-312).
@@ -51,7 +52,8 @@ final readonly class PeopleController
 		private ContentTypes $types,
 		private AccountStore $accounts,
 		private Permissions $permissions,
-		private PeopleJson $json
+		private PeopleJson $json,
+		private PeopleRules $rules
 	) {}
 
 	public function roles(ServerRequestInterface $request): ResponseInterface
@@ -103,12 +105,16 @@ final readonly class PeopleController
 		}
 
 		try {
-			$all = $this->accounts->all();
+			$all       = $this->accounts->all();
+			$claimable = $this->rules->mayClaim($viewer);
 		} catch (AuthException $error) {
 			return self::damaged($error);
 		}
 
-		return Response::json(['accounts' => array_map(fn (Account $account): array => $this->json->account($account, $viewer), $all)], headers: ['Cache-Control' => 'no-store']);
+		return Response::json([
+			'accounts'  => array_map(fn (Account $account): array => $this->json->account($account, $viewer), $all),
+			'claimable' => $claimable
+		], headers: ['Cache-Control' => 'no-store']);
 	}
 
 	/**

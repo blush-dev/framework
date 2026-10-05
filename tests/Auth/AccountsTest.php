@@ -243,13 +243,15 @@ final class AccountsTest extends TestCase
 		$roles = new Roles(AuthConfig::fromArray(new AuthConfig(roles: [
 			new Role('editor', 'Copy editor', ['content.*.edit.others']),
 			new Role('reviewer', 'Reviewer', ['content.*.edit']),
-			new Role('member', 'Member', ['site.settings'])
+			new Role('member', 'Member', ['site.settings']),
+			new Role('owner', 'Owner', ['site.settings'])
 		])->toArray()), new MemoryRoleStore());
 
-		$this->assertSame(['administrator', 'editor', 'author', 'contributor', 'member', 'reviewer'], array_keys($roles->all()));
+		$this->assertSame(['owner', 'administrator', 'editor', 'author', 'contributor', 'member', 'reviewer'], array_keys($roles->all()));
 		$this->assertSame('Copy editor', $roles->get('editor')?->label);
 		$this->assertFalse($roles->get('editor')->allows('site.publish'));
-		$this->assertTrue($roles->get('administrator')?->allows('anything.at.all'));
+		$this->assertTrue($roles->get('owner')?->allows('anything.at.all'), 'Config can\'t change the owner (D-500).');
+		$this->assertFalse($roles->get('administrator')?->allows('anything.at.all'));
 		$this->assertSame([], $roles->get('member')?->capabilities, 'Config can\'t give the member anything (D-365).');
 	}
 

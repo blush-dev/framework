@@ -32,12 +32,12 @@ enum RoleOrigin: string
 	case Config = 'config';
 
 	/**
-	 * Whether the admin may change the role. The administrator always
-	 * keeps every capability, the member never has one (D-365), and
-	 * config belongs to the site's code.
+	 * Whether the admin may change the role. The owner always keeps every
+	 * capability (D-500), the member never has one (D-365), and config
+	 * belongs to the site's code.
 	 */
 	public function editable(string $name): bool
 	{
-		return $this !== self::Config && $name !== BuiltInRole::Administrator->value && $name !== BuiltInRole::Member->value;
+		return $this !== self::Config && BuiltInRole::tryFrom($name)?->isFixed() !== true;
 	}
 }
