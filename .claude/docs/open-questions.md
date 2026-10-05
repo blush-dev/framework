@@ -617,6 +617,44 @@ Move each item to `decisions.md` once it's answered.
   as with entries) and whether the settings schema comes from the
   `Setting` enum, as the others come from their PHP definitions. It
   may fold into the versioning question below.
+- **Network (multisite) support** (raised 2026-10-05; early
+  exploration, probably not 2.x): many sites run from one install. The
+  author agreed with this direction: plan for a network, but build it
+  in two layers.
+  - **Layer 1, many sites on one codebase:** one `vendor/` and
+    `extensions/`, and each site with its own `config/`, `user/`, and
+    `storage/` (e.g. `sites/{name}/`). The front controller picks the
+    site from the request (host or path, through a network config such
+    as `config/network.php`) and builds its `Paths` before the runner
+    boots. This mostly works already: there's no global state, and
+    every location is a `Paths` value with overrides (D-046).
+  - **Layer 2, a network:** shared accounts and sessions in
+    network-level storage, with roles per site; network capabilities
+    (creating sites, installing extensions, `extensions.{kind}.install`,
+    D-389) apart from per-site ones (switching an extension on stays
+    in each site's `settings.json`, D-390, D-391); a Sites screen, a
+    site switcher in the shell, and network Users.
+  - Ruled out: several sites inside one `user/`. It breaks one site's
+    `user/` as one repo (D-131, D-166) and adds a site filter to every
+    query.
+  - Undecided: which URL shapes are supported (separate domains,
+    subdomains, subdirectories); signing in across domains (a cookie
+    covers subdomains only, so separate domains need a handoff, perhaps
+    a signed one-time token as preview links are, D-226); whether
+    accounts are shared or kept per site with network admins above
+    them; how storage areas (D-486) gain a network scope (accounts and
+    sessions are the candidates); the CLI's site option (`--site`, a
+    `BLUSH_SITE` variable, `--all-sites` for commands such as
+    `content:ids` and `cache:clear`); publishing a whole network
+    (D-131); and whether subdirectory installs work at all today (a
+    base path in URLs, the admin, feeds, and `llms.txt`), which matters
+    without a network too. Out of scope for now: shared media, references
+    between sites, syndication.
+  - Keep in mind meanwhile: reach `user/` and `storage/` through
+    `Paths` or the storage areas, never from `root`; don't hard-code
+    the cookie domain or path or assume the admin sits at the root's
+    `/admin`; and allow for accounts and sessions living at network
+    level when those areas get their storage interfaces.
 - **Repo strategy after 2.x stabilizes:** one package, or a split monorepo?
 - **Theming:** see the open questions in `theming.md`.
 - **Menus and regions, later** (D-199 to D-204): entries adding
