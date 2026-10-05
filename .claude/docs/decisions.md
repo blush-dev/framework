@@ -14305,3 +14305,75 @@ decision, add a new entry that supersedes it and mark the old one
 - **Why:** the author: trash is meant to be a status, kept out of
   status dropdowns, and with ids there's no need to move files to a
   folder for drafts or trash.
+
+### D-485: Content storage is a driver, picked by config or `CONTENT_STORAGE`
+
+- **Date:** 2026-10-05
+- **Status:** Built (the shape; `filesystem` is the only driver).
+- **Decision:** how a site stores its content is named in config, at the
+  code level only (no admin setting), in D-019's enum + registry +
+  factory + registrar shape:
+  - `Content\Storage\ContentStorage` pairs the classes that read and
+    write content: `source()` (a `ContentSource` class) and `writer()`
+    (a `ContentWriter` class). They're class names, built through the
+    container, because the filesystem writer needs the repository, which
+    needs the source; a driver that built both itself would loop.
+  - `StorageDriver` (`filesystem` → `FilesystemStorage`: `FilesystemSource`
+    and `FilesystemWriter`), `StorageDriverRegistry`,
+    `StorageDriverRegistrar`, and `StorageDriverFactory` (a
+    `StorageException` for an unknown driver, naming the registered ones).
+  - `ContentStorageConfig` (`driver`, default `filesystem`), from
+    `config/storage.php`, or, without one, `CONTENT_STORAGE` in `.env`
+    (empty means the default).
+  - `ContentServiceProvider` binds `ContentStorage` from the config, and
+    `ContentSource` and `ContentWriter` from it, each with `singletonIf`,
+    so an extension binding its own source or writer still wins (D-003).
+  - The index (`PhpIndex`) isn't part of a storage; it stays its own
+    binding, with `SqliteIndex` still a later question.
+- **Not yet:** code that reaches `user/content` without the source or
+  writer (some admin type screens, `content:create`'s message, the setup
+  welcome page) still assumes files; a second driver would have to move
+  those behind the interfaces.
+- **Why:** the author: "we should probably have an env and config for how
+  the site stores content (code level only)… we only support filesystem
+  at the moment, but we should go ahead and build/support the shape."
+
+### D-486: Storage covers all of a site's data, flat files or a database
+
+- **Date:** 2026-10-05
+- **Status:** Built (the config only). Supersedes D-485's config:
+  `ContentStorageConfig` and `CONTENT_STORAGE` are gone.
+- **Decision:** a site runs as a flat-file CMS or keeps its data in a
+  database, with migration tools between them later. Storage isn't only
+  content: it's everything a site would otherwise keep in a database.
+  - `Blush\Storage\StorageConfig` (`config/storage.php`, or
+    `STORAGE_DRIVER` in `.env` without one): `driver` (default
+    `filesystem`, the only one for now) and `areas`, a driver per area,
+    as `CacheConfig`'s `stores` are per namespace. Code level only.
+  - `StorageArea`: `content` (`user/content`), `data` (`user/data`:
+    settings, types, field sets, menus, regions, redirects, media
+    metadata), `accounts` (accounts and roles), and `sessions`.
+  - **Media files aren't an area.** They stay files whatever the driver;
+    their metadata is `data`.
+  - D-485's content drivers stay and now read
+    `driverFor(StorageArea::Content)`. The other areas read nothing yet:
+    each keeps its file classes until it gets its storage interface.
+  - The low level comes first; the full database layers later. The
+    author isn't settling how that's built now, only that features are
+    built with it in mind.
+- **Open, to keep in mind as features are built:**
+  - `settings.json` is read in bootstrap, before plugins load, and lists
+    which plugins are on (D-391), so a `data` driver can't come from a
+    plugin turned on there. The author: settings.json may not be the
+    right shape anyway; what's stored, and how, may change.
+  - Publishing pulls `user/` with git (D-131); a database driver needs
+    another answer.
+  - Code that reaches `user/` through `Paths` (about 30 classes) moves
+    behind an area's interfaces when that area gets a second driver.
+- **Why:** the author: "this wasn't just about where content is stored.
+  It's about where any data is stored", "accounts, roles, and sessions -
+  anything that would normally be stored in the database", and "the idea
+  would be that we allow users to run as a flat-file cms or store their
+  data in a database with eventual migration tools. We just need the
+  basic config right now… Just keep this in mind as we're building
+  features."

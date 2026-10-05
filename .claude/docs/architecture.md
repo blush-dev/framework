@@ -7,6 +7,12 @@ This is the design for the Blush 2 subsystems. Decisions it relies on are in
 
 - **Flat files are the default source of truth** (D-003). Storage sits behind
   interfaces.
+- **Storage is configured per area** (D-486): `Blush\Storage\StorageConfig`
+  (`config/storage.php` or `STORAGE_DRIVER`) names a driver for content,
+  data, accounts, and sessions, so a site can run on flat files or,
+  later, a database. Only `filesystem` exists; content reads it (D-485).
+  Media files are always files. Build new stored data behind an
+  interface its area's driver can replace.
 - **No global state.** Constructor injection everywhere. The only global
   functions are template escaping helpers.
 - **Render anywhere.** Only `RequestFactory::fromGlobals()` touches
@@ -556,6 +562,11 @@ Implemented in M4b (D-087, D-090).
   `stat()`, `read()`. The default is `FilesystemSource` (content files by
   parser extension, dotfiles skipped, paths confined). Git, S3, or a
   database could follow later.
+- **`ContentStorage`** (`Content\Storage`, D-485) pairs a source class with
+  a writer class. `StorageConfig`'s driver for `StorageArea::Content`
+  (D-486) names one from `StorageDriverRegistry`; the only built-in is
+  `filesystem` (`FilesystemSource` + `FilesystemWriter`). An extension
+  registers a driver, or binds `ContentSource` / `ContentWriter` itself.
 - **`ContentIndex`** (`Content\Index`) is the queryable metadata store.
   - `PhpIndex` (default): `storage/index/content.php`, a `var_export`'d
     `IndexSnapshot` kept in opcache shared memory. Records stay arrays;

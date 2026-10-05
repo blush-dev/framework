@@ -40,7 +40,7 @@ blush-framework/
     Routing/            Route, compiler, matcher, UrlGenerator, attributes
     Field/              Field base, Fields/ (the built-in types), Control, Schema, FieldType,
                         registry, factory, registrar (D-337, D-338)
-    Content/            Source, Parser, Type, Index, Entry, Query, Lint, Writer (ContentWriter,
+    Content/            Source, Storage (D-485), Parser, Type, Index, Entry, Query, Lint, Writer (ContentWriter,
                         FilesystemWriter, DocumentEditor, YamlMap, EntryChanges, D-228)
     Markdown/           Parser interface + adapter; CommonMark/Directive/ (D-112)
     Media/              MediaConfig, resolver, streaming controller (M4c); image derivatives later
@@ -77,6 +77,7 @@ blush-framework/
                         Action/ (AdminAction, ActionResult, AdminActionType, registry,
                         AdminActions, the built-ins) (D-219, D-223)
     Console/            In-house console framework + built-in commands
+    Storage/            StorageConfig, StorageArea: where site data is kept (D-486)
     Support/            Registry base, Filesystem, PhpArrayFile, Str, Arr, etc.
     Support/Attributes/ Cached attribute reader (from x3p0-attributes)
   resources/            server.php (`serve` router); lang/ (the `blush` catalog domain); icons/blush/ (the core

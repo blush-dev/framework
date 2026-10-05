@@ -54,6 +54,7 @@ there needs no compiling.
 | `PUBLISH_SECRET` | | Turns on the [publish webhook](going-live.md#publishing-without-a-shell). At least 32 characters. |
 | `PUBLISH_GIT` | `false` | Run `git pull` in `user/` when publishing |
 | `PUBLISH_REMOTE`, `PUBLISH_BRANCH` | | The git remote and branch to pull |
+| `STORAGE_DRIVER` | `filesystem` | Where the site's data is kept (see [Storage](#storage)) |
 
 Real environment variables (set by your host or server) win over `.env`.
 
@@ -138,6 +139,18 @@ Without `config/app.php`, these come from the `APP_*` variables.
 | `dataTypes` | `true` | Whether types in `user/data/types/` are read |
 | `dataTypeUrls` | `true` | Whether those types may set their own `urls` |
 | `autoIndex` | `true` | Whether development requests pick up content changes |
+
+### Storage
+
+`config/storage.php` · `Blush\Storage\StorageConfig`
+
+| Option | Default | What it does |
+|---|---|---|
+| `driver` | `'filesystem'` | Where the site's data is kept. `filesystem` (files, as a flat-file site keeps them) is the only one for now. |
+| `areas` | `[]` | A different driver for an area: `content`, `data`, `accounts`, or `sessions`, such as `['sessions' => 'filesystem']` |
+
+Without this file, `STORAGE_DRIVER` is used. Media files are always
+files, whatever the driver.
 
 ### Fields
 

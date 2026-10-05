@@ -56,6 +56,7 @@ use Blush\Routing\RouteConfig;
 use Blush\Session\SessionConfig;
 use Blush\Settings\SettingsFile;
 use Blush\Sitemap\SitemapConfig;
+use Blush\Storage\StorageConfig;
 use Blush\Support\PhpArrayFile;
 use Blush\Theme\ThemeCache;
 use Blush\Theme\ThemeConfig;
@@ -305,6 +306,7 @@ final readonly class Bootstrap
 			new RouteConfig(),
 			new MarkdownConfig(),
 			new ContentConfig(),
+			StorageConfig::fromEnv($env),
 			new FieldConfig(),
 			new MediaConfig(),
 			new ThemeConfig(),

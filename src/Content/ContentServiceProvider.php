@@ -45,14 +45,16 @@ use Blush\Content\Routing\DataRedirects;
 use Blush\Content\Routing\PageRoutes;
 use Blush\Content\Routing\RefreshRouteCache;
 use Blush\Content\Source\ContentSource;
-use Blush\Content\Source\FilesystemSource;
+use Blush\Content\Storage\ContentStorage;
+use Blush\Content\Storage\StorageDriverFactory;
+use Blush\Content\Storage\StorageDriverRegistrar;
+use Blush\Content\Storage\StorageDriverRegistry;
 use Blush\Content\Type\ContentTypeCache;
 use Blush\Content\Type\ContentTypeLoader;
 use Blush\Content\Type\ContentTypes;
 use Blush\Content\Type\ContentTypeTargets;
 use Blush\Content\Writer\ContentWriter;
 use Blush\Content\Writer\DocumentEditor;
-use Blush\Content\Writer\FilesystemWriter;
 use Blush\Core\AppConfig;
 use Blush\Core\ServiceProvider;
 use Blush\Event\Listener\ListenerRegistry;
@@ -67,15 +69,19 @@ use Blush\Field\FieldTargetSource;
 use Blush\Routing\RedirectSource;
 use Blush\Routing\RouteSource;
 use Blush\Routing\UrlSource;
+use Blush\Storage\StorageArea;
+use Blush\Storage\StorageConfig;
 
 /**
  * Binds the content layer: field types, content types, document parsers,
- * the source, the index, and the repository. Everything is built on first
- * use. The field and parser registries start with the built-ins; an
- * extension adds to them in a `resolving()` callback, and adds content
- * types by tagging a `ContentTypeSource` with `ContentTypeSource::TAG`.
- * The source, index, and repository are defaults an extension can replace
- * by binding its own (D-003).
+ * the storage, the index, and the repository. Everything is built on first
+ * use. The field, parser, and storage driver registries start with the
+ * built-ins; an extension adds to them in a `resolving()` callback, and
+ * adds content types by tagging a `ContentTypeSource` with
+ * `ContentTypeSource::TAG`. The source and writer come from the storage
+ * driver `StorageConfig` names for content (D-485, D-486); they, the index, and the
+ * repository are defaults an extension can replace by binding its own
+ * (D-003).
  */
 final class ContentServiceProvider extends ServiceProvider
 {
@@ -92,6 +98,7 @@ final class ContentServiceProvider extends ServiceProvider
 		EntryHydrator::class,
 		Indexer::class,
 		IndexFingerprint::class,
+		StorageDriverFactory::class,
 		ContentUrls::class,
 		DocumentEditor::class
 	];
@@ -100,10 +107,8 @@ final class ContentServiceProvider extends ServiceProvider
 	 * @inheritDoc
 	 */
 	protected const array SINGLETONS_IF = [
-		ContentSource::class     => FilesystemSource::class,
 		ContentIndex::class      => PhpIndex::class,
-		ContentRepository::class => IndexedRepository::class,
-		ContentWriter::class     => FilesystemWriter::class
+		ContentRepository::class => IndexedRepository::class
 	];
 
 	/**
@@ -143,11 +148,39 @@ final class ContentServiceProvider extends ServiceProvider
 	];
 
 	/**
-	 * Binds the registries, the field context, and the content types.
+	 * Binds the registries, the storage, the field context, and the
+	 * content types.
 	 */
 	#[Override]
 	public function register(): void
 	{
+		$this->container->singleton(
+			StorageDriverRegistry::class,
+			static function (): StorageDriverRegistry {
+				$registry = new StorageDriverRegistry();
+				new StorageDriverRegistrar($registry)->register();
+
+				return $registry;
+			}
+		);
+
+		$this->container->singletonIf(
+			ContentStorage::class,
+			static fn (ServiceResolver $resolver): ContentStorage => $resolver->make(StorageDriverFactory::class)->make(
+				$resolver->make(StorageConfig::class)->driverFor(StorageArea::Content)
+			)
+		);
+
+		$this->container->singletonIf(
+			ContentSource::class,
+			static fn (ServiceResolver $resolver): ContentSource => $resolver->make($resolver->make(ContentStorage::class)->source())
+		);
+
+		$this->container->singletonIf(
+			ContentWriter::class,
+			static fn (ServiceResolver $resolver): ContentWriter => $resolver->make($resolver->make(ContentStorage::class)->writer())
+		);
+
 		$this->container->singleton(
 			FieldRegistry::class,
 			static function (): FieldRegistry {
