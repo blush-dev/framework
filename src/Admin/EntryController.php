@@ -31,6 +31,7 @@ use Blush\Content\ContentRepository;
 use Blush\Content\Entry\Entry;
 use Blush\Content\Entry\Position;
 use Blush\Content\EntryFields;
+use Blush\Content\FileNames;
 use Blush\Content\Lint\Linter;
 use Blush\Content\Routing\ContentUrls;
 use Blush\Content\Status as EntryStatus;
@@ -87,6 +88,9 @@ use Blush\Support\Slug;
  *   page already at the new place, is a 422 with `field: "parent"`. When
  *   a tree's page moves or is renamed with `redirect: true`, each
  *   published page under it gets a redirect from its old address too.
+ *   A new publish date renames a file its type's own pattern names by
+ *   date (`FileNames::follow()`, D-519); bulk publishing an undated
+ *   entry does too.
  * - `DELETE entries/{id}?revision=…`: moves it to the trash (D-484):
  *   it stays where it is, with `status: trash`, off the site, keeping
  *   its address and id. `DELETE entries/{id}?permanently=1` deletes an
@@ -159,7 +163,8 @@ final readonly class EntryController
 		private FieldTargets $targets,
 		private AccountStore $accounts,
 		private Homepage $homepage,
-		private HtmlGuard $html
+		private HtmlGuard $html,
+		private FileNames $fileNames
 	) {}
 
 	/**
@@ -478,14 +483,24 @@ final readonly class EntryController
 				$revision = $renamed->revision ?? $revision;
 			}
 
-			$result = $this->writer->update($path, $changes, $revision);
+			$path = $this->writer->update($path, $changes, $revision)->path;
 		} catch (WriteConflict $e) {
 			return self::error($e->getMessage(), Status::Conflict);
 		} catch (WriteException $e) {
 			return self::error($e->getMessage(), Status::UnprocessableContent);
 		}
 
-		$updated = $this->content->findPath($result->path);
+		$updated = $this->content->findPath($path);
+
+		// A new date renames a file its type names by date (D-519).
+		if ($updated !== null && $updated->published?->getTimestamp() !== $entry->published?->getTimestamp()) {
+			$followed = $this->fileNames->follow($updated->path);
+
+			if ($followed !== null) {
+				$path    = $followed;
+				$updated = $this->content->findPath($path);
+			}
+		}
 
 		if ($updated !== null) {
 			$this->redirectUnder($entry, $updated, $under);
@@ -493,7 +508,7 @@ final readonly class EntryController
 
 		return $updated === null
 			? self::error('The entry was saved but couldn\'t be read back; check content health.', Status::UnprocessableContent)
-			: self::json($this->describe($account, $updated, $this->writer->load($result->path)));
+			: self::json($this->describe($account, $updated, $this->writer->load($path)));
 	}
 
 	/**
@@ -770,7 +785,13 @@ final readonly class EntryController
 				return $refusal;
 			}
 
-			$this->writer->update($entry->path, $changes, $revision);
+			$path = $this->writer->update($entry->path, $changes, $revision)->path;
+
+			// Publishing an undated entry dates it, which renames a file
+			// its type names by date (D-519).
+			if (isset($changes->set['published'])) {
+				$this->fileNames->follow($path);
+			}
 		} catch (InvalidEdit | WriteException $e) {
 			return $e->getMessage();
 		}

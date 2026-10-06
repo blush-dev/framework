@@ -86,41 +86,86 @@ final readonly class FileNames
 		foreach ($snapshot->records as $path => $record) {
 			$path = (string) $path;
 			$type = $this->types->find($record['type']);
-			$name = pathinfo($path, PATHINFO_FILENAME);
+			$plan = $this->plan($snapshot, $path);
 
-			if ($type?->filename === null || $record['landing'] || $record['original'] !== null || str_starts_with($name, '_')) {
+			if ($type === null || $plan === null) {
 				continue;
 			}
 
-			if ($name === 'index') {
-				$skipped[$type->name][$path] = 'it\'s kept as a folder, which a pattern never names';
-				continue;
+			if (is_string($plan)) {
+				$skipped[$type->name][$path] = $plan;
+			} else {
+				$renames[$type->name][] = $plan;
 			}
-
-			$date = $this->writtenDate($path, $type->name) ?? DateTimeImmutable::createFromTimestamp($record['updated'])->setTimezone($this->app->timezone());
-
-			if (is_string($date)) {
-				$skipped[$type->name][$path] = sprintf('its date, %s, isn\'t a real date; fix it first', $date);
-				continue;
-			}
-
-			$newName = $type->naming()->name(substr($name, (int) strrpos(".{$name}", '.')), $date);
-
-			if ($newName === $name) {
-				continue;
-			}
-
-			$moves = self::moves($snapshot, $path, $name, $newName);
-
-			if ($moves === null) {
-				$skipped[$type->name][$path] = 'a translation of it is kept as a folder, so renaming it would break their link';
-				continue;
-			}
-
-			$renames[$type->name][] = new FileNameRename($type->name, $path, $moves[$path], $moves);
 		}
 
 		return new FileNameReport($renames, $skipped);
+	}
+
+	/**
+	 * Renames one entry to its type's pattern after its publish date
+	 * changed (D-519), when the pattern has a date in it, so the name
+	 * keeps showing the date. Returns the entry's new path, or `null`
+	 * when it keeps its name: its type's pattern has no date, the name
+	 * already fits, it's left alone (as `report()` leaves it), or the
+	 * new name is taken.
+	 */
+	public function follow(string $path): ?string
+	{
+		$snapshot = $this->index->snapshot();
+		$record   = $snapshot->records[$path] ?? null;
+		$type     = $record === null ? null : $this->types->find($record['type']);
+
+		if ($type?->filename === null || ! $type->filename->isDated()) {
+			return null;
+		}
+
+		$plan = $this->plan($snapshot, $path);
+
+		if (! $plan instanceof FileNameRename) {
+			return null;
+		}
+
+		return $this->writer->renameFiles([$path => $plan->moves])->renamed[$path] ?? null;
+	}
+
+	/**
+	 * Returns how an entry is renamed to its type's pattern, why it's
+	 * left as it is, or `null` when there's nothing to do: its type names
+	 * no pattern, it's a landing page, a translation, or hidden, or its
+	 * name already fits.
+	 */
+	private function plan(IndexSnapshot $snapshot, string $path): FileNameRename|string|null
+	{
+		$record = $snapshot->records[$path] ?? null;
+		$type   = $record === null ? null : $this->types->find($record['type']);
+		$name   = pathinfo($path, PATHINFO_FILENAME);
+
+		if ($record === null || $type?->filename === null || $record['landing'] || $record['original'] !== null || str_starts_with($name, '_')) {
+			return null;
+		}
+
+		if ($name === 'index') {
+			return 'it\'s kept as a folder, which a pattern never names';
+		}
+
+		$date = $this->writtenDate($path, $type->name) ?? DateTimeImmutable::createFromTimestamp($record['updated'])->setTimezone($this->app->timezone());
+
+		if (is_string($date)) {
+			return sprintf('its date, %s, isn\'t a real date; fix it first', $date);
+		}
+
+		$newName = $type->naming()->name(substr($name, (int) strrpos(".{$name}", '.')), $date);
+
+		if ($newName === $name) {
+			return null;
+		}
+
+		$moves = self::moves($snapshot, $path, $name, $newName);
+
+		return $moves === null
+			? 'a translation of it is kept as a folder, so renaming it would break their link'
+			: new FileNameRename($type->name, $path, $moves[$path], $moves);
 	}
 
 	/**

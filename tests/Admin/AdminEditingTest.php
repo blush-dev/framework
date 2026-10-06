@@ -820,4 +820,49 @@ final class AdminEditingTest extends TestCase
 
 		$this->assertSame(403, $this->call('DELETE', $this->entryPath('_posts/2021-05-05.sams.md') . '?revision=x')->getStatusCode());
 	}
+
+	public function testANewDateRenamesAFileNamedByDate(): void
+	{
+		$this->site(types: ['post' => ['path' => '_posts', 'date_archives' => true, 'routing' => ['prefix' => 'archives'], 'filename' => '{date}.{slug}']]);
+
+		$moved = self::json($this->call('PATCH', $this->entryPath(self::FLAME), ['revision' => $this->revision(self::FLAME), 'set' => ['published' => '2022-04-02 10:00:00 -05:00']]));
+		$path  = '_posts/2022-04-02.flame.md';
+
+		$this->assertSame([$path, self::FLAME_ID], [$moved['path'] ?? null, $moved['id'] ?? null], 'Named by its new date (D-519).');
+		$this->assertFileDoesNotExist($this->temporaryDirectory() . '/user/content/' . self::FLAME);
+		$this->assertStringContainsString('date      : 2022-04-02 10:00:00 -05:00', $this->file($path));
+
+		$this->call('DELETE', $this->entryPath($path) . '?revision=' . $this->revision($path));
+		$this->call('POST', $this->entryPath($path) . '/restore');
+		$published = self::json($this->call('PATCH', $this->entryPath($path), ['revision' => $this->revision($path), 'status' => 'published']));
+
+		$this->assertSame($path, $published['path'] ?? null, 'Trashing, restoring, and publishing keep its date and name.');
+		$this->assertStringContainsString('date      : 2022-04-02 10:00:00 -05:00', $this->file($path));
+
+		$title = self::json($this->call('PATCH', $this->entryPath($path), ['revision' => $this->revision($path), 'set' => ['title' => 'Kept']]));
+		$this->assertSame($path, $title['path'] ?? null, 'Only a new date renames it.');
+
+		$idea  = '_posts/2023-01-01.idea.md';
+		$dated = self::json($this->call('PATCH', $this->entryPath($idea), ['revision' => $this->revision($idea), 'status' => 'published']));
+		$this->assertMatchesRegularExpression('#^_posts/\d{4}-\d{2}-\d{2}\.idea\.md$#', is_string($dated['path'] ?? null) ? $dated['path'] : '');
+		$this->assertNotSame($idea, $dated['path'], 'Publishing an undated draft dates it, and names it by the date.');
+	}
+
+	public function testBulkPublishingRenamesAnUndatedDraft(): void
+	{
+		$this->site(types: ['post' => ['path' => '_posts', 'date_archives' => true, 'routing' => ['prefix' => 'archives'], 'filename' => '{date}.{slug}']]);
+		$id = $this->idOf('_posts/2023-01-01.idea.md');
+
+		$this->assertSame([$id], self::json($this->call('POST', '/entries/bulk', ['action' => 'publish', 'ids' => [$id]]))['done'] ?? null);
+		$this->assertFileDoesNotExist($this->temporaryDirectory() . '/user/content/_posts/2023-01-01.idea.md');
+		$this->assertCount(1, glob($this->temporaryDirectory() . '/user/content/_posts/*.idea.md') ?: []);
+	}
+
+	public function testANewDateKeepsANameWithoutADatedPattern(): void
+	{
+		$this->site();
+
+		$moved = self::json($this->call('PATCH', $this->entryPath(self::FLAME), ['revision' => $this->revision(self::FLAME), 'set' => ['published' => '2022-04-02 10:00:00 -05:00']]));
+		$this->assertSame(self::FLAME, $moved['path'] ?? null, 'A type without a pattern of its own is never renamed.');
+	}
 }

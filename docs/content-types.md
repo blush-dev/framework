@@ -636,6 +636,14 @@ pattern keep working beside new ones. Renaming an entry keeps whatever
 comes before its slug. Listings never sort by file name, so mixed
 names list in order.
 
+When a type's own pattern has a date in it, a new publish date renames
+the entry's file in the admin: changing the date and saving, or
+publishing an entry that had no date yet. The file is named by the
+pattern, with its translations named after it, the way
+`content:filenames` names it. Trashing, restoring, and switching to
+draft and back never change an entry's date, so they never rename it.
+No address changes.
+
 To rename older files to the pattern, run `bin/blush content:filenames`
 to see what would change, then `bin/blush content:filenames --write`
 (add `--type=post` for one type), or use **File Names** on Content

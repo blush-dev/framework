@@ -15429,3 +15429,34 @@ decision, add a new entry that supersedes it and mark the old one
   never handed out by a form.
 - **Later:** the sign-up form and route, and what else signing up may
   need (email confirmation, approval, allowed domains), are open.
+
+### D-519: A new date renames a file named by date
+- **Date:** 2026-10-06
+- **Status:** Built. Refines D-511 (a pattern only named new files and
+  renames kept the prefix) and D-512 (only the tool renamed to a
+  pattern). Closes the republished-date bug in `open-questions.md`.
+- **Decision:** from the author's report: a trial post restored from
+  the trash and published later kept its old file name while its date
+  moved.
+  - **The date stays put.** Once an entry has a publish date, only an
+    explicit change moves it; trashing, restoring, and switching to
+    draft and back never do. On the current code this already holds:
+    duplicating a dated post, publishing, trashing, restoring, and
+    publishing again keeps its date at every step (tested). The trial's
+    post most likely went through the old trash (D-237's
+    `storage/trash`, replaced by D-484 the same day), or was a copy
+    made with no date before D-514, so publishing dated it.
+  - **The name follows the date.** When a type's own `filename` has a
+    date in it (`FileName::isDated()`), saving an entry with a new
+    publish date renames its file to the pattern: an edit to the date,
+    scheduling, or publishing an undated entry (the editor and bulk
+    publish). `FileNames::follow()` plans it as `content:filenames`
+    does (translations linked by name move with it; folders, hidden
+    files, translations, and landing pages are left) and moves it with
+    `ContentWriter::renameFiles()`. A taken name leaves it as it was.
+    Types without a pattern of their own, or one without a date, are
+    never renamed. No address changes.
+- **Why:** the author: a file named by date should keep showing the
+  entry's date, as other flat-file systems with dated names (Statamic)
+  do; and as in other systems (WordPress, Drupal), a date only moves
+  when someone changes it.
