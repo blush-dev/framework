@@ -586,6 +586,32 @@ Move each item to `decisions.md` once it's answered.
     needs tagged releases of the skeleton and framework 2.x; until
     then, `blush new --dev` passes `--stability=dev`.
 
+- **Podcasts** (discussed 2026-10-06). Nothing is podcast-specific
+  yet, but most of the pieces exist: a type in `user/data/types` with
+  its own feeds and limit (D-122, D-311), and a feed per term (a season
+  or show taxonomy); audio served with byte ranges; duration, bit rate,
+  and cover art read from files (D-291, D-552); `:::audio` and the
+  audio player (D-553). What podcast apps need that's missing:
+  - **Enclosures:** `FeedItem` carries no media and `feed-rss.php`
+    writes no `<enclosure>`, so apps see no episodes. Core could give
+    items an enclosure from an `audio` (or `video`) media key, with
+    size, MIME type, and duration from the media index. Which key, and
+    is it core or the plugin's?
+  - **Feed extension points:** a way for a plugin to add namespaces
+    and tags to the channel and its items (an event, or slots in the
+    feed templates), so it needn't replace them. Today the only way is
+    a theme's `feed-rss-{type}` reading `$item->entry`.
+  - **`guid`:** it's the URL (`isPermaLink="true"`), so a moved entry
+    is a new episode to every app. Use the entry's `id` (D-477), for
+    every feed or only podcasts?
+  - **The podcast plugin:** a show's settings per type (artwork, owner
+    and email, category, explicit, language, `itunes:type`); the
+    `itunes:` and `podcast:` tags (duration, episode and season,
+    `podcast:guid`, transcripts, chapters); episode fields (waiting on
+    the Fields API, D-348); and the site's player (see **The audio and
+    video players on the site**). Leaning: core does enclosures, the
+    extension points, and `guid`; the rest is a plugin.
+
 ## Later milestones
 - **Signing up** (D-518 has only the settings): the form and route
   (on the site, the admin's sign-in screen, or both, and themable?),
