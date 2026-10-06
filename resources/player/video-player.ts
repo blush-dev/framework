@@ -3,7 +3,7 @@
  * `<video>`, matching the audio player. Until it's first played, a round
  * play button sits over the picture with its length in a corner, as the
  * media detail sketch draws it; then a bar over the picture's foot holds
- * the shared transport (play, seek, time), mute, captions (when the
+ * the shared transport (play, seek, time), mute and volume, captions (when the
  * video has caption or subtitle tracks), and fullscreen. The bar hides
  * while it plays and the pointer rests, and comes back on a move, a
  * touch, or focus. Clicking the picture plays or pauses it. It's plain
@@ -16,12 +16,12 @@
  *
  * Fullscreen takes the whole player, controls and all, where the browser
  * allows; elsewhere (iOS) it's the browser's own. Its labels are English
- * unless `label-{name}` says otherwise: `play`, `pause`, `seek`, `mute`,
+ * unless `label-{name}` says otherwise: `play`, `pause`, `seek`, `mute`, `volume`,
  * `unmute`, `captions`, `fullscreen`, and `exit-fullscreen`. Its colors
  * are the host's, by custom properties (`player.css`).
  */
 
-import { button, clock, label, listen, toggle, transport } from './controls';
+import { button, clock, label, listen, toggle, transport, volume } from './controls';
 
 // How long the pointer rests before the bar hides, in milliseconds.
 const REST = 2500;
@@ -84,7 +84,14 @@ export class VideoPlayer extends HTMLElement {
 		});
 		video.addEventListener('pause', () => this.wake());
 
+		const level = volume(this, video);
+
 		mute.button.addEventListener('click', () => {
+			// Unmuting at nothing would stay silent: back to half.
+			if (video.muted && video.volume === 0) {
+				video.volume = 0.5;
+			}
+
 			video.muted = !video.muted;
 		});
 
@@ -117,7 +124,7 @@ export class VideoPlayer extends HTMLElement {
 			this.addEventListener(event, () => this.wake());
 		}
 
-		bar.append(play, seek, time, mute.button, shown.button, screen.button);
+		bar.append(play, seek, time, mute.button, level.slider, shown.button, screen.button);
 		this.classList.add('player', 'video-player');
 		this.append(start.button, stamp, bar);
 		listen(video, true);

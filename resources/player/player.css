@@ -3,9 +3,9 @@
  * sizes are the host's, by custom properties, which the admin sets from
  * its tokens and a theme can set from its own:
  *
- *   --player-accent      the play button and what's played
+ *   --player-accent      the play button, what's played, and the volume
  *   --player-accent-fg   the play button's glyph
- *   --player-track       what's left to play
+ *   --player-track       what's left to play, and the volume's rest
  *   --player-muted       the time and the other buttons
  *   --player-shadow      the track's thumb and the start button
  *   --player-font-mono   the time's font
@@ -79,14 +79,14 @@
 }
 
 .player__button:focus-visible,
-.player__seek:focus-visible {
+.player__range:focus-visible {
 	outline: 2px solid var(--player-accent);
 	outline-offset: 2px;
 }
 
-/* The track: played in the accent up to `--player-progress`. */
-.player__seek {
-	flex: 1;
+/* A track (seeking, and a video's volume): the accent up to
+   `--player-progress`. */
+.player__range {
 	min-width: 0;
 	height: 4px;
 	margin: 0;
@@ -96,11 +96,11 @@
 	appearance: none;
 }
 
-.player__seek:disabled {
+.player__range:disabled {
 	cursor: default;
 }
 
-.player__seek::-webkit-slider-thumb {
+.player__range::-webkit-slider-thumb {
 	width: 10px;
 	height: 10px;
 	border: 0;
@@ -110,7 +110,7 @@
 	appearance: none;
 }
 
-.player__seek::-moz-range-thumb {
+.player__range::-moz-range-thumb {
 	width: 10px;
 	height: 10px;
 	border: 0;
@@ -119,8 +119,21 @@
 	box-shadow: var(--player-shadow);
 }
 
-.player__seek::-moz-range-track {
+.player__range::-moz-range-track {
 	background: transparent;
+}
+
+.player__seek {
+	flex: 1;
+}
+
+.player__volume {
+	flex: none;
+	width: 64px;
+}
+
+.player__volume[hidden] {
+	display: none;
 }
 
 .player__time {

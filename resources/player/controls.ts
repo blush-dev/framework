@@ -90,7 +90,7 @@ export function transport(host: HTMLElement, media: HTMLMediaElement, onDraw: ()
 	const time = document.createElement('span');
 
 	seek.type      = 'range';
-	seek.className = 'player__seek';
+	seek.className = 'player__range player__seek';
 	seek.min       = '0';
 	seek.step      = 'any';
 	seek.value     = '0';
@@ -134,6 +134,58 @@ export function transport(host: HTMLElement, media: HTMLMediaElement, onDraw: ()
 	draw();
 
 	return { play: play.button, seek, time, draw };
+}
+
+/**
+ * A volume slider for a media element, from 0 to 1, kept in step with
+ * it: muted reads as nothing, and moving it up unmutes. It's hidden
+ * where a page can't set the volume (iOS, where it's the device's).
+ */
+export function volume(host: HTMLElement, media: HTMLMediaElement): { slider: HTMLInputElement; draw: () => void } {
+	const slider = document.createElement('input');
+	const level  = (): number => media.muted ? 0 : media.volume;
+
+	slider.type      = 'range';
+	slider.className = 'player__range player__volume';
+	slider.min       = '0';
+	slider.max       = '1';
+	slider.step      = '0.05';
+	slider.setAttribute('aria-label', label(host, 'volume', 'Volume'));
+	slider.hidden = !settable(media);
+
+	const draw = (): void => {
+		slider.value = String(level());
+		slider.setAttribute('aria-valuetext', `${Math.round(level() * 100)}%`);
+		slider.style.setProperty('--player-progress', `${level() * 100}%`);
+	};
+
+	slider.addEventListener('input', () => {
+		const value = Number(slider.value);
+
+		media.volume = value;
+		media.muted  = value === 0;
+		draw();
+	});
+
+	media.addEventListener('volumechange', draw);
+	draw();
+
+	return { slider, draw };
+}
+
+/**
+ * Whether a page can set a media element's volume: iOS keeps it at 1.
+ */
+function settable(media: HTMLMediaElement): boolean {
+	const was = media.volume;
+
+	media.volume = was === 0.5 ? 0.4 : 0.5;
+
+	const moved = media.volume !== was;
+
+	media.volume = was;
+
+	return moved;
 }
 
 /**

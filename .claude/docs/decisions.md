@@ -16326,3 +16326,16 @@ decision, add a new entry that supersedes it and mark the old one
   The admin uses it through `VideoPlayer.vue`.
 - **Why:** the author asked for a video player to match, after D-553
   noted one as open.
+
+### D-555: A volume slider in the video player
+- **Date:** 2026-10-06
+- **Status:** Built.
+- **Decision:** the video player's bar has a volume slider after mute
+  (`volume()` in `resources/player/controls.ts`, 64px, `label-volume`,
+  its value text a percentage). Muted reads as nothing; moving it
+  above nothing unmutes, and to nothing mutes; unmuting at nothing
+  goes back to half. It's hidden where a page can't set the volume
+  (iOS). The seek track's styles are now `.player__range`, which both
+  sliders share. Adds to D-554.
+- **Why:** the author: "The video controls bar is missing a volume
+  slider."
