@@ -15862,3 +15862,32 @@ decision, add a new entry that supersedes it and mark the old one
   Directive subsystem; it was in Markdown only to avoid a dependency
   cycle, and moving the whole seam keeps one direction while putting the
   kind beside the `KIND` every directive declares (D-534).
+
+### D-536: Avatars on the front end, as inline SVG
+- **Date:** 2026-10-06
+- **Status:** Built.
+- **Decision:**
+  - **`$template->avatar($profile, $size = 48, $label = '')`** draws
+    a profile's avatar as the admin does: a square box with up to two
+    initials of its name, as an inline SVG (`Blush\View\Avatar`). The
+    initials follow the admin's `initials()` (`people.ts`), and tests
+    keep the two in step. It's gray by default, through
+    `--avatar-background` and `--avatar-color` with the admin's
+    `--surface-3` and `--fg-2` as fallbacks; the letters take the page's
+    font. The theme does the design, its `border-radius` on `.avatar`
+    setting the shape. Without a label it's `aria-hidden`, for beside a
+    printed name; with one, `role="img"` with that label.
+  - **Templates reach profiles:** `$template->author($entry)` is the
+    first person the entry's main byline credits (its type's first
+    people field), and `$template->profile($slug)` a published profile
+    by slug, beside the existing `people()`.
+  - **Only the SVG for now.** Nothing draws the profile's `avatar` field
+    yet. An avatar at a URL belongs to the public API (D-479), not
+    built. Uploads and Gravatar may come later (Gravatar works only for
+    a profile linked to an account, which has an email).
+- **Why:** the author wants the front end to show what the admin does,
+  "a box with a letter in it": "Box. border-radius from theme controls
+  the shape," "Gray. Let theme handle the design," and "we just want to
+  draw an svg." SVG needs no image library or generated files, stays
+  sharp at any size, and inline it takes the theme's CSS. The route
+  waits for "a part of the public api that we haven't finished yet."

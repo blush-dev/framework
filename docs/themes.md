@@ -418,6 +418,9 @@ What a template can use:
 | `$template->route('home')` | A named route's URL (`bin/blush routes:list`), with any parameters: `route('post.collection.month', ['year' => 2026, 'month' => '05'])`. On a [translated](content.md#translations) page, it's that language's version when there is one (`/es` for `home`) |
 | `$template->terms($entry, 'tag')` | An entry's terms in a taxonomy |
 | `$template->people($entry, $field)` | The profiles an entry credits through a [people field](content-types.md#crediting-people), in order; the type's first people field (its byline) when `$field` is left out |
+| `$template->author($entry)` | The first person an entry's byline credits, such as a post's author, or `null` |
+| `$template->profile('jane')` | A published profile by its slug, or `null` |
+| `$template->avatar($profile, 48)` | A profile's avatar, to print: a square box with its initials, as an inline SVG (see [Avatars](#avatars)) |
 | `$template->bylineUrl($profile, $entry, $field)` | Where a byline links: the person's archive under the entry's type and field, such as `/blog/authors/jane`, else their profile's page, else `''` |
 | `$template->personUrl($profile, $type, $field)` | A person's archive under a type's people field, such as `/recipes/cooks/jane` (`''` when it has none) |
 | `$template->peopleUrl($type, $field)` | The list of people a type's field credits, such as `/recipes/cooks` |
@@ -648,6 +651,37 @@ nothing is cached, so your changes always show.
 A directive used in an entry's Markdown (`::app/post-list{limit=5}`)
 needs no `cache()`: it's kept with the entry's rendered content, on the
 same terms.
+
+### Avatars
+
+`$template->avatar($profile)` draws a person's avatar the way the admin
+does: a square box with up to two initials of their name ("Jane Doe" is
+JD), as an inline SVG. Give a size in pixels as the second argument (48
+by default):
+
+```php
+<?php if ($author = $template->author($entry)) : ?>
+	<p class="byline">
+		<?= $template->avatar($author, 32) ?>
+		<?= e($author->title) ?>
+	</p>
+<?php endif ?>
+```
+
+Beside a printed name, it's hidden from screen readers. Alone, give it a
+label so it's read as an image: `$template->avatar($profile, label:
+$profile->title)`.
+
+It's gray until your theme styles it. Its class is `avatar`, and two
+custom properties set its colors; the letters use the page's font:
+
+```css
+.avatar {
+	--avatar-background: #fde2e4;
+	--avatar-color: #9d174d;
+	border-radius: 50%; /* a circle; leave it out for a square */
+}
+```
 
 ### Which template is used
 

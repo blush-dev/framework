@@ -540,6 +540,51 @@ final class Template
 	}
 
 	/**
+	 * Returns the first person an entry's main byline credits (the type's
+	 * first people field), such as a post's author, or `null` when it
+	 * credits no one.
+	 *
+	 * ```php
+	 * <?php if ($author = $template->author($entry)) : ?>
+	 *     <?= $template->avatar($author) ?> <?= e($author->title) ?>
+	 * <?php endif ?>
+	 * ```
+	 */
+	public function author(Entry $entry): ?Entry
+	{
+		return array_first($this->people($entry));
+	}
+
+	/**
+	 * Returns a published profile by its slug (D-351), real or virtual,
+	 * or `null` when there's none, or the site has no profiles type.
+	 */
+	public function profile(string $slug): ?Entry
+	{
+		$profiles = $this->views->services->types->profiles();
+		$profile  = $profiles === null ? null : $this->views->services->content->term($profiles->name, $slug);
+
+		return $profile !== null && $profile->isPublished() && $profile->isRoutable() ? $profile : null;
+	}
+
+	/**
+	 * Returns a profile's avatar (D-536), to print: a square box with up
+	 * to two initials of its name, as an inline SVG the theme styles.
+	 * Without a label, it's hidden from assistive technology, for when
+	 * the name is printed beside it; with one, it's an image named by it.
+	 *
+	 * ```php
+	 * <?= $template->avatar($profile, 64) ?>
+	 * <?= $template->avatar($profile, label: $profile->title) ?>
+	 * ```
+	 */
+	#[ReturnsHtml]
+	public function avatar(Entry $profile, int $size = 48, string $label = ''): string
+	{
+		return new Avatar($profile->title, $size)->html($label);
+	}
+
+	/**
 	 * Returns where a byline on an entry links for a profile it credits:
 	 * the person's archive under the entry's type's field (its first
 	 * people field when none is named), such as `/blog/authors/jane`,

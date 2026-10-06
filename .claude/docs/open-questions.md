@@ -170,6 +170,69 @@ Move each item to `decisions.md` once it's answered.
     - **Order:** this leans on the Fields API (paused, D-348). Data
       types as the use case that restarts it, or `body: false` first
       for types needing only a title and a few front matter keys?
+- **Regions as written content** (discussed 2026-10-06; the author's
+  leanings, not decided; don't build yet): a region becomes an editable
+  area a theme registers, filled with Markdown the user writes, instead
+  of a typed item list in `user/data/regions/` (D-201, D-204).
+  - **Why:** since D-532, directives are what content says and
+    components are a template's pieces, so of today's item kinds only
+    `directive` and `markdown` are content; `component` and `view` are
+    template work kept as site data, and `entry` (with its `_regions/`
+    folder) exists only because inline text was too small. Markdown
+    covers what's left (`::menu{name=social}`), and the admin's editor
+    (blocks, media, mentions) becomes the region editor, in place of
+    the separate one D-213 plans.
+  - **Leanings:**
+    - **Storage:** entries of a built-in type of their own, with no
+      URLs (ties in with **Data types** above: a type that exists
+      without pages), so regions get ids, translations
+      (`translation_of`), status, the storage driver (D-486), and the
+      body cache from content rather than rules of their own.
+    - **Replace** the item list; one format, not two. Regions are new
+      in 2.x, so D-078 doesn't hold them; a migration converts existing
+      files (the default theme's `footer`, the jtcom trial's).
+    - **Theme defaults** are Markdown. The user overrules them by
+      attaching their own region entry to that location; no merging.
+    - **Structured areas** (search, then recent posts) wait for a
+      larger library of directives, or the theme draws them with
+      components in its templates and offers no user input there.
+  - **Still open:**
+    - **The name.** Is "region" a word users understand? The user docs
+      already explain regions as "the sidebar and footer areas themes
+      offer" (`docs/README.md`). Taken or confusing: blocks
+      (directives), sections (the admin's section rail and panel),
+      slots (components, D-025, and the Fields API), zones (time
+      zones), partials (template parts), and "widgets" reads as
+      another CMS. "Areas" is plain English ("Footer area"), but
+      storage areas (D-485) and the admin's rail areas use the word in
+      config and code. "Snippets" suggests reusable text rather than a
+      place on the page. The author likes **areas** or **slots**.
+      Slots fits the component fold (a place in the theme's layout the
+      user fills, as a caller fills a component's named slot), but the
+      word already has two meanings: components' named slots (public,
+      `docs/components.md`) and field set slots (D-347, in the admin
+      API, paused with the Fields API), which would need renaming.
+      Areas collides only in config and code.
+    - **Attaching:** how an entry names its location: its slug, or a
+      front matter key (`region: footer`), and whether one entry can
+      fill several locations. The `user/data/theme.json` map
+      (`"regions": {"aside": "sidebar"}`) may become unnecessary if the
+      entry names the location.
+    - **Where theme defaults live:** Markdown in `theme.json`, or files
+      in the theme (`regions/footer.md`), translated how.
+    - **Limits per area:** whether a theme can declare which blocks an
+      area allows (the inserter's `only`).
+    - **Per-page conditions** (a sidebar only on posts; see **Menus
+      and regions, later**), possibly as the entry's front matter.
+    - **Folding into components** (asked by the author): an area as a
+      component slot the user fills. A component is drawn in many
+      places with different props, while an area is one place with one
+      piece of content, so a full fold needs a key per area, a region
+      by another name, and makes components user-editable again,
+      blurring D-532. A lighter fold: areas stay registered locations
+      backed by entries, and draw through a built-in component, so a
+      theme overrides their markup as it does any component's (D-382),
+      and a theme's own component (a footer) can hold an area.
 - **APIs, agents, and headless** (discussed 2026-10-03; the author wants
   to explore or build most of these; nothing decided):
   - **The content API** (decided in D-479: two surfaces over one
@@ -984,6 +1047,8 @@ Move each item to `decisions.md` once it's answered.
 - **Menus and regions, later** (D-199 to D-204): entries adding
   themselves to menus from front matter (`menu:`, `weight:`); mega-menu
   `panel` entries; per-page region conditions (a sidebar only on posts).
+  Regions may become written content (see **Regions as written
+  content**), which would change the region items below.
   Smaller follow-ups from building them:
   - A region command (`region:list`/`region:show`); `theme:check` only
     checks item shapes, since it doesn't render items, so a missing

@@ -37,12 +37,17 @@ use Blush\Routing\SiteUrls;
 use Blush\Routing\UrlSource;
 use Blush\Sitemap\SitemapBuilder;
 use Blush\Tests\Content\BuildsContentSite;
+use Blush\Theme\ThemeResolver;
 use Blush\View\Hierarchy;
+use Blush\View\Template;
+use Blush\View\ViewContext;
+use Blush\View\ViewFactory;
 
 #[CoversClass(PeopleController::class)]
 #[CoversClass(PersonController::class)]
 #[CoversClass(ProfileController::class)]
 #[CoversClass(PeopleArchives::class)]
+#[CoversClass(Template::class)]
 final class PeopleArchivesTest extends TestCase
 {
 	use BuildsContentSite;
@@ -228,6 +233,26 @@ final class PeopleArchivesTest extends TestCase
 		$body = (string) $this->get($app, '/archives/spring')->getBody();
 
 		$this->assertStringContainsString('<span class="entry-meta__person">Justin Tadlock</span>', $body, 'Nowhere to link.');
+	}
+
+	public function testTemplatesReachAnAuthorAProfileAndTheirAvatar(): void
+	{
+		$app       = $this->boot();
+		$container = $app->container();
+		$views     = $container->make(ViewFactory::class)->forChain($container->make(ThemeResolver::class)->active());
+		$template  = new Template($views, new ViewContext());
+		$spring    = $container->make(ContentRepository::class)->named('post', 'spring');
+
+		$this->assertNotNull($spring);
+		$this->assertSame('Justin Tadlock', $template->author($spring)?->title, 'The main byline\'s first person.');
+		$this->assertNull($template->profile('nobody'));
+
+		$sam = $template->profile('sam');
+
+		$this->assertNotNull($sam);
+		$this->assertSame('Sam', $sam->title);
+		$this->assertStringContainsString('>S</text></svg>', $template->avatar($sam, 32));
+		$this->assertStringContainsString('width="32" height="32"', $template->avatar($sam, 32));
 	}
 
 	public function testATypeCreditsPeopleInItsOwnWords(): void
