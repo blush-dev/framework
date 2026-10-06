@@ -24,7 +24,7 @@ use Blush\Data\InvalidData;
  *
  * ```yaml
  * items:
- *   - component: menu
+ *   - directive: menu
  *     name: social
  *   - markdown: "Powered by **Blush**."
  * ```

@@ -21,15 +21,15 @@ use Blush\Region\RegionRender;
 use Blush\Translation\LocaleMap;
 
 /**
- * A component, with the item's other keys as its props (text in them may
- * be locale maps, D-202):
+ * A component (D-532), with the item's other keys as its props (text in
+ * them may be locale maps, D-202):
  *
  * ```yaml
- * - component: menu
- *   name: social
+ * - component: acme/card
+ *   title: Hello
  * ```
  *
- * It renders in the page's context, so a menu marks the current item.
+ * It renders in the page's context.
  */
 final class ComponentItem extends RegionItem
 {
@@ -42,7 +42,7 @@ final class ComponentItem extends RegionItem
 		return [$key => [
 			'type'        => 'string',
 			'pattern'     => '^' . ComponentName::SYNTAX . '$',
-			'description' => 'Shows a component, such as menu or acme/card. The item\'s other keys are its props.'
+			'description' => 'Shows a component, such as acme/card. The item\'s other keys are its props.'
 		]];
 	}
 
@@ -54,7 +54,7 @@ final class ComponentItem extends RegionItem
 	{
 		return is_string($value) && ComponentName::parse(trim($value)) !== null
 			? null
-			: 'must be a component name, such as "menu" or "acme/card".';
+			: 'must be a component name, such as "acme/card".';
 	}
 
 	/**

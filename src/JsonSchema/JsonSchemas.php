@@ -14,8 +14,8 @@ declare(strict_types=1);
 namespace Blush\JsonSchema;
 
 use JsonException;
-use Blush\Component\ComponentName;
-use Blush\Component\Variant;
+use Blush\Directive\DirectiveName;
+use Blush\Directive\Variant;
 use Blush\Content\EntryFields;
 use Blush\Core\Framework;
 use Blush\Extension\ExtensionLinks;
@@ -41,7 +41,7 @@ use Blush\Translation\LocaleMap;
  * stale.
  *
  * Each schema is as open as the file it describes: manifests and items
- * allow keys the schema doesn't describe (a component's props, a theme's
+ * allow keys the schema doesn't describe (a directive's props, a theme's
  * menu fields), and menu and region files allow only their own keys.
  * The built-in field types, menu links, and region items describe
  * themselves; a plugin's are allowed but not described.
@@ -194,20 +194,20 @@ final readonly class JsonSchemas
 				],
 				'variants'    => [
 					'type'                 => 'object',
-					'description'          => 'Variants the theme adds to components, by component name (such as "callout" or "notebook/card"), and under "image", the classes it offers Markdown images (such as "inline-left"). Their labels and descriptions are in the theme\'s lang/ catalog, under components.{name}.variants.{variant} (images.variants.{variant} for images).',
-					'propertyNames'        => ['pattern' => '^' . ComponentName::SYNTAX . '$'],
+					'description'          => 'Variants the theme adds to directives, by directive name (such as "callout" or "acme/tabs"), and under "image", the classes it offers Markdown images (such as "inline-left"). Their labels and descriptions are in the theme\'s lang/ catalog, under directives.{name}.variants.{variant} (images.variants.{variant} for images).',
+					'propertyNames'        => ['pattern' => '^' . DirectiveName::SYNTAX . '$'],
 					'additionalProperties' => [
 						'type'  => 'array',
 						'items' => [
 							'oneOf' => [
-								['type' => 'string', 'pattern' => '^' . Variant::SYNTAX . '$', 'not' => ['const' => Variant::DEFAULT], 'description' => 'The variant\'s name: lowercase letters, digits, and hyphens. Its class is component-{name}--{variant}.'],
+								['type' => 'string', 'pattern' => '^' . Variant::SYNTAX . '$', 'not' => ['const' => Variant::DEFAULT], 'description' => 'The variant\'s name: lowercase letters, digits, and hyphens. Its class is directive-{name}--{variant}.'],
 								[
 									'type'                 => 'object',
 									'required'             => ['name'],
 									'additionalProperties' => false,
 									'properties'           => [
 										'name'     => ['type' => 'string', 'pattern' => '^' . Variant::SYNTAX . '$', 'not' => ['const' => Variant::DEFAULT], 'description' => 'The variant\'s name.'],
-										'modifier' => ['type' => 'string', 'pattern' => '^' . Variant::SYNTAX . '$', 'description' => 'The class modifier to add instead of the name: component-{name}--{modifier}.']
+										'modifier' => ['type' => 'string', 'pattern' => '^' . Variant::SYNTAX . '$', 'description' => 'The class modifier to add instead of the name: directive-{name}--{modifier}.']
 									]
 								]
 							]
@@ -527,7 +527,7 @@ final readonly class JsonSchemas
 
 	/**
 	 * Returns the schema for a region item: each built-in kind's key.
-	 * Other keys are a component's props or a view's data.
+	 * Other keys are a directive's or component's props or a view's data.
 	 *
 	 * @return array<string, mixed>
 	 */
@@ -684,7 +684,7 @@ final readonly class JsonSchemas
 				'type'        => 'string',
 				'pattern'     => trim(ExtensionNamespace::PATTERN, '/'),
 				'not'         => ['enum' => ExtensionNamespace::RESERVED],
-				'description' => sprintf('The namespace the %s\'s components, icons, and translations go by, such as "gallery" for gallery/slideshow. No two installed extensions may share one. Without one, it\'s the name with hyphens for the "/" and any ".", such as "acme-gallery".', $kind)
+				'description' => sprintf('The namespace the %s\'s directives, components, icons, and translations go by, such as "gallery" for gallery/slideshow. No two installed extensions may share one. Without one, it\'s the name with hyphens for the "/" and any ".", such as "acme-gallery".', $kind)
 			]
 		];
 	}

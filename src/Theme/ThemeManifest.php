@@ -40,7 +40,7 @@ use Blush\Extension\ExtensionSuggest;
  * map Blush registers for it. Its `settings` are field definitions
  * (D-022), and its `menus` and `regions` declare the locations the site
  * fills (D-199, D-201), each a label or an object. Its `variants` list
- * component variants by component (D-266). Its `preview` is what the
+ * directive variants by directive (D-266). Its `preview` is what the
  * admin sketches it from (D-381). Keys this version doesn't read (image
  * sizes) are kept in `$data`. Its `authors` are in `composer.json`'s
  * shape (D-384), its `license` a string or a list (D-427, D-428), and its
@@ -169,7 +169,7 @@ final readonly class ThemeManifest implements ExtensionManifest
 		$variants = $data['variants'] ?? [];
 
 		if (! is_array($variants) || ($variants !== [] && array_is_list($variants)) || ! array_all($variants, static fn (mixed $list): bool => is_array($list) && array_is_list($list))) {
-			throw new ThemeException(sprintf('The "%s" theme\'s "variants" must map component names to lists of variants.', $theme));
+			throw new ThemeException(sprintf('The "%s" theme\'s "variants" must map directive names to lists of variants.', $theme));
 		}
 
 		$bleed = $data['bleed'] ?? [];
@@ -267,9 +267,9 @@ final readonly class ThemeManifest implements ExtensionManifest
 	}
 
 	/**
-	 * Returns the manifest's component variants, by component name: each
+	 * Returns the manifest's directive variants, by directive name: each
 	 * a variant name or a `{"name", "modifier"}` object (see
-	 * `Component\ComponentVariants`).
+	 * `Directive\DirectiveVariants`).
 	 *
 	 * @return array<string, list<mixed>>
 	 */

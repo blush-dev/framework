@@ -27,8 +27,8 @@ use Blush\Markdown\CommonMark\Directive\LeafDirective;
 use Blush\Markdown\CommonMark\Directive\LeafDirectiveParser;
 use Blush\Markdown\CommonMark\Directive\LeafDirectiveStartParser;
 use Blush\Markdown\CommonMarkParser;
-use Blush\Markdown\Directive;
-use Blush\Markdown\DirectiveKind;
+use Blush\Directive\ParsedDirective;
+use Blush\Directive\DirectiveKind;
 use Blush\Markdown\MarkdownConfig;
 use Blush\Tests\Fixtures\Markdown\EchoDirectives;
 
@@ -43,7 +43,7 @@ use Blush\Tests\Fixtures\Markdown\EchoDirectives;
 #[CoversClass(LeafDirectiveStartParser::class)]
 #[CoversClass(InlineDirective::class)]
 #[CoversClass(InlineDirectiveParser::class)]
-#[CoversClass(Directive::class)]
+#[CoversClass(ParsedDirective::class)]
 #[CoversClass(DirectiveKind::class)]
 final class DirectiveTest extends TestCase
 {
@@ -100,9 +100,9 @@ final class DirectiveTest extends TestCase
 		$markdown = ":::box\nText :x[y] here.\n:::\n\n::leaf\n";
 		$html     = $parser->toHtml($markdown, 'fr');
 
-		$this->assertSame(['fr', 'fr', 'fr'], array_map(static fn (Directive $directive): string => $directive->language, $this->directives->seen));
+		$this->assertSame(['fr', 'fr', 'fr'], array_map(static fn (ParsedDirective $directive): string => $directive->language, $this->directives->seen));
 		$this->assertSame($parser->toHtml($markdown), $html, 'The language changes nothing else.');
-		$this->assertSame(['', '', ''], array_map(static fn (Directive $directive): string => $directive->language, array_slice($this->directives->seen, 3)));
+		$this->assertSame(['', '', ''], array_map(static fn (ParsedDirective $directive): string => $directive->language, array_slice($this->directives->seen, 3)));
 	}
 
 	public function testNestsContainersByFenceLength(): void

@@ -29,7 +29,7 @@ final class Body
 
 	/**
 	 * @param string $hash     The source file's content hash, which keys the cache.
-	 * @param string $language The code of the entry's language when it isn't the default (D-459), which its components follow, or `''`.
+	 * @param string $language The code of the entry's language when it isn't the default (D-459), which its directives follow, or `''`.
 	 */
 	public function __construct(
 		private readonly BodySource $source,
@@ -148,7 +148,7 @@ final class Body
 
 	/**
 	 * Returns what keys the body's cached renderings: its hash, and its
-	 * language when it isn't the default, since its components follow it.
+	 * language when it isn't the default, since its directives follow it.
 	 */
 	private function key(): string
 	{

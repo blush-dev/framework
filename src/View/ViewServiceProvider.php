@@ -25,8 +25,9 @@ use Blush\View\Engine\ViewEngines;
  * Binds the view layer: the view engines (D-502), the view factory,
  * context providers, and the themed renderers for content pages and
  * error pages. The renderers are
- * defaults an extension can replace by binding its own. Components have
- * their own provider (`Component\ComponentServiceProvider`).
+ * defaults an extension can replace by binding its own. Directives and
+ * components have their own providers (`DirectiveServiceProvider`,
+ * `ComponentServiceProvider`).
  *
  * A theme or site provider adds a context provider in `boot()`:
  *
@@ -46,7 +47,8 @@ final class ViewServiceProvider extends ServiceProvider
 		ViewFactory::class,
 		ViewServices::class,
 		DocumentRenderer::class,
-		ContextProviders::class
+		ContextProviders::class,
+		RenderableFactory::class
 	];
 
 	/**

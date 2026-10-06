@@ -53,7 +53,7 @@ use Blush\Session\StartSession;
  *     fields/sets/{name}` one; `POST fields/sets`, and `PATCH` and
  *     `DELETE fields/sets/{name}` edit the ones in `user/data/fields`
  *     (`FieldSetEditController`, D-337).
- *   - `GET  components`: the components the editor's inserter offers.
+ *   - `GET  directives`: the directives the editor's inserter offers.
  *   - `GET  icons`: the icons the editor's icon picker offers.
  *   - `GET  media`: the media files an entry can use, a page at a time,
  *     and `GET media/{path}` one library file; `POST media` uploads one,
@@ -150,7 +150,7 @@ final readonly class AdminRoutes implements RouteSource
 			Route::patch('/types/{name:[a-z0-9_-]+}', [TypeEditController::class, 'update'])->named('type.update')->middleware(Authenticate::class),
 			Route::delete('/types/{name:[a-z0-9_-]+}', [TypeEditController::class, 'delete'])->named('type.delete')->middleware(Authenticate::class),
 			Route::post('/types/{name:[a-z0-9_-]+}/reset', [TypeEditController::class, 'reset'])->named('type.reset')->middleware(Authenticate::class),
-			Route::get('/components', ComponentsController::class)->named('components')->middleware(Authenticate::class),
+			Route::get('/directives', DirectivesController::class)->named('directives')->middleware(Authenticate::class),
 			Route::get('/fields/types', FieldTypesController::class)->named('fields.types')->middleware(Authenticate::class),
 			Route::get('/fields/sets', FieldSetsController::class)->named('fields.sets')->middleware(Authenticate::class),
 			Route::post('/fields/sets', [FieldSetEditController::class, 'create'])->named('fields.set.create')->middleware(Authenticate::class),

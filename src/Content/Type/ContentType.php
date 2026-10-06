@@ -65,7 +65,7 @@ abstract readonly class ContentType
 
 	/**
 	 * The name of an icon the admin shows the type with (an `icon`
-	 * component name, such as `film`), or `null` for its kind's.
+	 * directive name, such as `film`), or `null` for its kind's.
 	 */
 	public ?string $icon;
 

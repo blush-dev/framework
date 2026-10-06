@@ -17,31 +17,24 @@ use Override;
 use Stringable;
 
 /**
- * A component's name, `{namespace}/{name}` (D-171): `blush` for the core
- * components, a theme's or plugin's namespace (D-378), or `app` for the
- * site's own. Only core components may be written without their namespace
- * (`callout` is `blush/callout`); any other short name isn't a component.
+ * A component's name, `{namespace}/{name}` (D-171, D-532): a theme's or
+ * plugin's namespace (D-378), or `app` for the site's own. There are no
+ * core components, so a component is always written with its namespace.
  *
- * A component's template is `components/{namespace}-{name}.php`. A core
- * component's may also be `components/{name}.php`.
+ * A component's template is `components/{namespace}-{name}`.
  */
 final readonly class ComponentName implements Stringable
 {
-	/**
-	 * The core components' namespace.
-	 */
-	public const string CORE = 'blush';
-
 	/**
 	 * The site's own components' namespace.
 	 */
 	public const string SITE = 'app';
 
 	/**
-	 * The syntax of a written name, short or full, as a regex fragment
-	 * without delimiters or anchors (the Markdown directives use it).
+	 * The syntax of a name, as a regex fragment without delimiters or
+	 * anchors.
 	 */
-	public const string SYNTAX = '[A-Za-z][A-Za-z0-9_-]*(?:/[A-Za-z][A-Za-z0-9_-]*)?';
+	public const string SYNTAX = '[A-Za-z][A-Za-z0-9_-]*/[A-Za-z][A-Za-z0-9_-]*';
 
 	public function __construct(
 		public string $namespace,
@@ -50,16 +43,12 @@ final readonly class ComponentName implements Stringable
 
 	/**
 	 * Returns the name a string refers to, or `null` when it isn't a
-	 * valid full name or a core component's short name.
+	 * valid full name.
 	 */
 	public static function parse(string $value): ?self
 	{
 		if (preg_match('#^' . self::SYNTAX . '$#', $value) !== 1) {
 			return null;
-		}
-
-		if (! str_contains($value, '/')) {
-			return ComponentType::tryFrom($value) === null ? null : new self(self::CORE, $value);
 		}
 
 		[$namespace, $name] = explode('/', $value, 2);
@@ -68,19 +57,15 @@ final readonly class ComponentName implements Stringable
 	}
 
 	/**
-	 * Returns the name a template file is for (the file name without
-	 * `.php`), given the namespaces it could belong to, or `null` when
-	 * the file isn't named for one: a core component's short name, or
-	 * `{namespace}-{name}` with the longest namespace that fits.
+	 * Returns the name a template file is for (the file name without its
+	 * extension), given the namespaces it could belong to, or `null` when
+	 * the file isn't named for one: `{namespace}-{name}`, with the longest
+	 * namespace that fits.
 	 *
 	 * @param list<string> $namespaces
 	 */
 	public static function fromFileName(string $file, array $namespaces): ?self
 	{
-		if (ComponentType::tryFrom($file) !== null) {
-			return new self(self::CORE, $file);
-		}
-
 		usort($namespaces, static fn (string $a, string $b): int => strlen($b) <=> strlen($a));
 
 		foreach ($namespaces as $namespace) {
@@ -97,32 +82,11 @@ final readonly class ComponentName implements Stringable
 	}
 
 	/**
-	 * Returns whether it's a core component.
+	 * Returns the view name of its template.
 	 */
-	public function isCore(): bool
+	public function view(): string
 	{
-		return $this->namespace === self::CORE;
-	}
-
-	/**
-	 * Returns the view names its template may have, preferred first.
-	 *
-	 * @return list<string>
-	 */
-	public function views(): array
-	{
-		$views = ["components/{$this->namespace}-{$this->name}"];
-
-		return $this->isCore() ? ["components/{$this->name}", ...$views] : $views;
-	}
-
-	/**
-	 * Returns a label made from the name (`post-archives` → "Post
-	 * archives"), for when no translation gives one.
-	 */
-	public function label(): string
-	{
-		return ucfirst(str_replace(['-', '_'], ' ', $this->name));
+		return "components/{$this->namespace}-{$this->name}";
 	}
 
 	/**

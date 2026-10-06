@@ -86,7 +86,7 @@ punctuation, heading anchors, and line breaks as `<br>`, and
 `MarkdownConfig` takes the rest by name: `html: RawHtml::Filter` for
 disallowed raw HTML, and `anchors` and `footnotes` for their classes
 (see [Configuration](configuration.md#markdown)). A table of contents
-placeholder becomes the `::toc` [component](components.md).
+placeholder becomes the `::toc` [directive](directives.md).
 
 **Media URLs:** 2.x serves media from `/media`. To keep 1.x's
 `/user/media/...` URLs working, add `config/media.php`:

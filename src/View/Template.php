@@ -31,6 +31,7 @@ use Blush\Region\RegionException;
 use Blush\Routing\UrlGenerationException;
 use Blush\Theme\ThemeException;
 use Blush\Component\PendingComponent;
+use Blush\Directive\PendingDirective;
 
 /**
  * `$template` inside a template file: the small API templates use to build
@@ -232,12 +233,11 @@ final class Template
 
 	/**
 	 * Returns a component with named props, to print or to fill with
-	 * slots first (D-025):
-	 * `<?= $template->component('callout', tone: 'info')->content($html) ?>`.
-	 * `$component` is a full name (`acme/tabs`) or a core component's
-	 * short name (D-171). (It isn't called `$name`, so a component can
-	 * have a `name` prop; `$component` is taken in component templates
-	 * anyway.)
+	 * slots first (D-025, D-532):
+	 * `<?= $template->component('acme/card', entry: $entry)->slot('footer', $html) ?>`.
+	 * `$component` is its full name (`{namespace}/{name}`, D-171). (It
+	 * isn't called `$name`, so a component can have a `name` prop;
+	 * `$component` is taken in component templates anyway.)
 	 */
 	#[ReturnsHtml]
 	public function component(string $component, mixed ...$props): PendingComponent
@@ -246,21 +246,35 @@ final class Template
 	}
 
 	/**
+	 * Returns a directive with named props, to print or to give content
+	 * first (D-532): what content would say, drawn by a template, as
+	 * `<?= $template->directive('callout', variant: 'tip')->content($html) ?>`.
+	 * `$directive` is a full name (`acme/tabs`) or a core directive's
+	 * short name (D-171). (It isn't called `$name`, so a directive can
+	 * have a `name` prop, as the menu does.)
+	 */
+	#[ReturnsHtml]
+	public function directive(string $directive, mixed ...$props): PendingDirective
+	{
+		return new PendingDirective($this->views, $this->context, $directive, self::named($props));
+	}
+
+	/**
 	 * Returns an icon (D-187), to print: `<?= $template->icon('house') ?>`
 	 * for decoration, or `<?= $template->icon('jtcom/github', 'GitHub') ?>`
 	 * for one named by its label.
 	 */
 	#[ReturnsHtml]
-	public function icon(string $name, string $label = ''): PendingComponent
+	public function icon(string $name, string $label = ''): PendingDirective
 	{
-		return $this->component('icon', name: $name, label: $label);
+		return $this->directive('icon', name: $name, label: $label);
 	}
 
 	/**
 	 * Returns the menu a theme location shows (D-199), with the page's
 	 * item marked current, or `null` when it shows none, for markup of
-	 * the theme's own. The `menu` component prints one with the default
-	 * markup: `<?= $template->component('menu', name: 'primary') ?>`.
+	 * the theme's own. The `menu` directive prints one with the default
+	 * markup: `<?= $template->directive('menu', name: 'primary') ?>`.
 	 *
 	 * ```php
 	 * <?php if ($menu = $template->menu('social')) : ?>
@@ -397,7 +411,7 @@ final class Template
 	 * (development), it always renders. The key names the fragment and
 	 * anything it varies by:
 	 *
-	 *     <?= $template->cache("archives.{$by}", fn () => $template->component('post-archives', by: $by)) ?>
+	 *     <?= $template->cache("archives.{$by}", fn () => $template->component('acme/post-archives', by: $by)) ?>
 	 *
 	 * Only the returned HTML is kept, so a fragment shouldn't add to the
 	 * head or the `<body>` classes.

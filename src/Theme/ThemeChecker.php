@@ -16,10 +16,10 @@ namespace Blush\Theme;
 use Throwable;
 use Dom\Element;
 use Dom\HTMLDocument;
-use Blush\Component\ComponentListing;
-use Blush\Component\ComponentName;
-use Blush\Component\ComponentVariants;
 use Blush\Content\Http\ContentPage;
+use Blush\Directive\DirectiveListing;
+use Blush\Directive\DirectiveName;
+use Blush\Directive\DirectiveVariants;
 use Blush\Content\Http\PageKind;
 use Blush\Core\ServiceProvider;
 use Blush\Extension\ExtensionAbandoned;
@@ -47,16 +47,17 @@ use Blush\Translation\CatalogCheck;
  * - **Warnings:** another theme's chain with a requirement that isn't
  *   met, so it can't be activated; a `version` Composer can't read
  *   (D-430, D-431); an abandoned theme (D-433); shadowed manifests (JSON wins); site setting values
- *   that don't fit; other broken themes; a component with a class but no
- *   template to render; a component template not named for a component;
+ *   that don't fit; other broken themes; a directive or component with a
+ *   class but no template to render; a template in `directives/` for no
+ *   registered directive, or in `components/` not named for a component;
  *   site menu and region files or items that are invalid or don't
  *   resolve (D-199, D-201); a layout without `<header>` or `<footer>`,
  *   or with other than one `<h1>`, or one that prints a tag `head()`
  *   prints (`<meta charset>`, `viewport`, `generator`, `<title>`; D-472); a catalog whose `@@locale` or
  *   `@@domain` doesn't match its file or theme (D-452).
- * - **Notices:** the theme's registered components without a translated label; site
- *   menus and regions no location shows; a catalog without `@@locale`
- *   and `@@domain`; a base layout without `dir` on `<html>` (D-470).
+ * - **Notices:** variants without a translated label; site menus and
+ *   regions no location shows; a catalog without `@@locale` and
+ *   `@@domain`; a base layout without `dir` on `<html>` (D-470).
  *
  * The layout is checked by rendering the `welcome` page.
  */
@@ -108,7 +109,7 @@ final readonly class ThemeChecker
 			$problems = [
 				...$problems,
 				...$this->settings($chain),
-				...$this->components($chain),
+				...$this->directivesAndComponents($chain),
 				...$this->menus->check($chain),
 				...$this->regions->check($chain),
 				...$this->layout($chain)
@@ -209,26 +210,28 @@ final readonly class ThemeChecker
 	}
 
 	/**
-	 * Checks the theme's components, skipping another theme's (its
-	 * provider registers them when it's the active theme). A component
-	 * with a registered class but no template in the chain (and no other
-	 * view of its own) fails whenever it's used; a template in the theme's `components/` that
-	 * isn't named for a component (`{namespace}-{name}.php`, or a core
-	 * component's name) is never rendered (D-171); and the theme's
-	 * registered components should have a translated label for the
-	 * admin's inserter (a notice, D-172). Its `theme.json` variants
-	 * (D-266) must be for components that exist and have valid names, and
-	 * should have labels; a variant's template mustn't also be a
-	 * component's own.
+	 * Checks the directives and components (D-532). A directive or
+	 * component with a class but no template in the chain (and no other
+	 * view or markup of its own) fails whenever it's used. Themes can't
+	 * add directives, so a template in the theme's `directives/` that
+	 * isn't for a registered directive (or its variant) never renders;
+	 * nor does one in `components/` not named for a component
+	 * (`{namespace}-{name}`, D-171). Another theme's components are
+	 * skipped (its provider registers them when it's the active theme).
+	 * Its `theme.json` variants (D-266) must be for directives that exist
+	 * and have valid names, and should have labels; a variant's template
+	 * mustn't also be a directive's own.
 	 *
 	 * @return list<Violation>
 	 */
-	private function components(ThemeChain $chain): array
+	private function directivesAndComponents(ThemeChain $chain): array
 	{
 		try {
-			$views      = $this->views->forChain($chain);
-			$components = $views->components();
-			$stray      = $views->strayComponentFiles();
+			$views           = $this->views->forChain($chain);
+			$directives      = $views->directives();
+			$components      = $views->components();
+			$strayDirectives = $views->strayDirectiveFiles();
+			$strayComponents = $views->strayComponentFiles();
 		} catch (Throwable) {
 			// The layout check reports views that can't be built.
 			return [];
@@ -237,29 +240,33 @@ final readonly class ThemeChecker
 		$theme    = $chain->active();
 		$problems = [];
 
-		foreach ($components as $component) {
-			$name = (string) $component->name;
+		foreach ($directives as $directive) {
+			if ($directive->isMissingTemplate()) {
+				$problems[] = new Violation("directive {$directive->name}", sprintf('The "%s" directive (%s) has no %s template in the chain.', $directive->name, $directive->className(), array_last($directive->name->views())), Severity::Warning);
+			}
+		}
 
+		foreach ($components as $component) {
 			if ($this->themes->isOutside($component->name->namespace, $chain)) {
 				continue;
 			}
 
 			if ($component->isMissingTemplate()) {
-				$problems[] = new Violation("component {$name}", sprintf('The "%s" component (%s) has no %s template in the chain.', $name, $component->className() ?? 'no class', array_last($component->name->views())), Severity::Warning);
-			}
-
-			if ($component->isRegistered() && $component->label === null && $component->name->namespace === $theme->namespace) {
-				$problems[] = new Violation("component {$name}", sprintf('The "%s" component has no label; add "components.%s.label" to the theme\'s lang/ catalog.', $name, $component->name->name), Severity::Notice);
+				$problems[] = new Violation("component {$component->name}", sprintf('The "%s" component (%s) has no %s template in the chain.', $component->name, $component->class ?? 'no class', $component->name->view()), Severity::Warning);
 			}
 		}
 
-		$problems = [...$problems, ...$this->variants($theme, $views, $components)];
+		$problems = [...$problems, ...$this->variants($theme, $views, $directives)];
 
-		foreach ($stray as $file) {
+		foreach ($strayDirectives as $file) {
 			if (str_starts_with($file, $theme->viewsPath() . '/')) {
-				$fileName   = strstr(basename($file), '.', true) ?: basename($file);
-				$extension  = substr(basename($file), strlen($fileName));
-				$problems[] = new Violation("component {$fileName}", sprintf('components/%s%s isn\'t named for a component, so it never renders; name it components/%s-%s%s.', $fileName, $extension, $theme->namespace, $fileName, $extension), Severity::Warning);
+				$problems[] = new Violation('directive ' . basename($file), sprintf('directives/%s isn\'t for a registered directive, so it never renders. Themes can\'t add directives (D-532): make it a component (components/%s-%s) for the theme\'s templates.', basename($file), $theme->namespace, basename($file)), Severity::Warning);
+			}
+		}
+
+		foreach ($strayComponents as $file) {
+			if (str_starts_with($file, $theme->viewsPath() . '/')) {
+				$problems[] = new Violation('component ' . basename($file), sprintf('components/%s isn\'t named for a component, so it never renders; name it components/%s-%s.', basename($file), $theme->namespace, basename($file)), Severity::Warning);
 			}
 		}
 
@@ -268,49 +275,49 @@ final readonly class ThemeChecker
 
 	/**
 	 * Checks the variants the theme's manifest lists, and variant
-	 * templates that are also a component's own template name.
+	 * templates that are also a directive's own template name.
 	 *
-	 * @param  list<ComponentListing> $components
+	 * @param  list<DirectiveListing> $directives
 	 * @return list<Violation>
 	 */
-	private function variants(ThemeManifest $theme, Views $views, array $components): array
+	private function variants(ThemeManifest $theme, Views $views, array $directives): array
 	{
-		$known    = array_map(static fn (ComponentListing $component): string => (string) $component->name, $components);
+		$known    = array_map(static fn (DirectiveListing $directive): string => (string) $directive->name, $directives);
 		$problems = [];
 
-		foreach ($theme->variants() as $component => $list) {
-			if ($component === ComponentVariants::IMAGE) {
+		foreach ($theme->variants() as $directive => $list) {
+			if ($directive === DirectiveVariants::IMAGE) {
 				$problems = [...$problems, ...$this->imageVariants($theme, $views, $list)];
 
 				continue;
 			}
 
-			$name = ComponentName::parse($component);
+			$name = DirectiveName::parse($directive);
 
 			if ($name === null || ! in_array((string) $name, $known, true)) {
-				$problems[] = new Violation("variants {$component}", sprintf('theme.json lists variants for "%s", which isn\'t a component.', $component), Severity::Warning);
+				$problems[] = new Violation("variants {$directive}", sprintf('theme.json lists variants for "%s", which isn\'t a directive.', $directive), Severity::Warning);
 
 				continue;
 			}
 
 			foreach ($list as $item) {
-				$variant = ComponentVariants::manifestItem($item, $theme->namespace);
+				$variant = DirectiveVariants::manifestItem($item, $theme->namespace);
 
 				if ($variant === null) {
 					$problems[] = new Violation("variants {$name}", sprintf('theme.json lists a variant of "%s" that isn\'t valid: a name is lowercase letters, digits, and hyphens, starting with a letter, and not "default".', $name), Severity::Warning);
 				} elseif ($views->variantText($name, $variant, 'label') === null) {
-					$problems[] = new Violation("variants {$name}", sprintf('The "%s" variant of "%s" has no label; add "components.%s.variants.%s.label" to the theme\'s lang/ catalog.', $variant->name, $name, $name->name, $variant->name), Severity::Notice);
+					$problems[] = new Violation("variants {$name}", sprintf('The "%s" variant of "%s" has no label; add "directives.%s.variants.%s.label" to the theme\'s lang/ catalog.', $variant->name, $name, $name->name, $variant->name), Severity::Notice);
 				}
 			}
 		}
 
-		$namespaces = array_values(array_unique(array_map(static fn (ComponentListing $component): string => $component->name->namespace, $components)));
+		$namespaces = array_values(array_unique(array_map(static fn (DirectiveListing $directive): string => $directive->name->namespace, $directives)));
 
 		foreach ($views->variantFiles() as $fileName => [$name, $variant]) {
-			$other = ComponentName::fromFileName($fileName, $namespaces);
+			$other = DirectiveName::fromFileName($fileName, $namespaces);
 
 			if ($other !== null && in_array((string) $other, $known, true) && (string) $other !== (string) $name) {
-				$problems[] = new Violation("component {$other}", sprintf('components/%s is both the "%s" component\'s template and the "%s" variant\'s of "%s"; rename one.', $fileName, $other, $variant->name, $name), Severity::Warning);
+				$problems[] = new Violation("directive {$other}", sprintf('directives/%s is both the "%s" directive\'s template and the "%s" variant\'s of "%s"; rename one.', $fileName, $other, $variant->name, $name), Severity::Warning);
 			}
 		}
 
@@ -329,7 +336,7 @@ final readonly class ThemeChecker
 		$problems = [];
 
 		foreach ($list as $item) {
-			$variant = ComponentVariants::manifestItem($item, $theme->namespace);
+			$variant = DirectiveVariants::manifestItem($item, $theme->namespace);
 
 			if ($variant === null) {
 				$problems[] = new Violation('variants image', 'theme.json lists an image variant that isn\'t valid: a name is lowercase letters, digits, and hyphens, starting with a letter, and not "default".', Severity::Warning);

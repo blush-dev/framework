@@ -13,7 +13,7 @@ declare(strict_types=1);
 
 namespace Blush\Llms;
 
-use Blush\Component\ComponentRegistry;
+use Blush\Directive\DirectiveRegistry;
 use Blush\Core\AppConfig;
 use Blush\Field\Fields\MediaField;
 use Blush\Markdown\CommonMark\Directive\DirectiveAttributes;
@@ -27,9 +27,9 @@ use Blush\Media\MediaResolver;
  *
  * Rewritten, as written otherwise: inline link and image destinations
  * (`[text](/about)`, `![alt](/user/media/a.jpg "Title")`, `(<…>)`),
- * reference definitions (`[1]: /about`), and a registered component's
+ * reference definitions (`[1]: /about`), and a registered directive's
  * media and link props in a directive's attributes
- * (`::audio{src=/media/a.mp3}`), as `ComponentDirectives` resolves them.
+ * (`::audio{src=/media/a.mp3}`), as `MarkdownDirectives` resolves them.
  *
  * Left alone: code (fenced blocks, indented blocks, and inline code
  * spans) and HTML (blocks, and attributes in inline HTML), plus full
@@ -72,7 +72,7 @@ final readonly class MarkdownLinks
 
 	public function __construct(
 		private MediaResolver $media,
-		private ComponentRegistry $components,
+		private DirectiveRegistry $directives,
 		private AppConfig $app
 	) {}
 
@@ -178,12 +178,12 @@ final readonly class MarkdownLinks
 	}
 
 	/**
-	 * Returns a directive's attributes with its component's media and
+	 * Returns a directive's attributes with its registered media and
 	 * link props given full URLs.
 	 */
 	private function attributes(string $name, string $attributes): string
 	{
-		$definition = $this->components->get($name);
+		$definition = $this->directives->get($name);
 
 		if ($definition === null) {
 			return $attributes;

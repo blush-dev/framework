@@ -26,8 +26,8 @@ use Blush\Icon\IconRegistry;
 use Blush\Icon\Icons;
 use Blush\Tests\BootsScratchSite;
 use Blush\Theme\ThemeResolver;
-use Blush\Component\ComponentName;
-use Blush\Component\Icon;
+use Blush\Directive\DirectiveName;
+use Blush\Directive\Icon;
 use Blush\View\ViewFactory;
 
 #[CoversClass(IconName::class)]
@@ -112,12 +112,12 @@ final class IconsTest extends TestCase
 		$icon  = static fn (string $name, string $label = ''): Icon => $app->container()->build(Icon::class, ['name' => $name, 'label' => $label]);
 		$house = $icon('house');
 
-		$house->attach(new ComponentName('blush', 'icon'), ['class' => 'extra', 'id' => 'home-icon']);
+		$house->attach(new DirectiveName('blush', 'icon'), ['class' => 'extra', 'id' => 'home-icon']);
 
 		$plain = $house->markup();
 
 		$this->assertStringStartsWith('<svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em"', $plain);
-		$this->assertStringContainsString('class="component-icon extra" id="home-icon"', $plain);
+		$this->assertStringContainsString('class="directive-icon extra" id="home-icon"', $plain);
 		$this->assertStringContainsString('aria-hidden="true"', $plain);
 		$this->assertStringContainsString('focusable="false"', $plain);
 		$this->assertStringNotContainsString('role=', $plain);
@@ -139,7 +139,7 @@ final class IconsTest extends TestCase
 
 		$html = (string) $this->app()->container()->make(Kernel::class)->handle(Request::create('/'))->getBody();
 
-		$this->assertMatchesRegularExpression('#<p>Go <svg [^>]*class="component-icon"[^>]*role="img" aria-label="Home">.*?</svg> or <svg [^>]*class="component-icon loved"[^>]*aria-hidden="true">.*?</svg>\.</p>#', $html);
+		$this->assertMatchesRegularExpression('#<p>Go <svg [^>]*class="directive-icon"[^>]*role="img" aria-label="Home">.*?</svg> or <svg [^>]*class="directive-icon loved"[^>]*aria-hidden="true">.*?</svg>\.</p>#', $html);
 		$this->assertMatchesRegularExpression('#<svg [^>]*aria-label="Feed"#', $html);
 	}
 

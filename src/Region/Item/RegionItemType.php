@@ -20,6 +20,7 @@ namespace Blush\Region\Item;
 enum RegionItemType: string
 {
 	case Component = 'component';
+	case Directive = 'directive';
 	case Entry     = 'entry';
 	case Markdown  = 'markdown';
 	case View      = 'view';
@@ -33,6 +34,7 @@ enum RegionItemType: string
 	{
 		return match ($this) {
 			self::Component => ComponentItem::class,
+			self::Directive => DirectiveItem::class,
 			self::Entry     => EntryItem::class,
 			self::Markdown  => MarkdownItem::class,
 			self::View      => ViewItem::class

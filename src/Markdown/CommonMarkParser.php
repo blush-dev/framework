@@ -43,6 +43,7 @@ use League\CommonMark\Node\Block\Paragraph;
 use League\CommonMark\Parser\MarkdownParser as CommonMarkDocumentParser;
 use League\CommonMark\Renderer\HtmlRenderer;
 use Blush\Core\AppConfig;
+use Blush\Directive\DirectiveRenderer;
 use Blush\Markdown\CommonMark\BracketedSpan;
 use Blush\Markdown\CommonMark\BracketedSpanParser;
 use Blush\Markdown\CommonMark\BracketedSpanRenderer;

@@ -20,7 +20,7 @@ namespace Blush\Region;
  *
  * ```json
  * "regions": {
- *     "sidebar": { "label": "Sidebar", "items": [{ "component": "menu", "name": "social" }] },
+ *     "sidebar": { "label": "Sidebar", "items": [{ "directive": "menu", "name": "social" }] },
  *     "footer": "Footer"
  * }
  * ```

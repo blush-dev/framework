@@ -43,7 +43,7 @@ final readonly class MarkdownConfig implements Config
 	 * @param RawHtml              $html             What raw HTML does on a page.
 	 * @param bool                 $figures          Whether a lone image renders as a `<figure>`.
 	 * @param bool                 $absoluteLinks    Whether root-relative links become absolute.
-	 * @param bool                 $directives       Whether generic directives render as components (D-026).
+	 * @param bool                 $directives       Whether generic directives render (D-026, D-532).
 	 * @param HeadingAnchorOptions $anchors          How heading anchors look.
 	 * @param FootnoteOptions      $footnotes        How footnotes look.
 	 */

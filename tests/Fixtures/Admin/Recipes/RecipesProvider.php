@@ -15,12 +15,12 @@ namespace Blush\Tests\Fixtures\Admin\Recipes;
 
 use Override;
 use Blush\Admin\Action\AdminActionRegistry;
-use Blush\Component\ComponentRegistry;
+use Blush\Directive\DirectiveRegistry;
 use Blush\Console\CommandRegistry;
 use Blush\Content\Type\ContentTypeSource;
 use Blush\Core\ServiceProvider;
 use Blush\Icon\IconRegistry;
-use Blush\Tests\Fixtures\Component\Card;
+use Blush\Tests\Fixtures\Directive\Stamp;
 
 /**
  * Adds a little of everything the Extensions screen lists.
@@ -38,7 +38,7 @@ final class RecipesProvider extends ServiceProvider
 	#[Override]
 	public function boot(): void
 	{
-		$this->container->make(ComponentRegistry::class)->register('fixture/recipe-card', Card::class);
+		$this->container->make(DirectiveRegistry::class)->register('fixture/recipe-card', Stamp::class);
 		$this->container->make(IconRegistry::class)->add('fixture', __DIR__);
 		$this->container->make(AdminActionRegistry::class)->register('import-recipes', ImportAction::class);
 	}

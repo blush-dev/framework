@@ -210,12 +210,12 @@ export function childrenOf(items: OutlineItem[], ref: ElementRef): OutlineItem[]
 }
 
 /**
- * An element's name: a component's label, "Image", or a block's kind (a
+ * An element's name: a directive's label, "Image", or a block's kind (a
  * heading with its level).
  */
-export function elementName(markdown: MarkdownOutline, found: MarkdownBlock[], ref: ElementRef, componentLabel: (name: string) => string): string {
+export function elementName(markdown: MarkdownOutline, found: MarkdownBlock[], ref: ElementRef, directiveLabel: (name: string) => string): string {
 	if (ref.kind === 'directive') {
-		return componentLabel(markdown.directives[ref.index]?.name ?? '');
+		return directiveLabel(markdown.directives[ref.index]?.name ?? '');
 	}
 
 	if (ref.kind === 'image') {
@@ -234,7 +234,7 @@ export function elementName(markdown: MarkdownOutline, found: MarkdownBlock[], r
 /**
  * One line of what's in an element, for the outline: the words of a
  * heading, paragraph, quote, or item; a code block's language and
- * length; a table's columns; a list's type and items; a component's
+ * length; a table's columns; a list's type and items; a directive's
  * label or title; an image's caption, alt text, or file. A divider says
  * nothing.
  */

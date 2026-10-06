@@ -13,11 +13,10 @@ declare(strict_types=1);
 
 namespace Blush\Content\Lint;
 
-use Blush\Component\ComponentName;
-use Blush\Component\ComponentRegistry;
-use Blush\Component\ComponentType;
-use Blush\Component\ComponentVariants;
-use Blush\Component\Variant;
+use Blush\Directive\DirectiveName;
+use Blush\Directive\DirectiveRegistry;
+use Blush\Directive\DirectiveVariants;
+use Blush\Directive\Variant;
 use Blush\Content\Parser\FrontMatter;
 use Blush\Field\Severity;
 use Blush\Field\Violation;
@@ -26,10 +25,9 @@ use Blush\Theme\ThemeException;
 use Blush\Theme\ThemeResolver;
 
 /**
- * Finds directives in a body that ask for a variant their component
- * doesn't have under the active theme (D-266): they render as Default,
- * which is seldom what was meant. Only the core and registered
- * components are checked, and nothing in fenced code. Like the editor's
+ * Finds directives in a body that ask for a variant the directive doesn't
+ * have under the active theme (D-266): they render as Default, which is
+ * seldom what was meant. Only registered directives are checked, and nothing in fenced code. Like the editor's
  * reading (`markdown.ts`), this isn't a Markdown parser, only close
  * enough to point at a directive.
  */
@@ -42,8 +40,8 @@ final readonly class VariantCheck
 
 	public function __construct(
 		private ThemeResolver $themes,
-		private ComponentRegistry $components,
-		private ComponentVariants $variants
+		private DirectiveRegistry $directives,
+		private DirectiveVariants $variants
 	) {}
 
 	/**
@@ -63,7 +61,7 @@ final readonly class VariantCheck
 
 		foreach (self::directives(FrontMatter::split($contents)[1]) as [$line, $name, $attributes]) {
 			$variant = trim(DirectiveAttributes::parse($attributes)['variant'] ?? '');
-			$parsed  = ComponentName::parse($name);
+			$parsed  = DirectiveName::parse($name);
 
 			if ($variant === '' || $variant === Variant::DEFAULT || $parsed === null || ! $this->isKnown($parsed)) {
 				continue;
@@ -86,11 +84,11 @@ final readonly class VariantCheck
 	}
 
 	/**
-	 * Returns whether a component is core or registered.
+	 * Returns whether a directive is registered.
 	 */
-	private function isKnown(ComponentName $name): bool
+	private function isKnown(DirectiveName $name): bool
 	{
-		return ($name->isCore() && ComponentType::tryFrom($name->name) !== null) || $this->components->isRegistered((string) $name);
+		return $this->directives->isRegistered((string) $name);
 	}
 
 	/**

@@ -115,8 +115,8 @@ final class ViewFinder
 	 * Returns the file of whichever name is in the highest-precedence
 	 * directory, with that name, or `null`. Within a directory, earlier
 	 * names win. This is how a view with more than one allowed name
-	 * resolves (a core component's `components/callout` or
-	 * `components/blush-callout`): the directory decides, not the name.
+	 * resolves (a core directive's `directives/callout` or
+	 * `directives/blush-callout`): the directory decides, not the name.
 	 *
 	 * @param  list<string> $names
 	 * @return ?array{string, string} The name and the file.

@@ -15621,7 +15621,7 @@ decision, add a new entry that supersedes it and mark the old one
   image is a figure (D-528). Every other block (text, headings, lists,
   directives not listed) is dropped. Nested content inside a held
   component is that component's business. The Markdown layer asks through
-  `Blush\Markdown\DirectiveRules` (`holds()`, `fullName()`; named
+  `Blush\Directive\DirectiveRules` (`holds()`, `fullName()`; named
   `ContainerContents` until D-530), an optional interface beside
   `DirectiveRenderer` that
   `ComponentDirectives` implements from `HOLDS`, so other renderers keep
@@ -15664,7 +15664,7 @@ decision, add a new entry that supersedes it and mark the old one
   and `ComponentType::isInline()`.
 - **Decision:** every registered component has one kind, how it's
   written and the only way it works: `Component::KIND`
-  (`?Blush\Markdown\DirectiveKind`, `Container`, `Leaf`, or `Inline`),
+  (`?Blush\Directive\DirectiveKind`, `Container`, `Leaf`, or `Inline`),
   or `register(…, kind:)` for a template-only one. Left out, it follows
   `CONTENT`: a container when it wraps blocks, else a leaf. Only a
   component that wraps blocks is a container, and one that does is
@@ -15689,3 +15689,176 @@ decision, add a new entry that supersedes it and mark the old one
   container/leaf/inline. button is always inline. time is always
   inline. And yes, we can mark something as broken in the editor."
 
+
+### D-532: Directives and components are two things
+- **Date:** 2026-10-06
+- **Status:** Built (D-533). Amends D-026 (directives map
+  one-to-one onto components), D-111, D-112, D-164, D-171, D-266,
+  D-382, and D-531, which are all written for one concept.
+- **Decision:** a **directive** is what content says; a **component**
+  is a reusable piece of a template. They're registered, stored, and
+  overridden separately:
+  - **Directives** are content vocabulary: `:::callout`, `::embed`,
+    `:button[…]`, a plugin's `::acme/form`, a site's `::app/pricing`.
+    Core, plugins, and the site (`app`) register them, with their
+    kind (D-531), props, variants (D-266), and inserter text, and
+    every directive must be registered. Each one draws itself: a
+    default template in `resources/directives/` (or the plugin's),
+    which a theme overrides at `directives/{name}.php`. The test for
+    a directive: the content means the same under any theme.
+  - **Components** are a template's building blocks: named markup
+    with typed props and slots, and a class when it needs services
+    (`card`, `post-header`, `byline`, `pagination`, `menu`,
+    `post-archives`). Themes, the site, core, and plugins provide
+    them (a plugin gives writers directives and themes components),
+    found by file in `components/` with a class optional, and called
+    from templates with `$this->component()`. Content never names
+    one. A directive's template may use components (a `toc`
+    directive drawing the `toc` component), but that's composition,
+    not the same thing.
+  - **Partials** (`include()`) stay a theme's own file split, with no
+    contract.
+- **Consequences:** core directive templates move from
+  `resources/components/` to `resources/directives/`; the registry
+  splits; `GET components`, the inserter, `component:list`,
+  `content:lint`, and the docs move to directives; the jtcom trial's
+  `jtcom/post-archives` becomes a component its templates use. Open
+  details are in `open-questions.md` ("Directives and components").
+- **Why:** the author: "a directive is something most likely to be
+  registered and rendered in the editor via core or a plugin. But a
+  component feels more like a theme thing," and, of directive
+  templates under `components/`: "Two different things." Content
+  outlives themes, so the vocabulary content is written in shouldn't
+  come from one.
+
+### D-533: The directive and component split, built
+- **Date:** 2026-10-06
+- **Status:** Built. Implements D-532; supersedes D-182's `component-`
+  prefix for directives, D-164's discovery of directives by file, D-171's
+  theme-namespaced directives, the template-only half of D-266's open
+  direction (now: every directive is registered), and D-243's `GET
+  components`. No back-compat (the author's call).
+- **Decision:**
+  - **Themes can't register directives** (the author). `DirectiveRegistry`
+    refuses a name in an installed theme's namespace (it asks `Themes`
+    through a closure when a provider registers, so building the registry
+    stays cheap). Themes give directives a look (templates in
+    `directives/`, and `theme.json` variants) and keep their own
+    components.
+  - **`Blush\Directive`** holds what was `Blush\Component`: `Directive`
+    (the base, with `KIND`, `CONTENT`, `VARIANTS`, `HOLDS`, the variant),
+    `DirectiveName`, `DirectiveDefinition`, `DirectiveContent`,
+    `DirectiveCategory`, `DirectiveType`, `DirectiveRegistry`,
+    `DirectiveRegistrar`, `DirectiveListing`, `DirectiveVariants` and
+    `Events\DirectiveVariantsCollecting`, `DirectiveView`,
+    `PendingDirective`, `TemplateDirective` (removed in D-534), `MarkdownDirectives` (was
+    `ComponentDirectives`), and the built-ins. Core templates are in
+    `resources/directives/`, themes override at `directives/{name}.php`
+    (or `{namespace}-{name}.php`), and templates get `$directive`.
+    Directives have no named slots.
+  - **Every directive is registered:** `Views::hasDirective()` is the
+    registry alone, and an unregistered name in Markdown is plain content
+    (a template alone isn't a directive; `strayDirectiveFiles()` and
+    `theme:check` point it out). A template-only directive was still
+    allowed here, registered without a class; D-534 removed it.
+  - **`Blush\Component`** is now only components: `Component` (slots,
+    no variants, kind, or content), `ComponentName` (always namespaced,
+    no core components, view `components/{namespace}-{name}`),
+    `ComponentRegistry` (name → class only; a template alone is a
+    component), `ComponentListing`, `ComponentView`, `PendingComponent`,
+    `TemplateComponent`, `Slots`, and its own provider. No component
+    text or variants in catalogs, and no admin listing.
+  - **Shared base:** `View\Renderable` (props, content, `class`/`id`,
+    `classes()`, `attributes()`, `html()`, `t()`, `locale()`,
+    `contentOr()`, a `BLOCK` prefix) and `View\RenderableFactory` (was
+    `ComponentFactory`); `Views::renderOwn()` draws either's own markup.
+  - **CSS:** a directive's block is `directive-{name}` (the author's
+    choice), a component's stays `component-{name}`. The default theme's
+    styles and the trial's were renamed.
+  - **Templates:** `$template->directive('callout', …)->content($html)`
+    draws a directive (the author's choice over core components);
+    `$template->component()` takes only full component names;
+    `$template->icon()` draws the icon directive. Region items gain a
+    `directive:` kind beside `component:`.
+  - **Catalogs:** `directives.{name}.…` (was `components.{name}.…`),
+    including variants' text.
+  - **CLI:** `directive:list` (name, label, class, variants, template)
+    and a slimmer `component:list` (name, class, template).
+    `theme:check` checks both.
+  - **Admin:** `GET directives` (`DirectivesController`, key
+    `directives`); the JS says directive in code (`directives.ts`,
+    `DirectiveOptions`, `DirectivePanel`), and writers see **Blocks**
+    (the author's choice): "Insert a block", "Blocks ( / )", **Remove
+    Block**, and so on.
+  - **Markdown:** the parsed node is `Markdown\ParsedDirective` (was
+    `Markdown\Directive`), so `Directive` names the base class.
+  - **The jtcom trial:** post archives stay a directive, since putting
+    them anywhere in a page's content is what the system was for (the
+    author): `::jtcom/post-archives` is now the site's
+    `::app/post-archives{by=…}` (`App\View\PostArchives`, registered by
+    the trial's `App\SiteProvider`, its template in the site's
+    `resources/views/directives/`, its text in the site's `app` catalog),
+    so it renders under any theme; jtcom-blade draws it with its own
+    `views/directives/app-post-archives.blade.php`. `jtcom/entry-terms`
+    stays a component. The trial's templates call `directive('menu')` and
+    `directive('callout')`, and its styles use `directive-` classes. A
+    theme-specific directive moves to the site or a plugin the same way.
+- **Why:** D-532, and the author: "themes can't register directives",
+  CSS `directive-{name}`, "Blocks" in the admin, and
+  `$template->directive()` for templates.
+- **Checked:** `composer check` (new `DirectivesTest`, `DirectiveTest`,
+  `Component\ComponentsTest`, `Component\ComponentTest`; the rest
+  renamed); `npm run admin:build`; the trial's `theme:check`,
+  `directive:list`, `component:list`, `content:lint`, and pages over
+  ddev in the jtcom theme.
+
+### D-534: Every directive is a class that declares its kind
+- **Date:** 2026-10-06
+- **Status:** Built. Supersedes D-531's "left out, it follows
+  `CONTENT`" and `register(…, kind:)`, and D-533's template-only
+  directives (`TemplateDirective`, gone).
+- **Decision:**
+  - **`KIND` is required.** `Directive::KIND` stays `?DirectiveKind` on
+    the base, but `DirectiveDefinition` refuses a class that leaves it
+    `null` ("must declare its KIND: DirectiveKind::Container, Leaf, or
+    Inline."), so registering one fails. The container-if-and-only-if-
+    `Blocks` check stays. Every core directive declares it: `Container`
+    for callout, figure, gallery, and the layouts (on `Layout`); `Leaf`
+    for audio, video, file, embed, menu, toc, progress, and meter;
+    `Inline` as before.
+  - **Every directive is a class.** `DirectiveRegistry::register($name,
+    $class)` and `registerIf($name, $class)` take only a name and a
+    class; content, kind, holds, variants, and props all come from the
+    class (`DirectiveDefinition($name, $class)`). No template-only
+    directives: `TemplateDirective` is gone, `DirectiveListing::className()`
+    is never `null`, and `GET directives` lists every registered one. A
+    directive still has a template when its class's `render()` returns
+    `null` or a theme draws it.
+  - The trial's `App\View\PostArchives` declares `Leaf`; the tests'
+    fixtures gained `Box` (a container), `Tag` (inline), and `Defaulted`
+    (a variant named `default`, refused).
+- **Why:** the author: "I'd already told you to require a kind" (D-531's
+  "we need a way to register components as container/leaf/inline") and
+  "Directives shouldn't have template-only registrations. Directives are
+  required to have a class registration." How a directive is written is
+  the only way it works, so it's said, not guessed.
+
+### D-535: The directive seam belongs to the Directive subsystem
+- **Date:** 2026-10-06
+- **Status:** Built.
+- **Decision:** `DirectiveKind`, `ParsedDirective`, `DirectiveRenderer`,
+  and `DirectiveRules` move from `Blush\Markdown` to `Blush\Directive`.
+  The dependency runs one way: the Markdown parser (`CommonMarkParser`
+  and the CommonMark directive extension) imports the Directive
+  subsystem's contract, and `Blush\Directive` takes only `MarkdownConfig`
+  from Markdown (for `MarkdownDirectives`' full URLs). The parser still
+  works with no renderer bound: directives are plain text. A directive
+  class now declares `KIND` with `Blush\Directive\DirectiveKind`, from
+  its own subsystem. Earlier entries that name `Markdown\DirectiveKind`,
+  `Markdown\ParsedDirective`, `Markdown\DirectiveRenderer`, or
+  `Markdown\DirectiveRules` refer to the old place. The trial's
+  `App\View\PostArchives` was updated.
+- **Why:** the author asked why `DirectiveKind` wasn't under the
+  Directive subsystem; it was in Markdown only to avoid a dependency
+  cycle, and moving the whole seam keeps one direction while putting the
+  kind beside the `KIND` every directive declares (D-534).

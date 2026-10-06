@@ -18,8 +18,7 @@ namespace Blush\Component;
  * (D-382): rendered as a theme's component template is, with `$template`,
  * `$component`, and `$data`'s variables. It's the component's own markup,
  * used when no theme in the chain (and not the site) has a template for
- * it, so a plugin's components, and a theme's outside its chain, still
- * render.
+ * it, so a plugin's components still render in any theme.
  */
 final readonly class ComponentView
 {

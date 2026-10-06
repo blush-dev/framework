@@ -16,21 +16,21 @@
  * caret is in ("Callout", "Heading 2", else "Elements",
  * `elements.ts`): the most specific element wins, and a blank line
  * belongs to the element above it at its own level. It shows that
- * component's options (`ComponentOptions`), an image's (`ImageOptions`),
+ * directive's options (`DirectiveOptions`), an image's (`ImageOptions`),
  * or a block's (`BlockOptions`), with a **Content** group, one level
  * deep, for an element that holds others. The breadcrumb names where the
  * caret is, from the entry down, and each crumb selects what it names.
  *
  * The header's left half is what you do to the document (admin.md §8,
  * The toolbar; D-313), in the order a writer asks: what goes in the
- * document, block components, in a panel that slides in from the left
+ * document, block directives, in a panel that slides in from the left
  * and stays open (also opened by typing `/`; the Markdown elements are
  * tiles in it too, and **Image** opens the media library), and media, a
  * menu of **Media Library** and **Upload a File** (D-268); then, while
  * the caret is in the text, moving the top-level element it's in (⌥↑,
  * ⌥↓); what goes in a sentence, bold, italic, a link (a small form, ⌘K),
  * the other inline elements (a short menu: struck, highlighted, and code
- * text, then the inline components), and an icon (a library in a modal),
+ * text, then the inline directives), and an icon (a library in a modal),
  * shown only where emphasis is emphasis; and how wide an element is,
  * bleed, for a top-level element. Contextual groups are hidden, not
  * disabled, and come after the fixed ones, so nothing that's always
@@ -100,8 +100,8 @@ import { onBeforeRouteLeave, RouterLink, useRoute, useRouter } from 'vue-router'
 import { ApiError, entryPath, entryRoute, errorMessage, request, trashEntry, upload, type EntryDetail, type EntryStatus, type NewEntryDetail, type FieldDescription, type MediaItem, type PreviewLink } from '../api';
 import AdminIcon from '../components/AdminIcon.vue';
 import BlockOptions from '../components/BlockOptions.vue';
-import ComponentOptions from '../components/ComponentOptions.vue';
-import ComponentPanel from '../components/ComponentPanel.vue';
+import DirectiveOptions from '../components/DirectiveOptions.vue';
+import DirectivePanel from '../components/DirectivePanel.vue';
 import ConflictBar from '../components/ConflictBar.vue';
 import DatePicker from '../components/DatePicker.vue';
 import FieldControl from '../components/FieldControl.vue';
@@ -121,7 +121,7 @@ import AdminSelect, { type SelectOption } from '../components/AdminSelect.vue';
 import TabBar from '../components/TabBar.vue';
 import TypeIcon from '../components/TypeIcon.vue';
 import { BLOCK_KINDS } from '../blocks';
-import { bleedClasses, componentIcon, directiveText, IMAGE_COMPONENT, imageVariants, loadComponents, MARKDOWN_ELEMENTS, type BleedClasses, type ComponentDescription, type ComponentProp } from '../components';
+import { bleedClasses, directiveIcon, directiveText, IMAGE_DIRECTIVE, imageVariants, loadDirectives, MARKDOWN_ELEMENTS, type BleedClasses, type DirectiveDescription, type DirectiveProp } from '../directives';
 import { online } from '../connection';
 import { diffLines, hunks, type Differences } from '../diff';
 import { drawerOpen, keepDrawer } from '../drawer';
@@ -1158,24 +1158,24 @@ const titleField = ref<HTMLTextAreaElement | null>(null);
 const sideOpen   = ref(drawerOpen());
 const tab        = ref<'document' | 'element'>('document');
 const caret      = ref(0);
-const available  = ref<ComponentDescription[]>([]);
+const available  = ref<DirectiveDescription[]>([]);
 
-const componentsFailed = ref(false);
+const directivesFailed = ref(false);
 const imageStyles      = ref<Awaited<ReturnType<typeof imageVariants>>>([]);
 const bleeds           = ref<BleedClasses>({ wide: 'bleed-wide', full: 'bleed-full' });
 
-loadComponents().then(async (components) => {
-	available.value   = components;
+loadDirectives().then(async (directives) => {
+	available.value   = directives;
 	imageStyles.value = await imageVariants();
 	bleeds.value      = await bleedClasses();
 }, () => {
-	componentsFailed.value = true;
+	directivesFailed.value = true;
 });
 
-// The component panel: open from its button, or for a slash typed at the
+// The block panel: open from its button, or for a slash typed at the
 // start of a line (then the query is in the text, and it closes once a
-// component replaces it).
-const panel      = ref<InstanceType<typeof ComponentPanel> | null>(null);
+// block replaces it).
+const panel      = ref<InstanceType<typeof DirectivePanel> | null>(null);
 const panelOpen  = ref(false);
 const panelSlash = ref(false);
 const panelQuery = ref('');
@@ -1239,16 +1239,16 @@ function slashKey(key: 'ArrowUp' | 'ArrowDown' | 'Enter' | 'Escape'): void {
 	}
 }
 
-// The panel offers the Markdown elements and block components, the
+// The panel offers the Markdown elements and block directives, the
 // Markdown first in each group, with a Markdown image first among the
 // media (D-268, D-313); inline ones have their own menu, less the icon,
 // which has its own picker.
-const blockComponents  = computed(() => available.value.length === 0 ? [] : [...MARKDOWN_ELEMENTS, IMAGE_COMPONENT, ...available.value.filter((component) => component.kind !== 'inline')]);
+const blockDirectives  = computed(() => available.value.length === 0 ? [] : [...MARKDOWN_ELEMENTS, IMAGE_DIRECTIVE, ...available.value.filter((described) => described.kind !== 'inline')]);
 // Inside a container that holds only some things, only those are offered.
-const panelComponents = computed(() => {
+const panelDirectives = computed(() => {
 	const only = holder.value?.only;
 
-	return only ? blockComponents.value.filter((component) => only.includes(component.name)) : blockComponents.value;
+	return only ? blockDirectives.value.filter((described) => only.includes(described.name)) : blockDirectives.value;
 });
 
 const panelNote = computed(() => {
@@ -1263,17 +1263,17 @@ const panelNote = computed(() => {
 
 // "images", "images, buttons".
 function onlyNames(only: string[]): string {
-	return only.map((name) => name === 'image' ? 'images' : `${inSentence(componentFor(name)?.label ?? name)}s`).join(', ');
+	return only.map((name) => name === 'image' ? 'images' : `${inSentence(directiveFor(name)?.label ?? name)}s`).join(', ');
 }
 
 const panelNoteNames = computed(() => onlyNames(selected.value?.only ?? []));
 
-const inlineComponents = computed(() => available.value.filter((component) => component.kind === 'inline' && component !== iconComponent.value));
+const inlineDirectives = computed(() => available.value.filter((described) => described.kind === 'inline' && described !== iconDirective.value));
 
-function chooseComponent(component: ComponentDescription): void {
-	const markdown = component.markdown;
+function chooseDirective(described: DirectiveDescription): void {
+	const markdown = described.markdown;
 
-	if (component === IMAGE_COMPONENT) {
+	if (described === IMAGE_DIRECTIVE) {
 		pickMedia('library', 'image');
 	} else if (markdown !== undefined) {
 		// The placeholder arrives selected, so the first keystroke replaces it.
@@ -1281,7 +1281,7 @@ function chooseComponent(component: ComponentDescription): void {
 
 		bodyEditor.value?.insertBlock(() => ({ text: markdown.text, caret: at, end: at + markdown.pick.length }));
 	} else {
-		bodyEditor.value?.insert(component);
+		bodyEditor.value?.insert(described);
 	}
 
 	// A slash's panel has done its job; one opened from its button stays.
@@ -1291,8 +1291,8 @@ function chooseComponent(component: ComponentDescription): void {
 	}
 }
 
-function chooseInline(component: ComponentDescription): void {
-	bodyEditor.value?.insert(component);
+function chooseInline(described: DirectiveDescription): void {
+	bodyEditor.value?.insert(described);
 }
 
 // The icon picker's modal.
@@ -1303,19 +1303,19 @@ function openIcons(): void {
 	iconsOpen.value = true;
 }
 
-const iconComponent = computed(() => componentFor('icon'));
+const iconDirective = computed(() => directiveFor('icon'));
 
 function iconPreview(icon: SiteIcon): string {
-	return `:${iconComponent.value?.name ?? 'blush/icon'}[]{${attributeText('name', icon.name)}}`;
+	return `:${iconDirective.value?.name ?? 'blush/icon'}[]{${attributeText('name', icon.name)}}`;
 }
 
 function chooseIcon(icon: SiteIcon): void {
 	iconsOpen.value = false;
 
-	if (iconComponent.value === undefined) {
+	if (iconDirective.value === undefined) {
 		bodyEditor.value?.insertText(iconPreview(icon));
 	} else {
-		bodyEditor.value?.insert(iconComponent.value, { name: icon.name });
+		bodyEditor.value?.insert(iconDirective.value, { name: icon.name });
 	}
 }
 
@@ -1325,7 +1325,7 @@ function closeIcons(): void {
 }
 
 // The media picker: inserting files, or choosing one for a field, a
-// component's option, or an image. It opens on the Library tab, or on
+// directive's option, or an image. It opens on the Library tab, or on
 // Upload from the media menu's Upload a File. Inserting takes several
 // (D-526); choosing a file for one place takes one.
 type MediaKind = 'image' | 'video' | 'audio' | 'document' | 'file';
@@ -1366,20 +1366,20 @@ function insertFile(file: MediaItem): void {
 		return;
 	}
 
-	const name      = fileComponent(file);
-	const component = componentFor(name);
+	const name      = fileDirective(file);
+	const described = directiveFor(name);
 
-	if (component === undefined) {
+	if (described === undefined) {
 		bodyEditor.value?.insertText(`::blush/${name}{${attributeText('src', file.reference)}}`);
 	} else {
-		bodyEditor.value?.insert(component, { src: file.reference });
+		bodyEditor.value?.insert(described, { src: file.reference });
 	}
 
 	tab.value = 'element';
 }
 
-// The component a file that isn't an image goes in as.
-function fileComponent(file: MediaItem): 'video' | 'audio' | 'file' {
+// The directive a file that isn't an image goes in as.
+function fileDirective(file: MediaItem): 'video' | 'audio' | 'file' {
 	return file.kind === 'video' ? 'video' : (file.kind === 'audio' ? 'audio' : 'file');
 }
 
@@ -1410,10 +1410,10 @@ function insertFiles(files: MediaItem[]): void {
 				return imageText(file.reference, (index === 0 ? selected : '') || file.alt, file.caption).text;
 			}
 
-			const name      = fileComponent(file);
-			const component = componentFor(name);
+			const name      = fileDirective(file);
+			const described = directiveFor(name);
 
-			return component === undefined ? `::blush/${name}{${attributeText('src', file.reference)}}` : directiveText(component, false, '', { src: file.reference }).text;
+			return described === undefined ? `::blush/${name}{${attributeText('src', file.reference)}}` : directiveText(described, false, '', { src: file.reference }).text;
 		}).join(gap);
 
 		return { text, caret: text.length };
@@ -1465,7 +1465,7 @@ function pickForField(field: FieldDescription): void {
 	};
 }
 
-function pickForOption(prop: ComponentProp): void {
+function pickForOption(prop: DirectiveProp): void {
 	const item = directive.value;
 
 	if (item === undefined) {
@@ -1538,7 +1538,7 @@ useCommands(() => {
 		{ id: 'editor-focus', label: focusMode.value ? 'Leave focus mode' : 'Focus mode', icon: 'maximize-2', keywords: 'writing zen distraction', shortcut: '⌘⇧F', run: toggleFocus },
 		{ id: 'editor-settings', label: sideOpen.value ? 'Hide the settings' : 'Show the settings', icon: 'panel-right', keywords: 'document fields sidebar', shortcut: '⌘/', run: toggleSide },
 		{ id: 'editor-outline', label: 'Outline', icon: 'list', keywords: 'elements structure contents blocks', run: () => void showOutline() },
-		{ id: 'editor-component', label: 'Insert a component', icon: 'plus', keywords: 'callout figure block', shortcut: '/', run: () => void togglePanel() },
+		{ id: 'editor-block', label: 'Insert a block', icon: 'plus', keywords: 'callout figure block directive component', shortcut: '/', run: () => void togglePanel() },
 		{ id: 'editor-media', label: 'Insert media', icon: 'image', keywords: 'image picture video audio file library', run: () => pickMedia() },
 		...(uploads.value ? [{ id: 'editor-upload', label: 'Upload a file', icon: 'upload' as const, keywords: 'media image picture video audio add', run: () => pickMedia('upload') }] : []),
 		{ id: 'editor-icon', label: 'Insert an icon', icon: 'shapes', keywords: 'symbol glyph', run: openIcons },
@@ -1611,33 +1611,33 @@ const image     = computed(() => selection.value?.kind === 'image' ? markdown.va
 const block     = computed(() => selection.value?.kind === 'block' ? allBlocks.value[selection.value.index] : undefined);
 
 /**
- * The inserter's description of a directive's component, by its full or
+ * The inserter's description of a directive, by its full or
  * core short name.
  */
-function componentFor(name: string): ComponentDescription | undefined {
-	return available.value.find((component) => component.name === name || component.name === `blush/${name}`);
+function directiveFor(name: string): DirectiveDescription | undefined {
+	return available.value.find((described) => described.name === name || described.name === `blush/${name}`);
 }
 
-function componentName(name: string): string {
-	return componentFor(name)?.label ?? humanize(name.replace(/^.*\//, ''));
+function directiveName(name: string): string {
+	return directiveFor(name)?.label ?? humanize(name.replace(/^.*\//, ''));
 }
 
-function componentLabel(item: Directive): string {
-	return componentName(item.name);
+function directiveLabel(item: Directive): string {
+	return directiveName(item.name);
 }
 
-const selected = computed(() => directive.value === undefined ? undefined : componentFor(directive.value.name));
+const selected = computed(() => directive.value === undefined ? undefined : directiveFor(directive.value.name));
 
-// An element's name and icon: a component's, "Image", or its block's.
+// An element's name and icon: a directive's, "Image", or its block's.
 function nameOf(element: ElementRef): string {
-	return elementName(markdown.value, allBlocks.value, element, componentName);
+	return elementName(markdown.value, allBlocks.value, element, directiveName);
 }
 
 function iconOf(element: ElementRef): IconName {
 	if (element.kind === 'directive') {
-		const known = componentFor(markdown.value.directives[element.index]?.name ?? '');
+		const known = directiveFor(markdown.value.directives[element.index]?.name ?? '');
 
-		return known === undefined ? 'code' : componentIcon(known);
+		return known === undefined ? 'code' : directiveIcon(known);
 	}
 
 	if (element.kind === 'image') {
@@ -1648,7 +1648,7 @@ function iconOf(element: ElementRef): IconName {
 }
 
 // Whether an element was placed, not written: a container or leaf
-// component, which the outline and breadcrumb name in the accent.
+// directive, which the outline and breadcrumb name in the accent.
 function placed(element: ElementRef): boolean {
 	return element.kind === 'directive' && markdown.value.directives[element.index]?.kind !== 'inline';
 }
@@ -1692,9 +1692,9 @@ const strays = computed<string[]>(() => {
 			continue;
 		}
 
-		// Inside an allowed component, its own lines are its business.
+		// Inside an allowed directive, its own lines are its business.
 		if (line.kind === 'open' || line.kind === 'leaf') {
-			const name = componentFor(markdown.value.directives[line.directive ?? -1]?.name ?? '')?.name;
+			const name = directiveFor(markdown.value.directives[line.directive ?? -1]?.name ?? '')?.name;
 
 			if (depth === 0 && (name === undefined || !only.includes(name))) {
 				found.push(line.text.trim());
@@ -1712,7 +1712,7 @@ const strays = computed<string[]>(() => {
 });
 
 // The elements directly in a container that it doesn't hold, by kind
-// and index, each with the container's label (D-529), and components
+// and index, each with the container's label (D-529), and directives
 // written as another kind than they're registered (D-531): the outline
 // marks them, and each one's own panel says the site leaves it out.
 const strayItems = computed(() => {
@@ -1720,14 +1720,14 @@ const strayItems = computed(() => {
 
 	for (const item of items.value) {
 		const parent = items.value[item.parent];
-		const holder = parent?.kind === 'directive' ? componentFor(markdown.value.directives[parent.index]?.name ?? '') : undefined;
+		const holder = parent?.kind === 'directive' ? directiveFor(markdown.value.directives[parent.index]?.name ?? '') : undefined;
 		const only   = holder?.only;
 
 		if (holder === undefined || !only) {
 			continue;
 		}
 
-		const name = item.kind === 'directive' ? componentFor(markdown.value.directives[item.index]?.name ?? '')?.name : undefined;
+		const name = item.kind === 'directive' ? directiveFor(markdown.value.directives[item.index]?.name ?? '')?.name : undefined;
 		const held = item.kind === 'image' ? only.includes('image') : (name !== undefined && only.includes(name));
 
 		if (!held) {
@@ -1735,30 +1735,30 @@ const strayItems = computed(() => {
 		}
 	}
 
-	// A component written as another kind than it's registered (D-531),
+	// A directive written as another kind than it's registered (D-531),
 	// anywhere, inline ones included.
 	markdown.value.directives.forEach((item, index) => {
-		const component = componentFor(item.name);
+		const described = directiveFor(item.name);
 		const written   = item.misplaced ? 'container' : item.kind;
 
-		if (component !== undefined && !component.name.startsWith('markdown/') && component.kind !== written) {
-			found.set(`directive-${index}`, misplacedNote(component));
+		if (described !== undefined && !described.name.startsWith('markdown/') && described.kind !== written) {
+			found.set(`directive-${index}`, misplacedNote(described));
 		}
 	});
 
 	return found;
 });
 
-// What's said of a component written as another kind than it is.
-function misplacedNote(component: ComponentDescription): string {
-	const name = component.name.replace(/^blush\//, '');
+// What's said of a directive written as another kind than it is.
+function misplacedNote(described: DirectiveDescription): string {
+	const name = described.name.replace(/^blush\//, '');
 	const how  = {
 		container: `wraps other content, written “:::${name}” … “:::”`,
 		leaf: `goes on a line of its own, written “::${name}”`,
 		inline: `goes inside a sentence, written “:${name}[…]”`
-	}[component.kind];
+	}[described.kind];
 
-	return `${titleCase(component.label)} ${how}, so the site doesn't show it as it's written here.`;
+	return `${titleCase(described.label)} ${how}, so the site doesn't show it as it's written here.`;
 }
 
 const strayNote = computed(() => selection.value === null ? undefined : strayItems.value.get(`${selection.value.kind}-${selection.value.index}`));
@@ -1869,12 +1869,12 @@ function applyOption(edit: Edit): void {
 	}
 }
 
-function removeComponent(): void {
+function removeDirective(): void {
 	const item = directive.value;
 
 	if (item !== undefined) {
 		bodyEditor.value?.apply(withoutDirective(body.value, item));
-		toast(`Removed the ${inSentence(componentLabel(item))}`, { kind: 'danger' });
+		toast(`Removed the ${inSentence(directiveLabel(item))}`, { kind: 'danger' });
 	}
 }
 
@@ -1932,9 +1932,9 @@ function textBlurred(event: FocusEvent): void {
 const extent    = ref(0);
 // A container that holds only some things (D-314, `only`): the innermost
 // one the caret is in, the selected one included.
-const holder = computed<ComponentDescription | undefined>(() => {
+const holder = computed<DirectiveDescription | undefined>(() => {
 	for (const item of [...path.value].reverse()) {
-		const found = item.kind === 'directive' ? componentFor(markdown.value.directives[item.index]?.name ?? '') : undefined;
+		const found = item.kind === 'directive' ? directiveFor(markdown.value.directives[item.index]?.name ?? '') : undefined;
 
 		if (found?.only) {
 			return found;
@@ -2428,9 +2428,9 @@ function fieldKey(field: FieldDescription): string {
 
 		<header class="editor__head">
 			<template v-if="entry">
-				<button type="button" class="button button--ghost button--icon editor__tool" :class="{ 'is-on': panelOpen }" title="Components ( / )" aria-controls="editor-components" :aria-expanded="panelOpen" @click="togglePanel">
+				<button type="button" class="button button--ghost button--icon editor__tool" :class="{ 'is-on': panelOpen }" title="Blocks ( / )" aria-controls="editor-directives" :aria-expanded="panelOpen" @click="togglePanel">
 					<AdminIcon name="plus" />
-					<span class="visually-hidden">Insert a component</span>
+					<span class="visually-hidden">Insert a block</span>
 				</button>
 				<MenuButton v-if="uploads" button-class="button button--ghost editor__tool editor__wide" label="Insert media" align="start" floating @open="closeOverlays">
 					<template #button>
@@ -2504,13 +2504,13 @@ function fieldKey(field: FieldDescription): string {
 						<button v-if="canMention" type="button" class="menu-item" aria-haspopup="dialog" @mousedown.prevent @click="openMention">
 							<AdminIcon name="at-sign" /><span class="menu-item__name">Mention</span>
 						</button>
-						<template v-if="inlineComponents.length">
+						<template v-if="inlineDirectives.length">
 							<div class="menu-divider" />
-							<button v-for="component in inlineComponents" :key="component.name" type="button" class="menu-item menu-item--described" @click="chooseInline(component)">
-								<AdminIcon :name="componentIcon(component)" />
+							<button v-for="described in inlineDirectives" :key="described.name" type="button" class="menu-item menu-item--described" @click="chooseInline(described)">
+								<AdminIcon :name="directiveIcon(described)" />
 								<span>
-									<span class="menu-item__name">{{ component.label }}<template v-if="component.source && component.source.kind !== 'site'"> · {{ component.source.label }}</template></span>
-									<span v-if="component.description" class="menu-item__text">{{ component.description }}</span>
+									<span class="menu-item__name">{{ described.label }}<template v-if="described.source && described.source.kind !== 'site'"> · {{ described.source.label }}</template></span>
+									<span v-if="described.description" class="menu-item__text">{{ described.description }}</span>
 								</span>
 							</button>
 						</template>
@@ -2621,15 +2621,15 @@ function fieldKey(field: FieldDescription): string {
 		<ConflictBar v-if="conflict" :noun="noun" :safe="safe" :theirs="conflict.theirs" :loading="conflict.loading" :compare="differences" @keep-theirs="keepTheirs" @keep-mine="keepMine" @retry="fetchTheirs" />
 
 		<div class="editor__body">
-			<aside id="editor-components" class="editor__inserter" aria-labelledby="component-panel-heading" :inert="!panelOpen">
-				<ComponentPanel
+			<aside id="editor-directives" class="editor__inserter" aria-labelledby="directive-panel-heading" :inert="!panelOpen">
+				<DirectivePanel
 					ref="panel"
 					v-model:query="panelQuery"
-					:components="panelComponents"
+					:directives="panelDirectives"
 					:note="panelNote"
-					:failed="componentsFailed"
+					:failed="directivesFailed"
 					:slash="panelSlash"
-					@choose="chooseComponent"
+					@choose="chooseDirective"
 					@close="closePanel()"
 				/>
 			</aside>
@@ -2907,13 +2907,13 @@ function fieldKey(field: FieldDescription): string {
 									<span class="notice__text">{{ strayNote }}</span>
 								</p>
 							</OptionsGroup>
-							<ComponentOptions
+							<DirectiveOptions
 								v-if="directive"
 								:source="body"
 								:directive="directive"
-								:component="selected"
+								:described="selected"
 								@edit="applyOption"
-								@remove="removeComponent"
+								@remove="removeDirective"
 								@pick="pickForOption"
 							>
 								<OptionsGroup v-if="content" heading="Content">
@@ -2921,7 +2921,7 @@ function fieldKey(field: FieldDescription): string {
 									<OutlineList :items="content" :describe="rowOf" empty="Nothing inside it yet." @select="select" />
 									<p v-if="strays.length" class="field__error">{{ titleCase(selected?.label ?? '') }} holds only {{ panelNoteNames }}, so the site won't show {{ strays.length === 1 ? 'this line' : 'these lines' }}: {{ strays.map((text) => `“${text.length > 40 ? `${text.slice(0, 40)}…` : text}”`).join(', ') }}.</p>
 								</OptionsGroup>
-							</ComponentOptions>
+							</DirectiveOptions>
 							<ImageOptions
 								v-else-if="image"
 								:key="`image-${image.start}`"
@@ -3345,7 +3345,7 @@ function fieldKey(field: FieldDescription): string {
 }
 
 /*
- * The component panel slides in from the left and pushes the column
+ * The block panel slides in from the left and pushes the column
  * aside, so it never covers the sentence being written.
  */
 

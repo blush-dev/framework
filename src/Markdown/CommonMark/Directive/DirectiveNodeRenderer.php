@@ -23,10 +23,10 @@ use League\CommonMark\Node\Inline\Newline;
 use League\CommonMark\Node\Node;
 use League\CommonMark\Renderer\ChildNodeRendererInterface;
 use League\CommonMark\Renderer\NodeRendererInterface;
-use Blush\Markdown\Directive;
-use Blush\Markdown\DirectiveKind;
-use Blush\Markdown\DirectiveRenderer;
-use Blush\Markdown\DirectiveRules;
+use Blush\Directive\ParsedDirective;
+use Blush\Directive\DirectiveKind;
+use Blush\Directive\DirectiveRenderer;
+use Blush\Directive\DirectiveRules;
 
 /**
  * Renders directive nodes through the `DirectiveRenderer`. An unknown
@@ -73,7 +73,7 @@ final readonly class DirectiveNodeRenderer implements NodeRendererInterface
 		$language = self::language($node);
 
 		if ($language !== '') {
-			$directive = new Directive($directive->name, $directive->kind, $directive->attributes, $directive->label, $directive->content, $directive->outline, $language);
+			$directive = new ParsedDirective($directive->name, $directive->kind, $directive->attributes, $directive->label, $directive->content, $directive->outline, $language);
 		}
 
 		return $this->renderer?->render($directive) ?? $fallback;
@@ -120,14 +120,14 @@ final readonly class DirectiveNodeRenderer implements NodeRendererInterface
 	}
 
 	/**
-	 * @return array{Directive, string}
+	 * @return array{ParsedDirective, string}
 	 */
 	private function container(ContainerDirective $node, ChildNodeRendererInterface $childRenderer): array
 	{
 		$children = $this->renderer instanceof DirectiveRules ? self::held($node, $this->renderer) : $node->children();
 		$content  = $childRenderer->renderNodes($children);
 
-		return [new Directive($node->name, DirectiveKind::Container, $node->attributes, $node->label, $content, self::outline($node)), $content];
+		return [new ParsedDirective($node->name, DirectiveKind::Container, $node->attributes, $node->label, $content, self::outline($node)), $content];
 	}
 
 	/**
@@ -188,26 +188,26 @@ final readonly class DirectiveNodeRenderer implements NodeRendererInterface
 	}
 
 	/**
-	 * @return array{Directive, string}
+	 * @return array{ParsedDirective, string}
 	 */
 	private function leaf(LeafDirective $node): array
 	{
 		$content = self::escape($node->label);
 
 		return [
-			new Directive($node->name, DirectiveKind::Leaf, $node->attributes, $node->label, $content, self::outline($node)),
+			new ParsedDirective($node->name, DirectiveKind::Leaf, $node->attributes, $node->label, $content, self::outline($node)),
 			$content === '' ? '' : "<p>{$content}</p>"
 		];
 	}
 
 	/**
-	 * @return array{Directive, string}
+	 * @return array{ParsedDirective, string}
 	 */
 	private function inline(InlineDirective $node): array
 	{
 		$content = self::escape($node->label);
 
-		return [new Directive($node->name, DirectiveKind::Inline, $node->attributes, $node->label, $content), $content];
+		return [new ParsedDirective($node->name, DirectiveKind::Inline, $node->attributes, $node->label, $content), $content];
 	}
 
 	/**

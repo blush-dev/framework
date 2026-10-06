@@ -19,8 +19,9 @@ use Blush\View\ViewException;
 
 /**
  * A kind of region item (D-201), keyed in the item by its registered
- * name: `component: menu`, `markdown: …`, `entry: page/_regions/about`,
- * `view: parts/newsletter`. An item is exactly one kind.
+ * name: `directive: menu`, `component: acme/card`, `markdown: …`,
+ * `entry: page/_regions/about`, `view: parts/newsletter`. An item is
+ * exactly one kind.
  *
  * Kinds are registered in `RegionItemRegistry` and built through the
  * container, so a kind's constructor can ask for services:

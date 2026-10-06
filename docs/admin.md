@@ -7,7 +7,7 @@ published and scheduled, a list of each content type's entries, an
 editor, and a content health check.
 
 > **The admin is early.** The editor edits Markdown as text; a live
-> preview, a form for a component's options, and a media library come
+> preview, a form for a block's options, and a media library come
 > later.
 
 ## Turning it on
@@ -330,7 +330,7 @@ alignment colons; its header row is bold. In a definition list, a term
 is bold and a definition's `:` is dimmed. Footnotes are
 colored. Attribute blocks, such as `{.bleed-wide}` after an image or a
 heading, are a gray chip with their class and id names in full
-strength. A component's name is colored, and a component or image the
+strength. A block's name is colored, and a block or image the
 settings are showing is boxed (a container on its first and last lines).
 Only valid Markdown lights up, so something that stays plain won't be
 read the way you meant.
@@ -345,7 +345,7 @@ There's no back button: the type's name in the top bar (**Posts** in
 *Content / Posts / Editing*) goes back to its list. The header's left
 side is what you do to the text, in three groups:
 
-- **What goes in the entry**, always there: **+** for a block component
+- **What goes in the entry**, always there: **+** for a block
   or a Markdown element (heading, quote, list, definitions, code block,
   table, divider), which goes in with its placeholder selected so you
   can type over it, and the picture for media.
@@ -357,7 +357,7 @@ side is what you do to the text, in three groups:
   list keeps counting from where it started, and the blank lines
   between elements stay where they are.
 - **What goes in a sentence**, shown only where Markdown's marks mean
-  something (not in a code block, on a component's `:::` line, a
+  something (not in a code block, on a block's `:::` line, a
   divider, or a table's `| --- |` row): **Bold** and **Italic**, lit
   when the text at the cursor is bold or italic; the **link** form
   (**Text** and **Address**, filled in from the selection, the word at
@@ -366,17 +366,17 @@ side is what you do to the text, in three groups:
   **Strikethrough**, **Highlight**, and **Inline code** (each lit when
   it's on at the cursor), **Mention** (a search for a published profile
   by name, which writes `@slug` where the cursor is; shown when
-  [mentions](#settings) are on), then any component inside a sentence;
+  [mentions](#settings) are on), then any block that goes inside a sentence;
   and the shapes for an icon. Typing `@` in the text does the same as you
   type: the published profiles whose names or slugs match are listed
   under the cursor; ↑ and ↓ move, Enter or Tab writes `@slug`, and Esc
-  leaves what you typed. Mentions are colored like links. Inside a component that holds only some
-  things, such as a gallery's images, they go, the component panel
+  leaves what you typed. Mentions are colored like links. Inside a block that holds only some
+  things, such as a gallery's images, they go, the blocks panel
   offers only what it holds, and the media picker shows only images.
   The site leaves out anything else typed inside it, so the Outline
-  marks it, its settings say so, and the component's own settings list
-  the lines that won't show. A component written another way than its
-  own (see [Using components in content](components.md#using-components-in-content)),
+  marks it, its settings say so, and the block's own settings list
+  the lines that won't show. A block written another way than its
+  own (see [Using directives in content](directives.md#using-directives-in-content)),
   such as `::button[…]` for `:button[…]`, is marked the same way, and
   its settings say how it's written.
 - **Bleed**, for an element at the top of the entry: how far it reaches
@@ -386,7 +386,7 @@ side is what you do to the text, in three groups:
   colored while the element is widened.
 
 One of these is open at a time: opening a menu, the link form, or a
-picker closes the component panel and anything else open. Its right
+picker closes the blocks panel and anything else open. Its right
 side has the settings button, **Save Draft** beside the main button
 while the entry is a draft you can publish, the main button, and a
 **⋮** menu in two parts: **View** (the settings panel,
@@ -480,16 +480,16 @@ With nothing selected, bold and italic act on the word at the cursor:
 
 Text can't land inside the syntax around it by accident: a character
 typed right after an attribute block at the end of a line goes before
-it, at the end of the words; one typed right after a component's
+it, at the end of the words; one typed right after a block's
 `:::name{…}` or `::name[…]` goes on a new line below; and anything pasted
-or inserted into a component's own line goes onto a line after it.
-Typing inside the braces or a component's name still edits them.
+or inserted into a block's own line goes onto a line after it.
+Typing inside the braces or a block's name still edits them.
 
 Pasting an address over selected text makes it a link. Pasted
-components are tidied so they can't break the ones around them: one
+blocks are tidied so they can't break the ones around them: one
 that was copied without its closing `:::` gets one, a stray `:::` left
-over from copying part of a component is dropped, longer fences such as
-`::::` become `:::`, and a pasted component goes on lines of its own,
+over from copying part of a block is dropped, longer fences such as
+`::::` become `:::`, and a pasted block goes on lines of its own,
 as the inserter puts it. Dropping or
 pasting files into the text uploads them to the library and puts them
 in together where the cursor is, in the order given, as the media picker
@@ -561,40 +561,43 @@ matter the type doesn't declare), the publish date, and scheduling. It
 can be a draft or published, and publishing doesn't add a date. There's
 only one, so it has no **Move to trash**.
 
-### Inserting components
+### Inserting blocks
 
-**+** opens the block components beside the text, on the left, grouped
+Blocks are what Markdown calls [directives](directives.md): callouts,
+galleries, buttons, and the rest, written as `:::callout` … `:::` and
+the like.
+
+**+** opens the blocks beside the text, on the left, grouped
 by category: search by name or what it does, or scroll, then choose one
 (or use the arrow keys and Enter). The strip at the bottom describes the
 highlighted one. The panel stays open, so you can add several; close it
 with its **×** or Escape.
 
-The **A** menu lists the inline components, the ones that go inside a
+The **A** menu lists the inline blocks, the ones that go inside a
 sentence (a keyboard key, an abbreviation), each with what it does.
 
 Typing `/` at the start of an empty line opens the same panel: keep
 typing to narrow it (`/call` for a callout), then press Enter or Tab.
 Press Escape to keep the `/` as text.
 
-The component is written into the Markdown by its full name, such as
+The block is written into the Markdown by its full name, such as
 `:::blush/callout` … `:::`, with the cursor where your text goes. An
-inline component (a keyboard key, an abbreviation, an icon) goes at the
+inline block (a keyboard key, an abbreviation, an icon) goes at the
 cursor, inside the sentence; the rest go on lines of their own. Select
-some text first to make it the component's text. Options the component
+some text first to make it the block's text. Options the block
 needs are written empty for you to fill in, such as
 `::blush/video{src=""}`. Undo takes an insertion back.
 
-The list has every registered component with a class that your active
-theme can draw: the built-in ones, your theme's, your site's, and your
-plugins' (grouped by where they come from). See
-[Registering a component](components.md#registering-a-component) to
-add yours.
+The list has every registered directive with a class: the built-in
+ones, your site's, and your plugins' (grouped by where they come from).
+Themes don't add blocks; they style them. See
+[Making a directive](directives.md#making-a-directive) to add yours.
 
 ### Inserting media and icons
 
 The picture button has two ways in: **Media Library** and **Upload a
 File**. Both open the same picker, on its **Library** or **Upload** tab.
-**Image** in the components panel opens it too, showing only images.
+**Image** in the blocks panel opens it too, showing only images.
 
 The Library tab has the library in `user/media`, newest first. Search by file name, or show only images,
 video, audio, or other files. Choose one or more files, then **Insert**
@@ -606,7 +609,7 @@ An image goes in as plain Markdown on a
 line of its own, `![](/media/photo.jpg)`, with the cursor where its
 description goes (selected text becomes the description), and its
 settings open on the element tab (see
-[Images](#images-and-blocks)). When the library has alt text and a
+[Images](#images-and-markdown-elements)). When the library has alt text and a
 caption for the file (see [Media](#media)), they're filled in:
 `![A lake at dawn](/media/lake.jpg "The lake at dawn")`, with selected
 text still winning for the description. On the site it's a figure; a quoted title
@@ -629,14 +632,14 @@ and the Upload tab takes only the kinds you may upload.
 How large a file may be is up to the **Media** settings, within what
 PHP takes (`upload_max_filesize` and `post_max_size`).
 
-The same picker is **Choose** beside every media field and component
+The same picker is **Choose** beside every media field and block
 option, such as a video's **Poster image**, where it takes one file. A field or option that takes
 one kind of file (a video's file, its poster, the featured image, an
 image's **Replace**, or a field with a `kind`) shows only that kind,
 without the kind buttons, and its upload refuses a file of another
 kind, saying why.
 
-The shapes button opens your theme's [icons](components.md#icons),
+The shapes button opens your theme's [icons](directives.md#icons),
 grouped: the built-in icons by category (Status, Interface, Arrows, and
 so on), then your theme's, your site's, your icon packs', and your
 plugins'. Pick a
@@ -656,9 +659,9 @@ settings; the first opens the entry's own tab.
 **Outline**, at the foot of the entry's tab (or in the **⋮** menu),
 lists every element in the entry in order: paragraphs, headings, lists
 and their items, quotes, code blocks, tables, definition lists,
-images, and block components (inline components are part of their
+images, and blocks (inline blocks are part of their
 sentence, so they aren't listed), each with a line of what's in it.
-What's inside a component, list, or list item is indented under it.
+What's inside a block, list, or list item is indented under it.
 Choose one to select it; **←** goes back.
 
 ### Element settings
@@ -667,26 +670,26 @@ The element tab follows the cursor and shows whatever it's most
 precisely in: inside a callout, that's the paragraph (the callout is
 above it in the breadcrumb); on the callout's own first or last line,
 it's the callout. On a blank line, it's the element above, but not one
-inside a component that has already closed. A component, a list, a list
+inside a block that has already closed. A block, a list, a list
 item, and a definition list list what's directly inside them under
 **Content**; choose one to select it.
 
-A component's options are a form. A component with
-[variants](components.md#variants) lists them first, under **Variant**,
+A block's options are a form. A block with
+[variants](directives.md#variants) lists them first, under **Variant**,
 with what each one looks like; **Default** writes nothing. Changing one
 rewrites just that option in the Markdown: the rest of what you wrote
 stays as it is. Setting an option back to its default removes it, so the
-default applies. A component that takes a line of text has it here as
+default applies. A block that takes a line of text has it here as
 **Text**. **Classes** and **ID** set its `.class` and `#id`; other
-attributes that aren't options of the component are listed but edited in
+attributes that aren't options of the block are listed but edited in
 the text.
 
-**Remove Component** takes the component out: a container with
-everything inside it, a line component with its line, and an inline
-component leaving its text in the sentence. Undo in the text puts it
+**Remove Block** takes the block out: a container with
+everything inside it, a line block with its line, and an inline
+block leaving its text in the sentence. Undo in the text puts it
 back.
 
-### Images and blocks
+### Images and Markdown elements
 
 An image is plain Markdown, `![A lake](/media/lake.jpg "The lake at dawn"){.bleed-wide}`,
 and its panel edits each part of it:
@@ -713,7 +716,7 @@ and its panel edits each part of it:
   don't change.
 - **Classes** and **ID**.
 
-Every block of Markdown takes classes and an id too, so a heading's,
+Every Markdown element takes classes and an id too, so a heading's,
 paragraph's, list's, list item's, quote's, code block's, table's,
 divider's, definition list's, term's, or definition's panel has
 **Classes** and **ID**, which write `{.class #id}` where the site reads
@@ -1501,13 +1504,13 @@ The API is JSON under `/admin/api`, and uses the session cookie:
 | `GET dashboard` | The site, entry counts by status, and the actions the account may run |
 | `GET counts` | The section panel's counts: `{"types"}` (each content type the account edits, by name: how many entries its list shows the account, without its index page), and, when the account may see them, `media` (the library's files; any media capability), `accounts` and `roles` (`accounts.view`), `contentTypes` and `fieldSets` (`site.settings`), and `themes`, `plugins`, and `iconPacks` (installed; each with seeing its kind, `extensions.themes.view` and so on) |
 | `POST actions/{name}` | Run an action; the answer is `{"successful", "message", "details"}` |
-| `GET icons` | The icons the active theme can show: `{"icons": [{"name", "label", "keywords", "category", "source", "svg"}]}`; a built-in icon has its `category` (such as `arrows` or `media`) and a `null` `source`, and the rest have a `null` `category` and a `source` like a component's |
+| `GET icons` | The icons the active theme can show: `{"icons": [{"name", "label", "keywords", "category", "source", "svg"}]}`; a built-in icon has its `category` (such as `arrows` or `media`) and a `null` `source`, and the rest have a `null` `category` and a `source` like a directive's |
 | `GET media` | The media files an entry can use (see below) |
 | `GET media/{path}` | One file in the library, by its path under `user/media`, with its details (see below) |
 | `POST media` | Upload a file to the library (see below) |
 | `PATCH media/{path}` | Change a library file's details (see below) |
 | `DELETE media/{path}` | Delete a library file, with its details (see below) |
-| `GET components` | The components the editor's inserter offers: `{"components": [{"name", "label", "description", "content", "kind", "category", "source", "props"}]}` (see below) |
+| `GET directives` | The directives the editor's inserter offers as blocks: `{"directives": [{"name", "label", "description", "content", "kind", "category", "source", "props"}]}` (see below) |
 | `GET roles` | Every capability (`{"name", "label", "group"}`, and a content capability's `type`, `*` for every type, and `action`), the content `types` (`{"name", "label", "kind", "icon"}`), and every role: `{"name", "label", "description", "capabilities", "builtIn", "origin", "accounts", "grantable", "editable"}` (`accounts` is each holder's `{"username", "displayName"}`), and a changed built-in's `defaults`. `origin` is `built-in`, `changed`, `custom`, or `config`; `grantable` is whether you may give it, and `editable` whether you may change it. Needs `accounts.view`, as do all of these; each change needs its own capability too (`accounts.create`, `accounts.edit`, `accounts.roles`, `accounts.suspend`, `accounts.delete`, or `roles.manage`; see [Capabilities](accounts.md#capabilities)) |
 | `POST roles` | Make a role: `{"name", "label", "description", "capabilities"}`; answers `201` with `{"role"}` |
 | `PATCH roles/{name}` | Change a role: any of `label`, `description`, and `capabilities` (a built-in takes only `capabilities`); answers `{"role"}` |
@@ -1638,11 +1641,10 @@ edit it; otherwise `index` is `null`. A people field's list page
 for which field (`peopleLabel`). Pages written for one person's archive
 are left out. A page past the last has no entries.
 
-### Listing components
+### Listing directives
 
-`GET components` lists the components the editor's inserter offers:
-registered components with a class that the active theme can draw. Each
-has:
+`GET directives` lists the directives the editor's inserter offers as
+blocks: registered directives with a class. Each has:
 
 | Key | What it is |
 |---|---|
@@ -1650,12 +1652,12 @@ has:
 | `label`, `description` | From the translation catalogs, or a label made from the name |
 | `content` | What it wraps: `none`, `text` (its `[label]`), or `blocks` |
 | `kind` | How it's written: `container` (`:::`), `leaf` (`::`), or `inline` (`:`) |
-| `category` | A built-in component's group (`text`, `media`, `layout`, `navigation`, `data`), else `null` |
+| `category` | A built-in directive's group (`text`, `media`, `layout`, `navigation`, `data`), else `null` |
 | `source` | Where the rest come from: `{"kind": "theme", "site", "icon-pack", or "plugin", "label"}`, else `null` |
 | `props` | Its props as schema fields, each with its `label` and, for a choice, `choices` labels by value |
-| `variants` | Its variants under the active theme, not including Default: `{"name", "label", "description", "source"}`, where `source` is `null` when the component's own namespace declared it, else like the component's |
+| `variants` | Its variants under the active theme, not including Default: `{"name", "label", "description", "source"}`, where `source` is `null` when the directive's own namespace declared it, else like the directive's |
 
-Beside `components`, `image` has the `variants` the active theme offers
+Beside `directives`, `image` has the `variants` the active theme offers
 Markdown images (its `theme.json` `variants.image`): each a class, with
 its `name`, `label`, `description`, and `source` (`null`).
 

@@ -12,5 +12,5 @@ declare(strict_types=1);
 ?>
 <header class="site-header">
 	<p class="site-title"><a href="/" rel="home"><?= e($site->name) ?></a></p>
-	<?= $template->component('menu', name: 'primary') ?>
+	<?= $template->directive('menu', name: 'primary') ?>
 </header>

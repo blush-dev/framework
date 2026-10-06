@@ -735,6 +735,13 @@ Each is recorded in `.claude/docs/decisions.md`.
   `--danger` with a wavy underline: color and decoration only, so no
   character moves.
 
+- **Components are "Blocks"** (D-532, D-533): what the direction calls
+  components (the inserter, the element tab's options, **Remove
+  Component**) are directives in the code, and the admin calls them
+  blocks: "Insert a block", "Blocks ( / )", **Remove Block**. Components
+  in Blush are now a theme's template pieces, which the admin doesn't
+  show.
+
 ## Settled open questions
 
 From §13, now `50-open-questions.md`:

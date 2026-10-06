@@ -77,7 +77,7 @@ async function removeBroken(plugin: BrokenPluginSummary): Promise<void> {
 	<header class="page-header">
 		<div class="page-header__text">
 			<h1 tabindex="-1">Plugins</h1>
-			<p class="page-header__hint">Code that adds content types, components, icons, and actions to the site.</p>
+			<p class="page-header__hint">Code that adds content types, blocks, icons, and actions to the site.</p>
 		</div>
 		<div class="page-header__actions">
 			<button v-if="canInstall" type="button" class="button button--primary" @click="installing = true"><AdminIcon name="upload" />Install Plugin</button>

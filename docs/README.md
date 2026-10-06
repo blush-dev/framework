@@ -23,7 +23,8 @@ you can edit, copy, and keep in git.
 | [Writing content](content.md) | Files and folders, front matter, drafts, scheduling, and Markdown extras |
 | [Media](media.md) | Images, audio, and video |
 | [Content types](content-types.md) | Blogs, taxonomies, custom fields, feeds, and archives |
-| [Components](components.md) | Callouts, galleries, and your own components, in Markdown and templates |
+| [Directives](directives.md) | Callouts, galleries, buttons, and your own directives, in your content |
+| [Components](components.md) | Reusable pieces of a theme's templates |
 | [Themes](themes.md) | Choosing, customizing, and building themes |
 | [Menus and regions](menus.md) | Navigation menus, and the sidebar and footer areas themes offer |
 | [The admin](admin.md) | Turning on the admin, its dashboard, and building your own |
@@ -47,8 +48,8 @@ my-site/
   extensions/     Themes, plugins, and icon packs you've made or installed, at their names (acme/hello/)
   resources/
     views/        Template overrides for whatever theme is active
-    lang/         Translations for your own components and icons (the `app` namespace)
-    icons/        Your own SVG icons (see Components)
+    lang/         Translations for your own directives and icons (the `app` namespace)
+    icons/        Your own SVG icons (see Directives)
   public/         The web root: index.php and published files only
   storage/        Caches, the content index, logs, sessions, admin accounts, and deleted entries (never commit)
   src/            Your own PHP classes (the App\ namespace)

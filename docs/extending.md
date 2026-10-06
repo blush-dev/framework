@@ -160,13 +160,19 @@ Tag it with `CommandRegistry::TAG` in your provider (as above), then run
 `bin/blush stats --type=page`. Options and arguments come from the
 method's parameters, so `bin/blush help stats` is written for you.
 
-## Components
+## Directives and components
 
-Your site's own components are in the `app` namespace (`app/badge`).
-Their templates go in `resources/views/components/` (`app-badge.php`),
-and any classes are registered by your provider. They work with every
-theme, in templates and in Markdown. See [Components](components.md) for writing one, with or
-without a PHP class.
+Your site's own directives and components are in the `app` namespace.
+
+- **[Directives](directives.md)** are what your content says, such as
+  `::app/pricing`. Each is a class registered from your provider; its
+  template can go in `resources/views/directives/` (`app-pricing.php`).
+  They work with every theme, so content that uses them never breaks
+  when you switch.
+- **[Components](components.md)** are pieces for your templates, such as
+  `app/post-header`. Their templates go in `resources/views/components/`
+  (`app-post-header.php`), and any classes are registered by your
+  provider.
 
 ## Embed providers
 
@@ -385,7 +391,7 @@ Every extension's manifest has the same three keys:
   it's the package's name.
 - **`label`:** its title, as people read it. Optional: leave it out and
   the extension is shown by its `name`.
-- **`namespace`:** what its components, icons, and translations go by
+- **`namespace`:** what its directives, components, icons, and translations go by
   (`hello`, for `hello/tabs`). Lowercase letters, digits, `-`, and `_`.
   `blush`, `app`, `theme`, and `default` are reserved. Optional, and
   best left out: without one, it's the name with a hyphen for the `/`
@@ -693,8 +699,8 @@ Every installed plugin is on. Turn one off on the admin's
 
 ### A plugin without a provider
 
-A provider is what connects a plugin's classes to Blush: components,
-icons, commands, listeners, and the rest. A plugin that has none of those
+A provider is what connects a plugin's classes to Blush: directives,
+components, icons, commands, listeners, and the rest. A plugin that has none of those
 can leave `provider` out. It can still:
 
 - load files of functions, such as helpers for templates, with
@@ -900,17 +906,22 @@ when it's turned on, and the rest of the site carries on without it.
 The Plugins screen, `plugin:list`, and `plugin:check` list it by where
 it was found, such as `extensions/acme/hello`, with the reason.
 
-### Components from a plugin
+### Directives and components from a plugin
 
-A plugin's [components](components.md) use its namespace: `acme/hello`,
+A plugin's [directives](directives.md) use its namespace: `acme/hello`,
 with the namespace `hello`, registers `hello/tabs`, not `tabs`. Their
 text (labels, descriptions) goes in the plugin's `lang/en.json`, under
-`components.tabs`, with `@@locale` and `@@domain` (`"acme/hello"`) at
-the top ([Translations](themes.md#translations)). A plugin's component draws itself with its
-`render()`, usually a template file in the plugin returned by
-`$this->view(__DIR__ . '/../views/tabs.php')` (see
-[Rendering itself](components.md#rendering-itself)); a theme or your
-site restyles it with `views/components/hello-tabs.php`.
+`directives.tabs`, with `@@locale` and `@@domain` (`"acme/hello"`) at
+the top ([Translations](themes.md#translations)). A plugin's directive
+draws itself with its `render()`, usually a template file in the plugin
+returned by `$this->view(__DIR__ . '/../views/tabs.php')` (see
+[Rendering itself](directives.md#rendering-itself)); a theme or your
+site restyles it with `views/directives/hello-tabs.php`. Turning the
+plugin off turns its directives in your content into plain text.
+
+A plugin can also offer [components](components.md) for themes to use
+in their templates, such as a newsletter plugin's `newsletter/signup`,
+registered with `ComponentRegistry` and drawn by their own `render()`.
 
 ### Template engines from a plugin
 
@@ -954,7 +965,7 @@ builds with its own blocks, and `$template->layout('base')` to wrap a
 template in a layout. If your engine escapes output on its own, don't
 escape Blush's HTML a second time: methods marked with the
 `Blush\View\ReturnsHtml` attribute (`include()`, `section()`,
-`component()`, and others) return HTML, and so does any value that
+`component()`, `directive()`, and others) return HTML, and so does any value that
 implements `Blush\View\SafeHtml`.
 
 ### Icons from a plugin
@@ -1216,7 +1227,7 @@ icon:list` and the admin's icon inserter. Turn one off on the admin's
 [`config/icons.php`](configuration.md#plugins-and-middleware); its icons
 then show nowhere. A theme can restyle one with
 `icons/brands/github.svg`, and your site with
-`resources/icons/brands/github.svg` (see [Icons](components.md#icons)).
+`resources/icons/brands/github.svg` (see [Icons](directives.md#icons)).
 
 For autocomplete, point `$schema` at
 `vendor/blush-dev/framework/resources/schemas/icons.schema.json`.

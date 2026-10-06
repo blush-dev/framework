@@ -171,9 +171,10 @@ extensions/acme/notebook/
   views/
     layouts/      base.php, and any others
     parts/        header.php, footer.php, and other pieces
-    components/   Components for templates and Markdown
+    directives/   Your look for directives, such as callout.php
+    components/   Your theme's own components, for its templates
     single.php  collection.php  ...
-  icons/          SVG icons, such as badge.svg (see Components)
+  icons/          SVG icons, such as badge.svg (see Directives)
   lang/           Translations, such as en.json
   src/            Optional PHP classes
 ```
@@ -287,7 +288,7 @@ Only `name` is required.
   [`provide`](extending.md#providing-a-package) works: a requirement of
   one is met by the theme while it's active.
 - **`provider`** and **`autoload`:** a theme can run PHP, through a
-  service provider of its own (see [Components](#components)).
+  service provider of its own (see [Directives and components](#directives-and-components)).
   `autoload` is Composer's shape: `psr-4` folders, and `files` loaded
   once when the theme is in use. It still can't add content types,
   routes, or commands; those belong to the site or a
@@ -298,9 +299,9 @@ Only `name` is required.
   and regions. See [Menus and regions](menus.md#for-theme-authors).
 - **`bleed`:** the classes that widen an element past the text column;
   see [Bleed](#bleed).
-- **`variants`:** styles your theme adds to components, by component,
+- **`variants`:** styles your theme adds to directives, by directive,
   such as `{"callout": ["bordered"]}`. See
-  [Variants](components.md#variants). Under `image`, the classes it
+  [Variants](directives.md#variants). Under `image`, the classes it
   offers images; see [Image variants](#image-variants).
 - **`preview`:** what the admin's Themes screen draws your theme's
   preview from; see [The admin's preview](#the-admins-preview).
@@ -411,7 +412,8 @@ What a template can use:
 | `$template->includeUnless($condition, 'parts/x')` | Include it unless the condition is true |
 | `$template->each('parts/card', $entries, as: 'entry', empty: 'parts/none')` | Include a template once per item (see below) |
 | `$template->component('notebook/card', title: '...')` | Render a component (see [Components](components.md)) |
-| `$template->icon('house', 'Home')` | An icon, decorative or labeled (see [Icons](components.md#icons)) |
+| `$template->directive('callout', variant: 'tip')` | Render a directive, as content would (see [Directives](directives.md#using-directives-in-templates)) |
+| `$template->icon('house', 'Home')` | An icon, decorative or labeled (see [Icons](directives.md#icons)) |
 | `$template->permalink($entry)` | An entry's URL |
 | `$template->route('home')` | A named route's URL (`bin/blush routes:list`), with any parameters: `route('post.collection.month', ['year' => 2026, 'month' => '05'])`. On a [translated](content.md#translations) page, it's that language's version when there is one (`/es` for `home`) |
 | `$template->terms($entry, 'tag')` | An entry's terms in a taxonomy |
@@ -459,8 +461,8 @@ For a machine-readable date, such as a `<time datetime="">`, use
 
 Every template gets `$site` (name, URL, and language). Content pages also
 get `$page`, `$entry` (the entry), `$entries` (a listing, when there is
-one), `$type`, and `$title`, and so do their layouts, parts, and
-components, so you don't have to pass them along. Anything you pass to
+one), `$type`, and `$title`, and so do their layouts, parts,
+directives, and components, so you don't have to pass them along. Anything you pass to
 `include()` wins, so `$template->include('parts/summary', entry: $item)` shows
 that entry instead.
 
@@ -643,7 +645,7 @@ The key names the piece, so give each variation its own key. Only the
 HTML is kept, so don't add to the head inside it. In development,
 nothing is cached, so your changes always show.
 
-A component used in an entry's Markdown (`::notebook/post-archives{by=year}`)
+A directive used in an entry's Markdown (`::app/post-list{limit=5}`)
 needs no `cache()`: it's kept with the entry's rendered content, on the
 same terms.
 
@@ -683,40 +685,43 @@ An entry's `template` front matter is always tried first. Feeds
 (`feed-rss`, `feed-atom`, `feed-json`) and sitemaps (`sitemap`,
 `sitemap-index`) are templates too, if you need to change them.
 
-### Components
+### Directives and components
 
-A component is a reusable piece of a template, and every component your
-theme has can also be used in Markdown, by the same name.
-[Components](components.md) covers writing them; this section covers
-where they go in a theme.
+Your theme draws two kinds of pieces:
 
-A theme's components are in its namespace, which its `theme.json`
-declares: the `notebook` namespace's badge is `notebook/badge`. A
-template-only component is a file in `views/components/` named
-`{namespace}-{name}.php`, such as
-`views/components/notebook-badge.php`. Use it in a template with
-`<?= $template->component('notebook/badge', tone: 'new')->content('New') ?>`,
-or in Markdown with `:notebook/badge[New]{tone=new}`.
+- **[Directives](directives.md)** are what content says: callouts,
+  galleries, buttons. They come from Blush, plugins, and the site, never
+  a theme, so content never depends on one theme. Your theme gives them
+  their look.
+- **[Components](components.md)** are your theme's own building blocks
+  for its templates: a card, a post header, a list of archives. Content
+  never names them.
 
-The **core components** work in every theme, because the default theme
-provides them: `callout`, `embed`, `figure`, and `gallery`; the layout
-components `group`, `grid`, and `row`; the media components `audio`,
-`video`, and `file`; the inline components `abbr`, `badge`, `cite`, `dfn`, `ins`, `kbd`,
-`samp`, `small`, `time`, and `var`; `toc`, a table of
-contents; `icon`; `button`; and `progress` and `meter`. They're the
-only components with short names. To change how one looks, add your own
-`views/components/callout.php` (or `blush-callout.php`, and so on); yours
-wins.
+**Giving directives a look.** The built-in directives work in every
+theme, drawing themselves with Blush's templates: `callout`, `embed`,
+`figure`, and `gallery`; the layouts `group`, `grid`, `row`, and
+`stack`; the media directives `audio`, `video`, and `file`; the inline
+ones `abbr`, `badge`, `button`, `cite`, `dfn`, `icon`, `ins`, `kbd`,
+`samp`, `small`, `time`, and `var`; `toc`, a table of contents; `menu`;
+and `progress` and `meter`. To change how one looks, style its classes
+(`.directive-callout`, `.directive-callout__title`), or add your own
+`views/directives/callout.php` (or `blush-callout.php`, and so on);
+yours wins. A plugin's directive is drawn the same way:
+`views/directives/{namespace}-{name}.php`.
 
-To give a component a style of your own, add a
-[variant](components.md#variants) in `theme.json` and style its class
-(`.component-callout--bordered`), or give it a template of its own
-(`views/components/callout-bordered.php`).
+To give a directive a style of your own, add a
+[variant](directives.md#variants) in `theme.json` and style its class
+(`.directive-callout--bordered`), or give it a template of its own
+(`views/directives/callout-bordered.php`). A template in `directives/`
+for a directive no one registered is never drawn: a theme can't add
+directives, so make it a component instead.
 
-Content that uses one of your theme's own components shows it as plain
-text under any other theme. If a site's content depends on a component,
-it may belong in the site rather than the theme (see
-[Where components live](components.md#where-components-live)).
+**Your own components.** A theme's components are in its namespace,
+which its `theme.json` declares: the `notebook` namespace's card is
+`notebook/card`. A template-only component is a file in
+`views/components/` named `{namespace}-{name}.php`, such as
+`views/components/notebook-card.php`. Use it in a template with
+`<?= $template->component('notebook/card', entry: $entry) ?>`.
 
 A component that needs data, such as a list of posts, can have a PHP
 class. Keep it in the theme's `src/`, and name a provider and autoload
@@ -755,22 +760,24 @@ final class ThemeProvider extends ServiceProvider
 }
 ```
 
-See [The class](components.md#the-class) for writing the component class, and [The template](components.md#the-template) for what its template gets.
+See [A component with a class](components.md#a-component-with-a-class)
+for writing it.
 
-To see every component your theme can use, and which file draws each,
-run `bin/blush component:list`. `bin/blush theme:why components/callout`
-shows what a file overrides. `theme:check` warns about a component with
-a PHP class but no template, about a file in `components/` that isn't
-named for a component, about variants in `theme.json` for components
-that don't exist or with names that aren't valid, and about a variant's
-template that's also another component's. With `--strict`, it also notes
-registered components and variants without a translated label (see
-[Labels and translations](components.md#labels-and-translations)).
+`bin/blush directive:list` lists every directive and the file that draws
+each, and `bin/blush component:list` your theme's components.
+`bin/blush theme:why directives/callout` shows what a file overrides.
+`theme:check` warns about a directive or component with a PHP class but
+no template, about a file in `directives/` for no registered directive
+or in `components/` not named for a component, about variants in
+`theme.json` for directives that don't exist or with names that aren't
+valid, and about a variant's template that's also another directive's.
+With `--strict`, it also notes variants without a translated label (see
+[Labels and translations](directives.md#labels-and-translations)).
 
 ### Bleed
 
 The admin's editor can widen any element at the top of an entry (an
-image, a paragraph, a component) past the text column: **Wide**, into
+image, a paragraph, a block) past the text column: **Wide**, into
 the margin, or **Full**, edge to edge. Each is a class on the element,
 `bleed-wide` and `bleed-full` unless your theme names its own; the
 column's own width writes no class at all. Style both:

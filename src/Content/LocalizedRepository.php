@@ -21,7 +21,7 @@ use Blush\Content\Query\Query;
 
 /**
  * A repository whose default language is a page's (D-458): what a
- * component on a translated page is given, so its queries, `named()`,
+ * directive or component on a translated page is given, so its queries, `named()`,
  * and `term()` find that language's entries without asking. A query or
  * lookup that names a language (or `Query::ANY_LANGUAGE`) keeps it.
  * Everything else is the wrapped repository's.

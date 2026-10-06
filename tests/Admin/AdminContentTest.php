@@ -16,19 +16,17 @@ namespace Blush\Tests\Admin;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\ResponseInterface;
-use Blush\Admin\ComponentsController;
+use Blush\Admin\DirectivesController;
 use Blush\Admin\EntriesController;
 use Blush\Admin\HealthController;
 use Blush\Admin\PreviewLinkController;
 use Blush\Admin\TypesController;
-use Blush\Component\Callout;
-use Blush\Component\ComponentContent;
-use Blush\Component\ComponentRegistry;
+use Blush\Directive\Callout;
+use Blush\Directive\DirectiveRegistry;
 use Blush\Content\ContentRepository;
 use Blush\Content\Type\TypeLabels;
-use Blush\Field\Fields\TextField;
 
-#[CoversClass(ComponentsController::class)]
+#[CoversClass(DirectivesController::class)]
 #[CoversClass(EntriesController::class)]
 #[CoversClass(HealthController::class)]
 #[CoversClass(PreviewLinkController::class)]
@@ -446,32 +444,31 @@ final class AdminContentTest extends TestCase
 		$this->assertSame('profile', self::json($this->send('GET', '/types'))['authors'] ?? null);
 	}
 
-	public function testDescribesTheComponentsTheInserterOffers(): void
+	public function testDescribesTheDirectivesTheInserterOffers(): void
 	{
 		$this->site(['author']);
 
-		$registry = $this->app->container()->make(ComponentRegistry::class);
+		$registry = $this->app->container()->make(DirectiveRegistry::class);
 		$registry->register('app/note', Callout::class);
 		$registry->register('acme/panel', Callout::class);
-		$registry->register('acme/tabs', content: ComponentContent::Blocks, props: [new TextField('title')]);
 
-		$components = self::json($this->send('GET', '/components'))['components'] ?? null;
+		$directives = self::json($this->send('GET', '/directives'))['directives'] ?? null;
 
-		$this->assertIsArray($components);
+		$this->assertIsArray($directives);
 
-		$callout = $this->component($components, 'blush/callout');
+		$callout = $this->directive($directives, 'blush/callout');
 
 		$this->assertSame(
 			['label' => 'Callout', 'content' => 'blocks', 'kind' => 'container', 'category' => 'text', 'source' => null],
 			array_intersect_key($callout, array_flip(['label', 'content', 'kind', 'category', 'source'])),
 			'The inserter writes full names.'
 		);
-		$this->assertSame('inline', $this->component($components, 'blush/kbd')['kind'] ?? null);
-		$this->assertSame('container', $this->component($components, 'blush/figure')['kind'] ?? null);
-		$this->assertSame('layout', $this->component($components, 'blush/figure')['category'] ?? null, 'A figure wraps anything, so it\'s layout, not media.');
-		$this->assertSame('leaf', $this->component($components, 'blush/embed')['kind'] ?? null);
-		$this->assertSame(['image'], $this->component($components, 'blush/gallery')['only'] ?? null, 'A gallery holds images.');
-		$this->assertNull($this->component($components, 'blush/callout')['only'] ?? null);
+		$this->assertSame('inline', $this->directive($directives, 'blush/kbd')['kind'] ?? null);
+		$this->assertSame('container', $this->directive($directives, 'blush/figure')['kind'] ?? null);
+		$this->assertSame('layout', $this->directive($directives, 'blush/figure')['category'] ?? null, 'A figure wraps anything, so it\'s layout, not media.');
+		$this->assertSame('leaf', $this->directive($directives, 'blush/embed')['kind'] ?? null);
+		$this->assertSame(['image'], $this->directive($directives, 'blush/gallery')['only'] ?? null, 'A gallery holds images.');
+		$this->assertNull($this->directive($directives, 'blush/callout')['only'] ?? null);
 
 		$this->assertSame(
 			[
@@ -484,7 +481,7 @@ final class AdminContentTest extends TestCase
 			'Variants come with their text; Default isn\'t one.'
 		);
 
-		$props = $this->component($components, 'blush/button')['props'] ?? null;
+		$props = $this->directive($directives, 'blush/button')['props'] ?? null;
 		$this->assertIsArray($props);
 
 		$position = array_find($props, static fn (mixed $prop): bool => is_array($prop) && ($prop['name'] ?? null) === 'iconPosition');
@@ -495,15 +492,14 @@ final class AdminContentTest extends TestCase
 		$this->assertIsArray($choices);
 		$this->assertSame('After the text', $choices['end'] ?? null);
 
-		$note = $this->component($components, 'app/note');
+		$note = $this->directive($directives, 'app/note');
 
 		$this->assertSame(['kind' => 'site', 'label' => 'This site'], $note['source'] ?? null);
 		$this->assertArrayHasKey('category', $note);
 		$this->assertNull($note['category']);
-		$this->assertSame(['kind' => 'plugin', 'label' => 'acme'], $this->component($components, 'acme/panel')['source'] ?? null);
-		$this->assertNotContains('acme/tabs', array_column($components, 'name'), 'Only components with a class are offered.');
+		$this->assertSame(['kind' => 'plugin', 'label' => 'acme'], $this->directive($directives, 'acme/panel')['source'] ?? null);
 
-		$image = self::json($this->send('GET', '/components'))['image'] ?? null;
+		$image = self::json($this->send('GET', '/directives'))['image'] ?? null;
 
 		$this->assertIsArray($image);
 		$this->assertIsArray($image['variants'] ?? null);
@@ -515,23 +511,23 @@ final class AdminContentTest extends TestCase
 
 		$this->assertSame(
 			['wide' => 'bleed-wide', 'full' => 'bleed-full'],
-			self::json($this->send('GET', '/components'))['bleed'] ?? null,
+			self::json($this->send('GET', '/directives'))['bleed'] ?? null,
 			'Bleed classes default when no theme names them.'
 		);
 	}
 
 	/**
-	 * Returns a component from `GET components`, by name.
+	 * Returns a directive from `GET directives`, by name.
 	 *
-	 * @param  array<mixed> $components
+	 * @param  array<mixed> $directives
 	 * @return array<mixed>
 	 */
-	private function component(array $components, string $name): array
+	private function directive(array $directives, string $name): array
 	{
-		$component = array_find($components, static fn (mixed $item): bool => is_array($item) && ($item['name'] ?? null) === $name);
-		$this->assertIsArray($component, $name);
+		$directive = array_find($directives, static fn (mixed $item): bool => is_array($item) && ($item['name'] ?? null) === $name);
+		$this->assertIsArray($directive, $name);
 
-		return $component;
+		return $directive;
 	}
 
 	public function testDescribesOneContentType(): void

@@ -20,6 +20,7 @@ use Blush\Field\Violation;
 use Blush\Http\Kernel;
 use Blush\Http\Request;
 use Blush\Region\Item\ComponentItem;
+use Blush\Region\Item\DirectiveItem;
 use Blush\Region\Item\EntryItem;
 use Blush\Region\Item\MarkdownItem;
 use Blush\Region\Item\RegionItemFactory;
@@ -35,6 +36,7 @@ use Blush\Theme\ThemeResolver;
 #[CoversClass(RegionLocation::class)]
 #[CoversClass(RegionItemFactory::class)]
 #[CoversClass(ComponentItem::class)]
+#[CoversClass(DirectiveItem::class)]
 #[CoversClass(EntryItem::class)]
 #[CoversClass(MarkdownItem::class)]
 #[CoversClass(ViewItem::class)]
@@ -65,32 +67,37 @@ final class RegionsTest extends TestCase
 		$this->writeTemporaryFile('user/data/menus/social.yaml', "- url: https://example.org/\n  label: Example\n- entry: page/about\n");
 		$this->writeTemporaryFile('user/data/regions/footer.yaml', <<<'YAML'
 			items:
-			  - component: menu
+			  - directive: menu
 			    name: social
 			  - markdown: { en: "Powered by **words**.", fr: "Propulsé par des **mots**." }
 			  - entry: page/_regions/blurb
 			  - view: parts/hello
 			    name: { en: friend, fr: ami }
-			  - component: callout
+			  - directive: callout
 			    variant: info
+			  - component: app/badge
+			    text: { en: New, fr: Nouveau }
 			  - view: parts/missing
 			YAML);
+		$this->writeTemporaryFile('resources/views/components/app-badge.php', '<span <?= $component->attributes() ?>><?= e($component->prop("text")) ?></span>');
 
 		$app  = $this->app();
 		$html = $this->page($app, '/about');
 
 		$this->assertStringContainsString('<div class="site-footer__region">', $html);
-		$this->assertStringContainsString('<nav class="component-menu component-menu--social" aria-label="Menu">', $html);
-		$this->assertStringContainsString('<a class="component-menu__link" href="/about" aria-current="page">', $html);
+		$this->assertStringContainsString('<nav class="directive-menu directive-menu--social" aria-label="Menu">', $html);
+		$this->assertStringContainsString('<a class="directive-menu__link" href="/about" aria-current="page">', $html);
 		$this->assertStringContainsString('<p>Powered by <strong>words</strong>.</p>', $html);
 		$this->assertStringContainsString('<p>A <em>blurb</em> from an entry.</p>', $html);
 		$this->assertStringContainsString('<p class="hello">Hello, friend.</p>', $html);
-		$this->assertStringContainsString('component-callout--info', $html);
+		$this->assertStringContainsString('directive-callout--info', $html);
+		$this->assertStringContainsString('<span class="component-badge">New</span>', $html);
 
 		$french = $this->page($app, '/bonjour');
 
 		$this->assertStringContainsString('<p>Propulsé par des <strong>mots</strong>.</p>', $french);
 		$this->assertStringContainsString('<p class="hello">Hello, ami.</p>', $french);
+		$this->assertStringContainsString('<span class="component-badge">Nouveau</span>', $french);
 	}
 
 	public function testPrintsNothingForAnEmptyRegion(): void
@@ -127,6 +134,7 @@ final class RegionsTest extends TestCase
 			- markdown: Fine.
 			- markdown: [1, 2]
 			- component: "../x"
+			- directive: "acme/"
 			- view: parts/a
 			  entry: page/about
 			- nothing: here
@@ -140,9 +148,10 @@ final class RegionsTest extends TestCase
 			'warning region aside: "title" isn\'t a region key; a region has "items".',
 			'notice region aside: No location of the "blush/default" theme shows it.',
 			'warning region footer: item 2: "markdown" must be Markdown text, or a map of locales to it.',
-			'warning region footer: item 3: "component" must be a component name, such as "menu" or "acme/card".',
-			'warning region footer: item 4: must have exactly one of "component", "entry", "markdown", "view".',
-			'warning region footer: item 5: must have exactly one of "component", "entry", "markdown", "view".'
+			'warning region footer: item 3: "component" must be a component name, such as "acme/card".',
+			'warning region footer: item 4: "directive" must be a directive name, such as "menu" or "acme/tabs".',
+			'warning region footer: item 5: must have exactly one of "component", "directive", "entry", "markdown", "view".',
+			'warning region footer: item 6: must have exactly one of "component", "directive", "entry", "markdown", "view".'
 		], array_map(static fn (Violation $problem): string => "{$problem->severity->value} {$problem}", $problems));
 	}
 }

@@ -43,7 +43,7 @@ final class MarkdownItem extends RegionItem
 	#[Override]
 	public static function itemSchema(string $key, array $text): array
 	{
-		return [$key => [...$text, 'description' => 'Shows Markdown text, with components, or a map of locales to it.']];
+		return [$key => [...$text, 'description' => 'Shows Markdown text, with directives, or a map of locales to it.']];
 	}
 
 	/**
@@ -64,7 +64,7 @@ final class MarkdownItem extends RegionItem
 		$markdown = LocaleMap::text($value, $render->locale, $render->defaultLocale) ?? '';
 		$language = $render->context->language;
 
-		// Its components follow the page's language (D-459).
+		// Its directives follow the page's language (D-459).
 		try {
 			return $this->bodies->remember(
 				'region ' . hash('xxh128', $markdown) . ($language === '' ? '' : ".{$language}"),

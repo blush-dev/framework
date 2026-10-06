@@ -13,16 +13,11 @@ declare(strict_types=1);
 
 namespace Blush\Component;
 
-use Override;
 use Blush\Core\ServiceProvider;
-use Blush\Markdown\DirectiveRenderer;
 
 /**
- * Binds components (D-025): the registry, seeded with the built-ins, the
- * factory, and the Markdown directive renderer, a default an extension
- * can replace by binding its own.
- *
- * A theme or site provider registers a component in `boot()`:
+ * Binds components (D-025, D-532): the registry of component classes. A
+ * theme, site, or plugin provider registers a class in `boot()`:
  *
  *     $this->container->make(ComponentRegistry::class)->register('app/card', Card::class);
  */
@@ -32,30 +27,6 @@ final class ComponentServiceProvider extends ServiceProvider
 	 * @inheritDoc
 	 */
 	protected const array SINGLETONS = [
-		ComponentFactory::class
+		ComponentRegistry::class
 	];
-
-	/**
-	 * @inheritDoc
-	 */
-	protected const array SINGLETONS_IF = [
-		DirectiveRenderer::class => ComponentDirectives::class
-	];
-
-	/**
-	 * Binds the component registry, seeded with the built-ins.
-	 */
-	#[Override]
-	public function register(): void
-	{
-		$this->container->singleton(
-			ComponentRegistry::class,
-			static function (): ComponentRegistry {
-				$registry = new ComponentRegistry();
-				new ComponentRegistrar($registry)->register();
-
-				return $registry;
-			}
-		);
-	}
 }

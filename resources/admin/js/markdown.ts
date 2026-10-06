@@ -1,6 +1,6 @@
 /**
  * Reads a Markdown body the way the editor shows it (D-241): which lines
- * are headings, code, or component directives, where each directive
+ * are headings, code, or directives, where each directive
  * starts and ends, and the body as highlighted HTML for the editor's
  * source view (D-253, D-265). The words are the point: every syntax
  * character is muted and what it wraps keeps full ink. Headings, strong
@@ -18,9 +18,9 @@
  * - a leaf is a line of `::name[label]{attributes}`;
  * - an inline directive is `:name[label]{attributes}`, not straight after
  *   a letter, digit, underscore, or colon;
- * - a registered component works only as the kind it's registered as
+ * - a registered directive works only as the kind it's registered as
  *   (D-531), so a `:::` line for one that isn't a container is a line of
- *   its own (`misplaced`), never opening one, once the components have
+ *   its own (`misplaced`), never opening one, once the directives have
  *   loaded (`registerDirectiveKinds()`).
  *
  * Nothing in fenced code is a directive. This isn't a Markdown parser:
@@ -40,20 +40,20 @@ import { shallowRef } from 'vue';
 
 export type DirectiveKind = 'container' | 'leaf' | 'inline';
 
-// How each registered component is written, by full name (D-531). It's
-// reactive, so what's read from a body follows once the components load.
+// How each registered directive is written, by full name (D-531). It's
+// reactive, so what's read from a body follows once the directives load.
 const registered = shallowRef(new Map<string, DirectiveKind>());
 
 /**
- * Says how each registered component is written, by full name.
+ * Says how each registered directive is written, by full name.
  */
 export function registerDirectiveKinds(kinds: Map<string, DirectiveKind>): void {
 	registered.value = kinds;
 }
 
 /**
- * How a registered component is written, by its full name or a core
- * component's short name, or `undefined` for one that isn't registered.
+ * How a registered directive is written, by its full name or a core
+ * directive's short name, or `undefined` for one that isn't registered.
  */
 export function registeredKind(name: string): DirectiveKind | undefined {
 	return registered.value.get(name.includes('/') ? name : `blush/${name}`);

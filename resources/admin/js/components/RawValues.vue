@@ -2,7 +2,7 @@
 /**
  * Values kept as written (D-509): each name over its value, in mono, for
  * what a form doesn't edit, such as an entry's other front matter, a
- * media file's other metadata, or a component's undeclared attributes.
+ * media file's other metadata, or a directive's undeclared attributes.
  * A value that isn't a string is shown as JSON.
  */
 

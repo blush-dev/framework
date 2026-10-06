@@ -25,7 +25,7 @@ use Blush\Data\InvalidData;
  * by key in catalogs grouped by domain (D-451): `blush` for the
  * framework, `app` for the site, and each extension's `vendor/name`
  * (`acme/hello`, `blush/default`). An extension's namespace maps to its
- * domain (`domainOf()`), for component and icon labels.
+ * domain (`domainOf()`), for directive and icon labels.
  *
  * A domain's catalogs are data files named by locale
  * (`lang/en_US.json`, `lang/en.yaml`) in an ordered list of directories.

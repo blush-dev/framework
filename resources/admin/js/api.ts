@@ -336,7 +336,7 @@ export interface ThemeSummary {
 	// The key it's known by: `vendor/name` (D-378).
 	name: string;
 	label: string;
-	// What its components, icons, and catalog keys go by.
+	// What its directives, components, icons, and catalog keys go by.
 	namespace: string;
 	version: string;
 	description: string;
@@ -510,7 +510,7 @@ export interface PluginSummary {
 	// The key it's known by: `vendor/name`.
 	name: string;
 	label: string;
-	// What its components, icons, and translations go by.
+	// What its directives, components, icons, and translations go by.
 	namespace: string;
 	version: string;
 	description: string;

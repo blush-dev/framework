@@ -2,7 +2,7 @@
 
 A **menu** is a list of links, such as your site's main navigation or
 your social profiles. A **region** is an area of the page, such as a
-sidebar or the footer, filled with components, text, or template parts.
+sidebar or the footer, filled with directives, components, text, or template parts.
 
 Both are files in `user/data/`, one file per menu or region. Your theme
 decides where they appear: it declares **locations** (`primary`, `social`,
@@ -57,7 +57,7 @@ below its type's folder: `user/content/about.md` is `page/about`, and
 |---|---|
 | `label` | The text shown. Needed for `route` and `url` links; for the others it replaces the title. |
 | `children` | A list of items shown under this one. An item with children and no link is a heading for them. |
-| `icon` | An [icon](components.md#icons) shown with the label, such as `house` or `mytheme/github`. |
+| `icon` | An [icon](directives.md#icons) shown with the label, such as `house` or `mytheme/github`. |
 | `description` | A short line of text under the label, for larger dropdown menus. |
 | `image` | The URL of a small image shown with the label. |
 | `badge` | A short tag, such as `New`. |
@@ -100,7 +100,7 @@ theme shows a `footer` region above its credit line:
 ```yaml
 # user/data/regions/footer.yaml
 items:
-  - component: menu
+  - directive: menu
     name: social
   - markdown: "Thanks for reading. **Subscribe** to the [feed](/feed)."
   - entry: page/_regions/newsletter
@@ -112,8 +112,9 @@ Each item is one of:
 
 | Key | What it shows |
 |---|---|
+| `directive` | A [directive](directives.md), such as `menu`. The item's other keys are its props. |
 | `component` | A [component](components.md). The item's other keys are its props. |
-| `markdown` | Markdown text, with components. |
+| `markdown` | Markdown text, with directives. |
 | `entry` | An entry's content, as `{type}/{key}`. |
 | `view` | A template part from your site or theme. The item's other keys are its data. |
 
@@ -149,7 +150,7 @@ In JSON, it's a `$schema` key (`region.schema.json` for regions):
 }
 ```
 
-Options a theme adds to its menu items, and a component's props, aren't
+Options a theme adds to its menu items, and a directive's or component's props, aren't
 in the schema, so the editor won't suggest them.
 
 ## Using another name
@@ -211,7 +212,7 @@ or an object:
 "regions": {
 	"sidebar": {
 		"label": "Sidebar",
-		"items": [{ "component": "menu", "name": "social" }]
+		"items": [{ "directive": "menu", "name": "social" }]
 	},
 	"footer": "Footer"
 }
@@ -234,17 +235,17 @@ change it.
 
 ### Printing a menu
 
-The `menu` component prints a menu with accessible markup: a `<nav>` named
+The `menu` directive prints a menu with accessible markup: a `<nav>` named
 by the menu's label, nested lists, and `aria-current="page"` on the link
 to the current page.
 
 ```php
-<?= $template->component('menu', name: 'primary') ?>
+<?= $template->directive('menu', name: 'primary') ?>
 ```
 
 It prints nothing when the site has no menu for the location. Its
-classes start with `component-menu` (`component-menu--primary`,
-`component-menu__item--current`, `component-menu__link`). Items with
+classes start with `directive-menu` (`directive-menu--primary`,
+`directive-menu__item--current`, `directive-menu__link`). Items with
 children get a toggle button, hidden, for a dropdown: your script can
 show it and open and close the submenu it controls (`aria-controls`),
 updating `aria-expanded`. Without a script, submenus stay open.

@@ -25,7 +25,7 @@ use Blush\View\Views;
  * It renders when printed, so slots chain on first:
  *
  * ```php
- * <?= $template->component('card', title: 'Hi')
+ * <?= $template->component('acme/card', title: 'Hi')
  *     ->content('<p>Body</p>')
  *     ->slot('footer', $template->section('card-footer')) ?>
  * ```

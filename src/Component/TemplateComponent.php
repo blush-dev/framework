@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Template-only component.
+ * Template component.
  *
  * @author    Justin Tadlock <justintadlock@gmail.com>
  * @copyright Copyright (c) 2026, Justin Tadlock

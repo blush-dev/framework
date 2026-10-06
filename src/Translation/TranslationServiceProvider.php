@@ -28,7 +28,7 @@ use Blush\Plugin\Plugins;
  * own `blush` domain, the site's `app` domain (`resources/lang`), and a
  * domain for each enabled plugin and icon pack that's on, by its
  * `vendor/name` (its `lang` folder), with its namespace mapped to it for
- * component and icon labels. The site's overrides in `user/lang` win over
+ * directive and icon labels. The site's overrides in `user/lang` win over
  * them all. The view layer adds the theme chain's domains.
  */
 final class TranslationServiceProvider extends ServiceProvider

@@ -113,9 +113,10 @@ final readonly class Themes
 
 	/**
 	 * Returns whether a namespace is an installed theme's, outside a
-	 * chain. A component in such a theme's namespace (D-171) belongs to
-	 * that theme, so it can't render in the chain; its provider may
-	 * still have registered it when that theme is the active one.
+	 * chain. A component in such a theme's namespace (D-171, D-532)
+	 * belongs to that theme, so it can't render in the chain; its
+	 * provider may still have registered it when that theme is the
+	 * active one.
 	 */
 	public function isOutside(string $namespace, ThemeChain $chain): bool
 	{

@@ -4,6 +4,14 @@ Move each item to `decisions.md` once it's answered.
 
 ## Needs the author's call
 
+- **Directives and components** (D-532, built in D-533). Settled: themes
+  can't register directives, writers see "Blocks", and every directive is
+  a registered class that declares its kind (D-534). What's left:
+  - **Patterns:** a theme's (or plugin's) named arrangement of
+    directives, inserted into content as plain Markdown. Proposed:
+    copied in and forgotten, never a live reference, which would bring
+    the theme dependency back.
+
 - **Loading the admin's screens on demand** (D-510, discussed
   2026-10-05). The size budget means what's loaded at a given moment,
   such as the first run, as much as the total. Today `router.ts` imports
@@ -699,10 +707,6 @@ Move each item to `decisions.md` once it's answered.
     the library; a `missing` name may be a library or an extension);
     and whether one install may
     bring others, and how the admin asks first.
-- **Requiring components to be registered** (D-266's direction): how
-  a template-only component registers without PHP (a JSON file beside
-  the template, with its text in the catalog?), and what happens to
-  today's components found only by their file name.
 - **Array and map props in directives** (D-112, D-205): the
   `key=value` attribute syntax stays, not JSON. Today every attribute is
   a string, cast to the prop's scalar or enum type. When a component needs an `array` prop (a
@@ -776,6 +780,12 @@ Move each item to `decisions.md` once it's answered.
   released.
 
 ## Later
+- **A components screen with options** (raised 2026-10-06, after
+  D-532): components (not directives) declare options a site owner
+  sets on their own admin screen, such as a card's featured image and
+  excerpt length or pagination's style, saved in `user/data/` and
+  given to the component as defaults for its props. Needs field types
+  for the controls, so it waits on the Fields API (paused, D-348).
 - **Captioned quotes and tables** (D-175, deferred by the author):
   improve the existing blockquote (a source URL and a credited speaker),
   or add a general figure wrapper that captions a quote, table, or code

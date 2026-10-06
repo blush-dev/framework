@@ -171,7 +171,7 @@ new Collection('person', folder: 'people', labels: new TypeLabels('Person', plur
 `description` says what the type is for, in a sentence. The admin shows it
 on the type's screen and on its list while it's empty. `icon` names an
 icon to show the type with in the admin's menu, from the icons the `icon`
-component offers (`bin/blush icon:list`), such as `film` or
+directive offers (`bin/blush icon:list`), such as `film` or
 `book-open`. Without one, the type gets its kind's icon.
 
 ```yaml

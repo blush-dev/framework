@@ -18,8 +18,10 @@ use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\ResponseInterface;
 use Blush\Config\InvalidConfig;
 use Blush\Component\Component;
-use Blush\Component\ComponentFactory;
 use Blush\Component\ComponentRegistry;
+use Blush\Directive\Directive;
+use Blush\View\RenderableFactory;
+use Blush\Directive\DirectiveRegistry;
 use Blush\Component\Slots;
 use Blush\Content\ContentRepository;
 use Blush\Content\Entry\Entry;
@@ -49,6 +51,7 @@ use Blush\Menu\Menu;
 use Blush\Menu\MenuItem;
 use Blush\Menu\Menus;
 use Blush\Routing\SiteUrl;
+use Blush\Tests\Fixtures\Content\PostTitleList;
 use Blush\Tests\Fixtures\Content\PostTitles;
 use Blush\Theme\ThemeResolver;
 use Blush\View\Site;
@@ -65,8 +68,9 @@ use Blush\View\ViewFactory;
 #[CoversClass(ContentUrls::class)]
 #[CoversClass(ContentSiteUrls::class)]
 #[CoversClass(LocalizedRepository::class)]
-#[CoversClass(ComponentFactory::class)]
+#[CoversClass(RenderableFactory::class)]
 #[CoversClass(Component::class)]
+#[CoversClass(Directive::class)]
 #[CoversClass(EntryLink::class)]
 #[CoversClass(TermLink::class)]
 #[CoversClass(CollectionLink::class)]
@@ -394,13 +398,13 @@ final class MultilingualTest extends TestCase
 		$this->assertSame(['Hello Bundle', 'Printemps', 'Welcome'], $titles($content->query()->type('post')->language('fr')->limit(null)->get()));
 		$this->assertSame(['Printemps'], $titles($content->query()->type('post')->language('fr')->withOriginals(false)->limit(null)->get()));
 		$this->assertSame(['Hello Bundle', 'spring', 'Welcome'], $titles($content->query()->type('post')->limit(null)->get()), 'The default language has no originals to add.');
-		$this->assertContains('Welcome', $titles(new LocalizedRepository($content, 'fr')->query()->type('post')->limit(null)->get()), 'Components list them too.');
+		$this->assertContains('Welcome', $titles(new LocalizedRepository($content, 'fr')->query()->type('post')->limit(null)->get()), 'Directives and components list them too.');
 	}
 
 	public function testComponentsFollowThePageLanguage(): void
 	{
 		$container = $this->app->container();
-		$container->make(ComponentRegistry::class)->register('app/post-titles', PostTitles::class);
+		$container->make(ComponentRegistry::class)->register('app/post-titles', PostTitleList::class);
 
 		$views    = $container->make(ViewFactory::class)->forChain($container->make(ThemeResolver::class)->active());
 		$content  = $this->content();
@@ -423,7 +427,7 @@ final class MultilingualTest extends TestCase
 		$this->assertSame(['art' => 1], array_filter($localized->termCounts('category')));
 	}
 
-	public function testComponentsInMarkdownFollowTheEntrysLanguage(): void
+	public function testDirectivesInMarkdownFollowTheEntrysLanguage(): void
 	{
 		// The same file in both languages, so only the language tells the
 		// cached bodies apart.
@@ -431,7 +435,7 @@ final class MultilingualTest extends TestCase
 		$this->entry('lists.fr.md', 'title: Lists', "::app/post-titles\n");
 
 		$app = $this->site();
-		$app->container()->make(ComponentRegistry::class)->register('app/post-titles', PostTitles::class);
+		$app->container()->make(DirectiveRegistry::class)->register('app/post-titles', PostTitles::class);
 
 		$content = $app->container()->make(ContentRepository::class);
 		$french  = $content->named('page', 'lists', 'fr')?->body() ?? '';
@@ -446,7 +450,7 @@ final class MultilingualTest extends TestCase
 		$this->assertStringContainsString("Printemps | L'art", (string) $app->container()->make(Kernel::class)->handle(Request::create('/fr/lists'))->getBody());
 	}
 
-	public function testComponentTextIsInThePageLanguage(): void
+	public function testDirectiveTextIsInThePageLanguage(): void
 	{
 		$this->writeTemporaryFile('user/lang/fr/extensions/blush/default.json', '{"progress": {"label": "Avancement"}}');
 
@@ -457,12 +461,12 @@ final class MultilingualTest extends TestCase
 		$french    = $container->make(ViewFactory::class)->context($views, $content->named('page', 'a-propos', 'fr'));
 		$english   = $container->make(ViewFactory::class)->context($views, $content->named('page', 'about'));
 
-		$this->assertStringContainsString('aria-label="Avancement"', $views->component('progress', ['value' => '1', 'max' => '2'], '', new Slots(), $french));
-		$this->assertStringContainsString('aria-label="Progress"', $views->component('progress', ['value' => '1', 'max' => '2'], '', new Slots(), $english));
+		$this->assertStringContainsString('aria-label="Avancement"', $views->directive('progress', ['value' => '1', 'max' => '2'], '', $french));
+		$this->assertStringContainsString('aria-label="Progress"', $views->directive('progress', ['value' => '1', 'max' => '2'], '', $english));
 	}
 
 	/**
-	 * Returns a component's props from a query string (`value=1&max=2`).
+	 * Returns a directive's props from a query string (`value=1&max=2`).
 	 *
 	 * @return array<string, mixed>
 	 */
@@ -474,14 +478,14 @@ final class MultilingualTest extends TestCase
 		return $props;
 	}
 
-	public function testComponentNumbersAndDatesAreInThePageLanguage(): void
+	public function testDirectiveNumbersAndDatesAreInThePageLanguage(): void
 	{
 		$container = $this->app->container();
 		$views     = $container->make(ViewFactory::class)->forChain($container->make(ThemeResolver::class)->active());
 		$content   = $this->content();
 		$french    = $container->make(ViewFactory::class)->context($views, $content->named('page', 'a-propos', 'fr'));
 		$english   = $container->make(ViewFactory::class)->context($views, $content->named('page', 'about'));
-		$render    = static fn (string $name, string $props, ViewContext $context): string => str_replace(["\u{202F}", "\u{A0}"], ' ', $views->component($name, self::props($props), '', new Slots(), $context));
+		$render    = static fn (string $name, string $props, ViewContext $context): string => str_replace(["\u{202F}", "\u{A0}"], ' ', $views->directive($name, self::props($props), '', $context));
 
 		$this->assertStringContainsString('1 250,5', $render('progress', 'value=1250.5&max=5000', $french));
 		$this->assertStringContainsString('1,250.5', $render('progress', 'value=1250.5&max=5000', $english));

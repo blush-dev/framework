@@ -22,10 +22,12 @@ use Blush\Translation\DomainTranslator;
 use Blush\Translation\Translator;
 use Blush\Component\ComponentListing;
 use Blush\Component\ComponentName;
-use Blush\Component\ComponentType;
-use Blush\Component\Variant;
 use Blush\Component\Slots;
 use Blush\Component\TemplateComponent;
+use Blush\Directive\DirectiveDefinition;
+use Blush\Directive\DirectiveListing;
+use Blush\Directive\DirectiveName;
+use Blush\Directive\Variant;
 
 /**
  * Renders templates for one theme chain, each through the view engine
@@ -40,9 +42,11 @@ use Blush\Component\TemplateComponent;
  * they're given, not their caller's variables. Context providers attached
  * to a view add their data under what the view is given.
  *
- * Components (D-025) render their template (`components/{namespace}-{name}`,
- * D-171) with their props, `$slot`, and `$slots`; a registered class builds
- * the props first.
+ * Directives (what content says) and components (a template's reusable
+ * pieces) are two things (D-532): a directive renders its template
+ * (`directives/{namespace}-{name}`) with `$directive`, and a component its
+ * own (`components/{namespace}-{name}`, D-171) with `$component` and its
+ * slots; a registered class builds the props first.
  *
  * `ViewFactory` builds one `Views` per theme chain, with the chain's
  * assets and settings; the services templates reach through
@@ -133,59 +137,45 @@ final readonly class Views
 	}
 
 	/**
-	 * Returns whether a component exists: it's registered, or the chain
-	 * has its template. `$name` is a full name or a core component's
-	 * short name (D-171).
+	 * Returns whether a directive exists: it's registered (D-532).
+	 * `$name` is a full name or a core directive's short name (D-171).
 	 */
-	public function hasComponent(string $name): bool
+	public function hasDirective(string $name): bool
 	{
-		$parsed = ComponentName::parse($name);
-
-		return $parsed !== null
-			&& ($this->services->components->isRegistered($name) || $this->finder->nearest($parsed->views()) !== null);
+		return $this->services->directives->isRegistered($name);
 	}
 
 	/**
-	 * Returns every component the chain can render, by name: the core
-	 * components, the registered ones, and every template in a
-	 * `components/` folder named for a component, other than a variant's
-	 * template (see `strayComponentFiles()` for the rest), each with its
-	 * variants.
+	 * Returns every directive, by name, each with its template files in
+	 * the chain and its variants under it. Templates in a `directives/`
+	 * folder that aren't for a directive or variant are
+	 * `strayDirectiveFiles()`.
 	 *
-	 * @return list<ComponentListing>
+	 * @return list<DirectiveListing>
 	 */
-	public function components(): array
+	public function directives(): array
 	{
-		$names    = $this->knownComponents();
-		$variants = $this->variantFiles();
+		$definitions = $this->services->directives->all();
 
-		foreach ($this->componentFiles() as [$fileName]) {
-			$name = isset($variants[$fileName]) ? null : ComponentName::fromFileName($fileName, $this->componentNamespaces());
+		ksort($definitions, SORT_STRING);
 
-			if ($name !== null) {
-				$names[(string) $name] ??= $name;
-			}
-		}
-
-		ksort($names, SORT_STRING);
-
-		return array_values(array_map(fn (ComponentName $name): ComponentListing => new ComponentListing(
-			$name,
-			$this->services->components->get((string) $name),
-			array_column($this->finder->allOf($name->views()), 1),
-			$this->componentText($name, 'label'),
-			$this->componentText($name, 'description'),
-			$this->variants($name)
-		), $names));
+		return array_values(array_map(fn (DirectiveDefinition $definition): DirectiveListing => new DirectiveListing(
+			$definition->name,
+			$definition,
+			array_column($this->finder->allOf($definition->name->views()), 1),
+			$this->directiveText($definition->name, 'label'),
+			$this->directiveText($definition->name, 'description'),
+			$this->variants($definition->name)
+		), $definitions));
 	}
 
 	/**
-	 * Returns a component's variants under the chain, Default not
+	 * Returns a directive's variants under the chain, Default not
 	 * included (D-266).
 	 *
 	 * @return list<Variant>
 	 */
-	public function variants(ComponentName $name): array
+	public function variants(DirectiveName $name): array
 	{
 		return $this->services->variants->for($name, $this->chain);
 	}
@@ -215,31 +205,31 @@ final readonly class Views
 
 	/**
 	 * Returns a variant's translated text (`label` or `description`), or
-	 * `null` when no catalog has it: `components.{name}.variants.{variant}.{key}`
+	 * `null` when no catalog has it: `directives.{name}.variants.{variant}.{key}`
 	 * in its registrant's domain.
 	 *
 	 * @param array<string, mixed> $params
 	 */
-	public function variantText(ComponentName $name, Variant $variant, string $key, array $params = []): ?string
+	public function variantText(DirectiveName $name, Variant $variant, string $key, array $params = []): ?string
 	{
-		return $this->namespaceText($variant->registrant, "components.{$name->name}.variants.{$variant->name}.{$key}", $params);
+		return $this->namespaceText($variant->registrant, "directives.{$name->name}.variants.{$variant->name}.{$key}", $params);
 	}
 
 	/**
-	 * Returns the variant templates the chain could have for the core and
-	 * registered components (`callout-bordered`), as file names, each
-	 * with its component and variant.
+	 * Returns the variant templates the chain could have for the
+	 * directives (`callout-bordered`), as file names, each with its
+	 * directive and variant.
 	 *
-	 * @return array<string, array{ComponentName, Variant}>
+	 * @return array<string, array{DirectiveName, Variant}>
 	 */
 	public function variantFiles(): array
 	{
 		$files = [];
 
-		foreach ($this->knownComponents() as $name) {
-			foreach ($this->variants($name) as $variant) {
-				foreach ($name->views() as $view) {
-					$files[substr($view, strlen('components/')) . "-{$variant->name}"] = [$name, $variant];
+		foreach ($this->services->directives->all() as $definition) {
+			foreach ($this->variants($definition->name) as $variant) {
+				foreach ($definition->name->views() as $view) {
+					$files[substr($view, strlen('directives/')) . "-{$variant->name}"] = [$definition->name, $variant];
 				}
 			}
 		}
@@ -248,69 +238,225 @@ final readonly class Views
 	}
 
 	/**
-	 * Returns the core and registered components, by full name.
-	 *
-	 * @return array<string, ComponentName>
-	 */
-	private function knownComponents(): array
-	{
-		$names = [];
-
-		foreach (ComponentType::cases() as $type) {
-			$names[(string) $type->componentName()] = $type->componentName();
-		}
-
-		foreach ($this->services->components->all() as $key => $definition) {
-			$names[$key] = $definition->name;
-		}
-
-		return $names;
-	}
-
-	/**
-	 * Returns the templates in the chain's `components/` folders that
-	 * aren't named for any component or variant, such as a theme's
-	 * `card.php` that should be `{namespace}-card.php`. Nothing can render them.
+	 * Returns the templates in the chain's `directives/` folders that
+	 * aren't for any directive or variant, such as a theme's `tabs.php`
+	 * for a directive no plugin registers. Nothing can render them.
 	 *
 	 * @return list<string>
 	 */
-	public function strayComponentFiles(): array
+	public function strayDirectiveFiles(): array
 	{
-		$namespaces = $this->componentNamespaces();
-		$variants   = $this->variantFiles();
+		$known = $this->variantFiles();
+
+		foreach ($this->services->directives->all() as $definition) {
+			foreach ($definition->name->views() as $view) {
+				$known[substr($view, strlen('directives/'))] = true;
+			}
+		}
 
 		return array_values(array_map(
 			static fn (array $file): string => $file[1],
-			array_filter($this->componentFiles(), static fn (array $file): bool => ! isset($variants[$file[0]]) && ComponentName::fromFileName($file[0], $namespaces) === null)
+			array_filter($this->folderFiles('directives'), static fn (array $file): bool => ! isset($known[$file[0]]))
 		));
 	}
 
 	/**
-	 * Returns a component's translated text, such as its `label` or
+	 * Returns a directive's translated text, such as its `label` or
 	 * `description`, or `null` when no catalog has it (D-172). Text is
-	 * keyed `components.{name}.{key}` in the namespace's domain: `blush`
-	 * for core components, `theme` for the chain's themes, and otherwise
-	 * the namespace itself (`app` for the site, a vendor for an
-	 * extension). Prop text is `props.{prop}.label` and
-	 * `props.{prop}.choices.{value}`.
+	 * keyed `directives.{name}.{key}` in the namespace's domain: `blush`
+	 * for core directives, and otherwise the namespace itself (`app` for
+	 * the site, a vendor for an extension). Prop text is
+	 * `props.{prop}.label` and `props.{prop}.choices.{value}`.
 	 *
 	 * @param array<string, mixed> $params
 	 */
-	public function componentText(ComponentName $name, string $key, array $params = []): ?string
+	public function directiveText(DirectiveName $name, string $key, array $params = []): ?string
 	{
-		return $this->namespaceText($name->namespace, "components.{$name->name}.{$key}", $params);
+		return $this->namespaceText($name->namespace, "directives.{$name->name}.{$key}", $params);
 	}
 
 	/**
 	 * Returns an icon's translated text, such as its `label`, or `null`
 	 * when no catalog has it (D-187): `icons.{name}.{key}` in the
-	 * namespace's domain, as for components.
+	 * namespace's domain, as for directives.
 	 *
 	 * @param array<string, mixed> $params
 	 */
 	public function iconText(IconName $name, string $key, array $params = []): ?string
 	{
 		return $this->namespaceText($name->namespace, "icons.{$name->name}.{$key}", $params);
+	}
+
+	/**
+	 * Renders a directive with its props and content (D-532). `$name` is a
+	 * full name or a core directive's short name. Its template gets
+	 * `$directive` (its registered class, D-534), which holds its
+	 * content (D-195, D-196), and its variant (D-266): the `variant` prop,
+	 * if the directive has it under the chain. A variant's own template
+	 * (`directives/callout-bordered`) is used when the chain has one.
+	 * Without a template in the chain, the directive renders itself
+	 * (`render()`, D-382): its HTML, or the template file it ships with.
+	 *
+	 * @param  array<string, mixed> $props
+	 * @throws ViewException
+	 */
+	public function directive(string $name, array $props, string $content, ViewContext $context): string
+	{
+		$definition = $this->services->directives->get($name) ?? throw $this->unknownDirective($name);
+		$parsed     = $definition->name;
+		$directive  = $this->services->factory->make($definition->class, $props, $context->language);
+		$variant    = $this->services->variants->resolve($parsed, $this->chain, $props['variant'] ?? null);
+
+		$directive->attach($parsed, $props, $content, $this->messages->with($this->ownDomain($parsed->namespace)), $context, $variant);
+
+		if (! $directive->shouldRender()) {
+			return '';
+		}
+
+		// A variant's own template (`directives/callout-bordered`) wins
+		// over the directive's (D-266).
+		$view  = $directive->template();
+		$views = $view === null ? $parsed->views() : [$view];
+		$views = $variant === null ? $views : [...array_map(static fn (string $name): string => "{$name}-{$variant->name}", $views), ...$views];
+		$found = $this->finder->nearest($views);
+
+		if ($found !== null) {
+			return $this->renderFile($found[0], $found[1], ['directive' => $directive], $context);
+		}
+
+		$own = $directive->render();
+
+		return $this->renderOwn('directive', (string) $parsed, $directive, $parsed->views()[0], $views, $own === null || is_string($own) ? $own : [$own->file, $own->data], $context);
+	}
+
+	/**
+	 * Returns whether a component exists (D-532): a class is registered
+	 * for it, or the chain has its template. `$name` is a full name.
+	 */
+	public function hasComponent(string $name): bool
+	{
+		$parsed = ComponentName::parse($name);
+
+		return $parsed !== null
+			&& ($this->services->components->isRegistered((string) $parsed) || $this->finder->nearest([$parsed->view()]) !== null);
+	}
+
+	/**
+	 * Returns every component the chain can render, by name: those with
+	 * a registered class and every template in a `components/` folder
+	 * named for one (see `strayComponentFiles()` for the rest).
+	 *
+	 * @return list<ComponentListing>
+	 */
+	public function components(): array
+	{
+		$names = [];
+
+		foreach (array_keys($this->services->components->all()) as $name) {
+			$parsed = ComponentName::parse($name);
+
+			if ($parsed !== null) {
+				$names[$name] = $parsed;
+			}
+		}
+
+		foreach ($this->folderFiles('components') as [$fileName]) {
+			$name = ComponentName::fromFileName($fileName, $this->componentNamespaces());
+
+			if ($name !== null) {
+				$names[(string) $name] ??= $name;
+			}
+		}
+
+		ksort($names, SORT_STRING);
+
+		return array_values(array_map(fn (ComponentName $name): ComponentListing => new ComponentListing(
+			$name,
+			$this->services->components->get((string) $name),
+			array_column($this->finder->allOf([$name->view()]), 1)
+		), $names));
+	}
+
+	/**
+	 * Returns the templates in the chain's `components/` folders that
+	 * aren't named for a component, such as a theme's `card.php` that
+	 * should be `{namespace}-card.php`. Nothing can render them.
+	 *
+	 * @return list<string>
+	 */
+	public function strayComponentFiles(): array
+	{
+		$namespaces = $this->componentNamespaces();
+
+		return array_values(array_map(
+			static fn (array $file): string => $file[1],
+			array_filter($this->folderFiles('components'), static fn (array $file): bool => ComponentName::fromFileName($file[0], $namespaces) === null)
+		));
+	}
+
+	/**
+	 * Renders a component with its props and slots (D-532). `$name` is a
+	 * full name. Its template gets `$component` (its class, or a
+	 * `TemplateComponent`), which holds its content and slots (D-195,
+	 * D-196). Without a template in the chain, a component with a class
+	 * renders itself (`render()`, D-382): its HTML, or the template file
+	 * it ships with.
+	 *
+	 * @param  array<string, mixed> $props
+	 * @throws ViewException
+	 */
+	public function component(string $name, array $props, string $slot, Slots $slots, ViewContext $context): string
+	{
+		$parsed    = ComponentName::parse($name) ?? throw new ViewException(sprintf('"%s" is not a valid component name; a component is always "{namespace}/{name}", such as "%s/%s" (D-532).', $name, $this->chain->active()->namespace, $name));
+		$class     = $this->services->components->get((string) $parsed);
+		$component = $class === null ? new TemplateComponent() : $this->services->factory->make($class, $props, $context->language);
+
+		$component->attach($parsed, $props, $slot, $slots, $this->messages->with($this->ownDomain($parsed->namespace)), $context);
+
+		if (! $component->shouldRender()) {
+			return '';
+		}
+
+		$view  = $component->template();
+		$views = [$view ?? $parsed->view()];
+		$found = $this->finder->nearest($views);
+
+		if ($found !== null) {
+			return $this->renderFile($found[0], $found[1], ['component' => $component], $context);
+		}
+
+		$own = $component->render();
+
+		return $this->renderOwn('component', (string) $parsed, $component, $parsed->view(), $views, $own === null || is_string($own) ? $own : [$own->file, $own->data], $context);
+	}
+
+	/**
+	 * Renders a directive's or component's own markup (D-382), when the
+	 * chain has no template for it: `render()`'s HTML, or the file it
+	 * ships with and its data, rendered under its view name. `null` (it
+	 * has none) is the missing template's error.
+	 *
+	 * @param  list<string>                                    $views The templates looked for.
+	 * @param  string|array{string, array<string, mixed>}|null $own
+	 * @throws ViewException
+	 */
+	private function renderOwn(string $variable, string $name, Renderable $renderable, string $viewName, array $views, string|array|null $own, ViewContext $context): string
+	{
+		if (is_string($own)) {
+			return $own;
+		}
+
+		if ($own === null) {
+			throw ViewNotFound::forNames($views);
+		}
+
+		[$file, $data] = $own;
+
+		if (! is_file($file)) {
+			throw new ViewException(sprintf('The "%s" %s\'s template, %s, doesn\'t exist.', $name, $variable, $file));
+		}
+
+		return $this->renderFile($viewName, $file, [...$data, $variable => $renderable], $context);
 	}
 
 	/**
@@ -324,7 +470,7 @@ final readonly class Views
 	private function namespaceText(string $namespace, string $message, array $params): ?string
 	{
 		$domain = match (true) {
-			$namespace === ComponentName::CORE                     => 'blush',
+			$namespace === DirectiveName::CORE                     => 'blush',
 			in_array($namespace, $this->chain->namespaces(), true) => $this->chain->names(),
 			default                                                => $this->translator->domainOf($namespace)
 		};
@@ -333,98 +479,36 @@ final readonly class Views
 	}
 
 	/**
-	 * Returns the domain of a component namespace's own text: `blush` for
-	 * core, or its extension's `vendor/name` (a theme's is in the chain).
+	 * Returns the domain of a directive's or component's namespace's own
+	 * text: `blush` for core, or its extension's `vendor/name` (a theme's
+	 * is in the chain).
 	 */
-	private function componentDomain(string $namespace): string
+	private function ownDomain(string $namespace): string
 	{
-		return $namespace === ComponentName::CORE ? 'blush' : $this->translator->domainOf($namespace);
+		return $namespace === DirectiveName::CORE ? 'blush' : $this->translator->domainOf($namespace);
 	}
 
 	/**
-	 * Renders a component with its props and slots. `$name` is a full
-	 * name or a core component's short name. Its template gets
-	 * `$component` (its class, or a `TemplateComponent`), which holds its
-	 * content and slots (D-195, D-196), and its variant (D-266): the
-	 * `variant` prop, if the component has it under the chain. A
-	 * variant's own template (`components/callout-bordered`) is used when
-	 * the chain has one. Without a template in the chain, the component
-	 * renders itself (`render()`, D-382): its HTML, or the template file it
-	 * ships with.
-	 *
-	 * @param  array<string, mixed> $props
-	 * @throws ViewException
+	 * Returns the error for a directive that isn't registered.
 	 */
-	public function component(string $name, array $props, string $slot, Slots $slots, ViewContext $context): string
+	private function unknownDirective(string $name): ViewException
 	{
-		$parsed    = ComponentName::parse($name) ?? throw $this->invalidComponent($name);
-		$class     = $this->services->components->get($name)?->class;
-		$component = $class === null ? new TemplateComponent() : $this->services->factory->make($class, $props, $context->language);
-
-		$variant   = $this->services->variants->resolve($parsed, $this->chain, $props['variant'] ?? null);
-
-		$component->attach($parsed, $props, $slot, $slots, $this->messages->with($this->componentDomain($parsed->namespace)), $context, $variant);
-
-		if (! $component->shouldRender()) {
-			return '';
+		if (preg_match('#^' . DirectiveName::SYNTAX . '$#', $name) === 1 && ! str_contains($name, '/')) {
+			return new ViewException(sprintf('"%s" isn\'t a core directive, so it needs its namespace, such as "acme/%s" (D-171).', $name, $name));
 		}
 
-		// A variant's own template (`components/callout-bordered`) wins
-		// over the component's (D-266).
-		$view  = $component->template();
-		$views = $view === null ? $parsed->views() : [$view];
-		$views = $variant === null ? $views : [...array_map(static fn (string $name): string => "{$name}-{$variant->name}", $views), ...$views];
-
-		$found = $this->finder->nearest($views);
-
-		if ($found !== null) {
-			return $this->renderFile($found[0], $found[1], ['component' => $component], $context);
-		}
-
-		$own = $component->render();
-
-		if (is_string($own)) {
-			return $own;
-		}
-
-		if ($own === null) {
-			throw ViewNotFound::forNames($views);
-		}
-
-		if (! is_file($own->file)) {
-			throw new ViewException(sprintf('The "%s" component\'s template, %s, doesn\'t exist.', $parsed, $own->file));
-		}
-
-		return $this->renderFile($parsed->views()[0], $own->file, [...$own->data, 'component' => $component], $context);
-	}
-
-	/**
-	 * Returns the error for a string that isn't a component name.
-	 */
-	private function invalidComponent(string $name): ViewException
-	{
-		if (preg_match('#^' . ComponentName::SYNTAX . '$#', $name) === 1 && ! str_contains($name, '/')) {
-			return new ViewException(sprintf(
-				'"%s" isn\'t a core component, so it needs its namespace, such as "%s/%s" (D-171).',
-				$name,
-				$this->chain->active()->namespace,
-				$name
-			));
-		}
-
-		return new ViewException(sprintf('"%s" is not a valid component name.', $name));
+		return new ViewException(sprintf('No directive "%s" is registered (D-532).', $name));
 	}
 
 	/**
 	 * Returns the namespaces a component template's file name may start
-	 * with: core, the site, the chain's themes, and every registered one.
+	 * with: the site, the chain's themes, and every registered one.
 	 *
 	 * @return list<string>
 	 */
 	private function componentNamespaces(): array
 	{
 		return array_values(array_unique([
-			ComponentName::CORE,
 			ComponentName::SITE,
 			...$this->chain->namespaces(),
 			...$this->services->components->namespaces()
@@ -432,20 +516,20 @@ final readonly class Views
 	}
 
 	/**
-	 * Returns the templates directly in each view directory's
-	 * `components/` folder, in any engine's extension (D-502), as file
-	 * names (without the extension) and paths. Subfolders aren't
-	 * components.
+	 * Returns the templates directly in each view directory's `$folder`
+	 * (`directives` or `components`), in any engine's extension (D-502),
+	 * as file names (without the extension) and paths. Subfolders aren't
+	 * directives or components.
 	 *
 	 * @return list<array{string, string}>
 	 */
-	private function componentFiles(): array
+	private function folderFiles(string $folder): array
 	{
 		$files = [];
 
 		foreach ($this->finder->directories() as $directory) {
 			foreach ($this->finder->extensions() as $extension) {
-				foreach (glob("{$directory}/components/*.{$extension}") ?: [] as $path) {
+				foreach (glob("{$directory}/{$folder}/*.{$extension}") ?: [] as $path) {
 					$fileName = basename($path, ".{$extension}");
 
 					if (is_file($path) && ViewFinder::isValidName($fileName)) {

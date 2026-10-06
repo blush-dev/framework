@@ -240,7 +240,7 @@ async function remove(): Promise<void> {
 }
 
 // What an entry would write to show it: an image is Markdown, with the
-// library's alt text and caption (D-267, D-268); the rest are components.
+// library's alt text and caption (D-267, D-268); the rest are directives.
 const snippet = computed(() => {
 	const item = file.value;
 
@@ -411,7 +411,7 @@ function written(reference: string): string {
 					</div>
 					<div class="use__row">
 						<code>{{ snippet }}</code>
-						<button type="button" class="button button--small" @click="copyText(snippet, file.kind === 'image' ? 'the Markdown' : 'the component')"><AdminIcon name="copy" />Copy</button>
+						<button type="button" class="button button--small" @click="copyText(snippet, file.kind === 'image' ? 'the Markdown' : 'the block')"><AdminIcon name="copy" />Copy</button>
 					</div>
 				</div>
 			</section>

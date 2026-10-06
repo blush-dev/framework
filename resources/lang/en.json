@@ -5,7 +5,7 @@
 		"paged": "{title}: Page {page}",
 		"page": "Page {page}"
 	},
-	"components": {
+	"directives": {
 		"abbr": {
 			"label": "Abbreviation",
 			"description": "An abbreviation, with what it stands for.",

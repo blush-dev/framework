@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Where a namespace's components or icons come from.
+ * Where a namespace's directives or icons come from.
  *
  * @author    Justin Tadlock <justintadlock@gmail.com>
  * @copyright Copyright (c) 2026, Justin Tadlock
@@ -18,7 +18,7 @@ use Blush\Plugin\Plugins;
 use Blush\Theme\ThemeChain;
 
 /**
- * Names where a component or icon that isn't core comes from, for the
+ * Names where a directive or icon that isn't core comes from, for the
  * editor's inserters to group by (D-243, D-265): a theme in the chain,
  * the site (`app`), an icon pack, or a plugin (by the namespace each
  * declares, D-378).

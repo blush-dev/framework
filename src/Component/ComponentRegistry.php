@@ -14,142 +14,87 @@ declare(strict_types=1);
 namespace Blush\Component;
 
 use Countable;
-use InvalidArgumentException;
 use Override;
 use ReflectionClass;
-use Blush\Field\Field;
-use Blush\Markdown\DirectiveKind;
 use Blush\Support\RegistrationException;
 
 /**
- * The registered components, by full name (D-171, D-172). A theme, site,
- * or extension provider registers a component in `boot()`, with a class
- * or as template-only:
+ * The components with a class, by full name (D-532). A component needn't
+ * be registered: a template in `components/` is one. A theme, site, or
+ * plugin provider registers a class in `boot()`:
  *
  * ```php
- * $components->register('acme/tabs', Tabs::class);
- * $components->register('acme/note', content: ComponentContent::Blocks, props: [new TextField('title')], variants: ['wide']);
- * $components->register('acme/tag', content: ComponentContent::Text, kind: DirectiveKind::Inline);
+ * $components->register('acme/card', Card::class);
  * ```
  *
- * Registering makes a component known to the admin's inserter and to
- * `component:list` with its text; a template-only component renders
- * without it. Third-party names need their namespace, and the `blush`
- * namespace holds only the core components, which a provider may replace
- * (`register('callout', …)` is `blush/callout`). `register()` overwrites;
- * the core components are seeded with `registerIf()`.
- *
- * Unlike the other registries (D-019), this one holds definitions rather
- * than classes, since a component needn't have one.
+ * `register()` overwrites, so the site can replace a theme's class.
  */
 final class ComponentRegistry implements Countable
 {
 	/**
-	 * The registered components, by full name.
+	 * The registered classes, by full name.
 	 *
-	 * @var array<string, ComponentDefinition>
+	 * @var array<string, class-string<Component>>
 	 */
-	private array $definitions = [];
+	private array $classes = [];
 
 	/**
-	 * Registers a component, replacing any registered under its name.
-	 * `$content`, `$props`, `$variants`, and `$kind` (how it's written,
-	 * D-531) default to what the class says (D-266: a variant given by name has the component's namespace
-	 * as its registrant).
+	 * Registers a component's class, replacing any registered under its
+	 * name.
 	 *
-	 * @param  ?class-string<Component> $class
-	 * @param  ?list<Field>             $props
-	 * @param  ?list<Variant|string>    $variants
-	 * @throws RegistrationException When the name, class, kind, or a variant isn't valid.
+	 * @param  class-string<Component> $class
+	 * @throws RegistrationException When the name or class isn't valid.
 	 */
-	public function register(string $name, ?string $class = null, ?ComponentContent $content = null, ?array $props = null, ?array $variants = null, ?DirectiveKind $kind = null): void
+	public function register(string $name, string $class): void
 	{
-		$parsed = self::name($name);
+		$parsed = ComponentName::parse($name)
+			?? throw new RegistrationException(sprintf('"%s" is not a valid component name; a component is always "{namespace}/{name}", such as "acme/card".', $name));
 
-		if ($class !== null) {
-			if (! class_exists($class) || ! is_subclass_of($class, Component::class)) {
-				throw RegistrationException::notSubclassOf($class, Component::class);
-			}
-
-			if (! new ReflectionClass($class)->isInstantiable()) {
-				throw RegistrationException::notInstantiable($class);
-			}
+		if (! class_exists($class) || ! is_subclass_of($class, Component::class)) {
+			throw RegistrationException::notSubclassOf($class, Component::class);
 		}
 
-		$definition = new ComponentDefinition($parsed, $class, $content, $props, $variants, $kind);
-
-		// Only what wraps blocks is a container, and it's always one.
-		if (($definition->kind() === DirectiveKind::Container) !== ($definition->content() === ComponentContent::Blocks)) {
-			throw new RegistrationException(sprintf(
-				'The "%s" component: only a component that wraps blocks is a container, and one that does is always a container.',
-				$parsed
-			));
+		if (! new ReflectionClass($class)->isInstantiable()) {
+			throw RegistrationException::notInstantiable($class);
 		}
 
-		try {
-			$definition->variants();
-		} catch (InvalidArgumentException $error) {
-			throw new RegistrationException(sprintf('The "%s" component: %s', $parsed, $error->getMessage()), 0, $error);
-		}
-
-		$this->definitions[(string) $parsed] = $definition;
+		$this->classes[(string) $parsed] = $class;
 	}
 
 	/**
-	 * Registers a component only when nothing is registered under its
-	 * name yet, so the core components never replace a provider's.
-	 *
-	 * @param  ?class-string<Component> $class
-	 * @param  ?list<Field>             $props
-	 * @param  ?list<Variant|string>    $variants
-	 * @throws RegistrationException
-	 */
-	public function registerIf(string $name, ?string $class = null, ?ComponentContent $content = null, ?array $props = null, ?array $variants = null, ?DirectiveKind $kind = null): void
-	{
-		if (! $this->isRegistered($name)) {
-			$this->register($name, $class, $content, $props, $variants, $kind);
-		}
-	}
-
-	/**
-	 * Removes a component, if it's registered.
+	 * Removes a component's class, if it's registered.
 	 */
 	public function unregister(string $name): void
 	{
-		$parsed = ComponentName::parse($name);
-
-		if ($parsed !== null) {
-			unset($this->definitions[(string) $parsed]);
-		}
+		unset($this->classes[$name]);
 	}
 
 	/**
-	 * Returns whether a component is registered under a name.
+	 * Returns whether a class is registered under a name.
 	 */
 	public function isRegistered(string $name): bool
 	{
-		return $this->get($name) !== null;
+		return isset($this->classes[$name]);
 	}
 
 	/**
-	 * Returns the component registered under a name (full, or a core
-	 * component's short name), or `null`.
-	 */
-	public function get(string $name): ?ComponentDefinition
-	{
-		$parsed = ComponentName::parse($name);
-
-		return $parsed === null ? null : $this->definitions[(string) $parsed] ?? null;
-	}
-
-	/**
-	 * Returns every registered component, by full name.
+	 * Returns the class registered under a name, or `null`.
 	 *
-	 * @return array<string, ComponentDefinition>
+	 * @return ?class-string<Component>
+	 */
+	public function get(string $name): ?string
+	{
+		return $this->classes[$name] ?? null;
+	}
+
+	/**
+	 * Returns every registered class, by full name.
+	 *
+	 * @return array<string, class-string<Component>>
 	 */
 	public function all(): array
 	{
-		return $this->definitions;
+		return $this->classes;
 	}
 
 	/**
@@ -160,8 +105,8 @@ final class ComponentRegistry implements Countable
 	public function namespaces(): array
 	{
 		return array_values(array_unique(array_map(
-			static fn (ComponentDefinition $definition): string => $definition->name->namespace,
-			$this->definitions
+			static fn (string $name): string => explode('/', $name, 2)[0],
+			array_keys($this->classes)
 		)));
 	}
 
@@ -171,28 +116,6 @@ final class ComponentRegistry implements Countable
 	#[Override]
 	public function count(): int
 	{
-		return count($this->definitions);
-	}
-
-	/**
-	 * Returns the name a registration is for.
-	 *
-	 * @throws RegistrationException When it isn't a name a provider may register.
-	 */
-	private static function name(string $name): ComponentName
-	{
-		$parsed = ComponentName::parse($name);
-
-		if ($parsed === null) {
-			throw new RegistrationException(str_contains($name, '/') || preg_match('#^' . ComponentName::SYNTAX . '$#', $name) !== 1
-				? sprintf('"%s" is not a valid component name.', $name)
-				: sprintf('"%s" needs its namespace, such as "vendor/%s"; only core components have short names.', $name, $name));
-		}
-
-		if ($parsed->isCore() && ComponentType::tryFrom($parsed->name) === null) {
-			throw new RegistrationException(sprintf('"%s" is in the "%s" namespace, which only core components use.', $name, ComponentName::CORE));
-		}
-
-		return $parsed;
+		return count($this->classes);
 	}
 }

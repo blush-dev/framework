@@ -17,59 +17,20 @@ use ReflectionMethod;
 
 /**
  * A component a theme chain can render, from `Views::components()`: its
- * name, its registration (if any), the template files in the chain for
- * it, winner first, its translated label and description (`null` when
- * no catalog has them), and its variants under the chain (D-266).
+ * name, its class (if one is registered), and the template files in the
+ * chain for it, winner first.
  */
 final readonly class ComponentListing
 {
 	/**
-	 * @param list<string>  $files    Winner first.
-	 * @param list<Variant> $variants Default not included.
+	 * @param ?class-string<Component> $class
+	 * @param list<string>             $files Winner first.
 	 */
 	public function __construct(
 		public ComponentName $name,
-		public ?ComponentDefinition $definition = null,
-		public array $files = [],
-		public ?string $label = null,
-		public ?string $description = null,
-		public array $variants = []
+		public ?string $class = null,
+		public array $files = []
 	) {}
-
-	/**
-	 * Returns whether it's a core component.
-	 */
-	public function isCore(): bool
-	{
-		return $this->name->isCore();
-	}
-
-	/**
-	 * Returns whether a provider registered it (the core components are
-	 * registered too), which puts it in the admin's inserter.
-	 */
-	public function isRegistered(): bool
-	{
-		return $this->definition !== null;
-	}
-
-	/**
-	 * Returns its class, or `null` for a template-only component.
-	 *
-	 * @return ?class-string<Component>
-	 */
-	public function className(): ?string
-	{
-		return $this->definition?->class;
-	}
-
-	/**
-	 * Returns its label: the translated one, or one made from its name.
-	 */
-	public function displayLabel(): string
-	{
-		return $this->label ?? $this->name->label();
-	}
 
 	/**
 	 * Returns the file that renders it, or `null` when the chain has
@@ -87,13 +48,11 @@ final readonly class ComponentListing
 	 */
 	public function rendersItself(): bool
 	{
-		$class = $this->className();
-
-		if ($class === null) {
+		if ($this->class === null) {
 			return false;
 		}
 
-		$type = new ReflectionMethod($class, 'render')->getReturnType();
+		$type = new ReflectionMethod($this->class, 'render')->getReturnType();
 
 		return $type !== null && ! $type->allowsNull();
 	}
@@ -109,9 +68,7 @@ final readonly class ComponentListing
 			return false;
 		}
 
-		$class = $this->className();
-
-		return $class === null
-			|| new ReflectionMethod($class, 'template')->getDeclaringClass()->getName() === Component::class;
+		return $this->class === null
+			|| ! new ReflectionMethod($this->class, 'template')->getDeclaringClass()->isSubclassOf(Component::class);
 	}
 }

@@ -17,8 +17,8 @@ use Override;
 use League\CommonMark\Environment\EnvironmentBuilderInterface;
 use League\CommonMark\Event\DocumentParsedEvent;
 use League\CommonMark\Extension\ExtensionInterface;
-use Blush\Markdown\DirectiveRenderer;
-use Blush\Markdown\DirectiveRules;
+use Blush\Directive\DirectiveRenderer;
+use Blush\Directive\DirectiveRules;
 
 /**
  * Adds generic directives (D-026) to CommonMark: container

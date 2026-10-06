@@ -27,11 +27,11 @@ use Blush\Theme\ThemeResolver;
  * The framework's `BodyCache`: rendered bodies and summaries in the
  * `bodies` store, keyed by the content version, the body's own key (its
  * content hash), the theme chain the request renders with (directives
- * render as the theme's components, D-112), and a fingerprint of the
+ * render through the theme's templates, D-112), and a fingerprint of the
  * rendering settings (the Markdown and media config, the site URL, and
  * the framework version).
  *
- * The content version is in the key because a directive's component may
+ * The content version is in the key because a directive may
  * read other content or site data; a publish re-renders bodies lazily,
  * as pages ask for them (D-130).
  */

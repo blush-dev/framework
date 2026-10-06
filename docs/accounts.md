@@ -198,7 +198,7 @@ other frames, `<object>`, `<embed>`, forms and their fields, `<svg>`
 and `<math>`, `<meta>`, `<link>`, `<base>`, and `<template>`; event
 attributes such as `onclick`; and `javascript:`, `vbscript:`, `file:`,
 and (except for pictures) `data:` addresses, in HTML or in a Markdown
-link. Use a [component](components.md) for embeds and icons. Without
+link. Use a [directive](directives.md) for embeds and icons. Without
 either capability, no HTML can be added. Only what a save adds counts,
 so anyone who can edit an entry can change its words, or take HTML out.
 Owners and Administrators have `html.unfiltered`, and Editors

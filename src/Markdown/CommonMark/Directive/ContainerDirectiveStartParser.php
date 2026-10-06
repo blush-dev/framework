@@ -18,8 +18,8 @@ use League\CommonMark\Parser\Block\BlockStart;
 use League\CommonMark\Parser\Block\BlockStartParserInterface;
 use League\CommonMark\Parser\Cursor;
 use League\CommonMark\Parser\MarkdownParserStateInterface;
-use Blush\Markdown\DirectiveKind;
-use Blush\Markdown\DirectiveRules;
+use Blush\Directive\DirectiveKind;
+use Blush\Directive\DirectiveRules;
 
 /**
  * Opens a container directive on a `:::name[label]{attrs}` line (three

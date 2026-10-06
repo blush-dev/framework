@@ -1481,7 +1481,7 @@
 
 /*
  * The editor's side panel (D-245, D-268): the Document tab, and the
- * panels for a component, an image, and a block, share their groups,
+ * panels for a directive, an image, and a block, share their groups,
  * headings, notes, and the source line.
  */
 .options__group {

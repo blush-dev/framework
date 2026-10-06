@@ -195,14 +195,14 @@ shows the original's text at the French address, which would be the
 same page at two addresses.
 
 With `'include'`, `/fr`, the French collections, topics, and date
-archives, and the lists components and templates make on French pages
+archives, and the lists directives and templates make on French pages
 include the originals. Otherwise each language lists only its own
 entries. A French page is shown in French: its dates, `<html
 lang="fr-FR">`, and the theme's text when the theme is translated. A
 page in a language written right to left, such as Arabic or Hebrew,
 has `dir="rtl"`, so it reads right to left.
 Date archive titles are written the language's way too
-(`3 de diciembre de 2025`). Components follow the page as well, in
+(`3 de diciembre de 2025`). Directives follow the page as well, in
 templates and in Markdown: a
 `::app/recent-posts` in `about.fr.md` lists the French posts, and
 `time`, `progress`, `meter`, and `file` write their dates and numbers
@@ -291,7 +291,7 @@ lists, autolinks, and footnotes. On top of that:
   with text, stay in their paragraph.
 
   To caption something else, such as a table or a code block, wrap it in
-  a [figure](components.md#built-in-components): `:::figure[Caption]` …
+  a [figure](directives.md#built-in-directives): `:::figure[Caption]` …
   `:::`.
 
 - Images from your media folder get their `width` and `height`
@@ -336,9 +336,9 @@ be changed on the [Writing settings screen](admin.md#settings), and
 more in `config/markdown.php`; see
 [Configuration](configuration.md#markdown).
 
-### Components
+### Directives
 
-Components add richer blocks to your writing:
+Directives add richer blocks to your writing:
 
 ```markdown
 :::callout[Heads up]{variant=warning}
@@ -348,9 +348,10 @@ Back up your site before updating.
 ::embed[Our launch video]{url="https://youtu.be/..." title="Launch video"}
 ```
 
-`callout`, `gallery`, `figure`, and `embed` work in every theme, and themes
-can add their own. See [Components](components.md) for the syntax, every
-built-in component, and making your own.
+`callout`, `gallery`, `figure`, and `embed` work in every theme, and
+plugins can add more. In the admin's editor, they're called blocks. See
+[Directives](directives.md) for the syntax, every built-in directive,
+and making your own.
 
 ## Ids
 

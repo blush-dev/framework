@@ -14,9 +14,12 @@ declare(strict_types=1);
 namespace Blush\Tests\Fixtures\Component;
 
 use Override;
-use Blush\Core\ServiceProvider;
 use Blush\Component\ComponentRegistry;
+use Blush\Core\ServiceProvider;
 
+/**
+ * Registers a component class that has no template.
+ */
 final class OrphanProvider extends ServiceProvider
 {
 	#[Override]

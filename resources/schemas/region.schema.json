@@ -31,12 +31,17 @@
 	"definitions": {
 		"regionItem": {
 			"type": "object",
-			"description": "One thing a region shows. An item is one kind: component, entry, markdown, view.",
+			"description": "One thing a region shows. An item is one kind: component, directive, entry, markdown, view.",
 			"properties": {
 				"component": {
 					"type": "string",
+					"pattern": "^[A-Za-z][A-Za-z0-9_-]*/[A-Za-z][A-Za-z0-9_-]*$",
+					"description": "Shows a component, such as acme/card. The item's other keys are its props."
+				},
+				"directive": {
+					"type": "string",
 					"pattern": "^[A-Za-z][A-Za-z0-9_-]*(?:/[A-Za-z][A-Za-z0-9_-]*)?$",
-					"description": "Shows a component, such as menu or acme/card. The item's other keys are its props."
+					"description": "Shows a directive, such as menu or acme/tabs. The item's other keys are its props."
 				},
 				"entry": {
 					"type": "string",
@@ -52,7 +57,7 @@
 							"$ref": "#/definitions/localeText"
 						}
 					],
-					"description": "Shows Markdown text, with components, or a map of locales to it."
+					"description": "Shows Markdown text, with directives, or a map of locales to it."
 				},
 				"view": {
 					"type": "string",

@@ -297,7 +297,7 @@ hr {
 
 /* Menus: submenus stay open; a theme's script can make them disclosures. */
 
-.component-menu__list {
+.directive-menu__list {
 	display: flex;
 	flex-wrap: wrap;
 	gap: var(--space-xs) var(--space-m);
@@ -306,30 +306,30 @@ hr {
 	list-style: none;
 }
 
-.component-menu__submenu {
+.directive-menu__submenu {
 	flex-direction: column;
 	margin-block-start: var(--space-xs);
 	padding-inline-start: var(--space-m);
 	font-size: 0.9375em;
 }
 
-.component-menu__link {
+.directive-menu__link {
 	color: inherit;
 	text-decoration: none;
 }
 
-.component-menu__link:hover,
-.component-menu__link[aria-current="page"] {
+.directive-menu__link:hover,
+.directive-menu__link[aria-current="page"] {
 	color: var(--color-accent);
 	text-decoration: underline;
 	text-underline-offset: 0.2em;
 }
 
-.component-menu__heading {
+.directive-menu__heading {
 	font-weight: 700;
 }
 
-.component-menu__image {
+.directive-menu__image {
 	width: 1.5em;
 	height: 1.5em;
 	vertical-align: middle;
@@ -337,7 +337,7 @@ hr {
 	border-radius: var(--radius);
 }
 
-.component-menu__badge {
+.directive-menu__badge {
 	margin-inline-start: var(--space-xs);
 	padding: 0 var(--space-xs);
 	border-radius: var(--radius);
@@ -345,7 +345,7 @@ hr {
 	font-size: 0.75em;
 }
 
-.component-menu__description {
+.directive-menu__description {
 	display: block;
 	color: var(--color-muted);
 	font-size: 0.875em;
@@ -488,18 +488,18 @@ hr {
 	background: var(--color-surface);
 }
 
-/* Content components */
+/* Directives */
 
-.component-group,
-.component-grid,
-.component-row,
-.component-stack {
+.directive-group,
+.directive-grid,
+.directive-row,
+.directive-stack {
 	margin-block: var(--space-l);
 }
 
-.component-grid > *,
-.component-row > *,
-.component-stack > * {
+.directive-grid > *,
+.directive-row > *,
+.directive-stack > * {
 	margin-block: 0;
 }
 
@@ -507,34 +507,34 @@ hr {
  * Galleries show up to `--gallery-columns` (set on the element) per row:
  * `--flex` rows grow to fill the width, and `--grid` keeps even columns.
  */
-.component-gallery {
+.directive-gallery {
 	--gallery-gap: var(--space-s);
 	--gallery-per-row: var(--gallery-columns, 3);
 	gap: var(--gallery-gap);
 	margin-block: var(--space-l);
 }
 
-.component-gallery--flex {
+.directive-gallery--flex {
 	display: flex;
 	flex-wrap: wrap;
 }
 
-.component-gallery--flex :is(img, figure) {
+.directive-gallery--flex :is(img, figure) {
 	flex: 1 1 calc((100% - (var(--gallery-per-row) - 1) * var(--gallery-gap)) / var(--gallery-per-row));
 	min-width: 0;
 }
 
-.component-gallery--grid {
+.directive-gallery--grid {
 	display: grid;
 	grid-template-columns: repeat(var(--gallery-per-row), minmax(0, 1fr));
 }
 
-.component-gallery > p {
+.directive-gallery > p {
 	display: contents;
 }
 
-.component-gallery img,
-.component-gallery figure {
+.directive-gallery img,
+.directive-gallery figure {
 	width: 100%;
 	margin: 0;
 	border-radius: var(--radius);
@@ -542,62 +542,62 @@ hr {
 }
 
 @media (max-width: 40rem) {
-	.component-gallery {
+	.directive-gallery {
 		--gallery-per-row: min(var(--gallery-columns, 3), 2);
 	}
 }
 
-.component-figure img {
+.directive-figure img {
 	border-radius: var(--radius);
 }
 
-.component-audio,
-.component-video {
+.directive-audio,
+.directive-video {
 	margin-block: var(--space-l);
 }
 
-.component-audio audio {
+.directive-audio audio {
 	width: 100%;
 }
 
-.component-video video {
+.directive-video video {
 	width: 100%;
 	height: auto;
 	border-radius: var(--radius);
 }
 
-.component-file__details {
+.directive-file__details {
 	color: var(--color-muted);
 }
 
-.component-toc {
+.directive-toc {
 	margin-block: var(--space-l);
 	padding: var(--space-m);
 	border-radius: var(--radius);
 	background: var(--color-surface);
 }
 
-.component-toc__title {
+.directive-toc__title {
 	margin-block: 0 var(--space-s);
 	font-weight: 700;
 }
 
-.component-toc__list {
+.directive-toc__list {
 	margin: 0;
 	padding-inline-start: var(--space-m);
 }
 
-.component-toc__list .component-toc__list {
+.directive-toc__list .directive-toc__list {
 	margin-block-start: var(--space-xs);
 }
 
-.component-icon {
+.directive-icon {
 	display: inline-block;
 	vertical-align: -0.125em;
 }
 
-.component-progress,
-.component-meter {
+.directive-progress,
+.directive-meter {
 	display: inline-flex;
 	flex-wrap: wrap;
 	align-items: center;
@@ -605,20 +605,20 @@ hr {
 	max-inline-size: 100%;
 }
 
-.component-progress__bar,
-.component-meter__gauge {
+.directive-progress__bar,
+.directive-meter__gauge {
 	inline-size: 12rem;
 	max-inline-size: 100%;
 	accent-color: var(--color-accent);
 }
 
-.component-progress__value,
-.component-meter__value {
+.directive-progress__value,
+.directive-meter__value {
 	color: var(--color-muted);
 	font-variant-numeric: tabular-nums;
 }
 
-.component-button {
+.directive-button {
 	display: inline-flex;
 	align-items: center;
 	gap: 0.5em;
@@ -632,37 +632,37 @@ hr {
 	color: var(--color-background);
 }
 
-.component-button--secondary {
+.directive-button--secondary {
 	background: transparent;
 	color: var(--color-accent);
 }
 
-.component-button:hover,
-.component-button:focus-visible {
+.directive-button:hover,
+.directive-button:focus-visible {
 	border-color: var(--color-accent-hover);
 }
 
-.component-button:not(.component-button--secondary):hover,
-.component-button:not(.component-button--secondary):focus-visible {
+.directive-button:not(.directive-button--secondary):hover,
+.directive-button:not(.directive-button--secondary):focus-visible {
 	background: var(--color-accent-hover);
 }
 
-.component-button--icon-only {
+.directive-button--icon-only {
 	padding: 0.5em;
 }
 
-.component-kbd {
+.directive-kbd {
 	padding: 0.1em 0.4em;
 	border: 1px solid var(--color-border);
 	border-radius: var(--radius);
 	font-size: 0.875em;
 }
 
-.component-kbd kbd {
+.directive-kbd kbd {
 	font: inherit;
 }
 
-.component-badge {
+.directive-badge {
 	display: inline-block;
 	padding: 0.1em 0.5em;
 	border: 1px solid color-mix(in srgb, var(--badge-color, var(--color-muted)) 40%, transparent);
@@ -675,12 +675,12 @@ hr {
 	vertical-align: 0.1em;
 }
 
-.component-badge--info { --badge-color: var(--color-info); }
-.component-badge--tip { --badge-color: var(--color-success); }
-.component-badge--warning { --badge-color: var(--color-warning); }
-.component-badge--danger { --badge-color: var(--color-danger); }
+.directive-badge--info { --badge-color: var(--color-info); }
+.directive-badge--tip { --badge-color: var(--color-success); }
+.directive-badge--warning { --badge-color: var(--color-warning); }
+.directive-badge--danger { --badge-color: var(--color-danger); }
 
-.component-callout {
+.directive-callout {
 	margin-block: var(--space-l);
 	padding: var(--space-m);
 	border-inline-start: 4px solid var(--callout-color, var(--color-muted));
@@ -688,27 +688,27 @@ hr {
 	background: var(--color-surface);
 }
 
-.component-callout > :last-child {
+.directive-callout > :last-child {
 	margin-block-end: 0;
 }
 
-.component-callout__title {
+.directive-callout__title {
 	margin-block: 0 var(--space-s);
 	font-weight: 700;
 }
 
-.component-callout--info { --callout-color: var(--color-info); }
-.component-callout--tip { --callout-color: var(--color-success); }
-.component-callout--warning { --callout-color: var(--color-warning); }
-.component-callout--danger { --callout-color: var(--color-danger); }
+.directive-callout--info { --callout-color: var(--color-info); }
+.directive-callout--tip { --callout-color: var(--color-success); }
+.directive-callout--warning { --callout-color: var(--color-warning); }
+.directive-callout--danger { --callout-color: var(--color-danger); }
 
-.component-embed {
+.directive-embed {
 	margin-inline: 0;
 	margin-block: var(--space-l);
 }
 
 /* The frame keeps the embed's shape (its provider's ratio, or 16:9). */
-.component-embed__frame {
+.directive-embed__frame {
 	display: block;
 	width: 100%;
 	height: auto;
@@ -718,7 +718,7 @@ hr {
 }
 
 /* A tall embed (a 9:16 short) is never taller than 80% of the screen. */
-.component-embed--portrait iframe {
+.directive-embed--portrait iframe {
 	max-width: calc(80svh * (var(--embed-ratio)));
 	margin-inline: auto;
 }

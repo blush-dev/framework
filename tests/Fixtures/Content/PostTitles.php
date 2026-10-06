@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Fixture: a component that queries content.
+ * Fixture: a directive that queries content.
  *
  * @author    Justin Tadlock <justintadlock@gmail.com>
  * @copyright Copyright (c) 2026, Justin Tadlock
@@ -14,12 +14,15 @@ declare(strict_types=1);
 namespace Blush\Tests\Fixtures\Content;
 
 use Override;
-use Blush\Component\Component;
+use Blush\Directive\Directive;
+use Blush\Directive\DirectiveKind;
 use Blush\Content\ContentRepository;
 use Blush\Content\Entry\Entry;
 
-final class PostTitles extends Component
+final class PostTitles extends Directive
 {
+	public const ?DirectiveKind KIND = DirectiveKind::Leaf;
+
 	public function __construct(private readonly ContentRepository $content)
 	{}
 

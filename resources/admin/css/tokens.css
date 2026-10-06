@@ -111,7 +111,7 @@
 	--railbar: 74px;     /* the section rail */
 	--rail: 262px;       /* the section's panel beside it */
 	--drawer: 372px;     /* the editor's settings */
-	--inserter: 376px;   /* the editor's component panel */
+	--inserter: 376px;   /* the editor's block panel */
 	--measure: 640px;    /* the editor's writing column */
 	--bar: 62px;         /* the top bar and the site header */
 	--work-max: 1400px;

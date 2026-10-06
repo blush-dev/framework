@@ -35,8 +35,8 @@ use Blush\View\Views;
  * shows the theme's default items. A site file replaces the defaults,
  * even an empty one.
  *
- * Each item is one kind: a `component` (its other keys are props), a
- * `markdown` text, an `entry`'s body, or a `view` (its other keys are
+ * Each item is one kind: a `directive` or `component` (its other keys are
+ * props, D-532), a `markdown` text, an `entry`'s body, or a `view` (its other keys are
  * data), or a kind an extension registered. Text may be a locale map
  * (D-202). An item that can't render is left out and logged; `check()`
  * reports item problems for `theme:check`.
@@ -171,7 +171,7 @@ final class Regions
 	 * Returns the problems with a theme chain's locations and the site's
 	 * regions: invalid declarations, files and items with the wrong shape
 	 * (warnings), and regions no location shows (notices). Items aren't
-	 * rendered, so a missing component or view isn't caught here.
+	 * rendered, so a missing directive, component, or view isn't caught here.
 	 *
 	 * @return list<Violation>
 	 */

@@ -13,16 +13,16 @@ declare(strict_types=1);
 
 namespace Blush\Extension;
 
-use Blush\Component\ComponentName;
+use Blush\Directive\DirectiveName;
 
 /**
  * The namespace an extension declares in its manifest (D-378): what its
- * components (D-171), icons (D-187), and translation domain go by
- * (`jtcom`, for `::jtcom/post-archives` and `jtcom/github`). No two
- * installed extensions may claim one, and core's (`blush`), the site's
- * (`app`), the theme chain's translation domain (`theme`), and the
- * framework default theme's (`default`) are reserved. A manifest without
- * one goes by its name, hyphenated (D-424).
+ * directives and components (D-171, D-532), icons (D-187), and
+ * translation domain go by (`jtcom`, for `jtcom/entry-terms` and
+ * `jtcom/github`). No two installed extensions may claim one, and core's
+ * (`blush`), the site's (`app`), the theme chain's translation domain
+ * (`theme`), and the framework default theme's (`default`) are reserved.
+ * A manifest without one goes by its name, hyphenated (D-424).
  */
 final readonly class ExtensionNamespace
 {
@@ -37,7 +37,7 @@ final readonly class ExtensionNamespace
 	 *
 	 * @var list<string>
 	 */
-	public const array RESERVED = [ComponentName::CORE, ComponentName::SITE, 'theme', 'default'];
+	public const array RESERVED = [DirectiveName::CORE, DirectiveName::SITE, 'theme', 'default'];
 
 	/**
 	 * Returns whether a string is a valid namespace.

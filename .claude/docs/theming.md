@@ -31,7 +31,7 @@ extensions/acme/minimal/
   theme.json        { "name": "acme/minimal", "label": "Minimal", "namespace": "minimal" }
   style.css
 ```
-Every template and component it doesn't provide falls back to the framework
+Every template it doesn't provide falls back to the framework
 default theme.
 
 A full theme:
@@ -41,7 +41,8 @@ extensions/acme/nova/
   views/
     layouts/        base.php, …
     parts/          header.php, footer.php, pagination.php, …
-    components/     {namespace}-card.php, gallery.php (core overrides), … (D-171, D-378)
+    directives/     callout.php, gallery.php (the look of core and plugin directives; D-532)
+    components/     {namespace}-card.php, the theme's own pieces (D-171, D-378, D-532)
     single.php  collection.php  …   (template hierarchy files)
   src/              Optional PHP: ThemeProvider, component classes, context providers
   lang/             Message catalogs (D-028)
@@ -82,7 +83,7 @@ exist (D-032).
 		"primary": { "label": "Primary", "depth": 2, "fields": { "columns": { "type": "number", "integer": true, "default": 1 } } },
 		"social": "Social"
 	},
-	"regions": { "sidebar": { "label": "Sidebar", "items": [{ "component": "menu", "name": "social" }] } },
+	"regions": { "sidebar": { "label": "Sidebar", "items": [{ "directive": "menu", "name": "social" }] } },
 	"settings": {
 		"showReadingTime": { "type": "bool", "default": true, "label": "Show reading time" },
 		"archiveLayout": { "type": "enum", "options": ["grid", "list"], "default": "list" }
@@ -139,12 +140,12 @@ site overrides (resources/views, config, user/data)
   → active theme
     → its parent(s) (any depth, cycle-checked)
       → framework default theme (`resources/themes/default`, named
-        `blush/default`, namespace `default`; includes the core content
-        components, D-033)
+        `blush/default`, namespace `default`; styles the core
+        directives, D-033, D-532)
 ```
 - Views resolve through `resources/views/themes/{active}`, then
   `resources/views`, then each theme's `views/` (D-103).
-- The chain applies to views, components, assets, settings defaults,
+- The chain applies to views, directive and component templates, assets, settings defaults,
   and message catalogs.
 - Theme-scoped site overrides go in `resources/views/themes/{vendor}/{name}/…` and apply
   only while that theme is active.
@@ -199,6 +200,7 @@ The template API (kept deliberately small; D-103):
 | `includeIf()` / `includeWhen($when, ...)` / `includeUnless($unless, ...)` | Include only if a view exists, or on a condition (1.x's names, D-159) |
 | `each($views, $items, as:, empty:, ...$data)` | Include a partial per item (with `$index`), or `empty` when there are none (D-159) |
 | `component($name, ...$props)` | Render a component; `->content($html)` and `->slot($name, $html)` fill slots |
+| `directive($name, ...$props)` | Render a directive, as content would; `->content($html)` fills it (D-532) |
 | `t($key, ...$params)` | Translate from the theme chain's domains, child first (D-028, D-107, D-451) |
 | `setting($key, $default)` | A theme setting's value |
 | `site($key, $default)` | A site setting a field set adds to the Settings screens (D-343), through its field, or its default |
@@ -219,7 +221,7 @@ Every template also gets `$site` (name, URL, locale, `lang`). Content
 pages get `$page`, `$entry`, `$entries`, `$type`, and `$title`; error pages
 get `$status`, `$reason`, `$title`, `$entry`, `$description`, and
 `$message` (debug only).
-This page data is shared (D-146): layouts, partials, and components see
+This page data is shared (D-146): layouts, partials, directives, and components see
 it without it being passed, and what a template passes wins. On an
 entry's page the head also gets its description and, from its `image`
 field, `og:image` and a Twitter card (D-149).
@@ -258,111 +260,127 @@ aren't candidates (D-104).
 - Themes can add candidates through their provider (for example by post
   format or by term).
 
-## Components (D-025, D-111)
+## Directives and components (D-532)
 
-- **Names (D-171, D-173):** `{namespace}/{name}` (`ComponentName`):
-  `blush` for core, a theme's slug, `app` for the site, an extension's
-  vendor. Only core components have short names (`callout` is
-  `blush/callout`). The template is `components/{namespace}-{name}.php`;
-  a core component's may also be `components/{name}.php`, and the
-  highest-precedence directory wins whichever name it uses
-  (`ViewFinder::nearest()`). Subfolders of `components/` aren't
-  components.
-- **Components render themselves (D-382):** with no template for it in
-  the chain, a component's class draws it (`render()`: HTML, a template
-  file it ships, or `null` for none). Core components' templates are
-  the framework's (`resources/components/`), not the default theme's,
-  which now has no `components/` folder; a theme's template still wins.
-- **Templates get `$component` (D-195, D-196):** a component's template
-  gets `$component` and `$template`; content is `content()`, named slots
-  `$component->slots->name`, and role methods (`caption()`, `text()`,
-  `heading()`) return the content or else the escaped `label`. Props are the
-  class's public properties (`$component->tone`), computed values are
-  methods, and `$component->attributes()` prints the root element's
-  `class` (block, `modifiers()`, the `class` prop), `id`, and
-  `rootAttributes()`. `$component->prop()` reads any prop as given.
-- **A class-backed component** extends `Component\Component`: typed props
-  via constructor promotion (strings from Markdown are cast to
-  `int`/`float`/`bool` or a backed enum, whose unknown values fall back
-  to the default), services by autowiring, `template()`,
-  `shouldRender()`, `modifiers()`, `rootAttributes()`, `t()`, and
-  `CONTENT`, plus its template. Every core component has one.
-- **A template-only component** is just its template; its `$component`
-  is a `TemplateComponent`, read with `prop()`. It renders without being
-  registered. Template-only components stay (D-382): only a class must
-  have a `render()`.
-- **Classes (D-182):** a component's classes are BEM-style with a
-  `component-` prefix (`component-callout`, `component-callout--warning`,
-  `component-callout__title`); Blush's core component templates use
-  it.
-- **Variants (D-266):** a named style of any component, `variant=name`,
-  whose modifier is `component-{name}--{variant}` (or the variant's own
+Two things, registered, stored, and overridden separately (D-532
+supersedes the one-concept model of D-026, D-111, D-164, and D-171 to
+D-173). What they share is `View\Renderable` (props, content, the root
+element's `attributes()`, `t()`), and `View\RenderableFactory` builds
+either from a class.
+
+### Directives
+
+What content says: content vocabulary (D-026), core's (`blush`),
+plugins', and the site's (`app`), never a theme's.
+
+- **Names (D-171):** `{namespace}/{name}` (`DirectiveName`). Only core
+  directives have short names (`callout` is `blush/callout`). The
+  template is `directives/{namespace}-{name}.php`; a core directive's
+  may also be `directives/{name}.php`, and the highest-precedence
+  directory wins whichever name it uses (`ViewFinder::nearest()`).
+  Subfolders of `directives/` aren't directives.
+- **Every directive is a registered class (D-532, D-534):**
+  `DirectiveRegistry::register($name, $class)` stores a
+  `DirectiveDefinition` by full name, which reads the class: what it
+  wraps (`CONTENT`), how it's written (`KIND`, required: registering a
+  class without one fails, as does a `KIND` that disagrees with
+  `CONTENT`, D-531), what a container holds (`HOLDS`), its `VARIANTS`,
+  and its props as schema `Field`s. There are no template-only
+  directives. An unregistered name is unknown and renders
+  as plain content; a template alone isn't a directive. Short names must
+  be core; new `blush/*` names are refused; a provider may replace a core
+  directive. **Themes can't register directives:** a name in an
+  installed theme's namespace is refused (the registry asks `Themes`
+  through a closure, lazily).
+- **Directives render themselves (D-382):** with no template for it in
+  the chain, the class draws it (`render()`: HTML, a `DirectiveView` it
+  ships, or `null`). Core directives' templates are the framework's
+  (`resources/directives/`); a theme's `directives/` template wins.
+- **Templates get `$directive` (D-195, D-196):** and `$template`;
+  content is `content()`, role methods (`caption()`, `text()`,
+  `heading()`) return the content or else the escaped `label`, props are
+  public properties, and `attributes()` prints `class` (block, variant
+  modifier, `modifiers()`, the `class` prop), `id`, and
+  `rootAttributes()`. Directives have no named slots.
+- **Classes (D-182, D-532):** BEM-style with a `directive-` prefix
+  (`directive-callout`, `directive-callout--warning`,
+  `directive-callout__title`).
+- **Variants (D-266):** a named style of any directive, `variant=name`,
+  whose modifier is `directive-{name}--{variant}` (or the variant's own
   modifier). Default is always there, writes nothing, and adds no class.
-  A variant is a `Variant` (name, registrant, optional modifier); a class
-  declares its own in `VARIANTS`, a template-only component with
-  `register(…, variants:)`, a theme in `theme.json` `variants`, and
-  anyone else from `ComponentVariantsCollecting` (fired once per
-  component when its variants are first needed). `ComponentVariants`
-  collects them and drops a theme's outside the chain; an unknown
-  variant renders as Default. Templates get `$component->variant` and
-  `isVariant()`, and `components/{name}-{variant}` wins over the
-  component's template. Text is
-  `components.{name}.variants.{variant}.label` and `.description` in the
-  registrant's domain. `content:lint` (`VariantCheck`) and `theme:check`
-  report problems.
-- **Image variants (D-268):** a Markdown image isn't a component, but a
+  A class declares its own in `VARIANTS`, a theme in `theme.json` `variants` (how a
+  theme adds looks without adding vocabulary), and anyone else from
+  `DirectiveVariantsCollecting`. `DirectiveVariants` collects them and
+  drops a theme's outside the chain; an unknown variant renders as
+  Default. `directives/{name}-{variant}` wins over the directive's
+  template. Text is `directives.{name}.variants.{variant}.label` and
+  `.description` in the registrant's domain. `content:lint`
+  (`VariantCheck`) and `theme:check` report problems.
+- **Image variants (D-268):** a Markdown image isn't a directive, but a
   theme lists classes for it under `theme.json`'s `variants.image`
   (`{.stretch-wide}`; `FigureRenderer` puts them on the figure), with
   text at `images.variants.{name}.label` and `.description` in the
-  theme's catalog. `ComponentVariants::forImages()` collects them from
+  theme's catalog. `DirectiveVariants::forImages()` collects them from
   the chain, leaving out the framework default theme's unless it's the
-  active theme (only the active theme's stylesheet loads). The default
-  theme offers and styles `stretch-wide`, `stretch-full`, `inline-left`,
-  and `inline-right`.
-- **Slots:** `$component->content()` holds the default slot and
-  `$component->slots->name` named slots (`''` when unfilled).
-- **Registry (D-172, D-173):** `ComponentRegistry::register($name, $class,
-  $content, $props)` stores a `ComponentDefinition` by full name: a
-  class, or none for a template-only component, plus what it wraps
-  (`ComponentContent`) and its props as schema `Field`s (read from the
-  constructor and `CONTENT` when not given). Registering is what puts a
-  component in the admin's inserter later. Short names must be core; new
-  `blush/*` names are refused; a provider may replace a core component.
-- **Text (D-172, D-173):** `Views::componentText($name, 'label')` reads
-  `components.{name}.{key}` from the namespace's catalog domain: `blush`,
-  `theme` (the chain's namespaces), `app` (`resources/lang`), or the
-  namespace itself (enabled plugins' and icon packs' `lang/`, D-378). Missing text falls back to
-  `ComponentName::label()`.
-- **Discovery (D-164, D-173):** `ComponentType` declares the core
-  components and their classes (the registrar seeds them all).
-  `Views::components()` lists every name the chain can render as
-  `ComponentListing`s (core, registered, and every `components/*.php`
-  named for a component), with labels; `strayComponentFiles()` returns
-  the rest. `component:list` prints both; `theme:check` warns about a
-  class with no template and a stray file in the theme, and notes the
-  theme's registered components without a label.
-- **In Markdown** (D-026), the same components are available to content:
+  active theme. The default theme offers and styles `stretch-wide`,
+  `stretch-full`, `inline-left`, and `inline-right`.
+- **Text (D-172):** `Views::directiveText($name, 'label')` reads
+  `directives.{name}.{key}` from the namespace's catalog domain (`blush`,
+  `app`, or a plugin's), falling back to `DirectiveName::label()`.
+- **Discovery:** `DirectiveType` declares the core directives (the
+  registrar seeds them). `Views::directives()` lists every registered one
+  as a `DirectiveListing` (files in the chain, label, variants);
+  `strayDirectiveFiles()` returns templates in `directives/` for no
+  registered directive or variant. `directive:list` prints both;
+  `theme:check` warns about a class with no template and a stray file in
+  the theme ("themes can't add directives").
+- **In templates:** `$template->directive('callout', variant: 'tip')->content($html)`
+  (`PendingDirective`), and region items `directive: menu`.
+- **In Markdown** (D-026):
   ```
   :::gallery{columns=3}
   ![](a.jpg) ![](b.jpg)
   :::
-
-  This is :notebook/badge[new]{variant=outline}.
   ```
-  An unknown directive, or a short name that isn't core, renders as plain
-  content. The framework default theme
-  ships the core content components (D-033, D-113): `callout`, `gallery`,
-  `figure` (a container for anything captioned, D-267), and `embed`, plus the layout components `group`, `grid`, and
-  `row` (D-177, which set their structural CSS inline and read
-  `--layout-gap`; each renders as its `tag`, D-298), and the media components `audio`, `video`, and
-  `file` (D-179), and the inline components `abbr`, `kbd`, and `time`
-  (D-180) and `badge`, `cite`, `dfn`, `ins`, `samp`, `small`, and `var`
-  (D-305), `toc` (D-183), `icon` (D-187), `progress` and `meter`
-  (D-188), and `button` (D-189), so they work under any theme. A registered
-  component's `media` props (`#[MediaProp]` on a class parameter) are
-  resolved against the entry's folder, like images (D-179). Directives render with
-  the request's theme; attributes are props, the `[label]` is `$slot` (and
-  the `label` prop), and a container's blocks are `$slot` (D-112).
+  An unregistered directive, or a short name that isn't core, renders as
+  plain content. Core ships (D-033, D-113): `callout`, `gallery`,
+  `figure` (D-267), and `embed`; the layouts `group`, `grid`, `row`, and
+  `stack` (D-177, D-318; each renders as its `tag`, D-298); the media
+  directives `audio`, `video`, and `file` (D-179); the inline `abbr`,
+  `kbd`, `time` (D-180), `badge`, `cite`, `dfn`, `ins`, `samp`, `small`,
+  and `var` (D-305); `toc` (D-183), `icon` (D-187), `menu`, `progress` and
+  `meter` (D-188), and `button` (D-189), so they work under any theme. A
+  directive's `media` props (`#[MediaProp]`) are resolved like images
+  (D-179). Directives render with the request's theme; attributes are
+  props, the `[label]` is the content (and the `label` prop), and a
+  container's blocks are its content (D-112). In the admin, directives
+  are called blocks.
+
+### Components
+
+A template's reusable pieces (D-025): named markup with props and
+slots, from themes, the site, and plugins. Content never names one.
+
+- **Names:** always `{namespace}/{name}` (`ComponentName`; there are no
+  core components). The template is `components/{namespace}-{name}.php`.
+- **Found by file:** a template in `components/` is a component; nothing
+  to register. A class (`Component\Component`) is registered by name in
+  `ComponentRegistry::register($name, $class)` (no content, kind,
+  variants, or text). A template-only component's `$component` is a
+  `TemplateComponent`, read with `prop()`.
+- **Templates get `$component`:** content is `content()`, named slots
+  `$component->slots->name` (`''` when unfilled), and `attributes()`
+  prints the `component-{name}` block, `modifiers()`, `class`, `id`, and
+  `rootAttributes()`.
+- **Rendering itself (D-382):** `render()` returns HTML, a
+  `ComponentView`, or `null`; the chain's template wins.
+- **Discovery:** `Views::components()` lists registered classes and every
+  `components/*.php` named for one (`ComponentListing`);
+  `strayComponentFiles()` the rest. `component:list` prints them and
+  `theme:check` warns about a class with no template and a stray file.
+  Another theme's components are left out (`Themes::isOutside()`).
+- **In templates:** `$template->component('notebook/card', entry: $entry)->slot('footer', $html)`
+  (`PendingComponent`), and region items `component: acme/card`.
 
 ## Context providers
 

@@ -52,8 +52,8 @@ $code = static fn(string $text): string => '<code>' . e($text) . '</code>';
 	</ol>
 
 	<?php if ($welcome->problems !== []) : ?>
-		<aside class="component-callout component-callout--warning welcome-problems">
-			<p class="component-callout__title"><?= e($template->t('welcome.problems.title')) ?></p>
+		<aside class="directive-callout directive-callout--warning welcome-problems">
+			<p class="directive-callout__title"><?= e($template->t('welcome.problems.title')) ?></p>
 			<ul>
 				<?php foreach ($welcome->problems as $problem) : ?>
 					<li><?= $code($problem->label) ?>: <?= e(trim("{$problem->message} {$problem->hint}")) ?></li>

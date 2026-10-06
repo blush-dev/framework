@@ -218,7 +218,7 @@ uploaded at.
 
 `config/embed.php` · `Blush\Embed\EmbedConfig`
 
-The [`embed` component](components.md#built-in-components) asks each
+The [`embed` directive](directives.md#built-in-directives) asks each
 video's site for its size and title (over [oEmbed](https://oembed.com)),
 once a month per URL. YouTube and Vimeo are built in; add other sites
 here:
@@ -266,7 +266,7 @@ every provider again.
 
 Blush's Markdown is the same on every site: CommonMark, plus autolinks,
 `~~struck~~` and `==highlighted==` text, tables, task lists, footnotes,
-definition lists, attributes, and [components](components.md) (see
+definition lists, attributes, and [directives](directives.md) (see
 [Markdown](content.md#markdown)). These options
 change how it renders, not what it means. The first five are on the
 [Writing settings screen](admin.md#settings) too.
@@ -280,7 +280,7 @@ change how it renders, not what it means. The first five are on the
 | `html` | `RawHtml::Allow` | What raw HTML in content does: `Allow` renders it, `Filter` shows script, frames, forms, and styles as text and drops `javascript:` link addresses, and `Escape` shows it all as text |
 | `lineBreaks` | `true` | A line break inside a paragraph is kept as `<br>`; off, it's a space |
 | `absoluteLinks` | `true` | Turn links starting with `/` into full URLs |
-| `directives` | `true` | Render [components](components.md) in Markdown |
+| `directives` | `true` | Render [directives](directives.md) in Markdown |
 | `anchors` | see below | How heading anchors look: a `Blush\Markdown\HeadingAnchorOptions` |
 | `footnotes` | see below | How footnotes look: a `Blush\Markdown\FootnoteOptions` |
 

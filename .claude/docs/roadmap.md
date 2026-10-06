@@ -484,8 +484,9 @@ on demand, for what's loaded at once, is in `open-questions.md`.
 Other starting points the author may pick up (none decided):
 
 
-- **Required component registration (D-266's direction):** every
-  component registered to render (PHP, or JSON with translations).
+- **Required directive registration (D-266's direction):** every
+  directive is registered (D-533, from PHP); registering one from JSON
+  with translations is still open, as are patterns (D-532).
 - **Later for components:** captioned quotes and tables, a `<button>`
   component, rich script embeds and an embed refresh command, extension
   views (D-174), more icons and brand logos (see `open-questions.md`).

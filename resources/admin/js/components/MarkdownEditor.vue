@@ -36,10 +36,10 @@
  * text are passed on (`files`) to upload and insert.
  *
  * Typing `/` at the start of an empty line reports the query after it
- * (`slash`), so the editor can open the component panel filtered by it;
+ * (`slash`), so the editor can open the block panel filtered by it;
  * while it's open, the keys that drive the panel are passed on
  * (`slashKey`) rather than typed. The query stays in the text until a
- * component replaces it (`insert()`), so an abandoned slash is just text.
+ * block replaces it (`insert()`), so an abandoned slash is just text.
  *
  * Typing `@` in prose, given `people`, lists the profiles whose names
  * match what follows it under the caret (D-498): arrows move, Enter or
@@ -56,13 +56,13 @@ import { useFileDrop } from '../drop';
 import { listMove } from '../grid';
 import { htmlCheck } from '../html';
 import { blocks, closingFence, setHtmlCheck, setMentions, continuation, directiveAt, editBetween, highlight, indentedCode, intoFence, isAddress, linkAt, linked, nested, outline, pasted, quoted, safeSpot, toggleEmphasis, toggleMark, typedSpot, unmarked, withHeading, withoutLink, type Change, type Edit, type Emphasis, type MarkdownBlock, type MarkdownOutline } from '../markdown';
-import { directiveText, type ComponentDescription } from '../components';
+import { directiveText, type DirectiveDescription } from '../directives';
 
 const props = defineProps<{
 	id: string;
 	placeholder?: string;
 	label?: string;
-	// Whether the component panel is open for a slash, so its keys are
+	// Whether the block panel is open for a slash, so its keys are
 	// passed on.
 	slashOpen?: boolean;
 	// What's selected, boxed in the text: a directive's or an image's
@@ -98,7 +98,7 @@ const emit = defineEmits<{
 	// The query typed after a slash at the start of a line, or `null` when
 	// there's no slash (any more).
 	slash: [query: string | null];
-	// A key for the component panel while a slash has it open.
+	// A key for the block panel while a slash has it open.
 	slashKey: [key: 'ArrowUp' | 'ArrowDown' | 'Enter' | 'Escape'];
 	// Files dropped or pasted into the text.
 	files: [files: File[]];
@@ -723,7 +723,7 @@ function beforeinput(event: InputEvent): void {
 
 // An address pasted over selected words links them; files are passed on;
 // text pasted into a directive's tag or attributes goes where it's safe.
-// Pasted containers are balanced and written `:::`, and a component goes
+// Pasted containers are balanced and written `:::`, and a directive goes
 // on lines of its own, as the inserter puts it (D-321).
 function paste(event: ClipboardEvent): void {
 	const element = field.value;
@@ -961,17 +961,17 @@ function write(spot: { from: number; to: number; before: string; after: string }
 }
 
 /**
- * Inserts a component: an inline one at the caret, the rest on lines of
+ * Inserts a directive: an inline one at the caret, the rest on lines of
  * their own (D-247). Selected text becomes its label or body; `values`
  * are its first attributes.
  */
-function insert(component: ComponentDescription, values: Record<string, string> = {}): void {
+function insert(described: DirectiveDescription, values: Record<string, string> = {}): void {
 	const selected = field.value === null ? '' : field.value.value.slice(field.value.selectionStart, field.value.selectionEnd);
-	const inline   = component.kind === 'inline' && !selected.includes('\n');
+	const inline   = described.kind === 'inline' && !selected.includes('\n');
 	const spot     = place(inline);
 
 	if (spot !== null) {
-		const { text, caret: at } = directiveText(component, inline, spot.inner, values);
+		const { text, caret: at } = directiveText(described, inline, spot.inner, values);
 
 		write(spot, text, at);
 	}

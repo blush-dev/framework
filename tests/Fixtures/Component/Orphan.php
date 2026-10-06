@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Orphan component fixture.
+ * Fixture: a component class with no template.
  *
  * @author    Justin Tadlock <justintadlock@gmail.com>
  * @copyright Copyright (c) 2026, Justin Tadlock
@@ -16,11 +16,11 @@ namespace Blush\Tests\Fixtures\Component;
 use Override;
 use Blush\Component\Component;
 
+/**
+ * A component class that relies on a template in the chain and has none.
+ */
 final class Orphan extends Component
 {
-	/**
-	 * No markup of its own, and no template.
-	 */
 	#[Override]
 	public function render(): null
 	{

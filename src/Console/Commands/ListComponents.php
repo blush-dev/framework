@@ -23,14 +23,11 @@ use Blush\Theme\ThemeConfig;
 use Blush\Theme\ThemeException;
 use Blush\Theme\Themes;
 use Blush\Component\ComponentListing;
-use Blush\Component\Variant;
 use Blush\View\ViewFactory;
 
 /**
- * Lists the components a theme can render (the active theme by default):
- * each full name, its label, whether it's registered (and so offered in
- * the admin's inserter), its class, its variants besides Default (D-266),
- * and the file that renders it.
+ * Lists the components a theme can render (D-532; the active theme by
+ * default): each full name, its class, and the file that renders it.
  * `theme:why components/{file}` shows what that file shadows. Templates
  * in `components/` that aren't named for a component are reported.
  */
@@ -71,10 +68,7 @@ final readonly class ListComponents
 			$file   = $component->file();
 			$rows[] = [
 				(string) $component->name,
-				$component->displayLabel(),
-				$component->isRegistered() ? 'yes' : '',
-				$component->className() ?? '',
-				implode(', ', array_map(static fn (Variant $variant): string => $variant->name, $component->variants)),
+				$component->class ?? '',
 				match (true) {
 					$file !== null              => $this->paths->relative($file),
 					$component->rendersItself() => '(its own)',
@@ -83,11 +77,11 @@ final readonly class ListComponents
 			];
 		}
 
-		$output->table(['Name', 'Label', 'Registered', 'Class', 'Variants', 'Template'], $rows);
+		$output->table(['Name', 'Class', 'Template'], $rows);
 
 		foreach ($components as $component) {
 			if ($component->isMissingTemplate()) {
-				$output->warning(sprintf('"%s" has no %s template, so it can\'t render.', $component->name, implode(' or ', $component->name->views())));
+				$output->warning(sprintf('"%s" has no %s template, so it can\'t render.', $component->name, $component->name->view()));
 			}
 		}
 

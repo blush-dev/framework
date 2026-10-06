@@ -149,7 +149,7 @@ final class ViewFactory
 
 	/**
 	 * Builds a bare context for a fragment rendered outside a page, such
-	 * as a component in Markdown, in a language other than the default
+	 * as a directive in Markdown, in a language other than the default
 	 * when it's given one (D-459): a translation's body.
 	 */
 	public function fragment(string $language = ''): ViewContext

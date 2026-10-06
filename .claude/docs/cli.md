@@ -79,7 +79,8 @@ Implemented in M2 (D-065, D-069).
 | `icon-pack:check [name]` | Check every icon pack's manifest, `require`, `conflict`, and `replace` (D-435, D-436; one that's off as if it were on), and `version`, as `plugin:check` does: a pack that's on but can't load is an error and fails it; one that's off, a broken one, a `version` Composer can't read, an `abandoned` pack, and a mismatched `lang/` catalog are warnings (D-431, D-433, D-454) |
 | `menu:list [--theme]` | List the chain's menu locations, the site menu each shows, resolved item counts, and files; site menus no location shows; problems (D-204) |
 | `menu:show <location> [--theme] [--locale]` | Print a location's menu resolved as a page sees it (labels and URLs, nested), with its problems; fails when it shows none (D-204) |
-| `component:list [--theme]` | List every component the chain can render: full name, label, registered or not, class, variants (D-266), and winning template; warn when one can't render (D-164) and about files not named for a component (D-173) |
+| `directive:list [--theme]` | List every registered directive (D-532): full name, label, class, variants under the chain (D-266), and winning template; warn when one can't render and about files in `directives/` for no registered directive |
+| `component:list [--theme]` | List every component the chain can render (D-532): full name, class, and winning template, leaving out other themes'; warn when one can't render (D-164) and about files not named for a component (D-173) |
 | `lang:missing [--locale]` | List untranslated message keys |
 | `publish [--pull\|--no-pull]` | Pull `user/` (with `PublishConfig::$git`), recompile the content types and routes, reindex, clear the store, and bump the content version, as the webhook does (D-131) |
 | `plugin:list` | List installed plugins (name, label, namespace, version, source, and on, off, or can't run, D-385), and broken manifests as warnings (D-394) |

@@ -28,13 +28,13 @@ use Blush\View\ViewFactory;
 /**
  * Answers `GET {path}/api/icons` (D-246): the icons the active theme can
  * show, for the editor's icon picker, as `icon:list` lists them. Each has
- * its `name` as the icon component's `name` prop takes it (a core icon's
+ * its `name` as the icon directive's `name` prop takes it (a core icon's
  * short name, `house`; the rest in full, `jtcom/github`), its translated
  * `label`, the core icons' search `keywords`, and its `svg`, for the
  * picker to draw (as a mask, so no markup from the file runs). A core
  * icon has its `category` (`IconCategory`, D-265); the rest have `null`
  * and a `source` naming the theme, the site, or the extension they come
- * from, as components do.
+ * from, as directives do.
  */
 final readonly class IconsController
 {

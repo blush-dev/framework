@@ -14,14 +14,18 @@ declare(strict_types=1);
 namespace Blush\Tests\Fixtures\Component;
 
 use Override;
-use Blush\Core\ServiceProvider;
 use Blush\Component\ComponentRegistry;
+use Blush\Core\ServiceProvider;
 
+/**
+ * Registers a component in the `nova` theme's namespace, as that theme's
+ * provider would.
+ */
 final class NovaProvider extends ServiceProvider
 {
 	#[Override]
 	public function boot(): void
 	{
-		$this->container->make(ComponentRegistry::class)->register('nova/badge');
+		$this->container->make(ComponentRegistry::class)->register('nova/badge', Orphan::class);
 	}
 }

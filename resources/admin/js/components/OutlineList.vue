@@ -2,7 +2,7 @@
 /**
  * The editor's Outline, and a Content group's list (admin.md §8, D-280,
  * D-509): a row per element, its icon, its name a quiet column (in the
- * accent for a component someone placed), and its excerpt flowing out
+ * accent for a directive someone placed), and its excerpt flowing out
  * of it. The Outline draws depth as indent and a hairline per level
  * (`indent`), and marks the element the caret is in (`current`). The
  * editor says what each element is (`describe`), and a row's press
@@ -19,7 +19,7 @@ export interface OutlineRow {
 	name: string;
 	icon: IconName;
 	text: string;
-	// Placed, not written: a container or leaf component.
+	// Placed, not written: a container or leaf directive.
 	placed: boolean;
 	// Why the site leaves it out, when its container doesn't hold it.
 	stray?: string;
@@ -66,7 +66,7 @@ const rows = computed(() => props.items.map((item) => ({ item, ...props.describe
 
 <style scoped>
 /* The type name a quiet column, the excerpt flowing out of it, depth
-   drawn as indent and a hairline per level. A component's name is in
+   drawn as indent and a hairline per level. A directive's name is in
    the accent: someone placed it. */
 .outline {
 	display: grid;

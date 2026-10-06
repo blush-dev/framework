@@ -15,67 +15,44 @@ namespace Blush\Tests\Component;
 
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
-use Blush\Component\Callout;
 use Blush\Component\Component;
 use Blush\Component\ComponentName;
-use Blush\Component\Inline\Kbd;
-use Blush\Component\Layout\Figure;
 use Blush\Component\Slots;
 use Blush\Component\TemplateComponent;
-use Blush\Component\Variant;
 use Blush\Tests\Fixtures\Component\Card;
+use Blush\View\Renderable;
 
 #[CoversClass(Component::class)]
+#[CoversClass(ComponentName::class)]
+#[CoversClass(Renderable::class)]
+#[CoversClass(Slots::class)]
 #[CoversClass(TemplateComponent::class)]
-#[CoversClass(Callout::class)]
-#[CoversClass(Figure::class)]
-#[CoversClass(Kbd::class)]
 final class ComponentTest extends TestCase
 {
-	public function testAttributesPrintTheBlockModifiersAndProps(): void
+	public function testNamesAlwaysHaveANamespace(): void
 	{
-		$callout = new Callout('Heads up');
-		$callout->attach(new ComponentName('blush', 'callout'), ['class' => ' wide ', 'id' => 'note-1', 'variant' => 'warning'], variant: new Variant('warning', 'blush'));
+		$this->assertSame('acme/card', (string) ComponentName::parse('acme/card'));
+		$this->assertNull(ComponentName::parse('card'), 'There are no core components (D-532).');
+		$this->assertNull(ComponentName::parse('acme/card/more'));
+		$this->assertNull(ComponentName::parse('../x'));
+		$this->assertNull(ComponentName::parse('acme/'));
 
-		$this->assertSame('component-callout component-callout--warning wide', $callout->classes());
-		$this->assertSame('class="component-callout component-callout--warning wide" id="note-1" role="note"', $callout->attributes());
+		$this->assertSame('components/acme-card', new ComponentName('acme', 'card')->view());
 
-		// Extra attributes add to them, and a class joins the others.
-		$this->assertSame(
-			'class="component-callout component-callout--warning wide open" id="note-1" role="region" data-open',
-			$callout->attributes(['class' => 'open', 'role' => 'region', 'data-open' => true, 'hidden' => false, 'title' => null])
-		);
-		$this->assertSame('warning', $callout->prop('variant'));
-		$this->assertSame('warning', $callout->variant);
-		$this->assertTrue($callout->isVariant('warning'));
-		$this->assertSame('fallback', $callout->prop('missing', 'fallback'));
+		// A file name takes the longest namespace that fits.
+		$this->assertSame('my-theme/card', (string) ComponentName::fromFileName('my-theme-card', ['my', 'my-theme']));
+		$this->assertSame('my/card', (string) ComponentName::fromFileName('my-card', ['my', 'my-theme']));
+		$this->assertNull(ComponentName::fromFileName('card', ['my']));
 	}
 
-	public function testAttributesAreEscaped(): void
+	public function testAttributesPrintTheComponentBlock(): void
 	{
 		$component = new TemplateComponent();
-		$component->attach(new ComponentName('app', 'box'), ['class' => '"><script>']);
+		$component->attach(new ComponentName('app', 'box'), ['class' => ' wide "', 'id' => 'b']);
 
-		$this->assertSame('class="component-box &quot;&gt;&lt;script&gt;" title="a &amp; b"', $component->attributes(['title' => 'a & b']));
-		$this->assertSame('data-n="3" hidden', Component::html(['data-n' => 3, 'hidden' => true, 'empty' => '']));
-
-		// URL attributes are escaped as URLs, and an unsafe one is left out.
-		$this->assertSame('src="https://example.com/a?b=1&amp;c=2" title="x"', Component::html(['src' => 'https://example.com/a?b=1&c=2', 'title' => 'x']));
-		$this->assertSame('title="javascript:alert(1)"', Component::html(['href' => 'javascript:alert(1)', 'title' => 'javascript:alert(1)']));
-	}
-
-	public function testUnattachedComponentsNameTheirBlockFromTheirClass(): void
-	{
-		$this->assertSame('component-card', new Card()->block());
-		$this->assertSame('class="component-callout" role="note"', new Callout()->attributes());
-		$this->assertSame('default', new Callout()->variant, 'Default adds no modifier.');
-	}
-
-	public function testCalloutsAreTitledByTheLabelOrTitle(): void
-	{
-		$this->assertSame('Label &amp; more', new Callout(label: 'Label & more', title: 'Title')->heading());
-		$this->assertSame('Title', new Callout(label: ' ', title: 'Title')->heading());
-		$this->assertSame('', new Callout()->heading());
+		$this->assertSame('component-box wide "', $component->classes());
+		$this->assertSame('class="component-box wide &quot;" id="b" data-open', $component->attributes(['data-open' => true]));
+		$this->assertSame('component-card', new Card()->block(), 'An unattached one names its block from its class.');
 	}
 
 	public function testContentAndSlotsComeFromTheComponent(): void
@@ -92,23 +69,5 @@ final class ComponentTest extends TestCase
 		$this->assertSame('<small>Foot</small>', $component->slots->footer);
 		$this->assertTrue($component->slots->has('footer'));
 		$this->assertFalse($component->slots->has('header'));
-	}
-
-	public function testRoleNamedContentFallsBackToTheLabel(): void
-	{
-		// A figure's caption is its label, escaped; its content is what it
-		// wraps, and without any, it doesn't render.
-		$figure = new Figure('Tom & Jerry');
-		$this->assertSame('Tom &amp; Jerry', $figure->caption());
-		$this->assertFalse($figure->shouldRender());
-
-		$figure->attach(new ComponentName('blush', 'figure'), [], '<table></table>');
-		$this->assertSame('Tom &amp; Jerry', $figure->caption());
-		$this->assertTrue($figure->shouldRender());
-
-		$this->assertSame('', new Figure()->caption());
-		$this->assertSame('Ctrl', new Kbd('Ctrl')->text());
-		$this->assertFalse(new Kbd('Ctrl')->isCombination());
-		$this->assertTrue(new Kbd('Ctrl+S')->isCombination());
 	}
 }

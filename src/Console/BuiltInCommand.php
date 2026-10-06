@@ -36,6 +36,7 @@ use Blush\Console\Commands\LintContent;
 use Blush\Console\Commands\ListAccounts;
 use Blush\Console\Commands\ListCommands;
 use Blush\Console\Commands\ListComponents;
+use Blush\Console\Commands\ListDirectives;
 use Blush\Console\Commands\ListIcons;
 use Blush\Console\Commands\ListMenus;
 use Blush\Console\Commands\ListPlugins;
@@ -95,6 +96,7 @@ enum BuiltInCommand: string
 	case PluginList    = 'plugin:list';
 	case PluginCheck   = 'plugin:check';
 	case PluginNew     = 'plugin:new';
+	case DirectiveList = 'directive:list';
 	case ComponentList = 'component:list';
 	case IconList      = 'icon:list';
 	case IconPackCheck = 'icon-pack:check';
@@ -150,6 +152,7 @@ enum BuiltInCommand: string
 			self::PluginList    => ListPlugins::class,
 			self::PluginCheck   => CheckPlugins::class,
 			self::PluginNew     => CreatePlugin::class,
+			self::DirectiveList => ListDirectives::class,
 			self::ComponentList => ListComponents::class,
 			self::IconList      => ListIcons::class,
 			self::IconPackCheck => CheckIconPacks::class,

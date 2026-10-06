@@ -17,8 +17,8 @@ use Blush\Data\InvalidData;
 
 /**
  * The translator bound to a list of domains, searched in order (D-451):
- * a theme chain's, child first, for `$template->t()`, or a component's,
- * the chain's and then its own extension's.
+ * a theme chain's, child first, for `$template->t()`, or a directive's or
+ * component's, the chain's and then its own extension's.
  */
 final readonly class DomainTranslator
 {
