@@ -209,7 +209,7 @@ async function remove(): Promise<void> {
 			</p>
 			<DangerZone v-else-if="canDelete && pack.deletable">
 				Deleting removes the folder from the server, and its icons stop working wherever they're used.
-				<template #action><button type="button" class="button button--danger" @click="remove"><AdminIcon name="trash-2" />Delete icon pack</button></template>
+				<template #action><button type="button" class="button button--danger" @click="remove"><AdminIcon name="trash-2" />Delete Icon Pack</button></template>
 			</DangerZone>
 		</template>
 	</div>

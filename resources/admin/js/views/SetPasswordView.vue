@@ -59,7 +59,7 @@ async function submit(): Promise<void> {
 	<AuthCard title="Choose a Password" wide>
 		<template v-if="dead">
 			<p class="notice notice--error" role="alert">{{ error || 'This link is missing its account or token. Copy the whole link and try again.' }}</p>
-			<RouterLink class="button" :to="{ name: 'sign-in' }">Sign in</RouterLink>
+			<RouterLink class="button" :to="{ name: 'sign-in' }">Sign In</RouterLink>
 		</template>
 
 		<form v-else class="auth-card__form" :aria-busy="busy" @submit.prevent="submit">
@@ -73,7 +73,7 @@ async function submit(): Promise<void> {
 				<span v-else id="new-password-help" class="field__help">Long is strong: a few words you'll remember works well.</span>
 			</p>
 			<p v-if="error && !field" class="notice notice--error" role="alert">{{ error }}</p>
-			<button type="submit" class="button button--primary" :disabled="busy || password === ''">{{ busy ? 'Saving…' : 'Set password and sign in' }}</button>
+			<button type="submit" class="button button--primary" :disabled="busy || password === ''">{{ busy ? 'Saving…' : 'Set Password and Sign In' }}</button>
 		</form>
 	</AuthCard>
 </template>

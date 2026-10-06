@@ -16,7 +16,7 @@ export async function makeHomepage(title: string, instead: string | null): Promi
 	const name = title || 'Untitled';
 	const body = `The homepage shows ${instead === null ? 'something else' : instead.toLowerCase()} now. It will show “${name}” instead. You can change it back on Settings › Reading.`;
 
-	if (!await confirmAction({ title: `Make “${name}” the homepage?`, body, confirm: 'Make homepage' })) {
+	if (!await confirmAction({ title: `Make “${name}” the homepage?`, body, confirm: 'Make Homepage' })) {
 		return false;
 	}
 

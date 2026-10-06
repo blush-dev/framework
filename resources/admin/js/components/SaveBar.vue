@@ -26,6 +26,6 @@ const emit = defineEmits<{ revert: [] }>();
 		<span class="save-bar__count" aria-live="polite">{{ plural(count, 'unsaved change') }}</span>
 		<span v-if="failure" class="save-bar__error" role="alert">{{ failure }}</span>
 		<button type="button" class="button button--ghost button--small" :disabled="saving" @click="emit('revert')">Revert</button>
-		<button type="submit" class="button button--primary button--small" :disabled="saving || count === 0 || !ready">{{ saving ? 'Saving…' : 'Save changes' }}</button>
+		<button type="submit" class="button button--primary button--small" :disabled="saving || count === 0 || !ready">{{ saving ? 'Saving…' : 'Save Changes' }}</button>
 	</div>
 </template>

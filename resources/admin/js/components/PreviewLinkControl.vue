@@ -51,7 +51,7 @@ async function copy(): Promise<void> {
 	<div class="preview-link">
 		<button v-if="!link" type="button" class="button button--ghost button--small" :disabled="busy" :aria-label="`Get a preview link for ${name}`" @click="make">
 			<AdminIcon name="link" />
-			{{ busy ? 'Getting…' : 'Get link' }}
+			{{ busy ? 'Getting…' : 'Get Link' }}
 		</button>
 		<template v-else>
 			<a class="button button--ghost button--small" :href="link.url" target="_blank" rel="noopener noreferrer">

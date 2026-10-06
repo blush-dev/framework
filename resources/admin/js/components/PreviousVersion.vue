@@ -49,7 +49,7 @@ async function rollBack(ask = true): Promise<void> {
 			`${label} ${from} is swapped for ${to}, the version kept from before it was last replaced. ${from} is kept in its place, so you can switch back.`,
 			...(props.live ? [now(to)] : [])
 		],
-		confirm: `Roll back to ${to}`
+		confirm: `Roll Back to ${to}`
 	})) {
 		return;
 	}
@@ -95,7 +95,7 @@ async function discard(): Promise<void> {
 		<p><b>{{ kept }}</b> is kept from before {{ extension.label }} was last replaced.</p>
 		<span class="previous__actions">
 			<button v-if="canDiscard" type="button" class="button button--ghost" @click="discard">Discard</button>
-			<button v-if="canRollBack" type="button" class="button" @click="rollBack()">Roll back to {{ kept }}</button>
+			<button v-if="canRollBack" type="button" class="button" @click="rollBack()">Roll Back to {{ kept }}</button>
 		</span>
 	</div>
 </template>

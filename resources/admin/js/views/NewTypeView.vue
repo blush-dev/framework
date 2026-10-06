@@ -225,7 +225,7 @@ const groupLabels  = computed(() => form.value.types.map((name) => types.value.f
 				<button type="button" class="button button--small" :disabled="step === 0" @click="step -= 1"><AdminIcon name="chevron-left" />Back</button>
 				<button type="submit" class="button button--primary button--small" :disabled="(step === 0 && !basicsDone) || creating">
 					<template v-if="step < STEPS.length - 1">Next<AdminIcon name="chevron-right" /></template>
-					<template v-else><AdminIcon name="check" />{{ creating ? 'Creating…' : 'Create type' }}</template>
+					<template v-else><AdminIcon name="check" />{{ creating ? 'Creating…' : 'Create Type' }}</template>
 				</button>
 			</footer>
 		</form>

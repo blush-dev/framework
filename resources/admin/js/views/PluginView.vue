@@ -109,7 +109,7 @@ async function remove(): Promise<void> {
 			</p>
 			<DangerZone v-else-if="canDelete && plugin.deletable">
 				Deleting removes the folder from the server.<template v-if="needs.length"> {{ needs.length === 1 ? '1 extension requires' : `${needs.length} extensions require` }} it.</template>
-				<template #action><button type="button" class="button button--danger" @click="remove"><AdminIcon name="trash-2" />Delete plugin</button></template>
+				<template #action><button type="button" class="button button--danger" @click="remove"><AdminIcon name="trash-2" />Delete Plugin</button></template>
 			</DangerZone>
 		</div>
 	</template>

@@ -256,20 +256,23 @@ Each is recorded in `.claude/docs/decisions.md`.
   is hidden (and a library description is offered); off, it shows. It's also
   **Choose** beside every media field and option, and **Replace** on an
   image.
-- **The writing surface** (D-245, D-280): no `Changes` pill and the save
-  state reads "Unsaved changes" or "Saved 3:46 PM" (no autosave); a save
-  that changes no status (Update, Save draft, ⌘S) is disabled until
-  something changes; nothing sits under the title (D-254); Tab in the
+- **The writing surface** (D-245, D-280, D-520): no `Changes` pill, no
+  save-state text, and no status pill in the header: the buttons show the
+  state (no autosave). A save that changes no status (Update, Save
+  Draft, ⌘S) is disabled until something changes, the pressed button
+  reads "Saving…" (or "Waiting…" offline), then "Saved" until the next
+  change; the state is still read out to screen readers. A draft that
+  can be published has a ghost **Save Draft**, then the settings button,
+  then **Publish**; nothing sits under the title (D-254); Tab in the
   body moves focus, but in a list item it nests the item (D-284); the
   drawer is remembered (D-299, which departs from §8's "the settings
-  drawer starts shut"). Below 480px the save
-  state is its dot, with its words read out.
+  drawer starts shut").
 - **The chrome doesn't fade while typing** (D-279): the author found the
   darkened toolbar and footer distracting, so §8's "Chrome recedes while
   typing" isn't followed.
 - **The editor's menu** (D-280, D-283): **Preview** opens a signed
   preview link to the entry as last saved (a live one has **View**
-  instead), and there's no **Revisions** (there are none). **Save draft** or **Switch to draft** is
+  instead), and there's no **Revisions** (there are none). **Switch to draft** (scheduled or live) is
   its Entry section's first item, and a term loses only Duplicate (a term
   can be trashed).
 - **The element tab** (D-265, D-268, D-271, D-280): the entry's tab is the
@@ -704,6 +707,10 @@ Each is recorded in `.claude/docs/decisions.md`.
 - **Title Case** (D-268, §10) is applied to names across the admin,
   core component labels included; `titleCase()` builds names from
   parts ("Edit Page").
+- **Buttons are in Title Case** (D-521), where §10 keeps them in sentence
+  case: every visible button label, as headings are (**Save Draft**,
+  **Clear Filters**). Menu items, form labels, hints, toasts' messages,
+  and an icon button's hidden name stay sentence case.
 - **The inline menu holds the other inline elements** (D-496, the
   author's call: "This is all about inline elements"), where the
   direction's sentence group has bold, italic, link, icon, and inline

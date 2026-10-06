@@ -43,7 +43,7 @@ async function submit(): Promise<void> {
 				<label for="password">Password</label>
 				<input id="password" v-model="password" name="password" type="password" autocomplete="current-password" required>
 			</p>
-			<button type="submit" class="button button--primary" :disabled="busy">{{ busy ? 'Signing in…' : 'Sign in' }}</button>
+			<button type="submit" class="button button--primary" :disabled="busy">{{ busy ? 'Signing in…' : 'Sign In' }}</button>
 		</form>
 	</AuthCard>
 </template>

@@ -487,7 +487,7 @@ async function act(name: string, action: () => Promise<string>, kind: ToastKind 
  * at now, so an edit made meanwhile isn't thrown away unseen.
  */
 async function moveToTrash(entry: EntrySummary): Promise<void> {
-	if (!await confirmAction({ title: `Move ${nameOf(entry)} to the Trash?`, body: 'You can restore it from the Trash tab.', confirm: 'Move to trash', danger: true })) {
+	if (!await confirmAction({ title: `Move ${nameOf(entry)} to the Trash?`, body: 'You can restore it from the Trash tab.', confirm: 'Move to Trash', danger: true })) {
 		return;
 	}
 
@@ -544,7 +544,7 @@ async function bulk(action: BulkAction): Promise<void> {
 	const ids   = [...selected.value];
 	const count = plural(ids.length, labels.value.item, labels.value.items);
 
-	if (action === 'trash' && !await confirmAction({ title: `Move ${count} to the Trash?`, body: 'You can restore them from the Trash tab.', confirm: 'Move to trash', danger: true })) {
+	if (action === 'trash' && !await confirmAction({ title: `Move ${count} to the Trash?`, body: 'You can restore them from the Trash tab.', confirm: 'Move to Trash', danger: true })) {
 		return;
 	}
 
@@ -584,7 +584,7 @@ function restore(item: EntrySummary): void {
 async function purge(item: EntrySummary): Promise<void> {
 	const id = item.id;
 
-	if (id === null || !await confirmAction({ title: `Delete ${nameOf(item)} Permanently?`, body: 'This can\'t be undone.', confirm: 'Delete permanently', danger: true })) {
+	if (id === null || !await confirmAction({ title: `Delete ${nameOf(item)} Permanently?`, body: 'This can\'t be undone.', confirm: 'Delete Permanently', danger: true })) {
 		return;
 	}
 
@@ -598,7 +598,7 @@ async function purge(item: EntrySummary): Promise<void> {
 async function emptyTrash(): Promise<void> {
 	const count = counts.value.trash ?? 0;
 
-	if (!await confirmAction({ title: 'Empty the Trash?', body: `${plural(count, labels.value.item, labels.value.items)} in the trash will be deleted permanently. This can't be undone.`, confirm: 'Empty the trash', danger: true })) {
+	if (!await confirmAction({ title: 'Empty the Trash?', body: `${plural(count, labels.value.item, labels.value.items)} in the trash will be deleted permanently. This can't be undone.`, confirm: 'Empty the Trash', danger: true })) {
 		return;
 	}
 
@@ -660,7 +660,7 @@ const emptyText = computed(() => {
 				<p class="page-header__hint">{{ info?.kind === 'profiles' ? 'Public identities. Every byline on the site points at one.' : (terms ? 'Terms that group other entries' : `Every ${labels.item} you can edit`) }}</p>
 			</div>
 			<div v-if="(canType(type, 'create') && !nothingYet) || can('site.settings')" class="page-header__actions">
-				<RouterLink v-if="can('site.settings')" class="button" :to="{ name: 'content-type', params: { name: type } }"><AdminIcon name="layers" />Type settings</RouterLink>
+				<RouterLink v-if="can('site.settings')" class="button" :to="{ name: 'content-type', params: { name: type } }"><AdminIcon name="layers" />Type Settings</RouterLink>
 				<RouterLink v-if="canType(type, 'create') && !nothingYet" class="button button--primary" :to="{ name: 'entry-new', query: { type } }">{{ labels.newItem }}</RouterLink>
 			</div>
 		</header>
@@ -672,7 +672,7 @@ const emptyText = computed(() => {
 			<EmptyState :icon="info?.kind === 'profiles' ? 'user-round' : (terms ? 'tag' : 'files')" :heading="`No ${heading} Yet`" tag="h2" heading-id="entries-heading">
 				{{ purpose(info, heading) }}<template v-if="list?.index?.status === 'published'"> The index page above is already live: it's what readers land on.</template>
 				<template #actions>
-					<RouterLink v-if="canType(type, 'create')" class="button button--primary" :to="{ name: 'entry-new', query: { type } }">Create the first {{ labels.item }}</RouterLink>
+					<RouterLink v-if="canType(type, 'create')" class="button button--primary" :to="{ name: 'entry-new', query: { type } }">Create the First {{ labels.item }}</RouterLink>
 				</template>
 			</EmptyState>
 		</section>
@@ -710,7 +710,7 @@ const emptyText = computed(() => {
 						<AdminSelect id="entries-days" v-model="daysValue" :options="dayOptions" />
 					</div>
 				</template>
-				<button v-if="filtered" type="button" class="button button--ghost" @click="clear">Clear filters</button>
+				<button v-if="filtered" type="button" class="button button--ghost" @click="clear">Clear Filters</button>
 				<span v-if="profilesList" class="toolbar__count" aria-live="polite">{{ !ready ? 'Loading…' : (list ? plural(list.total, labels.item, labels.items) : '') }}</span>
 				<div v-if="!inTrash && !profilesList" class="segmented segmented--icons toolbar__end" role="group" aria-label="Rows">
 					<button type="button" :aria-pressed="!compact" title="Roomy rows" @click="compact = false">
@@ -741,7 +741,7 @@ const emptyText = computed(() => {
 						<template v-else-if="list">{{ plural(list.total, labels.item, labels.items) }}<template v-if="info?.kind === 'profiles'"> · Bylines counts the published entries crediting each</template><template v-else-if="terms"> · Entries counts the published entries using each</template></template>
 					</p>
 					<div v-if="ready && inTrash && list?.total" class="panel__actions">
-						<button type="button" class="button button--small button--danger" :disabled="busy !== null" @click="emptyTrash">Empty trash</button>
+						<button type="button" class="button button--small button--danger" :disabled="busy !== null" @click="emptyTrash">Empty Trash</button>
 					</div>
 				</header>
 
@@ -752,7 +752,7 @@ const emptyText = computed(() => {
 
 					<EmptyState v-else icon="circle-check" :heading="filtered ? 'Nothing in the Trash Matches' : 'The Trash Is Empty'" :text="emptyText">
 						<template #actions>
-							<button v-if="filtered" type="button" class="button" @click="clear">Clear filters</button>
+							<button v-if="filtered" type="button" class="button" @click="clear">Clear Filters</button>
 						</template>
 					</EmptyState>
 				</template>
@@ -760,7 +760,7 @@ const emptyText = computed(() => {
 				<template v-else-if="list">
 					<p v-if="flattened && list.entries.length" class="notebar">
 						<AdminIcon name="info" />{{ flattened }}
-						<button v-if="sort" type="button" class="button button--ghost button--small notebar__action" @click="clearSort">Clear the sort</button>
+						<button v-if="sort" type="button" class="button button--ghost button--small notebar__action" @click="clearSort">Clear the Sort</button>
 					</p>
 					<EntryTable
 						v-if="list.entries.length || pinnedOf(list).length"
@@ -784,7 +784,7 @@ const emptyText = computed(() => {
 
 					<EmptyState v-if="!list.entries.length" icon="files" :heading="filtered ? `No ${heading} Match` : `No ${heading}`" :text="emptyText">
 						<template #actions>
-							<button v-if="filtered" type="button" class="button" @click="clear">Clear filters</button>
+							<button v-if="filtered" type="button" class="button" @click="clear">Clear Filters</button>
 						</template>
 					</EmptyState>
 				</template>
@@ -810,10 +810,10 @@ const emptyText = computed(() => {
 				<span class="bulk-bar__count" aria-live="polite">{{ selected.length }} selected</span>
 				<span class="bulk-bar__divider" aria-hidden="true" />
 				<button v-if="canPublish" type="button" class="button button--ghost button--small" :disabled="busy !== null" @click="bulk('publish')"><AdminIcon name="circle-check" />Publish</button>
-				<button type="button" class="button button--ghost button--small" :disabled="busy !== null" @click="bulk('draft')"><AdminIcon name="file-text" />Move to draft</button>
+				<button type="button" class="button button--ghost button--small" :disabled="busy !== null" @click="bulk('draft')"><AdminIcon name="file-text" />Move to Draft</button>
 				<template v-if="canTrash">
 					<span class="bulk-bar__divider" aria-hidden="true" />
-					<button type="button" class="button button--ghost button--small button--danger" :disabled="busy !== null" @click="bulk('trash')"><AdminIcon name="trash-2" />Move to trash</button>
+					<button type="button" class="button button--ghost button--small button--danger" :disabled="busy !== null" @click="bulk('trash')"><AdminIcon name="trash-2" />Move to Trash</button>
 				</template>
 				<button type="button" class="button button--ghost button--small" @click="selected = []">Clear</button>
 			</div>

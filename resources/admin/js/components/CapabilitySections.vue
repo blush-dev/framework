@@ -335,10 +335,10 @@ function flipAll(): void {
 		<div class="sections__toolbar">
 			<span class="sections__note">Open a section to {{ readonly ? 'see' : 'change' }} what it grants.</span>
 			<button type="button" class="button button--small" @click="flipAll">
-				<AdminIcon :name="allOpen ? 'chevron-up' : 'chevron-down'" />{{ allOpen ? 'Collapse all' : 'Expand all' }}
+				<AdminIcon :name="allOpen ? 'chevron-up' : 'chevron-down'" />{{ allOpen ? 'Collapse All' : 'Expand All' }}
 			</button>
 			<button type="button" class="button button--small" :aria-pressed="showKeys" @click="showKeys = !showKeys">
-				<AdminIcon name="key-round" />{{ showKeys ? 'Hide keys' : 'Show keys' }}
+				<AdminIcon name="key-round" />{{ showKeys ? 'Hide Keys' : 'Show Keys' }}
 			</button>
 		</div>
 

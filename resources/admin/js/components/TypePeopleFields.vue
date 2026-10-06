@@ -108,7 +108,7 @@ function add(): void {
 }
 
 async function remove(item: PeopleForm): Promise<void> {
-	if (!item.added && !await confirmAction({ title: `Remove the ${item.plural || item.field} Field?`, body: [`Every entry that credits someone in it loses that credit: what they wrote under **${item.field}** stays, but nothing reads it. Its archive stops routing.`, 'Any page written for it is kept, but unreachable. Nothing changes until you save the type.'], confirm: 'Remove the field', danger: true })) {
+	if (!item.added && !await confirmAction({ title: `Remove the ${item.plural || item.field} Field?`, body: [`Every entry that credits someone in it loses that credit: what they wrote under **${item.field}** stays, but nothing reads it. Its archive stops routing.`, 'Any page written for it is kept, but unreachable. Nothing changes until you save the type.'], confirm: 'Remove the Field', danger: true })) {
 		return;
 	}
 
@@ -160,7 +160,7 @@ function wantPage(field: string, on: boolean): void {
 		</div>
 	</template>
 
-	<button v-else-if="part === 'add'" type="button" class="button button--small" @click="add"><AdminIcon name="plus" />Add a profile field</button>
+	<button v-else-if="part === 'add'" type="button" class="button button--small" @click="add"><AdminIcon name="plus" />Add a Profile Field</button>
 
 	<div v-else-if="part === 'archives'" class="type-people__switches">
 		<p v-if="people.length === 0" class="field__help">No profile fields, so no archives.</p>

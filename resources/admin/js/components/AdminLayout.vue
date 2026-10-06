@@ -506,7 +506,7 @@ async function leave(): Promise<void> {
 				</button>
 				<a class="button button--small bar__view" :href="config.site.url" target="_blank" rel="noopener">
 					<AdminIcon name="external-link" />
-					<span>View site</span><span class="visually-hidden"> (new tab)</span>
+					<span>View Site</span><span class="visually-hidden"> (new tab)</span>
 				</a>
 				<MenuButton button-class="account" :label="`Account: ${session.account?.displayName ?? ''}`">
 					<template #button>

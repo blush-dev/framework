@@ -216,7 +216,7 @@ async function submit(): Promise<void> {
 			</div>
 
 			<div class="submit-row">
-				<button type="submit" class="button button--primary" :disabled="busy || username === '' || email.trim() === '' || usernameProblem !== '' || chosen.length === 0">{{ busy ? 'Creating…' : 'Create account' }}</button>
+				<button type="submit" class="button button--primary" :disabled="busy || username === '' || email.trim() === '' || usernameProblem !== '' || chosen.length === 0">{{ busy ? 'Creating…' : 'Create Account' }}</button>
 				<p class="submit-row__why">Next, you'll get a one-time link to send them. It works for a week.</p>
 				<p v-if="error && field === null" class="field__error" role="alert">{{ error }}</p>
 				<p v-else class="visually-hidden" role="alert">{{ error }}</p>

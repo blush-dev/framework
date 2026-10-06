@@ -100,7 +100,7 @@ function revert(): void {
 async function reset(): Promise<void> {
 	removal.value = '';
 
-	if (!await confirmAction({ title: `Reset ${props.type.labels.plural}?`, body: `It goes back to how ${source.value} defines it: **${file.value}** is removed, and every change made here with it.`, confirm: 'Reset the type', danger: true })) {
+	if (!await confirmAction({ title: `Reset ${props.type.labels.plural}?`, body: `It goes back to how ${source.value} defines it: **${file.value}** is removed, and every change made here with it.`, confirm: 'Reset the Type', danger: true })) {
 		return;
 	}
 
@@ -116,7 +116,7 @@ async function reset(): Promise<void> {
 async function remove(): Promise<void> {
 	removal.value = '';
 
-	if (!await confirmAction({ title: `Delete the ${props.type.labels.plural} Type?`, body: [`Its file in user/data/types is removed.`, `Its entries stay in **user/content/${props.type.folder}**, but nothing lists them until a type claims the folder again.`], confirm: 'Delete the type', danger: true })) {
+	if (!await confirmAction({ title: `Delete the ${props.type.labels.plural} Type?`, body: [`Its file in user/data/types is removed.`, `Its entries stay in **user/content/${props.type.folder}**, but nothing lists them until a type claims the folder again.`], confirm: 'Delete the Type', danger: true })) {
 		return;
 	}
 
@@ -218,7 +218,7 @@ guardLeave(() => changed.value);
 		</DangerZone>
 		<DangerZone v-else :error="removal">
 			Removes its file. Its entries stay on disk, unlisted until a type claims <code>user/content/{{ type.folder }}</code> again. A taxonomy that groups it must stop first.
-			<template #action><button type="button" class="button button--danger" @click="remove"><AdminIcon name="x" />Delete this type</button></template>
+			<template #action><button type="button" class="button button--danger" @click="remove"><AdminIcon name="x" />Delete This Type</button></template>
 		</DangerZone>
 
 		<SaveBar :count="count" :failure="failure" :saving="saving" @revert="revert" />

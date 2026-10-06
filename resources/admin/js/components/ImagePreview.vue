@@ -87,7 +87,7 @@ function loaded(event: Event): void {
 		</span>
 	</div>
 	<div v-else class="image-preview image-preview--empty" :class="{ 'image-preview--wide': wide }">
-		<button type="button" class="button" @click="emit('pick')"><AdminIcon name="image" />Choose an image</button>
+		<button type="button" class="button" @click="emit('pick')"><AdminIcon name="image" />Choose an Image</button>
 	</div>
 	<p v-if="src" class="field__help mono image-preview__about">
 		{{ src }}<template v-if="missing"> · not found</template><template v-else-if="size"> · {{ size }}</template>

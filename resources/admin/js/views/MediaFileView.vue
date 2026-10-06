@@ -220,7 +220,7 @@ async function remove(): Promise<void> {
 			'This can\'t be undone.'
 		];
 
-	if (!await confirmAction({ title: `Delete ${mediaName(item)}?`, body, confirm: 'Delete the file', danger: true })) {
+	if (!await confirmAction({ title: `Delete ${mediaName(item)}?`, body, confirm: 'Delete the File', danger: true })) {
 		return;
 	}
 

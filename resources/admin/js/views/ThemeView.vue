@@ -142,7 +142,7 @@ async function remove(): Promise<void> {
 			<template v-if="theme.active">
 				<span class="pill pill--good">Active</span>
 				<span v-if="fallbackMessage(theme)" class="pill pill--warn">Not running</span>
-				<a class="button" :href="config.site.url" target="_blank" rel="noopener"><AdminIcon name="external-link" />View site<span class="visually-hidden"> (new tab)</span></a>
+				<a class="button" :href="config.site.url" target="_blank" rel="noopener"><AdminIcon name="external-link" />View Site<span class="visually-hidden"> (new tab)</span></a>
 			</template>
 			<template v-else-if="theme.blocked">
 				<span class="pill pill--warn">Can't activate</span>
@@ -150,7 +150,7 @@ async function remove(): Promise<void> {
 			</template>
 			<button v-else-if="busy === theme.name" type="button" class="button" disabled><span class="spin" aria-hidden="true" />Activating…</button>
 			<button v-else-if="canActivate" type="button" class="button" :class="failed?.name === theme.name ? 'button--danger' : 'button--primary'" :disabled="busy !== null" @click="activate(theme)">
-				{{ failed?.name === theme.name ? 'Try again' : `Activate ${theme.label}` }}
+				{{ failed?.name === theme.name ? 'Try Again' : `Activate ${theme.label}` }}
 			</button>
 		</div>
 	</header>
@@ -253,7 +253,7 @@ async function remove(): Promise<void> {
 			</p>
 			<DangerZone v-else-if="canDelete && theme.deletable">
 				{{ deleteNote }}
-				<template #action><button type="button" class="button button--danger" @click="remove"><AdminIcon name="trash-2" />Delete theme</button></template>
+				<template #action><button type="button" class="button button--danger" @click="remove"><AdminIcon name="trash-2" />Delete Theme</button></template>
 			</DangerZone>
 		</div>
 	</template>

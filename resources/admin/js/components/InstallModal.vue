@@ -51,8 +51,8 @@ const emit = defineEmits<{
 
 const KINDS: Record<InstallKind, { title: string; noun: string; plural: string; path: string; capability: string; drag: string; next: string; after: string }> = {
 	'theme': { title: 'Install Theme', noun: 'theme', plural: 'Themes', path: '/themes', capability: 'extensions.themes', drag: 'Drag a Theme Here', next: 'Activate', after: 'and nothing is activated' },
-	'plugin': { title: 'Install Plugin', noun: 'plugin', plural: 'Plugins', path: '/plugins', capability: 'extensions.plugins', drag: 'Drag a Plugin Here', next: 'Turn on', after: 'and arrives turned off' },
-	'icon-pack': { title: 'Install Icon Pack', noun: 'icon pack', plural: 'Icon Packs', path: '/icon-packs', capability: 'extensions.icon-packs', drag: 'Drag an Icon Pack Here', next: 'Turn on', after: 'and arrives turned off' }
+	'plugin': { title: 'Install Plugin', noun: 'plugin', plural: 'Plugins', path: '/plugins', capability: 'extensions.plugins', drag: 'Drag a Plugin Here', next: 'Turn On', after: 'and arrives turned off' },
+	'icon-pack': { title: 'Install Icon Pack', noun: 'icon pack', plural: 'Icon Packs', path: '/icon-packs', capability: 'extensions.icon-packs', drag: 'Drag an Icon Pack Here', next: 'Turn On', after: 'and arrives turned off' }
 };
 
 type Phase = 'idle' | 'working' | 'done' | 'clash' | 'error';
@@ -165,7 +165,7 @@ const replaceLabel = computed(() => {
 	const from = clash.value?.installed.version ?? '';
 	const to   = clash.value?.incoming.version ?? '';
 
-	return from !== '' && to !== '' ? `Replace ${from} with ${to}` : 'Replace it';
+	return from !== '' && to !== '' ? `Replace ${from} with ${to}` : 'Replace It';
 });
 </script>
 
@@ -181,7 +181,7 @@ const replaceLabel = computed(() => {
 				<AdminIcon name="upload" />
 				<p class="drop__heading">{{ k.drag }}</p>
 				<p class="drop__text">A .zip of the {{ k.noun }} folder. It's unpacked into <code>extensions/</code> at the name in its manifest, {{ k.after }}.</p>
-				<button type="button" class="button button--primary" :disabled="problem !== null" @click="pick">Choose file</button>
+				<button type="button" class="button button--primary" :disabled="problem !== null" @click="pick">Choose File</button>
 				<p v-if="limit > 0" class="drop__hint">Up to {{ size(limit) }} · ZIP</p>
 			</div>
 		</template>
@@ -256,7 +256,7 @@ const replaceLabel = computed(() => {
 			<template v-else-if="phase === 'error' && failure">
 				<button type="button" class="button" @click="emit('close')">Cancel</button>
 				<button v-if="failure.kind && can(`${KINDS[failure.kind].capability}.view`)" type="button" class="button" @click="emit('hop', failure.kind)">Go to {{ KINDS[failure.kind].plural }}</button>
-				<button type="button" class="button button--primary" autofocus @click="pick">Choose another file</button>
+				<button type="button" class="button button--primary" autofocus @click="pick">Choose Another File</button>
 			</template>
 			<template v-else-if="phase === 'clash'">
 				<button type="button" class="button" autofocus @click="emit('close')">Cancel</button>

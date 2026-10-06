@@ -7,6 +7,7 @@
 import { ref } from 'vue';
 import { entryRoute, request, type ContentTypeSummary, type TypeLabels } from './api';
 import { humanize } from './fields';
+import { titleCase } from './format';
 import type { IconName } from './icons';
 import { iconMask, loadIcons } from './site-icons';
 
@@ -107,7 +108,7 @@ export function labelsOf(name: string): TypeLabels {
 	const singular = humanize(name);
 	const item     = name.replace(/[_-]+/g, ' ').trim();
 
-	return { singular, plural: singular, menu: singular, item, items: item, newItem: `New ${item}`, editItem: `Edit ${item}`, searchItems: `Search ${item}` };
+	return { singular, plural: singular, menu: singular, item, items: item, newItem: titleCase(`New ${item}`), editItem: `Edit ${item}`, searchItems: `Search ${item}` };
 }
 
 /**

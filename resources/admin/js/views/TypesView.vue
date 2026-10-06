@@ -128,7 +128,7 @@ function origin(type: ContentTypeSummary): string {
 		</div>
 		<EmptyState v-else icon="search" heading="No Types Match" text="Nothing matches the search and kind.">
 			<template #actions>
-				<button type="button" class="button" @click="search = ''; kind = 'all'">Clear filters</button>
+				<button type="button" class="button" @click="search = ''; kind = 'all'">Clear Filters</button>
 			</template>
 		</EmptyState>
 		<p v-if="loaded" class="visually-hidden" role="status">{{ plural(shown.length, 'type') }} shown</p>

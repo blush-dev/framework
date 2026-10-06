@@ -121,7 +121,7 @@ async function submit(): Promise<void> {
 
 		<div class="submit-row submit-row--tight">
 			<p v-if="error && field !== 'name'" class="field__error" role="alert">{{ error }}</p>
-			<button type="submit" class="button button--primary" :disabled="busy || label.trim() === '' || key === '' || keyProblem !== ''">{{ busy ? 'Creating…' : 'Create role' }}</button>
+			<button type="submit" class="button button--primary" :disabled="busy || label.trim() === '' || key === '' || keyProblem !== ''">{{ busy ? 'Creating…' : 'Create Role' }}</button>
 		</div>
 	</form>
 </template>

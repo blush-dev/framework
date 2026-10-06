@@ -15460,3 +15460,52 @@ decision, add a new entry that supersedes it and mark the old one
   entry's date, as other flat-file systems with dated names (Statamic)
   do; and as in other systems (WordPress, Drupal), a date only moves
   when someone changes it.
+
+### D-520: The editor's buttons show the save state
+- **Date:** 2026-10-06
+- **Status:** Built. Refines D-245 and D-280 (the header's save state
+  and status pill).
+- **Decision:** from the author:
+  - **Save draft beside Publish.** A draft the account can publish has
+    a ghost **Save draft** button before the primary (**Publish** or
+    **Schedule**), for saving changes without publishing. It leaves the
+    ⋮ menu, whose Entry section keeps **Switch to draft** for a
+    scheduled or live entry. An account that can't publish still has
+    **Save draft** as its primary.
+  - **No save-state text or status chip in the header.** The pressed
+    button reads **Saving…** while it saves and **Waiting…** while a
+    save waits for the connection (its title says why); a plain save's
+    button (**Save draft**, **Update**) reads **Saved** once there's
+    nothing left to save, and is off until the next change. Failures
+    and conflicts keep their bars. The status is the drawer's Status
+    value. The save state is still in a visually hidden live region.
+- **Why:** the author: state should be shown by the buttons, not extra
+  text.
+
+### D-521: Buttons are in Title Case
+- **Date:** 2026-10-06
+- **Status:** Built. Departs from the direction's §10 (`90-conventions.md`:
+  "buttons … stay sentence case"); refines D-268's Title Case for names.
+- **Decision:** from the author: every visible button label in the
+  admin is in Title Case, as headings are (**Save Draft**, **Clear
+  Filters**, **Move to Trash**), with small words lowercase unless they
+  lead, as §10 sets them. That covers buttons in templates, labels set in
+  scripts (dialog confirms, save bars, toasts' actions), and the editor's
+  primary and secondary. Menu items, links in text, form labels, hints,
+  toasts' messages, and an icon button's hidden name stay sentence case.
+  In the editor, **Save Draft** sits before the settings button, which
+  sits before the primary (refines D-520).
+- **Why:** the author: buttons should always be title case in the
+  admin, just like headings.
+
+### D-522: A type's new label is in Title Case
+- **Date:** 2026-10-06
+- **Status:** Built. Follows D-521.
+- **Decision:** `TypeLabels::$newItem` defaults to "New " and the
+  singular in Title Case ("New Post", "New Literary Form", "New Book of
+  the Month"), not "New {item}", since it labels buttons (the
+  Dashboard's, the list's, the reference picker's). A `newItem` a type
+  sets is used as written. Labels files stored before keep only labels
+  that differed from the old default, so none change.
+- **Why:** the author, on D-521: "change it to New Post".
+

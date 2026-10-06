@@ -3,7 +3,7 @@
  * Edits an entry (D-229, D-233), as a writing surface (admin.md §8,
  * D-245): one centered column with the title as part of the document and
  * the Markdown body under it (`MarkdownEditor`, D-241); a header with
- * where you are, the save state, the status, and the actions; and a
+ * where you are and the actions, whose buttons show the save state; and a
  * footer with the breadcrumb, and words and reading time. It opens with
  * the section panel closed (the layout collapses it while it's open), and
  * the settings drawer as it was left (`drawer.ts`, D-299). Settings are a
@@ -117,7 +117,6 @@ import MenuButton from '../components/MenuButton.vue';
 import OptionsGroup from '../components/OptionsGroup.vue';
 import OutlineList, { type OutlineRow } from '../components/OutlineList.vue';
 import RawValues from '../components/RawValues.vue';
-import StatusPill from '../components/StatusPill.vue';
 import AdminSelect, { type SelectOption } from '../components/AdminSelect.vue';
 import TabBar from '../components/TabBar.vue';
 import TypeIcon from '../components/TypeIcon.vue';
@@ -201,7 +200,8 @@ const slug     = ref('');
 const form     = ref<Record<string, FormValue>>({});
 const initial  = ref<EditorState | null>(null);
 const error    = ref('');
-const saving   = ref(false);
+// The save under way, with the status it's moving the entry to.
+const saving   = ref<{ status?: EntryStatus } | null>(null);
 const savedAt  = ref<Date | null>(null);
 const notices  = ref(false);
 
@@ -591,7 +591,7 @@ async function save(status?: EntryStatus): Promise<void> {
 	const detail = entry.value;
 	const start  = initial.value;
 
-	if (detail === null || start === null || saving.value || conflict.value !== null || offer.value !== null) {
+	if (detail === null || start === null || saving.value !== null || conflict.value !== null || offer.value !== null) {
 		return;
 	}
 
@@ -672,7 +672,7 @@ async function save(status?: EntryStatus): Promise<void> {
 	change.set    = set;
 	change.remove = remove;
 
-	saving.value  = true;
+	saving.value  = { status };
 	waiting.value = null;
 
 	try {
@@ -687,7 +687,7 @@ async function save(status?: EntryStatus): Promise<void> {
 		attempted.value = false;
 		savedAt.value   = new Date();
 
-		// A plain save shows in the save state; a change of status says
+		// A plain save shows on its button; a change of status says
 		// so, and so does a new entry's first.
 		if (detail.id === null && saved.status === 'draft') {
 			toast('Saved as a draft');
@@ -710,7 +710,7 @@ async function save(status?: EntryStatus): Promise<void> {
 			failure.value = { message: errorMessage(caught, `The ${noun.value} couldn't be saved.`), status };
 		}
 	} finally {
-		saving.value = false;
+		saving.value = null;
 	}
 }
 
@@ -849,7 +849,7 @@ function differences(): Differences | null {
 async function trash(): Promise<void> {
 	const detail = entry.value;
 
-	if (detail === null || detail.id === null || !await confirmAction({ title: `Move “${detail.title || 'Untitled'}” to the Trash?`, body: 'You can restore it from the Trash tab.', confirm: 'Move to trash', danger: true })) {
+	if (detail === null || detail.id === null || !await confirmAction({ title: `Move “${detail.title || 'Untitled'}” to the Trash?`, body: 'You can restore it from the Trash tab.', confirm: 'Move to Trash', danger: true })) {
 		return;
 	}
 
@@ -873,7 +873,7 @@ const primary = computed<{ label: string; status?: EntryStatus } | null>(() => {
 	}
 
 	if (!detail.can.publish) {
-		return detail.status === 'draft' ? { label: 'Save draft' } : { label: 'Update' };
+		return detail.status === 'draft' ? { label: 'Save Draft' } : { label: 'Update' };
 	}
 
 	if (future.value) {
@@ -890,7 +890,7 @@ const secondary = computed<{ label: string; status?: EntryStatus } | null>(() =>
 		return null;
 	}
 
-	return detail.status === 'draft' ? { label: 'Save draft' } : { label: 'Switch to draft', status: 'draft' };
+	return detail.status === 'draft' ? { label: 'Save Draft' } : { label: 'Switch to draft', status: 'draft' };
 });
 
 // The Status value's menu: what each status does, in a sentence, and
@@ -1068,35 +1068,52 @@ function setVisibility(value: VisibilityName): void {
 }
 
 // Saving stops while a conflict or an offer of kept changes is open.
-const blocked = computed(() => saving.value || conflict.value !== null || offer.value !== null);
+const blocked = computed(() => saving.value !== null || conflict.value !== null || offer.value !== null);
 
 // Whether a button's save does nothing: no status change and no changes.
 function idle(action: { status?: EntryStatus }): boolean {
 	return action.status === undefined && !dirty.value;
 }
 
-const saveState = computed<{ text: string; tone?: 'warn' | 'danger' }>(() => {
-	if (conflict.value !== null) {
-		return { text: 'Not saved: changed elsewhere', tone: 'danger' };
+/**
+ * What a button says (D-520): its save under way or waiting for the
+ * connection, and **Saved** once a plain save has nothing left to do.
+ */
+function buttonLabel(action: { label: string; status?: EntryStatus }): string {
+	if (saving.value !== null && saving.value.status === action.status) {
+		return 'Saving…';
 	}
 
-	if (saving.value) {
-		return { text: 'Saving…' };
+	if (waiting.value !== null && waiting.value.status === action.status) {
+		return 'Waiting…';
+	}
+
+	return idle(action) && savedAt.value !== null ? 'Saved' : action.label;
+}
+
+// The save state, read out only: the buttons show it (D-520).
+const saveState = computed<string>(() => {
+	if (conflict.value !== null) {
+		return 'Not saved: changed elsewhere';
+	}
+
+	if (saving.value !== null) {
+		return 'Saving…';
 	}
 
 	if (waiting.value !== null) {
-		return { text: 'Waiting for a connection', tone: 'warn' };
+		return 'Waiting for a connection';
 	}
 
 	if (failure.value !== null) {
-		return { text: 'Not saved', tone: 'danger' };
+		return 'Not saved';
 	}
 
 	if (dirty.value) {
-		return { text: 'Unsaved changes' };
+		return 'Unsaved changes';
 	}
 
-	return { text: savedAt.value === null ? '' : `Saved ${savedAt.value.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}` };
+	return savedAt.value === null ? '' : `Saved ${savedAt.value.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}`;
 });
 
 // Where the changes are while they aren't saved.
@@ -2401,16 +2418,14 @@ function fieldKey(field: FieldDescription): string {
 			</template>
 			<span v-else class="skeleton editor__where-skeleton" />
 			<span class="editor__grow" />
-			<span class="editor__save" :class="saveState.tone ? `editor__save--${saveState.tone}` : undefined" aria-live="polite">
-				<span v-if="saveState.text" class="editor__save-dot" aria-hidden="true" /><span class="editor__save-text">{{ saveState.text }}</span>
-			</span>
+			<span class="visually-hidden" aria-live="polite">{{ saveState }}</span>
 			<template v-if="entry">
-				<StatusPill :status="entry.status" />
+				<button v-if="secondary && !secondary.status" type="button" class="button button--ghost button--small" :disabled="blocked || idle(secondary)" :title="waiting ? 'Waiting for a connection' : 'Save (⌘S)'" @click="save()">{{ buttonLabel(secondary) }}</button>
 				<button type="button" class="button button--ghost button--icon" :class="{ 'is-on': sideOpen }" title="Settings (⌘/)" aria-controls="editor-settings" :aria-expanded="sideOpen" @click="toggleSide">
 					<AdminIcon name="panel-right" />
 					<span class="visually-hidden">Settings</span>
 				</button>
-				<button v-if="primary" type="button" class="button button--primary button--small" :disabled="blocked || idle(primary)" @click="save(primary.status)">{{ primary.label }}</button>
+				<button v-if="primary" type="button" class="button button--primary button--small" :disabled="blocked || idle(primary)" :title="waiting ? 'Waiting for a connection' : undefined" @click="save(primary.status)">{{ buttonLabel(primary) }}</button>
 				<MenuButton button-class="button button--ghost button--icon" label="More actions">
 					<template #button>
 						<AdminIcon name="ellipsis-vertical" />
@@ -2432,8 +2447,8 @@ function fieldKey(field: FieldDescription): string {
 						<AdminIcon name="external-link" />View<span class="visually-hidden"> the live {{ noun }} (new tab)</span>
 					</a>
 					<p class="menu-heading">Entry</p>
-					<button v-if="secondary" type="button" class="menu-item" :disabled="blocked || idle(secondary)" @click="save(secondary.status)">
-						<AdminIcon name="file-text" />{{ secondary.label }}<kbd v-if="!secondary.status" class="menu-kbd">⌘S</kbd>
+					<button v-if="secondary && secondary.status" type="button" class="menu-item" :disabled="blocked" @click="save(secondary.status)">
+						<AdminIcon name="file-text" />{{ secondary.label }}
 					</button>
 					<button v-if="entry.url && entry.status === 'published'" type="button" class="menu-item" @click="copyLink">
 						<AdminIcon name="link" />Copy link
@@ -2459,8 +2474,8 @@ function fieldKey(field: FieldDescription): string {
 			<AdminIcon name="triangle-alert" />
 			<p>Your unsaved changes to this {{ noun }} from {{ formatDate(offer.kept) }} were kept in this browser when you left. Restore them to carry on where you were.</p>
 			<p class="editor__notice-buttons">
-				<button type="button" class="button button--small" @click="discard">Throw them away</button>
-				<button type="button" class="button button--small button--primary" @click="restore">Restore them</button>
+				<button type="button" class="button button--small" @click="discard">Throw Them Away</button>
+				<button type="button" class="button button--small button--primary" @click="restore">Restore Them</button>
 			</p>
 		</div>
 
@@ -2468,7 +2483,7 @@ function fieldKey(field: FieldDescription): string {
 			<AdminIcon name="triangle-alert" />
 			<p>{{ safe }}, but they weren't saved. {{ failure.message }}</p>
 			<p class="editor__notice-buttons">
-				<button type="button" class="button button--small" @click="retry">Try again</button>
+				<button type="button" class="button button--small" @click="retry">Try Again</button>
 			</p>
 		</div>
 
@@ -2476,7 +2491,7 @@ function fieldKey(field: FieldDescription): string {
 			<AdminIcon name="triangle-alert" />
 			<p>{{ plural(missing.length, 'required field is', 'required fields are') }} empty, so it wasn't published: {{ missing.map((item) => item.label).join(', ') }}. Fill {{ missing.length === 1 ? 'it' : 'them' }} in, or save it as a draft.</p>
 			<p class="editor__notice-buttons">
-				<button type="button" class="button button--small" @click="showMissing">Show me</button>
+				<button type="button" class="button button--small" @click="showMissing">Show Me</button>
 			</p>
 		</div>
 
@@ -2565,7 +2580,7 @@ function fieldKey(field: FieldDescription): string {
 					</nav>
 					<span class="editor__foot-end">
 						<button v-if="focusMode" type="button" class="editor__chip" @click="focusMode = false">
-							<AdminIcon name="x" />Leave focus mode
+							<AdminIcon name="x" />Leave Focus Mode
 						</button>
 						<span>{{ count(words, 'word') }}</span>
 						<span class="editor__sep" aria-hidden="true">·</span>
@@ -2922,39 +2937,6 @@ function fieldKey(field: FieldDescription): string {
 
 .editor__where-skeleton {
 	width: 5rem;
-}
-
-.editor__save {
-	display: inline-flex;
-	align-items: center;
-	gap: 6px;
-	margin-left: 4px;
-	color: var(--fg-3);
-	font-size: var(--text-sm);
-	white-space: nowrap;
-}
-
-.editor__save-dot {
-	width: 6px;
-	height: 6px;
-	border-radius: 50%;
-	background: var(--good-dot);
-}
-
-.editor__save--warn {
-	color: var(--warn);
-}
-
-.editor__save--warn .editor__save-dot {
-	background: var(--warn-dot);
-}
-
-.editor__save--danger {
-	color: var(--danger);
-}
-
-.editor__save--danger .editor__save-dot {
-	background: var(--danger-dot);
 }
 
 .editor__divider {
@@ -3632,8 +3614,6 @@ function fieldKey(field: FieldDescription): string {
 	}
 }
 
-/* A phone keeps the save state's dot; its words are still read out. */
-
 @media (width <= 480px) {
 	/* The menus' carets go, so the header still fits a phone. */
 	.editor__head :deep(.editor__wide) {
@@ -3645,15 +3625,6 @@ function fieldKey(field: FieldDescription): string {
 
 	.editor__head :deep(.editor__caret) {
 		display: none;
-	}
-
-	.editor__save-text {
-		position: absolute;
-		width: 1px;
-		height: 1px;
-		overflow: hidden;
-		clip-path: inset(50%);
-		white-space: nowrap;
 	}
 }
 </style>

@@ -197,7 +197,7 @@ async function remove(): Promise<void> {
 
 	removal.value = '';
 
-	if (set === null || !await confirmAction({ title: `Delete the ${set.label} Field Set?`, body: ['Its file in user/data/fields is removed, and its fields leave the types it\'s added to.', 'Entries keep their values in their files.'], confirm: 'Delete the field set', danger: true })) {
+	if (set === null || !await confirmAction({ title: `Delete the ${set.label} Field Set?`, body: ['Its file in user/data/fields is removed, and its fields leave the types it\'s added to.', 'Entries keep their values in their files.'], confirm: 'Delete the Field Set', danger: true })) {
 		return;
 	}
 
@@ -304,7 +304,7 @@ guardLeave(() => !done.value && changed.value);
 
 		<DangerZone v-if="set" :error="removal">
 			Removes its file, and its fields from the types it's added to. Entries keep their values, listed as other front matter.
-			<template #action><button type="button" class="button button--danger" @click="remove"><AdminIcon name="x" />Delete this field set</button></template>
+			<template #action><button type="button" class="button button--danger" @click="remove"><AdminIcon name="x" />Delete This Field Set</button></template>
 		</DangerZone>
 
 		<SaveBar v-if="!fresh" :count="count" :failure="failure" :saving="saving" @revert="revert" />

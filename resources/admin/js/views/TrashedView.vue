@@ -84,7 +84,7 @@ async function restore(): Promise<void> {
 async function purge(): Promise<void> {
 	const detail = item.value;
 
-	if (detail === null || !await confirmAction({ title: `Delete “${name.value}” Permanently?`, body: 'This can\'t be undone.', confirm: 'Delete permanently', danger: true })) {
+	if (detail === null || !await confirmAction({ title: `Delete “${name.value}” Permanently?`, body: 'This can\'t be undone.', confirm: 'Delete Permanently', danger: true })) {
 		return;
 	}
 
@@ -111,8 +111,8 @@ async function purge(): Promise<void> {
 		</div>
 		<div class="page-header__actions">
 			<template v-if="item">
-				<button type="button" class="button button--danger" :disabled="busy" @click="purge"><AdminIcon name="trash-2" />Delete permanently</button>
-				<button type="button" class="button button--primary" :disabled="busy" @click="restore"><AdminIcon name="refresh-cw" />Restore as a draft</button>
+				<button type="button" class="button button--danger" :disabled="busy" @click="purge"><AdminIcon name="trash-2" />Delete Permanently</button>
+				<button type="button" class="button button--primary" :disabled="busy" @click="restore"><AdminIcon name="refresh-cw" />Restore as a Draft</button>
 			</template>
 		</div>
 	</header>

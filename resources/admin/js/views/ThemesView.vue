@@ -124,10 +124,10 @@ async function remove(name: string, folder: string, falling: ThemeSummary[] = []
 				<AdminIcon name="triangle-alert" /><span>{{ blockedMessage(theme) }}</span>
 			</p>
 			<template #foot>
-				<a v-if="theme.active" class="button button--small" :href="config.site.url" target="_blank" rel="noopener"><AdminIcon name="external-link" />View site<span class="visually-hidden"> (new tab)</span></a>
+				<a v-if="theme.active" class="button button--small" :href="config.site.url" target="_blank" rel="noopener"><AdminIcon name="external-link" />View Site<span class="visually-hidden"> (new tab)</span></a>
 				<button v-else-if="busy === theme.name" type="button" class="button button--small" disabled><span class="spin" aria-hidden="true" />Activating…</button>
 				<button v-else-if="canActivate" type="button" class="button button--small" :class="{ 'button--danger': failed?.name === theme.name }" :disabled="theme.blocked !== null || busy !== null" @click="activate(theme)">
-					{{ failed?.name === theme.name ? 'Try again' : 'Activate' }}<span class="visually-hidden"> {{ theme.label }}</span>
+					{{ failed?.name === theme.name ? 'Try Again' : 'Activate' }}<span class="visually-hidden"> {{ theme.label }}</span>
 				</button>
 				<ExtensionMenu :label="theme.label" :details="extensionRoute('theme', theme.name)" details-label="Theme details" :copy="theme.folder ?? undefined" :delete-label="canDelete && theme.deletable && theme.folder ? 'Delete theme' : undefined" @delete="remove(theme.label, theme.folder ?? '', dependents(theme))">
 					<template #lead>

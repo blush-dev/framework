@@ -304,7 +304,7 @@ final class ContentTypeTest extends TestCase
 			'menu'        => 'Literary forms',
 			'item'        => 'literary form',
 			'items'       => 'literary forms',
-			'newItem'     => 'New literary form',
+			'newItem'     => 'New Literary Form',
 			'editItem'    => 'Edit literary form',
 			'searchItems' => 'Search literary forms'
 		], new Taxonomy('literary_form')->labels->all());
@@ -315,6 +315,7 @@ final class ContentTypeTest extends TestCase
 		$this->assertSame(['plural' => 'People', 'newItem' => 'Add someone'], $person->toArray('person'), 'Labels made from the ones before are left out.');
 		$this->assertSame(['singular' => 'Person', 'plural' => 'People', 'newItem' => 'Add someone'], $person->toArray('human'), 'A singular the name doesn\'t make is kept.');
 		$this->assertSame('Edit person', new TypeLabels('Person', editItem: '  ')->editItem, 'A blank label is its default.');
+		$this->assertSame('New Book of the Month', new TypeLabels('Book of the month')->newItem, 'The new label is in Title Case.');
 
 		$forms = TypeLabels::fromArray(['menu' => 'Forms'], 'literary_form');
 

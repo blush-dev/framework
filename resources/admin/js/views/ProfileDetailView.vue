@@ -112,7 +112,7 @@ async function trash(): Promise<void> {
 	if (!await confirmAction({
 		title: `Move ${name.value} to the Trash?`,
 		body: [`The profile stops answering at **${current.url ?? 'its address'}**, and every archive that falls back to it shows no bio.`, credited, 'Trash is reversible: restoring brings it back as a draft.'],
-		confirm: 'Move to trash',
+		confirm: 'Move to Trash',
 		danger: true
 	})) {
 		return;
@@ -136,7 +136,7 @@ async function write(row: ProfileAppearance): Promise<void> {
 	if (!await confirmAction({
 		title: `Write a ${row.label} Page?`,
 		body: [`**${row.archive ?? 'The archive'}** currently shows this profile's own body. Writing a page gives that archive its own content for ${row.typeLabel} only.`, 'It\'s an ordinary entry with its own status, created as a draft. Moving it to the trash puts the archive back on the profile\'s body.'],
-		confirm: 'Create the page'
+		confirm: 'Create the Page'
 	})) {
 		return;
 	}
@@ -160,7 +160,7 @@ async function deletePage(row: ProfileAppearance): Promise<void> {
 	if (!await confirmAction({
 		title: `Move the ${row.label} Page to the Trash?`,
 		body: [row.archive ? `**${row.archive}** falls back to this profile's own body, the way it did before the page was written.` : 'Its archive is off, so nothing shows it now.', `You can restore it from the ${row.typeLabel} Trash tab.`],
-		confirm: 'Move to trash',
+		confirm: 'Move to Trash',
 		danger: true
 	})) {
 		return;
@@ -187,7 +187,7 @@ async function unlink(): Promise<void> {
 	if (!account || !await confirmAction({
 		title: `Unlink ${name.value}?`,
 		body: [`The profile stays exactly as it is, with its **${plural(profile.value?.uses ?? 0, 'byline', 'bylines')}** and every archive it serves. It becomes a **guest profile**: credited on the site, unable to sign in.`, `The account **${account.username}** keeps its roles and its sign-in.`],
-		confirm: 'Unlink the profile'
+		confirm: 'Unlink the Profile'
 	})) {
 		return;
 	}
@@ -276,7 +276,7 @@ async function link(): Promise<void> {
 			<div v-if="profile" class="page-header__actions">
 				<a v-if="liveUrl" class="button" :href="liveUrl" target="_blank" rel="noopener"><AdminIcon name="external-link" />View<span class="visually-hidden"> (new tab)</span></a>
 				<button v-if="profile.status === 'draft' && profileType && canType(profileType, 'publish')" type="button" class="button" :disabled="busy === 'publish'" @click="publish">Publish</button>
-				<RouterLink v-if="editRoute" class="button button--primary" :to="editRoute"><AdminIcon name="pen-line" />Edit profile</RouterLink>
+				<RouterLink v-if="editRoute" class="button button--primary" :to="editRoute"><AdminIcon name="pen-line" />Edit Profile</RouterLink>
 				<MenuButton v-if="canUnlink || canLink || (profile.id && profileType && canType(profileType, 'delete'))" button-class="button button--icon" label="More actions" align="end">
 					<template #button><AdminIcon name="ellipsis-vertical" /></template>
 					<button v-if="canUnlink" type="button" class="menu-item" @click="unlink"><AdminIcon name="unlink" />Unlink the account</button>
@@ -337,7 +337,7 @@ async function link(): Promise<void> {
 							<div><dt>Last signed in</dt><dd>{{ when(detail.account.lastLogin) }}</dd></div>
 						</dl>
 						<div class="submit-row submit-row--tight">
-							<RouterLink class="button button--small" :to="{ name: 'account', params: { username: detail.account.username } }">Open account</RouterLink>
+							<RouterLink class="button button--small" :to="{ name: 'account', params: { username: detail.account.username } }">Open Account</RouterLink>
 							<button v-if="canUnlink" type="button" class="button button--small" :disabled="busy === 'unlink'" @click="unlink"><AdminIcon name="unlink" />Unlink</button>
 						</div>
 					</div>
@@ -353,7 +353,7 @@ async function link(): Promise<void> {
 								<span class="link-box__meta">{{ name }} is credited on the site and has archives, but cannot sign in. Linking an account gives that person the admin.</span>
 							</span>
 							<span v-if="canLink" class="link-box__buttons">
-								<button type="button" class="button button--small" @click="startLink"><AdminIcon name="link" />Link an account</button>
+								<button type="button" class="button button--small" @click="startLink"><AdminIcon name="link" />Link an Account</button>
 							</span>
 						</div>
 					</div>
@@ -413,8 +413,8 @@ async function link(): Promise<void> {
 										<button type="button" class="menu-item menu-item--danger" :disabled="busy === `${row.type}.${row.field}`" @click="deletePage(row)"><AdminIcon name="trash-2" />Move to trash</button>
 									</template>
 								</MenuButton>
-								<button v-else-if="row.archive && canType(row.type, 'create')" type="button" class="button button--small" :disabled="busy === `${row.type}.${row.field}`" @click="write(row)">Write one</button>
-								<RouterLink v-else-if="!row.archive && can('site.settings')" class="button button--ghost button--small" :to="{ name: 'content-type', params: { name: row.type } }">Type settings</RouterLink>
+								<button v-else-if="row.archive && canType(row.type, 'create')" type="button" class="button button--small" :disabled="busy === `${row.type}.${row.field}`" @click="write(row)">Write One</button>
+								<RouterLink v-else-if="!row.archive && can('site.settings')" class="button button--ghost button--small" :to="{ name: 'content-type', params: { name: row.type } }">Type Settings</RouterLink>
 							</td>
 						</tr>
 						<tr v-for="type in uncredited" :key="type.name">

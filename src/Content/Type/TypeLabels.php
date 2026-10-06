@@ -58,7 +58,8 @@ final readonly class TypeLabels
 	public string $items;
 
 	/**
-	 * The button and screen that create an entry ("New recipe").
+	 * The button and screen that create an entry ("New Recipe"), in
+	 * Title Case as the admin's buttons are (D-522).
 	 */
 	public string $newItem;
 
@@ -78,7 +79,7 @@ final readonly class TypeLabels
 	 * @param ?string $menu        Defaults to the plural.
 	 * @param ?string $item        Defaults to the singular mid-sentence.
 	 * @param ?string $items       Defaults to the plural mid-sentence.
-	 * @param ?string $newItem     Defaults to "New {item}".
+	 * @param ?string $newItem     Defaults to "New {Singular}", in Title Case.
 	 * @param ?string $editItem    Defaults to "Edit {item}".
 	 * @param ?string $searchItems Defaults to "Search {items}".
 	 */
@@ -96,7 +97,7 @@ final readonly class TypeLabels
 		$this->menu        = self::given($menu) ?? $this->plural;
 		$this->item        = self::given($item) ?? self::inSentence($singular);
 		$this->items       = self::given($items) ?? self::inSentence($this->plural);
-		$this->newItem     = self::given($newItem) ?? "New {$this->item}";
+		$this->newItem     = self::given($newItem) ?? 'New ' . self::titleCase($singular);
 		$this->editItem    = self::given($editItem) ?? "Edit {$this->item}";
 		$this->searchItems = self::given($searchItems) ?? "Search {$this->items}";
 	}
@@ -190,6 +191,24 @@ final readonly class TypeLabels
 			preg_match('/(s|x|z|ch|sh)$/i', $singular) === 1 => "{$singular}es",
 			default                                           => "{$singular}s"
 		};
+	}
+
+	/**
+	 * Returns a name in Title Case, as the admin's `titleCase()` makes
+	 * it: each word capitalized but the small ones, and capitals kept
+	 * ("Literary form" becomes "Literary Form", "Book of the month"
+	 * "Book of the Month").
+	 */
+	private static function titleCase(string $name): string
+	{
+		$small = ['a', 'an', 'and', 'as', 'at', 'but', 'by', 'for', 'from', 'in', 'into', 'nor', 'of', 'on', 'or', 'the', 'to', 'with'];
+		$words = explode(' ', $name);
+
+		foreach ($words as $index => $word) {
+			$words[$index] = $index > 0 && in_array(mb_strtolower($word), $small, true) ? mb_strtolower($word) : mb_ucfirst($word);
+		}
+
+		return implode(' ', $words);
 	}
 
 	/**

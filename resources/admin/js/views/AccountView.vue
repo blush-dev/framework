@@ -187,7 +187,7 @@ async function claimOwner(): Promise<void> {
 			'An owner can do everything, always, and only an owner can change an owner\'s account or make another owner. Nobody else can suspend, remove, or demote you.',
 			'You keep the roles you have. Once the site has an owner, only owners can make more.'
 		],
-		confirm: 'Make me the owner'
+		confirm: 'Make Me the Owner'
 	})) {
 		return;
 	}
@@ -291,7 +291,7 @@ async function unlinkProfile(): Promise<void> {
 			`The profile stays exactly as it is${page?.status === 'published' ? ': published' : ''}, with its **${plural(page?.uses ?? 0, 'byline', 'bylines')}** and every archive it serves. It becomes a **guest profile**: credited on the site, unable to sign in.`,
 			`${mine.value ? 'Your account keeps its' : 'The account keeps its'} roles and its sign-in.`
 		],
-		confirm: 'Unlink the profile'
+		confirm: 'Unlink the Profile'
 	})) {
 		return;
 	}
@@ -388,7 +388,7 @@ onBeforeUnmount(() => {
 async function makeLink(): Promise<void> {
 	const current = account.value;
 
-	if (current === undefined || (current.link !== null && !current.link.expired && !await confirmAction({ title: `Make a New Link for ${current.displayName}?`, body: 'The one they have stops working.', confirm: 'Make a new link' }))) {
+	if (current === undefined || (current.link !== null && !current.link.expired && !await confirmAction({ title: `Make a New Link for ${current.displayName}?`, body: 'The one they have stops working.', confirm: 'Make a New Link' }))) {
 		return;
 	}
 
@@ -433,7 +433,7 @@ async function setSuspended(suspended: boolean): Promise<void> {
 			'They stay in the list and keep their roles, but they\'re signed out and can\'t sign in until someone reinstates them.',
 			current.profile ? `Their profile stays as it is, and its **${plural(current.profile.uses, 'byline', 'bylines')}** are untouched: suspending an account is about signing in, not about the site.` : 'Suspending an account is about signing in, not about the site.'
 		],
-		confirm: 'Suspend the account'
+		confirm: 'Suspend the Account'
 	}))) {
 		return;
 	}
@@ -450,7 +450,7 @@ async function remove(): Promise<void> {
 	const page    = current?.profile;
 	const stays   = page ? `**${page.title || page.slug}** isn't deleted. It stays as a guest profile, keeps its **${plural(page.uses, 'byline', 'bylines')}**, and keeps serving its archives.` : 'This account has no profile, so nothing on the site changes.';
 
-	if (current === undefined || !await confirmAction({ title: `Delete ${current.displayName}?`, body: ['This can\'t be undone. The account, its roles, and its sign-in are gone for good.', stays], confirm: 'Delete the account', danger: true })) {
+	if (current === undefined || !await confirmAction({ title: `Delete ${current.displayName}?`, body: ['This can\'t be undone. The account, its roles, and its sign-in are gone for good.', stays], confirm: 'Delete the Account', danger: true })) {
 		return;
 	}
 
@@ -600,7 +600,7 @@ async function changePassword(): Promise<void> {
 		<div v-if="account && mine && claimable" class="notice notice--warn">
 			<AdminIcon name="shield" />
 			<span class="notice__text"><strong>This site has no owner.</strong> An owner can do everything, and only an owner can change an owner's account, so nobody can lock them out. You can make yourself the owner.</span>
-			<span class="notice__buttons"><button type="button" class="button button--small" :disabled="claimBusy" @click="claimOwner">{{ claimBusy ? 'Saving…' : 'Make me the owner' }}</button></span>
+			<span class="notice__buttons"><button type="button" class="button button--small" :disabled="claimBusy" @click="claimOwner">{{ claimBusy ? 'Saving…' : 'Make Me the Owner' }}</button></span>
 		</div>
 		<p v-if="claimError" class="notice notice--error" role="alert">{{ claimError }}</p>
 		<p v-else-if="account && !account.manages && account.roles.includes(OWNER)" class="notice"><AdminIcon name="info" /><span class="notice__text"><strong>{{ account.displayName }} is an owner,</strong> and only an owner can change an owner's details, roles, standing, and profile.</span></p>
@@ -609,7 +609,7 @@ async function changePassword(): Promise<void> {
 		<div v-if="account && !account.email" class="notice notice--warn">
 			<AdminIcon name="triangle-alert" />
 			<span class="notice__text"><strong>{{ mine ? 'Your account has' : 'This account has' }} no email address.</strong> Every account needs one; {{ mine ? 'yours' : 'this one' }} was made before they were asked for.</span>
-			<span v-if="canEditDetails" class="notice__buttons"><button type="button" class="button button--small" @click="startDetails('email')">Add an email address</button></span>
+			<span v-if="canEditDetails" class="notice__buttons"><button type="button" class="button button--small" @click="startDetails('email')">Add an Email Address</button></span>
 		</div>
 
 		<div v-if="account && link" class="notice">
@@ -618,7 +618,7 @@ async function changePassword(): Promise<void> {
 				<span><strong>Send this link to {{ account.displayName }}</strong> however you like, so they can choose a password. It's shown once, works once, and lasts until {{ when(link.expires) }}.</span>
 				<span class="account-link__row">
 					<input class="input mono account-link__url" :value="link.url" readonly aria-label="Password link" @focus="selectAll">
-					<button type="button" class="button button--small" @click="copyLink"><AdminIcon name="copy" />Copy link</button>
+					<button type="button" class="button button--small" @click="copyLink"><AdminIcon name="copy" />Copy Link</button>
 				</span>
 				<span class="visually-hidden" aria-live="polite">{{ copied }}</span>
 			</span>
@@ -626,7 +626,7 @@ async function changePassword(): Promise<void> {
 		<div v-else-if="account && account.status === 'invited' && account.link" class="notice">
 			<AdminIcon name="mail" />
 			<span class="notice__text"><strong>This account is waiting on its invitation.</strong> {{ account.link.expired ? `Its password link expired ${when(account.link.expires)}; make a new one to send.` : `Its password link works until ${when(account.link.expires)}.` }}</span>
-			<span v-if="linking" class="notice__buttons"><button type="button" class="button button--small" :disabled="linkBusy" @click="makeLink">{{ linkBusy ? 'Making…' : 'Make a new link' }}</button></span>
+			<span v-if="linking" class="notice__buttons"><button type="button" class="button button--small" :disabled="linkBusy" @click="makeLink">{{ linkBusy ? 'Making…' : 'Make a New Link' }}</button></span>
 		</div>
 
 		<div v-if="account" class="pair">
@@ -662,8 +662,8 @@ async function changePassword(): Promise<void> {
 					</form>
 				</div>
 				<div v-if="(mine || canEditDetails) && !editingDetails && !changing" class="panel__body panel__buttons">
-					<button v-if="mine" ref="changeButton" type="button" class="button button--small" @click="startPasswordChange"><AdminIcon name="key-round" />Change password</button>
-					<button v-if="canEditDetails" type="button" class="button button--small" @click="startDetails()">{{ mine ? 'Change name or email' : 'Edit details' }}</button>
+					<button v-if="mine" ref="changeButton" type="button" class="button button--small" @click="startPasswordChange"><AdminIcon name="key-round" />Change Password</button>
+					<button v-if="canEditDetails" type="button" class="button button--small" @click="startDetails()">{{ mine ? 'Change Name or Email' : 'Edit Details' }}</button>
 				</div>
 				<div v-if="mine && changing" class="panel__body account-password">
 					<form class="form-stack details-form" :aria-busy="passwordBusy" @submit.prevent="changePassword" @keydown.esc="stopPasswordChange">
@@ -679,7 +679,7 @@ async function changePassword(): Promise<void> {
 						</p>
 						<p v-if="passwordError" id="password-error" class="notice notice--error" role="alert">{{ passwordError }}</p>
 						<p class="submit-row submit-row--tight">
-							<button type="submit" class="button button--primary button--small" :disabled="passwordBusy">{{ passwordBusy ? 'Changing…' : 'Change password' }}</button>
+							<button type="submit" class="button button--primary button--small" :disabled="passwordBusy">{{ passwordBusy ? 'Changing…' : 'Change Password' }}</button>
 							<button type="button" class="button button--ghost button--small" :disabled="passwordBusy" @click="stopPasswordChange">Cancel</button>
 						</p>
 					</form>
@@ -697,7 +697,7 @@ async function changePassword(): Promise<void> {
 					<p v-if="!rolesChanged" class="panel__hint">An account can hold more than one</p>
 					<div v-if="editable && rolesChanged" class="panel__actions">
 						<button type="button" class="button button--small" :disabled="rolesBusy" @click="discardRoles">Discard</button>
-						<button type="button" class="button button--primary button--small" :disabled="rolesBusy" @click="saveRoles">{{ rolesBusy ? 'Saving…' : 'Save roles' }}</button>
+						<button type="button" class="button button--primary button--small" :disabled="rolesBusy" @click="saveRoles">{{ rolesBusy ? 'Saving…' : 'Save Roles' }}</button>
 					</div>
 				</header>
 				<div class="panel__body">
@@ -726,7 +726,7 @@ async function changePassword(): Promise<void> {
 						</span>
 					</span>
 					<span class="link-box__buttons">
-						<RouterLink v-if="canOpenProfile" class="button button--small" :to="{ name: 'profile-detail', params: { slug: account.profile.slug } }">Open profile</RouterLink>
+						<RouterLink v-if="canOpenProfile" class="button button--small" :to="{ name: 'profile-detail', params: { slug: account.profile.slug } }">Open Profile</RouterLink>
 						<a v-if="profileUrl" class="button button--small" :href="profileUrl" target="_blank" rel="noopener"><AdminIcon name="external-link" />View<span class="visually-hidden"> (new tab)</span></a>
 						<button v-if="account.profile.status === 'draft' && profileType !== null && canType(profileType, 'publish')" type="button" class="button button--primary button--small" :disabled="profileBusy" @click="publishProfile">Publish</button>
 						<button v-if="linking" type="button" class="button button--small" :disabled="profileBusy" @click="unlinkProfile"><AdminIcon name="unlink" />Unlink</button>
@@ -739,7 +739,7 @@ async function changePassword(): Promise<void> {
 						<span class="link-box__meta">It has no profile file yet, so bylines show the slug and there's no bio.</span>
 					</span>
 					<span class="link-box__buttons">
-						<button v-if="profileType !== null && canType(profileType, 'create')" type="button" class="button button--primary button--small" :disabled="profileBusy" @click="createLinked">{{ profileBusy ? 'Creating…' : 'Create it' }}</button>
+						<button v-if="profileType !== null && canType(profileType, 'create')" type="button" class="button button--primary button--small" :disabled="profileBusy" @click="createLinked">{{ profileBusy ? 'Creating…' : 'Create It' }}</button>
 						<button v-if="linking" type="button" class="button button--small" :disabled="profileBusy" @click="unlinkProfile"><AdminIcon name="unlink" />Unlink</button>
 					</span>
 				</div>
@@ -750,8 +750,8 @@ async function changePassword(): Promise<void> {
 						<span class="link-box__meta">{{ mine ? 'You don\'t appear on the site. Entries you write show no byline until a profile is linked.' : `${account.displayName} doesn't appear on the site. Entries they write show no byline until a profile is linked.` }}</span>
 					</span>
 					<span v-if="linking" class="link-box__buttons">
-						<button type="button" class="button button--small" @click="startLink"><AdminIcon name="link" />Link an existing one</button>
-						<button v-if="profileType !== null && canType(profileType, 'create')" type="button" class="button button--primary button--small" @click="startCreate">Create one</button>
+						<button type="button" class="button button--small" @click="startLink"><AdminIcon name="link" />Link an Existing One</button>
+						<button v-if="profileType !== null && canType(profileType, 'create')" type="button" class="button button--primary button--small" @click="startCreate">Create One</button>
 					</span>
 				</div>
 				<p v-if="profileError && profileMode === ''" class="field__error" role="alert">{{ profileError }}</p>
@@ -765,7 +765,7 @@ async function changePassword(): Promise<void> {
 		<PickModal v-if="account" v-model:pick="pick" :open="profileMode === 'link'" noun="Profile" :items="linkItems" none="Every profile already belongs to an account. Create a new one instead, and it's linked as it's made." :busy="profileBusy" :error="profileError" @close="profileMode = ''" @confirm="linkProfile">
 			Only profiles with no account are listed: a profile belongs to at most one. Entries crediting it become {{ mine ? 'yours' : 'theirs' }}.
 			<template v-if="profileType !== null && canType(profileType, 'create')" #empty>
-				<button type="button" class="button button--primary" @click="startCreate">Create a profile</button>
+				<button type="button" class="button button--primary" @click="startCreate">Create a Profile</button>
 			</template>
 		</PickModal>
 
@@ -786,7 +786,7 @@ async function changePassword(): Promise<void> {
 			<p v-if="profileError" class="field__error" role="alert">{{ profileError }}</p>
 			<template #footer>
 				<button type="button" class="button" @click="profileMode = ''">Cancel</button>
-				<button type="submit" form="create-profile" class="button button--primary" :disabled="profileBusy || newSlug === ''">{{ profileBusy ? 'Creating…' : 'Create the profile' }}</button>
+				<button type="submit" form="create-profile" class="button button--primary" :disabled="profileBusy || newSlug === ''">{{ profileBusy ? 'Creating…' : 'Create the Profile' }}</button>
 			</template>
 		</AdminModal>
 	</div>

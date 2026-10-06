@@ -65,7 +65,7 @@ function key(event: KeyboardEvent): void {
 		</div>
 		<p class="link-form__buttons">
 			<button v-if="editing" type="button" class="button button--small button--ghost" @click="emit('remove')">Remove</button>
-			<button type="submit" class="button button--small button--primary" :disabled="url.trim() === ''">{{ editing ? 'Update' : 'Add link' }}</button>
+			<button type="submit" class="button button--small button--primary" :disabled="url.trim() === ''">{{ editing ? 'Update' : 'Add Link' }}</button>
 		</p>
 	</form>
 </template>

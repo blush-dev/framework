@@ -164,7 +164,7 @@ onMounted(check);
 		<div class="page-header__actions">
 			<button type="button" class="button" :disabled="loading" @click="check">
 				<AdminIcon name="refresh-cw" />
-				{{ loading ? 'Checking…' : 'Check again' }}
+				{{ loading ? 'Checking…' : 'Check Again' }}
 			</button>
 		</div>
 	</header>

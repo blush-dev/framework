@@ -122,7 +122,7 @@ const blank = computed<FieldDescription>(() => ({ name: '', type: 'text' }));
 		/>
 
 		<div class="field-list__add">
-			<button v-if="open !== 'new'" type="button" class="button button--small" @click="open = 'new'"><AdminIcon name="plus" />Add field</button>
+			<button v-if="open !== 'new'" type="button" class="button button--small" @click="open = 'new'"><AdminIcon name="plus" />Add Field</button>
 		</div>
 	</div>
 </template>

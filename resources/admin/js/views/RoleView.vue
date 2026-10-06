@@ -157,8 +157,8 @@ async function remove(): Promise<void> {
 	}
 
 	const question = custom.value
-		? { title: `Delete the ${value.label} Role?`, body: 'This can\'t be undone.', confirm: 'Delete the role', danger: true }
-		: { title: `Reset ${value.label}?`, body: 'It goes back to the capabilities it\'s built with, and your changes to it are lost.', confirm: 'Reset the role', danger: true };
+		? { title: `Delete the ${value.label} Role?`, body: 'This can\'t be undone.', confirm: 'Delete the Role', danger: true }
+		: { title: `Reset ${value.label}?`, body: 'It goes back to the capabilities it\'s built with, and your changes to it are lost.', confirm: 'Reset the Role', danger: true };
 
 	if (!await confirmAction(question)) {
 		return;
@@ -287,7 +287,7 @@ guardLeave(() => changed.value);
 					<h3>Everything, Including What Doesn't Exist Yet</h3>
 					<p>{{ role.label }} holds every capability on every content type, and any type or capability an extension adds later is included the moment it appears. There's nothing to grant here, so there's nothing to draw.</p>
 					<p>Only an owner can give this role, or change an owner's account, so whoever holds it can't be locked out. Administrator is the role to give anyone else who runs the site; an owner can change what it allows.</p>
-					<RouterLink v-if="holders.length" class="button" :to="holdersLink"><AdminIcon name="users" />{{ holders.length === 1 ? 'See the account that holds it' : 'See the accounts that hold it' }}</RouterLink>
+					<RouterLink v-if="holders.length" class="button" :to="holdersLink"><AdminIcon name="users" />{{ holders.length === 1 ? 'See the Account That Holds It' : 'See the Accounts That Hold It' }}</RouterLink>
 				</div>
 			</div>
 		</section>

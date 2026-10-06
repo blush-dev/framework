@@ -64,13 +64,13 @@ the last go back to them.
 
 **Search or jump to…** in the top bar (or ⌘K, Ctrl+K on Windows and
 Linux) opens the command palette: type to find a screen, a command such
-as **New post**, or an entry by its title, then press Enter. In the
+as **New Post**, or an entry by its title, then press Enter. In the
 editor, the editor's own commands come first, such as **Focus mode**
 and **Insert media**.
 
 The editor hides the panel while you write and puts it back as it was
 when you leave. On a narrow screen, the button at the top left opens
-the rail and panel as a menu instead. **View site** opens your site in a new tab, and
+the rail and panel as a menu instead. **View Site** opens your site in a new tab, and
 the round button at the top right has **Your account** and **Sign out**.
 
 ## Your account
@@ -82,15 +82,15 @@ password, email address, display name, and the admin's look are yours
 to change, and your roles and standing aren't (someone else who
 manages accounts changes those). While the site has no
 [owner](accounts.md#owners), anyone who can do all an Administrator
-can sees **Make me the owner** here. It shows your username, email address, display name
+can sees **Make Me the Owner** here. It shows your username, email address, display name
 (what the admin calls you), when the account was made and last signed
 in, your roles, and your **Public Profile**: the
 [profile](content-types.md#built-in-types) your account is linked to,
-your public name and bio on the site. **Change name or email** changes
+your public name and bio on the site. **Change Name or Email** changes
 your display name (left empty, the admin uses your profile's title,
 then your username) and your email address, which every account needs.
-**Open profile**
-shows the profile's screen, where **Edit profile** opens it in the
+**Open Profile**
+shows the profile's screen, where **Edit Profile** opens it in the
 editor like any entry; its slug can't change, since your account is
 linked by it. When your account is linked to a profile with no file
 yet, **Create it** starts it as a draft (publish it to show your name)
@@ -105,7 +105,7 @@ device's setting (the default). Each choice is saved with your
 account, so it follows you to every device you sign in on, and it only
 changes what you see: someone else on the same site keeps their own.
 
-**Change password** asks for your current password and a new one (at
+**Change Password** asks for your current password and a new one (at
 least 12 characters, unless your site sets another length). You stay
 signed in where you changed it, and you're signed out on every other
 device. Too many wrong current passwords lock you out of changing it
@@ -198,7 +198,7 @@ A filter with nothing to offer isn't shown.
 - **Updated** shows only the entries changed in the last 7, 30, or 90
   days.
 
-**Clear filters** turns them all off, and the tabs' counts follow the
+**Clear Filters** turns them all off, and the tabs' counts follow the
 filters. The Trash tab takes only the search. The two buttons at the end
 of the row switch between roomy rows and compact ones, which leave out
 the address line; your browser remembers the choice.
@@ -214,7 +214,7 @@ so going back or sharing the link keeps them.
 To change several entries at once, tick their checkboxes (the box in the
 header ticks every entry on the page). A bar appears at the bottom with
 how many you've chosen and what you can do to them: **Publish** (if your
-account can publish), **Move to draft**, and **Move to trash** (if it can
+account can publish), **Move to Draft**, and **Move to Trash** (if it can
 delete). **Clear** unticks them all, and so does moving to another tab,
 filter, sort, or page. Publishing dates an undated entry now, as it does
 in the editor, and leaves out any entry with a required field empty. A
@@ -282,7 +282,7 @@ A type with no entries yet skips the tabs and search: it says what the
 type is for (its `description`, if it has one) and offers to create the first one. A site with no content
 at all shows the same offer on the dashboard, one step per type.
 
-**New post** (named for the type you're looking at) opens the editor on
+**New Post** (named for the type you're looking at) opens the editor on
 a new post, with the cursor in the title. Nothing is written until you
 save: the first save creates the file, named for the title (or the slug,
 if you give one in the settings), as a draft unless you publish or
@@ -381,23 +381,26 @@ side is what you do to the text, in three groups:
 
 One of these is open at a time: opening a menu, the link form, or a
 picker closes the component panel and anything else open. Its right
-side says whether your changes are
-saved and the entry's status, then has the settings button, the main
-button, and a **⋮** menu in two parts: **View** (the settings panel,
+side has the settings button, **Save Draft** beside the main button
+while the entry is a draft you can publish, the main button, and a
+**⋮** menu in two parts: **View** (the settings panel,
 the **Outline**, **Focus mode**, and **Preview**, or **View** once it's
 live; a preview shows the entry as last saved) and
-**Entry** (**Save draft** or **Switch to draft**, **Copy link** once
+**Entry** (**Switch to draft** once it's scheduled or live, **Copy link** once
 it's live, **Duplicate**, and **Move to trash**), with their shortcuts.
 The main button depends on the entry:
 
 | The entry is... | You can |
 |---|---|
-| A draft | **Save draft**, or **Publish** (or **Schedule**, when the publish date is in the future) |
+| A draft | **Save Draft**, or **Publish** (or **Schedule**, when the publish date is in the future) |
 | Scheduled | **Update**, **Publish** once its date is past, or **Switch to draft** |
 | Published | **Update** (or **Schedule**, with a future date), or **Switch to draft** |
 
-**Update** and **Save draft** stay off until you change something, since
-there's nothing to save yet.
+The buttons show whether your changes are saved: **Update** and **Save
+draft** stay off until you change something, since there's nothing to
+save yet; the one you pressed reads **Saving…** while it saves; and
+once it's done, it reads **Saved** until you change something again. The
+entry's status is in the settings, under its publishing.
 
 The settings (⌘/ or Ctrl+/) open beside the text and push it aside, on
 the element the cursor is in when it's in one, else on the entry's tab;
@@ -601,7 +604,7 @@ its caption. A video goes in as a video, an audio file as audio, and anything
 else as a download, and their options open in the settings.
 
 The Upload tab takes files from your computer: drag them anywhere onto
-the picker, or use **Choose files**. It says how large a file may be and
+the picker, or use **Choose Files**. It says how large a file may be and
 which types the library takes. Each one goes into `user/media` under the
 year and month (`user/media/2026/09/`), with its name made safe for an
 address (`My Photo.JPG` becomes `My-Photo.jpg`), or the folder the
@@ -666,7 +669,7 @@ default applies. A component that takes a line of text has it here as
 attributes that aren't options of the component are listed but edited in
 the text.
 
-**Remove component** takes the component out: a container with
+**Remove Component** takes the component out: a container with
 everything inside it, a line component with its line, and an inline
 component leaving its text in the sentence. Undo in the text puts it
 back.
@@ -717,13 +720,13 @@ Your changes aren't lost:
 
 - **Unsaved changes stay in your browser** as you type, and as you
   leave the editor or the page. If you go elsewhere in the admin, the
-  tab closes, you reload, or the browser crashes, open the entry again and choose **Restore them** (or **Throw
-  them away**). They're only in that browser until you save.
+  tab closes, you reload, or the browser crashes, open the entry again and choose **Restore Them** (or **Throw
+  Them Away**). They're only in that browser until you save.
 - **Offline**, a bar under the top bar says so, and you can keep
-  writing. A save you ask for shows **Waiting for a connection** and goes
+  writing. A save you ask for shows **Waiting…** on its button and goes
   ahead once you're back online.
 - **A save that fails** (a server error, say) shows **Not saved** and a
-  **Try again** button.
+  **Try Again** button.
 - **A save that adds HTML your role can't add** is refused, naming
   what (`<iframe>`, say). The editor marks such HTML, and links to
   `javascript:` addresses, with a wavy red underline as you type, along
@@ -733,8 +736,8 @@ Your changes aren't lost:
 - **If the entry changed after you opened it** (someone else saved it,
   or its file was edited or pulled from git), the editor stops saving
   and says when it changed. **Compare** shows the fields and body lines
-  that differ; **Keep theirs** throws your changes away for their
-  version; **Keep mine** saves your version of everything the editor
+  that differ; **Keep Theirs** throws your changes away for their
+  version; **Keep Mine** saves your version of everything the editor
   shows over theirs.
 
 **Move to trash** takes the entry off your site and puts it in the
@@ -765,7 +768,7 @@ entry. They
 can be changed by whoever uploaded the file (`media.edit`), or by anyone
 with `media.edit.others`, which files with no uploader recorded need;
 otherwise they're shown read-only. Changes wait in the **save bar** at
-the bottom, which counts them: **Save changes** saves them, and
+the bottom, which counts them: **Save Changes** saves them, and
 **Revert** puts them back.
 
 A file's screen also says who uploaded it, and lists the entries that
@@ -806,7 +809,7 @@ taxonomies too, with where it's defined, how many fields it has, and how
 many entries. Tabs narrow it to one kind (Collections, Trees,
 Taxonomies, Profiles; only the kinds the site has), beside a search.
 Choose one for its settings, the taxonomies that group it,
-and its fields; **Type settings** on a type's list goes there too.
+and its fields; **Type Settings** on a type's list goes there too.
 
 Types in `user/data/types` are edited on their screen. So are
 collections, taxonomies, and [trees](content-types.md#trees) from
@@ -843,7 +846,7 @@ Created** beside them:
 3. **Fields:** the fields its entries carry beside the title, slug,
    status, dates, and body.
 
-**Create type** writes `user/data/types/{key}.json`, the index page
+**Create Type** writes `user/data/types/{key}.json`, the index page
 as `index.md` in its folder, titled with the plural name, and the
 authors page, when chosen, as `_authors.md`, titled "Authors".
 
@@ -886,14 +889,14 @@ In **Fields**, open a field to change its
 label, key, type, help, whether it's required, its default, and its
 type's options (a number's limits and whole numbers, a choice's options,
 a list's item type, a reference's type and whether it takes more than
-one), move fields up or down, or remove one; **Add field** adds one.
+one), move fields up or down, or remove one; **Add Field** adds one.
 Groups of fields (`object`) are kept as written; edit those in the file.
 A field whose type can be edited more than one way has **Edited with**:
 a choice as a menu or radio buttons, text on one line, several, or in
 code type, a list of choices as checkboxes (see
 [How the admin edits a field](content-types.md#how-the-admin-edits-a-field)).
 The field types offered include ones plugins add. Changes wait in the
-**save bar** at the bottom, which counts them: **Save changes** writes
+**save bar** at the bottom, which counts them: **Save Changes** writes
 them, and **Revert** puts them back.
 
 **Field Sets** lists the [field sets](#fields) added to the type, each
@@ -905,7 +908,7 @@ that doesn't fit with the other types, such as two types in one folder,
 is refused with the reason, and the file is left as it was. The site
 uses a change on the next request.
 
-**Delete this type** removes its file. Its entries stay in its folder,
+**Delete This Type** removes its file. Its entries stay in its folder,
 unlisted until a type claims the folder again. A type a taxonomy groups
 can't be deleted until the taxonomy stops grouping it.
 
@@ -939,12 +942,12 @@ Field Set** writes
 `user/data/fields/{key}.json`.
 
 A set's screen edits the same things; changes wait in the **save bar**:
-**Save changes** writes them, or **Revert** puts them back. Only what you change is written,
+**Save Changes** writes them, or **Revert** puts them back. Only what you change is written,
 and the rest of the file stays as you wrote it, comments included. A set
 can't use a field name a type it's added to already has: that's refused
 with the reason, and the file is left as it was.
 
-**Delete this field set** removes its file, and its fields leave the
+**Delete This Field Set** removes its file, and its fields leave the
 types it was added to. Entries keep their values, shown as other front
 matter.
 
@@ -1035,7 +1038,7 @@ file behind them: a saved one has **Clear it** instead (see
 [Your own settings](themes.md#your-own-settings)).
 
 Change something and a bar at the bottom counts your unsaved changes,
-with **Revert** and **Save changes**; leaving the screen with changes
+with **Revert** and **Save Changes**; leaving the screen with changes
 unsaved asks first. Saving keeps them in `user/data/settings.json`, where
 they win over `config/` and `.env`, and they take effect on the next
 page load, with nothing to compile. Each setting is a row: its name, its
@@ -1077,7 +1080,7 @@ theme it falls back to.
 - The **⋯** menu opens the theme's details, copies its folder path or
   its `theme:activate` command, and in development, **Preview on the site** opens the site
   with that theme (`?theme={name}`, see [Themes](themes.md)).
-- **Delete theme** (in the menu) removes a theme's folder from
+- **Delete Theme** (in the menu) removes a theme's folder from
   `extensions/`, after asking. The active theme, and any theme it falls
   back to, can't be deleted; activate another first. Themes installed
   with Composer are removed with `composer remove`, and the default
@@ -1090,7 +1093,7 @@ license (common open source licenses link to their text), links and
 where to sponsor it, folder, namespace, and type, the theme it falls back to and the themes
 that fall back to it, the extensions that require it, its requirements
 (checked as if it were active), and its palette's six colors. **Activate** and
-**Delete theme** are there too; a theme the site uses says why it can't
+**Delete Theme** are there too; a theme the site uses says why it can't
 be deleted, and a Composer theme gives the `composer remove` command.
 Broken themes have no details page.
 
@@ -1106,7 +1109,7 @@ that can't be installed says why, with nothing written. A zip of a
 plugin or icon pack offers that screen instead. See
 [Installing from a zip](extending.md#installing-from-a-zip) for what's
 checked. **Install Plugin** and **Install Icon Pack** work the same way,
-with **Turn on** as the next step. An
+with **Turn On** as the next step. An
 [abandoned](extending.md#plugins) theme, plugin, or pack is marked
 **Abandoned** on its card, and its details say its author no longer
 maintains it, naming the package to use instead (linked, when it's
@@ -1122,7 +1125,7 @@ also provide it ([the other side](extending.md#seeing-it-from-the-other-side)),
 and turning one on (or activating a theme) asks first when it would stop
 others, naming them. After a replace, the details screen
 of a theme, plugin, or pack has the version that was kept, with **Roll
-back** and **Discard** (see
+Back** and **Discard** (see
 [Installing from a zip](extending.md#installing-from-a-zip)).
 
 How the admin itself looks is set per account, on **Your Account**.
@@ -1153,7 +1156,7 @@ details: who made it, its version, license (common open source
 licenses link to their text), its links (homepage, documentation,
 issues, and the rest; email addresses aren't shown) and where to sponsor it, folder, and namespace, the
 extensions of any kind that require it, and each of its requirements,
-checked against this site, a required extension linked to its details. **Delete plugin** removes a plugin's folder from
+checked against this site, a required extension linked to its details. **Delete Plugin** removes a plugin's folder from
 `extensions/` once it's off; a Composer plugin is removed with
 `composer remove` instead. **Install Plugin** installs one from a `.zip`,
 as **Install Theme** does; it arrives turned off.
@@ -1180,7 +1183,7 @@ on, Composer's included. The switches are saved in `user/data/settings.json`, ov
 opens its details (who made it, its version, its license, links, and
 where to sponsor it, the extensions that require it, and its
 requirements, as a plugin's are) and every icon in it, with a filter; click one to copy how it's used
-(`weather/sun`). **Delete icon pack** removes a pack's folder (or a
+(`weather/sun`). **Delete Icon Pack** removes a pack's folder (or a
 broken pack's) from `extensions/`. **Install Icon Pack** installs one
 from a `.zip`, as **Install Theme** does; it arrives turned off.
 
@@ -1209,13 +1212,13 @@ name opens the profile's screen:
 
 - **All profiles** above the name goes back to the list. The header has
   its address, status, and bylines, with **View**, **Publish** (for a
-  draft), **Edit profile** (the editor, where the title, the byline
+  draft), **Edit Profile** (the editor, where the title, the byline
   title, the avatar, and the bio are written), and a **⋮** to unlink
   or link an account, or move the profile to the trash.
 - **Identity** shows what a byline renders: the display name, slug,
   **byline title** (shown under the name), and the avatar.
 - **Linked Account** shows the account (at most one), its standing and
-  last sign-in, with **Open account** and, if you manage it,
+  last sign-in, with **Open Account** and, if you manage it,
   **Unlink**. Unlinking leaves the profile and its bylines, as a guest
   profile, and the account goes by its username. A guest profile can
   be linked here to an account that has no profile.
@@ -1223,7 +1226,7 @@ name opens the profile's screen:
   profile field of each type that credits people: its archive address,
   how many entries credit them there, and where the archive's body
   comes from: **Inherited** (the profile's own) or **Written** (a page
-  written for that archive). **Write one** creates that page, a draft
+  written for that archive). **Write One** creates that page, a draft
   titled with the profile's name, and opens it; **Edit** opens it, or
   **Move to trash** puts the archive back on the profile's body (the
   page can be restored from its type's Trash tab). A field whose archive is off
@@ -1243,7 +1246,7 @@ circle), the email address (**No email** for one made before they were
 asked for), roles, its **Profile** (its name, with its status when
 it isn't published yet, or the slug when it's linked to a profile with
 no file), and the last sign-in; its **⋮** opens the account or its
-profile, copies the email address, or makes a password link. **New account** makes one; **Roles** lists each role with its
+profile, copies the email address, or makes a password link. **New Account** makes one; **Roles** lists each role with its
 description, the content types it reaches (every type, some, or none)
 and how many site capabilities it has, and how many accounts hold it.
 
@@ -1257,17 +1260,17 @@ and how many site capabilities it has, and how many accounts hold it.
   and send it however you like. It's shown only that once, and it
   works once, for a week. Until it's used, the account is **Invited**.
 - An account's screen has **All accounts** above its name, then its
-  username, standing, roles, and last sign-in. **Edit details** changes
+  username, standing, roles, and last sign-in. **Edit Details** changes
   its display name and email address. Tick or untick its **roles**,
-  then **Save roles** (or **Discard**); unticking the last one leaves
+  then **Save Roles** (or **Discard**); unticking the last one leaves
   the account a **Member**. An account with no email address says so,
-  with **Add an email address**.
+  with **Add an Email Address**.
 - **Public Profile** on an account's screen shows its profile: linked
-  (**Open profile**, **Unlink**), linked but not yet public
+  (**Open Profile**, **Unlink**), linked but not yet public
   (**Publish**), linked to a slug with no file yet (**Create it**), or
-  none. With none, **Link an existing one** opens a list of the
+  none. With none, **Link an Existing One** opens a list of the
   profiles no other account has (a profile belongs to one account) to
-  pick from, and **Create one** asks for a display name and slug, makes
+  pick from, and **Create One** asks for a display name and slug, makes
   a draft, links it, and
   opens it.
 - **Actions** has **Make a password link**, for a forgotten password:
@@ -1284,8 +1287,8 @@ then its capabilities in sections: **Site Capabilities** (Media,
 Structure, Site, People, and any a plugin adds) and **Content
 Capabilities**, **Every Type** first, then one section for each
 content type. Each section says in a sentence what the role can do; open it
-to tick or untick its capabilities. **Expand all** opens every section,
-and **Show keys** shows each capability's key.
+to tick or untick its capabilities. **Expand All** opens every section,
+and **Show Keys** shows each capability's key.
 
 - Whatever **Every Type** grants applies to every content type,
   including ones added later, and shows ticked (and fixed) in each
@@ -1300,7 +1303,7 @@ and **Show keys** shows each capability's key.
 - Ticking **anyone's** ticks **their own** too, and unticking their own
   unticks anyone's: one without the other does nothing.
 - Changes wait in the **save bar** at the bottom, which counts them;
-  **Save changes** saves, **Revert** puts them back, and a section with
+  **Save Changes** saves, **Revert** puts them back, and a section with
   unsaved changes says **Changes**.
 - **New Role** makes a role from a name, a key, a description, and its
   capabilities, in the same sections. **Duplicate** on any role starts a
@@ -1341,7 +1344,7 @@ Each list has a **Trash** tab (if your account can delete entries) with
 the entries moved there, most recent first. The **All** tab never
 includes them. Each one's **⋯** button has:
 
-- **Restore as a draft** makes it a draft again, even if it was
+- **Restore as a Draft** makes it a draft again, even if it was
   published before; publish it again from the editor when you're
   ready.
 - **Preview** (or clicking its title) shows what's in it: the body, as
@@ -1349,9 +1352,9 @@ includes them. Each one's **⋯** button has:
   you can restore it or delete it permanently. A trashed entry isn't on
   your site, so it can't be viewed there, previewed, or edited until
   it's restored.
-- **Delete permanently** removes its file for good.
+- **Delete Permanently** removes its file for good.
 
-**Empty trash** deletes everything in that tab permanently. Authors and
+**Empty Trash** deletes everything in that tab permanently. Authors and
 contributors see and handle their own trashed entries; editors see
 everyone's.
 
@@ -1364,7 +1367,7 @@ also restore one by hand by changing its `status`.
 
 ## Previewing drafts
 
-In the editor, an entry that isn't live yet has a **Get link** button
+In the editor, an entry that isn't live yet has a **Get Link** button
 under Publishing. It makes a
 preview link: a private URL that shows the entry, with your theme, as it
 will look once it's live. **Open** it in a new tab, or **Copy** it to

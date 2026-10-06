@@ -63,7 +63,7 @@ export function useExtensionList<T>(kind: ExtensionKind) {
 	// happened, naming the other extensions, of any kind, that started or
 	// stopped with it (D-431); resolves whether it was saved.
 	async function turn(extension: Switchable, on: boolean, options: SwitchOptions = {}): Promise<boolean> {
-		if (on && extension.stops.length > 0 && !await confirmAction({ title: `Turn on ${extension.label}?`, body: stopsParagraph(extension.stops), confirm: `Turn on ${extension.label}` })) {
+		if (on && extension.stops.length > 0 && !await confirmAction({ title: `Turn on ${extension.label}?`, body: stopsParagraph(extension.stops), confirm: `Turn On ${extension.label}` })) {
 			return false;
 		}
 

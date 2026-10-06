@@ -50,11 +50,11 @@ const differences = computed(() => comparing.value ? props.compare() : null);
 			</div>
 			<p class="conflict__buttons">
 				<template v-if="theirs">
-					<button type="button" class="button button--small" @click="emit('keepTheirs')">Keep theirs</button>
+					<button type="button" class="button button--small" @click="emit('keepTheirs')">Keep Theirs</button>
 					<button type="button" class="button button--small" :aria-expanded="comparing" aria-controls="conflict-compare" @click="comparing = !comparing">Compare</button>
-					<button type="button" class="button button--small button--primary" @click="emit('keepMine')">Keep mine</button>
+					<button type="button" class="button button--small button--primary" @click="emit('keepMine')">Keep Mine</button>
 				</template>
-				<button v-else type="button" class="button button--small" :disabled="loading" @click="emit('retry')">{{ loading ? 'Loading the saved version…' : 'Try again' }}</button>
+				<button v-else type="button" class="button button--small" :disabled="loading" @click="emit('retry')">{{ loading ? 'Loading the saved version…' : 'Try Again' }}</button>
 			</p>
 		</div>
 

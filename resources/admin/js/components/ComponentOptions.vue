@@ -130,10 +130,10 @@ function changeLabel(event: Event): void {
 
 const removal = computed(() => {
 	if (props.directive.kind === 'leaf') {
-		return { label: 'Remove component', note: 'Its line is removed.' };
+		return { label: 'Remove Component', note: 'Its line is removed.' };
 	}
 
-	return { label: 'Remove component', note: props.directive.kind === 'container' ? 'Everything inside it goes too.' : 'Its text stays in the sentence.' };
+	return { label: 'Remove Component', note: props.directive.kind === 'container' ? 'Everything inside it goes too.' : 'Its text stays in the sentence.' };
 });
 </script>
 

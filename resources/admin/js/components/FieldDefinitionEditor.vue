@@ -424,7 +424,7 @@ const id = (name: string): string => `${props.idPrefix}${name}`;
 		<div class="field-editor__actions">
 			<button type="button" class="button button--primary button--small" :disabled="keyError !== '' || (type === 'enum' && choices.length === 0) || (type === 'list' && itemType === 'enum' && itemChoices.length === 0)" @click="emit('done', finished())">Done</button>
 			<button type="button" class="button button--small" @click="emit('cancel')">Cancel</button>
-			<button v-if="!isNew" type="button" class="button button--danger button--small field-editor__remove" @click="emit('remove')">Remove field</button>
+			<button v-if="!isNew" type="button" class="button button--danger button--small field-editor__remove" @click="emit('remove')">Remove Field</button>
 		</div>
 	</div>
 </template>

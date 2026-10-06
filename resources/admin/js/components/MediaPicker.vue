@@ -283,12 +283,12 @@ function use(file: MediaItem | null): void {
 					>
 						<template #actions>
 							<button v-if="uploads" type="button" class="button" @click="showTab('upload')">
-								<AdminIcon name="upload" />{{ search || kind !== 'any' ? 'Upload one instead' : 'Upload a file' }}
+								<AdminIcon name="upload" />{{ search || kind !== 'any' ? 'Upload One Instead' : 'Upload a File' }}
 							</button>
 						</template>
 					</EmptyState>
 					<p v-if="page < pages" class="picker__more">
-						<button type="button" class="button" :disabled="loading" @click="load(true)">{{ loading ? 'Loading…' : 'Show more' }}</button>
+						<button type="button" class="button" :disabled="loading" @click="load(true)">{{ loading ? 'Loading…' : 'Show More' }}</button>
 					</p>
 				</section>
 			</div>
@@ -300,7 +300,7 @@ function use(file: MediaItem | null): void {
 					<AdminIcon name="upload" />
 					<p class="picker__drop-heading">Drag Files Here</p>
 					<p class="picker__drop-text">Images, video, audio, and documents. They land in the library, so any entry can use them afterwards.</p>
-					<button type="button" class="button button--primary" @click="input?.click()">Choose files</button>
+					<button type="button" class="button button--primary" @click="input?.click()">Choose Files</button>
 					<p v-if="limits" class="picker__drop-hint">{{ limits }}</p>
 				</div>
 				<input ref="input" type="file" multiple hidden :accept="accept" @change="browse">

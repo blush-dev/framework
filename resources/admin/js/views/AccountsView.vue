@@ -109,7 +109,7 @@ const mine    = (account: AccountInfo): boolean => account.username === session.
 
 // Makes a password link, then shows it on the account's screen.
 async function makeLink(account: AccountInfo): Promise<void> {
-	if (account.link !== null && !account.link.expired && !await confirmAction({ title: `Make a New Link for ${account.displayName}?`, body: 'The one they have stops working.', confirm: 'Make a new link' })) {
+	if (account.link !== null && !account.link.expired && !await confirmAction({ title: `Make a New Link for ${account.displayName}?`, body: 'The one they have stops working.', confirm: 'Make a New Link' })) {
 		return;
 	}
 
@@ -132,7 +132,7 @@ async function makeLink(account: AccountInfo): Promise<void> {
 				<p class="page-header__hint">Users who can sign in. A public presence is a separate, optional thing: a profile.</p>
 			</div>
 			<div class="page-header__actions">
-				<RouterLink v-if="can('accounts.create')" class="button button--primary" :to="{ name: 'account-new' }"><AdminIcon name="plus" />New account</RouterLink>
+				<RouterLink v-if="can('accounts.create')" class="button button--primary" :to="{ name: 'account-new' }"><AdminIcon name="plus" />New Account</RouterLink>
 			</div>
 		</header>
 
@@ -165,7 +165,7 @@ async function makeLink(account: AccountInfo): Promise<void> {
 
 			<p v-if="filtered" class="filter-report">
 				{{ report }}
-				<button type="button" class="button button--ghost button--small" @click="clear">Clear filters</button>
+				<button type="button" class="button button--ghost button--small" @click="clear">Clear Filters</button>
 			</p>
 
 			<section class="panel" aria-labelledby="accounts-heading" :aria-busy="accounts === null">
@@ -173,8 +173,8 @@ async function makeLink(account: AccountInfo): Promise<void> {
 				<SkeletonTable v-if="accounts === null" :columns="['Account', 'Email', 'Roles', 'Profile', 'Last signed in']" :rows="3" label="Loading the accounts…" />
 				<EmptyState v-else-if="shown.length === 0" :icon="filtered ? 'search' : 'key-round'" :heading="filtered ? 'No Account Matches' : `No ${tab === 'all' ? '' : statusPill(tab).label + ' '}Accounts`" :text="filtered ? 'Nothing here fits the filters in force. Clearing them brings the other accounts back.' : 'Nobody is in that state right now. The All tab shows every account, whatever its standing.'">
 					<template #actions>
-						<button v-if="filtered" type="button" class="button" @click="clear">Clear filters</button>
-						<RouterLink v-else-if="tab !== 'all'" class="button" :to="{ query: {} }">Show all accounts</RouterLink>
+						<button v-if="filtered" type="button" class="button" @click="clear">Clear Filters</button>
+						<RouterLink v-else-if="tab !== 'all'" class="button" :to="{ query: {} }">Show All Accounts</RouterLink>
 					</template>
 				</EmptyState>
 				<div v-else class="table-wrap">

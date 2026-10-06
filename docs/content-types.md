@@ -130,7 +130,7 @@ wrong:
 | `menu`        | `plural`   | Literary forms        | The admin's navigation                         |
 | `item`        | `singular` | literary form         | Mid-sentence: "Create the first literary form" |
 | `items`       | `plural`   | literary forms        | Mid-sentence: "3 literary forms"               |
-| `newItem`     | `item`     | New literary form     | The New button and screen                      |
+| `newItem`     | `singular` | New Literary Form     | The New button and screen, in Title Case       |
 | `editItem`    | `item`     | Edit literary form    | The editor's title                             |
 | `searchItems` | `items`    | Search literary forms | The list's search field                        |
 

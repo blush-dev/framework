@@ -136,7 +136,7 @@ function closed(): void {
 			<label class="visually-hidden" for="media-kind">Kind</label>
 			<AdminSelect id="media-kind" v-model="kindValue" :options="KINDS" />
 		</div>
-		<button v-if="filtered" type="button" class="button button--ghost" @click="clear">Clear filters</button>
+		<button v-if="filtered" type="button" class="button button--ghost" @click="clear">Clear Filters</button>
 	</div>
 
 	<p v-if="error" class="notice notice--error" role="alert">{{ error }}</p>
@@ -158,12 +158,12 @@ function closed(): void {
 			</div>
 			<EmptyState v-else-if="!error" :icon="filtered ? 'search' : 'image'" :heading="filtered ? 'No Files Match' : (mine ? 'No Files of Yours' : 'The Library Is Empty')" :text="filtered ? 'Try another name or kind.' : (mine ? 'Files you upload show up here. The All tab shows everyone\'s.' : 'Images, video, audio, and documents you upload land here, and any entry can use them.')">
 				<template #actions>
-					<button v-if="filtered" type="button" class="button" @click="clear">Clear filters</button>
+					<button v-if="filtered" type="button" class="button" @click="clear">Clear Filters</button>
 					<button v-else-if="canUpload()" type="button" class="button button--primary" @click="uploading = true"><AdminIcon name="upload" />Upload {{ mine && counts.all ? 'a file' : 'your first file' }}</button>
 				</template>
 			</EmptyState>
 			<p v-if="page < pages" class="more">
-				<button type="button" class="button" :disabled="loading" @click="load(true)">{{ loading ? 'Loading…' : 'Show more' }}</button>
+				<button type="button" class="button" :disabled="loading" @click="load(true)">{{ loading ? 'Loading…' : 'Show More' }}</button>
 			</p>
 		</div>
 	</section>
