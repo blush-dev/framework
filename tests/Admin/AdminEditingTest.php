@@ -125,7 +125,7 @@ final class AdminEditingTest extends TestCase
 		$this->site();
 		$sams = '_posts/2021-05-05.sams.md';
 
-		$this->assertSame(['trashed' => self::FLAME_ID], self::json($this->call('DELETE', $this->entryPath(self::FLAME) . '?revision=' . $this->revision(self::FLAME))));
+		$this->assertSame(self::FLAME_ID, self::json($this->call('DELETE', $this->entryPath(self::FLAME) . '?revision=' . $this->revision(self::FLAME)))['trashed'] ?? null);
 		$this->assertSame(200, $this->call('DELETE', $this->entryPath($sams) . '?revision=' . $this->revision($sams))->getStatusCode());
 
 		$this->assertEqualsCanonicalizing(['Rekindling the Flame', "Sam's Post"], array_column($this->trash(), 'title'));
@@ -166,6 +166,31 @@ final class AdminEditingTest extends TestCase
 		$this->assertSame(400, $this->call('POST', '/entries/empty-trash', ['type' => 'missing'])->getStatusCode());
 		$this->assertSame(['deleted' => 1], self::json($this->call('POST', '/entries/empty-trash', ['type' => 'post'])));
 		$this->assertSame([], $this->trash());
+	}
+
+	public function testUndoPutsATrashedEntryBackAsItWas(): void
+	{
+		$this->site();
+		$before  = $this->file(self::FLAME);
+		$trashed = self::json($this->call('DELETE', $this->entryPath(self::FLAME) . '?revision=' . $this->revision(self::FLAME)));
+		$restore = $trashed['restore'] ?? null;
+
+		$this->assertIsArray($restore);
+		$this->assertArrayHasKey('status', $restore);
+		$this->assertNull($restore['status'], 'Its file names no status.');
+		$this->assertSame(422, $this->call('POST', $this->entryPath(self::FLAME) . '/restore', ['status' => 'trash'])->getStatusCode());
+		$this->assertSame(428, $this->call('POST', $this->entryPath(self::FLAME) . '/restore', ['status' => 'published'])->getStatusCode(), 'Only as it was.');
+		$this->assertSame(409, $this->call('POST', $this->entryPath(self::FLAME) . '/restore', ['status' => 'published', 'revision' => 'stale'])->getStatusCode());
+
+		$this->assertSame(200, $this->call('POST', $this->entryPath(self::FLAME) . '/restore', $restore)->getStatusCode());
+		$this->assertSame('published', $this->load(self::FLAME)['status'] ?? null);
+		$this->assertSame($before, $this->file(self::FLAME), 'The file is as it was.');
+
+		$idea  = '_posts/2023-01-01.idea.md';
+		$draft = self::json($this->call('DELETE', $this->entryPath($idea) . '?revision=' . $this->revision($idea)))['restore'] ?? null;
+
+		$this->assertIsArray($draft);
+		$this->assertSame('draft', $draft['status'] ?? null, 'A draft goes back a draft.');
 	}
 
 	public function testATrashedEntryKeepsItsAddress(): void

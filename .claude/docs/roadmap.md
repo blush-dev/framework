@@ -357,8 +357,8 @@ each (a plugin's requirements, a pack's icons).
 Then toasts from the toast sketch (D-387, `admin-design/toast-sketch.html`):
 kinds, a countdown bar that holds on hover and focus, stacking, and Undo
 where the reverse is exact.
-Smaller admin items waiting: Undo on moving to the trash (needs a
-restore that keeps the status, D-387), the admin theme choice (a second
+Undo on moving to the trash is built (D-525). Smaller admin items
+waiting: the admin theme choice (a second
 account preference, D-235), objects in forms, autosave, and Pages
 and hierarchical terms as a tree (see D-233 to D-237's and D-257's open
 items). Later: the admin's dates in the site's date and time

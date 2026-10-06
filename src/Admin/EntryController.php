@@ -93,11 +93,15 @@ use Blush\Support\Slug;
  *   entry does too.
  * - `DELETE entries/{id}?revision=…`: moves it to the trash (D-484):
  *   it stays where it is, with `status: trash`, off the site, keeping
- *   its address and id. `DELETE entries/{id}?permanently=1` deletes an
+ *   its address and id, answering `{"trashed", "restore"}`, what an
+ *   Undo sends to restore it. `DELETE entries/{id}?permanently=1` deletes an
  *   entry that's in the trash for good (and only one that is).
  * - `POST   entries/{id}/restore`: brings one back from the trash **as a
  *   draft** (D-237), so it's never republished without someone choosing
- *   to.
+ *   to. An Undo sends the `restore` that moving it to the trash answered
+ *   (`{"status", "revision"}`), which puts back the status its file had
+ *   (`null` for none, so published), and only while it's unchanged since
+ *   (D-525).
  * - `POST   entries/empty-trash` (`{"type"?}`): deletes for good every
  *   entry in the trash the account may delete (of one type, when
  *   given), answering how many (`deleted`).
@@ -627,25 +631,43 @@ final readonly class EntryController
 		try {
 			if ($trashed) {
 				$this->writer->delete($entry->path);
-			} elseif (is_string($revision)) {
-				$this->writer->trash($entry->path, $revision);
+
+				return self::json(['deleted' => $id]);
 			}
+
+			$declared = $this->writer->load($entry->path)->frontMatter['status'] ?? null;
+			$result   = $this->writer->trash($entry->path, $revision);
 		} catch (WriteConflict $e) {
 			return self::error($e->getMessage(), Status::Conflict);
 		} catch (WriteException $e) {
 			return self::error($e->getMessage(), Status::UnprocessableContent);
 		}
 
-		return self::json($trashed ? ['deleted' => $id] : ['trashed' => $id]);
+		// What an Undo sends to put it back as it was (D-525).
+		return self::json(['trashed' => $id, 'restore' => [
+			'status'   => is_string($declared) ? $declared : null,
+			'revision' => $result->revision
+		]]);
 	}
 
 	/**
-	 * Brings an entry back from the trash as a draft.
+	 * Brings an entry back from the trash as a draft, or, for an Undo, with
+	 * the status it had, at the revision moving it there wrote (D-525).
 	 */
 	public function restore(ServerRequestInterface $request, string $id): ResponseInterface
 	{
-		$account = self::account($request);
-		$entry   = $this->content->find($id);
+		$account  = self::account($request);
+		$entry    = $this->content->find($id);
+		$input    = self::input($request);
+		$revision = $input['revision'] ?? null;
+
+		// No `status` is a draft; `null` is none in the file, so published.
+		$status = match (true) {
+			! array_key_exists('status', $input) => EntryStatus::Draft,
+			$input['status'] === null            => null,
+			is_string($input['status'])          => EntryStatus::tryFrom($input['status']) ?? false,
+			default                              => false
+		};
 
 		if ($entry === null || $entry->status !== EntryStatus::Trash) {
 			return self::error('That isn\'t in the trash.', Status::NotFound);
@@ -655,8 +677,22 @@ final readonly class EntryController
 			return self::error('You aren\'t allowed to restore that entry.', Status::Forbidden);
 		}
 
+		if ($status === false || $status === EntryStatus::Trash || $status === EntryStatus::Scheduled) {
+			return self::error('An entry is restored as "draft", "published", or `null` (no status, so published).', Status::UnprocessableContent);
+		}
+
+		if ($status !== EntryStatus::Draft && ! is_string($revision)) {
+			return self::error('Send the "revision" moving it to the trash answered, so it\'s put back only as it was.', Status::PreconditionRequired);
+		}
+
+		if ($status !== EntryStatus::Draft && ! $this->permissions->can($account, ContentAction::Publish, $entry)) {
+			return self::error('You aren\'t allowed to publish that entry, so it can\'t be put back as it was; restore it as a draft.', Status::Forbidden);
+		}
+
 		try {
-			$this->writer->restore($entry->path);
+			$this->writer->restore($entry->path, is_string($revision) ? $revision : null, $status);
+		} catch (WriteConflict) {
+			return self::error(sprintf('"%s" changed in the trash since it was moved there, so it can\'t be put back as it was; restore it from the Trash.', $entry->title), Status::Conflict);
 		} catch (WriteException $e) {
 			return self::error($e->getMessage(), Status::UnprocessableContent);
 		}

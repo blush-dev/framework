@@ -1240,12 +1240,17 @@ export async function patchEntry(id: string, changes: Record<string, unknown>): 
 }
 
 /**
- * Moves an entry to the trash (D-484), as it is now.
+ * Moves an entry to the trash (D-484), at the revision given, or as it is
+ * now. Resolves its Undo (D-525), which puts it back with the status it
+ * had, unless it's changed in the trash since.
  */
-export async function trashEntry(id: string): Promise<void> {
-	const loaded = await request<EntryDetail>('GET', entryPath(id));
+export async function trashEntry(id: string, revision?: string): Promise<() => Promise<void>> {
+	const at       = revision ?? (await request<EntryDetail>('GET', entryPath(id))).revision;
+	const answered = await request<{ trashed: string; restore: { status: string | null; revision: string } }>('DELETE', `${entryPath(id)}?revision=${encodeURIComponent(at)}`);
 
-	await request<void>('DELETE', `${entryPath(id)}?revision=${encodeURIComponent(loaded.revision)}`);
+	return async () => {
+		await request<{ id: string }>('POST', `${entryPath(id)}/restore`, answered.restore);
+	};
 }
 
 /**

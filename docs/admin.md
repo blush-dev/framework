@@ -1354,6 +1354,13 @@ includes them. Each one's **⋯** button has:
   it's restored.
 - **Delete Permanently** removes its file for good.
 
+Moving one entry to the trash, from its list, the editor, or a profile,
+shows a toast with **Undo**, which puts it back as it was, published or
+a draft, and opens it again if you were editing it. Undo needs
+permission to publish for an entry that was published, and it's refused
+if someone changed the entry in the trash meanwhile; restore it from
+the Trash tab instead. Moving several at once has no Undo.
+
 **Empty Trash** deletes everything in that tab permanently. Authors and
 contributors see and handle their own trashed entries; editors see
 everyone's.
@@ -1540,9 +1547,9 @@ The API is JSON under `/admin/api`, and uses the session cookie:
 | `GET entries/{id}` | An entry for editing (see below) |
 | `POST entries` | Create an entry: `{"type", "title"}`, and optionally `"slug"`, `"set"`, `"body"`, `"status"` |
 | `PATCH entries/{id}` | Change an entry: `{"revision"}` plus any of `"set"`, `"remove"`, `"body"`, `"status"`, `"published"`, `"slug"` |
-| `DELETE entries/{id}?revision=…` | Move an entry to the trash: `{"trashed": id}`. A `422` for one that's there already |
+| `DELETE entries/{id}?revision=…` | Move an entry to the trash: `{"trashed": id, "restore": {"status", "revision"}}`, where `restore` is what an Undo sends to `POST entries/{id}/restore` (`status` is what its file named, or `null` for none). A `422` for one that's there already |
 | `DELETE entries/{id}?permanently=1` | Delete an entry that's in the trash for good: `{"deleted": id}`. A `422` for one that isn't |
-| `POST entries/{id}/restore` | Restore an entry from the trash as a draft: `{"id"}` |
+| `POST entries/{id}/restore` | Restore an entry from the trash as a draft: `{"id"}`. For an Undo, send `{"status", "revision"}` as moving it to the trash answered: `"published"` or `null` puts it back published (`null` leaving no `status` in its file) and needs permission to publish; a `428` without the revision, and a `409` if it changed since |
 | `POST entries/empty-trash` | Delete everything in the trash the account may delete, for good (`{"type"}` for one type): `{"deleted"}`, how many |
 | `POST entries/bulk` | Publish, move to draft, or trash several entries at once (see below) |
 | `POST entries/{id}/duplicate` | Copy an entry as a draft (see Duplicate above), with an id of its own; answers `201` with the copy as `GET entries/{id}` shows it. Needs to create entries of its type and to edit the entry; an index page is refused with a `422` |

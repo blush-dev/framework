@@ -97,7 +97,7 @@ import { debounced } from '../action';
 import { confirmAction } from '../confirm';
 import { makeHomepage } from '../homepage';
 import { onBeforeRouteLeave, RouterLink, useRoute, useRouter } from 'vue-router';
-import { ApiError, entryPath, entryRoute, errorMessage, request, upload, type EntryDetail, type EntryStatus, type NewEntryDetail, type FieldDescription, type MediaItem, type PreviewLink } from '../api';
+import { ApiError, entryPath, entryRoute, errorMessage, request, trashEntry, upload, type EntryDetail, type EntryStatus, type NewEntryDetail, type FieldDescription, type MediaItem, type PreviewLink } from '../api';
 import AdminIcon from '../components/AdminIcon.vue';
 import BlockOptions from '../components/BlockOptions.vue';
 import ComponentOptions from '../components/ComponentOptions.vue';
@@ -853,12 +853,24 @@ async function trash(): Promise<void> {
 		return;
 	}
 
+	const back = route.fullPath;
+	const name = `“${detail.title || 'Untitled'}”`;
+
 	try {
-		await request<void>('DELETE', `${entryPath(detail.id)}?revision=${encodeURIComponent(detail.revision)}`);
+		const undo = await trashEntry(detail.id, detail.revision);
+
 		forget(detail.id);
 		initial.value = null;
 		await router.push({ name: 'type', params: { type: detail.type.name } });
-		toast(`Moved “${detail.title || 'Untitled'}” to the trash`, { kind: 'danger' });
+
+		// Its Undo puts it back and opens it again (D-525).
+		toast(`Moved ${name} to the trash`, {
+			kind: 'danger',
+			undo: () => void undo().then(
+				() => router.push(back),
+				(caught: unknown) => toast(errorMessage(caught, `${name} couldn't be restored.`), { kind: 'warn' })
+			)
+		});
 	} catch (caught) {
 		error.value = errorMessage(caught, `The ${noun.value} couldn't be moved to the trash.`);
 	}

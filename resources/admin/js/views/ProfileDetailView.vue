@@ -121,9 +121,20 @@ async function trash(): Promise<void> {
 	busy.value    = 'trash';
 	failure.value = '';
 
+	const back  = route.fullPath;
+	const label = name.value;
+
 	try {
-		await trashEntry(current.id);
-		toast(`Moved ${name.value} to the trash`, { kind: 'danger' });
+		const undo = await trashEntry(current.id);
+
+		// Its Undo puts it back and opens it again (D-525).
+		toast(`Moved ${label} to the trash`, {
+			kind: 'danger',
+			undo: () => void undo().then(
+				() => router.push(back),
+				(caught: unknown) => toast(errorMessage(caught, `${label} couldn't be restored.`), { kind: 'warn' })
+			)
+		});
 		await router.push(profileType.value ? { name: 'type', params: { type: profileType.value } } : { name: 'dashboard' });
 	} catch (caught) {
 		failure.value = errorMessage(caught, 'The profile couldn\'t be moved to the trash.');

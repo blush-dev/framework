@@ -492,9 +492,11 @@ final readonly class FilesystemWriter implements ContentWriter
 	 * @inheritDoc
 	 */
 	#[Override]
-	public function restore(string $path, ?string $revision = null): WriteResult
+	public function restore(string $path, ?string $revision = null, ?Status $status = Status::Draft): WriteResult
 	{
-		return $this->update($path, new EntryChanges(['status' => Status::Draft->value], [EntryFields::TRASHED]), $revision);
+		return $this->update($path, $status === null
+			? new EntryChanges([], ['status', EntryFields::TRASHED])
+			: new EntryChanges(['status' => $status->value], [EntryFields::TRASHED]), $revision);
 	}
 
 	/**

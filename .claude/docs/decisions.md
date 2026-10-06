@@ -15539,3 +15539,24 @@ decision, add a new entry that supersedes it and mark the old one
   so what they register stays during a preview, and routes a previewed
   theme's provider adds aren't seen (routes are settled by then).
 - **Why:** the author picked both from the quick wins.
+
+
+### D-525: Undo on moving an entry to the trash
+- **Date:** 2026-10-06
+- **Status:** Built. An exception to D-237 for an Undo only; follows
+  D-387 and D-484.
+- **Decision:** moving one entry to the trash (from its list, the
+  editor, or a profile) toasts with Undo, which puts it back exactly:
+  the status its file named (`draft`, `published`, or none, so the
+  line is left out again), its `trashed` date gone, and the file as it
+  was. `DELETE entries/{id}?revision=…` answers `restore`
+  (`{"status", "revision"}`), which the Undo sends to
+  `POST entries/{id}/restore`; the revision makes it refused (`409`)
+  when the entry changed in the trash since. Putting it back published
+  needs `content.{type}.publish`. Without a `status`, restore is still
+  as a draft (D-237), which the Trash tab does. `ContentWriter::restore()`
+  takes the status (`null` removes it). The editor's and the profile
+  screen's Undo open the entry again; the list's reloads. Bulk trashing
+  has no Undo (it would need a revision for each).
+- **Why:** the author asked for it (quick win 3; the roadmap's "Undo on
+  moving to the trash").

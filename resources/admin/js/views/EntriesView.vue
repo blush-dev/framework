@@ -465,15 +465,17 @@ function nameOf(item: { title: string }): string {
 
 /**
  * Runs a row's, the trash's, or the bulk bar's action, then reloads the
- * list and toasts what happened.
+ * list and toasts what happened, with its Undo when it has one.
  */
-async function act(name: string, action: () => Promise<string>, kind: ToastKind = 'good'): Promise<void> {
+async function act(name: string, action: () => Promise<string | { message: string; undo: () => void }>, kind: ToastKind = 'good'): Promise<void> {
 	busy.value    = name;
 	skipped.value = null;
 	error.value   = '';
 
 	try {
-		toast(await action(), { kind });
+		const done = await action();
+
+		toast(typeof done === 'string' ? done : done.message, { kind, undo: typeof done === 'string' ? undefined : done.undo });
 		await load();
 	} catch (caught) {
 		error.value = errorMessage(caught, 'That didn\'t work. Reload the page and try again.');
@@ -498,9 +500,16 @@ async function moveToTrash(entry: EntrySummary): Promise<void> {
 	}
 
 	void act(id, async () => {
-		await trashEntry(id);
+		const undo = await trashEntry(id);
 
-		return `Moved ${nameOf(entry)} to the trash`;
+		return {
+			message: `Moved ${nameOf(entry)} to the trash`,
+			undo: () => void act(id, async () => {
+				await undo();
+
+				return `Restored ${nameOf(entry)}`;
+			})
+		};
 	}, 'danger');
 }
 

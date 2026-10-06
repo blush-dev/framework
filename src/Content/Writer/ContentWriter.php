@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Blush\Content\Writer;
 
 use DateTimeInterface;
+use Blush\Content\Status;
 use Blush\Content\Type\ContentType;
 
 /**
@@ -130,13 +131,15 @@ interface ContentWriter
 	public function trash(string $path, ?string $revision = null): WriteResult;
 
 	/**
-	 * Brings an entry back from the trash as a draft (D-237, D-484): its
-	 * `status` becomes `draft` and its `trashed` date goes.
+	 * Brings an entry back from the trash (D-484): its `status` becomes
+	 * `$status`, a draft unless an Undo puts back the one it had (D-237,
+	 * D-525), or goes when that's `null` (published, as a file that names
+	 * none is), and its `trashed` date goes.
 	 *
 	 * @throws WriteConflict
 	 * @throws WriteException
 	 */
-	public function restore(string $path, ?string $revision = null): WriteResult;
+	public function restore(string $path, ?string $revision = null, ?Status $status = Status::Draft): WriteResult;
 
 	/**
 	 * Deletes an entry for good: its file, and its bundle's folder when
