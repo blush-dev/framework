@@ -79,6 +79,36 @@ export function mediaFacts(file: Pick<MediaItem, 'width' | 'height' | 'duration'
 	].filter((part) => part !== '').join(' · ');
 }
 
+const numbers = new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 });
+
+/**
+ * A value a file says about itself (D-289, D-551), as people read it: a
+ * bit rate in kbit/s, a sample rate in kHz, channels as mono or stereo, a
+ * frame rate in fps, and a list joined with commas.
+ */
+export function embeddedText(key: string, value: string | number | string[]): string {
+	if (Array.isArray(value)) {
+		return value.join(', ');
+	}
+
+	if (typeof value !== 'number') {
+		return value;
+	}
+
+	switch (key) {
+		case 'bitrate':
+			return `${Math.round(value / 1000)} kbps`;
+		case 'sampleRate':
+			return `${numbers.format(value / 1000)} kHz`;
+		case 'channels':
+			return value === 1 ? 'mono' : (value === 2 ? 'stereo' : `${value} channels`);
+		case 'frameRate':
+			return `${numbers.format(value)} fps`;
+		default:
+			return String(value);
+	}
+}
+
 /**
  * The glyph for a file shown without a picture of it.
  */

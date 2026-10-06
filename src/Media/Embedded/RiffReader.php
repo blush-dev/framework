@@ -19,7 +19,8 @@ use Override;
  * Reads WAV (D-291): the duration, from the `data` chunk's size over the
  * `fmt ` chunk's byte rate, and the tags in a `LIST` chunk of type
  * `INFO` (title, artist, album, date, genre, track, comment, copyright,
- * and software).
+ * and software). The `fmt ` chunk also gives its encoding, channels,
+ * sample rate, and bit rate (D-551).
  */
 final readonly class RiffReader implements EmbeddedReader
 {
@@ -67,7 +68,9 @@ final readonly class RiffReader implements EmbeddedReader
 			$size   = BinaryFile::uint32le($header, 4);
 
 			if ($id === 'fmt ') {
-				$rate = BinaryFile::uint32le($file->read($at + 8, 16), 8);
+				$format = $file->read($at + 8, 16);
+				$rate   = BinaryFile::uint32le($format, 8);
+				$values = [...$values, ...self::format($format)];
 			} elseif ($id === 'data' && $rate > 0) {
 				$values['duration'] = $size / $rate;
 			} elseif ($id === 'LIST' && $size <= 1_048_576 && substr($list = $file->read($at + 8, $size), 0, 4) === 'INFO') {
@@ -79,6 +82,29 @@ final readonly class RiffReader implements EmbeddedReader
 		}
 
 		return new EmbeddedMetadata($values);
+	}
+
+	/**
+	 * What a `fmt ` chunk says: its format tag, channels, sample rate,
+	 * byte rate, block size, and bits a sample.
+	 *
+	 * @return array<string, mixed>
+	 */
+	private static function format(string $chunk): array
+	{
+		$bits = BinaryFile::uint16le($chunk, 14);
+
+		return [
+			'format'     => match (BinaryFile::uint16le($chunk)) {
+				1, 0xFFFE => $bits > 0 ? "{$bits}-bit PCM" : 'PCM',
+				3         => $bits > 0 ? "{$bits}-bit float" : 'Float',
+				0x55      => 'MP3',
+				default   => null
+			},
+			'channels'   => BinaryFile::uint16le($chunk, 2) ?: null,
+			'sampleRate' => BinaryFile::uint32le($chunk, 4) ?: null,
+			'bitrate'    => BinaryFile::uint32le($chunk, 8) * 8 ?: null
+		];
 	}
 
 	/**

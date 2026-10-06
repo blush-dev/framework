@@ -152,7 +152,10 @@ two things (D-532, D-533); and, from the Home sketch
 (`.claude/docs/admin-design/meridian-home.html`), built in stages
 (D-537): the dashboard of what needs you first, and Tools with actions
 and the log (D-538 to D-541), Site Health in place of Content Health
-(D-543 to D-546), and editable Shortcuts (D-547).
+(D-543 to D-546), and editable Shortcuts (D-547); and, from the media
+detail sketch (`.claude/docs/admin-design/media-detail-sketch.html`),
+a media file's screen in two columns (D-551), then cover art, sound
+and video formats, and PDF pages read from files (D-552).
 The Fields
 API (D-337 to D-348: field types and controls, field sets on content
 types, media, and the Settings screens, slots, and Structure → Fields)

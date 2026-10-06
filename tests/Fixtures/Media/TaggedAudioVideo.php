@@ -56,21 +56,36 @@ final class TaggedAudioVideo
 	}
 
 	/**
-	 * An MP4: a 1280×720 video track, 12.5 seconds, tagged with a title,
-	 * artist, date, track, and cover art, and media data after the index.
+	 * An MP4: a 1280×720 H.264 video track at 30 frames a second, and an
+	 * AAC sound track (stereo, 44.1 kHz, 200,000 bytes: 128 kbit/s), 12.5
+	 * seconds, tagged with a title, artist, date, track, and cover art,
+	 * and media data after the index. Fragmented, the index has no
+	 * lengths, and the video's 150 samples, a thirtieth of a second each
+	 * by default (`trex`), are in a fragment after it: five seconds.
 	 */
-	public static function mp4(): string
+	public static function mp4(bool $fragmented = false): string
 	{
+		$length = $fragmented ? 0 : 1;
 		$item = static fn (string $type, string $value, int $kind = 1): string => self::box($type, self::box('data', pack('NN', $kind, 0) . $value));
 
-		$mvhd = self::box('mvhd', pack('NNNNN', 0, 0, 0, 1000, 12500) . str_repeat("\0", 80));
+		$mvhd = self::box('mvhd', pack('NNNNN', 0, 0, 0, 1000, 12500 * $length) . str_repeat("\0", 80));
 		$tkhd = self::box('tkhd', pack('NNNNN', 0, 0, 0, 1, 0) . pack('N', 12500) . str_repeat("\0", 8) . str_repeat("\0", 8) . str_repeat("\0", 36) . pack('NN', 1280 << 16, 720 << 16));
 		$ilst = self::box('ilst', $item("\xA9nam", 'Harbor Timelapse') . $item("\xA9ART", 'Jane Doe') . $item("\xA9day", '2023-06-01T10:00:00Z') . $item('trkn', pack('nnnn', 0, 2, 5, 0), 0) . $item('covr', "\xFF\xD8" . str_repeat("\x10", 3000), 13));
 		$meta = self::box('meta', "\0\0\0\0" . self::box('hdlr', str_repeat("\0", 8) . 'mdirappl' . str_repeat("\0", 9)) . $ilst);
 
+		$mdia = static fn (int $scale, int $span, string $handler, string $table): string => self::box('mdia', self::box('mdhd', pack('NNNNNnn', 0, 0, 0, $scale, $span, 0, 0))
+			. self::box('hdlr', pack('NN', 0, 0) . $handler . str_repeat("\0", 13))
+			. self::box('minf', self::box('stbl', $table)));
+		$avc1 = pack('N', 86) . 'avc1' . str_repeat("\0", 6) . pack('n', 1) . str_repeat("\0", 70);
+		$mp4a = pack('N', 36) . 'mp4a' . str_repeat("\0", 6) . pack('n', 1) . pack('nnN', 0, 0, 0) . pack('nnnn', 2, 16, 0, 0) . pack('N', 44100 << 16);
+		$video = $mdia(30, 375 * $length, 'vide', self::box('stsd', pack('NN', 0, 1) . $avc1) . self::box('stts', pack('NN', 0, $length) . ($fragmented ? '' : pack('NN', 375, 1))));
+		$sound = $mdia(44100, 551250 * $length, 'soun', self::box('stsd', pack('NN', 0, 1) . $mp4a) . self::box('stsz', pack('NNN', 0, 0, 2) . pack('NN', 100000, 100000)));
+
 		return self::box('ftyp', 'isom' . pack('N', 512) . 'isomiso2mp41')
 			. self::box('mdat', str_repeat("\0", 4096))
-			. self::box('moov', $mvhd . self::box('trak', $tkhd) . self::box('udta', $meta));
+			. self::box('moov', $mvhd . self::box('trak', $tkhd . $video) . self::box('trak', $sound) . self::box('udta', $meta)
+				. ($fragmented ? self::box('mvex', self::box('trex', pack('NNNNN', 0, 1, 1, 1, 0) . pack('N', 0))) : ''))
+			. ($fragmented ? self::box('moof', self::box('traf', self::box('tfhd', pack('NN', 0, 1)) . self::box('trun', pack('NN', 0x000200, 150) . str_repeat(pack('N', 100), 150)))) : '');
 	}
 
 	private static function box(string $type, string $data): string
@@ -129,8 +144,9 @@ final class TaggedAudioVideo
 	}
 
 	/**
-	 * A WebM: a 640×360 video, 3.5 seconds, titled, in a segment of
-	 * unknown size (as live streams write it), then a cluster.
+	 * A WebM: a 640×360 VP9 video at 30 frames a second with Opus sound
+	 * (stereo, 48 kHz), 3.5 seconds, titled, in a segment of unknown size
+	 * (as live streams write it), then a cluster.
 	 */
 	public static function webm(): string
 	{
@@ -138,7 +154,9 @@ final class TaggedAudioVideo
 		$element = static fn (string $id, string $data): string => $id . (strlen($data) < 127 ? chr(0x80 | strlen($data)) : "\x01" . substr(pack('J', strlen($data)), 1)) . $data;
 		$info    = $element("\x2A\xD7\xB1", "\x0F\x42\x40") . $element("\x44\x89", pack('E', 3500.0)) . $element("\x7B\xA9", 'Harbor Clip') . $element("\x57\x41", 'Blush Test');
 		$video   = $element("\xB0", "\x02\x80") . $element("\xBA", "\x01\x68");
-		$tracks  = $element("\xAE", $element("\xE0", $video));
+		$audio   = $element("\xB5", pack('E', 48000.0)) . $element("\x9F", "\x02");
+		$tracks  = $element("\xAE", $element("\x83", "\x01") . $element("\x86", 'V_VP9') . $element("\x23\xE3\x83", pack('N', 33_333_333)) . $element("\xE0", $video))
+			. $element("\xAE", $element("\x83", "\x02") . $element("\x86", 'A_OPUS') . $element("\xE1", $audio));
 
 		return $element("\x1A\x45\xDF\xA3", $element("\x42\x82", 'webm'))
 			. "\x18\x53\x80\x67\x01\xFF\xFF\xFF\xFF\xFF\xFF\xFF"

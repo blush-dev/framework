@@ -17,12 +17,14 @@ use Override;
 
 /**
  * Reads MP3s (D-291): ID3v2 tags (2.2, 2.3, and 2.4, in any of their text
- * encodings), then ID3v1 for what those don't have, and the duration,
- * from the first frame's Xing or VBRI header (variable bitrate) or else
- * its bitrate and the size of the audio (constant bitrate). Embedded
- * artwork is noted, not extracted.
+ * encodings), then ID3v1 for what those don't have, and from the first
+ * frame, its MPEG version, sample rate, and channels (D-551), and the
+ * duration and bit rate: from its Xing or VBRI header (variable bit rate,
+ * the bit rate an average) or else its own bit rate and the size of the
+ * audio (constant). Embedded artwork (`APIC`) is described, and given by
+ * `artwork()`.
  */
-final readonly class Id3Reader implements EmbeddedReader
+final readonly class Id3Reader implements ArtworkReader
 {
 	/**
 	 * ID3v2 frames by what they hold, 2.3/2.4 names then 2.2's.
@@ -80,7 +82,7 @@ final readonly class Id3Reader implements EmbeddedReader
 		if (str_starts_with($header, 'ID3') && strlen($header) === 10) {
 			$size   = self::syncsafe(substr($header, 6, 4));
 			$start  = 10 + $size + ((ord($header[5]) & 0x10) !== 0 ? 10 : 0);
-			$values = self::v2(ord($header[3]), ord($header[5]), $file->read(10, min($size, 4_194_304)));
+			$values = self::v2(ord($header[3]), self::frames(ord($header[3]), ord($header[5]), $file->read(10, min($size, 4_194_304))));
 		}
 
 		$tail = $file->read($file->size - 128, 128);
@@ -91,9 +93,30 @@ final readonly class Id3Reader implements EmbeddedReader
 			$end   -= 128;
 		}
 
-		$values['duration'] = self::duration($file, $start, $end);
+		return new EmbeddedMetadata([...$values, ...self::stream($file, $start, $end)]);
+	}
 
-		return new EmbeddedMetadata($values);
+	/**
+	 * @inheritDoc
+	 */
+	#[Override]
+	public function artwork(string $path, string $mime): ?Artwork
+	{
+		if ($mime !== 'audio/mpeg') {
+			return null;
+		}
+
+		$file   = new BinaryFile($path);
+		$header = $file->read(0, 10);
+
+		if (! str_starts_with($header, 'ID3') || strlen($header) !== 10) {
+			return null;
+		}
+
+		$frames = self::frames(ord($header[3]), ord($header[5]), $file->read(10, min(self::syncsafe(substr($header, 6, 4)), 4_194_304)));
+		$frame  = $frames['APIC'] ?? $frames['PIC'] ?? null;
+
+		return $frame === null ? null : self::picture($frame, ord($header[3]) === 2);
 	}
 
 	/**
@@ -111,11 +134,11 @@ final readonly class Id3Reader implements EmbeddedReader
 	}
 
 	/**
-	 * Reads an ID3v2 tag's frames.
+	 * An ID3v2 tag's frames, by ID, the first of each.
 	 *
-	 * @return array<string, mixed>
+	 * @return array<string, string>
 	 */
-	private static function v2(int $version, int $flags, string $tag): array
+	private static function frames(int $version, int $flags, string $tag): array
 	{
 		// A whole tag written unsynchronized (2.2 and 2.3): FF 00 is FF.
 		if (($flags & 0x80) !== 0 && $version < 4) {
@@ -152,6 +175,18 @@ final readonly class Id3Reader implements EmbeddedReader
 			$frames[$id] ??= $data;
 		}
 
+		return $frames;
+	}
+
+	/**
+	 * What an ID3v2 tag's frames say.
+	 *
+	 * @param  array<string, string> $frames
+	 * @return array<string, mixed>
+	 */
+	private static function v2(int $version, array $frames): array
+	{
+		$short  = $version === 2;
 		$values = [];
 
 		foreach (self::FRAMES as $key => $ids) {
@@ -180,14 +215,55 @@ final readonly class Id3Reader implements EmbeddedReader
 		}
 
 		$picture = $frames['APIC'] ?? $frames['PIC'] ?? null;
+		$artwork = $picture === null ? null : self::picture($picture, $short);
 
-		if ($picture !== null && strlen($picture) > 4) {
-			$mime = $short ? 'image/' . strtolower(str_replace('JPG', 'jpeg', substr($picture, 1, 3))) : strstr(substr($picture, 1), "\0", true);
-
-			$values['artwork'] = sprintf('%s, %s', is_string($mime) && $mime !== '' ? $mime : 'image', BinaryFile::size(strlen($picture)));
+		if ($artwork !== null) {
+			$values['artwork'] = $artwork->describe();
 		}
 
 		return $values;
+	}
+
+	/**
+	 * A picture frame's picture: its encoding, its MIME type (2.2: a
+	 * three-letter format), its picture type, a description in that
+	 * encoding, then the picture.
+	 */
+	private static function picture(string $frame, bool $short): ?Artwork
+	{
+		if (strlen($frame) < 5) {
+			return null;
+		}
+
+		$encoding = ord($frame[0]);
+
+		if ($short) {
+			$mime = 'image/' . strtolower(str_replace('JPG', 'jpeg', substr($frame, 1, 3)));
+			$at   = 5;
+		} else {
+			$end  = strpos($frame, "\0", 1);
+
+			if ($end === false) {
+				return null;
+			}
+
+			$mime = substr($frame, 1, $end - 1);
+			$at   = $end + 2;
+		}
+
+		// The description ends with a null, two in UTF-16, on a character.
+		if ($encoding === 1 || $encoding === 2) {
+			while ($at + 1 < strlen($frame) && substr($frame, $at, 2) !== "\0\0") {
+				$at += 2;
+			}
+
+			$at += 2;
+		} else {
+			$end = strpos($frame, "\0", $at);
+			$at  = $end === false ? strlen($frame) : $end + 1;
+		}
+
+		return Artwork::from((string) substr($frame, $at), $mime);
 	}
 
 	/**
@@ -245,10 +321,13 @@ final readonly class Id3Reader implements EmbeddedReader
 	}
 
 	/**
-	 * The duration in seconds, from the first Layer III frame after the
-	 * tag, or `null`.
+	 * What the first Layer III frame after the tag says (D-551): its
+	 * `format`, `sampleRate`, `channels`, `duration` in seconds, and
+	 * `bitrate`; none, without one.
+	 *
+	 * @return array<string, mixed>
 	 */
-	private static function duration(BinaryFile $file, int $start, int $end): ?float
+	private static function stream(BinaryFile $file, int $start, int $end): array
 	{
 		$bytes = $file->read($start, 65_536);
 
@@ -275,21 +354,33 @@ final readonly class Id3Reader implements EmbeddedReader
 			$samples = $mpeg1 ? 1152 : 576;
 			$side    = $mpeg1 ? ($mono ? 17 : 32) : ($mono ? 9 : 17);
 			$xing    = substr($bytes, $at + 4 + $side, 16);
+			$vbri    = substr($bytes, $at + 36, 18);
+			$audio   = $end - $start - $at;
+			$found   = [
+				'format'     => sprintf('MPEG-%s Layer III', $mpeg1 ? '1' : ($version === 2 ? '2' : '2.5')),
+				'sampleRate' => $rate,
+				'channels'   => $mono ? 1 : 2
+			];
 
-			if ((str_starts_with($xing, 'Xing') || str_starts_with($xing, 'Info')) && (BinaryFile::uint32be($xing, 4) & 0x1) !== 0) {
-				return BinaryFile::uint32be($xing, 8) * $samples / $rate;
-			}
+			$frames = match (true) {
+				(str_starts_with($xing, 'Xing') || str_starts_with($xing, 'Info')) && (BinaryFile::uint32be($xing, 4) & 0x1) !== 0 => BinaryFile::uint32be($xing, 8),
+				str_starts_with($vbri, 'VBRI') => BinaryFile::uint32be($vbri, 14),
+				default                        => null
+			};
 
-			$vbri = substr($bytes, $at + 36, 18);
+			if ($frames !== null) {
+				// A variable bit rate: the frames counted, and the average.
+				$duration = $frames * $samples / $rate;
 
-			if (str_starts_with($vbri, 'VBRI')) {
-				return BinaryFile::uint32be($vbri, 14) * $samples / $rate;
+				return [...$found, 'duration' => $duration, 'bitrate' => $duration > 0 ? (int) round($audio * 8 / $duration) : null];
 			}
 
 			// Constant bit rate: the audio's size over its rate.
-			return ($end - $start - $at) * 8 / (self::BITRATES[$mpeg1 ? 1 : 2][$index] * 1000);
+			$bitrate = self::BITRATES[$mpeg1 ? 1 : 2][$index] * 1000;
+
+			return [...$found, 'duration' => $audio * 8 / $bitrate, 'bitrate' => $bitrate];
 		}
 
-		return null;
+		return [];
 	}
 }

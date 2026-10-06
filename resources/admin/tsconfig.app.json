@@ -12,5 +12,5 @@
 		"skipLibCheck": true,
 		"types": ["vite/client"]
 	},
-	"include": ["js/**/*.ts", "js/**/*.vue"]
+	"include": ["js/**/*.ts", "js/**/*.vue", "../player/**/*.ts"]
 }

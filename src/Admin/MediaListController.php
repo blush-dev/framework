@@ -31,6 +31,7 @@ use Blush\Field\InvalidField;
 use Blush\Field\Violation;
 use Blush\Http\Response;
 use Blush\Http\Status;
+use Blush\Media\Embedded\EmbeddedMetadataReader;
 use Blush\Media\MediaConfig;
 use Blush\Media\MediaException;
 use Blush\Media\MediaFile;
@@ -80,6 +81,10 @@ use Blush\Support\UrlPath;
  * own, as before, are set too. It also has what the file says about
  * itself (`embedded`, D-289): the values read from its EXIF, IPTC, and
  * XMP, and whether it has a location, never the location itself.
+ *
+ * `GET {path}/api/media-artwork/{path}` (`artwork()`, D-551) answers with
+ * the picture a sound or video carries, such as its cover art, which
+ * `embedded`'s `artwork` describes.
  *
  * `DELETE` (`delete()`, D-407, `media.delete`, and `media.delete.others`
  * for a file that isn't the account's) removes the file, its metadata,
@@ -131,7 +136,8 @@ final readonly class MediaListController
 		private MediaLibrary $library,
 		private MediaUsage $usage,
 		private AccountStore $store,
-		private Accounts $accounts
+		private Accounts $accounts,
+		private EmbeddedMetadataReader $embedded
 	) {}
 
 	public function __invoke(ServerRequestInterface $request): ResponseInterface
@@ -198,6 +204,33 @@ final readonly class MediaListController
 		}
 
 		return Response::json($this->details($file, $reference, trim($path, '/'), $this->describedBy($file, trim($path, '/')), $account), headers: ['Cache-Control' => 'no-store']);
+	}
+
+	/**
+	 * `GET media-artwork/{path}`: the picture a sound or video carries
+	 * (D-551), such as its cover art, read from the file each time; 404
+	 * when it has none.
+	 */
+	public function artwork(ServerRequestInterface $request, string $path): ResponseInterface
+	{
+		$account = $request->getAttribute(Account::class);
+
+		if (! $account instanceof Account || ! $this->usesLibrary($account)) {
+			return self::error('You aren\'t allowed to use media.', Status::Forbidden);
+		}
+
+		[$file] = $this->libraryFile($path);
+		$found  = $file === null ? null : $this->embedded->artwork($file->path, $file->mime);
+
+		if ($found === null) {
+			return self::error(sprintf('There\'s no artwork in "%s".', $path), Status::NotFound);
+		}
+
+		return new Response(Status::Ok, [
+			'Content-Type'           => $found->mime,
+			'Cache-Control'          => 'private, max-age=3600',
+			'X-Content-Type-Options' => 'nosniff'
+		], $found->bytes);
 	}
 
 	public function update(ServerRequestInterface $request, string $path): ResponseInterface

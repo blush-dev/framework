@@ -1,27 +1,38 @@
 <script setup lang="ts">
 /**
- * One file in the media library (D-251): a preview, its metadata, its
- * facts, and what to write to use it.
+ * One file in the media library (D-251), drawn as the media detail
+ * sketch has it (D-551): the file, how it's used, and where it lives on
+ * the left; its details, the one part that saves, and what the file says
+ * about itself on the right.
  *
- * The metadata is the library's own, kept in `user/data` (`PATCH
- * media/{path}`): the fields its kind has (D-287), as a form built from
- * their definitions, as an entry's are (`FieldControl`), with keys the
- * fields don't declare shown as they are and what doesn't fit under its
- * field. What the file says about itself (D-289: its EXIF, IPTC, and
- * XMP) is shown From the File, each value with **Use** to copy it into
- * the field it fits (a title into the title, a creator or credit into
- * the credit; captions only ever come from the library, D-290), and a file that carries its location says so, without
- * where. Alt text and a caption are filled in when the file is inserted
- * as an image (D-269), and a page's image without alt text uses the
- * library's (D-270); what an entry writes is its own. Changes are counted
- * in the save bar (D-508) and saved when asked, only the fields that
- * changed, or put back with **Revert**; leaving with changes unsaved asks
- * first.
+ * The heading is the file's title, else its file name (D-290), and
+ * follows the Title field as it's typed; with a title, the file name
+ * leads the line under it. The trail's last crumb says **Editing**, as
+ * the editor's does (D-317).
+ *
+ * The details are the library's own, kept in `user/data` (`PATCH
+ * media/{path}`): the fields its kind has (D-287), title first, as a
+ * form built from their definitions, as an entry's are (`FieldControl`),
+ * with keys the fields don't declare shown as they are and what doesn't
+ * fit under its field. What the file says about itself (D-289: its
+ * EXIF, IPTC, ID3, and the rest) that fits a field is offered under it
+ * (a title into the title, a creator or credit into the credit; captions
+ * only ever come from the library, D-290), with **Use It**, or **Fill
+ * from the File** for every empty one; the rest is Metadata, which says
+ * when the file carries where it was taken, without where. An image
+ * without alt text says so under its field. Alt text and a caption are
+ * filled in when the file is inserted as an image (D-269), and a page's
+ * image without alt text uses the library's (D-270); what an entry
+ * writes is its own. Changes are counted in the save bar (D-508) and
+ * saved when asked, only the fields that changed, or put back with
+ * **Revert**; leaving with changes unsaved asks first.
  *
  * Who may change a file's details, or delete it, is by whose it is
  * (D-407): the file says who uploaded it, and its details are read-only
- * to someone who may not change them. It lists the entries that use it,
- * and deleting it asks first, naming them.
+ * to someone who may not change them. Usage gives its address and what
+ * an entry writes to show it, and the entries that use it, the first
+ * five of a long list until asked for all; deleting it asks first,
+ * saying how many.
  *
  * An image lists its other sizes (D-488), such as resized copies brought
  * from another system, which go with it when it's deleted. A size's
@@ -33,17 +44,19 @@ import { computed, ref, watch } from 'vue';
 import { confirmAction, guardLeave } from '../confirm';
 import { RouterLink, useRoute, useRouter } from 'vue-router';
 import AdminIcon from '../components/AdminIcon.vue';
+import AudioPlayer from '../components/AudioPlayer.vue';
+import VideoPlayer from '../components/VideoPlayer.vue';
 import FieldControl from '../components/FieldControl.vue';
 import RawValues from '../components/RawValues.vue';
 import SaveBar from '../components/SaveBar.vue';
 import { ApiError, entryRoute, errorMessage, request, type FieldDescription, type MediaDetail } from '../api';
 import { useAction } from '../action';
+import { config } from '../config';
 import { fromForm, toForm, type FormValue } from '../fields';
-import { attributeText, imageText } from '../markdown';
-import { formatDate, formatSize } from '../format';
-import { forgetFile, formatDuration, mediaFacts, mediaName } from '../media';
-import { screenTitle } from '../screen';
-import { can } from '../session';
+import { attributeText, imageText, linkText } from '../markdown';
+import { formatDate, formatSize, plural } from '../format';
+import { embeddedText, forgetFile, formatDuration, mediaFacts, mediaIcon, mediaName } from '../media';
+import { screenCrumb, screenTitle } from '../screen';
 import { copyText, toast } from '../toast';
 
 const route  = useRoute();
@@ -102,21 +115,134 @@ const EMBEDDED: Record<string, { label: string; field?: string }> = {
 	iso: { label: 'ISO' },
 	orientation: { label: 'Orientation' },
 	artwork: { label: 'Artwork' },
-	software: { label: 'Software' }
+	format: { label: 'Format' },
+	bitrate: { label: 'Bitrate' },
+	sampleRate: { label: 'Sample rate' },
+	channels: { label: 'Channels' },
+	frameRate: { label: 'Frame rate' },
+	audioFormat: { label: 'Audio' },
+	pageSize: { label: 'Page size' },
+	software: { label: 'Software' },
+	producer: { label: 'Producer' }
 };
 
-const embedded = computed(() => Object.entries(file.value?.embedded.values ?? {}).filter(([key]) => EMBEDDED[key] !== undefined).map(([key, value]) => {
-	const text  = Array.isArray(value) ? value.join(', ') : String(value);
-	const field = EMBEDDED[key]?.field;
+// What `format` is: a video's picture, a document's version, or a
+// sound's codec.
+const FORMAT: Record<string, string> = { video: 'Video', document: 'Version' };
 
-	return { key, label: EMBEDDED[key]?.label ?? key, text, field: field !== undefined && fields.value.some((item) => item.name === field) && form.value[field] !== text ? field : undefined };
-}));
+const embedded = computed(() => Object.entries(file.value?.embedded.values ?? {}).filter(([key]) => EMBEDDED[key] !== undefined).map(([key, value]) => ({
+	key,
+	label: key === 'format' ? FORMAT[file.value?.kind ?? ''] ?? 'Format' : EMBEDDED[key]?.label ?? key,
+	text: embeddedText(key, value),
+	field: EMBEDDED[key]?.field
+})));
+
+// The value offered under each field the file has one for: the first
+// that fits it. A file whose details can't be changed offers none.
+const offers = computed(() => {
+	const found = new Map<string, string>();
+
+	if (file.value?.may.edit !== true || file.value.original !== null) {
+		return found;
+	}
+
+	for (const item of embedded.value) {
+		if (item.field !== undefined && !found.has(item.field) && fields.value.some((field) => field.name === item.field)) {
+			found.set(item.field, item.text);
+		}
+	}
+
+	return found;
+});
+
+// The rest of what it says, as Metadata. A video's sound is one row:
+// its codec, bit rate, and channels.
+const SOUND    = ['bitrate', 'sampleRate', 'channels'];
+const metadata = computed(() => {
+	const rows = embedded.value.filter((item) => item.field === undefined || offers.value.get(item.field) !== item.text);
+
+	if (file.value?.kind !== 'video') {
+		return rows;
+	}
+
+	const sound = rows.filter((item) => item.key === 'bitrate' || item.key === 'channels').map((item) => item.text);
+
+	return rows.filter((item) => !SOUND.includes(item.key)).map((item) => item.key === 'audioFormat' ? { ...item, text: [item.text, ...sound].join(', ') } : item);
+});
+
+// A document's pages, when it says (a PDF), and its page's shape, for
+// the drawn page.
+const pages = computed(() => {
+	const value = file.value?.embedded.values.pages;
+
+	return typeof value === 'number' ? value : null;
+});
+
+const pageShape = computed(() => {
+	const size  = file.value?.embedded.values.pageSize;
+	const found = typeof size === 'string' ? /^([\d.]+) × ([\d.]+)/.exec(size) : null;
+
+	return found === null ? '8.5 / 11' : `${found[1]} / ${found[2]}`;
+});
+
+// The picture a sound carries, such as its cover (D-551), unless it
+// couldn't be shown.
+const artFailed = ref(false);
+const artwork   = computed(() => file.value?.embedded.values.artwork === undefined || artFailed.value ? null : config.api + address.value.replace(/^\/media\//, '/media-artwork/'));
+
+// The offers whose fields are empty, which Fill from the File fills.
+const fillable = computed(() => [...offers.value].filter(([field]) => String(form.value[field] ?? '').trim() === ''));
 
 // Copies a value into a field, as typing it would; saving is still asked.
 function use(field: string, text: string): void {
 	form.value[field] = text;
 	document.getElementById(`media-${field}`)?.focus();
 }
+
+function fillFromFile(): void {
+	for (const [field, text] of fillable.value) {
+		form.value[field] = text;
+	}
+}
+
+// The heading: the title as typed, else the file name.
+const heading = computed(() => {
+	const title = typeof form.value.title === 'string' ? form.value.title.trim() : '';
+
+	return title !== '' ? title : (file.value?.name ?? 'File');
+});
+
+// The line under the heading: its type, size in pixels or length, size
+// on disk, and folder.
+const summary = computed(() => file.value === null ? '' : [file.value.mime, ...(pages.value === null ? [] : [plural(pages.value, 'page')]), mediaFacts(file.value)].join(' · '));
+
+// An image without alt text, which its field says.
+const missingAlt = computed(() => file.value?.kind === 'image' && fields.value.some((field) => field.name === 'alt') && altText.value === '');
+
+// What's playing, for a sound: its title, and who made it, from what.
+const track = computed(() => {
+	const values = file.value?.embedded.values ?? {};
+	const text   = (key: string): string => {
+		const value = values[key];
+
+		return value === undefined ? '' : (Array.isArray(value) ? value.join(', ') : String(value));
+	};
+
+	return {
+		title: text('title') || heading.value,
+		by: [text('creator'), text('album'), text('track') === '' ? '' : `Track ${text('track')}`].filter((part) => part !== '').join(' · ')
+	};
+});
+
+// A file's extension, for one that can't be shown.
+const extension = computed(() => file.value?.name.includes('.') ? file.value.name.split('.').pop()?.toUpperCase() ?? '' : '');
+
+// The entries that use it: the first five of a long list, until all are
+// asked for.
+const LONG     = 6;
+const showAll  = ref(false);
+const longList = computed(() => (file.value?.usedIn.length ?? 0) > LONG);
+const shownUses = computed(() => longList.value && !showAll.value ? file.value?.usedIn.slice(0, 5) ?? [] : file.value?.usedIn ?? []);
 
 function fieldLabel(name: string): string {
 	const found = fields.value.find((field) => field.name === name);
@@ -144,7 +270,9 @@ function errorFor(field: FieldDescription): string | undefined {
 }
 
 watch(path, async () => {
-	file.value    = null;
+	file.value      = null;
+	showAll.value   = false;
+	artFailed.value = false;
 	error.value   = '';
 	failure.value = '';
 
@@ -157,6 +285,7 @@ watch(path, async () => {
 
 watch(file, (value) => {
 	screenTitle.value = value === null ? null : mediaName(value);
+	screenCrumb.value = value?.may.edit === true && value.original === null ? 'Editing' : null;
 });
 
 async function save(): Promise<void> {
@@ -212,14 +341,15 @@ async function remove(): Promise<void> {
 	}
 
 	const used  = item.usedIn.length;
-	const sizes = item.sizes.length ? [`Its ${item.sizes.length === 1 ? 'other size is' : `${item.sizes.length} other sizes are`} deleted with it.`] : [];
-	const body  = used === 0
-		? [...sizes, 'It isn\'t used in any entry. This can\'t be undone.']
-		: [
-			...sizes,
-			`It's used in **${used === 1 ? '1 entry' : `${used} entries`}**: ${item.usedIn.slice(0, 5).map((entry) => entry.title).join(', ')}${used > 5 ? `, and ${used - 5} more` : ''}. They'll show a broken image or link until they're changed.`,
-			'This can\'t be undone.'
-		];
+	const goes  = item.sizes.length
+		? `The file and its **${plural(item.sizes.length, 'other size')}** will be removed from the library and from disk.`
+		: 'The file will be removed from the library and from disk.';
+	const body  = [
+		goes,
+		used === 0
+			? 'It isn\'t used in any entry. This can\'t be undone.'
+			: `**${plural(used, 'entry', 'entries')} ${used === 1 ? 'uses' : 'use'} it**, and will be left pointing at an address that no longer resolves. This can't be undone.`
+	];
 
 	if (!await confirmAction({ title: `Delete ${mediaName(item)}?`, body, confirm: 'Delete the File', danger: true })) {
 		return;
@@ -240,43 +370,36 @@ async function remove(): Promise<void> {
 	}
 }
 
-// What an entry would write to show it: an image is Markdown, with the
-// library's alt text and caption (D-267, D-268); the rest are directives.
+// What an entry writes to show it: an image is Markdown, with the
+// library's alt text and caption (D-267, D-268); a sound or video is its
+// block, which the editor's media button inserts; anything else is a
+// link, its title the link's text.
 const snippet = computed(() => {
 	const item = file.value;
 
 	if (item === null) {
-		return '';
-	}
-
-	return written(item.reference);
-});
-
-// What an entry writes to show it, by a reference.
-function written(reference: string): string {
-	const item = file.value;
-
-	if (item === null) {
-		return '';
+		return { text: '', label: '', note: '', what: '' };
 	}
 
 	if (item.kind === 'image') {
-		return imageText(reference, item.alt, item.caption).text;
+		return { text: imageText(item.reference, item.alt, item.caption).text, label: 'In Markdown', note: 'the alt text is filled in for you', what: 'the Markdown' };
 	}
 
-	const name = item.kind === 'video' ? 'video' : (item.kind === 'audio' ? 'audio' : 'file');
+	if (item.kind === 'video' || item.kind === 'audio') {
+		return { text: `::blush/${item.kind}{${attributeText('src', item.reference)}}`, label: 'In the editor', note: 'inserted by the media button', what: 'the block' };
+	}
 
-	return `::blush/${name}{${attributeText('src', reference)}}`;
-}
+	return { text: linkText(mediaName(item), item.reference), label: 'In Markdown', note: 'the link text is the title', what: 'the Markdown' };
+});
 </script>
 
 <template>
 	<header class="page-header">
 		<RouterLink class="page-back" :to="{ name: 'media' }"><AdminIcon name="chevron-left" />All media</RouterLink>
 		<div class="page-header__text">
-			<h1 tabindex="-1">{{ file ? mediaName(file) : 'File' }}</h1>
+			<h1 tabindex="-1">{{ heading }}</h1>
 			<p v-if="file" class="page-header__hint">
-				<template v-if="file.title"><span class="mono">{{ file.name }}</span> · </template>{{ file.mime }} · {{ mediaFacts(file) }}
+				<template v-if="heading !== file.name"><span class="mono">{{ file.name }}</span> · </template>{{ summary }} · <span class="mono head__folder">user/media/{{ file.folder }}</span>
 			</p>
 		</div>
 		<div class="page-header__actions">
@@ -288,22 +411,114 @@ function written(reference: string): string {
 	<p v-if="error" class="notice notice--error" role="alert">{{ error }}</p>
 
 	<div v-if="file" class="detail">
-		<section class="panel preview" aria-label="Preview">
-			<img v-if="file.kind === 'image'" :src="file.url" :alt="`Preview of ${mediaName(file)}`">
-			<video v-else-if="file.kind === 'video'" :src="file.url" controls preload="metadata" />
-			<audio v-else-if="file.kind === 'audio'" :src="file.url" controls preload="metadata" />
-			<AdminIcon v-else :name="file.kind === 'document' ? 'file-text' : 'file'" />
-		</section>
+		<div class="detail__column">
+			<section class="panel preview" aria-label="Preview">
+				<img v-if="file.kind === 'image'" class="preview__image" :src="file.url" :alt="`Preview of ${mediaName(file)}`">
+				<VideoPlayer v-else-if="file.kind === 'video'" class="preview__video" :src="file.url" />
+				<div v-else-if="file.kind === 'audio'" class="preview__audio">
+					<div class="preview__art">
+						<img v-if="artwork" :src="artwork" alt="Its artwork" @error="artFailed = true">
+						<AdminIcon v-else name="music" />
+					</div>
+					<div class="preview__track">
+						<p class="preview__title">{{ track.title }}</p>
+						<p v-if="track.by" class="preview__by">{{ track.by }}</p>
+						<AudioPlayer :src="file.url" />
+					</div>
+				</div>
+				<div v-else-if="pages !== null" class="preview__page">
+					<div class="preview__sheet" :style="{ aspectRatio: pageShape }" aria-hidden="true">
+						<i class="preview__line preview__line--head" /><i class="preview__line" /><i class="preview__line preview__line--short" /><i class="preview__line" />
+						<i class="preview__line preview__line--end" /><i class="preview__line" /><i class="preview__line preview__line--short" /><i class="preview__line" /><i class="preview__line preview__line--end" />
+						<span class="preview__pages mono">{{ plural(pages, 'page') }}</span>
+					</div>
+				</div>
+				<div v-else class="preview__none">
+					<AdminIcon :name="mediaIcon(file)" />
+					<span v-if="extension" class="preview__ext mono">{{ extension }}</span>
+					<span>No preview for this kind of file</span>
+				</div>
+			</section>
 
-		<div class="detail__side">
+			<section class="panel" aria-labelledby="usage-heading">
+				<header class="panel__header">
+					<h2 id="usage-heading">Usage</h2>
+					<span class="panel__hint">Copy it, and see where it already is</span>
+				</header>
+				<div class="panel__body usage">
+					<div class="usage__copy">
+						<p class="usage__label"><span>Address</span> the file itself</p>
+						<div class="usage__row">
+							<code>{{ file.reference }}</code>
+							<button type="button" class="button button--icon" aria-label="Copy the address" title="Copy" @click="copyText(file.reference, 'the address')"><AdminIcon name="copy" /></button>
+						</div>
+					</div>
+					<div class="usage__copy">
+						<p class="usage__label"><span>{{ snippet.label }}</span> {{ snippet.note }}</p>
+						<div class="usage__row">
+							<code>{{ snippet.text }}</code>
+							<button type="button" class="button button--icon" :aria-label="`Copy ${snippet.what}`" title="Copy" @click="copyText(snippet.text, snippet.what)"><AdminIcon name="copy" /></button>
+						</div>
+					</div>
+				</div>
+				<div class="panel__body usage__uses">
+					<p class="eyebrow">{{ file.usedIn.length === 0 ? 'Not used yet' : `Used in ${plural(file.usedIn.length, 'entry', 'entries')}` }}</p>
+					<p v-if="file.usedIn.length === 0" class="field__help">No entry uses it, by any of its addresses.</p>
+					<template v-else>
+						<ul class="used" :class="{ 'used--scroll': longList && showAll }">
+							<li v-for="entry in shownUses" :key="entry.path">
+								<RouterLink :to="entryRoute(entry)">{{ entry.title }}</RouterLink>
+								<span v-if="entry.typeLabel" class="used__type">{{ entry.typeLabel }}</span>
+							</li>
+						</ul>
+						<button v-if="longList" type="button" class="button button--ghost button--small" :aria-expanded="showAll" @click="showAll = !showAll"><AdminIcon :name="showAll ? 'chevron-up' : 'chevron-down'" />{{ showAll ? 'Show Fewer' : `Show All ${file.usedIn.length}` }}</button>
+					</template>
+				</div>
+			</section>
+
+			<section class="panel" aria-labelledby="storage-heading">
+				<header class="panel__header">
+					<h2 id="storage-heading">Storage</h2>
+					<span class="panel__hint">Where it lives</span>
+				</header>
+				<dl class="panel__body facts">
+					<div><dt>Folder</dt><dd class="mono">user/media/{{ file.folder }}</dd></div>
+					<div><dt>Type</dt><dd class="mono">{{ file.mime }}</dd></div>
+					<div><dt>Size</dt><dd class="mono">{{ formatSize(file.size) }}</dd></div>
+					<div v-if="file.width !== null && file.height !== null"><dt>Dimensions</dt><dd class="mono">{{ file.width }} × {{ file.height }}</dd></div>
+					<div v-if="file.duration !== null"><dt>Length</dt><dd class="mono">{{ formatDuration(file.duration) }}</dd></div>
+					<div v-if="pages !== null"><dt>Pages</dt><dd class="mono">{{ pages }}</dd></div>
+					<div><dt>Changed</dt><dd>{{ formatDate(file.modified) }}</dd></div>
+					<div><dt>Uploaded by</dt><dd :class="{ 'facts__none': file.uploader === null }">{{ file.uploader?.name ?? 'Not recorded' }}</dd></div>
+				</dl>
+			</section>
+
+			<section v-if="file.sizes.length" class="panel" aria-labelledby="sizes-heading">
+				<header class="panel__header">
+					<h2 id="sizes-heading">Other Sizes</h2>
+					<span class="panel__hint">{{ plural(file.sizes.length, 'other size') }}</span>
+				</header>
+				<ul class="panel__body sizes">
+					<li v-for="size in file.sizes" :key="size.path">
+						<RouterLink class="mono" :to="{ name: 'media-file', params: { path: size.path.split('/') } }">{{ size.name }}</RouterLink>
+						<span class="sizes__facts">{{ mediaFacts({ width: size.width, height: size.height, duration: null, size: size.size }) }}</span>
+					</li>
+				</ul>
+			</section>
+		</div>
+
+		<div class="detail__column">
 			<form class="panel" aria-labelledby="text-heading" @submit.prevent="save">
 				<header class="panel__header">
 					<h2 id="text-heading">Details</h2>
+					<span class="panel__hint">The only part of this screen that saves</span>
+					<div v-if="fillable.length" class="panel__actions">
+						<button type="button" class="button button--small" @click="fillFromFile"><AdminIcon name="import" />Fill from the File</button>
+					</div>
 				</header>
 				<fieldset class="panel__body text" :disabled="!file.may.edit">
 					<p v-if="file.original" class="field__help text__note"><AdminIcon name="info" />A size of <RouterLink :to="{ name: 'media-file', params: { path: file.original.path.split('/') } }">{{ file.original.title || file.original.name }}</RouterLink>, whose details it goes by. Change them there.</p>
 					<p v-else-if="!file.may.edit" class="field__help text__note"><AdminIcon name="info" />{{ file.uploader === null ? 'No one\'s recorded as uploading this file, so only someone who may change anyone\'s files can change its details.' : `Only ${file.uploader.name}, or someone who may change anyone's files, can change its details.` }}</p>
-					<p v-if="file.kind === 'image' && fields.some((field) => field.name === 'alt') && altText === ''" class="field__help text__warn"><AdminIcon name="triangle-alert" />No alt text. It's what the image shows, for anyone who can't see it; images inserted from the library start with it, and pages use it where they have none.</p>
 					<FieldControl
 						v-for="field in ownFields"
 						:key="`${file.reference}-${field.name}`"
@@ -311,8 +526,17 @@ function written(reference: string): string {
 						id-prefix="media-"
 						:model-value="form[field.name] ?? ''"
 						:error="errorFor(field)"
+						:warn="field.name === 'alt' && missingAlt"
 						@update:model-value="form[field.name] = $event"
-					/>
+					>
+						<template v-if="offers.has(field.name)" #after>
+							<p v-if="form[field.name] === offers.get(field.name)" class="offer offer--taken"><AdminIcon name="check" />From the file</p>
+							<p v-else class="offer"><AdminIcon name="file" />The file says <q>{{ offers.get(field.name) }}</q><button type="button" class="button button--ghost button--small" @click="use(field.name, offers.get(field.name) ?? '')">Use It<span class="visually-hidden"> as the {{ fieldLabel(field.name).toLowerCase() }}</span></button></p>
+						</template>
+						<template v-if="field.name === 'alt' && missingAlt" #help="{ id }">
+							<p :id="id" class="field__warn"><AdminIcon name="triangle-alert" /><span><strong>No alt text.</strong> It's what the image shows, for anyone who can't see it; images inserted from the library start with it, and pages use it where they have none.</span></p>
+						</template>
+					</FieldControl>
 					<div v-for="set in setGroups" :key="`${file.reference}-set-${set.name}`" class="text__set">
 						<p class="text__set-heading">{{ set.label }}</p>
 						<p v-if="set.description" class="field__help">{{ set.description }}</p>
@@ -330,90 +554,26 @@ function written(reference: string): string {
 						<p class="field__help">Also in its metadata file, kept as they are:</p>
 						<RawValues :entries="extra" />
 					</div>
-					<p v-if="file.may.edit" class="field__help">Kept in <code>user/data/media</code>, not in the file.</p>
+					<p v-if="file.may.edit" class="field__help">Kept in <code>user/data/media</code>, not written back into the file.</p>
 				</fieldset>
 
 				<SaveBar v-if="file.may.edit" :count="changes.length" :failure="failure" :saving="saving" @revert="revert" />
 			</form>
 
-			<section v-if="embedded.length || file.embedded.location" class="panel" aria-labelledby="embedded-heading">
+			<section class="panel" aria-labelledby="metadata-heading">
 				<header class="panel__header">
-					<h2 id="embedded-heading">From the File</h2>
-					<span class="panel__hint">What it says about itself</span>
-				</header>
-				<div class="panel__body embedded">
-					<p v-if="file.embedded.location" class="field__help text__warn"><AdminIcon name="triangle-alert" />This file carries where it was taken (GPS). The site never shows it, but anyone who downloads the file can read it.</p>
-					<dl v-if="embedded.length" class="facts">
-						<div v-for="item in embedded" :key="item.key">
-							<dt>{{ item.label }}</dt>
-							<dd>
-								<span>{{ item.text }}</span>
-								<button v-if="item.field" type="button" class="button button--ghost button--small" @click="use(item.field, item.text)">Use<span class="visually-hidden"> as the {{ fieldLabel(item.field).toLowerCase() }}</span></button>
-							</dd>
-						</div>
-					</dl>
-				</div>
-			</section>
-
-			<section class="panel" aria-labelledby="details-heading">
-				<header class="panel__header">
-					<h2 id="details-heading">File</h2>
-				</header>
-				<dl class="panel__body facts">
-					<div><dt>Folder</dt><dd class="mono">user/media/{{ file.folder }}</dd></div>
-					<div><dt>Type</dt><dd class="mono">{{ file.mime }}</dd></div>
-					<div><dt>Size</dt><dd>{{ formatSize(file.size) }}</dd></div>
-					<div v-if="file.width !== null && file.height !== null"><dt>Dimensions</dt><dd>{{ file.width }} × {{ file.height }}</dd></div>
-					<div v-if="file.duration !== null"><dt>Length</dt><dd>{{ formatDuration(file.duration) }}</dd></div>
-					<div><dt>Changed</dt><dd>{{ formatDate(file.modified) }}</dd></div>
-					<div><dt>Uploaded by</dt><dd :class="{ 'facts__none': file.uploader === null }">{{ file.uploader?.name ?? 'Not recorded' }}</dd></div>
-					<div><dt>ID</dt><dd v-if="file.id" class="mono">{{ file.id }}</dd><dd v-else class="facts__none">None yet<template v-if="can('site.health')">; <RouterLink :to="{ name: 'health-media-check', params: { area: 'media', check: 'ids' } }">add one on Site Health</RouterLink></template></dd></div>
-				</dl>
-			</section>
-
-			<section v-if="file.sizes.length" class="panel" aria-labelledby="sizes-heading">
-				<header class="panel__header">
-					<h2 id="sizes-heading">Sizes</h2>
-					<span class="panel__hint">{{ file.sizes.length === 1 ? '1 other size' : `${file.sizes.length} other sizes` }}</span>
-				</header>
-				<ul class="panel__body sizes">
-					<li v-for="size in file.sizes" :key="size.path">
-						<RouterLink class="mono" :to="{ name: 'media-file', params: { path: size.path.split('/') } }">{{ size.name }}</RouterLink>
-						<span class="sizes__facts">{{ mediaFacts({ width: size.width, height: size.height, duration: null, size: size.size }) }}</span>
-					</li>
-				</ul>
-			</section>
-
-			<section class="panel" aria-labelledby="used-heading">
-				<header class="panel__header">
-					<h2 id="used-heading">Used In</h2>
-					<span class="panel__hint">{{ file.usedIn.length === 0 ? 'No entries' : (file.usedIn.length === 1 ? '1 entry' : `${file.usedIn.length} entries`) }}</span>
+					<h2 id="metadata-heading">Metadata</h2>
+					<span class="panel__hint">What the file says about itself</span>
 				</header>
 				<div class="panel__body">
-					<p v-if="file.usedIn.length === 0" class="field__help">No entry uses it, by any of its addresses.</p>
-					<ul v-else class="used">
-						<li v-for="entry in file.usedIn" :key="entry.path">
-							<RouterLink :to="entryRoute(entry)">{{ entry.title }}</RouterLink>
-							<span v-if="entry.typeLabel" class="used__type">{{ entry.typeLabel }}</span>
-						</li>
-					</ul>
-				</div>
-			</section>
-
-			<section class="panel" aria-labelledby="use-heading">
-				<header class="panel__header">
-					<h2 id="use-heading">Use It</h2>
-				</header>
-				<div class="panel__body use">
-					<p class="field__help">In the editor, the media button inserts it. In Markdown or front matter, it's:</p>
-					<div class="use__row">
-						<code>{{ file.reference }}</code>
-						<button type="button" class="button button--small" @click="copyText(file.reference, 'the address')"><AdminIcon name="copy" />Copy</button>
-					</div>
-					<div class="use__row">
-						<code>{{ snippet }}</code>
-						<button type="button" class="button button--small" @click="copyText(snippet, file.kind === 'image' ? 'the Markdown' : 'the block')"><AdminIcon name="copy" />Copy</button>
-					</div>
+					<p v-if="file.embedded.location" class="field__warn"><AdminIcon name="triangle-alert" /><span>This file carries where it was taken (GPS). The site never shows it, but anyone who downloads the file can read it.</span></p>
+					<dl v-if="metadata.length" class="facts">
+						<div v-for="item in metadata" :key="item.key">
+							<dt>{{ item.label }}</dt>
+							<dd>{{ item.text }}</dd>
+						</div>
+					</dl>
+					<p v-else-if="!file.embedded.location" class="field__help">{{ embedded.length ? 'Nothing more than the details above.' : 'None in this file.' }}</p>
 				</div>
 			</section>
 		</div>
@@ -421,32 +581,336 @@ function written(reference: string): string {
 </template>
 
 <style scoped>
+/* Two columns (D-551): the file on the left, at most 440px; its details
+   on the right. One column below 1100px. */
+.detail {
+	display: grid;
+	grid-template-columns: minmax(0, 440px) minmax(0, 1fr);
+	align-items: start;
+	gap: var(--s-4);
+}
+
+.detail__column {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr);
+	gap: var(--s-4);
+	min-width: 0;
+}
+
+@media (width <= 1100px) {
+	.detail {
+		grid-template-columns: minmax(0, 1fr);
+	}
+}
+
+.head__folder {
+	color: var(--fg-3);
+}
+
+/* The preview: an image or video fills its card; a sound is its art,
+   what's playing, and a player; anything else says it can't be shown. */
+.preview {
+	overflow: hidden;
+}
+
+.preview__image {
+	display: block;
+	width: 100%;
+	height: auto;
+	max-height: 70vh;
+	object-fit: contain;
+	background: var(--surface-2);
+}
+
+.preview__video {
+	max-height: 70vh;
+}
+
+.preview__audio {
+	display: flex;
+	align-items: center;
+	gap: var(--s-4);
+	padding: var(--s-4);
+}
+
+.preview__art {
+	display: grid;
+	flex: none;
+	place-items: center;
+	width: 124px;
+	height: 124px;
+	overflow: hidden;
+	border-radius: var(--r-2);
+	background: var(--surface-2);
+	box-shadow: var(--shadow-2);
+	color: var(--fg-3);
+}
+
+.preview__art img {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+}
+
+.preview__art :deep(svg) {
+	width: 36px;
+	height: 36px;
+	stroke-width: 1.25;
+}
+
+.preview__track {
+	display: grid;
+	flex: 1;
+	gap: var(--s-1);
+	min-width: 0;
+}
+
+.preview__title {
+	margin: 0;
+	font-family: var(--font-display);
+	font-size: var(--title-lead);
+	font-weight: 600;
+	overflow-wrap: anywhere;
+}
+
+.preview__by {
+	margin: 0;
+	color: var(--fg-3);
+	font-size: var(--text-sm);
+	overflow-wrap: anywhere;
+}
+
+.preview__track .audio-player {
+	margin-top: var(--s-2);
+}
+
+.preview__none {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: var(--s-2);
+	padding: var(--s-7) var(--s-5);
+	background: var(--surface-2);
+	color: var(--fg-3);
+	font-size: var(--text-sm);
+	text-align: center;
+}
+
+.preview__none :deep(svg) {
+	width: 26px;
+	height: 26px;
+}
+
+.preview__ext {
+	padding: 2px 8px;
+	border: 1px solid var(--border-strong);
+	border-radius: var(--r-1);
+	color: var(--fg-2);
+	font-size: var(--text-xs);
+	letter-spacing: .08em;
+}
+
+/* A document that says how many pages it has: a page, drawn, in its
+   shape, with the count at its corner. */
+.preview__page {
+	display: grid;
+	place-items: center;
+	padding: var(--s-5);
+	background: var(--surface-2);
+}
+
+.preview__sheet {
+	position: relative;
+	display: flex;
+	flex-direction: column;
+	gap: 7px;
+	width: min(248px, 62%);
+	padding: var(--s-5) var(--s-4);
+	border: 1px solid var(--border-strong);
+	border-radius: 3px;
+	background: var(--surface);
+}
+
+.preview__line {
+	display: block;
+	height: 5px;
+	border-radius: 2px;
+	background: var(--surface-3);
+}
+
+.preview__line--head {
+	width: 62%;
+	height: 9px;
+	margin-bottom: 5px;
+	background: var(--border-strong);
+}
+
+.preview__line--short {
+	width: 84%;
+}
+
+.preview__line--end {
+	width: 46%;
+}
+
+.preview__pages {
+	position: absolute;
+	right: -9px;
+	bottom: -9px;
+	padding: 2px 7px;
+	border: 1px solid var(--border-strong);
+	border-radius: var(--r-1);
+	background: var(--surface);
+	color: var(--fg-2);
+	font-size: var(--text-xs);
+}
+
+/* Usage: what to copy, then the entries that use it. */
+/* One column at the card's width, so a long address scrolls inside its
+   box rather than widening the card. */
+.usage {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr);
+	gap: var(--s-4);
+}
+
+.usage__copy {
+	min-width: 0;
+}
+
+.usage > * + * {
+	margin-top: 0;
+}
+
+.usage__label {
+	display: flex;
+	align-items: baseline;
+	gap: var(--s-2);
+	margin: 0 0 6px;
+	color: var(--fg-3);
+	font-size: var(--text-xs);
+}
+
+.usage__label span {
+	color: var(--fg-2);
+	font-size: var(--text-sm);
+	font-weight: 500;
+}
+
+.usage__row {
+	display: flex;
+	gap: 6px;
+}
+
+.usage__row code {
+	flex: 1;
+	min-width: 0;
+	padding: 5px 8px;
+	overflow-x: auto;
+	border: 1px solid var(--border);
+	border-radius: var(--r-1);
+	background: var(--surface-2);
+	font-size: var(--text-sm);
+	white-space: nowrap;
+}
+
+.usage__row .button {
+	flex: none;
+}
+
+.usage__uses {
+	border-top: 1px solid var(--border);
+}
+
+.usage__uses > * + * {
+	margin-top: var(--s-3);
+}
+
+.used {
+	display: grid;
+	gap: var(--s-3);
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+/* All of a long list, kept from making the column a page long. */
+.used--scroll {
+	max-height: 232px;
+	padding-right: var(--s-1);
+	overflow-y: auto;
+}
+
+.used li {
+	display: flex;
+	align-items: baseline;
+	gap: var(--s-3);
+	min-width: 0;
+}
+
+.used a {
+	min-width: 0;
+	font-family: var(--font-title);
+	font-size: var(--title-size);
+	font-weight: var(--title-weight);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.used__type {
+	flex: none;
+	margin-left: auto;
+	color: var(--fg-3);
+	font-size: var(--text-sm);
+}
+
+.facts dd.mono {
+	font-size: var(--text-sm);
+}
+
+.facts__none {
+	color: var(--fg-3);
+}
+
+/* A size's file name, and its facts under it. */
 .sizes {
+	display: grid;
+	gap: var(--s-3);
 	margin: 0;
 	list-style: none;
 }
 
+.sizes > * + * {
+	margin-top: 0;
+}
+
 .sizes li {
-	display: flex;
-	flex-wrap: wrap;
-	justify-content: space-between;
-	gap: var(--s-1) var(--s-3);
-	padding: var(--s-1) 0;
+	display: grid;
+	gap: 3px;
 }
 
 .sizes a {
+	font-size: var(--text-sm);
 	overflow-wrap: anywhere;
 }
 
 .sizes__facts {
 	color: var(--fg-3);
+	font-size: var(--text-sm);
 }
 
 /* The form's controls, read-only as one when they can't be changed. */
 fieldset.text {
+	display: grid;
+	gap: var(--s-4);
 	min-width: 0;
 	margin: 0;
 	border: 0;
+}
+
+.text > * + * {
+	margin-top: 0;
 }
 
 .text__note {
@@ -461,75 +925,38 @@ fieldset.text {
 	margin-top: 2px;
 }
 
-.facts__none {
-	color: var(--fg-3);
-}
-
-.used {
-	display: grid;
-	gap: var(--s-2);
-	margin: 0;
-	padding: 0;
-	list-style: none;
-}
-
-.used li {
+/* A value the file offers for a field, under it, or that it's taken. */
+.offer {
 	display: flex;
 	flex-wrap: wrap;
-	align-items: baseline;
-	gap: var(--s-1) var(--s-2);
-}
-
-.used__type {
+	align-items: center;
+	gap: 6px;
+	margin: 0;
 	color: var(--fg-3);
 	font-size: var(--text-sm);
 }
 
-.detail {
-	display: grid;
-	grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
-	align-items: start;
-	gap: 16px;
+.offer :deep(.icon) {
+	flex: none;
+	width: 13px;
+	height: 13px;
 }
 
-/* One column at the side's own width, so a long snippet scrolls inside
-   its box rather than widening the column. */
-.detail__side {
-	display: grid;
-	grid-template-columns: minmax(0, 1fr);
-	gap: 16px;
-	min-width: 0;
+.offer q {
+	color: var(--fg-2);
+	overflow-wrap: anywhere;
 }
 
-.preview {
-	display: grid;
-	place-items: center;
-	min-height: 240px;
-	padding: 16px;
-	background: var(--surface-2);
-	color: var(--fg-3);
+.offer .button {
+	margin-block: -4px;
 }
 
-.preview img,
-.preview video {
-	max-width: 100%;
-	max-height: 60vh;
-	border-radius: var(--r-1);
+.offer--taken {
+	color: var(--good);
 }
 
-.preview audio {
-	width: 100%;
-}
-
-.preview > :deep(svg) {
-	width: 48px;
-	height: 48px;
-	stroke-width: 1.25;
-}
-
-.text {
-	display: grid;
-	gap: var(--s-4);
+.offer--taken :deep(.icon) {
+	color: var(--good-dot);
 }
 
 /* A field set's fields, under its label (D-341), as the editor's panel
@@ -554,62 +981,7 @@ fieldset.text {
 	text-transform: uppercase;
 }
 
-.text__warn {
-	display: flex;
-	align-items: flex-start;
-	gap: 6px;
-	color: var(--warn);
-}
-
-.text__warn :deep(svg) {
-	flex: none;
-	width: 14px;
-	height: 14px;
-	margin-top: 1px;
-}
-
-.embedded {
-	display: grid;
-	gap: var(--s-3);
-}
-
-.embedded .facts dd {
-	display: flex;
-	align-items: baseline;
-	justify-content: flex-end;
-	gap: var(--s-2);
-	min-width: 0;
-}
-
-.embedded .facts dd .button {
-	flex: none;
-}
-
 .text__extra dl {
 	margin: 6px 0 0;
-}
-
-.use__row {
-	display: flex;
-	align-items: center;
-	gap: 8px;
-}
-
-.use__row code {
-	flex: 1;
-	min-width: 0;
-	padding: 5px 8px;
-	overflow-x: auto;
-	border: 1px solid var(--border);
-	border-radius: var(--r-1);
-	background: var(--surface-2);
-	font-size: var(--text-sm);
-	white-space: nowrap;
-}
-
-@media (width <= 1100px) {
-	.detail {
-		grid-template-columns: minmax(0, 1fr);
-	}
 }
 </style>

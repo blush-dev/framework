@@ -21,6 +21,7 @@ use Blush\Data\DataLoader;
 use Blush\Media\Embedded\EmbeddedMetadataReader;
 use Blush\Media\MediaConfig;
 use Blush\Media\MediaException;
+use Blush\Media\MediaKind;
 use Blush\Media\MediaMetadataStore;
 use Blush\Media\MediaResolver;
 use Blush\Support\Filesystem;
@@ -193,9 +194,9 @@ final readonly class MediaIndexer
 			}
 		}
 
-		// What an image, sound, or video says about itself (D-289, D-291);
-		// a video's size comes from it.
-		$embedded = in_array($file->type(), ['image', 'audio', 'video'], true) ? $this->embedded->read($file->path, $file->mime) : null;
+		// What an image, sound, video, or document says about itself
+		// (D-289, D-291, D-551); a video's size comes from it.
+		$embedded = MediaKind::fromMime($file->mime) !== MediaKind::File ? $this->embedded->read($file->path, $file->mime) : null;
 		$said     = $embedded->values ?? [];
 		$width    = $file->width ?? (is_int($said['width'] ?? null) ? $said['width'] : null);
 		$height   = $file->height ?? (is_int($said['height'] ?? null) ? $said['height'] : null);

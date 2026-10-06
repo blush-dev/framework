@@ -934,6 +934,28 @@
 	border-color: var(--danger-dot);
 }
 
+/* A field with something to fix that isn't an error, such as an image
+   without alt text, and the line under it that says so. */
+.field--warn :is(input, textarea):not([aria-invalid="true"]) {
+	border-color: var(--warn-dot);
+}
+
+.field__warn {
+	display: flex;
+	align-items: flex-start;
+	gap: 6px;
+	color: var(--warn);
+	font-size: var(--text-sm);
+	line-height: 1.5;
+}
+
+.field__warn .icon {
+	flex: none;
+	width: 14px;
+	height: 14px;
+	margin-top: 2px;
+}
+
 .field__readonly {
 	max-height: 12rem;
 	margin: 0;
@@ -2762,3 +2784,18 @@ button.lnk {
 	}
 }
 
+
+/* The audio and video players (D-553, D-554, `resources/player`), in
+   the admin's tokens. */
+.player {
+	--player-accent: var(--accent);
+	--player-accent-fg: var(--accent-fg);
+	--player-track: var(--surface-3);
+	--player-muted: var(--fg-3);
+	--player-shadow: var(--shadow-2);
+	--player-font-mono: var(--font-mono);
+	--player-time-size: var(--text-xs);
+	--player-overlay: var(--media-overlay);
+	--player-overlay-fg: var(--media-overlay-fg);
+	--player-radius: 0;
+}

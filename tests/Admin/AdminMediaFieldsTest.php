@@ -22,6 +22,7 @@ use Blush\Media\MediaKind;
 use Blush\Media\MediaKindTarget;
 use Blush\Media\MediaMetadataStore;
 use Blush\Media\MediaSchemas;
+use Blush\Tests\Fixtures\Media\TaggedAudioVideo;
 use Blush\Tests\Fixtures\Media\TaggedJpeg;
 
 #[CoversClass(MediaKind::class)]
@@ -86,6 +87,23 @@ final class AdminMediaFieldsTest extends TestCase
 		$this->assertSame([], is_array($plain) ? $plain['values'] ?? null : null, 'A file that says nothing.');
 	}
 
+	public function testAnswersWithASoundsArtwork(): void
+	{
+		$this->writeTemporaryFile('user/media/song.mp3', TaggedAudioVideo::mp3());
+		$this->writeTemporaryFile('user/media/tone.wav', TaggedAudioVideo::wav());
+		$this->site(false);
+
+		$response = $this->send('GET', '/media-artwork/song.mp3');
+
+		$this->assertSame([200, 'image/jpeg', str_repeat("\xAB", 2048)], [$response->getStatusCode(), $response->getHeaderLine('Content-Type'), (string) $response->getBody()]);
+		$embedded = self::json($this->send('GET', '/media/song.mp3'))['embedded'] ?? null;
+		$values   = is_array($embedded) && is_array($embedded['values'] ?? null) ? $embedded['values'] : [];
+
+		$this->assertSame('JPEG, 2 KB', $values['artwork'] ?? null, 'Its details describe it.');
+		$this->assertSame(404, $this->send('GET', '/media-artwork/tone.wav')->getStatusCode(), 'A file without one.');
+		$this->assertSame(404, $this->send('GET', '/media-artwork/missing.mp3')->getStatusCode(), 'No such file.');
+	}
+
 	public function testKindsComeFromMimeTypes(): void
 	{
 		$this->assertSame([MediaKind::Image, MediaKind::Video, MediaKind::Audio, MediaKind::File], array_map(MediaKind::fromMime(...), ['image/PNG', 'video/mp4', 'audio/mpeg', 'text/vtt']));
@@ -97,9 +115,9 @@ final class AdminMediaFieldsTest extends TestCase
 
 		$schemas = $this->app->container()->make(MediaSchemas::class);
 
-		$this->assertSame(['alt', 'title', 'caption', 'credit', 'description'], array_keys($schemas->schema(MediaKind::Image)->fields), 'Its own first.');
+		$this->assertSame(['title', 'alt', 'caption', 'credit', 'description'], array_keys($schemas->schema(MediaKind::Image)->fields), 'The title, then its own.');
 		$this->assertSame(['title', 'caption', 'credit', 'description'], array_keys($schemas->schema(MediaKind::Audio)->fields), 'Only images have alt text.');
-		$this->assertSame(['alt', 'title', 'caption', 'credit', 'description'], self::names(self::json($this->send('GET', '/media/photo.png'))['fields'] ?? null));
+		$this->assertSame(['title', 'alt', 'caption', 'credit', 'description'], self::names(self::json($this->send('GET', '/media/photo.png'))['fields'] ?? null));
 	}
 
 	public function testFieldSetsAddFieldsByKind(): void
@@ -108,7 +126,7 @@ final class AdminMediaFieldsTest extends TestCase
 
 		$file = self::json($this->send('GET', '/media/photo.png'));
 
-		$this->assertSame(['alt', 'title', 'caption', 'credit', 'description', 'photographer', 'license'], self::names($file['fields'] ?? null), 'The built-in fields, then each set\'s, by set name.');
+		$this->assertSame(['title', 'alt', 'caption', 'credit', 'description', 'photographer', 'license'], self::names($file['fields'] ?? null), 'The built-in fields, then each set\'s, by set name.');
 		$this->assertSame([
 			['name' => 'photo', 'label' => 'Photo', 'description' => '', 'fields' => ['photographer']],
 			['name' => 'rights', 'label' => 'Rights', 'description' => '', 'fields' => ['license']]

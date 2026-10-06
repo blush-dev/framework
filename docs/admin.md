@@ -808,15 +808,25 @@ Your changes aren't lost:
 by its title (or its file name, until it has one), laid out like the
 entries lists: **All** and **Mine** tabs with their counts (**Mine** is
 what you uploaded), then a search by name or details and a filter for
-images, video, audio, documents, or other files. Choose one for a
-preview, its **Details** (the fields files of its kind have: **Alt
-text** for an image, **Caption**, **Credit**, and **Description**, and
-any your site adds; see [Details about a file](media.md#details-about-a-file)),
-what the file says about itself (**From the File**, with **Use** to
-copy a value into your details, and a warning if it carries its
-location; see [What a file says about itself](media.md#what-a-file-says-about-itself)),
-facts about the file, and what to write to use it, with **Copy**
-buttons. Alt text describes the file for anyone
+images, video, audio, documents, or other files. Choose one for its
+screen, in two columns. On the left: a preview (an image or video; a
+sound's cover art, title, artist, and album with a player; or a PDF's
+page with its page count); **Usage**, its address
+and what an entry writes to show it, each with a Copy button, then the
+entries that use it (the first five of a long list, with **Show All**);
+**Storage**, where it lives, its type, size, length or pages, and who
+uploaded it; and an image's **Other Sizes**. On the right: its **Details** (the
+fields files of its kind have: **Title**, **Alt text** for an image,
+**Caption**, **Credit**, and **Description**, and any your site adds;
+see [Details about a file](media.md#details-about-a-file)), the only
+part that saves, and its **Metadata**, what the file says about itself,
+with a warning if it carries its location. A value the file holds that
+fits a detail is offered under that field, with **Use It**, and **Fill
+from the File** fills every empty one (see
+[What a file says about itself](media.md#what-a-file-says-about-itself)).
+The heading is the file's title, else its file name, and follows the
+Title field as you type. An image without alt text says so under the
+field. Alt text describes the file for anyone
 who can't see it, and the caption goes under it; both are filled in when
 it's inserted as an image. After that, the entry's copy is its own: the
 page shows what the entry wrote, and an image with empty brackets,
@@ -830,11 +840,11 @@ otherwise they're shown read-only. Changes wait in the **save bar** at
 the bottom, which counts them: **Save Changes** saves them, and
 **Revert** puts them back.
 
-A file's screen also says who uploaded it, and lists the entries that
-use it (by any of its addresses, in their text or front matter).
-**Delete** (your own files with `media.delete`, anyone's with
-`media.delete.others`) asks first, naming those entries, which will
-show a broken image or link until they're changed; it removes the file,
+The entries a file's screen lists use it by any of its addresses, in
+their text or front matter. **Delete** (your own files with
+`media.delete`, anyone's with `media.delete.others`) asks first, saying
+how many entries use it, which will be left pointing at an address that
+no longer resolves until they're changed; it removes the file,
 its details, and the copy `media:publish --copy` made.
 
 They're kept apart from the file, in `user/data/media/`, which mirrors

@@ -18,7 +18,8 @@ use Blush\Media\MediaException;
 
 /**
  * Reads a media file's embedded metadata with every registered reader
- * (D-289), in the registry's order, the first value for a key winning. A
+ * (D-289), in the registry's order, the first value for a key winning,
+ * and the picture it carries with the first that gives one (D-551). A
  * reader that fails on a file is skipped: embedded metadata is a help,
  * never a reason a file can't be indexed.
  */
@@ -28,7 +29,7 @@ final readonly class EmbeddedMetadataReader
 	 * Moves on when what the readers return changes, so the media index
 	 * reads files again.
 	 */
-	public const int VERSION = 2;
+	public const int VERSION = 3;
 
 	public function __construct(
 		private EmbeddedReaderRegistry $registry,
@@ -57,6 +58,35 @@ final readonly class EmbeddedMetadataReader
 		}
 
 		return $found;
+	}
+
+	/**
+	 * The picture the file carries (D-551), from the first reader that
+	 * gives one (`ArtworkReader`), or `null`.
+	 *
+	 * @throws MediaException When a reader can't be built.
+	 */
+	public function artwork(string $path, string $mime): ?Artwork
+	{
+		foreach (array_keys($this->registry->all()) as $key) {
+			$reader = $this->factory->make($key);
+
+			if (! $reader instanceof ArtworkReader) {
+				continue;
+			}
+
+			try {
+				$found = $reader->artwork($path, $mime);
+			} catch (Throwable) {
+				continue;
+			}
+
+			if ($found !== null) {
+				return $found;
+			}
+		}
+
+		return null;
 	}
 
 	/**

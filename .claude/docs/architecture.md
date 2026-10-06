@@ -727,12 +727,15 @@ Implemented in M4c (D-099), apart from image derivatives.
   in development each request, after admin writes; else `media:index`
   and `publish`) and answers `MediaQuery`s (search, kind, missing
   alt text), which `GET media` lists. **Embedded metadata
-  (D-289, D-291)**: `Media\Embedded` readers (XMP, IPTC, EXIF for
+  (D-289, D-291, D-552)**: `Media\Embedded` readers (XMP, IPTC, EXIF for
   images; ID3, MP4, Ogg, RIFF, and Matroska for sound and video, over
-  `BinaryFile`; Type enum,
+  `BinaryFile`; PDF for documents; Type enum,
   registry, factory, registrar) merged by `EmbeddedMetadataReader` into
-  one set of keys, cached in each image's record and reread only when
+  one set of keys, cached in each file's record and reread only when
   the file changes; the location is kept apart and never answered.
+  Readers that are also `ArtworkReader`s (ID3, MP4, Ogg) give the
+  picture a file carries, read on request (`GET media-artwork/{path}`),
+  never cached.
   Still planned: when rendering, a value set where the media is used
   wins, then the metadata file, then embedded metadata.
 - **Ids (D-487):** every original has a UUIDv7 `id`, last in its

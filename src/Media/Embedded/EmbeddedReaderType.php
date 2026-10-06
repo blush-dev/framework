@@ -17,7 +17,8 @@ namespace Blush\Media\Embedded;
  * The built-in embedded metadata readers (D-289, D-291), in the order
  * their values win: XMP (Unicode, and what photo software writes last),
  * then IPTC, then EXIF (the camera's own); then one for each sound and
- * video format the library takes, each reading only its own.
+ * video format the library takes, each reading only its own; then PDF
+ * (D-551).
  */
 enum EmbeddedReaderType: string
 {
@@ -29,6 +30,7 @@ enum EmbeddedReaderType: string
 	case Ogg      = 'ogg';
 	case Riff     = 'riff';
 	case Matroska = 'matroska';
+	case Pdf      = 'pdf';
 
 	/**
 	 * @return class-string<EmbeddedReader>
@@ -43,7 +45,8 @@ enum EmbeddedReaderType: string
 			self::Mp4      => Mp4Reader::class,
 			self::Ogg      => OggReader::class,
 			self::Riff     => RiffReader::class,
-			self::Matroska => MatroskaReader::class
+			self::Matroska => MatroskaReader::class,
+			self::Pdf      => PdfReader::class
 		};
 	}
 }

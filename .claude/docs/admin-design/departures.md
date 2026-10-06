@@ -341,12 +341,19 @@ Each is recorded in `.claude/docs/decisions.md`.
   `bleed`), `bleed-wide` and `bleed-full` unless it names others, since
   existing content may use other names (jtcom's `stretch-*`).
 - **Media** (D-251, D-268, D-269): **Upload** opens the picker on its
-  Upload tab and **Open** goes to the file. A file's screen has a
-  Details panel built from the file's fields (D-287: title, alt text
-  (warned when an image has none), caption, credit, description, then
-  each field set on its kind under its label, D-341), saved with
-  **Save**; no rename, "used in", Replace, or
-  Delete yet. Only `user/media` is listed (D-294 removed D-292's page
+  Upload tab and **Open** goes to the file. A file's screen follows the
+  media detail sketch (`media-detail-sketch.html`, D-551) rather than
+  the prototype: two columns, Details built from the file's fields
+  (D-287: title, alt text (warned under its field when an image has
+  none), caption, credit, description, then each field set on its kind
+  under its label, D-341). From the sketch, it keeps the shared save
+  bar (D-508) over the sketch's Discard and Save, goes back to the
+  library with a toast after Delete rather than the sketch's "was
+  deleted" notice, and adds the read-only notes (D-552: no id). Its
+  audio and video players are the shared `<blush-audio-player>` and
+  `<blush-video-player>` (D-553, D-554). A video has no poster frame of
+  its own; the player shows its first. No
+  rename or Replace yet. Only `user/media` is listed (D-294 removed D-292's page
   bundle files and its **Where** control).
 - **Content types** (D-250, D-311, D-349, D-350, D-386): types in
   `user/data/types` are edited, created with the wizard, and deleted;

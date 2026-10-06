@@ -2418,12 +2418,22 @@ export function linkLabel(label: string): string {
  * after it.
  */
 export function withLink(source: string, start: number, end: number, label: string, url: string, link: MarkdownLink | null): Change {
-	const address = /[\s()<>]/.test(url.trim()) ? `<${url.trim().replace(/[<>]/g, (character) => encodeURIComponent(character))}>` : url.trim();
-	const text    = `[${label.replace(/\s*\n\s*/g, ' ').replace(/([[\]])/g, '\\$1')}](${address}${link?.title ?? ''})`;
+	const text    = linkText(label, url, link?.title ?? '');
 	const from    = link?.start ?? start;
 	const to      = link?.end ?? end;
 
 	return { text: source.slice(0, from) + text + source.slice(to), from: from + text.length, to: from + text.length };
+}
+
+/**
+ * A link, `[label](url)`: the label's brackets escaped, and an address
+ * with spaces or parentheses wrapped in `<…>`. A `title` is as written,
+ * its space and quotes included.
+ */
+export function linkText(label: string, url: string, title = ''): string {
+	const address = /[\s()<>]/.test(url.trim()) ? `<${url.trim().replace(/[<>]/g, (character) => encodeURIComponent(character))}>` : url.trim();
+
+	return `[${label.replace(/\s*\n\s*/g, ' ').replace(/([[\]])/g, '\\$1')}](${address}${title})`;
 }
 
 /**

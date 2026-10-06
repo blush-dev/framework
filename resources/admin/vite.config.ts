@@ -59,7 +59,9 @@ export default defineConfig({
 	root: resources,
 	base: './',
 	publicDir: false,
-	plugins: [vue(), resourceFiles()],
+	// Elements named `blush-…` are custom elements, not Vue components:
+	// the audio player (`resources/player`, D-553).
+	plugins: [vue({ template: { compilerOptions: { isCustomElement: (tag) => tag.startsWith('blush-') } } }), resourceFiles()],
 	build: {
 		outDir,
 		emptyOutDir: true,

@@ -8,19 +8,19 @@
 			"type": "string",
 			"description": "The JSON Schema editors check this file with."
 		},
-		"alt": {
-			"type": [
-				"string",
-				"number"
-			],
-			"description": "Alt text: What the image shows, for anyone who can't see it."
-		},
 		"title": {
 			"type": [
 				"string",
 				"number"
 			],
 			"description": "What the library calls it, in place of its file name."
+		},
+		"alt": {
+			"type": [
+				"string",
+				"number"
+			],
+			"description": "Alt text: What the image shows, for anyone who can't see it."
 		},
 		"caption": {
 			"type": [

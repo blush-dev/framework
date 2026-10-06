@@ -15,6 +15,7 @@ namespace Blush\Tests\Media;
 
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
+use Blush\Media\Embedded\Artwork;
 use Blush\Media\Embedded\BinaryFile;
 use Blush\Media\Embedded\EmbeddedMetadata;
 use Blush\Media\Embedded\Id3Reader;
@@ -28,6 +29,7 @@ use Blush\Media\MediaResolver;
 use Blush\Tests\BootsScratchSite;
 use Blush\Tests\Fixtures\Media\TaggedAudioVideo;
 
+#[CoversClass(Artwork::class)]
 #[CoversClass(BinaryFile::class)]
 #[CoversClass(EmbeddedMetadata::class)]
 #[CoversClass(Id3Reader::class)]
@@ -63,10 +65,16 @@ final class AudioVideoMetadataTest extends TestCase
 			'genre'       => 'Rock',
 			'created'     => '2019',
 			'duration'    => 26.122,
-			'artwork'     => 'image/jpeg, 2 KB'
-		], $read->values, 'ID3v2 over ID3v1, the genre\'s number dropped, a UTF-16 comment, and Xing\'s frame count.');
+			'artwork'     => 'JPEG, 2 KB',
+			'format'      => 'MPEG-1 Layer III',
+			'bitrate'     => 128,
+			'sampleRate'  => 44100,
+			'channels'    => 2
+		], $read->values, 'ID3v2 over ID3v1, the genre\'s number dropped, a UTF-16 comment, and Xing\'s frame count, with the average bit rate.');
 
-		$this->assertSame(1.0, new Id3Reader()->read($this->file('cbr.mp3', TaggedAudioVideo::mp3(false)), 'audio/mpeg')->values['duration'] ?? null, 'A constant bit rate.');
+		$cbr = new Id3Reader()->read($this->file('cbr.mp3', TaggedAudioVideo::mp3(false)), 'audio/mpeg')->values;
+
+		$this->assertSame([1.0, 128000], [$cbr['duration'] ?? null, $cbr['bitrate'] ?? null], 'A constant bit rate.');
 	}
 
 	public function testReadsMp4(): void
@@ -78,18 +86,32 @@ final class AudioVideoMetadataTest extends TestCase
 			'creator'  => 'Jane Doe',
 			'track'    => '2/5',
 			'created'  => '2023-06-01 10:00:00 Z',
-			'duration' => 12.5,
-			'artwork'  => 'image/jpeg, 3 KB',
-			'width'    => 1280,
-			'height'   => 720
-		], $read->values, 'The index after the media data, found by skipping it.');
+			'duration'    => 12.5,
+			'artwork'     => 'JPEG, 3 KB',
+			'width'       => 1280,
+			'height'      => 720,
+			'format'      => 'H.264',
+			'bitrate'     => 128000,
+			'sampleRate'  => 44100,
+			'channels'    => 2,
+			'frameRate'   => 30.0,
+			'audioFormat' => 'AAC'
+		], $read->values, 'The index after the media data, found by skipping it; a video\'s codec, and its sound\'s.');
+	}
+
+	public function testReadsAFragmentedMp4(): void
+	{
+		$read = new Mp4Reader()->read($this->file('stream.mp4', TaggedAudioVideo::mp4(true)), 'video/mp4')->values;
+
+		$this->assertSame([5.0, 30.0], [$read['duration'] ?? null, $read['frameRate'] ?? null], 'The fragments\' samples, at the track\'s default duration.');
 	}
 
 	public function testReadsOggVorbisAndOpus(): void
 	{
 		$vorbis = new OggReader()->read($this->file('song.ogg', TaggedAudioVideo::ogg()), 'audio/ogg');
+		$bitrate = (int) round(strlen(TaggedAudioVideo::ogg()) * 8 / 10);
 
-		$this->assertSame(['title' => 'Evening Song', 'creator' => 'The Harbors', 'album' => 'Tides', 'track' => '4', 'created' => '2021-04', 'duration' => 10.0, 'artwork' => 'image/png, 1 KB', 'software' => 'Xiph.Org libVorbis I 20200704'], $vorbis->values);
+		$this->assertSame(['title' => 'Evening Song', 'creator' => 'The Harbors', 'album' => 'Tides', 'track' => '4', 'created' => '2021-04', 'duration' => 10.0, 'artwork' => 'PNG, 1 KB', 'format' => 'Vorbis', 'bitrate' => $bitrate, 'sampleRate' => 44100, 'channels' => 2, 'software' => 'Xiph.Org libVorbis I 20200704'], $vorbis->values, 'Without a nominal bit rate, the file\'s size over its length.');
 		$this->assertSame(5.0, new OggReader()->read($this->file('song.opus', TaggedAudioVideo::ogg(true)), 'audio/ogg')->values['duration'] ?? null, 'Opus: 48 kHz, less its pre-skip.');
 	}
 
@@ -97,14 +119,26 @@ final class AudioVideoMetadataTest extends TestCase
 	{
 		$read = new RiffReader()->read($this->file('tone.wav', TaggedAudioVideo::wav()), 'audio/wav');
 
-		$this->assertSame(['title' => 'Tone', 'creator' => 'Jane Doe', 'created' => '2020', 'duration' => 2.0], $read->values);
+		$this->assertSame(['title' => 'Tone', 'creator' => 'Jane Doe', 'created' => '2020', 'duration' => 2.0, 'format' => '16-bit PCM', 'bitrate' => 128000, 'sampleRate' => 8000, 'channels' => 1], $read->values);
 	}
 
 	public function testReadsWebm(): void
 	{
 		$read = new MatroskaReader()->read($this->file('clip.webm', TaggedAudioVideo::webm()), 'video/webm');
 
-		$this->assertSame(['title' => 'Harbor Clip', 'duration' => 3.5, 'width' => 640, 'height' => 360, 'software' => 'Blush Test'], $read->values, 'A segment of unknown size.');
+		$this->assertSame(['title' => 'Harbor Clip', 'duration' => 3.5, 'width' => 640, 'height' => 360, 'format' => 'VP9', 'sampleRate' => 48000, 'channels' => 2, 'frameRate' => 30.0, 'audioFormat' => 'Opus', 'software' => 'Blush Test'], $read->values, 'A segment of unknown size.');
+	}
+
+	public function testGivesArtwork(): void
+	{
+		$mp3 = new Id3Reader()->artwork($this->file('song.mp3', TaggedAudioVideo::mp3()), 'audio/mpeg');
+		$mp4 = new Mp4Reader()->artwork($this->file('clip.mp4', TaggedAudioVideo::mp4()), 'video/mp4');
+		$ogg = new OggReader()->artwork($this->file('song.ogg', TaggedAudioVideo::ogg()), 'audio/ogg');
+
+		$this->assertSame(['image/jpeg', str_repeat("\xAB", 2048)], [$mp3?->mime, $mp3?->bytes], 'An APIC frame\'s picture, after its description.');
+		$this->assertSame(['image/jpeg', 3002], [$mp4?->mime, strlen($mp4->bytes ?? '')], 'Found by its bytes.');
+		$this->assertSame(['image/png', str_repeat("\x20", 40)], [$ogg?->mime, $ogg?->bytes], 'A FLAC picture block\'s picture.');
+		$this->assertNull(new Id3Reader()->artwork($this->file('bare.mp3', "\xFF\xFB\x90\x00"), 'audio/mpeg'), 'A file without a tag has none.');
 	}
 
 	public function testReadersKeepToTheirFormats(): void

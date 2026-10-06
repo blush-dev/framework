@@ -19,8 +19,12 @@ use Override;
  * Reads WebM and Matroska (D-291) by walking their EBML elements to the
  * first cluster of media: the segment's `Info` (the duration, in its
  * timecode scale, the title, the writing app, and when it was made) and
- * a video track's pixel size. Tags, usually written after the media,
- * aren't read.
+ * its first video and sound tracks (D-551): a video's pixel size, codec,
+ * and frame rate (from its frames' default duration), and a sound's
+ * codec, sample rate, and channels. A video's codec is its `format` and
+ * its sound's its `audioFormat`; a sound alone's is its `format`. Tags,
+ * usually written after the media, aren't read, nor is a bit rate,
+ * which Matroska doesn't write.
  */
 final readonly class MatroskaReader implements EmbeddedReader
 {
@@ -38,6 +42,30 @@ final readonly class MatroskaReader implements EmbeddedReader
 	private const int TRACK = 0xAE;
 
 	private const int VIDEO = 0xE0;
+
+	private const int AUDIO = 0xE1;
+
+	/**
+	 * Codecs by codec ID, or the start of one.
+	 *
+	 * @var array<string, string>
+	 */
+	private const array CODECS = [
+		'V_VP8'             => 'VP8',
+		'V_VP9'             => 'VP9',
+		'V_AV1'             => 'AV1',
+		'V_MPEG4/ISO/AVC'   => 'H.264',
+		'V_MPEGH/ISO/HEVC'  => 'HEVC',
+		'V_THEORA'          => 'Theora',
+		'A_OPUS'            => 'Opus',
+		'A_VORBIS'          => 'Vorbis',
+		'A_AAC'             => 'AAC',
+		'A_FLAC'            => 'FLAC',
+		'A_MPEG/L3'         => 'MP3',
+		'A_AC3'             => 'AC-3',
+		'A_EAC3'            => 'E-AC-3',
+		'A_PCM'             => 'PCM'
+	];
 
 	private const int CLUSTER = 0x1F43B675;
 
@@ -177,35 +205,99 @@ final readonly class MatroskaReader implements EmbeddedReader
 	}
 
 	/**
-	 * A video track's pixel width and height.
+	 * What the first video and sound tracks say.
 	 *
-	 * @return array<string, int>
+	 * @return array<string, mixed>
 	 */
 	private static function tracks(string $bytes, int $from, int $to): array
 	{
+		$video = null;
+		$sound = null;
+
 		foreach (self::elements($bytes, $from, $to) as [$id, $start, $end]) {
 			if ($id !== self::TRACK) {
 				continue;
 			}
 
-			foreach (self::elements($bytes, $start, $end) as [$child, $at, $until]) {
-				if ($child !== self::VIDEO) {
-					continue;
-				}
+			$track = self::track($bytes, $start, $end);
 
-				$size = [];
-
-				foreach (self::elements($bytes, $at, $until) as [$field, $begin, $finish]) {
-					if ($field === 0xB0 || $field === 0xBA) {
-						$size[$field === 0xB0 ? 'width' : 'height'] = BinaryFile::uintbe(substr($bytes, $begin, $finish - $begin));
-					}
-				}
-
-				return $size;
+			// A track that doesn't say its type is a video if it has a size.
+			if ($track['type'] === 1 || ($track['type'] === 0 && $track['size'] !== [])) {
+				$video ??= $track;
+			} elseif ($track['type'] === 2) {
+				$sound ??= $track;
 			}
 		}
 
-		return [];
+		$values = [];
+
+		if ($video !== null) {
+			$values = [...$video['size'], 'format' => $video['codec'], 'frameRate' => $video['frame'] > 0 ? 1_000_000_000 / $video['frame'] : null];
+		}
+
+		if ($sound !== null) {
+			$values[$video === null ? 'format' : 'audioFormat'] = $sound['codec'];
+			$values['sampleRate'] = $sound['rate'] > 0 ? (int) round($sound['rate']) : null;
+			$values['channels']   = $sound['channels'] > 0 ? $sound['channels'] : null;
+		}
+
+		return $values;
+	}
+
+	/**
+	 * A track entry: its type (1 video, 2 sound), codec, frame duration
+	 * in nanoseconds, a video's pixel size, and a sound's sample rate and
+	 * channels.
+	 *
+	 * @return array{type: int, codec: ?string, frame: int, size: array<string, int>, rate: float, channels: int}
+	 */
+	private static function track(string $bytes, int $from, int $to): array
+	{
+		$track = ['type' => 0, 'codec' => null, 'frame' => 0, 'size' => [], 'rate' => 0.0, 'channels' => 0];
+
+		foreach (self::elements($bytes, $from, $to) as [$id, $start, $end]) {
+			$data = substr($bytes, $start, $end - $start);
+
+			if ($id === 0x83) {
+				$track['type'] = BinaryFile::uintbe($data);
+			} elseif ($id === 0x86) {
+				$track['codec'] = self::codec($data);
+			} elseif ($id === 0x23E383) {
+				$track['frame'] = BinaryFile::uintbe($data);
+			} elseif ($id === self::VIDEO) {
+				foreach (self::elements($bytes, $start, $end) as [$field, $begin, $finish]) {
+					if ($field === 0xB0 || $field === 0xBA) {
+						$track['size'][$field === 0xB0 ? 'width' : 'height'] = BinaryFile::uintbe(substr($bytes, $begin, $finish - $begin));
+					}
+				}
+			} elseif ($id === self::AUDIO) {
+				foreach (self::elements($bytes, $start, $end) as [$field, $begin, $finish]) {
+					if ($field === 0xB5) {
+						$track['rate'] = self::float(substr($bytes, $begin, $finish - $begin)) ?? 0.0;
+					} elseif ($field === 0x9F) {
+						$track['channels'] = BinaryFile::uintbe(substr($bytes, $begin, $finish - $begin));
+					}
+				}
+			}
+		}
+
+		return $track;
+	}
+
+	/**
+	 * A codec's name from its ID: `A_AAC/MPEG4/LC` is AAC.
+	 */
+	private static function codec(string $id): ?string
+	{
+		$id = rtrim($id, "\0");
+
+		foreach (self::CODECS as $prefix => $name) {
+			if (str_starts_with($id, $prefix)) {
+				return $name;
+			}
+		}
+
+		return $id === '' ? null : $id;
 	}
 
 	/**

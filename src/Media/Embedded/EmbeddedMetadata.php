@@ -28,8 +28,16 @@ namespace Blush\Media\Embedded;
  *   `exposure` ("1/250 s"), `iso`, `orientation` (EXIF's 1 to 8), and
  *   `software`.
  * - For sound and video (D-291): `album`, `track` ("3/12"), `genre`,
- *   `duration` (seconds), `artwork` (embedded cover art noted, not
- *   extracted: "image/jpeg, 42 KB"), and a video's `width` and `height`.
+ *   `duration` (seconds), `artwork` (embedded cover art, described:
+ *   "1400 × 1400 JPEG, 688 KB"; `ArtworkReader` gives the picture), and
+ *   a video's `width` and `height`.
+ * - What it's encoded as (D-551): `format` (a sound's codec, a video's
+ *   picture codec, "MPEG-1 Layer III", "H.264", or a document's format,
+ *   "PDF 1.7"); and of its sound, `bitrate` (bits a second),
+ *   `sampleRate` (Hz), and `channels`; a video's `frameRate` (frames a
+ *   second) and `audioFormat` (its sound's codec).
+ * - For documents (D-551): `pages`, `pageSize` ("8.5 × 11 in (Letter)"),
+ *   and `producer` (what wrote the PDF; `software` is what made it).
  */
 final readonly class EmbeddedMetadata
 {
@@ -38,7 +46,22 @@ final readonly class EmbeddedMetadata
 	 *
 	 * @var list<string>
 	 */
-	public const array KEYS = ['title', 'description', 'creator', 'album', 'track', 'genre', 'copyright', 'credit', 'keywords', 'created', 'duration', 'camera', 'lens', 'focalLength', 'aperture', 'exposure', 'iso', 'orientation', 'artwork', 'width', 'height', 'software'];
+	public const array KEYS = ['title', 'description', 'creator', 'album', 'track', 'genre', 'copyright', 'credit', 'keywords', 'created', 'duration', 'camera', 'lens', 'focalLength', 'aperture', 'exposure', 'iso', 'orientation', 'artwork', 'width', 'height', 'format', 'bitrate', 'sampleRate', 'channels', 'frameRate', 'audioFormat', 'pages', 'pageSize', 'software', 'producer'];
+
+	/**
+	 * The keys whose values are numbers with fractions, kept to the
+	 * thousandth.
+	 *
+	 * @var list<string>
+	 */
+	private const array FRACTIONS = ['duration', 'frameRate'];
+
+	/**
+	 * The keys whose values are counts, kept only when there are some.
+	 *
+	 * @var list<string>
+	 */
+	private const array COUNTS = ['bitrate', 'sampleRate', 'channels', 'pages'];
 
 	/**
 	 * The values it has, by key, in `KEYS` order.
@@ -62,10 +85,10 @@ final readonly class EmbeddedMetadata
 				$value = self::text($value);
 			} elseif (is_array($value)) {
 				$value = array_values(array_unique(array_filter(array_map(static fn (mixed $item): string => is_scalar($item) ? self::text((string) $item) : '', $value), static fn (string $item): bool => $item !== '')));
-			} elseif ($key === 'duration' && (is_int($value) || is_float($value))) {
-				// A duration, to the millisecond.
+			} elseif (in_array($key, self::FRACTIONS, true) && (is_int($value) || is_float($value))) {
+				// A duration, to the millisecond, or a frame rate.
 				$value = $value > 0 && is_finite((float) $value) ? round((float) $value, 3) : '';
-			} elseif (! is_int($value)) {
+			} elseif (! is_int($value) || ($value <= 0 && in_array($key, self::COUNTS, true))) {
 				continue;
 			}
 

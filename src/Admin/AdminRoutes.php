@@ -59,7 +59,8 @@ use Blush\Session\StartSession;
  *   - `GET  directives`: the directives the editor's inserter offers.
  *   - `GET  icons`: the icons the editor's icon picker offers.
  *   - `GET  media`: the media files an entry can use, a page at a time,
- *     and `GET media/{path}` one library file; `POST media` uploads one,
+ *     and `GET media/{path}` one library file (`GET media-artwork/{path}`
+ *     the picture a sound or video carries, D-551); `POST media` uploads one,
  *     and `PATCH media/{path}` changes a library file's alt text and
  *     caption.
  *   - `GET  references/{type}`: what a reference field to a type can
@@ -168,6 +169,7 @@ final readonly class AdminRoutes implements RouteSource
 			Route::get('/icons', IconsController::class)->named('icons')->middleware(Authenticate::class),
 			Route::get('/media', MediaListController::class)->named('media')->middleware(Authenticate::class),
 			Route::post('/media', MediaUploadController::class)->named('media.upload')->middleware(Authenticate::class),
+			Route::get('/media-artwork/{path:.+}', [MediaListController::class, 'artwork'])->named('media.artwork')->middleware(Authenticate::class),
 			Route::get('/media/{path:.+}', [MediaListController::class, 'show'])->named('media.file')->middleware(Authenticate::class),
 			Route::patch('/media/{path:.+}', [MediaListController::class, 'update'])->named('media.update')->middleware(Authenticate::class),
 			Route::delete('/media/{path:.+}', [MediaListController::class, 'delete'])->named('media.delete')->middleware(Authenticate::class),

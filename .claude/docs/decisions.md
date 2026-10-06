@@ -16186,3 +16186,143 @@ decision, add a new entry that supersedes it and mark the old one
   month drawing (`month.ts`). Supersedes D-368.
 - **Why:** the author: "I think that's worth introducing as a plugin
   later."
+
+### D-551: A media file's screen from the media detail sketch
+- **Date:** 2026-10-06
+- **Status:** Stage 1 built; stage 2 planned.
+- **Decision:** a media file's screen follows
+  `.claude/docs/admin-design/media-detail-sketch.html`, built from the
+  admin's own pieces (D-509), in two stages.
+  - **Stage 1 (built):** two columns, the left at most 440px. Left:
+    the preview (an image or video filling its card; a sound as art,
+    its title, "artist · album · Track n" from what the file says, and
+    a player; anything else its icon and extension and "No preview for
+    this kind of file"), **Usage** (the address and what an entry
+    writes, each with an icon Copy button, then "Used in n entries",
+    the first five of more than six with **Show All n**, the whole
+    list scrolling), **Storage** (folder, type, size, dimensions or
+    length, changed, uploaded by, id), and **Other Sizes**. Right:
+    **Details**, "The only part of this screen that saves", and
+    **Metadata**, "What the file says about itself". The heading is
+    the Title field as typed, else the file name; with a title, the
+    file name leads the line under it, which ends with the folder. The
+    trail's last crumb is **Editing** when the details can be changed.
+    `title` is the first built-in field for every kind, then an
+    image's `alt` (`MediaSchemas::builtIn()`). An embedded value that
+    fits a field is offered under it ("The file says …" with **Use
+    It**, or "From the file" once it's the value), **Fill from the
+    File** (Lucide's `import`) fills every empty field that has one,
+    and the rest is Metadata, with the GPS warning. An image without
+    alt text says so under the alt field, in place of its help, with
+    the field drawn in the warning color (`FieldControl`'s `warn`
+    prop and `after` and `help` slots; `.field__warn`). A document's
+    or other file's Markdown is a link, `[title](address)`
+    (`linkText()` in `markdown.ts`), not `::blush/file`. Delete's
+    confirm says what goes and how many entries are left pointing at
+    an address that no longer resolves, without naming them.
+  - **Stage 2 (planned):** reading what the sketch shows that the
+    server doesn't yet: a sound's cover art, extracted and shown;
+    technical facts (format, bitrate, sample rate, channels; a video's
+    codec, frame rate, and audio); and a PDF reader (pages, version,
+    page size, producer, title, author), with a document's drawn page
+    and its count.
+  - Kept from the screen as it was, not in the sketch: the shared save
+    bar (count, **Revert**, **Save Changes**, D-508), not the sketch's
+    "Unsaved changes" with Discard and Save; after Delete, back to the
+    library with a toast, not the sketch's in-place "was deleted"
+    notice; the id, the read-only and size-of notes, field sets, and
+    extra values.
+- **Why:** the author added the sketch and asked for it to be followed,
+  in stages. Asked, the author chose stage 1 first, the toast after
+  Delete, and a Markdown link for documents.
+
+### D-552: Media detail stage 2, and no id on a file's screen
+- **Date:** 2026-10-06
+- **Status:** Built.
+- **Decision:** stage 2 of D-551, and a change to its Storage panel.
+  - **Embedded metadata** gains `format`, `bitrate` (bits a second),
+    `sampleRate`, `channels`, `frameRate`, `audioFormat` (a video's
+    sound), `pages`, `pageSize`, and `producer` (`EmbeddedMetadata`;
+    counts of zero are dropped; `EmbeddedMetadataReader::VERSION` 3,
+    so the media index reads files again). MP3: the first frame's MPEG
+    version, sample rate, and channels, and the bit rate (the average,
+    from Xing or VBRI, for a variable one). MP4: each track's handler
+    and codec (`stsd`), a video's frame rate (`stts` over `mdhd`), a
+    sound's channels, sample rate, and bit rate (`stsz`); a fragmented
+    file's `moof` runs are counted with `trex` and `tfhd` defaults,
+    which also gives it a duration. Ogg: Vorbis's or Opus's channels
+    and rate, and Vorbis's nominal bit rate, else the file's size over
+    its length. WAV: the `fmt ` chunk ("16-bit PCM"). Matroska and
+    WebM: each track's codec, a video's frame rate from its default
+    duration, a sound's rate and channels; no bit rate.
+  - **PDFs** (`PdfReader`, a new built-in reader, `pdf`): the header's
+    version (`format`, "PDF 1.7"), the page tree's count, the first
+    page's media box as `pageSize` (named for Letter, Legal, Tabloid,
+    A3, A4, A5; inches for half inches, else millimeters), and the
+    Info dictionary (title, author as creator, subject as description,
+    keywords, creator as software, producer, creation date). Objects in
+    Flate object streams are read; an encrypted PDF gives only its
+    structure; a file over 16 MB is read at its first and last 4 MB.
+    The media index now reads every kind but `file`.
+  - **Artwork**: `Artwork` (MIME type and bytes, described as "2048 ×
+    2048 JPEG, 688 KB") and `ArtworkReader` (an `EmbeddedReader` that
+    can give the picture), implemented by the ID3, MP4, and Ogg
+    readers; `EmbeddedMetadataReader::artwork()` asks each. The admin
+    serves it at `GET media-artwork/{path}` (read from the file each
+    time, `private, max-age=3600`).
+  - **The screen**: a sound's preview shows its art; a PDF's is a
+    drawn page in its page's shape with "n pages"; Storage has Pages,
+    and the line under the heading the page count; Metadata labels and
+    formats the new values (kbps, kHz, mono or stereo, fps), a video's
+    `format` as Video and its sound as one Audio row, a document's
+    `format` as Version.
+  - **No id**: the file's id isn't shown on its screen. Supersedes
+    D-551's id in Storage.
+- **Why:** the author: "Go ahead with stage 2. The file's id shouldn't
+  be shown."
+
+### D-553: A shared audio player
+- **Date:** 2026-10-06
+- **Status:** Built (admin); the site's use is open.
+- **Decision:** the media detail sketch's audio player (a round play
+  button, a track to seek along, the time "0:02 / 0:12") is a plain-DOM
+  custom element, `<blush-audio-player>`, around a native `<audio>`, in
+  `resources/player` (`audio-player.ts`, `audio-player.css`), not a Vue
+  component, so the site can use it too. Without its script, the
+  browser's controls stay. The track is a range input (keyboard and
+  screen reader friendly, with "0:02 / 0:12" as its value text); the
+  button's label says Play or Pause (English unless `label-play`,
+  `label-pause`, and `label-seek` say otherwise); playing one pauses
+  any other. Its colors, mono font, and time size are custom
+  properties (`--audio-player-*`) with no defaults: the admin sets them
+  from its tokens in `admin.css`, and a theme would set its own. The
+  admin uses it through `AudioPlayer.vue`; Vue treats `blush-*` tags as
+  custom elements (`vite.config.ts`), and `tsconfig.app.json` includes
+  `resources/player`. How the site loads it is in `open-questions.md`.
+- **Why:** the author: "Missing custom audio player design … we plan on
+  reusing the audio player for the frontend, too."
+
+### D-554: A video player to match
+- **Date:** 2026-10-06
+- **Status:** Built (admin); the site's use is open, as D-553's.
+- **Decision:** `<blush-video-player>` around a native `<video>`
+  (`resources/player/video-player.ts`), matching the audio player.
+  Until first played, a round play button sits over the picture with
+  its length in a corner (the sketch's video preview); then a bar over
+  the picture's foot holds the shared transport (play, seek, time),
+  mute, captions (shown only when it has caption or subtitle tracks;
+  it turns the first on or all off), and fullscreen (the whole player
+  where the browser allows, the browser's own on iOS). The bar fades
+  out after 2.5 s of rest while playing, unless a control has keyboard
+  focus, and comes back on a move, touch, focus, or key; clicking the
+  picture plays or pauses. What both players share is
+  `resources/player/controls.ts` (glyphs from Lucide, the clock, the
+  transport, one-plays-at-a-time) and `player.css`; the custom
+  properties are now `--player-*` (adding `--player-overlay`,
+  `--player-overlay-fg`, and `--player-radius`), set by the admin on
+  `.player`, with `--media-overlay` and `--media-overlay-fg` in
+  `tokens.css` (the same in every admin theme, since they sit on the
+  video). Supersedes D-553's `audio-player.css` and `--audio-player-*`.
+  The admin uses it through `VideoPlayer.vue`.
+- **Why:** the author asked for a video player to match, after D-553
+  noted one as open.

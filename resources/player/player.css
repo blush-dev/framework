@@ -1,0 +1,236 @@
+/*
+ * The audio and video players (D-553, D-554). Their colors, fonts, and
+ * sizes are the host's, by custom properties, which the admin sets from
+ * its tokens and a theme can set from its own:
+ *
+ *   --player-accent      the play button and what's played
+ *   --player-accent-fg   the play button's glyph
+ *   --player-track       what's left to play
+ *   --player-muted       the time and the other buttons
+ *   --player-shadow      the track's thumb and the start button
+ *   --player-font-mono   the time's font
+ *   --player-time-size   the time's size
+ *   --player-overlay     what's drawn under a video's controls
+ *   --player-overlay-fg  a video's controls over the picture
+ *   --player-radius      a video's corners
+ */
+
+.player {
+	min-width: 0;
+}
+
+/* Not drawn: the player's controls stand in for it. */
+.player > audio:not([controls]) {
+	display: none;
+}
+
+.player__button {
+	display: grid;
+	flex: none;
+	place-items: center;
+	width: 30px;
+	height: 30px;
+	padding: 0;
+	border: 0;
+	border-radius: 50%;
+	background: none;
+	color: var(--player-muted);
+	cursor: pointer;
+}
+
+.player__button svg {
+	width: 18px;
+	height: 18px;
+	fill: none;
+	stroke: currentColor;
+	stroke-width: 2;
+	stroke-linecap: round;
+	stroke-linejoin: round;
+}
+
+.player__button[aria-pressed="true"] {
+	color: var(--player-accent);
+}
+
+.player__button[hidden] {
+	display: none;
+}
+
+/* Play and pause: round, in the accent, their glyphs filled; the play
+   glyph sits right of center, to look centered. */
+.player__button--play,
+.video-player__start {
+	width: 34px;
+	height: 34px;
+	background: var(--player-accent);
+	color: var(--player-accent-fg);
+}
+
+.player__button--play svg,
+.video-player__start svg {
+	width: 15px;
+	height: 15px;
+	fill: currentColor;
+	stroke: none;
+}
+
+:is(.player__button--play, .video-player__start)[data-glyph="play"] svg {
+	margin-left: 2px;
+}
+
+.player__button:focus-visible,
+.player__seek:focus-visible {
+	outline: 2px solid var(--player-accent);
+	outline-offset: 2px;
+}
+
+/* The track: played in the accent up to `--player-progress`. */
+.player__seek {
+	flex: 1;
+	min-width: 0;
+	height: 4px;
+	margin: 0;
+	border-radius: 999px;
+	background: linear-gradient(to right, var(--player-accent) var(--player-progress, 0%), var(--player-track) var(--player-progress, 0%));
+	cursor: pointer;
+	appearance: none;
+}
+
+.player__seek:disabled {
+	cursor: default;
+}
+
+.player__seek::-webkit-slider-thumb {
+	width: 10px;
+	height: 10px;
+	border: 0;
+	border-radius: 50%;
+	background: var(--player-accent);
+	box-shadow: var(--player-shadow);
+	appearance: none;
+}
+
+.player__seek::-moz-range-thumb {
+	width: 10px;
+	height: 10px;
+	border: 0;
+	border-radius: 50%;
+	background: var(--player-accent);
+	box-shadow: var(--player-shadow);
+}
+
+.player__seek::-moz-range-track {
+	background: transparent;
+}
+
+.player__time {
+	flex: none;
+	color: var(--player-muted);
+	font-family: var(--player-font-mono);
+	font-size: var(--player-time-size);
+	font-variant-numeric: tabular-nums;
+}
+
+/* Audio: the transport in a row. */
+.audio-player {
+	display: flex;
+	align-items: center;
+	gap: 11px;
+}
+
+/* Video: the picture, with its controls over it. */
+.video-player {
+	position: relative;
+	display: block;
+	overflow: hidden;
+	border-radius: var(--player-radius);
+	background: var(--player-overlay);
+}
+
+.video-player > video {
+	display: block;
+	width: 100%;
+	height: auto;
+	max-height: inherit;
+	object-fit: contain;
+	cursor: pointer;
+}
+
+.video-player:fullscreen > video {
+	height: 100%;
+	max-height: none;
+}
+
+.video-player__start {
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	width: 56px;
+	height: 56px;
+	box-shadow: var(--player-shadow);
+	transform: translate(-50%, -50%);
+}
+
+.video-player__start svg {
+	width: 22px;
+	height: 22px;
+}
+
+.video-player__stamp {
+	position: absolute;
+	right: 11px;
+	bottom: 11px;
+	padding: 2px 7px;
+	border-radius: 999px;
+	background: var(--player-overlay);
+	color: var(--player-overlay-fg);
+	font-family: var(--player-font-mono);
+	font-size: var(--player-time-size);
+	font-variant-numeric: tabular-nums;
+}
+
+.video-player__stamp:empty {
+	display: none;
+}
+
+.video-player__bar {
+	position: absolute;
+	right: 0;
+	bottom: 0;
+	left: 0;
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 24px 10px 8px;
+	background: linear-gradient(to top, var(--player-overlay), transparent);
+	transition: opacity .2s;
+	--player-muted: var(--player-overlay-fg);
+}
+
+.video-player__bar .player__button--play {
+	width: 30px;
+	height: 30px;
+}
+
+/* Before it's played: the start button and its length; after: the bar,
+   which rests out of sight while it plays. */
+.video-player[data-started] > .video-player__start,
+.video-player[data-started] > .video-player__stamp,
+.video-player:not([data-started]) > .video-player__bar {
+	display: none;
+}
+
+.video-player[data-resting] > .video-player__bar {
+	opacity: 0;
+	pointer-events: none;
+}
+
+.video-player[data-resting] > video {
+	cursor: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.video-player__bar {
+		transition: none;
+	}
+}

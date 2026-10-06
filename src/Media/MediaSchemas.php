@@ -41,9 +41,9 @@ final class MediaSchemas
 	{}
 
 	/**
-	 * Returns a kind's built-in fields: its own first (an image's alt text
-	 * leads), then `title`, `caption`, `credit`, and `description`, which
-	 * every kind has.
+	 * Returns a kind's built-in fields: `title` first, so every kind's form
+	 * opens the same way, then its own (an image's alt text), then
+	 * `caption`, `credit`, and `description`, which every kind has.
 	 */
 	public static function builtIn(MediaKind $kind): Schema
 	{
@@ -51,7 +51,11 @@ final class MediaSchemas
 			? [new TextField('alt')->labeled('Alt text')->described('What the image shows, for anyone who can\'t see it.')]
 			: [];
 
-		return new Schema([...$own, ...self::shared()]);
+		return new Schema([
+			new TextField('title')->described('What the library calls it, in place of its file name.'),
+			...$own,
+			...self::shared()
+		]);
 	}
 
 	/**
@@ -119,14 +123,13 @@ final class MediaSchemas
 	}
 
 	/**
-	 * The fields every kind has.
+	 * The fields every kind has after its own.
 	 *
 	 * @return list<Field>
 	 */
 	private static function shared(): array
 	{
 		return [
-			new TextField('title')->described('What the library calls it, in place of its file name.'),
 			new TextField('caption')->described('Shown with the file where it\'s used, such as under an image.'),
 			new TextField('credit')->described('Who made it, or where it\'s from.'),
 			new MarkdownField('description')->described('A longer description, for the library.')

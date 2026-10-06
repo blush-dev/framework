@@ -715,6 +715,19 @@ Move each item to `decisions.md` once it's answered.
       (D-479); Blush-made sizes cached by id; importers writing ids,
       `sizes`, and source keys; `MediaMetadataStore` behind the `data`
       area's interface (D-486).
+  - **Artwork into the library** (the author, 2026-10-06, after D-552):
+    a sound's or video's embedded cover art is served from the file
+    (`GET media-artwork/{path}`), which is fine for now. Later, upload
+    it (or offer to) as an image in the media library, so it has its
+    own id, alt text, and sizes, and can be used anywhere: on upload,
+    from a button on the file's screen, or both? And should a sound
+    without embedded art be able to name a library image as its cover?
+  - **The audio and video players on the site** (D-553, D-554): they're plain DOM
+    in `resources/player`, so `::blush/audio`, `::blush/video`, and themes could use them,
+    but core ships no frontend scripts or styles yet. How the site
+    gets it (a core asset a directive enqueues, a theme's own build, a
+    plugin) and its default colors there are open, for the video
+    player (D-554) too.
   - **Importers** (and exporters): a public API and registry for any
     importer (an `Importer` interface; Type enum + Registry + Factory +
     Registrar), WordPress (WXR) first, in core or as a plugin. Importers

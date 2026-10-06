@@ -5,6 +5,10 @@
  * edit yet show their value read-only. An error (a required field left
  * empty when publishing) shows beneath the control, which is marked
  * invalid. Radio buttons and checkboxes are a group under the label.
+ *
+ * A screen can put a line under the control (`after`), such as a value
+ * offered for it, and say something in place of the help (`help`, given
+ * the help's id), such as a warning; `warn` marks the control for one.
  */
 
 import { computed } from 'vue';
@@ -12,7 +16,7 @@ import type { FieldDescription } from '../api';
 import FieldInput from './FieldInput.vue';
 import { control, help, label, type FormValue } from '../fields';
 
-const props = defineProps<{ field: FieldDescription; error?: string; idPrefix?: string; pickable?: boolean }>();
+const props = defineProps<{ field: FieldDescription; error?: string; idPrefix?: string; pickable?: boolean; warn?: boolean }>();
 const model = defineModel<FormValue>({ required: true });
 
 // A media field can open the media picker (D-247).
@@ -26,14 +30,17 @@ const described = computed(() => [help(props.field) === '' ? '' : `${id.value}-h
 </script>
 
 <template>
-	<div class="field" :class="{ 'field--inline': kind === 'checkbox' }">
+	<div class="field" :class="{ 'field--inline': kind === 'checkbox', 'field--warn': warn }">
 		<span v-if="group" :id="`${id}-label`" class="field__label">{{ label(field) }}<span v-if="field.required" class="field__required"> (required)</span></span>
 		<label v-else-if="kind !== 'checkbox'" :for="id">{{ label(field) }}<span v-if="field.required" class="field__required"> (required)</span></label>
 
 		<FieldInput v-model="model" :field="field" :id="id" :described-by="described" :invalid="errorId !== undefined" :labelled-by="group ? `${id}-label` : undefined" :pickable="pickable" @pick="emit('pick')" />
 
 		<p v-if="kind === 'readonly'" :id="`${id}-readonly`" class="field__help">Edit this one in the file for now.</p>
-		<p v-if="help(field) !== ''" :id="`${id}-help`" class="field__help">{{ help(field) }}</p>
+		<slot name="after" />
+		<slot name="help" :id="`${id}-help`">
+			<p v-if="help(field) !== ''" :id="`${id}-help`" class="field__help">{{ help(field) }}</p>
+		</slot>
 		<p v-if="errorId" :id="errorId" class="field__error">{{ error }}</p>
 	</div>
 </template>
