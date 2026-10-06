@@ -4,6 +4,34 @@ Move each item to `decisions.md` once it's answered.
 
 ## Needs the author's call
 
+- **Bug: a republished entry's publish date was replaced** (reported by
+  the author, 2026-10-05; hold off on changes). On the jtcom trial,
+  `_posts/2026-09-30.register-custom-icons-wordpress-7-0-copy.md` was
+  published on 2026-09-30, later trashed, then restored and
+  republished, all from the admin. Its file now says `published:
+  2026-10-05 10:57:00 -05:00`; it should still say 2026-09-30. (Its
+  name is from 2026-09-30, the old dated default; `content:filenames`
+  lists it for renaming because of the wrong date. Leave both until
+  this is fixed.)
+  - **Checked, and each keeps an existing date today:** the server's
+    `EntryController::withStatus()` sets `published` on publish only
+    when there's none or it's in the future; `FilesystemWriter::
+    restore()` only sets `status: draft` and removes `trashed`; bulk
+    publish goes through `withStatus()`; the editor (`EditorView`
+    `save()`) sends `published` only when its date field changed.
+  - **Leads:** the trash changed underneath it the same day (D-484
+    replaced D-237's `storage/trash` folders), so the trash or restore
+    may have run on the old code, which moved the file out and back;
+    the editor's date field after a restore (a draft whose date field
+    shows empty, "No date yet", or a reformatted date counting as a
+    change and sending the time of publishing); and the Duplicate that
+    made the copy. Reproduce on the current code: duplicate a dated
+    post, publish it, trash it, restore it, open it, publish it, and
+    compare `published` at each step.
+  - **The rule the fix should hold:** once an entry has a publish date,
+    only an explicit change in the date field moves it; trashing,
+    restoring, and switching to draft and back never do.
+
 - **Loading the admin's screens on demand** (D-510, discussed
   2026-10-05). The size budget means what's loaded at a given moment,
   such as the first run, as much as the total. Today `router.ts` imports
@@ -465,7 +493,14 @@ Move each item to `decisions.md` once it's answered.
     `web/css`)? Today it's the first term's slug.
 - **Type labels** (D-278): how labels are translated, once the admin
   itself is.
+- **File names** (D-511):
+  - The admin's Translate action, when it's built, writes
+    `translation_of` on the translation it creates.
 - **Relationships** (D-242):
+  - **A relationship object** (raised 2026-10-05, on hold by the
+    author): tying several entries together as a record of its own,
+    stored in neither entry (a series with its parts in order), or
+    references stored by id, or links carrying data (below).
   - Data on a link (the role an actor played): references inside object
     fields (`cast: [{actor: tom-hanks, role: Forrest}]`), indexed too? A
     bigger step; nothing else in D-242 needs it.

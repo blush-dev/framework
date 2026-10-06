@@ -58,6 +58,10 @@ use Blush\Content\Visibility;
  * - `original` is, for a file with a language suffix, the path the file
  *   would have without it (`about.md` for `about.fr.md`), which links a
  *   translation to its siblings; `null` for the rest.
+ * - `group` is, for a translation whose `translation_of` names its
+ *   original's id (D-511), the original's translation group, which the
+ *   index sets when it's built; `null` for the rest, which link by name
+ *   (`groupOf()`).
  * - A translation's `key` and `parent` use its language's slugs (D-457):
  *   `about/biography.fr.md` under `about/index.fr.md` (`slug: a-propos`)
  *   is `a-propos/biographie`, with the parent `a-propos`. The index
@@ -89,7 +93,8 @@ use Blush\Content\Visibility;
  *     language: string,
  *     original: ?string,
  *     untranslated: ?array{key: string, parent: ?string},
- *     id: ?string
+ *     id: ?string,
+ *     group: ?string
  * }
  */
 final readonly class IndexRecord
@@ -104,6 +109,7 @@ final readonly class IndexRecord
 	 * @param ?string                              $original The path without a language suffix.
 	 * @param ?array{key: string, parent: ?string} $untranslated A translation's key and parent from its path alone, when the index changed them.
 	 * @param ?string                              $id           The entry's id (D-477), or `null` without a valid one.
+	 * @param ?string                              $group        The translation group its `translation_of` links it to (D-511).
 	 */
 	public function __construct(
 		public string $path,
@@ -130,7 +136,8 @@ final readonly class IndexRecord
 		public string $language = '',
 		public ?string $original = null,
 		public ?array $untranslated = null,
-		public ?string $id = null
+		public ?string $id = null,
+		public ?string $group = null
 	) {}
 
 	/**
@@ -194,7 +201,8 @@ final readonly class IndexRecord
 			language: $data['language'],
 			original: $data['original'],
 			untranslated: $data['untranslated'],
-			id: $data['id']
+			id: $data['id'],
+			group: $data['group']
 		);
 	}
 
@@ -209,7 +217,7 @@ final readonly class IndexRecord
 
 	/**
 	 * Returns what links a record with its translations (D-455, D-460):
-	 * its path without a language suffix or extension, with a bundle's
+	 * the group its `translation_of` links it to (D-511), else its path without a language suffix or extension, with a bundle's
 	 * `name/index` read as `name`, so a plain file and a bundle of one
 	 * entry link either way (`about.md` with `about/index.fr.md`, and
 	 * `about/index.md` with `about.fr.md`). A landing page's `index`
@@ -219,6 +227,10 @@ final readonly class IndexRecord
 	 */
 	public static function groupOf(array $record): string
 	{
+		if ($record['group'] !== null) {
+			return $record['group'];
+		}
+
 		$path      = $record['original'] ?? $record['path'];
 		$directory = dirname($path);
 		$name      = pathinfo($path, PATHINFO_FILENAME);
@@ -271,7 +283,8 @@ final readonly class IndexRecord
 			'language'     => $this->language,
 			'original'     => $this->original,
 			'untranslated' => $this->untranslated,
-			'id'           => $this->id
+			'id'           => $this->id,
+			'group'        => $this->group
 		];
 	}
 }

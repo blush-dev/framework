@@ -78,6 +78,12 @@ final readonly class Query
 	 *
 	 * @var list<string>
 	 */
+	/**
+	 * The 1.x `orderby` values that sorted by file, read as `published`
+	 * (D-516).
+	 */
+	public const array FILE_ORDER = ['filename', 'path'];
+
 	private const array ARGUMENTS = [
 		'type', 'path', 'names', 'slug', 'names_exclude', 'number', 'offset', 'order', 'orderby', 'author',
 		'meta_key', 'meta_value', 'year', 'month', 'day', 'hour', 'minute', 'second', 'noindex', 'nocontent',
@@ -91,8 +97,8 @@ final readonly class Query
 	 * @param list<string>                     $excludedNames Slugs to leave out.
 	 * @param ?int                             $limit         How many entries; `null` for all.
 	 * @param int                              $offset        How many matching entries to skip.
-	 * @param string                           $orderBy       `filename`, `published`, `updated`, `title`, `slug`, `status`, `author`, a field, or a taxonomy.
-	 * @param Order                            $order         The sort direction.
+	 * @param string                           $orderBy       `published` (the default), `updated`, `title`, `slug`, `status`, `author`, `position`, a field, or a taxonomy; never a file name (D-516).
+	 * @param Order                            $order         The sort direction; newest first by default.
 	 * @param list<array{string, list<string>}> $terms        Taxonomy and slugs; an entry needs one of the slugs for each.
 	 * @param ?string                          $metaKey       A field entries must have.
 	 * @param ?string                          $metaValue     A value (compared as a slug) the field must hold.
@@ -116,8 +122,8 @@ final readonly class Query
 		public array $excludedNames = [],
 		public ?int $limit = null,
 		public int $offset = 0,
-		public string $orderBy = 'filename',
-		public Order $order = Order::Asc,
+		public string $orderBy = 'published',
+		public Order $order = Order::Desc,
 		public array $terms = [],
 		public ?string $metaKey = null,
 		public ?string $metaValue = null,
@@ -147,9 +153,22 @@ final readonly class Query
 	}
 
 	/**
+	 * Returns the key an `orderby` value sorts by: `date` is `published`,
+	 * and so are 1.x's `filename` and `path`, since entries are never
+	 * sorted by where their files are (D-516): a database has no file
+	 * names, and a type's file names may change over time (D-511).
+	 */
+	public static function orderKey(string $orderBy): string
+	{
+		return in_array($orderBy, ['date', ...self::FILE_ORDER], true) ? 'published' : $orderBy;
+	}
+
+	/**
 	 * Builds a query from 1.x query arguments: `type`, `path`, `names` (or
 	 * `slug`), `names_exclude`, `number` (10 by default; zero or less for
-	 * all), `offset`, `order`, `orderby` (`date` means `published`),
+	 * all), `offset`, `order`, `orderby` (`date`, and 1.x's `filename`
+	 * and `path`, mean `published`, D-516; with `orderby` and no `order`,
+	 * ascending; with neither, newest published first),
 	 * `author`, `meta_key` and `meta_value`, `year` through `second`, and
 	 * `noindex`. 2.x adds `status`, `visibility`, `terms` (taxonomy names
 	 * to slugs), `locale`, and `language` (a code, or `*` for every
@@ -195,13 +214,13 @@ final readonly class Query
 			$query = $query->offset(self::int($arguments['offset'], 'offset'));
 		}
 
-		$orderBy = isset($arguments['orderby']) ? self::string($arguments['orderby'], 'orderby') : $query->orderBy;
+		$orderBy = isset($arguments['orderby']) ? self::orderKey(self::string($arguments['orderby'], 'orderby')) : null;
 		$order   = isset($arguments['order'])
 			? Order::tryFrom(strtolower(self::string($arguments['order'], 'order')))
 				?? throw new InvalidQuery('Query argument "order" must be "asc" or "desc".')
-			: $query->order;
+			: ($orderBy === null ? $query->order : Order::Asc);
 
-		$query = $query->orderBy($orderBy === 'date' ? 'published' : $orderBy, $order);
+		$query = $query->orderBy($orderBy ?? $query->orderBy, $order);
 
 		foreach (isset($arguments['author']) ? self::strings($arguments['author'], 'author') : [] as $author) {
 			$query = $query->whereTerm('author', $author);
@@ -327,16 +346,16 @@ final readonly class Query
 	}
 
 	/**
-	 * Returns a copy sorted by `filename` (the source path), `published`,
-	 * `updated`, `title`, `slug`, `status` (as it is now, so a scheduled
-	 * entry sorts as `scheduled`), `author`, any field, or else a
-	 * taxonomy's first term. Entries without the value sort as lowest;
-	 * ties keep file-name order.
+	 * Returns a copy sorted by `published`, `updated`, `title`, `slug`,
+	 * `status` (as it is now, so a scheduled entry sorts as
+	 * `scheduled`), `author`, any field, or else a taxonomy's first term. Entries without the value sort as lowest;
+	 * ties go by id, the order entries were made. `date`, `filename`, and
+	 * `path` mean `published`: entries are never sorted by file (D-516).
 	 */
 	#[NoDiscard]
 	public function orderBy(string $key, Order $order = Order::Asc): self
 	{
-		return clone($this, ['orderBy' => $key, 'order' => $order]);
+		return clone($this, ['orderBy' => self::orderKey($key), 'order' => $order]);
 	}
 
 	/**

@@ -147,7 +147,7 @@ final readonly class FeedBuilder
 	{
 		$arguments = $type->feed === false ? [] : ($type->feed->listing?->arguments() ?? []);
 
-		return Query::fromArray([...$base, 'order' => 'desc', 'orderby' => 'filename', 'number' => $this->config->limit, ...$arguments], $this->content);
+		return Query::fromArray([...$base, 'order' => 'desc', 'orderby' => 'published', 'number' => $this->config->limit, ...$arguments], $this->content);
 	}
 
 	/**

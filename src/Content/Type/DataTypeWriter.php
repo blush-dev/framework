@@ -37,7 +37,7 @@ use Blush\Support\Filesystem;
  * `icon`, `prefix` for the URL prefix, `paths` for route keys' paths
  * (`null` or `''` for a key's default, D-350), `public`, `sitemap`,
  * `llms` (D-398),
- * `feed`, `people` (D-351), `dateArchives`, `hierarchical`, `types`, and
+ * `feed`, `people` (D-351), `dateArchives`, `filename` (D-511), `hierarchical`, `types`, and
  * `fields`); `null` removes one. Two shortcuts change the `authors`
  * people field alone: `authors` (whether the type has it) and
  * `authorsWord` (its archive word, `false` for none). They're applied to the file's own
@@ -74,6 +74,7 @@ final readonly class DataTypeWriter
 		'feed'         => [],
 		'people'       => ['authors'],
 		'dateArchives' => ['date_archives', 'time_archives'],
+		'filename'     => [],
 		'hierarchical' => [],
 		'types'        => ['term_collect'],
 		'fields'       => []
@@ -437,6 +438,7 @@ final readonly class DataTypeWriter
 			'description'  => '',
 			'icon'         => '',
 			'dateArchives' => $type->dateArchives->value,
+			'filename'     => $type->naming()->pattern,
 			'hierarchical' => false,
 			default        => []
 		};

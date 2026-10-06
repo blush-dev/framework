@@ -35,6 +35,7 @@ use Blush\Content\Query\EntryCollection;
 use Blush\Content\Routing\ContentSiteUrls;
 use Blush\Content\Routing\ContentUrls;
 use Blush\Content\Type\ContentTypes;
+use Blush\Content\Writer\ContentWriter;
 use Blush\Core\AppConfig;
 use Blush\Core\Application;
 use Blush\Core\Language;
@@ -390,9 +391,9 @@ final class MultilingualTest extends TestCase
 		$counts  = $content->termCounts('category', $content->query()->language('fr'));
 
 		$this->assertSame([1, 1], [$counts['art'], $counts['old-posts']]);
-		$this->assertSame(['Welcome', 'Printemps', 'Hello Bundle'], $titles($content->query()->type('post')->language('fr')->limit(null)->get()));
+		$this->assertSame(['Hello Bundle', 'Printemps', 'Welcome'], $titles($content->query()->type('post')->language('fr')->limit(null)->get()));
 		$this->assertSame(['Printemps'], $titles($content->query()->type('post')->language('fr')->withOriginals(false)->limit(null)->get()));
-		$this->assertSame(['Welcome', 'spring', 'Hello Bundle'], $titles($content->query()->type('post')->limit(null)->get()), 'The default language has no originals to add.');
+		$this->assertSame(['Hello Bundle', 'spring', 'Welcome'], $titles($content->query()->type('post')->limit(null)->get()), 'The default language has no originals to add.');
 		$this->assertContains('Welcome', $titles(new LocalizedRepository($content, 'fr')->query()->type('post')->limit(null)->get()), 'Components list them too.');
 	}
 
@@ -627,6 +628,48 @@ final class MultilingualTest extends TestCase
 		}
 
 		$this->assertNotContains('/fr/topics/old-posts', $paths);
+	}
+
+	public function testTranslationOfLinksByIdWhateverTheName(): void
+	{
+		$original = self::idFor('_posts/2008-04-05.spring.md');
+
+		$this->entry('_posts/primavera.pt-br.md', "title: Primavera\ntranslation_of: " . strtoupper($original));
+
+		$snapshot = $this->snapshot($this->site());
+
+		$this->assertEquals(
+			['en' => '_posts/2008-04-05.spring.md', 'fr' => '_posts/2008-04-05.spring.fr.md', 'pt-br' => '_posts/primavera.pt-br.md'],
+			$snapshot->translations('_posts/primavera.pt-br.md'),
+			'An id links a translation whatever its name (D-511), and names still link the rest.'
+		);
+		$this->assertSame('_posts/2008-04-05.spring', $snapshot->record('_posts/primavera.pt-br.md')?->group);
+		$this->assertNull($snapshot->record('_posts/2008-04-05.spring.fr.md')?->group);
+	}
+
+	public function testRenamingATranslationKeepsItsSuffix(): void
+	{
+		$renamed = $this->site('development')->container()->make(ContentWriter::class)->rename('_posts/2008-04-05.spring.fr.md', 'avril');
+
+		$this->assertSame('_posts/2008-04-05.avril.fr.md', $renamed->path, 'D-511');
+	}
+
+	public function testLintChecksTranslationOf(): void
+	{
+		$this->entry('_posts/a.fr.md', "title: A\ntranslation_of: nope");
+		$this->entry('_posts/b.fr.md', "title: B\ntranslation_of: " . self::idFor('_posts/missing.md'));
+		$this->entry('_posts/c.fr.md', "title: C\ntranslation_of: " . self::idFor('about/index.md'));
+		$this->entry('_posts/d.fr.md', "title: D\ntranslation_of: " . self::idFor('_posts/2008-04-05.spring.fr.md'));
+		$this->entry('_posts/e.md', "title: E\ntranslation_of: " . self::idFor('_posts/2008-04-05.spring.md'));
+
+		$report = $this->site()->container()->make(Linter::class)->lint();
+		$found  = static fn (string $path): array => array_map(static fn ($violation): string => $violation->message, $report->files[$path] ?? []);
+
+		$this->assertSame(['"nope" isn\'t a UUID; it names the id of the entry this translates.'], $found('_posts/a.fr.md'));
+		$this->assertSame(['names no entry\'s id.'], $found('_posts/b.fr.md'));
+		$this->assertSame(['names about/index.md, which is another type\'s.'], $found('_posts/c.fr.md'));
+		$this->assertSame(['names _posts/2008-04-05.spring.fr.md, a translation; name its original instead.'], $found('_posts/d.fr.md'));
+		$this->assertSame(['names an original, but this file isn\'t a translation: a translation has its language\'s code before the extension (hello.fr.md).'], $found('_posts/e.md'));
 	}
 
 	public function testLintFlagsTheDefaultLanguageSuffix(): void

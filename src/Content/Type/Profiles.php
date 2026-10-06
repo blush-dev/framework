@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Blush\Content\Type;
 
 use Override;
+use Blush\Content\Query\Order;
 use Blush\Field\Field;
 
 /**
@@ -56,6 +57,7 @@ final readonly class Profiles extends ContentType
 	 * @param  string          $description What the type is for, in a sentence.
 	 * @param  ?string         $icon        An icon name for the admin; defaults to its kind's.
 	 * @param  bool            $llms        Whether profiles are listed in `llms.txt` (D-401).
+	 * @param  ?FileName       $filename    How new files are named (D-514).
 	 * @throws InvalidContentType
 	 */
 	public function __construct(
@@ -71,9 +73,21 @@ final readonly class Profiles extends ContentType
 		?TypeLabels $labels = null,
 		string $description = '',
 		?string $icon = null,
-		bool $llms = false
+		bool $llms = false,
+		?FileName $filename = null
 	) {
-		parent::__construct($name, $folder, $public, $urls, $listing, $feed, $sitemap, DateArchives::None, $fields, $closed, $labels, $description, $icon, [], $llms);
+		parent::__construct($name, $folder, $public, $urls, $listing, $feed, $sitemap, DateArchives::None, $fields, $closed, $labels, $description, $icon, [], $llms, $filename);
+	}
+
+	/**
+	 * Returns its entries' order: by name.
+	 *
+	 * @inheritDoc
+	 */
+	#[Override]
+	public function order(): array
+	{
+		return ['title', Order::Asc];
 	}
 
 	/**

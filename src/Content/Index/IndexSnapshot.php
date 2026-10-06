@@ -13,7 +13,9 @@ declare(strict_types=1);
 
 namespace Blush\Content\Index;
 
+use Blush\Content\EntryFields;
 use Blush\Content\Status;
+use Blush\Support\Uuid;
 
 /**
  * The whole content index at one moment: every record, plus lookups
@@ -32,7 +34,9 @@ use Blush\Content\Status;
  *   under each parent, by language, type, and parent key.
  * - `translations` links each file to its translations (D-455): the
  *   entries of each translation group (`IndexRecord::groupOf()`, which
- *   links a plain file with a bundle, D-460), by language.
+ *   links a plain file with a bundle, D-460), by language. A
+ *   translation whose `translation_of` names its original's id joins the
+ *   original's group whatever its name (D-511; `translationOf()`).
  * - A translation's key and parent are put in its language first
  *   (D-457): each folder above it that has a translation in the
  *   language takes that translation's key, and a parent named by its
@@ -69,7 +73,7 @@ final readonly class IndexSnapshot
 	 * The index format's version. A stored index with another version is
 	 * rebuilt.
 	 */
-	public const int VERSION = 7;
+	public const int VERSION = 8;
 
 	/**
 	 * @param array<string, RecordArray>                                $records   Keyed by path, sorted by path.
@@ -120,7 +124,7 @@ final readonly class IndexSnapshot
 
 		ksort($byPath, SORT_STRING);
 
-		$byPath = new TranslatedKeys($byPath)->records();
+		$byPath = new TranslatedKeys(self::linkedById($byPath))->records();
 
 		$keys      = [];
 		$claims    = [];
@@ -191,6 +195,66 @@ final readonly class IndexSnapshot
 			array_map(static fn (array $paths): string => $paths[0], $ids),
 			array_filter($ids, static fn (array $paths): bool => count($paths) > 1)
 		);
+	}
+
+	/**
+	 * Returns what a record's `translation_of` (D-511) links it to: the
+	 * path of the entry it names and `null`, or `null` and why it links
+	 * to nothing, finishing a sentence. Both are `null` for a record
+	 * without one. It names an original: a file of the same type
+	 * without a language suffix, in another language.
+	 *
+	 * @param  RecordArray                $record
+	 * @param  array<string, string>      $ids     Paths by id.
+	 * @param  array<string, RecordArray> $records Records by path.
+	 * @return array{?string, ?string}
+	 */
+	public static function translationOf(array $record, array $ids, array $records): array
+	{
+		$id = $record['values'][EntryFields::TRANSLATION_OF] ?? null;
+
+		if (! is_string($id) || ! Uuid::isValid($id) || $record['original'] === null) {
+			return [null, null];
+		}
+
+		$path   = $ids[strtolower($id)] ?? null;
+		$target = $path === null ? null : $records[$path] ?? null;
+
+		return match (true) {
+			$path === null || $target === null           => [null, 'names no entry\'s id.'],
+			$path === $record['path']                    => [null, 'names the file\'s own id.'],
+			$target['type'] !== $record['type']          => [null, sprintf('names %s, which is another type\'s.', $path)],
+			$target['original'] !== null                 => [null, sprintf('names %s, a translation; name its original instead.', $path)],
+			$target['language'] === $record['language'] => [null, sprintf('names %s, which is in the same language.', $path)],
+			default                                      => [$path, null]
+		};
+	}
+
+	/**
+	 * Returns the records with each translation's `group` set from its
+	 * `translation_of` (D-511), and every other's cleared, since a group
+	 * depends on another file.
+	 *
+	 * @param  array<string, RecordArray> $records
+	 * @return array<string, RecordArray>
+	 */
+	private static function linkedById(array $records): array
+	{
+		$ids = [];
+
+		foreach ($records as $path => $record) {
+			if ($record['id'] !== null) {
+				$ids[$record['id']] ??= $path;
+			}
+		}
+
+		foreach ($records as $path => $record) {
+			[$original] = self::translationOf($record, $ids, $records);
+
+			$records[$path]['group'] = $original === null ? null : IndexRecord::groupOf([...$records[$original], 'group' => null]);
+		}
+
+		return $records;
 	}
 
 	/**

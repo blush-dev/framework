@@ -26,7 +26,9 @@ use Blush\Console\Commands\CreatePlugin;
 use Blush\Console\Commands\CreateTheme;
 use Blush\Console\Commands\ExplainView;
 use Blush\Console\Commands\Help;
+use Blush\Console\Commands\RenameToPattern;
 use Blush\Console\Commands\FixIds;
+use Blush\Console\Commands\FlattenCollections;
 use Blush\Console\Commands\FixMediaIds;
 use Blush\Console\Commands\IndexContent;
 use Blush\Console\Commands\IndexMedia;
@@ -72,6 +74,8 @@ enum BuiltInCommand: string
 	case CacheClear    = 'cache:clear';
 	case CacheCompile  = 'cache:compile';
 	case RoutesList    = 'routes:list';
+	case ContentFileNames = 'content:filenames';
+	case ContentFlatten = 'content:flatten';
 	case ContentIds    = 'content:ids';
 	case ContentIndex  = 'content:index';
 	case ContentLint   = 'content:lint';
@@ -125,6 +129,8 @@ enum BuiltInCommand: string
 			self::CacheClear    => CacheClear::class,
 			self::CacheCompile  => CacheCompile::class,
 			self::RoutesList    => RoutesList::class,
+			self::ContentFileNames => RenameToPattern::class,
+			self::ContentFlatten => FlattenCollections::class,
 			self::ContentIds    => FixIds::class,
 			self::ContentIndex  => IndexContent::class,
 			self::ContentLint   => LintContent::class,

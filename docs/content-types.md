@@ -535,10 +535,15 @@ new Listing(orderBy: 'published', order: Order::Desc, perPage: 20)
 | Option    | Default         | What it does                                                           |
 |-----------|-----------------|------------------------------------------------------------------------|
 | `type`    | The type itself | Which type to list                                                     |
-| `orderBy` | `filename`      | `filename`, `published`, `updated`, `title`, `author`, `position` (a tree's or taxonomy's; those without one come last, by title), or any field |
-| `order`   | `asc`           | `asc` or `desc` (`Order::Asc` or `Order::Desc` in PHP)                 |
+| `orderBy` | Its type's order | `published`, `updated`, `title`, `author`, `position` (a tree's or taxonomy's; those without one come last, by title), or any field. A collection lists newest published first, a taxonomy its terms by `position`, then title |
+| `order`   | Its type's order | `asc` or `desc` (`Order::Asc` or `Order::Desc` in PHP)                 |
 | `perPage` | `10`            | How many per page; `0` (`Listing::ALL`) for all of them                |
 | `query`   |                 | Any other option from the table below, such as `{terms: {tag: [php]}}` |
+
+Entries are never sorted by file name, so the order holds when file
+names change or content moves to a database. Ties go by when each entry
+was made (its id). 1.x's `orderby: filename` is read as `published`, and
+`content:lint` warns where a page still says it.
 
 To list entries on any page, use `collection` in its front matter:
 
@@ -558,8 +563,8 @@ collection:
 | `type`                    | Which type(s) to list                                                         |
 | `number`                  | How many per page (default 10; `0` or less for all)                           |
 | `offset`                  | Skip this many                                                                |
-| `orderby`                 | `filename` (default), `published`, `updated`, `title`, `author`, or any field |
-| `order`                   | `asc` (default) or `desc`                                                     |
+| `orderby`                 | `published` (default), `updated`, `title`, `author`, `position`, or any field |
+| `order`                   | `desc` with no `orderby`, else `asc` (default), or `desc`                     |
 | `terms`                   | Only entries in these terms, such as `{tag: [php]}`                           |
 | `author`                  | Only entries crediting these profiles, through any people field               |
 | `names` / `names_exclude` | Only, or never, these slugs                                                   |
@@ -580,6 +585,7 @@ Every kind takes these:
 | `sitemap`           | `true`                                                         | Whether entries appear in the sitemap                            |
 | `llms`              | `true` for collections and trees, `false` for taxonomies and profiles | Whether entries are listed in [`llms.txt`](configuration.md#markdown-pages-and-llmstxt). Their Markdown copies stay either way |
 | `fields` / `closed` |                                                                | [Custom fields](#custom-fields)                                  |
+| `filename`          | `{slug}`                                                       | How new entries' files are named ([below](#naming-new-files))    |
 
 Collections, taxonomies, and trees also take this:
 
@@ -600,6 +606,67 @@ Only collections take:
 | Option         | Default | What it does                                                         |
 |----------------|---------|----------------------------------------------------------------------|
 | `dateArchives` | `none`  | Date archives: `year`, `month`, `day`, `hour`, `minute`, or `second` |
+
+### Naming new files
+
+Every type names the files it creates (from the admin, `content:new`,
+or a copy) by its `filename` pattern. Without one, files are named by
+their slug alone (`hello.md`), whether or not the type has date
+archives. For dated names, set `filename: "{date}.{slug}"`
+(`2026-10-05.hello.md`).
+
+```yaml
+# user/data/types/note.yaml
+filename: "{date}-{time}.{slug}"   # 2026-10-05-093000.hello.md
+```
+
+A pattern ends in `{slug}`, with a `.` before it when anything comes
+first. Before it you can use `{date}` (`2026-10-05`), `{time}`
+(`093000`), `{year}`, `{month}`, `{day}`, `{hour}`, `{minute}`,
+`{second}`, letters, digits, `-`, `_`, and `.`. It can't start with `_`
+or `.`. Dates are the entry's publish date; every new entry gets one.
+
+A pattern names files, never folders. A page's subpages go in a folder
+named for its slug (`about/team.md` under `2026-10-05.about.md`), and a
+page kept as a folder (`about/index.md`) keeps its folder's name.
+
+Changing the pattern renames nothing. An entry's address comes from the
+part of its file name after the last `.`, so files named by an older
+pattern keep working beside new ones. Renaming an entry keeps whatever
+comes before its slug. Listings never sort by file name, so mixed
+names list in order.
+
+To rename older files to the pattern, run `bin/blush content:filenames`
+to see what would change, then `bin/blush content:filenames --write`
+(add `--type=post` for one type), or use **File Names** on Content
+health in the admin. Each entry's file is renamed, with its translations
+named after it. Dates are each entry's publish date as its file writes
+it (`2013-02-09 00:00:00 -5` names the 9th, wherever your site is), or
+its `updated` date, or when the file last changed. It leaves alone
+hidden files (`_`-prefixed), entries kept as folders, entries with a
+translation kept as one, and entries whose date isn't a real date
+(such as a `2007-00-00` placeholder, which `content:lint` warns of).
+No address changes.
+
+It renames only types that set `filename` themselves. Renaming replaces
+everything before the slug, so check the list first: a same-day counter
+(`2026-10-05-2.hello.md`) is dropped, and a file whose date differs
+from its publish date takes the publish date.
+
+In the admin, choose it under **File names** on the type's screen.
+
+### Collections are flat
+
+A collection's entries are files directly in its folder:
+`_posts/hello.md`, not `_posts/hello/index.md` or `_posts/2024/hello.md`.
+Two kinds of folder may sit inside one: another type's folder (a
+taxonomy at `writing/genres`), and `_` folders (`_posts/_drafts`), which
+can hold its files. `content:lint` reports an entry kept in a folder as
+an error. To move them, run `bin/blush content:flatten` to see what
+would change, then `bin/blush content:flatten --write`, or use
+**Collection Folders** on Content health in the admin. Each moves into
+its collection's folder under its folder's name (`_posts/hello/index.md`
+becomes `_posts/hello.md`), and folders left empty are removed.
 
 Only taxonomies take:
 

@@ -17,10 +17,12 @@ use Closure;
 use DateMalformedStringException;
 use DateTimeImmutable;
 use Blush\Content\EntryFields;
+use Blush\Content\FlatEntries;
 use Blush\Content\Index\IndexRecord;
 use Blush\Content\Index\IndexSnapshot;
 use Blush\Content\Index\ParsedEntry;
 use Blush\Content\Index\RecordBuilder;
+use Blush\Content\Parser\FrontMatter;
 use Blush\Content\Parser\InvalidDocument;
 use Blush\Content\Query\InvalidQuery;
 use Blush\Content\Query\Query;
@@ -104,7 +106,7 @@ final readonly class Linter
 				$parsed   = $this->builder->build($file, $contents);
 
 				$records[]               = $parsed->record;
-				$violations[$file->path] = [...$parsed->violations, ...$this->checkCollection($parsed->record), ...$this->checkOwnParent($parsed->record), ...$this->checkPrefix($parsed->record), ...$this->checkDates($parsed, $contents), ...$this->variants->check($contents)];
+				$violations[$file->path] = [...$parsed->violations, ...$this->checkCollection($parsed->record), ...$this->checkOwnParent($parsed->record), ...$this->checkPrefix($parsed->record), ...$this->checkFlat($parsed->record), ...$this->checkDates($parsed, $contents), ...$this->variants->check($contents)];
 			} catch (InvalidDocument | UnreadableSource $e) {
 				$violations[$file->path] = [new Violation(self::FILE, $e->getMessage())];
 			}
@@ -136,6 +138,14 @@ final readonly class Linter
 				$others = array_values(array_diff($paths, [$path]));
 
 				$violations[$path][] = new Violation(EntryFields::ID, sprintf('is also the id of %s; keep it on one file and give the others new ones with content:ids --keep, or on Content health in the admin.', implode(', ', $others)));
+			}
+		}
+
+		foreach ($snapshot->records as $path => $record) {
+			[, $problem] = IndexSnapshot::translationOf($record, $snapshot->ids, $snapshot->records);
+
+			if ($problem !== null) {
+				$violations[$path][] = new Violation(EntryFields::TRANSLATION_OF, $problem);
 			}
 		}
 
@@ -174,14 +184,15 @@ final readonly class Linter
 			$contents = $this->source->read($path);
 			$parsed   = $this->builder->build($file, $contents);
 
-			return [...$parsed->violations, ...$this->checkCollection($parsed->record), ...$this->checkOwnParent($parsed->record), ...$this->checkPrefix($parsed->record), ...$this->checkDates($parsed, $contents), ...$this->variants->check($contents)];
+			return [...$parsed->violations, ...$this->checkCollection($parsed->record), ...$this->checkOwnParent($parsed->record), ...$this->checkPrefix($parsed->record), ...$this->checkFlat($parsed->record), ...$this->checkDates($parsed, $contents), ...$this->variants->check($contents)];
 		} catch (InvalidDocument | UnreadableSource $e) {
 			return [new Violation(self::FILE, $e->getMessage())];
 		}
 	}
 
 	/**
-	 * Checks that a `collection` front matter value is a valid query.
+	 * Checks that a `collection` front matter value is a valid query,
+	 * and warns of 1.x's file order, read as `published` (D-516).
 	 *
 	 * @return list<Violation>
 	 */
@@ -199,7 +210,11 @@ final readonly class Linter
 			return [new Violation('collection', $e->getMessage())];
 		}
 
-		return [];
+		$orderBy = $collection['orderby'] ?? null;
+
+		return in_array($orderBy, Query::FILE_ORDER, true)
+			? [new Violation('collection', sprintf('"orderby: %s" is read as "published"; entries are never sorted by file. Write "orderby: published".', $orderBy), Severity::Warning)]
+			: [];
 	}
 
 	/**
@@ -225,9 +240,7 @@ final readonly class Linter
 			}
 
 			// The key's own line first: YAML hands dates over already rolled.
-			$written = preg_match('/^' . preg_quote($key, '/') . ':[ \t]*[\'"]?(.*)$/m', $contents, $line) === 1
-				? $line[1]
-				: (is_string($value) ? $value : '');
+			$written = FrontMatter::written($contents, $key) ?? (is_string($value) ? $value : '');
 
 			if (
 				preg_match('/^\s*(\d{4})-(\d{2})-(\d{2})/', $written, $matches) !== 1
@@ -252,7 +265,8 @@ final readonly class Linter
 	/**
 	 * Checks that a tree's or profiles type's file, and the folders
 	 * between it and its type's folder, have no order prefix (D-409): the
-	 * part of a name before its last `.`. Only collections and taxonomies
+	 * part of a name before its last `.`. A file may have the prefix its
+	 * type's own `filename` pattern gives it (D-514); a folder never. Only collections and taxonomies
 	 * order files by name; a page's folder named `01.about` doesn't nest
 	 * under `about`, and a prefix orders nothing in a tree. A hidden file,
 	 * or one in a hidden folder that isn't a type's (`__drafts/`), is
@@ -287,6 +301,12 @@ final readonly class Linter
 			return $position === false ? $segment : substr($segment, $position + 1);
 		}, $segments);
 
+		// The type's own pattern may give its files a prefix (D-514), never
+		// its folders (D-513).
+		if ($type->filename !== null && $type->naming()->explains($segments[$last])) {
+			$renamed[$last] = $segments[$last];
+		}
+
 		if ($renamed === $segments) {
 			return [];
 		}
@@ -295,7 +315,35 @@ final readonly class Linter
 		$suffix    = $record->original === null ? '' : ".{$record->language}";
 		$suggested = ltrim($type->folder . '/' . implode('/', $renamed) . "{$suffix}.{$extension}", '/');
 
-		return [new Violation(self::FILE, sprintf('has an order prefix, which only collections and taxonomies use; %s don\'t. Rename it %s.', $type->labels->items, $suggested))];
+		return [new Violation(self::FILE, sprintf(
+			'has an order prefix, which only collections and taxonomies use; %s don\'t%s. Rename it %s.',
+			$type->labels->items,
+			$type->filename === null ? '' : sprintf(', beyond their file name pattern (%s) on files', $type->filename->pattern),
+			$suggested
+		))];
+	}
+
+	/**
+	 * Checks that a collection's entry is a file directly in its folder
+	 * (D-514), or in a `_` folder there: not a folder entry, and not in a
+	 * folder of its own below.
+	 *
+	 * @return list<Violation>
+	 */
+	private function checkFlat(IndexRecord $record): array
+	{
+		$type = $this->types->find($record->type);
+		$flat = $type === null ? null : FlatEntries::flatPath($type, $record->path, $record->landing);
+
+		if ($flat === null) {
+			return [];
+		}
+
+		return [new Violation(self::FILE, sprintf(
+			'%s; a collection\'s entries are files in its folder. Move it to %s with content:flatten, or on Content health in the admin.',
+			str_starts_with(basename($record->path), 'index.') ? 'is a folder entry' : 'is in a folder below its collection\'s',
+			$flat
+		))];
 	}
 
 	/**

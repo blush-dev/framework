@@ -25,16 +25,18 @@ use Blush\Cache\ContentVersion;
 use Blush\Content\ContentRepository;
 use Blush\Content\Index\Indexer;
 use Blush\Content\Index\IndexReport;
+use Blush\Content\Entry\Entry;
 use Blush\Content\EntryFields;
 use Blush\Content\Status;
 use Blush\Content\Parser\DocumentParser;
 use Blush\Content\Parser\InvalidDocument;
 use Blush\Content\Source\FilesystemSource;
 use Blush\Content\Storage\FilesystemStorage;
+use Blush\Content\Type\Collection;
 use Blush\Content\Type\ContentType;
 use Blush\Content\Type\ContentTypes;
-use Blush\Content\Type\DateArchives;
 use Blush\Content\Type\Tree;
+use Blush\Core\AppConfig;
 use Blush\Core\Paths;
 use Blush\Support\Filesystem;
 use Blush\Support\FilesystemException;
@@ -77,7 +79,8 @@ final readonly class FilesystemWriter implements ContentWriter
 		private ContentRepository $content,
 		private Indexer $indexer,
 		private ContentVersion $version,
-		private ClockInterface $clock
+		private ClockInterface $clock,
+		private AppConfig $app
 	) {}
 
 	/**
@@ -111,17 +114,16 @@ final readonly class FilesystemWriter implements ContentWriter
 			throw new WriteException(sprintf('"%s" isn\'t a slug; try "%s".', $slug, Slug::from($slug)));
 		}
 
-		$date ??= $this->clock->now();
-		$name   = ($type->dateArchives === DateArchives::None ? '' : $date->format('Y-m-d') . '.') . "{$slug}." . FilesystemStorage::EXTENSION;
-		$path     = ltrim("{$type->folder}/{$name}", '/');
-		$file   = $this->file($path);
+		$name = $type->naming()->name($slug, $date ?? $this->clock->now()) . '.' . FilesystemStorage::EXTENSION;
+		$path = ltrim("{$type->folder}/{$name}", '/');
+		$file = $this->file($path);
 
 		return $this->locked(function () use ($path, $file, $type, $changes): WriteResult {
 			if (file_exists($file)) {
 				throw new WriteException(sprintf('%s already exists.', $this->paths->relative($file)));
 			}
 
-			$contents = $this->editor->edit($path, '', $this->withId($changes), $this->keys($type->name));
+			$contents = $this->editor->edit($path, '', $this->withNew($changes), $this->keys($type->name));
 
 			$this->write($file, $contents);
 
@@ -147,7 +149,7 @@ final readonly class FilesystemWriter implements ContentWriter
 				throw new WriteException(sprintf('%s already exists.', $this->paths->relative($file)));
 			}
 
-			$contents = $this->editor->edit($path, '', $this->withId($changes), $this->keys($type->name));
+			$contents = $this->editor->edit($path, '', $this->withNew($changes), $this->keys($type->name));
 
 			$this->write($file, $contents);
 
@@ -178,7 +180,7 @@ final readonly class FilesystemWriter implements ContentWriter
 
 			$type   = $parent->type;
 			$folder = ltrim("{$type->folder}/{$parent->key}", '/');
-			$path     = "{$folder}/{$slug}." . FilesystemStorage::EXTENSION;
+			$path   = "{$folder}/" . $type->naming()->name($slug, $this->clock->now()) . '.' . FilesystemStorage::EXTENSION;
 			$file   = $this->file($path);
 
 			if (
@@ -190,7 +192,7 @@ final readonly class FilesystemWriter implements ContentWriter
 			}
 
 			// Edited before anything moves, so a refused edit moves nothing.
-			$contents = $this->editor->edit($path, '', $this->withId($changes), $this->keys($type->name));
+			$contents = $this->editor->edit($path, '', $this->withNew($changes), $this->keys($type->name));
 			$moved    = [];
 			$made     = ! is_dir($this->folder($folder));
 
@@ -270,11 +272,14 @@ final readonly class FilesystemWriter implements ContentWriter
 				throw new WriteException(sprintf('%s is a landing page; its name is its folder\'s, so it can\'t be copied.', $path));
 			}
 
-			$prefix = ($date ?? $this->clock->now())->format('Y-m-d') . '.';
+			// A copy is a new file, so it's named as its type names them now,
+			// and a collection's is a file in its folder (D-514).
+			$type   = $entry->type ?? $this->types->forFile($path);
+			$prefix = $type->naming()->prefix($date ?? $this->clock->now());
 			$number = 1;
 
 			do {
-				[$from, $to, $newPath, $bundle] = $this->duplicateTargets($path, $number === 1 ? $slug : "{$slug}-{$number}", $prefix);
+				[$from, $to, $newPath, $bundle] = $this->duplicateTargets($path, $number === 1 ? $slug : "{$slug}-{$number}", $prefix, $type instanceof Collection);
 				$number++;
 			} while (file_exists($to));
 
@@ -282,7 +287,7 @@ final readonly class FilesystemWriter implements ContentWriter
 				$this->copyFolder($from, $to);
 			}
 
-			$this->write($this->file($newPath), $this->editor->edit($newPath, $contents, $this->withId($changes), $this->keys($entry?->type->name)));
+			$this->write($this->file($newPath), $this->editor->edit($newPath, $contents, $this->withNew($changes, $this->frontMatter($contents)), $this->keys($entry?->type->name)));
 
 			return new WriteResult($newPath, self::revision($this->read($this->file($newPath))), $this->refresh());
 		});
@@ -334,7 +339,7 @@ final readonly class FilesystemWriter implements ContentWriter
 				throw new WriteException(sprintf('%s is a landing page; its name is its folder\'s.', $path));
 			}
 
-			[$from, $to, $newPath] = $this->renameTargets($path, $slug);
+			[$from, $to, $newPath] = $this->renameTargets($path, $slug, $this->content->findPath($path));
 
 			if ($from === $to) {
 				return new WriteResult($path, self::revision($contents), new IndexReport());
@@ -524,7 +529,7 @@ final readonly class FilesystemWriter implements ContentWriter
 	 *
 	 * @return array{string, string, string}
 	 */
-	private function renameTargets(string $path, string $slug): array
+	private function renameTargets(string $path, string $slug, ?Entry $entry): array
 	{
 		$directory = dirname($path) === '.' ? '' : dirname($path);
 		$file      = basename($path);
@@ -536,37 +541,48 @@ final readonly class FilesystemWriter implements ContentWriter
 			return [$this->folder($directory), $this->folder("{$parent}{$slug}"), $newPath];
 		}
 
-		preg_match('/^(\d{4}-\d{2}-\d{2}\.)?.+\.([a-z]+)$/', $file, $match);
+		// What's around the slug stays: a prefix, whatever pattern named
+		// the file (D-511), and a language suffix.
+		$extension = pathinfo($file, PATHINFO_EXTENSION);
+		$parts     = explode('.', pathinfo($file, PATHINFO_FILENAME));
+		$suffix    = count($parts) > 1 && $entry !== null && end($parts) === $entry->language && end($parts) !== $entry->slug ? '.' . array_pop($parts) : '';
 
-		$newPath = ltrim("{$directory}/" . ($match[1] ?? '') . "{$slug}." . ($match[2] ?? 'md'), '/');
+		array_pop($parts);
+
+		$newPath = ltrim("{$directory}/" . implode('', array_map(static fn (string $part): string => "{$part}.", $parts)) . "{$slug}{$suffix}." . ($extension === '' ? 'md' : $extension), '/');
 
 		return [$this->file($path), $this->file($newPath), $newPath];
 	}
 
 	/**
 	 * Returns what a copy copies (the file, or a bundle's folder), where
-	 * to, the copy's path, and whether it's a bundle. A leading date in the
-	 * name is replaced with `$prefix`.
+	 * to, the copy's path, and whether it's a bundle. A file's copy is
+	 * named `$prefix` and its slug (D-511); a bundle's folder is named by
+	 * the slug alone, since a pattern never names folders (D-513), and a
+	 * `$flat` type's (a collection's) bundle is copied as a file beside
+	 * its folder (D-514).
 	 *
 	 * @return array{string, string, string, bool}
 	 * @throws WriteException
 	 */
-	private function duplicateTargets(string $path, string $slug, string $prefix): array
+	private function duplicateTargets(string $path, string $slug, string $prefix, bool $flat): array
 	{
 		$directory = dirname($path) === '.' ? '' : dirname($path);
 		$file      = basename($path);
-		$dated     = static fn (string $name): string => preg_match('/^\d{4}-\d{2}-\d{2}\./', $name) === 1 ? $prefix : '';
 
-		if (preg_match('/^index\.([a-z]+)$/', $file) === 1 && $directory !== '') {
+		if (preg_match('/^index\.([a-z]+)$/', $file, $index) === 1 && $directory !== '') {
 			$parent = dirname($directory) === '.' ? '' : dirname($directory) . '/';
-			$folder = $parent . $dated(basename($directory)) . $slug;
 
-			return [$this->folder($directory), $this->folder($folder), "{$folder}/{$file}", true];
+			if ($flat) {
+				return [$this->file($path), $this->file("{$parent}{$prefix}{$slug}.{$index[1]}"), "{$parent}{$prefix}{$slug}.{$index[1]}", false];
+			}
+
+			return [$this->folder($directory), $this->folder($parent . $slug), "{$parent}{$slug}/{$file}", true];
 		}
 
 		preg_match('/^.+\.([a-z]+)$/', $file, $match);
 
-		$newPath = ltrim("{$directory}/" . $dated($file) . "{$slug}." . ($match[1] ?? 'md'), '/');
+		$newPath = ltrim("{$directory}/{$prefix}{$slug}." . ($match[1] ?? 'md'), '/');
 
 		return [$this->file($path), $this->file($newPath), $newPath, false];
 	}
@@ -706,6 +722,128 @@ final readonly class FilesystemWriter implements ContentWriter
 	}
 
 	/**
+	 * @inheritDoc
+	 */
+	#[Override]
+	public function renameFiles(array $moves): RenamedFiles
+	{
+		return $this->locked(function () use ($moves): RenamedFiles {
+			$renamed = [];
+			$failed  = [];
+
+			foreach ($moves as $path => $entryMoves) {
+				$done = [];
+
+				try {
+					foreach ($entryMoves as $from => $to) {
+						$this->moveItem($from, $to);
+						$done[$from] = $to;
+					}
+
+					$renamed[$path] = self::moved($path, $done);
+
+					foreach (array_keys($done) as $from) {
+						$this->removeEmptyFolders(dirname($from));
+					}
+				} catch (WriteException $e) {
+					foreach (array_reverse($done, true) as $from => $to) {
+						@rename($this->folder($to), $this->folder($from));
+					}
+
+					$failed[$path] = $e->getMessage();
+				}
+			}
+
+			return new RenamedFiles($renamed, $failed, $renamed === [] ? new IndexReport() : $this->refresh());
+		});
+	}
+
+	/**
+	 * Removes a folder in the content folder when a move left it empty,
+	 * and each folder above it that's then empty too.
+	 */
+	private function removeEmptyFolders(string $relative): void
+	{
+		while ($relative !== '' && $relative !== '.') {
+			$folder = $this->folder($relative);
+
+			if (! is_dir($folder) || new FilesystemIterator($folder)->valid() || ! @rmdir($folder)) {
+				return;
+			}
+
+			$relative = dirname($relative);
+		}
+	}
+
+	/**
+	 * Returns where a path is after moves: its own, or its folder's.
+	 *
+	 * @param array<string, string> $moves Old paths to new.
+	 */
+	private static function moved(string $path, array $moves): string
+	{
+		foreach ($moves as $from => $to) {
+			if ($path === $from || str_starts_with($path, "{$from}/")) {
+				return $to . substr($path, strlen($from));
+			}
+		}
+
+		return $path;
+	}
+
+	/**
+	 * Moves a content file, or a folder in the content folder, to a path
+	 * that's free.
+	 *
+	 * @throws WriteException
+	 */
+	private function moveItem(string $from, string $to): void
+	{
+		$source = $this->folder($from);
+		$target = is_dir($source) ? $this->folder($to) : $this->file($to);
+
+		if (! is_dir($source)) {
+			$source = $this->file($from);
+		}
+
+		if (! file_exists($source)) {
+			throw new WriteException(sprintf('There\'s no %s.', $from));
+		}
+
+		if (file_exists($target)) {
+			throw new WriteException(sprintf('%s already exists.', $to));
+		}
+
+		if (! @rename($source, $target)) {
+			throw new WriteException(sprintf('%s couldn\'t be renamed.', $from));
+		}
+	}
+
+	/**
+	 * Returns changes for a new file: a new id, and a `published` date
+	 * of now in the site's time zone when neither the changes nor the
+	 * front matter it starts from (a copy's) has one (every kind, D-514).
+	 *
+	 * @param array<array-key, mixed> $frontMatter
+	 */
+	private function withNew(EntryChanges $changes, array $frontMatter = []): EntryChanges
+	{
+		$changes = $this->withId($changes);
+
+		if (array_intersect_key([...$frontMatter, ...$changes->set], ['published' => true, 'date' => true]) !== []) {
+			return $changes;
+		}
+
+		$published = $this->clock->now()->setTimezone($this->app->timezone())->format('Y-m-d H:i:s P');
+		$set       = $changes->set;
+		$id        = $set[EntryFields::ID];
+
+		unset($set[EntryFields::ID]);
+
+		return new EntryChanges([...$set, 'published' => $published, EntryFields::ID => $id], $changes->remove, $changes->body);
+	}
+
+	/**
 	 * Returns changes with a new id (D-477) set last, so a file that has
 	 * none gets it at the end of its front matter, and one that has one
 	 * (a copy) gets it in its place.
@@ -728,6 +866,20 @@ final readonly class FilesystemWriter implements ContentWriter
 		unset($set[EntryFields::ID]);
 
 		return new EntryChanges($set, array_values(array_diff($changes->remove, [EntryFields::ID])), $changes->body);
+	}
+
+	/**
+	 * Returns a file's front matter, or none when it can't be parsed.
+	 *
+	 * @return array<array-key, mixed>
+	 */
+	private function frontMatter(string $contents): array
+	{
+		try {
+			return $this->parser->parse($contents)->frontMatter;
+		} catch (InvalidDocument) {
+			return [];
+		}
 	}
 
 	/**

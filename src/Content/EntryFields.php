@@ -44,6 +44,13 @@ final class EntryFields
 	public const string TRASHED = 'trashed';
 
 	/**
+	 * The id of the entry a translation translates (D-511), which links
+	 * them whatever their file names; without it, a translation links by
+	 * its name beside its original (D-455, D-460).
+	 */
+	public const string TRANSLATION_OF = 'translation_of';
+
+	/**
 	 * Returns the built-in schema.
 	 */
 	public static function schema(): Schema
@@ -64,6 +71,7 @@ final class EntryFields
 			new TextField('layout')->described('The theme layout to use.'),
 			new TextField('stylesheet')->described('An extra stylesheet for this page.'),
 			new ListField('class')->described('Extra CSS classes for the page\'s <body>.'),
+			new TextField(self::TRANSLATION_OF)->described('For a translation, the id of the entry it translates, which links them whatever their file names.'),
 			new ListField('redirect_from')->described('Old URLs that should redirect here.'),
 			new ObjectField('collection')->described('Lists other entries on this page.')
 		]);	}

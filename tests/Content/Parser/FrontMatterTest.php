@@ -60,6 +60,16 @@ final class FrontMatterTest extends TestCase
 		$this->assertSame([[], 'Body'], $frontMatter->parse('Body'));
 	}
 
+	public function testReadsAValueAsWritten(): void
+	{
+		$contents = "---\ntitle    : Weird\ndate     : 2007-00-00 23:22:00 -5\nupdated: \"2008-01-02\"\n---\nbody: 2001-01-01\n";
+
+		$this->assertSame('2007-00-00 23:22:00 -5', FrontMatter::written($contents, 'date'), 'Aligned keys, unrolled.');
+		$this->assertSame('2008-01-02', FrontMatter::written($contents, 'updated'), 'Without its quotes.');
+		$this->assertNull(FrontMatter::written($contents, 'body'), 'Only the front matter.');
+		$this->assertNull(FrontMatter::written("No front matter.\n", 'date'));
+	}
+
 	public function testRejectsBadFrontMatter(): void
 	{
 		$frontMatter = new FrontMatter(new SymfonyYamlParser());

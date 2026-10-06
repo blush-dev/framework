@@ -55,6 +55,9 @@ use Blush\Support\Uuid;
  * - `id` (D-477) is the entry's id, a UUID, and no field's: it's read
  *   before the schema, so it's never an undeclared key, and a missing or
  *   malformed one is a violation.
+ * - `translation_of` (D-511) is a translation's original's id: one that
+ *   isn't a UUID, or on a file without a language suffix, is a
+ *   violation. The index links it (`IndexSnapshot::translationOf()`).
  */
 final readonly class RecordBuilder
 {
@@ -139,7 +142,7 @@ final readonly class RecordBuilder
 			id: is_string($id) && Uuid::isValid($id) ? strtolower($id) : null
 		);
 
-		return new ParsedEntry($record, [...self::checkId($id), ...$result->violations], $document->frontMatter);
+		return new ParsedEntry($record, [...self::checkId($id), ...self::checkTranslationOf($values, $suffixed), ...$result->violations], $document->frontMatter);
 	}
 
 	/**
@@ -153,6 +156,25 @@ final readonly class RecordBuilder
 			Uuid::isValid($id)          => [],
 			$id === null || $id === '' => [new Violation(EntryFields::ID, 'is missing; every entry needs one. Add it with content:ids --write, or on Content health in the admin.')],
 			default                    => [new Violation(EntryFields::ID, sprintf('"%s" isn\'t a UUID; give the entry a new one with content:ids --write, or on Content health in the admin.', is_scalar($id) ? (string) $id : get_debug_type($id)))]
+		};
+	}
+
+	/**
+	 * Returns the violation for a `translation_of` that isn't a UUID, or
+	 * that's on a file that isn't a translation.
+	 *
+	 * @param  array<string, mixed> $values
+	 * @return list<Violation>
+	 */
+	private static function checkTranslationOf(array $values, bool $suffixed): array
+	{
+		$id = $values[EntryFields::TRANSLATION_OF] ?? null;
+
+		return match (true) {
+			$id === null        => [],
+			! Uuid::isValid($id) => [new Violation(EntryFields::TRANSLATION_OF, sprintf('"%s" isn\'t a UUID; it names the id of the entry this translates.', is_scalar($id) ? (string) $id : get_debug_type($id)))],
+			! $suffixed         => [new Violation(EntryFields::TRANSLATION_OF, 'names an original, but this file isn\'t a translation: a translation has its language\'s code before the extension (hello.fr.md).')],
+			default             => []
 		};
 	}
 

@@ -439,7 +439,9 @@ final class ContentTypeTest extends TestCase
 			[['name' => 'post', 'listing' => ['order' => 'sideways']], 'Content type "post" listing "order" must be "asc" or "desc".'],
 			[['name' => 'post', 'listing' => ['perPage' => 2.5]], 'Content type "post" listing "perPage" must be a whole number.'],
 			[['name' => 'post', 'listing' => ['query' => ['nope' => 1]]], 'Listing is invalid: Unknown query arguments: nope.'],
-			[['name' => 'post', 'fields' => [['name' => 'x', 'type' => 'nope']]], 'Field "x" has an unknown type "nope".']
+			[['name' => 'post', 'fields' => [['name' => 'x', 'type' => 'nope']]], 'Field "x" has an unknown type "nope".'],
+			[['name' => 'post', 'filename' => '{slug}.{date}'], 'Content type "post": The file name pattern "{slug}.{date}" must end in {slug}.'],
+			[['name' => 'page', 'kind' => 'tree', 'filename' => '{date}/x.{slug}'], 'Content type "page": The file name pattern "{date}/x.{slug}" may use only']
 		];
 
 		foreach ($cases as [$definition, $message]) {
@@ -450,6 +452,31 @@ final class ContentTypeTest extends TestCase
 				$this->assertStringStartsWith($message, $e->getMessage());
 			}
 		}
+	}
+
+	public function testEachKindHasAnOrderNeverByFile(): void
+	{
+		$this->assertSame(['published', Order::Desc], ContentType::fromArray(['name' => 'post'], $this->fields)->order(), 'D-516');
+		$this->assertSame(['position', Order::Asc], ContentType::fromArray(['name' => 'doc', 'kind' => 'tree'], $this->fields)->order());
+		$this->assertSame(['position', Order::Asc], ContentType::fromArray(['name' => 'tag', 'kind' => 'taxonomy'], $this->fields)->order());
+		$this->assertSame(['title', Order::Asc], ContentType::fromArray(['name' => 'person', 'kind' => 'profiles'], $this->fields)->order());
+
+		$tag = ContentType::fromArray(['name' => 'tag', 'kind' => 'taxonomy', 'listing' => ['order' => 'desc']], $this->fields);
+
+		$this->assertSame(['position', 'desc'], [$tag->listingArguments()['orderby'] ?? null, $tag->listingArguments()['order'] ?? null], 'Terms list in their order, the listing\'s way.');
+		$this->assertSame('published', ContentType::fromArray(['name' => 'post', 'listing' => ['orderBy' => 'filename']], $this->fields)->listing->orderBy, '1.x\'s file order is published.');
+	}
+
+	public function testCollectionsNameFilesByAPattern(): void
+	{
+		$dated = ContentType::fromArray(['name' => 'post', 'dateArchives' => 'day'], $this->fields);
+		$plain = ContentType::fromArray(['name' => 'note'], $this->fields);
+		$own   = ContentType::fromArray(['name' => 'log', 'filename' => '{year}.{slug}'], $this->fields);
+
+		$this->assertSame(['{slug}', '{slug}', '{year}.{slug}'], [$dated->naming()->pattern, $plain->naming()->pattern, $own->naming()->pattern], 'The slug alone by default, date archives or not (D-515).');
+		$this->assertArrayNotHasKey('filename', $dated->toArray(), 'The default isn\'t written.');
+		$this->assertSame('{year}.{slug}', $own->toArray()['filename'] ?? null);
+		$this->assertEquals($own, ContentType::fromArray($own->toArray(), $this->fields));
 	}
 
 	public function testListingRejectsTypedArgumentsInItsQuery(): void

@@ -82,7 +82,8 @@ final readonly class ArraySelector
 	}
 
 	/**
-	 * Sorts records by a key, keeping ID order for ties.
+	 * Sorts records by a key, then by id for ties (a UUIDv7 is in the
+	 * order entries were made), the same way; never by file (D-516).
 	 *
 	 * @param  list<RecordArray> $records
 	 * @return list<RecordArray>
@@ -90,10 +91,6 @@ final readonly class ArraySelector
 	private function sort(array $records, string $orderBy, Order $order, int $now): array
 	{
 		$direction = $order === Order::Desc ? -1 : 1;
-
-		if ($orderBy === 'filename' || $orderBy === 'path') {
-			return $direction === 1 ? $records : array_reverse($records);
-		}
 
 		// Entries without a position follow those with one, by title,
 		// whichever way the positions run (D-412).
@@ -112,7 +109,7 @@ final readonly class ArraySelector
 		$keys = array_map(fn (array $record): string|int|float|null => $this->sortValue($record, $orderBy, $now), $records);
 		$positions = array_keys($records);
 
-		usort($positions, static fn (int $a, int $b): int => $direction * self::compare($keys[$a], $keys[$b]));
+		usort($positions, static fn (int $a, int $b): int => $direction * (self::compare($keys[$a], $keys[$b]) ?: self::compare($records[$a]['id'], $records[$b]['id'])));
 
 		return array_map(static fn (int $position): array => $records[$position], $positions);
 	}

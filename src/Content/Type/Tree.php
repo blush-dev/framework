@@ -14,6 +14,8 @@ declare(strict_types=1);
 namespace Blush\Content\Type;
 
 use Override;
+use Blush\Content\Entry\Position;
+use Blush\Content\Query\Order;
 use Blush\Field\Field;
 
 /**
@@ -45,6 +47,7 @@ final readonly class Tree extends ContentType
 	 * @param  ?string         $icon        An icon name for the admin; defaults to its kind's.
 	 * @param  array<PeopleField>|bool $people How entries credit people (D-351): `true` for `authors`.
 	 * @param  bool            $llms        Whether its entries are listed in `llms.txt` (D-398).
+	 * @param  ?FileName       $filename    How new files are named (D-514).
 	 * @throws InvalidContentType
 	 */
 	public function __construct(
@@ -58,9 +61,10 @@ final readonly class Tree extends ContentType
 		string $description = '',
 		?string $icon = null,
 		array|bool $people = false,
-		bool $llms = true
+		bool $llms = true,
+		?FileName $filename = null
 	) {
-		parent::__construct($name, $folder ?? ($name === BuiltInType::Page->value ? '' : null), $public, false, new Listing(), false, $sitemap, DateArchives::None, $fields, $closed, $labels, $description, $icon, $people, $llms);
+		parent::__construct($name, $folder ?? ($name === BuiltInType::Page->value ? '' : null), $public, false, new Listing(), false, $sitemap, DateArchives::None, $fields, $closed, $labels, $description, $icon, $people, $llms, $filename);
 	}
 
 	/**
@@ -87,6 +91,17 @@ final readonly class Tree extends ContentType
 	public function role(): string
 	{
 		return $this->atRoot() ? 'the site\'s pages' : parent::role();
+	}
+
+	/**
+	 * Returns its entries' order: by position, then title (D-412).
+	 *
+	 * @inheritDoc
+	 */
+	#[Override]
+	public function order(): array
+	{
+		return [Position::FIELD, Order::Asc];
 	}
 
 	/**

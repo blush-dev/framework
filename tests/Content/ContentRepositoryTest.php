@@ -74,19 +74,19 @@ final class ContentRepositoryTest extends TestCase
 
 	public function testBuildsTheIndexOnFirstUse(): void
 	{
-		$this->assertSame(['welcome', 'spring', 'hello'], self::slugs($this->content->query()->type('post')->get()));
+		$this->assertSame(['hello', 'spring', 'welcome'], self::slugs($this->content->query()->type('post')->get()));
 		$this->assertFileExists($this->temporaryDirectory() . '/storage/index/content.php');
 	}
 
-	public function testDefaultQueriesFindPublishedPublicEntriesInFileOrder(): void
+	public function testDefaultQueriesFindPublishedPublicEntriesNewestFirst(): void
 	{
 		$posts = $this->content->query()->type('post')->get();
 
-		$this->assertSame(['welcome', 'spring', 'hello'], self::slugs($posts));
+		$this->assertSame(['hello', 'spring', 'welcome'], self::slugs($posts));
 		$this->assertCount(3, $posts);
 		$this->assertSame(3, $posts->total());
-		$this->assertSame('welcome', $posts->first()?->slug);
-		$this->assertSame('hello', $posts->last()?->slug);
+		$this->assertSame('hello', $posts->first()?->slug);
+		$this->assertSame('welcome', $posts->last()?->slug);
 		$this->assertTrue($posts->has('spring'));
 		$this->assertFalse($posts->has('rainy'));
 	}
@@ -98,12 +98,12 @@ final class ContentRepositoryTest extends TestCase
 		$this->assertSame(['future'], self::slugs($post->status(Status::Scheduled)->get()));
 		$this->assertSame(['unfinished'], self::slugs($post->status(Status::Draft)->get()));
 		$this->assertSame(['rainy'], self::slugs($post->visibility(Visibility::Unlisted)->get()));
-		$this->assertSame(['welcome', 'spring', 'hello', 'index'], self::slugs($post->withLanding()->get()));
-		$this->assertSame(['welcome', 'spring', 'rainy', 'unfinished', 'future', 'hello', 'index'], self::slugs($post->any()->get()));
+		$this->assertSame(['hello', 'spring', 'welcome', 'index'], self::slugs($post->withLanding()->get()));
+		$this->assertSame(['future', 'unfinished', 'hello', 'rainy', 'spring', 'welcome', 'index'], self::slugs($post->any()->get()));
 
 		$this->clock->set('2027-01-01');
 
-		$this->assertSame(['welcome', 'spring', 'future', 'hello'], self::slugs($this->content->query()->type('post')->get()));
+		$this->assertSame(['future', 'hello', 'spring', 'welcome'], self::slugs($this->content->query()->type('post')->get()));
 	}
 
 	public function testNamingEntriesFindsHiddenOnesAndLandingPages(): void
@@ -111,7 +111,7 @@ final class ContentRepositoryTest extends TestCase
 		$this->assertSame(['_private'], self::slugs($this->content->query()->names('_private')->get()));
 		$this->assertSame(['rainy'], self::slugs($this->content->query()->names('rainy')->get()));
 		$this->assertSame(['index'], self::slugs($this->content->query()->type('post')->names('index')->get()));
-		$this->assertSame(['welcome', 'hello'], self::slugs($this->content->query()->type('post')->exceptNames('spring')->get()));
+		$this->assertSame(['hello', 'welcome'], self::slugs($this->content->query()->type('post')->exceptNames('spring')->get()));
 	}
 
 	public function testQueriesFilterByFolderTermsAuthorsFieldsAndDates(): void
@@ -119,12 +119,12 @@ final class ContentRepositoryTest extends TestCase
 		$query = $this->content->query();
 
 		$this->assertSame(['biography'], self::slugs($query->in('about')->get()));
-		$this->assertSame(['about', 'notes'], self::slugs($query->in('')->get()));
-		$this->assertSame(['welcome', 'spring', 'hello'], self::slugs($query->in('_posts')->get()));
+		$this->assertSame(['notes', 'about'], self::slugs($query->in('')->get()));
+		$this->assertSame(['hello', 'spring', 'welcome'], self::slugs($query->in('_posts')->get()));
 		$this->assertSame(['spring'], self::slugs($query->whereTerm('category', 'art')->get()));
 		$this->assertSame(['spring'], self::slugs($query->whereTerm('category', 'Book Reviews')->get()));
-		$this->assertSame(['welcome', 'spring'], self::slugs($query->whereTerm('category', 'art', 'old-posts')->get()));
-		$this->assertSame(['welcome', 'spring'], self::slugs($query->whereAuthor('justintadlock')->get()));
+		$this->assertSame(['spring', 'welcome'], self::slugs($query->whereTerm('category', 'art', 'old-posts')->get()));
+		$this->assertSame(['spring', 'welcome'], self::slugs($query->whereAuthor('justintadlock')->get()));
 		$this->assertSame(['spring'], self::slugs($query->whereAuthor('justintadlock', 'guest')->get()));
 		$this->assertSame(['spring'], self::slugs($query->where('tag')->get()));
 		$this->assertSame(['spring'], self::slugs($query->where('tag', 'Flowers')->get()));
@@ -142,7 +142,7 @@ final class ContentRepositoryTest extends TestCase
 
 		$this->assertSame(['welcome'], self::slugs($posts->search('WELCOME')->get()), 'Titles, in any case.');
 		$this->assertSame(['hello'], self::slugs($posts->search('hello/index')->get()), 'Paths.');
-		$this->assertSame(['spring', 'rainy'], self::slugs($posts->search('2008-')->get()));
+		$this->assertSame(['rainy', 'spring'], self::slugs($posts->search('2008-')->get()));
 		$this->assertCount(7, $posts->search('  ')->get(), 'Blank text matches everything.');
 		$this->assertSame([], self::slugs($posts->search('nothing')->get()));
 	}
@@ -153,7 +153,7 @@ final class ContentRepositoryTest extends TestCase
 		$draft = static fn (Query $query): Query => $query->status(Status::Draft);
 		$art   = static fn (Query $query): Query => $query->whereTerm('category', 'art');
 
-		$this->assertSame(['spring', 'rainy', 'unfinished'], self::slugs($posts->either($draft, $art)->get()));
+		$this->assertSame(['unfinished', 'rainy', 'spring'], self::slugs($posts->either($draft, $art)->get()));
 		$this->assertSame(['spring'], self::slugs($posts->either($draft, $art)->search('spring')->get()), 'The query\'s own conditions still hold.');
 		$this->assertSame(['spring'], self::slugs($posts->either($draft, $art)->either(static fn (Query $query): Query => $query->whereAuthor('guest'))->get()), 'Each group must match.');
 		$this->assertSame([], self::slugs($posts->either()->get()), 'No alternatives match nothing.');
@@ -169,15 +169,26 @@ final class ContentRepositoryTest extends TestCase
 		$this->assertSame(['hello', 'spring', 'welcome'], self::slugs($posts->orderBy('published', Order::Desc)->get()));
 		$this->assertSame(['hello', 'spring', 'welcome'], self::slugs($posts->orderBy('title')->get()));
 		$this->assertSame(['welcome', 'spring', 'hello'], self::slugs($posts->orderBy('title', Order::Desc)->get()));
-		$this->assertSame(['hello', 'welcome', 'spring'], self::slugs($posts->orderBy('author')->get()));
-		$this->assertSame(['welcome', 'hello', 'spring'], self::slugs($posts->orderBy('tag')->get()));
+		$this->assertSame(['hello', 'spring', 'welcome'], self::slugs($posts->orderBy('author')->get()));
+		$this->assertSame(['hello', 'welcome', 'spring'], self::slugs($posts->orderBy('tag')->get()));
 
 		$page = $posts->limit(1)->offset(1)->get();
 
 		$this->assertSame(['spring'], self::slugs($page));
 		$this->assertSame(3, $page->total());
 		$this->assertSame(3, $posts->limit(1)->count());
-		$this->assertSame('welcome', $posts->first()?->slug);
+		$this->assertSame('hello', $posts->first()?->slug);
+	}
+
+	public function testBreaksTiesById(): void
+	{
+		$this->entry('_posts/a.md', "id: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e02\ntitle: Same\npublished: 2011-01-01");
+		$this->entry('_posts/b.md', "id: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e01\ntitle: Same\npublished: 2011-01-01");
+
+		$posts = $this->repository($this->site('development'))->query()->type('post')->names('a', 'b');
+
+		$this->assertSame(['a', 'b'], self::slugs($posts->get()), 'Newest first: the later id (D-516).');
+		$this->assertSame(['b', 'a'], self::slugs($posts->orderBy('title')->get()), 'Earliest first, whatever the file names.');
 	}
 
 	public function testRunsOneXQueryArguments(): void
@@ -354,12 +365,12 @@ final class ContentRepositoryTest extends TestCase
 
 	public function testDevelopmentRefreshesTheIndexOnFirstUse(): void
 	{
-		$this->assertSame(['welcome', 'spring', 'hello'], self::slugs($this->content->query()->type('post')->get()));
+		$this->assertSame(['hello', 'spring', 'welcome'], self::slugs($this->content->query()->type('post')->get()));
 
 		$this->entry('_posts/later.md', 'title: Later');
 
-		$this->assertSame(['welcome', 'spring', 'hello'], self::slugs($this->repository()->query()->type('post')->get()));
-		$this->assertSame(['welcome', 'spring', 'hello', 'later'], self::slugs($this->repository($this->site('development'))->query()->type('post')->get()));
+		$this->assertSame(['hello', 'spring', 'welcome'], self::slugs($this->repository()->query()->type('post')->get()));
+		$this->assertSame(['hello', 'spring', 'welcome', 'later'], self::slugs($this->repository($this->site('development'))->query()->type('post')->get()));
 	}
 
 	public function testAutoIndexCanBeTurnedOff(): void

@@ -15178,3 +15178,232 @@ decision, add a new entry that supersedes it and mark the old one
   D-505 to D-509. It's a direction for the streamlining, not a gate:
   changes to the admin keep the build no larger without a reason, and
   say what they did to it. Tracked in `roadmap.md`.
+
+### D-511: File name patterns per collection; translations linked by id
+- **Date:** 2026-10-05
+- **Status:** Built. Refines D-409 (the admin wrote only dated names)
+  and D-455/D-460 (translations link by name only).
+- **Decision:** from a discussion with the author: now that every file
+  has an id (D-477), a file's name can say what a site likes and change
+  over time.
+  - **`filename` on a collection** (`Type\FileName`): a pattern for the
+    files it creates (`create`, and copies). It ends in `{slug}`, with
+    a `.` before it when anything comes first, so the slug is still the
+    name after the last `.` and **reading files doesn't change**
+    (D-078); a pattern only names new files. The prefix takes `{date}`
+    (`Y-m-d`), `{time}` (`His`), `{year}`, `{month}`, `{day}`,
+    `{hour}`, `{minute}`, `{second}`, letters, digits, `-`, `_`, and
+    `.`, and can't start with `_` (hidden) or `.`. Without one, a
+    collection keeps today's names: `{date}.{slug}` with date archives,
+    else `{slug}` (`ContentType::naming()`). Trees, profiles, and
+    taxonomies don't take it (D-409; taxonomies order by `position`,
+    D-412).
+  - **Changing it renames nothing.** Older names keep working, since
+    addresses come from the slug. A **rename** keeps whatever comes
+    before the slug, and a language suffix (both were dropped unless
+    the prefix was a date). A **copy** is a new file, so it's named by
+    the type's pattern now (a copy of an undated bundle in a dated
+    collection is dated).
+  - **The admin** chooses it under File names on a collection's type
+    screen: Automatic, Slug, Date and slug, or Date, time, and slug,
+    with a pattern from config offered as itself. `filename` is an
+    option `user/data/types` may set (`DataTypeWriter::OPTIONS`).
+  - **`translation_of`** (`EntryFields::TRANSLATION_OF`, a built-in
+    text field): a translation may name its original's id, which links
+    them whatever their names (a translated file name, another prefix
+    after a pattern changed). The file still needs its language's
+    suffix. Names still link everything else. The snapshot resolves it
+    when it's built (`IndexSnapshot::translationOf()`), setting the
+    record's `group` to the original's translation group, which
+    `IndexRecord::groupOf()` returns first; index version 8.
+  - **It names an original:** a file of the same type, without a
+    language suffix, in another language. `content:lint` reports a
+    value that isn't a UUID, one on a file without a suffix, and one
+    naming no entry, the file itself, a translation, or another type's
+    entry. The editor leaves it out of the fields and keeps it as
+    written.
+- **Not now:** a tool renaming existing files to a new pattern (CLI and
+  admin, D-478's way); folders in a pattern (`{year}/{slug}`), which
+  needs folders under a collection to stop being part of keys (D-088);
+  the writer adding `translation_of` when it creates a translation
+  (there's no Translate action yet); a relationship object for tying
+  entries together (on hold, the author). See `open-questions.md`.
+- **Why:** the author names posts `YYYY-MM-DD.slug.md` and wants common
+  choices per type; with ids, the name can change over time, and a
+  translation can point at its original instead of matching its name.
+
+### D-512: Renaming files to their collection's pattern
+- **Date:** 2026-10-05
+- **Status:** Built. Follows D-511, a tool in D-478's way.
+- **Decision:** the author asked for the rename tool next.
+  - **`Content\FileNames`** (one service for both): `report()` lists,
+    by collection, the entries named by another pattern than its
+    `naming()` (`FileNameRename`: path, new path, and what moves), and
+    the entries it can't name (`undated`); `rename($type, $allowed)`
+    renames them. Only what comes before the slug changes (the slug is
+    the file name's, after its last `.`, even under a `slug:`), so no
+    key or address moves.
+  - **What moves:** the entry's file, or a bundle's folder (its media
+    and the translations in it with it), and each translation linked
+    by name, keeping its suffix (`hello.fr.md`, or a bundle's folder
+    translating a plain file), so links by name hold. A translation
+    linked by `translation_of` keeps its name. Translations aren't
+    renamed on their own.
+  - **The date** is the publish date in the site's time zone (the
+    record's `date`). Without one, an entry in a type whose pattern
+    has a date token (`FileName::isDated()`, now true only for one)
+    keeps its name and is listed as undated.
+  - **Left alone:** landing pages, and `_`-prefixed names, which a
+    pattern can't start with and would unhide.
+  - **Only collections that set `filename`.** A first run against the
+    jtcom trial listed 170 renames in collections without one
+    (Automatic): `writing/2008-04-05-7.the-real-buffy.md` would lose
+    its same-day order, and posts whose name's date differs from their
+    publish date (time zone offsets) would be re-dated. Automatic
+    states no intent, so it's never renamed to.
+  - **`ContentWriter::renameFiles()`** moves each entry's files and
+    folders together under the write lock, in one reindex: a taken or
+    missing path fails the entry, undoes its earlier moves, and names
+    it in `RenamedFiles::$failed`; the rest go on.
+  - **`content:filenames [--write] [--type=]`** lists `rename old → new`
+    and undated entries, and renames with `--write`. A list alone
+    succeeds, since older names keep working (unlike `content:ids`).
+  - **Content health** gets `fileNames` (by collection: label, pattern,
+    count, the first three renames, undated) and a File Names panel,
+    one row per collection, with Rename Files (`POST health/filenames`
+    `{"type"}`), changing only entries the account may edit. The
+    screen's three fixes share one `runFix()`.
+- **Why:** D-511 made patterns free to change; this brings older files
+  in line when a site wants them to match.
+
+### D-513: File name patterns never touch folders
+- **Date:** 2026-10-05
+- **Status:** Decided. Closes D-511's "folders in a pattern" (not
+  later: never).
+- **Decision:** the author: `filename` is only for file names; it never
+  changes the structure of folders. A pattern can't hold a `/`
+  (`FileName` already refuses one), so it never adds, moves, or nests
+  folders, and `content:filenames` never moves an entry into or out of
+  a folder.
+- **Why:** the author's call, 2026-10-05.
+
+### D-514: Collections are flat; file names for every type; `published` on every create
+- **Date:** 2026-10-05
+- **Status:** Built. Refines D-088 and D-294 (folder entries stay for
+  trees only), D-409 (a pattern's prefix is allowed), D-511 (any kind),
+  and D-512 (files only).
+- **Decision:** the author's calls.
+  - **Collections are flat:** a collection's entries are files
+    directly in its folder. A folder entry (`_posts/hello/index.md`) or
+    an entry in a folder below (`_posts/2024/hello.md`) is still read,
+    but `content:lint` reports it as an error (`Linter::checkFlat()`).
+    Other types' folders inside a collection's (jtcom's `writing/forms`)
+    and `_` folders (`_drafts`, a people field's `_authors`) are
+    allowed. Trees keep nesting by folder, `about/index.md` included.
+  - **Moving them** (D-478): `FlatEntries::flatPath()` says where a
+    file belongs (named by its folder for a folder entry, keeping its
+    language suffix and any `_` folders), and `report()`/`flatten()`
+    serve `content:flatten [--write]` (fails while any are left) and
+    Content health's Collection Folders panel (`flat`, `POST
+    health/flatten`). `ContentWriter::renameFiles()` removes folders a
+    move leaves empty; one still holding other files stays.
+  - **Copies:** a collection's folder entry is copied as a file beside
+    it; any other type's folder entry is copied as a folder named by
+    its slug alone (a pattern never names folders, D-513).
+  - **`filename` on every kind** (`ContentType::$filename`, in every
+    kind's options and the admin's type screen). Trees name their
+    files by it (`create()`, and `createUnder()` in the parent's key
+    folder); `createAt()` (fixed keys such as `_authors`) never takes
+    it, since a prefix would unhide a `_` name. Lint allows a tree's or
+    profiles' file the prefix its own pattern gives
+    (`FileName::explains()`), never a folder's.
+  - **The rename tool** covers every type with its own pattern, renames
+    files only (entries kept as folders, and entries with a translation
+    kept as one, are `skipped` with why), and dates an entry without a
+    publish date by when it was last `updated`, so none is left
+    undated.
+  - **`published` on every create:** the writer adds `published` (now,
+    in the site's time zone) to a new file whose changes and starting
+    front matter have none (`withNew()`), for every kind; the admin
+    and `content:new` set it for every type too. Existing files aren't
+    backfilled.
+- **Why:** the author: collections only ever exist in a flat folder,
+  with no entry folders; file naming for any type; and every type has
+  published and modified dates.
+
+### D-515: The default file name is the slug alone
+- **Date:** 2026-10-05
+- **Status:** Built. Supersedes D-511's default (`{date}.{slug}` with
+  date archives).
+- **Decision:** the author: every type, date archives or not, names new
+  files `{slug}` unless it sets `filename` (`FileName::byDefault()`
+  takes no archives now). The admin's first File names option is
+  "Default" (`hello-world.md`). The rename tool still renames only to a
+  pattern a type sets itself, so the default never renames anything.
+  - **The jtcom trial** sets `filename: new FileName('{date}.{slug}')`
+    on posts and literature in `config/content.php` (uncommitted), so
+    new entries keep its `Y-m-d.slug.md` names. With an explicit
+    pattern, `content:filenames` there now lists 159 renames (129 drop
+    a same-day counter, `2004-03-12-1.pocketeasy.md`; 30 are re-dated
+    to their publish dates); none were written.
+- **Open (closed by D-516):** a collection's listing still ordered by
+  `filename` by default (D-078).
+- **Why:** the author's call.
+
+### D-516: Never sort by file name
+- **Date:** 2026-10-05
+- **Status:** Built. Supersedes D-078's default order ("by file name")
+  and D-515's open question.
+- **Decision:** the author: collections default to newest published
+  first, and nothing is ever sorted by file name, since storage must be
+  ready for a database (D-486), which has no file names, and file
+  names may change over time (D-511).
+  - **Each type has an order** (`ContentType::order()`, as
+    `Query::orderBy()` takes it): collections `published` descending;
+    trees and taxonomies `position`, then title (D-412); profiles by
+    title. Taxonomy listing pages, `llms.txt`, and sitemaps use it.
+  - **Queries default to `published`, descending.** In 1.x arguments,
+    `orderby` alone is ascending as before, and `order` alone keeps the
+    default key. `date`, and 1.x's `filename` and `path`, are read as
+    `published` (`Query::orderKey()`, in `fromArray()`, `orderBy()`,
+    and `Listing::fromArray()`); `content:lint` warns of `orderby:
+    filename` in a page's `collection`. Feeds order by `published`.
+  - **Ties go by id** (`ArraySelector`), in the sort's direction: a
+    UUIDv7 is in the order entries were made, so ties no longer fall
+    back on path order. (The snapshot still keeps records by path, as
+    storage order, which nothing reads as an order.)
+  - Same-day order that lived in file names (jtcom's
+    `2008-04-05-3.bay-bay.md`) now goes by publish time, then id.
+- **Why:** the author, 2026-10-05: "We should never ever sort by
+  filename. Remember, we need to be prepared for database later."
+
+### D-517: The rename tool names files by the date as written
+- **Date:** 2026-10-05
+- **Status:** Built. Fixes D-512 and D-514's date.
+- **Decision:** from the author's report: on the jtcom trial, renaming
+  literature to `{date}.{slug}` moved 14 files back a day.
+  `2013-02-09 00:00:00 -5` is `2013-02-08 23:00` in the site's zone
+  (America/Chicago, -6 in February), and the tool named files by the
+  site's zone.
+  - **The date as written:** `FileNames` reads each entry's `published`
+    (or an alias), else `updated`, from its file as written
+    (`FrontMatter::written()`, the key's own line, aligned keys too),
+    in the offset written there, else the site's zone; else the file's
+    modified time. The index keeps only the timestamp, so the tool
+    reads the file (it's about files anyway).
+  - **Placeholders are skipped:** a written date not on the calendar
+    (`2007-00-00`, which YAML and PHP roll to 2006-11-30) leaves the name
+    alone, `skipped` with why.
+  - **Lint's placeholder check reads aligned keys** (`date     :`)
+    through the same helper; it read only `date:`, so jtcom's
+    placeholders went unreported (3 more now: two posts, one literature
+    piece).
+  - **The trial:** the 14 shifted literature files were renamed back to
+    their written dates, and
+    `writing/2005-09-15.preparation-for-observing-the-literacy-habits-of-alabama-toddlers.md`
+    (`date: 2018-00-00`, renamed to 2017-11-29, then 2017-11-30) was
+    given its original name back from the jtcom repo.
+    `writing/2007-02-28.tiger-taxi-guy.md` is now `2008-04-05.…`, its
+    `date`; the two disagree in jtcom itself.
+- **Why:** a name should show the day the author wrote, not the day it
+  falls on in the site's time zone.

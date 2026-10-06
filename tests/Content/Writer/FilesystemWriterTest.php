@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Blush\Tests\Content\Writer;
 
+use DateTimeImmutable;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Blush\Cache\ContentVersion;
@@ -208,11 +209,11 @@ final class FilesystemWriterTest extends TestCase
 			new EntryChanges(set: ['title' => 'A Fresh Start', 'status' => 'draft'], body: "\nHello.\n")
 		);
 
-		$this->assertSame('_posts/2026-06-01.fresh-start.md', $post->path);
+		$this->assertSame('_posts/fresh-start.md', $post->path, 'The slug alone by default, date archives or not (D-515).');
 		$id = (string) $this->content()->findPath($post->path)?->id;
 
 		$this->assertTrue(Uuid::isValid($id), 'A new entry has an id (D-477).');
-		$this->assertSame("---\ntitle: \"A Fresh Start\"\nstatus: draft\nid: {$id}\n---\n\nHello.\n", $this->file($post->path), 'Its id is last.');
+		$this->assertSame("---\ntitle: \"A Fresh Start\"\nstatus: draft\npublished: 2026-06-01 12:00:00 -05:00\nid: {$id}\n---\n\nHello.\n", $this->file($post->path), 'Its id is last, after a publish date (D-514).');
 		$this->assertSame('A Fresh Start', $this->content()->find($id)?->title);
 
 		$this->expectException(WriteException::class);
@@ -221,13 +222,44 @@ final class FilesystemWriterTest extends TestCase
 		$this->writer()->create($this->app->container()->make(ContentTypes::class)->get('post'), 'fresh-start', new EntryChanges(set: ['title' => 'Again']));
 	}
 
+	public function testNamesNewFilesByTheTypesPattern(): void
+	{
+		$this->contentConfig(['types' => ['note' => ['path' => '_notes', 'filename' => '{date}-{time}.{slug}']]]);
+		$this->app = $this->site('development');
+
+		$type = $this->app->container()->make(ContentTypes::class)->get('note');
+		$note = $this->writer()->create($type, 'jotted', new EntryChanges(set: ['title' => 'Jotted']), new DateTimeImmutable('2026-10-05 09:30:15'));
+
+		$this->assertSame('_notes/2026-10-05-093015.jotted.md', $note->path, 'D-511');
+		$this->assertSame('jotted', $this->content()->findPath($note->path)?->slug);
+
+		$renamed = $this->writer()->rename($note->path, 'scribbled');
+
+		$this->assertSame('_notes/2026-10-05-093015.scribbled.md', $renamed->path, 'A rename keeps the prefix, whatever pattern named the file.');
+	}
+
+	public function testNamesATreesPagesByItsPatternButNotItsFolders(): void
+	{
+		$this->contentConfig(['types' => ['doc' => ['kind' => 'tree', 'folder' => '_docs', 'filename' => 'doc.{slug}']]]);
+		$this->entry('_docs/install.md', 'title: Install');
+		$this->app = $this->site('development');
+
+		$type  = $this->app->container()->make(ContentTypes::class)->get('doc');
+		$intro = $this->writer()->create($type, 'intro', new EntryChanges(set: ['title' => 'Intro']));
+		$child = $this->writer()->createUnder('_docs/install.md', 'requirements', new EntryChanges(set: ['title' => 'Requirements']));
+
+		$this->assertSame('_docs/doc.intro.md', $intro->path, 'Any kind of type (D-514).');
+		$this->assertSame('_docs/install/doc.requirements.md', $child->path, 'Its folder is the parent\'s key (D-513).');
+		$this->assertSame('install/requirements', $this->content()->findPath($child->path)?->key);
+	}
+
 	public function testCreatesPagesAtTheirKeys(): void
 	{
 		$post = $this->app->container()->make(ContentTypes::class)->get('post');
 		$page = $this->writer()->createAt($post, '_authors/jane', new EntryChanges(set: ['title' => 'Jane, Blogger']));
 
-		$this->assertSame('_posts/_authors/jane.md', $page->path, 'Undated, at its key (D-353).');
-		$this->assertSame("---\ntitle: \"Jane, Blogger\"\nid: {$this->content()->findPath($page->path)?->id}\n---\n", $this->file($page->path));
+		$this->assertSame('_posts/_authors/jane.md', $page->path, 'At its key, with no pattern (D-353).');
+		$this->assertSame("---\ntitle: \"Jane, Blogger\"\npublished: 2026-06-01 12:00:00 -05:00\nid: {$this->content()->findPath($page->path)?->id}\n---\n", $this->file($page->path));
 
 		foreach (['__authors/jane', '_authors/Jane Doe', '../escape', '_authors//jane'] as $key) {
 			try {
@@ -441,8 +473,8 @@ final class FilesystemWriterTest extends TestCase
 		$first  = $this->writer()->duplicate($id, 'the-copy', $changes);
 		$second = $this->writer()->duplicate($id, 'the-copy', $changes);
 
-		$this->assertSame('_posts/2026-06-01.the-copy.md', $first->path, 'A dated copy takes today\'s date.');
-		$this->assertSame('_posts/2026-06-01.the-copy-2.md', $second->path, 'A taken name gets a number.');
+		$this->assertSame('_posts/the-copy.md', $first->path, 'Named by the slug alone (D-515).');
+		$this->assertSame('_posts/the-copy-2.md', $second->path, 'A taken name gets a number.');
 		$copy = (string) $this->content()->findPath($first->path)?->id;
 
 		$this->assertTrue(Uuid::isValid($copy));
@@ -453,9 +485,12 @@ final class FilesystemWriterTest extends TestCase
 
 		$bundle = $this->writer()->duplicate('_posts/hello/index.md', 'hello-copy', new EntryChanges(set: ['title' => 'Hello (Copy)']));
 
-		$this->assertSame('_posts/hello-copy/index.md', $bundle->path);
-		$this->assertFileExists($this->temporaryDirectory() . '/user/content/_posts/hello-copy/photo.jpg', 'A bundle\'s media is copied with it.');
-		$this->assertFileExists($this->temporaryDirectory() . '/user/content/_posts/hello/photo.jpg');
+		$this->assertSame('_posts/hello-copy.md', $bundle->path, 'A collection\'s copy is a file (D-514).');
+		$this->assertFileDoesNotExist($this->temporaryDirectory() . '/user/content/_posts/hello-copy/photo.jpg');
+
+		$page = $this->writer()->duplicate('about/index.md', 'about-copy', new EntryChanges(set: ['title' => 'About (Copy)']));
+
+		$this->assertSame('about-copy/index.md', $page->path, 'A page\'s folder is copied, named by its slug alone (D-513).');
 
 		$this->expectException(WriteException::class);
 

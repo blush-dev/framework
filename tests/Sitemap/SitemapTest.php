@@ -98,7 +98,7 @@ final class SitemapTest extends TestCase
 
 		$this->assertSame(
 			[
-				'http://localhost/', 'http://localhost/archives/welcome', 'http://localhost/archives/spring', 'http://localhost/archives/hello',
+				'http://localhost/', 'http://localhost/archives/hello', 'http://localhost/archives/spring', 'http://localhost/archives/welcome',
 				'http://localhost/archives/authors', 'http://localhost/archives/authors/guest', 'http://localhost/archives/authors/justintadlock'
 			],
 			$this->locations('/sitemap/post'),
@@ -108,8 +108,9 @@ final class SitemapTest extends TestCase
 			['http://localhost/topics', 'http://localhost/topics/art', 'http://localhost/topics/book-reviews', 'http://localhost/topics/old-posts'],
 			$this->locations('/sitemap/category')
 		);
-		// Entries follow file-name order.
-		$this->assertSame(['http://localhost/about/biography', 'http://localhost/about', 'http://localhost/notes'], $this->locations('/sitemap/page'));
+		// Entries follow their type's order, never files' (D-516): pages by
+		// position, then title.
+		$this->assertSame(['http://localhost/about', 'http://localhost/about/biography', 'http://localhost/notes'], $this->locations('/sitemap/page'));
 		$this->assertSame(['http://localhost/profiles/guest', 'http://localhost/profiles/justintadlock'], $this->locations('/sitemap/profile'), 'Each profile has a page of its own (D-351).');
 		$this->assertSame(404, $this->get('/sitemap/nope')->getStatusCode());
 	}

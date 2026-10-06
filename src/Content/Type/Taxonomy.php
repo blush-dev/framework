@@ -14,6 +14,8 @@ declare(strict_types=1);
 namespace Blush\Content\Type;
 
 use Override;
+use Blush\Content\Query\Order;
+use Blush\Content\Entry\Position;
 use Blush\Field\Field;
 use Blush\Field\Fields\ReferenceField;
 
@@ -61,6 +63,7 @@ final readonly class Taxonomy extends ContentType
 	 * @param  bool            $hierarchical Whether a term may name a `parent` term.
 	 * @param  array<PeopleField>|bool $people How entries credit people (D-351): `true` for `authors`.
 	 * @param  bool            $llms         Whether terms are listed in `llms.txt` (D-401).
+	 * @param  ?FileName       $filename    How new files are named (D-514).
 	 * @throws InvalidContentType
 	 */
 	public function __construct(
@@ -82,11 +85,23 @@ final readonly class Taxonomy extends ContentType
 		?string $icon = null,
 		public bool $hierarchical = false,
 		array|bool $people = false,
-		bool $llms = false
+		bool $llms = false,
+		?FileName $filename = null
 	) {
-		parent::__construct($name, $folder, $public, $urls, $listing, $feed, $sitemap, DateArchives::None, $fields, $closed, $labels, $description, $icon, $people, $llms);
+		parent::__construct($name, $folder, $public, $urls, $listing, $feed, $sitemap, DateArchives::None, $fields, $closed, $labels, $description, $icon, $people, $llms, $filename);
 
 		$this->field = $field ?? $name;
+	}
+
+	/**
+	 * Returns its entries' order: by position, then title (D-412).
+	 *
+	 * @inheritDoc
+	 */
+	#[Override]
+	public function order(): array
+	{
+		return [Position::FIELD, Order::Asc];
 	}
 
 	/**
@@ -130,6 +145,20 @@ final readonly class Taxonomy extends ContentType
 		$parent = $this->hierarchical ? ($values['parent'] ?? null) : null;
 
 		return is_string($parent) && $parent !== '' && $parent !== $key ? $parent : null;
+	}
+
+	/**
+	 * Lists terms in their order (`order()`) unless the listing says
+	 * otherwise, in its direction when it gives one (D-516).
+	 *
+	 * @inheritDoc
+	 */
+	#[Override]
+	public function listingArguments(): array
+	{
+		[$orderBy, $order] = $this->order();
+
+		return $this->listing->orderBy === null ? ['orderby' => $orderBy, 'order' => $this->listing->order->value ?? $order->value, ...parent::listingArguments()] : parent::listingArguments();
 	}
 
 	/**

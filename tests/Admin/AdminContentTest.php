@@ -242,7 +242,7 @@ final class AdminContentTest extends TestCase
 	{
 		$this->site(['editor']);
 
-		$this->assertSame(["Jane's draft", "Sam's draft"], array_column($this->listed('?search=DRAFT&status=draft'), 'title'), 'In any case.');
+		$this->assertEqualsCanonicalizing(["Jane's draft", "Sam's draft"], array_column($this->listed('?search=DRAFT&status=draft'), 'title'), 'In any case.');
 		$this->assertSame(['Soon'], array_column($this->listed('?search=soon.md'), 'title'));
 		$this->assertSame(0, $this->list('?search=nothing')['total']);
 	}
@@ -610,6 +610,8 @@ final class AdminContentTest extends TestCase
 		$this->assertSame(403, $this->send('POST', '/health/media-ids', '{}', ['X-CSRF-Token' => $token])->getStatusCode(), 'Nor media ids.');
 		$this->assertSame(403, $this->send('POST', '/health/media-ids/keep', '{"path": "a.png"}', ['X-CSRF-Token' => $token])->getStatusCode());
 		$this->assertSame(403, $this->send('POST', '/health/media-sizes', '{}', ['X-CSRF-Token' => $token])->getStatusCode(), 'Nor record sizes.');
+		$this->assertSame(403, $this->send('POST', '/health/filenames', '{"type": "post"}', ['X-CSRF-Token' => $token])->getStatusCode(), 'Nor rename files.');
+		$this->assertSame(403, $this->send('POST', '/health/flatten', '{}', ['X-CSRF-Token' => $token])->getStatusCode(), 'Nor move them.');
 	}
 
 	public function testFixesMissingAndSharedIds(): void
@@ -654,6 +656,48 @@ final class AdminContentTest extends TestCase
 
 		$this->assertSame('live.md', $content->find(self::LIVE)?->path, 'The one kept keeps it.');
 		$this->assertSame(['missing' => [], 'duplicates' => []], self::json($this->send('GET', '/health'))['ids'] ?? null);
+	}
+
+	public function testRenamesFilesToTheirTypesPattern(): void
+	{
+		$this->writeTemporaryFile('user/data/types/post.yaml', "folder: _posts\nfilename: \"{date}.{slug}\"\n");
+		$this->writeTemporaryFile('user/content/_posts/one.md', "---\ntitle: One\npublished: 2026-01-02 10:00:00\nid: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e01\n---\n");
+		$this->writeTemporaryFile('user/content/_posts/two.md', "---\ntitle: Two\nid: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e02\n---\n");
+		touch($this->temporaryDirectory() . '/user/content/_posts/two.md', (int) strtotime('2025-03-04 12:00:00 UTC'));
+		$this->site(['editor']);
+		$token = $this->token();
+
+		$names = self::json($this->send('GET', '/health'))['fileNames'] ?? null;
+
+		$this->assertSame([[
+			'type'     => 'post',
+			'label'    => 'Posts',
+			'pattern'  => '{date}.{slug}',
+			'count'    => 2,
+			'examples' => [['path' => '_posts/one.md', 'to' => '_posts/2026-01-02.one.md'], ['path' => '_posts/two.md', 'to' => '_posts/2025-03-04.two.md']],
+			'skipped'  => 0
+		]], $names, 'Without a publish date, when it was updated (D-514).');
+		$this->assertSame(400, $this->send('POST', '/health/filenames', '{}', ['X-CSRF-Token' => $token])->getStatusCode());
+
+		$renamed = self::json($this->send('POST', '/health/filenames', '{"type": "post"}', ['X-CSRF-Token' => $token]));
+
+		$this->assertSame(['_posts/one.md' => '_posts/2026-01-02.one.md', '_posts/two.md' => '_posts/2025-03-04.two.md'], $renamed['renamed'] ?? null);
+		$this->assertSame([], self::json($this->send('GET', '/health'))['fileNames'] ?? null);
+	}
+
+	public function testMovesCollectionEntriesOutOfFolders(): void
+	{
+		$this->writeTemporaryFile('user/data/types/post.yaml', "folder: _posts\n");
+		$this->writeTemporaryFile('user/content/_posts/2024/old.md', "---\ntitle: Old\nid: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e03\n---\n");
+		$this->site(['editor']);
+		$token = $this->token();
+
+		$this->assertSame(['count' => 1, 'examples' => [['path' => '_posts/2024/old.md', 'to' => '_posts/old.md']]], self::json($this->send('GET', '/health'))['flat'] ?? null);
+
+		$moved = self::json($this->send('POST', '/health/flatten', '{}', ['X-CSRF-Token' => $token]));
+
+		$this->assertSame(['_posts/2024/old.md' => '_posts/old.md'], $moved['renamed'] ?? null);
+		$this->assertSame(['count' => 0, 'examples' => []], self::json($this->send('GET', '/health'))['flat'] ?? null);
 	}
 
 	public function testFixesMediaIds(): void

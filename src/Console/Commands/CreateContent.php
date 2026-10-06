@@ -21,7 +21,6 @@ use Blush\Console\ExitCode;
 use Blush\Console\InvalidInput;
 use Blush\Console\Output;
 use Blush\Content\Type\ContentTypes;
-use Blush\Content\Type\DateArchives;
 use Blush\Content\Writer\ContentWriter;
 use Blush\Content\Writer\EntryChanges;
 use Blush\Content\Writer\WriteException;
@@ -30,10 +29,10 @@ use Blush\Support\Slug;
 
 /**
  * Creates a Markdown entry in a type's folder, then refreshes the index.
- * The file is named after the slug (from the title unless `--slug` is
- * given). Types with date archives get jtcom's `Y-m-d.slug.md` file names
- * and a `published` date; `--draft` marks the entry as a draft. Existing
- * files are never overwritten.
+ * The file is named by the type's pattern from the slug (from the title
+ * unless `--slug` is given; D-511), and every entry gets a `published`
+ * date (D-514); `--draft` marks the entry as a draft. Existing files are
+ * never overwritten.
  */
 #[Command('content:new', 'Create a new entry.')]
 final readonly class CreateContent
@@ -64,12 +63,11 @@ final readonly class CreateContent
 			throw new InvalidInput($slug === '' ? 'The title has no characters to make a slug from; pass --slug.' : sprintf('"%s" is not a slug; try "%s".', $slug, Slug::from($slug)));
 		}
 
-		$now   = $this->clock->now();
-		$dated = $contentType->dateArchives !== DateArchives::None;
+		$now = $this->clock->now();
 
 		$changes = new EntryChanges(set: [
-			'title' => $title,
-			...($dated ? ['published' => $now->format('Y-m-d H:i:s P')] : []),
+			'title'     => $title,
+			'published' => $now->format('Y-m-d H:i:s P'),
 			...($draft ? ['status' => 'draft'] : [])
 		], body: "\n");
 

@@ -17,9 +17,11 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Blush\Console\Commands\CreateContent;
 use Blush\Console\Commands\FixIds;
+use Blush\Console\Commands\FlattenCollections;
 use Blush\Console\Commands\IndexContent;
 use Blush\Console\Commands\LintContent;
 use Blush\Console\Commands\ListContent;
+use Blush\Console\Commands\RenameToPattern;
 use Blush\Console\Console;
 use Blush\Console\ExitCode;
 use Blush\Console\Testing\CommandTester;
@@ -32,6 +34,8 @@ use Blush\Tests\Content\BuildsContentSite;
 #[CoversClass(ListContent::class)]
 #[CoversClass(CreateContent::class)]
 #[CoversClass(FixIds::class)]
+#[CoversClass(RenameToPattern::class)]
+#[CoversClass(FlattenCollections::class)]
 #[CoversClass(EntryIds::class)]
 #[CoversClass(EntryIdReport::class)]
 final class ContentCommandsTest extends TestCase
@@ -75,6 +79,10 @@ final class ContentCommandsTest extends TestCase
 	public function testLintsContent(): void
 	{
 		$this->standardContent();
+
+		// The standard posts' folder entry is an error (D-514); a clean
+		// site has it as a file.
+		rename($this->temporaryDirectory() . '/user/content/_posts/hello/index.md', $this->temporaryDirectory() . '/user/content/_posts/2010-01-01.hello.md');
 		$tester = $this->tester();
 
 		$clean = $tester->run('content:lint');
@@ -150,6 +158,47 @@ final class ContentCommandsTest extends TestCase
 		$this->assertTrue($tester->run('content:ids')->isSuccessful());
 	}
 
+	public function testRenamesFilesToTheirTypesPattern(): void
+	{
+		$this->standardContent();
+		$this->writeTemporaryFile('user/data/types/post.yaml', "filename: \"{slug}\"\n");
+		$tester  = $this->tester();
+		$content = $this->temporaryDirectory() . '/user/content';
+
+		$check = $tester->run('content:filenames --type=post');
+
+		$this->assertTrue($check->isSuccessful(), 'Older names keep working, so a list doesn\'t fail.');
+		$this->assertStringContainsString('rename   _posts/2008-04-05.spring.md → _posts/spring.md', $check->output);
+		$this->assertStringContainsString('5 entries are named by another pattern; rename them with --write.', $check->output);
+		$this->assertFileExists("{$content}/_posts/2008-04-05.spring.md", 'Checking changes nothing.');
+		$this->assertSame(ExitCode::Invalid, $tester->run('content:filenames --type=movie')->exitCode);
+
+		$fixed = $tester->run('content:filenames --write');
+
+		$this->assertTrue($fixed->isSuccessful(), $fixed->errors);
+		$this->assertStringContainsString('renamed  _posts/2008-04-05.spring.md → _posts/spring.md', $fixed->output);
+		$this->assertStringContainsString('No entries need renaming', $fixed->output);
+		$this->assertFileExists("{$content}/_posts/spring.md");
+	}
+
+	public function testFlattensCollections(): void
+	{
+		$this->standardContent();
+		$tester = $this->tester();
+
+		$check = $tester->run('content:flatten');
+
+		$this->assertSame(ExitCode::Failure, $check->exitCode, 'They\'re lint errors (D-514).');
+		$this->assertStringContainsString('move     _posts/hello/index.md → _posts/hello.md', $check->output);
+		$this->assertStringContainsString('1 entry is kept in a folder; move it with --write.', $check->errors);
+
+		$fixed = $tester->run('content:flatten --write');
+
+		$this->assertTrue($fixed->isSuccessful(), $fixed->errors);
+		$this->assertStringContainsString('moved    _posts/hello/index.md → _posts/hello.md', $fixed->output);
+		$this->assertFileExists($this->temporaryDirectory() . '/user/content/_posts/hello.md');
+	}
+
 	public function testCreatesEntries(): void
 	{
 		$this->standardContent();
@@ -159,17 +208,17 @@ final class ContentCommandsTest extends TestCase
 		$post = $tester->run(['content:new', 'post', 'Hello, World: Again!']);
 
 		$this->assertTrue($post->isSuccessful());
-		$this->assertSame("Created user/content/_posts/2026-06-01.hello-world-again.md\n", $post->output);
+		$this->assertSame("Created user/content/_posts/hello-world-again.md\n", $post->output);
 		$this->assertMatchesRegularExpression(
 			'/\A---\ntitle: "Hello, World: Again!"\npublished: 2026-06-01 12:00:00 -05:00\nid: [0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\n---\n\n\z/',
-			(string) file_get_contents("{$content}/_posts/2026-06-01.hello-world-again.md"),
+			(string) file_get_contents("{$content}/_posts/hello-world-again.md"),
 			'With an id, last (D-477).'
 		);
 		$this->assertStringContainsString('hello-world-again', $tester->run('content:list --type=post')->output);
 
 		$tester->run(['content:new', 'page', 'Colophon', '--slug=credits', '--draft']);
 
-		$this->assertMatchesRegularExpression('/\A---\ntitle: Colophon\nstatus: draft\nid: [0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\n---\n\n\z/', (string) file_get_contents("{$content}/credits.md"));
+		$this->assertMatchesRegularExpression('/\A---\ntitle: Colophon\npublished: 2026-06-01 12:00:00 -05:00\nstatus: draft\nid: [0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\n---\n\n\z/', (string) file_get_contents("{$content}/credits.md"));
 
 		$tester->run(['content:new', 'category', 'Life']);
 

@@ -137,7 +137,14 @@ code text in the editor's inline menu (D-496); SVG never uploaded
 (D-498); and an owner role above the administrator, which only an
 owner gives or changes, with the administrator a list that leaves out
 changing plugins and themes (D-500); and view engines chosen by file
-extension, plain PHP built in, so plugins can add Twig or Blade later (D-502).
+extension, plain PHP built in, so plugins can add Twig or Blade later (D-502);
+and file name patterns per collection, with translations linked to
+their original by id in `translation_of` (D-511), and renaming older
+files to the pattern (`content:filenames`, Content health; D-512);
+and flat collections, file name patterns for every type, and a
+`published` date on every new entry (D-513, D-514), the slug alone
+as the default file name (D-515), and never sorting by file name,
+collections newest published first (D-516).
 The Fields
 API (D-337 to D-348: field types and controls, field sets on content
 types, media, and the Settings screens, slots, and Structure → Fields)

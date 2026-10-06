@@ -64,12 +64,12 @@ final class LinterTest extends TestCase
 		$this->assertSame(20, $report->checked);
 		$this->assertSame(20, $progress);
 		$this->assertTrue($report->hasErrors());
-		$this->assertSame(3, $report->count(Severity::Error));
+		$this->assertSame(4, $report->count(Severity::Error), 'The standard posts\' folder entry is one (D-514).');
 		$this->assertSame(1, $report->count(Severity::Warning));
 
 		$errors = self::messages($report, Severity::Warning);
 
-		$this->assertSame(['about.md', 'bad-date.md', 'broken.md'], array_keys($errors));
+		$this->assertSame(['_posts/hello/index.md', 'about.md', 'bad-date.md', 'broken.md'], array_keys($errors));
 		$this->assertSame(['warning file: is the same entry as about/index.md, which wins.'], $errors['about.md']);
 		$this->assertStringStartsWith('error published: must be a date', $errors['bad-date.md'][0]);
 		$this->assertSame('error collection: Query argument "number" must be a whole number.', $errors['bad-date.md'][1]);
@@ -120,6 +120,26 @@ final class LinterTest extends TestCase
 		$this->assertSame(['warning parent: "missing" has no topic entry; the term is shown at the top level.'], $messages['topics/orphan.md']);
 		$this->assertSame(['error parent: names the term itself; a term can\'t be its own parent.'], $messages['topics/self.md']);
 		$this->assertSame('names the term itself; a term can\'t be its own parent.', $linter->lintFile('topics/self.md')[0]->message ?? null);
+	}
+
+	public function testWarnsOfPlaceholderDatesUnderAlignedKeys(): void
+	{
+		$this->standardContent();
+		$this->writeTemporaryFile('user/content/_posts/2007-03-05.weird.md', "---\ndate     : 2007-00-00 23:22:00 -5\ntitle    : Weird\nid       : " . self::idFor('weird') . "\n---\n");
+
+		$warnings = self::messages($this->site()->container()->make(Linter::class)->lint(), Severity::Warning);
+
+		$this->assertSame(['warning date: "2007-00-00" isn\'t a real date, so it\'s read as 2006-11-30.'], $warnings['_posts/2007-03-05.weird.md'] ?? null, 'jtcom aligns its keys.');
+	}
+
+	public function testWarnsOfFileOrder(): void
+	{
+		$this->standardContent();
+		$this->entry('reading.md', "title: Reading\ncollection:\n  type: post\n  orderby: filename");
+
+		$warnings = self::messages($this->site()->container()->make(Linter::class)->lint(), Severity::Warning);
+
+		$this->assertSame(['warning collection: "orderby: filename" is read as "published"; entries are never sorted by file. Write "orderby: published".'], $warnings['reading.md'] ?? null);
 	}
 
 	public function testReportsOrderPrefixesOutsideCollectionsAndTaxonomies(): void
@@ -187,7 +207,7 @@ final class LinterTest extends TestCase
 
 		$this->assertSame(['notice targets: "shop" names type:product, which the site doesn\'t have, so it isn\'t used there.'], $notices['user/data/fields/shop.yaml'] ?? null);
 		$this->assertSame(['notice targets: "nav" names menu:primary, but fields can\'t attach to a "menu" yet.'], $notices['user/data/fields/nav.yaml'] ?? null);
-		$this->assertFalse($report->hasErrors());
+		$this->assertSame(['_posts/hello/index.md'], array_keys(self::messages($report, Severity::Error)), 'Only the standard posts\' folder entry (D-514).');
 	}
 
 	public function testReportsASetThatDoesntFitAMediaKind(): void
@@ -221,7 +241,7 @@ final class LinterTest extends TestCase
 		$report = $this->site()->container()->make(Linter::class)->lint();
 
 		$this->assertContains('notice slot: "gallery" has the slot "hero", which content types don\'t offer, so it\'s in "details".', self::messages($report, Severity::Notice)['user/data/fields/gallery.yaml'] ?? []);
-		$this->assertFalse($report->hasErrors());
+		$this->assertArrayNotHasKey('user/data/fields/gallery.yaml', self::messages($report, Severity::Error));
 	}
 
 	public function testReportsIdsThatAreMissingNotUuidsOrShared(): void

@@ -32,8 +32,8 @@ final class QueryTest extends TestCase
 
 		$this->assertSame([], $query->types);
 		$this->assertNull($query->limit);
-		$this->assertSame('filename', $query->orderBy);
-		$this->assertSame(Order::Asc, $query->order);
+		$this->assertSame('published', $query->orderBy, 'Newest first, never by file (D-516).');
+		$this->assertSame(Order::Desc, $query->order);
 		$this->assertSame([Status::Published], $query->statuses);
 		$this->assertSame([Visibility::Public], $query->visibilities());
 		$this->assertFalse($query->findsLanding());
@@ -125,6 +125,15 @@ final class QueryTest extends TestCase
 		$this->assertSame([Visibility::Unlisted], $query->visibilities());
 		$this->assertSame('fr_FR', $query->locale);
 		$this->assertSame(Query::DEFAULT_NUMBER, Query::fromArray([])->limit);
+	}
+
+	public function testNeverOrdersByFile(): void
+	{
+		$this->assertSame(['published', Order::Asc], [Query::fromArray(['orderby' => 'filename'])->orderBy, Query::fromArray(['orderby' => 'filename'])->order], '1.x\'s file order is published (D-516).');
+		$this->assertSame('published', Query::fromArray(['orderby' => 'path', 'order' => 'desc'])->orderBy);
+		$this->assertSame('published', new Query()->orderBy('filename')->orderBy);
+		$this->assertSame(['published', Order::Asc], [Query::fromArray(['order' => 'asc'])->orderBy, Query::fromArray(['order' => 'asc'])->order], 'An order alone keeps the default key.');
+		$this->assertSame(['title', Order::Asc], [Query::fromArray(['orderby' => 'title'])->orderBy, Query::fromArray(['orderby' => 'title'])->order], 'A key alone is ascending, as in 1.x.');
 	}
 
 	public function testRejectsBadArguments(): void

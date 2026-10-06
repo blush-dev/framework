@@ -10,6 +10,9 @@
  * id, you choose the file that keeps it; the others get new ones. Media
  * files have ids too (D-487), fixed the same way in a panel of their own,
  * and images' sizes are recorded in their details from one more (D-488).
+ * Entries named by another pattern than their type's (D-511) are renamed
+ * to it, a type at a time (D-512), and collections' entries kept in
+ * folders are moved into their collections' folders (D-514).
  */
 
 import { computed, onMounted, ref } from 'vue';
@@ -72,57 +75,81 @@ function summary(result: Health): string {
 	return `Checked ${plural(result.checked, 'file')}${metadata}: ${counts.join(', ')}.`;
 }
 
+interface FixAnswer {
+	failed: Record<string, string>;
+}
+
 /**
- * Runs an id fix, says what it did, and checks again.
+ * Runs a fix (`key` marks its button busy), says what it did, or which
+ * files (`noun`, singular and plural) it couldn't change and why, and checks again. `done`
+ * says what changed, or what to say when nothing did.
  */
-async function fix(key: string, path: string, body: Record<string, string> = {}): Promise<void> {
+async function runFix<T extends FixAnswer>(key: string, path: string, body: Record<string, string>, noun: [string, string], failure: string, done: (answer: T) => { changed: number; text: string }): Promise<void> {
 	fixing.value = key;
 
 	try {
-		const answer = await request<AssignedIds>('POST', path, body);
-		const added  = Object.keys(answer.assigned).length;
+		const answer = await request<T>('POST', path, body);
 		const failed = Object.entries(answer.failed);
 
 		if (failed.length) {
-			toast(`${plural(failed.length, 'file')} couldn't be changed: ${failed.map(([file, why]) => `${file} (${why})`).join('; ')}`, { kind: 'warn' });
+			toast(`${plural(failed.length, ...noun)} couldn't be changed: ${failed.map(([file, why]) => `${file} (${why})`).join('; ')}`, { kind: 'warn' });
 		} else {
-			toast(added ? `Gave ${plural(added, 'file')} a new id` : 'No files you may edit needed an id', { kind: added ? 'good' : 'info' });
+			const { changed, text } = done(answer);
+
+			toast(text, { kind: changed ? 'good' : 'info' });
 		}
 
 		await check();
 	} catch (caught) {
-		toast(errorMessage(caught, 'The ids couldn\'t be fixed.'), { kind: 'danger' });
+		toast(errorMessage(caught, failure), { kind: 'danger' });
 	} finally {
 		fixing.value = null;
 	}
 }
 
-const recording = ref(false);
+/**
+ * Runs an id fix.
+ */
+function fix(key: string, path: string, body: Record<string, string> = {}): Promise<void> {
+	return runFix<AssignedIds>(key, path, body, ['file', 'files'], 'The ids couldn\'t be fixed.', (answer) => {
+		const added = Object.keys(answer.assigned).length;
+
+		return { changed: added, text: added ? `Gave ${plural(added, 'file')} a new id` : 'No files you may edit needed an id' };
+	});
+}
 
 /**
- * Records images' sizes in their details, says what it did, and checks
- * again.
+ * Records images' sizes in their details.
  */
-async function recordSizes(): Promise<void> {
-	recording.value = true;
-
-	try {
-		const answer = await request<{ recorded: Record<string, string[]>; failed: Record<string, string> }>('POST', '/health/media-sizes');
+function recordSizes(): Promise<void> {
+	return runFix<FixAnswer & { recorded: Record<string, string[]> }>('sizes', '/health/media-sizes', {}, ['image', 'images'], 'The sizes couldn\'t be recorded.', (answer) => {
 		const images = Object.keys(answer.recorded).length;
-		const failed = Object.entries(answer.failed);
 
-		if (failed.length) {
-			toast(`${plural(failed.length, 'image')} couldn't be changed: ${failed.map(([file, why]) => `${file} (${why})`).join('; ')}`, { kind: 'warn' });
-		} else {
-			toast(images ? `Recorded the sizes of ${plural(images, 'image')}` : 'No images you may edit needed their sizes recorded', { kind: images ? 'good' : 'info' });
-		}
+		return { changed: images, text: images ? `Recorded the sizes of ${plural(images, 'image')}` : 'No images you may edit needed their sizes recorded' };
+	});
+}
 
-		await check();
-	} catch (caught) {
-		toast(errorMessage(caught, 'The sizes couldn\'t be recorded.'), { kind: 'danger' });
-	} finally {
-		recording.value = false;
-	}
+/**
+ * Moves collections' entries kept in folders into their collection's
+ * folder (D-514).
+ */
+function flatten(): Promise<void> {
+	return runFix<FixAnswer & { renamed: Record<string, string> }>('flat', '/health/flatten', {}, ['entry', 'entries'], 'The entries couldn\'t be moved.', (answer) => {
+		const moved = Object.keys(answer.renamed).length;
+
+		return { changed: moved, text: moved ? `Moved ${plural(moved, 'entry', 'entries')} into their collections' folders` : 'No entries you may edit needed moving' };
+	});
+}
+
+/**
+ * Renames a type's entries to its file name pattern (D-512).
+ */
+function renameFiles(type: string): Promise<void> {
+	return runFix<FixAnswer & { renamed: Record<string, string> }>(`names:${type}`, '/health/filenames', { type }, ['entry', 'entries'], 'The files couldn\'t be renamed.', (answer) => {
+		const renamed = Object.keys(answer.renamed).length;
+
+		return { changed: renamed, text: renamed ? `Renamed the files of ${plural(renamed, 'entry', 'entries')}` : 'No entries you may edit needed renaming' };
+	});
 }
 
 onMounted(check);
@@ -191,8 +218,37 @@ onMounted(check);
 					<template v-if="health.mediaSizes.sizes">{{ plural(health.mediaSizes.sizes, 'size') }} of {{ plural(health.mediaSizes.images, 'image') }} {{ health.mediaSizes.sizes === 1 ? 'isn\'t' : 'aren\'t' }} recorded yet.</template>
 					<template v-if="health.mediaSizes.stale"> {{ plural(health.mediaSizes.stale, 'image') }} {{ health.mediaSizes.stale === 1 ? 'lists' : 'list' }} files that aren't {{ health.mediaSizes.stale === 1 ? 'its' : 'their' }} sizes.</template>
 				</p>
-				<button type="button" class="button button--primary button--small" :disabled="recording || fixing !== null" @click="recordSizes">
-					{{ recording ? 'Recording…' : 'Record Sizes' }}
+				<button type="button" class="button button--primary button--small" :disabled="fixing !== null" @click="recordSizes">
+					{{ fixing === 'sizes' ? 'Recording…' : 'Record Sizes' }}
+				</button>
+			</div>
+		</section>
+
+		<section v-if="health.flat.count" class="panel" aria-labelledby="flat-heading">
+			<header class="panel__header">
+				<h2 id="flat-heading">Collection Folders</h2>
+				<p class="panel__hint">A collection's entries are files in its folder</p>
+			</header>
+			<div class="ids__row">
+				<p>{{ plural(health.flat.count, 'entry is', 'entries are') }} kept in a folder, such as <code>{{ health.flat.examples[0]?.path }}</code> → <code>{{ health.flat.examples[0]?.to }}</code>.</p>
+				<button type="button" class="button button--primary button--small" :disabled="fixing !== null" @click="flatten">
+					{{ fixing === 'flat' ? 'Moving…' : 'Move Out of Folders' }}
+				</button>
+			</div>
+		</section>
+
+		<section v-if="health.fileNames.length" class="panel" aria-labelledby="names-heading">
+			<header class="panel__header">
+				<h2 id="names-heading">File Names</h2>
+				<p class="panel__hint">Older names keep working; renaming them changes no address</p>
+			</header>
+			<div v-for="names in health.fileNames" :key="names.type" class="ids__row">
+				<p>
+					{{ plural(names.count, 'entry', 'entries') }} in {{ names.label }} {{ names.count === 1 ? 'isn\'t' : 'aren\'t' }} named <code>{{ names.pattern }}</code>, such as <code>{{ names.examples[0]?.path }}</code> → <code>{{ names.examples[0]?.to }}</code>.
+					<template v-if="names.skipped"> {{ plural(names.skipped, 'entry', 'entries') }} kept as {{ names.skipped === 1 ? 'a folder keeps its' : 'folders keep their' }} name.</template>
+				</p>
+				<button type="button" class="button button--primary button--small" :disabled="fixing !== null" @click="renameFiles(names.type)">
+					{{ fixing === `names:${names.type}` ? 'Renaming…' : 'Rename Files' }}<span class="visually-hidden"> ({{ names.label }})</span>
 				</button>
 			</div>
 		</section>

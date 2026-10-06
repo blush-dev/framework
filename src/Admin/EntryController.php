@@ -196,7 +196,7 @@ final readonly class EntryController
 			return self::error(sprintf('You aren\'t allowed to create %s.', $type->labels->items), Status::Forbidden);
 		}
 
-		$fields = array_filter($this->types->schema($type->name)->fields, fn (Field $field): bool => $this->groups($field, $type, []) && $field->name !== EntryFields::TRASHED);
+		$fields = array_filter($this->types->schema($type->name)->fields, fn (Field $field): bool => $this->groups($field, $type, []) && ! in_array($field->name, [EntryFields::TRASHED, EntryFields::TRANSLATION_OF], true));
 
 		return self::json([
 			'path'        => null,
@@ -276,7 +276,7 @@ final readonly class EntryController
 			$status = self::stringOr($input, 'status', 'draft');
 			$set    = [
 				'title' => $title,
-				...($type->dateArchives === DateArchives::None ? [] : ['published' => self::dateString($now)]),
+				'published' => self::dateString($now),
 				...$this->authorDefault($account, $type->name),
 				...self::map($input, 'set')
 			];
@@ -554,9 +554,9 @@ final readonly class EntryController
 		$now   = $this->clock->now()->setTimezone($this->app->timezone());
 		$title = sprintf('%s (Copy)', trim($entry->title) === '' ? 'Untitled' : $entry->title);
 		$set   = [
-			'title'  => $title,
-			'status' => 'draft',
-			...($entry->type->dateArchives === DateArchives::None ? [] : ['published' => self::dateString($now)])
+			'title'     => $title,
+			'status'    => 'draft',
+			'published' => self::dateString($now)
 		];
 
 		try {
@@ -1062,8 +1062,9 @@ final readonly class EntryController
 		// type (D-283): those naming it in `types`, and those with no
 		// `types` (every type) unless it's a taxonomy itself. One the file
 		// already uses stays, so it can still be edited. `trashed` is the
-		// trash's (D-484), never edited.
-		$fields = array_filter($fields, fn (Field $field): bool => $this->groups($field, $entry->type, $file->frontMatter) && $field->name !== EntryFields::TRASHED);
+		// trash's (D-484), never edited, and `translation_of` links a
+		// translation (D-511), kept as it is.
+		$fields = array_filter($fields, fn (Field $field): bool => $this->groups($field, $entry->type, $file->frontMatter) && ! in_array($field->name, [EntryFields::TRASHED, EntryFields::TRANSLATION_OF], true));
 
 		[$values, $extra] = self::split($fields, $file->frontMatter);
 
@@ -1196,7 +1197,7 @@ final readonly class EntryController
 	private static function split(array $fields, array $frontMatter): array
 	{
 		$values  = [];
-		$claimed = [EntryFields::ID, EntryFields::TRASHED];
+		$claimed = [EntryFields::ID, EntryFields::TRASHED, EntryFields::TRANSLATION_OF];
 
 		foreach ($fields as $field) {
 			foreach ([$field->name, ...$field->aliases] as $key) {

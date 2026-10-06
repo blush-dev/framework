@@ -199,7 +199,8 @@ overrides in D-451, catalog metadata in D-452, `en` last in D-453.
   `languages` lists the languages besides the site locale's
   (`Core\Languages`). A translation is a sibling file with the code
   before the extension (`about.fr.md`); records carry a `language` code
-  and the unsuffixed `original` path, the index keys entries by
+  and the unsuffixed `original` path (or names its original's id in
+  `translation_of`, which links it whatever its name, D-511), the index keys entries by
   language and links translations (a translation's folders and parent
   take their translations' keys when the snapshot is built,
   `TranslatedKeys`, D-457), queries find the default language

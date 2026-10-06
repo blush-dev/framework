@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Blush\Content\Type;
 
 use NoDiscard;
+use Blush\Content\Query\Order;
 use Blush\Field\Definition;
 use Blush\Field\Field;
 use Blush\Field\FieldFactory;
@@ -91,6 +92,7 @@ abstract readonly class ContentType
 	 * @param  ?string           $icon         An icon name for the admin.
 	 * @param  array<PeopleField>|bool $people  How entries credit people: `true` for `authors`, `false` for none.
 	 * @param  bool              $llms         Whether entries are listed in `llms.txt` (D-398; each kind's default, `TypeKind::inLlmsByDefault()`).
+	 * @param  ?FileName         $filename     How new files are named (D-511, D-514); the slug alone by default.
 	 * @throws InvalidContentType
 	 */
 	protected function __construct(
@@ -108,7 +110,8 @@ abstract readonly class ContentType
 		string $description = '',
 		?string $icon = null,
 		array|bool $people = false,
-		public bool $llms = true
+		public bool $llms = true,
+		public ?FileName $filename = null
 	) {
 		if (preg_match('/^[a-z][a-z0-9_]*$/', $name) !== 1) {
 			throw new InvalidContentType(sprintf(
@@ -284,6 +287,27 @@ abstract readonly class ContentType
 	}
 
 	/**
+	 * Returns how the type names the files it creates: its own pattern
+	 * (`filename`, any kind, D-511, D-514), else the slug alone (D-515).
+	 */
+	public function naming(): FileName
+	{
+		return $this->filename ?? FileName::byDefault();
+	}
+
+	/**
+	 * Returns how the type's entries are ordered when nothing says
+	 * otherwise, as `Query::orderBy()` takes it: newest published first
+	 * here. Never by file, which a database doesn't have (D-516).
+	 *
+	 * @return array{string, Order}
+	 */
+	public function order(): array
+	{
+		return ['published', Order::Desc];
+	}
+
+	/**
 	 * Returns the field other entries reference this type's entries
 	 * through, or `null` for a type that isn't a taxonomy.
 	 */
@@ -308,7 +332,8 @@ abstract readonly class ContentType
 	 * `false` or a map (`TypeUrls::fromArray()`), `listing` a map
 	 * (`Listing::fromArray()`), `feed` a boolean or a map
 	 * (`TypeFeed::fromArray()`), `dateArchives` names a `DateArchives`,
-	 * and `fields` (with `closed`) defines the schema.
+	 * `filename` is a `FileName` pattern, and `fields` (with `closed`)
+	 * defines the schema.
 	 *
 	 * @param  array<array-key, mixed> $data
 	 * @throws InvalidContentType
@@ -342,7 +367,8 @@ abstract readonly class ContentType
 				'closed'      => $schema->closed,
 				'labels'      => TypeLabels::fromArray($definition->map('labels'), $name),
 				'description' => $definition->nullableString('description') ?? '',
-				'icon'        => $definition->nullableString('icon')
+				'icon'        => $definition->nullableString('icon'),
+				'filename'    => self::filename($definition, $name)
 			];
 
 			if ($kind === TypeKind::Profiles) {
@@ -461,6 +487,7 @@ abstract readonly class ContentType
 			'labels'      => $this->labels->toArray($this->name),
 			'description' => $this->description === '' ? null : $this->description,
 			'icon'        => $this->icon,
+			'filename'    => $this->filename?->pattern,
 			...$this->options(),
 			...$this->schema->toArray()
 		];
@@ -703,6 +730,23 @@ abstract readonly class ContentType
 				$name,
 				implode(', ', array_column(DateArchives::cases(), 'value'))
 			));
+	}
+
+	/**
+	 * Reads the `filename` option.
+	 *
+	 * @throws InvalidSchema
+	 * @throws InvalidContentType
+	 */
+	private static function filename(Definition $definition, string $name): ?FileName
+	{
+		$pattern = $definition->nullableString('filename');
+
+		try {
+			return $pattern === null || trim($pattern) === '' ? null : new FileName(trim($pattern));
+		} catch (InvalidContentType $e) {
+			throw new InvalidContentType(sprintf('Content type "%s": %s', $name, $e->getMessage()), previous: $e);
+		}
 	}
 
 	/**

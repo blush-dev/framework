@@ -32,16 +32,22 @@ instead; see [Going live](going-live.md).)
 A few rules make the file names flexible:
 
 - **In a collection or taxonomy, everything before the last `.` is
-  ignored.** Use it to sort files: `01.intro.md`, `02.setup.md`, or
-  `2026-09-26.hello.md` become `intro`, `setup`, and `hello`. Listings
-  are sorted by file name unless you say otherwise. Pages and profiles
+  ignored.** Use it to keep files in order on disk: `01.intro.md`,
+  `02.setup.md`, or `2026-09-26.hello.md` become `intro`, `setup`, and
+  `hello`. Listings never sort by file name: a collection lists newest
+  published first, and pages and terms by `position`, then title. Pages and profiles
   don't take these order prefixes: name them as their URLs read
   (`about.md`). A prefixed page still works, but `content:lint` reports
   it as an error, because a prefix orders nothing among pages and its
-  folder wouldn't nest under it. Hidden files (`_`-prefixed, or in a
-  `_` folder) are left alone, since they have no address.
+  folder wouldn't nest under it. The exception is a prefix their type's
+  own file name pattern gives a file; folders never take one. Hidden
+  files (`_`-prefixed, or in a `_` folder) are left alone, since they
+  have no address. Any type can name the files it creates for you by a
+  pattern ([Naming new files](content-types.md#naming-new-files)).
+- **A collection's entries are files in its folder**, never folders of
+  their own ([Collections are flat](content-types.md#collections-are-flat)).
 - **`index.md` is its folder's page.** `about/index.md` is the page at
-  `/about`.
+  `/about`. (Not in a collection, which is flat.)
 - **Set `slug:`** in front matter to choose the URL name yourself.
 - **Folders nest pages.** `about/team.md` is a subpage of the `about`
   page, which themes can use for breadcrumbs and lists of subpages.
@@ -72,6 +78,7 @@ needed in practice. The built-in keys:
 | `authors` | One author or a list, by profile slug (`author` works too), in types that credit authors. A type can credit people under other names too, such as `cooks` (see [Crediting people](content-types.md#crediting-people)) |
 | `position` | A page's or term's place among its siblings, a whole number, lowest first. Those without one follow, by title. Only pages (and other [trees](content-types.md#trees)) and taxonomy terms have it |
 | `redirect_from` | Old URLs that should redirect here (see below) |
+| `translation_of` | For a translation, the id of the entry it translates, which links them whatever their file names (see [Translations](#translations)) |
 | `template` | The theme template to use, such as `single-wide` (`view` works too) |
 | `layout` | The theme layout to use |
 | `class` | Extra CSS classes for the page's `<body>` |
@@ -138,6 +145,24 @@ by copying it beside the original with the code before the extension:
 
 A translation can be a plain file or a folder, whatever its original
 is: `about/index.md` and `about.fr.md` are translations of each other.
+
+A translation can also have a name of its own, when it gives the id of
+the entry it translates in `translation_of`. It still needs its
+language's code before the extension:
+
+```yaml
+---
+# _posts/printemps.fr.md, a translation of _posts/2026-10-04.hello.md
+title: Bonjour
+translation_of: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e74
+id: 0199b6e3-1a2b-7c41-8d2e-6b9f0c3b1e75
+---
+```
+
+`translation_of` names the original (the file without a language code),
+of the same type. `content:lint` reports one that names no entry, a
+translation, another type's entry, or that's on a file without a
+language code.
 
 The default language keeps its URLs; every other language's are under
 its code. Give a translation its own `slug` to translate its URL too:

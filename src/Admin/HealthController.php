@@ -23,6 +23,10 @@ use Blush\Auth\ContentAction;
 use Blush\Auth\Permissions;
 use Blush\Content\ContentRepository;
 use Blush\Content\EntryIds;
+use Blush\Content\FileNameRename;
+use Blush\Content\FileNames;
+use Blush\Content\FlatEntries;
+use Blush\Content\Type\ContentTypes;
 use Blush\Content\Lint\Linter;
 use Blush\Content\Writer\AssignedIds;
 use Blush\Content\Writer\WriteException;
@@ -63,6 +67,19 @@ use Blush\Media\MediaSizes;
  * health/media-ids/keep` (`{"path"}`), changing only the files the
  * account may edit the details of (`media.edit`, D-407).
  *
+ * Its `fileNames` list, by type, the entries named by another pattern
+ * than the type's `filename` (D-511, D-512, D-514): its `type`, `label`,
+ * and `pattern`, how many to rename (`count`), the first few renames
+ * (`examples`, each `path` and `to`), and how many it leaves as they
+ * are (`skipped`, kept as folders). `POST health/filenames` (`{"type"}`)
+ * renames a type's, those the account may edit, answering the new paths
+ * by old (`renamed`) and `failed`.
+ *
+ * Its `flat` says how many collections' files aren't directly in their
+ * collection's folder (`count`, D-514) and the first few moves
+ * (`examples`). `POST health/flatten` moves those the account may edit,
+ * answering the new paths by old (`renamed`) and `failed`.
+ *
  * Its `mediaSizes` say how many images' sizes aren't recorded in their
  * metadata files (D-488): `sizes` and the `images` they're of, and
  * `stale` (images listing files that aren't their sizes). `POST health/media-sizes`
@@ -78,7 +95,10 @@ final readonly class HealthController
 		private ContentRepository $content,
 		private MediaIds $mediaIds,
 		private MediaSizes $mediaSizes,
-		private MediaLibrary $library
+		private MediaLibrary $library,
+		private FileNames $fileNames,
+		private ContentTypes $types,
+		private FlatEntries $flat
 	) {}
 
 	public function __invoke(ServerRequestInterface $request): ResponseInterface
@@ -126,6 +146,8 @@ final readonly class HealthController
 			'files'    => $files,
 			'ids'      => self::ids($ids->missing, $ids->duplicates),
 			'mediaIds' => self::ids($media->missing, $media->duplicates),
+			'fileNames' => $this->fileNames(),
+			'flat'      => $this->flatReport(),
 			'mediaSizes' => ['sizes' => $sizes->count(), 'images' => count($sizes->unrecorded), 'stale' => count($sizes->stale)]
 		], headers: ['Cache-Control' => 'no-store']);
 	}
@@ -236,9 +258,104 @@ final readonly class HealthController
 	}
 
 	/**
+	 * Renames a type's entries, those the account may edit, to its file
+	 * name pattern (D-512).
+	 */
+	public function renameFiles(ServerRequestInterface $request): ResponseInterface
+	{
+		$account = $request->getAttribute(Account::class);
+
+		if (! $account instanceof Account || ! $this->permissions->can($account, ContentAction::EditOthers)) {
+			return Response::json(['error' => 'You aren\'t allowed to fix content.'], Status::Forbidden, ['Cache-Control' => 'no-store']);
+		}
+
+		$type = self::input($request, 'type');
+
+		if ($type === null || $this->types->find($type) === null) {
+			return Response::json(['error' => 'Send a JSON "type": the type whose entries to rename.'], Status::BadRequest, ['Cache-Control' => 'no-store']);
+		}
+
+		$renamed = $this->fileNames->rename($type, $this->editable($account));
+
+		return Response::json(['renamed' => (object) $renamed->renamed, 'failed' => (object) $renamed->failed], headers: ['Cache-Control' => 'no-store']);
+	}
+
+	/**
+	 * Moves collections' files that aren't flat, those the account may
+	 * edit, into their collection's folder (D-514).
+	 */
+	public function flatten(ServerRequestInterface $request): ResponseInterface
+	{
+		$account = $request->getAttribute(Account::class);
+
+		if (! $account instanceof Account || ! $this->permissions->can($account, ContentAction::EditOthers)) {
+			return Response::json(['error' => 'You aren\'t allowed to fix content.'], Status::Forbidden, ['Cache-Control' => 'no-store']);
+		}
+
+		$moved = $this->flat->flatten($this->editable($account));
+
+		return Response::json(['renamed' => (object) $moved->renamed, 'failed' => (object) $moved->failed], headers: ['Cache-Control' => 'no-store']);
+	}
+
+	/**
+	 * Answers how many collections' files aren't flat, and the first few
+	 * moves.
+	 *
+	 * @return array{count: int, examples: list<array{path: string, to: string}>}
+	 */
+	private function flatReport(): array
+	{
+		$moves = $this->flat->report();
+
+		return [
+			'count'    => count($moves),
+			'examples' => array_map(static fn (string $path, string $to): array => ['path' => $path, 'to' => $to], array_slice(array_keys($moves), 0, 3), array_slice(array_values($moves), 0, 3))
+		];
+	}
+
+	/**
+	 * Answers the entries to rename to their type's pattern, by type.
+	 *
+	 * @return list<array{type: string, label: string, pattern: string, count: int, examples: list<array{path: string, to: string}>, skipped: int}>
+	 */
+	private function fileNames(): array
+	{
+		$report = $this->fileNames->report();
+		$types  = [];
+
+		foreach (array_keys($report->renames) as $name) {
+			$type    = $this->types->find((string) $name);
+			$renames = $report->renames((string) $name);
+
+			if ($type === null || $renames === []) {
+				continue;
+			}
+
+			$types[] = [
+				'type'     => $type->name,
+				'label'    => $type->labels->plural,
+				'pattern'  => $type->naming()->pattern,
+				'count'    => count($renames),
+				'examples' => array_map(static fn (FileNameRename $rename): array => ['path' => $rename->path, 'to' => $rename->to], array_slice($renames, 0, 3)),
+				'skipped'  => count($report->skipped[$type->name] ?? [])
+			];
+		}
+
+		return $types;
+	}
+
+	/**
 	 * The `path` a fix sends in its JSON body, or `null`.
 	 */
 	private static function path(ServerRequestInterface $request): ?string
+	{
+		return self::input($request, 'path');
+	}
+
+	/**
+	 * A string a fix sends in its JSON body, or `null`.
+	 */
+	private static function input(ServerRequestInterface $request, string $key): ?string
 	{
 		try {
 			$input = json_decode((string) $request->getBody(), true, 8, JSON_THROW_ON_ERROR);
@@ -246,9 +363,9 @@ final readonly class HealthController
 			$input = null;
 		}
 
-		$path = is_array($input) ? ($input['path'] ?? null) : null;
+		$value = is_array($input) ? ($input[$key] ?? null) : null;
 
-		return is_string($path) && $path !== '' ? $path : null;
+		return is_string($value) && $value !== '' ? $value : null;
 	}
 
 	/**

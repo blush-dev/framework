@@ -1429,6 +1429,18 @@ Blush found that aren't listed in their images' details yet; **Record
 Sizes** lists them. In the Media library, an image's sizes aren't
 items of their own: its screen lists them under **Sizes**.
 
+**Collection Folders** says how many collection entries are kept in
+folders, which [collections](content-types.md#collections-are-flat)
+don't allow. **Move Out of Folders** moves those you may edit into
+their collection's folder.
+
+**File Names** lists, for each type with a file name
+[pattern](content-types.md#naming-new-files) of its own (not the
+default), the entries whose files aren't named by it, such as posts
+written before you changed it. **Rename Files** renames a type's
+entries, those you may edit, to the pattern. No address changes.
+Entries kept as folders keep their names.
+
 ## Your own admin
 
 Blush's admin is one front end for the admin's API, and you can swap in
@@ -1775,7 +1787,7 @@ has, or that's a landing page's is a `422` with `"field": "slug"`. With
 its new id and revision.
 
 New entries are drafts unless `status` says otherwise, credit the
-account's author, and dated types get today's date.
+account's author, and get today's date as their publish date.
 
 What an account may do follows its [capabilities](accounts.md#capabilities):
 each is its type's (`content.post.edit` for a post). Editing needs

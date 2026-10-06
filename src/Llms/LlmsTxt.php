@@ -15,14 +15,10 @@ namespace Blush\Llms;
 
 use Blush\Content\ContentRepository;
 use Blush\Content\Entry\Entry;
-use Blush\Content\Query\Order;
 use Blush\Content\Routing\ContentUrls;
 use Blush\Content\Status;
 use Blush\Content\Type\ContentType;
 use Blush\Content\Type\ContentTypes;
-use Blush\Content\Type\DateArchives;
-use Blush\Content\Type\Profiles;
-use Blush\Content\Type\Taxonomy;
 use Blush\Content\Visibility;
 use Blush\Core\AppConfig;
 
@@ -125,7 +121,8 @@ final readonly class LlmsTxt
 	}
 
 	/**
-	 * Returns a type's entries with Markdown copies, in the file's order.
+	 * Returns a type's entries with Markdown copies, in the type's order
+	 * (`ContentType::order()`, D-516).
 	 *
 	 * @return list<Entry>
 	 */
@@ -133,11 +130,7 @@ final readonly class LlmsTxt
 	{
 		$query = $this->content->query()->any()->type($type->name)->status(Status::Published)->visibility(Visibility::Public);
 
-		if ($type->dateArchives !== DateArchives::None) {
-			$query = $query->orderBy('published', Order::Desc);
-		} elseif ($type instanceof Taxonomy || $type instanceof Profiles) {
-			$query = $query->orderBy('title');
-		}
+		$query = $query->orderBy(...$type->order());
 
 		return array_values(array_filter([...$query->get()], fn (Entry $entry): bool => $this->pages->url($entry) !== null));
 	}

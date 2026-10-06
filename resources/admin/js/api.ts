@@ -251,6 +251,9 @@ export interface ContentTypeDetail extends Omit<ContentTypeSummary, 'fields'> {
 	fields: FieldDescription[];
 	// `none`, `year`, `month`, `day`, `hour`, `minute`, or `second`.
 	dateArchives: string;
+	// Its own file name pattern (D-511, D-514), or `null` for the
+	// default, the slug alone (D-515).
+	filename: string | null;
 	// The URL prefix its folder gives it, without slashes.
 	folderPrefix: string;
 	// The data file it's defined or changed in, from the site's root, or `null`.
@@ -1025,6 +1028,14 @@ export interface Health {
 	// images they're of, and how many images list files that aren't
 	// their sizes (`POST health/media-sizes`).
 	mediaSizes: { sizes: number; images: number; stale: number };
+	// By type, the entries named by another pattern than its `filename`
+	// (D-511): how many, the first few renames, and how many it leaves
+	// as they are, kept as folders (`POST health/filenames` with the type
+	// renames them, D-512, D-514).
+	fileNames: { type: string; label: string; pattern: string; count: number; examples: { path: string; to: string }[]; skipped: number }[];
+	// Collections' files that aren't flat (D-514): how many, and the
+	// first few moves (`POST health/flatten` moves them).
+	flat: { count: number; examples: { path: string; to: string }[] };
 }
 
 /**

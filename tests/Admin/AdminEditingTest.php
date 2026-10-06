@@ -434,7 +434,7 @@ final class AdminEditingTest extends TestCase
 
 		$this->assertSame(201, $response->getStatusCode(), (string) $response->getBody());
 		$this->assertIsString($copy['path'] ?? null);
-		$this->assertMatchesRegularExpression('#^_posts/\d{4}-\d{2}-\d{2}\.flame-copy\.md$#', $copy['path']);
+		$this->assertMatchesRegularExpression('#^_posts/flame-copy\.md$#', $copy['path'], 'Named by the slug alone (D-515).');
 		$this->assertSame(['Rekindling the Flame (Copy)', 'draft'], [$copy['title'] ?? null, $copy['status'] ?? null]);
 		$this->assertIsArray($copy['extra'] ?? null);
 		$this->assertSame('hopeful', $copy['extra']['mood'] ?? null, 'Everything else is copied.');
@@ -444,7 +444,7 @@ final class AdminEditingTest extends TestCase
 		$this->assertStringContainsString('Rekindling the Flame"', $this->file(self::FLAME), 'The original is untouched.');
 
 		$again = self::json($this->call('POST', $this->entryPath(self::FLAME) . '/duplicate'));
-		$this->assertStringEndsWith('.flame-copy-2.md', is_string($again['path'] ?? null) ? $again['path'] : '');
+		$this->assertSame('_posts/flame-copy-2.md', is_string($again['path'] ?? null) ? $again['path'] : '');
 
 		$this->assertSame(422, $this->call('POST', $this->entryPath('_posts/index.md') . '/duplicate')->getStatusCode(), 'Not the index page.');
 		$this->assertSame(404, $this->call('POST', '/entries/0199b6e2-7f3a-7c41-9d2e-000000000000/duplicate')->getStatusCode());
@@ -610,7 +610,7 @@ final class AdminEditingTest extends TestCase
 
 		$this->assertSame(201, $response->getStatusCode(), (string) $response->getBody());
 		$this->assertIsString($entry['path'] ?? null);
-		$this->assertMatchesRegularExpression('#^_posts/\d{4}-\d{2}-\d{2}\.hello-there\.md$#', $entry['path']);
+		$this->assertMatchesRegularExpression('#^_posts/hello-there\.md$#', $entry['path'], 'Named by the slug alone (D-515).');
 		$this->assertSame('draft', $entry['status'] ?? null);
 		$this->assertIsArray($entry['values'] ?? null);
 		$this->assertSame(['jane'], $entry['values']['authors'] ?? null);
@@ -801,7 +801,7 @@ final class AdminEditingTest extends TestCase
 
 		$copy = self::json($this->call('POST', $this->entryPath($id) . '/duplicate'));
 		$this->assertIsString($copy['path'] ?? null);
-		$this->assertStringEndsWith('.keyed-again-copy.md', $copy['path']);
+		$this->assertSame('_posts/keyed-again-copy.md', $copy['path']);
 		$this->assertSame('keyed-again-copy', $copy['slug'] ?? null);
 		$this->assertStringNotContainsString('slug:', $this->file($copy['path']), 'A copy is named by its file.');
 		$this->assertStringNotContainsString('redirect_from', $this->file($copy['path']), 'The original keeps its old addresses.');

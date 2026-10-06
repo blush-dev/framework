@@ -146,7 +146,7 @@ final class LlmsTest extends TestCase
 		$this->assertSame('text/plain; charset=UTF-8', $response->getHeaderLine('Content-Type'));
 		$this->assertSame(
 			"# Blush\n\n> Notes on the web.\n\n"
-			. "## Pages\n\n- [Biography](http://localhost/about/biography.md)\n- [About](http://localhost/about.md)\n- [Notes](http://localhost/notes.md)\n\n"
+			. "## Pages\n\n- [About](http://localhost/about.md)\n- [Biography](http://localhost/about/biography.md)\n- [Notes](http://localhost/notes.md)\n\n"
 			. "## Posts\n\n- [Hello Bundle](http://localhost/archives/hello.md)\n- [Summed \\[up\\]](http://localhost/archives/summed.md): Two [lines](http://localhost/about).\n- [spring](http://localhost/archives/spring.md)\n- [Welcome](http://localhost/archives/welcome.md)\n- [Blog](http://localhost/index.md)\n",
 			(string) $response->getBody(),
 			'Public, published entries by type, newest first when dated; no taxonomies or profiles.'
@@ -206,7 +206,7 @@ final class LlmsTest extends TestCase
 		$body     = (string) $response->getBody();
 
 		$this->assertSame('text/plain; charset=UTF-8', $response->getHeaderLine('Content-Type'));
-		$this->assertStringStartsWith("# Blush\n\n---\ntitle: \"Biography\"\nurl: \"http://localhost/about/biography\"\n", $body, 'The heading, then each listed page\'s copy in llms.txt\'s order.');
+		$this->assertStringStartsWith("# Blush\n\n---\ntitle: \"About\"\nurl: \"http://localhost/about\"\n", $body, 'The heading, then each listed page\'s copy in llms.txt\'s order.');
 		$this->assertStringContainsString("---\ntitle: \"spring\"\nurl: \"http://localhost/archives/spring\"\npublished: ", $body);
 		$this->assertStringContainsString("\n\nSpring is here.\n\n---\n", $body);
 		$this->assertSame(7, substr_count($body, "\ntitle: "), 'Every page llms.txt lists, and no others.');

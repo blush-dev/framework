@@ -34,6 +34,9 @@ export interface TypeForm {
 	people: PeopleForm[] | null;
 	// A collection's: `none`, `year`, `month`, `day`, … (`DateArchives`).
 	dateArchives: string;
+	// Its file name pattern (D-511, any kind, D-514), `''` for the
+	// default, the slug alone (D-515).
+	filename: string;
 	// A taxonomy's: whether a term may have a parent, and the types its
 	// terms group (none for every type).
 	hierarchical: boolean;
@@ -119,7 +122,7 @@ export function authorsWordOf(form: TypeForm): string | false {
  * A new type's form.
  */
 export function emptyForm(): TypeForm {
-	return { singular: '', plural: '', description: '', icon: '', prefix: '', public: true, sitemap: true, llms: true, feed: false, authors: true, authorArchives: true, authorsWord: '', people: null, dateArchives: 'none', hierarchical: false, types: [], fields: [], paths: {} };
+	return { singular: '', plural: '', description: '', icon: '', prefix: '', public: true, sitemap: true, llms: true, feed: false, authors: true, authorArchives: true, authorsWord: '', people: null, dateArchives: 'none', filename: '', hierarchical: false, types: [], fields: [], paths: {} };
 }
 
 /**
@@ -143,6 +146,7 @@ export function formOf(type: ContentTypeDetail): TypeForm {
 		authorsWord: typeof type.authorsWord === 'string' && type.authorsWord !== AUTHORS ? type.authorsWord : '',
 		people: type.people.map(peopleFormOf),
 		dateArchives: type.dateArchives,
+		filename: type.filename ?? '',
 		hierarchical: type.hierarchical === true,
 		types: [...(type.types ?? [])],
 		fields: copy(type.fields),
@@ -190,6 +194,7 @@ export function changesOf(form: TypeForm, initial: TypeForm | null, kind: TypeKi
 		...(kind === 'tree' ? {} : { feed: form.feed }),
 		...(form.people === null ? { authors: form.authors } : { people: peopleValueOf(form.people) }),
 		fields: form.fields,
+		filename: form.filename || null,
 		...(kind === 'collection' ? { dateArchives: form.dateArchives === 'none' ? null : form.dateArchives } : {}),
 		...(kind === 'taxonomy' ? { hierarchical: form.hierarchical, types: form.types } : {})
 	};
@@ -258,6 +263,17 @@ export function folderOf(name: string): string {
 /**
  * The date archive choices (`DateArchives`).
  */
+/**
+ * File name patterns (D-511, D-514), with an example of each.
+ * A pattern from config that isn't one of these is offered as itself.
+ */
+export const FILENAMES = [
+	{ value: '', label: 'Default', hint: 'hello-world.md' },
+	{ value: '{slug}', label: 'Slug', hint: 'hello-world.md' },
+	{ value: '{date}.{slug}', label: 'Date and slug', hint: '2026-10-05.hello-world.md' },
+	{ value: '{date}-{time}.{slug}', label: 'Date, time, and slug', hint: '2026-10-05-093000.hello-world.md' }
+];
+
 export const DATE_ARCHIVES = [
 	{ value: 'none', label: 'None' },
 	{ value: 'year', label: 'By year' },

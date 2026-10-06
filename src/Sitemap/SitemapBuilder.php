@@ -131,7 +131,7 @@ final readonly class SitemapBuilder
 			return array_values($urls);
 		}
 
-		foreach ($this->content->query()->type($type->name)->get() as $entry) {
+		foreach ($this->content->query()->type($type->name)->orderBy(...$type->order())->get() as $entry) {
 			$this->add($urls, $entry);
 		}
 

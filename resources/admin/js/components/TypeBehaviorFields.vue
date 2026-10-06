@@ -3,7 +3,7 @@
  * How a content type behaves (D-311), for the type editor and the
  * new-type wizard: its URL prefix, whether it's public, in the sitemap
  * and `llms.txt` (D-398, D-401), and has a feed; a collection's date archives and featured image (an
- * `image` media field); a taxonomy's nesting and the types its terms
+ * `image` media field); file names, for every kind (D-511, D-514); a taxonomy's nesting and the types its terms
  * group; and the index page (D-255), which a type gets once and keeps.
  * A tree (D-386) has no prefix, feed, or author archives: its entries
  * are at their folder paths.
@@ -18,7 +18,7 @@ import { computed } from 'vue';
 import { RouterLink } from 'vue-router';
 import { entryRoute, type ContentTypeSummary } from '../api';
 import AdminSelect from './AdminSelect.vue';
-import { authorsWordOf, DATE_ARCHIVES, FEATURED, hasFeatured, AUTHORS, type TypeForm, type TypeKind } from '../type-form';
+import { authorsWordOf, DATE_ARCHIVES, FEATURED, FILENAMES, hasFeatured, AUTHORS, type TypeForm, type TypeKind } from '../type-form';
 
 const props = defineProps<{
 	idPrefix: string;
@@ -57,6 +57,12 @@ const featured = computed({
 			: form.value.fields.filter((field) => !(field.name === FEATURED.name && field.type === FEATURED.type));
 	}
 });
+
+// The patterns offered, with a pattern from config that isn't one of
+// them as itself.
+const filenames = computed(() => FILENAMES.some((option) => option.value === form.value.filename)
+	? FILENAMES
+	: [...FILENAMES, { value: form.value.filename, label: form.value.filename, hint: 'from config' }]);
 
 const groupable = computed(() => props.types.filter((type) => type.kind !== 'taxonomy'));
 
@@ -119,7 +125,13 @@ function grouped(name: string, on: boolean): void {
 		<div v-if="kind === 'collection'" class="field">
 			<label :for="`${idPrefix}archives`">Date archives</label>
 			<AdminSelect :id="`${idPrefix}archives`" v-model="form.dateArchives" :options="DATE_ARCHIVES" :described-by="`${idPrefix}archives-help`" />
-			<p :id="`${idPrefix}archives-help`" class="field__help">With archives, entries are dated: new ones get a publish date and a date in their file name, and listings by year (and finer) appear.</p>
+			<p :id="`${idPrefix}archives-help`" class="field__help">With archives, entries are dated: new ones get a publish date, and listings by year (and finer) appear.</p>
+		</div>
+
+		<div class="field">
+			<label :for="`${idPrefix}filename`">File names</label>
+			<AdminSelect :id="`${idPrefix}filename`" v-model="form.filename" :options="filenames" :described-by="`${idPrefix}filename-help`" />
+			<p :id="`${idPrefix}filename-help`" class="field__help">How new entries' files are named; the default is the slug alone. Changing it renames nothing (Content Health can rename older files to a pattern chosen here, but never to the default): a file's address comes from its slug, after the last dot, so older names keep working.<template v-if="kind === 'tree'"> Folders keep their pages' slugs.</template></p>
 		</div>
 
 		<fieldset v-if="kind === 'taxonomy'" class="fieldset">

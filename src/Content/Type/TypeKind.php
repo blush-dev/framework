@@ -44,10 +44,10 @@ enum TypeKind: string
 	public function options(): array
 	{
 		return match ($this) {
-			self::Collection => ['folder', 'urls', 'listing', 'feed', 'dateArchives', 'public', 'sitemap', 'llms', 'people', 'fields', 'closed', 'labels', 'description', 'icon'],
-			self::Taxonomy   => ['folder', 'types', 'field', 'aliases', 'hierarchical', 'urls', 'listing', 'termListing', 'feed', 'public', 'sitemap', 'llms', 'people', 'fields', 'closed', 'labels', 'description', 'icon'],
-			self::Tree       => ['folder', 'public', 'sitemap', 'llms', 'people', 'fields', 'closed', 'labels', 'description', 'icon'],
-			self::Profiles   => ['folder', 'urls', 'listing', 'feed', 'public', 'sitemap', 'llms', 'fields', 'closed', 'labels', 'description', 'icon']
+			self::Collection => ['folder', 'filename', 'urls', 'listing', 'feed', 'dateArchives', 'public', 'sitemap', 'llms', 'people', 'fields', 'closed', 'labels', 'description', 'icon'],
+			self::Taxonomy   => ['folder', 'filename', 'types', 'field', 'aliases', 'hierarchical', 'urls', 'listing', 'termListing', 'feed', 'public', 'sitemap', 'llms', 'people', 'fields', 'closed', 'labels', 'description', 'icon'],
+			self::Tree       => ['folder', 'filename', 'public', 'sitemap', 'llms', 'people', 'fields', 'closed', 'labels', 'description', 'icon'],
+			self::Profiles   => ['folder', 'filename', 'urls', 'listing', 'feed', 'public', 'sitemap', 'llms', 'fields', 'closed', 'labels', 'description', 'icon']
 		};
 	}
 }

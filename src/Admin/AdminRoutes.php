@@ -72,8 +72,10 @@ use Blush\Session\StartSession;
  *   - `GET  health`: the content's lint problems, and `POST health/ids`
  *     and `POST health/ids/keep` to fix ids (D-477, D-478), and `POST
  *     health/media-ids` and `POST health/media-ids/keep` for media's
- *     (D-487), and `POST health/media-sizes` to record images' sizes
- *     (D-488).
+ *     (D-487), `POST health/media-sizes` to record images' sizes
+ *     (D-488), `POST health/filenames` to rename a type's files to its
+ *     pattern (D-512), and `POST health/flatten` to move collections'
+ *     entries out of folders (D-514).
  *   - `GET  calendar`: a month of dated entries (`CalendarController`,
  *     D-368).
  *   - `GET  roles` and `GET accounts`: the site's roles and accounts
@@ -178,6 +180,8 @@ final readonly class AdminRoutes implements RouteSource
 			Route::post('/health/media-ids', [HealthController::class, 'assignMedia'])->named('health.media-ids')->middleware(Authenticate::class),
 			Route::post('/health/media-ids/keep', [HealthController::class, 'keepMedia'])->named('health.media-ids.keep')->middleware(Authenticate::class),
 			Route::post('/health/media-sizes', [HealthController::class, 'recordSizes'])->named('health.media-sizes')->middleware(Authenticate::class),
+			Route::post('/health/filenames', [HealthController::class, 'renameFiles'])->named('health.filenames')->middleware(Authenticate::class),
+			Route::post('/health/flatten', [HealthController::class, 'flatten'])->named('health.flatten')->middleware(Authenticate::class),
 			Route::get('/calendar', CalendarController::class)->named('calendar')->middleware(Authenticate::class),
 			Route::get('/roles', [PeopleController::class, 'roles'])->named('roles')->middleware(Authenticate::class),
 			Route::post('/roles', [RoleEditController::class, 'create'])->named('role.create')->middleware(Authenticate::class),

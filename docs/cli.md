@@ -41,10 +41,12 @@ See [Accounts and roles](accounts.md) and [The admin](admin.md).
 | Command | What it does |
 |---|---|
 | `serve` | Run the site at http://127.0.0.1:8000. `--port=8080` and `--host=0.0.0.0` change where. |
-| `content:new <type> "<title>"` | Create an entry. `--slug=` sets its URL name; `--draft` makes it a draft. Dated types get a date in the file name. |
+| `content:new <type> "<title>"` | Create an entry. `--slug=` sets its URL name; `--draft` makes it a draft. It gets today's publish date, and a file name by its type's [pattern](content-types.md#naming-new-files). |
 | `content:list` | List every entry. `--type=post` and `--status=draft` (or `published`, `scheduled`) narrow it down. |
 | `content:preview <type> <name>` | Print a [preview link](admin.md#previewing-drafts) to an entry, even a draft. `--hours=` sets how long it works. |
 | `content:lint` | Check front matter, and media details in `user/data/media/`, for problems, and list files in `user/content/` that aren't `.md`, so aren't read. `--strict` also reports unknown keys and 1.x names. |
+| `content:filenames` | List entries whose files aren't named by their type's own [pattern](content-types.md#naming-new-files) (types that set `filename`), and what they'd be renamed to. `--write` renames them; `--type=<type>` limits it to one. No address changes. |
+| `content:flatten` | List collection entries kept in folders, which a [collection](content-types.md#collections-are-flat) doesn't allow, and where they belong. `--write` moves them into the collection's folder and removes folders left empty. |
 | `content:ids` | List content files missing an [id](content.md#ids), and ids files share. `--write` gives each file missing one a new id; `--keep=<path>` keeps a shared id on that file and gives the others new ones (repeat it for more). |
 | `routes:list` | Show every URL pattern and redirect, and which one wins when two overlap |
 

@@ -52,7 +52,7 @@ final readonly class Listing
 
 	/**
 	 * @param  ?string              $type    The type to list, when not the owner's.
-	 * @param  ?string              $orderBy `filename`, `published`, `updated`, `title`, `slug`, `author`, or a field.
+	 * @param  ?string              $orderBy `published` (a collection's default, newest first), `updated`, `title`, `slug`, `author`, `position`, or a field; never a file name (D-516).
 	 * @param  ?Order               $order   The sort direction.
 	 * @param  ?int                 $perPage Entries per page; `Listing::ALL` for every entry.
 	 * @param  array<string, mixed> $query   Other query arguments, with their 1.x names.
@@ -139,7 +139,7 @@ final readonly class Listing
 		/** @var array<string, mixed> $query */
 		return new self(
 			type: $type,
-			orderBy: $orderBy === 'date' ? 'published' : $orderBy,
+			orderBy: $orderBy === null ? null : Query::orderKey($orderBy),
 			order: $order === null ? null : Order::from(strtolower($order)),
 			perPage: $perPage === null ? null : max(self::ALL, $perPage),
 			query: $query

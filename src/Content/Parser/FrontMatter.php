@@ -49,6 +49,25 @@ final readonly class FrontMatter
 	}
 
 	/**
+	 * Returns a top-level key's value as the front matter writes it, on
+	 * its own line (`date     : 2007-00-00 23:22:00 -5` is `2007-00-00
+	 * 23:22:00 -5`), without quotes around it, or `null` when no line
+	 * sets it. YAML hands dates over already read (a `2007-00-00`
+	 * placeholder rolled over to 2006-11-30), so checks of dates as
+	 * written read them here.
+	 */
+	public static function written(string $contents, string $key): ?string
+	{
+		[$yaml] = self::split($contents);
+
+		if ($yaml === null || preg_match('/^' . preg_quote($key, '/') . '[ \t]*:[ \t]*(.*?)[ \t]*$/m', $yaml, $line) !== 1) {
+			return null;
+		}
+
+		return preg_match('/^([\'"])(.*)\1$/', $line[1], $quoted) === 1 ? $quoted[2] : $line[1];
+	}
+
+	/**
 	 * Parses a document's front matter and returns it with the body.
 	 *
 	 * @return array{array<array-key, mixed>, string}

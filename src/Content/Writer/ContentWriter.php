@@ -38,9 +38,9 @@ interface ContentWriter
 	public function load(string $path): EditableEntry;
 
 	/**
-	 * Creates an entry of a type from a slug: `{folder}/{slug}.md`,
-	 * or `{folder}/{Y-m-d}.{slug}.md` for types with date archives
-	 * (the date defaults to now).
+	 * Creates an entry of a type from a slug, named by the type's
+	 * pattern (`ContentType::naming()`, D-511): `{folder}/{slug}.md`
+	 * without one of its own (D-515). A pattern's date defaults to now.
 	 *
 	 * @throws WriteException When the file exists or the slug is invalid.
 	 */
@@ -75,8 +75,8 @@ interface ContentWriter
 	/**
 	 * Copies an entry beside it (D-275) under a new slug, with changes
 	 * applied to the copy: `{slug}`, or the first of `{slug}-2`,
-	 * `{slug}-3`, … that's free. A dated file takes the date given
-	 * (default now) in place of its own. A bundle's copy is a copy of its
+	 * `{slug}-3`, … that's free. The copy is named as its type names new
+	 * files (D-511), with the date given (default now). A bundle's copy is a copy of its
 	 * folder, media and all. A landing page can't be copied; its name is
 	 * its folder's.
 	 *
@@ -93,8 +93,8 @@ interface ContentWriter
 	public function update(string $path, EntryChanges $changes, ?string $revision = null): WriteResult;
 
 	/**
-	 * Gives an entry a new slug: its file is renamed (keeping any date
-	 * prefix), or its folder for a bundle (`{slug}/index.md`, with its
+	 * Gives an entry a new slug: its file is renamed (keeping any prefix,
+	 * whatever pattern named it, and a language suffix; D-511), or its folder for a bundle (`{slug}/index.md`, with its
 	 * media).
 	 *
 	 * @throws WriteConflict
@@ -156,4 +156,17 @@ interface ContentWriter
 	 * @param list<string> $paths
 	 */
 	public function assignIds(array $paths): AssignedIds;
+
+	/**
+	 * Renames entries' files and folders (D-512), for `content:filenames`
+	 * and Content health: each entry, by its path, moves a set of files
+	 * or folders (paths in the content folder, old to new) together, so
+	 * an entry and its translations move as one, all in one reindex.
+	 * When a move can't be made (a new path is taken, an old one is
+	 * gone), the entry's earlier moves are undone, and it's named in the
+	 * result. A folder a move leaves empty is removed (D-514).
+	 *
+	 * @param array<string, array<string, string>> $moves Old paths to new, by entry path; the entry's own file comes first.
+	 */
+	public function renameFiles(array $moves): RenamedFiles;
 }

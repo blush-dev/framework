@@ -188,6 +188,13 @@
 			],
 			"description": "Extra CSS classes for the page's <body>."
 		},
+		"translation_of": {
+			"type": [
+				"string",
+				"number"
+			],
+			"description": "For a translation, the id of the entry it translates, which links them whatever their file names."
+		},
 		"redirect_from": {
 			"anyOf": [
 				{
