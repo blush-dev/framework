@@ -972,7 +972,12 @@ screens:
   the site's language defines (Full, Long, Medium, Short) and in a few
   fixed ones (`2026-10-04`, `14:30`), or choose **Custom…** to type an
   [ICU pattern](https://unicode-org.github.io/icu/userguide/format_parse/datetime/#datetime-format-syntax),
-  such as `d MMMM y`, and see how it reads as you type. Beside them,
+  such as `d MMMM y`, and see how it reads as you type. Then
+  **Accounts**: **Sign-ups** (whether anyone can make an account, off
+  by default) and **Role for new accounts** (Member by default; any
+  role but Owner and Administrator, and locked while sign-ups are off).
+  These are saved, but there's no sign-up form yet, so they don't
+  change anything. Beside them,
   shown but not changed here: the site's address, the environment, and
   detailed error pages.
 - **Reading:** the homepage (the page at `user/content/index.md`, or the

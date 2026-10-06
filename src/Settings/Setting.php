@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Blush\Settings;
 
 use DateTimeZone;
+use Blush\Auth\AuthConfig;
 use Blush\Clock\DateFormat;
 use Blush\Config\Config;
 use Blush\Config\InvalidConfig;
@@ -69,6 +70,8 @@ enum Setting: string
 	case Timezone         = 'app.timezone';
 	case DateFormat       = 'app.dateFormat';
 	case TimeFormat       = 'app.timeFormat';
+	case Signups          = 'auth.signups';
+	case SignupRole       = 'auth.signupRole';
 	case Home             = 'content.home';
 	case TrailingSlash    = 'routes.trailingSlash';
 	case FeedFormats      = 'feed.formats';
@@ -130,7 +133,8 @@ enum Setting: string
 		return match ($this) {
 			self::Theme, self::Plugins, self::IconPacks                   => null,
 			self::Name, self::Description, self::Locale, self::Untranslated,
-			self::Timezone, self::DateFormat, self::TimeFormat            => SettingsScreen::General,
+			self::Timezone, self::DateFormat, self::TimeFormat,
+			self::Signups, self::SignupRole                               => SettingsScreen::General,
 			self::Home, self::FeedFormats, self::FeedContent, self::FeedLimit => SettingsScreen::Reading,
 			self::MediaUploads                                            => SettingsScreen::Media,
 			self::Mentions, self::SmartPunctuation, self::HeadingAnchors,
@@ -156,6 +160,8 @@ enum Setting: string
 			self::Timezone        => new EnumField('timezone', DateTimeZone::listIdentifiers())->labeled('Time zone'),
 			self::DateFormat      => new TextField('dateFormat')->labeled('Date format')->described(self::FORMAT_HELP)->control(Control::Mono),
 			self::TimeFormat      => new TextField('timeFormat')->labeled('Time format')->described(self::FORMAT_HELP)->control(Control::Mono),
+			self::Signups         => new BoolField('signups')->labeled('Sign-ups')->described('Anyone can make an account on the site. Off, only someone who can add accounts makes them.'),
+			self::SignupRole      => new TextField('signupRole')->labeled('Role for new accounts')->described('The role an account made by signing up holds. Never the owner or an administrator.'),
 			self::Home            => self::homeChoices($types) === []
 				? new TextField('home')->labeled('Homepage')
 				: new EnumField('home', array_keys(self::homeChoices($types)))->labeled('Homepage'),
@@ -229,6 +235,7 @@ enum Setting: string
 		return match ($this) {
 			self::TrailingSlash => 'Addresses end in a slash',
 			self::FeedContent   => 'Feeds carry each entry\'s full content',
+			self::Signups       => 'Anyone can sign up',
 			self::Sitemap       => 'The site has a sitemap and robots.txt',
 			self::Llms          => 'Every page has a Markdown copy, and the site has llms.txt',
 			self::LlmsFull      => 'The site has llms-full.txt',
@@ -298,6 +305,7 @@ enum Setting: string
 	{
 		return match ($this->section()) {
 			'app'     => AppConfig::class,
+			'auth'    => AuthConfig::class,
 			'content' => ContentConfig::class,
 			'routes'  => RouteConfig::class,
 			'feed'    => FeedConfig::class,
@@ -349,6 +357,7 @@ enum Setting: string
 			self::Locale          => self::locale($value),
 			self::Untranslated    => self::untranslated($value),
 			self::Html            => self::html($value),
+			self::SignupRole      => self::signupRole($value),
 			self::Timezone        => self::timezone($value),
 			self::DateFormat,
 			self::TimeFormat      => self::dateFormat($value),
@@ -422,6 +431,20 @@ enum Setting: string
 	{
 		return (is_string($value) ? RawHtml::tryFrom($value) : null)->value
 			?? throw new InvalidSetting(sprintf('Raw HTML is one of: %s.', implode(', ', array_column(RawHtml::cases(), 'value'))));
+	}
+
+	/**
+	 * Checks a role for accounts made by signing up (D-518); whether it
+	 * exists is checked where the roles are known.
+	 *
+	 * @throws InvalidSetting
+	 */
+	private static function signupRole(mixed $value): string
+	{
+		$role    = is_string($value) ? trim($value) : throw new InvalidSetting('The role for new accounts must be a role\'s name.');
+		$problem = AuthConfig::signupRoleProblem($role);
+
+		return $problem === null ? $role : throw new InvalidSetting($problem);
 	}
 
 	/**

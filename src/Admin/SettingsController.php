@@ -18,8 +18,11 @@ use Psr\Clock\ClockInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Blush\Auth\Account;
+use Blush\Auth\AuthConfig;
 use Blush\Auth\Capability;
 use Blush\Auth\Permissions;
+use Blush\Auth\Role;
+use Blush\Auth\Roles;
 use Blush\Cache\CacheConfig;
 use Blush\Cache\PageCache;
 use Blush\Clock\DateFormat;
@@ -31,7 +34,9 @@ use Blush\Core\AppConfig;
 use Blush\Core\Environment;
 use Blush\Feed\FeedConfig;
 use Blush\Feed\FeedFormat;
+use Blush\Field\Field;
 use Blush\Field\FieldSets;
+use Blush\Field\Fields\EnumField;
 use Blush\Http\Response;
 use Blush\Http\Status;
 use Blush\Llms\LlmsConfig;
@@ -89,7 +94,9 @@ use Blush\Translation\Locales;
  * is drawn from (`TimeZones::options()`, D-444). The date and time
  * formats add `formats`, their menus (`DateFormat::options()`, D-445),
  * and may be any pattern typed instead; each links to ICU's pattern
- * letters (D-446). The rest live in `config/` and `.env`
+ * letters (D-446). The role for new accounts (`auth.signupRole`,
+ * D-518) is chosen from the site's roles, but for those signing up can
+ * never give. The rest live in `config/` and `.env`
  * (D-039) and are only shown, beside the ones they relate to. Secrets are
  * never sent: only whether one is set.
  */
@@ -113,7 +120,9 @@ final readonly class SettingsController
 		private ClockInterface $clock,
 		private Permissions $permissions,
 		private FieldSets $fieldSets,
-		private MediaLibrary $library
+		private MediaLibrary $library,
+		private AuthConfig $auth,
+		private Roles $roles
 	) {}
 
 	public function __invoke(ServerRequestInterface $request, string $screen): ResponseInterface
@@ -214,7 +223,8 @@ final readonly class SettingsController
 	}
 
 	/**
-	 * General: the site's name, language, and time, and where it runs.
+	 * General: the site's name, language, and time, who can make an
+	 * account, and where it runs.
 	 *
 	 * @return list<array<string, mixed>>
 	 */
@@ -237,6 +247,7 @@ final readonly class SettingsController
 				[...$this->edit(self::item('dateFormat', 'Date format', $this->app->dateFormat, $this->app->dateFormat === $app->dateFormat, 'mono', Setting::FORMAT_HELP), $saved, Setting::DateFormat, $this->app->dateFormat), 'formats' => DateFormat::options('date', $now, $this->app->locale, $this->app->timezone), 'link' => ['label' => 'Pattern letters', 'href' => DateFormat::REFERENCE]],
 				[...$this->edit(self::item('timeFormat', 'Time format', $this->app->timeFormat, $this->app->timeFormat === $app->timeFormat, 'mono', Setting::FORMAT_HELP), $saved, Setting::TimeFormat, $this->app->timeFormat), 'formats' => DateFormat::options('time', $now, $this->app->locale, $this->app->timezone), 'link' => ['label' => 'Pattern letters', 'href' => DateFormat::REFERENCE]]
 			]),
+			self::group('accounts', 'Accounts', 'Who can make one', $this->accounts($saved)),
 			self::group('environment', 'Environment', 'Set where the site runs', [
 				self::item('environment', 'Environment', ucfirst($environment->value), $environment === $app->environment, help: match ($environment) {
 					Environment::Development => 'Content changes show up on the next request, caching is off, and search engines are asked not to index the site.',
@@ -248,6 +259,39 @@ final readonly class SettingsController
 					'warning' => $this->app->debug && $environment === Environment::Production ? 'Never on a live site: error pages show the site\'s code and settings.' : null
 				]
 			], 'From `.env` (`APP_ENV`, `APP_DEBUG`) when `config/app.php` reads them, as it does by default.')
+		];
+	}
+
+	/**
+	 * Whether anyone can sign up, and the role they're given (D-518);
+	 * nothing reads them yet. The role is locked while sign-ups are off.
+	 *
+	 * @return list<array<string, mixed>>
+	 */
+	private function accounts(Settings $saved): array
+	{
+		$defaults = new AuthConfig();
+		$roles    = array_filter($this->roles->all(), static fn (Role $role): bool => AuthConfig::signupRoleProblem($role->name) === null);
+		$role     = $this->roles->get($this->auth->signupRole);
+		$field    = new EnumField('signupRole', array_keys($roles))
+			->labeled(Setting::SignupRole->field($this->types)->label)
+			->described(Setting::SignupRole->field($this->types)->description)
+			->required();
+		$item     = $this->edit(
+			self::item('signupRole', $field->label, $role->label ?? $this->auth->signupRole, $this->auth->signupRole === $defaults->signupRole, help: $field->description),
+			$saved,
+			Setting::SignupRole,
+			$this->auth->signupRole,
+			$field
+		);
+
+		return [
+			$this->edit(self::item('signups', 'Sign-ups', $this->auth->signups, $this->auth->signups === $defaults->signups, 'bool', Setting::Signups->field($this->types)->description), $saved, Setting::Signups, $this->auth->signups),
+			[
+				...$item,
+				'field'    => [...is_array($item['field'] ?? null) ? $item['field'] : [], 'choices' => array_map(static fn (Role $role): string => $role->label, $roles)],
+				'requires' => ['setting' => Setting::Signups->value, 'note' => 'It needs sign-ups on.']
+			]
 		];
 	}
 
@@ -545,14 +589,15 @@ final readonly class SettingsController
 	/**
 	 * Makes a setting editable: what it saves as, its field (D-343, with
 	 * words for its options and its `caption`), the value the form starts
-	 * from, and whether it's saved.
+	 * from, and whether it's saved. A setting whose options are known only
+	 * here passes its `$field`.
 	 *
 	 * @param  array<string, mixed> $item
 	 * @return array<string, mixed>
 	 */
-	private function edit(array $item, Settings $saved, Setting $setting, mixed $input): array
+	private function edit(array $item, Settings $saved, Setting $setting, mixed $input, ?Field $field = null): array
 	{
-		$field   = $setting->field($this->types)->toForm();
+		$field   = ($field ?? $setting->field($this->types))->toForm();
 		$choices = $setting->choices($this->types);
 		$details = $setting->details();
 

@@ -21,6 +21,7 @@ use Blush\Auth\Account;
 use Blush\Auth\Capability;
 use Blush\Auth\ExtensionAction;
 use Blush\Auth\Permissions;
+use Blush\Auth\Roles;
 use Blush\Cache\ContentVersion;
 use Blush\Content\Index\Indexer;
 use Blush\Content\Type\ContentTypeCache;
@@ -64,7 +65,7 @@ use Blush\Theme\Themes;
  *   the change. Any account that may change one of the settings may ask.
  *
  * A value that doesn't fit, a homepage that isn't a collection with
- * addresses, or a theme (`theme.active`, saved by the Themes screen,
+ * addresses, a role for new accounts that isn't one (D-518), or a theme (`theme.active`, saved by the Themes screen,
  * D-381) that isn't installed or can't build its chain, is a `422` with
  * the reason, and nothing is written.
  *
@@ -91,7 +92,8 @@ final readonly class SettingsEditController
 		private SiteSettings $site,
 		private FieldContext $context,
 		private Themes $themes,
-		private ExtensionState $extensions
+		private ExtensionState $extensions,
+		private Roles $roles
 	) {}
 
 	public function update(ServerRequestInterface $request): ResponseInterface
@@ -137,6 +139,7 @@ final readonly class SettingsEditController
 			];
 			$check = Settings::none()->with($builtIns);
 			$this->assertHome($check);
+			$this->assertSignupRole($check);
 			$this->assertTheme($check);
 			self::assertUploads($check);
 
@@ -233,6 +236,20 @@ final readonly class SettingsEditController
 
 		if (! array_key_exists($home, Setting::homeChoices($this->types))) {
 			throw new InvalidSetting(sprintf('"%s" can\'t be the homepage: it must be a collection type with addresses.', $home));
+		}
+	}
+
+	/**
+	 * Checks that a role for new accounts being set is one of the site's.
+	 *
+	 * @throws InvalidSetting
+	 */
+	private function assertSignupRole(Settings $settings): void
+	{
+		$role = $settings->get(Setting::SignupRole);
+
+		if (is_string($role) && ! $this->roles->has($role)) {
+			throw new InvalidSetting(sprintf('"%s" isn\'t a role on this site.', $role));
 		}
 	}
 

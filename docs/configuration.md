@@ -475,6 +475,8 @@ either way.
 | `maxAttempts` | `5` | Wrong passwords allowed for one username and address before a lockout |
 | `lockout` | `900` | How many seconds a lockout lasts |
 | `passwordLinkLifetime` | `604800` | How many seconds a [password link](accounts.md#password-links) lasts (a week; at least 60) |
+| `signups` | `false` | Whether anyone can make an account on the site. Saved for now: there's no sign-up form yet |
+| `signupRole` | `'member'` | The role an account made by signing up holds; never `owner` or `administrator` |
 
 `config/session.php` · `Blush\Session\SessionConfig`
 

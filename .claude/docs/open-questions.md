@@ -465,6 +465,11 @@ Move each item to `decisions.md` once it's answered.
     then, `blush new --dev` passes `--stability=dev`.
 
 ## Later milestones
+- **Signing up** (D-518 has only the settings): the form and route
+  (on the site, the admin's sign-in screen, or both, and themable?),
+  email confirmation before the account can sign in, approval by
+  someone who can add accounts, allowed or refused email domains, spam
+  protection, and whether a sign-up gets a profile.
 - **Uploading a Markdown entry** (raised 2026-10-05, for the future):
   an upload in the admin for a `.md` entry file written elsewhere, added
   to a content type. To settle: where it lives (the entries list, New

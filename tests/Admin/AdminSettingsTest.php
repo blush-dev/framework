@@ -70,7 +70,7 @@ final class AdminSettingsTest extends TestCase
 		$ai      = self::json($this->send('GET', '/settings/ai'));
 		$system  = self::json($this->send('GET', '/settings/system'));
 
-		$this->assertSame(['site', 'dates', 'environment'], array_column(is_array($general['groups'] ?? null) ? $general['groups'] : [], 'key'));
+		$this->assertSame(['site', 'dates', 'accounts', 'environment'], array_column(is_array($general['groups'] ?? null) ? $general['groups'] : [], 'key'));
 		$this->assertSame(['home', 'feeds'], array_column(is_array($reading['groups'] ?? null) ? $reading['groups'] : [], 'key'));
 		$this->assertSame(['addresses', 'search'], array_column(is_array($search['groups'] ?? null) ? $search['groups'] : [], 'key'));
 		$this->assertSame(['markdown', 'crawlers'], array_column(is_array($ai['groups'] ?? null) ? $ai['groups'] : [], 'key'));
@@ -232,6 +232,35 @@ final class AdminSettingsTest extends TestCase
 		$this->assertSame(422, $this->write('PATCH', '/settings', ['set' => ['app.untranslated' => 'fallback']])->getStatusCode());
 	}
 
+	public function testShowsAndSavesSignups(): void
+	{
+		$this->boot(roles: ['administrator']);
+		$this->login();
+
+		$general = self::json($this->send('GET', '/settings/general'));
+		$signups = $this->setting($general, 'accounts', 'signups');
+		$role    = $this->setting($general, 'accounts', 'signupRole');
+		$field   = is_array($role['field'] ?? null) ? $role['field'] : [];
+
+		$this->assertSame(['auth.signups', false, true, 'config/auth.php'], [$signups['setting'] ?? null, $signups['value'] ?? null, $signups['default'] ?? null, $signups['file'] ?? null], 'Off by default (D-518).');
+		$this->assertSame(['auth.signupRole', 'member', 'Member'], [$role['setting'] ?? null, $role['input'] ?? null, $role['value'] ?? null]);
+		$this->assertSame(['editor', 'author', 'contributor', 'member'], $field['options'] ?? null, 'Never the owner or an administrator.');
+		$this->assertSame('Contributor', is_array($field['choices'] ?? null) ? $field['choices']['contributor'] ?? null : null);
+		$this->assertSame('auth.signups', is_array($role['requires'] ?? null) ? $role['requires']['setting'] ?? null : null);
+
+		$response = $this->write('PATCH', '/settings', ['set' => ['auth.signups' => true, 'auth.signupRole' => 'contributor']]);
+		$this->assertSame(200, $response->getStatusCode(), (string) $response->getBody());
+		$this->assertFalse(self::json($response)['refresh'] ?? null, 'It changes no addresses.');
+		$this->assertSame(['auth' => ['signups' => true, 'signupRole' => 'contributor']], json_decode($this->file('user/data/settings.json'), true));
+
+		// Settings are read at boot; the account is already there.
+		$this->app = $this->scratchApplication(['APP_ENV' => 'development', 'APP_URL' => 'https://example.test', 'APP_SECRET' => str_repeat('s', 64)]);
+		$this->app->boot();
+
+		$general = self::json($this->send('GET', '/settings/general'));
+		$this->assertSame([true, 'Contributor'], [$this->setting($general, 'accounts', 'signups')['value'] ?? null, $this->setting($general, 'accounts', 'signupRole')['value'] ?? null]);
+	}
+
 	public function testSavesAndPreviewsTheDateAndTimeFormats(): void
 	{
 		$this->boot(roles: ['administrator']);
@@ -382,7 +411,7 @@ final class AdminSettingsTest extends TestCase
 		$general = self::json($this->send('GET', '/settings/general'));
 		$groups  = is_array($general['groups'] ?? null) ? $general['groups'] : [];
 
-		$this->assertSame(['site', 'dates', 'environment', 'set-brand'], array_column($groups, 'key'), 'A set\'s group after the screen\'s own.');
+		$this->assertSame(['site', 'dates', 'accounts', 'environment', 'set-brand'], array_column($groups, 'key'), 'A set\'s group after the screen\'s own.');
 		$tagline = $this->setting($general, 'set-brand', 'site-tagline');
 		$this->assertSame('site.tagline', $tagline['setting'] ?? null);
 		$this->assertFalse($tagline['saved'] ?? null);
@@ -424,6 +453,10 @@ final class AdminSettingsTest extends TestCase
 			['feed.limit' => '10'],
 			['routes.trailingSlash' => 'yes'],
 			['sitemap.disallow' => ['drafts']],
+			['auth.signups' => 'yes'],
+			['auth.signupRole' => 'administrator'],
+			['auth.signupRole' => 'owner'],
+			['auth.signupRole' => 'missing'],
 			['app.url' => 'https://elsewhere.test'],
 			['name' => 'Flat']
 		];

@@ -15407,3 +15407,25 @@ decision, add a new entry that supersedes it and mark the old one
     `date`; the two disagree in jtcom itself.
 - **Why:** a name should show the day the author wrote, not the day it
   falls on in the site's time zone.
+
+### D-518: Settings for open sign-ups, not yet used
+- **Date:** 2026-10-05
+- **Status:** Built (settings only). Nothing reads them yet.
+- **Decision:** from the author: a site can let anyone make an account,
+  off by default. For now only the settings exist; no sign-up form,
+  route, or check uses them.
+  - **Config:** `AuthConfig` gains `signups` (`false`) and
+    `signupRole` (`'member'`). The role is never `owner` or
+    `administrator` (`AuthConfig::SIGNUP_REFUSED`); a bad name or one
+    of those is an `InvalidConfig`.
+  - **Admin:** two settings, `auth.signups` and `auth.signupRole`,
+    saved in `user/data/settings.json` over `config/auth.php`, in an
+    **Accounts** group on General (the author chose General over a
+    screen of its own). The role is picked from the site's roles but
+    the refused two, and `requires` sign-ups on. Saving a role that
+    isn't one of the site's is a `422`.
+- **Why:** the member holds no capability (D-365), so it's the safe
+  default for anyone who walks in; the owner and administrator are
+  never handed out by a form.
+- **Later:** the sign-up form and route, and what else signing up may
+  need (email confirmation, approval, allowed domains), are open.
