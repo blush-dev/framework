@@ -30,7 +30,7 @@ import { useAction } from '../action';
 import { config } from '../config';
 import { online } from '../connection';
 import type { IconName } from '../icons';
-import { focusMode, screenCrumb, screenTitle, screenTrail } from '../screen';
+import { focusMode, lastVisits, screenCrumb, screenTitle, screenTrail } from '../screen';
 import { initials } from '../people';
 import { loadCounts, navCounts } from '../counts';
 import { can, canAnyType, canType, session, signOut, usesMedia } from '../session';
@@ -304,6 +304,11 @@ const trail = computed<{ label: string; to: RouteLocationRaw }[]>(() => {
 	return parent !== undefined && typeof label === 'string' ? [{ label, to: { name: route.meta.parent as string } }] : [];
 });
 
+// A crumb's address as you last saw it, so `Posts` keeps its status tab.
+function returnTo(to: RouteLocationRaw): RouteLocationRaw {
+	return lastVisits.get(router.resolve(to).path) ?? to;
+}
+
 const sectionLabel = computed(() => ({ home: 'Home', content: 'Content', people: 'Users', config: 'Config' })[routeArea.value]);
 const bleed = computed(() => route.meta.bleed === true);
 const wide  = computed(() => route.meta.wide === true);
@@ -491,7 +496,7 @@ async function leave(): Promise<void> {
 					<button type="button" class="bar__root" aria-controls="nav-panel" :aria-expanded="showing(routeArea)" :title="showing(routeArea) ? 'Hide the panel' : `Show ${sectionLabel} in the panel`" @click="showSection(routeArea)">{{ sectionLabel }}</button>
 					<template v-for="crumb in trail" :key="crumb.label">
 						<span class="bar__sep" aria-hidden="true">/</span>
-						<RouterLink class="bar__link" :to="crumb.to">{{ crumb.label }}</RouterLink>
+						<RouterLink class="bar__link" :to="returnTo(crumb.to)">{{ crumb.label }}</RouterLink>
 					</template>
 					<template v-if="screenCrumb ?? title">
 						<span class="bar__sep" aria-hidden="true">/</span>

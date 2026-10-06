@@ -31,3 +31,10 @@ export const screenCrumb = ref<string | null>(null);
  */
 export const focusMode = ref(false);
 
+
+/**
+ * The last address seen at each screen's path, query and all, so a trail
+ * crumb goes back to the list as you left it (its status tab, search, or
+ * page) rather than the list's first view.
+ */
+export const lastVisits = new Map<string, string>();

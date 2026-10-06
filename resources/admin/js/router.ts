@@ -12,7 +12,7 @@
 import { createRouter, createWebHistory, type RouteLocationNormalized } from 'vue-router';
 import { watch } from 'vue';
 import { config } from './config';
-import { screenCrumb, screenTitle, screenTrail } from './screen';
+import { lastVisits, screenCrumb, screenTitle, screenTrail } from './screen';
 import { can, canAnyType, canType, loadSession, MEDIA_CAPABILITIES, session, type ContentAction } from './session';
 import CalendarView from './views/CalendarView.vue';
 import DashboardView from './views/DashboardView.vue';
@@ -179,6 +179,7 @@ router.afterEach((to, from) => {
 		screenCrumb.value = null;
 	}
 
+	lastVisits.set(to.path, to.fullPath);
 	setTitle();
 });
 

@@ -15509,3 +15509,16 @@ decision, add a new entry that supersedes it and mark the old one
   that differed from the old default, so none change.
 - **Why:** the author, on D-521: "change it to New Post".
 
+
+### D-523: Trail crumbs return to the screen as you left it
+- **Date:** 2026-10-06
+- **Status:** Built.
+- **Decision:** the top bar's trail crumbs (the editor's `Posts`, a
+  profile's type, Settings, a detail screen's list) go to the last
+  address seen at that crumb's path, query and all, so leaving a post
+  opened from `?status=published` returns to the Published tab (with
+  its search, sort, and page). The router records each address in
+  `lastVisits` (`screen.ts`), held for the page's life only; with no
+  visit yet, a crumb goes to its plain route. The section panel's links
+  still go to each screen's first view.
+- **Why:** the author: the crumbs "don't remember the previous state".
