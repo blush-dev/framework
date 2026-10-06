@@ -34,6 +34,13 @@ export type AdminTheme = 'neutral' | 'editorial';
 export interface Preferences {
 	colorScheme: ColorScheme;
 	adminTheme: AdminTheme;
+	// The entry the account last saved, and whether it skipped the setup
+	// path (D-539).
+	lastEdited: string | null;
+	setupSkipped: boolean;
+	// The screens pinned in Home's panel, by id, or `null` for the
+	// default (D-547).
+	shortcuts: string[] | null;
 }
 
 export interface SessionState {
@@ -54,15 +61,66 @@ export interface ActionResult {
 	details: string[];
 }
 
+// The Tools screen's actions, grouped by where they come from (D-540).
+export interface ActionGroup {
+	source: { kind: 'core' | 'site' | 'plugin' | 'other'; label: string };
+	actions: ActionDescription[];
+}
+
+// The end of the site's log (D-540), `file` null when the driver
+// writes none: its last entries, newest first, each with the lines under
+// it (an exception's trace) as `details`.
+export interface LogEntry {
+	time: string;
+	channel: string;
+	level: string;
+	message: string;
+	details: string;
+}
+
+export interface LogTail {
+	driver: 'file' | 'stderr' | 'null';
+	file: string | null;
+	size: number;
+	entries: LogEntry[];
+}
+
+// An entry as the dashboard lists it (D-538): `authors` are the names of
+// the people it credits, `yours` whether the account's profile is one.
+export interface DashboardEntry {
+	id: string | null;
+	path: string;
+	handle: string | null;
+	title: string;
+	type: string;
+	status: EntryStatus;
+	url: string | null;
+	published: string | null;
+	updated: string;
+	authors: string[];
+	yours: boolean;
+}
+
+export interface DashboardGroups {
+	draft: DashboardEntry[];
+	scheduled: DashboardEntry[];
+	published: DashboardEntry[];
+}
+
 export interface Dashboard {
 	site: { name: string; url: string; environment: string; version: string };
-	content: { total: number; published: number; draft: number; scheduled: number };
-	actions: ActionDescription[];
+	published: number;
+	resume: DashboardEntry | null;
+	yours: DashboardGroups | null;
+	everyone: DashboardGroups;
+	// The pages type (`null` when it's off), the newest page, and whether
+	// the site has pages or a collection of its own.
+	setup: { type: string | null; page: DashboardEntry | null; ownTypes: boolean };
 }
 
 export interface EntrySummary {
 	// Its id, which names it to the API (D-481), `null` while its file
-	// has no valid one (it can't be opened until Content Health gives it
+	// has no valid one (it can't be opened until Site Health gives it
 	// one), and its file's path under the content folder.
 	id: string | null;
 	path: string;
@@ -987,37 +1045,16 @@ export interface Violation {
 	severity: 'error' | 'warning' | 'notice';
 }
 
-/**
- * A month of dated entries (`GET calendar`, D-368): each on its `day`
- * at its `time`, both in the site's timezone. `today` is the site's date.
- */
-export interface CalendarEntry {
-	id: string | null;
-	path: string;
-	handle: string | null;
-	title: string;
-	type: string;
-	status: ActiveStatus;
-	published: string;
-	day: number;
-	time: string;
-}
-
-export interface CalendarMonth {
-	month: string;
-	today: string;
-	status: ActiveStatus | 'any';
-	type: string | null;
-	total: number;
-	entries: CalendarEntry[];
-}
-
 export interface Health {
+	// When it was checked (D-546), and how many files.
+	at: string;
 	checked: number;
 	metadata: number;
 	strict: boolean;
 	counts: { error: number; warning: number; notice: number | null };
-	files: { path: string; violations: Violation[] }[];
+	// Each file's problems, and whether it's an entry's (`content`) or a
+	// media file's or its details' (`media`, D-543).
+	files: { path: string; area: 'content' | 'media'; violations: Violation[] }[];
 	// Files missing a valid id, and ids files share (D-477), for fixing
 	// here (`POST health/ids`, `POST health/ids/keep`, D-478).
 	ids: HealthIds;
@@ -1036,6 +1073,45 @@ export interface Health {
 	// Collections' files that aren't flat (D-514): how many, and the
 	// first few moves (`POST health/flatten` moves them).
 	flat: { count: number; examples: { path: string; to: string }[] };
+}
+
+export type HealthArea = 'content' | 'media' | 'extensions' | 'system' | 'accounts';
+
+// A Site Health check (D-543): `link` names what the admin opens for it
+// (`content`, `media`, `themes`, `plugins`, `icon-packs`, `account`).
+export interface HealthCheck {
+	area: HealthArea;
+	key: string;
+	status: 'pass' | 'warning' | 'failure';
+	label: string;
+	message: string;
+	hint: string;
+	link: string | null;
+}
+
+export interface HealthRequirement {
+	group: string;
+	name: string;
+	why: string;
+	needs: string;
+	installed: string;
+	status: 'pass' | 'warning' | 'failure' | 'optional';
+}
+
+export interface HealthFact {
+	label: string;
+	value: string;
+	mono: boolean;
+}
+
+// `GET health/site` (D-543).
+export interface SiteHealth {
+	checked: string;
+	areas: { key: HealthArea; label: string; description: string }[];
+	checks: HealthCheck[];
+	requirements: HealthRequirement[];
+	site: HealthFact[];
+	server: HealthFact[];
 }
 
 /**
@@ -1167,10 +1243,10 @@ export function errorMessage(caught: unknown, fallback: string): string {
  * The editor's route for an entry: its type and id
  * (`/content/post/0199b6e2-…`, D-483), which stay the same through a
  * rename or a move. An entry whose file has no id can't be edited until
- * it has one, so it goes to Content Health, where that's fixed.
+ * it has one, so it goes to Site Health's Entry IDs, where that's fixed.
  */
 export function entryRoute(entry: { id: string | null; type: string }): { name: string; params: Record<string, string | string[]> } {
-	return entry.id === null ? { name: 'health', params: {} } : { name: 'entry', params: { type: entry.type, id: entry.id } };
+	return entry.id === null ? { name: 'health-check', params: { area: 'content', check: 'ids' } } : { name: 'entry', params: { type: entry.type, id: entry.id } };
 }
 
 /**

@@ -270,7 +270,7 @@ final readonly class Account
 	 * `name`, `email`, `suspended`, and `passwordLink` are written only
 	 * when set.
 	 *
-	 * @return array{username: string, email?: string, name?: string, passwordHash: string, roles: list<string>, author: ?string, created: int, lastLogin: ?int, preferences?: array<string, string>, suspended?: true, passwordLink?: array{hash: string, expires: int}}
+	 * @return array{username: string, email?: string, name?: string, passwordHash: string, roles: list<string>, author: ?string, created: int, lastLogin: ?int, preferences?: array<string, string|bool|list<string>>, suspended?: true, passwordLink?: array{hash: string, expires: int}}
 	 */
 	public function toArray(): array
 	{

@@ -21,7 +21,7 @@ use Blush\Support\Uuid;
 
 /**
  * Finds and fixes the media files whose ids (D-487) are missing or
- * shared, for `media:ids` and Content health in the admin, as `EntryIds`
+ * shared, for `media:ids` and Site Health in the admin, as `EntryIds`
  * does for content (D-478). Every original has an id, kept in its
  * metadata file under `user/data/media`; a size of another image
  * (`MediaVariants`, D-239) has none, since it belongs to that image.

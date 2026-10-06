@@ -12,6 +12,25 @@ Move each item to `decisions.md` once it's answered.
     copied in and forgotten, never a live reference, which would bring
     the theme dependency back.
 
+- **`$view` in place of `$template`** (D-158, discussed 2026-10-06).
+  Inside a file in `views/`, `$template` reads as a second concept:
+  everything else a theme developer meets says "view" (the `views/`
+  folder, view names, `Views`, `theme:why <view>`, `ViewException`).
+  D-158 named it after the `Template` class. Leaning toward `$view`
+  (Symfony's old PHP engine used it), keeping D-158's point: no `$this`,
+  explicit, typed with `@var`. A data key or prop named `view` would be
+  reserved, as `template` is now. Front matter's `template` and the
+  template hierarchy are set aside for later. Undecided, the class names:
+  - **Keep `Template`:** the least churn, but `@var Template $view`
+    shows the mismatch.
+  - **`View`:** the variable and class match, but it sits a letter away
+    from `Views` (the chain's renderer).
+  - **`View`, with `Views` renamed** (e.g. `ViewRenderer`): each name
+    has one meaning; a wider rename.
+
+  Either way it touches the default theme, the test views, `docs/`,
+  `theming.md`, and the `jtcom-trial` theme, and supersedes D-158.
+
 - **Loading the admin's screens on demand** (D-510, discussed
   2026-10-05). The size budget means what's loaded at a given moment,
   such as the first run, as much as the total. Today `router.ts` imports
@@ -315,7 +334,12 @@ Move each item to `decisions.md` once it's answered.
     tokens, then MCP (Markdown pages and `llms.txt` came first, as the
     easiest, D-395).
 - **A Tools screen for actions** (discussed 2026-10-03, for a redesign;
-  nothing decided): the dashboard's Actions panel (D-223) draws each
+  **partly settled by D-540**: Tools is under Home, from the Home
+  sketch, with Actions grouped by who registered them and Logs; Publish
+  went with the other actions for now, and the site check becomes Site
+  Health, stage 2 of D-537. Still open below: where Publish belongs,
+  scheduled tasks, media and theme asset actions, backups, and routes).
+  The dashboard's Actions panel (D-223) draws each
   `AdminAction` the account may run as a button, so a task the CLI can
   do can also run from the admin without a shell (shared hosting), and
   plugins can add their own (`docs/extending.md`). The built-ins are
@@ -357,6 +381,18 @@ Move each item to `decisions.md` once it's answered.
   - **A possible shape:** Tools with tabs for Actions (built-ins and
     plugins' actions, grouped by who registered them), Status (the site
     check), and Logs; Backups once they exist.
+- **Unpublished changes and "the site is behind"** (from the Home
+  sketch, D-537; left out by the author's choice): the sketch's
+  dashboard bar ("2 entries have changed since it was published, 2
+  hours ago", with Publish Site) and the entry **Changes** pill (a
+  published entry with edits that aren't live) need a publish model
+  Blush doesn't have: a save writes the file, and Publish reindexes
+  and clears caches. Options when it's taken up: count content files
+  newer than the last publish or reindex (cheap, but a git pull or an
+  FTP upload counts too), or a real pending-changes model (drafts of
+  live entries, the direction's §8 "Autosave and pending changes").
+  Each action's **Last run** (the Tools sketch) needs the time stored
+  per action too.
 - **Translation overrides and management** (D-451; raised 2026-10-04):
   - Where uploads and management go in the admin: translations aren't
     extensions (no code, no manifest), but an **Extend** rail section
@@ -818,6 +854,10 @@ Move each item to `decisions.md` once it's answered.
   server). Now relevant to M8, since jtcom runs dynamically (D-142).
   Options: document it (done for now), have `publish` ping the
   site to invalidate, or version the index file names.
+  Discussed 2026-10-06 and left for now (the author's call). If taken
+  up, the lean was versioned names for the content index only, with a
+  plain-text pointer (a PHP pointer would be cached too) and delayed
+  cleanup of old versions.
 
 - **Vite dev-server integration** (D-155, deferred by the author): live
   reload needs asset URLs pointed at Vite's dev server while it runs,

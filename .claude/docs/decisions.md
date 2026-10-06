@@ -10029,6 +10029,7 @@ decision, add a new entry that supersedes it and mark the old one
 
 ### D-368: A calendar on Home
 - **Date:** 2026-10-02
+- **Status:** Superseded by D-550 (removed; a plugin can build it).
 - **Decision:** Home gets a **Calendar** screen (`/calendar`, after the
   Dashboard in Home's panel, `calendar-days` icon, and "Go to the
   calendar" in the command palette), for any account that edits some
@@ -15891,3 +15892,297 @@ decision, add a new entry that supersedes it and mark the old one
   draw an svg." SVG needs no image library or generated files, stays
   sharp at any size, and inline it takes the theme's CSS. The route
   waits for "a part of the public api that we haven't finished yet."
+
+### D-537: The Home sketch, built in stages
+- **Date:** 2026-10-06
+- **Status:** Stage 1 built.
+- **Decision:** `.claude/docs/admin-design/meridian-home.html` (the
+  Dashboard, Calendar, Site Health, Tools, and editable Shortcuts) is
+  built in stages, from the admin's own components first (D-509), where
+  the sketch differs a little from them:
+  1. **The Dashboard and Tools** (D-538 to D-541), together, since the
+     dashboard's actions move to Tools.
+  2. **Site Health** in place of Content Health: today's content checks
+     with their fixes, the checks Blush already runs (`site:check`,
+     plugins, themes, icon packs) in areas, and a Requirements tab
+     (PHP, extensions, ini values, writable paths) with Copy Report.
+     Only checks Blush can really run; none of the sketch's that it
+     can't (HTTPS, a plan's storage, and so on).
+  3. **Shortcuts** the account edits in the section panel, kept with
+     its preferences.
+  The sketch's Calendar isn't taken up: the calendar (D-368) stays as
+  it is for now.
+- **Left out for now:** the sketch's "the live site is behind" bar and
+  the **Changes** pill (a published entry with edits that aren't live):
+  a save writes the file, so Blush has no publish model that knows
+  either (open-questions.md). And each action's "Last run", which
+  nothing records yet.
+- **Why:** the author: "We may need to do in stages," and "work with our
+  own designs and components as much as we can, reusing where we can."
+
+### D-538: The dashboard lists what needs you first
+- **Date:** 2026-10-06
+- **Status:** Built.
+- **Decision:** the dashboard, from the Home sketch:
+  - **No count tiles.** The four figures (entries, published, drafts,
+    scheduled) are gone; the section panel's counts and the lists say
+    more.
+  - **New** (a menu): a new entry of each page or collection type the
+    account can create, then **Upload to the Library**.
+  - **You Were Editing**: the entry the account last saved (D-539),
+    whatever its status but the trash, while it's theirs to edit, with
+    **Continue Editing**, drawn as the sketch's band (an accent tile with
+    the edit icon, the kicker, a one-line title a step larger than a
+    list's, `--title-lead`, and the meta line). It isn't listed again
+    below. (The author: "It should be the last thing I was editing.")
+  - **Entries**: drafts (last changed first), scheduled (soonest
+    first), then published (newest first), up to five of each, from
+    pages and collections, without landing pages (as on the calendar).
+    **Mine** (as the admin's other lists say it) is the entries
+    crediting the account's profile;
+    **Everyone** is every entry the account may edit, with who each
+    credits ("You" for its own). Under a title: the type's singular
+    name, then each note in sentence case ("Post · Untouched for 9
+    days"). The dashboard keeps a narrower column (`meta.narrow`, 980px,
+    the sketch's). An account without a profile sees
+    Everyone, with no switch. A draft untouched for seven days says so,
+    and a scheduled one "goes live on its own". **Browse by Type** opens
+    a type's list. This is a list across types, which D-240 had left
+    to the calendar; it's the dashboard's own row, not an "All entries"
+    screen.
+  - **Nothing Is Waiting on You**, when none of the account's own
+    entries is a draft or scheduled, the one being resumed included: what
+    it published last, a new entry, Browse by Type, and **Recently
+    Published**.
+  - **The setup path** takes the dashboard's place until the site has
+    published something (not, as before, until it has any entry): its
+    first page (done when a page exists, with Open It), a content type
+    of its own (`site.settings`), media (uploading), and inviting people
+    (`accounts.create`), each shown only to an account that can take
+    it and marked done from real data. **Skip to the Dashboard** is
+    saved for the account (D-539). The sketch's "steps stay reachable
+    from Settings" isn't built.
+  - `GET dashboard` answers `published`, `resume`, `yours`, `everyone`,
+    and `setup`, and no longer `content` or `actions`. Rows are a
+    shared class (`.rows`) and component (`EntryRows`).
+- **Why:** the Home sketch; the author chose dropping the tiles, the
+  sketch's setup trigger with skip saved, and "Yours" by byline.
+
+### D-539: Two dashboard preferences
+- **Date:** 2026-10-06
+- **Status:** Built.
+- **Decision:** an account's preferences (D-235) keep `lastEdited`, the
+  id of the entry it last created or saved in the admin (written by
+  `EntryController`, only when it changes), and `setupSkipped`
+  (`PATCH preferences`). Both follow the account to any device, and
+  are left out of its file at their defaults.
+- **Why:** the author chose "Byline + last-saved pref" over the newest
+  draft by modification time: the dashboard should resume what the
+  person actually worked on.
+
+### D-540: Tools on Home
+- **Date:** 2026-10-06
+- **Status:** Built.
+- **Decision:** **Home → Tools** (`/tools`) holds the actions (moved
+  from the dashboard) and, with `site.logs` (D-541), the site's log, as
+  tabs. Actions come from `GET actions`, grouped by where their class
+  comes from (`Provenance::ofClass()`: Blush, the site's `App\`, a
+  plugin by its autoload prefixes or provider's namespace, or
+  elsewhere), Blush's first. A result stays in its row, as before. The
+  log tab shows the last 50 entries in the log file, newest first
+  (`GET logs`, read from the file's end and grouped by the logger's
+  lines, each with the lines under it as `details`; "the full log and
+  not each entry" read as a wall of trace lines), errors and warnings
+  marked by their level,
+  with Refresh and Download (`GET logs/download`), drawn as the sketch
+  draws it: newest first, a short date and time, the level in five
+  letters and its color, then the message on one line, opening to show
+  an exception's trace. The tabs are the admin's page tabs (`.status-tabs`,
+  `?tab=logs`), as the entries list's are. Tools is in the
+  panel when the account can run an action (`actions` in `GET counts`)
+  or read the log. A notice above the tabs says what the tab is for,
+  as the sketch's does.
+- **Why:** the Home sketch; the dashboard is for what needs the
+  person, and Tools for tasks run by hand.
+
+### D-541: `site.logs`
+- **Date:** 2026-10-06
+- **Status:** Built.
+- **Decision:** a site capability, **Read the site's log**, in the Site
+  group. Administrators have it (they have every built-in capability
+  but changing code, D-500), and owners.
+- **Why:** a log can hold paths and error details, so the author chose
+  a capability of its own over reusing `site.settings`.
+
+### D-542: Colored notices have a border in their color
+- **Date:** 2026-10-06
+- **Status:** Built.
+- **Decision:** a success, warning, or error notice has a 1px border in
+  its color's dot token (`--good-dot`, `--warn-dot`, `--danger-dot`), as
+  the Home sketch draws them, in place of no border (D-373 had dropped
+  the sketch's darker left edge, and the full border with it). Every
+  screen's notices change. Notices keep the admin's rounded corners and
+  no left rule.
+- **Why:** the author: "Yes, give the colored notices borders."
+
+### D-543: Site Health in place of Content Health
+- **Date:** 2026-10-06
+- **Status:** Built (stage 2 of D-537).
+- **Decision:** **Home → Site Health** (`/health`), from the Home sketch:
+  - **Its own capability, `site.health`** ("See site health and fix
+    what it finds", in the Site group). Owners have it, and
+    administrators, who hold every built-in capability but changing
+    code (D-500). Editors no longer see content health; the screen,
+    `GET health`, `GET health/site`, and every fix need it (a fix still
+    changes only files the account may edit).
+  - **Checks**: three figures (needing attention, the warn or danger
+    border by the worst; passing; run, across areas), **Issues**
+    (what isn't passing, failures first: title, finding, area and
+    hint, a Fail or Check pill, and a chevron only when the row leads
+    somewhere), and **Areas**: Content, Media, Extensions, System, and
+    Accounts, each Clear or its issues. The sketch's Delivery and
+    Security aren't areas: Blush has little to put in them.
+  - **Content and Media** sum up `ContentHealth` (the report Content
+    Health showed, now a service): files with errors or warnings,
+    missing or shared ids, collection folders, file names, and image
+    sizes. Each leads to its details, `/health/content` and
+    `/health/media` (`HealthView`, what Content Health was, split by
+    area), which keep the fixes and per-file problems, with a back link.
+  - **Extensions, System, and Accounts** are `doctor`'s checks, now
+    `Blush\Setup\SiteChecks` for both, keyed so the admin can link a
+    theme, plugins, icon packs, or the owner check (Your Account).
+    They run under the web server's PHP here.
+  - **Requirements**: only what Blush really needs (the author's
+    choice): PHP 8.5+, `dom`, `intl`, `mbstring`; optional extensions
+    by what uses them (`opcache` and `fileinfo` recommended, warning
+    when missing; `zip`, `exif`, `apcu` optional, required only for
+    APCu when it's the cache driver); `upload_max_filesize` and
+    `post_max_size` against the largest upload the Media settings
+    allow; and the storage folders. No ini minimums of Blush's own.
+    Beside them, **This Site** and **The Server** facts, and **Copy
+    Report**.
+  - "Content health" in lint messages and docs is now Site Health.
+- **Left out:** a count beside Site Health in the panel (it'd lint
+  every file on every screen change), the sketch's checks Blush can't
+  run (HTTPS, a plan's storage, the sitemap, `.env` served over HTTP;
+  the last is in `open-questions.md` under the Tools screen), and "the
+  steps stay reachable" links.
+- **Why:** the Home sketch, and the author's answers: detail screens
+  for the fixes, the five areas above, real requirements only, and
+  "Site health should be its own cap given to owners and maybe
+  admins."
+
+### D-544: Site Health is the owner's
+- **Date:** 2026-10-06
+- **Status:** Built.
+- **Decision:** the administrator's list leaves out `site.health`, as it
+  leaves out changing plugins and themes (D-500); only owners have it by
+  default, and an owner can add it to the administrator, or any role,
+  from Roles. Supersedes D-543's "Owners have it, and administrators".
+  The design check against the sketch also settled three things: keep
+  the underlined page tabs (not the sketch's pill chips), keep the
+  admin's gap between a screen's sections, and keep Tools' notice under
+  its tabs.
+- **Why:** the author: "Owners only," and "Keep the underlined tabs for
+  now," "Keep our spacing," and, for the notice, "Ours."
+
+### D-545: Site Health keeps its last check
+- **Date:** 2026-10-06
+- **Status:** Built.
+- **Decision:** Site Health shows its last report at once, with when it
+  ran ("Last checked 4 minutes ago", the sketch's model), and checks
+  again only on **Run a Check** (`POST health/site`); `GET health/site`
+  checks first only when there's no report. The report is kept behind
+  `Admin\HealthReportStore`, in `storage/health.json` by default
+  (`FileHealthReportStore`): derived data like the content index, not
+  a storage area (D-486), so a site keeping its data in a database
+  binds another store. Checking content or media files on their detail
+  screens (`GET health`, which the admin repeats after every fix)
+  updates the report's content and media checks. The panel's count
+  beside Site Health (`health` in `GET counts`) comes from the report,
+  never a new check, so D-543's "no count" is lifted. `doctor` still
+  checks every time.
+- **Why:** the author chose it over checking on every visit (which
+  makes a large site wait each time, linting about 0.7 s for the trial's
+  1,195 entries) and over checking only when asked (an empty screen
+  every visit).
+
+### D-546: A screen per Site Health issue, from the kept check
+- **Date:** 2026-10-06
+- **Status:** Built.
+- **Decision:**
+  - **Each Content and Media issue opens its own screen**, with just
+    that problem and its fix: `/health/content/{files,ids,folders,names}`
+    and `/health/media/{files,ids,sizes}` (Content Files, Entry IDs,
+    Collection Folders, File Names; Media Details, Media IDs, Image
+    Sizes), with a back link to Site Health and an all-clear message
+    when there's nothing to fix. `/health/content` and `/health/media`
+    go to their files' screen. "No ID" links go to Entry IDs or Media
+    IDs. This replaces D-543's two detail screens, where every issue
+    of an area led to the same place.
+  - **They show the kept check too** (D-545): Site Health's report
+    keeps the content and media files' full `ContentHealth` report
+    (`files`, notices included, with `at`), which `GET health` answers;
+    **Check Again** (`POST health`) checks every content and media file
+    again, and so does every fix once it's done; either updates Site
+    Health's summary and the panel's count. `?strict=1` is gone: the
+    report has notices, and **Include notices** only shows them.
+- **Why:** the author: "content and files go to the same place," and
+  the detail screens "run a new check when visiting those pages"; chose
+  a screen per issue and the kept check over sections on one page or
+  fixes in the issue rows.
+
+### D-547: Shortcuts the account edits
+- **Date:** 2026-10-06
+- **Status:** Built (stage 3 of D-537).
+- **Decision:** Home's panel ends with **Shortcuts**, as the Home sketch
+  draws them:
+  - **Kept with the account** as a preference (`shortcuts`, D-235): a
+    list of up to 30 screen ids in order, or `null` for the default,
+    Your Account and Settings. Ids: a screen's route name (`media`,
+    `tools`, `profiles`), `account` for Your Account, `type:{name}` for
+    a content type's list, and `settings:{screen}`.
+  - **Edit** turns the rows into items with Move Up, Move Down, and
+    Remove (an Undo toast), and adds **Add a Shortcut**, a menu of
+    every screen the panel shows the account that isn't pinned, in the
+    panel's order; a Settings screen is named "Reading Settings" there.
+    **Done** ends it. Adding toasts too; moving doesn't.
+  - A pinned screen the account can no longer use isn't shown, and
+    drops out on its next change. Shortcuts show no counts and never
+    mark the current screen, which the section's own link does.
+  - `savePreferences()` in `session.ts` saves preferences and keeps
+    the answer, for the dashboard's Skip too.
+- **Why:** the Home sketch's third stage; the author: "Move on to stage
+  3, Shortcuts."
+
+### D-548: Your Account is the only default shortcut
+- **Date:** 2026-10-06
+- **Status:** Built.
+- **Decision:** an account that hasn't chosen its shortcuts has Your
+  Account alone, not Your Account and Settings. Supersedes that part of
+  D-547.
+- **Why:** the author: "The default should only be Your Account.
+  Nothing else."
+
+### D-549: Shortcuts save on Done
+- **Date:** 2026-10-06
+- **Status:** Built.
+- **Decision:** editing shortcuts changes a draft in the panel; nothing
+  is saved, and nothing toasts, until **Done**, which saves them once,
+  when they changed, and says "Shortcuts updated". Removing has no
+  Undo (the draft is the undo until Done). Supersedes D-547's save and
+  toast on each change.
+- **Why:** the author: "The toast should only appear and save only
+  happen when hitting 'Done'. Display something about shortcuts being
+  updated."
+
+### D-550: No calendar in core
+- **Date:** 2026-10-06
+- **Status:** Built.
+- **Decision:** the Calendar on Home (D-368) is removed: its screen,
+  its link under Home and in the command palette, and `GET calendar`
+  (`Admin\CalendarController`). A month of dated entries is worth
+  bringing back as a plugin later. The date picker keeps the shared
+  month drawing (`month.ts`). Supersedes D-368.
+- **Why:** the author: "I think that's worth introducing as a plugin
+  later."

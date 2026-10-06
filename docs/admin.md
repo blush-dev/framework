@@ -1,10 +1,10 @@
 # The admin
 
 The admin is where people with an [account](accounts.md) run the site
-from a browser. So far it has a dashboard (your content at a glance, and
-buttons to publish, reindex, and clear caches), a calendar of what's
-published and scheduled, a list of each content type's entries, an
-editor, and a content health check.
+from a browser. So far it has a dashboard (what you were editing, and
+the entries waiting on you), a list of each content type's entries, an editor, a content
+health check, and Tools (buttons to publish, reindex, and clear caches,
+and the site's log).
 
 > **The admin is early.** The editor edits Markdown as text; a live
 > preview, a form for a block's options, and a media library come
@@ -41,8 +41,8 @@ its URLs exist.
 
 ## Getting around
 
-The rail at the far left has four sections: **Home** (the dashboard, the
-calendar, and content health), **Content** (each content type's entries, with its own
+The rail at the far left has four sections: **Home** (the dashboard,
+Site Health, and tools), **Content** (each content type's entries, with its own
 taxonomies under it, the taxonomies several types share, and media),
 **Users** (your profile, accounts, profiles, and roles), and **Config**
 (content types, fields, settings, themes, plugins, and icon packs). The panel
@@ -55,6 +55,13 @@ again brings the panel back. You only see what your account can use.
 A link to a list shows how many things are in it: each content type's
 entries you can edit, media files, accounts, roles, content types,
 field sets, themes, plugins, and icon packs. The counts update as you move between screens.
+
+**Shortcuts**, under Home's own screens, are the screens you pin there,
+in your order: Your Account until you choose your own.
+Choose **Edit** to move them up or down, remove them, or **Add a
+Shortcut** from any screen the panel shows you, then **Done** to save
+your changes. They're kept with your account, so they follow
+you to any browser.
 
 The top bar says where you are: the section, then the screens above
 this one, then this one, such as *Content / Posts / Editing* or *Config
@@ -114,10 +121,35 @@ for a while, as with signing in.
 ## The dashboard
 
 The dashboard greets you by your [name](accounts.md#names) ("Good
-afternoon, Sam Smith") and shows how many entries you have, by status, and the actions
-your account may run. On a site with no content yet, it shows the steps
-to write the first page and the first entry of each other type instead
-of the counts. The actions:
+afternoon, Sam Smith") with today's date. **New** starts an entry of any
+type you can write, or uploads to the media library.
+
+- **You Were Editing** is the entry you last saved in the admin, unless
+  it's in the trash. **Continue Editing** opens it.
+- **Entries** lists what needs you first, then the rest: drafts (last
+  changed first), then scheduled entries (soonest first), then recently
+  published ones (newest first), up to five of each, from pages and
+  collections. **Mine** shows the entries that credit your profile, and
+  **Everyone** every entry you can edit, with who each one credits.
+  Without a profile, you see everyone's. A draft untouched for a week
+  says so. **Browse by Type** opens a type's list.
+- When none of your entries is a draft or scheduled, it says **Nothing
+  Is Waiting on You**, with what you published last, and lists your
+  recently published entries.
+
+Until the site publishes something, a numbered setup path takes the
+dashboard's place: write your first page, make a content type of your
+own, add media, and invite the people you work with. Each step opens
+the screen that does it, shows when it's done, and is there only when
+your account can take it. **Skip to the Dashboard** puts it away for
+your account.
+
+## Tools
+
+**Home → Tools** has the tasks you'd otherwise run from the command
+line, as buttons, grouped by where they come from (Blush, the site, or a
+plugin). The result of each stays beside its button. An action that
+asks first says so.
 
 | Action | What it does | Who can run it |
 |---|---|---|
@@ -127,6 +159,18 @@ of the counts. The actions:
 
 Actions you can't run don't appear. Plugins can add their own actions
 (see [Extending Blush](extending.md#admin-actions)).
+
+With `site.logs` (administrators), the **Logs** tab shows the last 50
+entries in the site's log (`storage/logs/blush.log` unless
+[`config/log.php`](configuration.md#logging) says otherwise), newest
+first, one line each, with errors and warnings marked. An entry with an
+exception opens to show its trace. **Refresh** reads it again and **Download** saves the
+whole file. It's read only, for when something fails on a host you
+can't reach over SSH. A site that logs to the server's error output, or
+not at all, has no file to show.
+
+Tools is in the panel when your account can run an action or read the
+log.
 
 ## Entries
 
@@ -279,8 +323,8 @@ A taxonomy's list (such as Categories) holds its **terms**. Instead of
 authors, it shows how many published entries use each term.
 
 A type with no entries yet skips the tabs and search: it says what the
-type is for (its `description`, if it has one) and offers to create the first one. A site with no content
-at all shows the same offer on the dashboard, one step per type.
+type is for (its `description`, if it has one) and offers to create the first one. A site that hasn't
+published anything shows a setup path on the dashboard.
 
 **New Post** (named for the type you're looking at) opens the editor on
 a new post, with the cursor in the title. Nothing is written until you
@@ -431,7 +475,7 @@ the file was last edited.
   subtitle (a few kinds, such as `collection`, show their value
   read-only); each [field set](content-types.md#field-sets) added to the
   type, under its label; front matter the type doesn't declare, kept as it is; and
-  what content health finds in the file, as last saved (notices only if
+  what Site Health finds in the file, as last saved (notices only if
   you ask). Only the taxonomies that group the content type are offered,
   plus any the file already uses. At its foot,
   **Outline** lists everything in the entry (see
@@ -1410,37 +1454,59 @@ adds one), so they can't be changed to show another entry or to last
 longer. Changing `APP_SECRET` ends every link you've given out.
 Previews are never cached or indexed by search engines.
 
-## Calendar
+## Site Health
 
-The **Calendar** (under Home) shows a month of entries on the day
-they're published, in the site's timezone (`APP_TIMEZONE`): what has
-gone out, what's scheduled, and drafts that already have a date. A
-draft without a date isn't on it. Each entry shows its status (a check
-for published, a clock for scheduled, a pen for a draft), its title,
-and its time; choose one to open it in the editor. You see the entries
-you may edit.
+**Home → Site Health** answers one question: is anything wrong? It's
+for accounts with `site.health`: owners, unless an owner gives it to
+another role. It shows the last check, with when it ran, and checks
+again when you choose **Run a Check**; the first time you open it, it
+checks right away. The number beside **Site Health** in the panel is
+how many checks needed a look last time. Checking content and media
+files again on their screens, as after a fix, updates their part of it.
+Blush keeps the last check in `storage/health.json`.
 
-Move between months with the arrows, and back to this one with
-**Today**. Narrow it to published, scheduled, or draft entries, or to
-one content type. It shows pages and collections; terms and profiles
-are on it only when you choose their type with
-`?type=` in the address. The month and filters are in the address, so a
-month can be bookmarked. On a phone, the calendar lists only the days
-that have entries.
+**Checks** shows how many checks need attention, how many pass, and how
+many ran. **Issues** lists what isn't passing, failures first, each with
+what it found and what to do. A row with a chevron opens where it's
+fixed. **Areas** lists the five areas the checks are in, and whether
+each is clear:
 
-To change an entry's date, open it and change **Published** in the
-editor.
+| Area | What it checks |
+|---|---|
+| Content | Entries' files: problems in their front matter, ids, collection folders, and file names |
+| Media | Library files' ids, their details files, and image sizes |
+| Extensions | A theme, plugins, or icon packs that are on but can't run |
+| System | PHP and its extensions, `.env`, debugging and `APP_URL` in production, the public folder, and writable storage |
+| Accounts | Whether the site has an owner |
 
-## Content health
+Extensions, System, and Accounts are the checks
+[`bin/blush doctor`](cli.md) runs. Here they run under the web server's
+PHP, which can differ from the command line's.
 
-**Content health** checks every content file for problems, as
-`bin/blush content:lint` does: front matter that isn't valid, such as an
+**Requirements** compares what Blush needs with what this server has:
+the PHP version, the required extensions (`dom`, `intl`, `mbstring`),
+the optional ones and what uses them (`opcache` and `fileinfo` are
+recommended; `zip` installs extensions from a `.zip`, `exif` reads
+photos' embedded details, and `apcu` is needed only by that cache
+driver), PHP's upload limits against the largest upload the
+[Media settings](#settings) allow, and the storage folders Blush writes
+to. Beside it, **This Site** and **The Server** list the facts you'd be
+asked for in a bug report. **Copy Report** copies them all as text.
+
+### Fixing content and media
+
+Each Content and Media issue opens a screen of its own, where it's
+fixed: **Content Files**, **Entry IDs**, **Collection Folders**, and
+**File Names**; **Media Details**, **Media IDs**, and **Image Sizes**.
+Each shows the last check, with when it ran. **Check Again** checks
+every content and media file again, and so does every fix once it's
+done; either updates Site Health too.
+
+**Content Files** lists the problems in content files, as
+`bin/blush content:lint` finds them: front matter that isn't valid, such as an
 unknown status or a date that isn't one, and two files claiming the same
-entry. It checks media details in `user/data/media/` too: one that
-can't be read, a value that doesn't fit its field, or details left for
-a file that's gone. Turn on **Include notices** to also see undeclared keys, 1.x
-names, and terms without their own file. It's for editors and
-administrators.
+entry. Turn on **Include notices** to also see undeclared keys, 1.x
+names, and terms without their own file.
 
 It also lists the files missing an [id](content.md#ids), or with one
 that isn't valid, and the ids two or more files share (usually a copied
@@ -1450,14 +1516,6 @@ the others get new ids. Either changes only files you may edit.
 
 A file without an id shows **No ID** in its list, and can't be opened
 in the editor until it has one; its links lead here.
-
-**Media IDs** does the same for [media files](media.md#ids-and-image-sizes),
-by their paths in the media folder, changing only files whose details
-you may edit. A media file's screen shows its id under **File**.
-**Image Sizes** says how many [image sizes](media.md#ids-and-image-sizes)
-Blush found that aren't listed in their images' details yet; **Record
-Sizes** lists them. In the Media library, an image's sizes aren't
-items of their own: its screen lists them under **Sizes**.
 
 **Collection Folders** says how many collection entries are kept in
 folders, which [collections](content-types.md#collections-are-flat)
@@ -1470,6 +1528,18 @@ default), the entries whose files aren't named by it, such as posts
 written before you changed it. **Rename Files** renames a type's
 entries, those you may edit, to the pattern. No address changes.
 Entries kept as folders keep their names.
+
+**Media Details** lists the problems in media details in
+`user/data/media/`: one that
+can't be read, a value that doesn't fit its field, or details left for
+a file that's gone. **Media IDs** works as entry ids do, for
+[media files](media.md#ids-and-image-sizes), by their paths in the media
+folder, changing only files whose details you may edit. A media file's
+screen shows its id under **File**. **Image Sizes** says how many
+[image sizes](media.md#ids-and-image-sizes) Blush found that aren't
+listed in their images' details yet; **Record Sizes** lists them. In
+the Media library, an image's sizes aren't items of their own: its
+screen lists them under **Sizes**.
 
 ## Your own admin
 
@@ -1500,10 +1570,13 @@ The API is JSON under `/admin/api`, and uses the session cookie:
 | `POST login` | Sign in with `{"username", "password"}` |
 | `POST logout` | Sign out |
 | `POST password` | Change the account's own password with `{"current", "password"}`; answers `204`. Other sessions are signed out; this one stays, with a new id. A wrong current password or a short new one is a `422` whose `field` names it |
-| `PATCH preferences` | Change the account's own preferences: `colorScheme` (`system`, `light`, or `dark`) and `adminTheme` (`neutral` or `editorial`), such as `{"colorScheme": "dark"}`; answers `{"preferences"}` |
-| `GET dashboard` | The site, entry counts by status, and the actions the account may run |
-| `GET counts` | The section panel's counts: `{"types"}` (each content type the account edits, by name: how many entries its list shows the account, without its index page), and, when the account may see them, `media` (the library's files; any media capability), `accounts` and `roles` (`accounts.view`), `contentTypes` and `fieldSets` (`site.settings`), and `themes`, `plugins`, and `iconPacks` (installed; each with seeing its kind, `extensions.themes.view` and so on) |
+| `PATCH preferences` | Change the account's own preferences: `colorScheme` (`system`, `light`, or `dark`), `adminTheme` (`neutral` or `editorial`), `setupSkipped` (`true` or `false`), and `shortcuts` (a list of up to 30 screen ids, such as `"media"`, `"type:post"`, or `"settings:general"`, or `null` for the default), such as `{"colorScheme": "dark"}`; answers `{"preferences"}`, which also has `lastEdited`, the id of the entry the account last saved |
+| `GET dashboard` | The site, `published` (how many entries the site has published), `resume` (the entry the account last saved, while it's a draft or scheduled, or `null`), `yours` and `everyone` (each `{"draft", "scheduled", "published"}`, up to five entries of pages and collections each, as `{"id", "path", "handle", "title", "type", "status", "url", "published", "updated", "authors", "yours"}`; `yours` is `null` for an account without a profile), and `setup` (`{"type", "page", "ownTypes"}`: the pages type, the newest page, and whether the site has a type of its own) |
+| `GET counts` | The section panel's counts: `{"types"}` (each content type the account edits, by name: how many entries its list shows the account, without its index page), and, when the account may see them, `actions` (how many actions the account may run), `health` (how many checks need a look in Site Health's last check; `site.health`), `media` (the library's files; any media capability), `accounts` and `roles` (`accounts.view`), `contentTypes` and `fieldSets` (`site.settings`), and `themes`, `plugins`, and `iconPacks` (installed; each with seeing its kind, `extensions.themes.view` and so on) |
+| `GET actions` | The actions the account may run, as `{"groups": [{"source": {"kind", "label"}, "actions": [{"name", "label", "description", "confirm"}]}]}`; a source's `kind` is `core`, `site`, `plugin`, or `other` |
 | `POST actions/{name}` | Run an action; the answer is `{"successful", "message", "details"}` |
+| `GET logs` | The end of the site's log, with `site.logs`: `{"driver", "file", "size", "entries"}`, its last 50 entries, newest first, each `{"time", "channel", "level", "message", "details"}` (`details` is the lines under it, such as an exception's trace); `file` is `null` unless the driver writes one |
+| `GET logs/download` | The whole log file, to save, with `site.logs` |
 | `GET icons` | The icons the active theme can show: `{"icons": [{"name", "label", "keywords", "category", "source", "svg"}]}`; a built-in icon has its `category` (such as `arrows` or `media`) and a `null` `source`, and the rest have a `null` `category` and a `source` like a directive's |
 | `GET media` | The media files an entry can use (see below) |
 | `GET media/{path}` | One file in the library, by its path under `user/media`, with its details (see below) |
@@ -1554,8 +1627,8 @@ The API is JSON under `/admin/api`, and uses the session cookie:
 | `DELETE fields/sets/{name}` | Delete a `user/data/fields` set's file; answers `{"deleted"}`. Then `POST types/refresh` reindexes |
 | `GET references/{type}` | What a reference field to `type` can point at, for the editor's picker (see below) |
 | `GET entries` | The entries the account may edit, a page at a time (see below) |
-| `GET calendar` | A month of the dated entries the account may edit: `month` (`YYYY-MM`, the site's current month by default), `status` (`draft`, `scheduled`, `published`, or `any`), and `type` (pages and collections without one). Answers `{"month", "today", "status", "type", "total", "entries"}`; each entry is `{"path", "id", "handle", "title", "type", "status", "published", "day", "time"}`, with `day` and `time` (`HH:MM`) in the site's timezone. At most 500 entries; `total` counts them all |
-| `GET health` | Content problems by file, with counts (`?strict=1` adds notices), and `ids`: `{"missing", "duplicates"}`, the files missing a valid id and each id files share (`{"id", "paths"}`); needs to edit anyone's entries of some type |
+| `GET health/site` | Site Health's last check, checking first when there's none, and `POST health/site` checks again; with `site.health`: `{"checked", "areas", "checks", "requirements", "site", "server"}`. Each check is `{"area", "key", "status", "label", "message", "hint", "link"}` (`status` is `pass`, `warning`, or `failure`; `link` names what the admin opens, or `null`), each requirement `{"group", "name", "why", "needs", "installed", "status"}` (`status` may also be `optional`), and each fact `{"label", "value", "mono"}` |
+| `GET health` | Content and media problems by file, as Site Health last checked them (checking first when it never has), and `POST health` checks again; with `site.health` like every `health` route. It answers `at` (when), each file with its `area` (`content` or `media`), notices included, with counts, and `ids`: `{"missing", "duplicates"}`, the files missing a valid id and each id files share (`{"id", "paths"}`) |
 | `POST health/ids` | Give each file missing a valid id, that the account may edit, a new one: `{"assigned", "failed"}`, the new ids by path and why any file couldn't be changed |
 | `POST health/ids/keep` | Keep a shared id on `{"path"}` and give the other files sharing it (that the account may edit) new ones; answers as above, or a `422` when the file doesn't share its id |
 | `POST previews` | A preview link to an entry the account may edit, from `{"entry": id}`: `{"url", "expires"}` |
@@ -1759,7 +1832,7 @@ is used; `GET media/{path}`'s `usedIn` is for asking first.
 
 The admin's API names an entry by its `id`, the UUID in its front
 matter (see [Ids](content.md#ids)), never by its file. A file without
-an id can't be edited until it has one (Content health adds it); lists
+an id can't be edited until it has one (Site Health adds it); lists
 show it with an `id` of `null`. Each answer also has the entry's `path`,
 its file under `user/content`, such as `_posts/2026-09-29.hello.md`,
 for showing. Its `handle` is its type and key, such as `post/hello`
@@ -1791,7 +1864,7 @@ entries/{id}` answers with:
   "profile", "profileTitle"}`, where `profile` is the profile's slug for
   a page written for one person's archive (described the same way,
   with `can.delete` also `false`) and `null` for a list page.
-- `violations`: the file's problems, as content health shows them.
+- `violations`: the file's problems, as Site Health shows them.
 
 A change only touches what it names; the rest of the file stays as it
 was written. `set` takes field names to values, `remove` a list of

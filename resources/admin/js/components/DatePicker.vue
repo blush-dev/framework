@@ -63,7 +63,7 @@ function sameDay(a: Date, b: Date): boolean {
 const days = computed(() => {
 	const today = new Date();
 
-	return monthDays(month.value.getFullYear(), month.value.getMonth(), 6).map((day) => ({
+	return monthDays(month.value.getFullYear(), month.value.getMonth()).map((day) => ({
 		...day,
 		today: sameDay(day.date, today),
 		chosen: value.value !== null && sameDay(day.date, value.value),

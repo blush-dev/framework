@@ -65,7 +65,8 @@ and editing code collections and taxonomies through a file in
 D-350); and per-type capabilities (`content.{type}.{action}`, with
 `content.*.…` for every type), with a role's screen drawn as capability
 sections (D-359, from `.claude/docs/admin-design/meridian-role-capabilities.html`);
-and a Calendar on Home, of dated entries by month (D-368); and, from
+and a Calendar on Home, of dated entries by month (D-368), since
+removed for a plugin to build (D-550); and, from
 the revised profiles sketch, Your Account as the account screen on
 your own row and the sketch's cleanups (D-369), with accounts keeping
 their display name, every account needing an email, and the Users
@@ -147,7 +148,11 @@ as the default file name (D-515), and never sorting by file name,
 collections newest published first (D-516); and directives (what
 content says, from core, plugins, and the site, never a theme; called
 blocks in the admin) and components (a template's reusable pieces) as
-two things (D-532, D-533).
+two things (D-532, D-533); and, from the Home sketch
+(`.claude/docs/admin-design/meridian-home.html`), built in stages
+(D-537): the dashboard of what needs you first, and Tools with actions
+and the log (D-538 to D-541), Site Health in place of Content Health
+(D-543 to D-546), and editable Shortcuts (D-547).
 The Fields
 API (D-337 to D-348: field types and controls, field sets on content
 types, media, and the Settings screens, slots, and Structure → Fields)

@@ -53,6 +53,16 @@ final class AdminServiceProvider extends ServiceProvider
 	];
 
 	/**
+	 * Where Site Health keeps its last report (D-545), unless something
+	 * bound another store first.
+	 *
+	 * @inheritDoc
+	 */
+	protected const array SINGLETONS_IF = [
+		HealthReportStore::class => FileHealthReportStore::class
+	];
+
+	/**
 	 * @inheritDoc
 	 */
 	protected const array TAGS = [

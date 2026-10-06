@@ -672,7 +672,7 @@ taxonomy at `writing/genres`), and `_` folders (`_posts/_drafts`), which
 can hold its files. `content:lint` reports an entry kept in a folder as
 an error. To move them, run `bin/blush content:flatten` to see what
 would change, then `bin/blush content:flatten --write`, or use
-**Collection Folders** on Content health in the admin. Each moves into
+**Collection Folders** on Site Health in the admin. Each moves into
 its collection's folder under its folder's name (`_posts/hello/index.md`
 becomes `_posts/hello.md`), and folders left empty are removed.
 

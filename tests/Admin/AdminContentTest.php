@@ -577,30 +577,77 @@ final class AdminContentTest extends TestCase
 		// Credited authors without entries are warnings (D-329).
 		$this->writeTemporaryFile('user/content/profiles/jane.md', "---\ntitle: Jane\nid: 0199b6e2-0000-7000-8000-000000000006\n---\n");
 		$this->writeTemporaryFile('user/content/profiles/sam.md', "---\ntitle: Sam\nid: 0199b6e2-0000-7000-8000-000000000007\n---\n");
-		$this->site(['editor']);
+		$this->site(['owner']);
 
 		$health = self::json($this->send('GET', '/health'));
 
+		// Notices included; the admin hides them until asked (D-546).
 		$this->assertIsArray($health['counts'] ?? null);
 		$this->assertGreaterThanOrEqual(1, $health['counts']['error'] ?? 0);
-		$this->assertNull($health['counts']['notice'] ?? null);
+		$this->assertIsInt($health['counts']['notice'] ?? null);
+		$this->assertTrue($health['strict'] ?? null);
+		$this->assertIsString($health['at'] ?? null);
 		$this->assertIsArray($health['files'] ?? null);
-		$this->assertSame(['broken.md'], array_column($health['files'], 'path'));
+		$this->assertContains('broken.md', array_column($health['files'], 'path'));
 		$this->assertSame(['missing' => [], 'duplicates' => []], $health['ids'] ?? null);
-
-		$strict = self::json($this->send('GET', '/health?strict=1'));
-
-		$this->assertTrue($strict['strict'] ?? null);
-		$this->assertIsArray($strict['counts'] ?? null);
-		$this->assertIsInt($strict['counts']['notice'] ?? null);
 	}
 
-	public function testOnlyEditorsSeeContentHealth(): void
+	public function testSumsUpSiteHealth(): void
 	{
-		$this->site(['author']);
+		$this->site(['owner']);
+
+		$health = self::json($this->send('GET', '/health/site'));
+
+		$this->assertIsArray($health['areas'] ?? null);
+		$this->assertSame(['content', 'media', 'extensions', 'system', 'accounts'], array_column($health['areas'], 'key'));
+		$this->assertIsArray($health['checks'] ?? null);
+
+		$checks = array_column($health['checks'], null, 'label');
+		$this->assertIsArray($checks['Content files'] ?? null);
+		$this->assertSame('failure', $checks['Content files']['status'] ?? null, 'broken.md has errors.');
+		$this->assertSame('content', $checks['Content files']['link'] ?? null);
+		$this->assertIsArray($checks['PHP'] ?? null);
+		$this->assertSame(['system', 'pass', null], [$checks['PHP']['area'] ?? null, $checks['PHP']['status'] ?? null, $checks['PHP']['link'] ?? null]);
+
+		$this->assertIsArray($health['requirements'] ?? null);
+		$requirements = array_column($health['requirements'], null, 'name');
+		$this->assertIsArray($requirements['PHP'] ?? null);
+		$this->assertSame('pass', $requirements['PHP']['status'] ?? null);
+		$this->assertIsArray($health['site'] ?? null);
+		$this->assertContains('Blush', array_column($health['site'], 'label'));
+
+		// The report is kept, and shown again until checked again (D-545).
+		$this->assertFileExists($this->temporaryDirectory() . '/storage/health.json');
+		$this->writeTemporaryFile('user/content/broken.md', "---\ntitle: Fixed\nid: 0199b6e2-0000-7000-8000-000000000005\n---\n");
+		$this->assertSame($health, self::json($this->send('GET', '/health/site')));
+		$issues = count(array_filter(array_column($health['checks'], 'status'), static fn (mixed $status): bool => $status !== 'pass'));
+		$this->assertSame($issues, self::json($this->send('GET', '/counts'))['health'] ?? null, 'By the last report.');
+
+		// The files' details are kept too, until checked again, which
+		// updates the summary (D-546).
+		$this->assertIsArray($health['files'] ?? null);
+		$this->assertSame($health['files']['at'] ?? null, self::json($this->send('GET', '/health'))['at'] ?? null);
+		$this->send('POST', '/health', headers: ['X-CSRF-Token' => $this->token()]);
+		$checks = self::json($this->send('GET', '/health/site'))['checks'] ?? null;
+		$this->assertIsArray($checks);
+		$files = array_column($checks, null, 'label')['Content files'] ?? null;
+		$this->assertIsArray($files);
+		$this->assertSame('warning', $files['status'] ?? null, 'No errors left; a credited author has no profile.');
+
+		$this->assertSame(403, $this->send('POST', '/health/site')->getStatusCode(), 'Checking again needs the CSRF token.');
+		$again = self::json($this->send('POST', '/health/site', headers: ['X-CSRF-Token' => $this->token()]));
+		$this->assertIsArray($again['checks'] ?? null);
+	}
+
+	public function testOnlySiteHealthSeesContentHealth(): void
+	{
+		// Editors edit anyone's entries, and administrators run the site,
+		// but Site Health is the owner's (D-543, D-544).
+		$this->site(['administrator']);
 		$token = $this->token();
 
 		$this->assertSame(403, $this->send('GET', '/health')->getStatusCode());
+		$this->assertSame(403, $this->send('GET', '/health/site')->getStatusCode());
 		$this->assertSame(403, $this->send('POST', '/health/ids', '{}', ['X-CSRF-Token' => $token])->getStatusCode(), 'Nor fix ids.');
 		$this->assertSame(403, $this->send('POST', '/health/ids/keep', '{"path": "live.md"}', ['X-CSRF-Token' => $token])->getStatusCode());
 		$this->assertSame(403, $this->send('POST', '/health/media-ids', '{}', ['X-CSRF-Token' => $token])->getStatusCode(), 'Nor media ids.');
@@ -615,10 +662,10 @@ final class AdminContentTest extends TestCase
 		$this->writeTemporaryFile('user/content/no-id.md', "---\ntitle: No ID\n---\n");
 		$this->writeTemporaryFile('user/content/bad-id.md', "---\ntitle: Bad ID\nid: 42\n---\n");
 		$this->writeTemporaryFile('user/content/copy.md', "---\ntitle: Copy\nid: " . self::LIVE . "\n---\n");
-		$this->site(['editor'], ids: false);
+		$this->site(['owner'], ids: false);
 		$token = $this->token();
 
-		$health = self::json($this->send('GET', '/health'));
+		$health = self::json($this->send('POST', '/health', headers: ['X-CSRF-Token' => $token]));
 		$ids    = $health['ids'] ?? null;
 		$files  = $health['files'] ?? null;
 
@@ -651,7 +698,7 @@ final class AdminContentTest extends TestCase
 		$content = $this->app->container()->make(ContentRepository::class);
 
 		$this->assertSame('live.md', $content->find(self::LIVE)?->path, 'The one kept keeps it.');
-		$this->assertSame(['missing' => [], 'duplicates' => []], self::json($this->send('GET', '/health'))['ids'] ?? null);
+		$this->assertSame(['missing' => [], 'duplicates' => []], self::json($this->send('POST', '/health', headers: ['X-CSRF-Token' => $token]))['ids'] ?? null);
 	}
 
 	public function testRenamesFilesToTheirTypesPattern(): void
@@ -660,10 +707,10 @@ final class AdminContentTest extends TestCase
 		$this->writeTemporaryFile('user/content/_posts/one.md', "---\ntitle: One\npublished: 2026-01-02 10:00:00\nid: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e01\n---\n");
 		$this->writeTemporaryFile('user/content/_posts/two.md', "---\ntitle: Two\nid: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e02\n---\n");
 		touch($this->temporaryDirectory() . '/user/content/_posts/two.md', (int) strtotime('2025-03-04 12:00:00 UTC'));
-		$this->site(['editor']);
+		$this->site(['owner']);
 		$token = $this->token();
 
-		$names = self::json($this->send('GET', '/health'))['fileNames'] ?? null;
+		$names = self::json($this->send('POST', '/health', headers: ['X-CSRF-Token' => $token]))['fileNames'] ?? null;
 
 		$this->assertSame([[
 			'type'     => 'post',
@@ -678,22 +725,22 @@ final class AdminContentTest extends TestCase
 		$renamed = self::json($this->send('POST', '/health/filenames', '{"type": "post"}', ['X-CSRF-Token' => $token]));
 
 		$this->assertSame(['_posts/one.md' => '_posts/2026-01-02.one.md', '_posts/two.md' => '_posts/2025-03-04.two.md'], $renamed['renamed'] ?? null);
-		$this->assertSame([], self::json($this->send('GET', '/health'))['fileNames'] ?? null);
+		$this->assertSame([], self::json($this->send('POST', '/health', headers: ['X-CSRF-Token' => $token]))['fileNames'] ?? null);
 	}
 
 	public function testMovesCollectionEntriesOutOfFolders(): void
 	{
 		$this->writeTemporaryFile('user/data/types/post.yaml', "folder: _posts\n");
 		$this->writeTemporaryFile('user/content/_posts/2024/old.md', "---\ntitle: Old\nid: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e03\n---\n");
-		$this->site(['editor']);
+		$this->site(['owner']);
 		$token = $this->token();
 
-		$this->assertSame(['count' => 1, 'examples' => [['path' => '_posts/2024/old.md', 'to' => '_posts/old.md']]], self::json($this->send('GET', '/health'))['flat'] ?? null);
+		$this->assertSame(['count' => 1, 'examples' => [['path' => '_posts/2024/old.md', 'to' => '_posts/old.md']]], self::json($this->send('POST', '/health', headers: ['X-CSRF-Token' => $token]))['flat'] ?? null);
 
 		$moved = self::json($this->send('POST', '/health/flatten', '{}', ['X-CSRF-Token' => $token]));
 
 		$this->assertSame(['_posts/2024/old.md' => '_posts/old.md'], $moved['renamed'] ?? null);
-		$this->assertSame(['count' => 0, 'examples' => []], self::json($this->send('GET', '/health'))['flat'] ?? null);
+		$this->assertSame(['count' => 0, 'examples' => []], self::json($this->send('POST', '/health', headers: ['X-CSRF-Token' => $token]))['flat'] ?? null);
 	}
 
 	public function testFixesMediaIds(): void
@@ -705,10 +752,10 @@ final class AdminContentTest extends TestCase
 		$this->writeTemporaryFile('user/media/2026/new.png', $png);
 		$this->writeTemporaryFile('user/data/media/2026/lake.png.yml', "id: " . self::LIVE . "\n");
 		$this->writeTemporaryFile('user/data/media/2026/copy.png.yml', "alt: A copy\nid: " . self::LIVE . "\n");
-		$this->site(['editor']);
+		$this->site(['owner']);
 		$token = $this->token();
 
-		$this->assertSame(['missing' => ['2026/new.png'], 'duplicates' => [['id' => self::LIVE, 'paths' => ['2026/copy.png', '2026/lake.png']]]], self::json($this->send('GET', '/health'))['mediaIds'] ?? null, 'Media ids, by path in the media folder (D-487).');
+		$this->assertSame(['missing' => ['2026/new.png'], 'duplicates' => [['id' => self::LIVE, 'paths' => ['2026/copy.png', '2026/lake.png']]]], self::json($this->send('POST', '/health', headers: ['X-CSRF-Token' => $token]))['mediaIds'] ?? null, 'Media ids, by path in the media folder (D-487).');
 
 		$assigned = self::json($this->send('POST', '/health/media-ids', '{}', ['X-CSRF-Token' => $token]))['assigned'] ?? null;
 
@@ -721,7 +768,7 @@ final class AdminContentTest extends TestCase
 
 		$this->assertIsArray($kept);
 		$this->assertSame(['2026/copy.png'], array_keys($kept));
-		$this->assertSame(['missing' => [], 'duplicates' => []], self::json($this->send('GET', '/health'))['mediaIds'] ?? null);
+		$this->assertSame(['missing' => [], 'duplicates' => []], self::json($this->send('POST', '/health', headers: ['X-CSRF-Token' => $token]))['mediaIds'] ?? null);
 	}
 
 	public function testRecordsImageSizes(): void
@@ -733,15 +780,15 @@ final class AdminContentTest extends TestCase
 			imagepng($image, $this->temporaryDirectory() . "/user/media/2019/{$name}");
 		}
 
-		$this->site(['editor']);
+		$this->site(['owner']);
 		$token = $this->token();
 
-		$this->assertSame(['sizes' => 1, 'images' => 1, 'stale' => 0], self::json($this->send('GET', '/health'))['mediaSizes'] ?? null, 'Sizes found by rule, not yet recorded (D-488).');
+		$this->assertSame(['sizes' => 1, 'images' => 1, 'stale' => 0], self::json($this->send('POST', '/health', headers: ['X-CSRF-Token' => $token]))['mediaSizes'] ?? null, 'Sizes found by rule, not yet recorded (D-488).');
 
 		$recorded = self::json($this->send('POST', '/health/media-sizes', '{}', ['X-CSRF-Token' => $token]));
 
 		$this->assertSame(['2019/photo.png' => ['2019/photo-30x20.png']], $recorded['recorded'] ?? null);
-		$this->assertSame(['sizes' => 0, 'images' => 0, 'stale' => 0], self::json($this->send('GET', '/health'))['mediaSizes'] ?? null);
+		$this->assertSame(['sizes' => 0, 'images' => 0, 'stale' => 0], self::json($this->send('POST', '/health', headers: ['X-CSRF-Token' => $token]))['mediaSizes'] ?? null);
 	}
 
 	public function testMakesPreviewLinksForEntriesTheAccountMayEdit(): void

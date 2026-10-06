@@ -11,6 +11,10 @@ import { request } from './api';
 export interface NavCounts {
 	// Entries of each type the account edits, by type name.
 	types: Record<string, number>;
+	// The actions the account may run (D-540).
+	actions: number;
+	// Checks needing a look in Site Health's last report (D-545).
+	health?: number;
 	media?: number;
 	accounts?: number;
 	roles?: number;

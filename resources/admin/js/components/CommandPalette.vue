@@ -59,12 +59,8 @@ const everywhere = computed<Command[]>(() => {
 		found.push({ id: `new-${type.name}`, label: type.labels.newItem, icon: 'plus', keywords: `create add ${type.name}`, run: () => void router.push({ name: 'entry-new', query: { type: type.name } }) });
 	}
 
-	if (canAnyType('edit')) {
-		found.push({ id: 'calendar', label: 'Go to the calendar', icon: 'calendar-days', keywords: 'scheduled published dates', run: go('calendar') });
-	}
-
-	if (canAnyType('edit.others')) {
-		found.push({ id: 'health', label: 'Go to Content Health', icon: 'heart-pulse', keywords: 'problems lint', run: go('health') });
+	if (can('site.health')) {
+		found.push({ id: 'health', label: 'Go to Site Health', icon: 'heart-pulse', keywords: 'problems lint checks requirements doctor', run: go('health') });
 	}
 
 	const screens: [string, string, IconName, string, string?][] = [

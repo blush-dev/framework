@@ -22,7 +22,7 @@ use Blush\Content\Writer\WriteException;
 
 /**
  * Finds and fixes the content files whose ids (D-477) are missing or
- * shared, for `content:ids` and Content health in the admin (D-478):
+ * shared, for `content:ids` and Site Health in the admin (D-478):
  *
  * - **Missing:** a file with no `id`, or one that isn't a UUID, is given
  *   a new one.

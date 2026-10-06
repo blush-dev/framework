@@ -25,7 +25,7 @@
 
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { RouterLink, useRoute, useRouter, type RouteLocationRaw } from 'vue-router';
-import type { ContentTypeSummary } from '../api';
+import { errorMessage, type ContentTypeSummary } from '../api';
 import { useAction } from '../action';
 import { config } from '../config';
 import { online } from '../connection';
@@ -33,7 +33,8 @@ import type { IconName } from '../icons';
 import { focusMode, lastVisits, screenCrumb, screenTitle, screenTrail } from '../screen';
 import { initials } from '../people';
 import { loadCounts, navCounts } from '../counts';
-import { can, canAnyType, canType, session, signOut, usesMedia } from '../session';
+import { can, canAnyType, canType, savePreferences, session, signOut, usesMedia } from '../session';
+import { toast } from '../toast';
 import { profileType, currentType, loadTypes, typeIcon, types } from '../types';
 import AdminIcon from './AdminIcon.vue';
 import CommandPalette from './CommandPalette.vue';
@@ -58,6 +59,10 @@ interface NavLink {
 	links?: NavLink[];
 	// How many things its list holds (D-371), when known.
 	count?: number;
+	// Its id as a shortcut (D-547), and its name there when its own
+	// needs its section to make sense ("Reading Settings").
+	pin?: string;
+	pinLabel?: string;
 }
 
 interface NavGroup {
@@ -87,11 +92,12 @@ watch(() => route.fullPath, () => {
 });
 
 // A detail screen marks its list (`meta.parent`).
-const screen = (name: string, label: string, icon: IconName): NavLink => ({ key: name, label, icon, to: { name }, current: route.meta.parent === name });
+const screen = (name: string, label: string, icon: IconName): NavLink => ({ key: name, label, icon, to: { name }, current: route.meta.parent === name, pin: name });
 
 /**
  * Each section's links, in groups (D-241, D-244). **Home**: the admin's
- * own screens and shortcuts. **Content**: each content type with the
+ * own screens (the Dashboard, Site Health, and Tools); its
+ * shortcuts are drawn after them (`shortcuts`). **Content**: each content type with the
  * taxonomies that group only it nested under it, the taxonomies shared
  * by several types (or every type), and Media. **Users** (D-326, D-354):
  * Your Account, Accounts, Profiles, and Roles (D-353, D-358).
@@ -103,28 +109,24 @@ const screen = (name: string, label: string, icon: IconName): NavLink => ({ key:
 const sections = computed<Record<Area, NavGroup[]>>(() => {
 	const home: NavLink[] = [screen('dashboard', 'Dashboard', 'gauge')];
 
-	if (canAnyType('edit')) {
-		home.push(screen('calendar', 'Calendar', 'calendar-days'));
+	// With what its last report found (D-545).
+	if (can('site.health')) {
+		home.push({ ...screen('health', 'Site Health', 'heart-pulse'), count: navCounts.value?.health || undefined });
 	}
 
-	if (canAnyType('edit.others')) {
-		home.push(screen('health', 'Content Health', 'heart-pulse'));
+	// Tools, with an action the account may run or the log (D-540).
+	if ((navCounts.value?.actions ?? 0) > 0 || can('site.logs')) {
+		home.push(screen('tools', 'Tools', 'wrench'));
 	}
 
 	// Your Account is your own account's screen (D-371), so it's current
 	// there, and Accounts isn't.
 	const own       = session.account?.username ?? '';
 	const onOwn     = route.name === 'account' && route.params.username === own;
-	const yourLink: NavLink = { key: 'profile', label: 'Your Account', icon: 'circle-user-round', to: { name: 'account', params: { username: own } }, current: onOwn };
-
-	const shortcuts: NavLink[] = [{ ...yourLink, current: false }];
+	const yourLink: NavLink = { key: 'profile', label: 'Your Account', icon: 'circle-user-round', to: { name: 'account', params: { username: own } }, current: onOwn, pin: 'account' };
 
 	// A Settings screen (D-325).
-	const settingsScreen = (key: string, label: string, icon: IconName): NavLink => ({ key: `settings-${key}`, label, icon, to: { name: 'settings', params: { screen: key } }, current: false });
-
-	if (can('site.settings')) {
-		shortcuts.push({ ...settingsScreen('general', 'Settings', 'settings'), key: 'settings' });
-	}
+	const settingsScreen = (key: string, label: string, icon: IconName): NavLink => ({ key: `settings-${key}`, label, icon, to: { name: 'settings', params: { screen: key } }, current: false, pin: `settings:${key}`, pinLabel: key === 'general' ? 'Settings' : `${label} Settings` });
 
 	// A link to a list, with how many things it holds (D-371).
 	const counted = (link: NavLink, count: number | undefined): NavLink => ({ ...link, count });
@@ -137,6 +139,7 @@ const sections = computed<Record<Area, NavGroup[]>>(() => {
 		type,
 		to: { name: 'type', params: { type: type.name } },
 		current: inEntries && currentType.value === type.name,
+		pin: `type:${type.name}`,
 		detail,
 		count: navCounts.value?.types[type.name]
 	});
@@ -177,7 +180,8 @@ const sections = computed<Record<Area, NavGroup[]>>(() => {
 		icon: 'user-round',
 		to: { name: 'type', params: { type: profiles.name } },
 		current: route.meta.parent === 'profiles' || (inEntries && currentType.value === profiles.name),
-		count: navCounts.value?.types[profiles.name]
+		count: navCounts.value?.types[profiles.name],
+		pin: 'profiles'
 	}] : [];
 	const people    = [
 		yourLink,
@@ -189,12 +193,105 @@ const sections = computed<Record<Area, NavGroup[]>>(() => {
 	const groups = (list: NavGroup[]): NavGroup[] => list.filter((group) => group.links.length > 0);
 
 	return {
-		home: groups([{ key: 'home', links: home }, { key: 'shortcuts', heading: 'Shortcuts', links: shortcuts }]),
+		home: groups([{ key: 'home', links: home }]),
 		content: groups([{ key: 'types', links: content }, { key: 'shared', heading: 'Shared Taxonomies', links: shared }, { key: 'library', heading: 'Library', links: library }]),
 		people: groups([{ key: 'people', links: people }]),
 		config: groups([{ key: 'structure', heading: 'Structure', links: structure }, { key: 'settings', heading: 'Settings', links: settings }, { key: 'extensions', heading: 'Extensions', links: extensions }])
 	};
 });
+
+/*
+ * Shortcuts (D-547, from the Home sketch): screens the account pins in
+ * Home's panel, in its own order, kept with its preferences, so they
+ * follow it to any device. Edit turns the list into rows to move and
+ * remove, and adds **Add a Shortcut**, offering every screen the panel
+ * shows the account that isn't pinned; **Done** saves them, once
+ * (D-549). Without a choice of its own, an
+ * account has Your Account alone (D-548). A pinned screen the account
+ * can no longer use isn't shown.
+ */
+const DEFAULT_SHORTCUTS = ['account'];
+
+const editingShortcuts = ref(false);
+
+// While editing, the shortcuts as they're being arranged; saved on Done.
+const draft = ref<string[] | null>(null);
+
+// Every screen that can be pinned, in the panel's order, once each.
+const pinnable = computed<NavLink[]>(() => {
+	const found = new Map<string, NavLink>();
+	const visit = (links: NavLink[]): void => links.forEach((item) => {
+		if (item.pin && !found.has(item.pin)) {
+			found.set(item.pin, item);
+		}
+
+		visit(item.links ?? []);
+	});
+
+	(['home', 'content', 'people', 'config'] as Area[]).forEach((key) => sections.value[key].forEach((group) => visit(group.links)));
+
+	return [...found.values()];
+});
+
+const pinnedIds = computed(() => draft.value ?? session.account?.preferences.shortcuts ?? DEFAULT_SHORTCUTS);
+
+// The pinned screens, as links of their own.
+const shortcuts = computed<NavLink[]>(() => pinnedIds.value
+	.map((id) => pinnable.value.find((item) => item.pin === id))
+	.filter((item): item is NavLink => item !== undefined)
+	.map((item) => ({ ...item, key: `shortcut-${item.pin ?? ''}`, label: item.pinLabel ?? item.label, current: false, links: undefined, detail: undefined, count: undefined })));
+
+const unpinned = computed(() => pinnable.value.filter((item) => !pinnedIds.value.includes(item.pin ?? '')));
+
+// The shown shortcuts' ids, so screens no longer shown drop out.
+const shownIds = (): string[] => shortcuts.value.map((item) => item.pin ?? '');
+
+/**
+ * Starts editing, or, on Done, saves the shortcuts once, when they
+ * changed, and says so (D-549).
+ */
+async function toggleShortcuts(): Promise<void> {
+	if (!editingShortcuts.value) {
+		draft.value = shownIds();
+		editingShortcuts.value = true;
+
+		return;
+	}
+
+	const ids = shownIds();
+	const saved = session.account?.preferences.shortcuts ?? DEFAULT_SHORTCUTS;
+
+	editingShortcuts.value = false;
+
+	try {
+		if (ids.join('\n') !== saved.join('\n')) {
+			await savePreferences({ shortcuts: ids });
+			toast('Shortcuts updated');
+		}
+	} catch (caught) {
+		toast(errorMessage(caught, 'The shortcuts couldn\'t be saved.'), { kind: 'danger' });
+	} finally {
+		draft.value = null;
+	}
+}
+
+function pinShortcut(item: NavLink): void {
+	draft.value = [...shownIds(), item.pin ?? ''];
+}
+
+function unpinShortcut(item: NavLink): void {
+	draft.value = shownIds().filter((id) => id !== item.pin);
+}
+
+function moveShortcut(index: number, by: -1 | 1): void {
+	const ids = shownIds();
+	const [moved] = ids.splice(index, 1);
+
+	if (moved !== undefined) {
+		ids.splice(index + by, 0, moved);
+		draft.value = ids;
+	}
+}
 
 // The rail's sections; one with nothing in it for this account is left out.
 const areas = computed(() => ([
@@ -312,6 +409,9 @@ function returnTo(to: RouteLocationRaw): RouteLocationRaw {
 const sectionLabel = computed(() => ({ home: 'Home', content: 'Content', people: 'Users', config: 'Config' })[routeArea.value]);
 const bleed = computed(() => route.meta.bleed === true);
 const wide  = computed(() => route.meta.wide === true);
+// A screen read top to bottom, like the dashboard, keeps a narrower
+// column (the Home sketch's).
+const narrowColumn = computed(() => route.meta.narrow === true);
 
 // The collapsed panel is a per-browser convenience; storage may be off.
 const COLLAPSED = 'blush-admin-rail-collapsed';
@@ -480,6 +580,43 @@ async function leave(): Promise<void> {
 							</li>
 						</ul>
 					</div>
+
+					<div v-if="area === 'home'" class="panel-nav__group">
+						<div class="panel-nav__heading-row">
+							<p id="nav-shortcuts" class="eyebrow panel-nav__heading">Shortcuts</p>
+							<button type="button" class="panel-nav__edit" :aria-pressed="editingShortcuts" @click="toggleShortcuts">{{ editingShortcuts ? 'Done' : 'Edit' }}<span class="visually-hidden"> shortcuts</span></button>
+						</div>
+						<ul v-if="shortcuts.length" aria-labelledby="nav-shortcuts">
+							<li v-for="(link, index) in shortcuts" :key="link.key">
+								<div v-if="editingShortcuts" class="panel-nav__link is-editing">
+									<TypeIcon v-if="link.type" :type="link.type" />
+									<AdminIcon v-else :name="link.icon" />
+									<span class="panel-nav__label">{{ link.label }}</span>
+									<span class="panel-nav__tools">
+										<button type="button" class="panel-nav__tool" :disabled="index === 0" :aria-label="`Move ${link.label} up`" @click="moveShortcut(index, -1)"><AdminIcon name="chevron-up" /></button>
+										<button type="button" class="panel-nav__tool" :disabled="index === shortcuts.length - 1" :aria-label="`Move ${link.label} down`" @click="moveShortcut(index, 1)"><AdminIcon name="chevron-down" /></button>
+										<button type="button" class="panel-nav__tool panel-nav__tool--remove" :aria-label="`Remove ${link.label}`" @click="unpinShortcut(link)"><AdminIcon name="x" /></button>
+									</span>
+								</div>
+								<RouterLink v-else class="panel-nav__link" :to="link.to">
+									<TypeIcon v-if="link.type" :type="link.type" />
+									<AdminIcon v-else :name="link.icon" />
+									<span class="panel-nav__label">{{ link.label }}</span>
+								</RouterLink>
+							</li>
+						</ul>
+						<p v-else class="panel-nav__empty">Nothing pinned yet.</p>
+						<div v-if="editingShortcuts && unpinned.length" class="panel-nav__add">
+							<MenuButton button-class="panel-nav__add-button" align="start" floating>
+								<template #button><AdminIcon name="plus" /><span class="panel-nav__label">Add a Shortcut</span></template>
+								<button v-for="item in unpinned" :key="item.pin" type="button" class="menu-item" @click="pinShortcut(item)">
+									<TypeIcon v-if="item.type" :type="item.type" />
+									<AdminIcon v-else :name="item.icon" />
+									{{ item.pinLabel ?? item.label }}
+								</button>
+							</MenuButton>
+						</div>
+					</div>
 				</nav>
 			</aside>
 		</div>
@@ -540,7 +677,7 @@ async function leave(): Promise<void> {
 
 			<!-- One element either way, as each route's `meta.bleed` says. -->
 			<main id="main" class="main" :class="{ 'main--bleed': bleed }">
-				<div :class="bleed ? 'bleed' : ['wrap', { 'wrap--wide': wide }]">
+				<div :class="bleed ? 'bleed' : ['wrap', { 'wrap--wide': wide, 'wrap--narrow': narrowColumn }]">
 					<slot />
 				</div>
 			</main>
@@ -752,6 +889,129 @@ async function leave(): Promise<void> {
 	font-family: var(--font-mono);
 	font-size: var(--text-xs);
 	font-weight: 400;
+}
+
+/* Shortcuts (D-547): Edit beside the heading, and while editing, rows
+   with their tools in place of links. */
+.panel-nav__heading-row {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding-bottom: var(--s-2);
+}
+
+.panel-nav__heading-row .panel-nav__heading {
+	padding-bottom: 0;
+}
+
+.panel-nav__edit {
+	margin-right: 4px;
+	padding: 2px 6px;
+	border: 0;
+	border-radius: var(--r-1);
+	background: none;
+	color: var(--fg-3);
+	font: inherit;
+	font-size: var(--text-xs);
+	font-weight: 600;
+	letter-spacing: .06em;
+	text-transform: uppercase;
+	cursor: pointer;
+}
+
+.panel-nav__edit:hover {
+	background: var(--surface-2);
+	color: var(--fg-2);
+}
+
+.panel-nav__edit[aria-pressed="true"] {
+	color: var(--accent);
+}
+
+.panel-nav__link.is-editing {
+	padding-right: 4px;
+}
+
+.panel-nav__link.is-editing:hover {
+	background: none;
+}
+
+.panel-nav__tools {
+	display: flex;
+	flex: none;
+	gap: 1px;
+	margin-left: auto;
+}
+
+.panel-nav__tool {
+	display: grid;
+	place-items: center;
+	width: 24px;
+	height: 24px;
+	padding: 0;
+	border: 0;
+	border-radius: var(--r-1);
+	background: none;
+	color: var(--fg-3);
+	cursor: pointer;
+}
+
+.panel-nav__tool:hover:not(:disabled) {
+	background: var(--surface-3);
+	color: var(--fg);
+}
+
+.panel-nav__tool--remove:hover:not(:disabled) {
+	background: var(--danger-soft);
+	color: var(--danger);
+}
+
+.panel-nav__tool:disabled {
+	cursor: default;
+	opacity: .35;
+}
+
+.panel-nav__tool .icon {
+	width: 14px;
+	height: 14px;
+}
+
+.panel-nav__empty {
+	margin: 0;
+	padding: var(--s-1) 10px;
+	color: var(--fg-3);
+	font-size: var(--text-sm);
+}
+
+.panel-nav__add {
+	margin-top: 3px;
+}
+
+.panel-nav__add :deep(.panel-nav__add-button) {
+	display: flex;
+	align-items: center;
+	gap: 11px;
+	width: 100%;
+	min-height: 36px;
+	padding: 0 10px;
+	border: 0;
+	border-radius: var(--r-1);
+	background: none;
+	color: var(--fg-3);
+	font: inherit;
+	font-weight: 500;
+	text-align: left;
+	cursor: pointer;
+}
+
+.panel-nav__add :deep(.panel-nav__add-button:hover),
+.panel-nav__add :deep(.panel-nav__add-button[aria-expanded="true"]) {
+	background: var(--surface-2);
+	color: var(--fg);
+}
+
+.panel-nav__add :deep(.menu-button) {
+	width: 100%;
 }
 
 /* A shared taxonomy names what it groups on a second line. */
@@ -1044,6 +1304,10 @@ async function leave(): Promise<void> {
    the right of the controls, so nothing is left stranded at the edge. */
 .wrap--wide {
 	max-width: none;
+}
+
+.wrap--narrow {
+	max-width: calc(980px + 2 * var(--s-6));
 }
 
 /* A page's header stands further from what follows than sections do

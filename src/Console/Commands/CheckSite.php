@@ -13,23 +13,18 @@ declare(strict_types=1);
 
 namespace Blush\Console\Commands;
 
-use Blush\Auth\AccountStore;
-use Blush\Auth\Accounts;
-use Blush\Auth\AuthException;
 use Blush\Console\Attributes\Command;
 use Blush\Console\ExitCode;
 use Blush\Console\Output;
 use Blush\Console\Style;
-use Blush\Core\AppConfig;
-use Blush\Core\Framework;
-use Blush\Extension\ExtensionState;
-use Blush\Extension\Requirements;
 use Blush\Setup\CheckResult;
 use Blush\Setup\CheckStatus;
 use Blush\Setup\SetupChecks;
+use Blush\Setup\SiteChecks;
 
 /**
- * Runs every setup check (D-218) and says what to fix. Fails when any
+ * Runs every setup check (D-218) and says what to fix: the same checks
+ * Site Health shows in the admin (`SiteChecks`, D-543). Fails when any
  * check fails, so deploy scripts can run it too. It also warns of
  * extensions that are on but can't run, since their requirements aren't
  * met (D-431): an active theme whose chain falls back to the default
@@ -44,16 +39,12 @@ use Blush\Setup\SetupChecks;
 final readonly class CheckSite
 {
 	public function __construct(
-		private SetupChecks $checks,
-		private AppConfig $app,
-		private ExtensionState $extensions,
-		private AccountStore $store,
-		private Accounts $accounts
+		private SiteChecks $checks
 	) {}
 
 	public function __invoke(Output $output): ExitCode
 	{
-		$results = [...$this->checks->all($this->app), ...$this->extensions(), ...$this->owner()];
+		$results = $this->checks->all();
 
 		foreach ($results as $result) {
 			$output->line(sprintf(
@@ -85,64 +76,5 @@ final readonly class CheckSite
 		$output->success($summary);
 
 		return ExitCode::Success;
-	}
-
-	/**
-	 * Warns when the site has accounts but no owner that isn't suspended
-	 * (D-500), since only an owner is sure to keep the site; fails when
-	 * the accounts can't be read. Says nothing without accounts.
-	 *
-	 * @return list<CheckResult>
-	 */
-	private function owner(): array
-	{
-		try {
-			if ($this->store->isEmpty()) {
-				return [];
-			}
-
-			return [$this->accounts->hasOwner()
-				? CheckResult::pass('Owner', 'The site has an owner.')
-				: CheckResult::warning('Owner', 'No account is the site\'s owner, so administrators can lock each other out.', sprintf('Run "%s account:roles {username} --role owner", or make yourself the owner on Your Account in the admin.', Framework::BINARY))];
-		} catch (AuthException $e) {
-			return [CheckResult::failure('Accounts', $e->getMessage())];
-		}
-	}
-
-	/**
-	 * Warns of the extensions that are on but can't run (D-431), or
-	 * passes when everything that's on runs.
-	 *
-	 * @return list<CheckResult>
-	 */
-	private function extensions(): array
-	{
-		$results = [];
-		$themes  = $this->extensions->themes->unmet();
-
-		if ($themes !== []) {
-			$results[] = CheckResult::warning(
-				'Theme',
-				sprintf('The "%s" theme can\'t run, so the default theme runs in its place. %s', $this->extensions->theme, Requirements::reason(array_merge(...array_values($themes)))),
-				sprintf('Run "%s theme:check" for more.', Framework::BINARY)
-			);
-		}
-
-		$kinds = [
-			['Plugins', 'plugin', array_keys($this->extensions->plugins->unmet()), 'plugin:check'],
-			['Icon packs', 'icon pack', array_keys($this->extensions->packs->unmet()), 'icon-pack:check']
-		];
-
-		foreach ($kinds as [$label, $kind, $names, $command]) {
-			if ($names !== []) {
-				$results[] = CheckResult::warning(
-					$label,
-					sprintf('%s %s %s turned on but can\'t run: %s.', count($names), count($names) === 1 ? $kind : "{$kind}s", count($names) === 1 ? 'is' : 'are', implode(', ', $names)),
-					sprintf('Run "%s %s" to see why.', Framework::BINARY, $command)
-				);
-			}
-		}
-
-		return $results === [] ? [CheckResult::pass('Extensions', 'Everything that\'s on runs.')] : $results;
 	}
 }

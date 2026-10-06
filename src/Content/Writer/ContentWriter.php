@@ -151,7 +151,7 @@ interface ContentWriter
 	public function delete(string $path, ?string $revision = null): WriteResult;
 
 	/**
-	 * Gives entries new ids (D-477), for `content:ids` and Content health:
+	 * Gives entries new ids (D-477), for `content:ids` and Site Health:
 	 * each file's `id` is set to a new UUIDv7 (added last when it has
 	 * none), all in one reindex. A file that can't be read or changed is
 	 * left as it is and named in the result.
@@ -162,7 +162,7 @@ interface ContentWriter
 
 	/**
 	 * Renames entries' files and folders (D-512), for `content:filenames`
-	 * and Content health: each entry, by its path, moves a set of files
+	 * and Site Health: each entry, by its path, moves a set of files
 	 * or folders (paths in the content folder, old to new) together, so
 	 * an entry and its translations move as one, all in one reindex.
 	 * When a move can't be made (a new path is taken, an old one is

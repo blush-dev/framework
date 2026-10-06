@@ -94,6 +94,7 @@
 	--title-size: 13.5px;    /* entry titles in lists */
 	--title-weight: 500;
 	--title-track: -.005em;
+	--title-lead: calc(var(--title-size) + 3px); /* an entry title that leads, as "You Were Editing" */
 	--doc: 14px;             /* the editor's text */
 	--doc-title: 34px;       /* the editor's title, part of the document */
 

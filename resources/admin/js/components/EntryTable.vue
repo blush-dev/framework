@@ -57,6 +57,7 @@ import { listRoute } from '../types';
 import { config } from '../config';
 import { formatDate } from '../format';
 import { initials } from '../people';
+import { can } from '../session';
 import { copyText } from '../toast';
 import AdminIcon from './AdminIcon.vue';
 import MenuButton from './MenuButton.vue';
@@ -267,7 +268,7 @@ async function copyLink(entry: EntrySummary): Promise<void> {
 								</template>
 								<template v-if="entry.authorsPage">{{ ' ' }}<span class="index-mark">{{ entry.peopleLabel ?? 'People' }}</span></template>
 								<template v-if="entry.errorPage !== null">{{ ' ' }}<span class="index-mark">Error {{ entry.errorPage }}</span></template>
-								<template v-if="entry.id === null">{{ ' ' }}<RouterLink class="index-mark" :to="{ name: 'health' }" title="This file has no id, so it can't be edited until it has one. Add it on Content Health.">No ID</RouterLink></template>
+								<template v-if="entry.id === null">{{ ' ' }}<RouterLink v-if="can('site.health')" class="index-mark" :to="{ name: 'health-check', params: { area: 'content', check: 'ids' } }" title="This file has no id, so it can't be edited until it has one. Add it on Site Health.">No ID</RouterLink><span v-else class="index-mark" title="This file has no id, so it can't be edited until it has one. Someone who sees Site Health can add it.">No ID</span></template>
 								{{ ' ' }}<span v-if="entry.own && profiles" class="tag--you">You</span>
 								{{ ' ' }}<span v-if="entry.continued" class="tag" title="Listed on an earlier page; shown again above the entries under it">Continued</span>
 							</span>

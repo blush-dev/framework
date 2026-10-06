@@ -124,7 +124,7 @@ it, and the others get new ones:
 bin/blush media:ids --keep=2026/10/sunset.jpg
 ```
 
-**Content health** in the admin does the same, under **Media IDs**.
+**Site Health** in the admin does the same, under Media Files' **Media IDs**.
 
 **Image sizes** aren't media of their own. Media brought from another
 system often has resized copies of each image (`photo-300x200.jpg`,
@@ -165,7 +165,7 @@ bin/blush media:sizes           # say how many sizes aren't listed yet
 bin/blush media:sizes --write   # list them
 ```
 
-This also takes out listed files that are gone. **Content health** in
+This also takes out listed files that are gone. **Site Health** in
 the admin does the same, under **Image Sizes**.
 
 ## The media index
@@ -187,7 +187,7 @@ gone: move them with the file, or delete them.
 
 ## Checking the details
 
-`bin/blush content:lint` (and **Content health** in the admin) checks
+`bin/blush content:lint` (and **Site Health** in the admin) checks
 every file in `user/data/media/` along with your content:
 
 - **Errors:** a file that can't be read, such as YAML with a typo, or a

@@ -20,14 +20,18 @@ use Blush\Auth\Account;
 use Blush\Auth\Accounts;
 use Blush\Auth\AdminTheme;
 use Blush\Auth\ColorScheme;
+use Blush\Auth\Preferences;
 use Blush\Http\Response;
 use Blush\Http\Status;
 
 /**
  * Answers `PATCH {path}/api/preferences` (D-235): changes the signed-in
  * account's own preferences, which any account may do, and answers with
- * all of them. Today that's `colorScheme` (`system`, `light`, or
- * `dark`); preferences not sent are left as they are.
+ * all of them: `colorScheme` (`system`, `light`, or `dark`),
+ * `adminTheme`, `setupSkipped` (D-539), and `shortcuts` (D-547, a list
+ * of screen ids, or `null` for the default); preferences not sent are left
+ * as they are. The entry last saved (`lastEdited`) is written by saving
+ * one, not here.
  */
 final readonly class PreferencesController
 {
@@ -44,7 +48,7 @@ final readonly class PreferencesController
 		}
 
 		try {
-			$input = json_decode((string) $request->getBody(), true, 4, JSON_THROW_ON_ERROR);
+			$input = json_decode((string) $request->getBody(), true, 8, JSON_THROW_ON_ERROR);
 		} catch (JsonException) {
 			$input = null;
 		}
@@ -73,6 +77,22 @@ final readonly class PreferencesController
 			}
 
 			$preferences = $preferences->withAdminTheme($theme);
+		}
+
+		if (array_key_exists('setupSkipped', $input)) {
+			if (! is_bool($input['setupSkipped'])) {
+				return self::json(['error' => '"setupSkipped" must be true or false.'], Status::BadRequest);
+			}
+
+			$preferences = $preferences->withSetupSkipped($input['setupSkipped']);
+		}
+
+		if (array_key_exists('shortcuts', $input)) {
+			if ($input['shortcuts'] !== null && ! Preferences::isShortcuts($input['shortcuts'])) {
+				return self::json(['error' => sprintf('"shortcuts" must be null, or a list of up to %d distinct screen ids.', Preferences::MAX_SHORTCUTS)], Status::BadRequest);
+			}
+
+			$preferences = $preferences->withShortcuts($input['shortcuts']);
 		}
 
 		$account = $this->accounts->setPreferences($account, $preferences);

@@ -20,7 +20,7 @@ use Blush\Media\Index\MediaRecord;
 
 /**
  * Records each image's sizes in its metadata file (D-488), for
- * `media:sizes` and Content health in the admin. The media index finds
+ * `media:sizes` and Site Health in the admin. The media index finds
  * sizes by their names (D-239) when they aren't listed; recording
  * them writes what it found as `sizes`, each file's key mapped to its
  * width and height, so it's known from then on rather than guessed:

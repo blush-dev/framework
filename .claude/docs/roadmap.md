@@ -357,13 +357,19 @@ each (a plugin's requirements, a pack's icons).
 Then toasts from the toast sketch (D-387, `admin-design/toast-sketch.html`):
 kinds, a countdown bar that holds on hover and focus, stacking, and Undo
 where the reverse is exact.
+Then the Home sketch (`admin-design/meridian-home.html`, D-537), in
+stages: (1) the dashboard of what needs you first and Tools with
+actions and the log (D-538 to D-541, built); (2) Site Health in place
+of Content Health, with real checks only and a Requirements tab (D-543,
+built); (3)
+editable Shortcuts, kept with the account's preferences (D-547, built).
 Undo on moving to the trash is built (D-525). Smaller admin items
 waiting: the admin theme choice (a second
 account preference, D-235), objects in forms, autosave, and Pages
 and hierarchical terms as a tree (see D-233 to D-237's and D-257's open
 items). Later: the admin's dates in the site's date and time
-formats where they read as dates, not in compact columns, the
-Calendar's grid, or pickers (D-446).
+formats where they read as dates, not in compact columns or
+pickers (D-446).
 
 Testing the admin on the jtcom trial: create a throwaway administrator
 account file in `../blush/storage/accounts/` (an Argon2id hash), drive
@@ -470,11 +476,10 @@ on demand, for what's loaded at once, is in `open-questions.md`.
   Users and Accounts screens next. Later: the open questions under
   Role capabilities in `open-questions.md`.
 - **Home's screens (D-368):** what belongs under Home besides the
-  Dashboard and Content health. (1, done, D-368) The **Calendar**: a
-  month of dated entries (published, scheduled, and drafts with a
-  date), read-only. Next maybe: **Publishing** (the cache and a button
-  to clear it; the author is interested, not decided). The calendar stays read-only: no dragging to
-  reschedule (the author's call). Activity (who
+  Dashboard and Content health. (1, D-368) The **Calendar**, a month
+  of dated entries, was built and then removed: it's for a plugin
+  later (D-550). Next maybe: **Publishing** (the cache and a button
+  to clear it; the author is interested, not decided). Activity (who
   changed what) is extension territory, not core.
 - **Relationships (D-242, planned):** a reverse index for every
   reference field, keyed by field, with a template API and "Used by" in

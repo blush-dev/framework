@@ -158,7 +158,7 @@ final class MediaSizesTest extends TestCase
 		$messages       = array_map(static fn (array $list): array => array_map(static fn (Violation $violation): string => "{$violation->severity->value} {$violation}", $list), array_filter($violations));
 
 		$this->assertSame(['error sizes: isn\'t a map of each size\'s file to its width and height; record them again with media:sizes --write.'], $messages['user/data/media/2019/photo.png.yml'] ?? null);
-		$this->assertSame(['warning sizes: lists user/media/2026/kite-10x10.png, which isn\'t one of its sizes (it\'s gone, or another image\'s); record them again with media:sizes --write, or on Content health in the admin.'], $messages['user/data/media/2026/kite.png.yml'] ?? null);
+		$this->assertSame(['warning sizes: lists user/media/2026/kite-10x10.png, which isn\'t one of its sizes (it\'s gone, or another image\'s); record them again with media:sizes --write, or on Site Health in the admin.'], $messages['user/data/media/2026/kite.png.yml'] ?? null);
 		$this->assertSame(['warning file: describes user/media/2026/lake-small.png, a size of user/media/2026/lake.png, whose details are read instead; move these there, or give this file an id of its own to keep it apart.'], $messages['user/data/media/2026/lake-small.png.yml'] ?? null);
 		$this->assertArrayNotHasKey('user/media/2026/lake-small.png', $messages, 'A recorded size needs no id.');
 	}

@@ -39,9 +39,12 @@ use Blush\Session\StartSession;
  *   - `POST password`: changes the account's own password.
  *   - `POST set-password`: sets a password with a password link, and
  *     signs in (D-312; no account needed).
- *   - `GET  dashboard`: the site, content counts, and the actions the
- *     account may run.
- *   - `POST actions/{action}`: runs an action.
+ *   - `GET  dashboard`: the site, and the entries waiting on the account
+ *     (D-538).
+ *   - `GET  actions`: the actions the account may run, by source, and
+ *     `POST actions/{action}` runs one (D-540).
+ *   - `GET  logs`: the end of the site's log, and `GET logs/download`
+ *     all of it (D-540, D-541).
  *   - `GET  types`: the site's content types, and `GET types/{name}` one;
  *     `POST types`, `PATCH` and `DELETE types/{name}`, and `POST
  *     types/refresh` edit the ones in `user/data/types`, and change
@@ -69,15 +72,17 @@ use Blush\Session\StartSession;
  *     yet written, D-336), each entry named by its id (D-481, D-483);
  *     and the trash (D-484): `POST entries/{id}/restore` and `POST
  *     entries/empty-trash`.
- *   - `GET  health`: the content's lint problems, and `POST health/ids`
+ *   - `GET  health/site`: Site Health's last report (D-543, D-545), and
+ *     `POST health/site` checks again; with `site.health`, as
+ *     everything under `health`.
+ *   - `GET  health`: the content's lint problems as last checked, and
+ *     `POST health` checks them again (D-546), and `POST health/ids`
  *     and `POST health/ids/keep` to fix ids (D-477, D-478), and `POST
  *     health/media-ids` and `POST health/media-ids/keep` for media's
  *     (D-487), `POST health/media-sizes` to record images' sizes
  *     (D-488), `POST health/filenames` to rename a type's files to its
  *     pattern (D-512), and `POST health/flatten` to move collections'
  *     entries out of folders (D-514).
- *   - `GET  calendar`: a month of dated entries (`CalendarController`,
- *     D-368).
  *   - `GET  roles` and `GET accounts`: the site's roles and accounts
  *     (`PeopleController`); `GET profiles`, `GET profiles/{slug}`, and `POST` and
  *     `DELETE` the pages written for its archives (`ProfilesController`,
@@ -142,7 +147,10 @@ final readonly class AdminRoutes implements RouteSource
 			Route::post('/set-password', SetPasswordController::class)->named('set-password'),
 			Route::get('/dashboard', DashboardController::class)->named('dashboard')->middleware(Authenticate::class),
 			Route::get('/counts', CountsController::class)->named('counts')->middleware(Authenticate::class),
+			Route::get('/actions', [ActionController::class, 'index'])->named('actions')->middleware(Authenticate::class),
 			Route::post('/actions/{action:[a-z0-9][a-z0-9-]*}', ActionController::class)->named('action')->middleware(Authenticate::class),
+			Route::get('/logs', [LogController::class, 'show'])->named('logs')->middleware(Authenticate::class),
+			Route::get('/logs/download', [LogController::class, 'download'])->named('logs.download')->middleware(Authenticate::class),
 			Route::get('/types', TypesController::class)->named('types')->middleware(Authenticate::class),
 			Route::post('/types', [TypeEditController::class, 'create'])->named('type.create')->middleware(Authenticate::class),
 			Route::post('/types/refresh', [TypeEditController::class, 'refresh'])->named('types.refresh')->middleware(Authenticate::class),
@@ -175,6 +183,9 @@ final readonly class AdminRoutes implements RouteSource
 			Route::patch('/entries/{id:[0-9a-fA-F-]{36}}', [EntryController::class, 'update'])->named('entry.update')->middleware(Authenticate::class),
 			Route::delete('/entries/{id:[0-9a-fA-F-]{36}}', [EntryController::class, 'delete'])->named('entry.delete')->middleware(Authenticate::class),
 			Route::get('/health', HealthController::class)->named('health')->middleware(Authenticate::class),
+			Route::post('/health', [HealthController::class, 'check'])->named('health.check')->middleware(Authenticate::class),
+			Route::get('/health/site', [SiteHealthController::class, 'show'])->named('health.site')->middleware(Authenticate::class),
+			Route::post('/health/site', [SiteHealthController::class, 'run'])->named('health.site.run')->middleware(Authenticate::class),
 			Route::post('/health/ids', [HealthController::class, 'assign'])->named('health.ids')->middleware(Authenticate::class),
 			Route::post('/health/ids/keep', [HealthController::class, 'keep'])->named('health.ids.keep')->middleware(Authenticate::class),
 			Route::post('/health/media-ids', [HealthController::class, 'assignMedia'])->named('health.media-ids')->middleware(Authenticate::class),
@@ -182,7 +193,6 @@ final readonly class AdminRoutes implements RouteSource
 			Route::post('/health/media-sizes', [HealthController::class, 'recordSizes'])->named('health.media-sizes')->middleware(Authenticate::class),
 			Route::post('/health/filenames', [HealthController::class, 'renameFiles'])->named('health.filenames')->middleware(Authenticate::class),
 			Route::post('/health/flatten', [HealthController::class, 'flatten'])->named('health.flatten')->middleware(Authenticate::class),
-			Route::get('/calendar', CalendarController::class)->named('calendar')->middleware(Authenticate::class),
 			Route::get('/roles', [PeopleController::class, 'roles'])->named('roles')->middleware(Authenticate::class),
 			Route::post('/roles', [RoleEditController::class, 'create'])->named('role.create')->middleware(Authenticate::class),
 			Route::patch('/roles/{name:[a-z][a-z0-9_-]*}', [RoleEditController::class, 'update'])->named('role.update')->middleware(Authenticate::class),

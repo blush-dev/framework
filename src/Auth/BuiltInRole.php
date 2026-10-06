@@ -26,7 +26,8 @@ use Blush\Media\MediaKind;
  * whoever runs the site can hand out administrator and never be locked
  * out by it. The administrator has a list: every built-in capability but
  * installing, updating, and deleting plugins and themes, which put code
- * on the site (`ExtensionAction::changesCode()`). An owner may add them,
+ * on the site (`ExtensionAction::changesCode()`), and Site Health
+ * (`site.health`, D-544). An owner may add them,
  * or a plugin's capabilities, to it.
  *
  * The member (D-365) never has a capability: it's what an account holds
@@ -67,7 +68,7 @@ enum BuiltInRole: string
 	{
 		return match ($this) {
 			self::Owner         => 'Everything, always. Only an owner can change an owner\'s account or make another owner.',
-			self::Administrator => 'Runs the site: accounts, roles, content types, settings, and every entry. Installs icon packs, but not plugins or themes.',
+			self::Administrator => 'Runs the site: accounts, roles, content types, settings, and every entry. Installs icon packs, but not plugins or themes, and doesn\'t see Site Health.',
 			self::Editor        => 'Publishes and edits anyone\'s entries, and publishes the site. Can\'t change its structure.',
 			self::Author        => 'Writes and publishes their own entries, and uploads media.',
 			self::Contributor   => 'Writes drafts of their own entries, and uploads images. Can\'t publish.',
@@ -100,7 +101,8 @@ enum BuiltInRole: string
 		};
 
 		$site = match ($this) {
-			self::Administrator => Capability::cases(),
+			// Site Health is the owner's (D-544).
+			self::Administrator => array_values(array_filter(Capability::cases(), static fn (Capability $capability): bool => $capability !== Capability::SiteHealth)),
 			self::Editor => [
 				Capability::MediaEdit,
 				Capability::MediaEditOthers,

@@ -341,8 +341,12 @@ final readonly class EntryController
 
 		$entry = $this->content->findPath($result->path);
 
+		if ($entry !== null) {
+			$this->remember($account, $entry);
+		}
+
 		return $entry === null
-			? self::error('The entry was written but couldn\'t be read back; check content health.', Status::UnprocessableContent)
+			? self::error('The entry was written but couldn\'t be read back; check Site Health.', Status::UnprocessableContent)
 			: self::json($this->describe($account, $entry, $this->writer->load($result->path)), Status::Created);
 	}
 
@@ -508,11 +512,24 @@ final readonly class EntryController
 
 		if ($updated !== null) {
 			$this->redirectUnder($entry, $updated, $under);
+			$this->remember($account, $updated);
 		}
 
 		return $updated === null
-			? self::error('The entry was saved but couldn\'t be read back; check content health.', Status::UnprocessableContent)
+			? self::error('The entry was saved but couldn\'t be read back; check Site Health.', Status::UnprocessableContent)
 			: self::json($this->describe($account, $updated, $this->writer->load($path)));
+	}
+
+	/**
+	 * Keeps the entry as the one the account last saved, for the
+	 * dashboard's "You Were Editing" (D-539). The account's file is
+	 * written only when that changes.
+	 */
+	private function remember(Account $account, Entry $entry): void
+	{
+		if ($entry->id !== null && $account->preferences->lastEdited !== $entry->id) {
+			$this->accounts->save($account->withPreferences($account->preferences->withLastEdited($entry->id)));
+		}
 	}
 
 	/**
@@ -589,7 +606,7 @@ final readonly class EntryController
 		$copy = $this->content->findPath($result->path);
 
 		return $copy === null
-			? self::error('The copy was written but couldn\'t be read back; check content health.', Status::UnprocessableContent)
+			? self::error('The copy was written but couldn\'t be read back; check Site Health.', Status::UnprocessableContent)
 			: self::json($this->describe($account, $copy, $this->writer->load($result->path)), Status::Created);
 	}
 

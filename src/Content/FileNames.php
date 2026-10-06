@@ -32,7 +32,7 @@ use Blush\Core\AppConfig;
 /**
  * Finds the entries of each type named by another pattern than its
  * `filename` (D-511, any kind since D-514), and renames them to it
- * (D-512), for `content:filenames` and Content health in the admin
+ * (D-512), for `content:filenames` and Site Health in the admin
  * (D-478). A pattern only changes what comes before the slug, so a
  * rename never changes an entry's address.
  *

@@ -26,6 +26,10 @@ namespace Blush\Auth;
  * (`media.{kind}.upload`, `MediaKind::uploadCapability()`), with
  * `media.*.upload` for every kind.
  *
+ * Logs (D-541): reading the site's log on the Tools screen, which can hold
+ * paths and error details. Health (D-543): Site Health, its checks and
+ * requirements, and its fixes for content and media files.
+ *
  * HTML (D-495): adding raw HTML to a body in the admin, from the allowed
  * list (`html.allowed`) or anything but what's always refused
  * (`html.unfiltered`; `Markdown\Html\HtmlRules`). Without either, a save
@@ -44,6 +48,8 @@ enum Capability: string
 	case SitePublish     = 'site.publish';
 	case CacheClear      = 'cache.clear';
 	case SiteSettings    = 'site.settings';
+	case SiteLogs        = 'site.logs';
+	case SiteHealth      = 'site.health';
 	case AccountsView    = 'accounts.view';
 	case AccountsCreate  = 'accounts.create';
 	case AccountsEdit    = 'accounts.edit';
@@ -95,7 +101,8 @@ enum Capability: string
 			self::MediaDelete, self::MediaDeleteOthers              => 'Media',
 			self::HtmlAllowed, self::HtmlUnfiltered                 => 'HTML',
 			self::MenusEdit, self::RegionsEdit                      => 'Structure',
-			self::SitePublish, self::CacheClear, self::SiteSettings => 'Site',
+			self::SitePublish, self::CacheClear,
+			self::SiteSettings, self::SiteLogs, self::SiteHealth    => 'Site',
 			default                                                 => 'Users'
 		};
 	}
@@ -117,6 +124,8 @@ enum Capability: string
 			self::SitePublish     => 'Publish the site',
 			self::CacheClear      => 'Clear caches',
 			self::SiteSettings    => 'Change site settings',
+			self::SiteLogs        => 'Read the site\'s log',
+			self::SiteHealth      => 'See site health and fix what it finds',
 			self::AccountsView    => 'See accounts and roles',
 			self::AccountsCreate  => 'Create accounts',
 			self::AccountsEdit    => 'Edit accounts',

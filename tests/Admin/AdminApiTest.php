@@ -147,14 +147,14 @@ final class AdminApiTest extends TestCase
 		$token = self::json($this->login())['csrfToken'] ?? null;
 		$this->assertIsString($token);
 
-		$this->assertSame(['colorScheme' => 'system', 'adminTheme' => 'neutral'], self::account($this->send('GET', '/session'))['preferences'] ?? null);
+		$this->assertSame(['colorScheme' => 'system', 'adminTheme' => 'neutral', 'lastEdited' => null, 'setupSkipped' => false, 'shortcuts' => null], self::account($this->send('GET', '/session'))['preferences'] ?? null);
 
 		$answer = $this->send('PATCH', '/preferences', '{"colorScheme": "dark"}', ['X-CSRF-Token' => $token]);
 
 		$this->assertSame(200, $answer->getStatusCode());
-		$this->assertSame(['preferences' => ['colorScheme' => 'dark', 'adminTheme' => 'neutral']], self::json($answer));
+		$this->assertSame(['preferences' => ['colorScheme' => 'dark', 'adminTheme' => 'neutral', 'lastEdited' => null, 'setupSkipped' => false, 'shortcuts' => null]], self::json($answer));
 		$this->assertSame(ColorScheme::Dark, $this->app->container()->make(AccountStore::class)->find('jane')?->preferences->colorScheme);
-		$this->assertSame(['colorScheme' => 'dark', 'adminTheme' => 'neutral'], self::account($this->send('GET', '/session'))['preferences'] ?? null, 'Saving doesn\'t sign the account out.');
+		$this->assertSame(['colorScheme' => 'dark', 'adminTheme' => 'neutral', 'lastEdited' => null, 'setupSkipped' => false, 'shortcuts' => null], self::account($this->send('GET', '/session'))['preferences'] ?? null, 'Saving doesn\'t sign the account out.');
 
 		$this->send('PATCH', '/preferences', '{"adminTheme": "editorial"}', ['X-CSRF-Token' => $token]);
 

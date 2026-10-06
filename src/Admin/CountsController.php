@@ -17,6 +17,7 @@ use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Blush\Auth\Account;
 use Blush\Auth\AccountStore;
+use Blush\Admin\Action\AdminActions;
 use Blush\Auth\AuthException;
 use Blush\Auth\Capability;
 use Blush\Auth\ContentAction;
@@ -46,6 +47,10 @@ use Blush\Theme\Themes;
  *   how many entries its list shows the account (any status, without
  *   its index page, root page, or people pages, as `GET entries` counts
  *   them).
+ * - `actions`: how many actions the account may run, so the Tools screen
+ *   is listed only with something on it (D-540).
+ * - `health`: how many checks in Site Health's last report need a look,
+ *   with `site.health`, when there's a report (D-545).
  * - `media`: the files in the library, with a media capability (D-372,
  *   D-407).
  * - `accounts` and `roles`, with `accounts.view`.
@@ -69,7 +74,9 @@ final readonly class CountsController
 		private Paths $paths,
 		private MediaLibrary $media,
 		private Themes $themes,
-		private IconPacks $iconPacks
+		private IconPacks $iconPacks,
+		private AdminActions $actions,
+		private SiteHealth $health
 	) {}
 
 	public function __invoke(ServerRequestInterface $request): ResponseInterface
@@ -94,7 +101,7 @@ final readonly class CountsController
 			$types[$type->name] = $query->count();
 		}
 
-		$counts = ['types' => $types];
+		$counts = ['types' => $types, 'actions' => count($this->actions->allowed($account))];
 
 		if ($this->permissions->usesMedia($account)) {
 			$counts['media'] = $this->media->query(new MediaQuery(per: 1))->total;
@@ -108,6 +115,11 @@ final readonly class CountsController
 			}
 
 			$counts['roles'] = count($this->roles->all());
+		}
+
+		// From Site Health's last report, never a new check (D-545).
+		if ($this->permissions->can($account, Capability::SiteHealth) && ($issues = $this->health->issues()) !== null) {
+			$counts['health'] = $issues;
 		}
 
 		if ($this->permissions->can($account, Capability::SiteSettings)) {

@@ -154,8 +154,8 @@ final readonly class RecordBuilder
 	{
 		return match (true) {
 			Uuid::isValid($id)          => [],
-			$id === null || $id === '' => [new Violation(EntryFields::ID, 'is missing; every entry needs one. Add it with content:ids --write, or on Content health in the admin.')],
-			default                    => [new Violation(EntryFields::ID, sprintf('"%s" isn\'t a UUID; give the entry a new one with content:ids --write, or on Content health in the admin.', is_scalar($id) ? (string) $id : get_debug_type($id)))]
+			$id === null || $id === '' => [new Violation(EntryFields::ID, 'is missing; every entry needs one. Add it with content:ids --write, or on Site Health in the admin.')],
+			default                    => [new Violation(EntryFields::ID, sprintf('"%s" isn\'t a UUID; give the entry a new one with content:ids --write, or on Site Health in the admin.', is_scalar($id) ? (string) $id : get_debug_type($id)))]
 		};
 	}
 

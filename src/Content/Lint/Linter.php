@@ -137,7 +137,7 @@ final readonly class Linter
 			foreach ($paths as $path) {
 				$others = array_values(array_diff($paths, [$path]));
 
-				$violations[$path][] = new Violation(EntryFields::ID, sprintf('is also the id of %s; keep it on one file and give the others new ones with content:ids --keep, or on Content health in the admin.', implode(', ', $others)));
+				$violations[$path][] = new Violation(EntryFields::ID, sprintf('is also the id of %s; keep it on one file and give the others new ones with content:ids --keep, or on Site Health in the admin.', implode(', ', $others)));
 			}
 		}
 
@@ -340,7 +340,7 @@ final readonly class Linter
 		}
 
 		return [new Violation(self::FILE, sprintf(
-			'%s; a collection\'s entries are files in its folder. Move it to %s with content:flatten, or on Content health in the admin.',
+			'%s; a collection\'s entries are files in its folder. Move it to %s with content:flatten, or on Site Health in the admin.',
 			str_starts_with(basename($record->path), 'index.') ? 'is a folder entry' : 'is in a folder below its collection\'s',
 			$flat
 		))];

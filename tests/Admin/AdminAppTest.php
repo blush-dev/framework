@@ -25,8 +25,11 @@ use Blush\Admin\ActionController;
 use Blush\Admin\AdminApp;
 use Blush\Admin\AssetController;
 use Blush\Admin\DashboardController;
+use Blush\Admin\LogController;
 use Blush\Admin\ShellController;
+use Blush\Auth\AccountStore;
 use Blush\Auth\Capabilities;
+use Blush\Content\ContentRepository;
 use Blush\Tests\Fixtures\Admin\GreetAction;
 
 #[CoversClass(AdminApp::class)]
@@ -34,6 +37,7 @@ use Blush\Tests\Fixtures\Admin\GreetAction;
 #[CoversClass(AssetController::class)]
 #[CoversClass(DashboardController::class)]
 #[CoversClass(ActionController::class)]
+#[CoversClass(LogController::class)]
 #[CoversClass(AdminActions::class)]
 #[CoversClass(ActionResult::class)]
 #[CoversClass(PublishAction::class)]
@@ -65,6 +69,17 @@ final class AdminAppTest extends TestCase
 		$this->assertIsString($token);
 
 		return $token;
+	}
+
+	/**
+	 * Returns the titles in one of a dashboard list's groups.
+	 *
+	 * @param  array<mixed> $groups
+	 * @return list<mixed>
+	 */
+	private static function titles(array $groups, string $group): array
+	{
+		return is_array($groups[$group] ?? null) ? array_column($groups[$group], 'title') : [];
 	}
 
 	public function testServesTheBundledAppAtEveryScreen(): void
@@ -150,10 +165,14 @@ final class AdminAppTest extends TestCase
 		$this->assertSame(503, $this->visit('GET', '/admin')->getStatusCode());
 	}
 
-	public function testTheDashboardDescribesTheSiteAndTheAccountsActions(): void
+	public function testTheDashboardListsWhatNeedsTheAccountFirst(): void
 	{
-		$this->writeTemporaryFile('user/content/about.md', "---\ntitle: About\n---\n");
-		$this->writeTemporaryFile('user/content/idea.md', "---\ntitle: Idea\nstatus: draft\n---\n");
+		// Pages don't credit authors unless the site says so (D-329).
+		$this->writeTemporaryFile('user/data/types/page.yaml', "kind: tree\nauthors: true\n");
+		$this->writeTemporaryFile('user/content/about.md', "---\ntitle: About\nauthors: jane\n---\n");
+		$this->writeTemporaryFile('user/content/idea.md', "---\ntitle: Idea\nstatus: draft\nauthors: jane\nupdated: 2026-01-02\n---\n");
+		$this->writeTemporaryFile('user/content/notes.md', "---\ntitle: Notes\nstatus: draft\nauthors: sam\nupdated: 2026-01-01\n---\n");
+		$this->writeTemporaryFile('user/content/soon.md', "---\ntitle: Soon\npublished: 2099-01-01 09:00:00\nauthors: jane\n---\n");
 		$this->boot();
 
 		$this->assertSame(401, $this->send('GET', '/dashboard')->getStatusCode());
@@ -162,11 +181,131 @@ final class AdminAppTest extends TestCase
 		$dashboard = self::json($this->send('GET', '/dashboard'));
 
 		$this->assertIsArray($dashboard['site'] ?? null);
-		$this->assertIsArray($dashboard['content'] ?? null);
 		$this->assertSame('development', $dashboard['site']['environment'] ?? null);
-		$this->assertSame(1, $dashboard['content']['draft'] ?? null);
-		$this->assertIsArray($dashboard['actions'] ?? null);
-		$this->assertSame(['publish', 'reindex', 'clear-caches'], array_column($dashboard['actions'], 'name'));
+		$this->assertSame(1, $dashboard['published'] ?? null);
+		$this->assertArrayHasKey('resume', $dashboard);
+		$this->assertNull($dashboard['resume']);
+		$this->assertArrayNotHasKey('actions', $dashboard, 'Actions are on the Tools screen.');
+
+		$yours    = $dashboard['yours'] ?? null;
+		$everyone = $dashboard['everyone'] ?? null;
+		$this->assertIsArray($yours);
+		$this->assertIsArray($everyone);
+		$this->assertSame(['Idea'], self::titles($yours, 'draft'));
+		$this->assertSame(['Soon'], self::titles($yours, 'scheduled'));
+		$this->assertSame(['About'], self::titles($yours, 'published'));
+		$this->assertSame(['Idea', 'Notes'], self::titles($everyone, 'draft'));
+		$this->assertIsArray($everyone['draft']);
+		$this->assertSame([true, false], array_column($everyone['draft'], 'yours'));
+
+		$setup = $dashboard['setup'] ?? null;
+		$this->assertIsArray($setup);
+		$this->assertSame('page', $setup['type'] ?? null);
+		$this->assertIsArray($setup['page'] ?? null);
+		$this->assertFalse($setup['ownTypes'] ?? null);
+	}
+
+	public function testTheDashboardResumesTheEntryLastSaved(): void
+	{
+		$this->writeTemporaryFile('user/content/idea.md', "---\ntitle: Idea\nstatus: draft\nauthors: jane\n---\n");
+		$this->boot();
+		$token = $this->token();
+		$id    = $this->app->container()->make(ContentRepository::class)->findPath('idea.md')?->id;
+		$this->assertIsString($id);
+
+		$revision = self::json($this->send('GET', "/entries/{$id}"))['revision'] ?? null;
+		$this->assertIsString($revision);
+
+		$this->assertSame(200, $this->send('PATCH', "/entries/{$id}", json_encode(['revision' => $revision, 'set' => ['title' => 'A Better Idea']]) ?: '', ['X-CSRF-Token' => $token])->getStatusCode());
+		$this->assertSame($id, $this->app->container()->make(AccountStore::class)->find('jane')?->preferences->lastEdited);
+
+		$dashboard = self::json($this->send('GET', '/dashboard'));
+
+		$this->assertIsArray($dashboard['resume'] ?? null);
+		$this->assertSame('A Better Idea', $dashboard['resume']['title'] ?? null);
+		$this->assertIsArray($dashboard['yours'] ?? null);
+		$this->assertSame([], $dashboard['yours']['draft'] ?? null, 'The entry being resumed isn\'t listed again.');
+	}
+
+	public function testTheSetupPathCanBeSkipped(): void
+	{
+		$this->boot();
+		$token = $this->token();
+
+		$this->assertSame(400, $this->send('PATCH', '/preferences', '{"setupSkipped": "yes"}', ['X-CSRF-Token' => $token])->getStatusCode());
+
+		$answer = self::json($this->send('PATCH', '/preferences', '{"setupSkipped": true}', ['X-CSRF-Token' => $token]));
+
+		$this->assertIsArray($answer['preferences'] ?? null);
+		$this->assertTrue($answer['preferences']['setupSkipped'] ?? null);
+		$this->assertTrue($this->app->container()->make(AccountStore::class)->find('jane')?->preferences->setupSkipped);
+	}
+
+	public function testKeepsTheAccountsShortcuts(): void
+	{
+		$this->boot();
+		$token = $this->token();
+
+		foreach (['"yes"', '["a", "a"]', '["Not An Id"]', json_encode(array_map(static fn (int $n): string => "type:t{$n}", range(1, 31)))] as $bad) {
+			$this->assertSame(400, $this->send('PATCH', '/preferences', "{\"shortcuts\": {$bad}}", ['X-CSRF-Token' => $token])->getStatusCode(), (string) $bad);
+		}
+
+		$answer = self::json($this->send('PATCH', '/preferences', '{"shortcuts": ["type:post", "media", "settings:general"]}', ['X-CSRF-Token' => $token]));
+
+		$this->assertIsArray($answer['preferences'] ?? null);
+		$this->assertSame(['type:post', 'media', 'settings:general'], $answer['preferences']['shortcuts'] ?? null);
+		$this->assertSame(['type:post', 'media', 'settings:general'], $this->app->container()->make(AccountStore::class)->find('jane')?->preferences->shortcuts);
+
+		$reset = self::json($this->send('PATCH', '/preferences', '{"shortcuts": null}', ['X-CSRF-Token' => $token]));
+
+		$this->assertIsArray($reset['preferences'] ?? null);
+		$this->assertArrayHasKey('shortcuts', $reset['preferences']);
+		$this->assertNull($reset['preferences']['shortcuts'], 'Back to the default.');
+	}
+
+	public function testListsTheAccountsActionsBySource(): void
+	{
+		$this->boot();
+		$this->login();
+
+		$groups = self::json($this->send('GET', '/actions'))['groups'] ?? null;
+
+		$this->assertIsArray($groups);
+		$this->assertSame([['kind' => 'core', 'label' => 'Blush']], array_column($groups, 'source'));
+		$this->assertIsArray($groups[0] ?? null);
+		$this->assertIsArray($groups[0]['actions'] ?? null);
+		$this->assertSame(['publish', 'reindex', 'clear-caches'], array_column($groups[0]['actions'], 'name'));
+		$this->assertSame(3, self::json($this->send('GET', '/counts'))['actions'] ?? null);
+	}
+
+	public function testReadsTheLogWithTheCapability(): void
+	{
+		$this->writeTemporaryFile('storage/logs/blush.log', "Cut off\n[2026-10-06T09:00:00+00:00] blush.WARNING: First\n[2026-10-06T09:01:00+00:00] blush.ERROR: Second\nTrace line one\nTrace line two\n");
+		$this->boot(roles: ['administrator']);
+		$this->login();
+
+		$log = self::json($this->send('GET', '/logs'));
+
+		$this->assertSame('file', $log['driver'] ?? null);
+		$this->assertSame('storage/logs/blush.log', $log['file'] ?? null);
+		$this->assertSame([
+			['time' => '2026-10-06T09:01:00+00:00', 'channel' => 'blush', 'level' => 'error', 'message' => 'Second', 'details' => "Trace line one\nTrace line two"],
+			['time' => '2026-10-06T09:00:00+00:00', 'channel' => 'blush', 'level' => 'warning', 'message' => 'First', 'details' => '']
+		], $log['entries'] ?? null);
+
+		$download = $this->send('GET', '/logs/download');
+
+		$this->assertSame(200, $download->getStatusCode());
+		$this->assertStringContainsString('attachment; filename="blush.log"', $download->getHeaderLine('Content-Disposition'));
+	}
+
+	public function testRefusesTheLogWithoutTheCapability(): void
+	{
+		$this->boot();
+		$this->login();
+
+		$this->assertSame(403, $this->send('GET', '/logs')->getStatusCode());
+		$this->assertSame(403, $this->send('GET', '/logs/download')->getStatusCode());
 	}
 
 	public function testRunsActionsTheAccountMay(): void
@@ -193,7 +332,7 @@ final class AdminAppTest extends TestCase
 		$this->boot(roles: ['author']);
 		$token = $this->token();
 
-		$this->assertSame([], self::json($this->send('GET', '/dashboard'))['actions'] ?? null);
+		$this->assertSame([], self::json($this->send('GET', '/actions'))['groups'] ?? null);
 		$this->assertSame(403, $this->send('POST', '/actions/publish', headers: ['X-CSRF-Token' => $token])->getStatusCode());
 	}
 
@@ -206,9 +345,10 @@ final class AdminAppTest extends TestCase
 		$container->make(AdminActionRegistry::class)->register('greet', GreetAction::class);
 
 		$token   = $this->token();
-		$actions = self::json($this->send('GET', '/dashboard'))['actions'] ?? [];
+		$groups  = self::json($this->send('GET', '/actions'))['groups'] ?? [];
+		$this->assertIsArray($groups);
+		$actions = array_merge(...array_filter(array_column($groups, 'actions'), is_array(...)));
 
-		$this->assertIsArray($actions);
 		$this->assertContains(['name' => 'greet', 'label' => 'Greet', 'description' => 'Says hello.', 'confirm' => 'Say hello?'], $actions);
 		$this->assertSame(
 			['successful' => true, 'message' => 'Hello.', 'details' => ['from PHP']],

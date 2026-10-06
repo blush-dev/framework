@@ -264,8 +264,9 @@ any edit it can't make without changing something else (it throws
 
 ## Admin actions
 
-An action is a button on [the admin's](admin.md) dashboard, written in
-PHP; the admin draws it, so you don't write any JavaScript. Extend
+An action is a button on [the admin's](admin.md#tools) Tools screen,
+written in PHP, grouped there under your plugin (by its autoload prefix
+or its provider's namespace) or under the site for classes in `App\`; the admin draws it, so you don't write any JavaScript. Extend
 `Blush\Admin\Action\AdminAction`:
 
 ```php

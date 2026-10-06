@@ -13,6 +13,8 @@ declare(strict_types=1);
 
 namespace Blush\Admin\Action;
 
+use Blush\Auth\Account;
+use Blush\Auth\Permissions;
 use Blush\Container\Container;
 
 /**
@@ -22,7 +24,8 @@ final readonly class AdminActions
 {
 	public function __construct(
 		private AdminActionRegistry $registry,
-		private Container $container
+		private Container $container,
+		private Permissions $permissions
 	) {}
 
 	/**
@@ -53,5 +56,27 @@ final readonly class AdminActions
 		}
 
 		return $actions;
+	}
+
+	/**
+	 * Returns the actions an account may run, by name, in registration
+	 * order.
+	 *
+	 * @return array<string, AdminAction>
+	 */
+	public function allowed(Account $account): array
+	{
+		return array_filter($this->all(), fn (AdminAction $action): bool => $this->permissions->can($account, $action->capability()));
+	}
+
+	/**
+	 * Returns the class an action is built from, or `null` when none has
+	 * that name.
+	 *
+	 * @return ?class-string<AdminAction>
+	 */
+	public function classOf(string $name): ?string
+	{
+		return $this->registry->get($name);
 	}
 }

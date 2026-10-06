@@ -1,27 +1,37 @@
 <script setup lang="ts">
 /**
- * Content health: the problems `content:lint` finds in every file. It
- * checks when the screen opens and when asked again. Notices (undeclared
- * keys, 1.x names, virtual terms) are optional. Severity is written out,
- * never shown by color alone.
+ * One of Site Health's issues, and its fix (D-546; once Content Health,
+ * D-543): content files' problems as `content:lint` finds them, entry
+ * ids, collection folders, or file names; or media files' details, media
+ * ids, or image sizes. It shows Site Health's last check (`GET health`),
+ * says when it ran, and checks again when asked or after a fix (`POST
+ * health`), which updates Site Health too.
  *
- * Above them, the files missing an id and the ids files share (D-477),
- * fixed here (D-478): missing ids are added in one go, and for a shared
- * id, you choose the file that keeps it; the others get new ones. Media
- * files have ids too (D-487), fixed the same way in a panel of their own,
- * and images' sizes are recorded in their details from one more (D-488).
- * Entries named by another pattern than their type's (D-511) are renamed
- * to it, a type at a time (D-512), and collections' entries kept in
- * folders are moved into their collections' folders (D-514).
+ * Files' problems: notices (undeclared keys, 1.x names, virtual terms)
+ * are optional, and severity is written out, never shown by color alone.
+ * Ids (D-477, D-478, D-487): missing ids are added in one go, and for a
+ * shared id, you choose the file that keeps it; the others get new ones.
+ * Image sizes are recorded in their details (D-488), entries named by
+ * another pattern than their type's are renamed to it, a type at a time
+ * (D-512), and collections' entries kept in folders are moved into their
+ * collections' folders (D-514).
  */
 
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
+import { RouterLink } from 'vue-router';
 import { errorMessage, request, type AssignedIds, type Health, type HealthIds, type Violation } from '../api';
 import { useAction } from '../action';
+import { loadCounts } from '../counts';
 import AdminIcon from '../components/AdminIcon.vue';
 import EmptyState from '../components/EmptyState.vue';
-import { plural } from '../format';
+import { formatWhen, plural } from '../format';
+import { screenTitle } from '../screen';
 import { toast } from '../toast';
+
+const props = defineProps<{
+	area: 'content' | 'media';
+	check: 'files' | 'ids' | 'folders' | 'names' | 'sizes';
+}>();
 
 const severities: Record<Violation['severity'], string> = {
 	error: 'pill--danger',
@@ -29,50 +39,98 @@ const severities: Record<Violation['severity'], string> = {
 	notice: ''
 };
 
-const health = ref<Health | null>(null);
-const strict = ref(false);
-const fixing = ref<string | null>(null);
+// Each issue's title and what it's about.
+// Each issue's title, what it's about, and what all clear means.
+const SCREENS: Record<string, { title: string; hint: string; clear: string }> = {
+	'content:files': { title: 'Content Files', hint: 'Problems in entries\' files, as content:lint finds them', clear: '' },
+	'content:ids': { title: 'Entry IDs', hint: 'Every content file needs an id of its own', clear: 'Every content file has an id of its own.' },
+	'content:folders': { title: 'Collection Folders', hint: 'A collection\'s entries are files in its folder', clear: 'Every collection\'s entries are files in its folder.' },
+	'content:names': { title: 'File Names', hint: 'Older names keep working; renaming them changes no address', clear: 'Every entry is named by its type\'s pattern.' },
+	'media:files': { title: 'Media Details', hint: 'Problems in media files\' details, as content:lint finds them', clear: '' },
+	'media:ids': { title: 'Media IDs', hint: 'Every media file needs an id of its own; an image\'s sizes share its', clear: 'Every media file has an id of its own.' },
+	'media:sizes': { title: 'Image Sizes', hint: 'An image\'s other sizes are listed in its details', clear: 'Every image lists its sizes.' }
+};
+
+const screen = computed(() => SCREENS[`${props.area}:${props.check}`] ?? { title: 'Site Health', hint: '', clear: '' });
+
+watch(screen, (value) => {
+	screenTitle.value = value.title;
+}, { immediate: true });
+
+const health  = ref<Health | null>(null);
+const notices = ref(false);
+const fixing  = ref<string | null>(null);
 
 const { busy: loading, error, run } = useAction();
 
-interface IdGroup {
-	key: string;
-	heading: string;
-	hint: string;
-	ids: HealthIds;
-	// Where missing ids are added, and where a shared one is kept.
-	missing: string;
-	keep: string;
-}
+// The area's files with problems, notices only when asked.
+const files = computed(() => (health.value?.files ?? [])
+	.filter((file) => file.area === props.area)
+	.map((file) => ({ ...file, violations: file.violations.filter((violation) => notices.value || violation.severity !== 'notice') }))
+	.filter((file) => file.violations.length > 0));
 
-// Entries' ids, then media files' (D-487), each only when something's wrong.
-const idGroups = computed<IdGroup[]>(() => {
+// The area's ids: entries', or media files' (D-487).
+const ids = computed<{ ids: HealthIds; missing: string; keep: string } | null>(() => {
 	if (health.value === null) {
-		return [];
+		return null;
 	}
 
-	return [
-		{ key: 'entry', heading: 'Entry IDs', hint: 'Every content file needs an id of its own', ids: health.value.ids, missing: '/health/ids', keep: '/health/ids/keep' },
-		{ key: 'media', heading: 'Media IDs', hint: 'Every media file needs an id of its own; an image\'s sizes share its', ids: health.value.mediaIds, missing: '/health/media-ids', keep: '/health/media-ids/keep' }
-	].filter((group) => group.ids.missing.length > 0 || group.ids.duplicates.length > 0);
+	return props.area === 'content'
+		? { ids: health.value.ids, missing: '/health/ids', keep: '/health/ids/keep' }
+		: { ids: health.value.mediaIds, missing: '/health/media-ids', keep: '/health/media-ids/keep' };
 });
 
-async function check(): Promise<void> {
-	await run('Content health couldn\'t be checked.', async () => {
-		health.value = await request<Health>('GET', strict.value ? '/health?strict=1' : '/health');
+// Whether the issue has anything to fix.
+const found = computed(() => {
+	const value = health.value;
+
+	if (value === null) {
+		return false;
+	}
+
+	switch (props.check) {
+		case 'files':
+			return files.value.length > 0;
+		case 'ids':
+			return (ids.value?.ids.missing.length ?? 0) + (ids.value?.ids.duplicates.length ?? 0) > 0;
+		case 'folders':
+			return value.flat.count > 0;
+		case 'names':
+			return value.fileNames.length > 0;
+		default:
+			return value.mediaSizes.images + value.mediaSizes.stale > 0;
+	}
+});
+
+/**
+ * Loads the last check, or checks again (`again`), which Site Health and
+ * its count follow.
+ */
+async function load(again = false): Promise<void> {
+	await run('The files couldn\'t be checked.', async () => {
+		health.value = await request<Health>(again ? 'POST' : 'GET', '/health');
+
+		if (again) {
+			void loadCounts();
+		}
 	});
 }
 
-function summary(result: Health): string {
-	const counts = [plural(result.counts.error, 'error'), plural(result.counts.warning, 'warning')];
+// How many of the area's problems are of a severity.
+function counted(severity: Violation['severity']): number {
+	return files.value.reduce((total, file) => total + file.violations.filter((violation) => violation.severity === severity).length, 0);
+}
 
-	if (result.counts.notice !== null) {
-		counts.push(plural(result.counts.notice, 'notice'));
+function summary(result: Health): string {
+	const counts = [plural(counted('error'), 'error'), plural(counted('warning'), 'warning')];
+
+	if (notices.value) {
+		counts.push(plural(counted('notice'), 'notice'));
 	}
 
-	const metadata = result.metadata > 0 ? ` and ${plural(result.metadata, 'media metadata file')}` : '';
-
-	return `Checked ${plural(result.checked, 'file')}${metadata}: ${counts.join(', ')}.`;
+	return props.area === 'content'
+		? `${plural(result.checked, 'file')} checked: ${counts.join(', ')}.`
+		: `${plural(result.metadata, 'details file')} checked: ${counts.join(', ')}.`;
 }
 
 interface FixAnswer {
@@ -99,7 +157,7 @@ async function runFix<T extends FixAnswer>(key: string, path: string, body: Reco
 			toast(text, { kind: changed ? 'good' : 'info' });
 		}
 
-		await check();
+		await load(true);
 	} catch (caught) {
 		toast(errorMessage(caught, failure), { kind: 'danger' });
 	} finally {
@@ -152,114 +210,45 @@ function renameFiles(type: string): Promise<void> {
 	});
 }
 
-onMounted(check);
+onMounted(() => {
+	void load();
+});
 </script>
 
 <template>
 	<header class="page-header">
+		<RouterLink class="page-back" :to="{ name: 'health' }"><AdminIcon name="chevron-left" />Site Health</RouterLink>
 		<div class="page-header__text">
-			<h1 tabindex="-1">Content Health</h1>
-			<p class="page-header__hint">Problems in content files, as <code>content:lint</code> finds them</p>
+			<h1 tabindex="-1">{{ screen.title }}</h1>
+			<p class="page-header__hint">{{ health ? `Last checked ${formatWhen(health.at).toLowerCase()}` : screen.hint }}</p>
 		</div>
 		<div class="page-header__actions">
-			<button type="button" class="button" :disabled="loading" @click="check">
-				<AdminIcon name="refresh-cw" />
-				{{ loading ? 'Checking…' : 'Check Again' }}
+			<button type="button" class="button" :disabled="loading || fixing !== null" @click="load(true)">
+				<span v-if="loading" class="spin" aria-hidden="true" /><AdminIcon v-else name="refresh-cw" />{{ loading ? 'Checking…' : 'Check Again' }}
 			</button>
 		</div>
 	</header>
 
-	<div class="toolbar">
-		<label class="checkbox">
-			<input v-model="strict" type="checkbox" :disabled="loading" @change="check">
-			Include notices
-		</label>
-	</div>
-
 	<p v-if="error" class="notice notice--error" role="alert">{{ error }}</p>
+	<p v-else-if="!health" class="loading">Loading the last check…</p>
 
-	<div aria-live="polite">
-		<p v-if="loading && !health" class="loading">Checking every file…</p>
-		<p v-else-if="health" class="notice" :class="health.counts.error ? 'notice--error' : 'notice--success'">{{ summary(health) }}</p>
-	</div>
+	<template v-else-if="check === 'files'">
+		<div class="toolbar">
+			<label class="checkbox">
+				<input v-model="notices" type="checkbox">
+				Include notices
+			</label>
+		</div>
 
-	<template v-if="health">
-		<section v-for="group in idGroups" :key="group.key" class="panel" :aria-labelledby="`${group.key}-ids-heading`">
-			<header class="panel__header">
-				<h2 :id="`${group.key}-ids-heading`">{{ group.heading }}</h2>
-				<p class="panel__hint">{{ group.hint }}</p>
-			</header>
-			<div v-if="group.ids.missing.length" class="ids__row">
-				<p>{{ plural(group.ids.missing.length, 'file') }} {{ group.ids.missing.length === 1 ? 'has' : 'have' }} no id, or one that isn't valid.</p>
-				<button type="button" class="button button--primary button--small" :disabled="fixing !== null" @click="fix(`${group.key}:missing`, group.missing)">
-					{{ fixing === `${group.key}:missing` ? 'Adding…' : 'Add Missing IDs' }}
-				</button>
-			</div>
-			<div v-for="shared in group.ids.duplicates" :key="shared.id" class="ids__row ids__row--shared">
-				<p>These files share the id <code>{{ shared.id }}</code>. Keep it on one; the others get new ids.</p>
-				<ul class="ids__files">
-					<li v-for="file in shared.paths" :key="file">
-						<code>{{ file }}</code>
-						<button type="button" class="button button--small" :disabled="fixing !== null" @click="fix(`${group.key}:keep:${file}`, group.keep, { path: file })">
-							{{ fixing === `${group.key}:keep:${file}` ? 'Keeping…' : 'Keep Here' }}<span class="visually-hidden"> ({{ file }})</span>
-						</button>
-					</li>
-				</ul>
-			</div>
-		</section>
+		<p class="notice" :class="counted('error') ? 'notice--error' : 'notice--success'" aria-live="polite">{{ summary(health) }}</p>
 
-		<section v-if="health.mediaSizes.images || health.mediaSizes.stale" class="panel" aria-labelledby="sizes-heading">
-			<header class="panel__header">
-				<h2 id="sizes-heading">Image Sizes</h2>
-				<p class="panel__hint">An image's other sizes are listed in its details</p>
-			</header>
-			<div class="ids__row">
-				<p>
-					<template v-if="health.mediaSizes.sizes">{{ plural(health.mediaSizes.sizes, 'size') }} of {{ plural(health.mediaSizes.images, 'image') }} {{ health.mediaSizes.sizes === 1 ? 'isn\'t' : 'aren\'t' }} recorded yet.</template>
-					<template v-if="health.mediaSizes.stale"> {{ plural(health.mediaSizes.stale, 'image') }} {{ health.mediaSizes.stale === 1 ? 'lists' : 'list' }} files that aren't {{ health.mediaSizes.stale === 1 ? 'its' : 'their' }} sizes.</template>
-				</p>
-				<button type="button" class="button button--primary button--small" :disabled="fixing !== null" @click="recordSizes">
-					{{ fixing === 'sizes' ? 'Recording…' : 'Record Sizes' }}
-				</button>
-			</div>
-		</section>
-
-		<section v-if="health.flat.count" class="panel" aria-labelledby="flat-heading">
-			<header class="panel__header">
-				<h2 id="flat-heading">Collection Folders</h2>
-				<p class="panel__hint">A collection's entries are files in its folder</p>
-			</header>
-			<div class="ids__row">
-				<p>{{ plural(health.flat.count, 'entry is', 'entries are') }} kept in a folder, such as <code>{{ health.flat.examples[0]?.path }}</code> → <code>{{ health.flat.examples[0]?.to }}</code>.</p>
-				<button type="button" class="button button--primary button--small" :disabled="fixing !== null" @click="flatten">
-					{{ fixing === 'flat' ? 'Moving…' : 'Move Out of Folders' }}
-				</button>
-			</div>
-		</section>
-
-		<section v-if="health.fileNames.length" class="panel" aria-labelledby="names-heading">
-			<header class="panel__header">
-				<h2 id="names-heading">File Names</h2>
-				<p class="panel__hint">Older names keep working; renaming them changes no address</p>
-			</header>
-			<div v-for="names in health.fileNames" :key="names.type" class="ids__row">
-				<p>
-					{{ plural(names.count, 'entry', 'entries') }} in {{ names.label }} {{ names.count === 1 ? 'isn\'t' : 'aren\'t' }} named <code>{{ names.pattern }}</code>, such as <code>{{ names.examples[0]?.path }}</code> → <code>{{ names.examples[0]?.to }}</code>.
-					<template v-if="names.skipped"> {{ plural(names.skipped, 'entry', 'entries') }} kept as {{ names.skipped === 1 ? 'a folder keeps its' : 'folders keep their' }} name.</template>
-				</p>
-				<button type="button" class="button button--primary button--small" :disabled="fixing !== null" @click="renameFiles(names.type)">
-					{{ fixing === `names:${names.type}` ? 'Renaming…' : 'Rename Files' }}<span class="visually-hidden"> ({{ names.label }})</span>
-				</button>
-			</div>
-		</section>
-
-		<div v-if="!health.files.length" class="panel">
+		<div v-if="!files.length" class="panel">
 			<EmptyState icon="circle-check" heading="No Problems Found">
-				Every file passed{{ health.strict ? ', notices included' : '' }}.
+				Every file passed{{ notices ? ', notices included' : '' }}.
 			</EmptyState>
 		</div>
 
-		<section v-for="file in health.files" :key="file.path" class="panel">
+		<section v-for="file in files" :key="file.path" class="panel">
 			<header class="panel__header">
 				<h2 class="mono">{{ file.path }}</h2>
 				<p class="panel__hint">{{ plural(file.violations.length, 'problem') }}</p>
@@ -272,6 +261,79 @@ onMounted(check);
 			</ul>
 		</section>
 	</template>
+
+	<div v-else-if="!found" class="panel">
+		<EmptyState icon="circle-check" heading="Nothing to Fix" :text="screen.clear" />
+	</div>
+
+	<section v-else-if="check === 'ids' && ids" class="panel" aria-labelledby="ids-heading">
+		<header class="panel__header">
+			<h2 id="ids-heading">{{ area === 'content' ? 'Files Without Their Own ID' : 'Media Without Their Own ID' }}</h2>
+			<p class="panel__hint">{{ screen.hint }}</p>
+		</header>
+		<div v-if="ids.ids.missing.length" class="ids__row">
+			<p>{{ plural(ids.ids.missing.length, 'file') }} {{ ids.ids.missing.length === 1 ? 'has' : 'have' }} no id, or one that isn't valid.</p>
+			<button type="button" class="button button--primary button--small" :disabled="fixing !== null" @click="fix('missing', ids.missing)">
+				{{ fixing === 'missing' ? 'Adding…' : 'Add Missing IDs' }}
+			</button>
+		</div>
+		<div v-for="shared in ids.ids.duplicates" :key="shared.id" class="ids__row ids__row--shared">
+			<p>These files share the id <code>{{ shared.id }}</code>. Keep it on one; the others get new ids.</p>
+			<ul class="ids__files">
+				<li v-for="file in shared.paths" :key="file">
+					<code>{{ file }}</code>
+					<button type="button" class="button button--small" :disabled="fixing !== null" @click="fix(`keep:${file}`, ids.keep, { path: file })">
+						{{ fixing === `keep:${file}` ? 'Keeping…' : 'Keep Here' }}<span class="visually-hidden"> ({{ file }})</span>
+					</button>
+				</li>
+			</ul>
+		</div>
+	</section>
+
+	<section v-else-if="check === 'sizes'" class="panel" aria-labelledby="sizes-heading">
+		<header class="panel__header">
+			<h2 id="sizes-heading">Sizes Not Recorded</h2>
+			<p class="panel__hint">{{ screen.hint }}</p>
+		</header>
+		<div class="ids__row">
+			<p>
+				<template v-if="health.mediaSizes.sizes">{{ plural(health.mediaSizes.sizes, 'size') }} of {{ plural(health.mediaSizes.images, 'image') }} {{ health.mediaSizes.sizes === 1 ? 'isn\'t' : 'aren\'t' }} recorded yet.</template>
+				<template v-if="health.mediaSizes.stale"> {{ plural(health.mediaSizes.stale, 'image') }} {{ health.mediaSizes.stale === 1 ? 'lists' : 'list' }} files that aren't {{ health.mediaSizes.stale === 1 ? 'its' : 'their' }} sizes.</template>
+			</p>
+			<button type="button" class="button button--primary button--small" :disabled="fixing !== null" @click="recordSizes">
+				{{ fixing === 'sizes' ? 'Recording…' : 'Record Sizes' }}
+			</button>
+		</div>
+	</section>
+
+	<section v-else-if="check === 'folders'" class="panel" aria-labelledby="flat-heading">
+		<header class="panel__header">
+			<h2 id="flat-heading">Entries in Folders</h2>
+			<p class="panel__hint">{{ screen.hint }}</p>
+		</header>
+		<div class="ids__row">
+			<p>{{ plural(health.flat.count, 'entry is', 'entries are') }} kept in a folder, such as <code>{{ health.flat.examples[0]?.path }}</code> → <code>{{ health.flat.examples[0]?.to }}</code>.</p>
+			<button type="button" class="button button--primary button--small" :disabled="fixing !== null" @click="flatten">
+				{{ fixing === 'flat' ? 'Moving…' : 'Move Out of Folders' }}
+			</button>
+		</div>
+	</section>
+
+	<section v-else-if="check === 'names'" class="panel" aria-labelledby="names-heading">
+		<header class="panel__header">
+			<h2 id="names-heading">Older File Names</h2>
+			<p class="panel__hint">{{ screen.hint }}</p>
+		</header>
+		<div v-for="names in health.fileNames" :key="names.type" class="ids__row">
+			<p>
+				{{ plural(names.count, 'entry', 'entries') }} in {{ names.label }} {{ names.count === 1 ? 'isn\'t' : 'aren\'t' }} named <code>{{ names.pattern }}</code>, such as <code>{{ names.examples[0]?.path }}</code> → <code>{{ names.examples[0]?.to }}</code>.
+				<template v-if="names.skipped"> {{ plural(names.skipped, 'entry', 'entries') }} kept as {{ names.skipped === 1 ? 'a folder keeps its' : 'folders keep their' }} name.</template>
+			</p>
+			<button type="button" class="button button--primary button--small" :disabled="fixing !== null" @click="renameFiles(names.type)">
+				{{ fixing === `names:${names.type}` ? 'Renaming…' : 'Rename Files' }}<span class="visually-hidden"> ({{ names.label }})</span>
+			</button>
+		</div>
+	</section>
 </template>
 
 <style scoped>

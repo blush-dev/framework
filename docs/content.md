@@ -377,7 +377,7 @@ bin/blush content:ids          # list files missing an id, and ids files share
 bin/blush content:ids --write  # give each file missing one a new id
 ```
 
-**Content health** in the admin does the same. A copied file shares its
+**Site Health** in the admin does the same, under Content Files. A copied file shares its
 original's id, which `content:lint` reports as an error. Tell Blush
 which file keeps it, and the others get new ones:
 
@@ -393,7 +393,7 @@ it as an error. Types can't have a field named `id`.
 
 Every entry is a `.md` file. Other files in `user/content/` aren't
 entries and don't show on the site. If you have entries from before this
-change in other formats, `content:lint` (and Content health in the
+change in other formats, `content:lint` (and Site Health in the
 admin) lists them:
 
 - **`.markdown`:** rename it to `.md`.

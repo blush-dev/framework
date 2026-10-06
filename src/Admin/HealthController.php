@@ -23,34 +23,29 @@ use Blush\Auth\ContentAction;
 use Blush\Auth\Permissions;
 use Blush\Content\ContentRepository;
 use Blush\Content\EntryIds;
-use Blush\Content\FileNameRename;
 use Blush\Content\FileNames;
 use Blush\Content\FlatEntries;
 use Blush\Content\Type\ContentTypes;
-use Blush\Content\Lint\Linter;
 use Blush\Content\Writer\AssignedIds;
 use Blush\Content\Writer\WriteException;
-use Blush\Field\Severity;
-use Blush\Field\Violation;
 use Blush\Http\Response;
 use Blush\Http\Status;
 use Blush\Media\AssignedMediaIds;
 use Blush\Media\Index\MediaLibrary;
 use Blush\Media\MediaException;
-use Blush\Media\MediaIdReport;
 use Blush\Media\MediaIds;
-use Blush\Media\MediaSizeReport;
 use Blush\Media\MediaSizes;
 
 /**
- * Answers `GET {path}/api/health`: the content's problems, as
- * `content:lint` finds them (D-225), media metadata files included
- * (D-293). Errors and warnings by default;
- * `?strict=1` adds notices (undeclared keys, 1.x names, virtual terms).
- * It reads every file, so it runs when asked, not on the dashboard.
+ * Answers `GET {path}/api/health`: the content and media files' problems
+ * (`ContentHealth`, notices included), for Site Health's detail screens
+ * (D-543), as Site Health's last report has them (D-546); `POST
+ * {path}/api/health` checks them again, reading every file.
  *
- * It lists every file's problems, so it needs to edit anyone's
- * entries of some type.
+ * It and every fix need `site.health` (D-543); a fix changes only the
+ * files the account may edit. Checking again updates Site Health's
+ * report too (D-545), so the admin, which checks again after a fix,
+ * shows the fix there as well.
  *
  * Its `ids` say which files are missing a valid id and which ids files
  * share (D-477), for fixing here (D-478):
@@ -89,7 +84,7 @@ use Blush\Media\MediaSizes;
 final readonly class HealthController
 {
 	public function __construct(
-		private Linter $linter,
+		private SiteHealth $siteHealth,
 		private Permissions $permissions,
 		private EntryIds $ids,
 		private ContentRepository $content,
@@ -103,53 +98,24 @@ final readonly class HealthController
 
 	public function __invoke(ServerRequestInterface $request): ResponseInterface
 	{
-		$account = $request->getAttribute(Account::class);
-
-		if (! $account instanceof Account || ! $this->permissions->can($account, ContentAction::EditOthers)) {
-			return Response::json(['error' => 'You aren\'t allowed to see content health.'], Status::Forbidden, ['Cache-Control' => 'no-store']);
+		if (! $this->allowed($request)) {
+			return Response::json(['error' => 'You aren\'t allowed to see site health.'], Status::Forbidden, ['Cache-Control' => 'no-store']);
 		}
 
-		$strict = in_array($request->getQueryParams()['strict'] ?? '', ['1', 'true'], true);
-		$report = $this->linter->lint();
-		$files  = [];
+		return Response::json($this->siteHealth->files($request->getServerParams()), headers: ['Cache-Control' => 'no-store']);
+	}
 
-		foreach ($report->violations($strict ? Severity::Notice : Severity::Warning) as $path => $violations) {
-			$files[] = [
-				'path'       => (string) $path,
-				'violations' => array_map(static fn (Violation $violation): array => [
-					'field'    => $violation->field,
-					'message'  => $violation->message,
-					'severity' => $violation->severity->value
-				], $violations)
-			];
+	/**
+	 * Checks content and media files again (D-546), as after a fix, and
+	 * answers them.
+	 */
+	public function check(ServerRequestInterface $request): ResponseInterface
+	{
+		if (! $this->allowed($request)) {
+			return Response::json(['error' => 'You aren\'t allowed to see site health.'], Status::Forbidden, ['Cache-Control' => 'no-store']);
 		}
 
-		$ids = $this->ids->report();
-
-		try {
-			$media = $this->mediaIds->report();
-			$sizes = $this->mediaSizes->report();
-		} catch (MediaException) {
-			$media = new MediaIdReport();
-			$sizes = new MediaSizeReport();
-		}
-
-		return Response::json([
-			'checked'  => $report->checked,
-			'metadata' => $report->metadata,
-			'strict'   => $strict,
-			'counts'   => [
-				'error'   => $report->count(Severity::Error),
-				'warning' => $report->count(Severity::Warning),
-				'notice'  => $strict ? $report->count(Severity::Notice) : null
-			],
-			'files'    => $files,
-			'ids'      => self::ids($ids->missing, $ids->duplicates),
-			'mediaIds' => self::ids($media->missing, $media->duplicates),
-			'fileNames' => $this->fileNames(),
-			'flat'      => $this->flatReport(),
-			'mediaSizes' => ['sizes' => $sizes->count(), 'images' => count($sizes->unrecorded), 'stale' => count($sizes->stale)]
-		], headers: ['Cache-Control' => 'no-store']);
+		return Response::json($this->siteHealth->checkFiles($request->getServerParams()), headers: ['Cache-Control' => 'no-store']);
 	}
 
 	/**
@@ -160,7 +126,7 @@ final readonly class HealthController
 	{
 		$account = $request->getAttribute(Account::class);
 
-		if (! $account instanceof Account || ! $this->permissions->can($account, ContentAction::EditOthers)) {
+		if (! $account instanceof Account || ! $this->permissions->can($account, Capability::SiteHealth)) {
 			return Response::json(['error' => 'You aren\'t allowed to fix content.'], Status::Forbidden, ['Cache-Control' => 'no-store']);
 		}
 
@@ -175,7 +141,7 @@ final readonly class HealthController
 	{
 		$account = $request->getAttribute(Account::class);
 
-		if (! $account instanceof Account || ! $this->permissions->can($account, ContentAction::EditOthers)) {
+		if (! $account instanceof Account || ! $this->permissions->can($account, Capability::SiteHealth)) {
 			return Response::json(['error' => 'You aren\'t allowed to fix content.'], Status::Forbidden, ['Cache-Control' => 'no-store']);
 		}
 
@@ -200,7 +166,7 @@ final readonly class HealthController
 	{
 		$account = $request->getAttribute(Account::class);
 
-		if (! $account instanceof Account || ! $this->permissions->can($account, ContentAction::EditOthers)) {
+		if (! $account instanceof Account || ! $this->permissions->can($account, Capability::SiteHealth)) {
 			return Response::json(['error' => 'You aren\'t allowed to fix media.'], Status::Forbidden, ['Cache-Control' => 'no-store']);
 		}
 
@@ -219,7 +185,7 @@ final readonly class HealthController
 	{
 		$account = $request->getAttribute(Account::class);
 
-		if (! $account instanceof Account || ! $this->permissions->can($account, ContentAction::EditOthers)) {
+		if (! $account instanceof Account || ! $this->permissions->can($account, Capability::SiteHealth)) {
 			return Response::json(['error' => 'You aren\'t allowed to fix media.'], Status::Forbidden, ['Cache-Control' => 'no-store']);
 		}
 
@@ -244,7 +210,7 @@ final readonly class HealthController
 	{
 		$account = $request->getAttribute(Account::class);
 
-		if (! $account instanceof Account || ! $this->permissions->can($account, ContentAction::EditOthers)) {
+		if (! $account instanceof Account || ! $this->permissions->can($account, Capability::SiteHealth)) {
 			return Response::json(['error' => 'You aren\'t allowed to fix media.'], Status::Forbidden, ['Cache-Control' => 'no-store']);
 		}
 
@@ -265,7 +231,7 @@ final readonly class HealthController
 	{
 		$account = $request->getAttribute(Account::class);
 
-		if (! $account instanceof Account || ! $this->permissions->can($account, ContentAction::EditOthers)) {
+		if (! $account instanceof Account || ! $this->permissions->can($account, Capability::SiteHealth)) {
 			return Response::json(['error' => 'You aren\'t allowed to fix content.'], Status::Forbidden, ['Cache-Control' => 'no-store']);
 		}
 
@@ -288,7 +254,7 @@ final readonly class HealthController
 	{
 		$account = $request->getAttribute(Account::class);
 
-		if (! $account instanceof Account || ! $this->permissions->can($account, ContentAction::EditOthers)) {
+		if (! $account instanceof Account || ! $this->permissions->can($account, Capability::SiteHealth)) {
 			return Response::json(['error' => 'You aren\'t allowed to fix content.'], Status::Forbidden, ['Cache-Control' => 'no-store']);
 		}
 
@@ -298,50 +264,13 @@ final readonly class HealthController
 	}
 
 	/**
-	 * Answers how many collections' files aren't flat, and the first few
-	 * moves.
-	 *
-	 * @return array{count: int, examples: list<array{path: string, to: string}>}
+	 * Whether the request's account may see site health (D-543).
 	 */
-	private function flatReport(): array
+	private function allowed(ServerRequestInterface $request): bool
 	{
-		$moves = $this->flat->report();
+		$account = $request->getAttribute(Account::class);
 
-		return [
-			'count'    => count($moves),
-			'examples' => array_map(static fn (string $path, string $to): array => ['path' => $path, 'to' => $to], array_slice(array_keys($moves), 0, 3), array_slice(array_values($moves), 0, 3))
-		];
-	}
-
-	/**
-	 * Answers the entries to rename to their type's pattern, by type.
-	 *
-	 * @return list<array{type: string, label: string, pattern: string, count: int, examples: list<array{path: string, to: string}>, skipped: int}>
-	 */
-	private function fileNames(): array
-	{
-		$report = $this->fileNames->report();
-		$types  = [];
-
-		foreach (array_keys($report->renames) as $name) {
-			$type    = $this->types->find((string) $name);
-			$renames = $report->renames((string) $name);
-
-			if ($type === null || $renames === []) {
-				continue;
-			}
-
-			$types[] = [
-				'type'     => $type->name,
-				'label'    => $type->labels->plural,
-				'pattern'  => $type->naming()->pattern,
-				'count'    => count($renames),
-				'examples' => array_map(static fn (FileNameRename $rename): array => ['path' => $rename->path, 'to' => $rename->to], array_slice($renames, 0, 3)),
-				'skipped'  => count($report->skipped[$type->name] ?? [])
-			];
-		}
-
-		return $types;
+		return $account instanceof Account && $this->permissions->can($account, Capability::SiteHealth);
 	}
 
 	/**
@@ -381,25 +310,6 @@ final readonly class HealthController
 
 			return $record !== null && $this->permissions->mayChangeMedia($account, Capability::MediaEdit, $record->metadata()->owner);
 		};
-	}
-
-	/**
-	 * Answers which files are missing an id and which ids files share.
-	 *
-	 * @param  list<string>                $missing
-	 * @param  array<string, list<string>> $duplicates
-	 * @return array{missing: list<string>, duplicates: list<array{id: string, paths: list<string>}>}
-	 */
-	private static function ids(array $missing, array $duplicates): array
-	{
-		return [
-			'missing'    => $missing,
-			'duplicates' => array_map(
-				static fn (string $id, array $paths): array => ['id' => $id, 'paths' => $paths],
-				array_map(strval(...), array_keys($duplicates)),
-				array_values($duplicates)
-			)
-		];
 	}
 
 	/**

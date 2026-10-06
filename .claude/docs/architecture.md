@@ -1012,8 +1012,8 @@ Implemented in M6a (D-127 to D-130), apart from publishing (M6b).
   - Actions: clear caches, reindex, publish (git).
   - Content health (lint), drafts and scheduled lists, and signed preview
     URLs (built: D-225, D-226; `Blush\Preview`, signed with `APP_SECRET`).
-  - A calendar of dated entries by month (built: D-368;
-    `Admin\CalendarController`, one index query by `Query::date()`).
+  - A calendar of dated entries by month (built: D-368; removed, to
+    be a plugin later, D-550).
 - **Stage 3: editor**
   - The editing API (built, D-229): load, create, change (with the
     status shortcut and renames), duplicate (D-275), and delete entries through

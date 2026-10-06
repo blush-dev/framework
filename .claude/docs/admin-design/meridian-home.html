@@ -1,0 +1,2973 @@
+<!doctype html>
+<html lang="en" data-admin-theme="neutral">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Meridian — Home</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=Karla:wght@400;500;600&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+
+<style>
+/* ===========================================================================
+   TOKENS — copied verbatim from design/tokens.css. Six theme blocks.
+   Nothing below the token section may contain a literal color, font stack,
+   radius or type size.
+   ======================================================================== */
+
+:root {
+  --bg:             #f5f6f9;
+  --surface:        #ffffff;
+  --surface-2:      #f0f2f6;
+  --surface-3:      #e7eaf0;
+
+  --border:         #e2e5ec;
+  --border-strong:  #ccd2dd;
+
+  --fg:             #11141b;
+  --fg-2:           #535b6b;
+  --fg-3:           #858d9d;
+
+  --accent:         #2f5fe0;
+  --accent-hover:   #2650c4;
+  --accent-fg:      #ffffff;
+  --accent-soft:    #e9effc;
+  --accent-line:    #bdcdf7;
+
+  --good:           #136b43;  --good-soft:   #e2f3e9;  --good-dot:   #1f9d5f;
+  --warn:           #8a5806;  --warn-soft:   #faf0d9;  --warn-dot:   #cf8d16;
+  --danger:         #a92420;  --danger-soft: #fbeae9;  --danger-dot: #d6403a;
+
+  --shadow-1: none;
+  --shadow-2: 0 2px 8px rgba(17,20,27,.05), 0 1px 2px rgba(17,20,27,.04);
+  --shadow-3: 0 10px 28px rgba(17,20,27,.09), 0 2px 6px rgba(17,20,27,.05);
+
+  --r-1: 6px;
+  --r-2: 10px;
+  --r-3: 16px;
+
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 18px;
+  --s-5: 26px;
+  --s-6: 36px;
+  --s-7: 52px;
+
+  --font-ui:      "IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-display: "IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-title:   "IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-mono:    "Fira Code", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  --base:         13px;
+  --h1:           26px;
+  --h1-track:     -.024em;
+  --title-size:   13.5px;
+  --title-weight: 500;
+  --title-track:  -.005em;
+
+  --pad-row:   14px;
+  --pad-panel: 17px;
+  --pad-x:     22px;
+  --ctl:       34px;
+  --ctl-sm:    30px;
+  --stat-v:    30px;
+
+  --railbar:   74px;
+  --rail:      262px;
+  --bar:       62px;
+  --work-max:  1400px;
+  --measure:   72ch;
+
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-color-scheme="light"]) {
+    --bg:            #0b0d12;
+    --surface:       #13161d;
+    --surface-2:     #1a1e27;
+    --surface-3:     #222733;
+    --border:        #242936;
+    --border-strong: #353c4c;
+    --fg:            #e9ebf0;
+    --fg-2:          #a3abba;
+    --fg-3:          #747d8e;
+    --accent:        #7295f7;
+    --accent-hover:  #8aa8f9;
+    --accent-fg:     #0b0d12;
+    --accent-soft:   #182444;
+    --accent-line:   #2c3d68;
+    --good:   #5ecb92;  --good-soft:   #102a1e;  --good-dot:   #35b877;
+    --warn:   #e3b360;  --warn-soft:   #2b2312;  --warn-dot:   #d69f3c;
+    --danger: #f28d84;  --danger-soft: #301917;  --danger-dot: #e0655c;
+    --shadow-1: none;
+    --shadow-2: 0 2px 8px rgba(0,0,0,.3);
+    --shadow-3: 0 10px 28px rgba(0,0,0,.45), 0 2px 6px rgba(0,0,0,.3);
+    color-scheme: dark;
+  }
+}
+
+:root[data-color-scheme="dark"] {
+  --bg:            #0b0d12;
+  --surface:       #13161d;
+  --surface-2:     #1a1e27;
+  --surface-3:     #222733;
+  --border:        #242936;
+  --border-strong: #353c4c;
+  --fg:            #e9ebf0;
+  --fg-2:          #a3abba;
+  --fg-3:          #747d8e;
+  --accent:        #7295f7;
+  --accent-hover:  #8aa8f9;
+  --accent-fg:     #0b0d12;
+  --accent-soft:   #182444;
+  --accent-line:   #2c3d68;
+  --good:   #5ecb92;  --good-soft:   #102a1e;  --good-dot:   #35b877;
+  --warn:   #e3b360;  --warn-soft:   #2b2312;  --warn-dot:   #d69f3c;
+  --danger: #f28d84;  --danger-soft: #301917;  --danger-dot: #e0655c;
+  --shadow-1: none;
+  --shadow-2: 0 2px 8px rgba(0,0,0,.3);
+  --shadow-3: 0 10px 28px rgba(0,0,0,.45), 0 2px 6px rgba(0,0,0,.3);
+  color-scheme: dark;
+}
+
+:root[data-admin-theme="editorial"] {
+  --bg:            #f6f2ec;
+  --surface:       #fffdfa;
+  --surface-2:     #f1ece3;
+  --surface-3:     #e7e0d4;
+  --border:        #e5ded2;
+  --border-strong: #cdc3b3;
+  --fg:            #23201b;
+  --fg-2:          #5d564c;
+  --fg-3:          #8e867a;
+  --accent:        #17595e;
+  --accent-hover:  #124a4e;
+  --accent-fg:     #fffdfa;
+  --accent-soft:   #e2eded;
+  --accent-line:   #b6d3d5;
+  --good:   #4c6d2c;  --good-soft:   #edf1e2;  --good-dot:   #6f9b45;
+  --warn:   #8a5a14;  --warn-soft:   #f8eeda;  --warn-dot:   #c58a2a;
+  --danger: #9c3327;  --danger-soft: #f8e7e2;  --danger-dot: #c2503f;
+  --shadow-1: none;
+  --shadow-2: 0 2px 8px rgba(60,48,32,.05), 0 1px 2px rgba(60,48,32,.04);
+  --shadow-3: 0 10px 28px rgba(60,48,32,.09), 0 2px 6px rgba(60,48,32,.05);
+
+  --r-1: 8px;  --r-2: 12px;  --r-3: 20px;
+
+  --font-ui:      "Karla", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: "Newsreader", ui-serif, Georgia, "Times New Roman", serif;
+  --font-title:   "Newsreader", ui-serif, Georgia, "Times New Roman", serif;
+
+  --base: 13.5px;
+  --h1: 32px;  --h1-track: -.014em;
+  --title-size: 15.5px;  --title-weight: 500;  --title-track: 0;
+
+  --pad-row: 16px;  --pad-panel: 19px;  --pad-x: 26px;  --stat-v: 34px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-color-scheme="light"])[data-admin-theme="editorial"] {
+    --bg:            #15120e;
+    --surface:       #1d1915;
+    --surface-2:     #26211a;
+    --surface-3:     #322b22;
+    --border:        #302a21;
+    --border-strong: #463e31;
+    --fg:            #f0e9dd;
+    --fg-2:          #b4a996;
+    --fg-3:          #877c6c;
+    --accent:        #72bec2;
+    --accent-hover:  #8bcccf;
+    --accent-fg:     #15120e;
+    --accent-soft:   #113032;
+    --accent-line:   #1d4a4d;
+    --good:   #9cc16b;  --good-soft:   #1c2413;  --good-dot:   #84ad55;
+    --warn:   #dcae63;  --warn-soft:   #2c2314;  --warn-dot:   #c79646;
+    --danger: #e8897b;  --danger-soft: #2f1a16;  --danger-dot: #cf6a5c;
+    --shadow-1: none;
+    --shadow-2: 0 2px 8px rgba(0,0,0,.34);
+    --shadow-3: 0 10px 28px rgba(0,0,0,.5), 0 2px 6px rgba(0,0,0,.34);
+    color-scheme: dark;
+  }
+}
+
+:root[data-color-scheme="dark"][data-admin-theme="editorial"] {
+  --bg:            #15120e;
+  --surface:       #1d1915;
+  --surface-2:     #26211a;
+  --surface-3:     #322b22;
+  --border:        #302a21;
+  --border-strong: #463e31;
+  --fg:            #f0e9dd;
+  --fg-2:          #b4a996;
+  --fg-3:          #877c6c;
+  --accent:        #72bec2;
+  --accent-hover:  #8bcccf;
+  --accent-fg:     #15120e;
+  --accent-soft:   #113032;
+  --accent-line:   #1d4a4d;
+  --good:   #9cc16b;  --good-soft:   #1c2413;  --good-dot:   #84ad55;
+  --warn:   #dcae63;  --warn-soft:   #2c2314;  --warn-dot:   #c79646;
+  --danger: #e8897b;  --danger-soft: #2f1a16;  --danger-dot: #cf6a5c;
+  --shadow-1: none;
+  --shadow-2: 0 2px 8px rgba(0,0,0,.34);
+  --shadow-3: 0 10px 28px rgba(0,0,0,.5), 0 2px 6px rgba(0,0,0,.34);
+  color-scheme: dark;
+}
+
+/* ============================================================== base ==== */
+
+*, *::before, *::after { box-sizing: border-box }
+html, body { height: 100% }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-ui);
+  font-size: var(--base);
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+
+.num, .mono, td, th, time { font-variant-numeric: tabular-nums }
+.mono { font-family: var(--font-mono) }
+
+.ic {
+  width: 16px; height: 16px; flex: none;
+  stroke: currentColor; fill: none; stroke-width: 1.6;
+  stroke-linecap: round; stroke-linejoin: round;
+}
+.ic-lg { width: 20px; height: 20px }
+.ic-sm { width: 14px; height: 14px }
+.ic-xs { width: 14px; height: 14px }
+
+h1, h2, h3 { margin: 0; text-wrap: balance }
+p { margin: 0 }
+ul, ol { margin: 0; padding: 0; list-style: none }
+dl, dd { margin: 0 }
+a { color: inherit; text-decoration: none }
+
+.vh {
+  position: absolute; width: 1px; height: 1px; overflow: hidden;
+  clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap;
+}
+
+/* Any class that sets display beats the hidden attribute, which is how a
+   hidden panel stays on screen. One rule rather than a per-component fix. */
+[hidden] { display: none !important }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    transition-duration: .01ms !important;
+  }
+}
+
+/* ============================================================= shell ==== */
+
+.app {
+  display: grid;
+  grid-template-columns: var(--railbar) var(--rail) minmax(0, 1fr);
+  height: 100%;
+  transition: grid-template-columns 160ms ease-out;
+}
+/* pressing the rail section you are already in collapses the panel to nothing */
+.app.is-collapsed { grid-template-columns: var(--railbar) 0 minmax(0, 1fr) }
+.app.is-collapsed .sidepanel { opacity: 0; pointer-events: none }
+
+.rail {
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  display: flex; flex-direction: column; align-items: center;
+  gap: var(--s-2);
+  padding-bottom: var(--s-4);
+}
+
+.rail-brand {
+  width: 100%; height: var(--bar);
+  display: grid; place-items: center;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: var(--s-4);
+}
+.rail-mark {
+  width: 34px; height: 34px; border-radius: var(--r-1);
+  background: var(--fg); color: var(--bg);
+  display: grid; place-items: center;
+  font-family: var(--font-display); font-weight: 600; font-size: 15px;
+}
+
+.rail-item {
+  position: relative;
+  width: 56px; padding: var(--s-2) 0 7px;
+  display: flex; flex-direction: column; align-items: center; gap: 5px;
+  background: none; border: 0; border-radius: var(--r-2);
+  color: var(--fg-2); font: inherit; font-size: 11px; cursor: pointer;
+  transition: background 140ms ease-out, color 140ms ease-out;
+}
+.rail-item:hover { background: var(--surface-2); color: var(--fg) }
+.rail-item[aria-current="true"] { background: var(--accent-soft); color: var(--accent) }
+.rail-item[aria-current="true"]::after {
+  content: ""; position: absolute; right: -9px; top: 50%;
+  transform: translateY(-50%);
+  width: 3px; height: 26px; border-radius: 3px 0 0 3px;
+  background: var(--accent);
+}
+/* a section may carry a state dot, so attention survives the partition */
+.rail-dot {
+  position: absolute; top: 6px; right: 10px;
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--warn-dot);
+  border: 1.5px solid var(--surface);
+}
+
+.sidepanel {
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  display: flex; flex-direction: column; overflow: hidden;
+  /* min-height, not just min-width: a grid item will not shrink below its
+     content without it, so a long panel pushed past the app's own height
+     and the whole page scrolled instead of the panel. Found by growing the
+     shortcuts list until it spilled. */
+  min-width: 0; min-height: 0;
+  transition: opacity 140ms ease-out;
+}
+.sp-head {
+  height: var(--bar); flex: none;
+  padding: 0 var(--pad-x);
+  display: flex; flex-direction: column; justify-content: center;
+  border-bottom: 1px solid var(--border);
+}
+.sp-head h2 {
+  font-family: var(--font-display); font-size: 16px; font-weight: 600;
+  letter-spacing: -.01em; white-space: nowrap;
+}
+.sp-head .sp-site { color: var(--fg-3); font-size: 11.5px; white-space: nowrap }
+
+.sp-nav { padding: var(--s-3) var(--s-3) var(--s-4); overflow-y: auto; flex: 1 }
+.sp[hidden] { display: none }
+
+.sp-item {
+  display: flex; align-items: center; gap: var(--s-2);
+  width: 100%; text-align: left;
+  padding: 9px var(--s-3); border: 0; border-radius: var(--r-1);
+  background: none; color: var(--fg-2); font: inherit; font-size: inherit;
+  cursor: pointer; white-space: nowrap;
+  transition: background 140ms ease-out, color 140ms ease-out;
+}
+.sp-item:hover { background: var(--surface-2); color: var(--fg) }
+.sp-item[aria-current="page"] {
+  background: var(--accent-soft); color: var(--accent); font-weight: 500;
+}
+.sp-item .sp-count { margin-left: auto; color: var(--fg-3); font-size: 11.5px }
+.sp-item.is-nested { padding-left: calc(var(--s-3) + 18px) }
+
+.sp-group {
+  margin-top: var(--s-5); padding: 0 var(--s-3) var(--s-2);
+  font-size: 11px; font-weight: 600; letter-spacing: .07em;
+  text-transform: uppercase; color: var(--fg-3); white-space: nowrap;
+}
+
+/* ---- shortcuts, and the one control that curates them ---- */
+/* A pinned list that cannot be unpinned is furniture. The list is curated
+   where it is read rather than on a settings screen, because a shortcut is
+   something you add while working, not something you go somewhere to
+   configure — and a second home for it would be a second place to look.
+   The controls are behind Edit, so navigating stays navigation. */
+.sp-group-act { display: flex; align-items: center; gap: var(--s-2) }
+.sp-edit {
+  margin-left: auto; padding: 2px 6px; border: 0; border-radius: var(--r-1);
+  background: none; color: var(--fg-3);
+  font: inherit; font-size: 10.5px; font-weight: 600;
+  letter-spacing: .07em; text-transform: uppercase; cursor: pointer;
+}
+.sp-edit:hover { background: var(--surface-2); color: var(--fg-2) }
+.sp-edit[aria-pressed="true"] { color: var(--accent) }
+
+/* in edit mode the row stops navigating, so it stops looking navigable */
+.sp-item.is-editing { cursor: default }
+.sp-item.is-editing:hover { background: none; color: var(--fg-2) }
+.sc-act { margin-left: auto; display: flex; align-items: center; gap: 2px; flex: none }
+.sc-btn {
+  width: 22px; height: 22px; flex: none;
+  display: inline-flex; align-items: center; justify-content: center;
+  border: 0; border-radius: var(--r-1);
+  background: none; color: var(--fg-3); cursor: pointer;
+  transition: background 140ms ease-out, color 140ms ease-out;
+}
+.sc-btn:hover { background: var(--surface-2); color: var(--fg) }
+.sc-btn[disabled] { opacity: .35; cursor: default }
+.sc-btn[disabled]:hover { background: none; color: var(--fg-3) }
+.sc-btn-rm:hover { background: var(--danger-soft); color: var(--danger) }
+.sc-label { overflow: hidden; text-overflow: ellipsis }
+.sp-add { color: var(--fg-3) }
+/* the panel is narrow, so this menu takes its width rather than its own */
+.menu-sp { left: 0; right: 0; min-width: 0 }
+.sp-note {
+  padding: var(--s-2) var(--s-3) 0;
+  color: var(--fg-3); font-size: 11px;
+}
+
+.topbar {
+  height: var(--bar); flex: none;
+  background: var(--surface); border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: var(--s-4);
+  padding: 0 var(--s-5);
+}
+.main { display: flex; flex-direction: column; min-width: 0; min-height: 0 }
+
+.crumbs { display: flex; align-items: center; gap: var(--s-2); min-width: 0 }
+.crumbs button {
+  background: none; border: 0; padding: 0; font: inherit;
+  color: var(--fg-2); cursor: pointer; white-space: nowrap;
+}
+.crumbs button:hover { color: var(--fg) }
+.crumbs .sep { color: var(--fg-3) }
+.crumbs [aria-current="page"] { font-weight: 500; white-space: nowrap }
+
+.tb-right { margin-left: auto; display: flex; align-items: center; gap: var(--s-3) }
+
+.search { position: relative; width: 300px; max-width: 32vw }
+.search .ic {
+  position: absolute; left: 11px; top: 50%; transform: translateY(-50%);
+  color: var(--fg-3); pointer-events: none;
+}
+.search input {
+  width: 100%; height: var(--ctl);
+  padding: 0 46px 0 34px;
+  background: var(--surface-2); color: var(--fg);
+  border: 1px solid var(--border); border-radius: var(--r-1);
+  font: inherit; font-size: 12.5px;
+}
+.search input::placeholder { color: var(--fg-3) }
+.search kbd {
+  position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+  font-family: var(--font-mono); font-size: 10.5px; color: var(--fg-3);
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 4px; padding: 2px 5px;
+}
+
+.avatar {
+  width: 30px; height: 30px; border-radius: 50%;
+  background: var(--surface-3); color: var(--fg-2);
+  display: grid; place-items: center;
+  font-size: 11px; font-weight: 600; letter-spacing: .02em;
+  border: 1px solid var(--border);
+}
+
+/* environment chip — a fact about the whole admin, not a status.
+   Square-ish rather than a pill, and no dot: a dot would read as state,
+   and being on development is not a state that needs resolving. */
+.chip-env {
+  display: inline-flex; align-items: center;
+  height: 20px; padding: 0 7px;
+  border: 1px solid var(--border); border-radius: var(--r-1);
+  background: var(--surface-2); color: var(--fg-2);
+  font-family: var(--font-mono); font-size: 11px; line-height: 1;
+  vertical-align: middle; margin-block: -2px;
+}
+
+.work { flex: 1; overflow-y: auto; padding: var(--s-6) }
+.wrap { max-width: var(--work-max); margin: 0 auto }
+.screen[hidden] { display: none }
+
+/* ========================================================= primitives === */
+
+.btn {
+  height: var(--ctl); padding: 0 13px;
+  display: inline-flex; align-items: center; justify-content: center; gap: var(--s-1);
+  background: var(--surface); color: var(--fg);
+  border: 1px solid var(--border); border-radius: var(--r-1);
+  box-shadow: var(--shadow-1);
+  font: inherit; font-size: 12.5px; font-weight: 500;
+  cursor: pointer; white-space: nowrap;
+  transition: background 140ms ease-out, border-color 140ms ease-out;
+}
+.btn:hover { background: var(--surface-2); border-color: var(--border-strong) }
+.btn-primary { background: var(--accent); color: var(--accent-fg); border-color: var(--accent) }
+.btn-primary:hover { background: var(--accent-hover); border-color: var(--accent-hover) }
+.btn-ghost { background: none; border-color: transparent; color: var(--fg-2) }
+.btn-ghost:hover { background: var(--surface-2); color: var(--fg); border-color: transparent }
+.btn-sm { height: var(--ctl-sm); padding: 0 10px; font-size: 12px }
+.btn-wide { width: 100% }
+.btn-icon { width: var(--ctl); padding: 0 }
+
+.pill {
+  display: inline-flex; align-items: center; gap: 5px;
+  height: 20px; padding: 0 9px 0 7px; border-radius: 999px;
+  font-size: 11px; font-weight: 500; white-space: nowrap;
+  background: var(--surface-2); color: var(--fg-2);
+  vertical-align: middle; margin-block: -2px;
+}
+.pill::before {
+  content: ""; width: 6px; height: 6px; border-radius: 50%;
+  background: var(--border-strong); flex: none;
+}
+.pill-published, .pill-clear { background: var(--good-soft); color: var(--good) }
+.pill-published::before, .pill-clear::before { background: var(--good-dot) }
+.pill-scheduled { background: var(--accent-soft); color: var(--accent) }
+.pill-scheduled::before { background: var(--accent) }
+.pill-changes, .pill-issues { background: var(--warn-soft); color: var(--warn) }
+.pill-changes::before, .pill-issues::before { background: var(--warn-dot) }
+/* Site Health needs a step below "worth a look": something that is wrong
+   now. The word carries it, as everywhere — the color only sorts it. */
+.pill-fail { background: var(--danger-soft); color: var(--danger) }
+.pill-fail::before { background: var(--danger-dot) }
+
+.seg {
+  display: inline-flex; height: var(--ctl); padding: 2px;
+  background: var(--surface-2); border: 1px solid var(--border);
+  border-radius: var(--r-1);
+}
+.seg button {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 0 11px; border: 0; border-radius: calc(var(--r-1) - 1px);
+  background: none; color: var(--fg-2); font: inherit; font-size: 12.5px;
+  font-weight: 500; cursor: pointer;
+}
+.seg button[aria-pressed="true"] { background: var(--surface); color: var(--fg); box-shadow: var(--shadow-2) }
+
+.panel {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r-3); box-shadow: var(--shadow-1);
+  overflow: hidden;
+}
+.panel-head {
+  display: flex; align-items: center; gap: var(--s-3);
+  padding: var(--pad-panel) var(--pad-x);
+}
+.panel-head h2 {
+  font-family: var(--font-display); font-size: 15px; font-weight: 600;
+  letter-spacing: -.008em;
+}
+.panel-hint { color: var(--fg-3); font-size: 11.5px }
+.panel-act { margin-left: auto; display: flex; align-items: center; gap: var(--s-2) }
+.panel-flush > .panel-head { border-bottom: 1px solid var(--border) }
+.panel-body { padding: 0 var(--pad-x) var(--s-5) }
+.panel-foot { border-top: 1px solid var(--border); padding: var(--s-3) var(--pad-x) }
+
+.lnk {
+  display: inline-flex; align-items: center; gap: 5px;
+  background: none; border: 0; padding: 0; font: inherit;
+  color: var(--accent); font-size: 12.5px; font-weight: 500; cursor: pointer;
+}
+.lnk:hover { text-decoration: underline; text-underline-offset: 2px }
+
+.lst > li + li { border-top: 1px solid var(--border) }
+.lst-row {
+  display: flex; align-items: center; gap: var(--s-4);
+  width: 100%; text-align: left;
+  padding: var(--pad-row) var(--pad-x);
+  background: none; border: 0; color: inherit; font: inherit;
+  cursor: pointer;
+  transition: background 140ms ease-out;
+}
+.lst-row:hover { background: var(--surface-2) }
+/* a row that is only reporting: no hover, no pointer, no promise */
+.lst-row.is-flat { cursor: default }
+.lst-row.is-flat:hover { background: none }
+.lst-main { min-width: 0; flex: 1 }
+.lst-title {
+  font-family: var(--font-title); font-size: var(--title-size);
+  font-weight: var(--title-weight); letter-spacing: var(--title-track);
+  color: var(--fg);
+  display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.lst-sub {
+  display: block;
+  margin-top: 2px; color: var(--fg-3); font-size: 11.5px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.lst-side { display: flex; align-items: center; gap: var(--s-3); flex: none }
+/* relative times get their own column so the chevrons line up down the list */
+.lst-when {
+  color: var(--fg-3); font-size: 11.5px; white-space: nowrap;
+  min-width: 90px; text-align: right;
+}
+.lst-chev { color: var(--fg-3) }
+/* keeps the box, drops the promise */
+.lst-chev.is-blank { visibility: hidden }
+
+/* One notice, four kinds. Rounded and bordered like every other object on
+   the page, and the glyph changes with the kind as well as the color — the
+   same rule §7 gives toasts, because color alone is not a channel (§5).
+   The default kind is neutral: an explanation is not a status, and spending
+   amber on one is the bug this component exists to stop. */
+.notice {
+  display: flex; align-items: flex-start; gap: var(--s-3);
+  padding: var(--s-3) var(--s-4);
+  background: var(--surface-2);
+  border: 1px solid var(--border); border-radius: var(--r-3);
+  color: var(--fg-2); font-size: 12.5px;
+}
+.notice > .ic { color: var(--fg-3); margin-top: 1px; flex: none }
+.notice-good   { background: var(--good-soft);   border-color: var(--good-dot) }
+.notice-good   > .ic { color: var(--good) }
+.notice-warn   { background: var(--warn-soft);   border-color: var(--warn-dot) }
+.notice-warn   > .ic { color: var(--warn) }
+.notice-danger { background: var(--danger-soft); border-color: var(--danger-dot) }
+.notice-danger > .ic { color: var(--danger) }
+/* nested inside a row rather than sitting beside panels, so a step smaller */
+.notice-sm { border-radius: var(--r-2); padding: var(--s-3) }
+.notice-msg { color: var(--fg); font-weight: 500 }
+.notice-sub { margin-top: 3px; color: var(--fg-2); font-size: 11.5px }
+.notice-body { min-width: 0 }
+.notice .btn { margin-left: auto; flex: none }
+/* the site nag is a warn notice that carries an action */
+.notice-bar { align-items: center; margin-bottom: var(--s-5) }
+
+/* ========================================================= page chrome == */
+
+.page-head {
+  display: flex; align-items: flex-end; gap: var(--s-5);
+  flex-wrap: wrap; margin-bottom: var(--s-6);
+}
+.page-head h1 {
+  font-family: var(--font-display); font-size: var(--h1);
+  letter-spacing: var(--h1-track); font-weight: 600;
+}
+.page-sub { margin-top: 5px; color: var(--fg-2); font-size: 12.5px }
+.page-sub .chip-env { margin-left: var(--s-2) }
+.page-actions { margin-left: auto; display: flex; align-items: center; gap: var(--s-2) }
+
+.sec-head { display: flex; align-items: baseline; gap: var(--s-3); margin-bottom: var(--s-4) }
+.sec-head h2 {
+  font-family: var(--font-display); font-size: 15px; font-weight: 600;
+  letter-spacing: -.008em;
+}
+.sec-head .panel-hint { margin-left: auto }
+.sec-head .seg { margin-left: var(--s-3) }
+.panel-head .seg { height: var(--ctl-sm) }
+
+.toolbar {
+  display: flex; align-items: center; gap: var(--s-3);
+  margin-bottom: var(--s-4); flex-wrap: wrap;
+}
+.toolbar-right { margin-left: auto; display: flex; align-items: center; gap: var(--s-2) }
+
+.stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--s-4) }
+.stats-3 { grid-template-columns: repeat(3, minmax(0, 1fr)) }
+.stat {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r-3); box-shadow: var(--shadow-1);
+  padding: var(--s-4) var(--pad-x) var(--s-5);
+}
+.stat-label {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 11px; font-weight: 600; letter-spacing: .07em;
+  text-transform: uppercase; color: var(--fg-2);
+}
+.stat-v {
+  margin-top: var(--s-3);
+  font-family: var(--font-display); font-size: var(--stat-v);
+  font-weight: 600; letter-spacing: -.02em; line-height: 1.08;
+}
+.stat-ctx { margin-top: 5px; color: var(--fg-3); font-size: 11.5px }
+/* a tile whose value demands action: border, glyph and label ink together */
+.stat-attention { border-color: var(--warn-dot) }
+.stat-attention .stat-label { color: var(--warn) }
+/* and the step below it: something that is wrong now rather than worth a
+   look. The figure and the line under it say which, so the border never
+   carries it alone. */
+.stat-failing { border-color: var(--danger-dot) }
+.stat-failing .stat-label { color: var(--danger) }
+
+/* =========================================================== dashboard == */
+
+.dash { display: flex; flex-direction: column; gap: var(--s-6) }
+.resume {
+  display: flex; align-items: center; gap: var(--s-4);
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r-3); box-shadow: var(--shadow-1);
+  padding: var(--s-4) var(--pad-x);
+}
+.resume-mark {
+  width: 38px; height: 38px; border-radius: var(--r-2); flex: none;
+  background: var(--accent-soft); color: var(--accent);
+  display: grid; place-items: center;
+}
+.resume-body { min-width: 0; flex: 1 }
+.resume-kicker {
+  font-size: 11px; font-weight: 600; letter-spacing: .07em;
+  text-transform: uppercase; color: var(--fg-3);
+}
+.resume-title {
+  display: block; margin-top: 3px;
+  font-family: var(--font-title); font-size: calc(var(--title-size) + 3px);
+  font-weight: var(--title-weight); letter-spacing: var(--title-track);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.resume-title:hover { color: var(--accent) }
+.resume-meta {
+  margin-top: 4px; color: var(--fg-3); font-size: 11.5px;
+  display: flex; align-items: center; gap: var(--s-2); flex-wrap: wrap;
+}
+.resume-meta .dot-sep { color: var(--border-strong) }
+
+.cols {
+  display: grid; grid-template-columns: minmax(0, 1fr) 336px;
+  gap: var(--s-6); align-items: start;
+}
+.col { display: flex; flex-direction: column; gap: var(--s-6); min-width: 0 }
+/* A side column holding rows with a line of prose each — Site Health's
+   areas, and its requirement facts — needs more room than the dashboard's
+   stack of short panels. */
+.cols-wide-side { grid-template-columns: minmax(0, 1fr) 420px }
+
+.reason { display: flex; align-items: center; gap: 6px }
+.reason .ic { color: var(--fg-3) }
+
+.site-state { display: flex; align-items: center; gap: var(--s-2); padding: 0 var(--pad-x) var(--s-3) }
+.site-line { padding: 0 var(--pad-x); color: var(--fg-2); font-size: 12.5px; margin-bottom: var(--s-4) }
+.site-act { padding: 0 var(--pad-x) var(--s-3) }
+.site-note { padding: 0 var(--pad-x) var(--s-5); color: var(--fg-3); font-size: 11.5px }
+
+/* the one attention object on the dashboard */
+.panel-attention { border-color: var(--warn-dot) }
+.panel-attention .panel-head h2 { color: var(--warn) }
+.panel-attention .panel-head .ic { color: var(--warn) }
+
+/* ============================================================ calendar == */
+
+.cal {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r-3); overflow: hidden;
+}
+.cal-dow {
+  display: grid; grid-template-columns: repeat(7, minmax(0, 1fr));
+  border-bottom: 1px solid var(--border);
+}
+.cal-dow span {
+  padding: 9px var(--s-3); font-size: 11px; font-weight: 600;
+  letter-spacing: .07em; text-transform: uppercase; color: var(--fg-3);
+}
+.cal-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)) }
+.cal-day {
+  min-height: 112px; min-width: 0;
+  padding: var(--s-2); display: flex; flex-direction: column; gap: 4px;
+  border-right: 1px solid var(--border); border-bottom: 1px solid var(--border);
+}
+.cal-day:nth-child(7n) { border-right: 0 }
+.cal-day.is-lastrow { border-bottom: 0 }
+.cal-num {
+  width: 22px; height: 22px; flex: none;
+  display: grid; place-items: center; border-radius: 50%;
+  font-size: 12px; color: var(--fg-2); font-variant-numeric: tabular-nums;
+}
+.cal-day.is-other .cal-num { color: var(--fg-3) }
+.cal-day.is-today .cal-num { background: var(--accent); color: var(--accent-fg); font-weight: 600 }
+
+/* A chip carries a glyph as well as a color, so status is never color alone.
+   Two rows rather than one: a time on the same line as the title takes the
+   width the title needs, and in a 7-column grid the title has none to give. */
+.cal-chip {
+  display: grid; grid-template-columns: 14px minmax(0, 1fr); gap: 0 5px;
+  align-items: center; width: 100%; text-align: left;
+  padding: 4px 6px; border: 0; border-radius: var(--r-1);
+  background: var(--surface-2); color: var(--fg-2);
+  font: inherit; font-size: 11.5px; cursor: pointer;
+}
+.cal-chip:hover { filter: brightness(.97) }
+.cal-chip .ic { width: 14px; height: 14px; grid-row: 1 }
+.cal-chip-t { grid-column: 2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
+.cal-chip-time {
+  grid-column: 2; font-family: var(--font-mono); font-size: 10px; opacity: .8;
+}
+.cal-chip.is-scheduled { background: var(--accent-soft); color: var(--accent) }
+.cal-chip.is-published { background: var(--good-soft); color: var(--good) }
+.cal-more {
+  padding: 2px 6px; border: 0; background: none; text-align: left;
+  color: var(--fg-3); font: inherit; font-size: 11px; cursor: pointer;
+}
+.cal-more:hover { color: var(--fg) }
+
+/* The month navigator is the one the editor's date picker already uses: no
+   box, the arrows at the two ends, the month centered between them in the
+   display face. Two earlier passes here drew a bordered three-cell control
+   and then hung a dropdown off the middle of it, which was a second
+   vocabulary for a job the admin had already solved — "one component per
+   job, varied by declaration". The only thing this screen varies is the
+   span: the picker's navigator is as wide as the grid under it, and the
+   grid under this one is the whole work area, so the width is set here
+   rather than inherited.
+
+   It drives both views. A month is the period the screen is showing; the
+   grid and the agenda are two drawings of it, so a control that belonged to
+   one of them was a control in the wrong place. */
+/* Four arrangements were built and compared: bare chevrons a step apart,
+   the same with the arrows given button edges, the month leading with a
+   joined arrow pair after it, and the editor picker's full span. The first
+   won, tightened further — bare chevrons one notch from the month, with
+   nothing reserved around the label.
+
+   The cost, taken deliberately: the label is as wide as the month it is
+   showing, so stepping from May to September moves the right chevron by
+   up to 30px. The alternative was reserving the widest month's width and
+   wearing 18px of air on every shorter one, which is what made this read
+   loose in the first place. */
+.monthnav { display: inline-flex; align-items: center; flex: none; gap: var(--s-1) }
+.monthnav-label {
+  padding: 0 2px; text-align: center;
+  font-family: var(--font-display); font-size: 15px; font-weight: 600;
+  letter-spacing: -.008em; white-space: nowrap;
+}
+.monthnav-arrow {
+  width: var(--ctl-sm); height: var(--ctl-sm); flex: none;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: none; border: 0; border-radius: var(--r-1);
+  color: var(--fg-3); cursor: pointer;
+  transition: background 140ms ease-out, color 140ms ease-out;
+}
+.monthnav-arrow:hover { background: var(--surface-2); color: var(--fg) }
+.monthnav-arrow:active { background: var(--surface-3) }
+
+/* A month with nothing in it still has to say so, and the one line of the
+   legend that is still true when the grid is empty is the one about drafts. */
+.cal-note {
+  margin-top: var(--s-4); color: var(--fg-3); font-size: 11.5px;
+}
+.lst-empty {
+  padding: var(--s-6) var(--pad-x); margin: 0;
+  color: var(--fg-3); font-size: 12.5px; text-align: center;
+}
+
+.cal-legend {
+  display: flex; align-items: center; gap: var(--s-4); flex-wrap: wrap;
+  margin-top: var(--s-4); color: var(--fg-3); font-size: 11.5px;
+}
+.cal-legend span { display: inline-flex; align-items: center; gap: 5px }
+.cal-legend .is-pub { color: var(--good) }
+.cal-legend .is-sch { color: var(--accent) }
+
+/* ---------------------------------------------------------- day heads -- */
+/* A calendar list is still a list, so the rows are the admin's one list row
+   with the time in --lst-when where every other screen puts a time. The only
+   new thing is the day heading, and it borrows an existing type role — the
+   display face at the panel-heading size — rather than inventing a figure
+   size the scale does not have. Space above it, no rule and no fill, the
+   same treatment every other group label uses. */
+/* A group heading inside a list. It began as the calendar's day heading and
+   turned out to be the general case — Site Health groups its checks by area
+   with the same band — so it carries the general name.
+
+   A group break has to read as a bigger division than the hairline between
+   two rows inside the group, or the grouping inverts. A fill does that at a
+   fraction of the height space needed, which matters on a list that may run
+   for weeks — so the band carries the division and the rows stay tight. */
+.lst-group {
+  display: flex; align-items: baseline; gap: var(--s-3);
+  padding: var(--s-2) var(--pad-x);
+  background: var(--surface-2);
+  border-bottom: 1px solid var(--border);
+  font-family: var(--font-display); font-size: var(--base); font-weight: 600;
+  letter-spacing: -.004em;
+}
+.lst-group-n {
+  font-family: var(--font-ui); font-size: 11.5px; font-weight: 400;
+  letter-spacing: 0; color: var(--fg-3);
+}
+/* Today takes the accent band the month grid already gives it, and the word
+   is in the text, so the color is never carrying it alone. */
+.lst-group.is-today {
+  background: var(--accent-soft); color: var(--accent);
+  border-color: var(--accent-line);
+}
+.lst-group.is-today .lst-group-n { color: var(--accent) }
+/* the band's own bottom rule separates it from its first row */
+.lst > li.lst-group + li { border-top: 0 }
+
+/* the notice sits above the tabs and needs the room: it is about the
+   screen, not about the pane that happens to be open */
+#toolsNotice { margin-bottom: var(--s-5) }
+
+/* -------------------------------------------------- tab chips ------- */
+/* A settings tab row is drawn as chips, so a screen carrying both kinds of
+   tab has only one accent underline on it (§7). */
+.chips {
+  display: flex; align-items: center; gap: var(--s-2); flex-wrap: wrap;
+  margin-bottom: var(--s-5);
+}
+.chip {
+  height: var(--ctl); padding: 0 14px;
+  display: inline-flex; align-items: center; gap: 6px;
+  background: var(--surface); color: var(--fg-2);
+  border: 1px solid var(--border); border-radius: 999px;
+  box-shadow: var(--shadow-1);
+  font: inherit; font-size: 12.5px; font-weight: 500;
+  cursor: pointer; white-space: nowrap;
+  transition: background 140ms ease-out, border-color 140ms ease-out, color 140ms ease-out;
+}
+.chip:hover { background: var(--surface-2); border-color: var(--border-strong); color: var(--fg) }
+.chip[aria-selected="true"] {
+  background: var(--accent-soft); border-color: var(--accent-line); color: var(--accent);
+}
+
+/* ------------------------------------------------ action rows ------- */
+/* An action is described by the server, so the row shows only what every
+   action carries: a name, its one-line description, when it last ran, and
+   the button. No per-action icon and no bespoke copy — the admin renders
+   actions it has never heard of. */
+.act-row {
+  display: flex; align-items: flex-start; gap: var(--s-4); flex-wrap: wrap;
+  padding: var(--pad-row) var(--pad-x);
+}
+.act-main { flex: 1; min-width: 0; max-width: var(--measure) }
+.act-name { display: block; font-weight: 500 }
+.act-desc { display: block; margin-top: 2px; color: var(--fg-2); font-size: 12px }
+.act-when { display: block; margin-top: 6px; color: var(--fg-3); font-size: 11.5px }
+/* --measure caps the description, not the row, so the button keeps the
+   right edge the way it does in every other list here */
+.act-row > .btn { margin-left: auto }
+/* the result of a run belongs under the whole row, not beside the button */
+.act-result { flex-basis: 100%; margin-top: var(--s-3) }
+.act-result ul {
+  margin: var(--s-1) 0 0; padding: 0; list-style: none;
+  font-family: var(--font-mono); font-size: 11.5px; color: var(--fg-2);
+}
+.act-result li::before { content: "· " }
+
+/* the finding, on the middle line of an issue row */
+.iss-what { display: block; margin-top: 3px; color: var(--fg-2); font-size: 12px }
+.iss-what .mono { font-size: 11.5px; color: var(--fg) }
+
+/* a footer that says something on the left and offers a way out on the
+   right — the calendar's, until Site Health wanted the same shape */
+.foot-split { display: flex; align-items: center; gap: var(--s-4); flex-wrap: wrap }
+.foot-split .lnk { margin-left: auto }
+
+/* a spinner has exactly two homes; one is a button that is working (§7) */
+.spin {
+  width: 13px; height: 13px; flex: none; border-radius: 50%;
+  border: 2px solid currentColor; border-top-color: transparent;
+  animation: spin .7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg) } }
+
+/* ------------------------------------------------------- modal ------ */
+.modal {
+  width: min(440px, 92%); padding: 0; border: 0;
+  background: none; color: var(--fg);
+}
+/* scrim derived with color-mix, since --scrim is still an open question */
+.modal::backdrop { background: color-mix(in srgb, var(--fg) 42%, transparent) }
+.modal-box {
+  background: var(--surface);
+  border: 1px solid var(--border); border-radius: var(--r-3);
+  box-shadow: var(--shadow-2); padding: var(--s-5);
+}
+.modal-box h2 {
+  font-family: var(--font-display); font-size: 16px; font-weight: 600;
+  letter-spacing: -.01em;
+}
+.modal-box p { margin: var(--s-3) 0 0; color: var(--fg-2); font-size: 12.5px; line-height: 1.55 }
+.modal-act { display: flex; justify-content: flex-end; gap: var(--s-2); margin-top: var(--s-5) }
+
+/* ------------------------------------------------- site health ----- */
+/* Two treatments of the Checks tab were built and put side by side: three
+   figures over a wide Issues column and a narrow Areas column, against a
+   verdict banner over one full-width list with the checks behind openable
+   bands. The first was kept. Requirements went the other way — the table
+   beat the icon-led rows there, because a requirement is two values you
+   compare and columns are what make a comparison scannable. */
+/* An area row: the glyph for the area, its name, what it covers, and how
+   many of its checks want you. */
+.chk-row { display: flex; align-items: center; gap: var(--s-4); padding: var(--pad-row) var(--pad-x) }
+.chk-row > .ic:first-child { color: var(--fg-3); flex: none }
+.chk-main { flex: 1; min-width: 0 }
+.chk-name { display: block; font-weight: 500 }
+.chk-desc { display: block; margin-top: 2px; color: var(--fg-3); font-size: 11.5px }
+
+/* the earlier requirements table, and the ruled key/value block that went
+   with it */
+.tbl .req-group td {
+  background: var(--surface-2); border-top: 1px solid var(--border);
+  padding: var(--s-2) var(--pad-x);
+  font-family: var(--font-display); font-size: var(--base); font-weight: 600;
+  letter-spacing: -.004em;
+}
+.tbl tbody tr.req-group:hover td { background: var(--surface-2) }
+.req-cell-need, .req-cell-got { font-family: var(--font-mono); font-size: 11.5px }
+.req-cell-need { color: var(--fg-2) }
+.req-cell-got { color: var(--fg) }
+
+/* --------------------------------------------- key/value block ------ */
+/* The facts a support request asks for, label left and value right, so they
+   can be read off without hunting. `50-open-questions.md` carries a request
+   from the profiles work for exactly this component; this is that shape, and
+   settling it there is components' call rather than mine. */
+/* It sits beside the requirements table and has to read as the same kind
+   of object: flush to the panel's edges, a rule under every row, and the
+   panel's own bordered head above it. */
+.kv {
+  display: grid; grid-template-columns: minmax(0, 150px) minmax(0, 1fr);
+  margin: 0;
+}
+.kv dt, .kv dd {
+  margin: 0; min-width: 0; border-top: 1px solid var(--border);
+}
+.kv dt {
+  padding: var(--pad-row) var(--s-3) var(--pad-row) var(--pad-x);
+  color: var(--fg-2);
+}
+.kv dd {
+  padding: var(--pad-row) var(--pad-x) var(--pad-row) 0;
+  color: var(--fg); overflow-wrap: anywhere;
+}
+/* the panel's own head draws the rule above the first row */
+.kv dt:first-child, .kv dt:first-child + dd { border-top: 0 }
+
+/* ------------------------------------------------- site health ------- */
+/* An attention row is the list row, carrying the same three lines every
+   other list row carries: what it is, what is wrong with it, and where it
+   sits. The only addition is that the middle line is the finding, which is
+   the one thing a check has that an entry does not. */
+.hl-where {
+  display: inline-flex; align-items: center; gap: 5px;
+  color: var(--fg-3);
+}
+.hl-where::after {
+  content: ""; width: 3px; height: 3px; border-radius: 50%;
+  background: var(--border-strong); margin-right: 6px;
+}
+/* The group note sits right, the way the calendar's day count does, so the
+   two lists are read the same way. */
+.lst-group-n.is-attention { color: var(--warn) }
+
+/* logs */
+.log {
+  margin: 0; padding: var(--s-4) var(--pad-x);
+  font-family: var(--font-mono); font-size: 11.5px; line-height: 1.7;
+  color: var(--fg-2); overflow-x: auto; white-space: pre;
+}
+.log .lv-err { color: var(--danger) }
+.log .lv-warn { color: var(--warn) }
+.log .lv-info { color: var(--fg-3) }
+
+/* ============================================================= menus ==== */
+
+.menu-wrap { position: relative }
+.menu {
+  position: absolute; top: calc(100% + 6px); right: 0; z-index: 40;
+  min-width: 190px;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r-2); box-shadow: var(--shadow-2);
+  padding: var(--s-1);
+}
+.menu[hidden] { display: none }
+/* a menu opened from a panel footer drops upward, and from the left edge,
+   because the footer is the last thing on the screen */
+.menu-up { top: auto; bottom: calc(100% + 6px); left: 0; right: auto }
+.menu button {
+  display: flex; align-items: center; gap: var(--s-2);
+  width: 100%; text-align: left;
+  padding: 8px 10px; border-radius: var(--r-1);
+  background: none; border: 0; color: var(--fg); font: inherit; font-size: 12.5px;
+  cursor: pointer;
+}
+.menu button:hover { background: var(--surface-2) }
+.menu hr { border: 0; border-top: 1px solid var(--border); margin: var(--s-1) 0 }
+
+/* =================================================== the dashboard ===== */
+
+/* A dashboard column is not a table, so --work-max is too wide for it.
+   If this layout is adopted the width wants a token of its own. */
+.wrap-narrow { max-width: 980px; margin: 0 auto }
+.dash-roomy { gap: var(--s-7) }
+
+.lst-row.is-resume { cursor: default }
+.lst-row.is-resume:hover { background: none }
+.lst-row.is-resume .lst-title:hover { color: var(--accent) }
+
+/* the list screens' own table. The dashboard borrowed it for a while to
+   compare against the rows; the rows won, and what the table could not
+   carry was the reason line, which is most of what a dashboard row says.
+   It stays because Site Health's requirements are genuinely tabular. */
+.tbl-wrap { overflow-x: auto }
+table.tbl { width: 100%; border-collapse: collapse; table-layout: fixed }
+.tbl th {
+  position: sticky; top: 0; z-index: 1;
+  background: var(--surface); text-align: left;
+  padding: 10px var(--pad-x);
+  font-size: 11px; font-weight: 600; letter-spacing: .07em;
+  text-transform: uppercase; color: var(--fg-3);
+  border-bottom: 1px solid var(--border);
+}
+.tbl td { padding: var(--pad-row) var(--pad-x); border-top: 1px solid var(--border) }
+.tbl tbody tr:hover td { background: var(--surface-2) }
+
+/* Toasts report what happened where the person was not looking (§7). The
+   library's version draws its countdown as the border; this preview does
+   not, so a toast here is on a plain timer. */
+.toasts {
+  position: fixed; right: 16px; bottom: 16px; z-index: 90;
+  display: flex; flex-direction: column; align-items: flex-end; gap: var(--s-2);
+}
+.toast {
+  display: flex; align-items: center; gap: var(--s-2);
+  padding: 10px var(--s-4);
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r-2); box-shadow: var(--shadow-2);
+  font-size: 12.5px; max-width: 420px;
+}
+.toast > .ic { color: var(--fg-3); flex: none }
+
+#listClear { display: flex; flex-direction: column; gap: var(--s-6) }
+
+/* nothing waiting on you is good news, so it is not drawn as an absence */
+.clear {
+  text-align: center;
+  padding: var(--s-7) var(--s-5);
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r-3);
+}
+.clear-mark {
+  width: 46px; height: 46px; border-radius: 50%;
+  margin: 0 auto var(--s-4); display: grid; place-items: center;
+  background: var(--good-soft); color: var(--good);
+}
+.clear h2 { font-family: var(--font-display); font-size: 18px; font-weight: 600 }
+.clear p {
+  margin: var(--s-2) auto 0; max-width: 46ch;
+  color: var(--fg-2); font-size: 12.5px;
+}
+.clear-act { margin-top: var(--s-5); display: flex; gap: var(--s-2); justify-content: center }
+
+/* ========================================================== first run == */
+
+.steps > li + li { border-top: 1px solid var(--border) }
+.step { display: flex; align-items: center; gap: var(--s-4); padding: var(--s-5) var(--pad-x) }
+.step-n {
+  width: 26px; height: 26px; flex: none; border-radius: 50%;
+  display: grid; place-items: center;
+  background: var(--accent-soft); color: var(--accent);
+  font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums;
+}
+.step.is-done .step-n { background: var(--good-soft); color: var(--good) }
+.step-main { flex: 1; min-width: 0; max-width: var(--measure) }
+.step-name { display: block; font-weight: 500 }
+.step.is-done .step-name { color: var(--fg-2) }
+.step-desc { display: block; margin-top: 3px; color: var(--fg-2); font-size: 12.5px }
+.step > .btn { margin-left: auto }
+
+/* ======================================================= breakpoints ==== */
+
+@media (max-width: 1240px) {
+  .cal-day { min-height: 98px }
+}
+@media (max-width: 1100px) {
+  .cols { grid-template-columns: minmax(0, 1fr) }
+  .stats { grid-template-columns: repeat(2, minmax(0, 1fr)) }
+}
+@media (max-width: 860px) {
+  .app, .app.is-collapsed { grid-template-columns: minmax(0, 1fr) }
+  .rail, .sidepanel { display: none }
+}
+@media (max-width: 760px) {
+  .cal-wrap { overflow-x: auto }
+  .cal { min-width: 680px }
+}
+@media (max-width: 640px) {
+  .work { padding: var(--s-4) }
+  .topbar { padding: 0 var(--s-4) }
+  .search { display: none }
+  .stats, .stats-3 { grid-template-columns: minmax(0, 1fr) }
+  .step, .resume { flex-wrap: wrap }
+  .resume > .btn { width: 100% }
+  .act-row { flex-wrap: wrap }
+}
+
+/* ============================================= preview harness only ===== */
+
+.pv-bar {
+  /* bottom left: the bulk bar centers on the viewport and the harness
+     must not sit on top of it */
+  position: fixed; left: 16px; bottom: 16px; z-index: 100;
+  display: flex; align-items: center; gap: var(--s-3);
+  background: var(--surface); border: 1px solid var(--border-strong);
+  border-radius: 999px; box-shadow: var(--shadow-3);
+  padding: 7px 8px 7px 14px;
+}
+.pv-label {
+  font-size: 11px; font-weight: 600; letter-spacing: .07em;
+  text-transform: uppercase; color: var(--fg-3);
+}
+.pv-seg { display: flex; background: var(--surface-2); border-radius: 999px; padding: 2px }
+.pv-seg button {
+  padding: 5px 11px; border: 0; border-radius: 999px;
+  background: none; color: var(--fg-2); font: inherit; font-size: 11.5px;
+  font-weight: 500; cursor: pointer;
+}
+.pv-seg button[aria-pressed="true"] { background: var(--surface); color: var(--fg); box-shadow: var(--shadow-2) }
+</style>
+</head>
+<body>
+
+<svg style="display:none" aria-hidden="true">
+  <symbol id="i-home" viewBox="0 0 24 24"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/></symbol>
+  <symbol id="i-content" viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v5h5"/><path d="M16 13H8"/><path d="M16 17H8"/><path d="M10 9H8"/></symbol>
+  <symbol id="i-users" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></symbol>
+  <symbol id="i-config" viewBox="0 0 24 24"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></symbol>
+  <symbol id="i-dashboard" viewBox="0 0 24 24"><path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/></symbol>
+  <symbol id="i-calendar" viewBox="0 0 24 24"><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/></symbol>
+  <symbol id="i-health" viewBox="0 0 24 24"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/><path d="M3.22 13H9.5l.5-1 2 4.5 2-7 1.5 3.5h5.27"/></symbol>
+  <symbol id="i-account" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="10" r="3"/><path d="M7 20.662V19a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v1.662"/></symbol>
+  <symbol id="i-settings" viewBox="0 0 24 24"><path d="M20 7h-9"/><path d="M14 17H5"/><circle cx="17" cy="17" r="3"/><circle cx="7" cy="7" r="3"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></symbol>
+  <symbol id="i-external" viewBox="0 0 24 24"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></symbol>
+  <symbol id="i-chevron-right" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></symbol>
+  <symbol id="i-chevron-left" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></symbol>
+  <symbol id="i-chevron-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+  <symbol id="i-chevron-up" viewBox="0 0 24 24"><path d="m18 15-6-6-6 6"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></symbol>
+  <symbol id="i-arrow-right" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></symbol>
+  <symbol id="i-publish" viewBox="0 0 24 24"><path d="M12 13v8"/><path d="m8 17 4-4 4 4"/><path d="M20 16.58A5 5 0 0 0 18 7h-1.26A8 8 0 1 0 4 15.25"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></symbol>
+  <symbol id="i-entries" viewBox="0 0 24 24"><path d="M20 7h-3a2 2 0 0 1-2-2V2"/><path d="M9 18a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h7l4 4v10a2 2 0 0 1-2 2Z"/><path d="M3 7.6v12.8A1.6 1.6 0 0 0 4.6 22h9.8"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+  <symbol id="i-media" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></symbol>
+  <symbol id="i-page" viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v5h5"/></symbol>
+  <symbol id="i-type" viewBox="0 0 24 24"><path d="M12 2 2 7l10 5 10-5-10-5Z"/><path d="m2 17 10 5 10-5"/><path d="m2 12 10 5 10-5"/></symbol>
+  <symbol id="i-tag" viewBox="0 0 24 24"><path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z"/><circle cx="7.5" cy="7.5" r=".5"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></symbol>
+  <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></symbol>
+  <symbol id="i-link-off" viewBox="0 0 24 24"><path d="M9 17H7A5 5 0 0 1 7 7h1"/><path d="M15 7h2a5 5 0 0 1 4 8"/><path d="M8 12h4"/><path d="m2 2 20 20"/></symbol>
+  <symbol id="i-image-off" viewBox="0 0 24 24"><path d="m2 2 20 20"/><path d="M10.41 10.41a2 2 0 1 1-2.83-2.83"/><path d="M13.5 13.5 6 21"/><path d="M18 12l-1.5-1.5a2 2 0 0 0-2.83 0l-.67.67"/><path d="M3.59 3.59A2 2 0 0 0 3 5v14a2 2 0 0 0 2 2h14c.55 0 1.05-.22 1.41-.59"/><path d="M21 15V5a2 2 0 0 0-2-2H9"/></symbol>
+  <symbol id="i-scan" viewBox="0 0 24 24"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><path d="m9 12 2 2 4-4"/></symbol>
+  <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></symbol>
+  <symbol id="i-link" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></symbol>
+  <symbol id="i-edit" viewBox="0 0 24 24"><path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.375 2.625a1 1 0 0 1 3 3l-9.013 9.014a2 2 0 0 1-.853.505l-2.873.84a.5.5 0 0 1-.62-.62l.84-2.873a2 2 0 0 1 .506-.852z"/></symbol>
+  <symbol id="i-dots" viewBox="0 0 24 24"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></symbol>
+  <symbol id="i-list" viewBox="0 0 24 24"><path d="M3 5h.01"/><path d="M3 12h.01"/><path d="M3 19h.01"/><path d="M8 5h13"/><path d="M8 12h13"/><path d="M8 19h13"/></symbol>
+  <symbol id="i-addon" viewBox="0 0 24 24"><path d="M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></symbol>
+  <symbol id="i-shield" viewBox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/></symbol>
+  <symbol id="i-profile" viewBox="0 0 24 24"><circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 0 0-16 0"/></symbol>
+  <symbol id="i-wrench" viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></symbol>
+</svg>
+
+<div class="app" id="app">
+
+  <!-- ===================================================== icon rail === -->
+  <nav class="rail" aria-label="Sections">
+    <div class="rail-brand"><div class="rail-mark">J</div></div>
+    <button class="rail-item" data-section="home" aria-current="true" type="button">
+      <svg class="ic ic-lg"><use href="#i-home"/></svg>Home
+    </button>
+    <button class="rail-item" data-section="content" type="button">
+      <svg class="ic ic-lg"><use href="#i-content"/></svg>Content
+      <span class="rail-dot" title="Live entries have unpublished changes"></span>
+    </button>
+    <button class="rail-item" data-section="users" type="button">
+      <svg class="ic ic-lg"><use href="#i-users"/></svg>Users
+    </button>
+    <button class="rail-item" data-section="config" type="button">
+      <svg class="ic ic-lg"><use href="#i-config"/></svg>Config
+    </button>
+  </nav>
+
+  <!-- ================================================= section panel === -->
+  <div class="sidepanel">
+    <div class="sp-head">
+      <h2 id="spTitle">Home</h2>
+      <span class="sp-site">Justin Tadlock</span>
+    </div>
+
+    <nav class="sp-nav sp" data-section="home" aria-label="Home">
+      <ul>
+        <li><button class="sp-item" data-go="dashboard" aria-current="page" type="button"><svg class="ic"><use href="#i-dashboard"/></svg>Dashboard</button></li>
+        <li><button class="sp-item" data-go="calendar" type="button"><svg class="ic"><use href="#i-calendar"/></svg>Calendar<span class="sp-count num">2</span></button></li>
+        <li><button class="sp-item" data-go="sitehealth" type="button"><svg class="ic"><use href="#i-health"/></svg>Site Health<span class="sp-count num" id="shCount"></span></button></li>
+        <li><button class="sp-item" data-go="tools" type="button"><svg class="ic"><use href="#i-wrench"/></svg>Tools</button></li>
+      </ul>
+      <p class="sp-group sp-group-act">Shortcuts
+        <button class="sp-edit" id="scEdit" type="button" aria-pressed="false">Edit</button>
+      </p>
+      <ul id="scList"></ul>
+      <div class="menu-wrap" id="scAddWrap" hidden>
+        <button class="sp-item sp-add" id="scAdd" data-menu="scMenu" type="button" aria-expanded="false" aria-haspopup="menu">
+          <svg class="ic"><use href="#i-plus"/></svg>Add a Shortcut
+        </button>
+        <div class="menu menu-sp" id="scMenu" role="menu" hidden></div>
+      </div>
+    </nav>
+
+    <nav class="sp-nav sp" data-section="content" aria-label="Content" hidden>
+      <ul>
+        <li><button class="sp-item" type="button"><svg class="ic"><use href="#i-page"/></svg>Pages<span class="sp-count num">16</span></button></li>
+        <li><button class="sp-item" type="button"><svg class="ic"><use href="#i-content"/></svg>Posts<span class="sp-count num">248</span></button></li>
+        <li><button class="sp-item is-nested" type="button"><svg class="ic"><use href="#i-tag"/></svg>Topics<span class="sp-count num">14</span></button></li>
+        <li><button class="sp-item" type="button"><svg class="ic"><use href="#i-type"/></svg>Releases<span class="sp-count num">9</span></button></li>
+        <li><button class="sp-item" type="button"><svg class="ic"><use href="#i-media"/></svg>Media<span class="sp-count num">418</span></button></li>
+        <li><button class="sp-item" type="button"><svg class="ic"><use href="#i-trash"/></svg>Trash<span class="sp-count num">7</span></button></li>
+      </ul>
+    </nav>
+
+    <nav class="sp-nav sp" data-section="users" aria-label="Users" hidden>
+      <ul>
+        <li><button class="sp-item" type="button"><svg class="ic"><use href="#i-account"/></svg>Accounts<span class="sp-count num">4</span></button></li>
+        <li><button class="sp-item" type="button"><svg class="ic"><use href="#i-profile"/></svg>Profiles<span class="sp-count num">6</span></button></li>
+        <li><button class="sp-item" type="button"><svg class="ic"><use href="#i-shield"/></svg>Roles<span class="sp-count num">4</span></button></li>
+      </ul>
+    </nav>
+
+    <nav class="sp-nav sp" data-section="config" aria-label="Config" hidden>
+      <ul>
+        <li><button class="sp-item" type="button"><svg class="ic"><use href="#i-settings"/></svg>Settings</button></li>
+        <li><button class="sp-item" type="button"><svg class="ic"><use href="#i-type"/></svg>Content Types<span class="sp-count num">4</span></button></li>
+        <li><button class="sp-item" type="button"><svg class="ic"><use href="#i-addon"/></svg>Addons<span class="sp-count num">3</span></button></li>
+      </ul>
+    </nav>
+  </div>
+
+  <!-- ========================================================= main === -->
+  <div class="main">
+
+    <header class="topbar">
+      <nav class="crumbs" aria-label="Breadcrumb">
+        <button id="crumbSection" type="button">Home</button>
+        <svg class="ic ic-xs sep"><use href="#i-chevron-right"/></svg>
+        <span id="crumbPage" aria-current="page">Dashboard</span>
+      </nav>
+      <div class="tb-right">
+        <div class="search">
+          <svg class="ic"><use href="#i-search"/></svg>
+          <label class="vh" for="q">Search or jump to</label>
+          <input id="q" type="search" placeholder="Search or jump to…">
+          <kbd>⌘K</kbd>
+        </div>
+        <a class="btn" href="#"><svg class="ic"><use href="#i-external"/></svg>View Site</a>
+        <div class="avatar" title="Justin Tadlock">JT</div>
+      </div>
+    </header>
+
+    <div class="work">
+      <div class="wrap">
+
+<!-- ========================================================================
+     SCREEN — Dashboard
+     ===================================================================== -->
+<section class="screen" id="screen-dashboard">
+
+<div id="dashC">
+ <div class="wrap-narrow">
+
+  <div class="notice notice-warn notice-bar" id="siteBar">
+    <svg class="ic"><use href="#i-alert"/></svg>
+    <span class="notice-body">The live site is <strong>behind</strong> — 2 entries have changed since it was published, 2 hours ago.</span>
+    <button class="btn btn-sm btn-primary" type="button">
+      <svg class="ic"><use href="#i-publish"/></svg>Publish Site
+    </button>
+  </div>
+
+  <div class="page-head">
+    <div>
+      <h1>Good afternoon, Justin</h1>
+      <p class="page-sub">Saturday, October 3 <span class="chip-env">development</span></p>
+    </div>
+    <div class="page-actions">
+      <div class="menu-wrap">
+        <button class="btn btn-primary" data-menu="newMenu" type="button" aria-expanded="false" aria-haspopup="menu">
+          <svg class="ic"><use href="#i-plus"/></svg>New
+          <svg class="ic"><use href="#i-chevron-down"/></svg>
+        </button>
+        <div class="menu" id="newMenu" role="menu" hidden>
+          <button role="menuitem" type="button"><svg class="ic"><use href="#i-page"/></svg>New Page</button>
+          <button role="menuitem" type="button"><svg class="ic"><use href="#i-content"/></svg>New Post</button>
+          <button role="menuitem" type="button"><svg class="ic"><use href="#i-type"/></svg>New Release</button>
+          <hr>
+          <button role="menuitem" type="button"><svg class="ic"><use href="#i-media"/></svg>Upload to the Library</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="dash dash-roomy">
+
+    <section class="resume" id="resumeBand">
+      <div class="resume-mark"><svg class="ic ic-lg"><use href="#i-edit"/></svg></div>
+      <div class="resume-body">
+        <p class="resume-kicker">You Were Editing</p>
+        <a class="resume-title" href="#">Ten Years of the Quiet Web</a>
+        <p class="resume-meta">
+          <span>Post</span><span class="dot-sep">·</span>
+          <span class="mono">/ten-years-of-the-quiet-web</span><span class="dot-sep">·</span>
+          <span class="pill">Draft</span><span class="dot-sep">·</span>
+          <span>saved 18 minutes ago</span>
+        </p>
+      </div>
+      <button class="btn btn-primary" type="button">Continue Editing</button>
+    </section>
+
+    <!-- The dashboard's own row, grouped by state rather than sorted by date,
+         so the lifecycle is the structure and what needs you comes first by
+         definition. The entry in the band above is not repeated here. -->
+    <section class="panel panel-flush" id="listRows" aria-labelledby="yeH">
+      <header class="panel-head">
+        <h2 id="yeH">Entries</h2>
+        <span class="panel-hint">What needs you first, then the rest</span>
+        <div class="panel-act">
+          <div class="seg" data-entries role="group" aria-label="Whose entries">
+            <button type="button" data-who="yours" aria-pressed="true">Yours</button>
+            <button type="button" data-who="all" aria-pressed="false">Everyone</button>
+          </div>
+        </div>
+      </header>
+      <ul class="lst" data-who="yours">
+            <li><button class="lst-row" type="button">
+              <span class="lst-main"><span class="lst-title">About</span><span class="lst-sub">Page · your edits from Thursday are not live yet</span></span>
+              <span class="lst-side"><span class="pill pill-published">Published</span><span class="pill pill-changes">Changes</span><span class="lst-when">Thursday</span><svg class="ic lst-chev"><use href="#i-chevron-right"/></svg></span>
+            </button></li>
+            <li><button class="lst-row" type="button">
+              <span class="lst-main"><span class="lst-title">A Field Guide to Slow Software</span><span class="lst-sub">Post · untouched for 9 days</span></span>
+              <span class="lst-side"><span class="pill ">Draft</span><span class="lst-when">September 24</span><svg class="ic lst-chev"><use href="#i-chevron-right"/></svg></span>
+            </button></li>
+            <li><button class="lst-row" type="button">
+              <span class="lst-main"><span class="lst-title">Notes on Typesetting the Admin</span><span class="lst-sub">Post</span></span>
+              <span class="lst-side"><span class="pill ">Draft</span><span class="lst-when">Tuesday</span><svg class="ic lst-chev"><use href="#i-chevron-right"/></svg></span>
+            </button></li>
+            <li><button class="lst-row" type="button">
+              <span class="lst-main"><span class="lst-title">The Winter Reading List</span><span class="lst-sub">Post · goes live on its own</span></span>
+              <span class="lst-side"><span class="pill pill-scheduled">Scheduled</span><span class="lst-when">Oct 7, 9:00 AM</span><svg class="ic lst-chev"><use href="#i-chevron-right"/></svg></span>
+            </button></li>
+            <li><button class="lst-row" type="button">
+              <span class="lst-main"><span class="lst-title">Reading Notes, September</span><span class="lst-sub">Post</span></span>
+              <span class="lst-side"><span class="pill pill-published">Published</span><span class="lst-when">October 1</span><svg class="ic lst-chev"><use href="#i-chevron-right"/></svg></span>
+            </button></li>
+            <li><button class="lst-row" type="button">
+              <span class="lst-main"><span class="lst-title">Working in the Open</span><span class="lst-sub">Post</span></span>
+              <span class="lst-side"><span class="pill pill-published">Published</span><span class="lst-when">October 1</span><svg class="ic lst-chev"><use href="#i-chevron-right"/></svg></span>
+            </button></li>
+      </ul>
+      <ul class="lst" data-who="all" hidden>
+            <li><button class="lst-row" type="button">
+              <span class="lst-main"><span class="lst-title">About</span><span class="lst-sub">Page · you</span></span>
+              <span class="lst-side"><span class="pill pill-published">Published</span><span class="pill pill-changes">Changes</span><span class="lst-when">Thursday</span><svg class="ic lst-chev"><use href="#i-chevron-right"/></svg></span>
+            </button></li>
+            <li><button class="lst-row" type="button">
+              <span class="lst-main"><span class="lst-title">Colophon</span><span class="lst-sub">Page · Dana Whitfield</span></span>
+              <span class="lst-side"><span class="pill pill-published">Published</span><span class="pill pill-changes">Changes</span><span class="lst-when">3 hours ago</span><svg class="ic lst-chev"><use href="#i-chevron-right"/></svg></span>
+            </button></li>
+            <li><button class="lst-row" type="button">
+              <span class="lst-main"><span class="lst-title">A Field Guide to Slow Software</span><span class="lst-sub">Post · you</span></span>
+              <span class="lst-side"><span class="pill ">Draft</span><span class="lst-when">September 24</span><svg class="ic lst-chev"><use href="#i-chevron-right"/></svg></span>
+            </button></li>
+            <li><button class="lst-row" type="button">
+              <span class="lst-main"><span class="lst-title">The Shape of a Changelog</span><span class="lst-sub">Post · Dana Whitfield</span></span>
+              <span class="lst-side"><span class="pill ">Draft</span><span class="lst-when">Wednesday</span><svg class="ic lst-chev"><use href="#i-chevron-right"/></svg></span>
+            </button></li>
+            <li><button class="lst-row" type="button">
+              <span class="lst-main"><span class="lst-title">Notes on Typesetting the Admin</span><span class="lst-sub">Post · you</span></span>
+              <span class="lst-side"><span class="pill ">Draft</span><span class="lst-when">Tuesday</span><svg class="ic lst-chev"><use href="#i-chevron-right"/></svg></span>
+            </button></li>
+            <li><button class="lst-row" type="button">
+              <span class="lst-main"><span class="lst-title">Release 2.5 — Content Health</span><span class="lst-sub">Release · Marcus Oyelaran</span></span>
+              <span class="lst-side"><span class="pill pill-scheduled">Scheduled</span><span class="lst-when">Today, 4:00 PM</span><svg class="ic lst-chev"><use href="#i-chevron-right"/></svg></span>
+            </button></li>
+            <li><button class="lst-row" type="button">
+              <span class="lst-main"><span class="lst-title">The Winter Reading List</span><span class="lst-sub">Post · you</span></span>
+              <span class="lst-side"><span class="pill pill-scheduled">Scheduled</span><span class="lst-when">Oct 7, 9:00 AM</span><svg class="ic lst-chev"><use href="#i-chevron-right"/></svg></span>
+            </button></li>
+            <li><button class="lst-row" type="button">
+              <span class="lst-main"><span class="lst-title">Release 2.4 — Calendar and Scheduling</span><span class="lst-sub">Release · Marcus Oyelaran</span></span>
+              <span class="lst-side"><span class="pill pill-published">Published</span><span class="lst-when">5 hours ago</span><svg class="ic lst-chev"><use href="#i-chevron-right"/></svg></span>
+            </button></li>
+            <li><button class="lst-row" type="button">
+              <span class="lst-main"><span class="lst-title">Reading Notes, September</span><span class="lst-sub">Post · you</span></span>
+              <span class="lst-side"><span class="pill pill-published">Published</span><span class="lst-when">October 1</span><svg class="ic lst-chev"><use href="#i-chevron-right"/></svg></span>
+            </button></li>
+            <li><button class="lst-row" type="button">
+              <span class="lst-main"><span class="lst-title">Working in the Open</span><span class="lst-sub">Post · you</span></span>
+              <span class="lst-side"><span class="pill pill-published">Published</span><span class="lst-when">October 1</span><svg class="ic lst-chev"><use href="#i-chevron-right"/></svg></span>
+            </button></li>
+      </ul>
+      <footer class="panel-foot">
+        <div class="menu-wrap">
+          <button class="lnk" data-menu="typeMenu" type="button" aria-expanded="false" aria-haspopup="menu">Browse by Type
+            <svg class="ic ic-xs"><use href="#i-chevron-down"/></svg>
+          </button>
+          <div class="menu menu-up" id="typeMenu" role="menu" hidden>
+            <button role="menuitem" type="button"><svg class="ic"><use href="#i-content"/></svg>Posts</button>
+            <button role="menuitem" type="button"><svg class="ic"><use href="#i-page"/></svg>Pages</button>
+            <button role="menuitem" type="button"><svg class="ic"><use href="#i-type"/></svg>Releases</button>
+          </div>
+        </div>
+      </footer>
+    </section>
+
+    <!-- The state you are in most days. Empty states get the most room of
+         anything (§6), and this one is good news rather than an absence. -->
+    <div id="listClear" hidden>
+      <section class="clear">
+        <div class="clear-mark"><svg class="ic ic-lg"><use href="#i-check"/></svg></div>
+        <h2>Nothing Is Waiting on You</h2>
+        <p>No drafts, nothing scheduled, and everything you have written is live.
+           The last thing you published was <strong>Reading Notes, September</strong>, on October 1.</p>
+        <div class="clear-act">
+          <button class="btn btn-primary" type="button"><svg class="ic"><use href="#i-plus"/></svg>New Post</button>
+          <div class="menu-wrap">
+            <button class="btn" data-menu="typeMenuClear" type="button" aria-expanded="false" aria-haspopup="menu">Browse by Type
+              <svg class="ic"><use href="#i-chevron-down"/></svg>
+            </button>
+            <div class="menu" id="typeMenuClear" role="menu" hidden>
+              <button role="menuitem" type="button"><svg class="ic"><use href="#i-content"/></svg>Posts</button>
+              <button role="menuitem" type="button"><svg class="ic"><use href="#i-page"/></svg>Pages</button>
+              <button role="menuitem" type="button"><svg class="ic"><use href="#i-type"/></svg>Releases</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel panel-flush" aria-labelledby="rpH">
+        <header class="panel-head">
+          <h2 id="rpH">Recently Published</h2>
+          <span class="panel-hint">Yours, last 30 days</span>
+        </header>
+        <ul class="lst">
+          <li><button class="lst-row" type="button">
+            <span class="lst-main"><span class="lst-title">Reading Notes, September</span><span class="lst-sub">Post</span></span>
+            <span class="lst-side"><span class="pill pill-published">Published</span><span class="lst-when">October 1</span><svg class="ic lst-chev"><use href="#i-chevron-right"/></svg></span>
+          </button></li>
+          <li><button class="lst-row" type="button">
+            <span class="lst-main"><span class="lst-title">Working in the Open</span><span class="lst-sub">Post</span></span>
+            <span class="lst-side"><span class="pill pill-published">Published</span><span class="lst-when">October 1</span><svg class="ic lst-chev"><use href="#i-chevron-right"/></svg></span>
+          </button></li>
+          <li><button class="lst-row" type="button">
+            <span class="lst-main"><span class="lst-title">Three Notes on Type</span><span class="lst-sub">Post</span></span>
+            <span class="lst-side"><span class="pill pill-published">Published</span><span class="lst-when">September 18</span><svg class="ic lst-chev"><use href="#i-chevron-right"/></svg></span>
+          </button></li>
+        </ul>
+      </section>
+    </div>
+
+  </div>
+ </div>
+</div>
+
+<!-- A site with no content replaces the dashboard with a numbered setup path
+     (§8). Each step does the thing rather than linking to documentation. -->
+<div id="dashFirstRun" hidden>
+
+  <div class="page-head">
+    <div>
+      <h1>Set Up Your Site</h1>
+      <p class="page-sub">Four steps, and nothing to read first <span class="chip-env">development</span></p>
+    </div>
+  </div>
+
+  <div class="dash">
+    <section class="panel panel-flush" aria-labelledby="stH">
+      <header class="panel-head">
+        <h2 id="stH">Getting Started</h2>
+        <span class="panel-hint">1 of 4 done</span>
+      </header>
+      <ul class="lst steps">
+
+        <li><div class="step is-done">
+          <span class="step-n"><svg class="ic ic-sm"><use href="#i-check"/></svg></span>
+          <span class="step-main">
+            <span class="step-name">Write your first page</span>
+            <span class="step-desc">Done — <strong>About</strong>, saved as a draft on Thursday.</span>
+          </span>
+          <button class="btn btn-sm" type="button">Open It</button>
+        </div></li>
+
+        <li><div class="step">
+          <span class="step-n num">2</span>
+          <span class="step-main">
+            <span class="step-name">Decide what you publish</span>
+            <span class="step-desc">A content type is the shape of one kind of entry — a post, a release, a recipe. Pages already exist; everything else you define.</span>
+          </span>
+          <button class="btn btn-sm btn-primary" type="button">New Type</button>
+        </div></li>
+
+        <li><div class="step">
+          <span class="step-n num">3</span>
+          <span class="step-main">
+            <span class="step-name">Add your media</span>
+            <span class="step-desc">Logos, photographs, anything an entry needs. You can drag a folder in.</span>
+          </span>
+          <button class="btn btn-sm" type="button">Upload Files</button>
+        </div></li>
+
+        <li><div class="step">
+          <span class="step-n num">4</span>
+          <span class="step-main">
+            <span class="step-name">Invite the people you work with</span>
+            <span class="step-desc">Each person signs in with their own account, and their profile becomes their byline on the site.</span>
+          </span>
+          <button class="btn btn-sm" type="button">Invite Someone</button>
+        </div></li>
+
+      </ul>
+      <footer class="panel-foot">
+        <button class="lnk" type="button">Skip to the Dashboard
+          <svg class="ic ic-xs"><use href="#i-arrow-right"/></svg>
+        </button>
+      </footer>
+    </section>
+
+    <p class="notice">
+      <svg class="ic"><use href="#i-info"/></svg>
+<span class="notice-body">The dashboard takes this screen's place once the site has published
+      something. The steps stay reachable from Settings afterward.</span>
+    </p>
+  </div>
+</div>
+
+</section>
+
+<!-- ========================================================================
+     SCREEN — Calendar
+     ===================================================================== -->
+<section class="screen" id="screen-calendar" hidden>
+
+  <div class="page-head">
+    <div>
+      <h1>Calendar</h1>
+      <p class="page-sub">What is going out, and what already did</p>
+    </div>
+    <div class="page-actions">
+      <div class="menu-wrap">
+        <button class="btn btn-primary" data-menu="calNewMenu" type="button" aria-expanded="false" aria-haspopup="menu">
+          <svg class="ic"><use href="#i-plus"/></svg>New
+          <svg class="ic"><use href="#i-chevron-down"/></svg>
+        </button>
+        <div class="menu" id="calNewMenu" role="menu" hidden>
+          <button role="menuitem" type="button"><svg class="ic"><use href="#i-page"/></svg>New Page</button>
+          <button role="menuitem" type="button"><svg class="ic"><use href="#i-content"/></svg>New Post</button>
+          <button role="menuitem" type="button"><svg class="ic"><use href="#i-type"/></svg>New Release</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="toolbar">
+    <div class="monthnav">
+      <button class="monthnav-arrow" id="calPrev" type="button" aria-label="Previous Month"><svg class="ic ic-sm"><use href="#i-chevron-left"/></svg></button>
+      <h2 class="monthnav-label" id="calMonthLabel" aria-live="polite"></h2>
+      <button class="monthnav-arrow" id="calNext" type="button" aria-label="Next Month"><svg class="ic ic-sm"><use href="#i-chevron-right"/></svg></button>
+    </div>
+    <button class="btn btn-sm" id="calToday" type="button" hidden></button>
+    <div class="toolbar-right">
+      <div class="seg" id="calView" role="group" aria-label="Calendar view">
+        <button type="button" data-view="month" aria-pressed="false"><svg class="ic ic-sm"><use href="#i-calendar"/></svg>Month</button>
+        <button type="button" data-view="list" aria-pressed="true"><svg class="ic ic-sm"><use href="#i-list"/></svg>List</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- month view -->
+  <div id="calMonth" hidden>
+    <div class="cal-wrap">
+      <div class="cal">
+        <div class="cal-dow" aria-hidden="true">
+          <span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span>
+        </div>
+        <div class="cal-grid" id="calGrid"></div>
+      </div>
+    </div>
+
+    <p class="cal-note" id="calEmpty" hidden></p>
+
+    <p class="cal-legend" id="calLegend">
+      <span><svg class="ic ic-sm is-pub"><use href="#i-check"/></svg>Published</span>
+      <span><svg class="ic ic-sm is-sch"><use href="#i-clock"/></svg>Scheduled</span>
+      <span>Drafts carry no date, so they are not on the calendar.</span>
+      <span>A busy day shows two and counts the rest.</span>
+    </p>
+  </div>
+
+  <!-- The list view. The same month the grid is showing, in date order, with
+       today marked where it falls. The rows are the admin's one list row —
+       the day heading is the only thing this screen adds. -->
+  <div id="calList">
+    <section class="panel panel-flush" aria-labelledby="clstH">
+      <header class="panel-head">
+        <h2 id="clstH">Scheduled and Published</h2>
+        <span class="panel-hint" id="calListHint"></span>
+      </header>
+      <ul class="lst" id="calListBody"></ul>
+      <p class="lst-empty" id="calListEmpty" hidden></p>
+      <footer class="panel-foot foot-split">
+        <span class="panel-hint">Drafts carry no date, so they are not on the calendar.</span>
+      </footer>
+    </section>
+  </div>
+
+</section>
+
+<!-- ========================================================================
+     SCREEN — Site Health
+
+     Three figures, the things that are wrong down the wide column, and what
+     was checked down the narrow one. It began as a second screen beside a
+     Content Health that scanned entries and media only; that screen is gone,
+     because one question — is anything wrong? — asked in two places is a
+     question the reader has to ask twice. Content is now one of the five
+     areas here.
+
+     Two things follow from the scale. The side column lists the five areas
+     rather than the twenty-four checks, because a column of twenty-four is
+     a wall where a column of six was a glance. And an issue row carries how
+     bad it is rather than what kind it is, because a site can be broken now
+     in a way a piece of content cannot.
+
+     The second tab is requirements rather than checks: a check has a
+     verdict, a requirement has two numbers you compare.
+     ===================================================================== -->
+<section class="screen" id="screen-sitehealth" hidden>
+
+  <div class="page-head">
+    <div>
+      <h1>Site Health</h1>
+      <p class="page-sub" id="shSub"></p>
+    </div>
+    <div class="page-actions">
+      <button class="btn btn-primary" id="shRun" type="button"><svg class="ic"><use href="#i-scan"/></svg>Run a Check</button>
+      <button class="btn" id="shCopy" type="button" hidden><svg class="ic"><use href="#i-page"/></svg>Copy Report</button>
+    </div>
+  </div>
+
+  <div class="chips" role="tablist" aria-label="Site Health">
+    <button class="chip" role="tab" id="tab-sh-checks" aria-selected="true"  aria-controls="pane-sh-checks" type="button">Checks</button>
+    <button class="chip" role="tab" id="tab-sh-env"    aria-selected="false" aria-controls="pane-sh-env"    type="button">Requirements</button>
+  </div>
+
+  <div class="dash" id="pane-sh-checks" role="tabpanel" aria-labelledby="tab-sh-checks">
+
+    <div class="stats stats-3">
+      <div class="stat" id="shTileNeedy">
+        <div class="stat-label"><svg class="ic ic-sm"><use href="#i-alert"/></svg>Needs Attention</div>
+        <div class="stat-v num" id="shNeedyV"></div>
+        <div class="stat-ctx" id="shNeedyC"></div>
+      </div>
+      <div class="stat">
+        <div class="stat-label"><svg class="ic ic-sm"><use href="#i-check"/></svg>Passing</div>
+        <div class="stat-v num" id="shPassV"></div>
+        <div class="stat-ctx" id="shPassC"></div>
+      </div>
+      <div class="stat">
+        <div class="stat-label"><svg class="ic ic-sm"><use href="#i-shield"/></svg>Checks Run</div>
+        <div class="stat-v num" id="shRunV"></div>
+        <div class="stat-ctx" id="shRunC"></div>
+      </div>
+    </div>
+
+    <div class="cols cols-wide-side">
+      <div class="col">
+
+        <section class="panel panel-flush" aria-labelledby="shAttH">
+          <header class="panel-head">
+            <h2 id="shAttH">Issues</h2>
+            <span class="panel-hint" id="shAttHint"></span>
+          </header>
+          <ul class="lst" id="shAtt"></ul>
+        </section>
+
+      </div>
+      <div class="col">
+
+        <section class="panel panel-flush" aria-labelledby="shAllH">
+          <header class="panel-head"><h2 id="shAllH">Areas</h2></header>
+          <ul class="lst" id="shAll"></ul>
+          <footer class="panel-foot foot-split">
+            <span class="panel-hint">The same checks <span class="mono">doctor</span> runs.</span>
+            <button class="lnk" data-go="tools" type="button">Open Tools
+              <svg class="ic ic-xs"><use href="#i-arrow-right"/></svg>
+            </button>
+          </footer>
+        </section>
+
+      </div>
+    </div>
+
+  </div>
+
+  <!-- =========================================== Requirements ======== -->
+  <!-- What Blush needs against what this host gives it, and the facts you
+       would be asked for if you reported a problem. A requirement is not a
+       check: it has no verdict of its own, it has a number you compare. The
+       checks tab says whether the comparison came out badly; this says what
+       the two numbers are. -->
+  <div class="dash" id="pane-sh-env" role="tabpanel" aria-labelledby="tab-sh-env" hidden>
+
+    <div class="cols cols-wide-side">
+      <div class="col">
+
+        <section class="panel panel-flush" aria-labelledby="reqH">
+          <header class="panel-head">
+            <h2 id="reqH">Requirements</h2>
+            <span class="panel-hint" id="reqHint"></span>
+          </header>
+          <div class="tbl-wrap">
+            <table class="tbl">
+              <colgroup><col><col style="width:152px"><col style="width:124px"><col style="width:104px"></colgroup>
+              <thead>
+                <tr><th>Requirement</th><th>Needs</th><th>Installed</th><th>Status</th></tr>
+              </thead>
+              <tbody id="reqBody"></tbody>
+            </table>
+          </div>
+        </section>
+
+      </div>
+      <div class="col">
+
+        <section class="panel panel-flush" aria-labelledby="envSiteH">
+          <header class="panel-head">
+            <h2 id="envSiteH">This Site</h2>
+            <span class="panel-hint">As the CMS reports it</span>
+          </header>
+          <dl class="kv" id="kvSite"></dl>
+        </section>
+
+        <section class="panel panel-flush" aria-labelledby="envSrvH">
+          <header class="panel-head">
+            <h2 id="envSrvH">The Server</h2>
+            <span class="panel-hint">What PHP can see from here</span>
+          </header>
+          <dl class="kv" id="kvServer"></dl>
+        </section>
+
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ========================================================================
+     SCREEN — Tools
+     ===================================================================== -->
+<section class="screen" id="screen-tools" hidden>
+
+  <div class="page-head">
+    <div>
+      <h1>Tools</h1>
+      <p class="page-sub">Tasks you run by hand, and the log they write to</p>
+    </div>
+  </div>
+
+  <p class="notice" id="toolsNotice">
+    <svg class="ic"><use href="#i-info"/></svg>
+    <span class="notice-body" id="toolsNoticeText"></span>
+  </p>
+
+  <div class="chips" role="tablist" aria-label="Tools">
+    <button class="chip" role="tab" id="tab-actions" aria-selected="true"  aria-controls="pane-actions" type="button">Actions</button>
+    <button class="chip" role="tab" id="tab-logs"    aria-selected="false" aria-controls="pane-logs"    type="button">Logs</button>
+  </div>
+
+  <!-- ================================================== Actions ======== -->
+  <div class="dash" id="pane-actions" role="tabpanel" aria-labelledby="tab-actions">
+
+    <section class="panel panel-flush" aria-labelledby="acCore">
+      <header class="panel-head">
+        <h2 id="acCore">Core</h2>
+        <span class="panel-hint">Registered by Blush</span>
+      </header>
+      <ul class="lst">
+        <li><div class="act-row">
+          <span class="act-main">
+            <span class="act-name">Publish</span>
+            <span class="act-desc">Puts content changes live.</span>
+            <span class="act-when" data-when="publish">Last run 2 hours ago · also on the Dashboard when the site is behind</span>
+          </span>
+          <button class="btn" data-action="publish" type="button">Publish</button>
+          <div class="notice notice-good notice-sm act-result" data-result="publish">
+            <svg class="ic ic-sm"><use href="#i-check"/></svg>
+            <div class="notice-body">
+              <p class="notice-msg">Published the site.</p>
+              <ul><li>1,202 entries</li><li>418 files</li><li>finished in 2m 14s</li></ul>
+            </div>
+          </div>
+        </div></li>
+        <li><div class="act-row">
+          <span class="act-main">
+            <span class="act-name">Reindex Content</span>
+            <span class="act-desc">Brings the content and media indexes up to date with the files.</span>
+            <span class="act-when" data-when="reindex">Last run 2 hours ago</span>
+          </span>
+          <button class="btn" data-action="reindex" type="button">Reindex Content</button>
+        </div></li>
+        <li><div class="act-row">
+          <span class="act-main">
+            <span class="act-name">Clear Caches <span class="panel-hint">· asks first</span></span>
+            <span class="act-desc">Empties the page, body, and fragment caches.</span>
+            <span class="act-when" data-when="caches">Last run 2 hours ago</span>
+          </span>
+          <button class="btn" data-action="caches" data-confirm="1" type="button">Clear Caches</button>
+        </div></li>
+      </ul>
+    </section>
+
+    <section class="panel panel-flush" aria-labelledby="acShop">
+      <header class="panel-head">
+        <h2 id="acShop">Shop</h2>
+        <span class="panel-hint">Registered by an addon</span>
+      </header>
+      <ul class="lst">
+        <li><div class="act-row">
+          <span class="act-main">
+            <span class="act-name">Sync Orders</span>
+            <span class="act-desc">Pulls new orders from the store and updates their entries.</span>
+            <span class="act-when" data-when="sync">Last run yesterday at 6:02 PM</span>
+          </span>
+          <button class="btn" data-action="sync" type="button">Sync Orders</button>
+        </div></li>
+      </ul>
+      <footer class="panel-foot">
+        <button class="lnk" data-go="sitehealth" type="button">Open Site Health
+          <svg class="ic ic-xs"><use href="#i-arrow-right"/></svg>
+        </button>
+      </footer>
+    </section>
+
+  </div>
+
+  <!-- ================================================== Logs =========== -->
+  <div class="dash" id="pane-logs" role="tabpanel" aria-labelledby="tab-logs" hidden>
+    <section class="panel panel-flush" aria-labelledby="lgH">
+      <header class="panel-head">
+        <h2 id="lgH">Logs</h2>
+        <span class="panel-hint" id="logHint">The last 40 lines of <span class="mono">storage/logs/blush.log</span></span>
+        <div class="panel-act">
+          <button class="btn btn-sm" id="logRefresh" type="button"><svg class="ic"><use href="#i-refresh"/></svg>Refresh</button>
+          <button class="btn btn-sm" id="logDownload" type="button">Download</button>
+        </div>
+      </header>
+      <pre class="log">2026-10-03 13:14:02 <span class="lv-info">INFO </span> publish: started (triggered from the admin)
+2026-10-03 13:14:02 <span class="lv-info">INFO </span> publish: pulled 0 changes from the content source
+2026-10-03 13:15:58 <span class="lv-info">INFO </span> publish: reindexed 1202 entries, 418 files in 112.4s
+2026-10-03 13:16:16 <span class="lv-info">INFO </span> publish: cleared page, body and fragment caches
+2026-10-03 13:16:16 <span class="lv-info">INFO </span> publish: finished in 2m 14s
+2026-10-02 18:40:09 <span class="lv-err">ERROR</span> publish: could not reach git@origin:site-content
+2026-10-02 18:40:09 <span class="lv-err">ERROR</span> publish: ssh: connect to host origin port 22: Connection timed out
+2026-10-02 18:40:09 <span class="lv-warn">WARN </span> publish: left the live site on the build from 14:10
+2026-10-02 14:12:15 <span class="lv-info">INFO </span> publish: finished in 2m 06s
+2026-10-02 09:02:41 <span class="lv-warn">WARN </span> media: picker-grid.png has no alt text recorded
+2026-10-01 11:15:00 <span class="lv-info">INFO </span> schedule: published "Working in the Open"
+2026-10-01 08:00:00 <span class="lv-info">INFO </span> schedule: published "Reading Notes, September"</pre>
+    </section>
+  </div>
+
+</section>
+      </div>
+    </div>
+  </div>
+</div>
+
+<dialog class="modal" id="confirmModal" aria-labelledby="confirmTitle">
+  <div class="modal-box">
+    <h2 id="confirmTitle"></h2>
+    <p id="confirmBody"></p>
+    <div class="modal-act">
+      <button class="btn" value="cancel" type="button">Cancel</button>
+      <button class="btn btn-primary" id="confirmGo" type="button"></button>
+    </div>
+  </div>
+</dialog>
+
+<div class="toasts" id="toasts" role="status" aria-live="polite"></div>
+
+<div class="pv-bar" role="group" aria-label="Preview controls">
+  <span class="pv-label">Preview</span>
+  <div class="pv-seg" id="pvTheme">
+    <button type="button" data-theme="neutral" aria-pressed="true">Neutral</button>
+    <button type="button" data-theme="editorial" aria-pressed="false">Editorial</button>
+  </div>
+  <div class="pv-seg" id="pvSite">
+    <button type="button" data-site="busy" aria-pressed="true">Busy</button>
+    <button type="button" data-site="clear" aria-pressed="false">All clear</button>
+    <button type="button" data-site="empty" aria-pressed="false">Empty site</button>
+  </div>
+  <div class="pv-seg" id="pvScheme">
+    <button type="button" data-scheme="light" aria-pressed="true">Light</button>
+    <button type="button" data-scheme="dark" aria-pressed="false">Dark</button>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+  var root = document.documentElement;
+  var app  = document.getElementById('app');
+
+  /* --------------------------------------------------- preview harness -- */
+  function seg(id, apply) {
+    var host = document.getElementById(id);
+    host.addEventListener('click', function (e) {
+      var btn = e.target.closest('button');
+      if (!btn) return;
+      Array.prototype.forEach.call(host.querySelectorAll('button'), function (b) {
+        b.setAttribute('aria-pressed', String(b === btn));
+      });
+      apply(btn);
+    });
+  }
+  seg('pvTheme',  function (b) { root.setAttribute('data-admin-theme',  b.dataset.theme);  });
+  seg('pvScheme', function (b) { root.setAttribute('data-color-scheme', b.dataset.scheme); });
+  var siteState = 'busy';
+
+  function renderDash() {
+    var empty = siteState === 'empty', allClear = siteState === 'clear';
+    document.getElementById('dashC').hidden        = empty;
+    document.getElementById('dashFirstRun').hidden = !empty;
+    document.getElementById('listRows').hidden  = allClear;
+    document.getElementById('listClear').hidden = !allClear;
+    /* an open draft is itself something waiting on you, so All clear means
+       there is nothing to resume either */
+    document.getElementById('resumeBand').hidden = allClear;
+    /* the nag and the entries list are independent states; All clear shows
+       the picture where both have been dealt with */
+    document.getElementById('siteBar').hidden = allClear;
+    /* an empty site has nothing to count, so the panel says nothing either */
+    Array.prototype.forEach.call(
+      document.querySelectorAll('.sp[data-section="home"] .sp-count'),
+      function (c) { c.hidden = empty; }
+    );
+  }
+
+  seg('pvSite', function (b) { siteState = b.dataset.site; renderDash(); });
+  root.setAttribute('data-color-scheme', 'light');
+
+  /* ------------------------------------------------------------ router -- */
+  var SCREENS = {
+    dashboard:   { section: 'home',   label: 'Dashboard' },
+    calendar:    { section: 'home',   label: 'Calendar' },
+    sitehealth:  { section: 'home',   label: 'Site Health' },
+    tools:       { section: 'home',   label: 'Tools' }
+  };
+  var SECTION_LABEL = { home: 'Home', content: 'Content', users: 'Users', config: 'Config' };
+
+  var current = 'dashboard';
+
+  function showSection(name) {
+    Array.prototype.forEach.call(document.querySelectorAll('.rail-item'), function (b) {
+      b.setAttribute('aria-current', String(b.dataset.section === name));
+    });
+    Array.prototype.forEach.call(document.querySelectorAll('.sp'), function (p) {
+      p.hidden = p.dataset.section !== name;
+    });
+    document.getElementById('spTitle').textContent = SECTION_LABEL[name];
+    app.classList.remove('is-collapsed');
+  }
+
+  function markPanel() {
+    Array.prototype.forEach.call(document.querySelectorAll('.sp-item'), function (b) {
+      if (b.dataset.go === current) b.setAttribute('aria-current', 'page');
+      else b.removeAttribute('aria-current');
+    });
+  }
+
+  function go(screen) {
+    if (!SCREENS[screen]) return;
+    current = screen;
+    Array.prototype.forEach.call(document.querySelectorAll('.screen'), function (s) {
+      s.hidden = s.id !== 'screen-' + screen;
+    });
+    document.getElementById('crumbSection').textContent = SECTION_LABEL[SCREENS[screen].section];
+    document.getElementById('crumbPage').textContent    = SCREENS[screen].label;
+    showSection(SCREENS[screen].section);
+    markPanel();
+    renderDash();
+    document.querySelector('.work').scrollTop = 0;
+  }
+
+  /* The rail scopes, it never navigates. Pressing the section you are
+     already in collapses the panel; pressing it again reopens it. */
+  document.querySelector('.rail').addEventListener('click', function (e) {
+    var btn = e.target.closest('.rail-item');
+    if (!btn) return;
+    if (btn.getAttribute('aria-current') === 'true') {
+      app.classList.toggle('is-collapsed');
+      return;
+    }
+    showSection(btn.dataset.section);
+    markPanel();
+  });
+
+  /* The panel navigates. So does any in-page link that carries data-go. */
+  document.addEventListener('click', function (e) {
+    var t = e.target.closest('[data-go]');
+    if (!t) return;
+    e.preventDefault();
+    go(t.dataset.go);
+  });
+
+  /* The section crumb scopes the rail panel rather than navigating. */
+  document.getElementById('crumbSection').addEventListener('click', function () {
+    showSection(SCREENS[current].section);
+    markPanel();
+  });
+
+  /* ============================================================ calendar == */
+  /* The calendar is rendered from data rather than written out, because
+     stepping a month, jumping to today and paging back through the list all
+     have to produce a screen nobody wrote by hand. "Today" is pinned to a
+     fixed date so the preview does not drift. */
+
+  var TODAY = new Date(2026, 9, 3);
+  var ENTRIES = [
+    {d:'2026-10-07', t:'09:00', title:'The Winter Reading List',              type:'Post',    who:'you',               st:'scheduled'},
+    {d:'2026-10-03', t:'16:00', title:'Release 2.5 — Content Health',         type:'Release', who:'Marcus Oyelaran',   st:'scheduled'},
+    {d:'2026-10-03', t:'09:40', title:'Release 2.4 — Calendar and Scheduling',type:'Release', who:'Marcus Oyelaran',   st:'published'},
+    {d:'2026-10-01', t:'16:30', title:'Three Notes on Type',                  type:'Post',    who:'Priya Raghunathan', st:'published'},
+    {d:'2026-10-01', t:'11:15', title:'Working in the Open',                  type:'Post',    who:'Dana Whitfield',    st:'published'},
+    {d:'2026-10-01', t:'08:00', title:'Reading Notes, September',             type:'Post',    who:'you',               st:'published'},
+    {d:'2026-09-29', t:'14:00', title:'Release 2.3 — Media Picker',           type:'Release', who:'Marcus Oyelaran',   st:'published'},
+    {d:'2026-09-22', t:'11:00', title:'On Naming Things',                     type:'Post',    who:'Dana Whitfield',    st:'published'},
+    {d:'2026-09-15', t:'15:30', title:'Release 2.2 — The Entry Editor',       type:'Release', who:'Marcus Oyelaran',   st:'published'},
+    {d:'2026-09-08', t:'08:00', title:'Reading Notes, August',                type:'Post',    who:'you',               st:'published'},
+    {d:'2026-09-02', t:'13:20', title:'Topics, Revisited',                    type:'Post',    who:'Priya Raghunathan', st:'published'},
+    {d:'2026-08-27', t:'16:00', title:'Release 2.1 — Tables',                 type:'Release', who:'Marcus Oyelaran',   st:'published'},
+    {d:'2026-08-19', t:'09:30', title:'The Quiet Web, Again',                 type:'Post',    who:'you',               st:'published'},
+    {d:'2026-08-14', t:'12:00', title:'About',                                type:'Page',    who:'you',               st:'published'},
+    {d:'2026-08-05', t:'10:00', title:'Release 2.0',                          type:'Release', who:'Marcus Oyelaran',   st:'published'}
+  ];
+
+  var DOW_LONG = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  var MON_LONG = ['January','February','March','April','May','June','July',
+                  'August','September','October','November','December'];
+  var MON_ABBR = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+  function pad2(v) { return (v < 10 ? '0' : '') + v; }
+  function key(dt) { return dt.getFullYear() + '-' + pad2(dt.getMonth() + 1) + '-' + pad2(dt.getDate()); }
+  function parseKey(k) { var a = k.split('-'); return new Date(+a[0], +a[1] - 1, +a[2]); }
+  function fmtTime(t) {
+    var a = t.split(':'), h = +a[0];
+    return (h % 12 || 12) + ':' + a[1] + ' ' + (h < 12 ? 'AM' : 'PM');
+  }
+  function dayDiff(a, b) { return Math.round((a - b) / 86400000); }
+  function esc(v) { return String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+  var BY_DAY = {};
+  ENTRIES.forEach(function (e) { (BY_DAY[e.d] = BY_DAY[e.d] || []).push(e); });
+  Object.keys(BY_DAY).forEach(function (k) {
+    BY_DAY[k].sort(function (a, b) { return b.t < a.t ? -1 : 1; });
+  });
+
+  var calY = TODAY.getFullYear(), calM = TODAY.getMonth();
+  var expanded = {};            /* days whose "N more" has been pressed */
+
+  var calGrid      = document.getElementById('calGrid');
+  var calListBody  = document.getElementById('calListBody');
+  var calMonthLbl  = document.getElementById('calMonthLabel');
+  var calTodayBtn  = document.getElementById('calToday');
+  var calEmpty     = document.getElementById('calEmpty');
+  var calLegend    = document.getElementById('calLegend');
+  var calListEmpty = document.getElementById('calListEmpty');
+  var calListHint  = document.getElementById('calListHint');
+
+  function chip(e) {
+    var sch = e.st === 'scheduled';
+    return '<button class="cal-chip ' + (sch ? 'is-scheduled' : 'is-published') + '" type="button"' +
+           ' data-open="' + esc(e.title) + '">' +
+           '<svg class="ic"><use href="#i-' + (sch ? 'clock' : 'check') + '"/></svg>' +
+           '<span class="cal-chip-t">' + esc(e.title) + '</span>' +
+           (sch ? '<span class="cal-chip-time">' + fmtTime(e.t) + '</span>' : '') +
+           '</button>';
+  }
+
+  function renderMonth() {
+    var first = new Date(calY, calM, 1);
+    var startDow = first.getDay();
+    var daysIn = new Date(calY, calM + 1, 0).getDate();
+    var rows = Math.ceil((startDow + daysIn) / 7);
+    var out = '';
+    for (var i = 0; i < rows * 7; i++) {
+      var dt = new Date(calY, calM, 1 - startDow + i);
+      var k = key(dt);
+      var other = dt.getMonth() !== calM;
+      var isToday = k === key(TODAY);
+      var items = BY_DAY[k] || [];
+      var show = expanded[k] ? items : items.slice(0, 2);
+      var cls = 'cal-day' + (other ? ' is-other' : '') + (isToday ? ' is-today' : '') +
+                (i >= (rows - 1) * 7 ? ' is-lastrow' : '');
+      out += '<div class="' + cls + '"><span class="cal-num">' + dt.getDate() + '</span>' +
+             show.map(chip).join('') +
+             (items.length > show.length
+               ? '<button class="cal-more" type="button" data-more="' + k + '">' +
+                 (items.length - show.length) + ' more</button>' : '') +
+             '</div>';
+    }
+    calGrid.innerHTML = out;
+
+    /* A month the grid can reach but nothing landed in still has to say so,
+       and the one line of the legend that stays true on an empty grid is the
+       one about drafts, so it moves into the sentence. */
+    var pre = calY + '-' + pad2(calM + 1) + '-';
+    var any = Object.keys(BY_DAY).some(function (k) { return k.indexOf(pre) === 0; });
+    calLegend.hidden = !any;
+    calEmpty.hidden = any;
+    if (!any) {
+      calEmpty.textContent = 'Nothing is scheduled or published in ' +
+        MON_LONG[calM] + ' ' + calY + '. Drafts carry no date, so they never ' +
+        'appear on the calendar.';
+    }
+  }
+
+  /* ---- the month navigator, which both views answer to ---- */
+
+  function onNow() { return calY === TODAY.getFullYear() && calM === TODAY.getMonth(); }
+
+  /* The way back is hidden on the month it would return to rather than shown
+     dead, which is what the rest of the admin does with a control that has
+     nothing to do. Nothing moves when it goes: it is the last thing in the
+     left group, and the view switch is pinned to the other end. It names the
+     month it returns to, and carries the year only when that differs. */
+  function syncNav() {
+    calMonthLbl.textContent = MON_LONG[calM] + ' ' + calY;
+    calTodayBtn.hidden = onNow();
+    calTodayBtn.textContent = 'Back to ' + MON_LONG[TODAY.getMonth()] +
+      (calY === TODAY.getFullYear() ? '' : ' ' + TODAY.getFullYear());
+  }
+
+  /* One function moves the period, and both drawings of it follow. */
+  function goMonth(y, m) {
+    var dt = new Date(y, m, 1);
+    calY = dt.getFullYear(); calM = dt.getMonth();
+    expanded = {};
+    syncNav(); renderMonth(); renderList();
+  }
+
+  function dayNote(dt, items) {
+    var diff = dayDiff(dt, TODAY);
+    if (diff > 0) return diff === 1 ? 'tomorrow' : 'in ' + diff + ' days';
+    var sc = items.filter(function (e) { return e.st === 'scheduled'; }).length;
+    var pb = items.length - sc;
+    var parts = [];
+    if (sc) parts.push(sc + ' scheduled');
+    if (pb) parts.push(pb + ' published');
+    return parts.join(', ');
+  }
+
+  function renderList() {
+    var pre = calY + '-' + pad2(calM + 1) + '-';
+    var days = Object.keys(BY_DAY).filter(function (k) {
+      return k.indexOf(pre) === 0;
+    }).sort();
+    var out = '';
+    days.forEach(function (k) {
+      var dt = parseKey(k), items = BY_DAY[k];
+      var isToday = k === key(TODAY);
+      var label = (isToday ? 'Today' : DOW_LONG[dt.getDay()]) + ', ' +
+                  MON_LONG[dt.getMonth()] + ' ' + dt.getDate();
+      out += '<li class="lst-group' + (isToday ? ' is-today' : '') + '">' +
+             '<span>' + label + '</span>' +
+             '<span class="lst-group-n">' + dayNote(dt, items) + '</span></li>';
+      items.forEach(function (e) {
+        var sch = e.st === 'scheduled';
+        out += '<li><button class="lst-row" type="button" data-open="' + esc(e.title) + '">' +
+               '<span class="lst-main"><span class="lst-title">' + esc(e.title) + '</span>' +
+               '<span class="lst-sub">' + e.type + ' · ' + e.who + '</span></span>' +
+               '<span class="lst-side">' +
+               '<span class="pill ' + (sch ? 'pill-scheduled">Scheduled' : 'pill-published">Published') + '</span>' +
+               '<span class="lst-when">' + fmtTime(e.t) + '</span>' +
+               '<svg class="ic lst-chev"><use href="#i-chevron-right"/></svg></span>' +
+               '</button></li>';
+      });
+    });
+    calListBody.innerHTML = out;
+    calListEmpty.hidden = days.length > 0;
+    calListEmpty.textContent = 'Nothing is scheduled or published in ' +
+      MON_LONG[calM] + ' ' + calY + '.';
+    calListHint.textContent = days.length
+      ? 'Everything dated in ' + MON_LONG[calM] + ', earliest first'
+      : '';
+  }
+
+  /* ---- the controls ---- */
+  var calView  = document.getElementById('calView');
+  var calMonth = document.getElementById('calMonth');
+  var calList  = document.getElementById('calList');
+
+  function setView(which) {
+    var month = which === 'month';
+    Array.prototype.forEach.call(calView.querySelectorAll('button'), function (b) {
+      b.setAttribute('aria-pressed', String(b.dataset.view === which));
+    });
+    calMonth.hidden = !month;
+    calList.hidden  = month;
+    /* the navigator stays: both views are drawings of the same month */
+  }
+  calView.addEventListener('click', function (e) {
+    var btn = e.target.closest('button');
+    if (btn) setView(btn.dataset.view);
+  });
+
+  function step(by) { goMonth(calY, calM + by); }
+  document.getElementById('calPrev').addEventListener('click', function () { step(-1); });
+  document.getElementById('calNext').addEventListener('click', function () { step(1); });
+
+  calTodayBtn.addEventListener('click', function () {
+    goMonth(TODAY.getFullYear(), TODAY.getMonth());
+  });
+
+  /* a busy day shows two and counts the rest; pressing the count expands it */
+  calGrid.addEventListener('click', function (e) {
+    var more = e.target.closest('[data-more]');
+    if (!more) return;
+    expanded[more.dataset.more] = true;
+    renderMonth();
+  });
+
+  /* Opening an entry leaves this screen, which the preview cannot do, so it
+     says what would happen instead of doing nothing. */
+  document.addEventListener('click', function (e) {
+    var o = e.target.closest('[data-open]');
+    if (o) toast('Opens “' + o.dataset.open + '” in the editor');
+  });
+
+  syncNav();
+  renderMonth();
+  renderList();
+  setView('list');
+
+  /* Yours / Everyone. */
+  function setWho(who) {
+    Array.prototype.forEach.call(document.querySelectorAll('[data-entries] button'), function (b) {
+      b.setAttribute('aria-pressed', String(b.dataset.who === who));
+    });
+    Array.prototype.forEach.call(document.querySelectorAll('ul[data-who]'), function (el) {
+      el.hidden = el.dataset.who !== who;
+    });
+  }
+  Array.prototype.forEach.call(document.querySelectorAll('[data-entries]'), function (host) {
+    host.addEventListener('click', function (e) {
+      var btn = e.target.closest('button');
+      if (btn) setWho(btn.dataset.who);
+    });
+  });
+
+  /* Panel tabs activate on arrow, unlike status tabs, because switching one
+     costs nothing (§7). */
+  /* One controller, one tablist at a time — the page now has two, and a flat
+     query over both would have each one hiding the other's panes. */
+  /* One notice slot, above the tabs, saying what the tab you are on is for.
+     Three notices scattered through three panes said the same amount in
+     three places. */
+  var TAB_NOTE = {
+    'tab-actions':
+      'An action turns a command-line task into a button, for anyone without shell ' +
+      'access. Core registers some; an addon can register its own, and the admin ' +
+      'shows whatever is registered without knowing what it does. An action you do ' +
+      'not have the capability for is not listed at all, so if someone tells you a ' +
+      'button exists and you cannot find it, that is why.',
+    'tab-logs':
+      'Read only. This is for the moment something says it failed on a host with no ' +
+      'way in over SSH.'
+  };
+  var toolsNoteText = document.getElementById('toolsNoticeText');
+  /* a tab may also change what the page head offers, which Site Health needs */
+  var TAB_HOOK = {};
+
+  Array.prototype.forEach.call(document.querySelectorAll('.chips'), function (group) {
+    var tabs = Array.prototype.slice.call(group.querySelectorAll('[role="tab"]'));
+
+    function selectTab(tab) {
+      tabs.forEach(function (t) {
+        var on = t === tab;
+        t.setAttribute('aria-selected', String(on));
+        t.tabIndex = on ? 0 : -1;
+        document.getElementById(t.getAttribute('aria-controls')).hidden = !on;
+      });
+      if (toolsNoteText && TAB_NOTE[tab.id]) toolsNoteText.textContent = TAB_NOTE[tab.id];
+      if (TAB_HOOK[tab.id]) TAB_HOOK[tab.id]();
+    }
+
+    if (tabs.length) selectTab(tabs[0]);
+    tabs.forEach(function (t, i) {
+      t.tabIndex = i === 0 ? 0 : -1;
+      t.addEventListener('click', function () { selectTab(t); });
+      t.addEventListener('keydown', function (e) {
+        var d = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0;
+        if (!d) return;
+        e.preventDefault();
+        var next = tabs[(i + d + tabs.length) % tabs.length];
+        selectTab(next); next.focus();
+      });
+    });
+  });
+
+  /* ============================================================== tools == */
+  /* An action reports back a message and a list of details, and on a host
+     with no shell that output is all there is — so it lands in the row
+     rather than in a toast. A control that shows its own result does not
+     toast (§7), which is why nothing here raises one. */
+
+  var ACTIONS = {
+    publish: {label: 'Publish', msg: 'Published the site.',
+              details: ['1,202 entries', '418 files', 'finished in 2m 14s']},
+    reindex: {label: 'Reindex content', msg: 'Reindexed the content and media.',
+              details: ['1,202 entries', '418 files', 'finished in 1m 48s']},
+    caches:  {label: 'Clear caches', msg: 'Cleared the caches.',
+              details: ['page cache emptied', 'body cache emptied', '1.1 GB freed'],
+              confirmTitle: 'Clear the Caches?',
+              confirmBody: 'Every page will be built again on the next request, so the ' +
+                           'site will be slower for a few minutes. No content changes.',
+              confirmGo: 'Clear Caches'},
+    sync:    {label: 'Sync orders', msg: 'Synced orders.',
+              details: ['6 new orders', '2 entries updated', 'finished in 11s']}
+  };
+
+  function working(btn, on, label) {
+    btn.disabled = on;
+    btn.innerHTML = on
+      ? '<span class="spin"></span>Working…'
+      : label;
+  }
+
+  function putResult(row, spec) {
+    var old = row.querySelector('.act-result');
+    if (old) old.remove();
+    var el = document.createElement('div');
+    el.className = 'notice notice-good notice-sm act-result';
+    el.innerHTML = '<svg class="ic ic-sm"><use href="#i-check"/></svg>' +
+      '<div class="notice-body"><p class="notice-msg"></p><ul></ul></div>';
+    el.querySelector('.notice-msg').textContent = spec.msg;
+    el.querySelector('ul').innerHTML = spec.details.map(function (d) {
+      return '<li></li>';
+    }).join('');
+    Array.prototype.forEach.call(el.querySelectorAll('li'), function (li, i) {
+      li.textContent = spec.details[i];
+    });
+    row.appendChild(el);
+  }
+
+  function runAction(name, btn) {
+    var spec = ACTIONS[name];
+    var row = btn.closest('.act-row');
+    var label = btn.innerHTML;
+    working(btn, true);
+    setTimeout(function () {
+      working(btn, false, label);
+      putResult(row, spec);
+      var when = row.querySelector('[data-when="' + name + '"]');
+      if (when) when.textContent = 'Last run just now';
+    }, 1400);
+  }
+
+  /* the confirm prompt is the server's, declared per action */
+  var modal = document.getElementById('confirmModal');
+  var confirmGo = document.getElementById('confirmGo');
+  var pending = null;
+
+  document.addEventListener('click', function (e) {
+    var btn = e.target.closest('[data-action]');
+    if (!btn || btn.disabled) return;
+    var name = btn.dataset.action;
+    if (btn.dataset.confirm) {
+      pending = {name: name, btn: btn};
+      var spec = ACTIONS[name];
+      document.getElementById('confirmTitle').textContent = spec.confirmTitle;
+      document.getElementById('confirmBody').textContent  = spec.confirmBody;
+      confirmGo.textContent = spec.confirmGo;
+      modal.showModal();
+      return;
+    }
+    runAction(name, btn);
+  });
+
+  confirmGo.addEventListener('click', function () {
+    modal.close();
+    if (pending) { runAction(pending.name, pending.btn); pending = null; }
+  });
+  modal.querySelector('[value="cancel"]').addEventListener('click', function () {
+    pending = null;
+    modal.close();
+  });
+
+  /* Logs */
+  var logRefresh = document.getElementById('logRefresh');
+  logRefresh.addEventListener('click', function () {
+    var label = logRefresh.innerHTML;
+    working(logRefresh, true);
+    setTimeout(function () {
+      working(logRefresh, false, label);
+      document.getElementById('logHint').innerHTML =
+        'The last 40 lines of <span class="mono">storage/logs/blush.log</span> · read just now';
+    }, 900);
+  });
+
+  /* a download leaves the page, which the preview cannot do */
+  document.getElementById('logDownload').addEventListener('click', function () {
+    toast('Downloads blush.log');
+  });
+
+  /* --------------------------------------------------- site health ----- */
+  /* A check is described the way an action is: a name, the sentence it
+     returned, the area it belongs to and how it came out. The screen counts
+     and sorts; it knows what none of them mean, which is the property that
+     lets an addon register one and have it appear here correctly. */
+  /* The handful of facts both tabs state. They are written once, because
+     the first time the checks tab said 8.3.2 and the requirements tab said
+     something else, the screen would be worth less than no screen. */
+  var FACTS = {
+    php: '8.3.2', phpNeed: '8.2 or newer',
+    storeUsed: '4.8 GB', storeCap: '20 GB',
+    entries: '1,202', files: '418', version: '2.4.1'
+  };
+
+  var SH_AREAS = [
+    {n:'Content',  i:'i-content',  d:'Links, slugs, authors and media use'},
+    {n:'Media',    i:'i-media',    d:'Files on disk, their size, and the space left'},
+    {n:'Delivery', i:'i-external', d:'What a visitor gets, and from where'},
+    {n:'System',   i:'i-settings', d:'PHP, storage, scheduled tasks and the log'},
+    {n:'Security', i:'i-shield',   d:'Permissions, updates and who has access'}
+  ];
+  var CHECKS = [
+    /* Content — the six that used to be their own screen. */
+    /* Entries live under their type, so a finding opens that type's list.
+       A finding that spans types has no single list to open: it names the
+       types instead, and the row stops being a way out rather than
+       offering one that goes nowhere. */
+    {a:'Content',  s:'check', n:'Broken internal links',
+     d:'2 entries link to a slug that does not resolve',
+     w:'In Posts and Pages'},
+    {a:'Content',  s:'check', n:'Images without alt text',
+     d:'1 image in an entry body has nothing to read aloud',
+     w:'Fix in Releases', dest:'Releases, filtered to that entry'},
+    {a:'Content',  s:'pass',  n:'Duplicate slugs',      d:'No two entries claim the same URL'},
+    {a:'Content',  s:'pass',  n:'Entries with no author', d:'Every entry has someone to put in a byline'},
+    {a:'Content',  s:'pass',  n:'Media nothing links to', d:'Every file in the library is used by an entry'},
+    {a:'Content',  s:'skip',  n:'External links',
+     d:'Needs a crawl, so it runs as a task rather than with the others',
+     w:'Run it from Tools', go:'tools'},
+
+    /* Media */
+    {a:'Media',    s:'fail',  n:'Missing files',
+     d:'2 entries reference a file that is not on disk',
+     w:'Open the Library', dest:'the Media Library'},
+    {a:'Media',    s:'check', n:'Oversized images',
+     d:'3 files over 2 MB are served at their full size',
+     w:'Open the Library', dest:'the Media Library'},
+    {a:'Media',    s:'pass',  n:'Storage used',
+     d:FACTS.storeUsed + ' of the ' + FACTS.storeCap + ' on this plan'},
+
+    /* Delivery */
+    {a:'Delivery', s:'pass',  n:'The site responds', d:'The home page returned 200 in 180 ms'},
+    {a:'Delivery', s:'pass',  n:'HTTPS', d:'The certificate is valid until March 4, 2027'},
+    {a:'Delivery', s:'check', n:'Canonical URL',
+     d:'Set to <span class="mono">http://localhost:8080</span>, which is the development address',
+     w:'Change it in Config', dest:'Config'},
+    {a:'Delivery', s:'pass',  n:'Sitemap', d:'1,204 URLs, written at the last publish'},
+
+    /* System — the same six the Tools Status tab runs, plus the two the
+       logs and the index already answer. */
+    {a:'System',   s:'pass',  n:'PHP version',
+     d:'Running <span class="mono">' + FACTS.php + '</span>, which is supported'},
+    {a:'System',   s:'check', n:'Extensions',
+     d:'Every required extension is loaded. <span class="mono">intl</span> is recommended and ' +
+       'missing, so dates and sorting fall back to English',
+     w:'See Requirements', tab:'tab-sh-env'},
+    {a:'System',   s:'pass',  n:'Writable storage', d:'<span class="mono">storage/</span> can be written to'},
+    {a:'System',   s:'pass',  n:'Configuration is not served', d:'<span class="mono">.env</span> returns 403 over HTTP'},
+    {a:'System',   s:'pass',  n:'Scheduled tasks', d:'Last ran 11 minutes ago'},
+    {a:'System',   s:'check', n:'Debug mode',
+     d:'On. Expected on <span class="mono">development</span>, but never on a live site',
+     w:'Change it in Config', dest:'Config'},
+    {a:'System',   s:'pass',  n:'Search index', d:'Rebuilt at the last publish, 6 hours ago'},
+    {a:'System',   s:'pass',  n:'Error log', d:'No errors in the last 24 hours'},
+
+    /* Security */
+    {a:'Security', s:'pass',  n:'File permissions', d:'No directory is world-writable'},
+    {a:'Security', s:'check', n:'Updates', d:'Core is current. 1 addon has an update',
+     w:'Update it from Tools', go:'tools'},
+    {a:'Security', s:'pass',  n:'Accounts that can change configuration', d:'2 of 5 accounts'}
+  ];
+
+  var SH_PILL = {
+    fail:  ['pill pill-fail',   'Fail'],
+    check: ['pill pill-issues', 'Check'],
+    skip:  ['pill',             'Not checked'],
+    pass:  ['pill pill-clear',  'Pass']
+  };
+  var SH_ORDER = { fail: 0, check: 1, skip: 2, pass: 3 };
+
+  var shSub   = document.getElementById('shSub');
+  var shAtt   = document.getElementById('shAtt');
+  var shAll   = document.getElementById('shAll');
+  var shCount = document.getElementById('shCount');
+  var el = function (id) { return document.getElementById(id); };
+
+  function shPill(st) {
+    var p = SH_PILL[st];
+    return '<span class="' + p[0] + '">' + p[1] + '</span>';
+  }
+  function shNeedy(c) { return c.s === 'fail' || c.s === 'check'; }
+  function shCountBy(test) { return CHECKS.filter(test).length; }
+
+  function renderHealth(stamp) {
+    var fails  = shCountBy(function (c) { return c.s === 'fail'; });
+    var checks = shCountBy(function (c) { return c.s === 'check'; });
+    var skips  = shCountBy(function (c) { return c.s === 'skip'; });
+    var passes = shCountBy(function (c) { return c.s === 'pass'; });
+    var needy  = fails + checks;
+
+    shSub.textContent = 'Last checked ' + stamp;
+
+    /* The first tile is the verdict. It takes the warn border an issues
+       tile takes, and the danger one when something is failing rather than
+       merely worth a look. */
+    el('shTileNeedy').className = 'stat' +
+      (fails ? ' stat-failing' : needy ? ' stat-attention' : '');
+    el('shNeedyV').textContent = needy;
+    el('shNeedyC').textContent = needy
+      ? (fails ? fails + ' failing' : '') + (fails && checks ? ', ' : '') +
+        (checks ? checks + ' worth a look' : '')
+      : 'Nothing is wrong right now';
+    el('shPassV').textContent = passes;
+    el('shPassC').textContent = skips
+      ? 'And ' + skips + ' that has not been run'
+      : 'Nothing to do in those';
+    el('shRunV').textContent = CHECKS.length;
+    el('shRunC').textContent = 'Across ' + SH_AREAS.length + ' areas';
+
+    /* The wide column is what is wrong, worst first, with the finding on
+       the middle line of each row. */
+    var open = CHECKS.filter(function (c) { return c.s !== 'pass'; })
+                     .sort(function (x, y) { return SH_ORDER[x.s] - SH_ORDER[y.s]; });
+    shAtt.innerHTML = open.length ? open.map(function (c) {
+      var to = c.go ? ' data-go="' + c.go + '"'
+             : c.tab ? ' data-tab="' + c.tab + '"'
+             : c.dest ? ' data-dest="' + c.dest + '"' : '';
+      /* A row that leads somewhere is a button and carries a chevron; one
+         that does not is neither, because a chevron is a promise. */
+      var leads = !!to;
+      return '<li>' +
+        (leads ? '<button class="lst-row" type="button"' + to + '>'
+               : '<div class="lst-row is-flat">') +
+        '<span class="lst-main">' +
+          '<span class="lst-title">' + c.n + '</span>' +
+          '<span class="iss-what">' + c.d + '</span>' +
+          '<span class="lst-sub"><span class="hl-where">' + c.a + '</span>' + (c.w || '') + '</span>' +
+        '</span>' +
+        /* A row that leads nowhere still reserves the chevron's place, so the
+           pills line up down the column. Hiding the real one rather than
+           padding by a guess means the column stays right if the icon size
+           ever moves. */
+        '<span class="lst-side">' + shPill(c.s) +
+          '<svg class="ic lst-chev' + (leads ? '' : ' is-blank') + '" aria-hidden="true">' +
+            '<use href="#i-chevron-right"/></svg>' +
+        '</span>' +
+        (leads ? '</button>' : '</div>') +
+        '</li>';
+    }).join('') : '<li class="lst-empty">Every check passed. Nothing needs you here.</li>';
+
+    shCount.textContent = needy || '';
+    shCount.hidden = !needy;
+
+    el('shAttHint').textContent = !open.length ? '' :
+      (fails ? 'Failing first' : 'Worst first') +
+      (skips ? ' · ' + skips + ' not yet run' : '');
+
+    /* The narrow column is what was checked. Twenty-four rows would be a
+       wall, so this lists the five areas they sit in and counts each one. */
+    el('shAll').innerHTML = SH_AREAS.map(function (area) {
+      var inArea = CHECKS.filter(function (c) { return c.a === area.n; });
+      var n = inArea.filter(shNeedy).length;
+      var un = inArea.filter(function (c) { return c.s === 'skip'; }).length;
+      return '<li><div class="chk-row">' +
+        '<svg class="ic"><use href="#' + area.i + '"/></svg>' +
+        '<span class="chk-main">' +
+          '<span class="chk-name">' + area.n + '</span>' +
+          '<span class="chk-desc">' + area.d + '</span>' +
+        '</span>' +
+        (n ? '<span class="pill pill-issues">' + n + (n === 1 ? ' issue' : ' issues') + '</span>'
+           : un ? '<span class="pill">Not checked</span>'
+                : '<span class="pill pill-clear">Clear</span>') +
+        '</div></li>';
+    }).join('');
+  }
+
+  /* ---- the requirements tab ---- */
+  /* A requirement is a comparison, not a verdict: a number Blush needs and
+     the number this host gives it. The status column is derived from the
+     pair rather than stored beside it, so a row cannot claim to pass while
+     reading worse than what it needs. */
+  var REQS = [
+    {g:'PHP', n:'PHP',                 need:FACTS.phpNeed, got:'this site runs ' + FACTS.php, s:'pass'},
+    {g:'PHP', n:'memory_limit',        need:'128M or more', got:'set to 512M',  s:'pass'},
+    {g:'PHP', n:'upload_max_filesize', need:'8M or more',   got:'set to 64M',   s:'pass'},
+    {g:'PHP', n:'post_max_size',       need:'8M or more',   got:'set to 64M',   s:'pass'},
+    {g:'PHP', n:'max_execution_time',  need:'30s or more',  got:'set to 120s',  s:'pass'},
+
+    {g:'Extensions', n:'mbstring', need:'required',    got:'loaded',  s:'pass'},
+    {g:'Extensions', n:'json',     need:'required',    got:'loaded',  s:'pass'},
+    {g:'Extensions', n:'dom',      need:'required',    got:'loaded',  s:'pass'},
+    {g:'Extensions', n:'fileinfo', need:'required',    got:'loaded',  s:'pass'},
+    {g:'Extensions', n:'openssl',  need:'required',    got:'loaded',  s:'pass'},
+    {g:'Extensions', n:'curl',     need:'required',    got:'loaded',  s:'pass'},
+    {g:'Extensions', n:'gd',       need:'required',    got:'loaded',  s:'pass'},
+    {g:'Extensions', n:'zip',      need:'required',    got:'loaded',  s:'pass'},
+    {g:'Extensions', n:'opcache',  need:'recommended', got:'enabled', s:'pass'},
+    {g:'Extensions', n:'intl',     need:'recommended', got:'missing', s:'check'},
+
+    {g:'Writable', n:'storage/',      need:'writable', got:'writable', s:'pass'},
+    {g:'Writable', n:'public/media/', need:'writable', got:'writable', s:'pass'}
+  ];
+
+  var KV_SITE = [
+    ['Blush',        FACTS.version,          1],
+    ['Environment',  'development',          1],
+    ['Site URL',     'http://localhost:8080',1],
+    ['Admin path',   '/meridian',            1],
+    ['Content path', 'content/',             1],
+    ['Media path',   'public/media/',        1],
+    ['Time zone',    'America/Chicago',      1],
+    ['Language',     'en-US',                1],
+    ['Entries',      FACTS.entries + ' across 4 types', 0],
+    ['Media',        FACTS.files + ' files, ' + FACTS.storeUsed, 0]
+  ];
+  var KV_SERVER = [
+    ['Software',         'nginx 1.24.0',        1],
+    ['Operating system', 'Linux 6.8 (x86_64)',  1],
+    ['PHP',              FACTS.php + ' (fpm-fcgi)', 1],
+    ['Database',         'SQLite 3.45.1',       1],
+    ['Server time zone', 'UTC',                 1],
+    ['Disk',             FACTS.storeUsed + ' of ' + FACTS.storeCap, 0]
+  ];
+
+  /* machine data takes the mono face; a count or a sentence does not (§4) */
+  function monoIf(v, mono) { return mono ? '<span class="mono">' + v + '</span>' : v; }
+  function kv(rows) {
+    return rows.map(function (r) {
+      return '<dt>' + r[0] + '</dt><dd>' + monoIf(r[1], r[2]) + '</dd>';
+    }).join('');
+  }
+
+  function renderReqs() {
+    var out = '', group = null, soft = 0;
+    REQS.forEach(function (r) {
+      if (r.g !== group) {
+        group = r.g;
+        out += '<tr class="req-group"><td colspan="4">' + group + '</td></tr>';
+      }
+      if (r.s !== 'pass') soft++;
+      out += '<tr><td>' + r.n + '</td>' +
+        '<td class="req-cell-need">' + r.need + '</td>' +
+        '<td class="req-cell-got">' + r.got.replace('this site runs ', '') + '</td>' +
+        '<td>' + shPill(r.s) + '</td></tr>';
+    });
+    el('reqBody').innerHTML = out;
+    el('reqHint').textContent = soft
+      ? REQS.length + ' checked · ' + soft + ' worth a look'
+      : 'All ' + REQS.length + ' met';
+    el('kvSite').innerHTML   = kv(KV_SITE);
+    el('kvServer').innerHTML = kv(KV_SERVER);
+  }
+  renderReqs();
+
+  /* The head offers what the tab you are on can do. */
+  TAB_HOOK['tab-sh-checks'] = function () {
+    el('shRun').hidden = false; el('shCopy').hidden = true;
+  };
+  TAB_HOOK['tab-sh-env'] = function () {
+    el('shRun').hidden = true; el('shCopy').hidden = false;
+  };
+
+  /* A row in the checks tab may point at the other tab rather than another
+     screen — the detail behind a check is a tab away, not a page away. */
+  document.addEventListener('click', function (e) {
+    var t = e.target.closest('[data-tab]');
+    if (t) document.getElementById(t.dataset.tab).click();
+  });
+
+  /* The whole reason this tab exists is to be pasted into a bug report. */
+  el('shCopy').addEventListener('click', function () {
+    var lines = ['Blush ' + FACTS.version + ' — site report', ''];
+    KV_SITE.concat([['', '']]).concat(KV_SERVER).forEach(function (r) {
+      lines.push(r[0] ? r[0] + ': ' + r[1] : '');
+    });
+    lines.push('', 'Requirements');
+    REQS.forEach(function (r) {
+      lines.push('  [' + (r.s === 'pass' ? 'ok' : '!!') + '] ' +
+                 r.n + ' ' + r.need + ' — ' + r.got);
+    });
+    var text = lines.join('\n');
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(
+        function () { toast('Copied the report'); },
+        function () { toast('The browser would not let the page copy that'); }
+      );
+    } else {
+      toast('The browser would not let the page copy that');
+    }
+  });
+
+  document.getElementById('shRun').addEventListener('click', function () {
+    var btn = this;
+    working(btn, true);
+    setTimeout(function () {
+      working(btn, false, '<svg class="ic"><use href="#i-scan"/></svg>Run a Check');
+      renderHealth('just now');
+      toast('Ran ' + CHECKS.length + ' checks');
+    }, 900);
+  });
+
+  /* A row whose fix lives on a screen this preview does not have says where
+     it would go rather than doing nothing. */
+  document.addEventListener('click', function (e) {
+    var d = e.target.closest('[data-dest]');
+    if (d) toast('Opens ' + d.dataset.dest);
+  });
+
+  renderHealth('4 minutes ago');
+
+  /* ------------------------------------------------------ shortcuts --- */
+  /* The pinned list is per account, the way the admin theme and the
+     light/dark setting are. It is curated in the panel rather than on a
+     settings screen: pinning is something you do while working, and the
+     list is only ever read here. */
+  var SHORTCUTS = [
+    { label: 'Your Account', icon: 'i-account' },
+    { label: 'Settings',     icon: 'i-settings' }
+  ];
+  /* what else this account could pin — in the real admin, every screen it
+     has the capability for */
+  var PINNABLE = [
+    { label: 'Media',         icon: 'i-media' },
+    { label: 'Trash',         icon: 'i-trash' },
+    { label: 'Content Types', icon: 'i-type' },
+    { label: 'Topics',        icon: 'i-tag' },
+    { label: 'Themes',        icon: 'i-addon' },
+    { label: 'Plugins',       icon: 'i-addon' },
+    { label: 'Accounts',      icon: 'i-users' }
+  ];
+
+  var scList = document.getElementById('scList');
+  var scEdit = document.getElementById('scEdit');
+  var scAddWrap = document.getElementById('scAddWrap');
+  var scMenu = document.getElementById('scMenu');
+  var scEditing = false;
+
+  function renderShortcuts() {
+    scList.innerHTML = SHORTCUTS.length ? SHORTCUTS.map(function (sc, i) {
+      var acts = scEditing
+        ? '<span class="sc-act">' +
+            '<button class="sc-btn" data-sc-up="' + i + '" type="button"' +
+              (i === 0 ? ' disabled' : '') +
+              ' aria-label="Move ' + sc.label + ' Up">' +
+              '<svg class="ic ic-sm"><use href="#i-chevron-up"/></svg></button>' +
+            '<button class="sc-btn" data-sc-down="' + i + '" type="button"' +
+              (i === SHORTCUTS.length - 1 ? ' disabled' : '') +
+              ' aria-label="Move ' + sc.label + ' Down">' +
+              '<svg class="ic ic-sm"><use href="#i-chevron-down"/></svg></button>' +
+            '<button class="sc-btn sc-btn-rm" data-sc-rm="' + i + '" type="button"' +
+              ' aria-label="Remove ' + sc.label + '">' +
+              '<svg class="ic ic-sm"><use href="#i-x"/></svg></button>' +
+          '</span>'
+        : '';
+      /* editing, the row is not a link to anywhere — so it is not a button */
+      return '<li>' +
+        (scEditing ? '<div class="sp-item is-editing">' : '<button class="sp-item" type="button">') +
+        '<svg class="ic"><use href="#' + sc.icon + '"/></svg>' +
+        '<span class="sc-label">' + sc.label + '</span>' + acts +
+        (scEditing ? '</div>' : '</button>') +
+        '</li>';
+    }).join('')
+      : '<li><p class="sp-note">Nothing pinned yet.</p></li>';
+
+    /* Adding is offered only while editing, and only what is not already
+       pinned — a menu of things you cannot choose is a worse answer than a
+       shorter menu (§7). */
+    var left = PINNABLE.filter(function (x) {
+      return !SHORTCUTS.some(function (sc) { return sc.label === x.label; });
+    });
+    scAddWrap.hidden = !scEditing || !left.length;
+    scMenu.innerHTML = left.map(function (x) {
+      return '<button role="menuitem" type="button" data-sc-add="' + x.label + '">' +
+        '<svg class="ic"><use href="#' + x.icon + '"/></svg>' + x.label + '</button>';
+    }).join('');
+  }
+
+  scEdit.addEventListener('click', function () {
+    scEditing = !scEditing;
+    scEdit.setAttribute('aria-pressed', String(scEditing));
+    scEdit.textContent = scEditing ? 'Done' : 'Edit';
+    closeMenus();
+    renderShortcuts();
+  });
+
+  scList.addEventListener('click', function (e) {
+    var btn = e.target.closest('[data-sc-up], [data-sc-down], [data-sc-rm]');
+    if (!btn) return;
+    var d = btn.dataset;
+    if (d.scRm !== undefined) {
+      var gone = SHORTCUTS.splice(+d.scRm, 1)[0];
+      toast('Removed ' + gone.label + ' from your shortcuts');
+    } else {
+      var from = +(d.scUp !== undefined ? d.scUp : d.scDown);
+      var to = d.scUp !== undefined ? from - 1 : from + 1;
+      SHORTCUTS.splice(to, 0, SHORTCUTS.splice(from, 1)[0]);
+    }
+    renderShortcuts();
+  });
+
+  scMenu.addEventListener('click', function (e) {
+    var btn = e.target.closest('[data-sc-add]');
+    if (!btn) return;
+    var pick = PINNABLE.filter(function (x) { return x.label === btn.dataset.scAdd; })[0];
+    SHORTCUTS.push(pick);
+    closeMenus();
+    renderShortcuts();
+    toast('Pinned ' + pick.label + ' to your shortcuts');
+  });
+
+  renderShortcuts();
+
+  /* --------------------------------------------------------- the menus -- */
+  /* One handler for every menu on the page: a trigger names its menu, and
+     the page may hold more than one. */
+  function closeMenus(except) {
+    Array.prototype.forEach.call(document.querySelectorAll('[data-menu]'), function (btn) {
+      var m = document.getElementById(btn.dataset.menu);
+      if (m === except) return;
+      m.hidden = true;
+      btn.setAttribute('aria-expanded', 'false');
+    });
+  }
+  document.addEventListener('click', function (e) {
+    var btn = e.target.closest('[data-menu]');
+    if (btn) {
+      var m = document.getElementById(btn.dataset.menu);
+      var open = m.hidden;
+      closeMenus(m);
+      m.hidden = !open;
+      btn.setAttribute('aria-expanded', String(open));
+      return;
+    }
+    if (!e.target.closest('.menu')) closeMenus();
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') closeMenus();
+  });
+
+  /* ---------------------------------------------------------- the toast -- */
+  var toastHost = document.getElementById('toasts');
+  function toast(msg) {
+    while (toastHost.children.length >= 3) toastHost.removeChild(toastHost.firstChild);
+    var t = document.createElement('div');
+    t.className = 'toast';
+    t.innerHTML = '<svg class="ic"><use href="#i-info"/></svg><span></span>';
+    t.lastChild.textContent = msg;
+    toastHost.appendChild(t);
+    setTimeout(function () { if (t.parentNode) t.remove(); }, 2800);
+  }
+
+  markPanel();
+  renderDash();
+}());
+</script>
+
+</body>
+</html>

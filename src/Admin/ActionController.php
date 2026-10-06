@@ -22,7 +22,10 @@ use Blush\Http\Response;
 use Blush\Http\Status;
 
 /**
- * Runs an admin action: `POST {path}/api/actions/{action}`. An unknown
+ * The Tools screen's actions (D-222, D-540). `GET {path}/api/actions`
+ * lists the ones the account may run, grouped by where they come from
+ * (`Provenance::ofClass()`): Blush's first, then the site's, then each
+ * plugin's. `POST {path}/api/actions/{action}` runs one: an unknown
  * action is a 404 and one the account may not run a 403; otherwise the
  * answer is the action's result, whether it worked or not.
  */
@@ -30,8 +33,42 @@ final readonly class ActionController
 {
 	public function __construct(
 		private AdminActions $actions,
-		private Permissions $permissions
+		private Permissions $permissions,
+		private Provenance $provenance
 	) {}
+
+	/**
+	 * Lists the actions the account may run, in groups by source.
+	 */
+	public function index(ServerRequestInterface $request): ResponseInterface
+	{
+		$account = $request->getAttribute(Account::class);
+
+		if (! $account instanceof Account) {
+			return self::json(['error' => 'Sign in first.'], Status::Unauthorized);
+		}
+
+		$groups = [];
+
+		foreach ($this->actions->allowed($account) as $name => $action) {
+			$source = $this->provenance->ofClass($this->actions->classOf($name) ?? $action::class);
+			$key    = "{$source['kind']}:{$source['label']}";
+
+			$groups[$key] ??= ['source' => $source, 'actions' => []];
+			$groups[$key]['actions'][] = [
+				'name'        => $name,
+				'label'       => $action->label(),
+				'description' => $action->description(),
+				'confirm'     => $action->confirm()
+			];
+		}
+
+		$order = ['core' => 0, 'site' => 1, 'plugin' => 2, 'other' => 3];
+
+		uasort($groups, static fn (array $a, array $b): int => [$order[$a['source']['kind']] ?? 3, $a['source']['label']] <=> [$order[$b['source']['kind']] ?? 3, $b['source']['label']]);
+
+		return self::json(['groups' => array_values($groups)]);
+	}
 
 	public function __invoke(ServerRequestInterface $request, string $action): ResponseInterface
 	{

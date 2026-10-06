@@ -113,9 +113,9 @@ final readonly class MediaMetadataCheck
 
 		foreach (array_diff($report->missing, array_map(strval(...), $unreadable)) as $key) {
 			if (isset($files[$key]) && array_key_exists(MediaMetadata::ID, $records[$key]->metadata ?? [])) {
-				$violations[$this->paths->relative($files[$key]['path'])][] = new Violation(MediaMetadata::ID, 'isn\'t a UUID; give the file a new one with media:ids --write, or on Content health in the admin.');
+				$violations[$this->paths->relative($files[$key]['path'])][] = new Violation(MediaMetadata::ID, 'isn\'t a UUID; give the file a new one with media:ids --write, or on Site Health in the admin.');
 			} else {
-				$violations[$media($key)][] = new Violation(MediaMetadata::ID, 'has no id; add one with media:ids --write, or on Content health in the admin.');
+				$violations[$media($key)][] = new Violation(MediaMetadata::ID, 'has no id; add one with media:ids --write, or on Site Health in the admin.');
 			}
 		}
 
@@ -123,7 +123,7 @@ final readonly class MediaMetadataCheck
 			$shown = array_map(fn (string $key): string => isset($files[$key]) ? $this->paths->relative($files[$key]['path']) : $media($key), $keys);
 
 			foreach ($shown as $path) {
-				$violations[$path][] = new Violation(MediaMetadata::ID, sprintf('is also the id of %s; keep it on one file and give the others new ones with media:ids --keep, or on Content health in the admin.', implode(', ', array_diff($shown, [$path]))));
+				$violations[$path][] = new Violation(MediaMetadata::ID, sprintf('is also the id of %s; keep it on one file and give the others new ones with media:ids --keep, or on Site Health in the admin.', implode(', ', array_diff($shown, [$path]))));
 			}
 		}
 
@@ -136,7 +136,7 @@ final readonly class MediaMetadataCheck
 		foreach ($stale as $key => $listed) {
 			if (isset($files[$key])) {
 				foreach ($listed as $size) {
-					$violations[$this->paths->relative($files[$key]['path'])][] = new Violation(MediaMetadata::SIZES, sprintf('lists %s, which isn\'t one of its sizes (it\'s gone, or another image\'s); record them again with media:sizes --write, or on Content health in the admin.', $media($size)), Severity::Warning);
+					$violations[$this->paths->relative($files[$key]['path'])][] = new Violation(MediaMetadata::SIZES, sprintf('lists %s, which isn\'t one of its sizes (it\'s gone, or another image\'s); record them again with media:sizes --write, or on Site Health in the admin.', $media($size)), Severity::Warning);
 				}
 			}
 		}

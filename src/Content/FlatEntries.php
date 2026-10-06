@@ -26,7 +26,7 @@ use Blush\Content\Writer\RenamedFiles;
  * A collection is flat (D-514): its entries are files directly in its
  * folder. A folder entry (`_posts/hello/index.md`) or an entry in a
  * folder below (`_posts/2024/hello.md`) is a `content:lint` error, and
- * `content:flatten` and Content health move each to its place
+ * `content:flatten` and Site Health move each to its place
  * (`_posts/hello.md`), keeping its name (and language suffix), and
  * remove the folders left empty (D-478).
  *

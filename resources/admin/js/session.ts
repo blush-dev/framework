@@ -3,7 +3,7 @@
  */
 
 import { reactive, readonly } from 'vue';
-import { request, setCsrfToken, type Account, type SessionState } from './api';
+import { request, setCsrfToken, type Account, type Preferences, type SessionState } from './api';
 import { followTheme } from './admin-theme';
 import { followAccount } from './color-scheme';
 
@@ -62,6 +62,18 @@ export async function saveOwnDetails(changes: { name?: string | null; email?: st
 		state.account.name        = answer.name;
 		state.account.email       = answer.email;
 		state.account.displayName = answer.displayName;
+	}
+}
+
+/**
+ * Changes some of the signed-in account's own preferences (D-235), and
+ * keeps what the server answers; throws an `ApiError` when it refuses.
+ */
+export async function savePreferences(changes: Partial<Pick<Preferences, 'setupSkipped' | 'shortcuts'>>): Promise<void> {
+	const answer = await request<{ preferences: Preferences }>('PATCH', '/preferences', changes);
+
+	if (state.account !== null) {
+		state.account.preferences = answer.preferences;
 	}
 }
 

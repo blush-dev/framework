@@ -55,3 +55,41 @@ export function titleCase(text: string): string {
 		return index > 0 && SMALL.has(lower) ? lower : word.charAt(0).toUpperCase() + word.slice(1);
 	}).join(' ');
 }
+
+const times    = new Intl.DateTimeFormat(undefined, { timeStyle: 'short' });
+const weekdays = new Intl.DateTimeFormat(undefined, { weekday: 'long' });
+const days     = new Intl.DateTimeFormat(undefined, { month: 'long', day: 'numeric' });
+const shortDay = new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric' });
+const fullDays = new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' });
+
+/**
+ * When something happened or will, as a list says it (D-538): "3 hours
+ * ago" today, a weekday within the week, "October 1" this year, and the
+ * full date before. A time to come names its day and time: "Today, 4:00
+ * PM", "Oct 7, 9:00 AM".
+ */
+export function formatWhen(iso: string, now = new Date()): string {
+	const date  = new Date(iso);
+	const start = (day: Date): number => new Date(day.getFullYear(), day.getMonth(), day.getDate()).getTime();
+	const apart = Math.round((start(date) - start(now)) / 86_400_000);
+
+	if (date.getTime() > now.getTime()) {
+		return `${apart === 0 ? 'Today' : (apart === 1 ? 'Tomorrow' : shortDay.format(date))}, ${times.format(date)}`;
+	}
+
+	const minutes = Math.round((now.getTime() - date.getTime()) / 60_000);
+
+	if (minutes < 1) {
+		return 'just now';
+	}
+
+	if (apart === 0) {
+		return minutes < 60 ? `${plural(minutes, 'minute')} ago` : `${plural(Math.round(minutes / 60), 'hour')} ago`;
+	}
+
+	if (apart > -7) {
+		return apart === -1 ? 'Yesterday' : weekdays.format(date);
+	}
+
+	return date.getFullYear() === now.getFullYear() ? days.format(date) : fullDays.format(date);
+}

@@ -43,6 +43,7 @@ import { attributeText, imageText } from '../markdown';
 import { formatDate, formatSize } from '../format';
 import { forgetFile, formatDuration, mediaFacts, mediaName } from '../media';
 import { screenTitle } from '../screen';
+import { can } from '../session';
 import { copyText, toast } from '../toast';
 
 const route  = useRoute();
@@ -366,7 +367,7 @@ function written(reference: string): string {
 					<div v-if="file.duration !== null"><dt>Length</dt><dd>{{ formatDuration(file.duration) }}</dd></div>
 					<div><dt>Changed</dt><dd>{{ formatDate(file.modified) }}</dd></div>
 					<div><dt>Uploaded by</dt><dd :class="{ 'facts__none': file.uploader === null }">{{ file.uploader?.name ?? 'Not recorded' }}</dd></div>
-					<div><dt>ID</dt><dd v-if="file.id" class="mono">{{ file.id }}</dd><dd v-else class="facts__none">None yet; <RouterLink :to="{ name: 'health' }">add one on Content Health</RouterLink></dd></div>
+					<div><dt>ID</dt><dd v-if="file.id" class="mono">{{ file.id }}</dd><dd v-else class="facts__none">None yet<template v-if="can('site.health')">; <RouterLink :to="{ name: 'health-media-check', params: { area: 'media', check: 'ids' } }">add one on Site Health</RouterLink></template></dd></div>
 				</dl>
 			</section>
 

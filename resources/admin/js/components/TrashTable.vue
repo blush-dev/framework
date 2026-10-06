@@ -3,7 +3,7 @@
  * Entries in the trash, of one type (D-237, D-484): the title (a link
  * to look at it, D-276), when it was trashed, and a menu (D-254):
  * **Restore as a draft**, **Preview**, and, after a divider, **Delete
- * permanently**. A file without an id (D-481) links to Content Health
+ * permanently**. A file without an id (D-481) links to Site Health's Entry IDs
  * and has no menu.
  */
 
@@ -44,7 +44,7 @@ function name(item: EntrySummary): string {
 					<th scope="row">
 						<span class="entry-title">
 							<span class="entry-title__text">
-								<RouterLink class="entry-title__link" :to="item.id ? { name: 'trashed', params: { id: item.id } } : { name: 'health' }">
+								<RouterLink class="entry-title__link" :to="item.id ? { name: 'trashed', params: { id: item.id } } : { name: 'health-check', params: { area: 'content', check: 'ids' } }">
 									<template v-if="item.title">{{ item.title }}</template>
 									<span v-else class="untitled">Untitled</span>
 								</RouterLink>

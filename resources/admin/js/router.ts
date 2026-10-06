@@ -14,7 +14,6 @@ import { watch } from 'vue';
 import { config } from './config';
 import { lastVisits, screenCrumb, screenTitle, screenTrail } from './screen';
 import { can, canAnyType, canType, loadSession, MEDIA_CAPABILITIES, session, type ContentAction } from './session';
-import CalendarView from './views/CalendarView.vue';
 import DashboardView from './views/DashboardView.vue';
 import EditorView from './views/EditorView.vue';
 import EntriesView from './views/EntriesView.vue';
@@ -36,6 +35,7 @@ import SetPasswordView from './views/SetPasswordView.vue';
 import TypeView from './views/TypeView.vue';
 import MediaFileView from './views/MediaFileView.vue';
 import MediaView from './views/MediaView.vue';
+import ToolsView from './views/ToolsView.vue';
 import TrashedView from './views/TrashedView.vue';
 import ThemeView from './views/ThemeView.vue';
 import ThemesView from './views/ThemesView.vue';
@@ -44,12 +44,13 @@ import NewTypeView from './views/NewTypeView.vue';
 import FieldSetsView from './views/FieldSetsView.vue';
 import FieldSetView from './views/FieldSetView.vue';
 import NewFieldSetView from './views/NewFieldSetView.vue';
+import SiteHealthView from './views/SiteHealthView.vue';
 import SignInView from './views/SignInView.vue';
 
 export const router = createRouter({
 	history: createWebHistory(config.base),
 	routes: [
-		{ path: '/', name: 'dashboard', component: DashboardView, meta: { title: 'Dashboard', area: 'home' } },
+		{ path: '/', name: 'dashboard', component: DashboardView, meta: { title: 'Dashboard', area: 'home', narrow: true } },
 		// Each type has its own list; there's no list of every type (D-240).
 		{ path: '/entries', redirect: { name: 'dashboard' } },
 		{ path: '/content/:type', name: 'type', component: EntriesView, meta: { title: 'Entries', contentAction: 'edit', section: 'entries', area: 'content' } },
@@ -68,8 +69,11 @@ export const router = createRouter({
 		// Drafts are a tab on each type's list now (D-236).
 		{ path: '/drafts', redirect: { name: 'dashboard' } },
 		// Dated entries by month (D-368); `?month=YYYY-MM`.
-		{ path: '/calendar', name: 'calendar', component: CalendarView, meta: { title: 'Calendar', contentAction: 'edit', area: 'home' } },
-		{ path: '/health', name: 'health', component: HealthView, meta: { title: 'Content Health', contentAction: 'edit.others', area: 'home' } },
+		{ path: '/health', name: 'health', component: SiteHealthView, meta: { title: 'Site Health', capability: 'site.health', area: 'home' } },
+		{ path: '/health/:area(content)/:check(files|ids|folders|names)', name: 'health-check', component: HealthView, props: true, meta: { title: 'Site Health', capability: 'site.health', area: 'home', parent: 'health' } },
+		{ path: '/health/:area(media)/:check(files|ids|sizes)', name: 'health-media-check', component: HealthView, props: true, meta: { title: 'Site Health', capability: 'site.health', area: 'home', parent: 'health' } },
+		{ path: '/health/:area(content|media)', redirect: (to) => ({ name: to.params.area === 'media' ? 'health-media-check' : 'health-check', params: { area: to.params.area, check: 'files' } }) },
+		{ path: '/tools', name: 'tools', component: ToolsView, meta: { title: 'Tools', area: 'home' } },
 		// A library file's screen is at its path under `user/media` (D-251).
 		{ path: '/media', name: 'media', component: MediaView, meta: { title: 'Media', anyCapability: MEDIA_CAPABILITIES, area: 'content' } },
 		{ path: '/media/:path+', name: 'media-file', component: MediaFileView, meta: { title: 'Media', anyCapability: MEDIA_CAPABILITIES, area: 'content', parent: 'media' } },

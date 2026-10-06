@@ -255,10 +255,10 @@ final class LinterTest extends TestCase
 		$linter = $this->site()->container()->make(Linter::class);
 		$errors = self::messages($linter->lint(), Severity::Error);
 
-		$this->assertSame(['error id: is missing; every entry needs one. Add it with content:ids --write, or on Content health in the admin.'], $errors['none.md'] ?? null);
-		$this->assertSame(['error id: "42" isn\'t a UUID; give the entry a new one with content:ids --write, or on Content health in the admin.'], $errors['odd.md'] ?? null);
-		$this->assertSame(['error id: is also the id of two.md; keep it on one file and give the others new ones with content:ids --keep, or on Content health in the admin.'], $errors['one.md'] ?? null, 'Ids are the same in either case.');
-		$this->assertSame(['error id: is also the id of one.md; keep it on one file and give the others new ones with content:ids --keep, or on Content health in the admin.'], $errors['two.md'] ?? null);
+		$this->assertSame(['error id: is missing; every entry needs one. Add it with content:ids --write, or on Site Health in the admin.'], $errors['none.md'] ?? null);
+		$this->assertSame(['error id: "42" isn\'t a UUID; give the entry a new one with content:ids --write, or on Site Health in the admin.'], $errors['odd.md'] ?? null);
+		$this->assertSame(['error id: is also the id of two.md; keep it on one file and give the others new ones with content:ids --keep, or on Site Health in the admin.'], $errors['one.md'] ?? null, 'Ids are the same in either case.');
+		$this->assertSame(['error id: is also the id of one.md; keep it on one file and give the others new ones with content:ids --keep, or on Site Health in the admin.'], $errors['two.md'] ?? null);
 		$this->assertArrayNotHasKey('index.md', $errors);
 		$this->assertSame('id', $linter->lintFile('none.md')[0]->field ?? null, 'One file is checked for its own id.');
 		$this->assertSame([], $linter->lintFile('one.md'), 'Sharing needs every file, so it\'s lint()\'s.');

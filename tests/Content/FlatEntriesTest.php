@@ -49,8 +49,8 @@ final class FlatEntriesTest extends TestCase
 		$report = $this->site()->container()->make(Linter::class)->lint();
 		$errors = array_map(static fn (array $violations): array => array_map(static fn ($violation): string => $violation->message, $violations), $report->violations(Severity::Error));
 
-		$this->assertContains('is a folder entry; a collection\'s entries are files in its folder. Move it to _posts/hello.md with content:flatten, or on Content health in the admin.', $errors['_posts/hello/index.md'] ?? []);
-		$this->assertContains('is in a folder below its collection\'s; a collection\'s entries are files in its folder. Move it to _posts/old.md with content:flatten, or on Content health in the admin.', $errors['_posts/2024/old.md'] ?? []);
+		$this->assertContains('is a folder entry; a collection\'s entries are files in its folder. Move it to _posts/hello.md with content:flatten, or on Site Health in the admin.', $errors['_posts/hello/index.md'] ?? []);
+		$this->assertContains('is in a folder below its collection\'s; a collection\'s entries are files in its folder. Move it to _posts/old.md with content:flatten, or on Site Health in the admin.', $errors['_posts/2024/old.md'] ?? []);
 		$this->assertArrayNotHasKey('_posts/_drafts/idea.md', $errors);
 		$this->assertArrayNotHasKey('about/biography.md', $errors, 'Trees nest by folder.');
 	}

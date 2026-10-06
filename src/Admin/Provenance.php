@@ -21,7 +21,8 @@ use Blush\Theme\ThemeChain;
  * Names where a directive or icon that isn't core comes from, for the
  * editor's inserters to group by (D-243, D-265): a theme in the chain,
  * the site (`app`), an icon pack, or a plugin (by the namespace each
- * declares, D-378).
+ * declares, D-378). The Tools screen groups actions by where their class
+ * comes from the same way (D-540).
  */
 final readonly class Provenance
 {
@@ -61,5 +62,44 @@ final readonly class Provenance
 		}
 
 		return ['kind' => 'plugin', 'label' => $namespace];
+	}
+
+	/**
+	 * Describes where a class comes from as its `kind` (`core`, `site`,
+	 * `plugin`, or `other`) and a `label` to show: Blush's own, the
+	 * site's (`App\`), or a plugin's, found by its autoload prefixes or
+	 * its provider's namespace.
+	 *
+	 * @return array{kind: string, label: string}
+	 */
+	public function ofClass(string $class): array
+	{
+		$class = ltrim($class, '\\');
+
+		if (str_starts_with($class, 'Blush\\')) {
+			return ['kind' => 'core', 'label' => 'Blush'];
+		}
+
+		if (str_starts_with($class, 'App\\')) {
+			return ['kind' => 'site', 'label' => 'This site'];
+		}
+
+		foreach ($this->plugins->all() as $plugin) {
+			$provider = $plugin->providerClass() ?? '';
+			$at       = strrpos($provider, '\\');
+			$prefixes = array_keys($plugin->autoload->psr4);
+
+			if ($at !== false) {
+				$prefixes[] = substr($provider, 0, $at + 1);
+			}
+
+			foreach ($prefixes as $prefix) {
+				if (str_starts_with($class, ltrim($prefix, '\\'))) {
+					return ['kind' => 'plugin', 'label' => $plugin->label];
+				}
+			}
+		}
+
+		return ['kind' => 'other', 'label' => 'Elsewhere'];
 	}
 }

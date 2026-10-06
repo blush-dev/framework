@@ -329,6 +329,21 @@
 	color: var(--fg-3);
 }
 
+/* A panel's closing links, such as "Browse by Type", on its own ground
+   (D-543), where a note is on a quieter one. */
+.panel__foot {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--s-2) var(--s-4);
+	margin: 0;
+	padding: var(--s-3) var(--pad-x);
+	border-top: 1px solid var(--border);
+	color: var(--fg-3);
+	font-size: var(--text-sm);
+}
+
 /* A panel's closing note: what its contents mean, on a quieter ground. */
 
 .panel__note {
@@ -416,9 +431,43 @@
 	font-size: var(--text-sm);
 }
 
+/* Three figures in a row (D-543). */
+.stats.stats--three {
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+/* A figure's lines are its own; no list indent. */
+.stat dd {
+	margin: 0;
+}
+
+/* A figure that needs a look, or that something's failing: its border
+   and label take the color. */
+.stat--warn {
+	border-color: var(--warn-dot);
+}
+
+.stat--warn .stat__label {
+	color: var(--warn);
+}
+
+.stat--danger {
+	border-color: var(--danger-dot);
+}
+
+.stat--danger .stat__label {
+	color: var(--danger);
+}
+
 @media (width <= 1100px) {
 	.stats {
 		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+}
+
+@media (width <= 640px) {
+	.stats.stats--three {
+		grid-template-columns: minmax(0, 1fr);
 	}
 }
 
@@ -1066,23 +1115,21 @@
 	font-size: var(--text-sm);
 }
 
-.notice--success,
-.notice--warn,
-.notice--error {
-	border-color: transparent;
-}
-
+/* Colored notices keep a border in their own color (D-542). */
 .notice--success {
+	border-color: var(--good-dot);
 	background: var(--good-soft);
 	color: var(--good);
 }
 
 .notice--warn {
+	border-color: var(--warn-dot);
 	background: var(--warn-soft);
 	color: var(--warn);
 }
 
 .notice--error {
+	border-color: var(--danger-dot);
 	background: var(--danger-soft);
 	color: var(--danger);
 }
@@ -1679,6 +1726,18 @@ button.lnk {
 	cursor: pointer;
 }
 
+/* With an icon, such as a menu's chevron, lined up beside the words. */
+.lnk:has(> .icon) {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+}
+
+.lnk > .icon {
+	width: 14px;
+	height: 14px;
+}
+
 .muted {
 	color: var(--fg-3);
 }
@@ -1783,6 +1842,21 @@ button.lnk {
 	margin: 0 0 0 auto;
 	text-align: right;
 	overflow-wrap: anywhere;
+}
+
+/* Facts as a panel's ruled rows, each label in a column of its own and
+   its value beside it (D-543), edge to edge. */
+.fact-rows--panel > div {
+	display: grid;
+	grid-template-columns: 144px minmax(0, 1fr);
+	gap: var(--s-3);
+	padding: var(--pad-row) var(--pad-x);
+	font-size: var(--text-sm);
+}
+
+.fact-rows--panel dd {
+	margin: 0;
+	text-align: left;
 }
 
 /* A person: an avatar beside their name and username. */
@@ -2571,3 +2645,120 @@ button.lnk {
 .extension-card__foot .extension__menu {
 	margin-left: auto;
 }
+
+/*
+ * Rows that open something (D-538): a title over a quieter line, and at
+ * the row's end its status, when, and a chevron. The dashboard's entries;
+ * a panel holds them edge to edge.
+ */
+.rows {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.rows > li + li {
+	border-top: 1px solid var(--border);
+}
+
+/* A row that leads nowhere is an item, with no hover (D-543). */
+.rows__link,
+.rows__item {
+	display: flex;
+	align-items: center;
+	gap: var(--s-3);
+	padding: var(--pad-row) var(--pad-x);
+	color: var(--fg);
+	text-decoration: none;
+}
+
+.rows__link:hover {
+	background: var(--surface-2);
+}
+
+.rows__main {
+	display: grid;
+	flex: 1 1 auto;
+	gap: 2px;
+	min-width: 0;
+}
+
+.rows__title {
+	overflow: hidden;
+	font-weight: 500;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.rows__sub {
+	color: var(--fg-3);
+	font-size: var(--text-sm);
+}
+
+/* What a row found, between its title and its quieter line. */
+.rows__text {
+	color: var(--fg-2);
+	font-size: var(--text-sm);
+}
+
+/* A row's glyph, before its title. */
+.rows__icon {
+	flex: none;
+	color: var(--fg-3);
+}
+
+.rows__side {
+	display: flex;
+	flex: none;
+	align-items: center;
+	gap: var(--s-2);
+}
+
+.rows__when {
+	min-width: 8.5em;
+	color: var(--fg-2);
+	font-size: var(--text-sm);
+	text-align: right;
+	font-variant-numeric: tabular-nums;
+}
+
+.rows__chevron {
+	width: 16px;
+	height: 16px;
+	color: var(--fg-3);
+}
+
+/* An item keeps a chevron's room, so pills line up down a list. */
+.rows__chevron.is-blank {
+	visibility: hidden;
+}
+
+@media (width <= 640px) {
+	.rows__when {
+		display: none;
+	}
+}
+
+/*
+ * A wide column and a side column (D-543), each a stack of panels; one
+ * column on a narrower screen.
+ */
+.columns {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) 420px;
+	align-items: start;
+	gap: var(--s-5);
+}
+
+.columns__col {
+	display: grid;
+	gap: var(--s-4);
+	min-width: 0;
+}
+
+@media (width <= 1100px) {
+	.columns {
+		grid-template-columns: minmax(0, 1fr);
+	}
+}
+

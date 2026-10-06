@@ -39,6 +39,19 @@ final readonly class LogConfig implements Config
 	}
 
 	/**
+	 * Returns the log file's path for the `File` driver, under a logs
+	 * folder unless it's absolute, or `null` for the other drivers.
+	 */
+	public function path(string $logs): ?string
+	{
+		if ($this->driver !== LogDriver::File) {
+			return null;
+		}
+
+		return str_starts_with($this->file, '/') ? $this->file : "{$logs}/{$this->file}";
+	}
+
+	/**
 	 * @inheritDoc
 	 */
 	#[Override]

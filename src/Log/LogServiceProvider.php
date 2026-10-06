@@ -46,9 +46,7 @@ final class LogServiceProvider extends ServiceProvider
 
 			return new Logger(
 				writer: match ($config->driver) {
-					LogDriver::File   => new FileWriter(str_starts_with($config->file, '/')
-						? $config->file
-						: $resolver->make(Paths::class)->logs . '/' . $config->file),
+					LogDriver::File   => new FileWriter((string) $config->path($resolver->make(Paths::class)->logs)),
 					LogDriver::Stderr => new StreamWriter(),
 					LogDriver::Null   => new NullWriter()
 				},

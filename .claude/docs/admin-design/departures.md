@@ -124,7 +124,8 @@ Each is recorded in `.claude/docs/decisions.md`.
   (the account and profile screens' modals list only the free ones,
   D-373); notices keep the admin's rounded corners and have no ruled
   edge, where the sketch's are square with a darker left border (the
-  author's calls, D-373, D-376), and are every screen's notices, in
+  author's calls, D-373, D-376); colored ones have a full border in
+  their color, as the Home sketch's do (D-542), and are every screen's notices, in
   place of the direction's (D-506); the
   profiles bulk bar is the entries list's (Publish, Move to draft, Move
   to trash), without **Copy links**; suspending is undone with
@@ -164,14 +165,10 @@ Each is recorded in `.claude/docs/decisions.md`.
   ("All accounts", "All types") is a quiet link on a line of its own
   above the title (`.page-back`), not a button among the actions.
 - **No list of every type together** (D-240): each content type has its own
-  list, and there's no "All entries" screen. The dashboard's Drafts and
-  Scheduled figures are plain numbers.
-- **A calendar on Home** (D-368): not in the direction. The one view
-  across types, by date rather than as a list: published, scheduled,
-  and dated drafts of pages and collections on a Monday-first month
-  grid (the date picker's shape at screen size), read-only, becoming a
-  list of days with entries on a narrow screen. Status is an icon and
-  words, as pills are.
+  list, and there's no "All entries" screen. The dashboard's Entries
+  row (D-538, from the Home sketch) lists drafts, scheduled, and
+  recently published entries across types, a few of each, as the
+  dashboard's own row, not a screen.
 - **Unsaved changes are kept in the browser** (D-240): without autosave, the
   editor keeps a copy of unsaved changes in `localStorage` as they're made
   and offers them back when the entry is opened again. That's what makes the
@@ -186,9 +183,12 @@ Each is recorded in `.claude/docs/decisions.md`.
   editor doesn't show stays as theirs.
 - **Validation runs in the admin only** (D-240), from the schema's
   `required`; the API doesn't refuse to publish yet.
-- **The setup path has only steps that do something** (D-240): the first
-  entry of each page and collection type. "First content type", media, and
-  inviting people join it when their screens exist.
+- **The setup path has only steps that do something** (D-240, D-538):
+  the first page, a content type of the site's own, media, and inviting
+  people, each only for an account that can take it. It shows until the
+  site publishes something, as the Home sketch has it, and Skip is
+  saved for the account; the sketch's "reachable from Settings
+  afterward" isn't built.
 - **A type's purpose comes from its kind** (D-240): types have no
   description yet, so an empty type's screen says what pages, collections,
   or taxonomies are for.
@@ -203,8 +203,8 @@ Each is recorded in `.claude/docs/decisions.md`.
   autosave there are no unpublished changes to live entries), no theme
   button in the top bar (the color scheme is an account preference on Your
   profile), and no site switcher; the site's mark links to the site. The
-  account's menu is in the top bar. Home's panel has the Dashboard, the
-  Calendar (D-368), and Content health, then shortcuts. The rail never navigates, as §6 says.
+  account's menu is in the top bar. Home's panel has the Dashboard,
+  Site Health (D-543), and Tools (D-540), then shortcuts. The rail never navigates, as §6 says.
   As the decisions log's *The shell* has it (D-317), a rail button
   toggles its panel and the top bar has no collapse button; the trail
   is the section, the screens above (the editor's type, or a detail
@@ -769,3 +769,48 @@ From §13, now `50-open-questions.md`:
 Still open: the content-type builder's screens, type provenance in the
 list header, and how long the breadcrumb may get (D-280 shrinks the
 middle crumbs; a menu for them waits for real content that needs one).
+
+## The Home sketch (`meridian-home.html`, D-537)
+
+Built in stages; the first is the Dashboard and Tools (D-538 to
+D-541). Where the admin differs from the sketch:
+
+- **Shared pieces over the sketch's own.** Its `lst-row` rows are the
+  `.rows` class and `EntryRows` component, its `seg` the `.segmented`
+  control, its menus `MenuButton`, its tab chips the page tabs (`.status-tabs`), its clear
+  state `EmptyState`, and its "Working…" the `.spin` in the button.
+- **No "behind" bar, no Changes pill, no "Last run"** (D-537): nothing
+  records unpublished changes or when an action last ran.
+- **The page sub** is today's date and the environment as a `.tag`; the
+  setup path's heading is "Set Up Your Site" with "A few steps", as the
+  sketch has it, but its steps are only those the account can take.
+- **Tools' groups** are named by source ("Core", a plugin's label, "This
+  site"), with "Registered by …" as the hint; "asks first" is beside an
+  action that confirms, as in the sketch.
+- **The log** shows 50 entries, one line each with any trace folded under it, newest first as the sketch has it, and marks errors and warnings by
+  the level in Blush's own line format.
+- **Site Health** (stage 2, D-543): areas are Content, Media,
+  Extensions, System, and Accounts, not Delivery and Security; only
+  checks Blush can run; each Content and Media issue leads to a screen
+  of its own with its fix (`/health/content/names` and so on, D-546),
+  showing the kept check; the panel's count
+  and "Last checked" come from the kept report (D-545); Requirements lists only what Blush needs, with no ini
+  minimums; the two-column layout is the shared `.columns` class, and
+  issue rows the shared `.rows` with `.rows__item` for rows that lead
+  nowhere.
+- **From a screenshot check against the sketch** (2026-10-06): a
+  figure's label takes its warn or danger color, the side column is
+  the sketch's 420px, requirement groups are shaded bands with the
+  values in small mono, facts are edge-to-edge rows with labels in a
+  column (`.fact-rows--panel`), a panel's closing links sit on its own
+  ground (`.panel__foot`), the dashboard's environment is the sketch's
+  small mono chip, and Tools' action names and buttons are Title Case
+  (D-521). Kept as the admin has them: underlined page tabs (the
+  sketch's are pill chips), the 16px gap between a screen's sections
+  (the sketch's Home screens use more), and the notice under the tabs.
+- **Shortcuts** (stage 3, D-547): as the sketch has them, but saved
+  once, on Done, with one "Shortcuts updated" toast (D-549), where the
+  sketch toasts each pin and removal; "Reading Settings" for a Settings
+  screen in Add a Shortcut, and no counts on shortcuts. The sketch's
+  Calendar isn't taken up (a calendar is for a plugin, D-550).
+

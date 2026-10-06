@@ -1,6 +1,6 @@
 /**
- * Months drawn as weeks (D-505), Monday first, as the calendar and the
- * date picker draw them.
+ * Months drawn as weeks (D-505), Monday first, as the date picker
+ * draws them.
  */
 
 export const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -20,15 +20,13 @@ export function hour12(hours: number): number {
 }
 
 /**
- * The days a month is drawn with, from the Monday on or before its first
- * day: six weeks, or (`fit`) as few as the month needs. `out` marks a day
- * of the month before or after.
+ * The days a month is drawn with: six weeks, from the Monday on or
+ * before its first day. `out` marks a day of the month before or after.
  */
-export function monthDays(year: number, month: number, weeks: 6 | 'fit' = 6): { date: Date; iso: string; out: boolean }[] {
-	const lead  = (new Date(year, month, 1).getDay() + 6) % 7;
-	const count = weeks === 'fit' ? Math.ceil((lead + new Date(year, month + 1, 0).getDate()) / 7) : weeks;
+export function monthDays(year: number, month: number): { date: Date; iso: string; out: boolean }[] {
+	const lead = (new Date(year, month, 1).getDay() + 6) % 7;
 
-	return Array.from({ length: count * 7 }, (_, offset) => {
+	return Array.from({ length: 6 * 7 }, (_, offset) => {
 		const date = new Date(year, month, 1 - lead + offset);
 
 		return { date, iso: isoDay(date), out: date.getMonth() !== month };
