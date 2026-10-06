@@ -31,21 +31,6 @@ defineProps<{
 </template>
 
 <style scoped>
-.abandoned-notice {
-	display: flex;
-	align-items: flex-start;
-	gap: var(--s-2);
-	margin: 0;
-	font-size: var(--text-sm);
-}
-
-.abandoned-notice .icon {
-	flex: none;
-	width: 15px;
-	height: 15px;
-	margin-top: 3px;
-}
-
 .abandoned-notice a {
 	color: inherit;
 }

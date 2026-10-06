@@ -50,7 +50,10 @@
  */
 
 import { computed, nextTick, ref } from 'vue';
+import { debounced, latest } from '../action';
 import { config } from '../config';
+import { useFileDrop } from '../drop';
+import { listMove } from '../grid';
 import { htmlCheck } from '../html';
 import { blocks, closingFence, setHtmlCheck, setMentions, continuation, directiveAt, editBetween, highlight, indentedCode, intoFence, isAddress, linkAt, linked, nested, outline, pasted, quoted, safeSpot, toggleEmphasis, toggleMark, typedSpot, unmarked, withHeading, withoutLink, type Change, type Edit, type Emphasis, type MarkdownBlock, type MarkdownOutline } from '../markdown';
 import { directiveText, type ComponentDescription } from '../components';
@@ -246,8 +249,8 @@ const suggested        = ref(0);
 const suggestAt        = ref<{ left: number; top: number; above: boolean } | null>(null);
 // Whether an answer for what's typed is still to come.
 const searching        = ref(false);
-let suggestTimer: ReturnType<typeof setTimeout> | undefined;
-let suggestAsk = 0;
+const suggestLater     = debounced((query: string) => void suggest(query), 120);
+const suggestAsk       = latest();
 
 // What a mention typed so far may be: nothing yet, or a name's start.
 const TYPED_MENTION = /(?:^|[^\p{L}\p{N}_@`])@([A-Za-z0-9_-]{0,64})$/u;
@@ -286,8 +289,9 @@ function mentionAt(): { at: number; query: string } | null {
 }
 
 function closeSuggestions(): void {
-	clearTimeout(suggestTimer);
-	suggestAsk++;
+	suggestLater.cancel();
+	// An answer still to come is no longer the latest.
+	suggestAsk();
 	mention.value     = null;
 	suggestions.value = [];
 	suggestAt.value   = null;
@@ -339,13 +343,12 @@ function followMention(open = true): void {
 	suggested.value   = 0;
 	searching.value   = true;
 	placeSuggestions();
-	clearTimeout(suggestTimer);
-	suggestTimer = setTimeout(() => void suggest(found.query), 120);
+	suggestLater(found.query);
 }
 
 async function suggest(query: string): Promise<void> {
-	const ask    = ++suggestAsk;
-	const people = props.people;
+	const current = suggestAsk();
+	const people  = props.people;
 
 	if (people === undefined) {
 		return;
@@ -361,7 +364,7 @@ async function suggest(query: string): Promise<void> {
 
 	const typed = mention.value;
 
-	if (ask !== suggestAsk || typed === null) {
+	if (!current() || typed === null) {
 		return;
 	}
 
@@ -422,7 +425,7 @@ function mentionKey(event: KeyboardEvent): boolean {
 	}
 
 	if ((event.key === 'ArrowDown' || event.key === 'ArrowUp') && count > 0) {
-		suggested.value = (suggested.value + (event.key === 'ArrowDown' ? 1 : count - 1)) % count;
+		suggested.value = listMove(event.key, suggested.value, count) ?? 0;
 	} else if ((event.key === 'Enter' || event.key === 'Tab') && count > 0) {
 		chooseMention(suggestions.value[suggested.value]);
 	} else if (event.key === 'Escape') {
@@ -777,25 +780,7 @@ function paste(event: ClipboardEvent): void {
 }
 
 // Files dropped on the text go where the caret is.
-const dropping = ref(false);
-
-function dragover(event: DragEvent): void {
-	if (!props.readonly && [...(event.dataTransfer?.types ?? [])].includes('Files')) {
-		event.preventDefault();
-		dropping.value = true;
-	}
-}
-
-function drop(event: DragEvent): void {
-	dropping.value = false;
-
-	const files = [...(event.dataTransfer?.files ?? [])];
-
-	if (files.length > 0 && !props.readonly) {
-		event.preventDefault();
-		emit('files', files);
-	}
-}
+const { dragging: dropping, over: dragover, leave: dragleave, drop } = useFileDrop((files) => emit('files', files), () => !props.readonly);
 
 /**
  * Enter in a list item, quote, or table row starts the next one, and on
@@ -1048,7 +1033,7 @@ defineExpose({ apply, change, focusAt, insert, insertBlock, insertText, selectio
 
 <template>
 	<div class="md">
-		<div ref="source" class="md__source" :class="{ 'is-dropping': dropping }" @dragover="dragover" @dragleave="dropping = false" @drop="drop">
+		<div ref="source" class="md__source" :class="{ 'is-dropping': dropping }" @dragover="dragover" @dragleave="dragleave" @drop="drop">
 			<pre class="md__highlight" aria-hidden="true" v-html="html" />
 			<textarea
 				:id="props.id"

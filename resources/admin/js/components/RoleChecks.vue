@@ -38,8 +38,8 @@ function locked(role: RoleInfo): boolean {
 <template>
 	<div class="role-checks" role="group" :aria-describedby="describedBy" :aria-invalid="invalid ? 'true' : undefined">
 		<label v-for="role in roles" :key="role.name" class="role-check" :class="{ 'role-check--on': model.includes(role.name), 'role-check--locked': locked(role) }">
-			<input :id="`${idPrefix}${role.name}`" class="role-check__input" type="checkbox" :checked="model.includes(role.name)" :disabled="locked(role)" @change="toggle(role.name, ($event.target as HTMLInputElement).checked)">
-			<span class="role-check__box" aria-hidden="true"><AdminIcon name="check" /></span>
+			<input :id="`${idPrefix}${role.name}`" class="check-input" type="checkbox" :checked="model.includes(role.name)" :disabled="locked(role)" @change="toggle(role.name, ($event.target as HTMLInputElement).checked)">
+			<span class="check-box" aria-hidden="true"><AdminIcon name="check" /></span>
 			<span class="role-check__text">
 				<span class="role-check__name">{{ role.label }}</span>
 				<span v-if="role.description" class="role-check__about">{{ role.description }}</span>
@@ -86,46 +86,10 @@ function locked(role: RoleInfo): boolean {
 	background: none;
 }
 
-.role-check__input {
-	position: absolute;
-	width: 1px;
-	height: 1px;
-	margin: 0;
-	opacity: 0;
-}
-
-.role-check__box {
-	display: grid;
-	flex: none;
-	place-items: center;
-	width: 16px;
-	height: 16px;
-	border: 1px solid var(--border-strong);
-	border-radius: 4px;
-	background: var(--surface);
-	color: transparent;
-}
-
-.role-check__box .icon {
-	width: 11px;
-	height: 11px;
-	stroke-width: 2.6;
-}
-
-.role-check--on .role-check__box {
-	border-color: var(--accent);
-	background: var(--accent);
-	color: var(--accent-fg);
-}
-
-.role-check--on.role-check--locked .role-check__box {
-	border-color: var(--fg-3);
-	background: var(--fg-3);
-}
-
-.role-check__input:focus-visible + .role-check__box {
-	outline: 2px solid var(--accent);
-	outline-offset: 2px;
+/* A role you can't give is gray when it's on, as the global box is,
+   but isn't dimmed when it's off. */
+.check-input:disabled + .check-box {
+	opacity: 1;
 }
 
 .role-check__text {

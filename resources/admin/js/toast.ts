@@ -147,3 +147,22 @@ export function undoToast(id: number): void {
 	dismissToast(id);
 	undo?.();
 }
+
+/**
+ * Copies text to the clipboard, saying so in a toast (D-505): `what` is
+ * what it is, with its article ("the link"), and `shown` what the toast
+ * names on success, when that's the text itself ("Copied jane@…").
+ * Resolves whether it was copied.
+ */
+export async function copyText(text: string, what: string, shown = what): Promise<boolean> {
+	try {
+		await navigator.clipboard.writeText(text);
+		toast(`Copied ${shown}`);
+
+		return true;
+	} catch {
+		toast(`${what.charAt(0).toUpperCase()}${what.slice(1)} couldn't be copied`, { kind: 'warn' });
+
+		return false;
+	}
+}

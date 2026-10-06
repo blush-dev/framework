@@ -17,19 +17,26 @@
 
 import { computed, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { ApiError, entryRoute, request, type CalendarEntry, type CalendarMonth, type ActiveStatus } from '../api';
+import { entryRoute, errorMessage, request, type CalendarEntry, type CalendarMonth, type ActiveStatus } from '../api';
+import { latest } from '../action';
 import AdminIcon from '../components/AdminIcon.vue';
 import AdminSelect, { type SelectOption } from '../components/AdminSelect.vue';
+import EmptyState from '../components/EmptyState.vue';
 import { plural } from '../format';
 import type { IconName } from '../icons';
+import { hour12, monthDays, WEEKDAYS } from '../month';
+import { useQueryState } from '../query';
 import { canType } from '../session';
 import { findType, loadTypes, types } from '../types';
 
 const route  = useRoute();
 const router = useRouter();
 
-const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-const MONTH    = /^(\d{4})-(0[1-9]|1[0-2])$/;
+// The month, type, and status in the address: `queryText()` reads one,
+// `update()` changes some.
+const { text: queryText, set: update } = useQueryState();
+
+const MONTH = /^(\d{4})-(0[1-9]|1[0-2])$/;
 
 const STATUSES: { key: ActiveStatus | 'any'; label: string }[] = [
 	{ key: 'any', label: 'All' },
@@ -50,12 +57,6 @@ const error    = ref('');
 
 void loadTypes().catch(() => undefined);
 
-function queryText(name: string): string {
-	const value = route.query[name];
-
-	return typeof value === 'string' ? value : '';
-}
-
 // What the address asks for; the month is the site's current one until
 // the first answer says which that is.
 const asked  = computed(() => MONTH.test(queryText('month')) ? queryText('month') : '');
@@ -70,18 +71,6 @@ const typeOptions = computed<SelectOption[]>(() => [
 		.sort((a, b) => a.labels.menu.localeCompare(b.labels.menu))
 		.map((item) => ({ value: item.name, label: item.labels.menu }))
 ]);
-
-function update(changes: Record<string, string>): void {
-	const query = { ...route.query, ...changes };
-
-	for (const [key, value] of Object.entries(query)) {
-		if (value === '' || (key === 'status' && value === 'any')) {
-			delete query[key];
-		}
-	}
-
-	void router.replace({ query });
-}
 
 const typeValue = computed({
 	get: () => type.value,
@@ -139,35 +128,23 @@ const days = computed<Day[]>(() => {
 		return [];
 	}
 
-	const year    = Number(match[1]);
-	const index   = Number(match[2]) - 1;
-	const first   = new Date(year, index, 1);
-	const lead    = (first.getDay() + 6) % 7;
-	const length  = new Date(year, index + 1, 0).getDate();
-	const weeks   = Math.ceil((lead + length) / 7);
-	const today   = calendar.value?.today ?? '';
-	const byDay   = new Map<number, CalendarEntry[]>();
-	const long    = new Intl.DateTimeFormat(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
+	const today = calendar.value?.today ?? '';
+	const byDay = new Map<number, CalendarEntry[]>();
+	const long  = new Intl.DateTimeFormat(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
 
 	for (const entry of calendar.value?.month === month.value ? calendar.value.entries : []) {
 		byDay.set(entry.day, [...(byDay.get(entry.day) ?? []), entry]);
 	}
 
-	return Array.from({ length: weeks * 7 }, (_, offset) => {
-		const date = new Date(year, index, 1 - lead + offset);
-		const out  = date.getMonth() !== index;
-		const iso  = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-
-		return {
-			key: iso,
-			number: date.getDate(),
-			weekday: WEEKDAYS[offset % 7] ?? '',
-			label: long.format(date),
-			out,
-			today: iso === today,
-			entries: out ? [] : (byDay.get(date.getDate()) ?? [])
-		};
-	});
+	return monthDays(Number(match[1]), Number(match[2]) - 1, 'fit').map(({ date, iso, out }, offset) => ({
+		key: iso,
+		number: date.getDate(),
+		weekday: WEEKDAYS[offset % 7] ?? '',
+		label: long.format(date),
+		out,
+		today: iso === today,
+		entries: out ? [] : (byDay.get(date.getDate()) ?? [])
+	}));
 });
 
 const dated = computed(() => days.value.filter((day) => day.entries.length > 0).length);
@@ -176,7 +153,7 @@ const dated = computed(() => days.value.filter((day) => day.entries.length > 0).
 function time(value: string): string {
 	const [hours = 0, minutes = 0] = value.split(':').map(Number);
 
-	return `${((hours + 11) % 12) + 1}:${String(minutes).padStart(2, '0')} ${hours < 12 ? 'am' : 'pm'}`;
+	return `${hour12(hours)}:${String(minutes).padStart(2, '0')} ${hours < 12 ? 'am' : 'pm'}`;
 }
 
 function typeLabel(name: string): string {
@@ -199,11 +176,12 @@ const summary = computed(() => {
 	return `${plural(answer.total, 'entry', 'entries')} in ${heading.value}${shown}`;
 });
 
-let asking = 0;
+// Only the latest load's answer is shown.
+const ask = latest();
 
 async function load(): Promise<void> {
-	const ask    = ++asking;
-	const params = new URLSearchParams();
+	const current = ask();
+	const params  = new URLSearchParams();
 
 	if (asked.value !== '') {
 		params.set('month', asked.value);
@@ -223,15 +201,15 @@ async function load(): Promise<void> {
 	try {
 		const answer = await request<CalendarMonth>('GET', `/calendar${params.size > 0 ? `?${params.toString()}` : ''}`);
 
-		if (ask === asking) {
+		if (current()) {
 			calendar.value = answer;
 		}
 	} catch (caught) {
-		if (ask === asking) {
-			error.value = caught instanceof ApiError ? caught.message : 'The calendar couldn\'t be loaded.';
+		if (current()) {
+			error.value = errorMessage(caught, 'The calendar couldn\'t be loaded.');
 		}
 	} finally {
-		if (ask === asking) {
+		if (current()) {
 			loading.value = false;
 		}
 	}
@@ -304,11 +282,9 @@ watch(() => [asked.value, status.value, type.value], load, { immediate: true });
 					</ul>
 				</li>
 			</ol>
-			<div v-if="calendar && dated === 0 && !loading" class="empty calendar__empty">
-				<AdminIcon name="calendar-days" />
-				<p class="empty__heading">Nothing This Month</p>
-				<p class="empty__text">No entries {{ status === 'any' ? '' : `${STATUSES.find((item) => item.key === status)?.label.toLowerCase()} ` }}are dated in {{ heading }}.</p>
-			</div>
+			<EmptyState v-if="calendar && dated === 0 && !loading" class="calendar__empty" icon="calendar-days" heading="Nothing This Month">
+				No entries {{ status === 'any' ? '' : `${STATUSES.find((item) => item.key === status)?.label.toLowerCase()} ` }}are dated in {{ heading }}.
+			</EmptyState>
 		</div>
 	</section>
 </template>

@@ -19,6 +19,7 @@
  */
 
 import { nextTick, onBeforeUnmount, onMounted, ref, useId } from 'vue';
+import { onPressOutside } from '../popover';
 
 const props = defineProps<{
 	// The button's accessible name, when its content doesn't say it.
@@ -119,11 +120,7 @@ function close(refocus = false): void {
 	}
 }
 
-function outside(event: PointerEvent): void {
-	if (open.value && event.target instanceof Node && root.value?.contains(event.target) !== true) {
-		close();
-	}
-}
+onPressOutside([root], () => open.value, () => close());
 
 function keydown(event: KeyboardEvent): void {
 	if (open.value && event.key === 'Escape') {
@@ -140,13 +137,11 @@ function chosen(event: MouseEvent): void {
 }
 
 onMounted(() => {
-	document.addEventListener('pointerdown', outside);
 	window.addEventListener('scroll', moved, { capture: true, passive: true });
 	window.addEventListener('resize', resized, { passive: true });
 });
 
 onBeforeUnmount(() => {
-	document.removeEventListener('pointerdown', outside);
 	window.removeEventListener('scroll', moved, { capture: true });
 	window.removeEventListener('resize', resized);
 });

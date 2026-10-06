@@ -38,6 +38,7 @@
  */
 
 import { computed, nextTick, onBeforeUnmount, ref } from 'vue';
+import { usePopover } from '../popover';
 import AdminIcon from './AdminIcon.vue';
 
 export interface SelectOption {
@@ -75,11 +76,12 @@ const emit = defineEmits<{ picked: [value: string, query: string, matched: boole
 
 const button = ref<HTMLButtonElement | null>(null);
 const list   = ref<HTMLElement | null>(null);
-const open   = ref(false);
-const place  = ref<Record<string, string> | null>(null);
 const listId = `${props.id}-list`;
 const search = ref<HTMLInputElement | null>(null);
 const query  = ref('');
+
+const popover                = usePopover(button, list, { gap: 4, matchWidth: true });
+const { open, place, close } = popover;
 
 // What's been typed in the open list, and when it's forgotten.
 let typed = '';
@@ -156,28 +158,8 @@ async function show(): Promise<void> {
 		return;
 	}
 
-	open.value  = true;
-	place.value = null;
 	query.value = '';
-	await nextTick();
-
-	const box    = button.value?.getBoundingClientRect();
-	const height = list.value?.offsetHeight ?? 0;
-	const width  = list.value?.offsetWidth ?? 0;
-
-	if (box === undefined) {
-		return;
-	}
-
-	const below = box.bottom + height + 8 <= window.innerHeight;
-
-	place.value = {
-		left: `${Math.max(8, Math.min(box.left, window.innerWidth - Math.max(width, box.width) - 8))}px`,
-		top: `${below ? box.bottom + 4 : Math.max(8, box.top - height - 4)}px`,
-		minWidth: `${box.width}px`
-	};
-
-	document.addEventListener('pointerdown', outside, true);
+	await popover.show();
 	await nextTick();
 
 	const chosen = list.value?.querySelector<HTMLElement>('[aria-selected="true"]');
@@ -221,27 +203,6 @@ function searchKey(event: KeyboardEvent): void {
 		if (first !== undefined) {
 			choose(first);
 		}
-	}
-}
-
-function close(refocus = true): void {
-	if (!open.value) {
-		return;
-	}
-
-	open.value = false;
-	document.removeEventListener('pointerdown', outside, true);
-
-	if (refocus) {
-		button.value?.focus();
-	}
-}
-
-function outside(event: PointerEvent): void {
-	const target = event.target as Node;
-
-	if (!list.value?.contains(target) && !button.value?.contains(target)) {
-		close(false);
 	}
 }
 
@@ -309,10 +270,7 @@ function typeAhead(key: string, items: HTMLElement[], at: number): void {
 	(items.slice(from).find(starts) ?? items.find(starts))?.focus();
 }
 
-onBeforeUnmount(() => {
-	document.removeEventListener('pointerdown', outside, true);
-	clearTimeout(typedTimer);
-});
+onBeforeUnmount(() => clearTimeout(typedTimer));
 </script>
 
 <template>

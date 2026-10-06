@@ -31,10 +31,12 @@
 
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { confirmAction } from '../confirm';
-import { RouterLink, useRoute, useRouter, type LocationQueryRaw } from 'vue-router';
-import { ApiError, entryPath, request, type ContentTypeSummary, type EntryDetail, type EntryList, type EntrySort, type EntryStatus, type EntrySummary } from '../api';
+import { RouterLink, useRoute, type LocationQueryRaw } from 'vue-router';
+import { entryPath, errorMessage, request, trashEntry, type ContentTypeSummary, type EntryDetail, type EntryList, type EntrySort, type EntryStatus, type EntrySummary } from '../api';
+import { debounced, latest } from '../action';
 import AdminIcon from '../components/AdminIcon.vue';
 import AdminSelect, { type SelectOption } from '../components/AdminSelect.vue';
+import EmptyState from '../components/EmptyState.vue';
 import EntryTable from '../components/EntryTable.vue';
 import { compact } from '../density';
 import { makeHomepage } from '../homepage';
@@ -45,6 +47,7 @@ import { screenTitle } from '../screen';
 import { toast, type ToastKind } from '../toast';
 import { can, canType, session } from '../session';
 import { loadReferences } from '../references';
+import { useQueryState } from '../query';
 import { profileType, currentType, findType, labelsOf, loadTypes, types } from '../types';
 
 type Tab = EntryStatus | 'any' | 'mine' | 'trash';
@@ -82,8 +85,10 @@ const tabs     = computed<{ status: Tab; label: string }[]>(() => [
 	...(canTrash.value ? [{ status: 'trash' as const, label: 'Trash' }] : [])
 ]);
 
-const route  = useRoute();
-const router = useRouter();
+const route = useRoute();
+
+// The filters live in the URL: `text()` reads one, `go()` changes some.
+const { text, set: go } = useQueryState();
 
 const list    = ref<EntryList | null>(null);
 const counts  = ref<Partial<Record<Tab, number>>>({});
@@ -112,18 +117,18 @@ const profilesList = computed(() => info.value?.kind === 'profiles');
 
 const type   = computed(() => String(route.params.type ?? ''));
 const info   = computed(() => findType(type.value));
-const search = computed(() => text(route.query.search));
+const search = computed(() => text('search'));
 const page   = computed(() => Math.max(1, Number(route.query.page) || 1));
 const key    = computed(() => `${type.value}|${status.value}`);
 const ready  = computed(() => loaded.value === key.value);
 
 // The filters beyond the search, which the trash doesn't take.
-const author = computed(() => inTrash.value || status.value === 'mine' ? '' : text(route.query.author));
-const days   = computed(() => inTrash.value || !DAYS.includes(Number(route.query.days)) ? '' : text(route.query.days));
+const author = computed(() => inTrash.value || status.value === 'mine' ? '' : text('author'));
+const days   = computed(() => inTrash.value || !DAYS.includes(Number(route.query.days)) ? '' : text('days'));
 // Profiles' own filter (D-369): linked to an account, or a guest.
 const linkedTo = computed(() => !inTrash.value && info.value?.kind === 'profiles' && (route.query.account === 'linked' || route.query.account === 'guest') ? route.query.account : '');
 const chosen = computed<Record<string, string>>(() => inTrash.value ? {} : Object.fromEntries(
-	text(route.query.terms).split(',').map((pair) => pair.split(':')).filter((parts) => parts.length === 2 && parts[0] !== '' && parts[1] !== '')
+	text('terms').split(',').map((pair) => pair.split(':')).filter((parts) => parts.length === 2 && parts[0] !== '' && parts[1] !== '')
 ));
 
 // The column it's sorted by and which way; `''` for the usual order.
@@ -132,10 +137,6 @@ const dir  = computed<'asc' | 'desc' | ''>(() => sort.value === '' ? '' : (route
 const per  = computed(() => PER_OPTIONS.includes(Number(route.query.per)) ? Number(route.query.per) : PER_PAGE);
 
 const filtered = computed(() => search.value !== '' || author.value !== '' || days.value !== '' || linkedTo.value !== '' || Object.keys(chosen.value).length > 0);
-
-function text(value: unknown): string {
-	return typeof value === 'string' ? value : '';
-}
 
 // A taxonomy's entries are terms, and the authors type's are people
 // (D-329): they're counted by use, not credited.
@@ -183,33 +184,14 @@ watch([type, info], () => {
 
 // The search box updates the URL a moment after typing stops.
 const query = ref(search.value);
-let typing: ReturnType<typeof setTimeout> | undefined;
 
-watch(query, (value) => {
-	clearTimeout(typing);
-	typing = setTimeout(() => go({ search: value.trim() || undefined, page: undefined }), 300);
-});
+watch(query, debounced((value: string) => go({ search: value.trim() || undefined, page: undefined }), 300));
 
 watch(search, (value) => {
 	if (value !== query.value.trim()) {
 		query.value = value;
 	}
 });
-
-/**
- * Changes the filters in the URL, keeping the rest.
- */
-function go(changes: LocationQueryRaw): void {
-	const next: LocationQueryRaw = { ...route.query, ...changes };
-
-	for (const name of Object.keys(next)) {
-		if (next[name] === undefined || next[name] === '' || (name === 'status' && next[name] === 'any')) {
-			delete next[name];
-		}
-	}
-
-	void router.replace({ query: next });
-}
 
 function clear(): void {
 	query.value = '';
@@ -426,12 +408,12 @@ const skeletonRows = computed(() => {
 
 const skeletonColumns = computed(() => inTrash.value ? ['Title', 'Trashed', ''] : ['Title', 'Status', terms.value ? 'Entries' : 'Authors', 'Updated', '']);
 
-// Each load's number; only the latest one's answer is shown.
-let latest = 0;
+// Only the latest load's answer is shown.
+const ask = latest();
 
 async function load(): Promise<void> {
-	const asked  = ++latest;
-	const wanted = key.value;
+	const current = ask();
+	const wanted  = key.value;
 
 	// Another type's counts don't guess this one's.
 	if (!loaded.value.startsWith(`${type.value}|`)) {
@@ -442,7 +424,7 @@ async function load(): Promise<void> {
 	error.value   = '';
 
 	try {
-		const [current, trashed, own, ...totals] = await Promise.all([
+		const [answer, trashed, own, ...totals] = await Promise.all([
 			request<EntryList>('GET', `/entries?${params(listParams())}`),
 			canTrash.value ? request<EntryList>('GET', `/entries?${params({ status: 'trash', per: '1' }, false)}`) : Promise.resolve(null),
 			mine.value === '' ? Promise.resolve(null) : request<EntryList>('GET', `/entries?${params({ status: 'any', per: '1' }, true)}`),
@@ -450,11 +432,11 @@ async function load(): Promise<void> {
 		]);
 
 		// A later load has taken over.
-		if (asked !== latest) {
+		if (!current()) {
 			return;
 		}
 
-		list.value   = current;
+		list.value   = answer;
 		counts.value = {
 			...Object.fromEntries(statusTabs.map((tab, index) => [tab.status, totals[index]?.total ?? 0])),
 			...(own === null ? {} : { mine: own.total }),
@@ -462,11 +444,11 @@ async function load(): Promise<void> {
 		};
 		loaded.value = wanted;
 	} catch (caught) {
-		if (asked === latest) {
-			error.value = caught instanceof ApiError ? caught.message : 'The entries couldn\'t be loaded.';
+		if (current()) {
+			error.value = errorMessage(caught, 'The entries couldn\'t be loaded.');
 		}
 	} finally {
-		if (asked === latest) {
+		if (current()) {
 			loading.value = false;
 		}
 	}
@@ -494,7 +476,7 @@ async function act(name: string, action: () => Promise<string>, kind: ToastKind 
 		toast(await action(), { kind });
 		await load();
 	} catch (caught) {
-		error.value = caught instanceof ApiError ? caught.message : 'That didn\'t work. Reload the page and try again.';
+		error.value = errorMessage(caught, 'That didn\'t work. Reload the page and try again.');
 	} finally {
 		busy.value = null;
 	}
@@ -516,9 +498,7 @@ async function moveToTrash(entry: EntrySummary): Promise<void> {
 	}
 
 	void act(id, async () => {
-		const detail = await request<EntryDetail>('GET', entryPath(id));
-
-		await request<void>('DELETE', `${entryPath(id)}?revision=${encodeURIComponent(detail.revision)}`);
+		await trashEntry(id);
 
 		return `Moved ${nameOf(entry)} to the trash`;
 	}, 'danger');
@@ -689,12 +669,12 @@ const emptyText = computed(() => {
 			<!-- A type with an index page is never empty: the index page is
 			     already there, so the first-run state sits under it (D-255). -->
 			<EntryTable v-if="list && pinnedOf(list).length" :entries="[]" :pinned="pinnedOf(list)" labelledby="entries-heading" :date-label="dateColumn.label" :date-key="dateColumn.key" :terms="terms && info?.kind !== 'profiles'" :profiles="info?.kind === 'profiles'" @homepage="toHomepage" />
-			<div class="empty">
-				<AdminIcon :name="info?.kind === 'profiles' ? 'user-round' : (terms ? 'tag' : 'files')" />
-				<h2 id="entries-heading" class="empty__heading">No {{ heading }} Yet</h2>
-				<p class="empty__text">{{ purpose(info, heading) }}<template v-if="list?.index?.status === 'published'"> The index page above is already live: it's what readers land on.</template></p>
-				<RouterLink v-if="canType(type, 'create')" class="button button--primary" :to="{ name: 'entry-new', query: { type } }">Create the first {{ labels.item }}</RouterLink>
-			</div>
+			<EmptyState :icon="info?.kind === 'profiles' ? 'user-round' : (terms ? 'tag' : 'files')" :heading="`No ${heading} Yet`" tag="h2" heading-id="entries-heading">
+				{{ purpose(info, heading) }}<template v-if="list?.index?.status === 'published'"> The index page above is already live: it's what readers land on.</template>
+				<template #actions>
+					<RouterLink v-if="canType(type, 'create')" class="button button--primary" :to="{ name: 'entry-new', query: { type } }">Create the first {{ labels.item }}</RouterLink>
+				</template>
+			</EmptyState>
 		</section>
 
 		<template v-else>
@@ -706,26 +686,26 @@ const emptyText = computed(() => {
 			</nav>
 
 			<div class="toolbar" role="search">
-				<label class="search-field entries-search">
+				<label class="search-field toolbar__search entries-search">
 					<AdminIcon name="search" />
 					<span class="visually-hidden">{{ labels.searchItems }}</span>
 					<input id="entries-search" ref="searchField" v-model="query" type="search" :placeholder="labels.searchItems" autocomplete="off" aria-keyshortcuts="/">
 					<kbd class="entries-search__key" aria-hidden="true">/</kbd>
 				</label>
 				<template v-if="!inTrash">
-					<div v-if="authorOptions.length && status !== 'mine'" class="entries-filter">
+					<div v-if="authorOptions.length && status !== 'mine'" class="toolbar__filter">
 						<label class="visually-hidden" for="entries-author">Author</label>
 						<AdminSelect id="entries-author" v-model="authorValue" :options="authorOptions" />
 					</div>
-					<div v-for="filter in termFilters" :key="filter.taxonomy" class="entries-filter">
+					<div v-for="filter in termFilters" :key="filter.taxonomy" class="toolbar__filter">
 						<label class="visually-hidden" :for="`entries-${filter.taxonomy}`">{{ filter.label }}</label>
 						<AdminSelect :id="`entries-${filter.taxonomy}`" :model-value="chosen[filter.taxonomy] ?? ''" :options="filter.options" @update:model-value="chooseTerm(filter.taxonomy, $event)" />
 					</div>
-					<div v-if="info?.kind === 'profiles'" class="entries-filter">
+					<div v-if="info?.kind === 'profiles'" class="toolbar__filter">
 						<label class="visually-hidden" for="entries-account">Account</label>
 						<AdminSelect id="entries-account" v-model="linkedValue" :options="linkedOptions" />
 					</div>
-					<div class="entries-filter">
+					<div class="toolbar__filter">
 						<label class="visually-hidden" for="entries-days">Updated</label>
 						<AdminSelect id="entries-days" v-model="daysValue" :options="dayOptions" />
 					</div>
@@ -770,12 +750,11 @@ const emptyText = computed(() => {
 				<template v-else-if="inTrash">
 					<TrashTable v-if="trashShown.length" :items="trashShown" labelledby="entries-heading" :busy="busy" @restore="restore" @purge="purge" />
 
-					<div v-else class="empty">
-						<AdminIcon name="circle-check" />
-						<p class="empty__heading">{{ filtered ? 'Nothing in the Trash Matches' : 'The Trash Is Empty' }}</p>
-						<p class="empty__text">{{ emptyText }}</p>
-						<button v-if="filtered" type="button" class="button" @click="clear">Clear filters</button>
-					</div>
+					<EmptyState v-else icon="circle-check" :heading="filtered ? 'Nothing in the Trash Matches' : 'The Trash Is Empty'" :text="emptyText">
+						<template #actions>
+							<button v-if="filtered" type="button" class="button" @click="clear">Clear filters</button>
+						</template>
+					</EmptyState>
 				</template>
 
 				<template v-else-if="list">
@@ -803,19 +782,18 @@ const emptyText = computed(() => {
 						@sort="sortBy"
 					/>
 
-					<div v-if="!list.entries.length" class="empty">
-						<AdminIcon name="files" />
-						<p class="empty__heading">{{ filtered ? `No ${heading} Match` : `No ${heading}` }}</p>
-						<p class="empty__text">{{ emptyText }}</p>
-						<button v-if="filtered" type="button" class="button" @click="clear">Clear filters</button>
-					</div>
+					<EmptyState v-if="!list.entries.length" icon="files" :heading="filtered ? `No ${heading} Match` : `No ${heading}`" :text="emptyText">
+						<template #actions>
+							<button v-if="filtered" type="button" class="button" @click="clear">Clear filters</button>
+						</template>
+					</EmptyState>
 				</template>
 
 				<nav v-if="ready && list && list.total > PER_OPTIONS[0]!" class="pager" aria-label="Pages">
 					<span class="pager__status">{{ list.pages > 1 ? `Page ${list.page} of ${list.pages}` : `All ${plural(list.total, labels.item, labels.items)}` }}</span>
 					<div class="pager__end">
 						<label class="visually-hidden" for="entries-per">Rows per page</label>
-						<div class="entries-filter">
+						<div class="toolbar__filter">
 							<AdminSelect id="entries-per" v-model="perValue" :options="perOptions" />
 						</div>
 						<template v-if="list.pages > 1">
@@ -848,11 +826,6 @@ const emptyText = computed(() => {
 	display: contents;
 }
 
-.entries-search {
-	flex: 1 1 16rem;
-	max-width: 24rem;
-}
-
 .entries-search__key {
 	padding: 0 5px;
 	border: 1px solid var(--border);
@@ -867,67 +840,8 @@ const emptyText = computed(() => {
 	display: none;
 }
 
-/* A filter's select is as wide as it needs, not the row (§7, Selects). */
-.entries-filter {
-	flex: none;
-	width: auto;
-	min-width: 9rem;
-	max-width: 16rem;
-}
-
 .notebar__action {
 	margin: -4px 0 -4px auto;
-}
-
-/* The bulk bar (admin.md §7): a pill fixed to the bottom center, clear of
-   the safe area, that scrolls sideways rather than wrapping. */
-.bulk-bar {
-	position: fixed;
-	bottom: calc(28px + env(safe-area-inset-bottom, 0px));
-	left: 50%;
-	z-index: 40;
-	display: flex;
-	align-items: center;
-	gap: var(--s-2);
-	max-width: calc(100vw - 32px);
-	padding: 9px 10px 9px 20px;
-	overflow-x: auto;
-	border: 1px solid var(--border-strong);
-	border-radius: 999px;
-	background: var(--surface);
-	box-shadow: var(--shadow-3);
-	transform: translateX(-50%);
-	scrollbar-width: none;
-}
-
-.bulk-bar__count {
-	font-size: var(--text-sm);
-	font-weight: 500;
-	white-space: nowrap;
-}
-
-.bulk-bar__divider {
-	flex: none;
-	width: 1px;
-	height: 18px;
-	background: var(--border);
-}
-
-.bulk-bar .button {
-	white-space: nowrap;
-}
-
-@media (prefers-reduced-motion: no-preference) {
-	.bulk-bar {
-		animation: bulk-rise .16s ease-out;
-	}
-}
-
-@keyframes bulk-rise {
-	from {
-		opacity: 0;
-		transform: translate(-50%, 8px);
-	}
 }
 
 .pager {

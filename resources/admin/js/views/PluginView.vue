@@ -17,17 +17,13 @@ import { computed, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import AbandonedNotice from '../components/AbandonedNotice.vue';
 import AdminIcon from '../components/AdminIcon.vue';
-import ExtensionDependents from '../components/ExtensionDependents.vue';
-import ExtensionLinks from '../components/ExtensionLinks.vue';
-import ExtensionProvides from '../components/ExtensionProvides.vue';
-import ExtensionRequirements from '../components/ExtensionRequirements.vue';
-import ExtensionSuggestions from '../components/ExtensionSuggestions.vue';
-import LicenseLinks from '../components/LicenseLinks.vue';
+import DangerZone from '../components/DangerZone.vue';
+import ExtensionFacts from '../components/ExtensionFacts.vue';
+import ExtensionPackagePanels from '../components/ExtensionPackagePanels.vue';
 import PreviousVersion from '../components/PreviousVersion.vue';
 import ToggleSwitch from '../components/ToggleSwitch.vue';
 import { usePlugins } from '../plugins';
 import { screenTitle } from '../screen';
-import { copy } from '../themes';
 import { can } from '../session';
 
 const route  = useRoute();
@@ -84,7 +80,7 @@ async function remove(): Promise<void> {
 	<template v-if="plugin && answer">
 		<div class="plugin-detail">
 			<AbandonedNotice noun="plugin" :abandoned="plugin.abandoned" :replacement="plugin.replacement" />
-			<p v-if="blocked" class="plugin-message">
+			<p v-if="blocked" class="notice notice--small notice--warn">
 				<AdminIcon name="triangle-alert" /><span>{{ blocked }} {{ plugin.enabled ? 'It\'s turned on, but nothing it adds runs until that\'s fixed.' : 'It can\'t be turned on until that\'s fixed.' }}</span>
 			</p>
 
@@ -92,90 +88,14 @@ async function remove(): Promise<void> {
 				<section class="panel" aria-labelledby="details-heading">
 					<header class="panel__header"><h2 id="details-heading">Details</h2></header>
 					<div class="panel__body">
-						<dl class="plugin-facts">
-							<dt>Name</dt>
-							<dd class="mono">{{ plugin.name }}</dd>
-							<dt>{{ plugin.authors.length > 1 ? 'Authors' : 'Author' }}</dt>
-							<dd>
-								<template v-if="plugin.authors.length === 0">—</template>
-								<span v-for="author in plugin.authors" :key="author.name" class="plugin-facts__author">
-									<a v-if="author.homepage" :href="author.homepage" target="_blank" rel="noopener">{{ author.name }}<span class="visually-hidden"> (new tab)</span></a>
-									<template v-else>{{ author.name }}</template>
-									<span v-if="author.role" class="plugin-facts__role">{{ author.role }}</span>
-								</span>
-							</dd>
-							<dt>Version</dt>
-							<dd class="mono">{{ plugin.version }}</dd>
-							<dt>License</dt>
-							<dd :class="{ mono: plugin.licenses.length }"><LicenseLinks :parts="plugin.licenses" /></dd>
-							<ExtensionLinks :links="plugin.links" :funding="plugin.funding" />
-							<dt>Installed by</dt>
-							<dd>{{ plugin.source === 'composer' ? 'Composer' : 'A folder in extensions/' }}</dd>
-							<dt>Folder</dt>
-							<dd>
-								<span class="mono">{{ plugin.path }}</span>
-								<button type="button" class="button button--ghost button--small button--icon plugin-facts__copy" :aria-label="`Copy ${plugin.path}`" @click="copy(plugin.path, 'the folder path')"><AdminIcon name="copy" /></button>
-							</dd>
-							<dt>Namespace</dt>
-							<dd class="mono">{{ plugin.namespace }}</dd>
-							<ExtensionDependents :dependents="needs" />
-							<ExtensionDependents :dependents="plugin.conflictedBy" label="Conflicts with it" />
-							<ExtensionDependents :dependents="plugin.replacedBy" label="Replaced by" />
-							<ExtensionDependents :dependents="plugin.providedBy" label="Also provided by" />
-						</dl>
+						<ExtensionFacts :extension="plugin" :installed-by="plugin.source === 'composer' ? 'Composer' : 'A folder in extensions/'" :folder="plugin.path" />
 					</div>
 				</section>
 
-				<section class="panel" aria-labelledby="requires-heading">
-					<header class="panel__header">
-						<h2 id="requires-heading">Requires</h2>
-						<p class="panel__hint">Checked against this site</p>
-					</header>
-					<div class="panel__body">
-						<ExtensionRequirements :requirements="plugin.requirements" />
-					</div>
-				</section>
+				<ExtensionPackagePanels :extension="plugin" replaces-hint="It doesn't run" part="requires" />
 			</div>
 
-			<section v-if="plugin.conflicts.length" class="panel" aria-labelledby="conflicts-heading">
-				<header class="panel__header">
-					<h2 id="conflicts-heading">Conflicts</h2>
-					<p class="panel__hint">Checked against what's on</p>
-				</header>
-				<div class="panel__body">
-					<ExtensionRequirements :requirements="plugin.conflicts" list="conflicts" />
-				</div>
-			</section>
-
-			<section v-if="plugin.replaces.length" class="panel" aria-labelledby="replaces-heading">
-				<header class="panel__header">
-					<h2 id="replaces-heading">Replaces</h2>
-					<p class="panel__hint">It doesn't run while one of these is on</p>
-				</header>
-				<div class="panel__body">
-					<ExtensionRequirements :requirements="plugin.replaces" list="replaces" />
-				</div>
-			</section>
-
-			<section v-if="plugin.provides.length" class="panel" aria-labelledby="provides-heading">
-				<header class="panel__header">
-					<h2 id="provides-heading">Provides</h2>
-					<p class="panel__hint">Meets a requirement of any of these while it runs</p>
-				</header>
-				<div class="panel__body">
-					<ExtensionProvides :provides="plugin.provides" />
-				</div>
-			</section>
-
-			<section v-if="plugin.suggests.length" class="panel" aria-labelledby="suggests-heading">
-				<header class="panel__header">
-					<h2 id="suggests-heading">Suggests</h2>
-					<p class="panel__hint">Works well with these; none is needed</p>
-				</header>
-				<div class="panel__body">
-					<ExtensionSuggestions :suggestions="plugin.suggests" />
-				</div>
-			</section>
+			<ExtensionPackagePanels :extension="plugin" replaces-hint="It doesn't run" part="others" />
 
 			<PreviousVersion kind="plugin" :extension="plugin" :live="plugin.running" @changed="load" />
 			<p v-if="plugin.source === 'composer'" class="notice">
@@ -187,10 +107,10 @@ async function remove(): Promise<void> {
 			<p v-else-if="plugin.folder && !plugin.deletable" class="notice">
 				<span><code>config/plugins.php</code> turns it on by name, so it can't be deleted until it's taken out of that file's <code>enabled</code> list.</span>
 			</p>
-			<div v-else-if="canDelete && plugin.deletable" class="danger-zone">
-				<p>Deleting removes the folder from the server.<template v-if="needs.length"> {{ needs.length === 1 ? '1 extension requires' : `${needs.length} extensions require` }} it.</template></p>
-				<button type="button" class="button button--danger" @click="remove"><AdminIcon name="trash-2" />Delete plugin</button>
-			</div>
+			<DangerZone v-else-if="canDelete && plugin.deletable">
+				Deleting removes the folder from the server.<template v-if="needs.length"> {{ needs.length === 1 ? '1 extension requires' : `${needs.length} extensions require` }} it.</template>
+				<template #action><button type="button" class="button button--danger" @click="remove"><AdminIcon name="trash-2" />Delete plugin</button></template>
+			</DangerZone>
 		</div>
 	</template>
 
@@ -215,87 +135,6 @@ async function remove(): Promise<void> {
 	grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
 	align-items: start;
 	gap: var(--s-5);
-}
-
-.plugin-facts {
-	display: grid;
-	grid-template-columns: auto minmax(0, 1fr);
-	align-items: baseline;
-	gap: var(--s-3) var(--s-4);
-	margin: 0;
-	font-size: var(--text-sm);
-}
-
-.plugin-facts dt {
-	color: var(--fg-3);
-}
-
-.plugin-facts dd {
-	margin: 0;
-	min-width: 0;
-	overflow-wrap: anywhere;
-}
-
-.plugin-facts__author {
-	display: flex;
-	flex-wrap: wrap;
-	align-items: baseline;
-	gap: 0 var(--s-2);
-}
-
-.plugin-facts__author + .plugin-facts__author {
-	margin-top: var(--s-1);
-}
-
-.plugin-facts__role {
-	color: var(--fg-3);
-}
-
-.plugin-facts__copy {
-	margin-block: -6px;
-	vertical-align: middle;
-}
-
-.plugin-message {
-	display: flex;
-	align-items: flex-start;
-	gap: var(--s-2);
-	margin: 0;
-	padding: var(--s-3);
-	border-radius: var(--r-1);
-	background: var(--warn-soft);
-	color: var(--warn);
-	font-size: var(--text-xs);
-	line-height: 1.45;
-}
-
-.plugin-message .icon {
-	flex: none;
-	width: 14px;
-	height: 14px;
-	margin-top: 1px;
-}
-
-.danger-zone {
-	display: flex;
-	flex-wrap: wrap;
-	align-items: center;
-	gap: var(--s-4);
-	padding: var(--s-4) var(--pad-x);
-	border: 1px solid var(--border);
-	border-radius: var(--r-3);
-	background: var(--surface);
-}
-
-.danger-zone p {
-	margin: 0;
-	color: var(--fg-2);
-	font-size: var(--text-sm);
-}
-
-.danger-zone .button {
-	flex: none;
-	margin-left: auto;
 }
 
 .skeleton--title {

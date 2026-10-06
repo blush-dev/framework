@@ -18,7 +18,8 @@
 
 import { computed } from 'vue';
 import AttributeFields from './AttributeFields.vue';
-import AdminSelect from './AdminSelect.vue';
+import OptionSelect from './OptionSelect.vue';
+import OptionsGroup from './OptionsGroup.vue';
 import { BLOCK_KINDS, LIST_STYLES } from '../blocks';
 import {
 	attributeParts,
@@ -75,30 +76,23 @@ function changeParts(classes: string[], id: string): void {
 
 <template>
 	<div class="options">
-		<div class="options__group">
+		<OptionsGroup>
 			<p class="options__note">{{ kind.description }}</p>
-		</div>
+		</OptionsGroup>
 
-		<div v-if="block.kind === 'heading'" class="options__group">
-			<p class="options__heading">Level</p>
-			<div class="field">
-				<label class="visually-hidden" for="block-level">Level</label>
-				<AdminSelect id="block-level" :model-value="String(level)" :options="levels" described-by="block-level-help" @update:model-value="send(withHeadingLevel(markdown, block, Number($event)))" />
-				<p id="block-level-help" class="field__help">The entry's title is the page's heading 1, so a body usually starts at 2.</p>
-			</div>
-		</div>
+		<OptionsGroup v-if="block.kind === 'heading'" heading="Level">
+			<OptionSelect id="block-level" label="Level" :model-value="String(level)" :options="levels" help="The entry's title is the page's heading 1, so a body usually starts at 2." @update:model-value="send(withHeadingLevel(markdown, block, Number($event)))" />
+		</OptionsGroup>
 
-		<div v-else-if="block.kind === 'code'" class="options__group">
-			<p class="options__heading">Language</p>
+		<OptionsGroup v-else-if="block.kind === 'code'" heading="Language">
 			<div class="field">
 				<label class="visually-hidden" for="block-language">Language</label>
 				<input id="block-language" class="mono" :value="language" placeholder="php" autocomplete="off" spellcheck="false" aria-describedby="block-language-help" @input="send(withCodeLanguage(markdown, block, ($event.target as HTMLInputElement).value))">
 				<p id="block-language-help" class="field__help">Sets the highlighting on the site. Leave it empty for none.</p>
 			</div>
-		</div>
+		</OptionsGroup>
 
-		<div v-else-if="block.kind === 'item'" class="options__group">
-			<p class="options__heading">Item</p>
+		<OptionsGroup v-else-if="block.kind === 'item'" heading="Item">
 			<label class="checkbox">
 				<input type="checkbox" :checked="task.task" @change="send(withTask(markdown, block, ($event.target as HTMLInputElement).checked))">
 				A task, with a checkbox
@@ -107,28 +101,21 @@ function changeParts(classes: string[], id: string): void {
 				<input type="checkbox" :checked="task.done" @change="send(withTask(markdown, block, true, ($event.target as HTMLInputElement).checked))">
 				Done
 			</label>
-		</div>
+		</OptionsGroup>
 
-		<div v-else-if="block.kind === 'list'" class="options__group">
-			<p class="options__heading">List Type</p>
-			<div class="field">
-				<label class="visually-hidden" for="block-list-style">List type</label>
-				<AdminSelect id="block-list-style" :model-value="style" :options="styles" described-by="block-list-style-help" @update:model-value="send(withListStyle(source, markdown, blocks, block, $event as ListStyle))" />
-				<p id="block-list-style-help" class="field__help">{{ LIST_STYLES[style].description }}</p>
-			</div>
-		</div>
+		<OptionsGroup v-else-if="block.kind === 'list'" heading="List Type">
+			<OptionSelect id="block-list-style" label="List type" :model-value="style" :options="styles" :help="LIST_STYLES[style].description" @update:model-value="send(withListStyle(source, markdown, blocks, block, $event as ListStyle))" />
+		</OptionsGroup>
 
-		<div class="options__group">
-			<p class="options__heading">Attributes</p>
+		<OptionsGroup heading="Attributes">
 			<AttributeFields :classes="parts.classes" :id="parts.id" id-prefix="block-" @change="changeParts" />
 			<p v-if="block.kind === 'list' || block.kind === 'definitions'" class="field__help">Written on a line of their own above the list, <code>{.wide}</code>, which is where a list carries them.</p>
-		</div>
+		</OptionsGroup>
 
 		<slot />
 
-		<div v-if="block.kind !== 'list' && block.kind !== 'definitions'" class="options__group">
-			<p class="options__heading">Source</p>
+		<OptionsGroup v-if="block.kind !== 'list' && block.kind !== 'definitions'" heading="Source">
 			<pre class="options__source">{{ firstLine }}</pre>
-		</div>
+		</OptionsGroup>
 	</div>
 </template>

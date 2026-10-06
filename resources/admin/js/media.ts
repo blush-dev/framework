@@ -4,9 +4,12 @@
  * library alt text offered (D-272).
  */
 
-import { request, type MediaItem } from './api';
+import { ref, watch, type Ref } from 'vue';
+import { debounced, latest } from './action';
+import { errorMessage, request, type MediaItem, type MediaList } from './api';
 import { config } from './config';
 import { formatSize } from './format';
+import type { IconName } from './icons';
 
 const library = new Map<string, Promise<MediaItem | null>>();
 
@@ -74,4 +77,69 @@ export function mediaFacts(file: Pick<MediaItem, 'width' | 'height' | 'duration'
 		file.duration !== null ? formatDuration(file.duration) : '',
 		formatSize(file.size)
 	].filter((part) => part !== '').join(' · ');
+}
+
+/**
+ * The glyph for a file shown without a picture of it.
+ */
+export function mediaIcon(file: Pick<MediaItem, 'kind'>): IconName {
+	return file.kind === 'video' ? 'film' : (file.kind === 'audio' ? 'music' : (file.kind === 'document' ? 'file-text' : 'file'));
+}
+
+/**
+ * The library a page at a time (D-509), as the Media screen and the media
+ * picker list it: by `kind`, a `search` (asked a moment after typing
+ * stops), and, when `mine` says so, only the account's own uploads. Only
+ * the latest answer is shown; `answered` hears every one. `load(true)`
+ * adds the next page; the first load is the caller's.
+ */
+export function useMediaList(kind: Ref<string>, search: Ref<string>, mine: () => boolean = () => false, answered?: (answer: MediaList) => void) {
+	const files   = ref<MediaItem[]>([]);
+	const total   = ref(0);
+	const page    = ref(1);
+	const pages   = ref(1);
+	const loading = ref(true);
+	const error   = ref('');
+	const ask     = latest();
+
+	async function load(more = false): Promise<void> {
+		const current = ask();
+		const params  = new URLSearchParams({ page: String(more ? page.value + 1 : 1), kind: kind.value });
+
+		if (search.value.trim() !== '') {
+			params.set('search', search.value.trim());
+		}
+
+		if (mine()) {
+			params.set('mine', '1');
+		}
+
+		loading.value = true;
+		error.value   = '';
+
+		try {
+			const answer = await request<MediaList>('GET', `/media?${params.toString()}`);
+
+			if (current()) {
+				files.value = more ? [...files.value, ...answer.files] : answer.files;
+				total.value = answer.total;
+				page.value  = answer.page;
+				pages.value = answer.pages;
+				answered?.(answer);
+			}
+		} catch (caught) {
+			if (current()) {
+				error.value = errorMessage(caught, 'The media couldn\'t be loaded.');
+			}
+		} finally {
+			if (current()) {
+				loading.value = false;
+			}
+		}
+	}
+
+	watch(search, debounced(() => void load(), 250));
+	watch([kind, mine], () => void load());
+
+	return { files, total, page, pages, loading, error, load };
 }

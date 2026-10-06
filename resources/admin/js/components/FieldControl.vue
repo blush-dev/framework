@@ -37,11 +37,3 @@ const described = computed(() => [help(props.field) === '' ? '' : `${id.value}-h
 		<p v-if="errorId" :id="errorId" class="field__error">{{ error }}</p>
 	</div>
 </template>
-
-<style scoped>
-.field__label {
-	color: var(--fg-2);
-	font-size: var(--text-sm);
-	font-weight: 500;
-}
-</style>

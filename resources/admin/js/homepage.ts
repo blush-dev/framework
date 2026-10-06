@@ -5,7 +5,7 @@
  * question, since the site's front page changes.
  */
 
-import { ApiError, request } from './api';
+import { errorMessage, saveSettings } from './api';
 import { confirmAction } from './confirm';
 import { toast } from './toast';
 
@@ -21,17 +21,12 @@ export async function makeHomepage(title: string, instead: string | null): Promi
 	}
 
 	try {
-		const answer = await request<{ refresh: boolean }>('PATCH', '/settings', { set: { 'content.home': null } });
-
-		if (answer.refresh) {
-			await request('POST', '/settings/refresh').catch(() => undefined);
-		}
-
+		await saveSettings({ set: { 'content.home': null } });
 		toast(`“${name}” is the homepage`);
 
 		return true;
 	} catch (caught) {
-		toast(caught instanceof ApiError ? caught.message : 'The homepage couldn\'t be changed.', { kind: 'warn' });
+		toast(errorMessage(caught, 'The homepage couldn\'t be changed.'), { kind: 'warn' });
 
 		return false;
 	}

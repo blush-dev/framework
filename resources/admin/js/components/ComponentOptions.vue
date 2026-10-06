@@ -27,9 +27,11 @@
 
 import { computed } from 'vue';
 import AdminIcon from './AdminIcon.vue';
-import AdminSelect from './AdminSelect.vue';
 import AttributeFields from './AttributeFields.vue';
 import FieldControl from './FieldControl.vue';
+import OptionSelect from './OptionSelect.vue';
+import OptionsGroup from './OptionsGroup.vue';
+import RawValues from './RawValues.vue';
 import type { ComponentDescription, ComponentProp } from '../components';
 import type { FormValue } from '../fields';
 import { attributeParts, attributesOf, directiveHead, withAttribute, withDirectiveParts, withLabel, type Directive, type Edit } from '../markdown';
@@ -137,28 +139,24 @@ const removal = computed(() => {
 
 <template>
 	<div class="options">
-		<div v-if="component?.description || !component" class="options__group">
+		<OptionsGroup v-if="component?.description || !component">
 			<p v-if="component?.description" class="options__note">{{ component.description }}</p>
 			<p v-else class="options__note">
 				<code>{{ directive.name }}</code> isn't in the list of components this site offers, so its options can't be shown here. Edit it in the text.
 			</p>
-		</div>
+		</OptionsGroup>
 
-		<div v-if="variants.length" class="options__group">
-			<p class="options__heading">Variant</p>
-			<div class="field">
-				<label class="visually-hidden" for="option-variant">Variant</label>
-				<AdminSelect id="option-variant" :model-value="variant === 'default' ? '' : variant" :options="variantOptions" described-by="option-variant-help" @update:model-value="changeVariant" />
-				<p id="option-variant-help" class="field__help">
+		<OptionsGroup v-if="variants.length" heading="Variant">
+			<OptionSelect id="option-variant" label="Variant" :model-value="variant === 'default' ? '' : variant" :options="variantOptions" @update:model-value="changeVariant">
+				<template #help>
 					<template v-if="chosen">{{ chosen.description || 'A style the theme provides.' }}</template>
 					<template v-else-if="variant !== '' && variant !== 'default'">This site's theme doesn't have it, so it shows as Default.</template>
 					<template v-else>The theme's own styling for this component.</template>
-				</p>
-			</div>
-		</div>
+				</template>
+			</OptionSelect>
+		</OptionsGroup>
 
-		<div v-if="takesText || options.length" class="options__group">
-			<p class="options__heading">Options</p>
+		<OptionsGroup v-if="takesText || options.length" heading="Options">
 			<div v-if="takesText" class="field">
 				<label for="option-label">Text</label>
 				<input id="option-label" :value="head.label?.text ?? ''" autocomplete="off" @input="changeLabel">
@@ -174,26 +172,19 @@ const removal = computed(() => {
 				@update:model-value="change(prop, $event)"
 				@pick="emit('pick', prop)"
 			/>
-		</div>
+		</OptionsGroup>
 
-		<div class="options__group">
-			<p class="options__heading">Attributes</p>
+		<OptionsGroup heading="Attributes">
 			<AttributeFields :classes="parts.classes" :id="parts.id" id-prefix="option-" @change="changeParts" />
 			<template v-if="others.length">
-				<dl class="options__others">
-					<div v-for="[name, value] in others" :key="name">
-						<dt class="mono">{{ name }}</dt>
-						<dd class="mono">{{ value }}</dd>
-					</div>
-				</dl>
+				<RawValues :entries="others" />
 				<p class="field__help">Not options of this component; edit them in the text.</p>
 			</template>
-		</div>
+		</OptionsGroup>
 
 		<slot />
 
-		<div class="options__group">
-			<p class="options__heading">Source</p>
+		<OptionsGroup heading="Source">
 			<pre class="options__source">{{ source.slice(head.start, head.end) }}</pre>
 			<div>
 				<button type="button" class="button button--small button--danger" @click="emit('remove')">
@@ -201,30 +192,6 @@ const removal = computed(() => {
 				</button>
 			</div>
 			<p class="field__help">{{ removal.note }} Undo in the text takes it back.</p>
-		</div>
+		</OptionsGroup>
 	</div>
 </template>
-
-<style scoped>
-.options__others {
-	display: grid;
-	gap: 6px;
-	margin: 0;
-}
-
-.options__others div {
-	display: grid;
-	gap: 2px;
-}
-
-.options__others dt {
-	color: var(--fg-2);
-	font-size: var(--text-xs);
-}
-
-.options__others dd {
-	margin: 0;
-	font-size: var(--text-xs);
-	overflow-wrap: anywhere;
-}
-</style>

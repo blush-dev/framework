@@ -9,7 +9,8 @@
  * nothing else is markup, so names typed by people are always text.
  */
 
-import { ref } from 'vue';
+import { onBeforeUnmount, onMounted, ref } from 'vue';
+import { onBeforeRouteLeave } from 'vue-router';
 
 export interface ConfirmOptions {
 	// A question, in title case: "Delete Jane Doe?"
@@ -63,4 +64,22 @@ export function emphasis(text: string): { text: string; strong: boolean }[] {
  */
 export function confirmLeave(what = 'Your changes will be lost.'): Promise<boolean> {
 	return confirmAction({ title: 'Leave Without Saving?', body: what, confirm: 'Leave', cancel: 'Stay', danger: true });
+}
+
+/**
+ * Asks before leaving a screen with unsaved changes (D-505): another
+ * screen asks `ask` (the usual question, else the screen's own), and
+ * closing or reloading the tab gets the browser's own warning.
+ */
+export function guardLeave(unsaved: () => boolean, ask: () => Promise<boolean> = () => confirmLeave()): void {
+	onBeforeRouteLeave(() => !unsaved() || ask());
+
+	const unload = (event: BeforeUnloadEvent): void => {
+		if (unsaved()) {
+			event.preventDefault();
+		}
+	};
+
+	onMounted(() => window.addEventListener('beforeunload', unload));
+	onBeforeUnmount(() => window.removeEventListener('beforeunload', unload));
 }

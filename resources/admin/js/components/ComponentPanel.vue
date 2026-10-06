@@ -22,7 +22,7 @@
 import { computed, nextTick, ref, watch } from 'vue';
 import AdminIcon from './AdminIcon.vue';
 import { componentIcon, groupOf, groupsOf, matches, rank, type ComponentDescription } from '../components';
-import { gridMove } from '../grid';
+import { gridColumns, gridMove, numbered, type Section } from '../grid';
 
 const props = defineProps<{
 	components: ComponentDescription[];
@@ -46,39 +46,22 @@ const active = ref(0);
 
 const groups = computed(() => groupsOf(props.components));
 
-interface Section {
-	heading: string;
-	tiles: { index: number; component: ComponentDescription }[];
-}
-
 // What's shown, in sections; each tile has its place in keyboard order.
-const sections = computed<Section[]>(() => {
-	const found: Section[] = [];
-	let index = 0;
-
-	const section = (heading: string, items: ComponentDescription[]): void => {
-		if (items.length > 0) {
-			found.push({ heading, tiles: items.map((component) => ({ index: index++, component })) });
-		}
-	};
-
+const sections = computed<Section<ComponentDescription>[]>(() => {
 	if (query.value.trim() !== '') {
 		const results = rank(props.components.filter((component) => matches(component, query.value)), query.value);
 
-		section(results.length === 1 ? '1 match' : `${results.length} matches`, results);
-
-		return found;
+		return numbered([{ heading: results.length === 1 ? '1 match' : `${results.length} matches`, items: results }]);
 	}
 
-	for (const item of groups.value) {
-		section(item.source === undefined ? item.label : `${item.label} · ${item.source}`, props.components.filter((component) => groupOf(component).key === item.key));
-	}
-
-	return found;
+	return numbered(groups.value.map((item) => ({
+		heading: item.source === undefined ? item.label : `${item.label} · ${item.source}`,
+		items: props.components.filter((component) => groupOf(component).key === item.key)
+	})));
 });
 
-const tiles   = computed(() => sections.value.flatMap((section) => section.tiles));
-const current = computed(() => tiles.value[active.value]?.component);
+const tiles   = computed(() => sections.value.flatMap((section) => section.cells));
+const current = computed(() => tiles.value[active.value]?.item);
 const shown   = computed(() => tiles.value.length);
 
 watch(query, () => {
@@ -92,9 +75,7 @@ watch(active, async () => {
 
 // The tiles reflow with the panel's width, so steps are read off it.
 function columns(): number {
-	const tiles = grid.value?.querySelector('.inserter__tiles');
-
-	return tiles === null || tiles === undefined ? 1 : Math.max(1, getComputedStyle(tiles).gridTemplateColumns.split(' ').length);
+	return gridColumns(grid.value?.querySelector('.inserter__tiles'));
 }
 
 /**
@@ -176,22 +157,22 @@ defineExpose({ move, choose, focus });
 			<p v-else-if="!components.length" class="inserter__empty">No components are registered.</p>
 			<p v-else-if="!tiles.length" class="inserter__empty">Nothing matches <strong>{{ query }}</strong>.<br>Try a broader word.</p>
 			<div v-for="section in sections" :key="section.heading" role="group" :aria-label="section.heading">
-				<p class="inserter__group" aria-hidden="true">{{ section.heading }}</p>
+				<p class="eyebrow inserter__group" aria-hidden="true">{{ section.heading }}</p>
 				<div class="inserter__tiles">
 					<div
-						v-for="tile in section.tiles"
+						v-for="tile in section.cells"
 						:id="`component-tile-${tile.index}`"
-						:key="tile.component.name"
+						:key="tile.item.name"
 						class="inserter__tile"
 						:class="{ 'is-active': tile.index === active }"
 						role="option"
 						:aria-selected="tile.index === active"
 						@pointermove="active = tile.index"
 						@mousedown.prevent
-						@click="emit('choose', tile.component)"
+						@click="emit('choose', tile.item)"
 					>
-						<AdminIcon :name="componentIcon(tile.component)" />
-						<span class="inserter__name">{{ tile.component.label }}</span>
+						<AdminIcon :name="componentIcon(tile.item)" />
+						<span class="inserter__name">{{ tile.item.label }}</span>
 					</div>
 				</div>
 			</div>
@@ -284,11 +265,7 @@ defineExpose({ move, choose, focus });
 
 .inserter__group {
 	padding: var(--s-5) 2px var(--s-2);
-	color: var(--fg-3);
-	font-size: var(--text-2xs);
-	font-weight: 600;
 	letter-spacing: .08em;
-	text-transform: uppercase;
 }
 
 [role="group"]:first-child .inserter__group {

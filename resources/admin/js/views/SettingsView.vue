@@ -40,16 +40,18 @@
  */
 
 import { computed, ref, watch } from 'vue';
-import { confirmLeave } from '../confirm';
-import { onBeforeRouteLeave, onBeforeRouteUpdate, RouterLink } from 'vue-router';
+import { confirmLeave, guardLeave } from '../confirm';
+import { onBeforeRouteUpdate, RouterLink } from 'vue-router';
 import AdminIcon from '../components/AdminIcon.vue';
 import AdminSelect from '../components/AdminSelect.vue';
 import FieldInput from '../components/FieldInput.vue';
 import DateFormatPicker from '../components/DateFormatPicker.vue';
 import LocalePicker from '../components/LocalePicker.vue';
+import SaveBar from '../components/SaveBar.vue';
 import ToggleSwitch from '../components/ToggleSwitch.vue';
 import UploadRules from '../components/UploadRules.vue';
-import { ApiError, request, type FieldDescription, type SettingGroup, type SettingItem, type UploadsInfo } from '../api';
+import { useAction } from '../action';
+import { errorMessage, request, saveSettings, type FieldDescription, type SettingGroup, type SettingItem, type UploadsInfo } from '../api';
 import { control, fromForm, toForm, type FormValue } from '../fields';
 import { screenTitle, screenTrail } from '../screen';
 import { toast } from '../toast';
@@ -75,10 +77,10 @@ const initial = ref<Record<string, FormValue>>({});
 const fields  = ref<Record<string, FieldDescription>>({});
 const inputs  = ref<Record<string, unknown>>({});
 const unset   = ref<string[]>([]);
-const saving  = ref(false);
 // What the Media screen's grid needs, when it's showing.
 const uploadsInfo = ref<UploadsInfo | null>(null);
-const failure = ref('');
+
+const { busy: saving, error: failure, run } = useAction();
 
 const about    = computed(() => screens[props.screen] ?? { title: 'Settings', hint: '' });
 const editable = computed(() => Object.keys(initial.value).length > 0);
@@ -120,7 +122,7 @@ async function load(): Promise<void> {
 		unset.value   = [];
 		error.value   = '';
 	} catch (caught) {
-		error.value = caught instanceof ApiError ? caught.message : 'The settings couldn\'t be loaded.';
+		error.value = errorMessage(caught, 'The settings couldn\'t be loaded.');
 	}
 }
 
@@ -158,24 +160,13 @@ async function save(): Promise<void> {
 		return;
 	}
 
-	saving.value  = true;
-	failure.value = '';
+	await run('The settings couldn\'t be saved.', async () => {
+		const set = Object.fromEntries(changed.value.map((key) => [key, outgoing(key, form.value[key] ?? '')]));
 
-	try {
-		const set    = Object.fromEntries(changed.value.map((key) => [key, outgoing(key, form.value[key] ?? '')]));
-		const answer = await request<{ refresh: boolean }>('PATCH', '/settings', { set, unset: unset.value });
-
-		if (answer.refresh) {
-			await request('POST', '/settings/refresh').catch(() => undefined);
-		}
-
+		await saveSettings({ set, unset: unset.value });
 		await load();
 		toast('Settings saved');
-	} catch (caught) {
-		failure.value = caught instanceof ApiError ? caught.message : 'The settings couldn\'t be saved.';
-	} finally {
-		saving.value = false;
-	}
+	});
 }
 
 function revert(): void {
@@ -300,8 +291,6 @@ function shown(item: SettingItem): string {
 	return item.value;
 }
 
-const leave = (): boolean | Promise<boolean> => count.value === 0 || confirmLeave();
-
 watch(() => props.screen, () => {
 	groups.value  = null;
 	form.value    = {};
@@ -318,8 +307,8 @@ watch(about, (value) => {
 
 void load();
 
-onBeforeRouteLeave(leave);
-onBeforeRouteUpdate(leave);
+guardLeave(() => count.value > 0);
+onBeforeRouteUpdate(() => count.value === 0 || confirmLeave());
 </script>
 
 <template>
@@ -330,8 +319,8 @@ onBeforeRouteUpdate(leave);
 		</div>
 	</header>
 
-	<p v-if="screen === 'system'" class="notice settings__about"><AdminIcon name="info" /><span>These live in <code>config/</code> and <code>.env</code>; each names its file. After changing them on a site you've compiled, run <code>bin/blush cache:compile</code> again.</span></p>
-	<p v-else-if="editable" class="notice settings__about"><AdminIcon name="info" /><span>What you save here is kept in <code>user/data/settings.json</code> and wins over <code>config/</code>. The rest are set in code and only shown.</span></p>
+	<p v-if="screen === 'system'" class="notice"><AdminIcon name="info" /><span>These live in <code>config/</code> and <code>.env</code>; each names its file. After changing them on a site you've compiled, run <code>bin/blush cache:compile</code> again.</span></p>
+	<p v-else-if="editable" class="notice"><AdminIcon name="info" /><span>What you save here is kept in <code>user/data/settings.json</code> and wins over <code>config/</code>. The rest are set in code and only shown.</span></p>
 	<p v-if="error" class="notice notice--error" role="alert">{{ error }}</p>
 
 	<form v-if="groups" class="settings" @submit.prevent="save">
@@ -464,12 +453,7 @@ onBeforeRouteUpdate(leave);
 			</p>
 		</section>
 
-		<div v-if="count > 0 || failure" class="save-bar" role="region" aria-label="Unsaved changes">
-			<span class="save-bar__count" aria-live="polite">{{ count === 1 ? '1 unsaved change' : `${count} unsaved changes` }}</span>
-			<span v-if="failure" class="save-bar__error" role="alert">{{ failure }}</span>
-			<button type="button" class="button button--ghost button--small" :disabled="saving" @click="revert">Revert</button>
-			<button type="submit" class="button button--primary button--small" :disabled="saving || count === 0">{{ saving ? 'Saving…' : 'Save changes' }}</button>
-		</div>
+		<SaveBar :count="count" :failure="failure" :saving="saving" @revert="revert" />
 	</form>
 
 	<div v-else-if="!error" class="settings" aria-hidden="true">
@@ -478,25 +462,6 @@ onBeforeRouteUpdate(leave);
 </template>
 
 <style scoped>
-/* Widths as classes: the admin's CSP blocks inline style attributes. */
-.skeleton--heading {
-	width: 40%;
-}
-
-/* What's saved where: a quiet line with its glyph, above the panels. */
-.settings__about {
-	display: flex;
-	align-items: flex-start;
-	gap: var(--s-3);
-	color: var(--fg-2);
-	font-size: var(--text-sm);
-}
-
-.settings__about :deep(.icon) {
-	margin-top: 1px;
-	color: var(--fg-3);
-}
-
 /* One column of panels, the full width (D-404). The rows read the
    panel's width, not the window's, so they fit with the section panel
    open or closed. */
@@ -681,17 +646,6 @@ onBeforeRouteUpdate(leave);
 	border-top: 1px solid var(--border);
 	color: var(--fg-3);
 	font-size: var(--text-sm);
-}
-
-.link-button {
-	padding: 0;
-	border: 0;
-	background: none;
-	color: var(--accent);
-	font: inherit;
-	text-decoration: underline;
-	text-underline-offset: .15em;
-	cursor: pointer;
 }
 
 /* On a wide panel, a little more room for the control and a longer line

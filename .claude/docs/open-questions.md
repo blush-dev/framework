@@ -4,6 +4,45 @@ Move each item to `decisions.md` once it's answered.
 
 ## Needs the author's call
 
+- **Loading the admin's screens on demand** (D-510, discussed
+  2026-10-05). The size budget means what's loaded at a given moment,
+  such as the first run, as much as the total. Today `router.ts` imports
+  all 31 screens, so `admin.js` (743 KB) holds the editor, Settings,
+  roles, and the rest before anything is opened. The options:
+  - **Split by screen.** Each route's component becomes
+    `() => import('./views/EditorView.vue')`; Vite builds each screen to
+    its own file (`js/EditorView.js`), code several screens share to
+    shared files, and each screen's scoped CSS to its own stylesheet,
+    linked when it loads (the CSP allows it). `admin.js` keeps Vue and
+    the router, the shell (rail, bar, palette, toasts, confirmations),
+    the session, API, and types modules, and the icons. Rough sizes from
+    a source map: the core 180 to 220 KB (Vue and the router about
+    100 KB), the editor about 150 KB more when an entry opens, most
+    screens 5 to 30 KB. PHP is unchanged: it still prints `admin.js` and
+    `admin.css`.
+  - **Versions on the split files.** The files `admin.js` imports have
+    no `?v=`, so `AssetController` sends them `no-cache` and browsers
+    check back on every use. The build's `blush-admin-resources` plugin,
+    which already versions the URLs in the CSS, would add `?v={crc32}`
+    to the paths between chunks (leaves first, since a chunk's version
+    covers its imports'), and to Vite's preload list. Names stay plain.
+  - **A build that changes mid-session.** An open admin's old
+    `admin.js` may ask for a screen that no longer matches; a router
+    `onError` that reloads the page when a screen fails to load picks
+    up the new build.
+  - **Prefetching, or not.** The first visit to a screen waits on one
+    small request. The rest could be fetched once the page is idle, or a
+    screen on hovering its link, so moving around is instant, at the cost
+    of more loaded in all; or not at all, the leanest. The leaning was to
+    start without it.
+  - **Grouping instead of one file a screen**, by the rail's areas (Home,
+    Content, Users, Config), with fewer, larger files; or splitting only
+    the heaviest (the editor, Settings, the role screen) and keeping the
+    rest in `admin.js`.
+  - **Other levers on what's loaded:** the editor's pickers (media,
+    icons, references, components) only when one opens, and the icon
+    set (16 KB of SVG) split by what the shell needs and what the
+    inserters do.
 - **Global helper functions** (D-106, D-504): `e()`, `attr()`, `url()`,
   `js()`, `css()`, and `raw()` are global and unguarded, so Blush can't
   share a site with a library that defines its own, such as Laravel's

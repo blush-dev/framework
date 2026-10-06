@@ -375,10 +375,6 @@
 	box-shadow: var(--shadow-1);
 }
 
-.stat--attention {
-	border-color: var(--warn-dot);
-}
-
 .stat__label {
 	display: flex;
 	align-items: center;
@@ -973,7 +969,8 @@
 }
 
 /* Status tabs under a list's page header, each named for its status
-   (§7), with filters in one row below them. */
+   (§7), with filters in one row below them: every list's, the Users
+   screens' too (D-507). */
 
 .status-tabs {
 	display: flex;
@@ -987,7 +984,7 @@
 	display: inline-flex;
 	align-items: center;
 	gap: 7px;
-	padding: 12px 14px;
+	padding: 12px 10px;
 	border-bottom: 2px solid transparent;
 	margin-bottom: -1px;
 	color: var(--fg-2);
@@ -1023,54 +1020,106 @@
 	gap: var(--s-2) var(--s-3);
 }
 
-/* Notices: a quiet box, or a soft colored ground for success, a
-   warning, or an error, with no darker edge (D-377). */
+/* Notices (D-506, the profiles sketch's): a quiet box, or a soft colored
+   ground for success, a warning, or an error, with the admin's usual
+   rounded corners (D-373) and no ruled edge (D-376). One with an icon,
+   `.notice__text`, or `.notice__buttons` is a row: the icon, the text,
+   and its buttons at the end; else what's in it stacks. `--small` is
+   the size for a card's warning. */
 
 .notice {
 	display: grid;
 	gap: 4px;
-	padding: 14px var(--s-4);
+	padding: var(--s-3) var(--s-4);
 	line-height: 1.55;
 	border: 1px solid var(--border);
 	border-radius: var(--r-2);
 	background: var(--surface-2);
+	color: var(--fg-2);
+}
+
+.notice:has(> .icon, > .notice__text, > .notice__buttons) {
+	display: flex;
+	align-items: flex-start;
+	gap: var(--s-3);
+}
+
+.notice > .icon {
+	flex: none;
+	margin-top: 2px;
+	color: var(--fg-3);
+}
+
+.notice strong {
+	color: var(--fg);
+	font-weight: 600;
+}
+
+.notice__text {
+	flex: 1 1 auto;
+	min-width: 0;
 }
 
 .notice ul {
 	margin: 0;
 	padding-left: 18px;
-	color: var(--fg-2);
 	font-size: var(--text-sm);
 }
 
-.notice--success {
+.notice--success,
+.notice--warn,
+.notice--error {
 	border-color: transparent;
+}
+
+.notice--success {
 	background: var(--good-soft);
 	color: var(--good);
 }
 
-.notice--error {
-	border-color: var(--danger-dot);
-	background: var(--danger-soft);
-	color: var(--danger);
-}
-
 .notice--warn {
-	border-color: transparent;
 	background: var(--warn-soft);
 	color: var(--warn);
 }
 
-.notice--success ul,
-.notice--error ul,
-.notice--warn ul {
+.notice--error {
+	background: var(--danger-soft);
+	color: var(--danger);
+}
+
+.notice--success > .icon,
+.notice--success strong,
+.notice--warn > .icon,
+.notice--warn strong,
+.notice--error > .icon,
+.notice--error strong {
 	color: inherit;
 }
 
-/* The save bar: unsaved changes, counted, over the bottom of the screen
-   (Settings, D-324; a role, D-359). */
+.notice--small {
+	padding: var(--s-3);
+	border-radius: var(--r-1);
+	font-size: var(--text-xs);
+	line-height: 1.45;
+}
 
-.save-bar {
+.notice--small:has(> .icon, > .notice__text, > .notice__buttons) {
+	gap: var(--s-2);
+}
+
+.notice--small > .icon {
+	width: 14px;
+	height: 14px;
+	margin-top: 1px;
+}
+
+/* The save bar: unsaved changes, counted, over the bottom of the screen
+   (Settings, D-324; a role, D-359). The bulk bar (admin.md §7) is the
+   same pill, for the rows selected in a list, and scrolls sideways
+   rather than wrapping. */
+
+.save-bar,
+.bulk-bar {
 	position: fixed;
 	bottom: calc(28px + env(safe-area-inset-bottom, 0px));
 	left: 50%;
@@ -1095,6 +1144,30 @@
 	color: var(--fg-2);
 }
 
+.bulk-bar {
+	flex-wrap: nowrap;
+	justify-content: flex-start;
+	overflow-x: auto;
+	scrollbar-width: none;
+}
+
+.bulk-bar__count {
+	font-size: var(--text-sm);
+	font-weight: 500;
+	white-space: nowrap;
+}
+
+.bulk-bar__divider {
+	flex: none;
+	width: 1px;
+	height: 18px;
+	background: var(--border);
+}
+
+.bulk-bar .button {
+	white-space: nowrap;
+}
+
 .save-bar__error {
 	max-width: 28rem;
 	color: var(--danger);
@@ -1103,7 +1176,8 @@
 }
 
 @media (prefers-reduced-motion: no-preference) {
-	.save-bar {
+	.save-bar,
+	.bulk-bar {
 		animation: save-rise .16s ease-out;
 	}
 }
@@ -1115,19 +1189,13 @@
 	}
 }
 
-/* A notice with an action beside its text. */
-.notice--actions {
-	display: flex;
-	flex-wrap: wrap;
-	align-items: center;
-	justify-content: space-between;
-	gap: 8px 16px;
-}
-
+/* A notice's actions, at the end of its row. */
 .notice__buttons {
 	display: flex;
+	flex: none;
 	flex-wrap: wrap;
 	gap: 8px;
+	margin-left: auto;
 }
 
 /* Preview links */
@@ -1177,10 +1245,6 @@
 .skeleton--figure {
 	width: 3.5rem;
 	height: 22px;
-}
-
-.skeleton--block {
-	height: auto;
 }
 
 @keyframes skeleton {
@@ -1416,9 +1480,9 @@
 }
 
 /*
- * The editor's Component tab (D-245, D-268): the panels for a component,
- * an image, and a block share their groups, headings, notes, and the
- * source line.
+ * The editor's side panel (D-245, D-268): the Document tab, and the
+ * panels for a component, an image, and a block, share their groups,
+ * headings, notes, and the source line.
  */
 .options__group {
 	display: grid;
@@ -1428,11 +1492,21 @@
 }
 
 .options__heading {
+	display: flex;
+	justify-content: space-between;
+	gap: 8px;
 	color: var(--fg-3);
 	font-size: var(--text-xs);
 	font-weight: 600;
 	letter-spacing: .07em;
 	text-transform: uppercase;
+}
+
+/* A hint at a heading's end: a count, or how what's in it is kept. */
+.options__hint {
+	font-weight: 400;
+	letter-spacing: normal;
+	text-transform: none;
 }
 
 .options__note {
@@ -1453,11 +1527,57 @@
 	white-space: pre;
 }
 
+/* Values kept as written (RawValues): each name over its value. */
+.raw-values {
+	display: grid;
+	gap: 6px;
+	margin: 0;
+}
+
+.raw-values div {
+	display: grid;
+	gap: 2px;
+}
+
+.raw-values dt {
+	color: var(--fg-2);
+	font-size: var(--text-xs);
+}
+
+.raw-values dd {
+	margin: 0;
+	font-size: var(--text-xs);
+	overflow-wrap: anywhere;
+}
+
+/* A small form opened under its toolbar button, in a wrapper placed
+   relative to it: the editor's link and mention forms. */
+.popover-form {
+	position: absolute;
+	top: calc(100% + 6px);
+	left: 0;
+	z-index: 40;
+	display: grid;
+	gap: var(--s-3);
+	width: 320px;
+	max-width: calc(100vw - 2 * var(--s-4));
+	padding: var(--s-4);
+	border: 1px solid var(--border);
+	border-radius: var(--r-2);
+	background: var(--surface);
+	box-shadow: var(--shadow-2);
+}
+
+.popover-form .field {
+	margin: 0;
+}
+
 /* The Users screens (Accounts, an account and Your Account, New Account,
    Profiles, a profile), drawn as the profiles sketch has them (D-369,
    D-370): a `.people` root spaces its sections further apart, panel
-   headers carry no rule, and its pills, tags, tabs, notices, facts, and
-   role rows are the sketch's. Other screens keep the direction's. */
+   headers carry no rule, and its pills, tags, facts, and role rows are
+   the sketch's (its notices are every screen's, D-506; its tabs are
+   every screen's, D-507). Other screens keep the direction's. */
 
 .people {
 	display: flex;
@@ -1496,8 +1616,7 @@
 	min-width: 0;
 }
 
-.people .panel__header + .table-wrap,
-.people .panel__header + .res-wrap {
+.people .panel__header + .table-wrap {
 	border-top: 1px solid var(--border);
 }
 
@@ -1552,30 +1671,15 @@
 	text-decoration: underline;
 }
 
-.muted {
-	color: var(--fg-3);
-}
-
-/* The sketch's tabs: words with a count, underlined when current. */
-.people .status-tabs {
-	gap: var(--s-4);
-	margin: 0;
-}
-
-.people .status-tabs__tab {
-	gap: var(--s-2);
-	padding: 0 0 var(--s-3);
-	font-size: var(--base);
-	font-weight: 400;
-}
-
-.people .status-tabs__tab[aria-current="page"] {
-	font-weight: 500;
-}
-
-.people .status-tabs__count {
+/* As a button, without a button's box. */
+button.lnk {
 	padding: 0;
+	border: 0;
 	background: none;
+	cursor: pointer;
+}
+
+.muted {
 	color: var(--fg-3);
 }
 
@@ -1613,56 +1717,6 @@
 
 .people .table td {
 	vertical-align: middle;
-}
-
-/* A notice: a quiet box unless it's a problem, with the admin's usual
-   rounded corners (D-373) and no ruled edge (D-376). */
-.people .notice {
-	display: flex;
-	align-items: flex-start;
-	gap: var(--s-3);
-	padding: var(--s-3) var(--s-4);
-	border: 1px solid var(--border);
-	border-radius: var(--r-2);
-	background: var(--surface-2);
-	color: var(--fg-2);
-}
-
-.people .notice > .icon {
-	margin-top: 2px;
-	color: var(--fg-3);
-}
-
-.people .notice strong {
-	color: var(--fg);
-	font-weight: 600;
-}
-
-.people .notice__text {
-	flex: 1 1 auto;
-	min-width: 0;
-}
-
-.people .notice__buttons {
-	flex: none;
-	margin-left: auto;
-}
-
-.people .notice--warn {
-	border-color: transparent;
-	background: var(--warn-soft);
-	color: var(--warn);
-}
-
-.people .notice--warn > .icon,
-.people .notice--warn strong {
-	color: var(--warn);
-}
-
-.people .notice--error {
-	border-color: transparent;
-	background: var(--danger-soft);
-	color: var(--danger);
 }
 
 /* Two panels side by side, one under the other when there's no room. */
@@ -1827,6 +1881,16 @@
 	flex-wrap: wrap;
 	align-items: center;
 	gap: var(--s-4);
+}
+
+.submit-row--tight {
+	gap: var(--s-2);
+}
+
+/* A save's failure, on its own line under the buttons. */
+.submit-row .field__error {
+	flex-basis: 100%;
+	margin: 0;
 }
 
 .submit-row__why {
@@ -2025,4 +2089,485 @@
 	flex: none;
 	color: var(--fg-3);
 	font-size: var(--text-xs);
+}
+
+/*
+ * Shared pieces once drawn in each screen's own styles (D-505).
+ */
+
+/* Facts as rows: a label, and its value at the row's end. `--inline`
+   runs them along a line; `--grid` sets the labels in a column of their
+   own, for a details screen's longer values. */
+.facts {
+	display: grid;
+	gap: 8px;
+	margin: 0;
+}
+
+.facts > * + * {
+	margin-top: 0;
+}
+
+.facts > div {
+	display: flex;
+	justify-content: space-between;
+	gap: 12px;
+}
+
+.facts dt {
+	color: var(--fg-2);
+}
+
+.facts dd {
+	margin: 0;
+	text-align: right;
+	overflow-wrap: anywhere;
+}
+
+.facts--inline {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--s-2) var(--s-6);
+}
+
+.facts--inline > div {
+	justify-content: flex-start;
+	gap: 8px;
+}
+
+.facts--inline dd {
+	text-align: left;
+}
+
+.facts--grid {
+	grid-template-columns: auto minmax(0, 1fr);
+	align-items: baseline;
+	gap: var(--s-3) var(--s-4);
+	font-size: var(--text-sm);
+}
+
+.facts--grid dt {
+	color: var(--fg-3);
+}
+
+.facts--grid dd {
+	min-width: 0;
+	text-align: left;
+}
+
+/* An author in a details screen's facts: a name, its link, and its role. */
+.facts__author {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: baseline;
+	gap: 0 var(--s-2);
+}
+
+.facts__author + .facts__author {
+	margin-top: var(--s-1);
+}
+
+.facts__role {
+	color: var(--fg-3);
+}
+
+/* A Copy button beside a value, kept from making its row taller. */
+.facts__copy {
+	margin-block: -6px;
+	vertical-align: middle;
+}
+
+/* Chips: short links or names in a wrapping row; dashed for one the
+   site doesn't have. */
+.chips {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.chips a,
+.chips__item,
+.chips__missing {
+	display: inline-block;
+	padding: 2px 10px;
+	border: 1px solid var(--border);
+	border-radius: 99px;
+	background: var(--surface-2);
+	color: var(--fg-2);
+	font-size: var(--text-sm);
+	text-decoration: none;
+}
+
+.chips a:hover {
+	border-color: var(--border-strong);
+	color: var(--fg);
+}
+
+.chips__missing {
+	border-style: dashed;
+	color: var(--fg-3);
+}
+
+/* A real checkbox, drawn: the input is hidden but focusable, and the box
+   after it shows its state. A box that's on but can't change is gray. */
+.check-input {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	overflow: hidden;
+	clip-path: inset(50%);
+	white-space: nowrap;
+}
+
+.check-box {
+	display: grid;
+	flex: none;
+	place-items: center;
+	width: 16px;
+	height: 16px;
+	border: 1px solid var(--border-strong);
+	border-radius: 4px;
+	background: var(--surface);
+	color: transparent;
+}
+
+.check-box svg {
+	width: 11px;
+	height: 11px;
+	stroke-width: 2.6;
+}
+
+.check-input:checked + .check-box {
+	border-color: var(--accent);
+	background: var(--accent);
+	color: var(--accent-fg);
+}
+
+.check-input:focus-visible + .check-box {
+	outline: 2px solid var(--accent);
+	outline-offset: 2px;
+}
+
+.check-input:disabled + .check-box {
+	opacity: .45;
+}
+
+.check-input:checked:disabled + .check-box {
+	border-color: var(--fg-3);
+	background: var(--fg-3);
+	opacity: 1;
+}
+
+/* Forms: fields one under another; two side by side, one under the
+   other when there's no room; a group of choices under a legend, which
+   is labeled as a field is. */
+.form-stack {
+	display: grid;
+	gap: var(--s-4);
+}
+
+.form-stack > * {
+	margin: 0;
+}
+
+.field-pair {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+	gap: var(--s-4);
+}
+
+.fieldset {
+	display: grid;
+	gap: var(--s-2);
+	margin: 0;
+	padding: 0;
+	border: 0;
+}
+
+.fieldset legend {
+	margin-bottom: 7px;
+	padding: 0;
+}
+
+.field__label,
+.fieldset legend {
+	color: var(--fg-2);
+	font-size: var(--text-sm);
+	font-weight: 500;
+}
+
+@media (width <= 760px) {
+	.field-pair {
+		grid-template-columns: minmax(0, 1fr);
+	}
+}
+
+/* A button that reads as a link in running text. */
+.link-button {
+	padding: 0;
+	border: 0;
+	background: none;
+	color: var(--accent);
+	font: inherit;
+	text-decoration: underline;
+	text-underline-offset: .15em;
+	cursor: pointer;
+}
+
+/* A label in small capitals over a list or a group: "3 themes", a
+   section of choices; the count over a list of cards is one. */
+.eyebrow,
+.count-row {
+	color: var(--fg-3);
+	font-size: var(--text-2xs);
+	font-weight: 600;
+	letter-spacing: .06em;
+	text-transform: uppercase;
+}
+
+/* The count over a list of cards, ruled to the edge. */
+.count-row {
+	display: flex;
+	align-items: center;
+	gap: var(--s-3);
+	margin-bottom: var(--s-4);
+}
+
+.count-row__rule {
+	flex: 1;
+	height: 1px;
+	background: var(--border);
+}
+
+/* A filter in a toolbar, as wide as its choice. */
+.toolbar__filter {
+	flex: none;
+	width: auto;
+	min-width: 9rem;
+	max-width: 16rem;
+}
+
+/* A search in a toolbar, taking the room its filters leave. */
+.toolbar__search {
+	flex: 1 1 16rem;
+	max-width: 24rem;
+}
+
+/* Skeleton widths, as classes: the admin's CSP blocks style attributes
+   in markup. */
+.skeleton--heading {
+	width: 40%;
+}
+
+.skeleton--label {
+	width: 30%;
+}
+
+/* The spinner of a working button. */
+.spin {
+	flex: none;
+	width: 13px;
+	height: 13px;
+	border: 2px solid currentColor;
+	border-top-color: transparent;
+	border-radius: 50%;
+	animation: spin .7s linear infinite;
+}
+
+@keyframes spin {
+	to {
+		transform: rotate(360deg);
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.spin {
+		animation: none;
+	}
+}
+
+/*
+ * Extensions in a list (D-509): a theme or an icon pack as a card, a
+ * plugin as a row, each named alike: its label (its folder, in mono, for
+ * one that's broken), its pills, and its version at the end of the line,
+ * then what it's for and quiet facts with their glyphs. One that's off
+ * is dimmed.
+ */
+.extension-cards {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(min(340px, 100%), 1fr));
+	gap: var(--s-4);
+}
+
+.extension-card {
+	display: flex;
+	flex-direction: column;
+	overflow: hidden;
+	border: 1px solid var(--border);
+	border-radius: var(--r-3);
+	background: var(--surface);
+	box-shadow: var(--shadow-1);
+	transition: border-color .14s ease-out;
+}
+
+.extension-card:hover {
+	border-color: var(--border-strong);
+}
+
+.extension-card.is-active {
+	border-color: var(--accent-line);
+	box-shadow: 0 0 0 1px var(--accent-line);
+}
+
+.extension-card.is-busy {
+	opacity: .72;
+}
+
+.extension-card > :first-child {
+	border-bottom: 1px solid var(--border);
+}
+
+.extension-card__body {
+	display: flex;
+	flex: 1;
+	flex-direction: column;
+	gap: var(--s-2);
+	padding: var(--s-4) var(--pad-x) var(--s-3);
+}
+
+.extension-card__body > * {
+	margin: 0;
+}
+
+.extension-card__foot {
+	display: flex;
+	align-items: center;
+	gap: var(--s-2);
+	padding: var(--s-3) var(--pad-x);
+	border-top: 1px solid var(--border);
+}
+
+.extension__name {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: var(--s-2);
+	margin: 0;
+}
+
+.extension__label {
+	min-width: 0;
+	color: var(--fg);
+	font-family: var(--font-title);
+	font-size: var(--title-size);
+	font-weight: 600;
+	letter-spacing: var(--title-track);
+	text-decoration: none;
+	overflow-wrap: anywhere;
+}
+
+.extension__label:any-link:hover {
+	color: var(--accent);
+}
+
+.extension__label.mono {
+	font-family: var(--font-mono);
+	font-size: var(--text-sm);
+}
+
+.extension__version {
+	color: var(--fg-3);
+	font-size: var(--text-2xs);
+}
+
+.extension-card .extension__version {
+	margin-left: auto;
+	padding-left: var(--s-2);
+}
+
+.extension__description {
+	max-width: 70ch;
+	margin: 0;
+	color: var(--fg-2);
+	font-size: var(--text-sm);
+	line-height: 1.5;
+}
+
+.extension__message {
+	max-width: 70ch;
+}
+
+.extension-card .extension__message {
+	margin-top: var(--s-2);
+}
+
+.is-off .extension__label,
+.is-off .extension__description {
+	opacity: .62;
+}
+
+.extension__facts {
+	display: grid;
+	gap: 5px;
+	margin: var(--s-1) 0 0;
+	padding: 0;
+	color: var(--fg-3);
+	font-size: var(--text-xs);
+	list-style: none;
+}
+
+.extension__facts li {
+	display: flex;
+	align-items: center;
+	gap: var(--s-2);
+	min-width: 0;
+}
+
+.extension__facts .icon {
+	flex: none;
+	width: 13px;
+	height: 13px;
+}
+
+.extension__facts .mono {
+	min-width: 0;
+	overflow: hidden;
+	color: var(--fg-2);
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.extension__facts .is-warn {
+	color: var(--warn);
+}
+
+.extension__facts a {
+	color: var(--fg-2);
+	text-decoration: none;
+	border-bottom: 1px solid var(--border-strong);
+}
+
+.extension__facts a:hover {
+	color: var(--accent);
+	border-bottom-color: var(--accent-line);
+}
+
+/* The note under a list of extensions: where the list comes from. */
+.extension__note {
+	margin-top: var(--s-6);
+	font-size: var(--text-sm);
+}
+
+/* A rule between a menu's items, as before its dangerous one. */
+.menu-rule {
+	margin: 5px -1px;
+	border: 0;
+	border-top: 1px solid var(--border);
+}
+
+.extension-card__foot .extension__menu {
+	margin-left: auto;
 }

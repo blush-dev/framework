@@ -12,6 +12,7 @@
 import { computed, ref } from 'vue';
 import { RouterLink } from 'vue-router';
 import AdminIcon from '../components/AdminIcon.vue';
+import EmptyState from '../components/EmptyState.vue';
 import TypeIcon from '../components/TypeIcon.vue';
 import SkeletonTable from '../components/SkeletonTable.vue';
 import { request, type ContentTypeSummary, type EntryList } from '../api';
@@ -80,12 +81,12 @@ function origin(type: ContentTypeSummary): string {
 	<section v-if="!failed" class="panel" aria-labelledby="types-heading" :aria-busy="!loaded">
 		<header class="panel__header">
 			<h2 id="types-heading" class="visually-hidden">Content Types</h2>
-			<nav class="tabs" aria-label="Kinds">
-				<button v-for="tab in tabs" :key="tab.key" type="button" class="tabs__tab" :aria-pressed="kind === tab.key" @click="kind = tab.key">
-					{{ tab.label }} <span class="tabs__count">{{ tab.count }}</span>
+			<div class="segmented" role="group" aria-label="Kinds">
+				<button v-for="tab in tabs" :key="tab.key" type="button" :aria-pressed="kind === tab.key" @click="kind = tab.key">
+					{{ tab.label }} <span class="types-count">{{ tab.count }}</span>
 				</button>
-			</nav>
-			<label class="search">
+			</div>
+			<label class="search-field types-search">
 				<AdminIcon name="search" />
 				<span class="visually-hidden">Search content types</span>
 				<input v-model="search" type="search" placeholder="Search names and keys…" autocomplete="off">
@@ -125,75 +126,24 @@ function origin(type: ContentTypeSummary): string {
 				</tbody>
 			</table>
 		</div>
-		<div v-else class="empty">
-			<AdminIcon name="search" />
-			<p class="empty__heading">No Types Match</p>
-			<p class="empty__text">Nothing matches the search and kind.</p>
-			<button type="button" class="button" @click="search = ''; kind = 'all'">Clear filters</button>
-		</div>
+		<EmptyState v-else icon="search" heading="No Types Match" text="Nothing matches the search and kind.">
+			<template #actions>
+				<button type="button" class="button" @click="search = ''; kind = 'all'">Clear filters</button>
+			</template>
+		</EmptyState>
 		<p v-if="loaded" class="visually-hidden" role="status">{{ plural(shown.length, 'type') }} shown</p>
 	</section>
 </template>
 
 <style scoped>
-.panel__header {
-	flex-wrap: wrap;
-}
-
-.tabs {
-	display: flex;
-	gap: 4px;
-}
-
-.tabs__tab {
-	padding: 5px 12px;
-	border: 1px solid transparent;
-	border-radius: var(--r-1);
-	background: none;
-	color: var(--fg-2);
-	font-weight: 500;
-	cursor: pointer;
-}
-
-.tabs__tab:hover {
-	color: var(--fg);
-}
-
-.tabs__tab[aria-pressed="true"] {
-	border-color: var(--border);
-	background: var(--surface-2);
-	color: var(--fg);
-}
-
-.tabs__count {
+.types-count {
 	color: var(--fg-3);
 	font-size: var(--text-xs);
 }
 
-.search {
-	display: flex;
-	align-items: center;
-	gap: 7px;
-	height: 30px;
+.types-search {
+	flex: 0 1 16rem;
 	margin-left: auto;
-	padding: 0 9px;
-	border: 1px solid var(--border);
-	border-radius: var(--r-1);
-	background: var(--bg);
-	color: var(--fg-3);
-}
-
-.search:focus-within {
-	border-color: var(--accent);
-}
-
-.search input {
-	width: 12rem;
-	min-width: 0;
-	border: 0;
-	background: none;
-	color: var(--fg);
-	outline: none;
 }
 
 .type-name {

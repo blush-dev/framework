@@ -9,7 +9,8 @@
  */
 
 import { ref } from 'vue';
-import { ApiError, type AdminTheme, type ColorScheme } from '../api';
+import { useAction } from '../action';
+import type { AdminTheme, ColorScheme } from '../api';
 import AdminIcon from './AdminIcon.vue';
 import { adminTheme, saveAdminTheme } from '../admin-theme';
 import { colorScheme, saveColorScheme } from '../color-scheme';
@@ -27,38 +28,26 @@ const themes: { value: AdminTheme; label: string; hint: string }[] = [
 	{ value: 'editorial', label: 'Editorial', hint: 'Warm paper, a teal accent, serif titles' }
 ];
 
-const saving  = ref(false);
 const message = ref('');
-const error   = ref('');
+
+const { busy: saving, error, run } = useAction();
 
 async function chooseTheme(theme: AdminTheme): Promise<void> {
-	saving.value  = true;
 	message.value = '';
-	error.value   = '';
 
-	try {
+	await run('Your theme couldn\'t be saved.', async () => {
 		await saveAdminTheme(theme);
 		message.value = `Saved. The admin is ${theme === 'neutral' ? 'Neutral' : 'Editorial'} on every device you sign in on.`;
-	} catch (caught) {
-		error.value = caught instanceof ApiError ? caught.message : 'Your theme couldn\'t be saved.';
-	} finally {
-		saving.value = false;
-	}
+	});
 }
 
 async function choose(scheme: ColorScheme): Promise<void> {
-	saving.value  = true;
 	message.value = '';
-	error.value   = '';
 
-	try {
+	await run('Your color scheme couldn\'t be saved.', async () => {
 		await saveColorScheme(scheme);
 		message.value = `Saved. The admin is ${scheme === 'system' ? 'following your device' : scheme} on every device you sign in on.`;
-	} catch (caught) {
-		error.value = caught instanceof ApiError ? caught.message : 'Your color scheme couldn\'t be saved.';
-	} finally {
-		saving.value = false;
-	}
+	});
 }
 </script>
 

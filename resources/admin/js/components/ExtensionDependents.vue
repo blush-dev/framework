@@ -6,8 +6,8 @@
  * its package links (D-440): what conflicts with it, replaces it, or
  * provides it.
  *
- * Its row is a fragment, so the details' scoped `dt` and `dd` rules
- * don't reach it; it styles its own to match.
+ * Its row is a fragment inside the details' `.facts`, whose global rules
+ * style its `dt` and `dd`.
  */
 
 import type { ExtensionDependent } from '../api';
@@ -18,23 +18,11 @@ withDefaults(defineProps<{ dependents: ExtensionDependent[]; label?: string }>()
 
 <template>
 	<template v-if="dependents.length">
-		<dt class="extension-dependents__label">{{ label }}</dt>
-		<dd class="extension-dependents">
+		<dt>{{ label }}</dt>
+		<dd>
 			<template v-for="(other, index) in dependents" :key="other.name">
 				<RouterLink :to="extensionRoute(other.kind, other.name)">{{ other.label }}</RouterLink><template v-if="index < dependents.length - 1">, </template>
 			</template>
 		</dd>
 	</template>
 </template>
-
-<style scoped>
-.extension-dependents__label {
-	color: var(--fg-3);
-}
-
-.extension-dependents {
-	min-width: 0;
-	margin: 0;
-	overflow-wrap: anywhere;
-}
-</style>

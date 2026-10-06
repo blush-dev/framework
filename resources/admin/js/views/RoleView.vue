@@ -19,12 +19,14 @@
  */
 
 import { computed, ref, watch } from 'vue';
-import { confirmAction, confirmLeave } from '../confirm';
-import { onBeforeRouteLeave, RouterLink, useRoute, useRouter } from 'vue-router';
+import { confirmAction, guardLeave } from '../confirm';
+import { RouterLink, useRoute, useRouter } from 'vue-router';
 import AdminIcon from '../components/AdminIcon.vue';
 import CapabilitySections from '../components/CapabilitySections.vue';
 import MenuButton from '../components/MenuButton.vue';
-import { ApiError } from '../api';
+import SaveBar from '../components/SaveBar.vue';
+import { useAction } from '../action';
+import { errorMessage } from '../api';
 import { plural } from '../format';
 import { deleteRole, initials, loadRoles, MEMBER, originOf, updateRole, type RoleInfo, type RoleList } from '../people';
 import { screenTitle } from '../screen';
@@ -39,7 +41,7 @@ const error  = ref('');
 loadRoles().then((answer) => {
 	list.value = answer;
 }, (caught: unknown) => {
-	error.value = caught instanceof ApiError ? caught.message : 'The role couldn\'t be loaded.';
+	error.value = errorMessage(caught, 'The role couldn\'t be loaded.');
 });
 
 const role       = computed(() => list.value?.roles.find((item) => item.name === route.params.name));
@@ -77,8 +79,8 @@ const label        = ref('');
 const description  = ref('');
 const capabilities = ref<string[]>([]);
 const renaming     = ref(false);
-const saving       = ref(false);
-const failure      = ref('');
+
+const { busy: saving, error: failure, run } = useAction();
 
 function reset(value: RoleInfo | undefined): void {
 	label.value        = value?.label ?? '';
@@ -136,19 +138,12 @@ async function save(): Promise<void> {
 		return;
 	}
 
-	saving.value  = true;
-	failure.value = '';
-
-	try {
+	await run('The role couldn\'t be saved.', async () => {
 		const saved = await updateRole(value.name, changes.value);
 
 		replace(saved);
 		toast(`Saved ${saved.label}`);
-	} catch (caught) {
-		failure.value = caught instanceof ApiError ? caught.message : 'The role couldn\'t be saved.';
-	} finally {
-		saving.value = false;
-	}
+	});
 }
 
 // The ⋮'s last item: delete a custom role, or reset a changed built-in.
@@ -187,7 +182,7 @@ async function remove(): Promise<void> {
 			toast(`Reset ${after.label}`);
 		}
 	} catch (caught) {
-		removal.value = caught instanceof ApiError ? caught.message : 'The role couldn\'t be changed.';
+		removal.value = errorMessage(caught, 'The role couldn\'t be changed.');
 	}
 }
 
@@ -209,11 +204,11 @@ async function copyJson(): Promise<void> {
 	}
 }
 
-onBeforeRouteLeave(() => !changed.value || confirmLeave());
+guardLeave(() => changed.value);
 </script>
 
 <template>
-	<form v-if="role" class="role" @submit.prevent="save">
+	<form v-if="role" class="role form-stack" @submit.prevent="save">
 		<header class="page-header">
 			<RouterLink class="page-back" :to="{ name: 'roles' }"><AdminIcon name="chevron-left" />All roles</RouterLink>
 			<div class="page-header__text role__head">
@@ -263,7 +258,7 @@ onBeforeRouteLeave(() => !changed.value || confirmLeave());
 			<header class="panel__header">
 				<h2 id="rename-heading">Name and Description</h2>
 			</header>
-			<div class="panel__body role__rename">
+			<div class="panel__body field-pair role__rename">
 				<div class="field">
 					<label for="role-label">Name</label>
 					<input id="role-label" v-model="label" autocomplete="off" required>
@@ -314,12 +309,7 @@ onBeforeRouteLeave(() => !changed.value || confirmLeave());
 
 		<CapabilitySections v-else-if="list" v-model="capabilities" :capabilities="list.capabilities" :types="list.types" :base="role.capabilities" :readonly="!role.editable" />
 
-		<div v-if="role.editable && (count > 0 || failure)" class="save-bar" role="region" aria-label="Unsaved changes">
-			<span class="save-bar__count" aria-live="polite">{{ count === 1 ? '1 change' : `${count} changes` }}</span>
-			<span v-if="failure" class="save-bar__error" role="alert">{{ failure }}</span>
-			<button type="button" class="button button--ghost button--small" :disabled="saving" @click="reset(role)">Revert</button>
-			<button type="submit" class="button button--primary button--small" :disabled="saving || !changed">{{ saving ? 'Saving…' : 'Save changes' }}</button>
-		</div>
+		<SaveBar v-if="role.editable" :count="count" :failure="failure" :saving="saving" :ready="changed" @revert="reset(role)" />
 	</form>
 
 	<template v-else>
@@ -336,8 +326,6 @@ onBeforeRouteLeave(() => !changed.value || confirmLeave());
 
 <style scoped>
 .role {
-	display: grid;
-	gap: var(--s-4);
 	/* Room under the last section for the save bar. */
 	padding-bottom: var(--s-7);
 }
@@ -406,10 +394,7 @@ onBeforeRouteLeave(() => !changed.value || confirmLeave());
 }
 
 .role__rename {
-	display: grid;
-	grid-template-columns: repeat(2, minmax(0, 1fr));
 	align-items: start;
-	gap: var(--s-4);
 }
 
 /* Every input the same height, whatever its font, as on New Role. */
@@ -459,10 +444,6 @@ onBeforeRouteLeave(() => !changed.value || confirmLeave());
 }
 
 @media (width <= 640px) {
-	.role__rename {
-		grid-template-columns: minmax(0, 1fr);
-	}
-
 	.role__everything {
 		padding: var(--s-5) var(--s-4);
 	}

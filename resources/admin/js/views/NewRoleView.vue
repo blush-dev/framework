@@ -11,7 +11,8 @@
 import { computed, ref, watch } from 'vue';
 import { RouterLink, useRoute, useRouter } from 'vue-router';
 import CapabilitySections from '../components/CapabilitySections.vue';
-import { ApiError } from '../api';
+import { useAction } from '../action';
+import { ApiError, errorMessage } from '../api';
 import { createRole, loadRoles, roleKeyOf, type RoleList } from '../people';
 import { can } from '../session';
 import { toast } from '../toast';
@@ -25,10 +26,10 @@ const key          = ref('');
 const keyTouched   = ref(false);
 const description  = ref('');
 const capabilities = ref<string[]>([]);
-const busy         = ref(false);
-const error        = ref('');
 const field        = ref<string | null>(null);
 const loadFail     = ref('');
+
+const { busy, error, run } = useAction();
 
 const source = computed(() => typeof route.query.from === 'string' ? list.value?.roles.find((role) => role.name === route.query.from) ?? null : null);
 
@@ -43,7 +44,7 @@ loadRoles().then((answer) => {
 		capabilities.value = from.capabilities.filter((name) => name !== answer.all && can(name));
 	}
 }, (caught: unknown) => {
-	loadFail.value = caught instanceof ApiError ? caught.message : 'The roles couldn\'t be loaded.';
+	loadFail.value = errorMessage(caught, 'The roles couldn\'t be loaded.');
 });
 
 watch(label, (value) => {
@@ -65,21 +66,16 @@ const keyProblem = computed(() => {
 });
 
 async function submit(): Promise<void> {
-	busy.value  = true;
-	error.value = '';
 	field.value = null;
 
-	try {
+	await run('The role couldn\'t be created.', async () => {
 		const role = await createRole({ name: key.value, label: label.value, description: description.value, capabilities: capabilities.value });
 
 		toast(`Created the ${role.label} role`);
 		await router.push({ name: 'role', params: { name: role.name } });
-	} catch (caught) {
-		error.value = caught instanceof ApiError ? caught.message : 'The role couldn\'t be created.';
+	}, (caught) => {
 		field.value = caught instanceof ApiError ? caught.field : null;
-	} finally {
-		busy.value = false;
-	}
+	});
 }
 </script>
 
@@ -96,12 +92,12 @@ async function submit(): Promise<void> {
 
 	<p v-if="loadFail" class="notice notice--error" role="alert">{{ loadFail }}</p>
 
-	<form v-else-if="list" class="new-role" @submit.prevent="submit">
+	<form v-else-if="list" class="form-stack" @submit.prevent="submit">
 		<section class="panel" aria-labelledby="about-heading">
 			<header class="panel__header">
 				<h2 id="about-heading">About</h2>
 			</header>
-			<div class="panel__body new-role__fields">
+			<div class="panel__body field-pair new-role__fields">
 				<div class="field">
 					<label for="role-label">Name</label>
 					<input id="role-label" v-model="label" autocomplete="off" required placeholder="Reviewer">
@@ -123,7 +119,7 @@ async function submit(): Promise<void> {
 
 		<CapabilitySections v-model="capabilities" :capabilities="list.capabilities" :types="list.types" />
 
-		<div class="new-role__save">
+		<div class="submit-row submit-row--tight">
 			<p v-if="error && field !== 'name'" class="field__error" role="alert">{{ error }}</p>
 			<button type="submit" class="button button--primary" :disabled="busy || label.trim() === '' || key === '' || keyProblem !== ''">{{ busy ? 'Creating…' : 'Create role' }}</button>
 		</div>
@@ -131,16 +127,9 @@ async function submit(): Promise<void> {
 </template>
 
 <style scoped>
-.new-role {
-	display: grid;
-	gap: var(--s-4);
-}
-
+/* Fields top-aligned, whatever help text each one has. */
 .new-role__fields {
-	display: grid;
-	grid-template-columns: repeat(2, minmax(0, 1fr));
 	align-items: start;
-	gap: var(--s-4);
 }
 
 /* Every input the same height, whatever its font. */
@@ -154,23 +143,5 @@ async function submit(): Promise<void> {
 
 .new-role__fields > * + * {
 	margin-top: 0;
-}
-
-.new-role__save {
-	display: flex;
-	flex-wrap: wrap;
-	align-items: center;
-	gap: var(--s-2);
-}
-
-.new-role__save .field__error {
-	flex-basis: 100%;
-	margin: 0;
-}
-
-@media (width <= 640px) {
-	.new-role__fields {
-		grid-template-columns: minmax(0, 1fr);
-	}
 }
 </style>

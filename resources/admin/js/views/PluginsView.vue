@@ -23,21 +23,32 @@
 
 import { computed } from 'vue';
 import AdminIcon from '../components/AdminIcon.vue';
-import InstallModal, { type InstallState } from '../components/InstallModal.vue';
-import MenuButton from '../components/MenuButton.vue';
+import EmptyState from '../components/EmptyState.vue';
+import ExtensionMenu from '../components/ExtensionMenu.vue';
+import InstallModal from '../components/InstallModal.vue';
 import ToggleSwitch from '../components/ToggleSwitch.vue';
 import type { BrokenPluginSummary, PluginSummary } from '../api';
+import { extensionRoute } from '../extensions';
 import { useInstall } from '../install';
-import { pluginRoute, usePlugins } from '../plugins';
-import { copy } from '../themes';
+import { usePlugins } from '../plugins';
 import { can } from '../session';
 
 const { answer, error, busy, plugins, broken, load, find, toggle, useConfig, remove: removePlugin, removeBroken: removeBrokenPlugin } = usePlugins();
-const { installing, canInstall, afterInstall, hop } = useInstall('plugin', load);
 
 // What the account may do here (D-389).
 const canActivate = can('extensions.plugins.activate');
 const canDelete   = can('extensions.plugins.delete');
+
+// What a plugin the Install modal installed is, and whether it can be turned on.
+const { installing, canInstall, afterInstall, hop, installState, next } = useInstall('plugin', load, {
+	find,
+	state: (plugin) => ({
+		words: plugin?.running ? 'turned on' : 'turned off',
+		next: plugin !== null && !plugin.running && blocked(plugin) === null && canActivate,
+		live: plugin?.running ?? false
+	}),
+	start: (plugin) => toggle(plugin, true)
+});
 
 void load();
 
@@ -47,27 +58,6 @@ const total = computed(() => plugins.value.length + broken.value.length);
 // Why a plugin that isn't running can't be turned on, or `null`.
 function blocked(plugin: PluginSummary): string | null {
 	return plugin.running ? null : plugin.blocked;
-}
-
-// What a plugin the Install modal installed is, and whether it can be turned on.
-function installState(name: string): InstallState {
-	const plugin = find(name);
-
-	return {
-		words: plugin?.running ? 'turned on' : 'turned off',
-		next: plugin !== null && !plugin.running && blocked(plugin) === null && canActivate,
-		live: plugin?.running ?? false
-	};
-}
-
-async function next(name: string): Promise<void> {
-	installing.value = false;
-
-	const plugin = find(name);
-
-	if (plugin !== null) {
-		await toggle(plugin, true);
-	}
 }
 
 async function remove(plugin: PluginSummary): Promise<void> {
@@ -103,26 +93,24 @@ async function removeBroken(plugin: BrokenPluginSummary): Promise<void> {
 
 	<template v-if="answer">
 		<div v-if="total === 0" class="panel">
-			<div class="empty">
-				<AdminIcon name="plug" />
-				<h3 class="empty__heading">No Plugins Yet</h3>
-				<p class="empty__text">Put one in <code>extensions/</code>, or install one with Composer (package type <code>blush-plugin</code>).</p>
-			</div>
+			<EmptyState icon="plug" heading="No Plugins Yet" tag="h3">
+				Put one in <code>extensions/</code>, or install one with Composer (package type <code>blush-plugin</code>).
+			</EmptyState>
 		</div>
 
 		<ul v-else class="plugins">
 			<li v-for="plugin in plugins" :key="plugin.name" class="plugin" :class="{ 'is-off': !plugin.running }">
 				<span class="plugin__mark" aria-hidden="true"><AdminIcon name="plug" /></span>
 				<div class="plugin__main">
-					<p class="plugin__name">
-						<RouterLink class="plugin__label" :to="pluginRoute(plugin.name)">{{ plugin.label }}</RouterLink>
+					<p class="extension__name">
+						<RouterLink class="extension__label" :to="extensionRoute('plugin', plugin.name)">{{ plugin.label }}</RouterLink>
 						<span v-if="blocked(plugin)" class="pill pill--warn">Can't turn on</span>
 						<span v-if="plugin.abandoned !== false" class="pill pill--warn">Abandoned</span>
-						<span class="plugin__package mono">{{ plugin.name }} {{ plugin.version }}</span>
+						<span class="extension__version mono">{{ plugin.name }} {{ plugin.version }}</span>
 					</p>
-					<p v-if="plugin.description" class="plugin__description">{{ plugin.description }}</p>
-					<p v-if="plugin.source === 'composer' && !plugin.enabled" class="plugin__description">Installed by Composer. It's off because the list of plugins turned on here doesn't name it.</p>
-					<p v-if="blocked(plugin)" class="plugin__message">
+					<p v-if="plugin.description" class="extension__description">{{ plugin.description }}</p>
+					<p v-if="plugin.source === 'composer' && !plugin.enabled" class="extension__description">Installed by Composer. It's off because the list of plugins turned on here doesn't name it.</p>
+					<p v-if="blocked(plugin)" class="notice notice--small notice--warn extension__message">
 						<AdminIcon name="triangle-alert" /><span>{{ blocked(plugin) }}</span>
 					</p>
 				</div>
@@ -135,43 +123,24 @@ async function removeBroken(plugin: BrokenPluginSummary): Promise<void> {
 						:reason="blocked(plugin) ?? (canActivate ? null : 'Your role can\'t turn plugins on and off.')"
 						@change="toggle(plugin, $event)"
 					/>
-					<MenuButton button-class="button button--ghost button--small button--icon" :label="`More actions for ${plugin.label}`" floating>
-						<template #button>
-							<AdminIcon name="ellipsis" />
-						</template>
-						<RouterLink class="menu-item" :to="pluginRoute(plugin.name)"><AdminIcon name="info" />Plugin details</RouterLink>
-						<button type="button" class="menu-item" @click="copy(plugin.path, 'the folder path')"><AdminIcon name="copy" />Copy folder path</button>
-						<template v-if="canDelete && plugin.deletable">
-							<hr class="menu-rule">
-							<button type="button" class="menu-item menu-item--danger" @click="remove(plugin)"><AdminIcon name="trash-2" />Delete plugin</button>
-						</template>
-					</MenuButton>
+					<ExtensionMenu :label="plugin.label" :details="extensionRoute('plugin', plugin.name)" details-label="Plugin details" :copy="plugin.path" :delete-label="canDelete && plugin.deletable ? 'Delete plugin' : undefined" @delete="remove(plugin)" />
 				</div>
 			</li>
 			<li v-for="plugin in broken" :key="plugin.where" class="plugin is-off">
 				<span class="plugin__mark" aria-hidden="true"><AdminIcon name="plug" /></span>
 				<div class="plugin__main">
-					<p class="plugin__name">
-						<span class="plugin__label mono">{{ plugin.where }}</span>
+					<p class="extension__name">
+						<span class="extension__label mono">{{ plugin.where }}</span>
 						<span class="pill pill--warn">Can't turn on</span>
-						<span v-if="plugin.name && plugin.name !== plugin.where" class="plugin__package mono">{{ plugin.name }}</span>
+						<span v-if="plugin.name && plugin.name !== plugin.where" class="extension__version mono">{{ plugin.name }}</span>
 					</p>
-					<p class="plugin__message">
+					<p class="notice notice--small notice--warn extension__message">
 						<AdminIcon name="triangle-alert" /><span>{{ plugin.reason }} {{ plugin.enabled ? 'It\'s turned on, but can\'t run until that\'s fixed.' : 'It can\'t be turned on until that\'s fixed.' }}</span>
 					</p>
 				</div>
 				<div class="plugin__end">
 					<ToggleSwitch :checked="false" :label="plugin.where" locked reason="Its manifest can't be read." />
-					<MenuButton button-class="button button--ghost button--small button--icon" :label="`More actions for ${plugin.where}`" floating>
-						<template #button>
-							<AdminIcon name="ellipsis" />
-						</template>
-						<button type="button" class="menu-item" @click="copy(plugin.where, plugin.where.startsWith('user/') ? 'the folder path' : 'the package name')"><AdminIcon name="copy" />{{ plugin.where.startsWith('user/') ? 'Copy folder path' : 'Copy package name' }}</button>
-						<template v-if="canDelete && plugin.deletable">
-							<hr class="menu-rule">
-							<button type="button" class="menu-item menu-item--danger" @click="removeBroken(plugin)"><AdminIcon name="trash-2" />Delete plugin</button>
-						</template>
-					</MenuButton>
+					<ExtensionMenu :label="plugin.where" :copy="plugin.where" v-bind="plugin.where.startsWith('user/') ? {} : { copyWhat: 'the package name', copyLabel: 'Copy package name' }" :delete-label="canDelete && plugin.deletable ? 'Delete plugin' : undefined" @delete="removeBroken(plugin)" />
 				</div>
 			</li>
 		</ul>
@@ -187,7 +156,7 @@ async function removeBroken(plugin: BrokenPluginSummary): Promise<void> {
 		</li>
 	</ul>
 
-	<p v-if="answer" class="notice plugins__note">
+	<p v-if="answer" class="notice extension__note">
 		<span>
 			Plugins live in <code>extensions/</code> or come from Composer.
 			<template v-if="answer.saved">
@@ -203,24 +172,6 @@ async function removeBroken(plugin: BrokenPluginSummary): Promise<void> {
 </template>
 
 <style scoped>
-.count-row {
-	display: flex;
-	align-items: center;
-	gap: var(--s-3);
-	margin-bottom: var(--s-4);
-	color: var(--fg-3);
-	font-size: var(--text-2xs);
-	font-weight: 600;
-	letter-spacing: .06em;
-	text-transform: uppercase;
-}
-
-.count-row__rule {
-	flex: 1;
-	height: 1px;
-	background: var(--border);
-}
-
 .plugins {
 	margin: 0;
 	padding: 0;
@@ -264,9 +215,7 @@ async function removeBroken(plugin: BrokenPluginSummary): Promise<void> {
 	background: var(--surface-3);
 }
 
-.plugin.is-off .plugin__mark,
-.plugin.is-off .plugin__label,
-.plugin.is-off .plugin__description {
+.plugin.is-off .plugin__mark {
 	opacity: .62;
 }
 
@@ -281,77 +230,11 @@ async function removeBroken(plugin: BrokenPluginSummary): Promise<void> {
 	margin: 0;
 }
 
-.plugin__name {
-	display: flex;
-	flex-wrap: wrap;
-	align-items: center;
-	gap: var(--s-2);
-}
-
-.plugin__label {
-	color: var(--fg);
-	font-family: var(--font-title);
-	font-size: var(--title-size);
-	font-weight: 600;
-	letter-spacing: var(--title-track);
-	text-decoration: none;
-	overflow-wrap: anywhere;
-}
-
-.plugin__label:hover {
-	color: var(--accent);
-}
-
-/* A broken plugin goes by its folder. */
-.plugin__label.mono {
-	font-family: var(--font-mono);
-	font-size: var(--text-sm);
-}
-
-.plugin__package {
-	color: var(--fg-3);
-	font-size: var(--text-2xs);
-}
-
-.plugin__description {
-	max-width: 70ch;
-	color: var(--fg-2);
-	font-size: var(--text-sm);
-	line-height: 1.5;
-}
-
-/* A problem is said where the switch is, saying what's needed. */
-.plugin__message {
-	display: flex;
-	align-items: flex-start;
-	gap: var(--s-2);
-	max-width: 70ch;
-	padding: var(--s-3);
-	border-radius: var(--r-1);
-	background: var(--warn-soft);
-	color: var(--warn);
-	font-size: var(--text-xs);
-	line-height: 1.45;
-}
-
-.plugin__message .icon {
-	flex: none;
-	width: 14px;
-	height: 14px;
-	margin-top: 1px;
-}
-
 .plugin__end {
 	display: flex;
 	align-items: center;
 	gap: var(--s-2);
 	padding-top: 2px;
-}
-
-.menu-rule {
-	margin: 5px -1px;
-	border: 0;
-	border-top: 1px solid var(--border);
 }
 
 .skeleton--title {
@@ -362,25 +245,6 @@ async function removeBroken(plugin: BrokenPluginSummary): Promise<void> {
 .skeleton--wide {
 	width: 70%;
 }
-
-.plugins__note {
-	margin-top: var(--s-6);
-	color: var(--fg-2);
-	font-size: var(--text-sm);
-}
-
-.link-button {
-	padding: 0;
-	border: 0;
-	background: none;
-	color: var(--accent);
-	font: inherit;
-	text-decoration: underline;
-	text-underline-offset: .15em;
-	cursor: pointer;
-}
-
-
 
 @media (width <= 640px) {
 	.plugin {

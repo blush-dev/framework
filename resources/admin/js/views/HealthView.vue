@@ -13,8 +13,10 @@
  */
 
 import { computed, onMounted, ref } from 'vue';
-import { ApiError, request, type AssignedIds, type Health, type HealthIds, type Violation } from '../api';
+import { errorMessage, request, type AssignedIds, type Health, type HealthIds, type Violation } from '../api';
+import { useAction } from '../action';
 import AdminIcon from '../components/AdminIcon.vue';
+import EmptyState from '../components/EmptyState.vue';
 import { plural } from '../format';
 import { toast } from '../toast';
 
@@ -24,11 +26,11 @@ const severities: Record<Violation['severity'], string> = {
 	notice: ''
 };
 
-const health  = ref<Health | null>(null);
-const strict  = ref(false);
-const loading = ref(false);
-const error   = ref('');
-const fixing  = ref<string | null>(null);
+const health = ref<Health | null>(null);
+const strict = ref(false);
+const fixing = ref<string | null>(null);
+
+const { busy: loading, error, run } = useAction();
 
 interface IdGroup {
 	key: string;
@@ -53,16 +55,9 @@ const idGroups = computed<IdGroup[]>(() => {
 });
 
 async function check(): Promise<void> {
-	loading.value = true;
-	error.value   = '';
-
-	try {
+	await run('Content health couldn\'t be checked.', async () => {
 		health.value = await request<Health>('GET', strict.value ? '/health?strict=1' : '/health');
-	} catch (caught) {
-		error.value = caught instanceof ApiError ? caught.message : 'Content health couldn\'t be checked.';
-	} finally {
-		loading.value = false;
-	}
+	});
 }
 
 function summary(result: Health): string {
@@ -96,7 +91,7 @@ async function fix(key: string, path: string, body: Record<string, string> = {})
 
 		await check();
 	} catch (caught) {
-		toast(caught instanceof ApiError ? caught.message : 'The ids couldn\'t be fixed.', { kind: 'danger' });
+		toast(errorMessage(caught, 'The ids couldn\'t be fixed.'), { kind: 'danger' });
 	} finally {
 		fixing.value = null;
 	}
@@ -124,7 +119,7 @@ async function recordSizes(): Promise<void> {
 
 		await check();
 	} catch (caught) {
-		toast(caught instanceof ApiError ? caught.message : 'The sizes couldn\'t be recorded.', { kind: 'danger' });
+		toast(errorMessage(caught, 'The sizes couldn\'t be recorded.'), { kind: 'danger' });
 	} finally {
 		recording.value = false;
 	}
@@ -203,11 +198,9 @@ onMounted(check);
 		</section>
 
 		<div v-if="!health.files.length" class="panel">
-			<div class="empty">
-				<AdminIcon name="circle-check" />
-				<p class="empty__heading">No Problems Found</p>
-				<p class="empty__text">Every file passed{{ health.strict ? ', notices included' : '' }}.</p>
-			</div>
+			<EmptyState icon="circle-check" heading="No Problems Found">
+				Every file passed{{ health.strict ? ', notices included' : '' }}.
+			</EmptyState>
 		</div>
 
 		<section v-for="file in health.files" :key="file.path" class="panel">

@@ -76,6 +76,17 @@ export function reloadTypes(): Promise<ContentTypeSummary[]> {
 }
 
 /**
+ * After a type or a field set changes: the server compiles the routes and
+ * reindexes with the new types (`POST types/refresh`), then the types load
+ * again, so the navigation shows the change. Nothing waits on it.
+ */
+export function refreshTypes(): void {
+	request('POST', '/types/refresh').catch(() => undefined).finally(() => {
+		reloadTypes().catch(() => undefined);
+	});
+}
+
+/**
  * A type by name, once loaded.
  */
 export function findType(name: string): ContentTypeSummary | undefined {

@@ -6,7 +6,7 @@
  */
 
 import { ref } from 'vue';
-import { ApiError, request, type EntryDetail, type PreviewLink } from '../api';
+import { errorMessage, request, type EntryDetail, type PreviewLink } from '../api';
 import { formatDate } from '../format';
 import AdminIcon from './AdminIcon.vue';
 
@@ -27,7 +27,7 @@ async function make(): Promise<void> {
 		link.value    = await request<PreviewLink>('POST', '/previews', { entry: props.entry.id });
 		message.value = `Preview link ready for “${name}”.`;
 	} catch (caught) {
-		message.value = caught instanceof ApiError ? caught.message : 'The preview link couldn\'t be made.';
+		message.value = errorMessage(caught, 'The preview link couldn\'t be made.');
 	} finally {
 		busy.value = false;
 	}

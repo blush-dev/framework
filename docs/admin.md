@@ -764,7 +764,9 @@ changes the library's, and changing the library's never changes an
 entry. They
 can be changed by whoever uploaded the file (`media.edit`), or by anyone
 with `media.edit.others`, which files with no uploader recorded need;
-otherwise they're shown read-only. They're saved when you choose **Save**.
+otherwise they're shown read-only. Changes wait in the **save bar** at
+the bottom, which counts them: **Save changes** saves them, and
+**Revert** puts them back.
 
 A file's screen also says who uploaded it, and lists the entries that
 use it (by any of its addresses, in their text or front matter).
@@ -890,8 +892,9 @@ A field whose type can be edited more than one way has **Edited with**:
 a choice as a menu or radio buttons, text on one line, several, or in
 code type, a list of choices as checkboxes (see
 [How the admin edits a field](content-types.md#how-the-admin-edits-a-field)).
-The field types offered include ones plugins add. Choose **Save** to
-write what you changed; **Revert** puts it back.
+The field types offered include ones plugins add. Changes wait in the
+**save bar** at the bottom, which counts them: **Save changes** writes
+them, and **Revert** puts them back.
 
 **Field Sets** lists the [field sets](#fields) added to the type, each
 linking to its screen, where the types it's added to are chosen.
@@ -935,8 +938,8 @@ places of that kind, and its fields, edited as a type's are. **Create
 Field Set** writes
 `user/data/fields/{key}.json`.
 
-A set's screen edits the same things; choose **Save** to write what you
-changed, or **Revert** to put it back. Only what you change is written,
+A set's screen edits the same things; changes wait in the **save bar**:
+**Save changes** writes them, or **Revert** puts them back. Only what you change is written,
 and the rest of the file stays as you wrote it, comments included. A set
 can't use a field name a type it's added to already has: that's refused
 with the reason, and the file is left as it was.

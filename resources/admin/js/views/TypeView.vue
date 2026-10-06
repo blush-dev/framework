@@ -15,7 +15,7 @@ import AdminIcon from '../components/AdminIcon.vue';
 import TypeEditor from '../components/TypeEditor.vue';
 import TypeFieldSets from '../components/TypeFieldSets.vue';
 import TypeIcon from '../components/TypeIcon.vue';
-import { ApiError, request, type ContentTypeDetail } from '../api';
+import { errorMessage, request, type ContentTypeDetail } from '../api';
 import { humanize, label } from '../fields';
 import { plural } from '../format';
 import { screenTitle } from '../screen';
@@ -34,7 +34,7 @@ watch(() => route.params.name, async (name) => {
 	try {
 		type.value = await request<ContentTypeDetail>('GET', `/types/${encodeURIComponent(String(name))}`);
 	} catch (caught) {
-		error.value = caught instanceof ApiError ? caught.message : 'The content type couldn\'t be loaded.';
+		error.value = errorMessage(caught, 'The content type couldn\'t be loaded.');
 	}
 }, { immediate: true });
 
@@ -175,15 +175,6 @@ const related = computed(() => {
 </template>
 
 <style scoped>
-/* Widths as classes: the admin's CSP blocks inline style attributes. */
-.skeleton--heading {
-	width: 40%;
-}
-
-.skeleton--label {
-	width: 30%;
-}
-
 .type-facts__icon {
 	display: flex;
 	align-items: center;
@@ -200,57 +191,6 @@ const related = computed(() => {
 .detail__side {
 	display: grid;
 	gap: 16px;
-}
-
-.facts {
-	display: grid;
-	gap: 8px;
-	margin: 0;
-}
-
-.facts > * + * {
-	margin-top: 0;
-}
-
-.facts div {
-	display: flex;
-	justify-content: space-between;
-	gap: 12px;
-}
-
-.facts dt {
-	color: var(--fg-2);
-}
-
-.facts dd {
-	margin: 0;
-	text-align: right;
-	overflow-wrap: anywhere;
-}
-
-.chips {
-	display: flex;
-	flex-wrap: wrap;
-	gap: 6px;
-	margin: 0;
-	padding: 0;
-	list-style: none;
-}
-
-.chips a {
-	display: inline-block;
-	padding: 2px 10px;
-	border: 1px solid var(--border);
-	border-radius: 99px;
-	background: var(--surface-2);
-	color: var(--fg-2);
-	font-size: var(--text-sm);
-	text-decoration: none;
-}
-
-.chips a:hover {
-	border-color: var(--border-strong);
-	color: var(--fg);
 }
 
 @media (width <= 1100px) {

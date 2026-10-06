@@ -19,19 +19,17 @@ import { computed, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import AbandonedNotice from '../components/AbandonedNotice.vue';
 import AdminIcon from '../components/AdminIcon.vue';
-import ExtensionDependents from '../components/ExtensionDependents.vue';
-import ExtensionLinks from '../components/ExtensionLinks.vue';
-import ExtensionProvides from '../components/ExtensionProvides.vue';
-import ExtensionRequirements from '../components/ExtensionRequirements.vue';
-import ExtensionSuggestions from '../components/ExtensionSuggestions.vue';
-import LicenseLinks from '../components/LicenseLinks.vue';
+import DangerZone from '../components/DangerZone.vue';
+import ExtensionFacts from '../components/ExtensionFacts.vue';
+import ExtensionPackagePanels from '../components/ExtensionPackagePanels.vue';
 import PreviousVersion from '../components/PreviousVersion.vue';
 import ThemeSketch from '../components/ThemeSketch.vue';
 import { PALETTE_ROLES, type PaletteRole } from '../api';
 import { config } from '../config';
+import { extensionRoute } from '../extensions';
 import { can } from '../session';
 import { screenTitle } from '../screen';
-import { copy, themeRoute, useThemes } from '../themes';
+import { useThemes } from '../themes';
 
 const route  = useRoute();
 const router = useRouter();
@@ -160,10 +158,10 @@ async function remove(): Promise<void> {
 	<p v-if="error" class="notice notice--error" role="alert">{{ error }}</p>
 
 	<template v-if="theme && answer">
-		<p v-if="fallbackMessage(theme)" class="theme-message theme-message--warn">
+		<p v-if="fallbackMessage(theme)" class="notice notice--small notice--warn theme-message">
 			<AdminIcon name="triangle-alert" /><span>{{ fallbackMessage(theme) }}</span>
 		</p>
-		<p v-if="failed?.name === theme.name" class="theme-message theme-message--danger" role="alert">
+		<p v-if="failed?.name === theme.name" class="notice notice--small notice--error theme-message" role="alert">
 			<AdminIcon name="triangle-alert" /><span>Your site is still showing {{ active?.label ?? answer.active }}; nothing changed. {{ failed.reason }}</span>
 		</p>
 		<AbandonedNotice noun="theme" :abandoned="theme.abandoned" :replacement="theme.replacement" />
@@ -176,17 +174,17 @@ async function remove(): Promise<void> {
 						<p class="panel__hint">{{ theme.preview?.palette ? 'Drawn from the declared palette' : 'No palette declared' }}</p>
 					</header>
 					<div class="panel__body">
-						<p v-if="theme.blocked && !theme.active" class="theme-message theme-message--warn">
+						<p v-if="theme.blocked && !theme.active" class="notice notice--small notice--warn theme-message">
 							<AdminIcon name="triangle-alert" /><span>{{ blockedMessage(theme) }}</span>
 						</p>
 						<div class="theme-detail__previews">
 							<figure>
 								<ThemeSketch :preview="theme.preview" scheme="light" />
-								<figcaption>Light</figcaption>
+								<figcaption class="eyebrow">Light</figcaption>
 							</figure>
 							<figure>
 								<ThemeSketch :preview="theme.preview" scheme="dark" />
-								<figcaption>Dark</figcaption>
+								<figcaption class="eyebrow">Dark</figcaption>
 							</figure>
 						</div>
 						<p v-if="!theme.preview?.palette" class="field__help">
@@ -198,110 +196,35 @@ async function remove(): Promise<void> {
 				<section class="panel" aria-labelledby="details-heading">
 					<header class="panel__header"><h2 id="details-heading">Details</h2></header>
 					<div class="panel__body">
-						<dl class="theme-facts">
-							<dt>Name</dt>
-							<dd class="mono">{{ theme.name }}</dd>
-							<dt>{{ theme.authors.length > 1 ? 'Authors' : 'Author' }}</dt>
-							<dd>
-								<template v-if="theme.authors.length === 0">—</template>
-								<span v-for="author in theme.authors" :key="author.name" class="theme-facts__author">
-									<a v-if="author.homepage" :href="author.homepage" target="_blank" rel="noopener">{{ author.name }}<span class="visually-hidden"> (new tab)</span></a>
-									<template v-else>{{ author.name }}</template>
-									<span v-if="author.role" class="theme-facts__role">{{ author.role }}</span>
-								</span>
-							</dd>
-							<dt>Version</dt>
-							<dd :class="{ mono: theme.version }">{{ theme.version || '—' }}</dd>
-							<dt>License</dt>
-							<dd :class="{ mono: theme.licenses.length }"><LicenseLinks :parts="theme.licenses" /></dd>
-							<ExtensionLinks :links="theme.links" :funding="theme.funding" />
-							<dt>Installed by</dt>
-							<dd>{{ installedBy }}</dd>
-							<dt>Folder</dt>
-							<dd>
-								<template v-if="theme.folder">
-									<span class="mono">{{ theme.folder }}</span>
-									<button type="button" class="button button--ghost button--small button--icon theme-facts__copy" :aria-label="`Copy ${theme.folder}`" @click="copy(theme.folder, 'the folder path')"><AdminIcon name="copy" /></button>
-								</template>
-								<template v-else>Ships with Blush</template>
-							</dd>
-							<dt>Namespace</dt>
-							<dd class="mono">{{ theme.namespace }}</dd>
-							<dt>Type</dt>
-							<dd>{{ theme.preview?.type || '—' }}</dd>
-							<dt>Falls back to</dt>
-							<dd>
-								<template v-if="theme.source === 'framework'">Nothing: every theme falls back to this one</template>
-								<template v-else-if="theme.parent && !installed(theme.parent)">
-									<span class="mono is-warn">{{ theme.parent }}</span><span class="is-warn">, which isn't installed</span>
-								</template>
-								<RouterLink v-else :to="themeRoute(theme.parent ?? 'blush/default')">{{ label(theme.parent ?? 'blush/default') }}</RouterLink>
-							</dd>
-							<ExtensionDependents :dependents="theme.requiredBy" />
-							<ExtensionDependents :dependents="theme.conflictedBy" label="Conflicts with it" />
-							<ExtensionDependents :dependents="theme.replacedBy" label="Replaced by" />
-							<ExtensionDependents :dependents="theme.providedBy" label="Also provided by" />
-							<dt>Used as fallback by</dt>
-							<dd>
-								<template v-if="theme.source === 'framework'">Every theme</template>
-								<template v-else-if="deps.length === 0">Nothing</template>
-								<template v-for="(dep, index) in deps" v-else :key="dep.name">
-									<RouterLink :to="themeRoute(dep.name)">{{ dep.label }}</RouterLink><template v-if="index < deps.length - 1">, </template>
-								</template>
-							</dd>
-						</dl>
+						<ExtensionFacts :extension="theme" :installed-by="installedBy" :folder="theme.folder">
+							<template #kind>
+								<dt>Type</dt>
+								<dd>{{ theme.preview?.type || '—' }}</dd>
+								<dt>Falls back to</dt>
+								<dd>
+									<template v-if="theme.source === 'framework'">Nothing: every theme falls back to this one</template>
+									<template v-else-if="theme.parent && !installed(theme.parent)">
+										<span class="mono is-warn">{{ theme.parent }}</span><span class="is-warn">, which isn't installed</span>
+									</template>
+									<RouterLink v-else :to="extensionRoute('theme', theme.parent ?? 'blush/default')">{{ label(theme.parent ?? 'blush/default') }}</RouterLink>
+								</dd>
+							</template>
+							<template #after>
+								<dt>Used as fallback by</dt>
+								<dd>
+									<template v-if="theme.source === 'framework'">Every theme</template>
+									<template v-else-if="deps.length === 0">Nothing</template>
+									<template v-for="(dep, index) in deps" v-else :key="dep.name">
+										<RouterLink :to="extensionRoute('theme', dep.name)">{{ dep.label }}</RouterLink><template v-if="index < deps.length - 1">, </template>
+									</template>
+								</dd>
+							</template>
+						</ExtensionFacts>
 					</div>
 				</section>
 			</div>
 
-			<section class="panel" aria-labelledby="requires-heading">
-				<header class="panel__header">
-					<h2 id="requires-heading">Requires</h2>
-					<p class="panel__hint">{{ theme.active ? 'Checked against this site' : 'Checked against this site, as if it were active' }}</p>
-				</header>
-				<div class="panel__body">
-					<ExtensionRequirements :requirements="theme.requirements" />
-				</div>
-			</section>
-			<section v-if="theme.conflicts.length" class="panel" aria-labelledby="conflicts-heading">
-				<header class="panel__header">
-					<h2 id="conflicts-heading">Conflicts</h2>
-					<p class="panel__hint">{{ theme.active ? 'Checked against what\'s on' : 'Checked against what\'s on, as if it were active' }}</p>
-				</header>
-				<div class="panel__body">
-					<ExtensionRequirements :requirements="theme.conflicts" list="conflicts" />
-				</div>
-			</section>
-
-			<section v-if="theme.replaces.length" class="panel" aria-labelledby="replaces-heading">
-				<header class="panel__header">
-					<h2 id="replaces-heading">Replaces</h2>
-					<p class="panel__hint">It can't run while one of these is on</p>
-				</header>
-				<div class="panel__body">
-					<ExtensionRequirements :requirements="theme.replaces" list="replaces" />
-				</div>
-			</section>
-
-			<section v-if="theme.provides.length" class="panel" aria-labelledby="provides-heading">
-				<header class="panel__header">
-					<h2 id="provides-heading">Provides</h2>
-					<p class="panel__hint">Meets a requirement of any of these while it runs</p>
-				</header>
-				<div class="panel__body">
-					<ExtensionProvides :provides="theme.provides" />
-				</div>
-			</section>
-
-			<section v-if="theme.suggests.length" class="panel" aria-labelledby="suggests-heading">
-				<header class="panel__header">
-					<h2 id="suggests-heading">Suggests</h2>
-					<p class="panel__hint">Works well with these; none is needed</p>
-				</header>
-				<div class="panel__body">
-					<ExtensionSuggestions :suggestions="theme.suggests" />
-				</div>
-			</section>
+			<ExtensionPackagePanels :extension="theme" replaces-hint="It can't run" :as-if-active="!theme.active" />
 
 			<section v-if="halves.length" class="panel" aria-labelledby="palette-heading">
 				<header class="panel__header">
@@ -310,7 +233,7 @@ async function remove(): Promise<void> {
 				</header>
 				<div class="panel__body palette">
 					<section v-for="half in halves" :key="half.heading" class="palette__half">
-						<h3>{{ half.heading }}</h3>
+						<h3 class="eyebrow">{{ half.heading }}</h3>
 						<div class="palette__grid">
 							<div v-for="swatch in half.swatches" :key="swatch.role" class="palette__swatch" :style="{ background: swatch.fill, color: swatch.ink }">
 								<b>{{ ROLE_LABELS[swatch.role] }}</b>
@@ -328,10 +251,10 @@ async function remove(): Promise<void> {
 			<p v-else-if="theme.source === 'local' && !theme.deletable" class="notice">
 				<span>{{ theme.active ? 'This is the active theme' : `The active theme, ${active?.label ?? answer.active}, falls back to it` }}, so it can't be deleted. Activate another theme first.</span>
 			</p>
-			<div v-else-if="canDelete && theme.deletable" class="danger-zone">
-				<p>{{ deleteNote }}</p>
-				<button type="button" class="button button--danger" @click="remove"><AdminIcon name="trash-2" />Delete theme</button>
-			</div>
+			<DangerZone v-else-if="canDelete && theme.deletable">
+				{{ deleteNote }}
+				<template #action><button type="button" class="button button--danger" @click="remove"><AdminIcon name="trash-2" />Delete theme</button></template>
+			</DangerZone>
 		</div>
 	</template>
 
@@ -372,86 +295,17 @@ async function remove(): Promise<void> {
 	border-radius: var(--r-2);
 }
 
-.theme-detail__previews figcaption,
-.palette h3 {
+.theme-detail__previews figcaption {
 	margin: var(--s-2) 0 0;
-	color: var(--fg-3);
-	font-size: var(--text-2xs);
-	font-weight: 600;
-	letter-spacing: .06em;
-	text-transform: uppercase;
 }
 
-.theme-facts {
-	display: grid;
-	grid-template-columns: auto minmax(0, 1fr);
-	align-items: baseline;
-	gap: var(--s-3) var(--s-4);
-	margin: 0;
-	font-size: var(--text-sm);
-}
-
-.theme-facts dt {
-	color: var(--fg-3);
-}
-
-.theme-facts dd {
-	margin: 0;
-	min-width: 0;
-	overflow-wrap: anywhere;
-}
-
-.theme-facts .is-warn {
+.facts .is-warn {
 	color: var(--warn);
-}
-
-.theme-facts__author {
-	display: flex;
-	flex-wrap: wrap;
-	align-items: baseline;
-	gap: 0 var(--s-2);
-}
-
-.theme-facts__author + .theme-facts__author {
-	margin-top: var(--s-1);
-}
-
-.theme-facts__role {
-	color: var(--fg-3);
-}
-
-.theme-facts__copy {
-	margin-block: -6px;
-	vertical-align: middle;
 }
 
 /* A problem is said where the action is, leading with what's safe. */
 .theme-message {
-	display: flex;
-	align-items: flex-start;
-	gap: var(--s-2);
 	margin: 0 0 var(--s-4);
-	padding: var(--s-3);
-	border-radius: var(--r-1);
-	font-size: var(--text-xs);
-	line-height: 1.45;
-}
-
-.theme-message .icon {
-	flex: none;
-	width: 14px;
-	height: 14px;
-	margin-top: 1px;
-}
-
-.theme-message--danger {
-	background: var(--danger-soft);
-	color: var(--danger);
-}
-
-.theme-message--warn {
-	background: var(--warn-soft);
-	color: var(--warn);
 }
 
 /* The two halves side by side, each bounded by its own heading rule. */
@@ -504,45 +358,6 @@ async function remove(): Promise<void> {
 	font-size: var(--text-xs);
 }
 
-.danger-zone {
-	display: flex;
-	flex-wrap: wrap;
-	align-items: center;
-	gap: var(--s-4);
-	padding: var(--s-4) var(--pad-x);
-	border: 1px solid var(--border);
-	border-radius: var(--r-3);
-	background: var(--surface);
-}
-
-.danger-zone p {
-	margin: 0;
-	color: var(--fg-2);
-	font-size: var(--text-sm);
-}
-
-.danger-zone .button {
-	flex: none;
-	margin-left: auto;
-}
-
-/* The spinner of a working button. */
-.spin {
-	flex: none;
-	width: 13px;
-	height: 13px;
-	border: 2px solid currentColor;
-	border-top-color: transparent;
-	border-radius: 50%;
-	animation: spin .7s linear infinite;
-}
-
-@keyframes spin {
-	to {
-		transform: rotate(360deg);
-	}
-}
-
 .skeleton--title {
 	width: 40%;
 	height: 14px;
@@ -562,12 +377,6 @@ async function remove(): Promise<void> {
 	.palette,
 	.theme-detail__previews {
 		grid-template-columns: minmax(0, 1fr);
-	}
-}
-
-@media (prefers-reduced-motion: reduce) {
-	.spin {
-		animation: none;
 	}
 }
 </style>

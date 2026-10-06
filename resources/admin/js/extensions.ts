@@ -1,12 +1,134 @@
 /**
- * What every extension screen shares about requirements (D-431):
- * plugins, themes, and icon packs each list their `require`, checked the
- * same way, and the extensions of any kind that require them.
+ * What every extension screen shares: the installed extensions of a kind,
+ * loaded, turned on or off, deleted, and put back in config's charge
+ * (D-385, D-509); their addresses and folders; and their requirements
+ * (D-431): plugins, themes, and icon packs each list their `require`,
+ * checked the same way, and the extensions of any kind that require them.
  */
 
-import type { ExtensionDependent, ExtensionRequirement } from './api';
+import { ref, type Ref } from 'vue';
+import { errorMessage, refreshIfAsked, request, saveSettings, type ExtensionDependent, type ExtensionRequirement } from './api';
+import { confirmAction } from './confirm';
+import { loadCounts } from './counts';
+import { toast } from './toast';
 
-type ExtensionKind = ExtensionDependent['kind'];
+export type ExtensionKind = ExtensionDependent['kind'];
+
+// Each kind's part of the API's paths, its list screen's route name, and
+// its capabilities' (`extensions.{kind}.{action}`, D-389).
+export const KIND_PATHS: Record<ExtensionKind, string> = {
+	'theme': 'themes',
+	'plugin': 'plugins',
+	'icon-pack': 'icon-packs'
+};
+
+// What turning an extension on or off needs of it.
+interface Switchable {
+	name: string;
+	label: string;
+	stops: ExtensionDependent[];
+}
+
+interface SwitchOptions {
+	// Run after the save, before the toast: loading the list again.
+	then?: () => Promise<void>;
+	// The toast's words, given what started or stopped with it.
+	message?: (also: string) => string;
+	// Turns it back, offered as the toast's Undo when nothing else
+	// started or stopped, since turning the one back wouldn't put the
+	// others back.
+	undo?: () => void;
+}
+
+// A kind's installed extensions (`GET {kind}`), with what its screens do
+// to one, each with its question, toast, or failure. `busy` is the one
+// being turned on or off (or activated).
+export function useExtensionList<T>(kind: ExtensionKind) {
+	const answer = ref(null) as Ref<T | null>;
+	const error  = ref('');
+	const busy   = ref<string | null>(null);
+	const path   = KIND_PATHS[kind];
+
+	async function load(): Promise<void> {
+		try {
+			answer.value = await request<T>('GET', `/${path}`);
+			error.value  = '';
+		} catch (caught) {
+			error.value = errorMessage(caught, `The ${path.replace('-', ' ')} couldn't be loaded.`);
+		}
+	}
+
+	// Turns one on or off (`PUT {kind}/{vendor}/{name}`), asking first
+	// when turning it on would stop others (D-440), and saying what
+	// happened, naming the other extensions, of any kind, that started or
+	// stopped with it (D-431); resolves whether it was saved.
+	async function turn(extension: Switchable, on: boolean, options: SwitchOptions = {}): Promise<boolean> {
+		if (on && extension.stops.length > 0 && !await confirmAction({ title: `Turn on ${extension.label}?`, body: stopsParagraph(extension.stops), confirm: `Turn on ${extension.label}` })) {
+			return false;
+		}
+
+		busy.value = extension.name;
+
+		try {
+			const saved  = await request<{ started: string[]; stopped: string[]; refresh: boolean }>('PUT', `/${path}/${extension.name}`, { enabled: on });
+			const others = on ? saved.started : saved.stopped;
+			const also   = others.length === 0 ? '' : `, and ${list(others)} ${on ? 'started' : 'stopped'} with it`;
+
+			await refreshIfAsked(saved);
+			await options.then?.();
+			toast(options.message?.(also) ?? `Turned ${on ? 'on' : 'off'} ${extension.label}${also}`, {
+				kind: on ? 'good' : 'danger',
+				undo: others.length === 0 ? options.undo : undefined
+			});
+
+			return true;
+		} catch (caught) {
+			toast(errorMessage(caught, `${extension.label} couldn't be turned ${on ? 'on' : 'off'}`), { kind: 'warn' });
+
+			return false;
+		} finally {
+			busy.value = null;
+		}
+	}
+
+	// Asks, then deletes a folder in `extensions/` (`DELETE
+	// {kind}/{vendor}/{name}`), with what else deleting it does after the
+	// first paragraph; resolves whether it was deleted.
+	async function deleteFolder(label: string, folder: string, more: string[] = []): Promise<boolean> {
+		const body = [`The folder **${folder}** and everything in it is removed from the server. This can't be undone.`, ...more];
+
+		if (!await confirmAction({ title: `Delete ${label}?`, body, confirm: `Delete ${label}`, danger: true })) {
+			return false;
+		}
+
+		try {
+			await request('DELETE', `/${path}/${folderPath(folder)}`);
+			void loadCounts();
+			toast(`Deleted ${label}`, { kind: 'danger' });
+
+			return true;
+		} catch (caught) {
+			error.value = errorMessage(caught, `${label} couldn't be deleted.`);
+
+			return false;
+		}
+	}
+
+	// Puts the kind's config file back in charge, by unsetting what
+	// `user/data/settings.json` saved over it, then loads the list again
+	// and says so.
+	async function restoreConfig(setting: string, said: () => string, failure: string): Promise<void> {
+		try {
+			await saveSettings({ unset: [setting] });
+			await load();
+			toast(said());
+		} catch (caught) {
+			error.value = errorMessage(caught, failure);
+		}
+	}
+
+	return { answer, error, busy, load, turn, deleteFolder, restoreConfig };
+}
 
 // An extension's details screen's address, by its kind:
 // `/plugins/{vendor}/{name}`, `/themes/…`, or `/icon-packs/…`.
@@ -14,6 +136,17 @@ export function extensionRoute(kind: ExtensionKind, name: string): { name: Exten
 	const [vendor = '', short = ''] = name.split('/');
 
 	return { name: kind, params: { vendor, name: short } };
+}
+
+// The name a folder in `extensions/` gives (its last two parts,
+// `acme/hello`; D-418), which `DELETE {kind}/{vendor}/{name}` takes.
+export function folderName(folder: string): string {
+	return folder.split('/').slice(-2).join('/');
+}
+
+// A folder's name as a URL path, each part encoded.
+function folderPath(folder: string): string {
+	return folderName(folder).split('/').map(encodeURIComponent).join('/');
 }
 
 // The kind of an installed extension a requirement names, or `null`.

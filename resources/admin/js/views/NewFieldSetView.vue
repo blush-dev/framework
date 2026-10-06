@@ -9,7 +9,7 @@ import { ref } from 'vue';
 import { RouterLink } from 'vue-router';
 import AdminIcon from '../components/AdminIcon.vue';
 import FieldSetEditor from '../components/FieldSetEditor.vue';
-import { ApiError, request, type FieldSetList } from '../api';
+import { errorMessage, request, type FieldSetList } from '../api';
 import { loadTypes } from '../types';
 
 const list  = ref<FieldSetList | null>(null);
@@ -21,7 +21,7 @@ request<FieldSetList>('GET', '/fields/sets').then((answer) => {
 	list.value  = answer;
 	error.value = answer.create ? '' : 'Field sets can\'t be created here: FieldConfig "dataSets" is off, so user/data/fields isn\'t read.';
 }, (caught: unknown) => {
-	error.value = caught instanceof ApiError ? caught.message : 'The content types couldn\'t be loaded.';
+	error.value = errorMessage(caught, 'The content types couldn\'t be loaded.');
 });
 </script>
 

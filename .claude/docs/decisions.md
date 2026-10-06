@@ -15033,3 +15033,148 @@ decision, add a new entry that supersedes it and mark the old one
     `justintadlock/jtcom-blade`) is kept but off, with `illuminate/view`
     removed.
   - What to do about global helpers is open (`open-questions.md`).
+
+### D-505: The admin shares its behavior, not just its classes
+- **Date:** 2026-10-05
+- **Decision:** the author's call, after a review of the admin for code
+  written more than once: the admin stays small by sharing what its
+  screens do, in modules under `resources/admin/js/`, the way D-231
+  shares how they look in `admin.css`. Components that call the API or
+  wire a control use these rather than their own copies:
+  - **`api.ts`:** `errorMessage(caught, fallback)` (a failure's message:
+    the server's, else the fallback), `refreshIfAsked()` and
+    `saveSettings()` (a settings save, then compiling and reindexing
+    when the server asks), and `patchEntry()` and `trashEntry()` (an
+    entry changed as it is now, its revision read first).
+  - **`action.ts`:** `useAction()` (busy while it runs, its failure kept
+    for a notice), `latest()` (only the latest search's answer is used),
+    and `debounced()` (a call put off until typing stops, dropped when
+    its component unmounts).
+  - **`popover.ts`:** `usePopover()` (a panel placed beside its button,
+    over it when there's no room below, closed by a press outside) and
+    `onPressOutside()`, for the select, the date picker, the menu
+    button, and the editor's link and mention forms.
+  - **`grid.ts`:** `listMove()`, `gridColumns()`, and `numbered()`, with
+    `gridMove()`, for moving through a list or grid of choices.
+  - **`dialog.ts`:** `useModalDialog()`, for the inserters and the
+    command palette (AdminModal stays the modal with a footer).
+  - **`drop.ts`, `query.ts`, `month.ts`:** files dragged in
+    (`useFileDrop()`), a list's filters in its address
+    (`useQueryState()`), and months drawn as weeks (`monthDays()`).
+  - **`confirm.ts`:** `guardLeave()`, which asks before leaving unsaved
+    changes for another screen, and now also has the browser warn
+    before the tab closes or reloads with them (the editor keeps its
+    own, which keeps the changes instead).
+  - **`toast.ts`:** `copyText()`, every Copy action's, in place of
+    `themes.ts`'s `copy()`.
+  - **Shared classes** in `admin.css` for what screens drew in their
+    own styles: `.facts` (with `--inline` and `--grid`), `.chips`,
+    `.check-input` and `.check-box` (a drawn checkbox), `.form-stack`,
+    `.field-pair`, `.fieldset`, `.field__label`, `.submit-row--tight`,
+    `.link-button`, `.lnk` on a button, `.eyebrow`, `.count-row`,
+    `.toolbar__filter`, the skeleton widths, `.spin`, and the bulk bar
+    as the save bar's pill. Unused rules are gone.
+  - Still open, for the author: one notice style or two, one tab style
+    or two, the floating save bar or the inline save row, and whether
+    shared pieces become components (D-231 keeps them classes).
+  - Putting `config/icons.php` back in charge of icon packs refreshes
+    when the server asks, as plugins and themes do; it didn't before.
+
+### D-506: One notice, the profiles sketch's
+- **Date:** 2026-10-05
+- **Decision:** the author's call, from D-505's open questions: the
+  Users screens' notice (the profiles sketch's, D-373, D-376) is every
+  screen's `.notice`, and the direction's (a grid, a red edge on an
+  error) is gone.
+  - A quiet box on `--surface-2` with gray text and full-color
+    `<strong>`, or the soft ground of success, a warning, or an error,
+    none with a ruled edge.
+  - With an icon, `.notice__text`, or `.notice__buttons` it's a row:
+    the icon, the text, and its buttons at the end. Without them what's
+    in it stacks, as before, so text with inline markup needs no
+    wrapper.
+  - `.notice--small` is a card's warning: smaller type and padding and
+    a 14px icon. The extension screens' six hand-drawn warning boxes
+    (`.plugin__message`, `.theme-message`, …) are now this, as are
+    Settings' notes and the abandoned notice, keeping only their
+    margins.
+
+### D-507: One set of status tabs, the entries list's
+- **Date:** 2026-10-05
+- **Decision:** the author's call, from D-505's open questions: the
+  entries list's status tabs (medium weight, the count in a pill) are
+  every list's, Accounts' too, in place of the profiles sketch's
+  (plain words, quiet counts). Their padding is 12px by 10px, not 14px
+  across. The editor's and the media picker's tabs, buttons in a panel,
+  are left for the question of a tab bar component.
+
+### D-508: The save bar for screens always editable, a button for making
+- **Date:** 2026-10-05
+- **Decision:** the author's call, from D-505's open questions. A screen
+  that's always editable, where changes are made anywhere on a long
+  page and saved together, saves from the floating save bar (D-324):
+  the count ("3 unsaved changes"), a refused save's reason, **Revert**,
+  and **Save changes**. Settings and a role had it; a content type, an
+  existing field set, and a media file's details now do too (the media
+  file's gains **Revert**). A screen that makes something (New Account,
+  New Role, New Type, a new field set) keeps its one button under the
+  form, and a small form opened on request (an account's details, a
+  password, linking a profile) keeps its buttons beside its fields.
+  Every bar counts "unsaved changes" alike.
+
+### D-509: Classes for how things look, components for what repeats
+- **Date:** 2026-10-05
+- **Decision:** the author's call, from D-505's open questions, refining
+  D-231. A shared piece is a global class in `admin.css` when it's only
+  how something looks (a button, a panel, a pill, a notice, facts), and
+  a component when the same markup (several elements, with something
+  filled in) repeats in three or more places, or carries behavior. No
+  `Base` prefix: plain names, as AdminModal and ToggleSwitch have.
+  - **`SaveBar`** (count, failure, saving, `ready`; emits `revert`):
+    Settings, a role, a content type, a field set, a media file.
+  - **`DangerZone`** (the text, an `action` slot, `error`): the plugin,
+    theme, and icon pack details screens, a content type, and a field
+    set. One design, the extension screens' strip, so a type's and a
+    field set's lose their Danger Zone panel and heading.
+  - **The extension screens:** `ExtensionFacts` (the Details list, with
+    `kind` and `after` slots for a kind's own rows; an icon pack's
+    Icons now sits after Namespace, and every kind shows "—" for no
+    version), `ExtensionPackagePanels` (Requires, Conflicts, Replaces,
+    Provides, Suggests; `part` keeps a plugin's Requires beside its
+    Details), `ExtensionCard` (a theme's or an icon pack's card), and
+    `ExtensionMenu` (the ⋯ menu: details, copy, delete, with slots for
+    a kind's own items), over global `.extension-cards`,
+    `.extension-card`, and `.extension__*` classes a plugin's row shares.
+    `ExtensionSummary` in `api.ts` is what every kind has.
+  - **`MediaCard`** (a file's card: a link with `to`, else a button
+    that's `selected`, with a ring and a tick) and `useMediaList()` and
+    `mediaIcon()` in `media.ts`, for the Media screen and the media
+    picker. **`TabBar`** (an ARIA tablist with `v-model`, arrow keys,
+    and roving focus; a `tab` slot) for the editor's drawer and the
+    media picker.
+  - **`PickModal`** (linking an account and a profile, from either
+    side; with none free and nothing to offer, only Close),
+    **`AuthCard`** (Sign in and Choose a Password, the site's initial
+    over the title), and **`EmptyState`** (glyph, heading, text or a
+    default slot, an `actions` slot; every list's empty state).
+  - Then the review's leftovers: `useExtensionList()` in
+    `extensions.ts` (loading, turning on and off, deleting a folder,
+    putting config back in charge, with `KIND_PATHS`, `folderName`, and
+    `extensionRoute` for every kind; `useInstall` takes an adapter);
+    `CapabilityCheck` and `CapabilitySection` inside the role screen's
+    capabilities; `RawValues` (what's kept as written: an entry's
+    other front matter, a media file's other metadata, a component's
+    undeclared attributes, a trashed entry's front matter);
+    `OptionsGroup` and `OptionSelect` for the editor's option panels;
+    and, out of `EditorView`, `OutlineList`, `ConflictBar` (with Compare;
+    `hunks()` in `diff.ts`), `LinkForm`, and `MentionForm`.
+
+### D-510: A size budget for the built admin
+- **Date:** 2026-10-05
+- **Decision:** the author's call: a running goal to bring the built
+  admin under 500 KB of JavaScript (`public/admin/js/admin.js`) and
+  100 KB of CSS (`public/admin/css/admin.css`), unzipped, over time; the
+  limits may be lowered later. They were 748 KB and 165 KB after
+  D-505 to D-509. It's a direction for the streamlining, not a gate:
+  changes to the admin keep the build no larger without a reason, and
+  say what they did to it. Tracked in `roadmap.md`.

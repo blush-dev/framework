@@ -24,6 +24,7 @@ import { RouterLink } from 'vue-router';
 import { entryRoute, type PeopleFieldInfo } from '../api';
 import AdminIcon from './AdminIcon.vue';
 import AdminSelect from './AdminSelect.vue';
+import ToggleSwitch from './ToggleSwitch.vue';
 import { keyOf, peopleWordOf, singularOf, type PeopleForm } from '../type-form';
 
 const props = defineProps<{
@@ -165,12 +166,7 @@ function wantPage(field: string, on: boolean): void {
 		<p v-if="people.length === 0" class="field__help">No profile fields, so no archives.</p>
 		<div v-for="(item, index) in people" :key="index" class="field">
 			<span class="type-people__switch-label">{{ item.plural || 'New field' }} archive</span>
-			<label class="switch">
-				<input v-model="item.archives" type="checkbox" role="switch" :disabled="!urls">
-				<span class="switch__track" aria-hidden="true" />
-				<span class="switch__word">{{ item.archives ? 'On' : 'Off' }}</span>
-				<span class="visually-hidden">{{ item.plural || 'New field' }} archive</span>
-			</label>
+			<ToggleSwitch form :checked="item.archives" :label="`${item.plural || 'New field'} archive`" :locked="!urls" @change="item.archives = $event" />
 			<p class="field__help">
 				<template v-if="!urls">This type can't set its URLs, so its archives are as the site has them.</template>
 				<template v-else-if="item.archives">Routes <span class="mono">{{ archiveBase(item) }}/&lt;slug&gt;</span> for every credited profile.</template>
@@ -268,65 +264,6 @@ function wantPage(field: string, on: boolean): void {
 
 .type-people__switch-label {
 	color: var(--fg);
-}
-
-/* A switch takes effect as the form's other fields do, on Save. */
-.switch {
-	display: inline-flex;
-	align-items: center;
-	gap: var(--s-2);
-	cursor: pointer;
-}
-
-.switch input {
-	position: absolute;
-	width: 1px;
-	height: 1px;
-	opacity: 0;
-}
-
-.switch__track {
-	position: relative;
-	flex: none;
-	width: 32px;
-	height: 18px;
-	border-radius: 999px;
-	background: var(--border-strong);
-}
-
-.switch__track::after {
-	position: absolute;
-	top: 2px;
-	left: 2px;
-	width: 14px;
-	height: 14px;
-	border-radius: 50%;
-	background: var(--surface);
-	content: "";
-}
-
-.switch input:checked + .switch__track {
-	background: var(--accent);
-}
-
-.switch input:checked + .switch__track::after {
-	right: 2px;
-	left: auto;
-}
-
-.switch input:focus-visible + .switch__track {
-	outline: 2px solid var(--accent);
-	outline-offset: 2px;
-}
-
-.switch input:disabled + .switch__track {
-	opacity: .5;
-}
-
-.switch__word {
-	color: var(--fg-2);
-	font-size: var(--text-xs);
-	font-weight: 500;
 }
 
 @media (width <= 900px) {

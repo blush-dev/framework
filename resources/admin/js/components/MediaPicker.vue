@@ -31,11 +31,16 @@
  * stays inside while it's open and returns afterwards.
  */
 
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { computed, nextTick, ref } from 'vue';
 import AdminIcon from './AdminIcon.vue';
-import { mediaFacts, mediaName } from '../media';
-import { ApiError, request, upload, type MediaItem, type MediaList } from '../api';
-import { formatSize, plural } from '../format';
+import EmptyState from './EmptyState.vue';
+import MediaCard from './MediaCard.vue';
+import TabBar from './TabBar.vue';
+import { mediaFacts, mediaName, useMediaList } from '../media';
+import { errorMessage, request, upload, type MediaItem, type MediaList } from '../api';
+import { useModalDialog } from '../dialog';
+import { hasFiles, useFileDrop } from '../drop';
+import { formatSize } from '../format';
 import type { IconName } from '../icons';
 import { canUpload } from '../session';
 
@@ -58,17 +63,10 @@ const emit = defineEmits<{
 	close: [];
 }>();
 
-const dialog   = ref<HTMLDialogElement | null>(null);
 const input    = ref<HTMLInputElement | null>(null);
 const searchEl = ref<HTMLInputElement | null>(null);
 const search   = ref('');
 const kind     = ref<Kind>(props.kind ?? 'any');
-const files    = ref<MediaItem[]>([]);
-const total    = ref(0);
-const page     = ref(1);
-const pages    = ref(1);
-const loading  = ref(true);
-const error    = ref('');
 const selected = ref<MediaItem | null>(null);
 
 // Uploading: whether the account may, what the server says it takes, the
@@ -77,8 +75,12 @@ const uploads  = canUpload();
 const accepts  = ref<MediaList['upload']>(null);
 const tabbed   = uploads && !props.uploadOnly;
 const tab      = ref<'library' | 'upload'>(uploads ? (props.uploadOnly ? 'upload' : props.tab ?? 'library') : 'library');
-const dragging = ref(false);
 const added    = ref<{ key: number; name: string; state: 'sending' | 'done' | 'failed'; file?: MediaItem; message?: string }[]>([]);
+
+const TABS: { key: 'library' | 'upload'; label: string; icon: IconName }[] = [
+	{ key: 'library', label: 'Library', icon: 'image' },
+	{ key: 'upload', label: 'Upload', icon: 'upload' }
+];
 
 const KINDS = [
 	{ key: 'any', label: 'All' },
@@ -111,55 +113,17 @@ function isKind(file: MediaItem, key: string): boolean {
 	return key === 'any' || (key === 'file' ? !['image', 'video', 'audio', 'document'].includes(file.kind) : file.kind === key);
 }
 
-let latest = 0;
+const { dialog, close } = useModalDialog(() => {
+	void load();
 
-async function load(more = false): Promise<void> {
-	const ask = ++latest;
-	const params = new URLSearchParams({ page: String(more ? page.value + 1 : 1), kind: kind.value });
-
-	if (search.value.trim() !== '') {
-		params.set('search', search.value.trim());
+	if (tab.value === 'library') {
+		searchEl.value?.focus();
 	}
-
-	loading.value = true;
-	error.value   = '';
-
-	try {
-		const answer = await request<MediaList>('GET', `/media?${params.toString()}`);
-
-		if (ask !== latest) {
-			return;
-		}
-
-		files.value   = more ? [...files.value, ...answer.files] : answer.files;
-		total.value   = answer.total;
-		page.value    = answer.page;
-		pages.value   = answer.pages;
-		accepts.value = answer.upload;
-	} catch (caught) {
-		if (ask === latest) {
-			error.value = caught instanceof ApiError ? caught.message : 'The media couldn\'t be loaded.';
-		}
-	} finally {
-		if (ask === latest) {
-			loading.value = false;
-		}
-	}
-}
-
-// A search waits for a pause in typing.
-let typing: ReturnType<typeof setTimeout> | undefined;
-
-watch(search, () => {
-	clearTimeout(typing);
-	typing = setTimeout(() => void load(), 250);
 });
 
-watch(kind, () => void load());
-
-function icon(file: MediaItem): IconName {
-	return file.kind === 'video' ? 'film' : (file.kind === 'audio' ? 'music' : (file.kind === 'document' ? 'file-text' : 'file'));
-}
+const { files, total, page, pages, loading, error, load } = useMediaList(kind, search, undefined, (answer) => {
+	accepts.value = answer.upload;
+});
 
 function details(file: MediaItem): string {
 	return mediaFacts(file);
@@ -218,7 +182,7 @@ async function send(list: FileList | File[] | null | undefined): Promise<void> {
 
 			selected.value = item;
 		} catch (caught) {
-			replace(row.key, { ...row, state: 'failed', message: caught instanceof ApiError ? caught.message : 'It couldn\'t be uploaded.' });
+			replace(row.key, { ...row, state: 'failed', message: errorMessage(caught, 'It couldn\'t be uploaded.') });
 		}
 	}
 }
@@ -236,34 +200,14 @@ function browse(event: Event): void {
 
 // A drag of files over the modal: switch to the Upload tab and take them
 // wherever they're dropped.
-function hasFiles(event: DragEvent): boolean {
-	return event.dataTransfer?.types.includes('Files') ?? false;
-}
+const { dragging, over, leave: dragLeave, drop } = useFileDrop((dropped) => void send(dropped), () => uploads);
 
 function dragOver(event: DragEvent): void {
-	if (!uploads || !hasFiles(event)) {
-		return;
+	over(event);
+
+	if (uploads && hasFiles(event)) {
+		tab.value = 'upload';
 	}
-
-	event.preventDefault();
-	dragging.value = true;
-	tab.value      = 'upload';
-}
-
-function dragLeave(event: DragEvent): void {
-	if (!(event.relatedTarget instanceof Node) || !dialog.value?.contains(event.relatedTarget)) {
-		dragging.value = false;
-	}
-}
-
-function drop(event: DragEvent): void {
-	if (!uploads || !hasFiles(event)) {
-		return;
-	}
-
-	event.preventDefault();
-	dragging.value = false;
-	void send(event.dataTransfer?.files);
 }
 
 async function showTab(next: 'library' | 'upload'): Promise<void> {
@@ -273,34 +217,14 @@ async function showTab(next: 'library' | 'upload'): Promise<void> {
 }
 
 // Arrow keys move between the tabs.
-function tabKey(event: KeyboardEvent): void {
-	if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
-		event.preventDefault();
-		void showTab(tab.value === 'library' ? 'upload' : 'library');
-	}
-}
-
 // The dialog closes first: while it's open and modal, nothing outside it
 // can take focus, so the editor couldn't insert at its caret.
 function use(file: MediaItem | null): void {
 	if (file !== null) {
-		dialog.value?.close();
+		close();
 		emit('choose', file);
 	}
 }
-
-onMounted(() => {
-	dialog.value?.showModal();
-	void load();
-
-	if (tab.value === 'library') {
-		searchEl.value?.focus();
-	}
-});
-
-onBeforeUnmount(() => {
-	clearTimeout(typing);
-});
 </script>
 
 <template>
@@ -310,7 +234,7 @@ onBeforeUnmount(() => {
 		:class="{ 'is-dragging': dragging }"
 		aria-labelledby="media-picker-heading"
 		@close="emit('close')"
-		@keydown.esc.prevent.stop="dialog?.close()"
+		@keydown.esc.prevent.stop="close()"
 		@dragenter="dragOver"
 		@dragover="dragOver"
 		@dragleave="dragLeave"
@@ -318,20 +242,13 @@ onBeforeUnmount(() => {
 	>
 		<div class="modal__head">
 			<h2 id="media-picker-heading">{{ title ?? 'Insert Media' }}</h2>
-			<button type="button" class="button button--ghost button--icon" @click="dialog?.close()">
+			<button type="button" class="button button--ghost button--icon" @click="close()">
 				<AdminIcon name="x" />
 				<span class="visually-hidden">Close</span>
 			</button>
 		</div>
 
-		<div v-if="tabbed" class="picker__tabs" role="tablist" aria-label="Source" @keydown="tabKey">
-			<button id="media-tab-library" type="button" class="picker__tab" role="tab" aria-controls="media-panel-library" :aria-selected="tab === 'library'" :tabindex="tab === 'library' ? 0 : -1" @click="tab = 'library'">
-				<AdminIcon name="image" />Library
-			</button>
-			<button id="media-tab-upload" type="button" class="picker__tab" role="tab" aria-controls="media-panel-upload" :aria-selected="tab === 'upload'" :tabindex="tab === 'upload' ? 0 : -1" @click="tab = 'upload'">
-				<AdminIcon name="upload" />Upload
-			</button>
-		</div>
+		<TabBar v-if="tabbed" v-model="tab" class="picker__tabs" :tabs="TABS" label="Source" prefix="media" />
 
 		<div v-if="!uploadOnly" v-show="tab === 'library'" id="media-panel-library" class="picker__panel" :role="tabbed ? 'tabpanel' : undefined" :aria-labelledby="tabbed ? 'media-tab-library' : undefined">
 			<div class="modal__bar" :class="{ 'picker__bar--tabbed': tabbed }">
@@ -353,43 +270,23 @@ onBeforeUnmount(() => {
 						<span aria-live="polite">{{ loading && !files.length ? 'Loading…' : `${total.toLocaleString()} ${total === 1 ? 'file' : 'files'}` }}</span>
 					</h3>
 					<div v-if="files.length" class="picker__grid">
-						<button
-							v-for="file in files"
-							:key="file.reference"
-							type="button"
-							class="picker__card"
-							:aria-pressed="selected?.url === file.url"
-							@click="selected = file"
-							@dblclick="use(file)"
-						>
-							<span class="picker__thumb">
-								<img v-if="file.kind === 'image'" :src="file.url" alt="" loading="lazy">
-								<template v-else><AdminIcon :name="icon(file)" /><span class="picker__kind mono">{{ file.kind }}</span></template>
-								<span class="picker__tick" aria-hidden="true"><AdminIcon name="check" /></span>
-							</span>
-							<span class="picker__meta">
-								<span class="picker__name" :title="file.name">{{ mediaName(file) }}</span>
-								<span class="picker__sub mono">{{ details(file) }}</span>
-							</span>
-						</button>
+						<MediaCard v-for="file in files" :key="file.reference" :file="file" :details="details(file)" :selected="selected?.url === file.url" @click="selected = file" @dblclick="use(file)" />
 					</div>
 					<div v-else-if="loading" class="picker__grid" aria-hidden="true">
 						<span v-for="card in 8" :key="card" class="skeleton picker__skeleton" />
 					</div>
-					<div v-else-if="!error" class="empty">
-						<AdminIcon :name="search || kind !== 'any' ? 'search' : 'image'" />
-						<template v-if="search || kind !== 'any'">
-							<p class="empty__heading">Nothing Matches</p>
-							<p class="empty__text">No file in the library matches that name or kind.</p>
+					<EmptyState
+						v-else-if="!error"
+						:icon="search || kind !== 'any' ? 'search' : 'image'"
+						:heading="search || kind !== 'any' ? 'Nothing Matches' : 'The Library Is Empty'"
+						:text="search || kind !== 'any' ? 'No file in the library matches that name or kind.' : 'Images, video, audio, and documents you upload land here, and any entry can use them.'"
+					>
+						<template #actions>
+							<button v-if="uploads" type="button" class="button" @click="showTab('upload')">
+								<AdminIcon name="upload" />{{ search || kind !== 'any' ? 'Upload one instead' : 'Upload a file' }}
+							</button>
 						</template>
-						<template v-else>
-							<p class="empty__heading">The Library Is Empty</p>
-							<p class="empty__text">Images, video, audio, and documents you upload land here, and any entry can use them.</p>
-						</template>
-						<button v-if="uploads" type="button" class="button" @click="showTab('upload')">
-							<AdminIcon name="upload" />{{ search || kind !== 'any' ? 'Upload one instead' : 'Upload a file' }}
-						</button>
-					</div>
+					</EmptyState>
 					<p v-if="page < pages" class="picker__more">
 						<button type="button" class="button" :disabled="loading" @click="load(true)">{{ loading ? 'Loading…' : 'Show more' }}</button>
 					</p>
@@ -411,7 +308,7 @@ onBeforeUnmount(() => {
 				<section v-if="added.length" class="picker__added" aria-labelledby="media-added">
 					<h3 id="media-added" class="modal__count">
 						<span>Added to the Library</span>
-						<button v-if="tabbed" type="button" class="picker__show" @click="showTab('library')">Show in library</button>
+						<button v-if="tabbed" type="button" class="lnk picker__show" @click="showTab('library')">Show in library</button>
 					</h3>
 					<ul class="picker__receipt" aria-live="polite">
 						<li v-for="row in added" :key="row.key" class="picker__row" :class="`picker__row--${row.state}`">
@@ -433,7 +330,7 @@ onBeforeUnmount(() => {
 				<template v-if="selected"><b>{{ mediaName(selected) }}</b> · {{ details(selected) }}</template>
 				<template v-else>{{ uploadOnly ? 'Upload a file.' : 'Choose a file.' }}</template>
 			</p>
-			<button type="button" class="button" @click="dialog?.close()">Cancel</button>
+			<button type="button" class="button" @click="close()">Cancel</button>
 			<button type="button" class="button button--primary" :disabled="selected === null" @click="use(selected)">{{ action ?? 'Insert' }}</button>
 		</div>
 	</dialog>
@@ -443,44 +340,9 @@ onBeforeUnmount(() => {
 /* The tabs sit where the filter bar would, flush with the modal's left
    edge like the editor drawer's. */
 .picker__tabs {
-	display: flex;
 	flex: none;
-	gap: var(--s-1);
 	padding: 0 var(--s-5);
 	border-bottom: 1px solid var(--border);
-}
-
-.picker__tab {
-	display: flex;
-	align-items: center;
-	gap: 7px;
-	margin-bottom: -1px;
-	padding: 12px 12px 11px;
-	border: 0;
-	border-bottom: 2px solid transparent;
-	background: none;
-	color: var(--fg-2);
-	font-size: var(--text-sm);
-	cursor: pointer;
-}
-
-.picker__tab:first-child {
-	padding-left: 0;
-}
-
-.picker__tab svg {
-	width: 13px;
-	height: 13px;
-}
-
-.picker__tab:hover {
-	color: var(--fg);
-}
-
-.picker__tab[aria-selected="true"] {
-	border-bottom-color: var(--accent);
-	color: var(--fg);
-	font-weight: 500;
 }
 
 .picker__panel {
@@ -508,121 +370,6 @@ onBeforeUnmount(() => {
 	display: grid;
 	grid-template-columns: repeat(auto-fill, minmax(188px, 1fr));
 	gap: var(--s-4);
-}
-
-/* Every card the same height: a 4:3 thumbnail, a name on one line, and
-   its details on a second. */
-.picker__card {
-	display: flex;
-	flex-direction: column;
-	min-width: 0;
-	padding: 0;
-	overflow: hidden;
-	border: 1px solid var(--border);
-	border-radius: var(--r-2);
-	background: var(--surface);
-	color: var(--fg);
-	text-align: left;
-	cursor: pointer;
-}
-
-.picker__card:hover {
-	border-color: var(--border-strong);
-}
-
-.picker__card[aria-pressed="true"] {
-	border-color: var(--accent);
-	box-shadow: 0 0 0 2px var(--accent-soft);
-}
-
-.picker__thumb {
-	position: relative;
-	display: grid;
-	place-items: center;
-	aspect-ratio: 4 / 3;
-	overflow: hidden;
-	background: var(--surface-2);
-	color: var(--fg-3);
-}
-
-.picker__thumb img {
-	display: block;
-	width: 100%;
-	height: 100%;
-	object-fit: cover;
-}
-
-.picker__thumb > :deep(svg) {
-	width: 28px;
-	height: 28px;
-	stroke-width: 1.5;
-}
-
-/* A kind only where the thumbnail is a placeholder. */
-.picker__kind {
-	position: absolute;
-	top: 9px;
-	left: 9px;
-	padding: 1px 4px;
-	border: 1px solid var(--border);
-	border-radius: var(--r-1);
-	background: var(--surface);
-	color: var(--fg-2);
-	font-size: var(--text-2xs);
-	letter-spacing: .04em;
-	text-transform: uppercase;
-}
-
-/* Selection is a ring and a tick: a tint alone is lost on an image. */
-.picker__tick {
-	position: absolute;
-	top: 9px;
-	right: 9px;
-	display: grid;
-	place-items: center;
-	width: 22px;
-	height: 22px;
-	border-radius: 50%;
-	background: var(--accent);
-	color: var(--accent-fg);
-	opacity: 0;
-	transform: scale(.7);
-	transition: opacity 120ms, transform 120ms;
-}
-
-.picker__tick :deep(svg) {
-	width: 13px;
-	height: 13px;
-	stroke-width: 2.6;
-}
-
-.picker__card[aria-pressed="true"] .picker__tick {
-	opacity: 1;
-	transform: none;
-}
-
-.picker__meta {
-	display: grid;
-	gap: 4px;
-	min-width: 0;
-	padding: var(--s-3) var(--s-4);
-	border-top: 1px solid var(--border);
-}
-
-.picker__name,
-.picker__sub {
-	overflow: hidden;
-	text-overflow: ellipsis;
-	white-space: nowrap;
-}
-
-.picker__name {
-	font-size: var(--text-sm);
-}
-
-.picker__sub {
-	color: var(--fg-3);
-	font-size: var(--text-xs);
 }
 
 .picker__skeleton {
@@ -692,19 +439,10 @@ onBeforeUnmount(() => {
 }
 
 .picker__show {
-	padding: 0;
-	border: 0;
-	background: none;
-	color: var(--accent);
 	font-size: var(--text-sm);
 	font-weight: 400;
 	letter-spacing: normal;
 	text-transform: none;
-	cursor: pointer;
-}
-
-.picker__show:hover {
-	text-decoration: underline;
 }
 
 .picker__receipt {

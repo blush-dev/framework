@@ -93,30 +93,38 @@
  */
 
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { debounced } from '../action';
 import { confirmAction } from '../confirm';
 import { makeHomepage } from '../homepage';
 import { onBeforeRouteLeave, RouterLink, useRoute, useRouter } from 'vue-router';
-import { ApiError, entryPath, entryRoute, request, upload, type EntryDetail, type EntryStatus, type NewEntryDetail, type FieldDescription, type MediaItem, type PreviewLink } from '../api';
+import { ApiError, entryPath, entryRoute, errorMessage, request, upload, type EntryDetail, type EntryStatus, type NewEntryDetail, type FieldDescription, type MediaItem, type PreviewLink } from '../api';
 import AdminIcon from '../components/AdminIcon.vue';
 import BlockOptions from '../components/BlockOptions.vue';
 import ComponentOptions from '../components/ComponentOptions.vue';
 import ComponentPanel from '../components/ComponentPanel.vue';
+import ConflictBar from '../components/ConflictBar.vue';
 import DatePicker from '../components/DatePicker.vue';
 import FieldControl from '../components/FieldControl.vue';
 import ImagePreview from '../components/ImagePreview.vue';
 import ReferencePicker from '../components/ReferencePicker.vue';
 import IconPicker from '../components/IconPicker.vue';
 import ImageOptions from '../components/ImageOptions.vue';
+import LinkForm from '../components/LinkForm.vue';
 import MarkdownEditor, { type MentionSuggestion } from '../components/MarkdownEditor.vue';
 import MediaPicker from '../components/MediaPicker.vue';
+import MentionForm from '../components/MentionForm.vue';
 import MenuButton from '../components/MenuButton.vue';
+import OptionsGroup from '../components/OptionsGroup.vue';
+import OutlineList, { type OutlineRow } from '../components/OutlineList.vue';
+import RawValues from '../components/RawValues.vue';
 import StatusPill from '../components/StatusPill.vue';
 import AdminSelect, { type SelectOption } from '../components/AdminSelect.vue';
+import TabBar from '../components/TabBar.vue';
 import TypeIcon from '../components/TypeIcon.vue';
 import { BLOCK_KINDS } from '../blocks';
 import { bleedClasses, componentIcon, IMAGE_COMPONENT, imageVariants, loadComponents, MARKDOWN_ELEMENTS, type BleedClasses, type ComponentDescription, type ComponentProp } from '../components';
 import { online } from '../connection';
-import { diffLines, type DiffLine } from '../diff';
+import { diffLines, hunks, type Differences } from '../diff';
 import { drawerOpen, keepDrawer } from '../drawer';
 import { fromForm, humanize, inSentence, label, splitDate, toForm, type FormValue } from '../fields';
 import { formatDate, plural, titleCase } from '../format';
@@ -124,13 +132,14 @@ import { forget, keep, kept, type EditorState, type KeptChanges } from '../kept'
 import { childrenOf, elementAt, elementName, excerpt, holdsContent, imageLine, movedElement, outlineItems, pathTo, runIndex, sameElement, siblingRuns, type ElementRef, type OutlineItem } from '../elements';
 import { attributeParts, attributeText, blocks, directiveHead, emphasisAt, imageText, renumberedAt, inProse, linkAt, linkLabel, outline, withAttribute, withBlockParts, withDirectiveParts, withImage, withLink, withoutDirective, withoutImage, withoutLink, withParts, wordAt, wordCount, type Directive, type Edit, type Emphasis, type MarkdownLink } from '../markdown';
 import { mediaName } from '../media';
+import { onPressOutside } from '../popover';
 import { loadReferences, slugOf, type ReferenceItem } from '../references';
 import { canUpload } from '../session';
 import type { IconName } from '../icons';
 import type { SiteIcon } from '../site-icons';
 import { focusMode, screenCrumb, screenTitle, screenTrail } from '../screen';
 import { config } from '../config';
-import { toast } from '../toast';
+import { copyText, toast } from '../toast';
 import { useCommands, type Command } from '../commands';
 import { profileType, currentType, labelsOf, loadTypes, types } from '../types';
 
@@ -201,7 +210,6 @@ const notices  = ref(false);
 const waiting   = ref<{ status?: EntryStatus } | null>(null);
 const failure   = ref<{ message: string; status?: EntryStatus } | null>(null);
 const conflict  = ref<{ status?: EntryStatus; theirs: EntryDetail | null; loading: boolean } | null>(null);
-const comparing = ref(false);
 
 // Changes kept in this browser from an earlier visit, until restored or
 // thrown away; and whether the latest changes are kept.
@@ -406,11 +414,10 @@ function fill(detail: EntryDetail | NewEntryDetail): void {
 		parent.value = detail.parent ?? '';
 	}
 
-	initial.value   = current();
-	conflict.value  = null;
-	comparing.value = false;
-	failure.value   = null;
-	waiting.value   = null;
+	initial.value  = current();
+	conflict.value = null;
+	failure.value  = null;
+	waiting.value  = null;
 
 	follow(detail);
 }
@@ -483,7 +490,7 @@ async function load(): Promise<void> {
 			titleField.value?.focus();
 		}
 	} catch (caught) {
-		error.value = caught instanceof ApiError ? caught.message : `The ${noun.value} couldn't be loaded.`;
+		error.value = errorMessage(caught, `The ${noun.value} couldn't be loaded.`);
 	}
 }
 
@@ -517,10 +524,10 @@ function discard(): void {
 
 // Changes are kept in the browser a moment after typing stops; a clean
 // form keeps nothing. While an offer is open, what's kept stays as it is.
-let keeping: ReturnType<typeof setTimeout> | undefined;
+const keeping = debounced(keepNow, 400);
 
 function keepNow(): void {
-	clearTimeout(keeping);
+	keeping.cancel();
 
 	const detail = entry.value;
 
@@ -536,10 +543,7 @@ function keepNow(): void {
 	}
 }
 
-watch([title, body, date, form], () => {
-	clearTimeout(keeping);
-	keeping = setTimeout(keepNow, 400);
-}, { deep: true });
+watch([title, body, date, form], () => keeping(), { deep: true });
 
 // Required fields left empty, with where each is shown.
 const missing = computed(() => {
@@ -703,7 +707,7 @@ async function save(status?: EntryStatus): Promise<void> {
 		} else if (caught instanceof ApiError && caught.status === 0 && !online.value) {
 			waiting.value = { status };
 		} else {
-			failure.value = { message: caught instanceof ApiError ? caught.message : `The ${noun.value} couldn't be saved.`, status };
+			failure.value = { message: errorMessage(caught, `The ${noun.value} couldn't be saved.`), status };
 		}
 	} finally {
 		saving.value = false;
@@ -803,17 +807,17 @@ function keepMine(): void {
 
 	const mine = current();
 
-	entry.value     = theirs;
-	initial.value   = stateOf(theirs);
-	conflict.value  = null;
-	comparing.value = false;
+	entry.value    = theirs;
+	initial.value  = stateOf(theirs);
+	conflict.value = null;
 	apply(mine);
 
 	void save(open.status);
 }
 
-// What differs between the file as it is now and the changes here.
-const differences = computed(() => {
+// What differs between the file as it is now and the changes here, for
+// the conflict bar's comparison.
+function differences(): Differences | null {
 	const theirs = conflict.value?.theirs;
 
 	if (theirs === null || theirs === undefined) {
@@ -840,33 +844,6 @@ const differences = computed(() => {
 	}
 
 	return { rows, body: their.body === mine.body ? null : hunks(diffLines(their.body, mine.body)) };
-});
-
-/**
- * Leaves out long runs of unchanged lines, keeping two on each side of a
- * change.
- */
-function hunks(lines: DiffLine[]): (DiffLine | { kind: 'skip'; count: number })[] {
-	const near = lines.map((_, index) => lines.slice(Math.max(0, index - 2), index + 3).some((line) => line.kind !== 'same'));
-	const out: (DiffLine | { kind: 'skip'; count: number })[] = [];
-
-	lines.forEach((line, index) => {
-		if (near[index] === true) {
-			out.push(line);
-
-			return;
-		}
-
-		const last = out.at(-1);
-
-		if (last !== undefined && last.kind === 'skip') {
-			last.count++;
-		} else {
-			out.push({ kind: 'skip', count: 1 });
-		}
-	});
-
-	return out;
 }
 
 async function trash(): Promise<void> {
@@ -883,7 +860,7 @@ async function trash(): Promise<void> {
 		await router.push({ name: 'type', params: { type: detail.type.name } });
 		toast(`Moved “${detail.title || 'Untitled'}” to the trash`, { kind: 'danger' });
 	} catch (caught) {
-		error.value = caught instanceof ApiError ? caught.message : `The ${noun.value} couldn't be moved to the trash.`;
+		error.value = errorMessage(caught, `The ${noun.value} couldn't be moved to the trash.`);
 	}
 }
 
@@ -1031,7 +1008,7 @@ async function preview(): Promise<void> {
 		}
 	} catch (caught) {
 		tab?.close();
-		error.value = caught instanceof ApiError ? caught.message : 'The preview couldn\'t be opened.';
+		error.value = errorMessage(caught, 'The preview couldn\'t be opened.');
 	}
 }
 
@@ -1386,7 +1363,7 @@ async function uploadFiles(files: File[]): Promise<void> {
 		try {
 			insertFile(await upload<MediaItem>('/media', file));
 		} catch (caught) {
-			error.value = `${file.name} wasn't uploaded. ${caught instanceof ApiError ? caught.message : 'Check your connection, then try again.'}`;
+			error.value = `${file.name} wasn't uploaded. ${errorMessage(caught, 'Check your connection, then try again.')}`;
 		}
 	}
 }
@@ -1482,8 +1459,8 @@ useCommands(() => {
 		{ id: 'editor-strike', label: 'Strikethrough', icon: 'strikethrough', keywords: 'format delete struck', shortcut: '⌘⇧X', run: () => bodyEditor.value?.emphasis('strike') },
 		{ id: 'editor-mark', label: 'Highlight', icon: 'highlighter', keywords: 'format mark', shortcut: '⌘⇧H', run: () => bodyEditor.value?.emphasis('marked') },
 		{ id: 'editor-code', label: 'Inline code', icon: 'code', keywords: 'format monospace', shortcut: '⌘E', run: () => bodyEditor.value?.code() },
-		...(canMention.value ? [{ id: 'editor-mention', label: 'Mention', icon: 'at-sign' as const, keywords: 'profile person author @', run: () => void openMention() }] : []),
-		{ id: 'editor-link', label: 'Link', icon: 'link', keywords: 'url address format', shortcut: '⌘K', run: () => void openLink() },
+		...(canMention.value ? [{ id: 'editor-mention', label: 'Mention', icon: 'at-sign' as const, keywords: 'profile person author @', run: openMention }] : []),
+		{ id: 'editor-link', label: 'Link', icon: 'link', keywords: 'url address format', shortcut: '⌘K', run: openLink },
 		{ id: 'editor-unlink', label: 'Remove link', icon: 'link', keywords: 'url address unlink', shortcut: '⌘⇧K', run: () => bodyEditor.value?.unlink() },
 		...[1, 2, 3, 4, 5, 6].map((level) => ({ id: `editor-heading-${level}`, label: `Heading ${level}`, icon: 'heading' as const, keywords: 'title level format', shortcut: `⌘⌥${level}`, run: () => bodyEditor.value?.heading(level) })),
 		{ id: 'editor-paragraph', label: 'Paragraph', icon: 'pilcrow', keywords: 'text body format heading', shortcut: '⌘⌥0', run: () => bodyEditor.value?.heading(0) },
@@ -1724,6 +1701,12 @@ function outlineText(item: ElementRef): string {
 	return excerpt(body.value, markdown.value, allBlocks.value, item);
 }
 
+// A row of the Outline or a Content group: what the element is, and its
+// excerpt.
+function rowOf(item: ElementRef): OutlineRow {
+	return { name: nameOf(item), icon: iconOf(item), text: outlineText(item), placed: placed(item) };
+}
+
 /**
  * Applies an option's edit to the body directly (so typing in the
  * settings keeps its focus), keeping the caret on the same text, and
@@ -1861,16 +1844,13 @@ function moveElement(up: boolean): void {
 	}
 }
 
-// The link form (⌘K): Text and Address, filled from the selection, the
-// word at the caret, or the link the caret is in.
+// The link form (⌘K; LinkForm): Text and Address, filled from the
+// selection, the word at the caret, or the link the caret is in.
 const linkOpen   = ref(false);
-const linkText   = ref('');
-const linkUrl    = ref('');
-const linkTarget = ref<{ start: number; end: number; link: MarkdownLink | null } | null>(null);
-const linkForm   = ref<HTMLFormElement | null>(null);
+const linkTarget = ref<{ start: number; end: number; link: MarkdownLink | null; text: string; url: string } | null>(null);
 const linkWrap   = ref<HTMLElement | null>(null);
 
-async function openLink(): Promise<void> {
+function openLink(): void {
 	if (!sentence.value) {
 		return;
 	}
@@ -1882,9 +1862,7 @@ async function openLink(): Promise<void> {
 	const link  = linkAt(body.value, start, end);
 
 	if (link !== null) {
-		linkTarget.value = { start: link.start, end: link.end, link };
-		linkText.value   = linkLabel(link.label);
-		linkUrl.value    = link.url;
+		linkTarget.value = { start: link.start, end: link.end, link, text: linkLabel(link.label), url: link.url };
 	} else {
 		const word     = start === end ? wordAt(body.value, start) : null;
 		const from     = word?.start ?? start;
@@ -1892,18 +1870,10 @@ async function openLink(): Promise<void> {
 		const selected = body.value.slice(from, to);
 		const address  = /^(?:https?:\/\/|mailto:|\/)\S*$/.test(selected.trim()) && selected.trim() !== '';
 
-		linkTarget.value = { start: from, end: to, link: null };
-		linkText.value   = address ? '' : selected;
-		linkUrl.value    = address ? selected.trim() : '';
+		linkTarget.value = { start: from, end: to, link: null, text: address ? '' : selected, url: address ? selected.trim() : '' };
 	}
 
 	linkOpen.value = true;
-	await nextTick();
-
-	// The first empty field: the address, when there's text to hang it on.
-	const fields = [...(linkForm.value?.querySelectorAll<HTMLInputElement>('input') ?? [])];
-
-	(fields.find((field) => field.value === '') ?? fields[0])?.focus();
 }
 
 function closeLink(refocus = true): void {
@@ -1920,15 +1890,15 @@ function closeLink(refocus = true): void {
 	}
 }
 
-function applyLink(): void {
+function applyLink(text: string, url: string): void {
 	const target = linkTarget.value;
 
-	if (target === null || linkUrl.value.trim() === '') {
+	if (target === null) {
 		return;
 	}
 
 	linkOpen.value = false;
-	bodyEditor.value?.change(withLink(body.value, target.start, target.end, linkText.value.trim() === '' ? linkUrl.value.trim() : linkText.value, linkUrl.value, target.link));
+	bodyEditor.value?.change(withLink(body.value, target.start, target.end, text.trim() === '' ? url.trim() : text, url, target.link));
 }
 
 function removeLink(): void {
@@ -1945,39 +1915,20 @@ function toggleLink(): void {
 	if (linkOpen.value) {
 		closeLink();
 	} else {
-		void openLink();
-	}
-}
-
-function linkKey(event: KeyboardEvent): void {
-	if (event.key === 'Escape') {
-		event.preventDefault();
-		event.stopPropagation();
-		closeLink();
+		openLink();
 	}
 }
 
 // A press outside the link form closes it.
-function outsideLink(event: PointerEvent): void {
-	if (linkOpen.value && event.target instanceof Node && linkWrap.value?.contains(event.target) !== true) {
-		closeLink(false);
-	}
-}
+onPressOutside([linkWrap], () => linkOpen.value, () => closeLink(false));
 
-// The mention form (D-493): a profile, found by name, written as
-// `@slug` where the caret is (in place of a selection, or the `@word`
-// it's in). Only published profiles have pages, so only they're offered.
-const canMention   = computed(() => config.mentions && profileType.value !== null);
-const mentionOpen  = ref(false);
-const mentionQuery = ref('');
-const mentionItems = ref<ReferenceItem[] | null>(null);
-const mentionIndex = ref(0);
-const mentionError = ref('');
-const mentionWrap  = ref<HTMLElement | null>(null);
-const mentionField = ref<HTMLInputElement | null>(null);
-const mentionSpot  = ref<{ start: number; end: number } | null>(null);
-let mentionSearch  = 0;
-let mentionTimer: ReturnType<typeof setTimeout> | undefined;
+// The mention form (D-493; MentionForm): a profile, found by name,
+// written as `@slug` where the caret is (in place of a selection, or the
+// `@word` it's in).
+const canMention  = computed(() => config.mentions && profileType.value !== null);
+const mentionOpen = ref(false);
+const mentionWrap = ref<HTMLElement | null>(null);
+const mentionSpot = ref<{ start: number; end: number; query: string } | null>(null);
 
 // The profiles typing `@` suggests (D-498): published ones, whose names
 // or slugs match.
@@ -1993,36 +1944,7 @@ async function findPeople(query: string): Promise<MentionSuggestion[]> {
 	return found.items.filter((item) => item.status === 'published').map((item) => ({ slug: item.slug, title: item.title }));
 }
 
-async function findMentions(): Promise<void> {
-	const type = profileType.value;
-	const ask  = ++mentionSearch;
-
-	if (type === null) {
-		return;
-	}
-
-	try {
-		const found = await loadReferences(type, { search: mentionQuery.value.trim().replace(/^@/, ''), limit: 8 });
-
-		if (ask === mentionSearch) {
-			mentionItems.value = found.items.filter((item) => item.status === 'published');
-			mentionIndex.value = 0;
-			mentionError.value = '';
-		}
-	} catch (error) {
-		if (ask === mentionSearch) {
-			mentionItems.value = [];
-			mentionError.value = error instanceof ApiError ? error.message : 'The profiles couldn\'t be loaded.';
-		}
-	}
-}
-
-function searchMentions(): void {
-	clearTimeout(mentionTimer);
-	mentionTimer = setTimeout(() => void findMentions(), 150);
-}
-
-async function openMention(): Promise<void> {
+function openMention(): void {
 	if (!sentence.value || !canMention.value) {
 		return;
 	}
@@ -2034,13 +1956,8 @@ async function openMention(): Promise<void> {
 	// The `@word` the caret is in, which a pick finishes.
 	const typed = start === end ? /@[\p{L}\p{N}_-]*$/u.exec(body.value.slice(0, start)) : null;
 
-	mentionSpot.value  = typed === null ? { start, end } : { start: start - typed[0].length, end };
-	mentionQuery.value = typed === null ? body.value.slice(start, end).trim() : typed[0].slice(1);
-	mentionItems.value = null;
-	mentionOpen.value  = true;
-	void findMentions();
-	await nextTick();
-	mentionField.value?.focus();
+	mentionSpot.value = typed === null ? { start, end, query: body.value.slice(start, end).trim() } : { start: start - typed[0].length, end, query: typed[0].slice(1) };
+	mentionOpen.value = true;
 }
 
 function closeMention(refocus = true): void {
@@ -2055,10 +1972,10 @@ function closeMention(refocus = true): void {
 	}
 }
 
-function chooseMention(item: ReferenceItem | undefined): void {
+function chooseMention(item: ReferenceItem): void {
 	const spot = mentionSpot.value;
 
-	if (item === undefined || spot === null) {
+	if (spot === null) {
 		return;
 	}
 
@@ -2068,25 +1985,8 @@ function chooseMention(item: ReferenceItem | undefined): void {
 	bodyEditor.value?.change({ text: body.value.slice(0, spot.start) + text + body.value.slice(spot.end), from: spot.start + text.length, to: spot.start + text.length });
 }
 
-function mentionKey(event: KeyboardEvent): void {
-	const count = mentionItems.value?.length ?? 0;
-
-	if (event.key === 'Escape') {
-		event.preventDefault();
-		event.stopPropagation();
-		closeMention();
-	} else if ((event.key === 'ArrowDown' || event.key === 'ArrowUp') && count > 0) {
-		event.preventDefault();
-		mentionIndex.value = (mentionIndex.value + (event.key === 'ArrowDown' ? 1 : count - 1)) % count;
-	}
-}
-
 // A press outside the mention form closes it.
-function outsideMention(event: PointerEvent): void {
-	if (mentionOpen.value && event.target instanceof Node && mentionWrap.value?.contains(event.target) !== true) {
-		closeMention(false);
-	}
-}
+onPressOutside([mentionWrap], () => mentionOpen.value, () => closeMention(false));
 
 /**
  * One thing is open at a time (admin.md §8, The toolbar): opening any of
@@ -2201,12 +2101,7 @@ async function copyLink(): Promise<void> {
 		return;
 	}
 
-	try {
-		await navigator.clipboard.writeText(new URL(url, config.site.url).href);
-		toast('Link copied');
-	} catch {
-		toast("The link couldn't be copied", { kind: 'warn' });
-	}
+	await copyText(new URL(url, config.site.url).href, 'the link');
 }
 
 /**
@@ -2224,26 +2119,11 @@ async function duplicate(): Promise<void> {
 
 		toast(`Duplicated as a draft: “${copy.title || 'Untitled'}”`);
 	} catch (caught) {
-		error.value = caught instanceof ApiError ? caught.message : `The ${noun.value} couldn't be duplicated.`;
+		error.value = errorMessage(caught, `The ${noun.value} couldn't be duplicated.`);
 	}
 }
 
 // Arrow keys move between the two tabs.
-function tabKey(event: KeyboardEvent): void {
-	if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') {
-		return;
-	}
-
-	event.preventDefault();
-
-	const order: (typeof tab.value)[] = ['document', 'element'];
-	const at    = order.indexOf(tab.value);
-	const next  = order[(at + (event.key === 'ArrowRight' ? 1 : order.length - 1)) % order.length] ?? 'document';
-
-	tab.value = next;
-	document.getElementById(`editor-tab-${next}`)?.focus();
-}
-
 // The title wraps to as many lines as it needs: by CSS where the browser
 // sizes fields to their content, else measured whenever its text or
 // width changes.
@@ -2372,20 +2252,14 @@ onBeforeRouteLeave(async () => {
 onMounted(() => {
 	document.addEventListener('keydown', keydown);
 	document.addEventListener('pointerdown', press, true);
-	document.addEventListener('pointerdown', outsideLink);
-	document.addEventListener('pointerdown', outsideMention);
 	window.addEventListener('pagehide', pageHide);
 	window.addEventListener('keydown', reloadKey, true);
 });
 
 onBeforeUnmount(() => {
-	clearTimeout(keeping);
 	focusMode.value = false;
 	document.removeEventListener('keydown', keydown);
 	document.removeEventListener('pointerdown', press, true);
-	document.removeEventListener('pointerdown', outsideLink);
-	document.removeEventListener('pointerdown', outsideMention);
-	clearTimeout(mentionTimer);
 	window.removeEventListener('pagehide', pageHide);
 	window.removeEventListener('keydown', reloadKey, true);
 	titleWidth?.disconnect();
@@ -2471,20 +2345,7 @@ function fieldKey(field: FieldDescription): string {
 							<AdminIcon name="link" /><AdminIcon name="chevron-down" class="editor__caret" />
 							<span class="visually-hidden">Link</span>
 						</button>
-						<form v-if="linkOpen" id="editor-link" ref="linkForm" class="editor__link" role="dialog" aria-label="Link" @submit.prevent="applyLink" @keydown="linkKey">
-							<div class="field">
-								<label for="editor-link-text">Text</label>
-								<input id="editor-link-text" v-model="linkText" type="text" autocomplete="off">
-							</div>
-							<div class="field">
-								<label for="editor-link-url">Address</label>
-								<input id="editor-link-url" v-model="linkUrl" type="text" class="mono" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="https://">
-							</div>
-							<p class="editor__link-buttons">
-								<button v-if="linkTarget?.link" type="button" class="button button--small button--ghost" @click="removeLink">Remove</button>
-								<button type="submit" class="button button--small button--primary" :disabled="linkUrl.trim() === ''">{{ linkTarget?.link ? 'Update' : 'Add link' }}</button>
-							</p>
-						</form>
+						<LinkForm v-if="linkOpen && linkTarget" :start="linkTarget" :editing="linkTarget.link !== null" @apply="applyLink" @remove="removeLink" @close="closeLink()" />
 					</span>
 					<span ref="mentionWrap" class="editor__pop">
 					<MenuButton :button-class="`button button--ghost editor__tool editor__wide${emphasis.strike || emphasis.marked ? ' is-on' : ''}`" label="More inline elements" align="start" floating @open="closeOverlays">
@@ -2514,21 +2375,7 @@ function fieldKey(field: FieldDescription): string {
 							</button>
 						</template>
 					</MenuButton>
-					<form v-if="mentionOpen" id="editor-mention" class="editor__link" role="dialog" aria-label="Mention" @submit.prevent="chooseMention(mentionItems?.[mentionIndex])" @keydown="mentionKey">
-						<div class="field">
-							<label for="editor-mention-search">Mention</label>
-							<input id="editor-mention-search" ref="mentionField" v-model="mentionQuery" type="search" autocomplete="off" spellcheck="false" placeholder="Find a profile" role="combobox" aria-autocomplete="list" aria-controls="editor-mention-list" :aria-expanded="(mentionItems?.length ?? 0) > 0" :aria-activedescendant="mentionItems?.length ? `editor-mention-${mentionIndex}` : undefined" @input="searchMentions">
-						</div>
-						<p v-if="mentionError" class="editor__mention-note" role="alert">{{ mentionError }}</p>
-						<p v-else-if="mentionItems === null" class="editor__mention-note">Finding profiles…</p>
-						<p v-else-if="mentionItems.length === 0" class="editor__mention-note">No published profile matches.</p>
-						<ul v-else id="editor-mention-list" class="editor__mentions" role="listbox" aria-label="Profiles">
-							<li v-for="(item, index) in mentionItems" :id="`editor-mention-${index}`" :key="item.slug" role="option" class="editor__mention" :class="{ 'is-active': index === mentionIndex }" :aria-selected="index === mentionIndex" @mousedown.prevent @click="chooseMention(item)" @mouseenter="mentionIndex = index">
-								<span class="editor__mention-name">{{ item.title }}</span>
-								<code class="editor__mention-slug">@{{ item.slug }}</code>
-							</li>
-						</ul>
-					</form>
+					<MentionForm v-if="mentionOpen && mentionSpot" :start="mentionSpot" @choose="chooseMention" @close="closeMention()" />
 					</span>
 					<button type="button" class="button button--ghost button--icon editor__tool" title="Icon" aria-haspopup="dialog" @click="openIcons">
 						<AdminIcon name="shapes" />
@@ -2633,52 +2480,7 @@ function fieldKey(field: FieldDescription): string {
 			</p>
 		</div>
 
-		<section v-if="conflict" class="editor__conflict" aria-labelledby="conflict-heading">
-			<div class="editor__notice editor__notice--conflict">
-				<AdminIcon name="triangle-alert" />
-				<div class="editor__conflict-text">
-					<h2 id="conflict-heading">This {{ noun }} changed while you were editing</h2>
-					<p>
-						<template v-if="conflict.theirs?.modified">Its file was saved at {{ formatDate(conflict.theirs.modified) }}, </template>
-						<template v-else>Its file was saved again, </template>
-						from the admin or by editing the file itself. {{ safe }}; nothing has been saved over. Keep theirs throws away your changes here; Keep mine saves your version of every field shown here over theirs.
-					</p>
-					<p v-if="!conflict.loading && conflict.theirs === null" class="field__error">The saved version couldn't be loaded. Check your connection, then try again.</p>
-				</div>
-				<p class="editor__notice-buttons">
-					<template v-if="conflict.theirs">
-						<button type="button" class="button button--small" @click="keepTheirs">Keep theirs</button>
-						<button type="button" class="button button--small" :aria-expanded="comparing" aria-controls="conflict-compare" @click="comparing = !comparing">Compare</button>
-						<button type="button" class="button button--small button--primary" @click="keepMine">Keep mine</button>
-					</template>
-					<button v-else type="button" class="button button--small" :disabled="conflict.loading" @click="fetchTheirs">{{ conflict.loading ? 'Loading the saved version…' : 'Try again' }}</button>
-				</p>
-			</div>
-
-			<div v-if="comparing && differences" id="conflict-compare" class="compare">
-				<table v-if="differences.rows.length" class="table compare__fields">
-					<thead>
-						<tr>
-							<th scope="col">Field</th>
-							<th scope="col">Theirs</th>
-							<th scope="col">Mine</th>
-						</tr>
-					</thead>
-					<tbody>
-						<tr v-for="row in differences.rows" :key="row.label">
-							<th scope="row">{{ row.label }}</th>
-							<td>{{ row.theirs }}</td>
-							<td>{{ row.mine }}</td>
-						</tr>
-					</tbody>
-				</table>
-				<div v-if="differences.body" class="compare__body">
-					<p class="compare__label">Body <span class="compare__key"><span class="compare__mark compare__mark--theirs">−</span> theirs <span class="compare__mark compare__mark--mine">+</span> mine</span></p>
-					<pre class="compare__lines"><template v-for="(line, index) in differences.body" :key="index"><span v-if="line.kind === 'skip'" class="compare__skip">{{ plural(line.count, 'unchanged line') }}</span><span v-else class="compare__line" :class="`compare__line--${line.kind}`"><span class="compare__sign" aria-hidden="true">{{ line.kind === 'theirs' ? '−' : (line.kind === 'mine' ? '+' : ' ') }}</span><span v-if="line.kind !== 'same'" class="visually-hidden">{{ line.kind === 'theirs' ? 'Theirs: ' : 'Mine: ' }}</span>{{ line.text }}</span></template></pre>
-				</div>
-				<p v-if="!differences.rows.length && !differences.body" class="compare__same">Your changes and theirs match in everything the editor shows.</p>
-			</div>
-		</section>
+		<ConflictBar v-if="conflict" :noun="noun" :safe="safe" :theirs="conflict.theirs" :loading="conflict.loading" :compare="differences" @keep-theirs="keepTheirs" @keep-mine="keepMine" @retry="fetchTheirs" />
 
 		<div class="editor__body">
 			<aside id="editor-components" class="editor__inserter" aria-labelledby="component-panel-heading" :inert="!panelOpen">
@@ -2775,14 +2577,12 @@ function fieldKey(field: FieldDescription): string {
 			<aside id="editor-settings" class="editor__side" aria-label="Settings" :inert="!sideOpen">
 				<div class="editor__side-inner">
 					<div class="editor__tabs">
-						<div class="editor__tablist" role="tablist" aria-label="Settings" @keydown="tabKey">
-							<button id="editor-tab-document" type="button" class="editor__tab" role="tab" aria-controls="editor-panel-document" :aria-selected="tab === 'document'" :tabindex="tab === 'document' ? 0 : -1" @click="tab = 'document'">
-								<TypeIcon v-if="entryType" :type="entryType" /><AdminIcon v-else name="file-text" />{{ typeName }}
-							</button>
-							<button id="editor-tab-element" type="button" class="editor__tab" role="tab" aria-controls="editor-panel-element" :aria-selected="tab === 'element'" :tabindex="tab === 'element' ? 0 : -1" @click="tab = 'element'">
-								<AdminIcon :name="tabIcon" /><span class="editor__tab-name">{{ tabName }}</span>
-							</button>
-						</div>
+						<TabBar v-model="tab" class="editor__tablist" :tabs="[{ key: 'document', label: typeName }, { key: 'element', label: tabName }]" label="Settings" prefix="editor">
+							<template #tab="{ tab: item }">
+								<template v-if="item.key === 'document'"><TypeIcon v-if="entryType" :type="entryType" /><AdminIcon v-else name="file-text" />{{ typeName }}</template>
+								<template v-else><AdminIcon :name="tabIcon" /><span class="editor__tab-name">{{ tabName }}</span></template>
+							</template>
+						</TabBar>
 						<button type="button" class="button button--ghost button--icon editor__side-close" @click="sideOpen = false">
 							<AdminIcon name="x" />
 							<span class="visually-hidden">Close the settings</span>
@@ -2791,8 +2591,7 @@ function fieldKey(field: FieldDescription): string {
 
 					<div v-if="entry" v-show="tab === 'document'" id="editor-panel-document" role="tabpanel" aria-labelledby="editor-tab-document">
 						<template v-if="!listing">
-							<div class="editor__group">
-								<p class="editor__group-heading">Publish</p>
+							<OptionsGroup heading="Publish">
 								<dl class="settings">
 									<div class="settings__row">
 										<dt>Status</dt>
@@ -2882,59 +2681,53 @@ function fieldKey(field: FieldDescription): string {
 								</p>
 								<p v-if="entry.peoplePage && entry.peoplePage.profile === null" class="editor__group-note">The page introducing the {{ entry.peoplePage.label.toLowerCase() }} of <strong>{{ labels.plural }}</strong>: its title heads their list, and its body comes before it. It has no address of its own.</p>
 								<p v-else-if="entry.peoplePage" class="editor__group-note">The page introducing <RouterLink :to="{ name: 'profile-detail', params: { slug: entry.peoplePage.profile } }">{{ entry.peoplePage.profileTitle }}</RouterLink>'s archive as one of the {{ entry.peoplePage.label.toLowerCase() }} of <strong>{{ labels.plural }}</strong>, in place of their bio there. It has no address of its own.</p>
-							</div>
+							</OptionsGroup>
 
-							<div v-if="imageField && (!term || form[imageField.name])" class="editor__group">
-								<p class="editor__group-heading">Featured Image</p>
+							<OptionsGroup v-if="imageField && (!term || form[imageField.name])" heading="Featured Image">
 								<ImagePreview :src="String(form[imageField.name] ?? '')" wide noun="the featured image" @pick="pickForField(imageField)" @remove="form[imageField.name] = ''" />
 								<p v-if="!form[imageField.name]" class="field__help">Used in listings, link previews, and at the top of the {{ noun }}, as the theme shows it.</p>
-							</div>
+							</OptionsGroup>
 
 							<template v-for="peopleField in peopleFields" :key="fieldKey(peopleField)">
-								<div v-if="!term || referenceCount(peopleField)" class="editor__group">
-									<p class="editor__group-heading">{{ titleCase(peopleField.label ?? (peopleField.multiple === false ? 'Author' : 'Authors')) }}<span v-if="referenceCount(peopleField) > 1" class="editor__group-hint">{{ plural(referenceCount(peopleField), 'person', 'people') }}</span></p>
+								<OptionsGroup v-if="!term || referenceCount(peopleField)" :heading="titleCase(peopleField.label ?? (peopleField.multiple === false ? 'Author' : 'Authors'))">
+									<template v-if="referenceCount(peopleField) > 1" #hint>{{ plural(referenceCount(peopleField), 'person', 'people') }}</template>
 									<ReferencePicker :id="`field-${peopleField.name}`" :field="peopleField" people :keep-last="peopleFields[0] === peopleField || peopleField.required === true" :model-value="String(form[peopleField.name] ?? '')" :invalid="Boolean(errorFor(peopleField.name))" @update:model-value="form[peopleField.name] = $event" />
 									<p v-if="errorFor(peopleField.name)" class="field__error">{{ errorFor(peopleField.name) }}</p>
-								</div>
+								</OptionsGroup>
 							</template>
 
-							<div v-for="field in referenceFields" :key="fieldKey(field)" class="editor__group">
-								<p class="editor__group-heading"><label :for="`field-${field.name}`">{{ titleCase(field.label ?? labelsOf(field.to ?? '').plural) }}</label><span v-if="referenceCount(field)" class="editor__group-hint">{{ referenceCount(field).toLocaleString() }} selected</span></p>
+							<OptionsGroup v-for="field in referenceFields" :key="fieldKey(field)">
+								<template #heading><label :for="`field-${field.name}`">{{ titleCase(field.label ?? labelsOf(field.to ?? '').plural) }}</label></template>
+								<template v-if="referenceCount(field)" #hint>{{ referenceCount(field).toLocaleString() }} selected</template>
 								<ReferencePicker :id="`field-${field.name}`" :field="field" :model-value="String(form[field.name] ?? '')" :invalid="Boolean(errorFor(field.name))" @update:model-value="form[field.name] = $event" />
 								<p v-if="errorFor(field.name)" class="field__error">{{ errorFor(field.name) }}</p>
-							</div>
+							</OptionsGroup>
 
-							<div v-if="summaryField" class="editor__group">
-								<p class="editor__group-heading"><label :for="`field-${summaryField.name}`">Summary</label><span v-if="String(form[summaryField.name] ?? '').length" class="editor__group-hint">{{ String(form[summaryField.name] ?? '').length }} / 160</span></p>
+							<OptionsGroup v-if="summaryField">
+								<template #heading><label :for="`field-${summaryField.name}`">Summary</label></template>
+								<template v-if="String(form[summaryField.name] ?? '').length" #hint>{{ String(form[summaryField.name] ?? '').length }} / 160</template>
 								<div class="field">
 									<textarea :id="`field-${summaryField.name}`" :value="String(form[summaryField.name] ?? '')" rows="3" placeholder="Used in listings and feeds. Left empty, the opening words are used." :aria-invalid="errorFor(summaryField.name) ? 'true' : undefined" @input="form[summaryField.name] = ($event.target as HTMLTextAreaElement).value" />
 									<p v-if="errorFor(summaryField.name)" class="field__error">{{ errorFor(summaryField.name) }}</p>
 								</div>
-							</div>
+							</OptionsGroup>
 
-							<div v-if="otherFields.length" class="editor__group">
-								<p class="editor__group-heading">{{ labels.singular }} Fields</p>
+							<OptionsGroup v-if="otherFields.length" :heading="`${labels.singular} Fields`">
 								<FieldControl v-for="field in otherFields" :key="fieldKey(field)" :field="field" :model-value="form[field.name] ?? ''" :error="errorFor(field.name)" pickable @update:model-value="form[field.name] = $event" @pick="pickForField(field)" />
-							</div>
+							</OptionsGroup>
 
-							<div v-for="set in setGroups" :key="set.name" class="editor__group">
-								<p class="editor__group-heading">{{ set.label }}</p>
+							<OptionsGroup v-for="set in setGroups" :key="set.name" :heading="set.label">
 								<p v-if="set.description" class="editor__group-note">{{ set.description }}</p>
 								<FieldControl v-for="field in set.fields" :key="fieldKey(field)" :field="field" :model-value="form[field.name] ?? ''" :error="errorFor(field.name)" pickable @update:model-value="form[field.name] = $event" @pick="pickForField(field)" />
-							</div>
+							</OptionsGroup>
 
-							<div v-if="Object.keys(entry.extra).length" class="editor__group">
-								<p class="editor__group-heading">Other Front Matter <span class="editor__group-hint">Kept as it is</span></p>
-								<dl class="editor__extra">
-									<div v-for="(value, key) in entry.extra" :key="key">
-										<dt class="mono">{{ key }}</dt>
-										<dd class="mono">{{ typeof value === 'string' ? value : JSON.stringify(value) }}</dd>
-									</div>
-								</dl>
-							</div>
+							<OptionsGroup v-if="Object.keys(entry.extra).length" heading="Other Front Matter">
+								<template #hint>Kept as it is</template>
+								<RawValues :entries="Object.entries(entry.extra)" />
+							</OptionsGroup>
 
-							<div v-if="entry.violations.length" class="editor__group">
-								<p class="editor__group-heading">Problems <span class="editor__group-hint">As last saved</span></p>
+							<OptionsGroup v-if="entry.violations.length" heading="Problems">
+								<template #hint>As last saved</template>
 								<ul v-if="shown.length" class="editor__problems">
 									<li v-for="(violation, index) in shown" :key="index">
 										<span class="pill" :class="{ 'pill--danger': violation.severity === 'error', 'pill--warn': violation.severity === 'warning' }">{{ humanize(violation.severity) }}</span>
@@ -2945,7 +2738,7 @@ function fieldKey(field: FieldDescription): string {
 									<input v-model="notices" type="checkbox">
 									Show {{ plural(noticeCount, 'notice') }}
 								</label>
-							</div>
+							</OptionsGroup>
 
 						<button type="button" class="editor__list-link" @click="showOutline">
 							<AdminIcon name="list" />
@@ -2962,18 +2755,9 @@ function fieldKey(field: FieldDescription): string {
 							<span class="editor__list-count mono">{{ items.length }}</span>
 						</button>
 
-						<div class="editor__group">
-							<p v-if="!items.length" class="field__help">Nothing yet. Start writing, or use the insert buttons in the header.</p>
-							<ul v-else class="editor__outline">
-								<li v-for="item in items" :key="`${item.kind}-${item.index}`">
-									<button type="button" class="editor__row" :class="{ 'is-current': sameElement(item, selection), 'is-placed': placed(item) }" :style="{ '--depth': item.depth }" :aria-current="sameElement(item, selection) ? 'true' : undefined" @click="select(item)">
-										<AdminIcon :name="iconOf(item)" />
-										<span class="editor__row-name">{{ nameOf(item) }}</span>
-										<span class="editor__row-text">{{ outlineText(item) }}</span>
-									</button>
-								</li>
-							</ul>
-						</div>
+						<OptionsGroup>
+							<OutlineList :items="items" :describe="rowOf" :current="selection" indent empty="Nothing yet. Start writing, or use the insert buttons in the header." @select="select" />
+						</OptionsGroup>
 					</template>
 					</div>
 
@@ -2988,20 +2772,11 @@ function fieldKey(field: FieldDescription): string {
 								@remove="removeComponent"
 								@pick="pickForOption"
 							>
-								<div v-if="content" class="options__group">
-									<p class="options__heading">Content<span v-if="selected?.only?.includes('image')" class="editor__group-hint">{{ plural(held, 'image') }}</span></p>
-									<p v-if="!content.length" class="field__help">Nothing inside it yet.</p>
-									<ul v-else class="editor__outline">
-										<li v-for="item in content" :key="`${item.kind}-${item.index}`">
-											<button type="button" class="editor__row" :class="{ 'is-placed': placed(item) }" @click="select(item)">
-												<AdminIcon :name="iconOf(item)" />
-												<span class="editor__row-name">{{ nameOf(item) }}</span>
-												<span class="editor__row-text">{{ outlineText(item) }}</span>
-											</button>
-										</li>
-									</ul>
+								<OptionsGroup v-if="content" heading="Content">
+									<template v-if="selected?.only?.includes('image')" #hint>{{ plural(held, 'image') }}</template>
+									<OutlineList :items="content" :describe="rowOf" empty="Nothing inside it yet." @select="select" />
 									<p v-if="strays.length" class="field__error">{{ titleCase(selected?.label ?? '') }} holds only {{ panelNoteNames }}, so the site may not show {{ strays.length === 1 ? 'this line' : 'these lines' }}: {{ strays.map((text) => `“${text.length > 40 ? `${text.slice(0, 40)}…` : text}”`).join(', ') }}.</p>
-								</div>
+								</OptionsGroup>
 							</ComponentOptions>
 							<ImageOptions
 								v-else-if="image"
@@ -3022,20 +2797,10 @@ function fieldKey(field: FieldDescription): string {
 								:block="block"
 								@edit="applyOption"
 							>
-								<div v-if="content" class="options__group">
-									<p class="options__heading">Content</p>
-									<p v-if="!content.length" class="field__help">Nothing inside it yet.</p>
-									<ul v-else class="editor__outline">
-										<li v-for="item in content" :key="`${item.kind}-${item.index}`">
-											<button type="button" class="editor__row" :class="{ 'is-placed': placed(item) }" @click="select(item)">
-												<AdminIcon :name="iconOf(item)" />
-												<span class="editor__row-name">{{ nameOf(item) }}</span>
-												<span class="editor__row-text">{{ outlineText(item) }}</span>
-											</button>
-										</li>
-									</ul>
+								<OptionsGroup v-if="content" heading="Content">
+									<OutlineList :items="content" :describe="rowOf" empty="Nothing inside it yet." @select="select" />
 									<p v-if="content.length" class="field__help">{{ plural(content.length, 'element') }} directly inside. What's nested deeper is listed under the one holding it.</p>
-								</div>
+								</OptionsGroup>
 							</BlockOptions>
 						</template>
 
@@ -3149,72 +2914,10 @@ function fieldKey(field: FieldDescription): string {
 	height: 16px;
 }
 
-/* The link form opens under its button. */
+/* The link and mention forms open under their buttons. */
 .editor__pop {
 	position: relative;
 	flex: none;
-}
-
-.editor__link {
-	position: absolute;
-	top: calc(100% + 6px);
-	left: 0;
-	z-index: 40;
-	display: grid;
-	gap: var(--s-3);
-	width: 320px;
-	max-width: calc(100vw - 2 * var(--s-4));
-	padding: var(--s-4);
-	border: 1px solid var(--border);
-	border-radius: var(--r-2);
-	background: var(--surface);
-	box-shadow: var(--shadow-2);
-}
-
-.editor__link .field {
-	margin: 0;
-}
-
-.editor__mention-note {
-	margin: 0;
-	color: var(--fg-3);
-	font-size: var(--text-sm);
-}
-
-.editor__mentions {
-	display: grid;
-	max-height: min(320px, 40vh);
-	margin: 0;
-	padding: 0;
-	overflow-y: auto;
-	list-style: none;
-}
-
-.editor__mention {
-	display: flex;
-	align-items: baseline;
-	justify-content: space-between;
-	gap: var(--s-3);
-	padding: var(--s-2) var(--s-3);
-	border-radius: var(--r-1);
-	color: var(--fg-2);
-	cursor: pointer;
-}
-
-.editor__mention.is-active {
-	background: var(--accent-soft);
-	color: var(--accent);
-}
-
-.editor__mention-slug {
-	color: var(--fg-3);
-}
-
-.editor__link-buttons {
-	display: flex;
-	justify-content: flex-end;
-	gap: var(--s-2);
-	margin: 0;
 }
 
 .editor__where-skeleton {
@@ -3307,40 +3010,6 @@ function fieldKey(field: FieldDescription): string {
 .editor__notice--good {
 	background: var(--good-soft);
 	color: var(--good);
-}
-
-.editor__notice--conflict {
-	align-items: flex-start;
-	padding-block: 15px;
-	border-bottom-color: var(--border-strong);
-	background: var(--surface-2);
-	color: var(--fg);
-}
-
-.editor__notice--conflict > svg {
-	margin-top: 2px;
-	color: var(--warn);
-}
-
-.editor__conflict-text {
-	display: grid;
-	flex: 1;
-	gap: 3px;
-	min-width: 0;
-}
-
-.editor__conflict-text h2 {
-	font-size: var(--text-sm);
-	font-weight: 500;
-}
-
-.editor__conflict-text p {
-	color: var(--fg-2);
-	font-size: var(--text-sm);
-}
-
-.editor__conflict {
-	flex: none;
 }
 
 /* The column, and the drawer that pushes it aside. */
@@ -3624,29 +3293,14 @@ function fieldKey(field: FieldDescription): string {
 }
 
 .editor__tablist {
-	display: flex;
 	flex: 1;
-	gap: var(--s-1);
-	min-width: 0;
 }
 
-.editor__tab {
-	display: flex;
-	align-items: center;
-	gap: 7px;
-	min-width: 0;
-	margin-bottom: -1px;
+.editor__tablist :deep(.tab-bar__tab) {
 	padding: 16px 12px 13px;
-	border: 0;
-	border-bottom: 2px solid transparent;
-	background: none;
-	color: var(--fg-2);
-	font-size: var(--text-sm);
-	white-space: nowrap;
-	cursor: pointer;
 }
 
-.editor__tab:first-child {
+.editor__tablist :deep(.tab-bar__tab:first-child) {
 	padding-left: var(--s-5);
 }
 
@@ -3656,33 +3310,14 @@ function fieldKey(field: FieldDescription): string {
 	text-overflow: ellipsis;
 }
 
-.editor__tab :deep(.type-icon),
-.editor__tab svg {
+.editor__tablist :deep(.type-icon) {
 	flex: none;
 	width: 13px;
 	height: 13px;
 }
 
-.editor__tab:hover {
-	color: var(--fg);
-}
-
-.editor__tab[aria-selected="true"] {
-	border-bottom-color: var(--accent);
-	color: var(--fg);
-	font-weight: 500;
-}
-
-
 .editor__side-close {
 	flex: none;
-}
-
-.editor__group {
-	display: grid;
-	gap: var(--s-4);
-	padding: var(--s-5);
-	border-bottom: 1px solid var(--border);
 }
 
 /* The element tab with nothing selected says so. */
@@ -3753,27 +3388,6 @@ function fieldKey(field: FieldDescription): string {
 .editor__list-link .editor__list-go {
 	width: 13px;
 	height: 13px;
-}
-
-.editor__group-heading:focus {
-	outline: none;
-}
-
-.editor__group-heading {
-	display: flex;
-	justify-content: space-between;
-	gap: 8px;
-	color: var(--fg-3);
-	font-size: var(--text-xs);
-	font-weight: 600;
-	letter-spacing: .07em;
-	text-transform: uppercase;
-}
-
-.editor__group-hint {
-	font-weight: 400;
-	letter-spacing: normal;
-	text-transform: none;
 }
 
 /* The entry's settings as label → value rows (admin.md §8, The document
@@ -3932,101 +3546,11 @@ function fieldKey(field: FieldDescription): string {
 
 /* Make homepage, at the end of the root page's note (D-420). */
 .editor__note-action {
-	padding: 0;
-	border: 0;
-	background: none;
 	font-weight: 500;
-	cursor: pointer;
 }
 
 .editor__group-note + .editor__group-note {
 	margin-top: -14px;
-}
-
-/* The Outline, and a Content group: the type name a quiet column, the
-   excerpt flowing out of it, depth drawn as indent and a hairline per
-   level. A component's name is in the accent: someone placed it. */
-.editor__outline {
-	display: grid;
-	grid-template-columns: minmax(0, 1fr);
-	gap: 2px;
-	margin: 0;
-	padding: 0;
-	list-style: none;
-}
-
-.editor__outline li {
-	min-width: 0;
-}
-
-.editor__row {
-	--depth: 0;
-	display: flex;
-	align-items: center;
-	gap: var(--s-2);
-	width: 100%;
-	min-width: 0;
-	padding: 7px 10px 7px calc(10px + var(--depth) * 13px);
-	overflow: hidden;
-	border: 0;
-	border-radius: var(--r-1);
-	background: repeating-linear-gradient(to right, var(--border-strong) 0 1px, transparent 1px 13px) 15px 4px / calc(var(--depth) * 13px) calc(100% - 8px) no-repeat;
-	color: var(--fg-2);
-	font-size: var(--text-sm);
-	text-align: left;
-	cursor: pointer;
-}
-
-.editor__row:hover {
-	background-color: var(--surface-2);
-	color: var(--fg);
-}
-
-.editor__row.is-current {
-	background-color: var(--accent-soft);
-}
-
-.editor__row svg {
-	flex: none;
-	width: 14px;
-	height: 14px;
-	color: var(--fg-3);
-}
-
-.editor__row.is-current svg {
-	color: var(--accent);
-}
-
-/* The type name is a quiet column; the excerpt flows out of it, and both
-   give way to the panel's width rather than overflowing it. */
-.editor__row-name {
-	flex: none;
-	min-width: 74px;
-	max-width: 50%;
-	overflow: hidden;
-	color: var(--fg-3);
-	font-family: var(--font-mono);
-	font-size: var(--text-xs);
-	text-overflow: ellipsis;
-	white-space: nowrap;
-}
-
-.editor__row.is-placed .editor__row-name,
-.editor__row.is-current .editor__row-name {
-	color: var(--accent);
-}
-
-.editor__row-text {
-	flex: 1;
-	min-width: 0;
-	overflow: hidden;
-	color: var(--fg-2);
-	text-overflow: ellipsis;
-	white-space: nowrap;
-}
-
-.editor__row:hover .editor__row-text {
-	color: var(--fg);
 }
 
 .editor__back-path {
@@ -4036,28 +3560,6 @@ function fieldKey(field: FieldDescription): string {
 .editor__back-path strong {
 	color: var(--fg);
 	font-weight: 500;
-}
-
-.editor__extra {
-	display: grid;
-	gap: 6px;
-	margin: 0;
-}
-
-.editor__extra div {
-	display: grid;
-	gap: 2px;
-}
-
-.editor__extra dt {
-	color: var(--fg-2);
-	font-size: var(--text-xs);
-}
-
-.editor__extra dd {
-	margin: 0;
-	font-size: var(--text-xs);
-	overflow-wrap: anywhere;
 }
 
 .editor__problems {
@@ -4076,106 +3578,6 @@ function fieldKey(field: FieldDescription): string {
 
 .editor__problems code {
 	overflow-wrap: anywhere;
-}
-
-/* The comparison, under the conflict's bar. */
-
-.compare {
-	max-height: 40vh;
-	overflow: auto;
-	border-bottom: 1px solid var(--border-strong);
-	background: var(--surface);
-}
-
-.compare__fields td {
-	white-space: pre-wrap;
-	overflow-wrap: anywhere;
-}
-
-.compare__body {
-	display: grid;
-	gap: 8px;
-	padding: 12px var(--pad-x) 16px;
-}
-
-.compare__same {
-	padding: 12px var(--pad-x);
-	color: var(--fg-2);
-	font-size: var(--text-sm);
-}
-
-.compare__label {
-	display: flex;
-	flex-wrap: wrap;
-	align-items: baseline;
-	justify-content: space-between;
-	gap: 8px;
-	color: var(--fg-2);
-	font-size: var(--text-xs);
-	font-weight: 500;
-	letter-spacing: .06em;
-	text-transform: uppercase;
-}
-
-.compare__key {
-	letter-spacing: normal;
-	text-transform: none;
-}
-
-.compare__mark {
-	font-family: var(--font-mono);
-	font-weight: 600;
-}
-
-.compare__mark--theirs {
-	color: var(--danger);
-}
-
-.compare__mark--mine {
-	color: var(--good);
-}
-
-.compare__lines {
-	display: grid;
-	margin: 0;
-	border: 1px solid var(--border);
-	border-radius: var(--r-2);
-	background: var(--surface-2);
-	font-family: var(--font-mono);
-	font-size: var(--text-sm);
-	line-height: 1.6;
-}
-
-.compare__line {
-	display: block;
-	padding: 0 10px;
-	white-space: pre-wrap;
-	overflow-wrap: anywhere;
-}
-
-.compare__line--theirs {
-	background: var(--danger-soft);
-	color: var(--danger);
-}
-
-.compare__line--mine {
-	background: var(--good-soft);
-	color: var(--good);
-}
-
-.compare__sign {
-	display: inline-block;
-	width: 1.5ch;
-	user-select: none;
-}
-
-.compare__skip {
-	display: block;
-	padding: 2px 10px;
-	border-block: 1px dashed var(--border);
-	color: var(--fg-3);
-	font-family: var(--font-ui);
-	font-size: var(--text-xs);
 }
 
 /* No room to push: the drawer lies over the column. */

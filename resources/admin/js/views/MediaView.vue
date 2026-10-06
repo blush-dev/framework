@@ -11,27 +11,22 @@
  * some kind); **Open** goes to the file's screen.
  */
 
-import { computed, ref, watch } from 'vue';
+import { computed, ref } from 'vue';
 import { RouterLink, useRoute, useRouter } from 'vue-router';
 import AdminIcon from '../components/AdminIcon.vue';
 import AdminSelect from '../components/AdminSelect.vue';
-import { mediaFacts, mediaName } from '../media';
+import EmptyState from '../components/EmptyState.vue';
+import MediaCard from '../components/MediaCard.vue';
 import MediaPicker from '../components/MediaPicker.vue';
-import { ApiError, request, type MediaItem, type MediaList } from '../api';
+import { mediaFacts, useMediaList } from '../media';
+import { request, type MediaItem, type MediaList } from '../api';
 import { plural } from '../format';
-import type { IconName } from '../icons';
 import { canUpload } from '../session';
 
 type Kind = 'any' | 'image' | 'video' | 'audio' | 'document' | 'file';
 
-const files   = ref<MediaItem[]>([]);
-const total   = ref(0);
-const page    = ref(1);
-const pages   = ref(1);
-const search  = ref('');
-const kind    = ref<Kind>('any');
-const loading = ref(true);
-const error   = ref('');
+const search = ref('');
+const kind   = ref<Kind>('any');
 
 const route  = useRoute();
 const router = useRouter();
@@ -63,51 +58,7 @@ const kindValue = computed({
 	}
 });
 
-let latest = 0;
-
-async function load(more = false): Promise<void> {
-	const ask    = ++latest;
-	const params = new URLSearchParams({ page: String(more ? page.value + 1 : 1), kind: kind.value });
-
-	if (search.value.trim() !== '') {
-		params.set('search', search.value.trim());
-	}
-
-	if (mine.value) {
-		params.set('mine', '1');
-	}
-
-	loading.value = true;
-	error.value   = '';
-
-	try {
-		const answer = await request<MediaList>('GET', `/media?${params.toString()}`);
-
-		if (ask === latest) {
-			files.value = more ? [...files.value, ...answer.files] : answer.files;
-			total.value = answer.total;
-			page.value  = answer.page;
-			pages.value = answer.pages;
-		}
-	} catch (caught) {
-		if (ask === latest) {
-			error.value = caught instanceof ApiError ? caught.message : 'The media couldn\'t be loaded.';
-		}
-	} finally {
-		if (ask === latest) {
-			loading.value = false;
-		}
-	}
-}
-
-let typing: ReturnType<typeof setTimeout> | undefined;
-
-watch(search, () => {
-	clearTimeout(typing);
-	typing = setTimeout(() => void load(), 250);
-});
-
-watch([kind, mine], () => void load());
+const { files, total, page, pages, loading, error, load } = useMediaList(kind, search, () => mine.value);
 
 const filtered = computed(() => search.value !== '' || kind.value !== 'any');
 
@@ -131,10 +82,6 @@ async function count(): Promise<void> {
 
 void load();
 void count();
-
-function icon(file: MediaItem): IconName {
-	return file.kind === 'video' ? 'film' : (file.kind === 'audio' ? 'music' : (file.kind === 'document' ? 'file-text' : 'file'));
-}
 
 // Its facts, and how many sizes an image has (D-488), which aren't
 // cards of their own.
@@ -180,12 +127,12 @@ function closed(): void {
 	</nav>
 
 	<div class="toolbar" role="search">
-		<label class="search-field media-search">
+		<label class="search-field toolbar__search">
 			<AdminIcon name="search" />
 			<span class="visually-hidden">Search names and details</span>
 			<input v-model="search" type="search" placeholder="Search names and details" autocomplete="off">
 		</label>
-		<div class="media-filter">
+		<div class="toolbar__filter">
 			<label class="visually-hidden" for="media-kind">Kind</label>
 			<AdminSelect id="media-kind" v-model="kindValue" :options="KINDS" />
 		</div>
@@ -203,28 +150,18 @@ function closed(): void {
 		<div class="panel__body">
 			<ul v-if="files.length" class="grid">
 				<li v-for="file in files" :key="file.reference">
-					<RouterLink class="card" :to="{ name: 'media-file', params: { path: path(file) } }">
-						<span class="card__thumb">
-							<img v-if="file.kind === 'image'" :src="file.url" alt="" loading="lazy">
-							<template v-else><AdminIcon :name="icon(file)" /><span class="card__kind mono">{{ file.kind }}</span></template>
-						</span>
-						<span class="card__text">
-							<span class="card__name" :title="file.name">{{ mediaName(file) }}</span>
-							<span class="card__meta mono">{{ details(file) }}</span>
-						</span>
-					</RouterLink>
+					<MediaCard :file="file" :details="details(file)" :to="{ name: 'media-file', params: { path: path(file) } }" />
 				</li>
 			</ul>
 			<div v-else-if="loading" class="grid" aria-hidden="true">
 				<span v-for="card in 10" :key="card" class="skeleton card__skeleton" />
 			</div>
-			<div v-else-if="!error" class="empty">
-				<AdminIcon :name="filtered ? 'search' : 'image'" />
-				<p class="empty__heading">{{ filtered ? 'No Files Match' : (mine ? 'No Files of Yours' : 'The Library Is Empty') }}</p>
-				<p class="empty__text">{{ filtered ? 'Try another name or kind.' : (mine ? 'Files you upload show up here. The All tab shows everyone\'s.' : 'Images, video, audio, and documents you upload land here, and any entry can use them.') }}</p>
-				<button v-if="filtered" type="button" class="button" @click="clear">Clear filters</button>
-				<button v-else-if="canUpload()" type="button" class="button button--primary" @click="uploading = true"><AdminIcon name="upload" />Upload {{ mine && counts.all ? 'a file' : 'your first file' }}</button>
-			</div>
+			<EmptyState v-else-if="!error" :icon="filtered ? 'search' : 'image'" :heading="filtered ? 'No Files Match' : (mine ? 'No Files of Yours' : 'The Library Is Empty')" :text="filtered ? 'Try another name or kind.' : (mine ? 'Files you upload show up here. The All tab shows everyone\'s.' : 'Images, video, audio, and documents you upload land here, and any entry can use them.')">
+				<template #actions>
+					<button v-if="filtered" type="button" class="button" @click="clear">Clear filters</button>
+					<button v-else-if="canUpload()" type="button" class="button button--primary" @click="uploading = true"><AdminIcon name="upload" />Upload {{ mine && counts.all ? 'a file' : 'your first file' }}</button>
+				</template>
+			</EmptyState>
 			<p v-if="page < pages" class="more">
 				<button type="button" class="button" :disabled="loading" @click="load(true)">{{ loading ? 'Loading…' : 'Show more' }}</button>
 			</p>
@@ -235,19 +172,6 @@ function closed(): void {
 </template>
 
 <style scoped>
-.media-search {
-	flex: 1 1 16rem;
-	max-width: 24rem;
-}
-
-/* A filter's select is as wide as it needs, not the row (§7, Selects). */
-.media-filter {
-	flex: none;
-	width: auto;
-	min-width: 9rem;
-	max-width: 16rem;
-}
-
 .grid {
 	display: grid;
 	grid-template-columns: repeat(auto-fill, minmax(172px, 1fr));
@@ -255,86 +179,6 @@ function closed(): void {
 	margin: 0;
 	padding: 0;
 	list-style: none;
-}
-
-/* Every card the same height: a 4:3 thumbnail, cropped to fill it, a
-   name on one line, and its details on a second. */
-.card {
-	display: flex;
-	flex-direction: column;
-	overflow: hidden;
-	border: 1px solid var(--border);
-	border-radius: var(--r-2);
-	background: var(--surface);
-	color: var(--fg);
-	text-decoration: none;
-}
-
-.card:hover {
-	border-color: var(--border-strong);
-	color: var(--fg);
-}
-
-.card__thumb {
-	position: relative;
-	display: grid;
-	place-items: center;
-	aspect-ratio: 4 / 3;
-	overflow: hidden;
-	background: var(--surface-2);
-	color: var(--fg-3);
-}
-
-.card__thumb img {
-	display: block;
-	width: 100%;
-	height: 100%;
-	object-fit: cover;
-}
-
-.card__thumb > :deep(svg) {
-	width: 28px;
-	height: 28px;
-	stroke-width: 1.5;
-}
-
-/* A kind only where the thumbnail is a placeholder. */
-.card__kind {
-	position: absolute;
-	top: 9px;
-	left: 9px;
-	padding: 1px 4px;
-	border: 1px solid var(--border);
-	border-radius: var(--r-1);
-	background: var(--surface);
-	color: var(--fg-2);
-	font-size: var(--text-2xs);
-	letter-spacing: .04em;
-	text-transform: uppercase;
-}
-
-.card__text {
-	display: grid;
-	gap: 4px;
-	min-width: 0;
-	padding: var(--s-3) var(--s-4);
-	border-top: 1px solid var(--border);
-}
-
-.card__name,
-.card__meta {
-	overflow: hidden;
-	text-overflow: ellipsis;
-	white-space: nowrap;
-}
-
-.card__name {
-	font-size: var(--text-sm);
-}
-
-.card__meta {
-	color: var(--fg-3);
-	font-size: var(--text-xs);
 }
 
 .card__skeleton {

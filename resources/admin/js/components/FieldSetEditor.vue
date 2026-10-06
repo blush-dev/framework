@@ -4,9 +4,10 @@
  * General (label, key, help), Added To (the kind of place, D-347, then
  * the places of that kind it adds its fields to, and the slot it's in
  * when the kind offers more than one), and Fields (`FieldListEditor`),
- * saved together with **Save** (`PATCH fields/sets/{name}`, only what
- * changed) or **Create Field Set** (`POST fields/sets`), or put back with
- * **Revert**; leaving with changes unsaved asks first. An existing set
+ * created with **Create Field Set** (`POST fields/sets`), or, for an
+ * existing set, saved together from the save bar (D-508) with **Save
+ * changes** (`PATCH fields/sets/{name}`, only what changed) or put back
+ * with **Revert**; leaving with changes unsaved asks first. An existing set
  * has a Danger Zone that deletes its file; entries keep their values for
  * its fields.
  *
@@ -19,15 +20,18 @@
  */
 
 import { computed, ref, watch } from 'vue';
-import { confirmAction, confirmLeave } from '../confirm';
-import { onBeforeRouteLeave, useRouter } from 'vue-router';
+import { confirmAction, guardLeave } from '../confirm';
+import { useRouter } from 'vue-router';
 import AdminIcon from './AdminIcon.vue';
+import DangerZone from './DangerZone.vue';
 import FieldListEditor from './FieldListEditor.vue';
-import { ApiError, request, type FieldDescription, type FieldKindDescription, type FieldSetDetail, type FieldSetTargetOption } from '../api';
+import SaveBar from './SaveBar.vue';
+import { request, type FieldDescription, type FieldKindDescription, type FieldSetDetail, type FieldSetTargetOption } from '../api';
+import { useAction } from '../action';
 import { humanize } from '../fields';
 import { toast } from '../toast';
 import { copy, folderOf } from '../type-form';
-import { reloadTypes, types } from '../types';
+import { refreshTypes, types } from '../types';
 
 const props = defineProps<{
 	// The set, or `null` for a new one.
@@ -72,12 +76,12 @@ const router     = useRouter();
 const form       = ref<SetForm>(formOf(props.set));
 const initial    = ref<SetForm>(formOf(props.set));
 const keyTouched = ref(props.set !== null);
-const saving     = ref(false);
-const failure    = ref('');
-const removal    = ref('');
 const fresh      = computed(() => props.set === null);
 // Set once the set is created or deleted, so leaving doesn't ask.
 const done       = ref(false);
+
+const { busy: saving, error: failure, run } = useAction();
+const { error: removal, run: runRemoval }   = useAction();
 
 watch(() => props.set, (set) => {
 	form.value    = formOf(set);
@@ -118,9 +122,11 @@ const changes = computed(() => {
 	return Object.fromEntries(Object.entries(all).filter(([key, value]) => JSON.stringify(value) !== JSON.stringify(before[key])));
 });
 
+// What an existing set's save bar counts: each setting changed.
+const count   = computed(() => fresh.value ? 0 : Object.keys(changes.value).length);
 const changed = computed(() => fresh.value
 	? form.value.label.trim() !== '' || form.value.targets.length > 0 || form.value.fields.length > 0
-	: Object.keys(changes.value).length > 0);
+	: count.value > 0);
 
 const keyError = computed(() => {
 	if (!fresh.value) {
@@ -156,27 +162,17 @@ function toggle(key: string, on: boolean): void {
 	form.value.targets = on ? [...rest, key] : rest;
 }
 
-// After a change: reindex, then the navigation.
-function refresh(): void {
-	request('POST', '/types/refresh').catch(() => undefined).finally(() => {
-		reloadTypes().catch(() => undefined);
-	});
-}
-
 async function save(): Promise<void> {
 	if (!changed.value || saving.value || keyError.value !== '') {
 		return;
 	}
 
-	saving.value  = true;
-	failure.value = '';
-
-	try {
+	await run('The field set couldn\'t be saved.', async () => {
 		const saved = fresh.value
 			? await request<FieldSetDetail>('POST', '/fields/sets', { name: form.value.name, set: changes.value })
 			: await request<FieldSetDetail>('PATCH', `/fields/sets/${encodeURIComponent(props.set?.name ?? '')}`, { set: changes.value });
 
-		refresh();
+		refreshTypes();
 
 		if (fresh.value) {
 			done.value = true;
@@ -188,11 +184,7 @@ async function save(): Promise<void> {
 
 		emit('saved', saved);
 		toast(`Saved ${saved.label}`);
-	} catch (caught) {
-		failure.value = caught instanceof ApiError ? caught.message : 'The field set couldn\'t be saved.';
-	} finally {
-		saving.value = false;
-	}
+	});
 }
 
 function revert(): void {
@@ -209,29 +201,27 @@ async function remove(): Promise<void> {
 		return;
 	}
 
-	try {
+	await runRemoval('The field set couldn\'t be deleted.', async () => {
 		await request('DELETE', `/fields/sets/${encodeURIComponent(set.name)}`);
 		done.value = true;
-		refresh();
+		refreshTypes();
 		toast(`Deleted the ${set.label} field set`, { kind: 'danger' });
 		await router.push({ name: 'fields' });
-	} catch (caught) {
-		removal.value = caught instanceof ApiError ? caught.message : 'The field set couldn\'t be deleted.';
-	}
+	});
 }
 
-onBeforeRouteLeave(() => done.value || !changed.value || confirmLeave());
+guardLeave(() => !done.value && changed.value);
 </script>
 
 <template>
-	<form class="set-editor" @submit.prevent="save">
+	<form class="form-stack" @submit.prevent="save">
 		<section class="panel" aria-labelledby="general-heading">
 			<header class="panel__header">
 				<h2 id="general-heading">General</h2>
 				<p v-if="set?.file" class="panel__hint">In <code>{{ set.file }}</code></p>
 			</header>
-			<div class="panel__body set-editor__body">
-				<div class="set-editor__row">
+			<div class="panel__body form-stack">
+				<div class="field-pair set-editor__row">
 					<div class="field">
 						<label for="set-label">Label</label>
 						<input id="set-label" v-model="form.label" placeholder="Search Engines" autocomplete="off" aria-describedby="set-label-help">
@@ -243,7 +233,7 @@ onBeforeRouteLeave(() => done.value || !changed.value || confirmLeave());
 						<p v-if="keyError && form.label !== ''" id="set-key-error" class="field__error">{{ keyError }}</p>
 						<p v-else id="set-key-help" class="field__help">Its file's name in <code>user/data/fields</code>. Fixed once it's created.</p>
 					</div>
-					<dl v-else class="set-editor__facts">
+					<dl v-else class="facts facts--inline set-editor__facts">
 						<div><dt>Key</dt><dd class="mono">{{ set?.name }}</dd></div>
 					</dl>
 				</div>
@@ -260,7 +250,7 @@ onBeforeRouteLeave(() => done.value || !changed.value || confirmLeave());
 				<p class="panel__hint">The places that get these fields</p>
 			</header>
 			<div class="panel__body">
-				<fieldset v-if="kinds.length > 1" class="set-editor__group">
+				<fieldset v-if="kinds.length > 1" class="fieldset set-editor__group">
 					<legend>Kind of place</legend>
 					<div class="set-editor__targets">
 						<label v-for="item in kinds" :key="item.kind" class="checkbox">
@@ -270,7 +260,7 @@ onBeforeRouteLeave(() => done.value || !changed.value || confirmLeave());
 					</div>
 					<p class="field__help">A set's places are all one kind: a field means one thing on an entry, another in the site's settings.</p>
 				</fieldset>
-				<fieldset class="set-editor__group">
+				<fieldset class="fieldset set-editor__group">
 					<legend>{{ kinds.find((item) => item.kind === form.kind)?.label ?? 'Places' }}</legend>
 					<div class="set-editor__targets">
 						<label v-for="option in places" :key="option.key" class="checkbox">
@@ -279,7 +269,7 @@ onBeforeRouteLeave(() => done.value || !changed.value || confirmLeave());
 						</label>
 					</div>
 				</fieldset>
-				<fieldset v-if="missing.length" class="set-editor__group">
+				<fieldset v-if="missing.length" class="fieldset set-editor__group">
 					<legend>Not on this site</legend>
 					<div class="set-editor__targets">
 						<label v-for="target in missing" :key="target.key" class="checkbox">
@@ -289,7 +279,7 @@ onBeforeRouteLeave(() => done.value || !changed.value || confirmLeave());
 					</div>
 					<p class="field__help">Kept for when the site has them, such as a type that's turned off.</p>
 				</fieldset>
-				<fieldset v-if="slots.length > 1" class="set-editor__group set-editor__slots">
+				<fieldset v-if="slots.length > 1" class="fieldset set-editor__group set-editor__slots">
 					<legend>These fields are</legend>
 					<label v-for="slot in slots" :key="slot.name" class="checkbox set-editor__slot">
 						<input v-model="form.slot" type="radio" name="set-slot" :value="slot.name">
@@ -307,69 +297,28 @@ onBeforeRouteLeave(() => done.value || !changed.value || confirmLeave());
 			<FieldListEditor v-model="form.fields" :types="types" id-prefix="field-" />
 		</section>
 
-		<div class="set-editor__save">
+		<div v-if="fresh" class="submit-row submit-row--tight">
 			<p v-if="failure" class="field__error" role="alert">{{ failure }}</p>
-			<button type="submit" class="button button--primary" :disabled="!changed || saving || keyError !== ''">{{ saving ? 'Saving…' : (fresh ? 'Create Field Set' : 'Save') }}</button>
-			<button v-if="changed && !fresh" type="button" class="button button--ghost" :disabled="saving" @click="revert">Revert</button>
+			<button type="submit" class="button button--primary" :disabled="!changed || saving || keyError !== ''">{{ saving ? 'Saving…' : 'Create Field Set' }}</button>
 		</div>
 
-		<section v-if="set" class="panel" aria-labelledby="danger-heading">
-			<header class="panel__header">
-				<h2 id="danger-heading">Danger Zone</h2>
-			</header>
-			<div class="panel__body set-editor__danger">
-				<button type="button" class="button button--danger button--small" @click="remove"><AdminIcon name="x" />Delete this field set</button>
-				<p v-if="removal" class="field__error" role="alert">{{ removal }}</p>
-				<p class="field__help">Removes its file, and its fields from the types it's added to. Entries keep their values, listed as other front matter.</p>
-			</div>
-		</section>
+		<DangerZone v-if="set" :error="removal">
+			Removes its file, and its fields from the types it's added to. Entries keep their values, listed as other front matter.
+			<template #action><button type="button" class="button button--danger" @click="remove"><AdminIcon name="x" />Delete this field set</button></template>
+		</DangerZone>
+
+		<SaveBar v-if="!fresh" :count="count" :failure="failure" :saving="saving" @revert="revert" />
 	</form>
 </template>
 
 <style scoped>
-.set-editor {
-	display: grid;
-	gap: var(--s-4);
-}
-
-.set-editor__body {
-	display: grid;
-	gap: var(--s-4);
-}
-
-.set-editor__body > * + * {
-	margin-top: 0;
-}
-
 .set-editor__row {
-	display: grid;
-	grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
 	align-items: start;
-	gap: var(--s-4);
 }
 
+/* Down to sit level with the field beside it. */
 .set-editor__facts {
-	display: flex;
-	gap: 8px;
-	margin: 0;
 	padding-top: 26px;
-}
-
-.set-editor__facts div {
-	display: flex;
-	gap: 8px;
-}
-
-.set-editor__facts dt {
-	color: var(--fg-2);
-}
-
-.set-editor__facts dd {
-	margin: 0;
-}
-
-.set-editor__slots {
-	gap: var(--s-2);
 }
 
 .set-editor__slot {
@@ -377,49 +326,13 @@ onBeforeRouteLeave(() => done.value || !changed.value || confirmLeave());
 }
 
 .set-editor__group {
-	display: grid;
-	gap: var(--s-2);
 	min-width: 0;
-	margin: 0 0 var(--s-4);
-	padding: 0;
-	border: 0;
-}
-
-.set-editor__group legend {
-	margin-bottom: var(--s-2);
-	padding: 0;
-	color: var(--fg-2);
-	font-size: var(--text-sm);
-	font-weight: 500;
+	margin-bottom: var(--s-4);
 }
 
 .set-editor__targets {
 	display: grid;
 	grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr));
 	gap: var(--s-2) var(--s-4);
-}
-
-.set-editor__save {
-	display: flex;
-	flex-wrap: wrap;
-	align-items: center;
-	gap: var(--s-2);
-}
-
-.set-editor__save .field__error {
-	flex-basis: 100%;
-	margin: 0;
-}
-
-.set-editor__danger {
-	display: grid;
-	justify-items: start;
-	gap: var(--s-2);
-}
-
-@media (width <= 760px) {
-	.set-editor__row {
-		grid-template-columns: minmax(0, 1fr);
-	}
 }
 </style>

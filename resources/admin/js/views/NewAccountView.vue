@@ -18,7 +18,8 @@ import { RouterLink, useRouter } from 'vue-router';
 import AdminIcon from '../components/AdminIcon.vue';
 import ProfilePicker from '../components/ProfilePicker.vue';
 import RoleChecks from '../components/RoleChecks.vue';
-import { ApiError, request } from '../api';
+import { useAction } from '../action';
+import { ApiError, errorMessage, request } from '../api';
 import { createAccount, freshLink, loadRoles, MEMBER, NEW_PROFILE, type LinkableProfile, type RoleInfo } from '../people';
 import { slugOf } from '../references';
 import { can, canType } from '../session';
@@ -35,10 +36,10 @@ const author   = ref('');
 const newName  = ref('');
 const newSlug  = ref('');
 const profiles = ref<LinkableProfile[]>([]);
-const busy     = ref(false);
-const error    = ref('');
 const field    = ref<'username' | 'email' | 'accountName' | 'roles' | 'author' | 'name' | 'slug' | null>(null);
 const loadFail = ref('');
+
+const { busy, error, run } = useAction();
 
 const usernameInput = ref<HTMLInputElement | null>(null);
 const emailInput    = ref<HTMLInputElement | null>(null);
@@ -51,7 +52,7 @@ loadRoles().then((list) => {
 	// `accounts.roles`.
 	chosen.value = [MEMBER];
 }, (caught: unknown) => {
-	loadFail.value = caught instanceof ApiError ? caught.message : 'The roles couldn\'t be loaded.';
+	loadFail.value = errorMessage(caught, 'The roles couldn\'t be loaded.');
 });
 
 const usernameProblem = computed(() => username.value !== '' && !/^[a-z0-9][a-z0-9._-]{0,63}$/.test(username.value.toLowerCase())
@@ -94,9 +95,7 @@ async function submit(): Promise<void> {
 		return;
 	}
 
-	busy.value = true;
-
-	try {
+	await run('The account couldn\'t be created.', async () => {
 		const answer = await createAccount({
 			username: username.value.trim().toLowerCase(),
 			email: email.value.trim(),
@@ -122,17 +121,13 @@ async function submit(): Promise<void> {
 
 		toast(`Created ${called}`);
 		await router.push({ name: 'account', params: { username: answer.account.username } });
-	} catch (caught) {
-		error.value = caught instanceof ApiError ? caught.message : 'The account couldn\'t be created.';
+	}, (caught) => {
 		field.value = caught instanceof ApiError && (caught.field === 'username' || caught.field === 'email' || caught.field === 'roles' || caught.field === 'author') ? caught.field : (caught instanceof ApiError && caught.field === 'name' ? 'accountName' : null);
 
 		if (field.value === 'username' || field.value === 'email' || field.value === null) {
-			await nextTick();
-			(field.value === 'email' ? emailInput : usernameInput).value?.focus();
+			void nextTick(() => (field.value === 'email' ? emailInput : usernameInput).value?.focus());
 		}
-	} finally {
-		busy.value = false;
-	}
+	});
 }
 </script>
 
@@ -156,7 +151,7 @@ async function submit(): Promise<void> {
 					<header class="panel__header">
 						<h2 id="account-heading">Account</h2>
 					</header>
-					<div class="panel__body new-account__form">
+					<div class="panel__body form-stack new-account__form">
 						<div class="field">
 							<label for="account-username">Username</label>
 							<input id="account-username" ref="usernameInput" v-model="username" class="mono" autocomplete="off" autocapitalize="none" spellcheck="false" required :aria-invalid="usernameProblem || field === 'username' ? 'true' : undefined" aria-describedby="account-username-help">
@@ -232,14 +227,7 @@ async function submit(): Promise<void> {
 
 <style scoped>
 .new-account__form {
-	display: flex;
-	flex-direction: column;
-	gap: var(--s-4);
 	max-width: 520px;
-}
-
-.new-account__form > * + * {
-	margin-top: 0;
 }
 
 .new-account__member {

@@ -13,9 +13,10 @@
  * the credit; captions only ever come from the library, D-290), and a file that carries its location says so, without
  * where. Alt text and a caption are filled in when the file is inserted
  * as an image (D-269), and a page's image without alt text uses the
- * library's (D-270); what an entry writes is its own. Changes are saved
- * when asked, only the fields that changed, and leaving with changes
- * unsaved asks first.
+ * library's (D-270); what an entry writes is its own. Changes are counted
+ * in the save bar (D-508) and saved when asked, only the fields that
+ * changed, or put back with **Revert**; leaving with changes unsaved asks
+ * first.
  *
  * Who may change a file's details, or delete it, is by whose it is
  * (D-407): the file says who uploaded it, and its details are read-only
@@ -29,17 +30,20 @@
  */
 
 import { computed, ref, watch } from 'vue';
-import { confirmAction, confirmLeave } from '../confirm';
-import { onBeforeRouteLeave, RouterLink, useRoute, useRouter } from 'vue-router';
+import { confirmAction, guardLeave } from '../confirm';
+import { RouterLink, useRoute, useRouter } from 'vue-router';
 import AdminIcon from '../components/AdminIcon.vue';
 import FieldControl from '../components/FieldControl.vue';
-import { ApiError, entryRoute, request, type FieldDescription, type MediaDetail } from '../api';
+import RawValues from '../components/RawValues.vue';
+import SaveBar from '../components/SaveBar.vue';
+import { ApiError, entryRoute, errorMessage, request, type FieldDescription, type MediaDetail } from '../api';
+import { useAction } from '../action';
 import { fromForm, toForm, type FormValue } from '../fields';
 import { attributeText, imageText } from '../markdown';
 import { formatDate, formatSize } from '../format';
 import { forgetFile, formatDuration, mediaFacts, mediaName } from '../media';
 import { screenTitle } from '../screen';
-import { toast } from '../toast';
+import { copyText, toast } from '../toast';
 
 const route  = useRoute();
 const router = useRouter();
@@ -57,11 +61,11 @@ const address = computed(() => `/media/${path.value.split('/').map(encodeURIComp
 // The fields, as typed, and as loaded.
 const form    = ref<Record<string, FormValue>>({});
 const initial = ref<Record<string, FormValue>>({});
-const saving  = ref(false);
-const failure = ref('');
 const invalid = ref<{ field: string; message: string } | null>(null);
 
 const fields  = computed<FieldDescription[]>(() => file.value?.fields ?? []);
+
+const { busy: saving, error: failure, run } = useAction();
 
 // The field sets attached to the kind (D-341), each under its label after
 // the built-in fields.
@@ -146,7 +150,7 @@ watch(path, async () => {
 	try {
 		fill(await request<MediaDetail>('GET', address.value));
 	} catch (caught) {
-		error.value = caught instanceof ApiError ? caught.message : 'The file couldn\'t be loaded.';
+		error.value = errorMessage(caught, 'The file couldn\'t be loaded.');
 	}
 }, { immediate: true });
 
@@ -159,8 +163,6 @@ async function save(): Promise<void> {
 		return;
 	}
 
-	saving.value  = true;
-	failure.value = '';
 	invalid.value = null;
 
 	const set: Record<string, unknown> = {};
@@ -176,22 +178,27 @@ async function save(): Promise<void> {
 		}
 	}
 
-	try {
+	await run('It couldn\'t be saved.', async () => {
 		fill(await request<MediaDetail>('PATCH', address.value, { set, remove }));
 		forgetFile(file.value?.reference ?? '');
 		toast('Saved');
-	} catch (caught) {
+	}, (caught) => {
+		// A field the server blamed says so under it, not above the form.
 		if (caught instanceof ApiError && caught.field !== null) {
 			invalid.value = { field: caught.field, message: caught.message };
-		} else {
-			failure.value = caught instanceof ApiError ? caught.message : 'It couldn\'t be saved.';
+			failure.value = '';
 		}
-	} finally {
-		saving.value = false;
-	}
+	});
 }
 
-onBeforeRouteLeave(() => !changed.value || confirmLeave());
+// Puts the details back as they were saved.
+function revert(): void {
+	form.value    = { ...initial.value };
+	invalid.value = null;
+	failure.value = '';
+}
+
+guardLeave(() => changed.value);
 
 const deleting = ref(false);
 
@@ -226,7 +233,7 @@ async function remove(): Promise<void> {
 		toast(`Deleted ${mediaName(item)}`);
 		await router.push({ name: 'media' });
 	} catch (caught) {
-		toast(caught instanceof ApiError ? caught.message : 'The file couldn\'t be deleted.', { kind: 'warn' });
+		toast(errorMessage(caught, 'The file couldn\'t be deleted.'), { kind: 'warn' });
 	} finally {
 		deleting.value = false;
 	}
@@ -259,15 +266,6 @@ function written(reference: string): string {
 	const name = item.kind === 'video' ? 'video' : (item.kind === 'audio' ? 'audio' : 'file');
 
 	return `::blush/${name}{${attributeText('src', reference)}}`;
-}
-
-async function copy(text: string, what: string): Promise<void> {
-	try {
-		await navigator.clipboard.writeText(text);
-		toast(`Copied the ${what}`);
-	} catch {
-		toast(`The ${what} couldn't be copied`, { kind: 'warn' });
-	}
 }
 </script>
 
@@ -329,19 +327,12 @@ async function copy(text: string, what: string): Promise<void> {
 					</div>
 					<div v-if="extra.length" class="text__extra">
 						<p class="field__help">Also in its metadata file, kept as they are:</p>
-						<dl>
-							<div v-for="[key, value] in extra" :key="key">
-								<dt class="mono">{{ key }}</dt>
-								<dd class="mono">{{ typeof value === 'string' ? value : JSON.stringify(value) }}</dd>
-							</div>
-						</dl>
+						<RawValues :entries="extra" />
 					</div>
-					<p v-if="failure" class="field__error" role="alert">{{ failure }}</p>
-					<div v-if="file.may.edit" class="text__actions">
-						<button type="submit" class="button button--primary button--small" :disabled="!changed || saving">{{ saving ? 'Saving…' : 'Save' }}</button>
-						<span class="field__help">Kept in <code>user/data/media</code>, not in the file.</span>
-					</div>
+					<p v-if="file.may.edit" class="field__help">Kept in <code>user/data/media</code>, not in the file.</p>
 				</fieldset>
+
+				<SaveBar v-if="file.may.edit" :count="changes.length" :failure="failure" :saving="saving" @revert="revert" />
 			</form>
 
 			<section v-if="embedded.length || file.embedded.location" class="panel" aria-labelledby="embedded-heading">
@@ -416,11 +407,11 @@ async function copy(text: string, what: string): Promise<void> {
 					<p class="field__help">In the editor, the media button inserts it. In Markdown or front matter, it's:</p>
 					<div class="use__row">
 						<code>{{ file.reference }}</code>
-						<button type="button" class="button button--small" @click="copy(file.reference, 'address')"><AdminIcon name="copy" />Copy</button>
+						<button type="button" class="button button--small" @click="copyText(file.reference, 'the address')"><AdminIcon name="copy" />Copy</button>
 					</div>
 					<div class="use__row">
 						<code>{{ snippet }}</code>
-						<button type="button" class="button button--small" @click="copy(snippet, file.kind === 'image' ? 'Markdown' : 'component')"><AdminIcon name="copy" />Copy</button>
+						<button type="button" class="button button--small" @click="copyText(snippet, file.kind === 'image' ? 'the Markdown' : 'the component')"><AdminIcon name="copy" />Copy</button>
 					</div>
 				</div>
 			</section>
@@ -535,32 +526,6 @@ fieldset.text {
 	stroke-width: 1.25;
 }
 
-.facts {
-	display: grid;
-	gap: 8px;
-	margin: 0;
-}
-
-.facts > * + * {
-	margin-top: 0;
-}
-
-.facts div {
-	display: flex;
-	justify-content: space-between;
-	gap: 12px;
-}
-
-.facts dt {
-	color: var(--fg-2);
-}
-
-.facts dd {
-	margin: 0;
-	text-align: right;
-	overflow-wrap: anywhere;
-}
-
 .text {
 	display: grid;
 	gap: var(--s-4);
@@ -620,27 +585,7 @@ fieldset.text {
 }
 
 .text__extra dl {
-	display: grid;
-	gap: 6px;
 	margin: 6px 0 0;
-}
-
-.text__extra dt {
-	color: var(--fg-2);
-	font-size: var(--text-xs);
-}
-
-.text__extra dd {
-	margin: 0;
-	font-size: var(--text-xs);
-	overflow-wrap: anywhere;
-}
-
-.text__actions {
-	display: flex;
-	flex-wrap: wrap;
-	align-items: center;
-	gap: var(--s-3);
 }
 
 .use__row {

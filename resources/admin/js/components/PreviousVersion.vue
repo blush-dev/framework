@@ -10,8 +10,9 @@
 import { computed } from 'vue';
 import AdminIcon from './AdminIcon.vue';
 import type { InstallKind } from './InstallModal.vue';
-import { ApiError, request, type RollbackAnswer } from '../api';
+import { errorMessage, refreshIfAsked, request, type RollbackAnswer } from '../api';
 import { confirmAction } from '../confirm';
+import { KIND_PATHS } from '../extensions';
 import { can } from '../session';
 import { toast } from '../toast';
 
@@ -26,15 +27,9 @@ const emit = defineEmits<{
 	changed: [];
 }>();
 
-const PATHS: Record<InstallKind, { path: string; capability: string }> = {
-	'theme': { path: '/themes', capability: 'extensions.themes' },
-	'plugin': { path: '/plugins', capability: 'extensions.plugins' },
-	'icon-pack': { path: '/icon-packs', capability: 'extensions.icon-packs' }
-};
-
 const kept       = computed(() => props.extension.backup?.version || 'An earlier version');
-const canRollBack = computed(() => can(`${PATHS[props.kind].capability}.update`));
-const canDiscard = computed(() => can(`${PATHS[props.kind].capability}.delete`));
+const canRollBack = computed(() => can(`extensions.${KIND_PATHS[props.kind]}.update`));
+const canDiscard = computed(() => can(`extensions.${KIND_PATHS[props.kind]}.delete`));
 
 // What rolling back changes at once, for one that runs.
 function now(to: string): string {
@@ -60,18 +55,15 @@ async function rollBack(ask = true): Promise<void> {
 	}
 
 	try {
-		const answer = await request<RollbackAnswer>('POST', `${PATHS[props.kind].path}/${props.extension.name}/rollback`);
+		const answer = await request<RollbackAnswer>('POST', `/${KIND_PATHS[props.kind]}/${props.extension.name}/rollback`);
 
-		if (answer.refresh) {
-			await request('POST', '/settings/refresh').catch(() => undefined);
-		}
-
+		await refreshIfAsked(answer);
 		emit('changed');
 		toast(`Rolled back ${label} to ${answer.rolledBack.version || to}`, {
 			undo: ask ? () => void rollBack(false) : undefined
 		});
 	} catch (caught) {
-		toast(caught instanceof ApiError ? caught.message : `${label} couldn't be rolled back.`, { kind: 'warn' });
+		toast(errorMessage(caught, `${label} couldn't be rolled back.`), { kind: 'warn' });
 	}
 }
 
@@ -88,11 +80,11 @@ async function discard(): Promise<void> {
 	}
 
 	try {
-		await request('DELETE', `${PATHS[props.kind].path}/${props.extension.name}/backup`);
+		await request('DELETE', `/${KIND_PATHS[props.kind]}/${props.extension.name}/backup`);
 		emit('changed');
 		toast(`Discarded ${label} ${kept.value}`, { kind: 'danger' });
 	} catch (caught) {
-		toast(caught instanceof ApiError ? caught.message : `${label} ${kept.value} couldn't be discarded.`, { kind: 'warn' });
+		toast(errorMessage(caught, `${label} ${kept.value} couldn't be discarded.`), { kind: 'warn' });
 	}
 }
 </script>

@@ -6,8 +6,8 @@
  * Neither row is drawn when it has nothing. `support.email` isn't shown
  * (the author's call), though the API has it.
  *
- * Its rows are a fragment, so the details' scoped `dt` and `dd` rules
- * don't reach them; it styles its own to match.
+ * Its rows are a fragment inside the details' `.facts`, whose global
+ * rules style its `dt` and `dd`.
  */
 
 import { computed } from 'vue';
@@ -63,13 +63,13 @@ function fundingName(fund: ExtensionFunding): string {
 
 <template>
 	<template v-if="shown.length">
-		<dt class="extension-links__label">Links</dt>
+		<dt>Links</dt>
 		<dd class="extension-links">
 			<a v-for="link in shown" :key="link.kind" :href="link.url" target="_blank" rel="noopener">{{ names[link.kind] ?? link.kind }}<span class="visually-hidden"> (new tab)</span></a>
 		</dd>
 	</template>
 	<template v-if="funding.length">
-		<dt class="extension-links__label">Sponsor</dt>
+		<dt>Sponsor</dt>
 		<dd class="extension-links">
 			<a v-for="fund in funding" :key="fund.url" class="extension-links__fund" :href="fund.url" target="_blank" rel="noopener"><AdminIcon name="heart" />{{ fundingName(fund) }}<span class="visually-hidden"> (new tab)</span></a>
 		</dd>
@@ -77,14 +77,8 @@ function fundingName(fund: ExtensionFunding): string {
 </template>
 
 <style scoped>
-.extension-links__label {
-	color: var(--fg-3);
-}
-
+/* In a details screen's facts, which set the dt and dd. */
 .extension-links {
-	min-width: 0;
-	margin: 0;
-	overflow-wrap: anywhere;
 	display: flex;
 	flex-wrap: wrap;
 	gap: var(--s-1) var(--s-3);

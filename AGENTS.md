@@ -236,6 +236,15 @@ Single test: `vendor/bin/phpunit --filter FrameworkTest`.
   export, and admin preview.
 - **Flat files are the default, not the only option.** Content storage goes
   through `ContentSource` / `ContentIndex` / `ContentRepository` interfaces.
+- **The admin shares what repeats** (D-505 to D-509). Before writing
+  admin UI, use the shared components (`resources/admin/js/components`),
+  classes (`admin.css`), and modules (`resources/admin/js/*.ts`) that
+  fit. A class is for how something looks; a component is for markup
+  repeated three or more times or that has behavior; a module function
+  is for logic. When something would be written a second or third time,
+  make it shared, or ask the author when it's a judgment call. Sketches
+  and mockups are read the same way: build them from existing pieces,
+  and ask the author when a design disagrees with the admin.
 
 ## Coding conventions
 

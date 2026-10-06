@@ -15,7 +15,7 @@ import { confirmAction } from '../confirm';
 import { RouterLink } from 'vue-router';
 import AdminIcon from '../components/AdminIcon.vue';
 import { canAnyType, canType, session } from '../session';
-import { ApiError, request, type ActionDescription, type ActionResult, type Dashboard } from '../api';
+import { errorMessage, request, type ActionDescription, type ActionResult, type Dashboard } from '../api';
 import { loadTypes, types } from '../types';
 
 const dashboard = ref<Dashboard | null>(null);
@@ -27,7 +27,7 @@ async function load(): Promise<void> {
 	try {
 		dashboard.value = await request<Dashboard>('GET', '/dashboard');
 	} catch (caught) {
-		error.value = caught instanceof ApiError ? caught.message : 'The dashboard couldn\'t be loaded.';
+		error.value = errorMessage(caught, 'The dashboard couldn\'t be loaded.');
 	}
 }
 
@@ -44,7 +44,7 @@ async function run(action: ActionDescription): Promise<void> {
 	} catch (caught) {
 		results.value[action.name] = {
 			successful: false,
-			message: caught instanceof ApiError ? caught.message : `${action.label} failed.`,
+			message: errorMessage(caught, `${action.label} failed.`),
 			details: []
 		};
 	} finally {

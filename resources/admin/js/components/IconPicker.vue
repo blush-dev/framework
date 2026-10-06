@@ -14,9 +14,11 @@
  * it. Escape, **Cancel**, or the close button leave without one.
  */
 
-import { computed, nextTick, onMounted, ref, watch } from 'vue';
+import { computed, nextTick, ref, watch } from 'vue';
 import AdminIcon from './AdminIcon.vue';
-import { gridMove } from '../grid';
+import EmptyState from './EmptyState.vue';
+import { useModalDialog } from '../dialog';
+import { gridColumns, gridMove, numbered, type Section } from '../grid';
 import { iconGroups, iconMask, iconMatches, loadIcons, type SiteIcon } from '../site-icons';
 
 defineProps<{
@@ -29,7 +31,6 @@ const emit = defineEmits<{
 	close: [];
 }>();
 
-const dialog = ref<HTMLDialogElement | null>(null);
 const input  = ref<HTMLInputElement | null>(null);
 const pane   = ref<HTMLElement | null>(null);
 const icons  = ref<SiteIcon[]>([]);
@@ -38,6 +39,8 @@ const loaded = ref(false);
 const query  = ref('');
 const group  = ref('all');
 const active = ref(-1);
+
+const { dialog, close } = useModalDialog(() => input.value?.focus());
 
 loadIcons().then((list) => {
 	icons.value = list;
@@ -49,42 +52,22 @@ loadIcons().then((list) => {
 
 const groups = computed(() => iconGroups(icons.value));
 
-interface Section {
-	heading: string;
-	cells: { index: number; icon: SiteIcon }[];
-}
-
 // What's shown, in sections; each icon has its place in keyboard order.
 // A search or a chosen group is one section; otherwise every group is.
-const sections = computed<Section[]>(() => {
-	const found: Section[] = [];
-	let index = 0;
-
-	const section = (heading: string, items: SiteIcon[]): void => {
-		if (items.length > 0) {
-			found.push({ heading, cells: items.map((icon) => ({ index: index++, icon })) });
-		}
-	};
-
+const sections = computed<Section<SiteIcon>[]>(() => {
 	const pool = group.value === 'all' ? icons.value : groups.value.find((item) => item.key === group.value)?.icons ?? [];
 
 	if (query.value.trim() !== '' || group.value !== 'all') {
 		const results = pool.filter((icon) => iconMatches(icon, query.value));
 
-		section(results.length === 1 ? '1 icon' : `${results.length} icons`, results);
-
-		return found;
+		return numbered([{ heading: results.length === 1 ? '1 icon' : `${results.length} icons`, items: results }]);
 	}
 
-	for (const item of groups.value) {
-		section(item.label, item.icons);
-	}
-
-	return found;
+	return numbered(groups.value.map((item) => ({ heading: item.label, items: item.icons })));
 });
 
 const cells   = computed(() => sections.value.flatMap((section) => section.cells));
-const current = computed(() => cells.value[active.value]?.icon);
+const current = computed(() => cells.value[active.value]?.item);
 
 watch(query, (value) => {
 	active.value = value.trim() === '' ? -1 : 0;
@@ -99,15 +82,8 @@ watch(active, async () => {
 	pane.value?.querySelector('.icon-picker__cell.is-active')?.scrollIntoView({ block: 'nearest' });
 });
 
-// The grid reflows with the modal's width, so steps are read off it.
-function columns(): number {
-	const grid = pane.value?.querySelector('.icon-picker__grid');
-
-	return grid === null || grid === undefined ? 1 : Math.max(1, getComputedStyle(grid).gridTemplateColumns.split(' ').length);
-}
-
 function keydown(event: KeyboardEvent): void {
-	const next = gridMove(event.key, Math.max(0, active.value), cells.value.length, columns(), query.value !== '');
+	const next = gridMove(event.key, Math.max(0, active.value), cells.value.length, gridColumns(pane.value?.querySelector('.icon-picker__grid')), query.value !== '');
 
 	if (next !== null) {
 		event.preventDefault();
@@ -128,22 +104,17 @@ function pick(key: string): void {
 // can take focus, so the editor couldn't insert at its caret.
 function use(icon: SiteIcon | undefined): void {
 	if (icon !== undefined) {
-		dialog.value?.close();
+		close();
 		emit('choose', icon);
 	}
 }
-
-onMounted(() => {
-	dialog.value?.showModal();
-	input.value?.focus();
-});
 </script>
 
 <template>
-	<dialog ref="dialog" class="modal icon-picker" aria-labelledby="icon-picker-heading" @close="emit('close')" @keydown.esc.prevent.stop="dialog?.close()">
+	<dialog ref="dialog" class="modal icon-picker" aria-labelledby="icon-picker-heading" @close="emit('close')" @keydown.esc.prevent.stop="close()">
 		<div class="modal__head">
 			<h2 id="icon-picker-heading">Insert an Icon</h2>
-			<button type="button" class="button button--ghost button--icon" @click="dialog?.close()">
+			<button type="button" class="button button--ghost button--icon" @click="close()">
 				<AdminIcon name="x" />
 				<span class="visually-hidden">Close</span>
 			</button>
@@ -183,32 +154,29 @@ onMounted(() => {
 				<div v-if="!loaded" class="icon-picker__grid" aria-hidden="true">
 					<span v-for="cell in 24" :key="cell" class="skeleton icon-picker__skeleton" />
 				</div>
-				<div v-else-if="!cells.length" class="empty">
-					<AdminIcon name="search" />
-					<p class="empty__heading">
-						<template v-if="failed">The Icons Couldn't Be Loaded</template>
-						<template v-else-if="query">No Icon Called That</template>
-						<template v-else>This Site Has No Icons</template>
-					</p>
-					<p v-if="query && !failed" class="empty__text">Try a broader word, or pick a group on the left.</p>
-				</div>
+				<EmptyState
+					v-else-if="!cells.length"
+					icon="search"
+					:heading="failed ? 'The Icons Couldn\'t Be Loaded' : (query ? 'No Icon Called That' : 'This Site Has No Icons')"
+					:text="query && !failed ? 'Try a broader word, or pick a group on the left.' : undefined"
+				/>
 				<div v-for="section in sections" :key="section.heading" role="group" :aria-label="section.heading">
-					<p class="icon-picker__heading" aria-hidden="true">{{ section.heading }}</p>
+					<p class="eyebrow icon-picker__heading" aria-hidden="true">{{ section.heading }}</p>
 					<div class="icon-picker__grid">
 						<div
 							v-for="cell in section.cells"
 							:id="`icon-${cell.index}`"
-							:key="cell.icon.name"
+							:key="cell.item.name"
 							class="icon-picker__cell"
 							:class="{ 'is-active': cell.index === active }"
 							role="option"
 							:aria-selected="cell.index === active"
 							@mousedown.prevent
 							@click="active = cell.index"
-							@dblclick="use(cell.icon)"
+							@dblclick="use(cell.item)"
 						>
-							<span v-if="cell.icon.svg" class="icon-picker__glyph" :style="{ maskImage: iconMask(cell.icon) }" />
-							<span class="icon-picker__name">{{ cell.icon.label }}</span>
+							<span v-if="cell.item.svg" class="icon-picker__glyph" :style="{ maskImage: iconMask(cell.item) }" />
+							<span class="icon-picker__name">{{ cell.item.label }}</span>
 						</div>
 					</div>
 				</div>
@@ -220,7 +188,7 @@ onMounted(() => {
 				<template v-if="current"><b>{{ current.label }}</b> · <code>{{ preview(current) }}</code></template>
 				<template v-else>Choose an icon.</template>
 			</p>
-			<button type="button" class="button" @click="dialog?.close()">Cancel</button>
+			<button type="button" class="button" @click="close()">Cancel</button>
 			<button type="button" class="button button--primary" :disabled="current === undefined" @click="use(current)">Insert</button>
 		</div>
 	</dialog>
@@ -290,11 +258,7 @@ onMounted(() => {
 
 .icon-picker__heading {
 	padding-bottom: var(--s-3);
-	color: var(--fg-3);
 	font-size: var(--text-xs);
-	font-weight: 600;
-	letter-spacing: .07em;
-	text-transform: uppercase;
 }
 
 [role="group"] + [role="group"] .icon-picker__heading {

@@ -24,8 +24,9 @@
 
 import { computed, nextTick, ref } from 'vue';
 import ImagePreview from './ImagePreview.vue';
-import AdminSelect from './AdminSelect.vue';
 import AttributeFields from './AttributeFields.vue';
+import OptionSelect from './OptionSelect.vue';
+import OptionsGroup from './OptionsGroup.vue';
 import type { ComponentVariant } from '../components';
 import type { MediaItem } from '../api';
 import { attributeParts, unescaped, withImage, withParts, type Edit, type MarkdownImage } from '../markdown';
@@ -101,26 +102,19 @@ const libraryAlt = computed(() => file.value?.alt ?? '');
 
 <template>
 	<div class="options">
-		<div class="options__group">
+		<OptionsGroup>
 			<p class="options__note">An ordinary Markdown image. The quoted part after its address is its caption.</p>
-		</div>
+		</OptionsGroup>
 
-		<div v-if="variants.length" class="options__group">
-			<p class="options__heading">Variant</p>
-			<div class="field">
-				<label class="visually-hidden" for="image-variant">Variant</label>
-				<AdminSelect id="image-variant" :model-value="variant" :options="variantOptions" described-by="image-variant-help" @update:model-value="changeVariant" />
-				<p id="image-variant-help" class="field__help">{{ chosen ? (chosen.description || 'A style the theme provides.') : 'At the width of the text.' }}</p>
-			</div>
-		</div>
+		<OptionsGroup v-if="variants.length" heading="Variant">
+			<OptionSelect id="image-variant" label="Variant" :model-value="variant" :options="variantOptions" :help="chosen ? (chosen.description || 'A style the theme provides.') : 'At the width of the text.'" @update:model-value="changeVariant" />
+		</OptionsGroup>
 
-		<div class="options__group">
-			<p class="options__heading">Image</p>
+		<OptionsGroup heading="Image">
 			<ImagePreview :src="image.src" @pick="emit('pick')" @remove="emit('remove')" @resolved="file = $event" />
-		</div>
+		</OptionsGroup>
 
-		<div class="options__group">
-			<p class="options__heading">Text</p>
+		<OptionsGroup heading="Text">
 			<div class="field">
 				<label class="checkbox">
 					<input type="checkbox" :checked="decorative" aria-describedby="image-decorative-help" @change="changeDecorative">
@@ -131,7 +125,7 @@ const libraryAlt = computed(() => file.value?.alt ?? '');
 					<template v-else>For an image that adds nothing a reader needs, such as an ornament. Turning it on clears the alt text.</template>
 				</p>
 				<p v-if="decorative && libraryAlt" class="field__help">
-					The library describes it as “{{ libraryAlt }}”. <button type="button" class="image-library" @click="useLibrary">Use the library's</button>
+					The library describes it as “{{ libraryAlt }}”. <button type="button" class="lnk" @click="useLibrary">Use the library's</button>
 				</p>
 			</div>
 			<div v-if="!decorative" class="field">
@@ -144,32 +138,14 @@ const libraryAlt = computed(() => file.value?.alt ?? '');
 				<input id="image-caption" :value="caption" autocomplete="off" aria-describedby="image-caption-help" @input="write({ title: ($event.target as HTMLInputElement).value })">
 				<p id="image-caption-help" class="field__help">Shown under the image on the site. It's the quoted part after the address.</p>
 			</div>
-		</div>
+		</OptionsGroup>
 
-		<div class="options__group">
-			<p class="options__heading">Attributes</p>
+		<OptionsGroup heading="Attributes">
 			<AttributeFields :classes="classes" :id="parts.id" id-prefix="image-" @change="changeParts" />
-		</div>
+		</OptionsGroup>
 
-		<div class="options__group">
-			<p class="options__heading">Source</p>
+		<OptionsGroup heading="Source">
 			<pre class="options__source">{{ source.slice(image.start, image.end) }}</pre>
-		</div>
+		</OptionsGroup>
 	</div>
 </template>
-
-<style scoped>
-/* A button that reads as a link, inside a line of help. */
-.image-library {
-	padding: 0;
-	border: 0;
-	background: none;
-	color: var(--accent);
-	font: inherit;
-	cursor: pointer;
-}
-
-.image-library:hover {
-	text-decoration: underline;
-}
-</style>

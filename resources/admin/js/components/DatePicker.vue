@@ -9,7 +9,9 @@
  * how it's shown and typed.
  */
 
-import { computed, nextTick, onBeforeUnmount, ref } from 'vue';
+import { computed, nextTick, ref } from 'vue';
+import { hour12, monthDays, WEEKDAYS } from '../month';
+import { usePopover } from '../popover';
 import AdminIcon from './AdminIcon.vue';
 
 const props = defineProps<{
@@ -21,7 +23,6 @@ const props = defineProps<{
 const model = defineModel<string>({ required: true });
 
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-const DAYS   = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
 function pad(value: number): string {
 	return String(value).padStart(2, '0');
@@ -38,24 +39,21 @@ function write(date: Date): void {
 	model.value = `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
-function hour12(date: Date): number {
-	return ((date.getHours() + 11) % 12) + 1;
-}
-
 const shown = computed(() => {
 	const date = value.value;
 
 	return date === null ? null : {
-		day: `${DAYS[(date.getDay() + 6) % 7]} ${date.getDate()} ${MONTHS[date.getMonth()]?.slice(0, 3)} ${date.getFullYear()}`,
-		time: `${pad(hour12(date))}:${pad(date.getMinutes())} ${date.getHours() < 12 ? 'am' : 'pm'}`
+		day: `${WEEKDAYS[(date.getDay() + 6) % 7]} ${date.getDate()} ${MONTHS[date.getMonth()]?.slice(0, 3)} ${date.getFullYear()}`,
+		time: `${pad(hour12(date.getHours()))}:${pad(date.getMinutes())} ${date.getHours() < 12 ? 'am' : 'pm'}`
 	};
 });
 
 const button = ref<HTMLButtonElement | null>(null);
 const panel  = ref<HTMLElement | null>(null);
-const open   = ref(false);
-const place  = ref<Record<string, string> | null>(null);
 const month  = ref(new Date());
+
+const popover                = usePopover(button, panel, { gap: 6 });
+const { open, place, close } = popover;
 
 function sameDay(a: Date, b: Date): boolean {
 	return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
@@ -63,26 +61,14 @@ function sameDay(a: Date, b: Date): boolean {
 
 // Six weeks from the Monday on or before the month's first day.
 const days = computed(() => {
-	const first = new Date(month.value.getFullYear(), month.value.getMonth(), 1);
-	const start = new Date(first);
 	const today = new Date();
 
-	start.setDate(1 - ((first.getDay() + 6) % 7));
-
-	return Array.from({ length: 42 }, (_, index) => {
-		const date = new Date(start);
-
-		date.setDate(start.getDate() + index);
-
-		return {
-			date,
-			key: date.toDateString(),
-			out: date.getMonth() !== month.value.getMonth(),
-			today: sameDay(date, today),
-			chosen: value.value !== null && sameDay(date, value.value),
-			label: `${DAYS[(date.getDay() + 6) % 7]} ${date.getDate()} ${MONTHS[date.getMonth()]}`
-		};
-	});
+	return monthDays(month.value.getFullYear(), month.value.getMonth(), 6).map((day) => ({
+		...day,
+		today: sameDay(day.date, today),
+		chosen: value.value !== null && sameDay(day.date, value.value),
+		label: `${WEEKDAYS[(day.date.getDay() + 6) % 7]} ${day.date.getDate()} ${MONTHS[day.date.getMonth()]}`
+	}));
 });
 
 // The time fields, as typed until they're committed.
@@ -92,7 +78,7 @@ const minuteText = ref('');
 function syncTime(): void {
 	const date = value.value ?? new Date();
 
-	hourText.value   = pad(hour12(date));
+	hourText.value   = pad(hour12(date.getHours()));
 	minuteText.value = pad(date.getMinutes());
 }
 
@@ -163,45 +149,9 @@ async function show(): Promise<void> {
 
 	month.value = new Date(date.getFullYear(), date.getMonth(), 1);
 	syncTime();
-	open.value  = true;
-	place.value = null;
-	await nextTick();
-
-	const box    = button.value?.getBoundingClientRect();
-	const height = panel.value?.offsetHeight ?? 0;
-	const width  = panel.value?.offsetWidth ?? 0;
-
-	if (box !== undefined) {
-		place.value = {
-			left: `${Math.max(8, Math.min(box.left, window.innerWidth - width - 8))}px`,
-			top: `${box.bottom + height + 8 > window.innerHeight ? Math.max(8, box.top - height - 6) : box.bottom + 6}px`
-		};
-	}
-
-	document.addEventListener('pointerdown', outside, true);
+	await popover.show();
 	await nextTick();
 	panel.value?.querySelector<HTMLElement>('.date__day.is-chosen, .date__day.is-today')?.focus();
-}
-
-function close(refocus = true): void {
-	if (!open.value) {
-		return;
-	}
-
-	open.value = false;
-	document.removeEventListener('pointerdown', outside, true);
-
-	if (refocus) {
-		button.value?.focus();
-	}
-}
-
-function outside(event: PointerEvent): void {
-	const target = event.target as Node;
-
-	if (!panel.value?.contains(target) && !button.value?.contains(target)) {
-		close(false);
-	}
 }
 
 function keydown(event: KeyboardEvent): void {
@@ -218,10 +168,6 @@ function timeKey(event: KeyboardEvent): void {
 		commitTime();
 	}
 }
-
-onBeforeUnmount(() => {
-	document.removeEventListener('pointerdown', outside, true);
-});
 
 defineExpose({ show });
 </script>
@@ -258,12 +204,12 @@ defineExpose({ show });
 				</button>
 			</div>
 			<div class="date-panel__week" aria-hidden="true">
-				<span v-for="day in DAYS" :key="day">{{ day.charAt(0) }}</span>
+				<span v-for="day in WEEKDAYS" :key="day">{{ day.charAt(0) }}</span>
 			</div>
 			<div class="date-panel__grid">
 				<button
 					v-for="day in days"
-					:key="day.key"
+					:key="day.iso"
 					type="button"
 					class="date__day"
 					:class="{ 'is-out': day.out, 'is-today': day.today, 'is-chosen': day.chosen }"

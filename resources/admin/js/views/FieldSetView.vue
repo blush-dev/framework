@@ -9,7 +9,7 @@ import { computed, ref, watch } from 'vue';
 import { RouterLink, useRoute } from 'vue-router';
 import AdminIcon from '../components/AdminIcon.vue';
 import FieldSetEditor from '../components/FieldSetEditor.vue';
-import { ApiError, request, type FieldSetDetail } from '../api';
+import { errorMessage, request, type FieldSetDetail } from '../api';
 import { label } from '../fields';
 import { loadFieldTypes, typeName } from '../field-types';
 import { plural } from '../format';
@@ -34,7 +34,7 @@ watch(() => route.params.name, async (name) => {
 	try {
 		set.value = await request<FieldSetDetail>('GET', `/fields/sets/${encodeURIComponent(String(name))}`);
 	} catch (caught) {
-		error.value = caught instanceof ApiError ? caught.message : 'The field set couldn\'t be loaded.';
+		error.value = errorMessage(caught, 'The field set couldn\'t be loaded.');
 	}
 }, { immediate: true });
 
@@ -135,49 +135,8 @@ function typeOf(key: string): string {
 </template>
 
 <style scoped>
-/* Widths as classes: the admin's CSP blocks inline style attributes. */
-.skeleton--heading {
-	width: 40%;
-}
-
-.skeleton--label {
-	width: 30%;
-}
-
 .set-detail {
 	display: grid;
 	gap: 16px;
-}
-
-.chips {
-	display: flex;
-	flex-wrap: wrap;
-	gap: 6px;
-	margin: 0;
-	padding: 0;
-	list-style: none;
-}
-
-.chips a,
-.chips__item,
-.chips__missing {
-	display: inline-block;
-	padding: 2px 10px;
-	border: 1px solid var(--border);
-	border-radius: 99px;
-	background: var(--surface-2);
-	color: var(--fg-2);
-	font-size: var(--text-sm);
-	text-decoration: none;
-}
-
-.chips a:hover {
-	border-color: var(--border-strong);
-	color: var(--fg);
-}
-
-.chips__missing {
-	border-style: dashed;
-	color: var(--fg-3);
 }
 </style>

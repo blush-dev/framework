@@ -13,6 +13,14 @@ are, where the admin departs from the direction and why, and which of
 its open questions are settled. Read both before writing admin UI, and
 update this one (not the direction) when you depart from it.
 
+Sketches, mockups, and design files (these and any the author adds
+later) may differ in detail from the admin as built. They're close
+enough to read as the admin: build each part from the components and
+shared classes the admin already has (D-509), not from the sketch's own
+markup and CSS, and draw something new only where nothing fits. Where
+a sketch and the admin (or two designs) disagree, ask the author which
+way to go; record the answer here.
+
 ## Files
 
 ```
@@ -46,10 +54,13 @@ Each is recorded in `.claude/docs/decisions.md`.
 - **Type tokens added** (D-231): `--text-sm` (12px), `--text-xs` (11px),
   `--text-2xs` (10px), and `--h2` (15px since D-265), so no type size is a
   literal.
-- **Shared pieces are global classes** in `admin.css` (buttons, panels, pills,
-  tables, stat tiles, notices), not yet `Base*` components; components keep
-  their own layout in scoped styles (D-231). The directory layout follows the
-  repo: `resources/admin/{css,fonts,js/{components,views}}`.
+- **Shared pieces are global classes** in `admin.css` when they're only
+  how something looks (buttons, panels, pills, tables, stat tiles,
+  notices), and components, without a `Base` prefix, when the same
+  markup repeats in three or more places or carries behavior (D-231,
+  D-509); components keep their own layout in scoped styles. What
+  screens do alike is shared in modules (D-505). The directory layout
+  follows the repo: `resources/admin/{css,fonts,js/{components,views}}`.
 - **Tables aren't sticky-headed** (D-231): a table that scrolls sideways is its
   own scroll container.
 - **No autosave or pending changes** (D-233): the writer has nowhere to keep a
@@ -113,7 +124,8 @@ Each is recorded in `.claude/docs/decisions.md`.
   (the account and profile screens' modals list only the free ones,
   D-373); notices keep the admin's rounded corners and have no ruled
   edge, where the sketch's are square with a darker left border (the
-  author's calls, D-373, D-376); the
+  author's calls, D-373, D-376), and are every screen's notices, in
+  place of the direction's (D-506); the
   profiles bulk bar is the entries list's (Publish, Move to draft, Move
   to trash), without **Copy links**; suspending is undone with
   **Reinstate** (the CLI's word), not **Reactivate**; a written archive
@@ -123,7 +135,8 @@ Each is recorded in `.claude/docs/decisions.md`.
   (D-371, and Media and Themes, D-372; the direction's panel has
   none). The screens themselves are drawn as the
   sketch is, under a `.people` root (D-370), so other screens keep the
-  direction's spacing, tabs, and pills. "You" marks your own account and profile in those two
+  direction's spacing and pills; tabs are the direction's on every
+  screen, these too, with less padding (D-507). "You" marks your own account and profile in those two
   lists; entry lists keep "Yours" for entries crediting you.
 - **Your Account** (D-235, D-355, D-358, D-369; Your Profile in the
   direction, renamed as the sketch suggests): the account screen on

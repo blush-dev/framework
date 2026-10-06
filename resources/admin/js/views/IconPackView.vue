@@ -19,24 +19,22 @@ import { computed, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import AbandonedNotice from '../components/AbandonedNotice.vue';
 import AdminIcon from '../components/AdminIcon.vue';
-import ExtensionDependents from '../components/ExtensionDependents.vue';
-import ExtensionLinks from '../components/ExtensionLinks.vue';
-import ExtensionProvides from '../components/ExtensionProvides.vue';
-import ExtensionRequirements from '../components/ExtensionRequirements.vue';
-import ExtensionSuggestions from '../components/ExtensionSuggestions.vue';
-import LicenseLinks from '../components/LicenseLinks.vue';
+import DangerZone from '../components/DangerZone.vue';
+import ExtensionFacts from '../components/ExtensionFacts.vue';
+import ExtensionPackagePanels from '../components/ExtensionPackagePanels.vue';
 import PreviousVersion from '../components/PreviousVersion.vue';
 import ToggleSwitch from '../components/ToggleSwitch.vue';
-import { ApiError, request, type CoreIcons, type IconPackSummary } from '../api';
+import { ApiError, errorMessage, request, type CoreIcons, type IconPackSummary } from '../api';
 import { packIconMask, useIconPacks } from '../icon-packs';
 import { screenTitle } from '../screen';
-import { copy } from '../themes';
 import { can } from '../session';
+import { copyText } from '../toast';
 
 const route  = useRoute();
 const router = useRouter();
 
-const { busy, toggle: togglePack, remove: removePack } = useIconPacks();
+// What deleting the pack refused, said with the screen's own failures.
+const { busy, error: failure, toggle: togglePack, remove: removePack } = useIconPacks();
 
 // What the account may do here (D-389).
 const canActivate = can('extensions.icon-packs.activate');
@@ -76,7 +74,7 @@ async function load(): Promise<void> {
 		if (caught instanceof ApiError && caught.status === 404) {
 			missing.value = true;
 		} else {
-			error.value = caught instanceof ApiError ? caught.message : 'The icon pack couldn\'t be loaded.';
+			error.value = errorMessage(caught, 'The icon pack couldn\'t be loaded.');
 		}
 	}
 }
@@ -140,7 +138,7 @@ async function remove(): Promise<void> {
 		</div>
 	</header>
 
-	<p v-if="error" class="notice notice--error" role="alert">{{ error }}</p>
+	<p v-if="error || failure" class="notice notice--error" role="alert">{{ error || failure }}</p>
 
 	<div v-if="shown" class="pack-detail">
 		<AbandonedNotice v-if="pack" noun="icon pack" :abandoned="pack.abandoned" :replacement="pack.replacement" />
@@ -159,7 +157,7 @@ async function remove(): Promise<void> {
 				</header>
 				<div class="panel__body">
 					<div class="browse-bar">
-						<label class="browse-bar__field">
+						<label class="search-field browse-bar__field">
 							<AdminIcon name="search" />
 							<span class="visually-hidden">Filter icons</span>
 							<input v-model="query" type="search" placeholder="Filter icons">
@@ -167,7 +165,7 @@ async function remove(): Promise<void> {
 						<span class="browse-bar__count" aria-live="polite">{{ icons.length === shown.icons.length ? `${shown.count} icons` : `${icons.length} of ${shown.count}` }}</span>
 					</div>
 					<div v-if="icons.length" class="browse">
-						<button v-for="icon in icons" :key="icon.name" type="button" class="browse__icon" @click="copy(icon.name, icon.name)">
+						<button v-for="icon in icons" :key="icon.name" type="button" class="browse__icon" @click="copyText(icon.name, 'the icon\'s name', icon.name)">
 							<span v-if="icon.svg" class="browse__glyph" :style="{ maskImage: packIconMask(icon) }" aria-hidden="true" />
 							<AdminIcon v-else name="image-off" />
 							<code>{{ icon.name }}</code>
@@ -180,40 +178,13 @@ async function remove(): Promise<void> {
 			<section class="panel" aria-labelledby="details-heading">
 				<header class="panel__header"><h2 id="details-heading">Details</h2></header>
 				<div class="panel__body">
-					<dl v-if="pack" class="pack-facts">
-						<dt>Name</dt>
-						<dd class="mono">{{ pack.name }}</dd>
-						<dt>{{ pack.authors.length > 1 ? 'Authors' : 'Author' }}</dt>
-						<dd>
-							<template v-if="pack.authors.length === 0">—</template>
-							<span v-for="author in pack.authors" :key="author.name" class="pack-facts__author">
-								<a v-if="author.homepage" :href="author.homepage" target="_blank" rel="noopener">{{ author.name }}<span class="visually-hidden"> (new tab)</span></a>
-								<template v-else>{{ author.name }}</template>
-								<span v-if="author.role" class="pack-facts__role">{{ author.role }}</span>
-							</span>
-						</dd>
-						<dt>Version</dt>
-						<dd :class="{ mono: pack.version }">{{ pack.version || '—' }}</dd>
-						<dt>License</dt>
-						<dd :class="{ mono: pack.licenses.length }"><LicenseLinks :parts="pack.licenses" /></dd>
-						<ExtensionLinks :links="pack.links" :funding="pack.funding" />
-						<dt>Namespace</dt>
-						<dd class="mono">{{ pack.namespace }}/</dd>
-						<ExtensionDependents :dependents="pack.requiredBy" />
-						<ExtensionDependents :dependents="pack.conflictedBy" label="Conflicts with it" />
-						<ExtensionDependents :dependents="pack.replacedBy" label="Replaced by" />
-						<ExtensionDependents :dependents="pack.providedBy" label="Also provided by" />
-						<dt>Icons</dt>
-						<dd>{{ pack.count }}</dd>
-						<dt>Installed by</dt>
-						<dd>{{ pack.source === 'composer' ? 'Composer' : 'A folder in extensions/' }}</dd>
-						<dt>Folder</dt>
-						<dd>
-							<span class="mono">{{ pack.path }}</span>
-							<button type="button" class="button button--ghost button--small button--icon pack-facts__copy" :aria-label="`Copy ${pack.path}`" @click="copy(pack.path, 'the folder path')"><AdminIcon name="copy" /></button>
-						</dd>
-					</dl>
-					<dl v-else-if="core" class="pack-facts">
+					<ExtensionFacts v-if="pack" :extension="pack" :installed-by="pack.source === 'composer' ? 'Composer' : 'A folder in extensions/'" :folder="pack.path" :namespace="`${pack.namespace}/`">
+						<template #kind>
+							<dt>Icons</dt>
+							<dd>{{ pack.count }}</dd>
+						</template>
+					</ExtensionFacts>
+					<dl v-else-if="core" class="facts facts--grid">
 						<dt>Version</dt>
 						<dd class="mono">{{ core.version }}</dd>
 						<dt>Used as</dt>
@@ -229,64 +200,17 @@ async function remove(): Promise<void> {
 			</section>
 		</div>
 
-		<section v-if="pack" class="panel" aria-labelledby="requires-heading">
-			<header class="panel__header">
-				<h2 id="requires-heading">Requires</h2>
-				<p class="panel__hint">Checked against this site</p>
-			</header>
-			<div class="panel__body">
-				<ExtensionRequirements :requirements="pack.requirements" />
-			</div>
-		</section>
-		<section v-if="pack && pack.conflicts.length" class="panel" aria-labelledby="conflicts-heading">
-			<header class="panel__header">
-				<h2 id="conflicts-heading">Conflicts</h2>
-				<p class="panel__hint">Checked against what's on</p>
-			</header>
-			<div class="panel__body">
-				<ExtensionRequirements :requirements="pack.conflicts" list="conflicts" />
-			</div>
-		</section>
-
-		<section v-if="pack && pack.replaces.length" class="panel" aria-labelledby="replaces-heading">
-			<header class="panel__header">
-				<h2 id="replaces-heading">Replaces</h2>
-				<p class="panel__hint">It adds no icons while one of these is on</p>
-			</header>
-			<div class="panel__body">
-				<ExtensionRequirements :requirements="pack.replaces" list="replaces" />
-			</div>
-		</section>
-
-		<section v-if="pack && pack.provides.length" class="panel" aria-labelledby="provides-heading">
-			<header class="panel__header">
-				<h2 id="provides-heading">Provides</h2>
-				<p class="panel__hint">Meets a requirement of any of these while it runs</p>
-			</header>
-			<div class="panel__body">
-				<ExtensionProvides :provides="pack.provides" />
-			</div>
-		</section>
-
-		<section v-if="pack && pack.suggests.length" class="panel" aria-labelledby="suggests-heading">
-			<header class="panel__header">
-				<h2 id="suggests-heading">Suggests</h2>
-				<p class="panel__hint">Works well with these; none is needed</p>
-			</header>
-			<div class="panel__body">
-				<ExtensionSuggestions :suggestions="pack.suggests" />
-			</div>
-		</section>
+		<ExtensionPackagePanels v-if="pack" :extension="pack" replaces-hint="It adds no icons" />
 
 		<template v-if="pack">
 			<PreviousVersion kind="icon-pack" :extension="pack" :live="pack.enabled" @changed="load" />
 			<p v-if="pack.source === 'composer'" class="notice">
 				<span>Composer manages this icon pack, so it can't be deleted here. Remove it from the project with <code>composer remove {{ pack.name }}</code>, and it leaves this list.</span>
 			</p>
-			<div v-else-if="canDelete && pack.deletable" class="danger-zone">
-				<p>Deleting removes the folder from the server, and its icons stop working wherever they're used.</p>
-				<button type="button" class="button button--danger" @click="remove"><AdminIcon name="trash-2" />Delete icon pack</button>
-			</div>
+			<DangerZone v-else-if="canDelete && pack.deletable">
+				Deleting removes the folder from the server, and its icons stop working wherever they're used.
+				<template #action><button type="button" class="button button--danger" @click="remove"><AdminIcon name="trash-2" />Delete icon pack</button></template>
+			</DangerZone>
 		</template>
 	</div>
 
@@ -319,37 +243,17 @@ async function remove(): Promise<void> {
 	margin-bottom: var(--s-4);
 }
 
+/* The admin's search field, narrower, at the panel's smaller size. */
 .browse-bar__field {
-	display: flex;
-	flex: 1;
-	align-items: center;
-	gap: var(--s-2);
 	max-width: 320px;
-	height: var(--ctl);
-	padding: 0 var(--s-3);
-	border: 1px solid var(--border-strong);
-	border-radius: var(--r-1);
-	background: var(--surface);
-	color: var(--fg-3);
-}
-
-.browse-bar__field:focus-within {
-	border-color: var(--accent);
 }
 
 .browse-bar__field .icon {
-	flex: none;
 	width: 14px;
 	height: 14px;
 }
 
 .browse-bar__field input {
-	width: 100%;
-	border: 0;
-	outline: none;
-	background: none;
-	color: var(--fg);
-	font: inherit;
 	font-size: var(--text-sm);
 }
 
@@ -418,67 +322,6 @@ async function remove(): Promise<void> {
 
 .browse__icon:hover code {
 	color: var(--fg-2);
-}
-
-.pack-facts {
-	display: grid;
-	grid-template-columns: auto minmax(0, 1fr);
-	align-items: baseline;
-	gap: var(--s-3) var(--s-4);
-	margin: 0;
-	font-size: var(--text-sm);
-}
-
-.pack-facts dt {
-	color: var(--fg-3);
-}
-
-.pack-facts dd {
-	margin: 0;
-	min-width: 0;
-	overflow-wrap: anywhere;
-}
-
-.pack-facts__author {
-	display: flex;
-	flex-wrap: wrap;
-	align-items: baseline;
-	gap: 0 var(--s-2);
-}
-
-.pack-facts__author + .pack-facts__author {
-	margin-top: var(--s-1);
-}
-
-.pack-facts__role {
-	color: var(--fg-3);
-}
-
-.pack-facts__copy {
-	margin-block: -6px;
-	vertical-align: middle;
-}
-
-.danger-zone {
-	display: flex;
-	flex-wrap: wrap;
-	align-items: center;
-	gap: var(--s-4);
-	padding: var(--s-4) var(--pad-x);
-	border: 1px solid var(--border);
-	border-radius: var(--r-3);
-	background: var(--surface);
-}
-
-.danger-zone p {
-	margin: 0;
-	color: var(--fg-2);
-	font-size: var(--text-sm);
-}
-
-.danger-zone .button {
-	flex: none;
-	margin-left: auto;
 }
 
 .skeleton--title {

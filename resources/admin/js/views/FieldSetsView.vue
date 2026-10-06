@@ -9,6 +9,7 @@
 import { ref } from 'vue';
 import { RouterLink } from 'vue-router';
 import AdminIcon from '../components/AdminIcon.vue';
+import EmptyState from '../components/EmptyState.vue';
 import SkeletonTable from '../components/SkeletonTable.vue';
 import { request, type FieldSetList, type FieldSetSummary } from '../api';
 import { plural } from '../format';
@@ -81,12 +82,11 @@ function origin(set: FieldSetSummary): string {
 				</tbody>
 			</table>
 		</div>
-		<div v-else class="empty">
-			<AdminIcon name="group" />
-			<p class="empty__heading">No Field Sets Yet</p>
-			<p class="empty__text">A set adds the same fields to several content types: search engine details for posts and pages, say.</p>
-			<RouterLink v-if="list.create" class="button" :to="{ name: 'field-set-new' }"><AdminIcon name="plus" />New Field Set</RouterLink>
-		</div>
+		<EmptyState v-else icon="group" heading="No Field Sets Yet" text="A set adds the same fields to several content types: search engine details for posts and pages, say.">
+			<template #actions>
+				<RouterLink v-if="list.create" class="button" :to="{ name: 'field-set-new' }"><AdminIcon name="plus" />New Field Set</RouterLink>
+			</template>
+		</EmptyState>
 	</section>
 </template>
 

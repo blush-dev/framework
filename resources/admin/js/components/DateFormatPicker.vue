@@ -8,9 +8,10 @@
  * doesn't have starts with the box open.
  */
 
-import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue';
+import { computed, nextTick, ref, watch } from 'vue';
 import AdminSelect, { type SelectOption } from './AdminSelect.vue';
-import { ApiError, request } from '../api';
+import { debounced, latest } from '../action';
+import { errorMessage, request } from '../api';
 
 const props = defineProps<{
 	id: string;
@@ -63,42 +64,38 @@ const choices = computed<SelectOption[]>(() => [
 	{ value: CUSTOM, label: 'Custom…', hint: 'An ICU pattern', pinned: true }
 ]);
 
-let timer: ReturnType<typeof setTimeout> | undefined;
-let asked = 0;
+const asked = latest();
+
+const check = debounced((format: string, current: () => boolean) => {
+	const query = new URLSearchParams({ format, kind: props.kind, locale: props.locale ?? '' });
+
+	request<{ text: string }>('GET', `/settings/date-format?${query.toString()}`)
+		.then((answer) => {
+			if (current()) {
+				preview.value = answer.text;
+				problem.value = '';
+			}
+		})
+		.catch((caught: unknown) => {
+			if (current()) {
+				preview.value = '';
+				problem.value = errorMessage(caught, 'It couldn\'t be checked.');
+			}
+		});
+}, 250);
 
 // How the typed pattern reads, asked for once typing pauses.
 function ask(): void {
-	clearTimeout(timer);
-
 	if (!custom.value) {
+		check.cancel();
+
 		return;
 	}
 
-	const format = model.value.trim();
-	const ticket = ++asked;
-
-	timer = setTimeout(() => {
-		const query = new URLSearchParams({ format, kind: props.kind, locale: props.locale ?? '' });
-
-		request<{ text: string }>('GET', `/settings/date-format?${query.toString()}`)
-			.then((answer) => {
-				if (ticket === asked) {
-					preview.value = answer.text;
-					problem.value = '';
-				}
-			})
-			.catch((caught: unknown) => {
-				if (ticket === asked) {
-					preview.value = '';
-					problem.value = caught instanceof ApiError ? caught.message : 'It couldn\'t be checked.';
-				}
-			});
-	}, 250);
+	check(model.value.trim(), asked());
 }
 
 watch([model, custom, () => props.locale], ask, { immediate: true });
-
-onBeforeUnmount(() => clearTimeout(timer));
 </script>
 
 <template>

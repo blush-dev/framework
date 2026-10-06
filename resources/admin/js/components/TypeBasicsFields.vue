@@ -27,8 +27,8 @@ function choose(icon: SiteIcon): void {
 </script>
 
 <template>
-	<div class="type-fields">
-		<div class="type-fields__row">
+	<div class="form-stack">
+		<div class="field-pair">
 			<div class="field">
 				<label :for="`${idPrefix}plural`">Name (plural)</label>
 				<input :id="`${idPrefix}plural`" v-model="form.plural" :placeholder="{ taxonomy: 'Cuisines', tree: 'Docs', collection: 'Recipes' }[kind]" autocomplete="off">
@@ -55,17 +55,6 @@ function choose(icon: SiteIcon): void {
 </template>
 
 <style scoped>
-.type-fields {
-	display: grid;
-	gap: var(--s-4);
-}
-
-.type-fields__row {
-	display: grid;
-	grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-	gap: var(--s-4);
-}
-
 .type-fields__icon {
 	display: flex;
 	gap: var(--s-2);
@@ -74,11 +63,5 @@ function choose(icon: SiteIcon): void {
 .type-fields__icon input {
 	flex: 1;
 	min-width: 0;
-}
-
-@media (width <= 760px) {
-	.type-fields__row {
-		grid-template-columns: minmax(0, 1fr);
-	}
 }
 </style>

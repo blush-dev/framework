@@ -372,6 +372,20 @@ sessions, and anything it created afterwards. ddev syncs files with
 Mutagen, so an edit made on the host can reach the container late: test
 write conflicts through the API, not by editing files on disk.
 
+### Running goal: a smaller admin (D-505 to D-510)
+
+The built admin under **500 KB of JavaScript** (`public/admin/js/admin.js`)
+and **100 KB of CSS** (`public/admin/css/admin.css`), unzipped, as a
+standing goal met over time, and maybe lowered later (D-510). On
+2026-10-05 they were 748 KB and 165 KB. Every change to the admin
+should leave them no larger without a reason, and work in an area is a
+chance to share what repeats there (D-509) and drop what's unused.
+Measured then: Vue and the router are about 100 KB of the JavaScript,
+and about 226 KB is prose (help, notes, messages), for a review pass
+once the editor screens land; 116 KB of the CSS is components' scoped
+styles (about 20 KB of it the `[data-v-…]` attributes). Loading screens
+on demand, for what's loaded at once, is in `open-questions.md`.
+
 ### Still to scope
 
 - **APIs, agents, and headless (discussed 2026-10-03):** a versioned

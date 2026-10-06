@@ -23,7 +23,8 @@
 
 import { computed, ref, useId } from 'vue';
 import AdminIcon from './AdminIcon.vue';
-import MenuButton from './MenuButton.vue';
+import CapabilityCheck from './CapabilityCheck.vue';
+import CapabilitySection from './CapabilitySection.vue';
 import TypeIcon from './TypeIcon.vue';
 import type { IconName } from '../icons';
 import { showKeys, type CapabilityInfo, type RoleType } from '../people';
@@ -86,6 +87,9 @@ const key = (type: string, action: ContentAction): string => `content.${type}.${
 
 // Whether the viewer may give a capability.
 const locked = (name: string): boolean => props.readonly === true || !can(name);
+
+// One the viewer can't give, said to a screen reader where it's shown.
+const unheld = (name: string): boolean => props.readonly !== true && !can(name);
 
 // The site's groups, in the order the server lists them.
 const groups = computed(() => {
@@ -343,75 +347,76 @@ function flipAll(): void {
 				<h2 :id="`${id}-site`">Site Capabilities</h2>
 				<p class="panel__hint">Not tied to a content type</p>
 			</header>
-			<div v-for="group in groups" :key="group.name" class="section">
-				<button type="button" class="section__head" :aria-expanded="open.has(`group-${group.name}`)" :aria-controls="`${id}-group-${group.name}`" @click="flip(`group-${group.name}`)">
-					<AdminIcon name="chevron-right" class="section__twisty" />
-					<AdminIcon :name="group.icon" class="section__icon" />
-					<span class="section__main">
-						<span class="section__name">
-							<span class="section__title">{{ group.name }}</span>
-							<span v-if="changed(group.capabilities.map((capability) => capability.name))" class="pill pill--warn section__pill">Changes</span>
-						</span>
-						<code v-if="group.name === 'Media'" class="section__key">media.…</code>
-						<span v-if="group.name === 'Media'" class="section__sentence" :class="{ 'is-none': mediaSentence().none }">{{ mediaSentence().text }}</span>
-						<span v-else class="section__sentence" :class="{ 'is-none': groupSentence(group.capabilities).none }">{{ groupSentence(group.capabilities).text }}</span>
-					</span>
-				</button>
-				<span v-if="!readonly" class="section__end">
-					<MenuButton button-class="button button--ghost button--small button--icon section__menu" :label="`Set everything in ${group.name}`" floating>
-						<template #button><AdminIcon name="ellipsis-vertical" /></template>
-						<template v-if="group.name === 'Media'">
-							<p class="menu-heading">Set Media</p>
-							<button v-for="item in MEDIA_PRESETS" :key="item.key" type="button" class="menu-item menu-item--described" @click="mediaPreset(item.names)">
-								<span>
-									<span class="menu-item__name">{{ item.label }}</span>
-									<span class="menu-item__text">{{ item.text }}</span>
-								</span>
-							</button>
-						</template>
-						<template v-else>
-							<p class="menu-heading">Set this group</p>
-							<button type="button" class="menu-item" @click="set(group.capabilities.map((capability) => capability.name), true)">Grant everything in {{ group.name }}</button>
-							<button type="button" class="menu-item" @click="set(group.capabilities.map((capability) => capability.name), false)">Remove everything in {{ group.name }}</button>
-						</template>
-					</MenuButton>
-				</span>
-				<div v-if="open.has(`group-${group.name}`) && group.name === 'Media'" :id="`${id}-group-${group.name}`" class="section__body">
-					<div class="section__grid">
-						<label class="capability" :class="{ 'is-off': !has(MEDIA_EVERY), 'is-locked': locked(MEDIA_EVERY) }">
-							<input type="checkbox" class="capability__input" :checked="has(MEDIA_EVERY)" :disabled="locked(MEDIA_EVERY)" @change="set([MEDIA_EVERY], ($event.target as HTMLInputElement).checked)">
-							<span class="capability__box" aria-hidden="true"><AdminIcon name="check" /></span>
-							<span class="capability__label">Upload every kind<span v-if="!readonly && !can(MEDIA_EVERY)" class="visually-hidden"> (you don't have it, so you can't give it)</span></span>
-							<code class="capability__key">{{ MEDIA_EVERY }}</code>
-						</label>
-						<label v-for="item in MEDIA_KINDS" :key="item.kind" class="capability" :class="{ 'is-off': !uploads(item.kind), 'is-locked': locked(uploadKey(item.kind)) || has(MEDIA_EVERY) }">
-							<input type="checkbox" class="capability__input" :checked="uploads(item.kind)" :disabled="locked(uploadKey(item.kind)) || has(MEDIA_EVERY)" @change="set([uploadKey(item.kind)], ($event.target as HTMLInputElement).checked)">
-							<span class="capability__box" aria-hidden="true"><AdminIcon name="check" /></span>
-							<span class="capability__label">Upload {{ item.label.toLowerCase() }}<span v-if="has(MEDIA_EVERY)" class="capability__from"> · every kind</span><span v-else-if="!readonly && !can(uploadKey(item.kind))" class="visually-hidden"> (you don't have it, so you can't give it)</span></span>
-							<code class="capability__key">{{ uploadKey(item.kind) }}</code>
-						</label>
-						<template v-for="action in ([['media.edit', 'Change'], ['media.delete', 'Delete']] as const)" :key="action[0]">
-							<label v-for="others in [false, true]" :key="String(others)" class="capability" :class="{ 'is-off': !has(others ? `${action[0]}.others` : action[0]), 'is-locked': locked(others ? `${action[0]}.others` : action[0]) }">
-								<input type="checkbox" class="capability__input" :checked="has(others ? `${action[0]}.others` : action[0])" :disabled="locked(others ? `${action[0]}.others` : action[0])" @change="toggleMedia(action[0], others, ($event.target as HTMLInputElement).checked)">
-								<span class="capability__box" aria-hidden="true"><AdminIcon name="check" /></span>
-								<span class="capability__label">{{ action[1] }} {{ others ? 'anyone\'s files' : 'their own files' }}<span v-if="!readonly && !can(others ? `${action[0]}.others` : action[0])" class="visually-hidden"> (you don't have it, so you can't give it)</span></span>
-								<code class="capability__key">{{ others ? `${action[0]}.others` : action[0] }}</code>
-							</label>
-						</template>
-					</div>
-					<p class="section__note">A file is its uploader's. Files from before uploads were recorded, or added by hand, are anyone's.</p>
-				</div>
-				<div v-else-if="open.has(`group-${group.name}`)" :id="`${id}-group-${group.name}`" class="section__body">
-					<div class="section__grid">
-						<label v-for="capability in group.capabilities" :key="capability.name" class="capability" :class="{ 'is-off': !has(capability.name), 'is-locked': locked(capability.name) }">
-							<input type="checkbox" class="capability__input" :checked="has(capability.name)" :disabled="locked(capability.name)" @change="set([capability.name], ($event.target as HTMLInputElement).checked)">
-							<span class="capability__box" aria-hidden="true"><AdminIcon name="check" /></span>
-							<span class="capability__label">{{ capability.label }}<span v-if="!readonly && !can(capability.name)" class="visually-hidden"> (you don't have it, so you can't give it)</span></span>
-							<code class="capability__key">{{ capability.name }}</code>
-						</label>
-					</div>
-				</div>
-			</div>
+			<template v-for="group in groups" :key="group.name">
+				<CapabilitySection
+					v-if="group.name === 'Media'"
+					:title="group.name"
+					:open="open.has(`group-${group.name}`)"
+					:body-id="`${id}-group-${group.name}`"
+					:sentence="mediaSentence()"
+					:changed="changed(group.capabilities.map((capability) => capability.name))"
+					key-text="media.…"
+					note="A file is its uploader's. Files from before uploads were recorded, or added by hand, are anyone's."
+					:menu-label="readonly ? undefined : `Set everything in ${group.name}`"
+					menu-heading="Set Media"
+					:presets="MEDIA_PRESETS"
+					@toggle="flip(`group-${group.name}`)"
+					@preset="(item) => mediaPreset(item.names)"
+				>
+					<template #icon><AdminIcon :name="group.icon" class="section__icon" /></template>
+					<CapabilityCheck :name="MEDIA_EVERY" label="Upload every kind" :checked="has(MEDIA_EVERY)" :disabled="locked(MEDIA_EVERY)" :unheld="unheld(MEDIA_EVERY)" @change="(on) => set([MEDIA_EVERY], on)" />
+					<CapabilityCheck
+						v-for="item in MEDIA_KINDS"
+						:key="item.kind"
+						:name="uploadKey(item.kind)"
+						:label="`Upload ${item.label.toLowerCase()}`"
+						:checked="uploads(item.kind)"
+						:disabled="locked(uploadKey(item.kind)) || has(MEDIA_EVERY)"
+						:from="has(MEDIA_EVERY) ? 'every kind' : undefined"
+						:unheld="unheld(uploadKey(item.kind))"
+						@change="(on) => set([uploadKey(item.kind)], on)"
+					/>
+					<template v-for="action in ([['media.edit', 'Change'], ['media.delete', 'Delete']] as const)" :key="action[0]">
+						<CapabilityCheck
+							v-for="others in [false, true]"
+							:key="String(others)"
+							:name="others ? `${action[0]}.others` : action[0]"
+							:label="`${action[1]} ${others ? 'anyone\'s files' : 'their own files'}`"
+							:checked="has(others ? `${action[0]}.others` : action[0])"
+							:disabled="locked(others ? `${action[0]}.others` : action[0])"
+							:unheld="unheld(others ? `${action[0]}.others` : action[0])"
+							@change="(on) => toggleMedia(action[0], others, on)"
+						/>
+					</template>
+				</CapabilitySection>
+				<CapabilitySection
+					v-else
+					:title="group.name"
+					:open="open.has(`group-${group.name}`)"
+					:body-id="`${id}-group-${group.name}`"
+					:sentence="groupSentence(group.capabilities)"
+					:changed="changed(group.capabilities.map((capability) => capability.name))"
+					:menu-label="readonly ? undefined : `Set everything in ${group.name}`"
+					menu-heading="Set this group"
+					@toggle="flip(`group-${group.name}`)"
+				>
+					<template #icon><AdminIcon :name="group.icon" class="section__icon" /></template>
+					<template #menu>
+						<button type="button" class="menu-item" @click="set(group.capabilities.map((capability) => capability.name), true)">Grant everything in {{ group.name }}</button>
+						<button type="button" class="menu-item" @click="set(group.capabilities.map((capability) => capability.name), false)">Remove everything in {{ group.name }}</button>
+					</template>
+					<CapabilityCheck
+						v-for="capability in group.capabilities"
+						:key="capability.name"
+						:name="capability.name"
+						:label="capability.label"
+						:checked="has(capability.name)"
+						:disabled="locked(capability.name)"
+						:unheld="unheld(capability.name)"
+						@change="(on) => set([capability.name], on)"
+					/>
+				</CapabilitySection>
+			</template>
 		</section>
 
 		<section class="panel" :aria-labelledby="`${id}-content`">
@@ -419,90 +424,74 @@ function flipAll(): void {
 				<h2 :id="`${id}-content`">Content Capabilities</h2>
 				<p class="panel__hint">One section per content type</p>
 			</header>
-			<div class="section section--every">
-				<button type="button" class="section__head" :aria-expanded="open.has(`type-${EVERY}`)" :aria-controls="`${id}-type-every`" @click="flip(`type-${EVERY}`)">
-					<AdminIcon name="chevron-right" class="section__twisty" />
-					<AdminIcon name="pin" class="section__icon" />
-					<span class="section__main">
-						<span class="section__name">
-							<span class="section__title">Every Type</span>
-							<span class="index-mark">Includes new types</span>
-							<span v-if="changed(typeNames(EVERY))" class="pill pill--warn section__pill">Changes</span>
-						</span>
-						<code class="section__key">content.*.…</code>
-						<span class="section__sentence" :class="{ 'is-none': typeSentence(EVERY).none }">{{ typeSentence(EVERY).text }}</span>
-					</span>
-				</button>
-				<span v-if="!readonly" class="section__end">
-					<MenuButton button-class="button button--ghost button--small button--icon section__menu" label="Set everything in Every Type" floating>
-						<template #button><AdminIcon name="ellipsis-vertical" /></template>
-						<p class="menu-heading">Set every action</p>
-						<button v-for="item in PRESETS" :key="item.key" type="button" class="menu-item menu-item--described" @click="preset(EVERY, item.actions)">
-							<span>
-								<span class="menu-item__name">{{ item.label }}</span>
-								<span class="menu-item__text">{{ item.text }}</span>
-							</span>
-						</button>
-						<div class="menu-divider" />
-						<button type="button" class="menu-item menu-item--described" :disabled="!ACTIONS.some((item) => has(key(EVERY, item.action)))" @click="spread">
-							<span>
-								<span class="menu-item__name">Set each type separately</span>
-								<span class="menu-item__text">Moves these into every type there is now, so one can differ. Types added later get nothing.</span>
-							</span>
-						</button>
-					</MenuButton>
-				</span>
-				<div v-if="open.has(`type-${EVERY}`)" :id="`${id}-type-every`" class="section__body">
-					<div class="section__grid">
-						<label v-for="item in ACTIONS" :key="item.action" class="capability" :class="{ 'is-off': !granted(EVERY, item.action), 'is-locked': locked(key(EVERY, item.action)) }">
-							<input type="checkbox" class="capability__input" :checked="granted(EVERY, item.action)" :disabled="locked(key(EVERY, item.action))" @change="toggle(EVERY, item.action, ($event.target as HTMLInputElement).checked)">
-							<span class="capability__box" aria-hidden="true"><AdminIcon name="check" /></span>
-							<span class="capability__label">{{ item.label }}<span v-if="!readonly && !can(key(EVERY, item.action))" class="visually-hidden"> (you don't have it, so you can't give it)</span></span>
-							<code class="capability__key">{{ key(EVERY, item.action) }}</code>
-						</label>
-					</div>
-					<p class="section__note">What's ticked here is granted on every content type, including ones added later, and shows fixed in each type's section below.</p>
-				</div>
-			</div>
-			<template v-for="kind in kinds" :key="kind.key">
-				<p class="sections__caption">{{ kind.label }}</p>
-				<div v-for="type in kind.types" :key="type.name" class="section">
-					<button type="button" class="section__head" :aria-expanded="open.has(`type-${type.name}`)" :aria-controls="`${id}-type-${type.name}`" @click="flip(`type-${type.name}`)">
-						<AdminIcon name="chevron-right" class="section__twisty" />
-						<TypeIcon :type="type" class="section__icon" />
-						<span class="section__main">
-							<span class="section__name">
-								<span class="section__title">{{ type.label }}</span>
-								<span v-if="sealed(type.name)" class="index-mark">Set by Every Type</span>
-								<span v-if="changed(typeNames(type.name))" class="pill pill--warn section__pill">Changes</span>
-							</span>
-							<code class="section__key">content.{{ type.name }}.…</code>
-							<span class="section__sentence" :class="{ 'is-none': typeSentence(type.name).none }">{{ typeSentence(type.name).text }}</span>
+			<CapabilitySection
+				title="Every Type"
+				:open="open.has(`type-${EVERY}`)"
+				:body-id="`${id}-type-every`"
+				:sentence="typeSentence(EVERY)"
+				:changed="changed(typeNames(EVERY))"
+				key-text="content.*.…"
+				note="What's ticked here is granted on every content type, including ones added later, and shows fixed in each type's section below."
+				every
+				:menu-label="readonly ? undefined : 'Set everything in Every Type'"
+				menu-heading="Set every action"
+				:presets="PRESETS"
+				@toggle="flip(`type-${EVERY}`)"
+				@preset="(item) => preset(EVERY, item.actions)"
+			>
+				<template #icon><AdminIcon name="pin" class="section__icon" /></template>
+				<template #marks><span class="index-mark">Includes new types</span></template>
+				<template #menu>
+					<div class="menu-divider" />
+					<button type="button" class="menu-item menu-item--described" :disabled="!ACTIONS.some((item) => has(key(EVERY, item.action)))" @click="spread">
+						<span>
+							<span class="menu-item__name">Set each type separately</span>
+							<span class="menu-item__text">Moves these into every type there is now, so one can differ. Types added later get nothing.</span>
 						</span>
 					</button>
-					<span v-if="!readonly && !sealed(type.name)" class="section__end">
-						<MenuButton button-class="button button--ghost button--small button--icon section__menu" :label="`Set everything in ${type.label}`" floating>
-							<template #button><AdminIcon name="ellipsis-vertical" /></template>
-							<p class="menu-heading">Set every action</p>
-							<button v-for="item in PRESETS" :key="item.key" type="button" class="menu-item menu-item--described" @click="preset(type.name, item.actions)">
-								<span>
-									<span class="menu-item__name">{{ item.label }}</span>
-									<span class="menu-item__text">{{ item.text }}</span>
-								</span>
-							</button>
-						</MenuButton>
-					</span>
-					<div v-if="open.has(`type-${type.name}`)" :id="`${id}-type-${type.name}`" class="section__body">
-						<div class="section__grid">
-							<label v-for="item in ACTIONS" :key="item.action" class="capability" :class="{ 'is-off': !granted(type.name, item.action), 'is-locked': locked(key(type.name, item.action)) || inherited(type.name, item.action) }">
-								<input type="checkbox" class="capability__input" :checked="granted(type.name, item.action)" :disabled="locked(key(type.name, item.action)) || inherited(type.name, item.action)" @change="toggle(type.name, item.action, ($event.target as HTMLInputElement).checked)">
-								<span class="capability__box" aria-hidden="true"><AdminIcon name="check" /></span>
-								<span class="capability__label">{{ item.label }}<span v-if="inherited(type.name, item.action)" class="capability__from"> · every type</span><span v-else-if="!readonly && !can(key(type.name, item.action))" class="visually-hidden"> (you don't have it, so you can't give it)</span></span>
-								<code class="capability__key">{{ key(type.name, item.action) }}</code>
-							</label>
-						</div>
-					</div>
-				</div>
+				</template>
+				<CapabilityCheck
+					v-for="item in ACTIONS"
+					:key="item.action"
+					:name="key(EVERY, item.action)"
+					:label="item.label"
+					:checked="granted(EVERY, item.action)"
+					:disabled="locked(key(EVERY, item.action))"
+					:unheld="unheld(key(EVERY, item.action))"
+					@change="(on) => toggle(EVERY, item.action, on)"
+				/>
+			</CapabilitySection>
+			<template v-for="kind in kinds" :key="kind.key">
+				<p class="sections__caption eyebrow">{{ kind.label }}</p>
+				<CapabilitySection
+					v-for="type in kind.types"
+					:key="type.name"
+					:title="type.label"
+					:open="open.has(`type-${type.name}`)"
+					:body-id="`${id}-type-${type.name}`"
+					:sentence="typeSentence(type.name)"
+					:changed="changed(typeNames(type.name))"
+					:key-text="`content.${type.name}.…`"
+					:menu-label="readonly || sealed(type.name) ? undefined : `Set everything in ${type.label}`"
+					menu-heading="Set every action"
+					:presets="PRESETS"
+					@toggle="flip(`type-${type.name}`)"
+					@preset="(item) => preset(type.name, item.actions)"
+				>
+					<template #icon><TypeIcon :type="type" class="section__icon" /></template>
+					<template v-if="sealed(type.name)" #marks><span class="index-mark">Set by Every Type</span></template>
+					<CapabilityCheck
+						v-for="item in ACTIONS"
+						:key="item.action"
+						:name="key(type.name, item.action)"
+						:label="item.label"
+						:checked="granted(type.name, item.action)"
+						:disabled="locked(key(type.name, item.action)) || inherited(type.name, item.action)"
+						:from="inherited(type.name, item.action) ? 'every type' : undefined"
+						:unheld="unheld(key(type.name, item.action))"
+						@change="(on) => toggle(type.name, item.action, on)"
+					/>
+				</CapabilitySection>
 			</template>
 
 		</section>
@@ -533,302 +522,16 @@ function flipAll(): void {
 	padding: 11px var(--pad-x) 7px;
 	border-bottom: 1px solid var(--border);
 	background: var(--surface-2);
-	color: var(--fg-3);
-	font-size: var(--text-2xs);
-	font-weight: 600;
-	letter-spacing: .07em;
-	text-transform: uppercase;
 }
 
-/* A section: a name, a sentence, and a triangle. */
-.section {
-	display: flex;
-	flex-wrap: wrap;
-	align-items: stretch;
-	border-bottom: 1px solid var(--border);
-}
-
-.section:last-child {
-	border-bottom: 0;
-	border-radius: 0 0 var(--r-3) var(--r-3);
-}
-
-.section__head {
-	display: flex;
-	flex: 1;
-	align-items: center;
-	gap: var(--s-3);
-	min-width: 0;
-	padding: var(--pad-row) var(--s-2) var(--pad-row) var(--pad-x);
-	border: 0;
-	background: none;
-	color: inherit;
-	font: inherit;
-	text-align: left;
-	cursor: pointer;
-}
-
-.section__head:hover,
-.section:has(.section__head:hover) .section__end {
-	background: var(--surface-2);
-}
-
-.section__twisty {
-	width: 13px;
-	height: 13px;
-	color: var(--fg-3);
-}
-
-.section__head[aria-expanded="true"] .section__twisty {
-	transform: rotate(90deg);
-}
-
-@media (prefers-reduced-motion: no-preference) {
-	.section__twisty {
-		transition: transform .12s;
-	}
-}
-
+/* A section's icon, which this file gives it. */
 .section__icon {
 	color: var(--fg-3);
-}
-
-.section__main {
-	flex: 1;
-	min-width: 0;
-}
-
-.section__name {
-	display: flex;
-	flex-wrap: wrap;
-	align-items: center;
-	gap: var(--s-2);
-	min-width: 0;
-}
-
-.section__title {
-	overflow: hidden;
-	font-family: var(--font-title);
-	font-size: var(--title-size);
-	font-weight: var(--title-weight);
-	letter-spacing: var(--title-track);
-	text-overflow: ellipsis;
-	white-space: nowrap;
-}
-
-.section__pill {
-	height: 19px;
-	padding: 0 8px 0 7px;
-	font-size: var(--text-2xs);
-}
-
-.section__key {
-	display: none;
-	margin-top: 3px;
-	color: var(--fg-3);
-	font-family: var(--font-mono);
-	font-size: var(--text-2xs);
-}
-
-.section__sentence {
-	display: block;
-	max-width: 76ch;
-	margin-top: 4px;
-	color: var(--fg-3);
-	font-size: var(--text-sm);
-	text-wrap: pretty;
-}
-
-.section__sentence.is-none {
-	font-style: italic;
-}
-
-.section__end {
-	display: flex;
-	flex: none;
-	align-items: center;
-	padding-right: var(--pad-x);
-}
-
-/* The ⋮ shows on hover, and always to the keyboard. */
-.section__end :deep(.section__menu) {
-	opacity: 0;
-}
-
-.section:hover .section__end :deep(.section__menu),
-.section__end :deep(.section__menu:focus-visible),
-.section__end :deep(.section__menu[aria-expanded="true"]) {
-	opacity: 1;
-}
-
-@media (hover: none) {
-	.section__end :deep(.section__menu) {
-		opacity: 1;
-	}
-}
-
-/* Every Type, first, since it decides what's fixed in the types below. */
-.section--every {
-	border-bottom-color: var(--border-strong);
-	background: var(--surface-2);
-}
-
-.section--every .section__head:hover,
-.section--every:has(.section__head:hover) .section__end {
-	background: var(--surface-3);
-}
-
-.section__body {
-	flex: 0 0 100%;
-	box-sizing: border-box;
-	min-width: 0;
-	padding: var(--s-3) var(--pad-x) var(--s-3) calc(var(--pad-x) + 25px);
-	border-top: 1px solid var(--border);
-	background: var(--surface-2);
-}
-
-/* Three columns, in every section, so the boxes line up down the page. */
-.section__grid {
-	display: grid;
-	grid-template-columns: repeat(3, minmax(0, 1fr));
-	gap: 0 var(--s-5);
-	max-width: 880px;
-}
-
-.section__note {
-	max-width: 60ch;
-	padding-top: var(--s-2);
-	color: var(--fg-3);
-	font-size: var(--text-sm);
-}
-
-/* A capability: a drawn box, its label, and its key. */
-.capability {
-	position: relative;
-	display: flex;
-	align-items: center;
-	gap: 10px;
-	min-width: 0;
-	padding: 7px 0;
-	color: var(--fg-2);
-	font-size: var(--text-sm);
-	cursor: pointer;
-}
-
-.capability:hover {
-	color: var(--fg);
-}
-
-.capability.is-off {
-	color: var(--fg-3);
-}
-
-.capability.is-locked {
-	cursor: default;
-}
-
-.capability__input {
-	position: absolute;
-	width: 1px;
-	height: 1px;
-	overflow: hidden;
-	clip-path: inset(50%);
-	white-space: nowrap;
-}
-
-.capability__box {
-	display: grid;
-	flex: none;
-	place-items: center;
-	width: 15px;
-	height: 15px;
-	border: 1px solid var(--border-strong);
-	border-radius: 4px;
-	background: var(--surface);
-	color: transparent;
-}
-
-.capability__box svg {
-	width: 11px;
-	height: 11px;
-	stroke-width: 2.8;
-}
-
-.capability:not(.is-locked):hover .capability__box {
-	border-color: var(--accent);
-}
-
-.capability__input:checked + .capability__box {
-	border-color: var(--accent);
-	background: var(--accent);
-	color: var(--accent-fg);
-}
-
-.capability__input:focus-visible + .capability__box {
-	outline: 2px solid var(--accent);
-	outline-offset: 2px;
-}
-
-.capability__input:disabled + .capability__box {
-	opacity: .45;
-}
-
-.capability__label {
-	min-width: 0;
-	overflow: hidden;
-	text-overflow: ellipsis;
-	white-space: nowrap;
-}
-
-.capability__from {
-	color: var(--fg-3);
-}
-
-.capability__key {
-	display: none;
-	flex: none;
-	margin-left: auto;
-	padding-left: var(--s-3);
-	color: var(--fg-3);
-	font-family: var(--font-mono);
-	font-size: var(--text-2xs);
-}
-
-.sections--keys .section__key {
-	display: block;
-}
-
-.sections--keys .capability__key {
-	display: inline;
-}
-
-/* Two where three would cut the labels short. */
-@media (width <= 1100px) {
-	.section__grid {
-		grid-template-columns: repeat(2, minmax(0, 1fr));
-	}
 }
 
 @media (width <= 640px) {
 	.sections__note {
 		display: none;
-	}
-
-	.section__head {
-		padding-left: var(--s-4);
-	}
-
-	.section__end {
-		padding-right: var(--s-4);
-	}
-
-	.section__body {
-		padding-right: var(--s-4);
-		padding-left: calc(var(--s-4) + 23px);
-	}
-
-	.section__grid {
-		grid-template-columns: minmax(0, 1fr);
 	}
 
 	.sections__caption {

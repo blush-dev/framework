@@ -8,8 +8,9 @@
  * (`TypeRoutesFields`, each route key's path, D-350), and Fields
  * (`FieldListEditor`, with the field sets added to it below, D-337;
  * read-only when the code's fields are classes of its own), saved
- * together with **Save** (`PATCH types/{name}`, only what changed) or
- * put back with **Revert**; leaving with changes unsaved asks first. A
+ * together from the save bar, which counts the changes (D-508), with
+ * **Save changes** (`PATCH types/{name}`, only what changed) or put back
+ * with **Revert**; leaving with changes unsaved asks first. A
  * Danger Zone deletes a data type's file (its entries stay where they
  * are), or resets a code type to the code's definition.
  *
@@ -19,20 +20,23 @@
  */
 
 import { computed, ref, watch } from 'vue';
-import { confirmAction, confirmLeave } from '../confirm';
-import { onBeforeRouteLeave, useRouter } from 'vue-router';
+import { confirmAction, guardLeave } from '../confirm';
+import { useRouter } from 'vue-router';
 import AdminIcon from './AdminIcon.vue';
+import DangerZone from './DangerZone.vue';
 import FieldListEditor from './FieldListEditor.vue';
+import SaveBar from './SaveBar.vue';
 import TypeBasicsFields from './TypeBasicsFields.vue';
 import TypeBehaviorFields from './TypeBehaviorFields.vue';
 import TypeFieldSets from './TypeFieldSets.vue';
 import TypePeopleFields from './TypePeopleFields.vue';
 import TypeRoutesFields from './TypeRoutesFields.vue';
-import { ApiError, request, type ContentTypeDetail } from '../api';
+import { request, type ContentTypeDetail } from '../api';
+import { useAction } from '../action';
 import { label } from '../fields';
 import { changesOf, formOf, type TypeForm, type TypeKind } from '../type-form';
 import { toast } from '../toast';
-import { profileType, reloadTypes, typeUrls, types } from '../types';
+import { profileType, refreshTypes, typeUrls, types } from '../types';
 
 const props = defineProps<{ type: ContentTypeDetail }>();
 const emit  = defineEmits<{ saved: [type: ContentTypeDetail] }>();
@@ -44,9 +48,9 @@ const initial = ref<TypeForm>(formOf(props.type));
 const index   = ref(false);
 // The people fields to give list pages when saved (D-353).
 const pages   = ref<string[]>([]);
-const saving  = ref(false);
-const failure = ref('');
-const removal = ref('');
+
+const { busy: saving, error: failure, run } = useAction();
+const { error: removal, run: runRemoval }   = useAction();
 
 watch(() => props.type, (type) => {
 	form.value    = formOf(type);
@@ -56,7 +60,10 @@ watch(() => props.type, (type) => {
 });
 
 const changes = computed(() => changesOf(form.value, initial.value, kind.value));
-const changed = computed(() => Object.keys(changes.value).length > 0 || index.value || pages.value.length > 0);
+// What the save bar counts: each setting changed, the index page asked
+// for, and each list page.
+const count   = computed(() => Object.keys(changes.value).length + (index.value ? 1 : 0) + pages.value.length);
+const changed = computed(() => count.value > 0);
 
 // A type from code, changed through a file in user/data/types (D-349).
 const code   = computed(() => props.type.origin !== 'data');
@@ -69,32 +76,18 @@ const prefix = computed(() => (form.value.prefix || props.type.folderPrefix).rep
 // The site's profiles type, which the People panel credits.
 const profilesLabel = computed(() => types.value.find((item) => item.name === profileType.value)?.labels.plural ?? null);
 
-// After a change: the routes and index, then the navigation.
-function refresh(): void {
-	request('POST', '/types/refresh').catch(() => undefined).finally(() => {
-		reloadTypes().catch(() => undefined);
-	});
-}
-
 async function save(): Promise<void> {
 	if (!changed.value || saving.value) {
 		return;
 	}
 
-	saving.value  = true;
-	failure.value = '';
-
-	try {
+	await run('The type couldn\'t be saved.', async () => {
 		const saved = await request<ContentTypeDetail>('PATCH', `/types/${encodeURIComponent(props.type.name)}`, { set: changes.value, index: index.value, listPages: pages.value });
 
 		emit('saved', saved);
-		refresh();
+		refreshTypes();
 		toast(`Saved ${saved.labels.plural}`);
-	} catch (caught) {
-		failure.value = caught instanceof ApiError ? caught.message : 'The type couldn\'t be saved.';
-	} finally {
-		saving.value = false;
-	}
+	});
 }
 
 function revert(): void {
@@ -111,15 +104,13 @@ async function reset(): Promise<void> {
 		return;
 	}
 
-	try {
+	await runRemoval('The type couldn\'t be reset.', async () => {
 		const saved = await request<ContentTypeDetail>('POST', `/types/${encodeURIComponent(props.type.name)}/reset`);
 
 		emit('saved', saved);
-		refresh();
+		refreshTypes();
 		toast(`Reset ${saved.labels.plural}`);
-	} catch (caught) {
-		removal.value = caught instanceof ApiError ? caught.message : 'The type couldn\'t be reset.';
-	}
+	});
 }
 
 async function remove(): Promise<void> {
@@ -129,33 +120,31 @@ async function remove(): Promise<void> {
 		return;
 	}
 
-	try {
+	await runRemoval('The type couldn\'t be deleted.', async () => {
 		await request('DELETE', `/types/${encodeURIComponent(props.type.name)}`);
 		initial.value = form.value;
 		index.value   = false;
 		pages.value   = [];
-		refresh();
+		refreshTypes();
 		toast(`Deleted the ${props.type.labels.plural} type`, { kind: 'danger' });
 		await router.push({ name: 'types' });
-	} catch (caught) {
-		removal.value = caught instanceof ApiError ? caught.message : 'The type couldn\'t be deleted.';
-	}
+	});
 }
 
-onBeforeRouteLeave(() => !changed.value || confirmLeave());
+guardLeave(() => changed.value);
 </script>
 
 <template>
-	<form class="type-editor" @submit.prevent="save">
+	<form class="form-stack" @submit.prevent="save">
 		<section class="panel" aria-labelledby="general-heading">
 			<header class="panel__header">
 				<h2 id="general-heading">General</h2>
 				<p v-if="code" class="panel__hint">From {{ source }}; changes are saved in <code>{{ file }}</code></p>
 				<p v-else class="panel__hint">In <code>{{ type.file }}</code></p>
 			</header>
-			<div class="panel__body type-editor__body">
+			<div class="panel__body form-stack">
 				<TypeBasicsFields v-model="form" id-prefix="type-" :kind="kind" />
-				<dl class="type-editor__facts">
+				<dl class="facts facts--inline">
 					<div><dt>Key</dt><dd class="mono">{{ type.name }}</dd></div>
 					<div><dt>Folder</dt><dd class="mono">user/content/{{ type.folder }}</dd></div>
 				</dl>
@@ -223,27 +212,16 @@ onBeforeRouteLeave(() => !changed.value || confirmLeave());
 
 		<TypeFieldSets :type="type" />
 
-		<div class="type-editor__save">
-			<p v-if="failure" class="field__error" role="alert">{{ failure }}</p>
-			<button type="submit" class="button button--primary" :disabled="!changed || saving">{{ saving ? 'Saving…' : 'Save' }}</button>
-			<button v-if="changed" type="button" class="button button--ghost" :disabled="saving" @click="revert">Revert</button>
-		</div>
+		<DangerZone v-if="code" :error="removal">
+			{{ type.overridden ? `Removes ${file}, so every setting is as ${source} has it.` : `Nothing has changed it here yet.` }} It's defined in code, so it can't be deleted here.
+			<template #action><button type="button" class="button button--danger" :disabled="!type.overridden" @click="reset"><AdminIcon name="refresh-cw" />Reset to {{ source }}</button></template>
+		</DangerZone>
+		<DangerZone v-else :error="removal">
+			Removes its file. Its entries stay on disk, unlisted until a type claims <code>user/content/{{ type.folder }}</code> again. A taxonomy that groups it must stop first.
+			<template #action><button type="button" class="button button--danger" @click="remove"><AdminIcon name="x" />Delete this type</button></template>
+		</DangerZone>
 
-		<section class="panel" aria-labelledby="danger-heading">
-			<header class="panel__header">
-				<h2 id="danger-heading">Danger Zone</h2>
-			</header>
-			<div v-if="code" class="panel__body type-editor__danger">
-				<button type="button" class="button button--danger button--small" :disabled="!type.overridden" @click="reset"><AdminIcon name="refresh-cw" />Reset to {{ source }}</button>
-				<p v-if="removal" class="field__error" role="alert">{{ removal }}</p>
-				<p class="field__help">{{ type.overridden ? `Removes ${file}, so every setting is as ${source} has it.` : `Nothing has changed it here yet.` }} It's defined in code, so it can't be deleted here.</p>
-			</div>
-			<div v-else class="panel__body type-editor__danger">
-				<button type="button" class="button button--danger button--small" @click="remove"><AdminIcon name="x" />Delete this type</button>
-				<p v-if="removal" class="field__error" role="alert">{{ removal }}</p>
-				<p class="field__help">Removes its file. Its entries stay on disk, unlisted until a type claims <code>user/content/{{ type.folder }}</code> again. A taxonomy that groups it must stop first.</p>
-			</div>
-		</section>
+		<SaveBar :count="count" :failure="failure" :saving="saving" @revert="revert" />
 	</form>
 </template>
 
@@ -258,60 +236,8 @@ onBeforeRouteLeave(() => !changed.value || confirmLeave());
 	border-top: 1px solid var(--border);
 }
 
-.type-editor {
-	display: grid;
-	gap: var(--s-4);
-}
-
-.type-editor__body {
-	display: grid;
-	gap: var(--s-4);
-}
-
-.type-editor__body > * + * {
-	margin-top: 0;
-}
-
-.type-editor__facts {
-	display: flex;
-	flex-wrap: wrap;
-	gap: var(--s-2) var(--s-6);
-	margin: 0;
-}
-
-.type-editor__facts div {
-	display: flex;
-	gap: 8px;
-}
-
-.type-editor__facts dt {
-	color: var(--fg-2);
-}
-
-.type-editor__facts dd {
-	margin: 0;
-}
-
-.type-editor__save {
-	display: flex;
-	flex-wrap: wrap;
-	align-items: center;
-	gap: var(--s-2);
-}
-
-.type-editor__save .field__error {
-	flex-basis: 100%;
-	margin: 0;
-}
-
 .type-editor__fields {
 	margin: 0;
 	padding-left: 1.2em;
-}
-
-.type-editor__danger {
-	display: grid;
-	justify-items: start;
-	gap: var(--s-2);
 }
 </style>

@@ -560,6 +560,12 @@ export interface PluginSummary {
 }
 
 /**
+ * What every kind of extension has (D-509), for the pieces their screens
+ * share: who made it, its license and links, and its package relations.
+ */
+export type ExtensionSummary = Pick<PluginSummary, 'name' | 'label' | 'namespace' | 'version' | 'description' | 'authors' | 'licenses' | 'links' | 'funding' | 'requirements' | 'conflicts' | 'replaces' | 'provides' | 'conflictedBy' | 'replacedBy' | 'providedBy' | 'requiredBy' | 'suggests'>;
+
+/**
  * A plugin whose manifest can't be read (D-394): listed, never run.
  */
 export interface BrokenPluginSummary {
@@ -1138,6 +1144,15 @@ export class ApiError extends Error {
 }
 
 /**
+ * What to say about a failure: the server's message, else the fallback
+ * (a failure that isn't the API's, such as a script error, says nothing
+ * worth showing).
+ */
+export function errorMessage(caught: unknown, fallback: string): string {
+	return caught instanceof ApiError ? caught.message : fallback;
+}
+
+/**
  * The editor's route for an entry: its type and id
  * (`/content/post/0199b6e2-…`, D-483), which stay the same through a
  * rename or a move. An entry whose file has no id can't be edited until
@@ -1183,6 +1198,43 @@ export async function request<T>(method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DEL
 		credentials: 'same-origin',
 		body: body === undefined ? undefined : JSON.stringify(body)
 	});
+}
+
+/**
+ * Asks the server to compile and reindex, when a save's answer says it
+ * changed what has addresses; a failure there leaves the save standing.
+ */
+export async function refreshIfAsked(answer: { refresh: boolean }): Promise<void> {
+	if (answer.refresh) {
+		await request('POST', '/settings/refresh').catch(() => undefined);
+	}
+}
+
+/**
+ * Saves settings in `user/data/settings.json` (`set` some, `unset` others,
+ * back to `config/`), then refreshes if the server asks.
+ */
+export async function saveSettings(changes: { set?: Record<string, unknown>; unset?: string[] }): Promise<void> {
+	await refreshIfAsked(await request<{ refresh: boolean }>('PATCH', '/settings', changes));
+}
+
+/**
+ * Changes an entry as it is now: a change names the revision it was made
+ * to, so it's read first (D-481).
+ */
+export async function patchEntry(id: string, changes: Record<string, unknown>): Promise<EntryDetail> {
+	const loaded = await request<EntryDetail>('GET', entryPath(id));
+
+	return request<EntryDetail>('PATCH', entryPath(id), { ...changes, revision: loaded.revision });
+}
+
+/**
+ * Moves an entry to the trash (D-484), as it is now.
+ */
+export async function trashEntry(id: string): Promise<void> {
+	const loaded = await request<EntryDetail>('GET', entryPath(id));
+
+	await request<void>('DELETE', `${entryPath(id)}?revision=${encodeURIComponent(loaded.revision)}`);
 }
 
 /**

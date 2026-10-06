@@ -8,16 +8,19 @@
  * opens, Escape closes.
  */
 
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import AdminIcon from './AdminIcon.vue';
 import TypeIcon from './TypeIcon.vue';
 import StatusPill from './StatusPill.vue';
-import { ApiError, request, type EntryList, type EntrySummary } from '../api';
+import { debounced, latest } from '../action';
+import { errorMessage, request, type EntryList, type EntrySummary } from '../api';
 import { loadAccounts, type AccountInfo } from '../people';
 import { adminTheme, saveAdminTheme } from '../admin-theme';
 import { colorScheme, saveColorScheme } from '../color-scheme';
 import { commandMatches, screenCommands, type Command } from '../commands';
+import { useModalDialog } from '../dialog';
+import { listMove } from '../grid';
 import type { IconName } from '../icons';
 import { can, canAnyType, canType, usesMedia } from '../session';
 import { findType, listRoute, typeIcon, types } from '../types';
@@ -25,7 +28,6 @@ import { findType, listRoute, typeIcon, types } from '../types';
 const emit = defineEmits<{ close: [] }>();
 
 const router  = useRouter();
-const dialog  = ref<HTMLDialogElement | null>(null);
 const list    = ref<HTMLElement | null>(null);
 const query   = ref('');
 const active  = ref(0);
@@ -34,6 +36,8 @@ const failed  = ref('');
 // Accounts, for whoever manages them, so a person is found on either
 // side: their account here, their profile among the entries (D-353).
 const accounts = ref<AccountInfo[]>([]);
+
+const { dialog, close, backdrop } = useModalDialog(() => void findEntries());
 
 if (can('accounts.view')) {
 	loadAccounts().then((list) => {
@@ -139,16 +143,16 @@ const rows = computed<Row[]>(() => [
 ]);
 
 // Entries: the latest changed, or those matching, a moment after typing.
-let typing: ReturnType<typeof setTimeout> | undefined;
-let latest = 0;
+const ask    = latest();
+const typing = debounced(() => void findEntries(), 200);
 
 async function findEntries(): Promise<void> {
 	if (!canAnyType('edit')) {
 		return;
 	}
 
-	const ask    = ++latest;
-	const params = new URLSearchParams({ per: '6' });
+	const current = ask();
+	const params  = new URLSearchParams({ per: '6' });
 
 	if (query.value.trim() !== '') {
 		params.set('search', query.value.trim());
@@ -157,22 +161,21 @@ async function findEntries(): Promise<void> {
 	try {
 		const answer = await request<EntryList>('GET', `/entries?${params.toString()}`);
 
-		if (ask === latest) {
+		if (current()) {
 			entries.value = answer.entries;
 			failed.value  = '';
 		}
 	} catch (caught) {
-		if (ask === latest) {
+		if (current()) {
 			entries.value = [];
-			failed.value  = caught instanceof ApiError ? caught.message : 'Entries couldn\'t be searched.';
+			failed.value  = errorMessage(caught, 'Entries couldn\'t be searched.');
 		}
 	}
 }
 
 watch(query, () => {
 	active.value = 0;
-	clearTimeout(typing);
-	typing = setTimeout(() => void findEntries(), 200);
+	typing();
 });
 
 watch(active, () => {
@@ -184,14 +187,14 @@ function run(row: Row | undefined): void {
 		return;
 	}
 
-	dialog.value?.close();
+	close();
 	row.run();
 }
 
 function keydown(event: KeyboardEvent): void {
 	if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
 		event.preventDefault();
-		active.value = Math.max(0, Math.min(rows.value.length - 1, active.value + (event.key === 'ArrowDown' ? 1 : -1)));
+		active.value = listMove(event.key, active.value, rows.value.length, false) ?? active.value;
 	} else if (event.key === 'Enter') {
 		event.preventDefault();
 		run(rows.value[active.value]);
@@ -199,31 +202,15 @@ function keydown(event: KeyboardEvent): void {
 		// Closed here, so the screen under it doesn't also act on Escape.
 		event.preventDefault();
 		event.stopPropagation();
-		dialog.value?.close();
+		close();
 	}
 }
-
-// A click on the scrim, outside the box, closes it.
-function clicked(event: MouseEvent): void {
-	if (event.target === dialog.value) {
-		dialog.value?.close();
-	}
-}
-
-onMounted(() => {
-	dialog.value?.showModal();
-	void findEntries();
-});
-
-onBeforeUnmount(() => {
-	clearTimeout(typing);
-});
 
 const commandCount = computed(() => commands.value.length);
 </script>
 
 <template>
-	<dialog ref="dialog" class="palette" aria-label="Search and commands" @close="emit('close')" @click="clicked" @keydown="keydown">
+	<dialog ref="dialog" class="palette" aria-label="Search and commands" @close="emit('close')" @click="backdrop" @keydown="keydown">
 		<div class="palette__input">
 			<AdminIcon name="search" />
 			<input
@@ -243,7 +230,7 @@ const commandCount = computed(() => commands.value.length);
 
 		<div id="palette-list" ref="list" class="palette__list" role="listbox" aria-label="Results">
 			<template v-if="commands.length">
-				<p class="palette__section" aria-hidden="true">Commands</p>
+				<p class="eyebrow palette__section" aria-hidden="true">Commands</p>
 				<div
 					v-for="(command, index) in commands"
 					:id="`palette-command-${command.id}`"
@@ -262,7 +249,7 @@ const commandCount = computed(() => commands.value.length);
 			</template>
 
 			<template v-if="entries.length">
-				<p class="palette__section" aria-hidden="true">{{ query.trim() ? 'Matching entries' : 'Recently changed' }}</p>
+				<p class="eyebrow palette__section" aria-hidden="true">{{ query.trim() ? 'Matching entries' : 'Recently changed' }}</p>
 				<div
 					v-for="(entry, index) in entries"
 					:id="`palette-entry-${entry.path}`"
@@ -338,11 +325,7 @@ const commandCount = computed(() => commands.value.length);
 
 .palette__section {
 	padding: var(--s-3) 10px var(--s-1);
-	color: var(--fg-3);
 	font-size: var(--text-xs);
-	font-weight: 600;
-	letter-spacing: .06em;
-	text-transform: uppercase;
 }
 
 .palette__item {

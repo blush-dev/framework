@@ -20,10 +20,12 @@
 import { computed, ref, useTemplateRef, watch } from 'vue';
 import AdminIcon from './AdminIcon.vue';
 import AdminModal from './AdminModal.vue';
-import { ApiError, uploadWithProgress, type ExtensionUpload, type InstallAnswer, type InstallClash } from '../api';
+import { ApiError, errorMessage, uploadWithProgress, type ExtensionUpload, type InstallAnswer, type InstallClash } from '../api';
+import { useFileDrop } from '../drop';
+import type { ExtensionKind } from '../extensions';
 import { can } from '../session';
 
-export type InstallKind = 'theme' | 'plugin' | 'icon-pack';
+export type InstallKind = ExtensionKind;
 
 // What an installed extension is on this site: in a few words ("inactive",
 // "turned off"), whether the next step can be taken, and whether it runs.
@@ -63,7 +65,6 @@ const sent     = ref(0);
 const answer   = ref<InstallAnswer | null>(null);
 const clash    = ref<InstallClash | null>(null);
 const failure  = ref<{ message: string; kind: InstallKind | null } | null>(null);
-const dragging = ref(false);
 
 const limit      = computed(() => props.upload?.limit ?? 0);
 const problem    = computed(() => props.upload?.problem ?? null);
@@ -121,22 +122,7 @@ function picked(event: Event): void {
 	choose((event.target as HTMLInputElement).files?.[0]);
 }
 
-function dropped(event: DragEvent): void {
-	event.preventDefault();
-	dragging.value = false;
-	choose(event.dataTransfer?.files?.[0]);
-}
-
-function dragOver(event: DragEvent): void {
-	event.preventDefault();
-	dragging.value = true;
-}
-
-function dragLeave(event: DragEvent): void {
-	if (!(event.currentTarget instanceof Node) || !(event.relatedTarget instanceof Node) || !event.currentTarget.contains(event.relatedTarget)) {
-		dragging.value = false;
-	}
-}
+const { dragging, over: dragOver, leave: dragLeave, drop: dropped } = useFileDrop((files) => choose(files[0]));
 
 async function install(replace = false): Promise<void> {
 	if (file.value === null) {
@@ -159,7 +145,7 @@ async function install(replace = false): Promise<void> {
 			clash.value = data.clash as InstallClash;
 			phase.value = 'clash';
 		} else {
-			fail(caught instanceof ApiError ? caught.message : 'The file couldn\'t be sent.', typeof data.kind === 'string' && data.kind in KINDS ? data.kind as InstallKind : null);
+			fail(errorMessage(caught, 'The file couldn\'t be sent.'), typeof data.kind === 'string' && data.kind in KINDS ? data.kind as InstallKind : null);
 		}
 	}
 }
@@ -440,21 +426,5 @@ const replaceLabel = computed(() => {
 .install-status b {
 	color: var(--fg);
 	font-weight: 500;
-}
-
-.spin {
-	flex: none;
-	width: 13px;
-	height: 13px;
-	border: 2px solid currentColor;
-	border-top-color: transparent;
-	border-radius: 50%;
-	animation: spin .7s linear infinite;
-}
-
-@keyframes spin {
-	to {
-		transform: rotate(360deg);
-	}
 }
 </style>

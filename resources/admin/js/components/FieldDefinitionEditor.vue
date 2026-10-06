@@ -323,7 +323,7 @@ const id = (name: string): string => `${props.idPrefix}${name}`;
 
 <template>
 	<div class="field-editor">
-		<div class="field-editor__row">
+		<div class="field-pair">
 			<div class="field">
 				<label :for="id('label')">Label</label>
 				<input :id="id('label')" v-model="label" placeholder="Cook time" autocomplete="off">
@@ -336,7 +336,7 @@ const id = (name: string): string => `${props.idPrefix}${name}`;
 			</div>
 		</div>
 
-		<div class="field-editor__row">
+		<div class="field-pair">
 			<div class="field">
 				<label :for="id('type')">Type</label>
 				<AdminSelect :id="id('type')" :model-value="type" :options="TYPES" @update:model-value="changeType" />
@@ -354,7 +354,7 @@ const id = (name: string): string => `${props.idPrefix}${name}`;
 			<AdminSelect :id="id('control')" v-model="chosenControl" :options="controlOptions" />
 		</div>
 
-		<div v-if="type === 'number'" class="field-editor__row">
+		<div v-if="type === 'number'" class="field-pair">
 			<div class="field">
 				<label :for="id('min')">Lowest</label>
 				<input :id="id('min')" v-model="min" type="number">
@@ -372,7 +372,7 @@ const id = (name: string): string => `${props.idPrefix}${name}`;
 			<p :id="id('options-help')" class="field__help">One per line, as front matter writes them.</p>
 		</div>
 
-		<div v-if="type === 'list'" class="field-editor__row">
+		<div v-if="type === 'list'" class="field-pair">
 			<div class="field">
 				<label :for="id('item')">Each item is</label>
 				<AdminSelect :id="id('item')" v-model="itemType" :options="ITEM_TYPES" />
@@ -389,7 +389,7 @@ const id = (name: string): string => `${props.idPrefix}${name}`;
 			<p :id="id('item-options-help')" class="field__help">One per line, as front matter writes them.</p>
 		</div>
 
-		<div v-if="type === 'reference'" class="field-editor__row">
+		<div v-if="type === 'reference'" class="field-pair">
 			<div class="field">
 				<label :for="id('to')">Points at</label>
 				<AdminSelect :id="id('to')" :model-value="String(draft.to ?? '')" :options="typeOptions" @update:model-value="draft.to = $event" />
@@ -438,12 +438,6 @@ const id = (name: string): string => `${props.idPrefix}${name}`;
 	background: var(--surface-2);
 }
 
-.field-editor__row {
-	display: grid;
-	grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-	gap: var(--s-4);
-}
-
 .field--end {
 	align-content: end;
 	padding-bottom: 6px;
@@ -458,11 +452,5 @@ const id = (name: string): string => `${props.idPrefix}${name}`;
 
 .field-editor__remove {
 	margin-left: auto;
-}
-
-@media (width <= 760px) {
-	.field-editor__row {
-		grid-template-columns: minmax(0, 1fr);
-	}
 }
 </style>

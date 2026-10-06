@@ -13,7 +13,7 @@ import { computed, ref } from 'vue';
 import { RouterLink } from 'vue-router';
 import AdminIcon from '../components/AdminIcon.vue';
 import SkeletonTable from '../components/SkeletonTable.vue';
-import { ApiError } from '../api';
+import { errorMessage } from '../api';
 import { plural } from '../format';
 import { grants, loadRoles, MEMBER, originOf, type RoleInfo, type RoleList } from '../people';
 import { can } from '../session';
@@ -24,7 +24,7 @@ const error = ref('');
 loadRoles().then((answer) => {
 	list.value = answer;
 }, (caught: unknown) => {
-	error.value = caught instanceof ApiError ? caught.message : 'The roles couldn\'t be loaded.';
+	error.value = errorMessage(caught, 'The roles couldn\'t be loaded.');
 });
 
 const site = computed(() => list.value?.capabilities.filter((capability) => capability.type === undefined) ?? []);

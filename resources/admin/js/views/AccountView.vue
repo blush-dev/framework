@@ -36,9 +36,11 @@ import AccountPreferences from '../components/AccountPreferences.vue';
 import AdminIcon from '../components/AdminIcon.vue';
 import MenuButton from '../components/MenuButton.vue';
 import AdminModal from '../components/AdminModal.vue';
+import PickModal, { type PickItem } from '../components/PickModal.vue';
 import RoleChecks from '../components/RoleChecks.vue';
 import StatusPill from '../components/StatusPill.vue';
-import { ApiError, entryPath, entryRoute, request, type EntryDetail } from '../api';
+import { useAction } from '../action';
+import { ApiError, entryRoute, errorMessage, patchEntry, request, type EntryDetail } from '../api';
 import { config } from '../config';
 import { plural } from '../format';
 import { confirmAction } from '../confirm';
@@ -47,7 +49,7 @@ import { claimable, freshLink, initials, loadAccounts, loadLinkable, loadRoles, 
 import { screenTitle } from '../screen';
 import { can, canType, loadSession, saveOwnDetails, session } from '../session';
 import { loadTypes, profileType } from '../types';
-import { toast } from '../toast';
+import { copyText, toast } from '../toast';
 
 const route  = useRoute();
 const router = useRouter();
@@ -87,7 +89,7 @@ async function load(): Promise<void> {
 			? [[], null]
 			: await Promise.all([loadAccounts(), loadRoles()]);
 	} catch (caught) {
-		error.value = caught instanceof ApiError ? caught.message : 'The account couldn\'t be loaded.';
+		error.value = errorMessage(caught, 'The account couldn\'t be loaded.');
 	}
 }
 
@@ -135,9 +137,9 @@ async function refresh(): Promise<void> {
 }
 
 // Roles: ticked, then saved or discarded.
-const held       = ref<string[]>([]);
-const rolesBusy  = ref(false);
-const rolesError = ref('');
+const held = ref<string[]>([]);
+
+const { busy: rolesBusy, error: rolesError, run: runRoles } = useAction();
 
 watch(account, (value) => {
 	held.value = value ? [...value.roles] : [];
@@ -152,19 +154,12 @@ async function saveRoles(): Promise<void> {
 		return;
 	}
 
-	rolesBusy.value  = true;
-	rolesError.value = '';
-
-	try {
+	await runRoles('The roles couldn\'t be saved.', async () => {
 		const changed = await updateAccount(current.username, { roles: held.value });
 
 		replace(changed);
 		toast(`Saved roles for ${changed.displayName}`);
-	} catch (caught) {
-		rolesError.value = caught instanceof ApiError ? caught.message : 'The roles couldn\'t be saved.';
-	} finally {
-		rolesBusy.value = false;
-	}
+	});
 }
 
 function discardRoles(): void {
@@ -181,8 +176,7 @@ const rolesNote = computed(() => {
 });
 
 // Making yourself the owner of a site that has none (D-500).
-const claimBusy  = ref(false);
-const claimError = ref('');
+const { busy: claimBusy, error: claimError, run: runClaim } = useAction();
 
 async function claimOwner(): Promise<void> {
 	const current = account.value;
@@ -198,18 +192,11 @@ async function claimOwner(): Promise<void> {
 		return;
 	}
 
-	claimBusy.value  = true;
-	claimError.value = '';
-
-	try {
+	await runClaim('You couldn\'t be made the owner.', async () => {
 		await updateAccount(current.username, { roles: [...current.roles, OWNER] });
 		await refresh();
 		toast('You\'re the site\'s owner');
-	} catch (caught) {
-		claimError.value = caught instanceof ApiError ? caught.message : 'You couldn\'t be made the owner.';
-	} finally {
-		claimBusy.value = false;
-	}
+	});
 }
 
 // The public profile (D-353): linked, linked but not yet public, linked
@@ -223,9 +210,16 @@ const newSlugTyped = ref('');
 const linkable     = ref<LinkableProfile[] | null>(null);
 // Only profiles no account has can be linked: a profile belongs to one.
 const free         = computed(() => (linkable.value ?? []).filter((item) => item.account === null && item.status !== null));
+const linkItems    = computed<PickItem[] | null>(() => linkable.value === null ? null : free.value.map((item) => ({
+	key: item.slug,
+	initials: initials(item.title),
+	name: item.title,
+	meta: item.slug,
+	aside: item.status === 'published' ? undefined : (item.status === 'draft' ? 'Draft' : 'Scheduled')
+})));
 const newName      = ref('');
-const profileBusy  = ref(false);
-const profileError = ref('');
+
+const { busy: profileBusy, error: profileError, run: runProfile } = useAction();
 
 watch(account, (value) => {
 	profileMode.value = '';
@@ -252,18 +246,13 @@ async function startLink(): Promise<void> {
 	try {
 		linkable.value = await loadLinkable();
 	} catch (caught) {
-		profileError.value = caught instanceof ApiError ? caught.message : 'The profiles couldn\'t be loaded.';
+		profileError.value = errorMessage(caught, 'The profiles couldn\'t be loaded.');
 		linkable.value     = [];
 	}
 }
 
 async function copyEmail(email: string): Promise<void> {
-	try {
-		await navigator.clipboard.writeText(email);
-		toast(`Copied ${email}`);
-	} catch {
-		toast('The email address couldn\'t be copied', { kind: 'warn' });
-	}
+	await copyText(email, 'the email address', email);
 }
 
 async function changeLink(author: string | null, done: string): Promise<void> {
@@ -273,10 +262,7 @@ async function changeLink(author: string | null, done: string): Promise<void> {
 		return;
 	}
 
-	profileBusy.value  = true;
-	profileError.value = '';
-
-	try {
+	await runProfile('The profile couldn\'t be linked.', async () => {
 		replace(await updateAccount(current.username, { author }));
 
 		if (mine.value) {
@@ -285,11 +271,7 @@ async function changeLink(author: string | null, done: string): Promise<void> {
 
 		profileMode.value = '';
 		toast(done);
-	} catch (caught) {
-		profileError.value = caught instanceof ApiError ? caught.message : 'The profile couldn\'t be linked.';
-	} finally {
-		profileBusy.value = false;
-	}
+	});
 }
 
 function linkProfile(): Promise<void> {
@@ -324,11 +306,10 @@ async function createProfile(): Promise<void> {
 		return;
 	}
 
-	profileBusy.value  = true;
-	profileError.value = '';
+	const type = profileType.value;
 
-	try {
-		const created = await request<EntryDetail>('POST', '/entries', { type: profileType.value, title: newName.value.trim(), slug: newSlug.value, status: 'draft' });
+	await runProfile('The profile couldn\'t be created.', async () => {
+		const created = await request<EntryDetail>('POST', '/entries', { type, title: newName.value.trim(), slug: newSlug.value, status: 'draft' });
 
 		replace(await updateAccount(current.username, { author: created.slug }));
 
@@ -339,11 +320,7 @@ async function createProfile(): Promise<void> {
 		profileMode.value = '';
 		toast(`Created ${newName.value.trim()}`);
 		await router.push({ name: 'profile-detail', params: { slug: created.slug } });
-	} catch (caught) {
-		profileError.value = caught instanceof ApiError ? caught.message : 'The profile couldn\'t be created.';
-	} finally {
-		profileBusy.value = false;
-	}
+	});
 }
 
 // Gives the profile an account links to its file: a draft, titled with
@@ -355,19 +332,15 @@ async function createLinked(): Promise<void> {
 		return;
 	}
 
-	profileBusy.value  = true;
-	profileError.value = '';
+	const type   = profileType.value;
+	const author = current.author;
 
-	try {
-		const created = await request<EntryDetail>('POST', '/entries', { type: profileType.value, title: current.author, slug: current.author, status: 'draft' });
+	await runProfile('The profile couldn\'t be created.', async () => {
+		const created = await request<EntryDetail>('POST', '/entries', { type, title: author, slug: author, status: 'draft' });
 
 		await refresh();
 		await router.push(entryRoute({ id: created.id, type: created.type.name }));
-	} catch (caught) {
-		profileError.value = caught instanceof ApiError ? caught.message : 'The profile couldn\'t be created.';
-	} finally {
-		profileBusy.value = false;
-	}
+	});
 }
 
 // Publishes a draft profile, so its page and bylines go live.
@@ -378,20 +351,13 @@ async function publishProfile(): Promise<void> {
 		return;
 	}
 
-	profileBusy.value  = true;
-	profileError.value = '';
+	const id = page.id;
 
-	try {
-		const loaded = await request<EntryDetail>('GET', entryPath(page.id));
-
-		await request<EntryDetail>('PATCH', entryPath(page.id), { revision: loaded.revision, status: 'published' });
+	await runProfile('The profile couldn\'t be published.', async () => {
+		await patchEntry(id, { status: 'published' });
 		await refresh();
 		toast(`Published ${page.title || page.slug}`);
-	} catch (caught) {
-		profileError.value = caught instanceof ApiError ? caught.message : 'The profile couldn\'t be published.';
-	} finally {
-		profileBusy.value = false;
-	}
+	});
 }
 
 const profileUrl = computed(() => {
@@ -403,10 +369,10 @@ const profileUrl = computed(() => {
 const canOpenProfile = computed(() => profileType.value !== null && canType(profileType.value, 'edit'));
 
 // The password link: the one just made, shown once.
-const link      = ref<PasswordLink | null>(null);
-const linkBusy  = ref(false);
-const linkError = ref('');
-const copied    = ref('');
+const link   = ref<PasswordLink | null>(null);
+const copied = ref('');
+
+const { busy: linkBusy, error: linkError, run: runLink } = useAction();
 
 watch(() => route.params.username, (username) => {
 	const fresh = freshLink.value;
@@ -426,20 +392,14 @@ async function makeLink(): Promise<void> {
 		return;
 	}
 
-	linkBusy.value  = true;
-	linkError.value = '';
-	copied.value    = '';
+	copied.value = '';
 
-	try {
+	await runLink('The link couldn\'t be made.', async () => {
 		const answer = await makePasswordLink(current.username);
 
 		replace(answer.account);
 		link.value = answer.link;
-	} catch (caught) {
-		linkError.value = caught instanceof ApiError ? caught.message : 'The link couldn\'t be made.';
-	} finally {
-		linkBusy.value = false;
-	}
+	});
 }
 
 async function copyLink(): Promise<void> {
@@ -447,13 +407,7 @@ async function copyLink(): Promise<void> {
 		return;
 	}
 
-	try {
-		await navigator.clipboard.writeText(link.value.url);
-		copied.value = 'Copied the link.';
-		toast('Copied the link');
-	} catch {
-		copied.value = 'Copying failed; select the link and copy it instead.';
-	}
+	copied.value = await copyText(link.value.url, 'the link') ? 'Copied the link.' : 'Copying failed; select the link and copy it instead.';
 }
 
 function selectAll(event: Event): void {
@@ -462,9 +416,9 @@ function selectAll(event: Event): void {
 
 // The Actions menu: what someone who manages accounts does to the account
 // as a whole.
-const actionsBusy  = ref(false);
-const actionsError = ref('');
-const actions      = computed(() => {
+const { busy: actionsBusy, error: actionsError, run: runActions } = useAction();
+
+const actions = computed(() => {
 	const current = account.value;
 
 	return current !== undefined && !mine.value && current.manages && (can('accounts.edit') || can('accounts.suspend') || can('accounts.delete'));
@@ -484,18 +438,11 @@ async function setSuspended(suspended: boolean): Promise<void> {
 		return;
 	}
 
-	actionsBusy.value  = true;
-	actionsError.value = '';
-
-	try {
+	await runActions('The account couldn\'t be changed.', async () => {
 		replace(await updateAccount(current.username, { suspended }));
 		link.value = null;
 		toast(suspended ? `Suspended ${current.displayName}` : `Reinstated ${current.displayName}`, { kind: suspended ? 'danger' : 'good' });
-	} catch (caught) {
-		actionsError.value = caught instanceof ApiError ? caught.message : 'The account couldn\'t be changed.';
-	} finally {
-		actionsBusy.value = false;
-	}
+	});
 }
 
 async function remove(): Promise<void> {
@@ -507,17 +454,11 @@ async function remove(): Promise<void> {
 		return;
 	}
 
-	actionsBusy.value  = true;
-	actionsError.value = '';
-
-	try {
+	await runActions('The account couldn\'t be deleted.', async () => {
 		await removeAccount(current.username);
 		toast(`Deleted ${current.displayName}`, { kind: 'danger' });
 		await router.push({ name: 'accounts' });
-	} catch (caught) {
-		actionsError.value = caught instanceof ApiError ? caught.message : 'The account couldn\'t be deleted.';
-		actionsBusy.value  = false;
-	}
+	});
 }
 
 // The account's details: its display name (D-322) and email address
@@ -526,11 +467,11 @@ const canEditDetails = computed(() => account.value !== undefined && (mine.value
 const editingDetails = ref(false);
 const detailName     = ref('');
 const detailEmail    = ref('');
-const detailsBusy    = ref(false);
-const detailsError   = ref('');
 const detailsField   = ref<'name' | 'email' | null>(null);
 const nameInput      = ref<HTMLInputElement | null>(null);
 const emailInput     = ref<HTMLInputElement | null>(null);
+
+const { busy: detailsBusy, error: detailsError, run: runDetails } = useAction();
 
 watch(account, () => {
 	editingDetails.value = false;
@@ -553,13 +494,11 @@ async function saveDetails(): Promise<void> {
 		return;
 	}
 
-	detailsBusy.value  = true;
-	detailsError.value = '';
 	detailsField.value = null;
 
 	const changes = { name: detailName.value.trim() === '' ? null : detailName.value, email: detailEmail.value.trim() };
 
-	try {
+	await runDetails('The details couldn\'t be saved.', async () => {
 		if (mine.value) {
 			await saveOwnDetails(changes);
 		} else {
@@ -568,25 +507,22 @@ async function saveDetails(): Promise<void> {
 
 		editingDetails.value = false;
 		toast(`Saved ${mine.value ? 'your' : `${account.value?.displayName ?? current.username}'s`} details`);
-	} catch (caught) {
-		detailsError.value = caught instanceof ApiError ? caught.message : 'The details couldn\'t be saved.';
+	}, (caught) => {
 		detailsField.value = caught instanceof ApiError && (caught.field === 'name' || caught.field === 'email') ? caught.field : null;
 		(detailsField.value === 'email' ? emailInput : nameInput).value?.focus();
-	} finally {
-		detailsBusy.value = false;
-	}
+	});
 }
 
 // Changing your own password: the form is shown on request.
 const changing        = ref(false);
 const currentPassword = ref('');
 const newPassword     = ref('');
-const passwordBusy    = ref(false);
-const passwordError   = ref('');
 const passwordField   = ref<'current' | 'password' | null>(null);
 const currentInput    = ref<HTMLInputElement | null>(null);
 const newInput        = ref<HTMLInputElement | null>(null);
 const changeButton    = ref<HTMLButtonElement | null>(null);
+
+const { busy: passwordBusy, error: passwordError, run: runPassword } = useAction();
 
 async function startPasswordChange(): Promise<void> {
 	changing.value = true;
@@ -605,21 +541,16 @@ async function stopPasswordChange(): Promise<void> {
 }
 
 async function changePassword(): Promise<void> {
-	passwordBusy.value  = true;
-	passwordError.value = '';
 	passwordField.value = null;
 
-	try {
+	await runPassword('Your password couldn\'t be changed.', async () => {
 		await request<void>('POST', '/password', { current: currentPassword.value, password: newPassword.value });
 		await stopPasswordChange();
 		toast('Password changed. You\'re signed out everywhere else.');
-	} catch (caught) {
-		passwordError.value = caught instanceof ApiError ? caught.message : 'Your password couldn\'t be changed.';
+	}, (caught) => {
 		passwordField.value = caught instanceof ApiError && (caught.field === 'current' || caught.field === 'password') ? caught.field : null;
 		(passwordField.value === 'password' ? newInput : currentInput).value?.focus();
-	} finally {
-		passwordBusy.value = false;
-	}
+	});
 }
 </script>
 
@@ -712,7 +643,7 @@ async function changePassword(): Promise<void> {
 						<div><dt>Created</dt><dd>{{ when(account.created) }}</dd></div>
 						<div><dt>Last signed in</dt><dd>{{ when(account.lastLogin) }}</dd></div>
 					</dl>
-					<form v-else class="details-form" :aria-busy="detailsBusy" @submit.prevent="saveDetails" @keydown.esc="editingDetails = false">
+					<form v-else class="form-stack details-form" :aria-busy="detailsBusy" @submit.prevent="saveDetails" @keydown.esc="editingDetails = false">
 						<p class="field">
 							<label for="account-name">Display name</label>
 							<input id="account-name" ref="nameInput" v-model="detailName" autocomplete="off" maxlength="100" :placeholder="account.profile?.title ?? account.username" :aria-invalid="detailsField === 'name' || undefined" :aria-describedby="detailsField === 'name' ? 'details-error' : 'account-name-help'">
@@ -724,7 +655,7 @@ async function changePassword(): Promise<void> {
 							<span id="account-email-help" class="field__help">Every account needs one. Blush sends no email; it's for the people who manage accounts.</span>
 						</p>
 						<p v-if="detailsError" id="details-error" class="field__error" role="alert">{{ detailsError }}</p>
-						<p class="details-form__buttons">
+						<p class="submit-row submit-row--tight">
 							<button type="submit" class="button button--primary button--small" :disabled="detailsBusy">{{ detailsBusy ? 'Saving…' : 'Save' }}</button>
 							<button type="button" class="button button--ghost button--small" :disabled="detailsBusy" @click="editingDetails = false">Cancel</button>
 						</p>
@@ -735,7 +666,7 @@ async function changePassword(): Promise<void> {
 					<button v-if="canEditDetails" type="button" class="button button--small" @click="startDetails()">{{ mine ? 'Change name or email' : 'Edit details' }}</button>
 				</div>
 				<div v-if="mine && changing" class="panel__body account-password">
-					<form class="account-password__form" :aria-busy="passwordBusy" @submit.prevent="changePassword" @keydown.esc="stopPasswordChange">
+					<form class="form-stack details-form" :aria-busy="passwordBusy" @submit.prevent="changePassword" @keydown.esc="stopPasswordChange">
 						<input type="text" class="visually-hidden" name="username" :value="account.username" autocomplete="username" tabindex="-1" aria-hidden="true" readonly>
 						<p class="field">
 							<label for="current-password">Current password</label>
@@ -747,7 +678,7 @@ async function changePassword(): Promise<void> {
 							<span id="new-password-help" class="field__help">You'll stay signed in here and be signed out on every other device.</span>
 						</p>
 						<p v-if="passwordError" id="password-error" class="notice notice--error" role="alert">{{ passwordError }}</p>
-						<p class="details-form__buttons">
+						<p class="submit-row submit-row--tight">
 							<button type="submit" class="button button--primary button--small" :disabled="passwordBusy">{{ passwordBusy ? 'Changing…' : 'Change password' }}</button>
 							<button type="button" class="button button--ghost button--small" :disabled="passwordBusy" @click="stopPasswordChange">Cancel</button>
 						</p>
@@ -831,33 +762,16 @@ async function changePassword(): Promise<void> {
 
 		<AccountPreferences v-if="account && mine" />
 
-		<AdminModal v-if="account" :open="profileMode === 'link'" :title="linkable !== null && free.length === 0 ? 'No Profile to Link' : 'Link a Profile'" wide @close="profileMode = ''">
-			<p v-if="linkable === null">Loading the profiles…</p>
-			<p v-else-if="free.length === 0">Every profile already belongs to an account. Create a new one instead, and it's linked as it's made.</p>
-			<template v-else>
-				<p>Only profiles with no account are listed: a profile belongs to at most one. Entries crediting it become {{ mine ? 'yours' : 'theirs' }}.</p>
-				<div class="pick-list" role="group" aria-label="Profiles">
-					<button v-for="item in free" :key="item.slug" type="button" class="pick" :aria-pressed="pick === item.slug" @click="pick = item.slug">
-						<span class="avatar" aria-hidden="true">{{ initials(item.title) }}</span>
-						<span class="pick__text">
-							<span class="pick__name">{{ item.title }}</span>
-							<span class="pick__meta">{{ item.slug }}</span>
-						</span>
-						<span v-if="item.status !== 'published'" class="pick__aside">{{ item.status === 'draft' ? 'Draft' : 'Scheduled' }}</span>
-					</button>
-				</div>
+		<PickModal v-if="account" v-model:pick="pick" :open="profileMode === 'link'" noun="Profile" :items="linkItems" none="Every profile already belongs to an account. Create a new one instead, and it's linked as it's made." :busy="profileBusy" :error="profileError" @close="profileMode = ''" @confirm="linkProfile">
+			Only profiles with no account are listed: a profile belongs to at most one. Entries crediting it become {{ mine ? 'yours' : 'theirs' }}.
+			<template v-if="profileType !== null && canType(profileType, 'create')" #empty>
+				<button type="button" class="button button--primary" @click="startCreate">Create a profile</button>
 			</template>
-			<p v-if="profileError" class="field__error" role="alert">{{ profileError }}</p>
-			<template #footer>
-				<button type="button" class="button" @click="profileMode = ''">Cancel</button>
-				<button v-if="linkable !== null && free.length === 0 && profileType !== null && canType(profileType, 'create')" type="button" class="button button--primary" @click="startCreate">Create a profile</button>
-				<button v-else type="button" class="button button--primary" :disabled="pick === '' || profileBusy" @click="linkProfile">{{ profileBusy ? 'Linking…' : 'Link the profile' }}</button>
-			</template>
-		</AdminModal>
+		</PickModal>
 
 		<AdminModal v-if="account" :open="profileMode === 'create'" title="Create a Profile" @close="profileMode = ''">
 			<p>It starts as a draft, linked to {{ mine ? 'your account' : 'this account' }}, so nothing is public until you publish it.</p>
-			<form id="create-profile" class="create-profile" @submit.prevent="createProfile">
+			<form id="create-profile" class="form-stack create-profile" @submit.prevent="createProfile">
 				<p class="field">
 					<label for="create-profile-name">Display name</label>
 					<input id="create-profile-name" v-model="newName" autocomplete="off" maxlength="100" placeholder="Their name as readers should see it" autofocus aria-describedby="create-profile-name-help">
@@ -880,13 +794,7 @@ async function changePassword(): Promise<void> {
 
 <style scoped>
 .create-profile {
-	display: grid;
-	gap: var(--s-4);
 	margin-top: var(--s-4);
-}
-
-.create-profile > * {
-	margin: 0;
 }
 
 .account-link {
@@ -906,40 +814,11 @@ async function changePassword(): Promise<void> {
 	font-size: var(--text-xs);
 }
 
-.details-form,
-.account-password__form {
-	display: grid;
-	gap: var(--s-4);
+.details-form {
 	max-width: 24rem;
-}
-
-.details-form > *,
-.account-password__form > * {
-	margin: 0;
-}
-
-.details-form__buttons {
-	display: flex;
-	gap: var(--s-2);
 }
 
 .account-password {
 	border-top: 1px solid var(--border);
-}
-
-.link-form {
-	margin-top: var(--s-4);
-}
-
-.link-form__row {
-	display: flex;
-	flex-wrap: wrap;
-	align-items: center;
-	gap: var(--s-2);
-}
-
-.link-form__row .input {
-	flex: 1 1 14rem;
-	min-width: 0;
 }
 </style>

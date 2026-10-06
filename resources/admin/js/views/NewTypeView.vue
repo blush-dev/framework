@@ -14,17 +14,18 @@
  */
 
 import { computed, ref, watch } from 'vue';
-import { confirmAction } from '../confirm';
-import { onBeforeRouteLeave, RouterLink, useRouter } from 'vue-router';
+import { confirmAction, guardLeave } from '../confirm';
+import { RouterLink, useRouter } from 'vue-router';
 import AdminIcon from '../components/AdminIcon.vue';
 import FieldListEditor from '../components/FieldListEditor.vue';
 import TypeBasicsFields from '../components/TypeBasicsFields.vue';
 import TypeBehaviorFields from '../components/TypeBehaviorFields.vue';
-import { ApiError, request, type ContentTypeDetail } from '../api';
+import { request, type ContentTypeDetail } from '../api';
+import { useAction } from '../action';
 import { label as fieldLabel } from '../fields';
 import { changesOf, DATE_ARCHIVES, emptyForm, FEATURED, folderOf, hasFeatured, singularOf, typeKeyOf, type TypeForm, type TypeKind } from '../type-form';
 import { toast } from '../toast';
-import { profileType, canCreateTypes, loadTypes, reloadTypes, typeUrls, types } from '../types';
+import { profileType, canCreateTypes, loadTypes, refreshTypes, typeUrls, types } from '../types';
 
 const router = useRouter();
 
@@ -41,10 +42,10 @@ const keyTouched    = ref(false);
 const folderTouched = ref(false);
 const index         = ref(true);
 const authorsPage   = ref(false);
-const creating      = ref(false);
-const failure       = ref('');
 const created       = ref(false);
 const previous      = ref('');
+
+const { busy: creating, error: failure, run } = useAction();
 
 // The key and folder follow the names until they're typed.
 watch(() => form.value.plural, (plural) => {
@@ -124,10 +125,7 @@ async function create(): Promise<void> {
 		return;
 	}
 
-	creating.value = true;
-	failure.value  = '';
-
-	try {
+	await run('The type couldn\'t be created.', async () => {
 		const type = await request<ContentTypeDetail>('POST', '/types', {
 			name: key.value,
 			kind: kind.value,
@@ -138,19 +136,13 @@ async function create(): Promise<void> {
 		});
 
 		created.value = true;
-		request('POST', '/types/refresh').catch(() => undefined).finally(() => {
-			reloadTypes().catch(() => undefined);
-		});
+		refreshTypes();
 		toast(`Created ${type.labels.plural}`);
 		await router.push({ name: 'content-type', params: { name: type.name } });
-	} catch (caught) {
-		failure.value = caught instanceof ApiError ? caught.message : 'The type couldn\'t be created.';
-	} finally {
-		creating.value = false;
-	}
+	});
 }
 
-onBeforeRouteLeave(() => !dirty.value || confirmAction({ title: 'Leave Without Creating the Type?', body: 'What you\'ve filled in will be lost.', confirm: 'Leave', cancel: 'Stay', danger: true }));
+guardLeave(() => dirty.value, () => confirmAction({ title: 'Leave Without Creating the Type?', body: 'What you\'ve filled in will be lost.', confirm: 'Leave', cancel: 'Stay', danger: true }));
 
 const archiveLabel = computed(() => DATE_ARCHIVES.find((option) => option.value === form.value.dateArchives)?.label ?? 'None');
 const groupLabels  = computed(() => form.value.types.map((name) => types.value.find((type) => type.name === name)?.labels.plural ?? name));
@@ -182,8 +174,8 @@ const groupLabels  = computed(() => form.value.types.map((name) => types.value.f
 				</li>
 			</ol>
 
-			<div v-if="step === 0" class="panel__body wizard__body">
-				<fieldset class="kinds">
+			<div v-if="step === 0" class="panel__body form-stack">
+				<fieldset class="fieldset kinds">
 					<legend>Kind</legend>
 					<label class="kind" :class="{ 'kind--on': kind === 'collection' }">
 						<input v-model="kind" type="radio" value="collection" name="kind" class="visually-hidden">
@@ -202,7 +194,7 @@ const groupLabels  = computed(() => form.value.types.map((name) => types.value.f
 					</label>
 				</fieldset>
 				<TypeBasicsFields v-model="form" id-prefix="new-" :kind="kind" />
-				<div class="wizard__row">
+				<div class="field-pair">
 					<div class="field">
 						<label for="new-key">Key</label>
 						<input id="new-key" v-model="key" class="mono" placeholder="recipe" autocomplete="off" spellcheck="false" :aria-invalid="form.plural && keyError ? 'true' : undefined" aria-describedby="new-key-help" @input="keyTouched = true">
@@ -218,7 +210,7 @@ const groupLabels  = computed(() => form.value.types.map((name) => types.value.f
 				</div>
 			</div>
 
-			<div v-else-if="step === 1" class="panel__body wizard__body">
+			<div v-else-if="step === 1" class="panel__body form-stack">
 				<TypeBehaviorFields v-model="form" v-model:index="index" v-model:page-wanted="authorsPage" id-prefix="new-" :kind="kind" :folder-prefix="prefix" :urls="typeUrls" :types="types" :index-page="null" :authors-label="authorsLabel" :authors-page="null" />
 			</div>
 
@@ -243,7 +235,7 @@ const groupLabels  = computed(() => form.value.types.map((name) => types.value.f
 				<h2 id="summary-heading">What Gets Created</h2>
 				<p class="panel__hint">Updates as you go</p>
 			</header>
-			<dl class="panel__body summary">
+			<dl class="panel__body facts">
 				<div><dt>Kind</dt><dd>{{ { collection: 'Collection', taxonomy: 'Taxonomy', tree: 'Tree' }[kind] }}</dd></div>
 				<div><dt>Name</dt><dd>{{ form.plural || 'Not set' }}<template v-if="form.singular"> / {{ form.singular }}</template></dd></div>
 				<div><dt>File</dt><dd class="mono">user/data/types/{{ key || '…' }}.yaml</dd></div>
@@ -326,36 +318,9 @@ const groupLabels  = computed(() => form.value.types.map((name) => types.value.f
 	color: var(--good);
 }
 
-.wizard__body {
-	display: grid;
-	gap: var(--s-4);
-}
-
-.wizard__body > * + * {
-	margin-top: 0;
-}
-
-.wizard__row {
-	display: grid;
-	grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-	gap: var(--s-4);
-}
-
 .kinds {
-	display: grid;
 	grid-template-columns: repeat(3, minmax(0, 1fr));
 	gap: var(--s-3);
-	margin: 0;
-	padding: 0;
-	border: 0;
-}
-
-.kinds legend {
-	margin-bottom: 7px;
-	padding: 0;
-	color: var(--fg-2);
-	font-size: var(--text-sm);
-	font-weight: 500;
 }
 
 .kind {
@@ -399,32 +364,6 @@ const groupLabels  = computed(() => form.value.types.map((name) => types.value.f
 	border-top: 1px solid var(--border);
 }
 
-.summary {
-	display: grid;
-	gap: 8px;
-	margin: 0;
-}
-
-.summary > * + * {
-	margin-top: 0;
-}
-
-.summary div {
-	display: flex;
-	justify-content: space-between;
-	gap: 12px;
-}
-
-.summary dt {
-	color: var(--fg-2);
-}
-
-.summary dd {
-	margin: 0;
-	text-align: right;
-	overflow-wrap: anywhere;
-}
-
 @media (width <= 1100px) {
 	.wizard {
 		grid-template-columns: minmax(0, 1fr);
@@ -432,7 +371,6 @@ const groupLabels  = computed(() => form.value.types.map((name) => types.value.f
 }
 
 @media (width <= 760px) {
-	.wizard__row,
 	.kinds {
 		grid-template-columns: minmax(0, 1fr);
 	}

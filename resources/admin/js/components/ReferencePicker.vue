@@ -29,10 +29,12 @@
  * written, marked "not found".
  */
 
-import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue';
-import { ApiError, request, type FieldDescription } from '../api';
+import { computed, nextTick, ref, watch } from 'vue';
+import { debounced } from '../action';
+import { errorMessage, request, type FieldDescription } from '../api';
 import { label } from '../fields';
 import { plural } from '../format';
+import { listMove } from '../grid';
 import { initials } from '../people';
 import { loadReferences, referenceValues, slugOf, type ReferenceItem } from '../references';
 import { canType } from '../session';
@@ -141,7 +143,7 @@ async function start(): Promise<void> {
 		remember(list.items);
 		options.value = list.items.filter((item) => !item.missing);
 	} catch (caught) {
-		error.value = caught instanceof ApiError ? caught.message : `The ${names.value.items} couldn't be loaded.`;
+		error.value = errorMessage(caught, `The ${names.value.items} couldn't be loaded.`);
 	}
 }
 
@@ -152,10 +154,22 @@ watch(type, () => void start(), { immediate: true });
 const query       = ref('');
 const suggestions = ref<ReferenceItem[]>([]);
 const active      = ref(0);
-let searching: ReturnType<typeof setTimeout> | undefined;
+
+const search = debounced(async (text: string) => {
+	try {
+		const list = await loadReferences(type.value, { search: text.trim(), limit: 6 });
+
+		if (text === query.value) {
+			remember(list.items);
+			suggestions.value = list.items.filter((item) => !item.missing && !has(item.slug));
+		}
+	} catch {
+		suggestions.value = [];
+	}
+}, 150);
 
 watch(query, (text) => {
-	clearTimeout(searching);
+	search.cancel();
 	active.value = 0;
 
 	if (text.trim() === '' || tree.value !== null) {
@@ -164,22 +178,7 @@ watch(query, (text) => {
 		return;
 	}
 
-	searching = setTimeout(async () => {
-		try {
-			const list = await loadReferences(type.value, { search: text.trim(), limit: 6 });
-
-			if (text === query.value) {
-				remember(list.items);
-				suggestions.value = list.items.filter((item) => !item.missing && !has(item.slug));
-			}
-		} catch {
-			suggestions.value = [];
-		}
-	}, 150);
-});
-
-onBeforeUnmount(() => {
-	clearTimeout(searching);
+	search(text);
 });
 
 // Whether Enter would write what's typed: nothing matches it exactly, and
@@ -202,7 +201,7 @@ function searchKey(event: KeyboardEvent): void {
 
 	if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
 		event.preventDefault();
-		active.value = count === 0 ? 0 : (active.value + (event.key === 'ArrowDown' ? 1 : count - 1)) % count;
+		active.value = listMove(event.key, active.value, count) ?? 0;
 	} else if (event.key === 'Enter') {
 		event.preventDefault();
 
@@ -302,7 +301,7 @@ async function saveNew(): Promise<void> {
 		await start();
 		add(created.slug);
 	} catch (caught) {
-		error.value = caught instanceof ApiError ? caught.message : `The ${names.value.item} couldn't be created.`;
+		error.value = errorMessage(caught, `The ${names.value.item} couldn't be created.`);
 	} finally {
 		writing.value = false;
 	}
@@ -371,7 +370,7 @@ const persons = computed(() => values.value.map((value) => itemOf(value)));
 		<template v-else-if="people">
 			<ul v-if="persons.length" class="reference__people">
 				<li v-for="(person, index) in persons" :key="person.slug" class="reference__person">
-					<span class="reference__avatar" aria-hidden="true">{{ initials(person.title) }}</span>
+					<span class="avatar reference__avatar" aria-hidden="true">{{ initials(person.title) }}</span>
 					<span class="reference__who">
 						<span class="reference__name">{{ person.title }}</span>
 						<span class="reference__meta"><template v-if="index === 0 && persons.length > 1">Lead · </template><span class="mono">{{ person.slug }}</span><template v-if="person.missing"> · not found</template></span>
@@ -388,7 +387,7 @@ const persons = computed(() => values.value.map((value) => itemOf(value)));
 			<ul v-if="query.trim() && (suggestions.length || creatable)" :id="`${id}-suggestions`" class="reference__suggestions" role="listbox">
 				<li v-for="(item, index) in suggestions" :key="item.slug" role="option" :aria-selected="index === active">
 					<button type="button" :class="{ 'is-active': index === active }" @mousedown.prevent @click="choose(item)">
-						<span class="reference__avatar reference__avatar--small" aria-hidden="true">{{ initials(item.title) }}</span>
+						<span class="avatar reference__avatar reference__avatar--small" aria-hidden="true">{{ initials(item.title) }}</span>
 						<span class="reference__suggestion-name">{{ item.title }}</span>
 						<span class="reference__count mono">{{ item.slug }}</span>
 					</button>
@@ -406,14 +405,14 @@ const persons = computed(() => values.value.map((value) => itemOf(value)));
 			</div>
 			<div class="reference__tree" role="group" :aria-label="label(field)">
 				<label v-for="item in treeRows" :key="item.slug" class="reference__term" :class="{ 'is-on': has(item.slug) }" :style="{ '--depth': item.depth ?? 0 }">
-					<input type="checkbox" :checked="has(item.slug)" @change="toggle(item.slug)">
-					<span class="reference__box-mark" aria-hidden="true"><AdminIcon name="check" /></span>
+					<input type="checkbox" class="check-input" :checked="has(item.slug)" @change="toggle(item.slug)">
+					<span class="check-box" aria-hidden="true"><AdminIcon name="check" /></span>
 					<span class="reference__term-name">{{ item.title }}<span v-if="item.status === 'draft'" class="reference__draft"> · draft</span></span>
 					<span class="reference__count mono">{{ item.uses ?? 0 }}</span>
 				</label>
 				<label v-for="value in outside" :key="`outside-${value}`" class="reference__term is-on">
-					<input type="checkbox" checked @change="toggle(slugOf(value))">
-					<span class="reference__box-mark" aria-hidden="true"><AdminIcon name="check" /></span>
+					<input type="checkbox" class="check-input" checked @change="toggle(slugOf(value))">
+					<span class="check-box" aria-hidden="true"><AdminIcon name="check" /></span>
 					<span class="reference__term-name">{{ itemOf(value).title }} <span class="reference__draft">· {{ itemOf(value).virtual ? 'no page' : 'not found' }}</span></span>
 				</label>
 				<p v-if="!treeRows.length && !outside.length" class="reference__empty">{{ treeQuery.trim() ? `No ${names.items} match “${treeQuery.trim()}”.` : `No ${names.items} yet.` }}</p>
@@ -557,45 +556,6 @@ const persons = computed(() => values.value.map((value) => itemOf(value)));
 
 .reference__term.is-on {
 	color: var(--fg);
-}
-
-/* A real checkbox, drawn: the only solid accent in the panel is a
-   checked box. */
-.reference__term input {
-	position: absolute;
-	width: 1px;
-	height: 1px;
-	margin: 0;
-	opacity: 0;
-}
-
-.reference__box-mark {
-	display: grid;
-	flex: none;
-	place-items: center;
-	width: 15px;
-	height: 15px;
-	border: 1px solid var(--border-strong);
-	border-radius: 4px;
-	background: var(--surface);
-	color: transparent;
-}
-
-.reference__box-mark svg {
-	width: 11px;
-	height: 11px;
-	stroke-width: 2.6;
-}
-
-.reference__term input:checked + .reference__box-mark {
-	border-color: var(--accent);
-	background: var(--accent);
-	color: var(--accent-fg);
-}
-
-.reference__term input:focus-visible + .reference__box-mark {
-	outline: 2px solid var(--accent);
-	outline-offset: 2px;
 }
 
 .reference__term-name,
@@ -800,18 +760,11 @@ const persons = computed(() => values.value.map((value) => itemOf(value)));
 	background: var(--surface-2);
 }
 
+/* Larger than the global avatar, with smaller initials. */
 .reference__avatar {
-	display: grid;
-	flex: none;
-	place-items: center;
 	width: 29px;
 	height: 29px;
-	border-radius: 50%;
-	background: var(--surface-3);
-	color: var(--fg-2);
 	font-size: var(--text-2xs);
-	font-weight: 600;
-	letter-spacing: .02em;
 }
 
 .reference__avatar--small {

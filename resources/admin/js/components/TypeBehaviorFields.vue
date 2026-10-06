@@ -66,9 +66,9 @@ function grouped(name: string, on: boolean): void {
 </script>
 
 <template>
-	<div class="type-behavior">
+	<div class="form-stack">
 		<div v-if="kind === 'tree'" class="field">
-			<span class="type-behavior__label">Addresses</span>
+			<span class="field__label">Addresses</span>
 			<p class="field__help">An entry lives at its path in the folder: <code>/{{ folderPrefix }}/{path}</code>, so <code>install/requirements.md</code> is at <code>/{{ folderPrefix }}/install/requirements</code>.</p>
 		</div>
 		<div v-else class="field">
@@ -80,7 +80,7 @@ function grouped(name: string, on: boolean): void {
 			</p>
 		</div>
 
-		<fieldset class="type-behavior__group">
+		<fieldset class="fieldset">
 			<legend>Options</legend>
 			<label class="checkbox"><input v-model="form.public" type="checkbox"> Visible on the site</label>
 			<label class="checkbox"><input v-model="form.sitemap" type="checkbox" :disabled="!form.public"> In the sitemap</label>
@@ -95,7 +95,7 @@ function grouped(name: string, on: boolean): void {
 			<p v-if="!indexPage && indexWanted" class="field__help">An entry is created for the landing page at <code>/{{ (form.prefix || folderPrefix).replace(/^\/+|\/+$/g, '') }}</code>, titled with the plural name, and pinned at the top of its list.</p>
 		</fieldset>
 
-		<fieldset v-if="authorsLabel !== null && form.people === null" class="type-behavior__group">
+		<fieldset v-if="authorsLabel !== null && form.people === null" class="fieldset">
 			<legend>{{ authorsLabel }}</legend>
 			<label class="checkbox"><input v-model="form.authors" type="checkbox"> Entries credit {{ authorsLabel.toLowerCase() }}</label>
 			<template v-if="form.authors && kind !== 'tree'">
@@ -122,7 +122,7 @@ function grouped(name: string, on: boolean): void {
 			<p :id="`${idPrefix}archives-help`" class="field__help">With archives, entries are dated: new ones get a publish date and a date in their file name, and listings by year (and finer) appear.</p>
 		</div>
 
-		<fieldset v-if="kind === 'taxonomy'" class="type-behavior__group">
+		<fieldset v-if="kind === 'taxonomy'" class="fieldset">
 			<legend>Groups</legend>
 			<label v-for="type in groupable" :key="type.name" class="checkbox"><input type="checkbox" :checked="form.types.includes(type.name)" @change="grouped(type.name, ($event.target as HTMLInputElement).checked)"> {{ type.labels.plural }}</label>
 			<p class="field__help">{{ form.types.length === 0 ? 'None chosen, so its terms group every type.' : 'A term\'s page lists entries of these types.' }}</p>
@@ -131,33 +131,6 @@ function grouped(name: string, on: boolean): void {
 </template>
 
 <style scoped>
-.type-behavior {
-	display: grid;
-	gap: var(--s-4);
-}
-
-.type-behavior__label {
-	color: var(--fg-2);
-	font-size: var(--text-sm);
-	font-weight: 500;
-}
-
-.type-behavior__group {
-	display: grid;
-	gap: var(--s-2);
-	margin: 0;
-	padding: 0;
-	border: 0;
-}
-
-.type-behavior__group legend {
-	margin-bottom: 7px;
-	padding: 0;
-	color: var(--fg-2);
-	font-size: var(--text-sm);
-	font-weight: 500;
-}
-
 .type-behavior__word {
 	max-width: 24rem;
 }

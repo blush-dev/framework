@@ -25,7 +25,8 @@
 
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { RouterLink, useRoute, useRouter, type RouteLocationRaw } from 'vue-router';
-import { ApiError, type ContentTypeSummary } from '../api';
+import type { ContentTypeSummary } from '../api';
+import { useAction } from '../action';
 import { config } from '../config';
 import { online } from '../connection';
 import type { IconName } from '../icons';
@@ -65,10 +66,10 @@ interface NavGroup {
 	links: NavLink[];
 }
 
-const route   = useRoute();
-const router  = useRouter();
-const leaving = ref(false);
-const error   = ref('');
+const route  = useRoute();
+const router = useRouter();
+
+const { busy: leaving, error, run } = useAction();
 
 // Content types come from the server; the menu works without them.
 onMounted(() => {
@@ -409,17 +410,10 @@ onBeforeUnmount(() => {
 });
 
 async function leave(): Promise<void> {
-	leaving.value = true;
-	error.value   = '';
-
-	try {
+	await run('Signing out failed.', async () => {
 		await signOut();
 		await router.push({ name: 'sign-in' });
-	} catch (caught) {
-		error.value = caught instanceof ApiError ? caught.message : 'Signing out failed.';
-	} finally {
-		leaving.value = false;
-	}
+	});
 }
 </script>
 
@@ -459,7 +453,7 @@ async function leave(): Promise<void> {
 
 				<nav class="panel-nav__nav" :aria-label="current?.label">
 					<div v-for="group in sections[area]" :key="group.key" class="panel-nav__group">
-						<p v-if="group.heading" :id="`nav-${group.key}`" class="panel-nav__heading">{{ group.heading }}</p>
+						<p v-if="group.heading" :id="`nav-${group.key}`" class="eyebrow panel-nav__heading">{{ group.heading }}</p>
 						<ul :aria-labelledby="group.heading ? `nav-${group.key}` : undefined">
 							<li v-for="link in group.links" :key="link.key">
 								<RouterLink class="panel-nav__link" :class="{ 'is-current': link.current, 'panel-nav__link--two': link.detail }" :to="link.to">
@@ -708,11 +702,7 @@ async function leave(): Promise<void> {
 
 .panel-nav__heading {
 	padding: 0 var(--s-2) var(--s-2);
-	color: var(--fg-3);
 	font-size: var(--text-xs);
-	font-weight: 600;
-	letter-spacing: .07em;
-	text-transform: uppercase;
 }
 
 .panel-nav__nav ul {

@@ -57,7 +57,7 @@ import { listRoute } from '../types';
 import { config } from '../config';
 import { formatDate } from '../format';
 import { initials } from '../people';
-import { toast } from '../toast';
+import { copyText } from '../toast';
 import AdminIcon from './AdminIcon.vue';
 import MenuButton from './MenuButton.vue';
 import StatusPill from './StatusPill.vue';
@@ -219,12 +219,7 @@ async function copyLink(entry: EntrySummary): Promise<void> {
 		return;
 	}
 
-	try {
-		await navigator.clipboard.writeText(url);
-		toast('Link copied');
-	} catch {
-		toast("The link couldn't be copied", { kind: 'warn' });
-	}
+	await copyText(url, 'the link');
 }
 </script>
 

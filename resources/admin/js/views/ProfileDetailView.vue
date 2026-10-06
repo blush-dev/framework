@@ -25,10 +25,10 @@
 import { computed, ref, watch } from 'vue';
 import { RouterLink, useRoute, useRouter } from 'vue-router';
 import AdminIcon from '../components/AdminIcon.vue';
-import AdminModal from '../components/AdminModal.vue';
 import MenuButton from '../components/MenuButton.vue';
+import PickModal, { type PickItem } from '../components/PickModal.vue';
 import StatusPill from '../components/StatusPill.vue';
-import { ApiError, entryPath, entryRoute, request, type EntryDetail } from '../api';
+import { entryRoute, errorMessage, patchEntry, trashEntry } from '../api';
 import { config } from '../config';
 import { plural } from '../format';
 import { initials, loadAccounts, loadProfile, removeArchivePage, statusPill, updateAccount, when, writeArchivePage, type AccountInfo, type ProfileAppearance, type ProfileDetail } from '../people';
@@ -54,7 +54,7 @@ async function load(): Promise<void> {
 		detail.value = await loadProfile(slug.value);
 	} catch (caught) {
 		detail.value = null;
-		error.value  = caught instanceof ApiError ? caught.message : 'The profile couldn\'t be loaded.';
+		error.value  = errorMessage(caught, 'The profile couldn\'t be loaded.');
 	}
 }
 
@@ -90,13 +90,11 @@ async function publish(): Promise<void> {
 	failure.value = '';
 
 	try {
-		const loaded = await request<EntryDetail>('GET', entryPath(id));
-
-		await request<EntryDetail>('PATCH', entryPath(id), { revision: loaded.revision, status: 'published' });
+		await patchEntry(id, { status: 'published' });
 		toast(`Published ${name.value}`);
 		await load();
 	} catch (caught) {
-		failure.value = caught instanceof ApiError ? caught.message : 'The profile couldn\'t be published.';
+		failure.value = errorMessage(caught, 'The profile couldn\'t be published.');
 	} finally {
 		busy.value = '';
 	}
@@ -124,13 +122,11 @@ async function trash(): Promise<void> {
 	failure.value = '';
 
 	try {
-		const loaded = await request<EntryDetail>('GET', entryPath(current.id));
-
-		await request<void>('DELETE', `${entryPath(current.id)}?revision=${encodeURIComponent(loaded.revision)}`);
+		await trashEntry(current.id);
 		toast(`Moved ${name.value} to the trash`, { kind: 'danger' });
 		await router.push(profileType.value ? { name: 'type', params: { type: profileType.value } } : { name: 'dashboard' });
 	} catch (caught) {
-		failure.value = caught instanceof ApiError ? caught.message : 'The profile couldn\'t be moved to the trash.';
+		failure.value = errorMessage(caught, 'The profile couldn\'t be moved to the trash.');
 		busy.value    = '';
 	}
 }
@@ -153,7 +149,7 @@ async function write(row: ProfileAppearance): Promise<void> {
 
 		await router.push(entryRoute(page));
 	} catch (caught) {
-		failure.value = caught instanceof ApiError ? caught.message : 'The page couldn\'t be written.';
+		failure.value = errorMessage(caught, 'The page couldn\'t be written.');
 	} finally {
 		busy.value = '';
 	}
@@ -178,7 +174,7 @@ async function deletePage(row: ProfileAppearance): Promise<void> {
 		toast(`Moved the ${row.label} page to the trash`, { kind: 'danger' });
 		await load();
 	} catch (caught) {
-		failure.value = caught instanceof ApiError ? caught.message : 'The page couldn\'t be moved to the trash.';
+		failure.value = errorMessage(caught, 'The page couldn\'t be moved to the trash.');
 	} finally {
 		busy.value = '';
 	}
@@ -204,7 +200,7 @@ async function unlink(): Promise<void> {
 		toast(`Unlinked ${name.value}`, { kind: 'danger' });
 		await load();
 	} catch (caught) {
-		failure.value = caught instanceof ApiError ? caught.message : 'The account couldn\'t be unlinked.';
+		failure.value = errorMessage(caught, 'The account couldn\'t be unlinked.');
 	} finally {
 		busy.value = '';
 	}
@@ -213,6 +209,14 @@ async function unlink(): Promise<void> {
 // Linking a guest profile to an account that has none.
 const linking  = ref(false);
 const free     = ref<AccountInfo[] | null>(null);
+const linkItems = computed<PickItem[] | null>(() => free.value?.map((account) => ({
+	key: account.username,
+	initials: initials(account.displayName),
+	name: account.displayName,
+	meta: account.email ? `${account.username} · ${account.email}` : account.username,
+	aside: account.roles.join(', '),
+	guest: true
+})) ?? null);
 const pick     = ref('');
 const canLink  = computed(() => can('accounts.view') && can('accounts.edit') && detail.value !== null && !detail.value.linked && profile.value !== null && !profile.value.virtual);
 // Anyone's link you manage, and your own (D-373).
@@ -225,7 +229,7 @@ async function startLink(): Promise<void> {
 	try {
 		free.value = (await loadAccounts()).filter((account) => account.author === null && (account.manages || account.username === session.account?.username));
 	} catch (caught) {
-		failure.value = caught instanceof ApiError ? caught.message : 'The accounts couldn\'t be loaded.';
+		failure.value = errorMessage(caught, 'The accounts couldn\'t be loaded.');
 		linking.value = false;
 	}
 }
@@ -244,7 +248,7 @@ async function link(): Promise<void> {
 		linking.value = false;
 		await load();
 	} catch (caught) {
-		failure.value = caught instanceof ApiError ? caught.message : 'The account couldn\'t be linked.';
+		failure.value = errorMessage(caught, 'The account couldn\'t be linked.');
 	} finally {
 		busy.value = '';
 	}
@@ -332,7 +336,7 @@ async function link(): Promise<void> {
 							<div><dt>Standing</dt><dd>{{ statusPill(detail.account.status).label }}</dd></div>
 							<div><dt>Last signed in</dt><dd>{{ when(detail.account.lastLogin) }}</dd></div>
 						</dl>
-						<div class="buttons">
+						<div class="submit-row submit-row--tight">
 							<RouterLink class="button button--small" :to="{ name: 'account', params: { username: detail.account.username } }">Open account</RouterLink>
 							<button v-if="canUnlink" type="button" class="button button--small" :disabled="busy === 'unlink'" @click="unlink"><AdminIcon name="unlink" />Unlink</button>
 						</div>
@@ -428,27 +432,9 @@ async function link(): Promise<void> {
 			<p class="panel__note"><strong>Inherited</strong> means the archive shows this profile's own body. Writing one creates a page for that archive: an ordinary entry, with its own status, that can't be duplicated. A filled dot is its own content and a ring is borrowed, so neither reads as a status.</p>
 		</section>
 
-		<AdminModal :open="linking" :title="free !== null && free.length === 0 ? 'No Account to Link' : 'Link an Account'" wide @close="linking = false">
-			<p v-if="free === null">Loading the accounts…</p>
-			<p v-else-if="free.length === 0">Every account already has a profile. An account holds at most one.</p>
-			<template v-else>
-				<p>Only accounts with no profile are listed. Linking makes <strong>{{ name }}</strong> that person's public profile, and the entries crediting it theirs.</p>
-				<div class="pick-list" role="group" aria-label="Accounts">
-					<button v-for="account in free" :key="account.username" type="button" class="pick" :aria-pressed="pick === account.username" @click="pick = account.username">
-						<span class="avatar avatar--guest" aria-hidden="true">{{ initials(account.displayName) }}</span>
-						<span class="pick__text">
-							<span class="pick__name">{{ account.displayName }}</span>
-							<span class="pick__meta">{{ account.username }}<template v-if="account.email"> · {{ account.email }}</template></span>
-						</span>
-						<span class="pick__aside">{{ account.roles.join(', ') }}</span>
-					</button>
-				</div>
-			</template>
-			<template #footer>
-				<button type="button" class="button" @click="linking = false">{{ free !== null && free.length === 0 ? 'Close' : 'Cancel' }}</button>
-				<button v-if="free === null || free.length > 0" type="button" class="button button--primary" :disabled="pick === '' || busy === 'link'" @click="link">{{ busy === 'link' ? 'Linking…' : 'Link the account' }}</button>
-			</template>
-		</AdminModal>
+		<PickModal v-model:pick="pick" :open="linking" noun="Account" :items="linkItems" none="Every account already has a profile. An account holds at most one." :busy="busy === 'link'" @close="linking = false" @confirm="link">
+			Only accounts with no profile are listed. Linking makes <strong>{{ name }}</strong> that person's public profile, and the entries crediting it theirs.
+		</PickModal>
 	</div>
 </template>
 
@@ -457,18 +443,6 @@ async function link(): Promise<void> {
 	padding-top: var(--s-4);
 	padding-bottom: 0;
 	border-top: 1px solid var(--border);
-}
-
-.buttons {
-	display: flex;
-	flex-wrap: wrap;
-	align-items: center;
-	gap: var(--s-2);
-	margin-top: var(--s-4);
-}
-
-.link-form {
-	margin-top: var(--s-4);
 }
 
 /* Where it appears: the profile's own row tinted as everyone's default,

@@ -112,7 +112,7 @@ const shown = computed(() => props.routes.filter((route) => {
 </script>
 
 <template>
-	<div class="type-routes">
+	<div class="form-stack">
 		<p v-if="!editable" class="field__help"><code>config/content.php</code> doesn't let types in <code>user/data/types</code> set their URLs (<code>dataTypeUrls</code>), so these are as the site has them.</p>
 		<div class="type-routes__grid">
 			<div v-for="route in shown" :key="route.key" class="field">
@@ -130,11 +130,6 @@ const shown = computed(() => props.routes.filter((route) => {
 </template>
 
 <style scoped>
-.type-routes {
-	display: grid;
-	gap: var(--s-4);
-}
-
 .type-routes__grid {
 	display: grid;
 	grid-template-columns: repeat(auto-fill, minmax(20rem, 1fr));

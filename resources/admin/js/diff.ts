@@ -10,6 +10,16 @@ export interface DiffLine {
 	text: string;
 }
 
+// A diff's line, or a run of unchanged lines left out.
+export type Hunk = DiffLine | { kind: 'skip'; count: number };
+
+// What differs between two versions: the fields, and the body's lines
+// (null when the bodies match).
+export interface Differences {
+	rows: { label: string; theirs: string; mine: string }[];
+	body: Hunk[] | null;
+}
+
 // Past this many line comparisons (2,000 lines against 2,000), the middle
 // is shown as replaced rather than matched line by line.
 const CELLS = 4_000_000;
@@ -70,4 +80,31 @@ function middle(a: string[], b: string[]): DiffLine[] {
 	}
 
 	return [...lines, ...a.slice(i).map((text): DiffLine => ({ kind: 'theirs', text })), ...b.slice(j).map((text): DiffLine => ({ kind: 'mine', text }))];
+}
+
+/**
+ * Leaves out long runs of unchanged lines, keeping two on each side of a
+ * change.
+ */
+export function hunks(lines: DiffLine[]): Hunk[] {
+	const near = lines.map((_, index) => lines.slice(Math.max(0, index - 2), index + 3).some((line) => line.kind !== 'same'));
+	const out: Hunk[] = [];
+
+	lines.forEach((line, index) => {
+		if (near[index] === true) {
+			out.push(line);
+
+			return;
+		}
+
+		const last = out.at(-1);
+
+		if (last !== undefined && last.kind === 'skip') {
+			last.count++;
+		} else {
+			out.push({ kind: 'skip', count: 1 });
+		}
+	});
+
+	return out;
 }

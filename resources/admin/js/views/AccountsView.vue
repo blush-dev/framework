@@ -21,14 +21,15 @@ import { confirmAction } from '../confirm';
 import { RouterLink, useRoute, useRouter } from 'vue-router';
 import AdminIcon from '../components/AdminIcon.vue';
 import AdminSelect, { type SelectOption } from '../components/AdminSelect.vue';
+import EmptyState from '../components/EmptyState.vue';
 import MenuButton from '../components/MenuButton.vue';
 import SkeletonTable from '../components/SkeletonTable.vue';
 import StatusPill from '../components/StatusPill.vue';
-import { ApiError } from '../api';
+import { errorMessage } from '../api';
 import { plural } from '../format';
 import { freshLink, initials, loadAccounts, loadRoles, makePasswordLink, statusPill, when, type AccountInfo, type AccountStatus } from '../people';
 import { can, canType, session } from '../session';
-import { toast } from '../toast';
+import { copyText, toast } from '../toast';
 import { profileType } from '../types';
 
 const route    = useRoute();
@@ -44,7 +45,7 @@ Promise.all([loadAccounts(), loadRoles()]).then(([list, roles]) => {
 	labels.value   = Object.fromEntries(roles.roles.map((item) => [item.name, item.label]));
 	accounts.value = [...list].sort((a, b) => a.displayName.localeCompare(b.displayName, undefined, { sensitivity: 'base' }));
 }, (caught: unknown) => {
-	error.value = caught instanceof ApiError ? caught.message : 'The accounts couldn\'t be loaded.';
+	error.value = errorMessage(caught, 'The accounts couldn\'t be loaded.');
 });
 
 const STATUSES: AccountStatus[] = ['active', 'invited', 'suspended'];
@@ -102,12 +103,7 @@ function clear(): void {
 const hasName = (account: AccountInfo): boolean => account.displayName !== account.username;
 
 async function copyEmail(email: string): Promise<void> {
-	try {
-		await navigator.clipboard.writeText(email);
-		toast(`Copied ${email}`);
-	} catch {
-		toast('The email address couldn\'t be copied', { kind: 'warn' });
-	}
+	await copyText(email, 'the email address', email);
 }
 const mine    = (account: AccountInfo): boolean => account.username === session.account?.username;
 
@@ -123,7 +119,7 @@ async function makeLink(account: AccountInfo): Promise<void> {
 		freshLink.value = { username: account.username, link: answer.link };
 		await router.push({ name: 'account', params: { username: account.username } });
 	} catch (caught) {
-		toast(caught instanceof ApiError ? caught.message : 'The link couldn\'t be made.', { kind: 'warn' });
+		toast(errorMessage(caught, 'The link couldn\'t be made.'), { kind: 'warn' });
 	}
 }
 </script>
@@ -156,11 +152,11 @@ async function makeLink(account: AccountInfo): Promise<void> {
 					<span class="visually-hidden">Search accounts</span>
 					<input v-model="search" type="search" placeholder="Search accounts" autocomplete="off">
 				</label>
-				<div class="accounts-filter">
+				<div class="toolbar__filter accounts-filter">
 					<label class="visually-hidden" for="accounts-role">Role</label>
 					<AdminSelect id="accounts-role" v-model="role" :options="roleOptions" />
 				</div>
-				<div v-if="profileType" class="accounts-filter">
+				<div v-if="profileType" class="toolbar__filter accounts-filter">
 					<label class="visually-hidden" for="accounts-profile">Profile</label>
 					<AdminSelect id="accounts-profile" v-model="profile" :options="profileOptions" />
 				</div>
@@ -175,13 +171,12 @@ async function makeLink(account: AccountInfo): Promise<void> {
 			<section class="panel" aria-labelledby="accounts-heading" :aria-busy="accounts === null">
 				<h2 id="accounts-heading" class="visually-hidden">{{ tabs.find((item) => item.key === tab)?.label }} accounts</h2>
 				<SkeletonTable v-if="accounts === null" :columns="['Account', 'Email', 'Roles', 'Profile', 'Last signed in']" :rows="3" label="Loading the accounts…" />
-				<div v-else-if="shown.length === 0" class="empty">
-					<AdminIcon :name="filtered ? 'search' : 'key-round'" />
-					<p class="empty__heading">{{ filtered ? 'No Account Matches' : `No ${tab === 'all' ? '' : statusPill(tab).label + ' '}Accounts` }}</p>
-					<p class="empty__text">{{ filtered ? 'Nothing here fits the filters in force. Clearing them brings the other accounts back.' : 'Nobody is in that state right now. The All tab shows every account, whatever its standing.' }}</p>
-					<button v-if="filtered" type="button" class="button" @click="clear">Clear filters</button>
-					<RouterLink v-else-if="tab !== 'all'" class="button" :to="{ query: {} }">Show all accounts</RouterLink>
-				</div>
+				<EmptyState v-else-if="shown.length === 0" :icon="filtered ? 'search' : 'key-round'" :heading="filtered ? 'No Account Matches' : `No ${tab === 'all' ? '' : statusPill(tab).label + ' '}Accounts`" :text="filtered ? 'Nothing here fits the filters in force. Clearing them brings the other accounts back.' : 'Nobody is in that state right now. The All tab shows every account, whatever its standing.'">
+					<template #actions>
+						<button v-if="filtered" type="button" class="button" @click="clear">Clear filters</button>
+						<RouterLink v-else-if="tab !== 'all'" class="button" :to="{ query: {} }">Show all accounts</RouterLink>
+					</template>
+				</EmptyState>
 				<div v-else class="table-wrap">
 					<table class="table accounts-table" aria-labelledby="accounts-heading">
 						<thead>
@@ -197,15 +192,15 @@ async function makeLink(account: AccountInfo): Promise<void> {
 						<tbody>
 							<tr v-for="account in shown" :key="account.username">
 								<th scope="row">
-									<span class="account-cell">
+									<span class="who">
 										<span class="avatar" :class="{ 'avatar--guest': !account.profile }" aria-hidden="true">{{ hasName(account) ? initials(account.displayName) : '—' }}</span>
-										<span class="account-cell__text">
+										<span class="who__text">
 											<span class="account-cell__name">
 												<RouterLink class="account-cell__link" :to="{ name: 'account', params: { username: account.username } }">{{ account.displayName }}</RouterLink>
 												<span v-if="mine(account)" class="tag--you">You</span>
 												<span v-if="account.status !== 'active'" class="pill" :class="statusPill(account.status).kind">{{ statusPill(account.status).label }}</span>
 											</span>
-											<span v-if="hasName(account)" class="account-cell__username">{{ account.username }}</span>
+											<span v-if="hasName(account)" class="who__meta">{{ account.username }}</span>
 											<span v-else class="account-cell__none">No display name or profile</span>
 										</span>
 									</span>
@@ -251,28 +246,14 @@ async function makeLink(account: AccountInfo): Promise<void> {
 </template>
 
 <style scoped>
-/* A filter's select is as wide as it needs, not the row (§7, Selects). */
+/* A filter's select is as wide as it needs, not the row (§7, Selects),
+   from a little narrower than the global's floor. */
 .accounts-filter {
-	flex: none;
-	width: auto;
 	min-width: 8rem;
-	max-width: 16rem;
 }
 
 .accounts-table {
 	min-width: 760px;
-}
-
-.account-cell {
-	display: flex;
-	align-items: center;
-	gap: var(--s-3);
-	min-width: 0;
-}
-
-.account-cell__text {
-	display: grid;
-	min-width: 0;
 }
 
 .account-cell__name {
@@ -296,12 +277,6 @@ async function makeLink(account: AccountInfo): Promise<void> {
 
 .account-cell__link:hover {
 	color: var(--accent);
-}
-
-.account-cell__username {
-	color: var(--fg-3);
-	font-family: var(--font-mono);
-	font-size: var(--text-xs);
 }
 
 .account-cell__none {

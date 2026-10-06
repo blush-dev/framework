@@ -11,31 +11,15 @@
  * (D-394).
  */
 
-import { computed, ref } from 'vue';
-import { ApiError, request, type BrokenPluginSummary, type ExtensionDependent, type Plugins, type PluginSummary } from './api';
-import { confirmAction } from './confirm';
-import { loadCounts } from './counts';
-import { list, stopsParagraph } from './extensions';
-import { toast } from './toast';
-import { folderName, folderPath } from './themes';
+import { computed } from 'vue';
+import type { BrokenPluginSummary, ExtensionDependent, Plugins, PluginSummary } from './api';
+import { folderName, list, useExtensionList } from './extensions';
 
 export function usePlugins() {
-	const answer = ref<Plugins | null>(null);
-	const error  = ref('');
-	// The plugin being turned on or off.
-	const busy   = ref<string | null>(null);
+	const { answer, error, busy, load, turn, deleteFolder, restoreConfig } = useExtensionList<Plugins>('plugin');
 
 	const plugins = computed(() => answer.value?.plugins ?? []);
 	const broken  = computed(() => answer.value?.invalid ?? []);
-
-	async function load(): Promise<void> {
-		try {
-			answer.value = await request<Plugins>('GET', '/plugins');
-			error.value  = '';
-		} catch (caught) {
-			error.value = caught instanceof ApiError ? caught.message : 'The plugins couldn\'t be loaded.';
-		}
-	}
 
 	function find(name: string): PluginSummary | null {
 		return plugins.value.find((plugin) => plugin.name === name) ?? null;
@@ -46,78 +30,24 @@ export function usePlugins() {
 		return plugin.requiredBy;
 	}
 
-	// Turns a plugin on or off, saying what happened, and which other
-	// extensions, of any kind, started or stopped with it, asking first
-	// when turning it on would stop others (D-440). The toast offers an Undo only
-	// when nothing else started or stopped, since turning the one plugin
-	// back wouldn't put the others back; the reverse offers none.
+	// Turns a plugin on or off, loading the list again before the toast.
+	// Its Undo turns it back with no Undo of its own; so does an Undo's.
 	async function toggle(plugin: PluginSummary, on: boolean, offer = true): Promise<void> {
-		// Turning one on that stops others asks first (D-440).
-		if (on && plugin.stops.length > 0 && !await confirmAction({ title: `Turn on ${plugin.label}?`, body: stopsParagraph(plugin.stops), confirm: `Turn on ${plugin.label}` })) {
-			return;
-		}
-
-		busy.value = plugin.name;
-
-		try {
-			const saved = await request<{ started: string[]; stopped: string[]; refresh: boolean }>('PUT', `/plugins/${plugin.name}`, { enabled: on });
-
-			if (saved.refresh) {
-				await request('POST', '/settings/refresh').catch(() => undefined);
-			}
-
-			await load();
-
-			const others = on ? saved.started : saved.stopped;
-			const also   = others.length === 0 ? '' : `, and ${list(others)} ${on ? 'started' : 'stopped'} with it`;
-
-			toast(`Turned ${on ? 'on' : 'off'} ${plugin.label}${also}`, {
-				kind: on ? 'good' : 'danger',
-				undo: offer && others.length === 0 ? () => void toggle(find(plugin.name) ?? plugin, !on, false) : undefined
-			});
-		} catch (caught) {
-			toast(caught instanceof ApiError ? caught.message : `${plugin.label} couldn't be turned ${on ? 'on' : 'off'}`, { kind: 'warn' });
-		} finally {
-			busy.value = null;
-		}
+		await turn(plugin, on, {
+			then: load,
+			undo: offer ? () => void toggle(find(plugin.name) ?? plugin, !on, false) : undefined
+		});
 	}
 
 	// Asks, then deletes a broken plugin's folder; resolves whether it
 	// was deleted.
-	async function removeBroken(plugin: BrokenPluginSummary): Promise<boolean> {
-		const label = folderName(plugin.where);
-
-		if (!await confirmAction({ title: `Delete ${label}?`, body: [`The folder **${plugin.where}** and everything in it is removed from the server. This can't be undone.`], confirm: `Delete ${label}`, danger: true })) {
-			return false;
-		}
-
-		try {
-			await request('DELETE', `/plugins/${folderPath(plugin.where)}`);
-			void loadCounts();
-			toast(`Deleted ${label}`, { kind: 'danger' });
-
-			return true;
-		} catch (caught) {
-			error.value = caught instanceof ApiError ? caught.message : `${label} couldn't be deleted.`;
-
-			return false;
-		}
+	function removeBroken(plugin: BrokenPluginSummary): Promise<boolean> {
+		return deleteFolder(folderName(plugin.where), plugin.where);
 	}
 
 	// Puts `config/plugins.php`'s list back in charge.
-	async function useConfig(): Promise<void> {
-		try {
-			const saved = await request<{ refresh: boolean }>('PATCH', '/settings', { unset: ['plugins.enabled'] });
-
-			if (saved.refresh) {
-				await request('POST', '/settings/refresh').catch(() => undefined);
-			}
-
-			await load();
-			toast('Using the plugins config/plugins.php turns on and off');
-		} catch (caught) {
-			error.value = caught instanceof ApiError ? caught.message : 'The plugins couldn\'t be saved.';
-		}
+	function useConfig(): Promise<void> {
+		return restoreConfig('plugins.enabled', () => 'Using the plugins config/plugins.php turns on and off', 'The plugins couldn\'t be saved.');
 	}
 
 	// Asks, then deletes a plugin's folder; resolves whether it was deleted.
@@ -126,38 +56,15 @@ export function usePlugins() {
 			return false;
 		}
 
-		const body    = [`The folder **${plugin.folder}** and everything in it is removed from the server. This can't be undone.`];
+		const body    = ['Content that used what it added keeps its text, without what the plugin drew.'];
 		const needing = requiredBy(plugin);
-
-		body.push('Content that used what it added keeps its text, without what the plugin drew.');
 
 		if (needing.length > 0) {
 			body.push(`${list(needing.map((other) => other.label))} require${needing.length === 1 ? 's' : ''} it, and can't be turned on without it.`);
 		}
 
-		if (!await confirmAction({ title: `Delete ${plugin.label}?`, body, confirm: `Delete ${plugin.label}`, danger: true })) {
-			return false;
-		}
-
-		try {
-			await request('DELETE', `/plugins/${folderPath(plugin.folder)}`);
-			void loadCounts();
-			toast(`Deleted ${plugin.label}`, { kind: 'danger' });
-
-			return true;
-		} catch (caught) {
-			error.value = caught instanceof ApiError ? caught.message : `${plugin.label} couldn't be deleted.`;
-
-			return false;
-		}
+		return deleteFolder(plugin.label, plugin.folder, body);
 	}
 
 	return { answer, error, busy, plugins, broken, load, find, requiredBy, toggle, useConfig, remove, removeBroken };
-}
-
-// A plugin's details screen's address: `/plugins/{vendor}/{name}`.
-export function pluginRoute(name: string): { name: 'plugin'; params: { vendor: string; name: string } } {
-	const [vendor = '', short = ''] = name.split('/');
-
-	return { name: 'plugin', params: { vendor, name: short } };
 }

@@ -10,9 +10,11 @@
 import { computed, ref, watch } from 'vue';
 import { confirmAction } from '../confirm';
 import { RouterLink, useRoute, useRouter } from 'vue-router';
-import { ApiError, entryPath, entryRoute, request, type EntryDetail } from '../api';
+import { entryPath, entryRoute, errorMessage, request, type EntryDetail } from '../api';
+import { useAction } from '../action';
 import AdminIcon from '../components/AdminIcon.vue';
 import MarkdownEditor from '../components/MarkdownEditor.vue';
+import RawValues from '../components/RawValues.vue';
 import { formatDate } from '../format';
 import { screenTitle } from '../screen';
 import { toast } from '../toast';
@@ -21,10 +23,10 @@ import { currentType, labelsOf, loadTypes } from '../types';
 const route  = useRoute();
 const router = useRouter();
 
-const item  = ref<EntryDetail | null>(null);
-const body  = ref('');
-const error = ref('');
-const busy  = ref(false);
+const item = ref<EntryDetail | null>(null);
+const body = ref('');
+
+const { busy, error, run } = useAction();
 
 const id       = computed(() => String(route.params.id ?? ''));
 const labels   = computed(() => labelsOf(item.value?.type.name || 'entry'));
@@ -55,7 +57,7 @@ watch(id, async (value) => {
 		// Shown only, so the blank lines after the front matter can go.
 		body.value = item.value.body.replace(/^\n+/, '');
 	} catch (caught) {
-		error.value = caught instanceof ApiError ? caught.message : 'That trashed entry couldn\'t be loaded.';
+		error.value = errorMessage(caught, 'That trashed entry couldn\'t be loaded.');
 	}
 }, { immediate: true });
 
@@ -64,10 +66,6 @@ watch(item, (value) => {
 	screenTitle.value = value === null ? null : (value.title || 'Untitled');
 });
 
-function show(value: unknown): string {
-	return typeof value === 'string' ? value : JSON.stringify(value);
-}
-
 async function restore(): Promise<void> {
 	const detail = item.value;
 
@@ -75,18 +73,12 @@ async function restore(): Promise<void> {
 		return;
 	}
 
-	busy.value  = true;
-	error.value = '';
-
-	try {
+	await run(`The ${noun.value} couldn't be restored.`, async () => {
 		await request<{ id: string }>('POST', `${entryPath(detail.id)}/restore`);
 
 		toast(`Restored “${name.value}” as a draft`);
 		await router.push(entryRoute({ id: detail.id, type: detail.type.name }));
-	} catch (caught) {
-		error.value = caught instanceof ApiError ? caught.message : `The ${noun.value} couldn't be restored.`;
-		busy.value  = false;
-	}
+	});
 }
 
 async function purge(): Promise<void> {
@@ -96,18 +88,12 @@ async function purge(): Promise<void> {
 		return;
 	}
 
-	busy.value  = true;
-	error.value = '';
-
-	try {
+	await run(`The ${noun.value} couldn't be deleted.`, async () => {
 		await request<{ deleted: string }>('DELETE', `${entryPath(detail.id)}?permanently=1`);
 
 		toast(`Deleted “${name.value}” permanently`, { kind: 'danger' });
 		await router.push(back.value);
-	} catch (caught) {
-		error.value = caught instanceof ApiError ? caught.message : `The ${noun.value} couldn't be deleted.`;
-		busy.value  = false;
-	}
+	});
 }
 </script>
 
@@ -151,12 +137,7 @@ async function purge(): Promise<void> {
 				<header class="panel__header">
 					<h2 id="trashed-front-matter-heading">Front Matter</h2>
 				</header>
-				<dl v-if="keys.length" class="panel__body trashed__keys">
-					<div v-for="[key, value] in keys" :key="key">
-						<dt class="mono">{{ key }}</dt>
-						<dd class="mono">{{ show(value) }}</dd>
-					</div>
-				</dl>
+				<RawValues v-if="keys.length" class="panel__body trashed__keys" :entries="keys" />
 				<p v-else class="panel__body field__help">Nothing but its title.</p>
 			</section>
 		</div>
@@ -171,24 +152,16 @@ async function purge(): Promise<void> {
 	gap: 16px;
 }
 
+/* A panel of them, a size up. */
 .trashed__keys {
-	display: grid;
 	gap: 10px;
-	margin: 0;
 }
 
 .trashed__keys > * + * {
 	margin-top: 0;
 }
 
-.trashed__keys dt {
-	color: var(--fg-2);
-	font-size: var(--text-xs);
-}
-
-.trashed__keys dd {
-	margin: 2px 0 0;
-	overflow-wrap: anywhere;
+.trashed__keys :deep(dd) {
 	font-size: var(--text-sm);
 }
 
