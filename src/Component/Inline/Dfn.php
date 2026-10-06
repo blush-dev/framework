@@ -18,6 +18,7 @@ use Blush\Component\Component;
 use Blush\Component\ComponentContent;
 use Blush\Component\ComponentView;
 use Blush\Core\Framework;
+use Blush\Markdown\DirectiveKind;
 
 /**
  * The defining instance of a term, in the sentence that defines it
@@ -30,6 +31,11 @@ final class Dfn extends Component
 	 * @inheritDoc
 	 */
 	public const ComponentContent CONTENT = ComponentContent::Text;
+
+	/**
+	 * @inheritDoc
+	 */
+	public const ?DirectiveKind KIND = DirectiveKind::Inline;
 
 	public function __construct(
 		public readonly string $title = '',

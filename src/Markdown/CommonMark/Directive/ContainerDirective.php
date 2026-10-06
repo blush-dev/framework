@@ -32,4 +32,10 @@ final class ContainerDirective extends AbstractBlock
 	) {
 		parent::__construct();
 	}
+
+	/**
+	 * Whether its closing fence was found, rather than the end of the
+	 * document closing it (D-530).
+	 */
+	public bool $closed = false;
 }

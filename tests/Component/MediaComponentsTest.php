@@ -138,6 +138,114 @@ final class MediaComponentsTest extends TestCase
 		$this->assertSame('audio', ($audio[0] ?? null)?->toArray()['kind'] ?? null);
 	}
 
+	/**
+	 * A gallery holds only images (D-529): text, other blocks, and
+	 * components it doesn't hold are left out, and the images in a
+	 * paragraph with text are kept, each a figure.
+	 */
+	public function testAGalleryRendersOnlyItsImages(): void
+	{
+		$this->writeTemporaryFile('user/content/trip/index.md', <<<'MD'
+			---
+			title: Trip
+			---
+			:::gallery
+
+			![First](/media/trip/poster.png)
+
+			Stray text.
+
+			## A heading
+
+			::file{src=/media/trip/poster.png}
+
+			Look: ![Second](/media/trip/poster.png) and [![Third](/media/trip/poster.png)](/about)
+			![Fourth](/media/trip/poster.png)
+
+			:::
+
+			Outside it.
+			MD);
+		$this->png('user/media/trip/poster.png', 32, 18);
+
+		$app = $this->scratchApplication(['APP_ENV' => 'development']);
+		$app->boot();
+
+		$html    = (string) $app->container()->make(Kernel::class)->handle(Request::create('/trip'))->getBody();
+		$gallery = preg_match('#<div class="component-gallery[^>]*>(.*?)</div>#s', $html, $match) === 1 ? $match[1] : '';
+
+		$this->assertSame(4, substr_count($gallery, '<figure'));
+		$this->assertStringContainsString('alt="Fourth"', $gallery);
+		$this->assertStringNotContainsString('Stray', $gallery);
+		$this->assertStringNotContainsString('Look', $gallery);
+		$this->assertStringNotContainsString('<h2', $gallery);
+		$this->assertStringNotContainsString('component-file', $gallery);
+		$this->assertStringNotContainsString('<p', $gallery);
+		$this->assertStringContainsString('Outside it.', $html);
+	}
+
+	/**
+	 * `:::audio` is a mistyped `::audio` (D-530): audio isn't a container,
+	 * so the line doesn't open one, take the gallery's closing fence, or
+	 * render; the gallery closes, and what follows it shows.
+	 */
+	public function testAComponentWrittenInAFormItIsntRegisteredForDoesNothing(): void
+	{
+		$this->writeTemporaryFile('user/content/trip/index.md', <<<'MD'
+			---
+			title: Trip
+			---
+			:::gallery
+
+			:::audio{src=/media/song.mp3}
+
+			![First](/media/trip/poster.png)
+			![Second](/media/trip/poster.png)
+
+			:::
+
+			After the gallery.
+			MD);
+		$this->png('user/media/trip/poster.png', 32, 18);
+		$this->writeTemporaryFile('user/media/song.mp3', self::mp3());
+
+		$app = $this->scratchApplication(['APP_ENV' => 'development']);
+		$app->boot();
+
+		$html    = (string) $app->container()->make(Kernel::class)->handle(Request::create('/trip'))->getBody();
+		$gallery = preg_match('#<div class="component-gallery[^>]*>(.*?)</div>#s', $html, $match) === 1 ? $match[1] : '';
+
+		$this->assertSame(2, substr_count($gallery, '<figure'));
+		$this->assertStringNotContainsString('component-audio', $html);
+		$this->assertStringContainsString('<p>After the gallery.</p>', $html);
+	}
+
+	/**
+	 * A gallery never closed renders everything (D-530), rather than
+	 * leaving out the rest of the entry.
+	 */
+	public function testAnUnclosedGalleryLeavesNothingOut(): void
+	{
+		$this->writeTemporaryFile('user/content/trip/index.md', <<<'MD'
+			---
+			title: Trip
+			---
+			:::gallery
+
+			![First](/media/trip/poster.png)
+
+			The rest of the entry.
+			MD);
+		$this->png('user/media/trip/poster.png', 32, 18);
+
+		$app = $this->scratchApplication(['APP_ENV' => 'development']);
+		$app->boot();
+
+		$html = (string) $app->container()->make(Kernel::class)->handle(Request::create('/trip'))->getBody();
+
+		$this->assertStringContainsString('The rest of the entry.', $html);
+	}
+
 	public function testTheyRenderLibraryFiles(): void
 	{
 		$this->writeTemporaryFile('user/content/trip/index.md', <<<'MD'
@@ -198,11 +306,11 @@ final class MediaComponentsTest extends TestCase
 
 			::file[Full]{src=https://example.com/user/media/audio/novas-anthem-001.mp3}
 
-			::button[Listen]{url=/songs}
+			:button[Listen]{url=/songs}
 
-			::button[Relative]{url=elsewhere}
+			:button[Relative]{url=elsewhere}
 
-			::button[Away]{url=https://other.test/}
+			:button[Away]{url=https://other.test/}
 			MD);
 
 		$app = $this->scratchApplication();

@@ -17,7 +17,11 @@
  *   use `:::`;
  * - a leaf is a line of `::name[label]{attributes}`;
  * - an inline directive is `:name[label]{attributes}`, not straight after
- *   a letter, digit, underscore, or colon.
+ *   a letter, digit, underscore, or colon;
+ * - a registered component works only as the kind it's registered as
+ *   (D-531), so a `:::` line for one that isn't a container is a line of
+ *   its own (`misplaced`), never opening one, once the components have
+ *   loaded (`registerDirectiveKinds()`).
  *
  * Nothing in fenced code is a directive. This isn't a Markdown parser:
  * it's close enough to show structure while typing, and the site's own
@@ -32,7 +36,28 @@
  * above any block.
  */
 
+import { shallowRef } from 'vue';
+
 export type DirectiveKind = 'container' | 'leaf' | 'inline';
+
+// How each registered component is written, by full name (D-531). It's
+// reactive, so what's read from a body follows once the components load.
+const registered = shallowRef(new Map<string, DirectiveKind>());
+
+/**
+ * Says how each registered component is written, by full name.
+ */
+export function registerDirectiveKinds(kinds: Map<string, DirectiveKind>): void {
+	registered.value = kinds;
+}
+
+/**
+ * How a registered component is written, by its full name or a core
+ * component's short name, or `undefined` for one that isn't registered.
+ */
+export function registeredKind(name: string): DirectiveKind | undefined {
+	return registered.value.get(name.includes('/') ? name : `blush/${name}`);
+}
 
 export interface Directive {
 	kind: DirectiveKind;
@@ -44,6 +69,9 @@ export interface Directive {
 	// Whether a container has its closing line; one without runs to the
 	// end of the body.
 	closed?: boolean;
+	// Whether a leaf was written as a container (`:::audio{…}`) though
+	// what it names isn't one (D-531).
+	misplaced?: boolean;
 }
 
 type LineKind = 'text' | 'heading' | 'fence' | 'code' | 'open' | 'close' | 'leaf';
@@ -177,6 +205,9 @@ export function outline(source: string): MarkdownOutline {
 		} else if ((match = FENCE.exec(text)) !== null) {
 			fence = match[1] ?? '```';
 			line.kind = 'fence';
+		} else if ((match = OPEN.exec(text)) !== null && (registeredKind(match[2] ?? '') ?? 'container') !== 'container') {
+			line.kind      = 'leaf';
+			line.directive = directives.push({ kind: 'leaf', name: match[2] ?? '', start: start + text.indexOf(':'), end, misplaced: true }) - 1;
 		} else if ((match = OPEN.exec(text)) !== null) {
 			line.kind      = 'open';
 			line.directive = directives.push({ kind: 'container', name: match[2] ?? '', start: start + text.indexOf(':'), end: source.length }) - 1;

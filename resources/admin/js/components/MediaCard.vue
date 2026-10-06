@@ -4,7 +4,8 @@
  * 4:3 thumbnail (an image cropped to fill it, else its kind's glyph and
  * name), its name on one line, and its details on a second. With `to`
  * it's a link to the file; else a button that's chosen (`selected`, a
- * ring and a tick: a tint alone is lost on an image).
+ * ring and a tick: a tint alone is lost on an image), the tick a number
+ * where `order` says which of several it is (D-526).
  */
 
 import { RouterLink, type RouteLocationRaw } from 'vue-router';
@@ -17,6 +18,7 @@ defineProps<{
 	details: string;
 	to?: RouteLocationRaw;
 	selected?: boolean;
+	order?: number;
 }>();
 </script>
 
@@ -25,7 +27,7 @@ defineProps<{
 		<span class="media-card__thumb">
 			<img v-if="file.kind === 'image'" :src="file.url" alt="" loading="lazy">
 			<template v-else><AdminIcon :name="mediaIcon(file)" /><span class="media-card__kind mono">{{ file.kind }}</span></template>
-			<span v-if="!to" class="media-card__tick" aria-hidden="true"><AdminIcon name="check" /></span>
+			<span v-if="!to" class="media-card__tick" aria-hidden="true"><b v-if="order" class="media-card__order">{{ order }}</b><AdminIcon v-else name="check" /></span>
 		</span>
 		<span class="media-card__text">
 			<span class="media-card__name" :title="file.name">{{ mediaName(file) }}</span>
@@ -118,6 +120,12 @@ defineProps<{
 	width: 13px;
 	height: 13px;
 	stroke-width: 2.6;
+}
+
+.media-card__order {
+	font-size: var(--text-xs);
+	font-weight: 600;
+	font-variant-numeric: tabular-nums;
 }
 
 .media-card[aria-pressed="true"] .media-card__tick {

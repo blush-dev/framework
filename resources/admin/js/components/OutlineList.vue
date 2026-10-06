@@ -6,7 +6,8 @@
  * of it. The Outline draws depth as indent and a hairline per level
  * (`indent`), and marks the element the caret is in (`current`). The
  * editor says what each element is (`describe`), and a row's press
- * selects it.
+ * selects it. An element its container doesn't hold (`stray`, D-529) is
+ * dimmed and marked, with why as its title.
  */
 
 import { computed } from 'vue';
@@ -20,6 +21,8 @@ export interface OutlineRow {
 	text: string;
 	// Placed, not written: a container or leaf component.
 	placed: boolean;
+	// Why the site leaves it out, when its container doesn't hold it.
+	stray?: string;
 }
 
 const props = defineProps<{
@@ -43,7 +46,8 @@ const rows = computed(() => props.items.map((item) => ({ item, ...props.describe
 			<button
 				type="button"
 				class="outline__row"
-				:class="{ 'is-current': sameElement(row.item, current), 'is-placed': row.placed }"
+				:class="{ 'is-current': sameElement(row.item, current), 'is-placed': row.placed, 'is-stray': row.stray }"
+				:title="row.stray"
 				:style="indent ? { '--depth': row.item.depth } : undefined"
 				:aria-current="sameElement(row.item, current) ? 'true' : undefined"
 				@click="emit('select', row.item)"
@@ -51,6 +55,10 @@ const rows = computed(() => props.items.map((item) => ({ item, ...props.describe
 				<AdminIcon :name="row.icon" />
 				<span class="outline__name">{{ row.name }}</span>
 				<span class="outline__text">{{ row.text }}</span>
+				<template v-if="row.stray">
+					<AdminIcon name="triangle-alert" class="outline__stray" />
+					<span class="visually-hidden">{{ row.stray }}</span>
+				</template>
 			</button>
 		</li>
 	</ul>
@@ -141,5 +149,12 @@ const rows = computed(() => props.items.map((item) => ({ item, ...props.describe
 
 .outline__row:hover .outline__text {
 	color: var(--fg);
+}
+.outline__row svg.outline__stray {
+	color: var(--warn);
+}
+
+.outline__row.is-stray .outline__text {
+	color: var(--fg-3);
 }
 </style>

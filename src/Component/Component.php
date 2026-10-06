@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Blush\Component;
 
+use Blush\Markdown\DirectiveKind;
 use Blush\Translation\DomainTranslator;
 use Blush\View\Escaper;
 use Blush\View\ViewContext;
@@ -72,6 +73,15 @@ abstract class Component
 	public const ComponentContent CONTENT = ComponentContent::None;
 
 	/**
+	 * How it's written in Markdown (D-531), the only form it works in: a
+	 * container (`:::name`), a leaf on a line of its own (`::name`), or
+	 * inline, inside a sentence (`:name[…]`). `null` follows `CONTENT`:
+	 * a container when it wraps blocks, else a leaf. Only a component
+	 * that wraps blocks is a container.
+	 */
+	public const ?DirectiveKind KIND = null;
+
+	/**
 	 * The variants it declares, by name, besides Default (D-266). Their
 	 * text is in the component's namespace's catalog.
 	 *
@@ -83,7 +93,7 @@ abstract class Component
 	 * What a container holds, when it holds only some things (D-314): the
 	 * keys the admin's inserter uses, `image` for a Markdown image or a
 	 * component's full name. Empty for anything. The admin offers only
-	 * these inside it; the site renders whatever is there.
+	 * these inside it, and the site renders only these (D-529).
 	 *
 	 * @var list<string>
 	 */

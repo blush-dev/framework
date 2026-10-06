@@ -305,7 +305,7 @@ final class LinterTest extends TestCase
 			Not a callout variant.
 			:::
 
-			::button[Go]{url=/go variant=primary}
+			:button[Go]{url=/go variant=primary}
 
 			Press :kbd[Ctrl]{variant=big} and :app/unknown[x]{variant=any}.
 

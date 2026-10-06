@@ -26,7 +26,9 @@ use Blush\Core\Framework;
  *
  * ```md
  * :::gallery{columns=3 layout=grid}
- * ![](a.jpg) ![](b.jpg) ![](c.jpg)
+ * ![](a.jpg)
+ * ![](b.jpg)
+ * ![](c.jpg)
  * :::
  * ```
  *

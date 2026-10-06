@@ -18,6 +18,7 @@ use League\CommonMark\Environment\EnvironmentBuilderInterface;
 use League\CommonMark\Event\DocumentParsedEvent;
 use League\CommonMark\Extension\ExtensionInterface;
 use Blush\Markdown\DirectiveRenderer;
+use Blush\Markdown\DirectiveRules;
 
 /**
  * Adds generic directives (D-026) to CommonMark: container
@@ -40,7 +41,7 @@ final readonly class DirectiveExtension implements ExtensionInterface
 		$renderer = new DirectiveNodeRenderer($this->renderer);
 
 		$environment
-			->addBlockStartParser(new ContainerDirectiveStartParser(), 80)
+			->addBlockStartParser(new ContainerDirectiveStartParser($this->renderer instanceof DirectiveRules ? $this->renderer : null), 80)
 			->addBlockStartParser(new LeafDirectiveStartParser(), 80)
 			->addInlineParser(new InlineDirectiveParser(), 40)
 			->addRenderer(ContainerDirective::class, $renderer)

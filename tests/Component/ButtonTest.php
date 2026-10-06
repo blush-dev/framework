@@ -46,11 +46,11 @@ final class ButtonTest extends TestCase
 	public function testButtonsAreLinksWithOptionalIcons(): void
 	{
 		$html = $this->render(<<<'MD'
-			::button[Get started]{url=/start}
+			:button[Get started]{url=/start}
 
-			::button[Download]{url=/file.pdf icon=download variant=secondary .wide}
+			:button[Download]{url=/file.pdf icon=download variant=secondary .wide}
 
-			::button[Next]{url=/next icon=arrow-right iconPosition=end}
+			:button[Next]{url=/next icon=arrow-right iconPosition=end}
 			MD);
 
 		$this->assertStringContainsString('<a class="component-button" href="http://localhost/start"><span class="component-button__text">Get started</span></a>', $html);
@@ -61,9 +61,9 @@ final class ButtonTest extends TestCase
 	public function testIconOnlyButtonsAreNamedByTheirLabel(): void
 	{
 		$html = $this->render(<<<'MD'
-			::button[Share this post]{url=/share icon=share-2 iconOnly}
+			:button[Share this post]{url=/share icon=share-2 iconOnly}
 
-			::button[Unknown icon]{url=/x icon=nope iconOnly}
+			:button[Unknown icon]{url=/x icon=nope iconOnly}
 			MD);
 
 		$this->assertStringContainsString('<a class="component-button component-button--icon-only" aria-label="Share this post" title="Share this post" href="http://localhost/share">[icon]</a>', $html);
@@ -77,9 +77,9 @@ final class ButtonTest extends TestCase
 		$html = $this->render(<<<'MD'
 			::button{url=/no-label}
 
-			::button[No link]
+			:button[No link]
 
-			::button[Sneaky]{url="javascript:alert(1)"}
+			:button[Sneaky]{url="javascript:alert(1)"}
 
 			Read the :button[docs]{url=/docs variant=primary} first.
 			MD);

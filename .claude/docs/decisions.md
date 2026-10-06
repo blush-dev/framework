@@ -15560,3 +15560,132 @@ decision, add a new entry that supersedes it and mark the old one
   has no Undo (it would need a revision for each).
 - **Why:** the author asked for it (quick win 3; the roadmap's "Undo on
   moving to the trash").
+
+### D-526: Choosing several files to insert
+- **Date:** 2026-10-06
+- **Status:** Built. Follows D-247, D-265, D-268, and D-314.
+- **Decision:** the media picker takes several files where it inserts
+  into the text: the editor's media menu, Upload a File, the panel's
+  Image tile, and inside a gallery. Choosing a file adds it to the
+  selection or takes it out; each card is numbered in the order chosen,
+  which is the order the files go in; an upload joins the selection; a
+  double click inserts the selection with that file in it; the footer
+  says how many and has **Clear**; the button reads "Insert 3 Images"
+  (a locked image picker) or "Insert 3 Files". Several files are written
+  in one edit: each a block of its own as one would be (an image as
+  Markdown with the library's alt text and caption, the rest as `video`,
+  `audio`, or `file`), a blank line between, or one to a line inside a
+  container that holds only images (a gallery); selected text is the
+  first image's alt text, and the caret ends after the last. Where a file
+  is chosen for one place (a field, a component option such as a video's
+  or audio's `src` or a poster, an image's Replace, the Media screen's
+  Upload) the picker still takes one. `MediaPicker` has `multiple` and
+  emits an array; `MediaCard` has `order`.
+- **Why:** the author asked for it: several images at once, normally or
+  in a gallery, and one file where a component takes one.
+
+### D-527: Dropped and pasted files go in together
+- **Date:** 2026-10-06
+- **Status:** Built. Follows D-284 and D-526.
+- **Decision:** files dropped or pasted into the editor's text upload one
+  at a time as before, then go in together as the picker's several do
+  (D-526): one edit at the caret, in the order given, a blank line
+  between (one to a line inside a gallery), less any the server refused
+  (each still says why). One file goes in as before.
+- **Why:** the author asked for it, after D-526.
+
+### D-528: An image on each line is a figure each
+- **Date:** 2026-10-06
+- **Status:** Built. Extends D-078's lone-image figure and D-267.
+- **Decision:** a paragraph made of nothing but images (or links around
+  one), one to a line, renders as a `<figure>` for each, each with its
+  own caption and attributes as a lone image's, without the `<p>` or the
+  `<br>`s between: what a gallery's images are, as the editor writes
+  them (D-526). Inside a `:::figure` the images render on their own, as
+  one did. Images side by side on one line, or with any text, stay a
+  paragraph (a row of badges, say). `FigureRenderer` does it everywhere,
+  not only in galleries; the outline already lists such lines as images.
+  The gallery's examples are written one to a line.
+- **Why:** the author saw a gallery render as `<p>` with `<br>`s and
+  said galleries should hold only figures.
+
+### D-529: A container renders only what it holds
+- **Date:** 2026-10-06
+- **Status:** Built. Supersedes the "renders whatever is there" half of
+  D-314's `only`; follows D-528.
+- **Decision:** a container directive whose component declares `HOLDS`
+  renders only those on the site; the rest is left out. Its direct
+  children are kept when held: container and leaf directives by full
+  name, and paragraphs with only their images (or links around one, when
+  `image` is held) and held inline directives, one to a line, so each
+  image is a figure (D-528). Every other block (text, headings, lists,
+  directives not listed) is dropped. Nested content inside a held
+  component is that component's business. The Markdown layer asks through
+  `Blush\Markdown\DirectiveRules` (`holds()`, `fullName()`; named
+  `ContainerContents` until D-530), an optional interface beside
+  `DirectiveRenderer` that
+  `ComponentDirectives` implements from `HOLDS`, so other renderers keep
+  working unchanged. The editor flags what won't show: the Outline dims
+  and marks each element its container doesn't hold (with why as its
+  title), the element's own panel says so, and the container's Content
+  group lists the lines that won't show (worded "won't", no longer "may
+  not"). No lint check yet.
+- **Why:** the author: a gallery showing text is broken. Flag it in the
+  editor; a "component broken" system waits for a visual editor.
+
+### D-530: A registered component works only in its forms
+- **Date:** 2026-10-06
+- **Status:** Built. Follows D-026, D-320, and D-529.
+- **Decision:** a registered component works only in the forms its
+  registration gives it: one that holds blocks (`CONTENT` is `Blocks`)
+  only as a container (`:::`), and any other only as a leaf (`::`) or
+  inline (`:`). Leaf versus inline isn't registered anywhere (core
+  components are written both ways, `::button` and `:button[…]`;
+  `ComponentType::isInline()` is only the inserter's choice), so either
+  goes. Written in another form, it renders as an unknown directive
+  does (a leaf's label as a paragraph, or nothing; an inline one's
+  text). A `:::` line for one that isn't a container is a line of its
+  own (a `LeafDirective` marked `misplaced`) and never opens a
+  container, so it can't take the closing fence of a container around
+  it. Unregistered directives (template-only components, unknown names)
+  take any form, as before. Also: a container never closed renders
+  everything, since a missing `:::` would otherwise let D-529 leave out
+  the rest of the entry (`ContainerDirective::$closed`). The parser asks
+  through `DirectiveRules::forms()`, which `ComponentDirectives`
+  answers.
+- **Why:** a mistyped `:::audio{…}` in a gallery took the gallery's
+  closing fence, so the gallery ran to the end of the post and D-529
+  left out the rest. The author: "only directives that we've registered
+  should be allowed for how we've registered them."
+
+### D-531: Components are registered as a container, a leaf, or inline
+- **Date:** 2026-10-06
+- **Status:** Built. Supersedes D-530's "leaf or inline, either goes"
+  and `ComponentType::isInline()`.
+- **Decision:** every registered component has one kind, how it's
+  written and the only way it works: `Component::KIND`
+  (`?Blush\Markdown\DirectiveKind`, `Container`, `Leaf`, or `Inline`),
+  or `register(…, kind:)` for a template-only one. Left out, it follows
+  `CONTENT`: a container when it wraps blocks, else a leaf. Only a
+  component that wraps blocks is a container, and one that does is
+  always one; `ComponentRegistry::register()` refuses a definition that
+  disagrees. `ComponentDefinition::kind()` answers. Inline core
+  components: abbr, badge, button, cite, dfn, icon, ins, kbd, samp,
+  small, time, var (the author: button and time are always inline);
+  `ComponentType::isInline()` is removed. `DirectiveRules::forms()` is
+  the registered kind alone; unregistered (template-only) components
+  still take any form. The admin's `GET components` `kind` is the
+  registered kind, so button moves to the inline menu. The editor's
+  reader (`markdown.ts`) knows the registered kinds once components load
+  (`registerDirectiveKinds()`, reactive) and reads a `:::` line for a
+  non-container as a `misplaced` leaf, as the site does; the editor
+  marks a component written as another kind in the Outline and its
+  panel ("Button goes inside a sentence, written “:button[…]”, so the
+  site doesn't show it as it's written here."), inline ones included.
+  Docs, tests, and the trial's About page (`:button` in its row) and
+  Arabic post (`:time[]{…}`) were rewritten; there's no migration tool
+  (2.x content only, not D-078's 1.x conventions).
+- **Why:** the author: "we need a way to register components as
+  container/leaf/inline. button is always inline. time is always
+  inline. And yes, we can mark something as broken in the editor."
+

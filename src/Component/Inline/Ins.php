@@ -18,6 +18,7 @@ use Blush\Component\Component;
 use Blush\Component\ComponentContent;
 use Blush\Component\ComponentView;
 use Blush\Core\Framework;
+use Blush\Markdown\DirectiveKind;
 
 /**
  * Text added after the fact, the pair to Markdown's `~~deleted~~`
@@ -32,6 +33,11 @@ final class Ins extends Component
 	 * @inheritDoc
 	 */
 	public const ComponentContent CONTENT = ComponentContent::Text;
+
+	/**
+	 * @inheritDoc
+	 */
+	public const ?DirectiveKind KIND = DirectiveKind::Inline;
 
 	/**
 	 * A date, or a date and time.

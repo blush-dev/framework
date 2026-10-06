@@ -15,19 +15,31 @@ namespace Blush\Markdown\CommonMark\Directive;
 
 use InvalidArgumentException;
 use Override;
+use League\CommonMark\Extension\CommonMark\Node\Inline\Image;
+use League\CommonMark\Extension\CommonMark\Node\Inline\Link;
 use League\CommonMark\Node\Block\Document;
+use League\CommonMark\Node\Block\Paragraph;
+use League\CommonMark\Node\Inline\Newline;
 use League\CommonMark\Node\Node;
 use League\CommonMark\Renderer\ChildNodeRendererInterface;
 use League\CommonMark\Renderer\NodeRendererInterface;
 use Blush\Markdown\Directive;
 use Blush\Markdown\DirectiveKind;
 use Blush\Markdown\DirectiveRenderer;
+use Blush\Markdown\DirectiveRules;
 
 /**
  * Renders directive nodes through the `DirectiveRenderer`. An unknown
  * directive (or one with no renderer) renders as plain content: a
  * container's blocks, a leaf's label as a paragraph, or an inline
- * directive's text (D-026).
+ * directive's text (D-026), and so does a registered one written in a
+ * form it isn't registered for (`DirectiveRules::forms()`, D-530). A
+ * container that holds only some things (`DirectiveRules`, D-529) renders only those: a gallery's images.
+ * Its paragraphs keep only the images (or links around one) and inline
+ * directives it holds, one to a line, so each image is a figure; other
+ * directives it doesn't hold, and every other block, are left out. One
+ * never closed (D-530) renders everything, so a missing `:::` doesn't
+ * take the rest of the document with it.
  */
 final readonly class DirectiveNodeRenderer implements NodeRendererInterface
 {
@@ -54,6 +66,10 @@ final readonly class DirectiveNodeRenderer implements NodeRendererInterface
 			default                             => throw new InvalidArgumentException('Not a directive node: ' . $node::class)
 		};
 
+		if ($this->misplaced($node)) {
+			return $fallback;
+		}
+
 		$language = self::language($node);
 
 		if ($language !== '') {
@@ -61,6 +77,30 @@ final readonly class DirectiveNodeRenderer implements NodeRendererInterface
 		}
 
 		return $this->renderer?->render($directive) ?? $fallback;
+	}
+
+	/**
+	 * Returns whether a directive is written in a form it isn't
+	 * registered for.
+	 */
+	private function misplaced(Node $node): bool
+	{
+		if ($node instanceof LeafDirective && $node->misplaced) {
+			return true;
+		}
+
+		if (! $this->renderer instanceof DirectiveRules || ! ($node instanceof ContainerDirective || $node instanceof LeafDirective || $node instanceof InlineDirective)) {
+			return false;
+		}
+
+		$forms = $this->renderer->forms($node->name);
+		$kind  = match (true) {
+			$node instanceof ContainerDirective => DirectiveKind::Container,
+			$node instanceof LeafDirective      => DirectiveKind::Leaf,
+			default                             => DirectiveKind::Inline
+		};
+
+		return $forms !== null && ! in_array($kind, $forms, true);
 	}
 
 	/**
@@ -84,9 +124,67 @@ final readonly class DirectiveNodeRenderer implements NodeRendererInterface
 	 */
 	private function container(ContainerDirective $node, ChildNodeRendererInterface $childRenderer): array
 	{
-		$content = $childRenderer->renderNodes($node->children());
+		$children = $this->renderer instanceof DirectiveRules ? self::held($node, $this->renderer) : $node->children();
+		$content  = $childRenderer->renderNodes($children);
 
 		return [new Directive($node->name, DirectiveKind::Container, $node->attributes, $node->label, $content, self::outline($node)), $content];
+	}
+
+	/**
+	 * Returns what a container holds of its children, or all of them when
+	 * it holds anything. A paragraph is kept with only what's held in it,
+	 * one to a line.
+	 *
+	 * @return iterable<Node>
+	 */
+	private static function held(ContainerDirective $node, DirectiveRules $contents): iterable
+	{
+		$holds = $contents->holds($node->name);
+
+		if ($holds === [] || ! $node->closed) {
+			return $node->children();
+		}
+
+		$held = static fn (string $name): bool => in_array($contents->fullName($name), $holds, true);
+		$kept = [];
+
+		foreach ($node->children() as $child) {
+			if ($child instanceof ContainerDirective || $child instanceof LeafDirective) {
+				if ($held($child->name)) {
+					$kept[] = $child;
+				}
+			} elseif ($child instanceof Paragraph) {
+				$inline = array_values(array_filter(
+					[...$child->children()],
+					static fn (Node $item): bool => match (true) {
+						$item instanceof Image           => in_array('image', $holds, true),
+						$item instanceof Link            => in_array('image', $holds, true) && $item->firstChild() instanceof Image && $item->firstChild() === $item->lastChild(),
+						$item instanceof InlineDirective => $held($item->name),
+						default                          => false
+					}
+				));
+
+				if ($inline === []) {
+					continue;
+				}
+
+				foreach ([...$child->children()] as $item) {
+					$item->detach();
+				}
+
+				foreach ($inline as $index => $item) {
+					if ($index > 0) {
+						$child->appendChild(new Newline(Newline::SOFTBREAK));
+					}
+
+					$child->appendChild($item);
+				}
+
+				$kept[] = $child;
+			}
+		}
+
+		return $kept;
 	}
 
 	/**

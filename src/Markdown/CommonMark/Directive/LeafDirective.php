@@ -30,4 +30,10 @@ final class LeafDirective extends AbstractBlock
 	) {
 		parent::__construct();
 	}
+
+	/**
+	 * Whether it was written as a container (`:::name`) though it isn't
+	 * one (D-530), so it renders as an unknown directive.
+	 */
+	public bool $misplaced = false;
 }

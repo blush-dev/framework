@@ -96,8 +96,10 @@ function path(file: MediaItem): string[] {
 
 const uploading = ref(false);
 
-function uploaded(file: MediaItem): void {
-	void router.push({ name: 'media-file', params: { path: path(file) } });
+function uploaded([file]: MediaItem[]): void {
+	if (file !== undefined) {
+		void router.push({ name: 'media-file', params: { path: path(file) } });
+	}
 }
 
 // Files uploaded and left in the picker are new to the list.

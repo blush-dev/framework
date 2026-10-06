@@ -17,6 +17,7 @@ use Override;
 use Blush\Core\Framework;
 use Blush\Icon\IconName;
 use Blush\Icon\Icons;
+use Blush\Markdown\DirectiveKind;
 use Blush\Theme\ThemeException;
 use Blush\Theme\ThemeResolver;
 use Blush\View\Escaper;
@@ -43,6 +44,11 @@ final class Button extends Component
 	 * @inheritDoc
 	 */
 	public const ComponentContent CONTENT = ComponentContent::Text;
+
+	/**
+	 * @inheritDoc
+	 */
+	public const ?DirectiveKind KIND = DirectiveKind::Inline;
 
 	/**
 	 * @inheritDoc

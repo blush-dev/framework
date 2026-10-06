@@ -19,6 +19,7 @@ use Override;
 use Blush\Core\Framework;
 use Blush\Icon\IconName;
 use Blush\Icon\Icons;
+use Blush\Markdown\DirectiveKind;
 use Blush\Theme\ThemeException;
 use Blush\Theme\ThemeResolver;
 
@@ -40,6 +41,11 @@ final class Icon extends Component
 	 * @inheritDoc
 	 */
 	public const ComponentContent CONTENT = ComponentContent::Text;
+
+	/**
+	 * @inheritDoc
+	 */
+	public const ?DirectiveKind KIND = DirectiveKind::Inline;
 
 	/**
 	 * The icon's SVG file contents, or `null` when it wasn't found.

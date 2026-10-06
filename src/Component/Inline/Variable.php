@@ -18,6 +18,7 @@ use Blush\Component\Component;
 use Blush\Component\ComponentContent;
 use Blush\Component\ComponentView;
 use Blush\Core\Framework;
+use Blush\Markdown\DirectiveKind;
 
 /**
  * A variable in math or code (D-305): `:var[x]`. (`Var` is a reserved
@@ -29,6 +30,11 @@ final class Variable extends Component
 	 * @inheritDoc
 	 */
 	public const ComponentContent CONTENT = ComponentContent::Text;
+
+	/**
+	 * @inheritDoc
+	 */
+	public const ?DirectiveKind KIND = DirectiveKind::Inline;
 
 	public function __construct(
 		public readonly string $label = ''

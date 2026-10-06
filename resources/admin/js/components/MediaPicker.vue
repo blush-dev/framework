@@ -26,7 +26,12 @@
  * is refused, with why, rather than uploaded and then hidden.
  *
  * Choosing a file selects it (a ring and a tick); the primary button,
- * labeled for the errand, or a double click uses it. Escape, **Cancel**,
+ * labeled for the errand, or a double click uses it. A `multiple` picker
+ * (inserting into the text, D-526) takes several: choosing a file adds
+ * it to the selection or takes it out, each card numbered in the order
+ * chosen, which is the order they go in; an upload joins the selection,
+ * and a double click uses the selection with that file in it. Where one
+ * file is wanted (a field, an option, an image's Replace) it takes one. Escape, **Cancel**,
  * or the close button leave without one. It's a native dialog, so focus
  * stays inside while it's open and returns afterwards.
  */
@@ -56,10 +61,12 @@ const props = defineProps<{
 	locked?: boolean;
 	// Whether it only uploads, with no Library tab.
 	uploadOnly?: boolean;
+	// Whether it takes several files.
+	multiple?: boolean;
 }>();
 
 const emit = defineEmits<{
-	choose: [file: MediaItem];
+	choose: [files: MediaItem[]];
 	close: [];
 }>();
 
@@ -67,7 +74,7 @@ const input    = ref<HTMLInputElement | null>(null);
 const searchEl = ref<HTMLInputElement | null>(null);
 const search   = ref('');
 const kind     = ref<Kind>(props.kind ?? 'any');
-const selected = ref<MediaItem | null>(null);
+const selected = ref<MediaItem[]>([]);
 
 // Uploading: whether the account may, what the server says it takes, the
 // tab showing, a drag over the modal, and this visit's uploads.
@@ -180,7 +187,7 @@ async function send(list: FileList | File[] | null | undefined): Promise<void> {
 				total.value++;
 			}
 
-			selected.value = item;
+			selected.value = props.multiple ? [...selected.value.filter((other) => other.reference !== item.reference), item] : [item];
 		} catch (caught) {
 			replace(row.key, { ...row, state: 'failed', message: errorMessage(caught, 'It couldn\'t be uploaded.') });
 		}
@@ -216,13 +223,45 @@ async function showTab(next: 'library' | 'upload'): Promise<void> {
 	document.getElementById(`media-tab-${next}`)?.focus();
 }
 
-// Arrow keys move between the tabs.
+// Where a file is in the selection, from 1, or 0 when it isn't.
+function order(file: MediaItem): number {
+	return selected.value.findIndex((other) => other.reference === file.reference) + 1;
+}
+
+// Choosing a file: one picker swaps it in; a multiple one adds it to the
+// selection, or takes it out.
+function choose(file: MediaItem): void {
+	if (!props.multiple) {
+		selected.value = [file];
+	} else if (order(file) > 0) {
+		selected.value = selected.value.filter((other) => other.reference !== file.reference);
+	} else {
+		selected.value = [...selected.value, file];
+	}
+}
+
+// A double click uses the file, with the rest of a multiple selection.
+function chooseNow(file: MediaItem): void {
+	use(props.multiple && order(file) === 0 ? [...selected.value, file] : (props.multiple ? selected.value : [file]));
+}
+
+// "Insert", or "Insert 3 Images" for several.
+const actionLabel = computed(() => {
+	const count = selected.value.length;
+
+	if (count < 2) {
+		return props.action ?? 'Insert';
+	}
+
+	return `${props.action ?? 'Insert'} ${count} ${props.locked && kind.value === 'image' ? 'Images' : 'Files'}`;
+});
+
 // The dialog closes first: while it's open and modal, nothing outside it
 // can take focus, so the editor couldn't insert at its caret.
-function use(file: MediaItem | null): void {
-	if (file !== null) {
+function use(chosen: MediaItem[]): void {
+	if (chosen.length > 0) {
 		close();
-		emit('choose', file);
+		emit('choose', chosen);
 	}
 }
 </script>
@@ -270,7 +309,7 @@ function use(file: MediaItem | null): void {
 						<span aria-live="polite">{{ loading && !files.length ? 'Loading…' : `${total.toLocaleString()} ${total === 1 ? 'file' : 'files'}` }}</span>
 					</h3>
 					<div v-if="files.length" class="picker__grid">
-						<MediaCard v-for="file in files" :key="file.reference" :file="file" :details="details(file)" :selected="selected?.url === file.url" @click="selected = file" @dblclick="use(file)" />
+						<MediaCard v-for="file in files" :key="file.reference" :file="file" :details="details(file)" :selected="order(file) > 0" :order="multiple ? order(file) : undefined" @click="choose(file)" @dblclick="chooseNow(file)" />
 					</div>
 					<div v-else-if="loading" class="picker__grid" aria-hidden="true">
 						<span v-for="card in 8" :key="card" class="skeleton picker__skeleton" />
@@ -327,11 +366,15 @@ function use(file: MediaItem | null): void {
 
 		<div class="modal__foot">
 			<p class="modal__selected" aria-live="polite">
-				<template v-if="selected"><b>{{ mediaName(selected) }}</b> · {{ details(selected) }}</template>
-				<template v-else>{{ uploadOnly ? 'Upload a file.' : 'Choose a file.' }}</template>
+				<template v-if="selected.length > 1">
+					<b>{{ selected.length }} files chosen</b> · in the order they go in ·
+					<button type="button" class="lnk" @click="selected = []">Clear</button>
+				</template>
+				<template v-else-if="selected[0]"><b>{{ mediaName(selected[0]) }}</b> · {{ details(selected[0]) }}</template>
+				<template v-else>{{ uploadOnly ? 'Upload a file.' : (multiple ? 'Choose one or more files.' : 'Choose a file.') }}</template>
 			</p>
 			<button type="button" class="button" @click="close()">Cancel</button>
-			<button type="button" class="button button--primary" :disabled="selected === null" @click="use(selected)">{{ action ?? 'Insert' }}</button>
+			<button type="button" class="button button--primary" :disabled="selected.length === 0" @click="use(selected)">{{ actionLabel }}</button>
 		</div>
 	</dialog>
 </template>

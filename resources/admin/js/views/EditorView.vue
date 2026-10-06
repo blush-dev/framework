@@ -121,7 +121,7 @@ import AdminSelect, { type SelectOption } from '../components/AdminSelect.vue';
 import TabBar from '../components/TabBar.vue';
 import TypeIcon from '../components/TypeIcon.vue';
 import { BLOCK_KINDS } from '../blocks';
-import { bleedClasses, componentIcon, IMAGE_COMPONENT, imageVariants, loadComponents, MARKDOWN_ELEMENTS, type BleedClasses, type ComponentDescription, type ComponentProp } from '../components';
+import { bleedClasses, componentIcon, directiveText, IMAGE_COMPONENT, imageVariants, loadComponents, MARKDOWN_ELEMENTS, type BleedClasses, type ComponentDescription, type ComponentProp } from '../components';
 import { online } from '../connection';
 import { diffLines, hunks, type Differences } from '../diff';
 import { drawerOpen, keepDrawer } from '../drawer';
@@ -1324,12 +1324,13 @@ function closeIcons(): void {
 	bodyEditor.value?.focusAt(caret.value);
 }
 
-// The media picker: inserting a file, or choosing one for a field, a
+// The media picker: inserting files, or choosing one for a field, a
 // component's option, or an image. It opens on the Library tab, or on
-// Upload from the media menu's Upload a File.
+// Upload from the media menu's Upload a File. Inserting takes several
+// (D-526); choosing a file for one place takes one.
 type MediaKind = 'image' | 'video' | 'audio' | 'document' | 'file';
 
-const picking = ref<{ title: string; action: string; tab?: 'library' | 'upload'; kind?: MediaKind; locked?: boolean; use: (file: MediaItem) => void } | null>(null);
+const picking = ref<{ title: string; action: string; tab?: 'library' | 'upload'; kind?: MediaKind; locked?: boolean; multiple?: boolean; use: (file: MediaItem) => void; useAll?: (files: MediaItem[]) => void } | null>(null);
 const uploads = computed(() => canUpload());
 
 function pickMedia(start: 'library' | 'upload' = 'library', kind?: 'image'): void {
@@ -1338,12 +1339,14 @@ function pickMedia(start: 'library' | 'upload' = 'library', kind?: 'image'): voi
 
 	closeOverlays();
 	picking.value = {
-		title: only === 'image' ? 'Insert an Image' : 'Insert Media',
+		title: only === 'image' ? 'Insert Images' : 'Insert Media',
 		action: 'Insert',
 		tab: start,
 		kind: only,
 		locked: only !== undefined,
-		use: insertFile
+		multiple: true,
+		use: insertFile,
+		useAll: insertFiles
 	};
 }
 
@@ -1363,7 +1366,7 @@ function insertFile(file: MediaItem): void {
 		return;
 	}
 
-	const name      = file.kind === 'video' ? 'video' : (file.kind === 'audio' ? 'audio' : 'file');
+	const name      = fileComponent(file);
 	const component = componentFor(name);
 
 	if (component === undefined) {
@@ -1375,9 +1378,55 @@ function insertFile(file: MediaItem): void {
 	tab.value = 'element';
 }
 
+// The component a file that isn't an image goes in as.
+function fileComponent(file: MediaItem): 'video' | 'audio' | 'file' {
+	return file.kind === 'video' ? 'video' : (file.kind === 'audio' ? 'audio' : 'file');
+}
+
+/**
+ * Puts several files in the text at once, in the order chosen (D-526):
+ * each a block of its own, as `insertFile()` writes it, with a blank line
+ * between; inside a gallery, its images one to a line. Selected text is
+ * the first image's alt text. The caret ends after the last.
+ */
+function insertFiles(files: MediaItem[]): void {
+	const [first] = files;
+
+	if (first === undefined) {
+		return;
+	}
+
+	if (files.length === 1) {
+		insertFile(first);
+
+		return;
+	}
+
+	const gap = holder.value?.only?.includes('image') === true ? '\n' : '\n\n';
+
+	bodyEditor.value?.insertBlock((selected) => {
+		const text = files.map((file, index) => {
+			if (file.kind === 'image') {
+				return imageText(file.reference, (index === 0 ? selected : '') || file.alt, file.caption).text;
+			}
+
+			const name      = fileComponent(file);
+			const component = componentFor(name);
+
+			return component === undefined ? `::blush/${name}{${attributeText('src', file.reference)}}` : directiveText(component, false, '', { src: file.reference }).text;
+		}).join(gap);
+
+		return { text, caret: text.length };
+	});
+
+	tab.value = 'element';
+	toast(`Inserted ${files.length} files`);
+}
+
 /**
  * Uploads files dropped or pasted into the text (D-284), one at a time,
- * and inserts each where the caret is.
+ * then inserts them together where the caret is, as the picker inserts
+ * several (D-526, D-527): in the order given, less any refused.
  */
 async function uploadFiles(files: File[]): Promise<void> {
 	if (!uploads.value) {
@@ -1386,15 +1435,19 @@ async function uploadFiles(files: File[]): Promise<void> {
 		return;
 	}
 
+	const added: MediaItem[] = [];
+
 	for (const file of files) {
 		toast(`Uploading ${file.name}…`, { kind: 'info' });
 
 		try {
-			insertFile(await upload<MediaItem>('/media', file));
+			added.push(await upload<MediaItem>('/media', file));
 		} catch (caught) {
 			error.value = `${file.name} wasn't uploaded. ${errorMessage(caught, 'Check your connection, then try again.')}`;
 		}
 	}
+
+	insertFiles(added);
 }
 
 function pickForField(field: FieldDescription): void {
@@ -1460,11 +1513,17 @@ function pickForImage(): void {
 	};
 }
 
-function picked(file: MediaItem): void {
+function picked(files: MediaItem[]): void {
 	const current = picking.value;
+	const [first] = files;
 
 	picking.value = null;
-	current?.use(file);
+
+	if (current?.useAll !== undefined) {
+		current.useAll(files);
+	} else if (first !== undefined) {
+		current?.use(first);
+	}
 }
 
 // The editor's own commands in the palette (D-248).
@@ -1613,8 +1672,8 @@ const path = computed(() => {
 const content = computed(() => selection.value !== null && holdsContent(markdown.value, allBlocks.value, selection.value) ? childrenOf(items.value, selection.value) : null);
 
 // What's in a container that it doesn't hold (D-314): the author can
-// always type anyway, so its panel says so rather than the site's
-// rendering being the first to notice.
+// always type anyway, and the site leaves it out (D-529), so its panel
+// says so rather than the site's rendering being the first to notice.
 // Each line of its body is checked, since images one to a line are one
 // paragraph to Markdown.
 const strays = computed<string[]>(() => {
@@ -1651,6 +1710,58 @@ const strays = computed<string[]>(() => {
 
 	return found;
 });
+
+// The elements directly in a container that it doesn't hold, by kind
+// and index, each with the container's label (D-529), and components
+// written as another kind than they're registered (D-531): the outline
+// marks them, and each one's own panel says the site leaves it out.
+const strayItems = computed(() => {
+	const found = new Map<string, string>();
+
+	for (const item of items.value) {
+		const parent = items.value[item.parent];
+		const holder = parent?.kind === 'directive' ? componentFor(markdown.value.directives[parent.index]?.name ?? '') : undefined;
+		const only   = holder?.only;
+
+		if (holder === undefined || !only) {
+			continue;
+		}
+
+		const name = item.kind === 'directive' ? componentFor(markdown.value.directives[item.index]?.name ?? '')?.name : undefined;
+		const held = item.kind === 'image' ? only.includes('image') : (name !== undefined && only.includes(name));
+
+		if (!held) {
+			found.set(`${item.kind}-${item.index}`, `${titleCase(holder.label)} holds only ${onlyNames(only)}, so the site leaves out the rest of this.`);
+		}
+	}
+
+	// A component written as another kind than it's registered (D-531),
+	// anywhere, inline ones included.
+	markdown.value.directives.forEach((item, index) => {
+		const component = componentFor(item.name);
+		const written   = item.misplaced ? 'container' : item.kind;
+
+		if (component !== undefined && !component.name.startsWith('markdown/') && component.kind !== written) {
+			found.set(`directive-${index}`, misplacedNote(component));
+		}
+	});
+
+	return found;
+});
+
+// What's said of a component written as another kind than it is.
+function misplacedNote(component: ComponentDescription): string {
+	const name = component.name.replace(/^blush\//, '');
+	const how  = {
+		container: `wraps other content, written “:::${name}” … “:::”`,
+		leaf: `goes on a line of its own, written “::${name}”`,
+		inline: `goes inside a sentence, written “:${name}[…]”`
+	}[component.kind];
+
+	return `${titleCase(component.label)} ${how}, so the site doesn't show it as it's written here.`;
+}
+
+const strayNote = computed(() => selection.value === null ? undefined : strayItems.value.get(`${selection.value.kind}-${selection.value.index}`));
 
 // How many of what it holds are in it: images, for a gallery.
 const held = computed(() => {
@@ -1733,7 +1844,7 @@ function outlineText(item: ElementRef): string {
 // A row of the Outline or a Content group: what the element is, and its
 // excerpt.
 function rowOf(item: ElementRef): OutlineRow {
-	return { name: nameOf(item), icon: iconOf(item), text: outlineText(item), placed: placed(item) };
+	return { name: nameOf(item), icon: iconOf(item), text: outlineText(item), placed: placed(item), stray: strayItems.value.get(`${item.kind}-${item.index}`) };
 }
 
 /**
@@ -2790,6 +2901,12 @@ function fieldKey(field: FieldDescription): string {
 
 					<div v-show="tab === 'element'" id="editor-panel-element" role="tabpanel" aria-labelledby="editor-tab-element">
 						<template v-if="selection">
+							<OptionsGroup v-if="strayNote">
+								<p class="notice notice--warn" role="status">
+									<AdminIcon name="triangle-alert" />
+									<span class="notice__text">{{ strayNote }}</span>
+								</p>
+							</OptionsGroup>
 							<ComponentOptions
 								v-if="directive"
 								:source="body"
@@ -2802,7 +2919,7 @@ function fieldKey(field: FieldDescription): string {
 								<OptionsGroup v-if="content" heading="Content">
 									<template v-if="selected?.only?.includes('image')" #hint>{{ plural(held, 'image') }}</template>
 									<OutlineList :items="content" :describe="rowOf" empty="Nothing inside it yet." @select="select" />
-									<p v-if="strays.length" class="field__error">{{ titleCase(selected?.label ?? '') }} holds only {{ panelNoteNames }}, so the site may not show {{ strays.length === 1 ? 'this line' : 'these lines' }}: {{ strays.map((text) => `“${text.length > 40 ? `${text.slice(0, 40)}…` : text}”`).join(', ') }}.</p>
+									<p v-if="strays.length" class="field__error">{{ titleCase(selected?.label ?? '') }} holds only {{ panelNoteNames }}, so the site won't show {{ strays.length === 1 ? 'this line' : 'these lines' }}: {{ strays.map((text) => `“${text.length > 40 ? `${text.slice(0, 40)}…` : text}”`).join(', ') }}.</p>
 								</OptionsGroup>
 							</ComponentOptions>
 							<ImageOptions
@@ -2842,7 +2959,7 @@ function fieldKey(field: FieldDescription): string {
 		</div>
 
 		<IconPicker v-if="iconsOpen" :preview="iconPreview" @choose="chooseIcon" @close="closeIcons" />
-		<MediaPicker v-if="picking" :title="picking.title" :action="picking.action" :tab="picking.tab" :kind="picking.kind" :locked="picking.locked" @choose="picked" @close="picking = null" />
+		<MediaPicker v-if="picking" :title="picking.title" :action="picking.action" :tab="picking.tab" :kind="picking.kind" :locked="picking.locked" :multiple="picking.multiple" @choose="picked" @close="picking = null" />
 	</section>
 </template>
 

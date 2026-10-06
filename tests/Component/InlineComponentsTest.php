@@ -93,7 +93,7 @@ final class InlineComponentsTest extends TestCase
 
 			Plain :abbr[FAQ] and :kbd[Esc].
 
-			::time{datetime=2026-10-06}
+			:time[]{datetime=2026-10-06}
 
 			New :badge[Beta]{variant=info} and :badge[Plain], from :cite[The Hobbit], where :dfn[Blush]{title="Blush CMS"} is ~~paid~~ :ins[free]{datetime=2026-10-06 cite=/changes}.
 

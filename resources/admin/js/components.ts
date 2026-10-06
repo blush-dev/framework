@@ -6,7 +6,7 @@
 
 import { request, type FieldDescription } from './api';
 import { BLOCK_KINDS } from './blocks';
-import { attributeText } from './markdown';
+import { attributeText, registerDirectiveKinds } from './markdown';
 import type { IconName } from './icons';
 
 export interface ComponentProp extends FieldDescription {
@@ -118,7 +118,11 @@ export interface BleedClasses {
 let loading: Promise<ComponentsAnswer> | null = null;
 
 function load(): Promise<ComponentsAnswer> {
-	loading ??= request<ComponentsAnswer>('GET', '/components').catch((caught: unknown) => {
+	loading ??= request<ComponentsAnswer>('GET', '/components').then((answer) => {
+		registerDirectiveKinds(new Map(answer.components.map((component) => [component.name, component.kind])));
+
+		return answer;
+	}).catch((caught: unknown) => {
 		loading = null;
 		throw caught;
 	});

@@ -32,6 +32,7 @@ use Blush\Tests\Fixtures\Component\Salutation;
 use Blush\Tests\Fixtures\Component\Stamp;
 use Blush\Tests\Fixtures\Component\Tone;
 use Blush\Tests\Fixtures\Component\Toned;
+use Blush\Markdown\DirectiveKind;
 use Blush\Support\RegistrationException;
 use Blush\Theme\ThemeResolver;
 use Blush\Component\Component;
@@ -309,6 +310,64 @@ final class ComponentsTest extends TestCase
 		$this->assertSame(Callout::class, ComponentType::Callout->className());
 	}
 
+	/**
+	 * A component is registered as a container, a leaf, or inline, and
+	 * works only that way (D-531).
+	 */
+	public function testComponentsAreRegisteredAsOneKind(): void
+	{
+		$registry = new ComponentRegistry();
+		new ComponentRegistrar($registry)->register();
+
+		$kinds = static fn (string $name): ?DirectiveKind => $registry->get($name)?->kind();
+
+		$this->assertSame(DirectiveKind::Container, $kinds('gallery'));
+		$this->assertSame(DirectiveKind::Leaf, $kinds('audio'));
+		$this->assertSame(DirectiveKind::Inline, $kinds('button'));
+		$this->assertSame(DirectiveKind::Inline, $kinds('time'));
+
+		$registry->register('app/tag', content: ComponentContent::Text, kind: DirectiveKind::Inline);
+		$registry->register('app/note', content: ComponentContent::Blocks);
+		$this->assertSame(DirectiveKind::Inline, $kinds('app/tag'));
+		$this->assertSame(DirectiveKind::Container, $kinds('app/note'), 'What wraps blocks is a container.');
+
+		foreach ([[ComponentContent::Text, DirectiveKind::Container], [ComponentContent::Blocks, DirectiveKind::Leaf]] as [$content, $kind]) {
+			try {
+				$registry->register('app/odd', content: $content, kind: $kind);
+				$this->fail("{$content->value} as {$kind->value} should be refused.");
+			} catch (RegistrationException $error) {
+				$this->assertStringContainsString('only a component that wraps blocks is a container', $error->getMessage());
+			}
+		}
+	}
+
+	public function testDirectivesWorkOnlyAsTheirKind(): void
+	{
+		$this->writeTemporaryFile('user/content/index.md', <<<'MD'
+			---
+			title: Home
+			---
+			::button[Leaf button]{url=/a}
+
+			Go :button[Inline button]{url=/b} now, at :time[noon]{datetime=12:00}.
+
+			Inline :callout[callout] and :audio[audio]{src=/a.mp3}.
+
+			::callout[Leaf callout]
+			MD);
+
+		$this->boot();
+
+		$html = (string) $this->app->container()->make(Kernel::class)->handle(Request::create('/'))->getBody();
+
+		$this->assertStringNotContainsString('Leaf button</span></a>', $html);
+		$this->assertStringContainsString('Inline button</span></a>', $html);
+		$this->assertStringContainsString('<time class="component-time" datetime="12:00">noon</time>', $html);
+		$this->assertStringContainsString('<p>Inline callout and audio.</p>', $html, 'An inline directive of another kind is its text.');
+		$this->assertStringNotContainsString('component-callout', $html);
+		$this->assertStringContainsString('<p>Leaf callout</p>', $html);
+	}
+
 	public function testRegistrationEnforcesNamespaces(): void
 	{
 		$registry = new ComponentRegistry();
@@ -438,7 +497,7 @@ final class ComponentsTest extends TestCase
 			::app/badge[Site badge]{tone=new}
 
 			:::badge
-			A short name that isn't core.
+			A badge isn't a container.
 			:::
 
 			Read the :app/badge[inline]{tone=tip} notes at https://example.com or 10:30.
@@ -464,7 +523,7 @@ final class ComponentsTest extends TestCase
 		$this->assertStringContainsString("<aside class=\"component-callout\" role=\"note\">\n\t\t<p>Plain note.</p></aside>", $html);
 		$this->assertStringContainsString('<p>Kept as text</p>', $html);
 		$this->assertStringContainsString('<span class="badge badge--new">Site badge</span>', $html);
-		$this->assertStringContainsString('<p>A short name that isn’t core.</p>', $html);
+		$this->assertStringNotContainsString('component-badge', $html, 'A component works only in the forms it\'s registered for (D-530).');
 		$this->assertStringContainsString('Read the <span class="badge badge--tip">inline</span> notes at', $html);
 	}
 

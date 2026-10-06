@@ -18,14 +18,22 @@ use League\CommonMark\Parser\Block\BlockStart;
 use League\CommonMark\Parser\Block\BlockStartParserInterface;
 use League\CommonMark\Parser\Cursor;
 use League\CommonMark\Parser\MarkdownParserStateInterface;
+use Blush\Markdown\DirectiveKind;
+use Blush\Markdown\DirectiveRules;
 
 /**
  * Opens a container directive on a `:::name[label]{attrs}` line (three
  * or more colons). Containers nest with `:::` throughout: a closing
- * fence closes the innermost open one (D-320).
+ * fence closes the innermost open one (D-320). A `:::` line for a
+ * directive registered as something else (`:::audio{…}`, D-530) is a
+ * line of its own that renders as an unknown directive: opened, it would
+ * take the fence closing a container around it.
  */
 final class ContainerDirectiveStartParser implements BlockStartParserInterface
 {
+	public function __construct(private readonly ?DirectiveRules $rules = null)
+	{}
+
 	/**
 	 * @inheritDoc
 	 */
@@ -43,6 +51,15 @@ final class ContainerDirectiveStartParser implements BlockStartParserInterface
 		}
 
 		$cursor->advanceToEnd();
+
+		$forms = $this->rules?->forms((string) $match[2]);
+
+		if ($forms !== null && ! in_array(DirectiveKind::Container, $forms, true)) {
+			$leaf = new LeafDirective((string) $match[2], $match[3] ?? '', DirectiveAttributes::parse($match[4] ?? ''));
+			$leaf->misplaced = true;
+
+			return BlockStart::of(new LeafDirectiveParser($leaf))->at($cursor);
+		}
 
 		return BlockStart::of(new ContainerDirectiveParser(new ContainerDirective(
 			(string) $match[2],

@@ -39,8 +39,8 @@ use Blush\View\Views;
  * - its full `name` (`blush/callout`, `acme/tabs`), which the inserter
  *   writes (D-171), and its translated `label` and `description`;
  * - `content` (`none`, `text`, or `blocks`) and `kind`, how it's written:
- *   `container` (`:::name`), `leaf` (`::name`), or `inline` (`:name[…]`,
- *   for the core components meant for inside a sentence);
+ *   `container` (`:::name`), `leaf` (`::name`), or `inline` (`:name[…]`),
+ *   as it's registered (D-531), the only form it works in;
  * - `category`, a core component's group (`ComponentCategory`), or
  *   `null`, with `source` naming the theme, the site, or the extension
  *   the rest come from;
@@ -115,11 +115,7 @@ final readonly class ComponentsController
 			'label'       => $component->displayLabel(),
 			'description' => $component->description ?? '',
 			'content'     => $content->value,
-			'kind'        => match (true) {
-				$content === ComponentContent::Blocks => 'container',
-				$type?->isInline() === true           => 'inline',
-				default                               => 'leaf'
-			},
+			'kind'        => $component->definition?->kind()->value ?? ($content === ComponentContent::Blocks ? 'container' : 'leaf'),
 			'category'    => $type?->category()->value,
 			'only'        => $component->definition?->holds() ?: null,
 			'source'      => $type === null ? $this->provenance->of($name->namespace, $chain) : null,

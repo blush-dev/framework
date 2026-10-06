@@ -18,6 +18,7 @@ use Blush\Component\Component;
 use Blush\Component\ComponentContent;
 use Blush\Component\ComponentView;
 use Blush\Core\Framework;
+use Blush\Markdown\DirectiveKind;
 
 /**
  * Keyboard input (D-175, D-180): `:kbd[Ctrl+S]`. A label joined with `+`
@@ -32,6 +33,11 @@ final class Kbd extends Component
 	 * @inheritDoc
 	 */
 	public const ComponentContent CONTENT = ComponentContent::Text;
+
+	/**
+	 * @inheritDoc
+	 */
+	public const ?DirectiveKind KIND = DirectiveKind::Inline;
 
 	/**
 	 * The keys, in order.

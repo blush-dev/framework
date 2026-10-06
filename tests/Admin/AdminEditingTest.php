@@ -182,7 +182,7 @@ final class AdminEditingTest extends TestCase
 		$this->assertSame(428, $this->call('POST', $this->entryPath(self::FLAME) . '/restore', ['status' => 'published'])->getStatusCode(), 'Only as it was.');
 		$this->assertSame(409, $this->call('POST', $this->entryPath(self::FLAME) . '/restore', ['status' => 'published', 'revision' => 'stale'])->getStatusCode());
 
-		$this->assertSame(200, $this->call('POST', $this->entryPath(self::FLAME) . '/restore', $restore)->getStatusCode());
+		$this->assertSame(200, $this->call('POST', $this->entryPath(self::FLAME) . '/restore', ['status' => $restore['status'], 'revision' => $restore['revision'] ?? null])->getStatusCode());
 		$this->assertSame('published', $this->load(self::FLAME)['status'] ?? null);
 		$this->assertSame($before, $this->file(self::FLAME), 'The file is as it was.');
 

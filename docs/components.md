@@ -49,11 +49,17 @@ Read the :app/badge[new]{tone=tip} release notes.
 | `::name`          | A component on a line of its own, wrapping nothing           |
 | `:name[text]`     | A component inside a sentence                                |
 
-The number of colons is about where the component sits, not what it is:
-`::button[…]` on a line of its own renders the button by itself, while
-`:button[…]` goes inside a sentence (on its own line, it's wrapped in a
-paragraph). Use `::` for a component that stands alone or sits in a
-[row](#layout), and `:` in running text.
+Each component has one form, the one it's registered with. Of the
+built-in ones, those that wrap content (callout, gallery, figure, and
+the [layouts](#layout)) are `:::`; audio, video, file, embed, menu,
+meter, progress, and the table of contents are `::`; and those that go
+in a sentence (abbr, badge, button, cite, dfn, icon, ins, kbd, samp,
+small, time, and var) are `:`. Written another way, such as
+`:::audio{src=…}` or `::button[…]`, a component shows only its label,
+if it has one, and the admin's editor marks it. A `:::` line for one
+that isn't a container never opens a block, so a `:::` after it still
+closes the block around it. A component that's only a template, not
+registered, works in any form.
 
 Each part after the name is optional:
 
@@ -79,7 +85,7 @@ These work in every theme, because the default theme provides them:
 | Component | Example                                                | Props                                                                                                                                                                                                                                                                  |
 |-----------|--------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `callout` | `:::callout[Title]{variant=info}` … `:::`              | [Variants](#variants): `info`, `tip`, `warning`, or `danger`; without one, it's a plain note. The label is the title.                                                                                                                                                  |
-| `gallery` | `:::gallery{columns=3}` … `:::`                        | `columns`: 1 to 6 (default 3). `layout`: `flex` (default; rows that grow to fill the width) or `grid` (even columns). Wrap images in it.                                                                                                                               |
+| `gallery` | `:::gallery{columns=3}` … `:::`                        | `columns`: 1 to 6 (default 3). `layout`: `flex` (default; rows that grow to fill the width) or `grid` (even columns). Wrap images in it, one to a line; each is a figure.                                                                                                                               |
 | `figure`  | `:::figure[Caption]` … `:::`                           | Sets anything apart with a caption (the label): an image, a table, a code block, a quote. An image on its own line inside it is just the image. For a lone image, you don't need it: an image on its own line is already a figure, with its quoted title as the caption. |
 | `embed`   | `::embed[Caption]{url="https://youtu.be/…" title="…"}` | `url`, `title`. YouTube and Vimeo (and [providers you add](configuration.md#embeds)) play in a frame at the video's real shape, named by its own title; YouTube and Vimeo in privacy-friendly mode, from the URL's start time (`?t=90`). Any other URL becomes a link. |
 
@@ -182,14 +188,16 @@ headings in range.
 
 ### Buttons
 
-`::button` is a link that looks like a button, with an optional icon:
+`:button` is a link that looks like a button, with an optional icon. It
+goes inside a sentence, or on a line of its own (a paragraph of its
+own):
 
 ```markdown
-::button[Get started]{url=/start icon=arrow-right iconPosition=end}
+:button[Get started]{url=/start icon=arrow-right iconPosition=end}
 
-::button[Download the guide]{url=guide.pdf icon=download variant=secondary}
+:button[Download the guide]{url=guide.pdf icon=download variant=secondary}
 
-::button[Share this post]{url=/share icon=share-2 iconOnly}
+:button[Share this post]{url=/share icon=share-2 iconOnly}
 ```
 
 | Prop           | What it does                                                                              |
@@ -203,17 +211,14 @@ The label is the button's text, and it's required, even for an
 icon-only button. Without a [variant](#variants) it's the main, filled
 button; `variant=secondary` is an outlined one, for an action beside the
 main one. A `url` starting with `/` becomes a full URL, as
-Markdown's links do. To put buttons side by side, list them in a
-[row](#layout), one per line:
+Markdown's links do. To put buttons side by side, write them on one
+line:
 
 ```markdown
-:::row
-::button[Get started]{url=/start}
-::button[Read the docs]{url=/docs variant=secondary}
-:::
+:button[Get started]{url=/start} :button[Read the docs]{url=/docs variant=secondary}
 ```
 
-A button also works inside a sentence: `Read the :button[docs]{url=/docs}.`
+Or in a sentence: `Read the :button[docs]{url=/docs}.`
 
 ### Progress and meters
 
@@ -303,8 +308,8 @@ The launch is :time[next Tuesday]{datetime=2026-10-06}. Comments :badge[Beta]{va
 | `var`     | `:var[x]`                                       | A variable in math or code.                                                                                                                                                            |
 
 `time` gives software (search engines, calendars) the exact date while
-readers see your words. On its own line without a label,
-`::time{datetime=2026-10-06}` shows the date in the page's language
+readers see your words. With an empty label,
+`:time[]{datetime=2026-10-06}` shows the date in the page's language
 (on a [translation](content.md#translations), the translation's) and
 your site's time zone and date format, such as "October 6, 2026". A time uses the
 site's time format, and a date with a time uses both; a year or a month
@@ -547,10 +552,18 @@ final class RecentPosts extends Component
   `components/{namespace}-{name}`.
 - **`CONTENT`** says what the component wraps: `ComponentContent::None`
   (the default), `Text` (a label), or `Blocks` (a `:::` block).
+- **`KIND`** says how it's written, the only way it works:
+  `DirectiveKind::Container` (`:::`), `Leaf` (`::`, on a line of its
+  own), or `Inline` (`:`, in a sentence), from `Blush\Markdown`. Left
+  out, it's a container when `CONTENT` is `Blocks` and a leaf
+  otherwise. Only a component that wraps blocks is a container;
+  registering one that disagrees fails.
 - **`HOLDS`** says what a `:::` block takes, when it's only some things:
   `['image']` for Markdown images, or components' full names. The
   admin's editor then offers only those inside it (the gallery holds
-  images). The site renders whatever is there.
+  images). The site renders only those inside it, leaving out the
+  rest: text, other blocks, and components it doesn't list. The images
+  in a paragraph with text are kept, each a figure.
 - **`modifiers()`** returns BEM modifiers for the root element, such as
   `['warning']` for `component-callout--warning`.
 - **`rootAttributes()`** returns other attributes for the root element,
@@ -748,8 +761,10 @@ $components->register(
 );
 ```
 
-A class component's props and content come from its constructor and
-`CONTENT`, so it needs nothing more.
+A class component's props, content, and kind come from its constructor,
+`CONTENT`, and `KIND`, so it needs nothing more. A template-only one
+can give its kind when it's registered:
+`register('app/tag', content: ComponentContent::Text, kind: DirectiveKind::Inline)`.
 
 A provider can also replace a built-in component with its own class:
 `register('callout', MyCallout::class)`. The `blush` namespace is only for

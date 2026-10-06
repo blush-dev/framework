@@ -72,6 +72,8 @@ final class ContainerDirectiveParser extends AbstractBlockContinueParser
 			&& strlen($match[1]) >= $this->block->fence
 			&& ! $this->closesInside($activeBlockParser->getBlock(), strlen($match[1]))
 		) {
+			$this->block->closed = true;
+
 			return BlockContinue::finished();
 		}
 

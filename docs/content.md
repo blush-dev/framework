@@ -286,6 +286,10 @@ lists, autolinks, and footnotes. On top of that:
   ![A sunflower.](/media/sunflower.jpg "My favorite flower")
   ```
 
+  Images on lines one after another, as in a gallery, are a figure each,
+  with no line breaks between them. Images side by side on one line, or
+  with text, stay in their paragraph.
+
   To caption something else, such as a table or a code block, wrap it in
   a [figure](components.md#built-in-components): `:::figure[Caption]` …
   `:::`.

@@ -23,17 +23,18 @@ use Blush\Field\Fields\EnumField;
 use Blush\Field\Fields\MediaField;
 use Blush\Field\Fields\NumberField;
 use Blush\Field\Fields\TextField;
+use Blush\Markdown\DirectiveKind;
 
 /**
  * A registered component (D-172): its name, its class (or `null` for a
- * template-only one), what it wraps, its props as content schema fields,
- * and the variants it declares (D-266). Its text (label, description, prop labels) isn't here; it comes
+ * template-only one), what it wraps, how it's written (D-531), its props
+ * as content schema fields, and the variants it declares (D-266). Its text (label, description, prop labels) isn't here; it comes
  * from the translation catalogs (see `Views::componentText()`).
  *
  * A class component's props and content default to what its class says:
  * the constructor's scalar and backed-enum parameters (a public or
  * unpromoted parameter; services and private state are left out), and
- * its `CONTENT` constant. A string parameter marked `#[MediaProp]` is a
+ * its `CONTENT` and `KIND` constants. A string parameter marked `#[MediaProp]` is a
  * `media` field. Its variants default to its `VARIANTS` constant, with
  * the component's namespace as their registrant.
  */
@@ -49,7 +50,8 @@ final readonly class ComponentDefinition
 		public ?string $class = null,
 		private ?ComponentContent $content = null,
 		private ?array $props = null,
-		private ?array $variants = null
+		private ?array $variants = null,
+		private ?DirectiveKind $kind = null
 	) {}
 
 	/**
@@ -85,6 +87,18 @@ final readonly class ComponentDefinition
 	public function content(): ComponentContent
 	{
 		return $this->content ?? ($this->class === null ? ComponentContent::None : $this->class::CONTENT);
+	}
+
+	/**
+	 * Returns how it's written in Markdown, the only form it works in
+	 * (D-531): as given or its class's `KIND`, else a container when it
+	 * wraps blocks and a leaf when it doesn't.
+	 */
+	public function kind(): DirectiveKind
+	{
+		return $this->kind
+			?? ($this->class === null ? null : $this->class::KIND)
+			?? ($this->content() === ComponentContent::Blocks ? DirectiveKind::Container : DirectiveKind::Leaf);
 	}
 
 	/**

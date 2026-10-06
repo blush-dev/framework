@@ -21,6 +21,7 @@ use Blush\Field\Fields\MediaField;
 use Blush\Markdown\Directive;
 use Blush\Markdown\DirectiveKind;
 use Blush\Markdown\DirectiveRenderer;
+use Blush\Markdown\DirectiveRules;
 use Blush\Markdown\MarkdownConfig;
 use Blush\Media\MediaResolver;
 use Blush\Theme\ThemeResolver;
@@ -47,13 +48,18 @@ use Blush\View\ViewNotFound;
  * previewed with `?theme=`, has no template in this chain, so it renders
  * itself (`render()`, D-382), or, when it can't, as plain content too.
  *
+ * A container whose component holds only some things (`HOLDS`) renders
+ * only those (D-529): the parser leaves out the rest. A registered
+ * component works only in the form it's registered as (D-530, D-531):
+ * its `kind()`.
+ *
  * Components rendered this way get a bare context: what they add to the
  * `Head` doesn't reach the page.
  *
  * The view factory is resolved on first use, since it depends (through
  * the content repository) on the Markdown parser that depends on this.
  */
-final readonly class ComponentDirectives implements DirectiveRenderer
+final readonly class ComponentDirectives implements DirectiveRenderer, DirectiveRules
 {
 	/**
 	 * @param Closure(): ViewFactory $views
@@ -125,6 +131,46 @@ final readonly class ComponentDirectives implements DirectiveRenderer
 		// Inside a sentence, a template's surrounding line breaks would
 		// show as spaces.
 		return $directive->kind === DirectiveKind::Inline ? trim($html) : $html;
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	#[Override]
+	public function holds(string $container): array
+	{
+		$definition = ($this->views)()->forChain($this->themes->current())->services->components->get($container);
+
+		return array_map(
+			fn (string $held): string => $held === 'image' ? $held : $this->fullName($held),
+			$definition?->holds() ?? []
+		);
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	#[Override]
+	public function forms(string $directive): ?array
+	{
+		$definition = ($this->views)()->forChain($this->themes->current())->services->components->get($directive);
+
+		if ($definition === null) {
+			return null;
+		}
+
+		return [$definition->kind()];
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	#[Override]
+	public function fullName(string $directive): string
+	{
+		$name = ComponentName::parse($directive);
+
+		return $name === null ? $directive : (string) $name;
 	}
 
 	/**

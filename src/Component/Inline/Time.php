@@ -25,6 +25,7 @@ use Blush\Component\ComponentContent;
 use Blush\Component\ComponentView;
 use Blush\Core\AppConfig;
 use Blush\Core\Framework;
+use Blush\Markdown\DirectiveKind;
 
 /**
  * A date, time, or duration that machines can read (D-175, D-180):
@@ -46,6 +47,11 @@ final class Time extends Component
 	 * @inheritDoc
 	 */
 	public const ComponentContent CONTENT = ComponentContent::Text;
+
+	/**
+	 * @inheritDoc
+	 */
+	public const ?DirectiveKind KIND = DirectiveKind::Inline;
 
 	/**
 	 * The forms of a valid `datetime`, with how each is shown: a date

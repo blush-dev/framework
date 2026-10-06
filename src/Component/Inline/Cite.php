@@ -18,6 +18,7 @@ use Blush\Component\Component;
 use Blush\Component\ComponentContent;
 use Blush\Component\ComponentView;
 use Blush\Core\Framework;
+use Blush\Markdown\DirectiveKind;
 
 /**
  * The title of a work, such as a book, film, or article (D-305):
@@ -29,6 +30,11 @@ final class Cite extends Component
 	 * @inheritDoc
 	 */
 	public const ComponentContent CONTENT = ComponentContent::Text;
+
+	/**
+	 * @inheritDoc
+	 */
+	public const ?DirectiveKind KIND = DirectiveKind::Inline;
 
 	public function __construct(
 		public readonly string $label = ''

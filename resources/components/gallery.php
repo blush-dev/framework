@@ -5,7 +5,9 @@
  * images) in rows that fill the width (`flex`) or an even grid (`grid`).
  *
  *     :::gallery{columns=3 layout=grid}
- *     ![](a.jpg) ![](b.jpg) ![](c.jpg)
+ *     ![](a.jpg)
+ *     ![](b.jpg)
+ *     ![](c.jpg)
  *     :::
  *
  * @var Blush\View\Template            $template

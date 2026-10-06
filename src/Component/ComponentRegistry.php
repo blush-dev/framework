@@ -18,6 +18,7 @@ use InvalidArgumentException;
 use Override;
 use ReflectionClass;
 use Blush\Field\Field;
+use Blush\Markdown\DirectiveKind;
 use Blush\Support\RegistrationException;
 
 /**
@@ -28,6 +29,7 @@ use Blush\Support\RegistrationException;
  * ```php
  * $components->register('acme/tabs', Tabs::class);
  * $components->register('acme/note', content: ComponentContent::Blocks, props: [new TextField('title')], variants: ['wide']);
+ * $components->register('acme/tag', content: ComponentContent::Text, kind: DirectiveKind::Inline);
  * ```
  *
  * Registering makes a component known to the admin's inserter and to
@@ -51,16 +53,16 @@ final class ComponentRegistry implements Countable
 
 	/**
 	 * Registers a component, replacing any registered under its name.
-	 * `$content`, `$props`, and `$variants` default to what the class
-	 * says (D-266: a variant given by name has the component's namespace
+	 * `$content`, `$props`, `$variants`, and `$kind` (how it's written,
+	 * D-531) default to what the class says (D-266: a variant given by name has the component's namespace
 	 * as its registrant).
 	 *
 	 * @param  ?class-string<Component> $class
 	 * @param  ?list<Field>             $props
 	 * @param  ?list<Variant|string>    $variants
-	 * @throws RegistrationException When the name, class, or a variant isn't valid.
+	 * @throws RegistrationException When the name, class, kind, or a variant isn't valid.
 	 */
-	public function register(string $name, ?string $class = null, ?ComponentContent $content = null, ?array $props = null, ?array $variants = null): void
+	public function register(string $name, ?string $class = null, ?ComponentContent $content = null, ?array $props = null, ?array $variants = null, ?DirectiveKind $kind = null): void
 	{
 		$parsed = self::name($name);
 
@@ -74,7 +76,15 @@ final class ComponentRegistry implements Countable
 			}
 		}
 
-		$definition = new ComponentDefinition($parsed, $class, $content, $props, $variants);
+		$definition = new ComponentDefinition($parsed, $class, $content, $props, $variants, $kind);
+
+		// Only what wraps blocks is a container, and it's always one.
+		if (($definition->kind() === DirectiveKind::Container) !== ($definition->content() === ComponentContent::Blocks)) {
+			throw new RegistrationException(sprintf(
+				'The "%s" component: only a component that wraps blocks is a container, and one that does is always a container.',
+				$parsed
+			));
+		}
 
 		try {
 			$definition->variants();
@@ -94,10 +104,10 @@ final class ComponentRegistry implements Countable
 	 * @param  ?list<Variant|string>    $variants
 	 * @throws RegistrationException
 	 */
-	public function registerIf(string $name, ?string $class = null, ?ComponentContent $content = null, ?array $props = null, ?array $variants = null): void
+	public function registerIf(string $name, ?string $class = null, ?ComponentContent $content = null, ?array $props = null, ?array $variants = null, ?DirectiveKind $kind = null): void
 	{
 		if (! $this->isRegistered($name)) {
-			$this->register($name, $class, $content, $props, $variants);
+			$this->register($name, $class, $content, $props, $variants, $kind);
 		}
 	}
 

@@ -124,28 +124,6 @@ enum ComponentType: string
 	}
 
 	/**
-	 * Returns whether it's meant for inside a sentence (`:kbd[Esc]`)
-	 * rather than on a line of its own, which the admin's inserter shows
-	 * as its kind (D-243).
-	 */
-	public function isInline(): bool
-	{
-		return in_array($this, [
-			self::Abbr,
-			self::Badge,
-			self::Cite,
-			self::Dfn,
-			self::Icon,
-			self::Ins,
-			self::Kbd,
-			self::Samp,
-			self::Small,
-			self::Time,
-			self::Var
-		], true);
-	}
-
-	/**
 	 * Returns the component's full name.
 	 */
 	public function componentName(): ComponentName

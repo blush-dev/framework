@@ -130,6 +130,28 @@ final class MarkdownRenderingTest extends TestCase
 		);
 	}
 
+	/**
+	 * An image on each line, as a gallery's are written (D-528), is a
+	 * figure each, without a paragraph or line breaks around them.
+	 */
+	public function testAnImageOnEachLineIsAFigureEach(): void
+	{
+		$html = $this->parser()->toHtml("![A](/media/2019/cat.png \"First\"){.wide}\n[![B](/media/2019/cat.png)](/about)\\\n![C](/media/2019/cat.png)");
+
+		$this->assertSame(3, substr_count($html, '<figure'));
+		$this->assertStringContainsString('<figure class="wide">', $html);
+		$this->assertStringContainsString('<figcaption>First</figcaption>', $html);
+		$this->assertStringContainsString('<figure><a href="https://example.com/about"><img', $html);
+		$this->assertStringNotContainsString('<p>', $html);
+		$this->assertStringNotContainsString('<br', $html);
+	}
+
+	public function testImagesSideBySideOrWithTextStayAParagraph(): void
+	{
+		$this->assertStringStartsWith('<p><img', $this->parser()->toHtml('![A](/media/2019/cat.png) ![B](/media/2019/cat.png)'));
+		$this->assertStringStartsWith('<p><img', $this->parser()->toHtml("![A](/media/2019/cat.png)\nA cat."));
+	}
+
 	public function testInlineImagesStayInTheirParagraph(): void
 	{
 		$this->assertSame(
