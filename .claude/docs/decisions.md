@@ -15522,3 +15522,20 @@ decision, add a new entry that supersedes it and mark the old one
   visit yet, a crumb goes to its plain route. The section panel's links
   still go to each screen's first view.
 - **Why:** the author: the crumbs "don't remember the previous state".
+
+
+### D-524: Checking and previewing a theme run its code as activating it would
+- **Date:** 2026-10-06
+- **Status:** Built. Fixes the two gaps left by D-502.
+- **Decision:** `theme:check` on a theme that isn't active autoloads its
+  chain's local themes while it checks (`ThemeChecker`, unregistered
+  after), so its `provider` is checked as a class it can load, not
+  reported as missing. A theme previewed with `?theme=` (development
+  only, D-035) runs as if it were active: `ThemeResolver` autoloads its
+  chain's local themes and registers its providers late, once per
+  theme, when its requirements are met (checked as `ExtensionState`
+  would for activating it); a provider that isn't a service provider is
+  skipped, as at boot. The active theme's providers have already run,
+  so what they register stays during a preview, and routes a previewed
+  theme's provider adds aren't seen (routes are settled by then).
+- **Why:** the author picked both from the quick wins.

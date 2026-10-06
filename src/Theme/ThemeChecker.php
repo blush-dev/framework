@@ -24,6 +24,7 @@ use Blush\Content\Http\PageKind;
 use Blush\Core\ServiceProvider;
 use Blush\Extension\ExtensionAbandoned;
 use Blush\Extension\ExtensionState;
+use Blush\Extension\LocalAutoloader;
 use Blush\Extension\Requirements;
 use Blush\Extension\VersionConstraint;
 use Blush\Field\Severity;
@@ -91,20 +92,30 @@ final readonly class ThemeChecker
 			return new ThemeReport($name, [new Violation('manifest', $error->getMessage()), ...$problems]);
 		}
 
-		foreach ($chain as $theme) {
-			$problems = [...$problems, ...$this->manifest($theme), ...$this->catalogs($theme)];
+		// An inactive theme's classes aren't autoloaded, so the chain's
+		// are, as activating it would, while it's checked.
+		$autoloader = new LocalAutoloader();
+		$autoloader->addThemes($chain);
+		$autoloader->register();
+
+		try {
+			foreach ($chain as $theme) {
+				$problems = [...$problems, ...$this->manifest($theme), ...$this->catalogs($theme)];
+			}
+
+			$problems = [...$problems, ...$this->requirements($name)];
+
+			$problems = [
+				...$problems,
+				...$this->settings($chain),
+				...$this->components($chain),
+				...$this->menus->check($chain),
+				...$this->regions->check($chain),
+				...$this->layout($chain)
+			];
+		} finally {
+			$autoloader->unregister();
 		}
-
-		$problems = [...$problems, ...$this->requirements($name)];
-
-		$problems = [
-			...$problems,
-			...$this->settings($chain),
-			...$this->components($chain),
-			...$this->menus->check($chain),
-			...$this->regions->check($chain),
-			...$this->layout($chain)
-		];
 
 		return new ThemeReport($name, $problems);
 	}

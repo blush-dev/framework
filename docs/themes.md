@@ -48,7 +48,10 @@ admin's Themes screen) by where it was found, such as
 isn't its name is broken too.
 
 In development, add `?theme=acme/notebook` to any URL to preview another
-theme.
+theme. A previewed theme's provider runs as it would if the theme were
+active, as long as its requirements are met. The active theme's provider
+has run too, so what it registers stays, and routes the previewed
+theme's provider adds don't take effect until it's activated.
 
 ## Settings
 

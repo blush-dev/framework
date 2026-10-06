@@ -242,6 +242,43 @@ final class ThemesTest extends TestCase
 		$this->assertSame($development->chain('acme/child'), $development->chain('acme/child'));
 	}
 
+	public function testAPreviewedThemeRunsItsProviders(): void
+	{
+		$this->writeThemes();
+		$this->writeTemporaryFile('extensions/acme/lit/theme.json', (string) json_encode([
+			'name'      => 'acme/lit',
+			'label'     => 'Lit',
+			'namespace' => 'lit',
+			'provider'  => 'Acme\\Lit\\LitServiceProvider',
+			'autoload'  => ['psr-4' => ['Acme\\Lit\\' => 'src/']]
+		]));
+		$this->writeTemporaryFile('extensions/acme/lit/src/LitServiceProvider.php', "<?php\n\ndeclare(strict_types=1);\n\nnamespace Acme\\Lit;\n\nfinal class LitServiceProvider extends \\Blush\\Core\\ServiceProvider\n{\n}\n");
+		$this->writeTemporaryFile('extensions/acme/needy/theme.json', (string) json_encode([
+			'name'      => 'acme/needy',
+			'label'     => 'Needy',
+			'namespace' => 'needy',
+			'provider'  => 'Acme\\Needy\\NeedyServiceProvider',
+			'autoload'  => ['psr-4' => ['Acme\\Needy\\' => 'src/']],
+			'require'   => ['acme/missing' => '*']
+		]));
+		$this->writeTemporaryFile('extensions/acme/needy/src/NeedyServiceProvider.php', "<?php\n\ndeclare(strict_types=1);\n\nnamespace Acme\\Needy;\n\nfinal class NeedyServiceProvider extends \\Blush\\Core\\ServiceProvider\n{\n}\n");
+
+		$providers = static fn (Application $app): array => array_map(static fn (object $provider): string => $provider::class, $app->providers());
+
+		$production = $this->boot();
+		$production->container()->make(ThemeResolver::class)->forRequest(Request::create('/?theme=acme/lit'));
+		$this->assertNotContains('Acme\\Lit\\LitServiceProvider', $providers($production));
+
+		$development = $this->boot('development');
+		$resolver    = $development->container()->make(ThemeResolver::class);
+		$resolver->forRequest(Request::create('/?theme=acme/lit'));
+		$this->assertContains('Acme\\Lit\\LitServiceProvider', $providers($development));
+
+		// A theme whose requirements aren't met previews without its providers.
+		$this->assertSame('acme/needy', $resolver->forRequest(Request::create('/?theme=acme/needy'))->active()->name);
+		$this->assertNotContains('Acme\\Needy\\NeedyServiceProvider', $providers($development));
+	}
+
 	public function testServesThemeAssets(): void
 	{
 		$this->writeThemes();

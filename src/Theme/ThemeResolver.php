@@ -14,12 +14,21 @@ declare(strict_types=1);
 namespace Blush\Theme;
 
 use Psr\Http\Message\ServerRequestInterface;
+use Blush\Container\ContainerException;
 use Blush\Core\AppConfig;
+use Blush\Core\Application;
+use Blush\Core\ServiceProvider;
+use Blush\Extension\ExtensionState;
+use Blush\Extension\LocalAutoloader;
 
 /**
  * Picks the theme chain a request renders with: the configured active
  * theme, or, in development only, an installed theme named by
- * `?theme={name}` (D-035). An unknown `?theme=` is ignored.
+ * `?theme={name}` (D-035). An unknown `?theme=` is ignored. A previewed
+ * theme runs as it would if it were active: its chain's local themes are
+ * autoloaded and its providers registered, when its requirements are met.
+ * The active theme's providers have run by then too, so what they
+ * register stays.
  *
  * Chains are built once per theme and kept. The chain a request picked is
  * remembered as `current()`, which Markdown directives render with.
@@ -38,10 +47,19 @@ final class ThemeResolver
 	 */
 	private ?ThemeChain $current = null;
 
+	/**
+	 * The previewed themes started so far, by name.
+	 *
+	 * @var array<string, true>
+	 */
+	private array $started = [];
+
 	public function __construct(
 		private readonly Themes $themes,
 		private readonly ThemeConfig $config,
-		private readonly AppConfig $app
+		private readonly AppConfig $app,
+		private readonly ExtensionState $extensions,
+		private readonly Application $application
 	) {}
 
 	/**
@@ -64,9 +82,14 @@ final class ThemeResolver
 	{
 		$name = $request->getQueryParams()['theme'] ?? null;
 
-		return $this->current = $this->app->environment->isDevelopment() && is_string($name) && $this->themes->has($name)
-			? $this->chain($name)
-			: $this->active();
+		if (! $this->app->environment->isDevelopment() || ! is_string($name) || ! $this->themes->has($name)) {
+			return $this->current = $this->active();
+		}
+
+		$chain = $this->chain($name);
+		$this->start($name, $chain);
+
+		return $this->current = $chain;
 	}
 
 	/**
@@ -79,6 +102,37 @@ final class ThemeResolver
 	public function current(): ThemeChain
 	{
 		return $this->current ?? $this->active();
+	}
+
+	/**
+	 * Starts a previewed theme once: autoloads its chain's local themes
+	 * and registers its providers (ancestors first; any the active chain
+	 * shares are already registered), unless it's the running theme or its
+	 * requirements aren't met. A provider that isn't a service provider is
+	 * skipped, as at boot.
+	 *
+	 * @throws ContainerException
+	 */
+	private function start(string $name, ThemeChain $chain): void
+	{
+		if (isset($this->started[$name]) || $name === $this->themes->running($this->config->active)) {
+			return;
+		}
+
+		$this->started[$name] = true;
+
+		if ($this->extensions->with(theme: $name)->themes->unmet() !== []) {
+			return;
+		}
+
+		$autoloader = new LocalAutoloader();
+		$autoloader->addThemes($chain);
+		$autoloader->register();
+
+		$this->application->register(...array_values(array_filter(
+			$chain->providers(),
+			static fn (string $provider): bool => is_subclass_of($provider, ServiceProvider::class)
+		)));
 	}
 
 	/**

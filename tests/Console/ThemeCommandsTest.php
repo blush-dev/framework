@@ -198,6 +198,23 @@ final class ThemeCommandsTest extends TestCase
 		$this->assertStringContainsString('Checked the "blush/default" theme: 0 error(s), 0 warning(s), 0 notice(s).', $result->output);
 	}
 
+	public function testChecksAnInactiveThemesProvider(): void
+	{
+		$this->writeTemporaryFile('extensions/acme/coded/theme.json', (string) json_encode([
+			'name'      => 'acme/coded',
+			'label'     => 'Coded',
+			'namespace' => 'coded',
+			'provider'  => 'Acme\\Coded\\CodedServiceProvider',
+			'autoload'  => ['psr-4' => ['Acme\\Coded\\' => 'src/']]
+		]));
+		$this->writeTemporaryFile('extensions/acme/coded/src/CodedServiceProvider.php', "<?php\n\ndeclare(strict_types=1);\n\nnamespace Acme\\Coded;\n\nfinal class CodedServiceProvider extends \\Blush\\Core\\ServiceProvider\n{\n}\n");
+
+		$result = $this->command(['theme:check', 'acme/coded']);
+
+		$this->assertSame(ExitCode::Success, $result->exitCode, $result->output);
+		$this->assertStringNotContainsString('provider', $result->output);
+	}
+
 	public function testChecksReportProblems(): void
 	{
 		$this->writeTemporaryFile('extensions/acme/rough/theme.json', json_encode([
