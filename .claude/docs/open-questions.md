@@ -148,6 +148,48 @@ Move each item to `decisions.md` once it's answered.
   - Whether `SqliteIndex` and FTS5 stay planned, for large sites PHP
     serves.
   - Its records could be the content API's (below).
+- **Data types: types without a body** (discussed 2026-10-06; leaning,
+  not decided): types that are data more than prose (testimonials,
+  price rows, events, links) don't need the writing surface. Today
+  every entry is front matter and a Markdown body (D-501), the body
+  may be empty, and the editor always opens on the writing area.
+  `urls: false`, `public: false`, `sitemap`, `feed`, and `llms` already
+  let a type exist without pages; `user/data` files are settings-style
+  data, not entries (no id, status, list, or API), and shouldn't grow
+  into a second model.
+  - **A type option, not a kind:** kind is structure; whether entries
+    have prose is its own axis, and any kind could go either way (a
+    tree of reference data, a taxonomy without bodies). A type would
+    have four: structure (`kind`), addressing (`urls`, `public`), prose
+    (`body: false`, missing), and data (fields, paused, D-348).
+  - **With `body: false`:**
+    - **Storage:** one format still, a `.md` file of front matter only
+      (D-501 allows it); a database driver (D-486) keeps a null body.
+      `content:lint` warns of a body that turns up rather than removing
+      it.
+    - **Admin:** the editor opens as a form: the title and the type's
+      field groups in the main column in place of the writing surface
+      (D-348's "the writing area stays the text's" holds, since there's
+      no text). A type's list could show chosen fields as columns.
+    - **Elsewhere:** excerpts, word counts, Markdown copies (D-395),
+      and search over body text skip these types.
+    - **The content API:** the type's description says `body: false`,
+      and its entries have no `body` key at all (not `null`), so
+      clients know from the type, not from each entry.
+  - **One entry shape across the content API:** `{ id, type, title,
+    slug, status, published, updated, url?, fields: {…}, body? }`, with
+    a site's fields under `fields`, not flattened beside the built-ins,
+    so a site's `status` or `title` field never collides with Blush's;
+    `url` only when the type has URLs, `body` only when it has one.
+  - Still open:
+    - **The name and values:** `body: false`, or `body:
+      optional|required|none`.
+    - **Titles:** data records often have no natural title. Required,
+      or a type saying "make the title from a field" (the slug
+      following it)?
+    - **Order:** this leans on the Fields API (paused, D-348). Data
+      types as the use case that restarts it, or `body: false` first
+      for types needing only a title and a few front matter keys?
 - **APIs, agents, and headless** (discussed 2026-10-03; the author wants
   to explore or build most of these; nothing decided):
   - **The content API** (decided in D-479: two surfaces over one
@@ -155,7 +197,8 @@ Move each item to `decisions.md` once it's answered.
     entries by id, D-477). Still open: the answer's shape (leaning plain
     `{ items, total, page, pages }` with `next` and `prev` links over a
     `{ data, meta, links }` envelope), bodies (`?body=html` by default,
-    `markdown`, `none`), the path setting, and caching (an `ETag`,
+    `markdown`, `none`; types without a body and the entry shape are
+    under "Data types" above), the path setting, and caching (an `ETag`,
     anonymous answers only), and a lookup by site URL (`?url=`) for
     headless routing. No file paths, ever (D-481). Settle before tokens and MCP, which build
     on it.
@@ -483,6 +526,30 @@ Move each item to `decisions.md` once it's answered.
   - Tree types (D-386): sibling order is `position` (D-412). Does the
     template API get previous/next through the tree and a table of
     contents? And dragging rows in the Pages tree to set positions?
+  - **Books in a tree** (discussed 2026-10-05; leaning, not decided):
+    a book (parts, chapters, prologue, interludes, epilogue) is a tree,
+    not a Book kind. A `book` tree in `_books` works today: each book a
+    folder whose `index.md` is its cover or landing page, parts as
+    folders, chapters as files. What it lacks:
+    - **Reading order:** previous/next through the whole tree, page by
+      page, and a table of contents (the question above). Perhaps a
+      tree option (`sequential: true`, or `reading: book`) that turns
+      them on, which docs and manuals would want too.
+    - **A role per entry** in front matter (`part`, `chapter`,
+      `prologue`, `interlude`, `epilogue`, `appendix`), with numbering
+      ("Chapter 3", "Part II") worked out from role and `position`:
+      chapters counted, a prologue or interlude skipped. A field once
+      the Fields API is picked up again (D-348); a plain front matter
+      key until then.
+    - **No pinning by file name:** `prologue.md` and the like get no
+      special treatment (D-516; a database has no file names).
+      `position` puts a prologue first and an epilogue last; `index.md`
+      stays the one pinned name, since it means "this folder's page,"
+      not an order.
+  - **Plugin kinds:** should `TypeKind` be open to plugins, as other
+    registries are? The leaning is closed until a case appears that a
+    tree or collection with options can't handle; books, forums, and
+    shops (see "Forums and shops") aren't one.
   - The site's own pages (error pages, pinned on Pages for now, D-411):
     a tab on Pages, or a System screen, once there are more of them?
     Longer term (the author): an internal **system** content type for
@@ -913,6 +980,23 @@ Move each item to `decisions.md` once it's answered.
       both.
     - **Core or plugin overall:** the leaning is the model, storage
       area, per-type setting, moderation, comments, and reviews in core.
+- **Forums and shops** (discussed 2026-10-05; leaning, not decided):
+  neither is a new kind. What sets them apart is who writes the data:
+  visitors write it at runtime, so it belongs in `storage/` behind a
+  storage area (D-486), never in `content/`, where a git deploy would
+  overwrite it.
+  - **Forums** (forum → thread → reply): forums are a taxonomy or small
+    tree the site's author writes; replies are close to Responses'
+    `comment` with `parent` for threading. Threads are the open part:
+    a response kind (`thread`) on a forum entry, with replies under it,
+    which reuses Responses; or visitor-created entries in a
+    storage-backed type, a much larger change. Ties in with open
+    membership and Responses' database driver (busy forums). Leaning: a
+    plugin built on responses and accounts.
+  - **Shops:** products are a collection and product categories a
+    taxonomy. Variants and prices are fields, so they wait on the
+    Fields API (D-348). Cart, orders, stock levels, and payments are
+    runtime data in a storage area of their own: a plugin.
 - **Repo strategy after 2.x stabilizes:** one package, or a split monorepo?
 - **Theming:** see the open questions in `theming.md`.
 - **Menus and regions, later** (D-199 to D-204): entries adding
