@@ -112,12 +112,14 @@ function use(icon: SiteIcon | undefined): void {
 
 <template>
 	<dialog ref="dialog" class="modal icon-picker" aria-labelledby="icon-picker-heading" @close="emit('close')" @keydown.esc.prevent.stop="close()">
-		<div class="modal__head">
+		<div class="panel__header">
 			<h2 id="icon-picker-heading">Insert an Icon</h2>
-			<button type="button" class="button button--ghost button--icon" @click="close()">
-				<AdminIcon name="x" />
-				<span class="visually-hidden">Close</span>
-			</button>
+			<div class="panel__actions">
+				<button type="button" class="button button--ghost button--small button--icon" @click="close()">
+					<AdminIcon name="x" />
+					<span class="visually-hidden">Close</span>
+				</button>
+			</div>
 		</div>
 
 		<div class="modal__bar">

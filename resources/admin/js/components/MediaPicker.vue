@@ -279,18 +279,19 @@ function use(chosen: MediaItem[]): void {
 		@dragleave="dragLeave"
 		@drop="drop"
 	>
-		<div class="modal__head">
+		<div class="panel__header" :class="{ 'picker__head--tabbed': tabbed }">
 			<h2 id="media-picker-heading">{{ title ?? 'Insert Media' }}</h2>
-			<button type="button" class="button button--ghost button--icon" @click="close()">
-				<AdminIcon name="x" />
-				<span class="visually-hidden">Close</span>
-			</button>
+			<div class="panel__actions">
+				<button type="button" class="button button--ghost button--small button--icon" @click="close()">
+					<AdminIcon name="x" />
+					<span class="visually-hidden">Close</span>
+				</button>
+			</div>
+			<TabBar v-if="tabbed" v-model="tab" class="picker__tabs" :tabs="TABS" label="Source" prefix="media" />
 		</div>
 
-		<TabBar v-if="tabbed" v-model="tab" class="picker__tabs" :tabs="TABS" label="Source" prefix="media" />
-
 		<div v-if="!uploadOnly" v-show="tab === 'library'" id="media-panel-library" class="picker__panel" :role="tabbed ? 'tabpanel' : undefined" :aria-labelledby="tabbed ? 'media-tab-library' : undefined">
-			<div class="modal__bar" :class="{ 'picker__bar--tabbed': tabbed }">
+			<div class="modal__bar">
 				<label class="search-field">
 					<AdminIcon name="search" />
 					<input ref="searchEl" v-model="search" type="search" placeholder="Search file names…" aria-label="Search media" autocomplete="off">
@@ -334,7 +335,7 @@ function use(chosen: MediaItem[]): void {
 		</div>
 
 		<div v-if="uploads" v-show="tab === 'upload'" id="media-panel-upload" class="picker__panel" :role="tabbed ? 'tabpanel' : undefined" :aria-labelledby="tabbed ? 'media-tab-upload' : undefined">
-			<div class="modal__body picker__body" :class="{ 'picker__upload--tabbed': tabbed }">
+			<div class="modal__body picker__body picker__upload">
 				<div class="picker__drop">
 					<AdminIcon name="upload" />
 					<p class="picker__drop-heading">Drag Files Here</p>
@@ -382,10 +383,13 @@ function use(chosen: MediaItem[]): void {
 <style scoped>
 /* The tabs sit where the filter bar would, flush with the modal's left
    edge like the editor drawer's. */
+/* The tabs are the head's last row, their marker on its hairline. */
+.picker__head--tabbed {
+	padding-bottom: 0;
+}
+
 .picker__tabs {
-	flex: none;
-	padding: 0 var(--s-5);
-	border-bottom: 1px solid var(--border);
+	flex-basis: 100%;
 }
 
 .picker__panel {
@@ -395,17 +399,17 @@ function use(chosen: MediaItem[]): void {
 	min-height: 0;
 }
 
-.picker__bar--tabbed {
-	padding-top: var(--s-4);
-}
-
 .picker__body {
 	display: grid;
 	align-content: start;
 	gap: var(--s-6);
 }
 
-.picker__upload--tabbed {
+/* Right under the head, whose hairline it already has. The drop zone
+   fills the body, less its padding, with any receipt under it. */
+.picker__upload {
+	grid-template-rows: minmax(min-content, 1fr);
+	align-content: stretch;
 	border-top: 0;
 }
 
@@ -431,6 +435,7 @@ function use(chosen: MediaItem[]): void {
    tries. The button has no icon: the large one above already says it. */
 .picker__drop {
 	display: grid;
+	align-content: center;
 	justify-items: center;
 	gap: var(--s-3);
 	padding: 64px var(--s-6);

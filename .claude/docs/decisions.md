@@ -16595,3 +16595,36 @@ decision, add a new entry that supersedes it and mark the old one
   of extensions are which are on and where they came from, and five
   dependency panels made the details screens mostly headings.
 
+### D-566: Every card's head is `.panel__header`
+
+- **Date:** 2026-10-07
+- **Decision:** every card in the admin, modals drawn as cards included,
+  is a head, then a border, then its content, and the head is one shared
+  class, `.panel__header` (D-509), not a class per card. Its controls
+  are small (`--ctl-sm`) and in `.panel__actions`, a close button
+  included:
+  - **Library modals** (the media and icon pickers): `.modal__head` is
+    gone. The filter bar sits under the head's border, and its own line
+    over the results stays. The media picker's tabs are the head's last
+    row, their marker on its border, and the Upload panel has no line of
+    its own over it (the upload-only picker drew two).
+  - **Prompts** (`AdminModal`): `.prompt__head` is gone. A prompt is a
+    column up to 86vh whose body scrolls only past that, in place of a
+    body capped at 54vh, which the body's new top padding pushed the
+    install modal over.
+  - **The inserter** (`DirectivePanel`): `.inserter__head` is gone.
+  - **The sign-in card** (`AuthCard`): a `.panel`, its head
+    `.panel__header` with the site's initial over the title, its slot in
+    `.panel__body`.
+  - Modal, prompt, and inserter bodies, bars, and footers are padded
+    `--pad-x` across, as a panel's are, so they line up with the head.
+  - Not cards, so unchanged: the command palette (a search field, no
+    head), extension and media cards (a preview, no head), stats, the
+    danger zone, the install modal's status slabs, and the accordions in
+    a panel (capability sections, upload rules).
+- **Checked:** `npm run admin:build`; screenshots on the trial of Sign
+  In, the media picker (tabbed and upload-only), the icon picker, the
+  inserter, and Install Plugin at two heights, with a throwaway account
+  removed after.
+- **Why:** the author's call: headers drawn the same everywhere, from
+  one shared piece.

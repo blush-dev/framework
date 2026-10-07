@@ -1,8 +1,8 @@
 <script setup lang="ts">
 /**
  * The card a screen outside the admin's shell is drawn in (D-509): Sign
- * in and Choose a Password, centered on the page, with the site's
- * initial over the title. A form in it is `.auth-card__form`: its fields
+ * in and Choose a Password, centered on the page, a panel with the
+ * site's initial over the title. A form in it is `.auth-card__form`: its fields
  * close together, and its button a little taller.
  */
 
@@ -16,24 +16,20 @@ defineProps<{
 </script>
 
 <template>
-	<div class="auth-card" :class="{ 'auth-card--wide': wide }">
-		<header class="auth-card__header">
+	<div class="panel auth-card" :class="{ 'auth-card--wide': wide }">
+		<header class="panel__header auth-card__header">
 			<span class="auth-card__mark" aria-hidden="true">{{ config.site.name.charAt(0) }}</span>
 			<h1 tabindex="-1">{{ title }}</h1>
 		</header>
-		<slot />
+		<div class="panel__body">
+			<slot />
+		</div>
 	</div>
 </template>
 
 <style scoped>
 .auth-card {
-	display: grid;
-	gap: 20px;
 	width: min(100%, 22rem);
-	padding: 28px 24px;
-	background: var(--surface);
-	border: 1px solid var(--border);
-	border-radius: var(--r-3);
 	box-shadow: var(--shadow-2);
 }
 
@@ -41,9 +37,10 @@ defineProps<{
 	width: min(100%, 24rem);
 }
 
+/* A panel's head (D-566), with the site's initial over the title. */
 .auth-card__header {
-	display: grid;
-	justify-items: start;
+	flex-direction: column;
+	align-items: flex-start;
 	gap: 14px;
 }
 

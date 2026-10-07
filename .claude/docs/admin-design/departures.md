@@ -789,6 +789,12 @@ Each is recorded in `.claude/docs/decisions.md`.
   in Blush are now a theme's template pieces, which the admin doesn't
   show.
 
+- **Every card's head is over a hairline** (D-566): a panel, a library
+  modal, a prompt, the inserter, and the sign-in card all draw their
+  heading with `.panel__header`, then a border, then what's in them, where the direction leaves the prompts'
+  and the sign-in card's titles flowing into their bodies and a library
+  modal's line under its filter bar.
+
 ## Settled open questions
 
 From §13, now `50-open-questions.md`:

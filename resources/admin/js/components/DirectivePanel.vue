@@ -123,13 +123,15 @@ defineExpose({ move, choose, focus });
 
 <template>
 	<div class="inserter">
-		<div class="inserter__head">
+		<div class="panel__header">
 			<h2 id="directive-panel-heading">Insert</h2>
 			<span class="inserter__count">{{ query.trim() === '' ? directives.length : `${shown} of ${directives.length}` }}</span>
-			<button type="button" class="button button--ghost button--icon" @click="emit('close')">
-				<AdminIcon name="x" />
-				<span class="visually-hidden">Close the blocks</span>
-			</button>
+			<div class="panel__actions">
+				<button type="button" class="button button--ghost button--small button--icon" @click="emit('close')">
+					<AdminIcon name="x" />
+					<span class="visually-hidden">Close the blocks</span>
+				</button>
+			</div>
 		</div>
 
 		<label class="inserter__search">
@@ -199,7 +201,7 @@ defineExpose({ move, choose, focus });
 <style scoped>
 .inserter__note {
 	margin: 0;
-	padding: var(--s-2) var(--s-5);
+	padding: var(--s-2) var(--pad-x);
 	border-bottom: 1px solid var(--border);
 	color: var(--fg-2);
 	font-size: var(--text-sm);
@@ -211,24 +213,6 @@ defineExpose({ move, choose, focus });
 	width: var(--inserter);
 	height: 100%;
 	min-height: 0;
-}
-
-.inserter__head {
-	display: flex;
-	flex: none;
-	align-items: center;
-	gap: var(--s-2);
-	min-height: 62px;
-	padding: var(--s-3) var(--s-3) var(--s-3) var(--s-5);
-	border-bottom: 1px solid var(--border);
-}
-
-.inserter__head h2 {
-	flex: 1;
-	min-width: 0;
-	font-family: var(--font-display);
-	font-size: var(--h2);
-	font-weight: 600;
 }
 
 .inserter__count {
@@ -243,7 +227,7 @@ defineExpose({ move, choose, focus });
 	flex: none;
 	align-items: center;
 	gap: 11px;
-	padding: 14px var(--s-5);
+	padding: 14px var(--pad-x);
 	border-bottom: 1px solid var(--border);
 	color: var(--fg-3);
 }
@@ -345,7 +329,7 @@ defineExpose({ move, choose, focus });
 	flex: none;
 	gap: 4px;
 	min-height: 76px;
-	padding: var(--s-4) var(--s-5);
+	padding: var(--s-4) var(--pad-x);
 	border-top: 1px solid var(--border);
 	background: var(--bg);
 }
@@ -373,7 +357,7 @@ defineExpose({ move, choose, focus });
 }
 
 @media (width <= 640px) {
-	.inserter__head,
+	.inserter .panel__header,
 	.inserter__search,
 	.inserter__preview {
 		padding-inline: var(--s-4);

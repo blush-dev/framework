@@ -196,8 +196,12 @@
 	min-width: 0;
 }
 
+/* Every card's head (D-566): a panel's, a modal's, a prompt's, the
+   inserter's, and the sign-in card's, so they're drawn one way. Its
+   controls are small (`--ctl-sm`), in `.panel__actions`. */
 .panel__header {
 	display: flex;
+	flex: none;
 	flex-wrap: wrap;
 	align-items: center;
 	gap: var(--s-1) var(--s-3);
@@ -1392,8 +1396,9 @@
 
 /*
  * Library modals (admin.md §8, The inserters): the media and icon
- * pickers share one shell, a native <dialog> with a head, a filter bar,
- * a body, and a footer naming the selection. A library is a browsing
+ * pickers share one shell, a native <dialog> with a head
+ * (`.panel__header`), a filter bar, a body, and a footer naming the
+ * selection. A library is a browsing
  * screen that happens to be in a modal, so it gets the room one needs.
  */
 .modal {
@@ -1420,35 +1425,19 @@
 	backdrop-filter: blur(3px);
 }
 
-.modal__head {
-	display: flex;
-	flex: none;
-	align-items: center;
-	gap: var(--s-3);
-	padding: var(--s-5) var(--s-4) var(--s-4) var(--s-5);
-}
-
-.modal__head h2 {
-	flex: 1;
-	min-width: 0;
-	font-family: var(--font-display);
-	font-size: var(--h2);
-	font-weight: 600;
-}
-
 .modal__bar {
 	display: flex;
 	flex: none;
 	flex-wrap: wrap;
 	align-items: center;
 	gap: var(--s-3);
-	padding: 0 var(--s-5) var(--s-4);
+	padding: var(--s-4) var(--pad-x);
 }
 
 .modal__body {
 	flex: 1;
 	min-height: 0;
-	padding: var(--s-5);
+	padding: var(--s-5) var(--pad-x);
 	overflow-y: auto;
 	border-top: 1px solid var(--border);
 }
@@ -1459,7 +1448,7 @@
 	flex-wrap: wrap;
 	align-items: center;
 	gap: var(--s-2);
-	padding: var(--s-4) var(--s-5);
+	padding: var(--s-4) var(--pad-x);
 	border-top: 1px solid var(--border);
 	background: var(--bg);
 }
@@ -1507,7 +1496,7 @@
 		max-height: none;
 	}
 
-	.modal__head,
+	.modal .panel__header,
 	.modal__bar,
 	.modal__body,
 	.modal__foot {
@@ -2104,8 +2093,9 @@ button.lnk {
 	text-align: right;
 }
 
-/* Prompts (D-373; the profiles sketch's modals): a title, a body, and a footer
-   of buttons on a quieter ground, over a dimmed page. */
+/* Prompts (D-373; the profiles sketch's modals): a head (`.panel__header`), a
+   body that scrolls once the prompt is as tall as it gets, and a footer of
+   buttons on a quieter ground, over a dimmed page. */
 
 .prompt {
 	width: min(460px, calc(100vw - 32px));
@@ -2124,6 +2114,11 @@ button.lnk {
 	width: min(620px, calc(100vw - 32px));
 }
 
+.prompt[open] {
+	display: flex;
+	flex-direction: column;
+}
+
 .prompt::backdrop {
 	background: color-mix(in srgb, var(--fg) 28%, transparent);
 }
@@ -2132,22 +2127,10 @@ button.lnk {
 	outline: none;
 }
 
-.prompt__head {
-	padding: var(--s-5) var(--s-5) var(--s-3);
-}
-
-.prompt__head h2 {
-	margin: 0;
-	font-family: var(--font-display);
-	font-size: var(--h2);
-	font-weight: 600;
-	letter-spacing: -.01em;
-	text-wrap: balance;
-}
-
 .prompt__body {
-	max-height: 54vh;
-	padding: 0 var(--s-5) var(--s-5);
+	flex: 1;
+	min-height: 0;
+	padding: var(--s-5) var(--pad-x);
 	overflow-y: auto;
 	color: var(--fg-2);
 }
@@ -2169,9 +2152,10 @@ button.lnk {
 .prompt__foot {
 	display: flex;
 	flex-wrap: wrap;
+	align-items: center;
 	justify-content: flex-end;
 	gap: var(--s-2);
-	padding: var(--s-4) var(--s-5);
+	padding: var(--s-4) var(--pad-x);
 	border-top: 1px solid var(--border);
 	border-radius: 0 0 calc(var(--r-3) - 1px) calc(var(--r-3) - 1px);
 	background: var(--surface-2);

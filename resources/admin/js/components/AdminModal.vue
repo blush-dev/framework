@@ -69,7 +69,7 @@ function backdrop(event: MouseEvent): void {
 
 <template>
 	<dialog ref="dialog" class="prompt" :class="{ 'prompt--wide': wide }" :aria-labelledby="headId" tabindex="-1" @cancel="cancel" @click="backdrop">
-		<div class="prompt__head">
+		<div class="panel__header">
 			<h2 :id="headId">{{ title }}</h2>
 		</div>
 		<div class="prompt__body">
