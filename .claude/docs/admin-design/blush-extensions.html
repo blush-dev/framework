@@ -250,13 +250,18 @@ body { margin:0; background:var(--bg); color:var(--fg); font-family:var(--font-u
 .pill-broken  .dot { background:var(--warn-dot) }
 
 .page-head { display:flex; align-items:flex-start; gap:var(--s-4); margin-bottom:var(--s-6) }
+.page-head-main { min-width:0 }
+/* The chip rides with the title and wraps under it rather than squeezing it. */
+.title-row { display:flex; align-items:center; gap:var(--s-3); flex-wrap:wrap }
+.title-row .pill { margin-block:0; position:relative; top:1px }
 .page-head h1 { margin:0; font-family:var(--font-display); font-size:var(--h1);
   letter-spacing:var(--h1-track); font-weight:600; text-wrap:balance }
 .page-head .lede { margin:var(--s-2) 0 0; color:var(--fg-2); font-size:13.5px; max-width:62ch }
 .page-head .lede a, .inline-link { color:var(--accent); text-decoration:none;
   border-bottom:1px solid var(--accent-line) }
 .page-head .lede a:hover, .inline-link:hover { border-bottom-color:currentColor }
-.page-head .acts { margin-left:auto; flex:none; padding-top:4px; display:flex; gap:var(--s-2) }
+.page-head .acts { margin-left:auto; flex:none; display:flex; gap:var(--s-2);
+  align-items:center; min-height:var(--ctl) }
 .back { display:inline-flex; align-items:center; gap:var(--s-1); color:var(--fg-2);
   text-decoration:none; font-size:12.5px; margin-bottom:var(--s-3) }
 .back:hover { color:var(--fg) }
@@ -340,28 +345,37 @@ code { font-family:var(--font-mono); font-size:11.5px; color:var(--fg);
 .pv-in { position:absolute; inset:0; width:1200px; height:750px; transform-origin:0 0 }
 
 .mini { width:100%; height:100%; background:var(--t-bg); display:flex; flex-direction:column }
-.mini .bar { background:var(--t-surface); border-bottom:2px solid var(--t-border); height:86px;
-  display:flex; align-items:center; gap:30px; padding:0 64px; flex:none }
-.mini .mark { width:120px; height:19px; border-radius:4px; background:var(--t-text) }
-.mini .lk { width:58px; height:12px; border-radius:3px; background:var(--t-muted); opacity:.55 }
-.mini .lk:first-of-type { background:var(--t-accent); opacity:1 }
-.mini .body { flex:1; display:flex; gap:44px; padding:54px 64px 0; min-height:0 }
-.mini .col { display:flex; flex-direction:column; gap:22px; min-width:0; flex:1 }
-.mini .h { height:46px; border-radius:7px; background:var(--t-text) }
-.mini .h.s { width:62% }
-.mini .acc { height:14px; width:140px; border-radius:4px; background:var(--t-accent) }
-.mini .ln { height:14px; border-radius:4px; background:var(--t-muted); opacity:.42 }
-.mini .ln.a { width:96% } .mini .ln.b { width:88% } .mini .ln.c { width:60% }
-.mini .card { background:var(--t-surface); border:2px solid var(--t-border); border-radius:12px;
+/* Every part is prefixed, because this stylesheet is global and a drawing of
+   a web page wants exactly the generic names the admin has already used.
+   `.bar` was picking up the install progress bar's pill radius and margins,
+   which is why the theme's header used to float inset and rounded instead of
+   sitting flush; `.card` was picking up the admin's shadow. */
+/* The header runs edge to edge and square. The only curve on it is the one
+   the card clips, which is the curve a real site header would get. */
+.mini .pv-hd { background:var(--t-surface); border-bottom:2px solid var(--t-border); height:86px;
+  display:flex; align-items:center; gap:30px; padding:0 64px; flex:none;
+  margin:0; border-radius:0 }
+.mini .pv-mark { width:120px; height:19px; border-radius:4px; background:var(--t-text) }
+.mini .pv-lk { width:58px; height:12px; border-radius:3px; background:var(--t-muted); opacity:.55 }
+.mini .pv-lk:first-of-type { background:var(--t-accent); opacity:1 }
+.mini .pv-page { flex:1; display:flex; gap:44px; padding:54px 64px 0; min-height:0 }
+.mini .pv-col { display:flex; flex-direction:column; gap:22px; min-width:0; flex:1 }
+.mini .pv-h { height:46px; border-radius:7px; background:var(--t-text) }
+.mini .pv-h-s { width:62% }
+.mini .pv-acc { height:14px; width:140px; border-radius:4px; background:var(--t-accent) }
+.mini .pv-ln { height:14px; border-radius:4px; background:var(--t-muted); opacity:.42 }
+.mini .pv-ln-a { width:96% } .mini .pv-ln-b { width:88% } .mini .pv-ln-c { width:60% }
+.mini .pv-card { background:var(--t-surface); border:2px solid var(--t-border); border-radius:12px;
+  box-shadow:none; overflow:visible;
   flex:1; min-height:0; display:flex; flex-direction:column; gap:16px; padding:22px }
-.mini .card .ph { height:52%; border-radius:8px; background:var(--t-accent); opacity:.22 }
-.mini .side { width:270px; flex:none; background:var(--t-surface); border:2px solid var(--t-border);
+.mini .pv-card .pv-ph { height:52%; border-radius:8px; background:var(--t-accent); opacity:.22 }
+.mini .pv-side { width:270px; flex:none; background:var(--t-surface); border:2px solid var(--t-border);
   border-radius:12px; padding:24px; display:flex; flex-direction:column; gap:18px }
-.mini .hero { height:168px; border-radius:12px; background:var(--t-accent); flex:none;
+.mini .pv-hero { height:168px; border-radius:12px; background:var(--t-accent); flex:none;
   margin:0 64px 34px; display:flex; align-items:center; padding:0 34px }
-.mini .hero i { display:block; height:22px; width:46%; border-radius:5px; background:var(--t-bg);
+.mini .pv-hero i { display:block; height:22px; width:46%; border-radius:5px; background:var(--t-bg);
   opacity:.85 }
-.mini .row3 { display:flex; gap:26px; padding:0 64px 40px; flex:1; min-height:0 }
+.mini .pv-row3 { display:flex; gap:26px; padding:0 64px 40px; flex:1; min-height:0 }
 
 /* a theme that will not load gets no picture, because there is nothing to draw */
 .pv-none { width:100%; height:100%; display:grid; place-items:center; gap:10px;
@@ -398,6 +412,27 @@ code { font-family:var(--font-mono); font-size:11.5px; color:var(--fg);
 .rdesc { margin:0 0 var(--s-3); color:var(--fg-2); font-size:12.5px; max-width:70ch }
 
 .ract { display:flex; align-items:center; gap:var(--s-2); padding-top:2px }
+.menu-slot { width:var(--ctl-sm); flex:none }
+
+/* Compact view. All three kinds take the same row, so all three take the
+   same badge — the kind's own glyph, the one the sidebar and the cards
+   already use. A shrunk preview at this size was a smudge pretending to be
+   a picture; the card view is where the picture belongs.
+   Compact means fewer lines, not smaller type: identity, then facts. */
+/* The badge is admin chrome and stays gray, because a row of tiles each
+   tinted with its own extension's colors turned the left edge into noise
+   and made every list look like it was reporting something.
+   The one exception is the row that is running: it takes the same green as
+   the pill or switch on the other end of the row, so the left edge is
+   scannable at a glance. That is reinforcement, not the signal — the pill,
+   the switch and the dimmed off-rows all still say it in words. */
+.badge-on { background:var(--good-soft); border-color:var(--good-dot); color:var(--good) }
+.row:hover .badge-on { background:var(--good-soft) }
+.rfacts { margin:3px 0 0; font-size:11.5px; color:var(--fg-3); display:flex;
+  flex-wrap:wrap; gap:var(--s-1) var(--s-3); align-items:center }
+.rfacts .mono { font-size:11px }
+.rfacts a { color:var(--accent); text-decoration:none }
+.rfacts a:hover { text-decoration:underline }
 
 /* A switch is a setting that takes effect when it moves, so it carries a word
    as well as a fill and it raises a toast. A checkbox would do neither. */
@@ -450,26 +485,112 @@ code { font-family:var(--font-mono); font-size:11.5px; color:var(--fg);
 .browse-count { font-size:11.5px; color:var(--fg-3) }
 
 /* == 8b. SHARED DETAIL BITS ================================================ */
-.req { margin:0; padding:0; list-style:none; display:grid; gap:6px; font-size:12.5px }
-.req li { display:flex; align-items:center; gap:var(--s-2); flex-wrap:wrap }
-.req a { color:var(--accent); text-decoration:none }
-.req a:hover { text-decoration:underline }
-.req span:last-child { color:var(--fg-3) }
-.req .ic { width:14px; height:14px }
-.req .ok  { color:var(--good) }
-.req .bad { color:var(--danger) }
-.req .mono { color:var(--fg-2) }
+/* == SUBSECTIONS ===========================================================
+   A card can hold several named blocks, divided by a hairline, the way the
+   Media screen's Uploads card does. It is what keeps one card from becoming
+   five, and it gives a group somewhere to put its own hint.
+   ========================================================================= */
+.sect { border-top:1px solid var(--border) }
+.card > .sect:first-of-type { border-top:0 }
+.sect-head { display:flex; align-items:baseline; gap:var(--s-2); flex-wrap:wrap;
+  padding:var(--s-4) var(--pad-x) var(--s-3) }
+.sect-head h3 { margin:0; font-size:11px; letter-spacing:.06em; text-transform:uppercase;
+  color:var(--fg-2); font-weight:600 }
+.sect-head span { font-size:11.5px; color:var(--fg-3) }
+.sect-body { padding:0 var(--pad-x) var(--s-4) }
+/* a section with no head of its own still needs its top margin */
+.sect > .sect-body:first-child { padding-top:var(--s-4) }
+/* the point where a card turns from what this declares to what others do */
+.sect-turn { background:var(--surface-2) }
+.sect-turn .sect-head { padding-block:var(--s-2); }
+.sect-turn h3 { color:var(--fg-3) }
 
-.addlist { display:grid; gap:var(--s-4) }
-.addgroup h3 { margin:0 0 var(--s-2); font-size:11px; letter-spacing:.06em;
-  text-transform:uppercase; color:var(--fg-3); font-weight:600;
-  display:flex; align-items:center; gap:var(--s-2) }
-.addgroup h3 .ic { width:13px; height:13px }
-.addgroup ul { margin:0; padding:0; list-style:none; display:flex; flex-wrap:wrap; gap:6px }
-.addgroup li { font-family:var(--font-mono); font-size:11.5px; color:var(--fg-2);
-  background:var(--surface-2); border:1px solid var(--border); border-radius:var(--r-1);
-  padding:3px 8px }
-.addgroup li .plain { font-family:var(--font-ui) }
+/* == DEPENDENCY ROWS ========================================================
+   One row per reference: a verdict, the reference itself, why it matters, and
+   a slot on the right for whatever the admin can do about it. The slot is why
+   the row is a grid rather than a line of text — an Install button for a
+   missing requirement drops in without the row being rebuilt.
+   ========================================================================= */
+.dep-rows { margin:0; padding:0; list-style:none; display:grid; gap:var(--s-3) }
+.dep-rows li { display:grid; grid-template-columns:16px minmax(0,1fr) auto;
+  gap:var(--s-2) var(--s-3); align-items:start }
+.dep-rows > li > .ic { width:15px; height:15px; margin-top:2px }
+.dep-rows .ok { color:var(--good) }
+.dep-rows .bad { color:var(--danger) }
+.dep-rows .dim { color:var(--fg-3) }
+.dep-main { min-width:0; font-size:12.5px }
+.dep-ref { display:flex; align-items:baseline; gap:var(--s-2); flex-wrap:wrap; min-width:0 }
+.dep-ref a { color:var(--accent); text-decoration:none; font-weight:500 }
+.dep-ref a:hover { text-decoration:underline }
+.dep-ref .mono { font-size:11.5px; overflow-wrap:anywhere }
+.dep-ref .mono.dim { color:var(--fg-3) }
+.dep-ref .note { color:var(--fg-3) }
+.dep-ref .note.warn-ink { color:var(--warn) }
+/* a suggestion's reason is prose, so it gets its own line and a measure */
+.dep-why { margin-top:3px; color:var(--fg-3); font-size:12px; line-height:1.45; max-width:58ch }
+.dep-act { display:flex; gap:var(--s-2); align-items:center }
+.dep-none { margin:0; color:var(--fg-3); font-size:12.5px }
+
+/* == LINKS ==================================================================
+   Nine of these wrapping as chips read as a tag cloud. As a two-column list
+   with the glyph that names each kind, they read as a set of destinations. */
+.links { display:grid; grid-template-columns:repeat(auto-fill, minmax(140px, 1fr));
+  gap:2px var(--s-4) }
+.links a { display:flex; align-items:center; gap:var(--s-2); padding:5px 0;
+  color:var(--fg-2); text-decoration:none; font-size:12.5px; min-width:0 }
+.links a:hover { color:var(--accent) }
+.links a .ic { width:14px; height:14px; color:var(--fg-3); flex:none }
+.links a:hover .ic { color:var(--accent) }
+.links a span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap }
+
+/* funding is a different kind of ask, so it does not sit in the same list */
+.fund { display:flex; flex-wrap:wrap; gap:var(--s-2); align-items:center }
+.fund .btn .ic { color:var(--danger-dot) }
+
+.chips { display:flex; flex-wrap:wrap; gap:6px }
+.chip { display:inline-flex; align-items:center; gap:5px; height:22px; padding:0 9px;
+  border-radius:999px; border:1px solid var(--border); background:var(--surface-2);
+  color:var(--fg-2); font:inherit; font-size:11.5px; text-decoration:none; cursor:pointer }
+.chip:hover { background:var(--surface-3); color:var(--fg); border-color:var(--border-strong) }
+.who { display:flex; gap:var(--s-2); align-items:baseline }
+.who + .who { margin-top:4px }
+.who a { color:var(--accent); text-decoration:none }
+.who a:hover { text-decoration:underline }
+.who span { color:var(--fg-3); font-size:11.5px }
+
+/* The filter row. A lone search field said "the way to find one of these is to
+   know its name", which is wrong for a handful of extensions — the real
+   questions are which are on and where they came from. So: a field to type a
+   name, two selects for the two axes, and the view control pushed right. The
+   report of what is in force sits on a second line with Clear filters, so
+   setting a filter never reflows the row under the pointer. */
+.toolbar { display:flex; align-items:center; gap:var(--s-3); margin-bottom:var(--s-2);
+  max-width:1180px; flex-wrap:wrap }
+.toolbar .sp { margin-left:auto }
+.filter-report { display:flex; align-items:center; gap:var(--s-3); flex-wrap:wrap;
+  margin-bottom:var(--s-4); min-height:24px }
+
+/* A select the admin draws. In the running admin this is the enhanced native
+   select from the components doc — the real <select> keeps the value and the
+   drawn button is only the face; here the shared menu stands in for its list. */
+.sel { display:inline-flex; align-items:center; gap:var(--s-2); height:var(--ctl);
+  padding:0 var(--s-2) 0 var(--s-3); font:inherit; font-size:12.5px; color:var(--fg);
+  background:var(--surface); border:1px solid var(--border-strong); border-radius:var(--r-1);
+  cursor:pointer; white-space:nowrap }
+.sel:hover { background:var(--surface-2) }
+.sel:focus-visible { outline:2px solid var(--accent); outline-offset:2px }
+.sel .ic { width:14px; height:14px; color:var(--fg-3) }
+/* A select holding a value is marked by weight and a rule, not by color alone. */
+.sel[data-set="true"] { border-color:var(--accent); font-weight:600 }
+
+.vtoggle { display:inline-flex; border:1px solid var(--border-strong); border-radius:var(--r-1);
+  overflow:hidden; background:var(--surface) }
+.vbtn { display:grid; place-items:center; width:32px; height:calc(var(--ctl) - 2px);
+  border:0; background:none; color:var(--fg-3); cursor:pointer; padding:0 }
+.vbtn + .vbtn { border-left:1px solid var(--border) }
+.vbtn:hover { background:var(--surface-2); color:var(--fg-2) }
+.vbtn[aria-pressed="true"] { background:var(--accent-soft); color:var(--accent) }
+.vbtn:focus-visible { outline:2px solid var(--accent); outline-offset:-2px }
 
 /* == 9. DETAIL SCREENS ====================================================== */
 .detail-stack { display:grid; gap:var(--s-5) }
@@ -480,14 +601,16 @@ code { font-family:var(--font-mono); font-size:11.5px; color:var(--fg);
 .card { background:var(--surface); border:1px solid var(--border); border-radius:var(--r-3);
   box-shadow:var(--shadow-1); overflow:hidden }
 .card > h2 { margin:0; padding:var(--pad-panel) var(--pad-x); font-family:var(--font-display);
-  font-size:14px; font-weight:600; display:flex; align-items:center; gap:var(--s-2) }
+  font-size:14px; font-weight:600; display:flex; align-items:baseline; gap:var(--s-2);
+  flex-wrap:wrap; border-bottom:1px solid var(--border) }
 .card > h2 .hint { color:var(--fg-3); font-weight:400; font-size:11.5px }
 .card-in { padding:0 var(--pad-x) var(--s-5) }
+.sect-body .kv { font-size:12.5px }
 
 /* two previews side by side: this is where both halves of light-dark() show */
-.pv-pair { display:grid; grid-template-columns:1fr 1fr; gap:var(--s-4) }
+.pv-pair { display:grid; grid-template-columns:1fr 1fr; gap:var(--s-5) }
 .pv-pair figure { margin:0 }
-.pv-pair figcaption { margin-top:var(--s-2); font-size:11px; letter-spacing:.06em;
+.pv-pair figcaption { margin:var(--s-3) 0 var(--s-2); font-size:11px; letter-spacing:.06em;
   text-transform:uppercase; color:var(--fg-3); font-weight:600 }
 .pv-pair .pv { border:1px solid var(--border); border-radius:var(--r-2) }
 
@@ -500,23 +623,28 @@ code { font-family:var(--font-mono); font-size:11.5px; color:var(--fg);
 .kv dd a:hover { text-decoration:underline }
 .warn-ink { color:var(--warn) }
 
-/* Palette: the two halves side by side, each a specimen rather than a legend.
-   The role and the exact value sit on the swatch, inked in whichever of the
-   theme's own text or background colors clears it (see inkOn). The frame is
-   admin chrome, so a white tile on a white card still has an edge. */
-.pal-pair { display:grid; grid-template-columns:1fr 1fr; gap:var(--s-6) }
-/* Each half is bounded by its own heading rule, so the two groups do not read
-   as one six-column grid where a dark Light tile meets a dark Dark tile. */
-.pal-pair h3 { margin:0 0 var(--s-3); padding-bottom:var(--s-2);
-  border-bottom:1px solid var(--border); font-size:11px; letter-spacing:.06em;
-  text-transform:uppercase; color:var(--fg-3); font-weight:600 }
-.pal-grid { display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:var(--s-2) }
-.sw { aspect-ratio:3/2; border-radius:var(--r-2); border:1px solid var(--border-strong);
-  padding:var(--s-3); display:flex; flex-direction:column; justify-content:flex-end; gap:1px;
-  min-width:0; overflow:hidden }
-.sw b { font-size:10.5px; letter-spacing:.07em; text-transform:uppercase; font-weight:600;
-  opacity:.72 }
-.sw span { font-size:11.5px; font-variant-numeric:tabular-nums }
+/* Palette: a legend for the preview above it, not a second specimen beside it.
+   Six filled tiles under a picture made of the same six colors read as a
+   second, blockier version of the preview and crowd it. So the color is a
+   chip and the words sit on the card: every role and value is set in the
+   admin's own ink at the admin's own contrast, instead of picking between
+   the theme's two inks — a pale border or a mid muted cleared neither.
+   Two columns, so each row is one kind: backgrounds, inks, then edges. */
+.pal { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr));
+  column-gap:var(--s-4); row-gap:1px; margin-top:var(--s-3) }
+/* Name and value are one pair, so the value sits against the name in a fixed
+   column rather than pushed to a far rail — a legend line should read as one
+   thing, not as a row in a table. */
+.pal > div { display:grid; grid-template-columns:auto 78px auto; justify-content:start;
+  align-items:center; gap:var(--s-2); min-width:0; padding:2px 0;
+  font-size:11.5px; line-height:1.4 }
+/* The chip keeps an admin-chrome edge so #ffffff still has a shape on a white
+   card, and so a near-black fill is a square rather than a hole. */
+.pal i { width:16px; height:16px; border-radius:var(--r-1); flex:none;
+  border:1px solid var(--border-strong); box-sizing:border-box }
+.pal b { font-weight:400; color:var(--fg-2); overflow:hidden; text-overflow:ellipsis;
+  white-space:nowrap }
+.pal span { color:var(--fg-3); font-variant-numeric:tabular-nums; font-size:11px }
 
 .danger-zone { display:flex; align-items:center; gap:var(--s-4); padding:var(--s-4) var(--pad-x);
   border:1px solid var(--border); border-radius:var(--r-3); background:var(--surface) }
@@ -599,7 +727,11 @@ dialog.modal::backdrop { background:rgba(17,20,27,.42) }
 
 /* == 11. NARROW WIDTHS ====================================================== */
 @media (max-width:1180px) { .detail, .detail-2up { grid-template-columns:minmax(0,1fr) } }
-@media (max-width:760px) { .pal-pair { grid-template-columns:1fr } }
+@media (max-width:560px) { .dep-group { grid-template-columns:minmax(0,1fr); gap:var(--s-2) } }
+@media (max-width:760px) { .pv-pair { grid-template-columns:1fr } }
+/* Full role words need about 165px a column; below this the legend is one
+   column rather than two clipped ones. */
+@media (max-width:600px) { .pal { grid-template-columns:1fr } }
 @media (max-width:1100px) {
   .app { grid-template-columns:var(--railbar) 1fr }
   /* the drawer sits above the scrim, the scrim above everything else */
@@ -684,6 +816,15 @@ dialog.modal::backdrop { background:rgba(17,20,27,.42) }
 <symbol id="i-upload" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m17 8-5-5-5 5"/><path d="M12 3v12"/></symbol>
 <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 6h16"/><path d="M4 12h16"/><path d="M4 18h16"/></symbol>
 <symbol id="i-left" viewBox="0 0 24 24"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></symbol>
+<symbol id="i-caret" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+<symbol id="i-grid" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></symbol>
+<symbol id="i-rows" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="6" rx="1.5"/><rect x="3" y="14" width="18" height="6" rx="1.5"/></symbol>
+<symbol id="i-chat" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></symbol>
+<symbol id="i-rss" viewBox="0 0 24 24"><path d="M4 11a9 9 0 0 1 9 9"/><path d="M4 4a16 16 0 0 1 16 16"/><circle cx="5" cy="19" r="1"/></symbol>
+<symbol id="i-shield" viewBox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-7.7 9a1 1 0 0 1-.6 0C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.2-2.7a1 1 0 0 1 1.6 0C14.5 3.8 17 5 19 5a1 1 0 0 1 1 1Z"/></symbol>
+<symbol id="i-bug" viewBox="0 0 24 24"><path d="m8 2 1.9 1.9"/><path d="m14 2-1.9 1.9"/><path d="M6.5 7h11"/><path d="M12 20v-9"/><path d="M6 13H2"/><path d="M22 13h-4"/><path d="m5 20 2.5-2"/><path d="m19 20-2.5-2"/><path d="M8 7a4 4 0 0 0-2 3.5V14a6 6 0 0 0 12 0v-3.5A4 4 0 0 0 16 7Z"/></symbol>
+<symbol id="i-bulb" viewBox="0 0 24 24"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7V18h8v-3.3A7 7 0 0 0 12 2"/></symbol>
+<symbol id="i-heart" viewBox="0 0 24 24"><path d="M19 14c1.5-1.5 3-3.3 3-5.5A5.5 5.5 0 0 0 12 5a5.5 5.5 0 0 0-10 3.5c0 2.2 1.5 4 3 5.5l7 7Z"/></symbol>
 <symbol id="i-composer" viewBox="0 0 24 24"><path d="m16 18 6-6-6-6"/><path d="m8 6-6 6 6 6"/><path d="M13.5 4 10.5 20"/></symbol>
 
 <symbol id="i-icons" viewBox="0 0 24 24"><path d="M8.3 10a.7.7 0 0 1-.6-1.1L11.4 3a.7.7 0 0 1 1.2 0l3.7 5.9a.7.7 0 0 1-.6 1.1Z"/><rect x="3" y="14" width="7" height="7" rx="1"/><circle cx="17.5" cy="17.5" r="3.5"/></symbol>
@@ -752,137 +893,193 @@ dialog.modal::backdrop { background:rgba(17,20,27,.42) }
 
 
 <script>
-/* == DATA: THEMES ==========================================================
-   Six colors, each a light/dark pair the admin emits as light-dark(), plus one
-   layout keyword for the preview. `type` is a fact printed in the admin's own
-   face — the admin never loads a theme's fonts.
+/* == DATA ==================================================================
+   Themes, plugins and icon packs are the same object with three renderings.
+   Every one of them carries:
 
-   `install` is how the thing got onto the server, and it decides whether the
-   admin may remove it. It means the same on all three screens:
-     folder    under user/ — the admin can delete it
-     composer  a Composer dependency, owned by composer.json
-     builtin   ships with Blush
+     identity    name, package, version, authors, license, links, keywords
+     origin      folder | composer | builtin, and where it sits on disk
+     rel         the five Composer lists, in one shape
+
+   A reference inside `rel` is an object, so a new kind of reference is a new
+   key rather than a new position:
+
+     { core:'^2.0' }                     Blush itself
+     { php:'>=8.5' }                     the PHP runtime
+     { ext:'mbstring' }                  a PHP extension
+     { pkg:'blush/shop', range:'^2.0' }  another theme, plugin or icon pack
+     { pkg:'…', why:'…' }                a suggestion, with its reason
+
+   Only the kind-specific part differs: a theme has a palette and a fallback,
+   an icon pack has icons and a namespace, a plugin has neither.
    ========================================================================= */
+const SITE = { blush:'2.1.4', php:'8.3.2', ext:['mbstring','intl','gd'] };
+
 const THEMES = [
-  { slug:'justin-tadlock', name:'Justin Tadlock', version:'2.0.0',
-    install:'folder', source:'user/themes',
-    author:'Justin Tadlock', uri:'https://justintadlock.com', fallback:'default',
+  { slug:'justin-tadlock', name:'Justin Tadlock', pkg:'justin/tadlock', version:'2.0.0',
+    install:'folder', source:'user/themes', fallback:'default',
+    authors:[['Justin Tadlock','Developer','https://justintadlock.com']], license:'GPL-2.0-or-later',
+    links:{ Homepage:'#', Source:'#', Issues:'#' },
+    keywords:['blog','serif','reading'],
     layout:'centered', type:'Serif headings · sans body',
     desc:'The justintadlock.com theme, ported from Blush 1.x.',
+    rel:{ requires:[{ core:'^2.0' }] },
     pal:{ bg:['#fbf8f3','#15120e'], surface:['#ffffff','#1d1915'], text:['#1d1b17','#f0e9dd'],
           muted:['#6d6659','#a0937f'], accent:['#8f4a2a','#d98b5f'], border:['#e6ded0','#2e2820'] } },
 
-  { slug:'quill', name:'Quill', version:'0.9.2', install:'folder', source:'user/themes',
-    author:'Blush Collective', uri:'https://example.com/quill', fallback:'default',
+  { slug:'quill', name:'Quill', pkg:'example/quill', version:'0.9.2',
+    install:'folder', source:'user/themes', fallback:'default',
+    authors:[['Blush Collective','Developer','https://example.com/quill']], license:'MIT',
+    links:{ Homepage:'#', Documentation:'#' },
+    keywords:['blog','essays','serif','minimal'],
     layout:'centered', type:'Serif headings · sans body',
     desc:'A reading-first theme for long essays.',
+    rel:{ requires:[{ core:'^2.0' }] },
     pal:{ bg:['#fcfcfa','#14161c'], surface:['#ffffff','#1b1e26'], text:['#1a1a18','#eceff5'],
           muted:['#6e6e68','#8b93a4'], accent:['#3a6ea5','#7fb2ff'], border:['#e6e6e0','#262a35'] } },
 
-  /* a Composer dependency, and its fallback names a theme that is not installed */
-  { slug:'ledger', name:'Ledger', version:'3.1.0',
-    install:'composer', package:'blush-themes/ledger', source:'vendor/blush-themes',
-    author:'Blush Collective', uri:'https://example.com/ledger', fallback:'aurora',
+  /* a Composer dependency, whose fallback names a theme nobody has installed */
+  { slug:'ledger', name:'Ledger', pkg:'blush-themes/ledger', version:'3.1.0',
+    install:'composer', source:'vendor/blush-themes', fallback:'aurora',
+    authors:[['Blush Collective','Developer','https://example.com/ledger']], license:'MIT',
+    links:{ Homepage:'#', Documentation:'#', Source:'#', Issues:'#' },
+    keywords:['docs','changelog','sidebar','technical'],
     layout:'sidebar', type:'Sans throughout · mono code',
     desc:'Documentation and changelogs, with a sidebar.',
+    rel:{ requires:[{ core:'^2.0' }, { php:'>=8.2' }],
+          suggests:[{ pkg:'example/editorial-icons', why:'Marks for callouts and notes.' }] },
     pal:{ bg:['#f7f7f5','#111310'], surface:['#ffffff','#191c18'], text:['#1b1b19','#e9ece7'],
           muted:['#6f6f68','#8e958a'], accent:['#2b6b4f','#6fbf96'], border:['#e3e3de','#232720'] } },
 
   /* falls back to another installed theme, so deleting Quill blocks this one */
-  { slug:'atlas', name:'Atlas', version:'0.4.0', install:'folder', source:'user/themes',
-    author:'Nia Okafor', uri:'https://example.com/atlas', fallback:'quill',
+  { slug:'atlas', name:'Atlas', pkg:'example/atlas', version:'0.4.0',
+    install:'folder', source:'user/themes', fallback:'quill',
+    authors:[['Nia Okafor','Designer','https://example.com/atlas']], license:'MIT',
+    links:{ Homepage:'#' },
+    keywords:['photography','travel','images','wide'],
     layout:'wide', type:'Sans throughout',
     desc:'Photography and travel writing, image-led.',
+    rel:{ requires:[{ core:'^2.0' }] },
     pal:{ bg:['#f2f4f6','#0f1317'], surface:['#ffffff','#171c22'], text:['#12171d','#e7ecf1'],
           muted:['#5f6b78','#8995a3'], accent:['#0f6d8c','#5fb8d8'], border:['#dde3e9','#222a32'] } },
 
   /* the folder is there but the admin cannot read it */
-  { slug:'marquee', name:'Marquee', version:null, install:'folder', source:'user/themes',
-    broken:'theme.json is missing or unreadable', desc:'', type:null, fallback:null },
+  { slug:'marquee', name:'Marquee', pkg:'example/marquee', version:null,
+    install:'folder', source:'user/themes', fallback:null, desc:'', type:null,
+    broken:'theme.json is missing or unreadable', keywords:[], rel:{} },
 
-  { slug:'default', name:'Default', version:'1.0.0', install:'builtin', source:null,
-    builtin:true, root:true, author:'Blush', uri:null, fallback:null,
+  { slug:'default', name:'Default', pkg:'blush/default', version:'1.0.0',
+    install:'builtin', source:null, builtin:true, root:true, fallback:null,
+    authors:[['Blush','Developer',null]], license:'GPL-2.0-or-later', links:{},
+    keywords:['default','plain','accessible'],
     layout:'centered', type:'System sans throughout',
     desc:'Plain, accessible, modern CSS with no build step.',
+    rel:{},
     pal:{ bg:['#ffffff','#0f1115'], surface:['#f7f8fa','#171a20'], text:['#16181d','#e8eaef'],
           muted:['#6b7280','#949cab'], accent:['#1f4ed8','#7aa2ff'], border:['#e5e7eb','#262b34'] } },
 ];
 
-/* == DATA: PLUGINS =========================================================
-   Only what the manifest says. The admin cannot list what a plugin registers
-   without booting it, and booting an inactive plugin is the one thing being
-   inactive has to prevent — so this screen never claims to know. That holds
-   for icons a plugin might ship too: unknown until it runs, so unmentioned.
-
-   `requires` is a list of [kind, …]:
-     ['core', range]              the Blush version
-     ['php', range]               the PHP version
-     ['plugin', package, range]   another plugin, by package and version
-
-   Plugins arrive the same two ways a theme does: a folder under
-   user/plugins/, or a Composer package.
-   ========================================================================= */
-const SITE = { blush:'2.1.4', php:'8.3.2' };
-
 const PLUGINS = [
   { slug:'word-count', name:'Word Count', pkg:'example/word-count', version:'1.0.0',
-    install:'folder', source:'user/plugins', on:true, author:'Blush',
-    uri:'https://example.com/word-count', license:'MIT',
+    install:'folder', source:'user/plugins', on:true,
+    authors:[['Blush','Developer','https://example.com/word-count']], license:'MIT',
+    links:{ Homepage:'#', Documentation:'#', Source:'#' },
+    keywords:['writing','statistics','dashboard'],
     desc:'Counts the words in published entries, from the dashboard or the command line.',
-    requires:[['core','^2.0']] },
+    rel:{ requires:[{ core:'^2.0' }], provides:[{ pkg:'example/word-stats', range:'1.0' }] } },
 
   { slug:'shop', name:'Shop', pkg:'blush/shop', version:'2.3.0',
-    install:'composer', source:'vendor/blush', on:true, author:'Blush Collective',
-    uri:'https://example.com/shop', license:'GPL-2.0-or-later',
+    install:'composer', source:'vendor/blush', on:true,
+    authors:[['Blush Collective','Developer','https://example.com/shop'],
+             ['Sam Lee','Designer','https://example.com/sam']],
+    license:'GPL-2.0-or-later',
+    links:{ Homepage:'#', Documentation:'#', Source:'#', Issues:'#', Forum:'#', Security:'#' },
+    sponsor:{ 'GitHub Sponsors':'#', 'example.com':'#' },
+    keywords:['commerce','products','payments','catalog'],
     desc:'Products, categories and brands, with a price and a buy button for entries.',
-    requires:[['core','^2.0'], ['php','^8.2']] },
+    rel:{ requires:[{ core:'^2.0' }, { php:'^8.2' }, { ext:'intl' }],
+          conflicts:[{ pkg:'example/simple-cart' }],
+          suggests:[{ pkg:'example/shop-reports', why:'Sales and stock on the dashboard.' }] } },
 
   /* depends on another plugin, so turning Shop off blocks this one */
   { slug:'shop-reports', name:'Shop Reports', pkg:'example/shop-reports', version:'0.2.0',
-    install:'folder', source:'user/plugins', on:true, author:'Nia Okafor',
-    uri:'https://example.com/shop-reports', license:'MIT',
+    install:'folder', source:'user/plugins', on:true,
+    authors:[['Nia Okafor','Developer',null]], license:'MIT', links:{ Source:'#' },
+    keywords:['commerce','reports','dashboard'],
     desc:'Sales and stock figures on the dashboard, read from the Shop tables.',
-    requires:[['core','^2.0'], ['plugin','blush/shop','^2.0']] },
+    rel:{ requires:[{ core:'^2.0' }, { pkg:'blush/shop', range:'^2.0' }] } },
 
   { slug:'redirects', name:'Redirects', pkg:'example/redirects', version:'1.2.0',
-    install:'folder', source:'user/plugins', on:true, author:'Nia Okafor',
-    uri:'https://example.com/redirects', license:'MIT',
+    install:'folder', source:'user/plugins', on:true,
+    authors:[['Nia Okafor','Developer',null]], license:'MIT', links:{ Homepage:'#', Issues:'#' },
+    keywords:['urls','seo','migration'],
     desc:'Maps old URLs to new ones and keeps a log of what hit them.',
-    requires:[['core','^2.0']] },
+    rel:{ requires:[{ core:'^2.0' }] } },
 
   { slug:'mailing-list', name:'Mailing List', pkg:'blush/mailing-list', version:'0.8.1',
-    install:'composer', source:'vendor/blush', on:false, author:'Blush Collective',
-    uri:'https://example.com/mailing-list', license:'MIT',
+    install:'composer', source:'vendor/blush', on:false,
+    authors:[['Blush Collective','Developer',null]], license:'MIT', links:{ Documentation:'#' },
+    keywords:['email','subscribers','forms'],
     desc:'A subscribe component for entries, and the people who used it under Users.',
-    requires:[['core','^2.0']] },
+    rel:{ requires:[{ core:'^2.0' }] } },
+
+  /* the dense case: a package that declares every list */
+  { slug:'ai-claude', name:'AI: Claude', pkg:'example/ai-claude', version:'1.0.0',
+    install:'folder', source:'user/plugins', on:false,
+    authors:[['Jane Doe','Developer','https://example.com/jane'],
+             ['Sam Lee','Designer','https://example.com/sam']],
+    license:'MIT',
+    links:{ Homepage:'#', Documentation:'#', Source:'#', Issues:'#', Forum:'#', Chat:'#',
+            Wiki:'#', RSS:'#', Security:'#' },
+    sponsor:{ 'GitHub Sponsors':'#', 'example.com':'#' },
+    keywords:['ai','writing','assistant','provider'],
+    desc:'An assistant in the editor, backed by a hosted model.',
+    rel:{ requires:[{ core:'^2.0' }, { php:'>=8.2' }, { ext:'mbstring' }],
+          conflicts:[{ pkg:'example/ai-local' }],
+          provides:[{ pkg:'example/ai-provider', range:'1.0' }],
+          replaces:[{ pkg:'example/old-assistant', range:'<2.0' }],
+          suggests:[{ pkg:'example/word-count', why:'Counts what the assistant wrote.' },
+                    { pkg:'example/not-installed', why:'Nicer prompts, if you have it.' }] } },
+
+  { slug:'ai-local', name:'AI: Local Model', pkg:'example/ai-local', version:'2.0.0',
+    install:'composer', source:'vendor/example', on:false,
+    authors:[['Community','Developer',null]], license:'MIT', links:{ Source:'#' },
+    keywords:['ai','offline','provider'],
+    desc:'The same assistant, backed by a model running on this server.',
+    rel:{ requires:[{ core:'^2.0' }, { php:'>=8.2' }],
+          conflicts:[{ pkg:'example/ai-claude' }],
+          provides:[{ pkg:'example/ai-provider', range:'2.0' }] } },
+
+  /* needs something nobody provides while both providers are off */
+  { slug:'ai-writer', name:'AI Writer', pkg:'example/ai-writer', version:'0.3.0',
+    install:'folder', source:'user/plugins', on:false,
+    authors:[['Community','Developer',null]], license:'MIT', links:{},
+    keywords:['ai','writing','editor'],
+    desc:'Draft and rewrite from the editor toolbar, through whichever provider is on.',
+    rel:{ requires:[{ core:'^2.0' }, { pkg:'example/ai-provider', range:'^1.0' }] } },
 
   /* installed, readable, and cannot run here */
   { slug:'comments', name:'Comments', pkg:'example/comments', version:'0.4.0',
-    install:'folder', source:'user/plugins', on:false, author:'Community',
-    uri:'https://example.com/comments', license:'MIT',
+    install:'folder', source:'user/plugins', on:false,
+    authors:[['Community','Developer',null]], license:'MIT', links:{ Issues:'#' },
+    keywords:['comments','moderation','community'],
     desc:'Threaded comments on entries, moderated from the admin.',
-    requires:[['core','^3.0'], ['php','^8.2']] },
-
-  /* wants a plugin nobody has installed */
-  { slug:'crm-sync', name:'CRM Sync', pkg:'example/crm-sync', version:'0.1.0',
-    install:'folder', source:'user/plugins', on:false, author:'Community',
-    uri:null, license:'MIT',
-    desc:'Pushes subscribers to an external CRM on a schedule.',
-    requires:[['core','^2.0'], ['plugin','blush/mailing-list','^0.8'], ['plugin','acme/crm','^1.0']] },
+    rel:{ requires:[{ core:'^3.0' }, { php:'^8.2' }] } },
 
   /* the file is there but the admin cannot load it */
   { slug:'analytics', name:'Analytics', pkg:'example/analytics', version:'1.1.0',
-    install:'folder', source:'user/plugins', on:false, author:'Community',
-    uri:null, license:'MIT',
+    install:'folder', source:'user/plugins', on:false,
+    authors:[['Community','Developer',null]], license:'MIT', links:{},
+    keywords:['analytics','traffic'],
     desc:'Page views per entry, read from the server log.',
     broken:'plugin.php could not be loaded — a parse error on line 42',
-    requires:[['core','^2.0']] },
+    rel:{ requires:[{ core:'^2.0' }] } },
 ];
 
-/* == DATA: ICON PACKS ======================================================
+/* == DATA: ICON PACK GLYPHS ================================================
    A pack ships its own SVG, so the glyphs live with the data rather than in
-   the admin's sprite. Every path is drawn on the same 24 grid, and the admin's
-   one .ic rule paints all of them — §4's whole argument for a single set.
+   the admin's sprite. Every path is drawn on the same 24 grid, and the
+   admin's one .ic rule paints all of them.
    ========================================================================= */
 const G = {
   quote:'<path d="M10 11H6a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h3a1 1 0 0 1 1 1v7c0 2-1 3-3 4"/><path d="M20 11h-4a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h3a1 1 0 0 1 1 1v7c0 2-1 3-3 4"/>',
@@ -897,7 +1094,6 @@ const G = {
   italic:'<path d="M19 4h-9"/><path d="M14 20H5"/><path d="m15 4-4 16"/>',
   rule:'<path d="M3 12h18"/><path d="M7 7h10"/><path d="M7 17h10"/>',
   footnote:'<path d="M4 6h10"/><path d="M4 12h10"/><path d="M4 18h6"/><path d="M19 4v8"/><path d="m16 7 3-3 3 3"/>',
-
   sun:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.9 4.9 1.4 1.4"/><path d="m17.7 17.7 1.4 1.4"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.3 17.7-1.4 1.4"/><path d="m19.1 4.9-1.4 1.4"/>',
   cloud:'<path d="M17.5 19H9a7 7 0 1 1 6.7-9h1.8a4.5 4.5 0 1 1 0 9"/>',
   rain:'<path d="M4 14.9A7 7 0 1 1 15.7 8h1.8a4.5 4.5 0 0 1 2.5 8.2"/><path d="M16 14v6"/><path d="M8 14v6"/><path d="M12 16v6"/>',
@@ -907,11 +1103,6 @@ const G = {
   moon:'<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9"/>',
   sunrise:'<path d="M12 2v8"/><path d="m4.9 10.9 1.4 1.4"/><path d="M2 18h2"/><path d="M20 18h2"/><path d="m19.1 10.9-1.4 1.4"/><path d="M22 22H2"/><path d="m8 6 4-4 4 4"/><path d="M16 18a4 4 0 0 0-8 0"/>',
   thermometer:'<path d="M14 4v10.5a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0"/>',
-
-  tally:'<path d="M4 4v16"/><path d="M9 4v16"/><path d="M14 4v16"/><path d="M19 4v16"/><path d="m3 20 18-16"/>',
-  report:'<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M16 13H8"/><path d="M16 17H8"/>',
-  trend:'<path d="M16 7h6v6"/><path d="m22 7-8.5 8.5-5-5L2 17"/>',
-
   page:'<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/>',
   image:'<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-4.6-4.6a2 2 0 0 0-2.8 0L3 21"/>',
   calendar:'<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/>',
@@ -925,33 +1116,59 @@ const G = {
   chat:'<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>',
   share:'<circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 13.5 6.8 4"/><path d="m15.4 6.5-6.8 4"/>',
 };
-
 const pk = (ns, names) => names.map(n => ({ n, d: G[n] }));
 
 const PACKS = [
-  { slug:'editorial', name:'Editorial Marks', pkg:'blush/editorial-icons', version:'1.2.0',
-    install:'composer', source:'vendor/blush', ns:'editorial', on:true,
-    author:'Blush Collective',
+  { slug:'editorial', name:'Editorial Marks', pkg:'example/editorial-icons', version:'1.2.0',
+    install:'composer', source:'vendor/example', ns:'editorial', on:true,
+    authors:[['Blush Collective','Designer','https://example.com/editorial']], license:'MIT',
+    links:{ Homepage:'#', Source:'#' },
+    keywords:['editorial','punctuation','toolbar','writing'],
     desc:'Punctuation and structure marks, for prose and for the editor toolbar.',
+    rel:{ requires:[{ core:'^2.0' }] },
     icons: pk('editorial', ['quote','pilcrow','asterisk','hash','bookmark','link',
                             'list','heading','bold','italic','rule','footnote']) },
 
   { slug:'weather', name:'Weather', pkg:'example/weather-icons', version:'0.3.0',
-    install:'folder', source:'user/icons', ns:'weather', on:true, author:'Nia Okafor',
+    install:'folder', source:'user/icons', ns:'weather', on:true,
+    authors:[['Nia Okafor','Designer',null]], license:'MIT', links:{ Source:'#' },
+    keywords:['weather','forecast','nature'],
     desc:'Conditions and times of day, for a forecast component.',
+    rel:{},
     icons: pk('weather', ['sun','cloud','rain','snow','wind','droplet','moon',
                           'sunrise','thermometer']) },
 
-  { slug:'core', name:'Core', pkg:null, version:'2.1.0', install:'builtin', ns:'core',
-    on:true, author:'Blush',
+  /* wants a plugin nobody installed, and clashes with one that is on */
+  { slug:'needy', name:'Needy Icons', pkg:'example/needy-icons', version:'1.0.0',
+    install:'folder', source:'user/icons', ns:'needy', on:false,
+    authors:[], license:null, links:{},
+    keywords:['example','test'],
+    desc:'A pack that depends on things, to show what that looks like.',
+    rel:{ requires:[{ pkg:'example/not-installed', range:'^1.0' }],
+          conflicts:[{ pkg:'example/word-count' }],
+          replaces:[{ pkg:'original/library', range:'1.0.0' }],
+          provides:[{ pkg:'something/cool', range:'1.0.0' }],
+          suggests:[{ pkg:'example/weather-icons', why:'Pairs well on a forecast page.' }] },
+    icons: pk('needy', ['star','tag','bookmark']) },
+
+  { slug:'core', name:'Core', pkg:'blush/icons', version:'2.1.0', install:'builtin',
+    source:null, ns:'core', on:true,
+    authors:[['Blush','Designer',null]], license:'ISC', links:{},
+    keywords:['core','default','interface'],
     desc:'The set every screen is drawn with. Always on, and always available to content.',
+    rel:{},
     icons: pk('core', ['page','image','calendar','tag','star','mail','lock','pin',
                        'play','bell','chat','share','quote','link','list','hash',
                        'asterisk','bookmark']) },
 ];
+
 /* == STATE AND SHARED PARTS ================================================ */
 const state = { screen:'themes', detail:null, active:'justin-tadlock',
-                loading:true, busy:null, failed:null, query:'' };
+                loading:true, busy:null, failed:null, query:'', filter:'',
+                /* the filter row: a name to type, and two axes to narrow by */
+                status:'all', src:'all',
+                /* cards or a compact list, on the two screens that have a picture */
+                view:'cards' };
 
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -961,23 +1178,31 @@ const getPlugin = s => PLUGINS.find(p => p.slug === s);
 const getPack   = s => PACKS.find(p => p.slug === s);
 const live = list => list.filter(x => !x.removed);
 
-/* Where a thing came from decides whether the admin may remove it, and it
-   reads the same on all three screens. */
+THEMES.forEach(t  => t.kind = 'theme');
+PLUGINS.forEach(p => p.kind = 'plugin');
+PACKS.forEach(k   => k.kind = 'pack');
+
+const KIND = { theme:{ screen:'themes', noun:'theme' },
+               plugin:{ screen:'plugins', noun:'plugin' },
+               pack:{ screen:'packs', noun:'icon pack' } };
+
+const everything = () => [...live(THEMES), ...live(PLUGINS), ...live(PACKS)];
+const byPkg = p => everything().find(x => x.pkg === p);
+
 const deletable = x =>
   x.install === 'folder' && !(x.kind === 'theme' && x.slug === state.active);
-const removeHint = x => `composer remove ${x.package || x.pkg}`;
+const removeHint = x => `composer remove ${x.pkg}`;
 
 function originFact(x) {
   if (x.install === 'builtin')  return `<li><svg class="ic"><use href="#i-package"/></svg>Ships with Blush</li>`;
   if (x.install === 'composer') return `<li><svg class="ic"><use href="#i-composer"/></svg>Composer ·
-    <span class="mono">${esc(x.package || x.pkg)}</span></li>`;
+    <span class="mono">${esc(x.pkg)}</span></li>`;
   return `<li><svg class="ic"><use href="#i-folder"/></svg><span class="mono">${esc(x.source)}/${esc(x.slug)}</span></li>`;
 }
-
 function originRow(x) {
   if (x.install === 'builtin')  return 'Blush';
-  if (x.install === 'composer') return `Composer · <span class="mono">${esc(x.package || x.pkg)}</span>`;
-  return 'A folder you added';
+  if (x.install === 'composer') return `Composer`;
+  return `A folder you added`;
 }
 
 function composerNotice(x, noun) {
@@ -988,7 +1213,6 @@ function composerNotice(x, noun) {
 
 function dangerZone(x, noun, extra = '') {
   if (x.install === 'composer') return composerNotice(x, noun);
-  if (x.install === 'builtin' || x.install === 'plugin') return '';
   if (!deletable(x)) return '';
   return `<div class="danger-zone">
     <p>Deleting removes the folder from the server.${extra}</p>
@@ -997,8 +1221,7 @@ function dangerZone(x, noun, extra = '') {
 }
 
 /* A switch is a setting that takes effect the moment it moves, so it carries a
-   word as well as a fill, and flipping it raises a toast. Locked means the
-   state is real but not yours to change here. */
+   word as well as a fill, and flipping it raises a toast. */
 function switchCtl(kind, x, on, locked, why) {
   return `<label class="switch" data-locked="${!!locked}"${why ? ` title="${esc(why)}"` : ''}>
     <input type="checkbox" ${on ? 'checked' : ''} ${locked ? 'disabled' : ''}
@@ -1007,16 +1230,28 @@ function switchCtl(kind, x, on, locked, why) {
     <span class="word">${on ? 'On' : 'Off'}</span></label>`;
 }
 
-/* The overflow menu's contents, in one place, so the trigger is only drawn
-   when the menu holds something the row does not already offer. A menu whose
-   only item repeats the title link is as much a bug as a menu of dead ones. */
 function menuItems(kind, x) {
-  const noun = kind === 'pack' ? 'Icon pack' : kind[0].toUpperCase() + kind.slice(1);
-  const items = [['open', 'i-arrow', `${noun} details`]];
-  if (x.install === 'folder' || x.install === 'composer') items.push(['copy', 'i-copy', 'Copy folder path']);
-  if (deletable({ ...x, kind })) items.push(['delete', 'i-trash', `Delete ${noun.toLowerCase()}`, true]);
+  const noun = KIND[kind].noun;
+  const Noun = noun[0].toUpperCase() + noun.slice(1);
+  const items = [['open', 'i-arrow', `${Noun} details`]];
+  if (x.install === 'folder' || x.install === 'composer')
+    items.push(['copy', 'i-copy', 'Copy folder path']);
+  if (deletable({ ...x, kind })) items.push(['delete', 'i-trash', `Delete ${noun}`, true]);
   return items;
 }
+/* In a row the controls line up in a column down the right edge, so an item
+   with nothing in its menu — the built-in theme and the core icon pack — must
+   still take up the trigger's width, or its button sits a button-width off
+   from every other one. An empty slot, not a disabled button: a dead control
+   is worse than a gap. */
+const menuSlot = (kind, x) => menuTrigger(kind, x)
+  || `<span class="menu-slot" aria-hidden="true"></span>`;
+
+/* A row's badge: the kind's glyph, or for an icon pack its own first icon,
+   since a pack's icons are files on disk and cost nothing to read. */
+const rowBadge = (x, inner) =>
+  `<div class="badge${isOn(x) ? ' badge-on' : ''}">${inner}</div>`;
+
 function menuTrigger(kind, x) {
   if (menuItems(kind, x).length < 2) return '';
   return `<button class="btn btn-ghost btn-sm btn-icon" type="button" data-menu="${kind}:${x.slug}"
@@ -1024,13 +1259,21 @@ function menuTrigger(kind, x) {
     <svg class="ic"><use href="#i-more"/></svg></button>`;
 }
 
-function pageHead(title, lede, actions) {
-  return `<div class="page-head"><div><h1>${title}</h1>
+/* The status chip belongs to the name, not to the buttons: it says what this
+   thing IS, while the controls beside it say what you can DO. Parked in the
+   action row it read as a third button and collided with View Site. */
+function pageHead(title, lede, actions, badge = '') {
+  return `<div class="page-head"><div class="page-head-main">
+    <div class="title-row"><h1>${title}</h1>${badge}</div>
     <p class="lede">${lede}</p></div><div class="acts">${actions}</div></div>`;
 }
-const countRow = text => `<div class="count-row"><span>${text}</span><span class="rule"></span></div>`;
 const backTo = (screen, label) =>
   `<a class="back" href="#" data-go="${screen}"><svg class="ic"><use href="#i-left"/></svg>${label}</a>`;
+
+/* A named block inside a card, divided by a hairline from the one above. */
+const sect = (title, hint, body) => `<div class="sect">
+  ${title ? `<div class="sect-head"><h3>${esc(title)}</h3>${hint ? `<span>${esc(hint)}</span>` : ''}</div>` : ''}
+  <div class="sect-body">${body}</div></div>`;
 
 function detailRows(pairs) {
   return `<dl class="kv">${pairs.filter(Boolean)
@@ -1048,45 +1291,328 @@ function skeletonRows() {
     <div class="sb" style="width:70%"></div></div><div></div></div>`.repeat(4)}</div>`;
 }
 
-/* == THEMES ================================================================ */
-THEMES.forEach(t => t.kind = 'theme');
-const ROLES = ['bg','surface','text','muted','accent','border'];
-const dependents = slug => live(THEMES).filter(t => t.fallback === slug);
+/* == RELATIONSHIPS =========================================================
+   Five lists, one resolver, one panel. They differ only in what a pass means:
+   a requirement must be met, a conflict must not be, a replacement must not
+   be installed alongside, and provides and suggests are statements rather
+   than tests. Rendering them as five panels made the screen mostly headings.
+   ========================================================================= */
+const major = v => parseInt(String(v).replace(/^\D*/, ''), 10) || 0;
+const satisfies = (range, version) => !range || major(range) === major(version);
 
-/* Why a theme may not be activated, or null. Both cases end the same way — a
-   theme that cannot resolve every template must not go in front of visitors —
-   so they share one pill naming the consequence, with the cause underneath. */
-function blocker(t) {
-  if (t.broken) return `${t.broken}, so this theme cannot be activated.`;
-  if (t.fallback) {
-    const parent = getTheme(t.fallback);
-    if (!parent || parent.removed)
-      return `Anything this theme does not define would have nowhere to resolve to, so it
-        cannot be activated. Install ${t.fallback}, or point this theme at another fallback.`;
-  }
-  return null;
+const GROUPS = {
+  requires:  { label:'Requires',  hint:'must be installed and on' },
+  conflicts: { label:'Conflicts', hint:'must not be on at the same time' },
+  replaces:  { label:'Replaces',  hint:'stands in for these' },
+  provides:  { label:'Provides',  hint:'meets these requirements for others' },
+  suggests:  { label:'Suggests',  hint:'optional' },
+};
+
+/* Is this extension actually running? Guarded, because A can require B while
+   B conflicts with A. */
+const _seen = new Set();
+function running(x) {
+  if (!x || x.removed) return false;
+  if (x.kind === 'theme') return x.slug === state.active;
+  if (!x.on || x.broken) return false;
+  if (_seen.has(x.slug)) return true;
+  _seen.add(x.slug);
+  const ok = !failures(x).length;
+  _seen.delete(x.slug);
+  return ok;
 }
 
+/* Anything running that says it provides this package counts as satisfying it. */
+const providerOf = pkg => everything().find(x =>
+  (x.rel?.provides || []).some(p => p.pkg === pkg) && running(x));
+
+function resolve(ref, group) {
+  if (ref.core) return { text:`Blush ${ref.core}`, ok:satisfies(ref.core, SITE.blush),
+    note:`this site runs ${SITE.blush}` };
+  if (ref.php)  return { text:`PHP ${ref.php}`, ok:satisfies(ref.php, SITE.php),
+    note:`this site runs ${SITE.php}` };
+  if (ref.ext)  return { text:`PHP Extension: ${ref.ext}`, ok:SITE.ext.includes(ref.ext),
+    note:SITE.ext.includes(ref.ext) ? '' : 'not loaded' };
+
+  const target = byPkg(ref.pkg);
+  const cons = [ref.pkg, ref.range].filter(Boolean).join(' ');
+
+  if (group === 'provides') return { text:cons, neutral:true, target };
+  if (group === 'suggests') return { text:cons, hint:ref.why, soft:true, target,
+    ok:running(target), missing:!target, want:'plugin',
+    note: target ? (running(target) ? '' : 'installed but off') : 'not installed' };
+  if (group === 'replaces') return { text:cons, target,
+    ok: !target, note: target ? 'also installed, so both are present' : "isn't installed" };
+  if (group === 'conflicts') return { text:cons, target,
+    ok: !running(target), note: !target ? "isn't installed"
+      : running(target) ? `version ${target.version} is on` : 'installed but off' };
+
+  /* requires */
+  if (target) return { text:cons, target,
+    ok: running(target) && satisfies(ref.range, target.version),
+    note: !satisfies(ref.range, target.version) ? `version ${target.version} is installed`
+      : running(target) ? '' : 'installed but off' };
+  const prov = providerOf(ref.pkg);
+  if (prov) return { text:cons, target:prov, ok:true, note:`provided by ${prov.name}` };
+  return { text:cons, ok:false, note:"isn't installed", missing:true, want:'plugin' };
+}
+
+/* A theme's fallback is a dependency like any other, so it is resolved here
+   rather than kept as a fact of its own. */
+function groupsFor(x) {
+  const out = [];
+  if (x.kind === 'theme' && x.fallback && !x.root) {
+    const t = getTheme(x.fallback);
+    out.push(['Falls back to', 'the theme it inherits from', [{
+      text:x.fallback, target:(t && !t.removed) ? t : null,
+      ok:!!(t && !t.removed), note:(t && !t.removed) ? '' : "isn't installed" }]]);
+  }
+  for (const [key, g] of Object.entries(GROUPS)) {
+    const refs = x.rel?.[key] || [];
+    if (refs.length) out.push([g.label, g.hint, refs.map(r => ({ ...resolve(r, key), hint:r.why }))]);
+  }
+  return out;
+}
+
+/* What others say about this one. */
+function reverseFor(x) {
+  const out = [];
+  const needs = everything().filter(o => o !== x &&
+    (o.rel?.requires || []).some(r => r.pkg === x.pkg));
+  const fallbacks = x.kind === 'theme' ? live(THEMES).filter(t => t.fallback === x.slug) : [];
+  const clashes = everything().filter(o => o !== x &&
+    (o.rel?.conflicts || []).some(r => r.pkg === x.pkg));
+
+  if (x.root) out.push(['Used as fallback by', '', [{ text:'Every theme', neutral:true }]]);
+  else if (fallbacks.length) out.push(['Used as fallback by', '',
+    fallbacks.map(t => ({ text:t.pkg, target:t, neutral:true }))]);
+  if (needs.length) out.push(['Required by', '',
+    needs.map(o => ({ text:o.pkg, target:o, neutral:true }))]);
+  if (clashes.length) out.push(['Conflicted by', '',
+    clashes.map(o => ({ text:o.pkg, target:o, ok:!running(o),
+      note:running(o) ? 'and it is on' : 'and it is off' }))]);
+  return out;
+}
+
+function depRow(r) {
+  const mark = r.neutral ? `<svg class="ic dim"><use href="#i-package"/></svg>`
+    : r.soft && !r.ok ? `<svg class="ic dim"><use href="#i-bulb"/></svg>`
+    : `<svg class="ic ${r.ok ? 'ok' : 'bad'}"><use href="#i-${r.ok ? 'ok' : 'no'}"/></svg>`;
+
+  const ref = r.target
+    ? `<a href="#" data-go="${KIND[r.target.kind].screen}:${r.target.slug}">${esc(r.target.name)}</a>
+       <span class="mono dim">${esc(r.text)}</span>`
+    : `<span class="mono">${esc(r.text)}</span>`;
+
+  /* The slot an Install button will sit in once the admin can fetch a missing
+     package. It is only ever offered for something that is not here at all —
+     installed-but-off is fixed with the switch, not with another copy. */
+  const act = r.missing
+    ? `<button class="btn btn-sm" type="button" data-install="${r.want}">Install</button>` : '';
+
+  return `<li>${mark}
+    <div class="dep-main">
+      <div class="dep-ref">${ref}${r.note
+        ? `<span class="note${r.ok === false ? ' warn-ink' : ''}">${esc(r.note)}</span>` : ''}</div>
+      ${r.hint ? `<div class="dep-why">${esc(r.hint)}</div>` : ''}
+    </div>
+    <div class="dep-act">${act}</div></li>`;
+}
+
+function depsPanel(x) {
+  const own = groupsFor(x), rev = reverseFor(x);
+  if (!own.length && !rev.length)
+    return `<div class="card"><h2>Dependencies</h2>${sect('', '',
+      `<p class="dep-none">This ${KIND[x.kind].noun} declares none, and nothing depends on it.</p>`)}</div>`;
+
+  const block = list => list.map(([label, hint, rows]) =>
+    sect(label, hint, `<ul class="dep-rows">${rows.map(depRow).join('')}</ul>`)).join('');
+
+  return `<div class="card">
+    <h2>Dependencies <span class="hint">resolved against this site</span></h2>
+    ${block(own)}
+    ${rev.length ? `<div class="sect sect-turn"><div class="sect-head">
+        <h3>What others say about it</h3></div></div>${block(rev)}` : ''}
+  </div>`;
+}
+
+/* Why this cannot be turned on, or null. Requirements and conflicts are the
+   only two that gate; the rest are statements. */
+function failures(x) {
+  const out = [];
+  if (x.kind === 'theme' && x.fallback && !x.root) {
+    const t = getTheme(x.fallback);
+    if (!t || t.removed) out.push(`the ${x.fallback} theme it falls back to, which isn't installed`);
+  }
+  for (const r of x.rel?.requires || []) {
+    const v = resolve(r, 'requires');
+    if (!v.ok) out.push(`${v.text}${v.note ? ` (${v.note})` : ''}`);
+  }
+  for (const r of x.rel?.conflicts || []) {
+    const v = resolve(r, 'conflicts');
+    if (!v.ok) out.push(`it conflicts with ${v.target ? v.target.name : v.text}, which is on`);
+  }
+  return out;
+}
+
+function blocker(x) {
+  if (x.broken) return x.broken;
+  const f = failures(x);
+  return f.length ? `Needs ${f.join(', and ')}.` : null;
+}
+const pluginBlocker = blocker;          // kept: the install receipt calls both names
+const pluginBlockerSafe = blocker;
+
+const dependents = slug => live(THEMES).filter(t => t.fallback === slug);
+
+/* == IDENTITY PANEL ========================================================
+   Facts, then where to go, then how to pay for it. Nine links wrapping as
+   chips in a key/value row read as a tag cloud; as a list with the glyph that
+   names each kind they read as destinations. Funding is a different kind of
+   ask, so it is not in the same list.
+   ========================================================================= */
+const LINK_ICON = { Homepage:'i-globe', Documentation:'i-reading', Source:'i-composer',
+  Issues:'i-bug', Forum:'i-chat', Chat:'i-chat', Wiki:'i-reading', IRC:'i-chat',
+  RSS:'i-rss', Security:'i-shield', Download:'i-upload' };
+
+function identityPanel(x, extra = []) {
+  const authors = (x.authors || []).length
+    ? (x.authors || []).map(([name, role, uri]) =>
+        `<div class="who">${uri ? `<a href="${esc(uri)}">${esc(name)}</a>` : esc(name)}
+         <span>${esc(role)}</span></div>`).join('')
+    : '—';
+  const links = Object.entries(x.links || {});
+  const fund = Object.entries(x.sponsor || {});
+
+  const facts = detailRows([
+    ['Name', `<span class="mono">${esc(x.pkg || '—')}</span>`],
+    ['Version', x.version ? `<span class="mono">${esc(x.version)}</span>` : '—'],
+    ['Authors', authors],
+    ['License', x.license ? `<span class="mono">${esc(x.license)}</span>` : '—'],
+    ...extra,
+    ['Installed by', originRow(x)],
+    ['Folder', x.install === 'builtin' ? 'Ships with Blush'
+      : `<span class="mono">${esc(x.source)}/${esc(x.slug)}</span>`],
+  ]);
+
+  return `<div class="card"><h2>Details</h2>
+    ${sect('', '', facts)}
+    ${links.length ? sect('Links', '', `<div class="links">${links.map(([t, u]) =>
+      `<a href="${esc(u)}"><svg class="ic"><use href="#${LINK_ICON[t] || 'i-external'}"/></svg>
+         <span>${esc(t)}</span></a>`).join('')}</div>`) : ''}
+    ${fund.length ? sect('Funding', 'the people who maintain it', `<div class="fund">
+      ${fund.map(([t, u]) => `<a class="btn btn-sm" href="${esc(u)}">
+        <svg class="ic"><use href="#i-heart"/></svg>${esc(t)}</a>`).join('')}</div>`) : ''}
+  </div>`;
+}
+
+/* == LIST FILTER ===========================================================
+   Keywords are only worth declaring if something searches them, so the three
+   lists gained one field that matches a name, a package, a description or a
+   keyword. Clicking a keyword anywhere sets it.
+   ========================================================================= */
+/* The two axes a person actually narrows by. Status is worded per kind, because
+   a theme is Active and a plugin is On, and calling both "enabled" would be the
+   data model talking. Source is the same everywhere, and it is the fact that
+   decides whether a thing can be deleted. */
+const STATUS = {
+  themes:  [['all','Any status'], ['on','Active'], ['off','Inactive'], ['bad','Needs attention']],
+  plugins: [['all','Any status'], ['on','On'],     ['off','Off'],      ['bad','Needs attention']],
+  packs:   [['all','Any status'], ['on','On'],     ['off','Off'],      ['bad','Needs attention']],
+};
+const SRC = [['all','Any source'], ['composer','Composer'],
+             ['folder','A folder you added'], ['builtin','Ships with Blush']];
+
+const isOn = x => x.kind === 'theme' ? x.slug === state.active : !!(x.on && !blocker(x));
+const anyFilter = () => !!state.filter.trim() || state.status !== 'all' || state.src !== 'all';
+
+function matches(x) {
+  if (state.status === 'bad') { if (!blocker(x)) return false; }
+  else if (state.status !== 'all' && isOn(x) !== (state.status === 'on')) return false;
+  if (state.src !== 'all' && x.install !== state.src) return false;
+
+  const q = state.filter.trim();
+  if (!q) return true;
+  // Keywords are not shown — they are an API field with nothing to link to —
+  // but the filter still reads them, so a search finds what they are for.
+  // At a word boundary, so filtering by "ai" does not also match "mailing".
+  const re = new RegExp('\\b' + q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+  return re.test([x.name, x.pkg, x.desc, ...(x.keywords || [])].filter(Boolean).join(' '));
+}
+
+function selCtl(key, options) {
+  const cur = options.find(([v]) => v === state[key]) || options[0];
+  return `<button class="sel" type="button" data-menu="sel:${key}" aria-haspopup="menu"
+    aria-expanded="false" data-set="${state[key] !== 'all'}">
+    <span>${esc(cur[1])}</span><svg class="ic"><use href="#i-caret"/></svg></button>`;
+}
+
+/* Cards or a compact list. Only the two screens with a picture offer it:
+   plugins are already a list, and a second density for them would be a
+   control that changes nothing anyone asked about. */
+const viewToggle = () => `<div class="vtoggle" role="group" aria-label="View">
+  <button class="vbtn" type="button" data-view="cards" title="Cards"
+    aria-label="Cards" aria-pressed="${state.view === 'cards'}">
+    <svg class="ic"><use href="#i-grid"/></svg></button>
+  <button class="vbtn" type="button" data-view="list" title="Compact list"
+    aria-label="Compact list" aria-pressed="${state.view === 'list'}">
+    <svg class="ic"><use href="#i-rows"/></svg></button></div>`;
+
+function filterBar(noun, shown, total, sub = '', dense = false) {
+  const inForce = [
+    state.status !== 'all' && STATUS[state.screen].find(([v]) => v === state.status)[1],
+    state.src !== 'all' && SRC.find(([v]) => v === state.src)[1],
+    state.filter.trim() && `“${esc(state.filter.trim())}”`,
+  ].filter(Boolean);
+
+  return `<div class="toolbar">
+      <div class="field"><svg class="ic"><use href="#i-search"/></svg>
+        <input type="search" id="lf" placeholder="Filter ${noun}" value="${esc(state.filter)}"
+          aria-label="Filter ${noun}"></div>
+      ${selCtl('status', STATUS[state.screen])}${selCtl('src', SRC)}
+      ${dense ? `<span class="sp"></span>${viewToggle()}` : ''}
+    </div>
+    <div class="filter-report">
+      <span class="browse-count">${anyFilter() ? `${shown} of ${total} ${noun}`
+        : `${total} ${noun}`}${sub && !anyFilter() ? ` · ${sub}` : ''}${
+        inForce.length ? ` · ${inForce.join(' · ')}` : ''}</span>
+      ${anyFilter() ? `<button class="btn btn-sm" type="button" data-clearfilter>Clear filters</button>` : ''}
+    </div>`;
+}
+const emptyFilter = noun => `<div class="slab" style="margin:0">
+  <p>No ${noun} match these filters.</p>
+  <p><button class="btn btn-sm" type="button" data-clearfilter>Clear filters</button></p></div>`;
+
+/* == THEMES ================================================================ */
+const ROLES = ['bg','surface','text','muted','accent','border'];
+/* The key is the contract — it names the CSS custom property and the field in
+   the theme's manifest, so it never changes and is never shown. The label is
+   copy: a whole word, Title Case because it labels rather than says, and the
+   string a translation file would carry. */
+const ROLE_NAME = { bg:'Background', surface:'Surface', text:'Text',
+  muted:'Muted', accent:'Accent', border:'Border' };
 const paletteVars = t => ROLES.map(r => `--t-${r}:light-dark(${t.pal[r][0]},${t.pal[r][1]})`).join(';');
 
 function miniBody(t) {
-  const col = `<div class="col"><div class="h"></div><div class="h s"></div><div class="acc"></div>
-    <div class="ln a"></div><div class="ln b"></div><div class="ln a"></div><div class="ln c"></div>
-    <div class="card"><div class="ph"></div><div class="ln a"></div><div class="ln c"></div></div></div>`;
-  const tile = `<div class="card"><div class="ph"></div><div class="ln a"></div><div class="ln c"></div></div>`;
-  if (t.layout === 'sidebar') return `<div class="body">${col}
-    <div class="side"><div class="ln a"></div><div class="ln b"></div><div class="ln a"></div>
-      <div class="ln c"></div><div class="ln b"></div><div class="ln a"></div></div></div>`;
-  if (t.layout === 'wide') return `<div class="hero"><i></i></div><div class="row3">${tile}${tile}${tile}</div>`;
-  return `<div class="body" style="padding-inline:170px">${col}</div>`;
+  const ln = m => `<div class="pv-ln pv-ln-${m}"></div>`;
+  const col = `<div class="pv-col"><div class="pv-h"></div><div class="pv-h pv-h-s"></div>
+    <div class="pv-acc"></div>${ln('a')}${ln('b')}${ln('a')}${ln('c')}
+    <div class="pv-card"><div class="pv-ph"></div>${ln('a')}${ln('c')}</div></div>`;
+  const tile = `<div class="pv-card"><div class="pv-ph"></div>${ln('a')}${ln('c')}</div>`;
+  if (t.layout === 'sidebar') return `<div class="pv-page">${col}
+    <div class="pv-side">${ln('a')}${ln('b')}${ln('a')}${ln('c')}${ln('b')}${ln('a')}</div></div>`;
+  if (t.layout === 'wide') return `<div class="pv-hero"><i></i></div>
+    <div class="pv-row3">${tile}${tile}${tile}</div>`;
+  return `<div class="pv-page" style="padding-inline:170px">${col}</div>`;
 }
 
 function preview(t, scheme) {
-  if (t.broken) return `<div class="pv"><div class="pv-none">
+  if (t.broken || !t.pal) return `<div class="pv"><div class="pv-none">
     <svg class="ic"><use href="#i-alert"/></svg><span>No preview</span></div></div>`;
   return `<div class="pv" style="${scheme ? `color-scheme:${scheme};` : ''}${paletteVars(t)}">
     <div class="pv-in"><div class="mini">
-      <div class="bar"><div class="mark"></div><div class="lk"></div><div class="lk"></div><div class="lk"></div></div>
+      <div class="pv-hd"><div class="pv-mark"></div>
+        <div class="pv-lk"></div><div class="pv-lk"></div><div class="pv-lk"></div></div>
       ${miniBody(t)}</div></div></div>`;
 }
 
@@ -1097,19 +1623,10 @@ function fitPreviews() {
   });
 }
 
-function fallbackFact(t) {
-  if (t.root) return `<li><svg class="ic"><use href="#i-fallback"/></svg>Every theme falls back to this one</li>`;
-  if (!t.fallback) return '';
-  const parent = getTheme(t.fallback);
-  if (!parent || parent.removed) return `<li class="warn"><svg class="ic"><use href="#i-alert"/></svg>
-    <span>Falls back to <span class="mono">${esc(t.fallback)}</span>, which is not installed</span></li>`;
-  return `<li><svg class="ic"><use href="#i-fallback"/></svg>Falls back to
-    <a href="#" data-go="themes:${parent.slug}">${esc(parent.name)}</a></li>`;
-}
-
 function themeCard(t) {
   const active = t.slug === state.active, busy = t.slug === state.busy,
         failed = t.slug === state.failed, blocked = blocker(t);
+  const parent = t.fallback ? getTheme(t.fallback) : null;
 
   const badge = active ? `<span class="pill pill-active"><span class="dot"></span>Active</span>`
     : blocked ? `<span class="pill pill-broken"><span class="dot"></span>Can't activate</span>`
@@ -1129,6 +1646,14 @@ function themeCard(t) {
     : blocked ? `<div class="tmsg tmsg-warn"><svg class="ic"><use href="#i-alert"/></svg>
         <span>${esc(blocked)}</span></div>` : '';
 
+  const fb = t.root ? `<li><svg class="ic"><use href="#i-fallback"/></svg>Every theme falls back to this one</li>`
+    : !t.fallback ? ''
+    : (parent && !parent.removed)
+      ? `<li><svg class="ic"><use href="#i-fallback"/></svg>Falls back to
+          <a href="#" data-go="themes:${parent.slug}">${esc(parent.name)}</a></li>`
+      : `<li class="warn"><svg class="ic"><use href="#i-alert"/></svg><span>Falls back to
+          <span class="mono">${esc(t.fallback)}</span>, which is not installed</span></li>`;
+
   return `<article class="tcard" data-active="${active}" data-busy="${busy}">
     ${preview(t)}
     <div class="tbody">
@@ -1137,159 +1662,153 @@ function themeCard(t) {
       ${t.desc ? `<p class="tdesc">${esc(t.desc)}</p>` : ''}
       <ul class="tfacts">${originFact(t)}
         ${t.type ? `<li><svg class="ic"><use href="#i-type"/></svg>${esc(t.type)}</li>` : ''}
-        ${fallbackFact(t)}</ul>
+        ${fb}</ul>
       ${message}
     </div>
-    <div class="tfoot">${action}<span class="sp"></span>
-      ${menuTrigger('theme', t)}</div>
+    <div class="tfoot">${action}<span class="sp"></span>${menuTrigger('theme', t)}</div>
   </article>`;
 }
 
+/* The same theme, one line high. The picture shrinks rather than disappears,
+   because the picture is why this screen is a grid in the first place. */
+function themeRow(t) {
+  const active = t.slug === state.active, busy = t.slug === state.busy,
+        failed = t.slug === state.failed, blocked = blocker(t);
+  const parent = t.fallback ? getTheme(t.fallback) : null;
+
+  const badge = active ? `<span class="pill pill-active"><span class="dot"></span>Active</span>`
+    : blocked ? `<span class="pill pill-broken"><span class="dot"></span>Can't activate</span>`
+    : t.builtin ? `<span class="pill pill-builtin"><span class="dot"></span>Built in</span>` : '';
+
+  let action;
+  if (active)       action = `<a class="btn btn-sm" href="#"><svg class="ic"><use href="#i-external"/></svg>View site</a>`;
+  else if (busy)    action = `<button class="btn btn-sm" type="button" disabled><span class="spin"></span>Activating…</button>`;
+  else if (blocked) action = `<button class="btn btn-sm" type="button" disabled>Activate</button>`;
+  else if (failed)  action = `<button class="btn btn-sm btn-danger" type="button" data-activate="${t.slug}">Try again</button>`;
+  else              action = `<button class="btn btn-sm" type="button" data-activate="${t.slug}">Activate</button>`;
+
+  const fb = t.root ? 'Every theme falls back to this one'
+    : !t.fallback ? ''
+    : (parent && !parent.removed)
+      ? `Falls back to <a href="#" data-go="themes:${parent.slug}">${esc(parent.name)}</a>`
+      : `<span class="warn-ink">Falls back to ${esc(t.fallback)}, which isn't installed</span>`;
+
+  return `<div class="row">
+    ${rowBadge(t, `<svg class="ic"><use href="#i-theme"/></svg>`)}
+    <div>
+      <div class="rname"><a href="#" data-go="themes:${t.slug}">${esc(t.name)}</a>${badge}
+        <span class="pkg">${esc(t.version || '')}</span></div>
+      <div class="rfacts"><span>${originRow(t)}</span>${t.type ? `<span>${esc(t.type)}</span>` : ''}
+        ${fb ? `<span>${fb}</span>` : ''}</div>
+      ${blocked ? `<div class="tmsg tmsg-warn" style="margin:var(--s-2) 0 0;max-width:70ch">
+          <svg class="ic"><use href="#i-alert"/></svg><span>${esc(blocked)}</span></div>` : ''}
+    </div>
+    <div class="ract">${action}${menuSlot('theme', t)}</div>
+  </div>`;
+}
+
 function themesList() {
-  const list = live(THEMES).slice().sort((a, b) => (b.slug === state.active) - (a.slug === state.active));
+  const all = live(THEMES);
+  const hits = all.filter(matches)
+    .sort((a, b) => (b.slug === state.active) - (a.slug === state.active));
   return pageHead('Themes',
       `The theme visitors see. The admin's own appearance is yours alone and is set on
        <a href="#">Your Account</a>.`,
       `<button class="btn btn-primary" type="button" data-install="theme">
          <svg class="ic"><use href="#i-upload"/></svg>Install Theme</button>`)
-    + countRow(state.loading ? 'Loading themes' : `${list.length} themes · 1 active`)
-    + `<div class="cards">${state.loading ? skeletonCard().repeat(3) : list.map(themeCard).join('')}</div>`
+    + (state.loading ? '' : filterBar('themes', hits.length, all.length,
+        `${getTheme(state.active) ? '1 active' : 'none active'}`, true))
+    + (state.loading
+        ? `<div class="cards">${skeletonCard().repeat(3)}</div>`
+        : !hits.length ? emptyFilter('themes')
+        : state.view === 'list'
+          ? `<div class="rows">${hits.map(themeRow).join('')}</div>`
+          : `<div class="cards">${hits.map(themeCard).join('')}</div>`)
     + `<div class="notice"><svg class="ic"><use href="#i-info"/></svg>
         <p>Themes live in <code>user/themes/</code> or come from Composer. One can also be
-          activated from the command line, which is how a deploy usually does it:
-          <code>bin/blush theme:activate {slug}</code>. The active theme is recorded in
-          <code>config/theme.php</code>.</p></div>`;
+          activated from the command line: <code>bin/blush theme:activate {slug}</code>, and the
+          active theme is recorded in <code>config/theme.php</code>.</p></div>`;
 }
 
-/* the hex goes on the swatch, so the ink has to clear it — and both candidates
-   come from the theme's own palette, so a swatch never introduces a color the
-   theme has not declared (WCAG relative luminance) */
-const chan = v => (v /= 255) <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
-const luminance = hex => { const n = parseInt(hex.slice(1), 16);
-  return 0.2126 * chan(n >> 16 & 255) + 0.7152 * chan(n >> 8 & 255) + 0.0722 * chan(n & 255); };
-const contrast = (a, b) => { const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x);
-  return (hi + 0.05) / (lo + 0.05); };
-const inkOn = (fill, t, half) =>
-  contrast(fill, t.pal.text[half]) >= contrast(fill, t.pal.bg[half]) ? t.pal.text[half] : t.pal.bg[half];
-
-function paletteHalf(t, half, label) {
-  const tiles = ROLES.map(role => {
+/* The preview IS the palette rendered, so each scheme shows its own six
+   colors directly beneath the picture they drew. A separate Palette section
+   made you look back and forth to pair a swatch with what it did. */
+function appearanceHalf(t, half, label) {
+  const rows = ROLES.map(role => {
     const fill = t.pal[role][half];
-    return `<div class="sw" style="background:${fill};color:${inkOn(fill, t, half)}">
-      <b>${role}</b><span class="mono">${fill}</span></div>`;
+    return `<div><i style="background:${fill}"></i><b>${ROLE_NAME[role]}</b>` +
+      `<span class="mono">${fill}</span></div>`;
   }).join('');
-  return `<section><h3>${label}</h3><div class="pal-grid">${tiles}</div></section>`;
+  return `<figure>${preview(t, half ? 'dark' : 'light')}
+    <figcaption>${label}</figcaption>
+    <div class="pal">${rows}</div></figure>`;
 }
 
-const palettePanel = t => `<div class="card">
-  <h2>Palette <span class="hint">six roles, declared as light-dark() pairs</span></h2>
-  <div class="card-in"><div class="pal-pair">
-    ${paletteHalf(t, 0, 'Light')}${paletteHalf(t, 1, 'Dark')}</div></div></div>`;
+const appearancePanel = t => `<div class="card">
+  <h2>Appearance <span class="hint">the six colors it declares, rendered and listed</span></h2>
+  <div class="sect"><div class="sect-body">
+    <div class="pv-pair">${appearanceHalf(t, 0, 'Light')}${appearanceHalf(t, 1, 'Dark')}</div>
+  </div></div>
+</div>`;
 
 function themeDetail(t) {
-  const active = t.slug === state.active, blocked = blocker(t), deps = dependents(t.slug);
-  const parent = t.fallback ? getTheme(t.fallback) : null;
-
-  const action = active
-    ? `<span class="pill pill-active"><span class="dot"></span>Active</span>
-       <a class="btn" href="#"><svg class="ic"><use href="#i-external"/></svg>View site</a>`
+  const active = t.slug === state.active, blocked = blocker(t);
+  const badge = active
+    ? `<span class="pill pill-active"><span class="dot"></span>Active</span>`
     : blocked
-      ? `<span class="pill pill-broken"><span class="dot"></span>Can't activate</span>
-         <button class="btn" type="button" disabled>Activate</button>`
+      ? `<span class="pill pill-broken"><span class="dot"></span>Can't activate</span>` : '';
+  const action = active
+    ? `<a class="btn" href="#"><svg class="ic"><use href="#i-external"/></svg>View site</a>`
+    : blocked
+      ? `<button class="btn" type="button" disabled>Activate</button>`
       : `<button class="btn btn-primary" type="button" data-activate="${t.slug}">Activate ${esc(t.name)}</button>`;
 
-  const rows = detailRows([
-    ['Version', t.version ? `<span class="mono">${esc(t.version)}</span>` : '—'],
-    ['Installed by', originRow(t)],
-    ['Folder', t.builtin ? 'Ships with Blush' : `<span class="mono">${esc(t.source)}/${esc(t.slug)}</span>`],
-    ['Author', t.uri ? `<a href="${esc(t.uri)}">${esc(t.author)}</a>` : esc(t.author || '—')],
-    ['Type', esc(t.type || '—')],
-    ['Falls back to', t.root ? 'Nothing — every theme falls back to this one'
-      : !t.fallback ? '—'
-      : (!parent || parent.removed)
-        ? `<span class="warn-ink mono">${esc(t.fallback)}</span><span class="warn-ink"> — not installed</span>`
-        : `<a href="#" data-go="themes:${parent.slug}">${esc(parent.name)}</a>`],
-    ['Used as fallback by', deps.length
-      ? deps.map(d => `<a href="#" data-go="themes:${d.slug}">${esc(d.name)}</a>`).join(', ') : 'Nothing'],
-  ]);
+  const feature = (t.broken || !t.pal)
+    ? `<div class="card"><h2>Appearance</h2>${sect('', '',
+        `<div class="tmsg tmsg-warn" style="margin:0"><svg class="ic"><use href="#i-alert"/></svg>
+          <span>${esc(t.broken || 'This theme declares no palette.')}</span></div>`)}</div>`
+    : appearancePanel(t);
 
-  const previewPanel = t.broken
-    ? `<div class="card"><h2>Preview</h2><div class="card-in">
-         <div class="tmsg tmsg-warn"><svg class="ic"><use href="#i-alert"/></svg>
-           <span>${esc(t.broken)}. There is nothing to draw and nothing to activate until the
-           folder is fixed.</span></div></div></div>`
-    : `<div class="card"><h2>Preview <span class="hint">drawn from the declared palette</span></h2>
-         <div class="card-in">
-           ${blocked ? `<div class="tmsg tmsg-warn" style="margin-top:0;margin-bottom:var(--s-4)">
-             <svg class="ic"><use href="#i-alert"/></svg><span>${esc(blocked)}</span></div>` : ''}
-           <div class="pv-pair">
-             <figure>${preview(t, 'light')}<figcaption>Light</figcaption></figure>
-             <figure>${preview(t, 'dark')}<figcaption>Dark</figcaption></figure></div></div></div>`;
+  const deps = dependents(t.slug).length;
+  return detailShell(t, {
+    action, badge, blocked, feature,
+    identity: identityPanel(t, [['Type', esc(t.type || '—')]]),
+    danger: dangerZone(t, 'theme', deps
+      ? ` ${deps} theme${deps > 1 ? 's fall' : ' falls'} back to this one.` : ''),
+  });
+}
 
-  return backTo('themes', 'All themes')
-    + pageHead(esc(t.name), esc(t.desc || 'This theme has no description.'), action)
+/* == ONE DETAIL SHELL ======================================================
+   Every kind lays out the same: what it looks like (if it has a look), then
+   Details beside Dependencies, then anything kind-specific, then deleting.
+   ========================================================================= */
+function detailShell(x, { action = '', badge = '', blocked, feature = '', identity, danger = '' }) {
+  return backTo(KIND[x.kind].screen, `All ${KIND[x.kind].noun}s`)
+    + pageHead(esc(x.name), esc(x.desc || `This ${KIND[x.kind].noun} has no description.`),
+        action, badge)
     + `<div class="detail-stack">
-         <div class="detail">${previewPanel}
-           <div class="card"><h2>Details</h2><div class="card-in">${rows}</div></div></div>
-         ${t.broken ? '' : palettePanel(t)}
-         ${dangerZone(t, 'theme', deps.length
-            ? ` ${deps.length} theme${deps.length > 1 ? 's falls' : ' falls'} back to this one.` : '')}
-       </div>`;
+        ${blocked ? `<div class="tmsg tmsg-warn" style="margin:0"><svg class="ic"><use href="#i-alert"/></svg>
+          <span>${esc(blocked)} ${x.kind === 'theme'
+            ? 'It cannot be activated until that is fixed.'
+            : 'Nothing it registers runs, and it cannot be turned on.'}</span></div>` : ''}
+        ${feature}
+        <div class="detail-2up">${identity}${depsPanel(x)}</div>
+        ${danger}
+      </div>`;
 }
 
 /* == PLUGINS ===============================================================
    Rows, not cards: a plugin has no picture, and the list has only what the
    manifest says — a name, a package, a version, a sentence, and a switch.
    ========================================================================= */
-PLUGINS.forEach(p => p.kind = 'plugin');
-
-/* A caret range is satisfied when the major version matches. Enough for a
-   sketch; the real admin hands this to Composer's own comparator. */
-const major = v => parseInt(String(v).replace(/^\D*/, ''), 10);
-const satisfies = (range, version) => major(range) === major(version);
-
-/* One requirement, resolved against this site. A plugin requirement is
-   checked live, so turning Shop off blocks everything that needs it. */
-function requirement(r) {
-  const [kind] = r;
-  if (kind === 'core') return { name:'blush', range:r[1], ok:satisfies(r[1], SITE.blush),
-    note:`this site runs ${SITE.blush}` };
-  if (kind === 'php')  return { name:'php', range:r[1], ok:satisfies(r[1], SITE.php),
-    note:`this site runs ${SITE.php}` };
-
-  const [, pkg, range] = r;
-  const dep = live(PLUGINS).find(o => o.pkg === pkg);
-  if (!dep)            return { name:pkg, range, ok:false, note:'not installed', dep:null };
-  const versionOk = satisfies(range, dep.version);
-  if (!versionOk)      return { name:pkg, range, ok:false, dep, label:dep.name,
-    note:`version ${dep.version} is installed` };
-  const running = dep.on && !pluginBlocker(dep);
-  return { name:pkg, range, ok:running, dep, label:dep.name,
-    note: running ? '' : 'installed but turned off' };
-}
-
-const requirements = p => (p.requires || []).map(requirement);
-
-/* Why a plugin may not be turned on, or null. */
-function pluginBlocker(p) {
-  if (p.broken) return p.broken;
-  const miss = requirements(p).filter(r => !r.ok);
-  if (!miss.length) return null;
-  return 'Needs ' + miss.map(r => {
-    if (r.dep === null) return `the ${r.name} plugin, which is not installed`;
-    if (r.dep)          return `${r.label} ${r.range}, ${r.note}`;
-    return `${r.name} ${r.range}, ${r.note}`;
-  }).join(', and ') + '.';
-}
-
 function pluginRow(p) {
-  const blocked = pluginBlocker(p);
+  const blocked = blocker(p);
   const on = p.on && !blocked;
   const badge = blocked
     ? `<span class="pill pill-broken"><span class="dot"></span>Can't turn on</span>` : '';
 
   return `<div class="row" data-off="${!on}">
-    <div class="badge"><svg class="ic"><use href="#i-extension"/></svg></div>
+    ${rowBadge(p, `<svg class="ic"><use href="#i-extension"/></svg>`)}
     <div>
       <div class="rname"><a href="#" data-go="plugins:${p.slug}">${esc(p.name)}</a>${badge}
         <span class="pkg">${esc(p.pkg)} ${esc(p.version)}</span></div>
@@ -1297,146 +1816,126 @@ function pluginRow(p) {
       ${blocked ? `<div class="tmsg tmsg-warn" style="margin:0;max-width:70ch">
           <svg class="ic"><use href="#i-alert"/></svg><span>${esc(blocked)}</span></div>` : ''}
     </div>
-    <div class="ract">
-      ${switchCtl('plugin', p, on, !!blocked, blocked || '')}
-      ${menuTrigger('plugin', p)}
-    </div></div>`;
+    <div class="ract">${switchCtl('plugin', p, on, !!blocked, blocked || '')}${menuSlot('plugin', p)}</div>
+  </div>`;
 }
 
 function pluginsList() {
-  const list = live(PLUGINS);
-  const on = list.filter(p => p.on && !pluginBlocker(p)).length;
+  const all = live(PLUGINS), hits = all.filter(matches);
+  const on = all.filter(p => p.on && !blocker(p)).length;
   return pageHead('Plugins',
       'Code that adds content types, components, icons and actions to the site.',
       `<button class="btn btn-primary" type="button" data-install="plugin">
          <svg class="ic"><use href="#i-upload"/></svg>Install Plugin</button>`)
-    + countRow(state.loading ? 'Loading plugins' : `${list.length} plugins · ${on} on`)
-    + (state.loading ? skeletonRows() : `<div class="rows">${list.map(pluginRow).join('')}</div>`)
+    + (state.loading ? '' : filterBar('plugins', hits.length, all.length, `${on} on`))
+    + (state.loading ? skeletonRows()
+        : hits.length ? `<div class="rows">${hits.map(pluginRow).join('')}</div>`
+                      : emptyFilter('plugins'))
     + `<div class="notice"><svg class="ic"><use href="#i-info"/></svg>
         <p>Plugins live in <code>user/plugins/</code> or come from Composer. Turning one off
-          writes to <code>config/plugins.php</code>, so a deploy keeps the same answer. What a
-          plugin registers appears on the screens it belongs to, not here.</p></div>`;
+          writes to <code>config/plugins.php</code>, so a deploy keeps the same answer.</p></div>`;
 }
 
 function pluginDetail(p) {
-  const blocked = pluginBlocker(p);
-  const on = p.on && !blocked;
-  const reqs = requirements(p);
-  const needs = live(PLUGINS).filter(o => o !== p &&
-    (o.requires || []).some(r => r[0] === 'plugin' && r[1] === p.pkg));
-
-  const action = blocked
-    ? `<span class="pill pill-broken"><span class="dot"></span>Can't turn on</span>`
-    : switchCtl('plugin', p, on, false);
-
-  const details = detailRows([
-    ['Version', `<span class="mono">${esc(p.version)}</span>`],
-    ['Package', `<span class="mono">${esc(p.pkg)}</span>`],
-    ['Installed by', originRow(p)],
-    ['Folder', `<span class="mono">${esc(p.source)}/${esc(p.slug)}</span>`],
-    ['Author', p.uri ? `<a href="${esc(p.uri)}">${esc(p.author)}</a>` : esc(p.author)],
-    ['License', `<span class="mono">${esc(p.license)}</span>`],
-    needs.length && ['Required by', needs.map(o =>
-      `<a href="#" data-go="plugins:${o.slug}">${esc(o.name)}</a>`).join(', ')],
-  ]);
-
-  const reqList = `<ul class="req">${reqs.map(r => `<li>
-      <svg class="ic ${r.ok ? 'ok' : 'bad'}"><use href="#i-${r.ok ? 'ok' : 'no'}"/></svg>
-      <span class="mono">${esc(r.name)} ${esc(r.range)}</span>
-      ${r.dep ? `<a href="#" data-go="plugins:${r.dep.slug}">${esc(r.label)}</a>` : ''}
-      ${r.note ? `<span class="${r.ok ? '' : 'warn-ink'}">— ${esc(r.note)}</span>` : ''}
-    </li>`).join('')}</ul>`;
-
-  return backTo('plugins', 'All plugins')
-    + pageHead(esc(p.name), esc(p.desc), action)
-    + `<div class="detail-stack">
-        ${blocked ? `<div class="tmsg tmsg-warn" style="margin:0"><svg class="ic"><use href="#i-alert"/></svg>
-          <span>${esc(blocked)} Nothing it registers is active, and it cannot be turned on.</span></div>` : ''}
-        <div class="detail-2up">
-          <div class="card"><h2>Details</h2><div class="card-in">${details}</div></div>
-          <div class="card"><h2>Requires <span class="hint">checked against this site</span></h2>
-            <div class="card-in">${reqList}</div></div>
-        </div>
-        ${dangerZone(p, 'plugin')}
-      </div>`;
+  const blocked = blocker(p);
+  const badge = blocked
+    ? `<span class="pill pill-broken"><span class="dot"></span>Can't turn on</span>` : '';
+  const action = blocked ? '' : switchCtl('plugin', p, p.on && !blocked, false);
+  return detailShell(p, { action, badge, blocked, identity: identityPanel(p),
+    danger: dangerZone(p, 'plugin') });
 }
 
 /* == ICON PACKS ============================================================
-   Cards, because a pack's icons are its preview. Listing the names instead of
-   the marks is the one thing this screen must not do.
+   Cards, because a pack's icons are its preview, and they are files on disk —
+   readable without running anything, which is why this screen can show them.
    ========================================================================= */
-PACKS.forEach(k => k.kind = 'pack');
-
 const glyph = (g, cls = 'ic') => `<svg class="${cls}" viewBox="0 0 24 24">${g.d}</svg>`;
-const packOn = k => k.on;
-
-/* Every card's preview is the same two rows of six, whatever the pack holds:
-   a short pack pads with empty cells, a long one spends the last on a count.
-   Ragged previews are what make a grid of cards look untended. */
+const packOn = k => k.on && !blocker(k);
 const CELLS = 12;
 
 function packCard(k) {
   const on = packOn(k);
+  const blocked = blocker(k);
   const over = k.icons.length > CELLS;
   const shown = k.icons.slice(0, over ? CELLS - 1 : CELLS);
-  const rest = k.icons.length - shown.length;
   const pad = CELLS - shown.length - (over ? 1 : 0);
-  const locked = k.install === 'builtin';
-  const why = locked ? 'The core set is always on.' : '';
+  const locked = k.install === 'builtin' || !!blocked;
+  const why = k.install === 'builtin' ? 'The core set is always on.' : (blocked || '');
 
   return `<article class="tcard" data-active="false">
     <div class="glyphs">${shown.map(g => `<div>${glyph(g)}</div>`).join('')}
-      ${over ? `<div><span class="more">+${rest}</span></div>` : ''}
+      ${over ? `<div><span class="more">+${k.icons.length - shown.length}</span></div>` : ''}
       ${'<div></div>'.repeat(pad)}</div>
     <div class="tbody">
       <div class="tname"><a href="#" data-go="packs:${k.slug}">${esc(k.name)}</a>
-        ${k.install === 'builtin' ? `<span class="pill pill-builtin"><span class="dot"></span>Built in</span>` : ''}
+        ${blocked ? `<span class="pill pill-broken"><span class="dot"></span>Can't turn on</span>`
+          : k.install === 'builtin' ? `<span class="pill pill-builtin"><span class="dot"></span>Built in</span>` : ''}
         ${k.version ? `<span class="ver">${esc(k.version)}</span>` : ''}</div>
       <p class="tdesc">${esc(k.desc)}</p>
       <ul class="tfacts">${originFact(k)}
         <li><svg class="ic"><use href="#i-icons"/></svg>${k.icons.length} icons in
           <span class="mono">${esc(k.ns)}/</span></li></ul>
+      ${blocked ? `<div class="tmsg tmsg-warn"><svg class="ic"><use href="#i-alert"/></svg>
+        <span>${esc(blocked)}</span></div>` : ''}
     </div>
-    <div class="tfoot">${switchCtl('pack', k, on, locked, why)}<span class="sp"></span>
-      ${menuTrigger('pack', k)}</div>
+    <div class="tfoot">${switchCtl('pack', k, on, locked, why)}<span class="sp"></span>${menuTrigger('pack', k)}</div>
   </article>`;
 }
 
+/* A pack's contents are its face, so the compact row keeps three of them. */
+function packRow(k) {
+  const on = packOn(k), blocked = blocker(k);
+  const locked = k.install === 'builtin' || !!blocked;
+  const why = k.install === 'builtin' ? 'The core set is always on.' : (blocked || '');
+
+  return `<div class="row" data-off="${!on}">
+    ${rowBadge(k, k.icons[0] ? glyph(k.icons[0]) : `<svg class="ic"><use href="#i-icons"/></svg>`)}
+    <div>
+      <div class="rname"><a href="#" data-go="packs:${k.slug}">${esc(k.name)}</a>
+        ${blocked ? `<span class="pill pill-broken"><span class="dot"></span>Can't turn on</span>`
+          : k.install === 'builtin' ? `<span class="pill pill-builtin"><span class="dot"></span>Built in</span>` : ''}
+        <span class="pkg">${esc(k.version || '')}</span></div>
+      <div class="rfacts"><span class="mono">${esc(k.ns)}/</span>
+        <span>${k.icons.length} icons</span><span>${originRow(k)}</span></div>
+      ${blocked ? `<div class="tmsg tmsg-warn" style="margin:var(--s-2) 0 0;max-width:70ch">
+          <svg class="ic"><use href="#i-alert"/></svg><span>${esc(blocked)}</span></div>` : ''}
+    </div>
+    <div class="ract">${switchCtl('pack', k, on, locked, why)}${menuSlot('pack', k)}</div>
+  </div>`;
+}
+
 function packsList() {
-  const list = live(PACKS);
-  const total = list.filter(packOn).reduce((n, k) => n + k.icons.length, 0);
+  const all = live(PACKS), hits = all.filter(matches);
+  const total = all.filter(packOn).reduce((n, k) => n + k.icons.length, 0);
   return pageHead('Icon Packs',
       'Sets of icons for content, menus and buttons, each in a namespace of its own.',
       `<button class="btn btn-primary" type="button" data-install="pack">
          <svg class="ic"><use href="#i-upload"/></svg>Install Icon Pack</button>`)
-    + countRow(state.loading ? 'Loading icon packs'
-        : `${list.length} packs · ${total} icons available`)
-    + `<div class="cards">${state.loading ? skeletonCard().repeat(3) : list.map(packCard).join('')}</div>`
+    + (state.loading ? '' : filterBar('packs', hits.length, all.length,
+        `${total} icons available`, true))
+    + (state.loading
+        ? `<div class="cards">${skeletonCard().repeat(3)}</div>`
+        : !hits.length ? emptyFilter('packs')
+        : state.view === 'list'
+          ? `<div class="rows">${hits.map(packRow).join('')}</div>`
+          : `<div class="cards">${hits.map(packCard).join('')}</div>`)
     + `<div class="notice"><svg class="ic"><use href="#i-info"/></svg>
         <p>Icon packs live in <code>user/icons/</code> or come from Composer. An icon is
-          referenced as <code>pack/name</code> wherever content, a menu or a button takes one, and
-          the namespace is what lets two packs use the same name.</p></div>`;
+          referenced as <code>pack/name</code>, and the namespace is what lets two packs use the
+          same name.</p></div>`;
 }
 
 function packDetail(k) {
+  const blocked = blocker(k);
   const on = packOn(k);
-  const locked = k.install === 'builtin';
-  const why = locked ? 'The core set is always on.' : '';
+  const locked = k.install === 'builtin' || !!blocked;
+  const why = k.install === 'builtin' ? 'The core set is always on.' : (blocked || '');
   const q = state.query.trim().toLowerCase();
   const hits = k.icons.filter(g => g.n.includes(q));
 
-  const rows = detailRows([
-    ['Version', k.version ? `<span class="mono">${esc(k.version)}</span>` : '—'],
-    ['Namespace', `<span class="mono">${esc(k.ns)}/</span>`],
-    ['Icons', `${k.icons.length}`],
-    ['Installed by', originRow(k)],
-    k.install === 'folder' && ['Folder', `<span class="mono">${esc(k.source)}/${esc(k.slug)}</span>`],
-    ['Author', esc(k.author)],
-  ]);
-
   const browser = `<div class="card">
     <h2>Icons <span class="hint">click one to copy its reference</span></h2>
-    <div class="card-in">
+    <div class="sect"><div class="sect-body" style="padding-top:var(--s-4)">
       <div class="browse-bar">
         <div class="field"><svg class="ic"><use href="#i-search"/></svg>
           <input type="search" id="gq" placeholder="Filter icons" value="${esc(state.query)}"
@@ -1447,20 +1946,19 @@ function packDetail(k) {
       ${hits.length ? `<div class="browse">${hits.map(g =>
         `<button class="gcell" type="button" data-copy="${esc(k.ns)}/${esc(g.n)}">
            ${glyph(g)}<code>${esc(k.ns)}/${esc(g.n)}</code></button>`).join('')}</div>`
-      : `<p class="rdesc" style="margin:0">No icon in this pack matches
-          “${esc(state.query)}”.</p>`}
-    </div></div>`;
+      : `<p class="rdesc" style="margin:0">No icon in this pack matches “${esc(state.query)}”.</p>`}
+    </div></div></div>`;
 
-  return backTo('packs', 'All icon packs')
-    + pageHead(esc(k.name), esc(k.desc),
-        switchCtl('pack', k, on, locked, why))
-    + `<div class="detail-stack">
-        ${locked ? `<div class="notice" style="margin-top:0"><svg class="ic"><use href="#i-info"/></svg>
-          <p>${esc(why)}</p></div>` : ''}
-        <div class="detail">${browser}
-          <div class="card"><h2>Details</h2><div class="card-in">${rows}</div></div></div>
-        ${dangerZone(k, 'icon pack')}
-      </div>`;
+  return detailShell(k, {
+    action: blocked ? '' : switchCtl('pack', k, on, locked, why),
+    badge: blocked
+      ? `<span class="pill pill-broken"><span class="dot"></span>Can't turn on</span>` : '',
+    blocked,
+    feature: browser,
+    identity: identityPanel(k, [['Namespace', `<span class="mono">${esc(k.ns)}/</span>`],
+                                ['Icons', `${k.icons.length}`]]),
+    danger: dangerZone(k, 'icon pack'),
+  });
 }
 
 /* == ROUTER ================================================================ */
@@ -1494,11 +1992,13 @@ function render() {
 }
 
 /* "themes" goes to a list, "themes:quill" to a detail screen. */
-function go(target) {
+function go(target, keepFilter) {
   const [screen, slug] = String(target).split(':');
   if (SCREENS[screen]) { state.screen = screen; state.detail = slug || null; }
   state.failed = null;
   state.query = '';
+  // The view is a preference and survives; the filters belong to the screen.
+  if (!keepFilter) { state.filter = ''; state.status = 'all'; state.src = 'all'; }
   $('#work').scrollTop = 0;       // the pane scrolls on desktop…
   scrollTo(0, 0);                 // …the document scrolls on a phone
   render();
@@ -1592,8 +2092,8 @@ function confirmDelete(kind, slug) {
       ${deps.length > 1 ? 'they are' : 'it is'} pointed at a theme that is installed.</p>`;
   }
   if (kind === 'plugin') {
-    const needs = live(PLUGINS).filter(o => (o.requires || [])
-      .some(r => r[0] === 'plugin' && r[1] === x.pkg));
+    const needs = everything().filter(o => o !== x &&
+      (o.rel?.requires || []).some(r => r.pkg === x.pkg));
     extra = `<p>Everything it registered stops existing. Content that used it keeps its text
       and loses the rendering.</p>`
       + (needs.length ? `<p>${needs.map(o => esc(o.name)).join(' and ')} require${needs.length > 1 ? '' : 's'}
@@ -1683,14 +2183,14 @@ function choose(file) {
 function makeExtension(slug, version) {
   const i = INSTALL[IN.kind], name = titleCase(slug);
   const common = { slug, name, version, install:'folder', source:i.dir, kind:IN.kind,
-                   author:'Unknown', license:'MIT', uri:null };
+                   pkg:`example/${slug}`, authors:[['Unknown','Developer',null]], license:'MIT',
+                   links:{}, keywords:[], rel:{ requires:[{ core:'^2.0' }] } };
   if (IN.kind === 'theme') return { ...common, fallback:'default', layout:'centered',
     type:'Sans throughout', desc:`Installed from ${esc(IN.file.name)}.`,
     pal:{ bg:['#fdfdfc','#101214'], surface:['#ffffff','#181b1e'], text:['#17191c','#eceef0'],
           muted:['#6b7075','#8f959b'], accent:['#7a4bd0','#b490f5'], border:['#e7e8ea','#24282c'] } };
-  if (IN.kind === 'plugin') return { ...common, pkg:`example/${slug}`, on:false,
-    desc:`Installed from ${esc(IN.file.name)}.`, requires:[['core','^2.0']] };
-  return { ...common, pkg:`example/${slug}`, ns:slug, on:false,
+  if (IN.kind === 'plugin') return { ...common, on:false, desc:`Installed from ${esc(IN.file.name)}.` };
+  return { ...common, ns:slug, on:false,
     desc:`Installed from ${esc(IN.file.name)}.`,
     icons: pk(slug, ['star','tag','bookmark','link','bell','pin','mail','play']) };
 }
@@ -1770,7 +2270,7 @@ function renderInstall() {
         <dl><dt>Folder</dt><dd class="mono">${esc(m.source)}/${esc(m.slug)}</dd>
             <dt>From</dt><dd>${esc(IN.file.name)} · ${kb(IN.file.size)}</dd></dl>
       </div>`;
-    const canNext = IN.kind === 'theme' ? !blocker(m) : !pluginBlockerSafe(m);
+    const canNext = !blocker(m);
     foot = `<span class="status"></span>
       <button class="btn" type="button" data-close data-focus>Done</button>
       ${canNext ? `<button class="btn btn-primary" type="button"
@@ -1812,9 +2312,6 @@ function renderInstall() {
   $('#m-body').querySelector('[data-focus]')?.focus() ?? $('#m-foot').querySelector('[data-focus]')?.focus();
 }
 
-/* blocker() is the theme one; a freshly made plugin has no blocker yet. */
-const pluginBlockerSafe = m => (typeof pluginBlocker === 'function' && m.requires) ? pluginBlocker(m) : null;
-
 /* == ROW MENU ============================================================== */
 const menu = $('#menu');
 let menuFor = null;
@@ -1829,6 +2326,24 @@ function closeMenu(restoreFocus) {
 
 function openMenu(ref, btn) {
   const [kind, slug] = ref.split(':');
+
+  // A select borrows the menu: same surface, same keys, same dismissal.
+  if (kind === 'sel') {
+    const opts = slug === 'status' ? STATUS[state.screen] : SRC;
+    menu.innerHTML = opts.map(([v, label]) =>
+      `<button type="button" role="menuitemradio" aria-checked="${state[slug] === v}"
+        data-mi="opt:${v}">${state[slug] === v
+          ? `<svg class="ic"><use href="#i-check"/></svg>`
+          : `<span class="ic"></span>`}${esc(label)}</button>`).join('');
+    menu.dataset.open = 'true';
+    menuFor = ref;
+    btn.setAttribute('aria-expanded', 'true');
+    menu.dataset.screen = state.screen;
+    placeMenu(btn, true);
+    menu.querySelector('button').focus();
+    return;
+  }
+
   const x = kind === 'theme' ? getTheme(slug) : kind === 'plugin' ? getPlugin(slug) : getPack(slug);
   const screen = kind === 'theme' ? 'themes' : kind === 'plugin' ? 'plugins' : 'packs';
 
@@ -1845,13 +2360,22 @@ function openMenu(ref, btn) {
   menuFor = ref;
   btn.setAttribute('aria-expanded', 'true');
   menu.dataset.screen = screen;
+  menu.style.minWidth = '';
+  placeMenu(btn);
+  menu.querySelector('button').focus();
+}
 
+/* A row's ⋯ menu hangs from the button's right edge; a select's list opens
+   under its own left edge and is never narrower than the control it came
+   from, because it has to read as that control opening. */
+function placeMenu(btn, alignLeft) {
+  if (alignLeft) menu.style.minWidth = `${btn.getBoundingClientRect().width}px`;
   const r = btn.getBoundingClientRect(), m = menu.getBoundingClientRect();
   let top = r.bottom + 6;
   if (top + m.height > innerHeight - 8) top = r.top - m.height - 6;   // flip above
+  const left = alignLeft ? r.left : r.right - m.width;
   menu.style.top = `${top}px`;
-  menu.style.left = `${Math.max(8, Math.min(r.right - m.width, innerWidth - m.width - 8))}px`;
-  menu.querySelector('button').focus();
+  menu.style.left = `${Math.max(8, Math.min(left, innerWidth - m.width - 8))}px`;
 }
 
 menu.addEventListener('keydown', e => {
@@ -1865,6 +2389,14 @@ menu.addEventListener('keydown', e => {
 menu.addEventListener('click', e => {
   const item = e.target.closest('[data-mi]'); if (!item) return;
   const ref = menuFor, [kind, slug] = ref.split(':');
+
+  if (kind === 'sel') {
+    state[slug] = item.dataset.mi.slice(4);
+    closeMenu(false);
+    render();
+    return;
+  }
+
   const x = kind === 'theme' ? getTheme(slug) : kind === 'plugin' ? getPlugin(slug) : getPack(slug);
   const screen = menu.dataset.screen;
   closeMenu(false);
@@ -1905,6 +2437,12 @@ document.addEventListener('click', e => {
   const run = e.target.closest('[data-run]');
   if (run) runInstall(run.dataset.run === 'replace' ? IN.clash : null);
 
+  if (e.target.closest('[data-clearfilter]')) {
+    state.filter = ''; state.status = 'all'; state.src = 'all'; render(); return; }
+
+  const vb = e.target.closest('[data-view]');
+  if (vb) { state.view = vb.dataset.view; render(); return; }
+
   const hop = e.target.closest('[data-hop]');
   if (hop) { modal.close(); installModal(hop.dataset.hop); }
 
@@ -1936,12 +2474,19 @@ document.addEventListener('change', e => {
 });
 
 /* The icon filter keeps focus across the re-render, so typing is continuous. */
-document.addEventListener('input', e => {
-  if (e.target.id !== 'gq') return;
-  state.query = e.target.value;
-  render();
-  const f = $('#gq'); if (f) { f.focus(); f.setSelectionRange(f.value.length, f.value.length); }
-});
+/* Both filters keep focus and caret across the re-render, so typing is
+   continuous rather than one character per click. */
+function keepCaret(id, set) {
+  return e => {
+    if (e.target.id !== id) return;
+    set(e.target.value);
+    render();
+    const f = $('#' + id);
+    if (f) { f.focus(); f.setSelectionRange(f.value.length, f.value.length); }
+  };
+}
+document.addEventListener('input', keepCaret('gq', v => state.query = v));
+document.addEventListener('input', keepCaret('lf', v => state.filter = v));
 
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeMenu(true); });
 addEventListener('resize', fitPreviews);

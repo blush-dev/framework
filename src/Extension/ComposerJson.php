@@ -21,7 +21,7 @@ use JsonException;
  * (D-432), and the keys a manifest shares with Composer's schema (D-418;
  * `authors` since D-384, `license` since D-385, and `homepage`,
  * `support`, and `funding` since D-428, `abandoned` since D-433, `suggest` since D-434, `conflict` since D-435,
- * `replace` since D-436, and `provide` since D-439). Its `type` may say the folder's
+ * `replace` since D-436, `provide` since D-439, and `keywords` since D-565). Its `type` may say the folder's
  * kind (D-432). A missing or unreadable file is nothing, and so is a key
  * of the wrong shape.
  */
@@ -33,7 +33,7 @@ final readonly class ComposerJson
 	 *
 	 * @var list<string>
 	 */
-	public const array SHARED = ['name', 'description', 'version', 'license', 'authors', 'autoload', 'require', 'conflict', 'replace', 'provide', 'homepage', 'support', 'funding', 'abandoned', 'suggest'];
+	public const array SHARED = ['name', 'description', 'version', 'license', 'authors', 'autoload', 'require', 'conflict', 'replace', 'provide', 'homepage', 'support', 'funding', 'abandoned', 'suggest', 'keywords'];
 
 	/**
 	 * Fills in what a manifest leaves out from the `composer.json` in its
@@ -69,6 +69,7 @@ final readonly class ComposerJson
 				'license' => self::license($composer['license']),
 				'abandoned' => ExtensionAbandoned::lenient($composer['abandoned']),
 				'suggest'   => ExtensionSuggest::lenient($composer['suggest']) ?: null,
+				'keywords'  => ExtensionKeywords::lenient($composer['keywords']) ?: null,
 				'autoload', 'require', 'conflict', 'replace', 'provide' => is_array($composer[$key]) ? $composer[$key] : null,
 				'homepage', 'support', 'funding' => ExtensionLinks::lenient([$key => $composer[$key]])->toArray()[$key] ?? null,
 				default   => is_string($composer[$key]) ? $composer[$key] : null

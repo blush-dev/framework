@@ -23,6 +23,7 @@ use Blush\Extension\ExtensionManifest;
 use Blush\Extension\ExtensionName;
 use Blush\Extension\ExtensionNamespace;
 use Blush\Extension\ExtensionRequire;
+use Blush\Extension\ExtensionKeywords;
 use Blush\Extension\ExtensionSuggest;
 
 /**
@@ -46,7 +47,8 @@ use Blush\Extension\ExtensionSuggest;
  * `homepage`, `support`, and `funding` (D-428), each from its
  * `composer.json` when the manifest has none (D-385). Its `abandoned`
  * (`true`, or the package to use instead) only warns (D-433), and its
- * `suggest` is only shown (D-434). Its `require`, `conflict` (D-435), `replace` (D-436), and `provide` (D-439) are
+ * `suggest` is only shown (D-434), and its `keywords` searched by the
+ * admin (D-565). Its `require`, `conflict` (D-435), `replace` (D-436), and `provide` (D-439) are
  * checked as a plugin's is (D-431): a pack that's on but whose
  * requirements aren't met doesn't load.
  */
@@ -62,6 +64,7 @@ final readonly class IconPack implements ExtensionManifest
 	 * @param array<string, string> $provide  What it provides, each mapped to the versions it provides (D-439).
 	 * @param bool|string           $abandoned Whether it's abandoned, or the package to use instead (D-433).
 	 * @param array<string, string> $suggest   Package => why it's suggested (D-434).
+	 * @param list<string>          $keywords  What it's about, searched by the admin (D-565).
 	 * @throws ExtensionException
 	 */
 	public function __construct(
@@ -81,7 +84,8 @@ final readonly class IconPack implements ExtensionManifest
 		public array $replace = [],
 		public array $provide = [],
 		public bool|string $abandoned = false,
-		public array $suggest = []
+		public array $suggest = [],
+		public array $keywords = []
 	) {
 		if (! ExtensionName::isValid($name)) {
 			throw new ExtensionException(sprintf('The icon pack in %s needs a "name": vendor/name, such as "acme/brands".', $path));
@@ -128,6 +132,7 @@ final readonly class IconPack implements ExtensionManifest
 			$provide  = ExtensionRequire::fromArray($data['provide'] ?? null, 'provide');
 			$abandoned = ExtensionAbandoned::fromManifest($data['abandoned'] ?? false);
 			$suggest   = ExtensionSuggest::fromManifest($data['suggest'] ?? null);
+			$keywords  = ExtensionKeywords::fromManifest($data['keywords'] ?? null);
 		} catch (ExtensionException $error) {
 			throw new ExtensionException(sprintf('The icon pack in %s: %s', $path, $error->getMessage()), previous: $error);
 		}
@@ -150,7 +155,8 @@ final readonly class IconPack implements ExtensionManifest
 			replace: $replace,
 			provide: $provide,
 			abandoned: $abandoned,
-			suggest: $suggest
+			suggest: $suggest,
+			keywords: $keywords
 		);
 	}
 
@@ -180,6 +186,7 @@ final readonly class IconPack implements ExtensionManifest
 				'provide'     => $this->provide,
 				'abandoned'   => $this->abandoned,
 				'suggest'     => $this->suggest,
+				'keywords'    => $this->keywords,
 				...$this->links->toArray()
 			]
 		];

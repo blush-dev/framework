@@ -778,8 +778,8 @@ final readonly class JsonSchemas
 
 	/**
 	 * Returns the schemas for a manifest's `homepage`, `support`, and
-	 * `funding` (D-428), `abandoned` (D-433), and `suggest` (D-434), in
-	 * `composer.json`'s shape.
+	 * `funding` (D-428), `abandoned` (D-433), `suggest` (D-434), and
+	 * `keywords` (D-565), in `composer.json`'s shape.
 	 *
 	 * @return array<string, array<string, mixed>>
 	 */
@@ -834,6 +834,11 @@ final readonly class JsonSchemas
 				'type'                 => 'object',
 				'description'          => sprintf('Packages that would work well with the %s, each mapped to why, as composer.json has it: other plugins, themes, or icon packs by vendor/name, libraries, or ext-{name} for PHP extensions. It\'s only shown, never enforced. Without it, the suggest in the composer.json beside this file is used.', $kind),
 				'additionalProperties' => ['type' => 'string']
+			],
+			'keywords' => [
+				'type'        => 'array',
+				'description' => sprintf('Words the %s is about, as composer.json has them. They aren\'t shown; the admin\'s lists search them. Without it, the keywords in the composer.json beside this file are used.', $kind),
+				'items'       => ['type' => 'string']
 			]
 		];
 	}

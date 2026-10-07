@@ -85,6 +85,7 @@ final class AdminIconPacksTest extends TestCase
 			'licenses'    => [['text' => 'CC-BY-4.0', 'url' => 'https://spdx.org/licenses/CC-BY-4.0.html', 'operator' => false]],
 			'links'       => [['kind' => 'homepage', 'url' => 'https://acme.test'], ['kind' => 'issues', 'url' => 'https://acme.test/issues'], ['kind' => 'irc', 'url' => 'irc://irc.libera.chat/acme'], ['kind' => 'email', 'url' => 'mailto:help@acme.test']],
 			'funding'     => [['type' => 'github', 'url' => 'https://github.com/sponsors/acme']],
+			'keywords'    => [],
 			'source'      => 'local',
 			'path'        => 'extensions/acme/brands',
 			'folder'      => 'extensions/acme/brands',

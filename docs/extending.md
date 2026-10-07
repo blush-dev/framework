@@ -473,7 +473,7 @@ Each extension can be its own git repository.
 Manifests use Composer's names and shapes for the keys they share with
 `composer.json`: `name`, `description`, `version`, `license`,
 `authors`, `autoload`, `require`, `conflict`, `replace`, `provide`, `homepage`,
-`support`, `funding`, `abandoned`, and `suggest`. A manifest that leaves one of
+`support`, `funding`, `abandoned`, `suggest`, and `keywords`. A manifest that leaves one of
 those out takes it from the `composer.json` beside it, so a package says
 them once. A manifest's own value replaces `composer.json`'s whole; the
 two aren't merged. Blush's own keys (`label`, `namespace`, `provider`,
@@ -708,6 +708,20 @@ that's installed and saying whether a PHP extension is loaded, and
 installing an extension from a zip lists what it suggests. In a manifest, anything but an object of
 names to strings is an error; in `composer.json`, an entry that doesn't
 fit is left out.
+
+`keywords` lists words the extension is about, as in `composer.json`:
+
+```json
+{
+	"keywords": ["gallery", "images", "lightbox"]
+}
+```
+
+They aren't shown anywhere. The admin's Themes, Plugins, and Icon Packs
+screens search them, with an extension's label, name, and description,
+so someone filtering for "images" finds it. In a manifest, anything but
+a list of strings is an error; in `composer.json`, anything that isn't
+a string is left out.
 
 For autocomplete in your editor, add a `$schema` key pointing at the
 schema Blush ships (the path is relative to `plugin.json`):

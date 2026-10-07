@@ -43,7 +43,8 @@ use Blush\Plugin\PluginSource;
  * or `null`, and the `or`, `and`, or `with` between them; D-426),
  * `links` (its homepage and support links, in order, as `{"kind",
  * "url"}`, `support.email` as `mailto:`) and `funding` (`{"type",
- * "url"}`, D-428),
+ * "url"}`, D-428), `keywords` (a list of words, which the admin
+ * searches, D-565),
  * `source` (`local` or `composer`), `path`
  * (from the site's root), and:
  *
@@ -115,6 +116,7 @@ final readonly class PluginsController
 				'licenses'     => ExtensionLicense::parts($plugin->license),
 				'links'        => $plugin->links->links(),
 				'funding'      => $plugin->links->funding,
+				'keywords'     => $plugin->keywords,
 				'source'       => $plugin->source->value,
 				'path'         => $this->paths->relative($plugin->path),
 				'folder'       => $folder,

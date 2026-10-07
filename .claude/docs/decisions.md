@@ -16538,3 +16538,60 @@ decision, add a new entry that supersedes it and mark the old one
   theme's `partials/welcome`.
 - **Why:** the author: "`partials/` should be the folder name that we
   use across the board for the default and any other themes."
+
+### D-565: The extension screens from the updated extensions sketch
+- **Date:** 2026-10-06
+- **Status:** Built. Amends D-381, D-383, and D-385's layouts, D-428's
+  Links and Sponsor rows, and D-434 to D-440's panels.
+- **Decision:** The author updated `blush-extensions.html` and asked for
+  it built from the admin's own pieces:
+  - **Filters on every list** (`ExtensionFilters`,
+    `useExtensionFilter()` in `extensions.ts`): words matching a
+    label, name, description, or keywords at the start of a word (so
+    "ai" doesn't find "mailing"); **Status**, Active and Inactive for
+    themes, On and Off for plugins and packs, or **Needs attention**
+    (can't run or turn on, broken, abandoned, or an active theme that
+    isn't running; the author's call); and **Source** (Composer, a
+    folder in `extensions/`, or Blush). They're in the address
+    (`?q=`, `?status=`, `?source=`). A line under them says how many,
+    or how many of how many and what's in force, with **Clear Filters**;
+    nothing matching is an empty state. It replaces the count row.
+  - **Cards or a Compact list** on Themes and Icon Packs: one choice,
+    kept in this browser (`extensionView` in `density.ts`), as Posts'
+    rows are (the author's call). A compact row is a plugin's row
+    (`ExtensionRow`, shared now, with the same props and slots as
+    `ExtensionCard`): the kind's glyph or a pack's first icon as its
+    mark, green while it's on (plugins' too), and its facts on one line.
+  - **`keywords`**, Composer's, read for every kind
+    (`ExtensionKeywords`: a list of strings, strict in a manifest,
+    lenient in `composer.json` and `installed.json`, which fill it),
+    in the JSON Schemas, and in `GET plugins`, `GET themes`, and
+    `GET icon-packs`. They aren't shown; the filters search them (the
+    author's call).
+  - **One detail layout**: the status pill beside the title
+    (`.page-header__title`), what's wrong first, a theme's
+    **Appearance** (its two previews, each with its six colors listed
+    under it, replacing the Palette panel's swatches) or a pack's
+    **Icons**, then **Details** (`ExtensionFacts`, now the panel: facts,
+    then **Links** with each kind's glyph and **Funding** as buttons,
+    as sections of it, `.panel__section`) beside **Dependencies**
+    (`ExtensionDependencies`, replacing `ExtensionPackagePanels`: one
+    panel with a section per list, a theme's Falls back to first, then
+    "What others say about it" with Used as fallback by, Required by,
+    Conflicts with it, Replaced by, and Also provided by, which leave
+    the Details facts). Each row (`.dependencies`) is a verdict, the
+    extension linked by its label with its name and versions beside
+    it, what the site has, and a suggestion's reason beneath. A row
+    naming an extension without a verdict (the other side's lists)
+    takes its kind's glyph (`KIND_ICONS`: plug, paintbrush, shapes), and
+    a PHP extension reads "PHP Extension: intl" (the author's calls).
+  - No Install button beside a missing requirement (the author's call:
+    no registry yet).
+- **Checked:** `composer check`; `npm run admin:build`; screenshots of
+  the three lists (cards, compact, filtered, nothing matching, a phone)
+  and the plugin, theme, and pack details on the trial, with a
+  throwaway account removed after.
+- **Why:** the sketch's argument: the questions people ask of a handful
+  of extensions are which are on and where they came from, and five
+  dependency panels made the details screens mostly headings.
+

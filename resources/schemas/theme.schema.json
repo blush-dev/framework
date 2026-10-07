@@ -203,6 +203,13 @@
 				"type": "string"
 			}
 		},
+		"keywords": {
+			"type": "array",
+			"description": "Words the theme is about, as composer.json has them. They aren't shown; the admin's lists search them. Without it, the keywords in the composer.json beside this file are used.",
+			"items": {
+				"type": "string"
+			}
+		},
 		"parent": {
 			"type": "string",
 			"pattern": "^[a-z0-9]([_.-]?[a-z0-9]+)*/[a-z0-9](([_.]|-{1,2})?[a-z0-9]+)*$",

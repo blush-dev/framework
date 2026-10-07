@@ -24,6 +24,7 @@ use Blush\Extension\ExtensionManifest;
 use Blush\Extension\ExtensionName;
 use Blush\Extension\ExtensionNamespace;
 use Blush\Extension\ExtensionRequire;
+use Blush\Extension\ExtensionKeywords;
 use Blush\Extension\ExtensionSuggest;
 
 /**
@@ -55,7 +56,8 @@ use Blush\Extension\ExtensionSuggest;
  * while one is on. `provide` names what it implements (D-439): a
  * `require` of one is met by it, and any number may provide one. `suggest` maps packages
  * that would work well with it to why (`ExtensionSuggest`, D-434), and
- * is only shown.
+ * is only shown. `keywords` are what the admin's filter searches
+ * (`ExtensionKeywords`, D-565).
  */
 final readonly class PluginManifest implements ExtensionManifest
 {
@@ -70,6 +72,7 @@ final readonly class PluginManifest implements ExtensionManifest
 	 * @param array<string, string> $replace  What it replaces, each mapped to the versions it stands in for (D-436).
 	 * @param array<string, string> $provide  What it provides, each mapped to the versions it provides (D-439).
 	 * @param array<string, string> $suggest  Package => why it's suggested (D-434).
+	 * @param list<string>          $keywords What it's about, searched by the admin (D-565).
 	 * @param list<ExtensionAuthor> $authors  Who made it.
 	 * @param ?string               $provider Fully qualified class name of the plugin's service provider, if it has one.
 	 * @throws ExtensionException
@@ -92,7 +95,8 @@ final readonly class PluginManifest implements ExtensionManifest
 		public ExtensionLinks $links = new ExtensionLinks(),
 		public ?string $provider = null,
 		public bool|string $abandoned = false,
-		public array $suggest = []
+		public array $suggest = [],
+		public array $keywords = []
 	) {
 		if (! ExtensionName::isValid($name)) {
 			throw new ExtensionException(sprintf(
@@ -167,6 +171,7 @@ final readonly class PluginManifest implements ExtensionManifest
 			$replace  = ExtensionRequire::fromArray($data['replace'] ?? null, 'replace');
 			$provide  = ExtensionRequire::fromArray($data['provide'] ?? null, 'provide');
 			$suggest  = ExtensionSuggest::fromManifest($data['suggest'] ?? null);
+			$keywords = ExtensionKeywords::fromManifest($data['keywords'] ?? null);
 		} catch (ExtensionException $error) {
 			throw new ExtensionException(sprintf('Plugin manifest%s: %s', is_string($data['name'] ?? null) ? " for \"{$data['name']}\"" : '', $error->getMessage()), previous: $error);
 		}
@@ -191,7 +196,8 @@ final readonly class PluginManifest implements ExtensionManifest
 			links: $links,
 			provider: isset($data['provider']) ? self::string($data, 'provider') : null,
 			abandoned: $abandoned,
-			suggest: $suggest
+			suggest: $suggest,
+			keywords: $keywords
 		);
 	}
 
@@ -220,6 +226,7 @@ final readonly class PluginManifest implements ExtensionManifest
 			'license'     => $this->license,
 			'abandoned'   => $this->abandoned,
 			'suggest'     => $this->suggest,
+			'keywords'    => $this->keywords,
 			...$this->links->toArray()
 		];
 	}

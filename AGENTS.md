@@ -155,7 +155,10 @@ and the log (D-538 to D-541), Site Health in place of Content Health
 (D-543 to D-546), and editable Shortcuts (D-547); and, from the media
 detail sketch (`.claude/docs/admin-design/media-detail-sketch.html`),
 a media file's screen in two columns (D-551), then cover art, sound
-and video formats, and PDF pages read from files (D-552).
+and video formats, and PDF pages read from files (D-552); and, from the
+updated extensions sketch, filters and a compact list on the extension
+lists, `keywords` in manifests, and one details layout with a single
+Dependencies panel (D-565).
 The Fields
 API (D-337 to D-348: field types and controls, field sets on content
 types, media, and the Settings screens, slots, and Structure → Fields)

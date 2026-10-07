@@ -42,7 +42,8 @@ use Blush\Settings\SettingsFile;
  * - `GET icon-packs`: every installed pack, by label, with its `name`,
  *   `label`, `namespace`, `version`, `description`, `authors` (D-384's
  *   shape), `license` and `licenses` (as `GET plugins` has them, D-426,
- *   D-427), `links` and `funding` (as `GET plugins` has them, D-428),
+ *   D-427), `links`, `funding`, and `keywords` (as `GET plugins` has them, D-428,
+ *   D-565),
  *   `source` (`local` or `composer`), `path` (from the site's
  *   root), `folder` (its folder in `extensions/`, or `null`), whether it's
  *   `enabled` (turned on) and `running` (on, with its requirements met,
@@ -135,7 +136,7 @@ final readonly class IconPacksController
 	/**
 	 * Describes a pack, with its first `$limit` icons, or all of them.
 	 *
-	 * @return array{name: string, label: string, namespace: string, version: string, description: string, authors: list<array<string, string>>, license: string, licenses: list<array{text: string, url: ?string, operator: bool}>, links: list<array{kind: string, url: string}>, funding: list<array{type: string, url: string}>, source: string, path: string, folder: ?string, enabled: bool, deletable: bool, backup: ?array{version: string}, count: int, icons: list<array{name: string, svg: string}>}
+	 * @return array{name: string, label: string, namespace: string, version: string, description: string, authors: list<array<string, string>>, license: string, licenses: list<array{text: string, url: ?string, operator: bool}>, links: list<array{kind: string, url: string}>, funding: list<array{type: string, url: string}>, keywords: list<string>, source: string, path: string, folder: ?string, enabled: bool, deletable: bool, backup: ?array{version: string}, count: int, icons: list<array{name: string, svg: string}>}
 	 */
 	private function pack(IconPack $pack, ?int $limit = null): array
 	{
@@ -155,6 +156,7 @@ final readonly class IconPacksController
 			'licenses'    => ExtensionLicense::parts($pack->license),
 			'links'       => $pack->links->links(),
 			'funding'     => $pack->links->funding,
+			'keywords'    => $pack->keywords,
 			'source'      => $pack->source->value,
 			'path'        => $this->paths->relative($pack->path),
 			'folder'      => $folder,

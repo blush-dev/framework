@@ -1,13 +1,17 @@
 <script setup lang="ts">
 /**
- * A theme's details (D-383, the themes sketch's detail screen), at
- * `/themes/{vendor}/{name}`: its preview in both halves of its palette,
- * its details, its requirements (checked as if it were active, D-431),
- * its conflicts (D-435), what it replaces (D-436), what it provides
- * (D-439), what it suggests (D-434), its palette as swatches, and, for a
- * folder theme the active one doesn't use, **Delete theme**. An active theme whose requirements
- * aren't met says it isn't running. A Composer theme says how
- * it's removed instead.
+ * A theme's details (D-383; drawn as the extensions sketch's in D-565),
+ * at `/themes/{vendor}/{name}`: its label with Active or Can't activate
+ * beside it, its Appearance (its preview in both halves of its palette,
+ * each with the six colors listed under it), then its Details
+ * (`ExtensionFacts`, with its type) beside its Dependencies
+ * (`ExtensionDependencies`: the theme it falls back to, its
+ * requirements, checked as if it were active, D-431, its conflicts,
+ * replaces, provides, and suggests, D-434 to D-439, and those on the
+ * other side, with the themes that fall back to it, D-440), and, for a
+ * folder theme the active one doesn't use, **Delete theme**. An active
+ * theme whose requirements aren't met says it isn't running. A Composer
+ * theme says how it's removed instead.
  *
  * **Activate** asks, as on the Themes screen (`useThemes()`), and a
  * failure is said under the header, leading with the site being
@@ -20,8 +24,9 @@ import { useRoute, useRouter } from 'vue-router';
 import AbandonedNotice from '../components/AbandonedNotice.vue';
 import AdminIcon from '../components/AdminIcon.vue';
 import DangerZone from '../components/DangerZone.vue';
+import ExtensionDependencies from '../components/ExtensionDependencies.vue';
+import ExtensionDependents from '../components/ExtensionDependents.vue';
 import ExtensionFacts from '../components/ExtensionFacts.vue';
-import ExtensionPackagePanels from '../components/ExtensionPackagePanels.vue';
 import PreviousVersion from '../components/PreviousVersion.vue';
 import ThemeSketch from '../components/ThemeSketch.vue';
 import { PALETTE_ROLES, type PaletteRole } from '../api';
@@ -70,49 +75,19 @@ const ROLE_LABELS: Record<PaletteRole, string> = {
 	border: 'Border'
 };
 
-// The light half, then the dark one (or one group, when they're the
-// same), each role's color with the ink that reads on it: whichever of
-// the theme's own text and background colors contrasts more, so a swatch
-// never adds a color the theme didn't declare.
+// Each half's six colors, listed under its preview.
 const halves = computed(() => {
-	const palette = theme.value?.preview?.palette;
+	const palette = theme.value?.preview?.palette ?? null;
 
-	if (!palette) {
-		return [];
-	}
-
-	const same     = PALETTE_ROLES.every((role) => palette[role][0] === palette[role][1]);
-	const headings = same ? ['Light and dark'] : ['Light', 'Dark'];
-
-	return headings.map((heading, half) => ({
-		heading,
-		swatches: PALETTE_ROLES.map((role) => {
-			const fill = palette[role][half] ?? '';
-			const text = palette.text[half] ?? '';
-			const bg   = palette.background[half] ?? '';
-
-			return { role, fill, ink: contrast(fill, text) >= contrast(fill, bg) ? text : bg };
-		})
-	}));
+	return [0, 1].map((half) => palette === null ? [] : PALETTE_ROLES.map((role) => ({ role, fill: palette[role][half] ?? '' })));
 });
 
-// WCAG relative luminance of a six-digit hex color.
-function luminance(hex: string): number {
-	const value   = Number.parseInt(hex.slice(1), 16);
-	const channel = (part: number): number => {
-		const c = part / 255;
+// The themes that fall back to it, as the Dependencies panel lists them.
+const fallingBack = computed(() => deps.value.map((dep) => ({ name: dep.name, label: dep.label, kind: 'theme' as const })));
 
-		return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
-	};
-
-	return 0.2126 * channel(value >> 16 & 255) + 0.7152 * channel(value >> 8 & 255) + 0.0722 * channel(value & 255);
-}
-
-function contrast(a: string, b: string): number {
-	const [high, low] = [luminance(a), luminance(b)].sort((x, y) => y - x);
-
-	return ((high ?? 0) + 0.05) / ((low ?? 0) + 0.05);
-}
+// The theme it falls back to, by name, and whether it's missing.
+const parentName    = computed(() => theme.value?.parent ?? 'blush/default');
+const missingParent = computed(() => !installed(parentName.value));
 
 // What deleting does, and how many themes fall back to this one.
 const deleteNote = computed(() => {
@@ -135,19 +110,19 @@ async function remove(): Promise<void> {
 	<header class="page-header">
 		<RouterLink class="page-back" :to="{ name: 'themes' }"><AdminIcon name="chevron-left" />All themes</RouterLink>
 		<div class="page-header__text">
-			<h1 tabindex="-1">{{ theme?.label ?? 'Theme' }}</h1>
+			<div class="page-header__title">
+				<h1 tabindex="-1">{{ theme?.label ?? 'Theme' }}</h1>
+				<template v-if="theme">
+					<span v-if="theme.active" class="pill pill--good">Active</span>
+					<span v-if="fallbackMessage(theme)" class="pill pill--warn">Not running</span>
+					<span v-else-if="theme.blocked && !theme.active" class="pill pill--warn">Can't activate</span>
+				</template>
+			</div>
 			<p v-if="theme" class="page-header__hint">{{ theme.description || 'This theme has no description.' }}</p>
 		</div>
 		<div v-if="theme" class="page-header__actions">
-			<template v-if="theme.active">
-				<span class="pill pill--good">Active</span>
-				<span v-if="fallbackMessage(theme)" class="pill pill--warn">Not running</span>
-				<a class="button" :href="config.site.url" target="_blank" rel="noopener"><AdminIcon name="external-link" />View Site<span class="visually-hidden"> (new tab)</span></a>
-			</template>
-			<template v-else-if="theme.blocked">
-				<span class="pill pill--warn">Can't activate</span>
-				<button type="button" class="button" disabled>Activate</button>
-			</template>
+			<a v-if="theme.active" class="button" :href="config.site.url" target="_blank" rel="noopener"><AdminIcon name="external-link" />View Site<span class="visually-hidden"> (new tab)</span></a>
+			<button v-else-if="theme.blocked" type="button" class="button" disabled>Activate</button>
 			<button v-else-if="busy === theme.name" type="button" class="button" disabled><span class="spin" aria-hidden="true" />Activating…</button>
 			<button v-else-if="canActivate" type="button" class="button" :class="failed?.name === theme.name ? 'button--danger' : 'button--primary'" :disabled="busy !== null" @click="activate(theme)">
 				{{ failed?.name === theme.name ? 'Try Again' : `Activate ${theme.label}` }}
@@ -157,205 +132,171 @@ async function remove(): Promise<void> {
 
 	<p v-if="error" class="notice notice--error" role="alert">{{ error }}</p>
 
-	<template v-if="theme && answer">
-		<p v-if="fallbackMessage(theme)" class="notice notice--small notice--warn theme-message">
+	<div v-if="theme && answer" class="extension-detail">
+		<p v-if="fallbackMessage(theme)" class="notice notice--small notice--warn">
 			<AdminIcon name="triangle-alert" /><span>{{ fallbackMessage(theme) }}</span>
 		</p>
-		<p v-if="failed?.name === theme.name" class="notice notice--small notice--error theme-message" role="alert">
+		<p v-if="failed?.name === theme.name" class="notice notice--small notice--error" role="alert">
 			<AdminIcon name="triangle-alert" /><span>Your site is still showing {{ active?.label ?? answer.active }}; nothing changed. {{ failed.reason }}</span>
+		</p>
+		<p v-else-if="theme.blocked && !theme.active" class="notice notice--small notice--warn">
+			<AdminIcon name="triangle-alert" /><span>{{ blockedMessage(theme) }}</span>
 		</p>
 		<AbandonedNotice noun="theme" :abandoned="theme.abandoned" :replacement="theme.replacement" />
 
-		<div class="theme-detail">
-			<div class="theme-detail__columns">
-				<section class="panel" aria-labelledby="preview-heading">
-					<header class="panel__header">
-						<h2 id="preview-heading">Preview</h2>
-						<p class="panel__hint">{{ theme.preview?.palette ? 'Drawn from the declared palette' : 'No palette declared' }}</p>
-					</header>
-					<div class="panel__body">
-						<p v-if="theme.blocked && !theme.active" class="notice notice--small notice--warn theme-message">
-							<AdminIcon name="triangle-alert" /><span>{{ blockedMessage(theme) }}</span>
-						</p>
-						<div class="theme-detail__previews">
-							<figure>
-								<ThemeSketch :preview="theme.preview" scheme="light" />
-								<figcaption class="eyebrow">Light</figcaption>
-							</figure>
-							<figure>
-								<ThemeSketch :preview="theme.preview" scheme="dark" />
-								<figcaption class="eyebrow">Dark</figcaption>
-							</figure>
-						</div>
-						<p v-if="!theme.preview?.palette" class="field__help">
-							These use the admin's colors. A theme draws its own preview with a <code>preview</code> palette in its <code>theme.json</code>.
-						</p>
-					</div>
-				</section>
-
-				<section class="panel" aria-labelledby="details-heading">
-					<header class="panel__header"><h2 id="details-heading">Details</h2></header>
-					<div class="panel__body">
-						<ExtensionFacts :extension="theme" :installed-by="installedBy" :folder="theme.folder">
-							<template #kind>
-								<dt>Type</dt>
-								<dd>{{ theme.preview?.type || '—' }}</dd>
-								<dt>Falls back to</dt>
-								<dd>
-									<template v-if="theme.source === 'framework'">Nothing: every theme falls back to this one</template>
-									<template v-else-if="theme.parent && !installed(theme.parent)">
-										<span class="mono is-warn">{{ theme.parent }}</span><span class="is-warn">, which isn't installed</span>
-									</template>
-									<RouterLink v-else :to="extensionRoute('theme', theme.parent ?? 'blush/default')">{{ label(theme.parent ?? 'blush/default') }}</RouterLink>
-								</dd>
-							</template>
-							<template #after>
-								<dt>Used as fallback by</dt>
-								<dd>
-									<template v-if="theme.source === 'framework'">Every theme</template>
-									<template v-else-if="deps.length === 0">Nothing</template>
-									<template v-for="(dep, index) in deps" v-else :key="dep.name">
-										<RouterLink :to="extensionRoute('theme', dep.name)">{{ dep.label }}</RouterLink><template v-if="index < deps.length - 1">, </template>
-									</template>
-								</dd>
-							</template>
-						</ExtensionFacts>
-					</div>
-				</section>
-			</div>
-
-			<ExtensionPackagePanels :extension="theme" replaces-hint="It can't run" :as-if-active="!theme.active" />
-
-			<section v-if="halves.length" class="panel" aria-labelledby="palette-heading">
-				<header class="panel__header">
-					<h2 id="palette-heading">Palette</h2>
-					<p class="panel__hint">{{ halves.length === 1 ? 'Six roles, the same light and dark' : 'Six roles, each a light and a dark color' }}</p>
-				</header>
-				<div class="panel__body palette">
-					<section v-for="half in halves" :key="half.heading" class="palette__half">
-						<h3 class="eyebrow">{{ half.heading }}</h3>
-						<div class="palette__grid">
-							<div v-for="swatch in half.swatches" :key="swatch.role" class="palette__swatch" :style="{ background: swatch.fill, color: swatch.ink }">
-								<b>{{ ROLE_LABELS[swatch.role] }}</b>
-								<span class="mono">{{ swatch.fill }}</span>
+		<section class="panel" aria-labelledby="appearance-heading">
+			<header class="panel__header">
+				<h2 id="appearance-heading">Appearance</h2>
+				<p class="panel__hint">{{ theme.preview?.palette ? 'The six colors it declares, drawn and listed' : 'No palette declared' }}</p>
+			</header>
+			<div class="panel__body">
+				<div class="theme-appearance">
+					<figure v-for="(half, index) in halves" :key="index">
+						<ThemeSketch :preview="theme.preview" :scheme="index === 0 ? 'light' : 'dark'" />
+						<figcaption class="eyebrow">{{ index === 0 ? 'Light' : 'Dark' }}</figcaption>
+						<dl v-if="half.length" class="palette-legend">
+							<div v-for="swatch in half" :key="swatch.role">
+								<i :style="{ background: swatch.fill }" aria-hidden="true" />
+								<dt>{{ ROLE_LABELS[swatch.role] }}</dt>
+								<dd class="mono">{{ swatch.fill }}</dd>
 							</div>
-						</div>
-					</section>
+						</dl>
+					</figure>
 				</div>
-			</section>
+				<p v-if="!theme.preview?.palette" class="field__help">
+					These use the admin's colors. A theme draws its own preview with a <code>preview</code> palette in its <code>theme.json</code>.
+				</p>
+			</div>
+		</section>
 
-			<PreviousVersion kind="theme" :extension="theme" :live="answer.chain.includes(theme.name)" @changed="load" />
-			<p v-if="theme.source === 'composer'" class="notice">
-				<span>Composer manages this theme, so it can't be deleted here. Remove it from the project with <code>composer remove {{ theme.name }}</code>, and it leaves this list.</span>
-			</p>
-			<p v-else-if="theme.source === 'local' && !theme.deletable" class="notice">
-				<span>{{ theme.active ? 'This is the active theme' : `The active theme, ${active?.label ?? answer.active}, falls back to it` }}, so it can't be deleted. Activate another theme first.</span>
-			</p>
-			<DangerZone v-else-if="canDelete && theme.deletable">
-				{{ deleteNote }}
-				<template #action><button type="button" class="button button--danger" @click="remove"><AdminIcon name="trash-2" />Delete Theme</button></template>
-			</DangerZone>
+		<div class="extension-detail__columns">
+			<ExtensionFacts :extension="theme" :installed-by="installedBy" :folder="theme.folder">
+				<template #kind>
+					<dt>Type</dt>
+					<dd>{{ theme.preview?.type || '—' }}</dd>
+				</template>
+			</ExtensionFacts>
+
+			<ExtensionDependencies :extension="theme" noun="theme" replaces-hint="It can't run" :as-if-active="!theme.active">
+				<template v-if="theme.source !== 'framework'" #own>
+					<section class="panel__section" aria-labelledby="fallback-heading">
+						<div class="panel__section-head"><h3 id="fallback-heading" class="eyebrow">Falls back to</h3><span>Where what it doesn't define comes from</span></div>
+						<ul class="dependencies">
+							<li>
+								<AdminIcon :name="missingParent ? 'circle-x' : 'circle-check'" :class="missingParent ? 'is-unmet' : 'is-met'" />
+								<div class="dependencies__ref">
+									<template v-if="missingParent">
+										<span class="mono">{{ parentName }}</span>
+										<span class="dependencies__note is-unmet">isn't installed</span>
+									</template>
+									<template v-else>
+										<RouterLink :to="extensionRoute('theme', parentName)">{{ label(parentName) }}</RouterLink>
+										<span class="mono dependencies__name">{{ parentName }}</span>
+									</template>
+								</div>
+							</li>
+						</ul>
+					</section>
+				</template>
+				<template v-if="theme.source === 'framework' || deps.length" #others>
+					<section class="panel__section" aria-labelledby="fallback-by-heading">
+						<div class="panel__section-head"><h3 id="fallback-by-heading" class="eyebrow">Used as fallback by</h3></div>
+						<ul v-if="theme.source === 'framework'" class="dependencies">
+							<li><AdminIcon name="paintbrush" /><div class="dependencies__ref">Every theme</div></li>
+						</ul>
+						<ExtensionDependents v-else :dependents="fallingBack" />
+					</section>
+				</template>
+			</ExtensionDependencies>
 		</div>
-	</template>
+
+		<PreviousVersion kind="theme" :extension="theme" :live="answer.chain.includes(theme.name)" @changed="load" />
+		<p v-if="theme.source === 'composer'" class="notice">
+			<span>Composer manages this theme, so it can't be deleted here. Remove it from the project with <code>composer remove {{ theme.name }}</code>, and it leaves this list.</span>
+		</p>
+		<p v-else-if="theme.source === 'local' && !theme.deletable" class="notice">
+			<span>{{ theme.active ? 'This is the active theme' : `The active theme, ${active?.label ?? answer.active}, falls back to it` }}, so it can't be deleted. Activate another theme first.</span>
+		</p>
+		<DangerZone v-else-if="canDelete && theme.deletable">
+			{{ deleteNote }}
+			<template #action><button type="button" class="button button--danger" @click="remove"><AdminIcon name="trash-2" />Delete Theme</button></template>
+		</DangerZone>
+	</div>
 
 	<p v-else-if="answer" class="notice notice--warn" role="alert">
 		<span>No theme named <span class="mono">{{ name }}</span> is installed.</span>
 	</p>
 
-	<div v-else-if="!error" class="theme-detail" aria-hidden="true">
+	<div v-else-if="!error" class="extension-detail" aria-hidden="true">
 		<div class="panel"><div class="panel__body"><span class="skeleton skeleton--title" /><span class="skeleton" /><span class="skeleton skeleton--half" /></div></div>
 	</div>
 </template>
 
 <style scoped>
-.theme-detail {
-	display: grid;
-	gap: var(--s-5);
-}
-
-.theme-detail__columns {
-	display: grid;
-	grid-template-columns: minmax(0, 1fr) 380px;
-	align-items: start;
-	gap: var(--s-5);
-}
-
-.theme-detail__previews {
+/* Both halves of its palette side by side, each listed under its picture. */
+.theme-appearance {
 	display: grid;
 	grid-template-columns: 1fr 1fr;
-	gap: var(--s-4);
+	gap: var(--s-5);
 }
 
-.theme-detail__previews figure {
+.theme-appearance figure {
 	margin: 0;
 }
 
-.theme-detail__previews .sketch {
+.theme-appearance .sketch {
 	border: 1px solid var(--border);
 	border-radius: var(--r-2);
 }
 
-.theme-detail__previews figcaption {
-	margin: var(--s-2) 0 0;
+.theme-appearance figcaption {
+	margin: var(--s-3) 0 0;
 }
 
-.facts .is-warn {
-	color: var(--warn);
-}
-
-/* A problem is said where the action is, leading with what's safe. */
-.theme-message {
-	margin: 0 0 var(--s-4);
-}
-
-/* The two halves side by side, each bounded by its own heading rule. */
-.palette {
+/* A theme's palette as a legend under its preview: each role's color as
+   a chip, framed so white still has an edge, with its name and value in
+   the admin's own ink. */
+.palette-legend {
 	display: grid;
-	grid-template-columns: 1fr 1fr;
-	gap: var(--s-6);
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 1px var(--s-4);
+	margin: var(--s-3) 0 0;
 }
 
-.palette > * + * {
-	margin-top: 0;
-}
-
-.palette h3 {
-	margin: 0 0 var(--s-3);
-	padding-bottom: var(--s-2);
-	border-bottom: 1px solid var(--border);
-}
-
-.palette__grid {
+.palette-legend > div {
 	display: grid;
-	grid-template-columns: repeat(3, minmax(0, 1fr));
+	grid-template-columns: auto 78px auto;
+	justify-content: start;
+	align-items: center;
 	gap: var(--s-2);
-}
-
-/* The theme's own colors fill it; the frame is the admin's, so a white
-   swatch on a white panel still has an edge. */
-.palette__swatch {
-	display: flex;
-	flex-direction: column;
-	justify-content: flex-end;
-	gap: 1px;
 	min-width: 0;
-	aspect-ratio: 3 / 2;
-	padding: var(--s-3);
-	overflow: hidden;
-	border: 1px solid var(--border-strong);
-	border-radius: var(--r-2);
-}
-
-.palette__swatch b {
-	font-size: var(--text-2xs);
-	font-weight: 600;
-	letter-spacing: .07em;
-	text-transform: uppercase;
-	opacity: .72;
-}
-
-.palette__swatch span {
+	padding: 2px 0;
 	font-size: var(--text-xs);
+}
+
+.palette-legend i {
+	width: 16px;
+	height: 16px;
+	border: 1px solid var(--border-strong);
+	border-radius: var(--r-1);
+}
+
+.palette-legend dt {
+	overflow: hidden;
+	color: var(--fg-2);
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.palette-legend dd {
+	margin: 0;
+	color: var(--fg-3);
+}
+
+@media (width <= 600px) {
+	.palette-legend {
+		grid-template-columns: minmax(0, 1fr);
+	}
 }
 
 .skeleton--title {
@@ -367,15 +308,8 @@ async function remove(): Promise<void> {
 	width: 64%;
 }
 
-@media (width <= 1180px) {
-	.theme-detail__columns {
-		grid-template-columns: minmax(0, 1fr);
-	}
-}
-
 @media (width <= 760px) {
-	.palette,
-	.theme-detail__previews {
+	.theme-appearance {
 		grid-template-columns: minmax(0, 1fr);
 	}
 }

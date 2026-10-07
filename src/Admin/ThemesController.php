@@ -53,7 +53,7 @@ use Blush\Theme\ThemeSource;
  * its `folder` (where it's installed, `null` for the default theme);
  * its `authors` (D-384, `composer.json`'s shape); its `license` and
  * `licenses` (as `GET plugins` has them, D-426, D-427); its `links` and
- * `funding` (as `GET plugins` has them, D-428);
+ * `funding` (as `GET plugins` has them, D-428); `keywords` (D-565);
  * its `preview` (what the admin sketches it from, or `null`); whether
  * it's `running` (in the chain that runs); its `requirements`, checked as
  * if it were active, and `requiredBy` (as `GET plugins` has them,
@@ -123,6 +123,7 @@ final readonly class ThemesController
 			'licenses'    => ExtensionLicense::parts($theme->license),
 			'links'       => $theme->links->links(),
 			'funding'     => $theme->links->funding,
+			'keywords'    => $theme->keywords,
 			'running'     => $this->extensions->runs($theme->name),
 			...$this->requirements($theme, $active),
 			'deletable'   => $theme->source === ThemeSource::Local && $theme->name !== $active && ! in_array($theme->name, $chain, true),

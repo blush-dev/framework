@@ -3,13 +3,16 @@
  * loaded, turned on or off, deleted, and put back in config's charge
  * (D-385, D-509); their addresses and folders; and their requirements
  * (D-431): plugins, themes, and icon packs each list their `require`,
- * checked the same way, and the extensions of any kind that require them.
+ * checked the same way, and the extensions of any kind that require them;
+ * and the filters over each list (D-565).
  */
 
-import { ref, type Ref } from 'vue';
+import { computed, ref, type Ref } from 'vue';
 import { errorMessage, refreshIfAsked, request, saveSettings, type ExtensionDependent, type ExtensionRequirement } from './api';
 import { confirmAction } from './confirm';
 import { loadCounts } from './counts';
+import type { IconName } from './icons';
+import { useQueryState } from './query';
 import { toast } from './toast';
 
 export type ExtensionKind = ExtensionDependent['kind'];
@@ -20,6 +23,14 @@ export const KIND_PATHS: Record<ExtensionKind, string> = {
 	'theme': 'themes',
 	'plugin': 'plugins',
 	'icon-pack': 'icon-packs'
+};
+
+// Each kind's glyph, as the Config panel draws it, for a row naming an
+// extension of that kind (D-565).
+export const KIND_ICONS: Record<ExtensionKind, IconName> = {
+	'theme': 'paintbrush',
+	'plugin': 'plug',
+	'icon-pack': 'shapes'
 };
 
 // What turning an extension on or off needs of it.
@@ -154,7 +165,7 @@ export function requirementKind(requirement: ExtensionRequirement): ExtensionKin
 	return requirement.kind === 'plugin' || requirement.kind === 'theme' || requirement.kind === 'icon-pack' ? requirement.kind : null;
 }
 
-// A requirement as a person reads it: `Blush ^2.0`, `the PHP extension
+// A requirement as a person reads it: `Blush ^2.0`, `PHP Extension:
 // intl`, `Shop ^2.0`.
 export function requirementText(requirement: ExtensionRequirement): string {
 	const constraint = requirement.constraint === '*' ? '' : ` ${requirement.constraint}`;
@@ -165,7 +176,7 @@ export function requirementText(requirement: ExtensionRequirement): string {
 		case 'php':
 			return `PHP${constraint}`;
 		case 'extension':
-			return `the PHP extension ${requirement.name.slice(4)}${constraint}`;
+			return `PHP Extension: ${requirement.name.slice(4)}${constraint}`;
 		case 'plugin':
 		case 'theme':
 		case 'icon-pack':
@@ -198,3 +209,55 @@ export function stopsParagraph(stops: ExtensionDependent[]): string {
 	return `It also stops ${names}. An extension that conflicts with it or replaces it can't run alongside it, and neither can one that needs it.`;
 }
 
+
+// Where an extension came from: a Composer package, a folder in
+// `extensions/`, or Blush itself (the default theme, the core icons).
+export type ExtensionSource = 'composer' | 'local' | 'framework';
+
+// What a list's filters read of an extension (D-565): whether it's on (a
+// theme: active), whether it needs attention (it can't run or turn on,
+// it's broken, or it's abandoned), where it came from, and the words a
+// filter finds it by (its label, name, description, and keywords).
+export interface Filterable {
+	on: boolean;
+	attention: boolean;
+	source: ExtensionSource;
+	words: (string | null | undefined)[];
+}
+
+// A list's filters (D-565), in its address (D-505): `q` (words, matched
+// at the start of a word, so "ai" doesn't find "mailing"), `status`
+// (`on`, `off`, or `attention`), and `source`.
+export function useExtensionFilter() {
+	const { text, set } = useQueryState();
+
+	const query  = computed({ get: () => text('q'), set: (value: string) => set({ q: value }) });
+	const status = computed({ get: () => text('status'), set: (value: string) => set({ status: value }) });
+	const source = computed({ get: () => text('source'), set: (value: string) => set({ source: value }) });
+
+	const filtered = computed(() => query.value.trim() !== '' || status.value !== '' || source.value !== '');
+
+	const pattern = computed(() => {
+		const words = query.value.trim();
+
+		return words === '' ? null : new RegExp(`(^|[^\\p{L}\\p{N}])${words.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, 'iu');
+	});
+
+	function matches(item: Filterable): boolean {
+		if (status.value === 'attention' ? !item.attention : (status.value !== '' && item.on !== (status.value === 'on'))) {
+			return false;
+		}
+
+		if (source.value !== '' && item.source !== source.value) {
+			return false;
+		}
+
+		return pattern.value === null || pattern.value.test(item.words.filter(Boolean).join(' '));
+	}
+
+	function clear(): void {
+		set({ q: '', status: '', source: '' });
+	}
+
+	return { query, status, source, filtered, matches, clear };
+}

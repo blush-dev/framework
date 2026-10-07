@@ -412,6 +412,8 @@ export interface ThemeSummary {
 	licenses: LicensePart[];
 	links: ExtensionLink[];
 	funding: ExtensionFunding[];
+	// The words it's about, which the lists' filters search (D-565).
+	keywords: string[];
 	// Whether it's in the chain that runs.
 	running: boolean;
 	// Checked as if it were active (D-431).
@@ -579,6 +581,8 @@ export interface PluginSummary {
 	licenses: LicensePart[];
 	links: ExtensionLink[];
 	funding: ExtensionFunding[];
+	// The words it's about, which the lists' filters search (D-565).
+	keywords: string[];
 	source: 'local' | 'composer';
 	// Where it's installed, from the site's root.
 	path: string;
@@ -624,7 +628,7 @@ export interface PluginSummary {
  * What every kind of extension has (D-509), for the pieces their screens
  * share: who made it, its license and links, and its package relations.
  */
-export type ExtensionSummary = Pick<PluginSummary, 'name' | 'label' | 'namespace' | 'version' | 'description' | 'authors' | 'licenses' | 'links' | 'funding' | 'requirements' | 'conflicts' | 'replaces' | 'provides' | 'conflictedBy' | 'replacedBy' | 'providedBy' | 'requiredBy' | 'suggests'>;
+export type ExtensionSummary = Pick<PluginSummary, 'name' | 'label' | 'namespace' | 'version' | 'description' | 'authors' | 'licenses' | 'links' | 'funding' | 'keywords' | 'requirements' | 'conflicts' | 'replaces' | 'provides' | 'conflictedBy' | 'replacedBy' | 'providedBy' | 'requiredBy' | 'suggests'>;
 
 /**
  * A plugin whose manifest can't be read (D-394): listed, never run.
@@ -681,6 +685,8 @@ export interface IconPackSummary {
 	licenses: LicensePart[];
 	links: ExtensionLink[];
 	funding: ExtensionFunding[];
+	// The words it's about, which the lists' filters search (D-565).
+	keywords: string[];
 	source: 'local' | 'composer';
 	// Where it's installed, from the site's root.
 	path: string;

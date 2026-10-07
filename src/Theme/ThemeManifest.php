@@ -24,6 +24,7 @@ use Blush\Extension\ExtensionManifest;
 use Blush\Extension\ExtensionName;
 use Blush\Extension\ExtensionNamespace;
 use Blush\Extension\ExtensionRequire;
+use Blush\Extension\ExtensionKeywords;
 use Blush\Extension\ExtensionSuggest;
 
 /**
@@ -47,7 +48,8 @@ use Blush\Extension\ExtensionSuggest;
  * `homepage`, `support`, and `funding` as Composer has them (D-428);
  * discovery fills each in from the `composer.json` in its folder when the manifest has none.
  * Its `abandoned` (`true`, or the package to use instead) only warns, as
- * Composer's does (D-433), and its `suggest` is only shown (D-434).
+ * Composer's does (D-433), and its `suggest` is only shown (D-434); its `keywords` are what
+ * the admin's filter searches (D-565).
  * Its `require`, `conflict` (D-435), `replace` (D-436), and `provide` (D-439) are checked as a plugin's are (D-431): an active theme
  * whose chain needs what the site doesn't have falls back to the
  * default theme.
@@ -75,6 +77,7 @@ final readonly class ThemeManifest implements ExtensionManifest
 	 * @param array<string, string> $provide  What it provides, each mapped to the versions it provides (D-439).
 	 * @param bool|string           $abandoned Whether it's abandoned, or the package to use instead (D-433).
 	 * @param array<string, string> $suggest  Package => why it's suggested (D-434).
+	 * @param list<string>          $keywords What it's about, searched by the admin (D-565).
 	 */
 	public function __construct(
 		public string $name,
@@ -100,7 +103,8 @@ final readonly class ThemeManifest implements ExtensionManifest
 		public array $provide = [],
 		public bool|string $abandoned = false,
 		public array $suggest = [],
-		public array $preload = []
+		public array $preload = [],
+		public array $keywords = []
 	) {}
 
 	public function kind(): ExtensionKind
@@ -201,6 +205,7 @@ final readonly class ThemeManifest implements ExtensionManifest
 			$provide  = ExtensionRequire::fromArray($data['provide'] ?? null, 'provide');
 			$abandoned = ExtensionAbandoned::fromManifest($data['abandoned'] ?? false);
 			$suggest   = ExtensionSuggest::fromManifest($data['suggest'] ?? null);
+			$keywords  = ExtensionKeywords::fromManifest($data['keywords'] ?? null);
 		} catch (ExtensionException $error) {
 			throw new ThemeException(sprintf('The "%s" theme\'s manifest: %s', $theme, $error->getMessage()), 0, $error);
 		}
@@ -230,7 +235,8 @@ final readonly class ThemeManifest implements ExtensionManifest
 			provide: $provide,
 			abandoned: $abandoned,
 			suggest: $suggest,
-			preload: self::paths($theme, $data, 'preload', [])
+			preload: self::paths($theme, $data, 'preload', []),
+			keywords: $keywords
 		);
 	}
 

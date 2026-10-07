@@ -20,6 +20,7 @@ use Blush\Extension\ExtensionAuthor;
 use Blush\Extension\ExtensionException;
 use Blush\Extension\ExtensionKind;
 use Blush\Extension\ExtensionLinks;
+use Blush\Extension\ExtensionKeywords;
 use Blush\Extension\ExtensionSuggest;
 use Blush\Support\ComposerPackages;
 use Blush\Support\FilesystemException;
@@ -112,6 +113,7 @@ final readonly class ComposerPluginFinder implements PluginFinder
 			'license'     => ComposerJson::license($package['license'] ?? null),
 			'abandoned'   => ExtensionAbandoned::lenient($package['abandoned'] ?? false),
 			'suggest'     => $blush['suggest'] ?? ExtensionSuggest::lenient($package['suggest'] ?? null),
+			'keywords'    => $blush['keywords'] ?? ExtensionKeywords::lenient($package['keywords'] ?? null),
 			...ExtensionLinks::lenient($package)->toArray()
 		]);
 	}

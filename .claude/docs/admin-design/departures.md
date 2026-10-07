@@ -459,8 +459,7 @@ Each is recorded in `.claude/docs/decisions.md`.
   - **Theme details** (D-383) adds Name and Namespace rows; Author is
     the manifest's `authors` (D-384), each linked to their homepage
     with their role and an email link, and the folder row has a copy
-    button. A palette whose light and dark colors are the same shows
-    one **Light and dark** group. A theme without a palette is sketched
+    button. A theme without a palette is sketched
     in the admin's colors, with a note on declaring one. A folder theme
     the active one uses says why it can't be deleted (the sketch shows
     nothing). Broken themes have no details screen, since they have no
@@ -633,6 +632,47 @@ Each is recorded in `.claude/docs/decisions.md`.
     the next step is offered only when it can be taken (not for an
     active theme, one whose parent is missing, a plugin whose
     requirements aren't met, or a role without `activate`).
+- **The updated extensions sketch** (D-565): the three lists' filter
+  row, the compact list, and one detail layout for every kind
+  (Appearance or Icons, then Details beside Dependencies). Departures:
+  - The filters are in the address (`?q=`, `?status=`, `?source=`, as
+    D-505's lists are), so they reset when you leave and come back by
+    the back link, as the sketch's do. **Source** says "A folder in
+    extensions/" (the sketch's "A folder you added"), as Installed by
+    does, and Plugins has no "Ships with Blush", since none can.
+  - **Needs attention** also covers an abandoned extension and an
+    active theme that isn't running (the author's call; the sketch's is
+    only what can't turn on).
+  - **Cards or Compact** is kept in this browser, one choice for Themes
+    and Icon Packs, as Posts' Roomy and Compact rows are (the author's
+    call); the sketch's is page state.
+  - No **Install** button beside a missing requirement or suggestion
+    (the author's call): there's no registry to fetch one from yet, and
+    the uploader can't know the kind.
+  - **Details** keeps the Namespace row for every kind, and Author is
+    singular for one. **Funding** is the sketch's buttons. Links go
+    by Blush's names for `support` keys (D-428), each with Lucide's
+    glyph (the admin gained `bug` and `rss`); email isn't shown.
+  - **Dependencies**: a section for each list the manifest has, with
+    our hints (Replaces says what isn't so while one is on, D-436);
+    Provides names packages without linking them. Under **What others
+    say about it**, Conflicts with it, Replaced by, and Also provided by
+    (D-440) join the sketch's lists, each with its kind's glyph (plug,
+    paintbrush, or shapes, as the Config panel has them) rather than an
+    on/off verdict; Provides keeps the neutral package glyph, since what
+    it names has no kind. A theme's **Falls back to** is a section of
+    it, as the sketch has; the default theme's **Used as fallback by**
+    says "Every theme". A PHP extension reads "PHP Extension: intl", as
+    the sketch has it (the author's call).
+  - A theme without a palette is still sketched in the admin's colors,
+    with the note on declaring one, where the sketch has a warning and
+    no picture. The legend lists both halves even when they're the same.
+  - The core icon set has a Details panel and no Dependencies panel. In
+    the compact list its row has no menu (its label opens it), and a
+    broken pack's row has no switch.
+  - The status pill sits beside the title on the details screens, as
+    the sketch has; **Abandoned** stays a pill in the lists and a notice
+    on the details.
 - **Vocabulary follows Blush** where it differs: extensions (plugins,
   themes, and icon packs; D-378), not addons, and
   whatever taxonomies a site defines (no built-in Topic).

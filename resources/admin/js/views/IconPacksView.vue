@@ -19,16 +19,26 @@
  *
  * Installing from the admin is planned (packs are data, so they're the
  * first kind it will take): **Install Icon Pack** says how for now.
+ *
+ * Filters over the list (D-565, the extensions sketch's): words matching
+ * a pack's label, name, description, or keywords, its status (on, off, or
+ * needing attention: can't load, broken, or abandoned), and its source;
+ * and Cards or a Compact list of rows (`extensionView`), each marked with
+ * its first icon, green while its icons load.
  */
 
 import { computed } from 'vue';
 import AdminIcon from '../components/AdminIcon.vue';
+import EmptyState from '../components/EmptyState.vue';
 import ExtensionCard from '../components/ExtensionCard.vue';
+import ExtensionFilters from '../components/ExtensionFilters.vue';
 import ExtensionMenu from '../components/ExtensionMenu.vue';
+import ExtensionRow from '../components/ExtensionRow.vue';
 import InstallModal from '../components/InstallModal.vue';
 import ToggleSwitch from '../components/ToggleSwitch.vue';
 import type { CoreIcons, IconPackSummary, PackIcon } from '../api';
-import { extensionRoute, folderName } from '../extensions';
+import { extensionView } from '../density';
+import { extensionRoute, folderName, useExtensionFilter } from '../extensions';
 import { packIconMask, useIconPacks } from '../icon-packs';
 import { useInstall } from '../install';
 import { can } from '../session';
@@ -58,6 +68,28 @@ const CELLS = 12;
 const packs   = computed(() => answer.value?.packs ?? []);
 const count   = computed(() => packs.value.length + (answer.value?.invalid.length ?? 0) + (answer.value ? 1 : 0));
 const showing = computed(() => (answer.value?.core.count ?? 0) + packs.value.filter((pack) => pack.running).reduce((total, pack) => total + pack.count, 0));
+
+const { query, status, source, filtered, matches, clear } = useExtensionFilter();
+
+// The packs, the core set, and broken ones the filters leave.
+const shownPacks = computed(() => packs.value.filter((pack) => matches({
+	on: pack.running,
+	attention: blocked(pack) !== null || pack.abandoned !== false,
+	source: pack.source,
+	words: [pack.label, pack.name, pack.namespace, pack.description, ...pack.keywords]
+})));
+const showCore = computed(() => answer.value !== null && matches({ on: true, attention: false, source: 'framework', words: [answer.value.core.label, 'core', 'Blush'] }));
+const shownBroken = computed(() => (answer.value?.invalid ?? []).filter((pack) => matches({
+	on: false,
+	attention: true,
+	source: pack.where.startsWith('extensions/') ? 'local' : 'composer',
+	words: [pack.where]
+})));
+const shown = computed(() => shownPacks.value.length + (showCore.value ? 1 : 0) + shownBroken.value.length);
+
+// Rows, not cards, and the slot each draws its controls in.
+const list = computed(() => extensionView.value === 'list');
+const foot = computed(() => list.value ? 'end' : 'foot');
 
 // Why a pack can't be turned on, when it isn't running, or `null` (D-431).
 function blocked(pack: IconPackSummary): string | null {
@@ -98,71 +130,96 @@ async function remove(label: string, folder: string, pack: IconPackSummary | nul
 
 	<p v-if="error" class="notice notice--error" role="alert">{{ error }}</p>
 
-	<div class="count-row">
-		<span>{{ answer ? `${count} ${count === 1 ? 'pack' : 'packs'} · ${showing} icons available` : 'Loading icon packs' }}</span>
-		<span class="count-row__rule" />
-	</div>
+	<template v-if="answer">
+		<ExtensionFilters v-model:query="query" v-model:status="status" v-model:source="source" noun="icon packs" on="On" off="Off" :sources="['composer', 'local', 'framework']" :shown="shown" :total="count" :summary="`${showing} icons available`" :filtered="filtered" views @clear="clear" />
 
-	<div v-if="answer" class="extension-cards">
-		<ExtensionCard v-for="pack in packs" :key="pack.name" :class="{ 'is-off': !pack.running }" :label="pack.label" :to="extensionRoute('icon-pack', pack.name)" :version="pack.version" :description="pack.description">
-			<template #media>
-				<div class="glyphs" aria-hidden="true">
-					<span v-for="icon in cells(pack).icons" :key="icon.name"><span v-if="icon.svg" class="glyphs__glyph" :style="{ maskImage: packIconMask(icon) }" /></span>
-					<span v-if="cells(pack).more"><span class="glyphs__more">+{{ cells(pack).more }}</span></span>
-					<span v-for="blank in cells(pack).blanks" :key="`blank-${blank}`" />
-				</div>
-			</template>
-			<template #pills>
-				<span v-if="blocked(pack)" class="pill pill--warn">Can't turn on</span>
-				<span v-if="pack.abandoned !== false" class="pill pill--warn">Abandoned</span>
-			</template>
-			<p v-if="blocked(pack)" class="notice notice--small notice--warn extension__message">
-				<AdminIcon name="triangle-alert" /><span>{{ blocked(pack) }} {{ pack.enabled ? 'It\'s turned on, but its icons aren\'t available until that\'s fixed.' : 'It can\'t be turned on until that\'s fixed.' }}</span>
-			</p>
-			<p v-else-if="pack.source === 'composer' && !pack.enabled" class="extension__description">Installed by Composer. It's off because the list of packs turned on here doesn't name it.</p>
-			<ul class="extension__facts">
-				<li v-if="pack.source === 'composer'"><AdminIcon name="package" /><span>Composer · <span class="mono">{{ pack.name }}</span></span></li>
-				<li v-else><AdminIcon name="folder" /><span class="mono">{{ pack.path }}</span></li>
-				<li><AdminIcon name="shapes" /><span>{{ pack.count }} {{ pack.count === 1 ? 'icon' : 'icons' }} in <span class="mono">{{ pack.namespace }}/</span></span></li>
-			</ul>
-			<template #foot>
-				<ToggleSwitch :checked="pack.running" :label="pack.label" :locked="blocked(pack) !== null || !canActivate" :busy="busy === pack.name" :reason="blocked(pack) ?? (canActivate ? null : 'Your role can\'t turn icon packs on and off.')" @change="toggle(pack, $event)" />
-				<ExtensionMenu :label="pack.label" :details="extensionRoute('icon-pack', pack.name)" details-label="Icon pack details" :copy="pack.path" :delete-label="canDelete && pack.deletable && pack.folder ? 'Delete icon pack' : undefined" @delete="remove(pack.label, pack.folder ?? '', pack)" />
-			</template>
-		</ExtensionCard>
+		<div v-if="shown === 0" class="panel">
+			<EmptyState icon="search" heading="No Icon Pack Matches" text="Nothing here fits the filters in force. Clearing them brings the other icon packs back.">
+				<template #actions><button type="button" class="button" @click="clear">Clear Filters</button></template>
+			</EmptyState>
+		</div>
 
-		<ExtensionCard :label="answer.core.label" :to="{ name: 'icon-pack-core' }" :version="answer.core.version" description="Blush's own icons: always on, and always available to content.">
-			<template #media>
-				<div class="glyphs" aria-hidden="true">
-					<span v-for="icon in cells(answer.core).icons" :key="icon.name"><span v-if="icon.svg" class="glyphs__glyph" :style="{ maskImage: packIconMask(icon) }" /></span>
-					<span v-if="cells(answer.core).more"><span class="glyphs__more">+{{ cells(answer.core).more }}</span></span>
-					<span v-for="blank in cells(answer.core).blanks" :key="`blank-${blank}`" />
-				</div>
-			</template>
-			<template #pills><span class="pill">Built in</span></template>
-			<ul class="extension__facts">
-				<li><AdminIcon name="package" />Ships with Blush</li>
-				<li><AdminIcon name="shapes" /><span>{{ answer.core.count }} icons, by name alone</span></li>
-			</ul>
-			<template #foot>
-				<ToggleSwitch :checked="true" :label="answer.core.label" locked reason="The core set is always on." />
-				<RouterLink class="button button--ghost button--small extension__menu" :to="{ name: 'icon-pack-core' }">Details</RouterLink>
-			</template>
-		</ExtensionCard>
+		<component :is="list ? 'ul' : 'div'" v-else :class="list ? 'extension-rows' : 'extension-cards'">
+			<component :is="list ? ExtensionRow : ExtensionCard" v-for="pack in shownPacks" :key="pack.name" :class="{ 'is-off': !pack.running, 'is-on': pack.running }" :label="pack.label" :to="extensionRoute('icon-pack', pack.name)" :version="pack.version" :description="list ? undefined : pack.description">
+				<template v-if="list" #mark>
+					<span v-if="pack.icons[0]?.svg" class="glyphs__glyph" :style="{ maskImage: packIconMask(pack.icons[0]) }" />
+					<AdminIcon v-else name="shapes" />
+				</template>
+				<template v-else #media>
+					<div class="glyphs" aria-hidden="true">
+						<span v-for="icon in cells(pack).icons" :key="icon.name"><span v-if="icon.svg" class="glyphs__glyph" :style="{ maskImage: packIconMask(icon) }" /></span>
+						<span v-if="cells(pack).more"><span class="glyphs__more">+{{ cells(pack).more }}</span></span>
+						<span v-for="blank in cells(pack).blanks" :key="`blank-${blank}`" />
+					</div>
+				</template>
+				<template #pills>
+					<span v-if="blocked(pack)" class="pill pill--warn">Can't turn on</span>
+					<span v-if="pack.abandoned !== false" class="pill pill--warn">Abandoned</span>
+				</template>
+				<p v-if="blocked(pack)" class="notice notice--small notice--warn extension__message">
+					<AdminIcon name="triangle-alert" /><span>{{ blocked(pack) }} {{ pack.enabled ? 'It\'s turned on, but its icons aren\'t available until that\'s fixed.' : 'It can\'t be turned on until that\'s fixed.' }}</span>
+				</p>
+				<p v-else-if="pack.source === 'composer' && !pack.enabled" class="extension__description">Installed by Composer. It's off because the list of packs turned on here doesn't name it.</p>
+				<ul class="extension__facts" :class="{ 'extension__facts--inline': list }">
+					<li v-if="pack.source === 'composer'"><AdminIcon name="package" /><span>Composer · <span class="mono">{{ pack.name }}</span></span></li>
+					<li v-else><AdminIcon name="folder" /><span class="mono">{{ pack.path }}</span></li>
+					<li><AdminIcon name="shapes" /><span>{{ pack.count }} {{ pack.count === 1 ? 'icon' : 'icons' }} in <span class="mono">{{ pack.namespace }}/</span></span></li>
+				</ul>
+				<template #[foot]>
+					<ToggleSwitch :checked="pack.running" :label="pack.label" :locked="blocked(pack) !== null || !canActivate" :busy="busy === pack.name" :reason="blocked(pack) ?? (canActivate ? null : 'Your role can\'t turn icon packs on and off.')" @change="toggle(pack, $event)" />
+					<ExtensionMenu :label="pack.label" :details="extensionRoute('icon-pack', pack.name)" details-label="Icon pack details" :copy="pack.path" :delete-label="canDelete && pack.deletable && pack.folder ? 'Delete icon pack' : undefined" @delete="remove(pack.label, pack.folder ?? '', pack)" />
+				</template>
+			</component>
 
-		<ExtensionCard v-for="pack in answer.invalid" :key="pack.where" :label="pack.where">
-			<template #media>
-				<div class="glyphs glyphs--broken"><AdminIcon name="triangle-alert" /><span>No icons</span></div>
-			</template>
-			<template #pills><span class="pill pill--warn">Can't be used</span></template>
-			<p class="notice notice--small notice--warn extension__message">
-				<AdminIcon name="triangle-alert" /><span>{{ pack.reason }} Its icons can't be used until that's fixed.</span>
-			</p>
-			<template v-if="canDelete && pack.deletable" #foot>
-				<ExtensionMenu :label="pack.where" :copy="pack.where" delete-label="Delete icon pack" @delete="remove(folderName(pack.where), pack.where)" />
-			</template>
-		</ExtensionCard>
-	</div>
+			<component :is="list ? ExtensionRow : ExtensionCard" v-if="showCore" class="is-on" :label="answer.core.label" :to="{ name: 'icon-pack-core' }" :version="answer.core.version" :description="list ? undefined : 'Blush\'s own icons: always on, and always available to content.'">
+				<template v-if="list" #mark>
+					<span v-if="answer.core.icons[0]?.svg" class="glyphs__glyph" :style="{ maskImage: packIconMask(answer.core.icons[0]) }" />
+					<AdminIcon v-else name="shapes" />
+				</template>
+				<template v-else #media>
+					<div class="glyphs" aria-hidden="true">
+						<span v-for="icon in cells(answer.core).icons" :key="icon.name"><span v-if="icon.svg" class="glyphs__glyph" :style="{ maskImage: packIconMask(icon) }" /></span>
+						<span v-if="cells(answer.core).more"><span class="glyphs__more">+{{ cells(answer.core).more }}</span></span>
+						<span v-for="blank in cells(answer.core).blanks" :key="`blank-${blank}`" />
+					</div>
+				</template>
+				<template #pills><span class="pill">Built in</span></template>
+				<ul class="extension__facts" :class="{ 'extension__facts--inline': list }">
+					<li><AdminIcon name="package" />Ships with Blush</li>
+					<li><AdminIcon name="shapes" /><span>{{ answer.core.count }} icons, by name alone</span></li>
+				</ul>
+				<template #[foot]>
+					<ToggleSwitch :checked="true" :label="answer.core.label" locked reason="The core set is always on." />
+					<span v-if="list" class="extension__menu-slot" />
+					<RouterLink v-else class="button button--ghost button--small extension__menu" :to="{ name: 'icon-pack-core' }">Details</RouterLink>
+				</template>
+			</component>
+
+			<component :is="list ? ExtensionRow : ExtensionCard" v-for="pack in shownBroken" :key="pack.where" class="is-off" :label="pack.where">
+				<template v-if="list" #mark><AdminIcon name="triangle-alert" /></template>
+				<template v-else #media>
+					<div class="glyphs glyphs--broken"><AdminIcon name="triangle-alert" /><span>No icons</span></div>
+				</template>
+				<template #pills><span class="pill pill--warn">Can't be used</span></template>
+				<p class="notice notice--small notice--warn extension__message">
+					<AdminIcon name="triangle-alert" /><span>{{ pack.reason }} Its icons can't be used until that's fixed.</span>
+				</p>
+				<template v-if="canDelete && pack.deletable" #[foot]>
+					<ExtensionMenu :label="pack.where" :copy="pack.where" delete-label="Delete icon pack" @delete="remove(folderName(pack.where), pack.where)" />
+				</template>
+			</component>
+		</component>
+	</template>
+
+	<ul v-else-if="!error && list" class="extension-rows" aria-hidden="true">
+		<li v-for="row in 3" :key="row" class="extension-row">
+			<span class="extension-row__mark" />
+			<div class="extension-row__main">
+				<span class="skeleton skeleton--title" />
+				<span class="skeleton skeleton--wide" />
+			</div>
+		</li>
+	</ul>
 
 	<div v-else-if="!error" class="extension-cards" aria-hidden="true">
 		<div v-for="card in 3" :key="card" class="extension-card">
@@ -211,12 +268,19 @@ async function remove(label: string, folder: string, pack: IconPackSummary | nul
 }
 
 .glyphs__glyph {
+	display: block;
 	width: 20px;
 	height: 20px;
 	background: currentColor;
 	mask-position: center;
 	mask-repeat: no-repeat;
 	mask-size: contain;
+}
+
+/* A row's mark is its first icon. */
+.extension-row__mark .glyphs__glyph {
+	width: 16px;
+	height: 16px;
 }
 
 .glyphs__more {

@@ -1,18 +1,18 @@
 <script setup lang="ts">
 /**
- * An icon pack's details (D-385, the extensions sketch's), at
- * `/icon-packs/{vendor}/{name}`, and the core set's at
- * `/icon-packs/core`: its switch in the header (the core set's locked
- * on), every icon at a size to judge, with a filter, each one copying its
- * reference when clicked (`weather/sun`, or a core icon's name), then a
- * Details panel, a Requires panel (each requirement checked against the
- * site, as a plugin's are, D-431; one that isn't met keeps the pack from
- * turning on, or its icons from loading), a Conflicts panel when it
- * has `conflict` (D-435), a Replaces panel when it has `replace`
- * (D-436), a Provides panel when it has `provide` (D-439), a
- * Suggests panel when it
- * suggests anything (D-434), and **Delete icon pack** for a
- * folder pack. A Composer pack says how it's removed instead.
+ * An icon pack's details (D-385; drawn as the extensions sketch's in
+ * D-565), at `/icon-packs/{vendor}/{name}`, and the core set's at
+ * `/icon-packs/core`: its label with Can't turn on beside it when it
+ * can't, its switch (the core set's locked on), every icon at a size to
+ * judge, with a filter, each one copying its reference when clicked
+ * (`weather/sun`, or a core icon's name), then its Details
+ * (`ExtensionFacts`, with its namespace and how many icons) beside its
+ * Dependencies (`ExtensionDependencies`: what it requires, checked
+ * against the site as a plugin's are, D-431, so one that isn't met keeps
+ * the pack from turning on, or its icons from loading; its conflicts,
+ * replaces, provides, and suggests, D-434 to D-439; and those on the
+ * other side, D-440), and **Delete icon pack** for a folder pack. A
+ * Composer pack says how it's removed instead.
  */
 
 import { computed, ref, watch } from 'vue';
@@ -20,8 +20,8 @@ import { useRoute, useRouter } from 'vue-router';
 import AbandonedNotice from '../components/AbandonedNotice.vue';
 import AdminIcon from '../components/AdminIcon.vue';
 import DangerZone from '../components/DangerZone.vue';
+import ExtensionDependencies from '../components/ExtensionDependencies.vue';
 import ExtensionFacts from '../components/ExtensionFacts.vue';
-import ExtensionPackagePanels from '../components/ExtensionPackagePanels.vue';
 import PreviousVersion from '../components/PreviousVersion.vue';
 import ToggleSwitch from '../components/ToggleSwitch.vue';
 import { ApiError, errorMessage, request, type CoreIcons, type IconPackSummary } from '../api';
@@ -124,23 +124,25 @@ async function remove(): Promise<void> {
 	<header class="page-header">
 		<RouterLink class="page-back" :to="{ name: 'icon-packs' }"><AdminIcon name="chevron-left" />All icon packs</RouterLink>
 		<div class="page-header__text">
-			<h1 tabindex="-1">{{ label ?? 'Icon Pack' }}</h1>
+			<div class="page-header__title">
+				<h1 tabindex="-1">{{ label ?? 'Icon Pack' }}</h1>
+				<span v-if="blocked" class="pill pill--warn">Can't turn on</span>
+				<span v-else-if="core" class="pill">Built in</span>
+			</div>
 			<p v-if="pack" class="page-header__hint">{{ pack.description || 'This icon pack has no description.' }}</p>
 			<p v-else-if="core" class="page-header__hint">Blush's own icons: always on, and always available to content.</p>
 		</div>
 		<div v-if="pack" class="page-header__actions">
-			<span v-if="blocked" class="pill pill--warn">Can't turn on</span>
 			<ToggleSwitch :checked="pack.running" :label="pack.label" :locked="blocked !== null || !canActivate" :busy="busy === pack.name" :reason="blocked ?? (canActivate ? null : 'Your role can\'t turn icon packs on and off.')" @change="toggle" />
 		</div>
 		<div v-else-if="core" class="page-header__actions">
-			<span class="pill">Built in</span>
 			<ToggleSwitch :checked="true" :label="core.label" locked reason="The core set is always on." />
 		</div>
 	</header>
 
 	<p v-if="error || failure" class="notice notice--error" role="alert">{{ error || failure }}</p>
 
-	<div v-if="shown" class="pack-detail">
+	<div v-if="shown" class="extension-detail">
 		<AbandonedNotice v-if="pack" noun="icon pack" :abandoned="pack.abandoned" :replacement="pack.replacement" />
 		<p v-if="pack && blocked" class="notice notice--warn">
 			<span>{{ blocked }} {{ pack.enabled ? 'It\'s turned on, but its icons aren\'t available until that\'s fixed, and anywhere one is used shows nothing.' : 'It can\'t be turned on until that\'s fixed.' }}</span>
@@ -149,42 +151,45 @@ async function remove(): Promise<void> {
 			<span>This pack is off, so its icons aren't available, and anywhere one is used shows nothing.</span>
 		</p>
 
-		<div class="pack-detail__columns">
-			<section class="panel" aria-labelledby="icons-heading">
-				<header class="panel__header">
-					<h2 id="icons-heading">Icons</h2>
-					<p class="panel__hint">Click one to copy how it's used</p>
-				</header>
-				<div class="panel__body">
-					<div class="browse-bar">
-						<label class="search-field browse-bar__field">
-							<AdminIcon name="search" />
-							<span class="visually-hidden">Filter icons</span>
-							<input v-model="query" type="search" placeholder="Filter icons">
-						</label>
-						<span class="browse-bar__count" aria-live="polite">{{ icons.length === shown.icons.length ? `${shown.count} icons` : `${icons.length} of ${shown.count}` }}</span>
-					</div>
-					<div v-if="icons.length" class="browse">
-						<button v-for="icon in icons" :key="icon.name" type="button" class="browse__icon" @click="copyText(icon.name, 'the icon\'s name', icon.name)">
-							<span v-if="icon.svg" class="browse__glyph" :style="{ maskImage: packIconMask(icon) }" aria-hidden="true" />
-							<AdminIcon v-else name="image-off" />
-							<code>{{ icon.name }}</code>
-						</button>
-					</div>
-					<p v-else class="field__help">No icon in this {{ core ? 'set' : 'pack' }} matches “{{ query }}”.</p>
+		<section class="panel" aria-labelledby="icons-heading">
+			<header class="panel__header">
+				<h2 id="icons-heading">Icons</h2>
+				<p class="panel__hint">Click one to copy how it's used</p>
+			</header>
+			<div class="panel__body">
+				<div class="browse-bar">
+					<label class="search-field browse-bar__field">
+						<AdminIcon name="search" />
+						<span class="visually-hidden">Filter icons</span>
+						<input v-model="query" type="search" placeholder="Filter icons">
+					</label>
+					<span class="browse-bar__count" aria-live="polite">{{ icons.length === shown.icons.length ? `${shown.count} icons` : `${icons.length} of ${shown.count}` }}</span>
 				</div>
-			</section>
+				<div v-if="icons.length" class="browse">
+					<button v-for="icon in icons" :key="icon.name" type="button" class="browse__icon" @click="copyText(icon.name, 'the icon\'s name', icon.name)">
+						<span v-if="icon.svg" class="browse__glyph" :style="{ maskImage: packIconMask(icon) }" aria-hidden="true" />
+						<AdminIcon v-else name="image-off" />
+						<code>{{ icon.name }}</code>
+					</button>
+				</div>
+				<p v-else class="field__help">No icon in this {{ core ? 'set' : 'pack' }} matches “{{ query }}”.</p>
+			</div>
+		</section>
 
-			<section class="panel" aria-labelledby="details-heading">
+		<div class="extension-detail__columns">
+			<template v-if="pack">
+				<ExtensionFacts :extension="pack" :installed-by="pack.source === 'composer' ? 'Composer' : 'A folder in extensions/'" :folder="pack.path" :namespace="`${pack.namespace}/`">
+					<template #kind>
+						<dt>Icons</dt>
+						<dd>{{ pack.count }}</dd>
+					</template>
+				</ExtensionFacts>
+				<ExtensionDependencies :extension="pack" noun="icon pack" replaces-hint="It adds no icons" />
+			</template>
+			<section v-else-if="core" class="panel" aria-labelledby="details-heading">
 				<header class="panel__header"><h2 id="details-heading">Details</h2></header>
-				<div class="panel__body">
-					<ExtensionFacts v-if="pack" :extension="pack" :installed-by="pack.source === 'composer' ? 'Composer' : 'A folder in extensions/'" :folder="pack.path" :namespace="`${pack.namespace}/`">
-						<template #kind>
-							<dt>Icons</dt>
-							<dd>{{ pack.count }}</dd>
-						</template>
-					</ExtensionFacts>
-					<dl v-else-if="core" class="facts facts--grid">
+				<div class="panel__section">
+					<dl class="facts facts--grid">
 						<dt>Version</dt>
 						<dd class="mono">{{ core.version }}</dd>
 						<dt>Used as</dt>
@@ -199,8 +204,6 @@ async function remove(): Promise<void> {
 				</div>
 			</section>
 		</div>
-
-		<ExtensionPackagePanels v-if="pack" :extension="pack" replaces-hint="It adds no icons" />
 
 		<template v-if="pack">
 			<PreviousVersion kind="icon-pack" :extension="pack" :live="pack.enabled" @changed="load" />
@@ -218,24 +221,12 @@ async function remove(): Promise<void> {
 		<span>No icon pack named <span class="mono">{{ name }}</span> is installed.</span>
 	</p>
 
-	<div v-else-if="!error" class="pack-detail" aria-hidden="true">
+	<div v-else-if="!error" class="extension-detail" aria-hidden="true">
 		<div class="panel"><div class="panel__body"><span class="skeleton skeleton--title" /><span class="skeleton" /><span class="skeleton skeleton--half" /></div></div>
 	</div>
 </template>
 
 <style scoped>
-.pack-detail {
-	display: grid;
-	gap: var(--s-5);
-}
-
-.pack-detail__columns {
-	display: grid;
-	grid-template-columns: minmax(0, 1fr) 380px;
-	align-items: start;
-	gap: var(--s-5);
-}
-
 .browse-bar {
 	display: flex;
 	align-items: center;
@@ -331,11 +322,5 @@ async function remove(): Promise<void> {
 
 .skeleton--half {
 	width: 64%;
-}
-
-@media (width <= 1180px) {
-	.pack-detail__columns {
-		grid-template-columns: minmax(0, 1fr);
-	}
 }
 </style>

@@ -116,6 +116,7 @@ final class AdminPluginsTest extends TestCase
 			'licenses'     => [['text' => 'MIT', 'url' => 'https://spdx.org/licenses/MIT.html', 'operator' => false]],
 			'links'        => [],
 			'funding'      => [],
+			'keywords'     => [],
 			'source'       => 'local',
 			'path'         => 'extensions/fixture/recipes',
 			'folder'       => 'extensions/fixture/recipes',

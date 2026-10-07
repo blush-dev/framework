@@ -19,7 +19,8 @@ namespace Blush\Extension;
  * `require`, `conflict` (D-435), `replace` (D-436), and `provide`
  * (D-439), which are checked the same way for every kind, and whether
  * it's abandoned (D-433), which warns the same way, and what it
- * suggests (D-434), which is shown the same way.
+ * suggests (D-434), which is shown the same way, and its keywords
+ * (D-565), which the admin searches.
  */
 interface ExtensionManifest
 {
@@ -86,6 +87,14 @@ interface ExtensionManifest
 	 * @var array<string, string>
 	 */
 	public array $suggest { get; }
+
+	/**
+	 * The words it's about, as Composer's `keywords` are (D-565). Not
+	 * shown; the admin's lists search them.
+	 *
+	 * @var list<string>
+	 */
+	public array $keywords { get; }
 	// phpcs:enable
 
 	/**
