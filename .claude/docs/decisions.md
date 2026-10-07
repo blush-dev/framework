@@ -16339,3 +16339,46 @@ decision, add a new entry that supersedes it and mark the old one
   sliders share. Adds to D-554.
 - **Why:** the author: "The video controls bar is missing a volume
   slider."
+
+### D-556: Second Proof, a theme built from its design, first in the trial
+- **Date:** 2026-10-06
+- **Status:** Built in `../blush` (`extensions/blush/second-proof`,
+  active there); not in the framework yet.
+- **Decision:** the author's theme design
+  (`.claude/docs/theme-design/second-proof-theme.html`) is built as the
+  theme `blush/second-proof` (namespace `second-proof`), likely one of
+  the themes Blush ships. Plain CSS and JS with no build step, like the
+  default theme; Literata and Schibsted Grotesk self-hosted
+  (`fonts/`, OFL-1.1, latin and latin-ext). How the design maps onto
+  Blush:
+  - Templates: `home` (the letterhead on page 1: the site's profiles as
+    the byline, the landing entry's title as the sentence, else the
+    site's description; Read the Latest and About when `page/about`
+    exists), `single` (posts; undated entries fall to `parts/page`),
+    `single-page` (parent trail, subpages or siblings as a sentence,
+    "Updated" when front matter sets `updated`), `collection`,
+    `collection-taxonomy` (top-level terms by count, with narrower
+    terms and the latest date), `term`, `profile` (also people
+    archives, with their feed), `people`, `archive-date` and
+    `template-compact` (the design's Archive, one line per entry),
+    `error`, `error-404` (the address struck through, the closest
+    match by words of the address, recent writing, topics).
+  - Components with classes (registered by `SecondProof\ThemeProvider`):
+    `letterhead`, `writers`, `adjacent`, `recent`, `topics`,
+    `closest-match`, since templates can't query content.
+  - Content: the pull quote is a `figure` variant, `pull`, declared in
+    `theme.json`; callouts and files are drawn by the theme's
+    `directives/callout.php` and `file.php` (Default and `info` are a
+    note); plain Markdown gives quotes, lists, glossaries, tables,
+    code, and footnotes their looks. Bleed is `bleed-*` (and 1.x's
+    `stretch-*`).
+  - Lists of names and topics are joined by `IntlListFormatter` in the
+    page's locale rather than the design's CSS-drawn commas and "and".
+  - The light and dark switch holds the choice for the visit
+    (`sessionStorage`), set before paint by a small script in the head.
+- **Not built (see open-questions.md):** email subscription, the
+  "where" line (no setting for it), the styled feed page, a feed per
+  topic, author first names in lists, and the 404's "tell us which
+  link" line.
+- **Why:** the author asked for the design to be built in the trial,
+  marking what can't be built yet.

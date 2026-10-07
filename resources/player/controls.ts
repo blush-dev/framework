@@ -8,6 +8,7 @@
  * play and pause filled, the rest stroked.
  */
 
+// @ts-ignore
 import './player.css';
 
 export const GLYPHS = {

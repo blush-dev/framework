@@ -1,0 +1,1239 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Second Proof</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Literata:ital,opsz,wght@0,7..72,300..800;1,7..72,300..800&family=Schibsted+Grotesk:wght@400..700&display=swap">
+</head>
+<body>
+<style>
+/* ==========================================================================
+   Madder — Notebook
+   Layout: a full-width header, one 40rem column, and a footer on the column or as a full-width band. Any block-level element
+   may bleed, symmetrically about the column's center — Wide to 64rem (1024px),
+   Full to the viewport. Captions stay on the column.
+   ========================================================================== */
+
+:root {
+  color-scheme: light;
+  --paper: #fbf8f7;
+  --paper-2: #f4e8e6;
+  --paper-3: #ecdcd9;
+  --ink: #231c1f;
+  --ink-2: #5f5559;
+  --ink-3: #73676b;
+  --line: #e6dadb;
+  --line-strong: #cdbcbe;
+  --accent: #8a2c43;
+  --accent-soft: #f5e1e5;
+  /* Callout kinds: one shape, four inks. Each also changes its glyph and word. */
+  --note: #8a2c43;    --note-soft: #f6e6e8;
+  --tip: #2d6a4f;     --tip-soft: #e5efe8;
+  --warning: #855400; --warning-soft: #f6ead6;
+  --danger: #a3262a;  --danger-soft: #f8e1df;
+
+  --serif: "Literata", "Iowan Old Style", Georgia, serif;
+  --sans: "Schibsted Grotesk", ui-sans-serif, system-ui, sans-serif;
+  --code: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+
+  --col: 40rem;
+  --wide: 64rem;   /* 1024px */
+  --gutter: clamp(1rem, .4rem + 2.6vw, 2.5rem);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --paper: #1a1517; --paper-2: #251d20; --paper-3: #30262a;
+    --ink: #efe7e8; --ink-2: #c1b4b7; --ink-3: #9c8f93;
+    --line: #382d31; --line-strong: #514448;
+    --accent: #e9a3b4;
+    --accent-soft: #3b232a;
+    --note: #e9a3b4; --note-soft: #33212a;
+    --tip: #8fcfac; --tip-soft: #1c2a23;
+    --warning: #e6b866; --warning-soft: #2e2516;
+    --danger: #f2a09c; --danger-soft: #36201f;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --paper: #1a1517; --paper-2: #251d20; --paper-3: #30262a;
+  --ink: #efe7e8; --ink-2: #c1b4b7; --ink-3: #9c8f93;
+  --line: #382d31; --line-strong: #514448;
+  --accent: #e9a3b4;
+  --accent-soft: #3b232a;
+  --note: #e9a3b4; --note-soft: #33212a;
+  --tip: #8fcfac; --tip-soft: #1c2a23;
+  --warning: #e6b866; --warning-soft: #2e2516;
+  --danger: #f2a09c; --danger-soft: #36201f;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--serif);
+  font-size: clamp(1.0625rem, .98rem + .3vw, 1.1875rem);
+  line-height: 1.62;
+  font-optical-sizing: auto;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+img { display: block; width: 100%; height: auto; }
+h1, h2, h3, p, figure, blockquote, ol, ul, table, pre { margin: 0; }
+ol, ul { padding: 0; list-style: none; }
+a { color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 2px; }
+::selection { background: color-mix(in srgb, var(--accent) 22%, transparent); }
+
+/* The page is a container so bleed can measure it without 100vw, which
+   counts the scrollbar and would scroll sideways on a desktop. */
+.page { container-type: inline-size; overflow-x: clip; }
+.col { width: min(var(--col), 100% - 2 * var(--gutter)); margin-inline: auto; }
+
+/* Bleed. Both steps grow the element evenly on both sides of the column,
+   so its center never moves and neither edge is an edge of its own. */
+.wide, .full { max-width: none; }
+.wide {
+  --w: min(var(--wide), 100cqw - 2 * var(--gutter));
+  width: var(--w);
+  margin-inline: calc((100% - var(--w)) / 2);
+}
+.full {
+  width: 100cqw;
+  margin-inline: calc((100% - 100cqw) / 2);
+}
+.full img { border-radius: 0; }
+/* A caption starts at its image's left edge. A full-bleed image has no edge
+   to inset from, so its caption takes the page gutter, the same line the
+   site name sits on in the header. The text in a full band stays on the column. */
+.full > figcaption { padding-inline: var(--gutter); }
+.full > .band-inner {
+  width: min(var(--col), 100cqw - 2 * var(--gutter));
+  margin-inline: auto;
+}
+
+.small { font-family: var(--sans); font-size: .875rem; line-height: 1.5; color: var(--ink-3); }
+.small a { color: var(--ink-2); text-decoration: none; }
+.small a:hover { color: var(--accent); }
+
+/* Header and footer */
+/* The header runs the full width of the page: the name on the left gutter,
+   the navigation on the right, one rule under both from edge to edge. */
+.site-header { border-bottom: 1px solid var(--line); }
+.frame { padding-inline: var(--gutter); }
+.bar { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: .5rem 1.5rem; padding-block: 1.5rem; }
+.name { font-size: 1.125rem; font-weight: 600; text-decoration: none; letter-spacing: -.01em; }
+/* Site navigation. One list of links; an item with children carries a
+   chevron button after its link and a .sub list. On a wide screen the list
+   sits in the bar and a .sub drops down on hover, or on the chevron for touch
+   and keyboard. Below 48rem the same <nav> is a popover the menu button opens:
+   a sheet over the page, with every child listed under its parent. */
+.nav { font-family: var(--sans); font-size: .9375rem; }
+.nav ul { margin: 0; padding: 0; list-style: none; }
+.nav-list { display: flex; align-items: center; gap: 1.5rem; }
+.nav a { color: var(--ink-2); text-decoration: none; }
+.nav a:hover { color: var(--ink); }
+.nav-list > li > a[aria-current] { color: var(--ink); text-decoration: underline 2px var(--accent); text-underline-offset: .45em; }
+.has-sub { position: relative; display: flex; align-items: center; gap: .1rem; }
+.sub-toggle { display: inline-grid; place-items: center; width: 1.25rem; height: 1.25rem; padding: 0; border: 0; border-radius: 4px; background: none; color: var(--ink-3); cursor: pointer; }
+.sub-toggle:hover, .sub-toggle[aria-expanded="true"] { color: var(--ink); background: var(--paper-2); }
+.sub-toggle svg { width: .8rem; height: .8rem; fill: none; stroke: currentColor; stroke-width: 2.25; stroke-linecap: round; stroke-linejoin: round; transition: rotate .15s; }
+.sub-toggle[aria-expanded="true"] svg { rotate: 180deg; }
+/* The panel's padding matches its rows', so each child starts on the same
+   edge as the parent link above it. */
+.sub { display: none; position: absolute; z-index: 20; top: calc(100% + .85rem); left: -1rem; min-width: 12.5rem; padding-block: .45rem; background: var(--paper); border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 10px 30px -12px rgb(35 28 31 / .22); }
+.sub::before { content: ""; position: absolute; inset: -.9rem 0 100%; }
+.has-sub:hover > .sub, .sub-toggle[aria-expanded="true"] + .sub { display: block; }
+.sub a { display: block; padding: .45rem 1rem; white-space: nowrap; }
+.sub a:hover { background: var(--paper-2); }
+.sub a[aria-current] { color: var(--ink); font-weight: 600; }
+.tool.menu-toggle { display: none; }
+.menu-toggle .when-open { display: none; }
+@media (min-width: 48.0625rem) {
+  /* Out of the popover's hands: the nav is always shown in the bar. */
+  .nav[popover] { display: block; position: static; inset: auto; width: auto; height: auto; margin: 0; padding: 0; border: 0; background: none; color: inherit; overflow: visible; }
+}
+.tools { display: flex; align-items: center; gap: 1.5rem; }
+.tools-end { display: flex; align-items: center; gap: .25rem; padding-left: 1.5rem; border-left: 1px solid var(--line); align-self: center; }
+.icon { width: 1.05rem; height: 1.05rem; stroke: currentColor; fill: none; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+.tool { display: inline-flex; align-items: center; gap: .4rem; font-family: var(--sans); font-size: .9375rem; color: var(--ink-2); text-decoration: none; background: none; border: 0; padding: .35rem .5rem; border-radius: 6px; cursor: pointer; }
+.tool:hover { color: var(--ink); background: var(--paper-2); }
+.scheme-toggle .when-dark { display: none; }
+.is-dark .scheme-toggle .when-dark { display: block; }
+.is-dark .scheme-toggle .when-light { display: none; }
+@media (max-width: 48rem) {
+  /* The bar is a fixed 4rem so the sheet's own top row can sit exactly over
+     it: the name on the left, the close button where the menu button was. */
+  .bar { flex-wrap: nowrap; align-items: center; height: 4rem; padding-block: 0; }
+  .tools { gap: 0; }
+  .tools-end { padding-left: 0; border-left: 0; margin-right: -.5rem; }
+  .tool .label { display: none; }
+  .tool.menu-toggle { display: inline-flex; }
+  /* Open, the header holds still at the top of the screen and the sheet fills
+     the rest, so the name, Feed, Light/Dark and the menu button never move.
+     The menu button turns into a close button. */
+  .site-header:has(.nav:popover-open) { position: sticky; top: 0; z-index: 30; background: var(--paper); }
+  .site-header:has(.nav:popover-open) .menu-toggle .when-closed { display: none; }
+  .site-header:has(.nav:popover-open) .menu-toggle .when-open { display: block; }
+  .nav[popover]:popover-open { position: fixed; inset: calc(4rem + 1px) 0 0; width: auto; height: auto; max-width: none; max-height: none; margin: 0; padding: 0 var(--gutter) 3rem; border: 0; overflow-y: auto; background: var(--paper); color: var(--ink); }
+  html:has(.nav:popover-open) { overflow: hidden; }
+  .nav-list { display: block; padding-top: .5rem; }
+  .nav-list > li { padding-block: 1rem; border-bottom: 1px solid var(--line); }
+  .nav-list > li > a { font-family: var(--serif); font-size: 1.75rem; line-height: 1.15; letter-spacing: -.015em; font-variation-settings: "opsz" 48; color: var(--ink); }
+  .nav-list > li > a[aria-current] { text-decoration-thickness: 2px; text-underline-offset: .22em; }
+  .has-sub { display: block; }
+  .sub-toggle { display: none; }
+  .nav .sub, .nav .has-sub:hover > .sub, .nav .sub-toggle[aria-expanded="true"] + .sub { display: flex; flex-wrap: wrap; gap: .35rem 1.25rem; position: static; min-width: 0; margin-top: .65rem; padding: 0; border: 0; border-radius: 0; background: none; box-shadow: none; }
+  .sub::before { display: none; }
+  .sub a { padding: 0; font-size: 1rem; color: var(--ink-2); }
+  .sub a:hover { background: none; color: var(--ink); }
+  .sub a[aria-current] { color: var(--ink); text-decoration: underline 2px var(--accent); text-underline-offset: .35em; font-weight: 500; }
+}
+main { padding-block: 4.5rem 6rem; }
+/* The footer: who writes the site and how to follow it, on a blush band from
+   edge to edge with its words on the column, then a closing row gutter to
+   gutter that mirrors the header. */
+.site-footer nav { display: flex; flex-wrap: wrap; gap: .5rem 1.25rem; }
+.foot-row { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: .5rem 1.5rem; }
+.foot-say { font-family: var(--serif); font-size: clamp(1.25rem, 1.05rem + .6vw, 1.5rem); line-height: 1.35; color: var(--ink); letter-spacing: -.01em; font-variation-settings: "opsz" 36; text-wrap: pretty; }
+.foot-say a { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset: .16em; }
+.foot-follow { color: var(--ink-2); font-size: .9375rem; }
+.actions { display: flex; flex-wrap: wrap; gap: .75rem; }
+.btn { display: inline-flex; align-items: center; gap: .45rem; font-family: var(--sans); font-size: .9375rem; font-weight: 500; text-decoration: none; padding: .55rem .95rem; border-radius: 6px; border: 1px solid var(--line-strong); color: var(--ink); background: var(--paper); }
+.btn:hover { border-color: var(--accent); color: var(--accent); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--paper); }
+.btn.primary:hover { color: var(--paper); filter: brightness(1.08); }
+
+/* Band: a blush ground from edge to edge with its words on the column, then
+   a closing row that mirrors the header — gutter to gutter. */
+.f-band .ground { background: var(--paper-2); padding-block: 3.5rem; }
+.f-band .avatars { margin-bottom: 1rem; }
+.f-band .avatars .avatar { background: var(--paper-3); box-shadow: 0 0 0 2px var(--paper-2); }
+.f-band .avatars .avatar:first-child { box-shadow: none; }
+.f-band .foot-follow { margin-top: 1.25rem; }
+.f-band .actions { margin-top: 1rem; }
+.f-band .foot-row { padding-block: 1.5rem 6rem; }
+
+/* Home */
+/* Letterhead: who writes it in the small line, what it is in one large
+   sentence with nothing linked inside it, where it comes from underneath. */
+.letterhead .by { display: flex; align-items: center; gap: .75rem; color: var(--ink-2); }
+.letterhead .by a { color: var(--ink); text-decoration: none; }
+.letterhead .by a:hover { color: var(--accent); text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: .18em; }
+.letterhead h1 { margin-top: 1.5rem; font-size: clamp(2.1rem, 1.4rem + 2.4vw, 3.1rem); line-height: 1.1; font-weight: 400; letter-spacing: -.022em; font-variation-settings: "opsz" 72; text-wrap: balance; }
+.letterhead .where { margin-top: 1.25rem; }
+.letterhead + .entries { margin-top: 3.5rem; }
+/* The home page's band is a hero: more room above and below, a larger
+   statement, and the two ways in. Still one column, still one left edge. */
+.band-head.home-hero { padding-block: clamp(3.5rem, 2rem + 4.5vw, 6rem); }
+.home-hero h1 { margin-top: 1.75rem; font-size: clamp(2.2rem, 1.5rem + 2.4vw, 3.25rem); line-height: 1.08; letter-spacing: -.024em; }
+.home-hero .where { margin-top: 1.5rem; }
+.home-hero .actions { margin-top: 1.75rem; display: flex; flex-wrap: wrap; gap: .75rem; }
+.home-hero .btn:not(.primary) { background: transparent; }
+.band-head.home-hero + .col > .entries { margin-top: 3.5rem; }
+.entries { margin-top: 4rem; border-top: 1px solid var(--ink); }
+.entry { padding-block: 1.6rem 1.7rem; border-bottom: 1px solid var(--line); }
+.entry h2 { font-size: 1.5rem; font-weight: 550; line-height: 1.2; letter-spacing: -.014em; font-variation-settings: "opsz" 40; text-wrap: balance; }
+.entry h2 a { text-decoration: none; }
+.entry h2 a:hover { color: var(--accent); }
+.entry p:not(.small) { margin-top: .4rem; color: var(--ink-2); }
+.entry .small { margin-top: .55rem; }
+/* Pager: where you are on the left, the way through on the right. Numbers
+   are figures in the sans, the current one in ink with a madder rule under it,
+   a gap after the third when there are more than five, then Older. */
+.pager { margin-top: 2.5rem; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: .75rem 1.5rem; }
+.pages { display: flex; align-items: center; gap: .15rem; margin: 0; padding: 0; list-style: none; font-variant-numeric: tabular-nums; }
+.pages a, .pages [aria-current] { display: inline-grid; place-items: center; min-width: 2rem; height: 2rem; padding: 0 .35rem; border-radius: 5px; text-decoration: none; }
+.pages a { color: var(--ink-2); }
+.pages a:hover { color: var(--accent); background: var(--paper-2); }
+.pages [aria-current] { color: var(--ink); font-weight: 600; text-decoration: underline 2px var(--accent); text-underline-offset: .4em; }
+.pages .gap { min-width: 1.5rem; text-align: center; color: var(--ink-3); }
+.pages .next { margin-left: .6rem; padding-left: .9rem; border-left: 1px solid var(--line); }
+.pages .next a { color: var(--ink); font-weight: 500; padding: 0 .5rem; }
+
+/* Author and topic: the intro sits on a blush band the width of the page,
+   its text in the column, then the same list. Nothing in the band is inset,
+   so every line still starts on the column's edge. */
+main:has(> .band-head:first-child) { padding-top: 0; }
+.band-head { background: var(--paper-2); padding-block: 4rem 3.25rem; }
+.kicker { margin-bottom: 1rem; }
+.kicker a { color: var(--ink-2); text-decoration: none; }
+.kicker a:hover { color: var(--accent); text-decoration: underline; text-underline-offset: .18em; }
+.band-head .col > .avatar { --size: 4.5rem; margin-bottom: 1.5rem; background: var(--paper-3); }
+.band-head .standfirst { margin-top: .9rem; }
+.band-head .avatars .avatar { background: var(--paper-3); box-shadow: 0 0 0 2px var(--paper-2); }
+.band-head .avatars .avatar:first-child { box-shadow: none; }
+.band-head .say, .archive-head .say { margin-top: 1.5rem; }
+.archive-head .standfirst { margin-top: .9rem; }
+.archive-head + .entries { margin-top: 3rem; }
+.band-head + .col > .entries { margin-top: 0; border-top: 0; }
+.archive-body { margin-top: 1.5rem; }
+.archive-body > * + * { margin-top: 1.1em; }
+.archive-body p { color: var(--ink-2); text-wrap: pretty; }
+.archive-body a { color: var(--accent); text-underline-offset: .18em; text-decoration-color: color-mix(in srgb, var(--accent) 45%, transparent); }
+.list-label { margin-top: 3.5rem; margin-bottom: .75rem; }
+.list-label + .entries { margin-top: 0; }
+
+/* Not Found: say what happened, show the address that failed, offer the
+   closest match, then the ways back in. */
+.nf-path { margin-top: 1.75rem; padding: .85rem 1rem; background: var(--paper-2); border-radius: 6px; font-family: var(--code); font-size: .875rem; color: var(--ink-2); overflow-wrap: anywhere; }
+.nf-path del { text-decoration: line-through 2px var(--accent); color: var(--ink-3); }
+.nf-path ins { text-decoration: none; color: var(--accent); }
+.nf-match { margin-top: 2.5rem; padding: 1.25rem 1.35rem; border: 1px solid var(--line-strong); border-radius: 10px; }
+.nf-match h2 { font-size: 1.5rem; font-weight: 550; line-height: 1.2; letter-spacing: -.014em; margin-top: .3rem; text-wrap: balance; }
+.nf-match h2 a { text-decoration: none; }
+.nf-match h2 a:hover { color: var(--accent); }
+.nf-match p:not(.small) { margin-top: .4rem; color: var(--ink-2); }
+.nf-match .go { display: inline-flex; margin-top: 1rem; font-family: var(--sans); font-weight: 600; font-size: .9375rem; color: var(--accent); text-decoration: none; }
+.nf-match .go:hover { text-decoration: underline; text-underline-offset: .2em; }
+.nf-section { margin-top: 3rem; }
+
+
+/* Every element: headings that name what follows. */
+.el-h { font-family: var(--sans); font-size: .875rem; font-weight: 600; color: var(--ink-3); margin-top: 3.5rem; padding-top: 1rem; border-top: 1px solid var(--line); }
+.body .el-h + * { margin-top: 1.25rem; }
+
+/* Pages: the same column with no byline or date. A child page names its
+   parent above the title; a parent names its children at the foot. */
+.trail { margin-bottom: 1rem; }
+.trail a { color: var(--ink-2); }
+.page-family { margin-top: 3rem; padding-top: 1.25rem; border-top: 1px solid var(--line); }
+.updated { margin-top: 1rem; }
+.page-body .glossary { margin-top: 1.25rem; }
+.aside-note { margin-top: 3rem; }
+.aside-note a { color: var(--accent); }
+
+/* Archive: every post, one row each. The title on the left, the date on the
+   right with open space between, so the dates read down as one clean edge.
+   A title that wraps keeps its date on its last line. On a phone the date
+   drops under the title. */
+.compact { margin-top: 3rem; border-top: 1px solid var(--ink); }
+.compact li { display: flex; align-items: last baseline; justify-content: space-between; gap: .25rem 2rem; padding-block: .85rem .9rem; border-bottom: 1px solid var(--line); line-height: 1.35; }
+.compact a { font-size: 1.12em; font-weight: 500; text-decoration: none; letter-spacing: -.005em; text-wrap: balance; }
+.compact a:hover { color: var(--accent); }
+.compact .small { flex: none; white-space: nowrap; }
+
+/* A plain list in a page: the same marker as an ordered list, a dash. */
+.steps-plain li { display: grid; grid-template-columns: 1.4em minmax(0, 1fr); }
+.steps-plain li::before { content: "\2013"; color: var(--accent); }
+.steps-plain li + li { margin-top: .5em; }
+
+/* Topics index */
+.entry .topics { margin-top: .5rem; font-size: .95em; }
+
+/* Feed: a replica of /feed.xml as a browser renders it with feed.css. The
+   real file is an XML document, so it carries no site header or footer. */
+body.is-feed .site-header, body.is-feed .site-footer { display: none; }
+.feed-doc { padding: 4.5rem 0 6rem; }
+.feed-doc .title { font-size: 2.75rem; }
+.feed-doc .standfirst { font-size: 1.2em; }
+.feed-site { display: inline-block; margin-bottom: 1rem; font-family: var(--sans); font-size: .875rem; color: var(--ink-2); text-decoration-color: var(--line); text-underline-offset: .25em; }
+.feed-site:hover { color: var(--accent); text-decoration-color: currentColor; }
+.feed-intro p + p { margin-top: .75em; }
+.feed-intro a { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset: .16em; }
+.feed-doc .entries { margin-top: 3rem; }
+.feed-doc .read { display: inline-block; margin-top: .6rem; font-family: var(--sans); font-size: .9375rem; font-weight: 600; color: var(--accent); text-decoration: none; }
+.feed-doc .read:hover { text-decoration: underline; text-underline-offset: .2em; }
+
+/* Post */
+.title { font-size: clamp(2.5rem, 1.6rem + 3.4vw, 4rem); line-height: 1.03; font-weight: 500; letter-spacing: -.026em; font-variation-settings: "opsz" 72; text-wrap: balance; }
+.standfirst { margin-top: 1.25rem; font-size: 1.28em; line-height: 1.42; font-style: italic; color: var(--ink-2); text-wrap: pretty; }
+.byline { margin-top: 1.75rem; display: flex; align-items: center; gap: .75rem; padding-block: 1rem; border-block: 1px solid var(--line); }
+.byline .who, .byline .who a { color: var(--ink); }
+.avatar { --size: 2rem; width: var(--size); height: var(--size); border-radius: 50%; display: inline-grid; place-items: center; background: var(--paper-3); color: var(--ink-2); font-family: var(--sans); font-size: calc(var(--size) * .36); font-weight: 600; flex: none; }
+.avatars { display: inline-flex; }
+.avatars .avatar + .avatar { margin-left: -.45rem; box-shadow: 0 0 0 2px var(--paper); }
+
+.hero { margin-top: 2.75rem; }
+.body { margin-top: 2.75rem; }
+.body > * + * { margin-top: 1.2em; }
+.body > :is(.wide, .full) { margin-block: 2.2em; }
+.body > :is(.wide, .full) + * { margin-top: 2.2em; }
+.body p { text-wrap: pretty; }
+.body h2 { font-size: 1.5rem; font-weight: 600; letter-spacing: -.012em; line-height: 1.2; margin-top: 2.2em; font-variation-settings: "opsz" 40; }
+.body h2 + * { margin-top: .6em; }
+.body a:not(.ref, .download, .btn) { color: var(--accent); text-underline-offset: .18em; text-decoration-color: color-mix(in srgb, var(--accent) 45%, transparent); }
+.ref { font-size: .7em; vertical-align: super; line-height: 0; color: var(--accent); text-decoration: none; padding-inline: .1em; }
+
+figure img { border-radius: 4px; }
+figcaption { margin-top: .65rem; }
+.ratio-wide img { aspect-ratio: 16 / 9; object-fit: cover; }
+.ratio-full img { aspect-ratio: 21 / 8; object-fit: cover; }
+
+/* Quote: a plain blockquote, for quoting a source in passing. */
+.quote { font-size: 1.15em; line-height: 1.5; font-style: italic; color: var(--ink-2); padding-left: 1.1em; border-left: 2px solid var(--line-strong); text-wrap: pretty; }
+
+/* Pull quote: the line worth reading twice. An outsized madder quotation mark
+   sits above the words, on the column's edge, not hung outside it. Roman, not
+   italic, at display size, so it reads as a headline the writer chose. */
+.pull { padding-block: .5rem; }
+.pull::before {
+  content: "\201C";
+  display: block;
+  font-family: var(--serif);
+  font-size: 5.5rem; line-height: .7; height: .42em;
+  font-weight: 400; color: var(--accent);
+  font-variation-settings: "opsz" 72;
+  margin-left: -.04em;
+}
+.pull blockquote p {
+  font-size: clamp(1.65rem, 1.2rem + 1.5vw, 2.25rem);
+  line-height: 1.16; font-weight: 450; letter-spacing: -.022em;
+  font-variation-settings: "opsz" 72; text-wrap: balance;
+}
+.pull figcaption { margin-top: 1.1rem; display: flex; align-items: center; gap: .75rem; font-family: var(--sans); font-size: .875rem; color: var(--ink-3); }
+.pull figcaption::before { content: ""; width: 2rem; height: 2px; background: var(--accent); flex: none; }
+.pull.wide blockquote p { font-size: clamp(1.9rem, 1.3rem + 2.2vw, 3rem); }
+.band .pull { padding-block: 0; }
+
+/* Callout: one shape for every kind. A tinted panel with a hairline in the
+   kind's ink, a title row with its glyph, then the body in ordinary ink. */
+.callout {
+  --k: var(--note); --k-soft: var(--note-soft);
+  padding: 1rem 1.25rem 1.1rem;
+  background: var(--k-soft);
+  border: 1px solid color-mix(in srgb, var(--k) 28%, transparent);
+  border-radius: 8px;
+  font-size: .94em; line-height: 1.55;
+}
+.callout[data-kind="tip"] { --k: var(--tip); --k-soft: var(--tip-soft); }
+.callout[data-kind="warning"] { --k: var(--warning); --k-soft: var(--warning-soft); }
+.callout[data-kind="danger"] { --k: var(--danger); --k-soft: var(--danger-soft); }
+.callout-title { display: flex; align-items: center; gap: .5rem; font-family: var(--sans); font-size: .9rem; font-weight: 600; color: var(--k); margin-bottom: .35rem; }
+.callout-title .icon { width: 1.1rem; height: 1.1rem; }
+.callout > p + p { margin-top: .6em; }
+
+/* Definition list: a glossary. Each entry is a block of its own between
+   hairlines — the term in the serif at weight, its definition under it. */
+dl.glossary { margin-inline: 0; margin-bottom: 0; border-top: 1px solid var(--ink); }
+.glossary > div { padding-block: 1rem 1.1rem; border-bottom: 1px solid var(--line); }
+.glossary dt { font-weight: 650; font-size: 1.05em; line-height: 1.3; letter-spacing: -.008em; }
+.glossary dt + dt { margin-top: .15rem; }
+.glossary dt::after { content: ""; display: block; width: 1.5rem; height: 2px; background: var(--accent); margin-top: .5rem; }
+.glossary dt:has(+ dt)::after { display: none; } /* the mark follows the last term of a group */
+.glossary dd { margin: .55rem 0 0; color: var(--ink-2); line-height: 1.55; }
+.glossary dd + dd { margin-top: .4rem; }
+
+/* File: a card with the file's type, its name and size, and a real button. */
+.file {
+  display: flex; align-items: center; gap: 1rem;
+  padding: .9rem .9rem .9rem 1rem;
+  border: 1px solid var(--line-strong); border-radius: 10px;
+  background: var(--paper);
+  font-family: var(--sans);
+}
+.file-type {
+  flex: none; width: 2.75rem; height: 3.25rem; border-radius: 5px;
+  display: grid; place-items: end center; padding-bottom: .45rem;
+  background: var(--accent-soft); color: var(--accent);
+  font-size: .6875rem; font-weight: 700; letter-spacing: .06em;
+  position: relative; overflow: hidden;
+}
+.file-type::before { content: ""; position: absolute; top: 0; right: 0; width: .8rem; height: .8rem; background: linear-gradient(225deg, var(--paper) 50%, color-mix(in srgb, var(--accent) 22%, var(--accent-soft)) 50%); }
+.file-text { flex: 1; min-width: 0; line-height: 1.35; }
+.file-name { display: block; font-weight: 600; color: var(--ink); font-size: 1rem; overflow-wrap: anywhere; }
+.file-meta { display: block; margin-top: .15rem; font-size: .8125rem; color: var(--ink-3); }
+.download {
+  flex: none; display: inline-flex; align-items: center; gap: .5rem;
+  padding: .65rem 1.05rem; border-radius: 7px;
+  background: var(--accent); color: var(--paper);
+  font-family: var(--sans); font-size: .9375rem; font-weight: 600; text-decoration: none;
+}
+.download:hover { filter: brightness(1.08); color: var(--paper); }
+.download .icon { width: 1.05rem; height: 1.05rem; stroke-width: 2; }
+@media (max-width: 30rem) {
+  .file { flex-wrap: wrap; }
+  .download { width: 100%; justify-content: center; }
+}
+.steps { counter-reset: s; }
+.steps li { counter-increment: s; display: grid; grid-template-columns: 1.75em minmax(0, 1fr); }
+.steps li + li { margin-top: .5em; }
+.steps li::before { content: counter(s) "."; color: var(--accent); }
+
+/* A full-width band: the ground runs edge to edge, the text stays on the column. */
+.band { background: var(--paper-2); padding-block: 3.5rem; }
+
+/* Gallery */
+.gallery-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .75rem; }
+.gallery-grid img { aspect-ratio: 1; object-fit: cover; border-radius: 4px; }
+
+/* Table and code: boxed objects, so the box is what bleeds. */
+.panel { background: var(--paper-2); border-radius: 6px; padding: 1.1rem 1.4rem; overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-family: var(--sans); font-size: .875rem; line-height: 1.45; font-variant-numeric: tabular-nums; }
+th, td { padding: .6rem .9rem; text-align: left; border-bottom: 1px solid var(--line-strong); white-space: nowrap; }
+th { font-weight: 600; border-bottom-color: var(--ink); }
+th:first-child, td:first-child { padding-left: 0; }
+th:last-child, td:last-child { padding-right: 0; }
+td.num, th.num { text-align: right; }
+tbody tr:last-child td { border-bottom: 0; }
+pre { font-family: var(--code); font-size: .82rem; line-height: 1.65; tab-size: 2; }
+pre .c { color: var(--ink-3); }
+pre .k { color: var(--accent); }
+
+.notes { margin-top: 3rem; padding-top: 1.25rem; border-top: 1px solid var(--ink); font-size: .875em; color: var(--ink-2); }
+.notes h2 { font-family: var(--sans); font-size: .9375rem; font-weight: 600; color: var(--ink); margin-bottom: .75rem; }
+.notes ol { counter-reset: n; }
+.notes li { counter-increment: n; display: grid; grid-template-columns: 1.6em minmax(0, 1fr); }
+.notes li::before { content: counter(n); color: var(--accent); }
+.notes li + li { margin-top: .45em; }
+
+.end { margin-top: 3rem; }
+.end-row { padding-block: 1.25rem; border-top: 1px solid var(--line); }
+/* Topics are set as a sentence: "Filed under Interfaces and Typography."
+   The list is real markup; the commas, the "and" and the full stop are drawn
+   by CSS, so one structure serves a list of one, two or twenty. */
+.topics ul { margin: 0; padding: 0; list-style: none; }
+.topics a { text-decoration: none; }
+.topics a:hover { color: var(--accent); text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: .18em; }
+
+.topics { font-family: var(--serif); font-size: 1.05em; line-height: 1.5; color: var(--ink-2); }
+.topics-lead { font-style: italic; }
+.topics ul, .topics li { display: inline; }
+.topics a { color: var(--ink); text-decoration: underline; text-decoration-color: var(--line-strong); text-decoration-thickness: 1px; text-underline-offset: .2em; }
+.topics a:hover { color: var(--accent); text-decoration-color: currentColor; }
+.topics .n { display: none; }
+.topics li:not(:last-child)::after { content: ","; }
+.topics li:nth-last-child(2)::after { content: " and"; }
+.topics li:last-child::after { content: "."; }
+.topics li::before { content: " "; }
+.topics li:nth-last-child(2):first-child::after { content: " and"; }
+
+.prev { display: block; text-decoration: none; font-size: 1.25rem; font-weight: 550; line-height: 1.25; margin-top: .25rem; }
+.prev:hover { color: var(--accent); }
+
+@media (max-width: 40rem) {
+  main { padding-top: 3rem; }
+  .compact li { flex-direction: column; align-items: flex-start; }
+  .gallery-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .gallery-grid img:nth-child(3) { display: none; }
+}
+
+/* Prototype scaffolding — not part of the theme */
+.proto-bar {
+  position: fixed; z-index: 50; left: 50%; transform: translateX(-50%);
+  bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+  display: flex; align-items: center; gap: 2px; max-width: calc(100vw - 24px); overflow-x: auto; scrollbar-width: none;
+  padding: 4px; border-radius: 12px; background: #2b2d31; color: #c9cbd1;
+  font: 500 12.5px/1 ui-sans-serif, system-ui, sans-serif; box-shadow: 0 6px 24px rgb(0 0 0 / .25);
+}
+.proto-bar a, .proto-bar button { padding: 8px 10px; border-radius: 8px; color: #c9cbd1; text-decoration: none; white-space: nowrap; background: none; border: 0; font: inherit; cursor: pointer; }
+.proto-bar a:hover, .proto-bar button:hover { background: #3a3d43; color: #fff; }
+.proto-bar [aria-current], .proto-bar [aria-pressed="true"] { background: #4a4e56; color: #fff; }
+.proto-bar i { width: 1px; height: 18px; background: #4a4e56; margin: 0 4px; flex: none; }
+.proto-bar a:focus-visible, .proto-bar button:focus-visible { outline: 2px solid #9ab; outline-offset: 0; }
+</style>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-note" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></symbol>
+  <symbol id="i-tip" viewBox="0 0 24 24"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></symbol>
+  <symbol id="i-warning" viewBox="0 0 24 24"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></symbol>
+  <symbol id="i-danger" viewBox="0 0 24 24"><path d="M12 16h.01"/><path d="M12 8v4"/><path d="M15.312 2a2 2 0 0 1 1.414.586l4.688 4.688A2 2 0 0 1 22 8.688v6.624a2 2 0 0 1-.586 1.414l-4.688 4.688a2 2 0 0 1-1.414.586H8.688a2 2 0 0 1-1.414-.586l-4.688-4.688A2 2 0 0 1 2 15.312V8.688a2 2 0 0 1 .586-1.414l4.688-4.688A2 2 0 0 1 8.688 2z"/></symbol>
+  <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 15V3"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/></symbol>
+</svg>
+<div class="page">
+<header class="site-header"><div class="frame bar">
+    <a class="name" href="#/">Second Proof</a>
+    <div class="tools">
+      <nav class="nav" id="site-nav" popover="manual" aria-label="Site">
+        <ul class="nav-list">
+          <li><a href="#/" data-nav="writing">Writing</a></li>
+          <li><a href="#/archive" data-nav="archive">Archive</a></li>
+          <li class="has-sub"><a href="#/topics" data-nav="topics">Topics</a><button class="sub-toggle" type="button" aria-expanded="false" aria-label="Show Topics"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button>
+            <ul class="sub" data-sub="topics"><li><a href="#/topics/typography">Typography</a></li><li><a href="#/topics/interfaces">Interfaces</a></li><li><a href="#/topics/field-notes">Field Notes</a></li><li><a href="#/topics/tables">Tables</a></li></ul></li>
+          <li class="has-sub"><a href="#/about" data-nav="about">About</a><button class="sub-toggle" type="button" aria-expanded="false" aria-label="Show About"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button>
+            <ul class="sub" data-sub="about"><li><a href="#/about/colophon">Colophon</a></li><li><a href="#/about/masthead">Masthead</a></li><li><a href="#/about/writing-for-us">Writing for Us</a></li></ul></li>
+          <li><a href="#/now" data-nav="now">Now</a></li>
+        </ul>
+      </nav>
+      <div class="tools-end">
+        <a class="tool" href="#/feed"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11a9 9 0 0 1 9 9"/><path d="M4 4a16 16 0 0 1 16 16"/><circle cx="5" cy="19" r="1"/></svg><span class="label">Feed</span></a>
+        <button class="tool scheme-toggle" type="button" aria-label="Switch to dark mode">
+          <svg class="icon when-light" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+          <svg class="icon when-dark" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
+          <span class="label">Dark</span>
+        </button>
+        <button class="tool menu-toggle" type="button" popovertarget="site-nav" aria-label="Menu"><svg class="icon when-closed" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16"/><path d="M4 12h16"/><path d="M4 18h16"/></svg><svg class="icon when-open" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>
+      </div>
+    </div>
+  </div></header>
+<main id="app"></main>
+<footer class="site-footer small f-band">
+    <div class="ground"><div class="col">
+      <span class="avatars" aria-hidden="true"><span class="avatar">IO</span><span class="avatar">TM</span></span>
+      <p class="foot-say">Second Proof is written and set by <a href="#/authors/ines-okafor">Ines Okafor</a> and <a href="#/authors/theo-marsh">Theo Marsh</a> in Chicago.</p>
+      <p class="foot-follow">New writing arrives most weeks. Follow it in a feed reader, or have each piece sent to you by email.</p>
+      <div class="actions">
+        <a class="btn primary" href="#/feed"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11a9 9 0 0 1 9 9"/><path d="M4 4a16 16 0 0 1 16 16"/><circle cx="5" cy="19" r="1"/></svg>Subscribe by Feed</a>
+        <a class="btn" href="#/">Get It by Email</a>
+      </div>
+    </div></div>
+    <div class="frame foot-row"><span>© 2026 Second Proof</span><nav aria-label="Footer"><a href="#/">Writing</a><a href="#/archive">Archive</a><a href="#/topics">Topics</a><a href="#/about">About</a><a href="#/now">Now</a></nav></div>
+  </footer>
+</div>
+<script>
+/* Sample content for the Madder demo: two writers, a topic tree, pages and
+   thirty-two posts. A body is a list of blocks: a plain string is a
+   paragraph, "## " starts a heading, "> " starts a pull quote and "- " starts a
+   list item (consecutive items make one list). A body may instead be "@html:key",
+   which takes a richer piece of markup from the page templates. */
+var SITE = {
+  name: "Second Proof",
+  url: "https://secondproof.example",
+  statement: "Notes on type, layout, and the small decisions that make a page easy to read.",
+  where: "Published most weeks from Chicago.",
+  tagline: "Essays and notes on type, layout and the small decisions that make a page easy to read, by Ines Okafor and Theo Marsh.",
+  feedTitle: "The Second Proof Feed",
+  feedIntro: [
+    "This is where new writing from Ines Okafor and Theo Marsh arrives first. Paste this page’s address into a feed reader and every post will come to you, in full, as we publish it.",
+    "Rather read it on the page? Everything here is also on <a href=\"#/\">the site itself</a>."
+  ]
+};
+
+var AUTHORS = {
+  "ines-okafor": {
+    name: "Ines Okafor", first: "Ines", initials: "IO",
+    standfirst: "Editor of Second Proof, and the one who argues for wider margins.",
+    bio: [
+      "Ines set type by hand for six years before she set it in CSS, and still thinks a composing stick taught her more about line length than any style guide. She writes about measure, tables, and the places where print habits help or hurt on a screen.",
+      "She edits most of what appears here, including Theo’s."
+    ],
+    card: "Ines edits Second Proof and argues for wider margins. She set type by hand before she set it in CSS."
+  },
+  "theo-marsh": {
+    name: "Theo Marsh", first: "Theo", initials: "TM",
+    standfirst: "Designs reading interfaces, and writes about the parts of them nobody notices.",
+    bio: [
+      "Theo designs the screens people read on and writes about the furniture around the words: navigation, controls, settings, and the variable fonts that make some of them possible.",
+      "He tests everything on the cheapest phone he can find, which explains a lot of his opinions."
+    ],
+    card: "Theo designs reading interfaces and writes about the parts of them nobody notices when they work."
+  }
+};
+
+/* Topics. A topic with a parent is a narrower topic; a parent's page lists its
+   own posts and its children's. */
+var TOPICS = {
+  "typography": { name: "Typography", desc: "The setting of text: measure, leading, scale, and the hundred small decisions between a typeface and a page someone wants to read.", body: "" },
+  "variable-fonts": { name: "Variable Fonts", parent: "typography", desc: "Axes, instances, and what happens when one file has to do the work of twelve.", body: "" },
+  "specimens": { name: "Specimens", parent: "typography", desc: "How typefaces are shown, sold, and argued for.", body: "" },
+  "interfaces": { name: "Interfaces", desc: "Screens people read in, and the furniture around the words: navigation, controls, the things nobody notices when they work.", body: "" },
+  "tables": { name: "Tables", desc: "Rows, columns, and the data people actually have to read in them.", body: "" },
+  "field-notes": { name: "Field Notes", desc: "Visits, interviews, and things seen in print shops, archives and studios.", body: "" }
+};
+
+var POSTS = [
+  { slug: "the-grid-survives-its-editors", title: "The Grid Survives Its Editors", date: "2026-09-29", authors: ["ines-okafor", "theo-marsh"], topics: ["interfaces", "typography"], image: "grid",
+    summary: "A layout grid is a promise made to people who will never read the design document. Here is how to make one that keeps it.",
+    body: "@html:grid" },
+
+  { slug: "notes-on-a-variable-serif-at-small-sizes", title: "Notes on a Variable Serif at Small Sizes", date: "2026-09-22", authors: ["theo-marsh"], topics: ["variable-fonts"], image: "specimen",
+    summary: "Optical size is the axis everyone ships and nobody tests below twelve pixels. We set a footnote at nine and watched what happened.",
+    body: [
+      "Every serif with an optical size axis is demonstrated the same way: a headline at seventy-two points, the same words at nine, and a caption saying how much sturdier the small one is. It is a good demonstration. It is also almost never what a reader sees, because almost nobody sets text at nine points on purpose.",
+      "Except in footnotes, captions and the small print under a chart, which is where we went looking.",
+      "## What changes",
+      "At small sizes the axis opens the letter spacing, thickens the hairlines and shortens the ascenders, so the x-height carries more of the line. On a good screen the difference is subtle. On a cheap phone at arm’s length it is the difference between a note you can read and a gray smear with commas in it.",
+      "> The axis is not for the headline. The headline was always going to be fine.",
+      "## What we set",
+      "We now leave optical sizing on automatic and stop fighting it. The one place we override it is a pull quote, where the display cut at a medium size looks better than the text cut a little enlarged."
+    ] },
+
+  { slug: "tables-deserve-better-than-zebra-stripes", title: "Tables Deserve Better Than Zebra Stripes", date: "2026-09-15", authors: ["ines-okafor"], topics: ["tables"], image: "rows",
+    summary: "Alternating fills were a fix for paper that moved under a ruler. On a screen they mostly tell you which row is even.",
+    body: [
+      "Zebra stripes came from ledgers and computer printouts, where a long row of figures had to be followed across a wide sheet by a finger or a ruler that could slip. They solved a real problem. On a screen, with a row that highlights under the pointer and a table that rarely runs wider than a hand, the problem is mostly gone and the stripes remain.",
+      "What a reader needs from a table is to find the column, then the row, then the number. Rules do that better than fills. A hairline under each row and a heavier one under the header gives the eye a track to run along without making half the data look different from the other half.",
+      "> A stripe says this row is even. That is rarely what the reader wanted to know.",
+      "Right-align the numbers, use tabular figures, and let the header row carry the weight. Most tables need nothing else."
+    ] },
+
+  { slug: "a-specimen-is-an-argument", title: "A Specimen Is an Argument", date: "2026-09-08", authors: ["theo-marsh"], topics: ["specimens"],
+    summary: "The pangram tells you nothing. What a good specimen shows is the text the face was drawn to set, at the size it was drawn to set it.",
+    body: [
+      "A specimen is a sales document, and the good ones know it. They are not trying to show you every glyph; they are trying to convince you that this face will make your book, your menu or your annual report better than the one you are using now.",
+      "The pangram is the weakest part of the argument. It proves the font has twenty-six letters. What it never shows is how those letters behave in a paragraph: whether the spacing holds up, whether the italic sits comfortably beside the roman, whether the figures disappear into the text or jump out of it.",
+      "The best specimens we know set real text. A page of a novel, a timetable, a recipe. You learn more about a face from one honest paragraph than from a waterfall of sizes."
+    ] },
+
+  { slug: "an-afternoon-in-a-working-type-shop", title: "An Afternoon in a Working Type Shop", date: "2026-08-30", authors: ["ines-okafor"], topics: ["field-notes"], image: "sorts",
+    summary: "Forty cases of metal type, one apprentice, and a long conversation about why nobody letterspaces lowercase.",
+    body: [
+      "The shop is two rooms above a bakery, which means the type cases smell faintly of bread. There are forty cases of foundry type, two presses, and one apprentice who has been there four months and already has opinions.",
+      "Most of the afternoon went on spacing. In metal, every space is a physical thing you pick up and put in the stick, so nobody adds space they do not need. The apprentice had tried letterspacing a line of lowercase once, for a wedding invitation, and been made to reset it.",
+      "> Every space is a thing you pick up. Nobody adds space they do not need.",
+      "It is a better rule than most style guides manage. Space that costs something gets used carefully."
+    ] },
+
+  { slug: "the-measure-is-a-promise", title: "The Measure Is a Promise", date: "2026-08-21", authors: ["ines-okafor"], topics: ["typography"],
+    summary: "How long a line of text should run, why the answer is a range rather than a number, and what to do on a phone.",
+    body: [
+      "The comfortable range for a single column of text is usually given as forty-five to seventy-five characters. It is quoted so often that it sounds like a law. It is a range because readers, faces and sizes vary, and because a line that is a little long is far less trouble than one that is a little short.",
+      "On a desktop the answer is easy: pick a width near the middle of the range and let the margins be whatever is left. On a phone the screen sets the measure for you, and the question becomes how much margin to give up. We give up nearly all of it and keep the text size, which is the one thing a reader on a phone will not forgive you for shrinking.",
+      "## The promise",
+      "A measure is a promise to the reader that the eye will find the next line without searching for it. Everything else on the page can bend; that cannot."
+    ] },
+
+  { slug: "hanging-punctuation-finally", title: "Hanging Punctuation, Finally", date: "2026-08-04", authors: ["theo-marsh"], topics: ["typography"],
+    summary: "Quotation marks that sit outside the text edge are an old print habit. Browsers are slowly learning it.",
+    body: [
+      "Look at the left edge of a well-set quotation in a book and the opening quotation mark is not quite on the edge. It hangs a little into the margin, so the first letter of the quote lines up with the text above. The edge stays straight to the eye, even though it is not straight in fact.",
+      "Browsers have had a property for this for years and almost no support for it. That is changing slowly. In the meantime we leave our pull quotes alone: the quotation mark sits above the words rather than beside them, so there is nothing to hang."
+    ] },
+
+  { slug: "against-the-hamburger-again", title: "Against the Hamburger, Again", date: "2026-07-17", authors: ["theo-marsh"], topics: ["interfaces"],
+    summary: "Five links fit on a phone. We keep proving it, and we keep hiding them behind three lines anyway.",
+    body: [
+      "Most sites that hide their navigation behind a menu button on a phone have five or six links. Five or six links fit on a phone. They fit on this one, on two lines, with room to spare.",
+      "A hidden menu costs a tap, and it costs something worse: the reader no longer knows what the site has in it. The links you can see are a table of contents. The links behind a button are a rumor.",
+      "> The links you can see are a table of contents. The links behind a button are a rumor.",
+      "There are sites with too much navigation to show. Those sites usually have a different problem."
+    ] },
+
+  { slug: "what-a-caption-owes-its-picture", title: "What a Caption Owes Its Picture", date: "2026-06-30", authors: ["ines-okafor"], topics: ["typography"],
+    summary: "A caption is the one piece of text that is read before the paragraph around it. It should earn that.",
+    body: [
+      "Readers look at the pictures first and the captions second, and only then decide whether to read the text. That makes the caption the most-read sentence on many pages, and it is usually the one written last, in a hurry.",
+      "A good caption says what the picture cannot: who, where, when, and why it is here. It does not describe what anyone can see. And it sits where the picture sits, starting at its edge, so the two read as one thing."
+    ] },
+
+  { slug: "ten-years-of-reading-on-a-phone", title: "Ten Years of Reading on a Phone", date: "2026-06-12", authors: ["theo-marsh"], topics: ["interfaces"],
+    summary: "Most of our readers read us on a phone. Here is what that changed, and what it did not.",
+    body: [
+      "We looked back at ten years of reading habits, ours and our readers’, and the phone won a long time ago. More than two thirds of what we publish is read on one.",
+      "What changed: text is bigger, margins are smaller, and nothing important sits in a sidebar. What did not change: a paragraph is still a paragraph, a long line is still hard to read, and a reader still wants to know how long the piece is before they start."
+    ] },
+
+  { slug: "the-case-for-old-style-figures-in-running-text", title: "The Case for Old-Style Figures in Running Text", date: "2026-05-26", authors: ["ines-okafor"], topics: ["typography"],
+    summary: "Numbers that rise and fall like lowercase letters sit quietly in a sentence. Capital-height figures shout.",
+    body: [
+      "Old-style figures have ascenders and descenders, like lowercase letters. In a sentence they sit with the words around them. Lining figures are the height of capitals, and in running text they stand up out of the line like a word in all caps.",
+      "Use old-style figures in prose and lining figures in tables, where numbers have to stack and compare. Most good text faces have both, and most sites use only one."
+    ] },
+
+  { slug: "small-caps-are-not-shouting", title: "Small Caps Are Not Shouting", date: "2026-05-09", authors: ["ines-okafor"], topics: ["typography"],
+    summary: "Real small caps are drawn to sit beside lowercase. Shrunken capitals are not the same thing.",
+    body: [
+      "Small caps are capital letters drawn at about the height of the lowercase, with their weight adjusted so they sit comfortably beside it. Shrinking ordinary capitals gets you something the right height and the wrong weight: thin, spindly letters that look like a mistake.",
+      "If the face has real small caps, they are lovely for acronyms in running text. If it does not, write the acronym in ordinary capitals and let it be."
+    ] },
+
+  { slug: "a-week-without-dark-mode", title: "A Week Without Dark Mode", date: "2026-04-21", authors: ["theo-marsh"], topics: ["interfaces"],
+    summary: "We turned dark mode off everywhere for a week. Some things got better.",
+    body: [
+      "For a week I turned off dark mode on every device I own. Reading in daylight got easier. Reading in bed got worse. Neither was a surprise.",
+      "The surprise was how many dark themes are an inversion rather than a design: the same colors flipped, the same contrast pushed to its limit. A dark theme deserves the same care as a light one. Ours has its own accent, a lighter madder, because the light one disappears on a dark ground."
+    ] },
+
+  { slug: "the-footnote-has-moved-house", title: "The Footnote Has Moved House", date: "2026-04-02", authors: ["ines-okafor"], topics: ["typography"],
+    summary: "On a page, a footnote is at the foot. On a screen, nobody agrees where the foot is.",
+    body: [
+      "A footnote on paper is a glance away. On a screen it might be a scroll away, a tap away, or in a popup that covers the sentence you were reading.",
+      "We tried notes in the margin and gave them up: they need a margin, and our pages do not have one to spare. We now put notes at the end, numbered, with a link from each number to its note and back. It is the least clever answer and the one that works everywhere."
+    ] },
+
+  { slug: "weights-we-never-use", title: "Weights We Never Use", date: "2026-03-15", authors: ["theo-marsh"], topics: ["variable-fonts"],
+    summary: "A variable font gives you every weight from hairline to black. We use three.",
+    body: [
+      "Our text face can draw any weight from 300 to 800. We use 400 for reading, 550 for titles in a list, and 600 for headings. That is all.",
+      "The rest of the range is not wasted: it is what makes those three weights look right at every size. But a design that uses every weight it can reach usually looks like it is trying to prove something."
+    ] },
+
+  { slug: "the-printer-who-kept-every-proof", title: "The Printer Who Kept Every Proof", date: "2026-02-26", authors: ["ines-okafor"], topics: ["field-notes"], image: "detail-2",
+    summary: "Forty years of second proofs in flat files, every correction marked in the same red pencil.",
+    body: [
+      "He kept every second proof he ever pulled. Forty years of them, in flat files that fill a back room, each one marked in the same red pencil with the same small set of symbols.",
+      "Reading them in order is like watching a language change. The corrections get fewer. The margins get wider. And in the last decade, almost every correction is the same one: a widow, a single word alone on the last line of a paragraph, marked for resetting."
+    ] },
+
+  { slug: "sorting-a-table-is-a-promise-too", title: "Sorting a Table Is a Promise Too", date: "2026-02-08", authors: ["ines-okafor"], topics: ["tables"],
+    summary: "If a table can be sorted, it should say how it is sorted now.",
+    body: [
+      "A sortable table that does not say how it is currently sorted asks the reader to work it out from the data. Usually they guess wrong.",
+      "One small arrow in the header of the sorted column, pointing the way the numbers run, saves that guess. It is the cheapest piece of honesty a table can offer."
+    ] },
+
+  { slug: "what-the-specimen-left-out", title: "What the Specimen Left Out", date: "2026-01-20", authors: ["theo-marsh"], topics: ["specimens"], image: "detail-3",
+    summary: "The glyphs nobody shows: the ß, the ampersand in italic, the figures in a table.",
+    body: [
+      "Every specimen shows the alphabet. Few show the sharp s, the italic ampersand, the tabular figures in a column or the way the face handles a long German compound at the end of a line.",
+      "Those are the glyphs that decide whether a face works for real text. If a specimen leaves them out, set them yourself before you buy."
+    ] },
+
+  { slug: "notes-from-a-year-of-writing-here", title: "Notes From a Year of Writing Here", date: "2026-01-05", authors: ["ines-okafor", "theo-marsh"], topics: ["field-notes"],
+    summary: "What we published, what people read, and what we would do differently.",
+    body: [
+      "We published twenty-six pieces last year. The most read was about tables. The one we liked best was about a printer’s flat files. The one that got the most mail was about hamburger menus, and most of the mail disagreed.",
+      "We will keep writing about the small things. They are what a page is made of."
+    ] },
+
+  { slug: "what-the-footnote-knows", title: "What the Footnote Knows", date: "2025-12-12", authors: ["theo-marsh"], topics: ["typography"],
+    summary: "A short defense of the smallest type on the page, and the reader who goes looking for it.",
+    body: [
+      "The footnote is where a writer puts the thing that is true but not on the way. It is read by the most curious readers, which makes it the place to be most careful.",
+      "Set it small, but not too small. Give it the same leading as the text, scaled. And never put anything in a footnote that the argument needs."
+    ] },
+
+  { slug: "numbers-in-a-column", title: "Numbers in a Column", date: "2025-11-24", authors: ["ines-okafor"], topics: ["tables"],
+    summary: "Tabular figures, right alignment, and the decimal point that should line up and usually does not.",
+    body: [
+      "Numbers in a column are read by comparison: which is bigger, by how much. That only works if the digits line up, which means tabular figures, all the same width, and right alignment.",
+      "The decimal point is the hard case. Align on it when the column mixes whole numbers and fractions, or pad every value to the same number of places. Either is better than a column whose points wander."
+    ] },
+
+  { slug: "leading-is-not-line-height", title: "Leading Is Not Line Height", date: "2025-11-03", authors: ["ines-okafor"], topics: ["typography"],
+    summary: "The two words describe the same space from opposite directions, and the difference shows.",
+    body: [
+      "Leading was the strip of lead a compositor laid between lines of type. It was added space, on top of the body of the type. Line height on the web is the whole distance from one line to the next.",
+      "The difference matters when you change size. Add leading and the gap stays fixed while the text grows. Set line height as a ratio and the gap grows with it. For body text, the ratio is almost always what you want."
+    ] },
+
+  { slug: "the-quiet-button", title: "The Quiet Button", date: "2025-10-15", authors: ["theo-marsh"], topics: ["interfaces"],
+    summary: "The most important button on a page is rarely the loudest one.",
+    body: [
+      "On a reading site the most important control is the link to the next thing worth reading. It should be easy to find and impossible to mistake for an advertisement.",
+      "We give it the accent color and nothing else: no box, no shadow, no arrow. It looks like a word you can press, which is what it is."
+    ] },
+
+  { slug: "grading-a-variable-font-without-moving-the-line", title: "Grading a Variable Font Without Moving the Line", date: "2025-09-28", authors: ["theo-marsh"], topics: ["variable-fonts"],
+    summary: "A grade axis changes weight without changing width. It is the right tool for dark mode, and almost nobody uses it.",
+    body: [
+      "Light text on a dark ground looks heavier than the same text dark on light. The usual fix is to lighten the weight, which narrows the letters and reflows the line.",
+      "A grade axis changes the weight without changing the width, so nothing moves. Few faces have one. When yours does, dark mode is what it is for."
+    ] },
+
+  { slug: "a-visit-to-the-type-archive", title: "A Visit to the Type Archive", date: "2025-09-09", authors: ["ines-okafor"], topics: ["field-notes"], image: "detail-1",
+    summary: "Drawers of brass matrices, a catalog on index cards, and an archivist who knows where everything is.",
+    body: [
+      "The archive is a single long room with drawers from floor to ceiling, each holding the brass matrices for one size of one face. The catalog is on index cards, typed, and the archivist does not need it.",
+      "She showed us an ampersand cut in 1931 and recut twice, each version a little more confident than the last. Type design was always revision."
+    ] },
+
+  { slug: "ragged-right-is-a-choice", title: "Ragged Right Is a Choice", date: "2025-08-20", authors: ["ines-okafor"], topics: ["typography"],
+    summary: "Justified text needs hyphenation to look right, and the web is still bad at both.",
+    body: [
+      "Justified text looks orderly on a page set by a careful compositor. On the web, without good hyphenation, it opens rivers of white space down the column and stretches words apart.",
+      "We set ragged right. The edge is uneven, but every word sits at its natural spacing, which is what a reader actually notices."
+    ] },
+
+  { slug: "the-settings-page-nobody-reads", title: "The Settings Page Nobody Reads", date: "2025-07-31", authors: ["theo-marsh"], topics: ["interfaces"],
+    summary: "Every option you add is a question you are asking the reader to answer.",
+    body: [
+      "Reading apps love settings: font, size, spacing, margins, theme. Each one is a decision the designer handed to the reader, and most readers never open the page.",
+      "Get the defaults right and offer one or two choices that really vary between people. On this site that is light or dark, and nothing else."
+    ] },
+
+  { slug: "why-specimens-lie-about-spacing", title: "Why Specimens Lie About Spacing", date: "2025-07-12", authors: ["theo-marsh"], topics: ["specimens"],
+    summary: "A specimen is set at the size its spacing was tuned for. Your text probably is not.",
+    body: [
+      "Letter spacing is tuned for a size range. A specimen sets each size inside its range, so every line looks right. Your page sets one size everywhere, often outside the range the spacing was drawn for.",
+      "If a face looks loose in your body text and perfect in the specimen, that is why. Optical size fixes most of it; a touch of tracking fixes the rest."
+    ] },
+
+  { slug: "headers-that-do-not-repeat-themselves", title: "Headers That Do Not Repeat Themselves", date: "2025-06-23", authors: ["ines-okafor"], topics: ["tables"],
+    summary: "A column header should say what the column holds, once, and let the cells be data.",
+    body: [
+      "A column of prices does not need a currency sign in every cell if the header says what the currency is. A column of percentages does not need a percent sign forty times.",
+      "Say it once, in the header. The column gets quieter and the numbers get easier to compare."
+    ] },
+
+  { slug: "the-em-dash-and-its-neighbors", title: "The Em Dash and Its Neighbors", date: "2025-06-04", authors: ["ines-okafor"], topics: ["typography"],
+    summary: "Hyphen, en dash, em dash, minus: four marks that look alike and mean different things.",
+    body: [
+      "A hyphen joins words. An en dash joins ranges, like 1931–1937. An em dash sets off a thought — like this one. A minus sign subtracts, and is the width of a plus.",
+      "Most keyboards offer one of the four. Most writing needs all of them. A good editor fixes them quietly, which is what ours does."
+    ] },
+
+  { slug: "scrolling-is-reading-too", title: "Scrolling Is Reading Too", date: "2025-05-16", authors: ["theo-marsh"], topics: ["interfaces"],
+    summary: "People do not read a web page one screen at a time. Design for the scroll, not the fold.",
+    body: [
+      "The fold was a newspaper idea: what shows above it sells the paper. On a screen, people scroll before they decide whether to read, and they decide on the shape of the page as much as the words.",
+      "A page that reads well as it moves has a rhythm: a heading every so often, a picture, a quote, space. That rhythm is what we design."
+    ] },
+
+  { slug: "first-proof", title: "First Proof", date: "2025-04-28", authors: ["ines-okafor", "theo-marsh"], topics: ["field-notes"],
+    summary: "Why we started a site about the small decisions, and why we called it this.",
+    body: [
+      "A second proof is the one where you find the things the first proof hid. The big mistakes are gone, and what is left is spacing, a bad break, a figure that does not line up. The small decisions.",
+      "That is what we want to write about. This is the first piece. We expect to correct it."
+    ] }
+];
+
+/* Pages that are not in the mockup already. */
+var PAGES = {
+  "masthead": { title: "Masthead", parent: "about", standfirst: "Who does what at Second Proof.",
+    body: [
+      "Second Proof is written, edited and set by two people.",
+      "## Ines Okafor",
+      "Editor. Writes about measure, tables and print habits on screens. Edits everything, including her own work, twice.",
+      "## Theo Marsh",
+      "Design and code. Writes about interfaces and variable fonts, and keeps the site running on one server in a closet in Chicago."
+    ] },
+  "writing-for-us": { title: "Writing for Us", parent: "about", standfirst: "We publish a handful of guest pieces a year.",
+    body: [
+      "We are interested in close looks at small things: a single typographic decision, a tool, a shop, an archive, a habit worth keeping or breaking.",
+      "Send a paragraph about what you would write and why it matters to someone who reads carefully. We answer everything, usually within two weeks.",
+      "We pay for what we publish, and we edit with you, not over you."
+    ] }
+};
+
+</script>
+<script>
+var TEMPLATES = {"grid": "<div class=\"body\">\n        <p>Every grid looks finished on the day it is drawn. The headline fits, the image crops cleanly, the pull quote lands where the designer wanted it. Then the site goes live, and the people who actually fill it start writing.<\/p>\n        <p>They write longer headlines than anyone planned for. They paste in a table with nine columns. None of this is misuse. It is what publishing is, and a grid that cannot take it was only ever a mockup.<\/p>\n\n        <h2>What a grid is for<\/h2>\n        <p>A grid is not a set of boxes. It is a small number of decisions about distance — how wide a line may run, how far an image may reach past it — made once, so nobody has to make them again under deadline.<a class=\"ref\" href=\"#n1\">1<\/a><\/p>\n        <p>Seen that way, the test of a grid is not how it looks with the content it was drawn for. It is how it looks with the content nobody expected.<\/p>\n\n        <figure class=\"full ratio-full\">\n          <img src=\"data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDkwMCI+PHJlY3Qgd2lkdGg9IjEyMDAiIGhlaWdodD0iOTAwIiBmaWxsPSIjNWY1NTU5Ii8+PHJlY3QgeD0iMCIgeT0iNDAiIHdpZHRoPSI3OCIgaGVpZ2h0PSI5MCIgcng9IjQiIGZpbGw9IiM4Zjg0ODciLz48dGV4dCB4PSIzOS4wIiB5PSIxMDEuMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZiIgZm9udC1zaXplPSI1MCIgZmlsbD0iIzNhMzAzNCI+YTwvdGV4dD48cmVjdCB4PSI4NCIgeT0iNDAiIHdpZHRoPSI5MCIgaGVpZ2h0PSI5MCIgcng9IjQiIGZpbGw9IiM4Zjg0ODciLz48dGV4dCB4PSIxMjkuMCIgeT0iMTAxLjIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJHZW9yZ2lhLCAnVGltZXMgTmV3IFJvbWFuJywgc2VyaWYiIGZvbnQtc2l6ZT0iNTAiIGZpbGw9IiMzYTMwMzQiPnU8L3RleHQ+PHJlY3QgeD0iMTgwIiB5PSI0MCIgd2lkdGg9IjkwIiBoZWlnaHQ9IjkwIiByeD0iNCIgZmlsbD0iIzhmODQ4NyIvPjx0ZXh0IHg9IjIyNS4wIiB5PSIxMDEuMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZiIgZm9udC1zaXplPSI1MCIgZmlsbD0iIzNhMzAzNCI+eTwvdGV4dD48cmVjdCB4PSIyNzYiIHk9IjQwIiB3aWR0aD0iNTgiIGhlaWdodD0iOTAiIHJ4PSI0IiBmaWxsPSIjOGY4NDg3Ii8+PHRleHQgeD0iMzA1LjAiIHk9IjEwMS4yIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iR2VvcmdpYSwgJ1RpbWVzIE5ldyBSb21hbicsIHNlcmlmIiBmb250LXNpemU9IjUwIiBmaWxsPSIjM2EzMDM0Ij5hPC90ZXh0PjxyZWN0IHg9IjM0MCIgeT0iNDAiIHdpZHRoPSI3OCIgaGVpZ2h0PSI5MCIgcng9IjQiIGZpbGw9IiNiM2E3YWEiLz48dGV4dCB4PSIzNzkuMCIgeT0iMTAxLjIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJHZW9yZ2lhLCAnVGltZXMgTmV3IFJvbWFuJywgc2VyaWYiIGZvbnQtc2l6ZT0iNTAiIGZpbGw9IiMzYTMwMzQiPmE8L3RleHQ+PHJlY3QgeD0iNDI0IiB5PSI0MCIgd2lkdGg9IjU4IiBoZWlnaHQ9IjkwIiByeD0iNCIgZmlsbD0iIzhmODQ4NyIvPjx0ZXh0IHg9IjQ1My4wIiB5PSIxMDEuMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZiIgZm9udC1zaXplPSI1MCIgZmlsbD0iIzNhMzAzNCI+cDwvdGV4dD48cmVjdCB4PSI0ODgiIHk9IjQwIiB3aWR0aD0iNzgiIGhlaWdodD0iOTAiIHJ4PSI0IiBmaWxsPSIjOGY4NDg3Ii8+PHRleHQgeD0iNTI3LjAiIHk9IjEwMS4yIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iR2VvcmdpYSwgJ1RpbWVzIE5ldyBSb21hbicsIHNlcmlmIiBmb250LXNpemU9IjUwIiBmaWxsPSIjM2EzMDM0Ij52PC90ZXh0PjxyZWN0IHg9IjU3MiIgeT0iNDAiIHdpZHRoPSI0OCIgaGVpZ2h0PSI5MCIgcng9IjQiIGZpbGw9IiNhMjk3OWEiLz48dGV4dCB4PSI1OTYuMCIgeT0iMTAxLjIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJHZW9yZ2lhLCAnVGltZXMgTmV3IFJvbWFuJywgc2VyaWYiIGZvbnQtc2l6ZT0iNTAiIGZpbGw9IiMzYTMwMzQiPmc8L3RleHQ+PHJlY3QgeD0iNjI2IiB5PSI0MCIgd2lkdGg9IjkwIiBoZWlnaHQ9IjkwIiByeD0iNCIgZmlsbD0iIzhmODQ4NyIvPjx0ZXh0IHg9IjY3MS4wIiB5PSIxMDEuMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZiIgZm9udC1zaXplPSI1MCIgZmlsbD0iIzNhMzAzNCI+djwvdGV4dD48cmVjdCB4PSI3MjIiIHk9IjQwIiB3aWR0aD0iOTAiIGhlaWdodD0iOTAiIHJ4PSI0IiBmaWxsPSIjYjNhN2FhIi8+PHRleHQgeD0iNzY3LjAiIHk9IjEwMS4yIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iR2VvcmdpYSwgJ1RpbWVzIE5ldyBSb21hbicsIHNlcmlmIiBmb250LXNpemU9IjUwIiBmaWxsPSIjM2EzMDM0Ij50PC90ZXh0PjxyZWN0IHg9IjgxOCIgeT0iNDAiIHdpZHRoPSI1OCIgaGVpZ2h0PSI5MCIgcng9IjQiIGZpbGw9IiM4Zjg0ODciLz48dGV4dCB4PSI4NDcuMCIgeT0iMTAxLjIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJHZW9yZ2lhLCAnVGltZXMgTmV3IFJvbWFuJywgc2VyaWYiIGZvbnQtc2l6ZT0iNTAiIGZpbGw9IiMzYTMwMzQiPnA8L3RleHQ+PHJlY3QgeD0iODgyIiB5PSI0MCIgd2lkdGg9IjU4IiBoZWlnaHQ9IjkwIiByeD0iNCIgZmlsbD0iIzdkNzE3NSIvPjx0ZXh0IHg9IjkxMS4wIiB5PSIxMDEuMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZiIgZm9udC1zaXplPSI1MCIgZmlsbD0iIzNhMzAzNCI+bTwvdGV4dD48cmVjdCB4PSI5NDYiIHk9IjQwIiB3aWR0aD0iNTgiIGhlaWdodD0iOTAiIHJ4PSI0IiBmaWxsPSIjOGY4NDg3Ii8+PHRleHQgeD0iOTc1LjAiIHk9IjEwMS4yIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iR2VvcmdpYSwgJ1RpbWVzIE5ldyBSb21hbicsIHNlcmlmIiBmb250LXNpemU9IjUwIiBmaWxsPSIjM2EzMDM0Ij52PC90ZXh0PjxyZWN0IHg9IjEwMTAiIHk9IjQwIiB3aWR0aD0iNjYiIGhlaWdodD0iOTAiIHJ4PSI0IiBmaWxsPSIjYTI5NzlhIi8+PHRleHQgeD0iMTA0My4wIiB5PSIxMDEuMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZiIgZm9udC1zaXplPSI1MCIgZmlsbD0iIzNhMzAzNCI+bzwvdGV4dD48cmVjdCB4PSIxMDgyIiB5PSI0MCIgd2lkdGg9IjkwIiBoZWlnaHQ9IjkwIiByeD0iNCIgZmlsbD0iI2EyOTc5YSIvPjx0ZXh0IHg9IjExMjcuMCIgeT0iMTAxLjIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJHZW9yZ2lhLCAnVGltZXMgTmV3IFJvbWFuJywgc2VyaWYiIGZvbnQtc2l6ZT0iNTAiIGZpbGw9IiMzYTMwMzQiPnU8L3RleHQ+PHJlY3QgeD0iMTE3OCIgeT0iNDAiIHdpZHRoPSI0OCIgaGVpZ2h0PSI5MCIgcng9IjQiIGZpbGw9IiM4Zjg0ODciLz48dGV4dCB4PSIxMjAyLjAiIHk9IjEwMS4yIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iR2VvcmdpYSwgJ1RpbWVzIE5ldyBSb21hbicsIHNlcmlmIiBmb250LXNpemU9IjUwIiBmaWxsPSIjM2EzMDM0Ij52PC90ZXh0PjxyZWN0IHg9Ii0xNyIgeT0iMTM4IiB3aWR0aD0iNTgiIGhlaWdodD0iMTMwIiByeD0iNCIgZmlsbD0iI2IzYTdhYSIvPjx0ZXh0IHg9IjEyLjAiIHk9IjIyNi40IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iR2VvcmdpYSwgJ1RpbWVzIE5ldyBSb21hbicsIHNlcmlmIiBmb250LXNpemU9IjcyIiBmaWxsPSIjM2EzMDM0Ij5rPC90ZXh0PjxyZWN0IHg9IjQ3IiB5PSIxMzgiIHdpZHRoPSI5MCIgaGVpZ2h0PSIxMzAiIHJ4PSI0IiBmaWxsPSIjYjNhN2FhIi8+PHRleHQgeD0iOTIuMCIgeT0iMjI2LjQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJHZW9yZ2lhLCAnVGltZXMgTmV3IFJvbWFuJywgc2VyaWYiIGZvbnQtc2l6ZT0iNzIiIGZpbGw9IiMzYTMwMzQiPng8L3RleHQ+PHJlY3QgeD0iMTQzIiB5PSIxMzgiIHdpZHRoPSI2NiIgaGVpZ2h0PSIxMzAiIHJ4PSI0IiBmaWxsPSIjYjNhN2FhIi8+PHRleHQgeD0iMTc2LjAiIHk9IjIyNi40IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iR2VvcmdpYSwgJ1RpbWVzIE5ldyBSb21hbicsIHNlcmlmIiBmb250LXNpemU9IjcyIiBmaWxsPSIjM2EzMDM0Ij52PC90ZXh0PjxyZWN0IHg9IjIxNSIgeT0iMTM4IiB3aWR0aD0iNzgiIGhlaWdodD0iMTMwIiByeD0iNCIgZmlsbD0iIzdkNzE3NSIvPjx0ZXh0IHg9IjI1NC4wIiB5PSIyMjYuNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZiIgZm9udC1zaXplPSI3MiIgZmlsbD0iIzNhMzAzNCI+ZDwvdGV4dD48cmVjdCB4PSIyOTkiIHk9IjEzOCIgd2lkdGg9IjU4IiBoZWlnaHQ9IjEzMCIgcng9IjQiIGZpbGw9IiNhMjk3OWEiLz48dGV4dCB4PSIzMjguMCIgeT0iMjI2LjQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJHZW9yZ2lhLCAnVGltZXMgTmV3IFJvbWFuJywgc2VyaWYiIGZvbnQtc2l6ZT0iNzIiIGZpbGw9IiMzYTMwMzQiPmo8L3RleHQ+PHJlY3QgeD0iMzYzIiB5PSIxMzgiIHdpZHRoPSI1OCIgaGVpZ2h0PSIxMzAiIHJ4PSI0IiBmaWxsPSIjOGY4NDg3Ii8+PHRleHQgeD0iMzkyLjAiIHk9IjIyNi40IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iR2VvcmdpYSwgJ1RpbWVzIE5ldyBSb21hbicsIHNlcmlmIiBmb250LXNpemU9IjcyIiBmaWxsPSIjM2EzMDM0Ij52PC90ZXh0PjxyZWN0IHg9IjQyNyIgeT0iMTM4IiB3aWR0aD0iNjYiIGhlaWdodD0iMTMwIiByeD0iNCIgZmlsbD0iI2IzYTdhYSIvPjx0ZXh0IHg9IjQ2MC4wIiB5PSIyMjYuNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZiIgZm9udC1zaXplPSI3MiIgZmlsbD0iIzNhMzAzNCI+bDwvdGV4dD48cmVjdCB4PSI0OTkiIHk9IjEzOCIgd2lkdGg9Ijc4IiBoZWlnaHQ9IjEzMCIgcng9IjQiIGZpbGw9IiM3ZDcxNzUiLz48dGV4dCB4PSI1MzguMCIgeT0iMjI2LjQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJHZW9yZ2lhLCAnVGltZXMgTmV3IFJvbWFuJywgc2VyaWYiIGZvbnQtc2l6ZT0iNzIiIGZpbGw9IiMzYTMwMzQiPmI8L3RleHQ+PHJlY3QgeD0iNTgzIiB5PSIxMzgiIHdpZHRoPSI0OCIgaGVpZ2h0PSIxMzAiIHJ4PSI0IiBmaWxsPSIjOGY4NDg3Ii8+PHRleHQgeD0iNjA3LjAiIHk9IjIyNi40IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iR2VvcmdpYSwgJ1RpbWVzIE5ldyBSb21hbicsIHNlcmlmIiBmb250LXNpemU9IjcyIiBmaWxsPSIjM2EzMDM0Ij55PC90ZXh0PjxyZWN0IHg9IjYzNyIgeT0iMTM4IiB3aWR0aD0iNzgiIGhlaWdodD0iMTMwIiByeD0iNCIgZmlsbD0iI2EyOTc5YSIvPjx0ZXh0IHg9IjY3Ni4wIiB5PSIyMjYuNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZiIgZm9udC1zaXplPSI3MiIgZmlsbD0iIzNhMzAzNCI+eDwvdGV4dD48cmVjdCB4PSI3MjEiIHk9IjEzOCIgd2lkdGg9IjY2IiBoZWlnaHQ9IjEzMCIgcng9IjQiIGZpbGw9IiNhMjk3OWEiLz48dGV4dCB4PSI3NTQuMCIgeT0iMjI2LjQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJHZW9yZ2lhLCAnVGltZXMgTmV3IFJvbWFuJywgc2VyaWYiIGZvbnQtc2l6ZT0iNzIiIGZpbGw9IiMzYTMwMzQiPnc8L3RleHQ+PHJlY3QgeD0iNzkzIiB5PSIxMzgiIHdpZHRoPSI3OCIgaGVpZ2h0PSIxMzAiIHJ4PSI0IiBmaWxsPSIjOGY4NDg3Ii8+PHRleHQgeD0iODMyLjAiIHk9IjIyNi40IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iR2VvcmdpYSwgJ1RpbWVzIE5ldyBSb21hbicsIHNlcmlmIiBmb250LXNpemU9IjcyIiBmaWxsPSIjM2EzMDM0Ij5rPC90ZXh0PjxyZWN0IHg9Ijg3NyIgeT0iMTM4IiB3aWR0aD0iNDgiIGhlaWdodD0iMTMwIiByeD0iNCIgZmlsbD0iIzdkNzE3NSIvPjx0ZXh0IHg9IjkwMS4wIiB5PSIyMjYuNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZiIgZm9udC1zaXplPSI3MiIgZmlsbD0iIzNhMzAzNCI+bDwvdGV4dD48cmVjdCB4PSI5MzEiIHk9IjEzOCIgd2lkdGg9IjY2IiBoZWlnaHQ9IjEzMCIgcng9IjQiIGZpbGw9IiNiM2E3YWEiLz48dGV4dCB4PSI5NjQuMCIgeT0iMjI2LjQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJHZW9yZ2lhLCAnVGltZXMgTmV3IFJvbWFuJywgc2VyaWYiIGZvbnQtc2l6ZT0iNzIiIGZpbGw9IiMzYTMwMzQiPnY8L3RleHQ+PHJlY3QgeD0iMTAwMyIgeT0iMTM4IiB3aWR0aD0iNzgiIGhlaWdodD0iMTMwIiByeD0iNCIgZmlsbD0iIzhmODQ4NyIvPjx0ZXh0IHg9IjEwNDIuMCIgeT0iMjI2LjQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJHZW9yZ2lhLCAnVGltZXMgTmV3IFJvbWFuJywgc2VyaWYiIGZvbnQtc2l6ZT0iNzIiIGZpbGw9IiMzYTMwMzQiPmE8L3RleHQ+PHJlY3QgeD0iMTA4NyIgeT0iMTM4IiB3aWR0aD0iNjYiIGhlaWdodD0iMTMwIiByeD0iNCIgZmlsbD0iI2IzYTdhYSIvPjx0ZXh0IHg9IjExMjAuMCIgeT0iMjI2LjQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJHZW9yZ2lhLCAnVGltZXMgTmV3IFJvbWFuJywgc2VyaWYiIGZvbnQtc2l6ZT0iNzIiIGZpbGw9IiMzYTMwMzQiPmo8L3RleHQ+PHJlY3QgeD0iMTE1OSIgeT0iMTM4IiB3aWR0aD0iNDgiIGhlaWdodD0iMTMwIiByeD0iNCIgZmlsbD0iIzhmODQ4NyIvPjx0ZXh0IHg9IjExODMuMCIgeT0iMjI2LjQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJHZW9yZ2lhLCAnVGltZXMgTmV3IFJvbWFuJywgc2VyaWYiIGZvbnQtc2l6ZT0iNzIiIGZpbGw9IiMzYTMwMzQiPnE8L3RleHQ+PHJlY3QgeD0iLTEiIHk9IjI3NiIgd2lkdGg9IjkwIiBoZWlnaHQ9IjEzMCIgcng9IjQiIGZpbGw9IiNiM2E3YWEiLz48dGV4dCB4PSI0NC4wIiB5PSIzNjQuNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZiIgZm9udC1zaXplPSI3MiIgZmlsbD0iIzNhMzAzNCI+ZDwvdGV4dD48cmVjdCB4PSI5NSIgeT0iMjc2IiB3aWR0aD0iNzgiIGhlaWdodD0iMTMwIiByeD0iNCIgZmlsbD0iIzdkNzE3NSIvPjx0ZXh0IHg9IjEzNC4wIiB5PSIzNjQuNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZiIgZm9udC1zaXplPSI3MiIgZmlsbD0iIzNhMzAzNCI+ZTwvdGV4dD48cmVjdCB4PSIxNzkiIHk9IjI3NiIgd2lkdGg9Ijc4IiBoZWlnaHQ9IjEzMCIgcng9IjQiIGZpbGw9IiM3ZDcxNzUiLz48dGV4dCB4PSIyMTguMCIgeT0iMzY0LjQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJHZW9yZ2lhLCAnVGltZXMgTmV3IFJvbWFuJywgc2VyaWYiIGZvbnQtc2l6ZT0iNzIiIGZpbGw9IiMzYTMwMzQiPm48L3RleHQ+PHJlY3QgeD0iMjYzIiB5PSIyNzYiIHdpZHRoPSI5MCIgaGVpZ2h0PSIxMzAiIHJ4PSI0IiBmaWxsPSIjOGY4NDg3Ii8+PHRleHQgeD0iMzA4LjAiIHk9IjM2NC40IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iR2VvcmdpYSwgJ1RpbWVzIE5ldyBSb21hbicsIHNlcmlmIiBmb250LXNpemU9IjcyIiBmaWxsPSIjM2EzMDM0Ij53PC90ZXh0PjxyZWN0IHg9IjM1OSIgeT0iMjc2IiB3aWR0aD0iNDgiIGhlaWdodD0iMTMwIiByeD0iNCIgZmlsbD0iI2EyOTc5YSIvPjx0ZXh0IHg9IjM4My4wIiB5PSIzNjQuNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZiIgZm9udC1zaXplPSI3MiIgZmlsbD0iIzNhMzAzNCI+eDwvdGV4dD48cmVjdCB4PSI0MTMiIHk9IjI3NiIgd2lkdGg9IjY2IiBoZWlnaHQ9IjEzMCIgcng9IjQiIGZpbGw9IiNhMjk3OWEiLz48dGV4dCB4PSI0NDYuMCIgeT0iMzY0LjQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJHZW9yZ2lhLCAnVGltZXMgTmV3IFJvbWFuJywgc2VyaWYiIGZvbnQtc2l6ZT0iNzIiIGZpbGw9IiMzYTMwMzQiPnE8L3RleHQ+PHJlY3QgeD0iNDg1IiB5PSIyNzYiIHdpZHRoPSI1OCIgaGVpZ2h0PSIxMzAiIHJ4PSI0IiBmaWxsPSIjYjNhN2FhIi8+PHRleHQgeD0iNTE0LjAiIHk9IjM2NC40IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iR2VvcmdpYSwgJ1RpbWVzIE5ldyBSb21hbicsIHNlcmlmIiBmb250LXNpemU9IjcyIiBmaWxsPSIjM2EzMDM0Ij5jPC90ZXh0PjxyZWN0IHg9IjU0OSIgeT0iMjc2IiB3aWR0aD0iNzgiIGhlaWdodD0iMTMwIiByeD0iNCIgZmlsbD0iIzhmODQ4NyIvPjx0ZXh0IHg9IjU4OC4wIiB5PSIzNjQuNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZiIgZm9udC1zaXplPSI3MiIgZmlsbD0iIzNhMzAzNCI+bjwvdGV4dD48cmVjdCB4PSI2MzMiIHk9IjI3NiIgd2lkdGg9Ijc4IiBoZWlnaHQ9IjEzMCIgcng9IjQiIGZpbGw9IiNiM2E3YWEiLz48dGV4dCB4PSI2NzIuMCIgeT0iMzY0LjQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJHZW9yZ2lhLCAnVGltZXMgTmV3IFJvbWFuJywgc2VyaWYiIGZvbnQtc2l6ZT0iNzIiIGZpbGw9IiMzYTMwMzQiPnA8L3RleHQ+PHJlY3QgeD0iNzE3IiB5PSIyNzYiIHdpZHRoPSI2NiIgaGVpZ2h0PSIxMzAiIHJ4PSI0IiBmaWxsPSIjYTI5NzlhIi8+PHRleHQgeD0iNzUwLjAiIHk9IjM2NC40IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iR2VvcmdpYSwgJ1RpbWVzIE5ldyBSb21hbicsIHNlcmlmIiBmb250LXNpemU9IjcyIiBmaWxsPSIjM2EzMDM0Ij5tPC90ZXh0PjxyZWN0IHg9Ijc4OSIgeT0iMjc2IiB3aWR0aD0iOTAiIGhlaWdodD0iMTMwIiByeD0iNCIgZmlsbD0iIzdkNzE3NSIvPjx0ZXh0IHg9IjgzNC4wIiB5PSIzNjQuNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZiIgZm9udC1zaXplPSI3MiIgZmlsbD0iIzNhMzAzNCI+ajwvdGV4dD48cmVjdCB4PSI4ODUiIHk9IjI3NiIgd2lkdGg9Ijc4IiBoZWlnaHQ9IjEzMCIgcng9IjQiIGZpbGw9IiM3ZDcxNzUiLz48dGV4dCB4PSI5MjQuMCIgeT0iMzY0LjQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJHZW9yZ2lhLCAnVGltZXMgTmV3IFJvbWFuJywgc2VyaWYiIGZvbnQtc2l6ZT0iNzIiIGZpbGw9IiMzYTMwMzQiPms8L3RleHQ+PHJlY3QgeD0iOTY5IiB5PSIyNzYiIHdpZHRoPSI3OCIgaGVpZ2h0PSIxMzAiIHJ4PSI0IiBmaWxsPSIjYTI5NzlhIi8+PHRleHQgeD0iMTAwOC4wIiB5PSIzNjQuNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZiIgZm9udC1zaXplPSI3MiIgZmlsbD0iIzNhMzAzNCI+aTwvdGV4dD48cmVjdCB4PSIxMDUzIiB5PSIyNzYiIHdpZHRoPSI0OCIgaGVpZ2h0PSIxMzAiIHJ4PSI0IiBmaWxsPSIjYTI5NzlhIi8+PHRleHQgeD0iMTA3Ny4wIiB5PSIzNjQuNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZiIgZm9udC1zaXplPSI3MiIgZmlsbD0iIzNhMzAzNCI+aTwvdGV4dD48cmVjdCB4PSIxMTA3IiB5PSIyNzYiIHdpZHRoPSI1OCIgaGVpZ2h0PSIxMzAiIHJ4PSI0IiBmaWxsPSIjYTI5NzlhIi8+PHRleHQgeD0iMTEzNi4wIiB5PSIzNjQuNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZiIgZm9udC1zaXplPSI3MiIgZmlsbD0iIzNhMzAzNCI+ZTwvdGV4dD48cmVjdCB4PSIxMTcxIiB5PSIyNzYiIHdpZHRoPSI3OCIgaGVpZ2h0PSIxMzAiIHJ4PSI0IiBmaWxsPSIjYTI5NzlhIi8+PHRleHQgeD0iMTIxMC4wIiB5PSIzNjQuNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZiIgZm9udC1zaXplPSI3MiIgZmlsbD0iIzNhMzAzNCI+cjwvdGV4dD48cmVjdCB4PSItMiIgeT0iNDE0IiB3aWR0aD0iNTgiIGhlaWdodD0iOTAiIHJ4PSI0IiBmaWxsPSIjYjNhN2FhIi8+PHRleHQgeD0iMjcuMCIgeT0iNDc1LjIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJHZW9yZ2lhLCAnVGltZXMgTmV3IFJvbWFuJywgc2VyaWYiIGZvbnQtc2l6ZT0iNTAiIGZpbGw9IiMzYTMwMzQiPnA8L3RleHQ+PHJlY3QgeD0iNjIiIHk9IjQxNCIgd2lkdGg9IjY2IiBoZWlnaHQ9IjkwIiByeD0iNCIgZmlsbD0iIzdkNzE3NSIvPjx0ZXh0IHg9Ijk1LjAiIHk9IjQ3NS4yIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iR2VvcmdpYSwgJ1RpbWVzIE5ldyBSb21hbicsIHNlcmlmIiBmb250LXNpemU9IjUwIiBmaWxsPSIjM2EzMDM0Ij5pPC90ZXh0PjxyZWN0IHg9IjEzNCIgeT0iNDE0IiB3aWR0aD0iOTAiIGhlaWdodD0iOTAiIHJ4PSI0IiBmaWxsPSIjOGY4NDg3Ii8+PHRleHQgeD0iMTc5LjAiIHk9IjQ3NS4yIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iR2VvcmdpYSwgJ1RpbWVzIE5ldyBSb21hbicsIHNlcmlmIiBmb250LXNpemU9IjUwIiBmaWxsPSIjM2EzMDM0Ij5mPC90ZXh0PjxyZWN0IHg9IjIzMCIgeT0iNDE0IiB3aWR0aD0iOTAiIGhlaWdodD0iOTAiIHJ4PSI0IiBmaWxsPSIjYjNhN2FhIi8+PHRleHQgeD0iMjc1LjAiIHk9IjQ3NS4yIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iR2VvcmdpYSwgJ1RpbWVzIE5ldyBSb21hbicsIHNlcmlmIiBmb250LXNpemU9IjUwIiBmaWxsPSIjM2EzMDM0Ij5jPC90ZXh0PjxyZWN0IHg9IjMyNiIgeT0iNDE0IiB3aWR0aD0iNzgiIGhlaWdodD0iOTAiIHJ4PSI0IiBmaWxsPSIjYjNhN2FhIi8+PHRleHQgeD0iMzY1LjAiIHk9IjQ3NS4yIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iR2VvcmdpYSwgJ1RpbWVzIE5ldyBSb21hbicsIHNlcmlmIiBmb250LXNpemU9IjUwIiBmaWxsPSIjM2EzMDM0Ij5vPC90ZXh0PjxyZWN0IHg9IjQxMCIgeT0iNDE0IiB3aWR0aD0iNzgiIGhlaWdodD0iOTAiIHJ4PSI0IiBmaWxsPSIjYjNhN2FhIi8+PHRleHQgeD0iNDQ5LjAiIHk9IjQ3NS4yIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iR2VvcmdpYSwgJ1RpbWVzIE5ldyBSb21hbicsIHNlcmlmIiBmb250LXNpemU9IjUwIiBmaWxsPSIjM2EzMDM0Ij50PC90ZXh0PjxyZWN0IHg9IjQ5NCIgeT0iNDE0IiB3aWR0aD0iNTgiIGhlaWdodD0iOTAiIHJ4PSI0IiBmaWxsPSIjOGY4NDg3Ii8+PHRleHQgeD0iNTIzLjAiIHk9IjQ3NS4yIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iR2VvcmdpYSwgJ1RpbWVzIE5ldyBSb21hbicsIHNlcmlmIiBmb250LXNpemU9IjUwIiBmaWxsPSIjM2EzMDM0Ij5zPC90ZXh0PjxyZWN0IHg9IjU1OCIgeT0iNDE0IiB3aWR0aD0iNzgiIGhlaWdodD0iOTAiIHJ4PSI0IiBmaWxsPSIjYTI5NzlhIi8+PHRleHQgeD0iNTk3LjAiIHk9IjQ3NS4yIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iR2VvcmdpYSwgJ1RpbWVzIE5ldyBSb21hbicsIHNlcmlmIiBmb250LXNpemU9IjUwIiBmaWxsPSIjM2EzMDM0Ij5vPC90ZXh0PjxyZWN0IHg9IjY0MiIgeT0iNDE0IiB3aWR0aD0iNjYiIGhlaWdodD0iOTAiIHJ4PSI0IiBmaWxsPSIjOGY4NDg3Ii8+PHRleHQgeD0iNjc1LjAiIHk9IjQ3NS4yIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iR2VvcmdpYSwgJ1RpbWVzIE5ldyBSb21hbicsIHNlcmlmIiBmb250LXNpemU9IjUwIiBmaWxsPSIjM2EzMDM0Ij5vPC90ZXh0PjxyZWN0IHg9IjcxNCIgeT0iNDE0IiB3aWR0aD0iNDgiIGhlaWdodD0iOTAiIHJ4PSI0IiBmaWxsPSIjYTI5NzlhIi8+PHRleHQgeD0iNzM4LjAiIHk9IjQ3NS4yIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iR2VvcmdpYSwgJ1RpbWVzIE5ldyBSb21hbicsIHNlcmlmIiBmb250LXNpemU9IjUwIiBmaWxsPSIjM2EzMDM0Ij5wPC90ZXh0PjxyZWN0IHg9Ijc2OCIgeT0iNDE0IiB3aWR0aD0iNDgiIGhlaWdodD0iOTAiIHJ4PSI0IiBmaWxsPSIjN2Q3MTc1Ii8+PHRleHQgeD0iNzkyLjAiIHk9IjQ3NS4yIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iR2VvcmdpYSwgJ1RpbWVzIE5ldyBSb21hbicsIHNlcmlmIiBmb250LXNpemU9IjUwIiBmaWxsPSIjM2EzMDM0Ij5iPC90ZXh0PjxyZWN0IHg9IjgyMiIgeT0iNDE0IiB3aWR0aD0iNDgiIGhlaWdodD0iOTAiIHJ4PSI0IiBmaWxsPSIjOGY4NDg3Ii8+PHRleHQgeD0iODQ2LjAiIHk9IjQ3NS4yIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iR2VvcmdpYSwgJ1RpbWVzIE5ldyBSb21hbicsIHNlcmlmIiBmb250LXNpemU9IjUwIiBmaWxsPSIjM2EzMDM0Ij5zPC90ZXh0PjxyZWN0IHg9Ijg3NiIgeT0iNDE0IiB3aWR0aD0iOTAiIGhlaWdodD0iOTAiIHJ4PSI0IiBmaWxsPSIjYjNhN2FhIi8+PHRleHQgeD0iOTIxLjAiIHk9IjQ3NS4yIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iR2VvcmdpYSwgJ1RpbWVzIE5ldyBSb21hbicsIHNlcmlmIiBmb250LXNpemU9IjUwIiBmaWxsPSIjM2EzMDM0Ij5pPC90ZXh0PjxyZWN0IHg9Ijk3MiIgeT0iNDE0IiB3aWR0aD0iNjYiIGhlaWdodD0iOTAiIHJ4PSI0IiBmaWxsPSIjN2Q3MTc1Ii8+PHRleHQgeD0iMTAwNS4wIiB5PSI0NzUuMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZiIgZm9udC1zaXplPSI1MCIgZmlsbD0iIzNhMzAzNCI+YjwvdGV4dD48cmVjdCB4PSIxMDQ0IiB5PSI0MTQiIHdpZHRoPSI2NiIgaGVpZ2h0PSI5MCIgcng9IjQiIGZpbGw9IiNiM2E3YWEiLz48dGV4dCB4PSIxMDc3LjAiIHk9IjQ3NS4yIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iR2VvcmdpYSwgJ1RpbWVzIE5ldyBSb21hbicsIHNlcmlmIiBmb250LXNpemU9IjUwIiBmaWxsPSIjM2EzMDM0Ij5vPC90ZXh0PjxyZWN0IHg9IjExMTYiIHk9IjQxNCIgd2lkdGg9IjQ4IiBoZWlnaHQ9IjkwIiByeD0iNCIgZmlsbD0iI2IzYTdhYSIvPjx0ZXh0IHg9IjExNDAuMCIgeT0iNDc1LjIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJHZW9yZ2lhLCAnVGltZXMgTmV3IFJvbWFuJywgc2VyaWYiIGZvbnQtc2l6ZT0iNTAiIGZpbGw9IiMzYTMwMzQiPmY8L3RleHQ+PHJlY3QgeD0iMTE3MCIgeT0iNDE0IiB3aWR0aD0iNzgiIGhlaWdodD0iOTAiIHJ4PSI0IiBmaWxsPSIjYjNhN2FhIi8+PHRleHQgeD0iMTIwOS4wIiB5PSI0NzUuMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZiIgZm9udC1zaXplPSI1MCIgZmlsbD0iIzNhMzAzNCI+ZDwvdGV4dD48cmVjdCB4PSItMTUiIHk9IjUxMiIgd2lkdGg9IjQ4IiBoZWlnaHQ9IjkwIiByeD0iNCIgZmlsbD0iIzdkNzE3NSIvPjx0ZXh0IHg9IjkuMCIgeT0iNTczLjIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJHZW9yZ2lhLCAnVGltZXMgTmV3IFJvbWFuJywgc2VyaWYiIGZvbnQtc2l6ZT0iNTAiIGZpbGw9IiMzYTMwMzQiPnE8L3RleHQ+PHJlY3QgeD0iMzkiIHk9IjUxMiIgd2lkdGg9IjY2IiBoZWlnaHQ9IjkwIiByeD0iNCIgZmlsbD0iI2IzYTdhYSIvPjx0ZXh0IHg9IjcyLjAiIHk9IjU3My4yIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iR2VvcmdpYSwgJ1RpbWVzIE5ldyBSb21hbicsIHNlcmlmIiBmb250LXNpemU9IjUwIiBmaWxsPSIjM2EzMDM0Ij5qPC90ZXh0PjxyZWN0IHg9IjExMSIgeT0iNTEyIiB3aWR0aD0iNTgiIGhlaWdodD0iOTAiIHJ4PSI0IiBmaWxsPSIjOGY4NDg3Ii8+PHRleHQgeD0iMTQwLjAiIHk9IjU3My4yIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iR2VvcmdpYSwgJ1RpbWVzIE5ldyBSb21hbicsIHNlcmlmIiBmb250LXNpemU9IjUwIiBmaWxsPSIjM2EzMDM0Ij5zPC90ZXh0PjxyZWN0IHg9IjE3NSIgeT0iNTEyIiB3aWR0aD0iOTAiIGhlaWdodD0iOTAiIHJ4PSI0IiBmaWxsPSIjN2Q3MTc1Ii8+PHRleHQgeD0iMjIwLjAiIHk9IjU3My4yIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iR2VvcmdpYSwgJ1RpbWVzIE5ldyBSb21hbicsIHNlcmlmIiBmb250LXNpemU9IjUwIiBmaWxsPSIjM2EzMDM0Ij5pPC90ZXh0PjxyZWN0IHg9IjI3MSIgeT0iNTEyIiB3aWR0aD0iOTAiIGhlaWdodD0iOTAiIHJ4PSI0IiBmaWxsPSIjOGY4NDg3Ii8+PHRleHQgeD0iMzE2LjAiIHk9IjU3My4yIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iR2VvcmdpYSwgJ1RpbWVzIE5ldyBSb21hbicsIHNlcmlmIiBmb250LXNpemU9IjUwIiBmaWxsPSIjM2EzMDM0Ij54PC90ZXh0PjxyZWN0IHg9IjM2NyIgeT0iNTEyIiB3aWR0aD0iOTAiIGhlaWdodD0iOTAiIHJ4PSI0IiBmaWxsPSIjN2Q3MTc1Ii8+PHRleHQgeD0iNDEyLjAiIHk9IjU3My4yIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iR2VvcmdpYSwgJ1RpbWVzIE5ldyBSb21hbicsIHNlcmlmIiBmb250LXNpemU9IjUwIiBmaWxsPSIjM2EzMDM0Ij5nPC90ZXh0PjxyZWN0IHg9IjQ2MyIgeT0iNTEyIiB3aWR0aD0iNDgiIGhlaWdodD0iOTAiIHJ4PSI0IiBmaWxsPSIjN2Q3MTc1Ii8+PHRleHQgeD0iNDg3LjAiIHk9IjU3My4yIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iR2VvcmdpYSwgJ1RpbWVzIE5ldyBSb21hbicsIHNlcmlmIiBmb250LXNpemU9IjUwIiBmaWxsPSIjM2EzMDM0Ij55PC90ZXh0PjxyZWN0IHg9IjUxNyIgeT0iNTEyIiB3aWR0aD0iNjYiIGhlaWdodD0iOTAiIHJ4PSI0IiBmaWxsPSIjYTI5NzlhIi8+PHRleHQgeD0iNTUwLjAiIHk9IjU3My4yIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iR2VvcmdpYSwgJ1RpbWVzIE5ldyBSb21hbicsIHNlcmlmIiBmb250LXNpemU9IjUwIiBmaWxsPSIjM2EzMDM0Ij51PC90ZXh0PjxyZWN0IHg9IjU4OSIgeT0iNTEyIiB3aWR0aD0iNTgiIGhlaWdodD0iOTAiIHJ4PSI0IiBmaWxsPSIjN2Q3MTc1Ii8+PHRleHQgeD0iNjE4LjAiIHk9IjU3My4yIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iR2VvcmdpYSwgJ1RpbWVzIE5ldyBSb21hbicsIHNlcmlmIiBmb250LXNpemU9IjUwIiBmaWxsPSIjM2EzMDM0Ij5nPC90ZXh0PjxyZWN0IHg9IjY1MyIgeT0iNTEyIiB3aWR0aD0iNTgiIGhlaWdodD0iOTAiIHJ4PSI0IiBmaWxsPSIjYTI5NzlhIi8+PHRleHQgeD0iNjgyLjAiIHk9IjU3My4yIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iR2VvcmdpYSwgJ1RpbWVzIE5ldyBSb21hbicsIHNlcmlmIiBmb250LXNpemU9IjUwIiBmaWxsPSIjM2EzMDM0Ij56PC90ZXh0PjxyZWN0IHg9IjcxNyIgeT0iNTEyIiB3aWR0aD0iNTgiIGhlaWdodD0iOTAiIHJ4PSI0IiBmaWxsPSIjYjNhN2FhIi8+PHRleHQgeD0iNzQ2LjAiIHk9IjU3My4yIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iR2VvcmdpYSwgJ1RpbWVzIE5ldyBSb21hbicsIHNlcmlmIiBmb250LXNpemU9IjUwIiBmaWxsPSIjM2EzMDM0Ij5xPC90ZXh0PjxyZWN0IHg9Ijc4MSIgeT0iNTEyIiB3aWR0aD0iNTgiIGhlaWdodD0iOTAiIHJ4PSI0IiBmaWxsPSIjYTI5NzlhIi8+PHRleHQgeD0iODEwLjAiIHk9IjU3My4yIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iR2VvcmdpYSwgJ1RpbWVzIE5ldyBSb21hbicsIHNlcmlmIiBmb250LXNpemU9IjUwIiBmaWxsPSIjM2EzMDM0Ij55PC90ZXh0PjxyZWN0IHg9Ijg0NSIgeT0iNTEyIiB3aWR0aD0iNzgiIGhlaWdodD0iOTAiIHJ4PSI0IiBmaWxsPSIjN2Q3MTc1Ii8+PHRleHQgeD0iODg0LjAiIHk9IjU3My4yIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iR2VvcmdpYSwgJ1RpbWVzIE5ldyBSb21hbicsIHNlcmlmIiBmb250LXNpemU9IjUwIiBmaWxsPSIjM2EzMDM0Ij5xPC90ZXh0PjxyZWN0IHg9IjkyOSIgeT0iNTEyIiB3aWR0aD0iNDgiIGhlaWdodD0iOTAiIHJ4PSI0IiBmaWxsPSIjOGY4NDg3Ii8+PHRleHQgeD0iOTUzLjAiIHk9IjU3My4yIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iR2VvcmdpYSwgJ1RpbWVzIE5ldyBSb21hbicsIHNlcmlmIiBmb250LXNpemU9IjUwIiBmaWxsPSIjM2EzMDM0Ij56PC90ZXh0PjxyZWN0IHg9Ijk4MyIgeT0iNTEyIiB3aWR0aD0iNjYiIGhlaWdodD0iOTAiIHJ4PSI0IiBmaWxsPSIjYjNhN2FhIi8+PHRleHQgeD0iMTAxNi4wIiB5PSI1NzMuMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZiIgZm9udC1zaXplPSI1MCIgZmlsbD0iIzNhMzAzNCI+cjwvdGV4dD48cmVjdCB4PSIxMDU1IiB5PSI1MTIiIHdpZHRoPSI1OCIgaGVpZ2h0PSI5MCIgcng9IjQiIGZpbGw9IiM3ZDcxNzUiLz48dGV4dCB4PSIxMDg0LjAiIHk9IjU3My4yIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iR2VvcmdpYSwgJ1RpbWVzIE5ldyBSb21hbicsIHNlcmlmIiBmb250LXNpemU9IjUwIiBmaWxsPSIjM2EzMDM0Ij5mPC90ZXh0PjxyZWN0IHg9IjExMTkiIHk9IjUxMiIgd2lkdGg9IjY2IiBoZWlnaHQ9IjkwIiByeD0iNCIgZmlsbD0iIzdkNzE3NSIvPjx0ZXh0IHg9IjExNTIuMCIgeT0iNTczLjIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJHZW9yZ2lhLCAnVGltZXMgTmV3IFJvbWFuJywgc2VyaWYiIGZvbnQtc2l6ZT0iNTAiIGZpbGw9IiMzYTMwMzQiPmE8L3RleHQ+PHJlY3QgeD0iMTE5MSIgeT0iNTEyIiB3aWR0aD0iNTgiIGhlaWdodD0iOTAiIHJ4PSI0IiBmaWxsPSIjOGY4NDg3Ii8+PHRleHQgeD0iMTIyMC4wIiB5PSI1NzMuMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZiIgZm9udC1zaXplPSI1MCIgZmlsbD0iIzNhMzAzNCI+aDwvdGV4dD48cmVjdCB4PSIxMCIgeT0iNjEwIiB3aWR0aD0iNjYiIGhlaWdodD0iOTAiIHJ4PSI0IiBmaWxsPSIjYTI5NzlhIi8+PHRleHQgeD0iNDMuMCIgeT0iNjcxLjIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJHZW9yZ2lhLCAnVGltZXMgTmV3IFJvbWFuJywgc2VyaWYiIGZvbnQtc2l6ZT0iNTAiIGZpbGw9IiMzYTMwMzQiPnc8L3RleHQ+PHJlY3QgeD0iODIiIHk9IjYxMCIgd2lkdGg9IjkwIiBoZWlnaHQ9IjkwIiByeD0iNCIgZmlsbD0iIzhmODQ4NyIvPjx0ZXh0IHg9IjEyNy4wIiB5PSI2NzEuMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZiIgZm9udC1zaXplPSI1MCIgZmlsbD0iIzNhMzAzNCI+dzwvdGV4dD48cmVjdCB4PSIxNzgiIHk9IjYxMCIgd2lkdGg9IjY2IiBoZWlnaHQ9IjkwIiByeD0iNCIgZmlsbD0iIzhmODQ4NyIvPjx0ZXh0IHg9IjIxMS4wIiB5PSI2NzEuMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZiIgZm9udC1zaXplPSI1MCIgZmlsbD0iIzNhMzAzNCI+azwvdGV4dD48cmVjdCB4PSIyNTAiIHk9IjYxMCIgd2lkdGg9IjQ4IiBoZWlnaHQ9IjkwIiByeD0iNCIgZmlsbD0iI2IzYTdhYSIvPjx0ZXh0IHg9IjI3NC4wIiB5PSI2NzEuMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZiIgZm9udC1zaXplPSI1MCIgZmlsbD0iIzNhMzAzNCI+ejwvdGV4dD48cmVjdCB4PSIzMDQiIHk9IjYxMCIgd2lkdGg9IjU4IiBoZWlnaHQ9IjkwIiByeD0iNCIgZmlsbD0iI2IzYTdhYSIvPjx0ZXh0IHg9IjMzMy4wIiB5PSI2NzEuMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZiIgZm9udC1zaXplPSI1MCIgZmlsbD0iIzNhMzAzNCI+bjwvdGV4dD48cmVjdCB4PSIzNjgiIHk9IjYxMCIgd2lkdGg9Ijc4IiBoZWlnaHQ9IjkwIiByeD0iNCIgZmlsbD0iIzdkNzE3NSIvPjx0ZXh0IHg9IjQwNy4wIiB5PSI2NzEuMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZiIgZm9udC1zaXplPSI1MCIgZmlsbD0iIzNhMzAzNCI+YTwvdGV4dD48cmVjdCB4PSI0NTIiIHk9IjYxMCIgd2lkdGg9Ijc4IiBoZWlnaHQ9IjkwIiByeD0iNCIgZmlsbD0iI2IzYTdhYSIvPjx0ZXh0IHg9IjQ5MS4wIiB5PSI2NzEuMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZiIgZm9udC1zaXplPSI1MCIgZmlsbD0iIzNhMzAzNCI+YzwvdGV4dD48cmVjdCB4PSI1MzYiIHk9IjYxMCIgd2lkdGg9IjQ4IiBoZWlnaHQ9IjkwIiByeD0iNCIgZmlsbD0iI2EyOTc5YSIvPjx0ZXh0IHg9IjU2MC4wIiB5PSI2NzEuMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZiIgZm9udC1zaXplPSI1MCIgZmlsbD0iIzNhMzAzNCI+bjwvdGV4dD48cmVjdCB4PSI1OTAiIHk9IjYxMCIgd2lkdGg9IjU4IiBoZWlnaHQ9IjkwIiByeD0iNCIgZmlsbD0iIzhmODQ4NyIvPjx0ZXh0IHg9IjYxOS4wIiB5PSI2NzEuMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZiIgZm9udC1zaXplPSI1MCIgZmlsbD0iIzNhMzAzNCI+aTwvdGV4dD48cmVjdCB4PSI2NTQiIHk9IjYxMCIgd2lkdGg9IjkwIiBoZWlnaHQ9IjkwIiByeD0iNCIgZmlsbD0iI2IzYTdhYSIvPjx0ZXh0IHg9IjY5OS4wIiB5PSI2NzEuMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZiIgZm9udC1zaXplPSI1MCIgZmlsbD0iIzNhMzAzNCI+ejwvdGV4dD48cmVjdCB4PSI3NTAiIHk9IjYxMCIgd2lkdGg9IjU4IiBoZWlnaHQ9IjkwIiByeD0iNCIgZmlsbD0iI2IzYTdhYSIvPjx0ZXh0IHg9Ijc3OS4wIiB5PSI2NzEuMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZiIgZm9udC1zaXplPSI1MCIgZmlsbD0iIzNhMzAzNCI+azwvdGV4dD48cmVjdCB4PSI4MTQiIHk9IjYxMCIgd2lkdGg9IjY2IiBoZWlnaHQ9IjkwIiByeD0iNCIgZmlsbD0iI2EyOTc5YSIvPjx0ZXh0IHg9Ijg0Ny4wIiB5PSI2NzEuMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZiIgZm9udC1zaXplPSI1MCIgZmlsbD0iIzNhMzAzNCI+cDwvdGV4dD48cmVjdCB4PSI4ODYiIHk9IjYxMCIgd2lkdGg9IjkwIiBoZWlnaHQ9IjkwIiByeD0iNCIgZmlsbD0iI2EyOTc5YSIvPjx0ZXh0IHg9IjkzMS4wIiB5PSI2NzEuMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZiIgZm9udC1zaXplPSI1MCIgZmlsbD0iIzNhMzAzNCI+ZTwvdGV4dD48cmVjdCB4PSI5ODIiIHk9IjYxMCIgd2lkdGg9IjQ4IiBoZWlnaHQ9IjkwIiByeD0iNCIgZmlsbD0iIzhmODQ4NyIvPjx0ZXh0IHg9IjEwMDYuMCIgeT0iNjcxLjIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJHZW9yZ2lhLCAnVGltZXMgTmV3IFJvbWFuJywgc2VyaWYiIGZvbnQtc2l6ZT0iNTAiIGZpbGw9IiMzYTMwMzQiPnk8L3RleHQ+PHJlY3QgeD0iMTAzNiIgeT0iNjEwIiB3aWR0aD0iNTgiIGhlaWdodD0iOTAiIHJ4PSI0IiBmaWxsPSIjYjNhN2FhIi8+PHRleHQgeD0iMTA2NS4wIiB5PSI2NzEuMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZiIgZm9udC1zaXplPSI1MCIgZmlsbD0iIzNhMzAzNCI+czwvdGV4dD48cmVjdCB4PSIxMTAwIiB5PSI2MTAiIHdpZHRoPSI1OCIgaGVpZ2h0PSI5MCIgcng9IjQiIGZpbGw9IiM4Zjg0ODciLz48dGV4dCB4PSIxMTI5LjAiIHk9IjY3MS4yIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iR2VvcmdpYSwgJ1RpbWVzIE5ldyBSb21hbicsIHNlcmlmIiBmb250LXNpemU9IjUwIiBmaWxsPSIjM2EzMDM0Ij5yPC90ZXh0PjxyZWN0IHg9IjExNjQiIHk9IjYxMCIgd2lkdGg9IjU4IiBoZWlnaHQ9IjkwIiByeD0iNCIgZmlsbD0iIzdkNzE3NSIvPjx0ZXh0IHg9IjExOTMuMCIgeT0iNjcxLjIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJHZW9yZ2lhLCAnVGltZXMgTmV3IFJvbWFuJywgc2VyaWYiIGZvbnQtc2l6ZT0iNTAiIGZpbGw9IiMzYTMwMzQiPnk8L3RleHQ+PHJlY3QgeD0iLTUiIHk9IjcwOCIgd2lkdGg9IjY2IiBoZWlnaHQ9IjEzMCIgcng9IjQiIGZpbGw9IiM3ZDcxNzUiLz48dGV4dCB4PSIyOC4wIiB5PSI3OTYuNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZiIgZm9udC1zaXplPSI3MiIgZmlsbD0iIzNhMzAzNCI+cDwvdGV4dD48cmVjdCB4PSI2NyIgeT0iNzA4IiB3aWR0aD0iNzgiIGhlaWdodD0iMTMwIiByeD0iNCIgZmlsbD0iI2EyOTc5YSIvPjx0ZXh0IHg9IjEwNi4wIiB5PSI3OTYuNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZiIgZm9udC1zaXplPSI3MiIgZmlsbD0iIzNhMzAzNCI+dDwvdGV4dD48cmVjdCB4PSIxNTEiIHk9IjcwOCIgd2lkdGg9IjY2IiBoZWlnaHQ9IjEzMCIgcng9IjQiIGZpbGw9IiNiM2E3YWEiLz48dGV4dCB4PSIxODQuMCIgeT0iNzk2LjQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJHZW9yZ2lhLCAnVGltZXMgTmV3IFJvbWFuJywgc2VyaWYiIGZvbnQtc2l6ZT0iNzIiIGZpbGw9IiMzYTMwMzQiPms8L3RleHQ+PHJlY3QgeD0iMjIzIiB5PSI3MDgiIHdpZHRoPSI5MCIgaGVpZ2h0PSIxMzAiIHJ4PSI0IiBmaWxsPSIjYjNhN2FhIi8+PHRleHQgeD0iMjY4LjAiIHk9Ijc5Ni40IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iR2VvcmdpYSwgJ1RpbWVzIE5ldyBSb21hbicsIHNlcmlmIiBmb250LXNpemU9IjcyIiBmaWxsPSIjM2EzMDM0Ij55PC90ZXh0PjxyZWN0IHg9IjMxOSIgeT0iNzA4IiB3aWR0aD0iNTgiIGhlaWdodD0iMTMwIiByeD0iNCIgZmlsbD0iI2EyOTc5YSIvPjx0ZXh0IHg9IjM0OC4wIiB5PSI3OTYuNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZiIgZm9udC1zaXplPSI3MiIgZmlsbD0iIzNhMzAzNCI+eTwvdGV4dD48cmVjdCB4PSIzODMiIHk9IjcwOCIgd2lkdGg9IjkwIiBoZWlnaHQ9IjEzMCIgcng9IjQiIGZpbGw9IiM4Zjg0ODciLz48dGV4dCB4PSI0MjguMCIgeT0iNzk2LjQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJHZW9yZ2lhLCAnVGltZXMgTmV3IFJvbWFuJywgc2VyaWYiIGZvbnQtc2l6ZT0iNzIiIGZpbGw9IiMzYTMwMzQiPmY8L3RleHQ+PHJlY3QgeD0iNDc5IiB5PSI3MDgiIHdpZHRoPSI1OCIgaGVpZ2h0PSIxMzAiIHJ4PSI0IiBmaWxsPSIjOGY4NDg3Ii8+PHRleHQgeD0iNTA4LjAiIHk9Ijc5Ni40IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iR2VvcmdpYSwgJ1RpbWVzIE5ldyBSb21hbicsIHNlcmlmIiBmb250LXNpemU9IjcyIiBmaWxsPSIjM2EzMDM0Ij54PC90ZXh0PjxyZWN0IHg9IjU0MyIgeT0iNzA4IiB3aWR0aD0iNTgiIGhlaWdodD0iMTMwIiByeD0iNCIgZmlsbD0iI2EyOTc5YSIvPjx0ZXh0IHg9IjU3Mi4wIiB5PSI3OTYuNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZiIgZm9udC1zaXplPSI3MiIgZmlsbD0iIzNhMzAzNCI+aTwvdGV4dD48cmVjdCB4PSI2MDciIHk9IjcwOCIgd2lkdGg9Ijc4IiBoZWlnaHQ9IjEzMCIgcng9IjQiIGZpbGw9IiM4Zjg0ODciLz48dGV4dCB4PSI2NDYuMCIgeT0iNzk2LjQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJHZW9yZ2lhLCAnVGltZXMgTmV3IFJvbWFuJywgc2VyaWYiIGZvbnQtc2l6ZT0iNzIiIGZpbGw9IiMzYTMwMzQiPnA8L3RleHQ+PHJlY3QgeD0iNjkxIiB5PSI3MDgiIHdpZHRoPSI0OCIgaGVpZ2h0PSIxMzAiIHJ4PSI0IiBmaWxsPSIjN2Q3MTc1Ii8+PHRleHQgeD0iNzE1LjAiIHk9Ijc5Ni40IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iR2VvcmdpYSwgJ1RpbWVzIE5ldyBSb21hbicsIHNlcmlmIiBmb250LXNpemU9IjcyIiBmaWxsPSIjM2EzMDM0Ij5rPC90ZXh0PjxyZWN0IHg9Ijc0NSIgeT0iNzA4IiB3aWR0aD0iOTAiIGhlaWdodD0iMTMwIiByeD0iNCIgZmlsbD0iI2IzYTdhYSIvPjx0ZXh0IHg9Ijc5MC4wIiB5PSI3OTYuNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZiIgZm9udC1zaXplPSI3MiIgZmlsbD0iIzNhMzAzNCI+ejwvdGV4dD48cmVjdCB4PSI4NDEiIHk9IjcwOCIgd2lkdGg9IjQ4IiBoZWlnaHQ9IjEzMCIgcng9IjQiIGZpbGw9IiM4Zjg0ODciLz48dGV4dCB4PSI4NjUuMCIgeT0iNzk2LjQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJHZW9yZ2lhLCAnVGltZXMgTmV3IFJvbWFuJywgc2VyaWYiIGZvbnQtc2l6ZT0iNzIiIGZpbGw9IiMzYTMwMzQiPmg8L3RleHQ+PHJlY3QgeD0iODk1IiB5PSI3MDgiIHdpZHRoPSI1OCIgaGVpZ2h0PSIxMzAiIHJ4PSI0IiBmaWxsPSIjN2Q3MTc1Ii8+PHRleHQgeD0iOTI0LjAiIHk9Ijc5Ni40IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iR2VvcmdpYSwgJ1RpbWVzIE5ldyBSb21hbicsIHNlcmlmIiBmb250LXNpemU9IjcyIiBmaWxsPSIjM2EzMDM0Ij50PC90ZXh0PjxyZWN0IHg9Ijk1OSIgeT0iNzA4IiB3aWR0aD0iNDgiIGhlaWdodD0iMTMwIiByeD0iNCIgZmlsbD0iI2IzYTdhYSIvPjx0ZXh0IHg9Ijk4My4wIiB5PSI3OTYuNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZiIgZm9udC1zaXplPSI3MiIgZmlsbD0iIzNhMzAzNCI+cDwvdGV4dD48cmVjdCB4PSIxMDEzIiB5PSI3MDgiIHdpZHRoPSI0OCIgaGVpZ2h0PSIxMzAiIHJ4PSI0IiBmaWxsPSIjOGY4NDg3Ii8+PHRleHQgeD0iMTAzNy4wIiB5PSI3OTYuNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZiIgZm9udC1zaXplPSI3MiIgZmlsbD0iIzNhMzAzNCI+ZjwvdGV4dD48cmVjdCB4PSIxMDY3IiB5PSI3MDgiIHdpZHRoPSI2NiIgaGVpZ2h0PSIxMzAiIHJ4PSI0IiBmaWxsPSIjYTI5NzlhIi8+PHRleHQgeD0iMTEwMC4wIiB5PSI3OTYuNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZiIgZm9udC1zaXplPSI3MiIgZmlsbD0iIzNhMzAzNCI+ajwvdGV4dD48cmVjdCB4PSIxMTM5IiB5PSI3MDgiIHdpZHRoPSI2NiIgaGVpZ2h0PSIxMzAiIHJ4PSI0IiBmaWxsPSIjYjNhN2FhIi8+PHRleHQgeD0iMTE3Mi4wIiB5PSI3OTYuNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZiIgZm9udC1zaXplPSI3MiIgZmlsbD0iIzNhMzAzNCI+eTwvdGV4dD48cmVjdCB4PSIxNCIgeT0iODQ2IiB3aWR0aD0iOTAiIGhlaWdodD0iMTEwIiByeD0iNCIgZmlsbD0iI2EyOTc5YSIvPjx0ZXh0IHg9IjU5LjAiIHk9IjkyMC44IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iR2VvcmdpYSwgJ1RpbWVzIE5ldyBSb21hbicsIHNlcmlmIiBmb250LXNpemU9IjYxIiBmaWxsPSIjM2EzMDM0Ij5qPC90ZXh0PjxyZWN0IHg9IjExMCIgeT0iODQ2IiB3aWR0aD0iOTAiIGhlaWdodD0iMTEwIiByeD0iNCIgZmlsbD0iIzdkNzE3NSIvPjx0ZXh0IHg9IjE1NS4wIiB5PSI5MjAuOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZiIgZm9udC1zaXplPSI2MSIgZmlsbD0iIzNhMzAzNCI+cDwvdGV4dD48cmVjdCB4PSIyMDYiIHk9Ijg0NiIgd2lkdGg9IjU4IiBoZWlnaHQ9IjExMCIgcng9IjQiIGZpbGw9IiNiM2E3YWEiLz48dGV4dCB4PSIyMzUuMCIgeT0iOTIwLjgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJHZW9yZ2lhLCAnVGltZXMgTmV3IFJvbWFuJywgc2VyaWYiIGZvbnQtc2l6ZT0iNjEiIGZpbGw9IiMzYTMwMzQiPmk8L3RleHQ+PHJlY3QgeD0iMjcwIiB5PSI4NDYiIHdpZHRoPSI3OCIgaGVpZ2h0PSIxMTAiIHJ4PSI0IiBmaWxsPSIjOGY4NDg3Ii8+PHRleHQgeD0iMzA5LjAiIHk9IjkyMC44IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iR2VvcmdpYSwgJ1RpbWVzIE5ldyBSb21hbicsIHNlcmlmIiBmb250LXNpemU9IjYxIiBmaWxsPSIjM2EzMDM0Ij5jPC90ZXh0PjxyZWN0IHg9IjM1NCIgeT0iODQ2IiB3aWR0aD0iNzgiIGhlaWdodD0iMTEwIiByeD0iNCIgZmlsbD0iIzdkNzE3NSIvPjx0ZXh0IHg9IjM5My4wIiB5PSI5MjAuOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZiIgZm9udC1zaXplPSI2MSIgZmlsbD0iIzNhMzAzNCI+YTwvdGV4dD48cmVjdCB4PSI0MzgiIHk9Ijg0NiIgd2lkdGg9IjU4IiBoZWlnaHQ9IjExMCIgcng9IjQiIGZpbGw9IiNiM2E3YWEiLz48dGV4dCB4PSI0NjcuMCIgeT0iOTIwLjgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJHZW9yZ2lhLCAnVGltZXMgTmV3IFJvbWFuJywgc2VyaWYiIGZvbnQtc2l6ZT0iNjEiIGZpbGw9IiMzYTMwMzQiPmE8L3RleHQ+PHJlY3QgeD0iNTAyIiB5PSI4NDYiIHdpZHRoPSI1OCIgaGVpZ2h0PSIxMTAiIHJ4PSI0IiBmaWxsPSIjN2Q3MTc1Ii8+PHRleHQgeD0iNTMxLjAiIHk9IjkyMC44IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iR2VvcmdpYSwgJ1RpbWVzIE5ldyBSb21hbicsIHNlcmlmIiBmb250LXNpemU9IjYxIiBmaWxsPSIjM2EzMDM0Ij56PC90ZXh0PjxyZWN0IHg9IjU2NiIgeT0iODQ2IiB3aWR0aD0iNDgiIGhlaWdodD0iMTEwIiByeD0iNCIgZmlsbD0iI2EyOTc5YSIvPjx0ZXh0IHg9IjU5MC4wIiB5PSI5MjAuOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZiIgZm9udC1zaXplPSI2MSIgZmlsbD0iIzNhMzAzNCI+ajwvdGV4dD48cmVjdCB4PSI2MjAiIHk9Ijg0NiIgd2lkdGg9IjY2IiBoZWlnaHQ9IjExMCIgcng9IjQiIGZpbGw9IiNhMjk3OWEiLz48dGV4dCB4PSI2NTMuMCIgeT0iOTIwLjgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJHZW9yZ2lhLCAnVGltZXMgTmV3IFJvbWFuJywgc2VyaWYiIGZvbnQtc2l6ZT0iNjEiIGZpbGw9IiMzYTMwMzQiPnI8L3RleHQ+PHJlY3QgeD0iNjkyIiB5PSI4NDYiIHdpZHRoPSI1OCIgaGVpZ2h0PSIxMTAiIHJ4PSI0IiBmaWxsPSIjYjNhN2FhIi8+PHRleHQgeD0iNzIxLjAiIHk9IjkyMC44IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iR2VvcmdpYSwgJ1RpbWVzIE5ldyBSb21hbicsIHNlcmlmIiBmb250LXNpemU9IjYxIiBmaWxsPSIjM2EzMDM0Ij5oPC90ZXh0PjxyZWN0IHg9Ijc1NiIgeT0iODQ2IiB3aWR0aD0iNDgiIGhlaWdodD0iMTEwIiByeD0iNCIgZmlsbD0iI2IzYTdhYSIvPjx0ZXh0IHg9Ijc4MC4wIiB5PSI5MjAuOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZiIgZm9udC1zaXplPSI2MSIgZmlsbD0iIzNhMzAzNCI+dzwvdGV4dD48cmVjdCB4PSI4MTAiIHk9Ijg0NiIgd2lkdGg9IjU4IiBoZWlnaHQ9IjExMCIgcng9IjQiIGZpbGw9IiNhMjk3OWEiLz48dGV4dCB4PSI4MzkuMCIgeT0iOTIwLjgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJHZW9yZ2lhLCAnVGltZXMgTmV3IFJvbWFuJywgc2VyaWYiIGZvbnQtc2l6ZT0iNjEiIGZpbGw9IiMzYTMwMzQiPm48L3RleHQ+PHJlY3QgeD0iODc0IiB5PSI4NDYiIHdpZHRoPSI3OCIgaGVpZ2h0PSIxMTAiIHJ4PSI0IiBmaWxsPSIjYjNhN2FhIi8+PHRleHQgeD0iOTEzLjAiIHk9IjkyMC44IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iR2VvcmdpYSwgJ1RpbWVzIE5ldyBSb21hbicsIHNlcmlmIiBmb250LXNpemU9IjYxIiBmaWxsPSIjM2EzMDM0Ij5sPC90ZXh0PjxyZWN0IHg9Ijk1OCIgeT0iODQ2IiB3aWR0aD0iNzgiIGhlaWdodD0iMTEwIiByeD0iNCIgZmlsbD0iI2EyOTc5YSIvPjx0ZXh0IHg9Ijk5Ny4wIiB5PSI5MjAuOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZiIgZm9udC1zaXplPSI2MSIgZmlsbD0iIzNhMzAzNCI+dTwvdGV4dD48cmVjdCB4PSIxMDQyIiB5PSI4NDYiIHdpZHRoPSI2NiIgaGVpZ2h0PSIxMTAiIHJ4PSI0IiBmaWxsPSIjOGY4NDg3Ii8+PHRleHQgeD0iMTA3NS4wIiB5PSI5MjAuOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZiIgZm9udC1zaXplPSI2MSIgZmlsbD0iIzNhMzAzNCI+cTwvdGV4dD48cmVjdCB4PSIxMTE0IiB5PSI4NDYiIHdpZHRoPSI2NiIgaGVpZ2h0PSIxMTAiIHJ4PSI0IiBmaWxsPSIjOGY4NDg3Ii8+PHRleHQgeD0iMTE0Ny4wIiB5PSI5MjAuOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZiIgZm9udC1zaXplPSI2MSIgZmlsbD0iIzNhMzAzNCI+bDwvdGV4dD48cmVjdCB4PSIxMTg2IiB5PSI4NDYiIHdpZHRoPSI5MCIgaGVpZ2h0PSIxMTAiIHJ4PSI0IiBmaWxsPSIjYjNhN2FhIi8+PHRleHQgeD0iMTIzMS4wIiB5PSI5MjAuOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZiIgZm9udC1zaXplPSI2MSIgZmlsbD0iIzNhMzAzNCI+ZjwvdGV4dD48L3N2Zz4=\" alt=\"Rows of metal type sorts seen from above, each a gray block with a letter on it.\" width=\"1200\" height=\"900\">\n          <figcaption class=\"small\">Sorts in a case, at full width. The picture runs edge to edge, and its caption sits on the page gutter, under the site name.<\/figcaption>\n        <\/figure>\n\n        <p>In our experience the failures are rarely dramatic. One article gets an exception for a wide chart. Another gets a custom class to pull a photograph a little further left. A year later the site has eleven image widths, and none of them line up with the text.<\/p>\n\n        <div class=\"full band\">\n          <figure class=\"band-inner pull\"><blockquote><p>A grid does not collapse. It erodes, one reasonable exception at a time.<\/p><\/blockquote><figcaption>Ines Okafor<\/figcaption><\/figure>\n        <\/div>\n\n        <h2>Three widths, and no others<\/h2>\n        <ol class=\"steps\">\n          <li><span><strong>Base<\/strong> is the text column, and it is what every element gets unless the author asks.<\/span><\/li>\n          <li><span><strong>Wide<\/strong> reaches the same distance past both sides of the column, to 1024px.<\/span><\/li>\n          <li><span><strong>Full<\/strong> runs to both edges of the screen.<\/span><\/li>\n        <\/ol>\n        <p>Any block can take either step: a picture, a table, a quote, a note. A caption follows its picture and starts at the picture's own left edge, so the two always read as one object.<\/p>\n\n        <figure class=\"gallery wide\">\n          <div class=\"gallery-grid\">\n            <img src=\"data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA4MDAgODAwIj48cmVjdCB3aWR0aD0iODAwIiBoZWlnaHQ9IjgwMCIgZmlsbD0iIzhhMmM0MyIvPjx0ZXh0IHg9IjQwMCIgeT0iNTYwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iR2VvcmdpYSwgJ1RpbWVzIE5ldyBSb21hbicsIHNlcmlmIiBmb250LXNpemU9IjUyMCIgZmlsbD0iI2Y0ZThlNiI+JmFtcDs8L3RleHQ+PC9zdmc+\" alt=\"An ampersand in pale rose on madder.\" width=\"800\" height=\"800\">\n            <img src=\"data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA4MDAgODAwIj48cmVjdCB3aWR0aD0iODAwIiBoZWlnaHQ9IjgwMCIgZmlsbD0iI2Y0ZThlNiIvPjx0ZXh0IHg9IjQwMCIgeT0iNTYwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iR2VvcmdpYSwgJ1RpbWVzIE5ldyBSb21hbicsIHNlcmlmIiBmb250LXNpemU9IjUyMCIgZmlsbD0iIzIzMWMxZiI+UTwvdGV4dD48L3N2Zz4=\" alt=\"A capital Q in near-black on blush.\" width=\"800\" height=\"800\">\n            <img src=\"data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA4MDAgODAwIj48cmVjdCB3aWR0aD0iODAwIiBoZWlnaHQ9IjgwMCIgZmlsbD0iIzIzMWMxZiIvPjx0ZXh0IHg9IjQwMCIgeT0iNTYwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iR2VvcmdpYSwgJ1RpbWVzIE5ldyBSb21hbicsIHNlcmlmIiBmb250LXNpemU9IjUyMCIgZmlsbD0iI2U5YTNiNCI+w588L3RleHQ+PC9zdmc+\" alt=\"A sharp s in rose on near-black.\" width=\"800\" height=\"800\">\n          <\/div>\n          <figcaption class=\"small\">Three details from the specimen, as a gallery at the wide step.<\/figcaption>\n        <\/figure>\n\n        <p>Tables and code are boxed, so the box is what widens. The figures inside line up on their own columns and the box ends evenly on both sides.<\/p>\n\n        <figure class=\"wide\">\n          <div class=\"panel\">\n            <table>\n              <thead><tr><th>Width<\/th><th>Written as<\/th><th>Reaches<\/th><th class=\"num\">At 1440px<\/th><\/tr><\/thead>\n              <tbody>\n                <tr><td>Base<\/td><td>Nothing<\/td><td>The text column<\/td><td class=\"num\">640px<\/td><\/tr>\n                <tr><td>Wide<\/td><td><code>bleed-wide<\/code><\/td><td>Evenly past both sides<\/td><td class=\"num\">1024px<\/td><\/tr>\n                <tr><td>Full<\/td><td><code>bleed-full<\/code><\/td><td>Both edges of the screen<\/td><td class=\"num\">1440px<\/td><\/tr>\n              <\/tbody>\n            <\/table>\n          <\/div>\n          <figcaption class=\"small\">A table at the wide step.<\/figcaption>\n        <\/figure>\n\n        <div class=\"callout wide\" data-kind=\"note\"><p class=\"callout-title\"><svg class=\"icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><use href=\"#i-note\"/><\/svg>Note<\/p><p>The default writes nothing. An entry nobody widened carries no width at all, so when the theme changes what Wide means, every entry follows.<a class=\"ref\" href=\"#n2\">2<\/a><\/p><\/div>\n\n        <figure class=\"wide\">\n          <pre class=\"panel\"><code><span class=\"c\">/* Wide grows evenly about the column's center. */<\/span>\n<span class=\"k\">.wide<\/span> {\n  --w: min(64rem, 100cqw - 2 * var(--gutter));\n  width: var(--w);\n  margin-inline: calc((100% - var(--w)) / 2);\n}<\/code><\/pre>\n        <\/figure>\n\n        <figure class=\"pull wide\"><blockquote><p>Two years and four hundred posts later, it should still look laid out on purpose.<\/p><\/blockquote><\/figure>\n\n        <p>None of this is visible to a reader, which is the point. What a reader sees is a site that, two years and four hundred posts later, still looks like it was laid out on purpose.<\/p>\n      <\/div>\n\n      <section class=\"notes\" aria-labelledby=\"notes-h\">\n        <h2 id=\"notes-h\">Notes<\/h2>\n        <ol>\n          <li id=\"n1\"><span>Josef Müller-Brockmann makes the same argument at book length, with considerably more conviction.<\/span><\/li>\n          <li id=\"n2\"><span>The editor this site is written in follows the same rule: Default writes no attribute at all.<\/span><\/li>\n        <\/ol>\n      <\/section>", "about": "<h1 class=\"title\">About<\/h1>\n      <p class=\"standfirst\">Two people who care more than is reasonable about how a page reads.<\/p>\n      <figure class=\"hero wide ratio-wide\">\n        <img src=\"data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxNjAwIDkwMCI+PHJlY3Qgd2lkdGg9IjE2MDAiIGhlaWdodD0iOTAwIiBmaWxsPSIjMjMxYzFmIi8+PHRleHQgeD0iOTYiIHk9IjU2MCIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZiIgZm9udC1zaXplPSI1MjAiIGZpbGw9IiNmNGU4ZTYiPkFhPC90ZXh0Pjx0ZXh0IHg9Ijk2MCIgeT0iMTgwIiBmb250LWZhbWlseT0iR2VvcmdpYSwgJ1RpbWVzIE5ldyBSb21hbicsIHNlcmlmIiBmb250LXNpemU9IjY0IiBmaWxsPSIjZTlhM2I0Ij5IYW1idXJnZWZvbnN0aXY8L3RleHQ+PHRleHQgeD0iOTYwIiB5PSIyODIuNCIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZiIgZm9udC1zaXplPSI0OCIgZmlsbD0iI2U5YTNiNCI+SGFtYnVyZ2Vmb25zdGl2PC90ZXh0Pjx0ZXh0IHg9Ijk2MCIgeT0iMzU5LjIiIGZvbnQtZmFtaWx5PSJHZW9yZ2lhLCAnVGltZXMgTmV3IFJvbWFuJywgc2VyaWYiIGZvbnQtc2l6ZT0iMzYiIGZpbGw9IiNlOWEzYjQiPkhhbWJ1cmdlZm9uc3RpdjwvdGV4dD48dGV4dCB4PSI5NjAiIHk9IjQxNi44IiBmb250LWZhbWlseT0iR2VvcmdpYSwgJ1RpbWVzIE5ldyBSb21hbicsIHNlcmlmIiBmb250LXNpemU9IjI4IiBmaWxsPSIjZTlhM2I0Ij5IYW1idXJnZWZvbnN0aXY8L3RleHQ+PHRleHQgeD0iOTYwIiB5PSI0NjEuNiIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZiIgZm9udC1zaXplPSIyMiIgZmlsbD0iI2U5YTNiNCI+SGFtYnVyZ2Vmb25zdGl2PC90ZXh0Pjx0ZXh0IHg9Ijk2MCIgeT0iNDk2LjgiIGZvbnQtZmFtaWx5PSJHZW9yZ2lhLCAnVGltZXMgTmV3IFJvbWFuJywgc2VyaWYiIGZvbnQtc2l6ZT0iMTgiIGZpbGw9IiNlOWEzYjQiPkhhbWJ1cmdlZm9uc3RpdjwvdGV4dD48dGV4dCB4PSI5NjAiIHk9IjUyNS42IiBmb250LWZhbWlseT0iR2VvcmdpYSwgJ1RpbWVzIE5ldyBSb21hbicsIHNlcmlmIiBmb250LXNpemU9IjE0IiBmaWxsPSIjZTlhM2I0Ij5IYW1idXJnZWZvbnN0aXY8L3RleHQ+PHJlY3QgeD0iOTYiIHk9IjY0MCIgd2lkdGg9IjE0MDgiIGhlaWdodD0iMiIgZmlsbD0iIzVmNTU1OSIvPjx0ZXh0IHg9Ijk2IiB5PSI3MjAiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI4IiBmaWxsPSIjYzFiNGI3Ij5SZWd1bGFyICBJdGFsaWMgIE1lZGl1bSAgU2VtaWJvbGQgIEJvbGQ8L3RleHQ+PC9zdmc+\" alt=\"A dark specimen sheet with a large Aa and a waterfall of sample text.\" width=\"1600\" height=\"900\">\n        <figcaption class=\"small\">The specimen sheet we set when we started, in 2019.<\/figcaption>\n      <\/figure>\n      <div class=\"body page-body\">\n        <p>Second Proof is a small publication about type, layout, and the decisions that make a page easy or hard to read. It started as a shared notebook between two people who kept sending each other screenshots of bad line lengths, and it is still mostly that.<\/p>\n        <p>We publish something most weeks. Some of it is long and argued; some of it is a note about one detail we could not stop looking at.<\/p>\n        <h2>Who writes it<\/h2>\n        <p><a href=\"#/authors/ines-okafor\">Ines Okafor<\/a> edits the site and writes about measure, tables, and print habits on the screen. She set type by hand for six years before she set it in CSS.<\/p>\n        <p><a href=\"#/authors/theo-marsh\">Theo Marsh<\/a> designs reading interfaces and writes about the parts of them nobody notices when they work, and the variable fonts that make some of them possible.<\/p>\n        <h2>Getting in touch<\/h2>\n        <dl class=\"glossary\">\n          <div><dt>Email<\/dt><dd>example@x3p0.com, read by both of us, usually within a week.<\/dd><\/div>\n          <div><dt>Feed<\/dt><dd>Every post, in full, at secondproof.example/feed.<\/dd><\/div>\n          <div><dt>Corrections<\/dt><dd>If we got something wrong, tell us. Corrections are noted at the end of the post, with the date.<\/dd><\/div>\n        <\/dl>\n      <\/div>", "colophon": "<p class=\"small trail\"><a href=\"#/about\">About<\/a><\/p>\n      <h1 class=\"title\">Colophon<\/h1>\n      <p class=\"standfirst\">How this site is made, set, and kept.<\/p>\n      <div class=\"body page-body\">\n        <p>The text is set in Literata, a serif drawn for long reading on screens, with an optical size axis that sharpens it for headlines and opens it up for small notes. Navigation and dates are in Schibsted Grotesk, which stays out of the way.<\/p>\n        <p>The one color on the site is madder, the oldest red dye there is, mixed with a little violet so it reads as ink rather than as a warning.<\/p>\n        <h2>The column<\/h2>\n        <p>Text runs to about sixty-five characters. Pictures and other pieces can reach evenly past both sides of it, or run edge to edge, and those are the only two other widths there are.<\/p>\n      <\/div>", "now": "<h1 class=\"title\">Now<\/h1>\n      <p class=\"standfirst\">What we are working on, reading, and thinking about at the moment.<\/p>\n      <p class=\"small updated\">Updated September 30, 2026<\/p>\n      <div class=\"body page-body\">\n        <h2>Ines<\/h2>\n        <ul class=\"steps-plain\">\n          <li>Writing a long piece on tables in public data, which keeps getting longer.<\/li>\n          <li>Reading Beatrice Warde's essays again, slowly.<\/li>\n          <li>Setting a small book of letterpress samples for a friend's shop.<\/li>\n        <\/ul>\n        <h2>Theo<\/h2>\n        <ul class=\"steps-plain\">\n          <li>Testing variable serifs at nine pixels on cheap phone screens.<\/li>\n          <li>Rebuilding the search on a reading app, quietly.<\/li>\n          <li>Learning to bind books, badly so far.<\/li>\n        <\/ul>\n      <\/div>\n      <p class=\"small aside-note\">A now page says what someone is focused on at this point in their life, rather than everything they have ever done. <a href=\"#/now\">Where the idea comes from<\/a>.<\/p>", "elements": "<h1 class=\"title\">Every Element<\/h1>\n      <p class=\"standfirst\">The pieces an entry can be made of, set as this theme sets them.<\/p>\n\n      <div class=\"body\">\n        <h2 class=\"el-h\">Pull Quote<\/h2>\n        <figure class=\"pull\"><blockquote><p>The measure is a promise the page makes to the eye.<\/p><\/blockquote><figcaption>Ines Okafor, The Measure Is a Promise<\/figcaption><\/figure>\n\n        <p>A pull quote can take Wide as well, and the quote grows with the room it is given:<\/p>\n        <figure class=\"pull wide\"><blockquote><p>Nobody letterspaces lowercase, and the ones who do know why not to.<\/p><\/blockquote><figcaption>An apprentice, quoted in An Afternoon in a Working Type Shop<\/figcaption><\/figure>\n\n        <p>Or Full, on a blush band, with the words still on the column:<\/p>\n        <div class=\"full band\">\n          <figure class=\"band-inner pull\"><blockquote><p>A footnote is the reader the writer trusts most.<\/p><\/blockquote><figcaption>Theo Marsh<\/figcaption><\/figure>\n        <\/div>\n\n        <h2 class=\"el-h\">Quote<\/h2>\n        <blockquote class=\"quote\"><p>A plain quotation, for citing a source in the flow of an argument rather than lifting a line out of it.<\/p><\/blockquote>\n\n        <h2 class=\"el-h\">Callouts<\/h2>\n        <div class=\"callout\" data-kind=\"note\"><p class=\"callout-title\"><svg class=\"icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><use href=\"#i-note\"/><\/svg>Note<\/p><p>Something worth knowing that is not part of the argument.<\/p><\/div>\n        <div class=\"callout\" data-kind=\"tip\"><p class=\"callout-title\"><svg class=\"icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><use href=\"#i-tip\"/><\/svg>Tip<\/p><p>A shortcut or a better way to do the thing just described.<\/p><\/div>\n        <div class=\"callout\" data-kind=\"warning\"><p class=\"callout-title\"><svg class=\"icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><use href=\"#i-warning\"/><\/svg>Warning<\/p><p>Something that can go wrong and how to keep it from happening.<\/p><\/div>\n        <div class=\"callout\" data-kind=\"danger\"><p class=\"callout-title\"><svg class=\"icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><use href=\"#i-danger\"/><\/svg>Danger<\/p><p>Something that cannot be undone. Read this before going further.<\/p><\/div>\n\n        <h2 class=\"el-h\">Definitions<\/h2>\n        <dl class=\"glossary\">\n          <div><dt>Measure<\/dt><dd>The length of a line of text, counted in characters. Forty-five to seventy-five is the comfortable range for a single column.<\/dd><\/div>\n          <div><dt>Leading<\/dt><dd>The space added between lines, named for the strips of lead a compositor laid between rows of type.<\/dd><\/div>\n          <div><dt>Optical size<\/dt><dt>Opsz<\/dt><dd>A variable font axis that redraws the letters for the size they are set at: sturdier when small, finer when large.<\/dd><\/div>\n          <div><dt>Sort<\/dt><dd>A single piece of metal type.<\/dd><dd>By extension, anything sorted into a case by kind, which is where “out of sorts” comes from.<\/dd><\/div>\n        <\/dl>\n\n        <h2 class=\"el-h\">File<\/h2>\n        <div class=\"file\">\n          <span class=\"file-type\" aria-hidden=\"true\">PDF<\/span>\n          <span class=\"file-text\"><span class=\"file-name\">Second Proof Type Specimen<\/span><span class=\"file-meta\">PDF, 2.4 MB, 18 pages<\/span><\/span>\n          <a class=\"download\" href=\"#/elements\"><svg class=\"icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><use href=\"#i-download\"/><\/svg>Download<\/a>\n        <\/div>\n        <div class=\"file\">\n          <span class=\"file-type\" aria-hidden=\"true\">ZIP<\/span>\n          <span class=\"file-text\"><span class=\"file-name\">Grid Templates, Letter and A4<\/span><span class=\"file-meta\">ZIP, 11.8 MB, 6 files<\/span><\/span>\n          <a class=\"download\" href=\"#/elements\"><svg class=\"icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><use href=\"#i-download\"/><\/svg>Download<\/a>\n        <\/div>\n      <\/div>"};
+</script>
+<script>
+/* Madder demo — every page is drawn from data.js. Routes live in the hash
+   (#/writing/slug, #/topics/typography/page/2 …) so links, pagination, back
+   and forward all work. Any other hash, like a note reference, is left to the
+   browser as an ordinary in-page anchor. */
+(function () {
+  "use strict";
+
+  var IMAGES = {
+    "grid": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxNjAwIDkwMCI+PHJlY3Qgd2lkdGg9IjE2MDAiIGhlaWdodD0iOTAwIiBmaWxsPSIjZjFlMWRlIi8+PHJlY3QgeD0iOTYuMCIgeT0iMCIgd2lkdGg9Ijk1LjMiIGhlaWdodD0iOTAwIiBmaWxsPSIjZTlkM2NmIi8+PHJlY3QgeD0iMjE1LjMiIHk9IjAiIHdpZHRoPSI5NS4zIiBoZWlnaHQ9IjkwMCIgZmlsbD0iI2U5ZDNjZiIvPjxyZWN0IHg9IjMzNC43IiB5PSIwIiB3aWR0aD0iOTUuMyIgaGVpZ2h0PSI5MDAiIGZpbGw9IiNlOWQzY2YiLz48cmVjdCB4PSI0NTQuMCIgeT0iMCIgd2lkdGg9Ijk1LjMiIGhlaWdodD0iOTAwIiBmaWxsPSIjZTlkM2NmIi8+PHJlY3QgeD0iNTczLjMiIHk9IjAiIHdpZHRoPSI5NS4zIiBoZWlnaHQ9IjkwMCIgZmlsbD0iI2U5ZDNjZiIvPjxyZWN0IHg9IjY5Mi43IiB5PSIwIiB3aWR0aD0iOTUuMyIgaGVpZ2h0PSI5MDAiIGZpbGw9IiNlOWQzY2YiLz48cmVjdCB4PSI4MTIuMCIgeT0iMCIgd2lkdGg9Ijk1LjMiIGhlaWdodD0iOTAwIiBmaWxsPSIjZTlkM2NmIi8+PHJlY3QgeD0iOTMxLjMiIHk9IjAiIHdpZHRoPSI5NS4zIiBoZWlnaHQ9IjkwMCIgZmlsbD0iI2U5ZDNjZiIvPjxyZWN0IHg9IjEwNTAuNyIgeT0iMCIgd2lkdGg9Ijk1LjMiIGhlaWdodD0iOTAwIiBmaWxsPSIjZTlkM2NmIi8+PHJlY3QgeD0iMTE3MC4wIiB5PSIwIiB3aWR0aD0iOTUuMyIgaGVpZ2h0PSI5MDAiIGZpbGw9IiNlOWQzY2YiLz48cmVjdCB4PSIxMjg5LjMiIHk9IjAiIHdpZHRoPSI5NS4zIiBoZWlnaHQ9IjkwMCIgZmlsbD0iI2U5ZDNjZiIvPjxyZWN0IHg9IjE0MDguNyIgeT0iMCIgd2lkdGg9Ijk1LjMiIGhlaWdodD0iOTAwIiBmaWxsPSIjZTlkM2NmIi8+PGxpbmUgeDE9IjAiIHgyPSIxNjAwIiB5MT0iMCIgeTI9IjAiIHN0cm9rZT0iI2RjYzJiZCIgc3Ryb2tlLXdpZHRoPSIxIi8+PGxpbmUgeDE9IjAiIHgyPSIxNjAwIiB5MT0iMzYiIHkyPSIzNiIgc3Ryb2tlPSIjZGNjMmJkIiBzdHJva2Utd2lkdGg9IjEiLz48bGluZSB4MT0iMCIgeDI9IjE2MDAiIHkxPSI3MiIgeTI9IjcyIiBzdHJva2U9IiNkY2MyYmQiIHN0cm9rZS13aWR0aD0iMSIvPjxsaW5lIHgxPSIwIiB4Mj0iMTYwMCIgeTE9IjEwOCIgeTI9IjEwOCIgc3Ryb2tlPSIjZGNjMmJkIiBzdHJva2Utd2lkdGg9IjEiLz48bGluZSB4MT0iMCIgeDI9IjE2MDAiIHkxPSIxNDQiIHkyPSIxNDQiIHN0cm9rZT0iI2RjYzJiZCIgc3Ryb2tlLXdpZHRoPSIxIi8+PGxpbmUgeDE9IjAiIHgyPSIxNjAwIiB5MT0iMTgwIiB5Mj0iMTgwIiBzdHJva2U9IiNkY2MyYmQiIHN0cm9rZS13aWR0aD0iMSIvPjxsaW5lIHgxPSIwIiB4Mj0iMTYwMCIgeTE9IjIxNiIgeTI9IjIxNiIgc3Ryb2tlPSIjZGNjMmJkIiBzdHJva2Utd2lkdGg9IjEiLz48bGluZSB4MT0iMCIgeDI9IjE2MDAiIHkxPSIyNTIiIHkyPSIyNTIiIHN0cm9rZT0iI2RjYzJiZCIgc3Ryb2tlLXdpZHRoPSIxIi8+PGxpbmUgeDE9IjAiIHgyPSIxNjAwIiB5MT0iMjg4IiB5Mj0iMjg4IiBzdHJva2U9IiNkY2MyYmQiIHN0cm9rZS13aWR0aD0iMSIvPjxsaW5lIHgxPSIwIiB4Mj0iMTYwMCIgeTE9IjMyNCIgeTI9IjMyNCIgc3Ryb2tlPSIjZGNjMmJkIiBzdHJva2Utd2lkdGg9IjEiLz48bGluZSB4MT0iMCIgeDI9IjE2MDAiIHkxPSIzNjAiIHkyPSIzNjAiIHN0cm9rZT0iI2RjYzJiZCIgc3Ryb2tlLXdpZHRoPSIxIi8+PGxpbmUgeDE9IjAiIHgyPSIxNjAwIiB5MT0iMzk2IiB5Mj0iMzk2IiBzdHJva2U9IiNkY2MyYmQiIHN0cm9rZS13aWR0aD0iMSIvPjxsaW5lIHgxPSIwIiB4Mj0iMTYwMCIgeTE9IjQzMiIgeTI9IjQzMiIgc3Ryb2tlPSIjZGNjMmJkIiBzdHJva2Utd2lkdGg9IjEiLz48bGluZSB4MT0iMCIgeDI9IjE2MDAiIHkxPSI0NjgiIHkyPSI0NjgiIHN0cm9rZT0iI2RjYzJiZCIgc3Ryb2tlLXdpZHRoPSIxIi8+PGxpbmUgeDE9IjAiIHgyPSIxNjAwIiB5MT0iNTA0IiB5Mj0iNTA0IiBzdHJva2U9IiNkY2MyYmQiIHN0cm9rZS13aWR0aD0iMSIvPjxsaW5lIHgxPSIwIiB4Mj0iMTYwMCIgeTE9IjU0MCIgeTI9IjU0MCIgc3Ryb2tlPSIjZGNjMmJkIiBzdHJva2Utd2lkdGg9IjEiLz48bGluZSB4MT0iMCIgeDI9IjE2MDAiIHkxPSI1NzYiIHkyPSI1NzYiIHN0cm9rZT0iI2RjYzJiZCIgc3Ryb2tlLXdpZHRoPSIxIi8+PGxpbmUgeDE9IjAiIHgyPSIxNjAwIiB5MT0iNjEyIiB5Mj0iNjEyIiBzdHJva2U9IiNkY2MyYmQiIHN0cm9rZS13aWR0aD0iMSIvPjxsaW5lIHgxPSIwIiB4Mj0iMTYwMCIgeTE9IjY0OCIgeTI9IjY0OCIgc3Ryb2tlPSIjZGNjMmJkIiBzdHJva2Utd2lkdGg9IjEiLz48bGluZSB4MT0iMCIgeDI9IjE2MDAiIHkxPSI2ODQiIHkyPSI2ODQiIHN0cm9rZT0iI2RjYzJiZCIgc3Ryb2tlLXdpZHRoPSIxIi8+PGxpbmUgeDE9IjAiIHgyPSIxNjAwIiB5MT0iNzIwIiB5Mj0iNzIwIiBzdHJva2U9IiNkY2MyYmQiIHN0cm9rZS13aWR0aD0iMSIvPjxsaW5lIHgxPSIwIiB4Mj0iMTYwMCIgeTE9Ijc1NiIgeTI9Ijc1NiIgc3Ryb2tlPSIjZGNjMmJkIiBzdHJva2Utd2lkdGg9IjEiLz48bGluZSB4MT0iMCIgeDI9IjE2MDAiIHkxPSI3OTIiIHkyPSI3OTIiIHN0cm9rZT0iI2RjYzJiZCIgc3Ryb2tlLXdpZHRoPSIxIi8+PGxpbmUgeDE9IjAiIHgyPSIxNjAwIiB5MT0iODI4IiB5Mj0iODI4IiBzdHJva2U9IiNkY2MyYmQiIHN0cm9rZS13aWR0aD0iMSIvPjxsaW5lIHgxPSIwIiB4Mj0iMTYwMCIgeTE9Ijg2NCIgeTI9Ijg2NCIgc3Ryb2tlPSIjZGNjMmJkIiBzdHJva2Utd2lkdGg9IjEiLz48cmVjdCB4PSI5Ni4wIiB5PSIxMDgiIHdpZHRoPSIzMzQuMCIgaGVpZ2h0PSIxMzYiIGZpbGw9IiM4YTJjNDMiIG9wYWNpdHk9IjAuOTIiLz48cmVjdCB4PSI1NzMuMyIgeT0iMTA4IiB3aWR0aD0iNDUzLjMiIGhlaWdodD0iNjQiIGZpbGw9IiMyMzFjMWYiIG9wYWNpdHk9IjAuOTIiLz48cmVjdCB4PSI1NzMuMyIgeT0iMjE2IiB3aWR0aD0iNTcyLjciIGhlaWdodD0iMTAwIiBmaWxsPSIjZmZmZmZmIiBvcGFjaXR5PSIwLjc1Ii8+PHJlY3QgeD0iMTE3MC4wIiB5PSI3MiIgd2lkdGg9IjMzNC4wIiBoZWlnaHQ9IjMxNiIgZmlsbD0iI2ZmZmZmZiIgb3BhY2l0eT0iMC43NSIvPjxyZWN0IHg9Ijk2LjAiIHk9IjI4OCIgd2lkdGg9IjMzNC4wIiBoZWlnaHQ9IjIwOCIgZmlsbD0iI2ZmZmZmZiIgb3BhY2l0eT0iMC43NSIvPjxyZWN0IHg9IjU3My4zIiB5PSI0NjgiIHdpZHRoPSIyMTQuNyIgaGVpZ2h0PSIxMzYiIGZpbGw9IiMyMzFjMWYiIG9wYWNpdHk9IjAuOTIiLz48dGV4dCB4PSIxMDEwIiB5PSI3NjAiIGZvbnQtZmFtaWx5PSJHZW9yZ2lhLCAnVGltZXMgTmV3IFJvbWFuJywgc2VyaWYiIGZvbnQtc2l6ZT0iNzIwIiBmaWxsPSIjOGEyYzQzIiBvcGFjaXR5PSIuOSI+ZzwvdGV4dD48L3N2Zz4=", "specimen": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxNjAwIDkwMCI+PHJlY3Qgd2lkdGg9IjE2MDAiIGhlaWdodD0iOTAwIiBmaWxsPSIjMjMxYzFmIi8+PHRleHQgeD0iOTYiIHk9IjU2MCIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZiIgZm9udC1zaXplPSI1MjAiIGZpbGw9IiNmNGU4ZTYiPkFhPC90ZXh0Pjx0ZXh0IHg9Ijk2MCIgeT0iMTgwIiBmb250LWZhbWlseT0iR2VvcmdpYSwgJ1RpbWVzIE5ldyBSb21hbicsIHNlcmlmIiBmb250LXNpemU9IjY0IiBmaWxsPSIjZTlhM2I0Ij5IYW1idXJnZWZvbnN0aXY8L3RleHQ+PHRleHQgeD0iOTYwIiB5PSIyODIuNCIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZiIgZm9udC1zaXplPSI0OCIgZmlsbD0iI2U5YTNiNCI+SGFtYnVyZ2Vmb25zdGl2PC90ZXh0Pjx0ZXh0IHg9Ijk2MCIgeT0iMzU5LjIiIGZvbnQtZmFtaWx5PSJHZW9yZ2lhLCAnVGltZXMgTmV3IFJvbWFuJywgc2VyaWYiIGZvbnQtc2l6ZT0iMzYiIGZpbGw9IiNlOWEzYjQiPkhhbWJ1cmdlZm9uc3RpdjwvdGV4dD48dGV4dCB4PSI5NjAiIHk9IjQxNi44IiBmb250LWZhbWlseT0iR2VvcmdpYSwgJ1RpbWVzIE5ldyBSb21hbicsIHNlcmlmIiBmb250LXNpemU9IjI4IiBmaWxsPSIjZTlhM2I0Ij5IYW1idXJnZWZvbnN0aXY8L3RleHQ+PHRleHQgeD0iOTYwIiB5PSI0NjEuNiIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZiIgZm9udC1zaXplPSIyMiIgZmlsbD0iI2U5YTNiNCI+SGFtYnVyZ2Vmb25zdGl2PC90ZXh0Pjx0ZXh0IHg9Ijk2MCIgeT0iNDk2LjgiIGZvbnQtZmFtaWx5PSJHZW9yZ2lhLCAnVGltZXMgTmV3IFJvbWFuJywgc2VyaWYiIGZvbnQtc2l6ZT0iMTgiIGZpbGw9IiNlOWEzYjQiPkhhbWJ1cmdlZm9uc3RpdjwvdGV4dD48dGV4dCB4PSI5NjAiIHk9IjUyNS42IiBmb250LWZhbWlseT0iR2VvcmdpYSwgJ1RpbWVzIE5ldyBSb21hbicsIHNlcmlmIiBmb250LXNpemU9IjE0IiBmaWxsPSIjZTlhM2I0Ij5IYW1idXJnZWZvbnN0aXY8L3RleHQ+PHJlY3QgeD0iOTYiIHk9IjY0MCIgd2lkdGg9IjE0MDgiIGhlaWdodD0iMiIgZmlsbD0iIzVmNTU1OSIvPjx0ZXh0IHg9Ijk2IiB5PSI3MjAiIGZvbnQtZmFtaWx5PSJIZWx2ZXRpY2EsIEFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjI4IiBmaWxsPSIjYzFiNGI3Ij5SZWd1bGFyICBJdGFsaWMgIE1lZGl1bSAgU2VtaWJvbGQgIEJvbGQ8L3RleHQ+PC9zdmc+", "rows": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxNjAwIDkwMCI+PHJlY3Qgd2lkdGg9IjE2MDAiIGhlaWdodD0iOTAwIiBmaWxsPSIjZjRlOGU2Ii8+PHJlY3QgeD0iMTYwIiB5PSIxNDAiIHdpZHRoPSIxMjgwIiBoZWlnaHQ9IjQiIGZpbGw9IiMyMzFjMWYiLz48cmVjdCB4PSIxNjAiIHk9IjE2NiIgd2lkdGg9IjI1MiIgaGVpZ2h0PSIxNCIgcng9IjMiIGZpbGw9IiMyMzFjMWYiLz48cmVjdCB4PSI3NzIiIHk9IjE2NiIgd2lkdGg9IjEwOCIgaGVpZ2h0PSIxNCIgcng9IjMiIGZpbGw9IiMyMzFjMWYiLz48cmVjdCB4PSIxMDQ0IiB5PSIxNjYiIHdpZHRoPSI5NiIgaGVpZ2h0PSIxNCIgcng9IjMiIGZpbGw9IiMyMzFjMWYiLz48cmVjdCB4PSIxMzIwIiB5PSIxNjYiIHdpZHRoPSIxMjAiIGhlaWdodD0iMTQiIHJ4PSIzIiBmaWxsPSIjMjMxYzFmIi8+PHJlY3QgeD0iMTYwIiB5PSIyMDQiIHdpZHRoPSIxMjgwIiBoZWlnaHQ9IjIiIGZpbGw9IiMyMzFjMWYiLz48cmVjdCB4PSIxNjAiIHk9IjIzMCIgd2lkdGg9IjM1MSIgaGVpZ2h0PSIxNCIgcng9IjMiIGZpbGw9IiM3ZDcxNzUiLz48cmVjdCB4PSI3NjEiIHk9IjIzMCIgd2lkdGg9IjExOSIgaGVpZ2h0PSIxNCIgcng9IjMiIGZpbGw9IiM3ZDcxNzUiLz48cmVjdCB4PSIxMDIyIiB5PSIyMzAiIHdpZHRoPSIxMTgiIGhlaWdodD0iMTQiIHJ4PSIzIiBmaWxsPSIjN2Q3MTc1Ii8+PHJlY3QgeD0iMTMxOCIgeT0iMjMwIiB3aWR0aD0iMTIyIiBoZWlnaHQ9IjE0IiByeD0iMyIgZmlsbD0iIzhhMmM0MyIvPjxyZWN0IHg9IjE2MCIgeT0iMjY4IiB3aWR0aD0iMTI4MCIgaGVpZ2h0PSIyIiBmaWxsPSIjY2RiY2JlIi8+PHJlY3QgeD0iMTYwIiB5PSIyOTQiIHdpZHRoPSI0MTEiIGhlaWdodD0iMTQiIHJ4PSIzIiBmaWxsPSIjN2Q3MTc1Ii8+PHJlY3QgeD0iNzg4IiB5PSIyOTQiIHdpZHRoPSI5MiIgaGVpZ2h0PSIxNCIgcng9IjMiIGZpbGw9IiM3ZDcxNzUiLz48cmVjdCB4PSI5ODciIHk9IjI5NCIgd2lkdGg9IjE1MyIgaGVpZ2h0PSIxNCIgcng9IjMiIGZpbGw9IiM3ZDcxNzUiLz48cmVjdCB4PSIxMzI1IiB5PSIyOTQiIHdpZHRoPSIxMTUiIGhlaWdodD0iMTQiIHJ4PSIzIiBmaWxsPSIjN2Q3MTc1Ii8+PHJlY3QgeD0iMTYwIiB5PSIzMzIiIHdpZHRoPSIxMjgwIiBoZWlnaHQ9IjIiIGZpbGw9IiNjZGJjYmUiLz48cmVjdCB4PSIxNjAiIHk9IjM1OCIgd2lkdGg9IjM5MSIgaGVpZ2h0PSIxNCIgcng9IjMiIGZpbGw9IiM3ZDcxNzUiLz48cmVjdCB4PSI3OTEiIHk9IjM1OCIgd2lkdGg9Ijg5IiBoZWlnaHQ9IjE0IiByeD0iMyIgZmlsbD0iIzdkNzE3NSIvPjxyZWN0IHg9IjEwNDQiIHk9IjM1OCIgd2lkdGg9Ijk2IiBoZWlnaHQ9IjE0IiByeD0iMyIgZmlsbD0iIzdkNzE3NSIvPjxyZWN0IHg9IjEyNTAiIHk9IjM1OCIgd2lkdGg9IjE5MCIgaGVpZ2h0PSIxNCIgcng9IjMiIGZpbGw9IiM3ZDcxNzUiLz48cmVjdCB4PSIxNjAiIHk9IjM5NiIgd2lkdGg9IjEyODAiIGhlaWdodD0iMiIgZmlsbD0iI2NkYmNiZSIvPjxyZWN0IHg9IjE2MCIgeT0iNDIyIiB3aWR0aD0iMjMxIiBoZWlnaHQ9IjE0IiByeD0iMyIgZmlsbD0iIzdkNzE3NSIvPjxyZWN0IHg9IjcyNCIgeT0iNDIyIiB3aWR0aD0iMTU2IiBoZWlnaHQ9IjE0IiByeD0iMyIgZmlsbD0iIzdkNzE3NSIvPjxyZWN0IHg9Ijk5NiIgeT0iNDIyIiB3aWR0aD0iMTQ0IiBoZWlnaHQ9IjE0IiByeD0iMyIgZmlsbD0iIzdkNzE3NSIvPjxyZWN0IHg9IjEyNTciIHk9IjQyMiIgd2lkdGg9IjE4MyIgaGVpZ2h0PSIxNCIgcng9IjMiIGZpbGw9IiM4YTJjNDMiLz48cmVjdCB4PSIxNjAiIHk9IjQ2MCIgd2lkdGg9IjEyODAiIGhlaWdodD0iMiIgZmlsbD0iI2NkYmNiZSIvPjxyZWN0IHg9IjE2MCIgeT0iNDg2IiB3aWR0aD0iMzQ1IiBoZWlnaHQ9IjE0IiByeD0iMyIgZmlsbD0iIzdkNzE3NSIvPjxyZWN0IHg9IjcwNSIgeT0iNDg2IiB3aWR0aD0iMTc1IiBoZWlnaHQ9IjE0IiByeD0iMyIgZmlsbD0iIzdkNzE3NSIvPjxyZWN0IHg9IjEwMzIiIHk9IjQ4NiIgd2lkdGg9IjEwOCIgaGVpZ2h0PSIxNCIgcng9IjMiIGZpbGw9IiM3ZDcxNzUiLz48cmVjdCB4PSIxMjkxIiB5PSI0ODYiIHdpZHRoPSIxNDkiIGhlaWdodD0iMTQiIHJ4PSIzIiBmaWxsPSIjN2Q3MTc1Ii8+PHJlY3QgeD0iMTYwIiB5PSI1MjQiIHdpZHRoPSIxMjgwIiBoZWlnaHQ9IjIiIGZpbGw9IiNjZGJjYmUiLz48cmVjdCB4PSIxNjAiIHk9IjU1MCIgd2lkdGg9IjMwOCIgaGVpZ2h0PSIxNCIgcng9IjMiIGZpbGw9IiM3ZDcxNzUiLz48cmVjdCB4PSI3NTAiIHk9IjU1MCIgd2lkdGg9IjEzMCIgaGVpZ2h0PSIxNCIgcng9IjMiIGZpbGw9IiM3ZDcxNzUiLz48cmVjdCB4PSIxMDM5IiB5PSI1NTAiIHdpZHRoPSIxMDEiIGhlaWdodD0iMTQiIHJ4PSIzIiBmaWxsPSIjN2Q3MTc1Ii8+PHJlY3QgeD0iMTMxOSIgeT0iNTUwIiB3aWR0aD0iMTIxIiBoZWlnaHQ9IjE0IiByeD0iMyIgZmlsbD0iIzdkNzE3NSIvPjxyZWN0IHg9IjE2MCIgeT0iNTg4IiB3aWR0aD0iMTI4MCIgaGVpZ2h0PSIyIiBmaWxsPSIjY2RiY2JlIi8+PHJlY3QgeD0iMTYwIiB5PSI2MTQiIHdpZHRoPSIzNzQiIGhlaWdodD0iMTQiIHJ4PSIzIiBmaWxsPSIjN2Q3MTc1Ii8+PHJlY3QgeD0iNzgxIiB5PSI2MTQiIHdpZHRoPSI5OSIgaGVpZ2h0PSIxNCIgcng9IjMiIGZpbGw9IiM3ZDcxNzUiLz48cmVjdCB4PSI5ODkiIHk9IjYxNCIgd2lkdGg9IjE1MSIgaGVpZ2h0PSIxNCIgcng9IjMiIGZpbGw9IiM3ZDcxNzUiLz48cmVjdCB4PSIxMzIwIiB5PSI2MTQiIHdpZHRoPSIxMjAiIGhlaWdodD0iMTQiIHJ4PSIzIiBmaWxsPSIjOGEyYzQzIi8+PHJlY3QgeD0iMTYwIiB5PSI2NTIiIHdpZHRoPSIxMjgwIiBoZWlnaHQ9IjIiIGZpbGw9IiNjZGJjYmUiLz48cmVjdCB4PSIxNjAiIHk9IjY3OCIgd2lkdGg9IjE5MyIgaGVpZ2h0PSIxNCIgcng9IjMiIGZpbGw9IiM3ZDcxNzUiLz48cmVjdCB4PSI3OTAiIHk9IjY3OCIgd2lkdGg9IjkwIiBoZWlnaHQ9IjE0IiByeD0iMyIgZmlsbD0iIzdkNzE3NSIvPjxyZWN0IHg9IjEwNDUiIHk9IjY3OCIgd2lkdGg9Ijk1IiBoZWlnaHQ9IjE0IiByeD0iMyIgZmlsbD0iIzdkNzE3NSIvPjxyZWN0IHg9IjEyODMiIHk9IjY3OCIgd2lkdGg9IjE1NyIgaGVpZ2h0PSIxNCIgcng9IjMiIGZpbGw9IiM3ZDcxNzUiLz48cmVjdCB4PSIxNjAiIHk9IjcxNiIgd2lkdGg9IjEyODAiIGhlaWdodD0iMiIgZmlsbD0iI2NkYmNiZSIvPjxyZWN0IHg9IjE2MCIgeT0iNzQyIiB3aWR0aD0iMjQwIiBoZWlnaHQ9IjE0IiByeD0iMyIgZmlsbD0iIzdkNzE3NSIvPjxyZWN0IHg9Ijc3MyIgeT0iNzQyIiB3aWR0aD0iMTA3IiBoZWlnaHQ9IjE0IiByeD0iMyIgZmlsbD0iIzdkNzE3NSIvPjxyZWN0IHg9IjEwNTciIHk9Ijc0MiIgd2lkdGg9IjgzIiBoZWlnaHQ9IjE0IiByeD0iMyIgZmlsbD0iIzdkNzE3NSIvPjxyZWN0IHg9IjEzNDkiIHk9Ijc0MiIgd2lkdGg9IjkxIiBoZWlnaHQ9IjE0IiByeD0iMyIgZmlsbD0iIzdkNzE3NSIvPjxyZWN0IHg9IjE2MCIgeT0iNzgwIiB3aWR0aD0iMTI4MCIgaGVpZ2h0PSIyIiBmaWxsPSIjY2RiY2JlIi8+PC9zdmc+", "sorts": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAwIDkwMCI+PHJlY3Qgd2lkdGg9IjEyMDAiIGhlaWdodD0iOTAwIiBmaWxsPSIjNWY1NTU5Ii8+PHJlY3QgeD0iMCIgeT0iNDAiIHdpZHRoPSI3OCIgaGVpZ2h0PSI5MCIgcng9IjQiIGZpbGw9IiM4Zjg0ODciLz48dGV4dCB4PSIzOS4wIiB5PSIxMDEuMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZiIgZm9udC1zaXplPSI1MCIgZmlsbD0iIzNhMzAzNCI+YTwvdGV4dD48cmVjdCB4PSI4NCIgeT0iNDAiIHdpZHRoPSI5MCIgaGVpZ2h0PSI5MCIgcng9IjQiIGZpbGw9IiM4Zjg0ODciLz48dGV4dCB4PSIxMjkuMCIgeT0iMTAxLjIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJHZW9yZ2lhLCAnVGltZXMgTmV3IFJvbWFuJywgc2VyaWYiIGZvbnQtc2l6ZT0iNTAiIGZpbGw9IiMzYTMwMzQiPnU8L3RleHQ+PHJlY3QgeD0iMTgwIiB5PSI0MCIgd2lkdGg9IjkwIiBoZWlnaHQ9IjkwIiByeD0iNCIgZmlsbD0iIzhmODQ4NyIvPjx0ZXh0IHg9IjIyNS4wIiB5PSIxMDEuMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZiIgZm9udC1zaXplPSI1MCIgZmlsbD0iIzNhMzAzNCI+eTwvdGV4dD48cmVjdCB4PSIyNzYiIHk9IjQwIiB3aWR0aD0iNTgiIGhlaWdodD0iOTAiIHJ4PSI0IiBmaWxsPSIjOGY4NDg3Ii8+PHRleHQgeD0iMzA1LjAiIHk9IjEwMS4yIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iR2VvcmdpYSwgJ1RpbWVzIE5ldyBSb21hbicsIHNlcmlmIiBmb250LXNpemU9IjUwIiBmaWxsPSIjM2EzMDM0Ij5hPC90ZXh0PjxyZWN0IHg9IjM0MCIgeT0iNDAiIHdpZHRoPSI3OCIgaGVpZ2h0PSI5MCIgcng9IjQiIGZpbGw9IiNiM2E3YWEiLz48dGV4dCB4PSIzNzkuMCIgeT0iMTAxLjIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJHZW9yZ2lhLCAnVGltZXMgTmV3IFJvbWFuJywgc2VyaWYiIGZvbnQtc2l6ZT0iNTAiIGZpbGw9IiMzYTMwMzQiPmE8L3RleHQ+PHJlY3QgeD0iNDI0IiB5PSI0MCIgd2lkdGg9IjU4IiBoZWlnaHQ9IjkwIiByeD0iNCIgZmlsbD0iIzhmODQ4NyIvPjx0ZXh0IHg9IjQ1My4wIiB5PSIxMDEuMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZiIgZm9udC1zaXplPSI1MCIgZmlsbD0iIzNhMzAzNCI+cDwvdGV4dD48cmVjdCB4PSI0ODgiIHk9IjQwIiB3aWR0aD0iNzgiIGhlaWdodD0iOTAiIHJ4PSI0IiBmaWxsPSIjOGY4NDg3Ii8+PHRleHQgeD0iNTI3LjAiIHk9IjEwMS4yIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iR2VvcmdpYSwgJ1RpbWVzIE5ldyBSb21hbicsIHNlcmlmIiBmb250LXNpemU9IjUwIiBmaWxsPSIjM2EzMDM0Ij52PC90ZXh0PjxyZWN0IHg9IjU3MiIgeT0iNDAiIHdpZHRoPSI0OCIgaGVpZ2h0PSI5MCIgcng9IjQiIGZpbGw9IiNhMjk3OWEiLz48dGV4dCB4PSI1OTYuMCIgeT0iMTAxLjIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJHZW9yZ2lhLCAnVGltZXMgTmV3IFJvbWFuJywgc2VyaWYiIGZvbnQtc2l6ZT0iNTAiIGZpbGw9IiMzYTMwMzQiPmc8L3RleHQ+PHJlY3QgeD0iNjI2IiB5PSI0MCIgd2lkdGg9IjkwIiBoZWlnaHQ9IjkwIiByeD0iNCIgZmlsbD0iIzhmODQ4NyIvPjx0ZXh0IHg9IjY3MS4wIiB5PSIxMDEuMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZiIgZm9udC1zaXplPSI1MCIgZmlsbD0iIzNhMzAzNCI+djwvdGV4dD48cmVjdCB4PSI3MjIiIHk9IjQwIiB3aWR0aD0iOTAiIGhlaWdodD0iOTAiIHJ4PSI0IiBmaWxsPSIjYjNhN2FhIi8+PHRleHQgeD0iNzY3LjAiIHk9IjEwMS4yIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iR2VvcmdpYSwgJ1RpbWVzIE5ldyBSb21hbicsIHNlcmlmIiBmb250LXNpemU9IjUwIiBmaWxsPSIjM2EzMDM0Ij50PC90ZXh0PjxyZWN0IHg9IjgxOCIgeT0iNDAiIHdpZHRoPSI1OCIgaGVpZ2h0PSI5MCIgcng9IjQiIGZpbGw9IiM4Zjg0ODciLz48dGV4dCB4PSI4NDcuMCIgeT0iMTAxLjIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJHZW9yZ2lhLCAnVGltZXMgTmV3IFJvbWFuJywgc2VyaWYiIGZvbnQtc2l6ZT0iNTAiIGZpbGw9IiMzYTMwMzQiPnA8L3RleHQ+PHJlY3QgeD0iODgyIiB5PSI0MCIgd2lkdGg9IjU4IiBoZWlnaHQ9IjkwIiByeD0iNCIgZmlsbD0iIzdkNzE3NSIvPjx0ZXh0IHg9IjkxMS4wIiB5PSIxMDEuMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZiIgZm9udC1zaXplPSI1MCIgZmlsbD0iIzNhMzAzNCI+bTwvdGV4dD48cmVjdCB4PSI5NDYiIHk9IjQwIiB3aWR0aD0iNTgiIGhlaWdodD0iOTAiIHJ4PSI0IiBmaWxsPSIjOGY4NDg3Ii8+PHRleHQgeD0iOTc1LjAiIHk9IjEwMS4yIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iR2VvcmdpYSwgJ1RpbWVzIE5ldyBSb21hbicsIHNlcmlmIiBmb250LXNpemU9IjUwIiBmaWxsPSIjM2EzMDM0Ij52PC90ZXh0PjxyZWN0IHg9IjEwMTAiIHk9IjQwIiB3aWR0aD0iNjYiIGhlaWdodD0iOTAiIHJ4PSI0IiBmaWxsPSIjYTI5NzlhIi8+PHRleHQgeD0iMTA0My4wIiB5PSIxMDEuMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZiIgZm9udC1zaXplPSI1MCIgZmlsbD0iIzNhMzAzNCI+bzwvdGV4dD48cmVjdCB4PSIxMDgyIiB5PSI0MCIgd2lkdGg9IjkwIiBoZWlnaHQ9IjkwIiByeD0iNCIgZmlsbD0iI2EyOTc5YSIvPjx0ZXh0IHg9IjExMjcuMCIgeT0iMTAxLjIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJHZW9yZ2lhLCAnVGltZXMgTmV3IFJvbWFuJywgc2VyaWYiIGZvbnQtc2l6ZT0iNTAiIGZpbGw9IiMzYTMwMzQiPnU8L3RleHQ+PHJlY3QgeD0iMTE3OCIgeT0iNDAiIHdpZHRoPSI0OCIgaGVpZ2h0PSI5MCIgcng9IjQiIGZpbGw9IiM4Zjg0ODciLz48dGV4dCB4PSIxMjAyLjAiIHk9IjEwMS4yIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iR2VvcmdpYSwgJ1RpbWVzIE5ldyBSb21hbicsIHNlcmlmIiBmb250LXNpemU9IjUwIiBmaWxsPSIjM2EzMDM0Ij52PC90ZXh0PjxyZWN0IHg9Ii0xNyIgeT0iMTM4IiB3aWR0aD0iNTgiIGhlaWdodD0iMTMwIiByeD0iNCIgZmlsbD0iI2IzYTdhYSIvPjx0ZXh0IHg9IjEyLjAiIHk9IjIyNi40IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iR2VvcmdpYSwgJ1RpbWVzIE5ldyBSb21hbicsIHNlcmlmIiBmb250LXNpemU9IjcyIiBmaWxsPSIjM2EzMDM0Ij5rPC90ZXh0PjxyZWN0IHg9IjQ3IiB5PSIxMzgiIHdpZHRoPSI5MCIgaGVpZ2h0PSIxMzAiIHJ4PSI0IiBmaWxsPSIjYjNhN2FhIi8+PHRleHQgeD0iOTIuMCIgeT0iMjI2LjQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJHZW9yZ2lhLCAnVGltZXMgTmV3IFJvbWFuJywgc2VyaWYiIGZvbnQtc2l6ZT0iNzIiIGZpbGw9IiMzYTMwMzQiPng8L3RleHQ+PHJlY3QgeD0iMTQzIiB5PSIxMzgiIHdpZHRoPSI2NiIgaGVpZ2h0PSIxMzAiIHJ4PSI0IiBmaWxsPSIjYjNhN2FhIi8+PHRleHQgeD0iMTc2LjAiIHk9IjIyNi40IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iR2VvcmdpYSwgJ1RpbWVzIE5ldyBSb21hbicsIHNlcmlmIiBmb250LXNpemU9IjcyIiBmaWxsPSIjM2EzMDM0Ij52PC90ZXh0PjxyZWN0IHg9IjIxNSIgeT0iMTM4IiB3aWR0aD0iNzgiIGhlaWdodD0iMTMwIiByeD0iNCIgZmlsbD0iIzdkNzE3NSIvPjx0ZXh0IHg9IjI1NC4wIiB5PSIyMjYuNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZiIgZm9udC1zaXplPSI3MiIgZmlsbD0iIzNhMzAzNCI+ZDwvdGV4dD48cmVjdCB4PSIyOTkiIHk9IjEzOCIgd2lkdGg9IjU4IiBoZWlnaHQ9IjEzMCIgcng9IjQiIGZpbGw9IiNhMjk3OWEiLz48dGV4dCB4PSIzMjguMCIgeT0iMjI2LjQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJHZW9yZ2lhLCAnVGltZXMgTmV3IFJvbWFuJywgc2VyaWYiIGZvbnQtc2l6ZT0iNzIiIGZpbGw9IiMzYTMwMzQiPmo8L3RleHQ+PHJlY3QgeD0iMzYzIiB5PSIxMzgiIHdpZHRoPSI1OCIgaGVpZ2h0PSIxMzAiIHJ4PSI0IiBmaWxsPSIjOGY4NDg3Ii8+PHRleHQgeD0iMzkyLjAiIHk9IjIyNi40IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iR2VvcmdpYSwgJ1RpbWVzIE5ldyBSb21hbicsIHNlcmlmIiBmb250LXNpemU9IjcyIiBmaWxsPSIjM2EzMDM0Ij52PC90ZXh0PjxyZWN0IHg9IjQyNyIgeT0iMTM4IiB3aWR0aD0iNjYiIGhlaWdodD0iMTMwIiByeD0iNCIgZmlsbD0iI2IzYTdhYSIvPjx0ZXh0IHg9IjQ2MC4wIiB5PSIyMjYuNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZiIgZm9udC1zaXplPSI3MiIgZmlsbD0iIzNhMzAzNCI+bDwvdGV4dD48cmVjdCB4PSI0OTkiIHk9IjEzOCIgd2lkdGg9Ijc4IiBoZWlnaHQ9IjEzMCIgcng9IjQiIGZpbGw9IiM3ZDcxNzUiLz48dGV4dCB4PSI1MzguMCIgeT0iMjI2LjQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJHZW9yZ2lhLCAnVGltZXMgTmV3IFJvbWFuJywgc2VyaWYiIGZvbnQtc2l6ZT0iNzIiIGZpbGw9IiMzYTMwMzQiPmI8L3RleHQ+PHJlY3QgeD0iNTgzIiB5PSIxMzgiIHdpZHRoPSI0OCIgaGVpZ2h0PSIxMzAiIHJ4PSI0IiBmaWxsPSIjOGY4NDg3Ii8+PHRleHQgeD0iNjA3LjAiIHk9IjIyNi40IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iR2VvcmdpYSwgJ1RpbWVzIE5ldyBSb21hbicsIHNlcmlmIiBmb250LXNpemU9IjcyIiBmaWxsPSIjM2EzMDM0Ij55PC90ZXh0PjxyZWN0IHg9IjYzNyIgeT0iMTM4IiB3aWR0aD0iNzgiIGhlaWdodD0iMTMwIiByeD0iNCIgZmlsbD0iI2EyOTc5YSIvPjx0ZXh0IHg9IjY3Ni4wIiB5PSIyMjYuNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZiIgZm9udC1zaXplPSI3MiIgZmlsbD0iIzNhMzAzNCI+eDwvdGV4dD48cmVjdCB4PSI3MjEiIHk9IjEzOCIgd2lkdGg9IjY2IiBoZWlnaHQ9IjEzMCIgcng9IjQiIGZpbGw9IiNhMjk3OWEiLz48dGV4dCB4PSI3NTQuMCIgeT0iMjI2LjQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJHZW9yZ2lhLCAnVGltZXMgTmV3IFJvbWFuJywgc2VyaWYiIGZvbnQtc2l6ZT0iNzIiIGZpbGw9IiMzYTMwMzQiPnc8L3RleHQ+PHJlY3QgeD0iNzkzIiB5PSIxMzgiIHdpZHRoPSI3OCIgaGVpZ2h0PSIxMzAiIHJ4PSI0IiBmaWxsPSIjOGY4NDg3Ii8+PHRleHQgeD0iODMyLjAiIHk9IjIyNi40IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iR2VvcmdpYSwgJ1RpbWVzIE5ldyBSb21hbicsIHNlcmlmIiBmb250LXNpemU9IjcyIiBmaWxsPSIjM2EzMDM0Ij5rPC90ZXh0PjxyZWN0IHg9Ijg3NyIgeT0iMTM4IiB3aWR0aD0iNDgiIGhlaWdodD0iMTMwIiByeD0iNCIgZmlsbD0iIzdkNzE3NSIvPjx0ZXh0IHg9IjkwMS4wIiB5PSIyMjYuNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZiIgZm9udC1zaXplPSI3MiIgZmlsbD0iIzNhMzAzNCI+bDwvdGV4dD48cmVjdCB4PSI5MzEiIHk9IjEzOCIgd2lkdGg9IjY2IiBoZWlnaHQ9IjEzMCIgcng9IjQiIGZpbGw9IiNiM2E3YWEiLz48dGV4dCB4PSI5NjQuMCIgeT0iMjI2LjQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJHZW9yZ2lhLCAnVGltZXMgTmV3IFJvbWFuJywgc2VyaWYiIGZvbnQtc2l6ZT0iNzIiIGZpbGw9IiMzYTMwMzQiPnY8L3RleHQ+PHJlY3QgeD0iMTAwMyIgeT0iMTM4IiB3aWR0aD0iNzgiIGhlaWdodD0iMTMwIiByeD0iNCIgZmlsbD0iIzhmODQ4NyIvPjx0ZXh0IHg9IjEwNDIuMCIgeT0iMjI2LjQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJHZW9yZ2lhLCAnVGltZXMgTmV3IFJvbWFuJywgc2VyaWYiIGZvbnQtc2l6ZT0iNzIiIGZpbGw9IiMzYTMwMzQiPmE8L3RleHQ+PHJlY3QgeD0iMTA4NyIgeT0iMTM4IiB3aWR0aD0iNjYiIGhlaWdodD0iMTMwIiByeD0iNCIgZmlsbD0iI2IzYTdhYSIvPjx0ZXh0IHg9IjExMjAuMCIgeT0iMjI2LjQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJHZW9yZ2lhLCAnVGltZXMgTmV3IFJvbWFuJywgc2VyaWYiIGZvbnQtc2l6ZT0iNzIiIGZpbGw9IiMzYTMwMzQiPmo8L3RleHQ+PHJlY3QgeD0iMTE1OSIgeT0iMTM4IiB3aWR0aD0iNDgiIGhlaWdodD0iMTMwIiByeD0iNCIgZmlsbD0iIzhmODQ4NyIvPjx0ZXh0IHg9IjExODMuMCIgeT0iMjI2LjQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJHZW9yZ2lhLCAnVGltZXMgTmV3IFJvbWFuJywgc2VyaWYiIGZvbnQtc2l6ZT0iNzIiIGZpbGw9IiMzYTMwMzQiPnE8L3RleHQ+PHJlY3QgeD0iLTEiIHk9IjI3NiIgd2lkdGg9IjkwIiBoZWlnaHQ9IjEzMCIgcng9IjQiIGZpbGw9IiNiM2E3YWEiLz48dGV4dCB4PSI0NC4wIiB5PSIzNjQuNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZiIgZm9udC1zaXplPSI3MiIgZmlsbD0iIzNhMzAzNCI+ZDwvdGV4dD48cmVjdCB4PSI5NSIgeT0iMjc2IiB3aWR0aD0iNzgiIGhlaWdodD0iMTMwIiByeD0iNCIgZmlsbD0iIzdkNzE3NSIvPjx0ZXh0IHg9IjEzNC4wIiB5PSIzNjQuNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZiIgZm9udC1zaXplPSI3MiIgZmlsbD0iIzNhMzAzNCI+ZTwvdGV4dD48cmVjdCB4PSIxNzkiIHk9IjI3NiIgd2lkdGg9Ijc4IiBoZWlnaHQ9IjEzMCIgcng9IjQiIGZpbGw9IiM3ZDcxNzUiLz48dGV4dCB4PSIyMTguMCIgeT0iMzY0LjQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJHZW9yZ2lhLCAnVGltZXMgTmV3IFJvbWFuJywgc2VyaWYiIGZvbnQtc2l6ZT0iNzIiIGZpbGw9IiMzYTMwMzQiPm48L3RleHQ+PHJlY3QgeD0iMjYzIiB5PSIyNzYiIHdpZHRoPSI5MCIgaGVpZ2h0PSIxMzAiIHJ4PSI0IiBmaWxsPSIjOGY4NDg3Ii8+PHRleHQgeD0iMzA4LjAiIHk9IjM2NC40IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iR2VvcmdpYSwgJ1RpbWVzIE5ldyBSb21hbicsIHNlcmlmIiBmb250LXNpemU9IjcyIiBmaWxsPSIjM2EzMDM0Ij53PC90ZXh0PjxyZWN0IHg9IjM1OSIgeT0iMjc2IiB3aWR0aD0iNDgiIGhlaWdodD0iMTMwIiByeD0iNCIgZmlsbD0iI2EyOTc5YSIvPjx0ZXh0IHg9IjM4My4wIiB5PSIzNjQuNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZiIgZm9udC1zaXplPSI3MiIgZmlsbD0iIzNhMzAzNCI+eDwvdGV4dD48cmVjdCB4PSI0MTMiIHk9IjI3NiIgd2lkdGg9IjY2IiBoZWlnaHQ9IjEzMCIgcng9IjQiIGZpbGw9IiNhMjk3OWEiLz48dGV4dCB4PSI0NDYuMCIgeT0iMzY0LjQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJHZW9yZ2lhLCAnVGltZXMgTmV3IFJvbWFuJywgc2VyaWYiIGZvbnQtc2l6ZT0iNzIiIGZpbGw9IiMzYTMwMzQiPnE8L3RleHQ+PHJlY3QgeD0iNDg1IiB5PSIyNzYiIHdpZHRoPSI1OCIgaGVpZ2h0PSIxMzAiIHJ4PSI0IiBmaWxsPSIjYjNhN2FhIi8+PHRleHQgeD0iNTE0LjAiIHk9IjM2NC40IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iR2VvcmdpYSwgJ1RpbWVzIE5ldyBSb21hbicsIHNlcmlmIiBmb250LXNpemU9IjcyIiBmaWxsPSIjM2EzMDM0Ij5jPC90ZXh0PjxyZWN0IHg9IjU0OSIgeT0iMjc2IiB3aWR0aD0iNzgiIGhlaWdodD0iMTMwIiByeD0iNCIgZmlsbD0iIzhmODQ4NyIvPjx0ZXh0IHg9IjU4OC4wIiB5PSIzNjQuNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZiIgZm9udC1zaXplPSI3MiIgZmlsbD0iIzNhMzAzNCI+bjwvdGV4dD48cmVjdCB4PSI2MzMiIHk9IjI3NiIgd2lkdGg9Ijc4IiBoZWlnaHQ9IjEzMCIgcng9IjQiIGZpbGw9IiNiM2E3YWEiLz48dGV4dCB4PSI2NzIuMCIgeT0iMzY0LjQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJHZW9yZ2lhLCAnVGltZXMgTmV3IFJvbWFuJywgc2VyaWYiIGZvbnQtc2l6ZT0iNzIiIGZpbGw9IiMzYTMwMzQiPnA8L3RleHQ+PHJlY3QgeD0iNzE3IiB5PSIyNzYiIHdpZHRoPSI2NiIgaGVpZ2h0PSIxMzAiIHJ4PSI0IiBmaWxsPSIjYTI5NzlhIi8+PHRleHQgeD0iNzUwLjAiIHk9IjM2NC40IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iR2VvcmdpYSwgJ1RpbWVzIE5ldyBSb21hbicsIHNlcmlmIiBmb250LXNpemU9IjcyIiBmaWxsPSIjM2EzMDM0Ij5tPC90ZXh0PjxyZWN0IHg9Ijc4OSIgeT0iMjc2IiB3aWR0aD0iOTAiIGhlaWdodD0iMTMwIiByeD0iNCIgZmlsbD0iIzdkNzE3NSIvPjx0ZXh0IHg9IjgzNC4wIiB5PSIzNjQuNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZiIgZm9udC1zaXplPSI3MiIgZmlsbD0iIzNhMzAzNCI+ajwvdGV4dD48cmVjdCB4PSI4ODUiIHk9IjI3NiIgd2lkdGg9Ijc4IiBoZWlnaHQ9IjEzMCIgcng9IjQiIGZpbGw9IiM3ZDcxNzUiLz48dGV4dCB4PSI5MjQuMCIgeT0iMzY0LjQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJHZW9yZ2lhLCAnVGltZXMgTmV3IFJvbWFuJywgc2VyaWYiIGZvbnQtc2l6ZT0iNzIiIGZpbGw9IiMzYTMwMzQiPms8L3RleHQ+PHJlY3QgeD0iOTY5IiB5PSIyNzYiIHdpZHRoPSI3OCIgaGVpZ2h0PSIxMzAiIHJ4PSI0IiBmaWxsPSIjYTI5NzlhIi8+PHRleHQgeD0iMTAwOC4wIiB5PSIzNjQuNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZiIgZm9udC1zaXplPSI3MiIgZmlsbD0iIzNhMzAzNCI+aTwvdGV4dD48cmVjdCB4PSIxMDUzIiB5PSIyNzYiIHdpZHRoPSI0OCIgaGVpZ2h0PSIxMzAiIHJ4PSI0IiBmaWxsPSIjYTI5NzlhIi8+PHRleHQgeD0iMTA3Ny4wIiB5PSIzNjQuNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZiIgZm9udC1zaXplPSI3MiIgZmlsbD0iIzNhMzAzNCI+aTwvdGV4dD48cmVjdCB4PSIxMTA3IiB5PSIyNzYiIHdpZHRoPSI1OCIgaGVpZ2h0PSIxMzAiIHJ4PSI0IiBmaWxsPSIjYTI5NzlhIi8+PHRleHQgeD0iMTEzNi4wIiB5PSIzNjQuNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZiIgZm9udC1zaXplPSI3MiIgZmlsbD0iIzNhMzAzNCI+ZTwvdGV4dD48cmVjdCB4PSIxMTcxIiB5PSIyNzYiIHdpZHRoPSI3OCIgaGVpZ2h0PSIxMzAiIHJ4PSI0IiBmaWxsPSIjYTI5NzlhIi8+PHRleHQgeD0iMTIxMC4wIiB5PSIzNjQuNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZiIgZm9udC1zaXplPSI3MiIgZmlsbD0iIzNhMzAzNCI+cjwvdGV4dD48cmVjdCB4PSItMiIgeT0iNDE0IiB3aWR0aD0iNTgiIGhlaWdodD0iOTAiIHJ4PSI0IiBmaWxsPSIjYjNhN2FhIi8+PHRleHQgeD0iMjcuMCIgeT0iNDc1LjIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJHZW9yZ2lhLCAnVGltZXMgTmV3IFJvbWFuJywgc2VyaWYiIGZvbnQtc2l6ZT0iNTAiIGZpbGw9IiMzYTMwMzQiPnA8L3RleHQ+PHJlY3QgeD0iNjIiIHk9IjQxNCIgd2lkdGg9IjY2IiBoZWlnaHQ9IjkwIiByeD0iNCIgZmlsbD0iIzdkNzE3NSIvPjx0ZXh0IHg9Ijk1LjAiIHk9IjQ3NS4yIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iR2VvcmdpYSwgJ1RpbWVzIE5ldyBSb21hbicsIHNlcmlmIiBmb250LXNpemU9IjUwIiBmaWxsPSIjM2EzMDM0Ij5pPC90ZXh0PjxyZWN0IHg9IjEzNCIgeT0iNDE0IiB3aWR0aD0iOTAiIGhlaWdodD0iOTAiIHJ4PSI0IiBmaWxsPSIjOGY4NDg3Ii8+PHRleHQgeD0iMTc5LjAiIHk9IjQ3NS4yIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iR2VvcmdpYSwgJ1RpbWVzIE5ldyBSb21hbicsIHNlcmlmIiBmb250LXNpemU9IjUwIiBmaWxsPSIjM2EzMDM0Ij5mPC90ZXh0PjxyZWN0IHg9IjIzMCIgeT0iNDE0IiB3aWR0aD0iOTAiIGhlaWdodD0iOTAiIHJ4PSI0IiBmaWxsPSIjYjNhN2FhIi8+PHRleHQgeD0iMjc1LjAiIHk9IjQ3NS4yIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iR2VvcmdpYSwgJ1RpbWVzIE5ldyBSb21hbicsIHNlcmlmIiBmb250LXNpemU9IjUwIiBmaWxsPSIjM2EzMDM0Ij5jPC90ZXh0PjxyZWN0IHg9IjMyNiIgeT0iNDE0IiB3aWR0aD0iNzgiIGhlaWdodD0iOTAiIHJ4PSI0IiBmaWxsPSIjYjNhN2FhIi8+PHRleHQgeD0iMzY1LjAiIHk9IjQ3NS4yIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iR2VvcmdpYSwgJ1RpbWVzIE5ldyBSb21hbicsIHNlcmlmIiBmb250LXNpemU9IjUwIiBmaWxsPSIjM2EzMDM0Ij5vPC90ZXh0PjxyZWN0IHg9IjQxMCIgeT0iNDE0IiB3aWR0aD0iNzgiIGhlaWdodD0iOTAiIHJ4PSI0IiBmaWxsPSIjYjNhN2FhIi8+PHRleHQgeD0iNDQ5LjAiIHk9IjQ3NS4yIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iR2VvcmdpYSwgJ1RpbWVzIE5ldyBSb21hbicsIHNlcmlmIiBmb250LXNpemU9IjUwIiBmaWxsPSIjM2EzMDM0Ij50PC90ZXh0PjxyZWN0IHg9IjQ5NCIgeT0iNDE0IiB3aWR0aD0iNTgiIGhlaWdodD0iOTAiIHJ4PSI0IiBmaWxsPSIjOGY4NDg3Ii8+PHRleHQgeD0iNTIzLjAiIHk9IjQ3NS4yIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iR2VvcmdpYSwgJ1RpbWVzIE5ldyBSb21hbicsIHNlcmlmIiBmb250LXNpemU9IjUwIiBmaWxsPSIjM2EzMDM0Ij5zPC90ZXh0PjxyZWN0IHg9IjU1OCIgeT0iNDE0IiB3aWR0aD0iNzgiIGhlaWdodD0iOTAiIHJ4PSI0IiBmaWxsPSIjYTI5NzlhIi8+PHRleHQgeD0iNTk3LjAiIHk9IjQ3NS4yIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iR2VvcmdpYSwgJ1RpbWVzIE5ldyBSb21hbicsIHNlcmlmIiBmb250LXNpemU9IjUwIiBmaWxsPSIjM2EzMDM0Ij5vPC90ZXh0PjxyZWN0IHg9IjY0MiIgeT0iNDE0IiB3aWR0aD0iNjYiIGhlaWdodD0iOTAiIHJ4PSI0IiBmaWxsPSIjOGY4NDg3Ii8+PHRleHQgeD0iNjc1LjAiIHk9IjQ3NS4yIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iR2VvcmdpYSwgJ1RpbWVzIE5ldyBSb21hbicsIHNlcmlmIiBmb250LXNpemU9IjUwIiBmaWxsPSIjM2EzMDM0Ij5vPC90ZXh0PjxyZWN0IHg9IjcxNCIgeT0iNDE0IiB3aWR0aD0iNDgiIGhlaWdodD0iOTAiIHJ4PSI0IiBmaWxsPSIjYTI5NzlhIi8+PHRleHQgeD0iNzM4LjAiIHk9IjQ3NS4yIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iR2VvcmdpYSwgJ1RpbWVzIE5ldyBSb21hbicsIHNlcmlmIiBmb250LXNpemU9IjUwIiBmaWxsPSIjM2EzMDM0Ij5wPC90ZXh0PjxyZWN0IHg9Ijc2OCIgeT0iNDE0IiB3aWR0aD0iNDgiIGhlaWdodD0iOTAiIHJ4PSI0IiBmaWxsPSIjN2Q3MTc1Ii8+PHRleHQgeD0iNzkyLjAiIHk9IjQ3NS4yIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iR2VvcmdpYSwgJ1RpbWVzIE5ldyBSb21hbicsIHNlcmlmIiBmb250LXNpemU9IjUwIiBmaWxsPSIjM2EzMDM0Ij5iPC90ZXh0PjxyZWN0IHg9IjgyMiIgeT0iNDE0IiB3aWR0aD0iNDgiIGhlaWdodD0iOTAiIHJ4PSI0IiBmaWxsPSIjOGY4NDg3Ii8+PHRleHQgeD0iODQ2LjAiIHk9IjQ3NS4yIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iR2VvcmdpYSwgJ1RpbWVzIE5ldyBSb21hbicsIHNlcmlmIiBmb250LXNpemU9IjUwIiBmaWxsPSIjM2EzMDM0Ij5zPC90ZXh0PjxyZWN0IHg9Ijg3NiIgeT0iNDE0IiB3aWR0aD0iOTAiIGhlaWdodD0iOTAiIHJ4PSI0IiBmaWxsPSIjYjNhN2FhIi8+PHRleHQgeD0iOTIxLjAiIHk9IjQ3NS4yIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iR2VvcmdpYSwgJ1RpbWVzIE5ldyBSb21hbicsIHNlcmlmIiBmb250LXNpemU9IjUwIiBmaWxsPSIjM2EzMDM0Ij5pPC90ZXh0PjxyZWN0IHg9Ijk3MiIgeT0iNDE0IiB3aWR0aD0iNjYiIGhlaWdodD0iOTAiIHJ4PSI0IiBmaWxsPSIjN2Q3MTc1Ii8+PHRleHQgeD0iMTAwNS4wIiB5PSI0NzUuMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZiIgZm9udC1zaXplPSI1MCIgZmlsbD0iIzNhMzAzNCI+YjwvdGV4dD48cmVjdCB4PSIxMDQ0IiB5PSI0MTQiIHdpZHRoPSI2NiIgaGVpZ2h0PSI5MCIgcng9IjQiIGZpbGw9IiNiM2E3YWEiLz48dGV4dCB4PSIxMDc3LjAiIHk9IjQ3NS4yIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iR2VvcmdpYSwgJ1RpbWVzIE5ldyBSb21hbicsIHNlcmlmIiBmb250LXNpemU9IjUwIiBmaWxsPSIjM2EzMDM0Ij5vPC90ZXh0PjxyZWN0IHg9IjExMTYiIHk9IjQxNCIgd2lkdGg9IjQ4IiBoZWlnaHQ9IjkwIiByeD0iNCIgZmlsbD0iI2IzYTdhYSIvPjx0ZXh0IHg9IjExNDAuMCIgeT0iNDc1LjIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJHZW9yZ2lhLCAnVGltZXMgTmV3IFJvbWFuJywgc2VyaWYiIGZvbnQtc2l6ZT0iNTAiIGZpbGw9IiMzYTMwMzQiPmY8L3RleHQ+PHJlY3QgeD0iMTE3MCIgeT0iNDE0IiB3aWR0aD0iNzgiIGhlaWdodD0iOTAiIHJ4PSI0IiBmaWxsPSIjYjNhN2FhIi8+PHRleHQgeD0iMTIwOS4wIiB5PSI0NzUuMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZiIgZm9udC1zaXplPSI1MCIgZmlsbD0iIzNhMzAzNCI+ZDwvdGV4dD48cmVjdCB4PSItMTUiIHk9IjUxMiIgd2lkdGg9IjQ4IiBoZWlnaHQ9IjkwIiByeD0iNCIgZmlsbD0iIzdkNzE3NSIvPjx0ZXh0IHg9IjkuMCIgeT0iNTczLjIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJHZW9yZ2lhLCAnVGltZXMgTmV3IFJvbWFuJywgc2VyaWYiIGZvbnQtc2l6ZT0iNTAiIGZpbGw9IiMzYTMwMzQiPnE8L3RleHQ+PHJlY3QgeD0iMzkiIHk9IjUxMiIgd2lkdGg9IjY2IiBoZWlnaHQ9IjkwIiByeD0iNCIgZmlsbD0iI2IzYTdhYSIvPjx0ZXh0IHg9IjcyLjAiIHk9IjU3My4yIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iR2VvcmdpYSwgJ1RpbWVzIE5ldyBSb21hbicsIHNlcmlmIiBmb250LXNpemU9IjUwIiBmaWxsPSIjM2EzMDM0Ij5qPC90ZXh0PjxyZWN0IHg9IjExMSIgeT0iNTEyIiB3aWR0aD0iNTgiIGhlaWdodD0iOTAiIHJ4PSI0IiBmaWxsPSIjOGY4NDg3Ii8+PHRleHQgeD0iMTQwLjAiIHk9IjU3My4yIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iR2VvcmdpYSwgJ1RpbWVzIE5ldyBSb21hbicsIHNlcmlmIiBmb250LXNpemU9IjUwIiBmaWxsPSIjM2EzMDM0Ij5zPC90ZXh0PjxyZWN0IHg9IjE3NSIgeT0iNTEyIiB3aWR0aD0iOTAiIGhlaWdodD0iOTAiIHJ4PSI0IiBmaWxsPSIjN2Q3MTc1Ii8+PHRleHQgeD0iMjIwLjAiIHk9IjU3My4yIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iR2VvcmdpYSwgJ1RpbWVzIE5ldyBSb21hbicsIHNlcmlmIiBmb250LXNpemU9IjUwIiBmaWxsPSIjM2EzMDM0Ij5pPC90ZXh0PjxyZWN0IHg9IjI3MSIgeT0iNTEyIiB3aWR0aD0iOTAiIGhlaWdodD0iOTAiIHJ4PSI0IiBmaWxsPSIjOGY4NDg3Ii8+PHRleHQgeD0iMzE2LjAiIHk9IjU3My4yIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iR2VvcmdpYSwgJ1RpbWVzIE5ldyBSb21hbicsIHNlcmlmIiBmb250LXNpemU9IjUwIiBmaWxsPSIjM2EzMDM0Ij54PC90ZXh0PjxyZWN0IHg9IjM2NyIgeT0iNTEyIiB3aWR0aD0iOTAiIGhlaWdodD0iOTAiIHJ4PSI0IiBmaWxsPSIjN2Q3MTc1Ii8+PHRleHQgeD0iNDEyLjAiIHk9IjU3My4yIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iR2VvcmdpYSwgJ1RpbWVzIE5ldyBSb21hbicsIHNlcmlmIiBmb250LXNpemU9IjUwIiBmaWxsPSIjM2EzMDM0Ij5nPC90ZXh0PjxyZWN0IHg9IjQ2MyIgeT0iNTEyIiB3aWR0aD0iNDgiIGhlaWdodD0iOTAiIHJ4PSI0IiBmaWxsPSIjN2Q3MTc1Ii8+PHRleHQgeD0iNDg3LjAiIHk9IjU3My4yIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iR2VvcmdpYSwgJ1RpbWVzIE5ldyBSb21hbicsIHNlcmlmIiBmb250LXNpemU9IjUwIiBmaWxsPSIjM2EzMDM0Ij55PC90ZXh0PjxyZWN0IHg9IjUxNyIgeT0iNTEyIiB3aWR0aD0iNjYiIGhlaWdodD0iOTAiIHJ4PSI0IiBmaWxsPSIjYTI5NzlhIi8+PHRleHQgeD0iNTUwLjAiIHk9IjU3My4yIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iR2VvcmdpYSwgJ1RpbWVzIE5ldyBSb21hbicsIHNlcmlmIiBmb250LXNpemU9IjUwIiBmaWxsPSIjM2EzMDM0Ij51PC90ZXh0PjxyZWN0IHg9IjU4OSIgeT0iNTEyIiB3aWR0aD0iNTgiIGhlaWdodD0iOTAiIHJ4PSI0IiBmaWxsPSIjN2Q3MTc1Ii8+PHRleHQgeD0iNjE4LjAiIHk9IjU3My4yIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iR2VvcmdpYSwgJ1RpbWVzIE5ldyBSb21hbicsIHNlcmlmIiBmb250LXNpemU9IjUwIiBmaWxsPSIjM2EzMDM0Ij5nPC90ZXh0PjxyZWN0IHg9IjY1MyIgeT0iNTEyIiB3aWR0aD0iNTgiIGhlaWdodD0iOTAiIHJ4PSI0IiBmaWxsPSIjYTI5NzlhIi8+PHRleHQgeD0iNjgyLjAiIHk9IjU3My4yIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iR2VvcmdpYSwgJ1RpbWVzIE5ldyBSb21hbicsIHNlcmlmIiBmb250LXNpemU9IjUwIiBmaWxsPSIjM2EzMDM0Ij56PC90ZXh0PjxyZWN0IHg9IjcxNyIgeT0iNTEyIiB3aWR0aD0iNTgiIGhlaWdodD0iOTAiIHJ4PSI0IiBmaWxsPSIjYjNhN2FhIi8+PHRleHQgeD0iNzQ2LjAiIHk9IjU3My4yIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iR2VvcmdpYSwgJ1RpbWVzIE5ldyBSb21hbicsIHNlcmlmIiBmb250LXNpemU9IjUwIiBmaWxsPSIjM2EzMDM0Ij5xPC90ZXh0PjxyZWN0IHg9Ijc4MSIgeT0iNTEyIiB3aWR0aD0iNTgiIGhlaWdodD0iOTAiIHJ4PSI0IiBmaWxsPSIjYTI5NzlhIi8+PHRleHQgeD0iODEwLjAiIHk9IjU3My4yIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iR2VvcmdpYSwgJ1RpbWVzIE5ldyBSb21hbicsIHNlcmlmIiBmb250LXNpemU9IjUwIiBmaWxsPSIjM2EzMDM0Ij55PC90ZXh0PjxyZWN0IHg9Ijg0NSIgeT0iNTEyIiB3aWR0aD0iNzgiIGhlaWdodD0iOTAiIHJ4PSI0IiBmaWxsPSIjN2Q3MTc1Ii8+PHRleHQgeD0iODg0LjAiIHk9IjU3My4yIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iR2VvcmdpYSwgJ1RpbWVzIE5ldyBSb21hbicsIHNlcmlmIiBmb250LXNpemU9IjUwIiBmaWxsPSIjM2EzMDM0Ij5xPC90ZXh0PjxyZWN0IHg9IjkyOSIgeT0iNTEyIiB3aWR0aD0iNDgiIGhlaWdodD0iOTAiIHJ4PSI0IiBmaWxsPSIjOGY4NDg3Ii8+PHRleHQgeD0iOTUzLjAiIHk9IjU3My4yIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iR2VvcmdpYSwgJ1RpbWVzIE5ldyBSb21hbicsIHNlcmlmIiBmb250LXNpemU9IjUwIiBmaWxsPSIjM2EzMDM0Ij56PC90ZXh0PjxyZWN0IHg9Ijk4MyIgeT0iNTEyIiB3aWR0aD0iNjYiIGhlaWdodD0iOTAiIHJ4PSI0IiBmaWxsPSIjYjNhN2FhIi8+PHRleHQgeD0iMTAxNi4wIiB5PSI1NzMuMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZiIgZm9udC1zaXplPSI1MCIgZmlsbD0iIzNhMzAzNCI+cjwvdGV4dD48cmVjdCB4PSIxMDU1IiB5PSI1MTIiIHdpZHRoPSI1OCIgaGVpZ2h0PSI5MCIgcng9IjQiIGZpbGw9IiM3ZDcxNzUiLz48dGV4dCB4PSIxMDg0LjAiIHk9IjU3My4yIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iR2VvcmdpYSwgJ1RpbWVzIE5ldyBSb21hbicsIHNlcmlmIiBmb250LXNpemU9IjUwIiBmaWxsPSIjM2EzMDM0Ij5mPC90ZXh0PjxyZWN0IHg9IjExMTkiIHk9IjUxMiIgd2lkdGg9IjY2IiBoZWlnaHQ9IjkwIiByeD0iNCIgZmlsbD0iIzdkNzE3NSIvPjx0ZXh0IHg9IjExNTIuMCIgeT0iNTczLjIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJHZW9yZ2lhLCAnVGltZXMgTmV3IFJvbWFuJywgc2VyaWYiIGZvbnQtc2l6ZT0iNTAiIGZpbGw9IiMzYTMwMzQiPmE8L3RleHQ+PHJlY3QgeD0iMTE5MSIgeT0iNTEyIiB3aWR0aD0iNTgiIGhlaWdodD0iOTAiIHJ4PSI0IiBmaWxsPSIjOGY4NDg3Ii8+PHRleHQgeD0iMTIyMC4wIiB5PSI1NzMuMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZiIgZm9udC1zaXplPSI1MCIgZmlsbD0iIzNhMzAzNCI+aDwvdGV4dD48cmVjdCB4PSIxMCIgeT0iNjEwIiB3aWR0aD0iNjYiIGhlaWdodD0iOTAiIHJ4PSI0IiBmaWxsPSIjYTI5NzlhIi8+PHRleHQgeD0iNDMuMCIgeT0iNjcxLjIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJHZW9yZ2lhLCAnVGltZXMgTmV3IFJvbWFuJywgc2VyaWYiIGZvbnQtc2l6ZT0iNTAiIGZpbGw9IiMzYTMwMzQiPnc8L3RleHQ+PHJlY3QgeD0iODIiIHk9IjYxMCIgd2lkdGg9IjkwIiBoZWlnaHQ9IjkwIiByeD0iNCIgZmlsbD0iIzhmODQ4NyIvPjx0ZXh0IHg9IjEyNy4wIiB5PSI2NzEuMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZiIgZm9udC1zaXplPSI1MCIgZmlsbD0iIzNhMzAzNCI+dzwvdGV4dD48cmVjdCB4PSIxNzgiIHk9IjYxMCIgd2lkdGg9IjY2IiBoZWlnaHQ9IjkwIiByeD0iNCIgZmlsbD0iIzhmODQ4NyIvPjx0ZXh0IHg9IjIxMS4wIiB5PSI2NzEuMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZiIgZm9udC1zaXplPSI1MCIgZmlsbD0iIzNhMzAzNCI+azwvdGV4dD48cmVjdCB4PSIyNTAiIHk9IjYxMCIgd2lkdGg9IjQ4IiBoZWlnaHQ9IjkwIiByeD0iNCIgZmlsbD0iI2IzYTdhYSIvPjx0ZXh0IHg9IjI3NC4wIiB5PSI2NzEuMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZiIgZm9udC1zaXplPSI1MCIgZmlsbD0iIzNhMzAzNCI+ejwvdGV4dD48cmVjdCB4PSIzMDQiIHk9IjYxMCIgd2lkdGg9IjU4IiBoZWlnaHQ9IjkwIiByeD0iNCIgZmlsbD0iI2IzYTdhYSIvPjx0ZXh0IHg9IjMzMy4wIiB5PSI2NzEuMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZiIgZm9udC1zaXplPSI1MCIgZmlsbD0iIzNhMzAzNCI+bjwvdGV4dD48cmVjdCB4PSIzNjgiIHk9IjYxMCIgd2lkdGg9Ijc4IiBoZWlnaHQ9IjkwIiByeD0iNCIgZmlsbD0iIzdkNzE3NSIvPjx0ZXh0IHg9IjQwNy4wIiB5PSI2NzEuMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZiIgZm9udC1zaXplPSI1MCIgZmlsbD0iIzNhMzAzNCI+YTwvdGV4dD48cmVjdCB4PSI0NTIiIHk9IjYxMCIgd2lkdGg9Ijc4IiBoZWlnaHQ9IjkwIiByeD0iNCIgZmlsbD0iI2IzYTdhYSIvPjx0ZXh0IHg9IjQ5MS4wIiB5PSI2NzEuMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZiIgZm9udC1zaXplPSI1MCIgZmlsbD0iIzNhMzAzNCI+YzwvdGV4dD48cmVjdCB4PSI1MzYiIHk9IjYxMCIgd2lkdGg9IjQ4IiBoZWlnaHQ9IjkwIiByeD0iNCIgZmlsbD0iI2EyOTc5YSIvPjx0ZXh0IHg9IjU2MC4wIiB5PSI2NzEuMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZiIgZm9udC1zaXplPSI1MCIgZmlsbD0iIzNhMzAzNCI+bjwvdGV4dD48cmVjdCB4PSI1OTAiIHk9IjYxMCIgd2lkdGg9IjU4IiBoZWlnaHQ9IjkwIiByeD0iNCIgZmlsbD0iIzhmODQ4NyIvPjx0ZXh0IHg9IjYxOS4wIiB5PSI2NzEuMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZiIgZm9udC1zaXplPSI1MCIgZmlsbD0iIzNhMzAzNCI+aTwvdGV4dD48cmVjdCB4PSI2NTQiIHk9IjYxMCIgd2lkdGg9IjkwIiBoZWlnaHQ9IjkwIiByeD0iNCIgZmlsbD0iI2IzYTdhYSIvPjx0ZXh0IHg9IjY5OS4wIiB5PSI2NzEuMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZiIgZm9udC1zaXplPSI1MCIgZmlsbD0iIzNhMzAzNCI+ejwvdGV4dD48cmVjdCB4PSI3NTAiIHk9IjYxMCIgd2lkdGg9IjU4IiBoZWlnaHQ9IjkwIiByeD0iNCIgZmlsbD0iI2IzYTdhYSIvPjx0ZXh0IHg9Ijc3OS4wIiB5PSI2NzEuMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZiIgZm9udC1zaXplPSI1MCIgZmlsbD0iIzNhMzAzNCI+azwvdGV4dD48cmVjdCB4PSI4MTQiIHk9IjYxMCIgd2lkdGg9IjY2IiBoZWlnaHQ9IjkwIiByeD0iNCIgZmlsbD0iI2EyOTc5YSIvPjx0ZXh0IHg9Ijg0Ny4wIiB5PSI2NzEuMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZiIgZm9udC1zaXplPSI1MCIgZmlsbD0iIzNhMzAzNCI+cDwvdGV4dD48cmVjdCB4PSI4ODYiIHk9IjYxMCIgd2lkdGg9IjkwIiBoZWlnaHQ9IjkwIiByeD0iNCIgZmlsbD0iI2EyOTc5YSIvPjx0ZXh0IHg9IjkzMS4wIiB5PSI2NzEuMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZiIgZm9udC1zaXplPSI1MCIgZmlsbD0iIzNhMzAzNCI+ZTwvdGV4dD48cmVjdCB4PSI5ODIiIHk9IjYxMCIgd2lkdGg9IjQ4IiBoZWlnaHQ9IjkwIiByeD0iNCIgZmlsbD0iIzhmODQ4NyIvPjx0ZXh0IHg9IjEwMDYuMCIgeT0iNjcxLjIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJHZW9yZ2lhLCAnVGltZXMgTmV3IFJvbWFuJywgc2VyaWYiIGZvbnQtc2l6ZT0iNTAiIGZpbGw9IiMzYTMwMzQiPnk8L3RleHQ+PHJlY3QgeD0iMTAzNiIgeT0iNjEwIiB3aWR0aD0iNTgiIGhlaWdodD0iOTAiIHJ4PSI0IiBmaWxsPSIjYjNhN2FhIi8+PHRleHQgeD0iMTA2NS4wIiB5PSI2NzEuMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZiIgZm9udC1zaXplPSI1MCIgZmlsbD0iIzNhMzAzNCI+czwvdGV4dD48cmVjdCB4PSIxMTAwIiB5PSI2MTAiIHdpZHRoPSI1OCIgaGVpZ2h0PSI5MCIgcng9IjQiIGZpbGw9IiM4Zjg0ODciLz48dGV4dCB4PSIxMTI5LjAiIHk9IjY3MS4yIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iR2VvcmdpYSwgJ1RpbWVzIE5ldyBSb21hbicsIHNlcmlmIiBmb250LXNpemU9IjUwIiBmaWxsPSIjM2EzMDM0Ij5yPC90ZXh0PjxyZWN0IHg9IjExNjQiIHk9IjYxMCIgd2lkdGg9IjU4IiBoZWlnaHQ9IjkwIiByeD0iNCIgZmlsbD0iIzdkNzE3NSIvPjx0ZXh0IHg9IjExOTMuMCIgeT0iNjcxLjIiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJHZW9yZ2lhLCAnVGltZXMgTmV3IFJvbWFuJywgc2VyaWYiIGZvbnQtc2l6ZT0iNTAiIGZpbGw9IiMzYTMwMzQiPnk8L3RleHQ+PHJlY3QgeD0iLTUiIHk9IjcwOCIgd2lkdGg9IjY2IiBoZWlnaHQ9IjEzMCIgcng9IjQiIGZpbGw9IiM3ZDcxNzUiLz48dGV4dCB4PSIyOC4wIiB5PSI3OTYuNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZiIgZm9udC1zaXplPSI3MiIgZmlsbD0iIzNhMzAzNCI+cDwvdGV4dD48cmVjdCB4PSI2NyIgeT0iNzA4IiB3aWR0aD0iNzgiIGhlaWdodD0iMTMwIiByeD0iNCIgZmlsbD0iI2EyOTc5YSIvPjx0ZXh0IHg9IjEwNi4wIiB5PSI3OTYuNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZiIgZm9udC1zaXplPSI3MiIgZmlsbD0iIzNhMzAzNCI+dDwvdGV4dD48cmVjdCB4PSIxNTEiIHk9IjcwOCIgd2lkdGg9IjY2IiBoZWlnaHQ9IjEzMCIgcng9IjQiIGZpbGw9IiNiM2E3YWEiLz48dGV4dCB4PSIxODQuMCIgeT0iNzk2LjQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJHZW9yZ2lhLCAnVGltZXMgTmV3IFJvbWFuJywgc2VyaWYiIGZvbnQtc2l6ZT0iNzIiIGZpbGw9IiMzYTMwMzQiPms8L3RleHQ+PHJlY3QgeD0iMjIzIiB5PSI3MDgiIHdpZHRoPSI5MCIgaGVpZ2h0PSIxMzAiIHJ4PSI0IiBmaWxsPSIjYjNhN2FhIi8+PHRleHQgeD0iMjY4LjAiIHk9Ijc5Ni40IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iR2VvcmdpYSwgJ1RpbWVzIE5ldyBSb21hbicsIHNlcmlmIiBmb250LXNpemU9IjcyIiBmaWxsPSIjM2EzMDM0Ij55PC90ZXh0PjxyZWN0IHg9IjMxOSIgeT0iNzA4IiB3aWR0aD0iNTgiIGhlaWdodD0iMTMwIiByeD0iNCIgZmlsbD0iI2EyOTc5YSIvPjx0ZXh0IHg9IjM0OC4wIiB5PSI3OTYuNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZiIgZm9udC1zaXplPSI3MiIgZmlsbD0iIzNhMzAzNCI+eTwvdGV4dD48cmVjdCB4PSIzODMiIHk9IjcwOCIgd2lkdGg9IjkwIiBoZWlnaHQ9IjEzMCIgcng9IjQiIGZpbGw9IiM4Zjg0ODciLz48dGV4dCB4PSI0MjguMCIgeT0iNzk2LjQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJHZW9yZ2lhLCAnVGltZXMgTmV3IFJvbWFuJywgc2VyaWYiIGZvbnQtc2l6ZT0iNzIiIGZpbGw9IiMzYTMwMzQiPmY8L3RleHQ+PHJlY3QgeD0iNDc5IiB5PSI3MDgiIHdpZHRoPSI1OCIgaGVpZ2h0PSIxMzAiIHJ4PSI0IiBmaWxsPSIjOGY4NDg3Ii8+PHRleHQgeD0iNTA4LjAiIHk9Ijc5Ni40IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iR2VvcmdpYSwgJ1RpbWVzIE5ldyBSb21hbicsIHNlcmlmIiBmb250LXNpemU9IjcyIiBmaWxsPSIjM2EzMDM0Ij54PC90ZXh0PjxyZWN0IHg9IjU0MyIgeT0iNzA4IiB3aWR0aD0iNTgiIGhlaWdodD0iMTMwIiByeD0iNCIgZmlsbD0iI2EyOTc5YSIvPjx0ZXh0IHg9IjU3Mi4wIiB5PSI3OTYuNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZiIgZm9udC1zaXplPSI3MiIgZmlsbD0iIzNhMzAzNCI+aTwvdGV4dD48cmVjdCB4PSI2MDciIHk9IjcwOCIgd2lkdGg9Ijc4IiBoZWlnaHQ9IjEzMCIgcng9IjQiIGZpbGw9IiM4Zjg0ODciLz48dGV4dCB4PSI2NDYuMCIgeT0iNzk2LjQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJHZW9yZ2lhLCAnVGltZXMgTmV3IFJvbWFuJywgc2VyaWYiIGZvbnQtc2l6ZT0iNzIiIGZpbGw9IiMzYTMwMzQiPnA8L3RleHQ+PHJlY3QgeD0iNjkxIiB5PSI3MDgiIHdpZHRoPSI0OCIgaGVpZ2h0PSIxMzAiIHJ4PSI0IiBmaWxsPSIjN2Q3MTc1Ii8+PHRleHQgeD0iNzE1LjAiIHk9Ijc5Ni40IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iR2VvcmdpYSwgJ1RpbWVzIE5ldyBSb21hbicsIHNlcmlmIiBmb250LXNpemU9IjcyIiBmaWxsPSIjM2EzMDM0Ij5rPC90ZXh0PjxyZWN0IHg9Ijc0NSIgeT0iNzA4IiB3aWR0aD0iOTAiIGhlaWdodD0iMTMwIiByeD0iNCIgZmlsbD0iI2IzYTdhYSIvPjx0ZXh0IHg9Ijc5MC4wIiB5PSI3OTYuNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZiIgZm9udC1zaXplPSI3MiIgZmlsbD0iIzNhMzAzNCI+ejwvdGV4dD48cmVjdCB4PSI4NDEiIHk9IjcwOCIgd2lkdGg9IjQ4IiBoZWlnaHQ9IjEzMCIgcng9IjQiIGZpbGw9IiM4Zjg0ODciLz48dGV4dCB4PSI4NjUuMCIgeT0iNzk2LjQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJHZW9yZ2lhLCAnVGltZXMgTmV3IFJvbWFuJywgc2VyaWYiIGZvbnQtc2l6ZT0iNzIiIGZpbGw9IiMzYTMwMzQiPmg8L3RleHQ+PHJlY3QgeD0iODk1IiB5PSI3MDgiIHdpZHRoPSI1OCIgaGVpZ2h0PSIxMzAiIHJ4PSI0IiBmaWxsPSIjN2Q3MTc1Ii8+PHRleHQgeD0iOTI0LjAiIHk9Ijc5Ni40IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iR2VvcmdpYSwgJ1RpbWVzIE5ldyBSb21hbicsIHNlcmlmIiBmb250LXNpemU9IjcyIiBmaWxsPSIjM2EzMDM0Ij50PC90ZXh0PjxyZWN0IHg9Ijk1OSIgeT0iNzA4IiB3aWR0aD0iNDgiIGhlaWdodD0iMTMwIiByeD0iNCIgZmlsbD0iI2IzYTdhYSIvPjx0ZXh0IHg9Ijk4My4wIiB5PSI3OTYuNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZiIgZm9udC1zaXplPSI3MiIgZmlsbD0iIzNhMzAzNCI+cDwvdGV4dD48cmVjdCB4PSIxMDEzIiB5PSI3MDgiIHdpZHRoPSI0OCIgaGVpZ2h0PSIxMzAiIHJ4PSI0IiBmaWxsPSIjOGY4NDg3Ii8+PHRleHQgeD0iMTAzNy4wIiB5PSI3OTYuNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZiIgZm9udC1zaXplPSI3MiIgZmlsbD0iIzNhMzAzNCI+ZjwvdGV4dD48cmVjdCB4PSIxMDY3IiB5PSI3MDgiIHdpZHRoPSI2NiIgaGVpZ2h0PSIxMzAiIHJ4PSI0IiBmaWxsPSIjYTI5NzlhIi8+PHRleHQgeD0iMTEwMC4wIiB5PSI3OTYuNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZiIgZm9udC1zaXplPSI3MiIgZmlsbD0iIzNhMzAzNCI+ajwvdGV4dD48cmVjdCB4PSIxMTM5IiB5PSI3MDgiIHdpZHRoPSI2NiIgaGVpZ2h0PSIxMzAiIHJ4PSI0IiBmaWxsPSIjYjNhN2FhIi8+PHRleHQgeD0iMTE3Mi4wIiB5PSI3OTYuNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZiIgZm9udC1zaXplPSI3MiIgZmlsbD0iIzNhMzAzNCI+eTwvdGV4dD48cmVjdCB4PSIxNCIgeT0iODQ2IiB3aWR0aD0iOTAiIGhlaWdodD0iMTEwIiByeD0iNCIgZmlsbD0iI2EyOTc5YSIvPjx0ZXh0IHg9IjU5LjAiIHk9IjkyMC44IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iR2VvcmdpYSwgJ1RpbWVzIE5ldyBSb21hbicsIHNlcmlmIiBmb250LXNpemU9IjYxIiBmaWxsPSIjM2EzMDM0Ij5qPC90ZXh0PjxyZWN0IHg9IjExMCIgeT0iODQ2IiB3aWR0aD0iOTAiIGhlaWdodD0iMTEwIiByeD0iNCIgZmlsbD0iIzdkNzE3NSIvPjx0ZXh0IHg9IjE1NS4wIiB5PSI5MjAuOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZiIgZm9udC1zaXplPSI2MSIgZmlsbD0iIzNhMzAzNCI+cDwvdGV4dD48cmVjdCB4PSIyMDYiIHk9Ijg0NiIgd2lkdGg9IjU4IiBoZWlnaHQ9IjExMCIgcng9IjQiIGZpbGw9IiNiM2E3YWEiLz48dGV4dCB4PSIyMzUuMCIgeT0iOTIwLjgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJHZW9yZ2lhLCAnVGltZXMgTmV3IFJvbWFuJywgc2VyaWYiIGZvbnQtc2l6ZT0iNjEiIGZpbGw9IiMzYTMwMzQiPmk8L3RleHQ+PHJlY3QgeD0iMjcwIiB5PSI4NDYiIHdpZHRoPSI3OCIgaGVpZ2h0PSIxMTAiIHJ4PSI0IiBmaWxsPSIjOGY4NDg3Ii8+PHRleHQgeD0iMzA5LjAiIHk9IjkyMC44IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iR2VvcmdpYSwgJ1RpbWVzIE5ldyBSb21hbicsIHNlcmlmIiBmb250LXNpemU9IjYxIiBmaWxsPSIjM2EzMDM0Ij5jPC90ZXh0PjxyZWN0IHg9IjM1NCIgeT0iODQ2IiB3aWR0aD0iNzgiIGhlaWdodD0iMTEwIiByeD0iNCIgZmlsbD0iIzdkNzE3NSIvPjx0ZXh0IHg9IjM5My4wIiB5PSI5MjAuOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZiIgZm9udC1zaXplPSI2MSIgZmlsbD0iIzNhMzAzNCI+YTwvdGV4dD48cmVjdCB4PSI0MzgiIHk9Ijg0NiIgd2lkdGg9IjU4IiBoZWlnaHQ9IjExMCIgcng9IjQiIGZpbGw9IiNiM2E3YWEiLz48dGV4dCB4PSI0NjcuMCIgeT0iOTIwLjgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJHZW9yZ2lhLCAnVGltZXMgTmV3IFJvbWFuJywgc2VyaWYiIGZvbnQtc2l6ZT0iNjEiIGZpbGw9IiMzYTMwMzQiPmE8L3RleHQ+PHJlY3QgeD0iNTAyIiB5PSI4NDYiIHdpZHRoPSI1OCIgaGVpZ2h0PSIxMTAiIHJ4PSI0IiBmaWxsPSIjN2Q3MTc1Ii8+PHRleHQgeD0iNTMxLjAiIHk9IjkyMC44IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iR2VvcmdpYSwgJ1RpbWVzIE5ldyBSb21hbicsIHNlcmlmIiBmb250LXNpemU9IjYxIiBmaWxsPSIjM2EzMDM0Ij56PC90ZXh0PjxyZWN0IHg9IjU2NiIgeT0iODQ2IiB3aWR0aD0iNDgiIGhlaWdodD0iMTEwIiByeD0iNCIgZmlsbD0iI2EyOTc5YSIvPjx0ZXh0IHg9IjU5MC4wIiB5PSI5MjAuOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZiIgZm9udC1zaXplPSI2MSIgZmlsbD0iIzNhMzAzNCI+ajwvdGV4dD48cmVjdCB4PSI2MjAiIHk9Ijg0NiIgd2lkdGg9IjY2IiBoZWlnaHQ9IjExMCIgcng9IjQiIGZpbGw9IiNhMjk3OWEiLz48dGV4dCB4PSI2NTMuMCIgeT0iOTIwLjgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJHZW9yZ2lhLCAnVGltZXMgTmV3IFJvbWFuJywgc2VyaWYiIGZvbnQtc2l6ZT0iNjEiIGZpbGw9IiMzYTMwMzQiPnI8L3RleHQ+PHJlY3QgeD0iNjkyIiB5PSI4NDYiIHdpZHRoPSI1OCIgaGVpZ2h0PSIxMTAiIHJ4PSI0IiBmaWxsPSIjYjNhN2FhIi8+PHRleHQgeD0iNzIxLjAiIHk9IjkyMC44IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iR2VvcmdpYSwgJ1RpbWVzIE5ldyBSb21hbicsIHNlcmlmIiBmb250LXNpemU9IjYxIiBmaWxsPSIjM2EzMDM0Ij5oPC90ZXh0PjxyZWN0IHg9Ijc1NiIgeT0iODQ2IiB3aWR0aD0iNDgiIGhlaWdodD0iMTEwIiByeD0iNCIgZmlsbD0iI2IzYTdhYSIvPjx0ZXh0IHg9Ijc4MC4wIiB5PSI5MjAuOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZiIgZm9udC1zaXplPSI2MSIgZmlsbD0iIzNhMzAzNCI+dzwvdGV4dD48cmVjdCB4PSI4MTAiIHk9Ijg0NiIgd2lkdGg9IjU4IiBoZWlnaHQ9IjExMCIgcng9IjQiIGZpbGw9IiNhMjk3OWEiLz48dGV4dCB4PSI4MzkuMCIgeT0iOTIwLjgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJHZW9yZ2lhLCAnVGltZXMgTmV3IFJvbWFuJywgc2VyaWYiIGZvbnQtc2l6ZT0iNjEiIGZpbGw9IiMzYTMwMzQiPm48L3RleHQ+PHJlY3QgeD0iODc0IiB5PSI4NDYiIHdpZHRoPSI3OCIgaGVpZ2h0PSIxMTAiIHJ4PSI0IiBmaWxsPSIjYjNhN2FhIi8+PHRleHQgeD0iOTEzLjAiIHk9IjkyMC44IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iR2VvcmdpYSwgJ1RpbWVzIE5ldyBSb21hbicsIHNlcmlmIiBmb250LXNpemU9IjYxIiBmaWxsPSIjM2EzMDM0Ij5sPC90ZXh0PjxyZWN0IHg9Ijk1OCIgeT0iODQ2IiB3aWR0aD0iNzgiIGhlaWdodD0iMTEwIiByeD0iNCIgZmlsbD0iI2EyOTc5YSIvPjx0ZXh0IHg9Ijk5Ny4wIiB5PSI5MjAuOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZiIgZm9udC1zaXplPSI2MSIgZmlsbD0iIzNhMzAzNCI+dTwvdGV4dD48cmVjdCB4PSIxMDQyIiB5PSI4NDYiIHdpZHRoPSI2NiIgaGVpZ2h0PSIxMTAiIHJ4PSI0IiBmaWxsPSIjOGY4NDg3Ii8+PHRleHQgeD0iMTA3NS4wIiB5PSI5MjAuOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZiIgZm9udC1zaXplPSI2MSIgZmlsbD0iIzNhMzAzNCI+cTwvdGV4dD48cmVjdCB4PSIxMTE0IiB5PSI4NDYiIHdpZHRoPSI2NiIgaGVpZ2h0PSIxMTAiIHJ4PSI0IiBmaWxsPSIjOGY4NDg3Ii8+PHRleHQgeD0iMTE0Ny4wIiB5PSI5MjAuOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZiIgZm9udC1zaXplPSI2MSIgZmlsbD0iIzNhMzAzNCI+bDwvdGV4dD48cmVjdCB4PSIxMTg2IiB5PSI4NDYiIHdpZHRoPSI5MCIgaGVpZ2h0PSIxMTAiIHJ4PSI0IiBmaWxsPSIjYjNhN2FhIi8+PHRleHQgeD0iMTIzMS4wIiB5PSI5MjAuOCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9Ikdlb3JnaWEsICdUaW1lcyBOZXcgUm9tYW4nLCBzZXJpZiIgZm9udC1zaXplPSI2MSIgZmlsbD0iIzNhMzAzNCI+ZjwvdGV4dD48L3N2Zz4=",
+    "detail-1": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA4MDAgODAwIj48cmVjdCB3aWR0aD0iODAwIiBoZWlnaHQ9IjgwMCIgZmlsbD0iIzhhMmM0MyIvPjx0ZXh0IHg9IjQwMCIgeT0iNTYwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iR2VvcmdpYSwgJ1RpbWVzIE5ldyBSb21hbicsIHNlcmlmIiBmb250LXNpemU9IjUyMCIgZmlsbD0iI2Y0ZThlNiI+JmFtcDs8L3RleHQ+PC9zdmc+", "detail-2": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA4MDAgODAwIj48cmVjdCB3aWR0aD0iODAwIiBoZWlnaHQ9IjgwMCIgZmlsbD0iI2Y0ZThlNiIvPjx0ZXh0IHg9IjQwMCIgeT0iNTYwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iR2VvcmdpYSwgJ1RpbWVzIE5ldyBSb21hbicsIHNlcmlmIiBmb250LXNpemU9IjUyMCIgZmlsbD0iIzIzMWMxZiI+UTwvdGV4dD48L3N2Zz4=", "detail-3": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA4MDAgODAwIj48cmVjdCB3aWR0aD0iODAwIiBoZWlnaHQ9IjgwMCIgZmlsbD0iIzIzMWMxZiIvPjx0ZXh0IHg9IjQwMCIgeT0iNTYwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iR2VvcmdpYSwgJ1RpbWVzIE5ldyBSb21hbicsIHNlcmlmIiBmb250LXNpemU9IjUyMCIgZmlsbD0iI2U5YTNiNCI+w588L3RleHQ+PC9zdmc+", "detail-4": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA4MDAgODAwIj48cmVjdCB3aWR0aD0iODAwIiBoZWlnaHQ9IjgwMCIgZmlsbD0iI2VjZGNkOSIvPjx0ZXh0IHg9IjQwMCIgeT0iNTYwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSI1MjAiIGZpbGw9IiM4YTJjNDMiPmE8L3RleHQ+PC9zdmc+"
+  };
+  var ALTS = {
+    "grid": "A twelve-column grid in pale rose with dark and white blocks laid across it and a lowercase g on its baseline.",
+    "specimen": "A dark specimen sheet with a large Aa and a waterfall of sample text in decreasing sizes.",
+    "rows": "A table drawn only with horizontal rules, one column of values picked out in madder.",
+    "sorts": "Rows of metal type sorts seen from above, each a gray block with a letter on it.",
+    "detail-1": "An ampersand in pale rose on madder.", "detail-2": "A capital Q in near-black on blush.",
+    "detail-3": "A sharp s in rose on near-black.", "detail-4": "A sans-serif lowercase a in madder on pale rose."
+  };
+  var PER_PAGE = { home: 7, archive: 15, list: 7 };
+  var MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+
+  var app = document.getElementById("app");
+  var posts = POSTS.slice().sort(function (a, b) { return a.date < b.date ? 1 : -1; });
+
+  /* ---- Helpers --------------------------------------------------------- */
+
+  function esc(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
+  function date(d, withYear) {
+    var p = d.split("-"), s = MONTHS[+p[1] - 1] + " " + (+p[2]);
+    return withYear === false ? s : s + ", " + p[0];
+  }
+  function postUrl(p) { return "#/writing/" + p.slug; }
+  function authorUrl(k) { return "#/authors/" + k; }
+  function topicUrl(k) { return "#/topics/" + k; }
+  function sentence(items) {
+    if (items.length < 2) return items.join("");
+    return items.slice(0, -1).join(", ") + " and " + items[items.length - 1];
+  }
+  function authorLinks(keys, first) {
+    return sentence(keys.map(function (k) { return '<a href="' + authorUrl(k) + '">' + esc(first ? AUTHORS[k].first : AUTHORS[k].name) + "</a>"; }));
+  }
+  function topicLinks(keys) {
+    return sentence(keys.map(function (k) { return '<a href="' + topicUrl(k) + '">' + esc(TOPICS[k].name) + "</a>"; }));
+  }
+  function cap(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+
+  function blocks(body) {
+    if (typeof body === "string" && body.indexOf("@html:") === 0) return TEMPLATES[body.slice(6)] || "";
+    var out = [], list = null;
+    body.forEach(function (b) {
+      if (b.indexOf("- ") === 0) { (list = list || []).push("<li>" + b.slice(2) + "</li>"); return; }
+      if (list) { out.push('<ul class="steps-plain">' + list.join("") + "</ul>"); list = null; }
+      if (b.indexOf("## ") === 0) out.push("<h2>" + b.slice(3) + "</h2>");
+      else if (b.indexOf("> ") === 0) out.push('<figure class="pull"><blockquote><p>' + b.slice(2) + "</p></blockquote></figure>");
+      else out.push("<p>" + b + "</p>");
+    });
+    if (list) out.push('<ul class="steps-plain">' + list.join("") + "</ul>");
+    return '<div class="body">' + out.join("\n") + "</div>";
+  }
+  function readingTime(p) {
+    var text = typeof p.body === "string" ? (TEMPLATES[p.body.slice(6)] || "").replace(/<[^>]+>/g, " ") : p.body.join(" ");
+    var n = text.split(/\s+/).filter(Boolean).length;
+    var m = Math.max(1, Math.round(n / 230));
+    return "a " + m + " minute read";
+  }
+  function topicFamily(k) {
+    return Object.keys(TOPICS).filter(function (t) { return t === k || TOPICS[t].parent === k; });
+  }
+  function postsIn(k) {
+    var fam = topicFamily(k);
+    return posts.filter(function (p) { return p.topics.some(function (t) { return fam.indexOf(t) > -1; }); });
+  }
+  function postsBy(k) { return posts.filter(function (p) { return p.authors.indexOf(k) > -1; }); }
+
+  /* ---- Shared pieces --------------------------------------------------- */
+
+  function topicsSentence(lead, keys, cls) {
+    return '<div class="topics' + (cls ? " " + cls : "") + '"><span class="topics-lead">' + lead + "</span><ul>" +
+      keys.map(function (k) { return '<li><a href="' + topicUrl(k) + '">' + esc(TOPICS[k].name) + "</a></li>"; }).join("") + "</ul></div>";
+  }
+  function linksSentence(lead, items, cls) {
+    return '<div class="topics' + (cls ? " " + cls : "") + '"><span class="topics-lead">' + lead + "</span><ul>" +
+      items.map(function (i) { return '<li><a href="' + i[1] + '">' + esc(i[0]) + "</a></li>"; }).join("") + "</ul></div>";
+  }
+
+  /* An entry in a list. `meta` decides what the line under it says, so a list
+     never repeats what the page already says. */
+  function entry(p, meta) {
+    var line;
+    if (meta === "author") {
+      var others = p.authors.filter(function (a) { return a !== entry.author; });
+      line = date(p.date) + (others.length ? ", with " + authorLinks(others, true) : "") + ", in " + topicLinks(p.topics);
+    } else if (meta === "topic") {
+      line = date(p.date) + ", by " + authorLinks(p.authors, true);
+    } else {
+      line = date(p.date) + ", by " + authorLinks(p.authors, true);
+    }
+    return '<li class="entry"><h2><a href="' + postUrl(p) + '">' + esc(p.title) + "</a></h2><p>" + esc(p.summary) + '</p><p class="small">' + line + "</p></li>";
+  }
+
+  /* Pagination: where you are on the left; Newer, the numbers and Older on
+     the right. More than five pages collapse around the current one. */
+  function pager(label, base, cur, total) {
+    if (total < 2) return "";
+    var href = function (n) { return n === 1 ? base : base.replace(/\/$/, "") + "/page/" + n; };
+    var nums = [];
+    if (total <= 5) { for (var i = 1; i <= total; i++) nums.push(i); }
+    else {
+      var set = [1, total, cur - 1, cur, cur + 1];
+      if (cur <= 3) set.push(2, 3, 4);
+      if (cur >= total - 2) set.push(total - 1, total - 2, total - 3);
+      set = set.filter(function (n, idx) { return n >= 1 && n <= total && set.indexOf(n) === idx; }).sort(function (a, b) { return a - b; });
+      set.forEach(function (n, idx) { if (idx && n - set[idx - 1] > 1) nums.push(null); nums.push(n); });
+    }
+    var items = [];
+    if (cur > 1) items.push('<li class="prev"><a href="' + href(cur - 1) + '" rel="prev">Newer</a></li>');
+    nums.forEach(function (n) {
+      if (n === null) items.push('<li class="gap" aria-hidden="true">…</li>');
+      else if (n === cur) items.push('<li><span aria-current="page">' + n + "</span></li>");
+      else items.push('<li><a href="' + href(n) + '" aria-label="Page ' + n + '">' + n + "</a></li>");
+    });
+    if (cur < total) items.push('<li class="next"><a href="' + href(cur + 1) + '" rel="next">Older</a></li>');
+    return '<nav class="pager small" aria-label="' + esc(label) + '"><span>Page ' + cur + " of " + total + '</span><ol class="pages">' + items.join("") + "</ol></nav>";
+  }
+  function slice(list, per, page) {
+    var total = Math.max(1, Math.ceil(list.length / per));
+    return { items: list.slice((page - 1) * per, page * per), total: total, ok: page >= 1 && page <= total };
+  }
+
+  /* ---- Views ----------------------------------------------------------- */
+
+  function home(page) {
+    var s = slice(posts, PER_PAGE.home, page);
+    if (!s.ok) return notFound();
+    var head = page === 1
+      ? '<header class="band-head letterhead home-hero"><div class="col"><p class="by small"><span class="avatars" aria-hidden="true">' + Object.keys(AUTHORS).map(function (k) { return '<span class="avatar">' + AUTHORS[k].initials + "</span>"; }).join("") +
+        "</span><span>By " + authorLinks(Object.keys(AUTHORS)) + "</span></p><h1>" + esc(SITE.statement) + '</h1><p class="small where">' + esc(SITE.where) + '</p><p class="actions"><a class="btn primary" href="' + postUrl(posts[0]) + '">Read the Latest</a><a class="btn" href="#/about">About ' + esc(SITE.name) + "</a></p></div></header>"
+      : '<header class="band-head"><div class="col"><h1 class="title">Writing</h1><p class="standfirst">Page ' + page + " of everything we have published, newest first.</p></div></header>";
+    return { section: "writing", title: page === 1 ? SITE.name : "Writing, Page " + page,
+      html: head + '<div class="col"><ol class="entries">' + s.items.map(function (p) { return entry(p); }).join("") + "</ol>" + pager("More writing", "#/", page, s.total) + "</div>" };
+  }
+
+  function post(slug) {
+    var i = posts.findIndex(function (p) { return p.slug === slug; });
+    if (i < 0) return notFound();
+    var p = posts[i], older = posts[i + 1], newer = posts[i - 1];
+    var hero = p.image ? '<figure class="hero wide ratio-wide"><img src="' + IMAGES[p.image] + '" alt="' + esc(ALTS[p.image]) + '" width="1600" height="900"></figure>' : "";
+    var avatars = p.authors.map(function (k) { return '<span class="avatar">' + AUTHORS[k].initials + "</span>"; }).join("");
+    var cards = p.authors.map(function (k) {
+      var a = AUTHORS[k];
+      return '<div class="end-row"><p class="small">Written by</p><a class="prev" href="' + authorUrl(k) + '">' + esc(a.name) + '</a><p class="small" style="margin-top:.35rem;color:var(--ink-2)">' + esc(a.card) + "</p></div>";
+    }).join("");
+    var nav = "";
+    if (older) nav += '<div class="end-row"><p class="small">Previous</p><a class="prev" href="' + postUrl(older) + '">' + esc(older.title) + "</a></div>";
+    if (newer) nav += '<div class="end-row"><p class="small">Next</p><a class="prev" href="' + postUrl(newer) + '">' + esc(newer.title) + "</a></div>";
+    return { section: "writing", title: p.title,
+      html: '<article class="col"><h1 class="title">' + esc(p.title) + '</h1><p class="standfirst">' + esc(p.summary) + "</p>" +
+        '<div class="byline small"><span class="avatars" aria-hidden="true">' + avatars + '</span><span><span class="who">' + authorLinks(p.authors) + "</span><br>" + date(p.date) + ", " + readingTime(p) + "</span></div>" +
+        hero + blocks(p.body) +
+        '<div class="end"><div class="end-row">' + topicsSentence("Filed under", p.topics) + "</div>" + cards + nav + "</div></article>" };
+  }
+
+  function archive(page) {
+    var s = slice(posts, PER_PAGE.archive, page);
+    if (!s.ok) return notFound();
+    return { section: "archive", title: page === 1 ? "Archive" : "Archive, Page " + page,
+      html: '<div class="col"><h1 class="title">Archive</h1><p class="standfirst">Every post, newest first. ' + posts.length + ' so far.</p><ol class="compact">' +
+        s.items.map(function (p) { return '<li><a href="' + postUrl(p) + '">' + esc(p.title) + '</a><span class="small">' + date(p.date) + "</span></li>"; }).join("") +
+        "</ol>" + pager("More of the archive", "#/archive", page, s.total) + "</div>" };
+  }
+
+  function topicsIndex() {
+    var tops = Object.keys(TOPICS).filter(function (k) { return !TOPICS[k].parent; })
+      .sort(function (a, b) { return postsIn(b).length - postsIn(a).length; });
+    var list = tops.map(function (k) {
+      var t = TOPICS[k], all = postsIn(k), kids = Object.keys(TOPICS).filter(function (c) { return TOPICS[c].parent === k; });
+      return '<li class="entry"><h2><a href="' + topicUrl(k) + '">' + esc(t.name) + "</a></h2><p>" + esc(t.desc) + "</p>" +
+        (kids.length ? topicsSentence("Narrower topics", kids) : "") +
+        '<p class="small">' + all.length + " posts, most recently " + date(all[0].date) + "</p></li>";
+    }).join("");
+    return { section: "topics", title: "Topics",
+      html: '<div class="col"><header class="archive-head"><h1 class="title">Topics</h1><p class="standfirst">What we write about, roughly in order of how often.</p>' +
+        '<p class="topics say">' + posts.length + " posts across " + Object.keys(TOPICS).length + ' topics. Every one is also in <a href="#/archive">the archive</a>, newest first.</p></header>' +
+        '<ol class="entries">' + list + "</ol></div>" };
+  }
+
+  function topic(k, page) {
+    var t = TOPICS[k];
+    if (!t) return notFound();
+    var all = postsIn(k), s = slice(all, PER_PAGE.list, page);
+    if (!s.ok) return notFound();
+    var kids = Object.keys(TOPICS).filter(function (c) { return TOPICS[c].parent === k; });
+    var trail = '<p class="small kicker">' + (t.parent ? '<a href="' + topicUrl(t.parent) + '">' + esc(TOPICS[t.parent].name) + "</a>" : '<a href="#/topics">Topics</a>') + "</p>";
+    return { section: "topics", title: t.name + (page > 1 ? ", Page " + page : ""),
+      html: '<div class="col"><header class="archive-head">' + trail + '<h1 class="title">' + esc(t.name) + '</h1><p class="standfirst">' + esc(t.desc) + "</p>" +
+        (t.body ? '<div class="archive-body"><p>' + esc(t.body) + "</p></div>" : "") +
+        '<p class="topics say">' + all.length + (all.length === 1 ? " post" : " posts") +
+        (kids.length ? ", some filed more narrowly under " + topicLinks(kids) : " so far") + '. <a href="#/feed">Follow by feed</a>.</p></header>' +
+        '<ol class="entries">' + s.items.map(function (p) { return entry(p, "topic"); }).join("") + "</ol>" +
+        pager("More on " + t.name, topicUrl(k), page, s.total) + "</div>" };
+  }
+
+  function author(k, page) {
+    var a = AUTHORS[k];
+    if (!a) return notFound();
+    var all = postsBy(k), s = slice(all, PER_PAGE.list, page);
+    if (!s.ok) return notFound();
+    entry.author = k;
+    var first = all[all.length - 1].date.slice(0, 4);
+    return { section: "about", title: a.name + (page > 1 ? ", Page " + page : ""),
+      html: '<header class="band-head"><div class="col"><span class="avatar" aria-hidden="true">' + a.initials + '</span><h1 class="title">' + esc(a.name) + '</h1><p class="standfirst">' + esc(a.standfirst) + "</p>" +
+        '<div class="archive-body">' + a.bio.map(function (b) { return "<p>" + esc(b) + "</p>"; }).join("") + "</div>" +
+        "<p class=\"topics say\">" + all.length + (all.length === 1 ? " post" : " posts") + " since " + first + '. <a href="#/feed">Follow by feed</a>.</p></div></header>' +
+        '<div class="col"><ol class="entries">' + s.items.map(function (p) { return entry(p, "author"); }).join("") + "</ol>" +
+        pager("More by " + a.first, authorUrl(k), page, s.total) + "</div>" };
+  }
+
+  var ABOUT_FAMILY = [["Colophon", "#/about/colophon"], ["Masthead", "#/about/masthead"], ["Writing for Us", "#/about/writing-for-us"]];
+  function aboutPage(child) {
+    if (!child) {
+      return { section: "about", title: "About", html: '<article class="col">' + TEMPLATES.about + linksSentence("In this section", ABOUT_FAMILY, "page-family") + "</article>" };
+    }
+    var siblings = ABOUT_FAMILY.filter(function (f) { return f[1] !== "#/about/" + child; });
+    if (child === "colophon") {
+      return { section: "about", title: "Colophon",
+        html: '<article class="col">' + TEMPLATES.colophon + '<p class="small aside-note">Every element this theme can set is on <a href="#/elements">one page</a>, for checking the theme against.</p>' + linksSentence("Also in About", siblings, "page-family") + "</article>" };
+    }
+    var pg = PAGES[child];
+    if (!pg) return notFound();
+    return { section: "about", title: pg.title,
+      html: '<article class="col"><p class="small trail"><a href="#/about">About</a></p><h1 class="title">' + esc(pg.title) + '</h1><p class="standfirst">' + esc(pg.standfirst) + "</p>" +
+        blocks(pg.body).replace('class="body"', 'class="body page-body"') + linksSentence("Also in About", siblings, "page-family") + "</article>" };
+  }
+
+  function simple(key, section, title) {
+    return { section: section, title: title, html: '<article class="col">' + TEMPLATES[key] + "</article>" };
+  }
+
+  function feed() {
+    var items = posts.slice(0, 10).map(function (p) {
+      return '<li class="entry"><h2>' + esc(p.title) + "</h2><p>" + esc(p.summary) + '</p><p class="small">' + date(p.date) + ", by " + sentence(p.authors.map(function (k) { return AUTHORS[k].name; })) + ", in " + sentence(p.topics.map(function (t) { return TOPICS[t].name; })) + '</p><a class="read" href="' + postUrl(p) + '">Read on ' + esc(SITE.name) + "</a></li>";
+    }).join("");
+    return { section: "", title: SITE.feedTitle, feed: true,
+      html: '<div class="feed-doc"><div class="col"><a class="feed-site" href="#/">' + esc(SITE.name) + '</a><h1 class="title">' + esc(SITE.feedTitle) + '</h1><div class="standfirst feed-intro">' +
+        SITE.feedIntro.map(function (p) { return "<p>" + p + "</p>"; }).join("") + '</div><ol class="entries">' + items + "</ol></div></div>" };
+  }
+
+  /* Not Found: the address that failed, the closest match if there is one,
+     recent writing, and the topics. The match is only offered when the words
+     in the address share something with a post's address. */
+  function notFound() {
+    var path = location.hash.replace(/^#/, "") || "/";
+    var last = path.split("/").filter(Boolean).pop() || "";
+    var want = last.split(/[-_]/).filter(function (w) { return w.length > 2; });
+    var best = null, score = 0;
+    posts.forEach(function (p) {
+      var have = p.slug.split("-"), n = want.filter(function (w) { return have.some(function (h) { return h.indexOf(w) === 0 || w.indexOf(h) === 0 && h.length > 3; }); }).length;
+      if (n > score) { score = n; best = p; }
+    });
+    var shown = esc(path.replace(last, "")) + (last ? "<del>" + esc(last) + "</del>" : "");
+    var match = best ? '<section class="nf-match"><p class="small">The closest match</p><h2><a href="' + postUrl(best) + '">' + esc(best.title) + "</a></h2><p>" + esc(best.summary) + '</p><p class="small" style="margin-top:.5rem">' + date(best.date) + ", by " + authorLinks(best.authors, true) + '</p><a class="go" href="' + postUrl(best) + '">Read It</a></section>' : "";
+    var recent = posts.slice(0, 3).map(function (p) { return '<li class="entry"><h2><a href="' + postUrl(p) + '">' + esc(p.title) + '</a></h2><p class="small">' + date(p.date) + ", by " + authorLinks(p.authors, true) + "</p></li>"; }).join("");
+    var tops = Object.keys(TOPICS).sort(function (a, b) { return postsIn(b).length - postsIn(a).length; });
+    return { section: "", title: "Page Not Found",
+      html: '<div class="col"><h1 class="title">Nothing at This Address</h1><p class="standfirst">The page may have moved, or the link has a typo in it. Here is the address that was asked for.</p><p class="nf-path">secondproof.example' + shown + "</p>" + match +
+        '<section class="nf-section"><p class="small list-label" style="margin-top:0">Recent writing</p><ol class="entries">' + recent + "</ol></section>" +
+        '<section class="nf-section">' + topicsSentence("Or browse by topic", tops) + "</section>" +
+        '<p class="small nf-section">If a link on this site brought you here, <a href="#/about" style="color:var(--accent)">tell us which one</a> and we will fix it.</p></div>' };
+  }
+
+  /* ---- Router ---------------------------------------------------------- */
+
+  function resolve(path) {
+    var m, seg = path.split("/").filter(Boolean);
+    var pageOf = function (i) { return seg[i] === "page" && /^\d+$/.test(seg[i + 1] || "") && seg.length === i + 2 ? +seg[i + 1] : (seg.length === i ? 1 : -1); };
+    if (!seg.length) return home(1);
+    if (seg[0] === "page") { m = pageOf(0); return m > 0 ? home(m) : notFound(); }
+    if (seg[0] === "writing" && seg.length === 2) return post(seg[1]);
+    if (seg[0] === "archive") { m = pageOf(1); return m > 0 ? archive(m) : notFound(); }
+    if (seg[0] === "topics") {
+      if (seg.length === 1) return topicsIndex();
+      m = pageOf(2); return m > 0 ? topic(seg[1], m) : notFound();
+    }
+    if (seg[0] === "authors" && seg.length >= 2) { m = pageOf(2); return m > 0 ? author(seg[1], m) : notFound(); }
+    if (seg[0] === "about" && seg.length <= 2) return aboutPage(seg[1]);
+    if (seg.length === 1 && seg[0] === "now") return simple("now", "now", "Now");
+    if (seg.length === 1 && seg[0] === "elements") return simple("elements", "", "Every Element");
+    if (seg.length === 1 && seg[0] === "feed") return feed();
+    return notFound();
+  }
+
+  function render() {
+    var h = location.hash;
+    if (h && h.indexOf("#/") !== 0) {          /* a note reference or other anchor */
+      var t = document.getElementById(decodeURIComponent(h.slice(1)));
+      if (t) t.scrollIntoView();
+      return;
+    }
+    var v = resolve(h.slice(1) || "/");
+    app.innerHTML = v.html;
+    document.body.classList.toggle("is-feed", !!v.feed);
+    document.title = v.title === SITE.name ? SITE.name : v.title + " | " + SITE.name;
+    document.querySelectorAll(".sub a").forEach(function (a) {
+      if (a.getAttribute("href") === h) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current");
+    });
+    document.querySelectorAll("[data-nav]").forEach(function (a) {
+      var mine = a.getAttribute("data-nav") === v.section;
+      if (!mine) a.removeAttribute("aria-current");
+      else a.setAttribute("aria-current", a.getAttribute("href") === (h || "#/") ? "page" : "true");
+    });
+    window.scrollTo(0, 0);
+  }
+
+  window.addEventListener("hashchange", render);
+  render();
+
+  /* ---- Light and dark: follows the system until pressed, then holds the
+     choice for this visit. ------------------------------------------------ */
+  var root = document.documentElement, mq = matchMedia("(prefers-color-scheme: dark)");
+  var toggle = document.querySelector(".scheme-toggle");
+  function isDark() { var t = root.getAttribute("data-theme"); return t ? t === "dark" : mq.matches; }
+  function syncScheme() {
+    var dark = isDark();
+    root.classList.toggle("is-dark", dark);
+    toggle.setAttribute("aria-label", dark ? "Switch to light mode" : "Switch to dark mode");
+    toggle.querySelector(".label").textContent = dark ? "Light" : "Dark";
+  }
+  toggle.addEventListener("click", function () { root.setAttribute("data-theme", isDark() ? "light" : "dark"); syncScheme(); });
+  mq.addEventListener("change", syncScheme);
+  new MutationObserver(syncScheme).observe(root, { attributes: true, attributeFilter: ["data-theme"] });
+  syncScheme();
+
+  /* Navigation: the chevrons, and closing what is open. The dropdown on
+     hover, the phone sheet and the menu button's open state are CSS and the
+     popover attribute. The sheet is a manual popover so Feed and Light/Dark
+     stay usable beside it, which is why Escape is handled here. */
+  var nav = document.getElementById("site-nav"), wide = matchMedia("(min-width: 48.0625rem)");
+  function closeSubs(except) { nav.querySelectorAll(".sub-toggle[aria-expanded=true]").forEach(function (b) { if (b !== except) b.setAttribute("aria-expanded", "false"); }); }
+  nav.addEventListener("click", function (e) {
+    var b = e.target.closest(".sub-toggle");
+    if (b) { closeSubs(b); b.setAttribute("aria-expanded", b.getAttribute("aria-expanded") === "true" ? "false" : "true"); return; }
+    if (e.target.closest("a")) { closeSubs(); if (!wide.matches && nav.matches(":popover-open")) nav.hidePopover(); }
+  });
+  document.addEventListener("click", function (e) { if (!nav.contains(e.target)) closeSubs(); });
+  document.addEventListener("keydown", function (e) { if (e.key !== "Escape") return; closeSubs(); if (nav.matches(":popover-open")) nav.hidePopover(); });
+  wide.addEventListener("change", function () { if (nav.matches(":popover-open")) nav.hidePopover(); closeSubs(); });
+  window.addEventListener("hashchange", function () { closeSubs(); if (nav.matches(":popover-open")) nav.hidePopover(); });
+})();
+
+</script>
+</body>
+</html>

@@ -107,7 +107,8 @@ blush-framework/
     Fixtures/site/      Fixture site: .env, config/, local + Composer extensions
   .claude/
     docs/               ← this folder; admin-design/ holds the admin's design direction
-                        (admin.md) and the original prototype tokens (D-231)
+                        (admin.md) and the original prototype tokens (D-231);
+                        theme-design/ holds theme designs (Second Proof, D-556)
     skills/blush-code-style-php/
   AGENTS.md  CLAUDE.md  .phpcs.xml  phpstan.neon  phpunit.xml  phpbench.json
 ```

@@ -4,6 +4,316 @@ Move each item to `decisions.md` once it's answered.
 
 ## Needs the author's call
 
+- **PHP APIs met building Second Proof** (discussed 2026-10-06). The
+  principle (the author): no container used as a service locator and
+  nothing done in global scope, while keeping templates (and the PHP
+  behind them) pleasant to write. Providers are the one place that
+  wires with the container; view objects and components get their
+  services injected. Only the slice the theme used; not an audit.
+  - **Providers:** registering is lookups
+    (`$this->container->get(ComponentRegistry::class)->register(…)`).
+    Declarative constants like `SINGLETONS` and `TAGS`
+    (`COMPONENTS`, `DIRECTIVES`, `ICONS`), with providers knowing their
+    extension (below), would leave most providers without `boot()`.
+  - **Components:** props and services share the constructor with
+    nothing marking which is which (the docs say props are public
+    parameters, yet Second Proof's non-public `$taxonomy` works as one);
+    mark props explicitly (an attribute or a props object). The page's
+    context is attached after construction, so `ClosestMatch` computes
+    lazily with a flag; give context at construction or a "compute
+    once" hook. View paths: below.
+  - **Content:** `terms` is three shapes (`$entry->terms` slugs by
+    taxonomy, `$entry->terms('x')` slugs, `$template->terms($entry, 'x')`
+    entries). `summary()` is Markdown or `null` and `excerpt()` HTML,
+    which the names don't say. `isPublished()`, `isRoutable()`,
+    `isListed()`, `isVirtual()`: which a list filters on isn't clear.
+    `field()` returns `mixed` (typed access waits on the Fields API,
+    D-348). `query()->type()` takes a name, not the type object;
+    `->get()->all()` for an array. `Paginator` mixes `->page` with
+    `->pages()` and `->total()`.
+  - **Routes and the head:** route names built as strings
+    (`"{$type->name}.{$field}.single.feed"`) and `route()` throws, so
+    themes need `try`; URL methods (`feedUrl($type)`) should cover what
+    themes need. `head()->remove()` takes built string keys
+    (`'style:' . $href`).
+  - **Taxonomy queries** (from reviewing Second Proof's `src/`): no
+    "top-level terms" filter (the theme reads `parentKey()` from each
+    term's fields); `termCounts()` doesn't say whether a parent counts
+    its children's entries; no newest entry per term (one query per
+    term). One term-statistics call (count, latest date, children)
+    would replace most of `Topics`.
+  - **Profiles credited by a type:** "who writes the site" takes a
+    `whereAuthor()` query per profile; a query for the profiles a
+    type's entries credit would do it in one.
+  - **Neighbors:** no query for an entry's previous and next, so
+    `Adjacent` lists the whole type (956 posts on the trial).
+  - **`search()`** matches titles and file paths, not text; the name
+    suggests full text. Rename it or say so.
+  - **The component shape:** every class component fetches in its
+    constructor, exposes a property, and has `shouldRender()` check it
+    for empty. Blush could own the pattern (a typed data property it
+    checks, or a short "render only if" declaration); with `render()`
+    optional (below), most would shrink to a constructor. Second Proof
+    stands in with its own abstract `ThemeComponent` (a `VIEW`
+    constant and one `render()`).
+
+- **Template API gaps found building Second Proof** (discussed
+  2026-10-06, from D-556). What took extra code, by how much it would
+  save:
+  1. **Named content lookups in templates.** Six of the theme's classes
+     only fetch content. Read-only, named calls for the common cases
+     (open queries stay allowed; these are the easy path): `$template->previous($entry)` /
+     `next($entry)` backed by a repository method (`Adjacent` loads
+     every post of the type to find two), `recent('post', 3)`,
+     `page('about')` (like `profile('jane')`), `profiles()`,
+     `termCounts('category')`.
+  2. **Translations with HTML in them.** `str_replace('{names}', $html,
+     e($template->t('entry.by', names: '{names}')))`, six times in the
+     theme; the default theme's welcome part has its own helper for
+     it. `t()` could escape the message and leave `raw()` params alone:
+     `$template->t('entry.by', names: raw($links))`.
+  3. **Lists as sentences:** `$template->list($items)` ("A, B, and C"
+     by `IntlListFormatter` in the page's locale), maybe with a form
+     for linked people or terms.
+  4. **Plain-text excerpts:** `html_entity_decode(trim(strip_tags(
+     $entry->excerpt(36))))`, six times; `$entry->excerptText(36)`.
+     Maybe subtitle-else-summary too.
+  5. **Every term of an entry:** `$template->terms($entry)` with no
+     taxonomy, instead of looping over `array_keys($entry->terms)`.
+  6. **`<time>` tags:** `$template->timeTag($date)`, the datetime
+     attribute and the site's format, instead of building it by hand.
+  7. **Routes that may not exist:** the feed link needs `try`/`catch`.
+     `$template->routeOr('home.feed')` returning `''`, or
+     `$template->feedUrl()` for the site, a type, or a person.
+  8. **The request path:** an error page can't see the address asked
+     for (Second Proof's script fills it in); `$template->path()`.
+  9. **`head()`:** an inline script that runs before paint (the light
+     and dark choice is printed by hand in the layout), and
+     `preload()` for fonts.
+
+  Related entries: component view paths and providers that know their
+  extension (below), and `theme:check` on an inactive theme (under
+  Second Proof).
+
+  **Views free of logic** (discussed 2026-10-06). The goal (the
+  author): theme authors write HTML with `$template->…` calls, a few
+  `if`s and loops, and no custom code. Second Proof's views have about
+  150 lines of PHP before their HTML, in these groups:
+  1. **HTML built in strings:** links, `<time>` tags,
+     `str_replace('{names}', …)`, lists joined by a part. Wanted: a
+     linked title, linked titles as a sentence, a byline that can leave
+     someone out (`except:`), a time tag, translations with `raw()`
+     params (gap 2 above).
+  2. **Fallback chains:** title else slug; heading else the type's
+     plural else the site's name; subtitle else summary; the landing
+     page's title else the site's description. Wanted: `$title` never
+     empty, a standfirst on the entry, a listing's heading and intro on
+     the page.
+  3. **Facts about the page:** counts, page number, first page or not,
+     the person on a profile page and their feed, a type's listing URL,
+     a page's siblings (which also ends the three `try`/`catch` blocks
+     around routes).
+  4. **Templates choosing templates:** `home.php` falls back to the
+     page layout, and `single.php` does for undated entries. The
+     hierarchy should choose (`home-page` / `home-collection`, a page
+     template for undated types), so a view never includes another
+     view and returns.
+  5. **Part arguments and defaults** (`$meta ??= 'default'`): parts that
+     take arguments become template components (`$component->prop()`),
+     documented as the way.
+  6. **Directive templates with logic:** callout maps its variant to a
+     kind and falls back to a translated title; the class should give
+     `kind()` and a `heading()` that falls back to the kind's name.
+  7. **Menus:** `aria-current` worked out in the view; a call on the
+     item or `$template`.
+  8. **Head setup in the layout:** the font preload loop and the inline
+     script; `head()` calls or a `fonts` / `preload` list in
+     `theme.json`.
+  9. **One-offs:** a featured image (alt text, left out when the body
+     already shows it), the request path and the site's host, cache
+     keys made from the entry.
+
+  **Guidance for views, not a rule** (the author: don't disallow
+  querying and such; make proper APIs and a good developer experience
+  that discourage logic, and point to components or another method
+  where it makes sense). The aim is that a view needs only HTML,
+  `$view->…` calls, `if`, `foreach`, and printing values, because the
+  APIs make that the easy path, not because anything else is refused.
+  Docs show that style, and say where logic belongs instead: a
+  component (with a class when it needs data), a directive, or the
+  site's or theme's provider. Whether `theme:check --strict` should
+  ever *note* (never fail) closures, `try`, or HTML built in strings in
+  a view is open.
+
+  **Where the calls live** (the author: the naming of every method on
+  `$template` needs careful shaping, or more could be passed to views).
+  Two directions:
+  - **Everything on `$template`:** one place to look, but it grows
+    into a large object whose names have to say what they're about
+    (`$template->link($entry)`, `$template->byline($entry)`).
+  - **Behavior on what it's about:** `$entry->link()`,
+    `$entry->byline()`, `$page->heading`, `$page->total()`,
+    `$item->ariaCurrent()`, with `$template` kept for rendering
+    (`layout`, `include`, `component`, `t`, `asset`, `head`, `cache`).
+    Shorter names that read as English. But `Entry` is content, and
+    links, dates, and people need the router, the locale, and the
+    repository; so views would get view objects wrapping the content
+    (an entry view over `Entry`), keeping `Entry` free of rendering.
+    Also: what a view object costs in a listing of hundreds.
+
+  Either way, settle the names together as one API before building
+  any of the gaps above.
+
+  **One variable, typed by the kind of page** (the author prefers the
+  second direction, with view objects, but without theme authors
+  learning many variable names). Proposed: a view gets one variable,
+  and everything is reached through it, so autocomplete shows the rest:
+  `$view->entry->byline()`, `$view->entries`, `$view->page->pager()`,
+  `$view->site`, `$view->menu('primary')`. The only names an author
+  picks are their own loop variables. A view marks what it draws with
+  one line, `/** @var Blush\View\Listing $view */`: the object is typed
+  per kind of page (a single has `->entry`, a listing `->entries` and
+  `->pager()`, an error page `->status` and `->path`; every page has
+  `->site`, menus, `t()`, `asset()`), so nothing is "there but `null`
+  here", and `theme:check` can compare a view's marked type against
+  the hierarchy. Costs: longer lines (`$view->entry->title`; an author
+  may still write `$entry = $view->entry;`); it decides `$template`
+  versus `$view` (D-158, above); components and directives would reach
+  theirs the same way (`$view->component`) or keep their own variable.
+
+  **How others do it** (background, from memory, not checked against
+  their current docs):
+  - **Hugo:** one root, `.`, the current page (`.Title`, `.Content`,
+    `.Pages`, `.Paginator`, `.Site`), with `.Kind` (home, section,
+    page, taxonomy, term) and a hierarchy that picks by kind. The
+    closest precedent; untyped, so authors learn it from docs.
+  - **Kirby** (flat files, PHP templates): the same few variables
+    everywhere (`$page`, `$site`, `$kirby`, `$pages`), behavior on
+    objects with chained fields (`$page->text()->excerpt(50)`); a
+    controller beside a template passes more, which brings back
+    "which variables does this one have?"
+  - **Ghost:** helpers that print finished HTML (`{{authors separator=", "}}`,
+    `{{tags separator=" and "}}`, `{{excerpt words="36"}}`,
+    `{{date format="…"}}`), context blocks (`{{#post}}`). Nearly every
+    piece Second Proof built by hand is one helper.
+  - **Shopify's Liquid:** globals plus an object per kind of template
+    (`product`), with docs listing what each has; filters for
+    formatting.
+  - **Twig:** variables by name, a global `app`; since 3.13 a
+    `{% types %}` tag declares the variables a template expects.
+  - **Blade:** components declare inputs with defaults
+    (`@props(['type' => 'info'])`); view composers attach data by view
+    name.
+  - **Craft, Statamic:** queries in templates
+    (`craft.entries().section('blog').limit(3)`, `{{ collection:blog }}`).
+
+  To take: Hugo's shape (one root typed by kind), Kirby's behavior on
+  objects, Ghost's calls that print finished HTML, a one-line
+  declaration of what a view draws (Twig's `types`, Blade's `@props`;
+  our `@var`), and queries allowed (as Craft and Statamic do) with
+  named lookups as the easier path.
+
+- **Finding a component's own view without a path** (discussed
+  2026-10-06). A class component or directive from a theme, plugin, or
+  the site returns its file as `$this->view(dirname(__DIR__, 2) .
+  '/views/components/second-proof-recent.php')`: it breaks quietly when
+  the class moves, and a typo shows only when the page renders. Ten
+  places do it (Second Proof's six, jtcom, jtcom-blade, the trial's
+  `PostArchives`, and examples in `docs/components.md` and
+  `docs/directives.md`). Blush already knows the name
+  (`second-proof/recent`) and the file rule
+  (`views/components/{namespace}-{name}.php`, `views/directives/…`).
+  Proposed:
+  - **`render()` optional:** without one, the base class finds its own
+    extension's file by the rule, for any installed view engine
+    (`.php`, `.blade.php`).
+  - **Short names in `view()`:** `$this->view('components/recent-list')`,
+    relative to the owner's views folder, no extension; full paths
+    still work.
+  - `theme:check` and `component:list` name a component whose file is
+    missing.
+
+  Open:
+  - **How the owner is found:** by the name's namespace (wrong for
+    jtcom-blade, which registers `jtcom/*` from its own folder), by
+    which extension's provider registered it, or by matching the class
+    against extensions' `autoload` prefixes (as
+    `Admin\Provenance::ofClass()` does for plugins).
+  - **The site's views folder** for `app`: `resources/views/`?
+  - **Directives** from plugins and the site the same way (core ones
+    use `Framework::path()`).
+
+  **Providers that know their extension** (discussed 2026-10-06). A
+  theme's or plugin's provider is registered by class name and gets
+  only the container, so it types its own namespace
+  (`$components->register('second-proof/letterhead', …)`), repeating
+  `theme.json` with nothing checking the two agree. Proposed: Blush
+  hands an extension's provider its extension (name, namespace,
+  folder) when it registers it, so registration fills in the
+  namespace:
+
+  ```php
+  $this->components([
+  	'letterhead' => View\Letterhead::class,
+  	'writers'    => View\Writers::class
+  ]);
+  ```
+
+  Paths in providers (jtcom's `dirname(__DIR__) . '/resources/svg/icon'`
+  for its icons) become relative to the extension's folder. And knowing
+  which extension registered each component answers "how the owner is
+  found" above. Open:
+  - **Another extension's namespace:** jtcom-blade registers `jtcom/*`
+    components. Allowed, or refused?
+  - **Shape:** helpers on `ServiceProvider` (`components()`,
+    `directives()`, `icons()`), or an `ExtensionProvider` base for
+    themes and plugins.
+  - **The site's provider** (`App\SiteProvider`): the `app` namespace
+    and `resources/`, the same way.
+
+- **A pull quote directive** (discussed 2026-10-06, from D-556). A
+  pull quote and a quote are two different things (the author):
+  - **Pull quote:** a line repeated from the page it sits on, set large
+    as a visual hook. It never takes a `cite`, since its source is the
+    page itself. It may take an optional attribution label (who said
+    it, in an interview or a piece with several voices). It's hidden
+    from screen readers (`aria-hidden="true"`, nothing focusable inside),
+    since the line is already in the text, and isn't a `<blockquote>`.
+  - **Quote:** words from somewhere else: `<blockquote>`, an optional
+    `cite` URL, attribution in a `<figcaption>`; always exposed.
+
+  Proposed: a core `pullquote` directive (content says what it is, so
+  every theme draws it, D-532), e.g. `:::pullquote[Ines Okafor]`, its
+  width from bleed. Open:
+  - Whether Second Proof's `pull` figure variant stays as a large quote
+    style (it's really a quote: `<figure>`, `<blockquote>`,
+    `<figcaption>`) or goes once the directive exists. The design's
+    "Every Element" page mixes the two.
+  - Whether the editor warns when a pull quote's text isn't in the
+    entry.
+  - Separately, decorative quotation marks drawn with CSS `content`
+    should have empty alternative text (`content: "\201C" / ""`) so
+    screen readers don't announce them; Second Proof's is fixed.
+
+- **Second Proof, what's left** (D-556). The design shows things
+  Blush can't do yet; the theme leaves them out:
+  - **Get It by Email** in the footer: no email subscriptions.
+  - **The "where" line** ("Published most weeks from Chicago") and
+    the footer's "in Chicago": no site setting for a place or a
+    rhythm. Theme settings could hold them, but the Fields API is
+    paused (D-348).
+  - **The feed page:** the design's `/feed` is the RSS file styled for
+    a browser, which needs an XSLT or CSS stylesheet on the feed.
+  - **Follow a topic by feed:** terms have no feeds of their own.
+  - **First names in lists** ("by Ines and Theo"): profiles have no
+    short name.
+  - **"Tell us which link"** on the 404 page: no contact address or
+    page the theme can find.
+  - **Shipping it:** move it into the framework (`resources/themes/`)
+    or keep it as its own package; and whether `theme:check` on an
+    inactive theme should run its provider, since its class
+    components fail without it.
+
 - **Directives and components** (D-532, built in D-533). Settled: themes
   can't register directives, writers see "Blocks", and every directive is
   a registered class that declares its kind (D-534). What's left:
