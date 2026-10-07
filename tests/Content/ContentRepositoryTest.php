@@ -290,8 +290,7 @@ final class ContentRepositoryTest extends TestCase
 		$this->assertTrue($entry->isPublished());
 		$this->assertTrue($entry->isRoutable());
 		$this->assertTrue($entry->isListed());
-		$this->assertFalse($entry->isVirtual());
-		$this->assertSame('_posts/2008-04-05.spring.md', $entry->source?->path);
+		$this->assertSame('_posts/2008-04-05.spring.md', $entry->source->path);
 		$this->assertFalse($this->content->named('post', '')?->isListed());
 		$this->assertFalse($this->content->findPath('_private.md')?->isRoutable());
 	}
@@ -340,24 +339,30 @@ final class ContentRepositoryTest extends TestCase
 		$this->assertSame('', $this->content->named('page', '')?->excerpt());
 	}
 
-	public function testTermsAreRealOrVirtual(): void
+	public function testTermsAreTheirFiles(): void
 	{
 		$art = $this->content->term('category', 'art');
 
 		$this->assertSame('topics/art.md', $art?->path);
-
-		$reviews = $this->content->term('category', 'book-reviews');
-		$this->assertNotNull($reviews);
-
-		$this->assertSame('virtual:category/book-reviews', $reviews->path);
-		$this->assertSame('Book Reviews', $reviews->title);
-		$this->assertTrue($reviews->isVirtual());
-		$this->assertSame('', $reviews->body());
+		$this->assertNotNull($this->content->term('category', 'book-reviews'));
 		$this->assertSame('Justin Tadlock', $this->content->term('profile', 'justintadlock')?->title, 'Profiles are terms too (D-351).');
 		$this->assertNull($this->content->term('category', 'unused'));
 		$this->assertNull($this->content->term('post', 'welcome'));
 		$this->assertSame(['old-posts' => 1, 'art' => 1, 'book-reviews' => 1], $this->content->termCounts('category'));
+		$this->assertSame(['justintadlock' => 2, 'guest' => 1], $this->content->termCounts('profile'));
 		$this->assertSame([], $this->content->termCounts('missing'));
+	}
+
+	public function testSlugsWithNoFileAreLeftOut(): void
+	{
+		$this->entry('_posts/2009-01-01.dangling.md', "title: Dangling\npublished: 2009-01-01\ncategory: [art, Lost Cause]\nauthors: [justintadlock, nobody]");
+		$this->content = $this->repository($this->site('development'));
+
+		$this->assertNull($this->content->term('category', 'lost-cause'), 'A slug with no file isn\'t a term (D-584).');
+		$this->assertNull($this->content->term('profile', 'nobody'), 'Nor is a credit.');
+		$this->assertArrayNotHasKey('lost-cause', $this->content->termCounts('category'));
+		$this->assertArrayNotHasKey('nobody', $this->content->termCounts('profile'));
+		$this->assertSame(['art', 'lost-cause'], $this->content->named('post', 'dangling')?->terms('category'), 'The entry still names it.');
 	}
 
 	public function testPagesNestByFolderAndHierarchicalTermsByParent(): void
@@ -386,7 +391,7 @@ final class ContentRepositoryTest extends TestCase
 
 		$topics = $content->query()->type('topic')->orderBy('title');
 
-		$this->assertSame(['art', 'web'], self::slugs($topics->whereParent(null)->get()), 'Top-level terms (D-562); an orphan names a parent, so it isn\'t one.');
+		$this->assertSame(['art', 'book-reviews', 'old-posts', 'web'], self::slugs($topics->whereParent(null)->get()), 'Top-level terms (D-562); an orphan names a parent, so it isn\'t one.');
 		$this->assertSame(['css', 'html'], self::slugs($topics->whereParent($web)->get()), 'Under a parent, by entry.');
 		$this->assertSame(['grid'], self::slugs($topics->whereParent('css')->get()), 'Or by key.');
 		$this->assertSame(['about/biography'], array_map(static fn (Entry $entry): string => $entry->key, $content->query()->type('page')->whereParent($about)->get()->all()), 'Pages too.');

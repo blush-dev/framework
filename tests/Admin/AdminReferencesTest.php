@@ -77,15 +77,14 @@ final class AdminReferencesTest extends TestCase
 		$this->assertFalse($this->references('page')['tree'] ?? null, 'Unasked, a search as before.');
 	}
 
-	public function testAFlatTaxonomyHasItsVirtualTermsAndSearches(): void
+	public function testAFlatTaxonomyHasItsTermsAndSearches(): void
 	{
 		$this->site();
 
 		$items = (array) ($this->references('mood')['items'] ?? []);
 
-		$this->assertSame(['book-reviews', 'happy'], array_column($items, 'slug'));
-		$this->assertSame(['Book Reviews', 'Happy'], array_column($items, 'title'), 'A virtual term keeps the words it was written with.');
-		$this->assertSame([true, false], array_column($items, 'virtual'));
+		$this->assertSame(['happy'], array_column($items, 'slug'), 'Book Reviews has no file, so it isn\'t a term (D-584).');
+		$this->assertTrue($this->references('mood')['create'] ?? null, 'New ones are written as they\'re typed.');
 		$this->assertSame(['happy'], array_column((array) ($this->references('mood?search=HAP')['items'] ?? []), 'slug'));
 	}
 
@@ -109,7 +108,7 @@ final class AdminReferencesTest extends TestCase
 		$moods  = (array) ($this->references('mood?for=page')['items'] ?? []);
 
 		$this->assertSame(['web', 'css'], array_column($topics, 'slug'), 'Art is unused; Web stays as CSS\'s parent.');
-		$this->assertSame(['book-reviews', 'gloomy', 'happy'], array_column($moods, 'slug'), 'A draft\'s terms count too.');
+		$this->assertSame(['happy'], array_column($moods, 'slug'), 'Slugs with no file aren\'t terms (D-584).');
 		$this->assertSame([], (array) ($this->references('topic?for=profile')['items'] ?? ['x']), 'No profile uses a topic.');
 	}
 

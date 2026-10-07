@@ -189,7 +189,7 @@ final class LlmsTest extends TestCase
 
 		$body = (string) $this->get('/llms.txt')->getBody();
 
-		$this->assertStringContainsString("## Categories\n\n- [Art](http://localhost/topics/art.md)\n- [Book Reviews](http://localhost/topics/book-reviews.md)\n- [Topics](http://localhost/topics.md)\n", $body, 'Terms with files, by title (D-401); virtual ones have no copy.');
+		$this->assertStringContainsString("## Categories\n\n- [Art](http://localhost/topics/art.md)\n- [Book Reviews](http://localhost/topics/book-reviews.md)\n- [Old Posts](http://localhost/topics/old-posts.md)\n- [Topics](http://localhost/topics.md)\n", $body, 'Terms, by title (D-401).');
 		$this->assertStringContainsString("## Profiles\n\n- [A Guest](http://localhost/profiles/guest.md)\n- [Justin Tadlock](http://localhost/profiles/justintadlock.md)\n", $body);
 	}
 

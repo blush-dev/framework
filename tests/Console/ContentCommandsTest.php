@@ -55,7 +55,7 @@ final class ContentCommandsTest extends TestCase
 		$first = $tester->run('content:index');
 
 		$this->assertTrue($first->isSuccessful());
-		$this->assertMatchesRegularExpression('/^Indexed 17 entries \(17 added, 0 changed, 0 removed\) in \d+ ms\.$/m', $first->output);
+		$this->assertMatchesRegularExpression('/^Indexed 19 entries \(19 added, 0 changed, 0 removed\) in \d+ ms\.$/m', $first->output);
 
 		$again = $tester->run('content:index -v');
 
@@ -88,13 +88,13 @@ final class ContentCommandsTest extends TestCase
 		$clean = $tester->run('content:lint');
 
 		$this->assertTrue($clean->isSuccessful());
-		$this->assertSame("Checked 17 files: 0 errors, 0 warnings.\n", $clean->output);
+		$this->assertSame("Checked 19 files: 0 errors, 0 warnings.\n", $clean->output);
 
 		$strict = $tester->run('content:lint --strict');
 
 		$this->assertTrue($strict->isSuccessful());
 		$this->assertStringContainsString("_posts/2008-04-05.spring.md\n  notice  author: is read as \"authors\".\n  notice  tag: is not declared by the schema.\n", $strict->output);
-		$this->assertMatchesRegularExpression('/Checked 17 files: 0 errors, 0 warnings, \d+ notices\./', $strict->output);
+		$this->assertMatchesRegularExpression('/Checked 19 files: 0 errors, 0 warnings, \d+ notices\./', $strict->output);
 
 		$this->entry('about.md', "title: Old\npublished: soon");
 
@@ -103,7 +103,7 @@ final class ContentCommandsTest extends TestCase
 		$this->assertSame(ExitCode::Failure, $failed->exitCode);
 		$this->assertStringContainsString("about.md\n  error   published: must be a date", $failed->output);
 		$this->assertStringContainsString('  warning file: is the same entry as about/index.md, which wins.', $failed->output);
-		$this->assertStringContainsString('Checked 18 files: 1 error, 1 warning.', $failed->errors);
+		$this->assertStringContainsString('Checked 20 files: 1 error, 1 warning.', $failed->errors);
 	}
 
 	public function testListsContent(): void
@@ -114,7 +114,7 @@ final class ContentCommandsTest extends TestCase
 		$all = $tester->run('content:list');
 
 		$this->assertTrue($all->isSuccessful());
-		$this->assertStringContainsString('17 entries.', $all->output);
+		$this->assertStringContainsString('19 entries.', $all->output);
 		$this->assertMatchesRegularExpression('/\| post +\| \(landing\) +\| Blog +\| published +\| public/', $all->output);
 		$this->assertMatchesRegularExpression('/\| page +\| about\/biography +\| Biography +\|/', $all->output);
 
@@ -197,6 +197,26 @@ final class ContentCommandsTest extends TestCase
 		$this->assertTrue($fixed->isSuccessful(), $fixed->errors);
 		$this->assertStringContainsString('moved    _posts/hello/index.md → _posts/hello.md', $fixed->output);
 		$this->assertFileExists($this->temporaryDirectory() . '/user/content/_posts/hello.md');
+	}
+
+	public function testWritesMissingTerms(): void
+	{
+		$this->standardContent();
+		$this->entry('_posts/2009-01-01.dangling.md', "title: Dangling\npublished: 2009-01-01\ncategory: Lost Cause");
+		$tester = $this->tester();
+
+		$check = $tester->run('content:terms');
+
+		$this->assertSame(ExitCode::Failure, $check->exitCode, 'They\'re lint errors (D-584).');
+		$this->assertStringContainsString('missing  category/lost-cause (Lost Cause)', $check->output);
+		$this->assertStringContainsString('1 term or profile has no file, so the site leaves it out; write it with --write.', $check->errors);
+
+		$fixed = $tester->run('content:terms --write');
+
+		$this->assertTrue($fixed->isSuccessful(), $fixed->errors);
+		$this->assertStringContainsString('created  topics/lost-cause.md', $fixed->output);
+		$this->assertStringContainsString('Every term and profile entries name has a file.', $fixed->output);
+		$this->assertFileExists($this->temporaryDirectory() . '/user/content/topics/lost-cause.md');
 	}
 
 	public function testCreatesEntries(): void

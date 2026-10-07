@@ -515,17 +515,17 @@ final class MultilingualTest extends TestCase
 		$chain = $app->container()->make(ThemeResolver::class)->active();
 		$shape = static fn (?Menu $menu): array => array_map(static fn (MenuItem $item): string => "{$item->label} {$item->url}", $menu->items ?? []);
 
-		$this->assertSame(['About /about', 'Jane /about/team/jane', 'Notes /notes', 'Art /topics/art', 'old-posts /topics/old-posts', 'Blog /'], $shape($menus->forLocation($chain, 'primary')));
+		$this->assertSame(['About /about', 'Jane /about/team/jane', 'Notes /notes', 'Art /topics/art', 'Old Posts /topics/old-posts', 'Blog /'], $shape($menus->forLocation($chain, 'primary')));
 
 		// French: translations, and the originals for what isn't translated.
 		$this->assertSame(
-			['À propos /fr/a-propos', 'Jeanne /fr/a-propos/team/jane', 'Notes /notes', 'L\'art /fr/topics/lart', 'old-posts /topics/old-posts', 'Journal /fr'],
+			['À propos /fr/a-propos', 'Jeanne /fr/a-propos/team/jane', 'Notes /notes', 'L\'art /fr/topics/lart', 'Old Posts /topics/old-posts', 'Journal /fr'],
 			$shape($menus->forLocation($chain, 'primary', 'fr_FR'))
 		);
 		$this->assertSame('Principal', $menus->forLocation($chain, 'primary', 'fr_FR')?->label);
 
 		// Portuguese has nothing translated, so its links are the originals.
-		$this->assertSame(['About /about', 'Jane /about/team/jane', 'Notes /notes', 'Art /topics/art', 'old-posts /topics/old-posts', 'Blog /'], $shape($menus->forLocation($chain, 'primary', 'pt_BR')));
+		$this->assertSame(['About /about', 'Jane /about/team/jane', 'Notes /notes', 'Art /topics/art', 'Old Posts /topics/old-posts', 'Blog /'], $shape($menus->forLocation($chain, 'primary', 'pt_BR')));
 
 		$this->expectException(InvalidConfig::class);
 
@@ -555,7 +555,7 @@ final class MultilingualTest extends TestCase
 		$this->assertSame('lart', $content->term('category', 'art', 'fr')?->key);
 		$this->assertSame('lart', $content->term('category', 'lart', 'fr')?->key);
 		$this->assertSame('art', $content->term('category', 'art')?->key);
-		$this->assertTrue($content->term('category', 'art', 'pt-br')?->isVirtual());
+		$this->assertSame('topics/art.md', $content->term('category', 'art', 'pt-br')?->path, 'Without a translation, the original (D-584).');
 
 		$spring = $content->named('post', 'printemps', 'fr');
 		$views  = $this->app->container()->make(ViewFactory::class)->forChain($this->app->container()->make(ThemeResolver::class)->active());

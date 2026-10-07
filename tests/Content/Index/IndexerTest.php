@@ -87,8 +87,8 @@ final class IndexerTest extends TestCase
 
 		$this->assertTrue($report->written);
 		$this->assertTrue($report->full);
-		$this->assertSame(17, $report->total);
-		$this->assertCount(17, $report->added);
+		$this->assertSame(19, $report->total);
+		$this->assertCount(19, $report->added);
 		$this->assertSame([], $report->failures);
 		$this->assertFileExists($this->temporaryDirectory() . '/storage/index/content.php');
 		$this->assertNotContains('_posts/hello/photo.jpg', array_keys($this->snapshot()->records));
@@ -233,8 +233,8 @@ final class IndexerTest extends TestCase
 		$this->assertArrayHasKey('_posts/2003-04-15.welcome.md', $report->failures);
 		$this->assertSame(['_posts/2003-04-15.welcome.md'], $report->removed);
 		$this->assertNull($this->snapshot()->record('_posts/2003-04-15.welcome.md'));
-		$this->assertSame('17/17', array_last($progress));
-		$this->assertCount(17, $progress);
+		$this->assertSame('19/19', array_last($progress));
+		$this->assertCount(19, $progress);
 	}
 
 	public function testClearingTheIndexDeletesIt(): void

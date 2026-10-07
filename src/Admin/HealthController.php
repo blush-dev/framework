@@ -25,6 +25,7 @@ use Blush\Content\ContentRepository;
 use Blush\Content\EntryIds;
 use Blush\Content\FileNames;
 use Blush\Content\FlatEntries;
+use Blush\Content\MissingTerms;
 use Blush\Content\Type\ContentTypes;
 use Blush\Content\Writer\AssignedIds;
 use Blush\Content\Writer\WriteException;
@@ -75,6 +76,12 @@ use Blush\Media\MediaSizes;
  * (`examples`). `POST health/flatten` moves those the account may edit,
  * answering the new paths by old (`renamed`) and `failed`.
  *
+ * Its `terms` say how many terms and profiles entries name have no file
+ * (`count`, D-584) and the first few (`examples`, each `type`, `slug`,
+ * and the `title` its file gets). `POST health/terms` writes a published
+ * file for each, of the types the account may create and publish,
+ * answering the new paths by `{type}/{slug}` (`created`) and `failed`.
+ *
  * Its `mediaSizes` say how many images' sizes aren't recorded in their
  * metadata files (D-488): `sizes` and the `images` they're of, and
  * `stale` (images listing files that aren't their sizes). `POST health/media-sizes`
@@ -93,7 +100,8 @@ final readonly class HealthController
 		private MediaLibrary $library,
 		private FileNames $fileNames,
 		private ContentTypes $types,
-		private FlatEntries $flat
+		private FlatEntries $flat,
+		private MissingTerms $terms
 	) {}
 
 	public function __invoke(ServerRequestInterface $request): ResponseInterface
@@ -261,6 +269,23 @@ final readonly class HealthController
 		$moved = $this->flat->flatten($this->editable($account));
 
 		return Response::json(['renamed' => (object) $moved->renamed, 'failed' => (object) $moved->failed], headers: ['Cache-Control' => 'no-store']);
+	}
+
+	/**
+	 * Writes a file for each term and profile entries name with no file
+	 * (D-584), of the types the account may create and publish.
+	 */
+	public function createTerms(ServerRequestInterface $request): ResponseInterface
+	{
+		$account = $request->getAttribute(Account::class);
+
+		if (! $account instanceof Account || ! $this->permissions->can($account, Capability::SiteHealth)) {
+			return Response::json(['error' => 'You aren\'t allowed to fix content.'], Status::Forbidden, ['Cache-Control' => 'no-store']);
+		}
+
+		$created = $this->terms->create(fn (string $type): bool => $this->permissions->can($account, ContentAction::Create, $type) && $this->permissions->can($account, ContentAction::Publish, $type));
+
+		return Response::json(['created' => (object) $created->created, 'failed' => (object) $created->failed], headers: ['Cache-Control' => 'no-store']);
 	}
 
 	/**

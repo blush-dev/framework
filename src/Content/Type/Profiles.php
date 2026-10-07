@@ -32,9 +32,9 @@ use Blush\Field\Field;
  * bio, then every listed entry of any type that credits them. Nothing
  * answers at the prefix itself. The prefix is `profiles` unless the
  * URLs set one (D-357), whatever folder the profiles are in, so a site
- * keeping them elsewhere (1.x's `authors`) still has `/profiles/jane`. A profile doesn't need a file: one
- * that's credited but missing is a virtual entry named as the credit
- * writes it. An admin account may link to one.
+ * keeping them elsewhere (1.x's `authors`) still has `/profiles/jane`. A profile is its file (D-584): one
+ * that's credited but missing is left out of the site, and
+ * `content:terms` writes it. An admin account may link to one.
  */
 final readonly class Profiles extends ContentType
 {

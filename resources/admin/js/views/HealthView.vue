@@ -7,14 +7,15 @@
  * says when it ran, and checks again when asked or after a fix (`POST
  * health`), which updates Site Health too.
  *
- * Files' problems: notices (undeclared keys, 1.x names, virtual terms)
- * are optional, and severity is written out, never shown by color alone.
+ * Files' problems: notices (undeclared keys, 1.x names) are optional,
+ * and severity is written out, never shown by color alone.
  * Ids (D-477, D-478, D-487): missing ids are added in one go, and for a
  * shared id, you choose the file that keeps it; the others get new ones.
  * Image sizes are recorded in their details (D-488), entries named by
  * another pattern than their type's are renamed to it, a type at a time
- * (D-512), and collections' entries kept in folders are moved into their
- * collections' folders (D-514).
+ * (D-512), collections' entries kept in folders are moved into their
+ * collections' folders (D-514), and terms and profiles entries name with
+ * no file are written (D-584).
  */
 
 import { computed, onMounted, ref, watch } from 'vue';
@@ -30,7 +31,7 @@ import { toast } from '../toast';
 
 const props = defineProps<{
 	area: 'content' | 'media';
-	check: 'files' | 'ids' | 'folders' | 'names' | 'sizes';
+	check: 'files' | 'ids' | 'terms' | 'folders' | 'names' | 'sizes';
 }>();
 
 const severities: Record<Violation['severity'], string> = {
@@ -44,6 +45,7 @@ const severities: Record<Violation['severity'], string> = {
 const SCREENS: Record<string, { title: string; hint: string; clear: string }> = {
 	'content:files': { title: 'Content Files', hint: 'Problems in entries\' files, as content:lint finds them', clear: '' },
 	'content:ids': { title: 'Entry IDs', hint: 'Every content file needs an id of its own', clear: 'Every content file has an id of its own.' },
+	'content:terms': { title: 'Terms and Profiles', hint: 'A term or profile entries name is left out of the site until it has a file', clear: 'Every term and profile entries name has a file.' },
 	'content:folders': { title: 'Collection Folders', hint: 'A collection\'s entries are files in its folder', clear: 'Every collection\'s entries are files in its folder.' },
 	'content:names': { title: 'File Names', hint: 'Older names keep working; renaming them changes no address', clear: 'Every entry is named by its type\'s pattern.' },
 	'media:files': { title: 'Media Details', hint: 'Problems in media files\' details, as content:lint finds them', clear: '' },
@@ -93,6 +95,8 @@ const found = computed(() => {
 			return files.value.length > 0;
 		case 'ids':
 			return (ids.value?.ids.missing.length ?? 0) + (ids.value?.ids.duplicates.length ?? 0) > 0;
+		case 'terms':
+			return value.terms.count > 0;
 		case 'folders':
 			return value.flat.count > 0;
 		case 'names':
@@ -200,6 +204,17 @@ function flatten(): Promise<void> {
 }
 
 /**
+ * Writes the terms and profiles entries name with no file (D-584).
+ */
+function writeTerms(): Promise<void> {
+	return runFix<FixAnswer & { created: Record<string, string> }>('terms', '/health/terms', {}, ['term', 'terms'], 'The terms couldn\'t be written.', (answer) => {
+		const written = Object.keys(answer.created).length;
+
+		return { changed: written, text: written ? `Wrote ${plural(written, 'file')}` : 'No terms or profiles you may create were missing' };
+	});
+}
+
+/**
  * Renames a type's entries to its file name pattern (D-512).
  */
 function renameFiles(type: string): Promise<void> {
@@ -302,6 +317,19 @@ onMounted(() => {
 			</p>
 			<button type="button" class="button button--primary button--small" :disabled="fixing !== null" @click="recordSizes">
 				{{ fixing === 'sizes' ? 'Recording…' : 'Record Sizes' }}
+			</button>
+		</div>
+	</section>
+
+	<section v-else-if="check === 'terms'" class="panel" aria-labelledby="terms-heading">
+		<header class="panel__header">
+			<h2 id="terms-heading">Named Without a File</h2>
+			<p class="panel__hint">{{ screen.hint }}</p>
+		</header>
+		<div class="ids__row">
+			<p>{{ plural(health.terms.count, 'term or profile has', 'terms and profiles have') }} no file, such as <code>{{ health.terms.examples[0]?.type }}/{{ health.terms.examples[0]?.slug }}</code>. Each is written published, titled as entries name it.</p>
+			<button type="button" class="button button--primary button--small" :disabled="fixing !== null" @click="writeTerms">
+				{{ fixing === 'terms' ? 'Writing…' : 'Write Files' }}
 			</button>
 		</div>
 	</section>

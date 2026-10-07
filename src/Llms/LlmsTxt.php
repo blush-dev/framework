@@ -31,8 +31,7 @@ use Blush\Core\AppConfig;
  * version with its summary (its links given full URLs, D-396). Dated
  * types list newest first, terms and profiles by title (D-401), others
  * by file name. Taxonomies and profiles are off unless a type turns
- * them on (`TypeKind::inLlmsByDefault()`); virtual terms and profiles
- * have no copy, so they're never listed.
+ * them on (`TypeKind::inLlmsByDefault()`).
  *
  * `/llms-full.txt` (D-402, when `LlmsConfig::$full` is on) has the same
  * heading and summary, then every listed page's Markdown copy in the

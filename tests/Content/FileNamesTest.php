@@ -83,7 +83,7 @@ final class FileNamesTest extends TestCase
 		$snapshot = $app->container()->make(ContentIndex::class)->snapshot();
 
 		$this->assertSame('_posts/2003-04-15-173900.welcome.md', $snapshot->find('en', 'post', 'welcome'), 'Its key, and so its address, stays.');
-		$this->assertSame(['_posts/2008-04-20.rainy.md', 'topics/art.md'], array_map(static fn (FileNameRename $rename): string => $rename->path, $this->names($app)->report()->renames()));
+		$this->assertSame(['_posts/2008-04-20.rainy.md', 'topics/art.md', 'topics/book-reviews.md', 'topics/old-posts.md'], array_map(static fn (FileNameRename $rename): string => $rename->path, $this->names($app)->report()->renames()));
 	}
 
 	public function testNamesByTheDateAsWritten(): void

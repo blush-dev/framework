@@ -308,6 +308,16 @@ final readonly class IndexSnapshot
 	}
 
 	/**
+	 * Returns whether a type has an entry with a key in any language: a
+	 * term or profile named by slug is one only when it has a file
+	 * (D-584).
+	 */
+	public function has(string $type, string $key): bool
+	{
+		return array_any($this->keys, static fn (array $types): bool => isset($types[$type][trim($key, '/')]));
+	}
+
+	/**
 	 * Returns the paths of an entry and its translations, by language
 	 * code, or `[]` when it has none.
 	 *
@@ -343,7 +353,9 @@ final readonly class IndexSnapshot
 
 	/**
 	 * Returns every referenced slug of a taxonomy with its label, which is
-	 * the slug unless the term was written differently.
+	 * the slug unless the term was written differently, whether or not
+	 * the term has a file; `content:terms` titles the files it writes
+	 * with them (D-584).
 	 *
 	 * @return array<string, string>
 	 */

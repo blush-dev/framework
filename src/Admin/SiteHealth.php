@@ -104,7 +104,7 @@ final readonly class SiteHealth
 		$report = [
 			'checked'      => $this->clock->now()->format(DateTimeInterface::ATOM),
 			'areas'        => [
-				['key' => 'content', 'label' => 'Content', 'description' => 'Entries\' files: their fields, ids, folders, and names'],
+				['key' => 'content', 'label' => 'Content', 'description' => 'Entries\' files: their fields, ids, terms, folders, and names'],
 				['key' => 'media', 'label' => 'Media', 'description' => 'Library files\' ids, details, and image sizes'],
 				['key' => 'extensions', 'label' => 'Extensions', 'description' => 'The theme, plugins, and icon packs that are on'],
 				['key' => 'system', 'label' => 'System', 'description' => 'PHP, settings, the public folder, and storage'],
@@ -179,7 +179,7 @@ final readonly class SiteHealth
 	 * Returns a new `ContentHealth` report, notices included (the admin
 	 * hides them until asked), and when it was made (`at`).
 	 *
-	 * @return array{at: string, checked: int, metadata: int, strict: bool, counts: array{error: int, warning: int, notice: ?int}, files: list<array{path: string, area: string, violations: list<array{field: string, message: string, severity: string}>}>, ids: array{missing: list<string>, duplicates: list<array{id: string, paths: list<string>}>}, mediaIds: array{missing: list<string>, duplicates: list<array{id: string, paths: list<string>}>}, fileNames: list<array{type: string, label: string, pattern: string, count: int, examples: list<array{path: string, to: string}>, skipped: int}>, flat: array{count: int, examples: list<array{path: string, to: string}>}, mediaSizes: array{sizes: int, images: int, stale: int}}
+	 * @return array{at: string, checked: int, metadata: int, strict: bool, counts: array{error: int, warning: int, notice: ?int}, files: list<array{path: string, area: string, violations: list<array{field: string, message: string, severity: string}>}>, ids: array{missing: list<string>, duplicates: list<array{id: string, paths: list<string>}>}, mediaIds: array{missing: list<string>, duplicates: list<array{id: string, paths: list<string>}>}, fileNames: list<array{type: string, label: string, pattern: string, count: int, examples: list<array{path: string, to: string}>, skipped: int}>, flat: array{count: int, examples: list<array{path: string, to: string}>}, terms: array{count: int, examples: list<array{type: string, slug: string, title: string}>}, mediaSizes: array{sizes: int, images: int, stale: int}}
 	 */
 	private function fileReport(): array
 	{
@@ -201,7 +201,7 @@ final readonly class SiteHealth
 	 * Sums up content and media files' health, each linking to its area's
 	 * details. Notices, when the report has them, don't count.
 	 *
-	 * @param  array{files: list<array{path: string, area: string, violations: list<array{field: string, message: string, severity: string}>}>, checked: int, metadata: int, ids: array{missing: list<string>, duplicates: list<mixed>}, mediaIds: array{missing: list<string>, duplicates: list<mixed>}, fileNames: list<array{count: int}>, flat: array{count: int}, mediaSizes: array{sizes: int, images: int, stale: int}} $report
+	 * @param  array{files: list<array{path: string, area: string, violations: list<array{field: string, message: string, severity: string}>}>, checked: int, metadata: int, ids: array{missing: list<string>, duplicates: list<mixed>}, mediaIds: array{missing: list<string>, duplicates: list<mixed>}, fileNames: list<array{count: int}>, flat: array{count: int}, terms: array{count: int}, mediaSizes: array{sizes: int, images: int, stale: int}} $report
 	 * @return list<array<string, mixed>>
 	 */
 	private function summarize(array $report): array
@@ -236,6 +236,12 @@ final readonly class SiteHealth
 		$checks[] = self::check('content', 'folders', $flat > 0
 			? CheckResult::warning('Collection folders', sprintf('%s kept in a folder, not directly in its collection\'s.', self::count($flat, 'entry is', 'entries are')))
 			: CheckResult::pass('Collection folders', 'Every collection\'s entries are files in its folder.'), 'content');
+
+		$terms = $report['terms']['count'];
+
+		$checks[] = self::check('content', 'terms', $terms > 0
+			? CheckResult::warning('Terms and profiles', sprintf('%s no file, so the site leaves %s out.', self::count($terms, 'term or profile entries name has', 'terms and profiles entries name have'), $terms === 1 ? 'it' : 'them'))
+			: CheckResult::pass('Terms and profiles', 'Every term and profile entries name has a file.'), 'content');
 
 		$renames = array_sum(array_column($report['fileNames'], 'count'));
 

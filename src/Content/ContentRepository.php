@@ -19,8 +19,7 @@ use Blush\Content\Query\QueryRunner;
 
 /**
  * The one place the rest of the framework gets content from (D-003):
- * entries by id, source path, or key, terms (real or virtual), and
- * queries.
+ * entries by id, source path, or key, terms, and queries.
  *
  *     $post  = $content->find('0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e74');
  *     $post  = $content->findPath('_posts/2003-04-15.welcome.md');
@@ -55,8 +54,8 @@ interface ContentRepository extends QueryRunner
 	/**
 	 * Returns a taxonomy term: its entry when it has a file in the
 	 * language (the default when `null`), by its key there or by its
-	 * original's, a virtual entry when it's referenced but has none, or
-	 * `null`.
+	 * original's, the original when it has no translation there, or
+	 * `null`. A slug entries name with no file isn't a term (D-584).
 	 */
 	public function term(string $taxonomy, string $slug, ?string $language = null): ?Entry;
 
@@ -111,7 +110,7 @@ interface ContentRepository extends QueryRunner
 
 	/**
 	 * Returns how many listed entries reference each term of a taxonomy,
-	 * by slug, including virtual terms; or, given a query, how many of the
+	 * by slug, leaving out slugs with no file (D-584); or, given a query, how many of the
 	 * entries it finds do (its limit and offset aside).
 	 *
 	 * @return array<string, int>

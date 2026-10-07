@@ -209,7 +209,7 @@ const pick         = ref('');
 const newSlugTyped = ref('');
 const linkable     = ref<LinkableProfile[] | null>(null);
 // Only profiles no account has can be linked: a profile belongs to one.
-const free         = computed(() => (linkable.value ?? []).filter((item) => item.account === null && item.status !== null));
+const free         = computed(() => (linkable.value ?? []).filter((item) => item.account === null));
 const linkItems    = computed<PickItem[] | null>(() => linkable.value === null ? null : free.value.map((item) => ({
 	key: item.slug,
 	initials: initials(item.title),

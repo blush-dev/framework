@@ -183,16 +183,12 @@ final class AdminPeopleTest extends TestCase
 
 		$answer = self::json($this->send('GET', '/profiles/jane'));
 
-		$this->assertSame(['slug' => 'jane', 'title' => 'Jane Author', 'subtitle' => 'Food editor', 'avatar' => null, 'status' => 'published', 'virtual' => false, 'path' => 'profiles/jane.md', 'id' => '0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e71', 'type' => 'profile', 'handle' => 'profile/jane', 'url' => '/profiles/jane', 'uses' => 1], $answer['profile'] ?? null);
+		$this->assertSame(['slug' => 'jane', 'title' => 'Jane Author', 'subtitle' => 'Food editor', 'avatar' => null, 'status' => 'published', 'path' => 'profiles/jane.md', 'id' => '0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e71', 'type' => 'profile', 'handle' => 'profile/jane', 'url' => '/profiles/jane', 'uses' => 1], $answer['profile'] ?? null);
 		$this->assertSame([['type' => 'post', 'typeLabel' => 'Posts', 'field' => 'authors', 'label' => 'Authors', 'entries' => 1, 'archive' => '/posts/authors/jane', 'page' => null]], $answer['appears'] ?? null);
 		$this->assertTrue($answer['linked'] ?? null);
 		$this->assertSame('jane', is_array($answer['account'] ?? null) ? $answer['account']['username'] : null);
 
-		$ghost = self::json($this->send('GET', '/profiles/ghost'));
-
-		$this->assertIsArray($ghost['profile'] ?? null);
-		$this->assertSame([true, null, null], [$ghost['profile']['virtual'], $ghost['profile']['status'], $ghost['profile']['path']], 'Credited without a file.');
-		$this->assertFalse($ghost['linked'] ?? null);
+		$this->assertSame(404, $this->send('GET', '/profiles/ghost')->getStatusCode(), 'Credited without a file isn\'t a profile (D-584).');
 		$this->assertSame(404, $this->send('GET', '/profiles/nobody')->getStatusCode());
 	}
 
@@ -207,7 +203,6 @@ final class AdminPeopleTest extends TestCase
 		$this->assertArrayHasKey('account', $own);
 		$this->assertNull($own['account'], 'Which account takes accounts.view.');
 		$this->assertSame(403, $this->send('GET', '/profiles/gwen')->getStatusCode());
-		$this->assertSame(403, $this->send('GET', '/profiles/ghost')->getStatusCode(), 'A profile with no file is everyone\'s.');
 	}
 
 	public function testWritesAndRemovesAnArchivesPage(): void
@@ -275,7 +270,6 @@ final class AdminPeopleTest extends TestCase
 		$profiles = self::json($this->send('GET', '/profiles'))['profiles'] ?? null;
 
 		$this->assertSame([
-			['slug' => 'ghost', 'title' => 'ghost', 'status' => null, 'account' => null],
 			['slug' => 'gwen', 'title' => 'Gwen Guest', 'status' => 'draft', 'account' => null],
 			['slug' => 'jane', 'title' => 'Jane Author', 'status' => 'published', 'account' => ['username' => 'jane', 'displayName' => 'Jane Author']]
 		], $profiles, 'Every profile by name, with the account linked to it (D-356).');

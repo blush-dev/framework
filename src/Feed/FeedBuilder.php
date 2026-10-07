@@ -89,7 +89,7 @@ final readonly class FeedBuilder
 			$term->title,
 			$this->urls->term($taxonomy, $term->slug) ?? '/',
 			$this->urls->feed($taxonomy, 'collection.feed' . $format->routeSuffix(), $term->slug) ?? '/',
-			$term->isVirtual() ? null : $term,
+			$term,
 			$query
 		);
 	}
@@ -110,7 +110,7 @@ final readonly class FeedBuilder
 			"{$profile->title} | {$field->plural} | {$type->labels->plural}",
 			$this->urls->person($type, $field, $profile->slug) ?? '/',
 			$this->urls->personFeed($type, $field, $profile->slug, $format->routeSuffix()) ?? '/',
-			$profile->isVirtual() ? null : $profile,
+			$profile,
 			$query
 		);
 	}
@@ -132,7 +132,7 @@ final readonly class FeedBuilder
 			$profile->title,
 			$this->urls->profile($profile->slug) ?? '/',
 			$this->urls->profileFeed($profile->slug, 'single.feed' . $format->routeSuffix()) ?? '/',
-			$profile->isVirtual() ? null : $profile,
+			$profile,
 			$query
 		);
 	}

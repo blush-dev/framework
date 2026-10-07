@@ -50,7 +50,9 @@ use Blush\Media\MediaMetadataCheck;
  *   terms that are their own parent or ancestor, and an order prefix
  *   (`01.about.md`) on a tree's or profiles type's file or folder, which
  *   only collections and taxonomies use (D-409; the file still works,
- *   and hidden ones are left alone);
+ *   and hidden ones are left alone), and terms and profiles entries
+ *   name that have no file, which the site leaves out (D-584;
+ *   `content:terms` writes them);
  * - warnings: two files claiming one entry (`about.md` next to
  *   `about/index.md`), a term's `parent` that has no file, and a page
  *   whose address another route answers (`movie/2024.md` beside a type
@@ -58,8 +60,7 @@ use Blush\Media\MediaMetadataCheck;
  *   variant it doesn't have under the active theme
  *   (`VariantCheck`, D-266), and a date that isn't on the calendar
  *   (`2019-00-00`, which is read as 2018-11-30; D-449);
- * - notices: undeclared keys and 1.x aliases (D-081), and terms that are
- *   referenced but have no file, which become virtual terms.
+ * - notices: undeclared keys and 1.x aliases (D-081).
  *
  * It also reports files in `user/content` in formats Blush no longer
  * reads (`.html`, `.json`, and the like; `FormatCheck`, D-501), and
@@ -426,25 +427,17 @@ final readonly class Linter
 	}
 
 	/**
-	 * Returns whether a term has an entry in any language: entries name
-	 * terms by the original's key (D-455), so a translation's entry
-	 * references a term whose file is in the default language.
-	 */
-	private function hasOriginal(IndexSnapshot $snapshot, string $taxonomy, string $slug): bool
-	{
-		return array_any($snapshot->keys, static fn (array $types): bool => isset($types[$taxonomy][$slug]));
-	}
-
-	/**
-	 * Returns notices for terms the entry references that have no file,
-	 * and warnings for credited profiles without one (D-351), by the
-	 * people field that credits them.
+	 * Returns errors for the terms the entry references and the profiles
+	 * it credits (by the people field that credits them) that have no
+	 * file in any language (D-584): entries name terms by the original's
+	 * key (D-455), so a translation's entry references a term whose file
+	 * is in the default language.
 	 *
 	 * @return list<Violation>
 	 */
 	private function missingTerms(IndexSnapshot $snapshot, IndexRecord $record): array
 	{
-		$notices = [];
+		$errors = [];
 
 		foreach ($record->terms as $key => $slugs) {
 			$parts    = explode('.', $key, 2);
@@ -460,16 +453,12 @@ final readonly class Linter
 			$field = $people ?? $type?->termField()->name ?? $taxonomy;
 
 			foreach ($slugs as $slug) {
-				if ($snapshot->find($record->language, $taxonomy, $slug) !== null || $this->hasOriginal($snapshot, $taxonomy, $slug)) {
-					continue;
+				if (! $snapshot->has($taxonomy, $slug)) {
+					$errors[] = new Violation($field, sprintf('"%s" has no %s entry, so the site leaves it out; add one, or run content:terms.', $slug, $type->labels->item ?? $taxonomy));
 				}
-
-				$notices[] = $type instanceof Profiles
-					? new Violation($field, sprintf('"%s" has no %s entry, so it has no public name or bio; add one.', $slug, $type->labels->item), Severity::Warning)
-					: new Violation($field, sprintf('"%s" has no %s entry; a virtual term stands in.', $slug, $taxonomy), Severity::Notice);
 			}
 		}
 
-		return $notices;
+		return $errors;
 	}
 }

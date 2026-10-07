@@ -39,7 +39,7 @@ $field = $page->people->field ?? '';
 			<li class="people__item">
 				<h2 class="people__name"><a href="<?= url($template->personUrl($person, $type, $field)) ?>"><?= e($person->title) ?></a></h2>
 
-				<?php if (! $person->isVirtual() && $person->raw() !== '') : ?>
+				<?php if ($person->raw() !== '') : ?>
 					<div class="people__bio">
 						<?= raw($person->excerpt()) ?>
 					</div>

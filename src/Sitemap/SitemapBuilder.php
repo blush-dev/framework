@@ -31,9 +31,9 @@ use Blush\Content\Type\Taxonomy;
  * or lists something), then its listed entries
  * (published, public, not landing pages) that have URLs, with their
  * `updated` dates, then each people field's list and person archives
- * (D-351). The profiles type's holds each profile's page, real or
- * virtual (`PeopleArchives::profiles()`). A taxonomy's holds its terms that list entries
- * (virtual terms included), by slug, so empty archives stay out. The type the root
+ * (D-351). The profiles type's holds each profile's page
+ * (`PeopleArchives::profiles()`). A taxonomy's holds its published
+ * terms that list entries, by slug, so empty archives stay out. The type the root
  * `index.md` belongs to also holds `/`, when the homepage isn't a type's
  * collection.
  */
@@ -94,7 +94,7 @@ final readonly class SitemapBuilder
 				$url = $this->urls->profile($profile->slug);
 
 				if ($url !== null) {
-					$urls[$url] ??= new SitemapUrl($this->urls->absolute($url), $profile->isVirtual() ? null : $profile->updated);
+					$urls[$url] ??= new SitemapUrl($this->urls->absolute($url), $profile->updated);
 				}
 			}
 
@@ -123,8 +123,8 @@ final readonly class SitemapBuilder
 				$url  = $this->urls->term($type, $slug);
 				$term = $this->content->term($type->name, $slug);
 
-				if ($url !== null) {
-					$urls[$url] ??= new SitemapUrl($this->urls->absolute($url), $term === null || $term->isVirtual() ? null : $term->updated);
+				if ($url !== null && $term !== null && $term->isPublished() && $term->isRoutable()) {
+					$urls[$url] ??= new SitemapUrl($this->urls->absolute($url), $term->updated);
 				}
 			}
 
@@ -160,7 +160,7 @@ final readonly class SitemapBuilder
 				$url = $this->urls->person($type, $field, $person->slug);
 
 				if ($url !== null) {
-					$urls[$url] ??= new SitemapUrl($this->urls->absolute($url), $person->isVirtual() ? null : $person->updated);
+					$urls[$url] ??= new SitemapUrl($this->urls->absolute($url), $person->updated);
 				}
 			}
 		}

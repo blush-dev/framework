@@ -20,10 +20,7 @@ use Blush\Asset\AssetCollector;
 use Blush\Content\Index\IndexRecord;
 use Blush\Content\Parser\DocumentParser;
 use Blush\Content\Source\ContentSource;
-use Blush\Content\Status;
-use Blush\Content\Type\ContentType;
 use Blush\Content\Type\ContentTypes;
-use Blush\Content\Visibility;
 use Blush\Core\AppConfig;
 use Blush\Field\FieldContext;
 use Blush\Markdown\MarkdownParser;
@@ -74,34 +71,6 @@ final readonly class EntryHydrator
 			body: $this->body($record),
 			language: $record->language,
 			id: $record->id
-		);
-	}
-
-	/**
-	 * Builds a virtual entry for a term that's referenced but has no
-	 * file. Its title is the term as first written, and it's as current
-	 * as the index.
-	 */
-	public function virtual(ContentType $type, string $slug, string $title, int $updated, string $locale, string $language = ''): Entry
-	{
-		return new Entry(
-			path: "virtual:{$type->name}/{$slug}",
-			type: $type,
-			slug: $slug,
-			key: $slug,
-			title: $title,
-			status: Status::Published,
-			visibility: Visibility::Public,
-			published: null,
-			updated: $this->date($updated),
-			locale: $locale,
-			fields: ['title' => $title],
-			extra: [],
-			terms: [],
-			landing: false,
-			source: null,
-			body: new Body(new BodySource(), $this->markdown),
-			language: $language
 		);
 	}
 

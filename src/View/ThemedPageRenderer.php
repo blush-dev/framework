@@ -242,7 +242,7 @@ final readonly class ThemedPageRenderer implements PageRenderer
 	{
 		$entry = $page->entry;
 
-		if ($entry === null || $entry->isVirtual()) {
+		if ($entry === null) {
 			return false;
 		}
 

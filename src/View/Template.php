@@ -571,9 +571,9 @@ final class Template
 
 	/**
 	 * Returns the profiles an entry credits through one of its type's
-	 * people fields (D-351), real or virtual, in the order front matter
-	 * lists them; the type's first people field, its main byline, when
-	 * none is named. Profiles that aren't published are left out.
+	 * people fields (D-351), in the order front matter lists them; the
+	 * type's first people field, its main byline, when none is named.
+	 * Profiles that aren't published, or have no file, are left out.
 	 *
 	 * @return list<Entry>
 	 */
@@ -616,8 +616,8 @@ final class Template
 	}
 
 	/**
-	 * Returns a published profile by its slug (D-351), real or virtual,
-	 * or `null` when there's none, or the site has no profiles type.
+	 * Returns a published profile by its slug (D-351), or `null` when
+	 * there's none, or the site has no profiles type.
 	 */
 	public function profile(string $slug): ?Entry
 	{

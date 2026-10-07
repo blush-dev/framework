@@ -4,6 +4,63 @@ Move each item to `decisions.md` once it's answered.
 
 ## Needs the author's call
 
+- **A front-end interactivity API** (discussed 2026-10-07; nothing to
+  build yet). Developers will need a way to build interactive sites.
+  The direction discussed: no client framework (Preact or otherwise)
+  as the public API; directives over server-rendered HTML, with
+  signals inside.
+  - **Why not components in JS:** a Preact (or Vue, Svelte, Solid)
+    component is a second copy of a PHP template. Either it renders
+    only on the client (content late or missing, and missing from the
+    Markdown copies and `llms.txt`), or Blush needs Node at render time
+    (against render anywhere), or two templates are kept in step by
+    hand. Themes would also need a build step, where today a theme is a
+    folder.
+  - **Sketch:** a region names a store by `vendor/name` (D-378) and
+    takes local context. Elements bind to it with attributes
+    (`data-blush-on-click="actions.toggle"`,
+    `data-blush-text="state.count"`, `data-blush-bind-hidden="!context.open"`).
+    Stores are ES modules registered by plugins and themes. PHP seeds
+    the starting state, which is written to the page as JSON with the
+    head and footer (D-577, D-578).
+  - **PHP runs the same directives at render time,** so the first
+    paint is right with no flash. That means a directive's value is a
+    small expression language (paths, `!`, perhaps named getters),
+    never arbitrary JS. Both PHP and JS can evaluate it, and it's
+    CSP-safe (no `eval`).
+  - **Loading:** stores and the runtime are scripts by handle (D-569
+    to D-573), asked for by directives, components, and templates, so
+    a page loads them only when it uses them. Plain ES modules with an
+    import map, no bundler for themes.
+  - **Runtime internals:** `@preact/signals-core` (about 1.5 KB) with
+    Blush's own directive walker (leaning), full Preact for its list
+    diffing, or a hand-written signal. Kept out of the public API so it
+    can be swapped.
+  - **Alongside it:** custom elements for self-contained widgets (the
+    audio and video players are natural ones); server round trips in
+    the htmx or Datastar style for search, forms, and pagination,
+    perhaps a later "server actions" layer.
+  - **Not chosen:** Alpine (`eval`-style expressions, no server-side
+    pass, another project's API); compiled frameworks (a build step
+    for site developers). Vue stays in the admin.
+  - **Open:** the attribute prefix and directive set; the expression
+    language; the runtime; how stores are registered in PHP and JS;
+    whether client navigation by region comes later (a player that
+    keeps playing across pages is the likely first case).
+
+- **View transitions for themes** (the author, 2026-10-07: "we should
+  probably have native view transition support for themes," then: on
+  hold, "but we'll definitely add"). Whether is settled; how isn't, and
+  nothing is built until it's picked up. Cross-page
+  view transitions are CSS only (`@view-transition { navigation: auto; }`)
+  and need no client router, which pairs with the interactivity API
+  above. To settle: whether a theme turns them on in `theme.json`
+  (core adding the rule) or in its own CSS; a way to name elements
+  that carry across pages (`view-transition-name`) from templates and
+  components, such as an entry's title or image from an archive to the
+  entry; honoring `prefers-reduced-motion` by default; and whether the
+  default theme uses them.
+
 - **Groups and relationships in the content model** (discussed
   2026-10-06; the author wants to dig deeper on the content model
   later). One operation under `termCounts()`, a proposed `termStats()`,
@@ -59,7 +116,7 @@ Move each item to `decisions.md` once it's answered.
     taxonomy, `$entry->terms('x')` slugs, `$template->terms($entry, 'x')`
     entries). `summary()` is Markdown or `null` and `excerpt()` HTML,
     which the names don't say. `isPublished()`, `isRoutable()`,
-    `isListed()`, `isVirtual()`: explained in their doc comments and
+    `isListed()`: explained in their doc comments and
     `docs/extending.md` (D-560).
     `field()` returns `mixed` (typed access waits on the Fields API,
     D-348). `->get()->all()` for an array (`query()->type()` takes the

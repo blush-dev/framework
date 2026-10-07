@@ -203,7 +203,6 @@ An entry can tell you what it is:
 | `isPublished()` | Its status is published and its date has come | Not a draft, a post scheduled for tomorrow, or one in the trash |
 | `isRoutable()` | It has a page of its own: it isn't hidden. Status doesn't count | A draft is routable; its page is served once it's published |
 | `isListed()` | It's in collections, feeds, and sitemaps: published, public, and not a landing page | An unlisted page is routable but not listed |
-| `isVirtual()` | It has no file: a term entries name that no one has written a page for | Its title and URL work; it has no text |
 
 To link to an entry you found some other way than a query (a parent, a
 child, a term), check `isPublished() && isRoutable()`.

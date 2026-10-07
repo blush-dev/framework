@@ -36,10 +36,9 @@ use Blush\Support\Slug;
  * files a post under a category they can't edit). Each item is the
  * `slug` a reference stores, its `title`, its `status`, its `parent`'s
  * slug (or `null`), and for a taxonomy's terms how many published
- * entries use it (`uses`; else `null`). A taxonomy's **virtual terms**
- * (slugs entries use with no file) are items too, marked `virtual`, and
- * a taxonomy answers `create: true`, since a slug with no term becomes
- * one as it's typed; other types' references must name an entry.
+ * entries use it (`uses`; else `null`). A taxonomy answers `create:
+ * true`, since the picker writes a new term's file as it's typed
+ * (D-584); other types' references must name an entry.
  *
  * A hierarchical taxonomy answers every term, in tree order (each term
  * followed by its children, siblings by title) with its `depth`, since
@@ -129,16 +128,6 @@ final readonly class ReferencesController
 			}
 		}
 
-		// A taxonomy's virtual terms: slugs in use with no file.
-		foreach (array_keys($counts + ($used ?? [])) as $slug) {
-			$slug = (string) $slug;
-
-			if (! isset($items[$slug])) {
-				$term         = $this->content->term($type, $slug);
-				$items[$slug]  = ['slug' => $slug, 'title' => $term->title ?? $slug, 'status' => 'published', 'parent' => null, 'uses' => $counts[$slug] ?? 0, 'depth' => null, 'virtual' => true, 'missing' => false];
-			}
-		}
-
 		if ($used !== null) {
 			$items = self::inUse($items, array_map(strval(...), array_keys($used)));
 		}
@@ -154,7 +143,7 @@ final readonly class ReferencesController
 
 		foreach ($held as $slug) {
 			if (! in_array($slug, $named, true)) {
-				$shown[] = $items[$slug] ?? ['slug' => $slug, 'title' => $slug, 'status' => null, 'parent' => null, 'uses' => null, 'depth' => null, 'virtual' => false, 'missing' => true];
+				$shown[] = $items[$slug] ?? ['slug' => $slug, 'title' => $slug, 'status' => null, 'parent' => null, 'uses' => null, 'depth' => null, 'missing' => true];
 				$named[] = $slug;
 			}
 		}
@@ -183,7 +172,6 @@ final readonly class ReferencesController
 			'position' => $entry->type instanceof Tree ? Position::of($entry) : null,
 			'uses'    => $taxonomy ? ($counts[$entry->key] ?? 0) : null,
 			'depth'   => null,
-			'virtual' => false,
 			'missing' => false
 		];
 	}

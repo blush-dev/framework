@@ -17032,3 +17032,53 @@ decision, add a new entry that supersedes it and mark the old one
   2. Decide on 1 using your best judgement." The save bar keeps one way
   of saving per screen (D-508), and Revert shouldn't leave a stray
   image in the library.
+
+### D-584: Every term and profile is a file; no virtual entries
+- **Date:** 2026-10-07
+- **Status:** Built. Supersedes D-090's virtual terms, D-351's profiles
+  credited without a file, and the token field's virtual tags (D-242,
+  D-281), by D-478's rule (a tool in the CLI and the admin migrates
+  existing content).
+- **Decision:**
+  - **An entry is its file.** `Entry::isVirtual()`,
+    `EntryHydrator::virtual()`, and `virtual:{type}/{slug}` paths are
+    gone, and `Entry::$source` is never `null`.
+    `ContentRepository::term()` answers a term or profile only when it
+    has a file: in another language, its translation, else the
+    original's file (the original's slug names it, D-455, D-458), so a
+    term without a translation still shows. `termCounts()` leaves out
+    slugs with no file in any language (`IndexSnapshot::has()`), so
+    every list, sitemap, feed, `llms.txt`, and URL listing built from it
+    skips them.
+  - **A dangling slug is skipped silently on the site**: no link, no
+    archive (a 404), no byline, no feed. Entries keep naming it in front
+    matter, and queries by it still work.
+  - **`content:lint` reports it as an error**, a term or a profile
+    alike (it was a notice for a term and a warning for a profile):
+    `"x" has no category entry, so the site leaves it out; add one, or
+    run content:terms.`
+  - **The fix:** `content:terms` lists them and `--write` writes each
+    (`MissingTerms`), published, with a `published` date (D-513), titled
+    as entries first wrote it (the index's `labels`, `Book Reviews`) or
+    by its slug, which is what the site showed before. Site Health's
+    Content area has a **Terms and Profiles** check (a warning, linking
+    to its screen) and `POST health/terms`, writing the types the
+    account may create and publish.
+  - **The admin:** the token field's **Add "x"** writes the term's file
+    (`POST entries`, published when the account may publish, else a
+    draft) and adds its slug, as the hierarchical picker's **New
+    {term}** did; it's offered only to accounts that may create the
+    type's entries, and never in the people picker. `GET references`
+    has no `virtual` items, `GET profiles` and `GET profiles/{slug}` no
+    profile credited without a file (a 404), and the profile screen no
+    "credited without a profile file" state. `Accounts::hasAuthor()` is
+    gone; `hasAuthorPage()` remains.
+  - **Themes** drop their `isVirtual()` checks (the default theme's
+    `collection.php` and `people.php`; in the trial, Second Proof, jtcom,
+    and jtcom-blade).
+- **Why:** the author: virtual terms were a 1.x stopgap for publishing
+  before writing a category's file; with the admin writing terms as
+  they're added, every term and profile can be a file. One rule (an
+  entry has a file) is simpler for themes and for a database later
+  (D-486). The author chose to include profiles and to skip dangling
+  slugs silently.

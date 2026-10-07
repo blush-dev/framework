@@ -23,11 +23,10 @@ use Blush\Content\Type\PeopleField;
  * site's URLs agree:
  *
  * - `credited()`: the profiles a people field of a type credits on at
- *   least one listed entry, real or virtual, by name. Each has an
- *   archive under the field's word.
- * - `profiles()`: every published profile with a file, and every
- *   virtual one a listed entry credits, by name. Each has a page of its
- *   own when the profiles type has URLs.
+ *   least one listed entry, by name. Each has an archive under the
+ *   field's word.
+ * - `profiles()`: every published profile, by name. Each has a page of
+ *   its own when the profiles type has URLs.
  *
  * Only published, routable profiles count.
  */
@@ -81,21 +80,11 @@ final readonly class PeopleArchives
 
 		foreach ($this->content->query()->type($profiles->name)->get() as $profile) {
 			if ($profile->isRoutable()) {
-				$listed[$profile->slug] = $profile;
+				$listed[] = $profile;
 			}
 		}
 
-		$crediting = array_keys($this->types->crediting());
-
-		foreach ($crediting === [] ? [] : $this->content->termCounts($profiles->name, $this->content->query()->type(...$crediting)) as $slug => $count) {
-			$profile = $count > 0 && ! isset($listed[(string) $slug]) ? $this->visible($this->content->term($profiles->name, (string) $slug)) : null;
-
-			if ($profile !== null) {
-				$listed[$profile->slug] = $profile;
-			}
-		}
-
-		return self::byName(array_values($listed));
+		return self::byName($listed);
 	}
 
 	/**

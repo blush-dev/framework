@@ -29,8 +29,8 @@ use Blush\Support\Slug;
  * A single value counts as a list of one (D-078), and every value is
  * turned into a slug the way 1.x did, so `category: Book Reviews` refers
  * to `book-reviews`. With `multiple: false`, one slug is stored instead of
- * a list. Whether the entries exist is checked by `content:lint`, since a
- * missing term becomes a virtual one.
+ * a list. Whether the entries exist is checked by `content:lint`; a
+ * missing one is left out of the site (D-584).
  */
 final class ReferenceField extends Field
 {

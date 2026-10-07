@@ -83,8 +83,9 @@ use Blush\Session\StartSession;
  *     health/media-ids` and `POST health/media-ids/keep` for media's
  *     (D-487), `POST health/media-sizes` to record images' sizes
  *     (D-488), `POST health/filenames` to rename a type's files to its
- *     pattern (D-512), and `POST health/flatten` to move collections'
- *     entries out of folders (D-514).
+ *     pattern (D-512), `POST health/flatten` to move collections'
+ *     entries out of folders (D-514), and `POST health/terms` to write
+ *     the terms and profiles entries name with no file (D-584).
  *   - `GET  roles` and `GET accounts`: the site's roles and accounts
  *     (`PeopleController`); `GET profiles`, `GET profiles/{slug}`, and `POST` and
  *     `DELETE` the pages written for its archives (`ProfilesController`,
@@ -198,6 +199,7 @@ final readonly class AdminRoutes implements RouteSource
 			Route::post('/health/media-sizes', [HealthController::class, 'recordSizes'])->named('health.media-sizes')->middleware(Authenticate::class),
 			Route::post('/health/filenames', [HealthController::class, 'renameFiles'])->named('health.filenames')->middleware(Authenticate::class),
 			Route::post('/health/flatten', [HealthController::class, 'flatten'])->named('health.flatten')->middleware(Authenticate::class),
+			Route::post('/health/terms', [HealthController::class, 'createTerms'])->named('health.terms')->middleware(Authenticate::class),
 			Route::get('/roles', [PeopleController::class, 'roles'])->named('roles')->middleware(Authenticate::class),
 			Route::post('/roles', [RoleEditController::class, 'create'])->named('role.create')->middleware(Authenticate::class),
 			Route::patch('/roles/{name:[a-z][a-z0-9_-]*}', [RoleEditController::class, 'update'])->named('role.update')->middleware(Authenticate::class),

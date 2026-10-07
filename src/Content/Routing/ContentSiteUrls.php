@@ -33,13 +33,13 @@ use Blush\Routing\UrlSource;
  *
  * 1. The homepage, paged when a type is the home.
  * 2. Each public, routed type's collection, paged.
- * 3. Each taxonomy's terms: those listed entries reference (virtual ones
- *    included) and those with files, paged.
+ * 3. Each taxonomy's terms with files: those listed entries reference
+ *    and the rest, paged.
  * 4. Each date archive level of each type with archives, for every
  *    period a listed entry was published in, paged. Periods whose
  *    listing turns out empty are 404s, and so are skipped.
  * 5. Each people field's list and person archives, and each profile's
- *    page, real or virtual (D-351), paged.
+ *    page (D-351), paged.
  * 6. Every other published entry with a URL, unlisted ones included.
  *
  * On a multilingual site (D-455), the homepage, collections, terms, and

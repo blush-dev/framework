@@ -138,10 +138,9 @@ export interface ProfileDetail {
 		title: string;
 		subtitle: string | null;
 		avatar: string | null;
-		// `null` for a profile credited without a file.
-		status: EntryStatus | null;
-		virtual: boolean;
-		path: string | null;
+		status: EntryStatus;
+		path: string;
+		// `null` for a file without a valid id (D-477).
 		id: string | null;
 		type: string;
 		handle: string | null;
@@ -160,8 +159,7 @@ export interface ProfileDetail {
 export interface LinkableProfile {
 	slug: string;
 	title: string;
-	// `null` for one credited without a file.
-	status: EntryStatus | null;
+	status: EntryStatus;
 	account: { username: string; displayName: string } | null;
 }
 

@@ -13,8 +13,9 @@
  *   match's parents in view.
  * - **Anything else it can hold several of is a token field**: chips and
  *   a bare input in one box. Typing searches; Enter takes the first
- *   suggestion, or with nothing matching writes what was typed when the
- *   type allows it (a taxonomy's virtual term, D-242); Backspace in an
+ *   suggestion, or with nothing matching writes a new term named as it
+ *   was typed and adds it, when the type allows it and the account may
+ *   create its entries (a term is its file, D-584); Backspace in an
  *   empty input removes the last chip.
  * - **Authors are people**: each a mark, a name, and its slug, the first
  *   marked **Lead** when there can be several, removed with an × that
@@ -88,7 +89,7 @@ const values = computed(() => referenceValues(model.value));
 const slugs  = computed(() => values.value.map(slugOf));
 
 function itemOf(value: string): ReferenceItem {
-	return known.value.get(slugOf(value)) ?? { slug: slugOf(value), title: value, status: null, parent: null, uses: null, depth: null, virtual: false, missing: false };
+	return known.value.get(slugOf(value)) ?? { slug: slugOf(value), title: value, status: null, parent: null, uses: null, depth: null, missing: false };
 }
 
 function write(next: string[]): void {
@@ -106,11 +107,7 @@ function add(value: string): void {
 		return;
 	}
 
-	// Words a person typed (a new tag) keep their words, which the site
-	// shows as the term's name; a known entry is written by its slug.
-	const written = known.value.has(slug) ? slug : value.replace(/,/g, ' ').trim();
-
-	write(multiple.value ? [...values.value, written] : [written]);
+	write(multiple.value ? [...values.value, slug] : [slug]);
 }
 
 function remove(slug: string): void {
@@ -181,19 +178,57 @@ watch(query, (text) => {
 	search(text);
 });
 
-// Whether Enter would write what's typed: nothing matches it exactly, and
-// the type takes slugs with nothing behind them.
-const creatable = computed(() => create.value && query.value.trim() !== '' && slugOf(query.value) !== ''
+const canCreate = computed(() => canType(type.value, 'create'));
+const writing   = ref(false);
+
+// Whether Enter would write a new term named as typed: nothing matches it
+// exactly, the type takes new ones, and the account may create them.
+// People are chosen, never written here.
+const creatable = computed(() => create.value && canCreate.value && !props.people && query.value.trim() !== '' && slugOf(query.value) !== ''
 	&& !suggestions.value.some((item) => item.slug === slugOf(query.value)) && !has(slugOf(query.value)));
 
-function choose(item: ReferenceItem | null): void {
-	if (item !== null) {
-		add(item.slug);
-	} else if (creatable.value) {
-		add(query.value);
+/**
+ * Writes a term (`POST entries`), published when the account may
+ * publish, and answers its slug, or `null` when it couldn't be written.
+ */
+async function writeTerm(name: string, parent = ''): Promise<string | null> {
+	writing.value = true;
+	error.value   = '';
+
+	try {
+		const created = await request<{ slug: string; title: string; status: ReferenceItem['status'] }>('POST', '/entries', {
+			type: type.value,
+			title: name,
+			status: canType(type.value, 'publish') ? 'published' : 'draft',
+			set: parent === '' ? {} : { parent }
+		});
+
+		remember([{ slug: created.slug, title: created.title, status: created.status, parent: parent === '' ? null : parent, uses: 0, depth: null, missing: false }]);
+
+		return created.slug;
+	} catch (caught) {
+		error.value = errorMessage(caught, `The ${names.value.item} couldn't be created.`);
+
+		return null;
+	} finally {
+		writing.value = false;
 	}
+}
+
+async function choose(item: ReferenceItem | null): Promise<void> {
+	const typed = query.value.trim();
 
 	query.value = '';
+
+	if (item !== null) {
+		add(item.slug);
+	} else if (typed !== '' && create.value && canCreate.value && !props.people && !writing.value) {
+		const slug = await writeTerm(typed);
+
+		if (slug !== null) {
+			add(slug);
+		}
+	}
 }
 
 function searchKey(event: KeyboardEvent): void {
@@ -206,7 +241,7 @@ function searchKey(event: KeyboardEvent): void {
 		event.preventDefault();
 
 		if (count > 0) {
-			choose(suggestions.value[active.value] ?? null);
+			void choose(suggestions.value[active.value] ?? null);
 		}
 	} else if (event.key === 'Backspace' && query.value === '' && values.value.length > 0 && !props.people) {
 		const last = values.value.at(-1);
@@ -257,16 +292,14 @@ const treeRows = computed(() => {
 	return all.filter((item) => keep.has(item.slug));
 });
 
-// The field's slugs the tree doesn't have (a virtual or missing term).
+// The field's slugs the tree doesn't have (a missing term).
 const outside = computed(() => tree.value === null ? [] : values.value.filter((value) => !tree.value?.some((item) => item.slug === slugOf(value))));
 
 // A new term, written where it's being chosen.
 const adding     = ref(false);
 const newName    = ref('');
 const newParent  = ref('');
-const writing    = ref(false);
 const newField   = ref<HTMLInputElement | null>(null);
-const canCreate = computed(() => canType(type.value, 'create'));
 
 async function openNew(): Promise<void> {
 	adding.value    = true;
@@ -285,25 +318,13 @@ async function saveNew(): Promise<void> {
 		return;
 	}
 
-	writing.value = true;
-	error.value   = '';
+	const slug = await writeTerm(name, newParent.value);
 
-	try {
-		const created = await request<{ slug: string; title: string }>('POST', '/entries', {
-			type: type.value,
-			title: name,
-			status: canType(type.value, 'publish') ? 'published' : 'draft',
-			set: newParent.value === '' ? {} : { parent: newParent.value }
-		});
-
+	if (slug !== null) {
 		adding.value    = false;
 		treeQuery.value = '';
 		await start();
-		add(created.slug);
-	} catch (caught) {
-		error.value = errorMessage(caught, `The ${names.value.item} couldn't be created.`);
-	} finally {
-		writing.value = false;
+		add(slug);
 	}
 }
 
@@ -386,7 +407,7 @@ const persons = computed(() => values.value.map((value) => itemOf(value)));
 			</div>
 			<ul v-if="query.trim() && (suggestions.length || creatable)" :id="`${id}-suggestions`" class="reference__suggestions" role="listbox">
 				<li v-for="(item, index) in suggestions" :key="item.slug" role="option" :aria-selected="index === active">
-					<button type="button" :class="{ 'is-active': index === active }" @mousedown.prevent @click="choose(item)">
+					<button type="button" :class="{ 'is-active': index === active }" @mousedown.prevent @click="void choose(item)">
 						<span class="avatar reference__avatar reference__avatar--small" aria-hidden="true">{{ initials(item.title) }}</span>
 						<span class="reference__suggestion-name">{{ item.title }}</span>
 						<span class="reference__count mono">{{ item.slug }}</span>
@@ -413,7 +434,7 @@ const persons = computed(() => values.value.map((value) => itemOf(value)));
 				<label v-for="value in outside" :key="`outside-${value}`" class="reference__term is-on">
 					<input type="checkbox" class="check-input" checked @change="toggle(slugOf(value))">
 					<span class="check-box" aria-hidden="true"><AdminIcon name="check" /></span>
-					<span class="reference__term-name">{{ itemOf(value).title }} <span class="reference__draft">· {{ itemOf(value).virtual ? 'no page' : 'not found' }}</span></span>
+					<span class="reference__term-name">{{ itemOf(value).title }} <span class="reference__draft">· not found</span></span>
 				</label>
 				<p v-if="!treeRows.length && !outside.length" class="reference__empty">{{ treeQuery.trim() ? `No ${names.items} match “${treeQuery.trim()}”.` : `No ${names.items} yet.` }}</p>
 			</div>
@@ -445,13 +466,13 @@ const persons = computed(() => values.value.map((value) => itemOf(value)));
 			</div>
 			<ul v-if="query.trim() && (suggestions.length || creatable)" :id="`${id}-suggestions`" class="reference__suggestions" role="listbox">
 				<li v-for="(item, index) in suggestions" :key="item.slug" role="option" :aria-selected="index === active">
-					<button type="button" :class="{ 'is-active': index === active }" @mousedown.prevent @click="choose(item)">
+					<button type="button" :class="{ 'is-active': index === active }" @mousedown.prevent @click="void choose(item)">
 						<span class="reference__suggestion-name">{{ item.title }}</span>
 						<span v-if="item.uses !== null" class="reference__count mono">{{ item.uses }}</span>
 					</button>
 				</li>
 				<li v-if="creatable" role="option" :aria-selected="active === suggestions.length">
-					<button type="button" :class="{ 'is-active': active === suggestions.length }" @mousedown.prevent @click="choose(null)">
+					<button type="button" :class="{ 'is-active': active === suggestions.length }" @mousedown.prevent @click="void choose(null)">
 						<AdminIcon name="plus" /><span class="reference__suggestion-name">Add “{{ query.trim() }}”</span>
 					</button>
 				</li>

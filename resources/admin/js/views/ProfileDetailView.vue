@@ -229,7 +229,7 @@ const linkItems = computed<PickItem[] | null>(() => free.value?.map((account) =>
 	guest: true
 })) ?? null);
 const pick     = ref('');
-const canLink  = computed(() => can('accounts.view') && can('accounts.edit') && detail.value !== null && !detail.value.linked && profile.value !== null && !profile.value.virtual);
+const canLink  = computed(() => can('accounts.view') && can('accounts.edit') && detail.value !== null && !detail.value.linked && profile.value !== null);
 // Anyone's link you manage, and your own (D-373).
 const canUnlink = computed(() => detail.value?.account !== null && detail.value?.account !== undefined && can('accounts.edit') && (detail.value.account.manages || detail.value.account.username === session.account?.username));
 
@@ -276,8 +276,7 @@ async function link(): Promise<void> {
 					<h1 tabindex="-1">{{ name }}</h1>
 					<p v-if="profile" class="page-header__hint">
 						<template v-if="profile.url"><span class="mono">{{ profile.url }}</span><span class="page-header__sep" aria-hidden="true">·</span></template>
-						<span v-if="profile.virtual">Credited without a profile file</span>
-						<StatusPill v-else-if="profile.status" :status="profile.status" />
+						<StatusPill :status="profile.status" />
 						<span class="page-header__sep" aria-hidden="true">·</span>
 						<span>{{ plural(profile.uses, 'byline', 'bylines') }}</span>
 						<span v-if="yours" class="tag--you">You</span>
@@ -302,12 +301,6 @@ async function link(): Promise<void> {
 
 		<p v-if="error" class="notice notice--error" role="alert">{{ error }}</p>
 		<p v-if="failure" class="notice notice--error" role="alert">{{ failure }}</p>
-
-		<p v-if="profile?.virtual" class="notice notice--warn">
-			<AdminIcon name="triangle-alert" />
-			<span class="notice__text">Entries credit <span class="mono">{{ profile.slug }}</span>, but there's no profile file, so bylines show the name as it's written and there's no bio.
-				<RouterLink v-if="profileType && canType(profileType, 'create')" :to="{ name: 'entry-new', query: { type: profileType } }">Create a profile</RouterLink> with this slug to give it one.</span>
-		</p>
 
 		<div v-if="detail && profile" class="pair">
 			<section class="panel" aria-labelledby="identity-heading">
@@ -396,7 +389,7 @@ async function link(): Promise<void> {
 								<span class="res__about">Its own page, and every archive's default</span>
 							</th>
 							<td><span v-if="profile.url" class="res__path">{{ profile.url }}</span><span v-else class="muted">—</span></td>
-							<td><span v-if="profile.virtual" class="muted">Its name only</span><span v-else class="pill pill--written">Written</span></td>
+							<td><span class="pill pill--written">Written</span></td>
 							<td class="table__actions">
 								<RouterLink v-if="editRoute" class="button button--small" :to="editRoute">Edit</RouterLink>
 							</td>

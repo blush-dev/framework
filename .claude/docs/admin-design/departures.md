@@ -308,8 +308,8 @@ Each is recorded in `.claude/docs/decisions.md`.
   an author's slug, not a role, and no avatar images. A term keeps its
   Visibility and Date (Blush terms have both), and shows Featured Image
   and Authors only when its file has one. The reference picker's New
-  {term} writes a real term (a virtual term can't have a parent); typing
-  a new tag writes a virtual one.
+  {term} writes a term, and so does typing a new tag (every term is a
+  file, D-584).
 - **Links** (D-313, the author's call): in the text, ⌘K opens the link
   form, with or without a selection, and ⌘⇧K removes the link the
   caret is in; outside the text ⌘K is the command palette. The

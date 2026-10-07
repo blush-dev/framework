@@ -172,7 +172,7 @@ final class IndexedRepository implements ContentRepository
 	#[Override]
 	public function translations(Entry $entry): array
 	{
-		$paths = $entry->isVirtual() ? [] : $this->snapshot()->translations($entry->path);
+		$paths = $this->snapshot()->translations($entry->path);
 
 		if ($paths === []) {
 			return [$entry->language => $entry];
@@ -202,7 +202,7 @@ final class IndexedRepository implements ContentRepository
 			return $entry;
 		}
 
-		$path = $entry->isVirtual() ? null : $this->snapshot()->translations($entry->path)[$language] ?? null;
+		$path = $this->snapshot()->translations($entry->path)[$language] ?? null;
 
 		return $path === null ? null : $this->findPath($path);
 	}
@@ -223,30 +223,13 @@ final class IndexedRepository implements ContentRepository
 		$entry      = $this->named($taxonomy, $slug, $language);
 
 		// Entries name a term by its original's slug (D-455), which finds
-		// its translation (D-458).
+		// its translation (D-458), or the original without one (D-584).
 		if ($entry === null && ! $this->app->languages->isDefault($language)) {
 			$original = $this->named($taxonomy, $slug);
-			$entry    = $original === null ? null : $this->translation($original, $language);
+			$entry    = $original === null ? null : $this->translation($original, $language) ?? $original;
 		}
 
-		if ($entry !== null) {
-			return $entry;
-		}
-
-		$snapshot = $this->snapshot();
-
-		if ($snapshot->referencing($taxonomy, $slug) === []) {
-			return null;
-		}
-
-		return $this->hydrator->virtual(
-			$type,
-			$slug,
-			$snapshot->labels[$taxonomy][$slug] ?? $slug,
-			$snapshot->built,
-			$this->app->languages->find($language)->locale ?? $this->app->locale,
-			$language
-		);
+		return $entry;
 	}
 
 	/**
@@ -270,7 +253,7 @@ final class IndexedRepository implements ContentRepository
 	public function parent(Entry $entry): ?Entry
 	{
 		// The index's parent, which a translation's is in its language (D-457).
-		$key = $entry->isVirtual() ? null : $this->snapshot()->records[$entry->path]['parent'] ?? null;
+		$key = $this->snapshot()->records[$entry->path]['parent'] ?? null;
 
 		return $key === null ? null : $this->named($entry->type->name, $key, $entry->language);
 	}
@@ -281,7 +264,7 @@ final class IndexedRepository implements ContentRepository
 	#[Override]
 	public function children(Entry $entry): array
 	{
-		if ($entry->isVirtual() || $entry->landing) {
+		if ($entry->landing) {
 			return [];
 		}
 
@@ -322,6 +305,9 @@ final class IndexedRepository implements ContentRepository
 	}
 
 	/**
+	 * A people field's terms (`profile.author`) are its profiles type's
+	 * entries.
+	 *
 	 * @inheritDoc
 	 */
 	#[Override]
@@ -329,9 +315,14 @@ final class IndexedRepository implements ContentRepository
 	{
 		$snapshot = $this->snapshot();
 		$listed   = array_flip($this->get(($query ?? $this->query())->limit(null)->offset(0))->paths);
+		$type     = strstr($taxonomy, '.', true) ?: $taxonomy;
 		$counts   = [];
 
 		foreach ($snapshot->terms[$taxonomy] ?? [] as $slug => $paths) {
+			if (! $snapshot->has($type, (string) $slug)) {
+				continue;
+			}
+
 			$counts[(string) $slug] = count(array_filter($paths, static fn (string $path): bool => isset($listed[$path])));
 		}
 

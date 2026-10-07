@@ -40,7 +40,7 @@ loadLinkable().then((list) => {
 });
 
 function labelOf(profile: LinkableProfile): string {
-	const state = profile.status === null ? ' (no profile file yet)' : (profile.status === 'published' ? '' : ` (${profile.status})`);
+	const state = profile.status === 'published' ? '' : ` (${profile.status})`;
 	const owner = profile.account && profile.account.username !== props.username ? ` · linked to ${profile.account.displayName}` : '';
 
 	return `${profile.title}${state}${owner}`;

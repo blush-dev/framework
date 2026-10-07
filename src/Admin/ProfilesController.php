@@ -41,18 +41,16 @@ use Blush\Http\Status;
  * accounts with `accounts.view` (D-362):
  *
  * - `GET profiles`: every profile, by name: `{"profiles": [{"slug",
- *   "title", "status"` (`null` for one credited without a file),
- *   `"account"` (the account linked to it, `{"username", "displayName"}`,
+ *   "title", "status", "account"` (the account linked to it, `{"username", "displayName"}`,
  *   or `null`)`}]}`. A profile belongs to one account, so a picker
  *   offers only the ones without.
  *
  * And a profile's screen (D-353), for accounts that may edit the
- * profile (their own, or anyone's with the profiles type's `edit.others`; a profile
- * with no file needs the latter):
+ * profile (their own, or anyone's with the profiles type's
+ * `edit.others`). A profile is its file (D-584):
  *
  * - `GET profiles/{slug}`: the `profile` (`{"slug", "title", "subtitle",
- *   "avatar", "status"` (`null` without a file), `"virtual", "path"
- *   (`null` without a file), "id", "handle", "url", "uses"}`), where it `appears` (each people field of
+ *   "avatar", "status", "path", "id", "handle", "url", "uses"}`), where it `appears` (each people field of
  *   each type that credits people: `{"type", "typeLabel", "field",
  *   "label", "entries"` (published entries crediting them there),
  *   `"archive"` (the archive's address, or `null` without one), `"page"`
@@ -114,15 +112,6 @@ final readonly class ProfilesController
 			$listed[$entry->key] = ['slug' => $entry->key, 'title' => $entry->title !== '' ? $entry->title : $entry->key, 'status' => $entry->status->value, 'account' => $linked[$entry->key] ?? null];
 		}
 
-		foreach (array_keys($this->content->termCounts($profiles->name)) as $slug) {
-			$slug = (string) $slug;
-			$term = isset($listed[$slug]) ? null : $this->content->term($profiles->name, $slug);
-
-			if ($term !== null) {
-				$listed[$slug] = ['slug' => $slug, 'title' => $term->title, 'status' => null, 'account' => $linked[$slug] ?? null];
-			}
-		}
-
 		$listed = array_values($listed);
 		usort($listed, static fn (array $a, array $b): int => strnatcasecmp($a['title'], $b['title']));
 
@@ -148,12 +137,11 @@ final readonly class ProfilesController
 				'title'    => $profile->title,
 				'subtitle' => self::text($profile->field('subtitle')),
 				'avatar'   => self::text($profile->field('avatar')),
-				'status'   => $profile->isVirtual() ? null : $profile->status->value,
-				'virtual'  => $profile->isVirtual(),
-				'path'     => $profile->isVirtual() ? null : $profile->path,
+				'status'   => $profile->status->value,
+				'path'     => $profile->path,
 				'id'       => $profile->id,
 				'type'     => $profiles->name,
-				'handle'   => $profile->isVirtual() ? null : $this->handles->of($profile),
+				'handle'   => $this->handles->of($profile),
 				'url'      => $this->urls->profile($profile->slug),
 				'uses'     => $this->content->termCounts($profiles->name)[$profile->slug] ?? 0
 			],
@@ -253,11 +241,7 @@ final readonly class ProfilesController
 			return self::json(['error' => sprintf('There\'s no profile "%s".', $slug)], Status::NotFound);
 		}
 
-		$allowed = $profile->isVirtual()
-			? $this->permissions->can($viewer, ContentAction::EditOthers, $profiles->name)
-			: $this->permissions->can($viewer, ContentAction::Edit, $profile);
-
-		return $allowed ? [$viewer, $profiles, $profile] : self::json(['error' => 'You aren\'t allowed to edit that profile.'], Status::Forbidden);
+		return $this->permissions->can($viewer, ContentAction::Edit, $profile) ? [$viewer, $profiles, $profile] : self::json(['error' => 'You aren\'t allowed to edit that profile.'], Status::Forbidden);
 	}
 
 	/**

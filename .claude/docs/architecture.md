@@ -460,8 +460,7 @@ Implemented in M4a (D-083, D-084); kinds and option names from D-157.
   reading a key a taxonomy reads is dropped at load
   (`ContentType::withoutPeopleReading()`), so 1.x `author` taxonomies
   keep working. `ContentTypes::termTypes()` is the taxonomies plus the
-  profiles type: the types the index keeps terms (and virtual terms)
-  for.
+  profiles type: the types the index keeps terms for.
 - **`Schema`** (`Blush\Field`, D-338): field types `text`, `markdown`,
   `date`, `bool`, `number`, `enum`, `list`, `reference`, `media`, `slug`,
   and `object` (`FieldType` enum, `FieldRegistry`, `FieldFactory`,
@@ -483,7 +482,7 @@ Implemented in M4a (D-083, D-084); kinds and option names from D-157.
 Implemented in M4b (D-088).
 
 - `Content\Entry\Entry`, a readonly value object: `path` (the source
-  path, or `virtual:{type}/{slug}`), `id` (the entry's UUIDv7 from its
+  path; every entry is a file, D-584), `id` (the entry's UUIDv7 from its
   `id` front matter, `null` without a valid one; D-477, D-480), `type`, `slug`, `key` (the slug with any folders below the type's),
   `title`, `status` (`Published | Draft | Scheduled | Trash`; D-484:
   `Status::selectable()` is what status controls offer, and
@@ -497,7 +496,6 @@ Implemented in M4b (D-088).
 - The `Body`'s source is a **lazy ghost** (`EntryHydrator`): the file is
   read, parsed, and rendered only when `body()` is called, and not at all
   when the `BodyCache` has the rendering (D-130).
-- **Virtual entries** stand in for referenced terms with no file.
 - **Scheduling:** a future `published` date means `Scheduled`, decided
   against the clock at read time. The index records the next go-live time,
   and the content version moves on by itself when it passes (D-128).
@@ -548,13 +546,17 @@ Implemented in M4a (D-080, D-085, D-086).
   disk are trusted.
 
 ### Taxonomies and relations
-- Terms are entries (`user/content/topics/art.md`). A term that is referenced
-  but has no file gets a virtual term, titled as first written (D-090).
+- Terms are entries (`user/content/topics/art.md`), and only files are
+  terms (D-584): a slug entries name with no file is left out of the
+  site (`term()` is `null`, `termCounts()` leaves it out) and is a lint
+  error; `MissingTerms` (`content:terms`, Site Health) writes them,
+  titled as first written (the index's `labels`). In another language,
+  `term()` finds the translation, else the original's file.
 - The index stores each entry's terms (forward) and the entries per term
-  (reverse); `termCounts()` counts listed entries. Other reference fields
+  (reverse); `termCounts()` counts listed entries, for terms with files. Other reference fields
   are forward-only for now.
 - **Profiles** (D-351, D-352) are entries of the profiles type, indexed
-  like terms (forward, reverse, virtual). An entry's credits are kept
+  like terms (forward and reverse; files only, D-584). An entry's credits are kept
   twice in its record's `terms`: per people field
   (`PeopleField::termKey()`, `profile.cooks`) and together under the
   profiles type's name. The repository reads 1.x's `author` query

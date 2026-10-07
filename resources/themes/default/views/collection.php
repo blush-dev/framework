@@ -27,7 +27,7 @@ $heading = match (true) {
 <header class="archive-header">
 	<h1 class="archive-header__title"><?= e($heading) ?></h1>
 
-	<?php if ($entry !== null && ! $entry->isVirtual() && $entry->raw() !== '') : ?>
+	<?php if ($entry !== null && $entry->raw() !== '') : ?>
 		<div class="archive-header__description">
 			<?= raw($entry->body()) ?>
 		</div>

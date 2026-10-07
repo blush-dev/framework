@@ -1079,6 +1079,10 @@ export interface Health {
 	// Collections' files that aren't flat (D-514): how many, and the
 	// first few moves (`POST health/flatten` moves them).
 	flat: { count: number; examples: { path: string; to: string }[] };
+	// Terms and profiles entries name with no file (D-584): how many, and
+	// the first few, with the title each file gets (`POST health/terms`
+	// writes them).
+	terms: { count: number; examples: { type: string; slug: string; title: string }[] };
 }
 
 export type HealthArea = 'content' | 'media' | 'extensions' | 'system' | 'accounts';

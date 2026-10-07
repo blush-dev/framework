@@ -45,7 +45,7 @@ use Blush\Content\Visibility;
  *   date archives.
  * - `terms` maps each taxonomy to the term slugs the entry references,
  *   and `labels` keeps how a term was written when that differs from its
- *   slug (`Book Reviews`), for virtual terms.
+ *   slug (`Book Reviews`), for titling a missing term's file (D-584).
  * - `parent` is the key of the entry's parent in its own type, for the
  *   types that nest: a page's is the key of the folder it's in
  *   (`about` for `about/biography`), and a hierarchical taxonomy's term

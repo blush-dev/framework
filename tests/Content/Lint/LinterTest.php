@@ -61,8 +61,8 @@ final class LinterTest extends TestCase
 			$progress++;
 		});
 
-		$this->assertSame(20, $report->checked);
-		$this->assertSame(20, $progress);
+		$this->assertSame(22, $report->checked);
+		$this->assertSame(22, $progress);
 		$this->assertTrue($report->hasErrors());
 		$this->assertSame(4, $report->count(Severity::Error), 'The standard posts\' folder entry is one (D-514).');
 		$this->assertSame(1, $report->count(Severity::Warning));
@@ -78,9 +78,7 @@ final class LinterTest extends TestCase
 		$notices = self::messages($report, Severity::Notice);
 
 		$this->assertContains('notice date: is read as "published".', $notices['_posts/2003-04-15.welcome.md']);
-		$this->assertContains('notice category: "old-posts" has no category entry; a virtual term stands in.', $notices['_posts/2003-04-15.welcome.md']);
 		$this->assertContains('notice tag: is not declared by the schema.', $notices['_posts/2008-04-05.spring.md']);
-		$this->assertNotContains('notice category: "art" has no category entry; a virtual term stands in.', $notices['_posts/2008-04-05.spring.md']);
 	}
 
 	public function testWarnsOfDatesThatArentOnTheCalendar(): void
@@ -183,7 +181,7 @@ final class LinterTest extends TestCase
 		$this->assertStringContainsString('the movie.single route answers there', $messages['movie/about/index.md'][0] ?? '');
 	}
 
-	public function testWarnsAboutCreditedAuthorsWithoutEntries(): void
+	public function testReportsTermsAndProfilesWithoutFiles(): void
 	{
 		$this->standardContent();
 		$this->entry('_posts/2009-01-01.credits.md', "title: Credits\npublished: 2009-01-01\nauthors: [justintadlock, Sam Smith]\ncategory: missing");
@@ -191,9 +189,9 @@ final class LinterTest extends TestCase
 		$messages = self::messages($this->site()->container()->make(Linter::class)->lint(), Severity::Notice);
 
 		$this->assertSame([
-			'notice category: "missing" has no category entry; a virtual term stands in.',
-			'warning authors: "sam-smith" has no profile entry, so it has no public name or bio; add one.'
-		], $messages['_posts/2009-01-01.credits.md'] ?? null, 'Profiles are people (D-351), so a missing one is a warning; a missing term is a notice.');
+			'error category: "missing" has no category entry, so the site leaves it out; add one, or run content:terms.',
+			'error authors: "sam-smith" has no profile entry, so the site leaves it out; add one, or run content:terms.'
+		], $messages['_posts/2009-01-01.credits.md'] ?? null, 'A term or profile is its file (D-584).');
 	}
 
 	public function testNotesFieldSetTargetsThatAttachToNothing(): void

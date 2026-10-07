@@ -164,7 +164,9 @@ from core, plugins, and themes, served from `/blush` and
 components and kept with cached bodies, a head filled after the page
 renders with footer scripts, the `PageRendering` event, and the audio
 and video players on the site (D-569 to D-573), with a theme's
-`assets` in `theme.json` for themes without a provider (D-574).
+`assets` in `theme.json` for themes without a provider (D-574); and
+every term and profile as a file, with no virtual entries, and
+`content:terms` and Site Health writing the missing ones (D-584).
 The Fields
 API (D-337 to D-348: field types and controls, field sets on content
 types, media, and the Settings screens, slots, and Structure → Fields)

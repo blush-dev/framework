@@ -21,8 +21,8 @@ use Blush\Http\NotFound;
 
 /**
  * Serves a taxonomy term's archive (`{type}.single` and
- * `{type}.single.paged` of a taxonomy): the term, real or virtual, with
- * the entries that reference it. The entries are those of the
+ * `{type}.single.paged` of a taxonomy): the term, which has a file
+ * (D-584), with the entries that reference it. The entries are those of the
  * taxonomy's `types` (every type when empty), listed by its `termListing`
  * and the term's own `collection` front matter.
  *
@@ -71,7 +71,7 @@ final class TermController extends ContentController
 			alternateUrl: function (string $code) use ($taxonomy, $slug, $page, $query): ?string {
 				$term = $page === 1 ? $this->visible($this->content->term($taxonomy->name, $slug, $code)) : null;
 
-				return ($term !== null && ! $term->isVirtual()) || $this->listsPage($query, $page, $code) ? $this->urls->term($taxonomy, $slug, $page, $code) : null;
+				return $term?->language === $code || $this->listsPage($query, $page, $code) ? $this->urls->term($taxonomy, $slug, $page, $code) : null;
 			}
 		), $request);
 	}

@@ -210,9 +210,9 @@ final class AccountsTest extends TestCase
 		$this->writeTemporaryFile('user/content/_posts/credited.md', "---\ntitle: Credited\nauthors: lee\n---\n");
 		$this->writeTemporaryFile('user/data/types/post.yaml', "folder: _posts\n");
 
-		$this->assertTrue($this->accounts()->hasAuthor('jane'));
-		$this->assertTrue($this->accounts()->hasAuthor('lee'), 'Entries credit a virtual author.');
-		$this->assertFalse($this->accounts()->hasAuthor('sam'));
+		$this->assertTrue($this->accounts()->hasAuthorPage('jane'));
+		$this->assertFalse($this->accounts()->hasAuthorPage('lee'), 'Credited with no file isn\'t a profile (D-584).');
+		$this->assertFalse($this->accounts()->hasAuthorPage('sam'));
 	}
 
 	public function testLinksAProfileToOneAccount(): void

@@ -21,11 +21,11 @@ use Blush\Http\NotFound;
 
 /**
  * Serves a profile's own page (the profiles type's `single` and
- * `.single.paged`, D-351), such as `/profiles/jane`: the profile, real or
- * virtual, then every listed entry of any type crediting them, listed as
- * the profiles type's listing (and the profile's own `collection` front
- * matter) says. A profile with a file has a page even before anything
- * credits them; a virtual one exists only while something does.
+ * `.single.paged`, D-351), such as `/profiles/jane`: the profile, then
+ * every listed entry of any type crediting them, listed as the profiles
+ * type's listing (and the profile's own `collection` front matter) says.
+ * A profile has a page even before anything credits them; a person
+ * credited with no file has none (D-584).
  */
 final class ProfileController extends ContentController
 {

@@ -1513,7 +1513,7 @@ each is clear:
 
 | Area | What it checks |
 |---|---|
-| Content | Entries' files: problems in their front matter, ids, collection folders, and file names |
+| Content | Entries' files: problems in their front matter, ids, terms and profiles with no file, collection folders, and file names |
 | Media | Library files' ids, their details files, and image sizes |
 | Extensions | A theme, plugins, or icon packs that are on but can't run |
 | System | PHP and its extensions, `.env`, debugging and `APP_URL` in production, the public folder, and writable storage |
@@ -1536,8 +1536,8 @@ asked for in a bug report. **Copy Report** copies them all as text.
 ### Fixing content and media
 
 Each Content and Media issue opens a screen of its own, where it's
-fixed: **Content Files**, **Entry IDs**, **Collection Folders**, and
-**File Names**; **Media Details**, **Media IDs**, and **Image Sizes**.
+fixed: **Content Files**, **Entry IDs**, **Terms and Profiles**,
+**Collection Folders**, and **File Names**; **Media Details**, **Media IDs**, and **Image Sizes**.
 Each shows the last check, with when it ran. **Check Again** checks
 every content and media file again, and so does every fix once it's
 done; either updates Site Health too.
@@ -1545,8 +1545,8 @@ done; either updates Site Health too.
 **Content Files** lists the problems in content files, as
 `bin/blush content:lint` finds them: front matter that isn't valid, such as an
 unknown status or a date that isn't one, and two files claiming the same
-entry. Turn on **Include notices** to also see undeclared keys, 1.x
-names, and terms without their own file.
+entry. Turn on **Include notices** to also see undeclared keys and 1.x
+names.
 
 It also lists the files missing an [id](content.md#ids), or with one
 that isn't valid, and the ids two or more files share (usually a copied
@@ -1556,6 +1556,11 @@ the others get new ids. Either changes only files you may edit.
 
 A file without an id shows **No ID** in its list, and can't be opened
 in the editor until it has one; its links lead here.
+
+**Terms and Profiles** says how many terms and profiles your entries
+name that have no file, which the site leaves out. **Write Files**
+writes each, published and titled as the entries name it, for the
+types you may create and publish.
 
 **Collection Folders** says how many collection entries are kept in
 folders, which [collections](content-types.md#collections-are-flat)
@@ -1630,8 +1635,8 @@ The API is JSON under `/admin/api`, and uses the session cookie:
 | `DELETE roles/{name}` | Delete a role no account holds, or reset a changed built-in; answers `{"role"}` (`null` once deleted) |
 | `PATCH profile` | Change the account's own `name` (`null` or empty removes it) or `email`, or both; answers `{"name", "email", "displayName"}`. A name over 100 characters, or an email address that's missing, invalid, or another account's, is a `422` naming the `field` |
 | `GET accounts` | Every account: `{"username", "email", "name", "displayName", "roles", "author", "profile", "created", "lastLogin", "status", "link", "manages"}`. `author` is the slug of the profile it's linked to, or `null`; `profile` is that profile, when it has a file: `{"path", "id", "handle", "slug", "title", "status", "url", "uses"}` (`uses` counts the published entries crediting it), else `null`; `email` is its email address (`null` only for one made before they were asked for); `name` is its own display name or `null`; `displayName` is what the admin calls it: its name, else its profile's title, else the username; `status` is `active`, `invited`, or `suspended`; `link` is its password link's `{"expires", "expired"}` or `null`; `manages` is whether you may change it. Times are Unix |
-| `GET profiles` | Every profile, for linking accounts: `{"profiles": [{"slug", "title", "status", "account"}]}`, by name, with `status` `null` for one credited without a file and `account` the one linked to it (`{"username", "displayName"}`) or `null`. Needs `accounts.view` |
-| `GET profiles/{slug}` | A profile's screen: `{"profile", "appears", "linked", "account"}`. `profile` is `{"slug", "title", "subtitle", "avatar", "status", "virtual", "path", "id", "type", "handle", "url", "uses"}` (`status`, `path`, `id`, and `handle` are `null` for a profile credited without a file); `appears` lists each people field of each type that credits people: `{"type", "typeLabel", "field", "label", "entries", "archive", "page"}`, where `entries` counts the published entries crediting them there, `archive` is the archive's address (or `null` without one), and `page` is the page written for it (`{"path", "id", "handle", "title", "status"}`, kept while the archive is off) or `null`; `linked` says whether an account is linked to it, and `account` is that account, as `GET accounts` has it, for whoever has `accounts.view` (else `null`). Needs to be allowed to edit the profile (your own, or anyone's with the profiles type's `edit.others`) |
+| `GET profiles` | Every profile, for linking accounts: `{"profiles": [{"slug", "title", "status", "account"}]}`, by name, with `account` the one linked to it (`{"username", "displayName"}`) or `null`. Needs `accounts.view` |
+| `GET profiles/{slug}` | A profile's screen: `{"profile", "appears", "linked", "account"}`. `profile` is `{"slug", "title", "subtitle", "avatar", "status", "path", "id", "type", "handle", "url", "uses"}` (`id` and `handle` are `null` for a file without a valid id); `appears` lists each people field of each type that credits people: `{"type", "typeLabel", "field", "label", "entries", "archive", "page"}`, where `entries` counts the published entries crediting them there, `archive` is the archive's address (or `null` without one), and `page` is the page written for it (`{"path", "id", "handle", "title", "status"}`, kept while the archive is off) or `null`; `linked` says whether an account is linked to it, and `account` is that account, as `GET accounts` has it, for whoever has `accounts.view` (else `null`). Needs to be allowed to edit the profile (your own, or anyone's with the profiles type's `edit.others`) |
 | `POST profiles/{slug}/pages` | Write the page for the profile's archive under a people field: `{"type", "field"}`, a field with archives. It's a draft at `_{field}/{slug}` in the type's folder, titled with the profile's name; answers `201` with `{"id", "handle"}`, or `409` when it exists. Needs to create entries of that type |
 | `DELETE profiles/{slug}/pages/{type}/{field}` | Move that page to the trash, so the archive shows the profile's body again; answers `{"removed"}`. Needs to delete that page |
 | `POST accounts` | Make an account: `{"username", "email", "roles", "author", "name"}` (`email` is required; the last two are optional); a missing, invalid, or taken email address is a `422` with `field: email`; answers `201` with `{"account", "link": {"url", "expires"}}`. The link is shown only this once |
@@ -1669,6 +1674,7 @@ The API is JSON under `/admin/api`, and uses the session cookie:
 | `GET entries` | The entries the account may edit, a page at a time (see below) |
 | `GET health/site` | Site Health's last check, checking first when there's none, and `POST health/site` checks again; with `site.health`: `{"checked", "areas", "checks", "requirements", "site", "server"}`. Each check is `{"area", "key", "status", "label", "message", "hint", "link"}` (`status` is `pass`, `warning`, or `failure`; `link` names what the admin opens, or `null`), each requirement `{"group", "name", "why", "needs", "installed", "status"}` (`status` may also be `optional`), and each fact `{"label", "value", "mono"}` |
 | `GET health` | Content and media problems by file, as Site Health last checked them (checking first when it never has), and `POST health` checks again; with `site.health` like every `health` route. It answers `at` (when), each file with its `area` (`content` or `media`), notices included, with counts, and `ids`: `{"missing", "duplicates"}`, the files missing a valid id and each id files share (`{"id", "paths"}`) |
+| `POST health/terms` | Write a published file for each term and profile entries name with no file, of the types the account may create and publish: `{"created", "failed"}`, the new paths and why any couldn't be written, each by `{type}/{slug}`. `GET health`'s `terms` (`{"count", "examples"}`, each example `{"type", "slug", "title"}`) says what's missing |
 | `POST health/ids` | Give each file missing a valid id, that the account may edit, a new one: `{"assigned", "failed"}`, the new ids by path and why any file couldn't be changed |
 | `POST health/ids/keep` | Keep a shared id on `{"path"}` and give the other files sharing it (that the account may edit) new ones; answers as above, or a `422` when the file doesn't share its id |
 | `POST previews` | A preview link to an entry the account may edit, from `{"entry": id}`: `{"url", "expires"}` |
@@ -1782,8 +1788,9 @@ anyone who can edit content, including entries they can't edit
 themselves. Each item has the `slug` a reference stores, `title`,
 `status`, its `parent`'s slug (or `null`), `uses` (how many published
 entries use a term; `null` for other types), `depth` (its depth in a
-tree, else `null`), `virtual` (a term entries use that has no file), and
-`missing` (a slug you asked for that nothing answers to). A type's index
+tree, else `null`), and `missing` (a slug you asked for that nothing
+answers to). A slug entries use with no file isn't a term, so it isn't
+listed. A type's index
 page isn't included.
 
 A hierarchical taxonomy answers every term, in tree order (each
@@ -1791,8 +1798,8 @@ followed by its children, siblings by title), with `tree: true`. Any
 other type answers the items whose title or slug contains `search`, by
 title, at most `limit` (20 by default, up to 100), with the `total`
 found. `slugs=a,b` adds those slugs to the answer, found or not, so a
-field can name what it holds. `create` is `true` for a taxonomy: a slug
-with no term is fine there, and becomes a virtual term.
+field can name what it holds. `create` is `true` for a taxonomy: the
+editor writes a new term's file (`POST entries`) as it's typed.
 
 `for=post` (a content type's name) narrows a taxonomy to the terms that
 type's entries use, in any status, counting only the entries the account

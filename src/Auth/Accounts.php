@@ -299,20 +299,9 @@ final readonly class Accounts
 	}
 
 	/**
-	 * Whether an author exists: it has an entry, or entries credit it (a
-	 * virtual term). An account can be linked before either happens, so
-	 * this is advice, not a rule.
-	 */
-	public function hasAuthor(string $author): bool
-	{
-		$authors = $this->types->profiles()?->name;
-
-		return $authors !== null && $this->content->term($authors, $author) !== null;
-	}
-
-	/**
 	 * Whether an author has an entry of its own: the account's public
-	 * name and bio (D-259), not just a virtual term.
+	 * name and bio (D-259). An author without one isn't on the site
+	 * (D-584), but an account can be linked before it's written.
 	 */
 	public function hasAuthorPage(string $author): bool
 	{

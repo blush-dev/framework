@@ -632,7 +632,10 @@ final class AdminContentTest extends TestCase
 		$this->assertIsArray($checks);
 		$files = array_column($checks, null, 'label')['Content files'] ?? null;
 		$this->assertIsArray($files);
-		$this->assertSame('warning', $files['status'] ?? null, 'No errors left; a credited author has no profile.');
+		$this->assertSame('failure', $files['status'] ?? null, 'A credited author has no profile, which the site leaves out (D-584).');
+		$terms = array_column($checks, null, 'label')['Terms and profiles'] ?? null;
+		$this->assertIsArray($terms);
+		$this->assertSame(['warning', 'content', 'terms'], [$terms['status'] ?? null, $terms['link'] ?? null, $terms['key'] ?? null], 'Site Health writes them.');
 
 		$this->assertSame(403, $this->send('POST', '/health/site')->getStatusCode(), 'Checking again needs the CSRF token.');
 		$again = self::json($this->send('POST', '/health/site', headers: ['X-CSRF-Token' => $this->token()]));
@@ -655,6 +658,7 @@ final class AdminContentTest extends TestCase
 		$this->assertSame(403, $this->send('POST', '/health/media-sizes', '{}', ['X-CSRF-Token' => $token])->getStatusCode(), 'Nor record sizes.');
 		$this->assertSame(403, $this->send('POST', '/health/filenames', '{"type": "post"}', ['X-CSRF-Token' => $token])->getStatusCode(), 'Nor rename files.');
 		$this->assertSame(403, $this->send('POST', '/health/flatten', '{}', ['X-CSRF-Token' => $token])->getStatusCode(), 'Nor move them.');
+		$this->assertSame(403, $this->send('POST', '/health/terms', '{}', ['X-CSRF-Token' => $token])->getStatusCode(), 'Nor write terms.');
 	}
 
 	public function testFixesMissingAndSharedIds(): void
@@ -741,6 +745,19 @@ final class AdminContentTest extends TestCase
 
 		$this->assertSame(['_posts/2024/old.md' => '_posts/old.md'], $moved['renamed'] ?? null);
 		$this->assertSame(['count' => 0, 'examples' => []], self::json($this->send('POST', '/health', headers: ['X-CSRF-Token' => $token]))['flat'] ?? null);
+	}
+
+	public function testWritesTermsAndProfilesWithNoFile(): void
+	{
+		$this->site(['owner']);
+		$token = $this->token();
+
+		$this->assertSame(['count' => 2, 'examples' => [['type' => 'profile', 'slug' => 'jane', 'title' => 'jane'], ['type' => 'profile', 'slug' => 'sam', 'title' => 'sam']]], self::json($this->send('POST', '/health', headers: ['X-CSRF-Token' => $token]))['terms'] ?? null, 'Credited, with no file (D-584).');
+
+		$created = self::json($this->send('POST', '/health/terms', '{}', ['X-CSRF-Token' => $token]));
+
+		$this->assertSame(['profile/jane' => 'profiles/jane.md', 'profile/sam' => 'profiles/sam.md'], $created['created'] ?? null);
+		$this->assertSame(['count' => 0, 'examples' => []], self::json($this->send('POST', '/health', headers: ['X-CSRF-Token' => $token]))['terms'] ?? null);
 	}
 
 	public function testFixesMediaIds(): void

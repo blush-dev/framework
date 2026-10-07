@@ -181,7 +181,7 @@ final class ContentRoutingTest extends TestCase
 
 	public function testServesTermsAndTheirCollections(): void
 	{
-		$this->assertPage('/topics', 200, 'Topics', ['/topics/art']);
+		$this->assertPage('/topics', 200, 'Topics', ['/topics/art', '/topics/book-reviews', '/topics/old-posts']);
 		$this->assertPage('/topics/art', 200, 'Art', ['/archives/2008/04/05/spring']);
 		$this->assertPage('/topics/book-reviews', 200, 'Book Reviews', ['/archives/2008/04/05/spring']);
 		$this->assertPage('/topics/art/page/1', 301, '/topics/art');

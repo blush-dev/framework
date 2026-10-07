@@ -33,8 +33,8 @@ use Blush\Field\Fields\ReferenceField;
  *         termListing: new Listing(order: Order::Desc)
  *     );
  *
- * A term doesn't need a file; one that's referenced but missing is a
- * virtual term.
+ * A term is its file (D-584): one that's referenced but missing is left
+ * out of the site, and `content:terms` writes it.
  */
 final readonly class Taxonomy extends ContentType
 {

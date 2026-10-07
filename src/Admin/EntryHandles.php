@@ -47,7 +47,7 @@ final readonly class EntryHandles
 	 */
 	public function of(Entry $entry): ?string
 	{
-		if ($entry->source === null || $entry->language !== $this->app->languages->default->code) {
+		if ($entry->language !== $this->app->languages->default->code) {
 			return null;
 		}
 

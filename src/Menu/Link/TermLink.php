@@ -80,7 +80,7 @@ final class TermLink extends MenuLink
 		// On a translated page, its translation when it has one (D-463).
 		$language    = $this->app->languages->forLocale($locale)?->code;
 		$translation = $language === null ? null : $this->content->term($name, $slug, $language);
-		$translated  = $translation !== null && ! $translation->isVirtual() && $translation->language === $language && $translation->isPublished() && $translation->isRoutable();
+		$translated  = $translation !== null && $translation->language === $language && $translation->isPublished() && $translation->isRoutable();
 		$term        = $translated ? $translation : $term;
 
 		$url = $this->urls->term($taxonomy, $slug, 1, $translated ? $language : null) ?? throw new UnresolvedLink(sprintf('The term "%s" has no URL.', $value));

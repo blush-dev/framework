@@ -22,6 +22,7 @@ use Blush\Console\Commands\CheckPlugins;
 use Blush\Console\Commands\CheckSite;
 use Blush\Console\Commands\CheckTheme;
 use Blush\Console\Commands\CreateContent;
+use Blush\Console\Commands\CreateMissingTerms;
 use Blush\Console\Commands\CreatePlugin;
 use Blush\Console\Commands\CreateTheme;
 use Blush\Console\Commands\ExplainView;
@@ -83,6 +84,7 @@ enum BuiltInCommand: string
 	case ContentList   = 'content:list';
 	case ContentNew    = 'content:new';
 	case ContentPreview = 'content:preview';
+	case ContentTerms  = 'content:terms';
 	case MediaIds      = 'media:ids';
 	case MediaIndex    = 'media:index';
 	case MediaPublish  = 'media:publish';
@@ -139,6 +141,7 @@ enum BuiltInCommand: string
 			self::ContentList   => ListContent::class,
 			self::ContentNew    => CreateContent::class,
 			self::ContentPreview => PreviewContent::class,
+			self::ContentTerms  => CreateMissingTerms::class,
 			self::MediaIds      => FixMediaIds::class,
 			self::MediaIndex    => IndexMedia::class,
 			self::MediaPublish  => PublishMedia::class,

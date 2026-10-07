@@ -319,7 +319,7 @@ abstract readonly class ContentType
 	/**
 	 * Returns whether other entries reference this type's entries as
 	 * terms (a taxonomy's, or profiles), which the index keeps a reverse
-	 * lookup for and which may be virtual.
+	 * lookup for.
 	 */
 	public function hasTerms(): bool
 	{

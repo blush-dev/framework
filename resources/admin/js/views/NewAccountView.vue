@@ -72,7 +72,7 @@ const willBe = computed(() => {
 		return newName.value.trim() === '' ? null : newName.value.trim();
 	}
 
-	return author.value === '' ? null : (profiles.value.find((item) => item.slug === author.value && item.status !== null)?.title ?? null);
+	return author.value === '' ? null : (profiles.value.find((item) => item.slug === author.value)?.title ?? null);
 });
 
 async function submit(): Promise<void> {

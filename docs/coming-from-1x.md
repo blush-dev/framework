@@ -1,7 +1,8 @@
 # Coming from Blush 1.x
 
 Blush 2 is a rewrite, but **your content doesn't change**. Every file,
-folder, and front matter convention 1.x understood still works, and your
+folder, and front matter convention 1.x understood still works (terms
+and authors need files, which one command writes; see below), and your
 URLs stay the same. What changes is the code around it: config, themes,
 and the command line.
 
@@ -25,6 +26,11 @@ Copy your `user/` folder across as it is. In particular:
 - `_error/404.md` still works as your error page (2.x also reads
   `_errors/`).
 - Media links to `/user/media/...` still resolve.
+- 1.x showed a term or author your entries named even without a file.
+  2.x needs the file, and leaves one without it out of the site. Run
+  `bin/blush content:terms --write` once to write them all (or choose
+  **Write Files** under **Terms and Profiles** in Site Health), titled
+  as your entries wrote them.
 
 Run `bin/blush content:lint --strict` to see which old names your content
 uses. They're reported as notices, not problems.

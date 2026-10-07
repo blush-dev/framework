@@ -65,7 +65,7 @@ final readonly class MarkdownPages
 	 */
 	public function url(Entry $entry): ?string
 	{
-		if (! $this->config->enabled || $entry->isVirtual() || ! $entry->isPublished()) {
+		if (! $this->config->enabled || ! $entry->isPublished()) {
 			return null;
 		}
 

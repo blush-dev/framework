@@ -114,6 +114,8 @@ trait BuildsContentSite
 		$this->entry('_posts/hello/index.md', "title: Hello Bundle\npublished: 2010-01-01 12:00:00", 'A bundle.');
 		$this->entry('topics/index.md', 'title: Topics');
 		$this->entry('topics/art.md', 'title: Art');
+		$this->entry('topics/book-reviews.md', 'title: Book Reviews');
+		$this->entry('topics/old-posts.md', 'title: Old Posts');
 		$this->entry('profiles/justintadlock.md', 'title: Justin Tadlock', 'Writes things.');
 		$this->entry('profiles/guest.md', 'title: A Guest');
 		$this->entry('notes.md', 'title: Notes', 'Some *notes*.');

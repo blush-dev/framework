@@ -28,7 +28,7 @@ use Blush\Http\NotFound;
  * 1. the page written for this archive, `_cooks/jane` in the type's
  *    folder, when it's published;
  * 2. the profile's own bio;
- * 3. the profile's name alone (a virtual profile, or an empty bio).
+ * 3. the profile's name alone (an empty bio).
  *
  * A person the field doesn't credit on any listed entry has no archive.
  */

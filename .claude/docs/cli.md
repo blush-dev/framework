@@ -59,8 +59,9 @@ Implemented in M2 (D-065, D-069).
 | `content:index [--full]` | Build or refresh the content index, with a progress bar; `-v` lists changes (M4b, D-087) |
 | `content:filenames [--write] [--type=<type>]` | List entries named by another pattern than their type's `filename`, and rename them to it with `--write`: files only, with translations linked by name; a list alone doesn't fail (D-511, D-512, D-514) |
 | `content:flatten [--write]` | List collections' entries kept in folders (lint errors) and where they belong; `--write` moves them into the collection's folder and removes emptied folders; fails while any are left (D-514) |
+| `content:terms [--write]` | List the terms and profiles entries name with no file (lint errors, left out of the site); `--write` writes each, published, titled as entries first wrote it; fails while any are left (D-584) |
 | `content:ids [--write] [--keep=<path>…]` | List content files missing a valid id and ids files share; `--write` gives missing ones new ids, `--keep` keeps a shared id on a file and renews the others (D-477, D-480) |
-| `content:lint [--strict]` | Validate content against schemas: errors, and warnings for two files claiming one entry and dates not on the calendar (D-449); `--strict` adds notices for undeclared keys, 1.x aliases, and virtual terms (D-081, D-084, D-091). Also reports files in `user/content` in the formats Blush no longer reads (`.markdown`, `.html`, `.json`, `.yaml`, `.yml`; `FormatCheck`, D-501). Also checks media metadata files in `user/data/media`: unreadable, values that don't fit, hidden by another format, or describing a file that's gone (D-293) |
+| `content:lint [--strict]` | Validate content against schemas: errors, and warnings for two files claiming one entry and dates not on the calendar (D-449); terms and profiles entries name with no file are errors (D-584); `--strict` adds notices for undeclared keys and 1.x aliases (D-081, D-084, D-091). Also reports files in `user/content` in the formats Blush no longer reads (`.markdown`, `.html`, `.json`, `.yaml`, `.yml`; `FormatCheck`, D-501). Also checks media metadata files in `user/data/media`: unreadable, values that don't fit, hidden by another format, or describing a file that's gone (D-293) |
 | `content:new <type> "<title>" [--slug] [--draft]` | Scaffold a Markdown entry (`Y-m-d.slug.md` for dated types) and refresh the index (D-091) |
 | `content:list [--type] [--status]` | List every indexed entry (M4b) |
 | `content:preview <type> <name> [--hours]` | Print a signed preview link to an entry, whatever its status (D-226) |
@@ -95,7 +96,7 @@ Implemented in M2 (D-065, D-069).
 | `account:roles <username> --role...` | Replace an account's roles (D-219) |
 | `account:name <username> [name]` | Name an account, or remove its name (D-322) |
 | `account:email <username> <email>` | Change an account's email address, which every account needs (D-370) |
-| `account:author <username> [slug]` | Link to an author, or unlink; warns when no such author exists, virtual terms included (D-219) |
+| `account:author <username> [slug]` | Link to an author, or unlink; offers to write the author's entry when there's none (D-219, D-259) |
 | `account:suspend <username>` | Suspend an account: signed out, and no sign-in or password link until reinstated (D-312) |
 | `account:reinstate <username>` | Reinstate a suspended account (D-312) |
 | `account:remove <username> [--yes]` | Delete an account after confirming (D-219) |

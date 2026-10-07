@@ -38,9 +38,10 @@ Every content type is one of four kinds:
   `user/media`, and the body their bio. Each profile has a page at
   `/profiles/jane`. Entries credit them through the
   [people fields](#crediting-people) of their type, such as
-  `authors: jane`. You don't need a profile file; Blush uses the name as
-  the entry writes it until you add one, and `content:lint` warns about
-  it. An [account](accounts.md#profiles) can be linked to a profile.
+  `authors: jane`. Every profile is a file: a person credited with no
+  file is left out of bylines and has no page. `content:lint` reports
+  it, and `bin/blush content:terms --write` writes the missing files. An
+  [account](accounts.md#profiles) can be linked to a profile.
 
 ## Three ways to define a type
 
@@ -287,9 +288,12 @@ the types it groups.
   `termListing` sets how.
 - The taxonomy's own `listing` sets how its listing page (such as
   `/blog/tags`) lists the terms.
-- You don't have to create a file for every term. A term without one gets
-  a stand-in page titled after its slug. Add a file (such as
-  `_blog/tags/php.md`) to give it a proper title and description.
+- Every term is a file (such as `_blog/tags/php.md`), which gives it its
+  title and description. A slug an entry names with no file is left out
+  of the site: no link, no page, and no feed. `content:lint` reports it,
+  and `bin/blush content:terms --write` (or **Terms and Profiles** in
+  Site Health) writes a file for each, titled as the entry wrote it.
+  Adding a new tag in the admin's editor writes its file for you.
 
 ### Hierarchical taxonomies
 
@@ -845,7 +849,7 @@ listings and feeds, so they have no address of their own.
 Each profile has a page of its own at `/profiles/jane`: the profile,
 then every published entry of any type crediting them, newest file
 first unless the profiles type's `listing` says otherwise. A profile
-with a file has a page before anything credits them.
+has a page before anything credits them.
 
 They're at `/profiles/{name}` wherever the files are. To keep them in
 another folder, or move their pages, redefine the `profile` type. For

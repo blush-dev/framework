@@ -24,7 +24,7 @@ use Blush\Field\Severity;
 /**
  * Checks every content file's front matter against its type's schema
  * (D-081, D-084), listing errors and warnings by file. `--strict` adds
- * notices: undeclared keys, 1.x aliases in use, and terms with no file.
+ * notices: undeclared keys and 1.x aliases in use.
  * It also checks media metadata files (D-293): unreadable ones, values
  * that don't fit, and ones whose media file is gone. Any error fails the
  * command.
@@ -37,7 +37,7 @@ final readonly class LintContent
 
 	public function __invoke(
 		Output $output,
-		#[Option('Also report undeclared keys, 1.x aliases, and virtual terms.')] bool $strict = false
+		#[Option('Also report undeclared keys and 1.x aliases.')] bool $strict = false
 	): ExitCode {
 		$bar    = $output->progress();
 		$report = $this->linter->lint(static function (int $done, int $total) use ($bar): void {

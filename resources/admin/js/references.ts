@@ -14,16 +14,14 @@ export interface ReferenceItem {
 	uses: number | null;
 	// Its depth in a hierarchical taxonomy's tree.
 	depth: number | null;
-	// A term used by entries without a file of its own.
-	virtual: boolean;
 	// A slug the field holds that nothing answers to.
 	missing: boolean;
 }
 
 export interface ReferenceList {
 	type: string;
-	// Whether a slug with nothing behind it may be written (a taxonomy's
-	// virtual term).
+	// Whether a new item may be written as it's typed (a taxonomy's
+	// term, whose file the picker writes, D-584).
 	create: boolean;
 	// Whether it's a hierarchical taxonomy, answered whole, in tree order.
 	tree: boolean;

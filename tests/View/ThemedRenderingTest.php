@@ -211,7 +211,7 @@ final class ThemedRenderingTest extends TestCase
 
 		$app = $this->site();
 
-		$this->assertStringContainsString('<p class="terms">Topics: category, 1</p>', $this->body('/topics', $app));
+		$this->assertStringContainsString('<p class="terms">Topics: category, 3</p>', $this->body('/topics', $app));
 		$this->assertStringContainsString('<footer>Biography</footer>', $this->body('/about/biography', $app));
 		$this->assertStringNotContainsString('class="terms"', $this->body('/archives', $app));
 	}

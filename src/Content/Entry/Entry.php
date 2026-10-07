@@ -29,21 +29,21 @@ use Blush\Markdown\MarkdownException;
  * D-081). The body is a lazy ghost: the file is read and rendered only
  * when `body()` is called.
  *
- * A virtual entry stands in for a term that's referenced but has no file
- * (such as jtcom's authors); it has a title and nothing else.
+ * Every entry has a file (D-584): a term or profile that's named but has
+ * no file isn't an entry, and lookups skip it.
  */
 final readonly class Entry implements Stringable
 {
 	/**
-	 * @param string                      $path        The source path, or `virtual:{type}/{slug}`.
+	 * @param string                      $path        The source path.
 	 * @param string                      $key         The slug with any folders below the type's (see `IndexRecord`).
 	 * @param array<string, mixed>        $fields      Typed front matter, by field name.
 	 * @param array<string, mixed>        $extra       Undeclared front matter.
 	 * @param array<string, list<string>> $terms       Term slugs by taxonomy.
 	 * @param bool                        $landing     Whether this is a type folder's landing page.
-	 * @param ?SourceFile                 $source      The file, or `null` for a virtual entry.
+	 * @param SourceFile                  $source      The file.
 	 * @param string                      $language    The code of the language it's written in (D-455).
-	 * @param ?string                     $id          Its id (D-477), or `null` for a file without a valid one and a virtual entry.
+	 * @param ?string                     $id          Its id (D-477), or `null` for a file without a valid one.
 	 */
 	public function __construct(
 		public string $path,
@@ -60,7 +60,7 @@ final readonly class Entry implements Stringable
 		public array $extra,
 		public array $terms,
 		public bool $landing,
-		public ?SourceFile $source,
+		public SourceFile $source,
 		private Body $body,
 		public string $language = '',
 		public ?string $id = null
@@ -197,18 +197,6 @@ final readonly class Entry implements Stringable
 	public function hasTerm(string $taxonomy, string $slug): bool
 	{
 		return in_array($slug, $this->terms($taxonomy), true);
-	}
-
-	/**
-	 * Returns whether the entry has no file: a term that entries name
-	 * but no one has written a page for, made up so its archive works.
-	 * It has a title and a URL, but no text (`raw()` is `''`). Status
-	 * and visibility say nothing about it; check this before showing an
-	 * entry's text or editing it.
-	 */
-	public function isVirtual(): bool
-	{
-		return $this->source === null;
 	}
 
 	/**
