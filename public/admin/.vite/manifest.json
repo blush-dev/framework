@@ -23,14 +23,6 @@
     "file": "fonts/fira-code-latin-ext-600-normal.woff2",
     "src": "fonts/fira-code-latin-ext-600-normal.woff2"
   },
-  "fonts/ibm-plex-sans-latin-ext-wght-normal.woff2": {
-    "file": "fonts/ibm-plex-sans-latin-ext-wght-normal.woff2",
-    "src": "fonts/ibm-plex-sans-latin-ext-wght-normal.woff2"
-  },
-  "fonts/ibm-plex-sans-latin-wght-normal.woff2": {
-    "file": "fonts/ibm-plex-sans-latin-wght-normal.woff2",
-    "src": "fonts/ibm-plex-sans-latin-wght-normal.woff2"
-  },
   "fonts/karla-latin-ext-wght-normal.woff2": {
     "file": "fonts/karla-latin-ext-wght-normal.woff2",
     "src": "fonts/karla-latin-ext-wght-normal.woff2"
@@ -56,8 +48,6 @@
       "css/admin.css"
     ],
     "assets": [
-      "fonts/ibm-plex-sans-latin-wght-normal.woff2",
-      "fonts/ibm-plex-sans-latin-ext-wght-normal.woff2",
       "fonts/fira-code-latin-400-normal.woff2",
       "fonts/fira-code-latin-ext-400-normal.woff2",
       "fonts/fira-code-latin-500-normal.woff2",

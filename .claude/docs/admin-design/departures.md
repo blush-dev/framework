@@ -685,6 +685,9 @@ Each is recorded in `.claude/docs/decisions.md`.
   D-265, D-268, and D-280): the source is marked as that section's table
   says. Emphasis is Fira Code's slanted face, not a true italic. Below
   480px the header's menus lose their carets, so it fits.
+- **System fonts in the neutral theme** (D-568), not IBM Plex Sans:
+  `--font-system`, the platform's own UI font, for UI, display, and
+  title text; Editorial keeps Karla and Newsreader.
 - **Fira Code is the mono** (D-254, D-255), not IBM Plex Mono: 400, 500,
   and a real 600 (so bold keeps its width), and a slanted italic (it has
   none). The writing column is 640px (`--measure`), with nothing between

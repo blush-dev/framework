@@ -5364,6 +5364,8 @@ decision, add a new entry that supersedes it and mark the old one
 - **Date:** 2026-09-30
 - **Status:** "Pages have no index page" is superseded by D-420: Pages pin
   their root page, and the homepage is marked wherever it's listed.
+  "IBM Plex Sans stays the UI font" is superseded by D-568: the neutral
+  theme uses the system's.
 - **Decision:**
   - **Fira Code is the admin's mono** (`--font-mono`), replacing IBM
     Plex Mono everywhere; D-254's `--font-editor` is gone and the
@@ -16639,3 +16641,22 @@ decision, add a new entry that supersedes it and mark the old one
   path. Supersedes D-106's location only; the helpers are unchanged.
 - **Why:** the author's call: global functions aren't part of any one
   subsystem's namespace, so they sit beside the subsystems, not in one.
+
+### D-568: The neutral admin theme uses system fonts
+- **Date:** 2026-10-07
+- **Decision:** the neutral (default) admin theme's UI, display, and
+  title fonts are the platform's own, one stack in `--font-system`:
+  `-apple-system, BlinkMacSystemFont, "Segoe UI Variable Text",
+  "Segoe UI", system-ui, Roboto, "Noto Sans", Ubuntu, Cantarell,
+  "Helvetica Neue", Arial, sans-serif`. That's San Francisco on Apple
+  systems; Segoe UI Variable on Windows 11, named before `system-ui`
+  (which picks the static Segoe UI there) so weight 500 is real, with
+  Segoe UI on Windows 10; Roboto on Android and ChromeOS; and the
+  desktop's font on Linux, with Noto Sans, Ubuntu, and Cantarell after.
+  Fira Code stays the mono everywhere (D-255), and the Editorial theme
+  keeps Karla and Newsreader (D-317). IBM Plex Sans's files and license
+  line are removed. Supersedes D-255's "IBM Plex Sans stays the UI
+  font". The type scale is unchanged for now; sizes or weights are
+  adjusted in `tokens.css` only if the system fonts call for it.
+- **Why:** the author's call: no font to download for UI text, and an
+  admin that feels native on each platform.
