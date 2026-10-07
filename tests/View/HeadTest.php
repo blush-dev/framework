@@ -134,6 +134,26 @@ final class HeadTest extends TestCase
 		);
 	}
 
+	public function testPreloadsByExtension(): void
+	{
+		$head = new Head('Site')
+			->preload('/fonts/body.woff2?v=1')
+			->preload('/css/print.css')
+			->preload('/js/app.mjs')
+			->preload('/img/hero.webp', ['fetchpriority' => 'high'])
+			->preload('/data/list.json', ['as' => 'fetch', 'crossorigin' => true])
+			->preload('/fonts/body.woff2?v=1');
+
+		$html = $head->render();
+
+		$this->assertSame(1, substr_count($html, 'body.woff2'), 'Once per URL.');
+		$this->assertStringContainsString('<link rel="preload" href="/fonts/body.woff2?v=1" as="font" type="font/woff2" crossorigin>', $html);
+		$this->assertStringContainsString('<link rel="preload" href="/css/print.css" as="style">', $html);
+		$this->assertStringContainsString('<link rel="preload" href="/js/app.mjs" as="script">', $html);
+		$this->assertStringContainsString('<link rel="preload" href="/img/hero.webp" as="image" fetchpriority="high">', $html);
+		$this->assertStringContainsString('<link rel="preload" href="/data/list.json" as="fetch" crossorigin>', $html, 'Attributes given win.');
+	}
+
 	public function testDropsUnsafeUrls(): void
 	{
 		$this->assertStringContainsString('<link rel="canonical" href="">', new Head()->canonical('javascript:alert(1)')->render());
@@ -148,5 +168,16 @@ final class HeadTest extends TestCase
 
 		$this->expectException(ViewException::class);
 		$head->inlineStyle('x', 'a</STYLE><script>');
+	}
+
+	public function testPrintsInlineScriptsOncePerId(): void
+	{
+		$head = new Head()->inlineScript('scheme', "let a;\n")->style('/a.css')->inlineScript('scheme', "document.documentElement.dataset.theme = 'dark';\n");
+
+		$this->assertSame("\t<meta charset=\"utf-8\">\n\t<title></title>\n\t<link rel=\"stylesheet\" href=\"/a.css\">\n\t<script id=\"scheme\">\n\t\tdocument.documentElement.dataset.theme = 'dark';\n\t</script>", $head->render());
+		$this->assertTrue($head->has('inline-script:scheme'));
+
+		$this->expectException(ViewException::class);
+		$head->inlineScript('x', 'a</SCRIPT><b>');
 	}
 }

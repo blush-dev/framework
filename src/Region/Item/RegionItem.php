@@ -20,7 +20,7 @@ use Blush\View\ViewException;
 /**
  * A kind of region item (D-201), keyed in the item by its registered
  * name: `directive: menu`, `component: acme/card`, `markdown: …`,
- * `entry: page/_regions/about`, `view: parts/newsletter`. An item is
+ * `entry: page/_regions/about`, `view: partials/newsletter`. An item is
  * exactly one kind.
  *
  * Kinds are registered in `RegionItemRegistry` and built through the

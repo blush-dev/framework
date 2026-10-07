@@ -18,7 +18,7 @@ namespace Blush\View;
  * `theming.md`). A provider is attached to view names or patterns in a
  * theme or site provider:
  *
- *     $container->make(ContextProviders::class)->add('parts/header', PrimaryMenu::class);
+ *     $container->make(ContextProviders::class)->add('partials/header', PrimaryMenu::class);
  *
  * Its values are defaults: data a template is given explicitly wins.
  */

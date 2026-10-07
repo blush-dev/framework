@@ -61,6 +61,7 @@ final readonly class ThemeManifest implements ExtensionManifest
 	 * @param string               $namespace What its components, icons, and catalog keys go by.
 	 * @param list<string>         $styles  Stylesheet paths, relative to the theme (resolved through the chain).
 	 * @param list<string>         $scripts Script paths, relative to the theme.
+	 * @param list<string>         $preload Files every page preloads, relative to the theme, such as fonts (D-558).
 	 * @param array<string, mixed>  $data     The whole manifest.
 	 * @param ?string               $provider A service provider class.
 	 * @param Autoload              $autoload Its `psr-4` map and `files`, relative to the theme (D-418).
@@ -98,7 +99,8 @@ final readonly class ThemeManifest implements ExtensionManifest
 		public array $replace = [],
 		public array $provide = [],
 		public bool|string $abandoned = false,
-		public array $suggest = []
+		public array $suggest = [],
+		public array $preload = []
 	) {}
 
 	public function kind(): ExtensionKind
@@ -227,7 +229,8 @@ final readonly class ThemeManifest implements ExtensionManifest
 			replace: $replace,
 			provide: $provide,
 			abandoned: $abandoned,
-			suggest: $suggest
+			suggest: $suggest,
+			preload: self::paths($theme, $data, 'preload', [])
 		);
 	}
 

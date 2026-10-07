@@ -211,22 +211,22 @@ final class ComponentsTest extends TestCase
 
 	public function testContextProvidersAddDefaults(): void
 	{
-		$this->view('parts/hello', '<?= e($greeting) ?>/<?= e($name) ?>');
+		$this->view('partials/hello', '<?= e($greeting) ?>/<?= e($name) ?>');
 		$this->view('other', '<?= isset($greeting) ? "leak" : "none" ?>');
 
 		$views     = $this->boot();
 		$providers = $this->app->container()->make(ContextProviders::class);
 		$greeting  = new Greeting();
 
-		$providers->add('parts/*', $greeting);
+		$providers->add('partials/*', $greeting);
 		$providers->add('nothing', Greeting::class);
 
-		$this->assertSame('Hello from parts/hello/given', $views->partial('parts/hello', ['name' => 'given'], new ViewContext()));
-		$this->assertSame('Hello from parts/hello/provided', $views->partial('parts/hello', [], new ViewContext()));
+		$this->assertSame('Hello from partials/hello/given', $views->partial('partials/hello', ['name' => 'given'], new ViewContext()));
+		$this->assertSame('Hello from partials/hello/provided', $views->partial('partials/hello', [], new ViewContext()));
 		$this->assertSame('none', $views->partial('other', [], new ViewContext()));
 		$this->assertSame(2, $greeting->calls);
-		$this->assertTrue($providers->has('parts/hello'));
-		$this->assertFalse($providers->has('parts/deep/hello'));
+		$this->assertTrue($providers->has('partials/hello'));
+		$this->assertFalse($providers->has('partials/deep/hello'));
 
 		$providers->add('other', Greeting::class);
 

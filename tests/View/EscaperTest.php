@@ -17,6 +17,7 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\CoversFunction;
 use PHPUnit\Framework\TestCase;
 use Blush\View\Escaper;
+use Blush\View\SafeHtml;
 
 #[CoversClass(Escaper::class)]
 #[CoversFunction('e')]
@@ -66,9 +67,16 @@ final class EscaperTest extends TestCase
 		$this->assertSame('', css(null));
 	}
 
-	public function testRawPassesHtmlThrough(): void
+	public function testRawMarksHtmlAsTrusted(): void
 	{
-		$this->assertSame('<p>Hi</p>', raw('<p>Hi</p>'));
-		$this->assertSame('', raw(null));
+		$html = raw('<p>Hi</p>');
+
+		$this->assertInstanceOf(SafeHtml::class, $html);
+		$this->assertSame('<p>Hi</p>', (string) $html);
+		$this->assertSame('', (string) raw(null));
+		$this->assertSame($html, raw($html), 'Already marked, it\'s kept.');
+		$this->assertSame('<p>Hi</p>', e($html), 'e() leaves trusted HTML alone (D-559).');
+		$this->assertSame('&lt;p&gt;Hi&lt;/p&gt;', attr($html), 'An attribute never holds markup.');
+		$this->assertSame('&lt;p&gt;Hi&lt;/p&gt;', e('<p>Hi</p>'), 'Text is escaped as ever.');
 	}
 }

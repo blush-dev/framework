@@ -86,10 +86,9 @@ final class ThemeResolver
 			return $this->current = $this->active();
 		}
 
-		$chain = $this->chain($name);
-		$this->start($name, $chain);
+		$this->start($name);
 
-		return $this->current = $chain;
+		return $this->current = $this->chain($name);
 	}
 
 	/**
@@ -105,15 +104,18 @@ final class ThemeResolver
 	}
 
 	/**
-	 * Starts a previewed theme once: autoloads its chain's local themes
-	 * and registers its providers (ancestors first; any the active chain
-	 * shares are already registered), unless it's the running theme or its
-	 * requirements aren't met. A provider that isn't a service provider is
-	 * skipped, as at boot.
+	 * Starts a theme that isn't running, once, as activating it would: for
+	 * a preview (`?theme=`), or `theme:check` on an inactive theme. Its
+	 * chain's local themes are autoloaded and its providers registered
+	 * (ancestors first; any the active chain shares are already
+	 * registered), unless it's the running theme or its requirements
+	 * aren't met. A provider that isn't a service provider is skipped, as
+	 * at boot.
 	 *
 	 * @throws ContainerException
+	 * @throws ThemeException When the theme or an ancestor is missing.
 	 */
-	private function start(string $name, ThemeChain $chain): void
+	public function start(string $name): void
 	{
 		if (isset($this->started[$name]) || $name === $this->themes->running($this->config->active)) {
 			return;
@@ -125,6 +127,7 @@ final class ThemeResolver
 			return;
 		}
 
+		$chain      = $this->chain($name);
 		$autoloader = new LocalAutoloader();
 		$autoloader->addThemes($chain);
 		$autoloader->register();

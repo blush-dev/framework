@@ -34,4 +34,4 @@ $heading = match (true) {
 	<?php endif ?>
 </header>
 
-<?= $template->include('parts/entries', page: $page) ?>
+<?= $template->include('partials/entries', page: $page) ?>

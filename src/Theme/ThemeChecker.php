@@ -71,7 +71,8 @@ final readonly class ThemeChecker
 		private ViewFactory $views,
 		private Menus $menus,
 		private Regions $regions,
-		private CatalogCheck $catalogs
+		private CatalogCheck $catalogs,
+		private ThemeResolver $resolver
 	) {}
 
 	/**
@@ -94,12 +95,20 @@ final readonly class ThemeChecker
 		}
 
 		// An inactive theme's classes aren't autoloaded, so the chain's
-		// are, as activating it would, while it's checked.
+		// are, as activating it would, while it's checked. Its providers
+		// run too, when its requirements are met, so components with a
+		// class render in the layout check (D-557).
 		$autoloader = new LocalAutoloader();
 		$autoloader->addThemes($chain);
 		$autoloader->register();
 
 		try {
+			try {
+				$this->resolver->start($name);
+			} catch (Throwable $error) {
+				$problems[] = new Violation('provider', sprintf('The "%s" theme\'s provider couldn\'t start: %s', $name, $error->getMessage()));
+			}
+
 			foreach ($chain as $theme) {
 				$problems = [...$problems, ...$this->manifest($theme), ...$this->catalogs($theme)];
 			}

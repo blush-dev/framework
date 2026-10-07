@@ -19,7 +19,7 @@ namespace Blush\View;
  * framework default theme (D-024). The first directory with a file wins.
  *
  * A view name is a path without its extension (`single-post`,
- * `layouts/base`, `parts/header`): letters, digits, `_`, and `-`, in
+ * `layouts/base`, `partials/header`): letters, digits, `_`, and `-`, in
  * segments split by `/`. Nothing else is accepted, so names from front
  * matter can't leave the view directories. A name's file is in any view
  * engine's extension (D-502): `single.php`, `single.twig`. Within a

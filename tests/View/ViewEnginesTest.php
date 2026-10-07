@@ -101,9 +101,9 @@ final class ViewEnginesTest extends TestCase
 	public function testEnginesMixAcrossLayoutsPartialsAndComponents(): void
 	{
 		$this->writeTemporaryFile('resources/views/layouts/plain.php', '<main><?= $template->section(\'content\') ?>|<?= $template->section(\'aside\') ?></main>');
-		$this->writeTemporaryFile('resources/views/parts/note.php', '<i>note</i>');
+		$this->writeTemporaryFile('resources/views/partials/note.php', '<i>note</i>');
 		$this->writeTemporaryFile('resources/views/components/app-badge.tpl', '<span>badge</span>');
-		$this->writeTemporaryFile('resources/views/page.tpl', '{layout:plain}{set:aside}Hi, {name}. {include:parts/note} {component:app/badge}');
+		$this->writeTemporaryFile('resources/views/page.tpl', '{layout:plain}{set:aside}Hi, {name}. {include:partials/note} {component:app/badge}');
 
 		$this->assertSame(
 			'<main>Hi, Ada &lt;3. <i>note</i> <span>badge</span>|<b>set</b></main>',

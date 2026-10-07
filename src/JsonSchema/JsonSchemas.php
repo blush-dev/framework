@@ -155,6 +155,11 @@ final readonly class JsonSchemas
 					'items'       => ['type' => 'string', 'pattern' => self::PATH_PATTERN],
 					'description' => 'Scripts every page loads, relative to the theme.'
 				],
+				'preload'     => [
+					'type'        => 'array',
+					'items'       => ['type' => 'string', 'pattern' => self::PATH_PATTERN],
+					'description' => 'Files every page preloads, relative to the theme, such as the fonts its stylesheet uses. What each is comes from its extension.'
+				],
 				'provider'    => [
 					'type'        => 'string',
 					'description' => 'The class name of the theme\'s service provider, registered before the site\'s.'

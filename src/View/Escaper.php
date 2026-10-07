@@ -40,7 +40,7 @@ final class Escaper
 	 */
 	public static function html(Stringable|string|int|float|bool|null $value): string
 	{
-		return htmlspecialchars(self::string($value), ENT_QUOTES | ENT_SUBSTITUTE | ENT_HTML5, 'UTF-8');
+		return $value instanceof SafeHtml ? (string) $value : self::text($value);
 	}
 
 	/**
@@ -49,7 +49,16 @@ final class Escaper
 	 */
 	public static function attr(Stringable|string|int|float|bool|null $value): string
 	{
-		return self::html($value);
+		return self::text($value);
+	}
+
+	/**
+	 * Escapes a value as text, whatever it is, trusted HTML included: an
+	 * attribute never holds markup.
+	 */
+	private static function text(Stringable|string|int|float|bool|null $value): string
+	{
+		return htmlspecialchars(self::string($value), ENT_QUOTES | ENT_SUBSTITUTE | ENT_HTML5, 'UTF-8');
 	}
 
 	/**

@@ -98,6 +98,18 @@ interface ContentRepository extends QueryRunner
 	public function children(Entry $entry): array;
 
 	/**
+	 * Returns the entries on either side of one in a listing: by default
+	 * its type's own (in the type's order, so newest first for a
+	 * collection), in the entry's language. `before` comes just before it
+	 * in that order and `after` just after; either is `null` at an end,
+	 * and both are for an entry the listing doesn't hold. Give a query to
+	 * walk another listing (its limit and offset aside).
+	 *
+	 * @return array{before: ?Entry, after: ?Entry}
+	 */
+	public function neighbors(Entry $entry, ?Query $query = null): array;
+
+	/**
 	 * Returns how many listed entries reference each term of a taxonomy,
 	 * by slug, including virtual terms; or, given a query, how many of the
 	 * entries it finds do (its limit and offset aside).

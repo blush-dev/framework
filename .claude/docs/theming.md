@@ -40,7 +40,7 @@ extensions/acme/nova/
   theme.json        Manifest, settings schema, image sizes, menus, regions
   views/
     layouts/        base.php, …
-    parts/          header.php, footer.php, pagination.php, …
+    partials/          header.php, footer.php, pagination.php, …
     directives/     callout.php, gallery.php (the look of core and plugin directives; D-532)
     components/     {namespace}-card.php, the theme's own pieces (D-171, D-378, D-532)
     single.php  collection.php  …   (template hierarchy files)
@@ -232,9 +232,11 @@ Global escaping helpers (D-106): `e()`, `attr()`, `url()`, `js()`,
 ### Template hierarchy
 Front matter `template` (1.x's `view`) always comes first. 1.x's view names
 aren't candidates (D-104).
-- **Single entry:** `single-{type}-{slug}` → `single-{type}` → `single`.
-- **Collection:** `collection-{type}` → `collection-taxonomy` (a
-  taxonomy's listing only, D-147) → `collection`.
+- **Single entry:** `single-{type}-{slug}` → `single-{type}` →
+  `single-{kind}` → `single` (D-561; `{kind}` is the type's kind:
+  `collection`, `tree`, `taxonomy`, `profiles`).
+- **Collection:** `collection-{type}` → `collection-{kind}` →
+  `collection` (a taxonomy's is `collection-taxonomy`, as D-147 had).
 - **Term:** `term-{taxonomy}-{slug}` → `term-{taxonomy}` → `term` →
   `collection`.
 - **Date archive:** `archive-date-{type}` → `archive-date` → `collection`.
@@ -249,7 +251,7 @@ aren't candidates (D-104).
 - **Home:** `home` → then the hierarchy of whatever it aliases.
 - **Welcome:** `welcome` (a site with no homepage yet, D-108), with
   `$page->welcome` (`Setup\Welcome`); its content is the default
-  theme's `parts/welcome`, which a theme's `welcome` can include (D-419).
+  theme's `partials/welcome`, which a theme's `welcome` can include (D-419).
 - **Errors:** `error-{status}` → `error`, filled from
   `user/content/_errors/{status}.md` (or 1.x's `_error/{status}.md`) when
   it exists (D-108).
@@ -385,9 +387,9 @@ slots, from themes, the site, and plugins. Content never names one.
 ## Context providers
 
 Classes attached to view names or patterns that supply data, e.g. a
-`PrimaryMenu` provider for `parts/header`. They keep queries out of templates.
+`PrimaryMenu` provider for `partials/header`. They keep queries out of templates.
 They are registered in the theme or site provider:
-`ContextProviders::add('parts/*', PrimaryMenu::class)`. Their data are
+`ContextProviders::add('partials/*', PrimaryMenu::class)`. Their data are
 defaults; data given explicitly wins (D-114).
 
 ## Design (no token system, D-160)

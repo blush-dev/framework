@@ -142,6 +142,31 @@ final class Head implements SafeHtml
 	}
 
 	/**
+	 * Preloads a file the page will need early, such as a font its
+	 * stylesheet uses, once per URL. What it is comes from its extension
+	 * (`as`, and a font's `type`; fonts are fetched `crossorigin`, as
+	 * browsers require); attributes given win:
+	 * `preload($template->asset('fonts/body.woff2'))`.
+	 *
+	 * @param array<string, string|bool> $attributes
+	 */
+	public function preload(string $href, array $attributes = []): self
+	{
+		$extension = strtolower(pathinfo(strtok($href, '?#') ?: '', PATHINFO_EXTENSION));
+		$fonts     = ['woff2' => 'font/woff2', 'woff' => 'font/woff', 'ttf' => 'font/ttf', 'otf' => 'font/otf'];
+
+		$inferred = match (true) {
+			isset($fonts[$extension])                                                    => ['as' => 'font', 'type' => $fonts[$extension], 'crossorigin' => true],
+			$extension === 'css'                                                         => ['as' => 'style'],
+			in_array($extension, ['js', 'mjs'], true)                                    => ['as' => 'script'],
+			in_array($extension, ['avif', 'gif', 'jpeg', 'jpg', 'png', 'svg', 'webp'], true) => ['as' => 'image'],
+			default                                                                      => []
+		};
+
+		return $this->link('preload', $href, [...$inferred, ...$attributes]);
+	}
+
+	/**
 	 * Sets the canonical URL. A page has one, so a later call replaces it.
 	 */
 	public function canonical(string $url): self
@@ -184,8 +209,25 @@ final class Head implements SafeHtml
 	}
 
 	/**
+	 * Adds an inline `<script>`, once per id, such as a few lines that
+	 * must run before the page paints (a saved color scheme). It runs
+	 * where it stands, unlike the theme's deferred scripts. The
+	 * JavaScript must be trusted (it isn't escaped); `</script` is
+	 * refused.
+	 */
+	public function inlineScript(string $id, string $js): self
+	{
+		if (str_contains(strtolower($js), '</script')) {
+			throw new ViewException(sprintf('Inline script "%s" can\'t contain "</script".', $id));
+		}
+
+		return $this->add("inline-script:{$id}", 'script', ['id' => $id], $js);
+	}
+
+	/**
 	 * Returns whether an item has been added, by its key (`meta:{name}`,
-	 * `property:{name}`, `link:canonical`, `style:{href}`, …).
+	 * `property:{name}`, `link:canonical`, `style:{href}`,
+	 * `inline-style:{id}`, `inline-script:{id}`, …).
 	 */
 	public function has(string $key): bool
 	{

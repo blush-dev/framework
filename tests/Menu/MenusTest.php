@@ -166,6 +166,9 @@ final class MenusTest extends TestCase
 		$this->assertFalse(new MenuItem('Off', 'https://other.test/about')->forPath('/about', 'https://example.com')->current);
 		$this->assertTrue(new MenuItem('Home', '/')->forPath('/', '')->current);
 		$this->assertFalse(new MenuItem('Home', '/')->forPath('', '')->current);
+		$this->assertSame('aria-current="page"', (string) $menu->items[0]->children[0]->ariaCurrent());
+		$this->assertSame('aria-current="true"', (string) $menu->items[0]->ariaCurrent(), 'An item above the page marks its section.');
+		$this->assertSame('', (string) new MenuItem('Off', '/off')->ariaCurrent());
 	}
 
 	public function testPrintsNothingWithoutAMenu(): void

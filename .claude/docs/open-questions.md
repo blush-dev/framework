@@ -4,6 +4,39 @@ Move each item to `decisions.md` once it's answered.
 
 ## Needs the author's call
 
+- **Groups and relationships in the content model** (discussed
+  2026-10-06; the author wants to dig deeper on the content model
+  later). One operation under `termCounts()`, a proposed `termStats()`,
+  `credited()`, and jtcom's post archives: take what a query finds,
+  group it by something entries point to, and report on each group.
+  - **What entries point to:** terms, people (people fields), a parent,
+    dates (year, month), references (reference fields, on hold with the
+    Fields API, D-348), translations (`translation_of`), mentions,
+    media used, and the type, language, or status.
+  - **What a group reports:** how many, first and latest published,
+    last updated, perhaps its newest entry, and the entry it's about
+    (the term, profile, or parent) when there is one.
+  - **Sketch:** `query()->type('post')->groups('category')`,
+    `->groups('authors')` (who writes the site), `->groups('year')`
+    (archives with counts), `->groups('parent')`. `termCounts()` stays
+    as the counts of `groups($taxonomy)`; `credited('post')` would be
+    `groups('authors')` with the profiles loaded. All from the index.
+  - **The other direction:** what points at an entry (recipes using an
+    ingredient, entries linking to a page, where media is used), a
+    filter such as `query()->whereReferences($entry)`.
+  - **Open:** the name (`groups()`, `tally()`, `facets()`); whether
+    `credited()` exists as a shortcut; which groupings first (taxonomy,
+    people field, parent, year/month proposed); references when the
+    Fields API resumes.
+
+- **Template naming and the hierarchy, as a whole** (the author,
+  2026-10-06): to evaluate later, after `single-{kind}` and
+  `collection-{kind}` (D-561) went in as they are.
+
+- **Template lookup order** (the author, 2026-10-06): the site/app
+  first, then the theme chain, then plugin views (not built yet), then
+  a class's `render()`.
+
 - **PHP APIs met building Second Proof** (discussed 2026-10-06). The
   principle (the author): no container used as a service locator and
   nothing done in global scope, while keeping templates (and the PHP
@@ -26,29 +59,27 @@ Move each item to `decisions.md` once it's answered.
     taxonomy, `$entry->terms('x')` slugs, `$template->terms($entry, 'x')`
     entries). `summary()` is Markdown or `null` and `excerpt()` HTML,
     which the names don't say. `isPublished()`, `isRoutable()`,
-    `isListed()`, `isVirtual()`: which a list filters on isn't clear.
+    `isListed()`, `isVirtual()`: explained in their doc comments and
+    `docs/extending.md` (D-560).
     `field()` returns `mixed` (typed access waits on the Fields API,
-    D-348). `query()->type()` takes a name, not the type object;
-    `->get()->all()` for an array. `Paginator` mixes `->page` with
+    D-348). `->get()->all()` for an array (`query()->type()` takes the
+    type object now, D-557). `Paginator` mixes `->page` with
     `->pages()` and `->total()`.
   - **Routes and the head:** route names built as strings
     (`"{$type->name}.{$field}.single.feed"`) and `route()` throws, so
     themes need `try`; URL methods (`feedUrl($type)`) should cover what
     themes need. `head()->remove()` takes built string keys
     (`'style:' . $href`).
-  - **Taxonomy queries** (from reviewing Second Proof's `src/`): no
-    "top-level terms" filter (the theme reads `parentKey()` from each
-    term's fields); `termCounts()` doesn't say whether a parent counts
-    its children's entries; no newest entry per term (one query per
+  - **Taxonomy queries** (from reviewing Second Proof's `src/`):
+    top-level terms are `whereParent(null)` now (D-562); `termCounts()` doesn't say whether a parent counts
+    its children's entries (it doesn't; documented, D-557); no newest entry per term (one query per
     term). One term-statistics call (count, latest date, children)
     would replace most of `Topics`.
   - **Profiles credited by a type:** "who writes the site" takes a
     `whereAuthor()` query per profile; a query for the profiles a
     type's entries credit would do it in one.
-  - **Neighbors:** no query for an entry's previous and next, so
-    `Adjacent` lists the whole type (956 posts on the trial).
   - **`search()`** matches titles and file paths, not text; the name
-    suggests full text. Rename it or say so.
+    suggests full text. Documented (D-557); renaming it is still open.
   - **The component shape:** every class component fetches in its
     constructor, exposes a property, and has `shouldRender()` check it
     for empty. Blush could own the pattern (a typed data property it
@@ -67,18 +98,15 @@ Move each item to `decisions.md` once it's answered.
      every post of the type to find two), `recent('post', 3)`,
      `page('about')` (like `profile('jane')`), `profiles()`,
      `termCounts('category')`.
-  2. **Translations with HTML in them.** `str_replace('{names}', $html,
-     e($template->t('entry.by', names: '{names}')))`, six times in the
-     theme; the default theme's welcome part has its own helper for
-     it. `t()` could escape the message and leave `raw()` params alone:
-     `$template->t('entry.by', names: raw($links))`.
+  2. **Translations with HTML in them:** built (D-559): `raw()` marks
+     a value, and `t()` keeps it as HTML while escaping the rest.
   3. **Lists as sentences:** `$template->list($items)` ("A, B, and C"
      by `IntlListFormatter` in the page's locale), maybe with a form
      for linked people or terms.
   4. **Plain-text excerpts:** `html_entity_decode(trim(strip_tags(
      $entry->excerpt(36))))`, six times; `$entry->excerptText(36)`.
      Maybe subtitle-else-summary too.
-  5. **Every term of an entry:** `$template->terms($entry)` with no
+  5. **Every term of an entry** (waits for the larger template work, the author, 2026-10-06): `$template->terms($entry)` with no
      taxonomy, instead of looping over `array_keys($entry->terms)`.
   6. **`<time>` tags:** `$template->timeTag($date)`, the datetime
      attribute and the site's format, instead of building it by hand.
@@ -87,13 +115,11 @@ Move each item to `decisions.md` once it's answered.
      `$template->feedUrl()` for the site, a type, or a person.
   8. **The request path:** an error page can't see the address asked
      for (Second Proof's script fills it in); `$template->path()`.
-  9. **`head()`:** an inline script that runs before paint (the light
-     and dark choice is printed by hand in the layout), and
-     `preload()` for fonts.
+  9. **`head()`:** built: `preload()` and `theme.json`'s `preload`
+     (D-558), `inlineScript()` (D-560).
 
   Related entries: component view paths and providers that know their
-  extension (below), and `theme:check` on an inactive theme (under
-  Second Proof).
+  extension (below).
 
   **Views free of logic** (discussed 2026-10-06). The goal (the
   author): theme authors write HTML with `$template->…` calls, a few
@@ -113,7 +139,8 @@ Move each item to `decisions.md` once it's answered.
      the person on a profile page and their feed, a type's listing URL,
      a page's siblings (which also ends the three `try`/`catch` blocks
      around routes).
-  4. **Templates choosing templates:** `home.php` falls back to the
+  4. **Templates choosing templates** (the author, 2026-10-06: not by
+     date; discuss templates chosen by the type's kind instead): `home.php` falls back to the
      page layout, and `single.php` does for undated entries. The
      hierarchy should choose (`home-page` / `home-collection`, a page
      template for undated types), so a view never includes another
@@ -121,11 +148,11 @@ Move each item to `decisions.md` once it's answered.
   5. **Part arguments and defaults** (`$meta ??= 'default'`): parts that
      take arguments become template components (`$component->prop()`),
      documented as the way.
-  6. **Directive templates with logic:** callout maps its variant to a
+  6. **Directive templates with logic** (the core callout naming its
+     kind without a title: no, the author, 2026-10-06): callout maps its variant to a
      kind and falls back to a translated title; the class should give
      `kind()` and a `heading()` that falls back to the kind's name.
-  7. **Menus:** `aria-current` worked out in the view; a call on the
-     item or `$template`.
+  7. **Menus:** built, `$item->ariaCurrent()` (D-560).
   8. **Head setup in the layout:** the font preload loop and the inline
      script; `head()` calls or a `fonts` / `preload` list in
      `theme.json`.
@@ -213,35 +240,19 @@ Move each item to `decisions.md` once it's answered.
   our `@var`), and queries allowed (as Craft and Statamic do) with
   named lookups as the easier path.
 
-- **Finding a component's own view without a path** (discussed
-  2026-10-06). A class component or directive from a theme, plugin, or
-  the site returns its file as `$this->view(dirname(__DIR__, 2) .
-  '/views/components/second-proof-recent.php')`: it breaks quietly when
-  the class moves, and a typo shows only when the page renders. Ten
-  places do it (Second Proof's six, jtcom, jtcom-blade, the trial's
-  `PostArchives`, and examples in `docs/components.md` and
-  `docs/directives.md`). Blush already knows the name
-  (`second-proof/recent`) and the file rule
-  (`views/components/{namespace}-{name}.php`, `views/directives/…`).
-  Proposed:
-  - **`render()` optional:** without one, the base class finds its own
-    extension's file by the rule, for any installed view engine
-    (`.php`, `.blade.php`).
-  - **Short names in `view()`:** `$this->view('components/recent-list')`,
-    relative to the owner's views folder, no extension; full paths
-    still work.
-  - `theme:check` and `component:list` name a component whose file is
-    missing.
+- **Components' views** (discussed 2026-10-06): settled by D-563 more
+  simply than first proposed. A component's template is looked for in
+  the site's views, then the theme chain's, then its class's `render()`,
+  which is now optional: themes' components need none, plugins' and
+  restylable site components keep their default there. Still open: the
+  same for directives from plugins and the site, and whether `view()`
+  takes a path relative to something (plugins still write
+  `__DIR__ . '/../views/…'`).
 
-  Open:
-  - **How the owner is found:** by the name's namespace (wrong for
-    jtcom-blade, which registers `jtcom/*` from its own folder), by
-    which extension's provider registered it, or by matching the class
-    against extensions' `autoload` prefixes (as
-    `Admin\Provenance::ofClass()` does for plugins).
-  - **The site's views folder** for `app`: `resources/views/`?
-  - **Directives** from plugins and the site the same way (core ones
-    use `Framework::path()`).
+  **Provider constants** (`COMPONENTS`, `DIRECTIVES`, `ICONS`, in the
+  style of `SINGLETONS` and `TAGS`): on hold (the author, 2026-10-06);
+  providers are framework-level, and this work is CMS-level. Take up
+  with providers that know their extension.
 
   **Providers that know their extension** (discussed 2026-10-06). A
   theme's or plugin's provider is registered by class name and gets
@@ -310,9 +321,8 @@ Move each item to `decisions.md` once it's answered.
   - **"Tell us which link"** on the 404 page: no contact address or
     page the theme can find.
   - **Shipping it:** move it into the framework (`resources/themes/`)
-    or keep it as its own package; and whether `theme:check` on an
-    inactive theme should run its provider, since its class
-    components fail without it.
+    or keep it as its own package. (`theme:check` on an inactive theme
+    now runs its provider, D-557.)
 
 - **Directives and components** (D-532, built in D-533). Settled: themes
   can't register directives, writers see "Blocks", and every directive is

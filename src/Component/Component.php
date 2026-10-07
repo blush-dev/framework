@@ -28,10 +28,15 @@ use Blush\View\ViewContext;
  * A component needn't have a class: a template in `components/` is one
  * (`components/{namespace}-{name}`), and its `$component` is a
  * `TemplateComponent`. A class is for typed props, services, and data the
- * template shouldn't work out, and it renders itself (D-382): `render()`
- * returns its HTML, or the template file it ships with (`view()`), or
- * `null` when it needs a template in the chain. A template in the chain
- * wins over it.
+ * template shouldn't work out.
+ *
+ * Its template is looked for in the site's views, then the theme chain's
+ * (so a site's template overrides a theme's); without one, `render()`
+ * gives its own markup (D-382, D-563). A theme's components have their
+ * templates in the theme and need no `render()`. A plugin's, and a
+ * site's that a theme may restyle, keep their default in `render()` (the
+ * file they ship with, `view()`, or HTML), which a site or theme
+ * template takes over.
  *
  * ```php
  * final class Card extends Component
@@ -96,13 +101,16 @@ abstract class Component extends Renderable
 	}
 
 	/**
-	 * Returns the component's own markup, used when the theme chain has
-	 * no template for it: its HTML, the template file it ships with
-	 * (`view()`), or `null` when it has none and needs a theme's
-	 * template. A string is printed as it is, so escape what goes in it
-	 * (`attributes()` and `html()` do).
+	 * Returns the component's own markup, used when neither the site nor
+	 * the theme chain has a template for it: its HTML, the template file
+	 * it ships with (`view()`), or `null` (the default) when it has none,
+	 * as a theme's components don't. A string is printed as it is, so
+	 * escape what goes in it (`attributes()` and `html()` do).
 	 */
-	abstract public function render(): string|ComponentView|null;
+	public function render(): string|ComponentView|null
+	{
+		return null;
+	}
 
 	/**
 	 * Returns a template file the component ships with, for `render()`.

@@ -17,7 +17,7 @@ use Blush\Container\Container;
 
 /**
  * The context providers attached to view names. A pattern is a view name
- * or an `fnmatch()` pattern where `*` stays within a folder (`parts/*`,
+ * or an `fnmatch()` pattern where `*` stays within a folder (`partials/*`,
  * `single-*`); `**` isn't special. Providers given as class names are
  * built through the container on first use and kept.
  */

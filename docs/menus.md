@@ -104,7 +104,7 @@ items:
     name: social
   - markdown: "Thanks for reading. **Subscribe** to the [feed](/feed)."
   - entry: page/_regions/newsletter
-  - view: parts/newsletter
+  - view: partials/newsletter
     heading: Get new posts by email
 ```
 
@@ -257,7 +257,7 @@ For markup of your own, get the menu with `$template->menu()`:
 	<ul class="social">
 		<?php foreach ($menu->items as $item) : ?>
 			<li class="<?= attr($item->class) ?>">
-				<a href="<?= url($item->url) ?>"<?= $item->current ? ' aria-current="page"' : '' ?>>
+				<a href="<?= url($item->url) ?>" <?= $item->ariaCurrent() ?>>
 					<?= $template->icon($item->icon) ?>
 					<span><?= e($item->label) ?></span>
 				</a>
@@ -270,7 +270,9 @@ For markup of your own, get the menu with `$template->menu()`:
 Each item has `label`, `url` (`null` for a heading), `icon`,
 `description`, `image`, `badge`, `class`, `rel`, `children`, and
 `field($name)`. `current` is true for the current page's item, and
-`ancestor` for the items above it.
+`ancestor` for the items above it. `ariaCurrent()` prints the attribute
+that says so: `aria-current="page"` on the current page's item,
+`aria-current="true"` on the items above it, and nothing on the rest.
 
 For a social menu, ship the brand icons you need with your theme, in its
 `icons/` folder (`icons/github.svg` is `mytheme/github`); Blush doesn't

@@ -304,6 +304,20 @@ final class PeopleArchivesTest extends TestCase
 		);
 	}
 
+	public function testTemplatesFallBackByTheTypesKind(): void
+	{
+		$app   = $this->boot();
+		$types = $app->container()->make(ContentTypes::class);
+		$post  = $types->get('post');
+		$page  = $types->get('page');
+		$entry = $app->container()->make(ContentRepository::class)->named('page', 'about');
+
+		$this->assertNotNull($entry);
+		$this->assertSame(['single-page-about', 'single-page', 'single-tree', 'single'], Hierarchy::forPage(new ContentPage(PageKind::Single, 'About', entry: $entry, type: $page))->names, 'D-561.');
+		$this->assertSame(['collection-post', 'collection-collection', 'collection'], Hierarchy::forPage(new ContentPage(PageKind::Collection, 'Posts', type: $post))->names);
+		$this->assertSame(['collection-profile', 'collection-profiles', 'collection'], Hierarchy::forPage(new ContentPage(PageKind::Collection, 'Profiles', type: $types->get('profile')))->names);
+	}
+
 	public function testListsAndMapsThePages(): void
 	{
 		$app   = $this->boot();

@@ -17,9 +17,9 @@ $entries = $page->entries;
 <?php else : ?>
 	<ul class="entries" role="list">
 		<?php foreach ($entries as $item) : ?>
-			<li class="entries__item"><?= $template->include('parts/entry-summary', entry: $item) ?></li>
+			<li class="entries__item"><?= $template->include('partials/entry-summary', entry: $item) ?></li>
 		<?php endforeach ?>
 	</ul>
 
-	<?= $template->include('parts/pagination', page: $page) ?>
+	<?= $template->include('partials/pagination', page: $page) ?>
 <?php endif ?>

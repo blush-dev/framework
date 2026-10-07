@@ -154,6 +154,15 @@ final readonly class LocalizedRepository implements ContentRepository
 	 * @inheritDoc
 	 */
 	#[Override]
+	public function neighbors(Entry $entry, ?Query $query = null): array
+	{
+		return $this->content->neighbors($entry, $query === null ? null : $this->localized($query));
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	#[Override]
 	public function termCounts(string $taxonomy, ?Query $query = null): array
 	{
 		return $this->content->termCounts($taxonomy, $this->localized($query ?? $this->query()));

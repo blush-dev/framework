@@ -135,7 +135,7 @@ final class IconsTest extends TestCase
 	public function testIconsRenderInMarkdownAndTemplates(): void
 	{
 		$this->writeTemporaryFile('user/content/index.md', "---\ntitle: Home\n---\nGo :icon[Home]{name=house} or :icon[]{name=heart .loved}.\n");
-		$this->writeTemporaryFile('resources/views/parts/footer.php', '<?= $template->icon("rss", "Feed") ?>');
+		$this->writeTemporaryFile('resources/views/partials/footer.php', '<?= $template->icon("rss", "Feed") ?>');
 
 		$html = (string) $this->app()->container()->make(Kernel::class)->handle(Request::create('/'))->getBody();
 

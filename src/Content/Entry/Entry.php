@@ -200,7 +200,11 @@ final readonly class Entry implements Stringable
 	}
 
 	/**
-	 * Returns whether the entry stands in for a term with no file.
+	 * Returns whether the entry has no file: a term that entries name
+	 * but no one has written a page for, made up so its archive works.
+	 * It has a title and a URL, but no text (`raw()` is `''`). Status
+	 * and visibility say nothing about it; check this before showing an
+	 * entry's text or editing it.
 	 */
 	public function isVirtual(): bool
 	{
@@ -208,8 +212,13 @@ final readonly class Entry implements Stringable
 	}
 
 	/**
-	 * Returns whether the entry is live: published, and its date has
-	 * come.
+	 * Returns whether the entry is live: its status is published and its
+	 * date has come. A draft, an entry scheduled for later, and one in
+	 * the trash aren't. This is about time and status only: a published
+	 * entry can still be hidden (see `isRoutable()`). Queries find only
+	 * published entries unless they ask for others; `parent()` and
+	 * `children()` don't filter, so check this before showing what they
+	 * give.
 	 */
 	public function isPublished(): bool
 	{
@@ -217,7 +226,12 @@ final readonly class Entry implements Stringable
 	}
 
 	/**
-	 * Returns whether the entry has a URL: it isn't hidden.
+	 * Returns whether the entry has a page of its own, by visibility
+	 * alone: public and unlisted entries do, hidden ones (1.x's
+	 * `hidden`, or a `_` file name) don't. It doesn't look at status,
+	 * so a draft is routable, though its page isn't served until it's
+	 * published. Check it with `isPublished()` before linking to an
+	 * entry: `$entry->isPublished() && $entry->isRoutable()`.
 	 */
 	public function isRoutable(): bool
 	{
@@ -226,7 +240,9 @@ final readonly class Entry implements Stringable
 
 	/**
 	 * Returns whether the entry appears in collections, feeds, and
-	 * sitemaps.
+	 * sitemaps: published, public (not unlisted or hidden), and not a
+	 * listing's landing page. Everything listed is routable; an unlisted
+	 * entry is routable but not listed.
 	 */
 	public function isListed(): bool
 	{

@@ -49,7 +49,7 @@ final class RegionsTest extends TestCase
 		$this->writeTemporaryFile('user/content/about.md', "---\ntitle: About\n---\nAbout.");
 		$this->writeTemporaryFile('user/content/bonjour.md', "---\ntitle: Bonjour\nlocale: fr\n---\nBonjour.");
 		$this->writeTemporaryFile('user/content/_regions/blurb.md', "---\ntitle: Blurb\n---\nA *blurb* from an entry.");
-		$this->writeTemporaryFile('resources/views/parts/hello.php', "<?php declare(strict_types=1); ?><p class=\"hello\">Hello, <?= e(\$name) ?>.</p>");
+		$this->writeTemporaryFile('resources/views/partials/hello.php', "<?php declare(strict_types=1); ?><p class=\"hello\">Hello, <?= e(\$name) ?>.</p>");
 
 		$app = $this->scratchApplication(['APP_ENV' => 'development']);
 		$app->boot();
@@ -71,13 +71,13 @@ final class RegionsTest extends TestCase
 			    name: social
 			  - markdown: { en: "Powered by **words**.", fr: "Propulsé par des **mots**." }
 			  - entry: page/_regions/blurb
-			  - view: parts/hello
+			  - view: partials/hello
 			    name: { en: friend, fr: ami }
 			  - directive: callout
 			    variant: info
 			  - component: app/badge
 			    text: { en: New, fr: Nouveau }
-			  - view: parts/missing
+			  - view: partials/missing
 			YAML);
 		$this->writeTemporaryFile('resources/views/components/app-badge.php', '<span <?= $component->attributes() ?>><?= e($component->prop("text")) ?></span>');
 
@@ -135,7 +135,7 @@ final class RegionsTest extends TestCase
 			- markdown: [1, 2]
 			- component: "../x"
 			- directive: "acme/"
-			- view: parts/a
+			- view: partials/a
 			  entry: page/about
 			- nothing: here
 			YAML);

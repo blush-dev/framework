@@ -24,7 +24,7 @@ $template->layout('base');
 			<p class="entry__subtitle"><?= e($entry->subtitle()) ?></p>
 		<?php endif ?>
 
-		<?= $template->include('parts/entry-meta', entry: $entry) ?>
+		<?= $template->include('partials/entry-meta', entry: $entry) ?>
 	</header>
 
 	<div class="entry__content">
@@ -33,5 +33,5 @@ $template->layout('base');
 </article>
 
 <?php if ($entries !== null) : ?>
-	<?= $template->include('parts/entries', page: $page) ?>
+	<?= $template->include('partials/entries', page: $page) ?>
 <?php endif ?>

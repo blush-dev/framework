@@ -154,10 +154,10 @@ final class Template
 	}
 
 	/**
-	 * Renders a partial (`parts/header`) with named data and returns it.
+	 * Renders a partial (`partials/header`) with named data and returns it.
 	 * Given a list, it renders the first that exists, so a template can
 	 * offer a specific partial with a fallback:
-	 * `<?= $template->include(["parts/summary-{$type}", 'parts/summary'], entry: $entry) ?>`.
+	 * `<?= $template->include(["partials/summary-{$type}", 'partials/summary'], entry: $entry) ?>`.
 	 *
 	 * @param  string|list<string> $views
 	 * @throws ViewException When none exists.
@@ -210,7 +210,7 @@ final class Template
 	 * Renders a partial once per item, passing the item as `$as` (and
 	 * its position, from zero, as `$index`), with any other named data.
 	 * With no items, it renders `$empty` instead, when given:
-	 * `<?= $template->each('parts/summary', $entries, as: 'entry', empty: 'parts/none') ?>`.
+	 * `<?= $template->each('partials/summary', $entries, as: 'entry', empty: 'partials/none') ?>`.
 	 *
 	 * @param  string|list<string>       $views
 	 * @param  iterable<mixed>           $items
@@ -350,12 +350,34 @@ final class Template
 	/**
 	 * Translates a message from the theme's catalogs with named
 	 * parameters: `$template->t('reading_time', minutes: 5)` (D-028).
+	 * It's text, so print it with `e()` or `attr()`.
+	 *
+	 * A parameter marked with `raw()` is HTML (D-559): the message comes
+	 * back as HTML, with that parameter as given and the message's own
+	 * text and every other parameter escaped, so
+	 * `e($template->t('by', names: raw($links)))` keeps the links. `attr()`
+	 * still escapes it all.
 	 *
 	 * @throws InvalidData When a catalog can't be parsed.
 	 */
-	public function t(string $key, mixed ...$params): string
+	public function t(string $key, mixed ...$params): string|SafeHtml
 	{
-		return $this->views->messages->translate($key, self::named($params), $this->locale());
+		$params = self::named($params);
+		$html   = [];
+
+		// Each marked parameter is held by a private-use token while the
+		// message is formatted and escaped, then put back as given.
+		foreach ($params as $name => $value) {
+			if ($value instanceof SafeHtml) {
+				$token         = "\u{E000}" . count($html) . "\u{E001}";
+				$html[$token]  = (string) $value;
+				$params[$name] = $token;
+			}
+		}
+
+		$message = $this->views->messages->translate($key, $params, $this->locale());
+
+		return $html === [] ? $message : new TrustedHtml(strtr(Escaper::html($message), $html));
 	}
 
 	/**
@@ -727,7 +749,7 @@ final class Template
 	{
 		foreach (array_keys($data) as $key) {
 			if (! is_string($key)) {
-				throw new ViewException('Pass view data by name, such as include(\'parts/card\', entry: $entry).');
+				throw new ViewException('Pass view data by name, such as include(\'partials/card\', entry: $entry).');
 			}
 		}
 

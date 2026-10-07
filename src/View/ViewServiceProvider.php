@@ -31,7 +31,7 @@ use Blush\View\Engine\ViewEngines;
  *
  * A theme or site provider adds a context provider in `boot()`:
  *
- *     $this->container->make(ContextProviders::class)->add('parts/header', PrimaryMenu::class);
+ *     $this->container->make(ContextProviders::class)->add('partials/header', PrimaryMenu::class);
  *
  * A plugin adds a view engine the same way:
  *

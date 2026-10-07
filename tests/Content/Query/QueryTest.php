@@ -18,6 +18,7 @@ use PHPUnit\Framework\TestCase;
 use Blush\Content\Query\InvalidQuery;
 use Blush\Content\Query\Order;
 use Blush\Content\Query\Query;
+use Blush\Content\Type\Collection;
 use Blush\Content\Status;
 use Blush\Content\Visibility;
 
@@ -62,6 +63,7 @@ final class QueryTest extends TestCase
 
 		$this->assertSame([], $query->types);
 		$this->assertSame(['post'], $posts->types);
+		$this->assertSame(['post', 'page'], $query->type(new Collection('post'), 'page', 'post')->types, 'Types by name or as themselves.');
 		$this->assertSame(0, $posts->limit);
 		$this->assertSame(0, $posts->offset);
 		$this->assertSame(['title', Order::Desc], [$posts->orderBy, $posts->order]);

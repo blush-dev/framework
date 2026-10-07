@@ -16382,3 +16382,159 @@ decision, add a new entry that supersedes it and mark the old one
   link" line.
 - **Why:** the author asked for the design to be built in the trial,
   marking what can't be built yet.
+
+### D-557: Quick wins from building Second Proof
+- **Date:** 2026-10-06
+- **Status:** Built.
+- **Decision:** four of the easy wins from the open questions D-556
+  raised:
+  - **`theme:check` runs an inactive theme's providers** (when its
+    requirements are met), as a `?theme=` preview does (D-524):
+    `ThemeResolver::start()` is public, and `ThemeChecker` calls it, so
+    a theme's class components render in the layout check. A provider
+    that fails to start is reported as a `provider` error. Before, the
+    check rendered them as template-only components and failed.
+  - **`Query::type()` takes types as well as names:**
+    `query()->type($types->homeType())`.
+  - **`ContentRepository::neighbors($entry, ?Query)`:** the entries
+    `before` and `after` one in its type's listing (in that listing's
+    order, so for a collection `before` is newer), in its language, or
+    in another listing a query gives. It finds the entry's place among
+    the index's paths and builds only the two neighbors. Second Proof's
+    `Adjacent` uses it instead of listing all 956 posts.
+  - **Docs:** a "Finding entries" section in `docs/extending.md` (what
+    `search()` matches: titles and file paths, not text; that a parent
+    term's `termCounts()` doesn't count its children's entries;
+    `neighbors()`; `parent()`/`children()` whatever their status), the
+    components docs corrected (props fill constructor parameters by
+    name, public or not; a public property is what a template reads;
+    don't name a prop like a service parameter), and the themes docs
+    on checking an inactive theme.
+- **Why:** the author picked these from the easy wins after building
+  Second Proof.
+
+### D-558: Preloading files from `theme.json` and the head
+- **Date:** 2026-10-06
+- **Status:** Built.
+- **Decision:** a theme's `theme.json` takes `preload`, a list of files
+  relative to the theme that every page preloads (the active theme's,
+  like `styles`), and `$template->head()->preload($href, $attributes)`
+  preloads one from a template, once per URL. Both work out what a file
+  is from its extension: fonts (`woff2`, `woff`, `ttf`, `otf`) as
+  `font` with their `type` and `crossorigin`, `.css` as `style`, `.js`
+  and `.mjs` as `script`, images as `image`; attributes given win. In
+  the theme schema. Second Proof's layout loop became its `preload`
+  list.
+- **Why:** the author chose both (option c) from the decisions D-557's
+  quick wins raised. The provider constants are on hold (framework
+  level); HTML in translations waits on the author.
+
+### D-559: `raw()` marks trusted HTML, and translations keep it
+- **Date:** 2026-10-06
+- **Status:** Built.
+- **Decision:** `raw()` returns `SafeHtml` (a new `Blush\View\TrustedHtml`,
+  or the value itself when it's already `SafeHtml`), printing the same
+  as before. `e()` (`Escaper::html()`) passes `SafeHtml` through as is;
+  `attr()` still escapes everything, `SafeHtml` included. `$template->t()`
+  takes `raw()` parameters: the message comes back as `SafeHtml` with
+  those parameters as given and the message's own text and every other
+  parameter escaped (each marked parameter is held by a private-use
+  token while the message is formatted and escaped); without one, it's
+  plain text as before, so it returns `string|SafeHtml`. No new names:
+  the author asked whether an `html()` function should replace `raw()`;
+  kept `raw()`, since every other helper escapes for a context and
+  `html()` would read as "escape for HTML", and `raw()` warns. The
+  default theme's welcome part dropped its own helper for this, and
+  Second Proof its six `str_replace()` workarounds.
+- **Why:** HTML in translations, from the template API gaps building
+  Second Proof showed (D-556).
+
+### D-560: Entry checks explained, inline scripts, and `ariaCurrent()`
+- **Date:** 2026-10-06
+- **Status:** Built.
+- **Decision:**
+  - **Entry checks:** `isPublished()`, `isRoutable()`, `isListed()`, and
+    `isVirtual()` say exactly what they test and what they don't
+    (`isRoutable()` is visibility only, so a draft is routable; link
+    with `isPublished() && isRoutable()`), with a table in
+    `docs/extending.md`.
+  - **`head()->inlineScript($id, $js)`**, as `inlineStyle()` is: once
+    per id, not escaped, `</script` refused, key `inline-script:{id}`.
+    Second Proof's color-scheme script uses it instead of printing a
+    `<script>` in its layout.
+  - **`MenuItem::ariaCurrent()`** returns the attribute ready to print
+    (`SafeHtml`): `aria-current="page"` for the page's item,
+    `aria-current="true"` for items above it, else nothing. The menu
+    directive is unchanged (it marks only the page). Second Proof's
+    header uses it instead of its own closure.
+- **Not taken:** the core callout naming its kind when it has no title
+  (the author: no); `$template->terms($entry)` for every taxonomy waits
+  for the larger template work; an undated entry using a page template
+  (the author: no, but discuss templates by kind instead).
+- **Why:** the author picked these from the easy wins after D-559.
+
+### D-561: Templates by the type's kind
+- **Date:** 2026-10-06
+- **Status:** Built.
+- **Decision:** the template hierarchy has a step for the type's kind
+  (`collection`, `tree`, `taxonomy`, `profiles`): an entry tries
+  `single-{type}-{slug}` → `single-{type}` → `single-{kind}` → `single`,
+  and a listing `collection-{type}` → `collection-{kind}` →
+  `collection` (a taxonomy's `collection-{kind}` is D-147's
+  `collection-taxonomy`). A theme can draw every tree, say, without
+  knowing a site's type names. Names that read oddly
+  (`collection-collection`) are accepted (the author: "it is what it
+  is"). Second Proof's `single-page.php` became `single-tree.php`, and
+  its `single.php` no longer checks for a date.
+- **Why:** the author preferred templates chosen by kind to an undated
+  entry falling back to a page template. The author wants to evaluate
+  template naming and the hierarchy as a whole later (open-questions.md).
+
+### D-562: `Query::whereParent()`
+- **Date:** 2026-10-06
+- **Status:** Built.
+- **Decision:** `whereParent($entry)` (or a key) limits a query to the
+  entries under a parent, and `whereParent(null)` to those with none:
+  a tree's top pages, a hierarchical taxonomy's top terms. Types that
+  don't nest are all top level. It reads the index's `parent` key
+  (`Query::$parent`: a key, `null`, or `false` for any). Second Proof's
+  `Topics` uses it.
+- **Why:** from the taxonomy queries building Second Proof showed
+  (D-556); the author chose it.
+
+### D-563: A component's `render()` is optional
+- **Date:** 2026-10-06
+- **Status:** Built.
+- **Decision:** `Component::render()` isn't abstract; it returns `null`
+  by default. The lookup is unchanged and is the whole rule: a
+  component's template is looked for in the site's views, then the
+  theme chain's, then its class's `render()`. So a site template
+  overrides a theme's or a plugin's component, and a theme template
+  restyles a site's or a plugin's. A theme's components have their
+  templates in the theme and need no `render()`; a plugin's keep their
+  default markup in `render()`, and so does a site component a theme may
+  restyle (a template in the site's `views/` comes first and always
+  wins). `theme:check` and `component:list` already name a component
+  with neither. Second Proof's `ThemeComponent` base and its six
+  `render()` methods are gone, and jtcom's.
+- **Why:** the author: look in the site's views, then the theme chain's,
+  then render with the component; the earlier proposals (finding an
+  owner's folder by namespace, a plugin-views step) were more than
+  needed. Plugins never supply views beyond their own components'
+  defaults.
+
+### D-564: `partials/` is the folder for template pieces
+- **Date:** 2026-10-06
+- **Status:** Built.
+- **Decision:** a theme's (and a site's) template pieces live in
+  `views/partials/`, not `views/parts/`, across the board: the default
+  theme's folder is `partials/` (`partials/header`, `partials/footer`,
+  `partials/welcome`, `partials/entries`, `partials/entry-meta`,
+  `partials/entry-summary`, `partials/pagination`), and every example
+  in the docs, doc comments, schemas, and tests uses it. A site that
+  copied a default partial to `resources/views/parts/` renames the
+  folder. On the trial, Second Proof's `parts/` became `partials/`, and
+  jtcom (which already used `partials/`) now includes the default
+  theme's `partials/welcome`.
+- **Why:** the author: "`partials/` should be the folder name that we
+  use across the board for the default and any other themes."

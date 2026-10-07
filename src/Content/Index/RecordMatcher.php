@@ -112,6 +112,7 @@ final readonly class RecordMatcher
 			|| ($query->language !== null && $query->language !== Query::ANY_LANGUAGE && $record['language'] !== $query->language && $record['language'] !== $query->fallback)
 			|| ! in_array($record['visibility'], $this->visibilities, true)
 			|| ! in_array(IndexRecord::effectiveStatus($record['status'], $record['published'], $this->now)->value, $this->statuses, true)
+			|| ($query->parent !== false && $record['parent'] !== $query->parent)
 			|| ($query->names !== [] && ! in_array($record['slug'], $query->names, true))
 			|| ($query->excludedNames !== [] && in_array($record['slug'], $query->excludedNames, true))
 			|| ($search !== null && mb_stripos($record['title'], $search) === false && mb_stripos($record['path'], $search) === false)

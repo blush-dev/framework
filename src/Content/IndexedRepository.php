@@ -296,6 +296,32 @@ final class IndexedRepository implements ContentRepository
 	}
 
 	/**
+	 * Finds the entry's place among the listing's paths in the index, so
+	 * only the two neighbors are built.
+	 *
+	 * @inheritDoc
+	 */
+	#[Override]
+	public function neighbors(Entry $entry, ?Query $query = null): array
+	{
+		$query ??= Query::fromArray($entry->type->listingArguments(), $this)
+			->type($entry->type)
+			->language($entry->language === '' ? null : $entry->language);
+
+		$paths = $this->fresh()->select($this->resolved($query->limit(null)->offset(0)), $this->now())->paths;
+		$index = array_search($entry->path, $paths, true);
+
+		if ($index === false) {
+			return ['before' => null, 'after' => null];
+		}
+
+		return [
+			'before' => isset($paths[$index - 1]) ? $this->findPath($paths[$index - 1]) : null,
+			'after'  => isset($paths[$index + 1]) ? $this->findPath($paths[$index + 1]) : null
+		];
+	}
+
+	/**
 	 * @inheritDoc
 	 */
 	#[Override]

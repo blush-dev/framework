@@ -180,6 +180,30 @@ final class ContentRepositoryTest extends TestCase
 		$this->assertSame('hello', $posts->first()?->slug);
 	}
 
+	public function testFindsAnEntrysNeighborsInItsListing(): void
+	{
+		$posts   = $this->content->query()->type('post')->get();
+		$hello   = $posts->first();
+		$spring  = $posts->all()[1];
+		$welcome = $posts->last();
+
+		$this->assertNotNull($hello);
+		$this->assertNotNull($welcome);
+
+		$neighbors = $this->content->neighbors($spring);
+
+		$this->assertSame('hello', $neighbors['before']?->slug, 'Newest first, so before is newer.');
+		$this->assertSame('welcome', $neighbors['after']?->slug);
+		$this->assertSame([null, 'spring'], [$this->content->neighbors($hello)['before'], $this->content->neighbors($hello)['after']?->slug]);
+		$this->assertNull($this->content->neighbors($welcome)['after']);
+
+		$byTitle = $this->content->neighbors($spring, $this->content->query()->type('post')->orderBy('title', Order::Desc));
+
+		$this->assertSame(['welcome', 'hello'], [$byTitle['before']?->slug, $byTitle['after']?->slug], 'Another listing, walked in its order.');
+		$this->assertSame(['before' => null, 'after' => null], $this->content->neighbors($spring, $this->content->query()->type('page')), 'Not in the listing.');
+		$this->assertSame(3, $this->content->query()->type('post')->whereParent(null)->count(), 'Types that don\'t nest are all top level (D-562).');
+	}
+
 	public function testBreaksTiesById(): void
 	{
 		$this->entry('_posts/a.md', "id: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e02\ntitle: Same\npublished: 2011-01-01");
@@ -359,6 +383,13 @@ final class ContentRepositoryTest extends TestCase
 		$this->assertNull($content->parent($content->named('topic', 'orphan') ?? $web));
 		$this->assertSame('about', $content->parent($content->named('page', 'about/biography') ?? $about)?->key);
 		$this->assertSame(['about/biography'], array_map(static fn (Entry $entry): string => $entry->key, $content->children($about)));
+
+		$topics = $content->query()->type('topic')->orderBy('title');
+
+		$this->assertSame(['art', 'web'], self::slugs($topics->whereParent(null)->get()), 'Top-level terms (D-562); an orphan names a parent, so it isn\'t one.');
+		$this->assertSame(['css', 'html'], self::slugs($topics->whereParent($web)->get()), 'Under a parent, by entry.');
+		$this->assertSame(['grid'], self::slugs($topics->whereParent('css')->get()), 'Or by key.');
+		$this->assertSame(['about/biography'], array_map(static fn (Entry $entry): string => $entry->key, $content->query()->type('page')->whereParent($about)->get()->all()), 'Pages too.');
 		$this->assertNull($content->parent($about));
 		$this->assertSame([], $content->children($content->named('page', '') ?? $about), 'The homepage isn\'t every page\'s parent.');
 	}

@@ -51,8 +51,9 @@ final class ThemedRenderingTest extends TestCase
 
 	private function childTheme(): void
 	{
-		$this->writeTemporaryFile('extensions/acme/child/theme.json', '{"name": "acme/child", "label": "Child", "namespace": "child", "styles": ["style.css", "extra.css"], "scripts": ["app.js"]}');
+		$this->writeTemporaryFile('extensions/acme/child/theme.json', '{"name": "acme/child", "label": "Child", "namespace": "child", "styles": ["style.css", "extra.css"], "scripts": ["app.js"], "preload": ["fonts/body.woff2"]}');
 		$this->writeTemporaryFile('extensions/acme/child/extra.css', '');
+		$this->writeTemporaryFile('extensions/acme/child/fonts/body.woff2', 'font');
 		$this->writeTemporaryFile('extensions/acme/child/app.js', '');
 		$this->writeTemporaryFile('extensions/acme/child/lang/en.json', '{"skip_to_content": "Skip ahead"}');
 		$this->writeTemporaryFile('extensions/acme/child/views/single-post.php', '<?php $template->layout(\'base\') ?><h1 class="post">Post: <?= e($title) ?></h1>');
@@ -151,6 +152,7 @@ final class ThemedRenderingTest extends TestCase
 		$this->assertStringContainsString('<a class="skip-link" href="#main">Skip ahead</a>', $single);
 		$this->assertMatchesRegularExpression('#href="http://localhost/themes/blush/default/style.css\?v=[0-9a-f]{8}">\n\t<link rel="stylesheet" href="http://localhost/themes/acme/child/extra.css\?v=[0-9a-f]{8}">#', $single);
 		$this->assertMatchesRegularExpression('#<script src="http://localhost/themes/acme/child/app.js\?v=[0-9a-f]{8}" defer></script>#', $single);
+		$this->assertMatchesRegularExpression('#<link rel="preload" href="http://localhost/themes/acme/child/fonts/body.woff2\?v=[0-9a-f]{8}" as="font" type="font/woff2" crossorigin>#', $single, 'A theme\'s preload list (D-558).');
 		$this->assertStringContainsString('<h1 class="entry__title">Biography</h1>', $this->body('/about/biography', $app));
 	}
 
@@ -203,9 +205,9 @@ final class ThemedRenderingTest extends TestCase
 	public function testPartialsSeeThePageAndTaxonomyListingsShareATemplate(): void
 	{
 		$this->standardContent();
-		$this->writeTemporaryFile('resources/views/collection-taxonomy.php', '<?php $template->layout(\'base\') ?><?= $template->include(\'parts/terms-title\') ?>');
-		$this->writeTemporaryFile('resources/views/parts/terms-title.php', '<p class="terms"><?= e($title) ?>: <?= e($type->name) ?>, <?= count($page->entries ?? []) ?></p>');
-		$this->writeTemporaryFile('resources/views/parts/footer.php', '<footer><?= e($entry?->title ?? "none") ?></footer>');
+		$this->writeTemporaryFile('resources/views/collection-taxonomy.php', '<?php $template->layout(\'base\') ?><?= $template->include(\'partials/terms-title\') ?>');
+		$this->writeTemporaryFile('resources/views/partials/terms-title.php', '<p class="terms"><?= e($title) ?>: <?= e($type->name) ?>, <?= count($page->entries ?? []) ?></p>');
+		$this->writeTemporaryFile('resources/views/partials/footer.php', '<footer><?= e($entry?->title ?? "none") ?></footer>');
 
 		$app = $this->site();
 

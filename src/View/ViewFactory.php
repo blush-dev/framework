@@ -83,7 +83,8 @@ final class ViewFactory
 	 * Builds the context for a page: the `Head` with the site name, the
 	 * `viewport` and `generator` meta tags (D-472), and the active
 	 * theme's stylesheets and scripts (with any stylesheets a
-	 * build manifest pairs with them; built scripts load as modules),
+	 * build manifest pairs with them; built scripts load as modules) and
+	 * the files it preloads (D-558),
 	 * `$site`, the entry's presentation front matter (`layout`,
 	 * `class`, and `stylesheet`, D-027), and the page's URL path and
 	 * locale (a list's language's, D-455, else the entry's, else the
@@ -118,6 +119,14 @@ final class ViewFactory
 
 			if ($url !== null) {
 				$head->script($url, $views->assets->isBuilt($script) ? ['type' => 'module'] : []);
+			}
+		}
+
+		foreach ($theme->preload as $file) {
+			$url = $views->assets->url($file);
+
+			if ($url !== null) {
+				$head->preload($url);
 			}
 		}
 

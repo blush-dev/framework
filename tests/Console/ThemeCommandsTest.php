@@ -217,6 +217,26 @@ final class ThemeCommandsTest extends TestCase
 		$this->assertStringNotContainsString('provider', $result->output);
 	}
 
+	public function testChecksAnInactiveThemeWithItsProviderRunning(): void
+	{
+		$this->writeTemporaryFile('extensions/acme/classy/theme.json', (string) json_encode([
+			'name'      => 'acme/classy',
+			'label'     => 'Classy',
+			'namespace' => 'classy',
+			'provider'  => 'Acme\\Classy\\ClassyServiceProvider',
+			'autoload'  => ['psr-4' => ['Acme\\Classy\\' => 'src/']]
+		]));
+		$this->writeTemporaryFile('extensions/acme/classy/src/ClassyServiceProvider.php', "<?php\n\ndeclare(strict_types=1);\n\nnamespace Acme\\Classy;\n\nfinal class ClassyServiceProvider extends \\Blush\\Core\\ServiceProvider\n{\n\tpublic function boot(): void\n\t{\n\t\t\$this->container->get(\\Blush\\Component\\ComponentRegistry::class)->register('classy/greeting', Greeting::class);\n\t}\n}\n");
+		$this->writeTemporaryFile('extensions/acme/classy/src/Greeting.php', "<?php\n\ndeclare(strict_types=1);\n\nnamespace Acme\\Classy;\n\nfinal class Greeting extends \\Blush\\Component\\Component\n{\n\tpublic function words(): string\n\t{\n\t\treturn 'Hello from a class';\n\t}\n\n\tpublic function render(): ?\\Blush\\Component\\ComponentView\n\t{\n\t\treturn null;\n\t}\n}\n");
+		$this->writeTemporaryFile('extensions/acme/classy/views/components/classy-greeting.php', '<p><?= e($component->words()) ?></p>');
+		$this->writeTemporaryFile('extensions/acme/classy/views/welcome.php', "<?php \$template->layout('base'); ?>\n<h1>Welcome</h1>\n<?= \$template->component('classy/greeting') ?>");
+
+		$result = $this->command(['theme:check', 'acme/classy']);
+
+		$this->assertSame(ExitCode::Success, $result->exitCode, $result->output);
+		$this->assertStringNotContainsString('layout', $result->output);
+	}
+
 	public function testChecksReportProblems(): void
 	{
 		$this->writeTemporaryFile('extensions/acme/rough/theme.json', json_encode([

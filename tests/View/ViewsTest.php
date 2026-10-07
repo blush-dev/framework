@@ -191,18 +191,18 @@ final class ViewsTest extends TestCase
 
 	public function testFindsViewsThroughTheChain(): void
 	{
-		$this->view('parts/footer', 'site footer');
-		$this->writeTemporaryFile('resources/views/themes/blush/default/parts/footer.php', 'theme-scoped footer');
+		$this->view('partials/footer', 'site footer');
+		$this->writeTemporaryFile('resources/views/themes/blush/default/partials/footer.php', 'theme-scoped footer');
 
 		$views = $this->views();
-		$files = $views->finder->all('parts/footer');
+		$files = $views->finder->all('partials/footer');
 
 		$this->assertCount(3, $files);
-		$this->assertStringEndsWith('resources/views/themes/blush/default/parts/footer.php', $files[0]);
-		$this->assertSame(Framework::path('resources/themes/default/views/parts/footer.php'), $files[2]);
+		$this->assertStringEndsWith('resources/views/themes/blush/default/partials/footer.php', $files[0]);
+		$this->assertSame(Framework::path('resources/themes/default/views/partials/footer.php'), $files[2]);
 		$this->assertTrue($views->exists('single'));
 		$this->assertFalse($views->exists('nope'));
-		$this->assertSame('theme-scoped footer', $views->partial('parts/footer', [], new ViewContext()));
+		$this->assertSame('theme-scoped footer', $views->partial('partials/footer', [], new ViewContext()));
 		$this->assertNull($views->finder->first(['../secret', 'nope']));
 		$this->assertSame('single', $views->finder->first(['bad name', 'single'])[0] ?? null);
 		$this->assertFalse(ViewFinder::isValidName('a/../b'));
@@ -254,6 +254,19 @@ final class ViewsTest extends TestCase
 
 		$this->assertFalse($context->head->has('meta:robots'));
 		$this->assertStringNotContainsString('robots', $context->head->render());
+	}
+
+	public function testTranslationsKeepHtmlMarkedWithRaw(): void
+	{
+		$this->writeTemporaryFile('resources/views/marked.php', <<<'PHP'
+			<?= e($template->t('pagination.page', page: raw('<b>2</b>'), pages: '<9>')) ?>|<?= attr($template->t('pagination.page', page: raw('<b>2</b>'), pages: 9)) ?>|<?= e($template->t('pagination.page', page: '<b>2</b>', pages: 9)) ?>
+			PHP);
+
+		$this->assertSame(
+			'Page <b>2</b> of &lt;9&gt;|Page &lt;b&gt;2&lt;/b&gt; of 9|Page &lt;b&gt;2&lt;/b&gt; of 9',
+			trim($this->render('marked')),
+			'A raw() parameter goes in as HTML and the rest is escaped; attr() escapes it all (D-559).'
+		);
 	}
 
 	public function testWidontJoinsTheLastTwoWords(): void

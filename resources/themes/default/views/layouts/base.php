@@ -21,12 +21,12 @@ declare(strict_types=1);
 <body class="<?= attr($template->bodyClass()) ?>">
 <a class="skip-link" href="#main"><?= e($template->t('skip_to_content')) ?></a>
 
-<?= $template->include('parts/header') ?>
+<?= $template->include('partials/header') ?>
 
 <main id="main" class="site-main" tabindex="-1">
 <?= $template->section('content') ?>
 </main>
 
-<?= $template->include('parts/footer') ?>
+<?= $template->include('partials/footer') ?>
 </body>
 </html>

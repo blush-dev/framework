@@ -116,7 +116,7 @@ To change one piece of the active theme, copy its template into your site's
 `resources/views/` folder and edit the copy. Your copy wins.
 
 For example, to change the site footer, copy the default theme's
-`views/parts/footer.php` to `resources/views/parts/footer.php`.
+`views/partials/footer.php` to `resources/views/partials/footer.php`.
 
 The default footer ends with a "Powered by" line ("Powered by coffee.",
 "Powered by sleepless nights.", and others), picked at random
@@ -133,7 +133,7 @@ To override a template for one theme only, use
 Not sure which file is in charge of a view? Ask:
 
 ```sh
-bin/blush theme:why parts/footer
+bin/blush theme:why partials/footer
 ```
 
 ## Building a theme
@@ -170,7 +170,7 @@ extensions/acme/notebook/
   style.css       Styles (list more in "styles")
   views/
     layouts/      base.php, and any others
-    parts/        header.php, footer.php, and other pieces
+    partials/     header.php, footer.php, and other pieces
     directives/   Your look for directives, such as callout.php
     components/   Your theme's own components, for its templates
     single.php  collection.php  ...
@@ -194,6 +194,7 @@ extensions/acme/notebook/
 	"parent": "blush/default",
 	"styles": ["style.css"],
 	"scripts": ["app.js"],
+	"preload": ["fonts/body.woff2"],
 	"menus": { "primary": "Primary", "social": "Social" },
 	"regions": { "sidebar": "Sidebar" },
 	"preview": {
@@ -293,6 +294,12 @@ Only `name` is required.
   once when the theme is in use. It still can't add content types,
   routes, or commands; those belong to the site or a
   [plugin](extending.md#plugins).
+- **`preload`:** files every page should fetch early, relative to the
+  theme, such as the fonts your stylesheet uses, so text doesn't wait
+  on them. What each file is comes from its extension: a font is
+  preloaded as a font (and fetched `crossorigin`, as browsers require),
+  `.css` as a style, `.js` as a script, and images as images. For a file
+  only some pages need, use `$template->head()->preload()` instead.
 - **`settings`:** options site owners set in `user/data/theme.json`. They
   use the same field types as [custom fields](content-types.md#custom-fields).
 - **`menus` and `regions`:** the places your theme shows the site's menus
@@ -396,7 +403,10 @@ variables. For editor autocomplete, list them at the top of the file:
 
 **Always escape output.** Use `e()` for text, `attr()` for attributes,
 `url()` for links, and `raw()` only for HTML you trust, such as a rendered
-entry body.
+entry body. `raw()` marks the HTML as trusted, and the mark travels with
+it: `e()` leaves trusted HTML (and a component) as it is, while `attr()`
+escapes everything, since an attribute never holds markup. Never `raw()`
+text a visitor or a writer typed, such as a title.
 
 What a template can use:
 
@@ -405,12 +415,12 @@ What a template can use:
 | `$template->layout('base')` | Wrap this template in `layouts/base.php` |
 | `$template->section('content')` | In a layout, print the wrapped template |
 | `$template->start('name')` … `$template->stop()` | Capture a named section |
-| `$template->include('parts/header', key: $value)` | Include another template |
-| `$template->include(['parts/card-post', 'parts/card'])` | Include the first of these that exists |
-| `$template->includeIf('parts/sidebar')` | Include it only if it exists |
-| `$template->includeWhen($condition, 'parts/x')` | Include it only when the condition is true |
-| `$template->includeUnless($condition, 'parts/x')` | Include it unless the condition is true |
-| `$template->each('parts/card', $entries, as: 'entry', empty: 'parts/none')` | Include a template once per item (see below) |
+| `$template->include('partials/header', key: $value)` | Include another template |
+| `$template->include(['partials/card-post', 'partials/card'])` | Include the first of these that exists |
+| `$template->includeIf('partials/sidebar')` | Include it only if it exists |
+| `$template->includeWhen($condition, 'partials/x')` | Include it only when the condition is true |
+| `$template->includeUnless($condition, 'partials/x')` | Include it unless the condition is true |
+| `$template->each('partials/card', $entries, as: 'entry', empty: 'partials/none')` | Include a template once per item (see below) |
 | `$template->component('notebook/card', title: '...')` | Render a component (see [Components](components.md)) |
 | `$template->directive('callout', variant: 'tip')` | Render a directive, as content would (see [Directives](directives.md#using-directives-in-templates)) |
 | `$template->icon('house', 'Home')` | An icon, decorative or labeled (see [Icons](directives.md#icons)) |
@@ -464,9 +474,9 @@ For a machine-readable date, such as a `<time datetime="">`, use
 
 Every template gets `$site` (name, URL, and language). Content pages also
 get `$page`, `$entry` (the entry), `$entries` (a listing, when there is
-one), `$type`, and `$title`, and so do their layouts, parts,
+one), `$type`, and `$title`, and so do their layouts, partials,
 directives, and components, so you don't have to pass them along. Anything you pass to
-`include()` wins, so `$template->include('parts/summary', entry: $item)` shows
+`include()` wins, so `$template->include('partials/summary', entry: $item)` shows
 that entry instead.
 
 `each()` saves writing a loop around `include()`. Each item reaches the
@@ -475,7 +485,7 @@ with `$index` (its position, from `0`) and anything else you pass. With no
 items, it includes the `empty` template, if you gave one:
 
 ```php
-<?= $template->each('parts/entry-summary', $entries, as: 'entry', empty: 'parts/no-entries') ?>
+<?= $template->each('partials/entry-summary', $entries, as: 'entry', empty: 'partials/no-entries') ?>
 ```
 
 An entry offers `title`, `slug`, `published`, `updated`, `body()`,
@@ -487,6 +497,17 @@ the body is cut short, such as a "Continue reading" link:
 ```php
 <?= raw($entry->excerpt(40, ' <a href="' . url($template->permalink($entry)) . '">Continue reading</a>')) ?>
 ```
+
+To preload a file on one page, such as the picture at the top of a
+post, use `$template->head()->preload($url)`; it works out what the
+file is the same way the `preload` list does, and attributes you give
+win: `->preload($url, ['fetchpriority' => 'high'])`.
+
+A few lines of JavaScript that must run before the page paints, such as
+setting a color scheme a visitor picked, go in with
+`$template->head()->inlineScript('scheme', $js)`, once per id; they run
+where they stand, unlike your theme's deferred `scripts`. Like
+`inlineStyle()`, the code isn't escaped, so it must be yours.
 
 Blush fills in the `<head>` for you: the title, the canonical URL,
 OpenGraph tags, feed links, `hreflang` links to the page in your
@@ -546,6 +567,17 @@ has them, and plugins and icon packs use them the same way, with their
 own names. In YAML, quote them: `'@@locale': fr`. `theme:check` warns
 about a catalog whose `@@locale` or `@@domain` doesn't match its file or
 your theme (and, with `--strict`, notes one without them).
+
+Values in a message are text, and escaped with it. When one is HTML,
+such as a list of linked names, mark it with `raw()`: it goes in as it
+is, and the message's own words and every other value are still
+escaped.
+
+```php
+<?= e($template->t('posted_by', names: raw($links), date: $date)) ?>
+```
+
+`attr()` escapes it all, so the same message can go in a `title` too.
 
 A child theme's catalogs come before its parent's, message by message,
 so a child rewords only what it needs to.
@@ -631,7 +663,7 @@ Change how many pages show with `$page->pageLinks(endSize: 2, midSize:
 2)`, or leave out previous and next with `adjacent: false`. For just
 "Previous" and "Next" links, `$entries->previous()` and
 `$entries->next()` give the page numbers, and `$page->pageUrl($number)`
-their URLs. The default theme's `parts/pagination.php` is a full
+their URLs. The default theme's `partials/pagination.php` is a full
 example.
 
 ### Caching slow parts
@@ -689,8 +721,8 @@ Blush picks the most specific template your theme (or its parents) has:
 
 | Page | Templates tried, in order |
 |---|---|
-| An entry | `single-{type}-{slug}`, `single-{type}`, `single` |
-| A listing | `collection-{type}`, `collection-taxonomy` (a taxonomy's listing), `collection` |
+| An entry | `single-{type}-{slug}`, `single-{type}`, `single-{kind}`, `single` |
+| A listing | `collection-{type}`, `collection-{kind}`, `collection` |
 | A term | `term-{taxonomy}-{slug}`, `term-{taxonomy}`, `term`, `collection` |
 | A date archive | `archive-date-{type}`, `archive-date`, `collection` |
 | A type's people (such as `/recipes/cooks`) | `people-{type}-{field}`, `people-{field}`, `people`, `collection` |
@@ -709,11 +741,17 @@ profile, and `$entries` their entries of that type. On a profile's
 page, `$entry` is the profile and `$entries` everything crediting
 them.
 
+`{kind}` is the kind of the entry's type: `collection` (such as posts),
+`tree` (pages, and any tree of your site's own), `taxonomy`, or
+`profiles`. So `single-tree.php` draws every tree's pages and
+`single-collection.php` every collection's entries, whatever a site
+names its types; `collection-taxonomy.php` lists a taxonomy's terms.
+
 The welcome page shows until `user/content/index.md` exists. Its
 content (the next steps, and, outside production, any problems
 `bin/blush doctor` would report) is the default theme's
-`parts/welcome` part, so a theme's own `welcome` view can wrap it in
-its markup with `$template->include('parts/welcome')`.
+`partials/welcome` part, so a theme's own `welcome` view can wrap it in
+its markup with `$template->include('partials/welcome')`.
 
 An entry's `template` front matter is always tried first. Feeds
 (`feed-rss`, `feed-atom`, `feed-json`) and sitemaps (`sitemap`,
@@ -773,7 +811,8 @@ map in `theme.json`:
 
 The provider registers the class in its `boot()` method, and the
 template in `views/components/` (here, `notebook-recent-posts.php`) draws
-it:
+it, so the class needs no `render()`; a site can override the template
+with its own:
 
 ```php
 <?php // src/ThemeProvider.php
@@ -990,7 +1029,10 @@ bin/blush theme:check
 
 It checks the manifest and settings, the site's menus and regions, and
 makes sure the base layout has the landmarks and skip link screen reader
-users rely on. With `--strict`, it also notes a base layout whose
+users rely on. Name a theme to check one that isn't active
+(`bin/blush theme:check acme/notebook`): its code runs as it would if it
+were active, provider and all, when its requirements are met, so its
+components with a class render in the check. With `--strict`, it also notes a base layout whose
 `<html>` has no `dir`: write `<html lang="<?= attr($site->lang) ?>"
 dir="<?= attr($site->dir) ?>">`, so a page in a right-to-left language
 (`$site->dir` is `rtl`) reads right to left.

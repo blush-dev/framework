@@ -13,6 +13,9 @@ declare(strict_types=1);
 
 namespace Blush\Menu;
 
+use Blush\View\SafeHtml;
+use Blush\View\TrustedHtml;
+
 /**
  * One resolved menu item, as templates see it (D-199, D-200): its label
  * in the page's locale, its URL (`null` for a heading that only groups
@@ -76,6 +79,21 @@ final readonly class MenuItem
 	public function isActive(): bool
 	{
 		return $this->current || $this->ancestor;
+	}
+
+	/**
+	 * Returns the item's `aria-current` attribute, ready to print in its
+	 * link: `aria-current="page"` for the page being rendered,
+	 * `aria-current="true"` for an item above it (its section), or
+	 * nothing: `<a href="…" <?= $item->ariaCurrent() ?>>`.
+	 */
+	public function ariaCurrent(): SafeHtml
+	{
+		return new TrustedHtml(match (true) {
+			$this->current  => 'aria-current="page"',
+			$this->ancestor => 'aria-current="true"',
+			default         => ''
+		});
 	}
 
 	/**

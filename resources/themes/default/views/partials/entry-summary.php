@@ -22,7 +22,7 @@ $title = $entry->title !== '' ? $entry->title : $entry->slug;
 		<?php endif ?>
 	</h2>
 
-	<?= $template->include('parts/entry-meta', entry: $entry) ?>
+	<?= $template->include('partials/entry-meta', entry: $entry) ?>
 
 	<div class="entry__excerpt">
 		<?= raw($entry->excerpt()) ?>

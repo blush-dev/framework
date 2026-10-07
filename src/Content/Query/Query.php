@@ -17,6 +17,7 @@ use Closure;
 use NoDiscard;
 use Blush\Content\Entry\Entry;
 use Blush\Content\Status;
+use Blush\Content\Type\ContentType;
 use Blush\Content\Visibility;
 
 /**
@@ -114,6 +115,7 @@ final readonly class Query
 	 * @param ?string                          $language      A language code to limit entries to (D-455), `ANY_LANGUAGE` for all, or `null` for the site's default language.
 	 * @param ?bool                            $originals     Whether a language's originals stand in for its missing translations (D-469); `null` for the site's `untranslated` setting.
 	 * @param ?string                          $fallback      The language whose entries stand in for those without one in `$language`, set by the repository from `$originals`.
+	 * @param string|false|null                $parent        The key of the parent entries must have, `null` for none (top level), or `false` for any (D-562).
 	 */
 	public function __construct(
 		public array $types = [],
@@ -139,6 +141,7 @@ final readonly class Query
 		public ?string $language = null,
 		public ?bool $originals = null,
 		public ?string $fallback = null,
+		public string|false|null $parent = false,
 		private ?QueryRunner $runner = null
 	) {}
 
@@ -279,12 +282,15 @@ final readonly class Query
 	}
 
 	/**
-	 * Returns a copy limited to entries of these types.
+	 * Returns a copy limited to entries of these types, by name or as the
+	 * types themselves: `type('post')`, `type($types->homeType())`.
 	 */
 	#[NoDiscard]
-	public function type(string ...$types): self
+	public function type(string|ContentType ...$types): self
 	{
-		return clone($this, ['types' => array_values(array_unique($types))]);
+		$names = array_map(static fn (string|ContentType $type): string => $type instanceof ContentType ? $type->name : $type, $types);
+
+		return clone($this, ['types' => array_values(array_unique($names))]);
 	}
 
 	/**
@@ -401,6 +407,20 @@ final readonly class Query
 		}
 
 		return $query;
+	}
+
+	/**
+	 * Returns a copy limited to the entries under a parent, given as the
+	 * entry or its key (`whereParent($about)`, `whereParent('about')`),
+	 * or, with `null`, to those with no parent: a tree's top-level pages
+	 * or a hierarchical taxonomy's top-level terms (D-562). Only trees and
+	 * hierarchical taxonomies nest, so for other types `null` matches
+	 * every entry and a parent none.
+	 */
+	#[NoDiscard]
+	public function whereParent(Entry|string|null $parent): self
+	{
+		return clone($this, ['parent' => $parent instanceof Entry ? $parent->key : $parent]);
 	}
 
 	/**

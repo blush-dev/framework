@@ -14,19 +14,8 @@ declare(strict_types=1);
 
 $welcome = $page->welcome;
 
-// Translates a message whose placeholders are HTML (code or a link),
-// escaping the rest: each placeholder is kept, then swapped in.
-$html = static function (string $key, array $parts) use ($template): string {
-	$marks = [];
-
-	foreach ($parts as $name => $part) {
-		$marks["{{$name}}"] = $part;
-	}
-
-	return strtr(e($template->t($key, ...array_combine(array_keys($parts), array_keys($marks)))), $marks);
-};
-
-$code = static fn(string $text): string => '<code>' . e($text) . '</code>';
+$code = static fn(string $text): Blush\View\SafeHtml => raw('<code>' . e($text) . '</code>');
+$link = $welcome?->admin === null ? '' : raw('<a href="' . url($welcome->admin) . '">' . e($welcome->admin) . '</a>');
 
 ?>
 <p><?= e($template->t('welcome.running', generator: $site->generator)) ?></p>
@@ -35,19 +24,14 @@ $code = static fn(string $text): string => '<code>' . e($text) . '</code>';
 	<h2><?= e($template->t('welcome.next')) ?></h2>
 
 	<ol class="welcome-steps">
-		<li><?= $html('welcome.start', ['path' => $code($welcome->homepage)]) ?></li>
+		<li><?= e($template->t('welcome.start', path: $code($welcome->homepage))) ?></li>
 
 		<?php if ($welcome->admin === null) : ?>
-			<li><?= $html('welcome.admin.off', ['path' => $code('config/admin.php')]) ?></li>
+			<li><?= e($template->t('welcome.admin.off', path: $code('config/admin.php'))) ?></li>
 		<?php elseif (! $welcome->accounts) : ?>
-			<li><?= $html('welcome.admin.account', [
-				'command' => $code("{$welcome->binary} account:add"),
-				'admin'   => '<a href="' . url($welcome->admin) . '">' . e($welcome->admin) . '</a>'
-			]) ?></li>
+			<li><?= e($template->t('welcome.admin.account', command: $code("{$welcome->binary} account:add"), admin: $link)) ?></li>
 		<?php else : ?>
-			<li><?= $html('welcome.admin.sign_in', [
-				'admin' => '<a href="' . url($welcome->admin) . '">' . e($welcome->admin) . '</a>'
-			]) ?></li>
+			<li><?= e($template->t('welcome.admin.sign_in', admin: $link)) ?></li>
 		<?php endif ?>
 	</ol>
 
@@ -59,9 +43,9 @@ $code = static fn(string $text): string => '<code>' . e($text) . '</code>';
 					<li><?= $code($problem->label) ?>: <?= e(trim("{$problem->message} {$problem->hint}")) ?></li>
 				<?php endforeach ?>
 			</ul>
-			<p><?= $html('welcome.problems.doctor', ['command' => $code("{$welcome->binary} doctor")]) ?></p>
+			<p><?= e($template->t('welcome.problems.doctor', command: $code("{$welcome->binary} doctor"))) ?></p>
 		</aside>
 	<?php endif ?>
 <?php else : ?>
-	<p><?= $html('welcome.start', ['path' => $code('user/content/index.md')]) ?></p>
+	<p><?= e($template->t('welcome.start', path: $code('user/content/index.md'))) ?></p>
 <?php endif ?>

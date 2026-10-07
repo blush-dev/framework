@@ -24,7 +24,7 @@ use Blush\View\ViewFinder;
  * as its data (text in them may be locale maps, D-202):
  *
  * ```yaml
- * - view: parts/newsletter
+ * - view: partials/newsletter
  *   heading: Get new posts by email
  * ```
  */
@@ -39,7 +39,7 @@ final class ViewItem extends RegionItem
 		return [$key => [
 			'type'        => 'string',
 			'pattern'     => '^[A-Za-z0-9_-]+(/[A-Za-z0-9_-]+)*$',
-			'description' => 'Shows a template part from the site or theme, such as parts/newsletter. The item\'s other keys are its data.'
+			'description' => 'Shows a template part from the site or theme, such as partials/newsletter. The item\'s other keys are its data.'
 		]];
 	}
 
@@ -51,7 +51,7 @@ final class ViewItem extends RegionItem
 	{
 		return is_string($value) && ViewFinder::isValidName(trim($value))
 			? null
-			: 'must be a view name, such as "parts/newsletter".';
+			: 'must be a view name, such as "partials/newsletter".';
 	}
 
 	/**

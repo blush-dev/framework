@@ -18,6 +18,6 @@ $template->layout('base');
 	</header>
 
 	<div class="entry__content">
-		<?= $template->include('parts/welcome') ?>
+		<?= $template->include('partials/welcome') ?>
 	</div>
 </article>

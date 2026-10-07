@@ -179,7 +179,7 @@ final class ThemeSystemTest extends TestCase
 			{
 				public function boot(): void
 				{
-					$this->container->make(ContextProviders::class)->add('parts/footer', FooterNote::class);
+					$this->container->make(ContextProviders::class)->add('partials/footer', FooterNote::class);
 				}
 			}
 			PHP);
@@ -200,7 +200,7 @@ final class ThemeSystemTest extends TestCase
 				}
 			}
 			PHP);
-		$this->writeTemporaryFile('extensions/acme/pro/views/parts/footer.php', '<footer><?= e($note ?? "no note") ?></footer>');
+		$this->writeTemporaryFile('extensions/acme/pro/views/partials/footer.php', '<footer><?= e($note ?? "no note") ?></footer>');
 		$this->writeTemporaryFile('extensions/acme/base/theme.json', '{"name": "acme/base", "label": "Base", "namespace": "base", "provider": "Missing\\\\Provider"}');
 		$this->activeTheme('acme/pro');
 
@@ -246,7 +246,7 @@ final class ThemeSystemTest extends TestCase
 		$this->writeTemporaryFile('config/content.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn Blush\\Content\\Type\\ContentConfig::fromArray(['types' => ['post' => ['path' => 'posts']], 'home' => 'post']);\n");
 		$this->writeTemporaryFile('user/content/posts/hello.md', "---\ntitle: Hello\n---\nThe excerpt text.");
 		$this->writeTemporaryFile('extensions/acme/noted/theme.json', '{"name": "acme/noted", "label": "Noted", "namespace": "noted", "settings": {"note": {"type": "text", "default": "Plain note"}}}');
-		$this->writeTemporaryFile('extensions/acme/noted/views/parts/entry-summary.php', "<p><?= e((string) \$template->setting('note')) ?></p>");
+		$this->writeTemporaryFile('extensions/acme/noted/views/partials/entry-summary.php', "<p><?= e((string) \$template->setting('note')) ?></p>");
 		$this->activeTheme('acme/noted');
 
 		$this->assertStringContainsString('Plain note', $this->get('/'));
@@ -268,7 +268,7 @@ final class ThemeSystemTest extends TestCase
 		$this->writeTemporaryFile('user/content/posts/hello.md', "---\ntitle: Hello\n---\nThe excerpt text.");
 		$this->writeTemporaryFile('user/data/fields/brand.yaml', "targets: [settings:general]\nfields:\n  tagline:\n    default: Plain tagline\n");
 		$this->writeTemporaryFile('extensions/acme/noted/theme.json', '{"name": "acme/noted", "label": "Noted", "namespace": "noted"}');
-		$this->writeTemporaryFile('extensions/acme/noted/views/parts/entry-summary.php', "<p><?= e((string) \$template->site('tagline')) ?>|<?= e((string) \$template->site('missing', 'none')) ?></p>");
+		$this->writeTemporaryFile('extensions/acme/noted/views/partials/entry-summary.php', "<p><?= e((string) \$template->site('tagline')) ?>|<?= e((string) \$template->site('missing', 'none')) ?></p>");
 		$this->activeTheme('acme/noted');
 
 		$this->assertStringContainsString('Plain tagline|none', $this->get('/'), 'A field\'s default, then the fallback.');

@@ -113,7 +113,6 @@ declare(strict_types=1);
 namespace App\View;
 
 use Blush\Component\Component;
-use Blush\Component\ComponentView;
 use Blush\Content\ContentRepository;
 
 final class PostArchives extends Component
@@ -130,13 +129,11 @@ final class PostArchives extends Component
 	{
 		// …
 	}
-
-	public function render(): ComponentView
-	{
-		return $this->view(dirname(__DIR__, 2) . '/resources/views/components/app-post-archives.php');
-	}
 }
 ```
+
+Its template is `resources/views/components/app-post-archives.php`,
+found by its name like any other.
 
 Register it in a service provider's `boot()` method:
 
@@ -149,18 +146,26 @@ public function boot(): void
 }
 ```
 
-- **Props are its constructor's public parameters**, as the template
-  reads them: `$component->by`. A prop given as a string is converted
-  to the type you declare (an `int`, `float`, `bool`, or backed enum).
+- **Props fill its constructor's parameters by name**, public or not;
+  Blush fills the rest (such as the `ContentRepository`). Make a prop a
+  public property (`public readonly string $by`) when the template
+  reads it: `$component->by`. Don't give a prop the name of a service
+  parameter, since a prop with that name would be passed instead. A
+  prop given as a string is converted to the type you declare (an
+  `int`, `float`, `bool`, or backed enum).
 - **The `ContentRepository` follows the page's language**, so on a
   [translated](content.md#translations) page it finds that language's
   entries.
-- **`render()`** is required: the component's own markup, used when no
-  template in the theme chain (or your site) draws it. It returns the
-  template file it ships with (`$this->view($path)`), its HTML as a
-  string (escape what goes in it), or `null` when a theme must give it a
-  template. `theme:check` warns about a class with no template and no
-  markup of its own.
+- **`render()`** is optional: the component's own markup, used only when
+  neither your site nor the theme has a template for it. It returns a
+  template file (`$this->view($path)`) or HTML as a string (escape what
+  goes in it). A theme's components don't need it: their templates are
+  in the theme. A plugin's do, since its markup comes from nowhere else,
+  and so does a site component that themes may restyle: a template in
+  your site's `views/` comes first and would always win, so keep that
+  default somewhere else (such as `resources/components/`) and return it
+  from `render()`. `theme:check` and `component:list` point out a
+  component with no template and no `render()`.
 - **`shouldRender()`** returns `false` to draw nothing, and
   **`template()`** returns another view to draw with.
 - **`modifiers()`** and **`rootAttributes()`** add BEM modifiers and

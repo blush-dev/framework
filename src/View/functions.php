@@ -17,7 +17,8 @@ declare(strict_types=1);
 use Blush\View\Escaper;
 
 /**
- * Escapes text for HTML content.
+ * Escapes text for HTML content. HTML marked trusted (`raw()`, a
+ * component) is left as it is.
  */
 function e(Stringable|string|int|float|bool|null $value): string
 {
@@ -61,9 +62,15 @@ function css(Stringable|string|int|float|null $value): string
 
 /**
  * Marks trusted, already-rendered HTML (such as an entry body) for output
- * as is. It returns the value unchanged; it exists so templates say so.
+ * as is (D-559). It prints the same as the value it's given; marked, it
+ * also survives being passed on: `e()` leaves it alone, and in a
+ * translation (`$template->t('by', names: raw($links))`) it goes in
+ * unescaped while the rest is escaped. Never mark text a visitor or a
+ * writer typed.
  */
-function raw(Stringable|string|null $html): string
+function raw(Stringable|string|null $html): Blush\View\SafeHtml
 {
-	return (string) $html;
+	return $html instanceof Blush\View\SafeHtml
+		? $html
+		: new Blush\View\TrustedHtml((string) $html);
 }
