@@ -808,12 +808,16 @@ Your changes aren't lost:
 by its title (or its file name, until it has one), laid out like the
 entries lists: **All** and **Mine** tabs with their counts (**Mine** is
 what you uploaded), then a search by name or details and a filter for
-images, video, audio, documents, or other files. Choose one for its
+images, video, audio, documents, or other files. A sound or video
+shows its [artwork](media.md#artwork) as its thumbnail, marked with its
+kind. Choose one for its
 screen, in two columns. On the left: a preview (an image or video; a
-sound's cover art, title, artist, and album with a player; or a PDF's
-page with its page count); **Usage**, its address
+sound's artwork, title, artist, and album with a player; or a PDF's
+page with its page count); a sound's or video's **Artwork** (see
+[Artwork](media.md#artwork)); **Usage**, its address
 and what an entry writes to show it, each with a Copy button, then the
-entries that use it (the first five of a long list, with **Show All**);
+entries that use it (the first five of a long list, with **Show All**),
+and for an image, the sounds and videos that show it as their artwork;
 **Storage**, where it lives, its type, size, length or pages, and who
 uploaded it; and an image's **Other Sizes**. On the right: its **Details** (the
 fields files of its kind have: **Title**, **Alt text** for an image,
@@ -844,7 +848,8 @@ The entries a file's screen lists use it by any of its addresses, in
 their text or front matter. **Delete** (your own files with
 `media.delete`, anyone's with `media.delete.others`) asks first, saying
 how many entries use it, which will be left pointing at an address that
-no longer resolves until they're changed; it removes the file,
+no longer resolves until they're changed, and which files it's the
+artwork of, which lose it; it removes the file,
 its details, and the copy `media:publish --copy` made.
 
 They're kept apart from the file, in `user/data/media/`, which mirrors
@@ -1079,6 +1084,9 @@ screens:
   already uploaded keep their addresses, and the screen says so. On a
   narrow screen All Files and each kind are a line saying what they do;
   open one to change it.
+  Under it, **Artwork from uploads** adds the cover art an uploaded
+  sound or video carries to the library as its artwork (see
+  [Artwork](media.md#artwork)), when the uploader may upload images.
 - **Addresses and Search:** whether addresses end in a slash (`/about/`;
   the other form redirects, so old links keep working), whether the
   site has a sitemap and `robots.txt`, and the paths `robots.txt` asks
@@ -1831,8 +1839,10 @@ can edit entries, or have a media capability.
 
 Every file the media API answers has its `title`, `alt`, and
 `caption` (`''` for none), its uploader's username (`owner`, `''` for
-none), and an audio file's or video's `duration` in
-seconds (`null` when unknown). `GET media/{path}` adds what the file says about itself, `embedded`:
+none), an audio file's or video's `duration` in
+seconds (`null` when unknown), and its `artworkUrl`, for a thumbnail
+(its artwork image's URL, else where the cover art it carries is
+served, else `null`). `GET media/{path}` adds what the file says about itself, `embedded`:
 its `values` (read from its EXIF, IPTC, and XMP: `title`,
 `description`, `creator`, `copyright`, `credit`, `keywords`, `created`,
 `camera`, `lens`, `focalLength`, `aperture`, `exposure`, `iso`,
@@ -1844,9 +1854,13 @@ it carries one (never where). It also adds the file's details: the `fields` its 
 (`{"name", "label", "description", "fields"}`, the field names), their `values`, keys its metadata
 file keeps that aren't fields (`extra`), `violations` for what
 doesn't fit, its `uploader` (`{"username", "name"}`, or `null`), what
-the account `may` do to it (`{"edit", "delete"}`), and the entries
+the account `may` do to it (`{"edit", "delete", "addArtwork"}`), and the entries
 that use it (`usedIn`: `{"path", "title", "type"}`, `path` being the
-document's path). `PATCH media/{path}` changes them: `{"set": {field:
+document's path). A sound or video has its `artwork` (`{"id",
+"image"}`, the image being `{"path", "reference", "url", "name",
+"title"}`, or `null` when the id names no image in the library; `null`
+for none), and an image the files that show it (`artworkFor`:
+`{"path", "name", "title", "kind"}`). `PATCH media/{path}` changes them: `{"set": {field:
 value}, "remove": [field]}`, for a file in the library, needs
 `media.edit` (and `media.edit.others` for a file that isn't the
 account's, or has no uploader), and answers with the file. An empty value removes a
@@ -1854,10 +1868,19 @@ field, each value is checked by its field (a 422 naming the `field`
 when it doesn't fit), and `alt` and `caption` may still be sent on
 their own.
 
+`PUT media-artwork/{path}` sets a sound's or video's artwork: `{"image":
+"{id}"}` names a library image, and `{"from": "file"}` adds the cover
+art it carries to the library first (or finds the image with the same
+bytes), which also needs uploading images (`may.addArtwork`).
+`DELETE media-artwork/{path}` takes it off, leaving the image. Both
+need what changing the file's details does, and answer with the file;
+`GET media-artwork/{path}` answers with the cover art the file carries.
+
 `DELETE media/{path}` deletes the file, its details, and the copy
 `media:publish --copy` made, and answers `{"deleted"}` with its path.
 It needs `media.delete`, and `media.delete.others` for a file that
-isn't the account's or has no uploader. It doesn't check where the file
+isn't the account's or has no uploader. Deleting an image takes it off
+the files that show it as their artwork. It doesn't check where the file
 is used; `GET media/{path}`'s `usedIn` is for asking first.
 
 ### Editing entries

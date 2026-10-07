@@ -15,7 +15,7 @@ namespace Blush\View;
 
 /**
  * The state of one page render, shared by every template it takes: the
- * `Head`, the sections templates define for their layouts, the data every
+ * `PageMarkup` (its `head` and `foot`, D-578), the sections templates define for their layouts, the data every
  * template sees (such as `$site`), the `<body>` classes, the layout
  * an entry asks for in front matter (D-027), and the page's URL path and
  * locale, which menus read to mark the current item and pick their text
@@ -33,6 +33,22 @@ final class ViewContext
 	 */
 	private array $sections = [];
 
+	// phpcs:disable PSR2.Classes.PropertyDeclaration, PHPCompatibility.Syntax.RemovedCurlyBraceArrayAccess -- PHPCS can't parse property hooks yet.
+	/**
+	 * The page's `<head>`.
+	 */
+	public Head $head {
+		get => $this->markup->head;
+	}
+
+	/**
+	 * The end of the page's `<body>`.
+	 */
+	public Foot $foot {
+		get => $this->markup->foot;
+	}
+	// phpcs:enable
+
 	/**
 	 * `<body>` classes, as a set.
 	 *
@@ -48,7 +64,7 @@ final class ViewContext
 	 * @param string               $language The code of the page's language when it isn't the default (D-458), or `''`.
 	 */
 	public function __construct(
-		public readonly Head $head = new Head(),
+		public readonly PageMarkup $markup = new PageMarkup(),
 		public private(set) array $shared = [],
 		public readonly ?string $layout = null,
 		public readonly string $path = '',

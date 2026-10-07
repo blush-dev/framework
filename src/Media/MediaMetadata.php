@@ -24,12 +24,13 @@ use Blush\Support\Uuid;
  * written into Markdown, where a line break would end them. Where a file
  * is used, what's written there wins; the library's fill the gaps.
  *
- * Three keys aren't fields, and the details form doesn't edit them:
+ * Four keys aren't fields, and the details form doesn't edit them:
  * `owner`, the username of the account that uploaded the file (D-407);
  * `sizes`, an image's other sizes (D-488), their keys in `user/media`
- * mapped to their `width` and `height`; and `id`, the file's UUID
- * (D-487), written last, as an entry's is (D-477). `fields()` is the
- * values without them.
+ * mapped to their `width` and `height`; `artwork`, the id of the library
+ * image a sound or video shows as its artwork (D-581), which the file's
+ * screen sets on its own; and `id`, the file's UUID (D-487), written
+ * last, as an entry's is (D-477). `fields()` is the values without them.
  */
 final readonly class MediaMetadata
 {
@@ -47,6 +48,12 @@ final readonly class MediaMetadata
 	 * The key an image's sizes are kept under (D-488).
 	 */
 	public const string SIZES = 'sizes';
+
+	/**
+	 * The key a sound's or video's artwork, a library image's id, is
+	 * kept under (D-581).
+	 */
+	public const string ARTWORK = 'artwork';
 
 	public string $title;
 
@@ -76,6 +83,12 @@ final readonly class MediaMetadata
 	public array $sizes;
 
 	/**
+	 * The id of the library image a sound or video shows as its artwork
+	 * (D-581), lowercase, or `''` for none, or one that isn't a UUID.
+	 */
+	public string $artwork;
+
+	/**
 	 * @param array<string, mixed> $values
 	 */
 	public function __construct(public array $values = [])
@@ -86,6 +99,7 @@ final readonly class MediaMetadata
 		$this->owner   = self::line($values[self::OWNER] ?? null);
 		$this->id      = Uuid::isValid($values[self::ID] ?? null) ? strtolower(self::line($values[self::ID])) : '';
 		$this->sizes   = self::readSizes($values[self::SIZES] ?? null);
+		$this->artwork = Uuid::isValid($values[self::ARTWORK] ?? null) ? strtolower(self::line($values[self::ARTWORK])) : '';
 	}
 
 	/**
@@ -117,13 +131,14 @@ final readonly class MediaMetadata
 	}
 
 	/**
-	 * The field values: every value but the owner, the sizes, and the id.
+	 * The field values: every value but the owner, the sizes, the
+	 * artwork, and the id.
 	 *
 	 * @return array<string, mixed>
 	 */
 	public function fields(): array
 	{
-		return array_diff_key($this->values, [self::OWNER => true, self::SIZES => true, self::ID => true]);
+		return array_diff_key($this->values, [self::OWNER => true, self::SIZES => true, self::ARTWORK => true, self::ID => true]);
 	}
 
 	/**

@@ -269,7 +269,7 @@ abstract class Renderable
 
 	/**
 	 * Returns the render it's part of: the page's path and locale, and its
-	 * `Head`. `null` for one built outside `Views`.
+	 * `PageMarkup` (its head and foot). `null` for one built outside `Views`.
 	 */
 	protected function context(): ?ViewContext
 	{

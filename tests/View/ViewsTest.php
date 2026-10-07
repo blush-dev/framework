@@ -21,7 +21,7 @@ use Blush\Content\ContentRepository;
 use Blush\Core\Framework;
 use Blush\Tests\BootsScratchSite;
 use Blush\Theme\ThemeResolver;
-use Blush\View\Head;
+use Blush\View\PageMarkup;
 use Blush\View\Site;
 use Blush\View\Template;
 use Blush\View\ViewContext;
@@ -68,7 +68,7 @@ final class ViewsTest extends TestCase
 	 */
 	private function render(string $name, array $data = [], ?ViewContext $context = null): string
 	{
-		return $this->views()->render($name, $data, $context ?? new ViewContext(new Head('Test Site'), ['site' => new Site('Test Site', 'http://localhost', 'en_US', 'en-US')]));
+		return $this->views()->render($name, $data, $context ?? new ViewContext(new PageMarkup('Test Site'), ['site' => new Site('Test Site', 'http://localhost', 'en_US', 'en-US')]));
 	}
 
 	public function testDatesAndTimesUseTheSitesFormats(): void
@@ -241,7 +241,7 @@ final class ViewsTest extends TestCase
 			<?= $template->t('pagination.page', page: 2, pages: 9) ?>|<?= $template->t('no.such.key') ?>|<?= $template->date($when) ?>|<?= $template->date($when, 'MMMM y') ?>|<?= $template->asset('style.css') !== '' ? 'asset' : '' ?>|<?= $template->asset('nope.css') ?>|<?= $template->bodyClass() ?>
 			PHP);
 
-		$context = new ViewContext(new Head('Test Site'));
+		$context = new ViewContext(new PageMarkup('Test Site'));
 		$context->addClass('one two', 'two', '1bad', 'three');
 
 		$html = $this->render('helpers', ['when' => new DateTimeImmutable('2026-01-05 23:30:00', new DateTimeZone('UTC'))], $context);
@@ -304,7 +304,7 @@ final class ViewsTest extends TestCase
 		$container = $app->container();
 		$term      = $container->make(ContentRepository::class)->named('topic', 'grid');
 		$views     = $container->make(ViewFactory::class)->forChain($container->make(ThemeResolver::class)->active());
-		$context   = new ViewContext(new Head('Test Site'), ['site' => new Site('Test Site', 'http://localhost', 'en_US', 'en-US')]);
+		$context   = new ViewContext(new PageMarkup('Test Site'), ['site' => new Site('Test Site', 'http://localhost', 'en_US', 'en-US')]);
 
 		$this->assertSame('Web/CSS|CSS|Grid', trim($views->render('tree', ['term' => $term], $context)), 'Drafts aren\'t children.');
 	}

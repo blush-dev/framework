@@ -78,6 +78,7 @@ enum Setting: string
 	case FeedContent      = 'feed.content';
 	case FeedLimit        = 'feed.limit';
 	case MediaUploads     = 'media.uploads';
+	case AddArtwork       = 'media.addArtwork';
 	case Mentions         = 'markdown.mentions';
 	case SmartPunctuation = 'markdown.smartPunctuation';
 	case HeadingAnchors   = 'markdown.headingAnchors';
@@ -136,7 +137,7 @@ enum Setting: string
 			self::Timezone, self::DateFormat, self::TimeFormat,
 			self::Signups, self::SignupRole                               => SettingsScreen::General,
 			self::Home, self::FeedFormats, self::FeedContent, self::FeedLimit => SettingsScreen::Reading,
-			self::MediaUploads                                            => SettingsScreen::Media,
+			self::MediaUploads, self::AddArtwork                          => SettingsScreen::Media,
 			self::Mentions, self::SmartPunctuation, self::HeadingAnchors,
 			self::Figures, self::Html                                     => SettingsScreen::Writing,
 			self::TrailingSlash, self::Sitemap, self::SitemapDisallow     => SettingsScreen::Search,
@@ -168,6 +169,7 @@ enum Setting: string
 			self::FeedFormats     => new ListField('formats', new EnumField('', array_column(FeedFormat::cases(), 'value')))->labeled('Formats')->described('None turns every feed off.')->control(Control::Checks),
 			self::FeedContent     => new BoolField('content')->labeled('Full content')->described('Off, a feed carries each entry\'s summary only.'),
 			self::MediaUploads    => new ObjectField('uploads')->labeled('Uploads')->described('What may be uploaded, how large, and the folder under user/media it goes in.')->control(Control::Readonly),
+			self::AddArtwork      => new BoolField('addArtwork')->labeled('Artwork from uploads')->described('A sound or video\'s artwork is added to the library as an image of its own when it\'s uploaded, by someone who may upload images. Tracks with the same artwork share one image. Off, a file\'s screen can still add it.'),
 			self::Mentions        => new BoolField('mentions')->labeled('Mentions')->described('@name links to the profile with that slug, once it\'s published. A name that isn\'t anyone\'s stays text.'),
 			self::SmartPunctuation => new BoolField('smartPunctuation')->labeled('Smart punctuation')->described('Straight quotes become curly ones, -- and --- dashes, and ... an ellipsis. Code is left as written.'),
 			self::HeadingAnchors  => new BoolField('headingAnchors')->labeled('Heading anchors')->described('Each heading gets a link to itself, so a section can be shared.'),
@@ -241,6 +243,7 @@ enum Setting: string
 			self::LlmsFull      => 'The site has llms-full.txt',
 			self::Home          => 'The page at user/content/index.md',
 			self::Mentions      => '@name links to a profile',
+			self::AddArtwork    => 'Uploads add their artwork to the library',
 			self::SmartPunctuation => 'Quotes, dashes, and ellipses are typographic',
 			self::HeadingAnchors => 'Headings link to themselves',
 			self::Figures       => 'A lone image is a figure',

@@ -23,6 +23,7 @@ use Blush\Auth\Permissions;
 use Blush\Core\Paths;
 use Blush\Http\Response;
 use Blush\Http\Status;
+use Blush\Media\MediaArtwork;
 use Blush\Media\MediaConfig;
 use Blush\Media\Index\MediaLibrary;
 use Blush\Media\MediaException;
@@ -56,7 +57,9 @@ use Blush\Support\Uuid;
  * is a file larger than its kind's largest, and one of a kind the account
  * may not upload (`media.{kind}.upload`, D-407). The file's metadata
  * records who uploaded it (`owner`), which decides who may edit or
- * delete it, and gives the file its id (D-487). Answers 201 with the file as
+ * delete it, and gives the file its id (D-487). With `addArtwork` on
+ * (D-581), a sound's or video's artwork is added to the library too.
+ * Answers 201 with the file as
  * `GET media` describes one. PHP has the last word on size
  * (`upload_max_filesize`, `post_max_size`); `limit()` reads it, and
  * `largest()` says the most any upload may be, for the picker to show.
@@ -70,7 +73,8 @@ final readonly class MediaUploadController
 		private Permissions $permissions,
 		private ClockInterface $clock,
 		private MediaMetadataStore $metadata,
-		private MediaLibrary $library
+		private MediaLibrary $library,
+		private MediaArtwork $artwork
 	) {}
 
 	public function __invoke(ServerRequestInterface $request): ResponseInterface
@@ -152,7 +156,7 @@ final readonly class MediaUploadController
 			return self::error(sprintf('%s isn\'t what its name says it is, or isn\'t a type the library takes.', $name), Status::UnprocessableContent);
 		}
 
-		$target = $this->free($folder, $name);
+		$target = $this->metadata->freePath($folder, $name);
 
 		if (! @rename($hidden, $target)) {
 			@unlink($hidden);
@@ -185,7 +189,27 @@ final readonly class MediaUploadController
 		} catch (MediaException) {
 		}
 
-		return Response::json(MediaListController::describe($file, $reference, $relative, $this->metadata->find($file)), Status::Created, ['Cache-Control' => 'no-store']);
+		// The picture a sound or video carries goes into the library as
+		// its artwork, when the site asks and the account may upload
+		// images (D-581). The upload worked either way.
+		if ($this->config->addArtwork && MediaArtwork::has($kind) && $uploads->allows(MediaKind::Image) && $this->permissions->mayUpload($account, MediaKind::Image)) {
+			try {
+				$record = $this->library->find($relative);
+
+				if ($record !== null && MediaArtwork::carries($record)) {
+					$this->artwork->adopt($record, $account->username);
+				}
+			} catch (MediaException) {
+			}
+		}
+
+		try {
+			$record = $this->library->find($relative);
+		} catch (MediaException) {
+			$record = null;
+		}
+
+		return Response::json(MediaListController::describe($file, $reference, $relative, $this->metadata->find($file), artwork: $record === null ? '' : $this->artwork->url($record)), Status::Created, ['Cache-Control' => 'no-store']);
 	}
 
 	/**
@@ -314,26 +338,6 @@ final readonly class MediaUploadController
 		}
 
 		return $extension === '' ? $base : "{$base}.{$extension}";
-	}
-
-	/**
-	 * The first free path for a name in a folder: the name, else with
-	 * `-2`, `-3`, … before its extension. A name with metadata left
-	 * behind (its file was removed by hand) isn't free, so a new file
-	 * doesn't take on another's alt text.
-	 */
-	private function free(string $folder, string $name): string
-	{
-		$extension = pathinfo($name, PATHINFO_EXTENSION);
-		$base      = pathinfo($name, PATHINFO_FILENAME);
-		$path      = "{$folder}/{$name}";
-		$taken     = fn (string $path): bool => file_exists($path) || $this->metadata->has(substr($path, strlen($this->paths->media) + 1));
-
-		for ($n = 2; $taken($path); $n++) {
-			$path = "{$folder}/{$base}-{$n}" . ($extension === '' ? '' : ".{$extension}");
-		}
-
-		return $path;
 	}
 
 	private static function uploadError(int $error): ResponseInterface

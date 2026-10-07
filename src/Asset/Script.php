@@ -20,7 +20,8 @@ namespace Blush\Asset;
  * Its attributes control how it loads, as `Head::script()` takes them:
  * scripts are deferred unless they say otherwise (`['defer' => false]`,
  * `['async' => true]`, or a `type`, such as `module`). In the footer,
- * it prints just before `</body>` instead of in the head.
+ * it's added to the page's `Foot` instead of its head, and prints where
+ * the layout prints `$template->foot()` (D-577, D-578).
  */
 final readonly class Script
 {

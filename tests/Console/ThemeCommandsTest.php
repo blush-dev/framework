@@ -271,6 +271,7 @@ final class ThemeCommandsTest extends TestCase
 			'layout: The base layout\'s <html> has no dir attribute',
 			'error   layout: The base layout needs one <main> landmark; it has 0.',
 			'error   layout: The base layout needs a skip link',
+			'error   layout: The base layout doesn\'t print the footer; add <?= $template->foot() ?> just before </body>',
 			'warning layout: The base layout has no <header> landmark.',
 			'warning layout: The base layout has no <footer> landmark.',
 			'warning layout: The base layout prints <meta charset> more than once'

@@ -1336,8 +1336,9 @@ plugin's only while it's on.
 
 A script's `attributes` control how it loads: it's deferred unless they
 say otherwise (`['defer' => false]`, `['async' => true]`, or a `type`
-such as `module`). `footer: true` prints it just before `</body>`
-instead of in the `<head>`. A `Style` takes `attributes` too, such as
+such as `module`). `footer: true` prints it at the end of the page,
+where the theme's layout prints `$template->foot()`, instead of in the
+`<head>`. A `Style` takes `attributes` too, such as
 `['media' => 'print']`.
 
 Registering a handle that's already taken replaces it. Core's are
@@ -1347,6 +1348,43 @@ replace core's `blush/player` with its own, or with an empty
 `new Asset('blush/player')` to load nothing. A theme without a
 provider lists its assets in `theme.json` instead
 ([Scripts and styles](themes.md#scripts-and-styles)).
+
+### Inline code and data
+
+A script often needs a few lines to start it, or settings from the
+page. Tie them to its handle, and they print beside its files, wherever
+those print:
+
+```php
+$template->foot()->data('acme-gallery', ['columns' => 3, 'label' => $label], for: 'acme/gallery');
+$template->foot()->inlineScript('acme-gallery-start', 'AcmeGallery.start();', after: 'acme/gallery');
+```
+
+```html
+<script type="application/json" id="acme-gallery">{"columns":3,"label":"Photos"}</script>
+<script src="/extensions/acme/gallery/js/gallery.js?v=…" defer></script>
+<script type="module" id="acme-gallery-start">AcmeGallery.start();</script>
+```
+
+- **`data($id, $value, for:)`** prints the value as JSON in a
+  `<script type="application/json">`, which never runs, just before the
+  asset's first script. Read it in your script with
+  `JSON.parse(document.getElementById('acme-gallery').textContent)`.
+  It's safe for any text, `</script>` included.
+- **`inlineScript($id, $js, after:)`** prints the code just after the
+  asset's last script. When that script is deferred (the default) or a
+  module, the code prints as a module, so it runs after the script
+  rather than before it; inline code otherwise runs the moment the
+  browser reaches it. Module code runs in strict mode, and its
+  top-level variables stay its own.
+
+Either one asks for the asset, so you don't need `enqueue()` as well.
+If the asset has no script on the page (its plugin is off, or the
+handle doesn't exist), they don't print, and in development the log
+says so. Without `for:` or `after:`, data prints before the head's or
+foot's scripts and inline code after them. Both are on the head and the
+foot, and on `$event->head` and `$event->foot` in a `PageRendering`
+listener.
 
 There are three ways to load an asset:
 
@@ -1372,9 +1410,10 @@ $this->container->get(ListenerRegistry::class)->listen(PageRendering::class, fun
 The event has the `page` (`null` on an error page), its `entry`, the
 error page's `status` (`isError()`), the `request`, the theme `chain`,
 `path()`, and `locale()`. Besides `enqueue()` and `dequeue()`, it can
-add `<body>` classes with `addClass()`, and anything else to the
-`head`, which Blush has already filled in; a template's value for the
-same tag still wins.
+add `<body>` classes with `addClass()`, anything else to the `head`,
+which Blush has already filled in, and scripts to the end of the page
+through `foot` (`$event->foot->script($url)`); a template's value for
+the same tag still wins.
 
 ## Events
 

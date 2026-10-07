@@ -16332,7 +16332,7 @@ decision, add a new entry that supersedes it and mark the old one
 
 ### D-555: A volume slider in the video player
 - **Date:** 2026-10-06
-- **Status:** Built.
+- **Status:** Superseded by D-576 (the slider sits in a popover over the mute button).
 - **Decision:** the video player's bar has a volume slider after mute
   (`volume()` in `resources/player/controls.ts`, 64px, `label-volume`,
   its value text a percentage). Muted reads as nothing; moving it
@@ -16688,7 +16688,7 @@ decision, add a new entry that supersedes it and mark the old one
 
 ### D-570: The head takes assets by handle, and is filled after the page
 - **Date:** 2026-10-07
-- **Status:** Built.
+- **Status:** Built; where footer scripts print is superseded by D-577 (`$template->foot()`).
 - **Decision:** `Head::enqueue()`, `dequeue()`, `isEnqueued()`, and
   `enqueued()` ask for registered assets; `$template->enqueue()` does
   the same from a template. The head adds their files when it prints
@@ -16783,3 +16783,252 @@ decision, add a new entry that supersedes it and mark the old one
 - **Why:** the author: themes can register through the same system,
   preferably through their provider, and the `styles`/`scripts`
   properties must stay open for something later.
+
+### D-575: An audio card, the `::audio` directive's `card` variant
+- **Date:** 2026-10-07
+- **Status:** Built.
+- **Decision:** from the audio player sketch
+  (`.claude/docs/design/audio-player-sketch.html`), `::audio` declares
+  a `card` variant (D-266): the figure is an `.audio-card` (in
+  `resources/player/player.css`, shared with the admin), with its
+  `figcaption` (the title over who made it), the artwork, and the
+  player, laid out as a grid: the artwork beside the words and the
+  player, or the words over the player without any. Each part is a
+  prop first, then the file's, read from the media library (D-288):
+  the title is `title`, else the label, else the metadata file's
+  title, else the one the file carries; under it, `artist` and
+  `album`, else the file's `creator` and `album`, as "Artist ·
+  Album"; the artwork is `art` (an image), else the picture the file
+  carries, served publicly by `MediaArtworkController` at
+  `MediaConfig::artworkUrl()` (`{url}-artwork/{path}`, `media.artwork`,
+  read from the file each time, as the admin's is; versioned with
+  `?v=` from the file's time, a full URL when Markdown's links are).
+  The artwork is decorative (`alt=""`), since the title is beside it.
+  The admin's media detail draws a sound's preview as the same card
+  (`AudioPlayer.vue` with a `title`, a music glyph standing in for
+  missing artwork). New custom properties: `--player-surface`,
+  `--player-line`, `--player-pop-shadow`, `--player-fg`,
+  `--player-font`, `--player-title-font`, `--player-title-size`,
+  `--player-by-size`, `--player-card-radius`, `--player-card-pad`,
+  `--player-art-size`, and `--player-art-radius`. The site's defaults
+  are now on `:where(:root)`, so a theme can set them on any ancestor,
+  including `.audio-card` (on the players themselves, they'd hide a
+  card's values from the player inside it). Where it departs from the
+  sketch: the artwork shrinks with a narrow card (at most 30% of it),
+  and on a phone (36rem and under) the player takes its own row under
+  the artwork and the words, rather than everything stacking; no loading spinner or message
+  line (the player has neither yet); the site's play button stays the
+  admin's size.
+- **Why:** the author: "The player on the front end should be a card
+  (maybe this is a variant on the audio directive?)", and chose the
+  file's details with props over them, and the admin preview as a
+  card too.
+
+### D-576: The players' volume, a popover shared by every player
+- **Date:** 2026-10-07
+- **Status:** Built.
+- **Decision:** the audio player gets a volume control, and the video
+  player's (D-555) becomes the same one, as the audio player sketch
+  draws it: a mute button whose glyph follows the level (loud, quiet
+  under half, muted), with an upright slider (`writing-mode`, not a
+  rotation; 5% steps; a percentage as its value text) in a popover
+  above it, opened on hover and keyboard focus. The popover starts at
+  the button's edge and its gap is its own padding, so a pointer
+  crossing it keeps it open. Dragging to nothing mutes; unmuting goes
+  back to the last level above nothing. The volume is one setting for
+  every player on the page, remembered in `localStorage`
+  (`blush-player-volume`); a media element with `muted` in its markup
+  stays muted until it's unmuted. Where a page can't set the volume
+  (iOS), the slider is left out and the mute button stays, since
+  muting works there. `volume()` in `resources/player/controls.ts`;
+  the audio player takes `label-mute`, `label-unmute`, and
+  `label-volume`, which the directive now prints. Supersedes D-555's
+  slider beside the mute button.
+- **Why:** the author: "the audio player includes a volume slider",
+  and chose the sketch's popover for both players, and the shared,
+  remembered volume.
+
+### D-577: Layouts print `$template->foot()`; nothing looks for `</body>`
+- **Date:** 2026-10-07
+- **Status:** Built.
+- **Decision:** footer scripts (`footer: true` on `Head::script()`,
+  `inlineScript()`, or a registered `Script`) print where the layout
+  prints `$template->foot()`, which every layout that writes its own
+  `<body>` prints just before `</body>`. While the head is held,
+  `Head::foot()` prints a placeholder (`<!--blush-foot-{token}-->`),
+  as the head does, and `fill()` puts the footer's scripts at the first
+  one and drops any others (printed twice, they'd run twice). A page
+  without it gets no footer scripts: nothing searches the HTML for
+  `</body>`. `$template->foot()` returns `SafeHtml`, so other view
+  engines print it as they print `head()`. `theme:check` adds a marker
+  footer script before rendering the welcome page and reports an error
+  when the layout doesn't print it, and a warning when it prints it
+  outside `<body>`. The default theme's base layout prints it;
+  so do the trial's themes (Second Proof, jtcom, jtcom-blade, and the
+  playground pages that print their own document). Supersedes D-570's
+  insertion before the last `</body>` and "themes need no footer call".
+- **Why:** the author: "I don't think strripos on </body> is as good
+  of a solution as you think it is. So many things seem like they can
+  go wrong in an environment where we're looking at 1000s of themes
+  from developers. Requiring $template->foot() would be a better call.
+  And it can be added to the theme:check command."
+
+### D-578: `PageMarkup`, with `Head` and `Foot` as its placements
+- **Date:** 2026-10-07
+- **Status:** Built.
+- **Decision:** what Blush adds to a page around its templates is one
+  object, `Blush\View\PageMarkup`: a single keyed collection of tags,
+  each with a `Placement` (`Head` or `Foot`), plus the asset handles
+  asked for (`enqueue()`, `dequeue()`), `has()` and `remove()` across
+  both, and holding and filling the page (`hold()`, `fill()`). `Head`
+  is the `<head>` placement only (title, meta, properties, links,
+  preloads, canonical, styles, scripts, inline styles and scripts),
+  with its `footer:` parameters gone; `Foot` is the end of the body
+  (`script()`, `inlineScript()`, `has()`, `remove()`). Both are built
+  by their markup (`$markup->head`, `$markup->foot`) and print it, or
+  its placeholder while held. A tag asked for in both prints once, in
+  the head (earlier is always safe). `$template->foot()` returns the
+  `Foot`, so `$template->foot()->script($url)` adds and
+  `<?= $template->foot() ?>` prints; `ViewContext` holds the markup,
+  with `head` and `foot` as hooked properties; `PageRendering` has
+  `$event->foot`; `Assets::apply()` takes the markup and puts a
+  registered `Script` with `footer: true` in the foot. In development,
+  `ViewFactory` gives the markup the log, and `fill()` warns when a
+  page had footer scripts but its layout never printed the foot,
+  naming the page and the scripts. Not `Document`, which reads as the
+  opposite of `DocumentRenderer` (feeds and sitemaps, documents that
+  aren't HTML pages). Head and foot events dispatched from themes were
+  considered and not taken: printed before the content renders, they'd
+  miss what directives and components ask for, a theme can forget
+  them as easily as `foot()`, and order would depend on theme markup;
+  `PageRendering` (with both placements) and registration cover it. A
+  late event from `fill()`, for reacting to what a page asked for, is
+  left until something needs it (`open-questions.md`).
+- **Why:** the author: "throwing all of this handling into View\Head
+  doesn't make sense. We should be registering against a general/common
+  object and head and foot utilize that object", and "What does
+  'head' even mean to a dev who is tracking where things are being
+  placed in the footer?"; "Yes, log a warning in development"; "Use the
+  name you think best for this."
+
+### D-579: Inline scripts print after scripts
+- **Date:** 2026-10-07
+- **Status:** Built.
+- **Decision:** in the head, inline scripts are a group of their own,
+  after the scripts (D-472's groups: meta, properties, links, hints,
+  styles, scripts, inline scripts); the foot prints its scripts, then
+  its inline scripts, each in the order added. It changes how the
+  markup reads, not when code runs: an inline classic script runs where
+  it stands, before any `defer` or module script wherever it prints
+  (only a blocking script, `defer: false`, now runs first). Inline
+  scripts still have no `requires` and aren't tied to a handle; a shape
+  for that (an inline module printed after a handle's files, and JSON
+  data for scripts) is in `open-questions.md`.
+- **Why:** the author: "Can we ensure inlinescripts print after
+  <script> tags".
+
+### D-580: Data for scripts, inline code tied to an asset, inline code on one line
+- **Date:** 2026-10-07
+- **Status:** Built.
+- **Decision:** `Head::data()` and `Foot::data()` (`$id`, `$value`,
+  `for:`) print a value as JSON (`JSON_HEX_TAG`, `JSON_HEX_AMP`, so
+  `</script>` can't end it) in `<script type="application/json"
+  id="{id}">`, keyed `data:{id}`; untied, data prints before a
+  placement's scripts. `inlineScript()` takes `after:`. Tied to a
+  handle (`for:`, `after:`), either asks for the asset and prints
+  beside its scripts wherever they print: data just before its first
+  script, inline code just after its last, as `type="module"` when
+  that script is deferred or a module (an inline classic script can't
+  be deferred and would run before it), a plain `<script>` after a
+  blocking one. `Assets::apply()` records each asset's first and last
+  script (`PageMarkup::bind()`); `PageMarkup::arrange()` places what's
+  tied, after each placement sorts its groups (head: …, styles, data,
+  scripts, inline scripts; foot: data, scripts, inline scripts). Tied
+  to an asset with no script on the page, it doesn't print, and the
+  development log names it. Inline scripts print between their tags as
+  written, trimmed, with no added line breaks or indentation, so a line
+  of code is `<script id="…">code</script>`; code over several lines
+  keeps its own breaks (joining them could end a statement early or
+  fold code into a `//` comment), later lines indented one tab. Inline
+  styles are unchanged. Resolves the open question from D-579, except
+  whether a registered `Asset` can carry inline code or data itself.
+- **Why:** the author: "Yes, we need data to print and so on. And I
+  think printing the inline <script> directly after the script file is
+  fine if dependent. We should strip line breaks and just have a
+  pretty <script>code...</script>"; the module type and keeping a
+  multi-line script's own breaks are so that the code runs after its
+  script and still means the same.
+
+### D-581: A sound's or video's artwork is a library image
+- **Date:** 2026-10-07
+- **Status:** Built.
+- **Decision:** a sound or video names its artwork by a library
+  image's id, `artwork` in its metadata file (not a field, like `owner`
+  and `sizes`; reserved from field sets), so the artwork has its own
+  id, title, alt text, and sizes and can be used anywhere. Without one,
+  the picture the file carries (D-551) is shown, as before; files are
+  never written to. Order where it's shown: the prop (`::audio`'s
+  `art`, `::video`'s `poster`), then the linked image, then the carried
+  picture. `::video` without a `poster` now takes its artwork as the
+  poster, and then, without `width` and `height`, the video's own size.
+  On a sound's or video's screen, an **Artwork** panel: **Add to
+  Library** (the carried picture saved beside the file as
+  `{name}-artwork.{ext}`, titled "Artwork for {title}", owned by who
+  added it, with an id; or the image already in the library with the
+  same bytes, so an album's tracks share one), **Choose Image** (the
+  media picker, images only, which can upload), and **Remove** (the
+  link only). Adding needs uploading images (`media.image.upload`, and
+  image uploads on) on top of changing the file's details; linking
+  and removing need only the latter. An image's Usage lists the files
+  that show it, deleting it warns and takes it off them, and
+  `content:lint` warns about artwork naming no library image, or on a
+  file that isn't a sound or video, and errors on one that isn't a
+  UUID. Adding on upload is a setting, **Artwork from uploads**
+  (`MediaConfig::$addArtwork`, `media.addArtwork`, Settings → Media),
+  off by default. The term is "artwork" throughout, for sounds and
+  videos alike (a video's is shown as its poster). Answers the open
+  question "Artwork into the library" and D-295's hold.
+- **Why:** the author: "Is it time to talk about audio/video artwork
+  handling and uploading it?", then accepted the proposal (library
+  image by id, a button and an off-by-default upload setting, dedupe
+  by bytes, a picker for files without art, nothing written into
+  files), asking only whether "Cover" was the right term; "Artwork"
+  matches the key already in use, the podcast term, and covers video.
+
+### D-582: A media file's audio preview has no artwork
+- **Date:** 2026-10-07
+- **Status:** Built.
+- **Decision:** the admin's media file screen draws a sound's preview
+  as the card without its picture (the title and who made it, over the
+  player), since the Artwork panel under it (D-581) shows the artwork.
+  `AudioPlayer.vue` draws no picture when it's given no `artwork`; `null`
+  still draws the music glyph. The site's `::audio{variant=card}` keeps
+  its artwork, and a video's preview keeps its poster, which is how the
+  site shows it before it plays. Amends D-575's admin card.
+- **Why:** the author: "since we have artwork, I think we can remove the
+  art from the media player card. it doesn't make sense to show it
+  twice", after noticing odd padding beside the picture there.
+
+### D-583: Artwork saves with the details; the library shows it
+- **Date:** 2026-10-07
+- **Status:** Built.
+- **Decision:** on a sound's or video's screen, **Add to Library**,
+  **Choose Image**, and **Remove** (D-581) no longer save at once with a
+  toast: each is a change in the save bar (D-508), counted with the
+  details' changes, saved by **Save Changes** (the details first, then
+  the artwork, so a refused artwork leaves the details saved), and put
+  back by **Revert**; leaving with one unsaved asks first. Adding the
+  carried picture writes nothing until saved. The panel says what's
+  waiting ("Added to the library when you save"), and the Details
+  panel's hint says it saves with the artwork. The media library's
+  cards (the Media screen and the media picker, `MediaCard`) show a
+  sound's or video's artwork as its thumbnail, with its kind on it,
+  falling back to the glyph when there's none or it fails to load: each
+  file in `GET media` (and an upload's answer, and `GET media/{path}`)
+  has `artworkUrl`, `MediaArtwork::url()` (the linked image's URL, else
+  the public `{url}-artwork/{path}?v=…`, else `null`).
+- **Why:** the author asked whether adding artwork should use the save
+  bar and whether the library should show artwork; "Definitely build
+  2. Decide on 1 using your best judgement." The save bar keeps one way
+  of saving per screen (D-508), and Revert shouldn't leave a stray
+  image in the library.

@@ -1,31 +1,45 @@
 <script setup lang="ts">
 /**
  * A file in the library as a card (D-509): every card the same height, a
- * 4:3 thumbnail (an image cropped to fill it, else its kind's glyph and
- * name), its name on one line, and its details on a second. With `to`
+ * 4:3 thumbnail (an image cropped to fill it; a sound's or video's
+ * artwork, with its kind on it, D-583; else its kind's glyph and name),
+ * its name on one line, and its details on a second. With `to`
  * it's a link to the file; else a button that's chosen (`selected`, a
  * ring and a tick: a tint alone is lost on an image), the tick a number
  * where `order` says which of several it is (D-526).
  */
 
+import { computed, ref, watch } from 'vue';
 import { RouterLink, type RouteLocationRaw } from 'vue-router';
 import AdminIcon from './AdminIcon.vue';
 import type { MediaItem } from '../api';
 import { mediaIcon, mediaName } from '../media';
 
-defineProps<{
+const props = defineProps<{
 	file: MediaItem;
 	details: string;
 	to?: RouteLocationRaw;
 	selected?: boolean;
 	order?: number;
 }>();
+
+// The picture it shows: an image itself, else its artwork, until it
+// fails to load.
+const failed  = ref(false);
+const picture = computed(() => failed.value ? null : (props.file.kind === 'image' ? props.file.url : props.file.artworkUrl));
+
+watch(() => props.file.reference, () => {
+	failed.value = false;
+});
 </script>
 
 <template>
 	<component :is="to ? RouterLink : 'button'" class="media-card" :to="to" :type="to ? undefined : 'button'" :aria-pressed="to ? undefined : selected === true">
 		<span class="media-card__thumb">
-			<img v-if="file.kind === 'image'" :src="file.url" alt="" loading="lazy">
+			<template v-if="picture">
+				<img :src="picture" alt="" loading="lazy" @error="failed = true">
+				<span v-if="file.kind !== 'image'" class="media-card__kind mono">{{ file.kind }}</span>
+			</template>
 			<template v-else><AdminIcon :name="mediaIcon(file)" /><span class="media-card__kind mono">{{ file.kind }}</span></template>
 			<span v-if="!to" class="media-card__tick" aria-hidden="true"><b v-if="order" class="media-card__order">{{ order }}</b><AdminIcon v-else name="check" /></span>
 		</span>
@@ -85,7 +99,8 @@ defineProps<{
 	stroke-width: 1.5;
 }
 
-/* A kind only where the thumbnail is a placeholder. */
+/* A kind where the thumbnail isn't the file itself: a placeholder, or a
+   sound's or video's artwork. */
 .media-card__kind {
 	position: absolute;
 	top: 9px;

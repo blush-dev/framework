@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Document head.
+ * Page head.
  *
  * @author    Justin Tadlock <justintadlock@gmail.com>
  * @copyright Copyright (c) 2026, Justin Tadlock
@@ -14,24 +14,25 @@ declare(strict_types=1);
 namespace Blush\View;
 
 use Override;
-use Blush\Asset\Assets;
 use Blush\Theme\ThemeException;
 
 /**
- * Collects what goes in a page's `<head>`: the title, meta tags
+ * What goes in a page's `<head>` (D-578): the title, meta tags
  * (including OpenGraph properties), links (canonical, alternates,
- * pagination), stylesheets, and scripts. Templates and the renderer add
- * to it while the page renders, and the base layout prints it once,
- * as everything between `<head>` and `</head>`, with
- * `<?= $template->head() ?>`. Since layouts render after the templates they
- * wrap, anything a template adds is in place by then.
+ * pagination), resource hints, stylesheets, and scripts. Templates and
+ * the renderer add to it while the page renders, and the base layout
+ * prints it once, as everything between `<head>` and `</head>`, with
+ * `<?= $template->head() ?>`. Its tags are kept in the page's
+ * `PageMarkup`, which it shares with the `Foot`.
  *
- * Each item is keyed, so adding it twice keeps one copy (the later value)
+ * Each tag is keyed, so adding it twice keeps one copy (the later value)
  * in the place it was first added. The head prints `<meta charset>`
  * first (Blush is UTF-8 throughout, and the encoding has to come before
  * any text), then the title, then the tags grouped by kind (D-472):
  * `<meta name>` tags, `<meta property>` tags, links, resource hints
- * (`preload`, `preconnect`, …), styles, then scripts. Each group keeps the
+ * (`preload`, `preconnect`, …), styles, data for scripts, scripts, then
+ * inline scripts (D-579, D-580); data and inline code tied to an asset
+ * print beside its scripts instead. Each group keeps the
  * order its tags were added in, and stylesheets and inline styles share a
  * group so the cascade stays as added. Every line is indented by one tab,
  * and an inline style's CSS by two.
@@ -39,16 +40,6 @@ use Blush\Theme\ThemeException;
  * Root-relative `href` and `src` values (`/feed`, a theme asset) print as
  * full URLs on the site's origin, so the head never has relative URLs.
  * Keys keep the value as given, so `remove('style:' . $url)` still works.
- *
- * Registered assets are asked for by handle (`enqueue('blush/player')`,
- * D-570), and their files are added when the head prints. A script can
- * print in the footer instead, just before `</body>` (`foot()`).
- *
- * While a page renders, its head is held (`hold()`): printing it leaves
- * a placeholder, and `fill()` puts the head there once the whole page
- * has rendered, with the footer before `</body>`. So whatever renders
- * after the layout prints the head (the site footer, a component in it)
- * can still add to it.
  */
 final class Head implements SafeHtml
 {
@@ -58,41 +49,20 @@ final class Head implements SafeHtml
 	private string $title = '';
 
 	/**
-	 * Tags by key, in the order they were added: the element, its
-	 * attributes, its content (inline styles and scripts only), and
-	 * whether it prints in the footer.
-	 *
-	 * @var array<string, array{string, array<string, string|bool>, string, bool}>
-	 */
-	private array $tags = [];
-
-	/**
-	 * The asset handles asked for, as a set, in the order asked.
-	 *
-	 * @var array<string, true>
-	 */
-	private array $handles = [];
-
-	/**
-	 * While held, the token in the head's and footer's placeholders.
-	 */
-	private ?string $held = null;
-
-	/**
 	 * Link `rel` values printed as resource hints, after the other links
 	 * and before the styles they often serve.
 	 */
 	private const array HINTS = ['dns-prefetch', 'modulepreload', 'preconnect', 'prefetch', 'preload'];
 
 	/**
-	 * @param string $origin The site's origin (`https://example.com`), for
-	 *                       resolving root-relative URLs. Empty leaves them.
+	 * Built by its `PageMarkup` (`$markup->head`).
+	 *
+	 * @internal
 	 */
 	public function __construct(
+		private readonly PageMarkup $markup,
 		private readonly string $siteName = '',
-		private readonly string $separator = ' | ',
-		private readonly string $origin = '',
-		private readonly ?Assets $assets = null
+		private readonly string $separator = ' | '
 	) {}
 
 	/**
@@ -213,19 +183,20 @@ final class Head implements SafeHtml
 	/**
 	 * Adds a script, once per URL. Scripts are deferred unless the
 	 * attributes say otherwise (`['defer' => false]`, or `type: module`).
-	 *
-	 * In the footer, it prints just before `</body>`.
+	 * For one at the end of the page, use the `Foot`.
 	 *
 	 * @param array<string, string|bool> $attributes
 	 */
-	public function script(string $src, array $attributes = [], bool $footer = false): self
+	public function script(string $src, array $attributes = []): self
 	{
-		return $this->add("script:{$src}", 'script', ['src' => $src, 'defer' => ! isset($attributes['type']), ...$attributes], footer: $footer);
+		return $this->add("script:{$src}", 'script', PageMarkup::scriptAttributes($src, $attributes));
 	}
 
 	/**
 	 * Adds an inline `<style>` block, once per id. The CSS must be
 	 * trusted (it isn't escaped); `</style` is refused.
+	 *
+	 * @throws ViewException
 	 */
 	public function inlineStyle(string $id, string $css): self
 	{
@@ -241,41 +212,55 @@ final class Head implements SafeHtml
 	 * must run before the page paints (a saved color scheme). It runs
 	 * where it stands, unlike the theme's deferred scripts. The
 	 * JavaScript must be trusted (it isn't escaped); `</script` is
-	 * refused. In the footer, it runs just before `</body>`, after the
-	 * page's markup.
+	 * refused.
+	 *
+	 * Code that needs a registered asset names it (`after:
+	 * 'acme/gallery'`, D-580): the asset is asked for, and the code
+	 * prints just after its last script, wherever that prints, as a
+	 * module when that script is deferred, so it runs after it.
+	 *
+	 * @throws ViewException
 	 */
-	public function inlineScript(string $id, string $js, bool $footer = false): self
+	public function inlineScript(string $id, string $js, ?string $after = null): self
 	{
-		if (str_contains(strtolower($js), '</script')) {
-			throw new ViewException(sprintf('Inline script "%s" can\'t contain "</script".', $id));
-		}
-
-		return $this->add("inline-script:{$id}", 'script', ['id' => $id], $js, $footer);
-	}
-
-	/**
-	 * Asks for registered assets by handle (D-570), such as
-	 * `blush/player`. Their files are added when the head prints, after
-	 * the assets they require, each once.
-	 */
-	public function enqueue(string ...$handles): self
-	{
-		foreach ($handles as $handle) {
-			$this->handles[$handle] = true;
-		}
+		$this->markup->addInlineScript(Placement::Head, $id, $js, $after);
 
 		return $this;
 	}
 
 	/**
-	 * Takes back assets asked for, so they don't print (unless an asset
-	 * still asked for requires them).
+	 * Adds data for scripts to read, once per id (D-580): the value as
+	 * JSON in `<script type="application/json" id="{id}">`, which never
+	 * runs. Data a registered asset reads names it (`for:
+	 * 'acme/gallery'`): the asset is asked for, and the data prints just
+	 * before its first script.
+	 *
+	 * @throws ViewException When the value can't be JSON.
+	 */
+	public function data(string $id, mixed $value, ?string $for = null): self
+	{
+		$this->markup->addData(Placement::Head, $id, $value, $for);
+
+		return $this;
+	}
+
+	/**
+	 * Asks for registered assets by handle (D-570); see
+	 * `PageMarkup::enqueue()`.
+	 */
+	public function enqueue(string ...$handles): self
+	{
+		$this->markup->enqueue(...$handles);
+
+		return $this;
+	}
+
+	/**
+	 * Takes back assets asked for; see `PageMarkup::dequeue()`.
 	 */
 	public function dequeue(string ...$handles): self
 	{
-		foreach ($handles as $handle) {
-			unset($this->handles[$handle]);
-		}
+		$this->markup->dequeue(...$handles);
 
 		return $this;
 	}
@@ -285,7 +270,7 @@ final class Head implements SafeHtml
 	 */
 	public function isEnqueued(string $handle): bool
 	{
-		return isset($this->handles[$handle]);
+		return $this->markup->isEnqueued($handle);
 	}
 
 	/**
@@ -295,186 +280,71 @@ final class Head implements SafeHtml
 	 */
 	public function enqueued(): array
 	{
-		return array_keys($this->handles);
+		return $this->markup->enqueued();
 	}
 
 	/**
-	 * Returns whether an item has been added, by its key (`meta:{name}`,
-	 * `property:{name}`, `link:canonical`, `style:{href}`,
-	 * `inline-style:{id}`, `inline-script:{id}`, …).
+	 * Returns whether a tag has been added, in the head or the foot, by
+	 * its key; see `PageMarkup::has()`.
 	 */
 	public function has(string $key): bool
 	{
-		return isset($this->tags[$key]);
+		return $this->markup->has($key);
 	}
 
 	/**
-	 * Removes an item by its key (see `has()`), such as a theme stylesheet
-	 * a standalone page doesn't want:
+	 * Removes a tag by its key, such as a theme stylesheet a standalone
+	 * page doesn't want:
 	 * `$template->head()->remove('style:' . $template->asset('style.css'))` (D-154).
 	 */
 	public function remove(string $key): self
 	{
-		unset($this->tags[$key]);
+		$this->markup->remove($key);
 
 		return $this;
 	}
 
 	/**
-	 * Renders the charset, the title, and every tag but the footer's,
-	 * grouped by kind.
+	 * Renders the charset, the title, and the head's tags, grouped by
+	 * kind.
 	 *
 	 * @throws ThemeException When an asset's theme has an invalid build manifest.
 	 */
 	public function render(): string
 	{
-		$this->applyAssets();
-
 		$lines = ['<meta charset="utf-8">', sprintf('<title>%s</title>', Escaper::html($this->documentTitle()))];
-		$tags  = array_values(array_filter($this->tags, static fn (array $tag): bool => ! $tag[3]));
+		$tags  = $this->markup->tags(Placement::Head);
 
-		usort($tags, fn(array $a, array $b): int => $this->group($a[0], $a[1]) <=> $this->group($b[0], $b[1]));
+		usort($tags, fn(array $a, array $b): int => $this->group($a[1], $a[2]) <=> $this->group($b[1], $b[2]));
 
-		foreach ($tags as [$element, $attributes, $content]) {
-			$lines[] = $this->tag($element, $attributes, $content);
+		foreach ($this->markup->arrange($tags) as [, $element, $attributes, $content]) {
+			$lines[] = $this->markup->tag($element, $attributes, $content);
 		}
 
 		return "\t" . implode("\n\t", $lines);
 	}
 
 	/**
-	 * Renders the footer's scripts, in the order they were added, or
-	 * `''` when there are none.
-	 *
-	 * @throws ThemeException When an asset's theme has an invalid build manifest.
-	 */
-	public function foot(): string
-	{
-		$this->applyAssets();
-
-		$lines = [];
-
-		foreach ($this->tags as [$element, $attributes, $content, $footer]) {
-			if ($footer) {
-				$lines[] = $this->tag($element, $attributes, $content);
-			}
-		}
-
-		return $lines === [] ? '' : "\t" . implode("\n\t", $lines);
-	}
-
-	/**
-	 * Holds the head while a page renders: printing it leaves a
-	 * placeholder until `fill()`. Returns whether this call held it, so
-	 * a render inside another leaves filling to the outer one.
-	 */
-	public function hold(): bool
-	{
-		if ($this->held !== null) {
-			return false;
-		}
-
-		$this->held = bin2hex(random_bytes(8));
-
-		return true;
-	}
-
-	/**
-	 * Fills a held page's HTML: the head where it was printed, and the
-	 * footer's scripts just before the last `</body>` (or at the end,
-	 * when there's none). Then the head is no longer held.
-	 *
-	 * @throws ThemeException When an asset's theme has an invalid build manifest.
-	 */
-	public function fill(string $html): string
-	{
-		if ($this->held === null) {
-			return $html;
-		}
-
-		$placeholder = $this->placeholder();
-		$this->held  = null;
-		$html        = str_replace($placeholder, $this->render(), $html);
-		$foot        = $this->foot();
-
-		if ($foot === '') {
-			return $html;
-		}
-
-		$end = strripos($html, '</body>');
-
-		return $end === false ? "{$html}\n{$foot}\n" : substr($html, 0, $end) . "{$foot}\n" . substr($html, $end);
-	}
-
-	/**
-	 * Prints the head, or its placeholder while it's held.
+	 * Prints the head, or its placeholder while the page is held.
 	 *
 	 * @inheritDoc
 	 */
 	#[Override]
 	public function __toString(): string
 	{
-		return $this->held === null ? $this->render() : $this->placeholder();
+		return $this->markup->print(Placement::Head);
 	}
 
 	/**
-	 * Returns the placeholder printed for the head while it's held.
-	 */
-	private function placeholder(): string
-	{
-		return "<!--blush-head-{$this->held}-->";
-	}
-
-	/**
-	 * Adds the files of the assets asked for.
-	 *
-	 * @throws ThemeException
-	 */
-	private function applyAssets(): void
-	{
-		$this->assets?->apply($this, $this->enqueued());
-	}
-
-	/**
-	 * Renders one tag.
+	 * Adds or replaces a tag in the head.
 	 *
 	 * @param array<string, string|bool> $attributes
 	 */
-	private function tag(string $element, array $attributes, string $content): string
+	private function add(string $key, string $element, array $attributes, string $content = ''): self
 	{
-		return match ($element) {
-			'script', 'style' => sprintf('<%1$s%2$s>%3$s</%1$s>', $element, $this->attributes($attributes), $this->indent($content)),
-			default           => sprintf('<%s%s>', $element, $this->attributes($attributes))
-		};
-	}
-
-	/**
-	 * Adds or replaces a tag.
-	 *
-	 * @param array<string, string|bool> $attributes
-	 */
-	private function add(string $key, string $element, array $attributes, string $content = '', bool $footer = false): self
-	{
-		$this->tags[$key] = [$element, $attributes, $content, $footer];
+		$this->markup->add(Placement::Head, $key, $element, $attributes, $content);
 
 		return $this;
-	}
-
-	/**
-	 * Returns an inline block's content on its own lines, indented by two
-	 * tabs, with the closing tag back at one. Blank lines stay blank.
-	 */
-	private function indent(string $content): string
-	{
-		$content = trim($content, "\n");
-
-		if ($content === '') {
-			return '';
-		}
-
-		$lines = array_map(static fn(string $line): string => $line === '' ? '' : "\t\t{$line}", explode("\n", $content));
-
-		return "\n" . implode("\n", $lines) . "\n\t";
 	}
 
 	/**
@@ -492,40 +362,9 @@ final class Head implements SafeHtml
 			$element === 'style', $rel === 'stylesheet'              => 4,
 			$element === 'link' && in_array($rel, self::HINTS, true) => 3,
 			$element === 'link'                                      => 2,
-			default                                                  => 5
+			($attributes['type'] ?? null) === 'application/json'    => 5,
+			! isset($attributes['src'])                              => 7,
+			default                                                  => 6
 		};
-	}
-
-	/**
-	 * Renders HTML attributes. `true` prints a bare attribute and `false`
-	 * leaves it out.
-	 *
-	 * @param array<string, string|bool> $attributes
-	 */
-	private function attributes(array $attributes): string
-	{
-		$html = '';
-
-		foreach ($attributes as $name => $value) {
-			if ($value === false) {
-				continue;
-			}
-
-			$escaped = in_array($name, ['href', 'src'], true) ? Escaper::url($this->absolute($value === true ? '' : $value)) : Escaper::attr($value);
-			$html   .= $value === true ? " {$name}" : sprintf(' %s="%s"', $name, $escaped);
-		}
-
-		return $html;
-	}
-
-	/**
-	 * Returns a root-relative URL on the site's origin. Anything else
-	 * (full URLs, protocol-relative ones, and fragments) is left alone.
-	 */
-	private function absolute(string $url): string
-	{
-		return $this->origin !== '' && str_starts_with($url, '/') && ! str_starts_with($url, '//')
-			? rtrim($this->origin, '/') . $url
-			: $url;
 	}
 }

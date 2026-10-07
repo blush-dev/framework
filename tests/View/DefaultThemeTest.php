@@ -24,6 +24,7 @@ use Blush\Http\Request;
 use Blush\Routing\CompiledRoute;
 use Blush\Routing\RouteTable;
 use Blush\Tests\Content\BuildsContentSite;
+use Blush\Tests\Fixtures\Media\TaggedAudioVideo;
 
 /**
  * The default theme renders every route type: each named route of a
@@ -81,6 +82,7 @@ final class DefaultThemeTest extends TestCase
 		'profile.single'                    => '/profiles/sam',
 		'profile.single.paged'              => '/profiles/sam/page/2',
 		'media'                             => '/media/pixel.png',
+		'media.artwork'                     => '/media-artwork/song.mp3',
 		'theme.asset'                       => '/themes/blush/default/style.css',
 		'core.asset'                        => '/blush/js/player.js',
 		'plugin.asset'                      => '/extensions/acme/stats/js/stats.js',
@@ -143,6 +145,7 @@ final class DefaultThemeTest extends TestCase
 		$this->writeTemporaryFile('extensions/acme/stats/js/stats.js', 'console.log("stats");');
 		$this->writeTemporaryFile('config/plugins.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn new Blush\\Plugin\\PluginConfig(enabled: ['acme/stats']);\n");
 		$this->writeTemporaryFile('user/media/pixel.png', (string) base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=', true));
+		$this->writeTemporaryFile('user/media/song.mp3', TaggedAudioVideo::mp3());
 
 		$this->app = $this->site();
 	}

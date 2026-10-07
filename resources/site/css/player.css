@@ -1,12 +1,14 @@
 /*
  * The players' defaults on the site (D-573). They have no specificity
- * (`:where()`), so a theme restyles them by setting any `--player-*`
- * property (`resources/player/player.css` lists them) on `.player`,
- * `blush-audio-player`, or `blush-video-player`. The colors are the
- * page's own (`CanvasText` on `Canvas`), so they follow its color scheme.
+ * (`:where()`) and are set on the page's root, so a theme restyles them
+ * by setting any `--player-*` property (`resources/player/player.css`
+ * lists them) on `:root`, `.player`, or `.audio-card` (an audio card,
+ * D-575). The colors are the page's own (`CanvasText` on `Canvas`), so
+ * they follow its color scheme; a card's text and fonts are its
+ * surroundings'.
  */
 
-:where(blush-audio-player, blush-video-player) {
+:where(:root) {
 	--player-accent: CanvasText;
 	--player-accent-fg: Canvas;
 	--player-track: color-mix(in srgb, CanvasText 18%, Canvas);
@@ -17,6 +19,18 @@
 	--player-overlay: rgb(0 0 0 / 55%);
 	--player-overlay-fg: #fff;
 	--player-radius: 0;
+	--player-surface: Canvas;
+	--player-line: color-mix(in srgb, CanvasText 14%, Canvas);
+	--player-pop-shadow: 0 8px 22px rgb(0 0 0 / 16%);
+	--player-fg: currentcolor;
+	--player-title-size: 1.1875em;
+	--player-by-size: 0.8125em;
+	--player-card-radius: 0.75rem;
+	--player-card-pad: 1.5rem;
+	--player-art-size: 8.25rem;
+	--player-art-radius: 0.5rem;
+}
 
+:where(blush-audio-player, blush-video-player) {
 	display: block;
 }

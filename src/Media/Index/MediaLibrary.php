@@ -42,6 +42,13 @@ final class MediaLibrary
 	 */
 	private ?array $sizes = null;
 
+	/**
+	 * Originals' keys by id, for the snapshot they were read from.
+	 *
+	 * @var ?array{MediaSnapshot, array<string, string>}
+	 */
+	private ?array $ids = null;
+
 	public function __construct(
 		private readonly MediaIndex $index,
 		private readonly MediaIndexer $indexer,
@@ -90,6 +97,52 @@ final class MediaLibrary
 	public function find(string $key): ?MediaRecord
 	{
 		return $this->snapshot()->records[$key] ?? null;
+	}
+
+	/**
+	 * Returns an original's record by its id (D-487), in any case, or
+	 * `null` when no file has it.
+	 *
+	 * @throws MediaException
+	 */
+	public function findId(string $id): ?MediaRecord
+	{
+		$snapshot = $this->snapshot();
+
+		if ($this->ids === null || $this->ids[0] !== $snapshot) {
+			$ids = [];
+
+			foreach ($snapshot->records as $key => $record) {
+				$found = $record->original === null ? $record->id() : null;
+
+				if ($found !== null) {
+					$ids[$found] ??= (string) $key;
+				}
+			}
+
+			$this->ids = [$snapshot, $ids];
+		}
+
+		$key = $this->ids[1][strtolower(trim($id))] ?? null;
+
+		return $key === null ? null : $snapshot->records[$key] ?? null;
+	}
+
+	/**
+	 * Returns every original whose metadata names an id as its artwork
+	 * (D-581): the sounds and videos that show that image.
+	 *
+	 * @return list<MediaRecord>
+	 * @throws MediaException
+	 */
+	public function withArtwork(string $id): array
+	{
+		$id = strtolower(trim($id));
+
+		return $id === '' ? [] : array_values(array_filter(
+			$this->snapshot()->records,
+			static fn (MediaRecord $record): bool => $record->original === null && $record->metadata()->artwork === $id
+		));
 	}
 
 	/**

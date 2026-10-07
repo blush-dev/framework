@@ -3065,9 +3065,9 @@ button.lnk {
 }
 
 
-/* The audio and video players (D-553, D-554, `resources/player`), in
-   the admin's tokens. */
-.player {
+/* The audio and video players (D-553, D-554, `resources/player`), and
+   the audio card (D-575), in the admin's tokens. */
+:is(.player, .audio-card) {
 	--player-accent: var(--accent);
 	--player-accent-fg: var(--accent-fg);
 	--player-track: var(--surface-3);
@@ -3078,4 +3078,16 @@ button.lnk {
 	--player-overlay: var(--media-overlay);
 	--player-overlay-fg: var(--media-overlay-fg);
 	--player-radius: 0;
+	--player-surface: var(--surface);
+	--player-line: var(--border);
+	--player-pop-shadow: var(--shadow-3);
+	--player-fg: var(--fg);
+	--player-font: var(--font-ui);
+	--player-title-font: var(--font-display);
+	--player-title-size: var(--title-lead);
+	--player-by-size: var(--text-sm);
+	--player-card-radius: var(--r-3);
+	--player-card-pad: var(--s-4);
+	--player-art-size: 124px;
+	--player-art-radius: var(--r-2);
 }

@@ -32,6 +32,24 @@
 				},
 				"loop": {
 					"label": "Loop"
+				},
+				"title": {
+					"label": "Title"
+				},
+				"artist": {
+					"label": "Artist"
+				},
+				"album": {
+					"label": "Album"
+				},
+				"art": {
+					"label": "Artwork"
+				}
+			},
+			"variants": {
+				"card": {
+					"label": "Card",
+					"description": "The artwork beside the title and artist, over the player."
 				}
 			}
 		},

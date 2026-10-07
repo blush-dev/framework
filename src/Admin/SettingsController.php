@@ -394,7 +394,10 @@ final readonly class SettingsController
 					'serverLimit' => MediaUploadController::limit(),
 					'files'       => $files
 				]
-			]])
+			]]),
+			self::group('artwork', 'Artwork', 'The pictures sounds and videos carry', [
+				$this->edit(self::item('addArtwork', Setting::AddArtwork->field($this->types)->label, $this->media->addArtwork, ! $this->media->addArtwork, 'bool', Setting::AddArtwork->field($this->types)->description), $saved, Setting::AddArtwork, $this->media->addArtwork)
+			])
 		];
 	}
 

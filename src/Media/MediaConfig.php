@@ -35,6 +35,10 @@ use Blush\Config\InvalidConfig;
  * - `uploads` is what the admin may upload, how large, and where it goes
  *   (`MediaUploads`, D-406); the Media settings screen saves it in
  *   `user/data/settings.json`.
+ * - `addArtwork` adds the picture an uploaded sound or video carries to
+ *   the library as its artwork (`MediaArtwork`, D-581), when the account
+ *   may upload images. Off by default, since an album uploaded track by
+ *   track shares one image anyway; a file's screen can add it later.
  *
  * A file's metadata fields are the built-in ones (`MediaSchemas`) and
  * those of the field sets attached to its kind, `media:image` and so on
@@ -76,13 +80,15 @@ final readonly class MediaConfig implements Config
 	 * @param  list<string> $types     Allowed MIME types.
 	 * @param  bool         $autoIndex Whether development requests refresh the media index.
 	 * @param  MediaUploads $uploads   What may be uploaded, and where it goes.
+	 * @param  bool         $addArtwork Whether an upload's artwork is added to the library.
 	 * @throws InvalidConfig
 	 */
 	public function __construct(
 		string $url = '/media',
 		public array $types = self::DEFAULT_TYPES,
 		public bool $autoIndex = true,
-		public MediaUploads $uploads = new MediaUploads()
+		public MediaUploads $uploads = new MediaUploads(),
+		public bool $addArtwork = false
 	) {
 		$url = '/' . trim($url, '/');
 
@@ -91,6 +97,18 @@ final readonly class MediaConfig implements Config
 		}
 
 		$this->url = $url;
+	}
+
+	/**
+	 * Returns the URL path the pictures sounds and videos carry are
+	 * served at (`MediaArtworkController`, D-575): the media URL with
+	 * `-artwork`, so `/media-artwork/2024/song.mp3` is the cover of
+	 * `/media/2024/song.mp3`. It's outside the media URL, which the web
+	 * server serves once media is published.
+	 */
+	public function artworkUrl(): string
+	{
+		return "{$this->url}-artwork";
 	}
 
 	/**
@@ -108,7 +126,7 @@ final readonly class MediaConfig implements Config
 	public static function fromArray(array $data): static
 	{
 		$values = new ConfigValues($data, self::class);
-		$values->assertKnownKeys(['url', 'types', 'autoIndex', 'uploads']);
+		$values->assertKnownKeys(['url', 'types', 'autoIndex', 'uploads', 'addArtwork']);
 
 		$uploads = $data['uploads'] ?? [];
 
@@ -120,7 +138,8 @@ final readonly class MediaConfig implements Config
 				$uploads instanceof MediaUploads => $uploads,
 				is_array($uploads)               => MediaUploads::fromArray($uploads),
 				default                          => throw new InvalidConfig('MediaConfig "uploads" must be a MediaUploads.')
-			}
+			},
+			addArtwork: $values->bool('addArtwork', false)
 		);
 	}
 
@@ -130,6 +149,6 @@ final readonly class MediaConfig implements Config
 	#[Override]
 	public function toArray(): array
 	{
-		return ['url' => $this->url, 'types' => $this->types, 'autoIndex' => $this->autoIndex, 'uploads' => $this->uploads->toArray()];
+		return ['url' => $this->url, 'types' => $this->types, 'autoIndex' => $this->autoIndex, 'uploads' => $this->uploads->toArray(), 'addArtwork' => $this->addArtwork];
 	}
 }

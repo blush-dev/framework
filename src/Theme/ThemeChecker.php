@@ -42,7 +42,8 @@ use Blush\Translation\CatalogCheck;
  *   with a requirement that isn't met, so the default theme runs in its
  *   place (D-431); a provider that isn't a service provider; invalid setting definitions; invalid menu or
  *   region location declarations; a base layout without `lang` on
- *   `<html>`, one `<main>`, or a skip link to it; a `lang/` catalog that
+ *   `<html>`, one `<main>`, a skip link to it, or `$template->foot()`
+ *   (D-577); a `lang/` catalog that
  *   can't be read.
  * - **Warnings:** another theme's chain with a requirement that isn't
  *   met, so it can't be activated; a `version` Composer can't read
@@ -52,7 +53,7 @@ use Blush\Translation\CatalogCheck;
  *   registered directive, or in `components/` not named for a component;
  *   site menu and region files or items that are invalid or don't
  *   resolve (D-199, D-201); a layout without `<header>` or `<footer>`,
- *   or with other than one `<h1>`, or one that prints a tag `head()`
+ *   or with other than one `<h1>`, or `foot()` outside `<body>`, or one that prints a tag `head()`
  *   prints (`<meta charset>`, `viewport`, `generator`, `<title>`; D-472); a catalog whose `@@locale` or
  *   `@@domain` doesn't match its file or theme (D-452).
  * - **Notices:** variants without a translated label; site menus and
@@ -63,6 +64,12 @@ use Blush\Translation\CatalogCheck;
  */
 final readonly class ThemeChecker
 {
+	/**
+	 * The id of the footer script added before rendering the layout, to
+	 * see that the layout prints the footer (D-577).
+	 */
+	private const string FOOT_MARK = 'blush-theme-check-foot';
+
 	public function __construct(
 		private Themes $themes,
 		private ExtensionState $extensions,
@@ -368,6 +375,7 @@ final readonly class ThemeChecker
 			$views   = $this->views->forChain($chain);
 			$context = $this->views->context($views);
 			$context->share(['page' => new ContentPage(PageKind::Welcome, ''), 'entry' => null, 'entries' => null, 'type' => null, 'title' => '']);
+			$context->foot->inlineScript(self::FOOT_MARK, '');
 			$html    = $views->render('welcome', [], $context);
 		} catch (Throwable $error) {
 			return [new Violation('layout', sprintf('The welcome page doesn\'t render: %s', $error->getMessage()))];
@@ -390,6 +398,14 @@ final readonly class ThemeChecker
 			if ($document->querySelectorAll($selector)->length > 1) {
 				$problems[] = new Violation('layout', sprintf('The base layout prints %s more than once; $template->head() prints it, so take it out of the layout.', $tag), Severity::Warning);
 			}
+		}
+
+		$foot = $document->getElementById(self::FOOT_MARK);
+
+		if ($foot === null) {
+			$problems[] = new Violation('layout', 'The base layout doesn\'t print the footer; add <?= $template->foot() ?> just before </body>, or footer scripts never load.');
+		} elseif ($foot->closest('body') === null) {
+			$problems[] = new Violation('layout', 'The base layout prints $template->foot() outside <body>; print it just before </body>.', Severity::Warning);
 		}
 
 		if ($mains->length !== 1) {

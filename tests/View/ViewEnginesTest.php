@@ -30,6 +30,7 @@ use Blush\View\Engine\ViewEngines;
 use Blush\View\Engine\ViewEngine;
 use Blush\View\Engine\ViewEngineType;
 use Blush\View\Head;
+use Blush\View\PageMarkup;
 use Blush\View\ReturnsHtml;
 use Blush\View\SafeHtml;
 use Blush\View\Site;
@@ -74,7 +75,7 @@ final class ViewEnginesTest extends TestCase
 
 	private function context(): ViewContext
 	{
-		return new ViewContext(new Head('Test Site'), ['site' => new Site('Test Site', 'http://localhost', 'en_US', 'en-US')]);
+		return new ViewContext(new PageMarkup('Test Site'), ['site' => new Site('Test Site', 'http://localhost', 'en_US', 'en-US')]);
 	}
 
 	public function testTheRegistrySeedsPhpFirst(): void

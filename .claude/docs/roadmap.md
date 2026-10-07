@@ -335,7 +335,8 @@ authors types stay as their code has them. And every URL path of a type
 (D-350): an Addresses panel with each route key's path, checked for the
 placeholders it needs. Still to consider for routes: a Routes screen
 listing every route, editing redirects, and routes defined in data.
-Extracting embedded artwork waits (D-295).
+Extracting embedded artwork waited (D-295); it's built as library
+artwork (D-581).
 Then extensions as a type system (D-378, D-379): plugins (today's
 extensions, renamed), themes (known by `vendor/name`), and icon packs
 (new, in `user/icons`), each manifest with a `name`, `label`, and

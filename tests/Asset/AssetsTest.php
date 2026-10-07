@@ -36,14 +36,18 @@ use Blush\Http\Kernel;
 use Blush\Http\Request;
 use Blush\Plugin\Plugins;
 use Blush\Tests\Content\BuildsContentSite;
+use Blush\Tests\Fixtures\Log\MemoryLogger;
 use Blush\Theme\ThemeAssetProvider;
 use Blush\Theme\ThemeChain;
 use Blush\Theme\ThemeException;
 use Blush\Theme\ThemeManifest;
 use Blush\Theme\Themes;
 use Blush\View\Events\PageRendering;
+use Blush\View\Foot;
 use Blush\View\Head;
+use Blush\View\PageMarkup;
 use Blush\View\Template;
+use Blush\View\ViewException;
 use Blush\View\Views;
 
 #[CoversClass(Asset::class)]
@@ -55,6 +59,8 @@ use Blush\View\Views;
 #[CoversClass(Assets::class)]
 #[CoversClass(AssetUrls::class)]
 #[CoversClass(Head::class)]
+#[CoversClass(Foot::class)]
+#[CoversClass(PageMarkup::class)]
 #[CoversClass(Views::class)]
 #[CoversClass(Template::class)]
 #[CoversClass(PageRendering::class)]
@@ -120,10 +126,10 @@ final class AssetsTest extends TestCase
 		new Asset('gallery');
 	}
 
-	public function testTheHeadPrintsAssetsAndFooterScripts(): void
+	public function testTheHeadAndFootPrintTheirAssets(): void
 	{
 		$registry = new AssetRegistry();
-		$head     = new Head('Site', assets: new Assets($registry, new AssetUrls(new Themes([]), new Plugins())));
+		$markup   = new PageMarkup('Site', assets: new Assets($registry, new AssetUrls(new Themes([]), new Plugins())));
 
 		$registry->register(new Asset('acme/base', styles: [new Style('/base.css')]));
 		$registry->register(new Asset('acme/app', [new Style('/app.css', attributes: ['media' => 'screen'])], [
@@ -131,34 +137,127 @@ final class AssetsTest extends TestCase
 			new Script('/foot.js', footer: true)
 		], ['acme/base']));
 
-		$head->enqueue('acme/app', 'acme/unknown')->inlineScript('late', 'go();', footer: true);
+		$markup->enqueue('acme/app', 'acme/unknown');
+		$markup->foot->inlineScript('late', 'go();');
 
-		$html = $head->render();
+		$html = $markup->head->render();
 
 		$this->assertMatchesRegularExpression('#base\.css.*app\.css" media="screen".*head\.js" async>#s', $html);
 		$this->assertStringNotContainsString('foot.js', $html);
-		$this->assertSame("\t<script id=\"late\">\n\t\tgo();\n\t</script>\n\t<script src=\"/foot.js\" defer></script>", $head->foot(), 'Assets\' files are added when the head prints.');
-		$this->assertSame(['acme/app', 'acme/unknown'], $head->enqueued());
-		$this->assertFalse($head->dequeue('acme/app')->isEnqueued('acme/app'));
+		$this->assertSame("\t<script src=\"/foot.js\" defer></script>\n\t<script id=\"late\">go();</script>", $markup->foot->render(), 'Assets\' files are added when the page prints, before inline scripts.');
+		$this->assertSame(['acme/app', 'acme/unknown'], $markup->head->enqueued());
+		$this->assertFalse($markup->head->dequeue('acme/app')->isEnqueued('acme/app'));
 	}
 
-	public function testAHeldHeadIsFilledOnceThePageHasRendered(): void
+	/**
+	 * Head and foot share one collection (D-578): a tag is kept once,
+	 * and asked for in both, it prints in the head.
+	 */
+	public function testTheHeadAndFootShareTheirTags(): void
 	{
-		$head = new Head('Site');
+		$markup = new PageMarkup();
 
-		$this->assertTrue($head->hold());
-		$this->assertFalse($head->hold(), 'Only the outer render fills it.');
+		$markup->head->script('/both.js');
+		$markup->foot->script('/both.js')->script('/late.js', ['type' => 'module']);
 
-		$page = "<html><head>{$head}</head><body><p>Hi</p></body></html>";
+		$this->assertStringContainsString('both.js', $markup->head->render());
+		$this->assertSame("\t<script src=\"/late.js\" type=\"module\"></script>", $markup->foot->render());
+		$this->assertTrue($markup->head->has('script:/late.js'), 'Keys are shared.');
+		$this->assertSame('', $markup->foot->remove('script:/late.js')->render());
 
-		$head->style('/late.css')->script('/late.js', footer: true);
+		$this->expectException(ViewException::class);
 
-		$html = $head->fill($page);
+		$markup->foot->inlineScript('bad', '</script>');
+	}
+
+	/**
+	 * Data and inline code tied to an asset (D-580): data just before its
+	 * first script, code just after its last, a module after a deferred
+	 * script; untied, data before the scripts and code after them.
+	 */
+	public function testDataAndInlineCodePrintBesideTheirAssets(): void
+	{
+		$registry = new AssetRegistry();
+		$logger   = new MemoryLogger();
+		$markup   = new PageMarkup('Site', assets: new Assets($registry, new AssetUrls(new Themes([]), new Plugins())), logger: $logger);
+
+		$registry->register(new Asset('acme/gallery', scripts: [new Script('/gallery.js', footer: true)]));
+		$registry->register(new Asset('acme/sync', scripts: [new Script('/sync.js', attributes: ['defer' => false])]));
+
+		$markup->foot->data('gallery-data', ['columns' => 3, 'html' => '</script>'], for: 'acme/gallery');
+		$markup->head->inlineScript('gallery-init', 'Gallery.start();', after: 'acme/gallery');
+		$markup->head->inlineScript('sync-init', ' Sync.go(); ', after: 'acme/sync');
+		$markup->head->inlineScript('multi', "a();\n  b();\n\nc();\n");
+		$markup->head->data('site', ['name' => 'Site']);
+		$markup->head->inlineScript('lost', 'x();', after: 'acme/none');
+
+		$this->assertTrue($markup->isEnqueued('acme/gallery'), 'Tying asks for the asset.');
+		$this->assertSame(
+			"\t<script type=\"application/json\" id=\"gallery-data\">{\"columns\":3,\"html\":\"\\u003C/script\\u003E\"}</script>\n"
+			. "\t<script src=\"/gallery.js\" defer></script>\n"
+			. "\t<script type=\"module\" id=\"gallery-init\">Gallery.start();</script>",
+			$markup->foot->render(),
+			'Tied code follows its asset into the foot, as a module after a deferred script.'
+		);
+
+		$head = $markup->head->render();
+
+		$this->assertStringContainsString("<script type=\"application/json\" id=\"site\">{\"name\":\"Site\"}</script>\n\t<script src=\"/sync.js\"></script>\n\t<script id=\"sync-init\">Sync.go();</script>\n\t<script id=\"multi\">a();\n\t  b();\n\n\tc();</script>", $head);
+		$this->assertStringNotContainsString('x();', $head . $markup->foot->render(), 'Tied to an asset with no script, it doesn\'t print.');
+
+		$markup->hold();
+		$markup->fill("{$markup->head}{$markup->foot}", '/gallery');
+
+		$this->assertSame(['key' => 'inline-script:lost', 'path' => '/gallery', 'handle' => 'acme/none'], $logger->records[0]['context'] ?? null);
+
+		$this->expectException(ViewException::class);
+
+		$markup->foot->data('bad', NAN);
+	}
+
+	public function testHeldMarkupIsFilledOnceThePageHasRendered(): void
+	{
+		$markup = new PageMarkup('Site');
+
+		$this->assertTrue($markup->hold());
+		$this->assertFalse($markup->hold(), 'Only the outer render fills it.');
+
+		$page = "<html><head>{$markup->head}</head><body><p>Hi</p>{$markup->foot}</body></html>";
+
+		$markup->head->style('/late.css');
+		$markup->foot->script('/late.js');
+
+		$html = $markup->fill($page);
 
 		$this->assertStringContainsString('<link rel="stylesheet" href="/late.css"></head>', $html);
 		$this->assertStringEndsWith("<p>Hi</p>\t<script src=\"/late.js\" defer></script>\n</body></html>", $html);
-		$this->assertStringNotContainsString('<!--blush-head-', $html);
-		$this->assertStringContainsString('<title>Site</title>', (string) $head, 'Filled, it prints as itself again.');
+		$this->assertStringNotContainsString('<!--blush-', $html);
+		$this->assertStringContainsString('<title>Site</title>', (string) $markup->head, 'Filled, it prints as itself again.');
+	}
+
+	/**
+	 * The foot prints where the layout prints it (D-577): once, however
+	 * often it's printed, and nowhere when it isn't, which the log notes
+	 * in development.
+	 */
+	public function testTheFootPrintsWhereTheLayoutPrintsIt(): void
+	{
+		$logger = new MemoryLogger();
+		$markup = new PageMarkup('Site', logger: $logger);
+		$markup->hold();
+		$markup->foot->script('/foot.js')->inlineScript('go', 'go();');
+
+		$this->assertSame('<body><p>Hi</p></body>', $markup->fill('<body><p>Hi</p></body>', '/about'), 'Without the foot, no footer scripts; nothing is guessed.');
+		$this->assertSame('warning', $logger->records[0]['level'] ?? null);
+		$this->assertStringContainsString('$template->foot()', $logger->records[0]['message']);
+		$this->assertSame(['path' => '/about', 'scripts' => '/foot.js, #go'], $logger->records[0]['context']);
+
+		$markup = new PageMarkup('Site', logger: $logger);
+		$markup->hold();
+		$markup->foot->script('/foot.js');
+
+		$this->assertSame("<body>\t<script src=\"/foot.js\" defer></script>\n<p>Hi</p></body>", $markup->fill("<body>{$markup->foot}<p>Hi</p>{$markup->foot}</body>"), 'Printed twice, its scripts print once.');
+		$this->assertCount(1, $logger->records);
 	}
 
 	public function testAudioLoadsThePlayerFromACachedBodyToo(): void
@@ -168,7 +267,7 @@ final class AssetsTest extends TestCase
 
 			$this->assertMatchesRegularExpression('#<link rel="stylesheet" href="http://localhost/blush/css/player\.css\?v=[0-9a-f]{8}">#', $html, $message);
 			$this->assertMatchesRegularExpression('#<script src="http://localhost/blush/js/player\.js\?v=[0-9a-f]{8}" type="module"></script>#', $html, $message);
-			$this->assertStringContainsString('<blush-audio-player label-play="Play" label-pause="Pause" label-seek="Seek">', $html, $message);
+			$this->assertStringContainsString('<blush-audio-player label-play="Play" label-pause="Pause" label-seek="Seek" label-mute="Mute" label-unmute="Unmute" label-volume="Volume">', $html, $message);
 		}
 
 		$this->assertStringNotContainsString('player.js', $this->html('/about'), 'Only pages that play something load the player.');

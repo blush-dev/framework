@@ -26,9 +26,10 @@ final class TaggedAudioVideo
 	 * number, year, a UTF-16 comment, and a picture), an MPEG-1 Layer III
 	 * frame with a Xing header counting 1,000 frames (26.122 s at 44.1
 	 * kHz), and an ID3v1 tag, which the v2 tag wins over. Without Xing, a
-	 * 128 kbit/s frame and 16,000 bytes of audio: one second.
+	 * 128 kbit/s frame and 16,000 bytes of audio: one second. The picture
+	 * is 2,048 bytes that aren't an image, else `$art`.
 	 */
-	public static function mp3(bool $xing = true): string
+	public static function mp3(bool $xing = true, ?string $art = null): string
 	{
 		$text   = static fn (string $id, string $value): string => self::frame($id, "\x03{$value}");
 		$utf16  = "\xFF\xFE" . mb_convert_encoding('Recorded live', 'UTF-16LE', 'UTF-8');
@@ -39,7 +40,7 @@ final class TaggedAudioVideo
 			. $text('TCON', '(17)Rock')
 			. $text('TYER', '2019')
 			. self::frame('COMM', "\x01eng\xFF\xFE\0\0{$utf16}")
-			. self::frame('APIC', "\x00image/jpeg\x00\x03\x00" . str_repeat("\xAB", 2048));
+			. self::frame('APIC', "\x00image/jpeg\x00\x03\x00" . ($art ?? str_repeat("\xAB", 2048)));
 		$size   = strlen($frames);
 		$tag    = 'ID3' . "\x03\x00\x00" . implode('', array_map(static fn (int $shift): string => chr(($size >> $shift) & 0x7F), [21, 14, 7, 0])) . $frames;
 		$frame  = "\xFF\xFB\x90\x00" . str_repeat("\0", 32);

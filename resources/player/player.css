@@ -13,6 +13,18 @@
  *   --player-overlay     what's drawn under a video's controls
  *   --player-overlay-fg  a video's controls over the picture
  *   --player-radius      a video's corners
+ *   --player-surface     a card's background, and the volume slider's
+ *   --player-line        a card's border, and the volume slider's
+ *   --player-pop-shadow  what lifts the volume slider off the page
+ *   --player-fg          a card's text
+ *   --player-font        a card's font
+ *   --player-title-font  a card's title's font
+ *   --player-title-size  a card's title's size
+ *   --player-by-size     the size of who made it, from what
+ *   --player-card-radius a card's corners, and the volume slider's
+ *   --player-card-pad    the space inside a card
+ *   --player-art-size    a card's artwork, at its largest
+ *   --player-art-radius  the artwork's corners
  */
 
 .player {
@@ -84,7 +96,7 @@
 	outline-offset: 2px;
 }
 
-/* A track (seeking, and a video's volume): the accent up to
+/* A track (seeking, and the volume): the accent up to
    `--player-progress`. */
 .player__range {
 	min-width: 0;
@@ -127,13 +139,52 @@
 	flex: 1;
 }
 
+/* The volume (D-576): the mute button, with the slider over it on
+   hover and keyboard focus. The slider's layer starts at the button's
+   edge and its gap is its own padding, so a pointer crossing it stays
+   on the control; the card is drawn inside. */
 .player__volume {
+	position: relative;
+	display: flex;
 	flex: none;
-	width: 64px;
 }
 
-.player__volume[hidden] {
-	display: none;
+.player__volume-pop {
+	position: absolute;
+	bottom: 100%;
+	left: 50%;
+	z-index: 1;
+	padding-bottom: 8px;
+	transform: translateX(-50%);
+	visibility: hidden;
+	opacity: 0;
+	transition: opacity .12s ease;
+}
+
+.player__volume:hover > .player__volume-pop,
+.player__volume:focus-within > .player__volume-pop {
+	visibility: visible;
+	opacity: 1;
+}
+
+.player__volume-card {
+	display: block;
+	padding: 12px 9px;
+	border: 1px solid var(--player-line);
+	border-radius: var(--player-card-radius);
+	background: var(--player-surface);
+	box-shadow: var(--player-pop-shadow);
+}
+
+/* Upright the standard way, so zero is at the foot and the pointer,
+   arrow keys, and focus ring stay the browser's. */
+.player__volume-range {
+	display: block;
+	width: 4px;
+	height: 80px;
+	background: linear-gradient(to top, var(--player-accent) var(--player-progress, 0%), var(--player-track) var(--player-progress, 0%));
+	writing-mode: vertical-lr;
+	direction: rtl;
 }
 
 .player__time {
@@ -149,6 +200,95 @@
 	display: flex;
 	align-items: center;
 	gap: 11px;
+}
+
+/* A card (D-575): the artwork beside the title, who made it, and the
+   player. Without artwork, it's the words over the player. The
+   artwork shrinks with a narrow card rather than leaving it. */
+.audio-card {
+	display: grid;
+	grid-template-columns: min(var(--player-art-size), 30%) minmax(0, 1fr);
+	grid-template-rows: 1fr auto auto 1fr;
+	grid-template-areas:
+		"art ."
+		"art meta"
+		"art player"
+		"art .";
+	column-gap: var(--player-card-pad);
+	padding: var(--player-card-pad);
+	border: 1px solid var(--player-line);
+	border-radius: var(--player-card-radius);
+	background: var(--player-surface);
+	color: var(--player-fg);
+	font-family: var(--player-font, inherit);
+}
+
+.audio-card:not(:has(> .audio-card__art)) {
+	grid-template-columns: minmax(0, 1fr);
+	grid-template-rows: auto auto;
+	grid-template-areas:
+		"meta"
+		"player";
+}
+
+.audio-card__art {
+	display: block;
+	grid-area: art;
+	align-self: center;
+	width: 100%;
+	height: auto;
+	aspect-ratio: 1;
+	margin: 0;
+	border-radius: var(--player-art-radius);
+	object-fit: cover;
+}
+
+.audio-card__meta {
+	display: flex;
+	grid-area: meta;
+	flex-direction: column;
+	gap: 3px;
+	min-width: 0;
+	margin: 0 0 7px;
+	padding: 0;
+}
+
+.audio-card__title {
+	margin: 0;
+	font-family: var(--player-title-font, inherit);
+	font-size: var(--player-title-size);
+	font-weight: 600;
+	line-height: 1.25;
+	overflow-wrap: anywhere;
+}
+
+.audio-card__by {
+	margin: 0;
+	color: var(--player-muted);
+	font-size: var(--player-by-size);
+	overflow-wrap: anywhere;
+}
+
+.audio-card > :is(.audio-player, blush-audio-player) {
+	grid-area: player;
+}
+
+/* On a phone, the player takes the card's whole width under the
+   artwork and the words, so its track has room. */
+@media (width <= 36rem) {
+	.audio-card {
+		grid-template-columns: min(var(--player-art-size), 28%) minmax(0, 1fr);
+		grid-template-rows: auto auto;
+		grid-template-areas:
+			"art meta"
+			"player player";
+		row-gap: var(--player-card-pad);
+	}
+
+	.audio-card__meta {
+		align-self: center;
+		margin-bottom: 0;
+	}
 }
 
 /* Video: the picture, with its controls over it. */
@@ -218,6 +358,8 @@
 	background: linear-gradient(to top, var(--player-overlay), transparent);
 	transition: opacity .2s;
 	--player-muted: var(--player-overlay-fg);
+	--player-surface: var(--player-overlay);
+	--player-line: transparent;
 }
 
 .video-player__bar .player__button--play {
@@ -243,6 +385,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+	.player__volume-pop,
 	.video-player__bar {
 		transition: none;
 	}

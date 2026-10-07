@@ -16,6 +16,7 @@ namespace Blush\Tests\View;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Blush\View\Head;
+use Blush\View\PageMarkup;
 use Blush\View\ViewException;
 
 #[CoversClass(Head::class)]
@@ -23,16 +24,16 @@ final class HeadTest extends TestCase
 {
 	public function testBuildsTheDocumentTitle(): void
 	{
-		$this->assertSame('Site', new Head('Site')->documentTitle());
-		$this->assertSame('About | Site', new Head('Site')->title(' About ')->documentTitle());
-		$this->assertSame('About', new Head()->title('About')->documentTitle());
-		$this->assertSame('About — Site', new Head('Site', ' — ')->title('About')->documentTitle());
-		$this->assertSame('About', new Head('Site')->title('About')->pageTitle());
+		$this->assertSame('Site', new PageMarkup('Site')->head->documentTitle());
+		$this->assertSame('About | Site', new PageMarkup('Site')->head->title(' About ')->documentTitle());
+		$this->assertSame('About', new PageMarkup()->head->title('About')->documentTitle());
+		$this->assertSame('About — Site', new PageMarkup('Site', ' — ')->head->title('About')->documentTitle());
+		$this->assertSame('About', new PageMarkup('Site')->head->title('About')->pageTitle());
 	}
 
 	public function testRendersEachTagOnceGroupedByKind(): void
 	{
-		$head = new Head('A & B')
+		$head = new PageMarkup('A & B')->head
 			->style('/a.css')
 			->meta('description', 'First "one"')
 			->canonical('/old')
@@ -66,7 +67,7 @@ final class HeadTest extends TestCase
 
 	public function testRepeatsPropertiesThatTakeSeveralValues(): void
 	{
-		$head = new Head()
+		$head = new PageMarkup()->head
 			->addProperty('article:author', 'https://example.test/blog/authors/jane')
 			->addProperty('article:author', 'https://example.test/blog/authors/sam')
 			->addProperty('article:author', 'https://example.test/blog/authors/jane');
@@ -84,7 +85,7 @@ final class HeadTest extends TestCase
 
 	public function testPrintsRootRelativeUrlsOnTheOrigin(): void
 	{
-		$head = new Head('Site', origin: 'https://example.com')
+		$head = new PageMarkup('Site', origin: 'https://example.com')->head
 			->style('/theme/style.css')
 			->script('/theme/app.js', ['type' => 'module'])
 			->link('next', '/page/2')
@@ -109,7 +110,7 @@ final class HeadTest extends TestCase
 
 	public function testPrintsResourceHintsBeforeStylesKeepingTheCascade(): void
 	{
-		$head = new Head()
+		$head = new PageMarkup()->head
 			->script('/app.js')
 			->style('/a.css')
 			->inlineStyle('tokens', ':root {}')
@@ -136,7 +137,7 @@ final class HeadTest extends TestCase
 
 	public function testPreloadsByExtension(): void
 	{
-		$head = new Head('Site')
+		$head = new PageMarkup('Site')->head
 			->preload('/fonts/body.woff2?v=1')
 			->preload('/css/print.css')
 			->preload('/js/app.mjs')
@@ -156,12 +157,12 @@ final class HeadTest extends TestCase
 
 	public function testDropsUnsafeUrls(): void
 	{
-		$this->assertStringContainsString('<link rel="canonical" href="">', new Head()->canonical('javascript:alert(1)')->render());
+		$this->assertStringContainsString('<link rel="canonical" href="">', new PageMarkup()->head->canonical('javascript:alert(1)')->render());
 	}
 
 	public function testPrintsInlineStylesOncePerId(): void
 	{
-		$head = new Head()->inlineStyle('palette', ":root {}\n")->style('/a.css')->inlineStyle('palette', ":root { --a: 1; }\n");
+		$head = new PageMarkup()->head->inlineStyle('palette', ":root {}\n")->style('/a.css')->inlineStyle('palette', ":root { --a: 1; }\n");
 
 		$this->assertSame("\t<meta charset=\"utf-8\">\n\t<title></title>\n\t<style id=\"palette\">\n\t\t:root { --a: 1; }\n\t</style>\n\t<link rel=\"stylesheet\" href=\"/a.css\">", $head->render());
 		$this->assertTrue($head->has('inline-style:palette'));
@@ -170,12 +171,13 @@ final class HeadTest extends TestCase
 		$head->inlineStyle('x', 'a</STYLE><script>');
 	}
 
-	public function testPrintsInlineScriptsOncePerId(): void
+	public function testPrintsInlineScriptsOncePerIdAfterScripts(): void
 	{
-		$head = new Head()->inlineScript('scheme', "let a;\n")->style('/a.css')->inlineScript('scheme', "document.documentElement.dataset.theme = 'dark';\n");
+		$head = new PageMarkup()->head->inlineScript('scheme', "let a;\n")->style('/a.css')->inlineScript('scheme', "document.documentElement.dataset.theme = 'dark';\n");
 
-		$this->assertSame("\t<meta charset=\"utf-8\">\n\t<title></title>\n\t<link rel=\"stylesheet\" href=\"/a.css\">\n\t<script id=\"scheme\">\n\t\tdocument.documentElement.dataset.theme = 'dark';\n\t</script>", $head->render());
+		$this->assertSame("\t<meta charset=\"utf-8\">\n\t<title></title>\n\t<link rel=\"stylesheet\" href=\"/a.css\">\n\t<script id=\"scheme\">document.documentElement.dataset.theme = 'dark';</script>", $head->render());
 		$this->assertTrue($head->has('inline-script:scheme'));
+		$this->assertMatchesRegularExpression('#<script src="/late\.js" defer></script>\n\t<script id="scheme">#', $head->script('/late.js')->render(), 'Inline scripts print after scripts (D-579).');
 
 		$this->expectException(ViewException::class);
 		$head->inlineScript('x', 'a</SCRIPT><b>');

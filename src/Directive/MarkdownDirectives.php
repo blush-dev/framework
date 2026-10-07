@@ -46,7 +46,7 @@ use Blush\View\ViewFactory;
  * its `kind()`.
  *
  * Directives rendered this way get a bare context: what they add to the
- * `Head` themselves doesn't reach the page, but the assets they ask for
+ * head or the foot themselves doesn't reach the page, but the assets they ask for
  * (`assets()`, or `$template->enqueue()` in their templates) do, and
  * are kept with the body (D-572).
  *

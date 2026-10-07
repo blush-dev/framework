@@ -28,5 +28,6 @@ declare(strict_types=1);
 </main>
 
 <?= $template->include('partials/footer') ?>
+<?= $template->foot() ?>
 </body>
 </html>

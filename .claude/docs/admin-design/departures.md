@@ -351,7 +351,9 @@ Each is recorded in `.claude/docs/decisions.md`.
   library with a toast after Delete rather than the sketch's "was
   deleted" notice, and adds the read-only notes (D-552: no id). Its
   audio and video players are the shared `<blush-audio-player>` and
-  `<blush-video-player>` (D-553, D-554). A video has no poster frame of
+  `<blush-video-player>` (D-553, D-554); a sound's preview is the audio
+  card (D-575, from `.claude/docs/design/audio-player-sketch.html`),
+  with the volume control (D-576). A video has no poster frame of
   its own; the player shows its first. No
   rename or Replace yet. Only `user/media` is listed (D-294 removed D-292's page
   bundle files and its **Where** control).

@@ -18,6 +18,7 @@ use Blush\Content\Entry\Entry;
 use Blush\Content\Http\ContentPage;
 use Blush\Http\Status;
 use Blush\Theme\ThemeChain;
+use Blush\View\Foot;
 use Blush\View\Head;
 use Blush\View\ViewContext;
 
@@ -26,7 +27,7 @@ use Blush\View\ViewContext;
  * first template renders (D-571), with its head already filled in by
  * Blush (title, canonical URL, OpenGraph, feeds, the theme's files) and
  * its `<body>` classes. Listeners can load assets on the pages that need
- * them, add to the head, or add classes:
+ * them, add to the head or the foot (D-578), or add classes:
  *
  * ```php
  * $listeners->listen(PageRendering::class, function (PageRendering $event): void {
@@ -47,6 +48,11 @@ final readonly class PageRendering
 	public Head $head;
 
 	/**
+	 * The end of the page's `<body>`.
+	 */
+	public Foot $foot;
+
+	/**
 	 * @param ?ContentPage $page   The content page, or `null` on an error page.
 	 * @param ?Entry       $entry  The page's entry (an error page's, when the site has one), or `null`.
 	 * @param ?Status      $status An error page's status, or `null` on a content page.
@@ -59,7 +65,8 @@ final readonly class PageRendering
 		public ?Entry $entry = null,
 		public ?Status $status = null
 	) {
-		$this->head = $context->head;
+		$this->head = $context->markup->head;
+		$this->foot = $context->markup->foot;
 	}
 
 	/**
@@ -67,7 +74,7 @@ final readonly class PageRendering
 	 */
 	public function enqueue(string ...$handles): void
 	{
-		$this->head->enqueue(...$handles);
+		$this->context->markup->enqueue(...$handles);
 	}
 
 	/**
@@ -75,7 +82,7 @@ final readonly class PageRendering
 	 */
 	public function dequeue(string ...$handles): void
 	{
-		$this->head->dequeue(...$handles);
+		$this->context->markup->dequeue(...$handles);
 	}
 
 	/**

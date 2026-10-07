@@ -34,6 +34,15 @@
  * five of a long list until asked for all; deleting it asks first,
  * saying how many.
  *
+ * A sound or video has Artwork (D-581): a library image, by id, shown
+ * in its preview and by the site's audio card and video poster, else the
+ * picture it carries. **Add to Library** makes the carried picture an
+ * image of its own (or finds the one with its bytes), **Choose Image**
+ * picks or uploads one in the media picker, and **Remove** takes the
+ * link off, leaving the image. Each waits in the save bar with the
+ * details, and saves with them (D-583); Revert puts it back. An image's Usage names the files that
+ * show it, and deleting it says so.
+ *
  * An image lists its other sizes (D-488), such as resized copies brought
  * from another system, which go with it when it's deleted. A size's
  * screen says whose it is, and shows that image's details, which it
@@ -47,9 +56,10 @@ import AdminIcon from '../components/AdminIcon.vue';
 import AudioPlayer from '../components/AudioPlayer.vue';
 import VideoPlayer from '../components/VideoPlayer.vue';
 import FieldControl from '../components/FieldControl.vue';
+import MediaPicker from '../components/MediaPicker.vue';
 import RawValues from '../components/RawValues.vue';
 import SaveBar from '../components/SaveBar.vue';
-import { ApiError, entryRoute, errorMessage, request, type FieldDescription, type MediaDetail } from '../api';
+import { ApiError, entryRoute, errorMessage, request, type FieldDescription, type MediaDetail, type MediaItem } from '../api';
 import { useAction } from '../action';
 import { config } from '../config';
 import { fromForm, toForm, type FormValue } from '../fields';
@@ -90,7 +100,7 @@ const setGroups = computed(() => (file.value?.sets ?? []).map((set) => ({
 	fields: set.fields.flatMap((name) => fields.value.filter((field) => field.name === name))
 })).filter((set) => set.fields.length > 0));
 const changes = computed(() => fields.value.filter((field) => form.value[field.name] !== initial.value[field.name]));
-const changed = computed(() => changes.value.length > 0);
+const changed = computed(() => changes.value.length > 0 || artChange.value !== null);
 const altText = computed(() => typeof form.value.alt === 'string' ? form.value.alt.trim() : '');
 const extra   = computed(() => Object.entries(file.value?.extra ?? {}));
 
@@ -185,10 +195,69 @@ const pageShape = computed(() => {
 	return found === null ? '8.5 / 11' : `${found[1]} / ${found[2]}`;
 });
 
-// The picture a sound carries, such as its cover (D-551), unless it
-// couldn't be shown.
-const artFailed = ref(false);
-const artwork   = computed(() => file.value?.embedded.values.artwork === undefined || artFailed.value ? null : config.api + address.value.replace(/^\/media\//, '/media-artwork/'));
+// Where a sound's or video's artwork is changed, and the picture it
+// carries is read (D-551).
+const artworkAddress = computed(() => address.value.replace(/^\/media\//, '/media-artwork/'));
+const carried        = computed(() => file.value?.embedded.values.artwork === undefined ? null : config.api + artworkAddress.value);
+
+// Its artwork (D-581) waits in the save bar, as the details do: an
+// image chosen, the picture it carries to add to the library, or none.
+type ArtChange = { set: 'image'; image: MediaItem } | { set: 'file' } | { set: 'none' };
+
+const artChange   = ref<ArtChange | null>(null);
+const choosingArt = ref(false);
+
+// The library image it names, as saved, then as it will be.
+const savedImage = computed(() => file.value?.artwork?.image ?? null);
+const linked     = computed(() => {
+	const change = artChange.value;
+
+	if (change === null) {
+		return savedImage.value;
+	}
+
+	return change.set === 'image' ? { path: change.image.folder === '' ? change.image.name : `${change.image.folder}/${change.image.name}`, url: change.image.url, name: change.image.name, title: change.image.title } : null;
+});
+
+// What it shows: the library image, else what it carries.
+const artwork = computed(() => linked.value?.url ?? carried.value);
+
+// Whether it will name an image once saved: one chosen, the one it
+// carries to add, or the one it names now, left as it is.
+const willLink = computed(() => artChange.value === null ? (file.value?.artwork ?? null) !== null : artChange.value.set !== 'none');
+
+function chooseArtwork(files: MediaItem[]): void {
+	choosingArt.value = false;
+
+	const image = files[0];
+
+	if (image !== undefined && image.id !== '') {
+		artChange.value = image.id === file.value?.artwork?.id ? null : { set: 'image', image };
+	}
+}
+
+function addArtwork(): void {
+	artChange.value = { set: 'file' };
+}
+
+// Takes it off, or puts back that it had none.
+function removeArtwork(): void {
+	artChange.value = file.value?.artwork ? { set: 'none' } : null;
+}
+
+// What the panel says under the artwork's name while a change waits.
+const artNote = computed(() => {
+	switch (artChange.value?.set) {
+		case 'image':
+			return 'Chosen from the library; saved with the details';
+		case 'file':
+			return 'Added to the library when you save';
+		case 'none':
+			return 'Removed when you save; the image stays in the library';
+		default:
+			return null;
+	}
+});
 
 // The offers whose fields are empty, which Fill from the File fills.
 const fillable = computed(() => [...offers.value].filter(([field]) => String(form.value[field] ?? '').trim() === ''));
@@ -271,8 +340,8 @@ function errorFor(field: FieldDescription): string | undefined {
 
 watch(path, async () => {
 	file.value      = null;
+	artChange.value = null;
 	showAll.value   = false;
-	artFailed.value = false;
 	error.value   = '';
 	failure.value = '';
 
@@ -309,7 +378,22 @@ async function save(): Promise<void> {
 	}
 
 	await run('It couldn\'t be saved.', async () => {
-		fill(await request<MediaDetail>('PATCH', address.value, { set, remove }));
+		// The details first, so a refused artwork leaves them saved.
+		if (changes.value.length > 0) {
+			fill(await request<MediaDetail>('PATCH', address.value, { set, remove }));
+		}
+
+		const change = artChange.value;
+
+		if (change !== null) {
+			const answer = change.set === 'none'
+				? await request<MediaDetail>('DELETE', artworkAddress.value)
+				: await request<MediaDetail>('PUT', artworkAddress.value, change.set === 'image' ? { image: change.image.id } : { from: 'file' });
+
+			artChange.value = null;
+			fill(answer);
+		}
+
 		forgetFile(file.value?.reference ?? '');
 		toast('Saved');
 	}, (caught) => {
@@ -321,11 +405,12 @@ async function save(): Promise<void> {
 	});
 }
 
-// Puts the details back as they were saved.
+// Puts the details and the artwork back as they were saved.
 function revert(): void {
-	form.value    = { ...initial.value };
-	invalid.value = null;
-	failure.value = '';
+	form.value      = { ...initial.value };
+	artChange.value = null;
+	invalid.value   = null;
+	failure.value   = '';
 }
 
 guardLeave(() => changed.value);
@@ -341,6 +426,7 @@ async function remove(): Promise<void> {
 	}
 
 	const used  = item.usedIn.length;
+	const shows = item.artworkFor.length;
 	const goes  = item.sizes.length
 		? `The file and its **${plural(item.sizes.length, 'other size')}** will be removed from the library and from disk.`
 		: 'The file will be removed from the library and from disk.';
@@ -348,7 +434,8 @@ async function remove(): Promise<void> {
 		goes,
 		used === 0
 			? 'It isn\'t used in any entry. This can\'t be undone.'
-			: `**${plural(used, 'entry', 'entries')} ${used === 1 ? 'uses' : 'use'} it**, and will be left pointing at an address that no longer resolves. This can't be undone.`
+			: `**${plural(used, 'entry', 'entries')} ${used === 1 ? 'uses' : 'use'} it**, and will be left pointing at an address that no longer resolves. This can't be undone.`,
+		...(shows === 0 ? [] : [`It's the artwork of **${plural(shows, 'file')}**, which will have none of their own.`])
 	];
 
 	if (!await confirmAction({ title: `Delete ${mediaName(item)}?`, body, confirm: 'Delete the File', danger: true })) {
@@ -414,18 +501,8 @@ const snippet = computed(() => {
 		<div class="detail__column">
 			<section class="panel preview" aria-label="Preview">
 				<img v-if="file.kind === 'image'" class="preview__image" :src="file.url" :alt="`Preview of ${mediaName(file)}`">
-				<VideoPlayer v-else-if="file.kind === 'video'" class="preview__video" :src="file.url" />
-				<div v-else-if="file.kind === 'audio'" class="preview__audio">
-					<div class="preview__art">
-						<img v-if="artwork" :src="artwork" alt="Its artwork" @error="artFailed = true">
-						<AdminIcon v-else name="music" />
-					</div>
-					<div class="preview__track">
-						<p class="preview__title">{{ track.title }}</p>
-						<p v-if="track.by" class="preview__by">{{ track.by }}</p>
-						<AudioPlayer :src="file.url" />
-					</div>
-				</div>
+				<VideoPlayer v-else-if="file.kind === 'video'" class="preview__video" :src="file.url" :poster="artwork" />
+				<AudioPlayer v-else-if="file.kind === 'audio'" class="preview__audio" :src="file.url" :title="track.title" :by="track.by" />
 				<div v-else-if="pages !== null" class="preview__page">
 					<div class="preview__sheet" :style="{ aspectRatio: pageShape }" aria-hidden="true">
 						<i class="preview__line preview__line--head" /><i class="preview__line" /><i class="preview__line preview__line--short" /><i class="preview__line" />
@@ -437,6 +514,40 @@ const snippet = computed(() => {
 					<AdminIcon :name="mediaIcon(file)" />
 					<span v-if="extension" class="preview__ext mono">{{ extension }}</span>
 					<span>No preview for this kind of file</span>
+				</div>
+			</section>
+
+			<section v-if="file.kind === 'audio' || file.kind === 'video'" class="panel" aria-labelledby="artwork-heading">
+				<header class="panel__header">
+					<h2 id="artwork-heading">Artwork</h2>
+					<span class="panel__hint">{{ file.kind === 'video' ? 'Its poster, where a page names none' : 'Shown with it on the site' }}</span>
+				</header>
+				<div class="panel__body art">
+					<div class="art__row">
+						<img v-if="artwork" class="art__image" :src="artwork" alt="">
+						<span v-else class="art__image art__image--none" aria-hidden="true"><AdminIcon :name="file.kind === 'video' ? 'film' : 'music'" /></span>
+						<div class="art__text">
+							<template v-if="linked">
+								<RouterLink :to="{ name: 'media-file', params: { path: linked.path.split('/') } }">{{ linked.title || linked.name }}</RouterLink>
+								<span class="art__note">{{ artNote ?? 'An image in the library' }}</span>
+							</template>
+							<template v-else-if="carried">
+								<span>Carried in the file</span>
+								<span class="art__note">{{ artNote ?? embeddedText('artwork', file.embedded.values.artwork ?? '') }}</span>
+							</template>
+							<template v-else>
+								<span>None</span>
+								<span class="art__note">{{ artNote ?? (file.kind === 'video' ? 'It shows its first frame until it plays.' : 'Its card shows the title alone.') }}</span>
+							</template>
+						</div>
+					</div>
+					<p v-if="artChange === null && file.artwork && !linked" class="field__warn"><AdminIcon name="triangle-alert" /><span>The image it named is no longer in the library{{ carried ? ', so what it carries is shown' : '' }}.</span></p>
+					<div v-if="file.may.edit" class="art__actions">
+						<button v-if="!linked && artChange?.set !== 'file' && file.may.addArtwork" type="button" class="button button--small" :disabled="saving" @click="addArtwork"><AdminIcon name="plus" />Add to Library</button>
+						<button type="button" class="button button--small" :disabled="saving" @click="choosingArt = true"><AdminIcon name="image" />{{ linked ? 'Change Image' : 'Choose Image' }}</button>
+						<button v-if="willLink" type="button" class="button button--small button--ghost" :disabled="saving" @click="removeArtwork"><AdminIcon name="x" />Remove</button>
+					</div>
+					<p v-if="file.may.edit" class="field__help">A link to a library image, with its own alt text and sizes; the file itself isn't changed.</p>
 				</div>
 			</section>
 
@@ -473,6 +584,15 @@ const snippet = computed(() => {
 						</ul>
 						<button v-if="longList" type="button" class="button button--ghost button--small" :aria-expanded="showAll" @click="showAll = !showAll"><AdminIcon :name="showAll ? 'chevron-up' : 'chevron-down'" />{{ showAll ? 'Show Fewer' : `Show All ${file.usedIn.length}` }}</button>
 					</template>
+				</div>
+				<div v-if="file.artworkFor.length" class="panel__body usage__uses">
+					<p class="eyebrow">Artwork for {{ plural(file.artworkFor.length, 'file') }}</p>
+					<ul class="used" :class="{ 'used--scroll': file.artworkFor.length > LONG }">
+						<li v-for="shown in file.artworkFor" :key="shown.path">
+							<RouterLink :to="{ name: 'media-file', params: { path: shown.path.split('/') } }">{{ shown.title || shown.name }}</RouterLink>
+							<span class="used__type">{{ shown.kind === 'video' ? 'Video' : 'Sound' }}</span>
+						</li>
+					</ul>
 				</div>
 			</section>
 
@@ -511,7 +631,7 @@ const snippet = computed(() => {
 			<form class="panel" aria-labelledby="text-heading" @submit.prevent="save">
 				<header class="panel__header">
 					<h2 id="text-heading">Details</h2>
-					<span class="panel__hint">The only part of this screen that saves</span>
+					<span class="panel__hint">{{ file.kind === 'audio' || file.kind === 'video' ? 'Saved with the artwork' : 'The only part of this screen that saves' }}</span>
 					<div v-if="fillable.length" class="panel__actions">
 						<button type="button" class="button button--small" @click="fillFromFile"><AdminIcon name="import" />Fill from the File</button>
 					</div>
@@ -557,7 +677,7 @@ const snippet = computed(() => {
 					<p v-if="file.may.edit" class="field__help">Kept in <code>user/data/media</code>, not written back into the file.</p>
 				</fieldset>
 
-				<SaveBar v-if="file.may.edit" :count="changes.length" :failure="failure" :saving="saving" @revert="revert" />
+				<SaveBar v-if="file.may.edit" :count="changes.length + (artChange === null ? 0 : 1)" :failure="failure" :saving="saving" @revert="revert" />
 			</form>
 
 			<section class="panel" aria-labelledby="metadata-heading">
@@ -578,6 +698,8 @@ const snippet = computed(() => {
 			</section>
 		</div>
 	</div>
+
+	<MediaPicker v-if="choosingArt" title="Choose Artwork" action="Use as Artwork" kind="image" locked @choose="chooseArtwork" @close="choosingArt = false" />
 </template>
 
 <style scoped>
@@ -627,61 +749,9 @@ const snippet = computed(() => {
 }
 
 .preview__audio {
-	display: flex;
-	align-items: center;
-	gap: var(--s-4);
-	padding: var(--s-4);
-}
-
-.preview__art {
-	display: grid;
-	flex: none;
-	place-items: center;
-	width: 124px;
-	height: 124px;
-	overflow: hidden;
-	border-radius: var(--r-2);
-	background: var(--surface-2);
-	box-shadow: var(--shadow-2);
-	color: var(--fg-3);
-}
-
-.preview__art img {
-	width: 100%;
-	height: 100%;
-	object-fit: cover;
-}
-
-.preview__art :deep(svg) {
-	width: 36px;
-	height: 36px;
-	stroke-width: 1.25;
-}
-
-.preview__track {
-	display: grid;
-	flex: 1;
-	gap: var(--s-1);
-	min-width: 0;
-}
-
-.preview__title {
-	margin: 0;
-	font-family: var(--font-display);
-	font-size: var(--title-lead);
-	font-weight: 600;
-	overflow-wrap: anywhere;
-}
-
-.preview__by {
-	margin: 0;
-	color: var(--fg-3);
-	font-size: var(--text-sm);
-	overflow-wrap: anywhere;
-}
-
-.preview__track .audio-player {
-	margin-top: var(--s-2);
+	border: 0;
+	border-radius: 0;
+	background: none;
 }
 
 .preview__none {
@@ -763,6 +833,63 @@ const snippet = computed(() => {
 	background: var(--surface);
 	color: var(--fg-2);
 	font-size: var(--text-xs);
+}
+
+/* Artwork (D-581): the picture beside what it is, then what can be
+   done with it. */
+.art {
+	display: grid;
+	gap: var(--s-3);
+}
+
+.art > * + * {
+	margin-top: 0;
+}
+
+.art__row {
+	display: flex;
+	align-items: center;
+	gap: var(--s-3);
+	min-width: 0;
+}
+
+.art__image {
+	flex: none;
+	width: 72px;
+	height: 72px;
+	border: 1px solid var(--border);
+	border-radius: var(--r-1);
+	background: var(--surface-2);
+	object-fit: cover;
+}
+
+.art__image--none {
+	display: grid;
+	place-items: center;
+	color: var(--fg-3);
+}
+
+.art__image--none :deep(svg) {
+	width: 22px;
+	height: 22px;
+}
+
+.art__text {
+	display: grid;
+	gap: 2px;
+	min-width: 0;
+	overflow-wrap: anywhere;
+}
+
+.art__note {
+	color: var(--fg-3);
+	font-size: var(--text-sm);
+}
+
+.art__actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--s-2);
 }
 
 /* Usage: what to copy, then the entries that use it. */

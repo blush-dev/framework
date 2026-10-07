@@ -698,7 +698,10 @@ Implemented in M4c (D-099), apart from image derivatives.
   D-499: no scripts by any extension, `nosniff`, sandboxed SVG), leaving
   one without its `MARKER` alone. The
   `MediaController` streams anything unpublished, with ranges, `nosniff`,
-  and sandboxed SVGs.
+  and sandboxed SVGs. `MediaArtworkController` answers `{url}-artwork/{path}`
+  (`MediaConfig::artworkUrl()`, `media.artwork`) with the picture a
+  sound or video carries, for the `::audio` card (D-575); it's outside
+  the media URL, so it's never published.
 - **Uploads refuse** `MediaUploads::REFUSED` (SVG, markup, scripts, Office
   files with macros; D-497, D-499) whatever the site allows, and
   `safeName()` turns dots before the extension into hyphens.
@@ -736,6 +739,20 @@ Implemented in M4c (D-099), apart from image derivatives.
   Readers that are also `ArtworkReader`s (ID3, MP4, Ogg) give the
   picture a file carries, read on request (`GET media-artwork/{path}`),
   never cached.
+- **Artwork (D-581):** a sound's or video's artwork is a library image,
+  by id, in its metadata file (`MediaMetadata::ARTWORK`, `artwork`, not
+  a field, like `owner`), else the picture it carries. `MediaArtwork`
+  resolves it (`url()`, for `::audio`'s card and `::video`'s poster
+  fallback), links and unlinks it, takes a deleted image off every file
+  (`forget()`, via `MediaLibrary::withArtwork()`), and `adopt()`s the
+  carried picture: an image already in the library with the same bytes
+  (same size, then SHA-256), else `{name}-artwork.{ext}` beside the
+  file, titled "Artwork for …", owned by who added it. Files are never
+  written to. `MediaLibrary::findId()` finds an original by id. Admin:
+  `PUT`/`DELETE media-artwork/{path}`, sent from the save bar with the
+  details (D-583); `artworkUrl` on every listed file for its thumbnail;
+  `MediaConfig::$addArtwork` (Settings → Media, `media.addArtwork`)
+  adopts on upload.
   Still planned: when rendering, a value set where the media is used
   wins, then the metadata file, then embedded metadata.
 - **Ids (D-487):** every original has a UUIDv7 `id`, last in its
@@ -795,7 +812,7 @@ view layer was implemented in M5 (D-103 to D-125).
   through `resources/views/themes/{active}`, `resources/views`, then the
   theme chain, in each engine's extension (the first registered wins
   within a folder). `ViewFactory` builds one `Views` per chain and the per-page
-  `ViewContext` (the `Head`, sections, shared `$site`, body classes, and
+  `ViewContext` (the `PageMarkup` with its head and foot, sections, shared `$site`, body classes, and
   the front matter `layout`).
 - **`Escaper`:** `e()`, `attr()`, `url()`, `js()`, `css()`, and `raw()` are the
   only global functions (D-106).
@@ -804,8 +821,12 @@ view layer was implemented in M5 (D-103 to D-125).
   (D-109), with root-relative `href`s and `src`s as full URLs on the
   site's origin (D-193). `ThemedPageRenderer` adds the page number to the title on later
   pages of a listing (D-162). It takes registered assets by handle
-  (`enqueue()`) and footer scripts, and is held during `Views::render()`
-  and filled once the page has rendered (D-570).
+  (`enqueue()`). Its tags live in the page's `PageMarkup` (D-578), one
+  keyed collection with a `Placement` per tag, shared with `Foot`
+  (scripts at the end of the body, `$template->foot()`); the markup is
+  held during `Views::render()` and filled once the page has rendered
+  (D-570), the foot where the layout printed it (D-577), with a
+  development log warning when a page's footer scripts didn't print.
 - **Assets** (`Blush\Asset`, D-569 to D-573): `AssetRegistry` (handles,
   seeded by `AssetRegistrar` with `blush/player`), `AssetUrls` (core,
   plugin, theme, or URL; `?v={crc32}`), `Assets` (prints handles into a

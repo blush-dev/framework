@@ -22,6 +22,7 @@ use Blush\Field\FieldContext;
 use Blush\Field\Severity;
 use Blush\Field\Violation;
 use Blush\Media\Index\MediaIndex;
+use Blush\Support\Uuid;
 
 /**
  * Checks the metadata files under `user/data/media` (D-238, D-293), as
@@ -34,12 +35,15 @@ use Blush\Media\Index\MediaIndex;
  *   (D-487): a media file with none (reported by the media file's own
  *   path, since it may have no metadata file), one that isn't a UUID,
  *   and one another file has too (`MediaIds`); and `sizes` (D-488) that
- *   isn't a map of files to their width and height;
+ *   isn't a map of files to their width and height; and an `artwork`
+ *   (D-581) that isn't a UUID;
  * - warnings: a file whose media file is gone (renamed or deleted
  *   without it), or isn't a type the site allows, a file hidden by
  *   one in another format (`sunset.jpg.json` beside a `.yml`), and one
  *   describing a size of another image (D-239), whose details are that
  *   image's, and listed sizes that aren't the image's (`MediaSizes`);
+ *   and artwork naming no image in the library, or on a file that
+ *   isn't a sound or video;
  * - notices: keys that aren't one of the kind's fields, and aliases.
  */
 final readonly class MediaMetadataCheck
@@ -141,6 +145,33 @@ final readonly class MediaMetadataCheck
 			}
 		}
 
+		// Artwork names a library image by id (D-581).
+		$images = [];
+
+		foreach ($records as $record) {
+			if ($record->original === null && $record->kind() === MediaKind::Image && $record->id() !== null) {
+				$images[$record->id()] = true;
+			}
+		}
+
+		foreach ($records as $key => $record) {
+			$artwork = $record->metadata()->artwork;
+
+			if ($artwork === '' || ! isset($files[$key])) {
+				continue;
+			}
+
+			$problem = match (true) {
+				! MediaArtwork::has($record->kind()) => 'is only for sounds and videos; this file never shows it.',
+				! isset($images[$artwork])           => 'names an image that isn\'t in the media library; choose another on the file\'s screen in the admin, or remove it.',
+				default                              => null
+			};
+
+			if ($problem !== null) {
+				$violations[$this->paths->relative($files[$key]['path'])][] = new Violation(MediaMetadata::ARTWORK, $problem, Severity::Warning);
+			}
+		}
+
 		foreach ($records as $key => $record) {
 			if ($record->original !== null && isset($files[$key])) {
 				$violations[$this->paths->relative($files[$key]['path'])][] = new Violation(Linter::FILE, sprintf('describes %s, a size of %s, whose details are read instead; move these there, or give this file an id of its own to keep it apart.', $media((string) $key), $media($record->original)), Severity::Warning);
@@ -178,6 +209,10 @@ final readonly class MediaMetadataCheck
 		}
 
 		$violations = $this->schemas->forFile($media)->resolve(MediaMetadata::fromArray($data)->fields(), new FieldContext($this->app->timezone()))->violations;
+
+		if (array_key_exists(MediaMetadata::ARTWORK, $data) && ! Uuid::isValid($data[MediaMetadata::ARTWORK])) {
+			$violations[] = new Violation(MediaMetadata::ARTWORK, 'isn\'t a library image\'s id; choose the artwork again on the file\'s screen in the admin.');
+		}
 
 		if (array_key_exists(MediaMetadata::SIZES, $data) && ! self::sizesFit($data[MediaMetadata::SIZES])) {
 			$violations[] = new Violation(MediaMetadata::SIZES, 'isn\'t a map of each size\'s file to its width and height; record them again with media:sizes --write.');

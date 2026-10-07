@@ -331,7 +331,7 @@ final class AdminPickersTest extends TestCase
 		$own = self::json($this->send('GET', "/media/{$path}"));
 
 		$this->assertSame(['username' => 'jane', 'name' => 'jane'], $own['uploader'] ?? null);
-		$this->assertSame(['edit' => true, 'delete' => false], $own['may'] ?? null);
+		$this->assertSame(['edit' => true, 'delete' => false, 'addArtwork' => false], $own['may'] ?? null);
 		$this->assertSame(200, $this->patch($path, ['set' => ['alt' => 'Mine']])->getStatusCode(), 'Its own.');
 		$this->assertSame(403, $this->patch('2020/old.png', ['set' => ['alt' => 'Old']])->getStatusCode(), 'No owner is anyone\'s.');
 		$this->assertSame(403, $this->remove($path)->getStatusCode(), 'No deleting.');

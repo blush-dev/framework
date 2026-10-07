@@ -403,6 +403,18 @@ final class Template
 	}
 
 	/**
+	 * Returns the end of the page's `<body>` (D-578): add scripts to it
+	 * (`$template->foot()->script($url)`), and print it in the base
+	 * layout just before `</body>` (D-577): `<?= $template->foot() ?>`.
+	 * Registered scripts that say `footer` print there too, so a layout
+	 * without it gets none.
+	 */
+	public function foot(): Foot
+	{
+		return $this->context->markup->foot;
+	}
+
+	/**
 	 * Returns a theme asset's URL (from a build manifest, or versioned by
 	 * mtime), resolved through the theme chain, or `''` when no theme
 	 * has it.
@@ -476,7 +488,7 @@ final class Template
 	public function enqueue(string ...$handles): void
 	{
 		$this->views->services->collector->add(...$handles);
-		$this->context->head->enqueue(...$handles);
+		$this->context->markup->enqueue(...$handles);
 	}
 
 	/**

@@ -32,6 +32,7 @@ use Blush\Field\Violation;
 use Blush\Http\Response;
 use Blush\Http\Status;
 use Blush\Media\Embedded\EmbeddedMetadataReader;
+use Blush\Media\MediaArtwork;
 use Blush\Media\MediaConfig;
 use Blush\Media\MediaException;
 use Blush\Media\MediaFile;
@@ -86,6 +87,19 @@ use Blush\Support\UrlPath;
  * the picture a sound or video carries, such as its cover art, which
  * `embedded`'s `artwork` describes.
  *
+ * A sound's or video's artwork (D-581) is a library image, by id: `GET
+ * media/{path}` answers with it as `artwork` (`id`, and the `image`:
+ * `path`, `reference`, `url`, `name`, `title`, or `null` when the id is
+ * no image in the library; `null` for none), and an image with the
+ * files that show it (`artworkFor`: `path`, `name`, `title`, `kind`).
+ * `PUT media-artwork/{path}` (`setArtwork()`, by whoever may change the
+ * file's details) links `{"image": "{id}"}`, or with `{"from": "file"}`
+ * adds the picture the file carries to the library first
+ * (`MediaArtwork::adopt()`, which also takes uploading images, and
+ * which `may.addArtwork` says the account can do); `DELETE` takes it
+ * off, leaving the image. Both answer with the file. Deleting an image
+ * takes it off the files that showed it.
+ *
  * `DELETE` (`delete()`, D-407, `media.delete`, and `media.delete.others`
  * for a file that isn't the account's) removes the file, its metadata,
  * and a copy `media:publish --copy` made, and answers `{"deleted"}`; the
@@ -98,7 +112,10 @@ use Blush\Support\UrlPath;
  * `title` (D-290), `alt`, and `caption` (`''` for none; `MediaMetadataStore`),
  * its uploader's username (`owner`, `''` for none), its `id` (D-487,
  * `''` for a file with none), and how many sizes an image has
- * (`sizeCount`, D-488). The library lists one item per image, never its
+ * (`sizeCount`, D-488), and a sound's or video's artwork to show as its
+ * thumbnail (`artworkUrl`, D-583: its library image's URL, else the
+ * address the picture it carries is served at, else `null`;
+ * `MediaArtwork::url()`). The library lists one item per image, never its
  * sizes; `GET media/{path}` for an image lists its `sizes` (`path`,
  * `reference`, `name`, `url`, `width`, `height`, `size`), and for a size
  * names its `original` (`path`, `reference`, `name`, `title`), whose
@@ -137,7 +154,8 @@ final readonly class MediaListController
 		private MediaUsage $usage,
 		private AccountStore $store,
 		private Accounts $accounts,
-		private EmbeddedMetadataReader $embedded
+		private EmbeddedMetadataReader $embedded,
+		private MediaArtwork $artworks
 	) {}
 
 	public function __invoke(ServerRequestInterface $request): ResponseInterface
@@ -171,7 +189,7 @@ final readonly class MediaListController
 			per: $per
 		));
 
-		$files = array_map(fn (MediaRecord $record): array => self::describe($record->file($this->paths), $record->url, $record->key, $record->metadata(), $record->duration(), count($this->library->sizes($record->key))), $found->records);
+		$files = array_map(fn (MediaRecord $record): array => self::describe($record->file($this->paths), $record->url, $record->key, $record->metadata(), $record->duration(), count($this->library->sizes($record->key)), $this->artworks->url($record)), $found->records);
 
 		return Response::json([
 			'search'  => $search,
@@ -231,6 +249,122 @@ final readonly class MediaListController
 			'Cache-Control'          => 'private, max-age=3600',
 			'X-Content-Type-Options' => 'nosniff'
 		], $found->bytes);
+	}
+
+	/**
+	 * `PUT media-artwork/{path}`: links a library image as a sound's or
+	 * video's artwork (D-581), or adds the one it carries to the library
+	 * and links that.
+	 */
+	public function setArtwork(ServerRequestInterface $request, string $path): ResponseInterface
+	{
+		$target = $this->artworkTarget($request, $path);
+
+		if ($target instanceof ResponseInterface) {
+			return $target;
+		}
+
+		[$account, $file, $reference, $record] = $target;
+
+		try {
+			$input = json_decode((string) $request->getBody(), true, 4, JSON_THROW_ON_ERROR);
+		} catch (JsonException) {
+			$input = null;
+		}
+
+		$image = is_array($input) ? $input['image'] ?? null : null;
+		$from  = is_array($input) ? $input['from'] ?? null : null;
+
+		if (! is_string($image) && $from !== 'file') {
+			return self::error('Send the library image\'s id as "image", or "from": "file" for the artwork the file carries.', Status::BadRequest);
+		}
+
+		if (! is_string($image) && ! $this->mayAddArtwork($account, $record)) {
+			return self::error('You aren\'t allowed to add images to the library, or this file carries no artwork.', Status::Forbidden);
+		}
+
+		try {
+			is_string($image) ? $this->artworks->link($record, $image) : $this->artworks->adopt($record, $account->username);
+		} catch (MediaException $error) {
+			return self::error($error->getMessage(), Status::UnprocessableContent);
+		}
+
+		return Response::json($this->details($file, $reference, $record->key, $this->metadata->find($file), $account), headers: ['Cache-Control' => 'no-store']);
+	}
+
+	/**
+	 * `DELETE media-artwork/{path}`: takes a sound's or video's artwork
+	 * off (D-581), leaving the image in the library.
+	 */
+	public function removeArtwork(ServerRequestInterface $request, string $path): ResponseInterface
+	{
+		$target = $this->artworkTarget($request, $path);
+
+		if ($target instanceof ResponseInterface) {
+			return $target;
+		}
+
+		[$account, $file, $reference, $record] = $target;
+
+		try {
+			$this->artworks->unlink($record);
+		} catch (MediaException $error) {
+			return self::error($error->getMessage(), Status::InternalServerError);
+		}
+
+		return Response::json($this->details($file, $reference, $record->key, $this->metadata->find($file), $account), headers: ['Cache-Control' => 'no-store']);
+	}
+
+	/**
+	 * The sound or video whose artwork a request changes, with the
+	 * account changing it, or the response refusing it in the account's
+	 * place.
+	 *
+	 * @return ResponseInterface|array{Account, MediaFile, string, MediaRecord}
+	 */
+	private function artworkTarget(ServerRequestInterface $request, string $path): ResponseInterface|array
+	{
+		$account  = $request->getAttribute(Account::class);
+		$relative = trim($path, '/');
+
+		if (! $account instanceof Account) {
+			return self::error('You aren\'t allowed to change media.', Status::Forbidden);
+		}
+
+		[$file, $reference] = $this->libraryFile($path);
+
+		try {
+			$record = $file === null ? null : $this->library->find($relative);
+		} catch (MediaException $error) {
+			return self::error($error->getMessage(), Status::InternalServerError);
+		}
+
+		if ($file === null || $record === null) {
+			return self::error(sprintf('There\'s no "%s" in the media library.', $path), Status::NotFound);
+		}
+
+		if (! MediaArtwork::has($record->kind())) {
+			return self::error('Only sounds and videos have artwork.', Status::UnprocessableContent);
+		}
+
+		if (! $this->permissions->mayChangeMedia($account, Capability::MediaEdit, $this->metadata->find($file)->owner)) {
+			return self::error('You aren\'t allowed to change this file\'s details.', Status::Forbidden);
+		}
+
+		return [$account, $file, $reference, $record];
+	}
+
+	/**
+	 * Whether an account may add the artwork a file carries to the
+	 * library: the account may upload images, which the upload rules
+	 * allow, and it carries an image the library takes.
+	 */
+	private function mayAddArtwork(Account $account, ?MediaRecord $record): bool
+	{
+		return $record !== null
+			&& $this->config->uploads->allows(MediaKind::Image)
+			&& $this->permissions->mayUpload($account, MediaKind::Image)
+			&& $this->artworks->canAdopt($record);
 	}
 
 	public function update(ServerRequestInterface $request, string $path): ResponseInterface
@@ -352,6 +486,13 @@ final readonly class MediaListController
 		}
 
 		try {
+			// The files that showed it as their artwork no longer do (D-581).
+			$id = $this->metadata->find($file)->id;
+
+			if ($id !== '' && MediaKind::fromMime($file->mime) === MediaKind::Image) {
+				$this->artworks->forget($id);
+			}
+
 			foreach ([$relative, ...$sizes] as $key) {
 				$this->metadata->forget($key);
 			}
@@ -474,7 +615,7 @@ final readonly class MediaListController
 		$original = $record?->original === null ? null : $this->library->find($record->original);
 
 		return [
-			...self::describe($file, $reference, $relative, $metadata, $record?->duration(), count($sizes)),
+			...self::describe($file, $reference, $relative, $metadata, $record?->duration(), count($sizes), $record === null ? '' : $this->artworks->url($record)),
 			'embedded'   => ['values' => (object) ($embedded->values ?? []), 'location' => $embedded?->location !== null],
 			'fields'     => array_values(array_map(static fn (Field $field): array => $field->toForm(), $schema->fields)),
 			'sets'       => array_map(static fn (FieldSet $set): array => [
@@ -492,9 +633,17 @@ final readonly class MediaListController
 			], $result->violations),
 			'uploader'   => $metadata->owner === '' ? null : ['username' => $metadata->owner, 'name' => $owner === null ? $metadata->owner : $this->accounts->displayName($owner)],
 			'may'        => [
-				'edit'   => $original === null && $this->permissions->mayChangeMedia($account, Capability::MediaEdit, $metadata->owner),
-				'delete' => $this->permissions->mayChangeMedia($account, Capability::MediaDelete, $metadata->owner)
+				'edit'       => $original === null && $this->permissions->mayChangeMedia($account, Capability::MediaEdit, $metadata->owner),
+				'delete'     => $this->permissions->mayChangeMedia($account, Capability::MediaDelete, $metadata->owner),
+				'addArtwork' => $original === null && $this->permissions->mayChangeMedia($account, Capability::MediaEdit, $metadata->owner) && $this->mayAddArtwork($account, $record)
 			],
+			'artwork'    => MediaArtwork::has(MediaKind::fromMime($file->mime)) ? $this->artworkOf($metadata) : null,
+			'artworkFor' => $metadata->id === '' || MediaKind::fromMime($file->mime) !== MediaKind::Image ? [] : array_map(static fn (MediaRecord $shown): array => [
+				'path'  => $shown->key,
+				'name'  => basename($shown->key),
+				'title' => $shown->metadata()->title,
+				'kind'  => $shown->kind()->value
+			], $this->library->withArtwork($metadata->id)),
 			'usedIn'     => $this->usage->entries($relative, ...array_map(static fn (MediaRecord $size): string => $size->key, $sizes)),
 			'sizes'      => array_map(fn (MediaRecord $size): array => [
 				'path'      => $size->key,
@@ -510,6 +659,32 @@ final readonly class MediaListController
 				'reference' => $original->url,
 				'name'      => basename($original->key),
 				'title'     => $original->metadata()->title
+			]
+		];
+	}
+
+	/**
+	 * A sound's or video's artwork (D-581): its id, and the library image
+	 * it names, `null` when it names none that's there; `null` for none.
+	 *
+	 * @return ?array{id: string, image: ?array{path: string, reference: string, url: string, name: string, title: string}}
+	 */
+	private function artworkOf(MediaMetadata $metadata): ?array
+	{
+		if ($metadata->artwork === '') {
+			return null;
+		}
+
+		$image = $this->library->findId($metadata->artwork);
+
+		return [
+			'id'    => $metadata->artwork,
+			'image' => $image === null || $image->kind() !== MediaKind::Image ? null : [
+				'path'      => $image->key,
+				'reference' => $image->url,
+				'url'       => $image->url,
+				'name'      => basename($image->key),
+				'title'     => $image->metadata()->title
 			]
 		];
 	}
@@ -560,7 +735,7 @@ final readonly class MediaListController
 	 *
 	 * @return array<string, mixed>
 	 */
-	public static function describe(MediaFile $file, string $reference, string $relative, MediaMetadata $metadata, ?float $duration = null, int $sizes = 0): array
+	public static function describe(MediaFile $file, string $reference, string $relative, MediaMetadata $metadata, ?float $duration = null, int $sizes = 0, string $artwork = ''): array
 	{
 		$folder = dirname($relative);
 
@@ -581,7 +756,8 @@ final readonly class MediaListController
 			'caption'   => $metadata->caption,
 			'owner'     => $metadata->owner,
 			'id'        => $metadata->id,
-			'sizeCount' => $sizes
+			'sizeCount' => $sizes,
+			'artworkUrl' => $artwork === '' ? null : $artwork
 		];
 	}
 

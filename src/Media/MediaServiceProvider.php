@@ -42,6 +42,7 @@ final class MediaServiceProvider extends ServiceProvider
 	 */
 	protected const array TRANSIENTS = [
 		MediaController::class,
+		MediaArtworkController::class,
 		MediaRoutes::class
 	];
 

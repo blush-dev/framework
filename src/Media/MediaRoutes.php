@@ -20,9 +20,11 @@ use Blush\Routing\RouteSource;
 
 /**
  * The media route (`media`): `{url}/{path}`, streamed by
- * `MediaController`. It's a system route, so content can never take over
- * media URLs. Published media is served by the web server before a
- * request reaches it.
+ * `MediaController`; and the artwork route (`media.artwork`):
+ * `{url}-artwork/{path}`, the picture a sound or video carries
+ * (`MediaArtworkController`, D-575). They're system routes, so content
+ * can never take over media URLs. Published media is served by the web
+ * server before a request reaches it; artwork never is.
  */
 final readonly class MediaRoutes implements RouteSource
 {
@@ -45,6 +47,9 @@ final readonly class MediaRoutes implements RouteSource
 	#[Override]
 	public function routes(): iterable
 	{
-		return [Route::get("{$this->config->url}/{path:.+}", MediaController::class)->named('media')];
+		return [
+			Route::get("{$this->config->url}/{path:.+}", MediaController::class)->named('media'),
+			Route::get("{$this->config->artworkUrl()}/{path:.+}", MediaArtworkController::class)->named('media.artwork')
+		];
 	}
 }

@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Blush\View;
 
+use Psr\Log\LoggerInterface;
 use Blush\Content\Entry\Entry;
 use Blush\Core\Framework;
 use Blush\Core\Paths;
@@ -45,7 +46,8 @@ final class ViewFactory
 		private readonly Paths $paths,
 		private readonly Translator $translator,
 		private readonly ViewServices $services,
-		private readonly SettingsResolver $settings
+		private readonly SettingsResolver $settings,
+		private readonly ?LoggerInterface $logger = null
 	) {}
 
 	/**
@@ -80,8 +82,10 @@ final class ViewFactory
 	}
 
 	/**
-	 * Builds the context for a page: the `Head` with the site name, the
-	 * `viewport` and `generator` meta tags (D-472), and the active
+	 * Builds the context for a page: its `PageMarkup` (D-578), with the
+	 * site name in the head and, in development, the log for footer
+	 * scripts a layout doesn't print; the `viewport` and `generator` meta
+	 * tags (D-472), and the active
 	 * theme's stylesheets and scripts (with any stylesheets a
 	 * build manifest pairs with them; built scripts load as modules) and
 	 * the files it preloads (D-558),
@@ -94,8 +98,14 @@ final class ViewFactory
 	 */
 	public function context(Views $views, ?Entry $entry = null, string $path = '', ?string $language = null): ViewContext
 	{
-		$head  = new Head($this->services->app->name, origin: $this->services->app->origin(), assets: $this->services->assets);
-		$theme = $views->chain->active();
+		$markup = new PageMarkup(
+			$this->services->app->name,
+			origin: $this->services->app->origin(),
+			assets: $this->services->assets,
+			logger: $this->services->app->environment->isDevelopment() ? $this->logger : null
+		);
+		$head   = $markup->head;
+		$theme  = $views->chain->active();
 
 		$head->meta('viewport', 'width=device-width, initial-scale=1');
 		$head->meta('generator', Framework::NAME . ' ' . Framework::VERSION);
@@ -138,7 +148,7 @@ final class ViewFactory
 		$locale  = ($language === null ? null : $this->services->app->languages->find($language)?->locale) ?? $entry->locale ?? $this->services->app->locale;
 		$language ??= $entry?->language;
 		$context = new ViewContext(
-			$head,
+			$markup,
 			['site' => Site::fromConfig($this->services->app, $locale)],
 			is_string($layout) ? $layout : null,
 			$path,
@@ -167,7 +177,7 @@ final class ViewFactory
 		$locale = $found->locale ?? $this->services->app->locale;
 
 		return new ViewContext(
-			new Head($this->services->app->name, origin: $this->services->app->origin()),
+			new PageMarkup($this->services->app->name, origin: $this->services->app->origin()),
 			['site' => Site::fromConfig($this->services->app, $locale)],
 			locale: $locale,
 			language: $found !== null && $this->services->app->languages->isOther($found->code) ? $found->code : ''

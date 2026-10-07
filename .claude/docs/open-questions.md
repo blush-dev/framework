@@ -1016,9 +1016,6 @@ Move each item to `decisions.md` once it's answered.
   - Adopting WordPress variants as Blush sizes (D-239): when a generated
     size matches a variant's dimensions, serve the existing file instead
     of generating one, or always generate?
-  - Extracting embedded artwork (D-291 notes it only; on hold, D-295):
-    a cached image the library and themes can show, as a sound's
-    thumbnail?
 - **Media as records: sizes, grouping, and importers** (discussed
   2026-10-05; ids on media are D-487):
   - **Recorded sizes** are built (D-488). Still open: image sizes Blush
@@ -1061,13 +1058,6 @@ Move each item to `decisions.md` once it's answered.
       (D-479); Blush-made sizes cached by id; importers writing ids,
       `sizes`, and source keys; `MediaMetadataStore` behind the `data`
       area's interface (D-486).
-  - **Artwork into the library** (the author, 2026-10-06, after D-552):
-    a sound's or video's embedded cover art is served from the file
-    (`GET media-artwork/{path}`), which is fine for now. Later, upload
-    it (or offer to) as an image in the media library, so it has its
-    own id, alt text, and sizes, and can be used anywhere: on upload,
-    from a button on the file's screen, or both? And should a sound
-    without embedded art be able to name a library image as its cover?
   - **Importers** (and exporters): a public API and registry for any
     importer (an `Importer` interface; Type enum + Registry + Factory +
     Registrar), WordPress (WXR) first, in core or as a plugin. Importers
@@ -1275,6 +1265,16 @@ Move each item to `decisions.md` once it's answered.
   - **Undecided:** core or a plugin (a plugin needs a way to change a
     rendered HTML response before the page cache, such as middleware
     or an event); if core, a setting, and on which screen.
+- **Inline code or data on a registered asset** (raised 2026-10-07):
+  data and inline code are tied to a handle at runtime (D-580:
+  `data(for:)`, `inlineScript(after:)`). Open: whether `Asset` itself
+  can carry them, for code or settings that are the same on every
+  page, and how a theme's `theme.json` `assets` would write them.
+- **A late page event** (raised 2026-10-07, D-578): an event dispatched
+  from `PageMarkup::fill()`, once the page has rendered, for reacting
+  to what it asked for (a preconnect only when the player loaded, or
+  checking the final HTML). Left until something needs it; head and
+  foot events from themes were turned down in D-578.
 - **Scripts and styles at the end of the page** (raised 2026-10-05):
   `View\Head` (D-109, D-472) prints only inside `<head>`, so there's no
   way to print an asset before `</body>`. Scripts in the head are
@@ -1291,7 +1291,9 @@ Move each item to `decisions.md` once it's answered.
     A separate body-end object would mean two collections and
     printing once across both.
   - **A second print point**, such as `$template->foot()`, that base
-    layouts print before `</body>`.
+    layouts print before `</body>`. (Built for scripts: D-570, D-577,
+    D-578: `PageMarkup` with `Head` and `Foot`; `Foot` has no styles
+    yet.)
   - **Undecided:** the flag's name and form; whether `Head` is renamed,
     since it would no longer hold only the head; which placement wins
     when an asset is asked for in both (probably the head, since

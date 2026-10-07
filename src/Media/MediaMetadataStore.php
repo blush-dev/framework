@@ -125,6 +125,26 @@ final readonly class MediaMetadataStore
 	}
 
 	/**
+	 * The first free path for a name in a folder under `user/media`: the
+	 * name, else with `-2`, `-3`, … before its extension. A name with
+	 * metadata left behind (its file was removed by hand) isn't free, so
+	 * a new file doesn't take on another's alt text.
+	 */
+	public function freePath(string $folder, string $name): string
+	{
+		$extension = pathinfo($name, PATHINFO_EXTENSION);
+		$base      = pathinfo($name, PATHINFO_FILENAME);
+		$path      = "{$folder}/{$name}";
+		$taken     = fn (string $path): bool => file_exists($path) || $this->has(substr($path, strlen($this->paths->media) + 1));
+
+		for ($n = 2; $taken($path); $n++) {
+			$path = "{$folder}/{$base}-{$n}" . ($extension === '' ? '' : ".{$extension}");
+		}
+
+		return $path;
+	}
+
+	/**
 	 * Returns whether a media file's metadata can be written over: it has
 	 * no metadata file, or one that reads as a map. One that doesn't is
 	 * left for its author to fix (`content:lint` says why).

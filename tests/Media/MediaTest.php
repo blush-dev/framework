@@ -138,7 +138,7 @@ final class MediaTest extends TestCase
 		$this->assertSame('/files', $config->url);
 		$this->assertTrue($config->allows('IMAGE/PNG'));
 		$this->assertFalse($config->allows('image/jpeg'));
-		$this->assertSame(['url' => '/files', 'types' => ['image/png'], 'autoIndex' => true, 'uploads' => ['enabled' => true, 'maxSize' => null, 'path' => '{year}/{month}', 'kinds' => []]], $config->toArray());
+		$this->assertSame(['url' => '/files', 'types' => ['image/png'], 'autoIndex' => true, 'uploads' => ['enabled' => true, 'maxSize' => null, 'path' => '{year}/{month}', 'kinds' => []], 'addArtwork' => false], $config->toArray());
 	}
 
 	public function testStreamsMediaWithRanges(): void

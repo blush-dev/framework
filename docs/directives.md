@@ -146,18 +146,43 @@ so they still work in feeds.
 
 | Directive | Example                                                                     | Props                                                                                                                                                                                                             |
 |-----------|-----------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `audio`   | `::audio[Episode 12]{src=/media/episode.mp3}`                               | `src`. `preload`: `metadata` (default), `none`, or `auto`. `loop`. The label is the caption. It plays in Blush's player (see below).                                                                            |
+| `audio`   | `::audio[Episode 12]{src=/media/episode.mp3}`                               | `src`. `preload`: `metadata` (default), `none`, or `auto`. `loop`. The label is the caption. It plays in Blush's player (see below). The `card` variant draws a card (see below), with `title`, `artist`, `album`, and `art`. |
 | `video`   | `::video[Launch day]{src=/media/launch.mp4 poster=/media/launch.jpg}`       | `src`, `poster` (an image shown before it plays), `track` (a WebVTT captions file, in the page's language). `width` and `height`, which default to the poster's. `preload`, `loop`, `muted`. The label is the caption. |
 | `file`    | `::file[The annual report]{src=/media/report.pdf}`                          | `src`. The label is the link text (the file's name without one). It shows the file's type, and its size when it's in your media folder.                                                                           |
 
 Audio and video play in Blush's own player: a round play button, a bar
-to move through it, and the time, plus mute, volume, captions, and full
-screen for video. Its script and styles load only on pages that play
+to move through it, the time, and the volume (a mute button with a
+slider over it), plus captions and full screen for video. The volume is
+one setting for every player on the page, and the browser remembers it
+for the next visit. On phones that keep the volume to themselves
+(iPhones and iPads), only the mute button shows. Its script and styles load only on pages that play
 something, and until the script loads, the browser's own controls
 show. Its button labels come from the `player` messages, which a theme
 can reword ([Translations](themes.md#translations)), and a theme
 restyles it with the `--player-*` properties
 ([Scripts and styles](themes.md#scripts-and-styles)).
+
+For a song or an episode, `variant=card` draws the audio as a card:
+its artwork beside its title and who made it, over the player.
+
+```markdown
+::audio{src=/media/morning-song.mp3 variant=card}
+
+::audio[Episode 12]{src=/media/episode-12.mp3 variant=card artist="The Show" art=/media/show.jpg}
+```
+
+Each part comes from a prop first, then from the file:
+
+- The title is `title`, else the label, else the file's title in the
+  [media library](media.md), else the one saved in the file itself.
+- Under it, `artist` and `album`, else the ones saved in the file.
+- The artwork is `art`, an image, else the file's
+  [artwork](media.md#artwork) from the library, else the cover art saved
+  in the file, which Blush serves at `/media-artwork/…` beside
+  `/media/…`. Without any, the card has no artwork.
+
+A video without a `poster` uses its artwork the same way, and then,
+without `width` and `height`, the video's own size.
 
 Only the [file types your site allows](media.md#allowed-file-types) are
 served, so check the list before offering other kinds of files for

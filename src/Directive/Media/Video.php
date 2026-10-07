@@ -22,6 +22,8 @@ use Blush\Directive\DirectiveView;
 use Blush\Directive\MediaProp;
 use Blush\Core\AppConfig;
 use Blush\Core\Framework;
+use Blush\Markdown\MarkdownConfig;
+use Blush\Media\MediaArtwork;
 use Blush\Media\MediaKind;
 use Blush\Media\MediaResolver;
 use Blush\Directive\DirectiveKind;
@@ -33,8 +35,12 @@ use Blush\Directive\DirectiveKind;
  * captions file, in the page's language) are resolved like an image's,
  * and the label is the caption (D-198).
  *
- * Without `width` and `height`, the poster's size is used, so the page
- * doesn't shift while the video loads. `preload` is `metadata` by
+ * Without a `poster`, the video's artwork is (D-581, `MediaArtwork`):
+ * the library image its metadata names, else the picture it carries.
+ *
+ * Without `width` and `height`, the poster's size is used, else, for a
+ * poster from its artwork, the video's own, so the page doesn't shift
+ * while the video loads. `preload` is `metadata` by
  * default; `loop` repeats it and `muted` starts it silent.
  */
 final class Video extends Directive
@@ -63,6 +69,12 @@ final class Video extends Directive
 	public const ?DirectiveKind KIND = DirectiveKind::Leaf;
 
 	/**
+	 * The poster's URL: the `poster` prop, else the video's artwork (a
+	 * full URL when Markdown's links are), else `''`.
+	 */
+	public readonly string $posterUrl;
+
+	/**
 	 * The frame's width, given or from the poster.
 	 */
 	public readonly ?int $width;
@@ -84,6 +96,8 @@ final class Video extends Directive
 	public function __construct(
 		MediaResolver $media,
 		private readonly AppConfig $app,
+		MediaArtwork $artworks,
+		MarkdownConfig $markdown,
 		#[MediaProp(MediaKind::Video)] public readonly string $src = '',
 		#[MediaProp(MediaKind::Image)] public readonly string $poster = '',
 		#[MediaProp] public readonly string $track = '',
@@ -94,10 +108,15 @@ final class Video extends Directive
 		public readonly bool $muted = false,
 		public readonly string $label = ''
 	) {
-		$image = $width === null && $height === null && $poster !== '' ? $media->resolve($poster) : null;
+		$record  = $poster === '' && $src !== '' ? $artworks->record($src) : null;
+		$artwork = $record === null ? '' : $artworks->url($record);
+		$sized   = $width === null && $height === null;
+		$image   = $sized && $poster !== '' ? $media->resolve($poster) : null;
+		$own     = $sized && $artwork !== '' ? $record : null;
 
-		$this->width  = $width ?? $image?->width;
-		$this->height = $height ?? $image?->height;
+		$this->posterUrl = $poster !== '' || $artwork === '' ? $poster : ($markdown->absoluteLinks ? $app->absoluteUrl($artwork) : $artwork);
+		$this->width     = $width ?? $image->width ?? $own->width ?? null;
+		$this->height    = $height ?? $image->height ?? $own->height ?? null;
 	}
 
 	/**
@@ -131,7 +150,7 @@ final class Video extends Directive
 			'controls'    => true,
 			'playsinline' => true,
 			'preload'     => $this->preload->value,
-			'poster'      => $this->poster,
+			'poster'      => $this->posterUrl,
 			'width'       => $this->width,
 			'height'      => $this->height,
 			'loop'        => $this->loop,

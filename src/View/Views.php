@@ -92,13 +92,13 @@ final readonly class Views
 	{
 		$names = (array) $names;
 		$found = $this->finder->first($names) ?? throw ViewNotFound::forNames($names);
-		$holds = $context->head->hold();
+		$holds = $context->markup->hold();
 
 		[$html, $handles] = $this->services->collector->collect(fn (): string => $this->renderFile($found[0], $found[1], $data, $context, $context->layout));
 
-		$context->head->enqueue(...$handles);
+		$context->markup->enqueue(...$handles);
 
-		return $holds ? $context->head->fill($html) : $html;
+		return $holds ? $context->markup->fill($html, $context->path) : $html;
 	}
 
 	/**

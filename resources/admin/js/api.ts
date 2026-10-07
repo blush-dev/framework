@@ -1165,6 +1165,9 @@ export interface MediaItem {
 	id: string;
 	// How many sizes an image has (D-488); they aren't listed as items.
 	sizeCount: number;
+	// A sound's or video's artwork, for its thumbnail (D-583): its library
+	// image's URL, else where the picture it carries is served, else `null`.
+	artworkUrl: string | null;
 }
 
 /**
@@ -1198,8 +1201,15 @@ export interface MediaDetail extends MediaItem {
 	embedded: { values: Record<string, string | number | string[]>; location: boolean };
 	// Who uploaded it (D-407), or `null` when no one's recorded.
 	uploader: { username: string; name: string } | null;
-	// What the account may do to it.
-	may: { edit: boolean; delete: boolean };
+	// What the account may do to it: change its details (and a sound's or
+	// video's artwork), delete it, and add the artwork it carries to the
+	// library (D-581).
+	may: { edit: boolean; delete: boolean; addArtwork: boolean };
+	// A sound's or video's artwork (D-581): the library image's id, and the
+	// image, `null` when it's no longer in the library; `null` for none.
+	artwork: { id: string; image: { path: string; reference: string; url: string; name: string; title: string } | null } | null;
+	// For an image, the sounds and videos that show it as their artwork.
+	artworkFor: { path: string; name: string; title: string; kind: string }[];
 	// The entries that use it, or its sizes: their document's path,
 	// title, and type.
 	usedIn: { id: string | null; path: string; title: string; type: string; typeLabel: string }[];

@@ -467,10 +467,17 @@ to `<body>` (D-109), and `stylesheet` is a URL or a theme asset path (D-119).
   `requires`), registered by `ThemeAssetProvider` after plugins and
   before themes' providers. `styles`/`scripts` stay as they are and are
   reserved for a later use (no handles there).
-- **Held head** (D-570): `Views::render()` holds the head, so printing
-  it leaves a placeholder that's filled once the whole page has
-  rendered; scripts can print in the footer (`footer: true`), inserted
-  before `</body>`.
+- **Page markup, held** (D-570, D-577, D-578): a page's `PageMarkup`
+  holds one keyed collection of tags, each placed in the head
+  (`$template->head()`) or the foot (`$template->foot()`, scripts at the
+  end of the body); asked for in both, a tag prints in the head.
+  `Views::render()` holds it, so printing either leaves a placeholder
+  that's filled once the whole page has rendered. Layouts must print
+  `$template->foot()` (checked by `theme:check`, and logged in
+  development when a page loses footer scripts); nothing searches for
+  `</body>`. Data for scripts (`data()`, JSON) and inline code can be tied
+  to an asset (`for:`, `after:`) and print beside its scripts, the code
+  as a module after a deferred one (D-580).
 - **Assets follow output** (D-572): an `AssetCollector` scope per page
   render; a body renders in an isolated scope and keeps its handles
   (with its cached HTML), passing them out only when `Body::html()` is

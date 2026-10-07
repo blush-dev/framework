@@ -21,13 +21,17 @@ use Blush\Field\Field;
 use Blush\Field\Fields\MediaField;
 use Blush\Http\Kernel;
 use Blush\Http\Request;
+use Blush\Media\MediaArtworkController;
 use Blush\Media\MediaConfig;
 use Blush\Media\MediaResolver;
 use Blush\Tests\BootsScratchSite;
+use Blush\Tests\Fixtures\Media\TaggedAudioVideo;
 use Blush\View\ViewContext;
 use Blush\Directive\DirectiveName;
 use Blush\Directive\DirectiveDefinition;
 use Blush\Directive\Media\Audio;
+use Blush\Markdown\MarkdownConfig;
+use Blush\Media\MediaArtwork;
 use Blush\Directive\Media\File;
 use Blush\Directive\Media\MediaPreload;
 use Blush\Directive\Media\Video;
@@ -35,6 +39,7 @@ use Blush\Directive\MediaProp;
 use Blush\Directive\MarkdownDirectives;
 
 #[CoversClass(Audio::class)]
+#[CoversClass(MediaArtworkController::class)]
 #[CoversClass(File::class)]
 #[CoversClass(MediaPreload::class)]
 #[CoversClass(Video::class)]
@@ -56,6 +61,17 @@ final class MediaDirectivesTest extends TestCase
 	private function media(): MediaResolver
 	{
 		return new MediaResolver(Paths::fromRoot($this->temporaryDirectory()), new MediaConfig());
+	}
+
+	/**
+	 * A video directive, its artwork read from the scratch site.
+	 */
+	private function video(AppConfig $config, string $src = '', string $poster = '', ?int $width = null): Video
+	{
+		$app = $this->scratchApplication();
+		$app->boot();
+
+		return new Video($this->media(), $config, $app->container()->make(MediaArtwork::class), new MarkdownConfig(), $src, $poster, width: $width);
 	}
 
 	/**
@@ -105,14 +121,13 @@ final class MediaDirectivesTest extends TestCase
 	{
 		$this->png('user/media/poster.png', 16, 9);
 
-		$video = new Video($this->media(), new AppConfig(locale: 'fr_CA'), '/media/clip.mp4', '/media/poster.png');
+		$video = $this->video(new AppConfig(locale: 'fr_CA'), '/media/clip.mp4', '/media/poster.png');
 
 		$this->assertSame([16, 9], [$video->width, $video->height]);
 		$this->assertSame('fr', $video->trackLang);
-		$this->assertSame([640, null], [new Video($this->media(), new AppConfig(), '/media/clip.mp4', '/media/poster.png', width: 640)->width, new Video($this->media(), new AppConfig(), '/media/clip.mp4', '/media/poster.png', width: 640)->height]);
-		$this->assertSame([null, null], [new Video($this->media(), new AppConfig(), '/media/clip.mp4')->width, new Video($this->media(), new AppConfig(), '/media/clip.mp4')->height]);
-		$this->assertFalse(new Video($this->media(), new AppConfig())->shouldRender());
-		$this->assertFalse(new Audio()->shouldRender());
+		$this->assertSame([640, null], [$this->video(new AppConfig(), '/media/clip.mp4', '/media/poster.png', width: 640)->width, $this->video(new AppConfig(), '/media/clip.mp4', '/media/poster.png', width: 640)->height]);
+		$this->assertSame([null, null], [$this->video(new AppConfig(), '/media/clip.mp4')->width, $this->video(new AppConfig(), '/media/clip.mp4')->height]);
+		$this->assertFalse($this->video(new AppConfig())->shouldRender());
 	}
 
 	public function testMediaPropsAreMediaFields(): void
@@ -338,5 +353,86 @@ final class MediaDirectivesTest extends TestCase
 		$html = (string) $app->container()->make(Kernel::class)->handle(Request::create('/songs'))->getBody();
 
 		$this->assertStringContainsString('<audio class="directive-audio__player" src="/user/media/audio/novas-anthem-001.mp3"', $html);
+	}
+
+	/**
+	 * The `card` variant (D-575): the file's title, artist, album, and
+	 * artwork, each a prop first; the artwork served at the artwork URL.
+	 */
+	public function testACardShowsWhatTheFileCarries(): void
+	{
+		$this->writeTemporaryFile('user/content/songs/index.md', <<<'MD'
+			---
+			title: Songs
+			---
+			::audio{src=/media/song.mp3 variant=card}
+
+			::audio[Given]{src=/media/song.mp3 variant=card artist=Someone art=/media/cover.png}
+
+			::audio{src=/media/bare.mp3 variant=card}
+			MD);
+		$this->writeTemporaryFile('user/media/song.mp3', TaggedAudioVideo::mp3());
+		$this->writeTemporaryFile('user/media/bare.mp3', self::mp3());
+		$this->png('user/media/cover.png', 8, 8);
+
+		$app = $this->scratchApplication(['APP_ENV' => 'development']);
+		$app->boot();
+
+		$kernel = $app->container()->make(Kernel::class);
+		$html   = (string) $kernel->handle(Request::create('/songs'))->getBody();
+
+		$this->assertFalse($app->container()->make(Audio::class)->shouldRender());
+		$this->assertMatchesRegularExpression('#<figure class="directive-audio directive-audio--card audio-card">\s*<figcaption class="audio-card__meta">\s*<span class="audio-card__title">Morning Song</span>\s*<span class="audio-card__by">The Harbors · Tides</span>#', $html);
+		$this->assertMatchesRegularExpression('#<img class="audio-card__art" src="http://localhost/media-artwork/song\.mp3\?v=[0-9a-f]{8}" alt=""#', $html);
+		$this->assertStringContainsString('<span class="audio-card__title">Given</span>', $html, 'The label is the title.');
+		$this->assertStringContainsString('<span class="audio-card__by">Someone · Tides</span>', $html, 'A prop wins over the file.');
+		$this->assertStringContainsString('<img class="audio-card__art" src="http://localhost/media/cover.png"', $html);
+		$this->assertStringContainsString('label-volume="Volume"', $html);
+
+		// A file that carries nothing: the player alone.
+		$this->assertMatchesRegularExpression('#<figure class="directive-audio directive-audio--card audio-card">\s*<blush-audio-player#', $html);
+
+		$artwork = $kernel->handle(Request::create('/media-artwork/song.mp3'));
+
+		$this->assertSame(200, $artwork->getStatusCode());
+		$this->assertSame('image/jpeg', $artwork->getHeaderLine('Content-Type'));
+		$this->assertSame(str_repeat("\xAB", 2048), (string) $artwork->getBody());
+		$this->assertSame(404, $kernel->handle(Request::create('/media-artwork/bare.mp3'))->getStatusCode());
+		$this->assertSame(404, $kernel->handle(Request::create('/media-artwork/cover.png'))->getStatusCode());
+	}
+
+	/**
+	 * A file's artwork (D-581): the library image its metadata names wins
+	 * over the picture it carries, for a card and for a video's poster,
+	 * which a video without one takes from what it carries, at its size.
+	 */
+	public function testArtworkIsTheLibraryImageAFileNames(): void
+	{
+		$this->writeTemporaryFile('user/content/songs/index.md', <<<'MD'
+			---
+			title: Songs
+			---
+			::audio{src=/media/song.mp3 variant=card}
+
+			::video{src=/media/clip.mp4}
+
+			::video{src=/media/linked.mp4}
+			MD);
+		$this->writeTemporaryFile('user/media/song.mp3', TaggedAudioVideo::mp3());
+		$this->writeTemporaryFile('user/media/clip.mp4', TaggedAudioVideo::mp4());
+		$this->writeTemporaryFile('user/media/linked.mp4', TaggedAudioVideo::mp4());
+		$this->png('user/media/cover.png', 8, 8);
+		$this->writeTemporaryFile('user/data/media/cover.png.json', "{\"id\": \"01890a5d-ac96-774b-bcce-b302099a8057\"}\n");
+		$this->writeTemporaryFile('user/data/media/song.mp3.json', "{\"artwork\": \"01890A5D-AC96-774B-BCCE-B302099A8057\"}\n");
+		$this->writeTemporaryFile('user/data/media/linked.mp4.json', "{\"artwork\": \"01890a5d-ac96-774b-bcce-b302099a8057\"}\n");
+
+		$app = $this->scratchApplication(['APP_ENV' => 'development']);
+		$app->boot();
+
+		$html = (string) $app->container()->make(Kernel::class)->handle(Request::create('/songs'))->getBody();
+
+		$this->assertStringContainsString('<img class="audio-card__art" src="http://localhost/media/cover.png"', $html, 'Any case of the id.');
+		$this->assertMatchesRegularExpression('#src="http://localhost/media/clip\.mp4"[^>]* poster="http://localhost/media-artwork/clip\.mp4\?v=[0-9a-f]{8}" width="1280" height="720"#', $html);
+		$this->assertMatchesRegularExpression('#src="http://localhost/media/linked\.mp4"[^>]* poster="http://localhost/media/cover\.png" width="1280" height="720"#', $html);
 	}
 }

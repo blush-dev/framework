@@ -453,6 +453,7 @@ What a template can use:
 | `$template->t('key')` | A translated string from `lang/` |
 | `$template->tGroup('group')` | The translated strings of a group in `lang/` (the keys under `group`), keyed by name |
 | `$template->head()` | Add to the `<head>`: title, meta tags, styles, scripts |
+| `$template->foot()` | Add scripts to the end of the page, and print them just before `</body>` in the base layout |
 | `$template->bodyClass()` | The `<body>` classes |
 
 Dates and times use the formats the site owner picks on **Settings →
@@ -520,22 +521,36 @@ field, `og:image` and a Twitter card. Add or replace any tag with
 `$template->head()`, or drop one with `remove()`, such as your stylesheet on
 a page that stands alone:
 `$template->head()->remove('style:' . $template->asset('style.css'))`.
-`$template->head()` prints everything inside `<head>`, so your base
-layout needs only:
+`$template->head()` prints everything inside `<head>`, and
+`$template->foot()` prints the scripts that load at the end of the page,
+so your base layout needs only:
 
 ```php
 <head>
 <?= $template->head() ?>
 
 </head>
+<body>
+…
+<?= $template->foot() ?>
+</body>
 ```
+
+Print `$template->foot()` just before `</body>`, in every layout that
+writes its own `<body>`. Blush, plugins, and themes put scripts there,
+and a layout without it gets none of them: `bin/blush theme:check`
+reports it as an error, and in development, the log names the scripts
+a page lost.
 
 It starts with `<meta charset="utf-8">` and the `<title>`, then prints
 its tags grouped by kind: meta tags (including `viewport` and
 `generator`, which you can replace or remove like any other), OpenGraph
-tags, links, preloads and other resource hints, styles, then scripts.
-Each group keeps the order its tags were added in, so stylesheets and
-inline styles stay in your cascade order. Every line is indented by one
+tags, links, preloads and other resource hints, styles, scripts, then
+inline scripts. Each group keeps the order its tags were added in, so
+stylesheets and inline styles stay in your cascade order. The foot
+prints its scripts before its inline scripts too. An inline script runs
+where it stands, so it still runs before any `defer` or module script,
+wherever it prints. Every line is indented by one
 tab. `bin/blush theme:check` warns if your layout prints the charset,
 `viewport`, `generator`, or `<title>` itself as well.
 The head prints root-relative links and scripts (`/feed`,
@@ -556,9 +571,17 @@ something.
 
 The head is printed once the whole page has rendered, so a template
 can add to it anywhere, even in your footer partial after the layout
-has printed `$template->head()`. Scripts can go in the footer instead,
-just before `</body>`: `$template->head()->script($url, footer: true)`,
-or `inlineScript('id', $js, footer: true)`.
+has printed `$template->head()`. Scripts that should load after the
+page's markup go in the foot instead, where your layout prints
+`$template->foot()`: `$template->foot()->script($url)`, or
+`$template->foot()->inlineScript('id', $js)`. The head and the foot
+share their tags, so a script asked for in both prints once, in the
+head, and `has()` and `remove()` on either find tags in both.
+Inline code prints between its tags as written, trimmed, so a line of
+code prints as `<script id="scheme">…</script>`; code over several
+lines keeps its line breaks. Code and data that belong to a registered
+script can be tied to it, as
+[Inline code and data](extending.md#inline-code-and-data) shows.
 
 Your theme registers its own the same way plugins do: in its
 provider's `boot()`, with `from` set to your theme's name, as
@@ -588,8 +611,9 @@ your site's registrations win over any theme's. `theme.json`'s `styles`
 and `scripts` stay as they are: files every page loads.
 
 The player draws its colors from `--player-*` properties, set to your
-page's own text and background colors. Set any of them on `.player` in
-your stylesheet to make it yours:
+page's own text and background colors. Set any of them on `:root` or
+`.player` (and `.audio-card`, for audio drawn as a card) in your
+stylesheet to make it yours:
 
 ```css
 .player {
@@ -599,12 +623,20 @@ your stylesheet to make it yours:
 	--player-muted: #666;                   /* the time and other buttons */
 	--player-font-mono: var(--font-mono);   /* the time */
 	--player-radius: 8px;                   /* a video's corners */
+	--player-surface: #fff;                 /* a card's background, and the volume slider's */
+	--player-line: #e5e5e5;                 /* a card's border, and the volume slider's */
+	--player-card-radius: 12px;             /* a card's corners, and the volume slider's */
+	--player-title-font: var(--font-heading); /* a card's title */
 }
 ```
 
 `--player-shadow`, `--player-time-size`, `--player-overlay`, and
 `--player-overlay-fg` (a video's controls over the picture) are there
-too. To draw the player yourself, register your own `blush/player`,
+too, and for cards, `--player-fg`, `--player-font`,
+`--player-title-size`, `--player-by-size`, `--player-card-pad`,
+`--player-art-size`, `--player-art-radius`, and `--player-pop-shadow`
+(what lifts the volume slider off the page). A card's text and fonts
+are its surroundings' unless you set them. To draw the player yourself, register your own `blush/player`,
 or an empty one to load nothing: `new Asset('blush/player')` in your
 provider, or `"blush/player": {}` under `assets`.
 
@@ -1097,7 +1129,7 @@ bin/blush theme:check
 
 It checks the manifest and settings, the site's menus and regions, and
 makes sure the base layout has the landmarks and skip link screen reader
-users rely on. Name a theme to check one that isn't active
+users rely on, and prints `$template->foot()`. Name a theme to check one that isn't active
 (`bin/blush theme:check acme/notebook`): its code runs as it would if it
 were active, provider and all, when its requirements are met, so its
 components with a class render in the check. With `--strict`, it also notes a base layout whose
