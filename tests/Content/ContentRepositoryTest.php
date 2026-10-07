@@ -367,7 +367,7 @@ final class ContentRepositoryTest extends TestCase
 
 	public function testPagesNestByFolderAndHierarchicalTermsByParent(): void
 	{
-		$this->contentConfig(['types' => ['topic' => ['kind' => 'taxonomy', 'folder' => 'topics', 'hierarchical' => true]]]);
+		$this->contentConfig(['types' => ['topic' => ['folder' => 'topics', 'order' => 'position', 'hierarchical' => true]], 'relations' => ['topic' => ['kind' => 'classify', 'to' => ['topic']]]]);
 		$this->entry('topics/web.md', 'title: Web');
 		$this->entry('topics/css.md', "title: CSS\nparent: web");
 		$this->entry('topics/grid.md', "title: Grid\nparent: CSS");

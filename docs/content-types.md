@@ -11,16 +11,16 @@ the type's name after an underscore (`_recipe` for `recipe`) unless you
 choose one. The underscore keeps type folders apart from your page
 folders, and it's left out of URLs: `_recipe/` is served at `/recipe`.
 
-## Four kinds of type
+## Three kinds of type
 
-Every content type is one of four kinds:
+Every content type is one of three kinds:
 
 - **Collection:** entries that are listed, such as posts, recipes, or
   projects. A collection has a listing page, and it can have a feed and
-  date archives.
-- **Taxonomy:** entries that group other entries, such as tags,
-  categories, or series. Each entry in a taxonomy is a **term**, and each
-  term gets a page listing the entries in it.
+  date archives. Tags, categories, and series are collections too: their
+  entries are **terms**, which other entries are filed under through a
+  [relation](#terms-and-relationships), and each term gets a page
+  listing the entries filed under it.
 - **Tree:** entries that nest by folder, each served at its file path.
   The built-in `page` type is a tree: it holds every entry that isn't in
   another type's folder, and `about/team.md` is a subpage of `about.md`
@@ -55,8 +55,8 @@ folder: recipes
 ```
 
 **In PHP**, in `config/content.php`, which gives you editor autocomplete
-and type checking. Each kind is its own class: `Collection`, `Taxonomy`,
-`Tree`, or `Profiles`.
+and type checking. Each kind is its own class: `Collection`, `Tree`, or
+`Profiles`.
 
 ```php
 <?php
@@ -79,7 +79,7 @@ code you install. See
 
 ### Changing a type from code
 
-A file in `user/data/types/` named after a collection, taxonomy, or
+A file in `user/data/types/` named after a collection or
 [tree](#trees) from
 `config/content.php` or a plugin changes that type rather than
 defining a new one. Each option it sets replaces the code's, and the
@@ -156,7 +156,7 @@ labels:
 
 ```yaml
 # user/data/types/literary_form.yaml
-kind: taxonomy
+order: position
 labels:
   menu: Forms
 ```
@@ -190,12 +190,14 @@ icon: notebook-pen
 declare(strict_types=1);
 
 use Blush\Content\Query\Order;
+use Blush\Content\Relation\Relation;
+use Blush\Content\Relation\RelationKind;
 use Blush\Content\Type\Collection;
 use Blush\Content\Type\ContentConfig;
 use Blush\Content\Type\DateArchives;
 use Blush\Content\Type\Listing;
-use Blush\Content\Type\Taxonomy;
 use Blush\Content\Type\TypeFeed;
+use Blush\Content\Type\TypeOrder;
 
 return new ContentConfig(
 	types: [
@@ -208,12 +210,18 @@ return new ContentConfig(
 			dateArchives: DateArchives::Month
 		),
 
-		// Tags live in user/content/_blog/tags/.
-		new Taxonomy(
+		// Tags live in user/content/_blog/tags/, ordered by position.
+		new Collection(
 			'tag',
 			folder: '_blog/tags',
-			types: ['post']
+			order: TypeOrder::Position,
+			people: false,
+			llms: false
 		)
+	],
+	relations: [
+		// Posts are filed under tags with a `tag` key.
+		new Relation('tag', RelationKind::Classify, from: ['post'], to: ['tag'], create: true)
 	]
 );
 ```
@@ -232,10 +240,20 @@ dateArchives: month
 
 ```yaml
 # user/data/types/tag.yaml
-kind: taxonomy
 folder: _blog/tags
-types: [post]
+order: position
+people: false
+llms: false
 ```
+
+And the relation, in `user/data/relations/tag.json` (or `tag.yaml`):
+
+```json
+{"kind": "classify", "from": ["post"], "to": ["tag"], "create": true}
+```
+
+The admin's **New Content Type** writes both when you choose **Terms**
+(see [Content types](admin.md#content-types)).
 
 Now:
 
@@ -274,31 +292,102 @@ The homepage then lists posts, with `/page/2` and so on, and the feed
 moves to `/feed`. It takes the place of `user/content/index.md`, which is
 no longer shown.
 
-## Taxonomies
+## Terms and relationships
 
-A taxonomy's entries are terms that group other entries. Set `types` to
-the types it groups.
+A **relation** says how entries of some types link to entries of other
+types: posts filed under categories, a recipe linking to related
+recipes. Relations are defined on their own, not on a type, and each
+names the types it's `from` and the types it's `to`. Links are stored
+in the front matter of the entry that makes them, by slug
+(`category: news`), with their ids kept under
+[`refs`](content.md#links-between-entries).
 
-- Entries join a term with a front matter key named after the taxonomy
-  (`tag: php`, or a list). Use `field` to pick another key, and `aliases`
-  to accept more than one.
-- Each term has a page listing its entries, at `/{folder}/{slug}` (without
-  the folder's underscores). It
-  lists the entries of `types` (every type if you leave it empty), and
-  `termListing` sets how.
-- The taxonomy's own `listing` sets how its listing page (such as
-  `/blog/tags`) lists the terms.
-- Every term is a file (such as `_blog/tags/php.md`), which gives it its
-  title and description. A slug an entry names with no file is left out
-  of the site: no link, no page, and no feed. `content:lint` reports it,
-  and `bin/blush content:terms --write` (or **Terms and Profiles** in
-  Site Health) writes a file for each, titled as the entry wrote it.
-  Adding a new tag in the admin's editor writes its file for you.
+There are a few kinds:
 
-### Hierarchical taxonomies
+- **`classify`** files entries under terms: tags, categories, series.
+  This is what 1.x and early 2.x called a taxonomy.
+- **`reference`** links entries to other entries, such as related
+  posts or a recipe's side dishes.
+- **`credit`** is a [people field](#crediting-people), set up with the
+  type's `people` option.
+- **`parent`** and **`translation`** are built in: an entry's parent in
+  a [nesting collection](#nesting-and-order) or a tree, and a
+  translation's [`translation_of`](content.md#translations).
 
-Set `hierarchical: true` to let a term sit under another, like categories
-with subcategories. A term names its parent by slug in its front matter:
+### Filing entries under terms
+
+A type of terms is a plain collection, usually ordered by `position`,
+with no authors, and left out of `llms.txt`. What makes it terms is a
+`classify` relation, named after it, that says which types are filed
+under it.
+
+In `config/content.php`:
+
+```php
+use Blush\Content\Relation\Relation;
+use Blush\Content\Relation\RelationKind;
+use Blush\Content\Type\Collection;
+use Blush\Content\Type\TypeOrder;
+
+return new ContentConfig(
+	types: [
+		new Collection('category', folder: 'topics', hierarchical: true, order: TypeOrder::Position, people: false, llms: false)
+	],
+	relations: [
+		new Relation('category', RelationKind::Classify, from: ['post'], to: ['category'], create: true)
+	]
+);
+```
+
+Or as data, with the type in `user/data/types/category.yaml` and the
+relation in `user/data/relations/category.json` (or `.yaml`), named by
+its file:
+
+```json
+{"kind": "classify", "from": ["post"], "to": ["category"], "create": true}
+```
+
+In the admin, **New Content Type** with **Terms** creates both, and
+**Add Relationship** on any type's screen adds a relation (see
+[Content types](admin.md#content-types)). The admin edits relations in
+`user/data/relations/`; those defined in code, it only shows.
+
+Then a post names its categories in its front matter:
+
+```yaml
+category: [painting, news]
+```
+
+- A classify relation is **named after the one type it files under**:
+  `to` is `[its name]`. That name is also how templates and queries
+  know the terms (`$template->terms($entry, 'category')`,
+  `whereTerm('category', 'news')`).
+- Entries use a front matter key named after the relation, unless you
+  set `field`; `aliases` adds more keys it's read from.
+- `from` lists the types filed under it; leave it empty for every type.
+  The key is a field of those types only.
+- `create: true` lets writers add a term as they type it in the
+  admin's editor, which writes its file.
+- `required: true` (or `min: 1`) means an entry needs a term to be
+  published; drafts can be saved without one. `multiple: false` allows
+  one term, and `max` a number of them.
+- Every term is a file (such as `topics/painting.md`), which gives it
+  its title and description. A slug an entry names with no file is left
+  out of the site: no link, no page, and no feed. `content:lint`
+  reports it, and `bin/blush content:terms --write` (or **Terms and
+  Profiles** in Site Health) writes a file for each, titled as the
+  entry wrote it.
+
+Relations come from plugins, `config/content.php`, and
+`user/data/relations/`, in that order, and a later one replaces an
+earlier one of the same name. The admin won't create a relation with
+the name of one defined in code. With `dataTypes` off,
+`user/data/relations/` isn't read.
+
+### Nesting and order
+
+Any collection can nest: set `hierarchical: true`, and an entry names
+its parent entry by slug, as categories have subcategories:
 
 ```yaml
 ---
@@ -307,21 +396,136 @@ parent: web-design
 ---
 ```
 
-Term files stay side by side in the taxonomy's folder, so moving a term
-changes one line. A term's URL follows the tree: with `css` under
-`web-design` under `web`, it's `/topics/web/web-design/css`, and its
-later pages and feeds are under that (`…/css/page/2`, `…/css/feed`).
-Any other path to the term, such as `/topics/css` or its address before
-it moved, redirects there. Slugs are unique across the whole taxonomy, as
-they are for any taxonomy. A term below the top can't be slugged `page`
-or `feed`, since those words start its paged and feed URLs.
+Files stay side by side in the collection's folder, so moving an entry
+changes one line, and slugs stay unique across the whole collection.
+Its entries' URLs follow the tree: with `css` under `web-design` under
+`web`, it's `/topics/web/web-design/css`, and a term's later pages and
+feeds are under that (`…/css/page/2`, `…/css/feed`). Any other path to
+it, such as `/topics/css` or its address before it moved, redirects
+there. An entry below the top can't be slugged `page` or `feed`, since
+those words start its paged and feed URLs.
 
-A term's page still lists only the entries in that term, not those in its
-child terms. Themes show the tree with `$template->parent()`,
+Themes show the tree with `$template->parent()`,
 `$template->ancestors()`, and `$template->children()` (see
-[Themes](themes.md)), and the admin shows each term's parents before its
-title. `bin/blush content:lint` reports a parent with no file (the term
-is shown at the top level) and a term that's its own ancestor.
+[Themes](themes.md)), and the admin shows each entry's parents before
+its title. `bin/blush content:lint` reports a parent with no file (the
+entry is shown at the top level) and an entry that's its own ancestor.
+
+A collection's `order` sets how it lists its entries: `published`
+(newest first, the default) or `position`, by the `position` front
+matter (lowest first), then title. A collection that nests or is
+ordered by position has the `position` field.
+
+```yaml
+# user/data/types/category.yaml
+folder: topics
+hierarchical: true
+order: position
+```
+
+### Term pages
+
+A type of terms with URLs gets a page for each term, listing the
+entries filed under it, at `/{folder}/{slug}` (without the folder's
+underscores; nested for a nesting collection). Term pages are paged
+(`/topics/painting/page/2`), and have feeds (`/topics/painting/feed`)
+when the type of terms has `feed`. The type's own listing page (such as
+`/topics`) lists its terms, as its `listing` says.
+
+A term's page lists only the entries filed under that term, not those
+under its child terms. The relation's `inverse` sets the term side:
+
+| Option            | Default                 | What it does                                                                    |
+|-------------------|-------------------------|---------------------------------------------------------------------------------|
+| `archive`         | `true` for `classify`   | Whether each term has a page listing what's filed under it                      |
+| `types`           | The relation's `from`   | The types a term's page lists                                                   |
+| `listing`         |                         | How a term's page lists entries, with a type's [`listing`](#listing-entries) keys, such as `order` and `perPage` |
+| `label`           |                         | What the term side is called                                                    |
+| `max`             |                         | How many entries may be filed under one term                                    |
+
+For example, twenty entries to a term's page:
+
+```json
+{
+	"kind": "classify",
+	"from": ["post"],
+	"to": ["category"],
+	"inverse": {"listing": {"perPage": 20}}
+}
+```
+
+`"archive": false`, or `inverse: false`, gives the terms no pages of
+their own.
+
+### Linking entries to other entries
+
+A `reference` relation links entries to entries of the types in `to`,
+by slug:
+
+```php
+new Relation('related', RelationKind::Reference, from: ['recipe'], to: ['recipe'], max: 3)
+```
+
+```yaml
+related: [lemon-cake, shortbread]
+```
+
+`ordered: true` keeps the order they're written in. No entry links to
+itself. A
+[`reference` field](#custom-fields) with `to` in a type's `fields`
+works as before; Blush reads it as a reference relation.
+
+### Relation options
+
+| Option         | Default          | What it does                                                                                       |
+|----------------|------------------|----------------------------------------------------------------------------------------------------|
+| `kind`         | `reference`      | `classify` or `reference` (`credit`, `parent`, and `translation` are built in)                     |
+| `from`         | Every type       | The types whose entries make the link                                                              |
+| `to`           |                  | The types linked to. A `classify` relation's is `[its name]`                                       |
+| `field`        | The name         | The front matter key the link is written under                                                     |
+| `aliases`      | `[]`             | Other keys it's read from                                                                          |
+| `multiple`     | `true`           | Whether an entry may link to several                                                               |
+| `ordered`      | `false`          | Whether the order they're written in matters                                                       |
+| `required`     | `false`          | Whether an entry needs one to be published (in the admin; a draft saves without)                   |
+| `max`          | No limit         | The most an entry may have; `content:lint` reports more                                            |
+| `create`       | `false`          | Whether writers may add a target as they type it in the admin                                      |
+| `inverse`      |                  | The targets' side ([Term pages](#term-pages))                                                      |
+| `label`        |                  | What the relation is called                                                                        |
+
+A relation's name uses lowercase letters, digits, and underscores, and
+in a data file it's the file's name. In PHP, `Relation` takes the name
+and kind first and the rest by name, and `Relation::fromArray()` takes
+the same keys as a data file.
+
+### Moving from taxonomies
+
+Blush no longer has a taxonomy kind. A type still written with `kind:
+taxonomy` (or 1.x's `taxonomy: true`) in `user/data/types/` keeps
+working until you migrate it. To find them, run:
+
+```sh
+bin/blush content:taxonomies
+```
+
+Then `bin/blush content:taxonomies --write`, or **Migrate Types** under
+**Taxonomies** in the admin's Site Health, rewrites each:
+
+- The type's file is edited in place, keeping its other keys and YAML
+  comments. The taxonomy's keys are removed, and `order: position`,
+  `llms: false`, and `people: false` are added unless it said otherwise.
+- Its relation is written to `user/data/relations/{name}.json`: its
+  `types` (or `term_collect`) become `from`, `field` and `aliases`
+  carry over, and its `termListing` becomes `inverse.listing`.
+
+Entries' front matter and term URLs don't change. The admin won't edit
+a type still written as a taxonomy until it's migrated.
+
+A taxonomy defined in `config/content.php` or a plugin stops Blush from
+loading, with a message saying what to change: make it a `Collection`
+(with `order: TypeOrder::Position`, and `hierarchical: true` if its
+terms nest) and add a classify relation named after it, as in
+[Filing entries under terms](#filing-entries-under-terms). See
+[Coming from 1.x](coming-from-1x.md#taxonomies) for an array example.
 
 ## Trees
 
@@ -337,7 +541,7 @@ new Tree('doc', folder: '_docs', icon: 'book')
 In YAML, that's `user/data/types/doc.yaml` with `kind: tree`; the
 admin's **New Content Type** writes the same as `doc.json`. A tree from `config/content.php`
 can be [changed from the admin](#changing-a-type-from-code), as
-collections and taxonomies can; the `page` type can't.
+collections can; the `page` type can't.
 
 - Each entry is served at its path in the folder, without the folder's
   underscores: `_docs/install/requirements.md` is at
@@ -387,7 +591,7 @@ Field types:
 | `number`    | A number               | `integer`, `min`, `max`                                                                                             |
 | `enum`      | One of a set of values | `options`                                                                                                           |
 | `list`      | Several values         | `item` (a field definition for each value; text by default)                                                         |
-| `reference` | Other entries, by slug | `to` (the type), `multiple` (default `true`)                                                                        |
+| `reference` | Other entries, by slug | `to` (the type), `multiple` (default `true`); read as a [reference relation](#linking-entries-to-other-entries)       |
 | `media`     | A media file           | `kind`: `image`, `video`, `audio`, `document`, or `file`, so the admin's picker offers only those (any file when it's left out) |
 | `slug`      | A URL-safe name        |                                                                                                                     |
 | `object`    | A group of fields      | `fields`, `closed`                                                                                                  |
@@ -539,7 +743,7 @@ new Listing(orderBy: 'published', order: Order::Desc, perPage: 20)
 | Option    | Default         | What it does                                                           |
 |-----------|-----------------|------------------------------------------------------------------------|
 | `type`    | The type itself | Which type to list                                                     |
-| `orderBy` | Its type's order | `published`, `updated`, `title`, `author`, `position` (a tree's or taxonomy's; those without one come last, by title), or any field. A collection lists newest published first, a taxonomy its terms by `position`, then title |
+| `orderBy` | Its type's order | `published`, `updated`, `title`, `author`, `position` (a tree's, or a collection's that [nests or is ordered by position](#nesting-and-order); those without one come last, by title), or any field. A collection lists by its `order`: newest published first, or by `position`, then title |
 | `order`   | Its type's order | `asc` or `desc` (`Order::Asc` or `Order::Desc` in PHP)                 |
 | `perPage` | `10`            | How many per page; `0` (`Listing::ALL`) for all of them                |
 | `query`   |                 | Any other option from the table below, such as `{terms: {tag: [php]}}` |
@@ -587,29 +791,31 @@ Every kind takes these:
 | `icon`              | Its kind's                                                     | An icon for the admin, by name                                   |
 | `public`            | `true`                                                         | Whether the type is visible on the site at all                   |
 | `sitemap`           | `true`                                                         | Whether entries appear in the sitemap                            |
-| `llms`              | `true` for collections and trees, `false` for taxonomies and profiles | Whether entries are listed in [`llms.txt`](configuration.md#markdown-pages-and-llmstxt). Their Markdown copies stay either way |
+| `llms`              | `true` for collections and trees, `false` for profiles         | Whether entries are listed in [`llms.txt`](configuration.md#markdown-pages-and-llmstxt). Their Markdown copies stay either way |
 | `fields` / `closed` |                                                                | [Custom fields](#custom-fields)                                  |
 | `filename`          | `{slug}`                                                       | How new entries' files are named ([below](#naming-new-files))    |
 
-Collections, taxonomies, and trees also take this:
+Collections and trees also take this:
 
 | Option   | Default                                   | What it does                                                                                                                                |
 |----------|-------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------|
 | `people` | `authors` for collections, none otherwise | How entries credit people ([below](#crediting-people)). `authors: true` or `authors: false` is short for the `authors` field alone, or none |
 
-Collections, taxonomies, and the profiles type also take these:
+Collections and the profiles type also take these:
 
 | Option    | Default       | What it does                                                                                                                      |
 |-----------|---------------|-----------------------------------------------------------------------------------------------------------------------------------|
 | `urls`    | Standard URLs | `false` for no URLs of its own, or [custom URLs](#custom-urls)                                                                    |
 | `listing` |               | How the listing page lists entries ([above](#listing-entries))                                                                    |
-| `feed`    | `false`       | RSS, Atom, and JSON feeds: `true`, or a `TypeFeed` with `categories` (the taxonomy used for each item's categories) and `listing` |
+| `feed`    | `false`       | RSS, Atom, and JSON feeds: `true`, or a `TypeFeed` with `categories` (the [type of terms](#terms-and-relationships) used for each item's categories) and `listing` |
 
 Only collections take:
 
-| Option         | Default | What it does                                                         |
-|----------------|---------|----------------------------------------------------------------------|
-| `dateArchives` | `none`  | Date archives: `year`, `month`, `day`, `hour`, `minute`, or `second` |
+| Option         | Default     | What it does                                                                                     |
+|----------------|-------------|--------------------------------------------------------------------------------------------------|
+| `dateArchives` | `none`      | Date archives: `year`, `month`, `day`, `hour`, `minute`, or `second`                             |
+| `hierarchical` | `false`     | Whether an entry may name a `parent` entry ([Nesting and order](#nesting-and-order))             |
+| `order`        | `published` | `published` (newest first) or `position` (lowest first, then title) ([Nesting and order](#nesting-and-order)) |
 
 ### Naming new files
 
@@ -672,7 +878,7 @@ In the admin, choose it under **File names** on the type's screen.
 A collection's entries are files directly in its folder:
 `_posts/hello.md`, not `_posts/hello/index.md` or `_posts/2024/hello.md`.
 Two kinds of folder may sit inside one: another type's folder (a
-taxonomy at `writing/genres`), and `_` folders (`_posts/_drafts`), which
+type of terms at `writing/genres`), and `_` folders (`_posts/_drafts`), which
 can hold its files. `content:lint` reports an entry kept in a folder as
 an error. To move them, run `bin/blush content:flatten` to see what
 would change, then `bin/blush content:flatten --write`, or use
@@ -680,14 +886,8 @@ would change, then `bin/blush content:flatten --write`, or use
 its collection's folder under its folder's name (`_posts/hello/index.md`
 becomes `_posts/hello.md`), and folders left empty are removed.
 
-Only taxonomies take:
-
-| Option              | Default    | What it does                                                                   |
-|---------------------|------------|--------------------------------------------------------------------------------|
-| `types`             | Every type | The types a term's page lists                                                  |
-| `field` / `aliases` | The name   | The front matter key entries use to join a term, and other keys it's read from |
-| `termListing`       |            | How a term's page lists entries                                                |
-| `hierarchical`      | `false`    | Whether a term may have a `parent` ([above](#hierarchical-taxonomies))         |
+A [nesting collection](#nesting-and-order) is flat too: its entries
+name their parents in front matter rather than sitting in their folders.
 
 For the profiles type, `urls` sets where profiles' pages are (its
 `prefix`, `profiles` by default, whatever the folder), `listing` how a profile's page lists
@@ -724,7 +924,8 @@ move those too. Their paths hold `{profile}`.
 
 Single-entry paths can use `{name}`, `{year}`, `{month}`, `{day}`,
 `{hour}`, `{minute}`, `{second}`, `{profile}` (the first person
-credited), and any taxonomy's name. If
+credited), and the name of any [classify relation](#terms-and-relationships)
+(the first term filed under, such as `{category}`). If
 someone reaches a post by a wrong date, they're redirected to the right
 one.
 
@@ -759,8 +960,8 @@ photographers. Every field points at the same profiles, so Jane is one
 profile whether she wrote a post or cooked a recipe.
 
 Collections have one people field, `authors` (it reads `author` too),
-unless you change it. Pages and taxonomies have none unless you add
-them:
+unless you change it. Pages have none unless you add them, and neither
+do types of terms the admin creates (they say `people: false`):
 
 ```yaml
 # user/data/types/recipe.yaml
@@ -808,8 +1009,8 @@ new Collection('recipe', folder: 'recipes', people: [
 
 `people: true` is the `authors` field alone, and `people: false` none. In
 a type without a people field, its key in front matter is just an
-undeclared key. A taxonomy's field wins over a people field reading the
-same key, so a 1.x site with an `author` taxonomy keeps it.
+undeclared key. A classify relation's field wins over a people field
+reading the same key, so a 1.x site with an `author` taxonomy keeps it.
 
 The default theme's byline uses the first people field ("By Jane") and
 labels the rest ("Photographer: Sam").

@@ -1,7 +1,7 @@
 {
 	"$schema": "http://json-schema.org/draft-07/schema#",
 	"title": "Blush Framework entry",
-	"description": "An entry's front matter: the fields every entry understands. Content types and taxonomies add their own.",
+	"description": "An entry's front matter: the fields every entry understands. Content types and relations add their own.",
 	"type": "object",
 	"properties": {
 		"title": {
@@ -223,6 +223,17 @@
 			"type": "string",
 			"pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$",
 			"description": "The entry's id, a UUID, kept last. Blush writes it; content:ids adds a missing one."
+		},
+		"refs": {
+			"type": "object",
+			"description": "The ids of the entries this one links to, by relation, then by the slug written for each. Blush writes it beside the slugs.",
+			"additionalProperties": {
+				"type": "object",
+				"additionalProperties": {
+					"type": "string",
+					"pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+				}
+			}
 		}
 	},
 	"required": [

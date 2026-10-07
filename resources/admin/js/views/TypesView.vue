@@ -1,10 +1,11 @@
 <script setup lang="ts">
 /**
- * Content types (D-250): every type, taxonomies too, as a list screen
- * with a tab for each kind the site has (D-400: Collections, Trees,
- * Taxonomies, Profiles) and a search, then a screen for each type (admin.md
- * §8, List, then detail). Types in `user/data/types` are created and
- * edited here (D-311), and collections and taxonomies from code are
+ * Content types (D-250): every type, terms too, as a list screen with a
+ * tab for each kind the site has (D-400: Collections, Terms (collections a
+ * classify relation files entries under, D-593), Trees, Profiles) and a
+ * search, then a screen for each type (admin.md §8, List, then detail).
+ * Types in `user/data/types` are created and edited here (D-311), and
+ * collections from code are
  * edited through a file there (D-349); the pages and authors types from
  * code are shown.
  */
@@ -22,7 +23,7 @@ import { canCreateTypes, loadTypes, types } from '../types';
 
 const loaded = ref(false);
 const failed = ref(false);
-const kind   = ref<'all' | ContentTypeSummary['kind']>('all');
+const kind   = ref<'all' | Kind>('all');
 const search = ref('');
 const counts = ref<Record<string, number>>({});
 
@@ -39,20 +40,27 @@ loadTypes().then(() => {
 	failed.value = true;
 });
 
+// A type's tab: its kind, with terms apart from other collections.
+type Kind = ContentTypeSummary['kind'] | 'terms';
+
+function kindOf(type: ContentTypeSummary): Kind {
+	return type.terms ? 'terms' : type.kind;
+}
+
 // Each kind's tab, shown when the site has a type of that kind.
-const kinds: [ContentTypeSummary['kind'], string][] = [['collection', 'Collections'], ['tree', 'Trees'], ['taxonomy', 'Taxonomies'], ['profiles', 'Profiles']];
+const kinds: [Kind, string][] = [['collection', 'Collections'], ['terms', 'Terms'], ['tree', 'Trees'], ['profiles', 'Profiles']];
 
 const tabs = computed(() => [
 	{ key: 'all' as const, label: 'All', count: types.value.length },
 	...kinds
-		.map(([key, label]) => ({ key, label, count: types.value.filter((type) => type.kind === key).length }))
+		.map(([key, label]) => ({ key, label, count: types.value.filter((type) => kindOf(type) === key).length }))
 		.filter((tab) => tab.count > 0)
 ]);
 
 const shown = computed(() => {
 	const words = search.value.trim().toLowerCase();
 
-	return types.value.filter((type) => (kind.value === 'all' || type.kind === kind.value)
+	return types.value.filter((type) => (kind.value === 'all' || kindOf(type) === kind.value)
 		&& (words === '' || `${type.labels.plural} ${type.labels.singular} ${type.name}`.toLowerCase().includes(words)));
 });
 
@@ -68,14 +76,14 @@ function origin(type: ContentTypeSummary): string {
 	<header class="page-header">
 		<div class="page-header__text">
 			<h1 tabindex="-1">Content Types</h1>
-			<p class="page-header__hint">The kinds of entries the site has. Taxonomies are content types too.</p>
+			<p class="page-header__hint">The kinds of entries the site has. Terms are content types too.</p>
 		</div>
 		<div v-if="canCreateTypes" class="page-header__actions">
 			<RouterLink class="button button--primary" :to="{ name: 'type-new' }"><AdminIcon name="plus" />New Content Type</RouterLink>
 		</div>
 	</header>
 
-	<p class="notice"><span>Types made here live in <code>user/data/types</code>, and their screens edit them. Collections and taxonomies from <code>config/content.php</code> and plugins are edited too, with the changes saved in <code>user/data/types</code> over the code's. The pages and authors types stay as their code defines them, so their screens show them.</span></p>
+	<p class="notice"><span>Types made here live in <code>user/data/types</code>, and their screens edit them. Collections from <code>config/content.php</code> and plugins are edited too, with the changes saved in <code>user/data/types</code> over the code's. The pages and authors types stay as their code defines them, so their screens show them.</span></p>
 	<p v-if="failed" class="notice notice--error" role="alert">The content types couldn't be loaded.</p>
 
 	<section v-if="!failed" class="panel" aria-labelledby="types-heading" :aria-busy="!loaded">
@@ -118,7 +126,7 @@ function origin(type: ContentTypeSummary): string {
 								</span>
 							</span>
 						</th>
-						<td>{{ humanize(type.kind) }}</td>
+						<td>{{ type.terms ? 'Terms' : humanize(type.kind) }}</td>
 						<td :class="{ mono: type.origin === 'config' || type.origin === 'data' }">{{ origin(type) }}</td>
 						<td class="table__count mono">{{ type.fields }}</td>
 						<td class="table__count mono">{{ counts[type.name] ?? '—' }}</td>

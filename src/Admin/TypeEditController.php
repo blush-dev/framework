@@ -25,6 +25,9 @@ use Blush\Auth\Permissions;
 use Blush\Cache\ContentVersion;
 use Blush\Content\EntryFields;
 use Blush\Content\Index\Indexer;
+use Blush\Content\Relation\DataRelationWriter;
+use Blush\Content\Relation\InvalidRelation;
+use Blush\Content\Relation\Relation;
 use Blush\Content\Type\ContentType;
 use Blush\Content\Type\ContentTypeCache;
 use Blush\Content\Type\ContentTypes;
@@ -43,11 +46,11 @@ use Blush\Support\Uuid;
 
 /**
  * Creates, changes, and deletes the content types the site defines in
- * `user/data/types` (D-311), and changes the collections and taxonomies
- * code defines through a file there (D-349), for accounts with
- * `site.settings`:
+ * `user/data/types` (D-311), and changes the collections code defines
+ * through a file there (D-349), and the relations the site defines in
+ * `user/data/relations` (D-593), for accounts with `site.settings`:
  *
- * - `POST types`: `{"name", "kind"` (`collection` or `taxonomy`),
+ * - `POST types`: `{"name", "kind"` (`collection` or `tree`),
  *   `"folder"`, `"set"`, `"index"`, `"listPages"`, `"authorsPage"}`; answers `201` with
  *   the type as `GET types/{name}` describes it.
  * - `PATCH types/{name}`: `{"set", "index", "listPages", "authorsPage"}`; answers
@@ -58,10 +61,15 @@ use Blush\Support\Uuid;
  *   so it's as the code defines it; answers with the type.
  * - `POST types/refresh`: compiles the routes again (when the site keeps
  *   them compiled) and reindexes, so the next requests see the change.
+ * - `POST relations`: a relation's definition (`Relation::fromArray()`,
+ *   with its `name`); `PATCH relations/{name}`: its whole definition
+ *   again; both answer with the relation as `RelationsController`
+ *   describes it (`201` for a new one). `DELETE relations/{name}`
+ *   deletes its file (entries keep their links); answers `{"deleted"}`.
  *
  * `set` holds the options to change (`DataTypeWriter`), including
  * `paths`, route keys' paths (D-350); `index: true`
- * gives a collection or taxonomy its index page (D-255), `{folder}/index.md`
+ * gives a collection its index page (D-255), `{folder}/index.md`
  * titled with its plural name, when it has none, and `listPages` (people
  * field names, D-353) gives each of those fields with archives its list
  * page, `{folder}/_{field}.md` titled with the field's plural name, when
@@ -80,6 +88,7 @@ final readonly class TypeEditController
 {
 	public function __construct(
 		private DataTypeWriter $writer,
+		private DataRelationWriter $relations,
 		private TypesController $types,
 		private ContentTypeCache $cache,
 		private RouteCache $routes,
@@ -104,7 +113,7 @@ final readonly class TypeEditController
 		$set   = $input['set'] ?? [];
 
 		if (! is_string($name) || $kind === null || ! is_array($set) || ($set !== [] && array_is_list($set))) {
-			return self::error('Send a "name", a "kind" (collection, taxonomy, or tree), and "set" (options to values).', Status::BadRequest);
+			return self::error('Send a "name", a "kind" (collection or tree), and "set" (options to values).', Status::BadRequest);
 		}
 
 		$folder = is_string($input['folder'] ?? null) ? $input['folder'] : null;
@@ -155,6 +164,34 @@ final readonly class TypeEditController
 		}
 
 		return $this->changed(fn (): ContentTypes => $this->writer->reset($name), $name, false, []);
+	}
+
+	public function createRelation(ServerRequestInterface $request): ResponseInterface
+	{
+		return $this->relationChanged($request, null, Status::Created);
+	}
+
+	public function updateRelation(ServerRequestInterface $request, string $name): ResponseInterface
+	{
+		return $this->relationChanged($request, $name, Status::Ok);
+	}
+
+	public function deleteRelation(ServerRequestInterface $request, string $name): ResponseInterface
+	{
+		if (! $this->allowed($request)) {
+			return self::forbidden();
+		}
+
+		try {
+			$this->relations->delete($name);
+			$this->compile();
+		} catch (InvalidContentType $error) {
+			return self::error($error->getMessage(), Status::UnprocessableContent);
+		}
+
+		$this->version->bump();
+
+		return Response::json(['deleted' => $name], headers: ['Cache-Control' => 'no-store']);
 	}
 
 	public function refresh(ServerRequestInterface $request): ResponseInterface
@@ -209,6 +246,32 @@ final readonly class TypeEditController
 		$this->version->bump();
 
 		return Response::json($this->types->detail($types, $type), $status, ['Cache-Control' => 'no-store']);
+	}
+
+	/**
+	 * Creates a relation (`$name` is `null`) or replaces one's definition,
+	 * then compiles the types and answers with the relation.
+	 */
+	private function relationChanged(ServerRequestInterface $request, ?string $name, Status $status): ResponseInterface
+	{
+		if (! $this->allowed($request)) {
+			return self::forbidden();
+		}
+
+		$input = self::input($request);
+
+		try {
+			$relation = Relation::fromArray($name === null ? $input : [...$input, 'name' => $name]);
+			$types    = $name === null ? $this->relations->create($relation) : $this->relations->update($relation);
+
+			$this->compile();
+		} catch (InvalidRelation | InvalidContentType $error) {
+			return self::error($error->getMessage(), Status::UnprocessableContent);
+		}
+
+		$this->version->bump();
+
+		return Response::json(RelationsController::describe($types, $types->relations()[$relation->name] ?? $relation, true), $status, ['Cache-Control' => 'no-store']);
 	}
 
 	/**

@@ -19,7 +19,6 @@ use Blush\Content\Routing\ContentUrls;
 use Blush\Content\Type\ContentType;
 use Blush\Content\Type\ContentTypes;
 use Blush\Content\Type\Profiles;
-use Blush\Content\Type\Taxonomy;
 use Blush\Routing\Route;
 use Blush\Routing\RoutePriority;
 use Blush\Routing\RouteSource;
@@ -32,7 +31,7 @@ use Blush\Routing\RouteSource;
  *   (`/feed/atom`), and `.feed.json` (`/feed/json`);
  * - for the home type, `home.feed`, `home.feed.atom`, and
  *   `home.feed.json` at the site root instead;
- * - for a taxonomy, `{type}.single.feed` (`{prefix}/{name}/feed`) and the
+ * - for a term type (D-593), `{type}.single.feed` (`{prefix}/{name}/feed`) and the
  *   Atom and JSON variants, one feed per term;
  * - for each people field with archives (D-351),
  *   `{type}.{field}.single.feed` (`{prefix}/cooks/{profile}/feed`) and
@@ -111,7 +110,7 @@ final readonly class FeedRoutes implements RouteSource
 			}
 		}
 
-		$single = $type instanceof Taxonomy ? $type->routePattern("single.feed{$suffix}") : null;
+		$single = $this->types->hasTermPages($type->name) ? $type->routePattern("single.feed{$suffix}") : null;
 
 		if ($single !== null) {
 			$routes[] = ContentRoutes::route($single, FeedController::class, "{$type->name}.single.feed{$suffix}", $defaults, $type);

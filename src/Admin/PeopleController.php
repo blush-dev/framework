@@ -35,7 +35,7 @@ use Blush\Http\Status;
  *
  * - `GET roles`: every capability (`name`, `label`, `group`, and a
  *   content capability's `type` and `action`, D-359), the content types
- *   (`name`, `label`, `kind`, `icon`), and every role, as
+ *   (`name`, `label`, `kind`, whether they're `terms`, `icon`), and every role, as
  *   `PeopleJson::role()` describes it.
  * - `GET accounts`: every account, as `PeopleJson::account()` describes
  *   it, sorted by username, and whether the viewer may name the site's
@@ -85,10 +85,11 @@ final readonly class PeopleController
 
 		return Response::json([
 			'capabilities' => $capabilities,
-			'types'        => array_values(array_map(static fn (ContentType $type): array => [
+			'types'        => array_values(array_map(fn (ContentType $type): array => [
 				'name'  => $type->name,
 				'label' => $type->labels->plural,
 				'kind'  => $type->kind()->value,
+				'terms' => $this->types->classification($type->name) !== null,
 				'icon'  => $type->icon
 			], $this->types->all())),
 			'roles'        => array_values(array_map(fn (Role $role): array => $this->json->role($role, $this->roles, $accounts, $viewer), $this->roles->all())),

@@ -73,7 +73,7 @@
 				"term": {
 					"type": "string",
 					"pattern": "^[a-z][a-z0-9_]*/[^/]+$",
-					"description": "Links to a taxonomy term's archive, as {taxonomy}/{slug}, such as category/art. Its title is the label."
+					"description": "Links to a term's archive, as {type}/{slug}, such as category/art. Its title is the label."
 				},
 				"url": {
 					"type": "string",

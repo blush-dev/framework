@@ -1,10 +1,11 @@
 <script setup lang="ts">
 /**
  * A content type from `user/data/types`, edited (D-311), or a collection
- * or taxonomy from code, changed through a file there (D-349): General
- * (names, description, icon, with its key and folder fixed), Behavior
+ * from code, changed through a file there (D-349): General (names,
+ * description, icon, with its key and folder fixed), Behavior
  * (`TypeBehaviorFields`), Profiles (`TypePeopleFields`, its profile fields,
- * D-353, D-369), Addresses
+ * D-353, D-369), Relationships (`TypeRelations`, saved on their own,
+ * D-593), Addresses
  * (`TypeRoutesFields`, each route key's path, D-350), and Fields
  * (`FieldListEditor`, with the field sets added to it below, D-337;
  * read-only when the code's fields are classes of its own), saved
@@ -30,6 +31,7 @@ import TypeBasicsFields from './TypeBasicsFields.vue';
 import TypeBehaviorFields from './TypeBehaviorFields.vue';
 import TypeFieldSets from './TypeFieldSets.vue';
 import TypePeopleFields from './TypePeopleFields.vue';
+import TypeRelations from './TypeRelations.vue';
 import TypeRoutesFields from './TypeRoutesFields.vue';
 import { request, type ContentTypeDetail } from '../api';
 import { useAction } from '../action';
@@ -39,10 +41,10 @@ import { toast } from '../toast';
 import { profileType, refreshTypes, typeUrls, types } from '../types';
 
 const props = defineProps<{ type: ContentTypeDetail }>();
-const emit  = defineEmits<{ saved: [type: ContentTypeDetail] }>();
+const emit  = defineEmits<{ saved: [type: ContentTypeDetail]; relations: [] }>();
 
 const router  = useRouter();
-const kind    = computed<TypeKind>(() => props.type.kind === 'taxonomy' || props.type.kind === 'tree' ? props.type.kind : 'collection');
+const kind    = computed<TypeKind>(() => props.type.kind === 'tree' ? 'tree' : 'collection');
 const form    = ref<TypeForm>(formOf(props.type));
 const initial = ref<TypeForm>(formOf(props.type));
 const index   = ref(false);
@@ -157,7 +159,7 @@ guardLeave(() => changed.value);
 				<h2 id="behavior-heading">Behavior</h2>
 			</header>
 			<div class="panel__body">
-				<TypeBehaviorFields v-model="form" v-model:index="index" id-prefix="type-" :kind="kind" :folder-prefix="type.folderPrefix" :urls="typeUrls && type.prefix !== null" :types="types.filter((item) => item.name !== type.name)" :index-page="type.index" :authors-label="null" :authors-page="null" />
+				<TypeBehaviorFields v-model="form" v-model:index="index" id-prefix="type-" :kind="kind" :folder-prefix="type.folderPrefix" :urls="typeUrls && type.prefix !== null" :index-page="type.index" :authors-label="null" :authors-page="null" />
 			</div>
 		</section>
 
@@ -186,13 +188,15 @@ guardLeave(() => changed.value);
 			<p class="panel__note">Same switch as the type's own index page, and the same rule: turning it off stops the routing and deletes nothing that was written. Pages written for that field's archives are kept and marked unreachable on each profile.</p>
 		</section>
 
+		<TypeRelations :type="type" @changed="emit('relations')" />
+
 		<section v-if="type.routes.length" class="panel" aria-labelledby="addresses-heading">
 			<header class="panel__header">
 				<h2 id="addresses-heading">Addresses</h2>
 				<p class="panel__hint">Under <code>/{{ prefix }}</code></p>
 			</header>
 			<div class="panel__body">
-				<TypeRoutesFields v-model="form" id-prefix="route-" :routes="type.routes" :prefix="prefix" :taxonomy="kind === 'taxonomy'" :people="type.people" :editable="typeUrls" />
+				<TypeRoutesFields v-model="form" id-prefix="route-" :routes="type.routes" :prefix="prefix" :terms="type.terms" :people="type.people" :editable="typeUrls" />
 			</div>
 		</section>
 
@@ -217,7 +221,7 @@ guardLeave(() => changed.value);
 			<template #action><button type="button" class="button button--danger" :disabled="!type.overridden" @click="reset"><AdminIcon name="refresh-cw" />Reset to {{ source }}</button></template>
 		</DangerZone>
 		<DangerZone v-else :error="removal">
-			Removes its file. Its entries stay on disk, unlisted until a type claims <code>user/content/{{ type.folder }}</code> again. A taxonomy that groups it must stop first.
+			Removes its file. Its entries stay on disk, unlisted until a type claims <code>user/content/{{ type.folder }}</code> again. Relationships that name it must be removed first.
 			<template #action><button type="button" class="button button--danger" @click="remove"><AdminIcon name="x" />Delete This Type</button></template>
 		</DangerZone>
 

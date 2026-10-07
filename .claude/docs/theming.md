@@ -233,11 +233,13 @@ Global escaping helpers (D-106): `e()`, `attr()`, `url()`, `js()`,
 Front matter `template` (1.x's `view`) always comes first. 1.x's view names
 aren't candidates (D-104).
 - **Single entry:** `single-{type}-{slug}` → `single-{type}` →
-  `single-{kind}` → `single` (D-561; `{kind}` is the type's kind:
-  `collection`, `tree`, `taxonomy`, `profiles`).
-- **Collection:** `collection-{type}` → `collection-{kind}` →
-  `collection` (a taxonomy's is `collection-taxonomy`, as D-147 had).
-- **Term:** `term-{taxonomy}-{slug}` → `term-{taxonomy}` → `term` →
+  (`single-terms`) → `single-{kind}` → `single` (D-561; `{kind}` is the
+  type's kind: `collection`, `tree`, `profiles`; a type of terms tries
+  `-terms` first, D-594, where taxonomies had `collection-taxonomy`,
+  D-147).
+- **Collection:** `collection-{type}` → (`collection-terms`) →
+  `collection-{kind}` → `collection`.
+- **Term:** `term-{type}-{slug}` → `term-{type}` → `term` →
   `collection`.
 - **Date archive:** `archive-date-{type}` → `archive-date` → `collection`.
 - **People** (a type's people field, D-352): `people-{type}-{field}` →

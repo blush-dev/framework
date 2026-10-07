@@ -18,25 +18,24 @@ use Blush\Content\Query\Order;
 use Blush\Field\Definition;
 use Blush\Field\Field;
 use Blush\Field\FieldFactory;
-use Blush\Field\Fields\ReferenceField;
 use Blush\Field\InvalidSchema;
 use Blush\Field\Schema;
 
 /**
  * A content type: the entries in one folder of `user/content`, how they're
  * routed, listed, and fed, and the fields they have. The kinds are final
- * classes (D-157): `Collection` for listed entries such as posts,
- * `Taxonomy` for terms that group other entries, `Tree` for entries
- * that nest by folder (the built-in page type, which claims the content
+ * classes (D-157): `Collection` for listed entries such as posts (and
+ * terms: a collection a classify relation files entries under, D-593),
+ * `Tree` for entries that nest by folder (the built-in page type, which claims the content
  * root, is one; D-386), and `Profiles` for the
  * people entries credit (D-351). One model serves types from code and
  * from data (D-042). A type credits people through its people fields
  * (`PeopleField`), such as a collection's `authors`.
  *
- * `fromArray()` builds any kind from a definition array (its `kind`, or
- * 1.x's `taxonomy: true`) and also accepts every 1.x option name
- * (D-078), such as `path`, `routing`, `date_archives`, and
- * `term_collect`.
+ * `fromArray()` builds any kind from a definition array (its `kind`)
+ * and also accepts 1.x's option names (D-078), such as `path`,
+ * `routing`, and `date_archives`. A taxonomy (`kind: taxonomy`, or 1.x's
+ * `taxonomy: true`) is refused, saying what replaced it (D-591).
  */
 abstract readonly class ContentType
 {
@@ -215,8 +214,8 @@ abstract readonly class ContentType
 	/**
 	 * Returns the type without the people fields that read any of these
 	 * front matter keys, as a field or an alias. The loader uses it so a
-	 * taxonomy's term field (1.x's `author` taxonomy, say) wins over a
-	 * people field reading the same key (D-351).
+	 * classify relation's field (1.x's `author` taxonomy, say) wins over
+	 * a people field reading the same key (D-351).
 	 */
 	#[NoDiscard]
 	public function withoutPeopleReading(string ...$keys): static
@@ -277,7 +276,7 @@ abstract readonly class ContentType
 	/**
 	 * Returns the key of an entry's parent in this type, from its key and
 	 * normalized front matter, or `null` when it has none. Only trees and
-	 * hierarchical taxonomies nest.
+	 * hierarchical collections nest.
 	 *
 	 * @param array<string, mixed> $values
 	 */
@@ -305,25 +304,6 @@ abstract readonly class ContentType
 	public function order(): array
 	{
 		return ['published', Order::Desc];
-	}
-
-	/**
-	 * Returns the field other entries reference this type's entries
-	 * through, or `null` for a type that isn't a taxonomy.
-	 */
-	public function termField(): ?ReferenceField
-	{
-		return null;
-	}
-
-	/**
-	 * Returns whether other entries reference this type's entries as
-	 * terms (a taxonomy's, or profiles), which the index keeps a reverse
-	 * lookup for.
-	 */
-	public function hasTerms(): bool
-	{
-		return $this->termField() !== null;
 	}
 
 	/**
@@ -396,18 +376,16 @@ abstract readonly class ContentType
 				'feed'    => self::feed($data['feed'] ?? false, $name)
 			];
 
-			return match ($kind) {
-				TypeKind::Collection => new Collection(...[...$common, 'dateArchives' => self::dateArchives($definition, $name), 'llms' => $definition->bool('llms', true)]),
-				TypeKind::Taxonomy   => new Taxonomy(...[
-					...$common,
-					'types'       => $definition->strings('types'),
-					'field'       => $definition->nullableString('field'),
-					'aliases'     => $definition->strings('aliases'),
-					'termListing'  => Listing::fromArray($definition->map('termListing'), sprintf('Content type "%s" termListing', $name)),
-					'hierarchical' => $definition->bool('hierarchical'),
-					'llms'         => $definition->bool('llms', false)
-				])
-			};
+			$order = TypeOrder::tryFrom($definition->nullableString('order') ?? TypeOrder::Published->value)
+				?? throw new InvalidContentType(sprintf('Content type "%s" "order" must be one of %s.', $name, implode(', ', array_column(TypeOrder::cases(), 'value'))));
+
+			return new Collection(...[
+				...$common,
+				'dateArchives' => self::dateArchives($definition, $name),
+				'llms'         => $definition->bool('llms', true),
+				'hierarchical' => $definition->bool('hierarchical'),
+				'order'        => $order
+			]);
 		} catch (InvalidSchema $e) {
 			throw new InvalidContentType($e->getMessage(), previous: $e);
 		}
@@ -593,9 +571,7 @@ abstract readonly class ContentType
 		$renames = [
 			'path'            => 'folder',
 			'routing'         => 'urls',
-			'collection'      => 'listing',
-			'field_aliases'   => 'aliases',
-			'term_collection' => 'termListing'
+			'collection'      => 'listing'
 		];
 
 		foreach ($renames as $old => $new) {
@@ -625,11 +601,6 @@ abstract readonly class ContentType
 			}
 		}
 
-		if (array_key_exists('term_collect', $data)) {
-			$data['types'] ??= $data['term_collect'];
-			unset($data['term_collect']);
-		}
-
 		if (array_key_exists('date_archives', $data) || array_key_exists('time_archives', $data)) {
 			$flags = new Definition($data, sprintf('Content type "%s"', $name));
 
@@ -646,8 +617,10 @@ abstract readonly class ContentType
 	}
 
 	/**
-	 * Returns the kind a definition names with `kind`, or with 1.x's
-	 * `taxonomy` flag, and drops the flag.
+	 * Returns the kind a definition names with `kind`, and drops 1.x's
+	 * `taxonomy: false`. A taxonomy is refused with what replaced it
+	 * (D-591, D-593): a collection and a classify relation, which
+	 * `content:taxonomies --write` (or Site Health) writes for a data type.
 	 *
 	 * @param  array<array-key, mixed> $data
 	 * @throws InvalidContentType
@@ -658,29 +631,29 @@ abstract readonly class ContentType
 		$kind     = $data['kind'] ?? null;
 		unset($data['taxonomy']);
 
-		if ($taxonomy !== null && ! is_bool($taxonomy)) {
+		if ($taxonomy === true || $kind === 'taxonomy') {
+			throw new InvalidContentType(sprintf(
+				'Content type "%s" is a taxonomy, which Blush no longer has: make it a collection (with "order: position", and "hierarchical: true" if its terms nest) and define a classify relation named "%s" in the content config\'s "relations" or user/data/relations. For a type in user/data/types, content:taxonomies --write does this.',
+				$name,
+				$name
+			));
+		}
+
+		if ($taxonomy !== null && $taxonomy !== false) {
 			throw new InvalidContentType(sprintf('Content type "%s" "taxonomy" must be true or false.', $name));
 		}
 
 		if ($kind === null) {
-			return $taxonomy === true ? TypeKind::Taxonomy : TypeKind::Collection;
+			return TypeKind::Collection;
 		}
 
 		$case = is_string($kind) ? TypeKind::tryFrom($kind) : null;
 
-		if ($case === null) {
-			throw new InvalidContentType(sprintf(
-				'Content type "%s" "kind" must be one of %s.',
-				$name,
-				implode(', ', array_column(TypeKind::cases(), 'value'))
-			));
-		}
-
-		if ($taxonomy !== null && $taxonomy !== ($case === TypeKind::Taxonomy)) {
-			throw new InvalidContentType(sprintf('Content type "%s" sets "kind: %s" and "taxonomy: %s".', $name, $case->value, $taxonomy ? 'true' : 'false'));
-		}
-
-		return $case;
+		return $case ?? throw new InvalidContentType(sprintf(
+			'Content type "%s" "kind" must be one of %s.',
+			$name,
+			implode(', ', array_column(TypeKind::cases(), 'value'))
+		));
 	}
 
 	/**

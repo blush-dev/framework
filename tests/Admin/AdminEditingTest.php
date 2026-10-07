@@ -237,7 +237,7 @@ final class AdminEditingTest extends TestCase
 
 		$this->writeTemporaryFile('user/content/_posts/2023-01-01.idea.md', "---\ntitle: An Idea\nauthors: jane\nstatus: draft\ngenre: essay\nid: {$this->idOf('_posts/2023-01-01.idea.md')}\n---\n");
 		$this->app->container()->make(Indexer::class)->index();
-		$this->assertContains('genre', $names($this->load('_posts/2023-01-01.idea.md')), 'One the file uses stays editable.');
+		$this->assertNotContains('genre', $names($this->load('_posts/2023-01-01.idea.md')), 'Genres file only pages (D-593); a post\'s `genre` is other front matter.');
 
 		$this->writeTemporaryFile('user/content/genres/essay.md', "---\ntitle: Essay\nid: 0199b6e2-0000-7000-8000-0000000000ab\n---\n");
 		$this->app->container()->make(Indexer::class)->index();

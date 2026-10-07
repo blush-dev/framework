@@ -1,12 +1,16 @@
 <script setup lang="ts">
 /**
  * A new content type (D-311; admin.md §8, List, then detail: the type
- * wizard is its own screen): Basics (collection, taxonomy, or tree, D-386; names, key,
- * folder, description, icon), Behavior (`TypeBehaviorFields`), and Fields
+ * wizard is its own screen): Basics (a collection, terms, or a tree,
+ * D-386; names, key, folder, description, icon), Behavior
+ * (`TypeBehaviorFields`, and for terms the types they file), and Fields
  * (`FieldListEditor`), with What Gets Created beside them, updating as
  * the steps are filled in. **Create type** writes
- * `user/data/types/{key}.yaml` (`POST types`), adds the index page when
- * asked, and opens the type's screen.
+ * `user/data/types/{key}.json` (`POST types`), adds the index page when
+ * asked, and opens the type's screen. Terms are a collection ordered by
+ * position, with no authors and out of `llms.txt`, and a classify relation
+ * named after it that files the chosen types under them (`POST
+ * relations`, D-593).
  *
  * The key follows the plural name made singular, and the folder the
  * plural name, until either is typed. Leaving with anything filled in
@@ -34,7 +38,12 @@ loadTypes().catch(() => undefined);
 const STEPS = ['Basics', 'Behavior', 'Fields'];
 
 const step          = ref(0);
-const kind          = ref<TypeKind>('collection');
+// What it is: terms are a collection a classify relation files entries
+// under (D-593).
+const choice        = ref<TypeKind | 'terms'>('collection');
+const kind          = computed<TypeKind>(() => choice.value === 'terms' ? 'collection' : choice.value);
+// The types a new type of terms files; none for every type.
+const files         = ref<string[]>([]);
 const form          = ref<TypeForm>({ ...emptyForm(), fields: [{ ...FEATURED }] });
 const key           = ref('');
 const folder        = ref('');
@@ -64,18 +73,27 @@ watch(() => form.value.plural, (plural) => {
 	previous.value = plural;
 });
 
-// Taxonomies and trees have no featured image; a collection starts with one.
-watch(kind, (value) => {
+// Terms and trees have no featured image; a collection starts with one.
+watch(choice, (value) => {
 	if (value !== 'collection' && hasFeatured(form.value)) {
 		form.value.fields = form.value.fields.filter((field) => !(field.name === FEATURED.name && field.type === FEATURED.type));
 	}
 
-	// Collections credit authors by default; taxonomies don't (D-329).
+	// Collections credit authors by default; terms don't (D-329).
 	form.value.authors = value === 'collection';
 
-	// Taxonomies are left out of llms.txt unless they ask (D-401).
-	form.value.llms = value !== 'taxonomy';
+	// Terms are left out of llms.txt unless they ask (D-401), and are
+	// ordered by position (D-412).
+	form.value.llms  = value !== 'terms';
+	form.value.order = value === 'terms' ? 'position' : 'published';
 });
+
+// The types new terms can file: any but profiles.
+const fileable = computed(() => types.value.filter((type) => type.kind !== 'profiles'));
+
+function filed(name: string, on: boolean): void {
+	files.value = on ? [...files.value, name] : files.value.filter((item) => item !== name);
+}
 
 const authorsLabel = computed(() => types.value.find((item) => item.name === profileType.value)?.labels.plural ?? null);
 
@@ -135,6 +153,11 @@ async function create(): Promise<void> {
 			set: changesOf(form.value, null, kind.value)
 		});
 
+		// Terms file other entries through a relation named after them.
+		if (choice.value === 'terms') {
+			await request('POST', '/relations', { name: type.name, kind: 'classify', from: files.value, to: [type.name], create: true });
+		}
+
 		created.value = true;
 		refreshTypes();
 		toast(`Created ${type.labels.plural}`);
@@ -145,7 +168,7 @@ async function create(): Promise<void> {
 guardLeave(() => dirty.value, () => confirmAction({ title: 'Leave Without Creating the Type?', body: 'What you\'ve filled in will be lost.', confirm: 'Leave', cancel: 'Stay', danger: true }));
 
 const archiveLabel = computed(() => DATE_ARCHIVES.find((option) => option.value === form.value.dateArchives)?.label ?? 'None');
-const groupLabels  = computed(() => form.value.types.map((name) => types.value.find((type) => type.name === name)?.labels.plural ?? name));
+const fileLabels   = computed(() => files.value.map((name) => types.value.find((type) => type.name === name)?.labels.plural ?? name));
 </script>
 
 <template>
@@ -177,18 +200,18 @@ const groupLabels  = computed(() => form.value.types.map((name) => types.value.f
 			<div v-if="step === 0" class="panel__body form-stack">
 				<fieldset class="fieldset kinds">
 					<legend>Kind</legend>
-					<label class="kind" :class="{ 'kind--on': kind === 'collection' }">
-						<input v-model="kind" type="radio" value="collection" name="kind" class="visually-hidden">
+					<label class="kind" :class="{ 'kind--on': choice === 'collection' }">
+						<input v-model="choice" type="radio" value="collection" name="kind" class="visually-hidden">
 						<span class="kind__name">Collection</span>
 						<span class="kind__text">Entries people write: posts, recipes, anything with a body.</span>
 					</label>
-					<label class="kind" :class="{ 'kind--on': kind === 'taxonomy' }">
-						<input v-model="kind" type="radio" value="taxonomy" name="kind" class="visually-hidden">
-						<span class="kind__name">Taxonomy</span>
-						<span class="kind__text">Terms that group other entries, like topics or tags.</span>
+					<label class="kind" :class="{ 'kind--on': choice === 'terms' }">
+						<input v-model="choice" type="radio" value="terms" name="kind" class="visually-hidden">
+						<span class="kind__name">Terms</span>
+						<span class="kind__text">Entries that file other entries, like topics or tags.</span>
 					</label>
-					<label class="kind" :class="{ 'kind--on': kind === 'tree' }">
-						<input v-model="kind" type="radio" value="tree" name="kind" class="visually-hidden">
+					<label class="kind" :class="{ 'kind--on': choice === 'tree' }">
+						<input v-model="choice" type="radio" value="tree" name="kind" class="visually-hidden">
 						<span class="kind__name">Tree</span>
 						<span class="kind__text">Pages that nest by folder, like docs or a handbook.</span>
 					</label>
@@ -211,7 +234,12 @@ const groupLabels  = computed(() => form.value.types.map((name) => types.value.f
 			</div>
 
 			<div v-else-if="step === 1" class="panel__body form-stack">
-				<TypeBehaviorFields v-model="form" v-model:index="index" v-model:page-wanted="authorsPage" id-prefix="new-" :kind="kind" :folder-prefix="prefix" :urls="typeUrls" :types="types" :index-page="null" :authors-label="authorsLabel" :authors-page="null" />
+				<fieldset v-if="choice === 'terms'" class="fieldset">
+					<legend>Files</legend>
+					<label v-for="type in fileable" :key="type.name" class="checkbox"><input type="checkbox" :checked="files.includes(type.name)" @change="filed(type.name, ($event.target as HTMLInputElement).checked)"> {{ type.labels.plural }}</label>
+					<p class="field__help">{{ files.length === 0 ? 'None chosen, so its terms file every type.' : 'Entries of these types can be filed under its terms. Change it later under Relationships.' }}</p>
+				</fieldset>
+				<TypeBehaviorFields v-model="form" v-model:index="index" v-model:page-wanted="authorsPage" id-prefix="new-" :kind="kind" :folder-prefix="prefix" :urls="typeUrls" :index-page="null" :authors-label="authorsLabel" :authors-page="null" />
 			</div>
 
 			<div v-else>
@@ -236,15 +264,16 @@ const groupLabels  = computed(() => form.value.types.map((name) => types.value.f
 				<p class="panel__hint">Updates as you go</p>
 			</header>
 			<dl class="panel__body facts">
-				<div><dt>Kind</dt><dd>{{ { collection: 'Collection', taxonomy: 'Taxonomy', tree: 'Tree' }[kind] }}</dd></div>
+				<div><dt>Kind</dt><dd>{{ { collection: 'Collection', terms: 'Terms', tree: 'Tree' }[choice] }}</dd></div>
 				<div><dt>Name</dt><dd>{{ form.plural || 'Not set' }}<template v-if="form.singular"> / {{ form.singular }}</template></dd></div>
-				<div><dt>File</dt><dd class="mono">user/data/types/{{ key || '…' }}.yaml</dd></div>
+				<div><dt>File</dt><dd class="mono">user/data/types/{{ key || '…' }}.json</dd></div>
+				<div v-if="choice === 'terms'"><dt>Relationship</dt><dd class="mono">user/data/relations/{{ key || '…' }}.json</dd></div>
 				<div><dt>Entries in</dt><dd class="mono">user/content/{{ folderClean || '…' }}</dd></div>
 				<div><dt>Addresses</dt><dd class="mono">/{{ prefix || '…' }}/{{ kind === 'tree' ? '{path}' : '{slug}' }}</dd></div>
-				<div v-if="kind === 'collection'"><dt>Dated</dt><dd>{{ form.dateArchives === 'none' ? 'No' : `Yes, ${archiveLabel.toLowerCase()}` }}</dd></div>
-				<div v-else-if="kind === 'tree'"><dt>Nesting</dt><dd>By folder</dd></div>
-				<div v-else><dt>Nesting</dt><dd>{{ form.hierarchical ? 'Terms nest' : 'Flat' }}</dd></div>
-				<div v-if="kind === 'taxonomy'"><dt>Groups</dt><dd>{{ groupLabels.length ? groupLabels.join(', ') : 'Every type' }}</dd></div>
+				<div v-if="choice === 'collection'"><dt>Dated</dt><dd>{{ form.dateArchives === 'none' ? 'No' : `Yes, ${archiveLabel.toLowerCase()}` }}</dd></div>
+				<div v-if="kind === 'tree'"><dt>Nesting</dt><dd>By folder</dd></div>
+				<div v-else><dt>Nesting</dt><dd>{{ form.hierarchical ? 'Entries nest by parent' : 'Flat' }}</dd></div>
+				<div v-if="choice === 'terms'"><dt>Files</dt><dd>{{ fileLabels.length ? fileLabels.join(', ') : 'Every type' }}</dd></div>
 				<div><dt>Index page</dt><dd>{{ index ? 'Created and pinned' : 'None' }}</dd></div>
 				<div v-if="authorsLabel !== null"><dt>{{ authorsLabel }}</dt><dd>{{ !form.authors ? 'Not credited' : (form.authorArchives && typeUrls && kind !== 'tree' ? `Credited, with archives at /${prefix || '…'}/${form.authorsWord.trim() || 'authors'}` : 'Credited') }}</dd></div>
 				<div v-if="kind !== 'tree'"><dt>Feed</dt><dd>{{ form.feed ? 'Yes' : 'No' }}</dd></div>

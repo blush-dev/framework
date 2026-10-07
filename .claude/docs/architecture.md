@@ -388,11 +388,12 @@ is in that decision.
 - Each folder is a collection of the type mapped to it. `index.md` is the
   collection's landing page. A file belongs to the type whose path is the
   nearest folder above it, or else to `page` (D-083).
-- A tree's pages and a taxonomy's terms have a `position` field
-  (D-412): siblings sort by it, then title, those without one last.
+- A tree's pages and a positioned or hierarchical collection's entries
+  (terms) have a `position` field (D-412, D-593): siblings sort by it,
+  then title, those without one last.
 - Everything before the last `.` in a file name is organizational
   (`01.intro.md`, `2003-04-15.welcome.md`): it isn't part of the slug, and
-  it sets the default order. Only collections and taxonomies take these
+  it sets the default order. Only collections take these
   prefixes; on a tree's or profiles type's file or folder they still
   read, but lint reports an error (D-409).
 - A `_` prefix on a file name, or on a folder between the type's folder
@@ -412,29 +413,40 @@ is in that decision.
 Implemented in M4a (D-083, D-084); kinds and option names from D-157.
 
 - **`ContentType`** (`Blush\Content\Type`): an abstract base with the
-  final kinds `Collection`, `Taxonomy`, `Tree` (D-386), and `Profiles` (`TypeKind` names
+  final kinds `Collection`, `Tree` (D-386), and `Profiles` (`TypeKind` names
   them in data). Shared: name, `folder` (`_{name}` by default, D-258;
   the URL prefix drops each folder name's leading `_`), `labels`
   (`TypeLabels`, D-278), `description`, and `icon` (D-256), `public`, `urls` (`TypeUrls`:
   prefix plus per-key paths over 1.x's defaults, with `single` and
   `collection` shortcuts, or `false`), `listing` (`Listing`: typed `type`,
   `orderBy`, `order`, `perPage`, plus 1.x `query` arguments), `feed`
-  (`TypeFeed`: `categories` taxonomy and a `listing`), `sitemap`, and its
+  (`TypeFeed`: `categories`, a term type, and a `listing`), `sitemap`, and its
   own `Schema` (`fields`, `closed`). `Collection` adds `dateArchives`
-  (`DateArchives`); `Taxonomy` adds `types`, `field`, `aliases`,
-  `termListing`, and `hierarchical` (a `parent` reference to its own
-  terms, D-257); `Tree` has no URLs, listing, or feed, and its folder
+  (`DateArchives`), `hierarchical` (a `parent` relation to its own
+  entries, filed as a ref, D-591, D-593), and `order` (`TypeOrder`:
+  `published` or `position`); terms are collections a classify relation
+  files entries under (`ContentTypes::classification()`,
+  `hasTermPages()`, `termArguments()`, D-593); `Tree` has no URLs, listing, or feed, and its folder
   is the content root for `page` only (`atRoot()`; others are served
   under `pagePath()`, the folder without its `_`, and have an index
   page, D-386). `parentKey()`
-  says where an entry nests: a tree's entries by folder, hierarchical terms by
-  `parent`, nothing else. `fromArray()`
-  dispatches on `kind` (or 1.x's `taxonomy: true`) and accepts the 1.x
-  option names.
+  says where an entry nests: a tree's entries by folder, a hierarchical
+  collection's by `parent`, nothing else. `fromArray()` dispatches on
+  `kind` and accepts the 1.x option names; a taxonomy (`kind: taxonomy`,
+  `taxonomy: true`) is refused saying what replaced it (D-591), except a
+  data type, which the loader reads through `LegacyTaxonomy` as a
+  collection and its classify relation (listed in `ContentTypes::$legacy`)
+  until `TaxonomyMigration` (`content:taxonomies --write`, Site Health)
+  rewrites it.
 - **Sources, one model** (D-042, D-083): built-ins, extension
   `ContentTypeSource`s, `ContentConfig` (`config/content.php`), and
   data types (`user/data/types/*.json|yaml`, edited in the admin, D-311).
-  A data file named for a code collection or taxonomy overrides it
+  Relation definitions load with them (`RelationLoader`: extension
+  `RelationSource`s, `ContentConfig::$relations`, and
+  `user/data/relations/*`, D-593) and the types carry them
+  (`ContentTypes::relations()`), since a relation adds its field to its
+  `from` types' schemas.
+  A data file named for a code collection overrides it
   instead (D-349: `ContentType::overriddenBy()`, each option it sets
   replacing the code's; the type keeps its origin, and
   `ContentTypes::isOverridden()` says so); the code's root tree (pages) and profiles
@@ -455,12 +467,13 @@ Implemented in M4a (D-083, D-084); kinds and option names from D-157.
   most one `Profiles` type (`ContentTypes::profiles()`). Other types
   credit profiles through their **people fields** (`PeopleField`,
   `ContentType::$people`, keyed by front matter field; collections get
-  `authors` reading `author`, pages and taxonomies none), each a
+  `authors` reading `author`, pages none), each a
   `ReferenceField` to the profiles type in the schema. A people field
-  reading a key a taxonomy reads is dropped at load
+  reading a key a classify relation reads is dropped at load
   (`ContentType::withoutPeopleReading()`), so 1.x `author` taxonomies
-  keep working. `ContentTypes::termTypes()` is the taxonomies plus the
-  profiles type: the types the index keeps terms for.
+  keep working as relations. `ContentTypes::termTypes()` is the types
+  classify relations file under plus the profiles type: the types the
+  index keeps terms for.
 - **`Schema`** (`Blush\Field`, D-338): field types `text`, `markdown`,
   `date`, `bool`, `number`, `enum`, `list`, `reference`, `media`, `slug`,
   and `object` (`FieldType` enum, `FieldRegistry`, `FieldFactory`,
@@ -473,7 +486,8 @@ Implemented in M4a (D-083, D-084); kinds and option names from D-157.
   `published` (alias `date`), `updated`, `status`, `visibility`, `summary`
   (alias `excerpt`), `image`, `locale`, `template` (alias `view`),
   `layout`, `stylesheet`, `class`, `redirect_from`, and
-  `collection`, plus each taxonomy's term field.
+  `collection`, plus the field of each relation the site defines from
+  the type (a classify relation's terms).
 - Schemas drive **validation/casting** (at index time and in `content:lint`),
   **typed entry fields**, and **admin forms** (D-233). Field sets,
   controls, and the field type catalog are planned (D-337; see Fields).
@@ -546,6 +560,20 @@ Implemented in M4a (D-080, D-085, D-086).
   disk are trusted.
 
 ### Taxonomies and relations
+- **Relations** (D-585 to D-592; `Blush\Content\Relation`): every link
+  between entries is a `Relation` (a `RelationKind`: classify, credit,
+  reference, parent, translation), compiled from the types
+  (`RelationCompiler`) plus `RelationSource`s into `Relations`. Links
+  are records between ids (`Link`), built from the index
+  (`LinkBuilder`, `LinkResolver` over a `TargetLookup`) into a
+  `RelationGraph` (forward and reverse, keyed `{type}.{relation}`),
+  checked by `RelationChecker`, and read by `EntryRelations`. Files keep
+  both forms (D-589): slugs under the relation's key, ids under `refs`;
+  a parent too, a tree's folder being its written form (D-591).
+  The indexer resolves them after building each snapshot and stores the
+  graph with it (`IndexSnapshot::withLinks()`, `graph()`); records'
+  `terms` are the classify and credit relations' written forms, so the
+  term APIs read through relations (D-592). `refs` is reserved like `id`.
 - Terms are entries (`user/content/topics/art.md`), and only files are
   terms (D-584): a slug entries name with no file is left out of the
   site (`term()` is `null`, `termCounts()` leaves it out) and is a lint
@@ -553,8 +581,8 @@ Implemented in M4a (D-080, D-085, D-086).
   titled as first written (the index's `labels`). In another language,
   `term()` finds the translation, else the original's file.
 - The index stores each entry's terms (forward) and the entries per term
-  (reverse); `termCounts()` counts listed entries, for terms with files. Other reference fields
-  are forward-only for now.
+  (reverse); `termCounts()` counts listed entries, for terms with files. Every other relation's
+  reverse side is in the relation graph (`EntryRelations::referencedBy()`).
 - **Profiles** (D-351, D-352) are entries of the profiles type, indexed
   like terms (forward and reverse; files only, D-584). An entry's credits are kept
   twice in its record's `terms`: per people field

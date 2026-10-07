@@ -1050,20 +1050,68 @@ Move each item to `decisions.md` once it's answered.
 - **File names** (D-511):
   - The admin's Translate action, when it's built, writes
     `translation_of` on the translation it creates.
-- **Relationships** (D-242):
+- **Relationships** (D-242, D-585; discussed 2026-10-07):
   - **A relationship object** (raised 2026-10-05, on hold by the
     author): tying several entries together as a record of its own,
-    stored in neither entry (a series with its parts in order), or
-    references stored by id, or links carrying data (below).
+    stored in neither entry (a series with its parts in order).
+    Ordered membership may instead be stored on the group.
   - Data on a link (the role an actor played): references inside object
-    fields (`cast: [{actor: tom-hanks, role: Forrest}]`), indexed too? A
-    bigger step; nothing else in D-242 needs it.
-  - Should the reverse side ever be editable (adding a movie from an
-    actor's screen writes the movie's file)? Leaning no, at least at
-    first.
+    fields (`cast: [{actor: tom-hanks, role: Forrest}]`), indexed too?
+    D-585's fourth stage; it needs fields.
   - A type that lists what references it: paged like a term page (with
     feeds), or a plain list on the entry's page? Reusing term paging gives
     both.
+  - **Cases to account for** (listed 2026-10-07; target states,
+    sources and targets, hierarchy, and defaults answered in D-586;
+    languages, integrity, and when defaults apply in D-587):
+    - **Target states** (pickers offer only live targets, D-586):
+      what a link to a target that later stops being live does (a
+      draft again, in the trash, D-484); trashing or deleting a target
+      with referrers; which statuses count as live (the status API;
+      `published` only until then, D-588).
+    - **Media as a content type** (D-586): once the full relation API
+      works (D-588); it reopens D-238.
+    - **Two extensions defining one relation (or type) name**
+      (discussed 2026-10-07, after D-594): today `RelationLoader` throws
+      "Two extensions define the "x" relation", and the site, admin
+      included, stops loading; two extensions defining one type name do
+      the same. Rare (a classify relation is named after its type,
+      people relations aren't plugin-defined, and the ecosystem is
+      small), but generic reference names (`related`, `series`,
+      `featured`) can clash, and the admin installs plugins from a
+      `.zip` (D-392), so someone could lose the screen that turns the
+      plugin off. Recommended, after D-585's stage 2: fail softly for
+      types and relations together (keep the first, drop the other's
+      definition, report it on the Plugins screen and in Site Health,
+      as unmet `requires` are at boot, D-385), and tell plugin authors
+      in `docs/extending.md` to prefix generic relation names
+      (`acme_related`). Not recommended for now: scoping a relation's
+      identity by source type (same name allowed when `from` types
+      don't overlap; links are already keyed `{type}.{name}`), or
+      namespacing names (`vendor/name`), which only fits if types are
+      namespaced too, since a classify relation is named after its
+      type.
+    - **Relationship schemas for editors:** a JSON Schema for
+      `user/data/relations/*` files, as entries and field sets have
+      (D-594 added none).
+    - **Filtered targets** (only a product in Shoes, only a term under
+      a parent): later (D-587).
+    - **Output:** structured data (`author`, `about`, `isPartOf`),
+      feeds, `llms.txt`, and the read-only content API (D-479)
+      including related entries (`?include=actors`).
+    - **Bulk and maintenance:** adding a term to many entries from a
+      list, merging two terms (rewriting referrers), and the reverse
+      side's order (series parts by position).
+    - **Changing a relation:** renaming it, changing its target type,
+      one to many and back, deleting a type others relate to (D-311
+      guards taxonomies today), and a plugin that defined a relation
+      being turned off; each migrated by a tool (D-478).
+    - **Duplicating an entry** copies its relations, but not a
+      one-per-target one?
+    - **Templates** for a reverse archive of any relation, from
+      today's term and people names.
+    - **Conditional requirements:** required only for some statuses or
+      when another value is set.
 - **Media metadata** (D-238, D-239):
   - Edited WordPress images (`photo-e1234567890.jpg`, D-239): a variant
     of the original, or an image of its own, since the edit (a crop or
@@ -1133,6 +1181,49 @@ Move each item to `decisions.md` once it's answered.
   Policy, privacy (these scripts track visitors; a click-to-load
   placeholder with the thumbnail may be the default). Until then they render as links named by
   their title.
+- **More embed providers** (discussed 2026-10-07, after D-584; nothing
+  decided, nothing built). What works where, from memory (each
+  endpoint and response to be checked live before relying on it):
+  - **Frame-answering oEmbed, no code:** these answer with an
+    `<iframe>`, so a plain `OEmbedProvider` in `config/embed.php` works
+    today: Dailymotion (`https://www.dailymotion.com/services/oembed`),
+    TED (`https://www.ted.com/services/v1/oembed.json`), Loom
+    (`https://www.loom.com/v1/oembed`), Wistia
+    (`https://fast.wistia.com/oembed`), Spotify
+    (`https://open.spotify.com/oembed`), SoundCloud
+    (`https://soundcloud.com/oembed`), Mixcloud
+    (`https://app.mixcloud.com/oembed/`), CodePen
+    (`https://codepen.io/api/oembed`), Speaker Deck
+    (`https://speakerdeck.com/oembed.json`), and Kickstarter
+    (`https://www.kickstarter.com/services/oembed`).
+  - **Fixed-height players:** Spotify, SoundCloud, and Mixcloud players
+    have a set height, and SoundCloud answers `width: "100%"`, which
+    `EmbedData` drops (sizes must be positive integers), so the frame
+    falls back to 16:9, far too tall for a ~166px player. Supporting
+    them well needs a height-based frame beside the ratio-based one
+    (D-185), from the provider's answer or the provider class.
+  - **Provider classes, no script:** Twitch has no oEmbed; a class
+    could build the player URL from the link (as `YouTube` does), with
+    the `parent=` parameter Twitch requires set to the site's host.
+    TikTok's oEmbed needs its script, but its iframe player
+    (`tiktok.com/player/v1/{id}`) could be framed instead, the way
+    YouTube always frames `youtube-nocookie.com`; it's portrait, so
+    D-186's cap applies.
+  - **Waiting on rich embeds (above):** X, Instagram, Facebook, Threads,
+    Bluesky, Reddit, Tumblr, Imgur, and newer Mastodon answer with a
+    blockquote and a script. Instagram, Facebook, and Threads also
+    need a Meta app access token on every request (a setting for a
+    provider's token, which nothing has yet). Mastodon is one server
+    per site, so no fixed schemes cover it; a site would list the
+    servers it uses. Bluesky's and Mastodon's post pages can be
+    framed without the script, but a post's height depends on its
+    text, and without the provider's resize script a framed post is
+    cut off or padded, which is why social posts need the rich-embed
+    design rather than plain frames.
+  - **A possible order:** Spotify, SoundCloud, Dailymotion, and TED as
+    built-in providers, with the fixed-height frame for audio players;
+    then Twitch and TikTok as provider classes; then rich embeds for
+    social posts as their own design discussion.
 - **More icons** (D-187): bundle all of Lucide (about 2,100) rather than
   the front-end subset. Brand logos are the theme's (D-203).
 - **Extensions the framework ships** (discussed 2026-10-03, after D-418;

@@ -80,10 +80,14 @@ final class ContentRoutingTest extends TestCase
 					'routing'       => ['prefix' => 'archives', 'paths' => ['single' => '{year}/{month}/{day}/{name}']]
 				],
 				'category' => [
-					'path'         => 'topics',
-					'taxonomy'     => true,
-					'term_collect' => 'post'
+					'path'   => 'topics',
+					'order'  => 'position',
+					'people' => false,
+					'llms'   => false
 				]
+			],
+			'relations' => [
+				'category' => ['kind' => 'classify', 'from' => ['post'], 'to' => ['category'], 'create' => true]
 			],
 			'home' => 'post'
 		]);
@@ -196,8 +200,9 @@ final class ContentRoutingTest extends TestCase
 		$this->contentConfig([
 			'types' => [
 				'post'     => ['path' => '_posts', 'routing' => ['prefix' => 'archives']],
-				'category' => ['path' => 'topics', 'taxonomy' => true, 'hierarchical' => true, 'term_collect' => 'post', 'feed' => true]
-			]
+				'category' => ['path' => 'topics', 'order' => 'position', 'hierarchical' => true, 'people' => false, 'feed' => true]
+			],
+			'relations' => ['category' => ['kind' => 'classify', 'from' => ['post'], 'to' => ['category'], 'create' => true]]
 		]);
 		$this->entry('topics/painting.md', "title: Painting\nparent: art");
 		$this->entry('topics/oils.md', "title: Oils\nparent: painting");

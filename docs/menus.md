@@ -36,7 +36,7 @@ Each item links to one thing:
 | Key | Links to | Example |
 |---|---|---|
 | `entry` | An entry, as `{type}/{key}`. Its title is the label. | `entry: page/about`, `entry: post/hello-world` |
-| `term` | A taxonomy term's archive, as `{taxonomy}/{slug}`. Its title is the label. | `term: category/art` |
+| `term` | A term's page, as `{type}/{slug}`, for a [type of terms](content-types.md#terms-and-relationships) with pages. Its title is the label. | `term: category/art` |
 | `collection` | A content type's listing. Its landing page's title is the label, if it has one. | `collection: post` |
 | `route` | A named route, with any `params` it needs. Run `bin/blush routes:list` for names. | `route: home.feed` |
 | `url` | Any URL, as written | `url: https://example.org/` |

@@ -37,41 +37,65 @@ final class JtcomTypes
 				]
 			],
 			'category' => [
-				'path'            => 'topics',
-				'collection'      => ['number' => 9999],
-				'taxonomy'        => true,
-				'term_collect'    => 'post',
-				'term_collection' => ['order' => 'desc']
+				'path'       => 'topics',
+				'collection' => ['number' => 9999],
+				'order'      => 'position',
+				'people'     => false,
+				'llms'       => false
 			],
 			'era' => [
-				'path'            => 'eras',
-				'collection'      => ['order' => 'desc', 'number' => 9999],
-				'taxonomy'        => true,
-				'term_collect'    => 'post',
-				'term_collection' => ['order' => 'desc']
+				'path'       => 'eras',
+				'collection' => ['order' => 'desc', 'number' => 9999],
+				'order'      => 'position',
+				'people'     => false,
+				'llms'       => false
 			],
 			'literature' => [
 				'path'       => 'writing',
 				'collection' => ['order' => 'desc', 'number' => 9999]
 			],
 			'literary_form' => [
-				'path'            => 'writing/forms',
-				'taxonomy'        => true,
-				'term_collect'    => 'literature',
-				'term_collection' => ['order' => 'desc', 'number' => 9999]
+				'path'   => 'writing/forms',
+				'order'  => 'position',
+				'people' => false,
+				'llms'   => false
 			],
 			'literary_genre' => [
-				'path'            => 'writing/genres',
-				'taxonomy'        => true,
-				'term_collect'    => 'literature',
-				'term_collection' => ['order' => 'desc', 'number' => 9999]
+				'path'   => 'writing/genres',
+				'order'  => 'position',
+				'people' => false,
+				'llms'   => false
 			],
 			'literary_technique' => [
-				'path'            => 'writing/techniques',
-				'taxonomy'        => true,
-				'term_collect'    => 'literature',
-				'term_collection' => ['order' => 'desc', 'number' => 9999]
+				'path'   => 'writing/techniques',
+				'order'  => 'position',
+				'people' => false,
+				'llms'   => false
 			]
 		];
+	}
+
+	/**
+	 * Returns the classify relations that file jtcom's entries under its
+	 * terms (D-593), as its 1.x taxonomies did.
+	 *
+	 * @return array<string, array<string, mixed>>
+	 */
+	public static function relations(): array
+	{
+		$relation = static fn (string $from, array $listing): array => ['kind' => 'classify', 'from' => [$from], 'to' => [], 'create' => true, 'inverse' => ['archive' => true, 'listing' => $listing]];
+		$relations = [
+			'category'           => $relation('post', ['order' => 'desc']),
+			'era'                => $relation('post', ['order' => 'desc']),
+			'literary_form'      => $relation('literature', ['order' => 'desc', 'perPage' => 9999]),
+			'literary_genre'     => $relation('literature', ['order' => 'desc', 'perPage' => 9999]),
+			'literary_technique' => $relation('literature', ['order' => 'desc', 'perPage' => 9999])
+		];
+
+		foreach ($relations as $name => $definition) {
+			$relations[$name]['to'] = [$name];
+		}
+
+		return $relations;
 	}
 }

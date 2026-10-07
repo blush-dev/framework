@@ -32,6 +32,9 @@ use Blush\Content\Index\RecordBuilder;
 use Blush\Content\Lint\Linter;
 use Blush\Content\Parser\DocumentParser;
 use Blush\Content\Parser\FrontMatter;
+use Blush\Content\Relation\EntryRelations;
+use Blush\Content\Relation\RelationCompiler;
+use Blush\Content\Relation\Relations;
 use Blush\Content\Routing\ContentRedirects;
 use Blush\Content\Routing\ContentRoutes;
 use Blush\Content\Routing\ContentSiteUrls;
@@ -96,7 +99,8 @@ final class ContentServiceProvider extends ServiceProvider
 		IndexFingerprint::class,
 		StorageDriverFactory::class,
 		ContentUrls::class,
-		DocumentEditor::class
+		DocumentEditor::class,
+		EntryRelations::class
 	];
 
 	/**
@@ -193,6 +197,13 @@ final class ContentServiceProvider extends ServiceProvider
 		$this->container->singleton(
 			ContentTypes::class,
 			static fn (Container $container): ContentTypes => $container->make(ContentTypeCache::class)->load()
+		);
+
+		// Relations are made from the types, which carry the site's
+		// relation definitions (D-585, D-593).
+		$this->container->singleton(
+			Relations::class,
+			static fn (Container $container): Relations => new RelationCompiler()->compile($container->make(ContentTypes::class))
 		);
 
 		// Field sets load, and compile, with the types (D-339).

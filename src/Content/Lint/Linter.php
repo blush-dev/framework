@@ -26,6 +26,12 @@ use Blush\Content\Parser\FrontMatter;
 use Blush\Content\Parser\InvalidDocument;
 use Blush\Content\Query\InvalidQuery;
 use Blush\Content\Query\Query;
+use Blush\Content\Relation\LinkBuilder;
+use Blush\Content\Relation\ProblemKind;
+use Blush\Content\Relation\Relation;
+use Blush\Content\Relation\RelationChecker;
+use Blush\Content\Relation\RelationKind;
+use Blush\Content\Relation\Relations;
 use Blush\Content\Source\ContentSource;
 use Blush\Content\Source\UnreadableSource;
 use Blush\Content\Type\ContentTypes;
@@ -37,7 +43,6 @@ use Blush\Field\Fields\DateField;
 use Blush\Field\Severity;
 use Blush\Field\Violation;
 use Blush\Routing\RouteTable;
-use Blush\Content\Type\Taxonomy;
 use Blush\Media\MediaMetadataCheck;
 
 /**
@@ -49,7 +54,7 @@ use Blush\Media\MediaMetadataCheck;
  *   don't fit their fields, `collection` query arguments that don't work,
  *   terms that are their own parent or ancestor, and an order prefix
  *   (`01.about.md`) on a tree's or profiles type's file or folder, which
- *   only collections and taxonomies use (D-409; the file still works,
+ *   only collections use (D-409; the file still works,
  *   and hidden ones are left alone), and terms and profiles entries
  *   name that have no file, which the site leaves out (D-584;
  *   `content:terms` writes them);
@@ -85,7 +90,8 @@ final readonly class Linter
 		private MediaMetadataCheck $media,
 		private FieldSetCheck $sets,
 		private FormatCheck $formats,
-		private AppConfig $app
+		private AppConfig $app,
+		private Relations $relations
 	) {}
 
 	/**
@@ -156,6 +162,12 @@ final readonly class Linter
 
 			foreach ([...$this->missingTerms($snapshot, $record), ...$this->checkParent($snapshot, $record), ...$this->checkPageAddress($record)] as $violation) {
 				$violations[$record->path][] = $violation;
+			}
+		}
+
+		foreach ($this->relationProblems($snapshot) as $path => $problems) {
+			foreach ($problems as $violation) {
+				$violations[$path][] = $violation;
 			}
 		}
 
@@ -267,7 +279,7 @@ final readonly class Linter
 	 * Checks that a tree's or profiles type's file, and the folders
 	 * between it and its type's folder, have no order prefix (D-409): the
 	 * part of a name before its last `.`. A file may have the prefix its
-	 * type's own `filename` pattern gives it (D-514); a folder never. Only collections and taxonomies
+	 * type's own `filename` pattern gives it (D-514); a folder never. Only collections
 	 * order files by name; a page's folder named `01.about` doesn't nest
 	 * under `about`, and a prefix orders nothing in a tree. A hidden file,
 	 * or one in a hidden folder that isn't a type's (`__drafts/`), is
@@ -317,7 +329,7 @@ final readonly class Linter
 		$suggested = ltrim($type->folder . '/' . implode('/', $renamed) . "{$suffix}.{$extension}", '/');
 
 		return [new Violation(self::FILE, sprintf(
-			'has an order prefix, which only collections and taxonomies use; %s don\'t%s. Rename it %s.',
+			'has an order prefix, which only collections use; %s don\'t%s. Rename it %s.',
 			$type->labels->items,
 			$type->filename === null ? '' : sprintf(', beyond their file name pattern (%s) on files', $type->filename->pattern),
 			$suggested
@@ -348,17 +360,15 @@ final readonly class Linter
 	}
 
 	/**
-	 * Checks that a hierarchical taxonomy's term doesn't name itself as
-	 * its parent.
+	 * Checks that a hierarchical collection's entry doesn't name itself
+	 * as its parent.
 	 *
 	 * @return list<Violation>
 	 */
 	private function checkOwnParent(IndexRecord $record): array
 	{
-		$type = $this->types->find($record->type);
-
-		return $type instanceof Taxonomy && $type->hierarchical && ($record->values['parent'] ?? null) === $record->key
-			? [new Violation('parent', 'names the term itself; a term can\'t be its own parent.')]
+		return $this->types->nestsByParent($record->type) && ($record->values['parent'] ?? null) === $record->key
+			? [new Violation('parent', 'names the entry itself; an entry can\'t be its own parent.')]
 			: [];
 	}
 
@@ -371,9 +381,7 @@ final readonly class Linter
 	 */
 	private function checkParent(IndexSnapshot $snapshot, IndexRecord $record): array
 	{
-		$type = $this->types->find($record->type);
-
-		if (! $type instanceof Taxonomy || $record->parent === null) {
+		if (! $this->types->nestsByParent($record->type) || $record->parent === null) {
 			return [];
 		}
 
@@ -385,7 +393,7 @@ final readonly class Linter
 
 			if ($path === null) {
 				return $key === $record->parent
-					? [new Violation('parent', sprintf('"%s" has no %s entry; the term is shown at the top level.', $key, $record->type), Severity::Warning)]
+					? [new Violation('parent', sprintf('"%s" has no %s entry; the entry is shown at the top level.', $key, $record->type), Severity::Warning)]
 					: [];
 			}
 
@@ -427,6 +435,50 @@ final readonly class Linter
 	}
 
 	/**
+	 * Returns the problems relations find (D-585, D-590), by path, that
+	 * no other check reports: a link to the entry itself, a value naming
+	 * entries of two types or an id of the wrong type, a plain
+	 * reference to nothing (terms and profiles are `missingTerms()`'s), too
+	 * many targets, and too many entries naming one target. Parents are
+	 * `checkOwnParent()`'s and `checkParent()`'s, and a required field
+	 * left empty is the schema's.
+	 *
+	 * @return array<string, list<Violation>>
+	 */
+	private function relationProblems(IndexSnapshot $snapshot): array
+	{
+		$links    = new LinkBuilder()->build($snapshot, $this->relations, $this->types);
+		$entries  = [];
+		$found    = [];
+		$problems = [...$links->problems];
+
+		foreach ($snapshot->records as $record) {
+			if ($record['id'] !== null) {
+				$entries[$record['id']] = $record['type'];
+			}
+		}
+
+		foreach (new RelationChecker()->check($this->relations, $links->graph, $entries, []) as $problem) {
+			if ($problem->kind === ProblemKind::TooMany || $problem->kind === ProblemKind::InverseLimit) {
+				$problems[] = $problem;
+			}
+		}
+
+		foreach ($problems as $problem) {
+			$relation = $this->relations->byKey($problem->key) ?? array_find($this->relations->relations, static fn (Relation $relation): bool => $relation->name === $problem->key);
+			$path     = $snapshot->path($problem->source);
+			$skip     = $relation?->kind === RelationKind::Parent
+				|| ($problem->kind === ProblemKind::Missing && $relation?->kind !== RelationKind::Reference);
+
+			if ($path !== null && $relation !== null && ! $skip) {
+				$found[$path][] = new Violation($relation->field, $problem->message);
+			}
+		}
+
+		return $found;
+	}
+
+	/**
 	 * Returns errors for the terms the entry references and the profiles
 	 * it credits (by the people field that credits them) that have no
 	 * file in any language (D-584): entries name terms by the original's
@@ -450,7 +502,7 @@ final readonly class Linter
 				continue;
 			}
 
-			$field = $people ?? $type?->termField()->name ?? $taxonomy;
+			$field = $people ?? $this->types->classification($taxonomy)->field ?? $taxonomy;
 
 			foreach ($slugs as $slug) {
 				if (! $snapshot->has($taxonomy, $slug)) {

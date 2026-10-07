@@ -31,11 +31,11 @@ function choose(icon: SiteIcon): void {
 		<div class="field-pair">
 			<div class="field">
 				<label :for="`${idPrefix}plural`">Name (plural)</label>
-				<input :id="`${idPrefix}plural`" v-model="form.plural" :placeholder="{ taxonomy: 'Cuisines', tree: 'Docs', collection: 'Recipes' }[kind]" autocomplete="off">
+				<input :id="`${idPrefix}plural`" v-model="form.plural" :placeholder="{ tree: 'Docs', collection: 'Recipes' }[kind]" autocomplete="off">
 			</div>
 			<div class="field">
 				<label :for="`${idPrefix}singular`">Name (singular)</label>
-				<input :id="`${idPrefix}singular`" v-model="form.singular" :placeholder="{ taxonomy: 'Cuisine', tree: 'Doc', collection: 'Recipe' }[kind]" autocomplete="off">
+				<input :id="`${idPrefix}singular`" v-model="form.singular" :placeholder="{ tree: 'Doc', collection: 'Recipe' }[kind]" autocomplete="off">
 			</div>
 		</div>
 		<div class="field">

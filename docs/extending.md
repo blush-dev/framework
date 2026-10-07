@@ -191,9 +191,10 @@ A few things to know:
 - **`whereParent($entry)`** finds the entries under a page or a term,
   by the entry or its key (`whereParent('about')`), as a query you can
   sort, page, and count; **`whereParent(null)`** finds the top level: a
-  tree's top pages, or a hierarchical taxonomy's top terms.
+  tree's top pages, or a nesting collection's top entries (such as top
+  categories).
 - **`parent($entry)`** and **`children($entry)`** give a page's or a
-  term's parent and children, whatever their status, so filter
+  nesting collection entry's parent and children, whatever their status, so filter
   with `isPublished()` where you show them.
 
 An entry can tell you what it is:
@@ -1065,7 +1066,7 @@ use Blush\Content\Query\Order;
 use Blush\Content\Type\Collection;
 use Blush\Content\Type\ContentTypeSource;
 use Blush\Content\Type\Listing;
-use Blush\Content\Type\Taxonomy;
+use Blush\Content\Type\TypeOrder;
 
 final class ContentTypes implements ContentTypeSource
 {
@@ -1077,22 +1078,60 @@ final class ContentTypes implements ContentTypeSource
 			listing: new Listing(orderBy: 'published', order: Order::Desc)
 		);
 
-		yield new Taxonomy('cuisine', folder: 'recipes/cuisines', types: ['recipe']);
+		// Cuisines are terms: ordered by position, with no authors.
+		yield new Collection(
+			'cuisine',
+			folder: 'recipes/cuisines',
+			order: TypeOrder::Position,
+			people: false,
+			llms: false
+		);
 	}
 }
 ```
 
-Tag it in the plugin's provider:
+What files recipes under cuisines is a
+[relation](content-types.md#terms-and-relationships), which comes from
+a class of its own that implements `RelationSource` (one class can't be
+both):
+
+```php
+<?php
+
+declare(strict_types=1);
+
+namespace Acme\Recipes;
+
+use Blush\Content\Relation\Relation;
+use Blush\Content\Relation\RelationKind;
+use Blush\Content\Relation\RelationSource;
+
+final class Relations implements RelationSource
+{
+	public function relations(): iterable
+	{
+		yield new Relation('cuisine', RelationKind::Classify, from: ['recipe'], to: ['cuisine'], create: true);
+	}
+}
+```
+
+Tag both in the plugin's provider:
 
 ```php
 protected const array TAGS = [
-	ContentTypeSource::TAG => [ContentTypes::class]
+	ContentTypeSource::TAG => [ContentTypes::class],
+	RelationSource::TAG    => [Relations::class]
 ];
 ```
 
 The kinds and options are the same as in `config/content.php`. A site can
 still redefine one of your types in its `config/content.php`, but not in
-`user/data/types/`. Two plugins can't define the same type.
+`user/data/types/`. Two plugins can't define the same type. The same
+goes for relations: one in `config/content.php` replaces yours by
+name, and two plugins can't
+define the same relation. A plugin still defining a type with the old
+taxonomy kind stops the site from loading, with a message saying what
+to change.
 
 ### Field sets from a plugin
 

@@ -101,7 +101,7 @@ final class LinterTest extends TestCase
 
 	public function testChecksTermParents(): void
 	{
-		$this->contentConfig(['types' => ['topic' => ['kind' => 'taxonomy', 'folder' => 'topics', 'hierarchical' => true]]]);
+		$this->contentConfig(['types' => ['topic' => ['folder' => 'topics', 'order' => 'position', 'hierarchical' => true]], 'relations' => ['topic' => ['kind' => 'classify', 'to' => ['topic']]]]);
 		$this->entry('topics/web.md', 'title: Web');
 		$this->entry('topics/css.md', "title: CSS\nparent: web");
 		$this->entry('topics/self.md', "title: Self\nparent: self");
@@ -115,9 +115,9 @@ final class LinterTest extends TestCase
 		$this->assertSame(['topics/a.md', 'topics/b.md', 'topics/orphan.md', 'topics/self.md'], array_keys($messages));
 		$this->assertSame(['error parent: makes a loop: a → b → a.'], $messages['topics/a.md']);
 		$this->assertSame(['error parent: makes a loop: b → a → b.'], $messages['topics/b.md']);
-		$this->assertSame(['warning parent: "missing" has no topic entry; the term is shown at the top level.'], $messages['topics/orphan.md']);
-		$this->assertSame(['error parent: names the term itself; a term can\'t be its own parent.'], $messages['topics/self.md']);
-		$this->assertSame('names the term itself; a term can\'t be its own parent.', $linter->lintFile('topics/self.md')[0]->message ?? null);
+		$this->assertSame(['warning parent: "missing" has no topic entry; the entry is shown at the top level.'], $messages['topics/orphan.md']);
+		$this->assertSame(['error parent: names the entry itself; an entry can\'t be its own parent.'], $messages['topics/self.md']);
+		$this->assertSame('names the entry itself; an entry can\'t be its own parent.', $linter->lintFile('topics/self.md')[0]->message ?? null);
 	}
 
 	public function testWarnsOfPlaceholderDatesUnderAlignedKeys(): void
@@ -140,7 +140,7 @@ final class LinterTest extends TestCase
 		$this->assertSame(['warning collection: "orderby: filename" is read as "published"; entries are never sorted by file. Write "orderby: published".'], $warnings['reading.md'] ?? null);
 	}
 
-	public function testReportsOrderPrefixesOutsideCollectionsAndTaxonomies(): void
+	public function testReportsOrderPrefixesOutsideCollections(): void
 	{
 		$this->standardContent();
 		$this->entry('01.services.md', 'title: Services');
@@ -154,7 +154,7 @@ final class LinterTest extends TestCase
 		$linter = $this->site()->container()->make(Linter::class);
 		$errors = self::messages($linter->lint(), Severity::Error);
 
-		$this->assertSame(['error file: has an order prefix, which only collections and taxonomies use; pages don\'t. Rename it services.md.'], $errors['01.services.md'] ?? null);
+		$this->assertSame(['error file: has an order prefix, which only collections use; pages don\'t. Rename it services.md.'], $errors['01.services.md'] ?? null);
 		$this->assertStringEndsWith('Rename it work/index.md.', $errors['02.work/index.md'][0] ?? '');
 		$this->assertStringEndsWith('Rename it work/design.md.', $errors['02.work/03.design.md'][0] ?? '', 'Its folder too (D-409).');
 		$this->assertStringContainsString('profiles don\'t. Rename it profiles/sam.md.', $errors['profiles/01.sam.md'][0] ?? '');

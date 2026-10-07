@@ -17,11 +17,10 @@ use Override;
 use Blush\Content\ContentRepository;
 use Blush\Content\Routing\ContentUrls;
 use Blush\Content\Type\ContentTypes;
-use Blush\Content\Type\Taxonomy;
 use Blush\Core\AppConfig;
 
 /**
- * Links to a taxonomy term's archive: `term: category/art`. The term's
+ * Links to a term's archive: `term: category/art` (D-593). The term's
  * title is the label (a term without a file has one too).
  */
 final class TermLink extends MenuLink
@@ -42,7 +41,7 @@ final class TermLink extends MenuLink
 		return [$key => [
 			'type'        => 'string',
 			'pattern'     => '^[a-z][a-z0-9_]*/[^/]+$',
-			'description' => 'Links to a taxonomy term\'s archive, as {taxonomy}/{slug}, such as category/art. Its title is the label.'
+			'description' => 'Links to a term\'s archive, as {type}/{slug}, such as category/art. Its title is the label.'
 		]];
 	}
 
@@ -54,7 +53,7 @@ final class TermLink extends MenuLink
 	{
 		return is_string($value) && preg_match('#^[a-z][a-z0-9_]*/[^/]+$#', trim($value)) === 1
 			? null
-			: 'must be a term as {taxonomy}/{slug}, such as "category/art".';
+			: 'must be a term as {type}/{slug}, such as "category/art".';
 	}
 
 	/**
@@ -67,8 +66,8 @@ final class TermLink extends MenuLink
 
 		$taxonomy = $this->types->find($name);
 
-		if (! $taxonomy instanceof Taxonomy) {
-			throw new UnresolvedLink(sprintf('"%s" isn\'t a taxonomy.', $name));
+		if ($taxonomy === null || ! $this->types->hasTermPages($name)) {
+			throw new UnresolvedLink(sprintf('"%s" isn\'t a type of terms with pages.', $name));
 		}
 
 		$term = $this->content->term($name, $slug);

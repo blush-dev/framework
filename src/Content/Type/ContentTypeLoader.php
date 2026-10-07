@@ -14,6 +14,12 @@ declare(strict_types=1);
 namespace Blush\Content\Type;
 
 use Blush\Container\Container;
+use Blush\Content\Relation\InvalidRelation;
+use Blush\Content\Relation\Relation;
+use Blush\Content\Relation\RelationCompiler;
+use Blush\Content\Relation\RelationKind;
+use Blush\Content\Relation\RelationLoader;
+use Blush\Content\Relation\RelationOrigin;
 use Blush\Core\Paths;
 use Blush\Data\DataLoader;
 use Blush\Data\InvalidData;
@@ -32,18 +38,25 @@ use Blush\Field\InvalidSchema;
  * 3. The site's `ContentConfig` types.
  * 4. Data types from `user/data/types/{name}.json|yaml`, when allowed.
  *    They may redefine a built-in type. A file named for an extension or
- *    config collection or taxonomy changes it instead (D-349): each
+ *    config collection changes it instead (D-349): each
  *    option it sets replaces the code's (`ContentType::overriddenBy()`),
  *    and the type keeps its origin. One named for a code pages or profiles
  *    type is an error.
  *
- * A people field reading a key a taxonomy's term field reads (1.x's
+ * The relation definitions load with them (`RelationLoader`, D-593). A
+ * data type still in the taxonomy form is read as the collection and
+ * classify relation that replaced it (`LegacyTaxonomy`) and listed in
+ * `ContentTypes::$legacy` until `content:taxonomies --write` (or Site
+ * Health) writes them (D-591); a taxonomy anywhere else is an error.
+ *
+ * A people field reading a key a classify relation reads (1.x's
  * `author` taxonomy, with `authors` and `author`) is dropped, so the
- * taxonomy keeps it (D-351).
+ * relation keeps it (D-351).
  *
  * Then: folders must be unique, one type must claim the content root, the
- * types named by listings, taxonomies' `types`, feed categories, and the
- * homepage must exist, and every type's fields must fit together.
+ * types named by listings, relations, feed categories, and the homepage
+ * must exist, feed categories must be classified by, and every type's
+ * fields must fit together.
  */
 final readonly class ContentTypeLoader
 {
@@ -58,7 +71,8 @@ final readonly class ContentTypeLoader
 		private DataLoader $data,
 		private FieldFactory $fields,
 		private Container $container,
-		private FieldSetLoader $sets
+		private FieldSetLoader $sets,
+		private RelationLoader $relations
 	) {}
 
 	/**
@@ -71,9 +85,19 @@ final readonly class ContentTypeLoader
 		[$types, $origins] = $this->codeTypes();
 
 		$overrides = [];
+		$legacy    = [];
+		$converted = [];
 
 		foreach ($this->dataDefinitions() as $name => $definition) {
 			$origin = $origins[$name] ?? null;
+
+			// Only a type of the site's own data is read as what replaced
+			// it; a file over a code type can't make it a taxonomy.
+			if (LegacyTaxonomy::is($definition) && $origin !== TypeOrigin::Extension && $origin !== TypeOrigin::Config) {
+				[$definition, $relation] = LegacyTaxonomy::convert($name, $definition);
+				$legacy[]                = $name;
+				$converted[$name]        = $relation;
+			}
 
 			if ($origin === TypeOrigin::Extension || $origin === TypeOrigin::Config) {
 				$types[$name] = $types[$name]->overriddenBy($definition, $this->fields);
@@ -91,16 +115,29 @@ final readonly class ContentTypeLoader
 			throw new InvalidContentType($e->getMessage(), previous: $e);
 		}
 
+		try {
+			[$relations, $relationOrigins] = $this->relations->load();
+
+			foreach ($converted as $name => $definition) {
+				if (! isset($relations[$name])) {
+					$relations[$name]       = Relation::fromArray(['name' => $name, ...$definition]);
+					$relationOrigins[$name] = RelationOrigin::Data;
+				}
+			}
+		} catch (InvalidRelation $e) {
+			throw new InvalidContentType($e->getMessage(), previous: $e);
+		}
+
 		$claimed = [];
 
-		foreach ($types as $type) {
-			if ($type instanceof Taxonomy) {
-				array_push($claimed, $type->field, ...$type->aliases);
+		foreach ($relations as $relation) {
+			if ($relation->kind === RelationKind::Classify) {
+				array_push($claimed, ...$relation->keys());
 			}
 		}
 
 		$types    = array_map(static fn (ContentType $type): ContentType => $type->withoutPeopleReading(...$claimed), $types);
-		$resolved = new ContentTypes($types, $origins, $this->config->home, $sets, $overrides);
+		$resolved = new ContentTypes($types, $origins, $this->config->home, $sets, $overrides, $relations, $relationOrigins, $legacy);
 		$this->check($resolved);
 
 		return $resolved;
@@ -269,22 +306,14 @@ final readonly class ContentTypeLoader
 				['feed listing type', $type->feed === false ? null : $type->feed->listing?->type]
 			];
 
-			if ($type instanceof Taxonomy) {
-				$references[] = ['termListing type', $type->termListing->type];
-
-				foreach ($type->types as $reference) {
-					$references[] = ['types', $reference];
-				}
-			}
-
 			foreach ($references as [$option, $reference]) {
 				if ($reference !== null && ! $types->has($reference)) {
 					throw new InvalidContentType(sprintf('Content type "%s" %s names "%s", which doesn\'t exist.', $name, $option, $reference));
 				}
 			}
 
-			if ($type->feed !== false && $type->feed->categories !== null && ! $types->get($type->feed->categories) instanceof Taxonomy) {
-				throw new InvalidContentType(sprintf('Content type "%s" feed categories "%s" isn\'t a taxonomy.', $name, $type->feed->categories));
+			if ($type->feed !== false && $type->feed->categories !== null && $types->classification($type->feed->categories) === null) {
+				throw new InvalidContentType(sprintf('Content type "%s" feed categories "%s" isn\'t a type a classify relation files entries under.', $name, $type->feed->categories));
 			}
 
 			$types->schema($name);
@@ -292,6 +321,18 @@ final readonly class ContentTypeLoader
 
 		if (! isset($folders[''])) {
 			throw new InvalidContentType('No content type claims the content root; the "page" type normally does.');
+		}
+
+		try {
+			new RelationCompiler()->compile($types);
+		} catch (InvalidRelation $e) {
+			throw new InvalidContentType($e->getMessage(), previous: $e);
+		}
+
+		foreach ($types->relations() as $relation) {
+			if ($relation->inverse !== false && $relation->inverse->listing->type !== null && ! $types->has($relation->inverse->listing->type)) {
+				throw new InvalidContentType(sprintf('Relation "%s" inverse listing type names "%s", which doesn\'t exist.', $relation->name, $relation->inverse->listing->type));
+			}
 		}
 
 		if ($types->home !== null && ! $types->has($types->home)) {

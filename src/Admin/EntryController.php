@@ -39,7 +39,6 @@ use Blush\Content\Type\ContentType;
 use Blush\Content\Type\ContentTypes;
 use Blush\Content\Type\DateArchives;
 use Blush\Content\Type\Profiles;
-use Blush\Content\Type\Taxonomy;
 use Blush\Content\Type\Tree;
 use Blush\Content\Writer\ContentWriter;
 use Blush\Content\Writer\DocumentEditor;
@@ -1073,29 +1072,28 @@ final readonly class EntryController
 
 	/**
 	 * Returns whether the editor offers a field: any that isn't a
-	 * taxonomy's term field, and a term field when its taxonomy groups the
-	 * type or the file uses it.
+	 * classify relation's term field, and a term field when its relation
+	 * names the type, or names none (every type) and the type isn't a term
+	 * type itself, or the file uses it.
 	 *
 	 * @param array<mixed> $frontMatter
 	 */
 	private function groups(Field $field, ContentType $type, array $frontMatter): bool
 	{
-		foreach ($this->types->taxonomies() as $taxonomy) {
-			$term = $taxonomy->termField();
-
-			if ($term->name !== $field->name) {
+		foreach ($this->types->classifications() as $relation) {
+			if ($relation->field !== $field->name) {
 				continue;
 			}
 
-			foreach ([$term->name, ...$term->aliases] as $key) {
+			foreach ($relation->keys() as $key) {
 				if (array_key_exists($key, $frontMatter)) {
 					return true;
 				}
 			}
 
-			return $taxonomy->types === []
-				? ! $type->hasTerms()
-				: in_array($type->name, $taxonomy->types, true);
+			return $relation->from === []
+				? ! $this->types->isTermType($type->name)
+				: in_array($type->name, $relation->from, true);
 		}
 
 		return true;
@@ -1131,10 +1129,9 @@ final readonly class EntryController
 			$fields = array_filter($fields, static fn (Field $field): bool => $field->name !== Position::FIELD);
 		}
 
-		// The schema has every taxonomy's term field, so a file may use any
-		// of them, but the editor offers only the taxonomies that group the
-		// type (D-283): those naming it in `types`, and those with no
-		// `types` (every type) unless it's a taxonomy itself. One the file
+		// The schema has the term field of every classify relation from the
+		// type, but one from every type isn't offered on a term type itself
+		// (D-283, D-593). One the file
 		// already uses stays, so it can still be edited. `trashed` is the
 		// trash's (D-484), never edited, and `translation_of` links a
 		// translation (D-511), kept as it is.
@@ -1247,6 +1244,8 @@ final readonly class EntryController
 		return [
 			'name'   => $type->name,
 			'kind'   => $type->kind()->value,
+			'terms'  => $this->types->classification($type->name) !== null,
+			'hierarchical' => $this->types->nestsByParent($type->name),
 			'dated'  => $type->dateArchives !== DateArchives::None,
 			'fields' => array_values(array_map(static fn (Field $field): array => $field->toForm(), $fields)),
 			'sets'   => array_map(fn (FieldSet $set): array => [

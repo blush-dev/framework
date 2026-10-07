@@ -17,11 +17,11 @@ use Closure;
 use Blush\Container\Attributes\Defer;
 use Blush\Content\ContentRepository;
 use Blush\Content\Entry\Entry;
+use Blush\Content\Type\Collection;
 use Blush\Content\Type\ContentType;
 use Blush\Content\Type\ContentTypes;
 use Blush\Content\Type\DateArchives;
 use Blush\Content\Type\PeopleField;
-use Blush\Content\Type\Taxonomy;
 use Blush\Core\AppConfig;
 use Blush\Routing\InvalidRoute;
 use Blush\Routing\RouteConfig;
@@ -37,10 +37,10 @@ use Blush\Routing\UrlGenerationException;
  *   entry: `{name}` is the key (the slug, unless the entry sits in a
  *   subfolder of the type's folder, which a one-segment `{name}` can't
  *   hold, so such entries have no URL), `{year}` … `{second}` come from the
- *   published date, and a taxonomy's name (such as `{author}` or
+ *   published date, and a term type's name (such as `{author}` or
  *   `{category}`) is the entry's first term of it.
- * - A taxonomy's terms use `single` with the term's slug, and are paged
- *   with `single.paged`. A hierarchical taxonomy's `{name}` is the term's
+ * - Terms use `single` with the term's slug, and are paged with
+ *   `single.paged`. A hierarchical collection's `{name}` is the entry's
  *   path: its parents' slugs, then its own (`web/web-design/css`,
  *   D-260), constrained by `TERM_PATH`. A term whose parent has no file
  *   sits at the top.
@@ -83,10 +83,10 @@ final readonly class ContentUrls
 	];
 
 	/**
-	 * The constraint on a hierarchical taxonomy's `{name}`: slugs joined
+	 * The constraint on a hierarchical collection's `{name}`: slugs joined
 	 * by `/`. Only a lone first segment may be `page` or `feed`, so a
 	 * term's paged and feed routes (`{name}/page/2`, `{name}/feed`) and
-	 * the taxonomy's own (`/topics/page/2`) still match; a child term
+	 * the collection's own (`/topics/page/2`) still match; a child term
 	 * slugged `page` or `feed` has no URL.
 	 */
 	public const string TERM_PATH = '(?!(?:page|feed)/)[^/]+(?:/(?!(?:page|feed)(?:/|$))[^/]+)*';
@@ -117,7 +117,7 @@ final readonly class ContentUrls
 
 	/**
 	 * Returns the constraints a type's route puts on its parameters: the
-	 * content constraints, and `TERM_PATH` for a hierarchical taxonomy's
+	 * content constraints, and `TERM_PATH` for a hierarchical collection's
 	 * `{name}`.
 	 *
 	 * @param  list<string>          $params
@@ -127,7 +127,7 @@ final readonly class ContentUrls
 	{
 		$constraints = array_intersect_key(self::CONSTRAINTS, array_flip($params));
 
-		if ($type instanceof Taxonomy && $type->hierarchical && in_array('name', $params, true)) {
+		if ($type instanceof Collection && $type->hierarchical && in_array('name', $params, true)) {
 			$constraints['name'] = self::TERM_PATH;
 		}
 
@@ -136,14 +136,14 @@ final readonly class ContentUrls
 
 	/**
 	 * Returns what a term's `{name}` holds: its slug, after its parents'
-	 * for a hierarchical taxonomy. In a language other than the default,
-	 * each slug is its translation's.
+	 * for a hierarchical collection. In a language other than the
+	 * default, each slug is its translation's.
 	 */
-	public function termPath(Taxonomy $taxonomy, string $slug, ?string $language = null): string
+	public function termPath(ContentType $taxonomy, string $slug, ?string $language = null): string
 	{
 		$path = [$slug];
 
-		if ($taxonomy->hierarchical) {
+		if ($taxonomy instanceof Collection && $taxonomy->hierarchical) {
 			$content = ($this->content)();
 			$key     = $slug;
 
@@ -200,7 +200,7 @@ final readonly class ContentUrls
 			return $this->collection($type, 1, $entry->language);
 		}
 
-		if ($type instanceof Taxonomy) {
+		if ($type instanceof Collection && ($type->hierarchical || $this->types->hasTermPages($type->name))) {
 			return $this->localized($this->termUrl($type, $this->termPathOf($type, $entry)), $entry->language);
 		}
 
@@ -223,12 +223,12 @@ final readonly class ContentUrls
 	}
 
 	/**
-	 * Returns a taxonomy term's URL path, or a later page's, by its slug
+	 * Returns a term's URL path, or a later page's, by its slug
 	 * (the default language's), in a language (the default when `null`).
 	 */
 	public function term(ContentType $taxonomy, string $slug, int $page = 1, ?string $language = null): ?string
 	{
-		$name = $taxonomy instanceof Taxonomy ? $this->termPath($taxonomy, $slug, $language) : $slug;
+		$name = $this->termPath($taxonomy, $slug, $language);
 
 		return $this->localized($this->termUrl($taxonomy, $name, $page), $language);
 	}
@@ -356,7 +356,7 @@ final readonly class ContentUrls
 		}
 
 		if ($term !== null) {
-			return $type instanceof Taxonomy ? $this->build($type->routePattern(str_replace('collection.', 'single.', $key)), ['name' => $this->termPath($type, $term)], $type) : null;
+			return $this->types->hasTermPages($type->name) ? $this->build($type->routePattern(str_replace('collection.', 'single.', $key)), ['name' => $this->termPath($type, $term)], $type) : null;
 		}
 
 		if ($type->name === $this->types->home) {
@@ -444,7 +444,7 @@ final readonly class ContentUrls
 	 * path of its original's slug in its language, which is its own key
 	 * at the end; else its slug after its parents'.
 	 */
-	private function termPathOf(Taxonomy $taxonomy, Entry $entry): string
+	private function termPathOf(ContentType $taxonomy, Entry $entry): string
 	{
 		if (! $this->app->languages->isOther($entry->language)) {
 			return $this->termPath($taxonomy, $entry->key);

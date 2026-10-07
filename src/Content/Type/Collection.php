@@ -15,6 +15,7 @@ namespace Blush\Content\Type;
 
 use Override;
 use Blush\Field\Field;
+use Blush\Field\Fields\ReferenceField;
 
 /**
  * A type whose entries are listed: posts, literature, projects. Its folder
@@ -29,6 +30,16 @@ use Blush\Field\Field;
  *         feed: new TypeFeed(categories: 'category'),
  *         dateArchives: DateArchives::Day
  *     );
+ *
+ * Terms are collections too (D-593): one that files other entries is a
+ * classify relation's target, usually ordered by `position` then title
+ * and without dates, and it may nest:
+ *
+ *     new Collection('category', folder: 'topics', hierarchical: true, order: TypeOrder::Position);
+ *
+ * A collection that's `hierarchical` has a `parent` relation (D-591): an
+ * entry names its parent entry by slug in `parent`, so it keeps its file
+ * and URL when it moves, and slugs stay unique across the collection.
  */
 final readonly class Collection extends ContentType
 {
@@ -49,6 +60,8 @@ final readonly class Collection extends ContentType
 	 * @param  array<PeopleField>|bool $people How entries credit people (D-351): `true` for `authors`.
 	 * @param  bool            $llms         Whether entries are listed in `llms.txt` (D-398).
 	 * @param  ?FileName       $filename     How new files are named; defaults to the date and slug with date archives, else the slug.
+	 * @param  bool            $hierarchical Whether an entry may name a `parent` entry.
+	 * @param  TypeOrder       $order        How entries are ordered when nothing says otherwise.
 	 * @throws InvalidContentType
 	 */
 	public function __construct(
@@ -67,7 +80,9 @@ final readonly class Collection extends ContentType
 		?string $icon = null,
 		array|bool $people = true,
 		bool $llms = true,
-		?FileName $filename = null
+		?FileName $filename = null,
+		public bool $hierarchical = false,
+		public TypeOrder $order = TypeOrder::Published
 	) {
 		parent::__construct($name, $folder, $public, $urls, $listing, $feed, $sitemap, $dateArchives, $fields, $closed, $labels, $description, $icon, $people, $llms, $filename);
 	}
@@ -85,11 +100,72 @@ final readonly class Collection extends ContentType
 	 * @inheritDoc
 	 */
 	#[Override]
+	public function order(): array
+	{
+		return $this->order->query();
+	}
+
+	/**
+	 * Lists entries by position unless the listing says otherwise, in its
+	 * direction when it gives one (D-516), when that's the type's order.
+	 *
+	 * @inheritDoc
+	 */
+	#[Override]
+	public function listingArguments(): array
+	{
+		if ($this->order !== TypeOrder::Position || $this->listing->orderBy !== null) {
+			return parent::listingArguments();
+		}
+
+		[$orderBy, $order] = $this->order();
+
+		return ['orderby' => $orderBy, 'order' => $this->listing->order->value ?? $order->value, ...parent::listingArguments()];
+	}
+
+	/**
+	 * Returns the entry a hierarchical collection's entry names as its
+	 * `parent`. An entry can't be its own parent.
+	 */
+	#[Override]
+	public function parentKey(string $key, array $values): ?string
+	{
+		$parent = $this->hierarchical ? ($values['parent'] ?? null) : null;
+
+		return is_string($parent) && $parent !== '' && $parent !== $key ? $parent : null;
+	}
+
+	/**
+	 * Returns the field an entry names its parent through, or `null` when
+	 * the collection doesn't nest.
+	 */
+	public function parentField(): ?ReferenceField
+	{
+		return $this->hierarchical
+			? new ReferenceField('parent', $this->name, multiple: false)->described(sprintf('The parent %s, by slug.', $this->labels->item))
+			: null;
+	}
+
+	/**
+	 * Returns whether entries have a `position` among their siblings: when
+	 * they're ordered by it, or nest.
+	 */
+	public function isPositioned(): bool
+	{
+		return $this->hierarchical || $this->order === TypeOrder::Position;
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	#[Override]
 	protected function options(): array
 	{
 		return [
 			'dateArchives' => $this->dateArchives === DateArchives::None ? null : $this->dateArchives->value,
-			'people'       => $this->peopleOption(true)
+			'people'       => $this->peopleOption(true),
+			'hierarchical' => $this->hierarchical ?: null,
+			'order'        => $this->order === TypeOrder::Published ? null : $this->order->value
 		];
 	}
 }

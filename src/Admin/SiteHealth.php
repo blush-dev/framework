@@ -179,7 +179,7 @@ final readonly class SiteHealth
 	 * Returns a new `ContentHealth` report, notices included (the admin
 	 * hides them until asked), and when it was made (`at`).
 	 *
-	 * @return array{at: string, checked: int, metadata: int, strict: bool, counts: array{error: int, warning: int, notice: ?int}, files: list<array{path: string, area: string, violations: list<array{field: string, message: string, severity: string}>}>, ids: array{missing: list<string>, duplicates: list<array{id: string, paths: list<string>}>}, mediaIds: array{missing: list<string>, duplicates: list<array{id: string, paths: list<string>}>}, fileNames: list<array{type: string, label: string, pattern: string, count: int, examples: list<array{path: string, to: string}>, skipped: int}>, flat: array{count: int, examples: list<array{path: string, to: string}>}, terms: array{count: int, examples: list<array{type: string, slug: string, title: string}>}, mediaSizes: array{sizes: int, images: int, stale: int}}
+	 * @return array{at: string, checked: int, metadata: int, strict: bool, counts: array{error: int, warning: int, notice: ?int}, files: list<array{path: string, area: string, violations: list<array{field: string, message: string, severity: string}>}>, ids: array{missing: list<string>, duplicates: list<array{id: string, paths: list<string>}>}, mediaIds: array{missing: list<string>, duplicates: list<array{id: string, paths: list<string>}>}, fileNames: list<array{type: string, label: string, pattern: string, count: int, examples: list<array{path: string, to: string}>, skipped: int}>, flat: array{count: int, examples: list<array{path: string, to: string}>}, terms: array{count: int, examples: list<array{type: string, slug: string, title: string}>}, taxonomies: list<string>, mediaSizes: array{sizes: int, images: int, stale: int}}
 	 */
 	private function fileReport(): array
 	{
@@ -201,7 +201,7 @@ final readonly class SiteHealth
 	 * Sums up content and media files' health, each linking to its area's
 	 * details. Notices, when the report has them, don't count.
 	 *
-	 * @param  array{files: list<array{path: string, area: string, violations: list<array{field: string, message: string, severity: string}>}>, checked: int, metadata: int, ids: array{missing: list<string>, duplicates: list<mixed>}, mediaIds: array{missing: list<string>, duplicates: list<mixed>}, fileNames: list<array{count: int}>, flat: array{count: int}, terms: array{count: int}, mediaSizes: array{sizes: int, images: int, stale: int}} $report
+	 * @param  array{files: list<array{path: string, area: string, violations: list<array{field: string, message: string, severity: string}>}>, checked: int, metadata: int, ids: array{missing: list<string>, duplicates: list<mixed>}, mediaIds: array{missing: list<string>, duplicates: list<mixed>}, fileNames: list<array{count: int}>, flat: array{count: int}, terms: array{count: int}, taxonomies: list<string>, mediaSizes: array{sizes: int, images: int, stale: int}} $report
 	 * @return list<array<string, mixed>>
 	 */
 	private function summarize(array $report): array
@@ -242,6 +242,12 @@ final readonly class SiteHealth
 		$checks[] = self::check('content', 'terms', $terms > 0
 			? CheckResult::warning('Terms and profiles', sprintf('%s no file, so the site leaves %s out.', self::count($terms, 'term or profile entries name has', 'terms and profiles entries name have'), $terms === 1 ? 'it' : 'them'))
 			: CheckResult::pass('Terms and profiles', 'Every term and profile entries name has a file.'), 'content');
+
+		$taxonomies = count($report['taxonomies']);
+
+		$checks[] = self::check('content', 'taxonomies', $taxonomies > 0
+			? CheckResult::warning('Taxonomies', sprintf('%s still written as %s, which Blush reads as %s until %s migrated.', self::count($taxonomies, 'content type is', 'content types are'), $taxonomies === 1 ? 'a taxonomy' : 'taxonomies', $taxonomies === 1 ? 'a collection and its relation' : 'collections and their relations', $taxonomies === 1 ? 'it\'s' : 'they\'re'))
+			: CheckResult::pass('Taxonomies', 'Every content type is written as a collection or a tree.'), 'content');
 
 		$renames = array_sum(array_column($report['fileNames'], 'count'));
 

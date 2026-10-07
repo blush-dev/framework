@@ -23,7 +23,6 @@ use Blush\Clock\DateFormat;
 use Blush\Clock\DateStyle;
 use Blush\Content\Entry\Entry;
 use Blush\Content\Type\ContentType;
-use Blush\Content\Type\Taxonomy;
 use Blush\Data\InvalidData;
 use Blush\Menu\Menu;
 use Blush\Menu\MenuException;
@@ -544,15 +543,16 @@ final class Template
 	}
 
 	/**
-	 * Returns the term entries an entry has in a taxonomy, in the order
-	 * front matter lists them. Terms that aren't published are left out.
-	 * Profiles aren't a taxonomy; use `people()`.
+	 * Returns the term entries an entry has of a term type (one a
+	 * classify relation files entries under, D-593), in the order front
+	 * matter lists them. Terms that aren't published are left out.
+	 * Profiles aren't terms here; use `people()`.
 	 *
 	 * @return list<Entry>
 	 */
 	public function terms(Entry $entry, string $taxonomy): array
 	{
-		if (! $this->views->services->types->find($taxonomy) instanceof Taxonomy) {
+		if ($this->views->services->types->classification($taxonomy) === null) {
 			return [];
 		}
 
@@ -681,7 +681,7 @@ final class Template
 
 	/**
 	 * Returns an entry's parent: a page's (from its folder) or a
-	 * hierarchical taxonomy term's (its `parent`). `null` when there's
+	 * hierarchical collection's entry's (its `parent`). `null` when there's
 	 * none, or it isn't published.
 	 */
 	public function parent(Entry $entry): ?Entry

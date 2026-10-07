@@ -482,10 +482,17 @@ on demand, for what's loaded at once, is in `open-questions.md`.
   later (D-550). Next maybe: **Publishing** (the cache and a button
   to clear it; the author is interested, not decided). Activity (who
   changed what) is extension territory, not core.
-- **Relationships (D-242, planned):** a reverse index for every
-  reference field, keyed by field, with a template API and "Used by" in
-  the admin; then "lists what references it" as a setting for any type,
-  with taxonomies as a preset; then one picker in the admin.
+- **Relationships (D-585, planned; refines D-242):** one relation
+  model for every link between entries, modeled as database records:
+  (1) relations compiled from taxonomies, people fields, and reference
+  fields, one index, and the read and query API (built and wired
+  in, D-590 to D-592), and the taxonomy kind retired for collections
+  and relations, with a migration tool and the admin's Relationships
+  section (D-591, D-593, D-594); (2) limits and
+  required, creating as typed, reverse archives, rewriting referrers;
+  (3) the admin's controls and a type's Relationships section; (4) data
+  on links and targets of more than one type. Open items in
+  `open-questions.md` → Relationships.
 
 Other starting points the author may pick up (none decided):
 

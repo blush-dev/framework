@@ -30,7 +30,7 @@ final class PositionTest extends TestCase
 
 	private function content(): ContentRepository
 	{
-		$this->contentConfig(['types' => ['topic' => ['kind' => 'taxonomy', 'folder' => 'topics'], 'note' => ['kind' => 'collection', 'folder' => '_notes']]]);
+		$this->contentConfig(['types' => ['topic' => ['folder' => 'topics', 'order' => 'position'], 'note' => ['kind' => 'collection', 'folder' => '_notes']], 'relations' => ['topic' => ['kind' => 'classify', 'to' => ['topic']]]]);
 		$this->entry('guide/index.md', 'title: Guide');
 		$this->entry('guide/install.md', "title: Install\nposition: 1");
 		$this->entry('guide/upgrade.md', "title: Upgrade\nposition: 2");

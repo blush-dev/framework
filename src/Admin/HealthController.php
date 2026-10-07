@@ -27,6 +27,8 @@ use Blush\Content\FileNames;
 use Blush\Content\FlatEntries;
 use Blush\Content\MissingTerms;
 use Blush\Content\Type\ContentTypes;
+use Blush\Content\Type\InvalidContentType;
+use Blush\Content\Type\TaxonomyMigration;
 use Blush\Content\Writer\AssignedIds;
 use Blush\Content\Writer\WriteException;
 use Blush\Http\Response;
@@ -82,6 +84,12 @@ use Blush\Media\MediaSizes;
  * file for each, of the types the account may create and publish,
  * answering the new paths by `{type}/{slug}` (`created`) and `failed`.
  *
+ * Its `taxonomies` name the data types still written as taxonomies
+ * (D-591). `POST health/taxonomies` migrates them to collections and
+ * classify relations (D-593), for accounts that may also change content
+ * types (`site.settings`), answering the files written by type
+ * (`migrated`) and `failed`.
+ *
  * Its `mediaSizes` say how many images' sizes aren't recorded in their
  * metadata files (D-488): `sizes` and the `images` they're of, and
  * `stale` (images listing files that aren't their sizes). `POST health/media-sizes`
@@ -101,7 +109,8 @@ final readonly class HealthController
 		private FileNames $fileNames,
 		private ContentTypes $types,
 		private FlatEntries $flat,
-		private MissingTerms $terms
+		private MissingTerms $terms,
+		private TaxonomyMigration $taxonomies
 	) {}
 
 	public function __invoke(ServerRequestInterface $request): ResponseInterface
@@ -286,6 +295,27 @@ final readonly class HealthController
 		$created = $this->terms->create(fn (string $type): bool => $this->permissions->can($account, ContentAction::Create, $type) && $this->permissions->can($account, ContentAction::Publish, $type));
 
 		return Response::json(['created' => (object) $created->created, 'failed' => (object) $created->failed], headers: ['Cache-Control' => 'no-store']);
+	}
+
+	/**
+	 * Migrates the data types still written as taxonomies (D-591), for an
+	 * account that may change content types.
+	 */
+	public function migrateTaxonomies(ServerRequestInterface $request): ResponseInterface
+	{
+		$account = $request->getAttribute(Account::class);
+
+		if (! $account instanceof Account || ! $this->permissions->can($account, Capability::SiteHealth) || ! $this->permissions->can($account, Capability::SiteSettings)) {
+			return Response::json(['error' => 'You aren\'t allowed to change content types.'], Status::Forbidden, ['Cache-Control' => 'no-store']);
+		}
+
+		try {
+			$done = $this->taxonomies->migrate();
+		} catch (InvalidContentType $error) {
+			return Response::json(['error' => $error->getMessage()], Status::UnprocessableContent, ['Cache-Control' => 'no-store']);
+		}
+
+		return Response::json(['migrated' => (object) $done['migrated'], 'failed' => (object) $done['failed']], headers: ['Cache-Control' => 'no-store']);
 	}
 
 	/**

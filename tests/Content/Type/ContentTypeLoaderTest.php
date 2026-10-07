@@ -18,6 +18,7 @@ use PHPUnit\Framework\TestCase;
 use Blush\Content\ContentServiceProvider;
 use Blush\Content\EntryFields;
 use Blush\Content\Type\ContentTypeLoader;
+use Blush\Content\Relation\RelationOrigin;
 use Blush\Content\Type\ContentTypes;
 use Blush\Content\Type\InvalidContentType;
 use Blush\Content\Type\Tree;
@@ -68,7 +69,8 @@ final class ContentTypeLoaderTest extends TestCase
 
 		$this->assertSame(['page', 'profile'], array_keys($types->all()));
 		$this->assertSame(TypeOrigin::BuiltIn, $types->origin('profile'));
-		$this->assertSame([], array_keys($types->taxonomies()));
+		$this->assertSame([], $types->relations());
+		$this->assertSame([], array_keys($types->classifications()));
 		$this->assertSame('profile', $types->profiles()?->name);
 		$this->assertSame(['profile'], array_keys($types->termTypes()));
 		$this->assertNull($types->homeType());
@@ -99,7 +101,7 @@ final class ContentTypeLoaderTest extends TestCase
 
 	public function testLoadsJtcomsTypesAndResolvesFiles(): void
 	{
-		$this->contentConfig(var_export(['types' => JtcomTypes::definitions(), 'home' => 'post'], true));
+		$this->contentConfig(var_export(['types' => JtcomTypes::definitions(), 'relations' => JtcomTypes::relations(), 'home' => 'post'], true));
 
 		$types = $this->types();
 
@@ -130,14 +132,17 @@ final class ContentTypeLoaderTest extends TestCase
 
 	public function testSchemasIncludeTheBuiltInAndTermFields(): void
 	{
-		$this->contentConfig(var_export(['types' => JtcomTypes::definitions()], true));
+		$this->contentConfig(var_export(['types' => JtcomTypes::definitions(), 'relations' => JtcomTypes::relations()], true));
 
 		$types  = $this->types();
 		$schema = $types->schema('post');
 
-		foreach (['title', 'published', 'summary', 'category', 'era', 'literary_form', 'authors'] as $field) {
+		foreach (['title', 'published', 'summary', 'category', 'era', 'authors'] as $field) {
 			$this->assertTrue($schema->has($field), $field);
 		}
+
+		$this->assertFalse($schema->has('literary_form'), 'A classify relation adds its field to the types it\'s from (D-593).');
+		$this->assertTrue($types->schema('literature')->has('literary_form'));
 
 		$this->assertSame('authors', $schema->field('author')?->name);
 		$this->assertSame('published', $schema->field('date')?->name);
@@ -150,7 +155,7 @@ final class ContentTypeLoaderTest extends TestCase
 
 	public function testExtensionsAddTypesAndTheConfigReplacesThem(): void
 	{
-		$this->contentConfig("['types' => ['ingredient' => ['taxonomy' => true, 'path' => 'pantry']]]");
+		$this->contentConfig("['types' => ['ingredient' => ['order' => 'position', 'path' => 'pantry']]]");
 
 		$application = $this->scratchApplication();
 		$application->register(RecipeProvider::class);
@@ -160,6 +165,8 @@ final class ContentTypeLoaderTest extends TestCase
 		$this->assertSame(TypeOrigin::Extension, $types->origin('recipe'));
 		$this->assertSame(TypeOrigin::Config, $types->origin('ingredient'));
 		$this->assertSame('pantry', $types->get('ingredient')->folder);
+		$this->assertSame(RelationOrigin::Extension, $types->relationOrigin('ingredient'), 'The extension\'s relation still files recipes under it.');
+		$this->assertSame(['recipe'], $types->classification('ingredient')?->from);
 	}
 
 	public function testTwoExtensionsCantDefineOneType(): void
@@ -195,11 +202,11 @@ final class ContentTypeLoaderTest extends TestCase
 		$this->assertSame(TypeOrigin::Data, $types->origin('profile'));
 	}
 
-	public function testDataFilesChangeConfigCollectionsAndTaxonomies(): void
+	public function testDataFilesChangeConfigCollections(): void
 	{
-		$this->contentConfig("['types' => ['movie' => ['path' => 'movies', 'routing' => ['prefix' => 'films', 'single' => '{year}/{name}'], 'feed' => ['listing' => ['perPage' => 5]], 'description' => 'Films.'], 'genre' => ['taxonomy' => true]]]");
+		$this->contentConfig("['types' => ['movie' => ['path' => 'movies', 'routing' => ['prefix' => 'films', 'single' => '{year}/{name}'], 'feed' => ['listing' => ['perPage' => 5]], 'description' => 'Films.'], 'genre' => ['order' => 'position']]]");
 		$this->writeTemporaryFile('user/data/types/movie.yaml', "description: Movies we watched.\nrouting:\n  prefix: watched\n");
-		$this->writeTemporaryFile('user/data/types/genre.json', '{"hierarchical": true, "kind": "taxonomy"}');
+		$this->writeTemporaryFile('user/data/types/genre.json', '{"hierarchical": true}');
 
 		$types = $this->types();
 		$movie = $types->get('movie');
@@ -211,14 +218,15 @@ final class ContentTypeLoaderTest extends TestCase
 		$this->assertSame(['movies', 'Movies we watched.', 'watched'], [$movie->folder, $movie->description, $movie->prefix()]);
 		$this->assertSame('{name}', $movie->urls === false ? null : $movie->urls->path('single'), 'An option it sets replaces the code\'s whole option (D-349).');
 		$this->assertSame(5, $movie->feed === false ? null : $movie->feed->listing?->perPage, 'Options it doesn\'t set stay the code\'s.');
-		$this->assertTrue($types->taxonomies()['genre']->hierarchical);
+		$this->assertTrue($types->nestsByParent('genre'));
 	}
 
 	public function testDataFilesCantChangeACodeTypesKindOrFolder(): void
 	{
 		$cases = [
-			'{"kind": "taxonomy"}' => 'user/data/types/movie can\'t change the type\'s kind or folder',
-			'{"taxonomy": true}'   => 'user/data/types/movie can\'t change the type\'s kind or folder',
+			'{"kind": "taxonomy"}' => 'Content type "movie" is a taxonomy, which Blush no longer has',
+			'{"taxonomy": true}'   => 'Content type "movie" is a taxonomy, which Blush no longer has',
+			'{"kind": "tree"}'     => 'user/data/types/movie can\'t change the type\'s kind or folder',
 			'{"path": "films"}'    => 'user/data/types/movie can\'t change the type\'s kind or folder'
 		];
 
@@ -301,12 +309,16 @@ final class ContentTypeLoaderTest extends TestCase
 		$cases = [
 			"['types' => ['post' => ['path' => 'profiles']]]"                => 'The "profile" and "post" content types share the folder "profiles".',
 			"['types' => ['post' => ['collect' => 'nope']]]"                 => 'Content type "post" listing type names "nope", which doesn\'t exist.',
-			"['types' => ['tag' => ['taxonomy' => true, 'term_collect' => 'nope']]]" => 'Content type "tag" types names "nope"',
+			"['types' => ['tag' => []], 'relations' => ['tag' => ['kind' => 'classify', 'from' => ['nope'], 'to' => ['tag']]]]" => 'Relation "tag" names a "nope" content type, which doesn\'t exist.',
+			"['relations' => ['tag' => ['kind' => 'classify', 'to' => ['tag']]]]" => 'Relation "tag" names a "tag" content type, which doesn\'t exist.',
+			"['types' => ['tag' => []], 'relations' => ['tag' => ['kind' => 'classify', 'to' => ['tag'], 'inverse' => ['listing' => ['type' => 'nope']]]]]" => 'Relation "tag" inverse listing type names "nope"',
 			"['types' => ['post' => ['feed' => ['taxonomy' => 'nope']]]]"   => 'Content type "post" feed categories names "nope"',
-			"['types' => ['post' => ['feed' => ['taxonomy' => 'page']]]]"   => 'Content type "post" feed categories "page" isn\'t a taxonomy.',
+			"['types' => ['post' => ['feed' => ['taxonomy' => 'page']]]]"   => 'Content type "post" feed categories "page" isn\'t a type a classify relation files entries under.',
+			"['types' => ['tag' => ['taxonomy' => true]]]"                  => 'config/content.php: Content type "tag" is a taxonomy',
 			"['types' => ['page' => ['path' => 'pages']]]"                   => 'No content type claims the content root',
 			"['home' => 'post']"                                              => 'ContentConfig "home" names "post", which isn\'t a content type.',
-			"['types' => ['title' => ['taxonomy' => true]]]"                 => 'Content type "page" has clashing fields: Schema key "title"',
+			"['types' => ['title' => []], 'relations' => ['title' => ['kind' => 'classify', 'to' => ['title']]]]" => 'Content type "page" has clashing fields: Schema key "title"',
+			"['types' => ['post' => ['fields' => ['refs' => ['type' => 'text']]]]]" => 'Content type "post" has a field (or alias) named "refs", which is reserved',
 			"['types' => ['person' => ['kind' => 'profiles']]]"              => 'A site has one profiles type, but "profile", "person" are all profiles types.',
 			"['types' => ['post' => ['fields' => ['id' => ['type' => 'text']]]]]" => 'Content type "post" has a field (or alias) named "id", which is reserved for the entry\'s id; rename it.',
 			"['types' => ['post' => ['fields' => ['code' => ['type' => 'text', 'aliases' => ['id']]]]]]" => 'Content type "post" has a field (or alias) named "id"'
@@ -345,7 +357,7 @@ final class ContentTypeLoaderTest extends TestCase
 
 	public function testRoundTripsThroughArrays(): void
 	{
-		$this->contentConfig(var_export(['types' => JtcomTypes::definitions(), 'home' => 'post'], true));
+		$this->contentConfig(var_export(['types' => JtcomTypes::definitions(), 'relations' => JtcomTypes::relations(), 'home' => 'post'], true));
 
 		$application = $this->scratchApplication();
 		$types       = $this->types($application);

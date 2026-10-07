@@ -12,7 +12,7 @@ export interface ReferenceItem {
 	parent: string | null;
 	// How many published entries use a term; `null` for other types.
 	uses: number | null;
-	// Its depth in a hierarchical taxonomy's tree.
+	// Its depth in a hierarchical collection's tree.
 	depth: number | null;
 	// A slug the field holds that nothing answers to.
 	missing: boolean;
@@ -20,10 +20,10 @@ export interface ReferenceItem {
 
 export interface ReferenceList {
 	type: string;
-	// Whether a new item may be written as it's typed (a taxonomy's
+	// Whether a new item may be written as it's typed (a classify relation's
 	// term, whose file the picker writes, D-584).
 	create: boolean;
-	// Whether it's a hierarchical taxonomy, answered whole, in tree order.
+	// Whether it's a hierarchical collection, answered whole, in tree order.
 	tree: boolean;
 	search: string;
 	total: number;
@@ -51,7 +51,7 @@ export function referenceValues(value: string): string[] {
 }
 
 /**
- * Loads what a reference to `type` can point at. With `for`, a taxonomy
+ * Loads what a reference to `type` can point at. With `for`, a term type
  * answers only the terms that type's entries use (D-303); with `tree`, a
  * tree answers all its pages in tree order (D-408).
  */

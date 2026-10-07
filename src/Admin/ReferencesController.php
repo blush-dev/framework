@@ -23,7 +23,6 @@ use Blush\Content\Entry\Entry;
 use Blush\Content\Entry\Position;
 use Blush\Content\Query\Order;
 use Blush\Content\Type\ContentTypes;
-use Blush\Content\Type\Taxonomy;
 use Blush\Content\Type\Tree;
 use Blush\Http\Response;
 use Blush\Http\Status as HttpStatus;
@@ -35,12 +34,13 @@ use Blush\Support\Slug;
  * entries, whether or not they may edit the entries listed (an author
  * files a post under a category they can't edit). Each item is the
  * `slug` a reference stores, its `title`, its `status`, its `parent`'s
- * slug (or `null`), and for a taxonomy's terms how many published
- * entries use it (`uses`; else `null`). A taxonomy answers `create:
- * true`, since the picker writes a new term's file as it's typed
- * (D-584); other types' references must name an entry.
+ * slug (or `null`), and for terms how many published entries use it
+ * (`uses`; else `null`). A type a classify relation files entries
+ * under answers `create` as the relation says, since the picker writes
+ * a new term's file as it's typed (D-584, D-593); other types'
+ * references must name an entry.
  *
- * A hierarchical taxonomy answers every term, in tree order (each term
+ * A hierarchical collection answers every entry, in tree order (each term
  * followed by its children, siblings by title) with its `depth`, since
  * its picker shows the whole tree. With `tree=1`, a tree's pages are
  * answered the same way, for picking a new page's parent (D-408). Other types answer the items whose
@@ -51,10 +51,10 @@ use Blush\Support\Slug;
  * landing page isn't something to point at, so it's left out, nor are
  * the site's error pages (D-411).
  *
- * With `for` (a content type's name), a taxonomy answers only the terms
+ * With `for` (a content type's name), a term type answers only the terms
  * that type's entries use, in any status, among the entries the account
- * may edit, for the entry list's filters (D-303); a hierarchical
- * taxonomy keeps a used term's parents, so the tree holds together.
+ * may edit, for the entry list's filters (D-303); a hierarchical one
+ * keeps a used term's parents, so the tree holds together.
  */
 final readonly class ReferencesController
 {
@@ -113,7 +113,7 @@ final readonly class ReferencesController
 			return self::json(['error' => sprintf('"limit" must be a whole number from 1 to %d.', self::MAX_LIMIT)], HttpStatus::BadRequest);
 		}
 
-		$taxonomy = $contentType->hasTerms();
+		$taxonomy = $this->types->isTermType($type);
 		$counts   = $taxonomy ? $this->content->termCounts($type) : [];
 		$entries  = $this->content->query()->any()->type($type)->withLanding(false)->orderBy('title', Order::Asc)->limit(null)->get()->all();
 		$items    = [];
@@ -132,7 +132,7 @@ final readonly class ReferencesController
 			$items = self::inUse($items, array_map(strval(...), array_keys($used)));
 		}
 
-		$tree  = ($contentType instanceof Taxonomy && $contentType->hierarchical) || ($contentType instanceof Tree && $whole === '1');
+		$tree  = $this->types->nestsByParent($type) || ($contentType instanceof Tree && $whole === '1');
 		$found = $tree ? self::tree($items) : self::matching($items, $search);
 		$total = count($found);
 		$shown = $tree ? $found : array_slice($found, 0, $limit);
@@ -150,7 +150,7 @@ final readonly class ReferencesController
 
 		return self::json([
 			'type'   => $type,
-			'create' => $taxonomy,
+			'create' => $this->types->classification($type)->create ?? false,
 			'tree'   => $tree,
 			'search' => trim($search),
 			'total'  => $total,

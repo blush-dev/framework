@@ -104,11 +104,11 @@ const groups = computed(() => {
 	return [...found].map(([name, list]) => ({ name, icon: GROUP_ICONS[name] ?? 'plug', capabilities: list }));
 });
 
-// Types by their names, content before taxonomies.
+// Types by their names, content before terms (D-593).
 const byLabel = (a: RoleType, b: RoleType): number => a.label.localeCompare(b.label);
 const kinds   = computed(() => [
-	{ key: 'content', label: 'Content types', types: props.types.filter((type) => type.kind !== 'taxonomy').sort(byLabel) },
-	{ key: 'taxonomy', label: 'Taxonomies', types: props.types.filter((type) => type.kind === 'taxonomy').sort(byLabel) }
+	{ key: 'content', label: 'Content types', types: props.types.filter((type) => !type.terms).sort(byLabel) },
+	{ key: 'terms', label: 'Terms', types: props.types.filter((type) => type.terms).sort(byLabel) }
 ].filter((kind) => kind.types.length > 0));
 
 const has = (name: string): boolean => model.value.includes(name);
@@ -517,7 +517,7 @@ function flipAll(): void {
 	font-size: var(--text-sm);
 }
 
-/* A caption, so content types and taxonomies don't read as one list. */
+/* A caption, so content types and terms don't read as one list. */
 .sections__caption {
 	padding: 11px var(--pad-x) 7px;
 	border-bottom: 1px solid var(--border);

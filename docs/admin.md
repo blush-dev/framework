@@ -42,8 +42,9 @@ its URLs exist.
 ## Getting around
 
 The rail at the far left has four sections: **Home** (the dashboard,
-Site Health, and tools), **Content** (each content type's entries, with its own
-taxonomies under it, the taxonomies several types share, and media),
+Site Health, and tools), **Content** (each content type's entries, with
+the types of terms that file only it under it, the terms several types
+share, and media),
 **Users** (your profile, accounts, profiles, and roles), and **Config**
 (content types, fields, settings, themes, plugins, and icon packs). The panel
 beside it lists the section you're in. Choosing a section changes the
@@ -175,11 +176,12 @@ log.
 ## Entries
 
 The sidebar lists your content types by name. **Content** has your
-collections (such as Posts) and Pages, each with the taxonomies that
-group only that type under it (a taxonomy whose `types` setting names
-one type, such as Categories under Posts), then **Media**.
-**Structure** has **Content types** and the taxonomies that group
-several types or every type, each saying which. Profiles are in
+collections (such as Posts) and Pages, each with the
+[types of terms](content-types.md#terms-and-relationships) that file
+only that type under it (one whose relation's `from` names one type,
+such as Categories under Posts), then **Media**. **Structure** has
+**Content types**, and **Shared Terms** has the types of terms that
+file several types or every type, each saying which. Profiles are in
 **Users**, with accounts, since they're the public side of accounts.
 Each type opens a list of its entries you can edit, newest changes
 first. Types are named from their `labels` setting, and
@@ -208,12 +210,14 @@ the entries crediting you. You see your own
 entries if you're an author or contributor, and everyone's if you're an
 editor; in Profiles, your own profile is marked "You".
 On the **All** tab, a collection's entries come newest published first,
-pages and terms by their **Position** and then by title (those without
+pages and the entries of a collection ordered by position or nesting
+(such as terms) by their **Position** and then by title (those without
 one after the rest), and profiles by name; the date column shows the
 date the list goes by. Drafts come most recently changed first,
 published entries newest first, and scheduled entries in the order
-they'll go live. Pages, and the terms of a hierarchical taxonomy,
-list as a tree on the **All** tab when you aren't searching: each one
+they'll go live. Pages, and the entries of a
+[nesting collection](content-types.md#nesting-and-order) (such as
+categories), list as a tree on the **All** tab when you aren't searching: each one
 followed by the ones under it, indented, in the same order (Books, then
 Book Reviews indented under it, then Film). The triangle
 beside an entry with others under it collapses or expands that branch;
@@ -223,7 +227,7 @@ top, marked **Continued**. On another tab, in a search, with a filter,
 or sorted by a column, the tree is flattened, and a note above the list
 says how to get it back. Under each title is the entry's address on your
 site (for a draft, the address it will have). In other tabs and in
-search results, a page or a term of a hierarchical taxonomy has the
+search results, a page or an entry of a nesting collection has the
 titles of the entries above it before its own (such as "Web › Web
 design › CSS"). Click a title to edit the entry.
 
@@ -232,11 +236,11 @@ Beside the tabs is a row of filters:
 - **Search** matches titles and file paths. Press `/` anywhere on the
   list to start typing in it.
 - **Author** shows only the entries crediting one author (not on a
-  taxonomy's list, since terms aren't credited).
-- One select for each taxonomy the type uses, such as **Any topic**,
-  shows only the entries filed under one term.
+  list of terms, since terms aren't credited).
+- One select for each type of terms the type is filed under, such as
+  **Any topic**, shows only the entries filed under one term.
 
-The Author and taxonomy selects offer only the authors and terms this
+The Author and term selects offer only the authors and terms this
 type's entries use (drafts included), so a choice never comes up empty.
 A filter with nothing to offer isn't shown.
 - **Updated** shows only the entries changed in the last 7, 30, or 90
@@ -280,7 +284,7 @@ an entry in its own folder is copied with its media. A message at the
 bottom right says so; the copy is listed with the drafts. Terms and index pages can't
 be duplicated.
 
-A collection's or taxonomy's **index page** (the `index.md` in its
+A collection's **index page** (the `index.md` in its
 folder, which introduces its archive) is pinned at the top of its list
 with a pin and an **Index** tag, on the list's first page. It isn't
 counted in the list's totals, and it can't be moved to the trash (see
@@ -319,8 +323,8 @@ counted in the totals, aren't offered as a parent, can't be duplicated,
 and keep their slug, since it's the status. Moving one to the trash is
 allowed: the theme's own message is shown in its place.
 
-A taxonomy's list (such as Categories) holds its **terms**. Instead of
-authors, it shows how many published entries use each term.
+A type of terms' list (such as Categories) holds its **terms**. Instead
+of authors, it shows how many published entries use each term.
 
 A type with no entries yet skips the tabs and search: it says what the
 type is for (its `description`, if it has one) and offers to create the first one. A site that hasn't
@@ -339,7 +343,8 @@ first save, or leave it at **None, at the top level**. The page is
 saved in its parent's folder (`about/team.md`), and its address follows
 (`/about/team`). If the parent is a single file (`about.md`), it moves
 into the folder first, as `about/index.md`; its address stays the same.
-**Position** (under Parent, for pages and terms) sets its place among
+**Position** (under Parent, for pages and for collections ordered by
+position or nesting, such as terms) sets its place among
 its siblings: lower numbers first, and those without one after them, by
 title. A type's **All** tab and the Parent list follow it; term
 filters and pickers stay alphabetical.
@@ -466,18 +471,19 @@ They have two tabs:
   such as "Goes live tomorrow"), its **Slug** (see below), its
   **Visibility** (**Public**, **Unlisted**: it has an address but isn't
   in lists, feeds, or the sitemap, or **Hidden**: no address), and a
-  term's or new page's **Parent**. A line under them says what the date means and when
+  new page's **Parent**, or the parent of an entry in a nesting
+  collection (such as a category). A line under them says what the date means and when
 the file was last edited.
   Then the **Featured Image** (choose, replace, or remove it), the
-  **Authors**, each taxonomy (see
+  **Authors**, each type of terms it's filed under (see
   [Choosing terms and authors](#choosing-terms-and-authors)), the
   **Summary**, and the content type's other fields, such as the
   subtitle (a few kinds, such as `collection`, show their value
   read-only); each [field set](content-types.md#field-sets) added to the
   type, under its label; front matter the type doesn't declare, kept as it is; and
   what Site Health finds in the file, as last saved (notices only if
-  you ask). Only the taxonomies that group the content type are offered,
-  plus any the file already uses. At its foot,
+  you ask). Only the types of terms whose relation files the content
+  type are offered, plus any the file already uses. At its foot,
   **Outline** lists everything in the entry (see
   [The outline](#the-outline-and-the-breadcrumb)).
 - **The element's**, named for what the cursor is in (**Callout**,
@@ -558,22 +564,25 @@ and marked under the field; a draft saves without them.
 
 ### Choosing terms and authors
 
-A field that points at other entries (a taxonomy's terms, the authors,
-or any other type) is a picker rather than a list of slugs to type:
+A field that points at other entries (terms, the authors, or any other
+type, through a [relation](content-types.md#terms-and-relationships))
+is a picker rather than a list of slugs to type:
 
-- **A hierarchical taxonomy**, such as categories, is its whole tree,
-  each term with how many entries use it. Search to narrow it (a
-  match's parents stay in view) and tick the ones that apply. **New
-  category** (named for the taxonomy) asks for a name and a parent and
-  adds the term to your site, ticked.
-- **Other taxonomies**, such as tags, are chips. Type to see matching
-  terms and press Enter for the first, or, when nothing matches, to add
-  what you typed as a new tag. Backspace in the empty field removes the
+- **Nesting terms**, such as categories, are their whole tree, each
+  term with how many entries use it. Search to narrow it (a match's
+  parents stay in view) and tick the ones that apply. **New category**
+  (named for the type) asks for a name and a parent and adds the term
+  to your site, ticked.
+- **Other terms**, such as tags, are chips. Type to see matching terms
+  and press Enter for the first, or, when nothing matches, to add what
+  you typed as a new tag. Backspace in the empty field removes the
   last chip.
+- Adding a term as you type needs its relation to allow it (`create`)
+  and your account to be able to create that type's entries.
 - **Authors** are listed by name, the first marked **Lead**. Search to
   add someone. An entry always has an author, so the last one can't be
   removed until another is added.
-- **One value**, such as a term's parent, is a list to choose from,
+- **One value**, such as a category's parent, is a list to choose from,
   indented to show the tree.
 
 A slug that nothing answers to is shown as written, marked as not found.
@@ -878,39 +887,44 @@ file you uploaded. You can also put files in
 
 ## Content types
 
-With `site.settings`, **Config → Content types** lists every type,
-taxonomies too, with where it's defined, how many fields it has, and how
-many entries. Tabs narrow it to one kind (Collections, Trees,
-Taxonomies, Profiles; only the kinds the site has), beside a search.
-Choose one for its settings, the taxonomies that group it,
+With `site.settings`, **Config → Content types** lists every type, with
+its kind (**Terms** for a [type of terms](content-types.md#terms-and-relationships)),
+where it's defined, how many fields it has, and how many entries. Tabs
+narrow it (Collections, Terms, Trees, Profiles; only the ones the site
+has), beside a search. Choose one for its settings, its relationships,
 and its fields; **Type Settings** on a type's list goes there too.
 
 Types in `user/data/types` are edited on their screen. So are
-collections, taxonomies, and [trees](content-types.md#trees) from
+collections and [trees](content-types.md#trees) from
 `config/content.php` and plugins:
 what you change is saved in `user/data/types/{key}.json` over the code's
 definition (see [Changing a type from code](content-types.md#changing-a-type-from-code)).
 The pages and profiles types defined in code stay as they are, so their
-screens only show them.
+screens only show them. A type still written as a taxonomy can't be
+edited until it's migrated (see [Site Health](#site-health) and
+[Moving from taxonomies](content-types.md#moving-from-taxonomies)).
 
 ### Creating a type
 
 **New Content Type** walks through three steps, with **What Gets
 Created** beside them:
 
-1. **Basics:** a collection, a taxonomy, or a
-   [tree](content-types.md#trees), its names, a key
+1. **Basics:** a **Collection**, **Terms** (a collection whose entries
+   file other entries, such as topics or tags), or a
+   [**Tree**](content-types.md#trees), its names, a key
    (made from the name, such as `recipe`), the folder its entries live in
    under `user/content` (made from the plural name), a description, and
    an icon. The key and folder can't change later.
 2. **Behavior:** the URL prefix (the folder's by default), whether it's
    visible on the site, in the sitemap, listed in `llms.txt` (on for
-   collections and trees, off for taxonomies, by default), and has a feed; for content, date
-   archives and a featured image (an `image` media field); for a
-   taxonomy, whether terms nest and which types its terms group; an
+   collections and trees, off for terms, by default), and has a feed;
+   for a collection, date archives, a featured image (an `image` media
+   field), whether entries nest under a parent, and its **Order**
+   (newest published first, or by position for terms); for terms,
+   **Files**, the types filed under them (none for every type); an
    index page, the type's landing page (on by default); and, when the
    site has profiles, whether entries **credit authors** (on for content,
-   off for taxonomies), whether each author **has an archive** under the
+   off for terms), whether each author **has an archive** under the
    type, the **word in the address** (`authors` unless you change it;
    the hint shows where the list and archives will be), and a **page
    introducing the list** (see [People archives](content-types.md#people-archives)).
@@ -922,13 +936,40 @@ Created** beside them:
 
 **Create Type** writes `user/data/types/{key}.json`, the index page
 as `index.md` in its folder, titled with the plural name, and the
-authors page, when chosen, as `_authors.md`, titled "Authors".
+authors page, when chosen, as `_authors.md`, titled "Authors". For
+terms, it also writes the classify relation that files the chosen types
+under them, as `user/data/relations/{key}.json`. Terms are a collection
+ordered by position, with no authors, and left out of `llms.txt`.
 
 ### Editing a type
 
 A type's screen has General (names, description, icon), Behavior (as
-above), **Profiles** (named for your site's profiles type), Addresses,
-and Fields.
+above), **Relationships**, **Profiles** (named for your site's profiles
+type), Addresses, and Fields.
+
+In Behavior, a collection has **Entries can nest under a parent, as
+categories do** (`hierarchical`) and **Order** (`order`; see
+[Nesting and order](content-types.md#nesting-and-order)).
+
+**Relationships** lists each [relation](content-types.md#terms-and-relationships)
+from or to the type, said from its side: "Filed under Topics", "Files
+Posts", "Links to Docs". Relations in `user/data/relations` have
+**Edit** and **Remove** (removing one leaves what entries wrote in
+their files, but the site stops reading it as a link); one from
+`config/content.php` or a plugin says where it's defined. **Add
+Relationship** opens a form for one of two things:
+
+- **Files entries under terms:** the **Terms** type (one nothing files
+  under yet), which types it **Files**, and whether writers can add a
+  term as they type it, whether an entry needs one to be published, and
+  whether each term has a page listing what's filed under it.
+- **Links entries to other entries:** **Entries of** one type **Link
+  to** another, under a **Key** in front matter, with whether they take
+  several entries or one, whether their order matters, and whether an
+  entry needs one to be published.
+
+It's saved in `user/data/relations/{name}.json`. A relation can't take
+the name of one defined in code.
 
 **Profiles** lists the type's profile fields ([people fields](content-types.md#crediting-people)
 in its settings), a row each: each credits a profile, under this
@@ -953,7 +994,8 @@ pages, date archives, entries (or terms), feeds, and author archives.
 Each shows its path after the type's prefix, its default when empty,
 the whole address, and the {placeholders} it needs and may hold: an
 entry's address needs `{name}` and may hold the date's parts
-(`{year}` to `{second}`) and a taxonomy's name; later pages need
+(`{year}` to `{second}`) and the name of a type of terms it's filed
+under; later pages need
 `{page}`. A path that leaves out what it needs, or holds something it
 can't fill, is refused with the reason. Changing an address moves those
 pages, so add [redirects](content.md#redirects) for the old ones in
@@ -983,8 +1025,9 @@ is refused with the reason, and the file is left as it was. The site
 uses a change on the next request.
 
 **Delete This Type** removes its file. Its entries stay in its folder,
-unlisted until a type claims the folder again. A type a taxonomy groups
-can't be deleted until the taxonomy stops grouping it.
+unlisted until a type claims the folder again. A type a relation names
+can't be deleted until the relation is removed ("The "tag" relation
+names post; remove it first.").
 
 A type from code says where it's defined and where changes go. Its file
 keeps only what differs from the code, and is removed when everything
@@ -1099,7 +1142,7 @@ screens:
   while the Markdown copies are off, and, once served, with its size
   and a warning when it's too big for the page cache); the
   types it lists (each content type chooses with **Listed in
-  `llms.txt`** on its screen; taxonomies and profiles start off), and the description it
+  `llms.txt`** on its screen; new types of terms and profiles start off), and the description it
   uses; and which kinds of AI crawler `robots.txt` asks to stay away:
   training crawlers, AI search crawlers, and fetchers acting for a
   person, each saying what its crawlers do and naming its bots (see
@@ -1385,7 +1428,8 @@ A role's screen shows its key, where it comes from, and who holds it,
 then its capabilities in sections: **Site Capabilities** (Media,
 Structure, Site, People, and any a plugin adds) and **Content
 Capabilities**, **Every Type** first, then one section for each
-content type. Each section says in a sentence what the role can do; open it
+content type, under **Content types** and then **Terms** (the
+[types of terms](content-types.md#terms-and-relationships)). Each section says in a sentence what the role can do; open it
 to tick or untick its capabilities. **Expand All** opens every section,
 and **Show Keys** shows each capability's key.
 
@@ -1513,7 +1557,7 @@ each is clear:
 
 | Area | What it checks |
 |---|---|
-| Content | Entries' files: problems in their front matter, ids, terms and profiles with no file, collection folders, and file names |
+| Content | Entries' files: problems in their front matter, ids, terms and profiles with no file, collection folders, and file names; and types still written as taxonomies |
 | Media | Library files' ids, their details files, and image sizes |
 | Extensions | A theme, plugins, or icon packs that are on but can't run |
 | System | PHP and its extensions, `.env`, debugging and `APP_URL` in production, the public folder, and writable storage |
@@ -1537,7 +1581,7 @@ asked for in a bug report. **Copy Report** copies them all as text.
 
 Each Content and Media issue opens a screen of its own, where it's
 fixed: **Content Files**, **Entry IDs**, **Terms and Profiles**,
-**Collection Folders**, and **File Names**; **Media Details**, **Media IDs**, and **Image Sizes**.
+**Collection Folders**, **File Names**, and **Taxonomies**; **Media Details**, **Media IDs**, and **Image Sizes**.
 Each shows the last check, with when it ran. **Check Again** checks
 every content and media file again, and so does every fix once it's
 done; either updates Site Health too.
@@ -1561,6 +1605,13 @@ in the editor until it has one; its links lead here.
 name that have no file, which the site leaves out. **Write Files**
 writes each, published and titled as the entries name it, for the
 types you may create and publish.
+
+**Taxonomies** lists the types in `user/data/types` still written as
+taxonomies, which Blush no longer has. **Migrate Types** rewrites each
+as a collection and its classify relation in `user/data/relations`, as
+`bin/blush content:taxonomies --write` does (see
+[Moving from taxonomies](content-types.md#moving-from-taxonomies)). It
+needs Site Health and `site.settings`.
 
 **Collection Folders** says how many collection entries are kept in
 folders, which [collections](content-types.md#collections-are-flat)
@@ -1657,11 +1708,15 @@ The API is JSON under `/admin/api`, and uses the session cookie:
 | `POST themes`, `POST plugins`, `POST icon-packs` | Installs an extension from a `.zip` of its folder, sent as the multipart field `file`, with `replace` set to `1` to replace an installed one with its name. Answers `201` with `{"installed": {"name", "label", "version", "folder", "abandoned", "suggests"}, "replaced", "backup", "refresh"}` (`abandoned` as `GET plugins` has it; `suggests` what it suggests, each `{"name", "reason"}`; `replaced` is the version it replaced, or `null`; `refresh` asks for `POST settings/refresh`). One already installed, without `replace`, is a `409` with `{"clash": {"installed", "incoming"}}`; anything else that stops it is a `422` saying why, with the `kind` an archive of another kind holds. Nothing is written either way. Needs `extensions.{kind}.install`, or `.update` to replace. Each kind's list (`GET themes`, `GET plugins`, `GET icon-packs`) also has `upload`: `{"limit", "problem"}`, the largest archive taken in bytes and why nothing can be installed |
 | `POST {themes,plugins,icon-packs}/{vendor}/{name}/rollback` | Rolls a folder extension back to the version replacing it kept, keeping the version it replaces in its place: `{"rolledBack": {"name", "label", "version", "folder"}, "from", "refresh"}`. No kept version is a `404`; one that wouldn't run (a plugin's requirements, an active theme's missing parent) a `422`. Each extension in its list has `backup`: `{"version"}`, or `null`. Needs `extensions.{kind}.update` |
 | `DELETE {themes,plugins,icon-packs}/{vendor}/{name}/backup` | Discards the kept version: `{"discarded": true}`. Needs `extensions.{kind}.delete` |
-| `GET types` | The site's content types: `{"types": [{"name", "labels", "description", "icon", "kind", "dated", "authors", "origin", "folder", "prefix", "fields"}], "authors"}`, by plural label, taxonomies and the profiles type last. `kind` is `collection`, `taxonomy`, `tree`, or `profiles`, and each type's `authors` is whether its entries credit people. A taxonomy adds `"types"`, the types it groups (empty for every type), and `"hierarchical"`; the profiles type adds `"types"`, the types that credit people. `fields` is how many the type defines, `icon` is `null` for the kind's, and the top-level `authors` names the profiles type (`null` when the site has none). `labels` has every [label](content-types.md#names-descriptions-and-icons-in-the-admin), defaults filled in |
-| `GET types/{name}` | One type, with its own `fields`, the field `sets` added to it (`{"name", "label", "fields"}`), the `taxonomies` that group it, `public`, `feed`, `sitemap`, `llms` (whether it's listed in `llms.txt`; off by default for taxonomies and profiles), `editable` (defined in `user/data/types`, or a collection, taxonomy, or tree in a folder from code), `overridden` (from code, with a file in `user/data/types` changing it) and `overrides` (the options that file sets), `fieldsEditable`, `routes` (each address: `{"key", "path", "default", "requires", "allows", "root"}`, paths relative to the prefix), `dateArchives`, `folderPrefix` (the URL prefix its folder gives), `file`, its `index` page (`{"id", "path", "title"}` or `null`), its `people` fields (each `{"field", "plural", "singular", "aliases", "archive", "multiple", "required", "listPage"}`: `archive` is its word or `false`, and `listPage` its list page, `{"id", "path", "title"}` or `null`), `authorsWord` (the word its `authors` people field's archives sit under, `false` for none or without the field, `null` without URLs), and its `authorsPage` (`_authors`, `{"id", "path", "title"}` or `null`). `GET types` adds `create` (whether types can be created here) and `urls` (whether they may set URLs) |
-| `POST types` | Create a type in `user/data/types`: `{"name", "kind"` (`collection`, `taxonomy`, or `tree`), `"folder", "set", "index", "listPages", "authorsPage"}`; answers `201` with the type. `set` maps options to values: `labels`, `description`, `icon`, `prefix`, `authorsWord` (the word the `authors` people field's archives sit under; `false` for none, `null` for `authors`), `paths` (route keys to paths, `null` for a key's default), `public`, `sitemap`, `llms`, `feed`, `people` (its [people fields](content-types.md#crediting-people): `false`, or each field's settings by its key), `authors` (whether it has the `authors` people field), `dateArchives`, `hierarchical`, `types`, and `fields`; `index: true` adds its index page, `listPages` (people field keys) adds each one's list page, `_{field}.md` titled with its name (a `422` for a field without archives), and `authorsPage: true` is short for `listPages: ["authors"]`. Needs `site.settings` |
-| `PATCH types/{name}` | Change a `user/data/types` type, or a collection, taxonomy, or tree in a folder from code (saved in `user/data/types` over it): `{"set", "index", "listPages", "authorsPage"}`, as above (`null` removes an option); answers with the type. A change that doesn't fit is a `422` with the reason |
-| `DELETE types/{name}` | Delete a `user/data/types` type's file (its entries stay); answers `{"deleted"}` |
+| `GET types` | The site's content types: `{"types": [{"name", "labels", "description", "icon", "kind", "dated", "authors", "origin", "folder", "prefix", "fields"}], "authors"}`, by plural label, types of terms and the profiles type last. `kind` is `collection`, `tree`, or `profiles`, and each type's `authors` is whether its entries credit people. Each also has `terms` (whether a classify relation files entries under it), `hierarchical` (whether its entries nest by a `parent`), and `order` (a collection's, `published` or `position`; `null` for other kinds). A type of terms adds `"types"`, the types its relation files (empty for every type); the profiles type adds `"types"`, the types that credit people. `fields` is how many the type defines, `icon` is `null` for the kind's, and the top-level `authors` names the profiles type (`null` when the site has none). `labels` has every [label](content-types.md#names-descriptions-and-icons-in-the-admin), defaults filled in |
+| `GET types/{name}` | One type, with its own `fields`, the field `sets` added to it (`{"name", "label", "fields"}`), the `taxonomies` (types of terms) whose relations file it, its `relations` (every relation from or to it, each as `GET relations` describes it), `public`, `feed`, `sitemap`, `llms` (whether it's listed in `llms.txt`; off by default for profiles), `editable` (defined in `user/data/types`, or a collection or tree in a folder from code, and not still written as a taxonomy), `overridden` (from code, with a file in `user/data/types` changing it) and `overrides` (the options that file sets), `fieldsEditable`, `routes` (each address: `{"key", "path", "default", "requires", "allows", "root"}`, paths relative to the prefix), `dateArchives`, `folderPrefix` (the URL prefix its folder gives), `file`, its `index` page (`{"id", "path", "title"}` or `null`), its `people` fields (each `{"field", "plural", "singular", "aliases", "archive", "multiple", "required", "listPage"}`: `archive` is its word or `false`, and `listPage` its list page, `{"id", "path", "title"}` or `null`), `authorsWord` (the word its `authors` people field's archives sit under, `false` for none or without the field, `null` without URLs), and its `authorsPage` (`_authors`, `{"id", "path", "title"}` or `null`). `GET types` adds `create` (whether types can be created here) and `urls` (whether they may set URLs) |
+| `POST types` | Create a type in `user/data/types`: `{"name", "kind"` (`collection` or `tree`), `"folder", "set", "index", "listPages", "authorsPage"}`; answers `201` with the type. `set` maps options to values: `labels`, `description`, `icon`, `prefix`, `authorsWord` (the word the `authors` people field's archives sit under; `false` for none, `null` for `authors`), `paths` (route keys to paths, `null` for a key's default), `public`, `sitemap`, `llms`, `feed`, `people` (its [people fields](content-types.md#crediting-people): `false`, or each field's settings by its key), `authors` (whether it has the `authors` people field), `dateArchives`, `hierarchical`, `order`, and `fields`; `index: true` adds its index page, `listPages` (people field keys) adds each one's list page, `_{field}.md` titled with its name (a `422` for a field without archives), and `authorsPage: true` is short for `listPages: ["authors"]`. Needs `site.settings` |
+| `PATCH types/{name}` | Change a `user/data/types` type, or a collection or tree in a folder from code (saved in `user/data/types` over it): `{"set", "index", "listPages", "authorsPage"}`, as above (`null` removes an option); answers with the type. A change that doesn't fit is a `422` with the reason |
+| `DELETE types/{name}` | Delete a `user/data/types` type's file (its entries stay); answers `{"deleted"}`. A type a relation names is a `422` saying which |
+| `GET relations` | The site's [relations](content-types.md#terms-and-relationships): `{"relations": [{"name", "kind", "from", "to", "field", "aliases", "label", "multiple", "ordered", "min", "max", "create", "symmetric", "inverse", "definition", "origin", "editable"}], "create"}`. `inverse` is `false` or `{"label", "archive", "types", "max"}`; `definition` is the relation as a data file writes it; `origin` is `extension`, `config`, or `data`; `editable` is whether it's in `user/data/relations` (and not a taxonomy waiting to be migrated); `create` is whether relations can be created here |
+| `POST relations` | Create a relation in `user/data/relations/{name}.json`: its whole definition, with `name` (the keys a data file takes); answers `201` with it, as `GET relations` describes it. A definition that doesn't fit, or a name defined in code, is a `422` with the reason. Needs `site.settings` |
+| `PATCH relations/{name}` | Replace a `user/data/relations` relation with the whole definition sent; answers with it. Needs `site.settings` |
+| `DELETE relations/{name}` | Delete a `user/data/relations` relation's file (entries keep what they wrote); answers `{"deleted"}`. Needs `site.settings` |
 | `POST types/{name}/reset` | Put a type from code back as the code defines it, removing its file in `user/data/types`; answers with the type |
 | `POST types/refresh` | After a change: compile the routes again (on a compiled site) and reindex, so the site uses the change; answers `{"routes", "indexed"}` |
 | `GET fields/types` | The field types definitions can use, built in and from plugins: `{"types": [{"type", "label", "description", "controls", "options"}], "controls"}`. `controls` are `{"value", "label"}`, a type's first being its default; `options` are the type's own definition keys as JSON Schemas |
@@ -1675,6 +1730,7 @@ The API is JSON under `/admin/api`, and uses the session cookie:
 | `GET health/site` | Site Health's last check, checking first when there's none, and `POST health/site` checks again; with `site.health`: `{"checked", "areas", "checks", "requirements", "site", "server"}`. Each check is `{"area", "key", "status", "label", "message", "hint", "link"}` (`status` is `pass`, `warning`, or `failure`; `link` names what the admin opens, or `null`), each requirement `{"group", "name", "why", "needs", "installed", "status"}` (`status` may also be `optional`), and each fact `{"label", "value", "mono"}` |
 | `GET health` | Content and media problems by file, as Site Health last checked them (checking first when it never has), and `POST health` checks again; with `site.health` like every `health` route. It answers `at` (when), each file with its `area` (`content` or `media`), notices included, with counts, and `ids`: `{"missing", "duplicates"}`, the files missing a valid id and each id files share (`{"id", "paths"}`) |
 | `POST health/terms` | Write a published file for each term and profile entries name with no file, of the types the account may create and publish: `{"created", "failed"}`, the new paths and why any couldn't be written, each by `{type}/{slug}`. `GET health`'s `terms` (`{"count", "examples"}`, each example `{"type", "slug", "title"}`) says what's missing |
+| `POST health/taxonomies` | Migrate each `user/data/types` type still written as a taxonomy to a collection and its classify relation, as `content:taxonomies --write` does: `{"migrated", "failed"}`, the files written for each type and why any couldn't be. `GET health`'s `taxonomies` names the types left. Needs `site.health` and `site.settings` |
 | `POST health/ids` | Give each file missing a valid id, that the account may edit, a new one: `{"assigned", "failed"}`, the new ids by path and why any file couldn't be changed |
 | `POST health/ids/keep` | Keep a shared id on `{"path"}` and give the other files sharing it (that the account may edit) new ones; answers as above, or a `422` when the file doesn't share its id |
 | `POST previews` | A preview link to an entry the account may edit, from `{"entry": id}`: `{"url", "expires"}` |
@@ -1717,7 +1773,7 @@ or everyone's for an editor. Narrow it with:
 | `type` | A content type's name |
 | `search` | Text the title or file path must contain, in any case |
 | `author` | An author's slug the entries must credit |
-| `terms` | `taxonomy:slug` pairs, comma separated (`topic:art,era:1990s`); an entry needs every one |
+| `terms` | `type:slug` pairs for types of terms, comma separated (`topic:art,era:1990s`); an entry needs every one |
 | `days` | Entries updated in the last so many days, from 1 |
 | `account` | For profiles: `linked` (an account is linked to them) or `guest` (none is) |
 | `sort` | `title`, `status`, `author`, `published`, or `updated` |
@@ -1742,9 +1798,9 @@ unsorted), `tree` (whether it's in tree order), `total`, `page`,
 `linked` (whether an account is linked to it) and `account` (`{"username",
 "displayName"}`, with `accounts.view`, else `null`),
 `can.delete` and `can.duplicate`, and `ancestors`: the titles of the entries above it, from
-the top down (a page's parent pages, or a hierarchical term's parents;
-empty for the rest). With a `type` whose entries nest (pages, or a
-hierarchical taxonomy) and no `status`, `search`, `author`, `terms`,
+the top down (a page's parent pages, or the parents of an entry in a
+nesting collection; empty for the rest). With a `type` whose entries
+nest (pages, or a nesting collection) and no `status`, `search`, `author`, `terms`,
 `days`, or `sort`, entries come in tree order instead: each followed by its children, siblings by position and then title,
 each with its `depth` (0 at the top) and how many `children` it has. A
 page that starts inside a branch begins with the entries above it,
@@ -1783,7 +1839,7 @@ its `name`, `label`, `description`, and `source` (`null`).
 ### Listing references
 
 `GET references/{type}` answers what a reference field to `type` (a
-taxonomy's terms, the authors, or any other type) can point at, for
+type of terms, the authors, or any other type) can point at, for
 anyone who can edit content, including entries they can't edit
 themselves. Each item has the `slug` a reference stores, `title`,
 `status`, its `parent`'s slug (or `null`), `uses` (how many published
@@ -1793,17 +1849,18 @@ answers to). A slug entries use with no file isn't a term, so it isn't
 listed. A type's index
 page isn't included.
 
-A hierarchical taxonomy answers every term, in tree order (each
+A nesting collection answers every entry, in tree order (each
 followed by its children, siblings by title), with `tree: true`. Any
 other type answers the items whose title or slug contains `search`, by
 title, at most `limit` (20 by default, up to 100), with the `total`
 found. `slugs=a,b` adds those slugs to the answer, found or not, so a
-field can name what it holds. `create` is `true` for a taxonomy: the
-editor writes a new term's file (`POST entries`) as it's typed.
+field can name what it holds. `create` is `true` for a type of terms
+whose classify relation says `create`: the editor writes a new term's
+file (`POST entries`) as it's typed.
 
-`for=post` (a content type's name) narrows a taxonomy to the terms that
-type's entries use, in any status, counting only the entries the account
-may edit; a hierarchical taxonomy keeps the parents of each, so the tree
+`for=post` (a content type's name) narrows a type of terms to the terms
+that type's entries use, in any status, counting only the entries the
+account may edit; a nesting collection keeps the parents of each, so the tree
 holds together. The entry list's filters use it.
 
 ### Listing media

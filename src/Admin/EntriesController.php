@@ -32,10 +32,10 @@ use Blush\Content\Query\Order;
 use Blush\Content\Query\Query;
 use Blush\Content\Routing\ContentUrls;
 use Blush\Content\Status;
+use Blush\Content\Type\Collection;
 use Blush\Content\Type\ContentType;
 use Blush\Content\Type\ContentTypes;
 use Blush\Content\Type\Profiles;
-use Blush\Content\Type\Taxonomy;
 use Blush\Content\Type\Tree;
 use Blush\Core\AppConfig;
 use Blush\Http\Response;
@@ -54,7 +54,7 @@ use Blush\View\ThemedErrorPages;
  * - `type`: a content type's name.
  * - `search`: text the title or file path must contain (any case).
  * - `author`: an author's slug the entries must credit (D-300).
- * - `terms`: `taxonomy:slug` pairs, comma separated; an entry needs each.
+ * - `terms`: `type:slug` pairs of term types (D-593), comma separated; an entry needs each.
  * - `days`: entries updated in the last so many days.
  * - `account`: for profiles, `linked` (an account is linked to them) or
  *   `guest` (none is; D-369).
@@ -64,7 +64,7 @@ use Blush\View\ThemedErrorPages;
  * - `page` (from 1) and `per` (20 by default, at most 100).
  *
  * Unsorted, a type's whole list (any status) goes by `position`, then
- * title, for a tree or taxonomy (D-412), newest published first for a
+ * title, for a tree or a positioned collection (D-412), newest published first for a
  * collection, and by title for profiles (D-413); drafts, and the list of every type, come most
  * recently changed first, scheduled entries soonest first, and
  * published entries newest first. `by` says which the list is in order
@@ -73,7 +73,7 @@ use Blush\View\ThemedErrorPages;
  * permission rules, the filters, and paging all run in the index as one
  * query (`Permissions::restrict()`), so only the page's entries are built.
  *
- * A type whose entries nest (pages, and hierarchical taxonomies; D-257)
+ * A type whose entries nest (pages, and hierarchical collections; D-257, D-593)
  * lists as a tree when it's the whole list (no status, search, filter,
  * or sort): each
  * entry followed by its children, siblings by position, then title
@@ -86,7 +86,7 @@ use Blush\View\ThemedErrorPages;
  * have `depth` and `children` `null`, and none are `continued`.
  * Terms also say how many published entries use them (`uses`, D-236).
  *
- * A collection's or taxonomy's **index page** (its landing page, in the
+ * A collection's **index page** (its landing page, in the
  * site's locale) isn't one of its entries (D-255): it's left out of the
  * entries, the total, and the pages, and answered on its own as `index`
  * on the first page (D-264), when it matches the filters and the account
@@ -176,12 +176,12 @@ final readonly class EntriesController
 		$terms = self::terms($params['terms'] ?? '');
 
 		if ($terms === null) {
-			return self::json(['error' => '"terms" must be taxonomy:slug pairs, separated by commas.'], HttpStatus::BadRequest);
+			return self::json(['error' => '"terms" must be type:slug pairs, separated by commas.'], HttpStatus::BadRequest);
 		}
 
 		foreach ($terms as [$taxonomy]) {
-			if (! $this->types->find($taxonomy) instanceof Taxonomy) {
-				return self::json(['error' => sprintf('There is no taxonomy "%s".', $taxonomy)], HttpStatus::BadRequest);
+			if ($this->types->classification($taxonomy) === null) {
+				return self::json(['error' => sprintf('Nothing is filed under "%s"; it isn\'t a type of terms.', $taxonomy)], HttpStatus::BadRequest);
 			}
 		}
 
@@ -237,7 +237,7 @@ final readonly class EntriesController
 		// its entries have one (D-412), newest published first for a
 		// collection, and by title for profiles (D-413).
 		$contentType = $type === null ? null : $this->types->find($type);
-		$positioned  = $contentType instanceof Tree || $contentType instanceof Taxonomy;
+		$positioned  = $contentType instanceof Tree || ($contentType instanceof Collection && $contentType->isPositioned());
 		$by          = match (true) {
 			$sort !== ''                                         => $sort,
 			$trash                                               => EntryFields::TRASHED,
@@ -280,7 +280,7 @@ final readonly class EntriesController
 		$tree        = null;
 		$continued   = [];
 
-		if ($contentType !== null && $whole && self::nests($contentType)) {
+		if ($contentType !== null && $whole && $this->nests($contentType)) {
 			$tree      = self::tree($listed->limit(null)->get()->all());
 			$start     = ($page - 1) * $per;
 			$total     = count($tree['entries']);
@@ -295,9 +295,9 @@ final readonly class EntriesController
 		}
 
 		// How many published entries use each term on the page, one pass
-		// per taxonomy (D-236).
+		// per term type (D-236).
 		foreach ([...$continued, ...$shown, ...($index === null ? [] : [$index]), ...($people === null ? [] : [$people]), ...$errorPages] as $entry) {
-			if ($entry->type->hasTerms()) {
+			if ($this->types->isTermType($entry->type->name)) {
 				$counts[$entry->type->name] ??= $this->content->termCounts($entry->type->name);
 			}
 		}
@@ -358,9 +358,9 @@ final readonly class EntriesController
 	/**
 	 * Returns whether a type's entries nest (D-257).
 	 */
-	private static function nests(ContentType $type): bool
+	private function nests(ContentType $type): bool
 	{
-		return $type instanceof Tree || ($type instanceof Taxonomy && $type->hierarchical);
+		return $type instanceof Tree || $this->types->nestsByParent($type->name);
 	}
 
 	/**
@@ -552,7 +552,7 @@ final readonly class EntriesController
 				'duplicate'    => ! $entry->landing && ! PeoplePage::is($entry) && ErrorPage::status($entry) === null && $this->permissions->can($account, ContentAction::Create, $entry->type->name),
 				'makeHomepage' => $home['homeInstead'] !== null && $this->permissions->can($account, Capability::SiteSettings->value)
 			],
-			'uses'        => $entry->type->hasTerms() ? ($counts[$entry->type->name][$entry->key] ?? 0) : null,
+			'uses'        => $this->types->isTermType($entry->type->name) ? ($counts[$entry->type->name][$entry->key] ?? 0) : null,
 			'ancestors'   => $this->ancestors($entry),
 			'depth'       => $tree === null ? null : ($tree['depths'][$entry->path] ?? 0),
 			'children'    => $tree === null ? null : ($tree['children'][$entry->path] ?? 0),

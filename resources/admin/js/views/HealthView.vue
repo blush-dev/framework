@@ -14,8 +14,9 @@
  * Image sizes are recorded in their details (D-488), entries named by
  * another pattern than their type's are renamed to it, a type at a time
  * (D-512), collections' entries kept in folders are moved into their
- * collections' folders (D-514), and terms and profiles entries name with
- * no file are written (D-584).
+ * collections' folders (D-514), terms and profiles entries name with
+ * no file are written (D-584), and data types still written as taxonomies
+ * are migrated to collections and relations (D-591, D-593).
  */
 
 import { computed, onMounted, ref, watch } from 'vue';
@@ -28,10 +29,11 @@ import EmptyState from '../components/EmptyState.vue';
 import { formatWhen, plural } from '../format';
 import { screenTitle } from '../screen';
 import { toast } from '../toast';
+import { refreshTypes } from '../types';
 
 const props = defineProps<{
 	area: 'content' | 'media';
-	check: 'files' | 'ids' | 'terms' | 'folders' | 'names' | 'sizes';
+	check: 'files' | 'ids' | 'terms' | 'taxonomies' | 'folders' | 'names' | 'sizes';
 }>();
 
 const severities: Record<Violation['severity'], string> = {
@@ -46,6 +48,7 @@ const SCREENS: Record<string, { title: string; hint: string; clear: string }> = 
 	'content:files': { title: 'Content Files', hint: 'Problems in entries\' files, as content:lint finds them', clear: '' },
 	'content:ids': { title: 'Entry IDs', hint: 'Every content file needs an id of its own', clear: 'Every content file has an id of its own.' },
 	'content:terms': { title: 'Terms and Profiles', hint: 'A term or profile entries name is left out of the site until it has a file', clear: 'Every term and profile entries name has a file.' },
+	'content:taxonomies': { title: 'Taxonomies', hint: 'Read as collections and their relationships until they\'re migrated', clear: 'Every content type is written as a collection or a tree.' },
 	'content:folders': { title: 'Collection Folders', hint: 'A collection\'s entries are files in its folder', clear: 'Every collection\'s entries are files in its folder.' },
 	'content:names': { title: 'File Names', hint: 'Older names keep working; renaming them changes no address', clear: 'Every entry is named by its type\'s pattern.' },
 	'media:files': { title: 'Media Details', hint: 'Problems in media files\' details, as content:lint finds them', clear: '' },
@@ -97,6 +100,8 @@ const found = computed(() => {
 			return (ids.value?.ids.missing.length ?? 0) + (ids.value?.ids.duplicates.length ?? 0) > 0;
 		case 'terms':
 			return value.terms.count > 0;
+		case 'taxonomies':
+			return value.taxonomies.length > 0;
 		case 'folders':
 			return value.flat.count > 0;
 		case 'names':
@@ -211,6 +216,20 @@ function writeTerms(): Promise<void> {
 		const written = Object.keys(answer.created).length;
 
 		return { changed: written, text: written ? `Wrote ${plural(written, 'file')}` : 'No terms or profiles you may create were missing' };
+	});
+}
+
+/**
+ * Migrates the data types still written as taxonomies (D-591), then
+ * loads the types again.
+ */
+function migrateTaxonomies(): Promise<void> {
+	return runFix<FixAnswer & { migrated: Record<string, string[]> }>('taxonomies', '/health/taxonomies', {}, ['type', 'types'], 'The types couldn\'t be migrated.', (answer) => {
+		const migrated = Object.keys(answer.migrated).length;
+
+		refreshTypes();
+
+		return { changed: migrated, text: migrated ? `Migrated ${plural(migrated, 'type')}` : 'No types needed migrating' };
 	});
 }
 
@@ -330,6 +349,19 @@ onMounted(() => {
 			<p>{{ plural(health.terms.count, 'term or profile has', 'terms and profiles have') }} no file, such as <code>{{ health.terms.examples[0]?.type }}/{{ health.terms.examples[0]?.slug }}</code>. Each is written published, titled as entries name it.</p>
 			<button type="button" class="button button--primary button--small" :disabled="fixing !== null" @click="writeTerms">
 				{{ fixing === 'terms' ? 'Writing…' : 'Write Files' }}
+			</button>
+		</div>
+	</section>
+
+	<section v-else-if="check === 'taxonomies'" class="panel" aria-labelledby="taxonomies-heading">
+		<header class="panel__header">
+			<h2 id="taxonomies-heading">Written as Taxonomies</h2>
+			<p class="panel__hint">{{ screen.hint }}</p>
+		</header>
+		<div class="ids__row">
+			<p>{{ plural(health.taxonomies.length, 'type is', 'types are') }} still written as {{ health.taxonomies.length === 1 ? 'a taxonomy' : 'taxonomies' }}: <code>{{ health.taxonomies.join(', ') }}</code>. Each file in <code>user/data/types</code> becomes a collection, keeping its other settings, and what it files moves to a relationship in <code>user/data/relations</code>.</p>
+			<button type="button" class="button button--primary button--small" :disabled="fixing !== null" @click="migrateTaxonomies">
+				{{ fixing === 'taxonomies' ? 'Migrating…' : 'Migrate Types' }}
 			</button>
 		</div>
 	</section>

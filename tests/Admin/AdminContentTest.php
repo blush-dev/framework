@@ -425,11 +425,11 @@ final class AdminContentTest extends TestCase
 
 		$this->assertIsArray($types);
 
-		$described = array_map(static fn (mixed $type): array => is_array($type) ? array_intersect_key($type, array_flip(['name', 'labels', 'kind', 'dated', 'types'])) : [], $types);
+		$described = array_map(static fn (mixed $type): array => is_array($type) ? array_intersect_key($type, array_flip(['name', 'labels', 'kind', 'dated', 'terms', 'types'])) : [], $types);
 
-		$this->assertContains(['name' => 'page', 'labels' => TypeLabels::named('page')->all(), 'kind' => 'tree', 'dated' => false], $described, 'Only taxonomies name types.');
-		$this->assertContains(['name' => 'genre', 'labels' => TypeLabels::named('genre')->all(), 'kind' => 'taxonomy', 'dated' => false, 'types' => ['page']], $described);
-		$this->assertContains(['name' => 'profile', 'labels' => TypeLabels::named('profile')->all(), 'kind' => 'profiles', 'dated' => false, 'types' => ['page']], $described, 'The profiles type names the types that credit people.');
+		$this->assertContains(['name' => 'page', 'labels' => TypeLabels::named('page')->all(), 'kind' => 'tree', 'dated' => false, 'terms' => false], $described, 'Only term types name types.');
+		$this->assertContains(['name' => 'genre', 'labels' => TypeLabels::named('genre')->all(), 'kind' => 'collection', 'dated' => false, 'terms' => true, 'types' => ['page']], $described, 'A data type still written as a taxonomy reads as terms (D-591).');
+		$this->assertContains(['name' => 'profile', 'labels' => TypeLabels::named('profile')->all(), 'kind' => 'profiles', 'dated' => false, 'terms' => false, 'types' => ['page']], $described, 'The profiles type names the types that credit people.');
 		$this->assertSame([true, false, false], array_map(static fn (string $name): mixed => array_find($types, static fn (mixed $type): bool => is_array($type) && ($type['name'] ?? null) === $name)['authors'] ?? null, ['page', 'genre', 'profile']), 'Whether each type credits people.');
 
 		$genre = array_find($types, static fn (mixed $type): bool => is_array($type) && ($type['name'] ?? null) === 'genre');
@@ -440,7 +440,8 @@ final class AdminContentTest extends TestCase
 
 		$kinds = array_map(static fn (mixed $type): mixed => is_array($type) ? $type['kind'] ?? null : null, $types);
 
-		$this->assertSame(['taxonomy', 'profiles'], array_slice($kinds, -2), 'Term types come last, by name.');
+		$this->assertSame(['genre', 'profile'], array_slice(array_column($types, 'name'), -2), 'Term types come last, by name.');
+		$this->assertSame(['collection', 'profiles'], array_slice($kinds, -2));
 		$this->assertSame('profile', self::json($this->send('GET', '/types'))['authors'] ?? null);
 	}
 

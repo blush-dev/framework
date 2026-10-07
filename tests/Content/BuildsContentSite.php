@@ -27,8 +27,8 @@ use Blush\Tests\BootsScratchSite;
  * scheduled entries are predictable.
  *
  * The standard content (`standardContent()`) has a `post` type in
- * `_posts` (date archives, prefix `archives`) and a `category` taxonomy
- * in `topics`, like jtcom.
+ * `_posts` (date archives, prefix `archives`) and `category` terms in
+ * `topics`, filed by a classify relation (D-593), like jtcom.
  */
 trait BuildsContentSite
 {
@@ -92,10 +92,14 @@ trait BuildsContentSite
 					'routing'       => ['prefix' => 'archives']
 				],
 				'category' => [
-					'path'         => 'topics',
-					'taxonomy'     => true,
-					'term_collect' => 'post'
+					'path'   => 'topics',
+					'order'  => 'position',
+					'people' => false,
+					'llms'   => false
 				]
+			],
+			'relations' => [
+				'category' => ['kind' => 'classify', 'from' => ['post'], 'to' => ['category'], 'create' => true]
 			],
 			'home' => 'post'
 		]);

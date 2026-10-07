@@ -23,14 +23,15 @@ use Blush\Content\Type\TypeKind;
  * An entry's `template` front matter (1.x's `view`) always comes first.
  *
  * - **Single:** `single-{type}-{slug}` → `single-{type}` →
- *   `single-{kind}` → `single`.
- * - **Collection:** `collection-{type}` → `collection-{kind}` →
- *   `collection`. A taxonomy's listing's `collection-{kind}` is
- *   `collection-taxonomy` (D-147).
+ *   (`single-terms`) → `single-{kind}` → `single`.
+ * - **Collection:** `collection-{type}` → (`collection-terms`) →
+ *   `collection-{kind}` → `collection`.
  *
- * `{kind}` is the type's kind: `collection`, `tree`, `taxonomy`, or
- * `profiles` (D-561), so a theme can draw every tree, say, without
- * knowing a site's type names.
+ * `{kind}` is the type's kind: `collection`, `tree`, or `profiles`
+ * (D-561), so a theme can draw every tree, say, without knowing a site's
+ * type names. A type of terms (one a classify relation files entries
+ * under, D-593) tries `-terms` first, as 2.x's taxonomies tried
+ * `collection-taxonomy` (D-147).
  * - **Term:** `term-{taxonomy}-{slug}` → `term-{taxonomy}` → `term` →
  *   `collection`.
  * - **Date archive:** `archive-date-{type}` → `archive-date` →
@@ -60,7 +61,7 @@ final readonly class Hierarchy
 	/**
 	 * Returns a content page's hierarchy.
 	 */
-	public static function forPage(ContentPage $page): self
+	public static function forPage(ContentPage $page, bool $terms = false): self
 	{
 		$entry    = $page->entry;
 		$type     = $page->type ?? $entry?->type;
@@ -69,11 +70,11 @@ final readonly class Hierarchy
 
 		$names = match ($page->kind) {
 			PageKind::Welcome    => ['welcome'],
-			PageKind::Home       => ['home', ...self::forKind($page->base ?? PageKind::Page, $name, $kind, $entry)],
+			PageKind::Home       => ['home', ...self::forKind($page->base ?? PageKind::Page, $name, $kind, $entry, $terms)],
 			PageKind::People     => ["people-{$name}-{$page->people?->field}", "people-{$page->people?->field}", 'people', 'collection'],
 			PageKind::Person     => ["person-{$name}-{$page->people?->field}", "person-{$page->people?->field}", 'person', 'profile', 'collection'],
 			PageKind::Profile    => [...($entry === null ? [] : ["profile-{$entry->slug}"]), 'profile', 'collection'],
-			default              => self::forKind($page->kind, $name, $kind, $entry)
+			default              => self::forKind($page->kind, $name, $kind, $entry, $terms)
 		};
 
 		return self::withTemplates($entry, $names);
@@ -88,20 +89,21 @@ final readonly class Hierarchy
 	}
 
 	/**
-	 * Returns the names for a kind of page, with the type's name and the
-	 * type's kind (`$typeKind`, D-561).
+	 * Returns the names for a kind of page, with the type's name, the
+	 * type's kind (`$typeKind`, D-561), and whether its entries are terms.
 	 *
 	 * @return list<string>
 	 */
-	private static function forKind(PageKind $kind, string $type, string $typeKind, ?Entry $entry): array
+	private static function forKind(PageKind $kind, string $type, string $typeKind, ?Entry $entry, bool $terms = false): array
 	{
 		$slug = $entry?->slug;
+		$both = static fn (string $prefix): array => $terms ? ["{$prefix}-terms", "{$prefix}-{$typeKind}"] : ["{$prefix}-{$typeKind}"];
 
 		return match ($kind) {
-			PageKind::Collection => ["collection-{$type}", "collection-{$typeKind}", 'collection'],
+			PageKind::Collection => ["collection-{$type}", ...$both('collection'), 'collection'],
 			PageKind::Term       => [...($slug === null ? [] : ["term-{$type}-{$slug}"]), "term-{$type}", 'term', 'collection'],
 			PageKind::Date       => ["archive-date-{$type}", 'archive-date', 'collection'],
-			default              => [...($slug === null ? [] : ["single-{$type}-{$slug}"]), "single-{$type}", "single-{$typeKind}", 'single']
+			default              => [...($slug === null ? [] : ["single-{$type}-{$slug}"]), "single-{$type}", ...$both('single'), 'single']
 		};
 	}
 

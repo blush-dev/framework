@@ -166,7 +166,16 @@ renders with footer scripts, the `PageRendering` event, and the audio
 and video players on the site (D-569 to D-573), with a theme's
 `assets` in `theme.json` for themes without a provider (D-574); and
 every term and profile as a file, with no virtual entries, and
-`content:terms` and Site Health writing the missing ones (D-584).
+`content:terms` and Site Health writing the missing ones (D-584); and
+one relationship model for every link between entries (D-585 to D-590:
+`Blush\Content\Relation`, links between ids, both forms filed, slugs
+under the relation's key and ids under `refs`), wired into the index
+(D-592), with the taxonomy kind retired: terms are collections a
+classify relation files entries under, relation definitions are their
+own records (`user/data/relations`, config, `RelationSource`), and a
+type's screen has a Relationships panel (D-591, D-593, D-594), with
+`content:taxonomies` and Site Health migrating data types still written
+as taxonomies.
 The Fields
 API (D-337 to D-348: field types and controls, field sets on content
 types, media, and the Settings screens, slots, and Structure → Fields)

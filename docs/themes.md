@@ -429,7 +429,7 @@ What a template can use:
 | `$template->icon('house', 'Home')` | An icon, decorative or labeled (see [Icons](directives.md#icons)) |
 | `$template->permalink($entry)` | An entry's URL |
 | `$template->route('home')` | A named route's URL (`bin/blush routes:list`), with any parameters: `route('post.collection.month', ['year' => 2026, 'month' => '05'])`. On a [translated](content.md#translations) page, it's that language's version when there is one (`/es` for `home`) |
-| `$template->terms($entry, 'tag')` | An entry's terms in a taxonomy |
+| `$template->terms($entry, 'tag')` | An entry's terms of a [type of terms](content-types.md#terms-and-relationships), such as its tags |
 | `$template->people($entry, $field)` | The profiles an entry credits through a [people field](content-types.md#crediting-people), in order; the type's first people field (its byline) when `$field` is left out |
 | `$template->author($entry)` | The first person an entry's byline credits, such as a post's author, or `null` |
 | `$template->profile('jane')` | A published profile by its slug, or `null` |
@@ -438,9 +438,9 @@ What a template can use:
 | `$template->personUrl($profile, $type, $field)` | A person's archive under a type's people field, such as `/recipes/cooks/jane` (`''` when it has none) |
 | `$template->peopleUrl($type, $field)` | The list of people a type's field credits, such as `/recipes/cooks` |
 | `$template->permalink($profile)` | A profile's own page, such as `/profiles/jane` |
-| `$template->parent($entry)` | A page's parent page (from its folder) or a term's parent term, if published |
+| `$template->parent($entry)` | A page's parent page (from its folder), or the parent of an entry in a [nesting collection](content-types.md#nesting-and-order), such as a category, if published |
 | `$template->ancestors($entry)` | Its parents from the top down, for breadcrumbs |
-| `$template->children($entry)` | A page's subpages or a term's child terms, published, by `position` and then title |
+| `$template->children($entry)` | A page's subpages or a nesting collection's child entries, published, by `position` and then title |
 | `$template->date($entry->published)` | A date in the site's date format and the page's language; or give an [ICU pattern](https://unicode-org.github.io/icu/userguide/format_parse/datetime/#datetime-format-syntax), such as `'MMMM y'` |
 | `$template->time($entry->published)` | A time in the site's time format |
 | `$template->datetime($entry->published)` | Both, joined as the site's language joins them (`October 4, 2026 at 2:30 PM`) |
@@ -821,9 +821,9 @@ Blush picks the most specific template your theme (or its parents) has:
 
 | Page | Templates tried, in order |
 |---|---|
-| An entry | `single-{type}-{slug}`, `single-{type}`, `single-{kind}`, `single` |
-| A listing | `collection-{type}`, `collection-{kind}`, `collection` |
-| A term | `term-{taxonomy}-{slug}`, `term-{taxonomy}`, `term`, `collection` |
+| An entry | `single-{type}-{slug}`, `single-{type}`, (`single-terms`), `single-{kind}`, `single` |
+| A listing | `collection-{type}`, (`collection-terms`), `collection-{kind}`, `collection` |
+| A term's page | `term-{type}-{slug}`, `term-{type}`, `term`, `collection` |
 | A date archive | `archive-date-{type}`, `archive-date`, `collection` |
 | A type's people (such as `/recipes/cooks`) | `people-{type}-{field}`, `people-{field}`, `people`, `collection` |
 | A person's archive (such as `/recipes/cooks/jane`) | `person-{type}-{field}`, `person-{field}`, `person`, `profile`, `collection` |
@@ -842,10 +842,14 @@ page, `$entry` is the profile and `$entries` everything crediting
 them.
 
 `{kind}` is the kind of the entry's type: `collection` (such as posts),
-`tree` (pages, and any tree of your site's own), `taxonomy`, or
-`profiles`. So `single-tree.php` draws every tree's pages and
-`single-collection.php` every collection's entries, whatever a site
-names its types; `collection-taxonomy.php` lists a taxonomy's terms.
+`tree` (pages, and any tree of your site's own), or `profiles`. So
+`single-tree.php` draws every tree's pages and `single-collection.php`
+every collection's entries, whatever a site names its types. A
+[type of terms](content-types.md#terms-and-relationships) (one a
+classify relation files entries under, such as tags) tries `-terms`
+first: `collection-terms.php` lists any such type's terms, and
+`single-terms.php` draws a term served as a single entry (one whose
+type has no term pages).
 
 The welcome page shows until `user/content/index.md` exists. Its
 content (the next steps, and, outside production, any problems

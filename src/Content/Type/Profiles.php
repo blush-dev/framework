@@ -133,14 +133,4 @@ final readonly class Profiles extends ContentType
 	{
 		return false;
 	}
-
-	/**
-	 * Profiles are referenced like terms, through every type's people
-	 * fields rather than one field of their own.
-	 */
-	#[Override]
-	public function hasTerms(): bool
-	{
-		return true;
-	}
 }

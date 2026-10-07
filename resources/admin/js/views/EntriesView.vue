@@ -3,7 +3,7 @@
  * The entries of one content type the account may edit (D-230,
  * `/content/{type}`, D-234): status tabs with counts (with **Mine**
  * after **All** for a type that credits authors, D-475), then one row of
- * filters (D-300): a search (`/` focuses it), an author, each taxonomy
+ * filters (D-300): a search (`/` focuses it), an author, each term type
  * the type uses, and how recently it was updated, with **Clear filters**
  * while any is on and a toggle for compact rows (roomy by default,
  * D-265). Headers sort the table by their column, and the pager chooses
@@ -138,9 +138,9 @@ const per  = computed(() => PER_OPTIONS.includes(Number(route.query.per)) ? Numb
 
 const filtered = computed(() => search.value !== '' || author.value !== '' || days.value !== '' || linkedTo.value !== '' || Object.keys(chosen.value).length > 0);
 
-// A taxonomy's entries are terms, and the authors type's are people
+// Terms (D-593), and the authors type's entries, which are people
 // (D-329): they're counted by use, not credited.
-const terms = computed(() => info.value?.kind === 'taxonomy' || info.value?.kind === 'profiles');
+const terms = computed(() => info.value?.terms === true || info.value?.kind === 'profiles');
 
 // A nesting type lists as a tree on All with no search (D-261); a tab or
 // a search flattens it, and a bar says so and how to get it back (the
@@ -220,8 +220,8 @@ const linkedOptions: SelectOption[] = [
 	{ value: 'guest', label: 'Guest' }
 ];
 
-function chooseTerm(taxonomy: string, slug: string): void {
-	const next = { ...chosen.value, [taxonomy]: slug };
+function chooseTerm(termType: string, slug: string): void {
+	const next = { ...chosen.value, [termType]: slug };
 	const list = Object.entries(next).filter(([, value]) => value !== '').map(([name, value]) => `${name}:${value}`);
 
 	go({ terms: list.join(',') || undefined, page: undefined });
@@ -250,7 +250,7 @@ function clearSort(): void {
 // loaded with the type. A filter that couldn't load, or has nothing to
 // offer, isn't shown.
 const authorOptions = ref<SelectOption[]>([]);
-const termFilters   = ref<{ taxonomy: string; label: string; options: SelectOption[] }[]>([]);
+const termFilters   = ref<{ termType: string; label: string; options: SelectOption[] }[]>([]);
 
 const dayOptions: SelectOption[] = [
 	{ value: '', label: 'Any time' },
@@ -272,8 +272,8 @@ function pinnedOf(answer: EntryList): EntrySummary[] {
 	return [answer.index, answer.authorsPage, ...(answer.errorPages ?? [])].filter((entry): entry is EntrySummary => entry !== null && entry !== undefined);
 }
 
-// The taxonomies that group this type.
-const taxonomies = computed(() => types.value.filter((item) => item.kind === 'taxonomy'
+// The term types that file this type (D-593).
+const termTypes = computed(() => types.value.filter((item) => item.terms
 	&& item.name !== type.value
 	&& (!item.types?.length || item.types.includes(type.value))));
 
@@ -286,7 +286,7 @@ const mine = computed(() => authored.value ? session.account?.author ?? '' : '')
 let optionsFor = '';
 
 async function loadOptions(): Promise<void> {
-	const wanted = `${type.value}|${taxonomies.value.map((item) => item.name).join(',')}|${authored.value ? profileType.value : ''}`;
+	const wanted = `${type.value}|${termTypes.value.map((item) => item.name).join(',')}|${authored.value ? profileType.value : ''}`;
 
 	if (wanted === optionsFor) {
 		return;
@@ -296,7 +296,7 @@ async function loadOptions(): Promise<void> {
 
 	// Only the terms and authors this type's entries use (D-303).
 	const people = authored.value && profileType.value !== null ? loadReferences(profileType.value, { limit: OPTION_LIMIT, for: type.value }).catch(() => null) : Promise.resolve(null);
-	const groups = Promise.all(taxonomies.value.map((item) => loadReferences(item.name, { limit: OPTION_LIMIT, for: type.value }).then(
+	const groups = Promise.all(termTypes.value.map((item) => loadReferences(item.name, { limit: OPTION_LIMIT, for: type.value }).then(
 		(answer) => ({ item, answer }),
 		() => null
 	)));
@@ -314,7 +314,7 @@ async function loadOptions(): Promise<void> {
 	];
 
 	termFilters.value = found.flatMap((group) => group === null || group.answer.items.length === 0 ? [] : [{
-		taxonomy: group.item.name,
+		termType: group.item.name,
 		label: group.item.labels.singular,
 		options: [
 			{ value: '', label: `Any ${group.item.labels.item}` },
@@ -630,9 +630,11 @@ function purpose(summary: ContentTypeSummary | undefined, label: string): string
 		return summary.description;
 	}
 
+	if (summary?.terms) {
+		return `${label} file other entries. Each one is an entry of its own, with a page listing what's filed under it.`;
+	}
+
 	switch (summary?.kind) {
-		case 'taxonomy':
-			return `${label} group other entries. Each one is an entry of its own, with a page listing what uses it.`;
 		case 'tree':
 			return summary.folder === '' ? `${label} stand on their own, like an About or a Contact page.` : `${label} nest by folder, each at its own address.`;
 		case 'collection':
@@ -706,9 +708,9 @@ const emptyText = computed(() => {
 						<label class="visually-hidden" for="entries-author">Author</label>
 						<AdminSelect id="entries-author" v-model="authorValue" :options="authorOptions" />
 					</div>
-					<div v-for="filter in termFilters" :key="filter.taxonomy" class="toolbar__filter">
-						<label class="visually-hidden" :for="`entries-${filter.taxonomy}`">{{ filter.label }}</label>
-						<AdminSelect :id="`entries-${filter.taxonomy}`" :model-value="chosen[filter.taxonomy] ?? ''" :options="filter.options" @update:model-value="chooseTerm(filter.taxonomy, $event)" />
+					<div v-for="filter in termFilters" :key="filter.termType" class="toolbar__filter">
+						<label class="visually-hidden" :for="`entries-${filter.termType}`">{{ filter.label }}</label>
+						<AdminSelect :id="`entries-${filter.termType}`" :model-value="chosen[filter.termType] ?? ''" :options="filter.options" @update:model-value="chooseTerm(filter.termType, $event)" />
 					</div>
 					<div v-if="info?.kind === 'profiles'" class="toolbar__filter">
 						<label class="visually-hidden" for="entries-account">Account</label>

@@ -31,8 +31,8 @@ instead; see [Going live](going-live.md).)
 
 A few rules make the file names flexible:
 
-- **In a collection or taxonomy, everything before the last `.` is
-  ignored.** Use it to keep files in order on disk: `01.intro.md`,
+- **In a collection (types of terms, such as tags, included),
+  everything before the last `.` is ignored.** Use it to keep files in order on disk: `01.intro.md`,
   `02.setup.md`, or `2026-09-26.hello.md` become `intro`, `setup`, and
   `hello`. Listings never sort by file name: a collection lists newest
   published first, and pages and terms by `position`, then title. Pages and profiles
@@ -76,7 +76,7 @@ needed in practice. The built-in keys:
 | `summary` | A short Markdown summary for listings and feeds. Without one, the first 50 words are used. (`excerpt` works too.) |
 | `image` | A featured image |
 | `authors` | One author or a list, by profile slug (`author` works too), in types that credit authors. A type can credit people under other names too, such as `cooks` (see [Crediting people](content-types.md#crediting-people)) |
-| `position` | A page's or term's place among its siblings, a whole number, lowest first. Those without one follow, by title. Only pages (and other [trees](content-types.md#trees)) and taxonomy terms have it |
+| `position` | A page's or term's place among its siblings, a whole number, lowest first. Those without one follow, by title. Only pages (and other [trees](content-types.md#trees)) and collections that [nest or are ordered by position](content-types.md#nesting-and-order), such as categories and tags, have it |
 | `redirect_from` | Old URLs that should redirect here (see below) |
 | `translation_of` | For a translation, the id of the entry it translates, which links them whatever their file names (see [Translations](#translations)) |
 | `template` | The theme template to use, such as `single-wide` (`view` works too) |
@@ -85,8 +85,9 @@ needed in practice. The built-in keys:
 | `stylesheet` | An extra stylesheet for this page |
 | `collection` | List other entries on this page (see [Content types](content-types.md#listing-entries)) |
 | `id` | The entry's id, a UUID that never changes (see [Ids](#ids)). Blush writes it, last |
+| `refs` | The ids of the entries this one names, such as its terms and authors (see [Links between entries](#links-between-entries)) |
 
-Any other key you add is kept and available to your theme. [Taxonomies](content-types.md#taxonomies) add
+Any other key you add is kept and available to your theme. [Relations](content-types.md#terms-and-relationships) add
 their own keys too, such as `tag: [php, cms]`.
 
 A fuller example:
@@ -388,6 +389,42 @@ bin/blush content:ids --keep=blog/2026-10-05.hello.md
 Don't edit an id by hand, and never give two files the same one. A file
 without a valid id still shows on the site, but `content:lint` reports
 it as an error. Types can't have a field named `id`.
+
+### Links between entries
+
+An entry names other entries by slug: its terms (`tag: [php, cms]`),
+its authors (`authors: jane`), the `parent` of an entry in a
+[nesting collection](content-types.md#nesting-and-order) (such as a category),
+and any reference field. In terms and authors, you can write an entry's id instead of
+its slug, and Blush reads it as that entry:
+
+```yaml
+tag: [php, 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e74]
+```
+
+Beside the slugs, `refs` can keep each one's id, by the relation's name
+(see [Terms and relationships](content-types.md#terms-and-relationships)),
+then by the slug written. The name is usually the key too; when a
+relation is written under another key, such as `authors` for a relation
+named `author`, its ids are still under `refs.author`:
+
+```yaml
+tag: [php, cms]
+refs:
+  tag:
+    php: 0199a1b4-2c6d-7e3f-8a90-1b2c3d4e5f60
+    cms: 0199a1c8-4d5e-7f60-9a1b-2c3d4e5f6071
+```
+
+When a slug in the list and its id in `refs` disagree (the term was
+renamed since), the id wins, so the entry keeps its link. A
+`parent` is kept in `refs.parent` too. A page's parent is its folder,
+and an id kept for it that names another page is ignored. You don't need `refs` in files you write by hand. Types can't
+have a field named `refs`.
+
+`content:lint` reports an entry that names itself, a value that names
+entries of two types (write the id to say which), an id of the wrong
+type, and a reference field naming an entry that doesn't exist.
 
 ## Only Markdown
 

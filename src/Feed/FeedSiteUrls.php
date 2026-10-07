@@ -19,13 +19,12 @@ use Blush\Content\PeopleArchives;
 use Blush\Content\Routing\ContentUrls;
 use Blush\Content\Type\ContentTypes;
 use Blush\Content\Type\Profiles;
-use Blush\Content\Type\Taxonomy;
 use Blush\Routing\SiteUrl;
 use Blush\Routing\UrlSource;
 
 /**
  * Lists every feed (D-136, D-476): each public, routed type's
- * collection feed in every configured format, a taxonomy's per-term
+ * collection feed in every configured format, a term type's per-term
  * feeds for the terms listed entries reference, the per-person feeds of
  * each people field with archives, and each profile's feed (D-351).
  */
@@ -64,7 +63,7 @@ final readonly class FeedSiteUrls implements UrlSource
 				continue;
 			}
 
-			$terms  = $type instanceof Taxonomy ? array_map(strval(...), array_keys($this->content->termCounts($type->name))) : [];
+			$terms  = $this->types->hasTermPages($type->name) ? array_map(strval(...), array_keys($this->content->termCounts($type->name))) : [];
 			$people = [];
 
 			foreach ($type->archivedPeople() as $field) {

@@ -2,8 +2,8 @@
 
 Blush 2 is a rewrite, but **your content doesn't change**. Every file,
 folder, and front matter convention 1.x understood still works (terms
-and authors need files, which one command writes; see below), and your
-URLs stay the same. What changes is the code around it: config, themes,
+and authors need files, which one command writes, and taxonomy types
+are written a new way; see below), and your URLs stay the same. What changes is the code around it: config, themes,
 and the command line.
 
 ## Your content
@@ -11,8 +11,8 @@ and the command line.
 Copy your `user/` folder across as it is. In particular:
 
 - File names like `01.intro.md` and `2003-04-15.welcome.md` still drop
-  the prefix from the URL in collections (such as your posts) and
-  taxonomies, but they no longer set the order: collections list newest
+  the prefix from the URL in collections (such as your posts and your
+  tags), but they no longer set the order: collections list newest
   published first, and terms and pages by `position`, then title. Give
   terms a `position` to keep an order such as `01.` to `07.`.
   `orderby: filename` is read as `published`. Pages still work with a
@@ -53,8 +53,8 @@ use Blush\Content\Type\ContentConfig;
 return ContentConfig::fromArray([
 	'home'  => 'post',
 	'types' => [
-		// Your 1.x types, unchanged: date_archives, term_collect,
-		// term_collection, routing, feed, and the rest.
+		// Your 1.x types, unchanged: date_archives, routing, feed,
+		// and the rest (taxonomies change; see below).
 		'post' => [
 			'path'          => '_posts',
 			'collection'    => ['order' => 'desc'],
@@ -69,21 +69,81 @@ One default changed: a type without a `path` (or `folder`) now lives in
 leaves `path` out, add `'path' => 'recipe'` to keep its folder. Its URLs
 don't change either way.
 
+### Taxonomies
+
+2.x has no taxonomy kind. A type of terms, such as tags or categories,
+is a plain collection, and what files entries under its terms is a
+**relation** defined on its own (see
+[Terms and relationships](content-types.md#terms-and-relationships)).
+So a 1.x type with `taxonomy: true` needs moving:
+
+- **In `user/data/types/`**, it keeps working as it is until you
+  migrate it. Run `bin/blush content:taxonomies` to list them, then
+  `bin/blush content:taxonomies --write` (or **Migrate Types** under
+  **Taxonomies** in Site Health) to rewrite each: the type's file is
+  edited in place, and its relation is written to
+  `user/data/relations/{name}.json`.
+- **In `config/content.php`** (or a plugin), it stops Blush from
+  loading, with a message saying what to change. Rewrite it by hand.
+
+For example, a 1.x category taxonomy for posts:
+
+```php
+'category' => [
+	'taxonomy'     => true,
+	'path'         => '_posts/categories',
+	'term_collect' => 'post',
+	'hierarchical' => true
+]
+```
+
+becomes a collection ordered by `position`, with no authors and out of
+`llms.txt`, and a classify relation named after it:
+
+```php
+return ContentConfig::fromArray([
+	'types' => [
+		'category' => [
+			'path'         => '_posts/categories',
+			'hierarchical' => true,
+			'order'        => 'position',
+			'people'       => false,
+			'llms'         => false
+		]
+	],
+	'relations' => [
+		'category' => [
+			'kind'   => 'classify',
+			'from'   => ['post'],
+			'to'     => ['category'],
+			'create' => true
+		]
+	]
+]);
+```
+
+A taxonomy's `field` and `field_aliases` become the relation's `field`
+and `aliases`, and its `term_collection` the relation's
+`inverse.listing` (as `'inverse' => ['listing' => [...]]`). Entries' front matter (`category: news`) doesn't
+change, and neither do the terms' URLs.
+
+### New option names
+
 In 2.x, each kind of type is its own class, and some options have new
 names. When you're ready, you can move to them (see
 [Content types](content-types.md)):
 
 | 1.x | 2.x |
 |---|---|
-| `taxonomy: true` | `new Taxonomy(...)`, or `kind: taxonomy` in YAML |
+| `taxonomy: true` | A collection and a classify relation ([above](#taxonomies)) |
 | `path` | `folder` |
 | `routing` (`prefix`, `paths`) | `urls` (`prefix`, `single`, `collection`, `paths`) |
 | `collection` and `collect` | `listing` (`type`, `orderBy`, `order`, `perPage`, `query`) |
-| `term_collect` | `types` (a list) |
-| `term_collection` | `termListing` |
-| `field_aliases` | `aliases` |
+| `term_collect` | The relation's `from` (a list) |
+| `term_collection` | The relation's `inverse.listing` |
+| A taxonomy's `field_aliases` | The relation's `aliases` |
 | `date_archives`, `time_archives` | `dateArchives` (`day`, `second`, and others) |
-| `feed` `taxonomy` and `collection` | `feed` `categories` and `listing` |
+| `feed` `taxonomy` and `collection` | `feed` `categories` (a term type) and `listing` |
 
 **Markdown** (`config/markdown.php`) is rewritten: 2.x doesn't take
 CommonMark's options or extension classes. Its Markdown already has

@@ -17,6 +17,7 @@ use DateTimeImmutable;
 use Blush\Content\EntryFields;
 use Blush\Content\Parser\DocumentParser;
 use Blush\Content\Parser\InvalidDocument;
+use Blush\Content\Relation\Refs;
 use Blush\Content\Source\SourceFile;
 use Blush\Content\Status;
 use Blush\Content\Type\ContentType;
@@ -84,11 +85,14 @@ final readonly class RecordBuilder
 		$document = $this->parser->parse($contents);
 		$data     = $document->frontMatter;
 		$id       = $data[EntryFields::ID] ?? null;
+		$refs     = $data[Refs::FIELD] ?? null;
 
-		unset($data[EntryFields::ID]);
+		// The entry's id and its links' ids (D-589) are no field's.
+		unset($data[EntryFields::ID], $data[Refs::FIELD]);
 
 		$result = $this->types->schema($type->name)->resolve($data, $this->context);
 		$values = $result->values;
+		$extra  = $refs === null ? $result->extra : [...$result->extra, Refs::FIELD => $refs];
 
 		$directory = self::directoryOf($file->path);
 		[$filename, $language] = $this->language(pathinfo($file->path, PATHINFO_FILENAME));
@@ -130,7 +134,7 @@ final readonly class RecordBuilder
 			date: $published === null ? null : DateTimeImmutable::createFromTimestamp($published)->setTimezone($this->context->timezone)->format('YmdHis'),
 			title: is_string($values['title'] ?? null) ? $values['title'] : '',
 			values: $values,
-			extra: $result->extra,
+			extra: $extra,
 			terms: $terms,
 			labels: $labels,
 			modified: $file->modified,
@@ -224,8 +228,10 @@ final readonly class RecordBuilder
 		$sources  = [];
 		$profiles = $this->types->profiles()?->name;
 
-		foreach ($this->types->taxonomies() as $taxonomy) {
-			$sources[] = [$taxonomy->name, $taxonomy->name, $taxonomy->field, $taxonomy->aliases];
+		foreach ($this->types->classifications() as $relation) {
+			if ($relation->isFrom($type->name)) {
+				$sources[] = [$relation->name, $relation->name, $relation->field, $relation->aliases];
+			}
 		}
 
 		if ($profiles !== null) {

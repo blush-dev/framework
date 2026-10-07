@@ -17,6 +17,8 @@ use Override;
 use Blush\Config\Config;
 use Blush\Config\ConfigValues;
 use Blush\Config\InvalidConfig;
+use Blush\Content\Relation\InvalidRelation;
+use Blush\Content\Relation\Relation;
 
 /**
  * The site's content settings, from `config/content.php`:
@@ -24,7 +26,10 @@ use Blush\Config\InvalidConfig;
  *     return new ContentConfig(
  *         types: [
  *             new Collection('post', folder: '_posts', urls: new TypeUrls('archives')),
- *             new Taxonomy('category', folder: 'topics', types: ['post'])
+ *             new Collection('category', folder: 'topics', hierarchical: true, order: TypeOrder::Position)
+ *         ],
+ *         relations: [
+ *             new Relation('category', RelationKind::Classify, from: ['post'], to: ['category'])
  *         ],
  *         home: 'post'
  *     );
@@ -32,6 +37,10 @@ use Blush\Config\InvalidConfig;
  * In array form (`fromArray()`, and the config cache), `types` are kept
  * as `definitions` and built when types are loaded, with every field type
  * extensions register; the config file runs before they do.
+ *
+ * `relations` are the site's relation definitions (D-593), locked in
+ * the admin; more may be defined as data in `user/data/relations`
+ * unless `dataTypes` is off.
  *
  * Types defined here are locked in the admin, and they replace built-in or
  * extension types of the same name. Types may also be defined as data in
@@ -52,6 +61,7 @@ final readonly class ContentConfig implements Config
 	 * @param  bool              $dataTypeUrls    Whether data types may set `urls`.
 	 * @param  list<string>      $disabled        Built-in types to leave out.
 	 * @param  bool              $autoIndex       Whether development requests refresh the index.
+	 * @param  list<Relation>    $relations       The site's relation definitions.
 	 * @throws InvalidConfig
 	 */
 	public function __construct(
@@ -61,7 +71,8 @@ final readonly class ContentConfig implements Config
 		public bool $dataTypeUrls = true,
 		public array $disabled = [],
 		public bool $autoIndex = true,
-		public array $definitions = []
+		public array $definitions = [],
+		public array $relations = []
 	) {
 		$names = [];
 
@@ -97,13 +108,14 @@ final readonly class ContentConfig implements Config
 	 * @inheritDoc
 	 *
 	 * `types` may be a list of definitions with names or, as in 1.x, a map
-	 * of names to definitions.
+	 * of names to definitions. `relations` is a list of relation
+	 * definitions, or a map of names to them.
 	 */
 	#[Override]
 	public static function fromArray(array $data): static
 	{
 		$values = new ConfigValues($data, self::class);
-		$values->assertKnownKeys(['types', 'home', 'dataTypes', 'dataTypeUrls', 'disabled', 'autoIndex']);
+		$values->assertKnownKeys(['types', 'relations', 'home', 'dataTypes', 'dataTypeUrls', 'disabled', 'autoIndex']);
 
 		$types = $data['types'] ?? [];
 
@@ -121,8 +133,29 @@ final readonly class ContentConfig implements Config
 			$definitions[] = is_string($key) ? ['name' => $key, ...$type] : $type;
 		}
 
+		$relations = $data['relations'] ?? [];
+
+		if (! is_array($relations)) {
+			throw new InvalidConfig('ContentConfig "relations" must be a list or map of relation definitions.');
+		}
+
+		$built = [];
+
+		foreach ($relations as $key => $relation) {
+			if (! is_array($relation)) {
+				throw new InvalidConfig('ContentConfig "relations" must hold relation definitions.');
+			}
+
+			try {
+				$built[] = Relation::fromArray(is_string($key) ? ['name' => $key, ...$relation] : $relation);
+			} catch (InvalidRelation $e) {
+				throw new InvalidConfig(sprintf('ContentConfig "relations": %s', $e->getMessage()), previous: $e);
+			}
+		}
+
 		return new static(
 			definitions: $definitions,
+			relations: $built,
 			home: $values->nullableString('home'),
 			dataTypes: $values->bool('dataTypes', true),
 			dataTypeUrls: $values->bool('dataTypeUrls', true),
@@ -139,6 +172,7 @@ final readonly class ContentConfig implements Config
 	{
 		return [
 			'types'           => [...array_map(static fn (ContentType $type): array => $type->toArray(), $this->types), ...$this->definitions],
+			'relations'       => array_map(static fn (Relation $relation): array => $relation->toArray(), $this->relations),
 			'home'            => $this->home,
 			'dataTypes'       => $this->dataTypes,
 			'dataTypeUrls'    => $this->dataTypeUrls,

@@ -14,6 +14,8 @@ declare(strict_types=1);
 namespace Blush\Content\Index;
 
 use Blush\Content\EntryFields;
+use Blush\Content\Relation\LinkReport;
+use Blush\Content\Relation\RelationGraph;
 use Blush\Content\Status;
 use Blush\Support\Uuid;
 
@@ -45,12 +47,17 @@ use Blush\Support\Uuid;
  * - `ids` finds an entry by its id (D-477). When files share one (a
  *   copied file), the first by path holds it, and every file sharing it
  *   is kept in `duplicates` for `content:lint` and `content:ids`.
+ * - `links` is the relation graph (D-585, D-590): every link between
+ *   entries by id, forward and reverse (`graph()`). It's set by
+ *   `withLinks()`, which also puts each record's `terms` in the form
+ *   relations resolve them to, and `terms` from those.
  * - `scheduled` is the earliest publish time still to come when the
  *   index was built, for cache invalidation.
  * - `fingerprint` identifies what the records were built with (content
  *   types, timezone, locale). A different one forces a full rebuild.
  *
  * @phpstan-import-type RecordArray from IndexRecord
+ * @phpstan-import-type GraphArray from RelationGraph
  * @phpstan-type SnapshotArray array{
  *     version: int,
  *     fingerprint: string,
@@ -64,7 +71,8 @@ use Blush\Support\Uuid;
  *     conflicts: array<string, list<string>>,
  *     scheduled: ?int,
  *     ids: array<string, string>,
- *     duplicates: array<string, list<string>>
+ *     duplicates: array<string, list<string>>,
+ *     links: GraphArray
  * }
  */
 final readonly class IndexSnapshot
@@ -73,7 +81,7 @@ final readonly class IndexSnapshot
 	 * The index format's version. A stored index with another version is
 	 * rebuilt.
 	 */
-	public const int VERSION = 8;
+	public const int VERSION = 9;
 
 	/**
 	 * @param array<string, RecordArray>                                $records   Keyed by path, sorted by path.
@@ -85,6 +93,7 @@ final readonly class IndexSnapshot
 	 * @param array<string, array<string, string>>                      $translations Paths by translation group and language.
 	 * @param array<string, string>                                     $ids          Paths by id.
 	 * @param array<string, list<string>>                               $duplicates   Paths sharing each id held by more than one.
+	 * @param ?GraphArray                                               $links        The relation graph, or `null` for none.
 	 */
 	private function __construct(
 		public string $fingerprint,
@@ -98,7 +107,8 @@ final readonly class IndexSnapshot
 		public ?int $scheduled,
 		public array $translations = [],
 		public array $ids = [],
-		public array $duplicates = []
+		public array $duplicates = [],
+		private ?array $links = null
 	) {}
 
 	/**
@@ -128,7 +138,6 @@ final readonly class IndexSnapshot
 
 		$keys      = [];
 		$claims    = [];
-		$terms     = [];
 		$labels    = [];
 		$children  = [];
 		$scheduled = null;
@@ -150,12 +159,6 @@ final readonly class IndexSnapshot
 
 			if ($record['id'] !== null) {
 				$ids[$record['id']][] = $path;
-			}
-
-			foreach ($record['terms'] as $taxonomy => $slugs) {
-				foreach ($slugs as $slug) {
-					$terms[$taxonomy][$slug][] = $path;
-				}
 			}
 
 			if ($record['parent'] !== null) {
@@ -186,7 +189,7 @@ final readonly class IndexSnapshot
 			$built,
 			$byPath,
 			$keys,
-			$terms,
+			self::reverseTerms($byPath),
 			$labels,
 			$children,
 			array_filter($claims, static fn (array $paths): bool => count($paths) > 1),
@@ -331,6 +334,33 @@ final readonly class IndexSnapshot
 	}
 
 	/**
+	 * Returns the relation graph: every link between entries (D-585).
+	 */
+	public function graph(): RelationGraph
+	{
+		return $this->links === null ? RelationGraph::empty() : RelationGraph::fromArray($this->links);
+	}
+
+	/**
+	 * Returns a copy with relations resolved (D-590): the graph, and each
+	 * record's `terms` replaced by the ones relations give, for the
+	 * records they were resolved for (entries with an id), with `terms`
+	 * worked out from them again.
+	 */
+	public function withLinks(LinkReport $report): self
+	{
+		$records = $this->records;
+
+		foreach ($report->terms as $path => $terms) {
+			if (isset($records[$path])) {
+				$records[$path]['terms'] = $terms;
+			}
+		}
+
+		return clone($this, ['records' => $records, 'terms' => self::reverseTerms($records), 'links' => $report->graph->toArray()]);
+	}
+
+	/**
 	 * Returns the paths of the entries that reference a term.
 	 *
 	 * @return list<string>
@@ -390,7 +420,8 @@ final readonly class IndexSnapshot
 			'conflicts'    => $this->conflicts,
 			'scheduled'    => $this->scheduled,
 			'ids'          => $this->ids,
-			'duplicates'   => $this->duplicates
+			'duplicates'   => $this->duplicates,
+			'links'        => $this->links ?? RelationGraph::empty()->toArray()
 		];
 	}
 
@@ -419,8 +450,31 @@ final readonly class IndexSnapshot
 			$data['scheduled'],
 			$data['translations'],
 			$data['ids'],
-			$data['duplicates']
+			$data['duplicates'],
+			$data['links']
 		);
+	}
+
+	/**
+	 * Returns the paths referencing each term, by taxonomy (or people key)
+	 * and slug, from records' terms.
+	 *
+	 * @param  array<string, RecordArray> $records
+	 * @return array<string, array<string, list<string>>>
+	 */
+	private static function reverseTerms(array $records): array
+	{
+		$terms = [];
+
+		foreach ($records as $path => $record) {
+			foreach ($record['terms'] as $taxonomy => $slugs) {
+				foreach ($slugs as $slug) {
+					$terms[$taxonomy][$slug][] = $path;
+				}
+			}
+		}
+
+		return $terms;
 	}
 
 	/**

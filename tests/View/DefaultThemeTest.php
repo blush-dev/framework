@@ -116,21 +116,22 @@ final class DefaultThemeTest extends TestCase
 					'collection' => ['number' => 1]
 				],
 				'category' => [
-					'path'            => 'topics',
-					'taxonomy'        => true,
-					'term_collect'    => 'post',
-					'collection'      => ['number' => 1],
-					'term_collection' => ['number' => 1],
-					'feed'            => true
+					'path'       => 'topics',
+					'order'      => 'position',
+					'people'     => false,
+					'collection' => ['number' => 1],
+					'feed'       => true
 				],
 				'author' => [
-					'path'            => 'authors',
-					'taxonomy'        => true,
-					'field'           => 'authors',
-					'field_aliases'   => ['author'],
-					'collection'      => ['number' => 1],
-					'term_collection' => ['number' => 1]
+					'path'       => 'authors',
+					'order'      => 'position',
+					'people'     => false,
+					'collection' => ['number' => 1]
 				]
+			],
+			'relations' => [
+				'category' => ['kind' => 'classify', 'from' => ['post'], 'to' => ['category'], 'create' => true, 'inverse' => ['archive' => true, 'listing' => ['number' => 1]]],
+				'author'   => ['kind' => 'classify', 'to' => ['author'], 'field' => 'authors', 'aliases' => ['author'], 'inverse' => ['archive' => true, 'listing' => ['number' => 1]]]
 			],
 			'home' => 'post'
 		]);

@@ -8,7 +8,7 @@
 
 import type { ContentTypeDetail, FieldDescription, PeopleFieldInfo } from './api';
 
-export type TypeKind = 'collection' | 'taxonomy' | 'tree';
+export type TypeKind = 'collection' | 'tree';
 
 export interface TypeForm {
 	singular: string;
@@ -19,8 +19,8 @@ export interface TypeForm {
 	prefix: string;
 	public: boolean;
 	sitemap: boolean;
-	// Whether entries are listed in `llms.txt` (D-398): on by default for
-	// collections and trees, off for taxonomies (D-401).
+	// Whether entries are listed in `llms.txt` (D-398): on by default,
+	// off for a new type of terms (D-401).
 	llms: boolean;
 	feed: boolean;
 	// Whether entries credit authors, and whether those authors have
@@ -37,10 +37,10 @@ export interface TypeForm {
 	// Its file name pattern (D-511, any kind, D-514), `''` for the
 	// default, the slug alone (D-515).
 	filename: string;
-	// A taxonomy's: whether a term may have a parent, and the types its
-	// terms group (none for every type).
+	// A collection's: whether an entry may name a parent (D-593), and
+	// whether entries are newest published first or by `position`.
 	hierarchical: boolean;
-	types: string[];
+	order: 'published' | 'position';
 	fields: FieldDescription[];
 	// Route keys' paths, relative to the prefix (D-350); `''` for a key's
 	// default.
@@ -122,7 +122,7 @@ export function authorsWordOf(form: TypeForm): string | false {
  * A new type's form.
  */
 export function emptyForm(): TypeForm {
-	return { singular: '', plural: '', description: '', icon: '', prefix: '', public: true, sitemap: true, llms: true, feed: false, authors: true, authorArchives: true, authorsWord: '', people: null, dateArchives: 'none', filename: '', hierarchical: false, types: [], fields: [], paths: {} };
+	return { singular: '', plural: '', description: '', icon: '', prefix: '', public: true, sitemap: true, llms: true, feed: false, authors: true, authorArchives: true, authorsWord: '', people: null, dateArchives: 'none', filename: '', hierarchical: false, order: 'published', fields: [], paths: {} };
 }
 
 /**
@@ -147,8 +147,8 @@ export function formOf(type: ContentTypeDetail): TypeForm {
 		people: type.people.map(peopleFormOf),
 		dateArchives: type.dateArchives,
 		filename: type.filename ?? '',
-		hierarchical: type.hierarchical === true,
-		types: [...(type.types ?? [])],
+		hierarchical: type.hierarchical,
+		order: type.order ?? 'published',
 		fields: copy(type.fields),
 		paths: Object.fromEntries(type.routes.map((route) => [route.key, route.path === route.default ? '' : route.path]))
 	};
@@ -196,7 +196,7 @@ export function changesOf(form: TypeForm, initial: TypeForm | null, kind: TypeKi
 		fields: form.fields,
 		filename: form.filename || null,
 		...(kind === 'collection' ? { dateArchives: form.dateArchives === 'none' ? null : form.dateArchives } : {}),
-		...(kind === 'taxonomy' ? { hierarchical: form.hierarchical, types: form.types } : {})
+		...(kind === 'collection' ? { hierarchical: form.hierarchical, order: form.order === 'published' ? null : form.order } : {})
 	};
 
 	// The author word is a URL setting, so it's sent only when it changes
@@ -272,6 +272,14 @@ export const FILENAMES = [
 	{ value: '{slug}', label: 'Slug', hint: 'hello-world.md' },
 	{ value: '{date}.{slug}', label: 'Date and slug', hint: '2026-10-05.hello-world.md' },
 	{ value: '{date}-{time}.{slug}', label: 'Date, time, and slug', hint: '2026-10-05-093000.hello-world.md' }
+];
+
+/**
+ * A collection's orders (D-593, `TypeOrder`).
+ */
+export const ORDERS = [
+	{ value: 'published', label: 'Newest published first' },
+	{ value: 'position', label: 'By position, then title' }
 ];
 
 export const DATE_ARCHIVES = [

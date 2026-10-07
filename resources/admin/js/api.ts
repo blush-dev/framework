@@ -190,7 +190,7 @@ export interface EntryList {
 	type: string | null;
 	search: string;
 	// The other filters (D-300): an author's slug (`''` for any),
-	// `taxonomy:slug` pairs, and how many days back it was updated.
+	// `type:slug` pairs of term types (D-593), and how many days back it was updated.
 	author: string;
 	terms: string[];
 	days: number | null;
@@ -238,21 +238,56 @@ export interface ContentTypeSummary {
 	description: string;
 	// A site icon's name to show it with, or `null` for its kind's.
 	icon: string | null;
-	kind: 'collection' | 'taxonomy' | 'tree' | 'profiles';
+	kind: 'collection' | 'tree' | 'profiles';
 	dated: boolean;
 	// Whether its entries credit people (D-351).
 	authors: boolean;
-	// A taxonomy's: the types its terms group, empty for every type, and
-	// whether a term may have a parent. The profiles type's: the types
-	// that credit people.
+	// Whether its entries are terms: a classify relation files other
+	// entries under them (D-593); whether they nest by a `parent`; and a
+	// collection's default order (`published` or `position`).
+	terms: boolean;
+	hierarchical: boolean;
+	order: 'published' | 'position' | null;
+	// A term type's: the types its relation files, empty for every type.
+	// The profiles type's: the types that credit people.
 	types?: string[];
-	hierarchical?: boolean;
 	// Where it was defined, its folder, its URL prefix (`null` without
 	// URLs), and how many fields it defines (D-250).
 	origin: 'built-in' | 'extension' | 'config' | 'data';
 	folder: string;
 	prefix: string | null;
 	fields: number;
+}
+
+/**
+ * A relation definition (D-585, D-593; `GET relations`): how entries of
+ * its `from` types (empty for every type) link to entries of its `to`
+ * types, written under `field`. A classify relation files entries under
+ * the one type it's named after.
+ */
+export interface RelationInfo {
+	name: string;
+	kind: 'classify' | 'credit' | 'reference' | 'parent' | 'translation';
+	from: string[];
+	to: string[];
+	field: string;
+	aliases: string[];
+	label: string;
+	multiple: boolean;
+	ordered: boolean;
+	min: number;
+	max: number | null;
+	// Whether a target may be created as it's typed.
+	create: boolean;
+	symmetric: boolean;
+	// The targets' side: whether their pages list what links to them.
+	inverse: false | { label: string; archive: string | boolean; types: string[]; max: number | null };
+	// Its definition as written, which a change starts from (a change
+	// sends the whole definition).
+	definition: Record<string, unknown>;
+	origin: 'extension' | 'config' | 'data';
+	// Whether it's one of the site's data relations, changed here.
+	editable: boolean;
 }
 
 /**
@@ -291,10 +326,10 @@ export interface ContentTypeDetail extends Omit<ContentTypeSummary, 'fields'> {
 	feed: boolean;
 	sitemap: boolean;
 	// Whether entries are listed in `llms.txt` (D-398); off by default
-	// for taxonomies and profiles (D-401).
+	// for profiles and new types of terms (D-401).
 	llms: boolean;
 	// Whether the admin changes it: a type in `user/data/types` (D-311),
-	// or a collection or taxonomy from code, through a file there (D-349).
+	// or a collection from code, through a file there (D-349).
 	editable: boolean;
 	// Whether it's from code with a file in `user/data/types` changing
 	// it, and the options that file sets.
@@ -305,7 +340,10 @@ export interface ContentTypeDetail extends Omit<ContentTypeSummary, 'fields'> {
 	fieldsEditable: boolean;
 	// The route keys it answers at (D-350).
 	routes: TypeRoute[];
+	// The term types that file it (D-593), and every relation definition
+	// from or to it.
 	taxonomies: string[];
+	relations: RelationInfo[];
 	fields: FieldDescription[];
 	// `none`, `year`, `month`, `day`, `hour`, `minute`, or `second`.
 	dateArchives: string;
@@ -1025,6 +1063,9 @@ export interface EntryDetail {
 	type: {
 		name: string;
 		kind: ContentTypeSummary['kind'];
+		// Whether its entries are terms, and nest by a `parent` (D-593).
+		terms: boolean;
+		hierarchical: boolean;
 		dated: boolean;
 		fields: FieldDescription[];
 		// The field sets attached to the type (D-337), with the names of
@@ -1083,6 +1124,8 @@ export interface Health {
 	// the first few, with the title each file gets (`POST health/terms`
 	// writes them).
 	terms: { count: number; examples: { type: string; slug: string; title: string }[] };
+	// Data types still written as taxonomies (D-591).
+	taxonomies: string[];
 }
 
 export type HealthArea = 'content' | 'media' | 'extensions' | 'system' | 'accounts';

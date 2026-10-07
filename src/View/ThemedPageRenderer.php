@@ -85,7 +85,9 @@ final readonly class ThemedPageRenderer implements PageRenderer
 
 		$this->events->dispatch(new PageRendering($context, $request, $views->chain, $page, $page->entry));
 
-		return Response::html($views->render(Hierarchy::forPage($page)->names, [], $context));
+		$terms = $this->types->classification(($page->type ?? $page->entry?->type)->name ?? '') !== null;
+
+		return Response::html($views->render(Hierarchy::forPage($page, $terms)->names, [], $context));
 	}
 
 	/**

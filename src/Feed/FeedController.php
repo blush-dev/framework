@@ -19,7 +19,6 @@ use Blush\Content\ContentRepository;
 use Blush\Content\Query\InvalidQuery;
 use Blush\Content\Type\ContentTypes;
 use Blush\Content\Type\Profiles;
-use Blush\Content\Type\Taxonomy;
 use Blush\Http\NotFound;
 use Blush\Http\Response;
 use Blush\Http\Status;
@@ -30,7 +29,7 @@ use Blush\View\ViewException;
 
 /**
  * Serves a feed: a type's collection feed (the homepage's at `/feed`),
- * with `{name}`, a taxonomy term's or a profile's (D-351), or with
+ * with `{name}`, a term's or a profile's (D-351), or with
  * `{field}` and `{profile}`, a person's entries of the type under that
  * people field. The theme renders it with
  * `feed-{format}-{type}` → `feed-{format}` (D-029). An empty feed is
@@ -85,7 +84,7 @@ final readonly class FeedController
 			$feed = $this->builder->collection($contentType, $feedFormat);
 		} else {
 			// A hierarchical term's `{name}` is its path; the term is its last slug.
-			$term = $contentType instanceof Taxonomy ? $this->content->term($contentType->name, basename($name)) : null;
+			$term = $this->types->hasTermPages($contentType->name) ? $this->content->term($contentType->name, basename($name)) : null;
 
 			if ($term === null || ! $term->isPublished() || ! $term->isRoutable()) {
 				throw new NotFound(sprintf('There is no "%s" term "%s".', $type, $name));

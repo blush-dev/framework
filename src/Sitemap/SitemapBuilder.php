@@ -21,7 +21,6 @@ use Blush\Content\Routing\ContentUrls;
 use Blush\Content\Type\ContentType;
 use Blush\Content\Type\ContentTypes;
 use Blush\Content\Type\Profiles;
-use Blush\Content\Type\Taxonomy;
 
 /**
  * Lists the site's URLs for sitemaps: one sitemap per public type whose
@@ -32,7 +31,7 @@ use Blush\Content\Type\Taxonomy;
  * (published, public, not landing pages) that have URLs, with their
  * `updated` dates, then each people field's list and person archives
  * (D-351). The profiles type's holds each profile's page
- * (`PeopleArchives::profiles()`). A taxonomy's holds its published
+ * (`PeopleArchives::profiles()`). A term type's holds its published
  * terms that list entries, by slug, so empty archives stay out. The type the root
  * `index.md` belongs to also holds `/`, when the homepage isn't a type's
  * collection.
@@ -115,7 +114,7 @@ final readonly class SitemapBuilder
 			$urls[$collection] = new SitemapUrl($this->urls->absolute($collection), $landing?->updated);
 		}
 
-		if ($type instanceof Taxonomy) {
+		if ($this->types->hasTermPages($type->name)) {
 			$slugs = array_map(strval(...), array_keys($this->content->termCounts($type->name)));
 			sort($slugs);
 

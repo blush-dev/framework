@@ -58,7 +58,7 @@ final readonly class MissingTerms
 		$missing  = [];
 
 		foreach ($this->types->all() as $type) {
-			if (! $type->hasTerms()) {
+			if (! $this->types->isTermType($type->name)) {
 				continue;
 			}
 

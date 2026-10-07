@@ -20,15 +20,14 @@ namespace Blush\Content\Type;
 enum TypeKind: string
 {
 	case Collection = 'collection';
-	case Taxonomy   = 'taxonomy';
 	case Tree       = 'tree';
 	case Profiles   = 'profiles';
 
 	/**
 	 * Returns whether the kind's entries are listed in `llms.txt` unless
 	 * a type says otherwise (D-398, D-401): collections and trees hold
-	 * the writing; taxonomies' terms and profiles are often thin, so a
-	 * site opts them in.
+	 * the writing; profiles are often thin, so a site opts them in (and
+	 * a collection of terms says `llms: false`).
 	 */
 	public function inLlmsByDefault(): bool
 	{
@@ -44,8 +43,7 @@ enum TypeKind: string
 	public function options(): array
 	{
 		return match ($this) {
-			self::Collection => ['folder', 'filename', 'urls', 'listing', 'feed', 'dateArchives', 'public', 'sitemap', 'llms', 'people', 'fields', 'closed', 'labels', 'description', 'icon'],
-			self::Taxonomy   => ['folder', 'filename', 'types', 'field', 'aliases', 'hierarchical', 'urls', 'listing', 'termListing', 'feed', 'public', 'sitemap', 'llms', 'people', 'fields', 'closed', 'labels', 'description', 'icon'],
+			self::Collection => ['folder', 'filename', 'urls', 'listing', 'feed', 'dateArchives', 'hierarchical', 'order', 'public', 'sitemap', 'llms', 'people', 'fields', 'closed', 'labels', 'description', 'icon'],
 			self::Tree       => ['folder', 'filename', 'public', 'sitemap', 'llms', 'people', 'fields', 'closed', 'labels', 'description', 'icon'],
 			self::Profiles   => ['folder', 'filename', 'urls', 'listing', 'feed', 'public', 'sitemap', 'llms', 'fields', 'closed', 'labels', 'description', 'icon']
 		};

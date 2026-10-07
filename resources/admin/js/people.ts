@@ -40,7 +40,7 @@ export const NEW_PROFILE = ':new';
 export const showKeys = ref(false);
 
 // A content type, as the role screen shows it.
-export type RoleType = Pick<ContentTypeSummary, 'name' | 'kind' | 'icon'> & { label: string };
+export type RoleType = Pick<ContentTypeSummary, 'name' | 'kind' | 'terms' | 'icon'> & { label: string };
 
 // Where a role comes from: built in, a built-in whose capabilities were
 // changed here, made here, or `config/auth.php`.

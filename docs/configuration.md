@@ -134,9 +134,10 @@ Without `config/app.php`, these come from the `APP_*` variables.
 | Option | Default | What it does |
 |---|---|---|
 | `types` | `[]` | Your [content types](content-types.md) |
+| `relations` | `[]` | How entries link to entries of other types, such as posts filed under categories (`Relation` objects; in `fromArray()`, a list or map of definitions). See [Terms and relationships](content-types.md#terms-and-relationships) |
 | `home` | `null` | A type whose listing is the homepage |
 | `disabled` | `[]` | Built-in types to turn off (`'profile'`) |
-| `dataTypes` | `true` | Whether types in `user/data/types/` are read |
+| `dataTypes` | `true` | Whether types in `user/data/types/` and relations in `user/data/relations/` are read |
 | `dataTypeUrls` | `true` | Whether those types may set their own `urls` |
 | `autoIndex` | `true` | Whether development requests pick up content changes |
 
@@ -384,9 +385,11 @@ Markdown version in its `<head>`.
 name, its [description](#app), then a section for each content type
 linking every public entry's Markdown version, newest first for dated
 types and by title for terms and profiles. Collections and trees are
-listed unless they say [`llms: false`](content-types.md); taxonomies
-and profiles are left out unless they say `llms: true` (only terms and
-profiles with their own files are listed). Every page keeps its
+listed unless they say [`llms: false`](content-types.md), and profiles
+are left out unless they say `llms: true` (only profiles with their own
+files are listed). A [type of terms](content-types.md#terms-and-relationships),
+such as tags, is a collection: it's listed unless it says `llms: false`,
+which the admin's new Terms types and the taxonomy migration add. Every page keeps its
 Markdown copy either way.
 
 `/llms-full.txt` has the same heading, then the Markdown copy of every

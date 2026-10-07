@@ -24,9 +24,10 @@ use Blush\Routing\RoutePattern;
  * them:
  *
  * - `single` holds `{name}`, and a collection's may add the published
- *   date's parts (`{year}` … `{second}`) and a taxonomy's name (or the
+ *   date's parts (`{year}` … `{second}`) and a term type's name (or the
  *   profiles type's) for the entry's first term of it.
- * - A taxonomy's `single` keys, and the profiles type's, hold `{name}`.
+ * - A term type's `single` keys (one a classify relation files entries
+ *   under, D-593), and the profiles type's, hold `{name}`.
  * - Date archives hold the date's parts down to their level.
  * - A people field's `{field}.single` keys hold `{profile}` (D-351).
  * - `.paged` keys add `{page}`.
@@ -38,14 +39,16 @@ final readonly class TypeRouteKeys
 	 * lists them: its listing, date archives, entries, feeds, then each
 	 * people field's archives. `$home` drops the listing (the homepage
 	 * is it), `$feeds` are the feed formats' route suffixes (`''`,
-	 * `.atom`, `.json`), and `$profiles` says whether the site has a
-	 * profiles type, without which there are no people archives. The
+	 * `.atom`, `.json`), `$profiles` says whether the site has a
+	 * profiles type, without which there are no people archives, and
+	 * `$terms` whether the type's entries are terms with pages of their
+	 * own (`ContentTypes::hasTermPages()`), paged and with feeds. The
 	 * profiles type answers only at its profiles' pages and feeds.
 	 *
 	 * @param  list<string> $feeds
 	 * @return list<string>
 	 */
-	public static function keys(ContentType $type, bool $home, array $feeds, bool $profiles): array
+	public static function keys(ContentType $type, bool $home, array $feeds, bool $profiles, bool $terms = false): array
 	{
 		if (! $type->hasUrls()) {
 			return [];
@@ -56,7 +59,7 @@ final readonly class TypeRouteKeys
 		}
 
 		$keys     = $home ? [] : ['collection', 'collection.paged'];
-		$taxonomy = $type instanceof Taxonomy;
+		$taxonomy = $terms;
 
 		foreach ($type->dateArchives->levels() as $level) {
 			array_push($keys, "collection.{$level->value}", "collection.{$level->value}.paged");
@@ -83,9 +86,10 @@ final readonly class TypeRouteKeys
 
 	/**
 	 * Returns the placeholders a key's path must hold, and those it may.
-	 * `$taxonomies` are the names of the site's term types (its
-	 * taxonomies and authors type), which a collection's `single` may
-	 * hold.
+	 * `$taxonomies` are the names of the site's term types (what classify
+	 * relations file entries under, and the profiles type), which a
+	 * collection's `single` may hold; a term type's own `single` holds
+	 * only `{name}`.
 	 *
 	 * @param  list<string> $taxonomies
 	 * @return array{required: list<string>, optional: list<string>}
@@ -102,7 +106,7 @@ final readonly class TypeRouteKeys
 
 		if ($people !== null) {
 			$required = ['profile'];
-		} elseif ($base === 'single' && ! $type instanceof Taxonomy && ! $type instanceof Profiles) {
+		} elseif ($base === 'single' && ! in_array($type->name, $taxonomies, true)) {
 			$required = ['name'];
 			$optional = [...$dates, ...$taxonomies];
 		} elseif (str_starts_with($base, 'single')) {

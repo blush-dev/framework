@@ -60,7 +60,7 @@ final readonly class ContentHealth
 	 * Returns the report: errors and warnings, and notices too when
 	 * `strict`.
 	 *
-	 * @return array{checked: int, metadata: int, strict: bool, counts: array{error: int, warning: int, notice: ?int}, files: list<array{path: string, area: string, violations: list<array{field: string, message: string, severity: string}>}>, ids: array{missing: list<string>, duplicates: list<array{id: string, paths: list<string>}>}, mediaIds: array{missing: list<string>, duplicates: list<array{id: string, paths: list<string>}>}, fileNames: list<array{type: string, label: string, pattern: string, count: int, examples: list<array{path: string, to: string}>, skipped: int}>, flat: array{count: int, examples: list<array{path: string, to: string}>}, terms: array{count: int, examples: list<array{type: string, slug: string, title: string}>}, mediaSizes: array{sizes: int, images: int, stale: int}}
+	 * @return array{checked: int, metadata: int, strict: bool, counts: array{error: int, warning: int, notice: ?int}, files: list<array{path: string, area: string, violations: list<array{field: string, message: string, severity: string}>}>, ids: array{missing: list<string>, duplicates: list<array{id: string, paths: list<string>}>}, mediaIds: array{missing: list<string>, duplicates: list<array{id: string, paths: list<string>}>}, fileNames: list<array{type: string, label: string, pattern: string, count: int, examples: list<array{path: string, to: string}>, skipped: int}>, flat: array{count: int, examples: list<array{path: string, to: string}>}, terms: array{count: int, examples: list<array{type: string, slug: string, title: string}>}, taxonomies: list<string>, mediaSizes: array{sizes: int, images: int, stale: int}}
 	 */
 	public function report(bool $strict = false): array
 	{
@@ -104,6 +104,7 @@ final readonly class ContentHealth
 			'fileNames'  => $this->fileNames(),
 			'flat'       => $this->flatReport(),
 			'terms'      => $this->termsReport(),
+			'taxonomies' => $this->types->legacy,
 			'mediaSizes' => ['sizes' => $sizes->count(), 'images' => count($sizes->unrecorded), 'stale' => count($sizes->stale)]
 		];
 	}

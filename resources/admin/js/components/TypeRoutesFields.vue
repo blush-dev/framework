@@ -17,7 +17,8 @@ const props = defineProps<{
 	routes: TypeRoute[];
 	// The prefix the addresses sit under, without slashes.
 	prefix: string;
-	taxonomy: boolean;
+	// Whether its entries are terms, with pages and feeds of their own (D-593).
+	terms: boolean;
 	// The people fields as loaded, whose route keys' defaults follow the
 	// words the form gives them now (D-353).
 	people: PeopleFieldInfo[];
@@ -39,7 +40,7 @@ function labelOf(key: string): string {
 
 	if (feed) {
 		const person = props.people.find((item) => feed[1] === `${item.field}.single`);
-		const what   = person ? `${person.singular} feed` : (({ collection: 'Feed', single: props.taxonomy ? 'Term feed' : 'Feed' } as Record<string, string>)[feed[1] ?? ''] ?? 'Feed');
+		const what   = person ? `${person.singular} feed` : (({ collection: 'Feed', single: props.terms ? 'Term feed' : 'Feed' } as Record<string, string>)[feed[1] ?? ''] ?? 'Feed');
 
 		return `${what} (${FEEDS[feed[2] ?? ''] ?? 'RSS'})`;
 	}
@@ -51,7 +52,7 @@ function labelOf(key: string): string {
 	} else if (level && LEVELS[level[1] ?? '']) {
 		label = `${LEVELS[level[1] ?? '']} archive`;
 	} else if (base === 'single') {
-		label = props.taxonomy ? 'Term' : 'Entry';
+		label = props.terms ? 'Term' : 'Entry';
 	} else if (fieldOf(base)?.[1] === 'collection') {
 		label = fieldOf(base)?.[0].plural ?? key;
 	} else if (fieldOf(base)?.[1] === 'single') {

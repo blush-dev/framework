@@ -24,18 +24,17 @@ use Blush\Content\Type\ContentType;
 use Blush\Content\Type\ContentTypes;
 use Blush\Content\Type\PeopleField;
 use Blush\Content\Type\Profiles;
-use Blush\Content\Type\Taxonomy;
 use Blush\Core\AppConfig;
 use Blush\Markdown\MarkdownException;
 
 /**
  * Builds feeds from content (D-029), with 1.x's defaults (D-078): a
  * type's feed lists the type its listing lists, newest file first, then
- * the feed's own `listing` applies; a term's feed lists the taxonomy's
+ * the feed's own `listing` applies; a term's feed lists its relation's
  * `types`, the same way.
  *
- * Item categories are the terms of the feed's `categories` taxonomy, or
- * of every taxonomy when it has none; authors are the names of the
+ * Item categories are the terms of the feed's `categories` term type, or
+ * of every term type when it has none; authors are the names of the
  * profiles the item's type's first people field credits (D-351), its
  * main byline.
  */
@@ -74,14 +73,16 @@ final readonly class FeedBuilder
 	}
 
 	/**
-	 * Builds a taxonomy term's feed.
+	 * Builds a term's feed: the entries filed under it, of its relation's
+	 * types (D-593).
 	 *
 	 * @throws InvalidQuery
 	 * @throws MarkdownException
 	 */
-	public function term(Taxonomy $taxonomy, Entry $term, FeedFormat $format): Feed
+	public function term(ContentType $taxonomy, Entry $term, FeedFormat $format): Feed
 	{
-		$query = $this->query($taxonomy, $taxonomy->types === [] ? [] : ['type' => $taxonomy->types])
+		$types = $this->types->termArguments($taxonomy->name)['type'] ?? [];
+		$query = $this->query($taxonomy, $types === [] ? [] : ['type' => $types])
 			->whereTerm($taxonomy->name, $term->slug);
 
 		return $this->feed(
@@ -199,7 +200,7 @@ final readonly class FeedBuilder
 		$byline     = array_first($entry->type->people);
 		$taxonomies = $feed !== false && $feed->categories !== null
 			? [$feed->categories]
-			: array_values(array_filter(array_keys($entry->terms), fn (string $taxonomy): bool => $this->types->find($taxonomy) instanceof Taxonomy));
+			: array_values(array_filter(array_keys($entry->terms), fn (string $taxonomy): bool => $this->types->classification($taxonomy) !== null));
 
 		return new FeedItem(
 			entry: $entry,

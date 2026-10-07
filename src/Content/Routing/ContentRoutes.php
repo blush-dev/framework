@@ -25,7 +25,6 @@ use Blush\Content\Http\TermController;
 use Blush\Content\Type\ContentType;
 use Blush\Content\Type\ContentTypes;
 use Blush\Content\Type\Profiles;
-use Blush\Content\Type\Taxonomy;
 use Blush\Core\AppConfig;
 use Blush\Routing\Route;
 use Blush\Routing\RoutePattern;
@@ -157,7 +156,7 @@ final readonly class ContentRoutes implements RouteSource
 			}
 		}
 
-		if ($type instanceof Taxonomy) {
+		if ($this->types->hasTermPages($type->name)) {
 			$controllers['single.paged'] = TermController::class;
 			$controllers['single']       = TermController::class;
 		} else {

@@ -26,8 +26,9 @@ use Blush\Content\Type\InvalidContentType;
 use Blush\Content\Type\Listing;
 use Blush\Content\Type\PeopleField;
 use Blush\Content\Type\Profiles;
-use Blush\Content\Type\Taxonomy;
 use Blush\Content\Type\Tree;
+use Blush\Content\Type\TypeOrder;
+use Blush\Content\Type\LegacyTaxonomy;
 use Blush\Content\Type\TypeFeed;
 use Blush\Content\Type\TypeKind;
 use Blush\Content\Type\TypeLabels;
@@ -40,7 +41,8 @@ use Blush\Tests\Fixtures\Content\JtcomTypes;
 
 #[CoversClass(ContentType::class)]
 #[CoversClass(Collection::class)]
-#[CoversClass(Taxonomy::class)]
+#[CoversClass(TypeOrder::class)]
+#[CoversClass(LegacyTaxonomy::class)]
 #[CoversClass(Tree::class)]
 #[CoversClass(Profiles::class)]
 #[CoversClass(PeopleField::class)]
@@ -74,38 +76,41 @@ final class ContentTypeTest extends TestCase
 		$this->assertSame(['type' => 'project'], $type->listingArguments());
 		$this->assertTrue($type->hasUrls());
 		$this->assertFalse($type->hasFeed());
-		$this->assertNull($type->termField());
 		$this->assertSame('{name}', $type->urls === false ? null : $type->urls->path('single'));
 		$this->assertSame(['name' => 'project', 'kind' => 'collection'], $type->toArray());
-		$this->assertSame('project', new Taxonomy('project')->field);
 		$this->assertSame('', $type->description);
 		$this->assertNull($type->icon);
-		$this->assertFalse(new Taxonomy('topic')->hierarchical);
+		$this->assertFalse($type->hierarchical);
+		$this->assertSame(TypeOrder::Published, $type->order);
 	}
 
 	public function testPrefixesDropTheUnderscoresOfFolderNames(): void
 	{
-		$this->assertSame('writing/forms', new Taxonomy('form', folder: '_writing/_forms')->prefix());
+		$this->assertSame('writing/forms', new Collection('form', folder: '_writing/_forms')->prefix());
 		$this->assertSame('archives', new Collection('post', folder: '_posts', urls: new TypeUrls(prefix: 'archives'))->prefix());
 	}
 
 	public function testDescriptionIconAndHierarchyRoundTrip(): void
 	{
-		$type = ContentType::fromArray(['name' => 'topic', 'kind' => 'taxonomy', 'hierarchical' => true, 'description' => ' What posts are about. ', 'icon' => 'folder'], $this->fields);
+		$type = ContentType::fromArray(['name' => 'topic', 'hierarchical' => true, 'order' => 'position', 'description' => ' What posts are about. ', 'icon' => 'folder'], $this->fields);
 
-		$this->assertInstanceOf(Taxonomy::class, $type);
+		$this->assertInstanceOf(Collection::class, $type);
 		$this->assertTrue($type->hierarchical);
+		$this->assertTrue($type->isPositioned());
 		$this->assertSame('What posts are about.', $type->description);
 		$this->assertSame('folder', $type->icon);
-		$this->assertSame(['name' => 'topic', 'kind' => 'taxonomy', 'description' => 'What posts are about.', 'icon' => 'folder', 'hierarchical' => true], $type->toArray());
+		$this->assertSame(['name' => 'topic', 'kind' => 'collection', 'description' => 'What posts are about.', 'icon' => 'folder', 'hierarchical' => true, 'order' => 'position'], $type->toArray());
 		$this->assertSame('parent', $type->parentField()?->name);
 		$this->assertFalse($type->parentField()->multiple);
-		$this->assertNull(new Taxonomy('tag')->parentField());
+		$this->assertSame('web', $type->parentKey('css', ['parent' => 'web']), 'A hierarchical collection nests by `parent` (D-593).');
+		$this->assertNull($type->parentKey('css', ['parent' => 'css']), 'Never its own.');
+		$this->assertNull(new Collection('tag')->parentField());
+		$this->assertNull(new Collection('tag')->parentKey('css', ['parent' => 'web']));
 	}
 
 	public function testAcceptsJtcoms1xConfigUnchanged(): void
 	{
-		$config = ContentConfig::fromArray(['types' => JtcomTypes::definitions(), 'home' => 'post']);
+		$config = ContentConfig::fromArray(['types' => JtcomTypes::definitions(), 'relations' => JtcomTypes::relations(), 'home' => 'post']);
 		$types  = [];
 
 		foreach ($config->definitions as $definition) {
@@ -127,12 +132,11 @@ final class ContentTypeTest extends TestCase
 
 		$form = $types['literary_form'];
 
-		$this->assertInstanceOf(Taxonomy::class, $form);
+		$this->assertInstanceOf(Collection::class, $form);
 		$this->assertSame('writing/forms', $form->folder);
-		$this->assertSame(['literature'], $form->types);
-		$this->assertEquals(new Listing(order: Order::Desc, perPage: 9999), $form->termListing);
-		$this->assertSame(['type' => ['literature'], 'order' => 'desc', 'number' => 9999], $form->termArguments());
-		$this->assertSame('literary_form', $form->termField()->name);
+		$this->assertSame(['position', Order::Asc], $form->order());
+		$this->assertSame(['literature'], $config->relations[2]->from);
+		$this->assertEquals(new Listing(order: Order::Desc, perPage: 9999), $config->relations[2]->inverse === false ? null : $config->relations[2]->inverse->listing);
 		$this->assertSame('post', $config->home);
 	}
 
@@ -169,26 +173,17 @@ final class ContentTypeTest extends TestCase
 		$this->assertEquals($type, ContentType::fromArray($type->toArray(), $this->fields));
 
 		// Each kind writes `llms` only when it isn't the kind's default (D-401).
-		$this->assertFalse(ContentType::fromArray(['name' => 'tag', 'kind' => 'taxonomy'], $this->fields)->llms);
-		$this->assertSame(true, ContentType::fromArray(['name' => 'tag', 'kind' => 'taxonomy', 'llms' => true], $this->fields)->toArray()['llms'] ?? null);
-		$this->assertArrayNotHasKey('llms', ContentType::fromArray(['name' => 'tag', 'kind' => 'taxonomy', 'llms' => false], $this->fields)->toArray());
+		$this->assertTrue(ContentType::fromArray(['name' => 'tag'], $this->fields)->llms);
+		$this->assertSame(false, ContentType::fromArray(['name' => 'tag', 'llms' => false], $this->fields)->toArray()['llms'] ?? null);
+		$this->assertArrayNotHasKey('llms', ContentType::fromArray(['name' => 'tag', 'llms' => true], $this->fields)->toArray());
 		$this->assertFalse(ContentType::fromArray(['name' => 'profile', 'kind' => 'profiles'], $this->fields)->llms);
 		$this->assertTrue(ContentType::fromArray(['name' => 'doc', 'kind' => 'tree'], $this->fields)->llms);
 
-		$taxonomy = new Taxonomy(
-			'author',
-			folder: 'authors',
-			types: ['post', 'note'],
-			field: 'authors',
-			aliases: ['author'],
-			urls: false,
-			termListing: new Listing(perPage: Listing::ALL),
-			feed: new TypeFeed()
-		);
+		$terms = new Collection('topic', folder: 'topics', urls: false, feed: new TypeFeed(), people: false, hierarchical: true, order: TypeOrder::Position);
 
-		$this->assertEquals($taxonomy, ContentType::fromArray($taxonomy->toArray(), $this->fields));
-		$this->assertSame(true, $taxonomy->toArray()['feed']);
-		$this->assertSame(['author'], $taxonomy->termField()->aliases);
+		$this->assertEquals($terms, ContentType::fromArray($terms->toArray(), $this->fields));
+		$this->assertSame(true, $terms->toArray()['feed']);
+		$this->assertSame(['hierarchical' => true, 'order' => 'position'], array_intersect_key($terms->toArray(), ['hierarchical' => true, 'order' => true]));
 
 		$pages = new Tree(fields: [new TextField('subtitle')]);
 
@@ -254,12 +249,11 @@ final class ContentTypeTest extends TestCase
 	{
 		$this->assertSame(['authors'], array_keys(new Collection('post')->people));
 		$this->assertSame(['author'], new Collection('post')->people['authors']->aliases);
-		$this->assertFalse(new Taxonomy('tag')->credits());
+		$this->assertFalse(new Collection('tag', people: false)->credits());
 		$this->assertFalse(new Tree()->credits());
 
 		$cases = [
 			[new Collection('post', people: false), ['people' => false]],
-			[new Taxonomy('tag', people: true), ['people' => true]],
 			[new Tree(people: true), ['people' => true]]
 		];
 
@@ -269,7 +263,6 @@ final class ContentTypeTest extends TestCase
 		}
 
 		$this->assertArrayNotHasKey('people', new Collection('post')->toArray(), 'The default is left out.');
-		$this->assertFalse(ContentType::fromArray(['name' => 'tag', 'kind' => 'taxonomy'], $this->fields)->credits());
 		$this->assertFalse(ContentType::fromArray(['name' => 'post', 'authors' => false], $this->fields)->credits(), '"authors" is short for the default field.');
 	}
 
@@ -278,8 +271,8 @@ final class ContentTypeTest extends TestCase
 		$names = static fn (ContentType $type): array => [$type->labels->plural, $type->labels->singular];
 
 		$this->assertSame(['Posts', 'Post'], $names(new Collection('post')));
-		$this->assertSame(['Categories', 'Category'], $names(new Taxonomy('category')));
-		$this->assertSame(['Literary forms', 'Literary form'], $names(new Taxonomy('literary_form')));
+		$this->assertSame(['Categories', 'Category'], $names(new Collection('category')));
+		$this->assertSame(['Literary forms', 'Literary form'], $names(new Collection('literary_form')));
 		$this->assertSame(['Classes', 'Class'], $names(new Collection('class')));
 		$this->assertSame(['Essays', 'Essay'], $names(new Collection('essay')), 'A vowel before the y keeps it.');
 		$this->assertSame(['Pages', 'Page'], $names(new Tree()));
@@ -291,7 +284,7 @@ final class ContentTypeTest extends TestCase
 		$this->assertEquals($type, ContentType::fromArray($type->toArray(), $this->fields));
 		$this->assertArrayNotHasKey('labels', new Collection('post')->toArray());
 
-		$era = new Taxonomy('era', labels: new TypeLabels('Era of life', plural: 'Eras of life'));
+		$era = new Collection('era', labels: new TypeLabels('Era of life', plural: 'Eras of life'));
 
 		$this->assertEquals($era, ContentType::fromArray($era->toArray(), $this->fields));
 	}
@@ -307,7 +300,7 @@ final class ContentTypeTest extends TestCase
 			'newItem'     => 'New Literary Form',
 			'editItem'    => 'Edit literary form',
 			'searchItems' => 'Search literary forms'
-		], new Taxonomy('literary_form')->labels->all());
+		], new Collection('literary_form')->labels->all());
 
 		$person = new TypeLabels('Person', plural: 'People', newItem: 'Add someone');
 
@@ -354,8 +347,6 @@ final class ContentTypeTest extends TestCase
 	public function testReadsKinds(): void
 	{
 		$this->assertInstanceOf(Collection::class, ContentType::fromArray(['name' => 'note'], $this->fields));
-		$this->assertInstanceOf(Taxonomy::class, ContentType::fromArray(['name' => 'tag', 'kind' => 'taxonomy'], $this->fields));
-		$this->assertInstanceOf(Taxonomy::class, ContentType::fromArray(['name' => 'tag', 'taxonomy' => true], $this->fields));
 		$this->assertInstanceOf(Collection::class, ContentType::fromArray(['name' => 'note', 'taxonomy' => false], $this->fields));
 
 		$this->assertInstanceOf(Profiles::class, ContentType::fromArray(['name' => 'person', 'kind' => 'profiles'], $this->fields));
@@ -402,12 +393,44 @@ final class ContentTypeTest extends TestCase
 		$this->assertSame(DateArchives::Second, ContentType::fromArray(['name' => 'log', 'time_archives' => true], $this->fields)->dateArchives);
 		$this->assertSame(DateArchives::Day, ContentType::fromArray(['name' => 'log', 'date_archives' => true], $this->fields)->dateArchives);
 		$this->assertSame('page', ContentType::fromArray(['name' => 'page', 'path' => '', 'collect' => false], $this->fields)->listedType());
+	}
 
-		$taxonomy = ContentType::fromArray(['name' => 'tag', 'taxonomy' => true, 'field_aliases' => ['tags'], 'term_collect' => 'post'], $this->fields);
+	public function testTaxonomiesAreRefusedSayingWhatReplacedThem(): void
+	{
+		foreach ([['name' => 'tag', 'kind' => 'taxonomy'], ['name' => 'tag', 'taxonomy' => true]] as $definition) {
+			try {
+				ContentType::fromArray($definition, $this->fields);
+				$this->fail('A taxonomy is refused (D-591).');
+			} catch (InvalidContentType $e) {
+				$this->assertStringStartsWith('Content type "tag" is a taxonomy, which Blush no longer has: make it a collection', $e->getMessage());
+				$this->assertStringContainsString('content:taxonomies --write', $e->getMessage());
+			}
+		}
+	}
 
-		$this->assertInstanceOf(Taxonomy::class, $taxonomy);
-		$this->assertSame(['tags'], $taxonomy->aliases);
-		$this->assertSame(['post'], $taxonomy->types);
+	public function testLegacyTaxonomiesConvertToACollectionAndARelation(): void
+	{
+		$this->assertTrue(LegacyTaxonomy::is(['taxonomy' => true]));
+		$this->assertTrue(LegacyTaxonomy::is(['kind' => 'taxonomy']));
+		$this->assertFalse(LegacyTaxonomy::is(['kind' => 'collection', 'taxonomy' => false]));
+
+		[$type, $relation] = LegacyTaxonomy::convert('tag', [
+			'taxonomy'        => true,
+			'path'            => 'tags',
+			'field_aliases'   => ['tags'],
+			'term_collect'    => 'post',
+			'term_collection' => ['order' => 'desc'],
+			'hierarchical'    => true
+		]);
+
+		$this->assertSame(['path' => 'tags', 'hierarchical' => true, 'order' => 'position', 'llms' => false, 'people' => false], $type);
+		$this->assertSame(['kind' => 'classify', 'from' => ['post'], 'to' => ['tag'], 'aliases' => ['tags'], 'create' => true, 'inverse' => ['archive' => true, 'listing' => ['order' => 'desc']]], $relation);
+		$this->assertInstanceOf(Collection::class, ContentType::fromArray(['name' => 'tag', ...$type], $this->fields));
+
+		[$type, $relation] = LegacyTaxonomy::convert('category', ['kind' => 'taxonomy', 'field' => 'categories', 'urls' => false, 'llms' => true, 'people' => true]);
+
+		$this->assertSame(['urls' => false, 'llms' => true, 'people' => true, 'order' => 'position'], $type, 'What the taxonomy said is kept.');
+		$this->assertSame(['kind' => 'classify', 'to' => ['category'], 'field' => 'categories', 'create' => true], $relation, 'Without URLs, terms have no pages.');
 	}
 
 	public function testDateArchiveLevels(): void
@@ -426,10 +449,9 @@ final class ContentTypeTest extends TestCase
 			[['name' => 'post', 'folder' => 'a/../b'], 'Content type "post" has an invalid folder "a/../b".'],
 			[['name' => 'post', 'routes' => []], 'Content type "post" (collection) has unknown options: routes.'],
 			[['name' => 'post', 'types' => ['x']], 'Content type "post" (collection) has unknown options: types.'],
-			[['name' => 'tag', 'kind' => 'taxonomy', 'dateArchives' => 'day'], 'Content type "tag" (taxonomy) has unknown options: dateArchives.'],
+			[['name' => 'post', 'order' => 'sideways'], 'Content type "post" "order" must be one of published, position.'],
 			[['name' => 'page', 'kind' => 'tree', 'urls' => []], 'Content type "page" (tree) has unknown options: urls.'],
-			[['name' => 'post', 'kind' => 'blog'], 'Content type "post" "kind" must be one of collection, taxonomy, tree, profiles.'],
-			[['name' => 'post', 'kind' => 'collection', 'taxonomy' => true], 'Content type "post" sets "kind: collection" and "taxonomy: true".'],
+			[['name' => 'post', 'kind' => 'blog'], 'Content type "post" "kind" must be one of collection, tree, profiles.'],
 			[['name' => 'post', 'routing' => 'yes'], 'Content type "post" "urls" must be false or a map.'],
 			[['name' => 'post', 'urls' => ['prefix' => 'a', 'single' => 'b', 'nope' => 'c']], 'Content type "post" urls has unknown options: nope.'],
 			[['name' => 'post', 'feed' => 'yes'], 'Content type "post" "feed" must be true, false, or a map.'],
@@ -459,10 +481,10 @@ final class ContentTypeTest extends TestCase
 	{
 		$this->assertSame(['published', Order::Desc], ContentType::fromArray(['name' => 'post'], $this->fields)->order(), 'D-516');
 		$this->assertSame(['position', Order::Asc], ContentType::fromArray(['name' => 'doc', 'kind' => 'tree'], $this->fields)->order());
-		$this->assertSame(['position', Order::Asc], ContentType::fromArray(['name' => 'tag', 'kind' => 'taxonomy'], $this->fields)->order());
+		$this->assertSame(['position', Order::Asc], ContentType::fromArray(['name' => 'tag', 'order' => 'position'], $this->fields)->order());
 		$this->assertSame(['title', Order::Asc], ContentType::fromArray(['name' => 'person', 'kind' => 'profiles'], $this->fields)->order());
 
-		$tag = ContentType::fromArray(['name' => 'tag', 'kind' => 'taxonomy', 'listing' => ['order' => 'desc']], $this->fields);
+		$tag = ContentType::fromArray(['name' => 'tag', 'order' => 'position', 'listing' => ['order' => 'desc']], $this->fields);
 
 		$this->assertSame(['position', 'desc'], [$tag->listingArguments()['orderby'] ?? null, $tag->listingArguments()['order'] ?? null], 'Terms list in their order, the listing\'s way.');
 		$this->assertSame('published', ContentType::fromArray(['name' => 'post', 'listing' => ['orderBy' => 'filename']], $this->fields)->listing->orderBy, '1.x\'s file order is published.');
@@ -511,7 +533,7 @@ final class ContentTypeTest extends TestCase
 
 	public function testConfigRoundTrips(): void
 	{
-		$config = ContentConfig::fromArray(['types' => JtcomTypes::definitions(), 'home' => 'post', 'dataTypeUrls' => false, 'disabled' => ['profile']]);
+		$config = ContentConfig::fromArray(['types' => JtcomTypes::definitions(), 'relations' => JtcomTypes::relations(), 'home' => 'post', 'dataTypeUrls' => false, 'disabled' => ['profile']]);
 
 		$this->assertEquals($config, ContentConfig::fromArray($config->toArray()));
 	}
@@ -534,8 +556,6 @@ final class ContentTypeTest extends TestCase
 		$this->assertSame('/team/{name}', new Profiles(folder: 'authors', urls: new TypeUrls('team'))->routePattern('single'));
 		$this->assertFalse($profile->servedAsPages());
 		$this->assertFalse($profile->hasFeed());
-		$this->assertTrue($profile->hasTerms());
-		$this->assertNull($profile->termField());
 		$this->assertFalse($profile->credits());
 		$this->assertTrue(BuiltInType::Profile->canDisable());
 	}

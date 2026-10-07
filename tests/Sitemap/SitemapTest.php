@@ -118,7 +118,7 @@ final class SitemapTest extends TestCase
 	public function testTypesCanLeaveTheSitemap(): void
 	{
 		$this->standardContent();
-		$this->contentConfig(['types' => ['category' => ['path' => 'topics', 'taxonomy' => true, 'sitemap' => false]]]);
+		$this->contentConfig(['types' => ['category' => ['path' => 'topics', 'order' => 'position', 'sitemap' => false]], 'relations' => ['category' => ['kind' => 'classify', 'to' => ['category']]]]);
 		$this->boot();
 
 		$this->assertSame(404, $this->get('/sitemap/category')->getStatusCode());

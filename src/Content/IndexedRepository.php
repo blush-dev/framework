@@ -215,7 +215,7 @@ final class IndexedRepository implements ContentRepository
 	{
 		$type = $this->types->find($taxonomy);
 
-		if ($type === null || ! $type->hasTerms()) {
+		if ($type === null || ! $this->types->isTermType($type->name)) {
 			return null;
 		}
 

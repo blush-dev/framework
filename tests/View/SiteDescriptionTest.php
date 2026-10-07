@@ -46,8 +46,9 @@ final class SiteDescriptionTest extends TestCase
 		$this->contentConfig([
 			'types' => [
 				'post'     => ['path' => '_posts', 'collection' => ['order' => 'desc'], 'routing' => ['prefix' => 'archives'], 'feed' => true],
-				'category' => ['path' => 'topics', 'taxonomy' => true, 'term_collect' => 'post']
+				'category' => ['path' => 'topics', 'order' => 'position', 'people' => false]
 			],
+			'relations' => ['category' => ['kind' => 'classify', 'from' => ['post'], 'to' => ['category'], 'create' => true]],
 			'home' => 'post'
 		]);
 		$this->writeTemporaryFile('config/cache.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn new Blush\\Cache\\CacheConfig(enabled: false);\n");

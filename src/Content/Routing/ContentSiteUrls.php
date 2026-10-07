@@ -21,7 +21,6 @@ use Blush\Content\Type\ContentType;
 use Blush\Content\Type\ContentTypes;
 use Blush\Content\Type\DateArchives;
 use Blush\Content\Type\Profiles;
-use Blush\Content\Type\Taxonomy;
 use Blush\Content\Visibility;
 use Blush\Core\AppConfig;
 use Blush\Routing\SiteUrl;
@@ -120,7 +119,7 @@ final readonly class ContentSiteUrls implements UrlSource
 		}
 
 		foreach ($types as $type) {
-			if ($type instanceof Taxonomy) {
+			if ($this->types->hasTermPages($type->name)) {
 				yield from $this->terms($type, $language);
 			}
 		}
@@ -133,7 +132,7 @@ final readonly class ContentSiteUrls implements UrlSource
 	}
 
 	/**
-	 * Returns a taxonomy's term archives in a language. Terms are named
+	 * Returns a term type's term archives in a language. Terms are named
 	 * by their original's slug (D-455).
 	 *
 	 * @return iterable<SiteUrl>

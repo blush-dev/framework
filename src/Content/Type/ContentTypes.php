@@ -19,12 +19,19 @@ use IteratorAggregate;
 use Override;
 use Blush\Content\Entry\Position;
 use Blush\Content\EntryFields;
+use Blush\Content\Relation\InvalidRelation;
+use Blush\Content\Relation\Inverse;
+use Blush\Content\Relation\Relation;
+use Blush\Content\Relation\RelationKind;
+use Blush\Content\Relation\RelationOrigin;
+use Blush\Content\Relation\Refs;
 use Blush\Field\Field;
 use Blush\Field\FieldFactory;
 use Blush\Field\FieldSet;
 use Blush\Field\FieldSets;
 use Blush\Field\Fields\MediaField;
 use Blush\Field\Fields\NumberField;
+use Blush\Field\Fields\ReferenceField;
 use Blush\Field\InvalidSchema;
 use Blush\Field\Schema;
 
@@ -37,8 +44,13 @@ use Blush\Field\Schema;
  * belongs to `literature`, and a bundle's `_posts/hello/index.md` is a
  * post.
  *
- * Each type's full schema is the built-in entry fields, then every
- * taxonomy's term field (which may not reuse a built-in name or alias),
+ * The types carry the site's relation definitions (D-593: from
+ * extensions, config, and `user/data/relations`), since a classify
+ * relation adds its field to the types it's from.
+ *
+ * Each type's full schema is the built-in entry fields, then the term
+ * field of every classify relation from it (which may not reuse a
+ * built-in name or alias),
  * then the type's people fields (D-351), or a profile's `avatar`, then
  * the type's own fields (which may replace any of them), then the fields
  * of the field sets attached to it (`type:{name}`, D-337), in set name
@@ -69,13 +81,19 @@ final class ContentTypes implements IteratorAggregate, Countable
 	 * @param ?string                    $home    The homepage's type.
 	 * @param FieldSets                  $sets    The site's field sets.
 	 * @param list<string>               $overrides Types from code that a data file changes (D-349).
+	 * @param array<string, Relation>     $relations Relation definitions, keyed by name (D-593).
+	 * @param array<string, RelationOrigin> $relationOrigins Keyed by name.
+	 * @param list<string>               $legacy    Data types still in the taxonomy form, read as a collection and its relation until they're migrated (D-591).
 	 */
 	public function __construct(
 		private readonly array $types,
 		private readonly array $origins = [],
 		public readonly ?string $home = null,
 		public readonly FieldSets $sets = new FieldSets(),
-		private readonly array $overrides = []
+		private readonly array $overrides = [],
+		private readonly array $relations = [],
+		private readonly array $relationOrigins = [],
+		public readonly array $legacy = []
 	) {
 		foreach ($types as $name => $type) {
 			$this->folders[$type->folder] = $name;
@@ -158,13 +176,101 @@ final class ContentTypes implements IteratorAggregate, Countable
 	}
 
 	/**
-	 * Returns the taxonomies, keyed by name.
+	 * Returns the relation definitions, keyed by name (D-593).
 	 *
-	 * @return array<string, Taxonomy>
+	 * @return array<string, Relation>
 	 */
-	public function taxonomies(): array
+	public function relations(): array
 	{
-		return array_filter($this->types, static fn (ContentType $type): bool => $type instanceof Taxonomy);
+		return $this->relations;
+	}
+
+	/**
+	 * Returns where a relation definition comes from, or `null` when
+	 * there's none by that name.
+	 */
+	public function relationOrigin(string $name): ?RelationOrigin
+	{
+		return isset($this->relations[$name]) ? $this->relationOrigins[$name] ?? RelationOrigin::Config : null;
+	}
+
+	/**
+	 * Returns the classify relations, keyed by name, which is the type
+	 * each files entries under (D-593): what taxonomies were.
+	 *
+	 * @return array<string, Relation>
+	 */
+	public function classifications(): array
+	{
+		return array_filter($this->relations, static fn (Relation $relation): bool => $relation->kind === RelationKind::Classify);
+	}
+
+	/**
+	 * Returns the classify relation that files entries under a type, or
+	 * `null` when none does.
+	 */
+	public function classification(string $type): ?Relation
+	{
+		return $this->classifications()[$type] ?? null;
+	}
+
+	/**
+	 * Returns whether a type's entries are terms with pages of their own
+	 * listing what's filed under them (a classify relation's inverse
+	 * archive, D-593), which needs the type to have URLs.
+	 */
+	public function hasTermPages(string $name): bool
+	{
+		$relation = $this->classification($name);
+
+		return $relation !== null
+			&& $relation->inverse !== false
+			&& $relation->inverse->archive === true
+			&& ($this->find($name)?->hasUrls() ?? false);
+	}
+
+	/**
+	 * Returns a term page's 1.x query arguments, for `Query::fromArray()`,
+	 * before the term itself is matched: the types its relation files
+	 * (its inverse's `types`, else its `from`), listed as the inverse's
+	 * `listing` says.
+	 *
+	 * @return array<string, mixed>
+	 */
+	public function termArguments(string $name): array
+	{
+		$relation = $this->classification($name);
+
+		if ($relation === null) {
+			return [];
+		}
+
+		$inverse = $relation->inverse === false ? new Inverse() : $relation->inverse;
+		$types   = $inverse->types === [] ? $relation->from : $inverse->types;
+
+		return [...($types === [] ? [] : ['type' => $types]), ...$inverse->listing->arguments()];
+	}
+
+	/**
+	 * Returns whether a type's entries name a parent entry of the type
+	 * (a hierarchical collection's terms), rather than nesting by folder.
+	 */
+	public function nestsByParent(string $name): bool
+	{
+		$type = $this->find($name);
+
+		return $type instanceof Collection && $type->hierarchical;
+	}
+
+	/**
+	 * Returns the types whose entries are terms: what a classify relation
+	 * files entries under, keyed by name.
+	 *
+	 * @return array<string, ContentType>
+	 */
+	public function classifying(): array
+	{
+		return array_intersect_key($this->types, $this->classifications());
 	}
 
 	/**
@@ -176,14 +282,24 @@ final class ContentTypes implements IteratorAggregate, Countable
 	}
 
 	/**
-	 * Returns the types other entries reference as terms (the taxonomies
-	 * and the profiles type), keyed by name.
+	 * Returns the types other entries reference as terms (the types a
+	 * classify relation files entries under, and the profiles type), keyed
+	 * by name.
 	 *
-	 * @return array<string, Taxonomy|Profiles>
+	 * @return array<string, ContentType>
 	 */
 	public function termTypes(): array
 	{
-		return array_filter($this->types, static fn (ContentType $type): bool => $type instanceof Taxonomy || $type instanceof Profiles);
+		return array_filter($this->types, fn (ContentType $type): bool => $type instanceof Profiles || isset($this->classifications()[$type->name]));
+	}
+
+	/**
+	 * Returns whether other entries reference a type's entries as terms,
+	 * which the index keeps a reverse lookup for.
+	 */
+	public function isTermType(string $name): bool
+	{
+		return isset($this->termTypes()[$name]);
 	}
 
 	/**
@@ -289,9 +405,13 @@ final class ContentTypes implements IteratorAggregate, Countable
 				: new InvalidContentType($e->getMessage(), previous: $e);
 		}
 
-		// The entry's id is no field's (D-477).
+		// The entry's id is no field's (D-477), nor are its links' ids (D-589).
 		if ($schema->field(EntryFields::ID) !== null) {
 			throw new InvalidContentType(sprintf('Content type "%s" has a field (or alias) named "%s", which is reserved for the entry\'s id; rename it.', $name, EntryFields::ID));
+		}
+
+		if ($schema->field(Refs::FIELD) !== null) {
+			throw new InvalidContentType(sprintf('Content type "%s" has a field (or alias) named "%s", which is reserved for the ids of the entry\'s links; rename it.', $name, Refs::FIELD));
 		}
 
 		return $this->schemas[$name] = $schema;
@@ -299,10 +419,12 @@ final class ContentTypes implements IteratorAggregate, Countable
 
 	/**
 	 * Returns a type's schema before its field sets: the built-in entry
-	 * fields, every taxonomy's term field, the type's people fields (when
-	 * the site has a profiles type) or a profile's `avatar`, a
-	 * hierarchical taxonomy's `parent`, a tree's or taxonomy's `position`
-	 * (D-412), then the type's own fields.
+	 * fields, the field of each relation the site defines from it (D-593:
+	 * a classify relation's terms, say), the type's
+	 * people fields (when the site has a profiles type) or a profile's
+	 * `avatar`, a hierarchical collection's `parent`, a tree's or a
+	 * positioned collection's `position` (D-412), then the type's own
+	 * fields.
 	 *
 	 * @throws InvalidContentType When the fields clash.
 	 */
@@ -311,12 +433,17 @@ final class ContentTypes implements IteratorAggregate, Countable
 		$type = $this->get($name);
 
 		try {
-			$terms   = array_values(array_map(static fn (Taxonomy $taxonomy): Field => $taxonomy->termField(), $this->taxonomies()));
+			$terms    = array_values(array_map(
+				static fn (Relation $relation): Field => new ReferenceField($relation->field, count($relation->to) === 1 ? $relation->to[0] : '', $relation->multiple)
+					->aliases(...$relation->aliases)
+					->required($relation->isRequired()),
+				array_filter($this->relations, static fn (Relation $relation): bool => ! $relation->kind->isWithinType() && $relation->isFrom($name))
+			));
 			$profiles = $this->profiles()?->name;
 			$people   = $profiles === null ? [] : array_values(array_map(static fn (PeopleField $field): Field => $field->referenceField($profiles), $type->people));
 			$avatar   = $type instanceof Profiles ? [new MediaField('avatar')->described('A portrait, shown beside the name; without one, initials stand in.')] : [];
-			$parent   = $type instanceof Taxonomy ? $type->parentField() : null;
-			$position = $type instanceof Tree || $type instanceof Taxonomy
+			$parent   = $type instanceof Collection ? $type->parentField() : null;
+			$position = $type instanceof Tree || ($type instanceof Collection && $type->isPositioned())
 				? [new NumberField(Position::FIELD, integer: true)->described(sprintf('Its place among its sibling %s, lowest first; those without one follow, by title.', $type->labels->items))]
 				: [];
 
@@ -336,16 +463,19 @@ final class ContentTypes implements IteratorAggregate, Countable
 	/**
 	 * Returns the types as an array for a compiled cache.
 	 *
-	 * @return array{types: list<array<string, mixed>>, origins: array<string, string>, overrides: list<string>, home: ?string, sets: list<array<string, mixed>>}
+	 * @return array{types: list<array<string, mixed>>, origins: array<string, string>, overrides: list<string>, home: ?string, sets: list<array<string, mixed>>, relations: list<array<string, mixed>>, relationOrigins: array<string, string>, legacy: list<string>}
 	 */
 	public function toArray(): array
 	{
 		return [
-			'types'     => array_values(array_map(static fn (ContentType $type): array => $type->toArray(), $this->types)),
-			'origins'   => array_map(static fn (TypeOrigin $origin): string => $origin->value, $this->origins),
-			'overrides' => $this->overrides,
-			'home'      => $this->home,
-			'sets'      => $this->sets->toArray()
+			'types'           => array_values(array_map(static fn (ContentType $type): array => $type->toArray(), $this->types)),
+			'origins'         => array_map(static fn (TypeOrigin $origin): string => $origin->value, $this->origins),
+			'overrides'       => $this->overrides,
+			'home'            => $this->home,
+			'sets'            => $this->sets->toArray(),
+			'relations'       => array_values(array_map(static fn (Relation $relation): array => $relation->toArray(), $this->relations)),
+			'relationOrigins' => array_map(static fn (RelationOrigin $origin): string => $origin->value, $this->relationOrigins),
+			'legacy'          => $this->legacy
 		];
 	}
 
@@ -382,8 +512,29 @@ final class ContentTypes implements IteratorAggregate, Countable
 		}
 
 		$overrides = array_values(array_filter(is_array($data['overrides'] ?? null) ? $data['overrides'] : [], is_string(...)));
+		$relations = [];
+		$relationOrigins = [];
 
-		return new self($types, $origins, is_string($home) ? $home : null, $sets, $overrides);
+		try {
+			foreach (is_array($data['relations'] ?? null) ? $data['relations'] : [] as $definition) {
+				if (is_array($definition)) {
+					$relation                    = Relation::fromArray($definition);
+					$relations[$relation->name] = $relation;
+				}
+			}
+		} catch (InvalidRelation $e) {
+			throw new InvalidContentType($e->getMessage(), previous: $e);
+		}
+
+		foreach (is_array($data['relationOrigins'] ?? null) ? $data['relationOrigins'] : [] as $name => $origin) {
+			if (is_string($name) && is_string($origin) && ($case = RelationOrigin::tryFrom($origin)) !== null) {
+				$relationOrigins[$name] = $case;
+			}
+		}
+
+		$legacy = array_values(array_filter(is_array($data['legacy'] ?? null) ? $data['legacy'] : [], is_string(...)));
+
+		return new self($types, $origins, is_string($home) ? $home : null, $sets, $overrides, $relations, $relationOrigins, $legacy);
 	}
 
 	/**

@@ -872,3 +872,27 @@ D-541). Where the admin differs from the sketch:
   screen in Add a Shortcut, and no counts on shortcuts. The sketch's
   Calendar isn't taken up (a calendar is for a plugin, D-550).
 
+
+## Relationships and terms (D-593, D-594)
+
+- **Taxonomies aren't a kind** (§1's vocabulary, §8's Sidebar grouping
+  and Taxonomy terms are entries): a type of terms is a collection that
+  a classify relation files entries under. The list screen's tabs are
+  Collections, Terms, Trees, and Profiles, with "Terms" in the Kind
+  column; the wizard's choices are Collection, Terms, and Tree. The
+  rail's rule is §8's with "files" for "attached to": terms filing
+  exactly one type nest under it, and the rest sit under **Shared
+  Terms** (§8's "Structure" placement and "Shared taxonomies" name are
+  the admin's older ones). Terms are still entries, edited like any
+  (§8, Taxonomy terms are entries).
+- **A Relationships panel** on every type's screen, which the direction
+  doesn't have: each relation from or to the type as a sentence from
+  its side ("Filed under Topics", "Files Posts", "Links to Docs") over
+  a quieter line of what it asks, using the shared `.rows`; Edit and
+  Remove on the site's data relations, and where it's defined for the
+  rest. It saves on its own, not through the type's save bar, since a
+  relation is a record of its own (D-593). It's on read-only types'
+  screens too, since their relationships may be the site's.
+- **Add a Relationship** is a modal (the shared `AdminModal`) rather
+  than a screen of its own (§8, List, then detail): a relation is a few
+  choices, and it's made from a type's screen.

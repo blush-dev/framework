@@ -205,7 +205,7 @@ final class ThemedRenderingTest extends TestCase
 	public function testPartialsSeeThePageAndTaxonomyListingsShareATemplate(): void
 	{
 		$this->standardContent();
-		$this->writeTemporaryFile('resources/views/collection-taxonomy.php', '<?php $template->layout(\'base\') ?><?= $template->include(\'partials/terms-title\') ?>');
+		$this->writeTemporaryFile('resources/views/collection-terms.php', '<?php $template->layout(\'base\') ?><?= $template->include(\'partials/terms-title\') ?>');
 		$this->writeTemporaryFile('resources/views/partials/terms-title.php', '<p class="terms"><?= e($title) ?>: <?= e($type->name) ?>, <?= count($page->entries ?? []) ?></p>');
 		$this->writeTemporaryFile('resources/views/partials/footer.php', '<footer><?= e($entry?->title ?? "none") ?></footer>');
 

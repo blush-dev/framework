@@ -6,7 +6,7 @@
  * has always held, the slugs separated by commas, so saving is unchanged.
  * One picker, shaped by what it points at:
  *
- * - **A hierarchical taxonomy is one box**: a search field, the tree of
+ * - **A hierarchical collection's terms are one box**: a search field, the tree of
  *   terms as checkboxes, indented by depth, each with how many entries
  *   use it, and **New {term}** at its foot, which opens a name and a
  *   parent (the tree, indented) and writes the term. A search keeps a
@@ -23,7 +23,7 @@
  *   entry's main byline, or a required people field; the handler refuses
  *   too), and added by a search.
  * - **One value is a select**: none, or one of the entries, in tree
- *   order for a hierarchical taxonomy (the parent of a term, without the
+ *   order for a hierarchical collection (the parent of a term, without the
  *   term itself and the terms under it).
  *
  * A slug the field holds that nothing answers to is shown as it's
@@ -127,7 +127,7 @@ function toggle(slug: string): void {
 	}
 }
 
-// The first answer: the whole tree for a hierarchical taxonomy, else the
+// The first answer: the whole tree for a hierarchical collection, else the
 // field's own slugs, so its chips have names.
 async function start(): Promise<void> {
 	error.value = '';
@@ -418,7 +418,7 @@ const persons = computed(() => values.value.map((value) => itemOf(value)));
 			<p v-if="persons.length === 1" class="field__help">An entry always has at least one {{ names.item }}, so this one can't be removed until another is added.</p>
 		</template>
 
-		<!-- A hierarchical taxonomy: one box of search, tree, and new term. -->
+		<!-- A hierarchical collection: one box of search, tree, and new term. -->
 		<div v-else-if="tree" class="reference__box">
 			<div class="reference__search reference__search--inside">
 				<AdminIcon name="search" />

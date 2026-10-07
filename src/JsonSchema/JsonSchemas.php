@@ -18,6 +18,7 @@ use Blush\Asset\Asset;
 use Blush\Directive\DirectiveName;
 use Blush\Directive\Variant;
 use Blush\Content\EntryFields;
+use Blush\Content\Relation\Refs;
 use Blush\Core\Framework;
 use Blush\Extension\ExtensionLinks;
 use Blush\Extension\ExtensionName;
@@ -460,7 +461,7 @@ final readonly class JsonSchemas
 		return [
 			'$schema'     => self::DRAFT,
 			'title'       => sprintf('%s entry', Framework::NAME),
-			'description' => 'An entry\'s front matter: the fields every entry understands. Content types and taxonomies add their own.',
+			'description' => 'An entry\'s front matter: the fields every entry understands. Content types and relations add their own.',
 			...$schema,
 			'properties'  => [
 				...$fields,
@@ -468,6 +469,14 @@ final readonly class JsonSchemas
 					'type'        => 'string',
 					'pattern'     => '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$',
 					'description' => 'The entry\'s id, a UUID, kept last. Blush writes it; content:ids adds a missing one.'
+				],
+				Refs::FIELD => [
+					'type'                 => 'object',
+					'description'          => 'The ids of the entries this one links to, by relation, then by the slug written for each. Blush writes it beside the slugs.',
+					'additionalProperties' => [
+						'type'                 => 'object',
+						'additionalProperties' => ['type' => 'string', 'pattern' => '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$']
+					]
 				]
 			],
 			'required'    => [EntryFields::ID]

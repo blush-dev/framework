@@ -14,8 +14,10 @@ declare(strict_types=1);
 namespace Blush\Admin;
 
 use Psr\Http\Message\ResponseInterface;
+use Blush\Content\Relation\Relation;
 use Blush\Content\Storage\FilesystemStorage;
 use Blush\Content\Type\ContentConfig;
+use Blush\Content\Type\Collection;
 use Blush\Content\Type\ContentType;
 use Blush\Content\Type\ContentTypes;
 use Blush\Content\Type\DataTypeWriter;
@@ -31,7 +33,6 @@ use Blush\Feed\FeedFormat;
 use Blush\Content\Type\DateArchives;
 use Blush\Content\Type\PeopleField;
 use Blush\Content\Type\Profiles;
-use Blush\Content\Type\Taxonomy;
 use Blush\Field\Field;
 use Blush\Field\FieldSet;
 use Blush\Http\Response;
@@ -43,25 +44,29 @@ use Blush\Support\Uuid;
  * the admin can list each type's entries and offer to create one. A type
  * is described by its name, its `labels` for people (D-278),
  * its `description` (`''` for none) and `icon` (`null` for its kind's),
- * its kind (`collection`, `taxonomy`, `pages`, or `authors`), whether it's
- * dated (its new entries get a publish date and a dated file name), and
- * whether its entries credit `authors` (D-329). A taxonomy adds the
- * `types` its terms group (empty for every type), which places it in the
- * admin's navigation, and whether it's `hierarchical`; the authors type
- * adds the `types` that credit authors. Each also has its `origin` (`built-in`,
+ * its kind (`collection`, `tree`, or `profiles`), whether it's dated (its
+ * new entries get a publish date and a dated file name), whether its
+ * entries credit `authors` (D-329), whether they're `terms` (a classify
+ * relation files entries under them, D-593), whether they nest by a
+ * `parent` (`hierarchical`), and their default `order`. A term type adds
+ * the `types` its relation files (empty for every type), which places it
+ * in the admin's navigation; the profiles type adds the `types` that
+ * credit people. Each also has its `origin` (`built-in`,
  * `extension`, `config`, or `data`), its `folder`, its URL `prefix` (or
  * `null` without URLs), and how many `fields` it defines (D-250).
- * Taxonomies and the authors type come last. Beside them, `authors`
+ * Term types and the profiles type come last. Beside them, `authors`
  * names the authors type, which accounts' authors belong to and the
  * admin lists with people rather than content, or `null` when the site
  * has none.
  *
  * `GET {path}/api/types/{name}` (`show()`) adds the type's own fields
  * (`Field::toArray()`), the field `sets` attached to it (`name`,
- * `label`, and how many `fields`, D-337), the `taxonomies` that group it, whether it's
+ * `label`, and how many `fields`, D-337), the `taxonomies` (term types)
+ * that file it, its `relations` (every relation definition from or to
+ * it, as `RelationsController` describes them, D-593), whether it's
  * `public`, has a `feed`, is in the `sitemap` and `llms.txt` (`llms`,
  * D-398), and is `editable` (types
- * in `user/data/types`, D-311, and collections and taxonomies from code,
+ * in `user/data/types`, D-311, and collections from code,
  * through a file there, D-349), whether it's `overridden` (a code type a
  * file changes) and the options that file sets (`overrides`), whether
  * its `fieldsEditable` (none is a field class of the code's own), its
@@ -95,7 +100,7 @@ final readonly class TypesController
 	{
 		$types = array_values($this->types->all());
 
-		usort($types, static fn (ContentType $a, ContentType $b): int => [$a->hasTerms(), $a->labels->plural] <=> [$b->hasTerms(), $b->labels->plural]);
+		usort($types, fn (ContentType $a, ContentType $b): int => [$this->types->isTermType($a->name), $a->labels->plural] <=> [$this->types->isTermType($b->name), $b->labels->plural]);
 
 		$types = array_map(fn (ContentType $type): array => $this->summary($this->types, $type), $types);
 
@@ -127,9 +132,10 @@ final readonly class TypesController
 	{
 		$name       = $type->name;
 		$taxonomies = array_values(array_map(
-			static fn (Taxonomy $taxonomy): string => $taxonomy->name,
-			array_filter($types->taxonomies(), static fn (Taxonomy $taxonomy): bool => $taxonomy->name !== $name && ($taxonomy->types === [] || in_array($name, $taxonomy->types, true)))
+			static fn (Relation $relation): string => $relation->name,
+			array_filter($types->classifications(), static fn (Relation $relation): bool => $relation->name !== $name && $relation->isFrom($name))
 		));
+		$relations  = array_filter($types->relations(), static fn (Relation $relation): bool => in_array($name, [...$relation->from, ...$relation->to], true) || ($relation->from === [] && ! $relation->isTo($name)));
 
 		$data     = $types->origin($name) === TypeOrigin::Data;
 		$editable = $types->isEditable($name) && $this->config->dataTypes;
@@ -152,6 +158,7 @@ final readonly class TypesController
 			'fieldsEditable' => $data || $this->writer->fieldsEditable($type),
 			'routes'       => $this->routes($types, $type),
 			'taxonomies'   => $taxonomies,
+			'relations'    => array_values(array_map(fn (Relation $relation): array => RelationsController::describe($types, $relation, $this->config->dataTypes), $relations)),
 			'fields'       => array_values(array_map(static fn (Field $field): array => array_diff_key($field->toArray(), ['class' => true]), $type->schema->fields)),
 			'dateArchives' => $type->dateArchives->value,
 			'filename'     => $type->filename?->pattern,
@@ -220,7 +227,7 @@ final readonly class TypesController
 		$defaults   = [...TypeUrls::DEFAULT_PATHS, ...$type->peoplePaths()];
 		$routes     = [];
 
-		foreach (TypeRouteKeys::keys($type, $home, $feeds, $profiles) as $key) {
+		foreach (TypeRouteKeys::keys($type, $home, $feeds, $profiles, $types->hasTermPages($type->name)) as $key) {
 			$params   = TypeRouteKeys::params($type, $key, $taxonomies);
 			$routes[] = [
 				'key'      => $key,
@@ -304,7 +311,10 @@ final readonly class TypesController
 			'kind'        => $type->kind()->value,
 			'dated'       => $type->dateArchives !== DateArchives::None,
 			'authors'     => $type->credits(),
-			...($type instanceof Taxonomy ? ['types' => $type->types, 'hierarchical' => $type->hierarchical] : []),
+			'terms'       => $types->classification($type->name) !== null,
+			'hierarchical' => $types->nestsByParent($type->name),
+			'order'       => $type instanceof Collection ? $type->order->value : null,
+			...($types->classification($type->name) !== null ? ['types' => $types->classification($type->name)->from] : []),
 			...($type instanceof Profiles ? ['types' => array_keys($types->crediting())] : []),
 			'origin'      => $types->origin($type->name)->value,
 			'folder'      => $type->folder,

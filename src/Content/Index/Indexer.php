@@ -17,8 +17,11 @@ use Closure;
 use Psr\Clock\ClockInterface;
 use Blush\Content\Events\ContentIndexed;
 use Blush\Content\Parser\InvalidDocument;
+use Blush\Content\Relation\LinkBuilder;
+use Blush\Content\Relation\Relations;
 use Blush\Content\Source\ContentSource;
 use Blush\Content\Source\UnreadableSource;
+use Blush\Content\Type\ContentTypes;
 use Blush\Event\Dispatcher;
 
 /**
@@ -29,6 +32,10 @@ use Blush\Event\Dispatcher;
  * parsed again. A full run parses every file, and happens by itself when
  * the index was built with different content types, timezone, or locale
  * (`IndexFingerprint`).
+ *
+ * Relations are resolved over the whole snapshot (D-590), since a link
+ * depends on other files: the graph is stored with it, and each record's
+ * terms are the ones relations give.
  *
  * The index is stored only when something changed, and `ContentIndexed`
  * is dispatched when it is.
@@ -41,7 +48,9 @@ final readonly class Indexer
 		private RecordBuilder $builder,
 		private IndexFingerprint $fingerprint,
 		private ClockInterface $clock,
-		private Dispatcher $events
+		private Dispatcher $events,
+		private Relations $relations,
+		private ContentTypes $types
 	) {}
 
 	/**
@@ -116,7 +125,9 @@ final readonly class Indexer
 		$write = $full || $touched || $added !== [] || $changed !== [] || $removed !== [] || ! $this->index->exists();
 
 		if ($write) {
-			$this->index->save(IndexSnapshot::build($records, $fingerprint, $this->clock->now()->getTimestamp()));
+			$snapshot = IndexSnapshot::build($records, $fingerprint, $this->clock->now()->getTimestamp());
+
+			$this->index->save($snapshot->withLinks(new LinkBuilder()->build($snapshot, $this->relations, $this->types)));
 		}
 
 		$report = new IndexReport(count($records), $added, $changed, $removed, $failures, $full, $write);

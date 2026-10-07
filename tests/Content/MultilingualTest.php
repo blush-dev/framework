@@ -93,10 +93,13 @@ final class MultilingualTest extends TestCase
 					'routing'       => ['prefix' => 'archives']
 				],
 				'category' => [
-					'path'         => 'topics',
-					'taxonomy'     => true,
-					'term_collect' => 'post'
+					'path'   => 'topics',
+					'order'  => 'position',
+					'people' => false
 				]
+			],
+			'relations' => [
+				'category' => ['kind' => 'classify', 'from' => ['post'], 'to' => ['category']]
 			],
 			'home' => 'post'
 		]);
@@ -735,7 +738,10 @@ final class MultilingualTest extends TestCase
 
 	public function testHierarchicalTermsTranslateTheirParents(): void
 	{
-		$this->contentConfig(['types' => ['topic' => ['path' => 'topics', 'taxonomy' => true, 'hierarchical' => true]]]);
+		$this->contentConfig([
+			'types'     => ['topic' => ['path' => 'topics', 'order' => 'position', 'hierarchical' => true]],
+			'relations' => ['topic' => ['kind' => 'classify', 'to' => ['topic']]]
+		]);
 		$this->entry('topics/web.md', 'title: Web');
 		$this->entry('topics/web.fr.md', "title: Toile\nslug: toile");
 		$this->entry('topics/css.md', "title: CSS\nparent: web");

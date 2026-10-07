@@ -16,7 +16,7 @@ namespace Blush\Tests\Fixtures\Admin\Recipes;
 use Override;
 use Blush\Content\Type\Collection;
 use Blush\Content\Type\ContentTypeSource;
-use Blush\Content\Type\Taxonomy;
+use Blush\Content\Type\TypeOrder;
 
 final class RecipeTypes implements ContentTypeSource
 {
@@ -24,6 +24,6 @@ final class RecipeTypes implements ContentTypeSource
 	public function types(): iterable
 	{
 		yield new Collection('recipe', folder: 'recipes');
-		yield new Taxonomy('cuisine', folder: 'recipes/cuisines', types: ['recipe']);
+		yield new Collection('cuisine', folder: 'recipes/cuisines', people: false, llms: false, order: TypeOrder::Position);
 	}
 }

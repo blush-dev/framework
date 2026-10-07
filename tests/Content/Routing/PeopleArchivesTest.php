@@ -73,12 +73,13 @@ final class PeopleArchivesTest extends TestCase
 					...$post
 				],
 				'category' => [
-					'path'         => 'topics',
-					'taxonomy'     => true,
-					'term_collect' => 'post'
+					'path'   => 'topics',
+					'order'  => 'position',
+					'people' => false
 				],
 				...($profile === [] ? [] : ['profile' => ['kind' => 'profiles', 'path' => 'profiles', ...$profile]])
 			],
+			'relations' => ['category' => ['kind' => 'classify', 'from' => ['post'], 'to' => ['category'], 'create' => true]],
 			'home' => 'post'
 		]);
 		$this->entry('profiles/sam.md', 'title: Sam', 'Credited by nothing yet.');

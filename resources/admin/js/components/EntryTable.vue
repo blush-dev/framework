@@ -12,7 +12,7 @@ const collapsed = ref(new Set<string>());
  * indented 18px a level under its parent with a disclosure triangle when
  * the list is a tree (D-262), or else after the titles of the entries
  * above it, with its address on the site beneath, the status, the authors (or, for a
- * taxonomy's terms, how many published entries use each), a date, and a
+ * terms, how many published entries use each), a date, and a
  * menu of what to do with each (D-254): **Edit**, **View** and **Copy
  * link** once it's live, **Duplicate** (not for terms, D-275) and **Move
  * to trash** when the account may.

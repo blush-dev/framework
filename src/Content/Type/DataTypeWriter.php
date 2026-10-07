@@ -16,6 +16,7 @@ namespace Blush\Content\Type;
 use Closure;
 use Throwable;
 use Blush\Container\Attributes\Defer;
+use Blush\Content\Relation\Relation;
 use Blush\Content\Writer\DataFileKeys;
 use Blush\Core\Paths;
 use Blush\Data\DataException;
@@ -28,7 +29,7 @@ use Blush\Support\Filesystem;
 /**
  * Writes the types the site defines in data, `user/data/types/{name}`
  * (D-042, D-311), for the admin: creates one, changes the settings the
- * admin edits, and deletes one. It also changes a collection or taxonomy
+ * admin edits, and deletes one. It also changes a collection
  * or tree in a folder (D-386) defined in code (D-349), in a file of the same name that holds only
  * the options that differ from the code's, and resets one by deleting
  * that file.
@@ -37,7 +38,7 @@ use Blush\Support\Filesystem;
  * `icon`, `prefix` for the URL prefix, `paths` for route keys' paths
  * (`null` or `''` for a key's default, D-350), `public`, `sitemap`,
  * `llms` (D-398),
- * `feed`, `people` (D-351), `dateArchives`, `filename` (D-511), `hierarchical`, `types`, and
+ * `feed`, `people` (D-351), `dateArchives`, `filename` (D-511), `hierarchical`, `order` (D-593), and
  * `fields`); `null` removes one. Two shortcuts change the `authors`
  * people field alone: `authors` (whether the type has it) and
  * `authorsWord` (its archive word, `false` for none). They're applied to the file's own
@@ -54,7 +55,7 @@ use Blush\Support\Filesystem;
  *
  * Each change is checked against every other type before it's kept: the
  * file is written, all the types are loaded again (`ContentTypeLoader`),
- * and when they don't fit together (two types in one folder, a taxonomy
+ * and when they don't fit together (two types in one folder, a relation
  * listing a type that's gone), the file is put back as it was. Writes
  * take a lock, so two can't interleave.
  */
@@ -76,7 +77,7 @@ final readonly class DataTypeWriter
 		'dateArchives' => ['date_archives', 'time_archives'],
 		'filename'     => [],
 		'hierarchical' => [],
-		'types'        => ['term_collect'],
+		'order'        => [],
 		'fields'       => []
 	];
 
@@ -119,7 +120,7 @@ final readonly class DataTypeWriter
 		$this->assertEnabled();
 
 		if ($kind === TypeKind::Profiles) {
-			throw new InvalidContentType('The site has one profiles type; create a collection, a taxonomy, or a tree.');
+			throw new InvalidContentType('The site has one profiles type; create a collection or a tree.');
 		}
 
 		if ($this->path($name) !== null) {
@@ -160,6 +161,10 @@ final readonly class DataTypeWriter
 			$data = $path === null ? [] : $this->data->loadFile($path);
 		} catch (DataException $error) {
 			throw new InvalidContentType(sprintf('%s Fix it by hand first.', $error->getMessage()), previous: $error);
+		}
+
+		if (LegacyTaxonomy::is($data)) {
+			throw new InvalidContentType(sprintf('"%s" is still written as a taxonomy; migrate it first, on Site Health or with content:taxonomies --write.', $name));
 		}
 
 		return $this->write($name, $path ?? "{$this->directory()}/{$name}.json", $data, $changes, code: $code);
@@ -258,14 +263,16 @@ final readonly class DataTypeWriter
 
 		$path = $this->path($name) ?? throw new InvalidContentType(sprintf('"%s" isn\'t defined in user/data/types, so it can\'t be deleted here.', $name));
 
-		// The taxonomies that group it say why it can't go yet.
-		$grouping = array_filter(($this->loader)()->load()->taxonomies(), static fn (Taxonomy $taxonomy): bool => in_array($name, $taxonomy->types, true));
+		// The relations that name it say why it can't go yet (D-593).
+		$naming = array_filter(($this->loader)()->load()->relations(), static fn (Relation $relation): bool => in_array($name, [...$relation->from, ...$relation->to], true));
 
-		if ($grouping !== []) {
+		if ($naming !== []) {
 			throw new InvalidContentType(sprintf(
-				'%s %s it; take it out of their groups first.',
-				implode(' and ', array_map(static fn (Taxonomy $taxonomy): string => $taxonomy->labels->plural, $grouping)),
-				count($grouping) === 1 ? 'groups' : 'group'
+				'The %s %s %s; remove %s first.',
+				implode(' and ', array_map(static fn (Relation $relation): string => "\"{$relation->name}\"", $naming)),
+				count($naming) === 1 ? 'relation names' : 'relations name',
+				$name,
+				count($naming) === 1 ? 'it' : 'them'
 			));
 		}
 
@@ -440,6 +447,7 @@ final readonly class DataTypeWriter
 			'dateArchives' => $type->dateArchives->value,
 			'filename'     => $type->naming()->pattern,
 			'hierarchical' => false,
+			'order'        => TypeOrder::Published->value,
 			default        => []
 		};
 	}
@@ -630,7 +638,7 @@ final readonly class DataTypeWriter
 	 */
 	private static function people(array $data): array
 	{
-		$kind = $data['kind'] ?? (($data['taxonomy'] ?? false) === true ? TypeKind::Taxonomy->value : TypeKind::Collection->value);
+		$kind = $data['kind'] ?? TypeKind::Collection->value;
 
 		try {
 			return PeopleField::listFrom($data['people'] ?? $data['authors'] ?? $kind === TypeKind::Collection->value, 'The type');

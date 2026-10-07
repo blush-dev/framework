@@ -53,9 +53,9 @@ interface NavLink {
 	// A content type's link, shown with the type's own icon.
 	type?: ContentTypeSummary;
 	current?: boolean;
-	// A second line, such as the types a taxonomy groups.
+	// A second line, such as the types a term type files.
 	detail?: string;
-	// Links nested under this one, such as its type's own taxonomies.
+	// Links nested under this one, such as its type's own terms.
 	links?: NavLink[];
 	// How many things its list holds (D-371), when known.
 	count?: number;
@@ -98,8 +98,8 @@ const screen = (name: string, label: string, icon: IconName): NavLink => ({ key:
  * Each section's links, in groups (D-241, D-244). **Home**: the admin's
  * own screens (the Dashboard, Site Health, and Tools); its
  * shortcuts are drawn after them (`shortcuts`). **Content**: each content type with the
- * taxonomies that group only it nested under it, the taxonomies shared
- * by several types (or every type), and Media. **Users** (D-326, D-354):
+ * term types that file only it nested under it (D-593), the term types
+ * shared by several types (or every type), and Media. **Users** (D-326, D-354):
  * Your Account, Accounts, Profiles, and Roles (D-353, D-358).
  * **Config** (D-325): Structure (content types), Settings (its four
  * screens), and Extensions (Themes, Plugins, and Icon Packs; D-327, D-378,
@@ -147,19 +147,19 @@ const sections = computed<Record<Area, NavGroup[]>>(() => {
 	// By the names the menu shows, which a site may shorten (D-278); only
 	// the types the account edits entries of (D-359).
 	const sorted     = [...types.value].filter((type) => canType(type.name, 'edit')).sort((a, b) => a.labels.menu.localeCompare(b.labels.menu));
-	const entryTypes = sorted.filter((type) => type.kind !== 'taxonomy' && type.kind !== 'profiles');
-	const taxonomies = sorted.filter((type) => type.kind === 'taxonomy');
+	const entryTypes = sorted.filter((type) => !type.terms && type.kind !== 'profiles');
+	const termTypes = sorted.filter((type) => type.terms);
 	const labelOf    = (name: string): string => types.value.find((type) => type.name === name)?.labels.menu ?? name;
 
-	// A taxonomy grouping one listed type sits under it; the rest are shared.
-	const owner  = (taxonomy: ContentTypeSummary): string | undefined => taxonomy.types?.length === 1 && entryTypes.some((type) => type.name === taxonomy.types?.[0]) ? taxonomy.types[0] : undefined;
-	const shared = taxonomies.filter((taxonomy) => owner(taxonomy) === undefined).map((taxonomy) => {
-		const grouped = (taxonomy.types ?? []).map(labelOf);
+	// Terms filing one listed type sit under it; the rest are shared.
+	const owner  = (termType: ContentTypeSummary): string | undefined => termType.types?.length === 1 && entryTypes.some((type) => type.name === termType.types?.[0]) ? termType.types[0] : undefined;
+	const shared = termTypes.filter((termType) => owner(termType) === undefined).map((termType) => {
+		const grouped = (termType.types ?? []).map(labelOf);
 
-		return link(taxonomy, grouped.length === 0 ? 'Every type' : (grouped.length <= 2 ? grouped.join(', ') : `${grouped.length} types`));
+		return link(termType, grouped.length === 0 ? 'Every type' : (grouped.length <= 2 ? grouped.join(', ') : `${grouped.length} types`));
 	});
 
-	const content = entryTypes.map((type) => ({ ...link(type), links: taxonomies.filter((taxonomy) => owner(taxonomy) === type.name).map((taxonomy) => link(taxonomy)) }));
+	const content = entryTypes.map((type) => ({ ...link(type), links: termTypes.filter((termType) => owner(termType) === type.name).map((termType) => link(termType)) }));
 	const library = usesMedia() ? [counted(screen('media', 'Media', 'image'), navCounts.value?.media)] : [];
 
 	const structure = can('site.settings') ? [counted(screen('types', 'Content Types', 'layers'), navCounts.value?.contentTypes), counted(screen('fields', 'Fields', 'group'), navCounts.value?.fieldSets)] : [];
@@ -194,7 +194,7 @@ const sections = computed<Record<Area, NavGroup[]>>(() => {
 
 	return {
 		home: groups([{ key: 'home', links: home }]),
-		content: groups([{ key: 'types', links: content }, { key: 'shared', heading: 'Shared Taxonomies', links: shared }, { key: 'library', heading: 'Library', links: library }]),
+		content: groups([{ key: 'types', links: content }, { key: 'shared', heading: 'Shared Terms', links: shared }, { key: 'library', heading: 'Library', links: library }]),
 		people: groups([{ key: 'people', links: people }]),
 		config: groups([{ key: 'structure', heading: 'Structure', links: structure }, { key: 'settings', heading: 'Settings', links: settings }, { key: 'extensions', heading: 'Extensions', links: extensions }])
 	};
@@ -1014,7 +1014,7 @@ async function leave(): Promise<void> {
 	width: 100%;
 }
 
-/* A shared taxonomy names what it groups on a second line. */
+/* Shared terms name what they file on a second line. */
 
 .panel-nav__link--two {
 	padding-block: 7px;
@@ -1029,7 +1029,7 @@ async function leave(): Promise<void> {
 	text-overflow: ellipsis;
 }
 
-/* A type's own taxonomies sit under it, one level only. */
+/* A type's own terms sit under it, one level only. */
 
 .panel-nav__nav .panel-nav__nest {
 	position: relative;

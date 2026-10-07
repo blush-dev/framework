@@ -17082,3 +17082,463 @@ decision, add a new entry that supersedes it and mark the old one
   entry has a file) is simpler for themes and for a database later
   (D-486). The author chose to include profiles and to skip dangling
   slugs silently.
+
+### D-585: One relationship model for every link between entries (planned)
+- **Date:** 2026-10-07
+- **Status:** Planned; nothing built. Refines D-242, whose stages it
+  replaces with the order below.
+- **Decision:** Every relationship between entries is a **relation**,
+  one model with one API for core, plugins, and sites. Today's three
+  ways (a taxonomy's `types`, declared on the target; people fields,
+  on the source; `reference` fields with `to`, forward only), each
+  with its own index keys, read API, and admin control, become presets
+  of it.
+  - **A relation** is declared once, on the side that stores it: its
+    name (front matter key, with aliases), the types it's from, the
+    types it's to (a list, for more than one), one or many, ordered,
+    `min` and `max` (`required` is a minimum of one to publish; drafts
+    may save without), whether targets are created as they're typed,
+    symmetric, the reverse side (its label, and an archive with its
+    word, or none), data on the link (later), and a control from the
+    ones its shape allows.
+  - **Presets:** a taxonomy's `types` is a classification relation on
+    each type (created as typed, an archive with feeds, no dates);
+    `people` is credit relations (ordered, an archive per field); a
+    `reference` field is a plain relation. Existing content and config
+    keep working (D-078).
+  - **Its own concept, not a field type**, for now (the author): it
+    can be built while the Fields API is paused (D-348), may be folded
+    into fields later, and serves as a proving ground for how fields
+    are built out. Data on a link, the part that needs fields, waits.
+  - **Every relationship between entries is in the model** (the
+    author), the structural ones included: a term's `parent`, a tree's
+    folders, `translation_of`, and links and mentions found in the
+    body, read through the same API with their storage unchanged.
+  - **Files keep slugs, and ids are filed too** (the author): a post
+    written and uploaded outside the editor names its targets by slug
+    (a path in a tree), and ids are recorded as well, so renames and
+    moves don't break links. How the ids are filed is open.
+  - **Modeled for a database first** (the author, after D-486): a
+    relation's link is a record (source id, relation, target id,
+    position, later the link's data), and front matter is how the
+    filesystem driver writes it. The id is the link's identity in the
+    model; the slug is the file's readable form. Nothing about a
+    relation, its definition, or its index may rely on files (a path,
+    a folder, a file name, or file order); the same holds for anything
+    else saved to a file.
+  - **The reverse side is read-only**, edited from the side that
+    stores it (D-242's leaning, agreed).
+  - **One index** of relations keyed by `{type}.{relation}`, forward
+    and reverse, with position (and later the link's data), replacing
+    the taxonomy keys and people fields' doubled `profile.{field}`
+    keys; the shape of a relations table in a database later (D-486).
+  - **One read and query API:** something like `related()`, `links()`
+    (with the link's data), `referencedBy()`, and `whereRelated()`,
+    with `terms()`, `people()`, `whereTerm()`, and `whereAuthor()` kept
+    over it. Extensions add relations through a tagged source, as
+    `ContentTypeSource` adds types.
+  - **The admin:** the control follows the shape (a tree of checkboxes,
+    tokens that create, an ordered people list, a select, search with
+    cards, rows for links with data), named by the server. A type's
+    screen gets one Relationships section in place of a taxonomy's
+    types and the People panel: outgoing relations edited, incoming
+    ones listed with a link to their type, and adding one as a short
+    wizard (target, purpose, shape, reverse side).
+  - **In stages** (the author agreed): (1) relations compiled from
+    today's three sources, the one index, and the read and query API,
+    with no file changes; (2) `min`, `max`, and required, creating as
+    typed, the reverse archive for any relation, and rewriting
+    referrers on a rename or move; (3) the admin's controls and the
+    Relationships section; (4) data on links and targets of more than
+    one type.
+- **Open:** see `open-questions.md` → Relationships.
+- **Why:** the author wants to get content modeling right: one model
+  with a real API for developers, which also decides how the content
+  type screens ship, instead of taxonomies and profiles each handled
+  their own way.
+
+### D-586: What the relation model covers, and settings it needs (planned)
+- **Date:** 2026-10-07
+- **Status:** Planned; nothing built. Refines D-585 from the author's
+  answers to its cases (`open-questions.md` → Relationships).
+  - **Pickers offer only live targets.** A relation's control lists
+    only entries that are on the site. "Live" becomes a status API of
+    its own: which statuses count as on the site, apart from the single
+    `published` status, so a later status (or a plugin's) can be live
+    too. Today `Status` is a fixed enum where only `Published` is ever
+    on the site.
+  - **Sources and targets are content:** entries, and media (or
+    anything else that's individual content). Settings, theme settings,
+    menus, data files, and directives aren't relation sources. The
+    account-to-profile link isn't a relation: it isn't content to
+    content.
+  - **Media is in the model**, as a target and a source. The author
+    has suggested media be a content type; that reopens D-238 (and
+    `open-questions.md`'s narrowing of it) and is its own decision.
+  - **Setup decides, per relation:** whether an entry under a child
+    term shows on its ancestors' archives and queries, and (pending
+    cases) how translations treat relations. Each is a relation
+    setting with a default, not a global rule.
+  - **Defaults are settable** per relation (a default term, the
+    current account's profile as a default credit).
+- **Why:** the author's answers, 2026-10-07.
+
+### D-587: Relations in translations, integrity, and defaults (planned)
+- **Date:** 2026-10-07
+- **Status:** Planned; nothing built. Settles D-586's pending
+  translation cases and more of D-585's open items.
+  - **Translations:** a relation always resolves to the target's
+    translation in the entry's language, else the original (as
+    `term()` does, D-584). Whether a translation has its own relations
+    is a setting on the relation; by default a translation uses its own
+    value when it has one, else the original's (so its own replaces
+    the original's). Credit relations may default to adding to the
+    original's instead.
+  - **No entry links to itself**, in any relation.
+  - **Cycles are refused on hierarchical relations** (as a term's
+    `parent` already is), and allowed elsewhere (two related posts
+    naming each other).
+  - **A relation can limit its reverse side**: a target belongs to at
+    most a number of sources (an episode in one season), checked
+    through the index.
+  - **Filtered targets** (only products in Shoes) wait; too far into
+    the weeds for now.
+  - **Defaults are written**, when an entry is created, never applied
+    when a value is read, so the record holds what's true (D-585's
+    database rule). A file uploaded without a value gets none until
+    something writes it (lint and a fixing tool, as `content:terms`).
+- **Why:** the author's answers, 2026-10-07.
+
+### D-588: Published is live for now; caching needs nothing yet; media waits for the API (planned)
+- **Date:** 2026-10-07
+- **Status:** Planned; nothing built. Settles more of D-585's open
+  items.
+  - **Live is `published`** until the status API (D-586) exists:
+    relation pickers offer published targets, and the site shows
+    published ones.
+  - **Caching needs nothing from relations yet.** Every content change
+    moves the content version, which every cached page and fragment
+    is keyed by, so a page showing a related entry's title is never
+    stale. If invalidation becomes finer (per page or per entry), the
+    relations index (forward and reverse) is the dependency graph it
+    reads; the author left caching to the build.
+  - **Media becomes a content type, if at all, once the full relation
+    API works** (reopening D-238 then); until then it's in the model as
+    its own kind of content.
+  - **The rest waits** (data on links, relationship objects, output,
+    bulk editing and merging, changing a relation, duplicating,
+    reverse-archive templates, conditional requirements).
+- **Why:** the author's answers, 2026-10-07.
+
+### D-589: Relations are filed in both forms, with ids under `refs` (planned)
+- **Date:** 2026-10-07
+- **Status:** Planned; nothing built. Settles D-585's open "how ids
+  are filed".
+- **Decision:** In the filesystem driver, a relation is written in two
+  forms, and **Blush always writes both** whenever it writes a file
+  (the admin's saves, fixing tools, importers):
+
+  ```yaml
+  tags: [cooking, quick-meals]
+  authors: [justintadlock]
+  refs:
+    tags:
+      cooking: 0199a1b4-…
+      quick-meals: 0199a1c8-…
+    authors:
+      justintadlock: 01998f02-…
+  ```
+
+  - **The written form** is the relation's own key: what's linked and
+    in what order, as a person writes it. Blush writes slugs (a tree's
+    paths); reading, it also takes an id as a value, by its shape, so
+    an import or script may write ids, which Blush turns into slugs
+    the next time it writes the file.
+  - **The id form** is `refs`, a reserved entry field (like `id`): a
+    map per relation of each written value to its target's id.
+  - **When they disagree:** a written value with no id is looked up
+    and its id filled in; an id whose target was renamed or moved
+    wins, and the written value is rewritten; a `refs` entry for a
+    value no longer written is dropped. A file written by hand without
+    `refs` works, and lint and a fixing tool (like `content:ids`) add
+    them.
+  - **A database** stores only the record (source id, relation, target
+    id, position, D-585); the written form is made from the target when
+    a file is written.
+  - **D-585's first stage** reads both forms; writing `refs` comes with
+    the admin's saves and the fixing tool.
+- **Why:** the author: slugs stay so a post can be written and uploaded
+  outside the editor, ids are filed so links survive renames, and
+  Blush writes both whenever it saves to a file. The author chose the
+  shape and the name `refs`.
+
+### D-590: The relation API, built beside the content layer (D-585's first stage, part 1)
+- **Date:** 2026-10-07
+- **Status:** Built, not wired: nothing in the index, repository,
+  templates, queries, or admin uses it yet. That's part 2.
+  `Parent` is no longer structural: it's filed as a ref since D-591.
+- **Decision:** At the author's call ("before changing any implementing
+  code, just build out the relationship API"), the API is new classes in
+  `Blush\Content\Relation`, with no existing code changed.
+  - **Definitions:** `Relation` (name, `RelationKind`, `from`, `to`,
+    field and aliases, `multiple`, `ordered`, `min`/`max` with
+    `required` as a min of 1, `create`, `symmetric`, `Inverse`, a
+    `TranslationRule`, `defaults`, `label`; `fromArray()`/`toArray()`).
+    Structural kinds (`Parent`, `Translation`) point from one type to
+    itself and have one target. `id` and `refs` are reserved keys.
+    `Inverse` has `label`, `archive` (`true` on the target's page, a
+    word for per-type archives, or `false`), `types`, and `max`.
+  - **`Relations`** checks them against the types: types that exist,
+    and no source type with two relations of one name or reading one
+    key. `RelationSource` (tag `content.relations`) adds extension
+    relations.
+  - **`RelationCompiler`** makes today's as presets: a taxonomy is
+    `Classify` from every type (created as typed, its page listing its
+    `types`), a people field is `Credit` (ordered, translations add), a
+    `reference` field with a known `to` is `Reference`, a tree and a
+    hierarchical taxonomy have `parent`, every type `translation_of`.
+  - **Records:** `Link` (source id, type, relation, target id, target
+    type, position). Targets are originals.
+  - **Both forms** (D-589): `Refs` reads `refs` leniently;
+    `LinkResolver` applies the rules (an id written as a value, an id in
+    `refs` winning over a renamed slug, a lookup by slug or path filling
+    the id, unknown values kept in the written form and reported, stale
+    refs dropped, no self links, a target named twice linked once) and
+    returns a `Resolution` with both forms and whether the file differs.
+    `TargetLookup` is what a store answers; `SnapshotTargets` answers
+    from the content index.
+  - **The index:** `LinkBuilder` builds every link from an
+    `IndexSnapshot` into a `RelationGraph` (forward by source and key,
+    reverse by target and key; storable as arrays), with a `LinkReport`
+    of problems and the files whose forms Blush would write
+    differently. `RelationChecker` checks the whole graph: `min` for
+    live entries, `max`, cycles in hierarchical relations, and the
+    inverse's `max`.
+  - **Reading:** `EntryRelations::related()`, `links()`, and
+    `referencedBy()` (a key such as `movie.actors` or a name), live
+    entries only, in a language (the entry's by default), with symmetric
+    relations from both ends and each relation's translation rule
+    applied both ways: an original's link shows as its translation only
+    when the rule keeps it, and a translation's own link only in its
+    language. The reverse side is newest published first, then by
+    title, until it has an order of its own.
+- **Next (part 2):** wire it: compile relations with the types (and the
+  compiled cache), build and store the graph with the index, register
+  the services, and put the current APIs (`terms()`, `people()`,
+  `whereTerm()`, `whereAuthor()`, `referencing()`) over it, with
+  `content:lint` reporting its problems and `refs` a reserved entry
+  field. Then stage 2 (D-585).
+- **Checked:** `composer check` (`RelationTest`: definitions, round
+  trips, refusals, translation rules, refs, fitting the types, the
+  graph, and the checker; `SiteRelationsTest`: a scratch site with a
+  hierarchical taxonomy, profiles, a tree, movies and people, French
+  translations, and a symmetric relation from a source).
+- **Why:** the author asked to plan and start stage 1 with the API
+  first.
+
+### D-591: The taxonomy kind is retired for relations; a parent is filed as a ref (planned)
+- **Date:** 2026-10-07
+- **Status:** Built in D-594, which also settles its open items (any
+  collection that turns on `hierarchical` nests; templates fall back to
+  `collection-terms` and `single-terms`). Supersedes D-242's and
+  D-585's "a taxonomy becomes a preset" and D-585's parent left as
+  stored today.
+- **Decision:**
+  - **The `Taxonomy` kind is retired** once relations are wired in
+    (after D-590's part 2), as its own step. A type of terms is a plain
+    type with options (no dates, ordered by `position` then title, an
+    inverse archive), and what makes it terms is a `Classify` relation
+    on the types it files, declared on that side. **No shorthand**:
+    `kind: taxonomy`, 1.x's `taxonomy: true`, and `term_collect` stop
+    being read. By D-478's exception to D-078, a migration tool in the
+    CLI and the admin rewrites data types (`user/data/types`) into a
+    plain type and its relations; a taxonomy defined in PHP (config or
+    an extension) can't be rewritten by a tool, so it fails to load
+    with a message saying what to change.
+  - **A parent is filed as a ref** (D-589's two forms), not stored by
+    rules of its own: written as `parent` with its id under
+    `refs.parent`. **A tree's folder is its written form** (the
+    author chose (b)): pages keep nesting by folder, and `refs.parent`
+    files the parent's id. In a tree the folder always wins: a parent is
+    renamed or moved only with the pages under it, so an id naming
+    another entry is one a page moved by hand left behind, and it's
+    replaced. Elsewhere the id wins over a renamed slug, as for any
+    relation.
+  - **Built now, in the relation API (D-590):** `RelationKind::Parent`
+    is no longer structural (only `Translation` is), with
+    `isWithinType()` for both pointing from one type to itself, one
+    target each; `Relations` reads `parent` as a front matter key;
+    `LinkBuilder` takes the content types and resolves a tree's parent
+    from its folder (folder winning) and any other parent from `parent`
+    and `refs`.
+- **Open:** which types may have a parent relation once taxonomies are
+  plain types (any type, which would reverse D-257's "collections don't
+  nest", or only types that turn one on); the template and route names
+  terms keep (`taxonomy-*`, `term-*`) when the kind is gone.
+- **Checked:** `composer check` (`SiteRelationsTest`: a term's parent
+  id winning over a renamed slug, a tree page's id filled in from its
+  folder, the folder winning over a stale id).
+- **Why:** the author: a taxonomy was an early form of a relationship
+  defined the wrong way; no shorthand is needed, a migration tool is
+  fine, and a parent should be a ref.
+
+### D-592: Relations wired into the index (D-585's first stage, part 2)
+- **Date:** 2026-10-07
+- **Status:** Built.
+- **Decision:** Wires D-590's API in, keeping the taxonomy kind (D-591
+  retires it next).
+  - **Services:** `Relations` is a singleton compiled from the types and
+    every service tagged `RelationSource::TAG` (a tagged service that
+    isn't one is an `InvalidRelation`). `EntryRelations` is a singleton
+    reading the current index (its constructor is now `Relations`,
+    `ContentIndex`, `ContentRepository`).
+  - **The index** resolves relations over the whole snapshot after
+    building it (`Indexer`, `IndexSnapshot::withLinks()`), since a link
+    depends on other files, and stores the graph (`links`;
+    `IndexSnapshot::graph()`; format version 9). The relations are part
+    of the index fingerprint, so a change to them rebuilds it.
+  - **Today's APIs over it:** for each entry with an id, the record's
+    `terms` are the ones relations give (`LinkReport::$terms`): each
+    classify relation's written form under its name, each credit
+    relation's under `{profiles}.{field}` and together under
+    `{profiles}`. So `terms()`, `whereTerm()`, `whereAuthor()`,
+    `termCounts()`, and `referencing()` follow an id in `refs` through a
+    rename, read an id written as a value as its slug, and still keep a
+    slug with no file (D-584). An entry without an id keeps the terms
+    its front matter gives. Parents and children still come from
+    `parent` and folders as written (a term's renamed parent followed
+    by id is a later step).
+  - **`refs` is reserved** like `id`: no field may take it, closed types
+    accept it, the record keeps it in `extra`, and the editor JSON Schema
+    describes it.
+  - **`content:lint`** reports what relations find that nothing else
+    does: a link to the entry itself, a value naming entries of two
+    types, an id of the wrong type, a plain reference to nothing, too
+    many targets, and the inverse's `max`. Missing terms and profiles,
+    parents, and required fields keep their own checks.
+  - **`docs/`:** `refs` in the front matter table and "Links between
+    entries" in `content.md`.
+  - Blush doesn't write `refs` yet: the admin's saves and a fixing tool
+    are D-585's second stage.
+- **Checked:** `composer check` (`SiteRelationsTest`: the stored graph,
+  `terms()`, `whereTerm()`, and `termCounts()` following ids, lint, and
+  `refs` reserved; `LinterTest`, `JsonSchemasTest` with the schemas
+  regenerated).
+- **Why:** the author asked for part 2.
+
+### D-593: Terms are collections; relations live in their own files; the admin's Relationships section now
+- **Date:** 2026-10-07
+- **Status:** Built in D-594.
+- **Decision:** The author's answers on retiring the taxonomy kind:
+  - **Terms are collections.** Categories become a collection that
+    nests (not a tree: a tree nests by folder, which would move files
+    and make slugs unique only per folder, while entries name terms by
+    slug); tags a plain collection. Term-like behavior is options any
+    collection can use: no dates, ordered by `position` then title, and
+    a page that lists what references it (the relation's inverse
+    archive).
+  - **Any collection may nest, opt-in** (`hierarchical`): a `parent`
+    relation, filed as a ref (D-591). Supersedes D-257's "collections
+    don't nest". Trees keep nesting by folder.
+  - **Relation definitions are their own records**, outside types:
+    `user/data/relations/*.{json,yaml}` (edited in the admin),
+    `config/content.php`'s `relations`, and `RelationSource` for
+    extensions; each names its `from` and `to` types. Links are still
+    stored on the source entry (D-585). The migration tool turns each
+    taxonomy's `types` into one relation file.
+  - **The admin's Relationships section is built now** (D-585's third
+    stage, pulled forward): a type's screen lists and edits the
+    relations from and to it, replacing the taxonomy controls; the rail,
+    list filters, picker, and new-type wizard read relations.
+- **Why:** the author's answers, 2026-10-07.
+
+### D-594: The taxonomy kind is retired (D-591, D-593 built)
+- **Date:** 2026-10-07
+- **Status:** Built.
+- **Decision:** Builds D-591 and D-593.
+  - **Types:** `TypeKind` is `collection`, `tree`, `profiles`; the
+    `Taxonomy` class is gone. `Collection` gains `hierarchical` (a
+    `parent` relation, filed as a ref) and `order` (`TypeOrder`:
+    `published`, `position`); a positioned or hierarchical collection has
+    `position`. `ContentType::termField()`/`hasTerms()` are gone;
+    `ContentTypes` answers from relations: `relations()`,
+    `classifications()`, `classification($type)`, `classifying()`,
+    `termTypes()`, `isTermType()`, `hasTermPages()`, `termArguments()`,
+    `nestsByParent()`.
+  - **Relation definitions** (`RelationLoader`, `RelationOrigin`):
+    extensions (`RelationSource::TAG`), `ContentConfig::$relations`
+    (`relations` in `fromArray()`), then `user/data/relations/*`, later
+    replacing earlier by name; loaded and compiled with the types (their
+    cache, the index fingerprint). A **classify relation is named after
+    the one type it files under** (`to: [name]`), so term keys stay type
+    names; its inverse archive defaults to on, and its inverse `listing`
+    replaces `termListing`. Each defined relation adds its field to its
+    `from` types' schemas only (a taxonomy's was on every type).
+  - **The site:** term pages, term feeds, term URLs (nested for a
+    hierarchical collection), the sitemap, site URLs, menus' `term:`
+    links, feed categories, `Template::terms()`, lint, and the admin all
+    ask relations. Template fallbacks are `collection-terms` and
+    `single-terms` (D-591's open template names), tried before
+    `-{kind}`; `term-*` names stay.
+  - **No shorthand, a migration** (D-591): `kind: taxonomy` and 1.x's
+    `taxonomy: true`, `term_collect`, `term_collection`, `field_aliases`
+    are refused, saying what to change. A data type in that form is read
+    as a collection and its relation (`LegacyTaxonomy`) and listed in
+    `ContentTypes::$legacy` until `TaxonomyMigration` rewrites it:
+    `content:taxonomies [--write]`, or Site Health's **Taxonomies** check
+    and `POST health/taxonomies` (needs `site.health` and
+    `site.settings`). The type file is edited in place (`DataFileKeys`),
+    the relation written to `user/data/relations/{name}.json`, and both
+    put back when the site doesn't load. The admin won't edit a type
+    still in that form. PHP-defined taxonomies fail to load.
+  - **Which types nest by `parent`** (D-591's open question): any
+    collection that turns on `hierarchical`.
+  - **The admin:** `GET relations`; `POST relations`, `PATCH`/`DELETE
+    relations/{name}` (`TypeEditController`, `DataRelationWriter`, a
+    whole definition, checked by loading the site, refused for a name
+    code defines); types carry `terms`, `hierarchical`, `order`, and
+    `relations` (each with its `definition`, `origin`, `editable`). A
+    **Relationships** panel on every type's screen (`TypeRelations`,
+    `RelationForm`: files entries under terms, or links to other
+    entries); the wizard's **Terms** choice (a collection plus its
+    relation); Collections/Terms/Trees/Profiles tabs; **Shared Terms** in
+    the rail; Content types/Terms capability sections. Departures in
+    `admin-design/departures.md`.
+  - The jtcom trial's `config/content.php` and Second Proof's views are
+    updated by hand (PHP config isn't migrated by a tool).
+  - **Two rules the docs pass found:** a classify relation keeps its term
+    pages when `inverse` is given without `archive`; and a defined
+    relation's `required` (a `min` of 1) makes its field required, so the
+    editor won't publish without one. Only `required` is enforced on
+    publish (`min` above 1 and `max` are lint's, D-585's stage 2); a
+    relation's `symmetric` and `translations` act only through
+    `EntryRelations`, which has no template helper yet, so `docs/` leaves
+    them out.
+- **Checked:** `composer check` (new `AdminRelationsTest`; the type,
+  loader, relation, routing, feed, lint, view, and admin tests moved to
+  collections and relations); `npm run admin:build` (admin.js 815 KB, up
+  12 KB; CSS unchanged); the jtcom trial: `content:index`, `content:lint`
+  (the same four errors as before), term pages, archives, sitemap,
+  `llms.txt`, and the admin in headless Chrome with a throwaway owner
+  (removed after, with its session): the types list, Topics' and Posts'
+  Relationships, the Add Relationship modal both ways, adding and
+  removing a reference through the UI, the Terms wizard, the rail.
+- **Why:** the author asked to retire the taxonomy kind (D-591, D-593).
+
+### D-595: `refs` is keyed by the relation's name; `field` is the file's spelling
+- **Date:** 2026-10-07
+- **Status:** Built (as D-589 and D-590 had it); stated here and in
+  `docs/content.md`.
+- **Decision:** A relation's ids in a file are under `refs.{name}`, never
+  its front matter key: a relation named `author` written under
+  `authors` (or read from an alias) keeps its ids in `refs.author`. The
+  name is the relation's identity (the `refs` key, the index key
+  `{type}.{name}`, link records, `whereTerm()`, the API, its data file),
+  so renaming a field or reading an alias moves nothing. `field` and
+  `aliases` are how the relation is spelled where front matter is read as
+  written: the key, the schema field that reads it, `$entry->field()`,
+  the editor's value, and lint's messages. Names stay plain (not
+  namespaced); what happens when two extensions pick one name is in
+  `open-questions.md`.
+- **Why:** the author agreed, after asking whether `field` changes the
+  `refs` key.

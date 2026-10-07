@@ -60,8 +60,9 @@ final class FeedsTest extends TestCase
 		$this->contentConfig([
 			'types' => [
 				'post'     => ['path' => '_posts', 'date_archives' => true, 'routing' => ['prefix' => 'archives'], 'feed' => $postFeed],
-				'category' => ['path' => 'topics', 'taxonomy' => true, 'term_collect' => 'post', 'feed' => true]
+				'category' => ['path' => 'topics', 'order' => 'position', 'people' => false, 'feed' => true]
 			],
+			'relations' => ['category' => ['kind' => 'classify', 'from' => ['post'], 'to' => ['category'], 'create' => true]],
 			'home' => 'post'
 		]);
 

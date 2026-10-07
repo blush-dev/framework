@@ -127,7 +127,7 @@ final class AdminSettingsTest extends TestCase
 
 	public function testShowsAndSavesTheAiScreen(): void
 	{
-		$this->writeTemporaryFile('config/content.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn Blush\\Content\\Type\\ContentConfig::fromArray(['types' => ['post' => ['path' => 'posts', 'llms' => false], 'note' => ['path' => 'notes'], 'tag' => ['path' => 'tags', 'taxonomy' => true]]]);\n");
+		$this->writeTemporaryFile('config/content.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn Blush\\Content\\Type\\ContentConfig::fromArray(['types' => ['post' => ['path' => 'posts', 'llms' => false], 'note' => ['path' => 'notes'], 'tag' => ['path' => 'tags', 'order' => 'position', 'llms' => false]], 'relations' => ['tag' => ['kind' => 'classify', 'to' => ['tag']]]]);\n");
 		$this->writeTemporaryFile('user/content/about.md', "---\ntitle: About\n---\n");
 		$this->writeTemporaryFile('user/content/notes/one.md', "---\ntitle: One\n---\n");
 		$this->boot(roles: ['administrator'], environment: ['APP_ENV' => 'production']);
@@ -142,7 +142,7 @@ final class AdminSettingsTest extends TestCase
 		$this->assertSame(['llms.full', false, true, null], [$full['setting'] ?? null, $full['value'] ?? null, $full['default'] ?? null, $full['link'] ?? null]);
 		$this->assertSame(['setting' => 'llms.enabled', 'note' => 'It needs the Markdown copies on.'], $full['requires'] ?? null, 'Locked while the copies are off (D-402).');
 		$this->assertSame(['label' => 'View llms.txt', 'href' => 'https://example.test/llms.txt'], $this->setting($ai, 'markdown', 'llmsTxt')['link'] ?? null);
-		$this->assertSame(['Pages', 'Notes'], $this->setting($ai, 'markdown', 'types')['value'] ?? null, 'Types whose llms option is on; never taxonomies.');
+		$this->assertSame(['Pages', 'Notes'], $this->setting($ai, 'markdown', 'types')['value'] ?? null, 'Types whose llms option is on.');
 		$this->assertSame('None', $this->setting($ai, 'markdown', 'description')['value'] ?? null);
 
 		$block = $this->setting($ai, 'crawlers', 'blockAi');
@@ -437,7 +437,7 @@ final class AdminSettingsTest extends TestCase
 
 	public function testRefusesValuesThatDontFit(): void
 	{
-		$this->writeTemporaryFile('user/data/types/topic.yaml', "kind: taxonomy\nfolder: topics\n");
+		$this->writeTemporaryFile('user/data/types/topic.yaml', "folder: topics\nurls: false\n");
 		$this->boot(roles: ['administrator']);
 		$this->login();
 

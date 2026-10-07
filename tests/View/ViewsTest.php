@@ -285,10 +285,16 @@ final class ViewsTest extends TestCase
 
 			declare(strict_types=1);
 
+			use Blush\Content\Relation\Relation;
+			use Blush\Content\Relation\RelationKind;
+			use Blush\Content\Type\Collection;
 			use Blush\Content\Type\ContentConfig;
-			use Blush\Content\Type\Taxonomy;
+			use Blush\Content\Type\TypeOrder;
 
-			return new ContentConfig(types: [new Taxonomy('topic', folder: 'topics', hierarchical: true)]);
+			return new ContentConfig(
+				types: [new Collection('topic', folder: 'topics', hierarchical: true, order: TypeOrder::Position)],
+				relations: [new Relation('topic', RelationKind::Classify, to: ['topic'])]
+			);
 			PHP);
 		$this->writeTemporaryFile('user/content/topics/web.md', "---\ntitle: Web\n---\n");
 		$this->writeTemporaryFile('user/content/topics/css.md', "---\ntitle: CSS\nparent: web\n---\n");

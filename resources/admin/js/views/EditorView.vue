@@ -79,7 +79,7 @@
  *
  * A type's index page (D-255, D-274) is marked **Index** beside its type
  * and says what it is on the Document tab. The server sends it without
- * the type's fields or a date, so it has no taxonomy fields and can't be
+ * the type's fields or a date, so it has no term fields and can't be
  * scheduled, and without `can.delete`, so it has no Move to trash. A
  * people field's list page, and a page written for one person's archive
  * (D-329, D-353), are edited the same way and say what they introduce;
@@ -1028,7 +1028,7 @@ async function preview(): Promise<void> {
 // The document panel): visibility, a term's parent, and a tree page's or
 // term's position as rows under Publish, then the featured image, each
 // people field, each other reference
-// (a taxonomy's terms, as a picker), the summary, the type's other
+// (terms, as a picker), the summary, the type's other
 // fields as a form, and then each field set's (D-337).
 const visibilityField = computed(() => ownFields.value.find((field) => field.name === 'visibility' && field.type === 'enum'));
 const parentField     = computed(() => ownFields.value.find((field) => field.name === 'parent' && field.type === 'reference' && field.multiple === false && field.to !== undefined));
@@ -1037,7 +1037,7 @@ const parentField     = computed(() => ownFields.value.find((field) => field.nam
 const positionField   = computed(() => ownFields.value.find((field) => field.name === 'position' && field.type === 'number'));
 // A term has no author or featured image of its own (admin.md §8), so
 // those show only when its file has one.
-const term = computed(() => entry.value?.type.kind === 'taxonomy');
+const term = computed(() => entry.value?.type.terms === true);
 const imageField      = computed(() => ownFields.value.find((field) => field.name === 'image' && field.type === 'media'));
 // Each people field (D-353): a reference to profiles, such as `authors`
 // or a recipe's `cooks`, as a people picker under its own label.
@@ -2576,7 +2576,7 @@ function fieldKey(field: FieldDescription): string {
 					<button v-if="entry.url && entry.status === 'published'" type="button" class="menu-item" @click="copyLink">
 						<AdminIcon name="link" />Copy link
 					</button>
-					<button v-if="entry.can.duplicate && entry.type.kind !== 'taxonomy'" type="button" class="menu-item" @click="duplicate">
+					<button v-if="entry.can.duplicate && !entry.type.terms" type="button" class="menu-item" @click="duplicate">
 						<AdminIcon name="copy" />Duplicate
 					</button>
 					<template v-if="entry.can.delete">

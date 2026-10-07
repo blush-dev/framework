@@ -17,6 +17,7 @@ use Override;
 use Blush\Admin\Action\AdminActionRegistry;
 use Blush\Directive\DirectiveRegistry;
 use Blush\Console\CommandRegistry;
+use Blush\Content\Relation\RelationSource;
 use Blush\Content\Type\ContentTypeSource;
 use Blush\Core\ServiceProvider;
 use Blush\Icon\IconRegistry;
@@ -32,6 +33,7 @@ final class RecipesProvider extends ServiceProvider
 	 */
 	protected const array TAGS = [
 		ContentTypeSource::TAG => [RecipeTypes::class],
+		RelationSource::TAG    => [RecipeRelations::class],
 		CommandRegistry::TAG   => [ImportRecipes::class]
 	];
 

@@ -237,15 +237,21 @@ final class AdminTypeEditTest extends TestCase
 
 	public function testEditsAJsonType(): void
 	{
-		$this->writeTemporaryFile('user/data/types/topic.json', '{"$schema": "../type.schema.json", "kind": "taxonomy", "folder": "topics", "termListing": {"perPage": 5}}');
+		$this->writeTemporaryFile('user/data/types/topic.json', '{"$schema": "../type.schema.json", "folder": "topics", "order": "position"}');
 		$this->site();
 
 		$this->assertSame(200, $this->write('PATCH', '/types/topic', ['set' => ['hierarchical' => true, 'labels' => ['plural' => 'Subjects']]])->getStatusCode());
 		$this->assertSame(
-			['$schema' => '../type.schema.json', 'kind' => 'taxonomy', 'folder' => 'topics', 'termListing' => ['perPage' => 5], 'hierarchical' => true, 'labels' => ['plural' => 'Subjects']],
+			['$schema' => '../type.schema.json', 'folder' => 'topics', 'order' => 'position', 'hierarchical' => true, 'labels' => ['plural' => 'Subjects']],
 			json_decode($this->file('user/data/types/topic.json'), true),
 			'An editor\'s schema key isn\'t an option, and stays (D-491).'
 		);
+
+		$this->writeTemporaryFile('user/data/types/genre.json', '{"kind": "taxonomy"}');
+
+		$legacy = $this->write('PATCH', '/types/genre', ['set' => ['description' => 'x']]);
+		$this->assertSame(422, $legacy->getStatusCode());
+		$this->assertSame('"genre" is still written as a taxonomy; migrate it first, on Site Health or with content:taxonomies --write.', self::error($legacy));
 	}
 
 	public function testRefusesWhatDoesNotFitAndWritesNothing(): void
@@ -271,15 +277,17 @@ final class AdminTypeEditTest extends TestCase
 	public function testDeletesATypeButNotOneOthersNeed(): void
 	{
 		$this->writeTemporaryFile('user/data/types/recipe.yaml', "folder: recipes\n");
-		$this->writeTemporaryFile('user/data/types/cuisine.yaml', "kind: taxonomy\nfolder: cuisines\ntypes: [recipe]\n");
+		$this->writeTemporaryFile('user/data/types/cuisine.yaml', "folder: cuisines\norder: position\n");
+		$this->writeTemporaryFile('user/data/relations/cuisine.json', '{"kind": "classify", "from": ["recipe"], "to": ["cuisine"]}');
 		$this->writeTemporaryFile('user/content/recipes/soup.md', "---\ntitle: Soup\n---\n");
 		$this->site();
 
 		$needed = $this->write('DELETE', '/types/recipe');
 		$this->assertSame(422, $needed->getStatusCode());
-		$this->assertSame('Cuisines groups it; take it out of their groups first.', self::error($needed));
+		$this->assertSame('The "cuisine" relation names recipe; remove it first.', self::error($needed));
 		$this->assertFileExists($this->temporaryDirectory() . '/user/data/types/recipe.yaml', 'It\'s put back.');
 
+		$this->assertSame(200, $this->write('DELETE', '/relations/cuisine')->getStatusCode());
 		$this->assertSame(200, $this->write('DELETE', '/types/cuisine')->getStatusCode());
 		$this->assertSame(200, $this->write('DELETE', '/types/recipe')->getStatusCode());
 		$this->assertFileDoesNotExist($this->temporaryDirectory() . '/user/data/types/recipe.yaml');

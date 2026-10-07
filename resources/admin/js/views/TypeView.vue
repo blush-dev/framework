@@ -1,12 +1,12 @@
 <script setup lang="ts">
 /**
- * One content type (D-250): its names and settings, the taxonomies that
- * group it (or, for a taxonomy, the types it groups), the fields it
- * defines and the field sets added to it (D-337), with a way to its
- * entries. A type from `user/data/types` is
- * edited here (`TypeEditor`, D-311), and so is a collection or taxonomy
- * from code, through a file there (D-349); the pages and authors types
- * from code are shown read-only (D-042).
+ * One content type (D-250): its names and settings, its relationships
+ * (`TypeRelations`, D-593: the terms that file it, or for terms the types
+ * they file), the fields it defines and the field sets added to it
+ * (D-337), with a way to its entries. A type from `user/data/types` is
+ * edited here (`TypeEditor`, D-311), and so is a collection from code,
+ * through a file there (D-349); the pages and authors types from code are
+ * shown read-only (D-042), but their relationships are edited here too.
  */
 
 import { computed, ref, watch } from 'vue';
@@ -15,6 +15,7 @@ import AdminIcon from '../components/AdminIcon.vue';
 import TypeEditor from '../components/TypeEditor.vue';
 import TypeFieldSets from '../components/TypeFieldSets.vue';
 import TypeIcon from '../components/TypeIcon.vue';
+import TypeRelations from '../components/TypeRelations.vue';
 import { errorMessage, request, type ContentTypeDetail } from '../api';
 import { humanize, label } from '../fields';
 import { plural } from '../format';
@@ -27,22 +28,25 @@ const error = ref('');
 
 loadTypes().catch(() => undefined);
 
-watch(() => route.params.name, async (name) => {
-	type.value  = null;
+async function load(name: string): Promise<void> {
 	error.value = '';
 
 	try {
-		type.value = await request<ContentTypeDetail>('GET', `/types/${encodeURIComponent(String(name))}`);
+		type.value = await request<ContentTypeDetail>('GET', `/types/${encodeURIComponent(name)}`);
 	} catch (caught) {
 		error.value = errorMessage(caught, 'The content type couldn\'t be loaded.');
 	}
+}
+
+watch(() => route.params.name, (name) => {
+	type.value = null;
+	void load(String(name));
 }, { immediate: true });
 
 watch(type, (value) => {
 	screenTitle.value = value?.labels.plural ?? null;
 });
 
-const taxonomy = computed(() => type.value?.kind === 'taxonomy');
 const people   = computed(() => type.value?.kind === 'profiles');
 
 const origin = computed(() => ({
@@ -52,19 +56,8 @@ const origin = computed(() => ({
 	data: 'user/data/types'
 })[type.value?.origin ?? 'config']);
 
-// The other side: a taxonomy's types, the types that credit authors, or
-// a type's taxonomies.
-const related = computed(() => {
-	const detail = type.value;
-
-	if (detail === null) {
-		return [];
-	}
-
-	const names = taxonomy.value || people.value ? (detail.types ?? []) : detail.taxonomies;
-
-	return names.map((name) => ({ name, label: findType(name)?.labels.plural ?? humanize(name) }));
-});
+// The types that credit people, on the profiles type's screen.
+const related = computed(() => (people.value ? (type.value?.types ?? []) : []).map((name) => ({ name, label: findType(name)?.labels.plural ?? humanize(name) })));
 </script>
 
 <template>
@@ -73,7 +66,7 @@ const related = computed(() => {
 		<div class="page-header__text">
 			<h1 tabindex="-1">{{ type?.labels.plural ?? 'Content Type' }}</h1>
 			<p v-if="type" class="page-header__hint">
-				{{ humanize(type.kind) }} · <span class="mono">{{ type.name }}</span> · from {{ origin }}<template v-if="type.overridden"> · changed in <span class="mono">{{ type.file }}</span></template>
+				{{ type.terms ? 'Terms' : humanize(type.kind) }} · <span class="mono">{{ type.name }}</span> · from {{ origin }}<template v-if="type.overridden"> · changed in <span class="mono">{{ type.file }}</span></template>
 			</p>
 			<p v-if="type?.description" class="page-header__hint">{{ type.description }}</p>
 		</div>
@@ -84,7 +77,7 @@ const related = computed(() => {
 
 	<p v-if="error" class="notice notice--error" role="alert">{{ error }}</p>
 
-	<TypeEditor v-if="type?.editable" :type="type" @saved="type = $event" />
+	<TypeEditor v-if="type?.editable" :type="type" @saved="type = $event" @relations="load(type.name)" />
 
 	<div v-else-if="type" class="detail">
 		<div class="detail__side">
@@ -103,8 +96,9 @@ const related = computed(() => {
 					<div><dt>Icon</dt><dd class="type-facts__icon"><TypeIcon :type="type" /><span :class="{ mono: type.icon }">{{ type.icon ?? `The ${type.kind} icon` }}</span></dd></div>
 					<div><dt>Folder</dt><dd class="mono">user/content/{{ type.folder }}</dd></div>
 					<div><dt>Address</dt><dd :class="{ mono: type.prefix }">{{ type.prefix ?? 'No pages of its own' }}</dd></div>
-					<div v-if="taxonomy"><dt>Hierarchical</dt><dd>{{ type.hierarchical ? 'Yes: a term can name a parent' : 'No' }}</dd></div>
-					<div v-else-if="!people"><dt>Dated</dt><dd>{{ type.dated ? 'Yes' : 'No' }}</dd></div>
+					<div v-if="type.kind === 'collection'"><dt>Nests</dt><dd>{{ type.hierarchical ? 'Yes: an entry can name a parent' : 'No' }}</dd></div>
+					<div v-if="type.kind === 'collection'"><dt>Order</dt><dd>{{ type.order === 'position' ? 'By position, then title' : 'Newest published first' }}</dd></div>
+					<div v-if="!people"><dt>Dated</dt><dd>{{ type.dated ? 'Yes' : 'No' }}</dd></div>
 					<div v-if="!people"><dt>Credits authors</dt><dd>{{ type.authors ? 'Yes' : 'No' }}</dd></div>
 					<div v-if="!people && type.authors && type.prefix !== null"><dt>Author archives</dt><dd :class="{ mono: type.authorsWord }">{{ type.authorsWord ? `${type.prefix.replace(/\/+$/, '')}/${type.authorsWord}` : 'None' }}</dd></div>
 					<div><dt>Public</dt><dd>{{ type.public ? 'Yes' : 'No' }}</dd></div>
@@ -114,9 +108,9 @@ const related = computed(() => {
 				</dl>
 			</section>
 
-			<section class="panel" aria-labelledby="related-heading">
+			<section v-if="people" class="panel" aria-labelledby="related-heading">
 				<header class="panel__header">
-					<h2 id="related-heading">{{ people ? 'Credited by' : (taxonomy ? 'Groups' : 'Taxonomies') }}</h2>
+					<h2 id="related-heading">Credited By</h2>
 				</header>
 				<div class="panel__body">
 					<ul v-if="related.length" class="chips">
@@ -124,13 +118,12 @@ const related = computed(() => {
 							<RouterLink :to="{ name: 'content-type', params: { name: item.name } }">{{ item.label }}</RouterLink>
 						</li>
 					</ul>
-					<p v-else-if="people" class="field__help">No type credits authors yet.</p>
-					<p v-else-if="taxonomy" class="field__help">Every type, so it's under Shared taxonomies in the navigation.</p>
-					<p v-else class="field__help">No taxonomy groups it.</p>
-					<p v-if="people" class="field__help">Profiles are the public side of accounts, so they're under Users in the navigation.</p>
-					<p v-if="taxonomy && related.length === 1" class="field__help">One type, so it sits under {{ related[0]?.label }} in the navigation.</p>
+					<p v-else class="field__help">No type credits authors yet.</p>
+					<p class="field__help">Profiles are the public side of accounts, so they're under Users in the navigation.</p>
 				</div>
 			</section>
+
+			<TypeRelations v-if="!people" :type="type" @changed="load(type.name)" />
 
 			<TypeFieldSets :type="type" />
 		</div>
@@ -164,7 +157,7 @@ const related = computed(() => {
 				</table>
 			</div>
 			<p v-else class="panel__body field__help">None of its own.</p>
-			<p class="panel__body field__help">Every entry also has a title, a status, dates, a slug, and authors, and the fields of the taxonomies that group it.</p>
+			<p class="panel__body field__help">Every entry also has a title, a status, dates, a slug, and authors, and the fields of its relationships.</p>
 		</section>
 	</div>
 

@@ -100,7 +100,7 @@ final readonly class Query
 	 * @param int                              $offset        How many matching entries to skip.
 	 * @param string                           $orderBy       `published` (the default), `updated`, `title`, `slug`, `status`, `author`, `position`, a field, or a taxonomy; never a file name (D-516).
 	 * @param Order                            $order         The sort direction; newest first by default.
-	 * @param list<array{string, list<string>}> $terms        Taxonomy and slugs; an entry needs one of the slugs for each.
+	 * @param list<array{string, list<string>}> $terms        Term type (or people key) and slugs; an entry needs one of the slugs for each.
 	 * @param ?string                          $metaKey       A field entries must have.
 	 * @param ?string                          $metaValue     A value (compared as a slug) the field must hold.
 	 * @param array<string, int>               $date          Published date parts to match, in the site timezone.
@@ -413,8 +413,8 @@ final readonly class Query
 	 * Returns a copy limited to the entries under a parent, given as the
 	 * entry or its key (`whereParent($about)`, `whereParent('about')`),
 	 * or, with `null`, to those with no parent: a tree's top-level pages
-	 * or a hierarchical taxonomy's top-level terms (D-562). Only trees and
-	 * hierarchical taxonomies nest, so for other types `null` matches
+	 * or a hierarchical collection's top-level entries (D-562). Only trees
+	 * and hierarchical collections nest, so for other types `null` matches
 	 * every entry and a parent none.
 	 */
 	#[NoDiscard]

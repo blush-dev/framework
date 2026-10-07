@@ -13,12 +13,13 @@ declare(strict_types=1);
 
 namespace Blush\Content\Index;
 
+use Blush\Content\Relation\Relations;
 use Blush\Content\Type\ContentTypes;
 use Blush\Core\AppConfig;
 
 /**
  * What index records depend on besides the files: the index format, the
- * content types, the timezone, the locale, and the languages (D-455). An index built with a
+ * content types, the relations (D-590), the timezone, the locale, and the languages (D-455). An index built with a
  * different fingerprint is stale as a whole and is rebuilt in full.
  */
 final class IndexFingerprint
@@ -27,7 +28,8 @@ final class IndexFingerprint
 
 	public function __construct(
 		private readonly ContentTypes $types,
-		private readonly AppConfig $app
+		private readonly AppConfig $app,
+		private readonly Relations $relations
 	) {}
 
 	/**
@@ -38,6 +40,7 @@ final class IndexFingerprint
 		return $this->value ??= hash('xxh128', serialize([
 			IndexSnapshot::VERSION,
 			$this->types->toArray(),
+			$this->relations->toArray(),
 			$this->app->timezone,
 			$this->app->locale,
 			$this->app->languages->toArray()
