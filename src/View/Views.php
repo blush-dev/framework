@@ -16,6 +16,7 @@ namespace Blush\View;
 use Throwable;
 use Blush\Theme\ThemeAssets;
 use Blush\Theme\ThemeChain;
+use Blush\Theme\ThemeException;
 use Blush\Theme\ThemeSettings;
 use Blush\Icon\IconName;
 use Blush\Translation\DomainTranslator;
@@ -78,16 +79,26 @@ final readonly class Views
 	 * context's layout (from front matter) replaces the one the page's
 	 * template asks for.
 	 *
+	 * The head is held while the page renders (D-570), and the assets
+	 * anything in it asked for (D-572) are added before it's filled in,
+	 * so what renders after the layout prints the head still reaches it.
+	 *
 	 * @param  string|list<string>  $names
 	 * @param  array<string, mixed> $data
 	 * @throws ViewException
+	 * @throws ThemeException When an asset's theme has an invalid build manifest.
 	 */
 	public function render(string|array $names, array $data = [], ViewContext $context = new ViewContext()): string
 	{
 		$names = (array) $names;
 		$found = $this->finder->first($names) ?? throw ViewNotFound::forNames($names);
+		$holds = $context->head->hold();
 
-		return $this->renderFile($found[0], $found[1], $data, $context, $context->layout);
+		[$html, $handles] = $this->services->collector->collect(fn (): string => $this->renderFile($found[0], $found[1], $data, $context, $context->layout));
+
+		$context->head->enqueue(...$handles);
+
+		return $holds ? $context->head->fill($html) : $html;
 	}
 
 	/**
@@ -289,7 +300,8 @@ final readonly class Views
 
 	/**
 	 * Renders a directive with its props and content (D-532). `$name` is a
-	 * full name or a core directive's short name. Its template gets
+	 * full name or a core directive's short name. The assets it asks for
+	 * (`assets()`, D-572) go to the page. Its template gets
 	 * `$directive` (its registered class, D-534), which holds its
 	 * content (D-195, D-196), and its variant (D-266): the `variant` prop,
 	 * if the directive has it under the chain. A variant's own template
@@ -312,6 +324,8 @@ final readonly class Views
 		if (! $directive->shouldRender()) {
 			return '';
 		}
+
+		$this->services->collector->add(...$directive->assets());
 
 		// A variant's own template (`directives/callout-bordered`) wins
 		// over the directive's (D-266).
@@ -396,7 +410,8 @@ final readonly class Views
 
 	/**
 	 * Renders a component with its props and slots (D-532). `$name` is a
-	 * full name. Its template gets `$component` (its class, or a
+	 * full name. The assets it asks for (`assets()`, D-572) go to the
+	 * page. Its template gets `$component` (its class, or a
 	 * `TemplateComponent`), which holds its content and slots (D-195,
 	 * D-196). Without a template in the chain, a component with a class
 	 * renders itself (`render()`, D-382): its HTML, or the template file
@@ -416,6 +431,8 @@ final readonly class Views
 		if (! $component->shouldRender()) {
 			return '';
 		}
+
+		$this->services->collector->add(...$component->assets());
 
 		$view  = $component->template();
 		$views = [$view ?? $parsed->view()];

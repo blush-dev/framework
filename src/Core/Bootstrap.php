@@ -59,6 +59,7 @@ use Blush\Sitemap\SitemapConfig;
 use Blush\Storage\StorageConfig;
 use Blush\Support\PhpArrayFile;
 use Blush\Theme\ThemeCache;
+use Blush\Theme\ThemeAssetProvider;
 use Blush\Theme\ThemeConfig;
 use Blush\Theme\ThemeDiscovery;
 use Blush\Theme\ThemeException;
@@ -274,7 +275,14 @@ final readonly class Bootstrap
 		$container->instance(LocalAutoloader::class, $autoloader);
 
 		$application = new Application($container);
-		$application->register(...$plugins->providers(), ...$themeProviders, ...$app->providers);
+		// Themes' manifest assets register after plugins' and before the
+		// themes' own providers (D-574).
+		$application->register(
+			...$plugins->providers(),
+			...($chain === null ? [] : [new ThemeAssetProvider($container, $chain)]),
+			...$themeProviders,
+			...$app->providers
+		);
 
 		return new BootstrapResult($application, $container, $config, $plugins, $autoloader, $themes, $iconPacks);
 	}

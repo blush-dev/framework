@@ -15,6 +15,7 @@ namespace Blush\Directive\Media;
 
 use Locale;
 use Override;
+use Blush\Asset\AssetRegistrar;
 use Blush\Directive\Directive;
 use Blush\Directive\DirectiveContent;
 use Blush\Directive\DirectiveView;
@@ -38,6 +39,19 @@ use Blush\Directive\DirectiveKind;
  */
 final class Video extends Directive
 {
+	use PlayerLabels;
+
+	/**
+	 * The player's labels (`PlayerLabels`).
+	 *
+	 * @var list<string>
+	 */
+	private const array LABELS = ['play', 'pause', 'seek', 'mute', 'unmute', 'volume', 'captions', 'fullscreen', 'exit-fullscreen'];
+
+	/**
+	 * @inheritDoc
+	 */
+	protected const array ASSETS = [AssetRegistrar::PLAYER];
 	/**
 	 * @inheritDoc
 	 */

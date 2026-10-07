@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Blush\JsonSchema;
 
 use JsonException;
+use Blush\Asset\Asset;
 use Blush\Directive\DirectiveName;
 use Blush\Directive\Variant;
 use Blush\Content\EntryFields;
@@ -117,6 +118,56 @@ final readonly class JsonSchemas
 	}
 
 	/**
+	 * Returns the schema for a theme's `assets` (D-574): handles mapped to
+	 * the styles and scripts each loads and the handles it requires.
+	 *
+	 * @return array<string, mixed>
+	 */
+	private function assets(): array
+	{
+		$file = static fn (bool $script): array => [
+			'oneOf' => [
+				['type' => 'string', 'description' => 'A path inside the theme, or a full URL.'],
+				[
+					'type'                 => 'object',
+					'required'             => ['path'],
+					'additionalProperties' => false,
+					'properties'           => [
+						'path'       => ['type' => 'string', 'description' => 'A path inside the theme, or a full URL.'],
+						'attributes' => [
+							'type'                 => 'object',
+							'description'          => $script
+								? 'More attributes for its <script>. It\'s deferred unless these say otherwise: {"defer": false}, {"async": true}, or a "type" such as "module".'
+								: 'More attributes for its <link>, such as {"media": "print"}.',
+							'additionalProperties' => ['type' => ['string', 'boolean']]
+						],
+						...($script ? ['footer' => ['type' => 'boolean', 'default' => false, 'description' => 'Print it just before </body> instead of in the <head>.']] : [])
+					]
+				]
+			]
+		];
+
+		return [
+			'type'                 => 'object',
+			'description'          => 'Styles and scripts the theme registers by handle (vendor/name), which pages load only when they ask for them. A theme with a provider registers them there instead. A handle another extension registered is replaced, such as "blush/player".',
+			'propertyNames'        => ['pattern' => '^' . Asset::HANDLE . '$'],
+			'additionalProperties' => [
+				'type'                 => 'object',
+				'additionalProperties' => false,
+				'properties'           => [
+					'styles'   => ['type' => 'array', 'description' => 'Its stylesheets, in order.', 'items' => $file(false)],
+					'scripts'  => ['type' => 'array', 'description' => 'Its scripts, in order.', 'items' => $file(true)],
+					'requires' => [
+						'type'        => 'array',
+						'description' => 'The handles it loads after.',
+						'items'       => ['type' => 'string', 'pattern' => '^' . Asset::HANDLE . '$']
+					]
+				]
+			]
+		];
+	}
+
+	/**
 	 * Returns the schema for a theme's `theme.json`.
 	 *
 	 * @return array<string, mixed>
@@ -160,6 +211,7 @@ final readonly class JsonSchemas
 					'items'       => ['type' => 'string', 'pattern' => self::PATH_PATTERN],
 					'description' => 'Files every page preloads, relative to the theme, such as the fonts its stylesheet uses. What each is comes from its extension.'
 				],
+				'assets'      => $this->assets(),
 				'provider'    => [
 					'type'        => 'string',
 					'description' => 'The class name of the theme\'s service provider, registered before the site\'s.'

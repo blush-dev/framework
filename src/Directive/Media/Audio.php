@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Blush\Directive\Media;
 
 use Override;
+use Blush\Asset\AssetRegistrar;
 use Blush\Directive\Directive;
 use Blush\Directive\DirectiveContent;
 use Blush\Directive\DirectiveView;
@@ -27,10 +28,24 @@ use Blush\Directive\DirectiveKind;
  * `::audio[A caption]{src=episode.mp3}`. `src` is resolved like an
  * image's (a file next to the entry, or in the media folder), and the
  * label is the caption. `preload` is `metadata` by default; `loop`
- * repeats it.
+ * repeats it. It plays in the site's audio player (D-573), which keeps
+ * the browser's controls until its script loads.
  */
 final class Audio extends Directive
 {
+	use PlayerLabels;
+
+	/**
+	 * The player's labels (`PlayerLabels`).
+	 *
+	 * @var list<string>
+	 */
+	private const array LABELS = ['play', 'pause', 'seek'];
+
+	/**
+	 * @inheritDoc
+	 */
+	protected const array ASSETS = [AssetRegistrar::PLAYER];
 	/**
 	 * @inheritDoc
 	 */

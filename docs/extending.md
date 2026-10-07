@@ -1301,9 +1301,86 @@ manifest is the `icons.json` in the package, or its `composer.json`'s
 `extra.blush`, or both. Its name is the package's, so the manifest can
 leave `name` out; one naming something else is broken.
 
+## Scripts and styles
+
+Register the scripts and styles your plugin, theme, or site needs by a
+name, a handle in the `vendor/name` form, in your provider's `boot()`.
+Pages then ask for them by handle, and each prints once, after the
+ones it `requires`:
+
+```php
+use Blush\Asset\Asset;
+use Blush\Asset\AssetRegistry;
+use Blush\Asset\Script;
+use Blush\Asset\Style;
+
+public function boot(): void
+{
+	$this->container->make(AssetRegistry::class)->register(new Asset(
+		'acme/gallery',
+		styles: [new Style('css/gallery.css', from: 'acme/gallery')],
+		scripts: [new Script('js/gallery.js', from: 'acme/gallery', attributes: ['type' => 'module'], footer: true)],
+		requires: ['blush/player']
+	));
+}
+```
+
+`from` says where a file is: your plugin's or theme's name for a file
+in its folder (`/extensions/acme/gallery/js/gallery.js` for a plugin,
+`/themes/acme/nova/...` for a theme), or leave it out for a URL as
+given. Files are served with `?v=` and a hash of their contents, so a
+browser fetches one again only when it changes. Only stylesheets,
+scripts, fonts, and images are served, never files in `src/`,
+`views/`, `lang/`, `resources/`, `vendor/`, or `node_modules/`, and a
+plugin's only while it's on.
+
+A script's `attributes` control how it loads: it's deferred unless they
+say otherwise (`['defer' => false]`, `['async' => true]`, or a `type`
+such as `module`). `footer: true` prints it just before `</body>`
+instead of in the `<head>`. A `Style` takes `attributes` too, such as
+`['media' => 'print']`.
+
+Registering a handle that's already taken replaces it. Core's are
+registered first, then plugins', then themes' (those in `theme.json`'s
+`assets`, then their providers'), then your site's, so a theme can
+replace core's `blush/player` with its own, or with an empty
+`new Asset('blush/player')` to load nothing. A theme without a
+provider lists its assets in `theme.json` instead
+([Scripts and styles](themes.md#scripts-and-styles)).
+
+There are three ways to load an asset:
+
+- **Where it's drawn.** A [directive](directives.md#the-class) or
+  [component](components.md) lists the handles it needs in `ASSETS`,
+  and they load on every page it's drawn on, an entry's text included.
+- **From a template**: `$template->enqueue('acme/gallery')`.
+- **On the pages that need it**, from a listener for
+  `Blush\View\Events\PageRendering`, which every themed page, content or
+  error, sends just before its templates render:
+
+```php
+use Blush\Event\Listener\ListenerRegistry;
+use Blush\View\Events\PageRendering;
+
+$this->container->get(ListenerRegistry::class)->listen(PageRendering::class, function (PageRendering $event): void {
+	if ($event->page?->type?->name === 'gallery') {
+		$event->enqueue('acme/gallery');
+	}
+});
+```
+
+The event has the `page` (`null` on an error page), its `entry`, the
+error page's `status` (`isError()`), the `request`, the theme `chain`,
+`path()`, and `locale()`. Besides `enqueue()` and `dequeue()`, it can
+add `<body>` classes with `addClass()`, and anything else to the
+`head`, which Blush has already filled in; a template's value for the
+same tag still wins.
+
 ## Events
 
 Blush announces what it's doing through events you can listen for, such as
+`Blush\View\Events\PageRendering` (a page is about to render; see
+[Scripts and styles](#scripts-and-styles)),
 `Blush\Content\Events\ContentIndexed` (content changed),
 `Blush\Publish\Events\ContentPublished`, and
 `Blush\Cache\Events\CacheCleared` (the cache store was emptied by

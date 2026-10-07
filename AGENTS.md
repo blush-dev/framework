@@ -158,7 +158,13 @@ a media file's screen in two columns (D-551), then cover art, sound
 and video formats, and PDF pages read from files (D-552); and, from the
 updated extensions sketch, filters and a compact list on the extension
 lists, `keywords` in manifests, and one details layout with a single
-Dependencies panel (D-565).
+Dependencies panel (D-565); and scripts and styles registered by handle
+from core, plugins, and themes, served from `/blush` and
+`/extensions`, asked for by pages, templates, directives, and
+components and kept with cached bodies, a head filled after the page
+renders with footer scripts, the `PageRendering` event, and the audio
+and video players on the site (D-569 to D-573), with a theme's
+`assets` in `theme.json` for themes without a provider (D-574).
 The Fields
 API (D-337 to D-348: field types and controls, field sets on content
 types, media, and the Settings screens, slots, and Structure → Fields)
@@ -230,6 +236,7 @@ Run on PHP 8.5 (`php -v`). Run `composer check` before handing work back.
 | `composer schemas` | Regenerate the editor JSON Schemas in `resources/schemas/` (D-206) |
 | `npm run admin:build` | Type-check and build the admin app (`resources/admin/` → `public/admin/`, committed; D-221). Run after changing admin sources |
 | `npm run admin:watch` | Rebuild the admin app on every change |
+| `npm run site:build` | Type-check and build core's site assets (`resources/site` → `public/site`, committed; the audio and video players, D-573). Run after changing `resources/site` or `resources/player` |
 
 Single test: `vendor/bin/phpunit --filter FrameworkTest`.
 

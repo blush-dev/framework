@@ -46,7 +46,9 @@ use Blush\View\ViewFactory;
  * its `kind()`.
  *
  * Directives rendered this way get a bare context: what they add to the
- * `Head` doesn't reach the page.
+ * `Head` themselves doesn't reach the page, but the assets they ask for
+ * (`assets()`, or `$template->enqueue()` in their templates) do, and
+ * are kept with the body (D-572).
  *
  * The view factory is resolved on first use, since it depends (through
  * the content repository) on the Markdown parser that depends on this.

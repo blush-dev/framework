@@ -821,5 +821,16 @@
 		"zap": {
 			"label": "Zap"
 		}
+	},
+	"player": {
+		"play": "Play",
+		"pause": "Pause",
+		"seek": "Seek",
+		"mute": "Mute",
+		"unmute": "Unmute",
+		"volume": "Volume",
+		"captions": "Captions",
+		"fullscreen": "Fullscreen",
+		"exit_fullscreen": "Exit fullscreen"
 	}
 }

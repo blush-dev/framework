@@ -17,6 +17,7 @@ use ArrayIterator;
 use Countable;
 use IteratorAggregate;
 use Override;
+use Blush\Asset\Asset;
 
 /**
  * The active theme, its ancestors, and the framework default theme, in
@@ -183,6 +184,17 @@ final readonly class ThemeChain implements IteratorAggregate, Countable
 		}
 
 		return null;
+	}
+
+	/**
+	 * Returns the assets the chain's themes declare in their manifests
+	 * (D-574), ancestors first, so a child theme's handle wins.
+	 *
+	 * @return list<Asset>
+	 */
+	public function assets(): array
+	{
+		return array_merge(...array_map(static fn (ThemeManifest $theme): array => $theme->assets, array_reverse($this->themes)));
 	}
 
 	/**

@@ -36,6 +36,14 @@ abstract class Renderable
 	protected const string BLOCK = '';
 
 	/**
+	 * The registered assets it needs on the page, by handle (D-572),
+	 * such as `blush/player`.
+	 *
+	 * @var list<string>
+	 */
+	protected const array ASSETS = [];
+
+	/**
 	 * The attributes `html()` escapes as URLs.
 	 *
 	 * @var list<string>
@@ -104,6 +112,19 @@ abstract class Renderable
 	public function shouldRender(): bool
 	{
 		return true;
+	}
+
+	/**
+	 * Returns the registered assets it needs on the page, by handle
+	 * (D-572): its `ASSETS`, unless it overrides this to decide per use.
+	 * They load wherever it renders, an entry's body included, and only
+	 * when it renders.
+	 *
+	 * @return list<string>
+	 */
+	public function assets(): array
+	{
+		return static::ASSETS;
 	}
 
 	/**

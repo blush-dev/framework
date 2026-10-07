@@ -451,6 +451,31 @@ to `<body>` (D-109), and `stylesheet` is a URL or a theme asset path (D-119).
   `*.config.js` files (D-168) are never served.
 - **Publishing:** `theme:publish` copies servable theme assets (never PHP,
   views, or manifests; never a symlink) to `public/themes/{vendor}/{name}/`.
+- **Registered assets** (D-569 to D-573, `Blush\Asset`): core, plugins,
+  themes, and the site register named sets of styles and scripts by
+  handle (`AssetRegistry`, a `vendor/name`; later wins, so a theme can
+  replace or blank core's `blush/player`). Files are `from` core
+  (`/blush/{path}`, the framework's `public/site`), a plugin that runs
+  (`/extensions/{vendor}/{name}/{path}`), a theme (`theme.asset`, with
+  its manifest), or a URL; versioned with `?v={crc32}`. Pages ask by
+  handle: `Head::enqueue()`, `$template->enqueue()`, a directive's or
+  component's `ASSETS` / `assets()`, or a `PageRendering` listener
+  (D-571). The head prints them at the end of the render, required
+  handles first, each file once.
+- **A theme's assets** (D-574): registered in its provider when it has
+  one; otherwise `theme.json`'s `assets` (handle → `styles`, `scripts`,
+  `requires`), registered by `ThemeAssetProvider` after plugins and
+  before themes' providers. `styles`/`scripts` stay as they are and are
+  reserved for a later use (no handles there).
+- **Held head** (D-570): `Views::render()` holds the head, so printing
+  it leaves a placeholder that's filled once the whole page has
+  rendered; scripts can print in the footer (`footer: true`), inserted
+  before `</body>`.
+- **Assets follow output** (D-572): an `AssetCollector` scope per page
+  render; a body renders in an isolated scope and keeps its handles
+  (with its cached HTML), passing them out only when `Body::html()` is
+  asked for, so excerpts and word counts don't load them; cached
+  fragments keep theirs too.
 
 ## Media and images
 

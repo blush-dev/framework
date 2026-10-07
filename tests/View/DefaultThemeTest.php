@@ -82,6 +82,8 @@ final class DefaultThemeTest extends TestCase
 		'profile.single.paged'              => '/profiles/sam/page/2',
 		'media'                             => '/media/pixel.png',
 		'theme.asset'                       => '/themes/blush/default/style.css',
+		'core.asset'                        => '/blush/js/player.js',
+		'plugin.asset'                      => '/extensions/acme/stats/js/stats.js',
 		'sitemap'                           => '/sitemap',
 		'sitemap.xml'                       => '/sitemap.xml',
 		'sitemap.type'                      => '/sitemap/post',
@@ -137,6 +139,9 @@ final class DefaultThemeTest extends TestCase
 		$this->entry('profiles/sam.md', 'title: Sam', 'Edits things.');
 		$this->entry('authors/justintadlock.md', 'title: Justin Tadlock');
 		$this->entry('authors/guest.md', 'title: Guest');
+		$this->writeTemporaryFile('extensions/acme/stats/plugin.json', '{"name": "acme/stats", "label": "Stats", "namespace": "stats"}');
+		$this->writeTemporaryFile('extensions/acme/stats/js/stats.js', 'console.log("stats");');
+		$this->writeTemporaryFile('config/plugins.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn new Blush\\Plugin\\PluginConfig(enabled: ['acme/stats']);\n");
 		$this->writeTemporaryFile('user/media/pixel.png', (string) base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=', true));
 
 		$this->app = $this->site();

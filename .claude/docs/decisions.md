@@ -1518,7 +1518,7 @@ decision, add a new entry that supersedes it and mark the old one
 
 ### D-112: Markdown directives
 - **Date:** 2026-09-25
-- **Status:** Partially superseded by D-320 (a closing fence closes the innermost open container it's long enough for, so nesting doesn't need longer fences).
+- **Status:** Partially superseded by D-320 (a closing fence closes the innermost open container it's long enough for, so nesting doesn't need longer fences). Its registered assets do reach the page (D-572), though other `Head` additions still don't.
 - **Decision:** Implements D-026 as an in-house CommonMark extension
   (`Markdown\CommonMark\Directive`), on by default
   (`MarkdownConfig::$directives`):
@@ -16286,7 +16286,7 @@ decision, add a new entry that supersedes it and mark the old one
 
 ### D-553: A shared audio player
 - **Date:** 2026-10-06
-- **Status:** Built (admin); the site's use is open.
+- **Status:** Built (admin); the site uses it through D-573.
 - **Decision:** the media detail sketch's audio player (a round play
   button, a track to seek along, the time "0:02 / 0:12") is a plain-DOM
   custom element, `<blush-audio-player>`, around a native `<audio>`, in
@@ -16307,7 +16307,7 @@ decision, add a new entry that supersedes it and mark the old one
 
 ### D-554: A video player to match
 - **Date:** 2026-10-06
-- **Status:** Built (admin); the site's use is open, as D-553's.
+- **Status:** Built (admin); the site uses it through D-573.
 - **Decision:** `<blush-video-player>` around a native `<video>`
   (`resources/player/video-player.ts`), matching the audio player.
   Until first played, a round play button sits over the picture with
@@ -16660,3 +16660,126 @@ decision, add a new entry that supersedes it and mark the old one
   adjusted in `tokens.css` only if the system fonts call for it.
 - **Why:** the author's call: no font to download for UI text, and an
   admin that feels native on each platform.
+
+### D-569: Registered assets, served from core and plugins
+- **Date:** 2026-10-07
+- **Status:** Built.
+- **Decision:** core, plugins, themes, and the site register named sets
+  of stylesheets and scripts (`Blush\Asset\Asset`: a handle in the
+  `vendor/name` form, its `Style`s and `Script`s, and the handles it
+  `requires`) in `AssetRegistry`, in their providers' `boot()`. Core's
+  are seeded by `AssetRegistrar` with `registerIf()`; a later
+  `register()` of a handle replaces it, so a theme can replace core's
+  `blush/player`, or blank it with an asset that has no files. Each
+  file names where it's `from`: `blush` (core's built site files in the
+  framework's `public/site`, served at `/blush/{path}`, the
+  `core.asset` route), a plugin that runs (its folder, at
+  `/extensions/{vendor}/{name}/{path}`, `plugin.asset`), an installed
+  theme (through `ThemeAssets`, so its build manifest works), or `''`
+  for a URL as given. `AssetUrls` versions them with `?v={crc32}` of
+  the file (D-194); `AssetController` streams only what a theme could
+  serve (`ThemeChain::isServable()`), caches a `?v=` URL for a year,
+  and sandboxes SVGs. A script's attributes control how it loads
+  (deferred unless `defer: false`, `async`, or a `type` say otherwise),
+  and `footer` puts it before `</body>`.
+- **Why:** the author: plugins and core need a way to register and
+  queue up scripts and styles, loaded conditionally; and "any things
+  like defer should be controllable", with crc32 versions.
+
+### D-570: The head takes assets by handle, and is filled after the page
+- **Date:** 2026-10-07
+- **Status:** Built.
+- **Decision:** `Head::enqueue()`, `dequeue()`, `isEnqueued()`, and
+  `enqueued()` ask for registered assets; `$template->enqueue()` does
+  the same from a template. The head adds their files when it prints
+  (`Assets::apply()`), required handles first, each file once (keyed by
+  URL). `script()` and `inlineScript()` take `footer: true`, printed by
+  `Head::foot()`. `Views::render()` holds the page's head
+  (`Head::hold()`): printing it leaves a placeholder comment, and
+  `fill()` puts the head there once the whole page has rendered, with
+  the footer's scripts before the last `</body>` (or at the end). So
+  what renders after the layout prints the head (the site footer, a
+  component in it) can still add to it, and themes need no footer
+  call. A render inside another leaves filling to the outer one.
+- **Why:** assets asked for anywhere on the page must reach its head;
+  layouts print the head before their footer partials render.
+
+### D-571: `PageRendering`, dispatched before a page's templates
+- **Date:** 2026-10-07
+- **Status:** Built.
+- **Decision:** `Blush\View\Events\PageRendering` is dispatched once per
+  themed page, by `ThemedPageRenderer` and `ThemedErrorPages`, after
+  Blush fills in the head and `<body>` classes and just before the
+  templates render. It carries the `head`, the `request`, the theme
+  `chain`, the `page` (`null` on an error page), the `entry`, and an
+  error page's `status` (`isError()`), with `path()`, `locale()`,
+  `enqueue()`, `dequeue()`, and `addClass()`. Templates render after
+  it, so a template's value for the same head tag wins. Not dispatched
+  for fragments or the theme checker's render.
+- **Why:** the author: plugins and core need access to what page
+  they're on, for conditional loading, and themes and plugins need to
+  add to `$template->head()`.
+
+### D-572: Directives and components ask for assets, kept with what's cached
+- **Date:** 2026-10-07
+- **Status:** Built.
+- **Decision:** `Renderable` has `ASSETS` (handles, `[]` by default)
+  and `assets()` (which returns them, overridable per use). `Views`
+  adds a directive's or component's handles when it renders, to the
+  innermost `AssetCollector` scope. `Views::render()` opens the page's
+  scope and enqueues what it collected before filling the head (D-570).
+  An entry's `Body` renders in an isolated scope and keeps its handles,
+  passing them out only when its HTML is asked for (`Body::html()`),
+  not when it's read for an excerpt or word count. `RenderedBodies`
+  keeps a body's handles beside its HTML and asks for them again on a
+  cache hit, and `$template->cache()` does the same for fragments
+  (both cache keys gained `assets`, so an older entry of HTML alone is
+  never read as both). Outside any scope (a feed), handles go nowhere.
+  `$template->enqueue()` also adds to the collector, so a directive
+  template's request is kept with its body.
+- **Why:** the author: the player's scripts and styles must load on the
+  fly when a page plays something; a directive in Markdown renders with
+  a throwaway head, and a cached body renders nothing at all.
+
+### D-573: The audio and video players on the site
+- **Date:** 2026-10-07
+- **Status:** Built.
+- **Decision:** core registers `blush/player`
+  (`AssetRegistrar::PLAYER`): `css/player.css` and `js/player.js`
+  (a module) from `public/site`, built from `resources/site`
+  (`js/player.ts`, which defines `<blush-audio-player>` and
+  `<blush-video-player>` from `resources/player`, and `css/player.css`,
+  the site's defaults for `--player-*`) with `npm run site:build`,
+  committed, plain names. The `::audio` and `::video` directives ask
+  for it (`ASSETS`) and their templates wrap the native element in the
+  player, with `label-*` attributes from the core `player.*` messages
+  (`PlayerLabels`); the browser's controls stay until the script
+  loads. On by default. The defaults have no specificity (`:where()`)
+  and use the page's own colors (`CanvasText` on `Canvas`), so they
+  follow its color scheme; a theme sets `--player-*` on `.player`, or
+  replaces or blanks the handle (D-569). Resolves the open question of
+  how the site gets the players (D-553, D-554).
+- **Why:** the author: "On by default."
+
+### D-574: A theme's `assets` in `theme.json`
+- **Date:** 2026-10-07
+- **Status:** Built.
+- **Decision:** a theme registers its assets (D-569) in its provider by
+  default, when it has one, with `from` its name; a theme without one
+  lists them in `theme.json`'s `assets`: handles mapped to `styles`,
+  `scripts`, and `requires`. A file is a path inside the theme, a full
+  URL (`https://`, `//`), or an object with that `path`, its
+  `attributes` (strings or booleans), and a script's `footer`
+  (`Asset::fromArray()`; a bad shape makes the manifest invalid).
+  `ThemeChain::assets()` lists the chain's, ancestors first;
+  `Bootstrap` registers `ThemeAssetProvider` (an instance holding the
+  running chain) after plugins' providers and before themes' own, so
+  the order is core, plugins, theme manifests, theme providers, the
+  site. A theme previewed with `?theme=` registers its manifest
+  assets when it starts (D-524), skipping themes the running chain
+  shares. `theme.json`'s `styles` and `scripts` are unchanged (files
+  every page loads), and stay free of handles: the author has another
+  use in mind for them. In the `theme.json` schema.
+- **Why:** the author: themes can register through the same system,
+  preferably through their provider, and the `styles`/`scripts`
+  properties must stay open for something later.

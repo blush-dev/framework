@@ -94,7 +94,7 @@ final class ViewFactory
 	 */
 	public function context(Views $views, ?Entry $entry = null, string $path = '', ?string $language = null): ViewContext
 	{
-		$head  = new Head($this->services->app->name, origin: $this->services->app->origin());
+		$head  = new Head($this->services->app->name, origin: $this->services->app->origin(), assets: $this->services->assets);
 		$theme = $views->chain->active();
 
 		$head->meta('viewport', 'width=device-width, initial-scale=1');

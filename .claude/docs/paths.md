@@ -52,9 +52,11 @@ blush-framework/
     Directive/          Directive base, registry, registrar, names, variants,
                         MarkdownDirectives, built-ins (Layout/, Media/, Inline/) (D-192, D-532)
     Component/          Component base, registry, names, slots, listing (D-532)
+    Asset/              Asset, Style, Script, AssetRegistry + AssetRegistrar, AssetUrls, Assets,
+                        AssetCollector, AssetController, AssetRoutes (D-569 to D-573)
     Theme/              Themes, ThemeDiscovery, ThemeCache, ThemeManifest, ThemeChain,
-                        ThemeConfig, ThemeResolver, ThemeAssets, settings, ThemeChecker,
-                        the theme asset route
+                        ThemeConfig, ThemeResolver, ThemeAssets, ThemeAssetProvider (D-574),
+                        settings, ThemeChecker, the theme asset route
     Cache/              Store base + drivers, registry, CacheConfig, Caches, ContentVersion,
                         ContentCache, RenderedBodies, PageCache (D-127 to D-130)
     Embed/              oEmbed providers, registry, EmbedData, Embeds, Fetcher, EmbedConfig (D-184)
@@ -98,10 +100,18 @@ blush-framework/
                         tsconfig.node.json for vite.config.ts, with @types/node), js/ (admin.ts, App.vue, api.ts,
                         session.ts, router.ts, icons.ts, color-scheme.ts, fields.ts, types.ts, screen.ts, views/, components/), css/ (admin.css,
                         the entry, importing tokens.css, fonts.css, base.css; D-231), fonts/
-                        (IBM Plex, OFL). Built with `npm run admin:build`
+                        (Fira Code, Karla, Newsreader; OFL). Built with `npm run admin:build`
+    player/             The audio and video players (plain DOM custom elements, D-553, D-554),
+                        shared by the admin and the site
+    site/               Core's site assets' sources (D-573): js/player.ts, css/player.css (the
+                        players' site defaults), vite.config.ts, tsconfig.json, tsconfig.node.json.
+                        Built with `npm run site:build`
   public/admin/         The built admin app (committed; plain names, D-224): .vite/manifest.json,
                         js/admin.js, css/admin.css, fonts/
+  public/site/          Core's built site assets (committed; plain names): js/player.js,
+                        css/player.css, served at /blush/{path} (D-573)
   package.json          npm scripts for the admin build (admin:build, admin:watch, admin:check)
+                        and core's site assets (site:build, site:check)
   docs/                 User documentation: installing, content, themes, config, CLI (D-141)
   benchmarks/           PHPBench suite + the generated jtcom-sized site (D-101)
   scripts/              Framework dev scripts: build-schemas.php (`composer schemas`, D-206)

@@ -928,8 +928,8 @@ Move each item to `decisions.md` once it's answered.
     and email, category, explicit, language, `itunes:type`); the
     `itunes:` and `podcast:` tags (duration, episode and season,
     `podcast:guid`, transcripts, chapters); episode fields (waiting on
-    the Fields API, D-348); and the site's player (see **The audio and
-    video players on the site**). Leaning: core does enclosures, the
+    the Fields API, D-348); and the site's player (core's, D-573, or
+    the plugin's own over its handle). Leaning: core does enclosures, the
     extension points, and `guid`; the rest is a plugin.
 
 ## Later milestones
@@ -1068,12 +1068,6 @@ Move each item to `decisions.md` once it's answered.
     own id, alt text, and sizes, and can be used anywhere: on upload,
     from a button on the file's screen, or both? And should a sound
     without embedded art be able to name a library image as its cover?
-  - **The audio and video players on the site** (D-553, D-554): they're plain DOM
-    in `resources/player`, so `::blush/audio`, `::blush/video`, and themes could use them,
-    but core ships no frontend scripts or styles yet. How the site
-    gets it (a core asset a directive enqueues, a theme's own build, a
-    plugin) and its default colors there are open, for the video
-    player (D-554) too.
   - **Importers** (and exporters): a public API and registry for any
     importer (an `Importer` interface; Type enum + Registry + Factory +
     Registrar), WordPress (WXR) first, in core or as a plugin. Importers
@@ -1087,9 +1081,8 @@ Move each item to `decisions.md` once it's answered.
   `allowsScripts()`; its `EmbedData::$html` is output as given only for
   such providers (after checking that any script comes from the
   provider's own hosts); the script tag is deduplicated per page, which
-  a Markdown component can't do today since its `Head` additions are
-  dropped (D-112), so either directive components get a way to add page
-  assets or the script stays inline. Also: a site's Content Security
+  directives can now do: an embed's `assets()` can ask for a
+  provider's registered asset, kept with the body (D-572). Also: a site's Content Security
   Policy, privacy (these scripts track visitors; a click-to-load
   placeholder with the thumbnail may be the default). Until then they render as links named by
   their title.

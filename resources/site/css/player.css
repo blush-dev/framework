@@ -1,0 +1,22 @@
+/*
+ * The players' defaults on the site (D-573). They have no specificity
+ * (`:where()`), so a theme restyles them by setting any `--player-*`
+ * property (`resources/player/player.css` lists them) on `.player`,
+ * `blush-audio-player`, or `blush-video-player`. The colors are the
+ * page's own (`CanvasText` on `Canvas`), so they follow its color scheme.
+ */
+
+:where(blush-audio-player, blush-video-player) {
+	--player-accent: CanvasText;
+	--player-accent-fg: Canvas;
+	--player-track: color-mix(in srgb, CanvasText 18%, Canvas);
+	--player-muted: color-mix(in srgb, CanvasText 62%, Canvas);
+	--player-shadow: 0 1px 3px rgb(0 0 0 / 25%);
+	--player-font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+	--player-time-size: 0.8125em;
+	--player-overlay: rgb(0 0 0 / 55%);
+	--player-overlay-fg: #fff;
+	--player-radius: 0;
+
+	display: block;
+}

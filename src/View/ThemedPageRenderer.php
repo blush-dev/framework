@@ -24,11 +24,13 @@ use Blush\Content\Routing\ContentUrls;
 use Blush\Content\Type\ContentTypes;
 use Blush\Core\AppConfig;
 use Blush\Data\InvalidData;
+use Blush\Event\Dispatcher;
 use Blush\Feed\FeedLinks;
 use Blush\Http\Response;
 use Blush\Llms\MarkdownPages;
 use Blush\Theme\ThemeException;
 use Blush\Theme\ThemeResolver;
+use Blush\View\Events\PageRendering;
 
 /**
  * Renders content pages with the request's theme chain: the first view
@@ -40,7 +42,8 @@ use Blush\Theme\ThemeResolver;
  * description (its summary, or the start of its body) and its `image`
  * field as `og:image`, with a Twitter card (D-149); a front page
  * without one gets the site's description (D-398). Themes can replace
- * any of them, since a later value for the same tag wins.
+ * any of them, since a later value for the same tag wins. Then
+ * `PageRendering` is dispatched (D-571), for plugins to load assets.
  *
  * Templates get `$page` (the `ContentPage`), `$entry`, `$entries` (a
  * `Paginator` or `null`), `$type`, and `$title`, plus the shared `$site`.
@@ -54,7 +57,8 @@ final readonly class ThemedPageRenderer implements PageRenderer
 		private FeedLinks $feeds,
 		private ContentTypes $types,
 		private ContentUrls $urls,
-		private MarkdownPages $markdown
+		private MarkdownPages $markdown,
+		private Dispatcher $events
 	) {}
 
 	/**
@@ -78,6 +82,8 @@ final readonly class ThemedPageRenderer implements PageRenderer
 			'type'    => $page->type,
 			'title'   => $page->title
 		]);
+
+		$this->events->dispatch(new PageRendering($context, $request, $views->chain, $page, $page->entry));
 
 		return Response::html($views->render(Hierarchy::forPage($page)->names, [], $context));
 	}

@@ -15,6 +15,7 @@ namespace Blush\Cache;
 
 use Closure;
 use Override;
+use Blush\Asset\AssetCollector;
 use Blush\Content\Entry\BodyCache;
 use Blush\Core\AppConfig;
 use Blush\Core\Framework;
@@ -34,6 +35,10 @@ use Blush\Theme\ThemeResolver;
  * The content version is in the key because a directive may
  * read other content or site data; a publish re-renders bodies lazily,
  * as pages ask for them (D-130).
+ *
+ * A body is kept with the assets its directives asked for (D-572), and
+ * they're asked for again whenever it's read, so the page printing it
+ * loads them though nothing rendered.
  */
 final class RenderedBodies implements BodyCache
 {
@@ -44,7 +49,8 @@ final class RenderedBodies implements BodyCache
 		private readonly ThemeResolver $themes,
 		private readonly MarkdownConfig $markdown,
 		private readonly MediaConfig $media,
-		private readonly AppConfig $app
+		private readonly AppConfig $app,
+		private readonly AssetCollector $collector
 	) {}
 
 	/**
@@ -53,7 +59,17 @@ final class RenderedBodies implements BodyCache
 	#[Override]
 	public function remember(string $key, Closure $render): string
 	{
-		return $this->cache->remember(CacheNamespace::Bodies, "{$this->theme()} {$this->fingerprint()} {$key}", $render);
+		// The key's `assets` keeps a body cached as HTML alone from being
+		// read as both.
+		[$html, $assets] = $this->cache->remember(
+			CacheNamespace::Bodies,
+			"{$this->theme()} {$this->fingerprint()} assets {$key}",
+			fn (): array => $this->collector->collect($render)
+		);
+
+		$this->collector->add(...$assets);
+
+		return $html;
 	}
 
 	/**

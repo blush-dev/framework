@@ -300,6 +300,9 @@ Only `name` is required.
   preloaded as a font (and fetched `crossorigin`, as browsers require),
   `.css` as a style, `.js` as a script, and images as images. For a file
   only some pages need, use `$template->head()->preload()` instead.
+- **`assets`:** styles and scripts your theme registers by name, which
+  pages load only when they ask for them. A theme with a `provider`
+  registers them there instead. See [Scripts and styles](#scripts-and-styles).
 - **`settings`:** options site owners set in `user/data/theme.json`. They
   use the same field types as [custom fields](content-types.md#custom-fields).
 - **`menus` and `regions`:** the places your theme shows the site's menus
@@ -539,6 +542,71 @@ The head prints root-relative links and scripts (`/feed`,
 `$template->asset(...)`) as full URLs on your site's `url`, so pass
 paths as they are. Meta tag values print as given, so give `og:image`
 and the like a full URL.
+
+### Scripts and styles
+
+Besides your theme's own `styles` and `scripts`, Blush, plugins, and
+themes register scripts and styles by name, a handle such as
+`blush/player`, and pages load them only when they need them. Ask for
+one in a template with `$template->enqueue('acme/gallery')`; it prints
+in the `<head>` once, after anything it needs, however many times it's
+asked for. Directives and components ask for their own, so the audio
+and video player (`blush/player`) loads only on pages that play
+something.
+
+The head is printed once the whole page has rendered, so a template
+can add to it anywhere, even in your footer partial after the layout
+has printed `$template->head()`. Scripts can go in the footer instead,
+just before `</body>`: `$template->head()->script($url, footer: true)`,
+or `inlineScript('id', $js, footer: true)`.
+
+Your theme registers its own the same way plugins do: in its
+provider's `boot()`, with `from` set to your theme's name, as
+[Scripts and styles](extending.md#scripts-and-styles) shows. That's the
+place for them when your theme has a provider. A theme without one can
+list them under `assets` in `theme.json` instead, each handle with its
+`styles`, `scripts`, and the handles it `requires`:
+
+```json
+"assets": {
+	"acme/lightbox": {
+		"styles": ["css/lightbox.css"],
+		"scripts": [
+			{ "path": "js/lightbox.js", "footer": true, "attributes": { "type": "module" } },
+			"https://cdn.example.com/zoom.js"
+		],
+		"requires": ["blush/player"]
+	}
+}
+```
+
+A file is a path inside your theme or a full URL, or an object with
+that `path`, its `attributes`, and, for a script, `footer`. Themes
+register theirs after plugins, a parent's before its child's, and a
+theme's provider after its `theme.json`, so a provider's handle wins;
+your site's registrations win over any theme's. `theme.json`'s `styles`
+and `scripts` stay as they are: files every page loads.
+
+The player draws its colors from `--player-*` properties, set to your
+page's own text and background colors. Set any of them on `.player` in
+your stylesheet to make it yours:
+
+```css
+.player {
+	--player-accent: var(--color-accent);   /* the play button, what's played */
+	--player-accent-fg: white;              /* the play button's glyph */
+	--player-track: #ddd;                   /* what's left to play */
+	--player-muted: #666;                   /* the time and other buttons */
+	--player-font-mono: var(--font-mono);   /* the time */
+	--player-radius: 8px;                   /* a video's corners */
+}
+```
+
+`--player-shadow`, `--player-time-size`, `--player-overlay`, and
+`--player-overlay-fg` (a video's controls over the picture) are there
+too. To draw the player yourself, register your own `blush/player`,
+or an empty one to load nothing: `new Asset('blush/player')` in your
+provider, or `"blush/player": {}` under `assets`.
 
 ### Translations
 

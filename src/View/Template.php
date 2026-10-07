@@ -435,8 +435,10 @@ final class Template
 	 *
 	 *     <?= $template->cache("archives.{$by}", fn () => $template->component('acme/post-archives', by: $by)) ?>
 	 *
-	 * Only the returned HTML is kept, so a fragment shouldn't add to the
-	 * head or the `<body>` classes.
+	 * The returned HTML is kept with the assets the fragment's directives
+	 * and components asked for (D-572), which are asked for again
+	 * whenever it's printed. Nothing else is, so a fragment shouldn't add
+	 * to the head or the `<body>` classes itself.
 	 *
 	 * @param Closure(): (string|Stringable) $render
 	 * @throws CacheException When the fragment store can't be built.
@@ -444,13 +446,37 @@ final class Template
 	#[ReturnsHtml]
 	public function cache(string $key, Closure $render): string
 	{
-		$html = static fn (): string => (string) $render();
+		$cache     = $this->views->services->cache;
+		$collector = $this->views->services->collector;
 
-		return $this->views->services->cache?->remember(
+		if ($cache === null) {
+			return (string) $render();
+		}
+
+		// Kept as the HTML and its assets; the key's `assets` keeps a
+		// fragment cached as HTML alone from being read as both.
+		[$html, $assets] = $cache->remember(
 			CacheNamespace::Fragments,
-			$this->views->chain->active()->name . ' ' . $key,
-			$html
-		) ?? $html();
+			$this->views->chain->active()->name . ' assets ' . $key,
+			static fn (): array => $collector->collect(static fn (): string => (string) $render())
+		);
+
+		$collector->add(...$assets);
+
+		return $html;
+	}
+
+	/**
+	 * Asks for registered assets by handle (D-570), such as
+	 * `blush/player`, for the page this template is part of. They print
+	 * in its head (or a script's footer), after what they require, each
+	 * once. Asked for in a directive's template, they're kept with the
+	 * body it's in, as the directive's own are (D-572).
+	 */
+	public function enqueue(string ...$handles): void
+	{
+		$this->views->services->collector->add(...$handles);
+		$this->context->head->enqueue(...$handles);
 	}
 
 	/**

@@ -13,6 +13,8 @@ declare(strict_types=1);
 
 namespace Blush\Theme;
 
+use Blush\Asset\Asset;
+use Blush\Asset\AssetException;
 use Blush\Extension\Autoload;
 use Blush\Extension\ExtensionAbandoned;
 use Blush\Extension\ExtensionAuthor;
@@ -49,7 +51,9 @@ use Blush\Extension\ExtensionSuggest;
  * discovery fills each in from the `composer.json` in its folder when the manifest has none.
  * Its `abandoned` (`true`, or the package to use instead) only warns, as
  * Composer's does (D-433), and its `suggest` is only shown (D-434); its `keywords` are what
- * the admin's filter searches (D-565).
+ * the admin's filter searches (D-565). Its `assets` register named
+ * styles and scripts by handle (D-574), for a theme without a provider;
+ * its files are its own unless they're full URLs.
  * Its `require`, `conflict` (D-435), `replace` (D-436), and `provide` (D-439) are checked as a plugin's are (D-431): an active theme
  * whose chain needs what the site doesn't have falls back to the
  * default theme.
@@ -78,6 +82,7 @@ final readonly class ThemeManifest implements ExtensionManifest
 	 * @param bool|string           $abandoned Whether it's abandoned, or the package to use instead (D-433).
 	 * @param array<string, string> $suggest  Package => why it's suggested (D-434).
 	 * @param list<string>          $keywords What it's about, searched by the admin (D-565).
+	 * @param list<Asset>           $assets   The assets it registers by handle (D-574).
 	 */
 	public function __construct(
 		public string $name,
@@ -104,7 +109,8 @@ final readonly class ThemeManifest implements ExtensionManifest
 		public bool|string $abandoned = false,
 		public array $suggest = [],
 		public array $preload = [],
-		public array $keywords = []
+		public array $keywords = [],
+		public array $assets = []
 	) {}
 
 	public function kind(): ExtensionKind
@@ -210,6 +216,24 @@ final readonly class ThemeManifest implements ExtensionManifest
 			throw new ThemeException(sprintf('The "%s" theme\'s manifest: %s', $theme, $error->getMessage()), 0, $error);
 		}
 
+		$assets = $data['assets'] ?? [];
+
+		if (! is_array($assets) || ($assets !== [] && array_is_list($assets))) {
+			throw new ThemeException(sprintf('The "%s" theme\'s "assets" must map handles (vendor/name) to the styles and scripts each loads.', $theme));
+		}
+
+		try {
+			$assets = array_map(
+				static fn (mixed $asset, int|string $handle): Asset => is_array($asset)
+					? Asset::fromArray((string) $handle, $asset, $theme)
+					: throw new AssetException(sprintf('The "%s" asset must be an object with "styles", "scripts", or "requires".', $handle)),
+				$assets,
+				array_keys($assets)
+			);
+		} catch (AssetException $error) {
+			throw new ThemeException(sprintf('The "%s" theme\'s manifest: %s', $theme, $error->getMessage()), 0, $error);
+		}
+
 		/** @var array<string, mixed> $data */
 		return new self(
 			name: $theme,
@@ -236,7 +260,8 @@ final readonly class ThemeManifest implements ExtensionManifest
 			abandoned: $abandoned,
 			suggest: $suggest,
 			preload: self::paths($theme, $data, 'preload', []),
-			keywords: $keywords
+			keywords: $keywords,
+			assets: $assets
 		);
 	}
 

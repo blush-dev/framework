@@ -146,9 +146,18 @@ so they still work in feeds.
 
 | Directive | Example                                                                     | Props                                                                                                                                                                                                             |
 |-----------|-----------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `audio`   | `::audio[Episode 12]{src=/media/episode.mp3}`                               | `src`. `preload`: `metadata` (default), `none`, or `auto`. `loop`. The label is the caption.                                                                                                                      |
+| `audio`   | `::audio[Episode 12]{src=/media/episode.mp3}`                               | `src`. `preload`: `metadata` (default), `none`, or `auto`. `loop`. The label is the caption. It plays in Blush's player (see below).                                                                            |
 | `video`   | `::video[Launch day]{src=/media/launch.mp4 poster=/media/launch.jpg}`       | `src`, `poster` (an image shown before it plays), `track` (a WebVTT captions file, in the page's language). `width` and `height`, which default to the poster's. `preload`, `loop`, `muted`. The label is the caption. |
 | `file`    | `::file[The annual report]{src=/media/report.pdf}`                          | `src`. The label is the link text (the file's name without one). It shows the file's type, and its size when it's in your media folder.                                                                           |
+
+Audio and video play in Blush's own player: a round play button, a bar
+to move through it, and the time, plus mute, volume, captions, and full
+screen for video. Its script and styles load only on pages that play
+something, and until the script loads, the browser's own controls
+show. Its button labels come from the `player` messages, which a theme
+can reword ([Translations](themes.md#translations)), and a theme
+restyles it with the `--player-*` properties
+([Scripts and styles](themes.md#scripts-and-styles)).
 
 Only the [file types your site allows](media.md#allowed-file-types) are
 served, so check the list before offering other kinds of files for
@@ -568,6 +577,10 @@ final class RecentPosts extends Directive
   prints `true` as the name alone. Include the element's class
   (`$this->block() . '__wrapper'`), so the template is just
   `<div <?= $directive->wrapperAttributes() ?>>`.
+- **`ASSETS`** lists the [scripts and styles](extending.md#scripts-and-styles)
+  it needs on the page, by handle: `protected const array ASSETS = ['acme/tabs'];`.
+  They load only on pages where it's drawn, in an entry's text too.
+  Override `assets()` to decide each time it's drawn.
 - **`$this->t('key', name: 'value')`** translates text from the theme's
   catalog, as `$template->t()` does, in the page's language.
 - **`#[MediaProp]`** on a string parameter makes it a media reference:

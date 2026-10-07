@@ -16,6 +16,7 @@ namespace Blush\Core;
 use Override;
 use Psr\Container\ContainerInterface;
 use Blush\Admin\AdminServiceProvider;
+use Blush\Asset\AssetServiceProvider;
 use Blush\Auth\AuthServiceProvider;
 use Blush\Cache\CacheServiceProvider;
 use Blush\Clock\ClockServiceProvider;
@@ -83,6 +84,7 @@ class Application implements Bootable
 		SettingsServiceProvider::class,
 		TranslationServiceProvider::class,
 		ThemeServiceProvider::class,
+		AssetServiceProvider::class,
 		ViewServiceProvider::class,
 		DirectiveServiceProvider::class,
 		ComponentServiceProvider::class,

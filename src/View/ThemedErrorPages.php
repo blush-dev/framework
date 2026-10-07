@@ -21,11 +21,13 @@ use Blush\Content\ContentRepository;
 use Blush\Content\Entry\Entry;
 use Blush\Content\Type\ContentTypes;
 use Blush\Core\AppConfig;
+use Blush\Event\Dispatcher;
 use Blush\Http\ErrorPages;
 use Blush\Http\HttpError;
 use Blush\Http\Response;
 use Blush\Http\Status;
 use Blush\Theme\ThemeResolver;
+use Blush\View\Events\PageRendering;
 
 /**
  * Renders error responses with the theme: the `error-{status}` →
@@ -38,6 +40,7 @@ use Blush\Theme\ThemeResolver;
  * page shows instead. Templates get `$status` (the code), `$reason`,
  * `$title`, `$entry`, `$description` (the theme's message for the
  * status), and `$message` (the exception's message, in debug only).
+ * `PageRendering` is dispatched first (D-571), as for content pages.
  */
 final readonly class ThemedErrorPages implements ErrorPages
 {
@@ -53,7 +56,8 @@ final readonly class ThemedErrorPages implements ErrorPages
 		private ViewFactory $views,
 		private ContentRepository $content,
 		private ContentTypes $types,
-		private AppConfig $app
+		private AppConfig $app,
+		private Dispatcher $events
 	) {}
 
 	/**
@@ -83,6 +87,8 @@ final readonly class ThemedErrorPages implements ErrorPages
 			'description' => self::message($views, "error.{$status->value}.message", self::message($views, 'error.message', '')),
 			'message'     => $this->app->debug ? $error->getMessage() : ''
 		]);
+
+		$this->events->dispatch(new PageRendering($context, $request, $views->chain, entry: $entry, status: $status));
 
 		$html = $views->render(Hierarchy::forError($status->value, $entry)->names, [], $context);
 

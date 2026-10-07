@@ -168,6 +168,10 @@ public function boot(): void
   component with no template and no `render()`.
 - **`shouldRender()`** returns `false` to draw nothing, and
   **`template()`** returns another view to draw with.
+- **`ASSETS`** lists the [scripts and styles](extending.md#scripts-and-styles)
+  it needs, by handle (`protected const array ASSETS = ['acme/carousel'];`),
+  which load only on pages it's drawn on; override `assets()` to decide
+  each time.
 - **`modifiers()`** and **`rootAttributes()`** add BEM modifiers and
   other attributes to the root element, and **`$this->t('key')`**
   translates text from the theme's catalog.

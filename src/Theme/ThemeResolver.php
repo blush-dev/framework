@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Blush\Theme;
 
 use Psr\Http\Message\ServerRequestInterface;
+use Blush\Asset\AssetRegistry;
 use Blush\Container\ContainerException;
 use Blush\Core\AppConfig;
 use Blush\Core\Application;
@@ -131,6 +132,19 @@ final class ThemeResolver
 		$autoloader = new LocalAutoloader();
 		$autoloader->addThemes($chain);
 		$autoloader->register();
+
+		// Its manifest assets (D-574), ancestors first, but not those of
+		// themes the running chain shares, which are registered already.
+		$running  = $this->active()->names();
+		$registry = $this->application->container()->make(AssetRegistry::class);
+
+		foreach (array_reverse($chain->themes) as $theme) {
+			if (! in_array($theme->name, $running, true)) {
+				foreach ($theme->assets as $asset) {
+					$registry->register($asset);
+				}
+			}
+		}
 
 		$this->application->register(...array_values(array_filter(
 			$chain->providers(),

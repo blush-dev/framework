@@ -16,6 +16,7 @@ namespace Blush\Content\Entry;
 use DateTimeImmutable;
 use ReflectionClass;
 use Psr\Clock\ClockInterface;
+use Blush\Asset\AssetCollector;
 use Blush\Content\Index\IndexRecord;
 use Blush\Content\Parser\DocumentParser;
 use Blush\Content\Source\ContentSource;
@@ -45,7 +46,8 @@ final readonly class EntryHydrator
 		private MarkdownParser $markdown,
 		private ClockInterface $clock,
 		private AppConfig $app,
-		private ?BodyCache $cache = null
+		private ?BodyCache $cache = null,
+		private ?AssetCollector $collector = null
 	) {}
 
 	/**
@@ -113,7 +115,7 @@ final readonly class EntryHydrator
 			$source->__construct($this->parser->parse($this->source->read($path))->body);
 		});
 
-		return new Body($source, $this->markdown, $this->cache, $record->hash, $this->app->languages->isOther($record->language) ? $record->language : '');
+		return new Body($source, $this->markdown, $this->cache, $record->hash, $this->app->languages->isOther($record->language) ? $record->language : '', $this->collector);
 	}
 
 	/**

@@ -803,7 +803,17 @@ view layer was implemented in M5 (D-103 to D-125).
   stylesheets, and scripts, each once, and renders them in the base layout
   (D-109), with root-relative `href`s and `src`s as full URLs on the
   site's origin (D-193). `ThemedPageRenderer` adds the page number to the title on later
-  pages of a listing (D-162).
+  pages of a listing (D-162). It takes registered assets by handle
+  (`enqueue()`) and footer scripts, and is held during `Views::render()`
+  and filled once the page has rendered (D-570).
+- **Assets** (`Blush\Asset`, D-569 to D-573): `AssetRegistry` (handles,
+  seeded by `AssetRegistrar` with `blush/player`), `AssetUrls` (core,
+  plugin, theme, or URL; `?v={crc32}`), `Assets` (prints handles into a
+  head, requirements first), `AssetCollector` (render scopes, so a
+  directive's or component's `assets()` reach the page, kept with cached
+  bodies and fragments), and the `core.asset` and `plugin.asset` routes
+  (`AssetController`). Core's site files build from `resources/site`
+  into `public/site` (`npm run site:build`).
 - **Directives and components** render through `Views` (`directive()`,
   `hasDirective()`, `directives()`; `component()`, `hasComponent()`,
   `components()`), by namespaced name (D-171). Each is its own subsystem
@@ -812,7 +822,8 @@ view layer was implemented in M5 (D-103 to D-125).
   with front matter `template:` first (D-104).
 - **Renderers:** `ThemedPageRenderer` (the `PageRenderer`) and
   `ThemedErrorPages` (the `ErrorPages`) pick the chain per request
-  (`ThemeResolver`, `?theme=` in development) and fill in the head.
+  (`ThemeResolver`, `?theme=` in development), fill in the head, and
+  dispatch `View\Events\PageRendering` before the templates (D-571).
 - **Context providers** (`ContextProviders`, D-114) add data to views by
   name or pattern.
 - **Themes** (`Blush\Theme`, D-105, D-115 to D-121): `ThemeDiscovery`

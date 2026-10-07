@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Blush\Content\Entry;
 
 use Dom\HTMLDocument;
+use Blush\Asset\AssetCollector;
 use Blush\Markdown\MarkdownException;
 use Blush\Markdown\MarkdownParser;
 
@@ -22,10 +23,21 @@ use Blush\Markdown\MarkdownParser;
  * use. The source is a lazy ghost, so the file is read and parsed only
  * when it's needed (listings never touch it), and with a `BodyCache`, a
  * cached rendering means it isn't needed at all.
+ *
+ * It renders in its own asset scope (D-572) and keeps the assets its
+ * directives asked for, adding them to the page only when its HTML is
+ * asked for (`html()`), not when it's read for an excerpt or a count.
  */
 final class Body
 {
 	private ?string $html = null;
+
+	/**
+	 * The assets its directives asked for, by handle.
+	 *
+	 * @var list<string>
+	 */
+	private array $assets = [];
 
 	/**
 	 * @param string $hash     The source file's content hash, which keys the cache.
@@ -36,7 +48,8 @@ final class Body
 		private readonly MarkdownParser $markdown,
 		private readonly ?BodyCache $cache = null,
 		private readonly string $hash = '',
-		private readonly string $language = ''
+		private readonly string $language = '',
+		private readonly ?AssetCollector $collector = null
 	) {}
 
 	/**
@@ -48,15 +61,43 @@ final class Body
 	}
 
 	/**
-	 * Returns the rendered HTML.
+	 * Returns the rendered HTML, and asks for the assets its directives
+	 * need, for the page that prints it.
 	 *
 	 * @throws MarkdownException
 	 */
 	public function html(): string
 	{
-		return $this->html ??= $this->cache === null || $this->hash === ''
+		$html = $this->rendered();
+
+		$this->collector?->add(...$this->assets);
+
+		return $html;
+	}
+
+	/**
+	 * Returns the rendered HTML, rendering it (or reading it from the
+	 * cache) on first use, with the assets its directives asked for.
+	 *
+	 * @throws MarkdownException
+	 */
+	private function rendered(): string
+	{
+		if ($this->html !== null) {
+			return $this->html;
+		}
+
+		$render = fn (): string => $this->cache === null || $this->hash === ''
 			? $this->render()
 			: $this->cache->remember("body.{$this->key()}", $this->render(...));
+
+		if ($this->collector === null) {
+			return $this->html = $render();
+		}
+
+		[$this->html, $this->assets] = $this->collector->isolate($render);
+
+		return $this->html;
 	}
 
 	/**
@@ -127,7 +168,7 @@ final class Body
 	 */
 	private function words(): array
 	{
-		$document = HTMLDocument::createFromString('<!DOCTYPE html><meta charset="utf-8"><body>' . $this->html() . '</body>', LIBXML_NOERROR);
+		$document = HTMLDocument::createFromString('<!DOCTYPE html><meta charset="utf-8"><body>' . $this->rendered() . '</body>', LIBXML_NOERROR);
 
 		foreach ($document->querySelectorAll('figcaption, nav, [aria-hidden="true"]') as $element) {
 			$element->remove();
