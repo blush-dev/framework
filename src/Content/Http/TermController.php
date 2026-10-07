@@ -20,8 +20,9 @@ use Blush\Http\NotFound;
 
 /**
  * Serves a term's archive (`{type}.single` and `{type}.single.paged` of a
- * type a classify relation files entries under, D-593): the term, which
- * has a file (D-584), with the entries filed under it. The entries are
+ * type a classify relation files entries under, D-593, or that another
+ * relation's inverse archive is on, D-596): the term, which has a file
+ * (D-584), with the entries linking to it. The entries are
  * those of the relation's types, listed by its inverse's `listing` and the
  * term's own `collection` front matter (`ContentTypes::termArguments()`).
  *
@@ -58,7 +59,7 @@ final class TermController extends ContentController
 			return self::redirect($request, $url);
 		}
 
-		$query = $this->query($this->types->termArguments($taxonomy->name), self::collectionArguments($term))->whereTerm($taxonomy->name, $slug)->language($language);
+		$query = $this->query($this->types->termArguments($taxonomy->name), self::collectionArguments($term))->whereAnyTerm($this->types->termKeys($taxonomy->name), $slug)->language($language);
 
 		return $this->renderer->render(new ContentPage(
 			kind: PageKind::Term,

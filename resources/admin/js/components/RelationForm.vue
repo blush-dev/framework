@@ -55,6 +55,18 @@ const archive  = ref(true);
 const multiple = ref(true);
 const ordered  = ref(false);
 
+// A link's reverse side (D-596): no page, a list on each target's own
+// page, or archives under the source type by a word.
+type Reverse = 'none' | 'page' | 'word';
+
+const reverse  = ref<Reverse>('none');
+const word     = ref('');
+const reverses = [
+	{ value: 'none', label: 'No page; templates can list them' },
+	{ value: 'page', label: 'On each linked entry\'s own page' },
+	{ value: 'word', label: 'Archives under these entries\' address' }
+];
+
 const { busy, error, run } = useAction();
 
 // Every type but profiles, which people fields credit (D-351).
@@ -91,6 +103,11 @@ watch(() => [props.open, props.relation] as const, ([open, relation]) => {
 		multiple.value = relation.multiple;
 		ordered.value  = relation.ordered;
 
+		const archived = relation.inverse === false ? false : relation.inverse.archive;
+
+		reverse.value = archived === true ? 'page' : (typeof archived === 'string' ? 'word' : 'none');
+		word.value    = typeof archived === 'string' ? archived : '';
+
 		return;
 	}
 
@@ -111,6 +128,8 @@ watch(() => [props.open, props.relation] as const, ([open, relation]) => {
 	archive.value  = true;
 	multiple.value = true;
 	ordered.value  = false;
+	reverse.value  = 'none';
+	word.value     = '';
 }, { immediate: true });
 
 function filed(name: string, on: boolean): void {
@@ -126,7 +145,8 @@ const referenceKey = computed(() => keyOf(key.value) || keyOf(labelOf(target.val
  * choices over it.
  */
 function definition(): Record<string, unknown> {
-	const base = props.relation?.definition ?? {};
+	const base        = props.relation?.definition ?? {};
+	const inverseBase = typeof base.inverse === 'object' && base.inverse !== null ? base.inverse : {};
 
 	if (purpose.value === 'classify') {
 		return {
@@ -149,7 +169,8 @@ function definition(): Record<string, unknown> {
 		to: [target.value],
 		multiple: multiple.value,
 		ordered: multiple.value && ordered.value,
-		min: required.value ? 1 : 0
+		min: required.value ? 1 : 0,
+		inverse: { ...inverseBase, archive: reverse.value === 'page' ? true : (reverse.value === 'word' ? (keyOf(word.value) || referenceKey.value) : false) }
 	};
 }
 
@@ -218,6 +239,16 @@ async function save(): Promise<void> {
 					<label v-if="multiple" class="checkbox"><input v-model="ordered" type="checkbox"> Their order matters</label>
 					<label class="checkbox"><input v-model="required" type="checkbox"> An entry needs one to be published</label>
 				</fieldset>
+				<div class="field">
+					<label for="relation-reverse">What links to an entry</label>
+					<AdminSelect id="relation-reverse" v-model="reverse" :options="reverses" described-by="relation-reverse-help" />
+					<p id="relation-reverse-help" class="field__help">Where the {{ labelOf(source) }} linking to one of the {{ labelOf(target) }} are listed, paged with a feed.</p>
+				</div>
+				<div v-if="reverse === 'word'" class="field">
+					<label for="relation-word">Archive word</label>
+					<input id="relation-word" v-model="word" class="mono" :placeholder="referenceKey" autocomplete="off" spellcheck="false" aria-describedby="relation-word-help">
+					<p id="relation-word-help" class="field__help">Each linked entry's archive is at <code>…/{{ keyOf(word) || referenceKey || '…' }}/its-slug</code> under the {{ labelOf(source) }}' address.</p>
+				</div>
 			</template>
 
 			<p v-if="error" class="notice notice--error" role="alert">{{ error }}</p>

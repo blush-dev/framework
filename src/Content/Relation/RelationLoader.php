@@ -18,14 +18,16 @@ use Blush\Content\Type\ContentConfig;
 use Blush\Core\Paths;
 use Blush\Data\DataLoader;
 use Blush\Data\InvalidData;
+use Blush\Extension\DefinitionClash;
 
 /**
  * Loads the site's relation definitions (D-593), each replacing one of
  * the same name before it: extensions (`RelationSource`), then
  * `config/content.php`'s `relations`, then
  * `user/data/relations/*.{json,yaml,yml}` (a relation named after its
- * file) unless `ContentConfig::$dataTypes` is off. Two extensions can't
- * define the same relation.
+ * file) unless `ContentConfig::$dataTypes` is off. When two extensions
+ * define a relation by one name, the first is kept and the clash is
+ * returned with the others (D-597), so the site keeps loading.
  */
 final readonly class RelationLoader
 {
@@ -42,23 +44,29 @@ final readonly class RelationLoader
 	) {}
 
 	/**
-	 * Loads the relations, keyed by name, with where each came from.
+	 * Loads the relations, keyed by name, with where each came from, and
+	 * any two extensions defined by one name.
 	 *
-	 * @return array{array<string, Relation>, array<string, RelationOrigin>}
+	 * @return array{array<string, Relation>, array<string, RelationOrigin>, list<DefinitionClash>}
 	 * @throws InvalidRelation When one can't be read or isn't valid.
 	 */
 	public function load(): array
 	{
 		$relations = [];
 		$origins   = [];
+		$sources   = [];
+		$clashes   = [];
 
-		foreach ($this->extensionRelations() as $relation) {
-			if (isset($origins[$relation->name])) {
-				throw new InvalidRelation(sprintf('Two extensions define the "%s" relation.', $relation->name));
+		foreach ($this->extensionRelations() as [$relation, $source]) {
+			if (isset($sources[$relation->name])) {
+				$clashes[] = new DefinitionClash('relation', $relation->name, $sources[$relation->name], $source);
+
+				continue;
 			}
 
 			$relations[$relation->name] = $relation;
 			$origins[$relation->name]   = RelationOrigin::Extension;
+			$sources[$relation->name]   = $source;
 		}
 
 		foreach ($this->config->relations as $relation) {
@@ -71,7 +79,7 @@ final readonly class RelationLoader
 			$origins[$relation->name]   = RelationOrigin::Data;
 		}
 
-		return [$relations, $origins];
+		return [$relations, $origins, $clashes];
 	}
 
 	/**
@@ -83,9 +91,10 @@ final readonly class RelationLoader
 	}
 
 	/**
-	 * Returns the relations from extension sources.
+	 * Returns the relations from extension sources, each with its
+	 * source's class.
 	 *
-	 * @return iterable<Relation>
+	 * @return iterable<array{Relation, string}>
 	 * @throws InvalidRelation
 	 */
 	private function extensionRelations(): iterable
@@ -95,7 +104,9 @@ final readonly class RelationLoader
 				throw new InvalidRelation(sprintf('Services tagged "%s" must implement %s; %s does not.', RelationSource::TAG, RelationSource::class, get_debug_type($source)));
 			}
 
-			yield from $source->relations();
+			foreach ($source->relations() as $relation) {
+				yield [$relation, $source::class];
+			}
 		}
 	}
 

@@ -15,7 +15,8 @@
  * another pattern than their type's are renamed to it, a type at a time
  * (D-512), collections' entries kept in folders are moved into their
  * collections' folders (D-514), terms and profiles entries name with
- * no file are written (D-584), and data types still written as taxonomies
+ * no file are written (D-584), links between entries are filed with
+ * their ids (D-596), and data types still written as taxonomies
  * are migrated to collections and relations (D-591, D-593).
  */
 
@@ -33,7 +34,7 @@ import { refreshTypes } from '../types';
 
 const props = defineProps<{
 	area: 'content' | 'media';
-	check: 'files' | 'ids' | 'terms' | 'taxonomies' | 'folders' | 'names' | 'sizes';
+	check: 'files' | 'ids' | 'terms' | 'refs' | 'taxonomies' | 'folders' | 'names' | 'sizes';
 }>();
 
 const severities: Record<Violation['severity'], string> = {
@@ -48,6 +49,7 @@ const SCREENS: Record<string, { title: string; hint: string; clear: string }> = 
 	'content:files': { title: 'Content Files', hint: 'Problems in entries\' files, as content:lint finds them', clear: '' },
 	'content:ids': { title: 'Entry IDs', hint: 'Every content file needs an id of its own', clear: 'Every content file has an id of its own.' },
 	'content:terms': { title: 'Terms and Profiles', hint: 'A term or profile entries name is left out of the site until it has a file', clear: 'Every term and profile entries name has a file.' },
+	'content:refs': { title: 'Links Between Entries', hint: 'A link filed with its id follows what it links to through a rename or move', clear: 'Every link between entries is filed with its id.' },
 	'content:taxonomies': { title: 'Taxonomies', hint: 'Read as collections and their relationships until they\'re migrated', clear: 'Every content type is written as a collection or a tree.' },
 	'content:folders': { title: 'Collection Folders', hint: 'A collection\'s entries are files in its folder', clear: 'Every collection\'s entries are files in its folder.' },
 	'content:names': { title: 'File Names', hint: 'Older names keep working; renaming them changes no address', clear: 'Every entry is named by its type\'s pattern.' },
@@ -100,6 +102,8 @@ const found = computed(() => {
 			return (ids.value?.ids.missing.length ?? 0) + (ids.value?.ids.duplicates.length ?? 0) > 0;
 		case 'terms':
 			return value.terms.count > 0;
+		case 'refs':
+			return value.refs.count > 0;
 		case 'taxonomies':
 			return value.taxonomies.length > 0;
 		case 'folders':
@@ -216,6 +220,17 @@ function writeTerms(): Promise<void> {
 		const written = Object.keys(answer.created).length;
 
 		return { changed: written, text: written ? `Wrote ${plural(written, 'file')}` : 'No terms or profiles you may create were missing' };
+	});
+}
+
+/**
+ * Files links between entries with their ids (D-596).
+ */
+function fileRefs(): Promise<void> {
+	return runFix<FixAnswer & { filed: string[] }>('refs', '/health/refs', {}, ['file', 'files'], 'The links couldn\'t be filed.', (answer) => {
+		const filed = answer.filed.length;
+
+		return { changed: filed, text: filed ? `Filed links in ${plural(filed, 'file')}` : 'No files you may edit needed their links filed' };
 	});
 }
 
@@ -349,6 +364,19 @@ onMounted(() => {
 			<p>{{ plural(health.terms.count, 'term or profile has', 'terms and profiles have') }} no file, such as <code>{{ health.terms.examples[0]?.type }}/{{ health.terms.examples[0]?.slug }}</code>. Each is written published, titled as entries name it.</p>
 			<button type="button" class="button button--primary button--small" :disabled="fixing !== null" @click="writeTerms">
 				{{ fixing === 'terms' ? 'Writing…' : 'Write Files' }}
+			</button>
+		</div>
+	</section>
+
+	<section v-else-if="check === 'refs'" class="panel" aria-labelledby="refs-heading">
+		<header class="panel__header">
+			<h2 id="refs-heading">Links Without IDs</h2>
+			<p class="panel__hint">{{ screen.hint }}</p>
+		</header>
+		<div class="ids__row">
+			<p>{{ plural(health.refs.count, 'file has', 'files have') }} links not filed with their ids, such as <code>{{ health.refs.examples[0]?.path }}</code> ({{ health.refs.examples[0]?.relations.join(', ') }}). Each link's id is filed under <code>refs</code>, and a value naming an id or an old slug is written as the slug it has now.</p>
+			<button type="button" class="button button--primary button--small" :disabled="fixing !== null" @click="fileRefs">
+				{{ fixing === 'refs' ? 'Filing…' : 'File Links' }}
 			</button>
 		</div>
 	</section>

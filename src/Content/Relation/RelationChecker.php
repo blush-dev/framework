@@ -32,12 +32,14 @@ final readonly class RelationChecker
 	 *
 	 * @param  array<string, string> $entries Every entry with an id, its type by id.
 	 * @param  list<string>          $live    The ids of the live ones.
+	 * @param  list<string>          $trashed The ids of those in the trash, which an inverse's `max` doesn't count (D-598).
 	 * @return list<RelationProblem>
 	 */
-	public function check(Relations $relations, RelationGraph $graph, array $entries, array $live): array
+	public function check(Relations $relations, RelationGraph $graph, array $entries, array $live, array $trashed = []): array
 	{
 		$problems = [];
 		$live     = array_flip($live);
+		$trashed  = array_flip($trashed);
 
 		foreach ($entries as $id => $type) {
 			foreach ($relations->for($type) as $relation) {
@@ -66,7 +68,7 @@ final readonly class RelationChecker
 			}
 
 			foreach ($entries as $id => $type) {
-				$sources = array_filter($graph->linksTo($id, $relation->name), static fn (Link $link): bool => $relation->isFrom($link->type));
+				$sources = array_filter($graph->linksTo($id, $relation->name), static fn (Link $link): bool => $relation->isFrom($link->type) && ! isset($trashed[$link->source]));
 
 				if (count($sources) > $max) {
 					$problems[] = new RelationProblem(ProblemKind::InverseLimit, $relation->name, $id, '', sprintf('At most %d may name it in %s; %d do.', $max, $relation->name, count($sources)));

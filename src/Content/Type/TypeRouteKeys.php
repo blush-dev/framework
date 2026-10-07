@@ -30,6 +30,7 @@ use Blush\Routing\RoutePattern;
  *   under, D-593), and the profiles type's, hold `{name}`.
  * - Date archives hold the date's parts down to their level.
  * - A people field's `{field}.single` keys hold `{profile}` (D-351).
+ * - A relation archive's `{relation}.single` keys hold `{target}` (D-596).
  * - `.paged` keys add `{page}`.
  */
 final readonly class TypeRouteKeys
@@ -44,11 +45,14 @@ final readonly class TypeRouteKeys
 	 * `$terms` whether the type's entries are terms with pages of their
 	 * own (`ContentTypes::hasTermPages()`), paged and with feeds. The
 	 * profiles type answers only at its profiles' pages and feeds.
+	 * `$relations` names the relations with archives under the type
+	 * (`ContentTypes::relationArchives()`), whose keys come last.
 	 *
 	 * @param  list<string> $feeds
+	 * @param  list<string> $relations
 	 * @return list<string>
 	 */
-	public static function keys(ContentType $type, bool $home, array $feeds, bool $profiles, bool $terms = false): array
+	public static function keys(ContentType $type, bool $home, array $feeds, bool $profiles, bool $terms = false, array $relations = []): array
 	{
 		if (! $type->hasUrls()) {
 			return [];
@@ -81,6 +85,14 @@ final readonly class TypeRouteKeys
 			}
 		}
 
+		foreach ($relations as $relation) {
+			array_push($keys, "{$relation}.collection", "{$relation}.single", "{$relation}.single.paged");
+
+			foreach ($type->hasFeed() ? $feeds : [] as $suffix) {
+				$keys[] = "{$relation}.single.feed{$suffix}";
+			}
+		}
+
 		return $keys;
 	}
 
@@ -89,12 +101,13 @@ final readonly class TypeRouteKeys
 	 * `$taxonomies` are the names of the site's term types (what classify
 	 * relations file entries under, and the profiles type), which a
 	 * collection's `single` may hold; a term type's own `single` holds
-	 * only `{name}`.
+	 * only `{name}`. `$relations` names the type's relation archives.
 	 *
 	 * @param  list<string> $taxonomies
+	 * @param  list<string> $relations
 	 * @return array{required: list<string>, optional: list<string>}
 	 */
-	public static function params(ContentType $type, string $key, array $taxonomies): array
+	public static function params(ContentType $type, string $key, array $taxonomies, array $relations = []): array
 	{
 		$page     = str_ends_with($key, '.paged') ? ['page'] : [];
 		$base     = $page === [] ? $key : substr($key, 0, -strlen('.paged'));
@@ -102,10 +115,13 @@ final readonly class TypeRouteKeys
 		$required = [];
 		$optional = [];
 
-		$people = array_find($type->people, static fn (PeopleField $field): bool => str_starts_with($base, "{$field->field}.single"));
+		$people   = array_find($type->people, static fn (PeopleField $field): bool => str_starts_with($base, "{$field->field}.single"));
+		$relation = array_find($relations, static fn (string $relation): bool => str_starts_with($base, "{$relation}.single"));
 
 		if ($people !== null) {
 			$required = ['profile'];
+		} elseif ($relation !== null) {
+			$required = ['target'];
 		} elseif ($base === 'single' && ! in_array($type->name, $taxonomies, true)) {
 			$required = ['name'];
 			$optional = [...$dates, ...$taxonomies];
@@ -124,9 +140,10 @@ final readonly class TypeRouteKeys
 	 * `$label` names the address in the message.
 	 *
 	 * @param  list<string> $taxonomies
+	 * @param  list<string> $relations
 	 * @throws InvalidContentType
 	 */
-	public static function check(ContentType $type, string $key, string $path, array $taxonomies, string $label): void
+	public static function check(ContentType $type, string $key, string $path, array $taxonomies, string $label, array $relations = []): void
 	{
 		if (preg_match('#^[A-Za-z0-9._~/{}-]*$#', $path) !== 1) {
 			throw new InvalidContentType(sprintf('The %s address can use letters, digits, "-", "_", ".", "/", and {placeholders}; "%s" has something else.', $label, $path));
@@ -138,7 +155,7 @@ final readonly class TypeRouteKeys
 			throw new InvalidContentType(sprintf('The %s address "%s" isn\'t one: %s', $label, $path, $e->getMessage()), previous: $e);
 		}
 
-		['required' => $required, 'optional' => $optional] = self::params($type, $key, $taxonomies);
+		['required' => $required, 'optional' => $optional] = self::params($type, $key, $taxonomies, $relations);
 
 		$missing = array_diff($required, $held);
 		$unknown = array_diff($held, $required, $optional);

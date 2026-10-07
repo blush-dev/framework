@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Blush\Admin;
 
 use Blush\Content\EntryIds;
+use Blush\Content\EntryRefs;
 use Blush\Content\FileNameRename;
 use Blush\Content\FileNames;
 use Blush\Content\FlatEntries;
@@ -37,8 +38,9 @@ use Blush\Media\MediaSizes;
  * file or its metadata, else `content`); files missing an id and ids
  * files share, for entries (D-477) and media (D-487); images' sizes not
  * recorded (D-488); entries named by another pattern than their type's
- * (D-512); collections' entries kept in folders (D-514); and terms and
- * profiles entries name with no file (D-584).
+ * (D-512); collections' entries kept in folders (D-514); terms and
+ * profiles entries name with no file (D-584); and links between entries
+ * not filed with their ids (D-596).
  *
  * It reads every file, so it runs when asked.
  */
@@ -53,6 +55,7 @@ final readonly class ContentHealth
 		private ContentTypes $types,
 		private FlatEntries $flat,
 		private MissingTerms $terms,
+		private EntryRefs $refs,
 		private Paths $paths
 	) {}
 
@@ -60,7 +63,7 @@ final readonly class ContentHealth
 	 * Returns the report: errors and warnings, and notices too when
 	 * `strict`.
 	 *
-	 * @return array{checked: int, metadata: int, strict: bool, counts: array{error: int, warning: int, notice: ?int}, files: list<array{path: string, area: string, violations: list<array{field: string, message: string, severity: string}>}>, ids: array{missing: list<string>, duplicates: list<array{id: string, paths: list<string>}>}, mediaIds: array{missing: list<string>, duplicates: list<array{id: string, paths: list<string>}>}, fileNames: list<array{type: string, label: string, pattern: string, count: int, examples: list<array{path: string, to: string}>, skipped: int}>, flat: array{count: int, examples: list<array{path: string, to: string}>}, terms: array{count: int, examples: list<array{type: string, slug: string, title: string}>}, taxonomies: list<string>, mediaSizes: array{sizes: int, images: int, stale: int}}
+	 * @return array{checked: int, metadata: int, strict: bool, counts: array{error: int, warning: int, notice: ?int}, files: list<array{path: string, area: string, violations: list<array{field: string, message: string, severity: string}>}>, ids: array{missing: list<string>, duplicates: list<array{id: string, paths: list<string>}>}, mediaIds: array{missing: list<string>, duplicates: list<array{id: string, paths: list<string>}>}, fileNames: list<array{type: string, label: string, pattern: string, count: int, examples: list<array{path: string, to: string}>, skipped: int}>, flat: array{count: int, examples: list<array{path: string, to: string}>}, terms: array{count: int, examples: list<array{type: string, slug: string, title: string}>}, refs: array{count: int, examples: list<array{path: string, relations: list<string>}>}, taxonomies: list<string>, mediaSizes: array{sizes: int, images: int, stale: int}}
 	 */
 	public function report(bool $strict = false): array
 	{
@@ -104,6 +107,7 @@ final readonly class ContentHealth
 			'fileNames'  => $this->fileNames(),
 			'flat'       => $this->flatReport(),
 			'terms'      => $this->termsReport(),
+			'refs'       => $this->refsReport(),
 			'taxonomies' => $this->types->legacy,
 			'mediaSizes' => ['sizes' => $sizes->count(), 'images' => count($sizes->unrecorded), 'stale' => count($sizes->stale)]
 		];
@@ -157,6 +161,23 @@ final readonly class ContentHealth
 		}
 
 		return ['count' => count($missing), 'examples' => array_slice($missing, 0, 3)];
+	}
+
+	/**
+	 * Answers how many files have links between entries not filed with
+	 * their ids (D-596), and the first few, with the relations that
+	 * differ.
+	 *
+	 * @return array{count: int, examples: list<array{path: string, relations: list<string>}>}
+	 */
+	private function refsReport(): array
+	{
+		$stale = $this->refs->report();
+
+		return [
+			'count'    => count($stale),
+			'examples' => array_map(static fn (string $path, array $relations): array => ['path' => $path, 'relations' => $relations], array_keys(array_slice($stale, 0, 3)), array_slice($stale, 0, 3))
+		];
 	}
 
 	/**

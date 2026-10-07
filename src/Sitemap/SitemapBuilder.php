@@ -17,6 +17,7 @@ use DateTimeImmutable;
 use Blush\Content\ContentRepository;
 use Blush\Content\Entry\Entry;
 use Blush\Content\PeopleArchives;
+use Blush\Content\RelationArchives;
 use Blush\Content\Routing\ContentUrls;
 use Blush\Content\Type\ContentType;
 use Blush\Content\Type\ContentTypes;
@@ -42,7 +43,8 @@ final readonly class SitemapBuilder
 		private ContentRepository $content,
 		private ContentTypes $types,
 		private ContentUrls $urls,
-		private PeopleArchives $archives
+		private PeopleArchives $archives,
+		private RelationArchives $relationArchives
 	) {}
 
 	/**
@@ -115,7 +117,7 @@ final readonly class SitemapBuilder
 		}
 
 		if ($this->types->hasTermPages($type->name)) {
-			$slugs = array_map(strval(...), array_keys($this->content->termCounts($type->name)));
+			$slugs = array_map(strval(...), array_keys($this->content->termCounts($this->types->termKeys($type->name))));
 			sort($slugs);
 
 			foreach ($slugs as $slug) {
@@ -135,6 +137,7 @@ final readonly class SitemapBuilder
 		}
 
 		$this->addPeople($urls, $type);
+		$this->addRelated($urls, $type);
 
 		return array_values($urls);
 	}
@@ -160,6 +163,32 @@ final readonly class SitemapBuilder
 
 				if ($url !== null) {
 					$urls[$url] ??= new SitemapUrl($this->urls->absolute($url), $person->updated);
+				}
+			}
+		}
+	}
+
+	/**
+	 * Adds each of a type's relation archives' lists and targets' archives
+	 * (D-596), when they have any.
+	 *
+	 * @param array<string, SitemapUrl> $urls
+	 */
+	private function addRelated(array &$urls, ContentType $type): void
+	{
+		foreach ($this->types->relationArchives($type) as $relation) {
+			$targets = $this->relationArchives->linked($type, $relation);
+			$list    = $targets === [] ? null : $this->urls->relatedList($type, $relation);
+
+			if ($list !== null) {
+				$urls[$list] ??= new SitemapUrl($this->urls->absolute($list));
+			}
+
+			foreach ($targets as $target) {
+				$url = $this->urls->related($type, $relation, $target->slug);
+
+				if ($url !== null) {
+					$urls[$url] ??= new SitemapUrl($this->urls->absolute($url), $target->updated);
 				}
 			}
 		}

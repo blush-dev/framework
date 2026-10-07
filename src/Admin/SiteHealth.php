@@ -179,7 +179,7 @@ final readonly class SiteHealth
 	 * Returns a new `ContentHealth` report, notices included (the admin
 	 * hides them until asked), and when it was made (`at`).
 	 *
-	 * @return array{at: string, checked: int, metadata: int, strict: bool, counts: array{error: int, warning: int, notice: ?int}, files: list<array{path: string, area: string, violations: list<array{field: string, message: string, severity: string}>}>, ids: array{missing: list<string>, duplicates: list<array{id: string, paths: list<string>}>}, mediaIds: array{missing: list<string>, duplicates: list<array{id: string, paths: list<string>}>}, fileNames: list<array{type: string, label: string, pattern: string, count: int, examples: list<array{path: string, to: string}>, skipped: int}>, flat: array{count: int, examples: list<array{path: string, to: string}>}, terms: array{count: int, examples: list<array{type: string, slug: string, title: string}>}, taxonomies: list<string>, mediaSizes: array{sizes: int, images: int, stale: int}}
+	 * @return array{at: string, checked: int, metadata: int, strict: bool, counts: array{error: int, warning: int, notice: ?int}, files: list<array{path: string, area: string, violations: list<array{field: string, message: string, severity: string}>}>, ids: array{missing: list<string>, duplicates: list<array{id: string, paths: list<string>}>}, mediaIds: array{missing: list<string>, duplicates: list<array{id: string, paths: list<string>}>}, fileNames: list<array{type: string, label: string, pattern: string, count: int, examples: list<array{path: string, to: string}>, skipped: int}>, flat: array{count: int, examples: list<array{path: string, to: string}>}, terms: array{count: int, examples: list<array{type: string, slug: string, title: string}>}, refs: array{count: int, examples: list<array{path: string, relations: list<string>}>}, taxonomies: list<string>, mediaSizes: array{sizes: int, images: int, stale: int}}
 	 */
 	private function fileReport(): array
 	{
@@ -201,7 +201,7 @@ final readonly class SiteHealth
 	 * Sums up content and media files' health, each linking to its area's
 	 * details. Notices, when the report has them, don't count.
 	 *
-	 * @param  array{files: list<array{path: string, area: string, violations: list<array{field: string, message: string, severity: string}>}>, checked: int, metadata: int, ids: array{missing: list<string>, duplicates: list<mixed>}, mediaIds: array{missing: list<string>, duplicates: list<mixed>}, fileNames: list<array{count: int}>, flat: array{count: int}, terms: array{count: int}, taxonomies: list<string>, mediaSizes: array{sizes: int, images: int, stale: int}} $report
+	 * @param  array{files: list<array{path: string, area: string, violations: list<array{field: string, message: string, severity: string}>}>, checked: int, metadata: int, ids: array{missing: list<string>, duplicates: list<mixed>}, mediaIds: array{missing: list<string>, duplicates: list<mixed>}, fileNames: list<array{count: int}>, flat: array{count: int}, terms: array{count: int}, refs: array{count: int}, taxonomies: list<string>, mediaSizes: array{sizes: int, images: int, stale: int}} $report
 	 * @return list<array<string, mixed>>
 	 */
 	private function summarize(array $report): array
@@ -242,6 +242,12 @@ final readonly class SiteHealth
 		$checks[] = self::check('content', 'terms', $terms > 0
 			? CheckResult::warning('Terms and profiles', sprintf('%s no file, so the site leaves %s out.', self::count($terms, 'term or profile entries name has', 'terms and profiles entries name have'), $terms === 1 ? 'it' : 'them'))
 			: CheckResult::pass('Terms and profiles', 'Every term and profile entries name has a file.'), 'content');
+
+		$refs = $report['refs']['count'];
+
+		$checks[] = self::check('content', 'refs', $refs > 0
+			? CheckResult::warning('Links between entries', sprintf('%s links not filed with their ids, so a rename or move of what %s link to can break them.', self::count($refs, 'file has', 'files have'), $refs === 1 ? 'it' : 'they'))
+			: CheckResult::pass('Links between entries', 'Every link between entries is filed with its id.'), 'content');
 
 		$taxonomies = count($report['taxonomies']);
 

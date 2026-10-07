@@ -1058,39 +1058,21 @@ Move each item to `decisions.md` once it's answered.
   - Data on a link (the role an actor played): references inside object
     fields (`cast: [{actor: tom-hanks, role: Forrest}]`), indexed too?
     D-585's fourth stage; it needs fields.
-  - A type that lists what references it: paged like a term page (with
-    feeds), or a plain list on the entry's page? Reusing term paging gives
-    both.
+  - ~~A type that lists what references it~~: answered in D-596 (by
+    the inverse `archive`: the target's page, a word, or a template's
+    `referencedBy()`).
   - **Cases to account for** (listed 2026-10-07; target states,
     sources and targets, hierarchy, and defaults answered in D-586;
     languages, integrity, and when defaults apply in D-587):
-    - **Target states** (pickers offer only live targets, D-586):
-      what a link to a target that later stops being live does (a
-      draft again, in the trash, D-484); trashing or deleting a target
-      with referrers; which statuses count as live (the status API;
-      `published` only until then, D-588).
+    - ~~Target states~~: answered and built in D-598 (links kept
+      for drafts and the trash, warnings, unlinking on delete, pickers
+      offer drafts too); which statuses count as live waits for the
+      status API (D-588).
     - **Media as a content type** (D-586): once the full relation API
       works (D-588); it reopens D-238.
-    - **Two extensions defining one relation (or type) name**
-      (discussed 2026-10-07, after D-594): today `RelationLoader` throws
-      "Two extensions define the "x" relation", and the site, admin
-      included, stops loading; two extensions defining one type name do
-      the same. Rare (a classify relation is named after its type,
-      people relations aren't plugin-defined, and the ecosystem is
-      small), but generic reference names (`related`, `series`,
-      `featured`) can clash, and the admin installs plugins from a
-      `.zip` (D-392), so someone could lose the screen that turns the
-      plugin off. Recommended, after D-585's stage 2: fail softly for
-      types and relations together (keep the first, drop the other's
-      definition, report it on the Plugins screen and in Site Health,
-      as unmet `requires` are at boot, D-385), and tell plugin authors
-      in `docs/extending.md` to prefix generic relation names
-      (`acme_related`). Not recommended for now: scoping a relation's
-      identity by source type (same name allowed when `from` types
-      don't overlap; links are already keyed `{type}.{name}`), or
-      namespacing names (`vendor/name`), which only fits if types are
-      namespaced too, since a classify relation is named after its
-      type.
+    - ~~Two extensions defining one relation (or type) name~~: fail
+      softly, keeping the first (D-597). Field sets still fail to load
+      (Fields API paused, D-348).
     - **Relationship schemas for editors:** a JSON Schema for
       `user/data/relations/*` files, as entries and field sets have
       (D-594 added none).
@@ -1108,8 +1090,8 @@ Move each item to `decisions.md` once it's answered.
       being turned off; each migrated by a tool (D-478).
     - **Duplicating an entry** copies its relations, but not a
       one-per-target one?
-    - **Templates** for a reverse archive of any relation, from
-      today's term and people names.
+    - ~~Templates for a reverse archive~~: `related-*` and
+      `related-list-*` (D-596).
     - **Conditional requirements:** required only for some statuses or
       when another value is set.
 - **Media metadata** (D-238, D-239):

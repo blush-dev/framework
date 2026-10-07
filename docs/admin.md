@@ -965,8 +965,11 @@ Relationship** opens a form for one of two things:
   whether each term has a page listing what's filed under it.
 - **Links entries to other entries:** **Entries of** one type **Link
   to** another, under a **Key** in front matter, with whether they take
-  several entries or one, whether their order matters, and whether an
-  entry needs one to be published.
+  several entries or one, whether their order matters, whether an
+  entry needs one to be published, and **What links to an entry**:
+  listed nowhere of its own, on each linked entry's own page, or in
+  archives under the linking type's address by an **Archive word**
+  (see [Linking entries to other entries](content-types.md#linking-entries-to-other-entries)).
 
 It's saved in `user/data/relations/{name}.json`. A relation can't take
 the name of one defined in code.
@@ -1495,7 +1498,16 @@ includes them. Each one's **⋯** button has:
   you can restore it or delete it permanently. A trashed entry isn't on
   your site, so it can't be viewed there, previewed, or edited until
   it's restored.
-- **Delete Permanently** removes its file for good.
+- **Delete Permanently** removes its file for good. When other entries
+  link to it (as a term, a credit, or any other
+  [relation](content-types.md#terms-and-relationships)), it lists them
+  and offers to remove it from those you can edit, checked at first, so
+  nothing names it after; uncheck it to leave their values as they are.
+
+Entries linking to an entry keep their links while it's a draft or in
+the trash; the site just stops showing it there, and publishing or
+restoring it brings them back. So switching a published entry to draft,
+or moving one to the trash, says first how many live entries link to it.
 
 Moving one entry to the trash, from its list, the editor, or a profile,
 shows a toast with **Undo**, which puts it back as it was, published or

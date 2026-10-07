@@ -123,14 +123,17 @@ final readonly class Indexer
 		));
 
 		$write = $full || $touched || $added !== [] || $changed !== [] || $removed !== [] || ! $this->index->exists();
+		$stale = [];
 
 		if ($write) {
 			$snapshot = IndexSnapshot::build($records, $fingerprint, $this->clock->now()->getTimestamp());
+			$links    = new LinkBuilder()->build($snapshot, $this->relations, $this->types);
+			$stale    = $links->stale;
 
-			$this->index->save($snapshot->withLinks(new LinkBuilder()->build($snapshot, $this->relations, $this->types)));
+			$this->index->save($snapshot->withLinks($links));
 		}
 
-		$report = new IndexReport(count($records), $added, $changed, $removed, $failures, $full, $write);
+		$report = new IndexReport(count($records), $added, $changed, $removed, $failures, $full, $write, $stale);
 
 		if ($write) {
 			$this->events->dispatch(new ContentIndexed($report));

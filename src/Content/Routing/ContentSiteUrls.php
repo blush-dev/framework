@@ -17,6 +17,7 @@ use Override;
 use Blush\Content\ContentRepository;
 use Blush\Content\Entry\Entry;
 use Blush\Content\PeopleArchives;
+use Blush\Content\RelationArchives;
 use Blush\Content\Type\ContentType;
 use Blush\Content\Type\ContentTypes;
 use Blush\Content\Type\DateArchives;
@@ -57,6 +58,7 @@ final readonly class ContentSiteUrls implements UrlSource
 		private ContentTypes $types,
 		private ContentUrls $urls,
 		private PeopleArchives $archives,
+		private RelationArchives $relationArchives,
 		private AppConfig $app
 	) {}
 
@@ -74,6 +76,7 @@ final readonly class ContentSiteUrls implements UrlSource
 
 		foreach ($types as $type) {
 			yield from $this->people($type);
+			yield from $this->related($type);
 		}
 
 		foreach ($this->archives->profiles() as $profile) {
@@ -140,7 +143,7 @@ final readonly class ContentSiteUrls implements UrlSource
 	private function terms(ContentType $taxonomy, ?string $language): iterable
 	{
 		$files  = $this->content->query()->type($taxonomy->name)->visibility(Visibility::Public, Visibility::Unlisted)->language($language)->get();
-		$counts = $this->content->termCounts($taxonomy->name, $this->content->query()->language($language));
+		$counts = $this->content->termCounts($this->types->termKeys($taxonomy->name), $this->content->query()->language($language));
 
 		// Another language's terms are those its own entries reference.
 		$slugs = [
@@ -153,6 +156,32 @@ final readonly class ContentSiteUrls implements UrlSource
 
 			if ($path !== null) {
 				yield new SiteUrl($path, fn (int $page): ?string => $this->urls->term($taxonomy, $slug, $page, $language));
+			}
+		}
+	}
+
+	/**
+	 * Returns each of a type's relation archives' lists and targets'
+	 * archives (D-596).
+	 *
+	 * @return iterable<SiteUrl>
+	 */
+	private function related(ContentType $type): iterable
+	{
+		foreach ($this->types->relationArchives($type) as $relation) {
+			$targets = $this->relationArchives->linked($type, $relation);
+			$list    = $targets === [] ? null : $this->urls->relatedList($type, $relation);
+
+			if ($list !== null) {
+				yield new SiteUrl($list);
+			}
+
+			foreach ($targets as $target) {
+				$path = $this->urls->related($type, $relation, $target->slug);
+
+				if ($path !== null) {
+					yield new SiteUrl($path, fn (int $page): ?string => $this->urls->related($type, $relation, $target->slug, $page));
+				}
 			}
 		}
 	}

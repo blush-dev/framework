@@ -34,6 +34,7 @@ use Blush\Content\Relation\RelationKind;
 use Blush\Content\Relation\Relations;
 use Blush\Content\Source\ContentSource;
 use Blush\Content\Source\UnreadableSource;
+use Blush\Content\Status;
 use Blush\Content\Type\ContentTypes;
 use Blush\Content\Type\Profiles;
 use Blush\Content\Type\Tree;
@@ -449,16 +450,21 @@ final readonly class Linter
 	{
 		$links    = new LinkBuilder()->build($snapshot, $this->relations, $this->types);
 		$entries  = [];
+		$trashed  = [];
 		$found    = [];
 		$problems = [...$links->problems];
 
 		foreach ($snapshot->records as $record) {
 			if ($record['id'] !== null) {
 				$entries[$record['id']] = $record['type'];
+
+				if ($record['status'] === Status::Trash->value) {
+					$trashed[] = $record['id'];
+				}
 			}
 		}
 
-		foreach (new RelationChecker()->check($this->relations, $links->graph, $entries, []) as $problem) {
+		foreach (new RelationChecker()->check($this->relations, $links->graph, $entries, [], $trashed) as $problem) {
 			if ($problem->kind === ProblemKind::TooMany || $problem->kind === ProblemKind::InverseLimit) {
 				$problems[] = $problem;
 			}

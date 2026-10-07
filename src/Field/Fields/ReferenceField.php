@@ -28,7 +28,8 @@ use Blush\Support\Slug;
  *
  * A single value counts as a list of one (D-078), and every value is
  * turned into a slug the way 1.x did, so `category: Book Reviews` refers
- * to `book-reviews`. With `multiple: false`, one slug is stored instead of
+ * to `book-reviews`. A tree's page is named by its path, each part a
+ * slug (`about/team`, D-590). With `multiple: false`, one slug is stored instead of
  * a list. Whether the entries exist is checked by `content:lint`; a
  * missing one is left out of the site (D-584).
  */
@@ -109,7 +110,7 @@ final class ReferenceField extends Field
 				throw $this->invalid(sprintf('must be a slug or a list of slugs; found %s.', self::describe($item)));
 			}
 
-			$slug = Slug::from((string) $item);
+			$slug = implode('/', array_filter(array_map(Slug::from(...), explode('/', (string) $item)), static fn (string $part): bool => $part !== ''));
 
 			if ($slug !== '') {
 				$slugs[$slug] = $slug;

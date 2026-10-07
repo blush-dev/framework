@@ -17542,3 +17542,177 @@ decision, add a new entry that supersedes it and mark the old one
   `open-questions.md`.
 - **Why:** the author agreed, after asking whether `field` changes the
   `refs` key.
+
+### D-596: D-585's second stage, and the reverse side of any relation
+- **Date:** 2026-10-07
+- **Status:** Built.
+- **Decision:** D-585's second stage, in this order:
+  1. **Blush writes both forms** (D-589) whenever it writes an entry's
+     file: the filesystem writer resolves the file's relations after
+     each create, update, or copy and writes the written form and
+     `refs` together. A written form is rewritten only when every value
+     in it links to something, so a value naming nothing yet (a term
+     still to be written, titled as typed) isn't lost. A fixing tool,
+     `content:refs [--write]`, and a Site Health check write the files
+     whose forms differ.
+  2. **Referrers follow a rename or move:** before an entry (or a tree
+     page with the pages under it) is renamed or moved, its referrers'
+     ids are filed; after, their written forms are rewritten from the
+     ids. This is the filesystem driver's concern: a database keeps only
+     the id.
+  3. **Limits on publish:** `min` above 1, `max`, and the inverse's
+     `max` refuse publishing in the editor, as `required` does.
+  4. **Created as typed:** a save naming a value with no target, in a
+     relation with `create`, writes the target (published, titled as
+     typed, as `content:terms` does). **When the account can't create
+     and publish entries of the target type, the save is refused**,
+     naming the values (the author).
+  5. **The reverse side of any relation, chosen by its inverse
+     `archive`** (the author, from three shapes): `true` makes the
+     target's own page list what points at it, paged with a feed, as a
+     term's page does; a word gives archives under each source type
+     (`/movies/actors/tom-hanks`), as people fields' do; `false` (the
+     default for a plain reference) gives no page, and templates list
+     the reverse side through a helper over `EntryRelations`
+     (`referencedBy()`, `related()`), which comes either way.
+- **Why:** the author asked to pick up stage 2.
+- **Built (parts 1 to 4):**
+  - `FilesystemWriter` files the relations of every file it writes from
+    the reindex (`IndexReport::$stale`, `RelationForms`), and its
+    revision is the file as filed. A value naming nothing keeps the
+    file's spelling; one value written on its own stays on its own;
+    `refs` is written as a block. `DocumentEditor` puts a new key before
+    an `id` only when the id is last, else at the end.
+  - `rename()` and `move()` file the referrers' ids (of the entry, and
+    of a tree's pages under it) before, and rewrite them after.
+  - `ContentWriter::fileRefs()`, `EntryRefs`, `content:refs [--write]`,
+    and Site Health's **Links Between Entries** (`POST health/refs`).
+  - `RelationLimits` (`min`, `max`, the inverse's `max`) and
+    `TypedTargets` (created as typed, only values a save adds), checked
+    in `EntryController` just before a create or update writes, and
+    `min`/`max` in bulk publishing. `Relation::valueIn()` is shared.
+  - **A bug found:** the `reference` field slugged a tree's path whole
+    (`about/team` → `about-team`), so a relation to a tree's page never
+    resolved; each part is slugged now, as `LinkResolver` does.
+- **Checked (parts 1 to 4):** `composer check` (`RelationFormsTest`,
+  `AdminRelationsTest`, `AdminContentTest`, writer tests updated for the
+  `refs` saves now write); `npm run admin:build` (admin.js 816 KB, CSS
+  176 KB).
+- **Built (part 5):**
+  - `$template->related()` and `$template->referencedBy()` over
+    `EntryRelations` (through `ViewServices::$relations`), so `symmetric`
+    and `translations` now act on the site and are documented.
+  - **Index keys:** every relation to one type keeps its written form
+    under `Relation::termKey()` (a classify relation's name, else
+    `{target}.{name}`, as credits were), in `LinkBuilder` and
+    `RecordBuilder`'s fallback, so `whereTerm('person.actors', 'tom')`
+    and `termCounts()` work for references. `Query::whereAnyTerm()`;
+    `termCounts()` takes several keys.
+  - **`archive: true`** on a classify or reference relation:
+    `ContentTypes::archivedTo()`, `termKeys()`; `hasTermPages()` is any
+    such relation to a collection with URLs, and `termArguments()`
+    merges their types (the first's listing). Term pages, feeds, the
+    sitemap, site URLs, and `content->term()` follow.
+  - **A word:** `ContentTypes::relationArchives()`, `relationPaths()`
+    (`{name}.collection`, `.single` with `{target}`, `.single.paged`,
+    feeds), `routePattern()` (`ContentType::routePattern()` takes the
+    extra paths); `RelatedController`, `RelatedListController`,
+    `RelationArchives::linked()`, `ContentUrls::related()`,
+    `relatedList()`, `relatedFeed()`, feed routes and
+    `FeedBuilder::related()`, feed links, sitemap, and site URLs. Not
+    in other languages yet, as people archives aren't.
+  - **Template names** (the open "templates for a reverse archive"):
+    `related-{type}-{relation}` → `related-{relation}` → `related` →
+    `term` → `collection`, and `related-list-{type}-{relation}` →
+    `related-list-{relation}` → `related-list` → `collection`
+    (`PageKind::Related`, `RelatedList`; `ContentPage::$relation`).
+  - **The admin:** the relation form's reference side has **What links
+    to an entry** (none, the entry's own page, or an archive word).
+  - **Since built:** the admin's type URL editor knows relation
+    archives' route keys (`TypeRouteKeys::keys()`/`params()`/`check()`
+    take the relations; `{relation}.single*` holds `{target}`; each route
+    in `GET types/{name}` names its `relation` label; `DataTypeWriter`
+    accepts and checks their `paths`). People fields still route through
+    `PeopleField`, not their credit relation's inverse.
+- **Checked (part 5):** `composer check` (1763 tests; new
+  `RelationHelpersTest`, `RelationArchivesTest`); `npm run admin:build`
+  (admin.js 818 KB, CSS 176 KB); the jtcom trial: `content:index`,
+  `content:lint` (the same four errors), `content:refs` (lists 1063
+  hand-written files; not written), and its pages over HTTP.
+
+### D-597: Two extensions defining one type or relation name fail softly
+- **Date:** 2026-10-07
+- **Status:** Built.
+- **Decision:** The author agreed to `open-questions.md`'s
+  recommendation (after D-585's stage 2): when two extensions define a
+  content type or a relation by the same name, the site keeps loading.
+  The first definition (in the order extensions' sources are tagged) is
+  kept, the other is left out, and the clash is recorded with the
+  classes that defined each (`ContentTypes::$clashes`, cached with the
+  types). Site Health's Extensions area (and `doctor`) warns of each,
+  naming the plugins, and the Plugins screen shows it on the plugin
+  whose definition was left out. `docs/extending.md` tells plugin
+  authors to prefix generic relation names (`acme_related`).
+  - Not done: scoping a relation's identity by source type, or
+    namespacing names (`vendor/name`); both stay rejected for now.
+  - Field sets keep failing to load on a clash: the Fields API is
+    paused (D-348).
+- **Why:** a clash stopped the whole site, admin included, so someone
+  who installed a plugin from a `.zip` (D-392) could lose the screen
+  that turns it off.
+- **Built:** `Extension\DefinitionClash` (kind, name, the kept and
+  dropped sources' classes); `RelationLoader::load()` and
+  `ContentTypeLoader::codeTypes()` keep the first and return clashes;
+  `ContentTypes::$clashes` (in `toArray()`/`fromArray()`);
+  `Plugins::owning($class)` finds a class's plugin (now behind
+  `Provenance::ofClass()` too); `SiteChecks` warns under Extensions
+  (`clashes`, "Names defined twice"); `GET plugins` gives each running
+  plugin its `clashes`, shown on the Plugins list (a **Name Clash** pill)
+  and the plugin's screen; `docs/extending.md` and
+  `docs/content-types.md`.
+- **Checked:** `composer check` (`ContentTypeLoaderTest`, a new
+  `AdminPluginsTest` case with two plugins defining `recipe`);
+  `npm run admin:build` (admin.js 818 KB).
+
+### D-598: Links to targets that leave the site
+- **Date:** 2026-10-07
+- **Status:** Built.
+- **Decision:** The author took the recommendation for each case
+  (`open-questions.md` → Relationships → target states):
+  1. **A target made a draft (or scheduled later)** keeps its links;
+     the site hides it, as now. The editor warns when an entry live
+     entries link to stops being live: how many, and that the site stops
+     showing it there until it's published again.
+  2. **A target moved to the trash** keeps its links, so restoring it
+     loses nothing. Trashing it warns first with the count and where
+     they are, as deleting media warns where a file is used (D-407).
+  3. **A target deleted for good** asks, listing what links to it:
+     remove it from those entries (the default; their files are
+     rewritten in both forms), or leave their values. Removing them
+     keeps `content:terms` and Site Health from writing a deleted term or
+     profile again as a new file. Deleting by hand or outside the admin
+     stays as it is, with lint reporting the values.
+  4. **Limits count links, not live targets:** a live entry whose only
+     required term is unpublished still has one (as now).
+  5. **Pickers offer drafts too**, marked as drafts (as now), since a
+     writer may prepare an entry and its new term together. Supersedes
+     D-586's "pickers offer only live targets".
+  6. **The inverse's `max` counts every source but the trash**: a draft
+     that would break it is caught; a trashed one blocks nothing.
+- **Why:** the author's answers, 2026-10-07.
+- **Built:** `Relation\Referrers` (`of()`, `live()`, `unlink()`: every
+  relation but a translation's and a tree page's parent; a value and its
+  `refs` id removed, a relation left with none removed);
+  `GET entries/{id}/referrers` (`count`, `live`, `editable`, the first
+  few); `DELETE entries/{id}?permanently=1&unlink=1` (answers
+  `unlinked`, only entries the account may edit). The admin:
+  `referrers.ts` (`confirmLeaving()` before a move to the trash from a
+  list or the editor and a published entry's switch to draft or a later
+  date; `confirmPurge()` before deleting for good, from the Trash tab
+  and the trashed entry's screen), `confirmChecked()` and a checkbox in
+  `ConfirmHost`. The profile screen's trash warning (bylines) stays as
+  it was. `RelationLimits` and `RelationChecker` leave trashed sources
+  out of an inverse's `max`. Bulk changes don't warn.
+- **Checked:** `composer check` (`AdminRelationsTest`: referrers, delete
+  with and without unlinking, the trash and an inverse limit);
+  `npm run admin:build` (admin.js 821 KB, CSS 176 KB).

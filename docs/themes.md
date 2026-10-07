@@ -430,6 +430,8 @@ What a template can use:
 | `$template->permalink($entry)` | An entry's URL |
 | `$template->route('home')` | A named route's URL (`bin/blush routes:list`), with any parameters: `route('post.collection.month', ['year' => 2026, 'month' => '05'])`. On a [translated](content.md#translations) page, it's that language's version when there is one (`/es` for `home`) |
 | `$template->terms($entry, 'tag')` | An entry's terms of a [type of terms](content-types.md#terms-and-relationships), such as its tags |
+| `$template->related($entry, 'actors')` | The published entries an entry [links to](content-types.md#linking-entries-to-other-entries) through a relation, in order, each in the entry's language when it's translated |
+| `$template->referencedBy($entry, 'actors')` | The published entries linking to an entry through a relation, newest first: by its name, or `'movie.actors'` for one type's |
 | `$template->people($entry, $field)` | The profiles an entry credits through a [people field](content-types.md#crediting-people), in order; the type's first people field (its byline) when `$field` is left out |
 | `$template->author($entry)` | The first person an entry's byline credits, such as a post's author, or `null` |
 | `$template->profile('jane')` | A published profile by its slug, or `null` |
@@ -823,10 +825,12 @@ Blush picks the most specific template your theme (or its parents) has:
 |---|---|
 | An entry | `single-{type}-{slug}`, `single-{type}`, (`single-terms`), `single-{kind}`, `single` |
 | A listing | `collection-{type}`, (`collection-terms`), `collection-{kind}`, `collection` |
-| A term's page | `term-{type}-{slug}`, `term-{type}`, `term`, `collection` |
+| A term's page, or any entry's page listing what links to it | `term-{type}-{slug}`, `term-{type}`, `term`, `collection` |
 | A date archive | `archive-date-{type}`, `archive-date`, `collection` |
 | A type's people (such as `/recipes/cooks`) | `people-{type}-{field}`, `people-{field}`, `people`, `collection` |
 | A person's archive (such as `/recipes/cooks/jane`) | `person-{type}-{field}`, `person-{field}`, `person`, `profile`, `collection` |
+| What a type's relation links to (such as `/movies/directors`) | `related-list-{type}-{relation}`, `related-list-{relation}`, `related-list`, `collection` |
+| An entry's archive under a relation (such as `/movies/directors/penny`) | `related-{type}-{relation}`, `related-{relation}`, `related`, `term`, `collection` |
 | A profile's page (such as `/profiles/jane`) | `profile-{slug}`, `profile`, `collection` |
 | The homepage | `home`, then whatever it shows |
 | An error | `error-{status}`, `error` |

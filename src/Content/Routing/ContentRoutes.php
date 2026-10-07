@@ -21,6 +21,8 @@ use Blush\Content\Http\PeopleController;
 use Blush\Content\Http\PersonController;
 use Blush\Content\Http\ProfileController;
 use Blush\Content\Http\SingleController;
+use Blush\Content\Http\RelatedController;
+use Blush\Content\Http\RelatedListController;
 use Blush\Content\Http\TermController;
 use Blush\Content\Type\ContentType;
 use Blush\Content\Type\ContentTypes;
@@ -39,7 +41,8 @@ use Blush\Routing\RouteSource;
  * `.single.paged` for a taxonomy's term archives). Each people field
  * with archives (D-351) adds `{type}.{field}.collection`,
  * `.{field}.single`, and `.{field}.single.paged`, ahead of the type's
- * single route. The profiles type has only `{type}.single` and
+ * single route, and so does each relation with an archive word (D-596):
+ * `{type}.{relation}.collection`, `.single`, and `.single.paged`. The profiles type has only `{type}.single` and
  * `.single.paged`, each profile's page; nothing answers at its prefix.
  * Paths come from the type's `TypeUrls` under its prefix.
  *
@@ -55,7 +58,8 @@ use Blush\Routing\RouteSource;
  * and term routes again under `/{code}`, named `{code}:{name}` (`fr:home`,
  * `fr:post.single`), with the code as the `language` parameter. They come
  * first, so a type's pattern at the root can't take a language's paths.
- * Profiles and people archives aren't in other languages yet.
+ * Profiles, people archives, and relation archives aren't in other
+ * languages yet.
  */
 final readonly class ContentRoutes implements RouteSource
 {
@@ -156,6 +160,14 @@ final readonly class ContentRoutes implements RouteSource
 			}
 		}
 
+		foreach ($people ? array_keys($this->types->relationArchives($type)) : [] as $relation) {
+			array_push($routes, ...$this->routesFor($type, [
+				"{$relation}.single.paged" => RelatedController::class,
+				"{$relation}.single"       => RelatedController::class,
+				"{$relation}.collection"   => RelatedListController::class
+			], ['relation' => $relation]));
+		}
+
 		if ($this->types->hasTermPages($type->name)) {
 			$controllers['single.paged'] = TermController::class;
 			$controllers['single']       = TermController::class;
@@ -183,7 +195,7 @@ final readonly class ContentRoutes implements RouteSource
 		$routes = [];
 
 		foreach ($controllers as $key => $controller) {
-			$pattern = $type->routePattern($key);
+			$pattern = $this->types->routePattern($type, $key);
 
 			if ($pattern !== null) {
 				$routes[] = self::route($pattern, $controller, "{$type->name}.{$key}", ['type' => $type->name, ...$defaults], $type);

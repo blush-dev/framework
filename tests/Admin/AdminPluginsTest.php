@@ -135,6 +135,7 @@ final class AdminPluginsTest extends TestCase
 			'replacedBy'   => [],
 			'providedBy'   => [],
 			'stops'        => [],
+			'clashes'      => [],
 			'deletable'    => false,
 			'backup'       => null
 		], $recipes);
@@ -153,6 +154,23 @@ final class AdminPluginsTest extends TestCase
 
 		$this->assertSame('Needs Blush ^9.0 (this site runs 2.0.0-dev).', $this->plugin($answer, 'acme/future')['blocked'] ?? null);
 		$this->assertSame(['fixture/recipes'], array_map(static fn ($plugin): string => $plugin->name, $this->app->container()->make(Plugins::class)->all()));
+	}
+
+	public function testTwoPluginsDefiningOneNameKeepTheSiteUp(): void
+	{
+		$this->writeTemporaryFile('extensions/zeta/more/plugin.json', json_encode(['name' => 'zeta/more', 'label' => 'More Recipes', 'namespace' => 'more', 'provider' => 'Blush\\Tests\\Fixtures\\Content\\MoreRecipeProvider']) ?: '');
+		$this->site(config: "enabled: ['fixture/recipes', 'zeta/more']");
+
+		$this->assertSame(['Its "recipe" content type is left out: Recipes defines one by that name too.'], $this->plugin(self::json($this->send('GET', '/plugins')), 'zeta/more')['clashes'] ?? null, 'Shown on the plugin whose definition is left out (D-597).');
+		$this->assertSame([], $this->plugin(self::json($this->send('GET', '/plugins')), 'fixture/recipes')['clashes'] ?? null);
+
+		$checks = self::json($this->send('GET', '/health/site'))['checks'] ?? null;
+		$this->assertIsArray($checks);
+		$clash = array_column($checks, null, 'label')['Names defined twice'] ?? null;
+
+		$this->assertIsArray($clash);
+		$this->assertSame(['extensions', 'warning'], [$clash['area'] ?? null, $clash['status'] ?? null]);
+		$this->assertStringContainsString('Two plugins define the "recipe" content type: Recipes\'s is used, and More Recipes\'s is left out.', is_string($clash['message'] ?? null) ? $clash['message'] : '');
 	}
 
 	public function testTurnsPluginsOnAndOff(): void

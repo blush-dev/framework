@@ -16,6 +16,8 @@ namespace Blush\Feed;
 use Override;
 use Blush\Content\ContentRepository;
 use Blush\Content\PeopleArchives;
+use Blush\Content\Relation\Relation;
+use Blush\Content\RelationArchives;
 use Blush\Content\Routing\ContentUrls;
 use Blush\Content\Type\ContentTypes;
 use Blush\Content\Type\Profiles;
@@ -35,7 +37,8 @@ final readonly class FeedSiteUrls implements UrlSource
 		private ContentTypes $types,
 		private ContentUrls $urls,
 		private FeedConfig $config,
-		private PeopleArchives $archives
+		private PeopleArchives $archives,
+		private RelationArchives $relationArchives
 	) {}
 
 	/**
@@ -63,12 +66,14 @@ final readonly class FeedSiteUrls implements UrlSource
 				continue;
 			}
 
-			$terms  = $this->types->hasTermPages($type->name) ? array_map(strval(...), array_keys($this->content->termCounts($type->name))) : [];
+			$terms  = $this->types->hasTermPages($type->name) ? array_map(strval(...), array_keys($this->content->termCounts($this->types->termKeys($type->name)))) : [];
 			$people = [];
 
 			foreach ($type->archivedPeople() as $field) {
 				$people[] = [$field, $this->urls->hasArchive($type, $field) ? $this->archives->credited($type, $field) : []];
 			}
+
+			$related = array_map(fn (Relation $relation): array => [$relation, $this->relationArchives->linked($type, $relation)], array_values($this->types->relationArchives($type)));
 
 			foreach ($this->config->formats as $format) {
 				$key  = "collection.feed{$format->routeSuffix()}";
@@ -83,6 +88,16 @@ final readonly class FeedSiteUrls implements UrlSource
 
 					if ($path !== null) {
 						yield new SiteUrl($path);
+					}
+				}
+
+				foreach ($related as [$relation, $targets]) {
+					foreach ($targets as $target) {
+						$path = $this->urls->relatedFeed($type, $relation, $target->slug, $format->routeSuffix());
+
+						if ($path !== null) {
+							yield new SiteUrl($path);
+						}
 					}
 				}
 

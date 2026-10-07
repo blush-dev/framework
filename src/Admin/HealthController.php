@@ -25,6 +25,7 @@ use Blush\Content\ContentRepository;
 use Blush\Content\EntryIds;
 use Blush\Content\FileNames;
 use Blush\Content\FlatEntries;
+use Blush\Content\EntryRefs;
 use Blush\Content\MissingTerms;
 use Blush\Content\Type\ContentTypes;
 use Blush\Content\Type\InvalidContentType;
@@ -84,6 +85,12 @@ use Blush\Media\MediaSizes;
  * file for each, of the types the account may create and publish,
  * answering the new paths by `{type}/{slug}` (`created`) and `failed`.
  *
+ * Its `refs` say how many files have links between entries not filed
+ * with their ids (`count`, D-596) and the first few (`examples`, each
+ * `path` and the `relations` that differ). `POST health/refs` files
+ * those the account may edit, answering the paths written (`filed`) and
+ * `failed`.
+ *
  * Its `taxonomies` name the data types still written as taxonomies
  * (D-591). `POST health/taxonomies` migrates them to collections and
  * classify relations (D-593), for accounts that may also change content
@@ -110,6 +117,7 @@ final readonly class HealthController
 		private ContentTypes $types,
 		private FlatEntries $flat,
 		private MissingTerms $terms,
+		private EntryRefs $refs,
 		private TaxonomyMigration $taxonomies
 	) {}
 
@@ -295,6 +303,23 @@ final readonly class HealthController
 		$created = $this->terms->create(fn (string $type): bool => $this->permissions->can($account, ContentAction::Create, $type) && $this->permissions->can($account, ContentAction::Publish, $type));
 
 		return Response::json(['created' => (object) $created->created, 'failed' => (object) $created->failed], headers: ['Cache-Control' => 'no-store']);
+	}
+
+	/**
+	 * Files both forms of the links between entries (D-589, D-596) in the
+	 * files the account may edit.
+	 */
+	public function fileRefs(ServerRequestInterface $request): ResponseInterface
+	{
+		$account = $request->getAttribute(Account::class);
+
+		if (! $account instanceof Account || ! $this->permissions->can($account, Capability::SiteHealth)) {
+			return Response::json(['error' => 'You aren\'t allowed to fix content.'], Status::Forbidden, ['Cache-Control' => 'no-store']);
+		}
+
+		$filed = $this->refs->file($this->editable($account));
+
+		return Response::json(['filed' => $filed->paths, 'failed' => (object) $filed->failed], headers: ['Cache-Control' => 'no-store']);
 	}
 
 	/**

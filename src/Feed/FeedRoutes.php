@@ -124,6 +124,14 @@ final readonly class FeedRoutes implements RouteSource
 			}
 		}
 
+		foreach (array_keys($this->types->relationArchives($type)) as $relation) {
+			$target = $this->types->routePattern($type, "{$relation}.single.feed{$suffix}");
+
+			if ($target !== null) {
+				$routes[] = ContentRoutes::route($target, FeedController::class, "{$type->name}.{$relation}.single.feed{$suffix}", [...$defaults, 'relation' => $relation], $type);
+			}
+		}
+
 		return $routes;
 	}
 }

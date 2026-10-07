@@ -18,19 +18,25 @@ use PHPUnit\Framework\TestCase;
 use Blush\Content\ContentServiceProvider;
 use Blush\Content\EntryFields;
 use Blush\Content\Type\ContentTypeLoader;
+use Blush\Content\Relation\RelationKind;
 use Blush\Content\Relation\RelationOrigin;
 use Blush\Content\Type\ContentTypes;
 use Blush\Content\Type\InvalidContentType;
 use Blush\Content\Type\Tree;
 use Blush\Content\Type\TypeOrigin;
 use Blush\Core\Application;
+use Blush\Extension\DefinitionClash;
 use Blush\Field\FieldFactory;
 use Blush\Field\FieldRegistry;
 use Blush\Tests\BootsScratchSite;
 use Blush\Tests\Fixtures\Content\ColorField;
 use Blush\Tests\Fixtures\Content\JtcomTypes;
 use Blush\Tests\Fixtures\Content\MoreRecipeProvider;
+use Blush\Tests\Fixtures\Content\MoreRecipeRelations;
+use Blush\Tests\Fixtures\Content\MoreRecipeTypes;
 use Blush\Tests\Fixtures\Content\RecipeProvider;
+use Blush\Tests\Fixtures\Content\RecipeRelations;
+use Blush\Tests\Fixtures\Content\RecipeTypes;
 
 #[CoversClass(ContentTypeLoader::class)]
 #[CoversClass(ContentTypes::class)]
@@ -169,16 +175,21 @@ final class ContentTypeLoaderTest extends TestCase
 		$this->assertSame(['recipe'], $types->classification('ingredient')?->from);
 	}
 
-	public function testTwoExtensionsCantDefineOneType(): void
+	public function testTwoExtensionsDefiningOneNameKeepTheFirst(): void
 	{
 		$application = $this->scratchApplication();
 		$application->register(RecipeProvider::class);
 		$application->register(MoreRecipeProvider::class);
 
-		$this->expectException(InvalidContentType::class);
-		$this->expectExceptionMessage('Two extensions define the "recipe" content type.');
+		$types = $this->types($application);
 
-		$this->types($application);
+		$this->assertSame('recipes', $types->get('recipe')->folder, 'The first extension\'s type is kept, and the site loads (D-597).');
+		$this->assertSame(RelationKind::Classify, $types->relations()['ingredient']->kind);
+		$this->assertEquals([
+			new DefinitionClash('type', 'recipe', RecipeTypes::class, MoreRecipeTypes::class),
+			new DefinitionClash('relation', 'ingredient', RecipeRelations::class, MoreRecipeRelations::class)
+		], $types->clashes);
+		$this->assertEquals($types->clashes, ContentTypes::fromArray($types->toArray(), $application->container()->make(FieldFactory::class))->clashes, 'Kept in the compiled types.');
 	}
 
 	public function testDisablesBuiltInTypes(): void

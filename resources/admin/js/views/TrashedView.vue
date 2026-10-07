@@ -8,7 +8,7 @@
  */
 
 import { computed, ref, watch } from 'vue';
-import { confirmAction } from '../confirm';
+import { confirmPurge } from '../referrers';
 import { RouterLink, useRoute, useRouter } from 'vue-router';
 import { entryPath, entryRoute, errorMessage, request, type EntryDetail } from '../api';
 import { useAction } from '../action';
@@ -84,14 +84,18 @@ async function restore(): Promise<void> {
 async function purge(): Promise<void> {
 	const detail = item.value;
 
-	if (detail === null || !await confirmAction({ title: `Delete “${name.value}” Permanently?`, body: 'This can\'t be undone.', confirm: 'Delete Permanently', danger: true })) {
+	const unlink = detail === null ? null : await confirmPurge(detail.id, `“${name.value}”`);
+
+	if (detail === null || unlink === null) {
 		return;
 	}
 
 	await run(`The ${noun.value} couldn't be deleted.`, async () => {
-		await request<{ deleted: string }>('DELETE', `${entryPath(detail.id)}?permanently=1`);
+		const answer = await request<{ deleted: string; unlinked: number }>('DELETE', `${entryPath(detail.id)}?permanently=1${unlink}`);
 
-		toast(`Deleted “${name.value}” permanently`, { kind: 'danger' });
+		toast(answer.unlinked > 0
+			? `Deleted “${name.value}” permanently, and took it out of ${answer.unlinked === 1 ? '1 entry' : `${answer.unlinked} entries`}`
+			: `Deleted “${name.value}” permanently`, { kind: 'danger' });
 		await router.push(back.value);
 	});
 }

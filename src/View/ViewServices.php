@@ -17,6 +17,7 @@ use Blush\Asset\AssetCollector;
 use Blush\Asset\Assets;
 use Blush\Cache\ContentCache;
 use Blush\Content\ContentRepository;
+use Blush\Content\Relation\EntryRelations;
 use Blush\Content\Routing\ContentUrls;
 use Blush\Content\Type\ContentTypes;
 use Blush\Core\AppConfig;
@@ -32,7 +33,8 @@ use Blush\Directive\DirectiveVariants;
 /**
  * The services every `Views` shares, whatever its theme chain: what
  * templates reach through `Template` (URLs, content, routes, the app
- * config, menus, regions, the site settings field sets add), context
+ * config, menus, regions, the site settings field sets add, links
+ * between entries), context
  * providers, directives and components (D-532), the view engines
  * (D-502), and assets: what prints them into a page's head, and what
  * collects the handles rendering asks for (D-570, D-572).
@@ -56,6 +58,7 @@ final readonly class ViewServices
 		public ViewEngines $engines,
 		public Assets $assets,
 		public AssetCollector $collector,
+		public EntryRelations $relations,
 		public ?ContentCache $cache = null
 	) {}
 }

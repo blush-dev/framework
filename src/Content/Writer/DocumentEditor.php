@@ -22,6 +22,7 @@ use Blush\Content\Parser\Document;
 use Blush\Content\Parser\DocumentParser;
 use Blush\Content\Parser\FrontMatter;
 use Blush\Content\Parser\InvalidDocument;
+use Blush\Content\Relation\Refs;
 
 /**
  * Applies `EntryChanges` to a content document's text (D-228, D-501):
@@ -30,8 +31,9 @@ use Blush\Content\Parser\InvalidDocument;
  * front matter gets a block. A body that doesn't start with a blank line
  * keeps the blank lines the document had between its front matter and
  * body (one, for a document without a block), so an editor can show the
- * body without them. A new key goes before the entry's `id` (D-477), so
- * the id stays last.
+ * body without them. A new key goes before the entry's `id` (D-477) when
+ * it's last, so it stays last; otherwise at the end. Lists and maps are written inline (`[a, b]`), but
+ * `refs` (D-589) is written as a block, a line for each id.
  *
  * Every result is parsed again before it's returned. The keys that were
  * set must read back as the given values, removed keys must be gone,
@@ -54,7 +56,8 @@ final readonly class DocumentEditor
 	{
 		$before  = $this->parse($path, $contents);
 		$changes = self::withGap($contents, $changes);
-		$edited  = $this->editFrontMatter($contents, $changes, $keys);
+		$anchor  = ! array_key_exists(EntryFields::ID, $before->frontMatter) || array_key_last($before->frontMatter) === EntryFields::ID ? EntryFields::ID : null;
+		$edited  = $this->editFrontMatter($contents, $changes, $keys, $anchor);
 
 		$this->verify($path, $before, $this->parse($path, $edited), $changes, $keys);
 
@@ -62,11 +65,12 @@ final readonly class DocumentEditor
 	}
 
 	/**
-	 * Edits a document's front matter and body.
+	 * Edits a document's front matter and body, adding new keys before
+	 * `$anchor`'s entry, or at the end.
 	 *
 	 * @param Closure(string): list<string> $keys
 	 */
-	private function editFrontMatter(string $contents, EntryChanges $changes, Closure $keys): string
+	private function editFrontMatter(string $contents, EntryChanges $changes, Closure $keys, ?string $anchor): string
 	{
 		$bom = str_starts_with($contents, "\xEF\xBB\xBF") ? "\xEF\xBB\xBF" : '';
 		$eol = str_contains($contents, "\r\n") ? "\r\n" : "\n";
@@ -85,7 +89,7 @@ final readonly class DocumentEditor
 			$ending = $eol;
 		}
 
-		$map = $this->apply(YamlMap::fromText($yaml), $changes, $keys);
+		$map = $this->apply(YamlMap::fromText($yaml), $changes, $keys, $anchor);
 
 		if ($block === '' && $map->text() === '') {
 			return $changes->body ?? $contents;
@@ -123,14 +127,14 @@ final readonly class DocumentEditor
 	 *
 	 * @param Closure(string): list<string> $keys
 	 */
-	private function apply(YamlMap $map, EntryChanges $changes, Closure $keys): YamlMap
+	private function apply(YamlMap $map, EntryChanges $changes, Closure $keys, ?string $anchor): YamlMap
 	{
 		foreach ($changes->remove as $name) {
 			$map = $map->without($keys($name));
 		}
 
 		foreach ($changes->set as $name => $value) {
-			$map = $map->with($keys((string) $name), $value, before: EntryFields::ID);
+			$map = $map->with($keys((string) $name), $value, $name === Refs::FIELD ? 4 : 1, $anchor);
 		}
 
 		return $map;

@@ -41,6 +41,11 @@ use Blush\Content\Type\TypeKind;
  * - **Person** (an archive under a people field):
  *   `person-{type}-{field}` → `person-{field}` → `person` → `profile`
  *   → `collection`.
+ * - **Related list** (what a type's relation with an archive word links
+ *   to, D-596): `related-list-{type}-{relation}` → `related-list-{relation}`
+ *   → `related-list` → `collection`.
+ * - **Related** (a target's archive under it): `related-{type}-{relation}`
+ *   → `related-{relation}` → `related` → `term` → `collection`.
  * - **Profile** (a profile's own page): `profile-{slug}` → `profile` →
  *   `collection`.
  * - **Home:** `home`, then the hierarchy of what it shows.
@@ -73,6 +78,8 @@ final readonly class Hierarchy
 			PageKind::Home       => ['home', ...self::forKind($page->base ?? PageKind::Page, $name, $kind, $entry, $terms)],
 			PageKind::People     => ["people-{$name}-{$page->people?->field}", "people-{$page->people?->field}", 'people', 'collection'],
 			PageKind::Person     => ["person-{$name}-{$page->people?->field}", "person-{$page->people?->field}", 'person', 'profile', 'collection'],
+			PageKind::RelatedList => ["related-list-{$name}-{$page->relation?->name}", "related-list-{$page->relation?->name}", 'related-list', 'collection'],
+			PageKind::Related    => ["related-{$name}-{$page->relation?->name}", "related-{$page->relation?->name}", 'related', 'term', 'collection'],
 			PageKind::Profile    => [...($entry === null ? [] : ["profile-{$entry->slug}"]), 'profile', 'collection'],
 			default              => self::forKind($page->kind, $name, $kind, $entry, $terms)
 		};

@@ -23,13 +23,18 @@ use Override;
 use Psr\Clock\ClockInterface;
 use Blush\Cache\ContentVersion;
 use Blush\Content\ContentRepository;
+use Blush\Content\Index\ContentIndex;
 use Blush\Content\Index\Indexer;
 use Blush\Content\Index\IndexReport;
+use Blush\Content\Index\IndexSnapshot;
 use Blush\Content\Entry\Entry;
 use Blush\Content\EntryFields;
 use Blush\Content\Status;
 use Blush\Content\Parser\DocumentParser;
 use Blush\Content\Parser\InvalidDocument;
+use Blush\Content\Relation\LinkBuilder;
+use Blush\Content\Relation\Relations;
+use Blush\Content\Relation\Resolution;
 use Blush\Content\Source\FilesystemSource;
 use Blush\Content\Storage\FilesystemStorage;
 use Blush\Content\Type\Collection;
@@ -64,6 +69,11 @@ use Blush\Support\Uuid;
  *   (D-484), until `restore()` makes it a draft or `delete()` removes it.
  * - **Live:** each write reindexes incrementally and moves the content
  *   version on.
+ * - **Linked:** each entry written has both forms of its relations filed
+ *   (D-589, D-596): its written values and their ids under `refs`. Before
+ *   an entry is renamed or moved (with the pages under it), the entries
+ *   linking to it have their ids filed; after, their written values are
+ *   rewritten from the ids, so their links follow it.
  *
  * Front matter keys go through the entry's type schema, so setting
  * `published` updates a file's `date` alias in place.
@@ -78,6 +88,8 @@ final readonly class FilesystemWriter implements ContentWriter
 		private ContentTypes $types,
 		private ContentRepository $content,
 		private Indexer $indexer,
+		private ContentIndex $index,
+		private Relations $relations,
 		private ContentVersion $version,
 		private ClockInterface $clock,
 		private AppConfig $app
@@ -123,11 +135,11 @@ final readonly class FilesystemWriter implements ContentWriter
 				throw new WriteException(sprintf('%s already exists.', $this->paths->relative($file)));
 			}
 
-			$contents = $this->editor->edit($path, '', $this->withNew($changes), $this->keys($type->name));
+			$this->write($file, $this->editor->edit($path, '', $this->withNew($changes), $this->keys($type->name)));
 
-			$this->write($file, $contents);
+			$report = $this->refresh([$path]);
 
-			return new WriteResult($path, self::revision($contents), $this->refresh());
+			return new WriteResult($path, $this->revisionOf($path), $report);
 		});
 	}
 
@@ -149,11 +161,11 @@ final readonly class FilesystemWriter implements ContentWriter
 				throw new WriteException(sprintf('%s already exists.', $this->paths->relative($file)));
 			}
 
-			$contents = $this->editor->edit($path, '', $this->withNew($changes), $this->keys($type->name));
+			$this->write($file, $this->editor->edit($path, '', $this->withNew($changes), $this->keys($type->name)));
 
-			$this->write($file, $contents);
+			$report = $this->refresh([$path]);
 
-			return new WriteResult($path, self::revision($contents), $this->refresh());
+			return new WriteResult($path, $this->revisionOf($path), $report);
 		});
 	}
 
@@ -214,7 +226,9 @@ final readonly class FilesystemWriter implements ContentWriter
 				throw $e;
 			}
 
-			return new WriteResult($path, self::revision($contents), $this->refresh(), $moved);
+			$report = $this->refresh([$path]);
+
+			return new WriteResult($path, $this->revisionOf($path), $report, $moved);
 		});
 	}
 
@@ -289,7 +303,9 @@ final readonly class FilesystemWriter implements ContentWriter
 
 			$this->write($this->file($newPath), $this->editor->edit($newPath, $contents, $this->withNew($changes, $this->frontMatter($contents)), $this->keys($entry?->type->name)));
 
-			return new WriteResult($newPath, self::revision($this->read($this->file($newPath))), $this->refresh());
+			$report = $this->refresh([$newPath]);
+
+			return new WriteResult($newPath, $this->revisionOf($newPath), $report);
 		});
 	}
 
@@ -316,7 +332,13 @@ final readonly class FilesystemWriter implements ContentWriter
 				$this->write($file, $edited);
 			}
 
-			return new WriteResult($path, self::revision($edited), $edited === $contents ? new IndexReport() : $this->refresh([$path]));
+			if ($edited === $contents) {
+				return new WriteResult($path, self::revision($edited), new IndexReport());
+			}
+
+			$report = $this->refresh([$path]);
+
+			return new WriteResult($path, $this->revisionOf($path), $report);
 		});
 	}
 
@@ -349,11 +371,15 @@ final readonly class FilesystemWriter implements ContentWriter
 				throw new WriteException(sprintf('%s already exists.', $this->paths->relative($to)));
 			}
 
+			[$referrers, $filed] = $this->fileReferrers($path);
+
 			if (! @rename($from, $to)) {
 				throw new WriteException(sprintf('%s couldn\'t be renamed.', $path));
 			}
 
-			return new WriteResult($newPath, self::revision($contents), $this->refresh());
+			$report = $this->refresh($filed, $referrers);
+
+			return new WriteResult($newPath, $this->revisionOf($newPath), $report);
 		});
 	}
 
@@ -441,6 +467,8 @@ final readonly class FilesystemWriter implements ContentWriter
 
 			ksort($moved);
 
+			[$referrers, $filed] = $this->fileReferrers($path);
+
 			$done = [];
 			$made = ! is_dir($this->folder($target));
 
@@ -472,7 +500,9 @@ final readonly class FilesystemWriter implements ContentWriter
 
 			$newPath = $bundle ? "{$plan[dirname($path)]}/" . basename($path) : $plan[$path];
 
-			return new WriteResult($newPath, self::revision($contents), $this->refresh(), $moved);
+			$report = $this->refresh($filed, $referrers);
+
+			return new WriteResult($newPath, $this->revisionOf($newPath), $report, $moved);
 		});
 	}
 
@@ -914,17 +944,151 @@ final readonly class FilesystemWriter implements ContentWriter
 	}
 
 	/**
+	 * @inheritDoc
+	 */
+	#[Override]
+	public function fileRefs(array $paths): FiledRefs
+	{
+		return $this->locked(function () use ($paths): FiledRefs {
+			$this->indexer->index();
+
+			$snapshot = $this->index->snapshot();
+			$stale    = array_intersect_key(new LinkBuilder()->build($snapshot, $this->relations, $this->types)->stale, array_flip($paths));
+
+			[$filed, $failed] = $this->fileForms($stale, $snapshot);
+
+			return new FiledRefs($filed, $failed, $filed === [] ? new IndexReport() : $this->refresh($filed));
+		});
+	}
+
+	/**
 	 * Reindexes and moves the content version on, reading the files just
-	 * written (by path) whatever their stat says.
+	 * written (by path) whatever their stat says. The relations of those
+	 * files, and of the entries `$referrers` names (by id), are filed
+	 * where Blush would file them differently (D-596), and reindexed.
 	 *
 	 * @param list<string> $written
+	 * @param list<string> $referrers
 	 */
-	private function refresh(array $written = []): IndexReport
+	private function refresh(array $written = [], array $referrers = []): IndexReport
 	{
-		$report = $this->indexer->index(written: $written);
+		$report   = $this->indexer->index(written: $written);
+		$snapshot = $this->index->snapshot();
+		$paths    = [...$written, ...array_filter(array_map($snapshot->path(...), $referrers))];
+		$stale    = array_intersect_key($report->stale, array_flip($paths));
+
+		if ($stale !== []) {
+			[$filed] = $this->fileForms($stale, $snapshot);
+
+			if ($filed !== []) {
+				$again  = $this->indexer->index(written: $filed);
+				$report = new IndexReport(
+					$again->total,
+					$report->added,
+					array_values(array_diff(array_unique([...$report->changed, ...$again->changed]), $report->added)),
+					$report->removed,
+					[...$report->failures, ...$again->failures],
+					$report->full,
+					true,
+					$again->stale
+				);
+			}
+		}
+
 		$this->version->bump();
 
 		return $report;
+	}
+
+	/**
+	 * Files the ids of the entries linking to an entry, and to the pages
+	 * under it in a tree, before it's renamed or moved (D-596), so their
+	 * links can follow it. Returns those entries' ids and the paths
+	 * written.
+	 *
+	 * @return array{list<string>, list<string>}
+	 */
+	private function fileReferrers(string $path): array
+	{
+		$snapshot = $this->index->snapshot();
+		$record   = $snapshot->record($path);
+
+		if ($record?->id === null) {
+			return [[], []];
+		}
+
+		$ids = [$record->id];
+
+		if ($this->types->find($record->type) instanceof Tree) {
+			foreach ($snapshot->records as $other) {
+				if ($other['id'] !== null && $other['type'] === $record->type && str_starts_with($other['key'], "{$record->key}/")) {
+					$ids[] = $other['id'];
+				}
+			}
+		}
+
+		$graph     = $snapshot->graph();
+		$referrers = array_values(array_unique(array_merge(...array_map($graph->sources(...), $ids))));
+
+		if ($referrers === []) {
+			return [[], []];
+		}
+
+		$paths = array_filter(array_map($snapshot->path(...), $referrers));
+		$stale = array_intersect_key(new LinkBuilder()->build($snapshot, $this->relations, $this->types)->stale, array_flip($paths));
+
+		return [$referrers, $this->fileForms($stale, $snapshot)[0]];
+	}
+
+	/**
+	 * Files both forms of entries' relations (D-589): each file's
+	 * resolutions written as `RelationForms` gives them. A file that
+	 * can't be read or changed is left as it is.
+	 *
+	 * @param  array<string, array<string, Resolution>> $stale Resolutions by path and relation name.
+	 * @return array{list<string>, array<string, string>} The paths written, and messages for those that failed.
+	 */
+	private function fileForms(array $stale, IndexSnapshot $snapshot): array
+	{
+		$filed  = [];
+		$failed = [];
+
+		foreach ($stale as $path => $resolutions) {
+			$path = (string) $path;
+			$type = $snapshot->record($path)?->type;
+
+			if ($type === null) {
+				continue;
+			}
+
+			try {
+				$file     = $this->file($path);
+				$contents = $this->read($file);
+				$changes  = RelationForms::changes($this->frontMatter($contents), $resolutions, $this->relations, $type, $this->types->find($type) instanceof Tree);
+
+				if ($changes->isEmpty()) {
+					continue;
+				}
+
+				$this->write($file, $this->editor->edit($path, $contents, $changes, $this->keys($type)));
+
+				$filed[] = $path;
+			} catch (WriteException $e) {
+				$failed[$path] = $e->getMessage();
+			}
+		}
+
+		return [$filed, $failed];
+	}
+
+	/**
+	 * Returns a file's revision as it is now.
+	 *
+	 * @throws WriteException When it can't be read.
+	 */
+	private function revisionOf(string $path): string
+	{
+		return self::revision($this->read($this->file($path)));
 	}
 
 	/**

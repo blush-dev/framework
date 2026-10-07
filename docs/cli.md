@@ -49,6 +49,7 @@ See [Accounts and roles](accounts.md) and [The admin](admin.md).
 | `content:flatten` | List collection entries kept in folders, which a [collection](content-types.md#collections-are-flat) doesn't allow, and where they belong. `--write` moves them into the collection's folder and removes folders left empty. |
 | `content:terms` | List the terms and profiles your entries name that have no file, which the site leaves out. `--write` writes each, published, titled as the entries name it. |
 | `content:taxonomies` | List types in `user/data/types/` still written as taxonomies, which Blush no longer has, and fail while any are left. `--write` [migrates](content-types.md#moving-from-taxonomies) each to a collection and a classify relation in `user/data/relations/`. |
+| `content:refs` | List content files whose [links to other entries](content.md#links-between-entries) aren't filed with their ids under `refs`. `--write` files them, writing each value as the slug its entry has now. |
 | `content:ids` | List content files missing an [id](content.md#ids), and ids files share. `--write` gives each file missing one a new id; `--keep=<path>` keeps a shared id on that file and gives the others new ones (repeat it for more). |
 | `routes:list` | Show every URL pattern and redirect, and which one wins when two overlap |
 

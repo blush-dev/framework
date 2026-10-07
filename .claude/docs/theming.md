@@ -248,6 +248,13 @@ aren't candidates (D-104).
 - **Person** (an archive under a people field): `person-{type}-{field}`
   → `person-{field}` → `person` → `profile` → `collection`; `$entry` is
   the page written for it or the profile, `$page->profile` the profile.
+- **Related list** (what a type's relation with an archive word links
+  to, D-596): `related-list-{type}-{relation}` → `related-list-{relation}`
+  → `related-list` → `collection`; `$entries` holds the targets,
+  `$page->relation` the relation.
+- **Related** (a target's archive under it): `related-{type}-{relation}`
+  → `related-{relation}` → `related` → `term` → `collection`; `$entry`
+  is the target.
 - **Profile** (a profile's own page): `profile-{slug}` → `profile` →
   `collection`; `$entry` is the profile.
 - **Home:** `home` → then the hierarchy of whatever it aliases.

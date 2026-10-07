@@ -18,6 +18,7 @@ use Blush\Content\EntryFields;
 use Blush\Content\Parser\DocumentParser;
 use Blush\Content\Parser\InvalidDocument;
 use Blush\Content\Relation\Refs;
+use Blush\Content\Relation\RelationKind;
 use Blush\Content\Source\SourceFile;
 use Blush\Content\Status;
 use Blush\Content\Type\ContentType;
@@ -228,9 +229,11 @@ final readonly class RecordBuilder
 		$sources  = [];
 		$profiles = $this->types->profiles()?->name;
 
-		foreach ($this->types->classifications() as $relation) {
-			if ($relation->isFrom($type->name)) {
-				$sources[] = [$relation->name, $relation->name, $relation->field, $relation->aliases];
+		foreach ($this->types->relations() as $relation) {
+			$key = $relation->kind === RelationKind::Credit ? null : $relation->termKey();
+
+			if ($key !== null && $relation->isFrom($type->name)) {
+				$sources[] = [$key, $relation->to[0], $relation->field, $relation->aliases];
 			}
 		}
 

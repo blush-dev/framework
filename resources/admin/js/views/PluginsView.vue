@@ -67,7 +67,7 @@ const { query, status, source, filtered, matches, clear } = useExtensionFilter()
 // The plugins and broken ones the filters leave.
 const shownPlugins = computed(() => plugins.value.filter((plugin) => matches({
 	on: plugin.running,
-	attention: blocked(plugin) !== null || plugin.abandoned !== false,
+	attention: blocked(plugin) !== null || plugin.abandoned !== false || plugin.clashes.length > 0,
 	source: plugin.source,
 	words: [plugin.label, plugin.name, plugin.description, ...plugin.keywords]
 })));
@@ -132,10 +132,14 @@ async function removeBroken(plugin: BrokenPluginSummary): Promise<void> {
 					<template #pills>
 						<span v-if="blocked(plugin)" class="pill pill--warn">Can't turn on</span>
 						<span v-if="plugin.abandoned !== false" class="pill pill--warn">Abandoned</span>
+						<span v-if="plugin.clashes.length" class="pill pill--warn">Name Clash</span>
 					</template>
 					<p v-if="plugin.source === 'composer' && !plugin.enabled" class="extension__description">Installed by Composer. It's off because the list of plugins turned on here doesn't name it.</p>
 					<p v-if="blocked(plugin)" class="notice notice--small notice--warn extension__message">
 						<AdminIcon name="triangle-alert" /><span>{{ blocked(plugin) }}</span>
+					</p>
+					<p v-for="clash in plugin.clashes" :key="clash" class="notice notice--small notice--warn extension__message">
+						<AdminIcon name="triangle-alert" /><span>{{ clash }}</span>
 					</p>
 					<template #end>
 						<ToggleSwitch

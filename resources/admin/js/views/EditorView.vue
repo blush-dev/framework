@@ -95,6 +95,7 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { debounced } from '../action';
 import { confirmAction } from '../confirm';
+import { confirmLeaving } from '../referrers';
 import { makeHomepage } from '../homepage';
 import { onBeforeRouteLeave, RouterLink, useRoute, useRouter } from 'vue-router';
 import { ApiError, entryPath, entryRoute, errorMessage, request, trashEntry, upload, type EntryDetail, type EntryStatus, type NewEntryDetail, type FieldDescription, type MediaItem, type PreviewLink } from '../api';
@@ -600,6 +601,11 @@ async function save(status?: EntryStatus): Promise<void> {
 		return;
 	}
 
+	// Live entries linking to it stop showing it (D-598).
+	if (detail.id !== null && detail.status === 'published' && (status === 'draft' || status === 'scheduled') && !await confirmLeaving(detail.id, `“${detail.title || 'Untitled'}”`, 'draft')) {
+		return;
+	}
+
 	if (publishes(status) && missing.value.length > 0) {
 		attempted.value = true;
 		await showMissing();
@@ -849,7 +855,7 @@ function differences(): Differences | null {
 async function trash(): Promise<void> {
 	const detail = entry.value;
 
-	if (detail === null || detail.id === null || !await confirmAction({ title: `Move “${detail.title || 'Untitled'}” to the Trash?`, body: 'You can restore it from the Trash tab.', confirm: 'Move to Trash', danger: true })) {
+	if (detail === null || detail.id === null || !await confirmLeaving(detail.id, `“${detail.title || 'Untitled'}”`, 'trash', true)) {
 		return;
 	}
 

@@ -489,7 +489,8 @@ on demand, for what's loaded at once, is in `open-questions.md`.
   in, D-590 to D-592), and the taxonomy kind retired for collections
   and relations, with a migration tool and the admin's Relationships
   section (D-591, D-593, D-594); (2) limits and
-  required, creating as typed, reverse archives, rewriting referrers;
+  required, creating as typed, reverse archives, rewriting referrers
+  (built, D-596);
   (3) the admin's controls and a type's Relationships section; (4) data
   on links and targets of more than one type. Open items in
   `open-questions.md` → Relationships.

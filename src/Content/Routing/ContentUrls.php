@@ -17,6 +17,7 @@ use Closure;
 use Blush\Container\Attributes\Defer;
 use Blush\Content\ContentRepository;
 use Blush\Content\Entry\Entry;
+use Blush\Content\Relation\Relation;
 use Blush\Content\Type\Collection;
 use Blush\Content\Type\ContentType;
 use Blush\Content\Type\ContentTypes;
@@ -319,6 +320,48 @@ final readonly class ContentUrls
 	{
 		return $type->hasFeed() && $this->hasArchive($type, $field)
 			? $this->build($type->routePattern("{$field->field}.single.feed{$suffix}"), ['profile' => $slug], $type)
+			: null;
+	}
+
+	/**
+	 * Returns the URL path of the list of what a type's relation links to
+	 * (`/movies/actors`, D-596), or `null` when it has no archives there.
+	 */
+	public function relatedList(ContentType $type, Relation $relation): ?string
+	{
+		return $this->relationArchive($type, $relation, 'collection');
+	}
+
+	/**
+	 * Returns the URL path of a target's archive under a type's relation
+	 * (`/movies/actors/tom`, D-596), or a later page's, or `null` when the
+	 * relation has no archives there.
+	 */
+	public function related(ContentType $type, Relation $relation, string $slug, int $page = 1): ?string
+	{
+		return $page > 1
+			? $this->relationArchive($type, $relation, 'single.paged', ['target' => $slug, 'page' => (string) $page])
+			: $this->relationArchive($type, $relation, 'single', ['target' => $slug]);
+	}
+
+	/**
+	 * Returns the URL path of a target's feed under a type's relation
+	 * (`$suffix` as `personFeed()`'s), or `null`.
+	 */
+	public function relatedFeed(ContentType $type, Relation $relation, string $slug, string $suffix = ''): ?string
+	{
+		return $type->hasFeed() ? $this->relationArchive($type, $relation, "single.feed{$suffix}", ['target' => $slug]) : null;
+	}
+
+	/**
+	 * Builds a URL path of a relation archive's route key, or `null`.
+	 *
+	 * @param array<string, string> $values
+	 */
+	private function relationArchive(ContentType $type, Relation $relation, string $key, array $values = []): ?string
+	{
+		return isset($this->types->relationArchives($type)[$relation->name])
+			? $this->build($this->types->routePattern($type, "{$relation->name}.{$key}"), $values, $type)
 			: null;
 	}
 

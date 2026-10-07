@@ -574,6 +574,13 @@ Implemented in M4a (D-080, D-085, D-086).
   graph with it (`IndexSnapshot::withLinks()`, `graph()`); records'
   `terms` are the classify and credit relations' written forms, so the
   term APIs read through relations (D-592). `refs` is reserved like `id`.
+  Blush files both forms whenever it writes (D-596): `FilesystemWriter`
+  files the relations of what it just wrote from the reindex's
+  `IndexReport::$stale` (`RelationForms`: ids under `refs`, written
+  values as slugs, a value naming nothing kept as spelled), files a
+  renamed or moved entry's referrers' ids before and rewrites them
+  after, and `fileRefs()` serves `EntryRefs` (`content:refs`, Site
+  Health's Links Between Entries).
 - Terms are entries (`user/content/topics/art.md`), and only files are
   terms (D-584): a slug entries name with no file is left out of the
   site (`term()` is `null`, `termCounts()` leaves it out) and is a lint
@@ -676,7 +683,8 @@ Implemented in M4b (D-087, D-090).
   and parses every result to confirm only the intended values changed.
   Entries are named by path. Every new entry (a copy too) gets a new
   `id`, written last; `update` adds one to a file without it and never
-  changes or removes one; a new key goes before an existing `id`; and
+  changes or removes one; a new key goes before an `id` that's last, else
+  at the end; every write files its relations (D-596); and
   `assignIds` gives files new ones in one reindex (D-477, D-480).
   Outside the writer, entries are named by id (D-481): the admin API,
   preview links, and the editor's addresses.

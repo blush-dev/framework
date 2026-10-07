@@ -172,6 +172,23 @@ final readonly class Relation
 	}
 
 	/**
+	 * Returns the key the index keeps the relation's written values under
+	 * (`IndexRecord::$terms`, D-592), which `Query::whereTerm()` and
+	 * `termCounts()` read: a classify relation's name, which is its
+	 * type's (`category`), else `{target type}.{name}` (`person.actors`,
+	 * `profile.authors`), for a relation to one type. A relation to
+	 * several types has none yet.
+	 */
+	public function termKey(): ?string
+	{
+		return match (true) {
+			$this->kind === RelationKind::Classify => $this->name,
+			$this->kind->isWithinType(), count($this->to) !== 1 => null,
+			default                                => "{$this->to[0]}.{$this->name}"
+		};
+	}
+
+	/**
 	 * Returns whether entries of a type may hold the relation.
 	 */
 	public function isFrom(string $type): bool
@@ -212,6 +229,20 @@ final readonly class Relation
 	public function keys(): array
 	{
 		return [$this->field, ...$this->aliases];
+	}
+
+	/**
+	 * Returns the relation's value in front matter: under its key, else
+	 * the first alias that has one, or `null`.
+	 *
+	 * @param array<array-key, mixed> $frontMatter
+	 */
+	public function valueIn(array $frontMatter): mixed
+	{
+		return array_find(
+			array_map(static fn (string $key): mixed => $frontMatter[$key] ?? null, $this->keys()),
+			static fn (mixed $value): bool => $value !== null && $value !== '' && $value !== []
+		);
 	}
 
 	/**

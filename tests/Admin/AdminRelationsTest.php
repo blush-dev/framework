@@ -19,6 +19,7 @@ use Psr\Http\Message\ResponseInterface;
 use Blush\Admin\HealthController;
 use Blush\Admin\RelationsController;
 use Blush\Admin\TypeEditController;
+use Blush\Content\Index\Indexer;
 use Blush\Content\Relation\DataRelationWriter;
 use Blush\Content\Relation\RelationLoader;
 use Blush\Content\Type\ContentTypeLoader;
@@ -72,6 +73,16 @@ final class AdminRelationsTest extends TestCase
 		$this->app->container()->instance(ContentTypes::class, $this->app->container()->make(ContentTypeLoader::class)->load());
 	}
 
+	/**
+	 * Returns an answer's error message.
+	 */
+	private static function message(ResponseInterface $response): string
+	{
+		$error = self::json($response)['error'] ?? null;
+
+		return is_string($error) ? $error : '';
+	}
+
 	private function file(string $relative): string
 	{
 		return (string) @file_get_contents($this->temporaryDirectory() . "/{$relative}");
@@ -109,6 +120,124 @@ final class AdminRelationsTest extends TestCase
 		$this->assertFileDoesNotExist($this->temporaryDirectory() . '/user/data/relations/cuisine.json');
 		$this->reload();
 		$this->assertFalse(self::json($this->send('GET', '/types/cuisine'))['terms'] ?? null);
+	}
+
+	public function testCreatesTargetsAsTheyreTyped(): void
+	{
+		$this->writeTemporaryFile('user/data/relations/cuisine.json', '{"kind": "classify", "from": ["recipe"], "to": ["cuisine"], "create": true}');
+		$this->writeTemporaryFile('user/content/cuisines/thai.md', "---\ntitle: Thai\nid: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e10\n---\n");
+		$this->site();
+
+		$created = $this->write('POST', '/entries', ['type' => 'recipe', 'title' => 'Curry', 'status' => 'published', 'set' => ['cuisine' => ['thai', 'Street Food']]]);
+
+		$this->assertSame(201, $created->getStatusCode(), (string) $created->getBody());
+		$this->assertStringContainsString("title: \"Street Food\"\n", $this->file('user/content/cuisines/street-food.md'), 'Written, titled as typed (D-596).');
+		$this->assertStringNotContainsString('status:', $this->file('user/content/cuisines/street-food.md'), 'Published.');
+
+		$recipe = $this->file('user/content/recipes/curry.md');
+
+		$this->assertStringContainsString("cuisine: [thai, street-food]\n", $recipe, 'Written as slugs.');
+		$this->assertStringContainsString("  cuisine:\n    thai: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e10\n    street-food: ", $recipe, 'And linked by id.');
+	}
+
+	public function testRefusesToCreateTargetsTheAccountCant(): void
+	{
+		$this->writeTemporaryFile('user/data/relations/cuisine.json', '{"kind": "classify", "from": ["recipe"], "to": ["cuisine"], "create": true}');
+		$this->site(['contributor']);
+
+		$refused = $this->write('POST', '/entries', ['type' => 'recipe', 'title' => 'Curry', 'set' => ['cuisine' => ['Street Food']]]);
+
+		$this->assertSame(403, $refused->getStatusCode(), (string) $refused->getBody());
+		$this->assertSame('cuisine', self::json($refused)['field'] ?? null);
+		$this->assertStringContainsString('Street Food', self::message($refused));
+		$this->assertFileDoesNotExist($this->temporaryDirectory() . '/user/content/recipes/curry.md', 'Nothing is written.');
+		$this->assertFileDoesNotExist($this->temporaryDirectory() . '/user/content/cuisines/street-food.md');
+	}
+
+	public function testPublishingKeepsRelationsInTheirLimits(): void
+	{
+		$this->writeTemporaryFile('user/data/relations/cuisine.json', '{"kind": "classify", "from": ["recipe"], "to": ["cuisine"], "min": 2, "max": 3}');
+		$this->writeTemporaryFile('user/data/relations/variant_of.json', '{"kind": "reference", "from": ["recipe"], "to": ["recipe"], "multiple": false, "inverse": {"max": 1}}');
+		$this->writeTemporaryFile('user/content/recipes/soup.md', "---\ntitle: Soup\nid: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e20\n---\n");
+		$this->writeTemporaryFile('user/content/recipes/stew.md', "---\ntitle: Stew\ncuisine: [a, b]\nvariant_of: soup\nid: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e21\n---\n");
+		$this->site();
+
+		$few = $this->write('POST', '/entries', ['type' => 'recipe', 'title' => 'Curry', 'status' => 'published', 'set' => ['cuisine' => ['a']]]);
+
+		$this->assertSame(422, $few->getStatusCode(), (string) $few->getBody());
+		$this->assertSame('cuisine', self::json($few)['field'] ?? null);
+		$this->assertStringContainsString('needs at least 2 to publish; it has 1', self::message($few));
+
+		$this->assertSame(201, $this->write('POST', '/entries', ['type' => 'recipe', 'title' => 'Curry', 'set' => ['cuisine' => ['a']]])->getStatusCode(), 'A draft may have fewer (D-585).');
+
+		$many = $this->write('POST', '/entries', ['type' => 'recipe', 'title' => 'Broth', 'status' => 'published', 'set' => ['cuisine' => ['a', 'b', 'c', 'd']]]);
+
+		$this->assertStringContainsString('takes at most 3; it has 4', self::message($many));
+
+		$taken = $this->write('POST', '/entries', ['type' => 'recipe', 'title' => 'Chowder', 'status' => 'published', 'set' => ['cuisine' => ['a', 'b'], 'variant_of' => 'soup']]);
+
+		$this->assertSame(422, $taken->getStatusCode(), (string) $taken->getBody());
+		$this->assertSame('variant_of', self::json($taken)['field'] ?? null);
+		$this->assertStringContainsString('"Soup" already has the most entries naming it in variant_of (1).', self::message($taken), 'The inverse\'s max counts the others (D-587).');
+	}
+
+	public function testTellsWhatLinksToAnEntryAndTakesItOutOnDelete(): void
+	{
+		$thai = '0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e30';
+		$this->writeTemporaryFile('user/data/relations/cuisine.json', '{"kind": "classify", "from": ["recipe"], "to": ["cuisine"]}');
+		$this->writeTemporaryFile('user/content/cuisines/thai.md', "---\ntitle: Thai\nid: {$thai}\n---\n");
+		$this->writeTemporaryFile('user/content/cuisines/indian.md', "---\ntitle: Indian\nid: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e31\n---\n");
+		$this->writeTemporaryFile('user/content/recipes/curry.md', "---\ntitle: Curry\ncuisine: [thai, indian]\nid: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e32\n---\n");
+		$this->writeTemporaryFile('user/content/recipes/soup.md', "---\ntitle: Soup\nstatus: draft\ncuisine: thai\nid: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e33\n---\n");
+		$this->writeTemporaryFile('user/content/recipes/stew.md', "---\ntitle: Stew\ncuisine: thai\nid: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e34\n---\n");
+		$this->site();
+
+		$referrers = self::json($this->send('GET', "/entries/{$thai}/referrers"));
+
+		$this->assertSame([3, 2, 3], [$referrers['count'] ?? null, $referrers['live'] ?? null, $referrers['editable'] ?? null], 'Every status, and how many are live (D-598).');
+		$this->assertSame(['Curry', 'Soup', 'Stew'], array_column(is_array($referrers['entries'] ?? null) ? $referrers['entries'] : [], 'title'));
+
+		$revision = self::json($this->send('GET', "/entries/{$thai}"))['revision'] ?? '';
+		$this->assertSame(200, $this->write('DELETE', "/entries/{$thai}?revision=" . (is_string($revision) ? $revision : ''))->getStatusCode());
+		$this->assertSame(3, self::json($this->send('GET', "/entries/{$thai}/referrers"))['count'] ?? null, 'The trash keeps its links, so restoring it loses nothing.');
+
+		$deleted = $this->write('DELETE', "/entries/{$thai}?permanently=1&unlink=1");
+
+		$this->assertSame(['deleted' => $thai, 'unlinked' => 3], self::json($deleted));
+		$this->assertStringContainsString("cuisine: [indian]\n", $this->file('user/content/recipes/curry.md'), 'Taken out of what links to it.');
+		$this->assertStringNotContainsString('thai', $this->file('user/content/recipes/curry.md'), 'In both forms.');
+		$this->assertStringNotContainsString('cuisine', $this->file('user/content/recipes/soup.md'), 'A relation left with none goes.');
+	}
+
+	public function testDeletingCanLeaveWhatLinksToIt(): void
+	{
+		$thai = '0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e40';
+		$this->writeTemporaryFile('user/data/relations/cuisine.json', '{"kind": "classify", "from": ["recipe"], "to": ["cuisine"]}');
+		$this->writeTemporaryFile('user/content/cuisines/thai.md', "---\ntitle: Thai\nstatus: trash\nid: {$thai}\n---\n");
+		$this->writeTemporaryFile('user/content/recipes/curry.md', "---\ntitle: Curry\ncuisine: thai\nid: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e41\n---\n");
+		$this->site();
+
+		$this->assertSame(['deleted' => $thai, 'unlinked' => 0], self::json($this->write('DELETE', "/entries/{$thai}?permanently=1")));
+		$this->assertStringContainsString('cuisine: thai', $this->file('user/content/recipes/curry.md'));
+	}
+
+	public function testTheTrashDoesntCountTowardAnInverseLimit(): void
+	{
+		$this->writeTemporaryFile('user/data/relations/variant_of.json', '{"kind": "reference", "from": ["recipe"], "to": ["recipe"], "multiple": false, "inverse": {"max": 1}}');
+		$this->writeTemporaryFile('user/content/recipes/soup.md', "---\ntitle: Soup\nid: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e50\n---\n");
+		$this->writeTemporaryFile('user/content/recipes/stew.md', "---\ntitle: Stew\nstatus: trash\nvariant_of: soup\nid: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e51\n---\n");
+		$this->writeTemporaryFile('user/content/recipes/broth.md', "---\ntitle: Broth\nstatus: draft\nvariant_of: soup\nid: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e52\n---\n");
+		$this->site();
+
+		$taken = $this->write('POST', '/entries', ['type' => 'recipe', 'title' => 'Chowder', 'status' => 'published', 'set' => ['variant_of' => 'soup']]);
+
+		$this->assertSame(422, $taken->getStatusCode(), 'A draft counts: publishing it would break the limit (D-598).');
+
+		unlink($this->temporaryDirectory() . '/user/content/recipes/broth.md');
+		$this->app->container()->make(Indexer::class)->index();
+
+		$second = $this->write('POST', '/entries', ['type' => 'recipe', 'title' => 'Chowder', 'status' => 'published', 'set' => ['variant_of' => 'soup']]);
+		$this->assertSame(201, $second->getStatusCode(), 'The trash doesn\'t. ' . $second->getBody());
 	}
 
 	public function testRefusesWhatDoesNotFitAndWritesNothing(): void

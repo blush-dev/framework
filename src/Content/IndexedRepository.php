@@ -215,7 +215,7 @@ final class IndexedRepository implements ContentRepository
 	{
 		$type = $this->types->find($taxonomy);
 
-		if ($type === null || ! $this->types->isTermType($type->name)) {
+		if ($type === null || (! $this->types->isTermType($type->name) && ! $this->types->hasTermPages($type->name))) {
 			return null;
 		}
 
@@ -311,22 +311,23 @@ final class IndexedRepository implements ContentRepository
 	 * @inheritDoc
 	 */
 	#[Override]
-	public function termCounts(string $taxonomy, ?Query $query = null): array
+	public function termCounts(string|array $taxonomy, ?Query $query = null): array
 	{
 		$snapshot = $this->snapshot();
 		$listed   = array_flip($this->get(($query ?? $this->query())->limit(null)->offset(0))->paths);
-		$type     = strstr($taxonomy, '.', true) ?: $taxonomy;
-		$counts   = [];
+		$found    = [];
 
-		foreach ($snapshot->terms[$taxonomy] ?? [] as $slug => $paths) {
-			if (! $snapshot->has($type, (string) $slug)) {
-				continue;
+		foreach (is_array($taxonomy) ? $taxonomy : [$taxonomy] as $key) {
+			$type = strstr($key, '.', true) ?: $key;
+
+			foreach ($snapshot->terms[$key] ?? [] as $slug => $paths) {
+				if ($snapshot->has($type, (string) $slug)) {
+					$found[(string) $slug] = [...$found[(string) $slug] ?? [], ...array_filter($paths, static fn (string $path): bool => isset($listed[$path]))];
+				}
 			}
-
-			$counts[(string) $slug] = count(array_filter($paths, static fn (string $path): bool => isset($listed[$path])));
 		}
 
-		return $counts;
+		return array_map(static fn (array $paths): int => count(array_unique($paths)), $found);
 	}
 
 	/**

@@ -418,6 +418,28 @@ final class AdminTypeEditTest extends TestCase
 		$this->assertFalse(self::json($this->send('GET', '/types/profile'))['editable'] ?? null);
 	}
 
+	public function testMovesARelationsArchives(): void
+	{
+		$this->writeTemporaryFile('user/data/types/recipe.yaml', "folder: recipes\n");
+		$this->writeTemporaryFile('user/data/relations/pairs_with.json', '{"kind": "reference", "from": ["recipe"], "to": ["recipe"], "inverse": {"archive": "pairs"}}');
+		$this->site();
+
+		$routes = $this->routes('recipe');
+
+		$this->assertSame(['key' => 'pairs_with.single', 'path' => '', 'default' => 'pairs/{target}', 'requires' => ['target'], 'allows' => [], 'root' => false, 'relation' => 'Pairs with'], $routes['pairs_with.single'] ?? null, 'A relation\'s archives are among the type\'s addresses (D-596).');
+		$this->assertSame('pairs', $routes['pairs_with.collection']['default'] ?? null);
+
+		$refused = $this->write('PATCH', '/types/recipe', ['set' => ['paths' => ['pairs_with.single' => 'goes-with/{name}']]]);
+
+		$this->assertSame(422, $refused->getStatusCode());
+		$this->assertStringContainsString('needs {target}', self::error($refused));
+
+		$saved = $this->write('PATCH', '/types/recipe', ['set' => ['paths' => ['pairs_with.single' => 'goes-with/{target}']]]);
+
+		$this->assertSame(200, $saved->getStatusCode(), (string) $saved->getBody());
+		$this->assertStringContainsString("pairs_with.single: 'goes-with/{target}'", $this->file('user/data/types/recipe.yaml'));
+	}
+
 	public function testChangesAndChecksRoutePaths(): void
 	{
 		$this->writeTemporaryFile('user/data/types/recipe.yaml', "folder: recipes\nfeed: true\nurls:\n  single: 'r/{name}'\n");
@@ -426,7 +448,7 @@ final class AdminTypeEditTest extends TestCase
 
 		$routes = $this->routes('recipe');
 		$this->assertSame(['collection', 'collection.paged', 'single', 'collection.feed', 'collection.feed.atom', 'collection.feed.json', 'authors.collection', 'authors.single', 'authors.single.paged', 'authors.single.feed', 'authors.single.feed.atom', 'authors.single.feed.json'], array_keys($routes));
-		$this->assertSame(['key' => 'single', 'path' => 'r/{name}', 'default' => '{name}', 'requires' => ['name'], 'allows' => ['year', 'month', 'day', 'hour', 'minute', 'second', 'profile', 'cuisine'], 'root' => false], $routes['single']);
+		$this->assertSame(['key' => 'single', 'path' => 'r/{name}', 'default' => '{name}', 'requires' => ['name'], 'allows' => ['year', 'month', 'day', 'hour', 'minute', 'second', 'profile', 'cuisine'], 'root' => false, 'relation' => null], $routes['single']);
 
 		$refusals = [
 			'{year}'          => 'The "single" address needs {name}.',

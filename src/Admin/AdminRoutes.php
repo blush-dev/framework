@@ -74,7 +74,8 @@ use Blush\Session\StartSession;
  *     time, or with `status=trash`, those in the trash it may delete.
  *   - `POST entries`, and `GET`, `PATCH`, and `DELETE entries/{id}`:
  *     the editing API (`EntryController`), `POST entries/bulk` (D-301),
- *     `POST entries/{id}/duplicate`, `GET entries/new` (a new entry, not
+ *     `POST entries/{id}/duplicate`, `GET entries/{id}/referrers` (what
+ *     links to it, D-598), `GET entries/new` (a new entry, not
  *     yet written, D-336), each entry named by its id (D-481, D-483);
  *     and the trash (D-484): `POST entries/{id}/restore` and `POST
  *     entries/empty-trash`.
@@ -89,8 +90,9 @@ use Blush\Session\StartSession;
  *     (D-488), `POST health/filenames` to rename a type's files to its
  *     pattern (D-512), `POST health/flatten` to move collections'
  *     entries out of folders (D-514), and `POST health/terms` to write
- *     the terms and profiles entries name with no file (D-584), and
- *     `POST health/taxonomies` to migrate data types still written as
+ *     the terms and profiles entries name with no file (D-584), `POST
+ *     health/refs` to file links between entries with their ids
+ *     (D-596), and `POST health/taxonomies` to migrate data types still written as
  *     taxonomies (D-591).
  *   - `GET  roles` and `GET accounts`: the site's roles and accounts
  *     (`PeopleController`); `GET profiles`, `GET profiles/{slug}`, and `POST` and
@@ -195,6 +197,7 @@ final readonly class AdminRoutes implements RouteSource
 			Route::post('/entries/empty-trash', [EntryController::class, 'emptyTrash'])->named('entry.empty-trash')->middleware(Authenticate::class),
 			Route::post('/entries/{id:[0-9a-fA-F-]{36}}/restore', [EntryController::class, 'restore'])->named('entry.restore')->middleware(Authenticate::class),
 			Route::post('/entries/{id:[0-9a-fA-F-]{36}}/duplicate', [EntryController::class, 'duplicate'])->named('entry.duplicate')->middleware(Authenticate::class),
+			Route::get('/entries/{id:[0-9a-fA-F-]{36}}/referrers', [EntryController::class, 'referrers'])->named('entry.referrers')->middleware(Authenticate::class),
 			Route::get('/entries/{id:[0-9a-fA-F-]{36}}', [EntryController::class, 'show'])->named('entry')->middleware(Authenticate::class),
 			Route::patch('/entries/{id:[0-9a-fA-F-]{36}}', [EntryController::class, 'update'])->named('entry.update')->middleware(Authenticate::class),
 			Route::delete('/entries/{id:[0-9a-fA-F-]{36}}', [EntryController::class, 'delete'])->named('entry.delete')->middleware(Authenticate::class),
@@ -210,6 +213,7 @@ final readonly class AdminRoutes implements RouteSource
 			Route::post('/health/filenames', [HealthController::class, 'renameFiles'])->named('health.filenames')->middleware(Authenticate::class),
 			Route::post('/health/flatten', [HealthController::class, 'flatten'])->named('health.flatten')->middleware(Authenticate::class),
 			Route::post('/health/terms', [HealthController::class, 'createTerms'])->named('health.terms')->middleware(Authenticate::class),
+			Route::post('/health/refs', [HealthController::class, 'fileRefs'])->named('health.refs')->middleware(Authenticate::class),
 			Route::post('/health/taxonomies', [HealthController::class, 'migrateTaxonomies'])->named('health.taxonomies')->middleware(Authenticate::class),
 			Route::get('/roles', [PeopleController::class, 'roles'])->named('roles')->middleware(Authenticate::class),
 			Route::post('/roles', [RoleEditController::class, 'create'])->named('role.create')->middleware(Authenticate::class),

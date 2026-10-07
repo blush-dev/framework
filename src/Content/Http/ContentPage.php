@@ -17,6 +17,7 @@ use Closure;
 use Blush\Content\Entry\Entry;
 use Blush\Content\Query\PageLink;
 use Blush\Content\Query\Paginator;
+use Blush\Content\Relation\Relation;
 use Blush\Content\Type\ContentType;
 use Blush\Content\Type\PeopleField;
 use Blush\Setup\Welcome;
@@ -51,6 +52,7 @@ final readonly class ContentPage
 	 * @param ?PageKind                  $base    For the homepage, the kind of page it shows.
 	 * @param ?PeopleField               $people  The people field a people list or person's archive is for.
 	 * @param ?Entry                     $profile The profile a person's archive or profile page is about.
+	 * @param ?Relation                  $relation The relation a related list or a target's archive is for (D-596).
 	 * @param ?Welcome                   $welcome The welcome page's notes.
 	 * @param ?string                    $language The code of the language the page is in (D-455), when it's a list in another language; `null` for its entry's or the default.
 	 * @param ?Closure(string): ?string  $alternateUrl Returns the page's URL path in a language, or `null`.
@@ -68,7 +70,8 @@ final readonly class ContentPage
 		public ?Entry $profile = null,
 		public ?Welcome $welcome = null,
 		public ?string $language = null,
-		public ?Closure $alternateUrl = null
+		public ?Closure $alternateUrl = null,
+		public ?Relation $relation = null
 	) {}
 
 	/**

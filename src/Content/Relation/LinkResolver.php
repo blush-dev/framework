@@ -143,7 +143,7 @@ final readonly class LinkResolver
 	 *
 	 * @return list<string>
 	 */
-	private static function values(mixed $value): array
+	public static function values(mixed $value): array
 	{
 		$values = [];
 

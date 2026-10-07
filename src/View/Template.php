@@ -570,6 +570,36 @@ final class Template
 	}
 
 	/**
+	 * Returns the entries an entry links to through one of its type's
+	 * relations (D-585, D-596), such as a movie's `actors`, in the order
+	 * front matter lists them, each in the entry's language when it has a
+	 * translation in it. Only published entries come back. A symmetric
+	 * relation answers from both ends (related posts include the ones
+	 * naming this one), and a translation's links follow the relation's
+	 * `translations` rule.
+	 *
+	 * @return list<Entry>
+	 */
+	public function related(Entry $entry, string $relation): array
+	{
+		return $this->views->services->relations->related($entry, $relation);
+	}
+
+	/**
+	 * Returns the published entries linking to an entry through a
+	 * relation, newest published first: by its name (`actors`), or by
+	 * its key on one source type (`movie.actors`). It's the list a
+	 * relation's reverse side shows when it has no page of its own
+	 * (`inverse.archive: false`).
+	 *
+	 * @return list<Entry>
+	 */
+	public function referencedBy(Entry $entry, string $relation): array
+	{
+		return $this->views->services->relations->referencedBy($entry, $relation);
+	}
+
+	/**
 	 * Returns the profiles an entry credits through one of its type's
 	 * people fields (D-351), in the order front matter lists them; the
 	 * type's first people field, its main byline, when none is named.

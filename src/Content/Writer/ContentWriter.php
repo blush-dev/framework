@@ -161,6 +161,17 @@ interface ContentWriter
 	public function assignIds(array $paths): AssignedIds;
 
 	/**
+	 * Files both forms of entries' relations (D-589, D-596), for
+	 * `content:refs` and Site Health: each file whose written values or
+	 * `refs` differ from what its links say is rewritten, all in one
+	 * reindex. A file that can't be read or changed is left as it is and
+	 * named in the result.
+	 *
+	 * @param list<string> $paths
+	 */
+	public function fileRefs(array $paths): FiledRefs;
+
+	/**
 	 * Renames entries' files and folders (D-512), for `content:filenames`
 	 * and Site Health: each entry, by its path, moves a set of files
 	 * or folders (paths in the content folder, old to new) together, so

@@ -25,6 +25,7 @@ use Blush\Content\Relation\Relation;
 use Blush\Content\Relation\RelationKind;
 use Blush\Content\Relation\RelationOrigin;
 use Blush\Content\Relation\Refs;
+use Blush\Extension\DefinitionClash;
 use Blush\Field\Field;
 use Blush\Field\FieldFactory;
 use Blush\Field\FieldSet;
@@ -84,6 +85,7 @@ final class ContentTypes implements IteratorAggregate, Countable
 	 * @param array<string, Relation>     $relations Relation definitions, keyed by name (D-593).
 	 * @param array<string, RelationOrigin> $relationOrigins Keyed by name.
 	 * @param list<string>               $legacy    Data types still in the taxonomy form, read as a collection and its relation until they're migrated (D-591).
+	 * @param list<DefinitionClash>      $clashes   Types and relations two extensions define by one name; the first of each is kept (D-597).
 	 */
 	public function __construct(
 		private readonly array $types,
@@ -93,7 +95,8 @@ final class ContentTypes implements IteratorAggregate, Countable
 		private readonly array $overrides = [],
 		private readonly array $relations = [],
 		private readonly array $relationOrigins = [],
-		public readonly array $legacy = []
+		public readonly array $legacy = [],
+		public readonly array $clashes = []
 	) {
 		foreach ($types as $name => $type) {
 			$this->folders[$type->folder] = $name;
@@ -215,40 +218,151 @@ final class ContentTypes implements IteratorAggregate, Countable
 	}
 
 	/**
-	 * Returns whether a type's entries are terms with pages of their own
-	 * listing what's filed under them (a classify relation's inverse
-	 * archive, D-593), which needs the type to have URLs.
+	 * Returns the relations whose inverse archive is on a type's own
+	 * entries' pages (`archive: true`, D-596): the classify relation
+	 * filing entries under it first, then any reference to it alone, by
+	 * name.
+	 *
+	 * @return list<Relation>
+	 */
+	public function archivedTo(string $name): array
+	{
+		$found = [];
+
+		foreach ($this->relations as $relation) {
+			if (
+				($relation->kind === RelationKind::Classify || $relation->kind === RelationKind::Reference)
+				&& $relation->to === [$name]
+				&& $relation->inverse !== false
+				&& $relation->inverse->archive === true
+			) {
+				$found[] = $relation;
+			}
+		}
+
+		usort($found, static fn (Relation $a, Relation $b): int => [$b->kind === RelationKind::Classify, $a->name] <=> [$a->kind === RelationKind::Classify, $b->name]);
+
+		return $found;
+	}
+
+	/**
+	 * Returns the index keys an entry's page lists what links to it by
+	 * (`Relation::termKey()`), for each relation archived on it.
+	 *
+	 * @return list<string>
+	 */
+	public function termKeys(string $name): array
+	{
+		return array_values(array_filter(array_map(static fn (Relation $relation): ?string => $relation->termKey(), $this->archivedTo($name))));
+	}
+
+	/**
+	 * Returns the relations from a type with archives under it, by name
+	 * (an inverse `archive` word, D-596): a classify or reference relation
+	 * to one type, from a public type with URLs, such as `movie.actors`
+	 * with `archive: actors` (`/movies/actors/tom`). People fields' archives
+	 * are their own (`ContentType::archivedPeople()`).
+	 *
+	 * @return array<string, Relation>
+	 */
+	public function relationArchives(ContentType $type): array
+	{
+		if (! $type->public || ! $type->hasUrls()) {
+			return [];
+		}
+
+		return array_filter($this->relations, fn (Relation $relation): bool => ($relation->kind === RelationKind::Classify || $relation->kind === RelationKind::Reference)
+			&& $relation->isFrom($type->name)
+			&& count($relation->to) === 1
+			&& $this->find($relation->to[0]) !== null
+			&& $relation->inverse !== false
+			&& is_string($relation->inverse->archive));
+	}
+
+	/**
+	 * Returns the default paths of a type's relation archives' route keys,
+	 * under each archive word: `{name}.collection` (`actors`, every
+	 * target linked to), `{name}.single` (`actors/{target}`), its
+	 * `.paged`, and its feeds. A type's URL `paths` can move them.
+	 *
+	 * @return array<string, string>
+	 */
+	public function relationPaths(ContentType $type): array
+	{
+		$paths = [];
+
+		foreach ($this->relationArchives($type) as $name => $relation) {
+			$word = $relation->inverse === false ? '' : (string) $relation->inverse->archive;
+
+			$paths += [
+				"{$name}.collection"       => $word,
+				"{$name}.single"           => "{$word}/{target}",
+				"{$name}.single.paged"     => "{$word}/{target}/page/{page}",
+				"{$name}.single.feed.json" => "{$word}/{target}/feed/json",
+				"{$name}.single.feed.atom" => "{$word}/{target}/feed/atom",
+				"{$name}.single.feed"      => "{$word}/{target}/feed"
+			];
+		}
+
+		return $paths;
+	}
+
+	/**
+	 * Returns a type's full route pattern for a route key, its relation
+	 * archives' included (`ContentType::routePattern()`).
+	 */
+	public function routePattern(ContentType $type, string $key): ?string
+	{
+		return $type->routePattern($key, $this->relationPaths($type));
+	}
+
+	/**
+	 * Returns whether a type's entries have pages of their own listing
+	 * what links to them (a relation's inverse archive on the target,
+	 * D-593, D-596): a term's, or a person's in a `movie.actors` relation
+	 * with `archive: true`. It needs a collection with URLs.
 	 */
 	public function hasTermPages(string $name): bool
 	{
-		$relation = $this->classification($name);
+		$type = $this->find($name);
 
-		return $relation !== null
-			&& $relation->inverse !== false
-			&& $relation->inverse->archive === true
-			&& ($this->find($name)?->hasUrls() ?? false);
+		return $type instanceof Collection && $type->hasUrls() && $this->archivedTo($name) !== [];
 	}
 
 	/**
 	 * Returns a term page's 1.x query arguments, for `Query::fromArray()`,
-	 * before the term itself is matched: the types its relation files
-	 * (its inverse's `types`, else its `from`), listed as the inverse's
-	 * `listing` says.
+	 * before the term itself is matched: the types its relations link
+	 * from (each inverse's `types`, else its `from`), listed as the first
+	 * relation's inverse `listing` says.
 	 *
 	 * @return array<string, mixed>
 	 */
 	public function termArguments(string $name): array
 	{
-		$relation = $this->classification($name);
+		$relations = $this->archivedTo($name);
 
-		if ($relation === null) {
+		if ($relations === []) {
 			return [];
 		}
 
-		$inverse = $relation->inverse === false ? new Inverse() : $relation->inverse;
-		$types   = $inverse->types === [] ? $relation->from : $inverse->types;
+		$types = [];
 
-		return [...($types === [] ? [] : ['type' => $types]), ...$inverse->listing->arguments()];
+		foreach ($relations as $relation) {
+			$inverse = $relation->inverse === false ? new Inverse() : $relation->inverse;
+			$from    = $inverse->types === [] ? $relation->from : $inverse->types;
+
+			// Every type, for one that names none.
+			if ($from === []) {
+				$types = null;
+				break;
+			}
+
+			$types = array_values(array_unique([...$types, ...$from]));
+		}
+
+		$first = $relations[0]->inverse === false ? new Inverse() : $relations[0]->inverse;
+
+		return [...($types === null ? [] : ['type' => $types]), ...$first->listing->arguments()];
 	}
 
 	/**
@@ -463,7 +577,7 @@ final class ContentTypes implements IteratorAggregate, Countable
 	/**
 	 * Returns the types as an array for a compiled cache.
 	 *
-	 * @return array{types: list<array<string, mixed>>, origins: array<string, string>, overrides: list<string>, home: ?string, sets: list<array<string, mixed>>, relations: list<array<string, mixed>>, relationOrigins: array<string, string>, legacy: list<string>}
+	 * @return array{types: list<array<string, mixed>>, origins: array<string, string>, overrides: list<string>, home: ?string, sets: list<array<string, mixed>>, relations: list<array<string, mixed>>, relationOrigins: array<string, string>, legacy: list<string>, clashes: list<array{kind: string, name: string, kept: string, dropped: string}>}
 	 */
 	public function toArray(): array
 	{
@@ -475,7 +589,8 @@ final class ContentTypes implements IteratorAggregate, Countable
 			'sets'            => $this->sets->toArray(),
 			'relations'       => array_values(array_map(static fn (Relation $relation): array => $relation->toArray(), $this->relations)),
 			'relationOrigins' => array_map(static fn (RelationOrigin $origin): string => $origin->value, $this->relationOrigins),
-			'legacy'          => $this->legacy
+			'legacy'          => $this->legacy,
+			'clashes'         => array_map(static fn (DefinitionClash $clash): array => $clash->toArray(), $this->clashes)
 		];
 	}
 
@@ -534,7 +649,9 @@ final class ContentTypes implements IteratorAggregate, Countable
 
 		$legacy = array_values(array_filter(is_array($data['legacy'] ?? null) ? $data['legacy'] : [], is_string(...)));
 
-		return new self($types, $origins, is_string($home) ? $home : null, $sets, $overrides, $relations, $relationOrigins, $legacy);
+		$clashes = array_values(array_filter(array_map(DefinitionClash::fromArray(...), is_array($data['clashes'] ?? null) ? $data['clashes'] : [])));
+
+		return new self($types, $origins, is_string($home) ? $home : null, $sets, $overrides, $relations, $relationOrigins, $legacy, $clashes);
 	}
 
 	/**

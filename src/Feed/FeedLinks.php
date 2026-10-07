@@ -58,6 +58,11 @@ final readonly class FeedLinks
 				$this->add($links, $type, $page->title, $page->entry->slug);
 			} elseif ($page->kind === PageKind::Person && $page->people !== null && $page->profile !== null) {
 				$this->addFeeds($links, "{$page->title} | {$type->labels->plural}", fn (FeedFormat $format): ?string => $this->urls->personFeed($type, $page->people, $page->profile->slug, $format->routeSuffix()));
+			} elseif ($page->kind === PageKind::Related && $page->relation !== null && $page->entry !== null) {
+				$slug     = $page->entry->slug;
+				$relation = $page->relation;
+
+				$this->addFeeds($links, "{$page->title} | {$type->labels->plural}", fn (FeedFormat $format): ?string => $this->urls->relatedFeed($type, $relation, $slug, $format->routeSuffix()));
 			} elseif ($page->kind === PageKind::Profile && $page->profile !== null) {
 				$this->addFeeds($links, $page->title, fn (FeedFormat $format): ?string => $this->urls->profileFeed($page->profile->slug, 'single.feed' . $format->routeSuffix()));
 			} elseif ($type->hasUrls() && ! $type instanceof Profiles) {

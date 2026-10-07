@@ -164,11 +164,15 @@ abstract readonly class ContentType
 	/**
 	 * Returns the full route pattern for a route key, such as
 	 * `/archives/{year}/{month}/{day}/{name}` for `single`, or `null` when
-	 * the type has no URLs or no such key.
+	 * the type has no URLs or no such key. `$more` adds default paths
+	 * for keys the type doesn't know itself: its relations' archives
+	 * (`ContentTypes::routePattern()`, D-596).
+	 *
+	 * @param array<string, string> $more
 	 */
-	public function routePattern(string $key): ?string
+	public function routePattern(string $key, array $more = []): ?string
 	{
-		$path = $this->urls === false ? null : $this->urls->path($key) ?? $this->peoplePaths()[$key] ?? null;
+		$path = $this->urls === false ? null : $this->urls->path($key) ?? $this->peoplePaths()[$key] ?? $more[$key] ?? null;
 
 		return $path === null ? null : '/' . trim($this->prefix() . '/' . $path, '/');
 	}

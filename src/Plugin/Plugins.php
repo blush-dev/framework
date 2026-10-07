@@ -122,6 +122,34 @@ final readonly class Plugins
 	}
 
 	/**
+	 * Returns the running plugin a class belongs to, by its autoload
+	 * prefixes or its provider's namespace, or `null` (Blush's, the
+	 * site's, or no plugin's).
+	 */
+	public function owning(string $class): ?PluginManifest
+	{
+		$class = ltrim($class, '\\');
+
+		foreach ($this->manifests as $plugin) {
+			$provider = $plugin->providerClass() ?? '';
+			$at       = strrpos($provider, '\\');
+			$prefixes = array_keys($plugin->autoload->psr4);
+
+			if ($at !== false) {
+				$prefixes[] = substr($provider, 0, $at + 1);
+			}
+
+			foreach ($prefixes as $prefix) {
+				if (str_starts_with($class, ltrim($prefix, '\\'))) {
+					return $plugin;
+				}
+			}
+		}
+
+		return null;
+	}
+
+	/**
 	 * Every installed plugin, on or off, in name order.
 	 *
 	 * @return list<PluginManifest>

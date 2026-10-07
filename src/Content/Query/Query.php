@@ -375,6 +375,21 @@ final readonly class Query
 	}
 
 	/**
+	 * Returns a copy limited to entries with one of these terms under any
+	 * of the keys, such as every relation a page lists what links to it
+	 * through (`ContentTypes::termKeys()`, D-596). No keys match nothing.
+	 *
+	 * @param list<string> $taxonomies
+	 */
+	#[NoDiscard]
+	public function whereAnyTerm(array $taxonomies, string ...$slugs): self
+	{
+		return count($taxonomies) === 1
+			? $this->whereTerm($taxonomies[0], ...$slugs)
+			: $this->either(...array_map(static fn (string $taxonomy): Closure => static fn (self $query): self => $query->whereTerm($taxonomy, ...$slugs), $taxonomies));
+	}
+
+	/**
 	 * Returns a copy whose term conditions and sort on one taxonomy name
 	 * read another, in its alternatives too. The repository uses it so
 	 * 1.x's `author` (the argument, `whereAuthor()`, and sorting) reads

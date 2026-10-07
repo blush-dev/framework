@@ -29,6 +29,7 @@ use Blush\Console\Commands\ExplainView;
 use Blush\Console\Commands\Help;
 use Blush\Console\Commands\MigrateTaxonomies;
 use Blush\Console\Commands\RenameToPattern;
+use Blush\Console\Commands\FileRefs;
 use Blush\Console\Commands\FixIds;
 use Blush\Console\Commands\FlattenCollections;
 use Blush\Console\Commands\FixMediaIds;
@@ -85,6 +86,7 @@ enum BuiltInCommand: string
 	case ContentList   = 'content:list';
 	case ContentNew    = 'content:new';
 	case ContentPreview = 'content:preview';
+	case ContentRefs   = 'content:refs';
 	case ContentTerms  = 'content:terms';
 	case ContentTaxonomies = 'content:taxonomies';
 	case MediaIds      = 'media:ids';
@@ -143,6 +145,7 @@ enum BuiltInCommand: string
 			self::ContentList   => ListContent::class,
 			self::ContentNew    => CreateContent::class,
 			self::ContentPreview => PreviewContent::class,
+			self::ContentRefs   => FileRefs::class,
 			self::ContentTerms  => CreateMissingTerms::class,
 			self::ContentTaxonomies => MigrateTaxonomies::class,
 			self::MediaIds      => FixMediaIds::class,

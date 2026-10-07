@@ -52,7 +52,7 @@ final readonly class FeedController
 	 * @throws ThemeException
 	 * @throws ViewException
 	 */
-	public function __invoke(ServerRequestInterface $request, string $type, string $format, ?string $name = null, ?string $field = null, ?string $profile = null): ResponseInterface
+	public function __invoke(ServerRequestInterface $request, string $type, string $format, ?string $name = null, ?string $field = null, ?string $profile = null, ?string $relation = null, ?string $target = null): ResponseInterface
 	{
 		$feedFormat  = FeedFormat::tryFrom($format);
 		$contentType = $this->types->find($type);
@@ -63,7 +63,16 @@ final readonly class FeedController
 
 		$profiles = $this->types->profiles();
 
-		if ($field !== null && $profile !== null) {
+		if ($relation !== null && $target !== null) {
+			$archived = $this->types->relationArchives($contentType)[$relation] ?? null;
+			$entry    = $archived === null ? null : $this->content->named($archived->to[0], basename($target));
+
+			if ($archived === null || $entry === null || ! $entry->isPublished() || ! $entry->isRoutable()) {
+				throw new NotFound(sprintf('There is no "%s" %s "%s".', $type, $relation, $target));
+			}
+
+			$feed = $this->builder->related($contentType, $archived, $entry, $feedFormat);
+		} elseif ($field !== null && $profile !== null) {
 			$people = $contentType->archivedPeople()[$field] ?? null;
 			$entry  = $profiles === null || $people === null ? null : $this->content->term($profiles->name, $profile);
 

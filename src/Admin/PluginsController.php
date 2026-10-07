@@ -18,6 +18,7 @@ use Psr\Http\Message\ServerRequestInterface;
 use Blush\Auth\Account;
 use Blush\Auth\ExtensionAction;
 use Blush\Auth\Permissions;
+use Blush\Content\Type\ContentTypes;
 use Blush\Core\Paths;
 use Blush\Extension\ExtensionAuthor;
 use Blush\Extension\ExtensionException;
@@ -59,7 +60,9 @@ use Blush\Plugin\PluginSource;
  *   `missing`, or `unknown`); for one that's off, as if it were turned
  *   on. `blocked` says why one can't run (`null` when it can), and
  *   `requiredBy` lists the extensions of every kind that require it
- *   (`{"name", "label", "kind"}`, D-431).
+ *   (`{"name", "label", "kind"}`, D-431). `clashes` says what a running
+ *   plugin defines that's left out, since another plugin defines a
+ *   content type or relation by that name first (D-597).
  * - `deletable`: a folder plugin that isn't running, and that
  *   `config/plugins.php` doesn't turn on by name.
  *
@@ -80,7 +83,8 @@ final readonly class PluginsController
 		private PluginConfig $config,
 		private ExtensionState $extensions,
 		private Permissions $permissions,
-		private ExtensionInstaller $installer
+		private ExtensionInstaller $installer,
+		private ContentTypes $types
 	) {}
 
 	public function __invoke(ServerRequestInterface $request): ResponseInterface
@@ -125,6 +129,7 @@ final readonly class PluginsController
 				...$this->extensions->report($plugin),
 				...$this->extensions->opposite($plugin),
 				'stops'        => $this->extensions->stops($plugin),
+				'clashes'      => $running ? $this->clashes($name) : [],
 				'deletable'    => $folder !== null && ! $running && ! self::namedByConfig($this->config, $name),
 				'backup'       => ExtensionInstallController::backup($this->installer, ExtensionKind::Plugin, $folder === null ? null : $plugin->path, $name)
 			];
@@ -161,6 +166,31 @@ final readonly class PluginsController
 	public static function namedByConfig(PluginConfig $config, string $name): bool
 	{
 		return $config->saved === null && in_array($name, $config->enabled, true);
+	}
+
+	/**
+	 * Says what a running plugin defines that's left out, since another
+	 * plugin defines a content type or relation by the same name first
+	 * (D-597).
+	 *
+	 * @return list<string>
+	 */
+	private function clashes(string $name): array
+	{
+		$said = [];
+
+		foreach ($this->types->clashes as $clash) {
+			if ($this->plugins->owning($clash->dropped)?->name === $name) {
+				$said[] = sprintf(
+					'Its "%s" %s is left out: %s defines one by that name too.',
+					$clash->name,
+					$clash->kind === 'type' ? 'content type' : $clash->kind,
+					$this->plugins->owning($clash->kept)->label ?? $clash->kept
+				);
+			}
+		}
+
+		return $said;
 	}
 
 	/**

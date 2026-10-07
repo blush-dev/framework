@@ -16,8 +16,10 @@ namespace Blush\Setup;
 use Blush\Auth\AccountStore;
 use Blush\Auth\Accounts;
 use Blush\Auth\AuthException;
+use Blush\Content\Type\ContentTypes;
 use Blush\Core\AppConfig;
 use Blush\Core\Framework;
+use Blush\Extension\DefinitionClash;
 use Blush\Extension\ExtensionState;
 use Blush\Extension\Requirements;
 
@@ -30,7 +32,9 @@ use Blush\Extension\Requirements;
  * - `extensions`: extensions that are on but can't run (D-431): an active
  *   theme whose chain falls back to the default theme (`theme`), and
  *   plugins (`plugins`) and icon packs (`icon-packs`) that are on but
- *   don't run; or one pass when everything that's on runs.
+ *   don't run; content types and relations two plugins define by one
+ *   name (`clashes`, D-597), the first kept; or one pass when everything
+ *   that's on runs.
  * - `accounts`: a site with accounts but no owner (D-500), as `owner`.
  *
  * Within an area, a check's key says what it's about where that's one
@@ -43,7 +47,8 @@ final readonly class SiteChecks
 		private AppConfig $app,
 		private ExtensionState $extensions,
 		private AccountStore $store,
-		private Accounts $accounts
+		private Accounts $accounts,
+		private ContentTypes $types
 	) {}
 
 	/**
@@ -126,6 +131,28 @@ final readonly class SiteChecks
 			}
 		}
 
+		if ($this->types->clashes !== []) {
+			$results['clashes'] = CheckResult::warning(
+				'Names defined twice',
+				implode(' ', array_map(fn (DefinitionClash $clash): string => sprintf(
+					'Two plugins define the "%s" %s: %s\'s is used, and %s\'s is left out.',
+					$clash->name,
+					$clash->kind === 'type' ? 'content type' : $clash->kind,
+					$this->pluginLabel($clash->kept),
+					$this->pluginLabel($clash->dropped)
+				), $this->types->clashes)),
+				'Turn one of them off, or ask its author to rename what it defines.'
+			);
+		}
+
 		return $results === [] ? ['extensions' => CheckResult::pass('Extensions', 'Everything that\'s on runs.')] : $results;
+	}
+
+	/**
+	 * Returns the label of the plugin a class belongs to, else the class.
+	 */
+	private function pluginLabel(string $class): string
+	{
+		return $this->extensions->plugins->owning($class)->label ?? $class;
 	}
 }

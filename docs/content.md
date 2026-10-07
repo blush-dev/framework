@@ -395,8 +395,9 @@ it as an error. Types can't have a field named `id`.
 An entry names other entries by slug: its terms (`tag: [php, cms]`),
 its authors (`authors: jane`), the `parent` of an entry in a
 [nesting collection](content-types.md#nesting-and-order) (such as a category),
-and any reference field. In terms and authors, you can write an entry's id instead of
-its slug, and Blush reads it as that entry:
+and any reference field. A page of a tree is named by its path
+(`about/team`). You can write an entry's id instead of its slug, and
+Blush reads it as that entry:
 
 ```yaml
 tag: [php, 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e74]
@@ -419,8 +420,23 @@ refs:
 When a slug in the list and its id in `refs` disagree (the term was
 renamed since), the id wins, so the entry keeps its link. A
 `parent` is kept in `refs.parent` too. A page's parent is its folder,
-and an id kept for it that names another page is ignored. You don't need `refs` in files you write by hand. Types can't
+and an id kept for it that names another page is ignored. Types can't
 have a field named `refs`.
+
+You don't need `refs` in files you write by hand: Blush writes it
+whenever it saves a file, in the admin or from the command line. It
+also writes each value as the slug its entry has now, so an id you
+wrote becomes a slug; a value that names nothing yet is kept as you
+wrote it. When you rename an entry or move a page in the admin, the
+entries linking to it are rewritten to its new slug or path. To file
+`refs` in files written some other way, run:
+
+```bash
+bin/blush content:refs          # list files whose links aren't filed with their ids
+bin/blush content:refs --write  # file them
+```
+
+or use **Links Between Entries** in Site Health.
 
 `content:lint` reports an entry that names itself, a value that names
 entries of two types (write the id to say which), an id of the wrong

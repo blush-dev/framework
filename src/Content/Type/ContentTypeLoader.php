@@ -23,6 +23,7 @@ use Blush\Content\Relation\RelationOrigin;
 use Blush\Core\Paths;
 use Blush\Data\DataLoader;
 use Blush\Data\InvalidData;
+use Blush\Extension\DefinitionClash;
 use Blush\Field\FieldFactory;
 use Blush\Field\FieldSetLoader;
 use Blush\Field\InvalidSchema;
@@ -82,7 +83,7 @@ final readonly class ContentTypeLoader
 	 */
 	public function load(): ContentTypes
 	{
-		[$types, $origins] = $this->codeTypes();
+		[$types, $origins, $clashes] = $this->codeTypes();
 
 		$overrides = [];
 		$legacy    = [];
@@ -116,7 +117,7 @@ final readonly class ContentTypeLoader
 		}
 
 		try {
-			[$relations, $relationOrigins] = $this->relations->load();
+			[$relations, $relationOrigins, $relationClashes] = $this->relations->load();
 
 			foreach ($converted as $name => $definition) {
 				if (! isset($relations[$name])) {
@@ -137,7 +138,7 @@ final readonly class ContentTypeLoader
 		}
 
 		$types    = array_map(static fn (ContentType $type): ContentType => $type->withoutPeopleReading(...$claimed), $types);
-		$resolved = new ContentTypes($types, $origins, $this->config->home, $sets, $overrides, $relations, $relationOrigins, $legacy);
+		$resolved = new ContentTypes($types, $origins, $this->config->home, $sets, $overrides, $relations, $relationOrigins, $legacy, [...$clashes, ...$relationClashes]);
 		$this->check($resolved);
 
 		return $resolved;
@@ -148,13 +149,18 @@ final readonly class ContentTypeLoader
 	 * types, extension types, then the config's, each with its origin.
 	 * The admin overrides code types against these (D-349).
 	 *
-	 * @return array{array<string, ContentType>, array<string, TypeOrigin>}
+	 * Two extensions defining a type by one name keep the first, and the
+	 * clash is returned (D-597).
+	 *
+	 * @return array{array<string, ContentType>, array<string, TypeOrigin>, list<DefinitionClash>}
 	 * @throws InvalidContentType
 	 */
 	public function codeTypes(): array
 	{
 		$types   = [];
 		$origins = [];
+		$sources = [];
+		$clashes = [];
 
 		foreach (BuiltInType::cases() as $builtIn) {
 			if (! in_array($builtIn->value, $this->config->disabled, true)) {
@@ -163,13 +169,16 @@ final readonly class ContentTypeLoader
 			}
 		}
 
-		foreach ($this->extensionTypes() as $type) {
-			if (($origins[$type->name] ?? null) === TypeOrigin::Extension) {
-				throw new InvalidContentType(sprintf('Two extensions define the "%s" content type.', $type->name));
+		foreach ($this->extensionTypes() as [$type, $source]) {
+			if (isset($sources[$type->name])) {
+				$clashes[] = new DefinitionClash('type', $type->name, $sources[$type->name], $source);
+
+				continue;
 			}
 
 			$types[$type->name]   = $type;
 			$origins[$type->name] = TypeOrigin::Extension;
+			$sources[$type->name] = $source;
 		}
 
 		foreach ($this->configTypes() as $type) {
@@ -177,7 +186,7 @@ final readonly class ContentTypeLoader
 			$origins[$type->name] = TypeOrigin::Config;
 		}
 
-		return [$types, $origins];
+		return [$types, $origins, $clashes];
 	}
 
 	/**
@@ -203,9 +212,10 @@ final readonly class ContentTypeLoader
 	}
 
 	/**
-	 * Returns the types from extension sources.
+	 * Returns the types from extension sources, each with its source's
+	 * class.
 	 *
-	 * @return iterable<ContentType>
+	 * @return iterable<array{ContentType, string}>
 	 */
 	private function extensionTypes(): iterable
 	{
@@ -219,7 +229,9 @@ final readonly class ContentTypeLoader
 				));
 			}
 
-			yield from $source->types();
+			foreach ($source->types() as $type) {
+				yield [$type, $source::class];
+			}
 		}
 	}
 

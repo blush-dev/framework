@@ -38,7 +38,8 @@ use Blush\Content\Type\Tree;
  * has always kept them (`IndexRecord::$terms`), from each relation's
  * written form as Blush would write it: a classify relation's slugs
  * under its name, a credit relation's under `{profiles}.{field}` and
- * together under `{profiles}`. So `terms()`, `whereTerm()`, and
+ * together under `{profiles}`, and any other relation to one type's
+ * under `{type}.{name}` (`Relation::termKey()`, D-596). So `terms()`, `whereTerm()`, and
  * `termCounts()` follow an id through a rename, and a value that links
  * to nothing yet (a term without a file) is still kept (D-584).
  */
@@ -113,13 +114,15 @@ final readonly class LinkBuilder
 			return $terms;
 		}
 
-		if ($relation->kind === RelationKind::Classify) {
-			$terms[$relation->name] = $written;
-		} elseif ($relation->kind === RelationKind::Credit) {
-			$profiles = $relation->to[0];
+		$key = $relation->termKey();
 
-			$terms["{$profiles}.{$relation->name}"] = $written;
-			$terms[$profiles]                       = array_values(array_unique([...$terms[$profiles] ?? [], ...$written]));
+		if ($key !== null) {
+			$terms[$key] = $written;
+		}
+
+		if ($relation->kind === RelationKind::Credit) {
+			$profiles         = $relation->to[0];
+			$terms[$profiles] = array_values(array_unique([...$terms[$profiles] ?? [], ...$written]));
 		}
 
 		return $terms;
@@ -133,10 +136,7 @@ final readonly class LinkBuilder
 	 */
 	private static function byKey(LinkResolver $resolver, Relation $relation, array $front, Refs $refs, string $id, string $type, string $language): ?Resolution
 	{
-		$value = array_find(
-			array_map(static fn (string $key): mixed => $front[$key] ?? null, $relation->keys()),
-			static fn (mixed $value): bool => $value !== null && $value !== '' && $value !== []
-		);
+		$value = $relation->valueIn($front);
 
 		return $value === null && $refs->for($relation->name) === []
 			? null

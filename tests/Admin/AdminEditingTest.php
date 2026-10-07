@@ -156,7 +156,7 @@ final class AdminEditingTest extends TestCase
 
 		$samsId = $this->idOf($sams);
 
-		$this->assertSame(['deleted' => $samsId], self::json($this->call('DELETE', "/entries/{$samsId}?permanently=1")));
+		$this->assertSame(['deleted' => $samsId, 'unlinked' => 0], self::json($this->call('DELETE', "/entries/{$samsId}?permanently=1")));
 		$this->assertFileDoesNotExist($this->temporaryDirectory() . "/user/content/{$sams}");
 		$this->assertSame([], $this->trash());
 

@@ -73,6 +73,14 @@ final class FilesystemWriterTest extends TestCase
 		return $this->app->container()->make(ContentRepository::class);
 	}
 
+	/**
+	 * Returns the `refs` Blush files for the post's author (D-596).
+	 */
+	private function authorRefs(): string
+	{
+		return "refs:\n  authors:\n    justintadlock: " . $this->content()->findPath('profiles/justintadlock.md')?->id . "\n";
+	}
+
 	private function file(string $id): string
 	{
 		return (string) file_get_contents($this->temporaryDirectory() . "/user/content/{$id}");
@@ -97,8 +105,9 @@ final class FilesystemWriterTest extends TestCase
 		$result = $this->writer()->update($id, new EntryChanges(set: ['status' => 'draft', 'published' => '2022-04-01 09:00:00 -05:00']), $this->writer()->load($id)->revision);
 
 		$this->assertSame(
-			"---\ntitle     : \"Rekindling the Flame\"\nauthor    : justintadlock\ndate      : 2022-04-01 09:00:00 -05:00\nformat    :\ncategory  : [life]\nstatus: draft\nid        : " . self::ID . "\n---\n\nThe body.\n",
-			$this->file($id)
+			"---\ntitle     : \"Rekindling the Flame\"\nauthor    : justintadlock\ndate      : 2022-04-01 09:00:00 -05:00\nformat    :\ncategory  : [life]\nstatus: draft\n" . $this->authorRefs() . "id        : " . self::ID . "\n---\n\nThe body.\n",
+			$this->file($id),
+			'The author\'s id is filed under refs (D-596).'
 		);
 		$this->assertSame(hash('sha256', $this->file($id)), $result->revision);
 		$this->assertContains($id, $result->index->changed);
@@ -113,7 +122,7 @@ final class FilesystemWriterTest extends TestCase
 		$this->writer()->update($id, new EntryChanges(set: ['id' => '9f8b1c2e-4d5a-4b6c-8d7e-0f1a2b3c4d5e', 'mood' => 'hopeful']));
 		$this->writer()->update($id, new EntryChanges(remove: ['id']));
 
-		$this->assertStringContainsString("mood: hopeful\nid        : " . self::ID . "\n---", $this->file($id), 'An edit neither changes nor removes the id (D-477).');
+		$this->assertStringContainsString("mood: hopeful\n" . $this->authorRefs() . "id        : " . self::ID . "\n---", $this->file($id), 'An edit neither changes nor removes the id (D-477).');
 		$this->assertSame($id, $this->content()->find(self::ID)?->path);
 	}
 
@@ -140,7 +149,7 @@ final class FilesystemWriterTest extends TestCase
 
 		$this->writer()->update($id, new EntryChanges(remove: ['format'], body: "\nNew words.\n"));
 
-		$this->assertSame("---\ntitle     : \"Rekindling the Flame\"\nauthor    : justintadlock\ndate      : 2022-03-29 23:00:00 -6\ncategory  : [life]\nid        : " . self::ID . "\n---\n\nNew words.\n", $this->file($id));
+		$this->assertSame("---\ntitle     : \"Rekindling the Flame\"\nauthor    : justintadlock\ndate      : 2022-03-29 23:00:00 -6\ncategory  : [life]\n" . $this->authorRefs() . "id        : " . self::ID . "\n---\n\nNew words.\n", $this->file($id));
 	}
 
 	public function testKeepsAFileThatEndsAtItsFrontMatter(): void
@@ -479,7 +488,7 @@ final class FilesystemWriterTest extends TestCase
 
 		$this->assertTrue(Uuid::isValid($copy));
 		$this->assertNotSame(self::ID, $copy, 'A copy has an id of its own (D-477).');
-		$this->assertSame("---\ntitle     : \"The Copy\"\nauthor    : justintadlock\ndate      : 2022-03-29 23:00:00 -6\nformat    :\ncategory  : [life]\nstatus: draft\nid        : {$copy}\n---\n\nThe body.\n", $this->file($first->path), 'In its place, before the new key.');
+		$this->assertSame("---\ntitle     : \"The Copy\"\nauthor    : justintadlock\ndate      : 2022-03-29 23:00:00 -6\nformat    :\ncategory  : [life]\nstatus: draft\n" . $this->authorRefs() . "id        : {$copy}\n---\n\nThe body.\n", $this->file($first->path), 'In its place, before the new key.');
 		$this->assertSame(self::POST, $this->file($id), 'The original is untouched.');
 		$this->assertSame('The Copy', $this->content()->findPath($first->path)?->title);
 

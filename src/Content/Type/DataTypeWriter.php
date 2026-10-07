@@ -314,7 +314,7 @@ final readonly class DataTypeWriter
 			} elseif ($key === 'paths') {
 				$key   = 'urls';
 				$paths = is_array($value) ? array_keys($value) : [];
-				$value = $this->routePaths($merged, $value);
+				$value = $this->routePaths($name, $merged, $value);
 			} elseif ($key === 'authors' || $key === 'authorsWord') {
 				$value = $this->authors($merged, $key, $value);
 				$key   = 'people';
@@ -464,14 +464,16 @@ final readonly class DataTypeWriter
 			return;
 		}
 
-		$taxonomies = array_keys(($this->loader)()->load()->termTypes());
+		$types      = ($this->loader)()->load();
+		$taxonomies = array_keys($types->termTypes());
+		$relations  = array_keys($types->relationArchives($type));
 
 		foreach ($keys as $key) {
 			$key  = (string) $key;
 			$path = $type->urls->path($key);
 
 			if ($path !== null) {
-				TypeRouteKeys::check($type, $key, $path, $taxonomies, "\"{$key}\"");
+				TypeRouteKeys::check($type, $key, $path, $taxonomies, "\"{$key}\"", $relations);
 			}
 		}
 	}
@@ -534,7 +536,7 @@ final readonly class DataTypeWriter
 	 * @return array<array-key, mixed>|null
 	 * @throws InvalidContentType When the type has no URLs, or a key isn't one.
 	 */
-	private function routePaths(array $data, mixed $paths): ?array
+	private function routePaths(string $name, array $data, mixed $paths): ?array
 	{
 		$urls = $data['urls'] ?? $data['routing'] ?? [];
 
@@ -548,7 +550,13 @@ final readonly class DataTypeWriter
 
 		$urls  = is_array($urls) ? $urls : [];
 		$own   = is_array($urls['paths'] ?? null) ? $urls['paths'] : [];
-		$known = [...array_keys(TypeUrls::DEFAULT_PATHS), ...array_merge([], ...array_values(array_map(static fn (PeopleField $field): array => $field->routeKeys(), self::people($data))))];
+		$types = ($this->loader)()->load();
+		$type  = $types->find($name);
+		$known = [
+			...array_keys(TypeUrls::DEFAULT_PATHS),
+			...array_merge([], ...array_values(array_map(static fn (PeopleField $field): array => $field->routeKeys(), self::people($data)))),
+			...($type === null ? [] : array_keys($types->relationPaths($type)))
+		];
 
 		foreach (['single', 'collection'] as $shortcut) {
 			if (is_string($urls[$shortcut] ?? null)) {

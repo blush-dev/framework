@@ -212,7 +212,10 @@ final readonly class TypesController
 	 * default, relative to the prefix, and the placeholders it requires
 	 * and allows.
 	 *
-	 * @return list<array{key: string, path: string, default: string, requires: list<string>, allows: list<string>, root: bool}>
+	 * A relation archive's key (D-596) names its relation's label as
+	 * `relation`, else `null`.
+	 *
+	 * @return list<array{key: string, path: string, default: string, requires: list<string>, allows: list<string>, root: bool, relation: ?string}>
 	 */
 	private function routes(ContentTypes $types, ContentType $type): array
 	{
@@ -224,18 +227,22 @@ final readonly class TypesController
 		$feeds      = array_map(static fn (FeedFormat $format): string => $format->routeSuffix(), $this->feeds->formats);
 		$profiles   = $types->profiles() !== null;
 		$taxonomies = array_keys($types->termTypes());
-		$defaults   = [...TypeUrls::DEFAULT_PATHS, ...$type->peoplePaths()];
+		$archives   = $types->relationArchives($type);
+		$relations  = array_keys($archives);
+		$defaults   = [...TypeUrls::DEFAULT_PATHS, ...$type->peoplePaths(), ...$types->relationPaths($type)];
 		$routes     = [];
 
-		foreach (TypeRouteKeys::keys($type, $home, $feeds, $profiles, $types->hasTermPages($type->name)) as $key) {
-			$params   = TypeRouteKeys::params($type, $key, $taxonomies);
+		foreach (TypeRouteKeys::keys($type, $home, $feeds, $profiles, $types->hasTermPages($type->name), $relations) as $key) {
+			$params   = TypeRouteKeys::params($type, $key, $taxonomies, $relations);
+			$relation = $archives[strstr($key, '.', true) ?: $key] ?? null;
 			$routes[] = [
 				'key'      => $key,
 				'path'     => $type->urls->path($key) ?? '',
 				'default'  => $defaults[$key] ?? '',
 				'requires' => $params['required'],
 				'allows'   => $params['optional'],
-				'root'     => $home && str_starts_with($key, 'collection.feed')
+				'root'     => $home && str_starts_with($key, 'collection.feed'),
+				'relation' => $relation === null ? null : ($relation->label === '' ? ucfirst(str_replace('_', ' ', $relation->name)) : $relation->label)
 			];
 		}
 

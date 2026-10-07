@@ -84,22 +84,8 @@ final readonly class Provenance
 			return ['kind' => 'site', 'label' => 'This site'];
 		}
 
-		foreach ($this->plugins->all() as $plugin) {
-			$provider = $plugin->providerClass() ?? '';
-			$at       = strrpos($provider, '\\');
-			$prefixes = array_keys($plugin->autoload->psr4);
+		$plugin = $this->plugins->owning($class);
 
-			if ($at !== false) {
-				$prefixes[] = substr($provider, 0, $at + 1);
-			}
-
-			foreach ($prefixes as $prefix) {
-				if (str_starts_with($class, ltrim($prefix, '\\'))) {
-					return ['kind' => 'plugin', 'label' => $plugin->label];
-				}
-			}
-		}
-
-		return ['kind' => 'other', 'label' => 'Elsewhere'];
+		return $plugin === null ? ['kind' => 'other', 'label' => 'Elsewhere'] : ['kind' => 'plugin', 'label' => $plugin->label];
 	}
 }

@@ -19,6 +19,7 @@ use Blush\Content\ContentRepository;
 use Blush\Content\Entry\Entry;
 use Blush\Content\Query\InvalidQuery;
 use Blush\Content\Query\Query;
+use Blush\Content\Relation\Relation;
 use Blush\Content\Routing\ContentUrls;
 use Blush\Content\Type\ContentType;
 use Blush\Content\Type\ContentTypes;
@@ -83,7 +84,7 @@ final readonly class FeedBuilder
 	{
 		$types = $this->types->termArguments($taxonomy->name)['type'] ?? [];
 		$query = $this->query($taxonomy, $types === [] ? [] : ['type' => $types])
-			->whereTerm($taxonomy->name, $term->slug);
+			->whereAnyTerm($this->types->termKeys($taxonomy->name), $term->slug);
 
 		return $this->feed(
 			$format,
@@ -112,6 +113,27 @@ final readonly class FeedBuilder
 			$this->urls->person($type, $field, $profile->slug) ?? '/',
 			$this->urls->personFeed($type, $field, $profile->slug, $format->routeSuffix()) ?? '/',
 			$profile,
+			$query
+		);
+	}
+
+	/**
+	 * Builds a target's feed under a type's relation with an archive word
+	 * (D-596): the type's entries linking to it there.
+	 *
+	 * @throws InvalidQuery
+	 * @throws MarkdownException
+	 */
+	public function related(ContentType $type, Relation $relation, Entry $target, FeedFormat $format): Feed
+	{
+		$query = $this->query($type, ['type' => $type->name])->whereTerm((string) $relation->termKey(), $target->slug);
+
+		return $this->feed(
+			$format,
+			"{$target->title} | {$type->labels->plural}",
+			$this->urls->related($type, $relation, $target->slug) ?? '/',
+			$this->urls->relatedFeed($type, $relation, $target->slug, $format->routeSuffix()) ?? '/',
+			$target,
 			$query
 		);
 	}

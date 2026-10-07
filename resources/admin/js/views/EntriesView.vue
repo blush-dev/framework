@@ -31,6 +31,7 @@
 
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { confirmAction } from '../confirm';
+import { confirmLeaving, confirmPurge } from '../referrers';
 import { RouterLink, useRoute, type LocationQueryRaw } from 'vue-router';
 import { entryPath, errorMessage, request, trashEntry, type ContentTypeSummary, type EntryDetail, type EntryList, type EntrySort, type EntryStatus, type EntrySummary } from '../api';
 import { debounced, latest } from '../action';
@@ -495,7 +496,7 @@ async function moveToTrash(entry: EntrySummary): Promise<void> {
 
 	const id = entry.id;
 
-	if (id === null) {
+	if (id === null || !await confirmLeaving(id, nameOf(entry), 'trash')) {
 		return;
 	}
 
@@ -593,14 +594,18 @@ function restore(item: EntrySummary): void {
 async function purge(item: EntrySummary): Promise<void> {
 	const id = item.id;
 
-	if (id === null || !await confirmAction({ title: `Delete ${nameOf(item)} Permanently?`, body: 'This can\'t be undone.', confirm: 'Delete Permanently', danger: true })) {
+	const unlink = id === null ? null : await confirmPurge(id, nameOf(item));
+
+	if (id === null || unlink === null) {
 		return;
 	}
 
 	void act(id, async () => {
-		await request<{ deleted: string }>('DELETE', `${entryPath(id)}?permanently=1`);
+		const answer = await request<{ deleted: string; unlinked: number }>('DELETE', `${entryPath(id)}?permanently=1${unlink}`);
 
-		return `Deleted ${nameOf(item)} permanently`;
+		return answer.unlinked > 0
+			? `Deleted ${nameOf(item)} permanently, and took it out of ${plural(answer.unlinked, 'entry', 'entries')}`
+			: `Deleted ${nameOf(item)} permanently`;
 	}, 'danger');
 }
 

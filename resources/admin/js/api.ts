@@ -302,6 +302,8 @@ export interface TypeRoute {
 	requires: string[];
 	allows: string[];
 	root: boolean;
+	// A relation archive's key (D-596): its relation's label, else `null`.
+	relation: string | null;
 }
 
 /**
@@ -656,6 +658,9 @@ export interface PluginSummary {
 	replacement: ExtensionDependent | null;
 	// What it suggests (D-434), each checked against the site.
 	suggests: ExtensionSuggestion[];
+	// What it defines that's left out, since another plugin defines a
+	// content type or relation by that name first (D-597).
+	clashes: string[];
 	// A folder plugin that isn't running.
 	deletable: boolean;
 	// The version replacing it kept, which it can be rolled back to (D-393), or `null`.
@@ -1124,6 +1129,10 @@ export interface Health {
 	// the first few, with the title each file gets (`POST health/terms`
 	// writes them).
 	terms: { count: number; examples: { type: string; slug: string; title: string }[] };
+	// Files with links between entries not filed with their ids (D-596):
+	// how many, and the first few, with the relations that differ (`POST
+	// health/refs` files them).
+	refs: { count: number; examples: { path: string; relations: string[] }[] };
 	// Data types still written as taxonomies (D-591).
 	taxonomies: string[];
 }

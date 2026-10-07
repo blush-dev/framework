@@ -83,6 +83,9 @@ async function remove(): Promise<void> {
 			<p v-if="blocked" class="notice notice--small notice--warn">
 				<AdminIcon name="triangle-alert" /><span>{{ blocked }} {{ plugin.enabled ? 'It\'s turned on, but nothing it adds runs until that\'s fixed.' : 'It can\'t be turned on until that\'s fixed.' }}</span>
 			</p>
+			<p v-for="clash in plugin.clashes" :key="clash" class="notice notice--small notice--warn">
+				<AdminIcon name="triangle-alert" /><span>{{ clash }} Turn one of them off, or ask its author to rename it.</span>
+			</p>
 
 			<div class="extension-detail__columns">
 				<ExtensionFacts :extension="plugin" :installed-by="plugin.source === 'composer' ? 'Composer' : 'A folder in extensions/'" :folder="plugin.path" />

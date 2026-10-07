@@ -660,6 +660,7 @@ final class AdminContentTest extends TestCase
 		$this->assertSame(403, $this->send('POST', '/health/filenames', '{"type": "post"}', ['X-CSRF-Token' => $token])->getStatusCode(), 'Nor rename files.');
 		$this->assertSame(403, $this->send('POST', '/health/flatten', '{}', ['X-CSRF-Token' => $token])->getStatusCode(), 'Nor move them.');
 		$this->assertSame(403, $this->send('POST', '/health/terms', '{}', ['X-CSRF-Token' => $token])->getStatusCode(), 'Nor write terms.');
+		$this->assertSame(403, $this->send('POST', '/health/refs', '{}', ['X-CSRF-Token' => $token])->getStatusCode(), 'Nor file links.');
 	}
 
 	public function testFixesMissingAndSharedIds(): void
@@ -759,6 +760,28 @@ final class AdminContentTest extends TestCase
 
 		$this->assertSame(['profile/jane' => 'profiles/jane.md', 'profile/sam' => 'profiles/sam.md'], $created['created'] ?? null);
 		$this->assertSame(['count' => 0, 'examples' => []], self::json($this->send('POST', '/health', headers: ['X-CSRF-Token' => $token]))['terms'] ?? null);
+	}
+
+	public function testFilesLinksWithTheirIds(): void
+	{
+		$this->site(['owner']);
+		$token = $this->token();
+
+		$this->send('POST', '/health/terms', '{}', ['X-CSRF-Token' => $token]);
+
+		$refs = self::json($this->send('POST', '/health', headers: ['X-CSRF-Token' => $token]))['refs'] ?? null;
+
+		$this->assertIsArray($refs);
+		$this->assertIsInt($refs['count'] ?? null);
+		$this->assertGreaterThan(0, $refs['count'], 'Entries crediting the new profiles name them by slug alone (D-596).');
+		$this->assertIsArray($refs['examples'] ?? null);
+		$this->assertSame(['authors'], array_column($refs['examples'], 'relations')[0] ?? null);
+
+		$filed = self::json($this->send('POST', '/health/refs', '{}', ['X-CSRF-Token' => $token]))['filed'] ?? null;
+
+		$this->assertIsArray($filed);
+		$this->assertCount($refs['count'], $filed);
+		$this->assertSame(['count' => 0, 'examples' => []], self::json($this->send('POST', '/health', headers: ['X-CSRF-Token' => $token]))['refs'] ?? null);
 	}
 
 	public function testFixesMediaIds(): void

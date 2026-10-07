@@ -105,8 +105,9 @@ digits, and underscores.
 If two places define the same type, `config/content.php` replaces a
 plugin's type, and both replace a built-in one. A YAML type may
 replace a built-in type, but not one from a plugin or
-`config/content.php`; that's an error. Two plugins can't define the
-same type.
+`config/content.php`; that's an error. When two plugins define the
+same type, the first plugin's is used and the other's is left out, and
+Site Health says so (see [Extending](extending.md)).
 
 Which to pick:
 
@@ -367,10 +368,13 @@ category: [painting, news]
 - `from` lists the types filed under it; leave it empty for every type.
   The key is a field of those types only.
 - `create: true` lets writers add a term as they type it in the
-  admin's editor, which writes its file.
+  admin, which writes its file, published and titled as they typed it.
+  Someone who can't create and publish terms of that type can't save
+  an entry naming a new one.
 - `required: true` (or `min: 1`) means an entry needs a term to be
-  published; drafts can be saved without one. `multiple: false` allows
-  one term, and `max` a number of them.
+  published; drafts can be saved without one. `min` can ask for more.
+  `multiple: false` allows one term, and `max` a number of them; the
+  admin won't publish an entry with more.
 - Every term is a file (such as `topics/painting.md`), which gives it
   its title and description. A slug an entry names with no file is left
   out of the site: no link, no page, and no feed. `content:lint`
@@ -441,7 +445,7 @@ under its child terms. The relation's `inverse` sets the term side:
 | `types`           | The relation's `from`   | The types a term's page lists                                                   |
 | `listing`         |                         | How a term's page lists entries, with a type's [`listing`](#listing-entries) keys, such as `order` and `perPage` |
 | `label`           |                         | What the term side is called                                                    |
-| `max`             |                         | How many entries may be filed under one term                                    |
+| `max`             |                         | How many entries may be filed under one term; the admin won't publish one more  |
 
 For example, twenty entries to a term's page:
 
@@ -471,7 +475,35 @@ related: [lemon-cake, shortbread]
 ```
 
 `ordered: true` keeps the order they're written in. No entry links to
-itself. A
+itself.
+
+The relation's `inverse.archive` says where the entries linking to one
+are listed, paged with a feed:
+
+- `false` (the default): nowhere of its own; a template lists them with
+  `$template->referencedBy()`.
+- `true`: on the linked entry's own page, as a term's page lists what's
+  filed under it. With `actors` linking movies to people,
+  `/people/tom` lists Tom's movies.
+- A word, such as `"directors"`: archives under the linking type's
+  address, as a [people field's](#crediting-people) are:
+  `/movies/directors/penny` lists Penny's movies, and `/movies/directors`
+  lists everyone a movie names.
+
+```json
+{
+	"kind": "reference",
+	"from": ["movie"],
+	"to": ["person"],
+	"inverse": {"archive": "directors"}
+}
+```
+
+`symmetric: true` makes a link count from both ends, so a post
+naming another is related to it and the other to it. In a template,
+`$template->related($entry, 'related')` lists what an entry links to,
+and `$template->referencedBy($entry, 'related')` what links to it (see
+[Themes](themes.md)). A
 [`reference` field](#custom-fields) with `to` in a type's `fields`
 works as before; Blush reads it as a reference relation.
 
@@ -487,9 +519,12 @@ works as before; Blush reads it as a reference relation.
 | `multiple`     | `true`           | Whether an entry may link to several                                                               |
 | `ordered`      | `false`          | Whether the order they're written in matters                                                       |
 | `required`     | `false`          | Whether an entry needs one to be published (in the admin; a draft saves without)                   |
-| `max`          | No limit         | The most an entry may have; `content:lint` reports more                                            |
-| `create`       | `false`          | Whether writers may add a target as they type it in the admin                                      |
-| `inverse`      |                  | The targets' side ([Term pages](#term-pages))                                                      |
+| `min`          | `0`              | The fewest an entry needs to be published (`required` is `min: 1`)                                 |
+| `max`          | No limit         | The most an entry may have to be published; `content:lint` reports more                            |
+| `create`       | `false`          | Whether writers may add a target as they type it in the admin, which writes it                     |
+| `symmetric`    | `false`          | Whether a link counts from both ends (`from` and `to` the same types)                              |
+| `translations` | `fallback`       | A translation's links: `fallback` (its own, else its original's), `add` (the original's and its own), or `own` |
+| `inverse`      |                  | The targets' side ([Term pages](#term-pages), and `archive` above for a reference)                     |
 | `label`        |                  | What the relation is called                                                                        |
 
 A relation's name uses lowercase letters, digits, and underscores, and
@@ -921,6 +956,12 @@ Each [people field](#crediting-people) with archives adds route keys
 of its own, such as `authors.collection`, `authors.single`,
 `authors.single.paged`, and the `authors.single.feed` keys; `paths` can
 move those too. Their paths hold `{profile}`.
+
+So does each [relation with an archive word](#linking-entries-to-other-entries)
+from the type: `directors.collection`, `directors.single`,
+`directors.single.paged`, and the `directors.single.feed` keys, named
+after the relation. Their paths hold `{target}`, the linked entry's
+slug. The admin lists them with the type's other addresses.
 
 Single-entry paths can use `{name}`, `{year}`, `{month}`, `{day}`,
 `{hour}`, `{minute}`, `{second}`, `{profile}` (the first person

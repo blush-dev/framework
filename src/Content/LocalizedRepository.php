@@ -163,7 +163,7 @@ final readonly class LocalizedRepository implements ContentRepository
 	 * @inheritDoc
 	 */
 	#[Override]
-	public function termCounts(string $taxonomy, ?Query $query = null): array
+	public function termCounts(string|array $taxonomy, ?Query $query = null): array
 	{
 		return $this->content->termCounts($taxonomy, $this->localized($query ?? $this->query()));
 	}

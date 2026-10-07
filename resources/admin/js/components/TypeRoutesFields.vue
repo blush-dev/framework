@@ -1,8 +1,8 @@
 <script setup lang="ts">
 /**
  * A content type's addresses (D-350): each route key it answers at (its
- * listing and date archives, entries or terms, feeds, and each people
- * field's archives), with the path after its prefix, edited in place. An empty
+ * listing and date archives, entries or terms, feeds, each people
+ * field's archives, and each relation's archives, D-596), with the path after its prefix, edited in place. An empty
  * path is the key's default, shown as the placeholder. Each row says
  * which {placeholders} it needs and may hold, and shows the whole
  * address; the server checks them on save.
@@ -32,11 +32,16 @@ const LEVELS: Record<string, string> = { year: 'Year', month: 'Month', day: 'Day
 const FEEDS: Record<string, string> = { '': 'RSS', '.atom': 'Atom', '.json': 'JSON' };
 
 // What a route key is, for people.
-function labelOf(key: string): string {
+function labelOf(route: TypeRoute): string {
+	const key   = route.key;
 	const paged = key.endsWith('.paged');
 	const base  = paged ? key.slice(0, -'.paged'.length) : key;
 	const feed  = /^(.*)\.feed(\.atom|\.json)?$/.exec(base);
 	let label: string;
+
+	if (feed && route.relation !== null) {
+		return `${route.relation} archive feed (${FEEDS[feed[2] ?? ''] ?? 'RSS'})`;
+	}
 
 	if (feed) {
 		const person = props.people.find((item) => feed[1] === `${item.field}.single`);
@@ -47,7 +52,9 @@ function labelOf(key: string): string {
 
 	const level = /^collection\.(\w+)$/.exec(base);
 
-	if (base === 'collection') {
+	if (route.relation !== null) {
+		label = base.endsWith('.collection') ? route.relation : `${route.relation} archive`;
+	} else if (base === 'collection') {
 		label = 'Listing';
 	} else if (level && LEVELS[level[1] ?? '']) {
 		label = `${LEVELS[level[1] ?? '']} archive`;
@@ -117,7 +124,7 @@ const shown = computed(() => props.routes.filter((route) => {
 		<p v-if="!editable" class="field__help"><code>config/content.php</code> doesn't let types in <code>user/data/types</code> set their URLs (<code>dataTypeUrls</code>), so these are as the site has them.</p>
 		<div class="type-routes__grid">
 			<div v-for="route in shown" :key="route.key" class="field">
-				<label :for="`${idPrefix}${route.key}`">{{ labelOf(route.key) }}</label>
+				<label :for="`${idPrefix}${route.key}`">{{ labelOf(route) }}</label>
 				<input :id="`${idPrefix}${route.key}`" v-model="form.paths[route.key]" class="mono" :placeholder="defaultOf(route) || '(the prefix itself)'" :disabled="!editable" autocomplete="off" spellcheck="false" :aria-describedby="`${idPrefix}${route.key}-help`">
 				<p :id="`${idPrefix}${route.key}-help`" class="field__help">
 					At <code>{{ addressOf(route) }}</code>.

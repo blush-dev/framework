@@ -21,6 +21,7 @@ const paragraphs = computed(() => {
 		<p v-for="(parts, index) in paragraphs" :key="index">
 			<template v-for="(part, at) in parts" :key="at"><strong v-if="part.strong">{{ part.text }}</strong><template v-else>{{ part.text }}</template></template>
 		</p>
+		<label v-if="current.check" class="checkbox"><input v-model="current.checked" type="checkbox"> {{ current.check }}</label>
 		<template #footer>
 			<button type="button" class="button" :autofocus="current.danger || undefined" @click="answerConfirm(current.id, false)">{{ current.cancel ?? 'Cancel' }}</button>
 			<button type="button" class="button" :class="current.danger ? 'button--danger' : 'button--primary'" :autofocus="!current.danger || undefined" @click="answerConfirm(current.id, true)">{{ current.confirm }}</button>

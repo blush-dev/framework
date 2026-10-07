@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Blush\Tests\Fixtures\Content;
 
+use Blush\Content\Relation\RelationSource;
 use Blush\Content\Type\ContentTypeSource;
 use Blush\Core\ServiceProvider;
 
@@ -22,6 +23,7 @@ use Blush\Core\ServiceProvider;
 final class MoreRecipeProvider extends ServiceProvider
 {
 	protected const array TAGS = [
-		ContentTypeSource::TAG => [MoreRecipeTypes::class]
+		ContentTypeSource::TAG => [MoreRecipeTypes::class],
+		RelationSource::TAG    => [MoreRecipeRelations::class]
 	];
 }

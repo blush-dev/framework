@@ -1126,10 +1126,15 @@ protected const array TAGS = [
 
 The kinds and options are the same as in `config/content.php`. A site can
 still redefine one of your types in its `config/content.php`, but not in
-`user/data/types/`. Two plugins can't define the same type. The same
-goes for relations: one in `config/content.php` replaces yours by
-name, and two plugins can't
-define the same relation. A plugin still defining a type with the old
+`user/data/types/`. The same goes for relations: one in
+`config/content.php` replaces yours by name.
+
+When two plugins define a type or a relation by the same name, the
+site uses the first plugin's and leaves the other's out. Site Health
+and the Plugins screen in the admin say so, naming both. So give
+generic names a prefix of your own (`acme_related`, not `related`;
+`acme_series`, not `series`), and keep plain names for types only your
+plugin would have. A plugin still defining a type with the old
 taxonomy kind stops the site from loading, with a message saying what
 to change.
 

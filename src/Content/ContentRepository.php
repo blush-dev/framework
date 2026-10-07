@@ -111,11 +111,13 @@ interface ContentRepository extends QueryRunner
 	/**
 	 * Returns how many listed entries reference each term of a taxonomy,
 	 * by slug, leaving out slugs with no file (D-584); or, given a query, how many of the
-	 * entries it finds do (its limit and offset aside).
+	 * entries it finds do (its limit and offset aside). Several keys
+	 * (`ContentTypes::termKeys()`) count entries under any of them, once.
 	 *
+	 * @param  string|list<string> $taxonomy
 	 * @return array<string, int>
 	 */
-	public function termCounts(string $taxonomy, ?Query $query = null): array;
+	public function termCounts(string|array $taxonomy, ?Query $query = null): array;
 
 	/**
 	 * Returns the entries that ask for redirects, keyed by each path in

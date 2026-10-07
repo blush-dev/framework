@@ -33,6 +33,10 @@ use Blush\Content\Entry\Position;
 use Blush\Content\EntryFields;
 use Blush\Content\FileNames;
 use Blush\Content\Lint\Linter;
+use Blush\Content\Relation\Referrers;
+use Blush\Content\Relation\RelationLimits;
+use Blush\Content\Relation\RelationProblem;
+use Blush\Content\Relation\Relations;
 use Blush\Content\Routing\ContentUrls;
 use Blush\Content\Status as EntryStatus;
 use Blush\Content\Type\ContentType;
@@ -40,6 +44,7 @@ use Blush\Content\Type\ContentTypes;
 use Blush\Content\Type\DateArchives;
 use Blush\Content\Type\Profiles;
 use Blush\Content\Type\Tree;
+use Blush\Content\TypedTargets;
 use Blush\Content\Writer\ContentWriter;
 use Blush\Content\Writer\DocumentEditor;
 use Blush\Content\Writer\EditableEntry;
@@ -94,7 +99,13 @@ use Blush\Support\Slug;
  *   it stays where it is, with `status: trash`, off the site, keeping
  *   its address and id, answering `{"trashed", "restore"}`, what an
  *   Undo sends to restore it. `DELETE entries/{id}?permanently=1` deletes an
- *   entry that's in the trash for good (and only one that is).
+ *   entry that's in the trash for good (and only one that is); with
+ *   `unlink=1`, it's first taken out of the entries linking to it that
+ *   the account may edit (D-598), answering how many (`unlinked`).
+ * - `GET    entries/{id}/referrers`: what links to an entry (D-598):
+ *   `count`, how many are `live`, how many the account may edit
+ *   (`editable`),
+ *   and the first few `entries` (`id`, `title`, `type`, `status`).
  * - `POST   entries/{id}/restore`: brings one back from the trash **as a
  *   draft** (D-237), so it's never republished without someone choosing
  *   to. An Undo sends the `restore` that moving it to the trash answered
@@ -109,7 +120,8 @@ use Blush\Support\Slug;
  *   their current revisions, since a status change or a move to the
  *   trash loses no one's writing (D-301). Each entry is checked as alone:
  *   one that can't be changed (not allowed, an index page to trash, a
- *   required field empty for publishing, a write that fails) is skipped
+ *   required field empty or a relation out of its limits for
+ *   publishing, a write that fails) is skipped
  *   with the reason, and the rest go ahead. Answers `done` (ids) and
  *   `skipped` (`id`, `title`, `reason`).
  * - `POST   entries/{id}/duplicate`: copies it beside itself as a draft
@@ -129,6 +141,16 @@ use Blush\Support\Slug;
  * the account's own author isn't among them needs to edit anyone's;
  * creating needs to create entries of the type; deleting needs to
  * delete the entry.
+ *
+ * **Relations are checked before a write** (D-596): a value a save adds
+ * in a relation that creates its targets (a tag), naming no entry, is
+ * written as one, published and titled as typed, first, so it's linked
+ * by id; when the account may not create and publish entries of that
+ * type, the save is a 403 with the relation's `field`. A save that
+ * leaves the entry live (as publishing does) with a relation below its
+ * `min`, above its `max`, or naming a target already named by its
+ * inverse's `max` is a 422 with the relation's `field`; bulk publishing
+ * skips such an entry.
  *
  * `status` is a shortcut: `draft` sets `status: draft`; `published`
  * clears it and dates the entry now if it has no date or a future one;
@@ -167,7 +189,11 @@ final readonly class EntryController
 		private AccountStore $accounts,
 		private Homepage $homepage,
 		private HtmlGuard $html,
-		private FileNames $fileNames
+		private FileNames $fileNames,
+		private Relations $relations,
+		private RelationLimits $limits,
+		private TypedTargets $typed,
+		private Referrers $referrers
 	) {}
 
 	/**
@@ -325,6 +351,12 @@ final readonly class EntryController
 			}
 		}
 
+		$related = $this->related($account, $type, null, [], $changes);
+
+		if ($related !== null) {
+			return $related;
+		}
+
 		try {
 			$result = $parent === null
 				? $this->writer->create($type, $slug, $changes, $now)
@@ -395,6 +427,7 @@ final readonly class EntryController
 		if ($refusal !== null) {
 			return self::error($refusal, Status::Forbidden);
 		}
+
 
 		// Only the HTML the body didn't have counts (D-495).
 		if ($changes->body !== null) {
@@ -473,6 +506,16 @@ final readonly class EntryController
 				$changes = new EntryChanges([...$changes->set, 'slug' => $rename], $changes->remove, $changes->body);
 				$rename  = null;
 			}
+		}
+
+		try {
+			$related = $this->related($account, $entry->type, $entry, $this->writer->load($path)->frontMatter, $changes);
+		} catch (WriteException $e) {
+			return self::error($e->getMessage(), Status::UnprocessableContent);
+		}
+
+		if ($related !== null) {
+			return $related;
 		}
 
 		try {
@@ -646,9 +689,15 @@ final readonly class EntryController
 
 		try {
 			if ($trashed) {
+				// Taken out of what links to it first (D-598), where the
+				// account may edit, so nothing names it after.
+				[$unlinked] = in_array($params['unlink'] ?? null, ['1', 'true'], true)
+					? $this->referrers->unlink($entry, fn (Entry $referrer): bool => $this->permissions->can($account, ContentAction::Edit, $referrer))
+					: [[]];
+
 				$this->writer->delete($entry->path);
 
-				return self::json(['deleted' => $id]);
+				return self::json(['deleted' => $id, 'unlinked' => count($unlinked)]);
 			}
 
 			$declared = $this->writer->load($entry->path)->frontMatter['status'] ?? null;
@@ -664,6 +713,39 @@ final readonly class EntryController
 			'status'   => is_string($declared) ? $declared : null,
 			'revision' => $result->revision
 		]]);
+	}
+
+	/**
+	 * Answers what links to an entry (D-598), for the admin to say before
+	 * it leaves the site: how many entries do, how many of them are live,
+	 * how many the account may edit, and the first few.
+	 */
+	public function referrers(ServerRequestInterface $request, string $id): ResponseInterface
+	{
+		$account = self::account($request);
+		$entry   = $this->content->find($id);
+
+		if ($entry === null) {
+			return self::error(sprintf('There\'s no entry with the id "%s".', $id), Status::NotFound);
+		}
+
+		if (! $this->permissions->can($account, ContentAction::Edit, $entry) && ! $this->permissions->can($account, ContentAction::Delete, $entry)) {
+			return self::error('You aren\'t allowed to change that entry.', Status::Forbidden);
+		}
+
+		$found = $this->referrers->of($entry);
+
+		return self::json([
+			'count'    => count($found),
+			'live'     => Referrers::live($found),
+			'editable' => count(array_filter($found, fn (Entry $referrer): bool => $this->permissions->can($account, ContentAction::Edit, $referrer))),
+			'entries'  => array_map(static fn (Entry $referrer): array => [
+				'id'     => $referrer->id,
+				'title'  => $referrer->title,
+				'type'   => $referrer->type->labels->item,
+				'status' => $referrer->status->value
+			], array_slice($found, 0, 5))
+		]);
 	}
 
 	/**
@@ -831,7 +913,7 @@ final readonly class EntryController
 			}
 
 			$changes = $this->withStatus(new EntryChanges(), $action === 'publish' ? 'published' : 'draft', [], $entry);
-			$refusal = $this->refusal($account, $entry, $changes) ?? ($action === 'publish' ? $this->missing($entry) : null);
+			$refusal = $this->refusal($account, $entry, $changes) ?? ($action === 'publish' ? $this->missing($entry) ?? $this->outOfLimits($entry) : null);
 
 			if ($refusal !== null) {
 				return $refusal;
@@ -875,6 +957,64 @@ final readonly class EntryController
 			1       => sprintf('%s is required to publish.', $names[0]),
 			default => sprintf('%s are required to publish.', implode(', ', $names))
 		};
+	}
+
+	/**
+	 * Checks a save's relations (D-596), and writes the targets it creates
+	 * as they're typed, before the entry is written. Refused, as an error
+	 * to answer, when the account may not create and publish entries of
+	 * a target's type, or when a save that leaves the entry live leaves a
+	 * relation out of its limits; `null` once it may go ahead.
+	 *
+	 * @param array<array-key, mixed> $before The entry's front matter, none for a new one.
+	 */
+	private function related(Account $account, ContentType $type, ?Entry $entry, array $before, EntryChanges $changes): ?ResponseInterface
+	{
+		$after    = array_diff_key([...$before, ...$changes->set], array_flip($changes->remove));
+		$language = $entry->language ?? $this->app->languages->default->code;
+		$found    = $this->typed->find($type->name, $language, $before, $after);
+
+		foreach ($found as $name => $byType) {
+			foreach ($byType as $target => $titles) {
+				if (! $this->permissions->can($account, ContentAction::Create, $target) || ! $this->permissions->can($account, ContentAction::Publish, $target)) {
+					return self::error(
+						sprintf('You aren\'t allowed to add new %s: %s.', $this->types->find($target)->labels->items ?? $target, implode(', ', $titles)),
+						Status::Forbidden,
+						$this->relations->find($type->name, $name)->field ?? $name
+					);
+				}
+			}
+		}
+
+		if (! self::isDraft($changes, $entry)) {
+			$problems = $this->limits->check($type->name, $entry?->id, $language, $after);
+
+			if ($problems !== []) {
+				return self::error(
+					implode(' ', array_map(static fn (RelationProblem $problem): string => $problem->message, $problems)),
+					Status::UnprocessableContent,
+					$this->relations->byKey($problems[0]->key)->field ?? null
+				);
+			}
+		}
+
+		$created = $found === [] ? null : $this->typed->create($found);
+
+		return $created === null || $created->failed === [] ? null : self::error(
+			sprintf('%s couldn\'t be written: %s', implode(', ', array_keys($created->failed)), implode(' ', $created->failed)),
+			Status::UnprocessableContent
+		);
+	}
+
+	/**
+	 * Says which of an entry's relations are out of their limits, which
+	 * keeps it from being published (D-596), or `null` when none are.
+	 */
+	private function outOfLimits(Entry $entry): ?string
+	{
+		$problems = $this->limits->check($entry->type->name, $entry->id, $entry->language, $this->writer->load($entry->path)->frontMatter);
+
+		return $problems === [] ? null : implode(' ', array_map(static fn (RelationProblem $problem): string => $problem->message, $problems));
 	}
 
 	/**

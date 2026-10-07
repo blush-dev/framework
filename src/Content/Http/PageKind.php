@@ -59,6 +59,17 @@ enum PageKind: string
 	case Person = 'person';
 
 	/**
+	 * What a type's relation links to, with an archive word (D-596):
+	 * `/movies/actors`.
+	 */
+	case RelatedList = 'related-list';
+
+	/**
+	 * A target's archive under a type's relation: `/movies/actors/tom`.
+	 */
+	case Related = 'related';
+
+	/**
 	 * A profile's own page: the bio, and everything crediting them.
 	 */
 	case Profile = 'profile';
