@@ -48,7 +48,7 @@
 			"Blush\\": "src/"
 		},
 		"files": [
-			"src/View/functions.php"
+			"src/functions.php"
 		]
 	},
 	"autoload-dev": {

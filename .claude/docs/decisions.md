@@ -1410,7 +1410,8 @@ decision, add a new entry that supersedes it and mark the old one
 ### D-106: The escaping helpers are global functions
 - **Date:** 2026-09-25
 - **Decision:** `e()`, `attr()`, `url()`, `js()`, `css()`, and `raw()` are
-  defined in `src/View/functions.php`, loaded by Composer's `files`
+  defined in `src/View/functions.php` (moved to `src/functions.php`,
+  D-567), loaded by Composer's `files`
   autoload, and delegate to `View\Escaper`. They are the only global
   functions (architecture principles). They aren't wrapped in
   `function_exists()`: a conflicting definition fails loudly instead of
@@ -16628,3 +16629,13 @@ decision, add a new entry that supersedes it and mark the old one
   removed after.
 - **Why:** the author's call: headers drawn the same everywhere, from
   one shared piece.
+
+### D-567: The framework's functions files live directly under `src/`
+- **Date:** 2026-10-07
+- **Decision:** the framework's `functions.php`, and any functions file
+  it includes, is always at the top of `src/`, never in a subfolder.
+  The escaping helpers move from `src/View/functions.php` to
+  `src/functions.php`, and Composer's `files` autoload names the new
+  path. Supersedes D-106's location only; the helpers are unchanged.
+- **Why:** the author's call: global functions aren't part of any one
+  subsystem's namespace, so they sit beside the subsystems, not in one.

@@ -24,6 +24,8 @@
 blush-framework/
   bin/                  CLI entry for framework development (none yet; sites have bin/blush)
   src/
+    functions.php       The escaping helpers, and any files of functions it includes,
+                        always directly under src/, never in a subfolder (D-567)
     Core/               Application, ServiceProvider, Bootable, Bootstrap, Paths,
                         Environment, AppConfig, BlushException, Kernel wiring
     Container/          DI container (from x3p0-framework)
@@ -45,7 +47,7 @@ blush-framework/
     Markdown/           Parser interface + adapter; CommonMark/Directive/ (D-112)
     Media/              MediaConfig, resolver, streaming controller (M4c); image derivatives later
     View/               Views, Template, ViewFinder, ViewFactory, Hierarchy, Head, Escaper,
-                        functions.php (the escaping helpers), themed renderers,
+                        themed renderers,
                         context providers, Renderable + RenderableFactory (D-532)
     Directive/          Directive base, registry, registrar, names, variants,
                         MarkdownDirectives, built-ins (Layout/, Media/, Inline/) (D-192, D-532)
