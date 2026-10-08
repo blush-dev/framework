@@ -19,6 +19,9 @@ use Blush\Console\Commands\IndexMedia;
 use Blush\Console\Console;
 use Blush\Console\Testing\CommandTester;
 use Blush\Core\Application;
+use Blush\Job\JobRunner;
+use Blush\Job\Jobs\MediaIndexJob;
+use Blush\Job\JobStatus;
 use Blush\Media\Index\MediaIndex;
 use Blush\Media\Index\MediaIndexer;
 use Blush\Media\Index\MediaIndexReport;
@@ -37,6 +40,7 @@ use Blush\Tests\BootsScratchSite;
 #[CoversClass(MediaRecord::class)]
 #[CoversClass(MediaSnapshot::class)]
 #[CoversClass(IndexMedia::class)]
+#[CoversClass(MediaIndexJob::class)]
 final class MediaIndexTest extends TestCase
 {
 	use BootsScratchSite;
@@ -105,6 +109,52 @@ final class MediaIndexTest extends TestCase
 		$lake = $app->container()->make(MediaIndex::class)->snapshot()->records['2026/lake.png'] ?? null;
 
 		$this->assertSame('A lake at noon', $lake?->metadata()->alt);
+	}
+
+	public function testARebuildCanTakeSeveralRuns(): void
+	{
+		$app     = $this->site();
+		$indexer = $app->container()->make(MediaIndexer::class);
+		$index   = $app->container()->make(MediaIndex::class);
+
+		$first = $indexer->index(limit: 1);
+
+		$this->assertSame(2, $first->pending);
+		$this->assertSame(['2020/old.png'], array_keys($index->snapshot()->records), 'A file not read yet isn\'t listed.');
+		$this->assertSame(['2026/lake.png', 'fake.png'], $index->snapshot()->pending);
+
+		$this->assertSame(0, $indexer->index(limit: 2)->pending, 'fake.png is read, and isn\'t one.');
+		$this->assertSame(['2020/old.png', '2026/lake.png'], array_keys($index->snapshot()->records));
+		$this->assertSame([], $index->snapshot()->pending);
+		$this->assertFalse($indexer->index(limit: 2)->written, 'Nothing is left to read: a file that isn\'t what its name says isn\'t read again until it changes.');
+
+		$again = $indexer->index(full: true, limit: 2);
+
+		$this->assertSame(1, $again->pending, 'A full rebuild reads every file again.');
+		$this->assertCount(2, $index->snapshot()->records, 'Files not read again keep their records meanwhile.');
+	}
+
+	public function testTheLibraryReadsABatchAndQueuesTheRest(): void
+	{
+		$png = (string) base64_decode(self::PNG, true);
+
+		for ($n = 1; $n <= MediaIndexJob::BATCH + 2; $n++) {
+			$this->writeTemporaryFile(sprintf('user/media/many/%03d.png', $n), $png);
+		}
+
+		$app     = $this->scratchApplication();
+		$app->boot();
+		$library = $app->container()->make(MediaLibrary::class);
+
+		$this->assertSame(MediaIndexJob::BATCH, $library->query(new MediaQuery())->total, 'The first batch is read at once.');
+
+		$job = $library->indexing();
+
+		$this->assertNotNull($job, 'The rest is a job.');
+		$this->assertSame(JobStatus::Done, $app->container()->make(JobRunner::class)->finish($job)->status);
+		$this->assertSame([], $app->container()->make(MediaIndex::class)->snapshot()->pending);
+		$this->assertCount(MediaIndexJob::BATCH + 2, $app->container()->make(MediaIndex::class)->snapshot()->records);
+		$this->assertNull($library->indexing());
 	}
 
 	public function testQueriesTheLibrary(): void

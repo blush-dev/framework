@@ -60,46 +60,80 @@ final readonly class MediaIndexer
 	}
 
 	/**
-	 * Indexes the media. `$progress` is called after each file with the
-	 * number done and the total. `$written` are the keys of files whose
-	 * metadata was just written, which are read again even when the
-	 * write left the modified time where it was (in the same second).
+	 * Indexes the media. `$progress` is called after each file read with
+	 * the number read and how many it will read. `$written` are the keys
+	 * of files whose metadata was just written, which are read again even
+	 * when the write left the modified time where it was (in the same
+	 * second).
+	 *
+	 * `$limit` caps how many files one run reads (D-626): the files just
+	 * written first, then new and changed ones, then those a rebuild has
+	 * still to read. The files it doesn't get to keep their last records
+	 * (a new one isn't listed yet), the rebuild's are kept in the index
+	 * as `pending`, and the report says how many are left; the next run
+	 * carries on. Without a limit, it reads everything it needs to.
 	 *
 	 * @param  ?Closure(int, int): void $progress
 	 * @param  list<string>             $written
 	 * @throws MediaException When the index can't be written.
 	 */
-	public function index(bool $full = false, ?Closure $progress = null, array $written = []): MediaIndexReport
+	public function index(bool $full = false, ?Closure $progress = null, array $written = [], ?int $limit = null): MediaIndexReport
 	{
 		$fingerprint = $this->fingerprint();
 		$previous    = $this->index->snapshot();
-		$full        = $full || $previous->fingerprint !== $fingerprint;
+		$rebuild     = $full || $previous->fingerprint !== $fingerprint;
 		$files       = $this->files();
 		$described   = array_map(static fn (array $file): array => [$file['path'], $file['modified']], $this->store->files());
-		$records     = [];
-		$done        = 0;
 		$reread      = array_flip($written);
+
+		// A rebuild reads every file; one under way reads what it has left.
+		$pending = $rebuild
+			? array_map(strval(...), array_keys($files))
+			: array_values(array_filter($previous->pending, static fn (string $key): bool => isset($files[$key])));
+		$waiting = array_flip($pending);
+		$stale   = [];
 
 		foreach ($files as $key => [$size, $modified]) {
 			$old  = $previous->records[$key] ?? null;
 			$data = $described[$key] ?? null;
 
-			if (! $full && ! isset($reread[$key]) && $old !== null && $old->size === $size && $old->modified === $modified && $old->described === ($data[1] ?? null)) {
-				$records[$key] = $old;
-			} else {
-				$record = $this->record($key, $modified, $data);
+			$known = $old !== null || ($previous->rejected[$key] ?? null) === [$size, $modified];
+
+			if (! isset($waiting[$key]) && (isset($reread[$key]) || ! $known || ($old !== null && ($old->size !== $size || $old->modified !== $modified || $old->described !== ($data[1] ?? null))))) {
+				$stale[] = (string) $key;
+			}
+		}
+
+		$first  = array_values(array_filter($written, static fn (string $key): bool => isset($files[$key])));
+		$toRead = array_values(array_unique([...$first, ...$stale, ...$pending]));
+		$read   = array_flip($limit === null ? $toRead : array_slice($toRead, 0, max(0, $limit)));
+		$records  = [];
+		$rejected = [];
+		$done     = 0;
+
+		foreach ($files as $key => [$size, $modified]) {
+			if (isset($read[$key])) {
+				$record = $this->record((string) $key, $modified, $described[$key] ?? null);
 
 				if ($record !== null) {
 					$records[$key] = $record;
+				} else {
+					$rejected[$key] = [$size, $modified];
 				}
-			}
 
-			$done++;
+				$done++;
 
-			if ($progress !== null) {
-				$progress($done, count($files));
+				if ($progress !== null) {
+					$progress($done, count($read));
+				}
+			} elseif (isset($previous->records[$key])) {
+				$records[$key] = $previous->records[$key];
+			} elseif (isset($previous->rejected[$key])) {
+				$rejected[$key] = $previous->rejected[$key];
 			}
 		}
+
+		$pending = array_values(array_filter($pending, static fn (string $key): bool => ! isset($read[$key])));
 
 		// Sizes of other images (D-239), which a file beside them can
 		// change without changing themselves.
@@ -125,13 +159,13 @@ final readonly class MediaIndexer
 		$orphans = array_map(strval(...), array_keys(array_diff_key($described, $records)));
 		sort($orphans);
 
-		$save = $full || $added !== [] || $changed !== [] || $removed !== [] || $orphans !== $previous->orphans || ! $this->index->exists();
+		$save = $rebuild || $added !== [] || $changed !== [] || $removed !== [] || $orphans !== $previous->orphans || $pending !== $previous->pending || $rejected != $previous->rejected || ! $this->index->exists();
 
 		if ($save) {
-			$this->index->save(new MediaSnapshot($fingerprint, $this->clock->now()->getTimestamp(), $records, $orphans));
+			$this->index->save(new MediaSnapshot($fingerprint, $this->clock->now()->getTimestamp(), $records, $orphans, $pending, $rejected));
 		}
 
-		return new MediaIndexReport(count($records), $added, $changed, $removed, $orphans, $save);
+		return new MediaIndexReport(count($records), $added, $changed, $removed, $orphans, $save, count($toRead) - count($read));
 	}
 
 	/**

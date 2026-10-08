@@ -18,13 +18,16 @@ use Blush\Cache\ContentVersion;
 use Blush\Content\Index\Indexer;
 use Blush\Job\Job;
 use Blush\Job\JobRecord;
+use Blush\Job\JobQueue;
 use Blush\Job\JobResult;
+use Blush\Job\JobType;
 use Blush\Media\Index\MediaIndexer;
 
 /**
  * Brings the content index up to date with the files, as `content:index`
  * does, then the media index, as `media:index` does (D-288), for the
- * admin's Reindex (D-621). When anything changed, the content version
+ * admin's Reindex (D-621). The media index reads a batch of files at
+ * most, and queues the rest as `blush/media-index` (D-626). When anything changed, the content version
  * moves on, so cached pages that showed the old content aren't served
  * again.
  */
@@ -33,7 +36,8 @@ final class ReindexJob extends Job
 	public function __construct(
 		private readonly Indexer $indexer,
 		private readonly MediaIndexer $media,
-		private readonly ContentVersion $version
+		private readonly ContentVersion $version,
+		private readonly JobQueue $jobs
 	) {}
 
 	/**
@@ -52,7 +56,12 @@ final class ReindexJob extends Job
 	public function handle(JobRecord $job): JobResult
 	{
 		$report = $this->indexer->index();
-		$media  = $this->media->index();
+		$media  = $this->media->index(limit: MediaIndexJob::BATCH);
+
+		// A large media rebuild goes on as its own job (D-626).
+		if ($media->pending > 0) {
+			$this->jobs->push(JobType::MediaIndex->value, unique: JobType::MediaIndex->value);
+		}
 
 		if ($report->written) {
 			$this->version->bump();
@@ -65,7 +74,8 @@ final class ReindexJob extends Job
 			count($report->added),
 			count($report->changed),
 			count($report->removed)
-		) . sprintf(' Indexed %d media %s.', $media->total, $media->total === 1 ? 'file' : 'files');
+		) . sprintf(' Indexed %d media %s.', $media->total, $media->total === 1 ? 'file' : 'files')
+			. ($media->pending > 0 ? sprintf(' %d more are being read in the background.', $media->pending) : '');
 
 		if ($report->failures === []) {
 			return JobResult::done($summary);

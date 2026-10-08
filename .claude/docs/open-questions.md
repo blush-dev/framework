@@ -18,6 +18,23 @@ Move each item to `decisions.md` once it's answered.
   - **Whether Check Again runs only its check.** It checks every
     content and media file now.
 
+- **A full content index rebuild in a request** (raised 2026-10-08,
+  after D-627; not built, by the author's call). A full rebuild (no
+  index, or a fingerprint change from editing a content type or the
+  timezone or locale) still parses every entry in whatever request finds
+  it: the admin's type and settings saves (`TypeEditController`,
+  `SettingsEditController`), Reindex, Publish, or the first page
+  request. Measured on the jtcom trial: 1,248 entries in about 0.5
+  seconds (about 0.4 ms each), so a 30-second limit is reached only
+  around 50,000 to 70,000 entries. It can't be chunked as media was
+  (D-626): an entry not read yet would be missing from the live site,
+  and the old index can't stand in, since a rebuild means its records
+  may name types that changed. Doing it safely means building the new
+  index on the side and switching when it's complete, which changes
+  `ContentIndex` (every storage driver would need to stage one, D-485).
+  Leaning: design it with the data layer (D-606), when the index's
+  storage is reworked anyway; until then, a very large site rebuilds
+  with `content:index --full` on the command line.
 - **The data layer** (D-606; planned, nothing built). Settled: three
   layers (drivers over records, a fluent query compiled per driver,
   repositories), data mapper, every area, id-keyed writes, the full

@@ -213,7 +213,28 @@ final readonly class Linter
 	{
 		[$metadata, $described] = $this->media->check();
 
-		return [[...$this->formats->check(), ...$described, ...$this->sets->check()], $metadata];
+		return [[...$this->lintFormats(), ...$described, ...$this->lintFieldSets()], $metadata];
+	}
+
+	/**
+	 * Lints the files in `user/content` in formats Blush no longer reads
+	 * (`FormatCheck`, D-501).
+	 *
+	 * @return array<string, list<Violation>>
+	 */
+	public function lintFormats(): array
+	{
+		return $this->formats->check();
+	}
+
+	/**
+	 * Lints the field sets (`FieldSetCheck`, D-337).
+	 *
+	 * @return array<string, list<Violation>>
+	 */
+	public function lintFieldSets(): array
+	{
+		return $this->sets->check();
 	}
 
 	/**

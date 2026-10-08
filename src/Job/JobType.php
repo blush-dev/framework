@@ -16,6 +16,7 @@ namespace Blush\Job;
 use Blush\Admin\HealthCheckJob;
 use Blush\Admin\HealthFixJob;
 use Blush\Job\Jobs\GoLiveJob;
+use Blush\Job\Jobs\MediaIndexJob;
 use Blush\Job\Jobs\PruneCacheJob;
 use Blush\Job\Jobs\PruneJobsJob;
 use Blush\Job\Jobs\PruneSessionsJob;
@@ -36,6 +37,7 @@ enum JobType: string
 	case PruneJobs     = 'blush/prune-jobs';
 	case HealthFix     = 'blush/health-fix';
 	case HealthCheck   = 'blush/health-check';
+	case MediaIndex    = 'blush/media-index';
 
 	/**
 	 * Returns the job's class.
@@ -52,7 +54,8 @@ enum JobType: string
 			self::PruneSessions => PruneSessionsJob::class,
 			self::PruneJobs     => PruneJobsJob::class,
 			self::HealthFix     => HealthFixJob::class,
-			self::HealthCheck   => HealthCheckJob::class
+			self::HealthCheck   => HealthCheckJob::class,
+			self::MediaIndex    => MediaIndexJob::class
 		};
 	}
 

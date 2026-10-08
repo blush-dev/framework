@@ -11,7 +11,7 @@
  * some kind); **Open** goes to the file's screen.
  */
 
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { RouterLink, useRoute, useRouter } from 'vue-router';
 import AdminIcon from '../components/AdminIcon.vue';
 import AdminSelect from '../components/AdminSelect.vue';
@@ -20,6 +20,7 @@ import MediaCard from '../components/MediaCard.vue';
 import MediaPicker from '../components/MediaPicker.vue';
 import { mediaFacts, useMediaList } from '../media';
 import { request, type MediaItem, type MediaList } from '../api';
+import { loadCounts } from '../counts';
 import { plural } from '../format';
 import { canUpload } from '../session';
 
@@ -58,7 +59,7 @@ const kindValue = computed({
 	}
 });
 
-const { files, total, page, pages, loading, error, load } = useMediaList(kind, search, () => mine.value);
+const { files, total, page, pages, loading, error, indexing, load } = useMediaList(kind, search, () => mine.value);
 
 const filtered = computed(() => search.value !== '' || kind.value !== 'any');
 
@@ -82,6 +83,15 @@ async function count(): Promise<void> {
 
 void load();
 void count();
+
+// Once the library has caught up (D-626), its counts here and in the
+// panel are counted again.
+watch(indexing, (now, before) => {
+	if (now === null && before !== null) {
+		void count();
+		void loadCounts();
+	}
+});
 
 // Its facts, and how many sizes an image has (D-488), which aren't
 // cards of their own.
@@ -142,6 +152,10 @@ function closed(): void {
 	</div>
 
 	<p v-if="error" class="notice notice--error" role="alert">{{ error }}</p>
+	<div v-if="indexing !== null" class="notice" aria-live="polite">
+		<AdminIcon name="refresh-cw" />
+		<span class="notice__text">Reading the library's files ({{ indexing }}%). Files not read yet aren't listed, or show their details from before; the list fills in when it's done.</span>
+	</div>
 
 	<section class="panel" aria-labelledby="media-heading" :aria-busy="loading">
 		<header class="panel__header">

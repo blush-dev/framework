@@ -55,7 +55,7 @@ final class PublishJob extends Job
 	public function handle(JobRecord $job): JobResult
 	{
 		try {
-			$report = $this->publisher->publish();
+			$report = $this->publisher->publish(mediaLimit: MediaIndexJob::BATCH);
 		} catch (PublishInProgress $e) {
 			return JobResult::failed($e->getMessage());
 		}
@@ -67,8 +67,10 @@ final class PublishJob extends Job
 		$failures = $report->index->failures ?? [];
 		$details  = array_map(static fn (string $path, string $message): string => "{$path}: {$message}", array_keys($failures), $failures);
 
+		$more = ($report->media->pending ?? 0) > 0 ? sprintf(' %d more media files are being read in the background.', $report->media?->pending) : '';
+
 		return $failures === []
-			? JobResult::done(sprintf('Published in %d ms.', $report->milliseconds))
+			? JobResult::done(sprintf('Published in %d ms.', $report->milliseconds) . $more)
 			: JobResult::failed(sprintf('Published, but %d file(s) couldn\'t be indexed.', count($failures)), $details);
 	}
 }

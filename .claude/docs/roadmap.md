@@ -403,8 +403,11 @@ on demand, for what's loaded at once, is in `open-questions.md`.
   and Publish and Reindex in the admin as jobs. `EntriesWentLive`
   and the `RecordingQueue` for tests followed (D-623), Site
   Health's fixes as a chunked job (D-624), and Check Again too
-  (D-625). Not chunked yet: the media indexer and the media metadata
-  check. The first of the layers AI plugins need
+  (D-625). The media indexer and the media details check followed
+  (D-626). The admin's
+  and the webhook's publish read a batch of media too (D-627). Still
+  whole, by choice: a full rebuild of the content index, in whatever
+  request finds it stale (see `open-questions.md`). The first of the layers AI plugins need
   (D-397), with the HTTP client (D-620).
 - **APIs, agents, and headless (discussed 2026-10-03):** a versioned
   content API, API tokens, an MCP server, a headless mode, revisions

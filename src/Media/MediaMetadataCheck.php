@@ -69,38 +69,84 @@ final readonly class MediaMetadataCheck
 	 */
 	public function check(): array
 	{
-		$files      = $this->store->files();
+		[$violations, $unreadable, $checked] = $this->checkSome($this->keys());
+
+		foreach ($this->checkLibrary($unreadable) as $path => $found) {
+			$violations[$path] = [...$violations[$path] ?? [], ...$found];
+		}
+
+		return [$checked, $violations];
+	}
+
+	/**
+	 * Returns the media keys that have metadata files, for checking them
+	 * a batch at a time (D-626).
+	 *
+	 * @return list<string>
+	 */
+	public function keys(): array
+	{
+		return array_map(strval(...), array_keys($this->store->files()));
+	}
+
+	/**
+	 * Checks some metadata files on their own, by media key: each one's
+	 * values, and files hidden by it. Returns the violations by path from
+	 * the site root, the keys of files that can't be read, and how many
+	 * files were checked.
+	 *
+	 * @param  list<string> $keys
+	 * @return array{array<string, list<Violation>>, list<string>, int}
+	 */
+	public function checkSome(array $keys): array
+	{
+		$files      = array_intersect_key($this->store->files(), array_flip($keys));
 		$violations = [];
+		$unreadable = [];
+		$checked    = 0;
 
 		foreach ($files as $key => $file) {
-			$path = $this->paths->relative($file['path']);
+			$path  = $this->paths->relative($file['path']);
+			$found = $this->checkFile((string) $key, $file['path']);
 
-			$violations[$path] = $this->checkFile((string) $key, $file['path']);
+			$violations[$path] = $found;
+			$checked          += 1 + count($file['shadowed']);
+
+			// A file that can't be read already says so; its id can't be told.
+			if (array_any($found, static fn (Violation $violation): bool => $violation->field === Linter::FILE && $violation->severity === Severity::Error)) {
+				$unreadable[] = (string) $key;
+			}
 
 			foreach ($file['shadowed'] as $hidden) {
 				$violations[$this->paths->relative($hidden)] = [new Violation(Linter::FILE, sprintf('is hidden by %s, which is read instead; merge them into one file.', basename($file['path'])), Severity::Warning, ViolationKind::Details)];
 			}
 		}
 
-		// A file that can't be read already says so; its id can't be told.
-		$unreadable = array_filter($files, fn (array $file): bool => array_any(
-			$violations[$this->paths->relative($file['path'])] ?? [],
-			static fn (Violation $violation): bool => $violation->field === Linter::FILE && $violation->severity === Severity::Error
-		));
+		return [$violations, $unreadable, $checked];
+	}
 
-		foreach ($this->checkIds(array_diff_key($files, $unreadable), array_keys($unreadable)) as $path => $found) {
-			$violations[$path] = [...$violations[$path] ?? [], ...$found];
-		}
+	/**
+	 * Checks what needs the whole library, by path from the site root:
+	 * ids, sizes, artwork, and files describing a size of another image.
+	 * `$unreadable` are the keys of metadata files that can't be read,
+	 * whose ids can't be told.
+	 *
+	 * @param  list<string> $unreadable
+	 * @return array<string, list<Violation>>
+	 */
+	public function checkLibrary(array $unreadable): array
+	{
+		$files = $this->store->files();
 
-		return [count($files) + array_sum(array_map(static fn (array $file): int => count($file['shadowed']), $files)), $violations];
+		return $this->checkIds(array_diff_key($files, array_flip($unreadable)), $unreadable);
 	}
 
 	/**
 	 * Checks every media file's id (D-487), and the metadata files of
 	 * sizes of other images, by path from the site root.
 	 *
-	 * @param  array<string, array{path: string, modified: int, shadowed: list<string>}> $files      The readable metadata files, by key.
-	 * @param  list<array-key>                                                           $unreadable The keys of the others.
+	 * @param  array<array-key, array{path: string, modified: int, shadowed: list<string>}> $files      The readable metadata files, by key.
+	 * @param  list<string>                                                                $unreadable The keys of the others.
 	 * @return array<string, list<Violation>>
 	 */
 	private function checkIds(array $files, array $unreadable): array

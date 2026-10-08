@@ -26,31 +26,39 @@ use Blush\Field\ViolationKind;
 use Blush\Job\Job;
 use Blush\Job\JobRecord;
 use Blush\Job\JobResult;
+use Blush\Media\MediaMetadataCheck;
 
 /**
  * Checks content and media files again for Site Health (Check Again,
- * `blush/health-check`, D-625), a chunk at a time, so reading every
- * file never outlasts a request. Each run lints the next `CHUNK` content
- * files on their own (`Linter::lintFile()`), keeping what it found in
- * its data. The last brings the content index up to date, lints what
- * needs every file from it (`lintSite()`) and what isn't an entry
- * (`lintRest()`: media metadata, formats, field sets), and saves the
- * files' report and summary in Site Health's report.
+ * `blush/health-check`, D-625, D-626), a batch at a time, so reading
+ * every file never outlasts a request. It goes in three stages, one or
+ * more runs each, keeping what it found in its data:
  *
- * Its data: the content files `remaining` (`null` at first, for every
- * file), the `total`, how many were `checked`, and what was `found`, by
- * path.
+ * - `content`: the next `CHUNK` content files, each on its own
+ *   (`Linter::lintFile()`);
+ * - `media`: the next `CHUNK` media details files, each on its own
+ *   (`MediaMetadataCheck::checkSome()`), noting those that can't be read;
+ * - `finish`: brings the content index up to date, lints what needs every
+ *   entry from it (`lintSite()`), checks what needs the whole library
+ *   (`checkLibrary()`), formats and field sets, and saves the files'
+ *   report and summary in Site Health's report.
+ *
+ * Its data: the `stage`, the files `remaining` in it (`null` at its
+ * start, for every file), the `total` in it, how many content files were
+ * `checked`, the media details files `described`, the `unreadable` ones,
+ * and what was `found` in each stage, by path.
  */
 final class HealthCheckJob extends Job
 {
 	/**
-	 * How many content files one run lints.
+	 * How many files one run checks.
 	 */
 	public const int CHUNK = 200;
 
 	public function __construct(
 		private readonly ContentSource $source,
 		private readonly Linter $linter,
+		private readonly MediaMetadataCheck $media,
 		private readonly Indexer $indexer,
 		private readonly ContentIndex $index,
 		private readonly SiteHealth $health
@@ -71,13 +79,27 @@ final class HealthCheckJob extends Job
 	#[Override]
 	public function handle(JobRecord $job): JobResult
 	{
-		$remaining = is_array($job->data['remaining'] ?? null)
-			? array_values(array_filter($job->data['remaining'], is_string(...)))
-			: array_map(static fn (SourceFile $file): string => $file->path, $this->source->files());
+		$data  = $job->data;
+		$stage = is_string($data['stage'] ?? null) ? $data['stage'] : 'content';
 
-		$total   = is_int($job->data['total'] ?? null) ? $job->data['total'] : count($remaining);
-		$checked = is_int($job->data['checked'] ?? null) ? $job->data['checked'] : 0;
-		$found   = is_array($job->data['found'] ?? null) ? $job->data['found'] : [];
+		return match ($stage) {
+			'media'  => $this->media($data),
+			'finish' => $this->finish($data),
+			default  => $this->content($data)
+		};
+	}
+
+	/**
+	 * Lints the next content files.
+	 *
+	 * @param array<string, mixed> $data
+	 */
+	private function content(array $data): JobResult
+	{
+		$remaining = self::strings($data['remaining'] ?? null) ?? array_map(static fn (SourceFile $file): string => $file->path, $this->source->files());
+		$total     = is_int($data['total'] ?? null) ? $data['total'] : count($remaining);
+		$checked   = is_int($data['checked'] ?? null) ? $data['checked'] : 0;
+		$found     = is_array($data['found'] ?? null) ? $data['found'] : [];
 
 		foreach (array_slice($remaining, 0, self::CHUNK) as $path) {
 			// A file removed since the check started isn't there to check.
@@ -95,37 +117,101 @@ final class HealthCheckJob extends Job
 
 		$rest = array_slice($remaining, self::CHUNK);
 
-		if ($rest !== []) {
-			return JobResult::more(
-				['remaining' => $rest, 'total' => $total, 'checked' => $checked, 'found' => $found],
-				intdiv(($total - count($rest)) * 90, max(1, $total)),
-				sprintf('Checked %d of %d content files.', $total - count($rest), $total)
-			);
+		return JobResult::more(
+			[...$data, 'stage' => $rest === [] ? 'media' : 'content', 'remaining' => $rest === [] ? null : $rest, 'total' => $rest === [] ? null : $total, 'checked' => $checked, 'found' => $found],
+			intdiv(($total - count($rest)) * 60, max(1, $total)),
+			sprintf('Checked %d of %d content files.', $total - count($rest), $total)
+		);
+	}
+
+	/**
+	 * Checks the next media details files.
+	 *
+	 * @param array<string, mixed> $data
+	 */
+	private function media(array $data): JobResult
+	{
+		$remaining  = self::strings($data['remaining'] ?? null) ?? $this->media->keys();
+		$total      = is_int($data['total'] ?? null) ? $data['total'] : count($remaining);
+		$described  = is_int($data['described'] ?? null) ? $data['described'] : 0;
+		$unreadable = self::strings($data['unreadable'] ?? null) ?? [];
+		$found      = is_array($data['mediaFound'] ?? null) ? $data['mediaFound'] : [];
+
+		[$violations, $bad, $checked] = $this->media->checkSome(array_slice($remaining, 0, self::CHUNK));
+
+		foreach ($violations as $path => $list) {
+			$found[$path] = array_map(self::toArray(...), $list);
 		}
+
+		$rest = array_slice($remaining, self::CHUNK);
+
+		return JobResult::more(
+			[...$data, 'stage' => $rest === [] ? 'finish' : 'media', 'remaining' => $rest, 'total' => $total, 'described' => $described + $checked, 'unreadable' => [...$unreadable, ...$bad], 'mediaFound' => $found],
+			60 + intdiv(($total - count($rest)) * 35, max(1, $total)),
+			sprintf('Checked %d of %d media details files.', $total - count($rest), $total)
+		);
+	}
+
+	/**
+	 * Checks what needs every file, and saves the report.
+	 *
+	 * @param array<string, mixed> $data
+	 */
+	private function finish(array $data): JobResult
+	{
+		$checked   = is_int($data['checked'] ?? null) ? $data['checked'] : 0;
+		$described = is_int($data['described'] ?? null) ? $data['described'] : 0;
 
 		$this->indexer->index();
 
-		$files = [];
-
-		foreach ($found as $path => $violations) {
-			$files[(string) $path] = array_values(array_filter(array_map(self::fromArray(...), is_array($violations) ? $violations : [])));
-		}
+		$files = self::violations($data['found'] ?? null);
 
 		foreach ($this->linter->lintSite($this->index->snapshot()) as $path => $violations) {
 			$files[$path] = [...$files[$path] ?? [], ...$violations];
 		}
 
-		[$others, $metadata] = $this->linter->lintRest();
+		$media = self::violations($data['mediaFound'] ?? null);
 
-		$this->health->checkFiles(lint: new LintReport($checked, [...$files, ...$others], $metadata));
+		foreach ($this->media->checkLibrary(self::strings($data['unreadable'] ?? null) ?? []) as $path => $violations) {
+			$media[$path] = [...$media[$path] ?? [], ...$violations];
+		}
+
+		$this->health->checkFiles(lint: new LintReport($checked, [...$files, ...$this->linter->lintFormats(), ...$media, ...$this->linter->lintFieldSets()], $described));
 
 		return JobResult::done(sprintf(
 			'Checked %d content %s and %d media details %s.',
 			$checked,
 			$checked === 1 ? 'file' : 'files',
-			$metadata,
-			$metadata === 1 ? 'file' : 'files'
+			$described,
+			$described === 1 ? 'file' : 'files'
 		));
+	}
+
+	/**
+	 * Returns violations kept as plain data, by path.
+	 *
+	 * @return array<string, list<Violation>>
+	 */
+	private static function violations(mixed $kept): array
+	{
+		$violations = [];
+
+		foreach (is_array($kept) ? $kept : [] as $path => $list) {
+			$violations[(string) $path] = array_values(array_filter(array_map(self::fromArray(...), is_array($list) ? $list : [])));
+		}
+
+		return $violations;
+	}
+
+	/**
+	 * Returns a list of strings from the job's data, or `null` when it
+	 * isn't one.
+	 *
+	 * @return ?list<string>
+	 */
+	private static function strings(mixed $value): ?array
+	{
+		return is_array($value) ? array_values(array_filter($value, is_string(...))) : null;
 	}
 
 	/**

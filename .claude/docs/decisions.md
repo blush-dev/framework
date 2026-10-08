@@ -18784,7 +18784,63 @@ decision, add a new entry that supersedes it and mark the old one
   - The admin's `finish()` (`jobs.ts`) follows a job and throws unless
     it's done; the fixes use it too. Both buttons show the progress.
   - Not chunked: `lintRest()`'s media metadata check, which reads every
-    metadata file in the last run.
+    metadata file in the last run (chunked in D-626).
 - **Why:** the author asked ("make Check Again a job too"). Measured on
   the jtcom trial: about 1,250 entries in seven chunks, about two
   seconds.
+
+### D-626: The media index and media details check, a batch at a time
+
+- **Date:** 2026-10-08
+- **Status:** Built.
+- **Decision:**
+  - **`MediaIndexer::index(limit:)`** reads at most that many files:
+    those just written, then new and changed ones, then those a rebuild
+    has still to read. A rebuild (a first index, a new fingerprint, or
+    `full`) puts every file in the snapshot's `pending`
+    (`MediaSnapshot::VERSION` 5), and later runs carry on from it. Files
+    not read yet keep their last records (a new one isn't listed yet),
+    so the library works during a rebuild. The report's `pending` says
+    how many are left. Without a limit (`media:index`, `publish`, the
+    fixes' reports) it reads everything, as before.
+  - **`rejected`** in the snapshot: files named for a type the library
+    takes whose contents aren't one (a `fake.png`), by key with size and
+    modified time, so they aren't read again until they change. Before,
+    every run read them again; with a limit they'd have been pending
+    forever.
+  - **`blush/media-index`** (`MediaIndexJob`, `BATCH` 250) reads a batch
+    a run; the index holds what's left, so the job has no data. The
+    library (`MediaLibrary::snapshot()`, `refresh()`), when behind,
+    reads one batch in the request and queues the job (unique by key);
+    Reindex does the same. `MediaLibrary::indexing()` is the job, and
+    `GET media` answers its id as `indexing`; the admin's media list
+    follows it, the Media screen shows a notice with its progress, and
+    counts again when it's done.
+  - **Media details in Check Again:** `MediaMetadataCheck` splits into
+    `keys()`, `checkSome()` (per file, noting unreadable ones), and
+    `checkLibrary()` (ids, sizes, artwork, sizes' own details), with
+    `check()` all three. `HealthCheckJob` goes in stages: content files,
+    media details files (200 a run each), then the whole-site checks.
+    `Linter` gains `lintFormats()` and `lintFieldSets()`.
+  - Still all at once: `publish` (the CLI, the webhook, and the admin's
+    Publish job) indexes media without a limit (bounded for the webhook
+    and the admin in D-627).
+- **Why:** the author asked to build both ("build both"). On the jtcom
+  trial, a full rebuild of about 4,300 files took about four seconds
+  in the admin, in batches, with the library usable throughout.
+
+### D-627: Publishing in a request reads a batch of media
+
+- **Date:** 2026-10-08
+- **Status:** Built.
+- **Decision:** `Publisher::publish()` takes a `$mediaLimit`. The admin's
+  Publish job and the webhook, which run in a request, pass
+  `MediaIndexJob::BATCH`; when media is left to read (a rebuild after a
+  new media URL or allowed types), the publish queues
+  `blush/media-index` for the rest and says so (the job's message, the
+  webhook's `media.pending`). A failed queue is dropped, since the
+  library catches up when it's next looked at. The CLI's `publish`
+  passes none and reads everything, as `media:index` does: the command
+  line has no request to outlast.
+- **Why:** the author asked ("build the publish one"). It was the last
+  place in a request that could read a whole library.

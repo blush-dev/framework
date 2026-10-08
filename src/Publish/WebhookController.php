@@ -23,6 +23,7 @@ use Blush\Cache\Caches;
 use Blush\Http\ClientIp;
 use Blush\Http\Response;
 use Blush\Http\Status;
+use Blush\Job\Jobs\MediaIndexJob;
 
 /**
  * `POST {PublishConfig::$path}`: publishes on a signed request
@@ -90,7 +91,7 @@ final readonly class WebhookController
 		}
 
 		try {
-			$report = $this->publisher->publish(is_bool($options['pull'] ?? null) ? $options['pull'] : null);
+			$report = $this->publisher->publish(is_bool($options['pull'] ?? null) ? $options['pull'] : null, MediaIndexJob::BATCH);
 		} catch (PublishInProgress $e) {
 			return self::json(['error' => $e->getMessage()], Status::Conflict);
 		}

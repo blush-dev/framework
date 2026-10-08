@@ -9,6 +9,7 @@ import { debounced, latest } from './action';
 import { errorMessage, request, type MediaItem, type MediaList } from './api';
 import { config } from './config';
 import { formatSize } from './format';
+import { finish } from './jobs';
 import type { IconName } from './icons';
 
 const library = new Map<string, Promise<MediaItem | null>>();
@@ -121,7 +122,9 @@ export function mediaIcon(file: Pick<MediaItem, 'kind'>): IconName {
  * picker list it: by `kind`, a `search` (asked a moment after typing
  * stops), and, when `mine` says so, only the account's own uploads. Only
  * the latest answer is shown; `answered` hears every one. `load(true)`
- * adds the next page; the first load is the caller's.
+ * adds the next page; the first load is the caller's. While the library
+ * is catching up (a rebuild, D-626), it follows the job reading the rest,
+ * with its progress in `indexing`, and loads again when it's done.
  */
 export function useMediaList(kind: Ref<string>, search: Ref<string>, mine: () => boolean = () => false, answered?: (answer: MediaList) => void) {
 	const files   = ref<MediaItem[]>([]);
@@ -131,6 +134,8 @@ export function useMediaList(kind: Ref<string>, search: Ref<string>, mine: () =>
 	const loading = ref(true);
 	const error   = ref('');
 	const ask     = latest();
+	// How far along reading the library is, while it catches up.
+	const indexing = ref<number | null>(null);
 
 	async function load(more = false): Promise<void> {
 		const current = ask();
@@ -156,6 +161,10 @@ export function useMediaList(kind: Ref<string>, search: Ref<string>, mine: () =>
 				page.value  = answer.page;
 				pages.value = answer.pages;
 				answered?.(answer);
+
+				if (answer.indexing !== null && indexing.value === null) {
+					void catchUp(answer.indexing);
+				}
 			}
 		} catch (caught) {
 			if (current()) {
@@ -168,8 +177,24 @@ export function useMediaList(kind: Ref<string>, search: Ref<string>, mine: () =>
 		}
 	}
 
+	async function catchUp(job: string): Promise<void> {
+		indexing.value = 0;
+
+		try {
+			await finish(job, (update) => {
+				indexing.value = update.progress ?? 0;
+			});
+		} catch {
+			// What's listed stays; a later visit catches up again.
+		} finally {
+			indexing.value = null;
+		}
+
+		await load();
+	}
+
 	watch(search, debounced(() => void load(), 250));
 	watch([kind, mine], () => void load());
 
-	return { files, total, page, pages, loading, error, load };
+	return { files, total, page, pages, loading, error, indexing, load };
 }

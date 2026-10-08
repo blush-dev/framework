@@ -61,6 +61,8 @@ use Blush\Support\UrlPath;
   *   `document`, `file` for any other kind, or `any`, the default),
  *   `missing=alt` (images without alt text), and `mine=1` (the files the
  *   account uploaded, D-407).
+ * - `indexing`: the id of the job reading the rest of the library while
+ *   it catches up (D-626), for the admin to follow, else `null`.
  * - `upload`: when the account may upload some kind (D-268, D-407), the
  *   largest file it may upload (`limit`, in bytes, or `null`: the upload
  *   rules' largest, within PHP's, D-406) and the `extensions` it may
@@ -192,16 +194,17 @@ final readonly class MediaListController
 		$files = array_map(fn (MediaRecord $record): array => self::describe($record->file($this->paths), $record->url, $record->key, $record->metadata(), $record->duration(), count($this->library->sizes($record->key)), $this->artworks->url($record)), $found->records);
 
 		return Response::json([
-			'search'  => $search,
-			'kind'    => $kind,
-			'missing' => $missing,
-			'mine'    => $mine === '1',
-			'total'   => $found->total,
-			'page'    => $page,
-			'pages'   => max(1, (int) ceil($found->total / $per)),
-			'per'     => $per,
-			'files'   => $files,
-			'upload'  => $this->uploads->extensions($account) !== []
+			'search'   => $search,
+			'kind'     => $kind,
+			'missing'  => $missing,
+			'mine'     => $mine === '1',
+			'total'    => $found->total,
+			'page'     => $page,
+			'pages'    => max(1, (int) ceil($found->total / $per)),
+			'per'      => $per,
+			'files'    => $files,
+			'indexing' => $this->library->indexing()?->id,
+			'upload'   => $this->uploads->extensions($account) !== []
 				? ['limit' => $this->uploads->largest($account), 'extensions' => $this->uploads->extensions($account)]
 				: null
 		], headers: ['Cache-Control' => 'no-store']);

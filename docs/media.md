@@ -242,6 +242,16 @@ bin/blush media:index --full   # read every file again
 It also warns of details left in `user/data/media/` for a file that's
 gone: move them with the file, or delete them.
 
+When the whole library has to be read again (the first time, or after
+changing the media URL or the file types the library takes), the admin
+reads a few hundred files at once and the rest as a
+[background job](going-live.md#background-jobs-and-cron), so a large
+library never makes a page time out. Meanwhile the Media screen says
+it's catching up and shows how far along it is: files not read yet show
+their details from before, or aren't listed yet. Publishing from the
+admin or the webhook works the same way. `publish` and `media:index` on
+the command line always read everything in one go.
+
 ## Checking the details
 
 `bin/blush content:lint` (and **Site Health** in the admin) checks

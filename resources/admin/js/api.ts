@@ -1492,6 +1492,9 @@ export interface MediaList {
 	pages: number;
 	per: number;
 	files: MediaItem[];
+	// The job reading the rest of the library while it catches up
+	// (D-626), or `null`.
+	indexing: string | null;
 	// When the account may upload: the largest file the server takes, in
 	// bytes (`null` for no limit), and the extensions the library takes.
 	upload: { limit: number | null; extensions: string[] } | null;

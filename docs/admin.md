@@ -1755,7 +1755,8 @@ fixed: **Content Files**, **Entry IDs**, **Terms and Profiles**,
 Each shows the last check, with when it ran, and **Check Again**
 checks every content and media file again, which updates Site Health
 too. It reads the files in the background, a couple of hundred at a
-time, and its button shows how far along it is; **Run a Check** on Site
+time (content files, then media details), and its button shows how far
+along it is; **Run a Check** on Site
 Health does the same for the files, after checking the rest at once.
 
 Each screen lists everything its check found, one row per problem.

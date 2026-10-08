@@ -184,6 +184,7 @@ final class AdminJobsTest extends TestCase
 		$this->assertSame(205, $first['checked'] ?? null);
 
 		$this->writeTemporaryFile('user/content/broken.md', "---\ntitle: [unclosed\n---\n");
+		$this->writeTemporaryFile('user/data/media/2026/lake.png.yml', "alt: [unclosed\n");
 
 		$site = self::json($this->send('POST', '/health/site', headers: ['X-CSRF-Token' => $token]));
 		$id   = $site['job'] ?? null;
@@ -198,15 +199,23 @@ final class AdminJobsTest extends TestCase
 		$this->assertSame('queued', $chunk['status'] ?? null);
 		$this->assertSame('Checked 200 of 206 content files.', $chunk['message'] ?? null);
 
-		$done = self::json($this->send('POST', "/jobs/{$id}/run", headers: ['X-CSRF-Token' => $token]))['job'] ?? null;
+		$messages = [];
 
-		$this->assertIsArray($done);
+		do {
+			$done = self::json($this->send('POST', "/jobs/{$id}/run", headers: ['X-CSRF-Token' => $token]))['job'] ?? null;
+
+			$this->assertIsArray($done);
+			$messages[] = $done['message'] ?? null;
+		} while (($done['status'] ?? null) === 'queued');
+
 		$this->assertSame('done', $done['status'] ?? null);
+		$this->assertSame(['Checked 206 of 206 content files.', 'Checked 1 of 1 media details files.', 'Checked 206 content files and 1 media details file.'], $messages, 'Content, then media details, then what needs every file.');
 
 		$health = self::json($this->send('GET', '/health'));
 
 		$this->assertSame(206, $health['checked'] ?? null);
 		$this->assertContains('broken.md', array_column(is_array($health['files'] ?? null) ? $health['files'] : [], 'path'), 'What a chunk found is in the report.');
+		$this->assertContains('user/data/media/2026/lake.png.yml', array_column(is_array($health['files'] ?? null) ? $health['files'] : [], 'path'), 'And the media details.');
 	}
 
 	public function testAFixStopsWhenItsAccountCanNoLongerMakeIt(): void

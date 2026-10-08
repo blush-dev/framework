@@ -14,6 +14,11 @@ declare(strict_types=1);
 namespace Blush\Media\Index;
 
 use Blush\Core\AppConfig;
+use Blush\Job\JobException;
+use Blush\Job\JobQueue;
+use Blush\Job\JobRecord;
+use Blush\Job\Jobs\MediaIndexJob;
+use Blush\Job\JobType;
 use Blush\Media\MediaConfig;
 use Blush\Media\MediaException;
 use Blush\Media\MediaKind;
@@ -27,6 +32,12 @@ use Blush\Media\MediaMetadata;
  * incremental index, which only reads files that changed. Elsewhere,
  * reindexing is explicit: `media:index`, publishing, or the admin, which
  * refreshes it after an upload or a change to a file's metadata.
+ *
+ * Catching up reads a batch of files at most (D-626), so a rebuild of a
+ * large library never outlasts the request that finds it behind; the
+ * rest is a job (`blush/media-index`), and until it's done, files not
+ * read yet keep their last records (a new one isn't listed yet).
+ * `indexing()` is that job, for the admin to follow.
  *
  * It lists one item for each original: an image's sizes (D-239, D-488)
  * aren't items of their own, and are found under it with `sizes()`.
@@ -53,7 +64,8 @@ final class MediaLibrary
 		private readonly MediaIndex $index,
 		private readonly MediaIndexer $indexer,
 		private readonly MediaConfig $config,
-		private readonly AppConfig $app
+		private readonly AppConfig $app,
+		private readonly JobQueue $jobs
 	) {}
 
 	/**
@@ -65,10 +77,11 @@ final class MediaLibrary
 	{
 		if (! $this->checked) {
 			$this->checked = true;
-			$stale         = ! $this->index->exists() || $this->index->snapshot()->fingerprint !== $this->indexer->fingerprint();
+			$snapshot      = $this->index->snapshot();
+			$behind        = ! $this->index->exists() || $snapshot->fingerprint !== $this->indexer->fingerprint() || $snapshot->pending !== [];
 
-			if ($stale || ($this->config->autoIndex && $this->app->environment->isDevelopment())) {
-				$this->indexer->index();
+			if ($behind || ($this->config->autoIndex && $this->app->environment->isDevelopment())) {
+				$this->catchUp();
 			}
 		}
 
@@ -86,7 +99,38 @@ final class MediaLibrary
 	{
 		$this->checked = true;
 
-		return $this->indexer->index(written: $written);
+		return $this->catchUp($written);
+	}
+
+	/**
+	 * Returns the job reading the rest of the library, while there's
+	 * one, or `null`.
+	 */
+	public function indexing(): ?JobRecord
+	{
+		return $this->jobs->waiting(JobType::MediaIndex->value);
+	}
+
+	/**
+	 * Reads a batch of files that changed (those just written first),
+	 * and queues the rest as a job.
+	 *
+	 * @param  list<string> $written
+	 * @throws MediaException
+	 */
+	private function catchUp(array $written = []): MediaIndexReport
+	{
+		$report = $this->indexer->index(written: $written, limit: MediaIndexJob::BATCH);
+
+		if ($report->pending > 0) {
+			try {
+				$this->jobs->push(JobType::MediaIndex->value, unique: JobType::MediaIndex->value);
+			} catch (JobException) {
+				// The next look at the library catches up again.
+			}
+		}
+
+		return $report;
 	}
 
 	/**

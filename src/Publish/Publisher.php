@@ -18,6 +18,9 @@ use Blush\Cache\Caches;
 use Blush\Cache\ContentVersion;
 use Blush\Content\Index\IndexException;
 use Blush\Content\Index\Indexer;
+use Blush\Job\JobException;
+use Blush\Job\JobQueue;
+use Blush\Job\JobType;
 use Blush\Media\Index\MediaIndexer;
 use Blush\Content\Source\UnreadableSource;
 use Blush\Content\Type\ContentTypeCache;
@@ -39,7 +42,11 @@ use Blush\Routing\RouteCache;
  *    table if they exist, so `user/data/types` and data-file redirects
  *    take effect (D-097). A change to the types makes the next request
  *    rebuild the index (D-098).
- * 3. Reindex content incrementally, then media (D-288).
+ * 3. Reindex content incrementally, then media (D-288): all of it, or,
+ *    given a `$mediaLimit` (the webhook and the admin, which run in a
+ *    request), that many files at most, with the rest queued as
+ *    `blush/media-index` (D-627), as when a rebuild reads the whole
+ *    library.
  * 4. Clear the cache store and move the content version on.
  * 5. Dispatch `ContentPublished`.
  *
@@ -58,11 +65,13 @@ final readonly class Publisher
 		private RouteCache $routes,
 		private Caches $caches,
 		private ContentVersion $version,
-		private Dispatcher $events
+		private Dispatcher $events,
+		private JobQueue $jobs
 	) {}
 
 	/**
-	 * Publishes. `$pull` overrides `PublishConfig::$git`.
+	 * Publishes. `$pull` overrides `PublishConfig::$git`, and
+	 * `$mediaLimit` caps the media files read.
 	 *
 	 * @throws PublishInProgress When another publish is running.
 	 * @throws IndexException
@@ -71,7 +80,7 @@ final readonly class Publisher
 	 * @throws InvalidRoute
 	 * @throws CacheException
 	 */
-	public function publish(?bool $pull = null): PublishReport
+	public function publish(?bool $pull = null, ?int $mediaLimit = null): PublishReport
 	{
 		$start = hrtime(true);
 		$lock  = $this->lock();
@@ -91,7 +100,7 @@ final readonly class Publisher
 			}
 
 			$index  = $this->indexer->index();
-			$media  = $this->media->index();
+			$media  = $this->media->index(limit: $mediaLimit);
 			$routes = $compiled && is_file($this->routes->path());
 
 			if ($routes) {
@@ -114,6 +123,14 @@ final readonly class Publisher
 		} finally {
 			flock($lock, LOCK_UN);
 			fclose($lock);
+		}
+
+		if ($report->media !== null && $report->media->pending > 0) {
+			try {
+				$this->jobs->push(JobType::MediaIndex->value, unique: JobType::MediaIndex->value);
+			} catch (JobException) {
+				// The library catches up the next time it's looked at.
+			}
 		}
 
 		$this->events->dispatch(new ContentPublished($report));

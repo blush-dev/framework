@@ -1475,8 +1475,13 @@ and **icon packs**; **admin themes** are planned on the same pieces.
     queuing account on every run (`FixAccess`), and the endpoint's old
     answer as the job's `result` (`JobRecord::$result`). Check Again is
     `blush/health-check` (`HealthCheckJob`, D-625): 200 files a run
-    through `Linter::lintFile()`, then `lintSite()` from the index's
-    snapshot and `lintRest()`.
+    through `Linter::lintFile()`, then media details files 200 a run
+    (`MediaMetadataCheck::checkSome()`), then `lintSite()` from the
+    index's snapshot, `checkLibrary()`, formats, and field sets (D-626).
+  - The media index reads a bounded batch when the library catches up
+    (`MediaIndexer::index(limit:)`, the snapshot's `pending` and
+    `rejected`), the rest as `blush/media-index` (`MediaIndexJob`,
+    D-626).
 - **Publishing without shell access:** upload by SFTP, then use the signed
   webhook or the admin to reindex and bust caches. `git pull` is an optional
   step for hosts with git.

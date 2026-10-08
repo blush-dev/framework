@@ -36,6 +36,7 @@ use Blush\Env\Env;
 use Blush\Event\Listener\ListenerRegistry;
 use Blush\Http\Kernel;
 use Blush\Http\Request;
+use Blush\Job\JobQueue;
 use Blush\Job\Jobs\GoLiveJob;
 use Blush\Publish\Events\ContentPublished;
 use Blush\Publish\GitPuller;
@@ -355,6 +356,23 @@ final class PublishTest extends TestCase
 		$tester->run('schedule:run');
 
 		$this->assertSame(0, $went, 'The future post was never seen scheduled, so it isn\'t news.');
+	}
+
+	public function testAPublishInARequestReadsABatchOfMediaAndQueuesTheRest(): void
+	{
+		$this->standardContent();
+
+		$png = (string) base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAIAAAABCAYAAAD0In+KAAAAEUlEQVR42mP8z8Dwn4GBgQEAFQYCAR4v9JgAAAAASUVORK5CYII=', true);
+
+		$this->writeTemporaryFile('user/media/one.png', $png);
+		$this->writeTemporaryFile('user/media/two.png', $png);
+
+		$app    = $this->site();
+		$report = $app->container()->make(Publisher::class)->publish(mediaLimit: 1);
+
+		$this->assertSame(1, $report->media?->pending);
+		$this->assertNotNull($app->container()->make(JobQueue::class)->waiting('blush/media-index'), 'The rest is a job.');
+		$this->assertSame(0, $app->container()->make(Publisher::class)->publish()->media?->pending, 'Without a limit, as on the command line, it reads everything.');
 	}
 
 	public function testTheWebhookIsOffWithoutASecret(): void
