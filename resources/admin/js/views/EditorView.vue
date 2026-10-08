@@ -98,7 +98,7 @@ import { confirmAction } from '../confirm';
 import { confirmLeaving } from '../referrers';
 import { makeHomepage } from '../homepage';
 import { onBeforeRouteLeave, RouterLink, useRoute, useRouter } from 'vue-router';
-import { ApiError, entryPath, entryRoute, errorMessage, request, trashEntry, upload, type EntryDetail, type EntryStatus, type NewEntryDetail, type FieldDescription, type MediaItem, type PreviewLink } from '../api';
+import { ApiError, entryPath, entryRoute, errorMessage, request, trashEntry, upload, type EntryDetail, type ContentTypeSummary, type EntryStatus, type LinkedGroup, type NewEntryDetail, type FieldDescription, type MediaItem, type PreviewLink } from '../api';
 import AdminIcon from '../components/AdminIcon.vue';
 import BlockOptions from '../components/BlockOptions.vue';
 import DirectiveOptions from '../components/DirectiveOptions.vue';
@@ -117,9 +117,9 @@ import MentionForm from '../components/MentionForm.vue';
 import MenuButton from '../components/MenuButton.vue';
 import OptionsGroup from '../components/OptionsGroup.vue';
 import OutlineList, { type OutlineRow } from '../components/OutlineList.vue';
-import RawValues from '../components/RawValues.vue';
 import AdminSelect, { type SelectOption } from '../components/AdminSelect.vue';
 import TabBar from '../components/TabBar.vue';
+import StatusPill from '../components/StatusPill.vue';
 import TypeIcon from '../components/TypeIcon.vue';
 import { BLOCK_KINDS } from '../blocks';
 import { bleedClasses, directiveIcon, directiveText, IMAGE_DIRECTIVE, imageVariants, loadDirectives, MARKDOWN_ELEMENTS, type BleedClasses, type DirectiveDescription, type DirectiveProp } from '../directives';
@@ -127,7 +127,7 @@ import { online } from '../connection';
 import { diffLines, hunks, type Differences } from '../diff';
 import { drawerOpen, keepDrawer } from '../drawer';
 import { fromForm, humanize, inSentence, label, splitDate, toForm, type FormValue } from '../fields';
-import { formatDate, plural, titleCase } from '../format';
+import { formatDate, plural, series, titleCase } from '../format';
 import { forget, keep, kept, type EditorState, type KeptChanges } from '../kept';
 import { childrenOf, elementAt, elementName, excerpt, holdsContent, imageLine, movedElement, outlineItems, pathTo, runIndex, sameElement, siblingRuns, type ElementRef, type OutlineItem } from '../elements';
 import { attributeParts, attributeText, blocks, directiveHead, emphasisAt, imageText, renumberedAt, inProse, linkAt, linkLabel, outline, withAttribute, withBlockParts, withDirectiveParts, withImage, withLink, withoutDirective, withoutImage, withoutLink, withParts, wordAt, wordCount, type Directive, type Edit, type Emphasis, type MarkdownLink } from '../markdown';
@@ -579,7 +579,36 @@ const missing = computed(() => {
 });
 
 function errorFor(name: string): string | undefined {
-	return attempted.value && missing.value.some((item) => item.name === name) ? REQUIRED : undefined;
+	if (attempted.value && missing.value.some((item) => item.name === name)) {
+		return REQUIRED;
+	}
+
+	const refused = fullNow.value;
+
+	return refused?.field === name
+		? `${refused.target.title} is full.${refused.target.room ? ` ${refused.target.room.title} has room for ${refused.target.room.left} more.` : ''}`
+		: undefined;
+}
+
+// A save refused because a target already has as many entries naming it
+// as its inverse's `max` takes (D-608). The limit is the other side's,
+// so the bar names it, and the field which has room; it's settled once
+// the field changes.
+interface FullTarget {
+	id: string | null;
+	title: string;
+	type: string;
+	max: number;
+	room: { title: string; slug: string; left: number } | null;
+}
+
+const full    = ref<{ field: string; value: unknown; target: FullTarget } | null>(null);
+const fullNow = computed(() => full.value !== null && form.value[full.value.field] === full.value.value ? full.value : null);
+
+function fullIn(data: unknown): FullTarget | null {
+	const found = typeof data === 'object' && data !== null && 'full' in data ? data.full : null;
+
+	return typeof found === 'object' && found !== null && 'title' in found ? found as FullTarget : null;
 }
 
 /**
@@ -691,6 +720,7 @@ async function save(status?: EntryStatus): Promise<void> {
 			: await request<EntryDetail>('PATCH', entryPath(detail.id), change);
 
 		fill(saved);
+		full.value = null;
 		forget(keptAs(saved));
 		forget(keptAs(detail));
 		keptHere.value  = false;
@@ -712,6 +742,16 @@ async function save(status?: EntryStatus): Promise<void> {
 			tab.value       = 'document';
 			await nextTick();
 			document.getElementById(`editor-${caught.field}`)?.focus();
+		} else if (caught instanceof ApiError && caught.field !== null && fullIn(caught.data) !== null) {
+			// Nothing was saved; the bar names what's full, and the field
+			// what has room.
+			const field = caught.field;
+
+			full.value     = { field, value: form.value[field], target: fullIn(caught.data) as FullTarget };
+			sideOpen.value = true;
+			tab.value      = 'document';
+			await nextTick();
+			document.getElementById(`field-${field}`)?.focus();
 		} else if (caught instanceof ApiError && caught.status === 409) {
 			void openConflict(status);
 		} else if (caught instanceof ApiError && caught.status === 0 && !online.value) {
@@ -859,7 +899,7 @@ function differences(): Differences | null {
 async function trash(): Promise<void> {
 	const detail = entry.value;
 
-	if (detail === null || detail.id === null || !await confirmLeaving(detail.id, `“${detail.title || 'Untitled'}”`, 'trash', true)) {
+	if (detail === null || detail.id === null || !await confirmLeaving(detail.id, `“${detail.title || 'Untitled'}”`, 'trash')) {
 		return;
 	}
 
@@ -1792,24 +1832,130 @@ const held = computed(() => {
 	return item === undefined ? 0 : markdown.value.images.filter((image) => image.start > item.start && image.end < item.end).length;
 });
 
-// The Outline replaces the Document tab's fields on request, with a way
-// back; picking from it, moving the caret, or changing tabs puts them
-// back.
-const listing = ref(false);
+// The rows pinned to the end of the Document tab (D-608) each open a
+// level down in its place, with a path back: the Outline, what links
+// here, and the archive the page introduces. Picking from the Outline,
+// moving the caret, changing tabs, or Escape puts the fields back.
+type Drill = 'outline' | 'linked' | 'archive';
+
+const drill = ref<Drill | null>(null);
 
 watch([caret, tab], () => {
-	listing.value = false;
+	drill.value = null;
 });
 
-async function showOutline(): Promise<void> {
+async function openDrill(which: Drill): Promise<void> {
 	sideOpen.value = true;
 	tab.value      = 'document';
 	await nextTick();
-	listing.value = true;
+	drill.value = which;
 	await nextTick();
 	document.querySelector('.editor__side-inner')?.scrollTo({ top: 0 });
-	document.getElementById('editor-outline-back')?.focus();
+	document.getElementById('editor-drill-back')?.focus();
 }
+
+async function closeDrill(): Promise<void> {
+	const from = drill.value;
+
+	drill.value = null;
+	await nextTick();
+	document.getElementById(`editor-row-${from}`)?.focus();
+}
+
+function showOutline(): Promise<void> {
+	return openDrill('outline');
+}
+
+// Escape goes back from a level down.
+function leaveDrill(event: KeyboardEvent): void {
+	if (drill.value !== null) {
+		event.stopPropagation();
+		void closeDrill();
+	}
+}
+
+const quotedTitle = computed(() => `“${entry.value?.title || 'Untitled'}”`);
+
+// What links here, in all, and the row's line: up to three named, else
+// counted by relationship, so it stays one line whatever the numbers.
+const linkedGroups = computed(() => entry.value?.linkedFrom ?? []);
+const linkedTotal  = computed(() => linkedGroups.value.reduce((sum, group) => sum + group.count, 0));
+const linkedDrafts = computed(() => linkedGroups.value.reduce((sum, group) => sum + group.drafts, 0));
+const linkedLine   = computed(() => {
+	if (linkedTotal.value === 0) {
+		return 'Nothing links here.';
+	}
+
+	const titles = [...new Set(linkedGroups.value.flatMap((group) => group.entries.map((item) => item.title || 'Untitled')))];
+
+	return linkedTotal.value <= 3 && titles.length <= 3
+		? series(titles)
+		: linkedGroups.value.map((group) => `${titleCase(group.relation)} ${group.count}`).join(' · ');
+});
+
+// A Linked From group past 8 shows the rest in place up to 50 (D-608);
+// past that, it links to the linking type's list, filtered to this entry.
+const LINKED_SHOWN = 8;
+const expanded     = ref(new Set<string>());
+
+function linkedShown(group: LinkedGroup): LinkedGroup['entries'] {
+	return expanded.value.has(group.key) ? group.entries : group.entries.slice(0, LINKED_SHOWN);
+}
+
+function typeNamed(name: string): ContentTypeSummary | undefined {
+	return types.value.find((type) => type.name === name);
+}
+
+watch(() => entry.value?.id, () => {
+	expanded.value = new Set();
+});
+
+// The archive an index page or a relation archive's page introduces.
+const archiveLine = computed(() => {
+	const page = entry.value?.archive;
+
+	if (page === null || page === undefined) {
+		return labels.value.plural;
+	}
+
+	return page.target === null ? titleCase(page.label) : `${titleCase(page.label)} › ${page.targetTitle ?? page.target}`;
+});
+
+// What the page is, and what it can't be, at the top of its level down.
+const archiveNote = computed(() => {
+	const detail = entry.value;
+
+	if (detail === null) {
+		return '';
+	}
+
+	const page   = detail.archive;
+	const what   = page === null
+		? `This page introduces the archive of every ${labels.value.item}.${detail.homepage ? ' It\'s also the site\'s homepage, at /.' : ''}`
+		: (page.target === null
+			? `This page introduces the list of ${page.label.toLowerCase()} on ${labels.value.plural}.`
+			: `This page introduces one ${labelsOf(page.targetType ?? '').item}'s archive.`);
+	const cannot = [detail.can.duplicate ? null : 'duplicated', detail.can.delete ? null : 'moved to the trash'].filter((part) => part !== null);
+
+	return cannot.length === 0 ? what : `${what} It can't be ${cannot.join(' or ')}.`;
+});
+
+// What the archive shows when the page isn't there.
+const archiveWithout = computed(() => {
+	const page = entry.value?.archive;
+
+	if (page === null || page === undefined) {
+		return `The archive lists its ${labels.value.items} with no title or text of its own.`;
+	}
+
+	if (page.target === null) {
+		return `The list is headed “${titleCase(page.label)}”, with nothing before it.`;
+	}
+
+	return page.targetType === profileType.value
+		? `The archive shows ${page.targetTitle ?? page.target}'s profile instead.`
+		: `The archive shows ${page.targetTitle ?? page.target}'s own text instead.`;
+});
 
 /**
  * Where the caret goes for an element: in a directive's head, after an
@@ -1841,7 +1987,7 @@ function select(element: ElementRef): void {
 
 	sideOpen.value = true;
 	tab.value      = 'element';
-	listing.value  = false;
+	drill.value    = null;
 	bodyEditor.value?.focusAt(at);
 	chosen.value   = { element: { kind: element.kind, index: element.index }, caret: at };
 }
@@ -1851,7 +1997,7 @@ function openCrumb(item: OutlineItem | null): void {
 	if (item === null) {
 		sideOpen.value = true;
 		tab.value      = 'document';
-		listing.value  = false;
+		drill.value    = null;
 
 		return;
 	}
@@ -2632,6 +2778,16 @@ function fieldKey(field: FieldDescription): string {
 			</p>
 		</div>
 
+		<!-- A target already full (D-608): the limit is the other side's,
+		     so the bar names it and offers it, in a new tab. -->
+		<div v-if="fullNow" class="editor__notice editor__notice--danger" role="alert">
+			<AdminIcon name="triangle-alert" />
+			<p>{{ safe }}, but they weren't saved: <strong>{{ fullNow.target.title }}</strong> already has {{ plural(fullNow.target.max, labels.item, labels.items) }}, the most it takes. Choose another, or take one out of {{ fullNow.target.title }} first.</p>
+			<p v-if="fullNow.target.id" class="editor__notice-buttons">
+				<a class="button button--small" :href="router.resolve(entryRoute({ id: fullNow.target.id, type: fullNow.target.type })).href" target="_blank" rel="noopener">Open {{ fullNow.target.title }}</a>
+			</p>
+		</div>
+
 		<div v-if="attempted && missing.length" class="editor__notice editor__notice--danger" role="alert">
 			<AdminIcon name="triangle-alert" />
 			<p>{{ plural(missing.length, 'required field is', 'required fields are') }} empty, so it wasn't published: {{ missing.map((item) => item.label).join(', ') }}. Fill {{ missing.length === 1 ? 'it' : 'them' }} in, or save it as a draft.</p>
@@ -2749,8 +2905,8 @@ function fieldKey(field: FieldDescription): string {
 						</button>
 					</div>
 
-					<div v-if="entry" v-show="tab === 'document'" id="editor-panel-document" role="tabpanel" aria-labelledby="editor-tab-document">
-						<template v-if="!listing">
+					<div v-if="entry" v-show="tab === 'document'" id="editor-panel-document" class="editor__panel" role="tabpanel" aria-labelledby="editor-tab-document" @keydown.esc="leaveDrill">
+						<template v-if="drill === null">
 							<OptionsGroup heading="Publish">
 								<dl class="settings">
 									<div class="settings__row">
@@ -2829,6 +2985,9 @@ function fieldKey(field: FieldDescription): string {
 								<p v-if="errorFor('published')" id="editor-date-error" class="field__error">{{ errorFor('published') }}</p>
 								<p v-if="slugError" id="editor-slug-error" class="field__error">{{ slugError }}</p>
 								<p v-if="parentError" id="editor-parent-error" class="field__error">{{ parentError }}</p>
+								<template v-for="single in singleFields" :key="`error-${fieldKey(single)}`">
+									<p v-if="errorFor(single.name)" class="field__error">{{ errorFor(single.name) }}</p>
+								</template>
 								<p v-if="positionField" id="editor-position-help" class="visually-hidden">Its place among the {{ labels.plural.toLowerCase() }} beside it, lowest first. Without one, it follows those with one, by title.</p>
 								<template v-if="entry.status === 'published' && ((entry.can.rename && slug.trim() !== entry.slug) || moving)">
 									<p id="editor-slug-help" class="editor__group-note">Saving moves it to <span class="mono">{{ slugAddress ?? 'a new address' }}</span>{{ redirect ? '.' : ', and links to the old address will stop working.' }}</p>
@@ -2839,14 +2998,11 @@ function fieldKey(field: FieldDescription): string {
 								</template>
 								<p v-else id="editor-slug-help" class="visually-hidden">The slug is lowercase letters, numbers, and hyphens, and the address ends in it.</p>
 								<p v-if="entry.errorPage !== null" class="editor__group-note">The page the site shows for error {{ entry.errorPage }}{{ entry.errorPage === 404 ? ', when an address doesn\'t exist' : '' }}: its title and text, in the theme's error layout. Its slug is the status. Without it, the theme's own message is shown.</p>
-								<p v-if="entry.index" class="editor__group-note">The index page for <strong>{{ labels.plural }}</strong>, where readers find all of them. There's only one, so it can't be moved to the trash.<template v-if="entry.homepage"> It's also the site's homepage, at /.</template></p>
 								<p v-if="entry.rootPage && entry.homepage" class="editor__group-note">The site's homepage, at /. It's the top of the page tree, so it has no parent, slug, or position. Without it, the site shows a welcome page.</p>
 								<p v-else-if="entry.rootPage" class="editor__group-note">
 									The page at <code>user/content/index.md</code>. The homepage shows {{ entry.homeInstead?.toLowerCase() ?? 'something else' }} instead, so this page isn't on the site.
 									<template v-if="entry.can.makeHomepage">{{ ' ' }}<button type="button" class="lnk editor__note-action" @click="toHomepage">Make homepage</button></template>
 								</p>
-								<p v-if="entry.archive && entry.archive.target === null" class="editor__group-note">The page introducing the {{ entry.archive.label.toLowerCase() }} of <strong>{{ labels.plural }}</strong>: its title heads their list, and its body comes before it. It has no address of its own.</p>
-								<p v-else-if="entry.archive" class="editor__group-note">The page introducing <RouterLink v-if="entry.archive.targetType === profileType && entry.archive.target" :to="{ name: 'profile-detail', params: { slug: entry.archive.target } }">{{ entry.archive.targetTitle }}</RouterLink><RouterLink v-else-if="entry.archive.targetId && entry.archive.targetType" :to="entryRoute({ id: entry.archive.targetId, type: entry.archive.targetType })">{{ entry.archive.targetTitle }}</RouterLink><template v-else>{{ entry.archive.targetTitle }}</template>'s archive as one of the {{ entry.archive.label.toLowerCase() }} of <strong>{{ labels.plural }}</strong>, in place of their own text there. It has no address of its own.</p>
 							</OptionsGroup>
 
 							<OptionsGroup v-if="imageField && (!term || form[imageField.name])" heading="Featured Image">
@@ -2887,22 +3043,6 @@ function fieldKey(field: FieldDescription): string {
 								<FieldControl v-for="field in set.fields" :key="fieldKey(field)" :field="field" :model-value="form[field.name] ?? ''" :error="errorFor(field.name)" pickable @update:model-value="form[field.name] = $event" @pick="pickForField(field)" />
 							</OptionsGroup>
 
-							<!-- What links here (D-599): read-only, edited where it's stored. -->
-							<OptionsGroup v-if="entry.linkedFrom?.length" heading="Linked From">
-								<template #hint>Edited where they're stored</template>
-								<p v-for="group in entry.linkedFrom" :key="group.key" class="editor__group-note">
-									<strong>{{ group.label || `${group.type} (${group.relation})` }}</strong>:
-									<template v-for="(linked, index) in group.entries" :key="linked.id ?? linked.title">
-										<RouterLink v-if="linked.id" :to="entryRoute({ id: linked.id, type: group.key.split('.')[0] ?? '' })">{{ linked.title || 'Untitled' }}</RouterLink><template v-else>{{ linked.title || 'Untitled' }}</template><template v-if="linked.status !== 'published'"> ({{ linked.status }})</template><template v-if="index < group.entries.length - 1">, </template>
-									</template>
-									<template v-if="group.count > group.entries.length">, and {{ group.count - group.entries.length }} more</template>.
-								</p>
-							</OptionsGroup>
-
-							<OptionsGroup v-if="Object.keys(entry.extra).length" heading="Other Front Matter">
-								<template #hint>Kept as it is</template>
-								<RawValues :entries="Object.entries(entry.extra)" />
-							</OptionsGroup>
 
 							<OptionsGroup v-if="entry.violations.length" heading="Problems">
 								<template #hint>As last saved</template>
@@ -2918,24 +3058,107 @@ function fieldKey(field: FieldDescription): string {
 								</label>
 							</OptionsGroup>
 
-						<button type="button" class="editor__list-link" @click="showOutline">
-							<AdminIcon name="list" />
-							<span>Outline</span>
-							<span class="editor__list-count mono">{{ items.length }}</span>
-							<AdminIcon name="chevron-right" class="editor__list-go" />
-						</button>
+						<!-- Pinned to the end of the tab, after every field (D-608):
+						     facts kept elsewhere, each opening a level down. -->
+						<div class="editor__pinned">
+							<button v-if="entry.introduces" id="editor-row-archive" type="button" class="editor__list-link" @click="openDrill('archive')">
+								<AdminIcon name="layers" />
+								<span class="editor__list-text"><strong>Archive Page</strong><span>{{ archiveLine }}</span></span>
+								<AdminIcon name="chevron-right" class="editor__list-go" />
+							</button>
+							<button v-if="entry.id !== null" id="editor-row-linked" type="button" class="editor__list-link" :class="{ 'is-quiet': linkedTotal === 0 }" @click="openDrill('linked')">
+								<AdminIcon name="link" />
+								<span class="editor__list-text"><strong>Linked From</strong><span>{{ linkedLine }}</span></span>
+								<span class="editor__list-count mono">{{ linkedTotal }}</span>
+								<AdminIcon name="chevron-right" class="editor__list-go" />
+							</button>
+							<button id="editor-row-outline" type="button" class="editor__list-link" @click="showOutline">
+								<AdminIcon name="list" />
+								<span class="editor__list-text"><strong>Outline</strong></span>
+								<span class="editor__list-count mono">{{ items.length }}</span>
+								<AdminIcon name="chevron-right" class="editor__list-go" />
+							</button>
+						</div>
 					</template>
 
 					<template v-else>
-						<button id="editor-outline-back" type="button" class="editor__list-link editor__list-link--back" @click="listing = false">
+						<button id="editor-drill-back" type="button" class="editor__list-link editor__list-link--back" @click="closeDrill">
 							<AdminIcon name="arrow-left" />
-							<span class="editor__back-path">{{ typeName }} <span aria-hidden="true">/</span><span class="visually-hidden">:</span> <strong>Outline</strong></span>
-							<span class="editor__list-count mono">{{ items.length }}</span>
+							<span class="editor__back-path">{{ typeName }} <span aria-hidden="true">/</span><span class="visually-hidden">:</span> <strong>{{ { outline: 'Outline', linked: 'Linked From', archive: 'Archive Page' }[drill] }}</strong></span>
+							<span v-if="drill !== 'archive'" class="editor__list-count mono">{{ drill === 'outline' ? items.length : linkedTotal }}</span>
 						</button>
 
-						<OptionsGroup>
+						<OptionsGroup v-if="drill === 'outline'">
 							<OutlineList :items="items" :describe="rowOf" :current="selection" indent empty="Nothing yet. Start writing, or use the insert buttons in the header." @select="select" />
 						</OptionsGroup>
+
+						<template v-else-if="drill === 'linked'">
+							<p class="editor__drill-note">
+								<AdminIcon name="info" />
+								<span v-if="linkedTotal === 0">Nothing links here. When another entry names {{ quotedTitle }} in one of its fields, it's listed here.</span>
+								<span v-else>Change these on the entries that link here; {{ quotedTitle }} doesn't store them.<template v-if="linkedDrafts"> {{ linkedDrafts === 1 ? '1 of them is a draft' : `${linkedDrafts} of them are drafts` }}, linking here once published.</template></span>
+							</p>
+							<OptionsGroup v-for="group in linkedGroups" :key="group.key">
+								<template #heading>{{ titleCase(group.relation) }} <span class="editor__group-type">{{ group.type }}</span></template>
+								<template #hint>{{ group.count }}</template>
+								<ul class="reference__rows">
+									<li v-for="item in linkedShown(group)" :key="item.id ?? item.title">
+										<component :is="item.id ? RouterLink : 'div'" class="reference__row reference__row--link" :class="{ 'is-draft': item.status !== 'published' }" v-bind="item.id ? { to: entryRoute({ id: item.id, type: group.typeName }) } : {}">
+											<span class="reference__still reference__still--row" aria-hidden="true">
+												<img v-if="item.image" :src="item.image" alt="" loading="lazy">
+												<TypeIcon v-else-if="typeNamed(group.typeName)" :type="typeNamed(group.typeName)!" />
+											</span>
+											<span class="reference__who">
+												<span class="reference__name"><span>{{ item.title || 'Untitled' }}</span><StatusPill v-if="item.status !== 'published'" :status="item.status" /></span>
+												<span class="reference__meta">{{ [item.type, item.date ? formatDate(`${item.date}T12:00:00`) : null].filter(Boolean).join(' · ') }}</span>
+											</span>
+											<AdminIcon v-if="item.id" name="arrow-right" class="reference__go" />
+										</component>
+									</li>
+								</ul>
+								<button v-if="group.entries.length > LINKED_SHOWN && !expanded.has(group.key)" type="button" class="lnk editor__more" @click="expanded = new Set([...expanded, group.key])">
+									<AdminIcon name="chevron-down" />Show {{ group.entries.length - LINKED_SHOWN }} More
+								</button>
+								<RouterLink v-else-if="group.count > group.entries.length" class="lnk editor__more" :to="{ name: 'type', params: { type: group.typeName }, query: { linking: entry.id ?? undefined, via: group.key } }">
+									View All {{ group.count }} in {{ group.type }}<AdminIcon name="arrow-right" />
+								</RouterLink>
+							</OptionsGroup>
+						</template>
+
+						<template v-else-if="entry.introduces">
+							<p class="editor__drill-note"><AdminIcon name="info" /><span>{{ archiveNote }}</span></p>
+							<OptionsGroup>
+								<dl class="editor__facts">
+									<div>
+										<dt>Archive</dt>
+										<dd>{{ entry.archive ? `${titleCase(entry.archive.label)} on ${labels.plural}` : labels.plural }}</dd>
+									</div>
+									<div v-if="entry.archive?.target">
+										<dt>For</dt>
+										<dd>
+											<RouterLink v-if="entry.archive.targetType === profileType && entry.archive.target" :to="{ name: 'profile-detail', params: { slug: entry.archive.target } }">{{ entry.archive.targetTitle }}</RouterLink>
+											<RouterLink v-else-if="entry.archive.targetId && entry.archive.targetType" :to="entryRoute({ id: entry.archive.targetId, type: entry.archive.targetType })">{{ entry.archive.targetTitle }}</RouterLink>
+											<template v-else>{{ entry.archive.targetTitle }}</template>
+										</dd>
+									</div>
+									<div>
+										<dt>Address</dt>
+										<dd>
+											<a v-if="entry.introduces.url" class="mono" :href="entry.introduces.url" target="_blank" rel="noopener">{{ entry.introduces.url }}</a>
+											<span v-else class="editor__dim">None; its archive is off.</span>
+										</dd>
+									</div>
+									<div>
+										<dt>Lists</dt>
+										<dd>{{ plural(entry.introduces.listed, entry.introduces.item, entry.introduces.items) }}<span v-if="entry.introduces.drafts" class="editor__dim"> · {{ plural(entry.introduces.drafts, 'draft') }} not shown</span></dd>
+									</div>
+									<div>
+										<dt>Without it</dt>
+										<dd>{{ archiveWithout }}</dd>
+									</div>
+								</dl>
+							</OptionsGroup>
+						</template>
 					</template>
 					</div>
 
@@ -3420,10 +3643,39 @@ function fieldKey(field: FieldDescription): string {
 }
 
 .editor__side-inner {
+	display: flex;
+	flex-direction: column;
 	width: var(--drawer);
 	max-width: 100vw;
 	height: 100%;
 	overflow-y: auto;
+}
+
+/*
+ * The Document tab is a column at least the drawer's height, so the rows
+ * pinned to its end (D-608) take the space left over: on a short tab they
+ * sit at the drawer's bottom edge, and on a long one they follow the last
+ * field and scroll with it. Nothing goes below them.
+ */
+.editor__panel {
+	display: flex;
+	flex: 1 0 auto;
+	flex-direction: column;
+}
+
+.editor__pinned {
+	margin-top: auto;
+	border-top: 1px solid var(--border);
+}
+
+/* The group right above the rows leaves the line to them, so a long
+   tab has one line between, not two. */
+.editor__panel > :deep(.options__group:has(+ .editor__pinned)) {
+	border-bottom: 0;
+}
+
+.editor__pinned .editor__list-link:last-child {
+	border-bottom: 0;
 }
 
 /*
@@ -3539,6 +3791,126 @@ function fieldKey(field: FieldDescription): string {
 .editor__list-link .editor__list-go {
 	width: 13px;
 	height: 13px;
+}
+
+/* A pinned row's name, and a line answering the quick question. */
+.editor__list-text {
+	display: grid;
+	flex: 1;
+	gap: 1px;
+	min-width: 0;
+}
+
+.editor__list-text strong {
+	color: var(--fg);
+	font-weight: 500;
+}
+
+.editor__list-text span {
+	overflow: hidden;
+	color: var(--fg-3);
+	font-size: var(--text-xs);
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.editor__list-link.is-quiet .editor__list-text strong {
+	color: var(--fg-2);
+	font-weight: 400;
+}
+
+.editor__list-text + .editor__list-count {
+	margin-left: 0;
+}
+
+/* A level down: a note on where its facts are kept, then its groups. */
+.editor__drill-note {
+	display: flex;
+	align-items: flex-start;
+	gap: var(--s-2);
+	margin: 0;
+	padding: var(--s-3) var(--s-5);
+	border-bottom: 1px solid var(--border);
+	background: var(--surface-2);
+	color: var(--fg-2);
+	font-size: var(--text-xs);
+	line-height: 1.5;
+}
+
+.editor__drill-note svg {
+	flex: none;
+	width: 13px;
+	height: 13px;
+	margin-top: 2px;
+	color: var(--fg-3);
+}
+
+.editor__group-type {
+	margin-left: var(--s-1);
+	color: var(--fg-3);
+	font-weight: 400;
+	letter-spacing: 0;
+	text-transform: none;
+}
+
+.editor__more {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	align-self: flex-start;
+	margin-top: var(--s-2);
+	font-size: var(--text-xs);
+	font-weight: 500;
+}
+
+.editor__more svg {
+	width: 13px;
+	height: 13px;
+}
+
+/* An archive's facts, as label → value rows, each with the way to
+   what it names. */
+.editor__facts {
+	display: grid;
+	margin: 0;
+}
+
+.editor__facts div {
+	display: flex;
+	align-items: baseline;
+	gap: var(--s-3);
+	padding: 9px 0;
+	border-bottom: 1px solid var(--border);
+	font-size: var(--text-sm);
+}
+
+.editor__facts div:last-child {
+	border-bottom: 0;
+}
+
+.editor__facts dt {
+	flex: none;
+	width: 92px;
+	color: var(--fg-2);
+}
+
+.editor__facts dd {
+	min-width: 0;
+	margin: 0;
+	color: var(--fg);
+	overflow-wrap: anywhere;
+}
+
+.editor__facts dd a {
+	color: var(--accent);
+}
+
+.editor__facts .mono {
+	font-size: var(--text-xs);
+}
+
+.editor__dim {
+	color: var(--fg-3);
 }
 
 /* The entry's settings as label → value rows (admin.md §8, The document

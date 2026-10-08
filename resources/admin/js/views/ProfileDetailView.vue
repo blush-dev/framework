@@ -36,6 +36,7 @@ import { plural } from '../format';
 import { initials, loadAccounts, loadProfile, removeArchivePage, setLinkable, statusPill, updateAccount, when, writeArchivePage, type AccountInfo, type ProfileAppearance, type ProfileDetail } from '../people';
 import { screenTitle, screenTrail } from '../screen';
 import { confirmAction } from '../confirm';
+import { confirmLeaving } from '../referrers';
 import { can, canType, session } from '../session';
 import { toast } from '../toast';
 import { labelsOf, profileType, types } from '../types';
@@ -109,14 +110,9 @@ async function trash(): Promise<void> {
 		return;
 	}
 
-	const credited = current.uses > 0 ? `**${plural(current.uses, 'byline', 'bylines')}** still name this profile. Those entries stay published, with nothing to link to.` : 'Nothing credits it, so no entry changes.';
-
-	if (!await confirmAction({
-		title: `Move ${name.value} to the Trash?`,
-		body: [`The profile stops answering at **${current.url ?? 'its address'}**, and every archive that falls back to it shows no bio.`, credited, 'Trash is reversible: restoring brings it back as a draft.'],
-		confirm: 'Move to Trash',
-		danger: true
-	})) {
+	// Asked only when live entries credit it, as any entry's move is
+	// (D-608).
+	if (!await confirmLeaving(current.id, name.value, 'trash', true)) {
 		return;
 	}
 

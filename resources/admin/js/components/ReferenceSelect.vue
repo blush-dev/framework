@@ -32,7 +32,7 @@ const props = defineProps<PickerProps & {
 const model = defineModel<string>({ required: true });
 
 const picker = usePicker(props, model, { cap: CAP, suggest: 'recent', suggestions: 5, branch: props.branch === true });
-const { names, slugs, itemOf, isMissing, whole, tree, total, excluded, before, query, results, matched, missing, inheritedShown, error } = picker;
+const { names, slugs, itemOf, isMissing, whole, tree, total, excluded, inverseMax, before, query, results, matched, missing, inheritedShown, error } = picker;
 
 const current = computed(() => slugs.value[0] ?? '');
 
@@ -41,12 +41,27 @@ function parentOf(item: ReferenceItem): string | null {
 	return item.path?.split(' › ').at(-1) ?? null;
 }
 
+// Each target's count against the inverse's `max`, so a full one is
+// seen before it's picked (D-608); it can still be picked, and the save
+// says why it's refused.
+function counted(item: ReferenceItem): string | null {
+	const max = inverseMax.value;
+
+	if (max === null || item.taken === undefined || item.taken === null) {
+		return null;
+	}
+
+	return item.taken >= max && item.slug !== current.value ? `Full · ${item.taken} of ${max}` : `${item.taken} of ${max}`;
+}
+
 function option(item: ReferenceItem, group: string | null = null, depth = 0): SelectOption {
+	const hint = [item.slug === current.value || depth === 0 ? parentOf(item) : null, counted(item)].filter((part) => part !== null).join(' · ');
+
 	return {
 		value: item.slug,
 		label: item.title,
 		depth,
-		hint: item.slug === current.value || depth === 0 ? parentOf(item) : null,
+		hint: hint === '' ? null : hint,
 		group,
 		...(props.people === true ? { mark: initials(item.title) } : {})
 	};

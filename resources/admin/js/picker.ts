@@ -175,6 +175,8 @@ export function usePicker(props: PickerProps, model: Ref<string>, options: Picke
 	const excluded  = ref(0);
 	const suggested = ref<ReferenceItem[]>([]);
 	const create    = ref(false);
+	// The inverse's `max` each candidate's `taken` counts against (D-608).
+	const inverseMax = ref<number | null>(null);
 	const loading   = ref(true);
 	const error     = ref('');
 
@@ -188,9 +190,12 @@ export function usePicker(props: PickerProps, model: Ref<string>, options: Picke
 				// Without a relation, nothing was linked through one.
 				suggest: options.suggest === 'recent' && relation.value === undefined ? 'edited' : options.suggest,
 				suggestions: options.suggestions,
-				...(options.suggest === 'recent' && relation.value !== undefined ? { from: relation.value.key } : {}),
+				// The relation, for what it suggests and its targets' counts.
+				...(relation.value !== undefined ? { from: relation.value.key } : {}),
 				...(except.value === undefined ? {} : { except: except.value, branch: options.branch === true })
 			});
+
+			inverseMax.value = list.inverseMax ?? null;
 
 			create.value    = relation.value === undefined ? list.create : relation.value.create;
 			whole.value     = list.whole === true ? list.items.filter((item) => !item.missing && item.status !== 'trash') : null;
@@ -236,6 +241,7 @@ export function usePicker(props: PickerProps, model: Ref<string>, options: Picke
 				search: text.trim(),
 				limit: options.cap,
 				upto: WHOLE,
+				...(relation.value !== undefined ? { from: relation.value.key } : {}),
 				...(except.value === undefined ? {} : { except: except.value, branch: options.branch === true })
 			});
 
@@ -348,7 +354,7 @@ export function usePicker(props: PickerProps, model: Ref<string>, options: Picke
 	return {
 		type, names, source, multiple, relation, known, values, slugs, has, write, itemOf, isNew, isMissing, missing, added, remember,
 		max, minimum, full, ordered, reorder, lastStays, add, remove, toggle, replace, inheritedShown,
-		whole, tree, total, excluded, suggested, create, loading, error, start,
+		whole, tree, total, excluded, suggested, create, inverseMax, loading, error, start,
 		query, results, matched, searching, active, more, before, canCreate, creatable, choose, searchKey
 	};
 }

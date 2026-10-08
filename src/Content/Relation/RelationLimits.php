@@ -72,15 +72,8 @@ final readonly class RelationLimits
 				continue;
 			}
 
-			$graph = $snapshot->graph();
-
 			foreach (new LinkResolver(new SnapshotTargets($snapshot))->resolve($relation, $value, $refs, $source, $type, $language)->links as $link) {
-				$others = array_filter(
-					array_diff($graph->sources($link->target, $relation->name), [$source]),
-					static fn (string $id): bool => ($snapshot->records[(string) $snapshot->path($id)]['status'] ?? null) !== Status::Trash->value
-				);
-
-				if (count($others) < $max) {
+				if (($this->taken($relation, [$link->target], $source)[$link->target] ?? 0) < $max) {
 					continue;
 				}
 
@@ -96,5 +89,30 @@ final readonly class RelationLimits
 		}
 
 		return $problems;
+	}
+
+	/**
+	 * Returns how many entries name each target (by id) through a
+	 * relation, as its inverse's `max` counts them: drafts too, but not
+	 * the trash, nor `$except` (the entry being saved). For the picker's
+	 * count against the limit and the refusal's suggestion (D-608).
+	 *
+	 * @param  list<string>       $targets
+	 * @return array<string, int>
+	 */
+	public function taken(Relation $relation, array $targets, string $except = ''): array
+	{
+		$snapshot = $this->index->snapshot();
+		$graph    = $snapshot->graph();
+		$taken    = [];
+
+		foreach ($targets as $target) {
+			$taken[$target] = count(array_filter(
+				array_diff($graph->sources($target, $relation->name), [$except]),
+				static fn (string $id): bool => ($snapshot->records[(string) $snapshot->path($id)]['status'] ?? null) !== Status::Trash->value
+			));
+		}
+
+		return $taken;
 	}
 }

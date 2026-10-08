@@ -18115,3 +18115,95 @@ decision, add a new entry that supersedes it and mark the old one
   `AdminRelationsTest` for `key` and the inherited original);
   `npm run admin:build` (admin.js 849 KB, up 19 KB; CSS 180 KB, up
   3 KB). The pickers weren't exercised in a browser.
+
+### D-608: Read-only panels and leaving the site, from the pickers sketch
+
+- **Date:** 2026-10-07
+- **Status:** Built (all four parts).
+- **Decision:** the pickers sketch's two new boards
+  (`.claude/docs/admin-design/meridian-relationship-pickers.html`:
+  Read-Only Panels and Leaving the Site) are built, in the order
+  recommended and agreed: the rows and their levels down, then the
+  warnings, then the list filters, then limits.
+  1. **Rows pinned to the end of the Document tab**, after every field,
+     in a fixed order: **Archive Page**, **Linked From**, **Outline**.
+     The tab is a column at least the drawer's height, so the rows sit
+     at its bottom edge on a short tab and follow the last field on a
+     long one; nothing goes below Outline. Each row answers in one line
+     and opens a level down in place of the fields, with a path back
+     (Escape too). Linked From names up to three linkers, else counts by
+     relationship, else says "Nothing links here." Opened, it's grouped
+     by the relation's label and the linking type, live entries and
+     drafts (marked), never the trash, each row opening its entry. A
+     group shows 8; up to 50, Show More expands it in place; past that,
+     View All opens the linking type's list filtered to this entry.
+  2. **The Archive Page row** replaces the notes an index page and a
+     relation archive's pages carried in Publish: the author read the
+     sketch's "archive page" as the index page too, so a type's index
+     page, a relation archive's list page, and a page written for one
+     target's archive all get it. Opened: Archive, For (a target's),
+     Address, Lists (with drafts not shown), and Without it, under a
+     note saying what the page is and what it can't be (from its own
+     rules: an index page and a target's page can't be duplicated or
+     trashed; a list page can be trashed). Error pages and the root
+     page keep their notes.
+  3. **Leaving the site:** a move to draft or the trash asks only when
+     live entries link to it, counting live linkers only, and lists them
+     (8, with type and relationship, then "and N more, in its Linked
+     From"); with none, it's one click with its toast and Undo (the
+     editor's and the list's trash no longer always ask). The buttons
+     name the outcome (Move to Draft, Move to Trash); only Delete
+     Permanently is danger. A profile says it's credited and how many
+     live entries credit no one else (no byline), replacing its own
+     trash warning. Bulk: the linked ones most linked first with counts,
+     capped at 8, the unlinked in one line, and past 8 **Show Only the
+     Linked**, a list filter. Deleting for good lists what links (drafts
+     marked), with the checkbox and what leaving it does.
+  4. **Limits:** a select shows each target's count against the
+     inverse's `max` ("7 of 12", "Full · 12 of 12"); a save refused by it
+     shows a bar naming the full target with **Open {title}** (a new
+     tab), and the field names one with room. Nothing is saved, so "Your
+     other changes are saved" stays off (the author agreed, as in
+     D-607).
+- **Why:** the author's answers, 2026-10-07 ("Your rec", "I thought
+  archive meant index", "Your call. Go.").
+- **Built:**
+  - **Server:** `Referrers::sources()` (linkers with the relations they
+    link through), `soleCredits()`, `linkedIn()` (a type's entries live
+    entries link to, with counts); `RelationLimits::taken()`, which the
+    inverse `max` check now uses. `GET entries/{id}/referrers` adds
+    `drafts`, `uncredited`, 8 `entries` with `relations`, and `live=1`;
+    `POST entries/referrers` answers most linked first. An entry's
+    `linkedFrom` groups carry `typeName` and `drafts` and their entries
+    `type`, `date`, and `image`, leave out the trash, hold all up to 50
+    (else 8), and go most linked first; `introduces` describes an
+    archive page's archive (`url`, `listed`, `item`, `items`,
+    `drafts`). A refusal by an inverse `max` answers `full` (the target
+    and a published one with room). `GET references/{type}` with a
+    relation's key in `from` answers `inverseMax` and each item's
+    `taken`. `GET entries` takes `linking` (an id) with `via` (a
+    relation key), and `linked=1`, answering `linking` (`id`, `title`,
+    `via` label) and `linked`.
+  - **Admin:** the editor's `drill` (`outline`, `linked`, `archive`)
+    replaces `listing`, with the pinned rows, Linked From's groups (the
+    cards' `.reference__row` as links), and the archive's facts;
+    `confirm.ts` takes `items`, `more`, `action`, `after`, and
+    `checkHelp`, drawn by `ConfirmHost` as `.confirm-list`;
+    `referrers.ts` redrawn; `series()` in `format.ts`; the list's
+    `linking`/`via`/`linked` filters with a notebar and Show All; the
+    picker always sends its relation's key, and `ReferenceSelect`
+    shows counts; the editor's `full` refusal bar and field line.
+- **Checked:** `composer check`; `npm run admin:build` (admin.js 857 KB,
+  CSS 183 KB). Not exercised in a browser.
+
+### D-609: The editor drops Other Front Matter
+
+- **Date:** 2026-10-07
+- **Status:** Built.
+- **Decision:** the editor's Document tab no longer shows **Other Front
+  Matter** (front matter the type doesn't declare, read-only). Saving
+  still keeps it as it is; the trashed entry's preview and a media
+  file's screen still show their raw values. The group just above the
+  pinned rows (D-608) drops its bottom border, so one line separates
+  them, not two.
+- **Why:** the author asked, 2026-10-07.

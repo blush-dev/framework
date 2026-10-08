@@ -196,6 +196,11 @@ export interface EntryList {
 	author: string;
 	terms: string[];
 	days: number | null;
+	// Only the entries linking to one (and its title, and the relation's
+	// label when it's one relation), or only the ones live entries link
+	// to (D-608).
+	linking?: { id: string; title: string; via: string | null } | null;
+	linked?: boolean;
 	// The column it's sorted by and which way, or `null` for the usual
 	// order; and whether it's a tree.
 	sort: EntrySort | null;
@@ -930,17 +935,44 @@ export interface FieldRelation {
 
 /**
  * What links to an entry through one relation, for the editor's Linked
- * From (D-599): what the entry's side is called (`label`, `''` for
- * none), the linking type's plural and the relation's label, how many,
- * and the first few.
+ * From (D-599, D-608): what the entry's side is called (`label`, `''`
+ * for none), the linking type's plural (`type`) and name (`typeName`),
+ * the relation's label, how many link and how many of those are
+ * drafts, and the entries: every one up to 50, else the first 8. The
+ * trash is never listed.
  */
 export interface LinkedGroup {
 	key: string;
 	label: string;
 	type: string;
+	typeName: string;
 	relation: string;
 	count: number;
-	entries: { id: string | null; title: string; status: EntryStatus }[];
+	drafts: number;
+	entries: LinkedEntry[];
+}
+
+export interface LinkedEntry {
+	id: string | null;
+	title: string;
+	status: EntryStatus;
+	// Its type's singular label, publish date (`Y-m-d`), and image.
+	type: string;
+	date: string | null;
+	image: string | null;
+}
+
+/**
+ * The archive an index page or a relation archive's page introduces
+ * (D-608): its address, how many published entries it lists and what
+ * they are (mid-sentence), and how many drafts it leaves out.
+ */
+export interface ArchiveFacts {
+	url: string | null;
+	listed: number;
+	item: string;
+	items: string;
+	drafts: number;
 }
 
 /**
@@ -1111,6 +1143,9 @@ export interface EntryDetail {
 	// The relation archive page it is (D-602): a list page, or the page
 	// written for one target's archive (`target` set).
 	archive: { relation: string; label: string; target: string | null; targetTitle: string | null; targetId: string | null; targetType: string | null } | null;
+	// The archive it introduces, for an index page or a relation archive's
+	// page (D-608); else `null`.
+	introduces: ArchiveFacts | null;
 	// The status it's the site's error page for (D-411), or `null`.
 	errorPage: number | null;
 	// Its part in the homepage, as `EntrySummary` says (D-420).

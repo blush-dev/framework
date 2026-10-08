@@ -32,6 +32,13 @@ export function plural(count: number, one: string, many = `${one}s`): string {
 	return `${count} ${count === 1 ? one : many}`;
 }
 
+/**
+ * Names in a sentence: "A", "A and B", "A, B, and C".
+ */
+export function series(names: string[]): string {
+	return names.length <= 2 ? names.join(' and ') : `${names.slice(0, -1).join(', ')}, and ${names.at(-1)}`;
+}
+
 const sizes = new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 });
 
 /**

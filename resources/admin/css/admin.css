@@ -2146,6 +2146,72 @@ button.lnk {
 	font-weight: 600;
 }
 
+/* What a confirmation is about (D-608): what links, through what, and
+   whether it's live, so the count above can be checked by eye. A list
+   that stops short says where the rest are. */
+.confirm-list {
+	display: flex;
+	flex-direction: column;
+	margin: 0 0 var(--s-3);
+	padding: 0;
+	border: 1px solid var(--border);
+	border-radius: var(--r-2);
+	list-style: none;
+}
+
+.confirm-list li {
+	display: flex;
+	align-items: center;
+	gap: var(--s-3);
+	padding: 9px var(--s-3);
+	border-bottom: 1px solid var(--border);
+	font-size: var(--text-sm);
+}
+
+.confirm-list li:last-child {
+	border-bottom: 0;
+}
+
+.confirm-list__title {
+	flex: 1;
+	min-width: 0;
+	overflow: hidden;
+	color: var(--fg);
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.confirm-list__meta {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	color: var(--fg-3);
+	font-size: var(--text-xs);
+	white-space: nowrap;
+}
+
+.confirm-list__count {
+	color: var(--fg-2);
+	font-size: var(--text-2xs);
+}
+
+.confirm-list .confirm-list__more {
+	gap: 6px;
+	color: var(--fg-3);
+	font-size: var(--text-xs);
+}
+
+.confirm-list:last-child,
+.confirm-check:last-child {
+	margin-bottom: 0;
+}
+
+.confirm-check {
+	display: grid;
+	gap: 4px;
+	margin-top: var(--s-4);
+}
+
 .prompt__foot {
 	display: flex;
 	flex-wrap: wrap;
@@ -3607,6 +3673,37 @@ button.lnk {
 	content: "";
 }
 
+/* A row that opens its entry (Linked From, D-608): the arrow shows on
+   hover and focus. */
+.reference__row--link {
+	color: inherit;
+	text-decoration: none;
+}
+
+.reference__row--link:hover .reference__name > span:first-child {
+	color: var(--accent);
+}
+
+.reference__go {
+	flex: none;
+	width: 14px;
+	height: 14px;
+	color: var(--fg-3);
+	opacity: 0;
+}
+
+.reference__row--link:hover .reference__go,
+.reference__row--link:focus-visible .reference__go {
+	color: var(--accent);
+	opacity: 1;
+}
+
+.reference__still .icon,
+.reference__still svg {
+	width: 15px;
+	height: 15px;
+}
+
 /* Grips show on hover and focus, and only when order is kept. */
 .reference__grip {
 	display: grid;
@@ -3771,7 +3868,7 @@ button.lnk {
 	overflow: hidden;
 	border-radius: 4px;
 	background: var(--surface-3);
-	color: var(--danger);
+	color: var(--fg-3);
 	font-family: var(--font-mono);
 	font-size: var(--text-xs);
 }
@@ -3789,6 +3886,7 @@ button.lnk {
 .reference__still.is-missing {
 	border: 1px dashed var(--danger-dot);
 	background: transparent;
+	color: var(--danger);
 }
 
 .reference__row.is-draft .reference__still,

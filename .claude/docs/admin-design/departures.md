@@ -917,3 +917,35 @@ D-541). Where the admin differs from the sketch:
   rows, since the tree has no room for rows that can't be ticked.
 - **A translation's language** is the admin's name for it (`English
   (United States)`), as elsewhere, not the sketch's bare "English".
+
+## Read-only panels and leaving the site (`meridian-relationship-pickers.html`, D-608)
+
+- **The Archive Page row is every archive page's**, a type's index page
+  included (the author's reading); error pages and the root page keep
+  their notes in Publish.
+- **"It can't be duplicated or moved to the trash"** follows each page's
+  own rules: a relation archive's list page can be moved to the trash,
+  so its note says only that it can't be duplicated.
+- **No skeleton level down:** Linked From's entries come with the entry
+  (all of a group up to 50, else 8), so it opens at once and the
+  sketch's Opening, Before It Answers board doesn't happen.
+- **Linked From's row is on every saved entry**, not only terms and
+  profiles, quiet when nothing links; a new entry has none.
+- **The Archive Page row's icon** is Lucide's `layers`.
+- **Delete Permanently's button** stays "Delete Permanently" rather than
+  naming the entry, since titles run long; the checkbox reads in
+  sentence case ("Also remove it from those 3 entries"), as the
+  admin's checkboxes do.
+- **A profile's trash warning** is the shared one, with its credit
+  wording; its old lines (the address it stops answering at, archives
+  without a bio) are gone, and nothing is asked when nothing live
+  credits it.
+- **Show Only the Linked** filters the list to every entry of the type
+  that live entries link to, not only the selection's.
+- **The refusal bar** keeps the editor's "Your changes are still here,
+  but they weren't saved" opening, since nothing is saved (D-607);
+  **Open {title}** opens the full entry in a new tab, so unsaved work
+  stays. The room it suggests is the first published target by title
+  with room.
+- **Pronouns:** the sketch's "Her name comes off…" is "The name comes
+  off…", since the admin doesn't know a profile's pronouns.

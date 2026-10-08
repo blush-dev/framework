@@ -32,14 +32,17 @@ use Blush\Content\Entry\Entry;
 use Blush\Content\Entry\Position;
 use Blush\Content\EntryFields;
 use Blush\Content\FileNames;
+use Blush\Content\Query\Order;
 use Blush\Content\Lint\Linter;
 use Blush\Content\Relation\LinkResolver;
+use Blush\Content\Relation\ProblemKind;
 use Blush\Content\Relation\Referrers;
 use Blush\Content\Relation\Relation;
 use Blush\Content\Relation\RelationLimits;
 use Blush\Content\Relation\RelationProblem;
 use Blush\Content\Relation\Relations;
 use Blush\Content\Relation\TranslationRule;
+use Blush\Content\RelationArchives;
 use Blush\Content\Routing\ContentUrls;
 use Blush\Content\Status as EntryStatus;
 use Blush\Content\Type\ContentType;
@@ -107,11 +110,15 @@ use Blush\Support\Slug;
  *   the account may edit (D-598), answering how many (`unlinked`).
  * - `POST   entries/referrers` (`{"ids"}`, at most 100): of those the
  *   account may edit, the live ones live entries link to, for a bulk
- *   change's warning (`linked`: `id`, `title`, and how many `live`).
+ *   change's warning (`linked`: `id`, `title`, and how many `live`),
+ *   most linked first (D-608).
  * - `GET    entries/{id}/referrers`: what links to an entry (D-598):
- *   `count`, how many are `live`, how many the account may edit
- *   (`editable`),
- *   and the first few `entries` (`id`, `title`, `type`, `status`).
+ *   `count`, how many are `live`, how many are drafts (`drafts`,
+ *   scheduled ones too), how many the account may edit (`editable`),
+ *   how many live ones credit it alone in their byline
+ *   (`uncredited`, D-608), and the first 8 `entries` (`id`, `title`,
+ *   `type`, its singular label; `status`; and the `relations` they link
+ *   through, by label), only live ones with `live=1`.
  * - `POST   entries/{id}/restore`: brings one back from the trash **as a
  *   draft** (D-237), so it's never republished without someone choosing
  *   to. An Undo sends the `restore` that moving it to the trash answered
@@ -155,7 +162,8 @@ use Blush\Support\Slug;
  * type, the save is a 403 with the relation's `field`. A save that
  * leaves the entry live (as publishing does) with a relation below its
  * `min`, above its `max`, or naming a target already named by its
- * inverse's `max` is a 422 with the relation's `field`; bulk publishing
+ * inverse's `max` is a 422 with the relation's `field` (and, for that
+ * last, `full`: the target, and another with room, D-608); bulk publishing
  * skips such an entry.
  *
  * `status` is a shortcut: `draft` sets `status: draft`; `published`
@@ -181,6 +189,15 @@ final readonly class EntryController
 
 	private const int BULK_LIMIT = 100;
 
+	/**
+	 * How many entries a list of what links to an entry names (D-608),
+	 * and up to how many a Linked From group holds all of, to show in
+	 * place.
+	 */
+	private const int LISTED = 8;
+
+	private const int LISTED_WHOLE = 50;
+
 	public function __construct(
 		private ContentWriter $writer,
 		private ContentRepository $content,
@@ -198,6 +215,7 @@ final readonly class EntryController
 		private FileNames $fileNames,
 		private Relations $relations,
 		private RelationLimits $limits,
+		private RelationArchives $relationArchives,
 		private TypedTargets $typed,
 		private Referrers $referrers,
 		private ArchivePages $archivePages
@@ -256,6 +274,7 @@ final readonly class EntryController
 			'index'       => false,
 			'archivePage' => false,
 			'archive'     => null,
+			'introduces'  => null,
 			'errorPage'   => null,
 			'homepage'    => false,
 			'rootPage'    => false,
@@ -740,18 +759,25 @@ final readonly class EntryController
 			return self::error('You aren\'t allowed to change that entry.', Status::Forbidden);
 		}
 
-		$found = $this->referrers->of($entry);
+		$sources = $this->referrers->sources($entry);
+		$found   = array_column($sources, 'entry');
+		$listed  = in_array($request->getQueryParams()['live'] ?? null, ['1', 'true'], true)
+			? array_filter($sources, static fn (array $source): bool => $source['entry']->isPublished())
+			: $sources;
 
 		return self::json([
-			'count'    => count($found),
-			'live'     => Referrers::live($found),
-			'editable' => count(array_filter($found, fn (Entry $referrer): bool => $this->permissions->can($account, ContentAction::Edit, $referrer))),
-			'entries'  => array_map(static fn (Entry $referrer): array => [
-				'id'     => $referrer->id,
-				'title'  => $referrer->title,
-				'type'   => $referrer->type->labels->item,
-				'status' => $referrer->status->value
-			], array_slice($found, 0, 5))
+			'count'      => count($found),
+			'live'       => Referrers::live($found),
+			'drafts'     => count(array_filter($found, static fn (Entry $referrer): bool => in_array($referrer->status, [EntryStatus::Draft, EntryStatus::Scheduled], true))),
+			'editable'   => count(array_filter($found, fn (Entry $referrer): bool => $this->permissions->can($account, ContentAction::Edit, $referrer))),
+			'uncredited' => $this->referrers->soleCredits($entry),
+			'entries'    => array_map(static fn (array $source): array => [
+				'id'        => $source['entry']->id,
+				'title'     => $source['entry']->title,
+				'type'      => $source['entry']->type->labels->singular,
+				'status'    => $source['entry']->status->value,
+				'relations' => array_map(self::relationLabel(...), $source['relations'])
+			], array_slice(array_values($listed), 0, self::LISTED))
 		]);
 	}
 
@@ -784,6 +810,9 @@ final readonly class EntryController
 				$linked[] = ['id' => $id, 'title' => $entry->title, 'live' => $live];
 			}
 		}
+
+		// Most linked first, so a capped list shows what matters.
+		usort($linked, static fn (array $a, array $b): int => $b['live'] <=> $a['live']);
 
 		return self::json(['linked' => $linked]);
 	}
@@ -1030,11 +1059,14 @@ final readonly class EntryController
 			$problems = $this->limits->check($type->name, $entry?->id, $language, $after);
 
 			if ($problems !== []) {
-				return self::error(
-					implode(' ', array_map(static fn (RelationProblem $problem): string => $problem->message, $problems)),
-					Status::UnprocessableContent,
-					$this->relations->byKey($problems[0]->key)->field ?? null
-				);
+				$relation = $this->relations->byKey($problems[0]->key);
+				$full     = $relation !== null && $problems[0]->kind === ProblemKind::InverseLimit ? $this->full($relation, $problems[0]->value, $entry->id ?? '') : null;
+
+				return self::json([
+					'error' => implode(' ', array_map(static fn (RelationProblem $problem): string => $problem->message, $problems)),
+					...($relation === null ? [] : ['field' => $relation->field]),
+					...($full === null ? [] : ['full' => $full])
+				], Status::UnprocessableContent);
 			}
 		}
 
@@ -1044,6 +1076,41 @@ final readonly class EntryController
 			sprintf('%s couldn\'t be written: %s', implode(', ', array_keys($created->failed)), implode(' ', $created->failed)),
 			Status::UnprocessableContent
 		);
+	}
+
+	/**
+	 * Describes a target a save named that its inverse's `max` already
+	 * has enough entries naming (D-608), for the editor to name it and
+	 * offer a way out: its `id`, `title`, and `type`, the `max`, and the
+	 * first other published target by title with room (`room`: `title`,
+	 * `slug`, and how many more it takes, `left`), or `null` for none.
+	 *
+	 * @return ?array{id: ?string, title: string, type: string, max: int, room: ?array{title: string, slug: string, left: int}}
+	 */
+	private function full(Relation $relation, string $slug, string $source): ?array
+	{
+		$max    = $relation->inverse === false ? null : $relation->inverse->max;
+		$type   = $relation->to[0] ?? null;
+		$target = $type === null ? null : $this->content->named($type, $slug);
+
+		if ($max === null || $type === null || $target === null) {
+			return null;
+		}
+
+		$others = array_values(array_filter(
+			$this->content->query()->type($type)->withLanding(false)->orderBy('title', Order::Asc)->limit(null)->get()->all(),
+			static fn (Entry $other): bool => $other->id !== null && $other->id !== $target->id
+		));
+		$taken  = $this->limits->taken($relation, array_map(static fn (Entry $other): string => (string) $other->id, $others), $source);
+		$room   = array_find($others, static fn (Entry $other): bool => ($taken[(string) $other->id] ?? 0) < $max);
+
+		return [
+			'id'    => $target->id,
+			'title' => $target->title,
+			'type'  => $type,
+			'max'   => $max,
+			'room'  => $room === null ? null : ['title' => $room->title, 'slug' => $room->key, 'left' => $max - ($taken[(string) $room->id] ?? 0)]
+		];
 	}
 
 	/**
@@ -1341,6 +1408,7 @@ final readonly class EntryController
 			'index'       => $index,
 			'archivePage' => $people,
 			'archive'     => $this->archiveOf($entry),
+			'introduces'  => $this->introduces($entry, $index),
 			'errorPage'   => ErrorPage::status($entry),
 			...$home,
 			'values'      => $values,
@@ -1391,7 +1459,7 @@ final readonly class EntryController
 	 */
 	private function archiveOf(Entry $entry): ?array
 	{
-		$label = static fn (Relation $relation): string => $relation->label === '' ? ucfirst(str_replace('_', ' ', $relation->name)) : $relation->label;
+		$label = self::relationLabel(...);
 		$list  = $this->archivePages->relationOf($entry);
 
 		if ($list !== null) {
@@ -1473,24 +1541,119 @@ final readonly class EntryController
 
 	/**
 	 * Returns what links to an entry, by relation, for the editor's Linked
-	 * From (D-599): each group's `key` (`movie.actors`), what the target's
-	 * side is called (`label`, the inverse's, else `''`), the source
-	 * type's plural (`type`), the relation's label (`relation`), how many
-	 * link (`count`), and the first few (`entries`: `id`, `title`,
-	 * `status`).
+	 * From (D-599, D-608): each group's `key` (`movie.actors`), what the
+	 * target's side is called (`label`, the inverse's, else `''`), the
+	 * source type's plural (`type`) and name (`typeName`), the relation's
+	 * label (`relation`), how many link (`count`) and how many of those
+	 * are drafts (`drafts`), and its `entries` (`id`, `title`, `status`,
+	 * `type`, its singular label, `date`, `Y-m-d` or `null`, and `image`):
+	 * all of them up to 50, else the first 8. The trash is never listed,
+	 * and groups go most linked first.
 	 *
-	 * @return list<array{key: string, label: string, type: string, relation: string, count: int, entries: list<array{id: ?string, title: string, status: string}>}>
+	 * @return list<array{key: string, label: string, type: string, typeName: string, relation: string, count: int, drafts: int, entries: list<array<string, mixed>>}>
 	 */
 	private function linkedFrom(Entry $entry): array
 	{
-		return array_map(fn (array $group): array => [
-			'key'      => $group['key'],
-			'label'    => $group['relation']->inverse === false ? '' : $group['relation']->inverse->label,
-			'type'     => $this->types->find($group['type'])->labels->plural ?? $group['type'],
-			'relation' => $group['relation']->label === '' ? str_replace('_', ' ', $group['relation']->name) : $group['relation']->label,
-			'count'    => count($group['entries']),
-			'entries'  => array_map(static fn (Entry $source): array => ['id' => $source->id, 'title' => $source->title, 'status' => $source->status->value], array_slice($group['entries'], 0, 5))
-		], $this->referrers->grouped($entry));
+		$groups = [];
+
+		foreach ($this->referrers->grouped($entry) as $group) {
+			$entries = array_values(array_filter($group['entries'], static fn (Entry $source): bool => $source->status !== EntryStatus::Trash));
+			$count   = count($entries);
+
+			if ($count === 0) {
+				continue;
+			}
+
+			$groups[] = [
+				'key'      => $group['key'],
+				'label'    => $group['relation']->inverse === false ? '' : $group['relation']->inverse->label,
+				'type'     => $this->types->find($group['type'])->labels->plural ?? $group['type'],
+				'typeName' => $group['type'],
+				'relation' => self::relationLabel($group['relation']),
+				'count'    => $count,
+				'drafts'   => count(array_filter($entries, static fn (Entry $source): bool => ! $source->isPublished())),
+				'entries'  => array_map(static fn (Entry $source): array => [
+					'id'     => $source->id,
+					'title'  => $source->title,
+					'status' => $source->status->value,
+					'type'   => $source->type->labels->singular,
+					'date'   => $source->published?->format('Y-m-d'),
+					'image'  => is_string($image = $source->field('image')) && $image !== '' ? $image : null
+				], array_slice($entries, 0, $count <= self::LISTED_WHOLE ? self::LISTED_WHOLE : self::LISTED))
+			];
+		}
+
+		usort($groups, static fn (array $a, array $b): int => [$b['count'], $a['key']] <=> [$a['count'], $b['key']]);
+
+		return $groups;
+	}
+
+	/**
+	 * Returns what a relation is called: its label, else its name.
+	 */
+	private static function relationLabel(Relation $relation): string
+	{
+		return $relation->label === '' ? ucfirst(str_replace('_', ' ', $relation->name)) : $relation->label;
+	}
+
+	/**
+	 * Describes the archive an index page (D-274) or a relation archive's
+	 * page (D-602) introduces, for the editor's Archive Page row (D-608),
+	 * or `null` for another entry: the archive's address (`url`, `null`
+	 * when it has none), how many published entries it lists (`listed`),
+	 * what they are (`item` and `items`, mid-sentence), and how many
+	 * drafts and scheduled entries it leaves out (`drafts`).
+	 *
+	 * @return ?array{url: ?string, listed: int, item: string, items: string, drafts: int}
+	 */
+	private function introduces(Entry $entry, bool $index): ?array
+	{
+		$type    = $entry->type;
+		$waiting = [EntryStatus::Draft, EntryStatus::Scheduled];
+
+		if ($index) {
+			$query = $this->content->query()->type($type->name)->withLanding(false)
+				->exceptNames(...$this->archivePages->listPages($type))
+				->exceptIn(...$this->archivePages->targetFolders($type));
+
+			return [
+				'url'    => $this->urls->collection($type),
+				'listed' => $query->count(),
+				'item'   => $type->labels->item,
+				'items'  => $type->labels->items,
+				'drafts' => $query->any()->withLanding(false)->status(...$waiting)->count()
+			];
+		}
+
+		$list = $this->archivePages->relationOf($entry);
+
+		if ($list !== null) {
+			return [
+				'url'    => $this->urls->relatedList($type, $list),
+				'listed' => count($this->relationArchives->linked($type, $list)),
+				'item'   => $this->types->find($list->to[0] ?? '')->labels->item ?? 'entry',
+				'items'  => $this->types->find($list->to[0] ?? '')->labels->items ?? 'entries',
+				'drafts' => 0
+			];
+		}
+
+		$relation = $this->archivePages->targetRelationOf($entry);
+		$term     = $relation?->termKey();
+
+		if ($relation === null || $term === null) {
+			return null;
+		}
+
+		$slug  = basename($entry->key);
+		$query = $this->content->query()->type($type->name)->whereTerm($term, $slug);
+
+		return [
+			'url'    => $this->urls->related($type, $relation, $slug),
+			'listed' => $query->count(),
+			'item'   => $type->labels->item,
+			'items'  => $type->labels->items,
+			'drafts' => $query->any()->withLanding(false)->status(...$waiting)->count()
+		];
 	}
 
 	/**

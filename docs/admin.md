@@ -480,9 +480,10 @@ the file was last edited.
   **Summary**, and the content type's other fields, such as the
   subtitle (a few kinds, such as `collection`, show their value
   read-only); each [field set](content-types.md#field-sets) added to the
-  type, under its label; front matter the type doesn't declare, kept as it is; and
+  type, under its label; and
   what Site Health finds in the file, as last saved (notices only if
-  you ask). Only the types of terms whose relation files the content
+  you ask). Front matter the type doesn't declare isn't shown, and
+  saving keeps it as it is. Only the types of terms whose relation files the content
   type are offered, plus any the file already uses. At its foot,
   **Outline** lists everything in the entry (see
   [The outline](#the-outline-and-the-breadcrumb)).
@@ -628,10 +629,31 @@ The relation's settings shape the picker too:
   them (`translations: add`, such as credits), the original's beside its
   own.
 
-**Linked From**, on the Document tab, lists what links to the entry, by
-relation: a person's movies, say, or a category's posts, with a few of
-each and how many more. It's read-only: change a link on the entry that
-makes it.
+### Rows at the end of the Document tab
+
+The Document tab ends in rows for what you can't change there, always
+last, after every field, in this order: **Archive Page** (only on a page
+that introduces an archive), **Linked From**, and **Outline**. On a
+short tab they sit at the drawer's bottom edge; on a long one they
+follow the last field. Each answers the quick question in one line, and
+opens a level down, in place of the fields, for the rest. The path at
+the top goes back, and so does Escape.
+
+- **Linked From** names up to three entries that link to this one, or
+  counts them by relationship ("Cooks 208 · Tested By 6"), or says
+  nothing links here. Opened, it lists them by relationship and the
+  type that stores the link, live entries and drafts (marked; they link
+  here once published), never the trash. Each opens its entry, since
+  that's where the link is changed. A group shows 8; up to 50, **Show
+  More** shows the rest in place, and past that **View All** opens that
+  type's list filtered to the entries linking here. The list says so,
+  with **Show All** to clear it.
+- **Archive Page** names the archive the page introduces (**Recipes**,
+  or **Cooks › Jane Doe**). Opened, it says which archive, which entry
+  it's for, its address, how many entries it lists (and how many drafts
+  it leaves out), and what the archive shows without the page.
+- **Outline** lists every element in the text; see [the
+  outline](#the-outline-and-the-breadcrumb).
 
 ### Changing the slug
 
@@ -655,10 +677,12 @@ A type's index page opens in the same editor, as **Edit Index Page**,
 and the entry's tab (**Index Page**) says what it is. It introduces the
 type's archive rather than being one of its entries, so it leaves out
 what doesn't apply: the type's fields (such as categories or a
-subtitle; any already in the file are kept as they are, under front
-matter the type doesn't declare), the publish date, and scheduling. It
+subtitle; any already in the file are kept as they are, though not
+shown), the publish date, and scheduling. It
 can be a draft or published, and publishing doesn't add a date. There's
-only one, so it has no **Move to trash**.
+only one, so it has no **Move to trash**. Its [**Archive
+Page**](#rows-at-the-end-of-the-document-tab) row says what the archive
+lists.
 
 ### Inserting blocks
 
@@ -755,7 +779,7 @@ the smallest thing it's in: `Post › List › List Item › List › List
 Item`. Choose any part of it to select that element and open its
 settings; the first opens the entry's own tab.
 
-**Outline**, at the foot of the entry's tab (or in the **⋮** menu),
+**Outline**, last at the end of the entry's tab (or in the **⋮** menu),
 lists every element in the entry in order: paragraphs, headings, lists
 and their items, quotes, code blocks, tables, definition lists,
 images, and blocks (inline blocks are part of their
@@ -856,6 +880,13 @@ Your changes aren't lost:
 
 **Move to trash** takes the entry off your site and puts it in the
 **Trash** tab of its list.
+
+If a relationship is full on the other side (a collection that features
+12 recipes at most already has 12), publishing or updating is refused,
+and a bar says which entry is full, with a button to open it in a new
+tab. The field says so, and names another with room. A select lists
+each choice's count against that limit ("7 of 12", "Full · 12 of 12"),
+so a full one is seen before it's picked.
 
 ## Media
 
@@ -1578,7 +1609,11 @@ includes them. Each one's **⋯** button has:
 Entries linking to an entry keep their links while it's a draft or in
 the trash; the site just stops showing it there, and publishing or
 restoring it brings them back. So switching a published entry to draft,
-or moving one to the trash, says first how many live entries link to it.
+or moving one to the trash, says first how many live entries link to it,
+and lists them (up to 8, with what each links through). Only live
+entries count: a draft that links loses nothing. When none link, it just
+happens, with its toast and Undo. A profile says it's credited, and how
+many entries credit no one else, so they'll show no byline.
 
 Moving one entry to the trash, from its list, the editor, or a profile,
 shows a toast with **Undo**, which puts it back as it was, published or
@@ -1586,7 +1621,9 @@ a draft, and opens it again if you were editing it. Undo needs
 permission to publish for an entry that was published, and it's refused
 if someone changed the entry in the trash meanwhile; restore it from
 the Trash tab instead. Moving several at once has no Undo. Moving several to the trash or to draft says first which of them live
-entries link to, and how many each.
+entries link to, and how many each, most linked first, naming the ones
+nothing live links to. Past 8, **Show Only the Linked** cancels and
+filters the list to the entries live entries link to.
 
 **Empty Trash** deletes everything in that tab permanently. Authors and
 contributors see and handle their own trashed entries; editors see

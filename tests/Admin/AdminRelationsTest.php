@@ -179,6 +179,23 @@ final class AdminRelationsTest extends TestCase
 		$this->assertSame(422, $taken->getStatusCode(), (string) $taken->getBody());
 		$this->assertSame('variant_of', self::json($taken)['field'] ?? null);
 		$this->assertStringContainsString('"Soup" already has the most entries naming it in variant_of (1).', self::message($taken), 'The inverse\'s max counts the others (D-587).');
+		$this->assertSame(['id' => '0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e20', 'title' => 'Soup', 'type' => 'recipe', 'max' => 1, 'room' => ['title' => 'Stew', 'slug' => 'stew', 'left' => 1]], self::json($taken)['full'] ?? null, 'Names the full target, and a published one with room (D-608).');
+	}
+
+	public function testCountsWhatNamesEachTargetAgainstTheInverseLimit(): void
+	{
+		$this->writeTemporaryFile('user/data/relations/variant_of.json', '{"kind": "reference", "from": ["recipe"], "to": ["recipe"], "multiple": false, "inverse": {"max": 2}}');
+		$this->writeTemporaryFile('user/content/recipes/soup.md', "---\ntitle: Soup\nid: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e90\n---\n");
+		$this->writeTemporaryFile('user/content/recipes/stew.md', "---\ntitle: Stew\nvariant_of: soup\nid: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e91\n---\n");
+		$this->writeTemporaryFile('user/content/recipes/broth.md', "---\ntitle: Broth\nstatus: trash\nvariant_of: soup\nid: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e92\n---\n");
+		$this->site();
+
+		$answer = self::json($this->send('GET', '/references/recipe?upto=50&from=recipe.variant_of'));
+		$items  = is_array($answer['items'] ?? null) ? $answer['items'] : [];
+
+		$this->assertSame(2, $answer['inverseMax'] ?? null);
+		$this->assertEquals(['soup' => 1, 'stew' => 0], array_column($items, 'taken', 'slug'), 'Drafts count, the trash doesn\'t (D-608).');
+		$this->assertNull(self::json($this->send('GET', '/references/recipe?upto=50'))['inverseMax'] ?? null);
 	}
 
 	public function testTellsWhatLinksToAnEntryAndTakesItOutOnDelete(): void
@@ -194,8 +211,10 @@ final class AdminRelationsTest extends TestCase
 
 		$referrers = self::json($this->send('GET', "/entries/{$thai}/referrers"));
 
-		$this->assertSame([3, 2, 3], [$referrers['count'] ?? null, $referrers['live'] ?? null, $referrers['editable'] ?? null], 'Every status, and how many are live (D-598).');
+		$this->assertSame([3, 2, 1, 3], [$referrers['count'] ?? null, $referrers['live'] ?? null, $referrers['drafts'] ?? null, $referrers['editable'] ?? null], 'Every status, and how many are live (D-598).');
 		$this->assertSame(['Curry', 'Soup', 'Stew'], array_column(is_array($referrers['entries'] ?? null) ? $referrers['entries'] : [], 'title'));
+		$this->assertSame(['id' => '0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e32', 'title' => 'Curry', 'type' => 'Recipe', 'status' => 'published', 'relations' => ['Cuisine']], is_array($referrers['entries'] ?? null) ? $referrers['entries'][0] : null, 'With what it links through (D-608).');
+		$this->assertSame(['Curry', 'Stew'], array_column(is_array($live = self::json($this->send('GET', "/entries/{$thai}/referrers?live=1"))['entries'] ?? null) ? $live : [], 'title'), 'Only the live ones.');
 
 		$revision = self::json($this->send('GET', "/entries/{$thai}"))['revision'] ?? '';
 		$this->assertSame(200, $this->write('DELETE', "/entries/{$thai}?revision=" . (is_string($revision) ? $revision : ''))->getStatusCode());
@@ -207,6 +226,43 @@ final class AdminRelationsTest extends TestCase
 		$this->assertStringContainsString("cuisine: [indian]\n", $this->file('user/content/recipes/curry.md'), 'Taken out of what links to it.');
 		$this->assertStringNotContainsString('thai', $this->file('user/content/recipes/curry.md'), 'In both forms.');
 		$this->assertStringNotContainsString('cuisine', $this->file('user/content/recipes/soup.md'), 'A relation left with none goes.');
+	}
+
+	public function testListsTheEntriesLinkingToOne(): void
+	{
+		$thai = '0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1ea0';
+		$this->writeTemporaryFile('user/data/relations/cuisine.json', '{"kind": "classify", "from": ["recipe"], "to": ["cuisine"]}');
+		$this->writeTemporaryFile('user/content/cuisines/thai.md', "---\ntitle: Thai\nid: {$thai}\n---\n");
+		$this->writeTemporaryFile('user/content/cuisines/indian.md', "---\ntitle: Indian\nid: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1ea1\n---\n");
+		$this->writeTemporaryFile('user/content/cuisines/greek.md', "---\ntitle: Greek\nid: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1ea2\n---\n");
+		$this->writeTemporaryFile('user/content/recipes/curry.md', "---\ntitle: Curry\ncuisine: [thai, indian]\nid: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1ea3\n---\n");
+		$this->writeTemporaryFile('user/content/recipes/soup.md', "---\ntitle: Soup\nstatus: draft\ncuisine: [thai, greek]\nid: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1ea4\n---\n");
+		$this->writeTemporaryFile('user/content/recipes/stew.md', "---\ntitle: Stew\nid: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1ea5\n---\n");
+		$this->site();
+
+		$titles = fn (string $query): array => array_column(is_array($entries = self::json($this->send('GET', "/entries?{$query}"))['entries'] ?? null) ? $entries : [], 'title');
+
+		$this->assertSame(['Curry', 'Soup'], $titles("type=recipe&sort=title&linking={$thai}&via=recipe.cuisine"), 'Linked From\'s View All (D-608).');
+		$this->assertSame([], $titles("type=recipe&linking={$thai}&via=recipe.other"));
+		$this->assertSame(['Indian', 'Thai'], $titles('type=cuisine&sort=title&linked=1'), 'Only what live entries link to; a draft\'s links don\'t count.');
+		$this->assertSame(400, $this->send('GET', '/entries?linked=1')->getStatusCode(), 'It needs a type.');
+		$this->assertSame(400, $this->send('GET', '/entries?linking=0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1eff')->getStatusCode());
+
+		$thaiPage = self::json($this->send('GET', "/entries/{$thai}"));
+
+		$this->assertNull($thaiPage['introduces'] ?? null, 'An entry introduces no archive.');
+	}
+
+	public function testDescribesTheArchiveAnIndexPageIntroduces(): void
+	{
+		$this->writeTemporaryFile('user/content/recipes/index.md', "---\ntitle: All Recipes\nid: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1eb0\n---\n");
+		$this->writeTemporaryFile('user/content/recipes/curry.md', "---\ntitle: Curry\nid: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1eb1\n---\n");
+		$this->writeTemporaryFile('user/content/recipes/soup.md', "---\ntitle: Soup\nstatus: draft\nid: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1eb2\n---\n");
+		$this->site();
+
+		$index = self::json($this->send('GET', '/entries/0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1eb0'));
+
+		$this->assertSame(['url' => '/recipes', 'listed' => 1, 'item' => 'recipe', 'items' => 'recipes', 'drafts' => 1], $index['introduces'] ?? null, 'For its Archive Page row (D-608).');
 	}
 
 	public function testSaysWhichOfSeveralEntriesAreLinkedTo(): void
@@ -276,9 +332,11 @@ final class AdminRelationsTest extends TestCase
 			'key'      => 'recipe.cuisine',
 			'label'    => '',
 			'type'     => 'Recipes',
-			'relation' => 'cuisine',
+			'typeName' => 'recipe',
+			'relation' => 'Cuisine',
 			'count'    => 1,
-			'entries'  => [['id' => '0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e61', 'title' => 'Curry', 'status' => 'published']]
+			'drafts'   => 0,
+			'entries'  => [['id' => '0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e61', 'title' => 'Curry', 'status' => 'published', 'type' => 'Recipe', 'date' => null, 'image' => null]]
 		]], $thai['linkedFrom'] ?? null, 'What links to it, by relation; a translation\'s own link to its original isn\'t one.');
 		$this->assertEquals((object) [], (object) ($entry['inherited'] ?? null), 'An original inherits nothing.');
 

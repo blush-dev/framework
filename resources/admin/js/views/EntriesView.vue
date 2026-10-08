@@ -128,6 +128,11 @@ const author = computed(() => inTrash.value || status.value === 'mine' ? '' : te
 const days   = computed(() => inTrash.value || !DAYS.includes(Number(route.query.days)) ? '' : text('days'));
 // Profiles' own filter (D-369): linked to an account, or a guest.
 const linkedTo = computed(() => !inTrash.value && info.value?.kind === 'profiles' && (route.query.account === 'linked' || route.query.account === 'guest') ? route.query.account : '');
+// What links to an entry (Linked From's View All), or only what's linked
+// (a bulk warning's Show Only the Linked), D-608.
+const linking = computed(() => inTrash.value ? '' : text('linking'));
+const via     = computed(() => linking.value === '' ? '' : text('via'));
+const linked  = computed(() => !inTrash.value && route.query.linked === '1');
 const chosen = computed<Record<string, string>>(() => inTrash.value ? {} : Object.fromEntries(
 	text('terms').split(',').map((pair) => pair.split(':')).filter((parts) => parts.length === 2 && parts[0] !== '' && parts[1] !== '')
 ));
@@ -137,7 +142,7 @@ const sort = computed<EntrySort | ''>(() => SORTS.includes(route.query.sort as E
 const dir  = computed<'asc' | 'desc' | ''>(() => sort.value === '' ? '' : (route.query.dir === 'asc' || route.query.dir === 'desc' ? route.query.dir : (sort.value === 'updated' ? 'desc' : 'asc')));
 const per  = computed(() => PER_OPTIONS.includes(Number(route.query.per)) ? Number(route.query.per) : PER_PAGE);
 
-const filtered = computed(() => search.value !== '' || author.value !== '' || days.value !== '' || linkedTo.value !== '' || Object.keys(chosen.value).length > 0);
+const filtered = computed(() => search.value !== '' || author.value !== '' || days.value !== '' || linkedTo.value !== '' || linking.value !== '' || linked.value || Object.keys(chosen.value).length > 0);
 
 // Terms (D-593), and the authors type's entries, which are people
 // (D-329): they're counted by use, not credited.
@@ -196,7 +201,7 @@ watch(search, (value) => {
 
 function clear(): void {
 	query.value = '';
-	go({ search: undefined, author: undefined, terms: undefined, days: undefined, account: undefined, page: undefined });
+	go({ search: undefined, author: undefined, terms: undefined, days: undefined, account: undefined, linking: undefined, via: undefined, linked: undefined, page: undefined });
 }
 
 // The filters' selects write the URL; the first page shows what they find.
@@ -382,6 +387,18 @@ function params(extra: Record<string, string>, own = status.value === 'mine'): s
 		values.set('account', linkedTo.value);
 	}
 
+	if (linking.value !== '') {
+		values.set('linking', linking.value);
+
+		if (via.value !== '') {
+			values.set('via', via.value);
+		}
+	}
+
+	if (linked.value) {
+		values.set('linked', '1');
+	}
+
 	return values.toString();
 }
 
@@ -455,7 +472,7 @@ async function load(): Promise<void> {
 	}
 }
 
-watch(() => [status.value, type.value, search.value, page.value, author.value, days.value, linkedTo.value, route.query.terms, sort.value, dir.value, per.value], () => {
+watch(() => [status.value, type.value, search.value, page.value, author.value, days.value, linkedTo.value, linking.value, via.value, linked.value, route.query.terms, sort.value, dir.value, per.value], () => {
 	selected.value = [];
 	void load();
 }, { immediate: true });
@@ -490,10 +507,6 @@ async function act(name: string, action: () => Promise<string | { message: strin
  * at now, so an edit made meanwhile isn't thrown away unseen.
  */
 async function moveToTrash(entry: EntrySummary): Promise<void> {
-	if (!await confirmAction({ title: `Move ${nameOf(entry)} to the Trash?`, body: 'You can restore it from the Trash tab.', confirm: 'Move to Trash', danger: true })) {
-		return;
-	}
-
 	const id = entry.id;
 
 	if (id === null || !await confirmLeaving(id, nameOf(entry), 'trash')) {
@@ -554,12 +567,15 @@ async function bulk(action: BulkAction): Promise<void> {
 	const ids   = [...selected.value];
 	const count = plural(ids.length, labels.value.item, labels.value.items);
 
-	// Live entries linking to them stop showing them (D-598).
-	if (action === 'trash' && !await confirmLeavingMany(ids, count, 'trash', ['You can restore them from the Trash tab.'], true)) {
-		return;
-	}
+	// Live entries linking to them stop showing them (D-598); a selection
+	// too long to list shows the list's linked ones instead (D-608).
+	const titles = Object.fromEntries(ids.map((id) => [id, list.value?.entries.find((item) => item.id === id)?.title ?? '']));
+	const linked = (): void => {
+		selected.value = [];
+		go({ linked: '1', page: undefined });
+	};
 
-	if (action === 'draft' && !await confirmLeavingMany(ids, count, 'draft')) {
+	if (action !== 'publish' && !await confirmLeavingMany(titles, count, action, linked)) {
 		return;
 	}
 
@@ -779,6 +795,12 @@ const emptyText = computed(() => {
 				</template>
 
 				<template v-else-if="list">
+					<p v-if="list.linking || list.linked" class="notebar">
+						<AdminIcon name="link" />
+						<span v-if="list.linking">Only the {{ labels.items }} linking to <strong>{{ list.linking.title || 'Untitled' }}</strong><template v-if="list.linking.via"> through {{ list.linking.via }}</template>.</span>
+						<span v-else>Only the {{ labels.items }} live entries link to.</span>
+						<button type="button" class="button button--ghost button--small notebar__action" @click="go({ linking: undefined, via: undefined, linked: undefined, page: undefined })">Show All</button>
+					</p>
 					<p v-if="flattened && list.entries.length" class="notebar">
 						<AdminIcon name="info" />{{ flattened }}
 						<button v-if="sort" type="button" class="button button--ghost button--small notebar__action" @click="clearSort">Clear the Sort</button>

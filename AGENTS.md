@@ -181,7 +181,11 @@ as taxonomies; and, from the pickers sketch
 (`.claude/docs/admin-design/meridian-relationship-pickers.html`), the
 relation pickers at scale (50 candidates, capped ranked search,
 suggestions), cards as rows over a search, and every picker's states,
-with tokens typed in new written on Update (D-607).
+with tokens typed in new written on Update (D-607); and, from the
+sketch's later boards, rows pinned to the end of the Document tab
+(Archive Page, Linked From, Outline) that open a level down, warnings
+that list what links when an entry leaves the site, and limits shown
+before they refuse (D-608).
 The Fields
 API (D-337 to D-348: field types and controls, field sets on content
 types, media, and the Settings screens, slots, and Structure → Fields)

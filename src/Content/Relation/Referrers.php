@@ -14,9 +14,12 @@ declare(strict_types=1);
 namespace Blush\Content\Relation;
 
 use Closure;
+use Psr\Clock\ClockInterface;
 use Blush\Content\ContentRepository;
 use Blush\Content\Entry\Entry;
 use Blush\Content\Index\ContentIndex;
+use Blush\Content\Status;
+use Blush\Content\Type\ContentTypes;
 use Blush\Content\Type\Tree;
 use Blush\Content\Writer\ContentWriter;
 use Blush\Content\Writer\EntryChanges;
@@ -37,7 +40,9 @@ final readonly class Referrers
 		private ContentIndex $index,
 		private ContentRepository $content,
 		private Relations $relations,
-		private ContentWriter $writer
+		private ContentWriter $writer,
+		private ContentTypes $types,
+		private ClockInterface $clock
 	) {}
 
 	/**
@@ -47,21 +52,98 @@ final readonly class Referrers
 	 */
 	public function of(Entry $entry): array
 	{
+		return array_column($this->sources($entry), 'entry');
+	}
+
+	/**
+	 * Returns the entries linking to an entry, each once, by title, with
+	 * the relations each links through, for warnings that say which
+	 * (D-608).
+	 *
+	 * @return list<array{entry: Entry, relations: list<Relation>}>
+	 */
+	public function sources(Entry $entry): array
+	{
 		$found = [];
 
 		foreach ($this->links($entry) as $link) {
-			$source = $this->content->find($link->source);
+			$relation = $this->relations->find($link->type, $link->relation);
+			$source   = $this->content->find($link->source);
 
-			if ($source !== null) {
-				$found[$source->path] = $source;
+			if ($relation !== null && $source !== null) {
+				$found[$source->path] ??= ['entry' => $source, 'relations' => []];
+				$found[$source->path]['relations'][$relation->name] = $relation;
 			}
 		}
 
-		$found = array_values($found);
+		$found = array_values(array_map(static fn (array $item): array => [...$item, 'relations' => array_values($item['relations'])], $found));
 
-		usort($found, static fn (Entry $a, Entry $b): int => strnatcasecmp($a->title, $b->title));
+		usort($found, static fn (array $a, array $b): int => strnatcasecmp($a['entry']->title, $b['entry']->title));
 
 		return $found;
+	}
+
+	/**
+	 * Returns how many live entries credit an entry and no one else in
+	 * their type's byline (D-602), so they'd show no byline without it
+	 * (D-608).
+	 */
+	public function soleCredits(Entry $entry): int
+	{
+		$graph = $this->index->snapshot()->graph();
+		$count = 0;
+
+		foreach ($this->sources($entry) as ['entry' => $source, 'relations' => $relations]) {
+			$byline = $this->types->byline($source->type->name);
+
+			if (
+				$byline !== null
+				&& $source->id !== null
+				&& $source->isPublished()
+				&& array_any($relations, static fn (Relation $relation): bool => $relation->name === $byline->name)
+				&& count($graph->targets($source->id, $byline->name)) === 1
+			) {
+				$count++;
+			}
+		}
+
+		return $count;
+	}
+
+	/**
+	 * Returns the ids of a type's entries that live entries link to, each
+	 * with how many do, for the entry list's "linked" filter (D-608).
+	 * Links count as `of()` counts them.
+	 *
+	 * @return array<string, int>
+	 */
+	public function linkedIn(string $type): array
+	{
+		$snapshot = $this->index->snapshot();
+		$now      = $this->clock->now()->getTimestamp();
+		$tree     = $this->types->find($type) instanceof Tree;
+		$live     = [];
+		$sources  = [];
+
+		foreach ($snapshot->graph()->all() as $link) {
+			if ($link->targetType !== $type) {
+				continue;
+			}
+
+			$relation = $this->relations->find($link->type, $link->relation);
+
+			if ($relation === null || $relation->kind === RelationKind::Translation || ($tree && $relation->kind === RelationKind::Parent)) {
+				continue;
+			}
+
+			$live[$link->source] ??= $snapshot->record((string) $snapshot->path($link->source))?->statusAt($now) === Status::Published;
+
+			if ($live[$link->source]) {
+				$sources[$link->target][$link->source] = true;
+			}
+		}
+
+		return array_map(count(...), $sources);
 	}
 
 	/**

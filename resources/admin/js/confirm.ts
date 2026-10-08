@@ -11,10 +11,25 @@
  * `confirmChecked()` adds a checkbox, checked at first unless `checked`
  * says otherwise, for a choice that goes with confirming ("Remove it
  * from 12 entries", D-598).
+ *
+ * A confirmation can list what it's about (`items`, D-608): each a title,
+ * a line on how it's involved, a count, and a draft's pill, so a count
+ * above it can be checked by eye. A list that stops short says where the
+ * rest are (`more`), with an `action` that answers Cancel and goes there.
  */
 
 import { onBeforeUnmount, onMounted, ref } from 'vue';
 import { onBeforeRouteLeave } from 'vue-router';
+import type { EntryStatus } from './api';
+
+export interface ConfirmItem {
+	title: string;
+	// How it's involved: "Recipe · Pairs With".
+	meta?: string;
+	// A count beside it: "4 entries".
+	count?: string;
+	status?: EntryStatus;
+}
 
 export interface ConfirmOptions {
 	// A question, in title case: "Delete Jane Doe?"
@@ -31,6 +46,15 @@ export interface ConfirmOptions {
 	// checked (it does unless this says otherwise).
 	check?: string;
 	checked?: boolean;
+	// Help under the checkbox: what leaving it unchecked does.
+	checkHelp?: string;
+	// What it's about, the line ending the list when it stops short, and
+	// a link there that answers Cancel first.
+	items?: ConfirmItem[];
+	more?: string;
+	action?: { label: string; run: () => void };
+	// Paragraphs after the list.
+	after?: string | string[];
 }
 
 export interface PendingConfirm extends ConfirmOptions {

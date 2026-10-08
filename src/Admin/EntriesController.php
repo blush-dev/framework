@@ -30,6 +30,8 @@ use Blush\Content\Entry\Position;
 use Blush\Content\EntryFields;
 use Blush\Content\Query\Order;
 use Blush\Content\Query\Query;
+use Blush\Content\Relation\Referrers;
+use Blush\Content\Relation\Relations;
 use Blush\Content\Routing\ContentUrls;
 use Blush\Content\Status;
 use Blush\Content\Type\Collection;
@@ -58,6 +60,12 @@ use Blush\View\ThemedErrorPages;
  * - `days`: entries updated in the last so many days.
  * - `account`: for profiles, `linked` (an account is linked to them) or
  *   `guest` (none is; D-369).
+ * - `linking`: an entry's id; only the entries linking to it, through
+ *   the relation `via` names by its key (`recipe.cooks`) when given, for
+ *   Linked From's View All (D-608). It's answered as the entry's `id`
+ *   and `title`, and the relation's label (`via`), or `null`.
+ * - `linked`: `1` for only the entries live entries link to, for a
+ *   bulk warning's Show Only the Linked (D-608); needs `type`.
  * - `sort`: `title`, `status`, `author`, `published`, or `updated`, and
  *   `dir`, `asc` or `desc` (the dates newest first unless `dir` says
  *   otherwise, the rest A to Z).
@@ -135,7 +143,9 @@ final readonly class EntriesController
 		private AccountStore $accounts,
 		private Accounts $names,
 		private Homepage $homepage,
-		private ArchivePages $archivePages
+		private ArchivePages $archivePages,
+		private Referrers $referrers,
+		private Relations $relations
 	) {}
 
 	public function __invoke(ServerRequestInterface $request): ResponseInterface
@@ -199,6 +209,20 @@ final readonly class EntriesController
 			return self::json(['error' => '"account" must be linked or guest.'], HttpStatus::BadRequest);
 		}
 
+		$linking = $params['linking'] ?? '';
+		$via     = $params['via'] ?? '';
+		$target  = is_string($linking) && $linking !== '' ? $this->content->find($linking) : null;
+
+		if (! is_string($via) || ($linking !== '' && $target === null)) {
+			return self::json(['error' => '"linking" must be an entry\'s id, and "via" a relation\'s key.'], HttpStatus::BadRequest);
+		}
+
+		$onlyLinked = ($params['linked'] ?? '') === '1';
+
+		if ($onlyLinked && $type === null) {
+			return self::json(['error' => '"linked" needs a "type".'], HttpStatus::BadRequest);
+		}
+
 		$sort = $params['sort'] ?? '';
 
 		if ($sort !== '' && ! in_array($sort, self::SORTS, true)) {
@@ -259,7 +283,7 @@ final readonly class EntriesController
 			default                       => $query->orderBy($by, Order::Desc)
 		};
 
-		$whole = $status === null && trim($search) === '' && $author === '' && $terms === [] && $days === 0 && $sort === '' && $link === '';
+		$whole = $status === null && trim($search) === '' && $author === '' && $terms === [] && $days === 0 && $sort === '' && $link === '' && $target === null && ! $onlyLinked;
 
 		$pinned      = $contentType !== null && ! $trash;
 		$query       = $this->permissions->restrict($account, $trash ? ContentAction::Delete : ContentAction::Edit, $query);
@@ -272,6 +296,7 @@ final readonly class EntriesController
 			$link === 'linked'                                 => $listed->names(...(array_map(strval(...), array_keys($linked)) ?: ['/'])),
 			default                                            => $listed->exceptNames(...$this->archivePages->listPages($contentType), ...array_map(strval(...), array_keys($linked)))
 		};
+		$listed      = $target === null && ! $onlyLinked ? $listed : $listed->names(...($this->linkingSlugs($target, $via, $onlyLinked ? $type : null) ?: ['/']));
 		$errors      = $pinned && $contentType instanceof Tree && $contentType->atRoot();
 		$listed      = $errors ? $listed->exceptIn(...ThemedErrorPages::FOLDERS) : $listed;
 		$errorPages  = $errors && $page === 1 ? $this->errorPages($query) : [];
@@ -311,6 +336,12 @@ final readonly class EntriesController
 			'terms'       => array_map(static fn (array $term): string => implode(':', $term), $terms),
 			'days'        => $days === 0 ? null : $days,
 			'account'     => $link === '' ? null : $link,
+			'linking'     => $target === null ? null : [
+				'id'    => $target->id,
+				'title' => $target->title,
+				'via'   => $via === '' ? null : $this->viaLabel($via)
+			],
+			'linked'      => $onlyLinked,
 			'sort'        => $sort === '' ? null : $sort,
 			'dir'         => $sort === '' ? null : $order->value,
 			'tree'        => $tree !== null,
@@ -327,6 +358,57 @@ final readonly class EntriesController
 			'archivePage' => $archive === null ? null : $this->describe($account, $archive, $counts),
 			'errorPages'  => array_map(fn (Entry $entry): array => $this->describe($account, $entry, $counts), $errorPages)
 		]);
+	}
+
+	/**
+	 * Returns what a relation's key (`recipe.cooks`) is called: its label,
+	 * else its name, or the key when nothing has it.
+	 */
+	private function viaLabel(string $key): string
+	{
+		$relation = $this->relations->byKey($key);
+
+		return match (true) {
+			$relation === null      => $key,
+			$relation->label === '' => ucfirst(str_replace('_', ' ', $relation->name)),
+			default                 => $relation->label
+		};
+	}
+
+	/**
+	 * Returns the slugs of the entries linking to `$target` (through the
+	 * relation `$via` names, when it does), and of a type's entries live
+	 * entries link to, for `linking` and `linked` (D-608).
+	 *
+	 * @return list<string>
+	 */
+	private function linkingSlugs(?Entry $target, string $via, ?string $linkedIn): array
+	{
+		$slugs = [];
+
+		if ($target !== null) {
+			foreach ($this->referrers->sources($target) as ['entry' => $source, 'relations' => $relations]) {
+				if ($via === '' || array_any($relations, static fn ($relation): bool => $relation->key($source->type->name) === $via)) {
+					$slugs[] = $source->slug;
+				}
+			}
+		}
+
+		if ($linkedIn !== null) {
+			$found = [];
+
+			foreach (array_keys($this->referrers->linkedIn($linkedIn)) as $id) {
+				$entry = $this->content->find((string) $id);
+
+				if ($entry !== null) {
+					$found[] = $entry->slug;
+				}
+			}
+
+			$slugs = $target === null ? $found : array_values(array_intersect($slugs, $found));
+		}
+
+		return array_values(array_unique($slugs));
 	}
 
 	/**

@@ -531,6 +531,129 @@ a.lnk:hover{text-decoration:underline}
 .scale td:first-child .ic{width:14px;height:14px;color:var(--fg-3);vertical-align:-2px;margin-right:6px}
 .scale-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-3);overflow-x:auto;position:relative}
 
+
+/* ======================================================= read-only rows == */
+/* Pinned to the end of the entry tab, not stuck to the drawer: the rows come
+   after every field and scroll with them. The tab is a column at least the
+   drawer's height, and the rows take the space left over above them, so on a
+   short tab they sit at the bottom edge and on a long one they follow the
+   last field. The tabs stay put, as they do everywhere in the drawer. */
+.dr{display:flex;flex-direction:column;height:560px;overflow-y:auto}
+.dr > .ed-tabs{position:sticky;top:0;z-index:2;background:var(--surface);flex:none}
+.dr-body{flex:1 0 auto}
+.dr-foot{flex:none;margin-top:auto;border-top:1px solid var(--border);background:var(--surface)}
+.ed-side.pinned{display:flex;flex-direction:column;height:860px;overflow-y:auto}
+.ed-side.pinned > .ed-tabs{position:sticky;top:0;z-index:3;background:var(--surface);flex:none}
+@media (max-width:980px){.ed-side.pinned{height:720px}}
+
+.frow{display:flex;align-items:center;gap:var(--s-3);width:100%;padding:12px var(--s-5);text-align:left;color:var(--fg-2);font-size:12.5px;border-top:1px solid var(--border)}
+.frow:first-child{border-top:0}
+button.frow:hover{background:var(--surface-2);color:var(--fg)}
+.frow > .ic{color:var(--fg-3);flex:none}
+.frow .tx{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
+.frow .tx b{font-weight:500;color:var(--fg)}
+.frow .tx span{font-size:11px;color:var(--fg-3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.frow .n{font-family:var(--font-mono);font-size:11px;color:var(--fg-3);flex:none}
+.frow .go{width:14px;height:14px;color:var(--fg-3);flex:none}
+.frow.none{cursor:default}
+.frow.none .tx b{color:var(--fg-2);font-weight:400}
+
+/* The drilled-in panel: a path back, a note, then groups. */
+.drill-note{display:flex;gap:var(--s-2);align-items:flex-start;padding:var(--s-3) var(--s-5);background:var(--surface-2);border-bottom:1px solid var(--border);font-size:11.5px;color:var(--fg-2);line-height:1.5}
+.drill-note .ic{width:13px;height:13px;color:var(--fg-3);margin-top:2px}
+.side-back{display:flex;align-items:center;gap:var(--s-2);width:100%;padding:var(--s-4) var(--s-5);border-bottom:1px solid var(--border);font-size:12.5px;color:var(--fg-3);text-align:left}
+.side-back:hover{background:var(--surface-2)}
+.side-back:hover .from{color:var(--fg)}
+.side-back .ic{width:14px;height:14px}
+.side-back .here{color:var(--fg);font-weight:500}
+.side-back .here::before{content:"/";color:var(--fg-3);font-weight:400;margin-right:var(--s-2)}
+.side-back .n{margin-left:auto;font-family:var(--font-mono);font-size:11px;color:var(--fg-3)}
+.lgroup{padding:var(--s-4) var(--s-5) var(--s-3);border-bottom:1px solid var(--border);display:flex;flex-direction:column;gap:var(--s-2)}
+.lgroup:last-child{border-bottom:0}
+.lgroup-h{display:flex;align-items:baseline;gap:var(--s-2)}
+.lgroup-h b{font-size:10.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--fg-3)}
+.lgroup-h span{font-size:11px;color:var(--fg-3)}
+.lgroup-h .n{margin-left:auto;font-family:var(--font-mono);font-size:11px;color:var(--fg-3)}
+a.erow{color:inherit}
+a.erow > .ic:last-child{width:14px;height:14px;color:var(--fg-3);opacity:0;flex:none}
+a.erow:hover > .ic:last-child,a.erow:focus-visible > .ic:last-child{opacity:1;color:var(--accent)}
+a.erow:hover .pn > span:first-child{color:var(--accent)}
+.thumb.ty{display:grid;place-items:center;background:var(--surface-2);color:var(--fg-3)}
+.thumb.ty .ic{width:15px;height:15px}
+.thumb.ty::after{box-shadow:inset 0 0 0 1px var(--border)}
+.lmore{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--accent);font-weight:500;padding:4px 0 2px;align-self:flex-start}
+.lmore:hover{text-decoration:underline}
+.lmore .ic{width:13px;height:13px}
+.kvs{display:flex;flex-direction:column;padding:var(--s-2) var(--s-5) var(--s-4)}
+.kvs div{display:flex;gap:var(--s-3);padding:9px 0;border-bottom:1px solid var(--border);font-size:12.5px;align-items:baseline}
+.kvs div:last-child{border-bottom:0}
+.kvs dt{width:92px;flex:none;color:var(--fg-2)}
+.kvs dd{margin:0;min-width:0;color:var(--fg)}
+.kvs dd .mono{font-size:11.5px}
+.kvs dd a{color:var(--accent)}
+.kvs dd .dim{color:var(--fg-3)}
+.fake-field{display:flex;flex-direction:column;gap:6px}
+.fake-field b{font-size:12.5px;font-weight:500;color:var(--fg)}
+.fake-field i{display:block;height:var(--ctl);border:1px solid var(--border);border-radius:var(--r-1);background:var(--bg)}
+.fake-field i.tall{height:72px}
+
+/* ---- notices ---- */
+.notice{display:flex;gap:var(--s-3);align-items:flex-start;padding:var(--s-3) var(--s-4);background:var(--surface-2);border:1px solid var(--border);border-left:2px solid var(--border-strong);border-radius:0 var(--r-2) var(--r-2) 0;font-size:12.5px;color:var(--fg-2);line-height:1.55}
+.notice .ic{color:var(--fg-3);margin-top:2px}
+.notice b{color:var(--fg);font-weight:600}
+.notice.warn{background:var(--warn-soft);border-color:transparent;border-left-color:var(--warn-dot);color:var(--warn)}
+.notice.warn .ic{color:var(--warn-dot)} .notice.warn b{color:var(--warn)}
+.notice.bad{background:var(--danger-soft);border-color:transparent;border-left-color:var(--danger-dot);color:var(--danger)}
+.notice.bad .ic{color:var(--danger-dot)} .notice.bad b{color:var(--danger)}
+
+/* ---- modals, drawn in place so they can be read side by side ---- */
+.mdl-stage{background:var(--surface-3);border-radius:var(--r-3);padding:var(--s-5);display:flex;justify-content:center}
+@media (max-width:640px){.mdl-stage{padding:var(--s-3)}}
+.mdl{width:100%;max-width:480px;background:var(--surface);border:1px solid var(--border-strong);border-radius:var(--r-3);box-shadow:var(--shadow-3);display:flex;flex-direction:column}
+.mdl-h{padding:var(--s-5) var(--s-5) var(--s-3);display:flex;gap:var(--s-3);align-items:flex-start}
+.mdl-h h3{font-family:var(--font-display);font-size:16px;font-weight:600;letter-spacing:-.01em;text-wrap:balance;line-height:1.3}
+.badge{width:30px;height:30px;border-radius:99px;display:grid;place-items:center;flex:none;background:var(--surface-2);color:var(--fg-2)}
+.badge .ic{width:15px;height:15px}
+.badge.warn{background:var(--warn-soft);color:var(--warn)}
+.badge.bad{background:var(--danger-soft);color:var(--danger)}
+.mdl-b{padding:0 var(--s-5) var(--s-5);font-size:12.5px;color:var(--fg-2);display:flex;flex-direction:column;gap:var(--s-4);line-height:1.6}
+.mdl-b p b{color:var(--fg);font-weight:600}
+.mdl-f{display:flex;gap:var(--s-2);justify-content:flex-end;padding:var(--s-4) var(--s-5);border-top:1px solid var(--border);flex-wrap:wrap}
+.mdl-f .lft{margin-right:auto}
+/* A list of affected entries inside a modal: what links, through what, and
+   whether it is live, so the count above it can be checked by eye. */
+.alist{display:flex;flex-direction:column;border:1px solid var(--border);border-radius:var(--r-2)}
+.alist li{display:flex;align-items:center;gap:var(--s-3);padding:9px var(--s-3);border-bottom:1px solid var(--border);font-size:12.5px}
+.alist li:last-child{border-bottom:0}
+.alist .nm{flex:1;min-width:0;color:var(--fg);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.alist .via{font-size:11.5px;color:var(--fg-3);white-space:nowrap}
+.alist .n{font-family:var(--font-mono);font-size:11px;color:var(--fg-2)}
+.alist .more{color:var(--fg-3);font-size:11.5px}
+.alist.quiet li{color:var(--fg-3)}
+
+
+/* A list inside a modal that has been capped: the last line says where the
+   rest are, the same as a capped result list. */
+.alist .rest{color:var(--fg-3);font-size:11.5px}
+.alist .rest a{color:var(--accent)}
+.alist .via .pill{margin-left:4px}
+
+/* A toast, drawn in place: what happens when nothing live links. */
+.toast{display:inline-flex;align-items:center;gap:var(--s-3);background:var(--surface);border:1.5px solid var(--good-dot);border-radius:var(--r-2);box-shadow:var(--shadow-2);padding:9px 9px 9px 14px;font-size:12.5px;color:var(--fg);max-width:100%}
+.toast > .ic{color:var(--good-dot)}
+.toast .div{width:1px;align-self:stretch;margin-block:3px;background:var(--border)}
+.toast .undo{display:inline-flex;align-items:center;gap:6px;height:var(--ctl-sm);padding:0 11px;border-radius:var(--r-1);font-size:12px;font-weight:500;color:var(--accent)}
+.toast .undo:hover{background:var(--accent-soft)}
+.toast .undo .ic{width:14px;height:14px}
+.toast-stage{background:var(--surface-3);border-radius:var(--r-3);padding:var(--s-6) var(--s-5);display:flex;flex-direction:column;align-items:flex-end;gap:var(--s-3)}
+.menu-mock{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-2);box-shadow:var(--shadow-2);padding:6px;width:220px;align-self:flex-start}
+.menu-mock div{display:flex;align-items:center;gap:10px;padding:7px 10px;border-radius:var(--r-1);font-size:12.5px;color:var(--fg-2)}
+.menu-mock div.on{background:var(--surface-2);color:var(--fg)}
+.menu-mock div.danger{color:var(--danger)}
+.menu-mock hr{border:0;height:1px;background:var(--border);margin:5px -6px}
+.xs-list button.full{color:var(--fg-3)}
+.xs-list button.full .sl{color:var(--warn)}
+
 /* ======================================================== picker boards == */
 /* Which picker a relationship gets: five cards, one per picker, each saying
    the settings that lead to it. They link to the board below. */
@@ -565,6 +688,7 @@ a.lnk:hover{text-decoration:underline}
 <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><defs>
 <symbol id="i-film" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M7 3v18M3 7.5h4M3 12h18M3 16.5h4M17 3v18M17 7.5h4M17 16.5h4"/></symbol>
 <symbol id="i-recipe" viewBox="0 0 24 24"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2M7 2v20M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"/></symbol>
+<symbol id="i-undo" viewBox="0 0 24 24"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/></symbol>
 <symbol id="i-list" viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></symbol>
 <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol>
 <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
@@ -609,7 +733,7 @@ a.lnk:hover{text-decoration:underline}
 <style>.lab-nav a .ic{width:14px;height:14px;color:var(--fg-3);align-self:center}.lab-nav a[aria-current="true"] .ic{color:var(--accent)}</style>
 <div class="lab">
 <header class="lab-bar">
-  <div class="lab-mark"><b>Relationship Pickers</b><span>The editor's drawer · sketch for the Meridian admin</span></div>
+  <div class="lab-mark"><b>Relationship Pickers and Panels</b><span>The editor's drawer · sketch for the Meridian admin</span></div>
   <div class="lab-grp"><span>Admin Theme</span>
     <div class="lab-seg" id="labTheme"><button type="button" data-v="neutral" aria-pressed="true">Neutral</button><button type="button" data-v="editorial" aria-pressed="false">Editorial</button></div>
   </div>
@@ -627,6 +751,8 @@ a.lnk:hover{text-decoration:underline}
   <a href="#people"><svg class="ic" aria-hidden="true"><use href="#i-users"/></svg>People</a>
   <a href="#select"><svg class="ic" aria-hidden="true"><use href="#i-select"/></svg>Select</a>
   <a href="#cards"><svg class="ic" aria-hidden="true"><use href="#i-cards"/></svg>Cards</a>
+  <a href="#readonly"><svg class="ic" aria-hidden="true"><use href="#i-link"/></svg>Read-Only Panels</a>
+  <a href="#leaving"><svg class="ic" aria-hidden="true"><use href="#i-eye-off"/></svg>Leaving the Site</a>
   <div class="lab-nav-foot">A Recipes type on a food site. Every recipe, cook and count is invented for the sketch.</div>
 </nav>
 <main class="lab-main" id="labMain">
@@ -636,7 +762,7 @@ a.lnk:hover{text-decoration:underline}
   <div class="lab-head">
     <span class="lab-eyebrow">Content / Recipes / Editing</span>
     <h2>Five Relationships, Five Pickers</h2>
-    <p>A recipe credits its cooks, files itself under a cuisine and a course, lists its ingredients, and suggests what to serve with it. Each of those is a relationship, and its settings choose the picker it gets in the drawer. The drawer below works: add an ingredient that doesn't exist yet, reorder the cooks with <kbd>⌥↑</kbd> <kbd>⌥↓</kbd> or by dragging, search Courses for something nested, and fill Pairs With to its limit.</p>
+    <p>A recipe credits its cooks, files itself under a cuisine and a course, lists its ingredients, and suggests what to serve with it. Each of those is a relationship, and its settings choose the picker it gets in the drawer. The drawer below works: add an ingredient that doesn't exist yet, reorder the cooks with <kbd>⌥↑</kbd> <kbd>⌥↓</kbd> or by dragging, search Courses for something nested, fill Pairs With to its limit, and open Linked From at the foot of the drawer.</p>
   </div>
 
   <div class="pk-map">
@@ -1491,6 +1617,370 @@ Salt the aubergine and leave it in a colander for 30 minutes, so it fries withou
   </ul>
 </section>
 
+<!-- ============================================================ readonly -->
+<section class="lab-board" id="readonly">
+  <div class="lab-head">
+    <span class="lab-eyebrow">The foot of the entry tab</span>
+    <h2>Read-Only Panels</h2>
+    <p>What points at this entry, and what this entry is for when it introduces an archive, are facts the author can't change here. They live in other entries' files, or in the type. So they aren't fields: they are rows pinned to the end of the tab, after every field and above Outline. They scroll with the fields rather than staying stuck to the drawer. On a short tab they sit at the drawer's bottom edge; on a long one they follow the last field. Each row says enough to answer the quick question, and opens a level down, the way Outline does, for the full answer.</p>
+  </div>
+  <div class="lab-grid">
+
+    <div class="lab-spec">
+      <div class="lab-cap"><b>Last in the Tab</b><span>A short tab: the rows take the leftover space and sit at the bottom edge. A short list is named outright in the row, so most of the time there is nothing to open.</span></div>
+      <div class="drawer dr">
+        <div class="ed-tabs"><button type="button" class="ed-tab" aria-selected="true"><svg class="ic" aria-hidden="true"><use href="#i-recipe"/></svg>Recipe</button><button type="button" class="ed-tab"><svg class="ic" aria-hidden="true"><use href="#i-list"/></svg>Elements</button><span class="grow"></span><button type="button" class="ed-x" aria-label="Close"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button></div>
+        <div class="dr-body">
+          <div class="fgroup"><div class="fgroup-head"><span class="fgroup-t">Pairs With</span><span class="fgroup-meta">2 of 3</span></div>
+            <div class="erows">
+              <div class="erow"><span class="thumb v2"></span><div class="pm"><span class="pn">Caponata</span><span class="pr">Recipe · Apr 2, 2026</span></div></div>
+              <div class="erow"><span class="thumb v5"></span><div class="pm"><span class="pn">Panzanella</span><span class="pr">Recipe · Jun 30, 2026</span></div></div>
+            </div>
+            <div class="psearch"><svg class="ic" aria-hidden="true"><use href="#i-search"/></svg><input id="ro1" placeholder="Add another…" aria-label="Find a recipe"></div>
+          </div>
+          <div class="fgroup"><div class="fake-field"><b>Serves</b><i></i></div></div>
+        </div>
+        <div class="dr-foot">
+          <button type="button" class="frow"><svg class="ic" aria-hidden="true"><use href="#i-link"/></svg><span class="tx"><b>Linked From</b><span>Caponata, Arancini and Sicilian Summer</span></span><span class="n">3</span><svg class="ic" aria-hidden="true"><use href="#i-chev-r"/></svg></button>
+          <button type="button" class="frow"><svg class="ic" aria-hidden="true"><use href="#i-list"/></svg><span class="tx"><b>Outline</b></span><span class="n">6</span><svg class="ic" aria-hidden="true"><use href="#i-chev-r"/></svg></button>
+        </div>
+      </div>
+    </div>
+
+    <div class="lab-spec">
+      <div class="lab-cap"><b>Linked From, Opened</b><span>Grouped by the label the other side gave the relationship, then the type that stores it. Every row goes to that entry, because that is where the link is changed.</span></div>
+      <div class="drawer dr">
+        <div class="ed-tabs"><button type="button" class="ed-tab" aria-selected="true"><svg class="ic" aria-hidden="true"><use href="#i-recipe"/></svg>Recipe</button><button type="button" class="ed-tab"><svg class="ic" aria-hidden="true"><use href="#i-list"/></svg>Elements</button><span class="grow"></span><button type="button" class="ed-x" aria-label="Close"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button></div>
+        <div class="dr-body">
+          <button type="button" class="side-back"><svg class="ic" aria-hidden="true"><use href="#i-chev-l"/></svg><span class="from">Recipe</span><span class="here">Linked From</span><span class="n">3</span></button>
+          <div class="drill-note"><svg class="ic" aria-hidden="true"><use href="#i-info"/></svg><span>Change these on the entries that link here. Pasta alla Norma doesn't store them.</span></div>
+          <div class="lgroup">
+            <div class="lgroup-h"><b>Pairs With</b><span>Recipes</span><span class="n">2</span></div>
+            <div class="erows">
+              <a href="#readonly" class="erow"><span class="thumb v2"></span><div class="pm"><span class="pn"><span>Caponata</span></span><span class="pr">Recipe · Apr 2, 2026</span></div><svg class="ic" aria-hidden="true"><use href="#i-arrow-r"/></svg></a>
+              <a href="#readonly" class="erow"><span class="thumb v3"></span><div class="pm"><span class="pn"><span>Arancini</span></span><span class="pr">Recipe · May 14, 2026</span></div><svg class="ic" aria-hidden="true"><use href="#i-arrow-r"/></svg></a>
+            </div>
+          </div>
+          <div class="lgroup">
+            <div class="lgroup-h"><b>Features</b><span>Collections</span><span class="n">1</span></div>
+            <div class="erows">
+              <a href="#readonly" class="erow"><span class="thumb ty"><svg class="ic" aria-hidden="true"><use href="#i-book"/></svg></span><div class="pm"><span class="pn"><span>Sicilian Summer</span></span><span class="pr">Collection · Jul 1, 2026</span></div><svg class="ic" aria-hidden="true"><use href="#i-arrow-r"/></svg></a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="lab-spec">
+      <div class="lab-cap"><b>Many Links</b><span>On a cook's profile, where the fields run long, so the rows follow the last field and scroll with it. Past three names the row counts by relationship instead, so it stays one line whatever the numbers.</span></div>
+      <div class="drawer dr">
+        <div class="ed-tabs"><button type="button" class="ed-tab" aria-selected="true"><svg class="ic" aria-hidden="true"><use href="#i-user"/></svg>Profile</button><button type="button" class="ed-tab"><svg class="ic" aria-hidden="true"><use href="#i-list"/></svg>Elements</button><span class="grow"></span><button type="button" class="ed-x" aria-label="Close"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button></div>
+        <div class="dr-body">
+          <div class="fgroup"><div class="fgroup-head"><span class="fgroup-t">Publish</span></div>
+            <div class="row-set">
+              <div class="set-row"><span class="k">Status</span><button type="button" class="val st-published"><span class="vt">Published</span><svg class="ic" aria-hidden="true"><use href="#i-chev-d"/></svg></button></div>
+              <div class="set-row"><span class="k">Slug</span><span class="val" style="color:var(--fg-2)"><span class="vt mono" style="font-size:11.5px">giulia-ferraro</span></span></div>
+              <div class="set-row"><span class="k">Account</span><span class="val"><span class="vt">giulia</span></span></div>
+            </div>
+          </div>
+          <div class="fgroup"><div class="fake-field"><b>Short Bio</b><i class="tall"></i></div><div class="fake-field"><b>Website</b><i></i></div><div class="fake-field"><b>Location</b><i></i></div></div>
+        </div>
+        <div class="dr-foot">
+          <button type="button" class="frow"><svg class="ic" aria-hidden="true"><use href="#i-link"/></svg><span class="tx"><b>Linked From</b><span>Cooks 208 · Tested By 6 · Posts 4</span></span><span class="n">218</span><svg class="ic" aria-hidden="true"><use href="#i-chev-r"/></svg></button>
+          <button type="button" class="frow"><svg class="ic" aria-hidden="true"><use href="#i-list"/></svg><span class="tx"><b>Outline</b></span><span class="n">4</span><svg class="ic" aria-hidden="true"><use href="#i-chev-r"/></svg></button>
+        </div>
+      </div>
+    </div>
+
+    <div class="lab-spec">
+      <div class="lab-cap"><b>Many Links, Opened</b><span>Each group shows 8. Over 50, the rest are a link to that type's list, filtered to this profile, because a list screen is where 208 recipes get read.</span></div>
+      <div class="drawer dr">
+        <div class="ed-tabs"><button type="button" class="ed-tab" aria-selected="true"><svg class="ic" aria-hidden="true"><use href="#i-user"/></svg>Profile</button><button type="button" class="ed-tab"><svg class="ic" aria-hidden="true"><use href="#i-list"/></svg>Elements</button><span class="grow"></span><button type="button" class="ed-x" aria-label="Close"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button></div>
+        <div class="dr-body">
+          <button type="button" class="side-back"><svg class="ic" aria-hidden="true"><use href="#i-chev-l"/></svg><span class="from">Profile</span><span class="here">Linked From</span><span class="n">218</span></button>
+          <div class="drill-note"><svg class="ic" aria-hidden="true"><use href="#i-info"/></svg><span>Change these on the entries that link here. 2 of them are drafts.</span></div>
+          <div class="lgroup">
+            <div class="lgroup-h"><b>Cooks</b><span>Recipes</span><span class="n">208</span></div>
+            <div class="erows">
+              <a href="#readonly" class="erow"><span class="thumb v1"></span><div class="pm"><span class="pn"><span>Pasta alla Norma</span></span><span class="pr">Recipe · Sep 18, 2026</span></div><svg class="ic" aria-hidden="true"><use href="#i-arrow-r"/></svg></a>
+              <a href="#readonly" class="erow"><span class="thumb v2"></span><div class="pm"><span class="pn"><span>Caponata</span></span><span class="pr">Recipe · Apr 2, 2026</span></div><svg class="ic" aria-hidden="true"><use href="#i-arrow-r"/></svg></a>
+              <a href="#readonly" class="erow is-draft"><span class="thumb v7"></span><div class="pm"><span class="pn"><span>Blood Orange Granita</span><span class="pill draft"><span class="d"></span>Draft</span></span><span class="pr">Recipe · Mar 9, 2026</span></div><svg class="ic" aria-hidden="true"><use href="#i-arrow-r"/></svg></a>
+              <a href="#readonly" class="erow"><span class="thumb v4"></span><div class="pm"><span class="pn"><span>Pasta con le Sarde</span></span><span class="pr">Recipe · Jan 27, 2026</span></div><svg class="ic" aria-hidden="true"><use href="#i-arrow-r"/></svg></a>
+              <a href="#readonly" class="erow"><span class="thumb v8"></span><div class="pm"><span class="pn"><span>Cannoli</span></span><span class="pr">Recipe · Aug 3, 2026</span></div><svg class="ic" aria-hidden="true"><use href="#i-arrow-r"/></svg></a>
+              <a href="#readonly" class="erow"><span class="thumb v5"></span><div class="pm"><span class="pn"><span>Panzanella</span></span><span class="pr">Recipe · Jun 30, 2026</span></div><svg class="ic" aria-hidden="true"><use href="#i-arrow-r"/></svg></a>
+              <a href="#readonly" class="erow"><span class="thumb v3"></span><div class="pm"><span class="pn"><span>Arancini</span></span><span class="pr">Recipe · May 14, 2026</span></div><svg class="ic" aria-hidden="true"><use href="#i-arrow-r"/></svg></a>
+              <a href="#readonly" class="erow"><span class="thumb v6"></span><div class="pm"><span class="pn"><span>Swordfish Involtini</span></span><span class="pr">Recipe · Jul 19, 2026</span></div><svg class="ic" aria-hidden="true"><use href="#i-arrow-r"/></svg></a>
+            </div>
+            <a href="#readonly" class="lmore">View All 208 in Recipes<svg class="ic" aria-hidden="true"><use href="#i-arrow-r"/></svg></a>
+          </div>
+          <div class="lgroup">
+            <div class="lgroup-h"><b>Tested By</b><span>Recipes</span><span class="n">6</span></div>
+            <div class="erows">
+              <a href="#readonly" class="erow"><span class="thumb v6"></span><div class="pm"><span class="pn"><span>Fennel and Orange Salad</span></span><span class="pr">Recipe · Feb 11, 2026</span></div><svg class="ic" aria-hidden="true"><use href="#i-arrow-r"/></svg></a>
+              <a href="#readonly" class="erow"><span class="thumb v3"></span><div class="pm"><span class="pn"><span>Arancini</span></span><span class="pr">Recipe · May 14, 2026</span></div><svg class="ic" aria-hidden="true"><use href="#i-arrow-r"/></svg></a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="lab-spec">
+      <div class="lab-cap"><b>A Term's Entries</b><span>On the Pasta course. Under 50, a group past 8 expands in place with Show More rather than leaving for a list screen.</span></div>
+      <div class="drawer dr">
+        <div class="ed-tabs"><button type="button" class="ed-tab" aria-selected="true"><svg class="ic" aria-hidden="true"><use href="#i-tree"/></svg>Course</button><button type="button" class="ed-tab"><svg class="ic" aria-hidden="true"><use href="#i-list"/></svg>Elements</button><span class="grow"></span><button type="button" class="ed-x" aria-label="Close"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button></div>
+        <div class="dr-body">
+          <button type="button" class="side-back"><svg class="ic" aria-hidden="true"><use href="#i-chev-l"/></svg><span class="from">Course</span><span class="here">Linked From</span><span class="n">11</span></button>
+          <div class="drill-note"><svg class="ic" aria-hidden="true"><use href="#i-info"/></svg><span>Recipes file themselves under Pasta in their own Courses field.</span></div>
+          <div class="lgroup">
+            <div class="lgroup-h"><b>Courses</b><span>Recipes</span><span class="n">11</span></div>
+            <div class="erows">
+              <a href="#readonly" class="erow"><span class="thumb v1"></span><div class="pm"><span class="pn"><span>Pasta alla Norma</span></span><span class="pr">Recipe · Sep 18, 2026</span></div><svg class="ic" aria-hidden="true"><use href="#i-arrow-r"/></svg></a>
+              <a href="#readonly" class="erow"><span class="thumb v4"></span><div class="pm"><span class="pn"><span>Pasta con le Sarde</span></span><span class="pr">Recipe · Jan 27, 2026</span></div><svg class="ic" aria-hidden="true"><use href="#i-arrow-r"/></svg></a>
+              <a href="#readonly" class="erow"><span class="thumb v6"></span><div class="pm"><span class="pn"><span>Cacio e Pepe</span></span><span class="pr">Recipe · Mar 3, 2026</span></div><svg class="ic" aria-hidden="true"><use href="#i-arrow-r"/></svg></a>
+              <a href="#readonly" class="erow"><span class="thumb v3"></span><div class="pm"><span class="pn"><span>Rigatoni alla Zozzona</span></span><span class="pr">Recipe · Nov 2, 2025</span></div><svg class="ic" aria-hidden="true"><use href="#i-arrow-r"/></svg></a>
+              <a href="#readonly" class="erow"><span class="thumb v5"></span><div class="pm"><span class="pn"><span>Trofie al Pesto</span></span><span class="pr">Recipe · Jun 9, 2026</span></div><svg class="ic" aria-hidden="true"><use href="#i-arrow-r"/></svg></a>
+              <a href="#readonly" class="erow"><span class="thumb v2"></span><div class="pm"><span class="pn"><span>Pasta e Ceci</span></span><span class="pr">Recipe · Oct 1, 2026</span></div><svg class="ic" aria-hidden="true"><use href="#i-arrow-r"/></svg></a>
+              <a href="#readonly" class="erow"><span class="thumb v7"></span><div class="pm"><span class="pn"><span>Bucatini all'Amatriciana</span></span><span class="pr">Recipe · Feb 20, 2026</span></div><svg class="ic" aria-hidden="true"><use href="#i-arrow-r"/></svg></a>
+              <a href="#readonly" class="erow"><span class="thumb v8"></span><div class="pm"><span class="pn"><span>Spaghetti alla Nerano</span></span><span class="pr">Recipe · Aug 11, 2026</span></div><svg class="ic" aria-hidden="true"><use href="#i-arrow-r"/></svg></a>
+            </div>
+            <button type="button" class="lmore">Show 3 More<svg class="ic" aria-hidden="true"><use href="#i-chev-d"/></svg></button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="lab-spec">
+      <div class="lab-cap"><b>An Archive Page</b><span>On the page written to introduce one cook's archive. The row says which archive and which profile; the level below says the rest.</span></div>
+      <div class="drawer dr">
+        <div class="ed-tabs"><button type="button" class="ed-tab" aria-selected="true"><svg class="ic" aria-hidden="true"><use href="#i-page"/></svg>Index Page</button><button type="button" class="ed-tab"><svg class="ic" aria-hidden="true"><use href="#i-list"/></svg>Elements</button><span class="grow"></span><button type="button" class="ed-x" aria-label="Close"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button></div>
+        <div class="dr-body">
+          <div class="fgroup"><div class="fgroup-head"><span class="fgroup-t">Publish</span></div>
+            <div class="row-set">
+              <div class="set-row"><span class="k">Status</span><button type="button" class="val st-published"><span class="vt">Published</span><svg class="ic" aria-hidden="true"><use href="#i-chev-d"/></svg></button></div>
+              <div class="set-row"><span class="k">Address</span><span class="val" style="color:var(--fg-2)"><span class="vt mono" style="font-size:11.5px">_cooks/giulia-ferraro</span></span></div>
+            </div>
+          </div>
+          <div class="fgroup"><div class="fake-field"><b>Summary</b><i class="tall"></i></div></div>
+        </div>
+        <div class="dr-foot">
+          <button type="button" class="frow"><svg class="ic" aria-hidden="true"><use href="#i-book"/></svg><span class="tx"><b>Archive Page</b><span>Cooks › Giulia Ferraro</span></span><svg class="ic" aria-hidden="true"><use href="#i-chev-r"/></svg></button>
+          <button type="button" class="frow none"><svg class="ic" aria-hidden="true"><use href="#i-link"/></svg><span class="tx"><b>Linked From</b><span>Nothing links here.</span></span><span class="n">0</span></button>
+          <button type="button" class="frow"><svg class="ic" aria-hidden="true"><use href="#i-list"/></svg><span class="tx"><b>Outline</b></span><span class="n">3</span><svg class="ic" aria-hidden="true"><use href="#i-chev-r"/></svg></button>
+        </div>
+      </div>
+    </div>
+
+    <div class="lab-spec">
+      <div class="lab-cap"><b>An Archive Page, Opened</b><span>Facts as label → value rows, each with the way to the thing it names. This replaces the band an index page used to carry at the top of the tab.</span></div>
+      <div class="drawer dr">
+        <div class="ed-tabs"><button type="button" class="ed-tab" aria-selected="true"><svg class="ic" aria-hidden="true"><use href="#i-page"/></svg>Index Page</button><button type="button" class="ed-tab"><svg class="ic" aria-hidden="true"><use href="#i-list"/></svg>Elements</button><span class="grow"></span><button type="button" class="ed-x" aria-label="Close"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button></div>
+        <div class="dr-body">
+          <button type="button" class="side-back"><svg class="ic" aria-hidden="true"><use href="#i-chev-l"/></svg><span class="from">Index Page</span><span class="here">Archive Page</span></button>
+          <div class="drill-note"><svg class="ic" aria-hidden="true"><use href="#i-info"/></svg><span>This page introduces one profile's archive. It can't be duplicated or moved to the trash.</span></div>
+          <dl class="kvs">
+            <div><dt>Archive</dt><dd><a href="#readonly">Cooks</a> <span class="dim">on Recipes</span></dd></div>
+            <div><dt>For</dt><dd><a href="#readonly">Giulia Ferraro</a></dd></div>
+            <div><dt>Address</dt><dd><span class="mono">/cooks/giulia-ferraro</span></dd></div>
+            <div><dt>Lists</dt><dd>208 recipes <span class="dim">· 2 drafts not shown</span></dd></div>
+            <div><dt>Without It</dt><dd>The archive shows Giulia's profile instead.</dd></div>
+          </dl>
+        </div>
+      </div>
+    </div>
+
+    <div class="lab-spec">
+      <div class="lab-cap"><b>Opening, Before It Answers</b><span>Groups whose counts are known draw their headings at once; the rows under them are skeletons until the page arrives.</span></div>
+      <div class="drawer dr">
+        <div class="ed-tabs"><button type="button" class="ed-tab" aria-selected="true"><svg class="ic" aria-hidden="true"><use href="#i-user"/></svg>Profile</button><button type="button" class="ed-tab"><svg class="ic" aria-hidden="true"><use href="#i-list"/></svg>Elements</button><span class="grow"></span><button type="button" class="ed-x" aria-label="Close"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button></div>
+        <div class="dr-body">
+          <button type="button" class="side-back"><svg class="ic" aria-hidden="true"><use href="#i-chev-l"/></svg><span class="from">Profile</span><span class="here">Linked From</span><span class="n">218</span></button>
+          <div class="lgroup">
+            <div class="lgroup-h"><b>Cooks</b><span>Recipes</span><span class="n">208</span></div>
+            <div class="erows" aria-busy="true">
+              <div class="erow"><span class="thumb skel"></span><div class="pm" style="gap:6px"><span class="skel" style="height:11px;width:55%"></span><span class="skel" style="height:9px;width:34%"></span></div></div>
+              <div class="erow"><span class="thumb skel"></span><div class="pm" style="gap:6px"><span class="skel" style="height:11px;width:42%"></span><span class="skel" style="height:9px;width:30%"></span></div></div>
+              <div class="erow"><span class="thumb skel"></span><div class="pm" style="gap:6px"><span class="skel" style="height:11px;width:50%"></span><span class="skel" style="height:9px;width:32%"></span></div></div>
+            </div>
+          </div>
+          <div class="lgroup">
+            <div class="lgroup-h"><b>Tested By</b><span>Recipes</span><span class="n">6</span></div>
+            <div class="erows" aria-busy="true">
+              <div class="erow"><span class="thumb skel"></span><div class="pm" style="gap:6px"><span class="skel" style="height:11px;width:48%"></span><span class="skel" style="height:9px;width:30%"></span></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <ul class="lab-notes">
+    <li><b>Pinned, not sticky.</b> The rows are always the last thing in the tab, whatever the type's fields are, in a fixed order: Archive Page, Linked From, Outline. They scroll with the fields, and nothing is ever added below Outline.</li>
+    <li><b>Up to three linkers are named in the row; more are counted by relationship.</b> Either way the row is one line, so the end of the tab never grows with the data.</li>
+    <li><b>Opening one replaces the tab's fields and the rows under them</b>, as Outline already does. The path back says where you came from; Escape goes back too.</li>
+    <li><b>Live linkers and drafts only.</b> A draft is listed and marked, because it will link here when it is published. The trash is never listed.</li>
+    <li><b>A group shows 8.</b> Up to 50, Show More expands it in place; over 50, the rest is a link to the linking type's list, filtered to this entry. The drill-down never becomes a list screen.</li>
+    <li><b>Linked From with nothing is a quiet row, not a gap.</b> On a term or a profile, “Nothing links here” is the answer someone opened the drawer for.</li>
+  </ul>
+</section>
+
+<!-- ============================================================= leaving -->
+<section class="lab-board" id="leaving">
+  <div class="lab-head">
+    <span class="lab-eyebrow">When an entry stops being live</span>
+    <h2>Leaving the Site</h2>
+    <p>Moving a recipe to draft or to the trash quietly takes it off every live page that links to it. When that would happen, the action stops once to say how many live entries link to it and which, and names its button for the outcome. When nothing live links, it stays the one-click action it is now. A save refused by a limit is the one case that stops the author in the editor, because there the save did not happen.</p>
+  </div>
+  <div class="lab-grid two">
+
+    <div class="lab-spec">
+      <div class="lab-cap"><b>Nothing Live Links: No Warning</b><span>Fennel Gratin isn't linked from anything live, so Move to Draft just happens, with the usual toast and its Undo.</span></div>
+      <div class="toast-stage">
+        <div class="menu-mock" aria-hidden="true">
+          <div><svg class="ic" aria-hidden="true"><use href="#i-pencil"/></svg>Edit</div><div><svg class="ic" aria-hidden="true"><use href="#i-link"/></svg>Copy Link</div><div class="on"><svg class="ic" aria-hidden="true"><use href="#i-dashed"/></svg>Move to Draft</div><hr><div class="danger"><svg class="ic" aria-hidden="true"><use href="#i-trash"/></svg>Move to Trash</div>
+        </div>
+        <div class="toast" role="status"><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg><span>Moved Fennel Gratin to draft</span><span class="div"></span><button type="button" class="undo"><svg class="ic" aria-hidden="true"><use href="#i-undo"/></svg>Undo</button></div>
+      </div>
+    </div>
+
+    <div class="lab-spec">
+      <div class="lab-cap"><b>Move to Draft</b><span>Only live linkers are counted: a draft that links here loses nothing today. Each row says which relationship, so the count can be checked by eye.</span></div>
+      <div class="mdl-stage"><div class="mdl" role="dialog" aria-labelledby="lv1">
+        <div class="mdl-h"><span class="badge warn"><svg class="ic" aria-hidden="true"><use href="#i-link"/></svg></span><h3 id="lv1">Move Caponata to Draft?</h3></div>
+        <div class="mdl-b">
+          <p>Caponata is <b>linked from 4 live entries</b>. They keep the link, but stop showing Caponata until it is published again.</p>
+          <ul class="alist">
+            <li><span class="nm">Pasta alla Norma</span><span class="via">Recipe · Pairs With</span></li>
+            <li><span class="nm">Arancini</span><span class="via">Recipe · Pairs With</span></li>
+            <li><span class="nm">Sicilian Summer</span><span class="via">Collection · Features</span></li>
+            <li><span class="nm">Ten Ways With Aubergine</span><span class="via">Post · Mentions</span></li>
+          </ul>
+        </div>
+        <div class="mdl-f"><button type="button" class="btn">Cancel</button><button type="button" class="btn primary">Move to Draft</button></div>
+      </div></div>
+    </div>
+
+    <div class="lab-spec">
+      <div class="lab-cap"><b>Move to Trash, a Credited Profile</b><span>The same shape at scale, with the one consequence worth its own line: recipes left with no live cook show no byline.</span></div>
+      <div class="mdl-stage"><div class="mdl" role="dialog" aria-labelledby="lv2">
+        <div class="mdl-h"><span class="badge warn"><svg class="ic" aria-hidden="true"><use href="#i-user"/></svg></span><h3 id="lv2">Move Giulia Ferraro to Trash?</h3></div>
+        <div class="mdl-b">
+          <p>Giulia is <b>credited on 216 live entries</b>. Her name comes off all of them until she is restored. <b>9 recipes have no other cook</b>, so they will show no byline.</p>
+          <ul class="alist">
+            <li><span class="nm">Pasta alla Norma</span><span class="via">Recipe · Cooks</span></li>
+            <li><span class="nm">Caponata</span><span class="via">Recipe · Cooks</span></li>
+            <li><span class="nm">Pasta con le Sarde</span><span class="via">Recipe · Cooks</span></li>
+            <li><span class="nm">Fennel and Orange Salad</span><span class="via">Recipe · Tested By</span></li>
+            <li><span class="nm">Arancini</span><span class="via">Recipe · Cooks</span></li>
+            <li><span class="nm">Cannoli</span><span class="via">Recipe · Cooks</span></li>
+            <li><span class="nm">Panzanella</span><span class="via">Recipe · Cooks</span></li>
+            <li><span class="nm">A Week of Sicilian Suppers</span><span class="via">Post · Byline</span></li>
+            <li class="rest">and 208 more, in her <a href="#readonly">Linked From</a></li>
+          </ul>
+        </div>
+        <div class="mdl-f"><button type="button" class="btn">Cancel</button><button type="button" class="btn danger">Move to Trash</button></div>
+      </div></div>
+    </div>
+
+    <div class="lab-spec">
+      <div class="lab-cap"><b>Bulk Move to Trash</b><span>Which of the selection is linked, with a count each. The unlinked ones are named in one quiet line, so the numbers add up.</span></div>
+      <div class="mdl-stage"><div class="mdl" role="dialog" aria-labelledby="lv3">
+        <div class="mdl-h"><span class="badge warn"><svg class="ic" aria-hidden="true"><use href="#i-link"/></svg></span><h3 id="lv3">Move 5 Recipes to Trash?</h3></div>
+        <div class="mdl-b">
+          <p><b>3 of the 5 are linked from live entries</b>, 7 links in all. Those entries keep the links but stop showing these recipes.</p>
+          <ul class="alist">
+            <li><span class="nm">Caponata</span><span class="n">4 entries</span></li>
+            <li><span class="nm">Arancini</span><span class="n">2 entries</span></li>
+            <li><span class="nm">Cannoli</span><span class="n">1 entry</span></li>
+          </ul>
+          <p style="color:var(--fg-3);font-size:12px">Fennel Gratin and Charred Pepper Salad aren't linked from anything live.</p>
+        </div>
+        <div class="mdl-f"><button type="button" class="btn">Cancel</button><button type="button" class="btn danger">Move 5 Recipes to Trash</button></div>
+      </div></div>
+    </div>
+
+    <div class="lab-spec">
+      <div class="lab-cap"><b>Bulk, at Scale</b><span>200 selected. The list stops at 8, most-linked first, and the rest is a filter on the list screen rather than a longer modal.</span></div>
+      <div class="mdl-stage"><div class="mdl" role="dialog" aria-labelledby="lv4">
+        <div class="mdl-h"><span class="badge warn"><svg class="ic" aria-hidden="true"><use href="#i-link"/></svg></span><h3 id="lv4">Move 200 Recipes to Trash?</h3></div>
+        <div class="mdl-b">
+          <p><b>38 of the 200 are linked from live entries</b>, 141 links in all.</p>
+          <ul class="alist">
+            <li><span class="nm">Caponata</span><span class="n">14 entries</span></li>
+            <li><span class="nm">Arancini</span><span class="n">11 entries</span></li>
+            <li><span class="nm">Sicilian Orange Cake</span><span class="n">9 entries</span></li>
+            <li><span class="nm">Panzanella</span><span class="n">8 entries</span></li>
+            <li><span class="nm">Cannoli</span><span class="n">7 entries</span></li>
+            <li><span class="nm">Swordfish Involtini</span><span class="n">6 entries</span></li>
+            <li><span class="nm">Pasta con le Sarde</span><span class="n">6 entries</span></li>
+            <li><span class="nm">Fennel and Orange Salad</span><span class="n">5 entries</span></li>
+            <li class="rest">and 30 more. <a href="#leaving">Show Only the Linked 38</a></li>
+          </ul>
+          <p style="color:var(--fg-3);font-size:12px">The other 162 aren't linked from anything live.</p>
+        </div>
+        <div class="mdl-f"><button type="button" class="btn">Cancel</button><button type="button" class="btn danger">Move 200 Recipes to Trash</button></div>
+      </div></div>
+    </div>
+
+    <div class="lab-spec">
+      <div class="lab-cap"><b>Delete Permanently</b><span>The one place the admin offers to edit other entries' files. Checked by default, because a deleted entry never comes back, and the unchecked outcome is spelled out.</span></div>
+      <div class="mdl-stage"><div class="mdl" role="dialog" aria-labelledby="lv5">
+        <div class="mdl-h"><span class="badge bad"><svg class="ic" aria-hidden="true"><use href="#i-trash"/></svg></span><h3 id="lv5">Delete Fennel Gratin Permanently?</h3></div>
+        <div class="mdl-b">
+          <p>Fennel Gratin is gone for good after this. <b>3 entries still link to it</b>, including 1 draft.</p>
+          <ul class="alist">
+            <li><span class="nm">Roast Chicken with Fennel</span><span class="via">Recipe · Pairs With</span></li>
+            <li><span class="nm">Winter Sides</span><span class="via">Collection · Features</span></li>
+            <li><span class="nm">Sunday Lunch</span><span class="via">Collection · Features <span class="pill draft"><span class="d"></span>Draft</span></span></li>
+          </ul>
+          <label class="cbx"><input type="checkbox" id="lv5-strip" checked><span class="bx"><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg></span><span class="tx">Also Remove Fennel Gratin From Those 3 Entries<small>Left in place, each link shows as not found in its editor and in Site Health.</small></span></label>
+        </div>
+        <div class="mdl-f"><button type="button" class="btn">Cancel</button><button type="button" class="btn danger-fill">Delete Fennel Gratin</button></div>
+      </div></div>
+    </div>
+
+    <div class="lab-spec">
+      <div class="lab-cap"><b>Save Refused by a Limit</b><span>A collection features 12 recipes at most. The limit belongs to the other side, so the bar names it there and offers both ways out. The field is marked; everything else saved.</span></div>
+      <div class="ed" style="min-height:0">
+        <div class="ed-notice"><svg class="ic" aria-hidden="true"><use href="#i-alert"/></svg><span><b>Weeknight Pasta already features 12 recipes</b>, the most a collection takes. Choose another collection, or take a recipe out of Weeknight Pasta first. Your other changes are saved.</span><span class="end"><a href="#leaving" class="btn sm">Open Weeknight Pasta</a></span></div>
+        <div class="drawer flush" style="border:0;max-width:none;width:100%">
+          <div class="fgroup">
+            <div class="fgroup-head"><span class="fgroup-t">Publish</span></div>
+            <div class="row-set">
+              <div class="set-row"><span class="k">Status</span><button type="button" class="val st-published"><span class="vt">Published</span><svg class="ic" aria-hidden="true"><use href="#i-chev-d"/></svg></button></div>
+              <div class="set-row"><span class="k">Collection</span><button type="button" class="val bad"><svg class="ic" aria-hidden="true"><use href="#i-alert"/></svg><span class="vt" style="color:var(--danger)">Weeknight Pasta</span><span class="dim">12 of 12</span><svg class="ic" aria-hidden="true"><use href="#i-chev-d"/></svg></button></div>
+            </div>
+            <p class="f-hint bad"><svg class="ic" aria-hidden="true"><use href="#i-alert"/></svg><span>Weeknight Pasta is full. Pasta Night has room for 5 more.</span></p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="lab-spec">
+      <div class="lab-cap"><b>The Limit, Before It Is Hit</b><span>The list shows each collection's count against its limit, so a full one is visible before it is picked. It can still be picked; the refusal above is what follows.</span></div>
+      <div class="drawer" style="overflow:visible;max-width:none"><div class="fgroup">
+        <div class="fgroup-head"><span class="fgroup-t">Publish</span></div>
+        <div class="row-set">
+          <div class="set-row"><span class="k">Collection</span><button type="button" class="val" aria-expanded="true"><span class="vt dim">None</span><svg class="ic" aria-hidden="true"><use href="#i-chev-d"/></svg></button></div>
+          <div class="xs-list" style="margin:4px 8px 0" role="listbox" aria-label="Collection">
+            <button type="button" role="option" aria-selected="true"><span class="nm none">None</span><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg></button>
+            <button type="button" role="option"><span class="nm">Pasta Night</span><span class="sl">7 of 12</span><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg></button>
+            <button type="button" role="option"><span class="nm">Sicilian Summer</span><span class="sl">9 of 12</span><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg></button>
+            <button type="button" role="option" class="full"><span class="nm">Weeknight Pasta</span><span class="sl">Full · 12 of 12</span><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg></button>
+            <button type="button" role="option"><span class="nm">Winter Sides</span><span class="sl">4 of 12</span><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg></button>
+          </div>
+        </div>
+      </div></div>
+    </div>
+  </div>
+  <ul class="lab-notes">
+    <li><b>Count live linkers only.</b> A draft that links here loses nothing when this entry leaves, and counting it inflates the warning past the point people read it.</li>
+    <li><b>No warning when nothing live links.</b> The action stays one click, with its toast and Undo. A warning that appears every time is a warning nobody reads.</li>
+    <li><b>Confirming doesn't remove the Undo.</b> After the modal, the action still ends in the usual toast, and Undo puts the entry and every page it appeared on back.</li>
+    <li><b>Lists stop at 8.</b> A single entry's rest is in its Linked From; a bulk selection's rest is a filter on the list screen. The modal never becomes a list to scroll.</li>
+    <li><b>Trash and draft share the shape;</b> only the button and the badge change. Delete Permanently is the only one that takes the danger fill.</li>
+    <li><b>A limit is shown before it refuses.</b> The count against the limit sits in the picker's list, so the refusal is the rare case, not the way someone finds out.</li>
+  </ul>
+</section>
+
 </main>
 </div>
 </div>
@@ -1629,15 +2119,63 @@ Salt the aubergine and leave it in a colander for 30 minutes, so it fries withou
   };
 
   var side = $("#liveSide");
+  side.classList.add("pinned");
   side.innerHTML =
-    '<div class="ed-tabs" style="position:sticky;top:0;background:var(--surface);z-index:3"><button type="button" class="ed-tab" aria-selected="true">' + ic("recipe") + 'Recipe</button><button type="button" class="ed-tab">' + ic("list") + 'Elements</button><span class="grow"></span><button type="button" class="ed-x" aria-label="Close">' + ic("x") + '</button></div>' +
+    '<div class="ed-tabs" style="flex:none"><button type="button" class="ed-tab" aria-selected="true">' + ic("recipe") + 'Recipe</button><button type="button" class="ed-tab">' + ic("list") + 'Elements</button><span class="grow"></span><button type="button" class="ed-x" aria-label="Close">' + ic("x") + '</button></div>' +
+    '<div class="dr-body"><div id="side-main">' +
     '<div class="fgroup"><div class="fgroup-head"><span class="fgroup-t">Publish</span></div><div class="row-set">' +
       '<div class="set-row"><span class="k">Status</span><button type="button" class="val st-published"><span class="vt">Published</span>' + ic("chev-d") + '</button></div>' +
       '<div class="set-row"><span class="k">Slug</span><span class="val" style="color:var(--fg-2)"><span class="vt mono" style="font-size:11.5px">pasta-alla-norma</span></span></div>' +
       '<div class="set-row" style="position:relative" id="g-cuisine"></div>' +
     '</div></div>' +
     '<div class="fgroup" id="g-cooks"></div><div class="fgroup" id="g-courses"></div><div class="fgroup" id="g-ingr"></div><div class="fgroup" id="g-pairs"></div>' +
-    '<button type="button" class="side-link">' + ic("list") + 'Elements in This Entry<span class="n">6</span>' + ic("chev-r") + '</button>';
+    '</div><div id="side-drill" hidden></div></div>' +
+    '<div class="dr-foot" id="side-foot">' +
+      '<button type="button" class="frow" data-drill="linked">' + ic("link") + '<span class="tx"><b>Linked From</b><span>Caponata, Arancini and Sicilian Summer</span></span><span class="n">3</span>' + ic("chev-r") + '</button>' +
+      '<button type="button" class="frow" data-drill="outline">' + ic("list") + '<span class="tx"><b>Outline</b></span><span class="n">5</span>' + ic("chev-r") + '</button>' +
+    '</div>';
+
+  /* The pinned rows open a level down: the fields and the rows go, a path
+     back comes, and the scroll starts at the top. */
+  function erowLink(m, type) {
+    return '<a href="#editor" class="erow"><span class="thumb ' + (m.v ? "v" + m.v : "ty") + '">' + (m.v ? "" : ic("book")) + '</span><div class="pm"><span class="pn"><span>' + esc(m.t) + '</span></span><span class="pr">' + type + ' · ' + m.d + '</span></div>' + ic("arrow-r") + '</a>';
+  }
+  var DRILL = {
+    linked: function () {
+      return '<button type="button" class="side-back" data-back="1">' + ic("chev-l") + '<span class="from">Recipe</span><span class="here">Linked From</span><span class="n">3</span></button>' +
+        '<div class="drill-note">' + ic("info") + '<span>Change these on the entries that link here. Pasta alla Norma doesn’t store them.</span></div>' +
+        '<div class="lgroup"><div class="lgroup-h"><b>Pairs With</b><span>Recipes</span><span class="n">2</span></div><div class="erows">' +
+          erowLink(recipe("caponata"), "Recipe") + erowLink(recipe("arancini"), "Recipe") + '</div></div>' +
+        '<div class="lgroup"><div class="lgroup-h"><b>Features</b><span>Collections</span><span class="n">1</span></div><div class="erows">' +
+          erowLink({ t: "Sicilian Summer", d: "Jul 1, 2026" }, "Collection") + '</div></div>';
+    },
+    outline: function () {
+      var rows = [["Paragraph", "Fried aubergine, a quick tomato sauce, and ricotta…"], ["Heading 2", "Ingredients"], ["List", "Bulleted · 3 items"], ["Heading 2", "Method"], ["Paragraph", "Salt the aubergine and leave it in a colander…"]];
+      return '<button type="button" class="side-back" data-back="1">' + ic("chev-l") + '<span class="from">Recipe</span><span class="here">Outline</span><span class="n">5</span></button>' +
+        '<div style="padding:var(--s-3) var(--s-4)">' + rows.map(function (r) {
+          return '<button type="button" class="frow" style="border:0;padding:8px 10px;border-radius:var(--r-1)"><span class="mono" style="font-size:11px;color:var(--fg-3);width:76px;flex:none">' + r[0] + '</span><span class="tx"><span style="font-size:12.5px;color:var(--fg-2)">' + esc(r[1]) + '</span></span></button>';
+        }).join("") + '</div>';
+    }
+  };
+  var drilledFrom = null;
+  function drill(which, from) {
+    closePop();
+    drilledFrom = from || null;
+    $("#side-drill").innerHTML = DRILL[which]();
+    $("#side-main").hidden = true; $("#side-drill").hidden = false; $("#side-foot").hidden = true;
+    side.scrollTop = 0;
+    $("#side-drill .side-back").focus();
+  }
+  function undrill() {
+    $("#side-drill").hidden = true; $("#side-main").hidden = false; $("#side-foot").hidden = false;
+    if (drilledFrom) drilledFrom.focus();
+  }
+  $("#side-foot").addEventListener("click", function (e) { var r = e.target.closest("[data-drill]"); if (r) drill(r.dataset.drill, r); });
+  $("#side-drill").addEventListener("click", function (e) {
+    if (e.target.closest("[data-back]")) { undrill(); return; }
+    var a = e.target.closest("a.erow"); if (a) { e.preventDefault(); }
+  });
+  side.addEventListener("keydown", function (e) { if (e.key === "Escape" && !$("#side-drill").hidden && !openPop) { e.preventDefault(); undrill(); } });
 
   /* Re-rendering a group keeps the focused control focused: each control
      carries a data-fk, and the same key is looked up after the swap. */

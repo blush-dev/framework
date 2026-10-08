@@ -21,6 +21,7 @@ use Blush\Auth\Permissions;
 use Blush\Content\ContentRepository;
 use Blush\Content\Index\ContentIndex;
 use Blush\Content\Relation\Relation;
+use Blush\Content\Relation\RelationLimits;
 use Blush\Content\Relation\Relations;
 use Blush\Content\Status;
 use Blush\Content\Entry\Entry;
@@ -83,6 +84,12 @@ use Blush\Support\Slug;
  * - A held slug that names a trashed entry comes back with `status`
  *   `trash`; one that names nothing is `missing`, with the `closest`
  *   candidate (`slug`, `title`) when one is near enough to be a typo.
+ * - With `from` naming a relation whose inverse has a `max` (a
+ *   collection features 12 recipes at most), it's answered as
+ *   `inverseMax`, and each item says how many entries name it through
+ *   the relation (`taken`, drafts too, not the trash), so a picker shows
+ *   a full target before it's picked (D-608). Otherwise `inverseMax` is
+ *   `null`, and so is each `taken`.
  */
 final readonly class ReferencesController
 {
@@ -114,7 +121,8 @@ final readonly class ReferencesController
 		private ContentTypes $types,
 		private Permissions $permissions,
 		private ContentIndex $index,
-		private Relations $relations
+		private Relations $relations,
+		private RelationLimits $limits
 	) {}
 
 	public function __invoke(ServerRequestInterface $request, string $type): ResponseInterface
@@ -175,9 +183,11 @@ final readonly class ReferencesController
 			return self::json(['error' => '"recent" needs a relation\'s key in "from".'], HttpStatus::BadRequest);
 		}
 
-		$taxonomy = $this->types->isTermType($type);
-		$counts   = $taxonomy ? $this->content->termCounts($type) : [];
-		$entries  = $this->content->query()->any()->type($type)->withLanding(false)->orderBy('title', Order::Asc)->limit(null)->get()->all();
+		$taxonomy   = $this->types->isTermType($type);
+		$counts     = $taxonomy ? $this->content->termCounts($type) : [];
+		$entries    = $this->content->query()->any()->type($type)->withLanding(false)->orderBy('title', Order::Asc)->limit(null)->get()->all();
+		$inverseMax = $from === null || $from->inverse === false ? null : $from->inverse->max;
+		$taken      = $from === null || $inverseMax === null ? null : $this->limits->taken($from, array_values(array_filter(array_map(static fn (Entry $entry): ?string => $entry->id, $entries))));
 		$items    = [];
 		$used     = $taxonomy && $for !== ''
 			? array_filter($this->content->termCounts($type, $this->permissions->restrict($account, ContentAction::Edit, $this->content->query()->any()->type($for))))
@@ -186,7 +196,7 @@ final readonly class ReferencesController
 		foreach ($entries as $entry) {
 			// Error pages (D-411) are the site's, not pages to point at.
 			if (ErrorPage::status($entry) === null) {
-				$items[$entry->key] = $this->describe($entry, $counts, $taxonomy);
+				$items[$entry->key] = $this->describe($entry, $counts, $taxonomy, $taken);
 			}
 		}
 
@@ -228,16 +238,19 @@ final readonly class ReferencesController
 			}
 		}
 
+		$suggested = $suggest === '' ? [] : $this->suggested($suggest, $type, $taxonomy, $items, $from === null ? null : [strstr($text['from'], '.', true) ?: '', $from], $few);
+
 		return self::json([
-			'type'      => $type,
-			'create'    => $this->types->classification($type)->create ?? false,
-			'tree'      => $tree,
-			'whole'     => $whole,
-			'search'    => trim($search),
-			'total'     => $total,
-			'excluded'  => $excluded,
-			'items'     => array_map(self::item(...), $shown),
-			'suggested' => $suggest === '' ? [] : array_map(self::item(...), $this->suggested($suggest, $type, $taxonomy, $items, $from === null ? null : [strstr($text['from'], '.', true) ?: '', $from], $few))
+			'type'       => $type,
+			'create'     => $this->types->classification($type)->create ?? false,
+			'inverseMax' => $inverseMax,
+			'tree'       => $tree,
+			'whole'      => $whole,
+			'search'     => trim($search),
+			'total'      => $total,
+			'excluded'   => $excluded,
+			'items'      => array_map(self::item(...), $shown),
+			'suggested'  => array_map(self::item(...), $suggested)
 		]);
 	}
 
@@ -438,9 +451,10 @@ final readonly class ReferencesController
 
 	/**
 	 * @param  array<string, int>   $counts Term uses by slug.
+	 * @param  ?array<string, int>  $taken  How many entries name each, by id, when it's counted.
 	 * @return array<string, mixed>
 	 */
-	private function describe(Entry $entry, array $counts, bool $taxonomy): array
+	private function describe(Entry $entry, array $counts, bool $taxonomy, ?array $taken = null): array
 	{
 		return [
 			'slug'    => $entry->key,
@@ -452,6 +466,7 @@ final readonly class ReferencesController
 			'image'   => is_string($image = $entry->field('image')) && $image !== '' ? $image : null,
 			'date'    => $entry->published?->format('Y-m-d'),
 			'depth'   => null,
+			'taken'   => $taken === null ? null : $taken[(string) $entry->id] ?? 0,
 			'missing' => false
 		];
 	}

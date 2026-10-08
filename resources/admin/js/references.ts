@@ -24,6 +24,9 @@ export interface ReferenceItem {
 	path?: string | null;
 	// For a missing slug, the candidate it most likely meant.
 	closest?: { slug: string; title: string } | null;
+	// Asked `from` a relation whose inverse has a `max`: how many entries
+	// name it through the relation (D-608).
+	taken?: number | null;
 }
 
 export interface ReferenceList {
@@ -43,6 +46,9 @@ export interface ReferenceList {
 	excluded?: number;
 	// What's offered before anything's typed (`suggest`).
 	suggested?: ReferenceItem[];
+	// Asked `from` a relation: its inverse's `max`, which `taken` counts
+	// against, or `null` (D-608).
+	inverseMax?: number | null;
 }
 
 /**
