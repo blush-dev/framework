@@ -215,7 +215,7 @@ Each is recorded in `.claude/docs/decisions.md`.
   narrow screen the section crumb goes first. The section crumb shows
   its section in the panel, and closes the panel when it already shows
   it, like the rail button (D-367).
-- **Four sections, not three** (D-326): Home, Content, **Users** (named
+- **Five sections, not three** (D-326, D-616): Home, Content, Extend, **Users** (named
   People until D-354, with the `user` icon), and
   Config, where the foundations say "three sections, not more" with
   people under Config. The author's call: People passes the
@@ -224,7 +224,9 @@ Each is recorded in `.claude/docs/decisions.md`.
   long once Settings became four screens (D-325). Users' panel is
   Your Account, Accounts, Profiles, and Roles, with no headings (D-327,
   D-353);
-  Config keeps Structure, Settings, and Extensions (named Customize until D-380).
+  Config keeps Structure and Settings; Extensions (named Customize until
+  D-380) is the fifth section, **Extend** (D-616), with the `package`
+  icon: Themes, Plugins, and Icon Packs in one group with no heading.
 - **Both admin themes ship** (D-317): Neutral and Editorial, a theme
   choice on Your profile beside the color scheme, with Editorial's
   fonts (Karla and Newsreader) served with the admin like the others.

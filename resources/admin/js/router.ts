@@ -4,7 +4,7 @@
  * content action on a type, `meta.contentAction`); the server answers the same page for
  * all of them (`ShellController`) and checks every API request itself.
  * Each belongs to one of the section rail's areas
- * (`meta.area`: `home`, `content`, `people`, or `config`); the editor fills the
+ * (`meta.area`: `home`, `content`, `people`, `config`, or `extend`); the editor fills the
  * work area edge to edge (`meta.bleed`), and the Settings screens drop the
  * work area's widest measure (`meta.wide`, D-404).
  */
@@ -89,18 +89,18 @@ export const router = createRouter({
 		{ path: '/fields/new', name: 'field-set-new', component: NewFieldSetView, meta: { title: 'New Field Set', capability: 'site.settings', area: 'config', parent: 'fields' } },
 		{ path: '/fields/:name', name: 'field-set', component: FieldSetView, meta: { title: 'Field Set', capability: 'site.settings', area: 'config', parent: 'fields' } },
 		// The direction's Appearance, named Themes (D-327).
-		{ path: '/themes', name: 'themes', component: ThemesView, meta: { title: 'Themes', capability: 'extensions.themes.view', area: 'config' } },
-		{ path: '/themes/:vendor/:name', name: 'theme', component: ThemeView, meta: { title: 'Theme', capability: 'extensions.themes.view', area: 'config', parent: 'themes' } },
+		{ path: '/themes', name: 'themes', component: ThemesView, meta: { title: 'Themes', capability: 'extensions.themes.view', area: 'extend' } },
+		{ path: '/themes/:vendor/:name', name: 'theme', component: ThemeView, meta: { title: 'Theme', capability: 'extensions.themes.view', area: 'extend', parent: 'themes' } },
 		// Settings is four screens (D-325); the view titles each.
 		{ path: '/settings', redirect: { name: 'settings', params: { screen: 'general' } } },
 		{ path: '/settings/:screen(general|reading|writing|media|search|ai|system)', name: 'settings', component: SettingsView, props: true, meta: { title: 'Settings', capability: 'site.settings', area: 'config', wide: true } },
-		{ path: '/plugins', name: 'plugins', component: PluginsView, meta: { title: 'Plugins', capability: 'extensions.plugins.view', area: 'config' } },
-		{ path: '/plugins/:vendor/:name', name: 'plugin', component: PluginView, meta: { title: 'Plugin', capability: 'extensions.plugins.view', area: 'config', parent: 'plugins' } },
+		{ path: '/plugins', name: 'plugins', component: PluginsView, meta: { title: 'Plugins', capability: 'extensions.plugins.view', area: 'extend' } },
+		{ path: '/plugins/:vendor/:name', name: 'plugin', component: PluginView, meta: { title: 'Plugin', capability: 'extensions.plugins.view', area: 'extend', parent: 'plugins' } },
 		{ path: '/extensions', redirect: { name: 'plugins' } },
-		{ path: '/icon-packs', name: 'icon-packs', component: IconPacksView, meta: { title: 'Icon Packs', capability: 'extensions.icon-packs.view', area: 'config' } },
+		{ path: '/icon-packs', name: 'icon-packs', component: IconPacksView, meta: { title: 'Icon Packs', capability: 'extensions.icon-packs.view', area: 'extend' } },
 		// The core set has a details screen too, though it isn't a pack (D-385).
-		{ path: '/icon-packs/core', name: 'icon-pack-core', component: IconPackView, meta: { title: 'Core', capability: 'extensions.icon-packs.view', area: 'config', parent: 'icon-packs' } },
-		{ path: '/icon-packs/:vendor/:name', name: 'icon-pack', component: IconPackView, meta: { title: 'Icon Pack', capability: 'extensions.icon-packs.view', area: 'config', parent: 'icon-packs' } },
+		{ path: '/icon-packs/core', name: 'icon-pack-core', component: IconPackView, meta: { title: 'Core', capability: 'extensions.icon-packs.view', area: 'extend', parent: 'icon-packs' } },
+		{ path: '/icon-packs/:vendor/:name', name: 'icon-pack', component: IconPackView, meta: { title: 'Icon Pack', capability: 'extensions.icon-packs.view', area: 'extend', parent: 'icon-packs' } },
 		// People, its own section (D-249, D-326): each list, then a screen
 		// per item (`meta.parent` marks the list in the navigation).
 		// Accounts and profiles are two lists (D-353): who can sign in,

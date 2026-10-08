@@ -569,7 +569,7 @@ replacing its `extensions.{kind}.update` (see
 
 Nothing in `extensions/` is on just because it's there. A plugin or an
 icon pack there is off until it's named,
-either by the admin (its switch on **Config → Plugins** or **Config →
+either by the admin (its switch on **Extend → Plugins** or **Extend →
 Icon Packs**) or in config:
 
 ```php
@@ -594,7 +594,7 @@ doesn't name is off, including a plugin Composer installs later: turn
 it on in the admin. **Use `config/plugins.php`'s list** (or
 `config/icons.php`'s) on the screen goes back to the defaults.
 Themes work as they always have: one is active, set in
-`config/theme.php` or on **Config → Themes**.
+`config/theme.php` or on **Extend → Themes**.
 
 ## Plugins
 
@@ -631,7 +631,7 @@ Composer step needed. `autoload` works as Composer's does: `psr-4` maps
 namespace prefixes (each ending in `\`) to folders, and `files` lists
 files loaded once when the plugin runs, such as helper functions. Every
 path must be inside the plugin. It's off until you turn it on, in
-**Config → Plugins** or by naming it in `config/plugins.php`'s
+**Extend → Plugins** or by naming it in `config/plugins.php`'s
 `enabled` list (see [Turning extensions on](#turning-extensions-on)).
 `authors` (each with a `name`, and optionally an `email`, `homepage`,
 and `role`, as in `composer.json`) and `license` are shown in the
@@ -1304,7 +1304,7 @@ code. Put it in `extensions/{vendor}/{name}/`, with an `icons.json` (or
 
 Only `name` is required. Without a `label` it's shown by its name, and
 without a `namespace` it goes by its name, hyphenated (`acme-brands`). Like a local plugin, it's
-off until it's turned on, in **Config → Icon Packs** or in
+off until it's turned on, in **Extend → Icon Packs** or in
 `config/icons.php`'s `enabled` list. `authors`, `license`, `homepage`,
 `support`, `funding`, `abandoned`, `suggest`, [`require`](#requirements), [`conflict`](#conflicts), [`replace`](#replacing-another-extension), and [`provide`](#providing-a-package) work as a plugin's
 do: a pack whose requirements aren't met adds no icons, even when it's

@@ -43,7 +43,7 @@ import ConfirmHost from './ConfirmHost.vue';
 import ToastHost from './ToastHost.vue';
 import TypeIcon from './TypeIcon.vue';
 
-type Area = 'home' | 'content' | 'people' | 'config';
+type Area = 'home' | 'content' | 'people' | 'config' | 'extend';
 
 interface NavLink {
 	key: string;
@@ -197,7 +197,8 @@ const sections = computed<Record<Area, NavGroup[]>>(() => {
 		home: groups([{ key: 'home', links: home }]),
 		content: groups([{ key: 'types', links: content }, { key: 'shared', heading: 'Shared Terms', links: shared }, { key: 'library', heading: 'Library', links: library }]),
 		people: groups([{ key: 'people', links: people }]),
-		config: groups([{ key: 'structure', heading: 'Structure', links: structure }, { key: 'settings', heading: 'Settings', links: settings }, { key: 'extensions', heading: 'Extensions', links: extensions }])
+		config: groups([{ key: 'structure', heading: 'Structure', links: structure }, { key: 'settings', heading: 'Settings', links: settings }]),
+		extend: groups([{ key: 'extensions', links: extensions }])
 	};
 });
 
@@ -229,7 +230,7 @@ const pinnable = computed<NavLink[]>(() => {
 		visit(item.links ?? []);
 	});
 
-	(['home', 'content', 'people', 'config'] as Area[]).forEach((key) => sections.value[key].forEach((group) => visit(group.links)));
+	(['home', 'content', 'extend', 'people', 'config'] as Area[]).forEach((key) => sections.value[key].forEach((group) => visit(group.links)));
 
 	return [...found.values()];
 });
@@ -298,6 +299,7 @@ function moveShortcut(index: number, by: -1 | 1): void {
 const areas = computed(() => ([
 	{ key: 'home', label: 'Home', icon: 'house' },
 	{ key: 'content', label: 'Content', icon: 'file-text' },
+	{ key: 'extend', label: 'Extend', icon: 'package' },
 	{ key: 'people', label: 'Users', icon: 'user' },
 	{ key: 'config', label: 'Config', icon: 'settings' }
 ] as const).filter((area) => sections.value[area.key].length > 0));
@@ -310,7 +312,7 @@ const routeArea = computed<Area>(() => {
 		return 'people';
 	}
 
-	return area === 'content' || area === 'people' || area === 'config' ? area : 'home';
+	return area === 'content' || area === 'people' || area === 'config' || area === 'extend' ? area : 'home';
 });
 
 // The section the panel shows: the screen's, until another is chosen.
@@ -332,7 +334,11 @@ const panelSub = computed(() => {
 		return 'Accounts, profiles, and roles';
 	}
 
-	return area.value === 'config' ? 'Types, settings, and the look' : config.site.name;
+	if (area.value === 'extend') {
+		return 'Themes, plugins, and icon packs';
+	}
+
+	return area.value === 'config' ? 'Types and settings' : config.site.name;
 });
 
 /**
@@ -407,7 +413,7 @@ function returnTo(to: RouteLocationRaw): RouteLocationRaw {
 	return lastVisits.get(router.resolve(to).path) ?? to;
 }
 
-const sectionLabel = computed(() => ({ home: 'Home', content: 'Content', people: 'Users', config: 'Config' })[routeArea.value]);
+const sectionLabel = computed(() => ({ home: 'Home', content: 'Content', people: 'Users', config: 'Config', extend: 'Extend' })[routeArea.value]);
 const bleed = computed(() => route.meta.bleed === true);
 const wide  = computed(() => route.meta.wide === true);
 // A screen read top to bottom, like the dashboard, keeps a narrower

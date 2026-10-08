@@ -41,12 +41,13 @@ its URLs exist.
 
 ## Getting around
 
-The rail at the far left has four sections: **Home** (the dashboard,
+The rail at the far left has five sections: **Home** (the dashboard,
 Site Health, and tools), **Content** (each content type's entries, with
 the types of terms that file only it under it, the terms several types
 share, and media),
-**Users** (your profile, accounts, profiles, and roles), and **Config**
-(content types, fields, settings, themes, plugins, and icon packs). The panel
+**Extend** (themes, plugins, and icon packs), **Users** (your profile,
+accounts, profiles, and roles), and **Config** (content types,
+relationships, fields, and settings). The panel
 beside it lists the section you're in. Choosing a section changes the
 panel and nothing else, so you never leave the screen you're on (an
 entry you're writing stays open); choose a link in the panel to go
@@ -1309,7 +1310,7 @@ you've compiled, run `bin/blush cache:compile` again.
 
 ## Themes
 
-With `extensions.themes.view`, **Config → Themes** shows every installed theme as
+With `extensions.themes.view`, **Extend → Themes** shows every installed theme as
 a card, the active one first and marked **Active**. Each card has a
 sketch of a page in the theme's colors (from its `theme.json`'s
 `preview`, see [The admin's preview](themes.md#the-admins-preview)),
@@ -1400,7 +1401,7 @@ How the admin itself looks is set per account, on **Your Account**.
 
 ## Plugins
 
-With `extensions.plugins.view`, **Config → Plugins** lists every installed
+With `extensions.plugins.view`, **Extend → Plugins** lists every installed
 [plugin](extending.md#plugins) by label, with its name, version, and
 description, and a switch; its mark is green while it runs. The filters
 above the list work as on [Themes](#themes), with On and Off for its
@@ -1436,7 +1437,7 @@ as **Install Theme** does; it arrives turned off.
 
 ## Icon packs
 
-With `extensions.icon-packs.view`, **Config → Icon Packs** shows every installed
+With `extensions.icon-packs.view`, **Extend → Icon Packs** shows every installed
 [icon pack](extending.md#icon-packs) by label, as a card of its first
 icons, with its version, where it's installed, how many icons it has,
 and a switch. A pack that's off adds no icons, so anywhere one of them

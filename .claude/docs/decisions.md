@@ -18457,3 +18457,23 @@ decision, add a new entry that supersedes it and mark the old one
 - **Why:** the author, 2026-10-08, asked whether better labels could be
   derived, then: "Build all of it, keep raw values in Copy Report".
 
+
+### D-616: Extend is its own rail section
+
+- **Date:** 2026-10-08
+- **Status:** Built.
+- **Decision:** the section rail has five sections: Home, Content,
+  **Extend** (the `package` icon), Users, and Config: Extend comes
+  before Users (the author's call). Extend's panel is
+  Themes, Plugins, and Icon Packs, each shown with its kind's
+  `extensions.{kind}.view` (D-389), in one group with no heading; its
+  subtitle is "Themes, plugins, and icon packs". Config keeps Structure
+  and Settings ("Types and settings"). Theme, plugin, and icon pack
+  screens are `meta.area: 'extend'`. The docs and `plugin:create`'s
+  message say **Extend → Plugins** (and Themes, Icon Packs). Splitting
+  Structure into a **Build** section was discussed and left for later.
+- **Why:** the author, 2026-10-08, proposed splitting Config into Build
+  (Structure) and Extend (extensions), then: "Just add Extend for now
+  with extensions under it." Config had 13 links in three groups.
+  Labels are short verbs because the rail's 60px buttons leave about
+  56px for a 10px label, and "Extensions" would barely fit.

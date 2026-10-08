@@ -113,7 +113,7 @@ final readonly class CreatePlugin
 		$this->filesystem->writeAtomic("{$folder}/lang/en.json", Catalog::starter($name));
 
 		$output->success(sprintf(
-			'Created %s. It\'s off: turn it on in the admin (Config → Plugins) or add "%s" to config/plugins.php\'s enabled list.',
+			'Created %s. It\'s off: turn it on in the admin (Extend → Plugins) or add "%s" to config/plugins.php\'s enabled list.',
 			$this->paths->relative($folder),
 			$name
 		));
