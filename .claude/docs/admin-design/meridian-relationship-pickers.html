@@ -1,0 +1,2002 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Meridian Relationship Pickers</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=Fira+Code:wght@400;500&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&family=Karla:wght@400;500;600&display=swap">
+<style>
+/* ============================================================================
+   Meridian — relationship pickers sketch
+   ----------------------------------------------------------------------------
+   Layout: a lab index down the left, the live editor and one board per picker down the right, each board
+   holding real admin components on the admin's own ground. Anything prefixed
+   `lab-` is the specimen harness, not the admin.
+
+   Tokens: design/tokens.css verbatim. The harness sets data-color-scheme and
+   data-admin-theme; the viewer's own data-theme is honored as well, so the
+   page is right for someone who never touches the switcher.
+   ========================================================================== */
+
+:root {
+  --bg:#f5f6f9; --surface:#ffffff; --surface-2:#f0f2f6; --surface-3:#e7eaf0;
+  --border:#e2e5ec; --border-strong:#ccd2dd;
+  --fg:#11141b; --fg-2:#535b6b; --fg-3:#858d9d;
+  --accent:#2f5fe0; --accent-hover:#2650c4; --accent-fg:#ffffff; --accent-soft:#e9effc; --accent-line:#bdcdf7;
+  --good:#136b43; --good-soft:#e2f3e9; --good-dot:#1f9d5f;
+  --warn:#8a5806; --warn-soft:#faf0d9; --warn-dot:#cf8d16;
+  --danger:#a92420; --danger-soft:#fbeae9; --danger-dot:#d6403a;
+  --shadow-1:none;
+  --shadow-2:0 2px 8px rgba(17,20,27,.05), 0 1px 2px rgba(17,20,27,.04);
+  --shadow-3:0 10px 28px rgba(17,20,27,.09), 0 2px 6px rgba(17,20,27,.05);
+  --r-1:6px; --r-2:10px; --r-3:16px;
+  --s-1:4px; --s-2:8px; --s-3:12px; --s-4:18px; --s-5:26px; --s-6:36px; --s-7:52px;
+  --font-ui:"IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-display:"IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-title:"IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-mono:"Fira Code", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --base:13px; --h1:26px; --h1-track:-.024em;
+  --title-size:13.5px; --title-weight:500; --title-track:-.005em;
+  --pad-row:14px; --pad-panel:17px; --pad-x:22px; --ctl:34px; --ctl-sm:30px; --stat-v:30px;
+  --railbar:74px; --rail:262px; --bar:62px; --work-max:1400px; --measure:72ch;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-color-scheme="light"]):not([data-theme="light"]) {
+    --bg:#0b0d12; --surface:#13161d; --surface-2:#1a1e27; --surface-3:#222733;
+    --border:#242936; --border-strong:#353c4c;
+    --fg:#e9ebf0; --fg-2:#a3abba; --fg-3:#747d8e;
+    --accent:#7295f7; --accent-hover:#8aa8f9; --accent-fg:#0b0d12; --accent-soft:#182444; --accent-line:#2c3d68;
+    --good:#5ecb92; --good-soft:#102a1e; --good-dot:#35b877;
+    --warn:#e3b360; --warn-soft:#2b2312; --warn-dot:#d69f3c;
+    --danger:#f28d84; --danger-soft:#301917; --danger-dot:#e0655c;
+    --shadow-1:none; --shadow-2:0 2px 8px rgba(0,0,0,.3);
+    --shadow-3:0 10px 28px rgba(0,0,0,.45), 0 2px 6px rgba(0,0,0,.3);
+    color-scheme: dark;
+  }
+}
+:root[data-color-scheme="dark"], :root[data-theme="dark"]:not([data-color-scheme="light"]) {
+  --bg:#0b0d12; --surface:#13161d; --surface-2:#1a1e27; --surface-3:#222733;
+  --border:#242936; --border-strong:#353c4c;
+  --fg:#e9ebf0; --fg-2:#a3abba; --fg-3:#747d8e;
+  --accent:#7295f7; --accent-hover:#8aa8f9; --accent-fg:#0b0d12; --accent-soft:#182444; --accent-line:#2c3d68;
+  --good:#5ecb92; --good-soft:#102a1e; --good-dot:#35b877;
+  --warn:#e3b360; --warn-soft:#2b2312; --warn-dot:#d69f3c;
+  --danger:#f28d84; --danger-soft:#301917; --danger-dot:#e0655c;
+  --shadow-1:none; --shadow-2:0 2px 8px rgba(0,0,0,.3);
+  --shadow-3:0 10px 28px rgba(0,0,0,.45), 0 2px 6px rgba(0,0,0,.3);
+  color-scheme: dark;
+}
+:root[data-admin-theme="editorial"] {
+  --bg:#f6f2ec; --surface:#fffdfa; --surface-2:#f1ece3; --surface-3:#e7e0d4;
+  --border:#e5ded2; --border-strong:#cdc3b3;
+  --fg:#23201b; --fg-2:#5d564c; --fg-3:#8e867a;
+  --accent:#17595e; --accent-hover:#124a4e; --accent-fg:#fffdfa; --accent-soft:#e2eded; --accent-line:#b6d3d5;
+  --good:#4c6d2c; --good-soft:#edf1e2; --good-dot:#6f9b45;
+  --warn:#8a5a14; --warn-soft:#f8eeda; --warn-dot:#c58a2a;
+  --danger:#9c3327; --danger-soft:#f8e7e2; --danger-dot:#c2503f;
+  --shadow-2:0 2px 8px rgba(60,48,32,.05), 0 1px 2px rgba(60,48,32,.04);
+  --shadow-3:0 10px 28px rgba(60,48,32,.09), 0 2px 6px rgba(60,48,32,.05);
+  --r-1:8px; --r-2:12px; --r-3:20px;
+  --font-ui:"Karla", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display:"Newsreader", ui-serif, Georgia, "Times New Roman", serif;
+  --font-title:"Newsreader", ui-serif, Georgia, "Times New Roman", serif;
+  --base:13.5px; --h1:32px; --h1-track:-.014em;
+  --title-size:15.5px; --title-weight:500; --title-track:0;
+  --pad-row:16px; --pad-panel:19px; --pad-x:26px; --stat-v:34px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-color-scheme="light"]):not([data-theme="light"])[data-admin-theme="editorial"] {
+    --bg:#15120e; --surface:#1d1915; --surface-2:#26211a; --surface-3:#322b22;
+    --border:#302a21; --border-strong:#463e31;
+    --fg:#f0e9dd; --fg-2:#b4a996; --fg-3:#877c6c;
+    --accent:#72bec2; --accent-hover:#8bcccf; --accent-fg:#15120e; --accent-soft:#113032; --accent-line:#1d4a4d;
+    --good:#9cc16b; --good-soft:#1c2413; --good-dot:#84ad55;
+    --warn:#dcae63; --warn-soft:#2c2314; --warn-dot:#c79646;
+    --danger:#e8897b; --danger-soft:#2f1a16; --danger-dot:#cf6a5c;
+    --shadow-2:0 2px 8px rgba(0,0,0,.34);
+    --shadow-3:0 10px 28px rgba(0,0,0,.5), 0 2px 6px rgba(0,0,0,.34);
+    color-scheme: dark;
+  }
+}
+:root[data-color-scheme="dark"][data-admin-theme="editorial"],
+:root[data-theme="dark"]:not([data-color-scheme="light"])[data-admin-theme="editorial"] {
+  --bg:#15120e; --surface:#1d1915; --surface-2:#26211a; --surface-3:#322b22;
+  --border:#302a21; --border-strong:#463e31;
+  --fg:#f0e9dd; --fg-2:#b4a996; --fg-3:#877c6c;
+  --accent:#72bec2; --accent-hover:#8bcccf; --accent-fg:#15120e; --accent-soft:#113032; --accent-line:#1d4a4d;
+  --good:#9cc16b; --good-soft:#1c2413; --good-dot:#84ad55;
+  --warn:#dcae63; --warn-soft:#2c2314; --warn-dot:#c79646;
+  --danger:#e8897b; --danger-soft:#2f1a16; --danger-dot:#cf6a5c;
+  --shadow-2:0 2px 8px rgba(0,0,0,.34);
+  --shadow-3:0 10px 28px rgba(0,0,0,.5), 0 2px 6px rgba(0,0,0,.34);
+  color-scheme: dark;
+}
+
+/* ------------------------------------------------------------------ base -- */
+*,*::before,*::after{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--font-ui);font-size:var(--base);line-height:1.5;-webkit-font-smoothing:antialiased}
+h1,h2,h3,h4,p,ul,ol,figure{margin:0;padding:0}
+ul,ol{list-style:none}
+button,input,select{font:inherit;color:inherit}
+button{background:none;border:0;padding:0;cursor:pointer}
+a{color:inherit;text-decoration:none}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:3px}
+.ic{width:16px;height:16px;flex:none;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.mono{font-family:var(--font-mono);font-variant-numeric:tabular-nums}
+.num,td,th,time{font-variant-numeric:tabular-nums}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+
+/* ========================================================= lab harness == */
+.lab{display:flex;flex-direction:column;height:100%}
+.lab-bar{flex:none;display:flex;align-items:center;gap:var(--s-4);flex-wrap:wrap;
+  padding:var(--s-2) var(--s-4);background:var(--surface);border-bottom:1px solid var(--border)}
+.lab-mark{display:flex;align-items:baseline;gap:var(--s-2);margin-right:auto;min-width:0}
+.lab-mark b{font-family:var(--font-display);font-size:14.5px;font-weight:600;letter-spacing:-.01em}
+.lab-mark span{color:var(--fg-3);font-size:11.5px}
+.lab-grp{display:flex;align-items:center;gap:var(--s-2)}
+.lab-grp > span{font-size:10.5px;text-transform:uppercase;letter-spacing:.07em;color:var(--fg-3);font-weight:600}
+.lab-seg{display:flex;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r-1);padding:2px;gap:2px}
+.lab-seg button{font-size:12px;color:var(--fg-2);padding:0 var(--s-3);height:24px;border-radius:calc(var(--r-1) - 2px);white-space:nowrap}
+.lab-seg button:hover{color:var(--fg)}
+.lab-seg button[aria-pressed="true"]{background:var(--surface);color:var(--fg);font-weight:500;box-shadow:var(--shadow-2)}
+
+.lab-body{flex:1 1 auto;min-height:0;display:flex}
+.lab-nav{flex:none;width:236px;overflow-y:auto;border-right:1px solid var(--border);background:var(--surface);
+  padding:var(--s-4) var(--s-3);display:flex;flex-direction:column;gap:2px}
+.lab-nav a{display:flex;gap:var(--s-2);align-items:baseline;padding:7px 10px;border-radius:var(--r-1);font-size:12.5px;color:var(--fg-2)}
+.lab-nav a:hover{background:var(--surface-2);color:var(--fg)}
+.lab-nav a[aria-current="true"]{background:var(--accent-soft);color:var(--accent)}
+.lab-nav a i{font-style:normal;font-family:var(--font-mono);font-size:10.5px;color:var(--fg-3);width:14px;flex:none}
+.lab-nav a[aria-current="true"] i{color:var(--accent)}
+.lab-nav .lab-nav-h{font-size:10.5px;text-transform:uppercase;letter-spacing:.07em;color:var(--fg-3);font-weight:600;padding:var(--s-2) 10px var(--s-1)}
+.lab-nav .lab-nav-foot{margin-top:auto;padding:var(--s-4) 10px 0;font-size:11px;color:var(--fg-3);line-height:1.55}
+
+.lab-main{flex:1 1 auto;min-width:0;overflow-y:auto;scroll-behavior:smooth}
+@media (prefers-reduced-motion:reduce){.lab-main{scroll-behavior:auto}}
+.lab-board{max-width:1240px;margin:0 auto;padding:var(--s-7) var(--s-6);display:flex;flex-direction:column;gap:var(--s-6);border-bottom:1px solid var(--border)}
+.lab-head{display:flex;flex-direction:column;gap:var(--s-2);max-width:72ch}
+.lab-eyebrow{font-family:var(--font-mono);font-size:11px;color:var(--fg-3)}
+.lab-head h2{font-family:var(--font-display);font-size:var(--h1);letter-spacing:var(--h1-track);font-weight:600;line-height:1.2;text-wrap:balance}
+.lab-head p{color:var(--fg-2);font-size:13.5px;line-height:1.6}
+.lab-h3{font-size:10.5px;text-transform:uppercase;letter-spacing:.07em;color:var(--fg-3);font-weight:600}
+
+/* Specimen labels: a name and, under it, what the state is for. */
+.lab-spec{display:flex;flex-direction:column;gap:var(--s-2);min-width:0}
+.lab-spec > .lab-cap{display:flex;flex-direction:column;gap:2px}
+.lab-cap b{font-size:12.5px;font-weight:600;color:var(--fg)}
+.lab-cap span{font-size:11.5px;color:var(--fg-3);line-height:1.5}
+.lab-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:var(--s-6) var(--s-5);align-items:start}
+.lab-grid.two{grid-template-columns:repeat(auto-fit,minmax(min(100%,460px),1fr))}
+
+/* The rules a board settles, set as a short numbered list because they are
+   referred to by number in the open-questions file. */
+.lab-rules{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr));gap:var(--s-4) var(--s-6);
+  padding:var(--s-5);border:1px dashed var(--border-strong);border-radius:var(--r-3)}
+.lab-rules li{display:flex;gap:var(--s-3);font-size:12.5px;color:var(--fg-2);line-height:1.6}
+.lab-rules li b{color:var(--fg);font-weight:600}
+.lab-rules li > i{font-style:normal;font-family:var(--font-mono);font-size:11px;color:var(--fg-3);flex:none;padding-top:2px;width:20px}
+
+@media (max-width:900px){
+  .lab-body{flex-direction:column}
+  .lab-nav{width:auto;flex-direction:row;overflow-x:auto;border-right:0;border-bottom:1px solid var(--border);padding:var(--s-2) var(--s-3)}
+  .lab-nav a{white-space:nowrap}
+  .lab-nav .lab-nav-h,.lab-nav .lab-nav-foot{display:none}
+}
+@media (max-width:640px){
+  .lab-board{padding:var(--s-6) var(--s-4)}
+  .lab-mark span{display:none}
+  .lab-grid{grid-template-columns:minmax(0,1fr)}
+}
+
+/* ============================================================ primitives == */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;height:var(--ctl);padding:0 14px;border-radius:var(--r-1);border:1px solid var(--border);background:var(--surface);color:var(--fg);font-size:12.5px;font-weight:500;white-space:nowrap}
+.btn:hover{background:var(--surface-2);border-color:var(--border-strong)}
+.btn.sm{height:var(--ctl-sm);padding:0 11px;font-size:12px}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-fg)}
+.btn.primary:hover{background:var(--accent-hover);border-color:var(--accent-hover)}
+.btn.ghost{border-color:transparent;background:transparent;color:var(--fg-2)}
+.btn.ghost:hover{background:var(--surface-2);color:var(--fg)}
+.btn.danger{color:var(--danger)}
+.btn.danger:hover{background:var(--danger-soft);border-color:var(--danger-soft)}
+.btn.danger-fill{background:var(--danger);border-color:var(--danger);color:var(--surface)}
+.btn[disabled]{opacity:.45;pointer-events:none}
+.btn .ic{width:15px;height:15px}
+a.lnk{color:var(--accent)}
+a.lnk:hover{text-decoration:underline}
+
+.avatar{width:26px;height:26px;border-radius:99px;background:var(--surface-3);color:var(--fg-2);display:grid;place-items:center;font-size:10.5px;font-weight:600;letter-spacing:.02em;flex:none}
+.avatar.sm{width:20px;height:20px;font-size:9px}
+.avatar.lg{width:44px;height:44px;font-size:14px}
+.avatar.miss{background:transparent;border:1px dashed var(--danger-dot);color:var(--danger)}
+.avatar.miss .ic{width:13px;height:13px}
+
+.pill{display:inline-flex;align-items:center;gap:6px;height:20px;padding:0 9px 0 8px;border-radius:99px;font-size:11px;font-weight:500;white-space:nowrap;border:1px solid transparent;vertical-align:middle;margin-block:-2px}
+.pill .d{width:5px;height:5px;border-radius:99px;flex:none}
+.pill.published{background:var(--good-soft);color:var(--good)} .pill.published .d{background:var(--good-dot)}
+.pill.draft{background:var(--surface-2);color:var(--fg-2);border-color:var(--border)} .pill.draft .d{background:var(--border-strong)}
+.pill.trash{background:var(--danger-soft);color:var(--danger)} .pill.trash .d{background:var(--danger-dot)}
+.pill.written{background:var(--surface-3);color:var(--fg)} .pill.written .d{background:var(--fg-2)}
+.pill.inherited{background:var(--surface-2);color:var(--fg-2)} .pill.inherited .d{background:transparent;box-shadow:inset 0 0 0 1.5px var(--border-strong)}
+.pill.unreach{background:transparent;color:var(--fg-2);border:1px dashed var(--border-strong)} .pill.unreach .ic{width:12px;height:12px}
+.pill.warn{background:var(--warn-soft);color:var(--warn)} .pill.warn .d{background:var(--warn-dot)}
+.tag{display:inline-flex;align-items:center;height:18px;padding:0 6px;border-radius:4px;background:var(--surface-2);color:var(--fg-2);font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;border:1px solid var(--border);flex:none}
+
+.cbx{position:relative;display:inline-flex;align-items:flex-start;gap:10px;cursor:pointer;font-size:12.5px;color:var(--fg)}
+.cbx input{position:absolute;opacity:0;width:1px;height:1px}
+.cbx .bx{width:15px;height:15px;flex:none;margin-top:2px;border:1px solid var(--border-strong);border-radius:4px;display:grid;place-items:center;color:transparent;background:var(--surface)}
+.cbx .bx .ic{width:11px;height:11px;stroke-width:2.6}
+.cbx input:checked + .bx{background:var(--accent);border-color:var(--accent);color:var(--accent-fg)}
+.cbx input:focus-visible + .bx{outline:2px solid var(--accent);outline-offset:2px}
+.cbx .tx{display:flex;flex-direction:column;gap:1px;min-width:0}
+.cbx .tx small{font-size:11.5px;color:var(--fg-3);line-height:1.5}
+.rdo .bx{border-radius:99px}
+.rdo input:checked + .bx{background:var(--surface);border:5px solid var(--accent)}
+
+/* ========================================================== the drawer == */
+/* The editor's settings drawer at its real 372px, so every picker is judged
+   at the width it ships at. */
+.drawer{width:100%;max-width:372px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-2);overflow:hidden}
+.drawer.flush{border-radius:0;border-width:0 0 0 1px;max-width:none}
+.ed-tabs{display:flex;align-items:center;gap:var(--s-1);padding:0 var(--s-3) 0 0;border-bottom:1px solid var(--border)}
+.ed-tabs .grow{flex:1}
+.ed-tab{padding:15px 12px 12px;font-size:12.5px;color:var(--fg-2);border-bottom:2px solid transparent;margin-bottom:-1px;display:flex;align-items:center;gap:7px;white-space:nowrap}
+.ed-tab:first-child{padding-left:var(--s-5)}
+.ed-tab[aria-selected="true"]{color:var(--fg);font-weight:500;border-bottom-color:var(--accent)}
+.ed-tab .ic{width:13px;height:13px}
+.ed-x{width:28px;height:28px;display:grid;place-items:center;color:var(--fg-3);border-radius:var(--r-1)}
+.ed-x:hover{background:var(--surface-2);color:var(--fg)}
+
+.fgroup{border-bottom:1px solid var(--border);padding:var(--s-5);display:flex;flex-direction:column;gap:var(--s-3)}
+.fgroup:last-child{border-bottom:0}
+.fgroup-head{display:flex;align-items:baseline;justify-content:space-between;gap:var(--s-3)}
+.fgroup-t{font-size:10.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--fg-3)}
+/* The meta is the field's state at a glance: a count, a count against a
+   limit, or what is missing. It changes its word before it changes its ink. */
+.fgroup-meta{font-size:11px;color:var(--fg-3);font-variant-numeric:tabular-nums;display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+.fgroup-meta .ic{width:12px;height:12px}
+.fgroup-meta.need{color:var(--fg-2)}
+.fgroup-meta.bad{color:var(--danger)}
+.fgroup-meta.full{color:var(--fg-2)}
+.f-hint{font-size:11px;color:var(--fg-3);line-height:1.55;display:flex;gap:6px;align-items:flex-start}
+.f-hint .ic{width:13px;height:13px;margin-top:1.5px}
+.f-hint b{color:var(--fg-2);font-weight:500}
+.f-hint.bad{color:var(--danger)}
+.f-hint.bad .ic{color:var(--danger-dot)}
+.f-hint.warn{color:var(--warn)}
+.f-hint.warn .ic{color:var(--warn-dot)}
+.f-hint .act{color:var(--accent);font-weight:500;white-space:nowrap}
+.f-hint .act:hover{text-decoration:underline}
+
+/* Label → value rows. */
+.row-set{display:flex;flex-direction:column;margin:-6px -8px}
+.set-row{display:flex;align-items:center;gap:var(--s-3);min-height:36px}
+.set-row .k{width:84px;flex:none;padding-left:8px;font-size:12.5px;color:var(--fg-2)}
+.val{flex:1;min-width:0;display:flex;align-items:center;gap:8px;padding:7px 8px;border-radius:var(--r-1);font-size:12.5px;color:var(--accent);text-align:left;border:1px solid transparent}
+.val:hover{background:var(--surface-2)}
+.val .ic{width:14px;height:14px;flex:none}
+.val .vt{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.val .dim{color:var(--fg-3)}
+.val .go{width:13px;height:13px;margin-left:auto;color:var(--fg-3)}
+.val.st-published{color:var(--good)}
+.val.bad{border-color:var(--danger-dot);background:var(--danger-soft)}
+.val.bad .ic{color:var(--danger-dot)}
+.val[aria-expanded="true"]{background:var(--surface-2)}
+.val .avatar{margin:-2px 0}
+
+/* The drawn list behind a select. */
+.xs-list{display:flex;flex-direction:column;gap:1px;padding:var(--s-2);background:var(--surface);border:1px solid var(--border-strong);border-radius:var(--r-2);box-shadow:var(--shadow-3);max-height:300px;overflow-y:auto}
+.xs-list.pop{position:absolute;z-index:30;left:0;right:0;top:calc(100% + 4px)}
+.xs-list button{display:flex;align-items:center;gap:var(--s-2);padding:7px 10px;padding-left:calc(10px + var(--d,0) * 16px);border-radius:var(--r-1);font-size:12.5px;color:var(--fg-2);text-align:left;white-space:nowrap}
+.xs-list button:hover,.xs-list button.cur{background:var(--surface-2);color:var(--fg)}
+.xs-list button[aria-selected="true"]{color:var(--accent)}
+.xs-list .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
+.xs-list button > .ic{width:14px;height:14px;color:var(--accent);flex:none;opacity:0}
+.xs-list button[aria-selected="true"] > .ic{opacity:1}
+.xs-list .sl{font-family:var(--font-mono);font-size:10.5px;color:var(--fg-3)}
+.xs-list .none{color:var(--fg-3)}
+.xs-list .gone{font-size:11px;color:var(--fg-3);padding:6px 10px 2px;border-top:1px solid var(--border);margin-top:4px}
+
+/* ---- tree picker ---- */
+.tax-box{border:1px solid var(--border);border-radius:var(--r-1);background:var(--surface);overflow:hidden}
+.tax-box.bad{border-color:var(--danger-dot)}
+.tax-search{display:flex;align-items:center;gap:9px;height:var(--ctl);padding:0 12px;background:var(--bg);border-bottom:1px solid var(--border)}
+.tax-search .ic{color:var(--fg-3);width:14px;height:14px}
+.tax-search input{flex:1;min-width:0;border:0;background:none;outline:none;font-size:12.5px;color:var(--fg)}
+.tax-search input::placeholder{color:var(--fg-3)}
+.tax-tree{max-height:236px;overflow-y:auto}
+.tax-row{display:flex;align-items:center;gap:10px;padding:7px 12px 7px calc(14px + var(--d,0) * 18px);font-size:12.5px;color:var(--fg-2);cursor:pointer;position:relative}
+.tax-row:hover{background:var(--surface-2);color:var(--fg)}
+.tax-row.on{color:var(--fg)}
+.tax-row input{position:absolute;opacity:0;width:1px;height:1px}
+.tax-row .box{width:15px;height:15px;flex:none;border:1px solid var(--border-strong);border-radius:4px;display:grid;place-items:center;color:transparent;background:var(--surface)}
+.tax-row .box .ic{width:11px;height:11px;stroke-width:2.6}
+.tax-row.on .box{background:var(--accent);border-color:var(--accent);color:var(--accent-fg)}
+.tax-row input:focus-visible + .box{outline:2px solid var(--accent);outline-offset:2px}
+.tax-row .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tax-row .c{font-family:var(--font-mono);font-size:10.5px;color:var(--fg-3);flex:none}
+.tax-row .mk{display:inline-flex;align-items:center;gap:3px;font-size:10.5px;color:var(--fg-3);flex:none}
+.tax-row .mk .ic{width:12px;height:12px}
+.tax-row.ctx{color:var(--fg-3)}
+.tax-row.ro{cursor:default}
+.tax-row.ro:hover{background:transparent}
+.tax-row.ro.on .box{background:var(--fg-3);border-color:var(--fg-3)}
+.tax-add{display:flex;align-items:center;gap:9px;width:100%;padding:10px 12px;border-top:1px solid var(--border);font-size:12.5px;color:var(--fg-2);text-align:left;background:var(--bg)}
+.tax-add:hover{background:var(--surface-2);color:var(--fg)}
+.tax-add .ic{width:14px;height:14px;color:var(--fg-3)}
+.tax-new{display:flex;flex-direction:column;gap:var(--s-2);padding:var(--s-3);border-top:1px solid var(--border);background:var(--bg)}
+.tax-new .acts{display:flex;gap:6px}
+.tax-empty{padding:22px 14px;text-align:center;font-size:12px;color:var(--fg-3);display:flex;flex-direction:column;gap:var(--s-2);align-items:center}
+.tax-empty .lnkb{color:var(--accent);font-weight:500}
+.inp{height:var(--ctl);border:1px solid var(--border);border-radius:var(--r-1);background:var(--bg);padding:0 12px;font-size:12.5px;outline:none;width:100%;color:var(--fg)}
+.inp:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft);background:var(--surface)}
+.inp::placeholder{color:var(--fg-3)}
+.inp.mono{font-family:var(--font-mono);font-size:12px}
+.selbtn{height:var(--ctl);border:1px solid var(--border);border-radius:var(--r-1);background:var(--bg);padding:0 12px;font-size:12.5px;width:100%;display:flex;align-items:center;gap:8px;text-align:left;color:var(--fg)}
+.selbtn:hover{border-color:var(--border-strong)}
+.selbtn .t{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.selbtn .ic{width:14px;height:14px;color:var(--fg-3)}
+
+/* ---- token picker ---- */
+.tokens{display:flex;flex-wrap:wrap;align-items:center;gap:6px;min-height:var(--ctl);padding:5px 7px;border:1px solid var(--border);border-radius:var(--r-1);background:var(--bg);cursor:text}
+.tokens:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft);background:var(--surface)}
+.tokens.bad{border-color:var(--danger-dot)}
+.tokens.ro{background:transparent;border-color:transparent;padding-inline:0;cursor:default}
+.tokens input{flex:1;min-width:80px;border:0;background:none;outline:none;font-size:12.5px;color:var(--fg);height:22px}
+.tokens input::placeholder{color:var(--fg-3)}
+/* A chip names its target. Its border and one glyph carry its state; the
+   words go in the line under the field. */
+.token{display:inline-flex;align-items:center;gap:5px;height:24px;padding:0 3px 0 8px;border-radius:var(--r-1);background:var(--surface-2);border:1px solid var(--border);color:var(--fg);font-size:12px;font-weight:500;max-width:100%;position:relative}
+.token .nm{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.token > .ic{width:12px;height:12px;color:var(--fg-3)}
+.token .x{width:18px;height:18px;display:grid;place-items:center;border-radius:4px;color:var(--fg-3)}
+.token .x:hover{background:var(--surface-3);color:var(--danger)}
+.token .x .ic{width:11px;height:11px;stroke-width:2.2}
+.token.noX{padding-right:8px}
+.token .th{width:22px;height:16px;border-radius:3px;flex:none;margin-left:-4px}
+.token.is-draft{border-style:dashed;border-color:var(--border-strong);background:var(--surface);color:var(--fg-2)}
+.token.is-trash{border-style:dashed;border-color:var(--danger-dot);background:var(--surface);color:var(--fg-2)}
+.token.is-trash .nm{text-decoration:line-through;text-decoration-color:var(--fg-3)}
+.token.is-trash > .ic{color:var(--danger-dot)}
+.token.is-miss{border-style:dashed;border-color:var(--danger-dot);background:var(--danger-soft);color:var(--danger);font-family:var(--font-mono);font-weight:400;font-size:11.5px}
+.token.is-miss > .ic{color:var(--danger-dot)}
+.token.is-new{border-color:var(--accent-line);background:var(--accent-soft);color:var(--accent)}
+.token.is-new > .ic{color:var(--accent)}
+.token.is-inh{background:transparent;border-style:dashed;border-color:var(--border-strong);color:var(--fg-3);font-weight:400}
+.token.dragging{opacity:.4}
+.token.drop-before::before{content:"";position:absolute;left:-5px;top:2px;bottom:2px;width:2px;border-radius:2px;background:var(--accent)}
+.token .grip{width:12px;height:16px;color:var(--fg-3);margin-left:-5px;margin-right:-2px;cursor:grab;display:grid;place-items:center}
+.token .grip .ic{width:12px;height:12px}
+
+.sugg{display:flex;flex-direction:column;border:1px solid var(--border-strong);border-radius:var(--r-2);background:var(--surface);box-shadow:var(--shadow-2);overflow:hidden;padding:4px}
+.sugg button{display:flex;align-items:center;gap:9px;padding:7px 9px;font-size:12.5px;color:var(--fg-2);text-align:left;border-radius:var(--r-1)}
+.sugg button:hover,.sugg button.cur{background:var(--surface-2);color:var(--fg)}
+.sugg .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sugg .nm b{font-weight:600;color:var(--fg)}
+.sugg .c{font-family:var(--font-mono);font-size:10.5px;color:var(--fg-3)}
+.sugg .ic{width:13px;height:13px;color:var(--fg-3)}
+.sugg .create{color:var(--accent)}
+.sugg .create .ic{color:var(--accent)}
+.sugg .sep{height:1px;background:var(--border);margin:3px -4px}
+.sugg .quiet{padding:9px 10px;font-size:12px;color:var(--fg-3)}
+.sugg kbd,.lab kbd{font-family:var(--font-mono);font-size:10px;border:1px solid var(--border);border-bottom-width:2px;border-radius:4px;padding:0 4px;color:var(--fg-3);background:var(--surface)}
+
+/* ---- people picker ---- */
+.people{display:flex;flex-direction:column;gap:1px;margin:0 -8px}
+.person{display:flex;align-items:center;gap:10px;padding:6px 8px;border-radius:var(--r-1);position:relative}
+.person:hover,.person:focus-within{background:var(--surface-2)}
+.person .grip{width:14px;height:26px;display:grid;place-items:center;color:var(--fg-3);opacity:0;cursor:grab;margin-right:-4px;margin-left:-4px;border-radius:3px}
+.person:hover .grip,.person .grip:focus-visible,.people.dragmode .grip{opacity:1}
+.person .grip .ic{width:13px;height:13px}
+.person .pm{min-width:0;flex:1;display:flex;flex-direction:column}
+.person .pn{font-size:12.5px;color:var(--fg);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:flex;align-items:center;gap:6px}
+.person .pr{font-family:var(--font-mono);font-size:10.5px;color:var(--fg-3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.person .x{width:24px;height:24px;flex:none;display:grid;place-items:center;border-radius:var(--r-1);color:var(--fg-3);opacity:0}
+.person:hover .x,.person .x:focus-visible,.person:focus-within .x{opacity:1}
+.person .x:hover{background:var(--surface-3);color:var(--danger)}
+.person .x .ic{width:13px;height:13px}
+.person.lifted{background:var(--surface);box-shadow:var(--shadow-2);outline:1px solid var(--border-strong)}
+.person.lifted .grip{opacity:1;cursor:grabbing}
+.person.ghost{opacity:.35}
+.person.drop-before::before{content:"";position:absolute;left:8px;right:8px;top:-1px;height:2px;border-radius:2px;background:var(--accent)}
+.person.drop-after::after{content:"";position:absolute;left:8px;right:8px;bottom:-1px;height:2px;border-radius:2px;background:var(--accent)}
+.person.is-miss .pn{color:var(--danger);font-family:var(--font-mono);font-size:12px}
+.person.is-draft .avatar{background:transparent;border:1px dashed var(--border-strong)}
+.person.is-inh{opacity:.7}
+.person.is-inh .avatar{background:transparent;border:1px dashed var(--border-strong)}
+.person .lead{font-size:9.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--fg-3);border:1px solid var(--border);border-radius:4px;padding:0 4px;line-height:15px}
+.person.ro:hover{background:transparent}
+.psearch{display:flex;align-items:center;gap:9px;height:var(--ctl);padding:0 12px;border:1px solid var(--border);border-radius:var(--r-1);background:var(--bg)}
+.psearch:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft);background:var(--surface)}
+.psearch.bad{border-color:var(--danger-dot)}
+.psearch .ic{width:14px;height:14px;color:var(--fg-3)}
+.psearch input{flex:1;min-width:0;border:0;background:none;outline:none;font-size:12.5px;color:var(--fg)}
+.psearch input::placeholder{color:var(--fg-3)}
+.pwrap{position:relative;display:flex;flex-direction:column;gap:6px}
+
+/* ---- card picker ---- */
+.cards{display:flex;flex-direction:column;gap:2px;border:1px solid var(--border-strong);border-radius:var(--r-2);background:var(--surface);box-shadow:var(--shadow-2);padding:4px}
+.card{display:flex;align-items:center;gap:var(--s-3);padding:6px;border-radius:var(--r-1);text-align:left;width:100%;position:relative}
+.card:hover,.card.cur{background:var(--surface-2)}
+.card .tx{flex:1;min-width:0;display:flex;flex-direction:column}
+.card .tt{font-family:var(--font-title);font-size:var(--title-size);font-weight:var(--title-weight);letter-spacing:var(--title-track);color:var(--fg);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.card .mt{font-size:11px;color:var(--fg-3);display:flex;gap:6px;align-items:center}
+.card .on{width:18px;height:18px;border-radius:99px;display:grid;place-items:center;flex:none;border:1px solid var(--border-strong);color:transparent}
+.card .on .ic{width:11px;height:11px;stroke-width:2.6}
+.card.chosen .on{background:var(--accent);border-color:var(--accent);color:var(--accent-fg)}
+.card .pill{margin-left:2px}
+.thumb{width:56px;aspect-ratio:4/3;max-width:100%;border-radius:4px;flex:none;position:relative;overflow:hidden;background:var(--surface-3)}
+.thumb::after{content:"";position:absolute;inset:0;border-radius:inherit;box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--fg) 8%,transparent)}
+/* Invented stills, drawn from the theme's own tokens so they follow it. */
+.v1{background:linear-gradient(180deg,color-mix(in srgb,var(--accent) 55%,var(--fg)) 0 55%,color-mix(in srgb,var(--warn-dot) 70%,var(--fg)) 55% 62%,color-mix(in srgb,var(--fg) 85%,var(--accent)) 62%)}
+.v2{background:linear-gradient(160deg,color-mix(in srgb,var(--fg-3) 60%,var(--surface)) 0 40%,color-mix(in srgb,var(--fg-2) 80%,var(--accent)) 40% 70%,var(--fg) 70%)}
+.v3{background:radial-gradient(circle at 70% 35%,color-mix(in srgb,var(--warn-dot) 75%,var(--surface)) 0 14%,transparent 15%),linear-gradient(180deg,color-mix(in srgb,var(--danger-dot) 40%,var(--fg)),var(--fg))}
+.v4{background:linear-gradient(90deg,var(--fg) 0 30%,color-mix(in srgb,var(--fg-2) 70%,var(--surface)) 30% 34%,color-mix(in srgb,var(--fg) 75%,var(--surface)) 34%)}
+.v5{background:linear-gradient(180deg,color-mix(in srgb,var(--good-dot) 45%,var(--accent)) 0 50%,color-mix(in srgb,var(--accent) 30%,var(--fg)) 50%)}
+.v6{background:linear-gradient(200deg,color-mix(in srgb,var(--fg-3) 40%,var(--fg)) 0 60%,color-mix(in srgb,var(--warn-dot) 50%,var(--fg)) 60%)}
+.v7{background:linear-gradient(180deg,color-mix(in srgb,var(--fg-2) 30%,var(--surface)),color-mix(in srgb,var(--fg-2) 70%,var(--fg)))}
+.v8{background:repeating-linear-gradient(90deg,var(--fg) 0 6px,color-mix(in srgb,var(--accent) 50%,var(--fg)) 6px 9px)}
+.skel{background:var(--surface-2);border-radius:4px;display:block}
+@media (prefers-reduced-motion:no-preference){
+  .skel{background:linear-gradient(90deg,var(--surface-2) 0 40%,var(--surface-3) 50%,var(--surface-2) 60% 100%);background-size:250% 100%;animation:shim 1.4s linear infinite}
+}
+@keyframes shim{from{background-position:100% 0}to{background-position:-50% 0}}
+
+/* ---- read-only and inherited bands ---- */
+.inh{display:flex;flex-direction:column;gap:var(--s-2);padding:var(--s-3);border:1px dashed var(--border-strong);border-radius:var(--r-1)}
+.inh-h{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--fg-3)}
+.inh-h .ic{width:13px;height:13px}
+.inh-h .act{margin-left:auto;color:var(--accent);font-weight:500;font-size:11.5px}
+.inh-h .act:hover{text-decoration:underline}
+.inh .tokens{padding:0;border:0;background:transparent;min-height:0}
+
+/* ========================================================== the editor == */
+.ed{display:flex;flex-direction:column;border:1px solid var(--border);border-radius:var(--r-3);overflow:hidden;background:var(--surface);min-height:640px}
+.ed-head{display:flex;align-items:center;gap:10px;padding:var(--s-3) var(--s-4);border-bottom:1px solid var(--border);min-height:58px}
+.ed-head .grow{flex:1}
+.ed-head .ib{width:34px;height:34px;display:grid;place-items:center;border-radius:var(--r-1);color:var(--fg-2)}
+.ed-head .ib:hover{background:var(--surface-2)}
+.ed-head .ib.on{background:var(--accent-soft);color:var(--accent)}
+.ed-save{font-size:11.5px;color:var(--fg-3);display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.ed-save .d{width:6px;height:6px;border-radius:99px;background:var(--good-dot)}
+.ed-body{display:flex;flex:1;min-height:0}
+.ed-doc{flex:1;min-width:0;padding:var(--s-7) var(--s-6)}
+.ed-doc h1{font-family:var(--font-display);font-size:34px;font-weight:600;letter-spacing:-.028em;line-height:1.18}
+.ed-doc .slug{font-family:var(--font-mono);font-size:11.5px;color:var(--fg-3);margin:11px 0 var(--s-6)}
+.ed-doc pre{font-family:var(--font-mono);font-size:14px;line-height:2;white-space:pre-wrap;color:var(--fg);margin:0;max-width:62ch}
+.ed-doc pre .m{color:var(--fg-3)}
+.ed-side{width:372px;flex:none;border-left:1px solid var(--border)}
+.ed-notice{display:flex;align-items:flex-start;gap:var(--s-3);padding:12px var(--s-4);border-bottom:1px solid var(--border);font-size:12.5px;background:var(--danger-soft);color:var(--danger)}
+.ed-notice .ic{margin-top:1px;flex:none}
+.ed-notice .end{margin-left:auto;display:flex;gap:6px;flex:none}
+@media (max-width:980px){
+  .ed-body{flex-direction:column}
+  .ed-side{width:auto;border-left:0;border-top:1px solid var(--border);max-height:none}
+  .ed-doc{padding:var(--s-5)}
+}
+
+
+.side-link{display:flex;align-items:center;gap:var(--s-3);width:100%;padding:var(--s-4) var(--s-5);font-size:12.5px;color:var(--fg-2);text-align:left}
+.side-link:hover{background:var(--surface-2);color:var(--fg)}
+.side-link .ic{color:var(--fg-3)}
+.side-link .n{margin-left:auto;font-family:var(--font-mono);font-size:11px;color:var(--fg-3)}
+
+
+/* ---- entry rows: chosen entries sit above the search, as people do ---- */
+.erows{display:flex;flex-direction:column;gap:1px;margin:0 -8px}
+.erow{display:flex;align-items:center;gap:10px;padding:5px 8px;border-radius:var(--r-1);position:relative}
+.erow:hover,.erow:focus-within{background:var(--surface-2)}
+.erow .thumb{width:44px}
+.erow .pm{min-width:0;flex:1;display:flex;flex-direction:column}
+.erow .pn{font-size:12.5px;color:var(--fg);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:flex;align-items:center;gap:6px}
+.erow .pr{font-size:11px;color:var(--fg-3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.erow .x{width:24px;height:24px;flex:none;display:grid;place-items:center;border-radius:var(--r-1);color:var(--fg-3);opacity:0}
+.erow:hover .x,.erow .x:focus-visible,.erow:focus-within .x{opacity:1}
+.erow .x:hover{background:var(--surface-3);color:var(--danger)}
+.erow .x .ic{width:13px;height:13px}
+.erow.is-trash .thumb{opacity:.35}
+.erow.is-trash .pn > span:first-child{text-decoration:line-through;text-decoration-color:var(--fg-3);color:var(--fg-2)}
+.erow.is-draft .thumb{opacity:.55}
+.erow.is-miss .thumb{background:transparent;border:1px dashed var(--danger-dot);display:grid;place-items:center;color:var(--danger)}
+.erow.is-miss .thumb::after{display:none}
+.erow.is-miss .thumb .ic{width:14px;height:14px}
+.erow.is-miss .pn{font-family:var(--font-mono);font-size:12px;color:var(--danger)}
+.erow .pill{margin-block:0}
+
+/* ---- results at scale ---- */
+/* A group label inside a result list (Recently Used, Most Used, Matches). */
+.sugg .grp,.cards .grp,.tax-tree .grp,.xs-list .grp{font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--fg-3);padding:8px 10px 4px}
+/* The last line of a capped list: how much more there is, never a scroll. */
+.sugg .more,.cards .more,.tax-tree .more,.xs-list .more{font-size:11px;color:var(--fg-3);padding:8px 10px 6px;border-top:1px solid var(--border);margin-top:3px;font-variant-numeric:tabular-nums}
+.sugg .more b,.cards .more b,.tax-tree .more b,.xs-list .more b{color:var(--fg-2);font-weight:500}
+.tax-row .path{font-size:11px;color:var(--fg-3);flex:none;max-width:45%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.xs-filter{display:flex;align-items:center;gap:8px;height:30px;padding:0 10px;margin:-2px -2px 4px;border-bottom:1px solid var(--border);color:var(--fg-3)}
+.xs-filter input{flex:1;min-width:0;border:0;background:none;outline:none;font-size:12.5px;color:var(--fg)}
+.xs-filter input::placeholder{color:var(--fg-3)}
+.xs-filter .ic{width:14px;height:14px}
+.xs-list .quiet{padding:9px 10px;font-size:12px;color:var(--fg-3)}
+.token.more-chip{background:transparent;border-style:dashed;color:var(--fg-2);padding:0 8px;cursor:pointer;font-weight:500}
+.token.more-chip:hover{background:var(--surface-2);color:var(--fg)}
+
+/* ---- the scale table ---- */
+.scale{width:100%;border-collapse:collapse;min-width:720px}
+.scale th{text-align:left;font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--fg-3);padding:10px var(--s-4);border-bottom:1px solid var(--border)}
+.scale td{padding:12px var(--s-4);border-bottom:1px solid var(--border);vertical-align:top;font-size:12.5px;color:var(--fg-2);line-height:1.55}
+.scale tr:last-child td{border-bottom:0}
+.scale td:first-child{color:var(--fg);font-weight:600;white-space:nowrap}
+.scale td:first-child .ic{width:14px;height:14px;color:var(--fg-3);vertical-align:-2px;margin-right:6px}
+.scale-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-3);overflow-x:auto;position:relative}
+
+/* ======================================================== picker boards == */
+/* Which picker a relationship gets: five cards, one per picker, each saying
+   the settings that lead to it. They link to the board below. */
+.pk-map{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr));gap:var(--s-3)}
+.pk-card{display:flex;flex-direction:column;gap:var(--s-2);padding:var(--s-4);background:var(--surface);border:1px solid var(--border);border-radius:var(--r-3);min-width:0}
+.pk-card:hover{border-color:var(--border-strong)}
+.pk-card .pk-ic{width:32px;height:32px;border-radius:var(--r-2);background:var(--surface-2);display:grid;place-items:center;color:var(--fg-2)}
+.pk-card b{font-family:var(--font-display);font-size:15px;font-weight:600;letter-spacing:-.01em;color:var(--fg)}
+.pk-card .when{font-size:12px;color:var(--fg-2);line-height:1.5}
+.pk-card .eg{font-size:11.5px;color:var(--fg-3);margin-top:auto;padding-top:var(--s-2);border-top:1px solid var(--border)}
+.pk-card .eg span{color:var(--fg-2)}
+
+/* A picker board's header: name and job on the left, the settings that
+   choose it on the right, as label → value pairs. */
+.pk-head{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,340px);gap:var(--s-5) var(--s-6);align-items:start}
+@media (max-width:900px){.pk-head{grid-template-columns:minmax(0,1fr)}}
+.pk-head .lab-head h2{display:flex;align-items:center;gap:var(--s-3)}
+.pk-head .lab-head h2 .pk-ic{width:34px;height:34px;border-radius:var(--r-2);background:var(--surface);border:1px solid var(--border);display:grid;place-items:center;color:var(--fg-2);flex:none}
+.pk-head .lab-head h2 .pk-ic .ic{width:18px;height:18px}
+.pk-facts{display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-2);padding:var(--s-1) var(--s-4)}
+.pk-facts div{display:flex;gap:var(--s-3);align-items:baseline;padding:9px 0;border-bottom:1px solid var(--border);font-size:12.5px}
+.pk-facts div:last-child{border-bottom:0}
+.pk-facts dt{width:96px;flex:none;color:var(--fg-3);font-size:11.5px}
+.pk-facts dd{margin:0;color:var(--fg);min-width:0}
+.pk-facts dd .mono{font-size:11.5px;color:var(--fg-2)}
+.lab-notes{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:var(--s-3) var(--s-6);padding:var(--s-4) var(--s-5);border:1px dashed var(--border-strong);border-radius:var(--r-3)}
+.lab-notes li{font-size:12.5px;color:var(--fg-2);line-height:1.6}
+.lab-notes li b{color:var(--fg);font-weight:600}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><defs>
+<symbol id="i-film" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M7 3v18M3 7.5h4M3 12h18M3 16.5h4M17 3v18M17 7.5h4M17 16.5h4"/></symbol>
+<symbol id="i-recipe" viewBox="0 0 24 24"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2M7 2v20M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"/></symbol>
+<symbol id="i-list" viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></symbol>
+<symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol>
+<symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+<symbol id="i-plus" viewBox="0 0 24 24"><path d="M5 12h14M12 5v14"/></symbol>
+<symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></symbol>
+<symbol id="i-chev-d" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+<symbol id="i-chev-l" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></symbol>
+<symbol id="i-chev-r" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></symbol>
+<symbol id="i-updown" viewBox="0 0 24 24"><path d="m7 15 5 5 5-5M7 9l5-5 5 5"/></symbol>
+<symbol id="i-grip" viewBox="0 0 24 24"><circle cx="9" cy="12" r="1"/><circle cx="9" cy="5" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="15" cy="19" r="1"/></symbol>
+<symbol id="i-alert" viewBox="0 0 24 24"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4M12 17h.01"/></symbol>
+<symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></symbol>
+<symbol id="i-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3M12 17h.01"/></symbol>
+<symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></symbol>
+<symbol id="i-dashed" viewBox="0 0 24 24"><path d="M10.1 2.18a10 10 0 0 1 3.8 0M13.9 21.82a10 10 0 0 1-3.8 0M17.61 3.72a10 10 0 0 1 2.69 2.7M2.18 13.9a10 10 0 0 1 0-3.8M20.28 17.61a10 10 0 0 1-2.7 2.69M21.82 10.1a10 10 0 0 1 0 3.8M3.72 6.39a10 10 0 0 1 2.7-2.69M6.39 20.28a10 10 0 0 1-2.69-2.7"/></symbol>
+<symbol id="i-lock" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></symbol>
+<symbol id="i-lang" viewBox="0 0 24 24"><path d="m5 8 6 6M4 14l6-6 2-3M2 5h12M7 2h1M22 22l-5-10-5 10M14 18h6"/></symbol>
+<symbol id="i-tree" viewBox="0 0 24 24"><path d="M21 12h-8M21 6H8M21 18h-8M3 6v4c0 1.1.9 2 2 2h3M3 10v6c0 1.1.9 2 2 2h3"/></symbol>
+<symbol id="i-tag" viewBox="0 0 24 24"><path d="M12.59 2.59A2 2 0 0 0 11.17 2H4a2 2 0 0 0-2 2v7.17a2 2 0 0 0 .59 1.42l8.7 8.7a2.43 2.43 0 0 0 3.42 0l6.58-6.58a2.43 2.43 0 0 0 0-3.42z"/><circle cx="7.5" cy="7.5" r=".5"/></symbol>
+<symbol id="i-users" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></symbol>
+<symbol id="i-user" viewBox="0 0 24 24"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></symbol>
+<symbol id="i-link" viewBox="0 0 24 24"><path d="M10 13.5a4 4 0 0 0 5.7 0l2.8-2.8a4 4 0 0 0-5.7-5.7l-1.6 1.6"/><path d="M14 10.5a4 4 0 0 0-5.7 0l-2.8 2.8a4 4 0 0 0 5.7 5.7l1.6-1.6"/></symbol>
+<symbol id="i-unlink" viewBox="0 0 24 24"><path d="m18.84 12.25 1.72-1.71h-.02a5 5 0 0 0-7.07-7.07l-1.72 1.71M5.17 11.75l-1.71 1.71a5 5 0 0 0 7.07 7.07l1.71-1.71M8 2v3M2 8h3M16 22v-3M22 16h-3"/></symbol>
+<symbol id="i-cards" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></symbol>
+<symbol id="i-select" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m14 11 2 2 2-2"/></symbol>
+<symbol id="i-page" viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4M10 9H8M16 13H8M16 17H8"/></symbol>
+<symbol id="i-book" viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2zM22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></symbol>
+<symbol id="i-sign" viewBox="0 0 24 24"><path d="M12 3v3M18.5 13h-13L2 9.5 5.5 6h13L22 9.5ZM12 13v8"/></symbol>
+<symbol id="i-ext" viewBox="0 0 24 24"><path d="M15 3h6v6M10 14 21 3M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></symbol>
+<symbol id="i-code" viewBox="0 0 24 24"><path d="m16 18 6-6-6-6M8 6l-6 6 6 6"/></symbol>
+<symbol id="i-pencil" viewBox="0 0 24 24"><path d="M21.17 6.81a1 1 0 0 0-3.98-3.98L3.84 16.17a2 2 0 0 0-.5.83l-1.32 4.35a.5.5 0 0 0 .62.62l4.35-1.32a2 2 0 0 0 .83-.5zM15 5l4 4"/></symbol>
+<symbol id="i-eye-off" viewBox="0 0 24 24"><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68M6.61 6.61A13.53 13.53 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61M2 2l20 20M14.12 14.12a3 3 0 1 1-4.24-4.24"/></symbol>
+<symbol id="i-wrench" viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></symbol>
+<symbol id="i-pulse" viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></symbol>
+<symbol id="i-panel" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M15 3v18"/></symbol>
+<symbol id="i-dots" viewBox="0 0 24 24"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></symbol>
+<symbol id="i-image" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.09-3.09a2 2 0 0 0-2.82 0L6 21"/></symbol>
+<symbol id="i-file-plus" viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4M9 15h6M12 18v-6"/></symbol>
+<symbol id="i-arrow-r" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></symbol>
+<symbol id="i-swap" viewBox="0 0 24 24"><path d="m16 3 4 4-4 4M20 7H4M8 21l-4-4 4-4M4 17h16"/></symbol>
+</defs></svg>
+<style>.lab-nav a .ic{width:14px;height:14px;color:var(--fg-3);align-self:center}.lab-nav a[aria-current="true"] .ic{color:var(--accent)}</style>
+<div class="lab">
+<header class="lab-bar">
+  <div class="lab-mark"><b>Relationship Pickers</b><span>The editor's drawer · sketch for the Meridian admin</span></div>
+  <div class="lab-grp"><span>Admin Theme</span>
+    <div class="lab-seg" id="labTheme"><button type="button" data-v="neutral" aria-pressed="true">Neutral</button><button type="button" data-v="editorial" aria-pressed="false">Editorial</button></div>
+  </div>
+  <div class="lab-grp"><span>Scheme</span>
+    <div class="lab-seg" id="labScheme"><button type="button" data-v="" aria-pressed="true">System</button><button type="button" data-v="light" aria-pressed="false">Light</button><button type="button" data-v="dark" aria-pressed="false">Dark</button></div>
+  </div>
+</header>
+<div class="lab-body">
+<nav class="lab-nav" id="labNav" aria-label="Boards">
+  <div class="lab-nav-h">Boards</div>
+  <a href="#editor" aria-current="true"><svg class="ic" aria-hidden="true"><use href="#i-recipe"/></svg>The Recipe Editor</a>
+  <a href="#scale"><svg class="ic" aria-hidden="true"><use href="#i-search"/></svg>At Scale</a>
+  <a href="#tree"><svg class="ic" aria-hidden="true"><use href="#i-tree"/></svg>Tree</a>
+  <a href="#tokens"><svg class="ic" aria-hidden="true"><use href="#i-tag"/></svg>Tokens</a>
+  <a href="#people"><svg class="ic" aria-hidden="true"><use href="#i-users"/></svg>People</a>
+  <a href="#select"><svg class="ic" aria-hidden="true"><use href="#i-select"/></svg>Select</a>
+  <a href="#cards"><svg class="ic" aria-hidden="true"><use href="#i-cards"/></svg>Cards</a>
+  <div class="lab-nav-foot">A Recipes type on a food site. Every recipe, cook and count is invented for the sketch.</div>
+</nav>
+<main class="lab-main" id="labMain">
+
+<!-- ============================================================== editor -->
+<section class="lab-board" id="editor">
+  <div class="lab-head">
+    <span class="lab-eyebrow">Content / Recipes / Editing</span>
+    <h2>Five Relationships, Five Pickers</h2>
+    <p>A recipe credits its cooks, files itself under a cuisine and a course, lists its ingredients, and suggests what to serve with it. Each of those is a relationship, and its settings choose the picker it gets in the drawer. The drawer below works: add an ingredient that doesn't exist yet, reorder the cooks with <kbd>⌥↑</kbd> <kbd>⌥↓</kbd> or by dragging, search Courses for something nested, and fill Pairs With to its limit.</p>
+  </div>
+
+  <div class="pk-map">
+    <a class="pk-card" href="#tree"><span class="pk-ic"><svg class="ic" aria-hidden="true"><use href="#i-tree"/></svg></span><b>Tree</b><span class="when">Terms that nest, several at once.</span><span class="eg">On a recipe: <span>Courses</span></span></a>
+    <a class="pk-card" href="#tokens"><span class="pk-ic"><svg class="ic" aria-hidden="true"><use href="#i-tag"/></svg></span><b>Tokens</b><span class="when">Flat terms or short targets, several at once, often typed in new.</span><span class="eg">On a recipe: <span>Ingredients</span></span></a>
+    <a class="pk-card" href="#people"><span class="pk-ic"><svg class="ic" aria-hidden="true"><use href="#i-users"/></svg></span><b>People</b><span class="when">Credits, several at once, usually in order.</span><span class="eg">On a recipe: <span>Cooks</span></span></a>
+    <a class="pk-card" href="#select"><span class="pk-ic"><svg class="ic" aria-hidden="true"><use href="#i-select"/></svg></span><b>Select</b><span class="when">Exactly one, whatever the purpose.</span><span class="eg">On a recipe: <span>Cuisine</span></span></a>
+    <a class="pk-card" href="#cards"><span class="pk-ic"><svg class="ic" aria-hidden="true"><use href="#i-cards"/></svg></span><b>Cards</b><span class="when">Other entries, where a picture and a date tell them apart. Chosen ones sit above the search.</span><span class="eg">On a recipe: <span>Pairs With</span></span></a>
+  </div>
+
+  <div class="ed" id="liveEd">
+    <div class="ed-head">
+      <button type="button" class="ib" aria-label="Insert"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg></button>
+      <button type="button" class="ib" aria-label="Media"><svg class="ic" aria-hidden="true"><use href="#i-image"/></svg></button>
+      <span class="grow"></span>
+      <span class="ed-save" id="liveSave"><span class="d"></span>Saved 9:31 PM</span>
+      <button type="button" class="ib on" aria-label="Settings panel" aria-pressed="true"><svg class="ic" aria-hidden="true"><use href="#i-panel"/></svg></button>
+      <button type="button" class="btn primary sm" id="liveUpdate">Update</button>
+      <button type="button" class="ib" aria-label="More"><svg class="ic" aria-hidden="true"><use href="#i-dots"/></svg></button>
+    </div>
+    <div class="ed-body">
+      <div class="ed-doc">
+        <h1>Pasta alla Norma</h1>
+        <div class="slug">/recipes/pasta-alla-norma</div>
+        <pre>Fried aubergine, a quick tomato sauce, and ricotta salata grated over the top while the pasta is still hot.
+
+<span class="m">##</span> Ingredients
+
+<span class="m">-</span> 2 medium aubergines, in 2 cm cubes
+<span class="m">-</span> 400 g rigatoni
+<span class="m">-</span> 60 g ricotta salata
+
+<span class="m">##</span> Method
+
+Salt the aubergine and leave it in a colander for 30 minutes, so it fries without drinking the oil.</pre>
+      </div>
+      <aside class="ed-side" id="liveSide" aria-label="Settings"></aside>
+    </div>
+  </div>
+</section>
+
+<!-- =============================================================== scale -->
+<section class="lab-board" id="scale">
+  <div class="lab-head">
+    <span class="lab-eyebrow">Every picker</span>
+    <h2>Hundreds or Thousands of Candidates</h2>
+    <p>A site with 1,240 recipes, 600 ingredients and 300 profiles is ordinary. So no picker ever renders the whole set past a small threshold, and no result list scrolls: each one is capped, ranked, and says how much more there is.</p>
+  </div>
+  <div class="scale-wrap">
+    <table class="scale">
+      <thead><tr><th>Picker</th><th>Up to 50 Candidates</th><th>Over 50</th><th>Before Typing</th><th>Results</th></tr></thead>
+      <tbody>
+        <tr><td><svg class="ic" aria-hidden="true"><use href="#i-tree"/></svg>Tree</td><td>The whole tree, filtered in place, ancestors kept</td><td>No tree. The chosen terms with their paths, then the most used</td><td>Chosen, then 8 most used</td><td>8 matches, each with its path</td></tr>
+        <tr><td><svg class="ic" aria-hidden="true"><use href="#i-tag"/></svg>Tokens</td><td>Suggestions filtered in the browser</td><td>Suggestions searched on the server</td><td>5 most used</td><td>8 matches, then Create</td></tr>
+        <tr><td><svg class="ic" aria-hidden="true"><use href="#i-users"/></svg>People</td><td>Suggestions filtered in the browser</td><td>Suggestions searched on the server</td><td>5 recently credited</td><td>8 matches</td></tr>
+        <tr><td><svg class="ic" aria-hidden="true"><use href="#i-select"/></svg>Select</td><td>The whole list, with a filter field from 13 options</td><td>The list opens on a search field, never on every option</td><td>The current value, then 5 recently used</td><td>8 matches, with paths</td></tr>
+        <tr><td><svg class="ic" aria-hidden="true"><use href="#i-cards"/></svg>Cards</td><td>Suggestions filtered in the browser</td><td>Suggestions searched on the server</td><td>3 recently edited</td><td>6 cards, because a card is taller</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <ul class="lab-notes">
+    <li><b>The threshold is the API's count, not a guess.</b> The type reports how many candidates a relationship has; under 50 the picker loads them once with the entry, over 50 it never asks for the whole set.</li>
+    <li><b>Search runs from the first character, 200ms after typing stops.</b> A response for an older query is dropped, so results never flash back to something already typed past.</li>
+    <li><b>A capped list ends in one line, not a scrollbar:</b> “8 of 214. Keep typing to narrow.” If the API can't count cheaply, it says “More match. Keep typing.” instead of inventing a number.</li>
+    <li><b>Chosen values load by slug with the entry</b>, in one request, so a recipe with 40 ingredients opens complete without running 40 searches.</li>
+    <li><b>Tokens fold past 12 chips</b> into “+28 more”, which expands in place. The field stays one glance tall.</li>
+    <li><b>Nothing here is virtualized,</b> because nothing is long enough to need it. The cap is the performance strategy.</li>
+  </ul>
+</section>
+
+<!-- ================================================================ tree -->
+<section class="lab-board" id="tree">
+  <div class="pk-head">
+    <div class="lab-head">
+      <span class="lab-eyebrow">Picker</span>
+      <h2><span class="pk-ic"><svg class="ic" aria-hidden="true"><use href="#i-tree"/></svg></span>Tree</h2>
+      <p>One box holding a search, an indented checkbox tree and a way to add a term. Every row carries its count, because a term's weight is worth knowing before anything is filed under it. Indentation carries depth; there are no disclosure triangles, because this is picking, not browsing.</p>
+    </div>
+    <dl class="pk-facts">
+      <div><dt>Purpose</dt><dd>Files entries under terms</dd></div>
+      <div><dt>Terms</dt><dd>Nest</dd></div>
+      <div><dt>Takes</dt><dd>Several</dd></div>
+      <div><dt>Example</dt><dd>Courses <span class="mono">courses</span></dd></div>
+    </dl>
+  </div>
+  <div class="lab-grid">
+    <div class="lab-spec">
+      <div class="lab-cap"><b>Chosen</b><span>Two terms ticked, one inside the other. The meta counts what is chosen.</span></div>
+      <div class="drawer"><div class="fgroup">
+        <div class="fgroup-head"><span class="fgroup-t">Courses</span><span class="fgroup-meta">2 selected</span></div>
+        <div class="tax-box">
+          <div class="tax-search"><svg class="ic" aria-hidden="true"><use href="#i-search"/></svg><input id="t1" placeholder="Find a course…" aria-label="Find a course"></div>
+          <div class="tax-tree">
+            <label class="tax-row on"><input type="checkbox" checked><span class="box"><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg></span><span class="nm">Mains</span><span class="c">24</span></label>
+            <label class="tax-row on" style="--d:1"><input type="checkbox" checked><span class="box"><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg></span><span class="nm">Pasta</span><span class="c">11</span></label>
+            <label class="tax-row" style="--d:1"><input type="checkbox"><span class="box"><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg></span><span class="nm">Stews</span><span class="c">6</span></label>
+            <label class="tax-row"><input type="checkbox"><span class="box"><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg></span><span class="nm">Sides</span><span class="c">13</span></label>
+            <label class="tax-row" style="--d:1"><input type="checkbox"><span class="box"><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg></span><span class="nm">Salads</span><span class="c">7</span></label>
+            <label class="tax-row"><input type="checkbox"><span class="box"><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg></span><span class="nm">Desserts</span><span class="c">9</span></label>
+          </div>
+          <button type="button" class="tax-add"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg>New Course</button>
+        </div>
+      </div></div>
+    </div>
+
+    <div class="lab-spec">
+      <div class="lab-cap"><b>Searching</b><span>A match deep in the tree keeps its parents, dimmed, so the result still says where it sits.</span></div>
+      <div class="drawer"><div class="fgroup">
+        <div class="fgroup-head"><span class="fgroup-t">Courses</span><span class="fgroup-meta">2 selected</span></div>
+        <div class="tax-box">
+          <div class="tax-search"><svg class="ic" aria-hidden="true"><use href="#i-search"/></svg><input id="t2" value="sal" aria-label="Find a course"></div>
+          <div class="tax-tree">
+            <label class="tax-row ctx"><input type="checkbox"><span class="box"><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg></span><span class="nm">Sides</span><span class="c">13</span></label>
+            <label class="tax-row" style="--d:1"><input type="checkbox"><span class="box"><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg></span><span class="nm">Salads</span><span class="c">7</span></label>
+            <label class="tax-row ctx"><input type="checkbox"><span class="box"><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg></span><span class="nm">Mains</span><span class="c">24</span></label>
+            <label class="tax-row" style="--d:1"><input type="checkbox"><span class="box"><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg></span><span class="nm">Main Salads</span><span class="c">2</span></label>
+          </div>
+          <button type="button" class="tax-add"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg>New Course</button>
+        </div>
+      </div></div>
+    </div>
+
+    <div class="lab-spec">
+      <div class="lab-cap"><b>Adding a Course</b><span>The footer opens a name and a parent where the author is already looking. The parent list is the tree, in order.</span></div>
+      <div class="drawer"><div class="fgroup">
+        <div class="fgroup-head"><span class="fgroup-t">Courses</span><span class="fgroup-meta">2 selected</span></div>
+        <div class="tax-box">
+          <div class="tax-search"><svg class="ic" aria-hidden="true"><use href="#i-search"/></svg><input id="t3" placeholder="Find a course…" aria-label="Find a course"></div>
+          <div class="tax-tree">
+            <label class="tax-row on"><input type="checkbox" checked><span class="box"><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg></span><span class="nm">Mains</span><span class="c">24</span></label>
+            <label class="tax-row on" style="--d:1"><input type="checkbox" checked><span class="box"><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg></span><span class="nm">Pasta</span><span class="c">11</span></label>
+          </div>
+          <div class="tax-new">
+            <input class="inp" id="t3n" value="Baked Pasta" aria-label="Name">
+            <button type="button" class="selbtn"><span class="t"><span style="color:var(--fg-3)">Parent:</span> Pasta</span><svg class="ic" aria-hidden="true"><use href="#i-chev-d"/></svg></button>
+            <div class="acts"><button type="button" class="btn primary sm">Add Course</button><button type="button" class="btn ghost sm">Cancel</button></div>
+          </div>
+        </div>
+      </div></div>
+    </div>
+
+    <div class="lab-spec">
+      <div class="lab-cap"><b>A Draft Term</b><span>The row has room for the word, so it gets the glyph and the word. The hint says what it means for this recipe.</span></div>
+      <div class="drawer"><div class="fgroup">
+        <div class="fgroup-head"><span class="fgroup-t">Courses</span><span class="fgroup-meta">2 selected</span></div>
+        <div class="tax-box">
+          <div class="tax-search"><svg class="ic" aria-hidden="true"><use href="#i-search"/></svg><input id="t4" placeholder="Find a course…" aria-label="Find a course"></div>
+          <div class="tax-tree">
+            <label class="tax-row on"><input type="checkbox" checked><span class="box"><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg></span><span class="nm">Mains</span><span class="c">24</span></label>
+            <label class="tax-row" style="--d:1"><input type="checkbox"><span class="box"><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg></span><span class="nm">Pasta</span><span class="c">11</span></label>
+            <label class="tax-row on" style="--d:1"><input type="checkbox" checked><span class="box"><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg></span><span class="nm">Weeknight</span><span class="mk"><svg class="ic" aria-hidden="true"><use href="#i-dashed"/></svg>Draft</span></label>
+            <label class="tax-row"><input type="checkbox"><span class="box"><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg></span><span class="nm">Sides</span><span class="c">13</span></label>
+          </div>
+          <button type="button" class="tax-add"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg>New Course</button>
+        </div>
+        <p class="f-hint"><svg class="ic" aria-hidden="true"><use href="#i-info"/></svg><span><b>Weeknight</b> is a draft, so this recipe isn't listed under it on the site yet.</span></p>
+      </div></div>
+    </div>
+
+    <div class="lab-spec">
+      <div class="lab-cap"><b>No Match</b><span>Says what was searched, and turns the search into the new term's name.</span></div>
+      <div class="drawer"><div class="fgroup">
+        <div class="fgroup-head"><span class="fgroup-t">Courses</span><span class="fgroup-meta">2 selected</span></div>
+        <div class="tax-box">
+          <div class="tax-search"><svg class="ic" aria-hidden="true"><use href="#i-search"/></svg><input id="t5" value="Antipasti" aria-label="Find a course"></div>
+          <div class="tax-tree"><div class="tax-empty">No course matches “Antipasti”.<button type="button" class="lnkb">New Course “Antipasti”</button></div></div>
+        </div>
+      </div></div>
+    </div>
+
+    <div class="lab-spec">
+      <div class="lab-cap"><b>Read-Only</b><span>Only the chosen terms, ticked in gray, with no search and no footer. One line says why.</span></div>
+      <div class="drawer"><div class="fgroup">
+        <div class="fgroup-head"><span class="fgroup-t">Courses</span><span class="fgroup-meta"><svg class="ic" aria-hidden="true"><use href="#i-lock"/></svg>Read-only</span></div>
+        <div class="tax-box">
+          <div class="tax-tree">
+            <div class="tax-row ro on"><span class="box"><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg></span><span class="nm">Mains</span><span class="c">24</span></div>
+            <div class="tax-row ro on" style="--d:1"><span class="box"><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg></span><span class="nm">Pasta</span><span class="c">11</span></div>
+          </div>
+        </div>
+        <p class="f-hint">Your role can see the courses but not change them.</p>
+      </div></div>
+    </div>
+
+    <div class="lab-spec">
+      <div class="lab-cap"><b>Over 50: Before Typing</b><span>The same relationship on a site with 412 courses. No tree: what is chosen, with its path, then the most used, then one line saying search finds the rest.</span></div>
+      <div class="drawer"><div class="fgroup">
+        <div class="fgroup-head"><span class="fgroup-t">Courses</span><span class="fgroup-meta">2 selected</span></div>
+        <div class="tax-box">
+          <div class="tax-search"><svg class="ic" aria-hidden="true"><use href="#i-search"/></svg><input id="t7" placeholder="Search 412 courses…" aria-label="Search courses"></div>
+          <div class="tax-tree" style="max-height:none">
+            <div class="grp">Chosen</div>
+            <label class="tax-row on"><input type="checkbox" checked><span class="box"><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg></span><span class="nm">Pasta</span><span class="path">Mains</span></label>
+            <label class="tax-row on"><input type="checkbox" checked><span class="box"><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg></span><span class="nm">Sicilian Classics</span><span class="path">Regional › Italian</span></label>
+            <div class="grp">Most Used</div>
+            <label class="tax-row"><input type="checkbox"><span class="box"><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg></span><span class="nm">Weeknight</span><span class="c">186</span></label>
+            <label class="tax-row"><input type="checkbox"><span class="box"><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg></span><span class="nm">Salads</span><span class="path">Sides</span><span class="c">94</span></label>
+            <label class="tax-row"><input type="checkbox"><span class="box"><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg></span><span class="nm">Soups</span><span class="c">88</span></label>
+            <label class="tax-row"><input type="checkbox"><span class="box"><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg></span><span class="nm">Cakes</span><span class="path">Desserts</span><span class="c">61</span></label>
+            <div class="more">412 courses. Search to find the rest.</div>
+          </div>
+          <button type="button" class="tax-add"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg>New Course</button>
+        </div>
+      </div></div>
+    </div>
+
+    <div class="lab-spec">
+      <div class="lab-cap"><b>Over 50: Searching</b><span>Matches carry their path instead of their ancestors, so a result is one row however deep it sits. Capped at 8, with the total under them.</span></div>
+      <div class="drawer"><div class="fgroup">
+        <div class="fgroup-head"><span class="fgroup-t">Courses</span><span class="fgroup-meta">2 selected</span></div>
+        <div class="tax-box">
+          <div class="tax-search"><svg class="ic" aria-hidden="true"><use href="#i-search"/></svg><input id="t8" value="sau" aria-label="Search courses"></div>
+          <div class="tax-tree" style="max-height:none">
+            <label class="tax-row"><input type="checkbox"><span class="box"><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg></span><span class="nm">Sauces</span><span class="path">Basics</span><span class="c">42</span></label>
+            <label class="tax-row"><input type="checkbox"><span class="box"><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg></span><span class="nm">Pasta Sauces</span><span class="path">Mains › Pasta</span><span class="c">27</span></label>
+            <label class="tax-row"><input type="checkbox"><span class="box"><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg></span><span class="nm">Dessert Sauces</span><span class="path">Desserts</span><span class="c">9</span></label>
+            <label class="tax-row"><input type="checkbox"><span class="box"><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg></span><span class="nm">Sausages</span><span class="path">Mains › Roasts</span><span class="c">6</span></label>
+            <div class="more">4 matches.</div>
+          </div>
+          <button type="button" class="tax-add"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg>New Course “sau”</button>
+        </div>
+      </div></div>
+    </div>
+  </div>
+  <ul class="lab-notes">
+    <li><b>Ticking a child does not tick its parent.</b> Pasta under Mains is two decisions, and the archive for Mains already includes what is filed under Pasta.</li>
+    <li><b>Up to 50 terms, the tree scrolls inside its box past about eight rows</b>, so it never pushes the next relationship out of the drawer. Over 50 there is no tree to scroll.</li>
+  </ul>
+</section>
+
+<!-- ============================================================== tokens -->
+<section class="lab-board" id="tokens">
+  <div class="pk-head">
+    <div class="lab-head">
+      <span class="lab-eyebrow">Picker</span>
+      <h2><span class="pk-ic"><svg class="ic" aria-hidden="true"><use href="#i-tag"/></svg></span>Tokens</h2>
+      <p>Chips and a bare input in one box. Typing shows suggestions; Enter takes the first, or creates a new one when nothing matches; Backspace on an empty input removes the last chip.</p>
+    </div>
+    <dl class="pk-facts">
+      <div><dt>Purpose</dt><dd>Files under flat terms, or links to a short list</dd></div>
+      <div><dt>Takes</dt><dd>Several</dd></div>
+      <div><dt>Often</dt><dd>Created as typed</dd></div>
+      <div><dt>Example</dt><dd>Ingredients <span class="mono">ingredients</span></dd></div>
+    </dl>
+  </div>
+  <div class="lab-grid">
+    <div class="lab-spec">
+      <div class="lab-cap"><b>Empty</b><span>Optional and unset. No meta and no hint, because nothing needs saying.</span></div>
+      <div class="drawer"><div class="fgroup">
+        <div class="fgroup-head"><span class="fgroup-t">Ingredients</span></div>
+        <div class="tokens"><input id="k1" placeholder="Add an ingredient…" aria-label="Add an ingredient"></div>
+      </div></div>
+    </div>
+
+    <div class="lab-spec">
+      <div class="lab-cap"><b>Chosen</b><span>Neutral chips. The × on each is the only control inside a chip.</span></div>
+      <div class="drawer"><div class="fgroup">
+        <div class="fgroup-head"><span class="fgroup-t">Ingredients</span><span class="fgroup-meta">4 selected</span></div>
+        <div class="tokens">
+          <span class="token"><span class="nm">Aubergine</span><button type="button" class="x" aria-label="Remove Aubergine"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button></span>
+          <span class="token"><span class="nm">Tomato</span><button type="button" class="x" aria-label="Remove Tomato"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button></span>
+          <span class="token"><span class="nm">Ricotta Salata</span><button type="button" class="x" aria-label="Remove Ricotta Salata"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button></span>
+          <span class="token"><span class="nm">Basil</span><button type="button" class="x" aria-label="Remove Basil"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button></span>
+          <input id="k2" placeholder="Add another…" aria-label="Add an ingredient">
+        </div>
+      </div></div>
+    </div>
+
+    <div class="lab-spec">
+      <div class="lab-cap"><b>Typing</b><span>Matches first, with the typed part in bold and each one's count. Create sits under a rule in the accent.</span></div>
+      <div class="drawer"><div class="fgroup">
+        <div class="fgroup-head"><span class="fgroup-t">Ingredients</span><span class="fgroup-meta">2 selected</span></div>
+        <div class="tokens" style="border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft);background:var(--surface)">
+          <span class="token"><span class="nm">Aubergine</span><button type="button" class="x" aria-label="Remove Aubergine"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button></span>
+          <span class="token"><span class="nm">Tomato</span><button type="button" class="x" aria-label="Remove Tomato"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button></span>
+          <input id="k3" value="pec" aria-label="Add an ingredient">
+        </div>
+        <div class="sugg">
+          <button type="button" class="cur"><span class="nm"><b>Pec</b>orino Romano</span><span class="c">17</span></button>
+          <button type="button"><span class="nm"><b>Pec</b>orino Siciliano</span><span class="c">2</span></button>
+          <div class="sep"></div>
+          <button type="button" class="create"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg><span class="nm">Create “pec”</span></button>
+        </div>
+      </div></div>
+    </div>
+
+    <div class="lab-spec">
+      <div class="lab-cap"><b>New on Save</b><span>A chip typed in new is the one accent chip, with a plus, and the hint names it before anyone presses Update.</span></div>
+      <div class="drawer"><div class="fgroup">
+        <div class="fgroup-head"><span class="fgroup-t">Ingredients</span><span class="fgroup-meta">3 selected</span></div>
+        <div class="tokens">
+          <span class="token"><span class="nm">Aubergine</span><button type="button" class="x" aria-label="Remove Aubergine"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button></span>
+          <span class="token"><span class="nm">Tomato</span><button type="button" class="x" aria-label="Remove Tomato"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button></span>
+          <span class="token is-new" title="New ingredient"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg><span class="nm">Ricotta Salata</span><button type="button" class="x" aria-label="Remove Ricotta Salata"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button></span>
+          <input id="k4" placeholder="Add another…" aria-label="Add an ingredient">
+        </div>
+        <p class="f-hint"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg><span><b>Ricotta Salata</b> is new. Updating creates it as a published ingredient.</span></p>
+      </div></div>
+    </div>
+
+    <div class="lab-spec">
+      <div class="lab-cap"><b>Not Found</b><span>A slug in the file that matches nothing, shown as written in mono on a dashed danger border, and kept until it is replaced.</span></div>
+      <div class="drawer"><div class="fgroup">
+        <div class="fgroup-head"><span class="fgroup-t">Ingredients</span><span class="fgroup-meta">3 selected</span></div>
+        <div class="tokens">
+          <span class="token"><span class="nm">Aubergine</span><button type="button" class="x" aria-label="Remove Aubergine"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button></span>
+          <span class="token is-miss" title="Not found"><svg class="ic" aria-hidden="true"><use href="#i-alert"/></svg><span class="nm">tomatoe</span><button type="button" class="x" aria-label="Remove tomatoe"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button></span>
+          <span class="token"><span class="nm">Basil</span><button type="button" class="x" aria-label="Remove Basil"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button></span>
+          <input id="k5" placeholder="Add another…" aria-label="Add an ingredient">
+        </div>
+        <p class="f-hint bad"><svg class="ic" aria-hidden="true"><use href="#i-alert"/></svg><span><b>tomatoe</b> doesn't match an ingredient. Did you mean Tomato? <a href="#tokens" class="act">Replace</a></span></p>
+      </div></div>
+    </div>
+
+    <div class="lab-spec">
+      <div class="lab-cap"><b>Inherited, Beside Its Own</b><span>A translation set to add. Its own chips come first and can be removed; the original's sit after them, dashed, and cannot.</span></div>
+      <div class="drawer"><div class="fgroup">
+        <div class="fgroup-head"><span class="fgroup-t">Ingredients</span><span class="fgroup-meta">1 + 3 from English</span></div>
+        <div class="tokens">
+          <span class="token"><span class="nm">Melanzane</span><button type="button" class="x" aria-label="Remove Melanzane"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button></span>
+          <input id="k6" placeholder="Add another…" aria-label="Add an ingredient">
+        </div>
+        <div class="inh">
+          <div class="inh-h"><svg class="ic" aria-hidden="true"><use href="#i-lang"/></svg><span>Also shown, from Pasta alla Norma (English)</span></div>
+          <div class="tokens">
+            <span class="token is-inh noX"><span class="nm">Tomato</span></span>
+            <span class="token is-inh noX"><span class="nm">Ricotta Salata</span></span>
+            <span class="token is-inh noX"><span class="nm">Basil</span></span>
+          </div>
+        </div>
+      </div></div>
+    </div>
+
+    <div class="lab-spec">
+      <div class="lab-cap"><b>Over 50: Before Typing</b><span>Focus shows the 5 most used, so the common case is one click. The full set is never listed.</span></div>
+      <div class="drawer"><div class="fgroup">
+        <div class="fgroup-head"><span class="fgroup-t">Ingredients</span><span class="fgroup-meta">2 selected</span></div>
+        <div class="tokens" style="border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft);background:var(--surface)">
+          <span class="token"><span class="nm">Aubergine</span><button type="button" class="x" aria-label="Remove Aubergine"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button></span>
+          <span class="token"><span class="nm">Tomato</span><button type="button" class="x" aria-label="Remove Tomato"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button></span>
+          <input id="k7" placeholder="Search 612 ingredients…" aria-label="Add an ingredient">
+        </div>
+        <div class="sugg">
+          <div class="grp">Most Used</div>
+          <button type="button" class="cur"><span class="nm">Olive Oil</span><span class="c">512</span></button>
+          <button type="button"><span class="nm">Garlic</span><span class="c">431</span></button>
+          <button type="button"><span class="nm">Lemon</span><span class="c">228</span></button>
+          <button type="button"><span class="nm">Basil</span><span class="c">190</span></button>
+          <button type="button"><span class="nm">Parsley</span><span class="c">164</span></button>
+        </div>
+      </div></div>
+    </div>
+
+    <div class="lab-spec">
+      <div class="lab-cap"><b>Over 50: Capped Results</b><span>Eight matches, ranked with names that start with the query first, then the total and Create.</span></div>
+      <div class="drawer"><div class="fgroup">
+        <div class="fgroup-head"><span class="fgroup-t">Ingredients</span><span class="fgroup-meta">2 selected</span></div>
+        <div class="tokens" style="border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft);background:var(--surface)">
+          <span class="token"><span class="nm">Aubergine</span><button type="button" class="x" aria-label="Remove Aubergine"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button></span>
+          <span class="token"><span class="nm">Tomato</span><button type="button" class="x" aria-label="Remove Tomato"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button></span>
+          <input id="k8" value="sa" aria-label="Add an ingredient">
+        </div>
+        <div class="sugg">
+          <button type="button" class="cur"><span class="nm"><b>Sa</b>ffron</span><span class="c">38</span></button>
+          <button type="button"><span class="nm"><b>Sa</b>ge</span><span class="c">71</span></button>
+          <button type="button"><span class="nm"><b>Sa</b>lt Cod</span><span class="c">12</span></button>
+          <button type="button"><span class="nm"><b>Sa</b>rdines</span><span class="c">19</span></button>
+          <button type="button"><span class="nm"><b>Sa</b>voy Cabbage</span><span class="c">9</span></button>
+          <button type="button"><span class="nm">Sea <b>Sa</b>lt</span><span class="c">402</span></button>
+          <button type="button"><span class="nm">Ri<b>sa</b> Rice</span><span class="c">3</span></button>
+          <button type="button"><span class="nm">Wa<b>sa</b>bi</span><span class="c">14</span></button>
+          <div class="more"><b>8</b> of 57 matches. Keep typing to narrow.</div>
+          <button type="button" class="create"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg><span class="nm">Create “sa”</span></button>
+        </div>
+      </div></div>
+    </div>
+
+    <div class="lab-spec">
+      <div class="lab-cap"><b>Many Chosen</b><span>Past 12 chips the rest fold into one, which expands in place. The field stays one glance tall.</span></div>
+      <div class="drawer"><div class="fgroup">
+        <div class="fgroup-head"><span class="fgroup-t">Ingredients</span><span class="fgroup-meta">40 selected</span></div>
+        <div class="tokens">
+          <span class="token"><span class="nm">Aubergine</span><button type="button" class="x" aria-label="Remove"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button></span>
+          <span class="token"><span class="nm">Tomato</span><button type="button" class="x" aria-label="Remove"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button></span>
+          <span class="token"><span class="nm">Basil</span><button type="button" class="x" aria-label="Remove"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button></span>
+          <span class="token"><span class="nm">Garlic</span><button type="button" class="x" aria-label="Remove"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button></span>
+          <span class="token"><span class="nm">Olive Oil</span><button type="button" class="x" aria-label="Remove"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button></span>
+          <span class="token"><span class="nm">Ricotta Salata</span><button type="button" class="x" aria-label="Remove"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button></span>
+          <span class="token"><span class="nm">Rigatoni</span><button type="button" class="x" aria-label="Remove"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button></span>
+          <span class="token"><span class="nm">Chili Flakes</span><button type="button" class="x" aria-label="Remove"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button></span>
+          <span class="token"><span class="nm">Oregano</span><button type="button" class="x" aria-label="Remove"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button></span>
+          <span class="token"><span class="nm">Capers</span><button type="button" class="x" aria-label="Remove"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button></span>
+          <span class="token"><span class="nm">Lemon</span><button type="button" class="x" aria-label="Remove"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button></span>
+          <span class="token"><span class="nm">Sea Salt</span><button type="button" class="x" aria-label="Remove"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button></span>
+          <button type="button" class="token more-chip">+28 more</button>
+          <input id="k9" placeholder="Add another…" aria-label="Add an ingredient">
+        </div>
+      </div></div>
+    </div>
+  </div>
+  <ul class="lab-notes">
+    <li><b>Create appears only where the relationship allows it.</b> Without it, a search with no match says so and offers nothing.</li>
+    <li><b>Creating never happens on a keystroke you didn't mean.</b> Enter takes the highlighted match whenever there is one; it creates only when the list is just Create.</li>
+  </ul>
+</section>
+
+<!-- ============================================================== people -->
+<section class="lab-board" id="people">
+  <div class="pk-head">
+    <div class="lab-head">
+      <span class="lab-eyebrow">Picker</span>
+      <h2><span class="pk-ic"><svg class="ic" aria-hidden="true"><use href="#i-users"/></svg></span>People</h2>
+      <p>Rows of avatar, name and slug, with the first marked Lead when order is kept. Adding is a search, because a site with forty profiles makes a dropdown useless and the same field still works at four. The × shows on hover and focus.</p>
+    </div>
+    <dl class="pk-facts">
+      <div><dt>Purpose</dt><dd>Credits people</dd></div>
+      <div><dt>Takes</dt><dd>Several, usually in order</dd></div>
+      <div><dt>Points at</dt><dd>Profiles</dd></div>
+      <div><dt>Example</dt><dd>Cooks <span class="mono">cooks</span></dd></div>
+    </dl>
+  </div>
+  <div class="lab-grid">
+    <div class="lab-spec">
+      <div class="lab-cap"><b>Chosen, in Order</b><span>Grips appear on hover and focus, and only on an ordered relationship, so their presence says the order means something.</span></div>
+      <div class="drawer"><div class="fgroup">
+        <div class="fgroup-head"><span class="fgroup-t">Cooks</span><span class="fgroup-meta">3 people</span></div>
+        <div class="people dragmode">
+          <div class="person"><span class="grip"><svg class="ic" aria-hidden="true"><use href="#i-grip"/></svg></span><span class="avatar">GF</span><div class="pm"><span class="pn">Giulia Ferraro<span class="lead">Lead</span></span><span class="pr">giulia-ferraro</span></div><button type="button" class="x" aria-label="Remove Giulia Ferraro"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button></div>
+          <div class="person"><span class="grip"><svg class="ic" aria-hidden="true"><use href="#i-grip"/></svg></span><span class="avatar">PR</span><div class="pm"><span class="pn">Priya Raman</span><span class="pr">priya-raman</span></div><button type="button" class="x" aria-label="Remove Priya Raman"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button></div>
+          <div class="person"><span class="grip"><svg class="ic" aria-hidden="true"><use href="#i-grip"/></svg></span><span class="avatar">SO</span><div class="pm"><span class="pn">Sam Okonkwo</span><span class="pr">sam-okonkwo</span></div><button type="button" class="x" aria-label="Remove Sam Okonkwo"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button></div>
+        </div>
+        <div class="psearch"><svg class="ic" aria-hidden="true"><use href="#i-search"/></svg><input id="p1" placeholder="Add a cook…" aria-label="Add a cook"></div>
+      </div></div>
+    </div>
+
+    <div class="lab-spec">
+      <div class="lab-cap"><b>Mid-Drag</b><span>The row being moved lifts, the gap it left fades, and an accent line marks where it will land.</span></div>
+      <div class="drawer"><div class="fgroup">
+        <div class="fgroup-head"><span class="fgroup-t">Cooks</span><span class="fgroup-meta">3 people</span></div>
+        <div class="people dragmode">
+          <div class="person ghost"><span class="grip"><svg class="ic" aria-hidden="true"><use href="#i-grip"/></svg></span><span class="avatar">GF</span><div class="pm"><span class="pn">Giulia Ferraro</span><span class="pr">giulia-ferraro</span></div></div>
+          <div class="person drop-after"><span class="grip"><svg class="ic" aria-hidden="true"><use href="#i-grip"/></svg></span><span class="avatar">PR</span><div class="pm"><span class="pn">Priya Raman<span class="lead">Lead</span></span><span class="pr">priya-raman</span></div></div>
+          <div class="person lifted"><span class="grip"><svg class="ic" aria-hidden="true"><use href="#i-grip"/></svg></span><span class="avatar">GF</span><div class="pm"><span class="pn">Giulia Ferraro</span><span class="pr">giulia-ferraro</span></div></div>
+          <div class="person"><span class="grip"><svg class="ic" aria-hidden="true"><use href="#i-grip"/></svg></span><span class="avatar">SO</span><div class="pm"><span class="pn">Sam Okonkwo</span><span class="pr">sam-okonkwo</span></div></div>
+        </div>
+        <div class="psearch"><svg class="ic" aria-hidden="true"><use href="#i-search"/></svg><input id="p2" placeholder="Add a cook…" aria-label="Add a cook"></div>
+      </div></div>
+    </div>
+
+    <div class="lab-spec">
+      <div class="lab-cap"><b>Searching</b><span>Results are the same row shape as what is already chosen, minus the grip, so a pick reads as moving into the list.</span></div>
+      <div class="drawer"><div class="fgroup">
+        <div class="fgroup-head"><span class="fgroup-t">Cooks</span><span class="fgroup-meta">1 person</span></div>
+        <div class="people">
+          <div class="person"><span class="avatar">GF</span><div class="pm"><span class="pn">Giulia Ferraro</span><span class="pr">giulia-ferraro</span></div></div>
+        </div>
+        <div class="pwrap">
+          <div class="psearch" style="border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft);background:var(--surface)"><svg class="ic" aria-hidden="true"><use href="#i-search"/></svg><input id="p3" value="am" aria-label="Add a cook"></div>
+          <div class="sugg">
+            <button type="button" class="cur"><span class="avatar sm">AD</span><span class="nm"><b>Am</b>ara Diallo</span><span class="c">amara-diallo</span></button>
+            <button type="button"><span class="avatar sm">PR</span><span class="nm">Priya R<b>am</b>an</span><span class="c">priya-raman</span></button>
+          </div>
+        </div>
+      </div></div>
+    </div>
+
+    <div class="lab-spec">
+      <div class="lab-cap"><b>Required and Empty</b><span>The meta says what is missing; the hint says what it blocks, and that a draft still saves.</span></div>
+      <div class="drawer"><div class="fgroup">
+        <div class="fgroup-head"><span class="fgroup-t">Cooks</span><span class="fgroup-meta need">Needs 1</span></div>
+        <div class="psearch"><svg class="ic" aria-hidden="true"><use href="#i-search"/></svg><input id="p4" placeholder="Add a cook…" aria-label="Add a cook"></div>
+        <p class="f-hint">Publishing needs at least 1 cook. A draft saves without one.</p>
+      </div></div>
+    </div>
+
+    <div class="lab-spec">
+      <div class="lab-cap"><b>Last One, When One Is Required</b><span>The × goes, and one line says why, because a control that silently stops working reads as broken.</span></div>
+      <div class="drawer"><div class="fgroup">
+        <div class="fgroup-head"><span class="fgroup-t">Cooks</span><span class="fgroup-meta">1 person</span></div>
+        <div class="people">
+          <div class="person"><span class="avatar">GF</span><div class="pm"><span class="pn">Giulia Ferraro</span><span class="pr">giulia-ferraro</span></div></div>
+        </div>
+        <div class="psearch"><svg class="ic" aria-hidden="true"><use href="#i-search"/></svg><input id="p5" placeholder="Add a cook…" aria-label="Add a cook"></div>
+        <p class="f-hint">A recipe always has a cook, so this one stays until another is added.</p>
+      </div></div>
+    </div>
+
+    <div class="lab-spec">
+      <div class="lab-cap"><b>Below the Minimum, After Publish</b><span>Publish was pressed. The field takes the danger ink, says how many more, and clears as soon as it is met.</span></div>
+      <div class="drawer"><div class="fgroup">
+        <div class="fgroup-head"><span class="fgroup-t">Testers</span><span class="fgroup-meta bad"><svg class="ic" aria-hidden="true"><use href="#i-alert"/></svg>1 of at least 2</span></div>
+        <div class="people">
+          <div class="person"><span class="avatar">TM</span><div class="pm"><span class="pn">Theo Marsh</span><span class="pr">theo-marsh</span></div><button type="button" class="x" aria-label="Remove Theo Marsh"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button></div>
+        </div>
+        <div class="psearch bad"><svg class="ic" aria-hidden="true"><use href="#i-search"/></svg><input id="p6" placeholder="Add a tester…" aria-label="Add a tester"></div>
+        <p class="f-hint bad"><svg class="ic" aria-hidden="true"><use href="#i-alert"/></svg><span>Add 1 more tester to publish. Your other changes are saved.</span></p>
+      </div></div>
+    </div>
+
+    <div class="lab-spec">
+      <div class="lab-cap"><b>Not Found</b><span>A slug that matches no profile. A dashed avatar with a question mark, and the slug as written.</span></div>
+      <div class="drawer"><div class="fgroup">
+        <div class="fgroup-head"><span class="fgroup-t">Cooks</span><span class="fgroup-meta">2 people</span></div>
+        <div class="people">
+          <div class="person"><span class="avatar">GF</span><div class="pm"><span class="pn">Giulia Ferraro<span class="lead">Lead</span></span><span class="pr">giulia-ferraro</span></div><button type="button" class="x" aria-label="Remove Giulia Ferraro"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button></div>
+          <div class="person is-miss"><span class="avatar miss"><svg class="ic" aria-hidden="true"><use href="#i-help"/></svg></span><div class="pm"><span class="pn">pria-raman</span><span class="pr" style="color:var(--danger)">No profile has this slug</span></div><button type="button" class="x" aria-label="Remove pria-raman"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button></div>
+        </div>
+        <p class="f-hint bad"><svg class="ic" aria-hidden="true"><use href="#i-alert"/></svg><span><b>pria-raman</b> doesn't match a profile. Did you mean Priya Raman? <a href="#people" class="act">Replace</a></span></p>
+      </div></div>
+    </div>
+
+    <div class="lab-spec">
+      <div class="lab-cap"><b>Read-Only</b><span>The people stay, the controls go.</span></div>
+      <div class="drawer"><div class="fgroup">
+        <div class="fgroup-head"><span class="fgroup-t">Cooks</span><span class="fgroup-meta"><svg class="ic" aria-hidden="true"><use href="#i-lock"/></svg>Read-only</span></div>
+        <div class="people">
+          <div class="person ro"><span class="avatar">GF</span><div class="pm"><span class="pn">Giulia Ferraro<span class="lead">Lead</span></span><span class="pr">giulia-ferraro</span></div></div>
+          <div class="person ro"><span class="avatar">PR</span><div class="pm"><span class="pn">Priya Raman</span><span class="pr">priya-raman</span></div></div>
+        </div>
+        <p class="f-hint">Your role can see the cooks but not change them.</p>
+      </div></div>
+    </div>
+
+    <div class="lab-spec">
+      <div class="lab-cap"><b>Over 50: Before Typing</b><span>Focus shows the 5 profiles most recently credited on recipes. Everyone else is a search away.</span></div>
+      <div class="drawer"><div class="fgroup">
+        <div class="fgroup-head"><span class="fgroup-t">Cooks</span><span class="fgroup-meta">1 person</span></div>
+        <div class="people"><div class="person"><span class="avatar">GF</span><div class="pm"><span class="pn">Giulia Ferraro</span><span class="pr">giulia-ferraro</span></div></div></div>
+        <div class="pwrap">
+          <div class="psearch" style="border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft);background:var(--surface)"><svg class="ic" aria-hidden="true"><use href="#i-search"/></svg><input id="p7" placeholder="Search 318 profiles…" aria-label="Add a cook"></div>
+          <div class="sugg">
+            <div class="grp">Recently Credited</div>
+            <button type="button" class="cur"><span class="avatar sm">PR</span><span class="nm">Priya Raman</span><span class="c">priya-raman</span></button>
+            <button type="button"><span class="avatar sm">SO</span><span class="nm">Sam Okonkwo</span><span class="c">sam-okonkwo</span></button>
+            <button type="button"><span class="avatar sm">TM</span><span class="nm">Theo Marsh</span><span class="c">theo-marsh</span></button>
+            <button type="button"><span class="avatar sm">HM</span><span class="nm">Hana Mori</span><span class="c">hana-mori</span></button>
+            <button type="button"><span class="avatar sm">OH</span><span class="nm">Omar Haddad</span><span class="c">omar-haddad</span></button>
+          </div>
+        </div>
+      </div></div>
+    </div>
+
+    <div class="lab-spec">
+      <div class="lab-cap"><b>Over 50: Capped Results</b><span>Eight people, the total under them. The slug tells two people with one name apart.</span></div>
+      <div class="drawer"><div class="fgroup">
+        <div class="fgroup-head"><span class="fgroup-t">Cooks</span><span class="fgroup-meta">1 person</span></div>
+        <div class="people"><div class="person"><span class="avatar">GF</span><div class="pm"><span class="pn">Giulia Ferraro</span><span class="pr">giulia-ferraro</span></div></div></div>
+        <div class="pwrap">
+          <div class="psearch" style="border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft);background:var(--surface)"><svg class="ic" aria-hidden="true"><use href="#i-search"/></svg><input id="p8" value="ma" aria-label="Add a cook"></div>
+          <div class="sugg">
+            <button type="button" class="cur"><span class="avatar sm">MR</span><span class="nm"><b>Ma</b>ya Rosen</span><span class="c">maya-rosen</span></button>
+            <button type="button"><span class="avatar sm">MO</span><span class="nm"><b>Ma</b>rco Orsini</span><span class="c">marco-orsini</span></button>
+            <button type="button"><span class="avatar sm">MO</span><span class="nm"><b>Ma</b>rco Orsini</span><span class="c">marco-orsini-2</span></button>
+            <button type="button"><span class="avatar sm">MK</span><span class="nm"><b>Ma</b>rtha Kim</span><span class="c">martha-kim</span></button>
+            <button type="button"><span class="avatar sm">TM</span><span class="nm">Theo <b>Ma</b>rsh</span><span class="c">theo-marsh</span></button>
+            <button type="button"><span class="avatar sm">LM</span><span class="nm">Lena <b>Ma</b>ier</span><span class="c">lena-maier</span></button>
+            <button type="button"><span class="avatar sm">AM</span><span class="nm">Ade <b>Ma</b>tthews</span><span class="c">ade-matthews</span></button>
+            <button type="button"><span class="avatar sm">PR</span><span class="nm">Priya Ra<b>ma</b>n</span><span class="c">priya-raman</span></button>
+            <div class="more"><b>8</b> of 31 matches. Keep typing to narrow.</div>
+          </div>
+        </div>
+      </div></div>
+    </div>
+  </div>
+  <ul class="lab-notes">
+    <li><b>⌥↑ and ⌥↓ move the focused row</b>, the same keys that move an element in the source. The grip's label says so, so no hint has to sit under the field.</li>
+    <li><b>Lead only appears with two or more</b>, and only when order is kept. One cook is not a lead of anything.</li>
+  </ul>
+</section>
+
+<!-- ============================================================== select -->
+<section class="lab-board" id="select">
+  <div class="pk-head">
+    <div class="lab-head">
+      <span class="lab-eyebrow">Picker</span>
+      <h2><span class="pk-ic"><svg class="ic" aria-hidden="true"><use href="#i-select"/></svg></span>Select</h2>
+      <p>Exactly one. It joins the label → value rows at the top of the drawer rather than taking a group of its own, because a single answer reads like Status and Date do. The list opens with None, then the options, in tree order when the type nests.</p>
+    </div>
+    <dl class="pk-facts">
+      <div><dt>Purpose</dt><dd>Any</dd></div>
+      <div><dt>Takes</dt><dd>Exactly one, or none</dd></div>
+      <div><dt>Example</dt><dd>Cuisine <span class="mono">cuisine</span></dd></div>
+      <div><dt>Also</dt><dd>A term's parent</dd></div>
+    </dl>
+  </div>
+  <div class="lab-grid">
+    <div class="lab-spec">
+      <div class="lab-cap"><b>Closed</b><span>The value in the accent, like every other value in the panel.</span></div>
+      <div class="drawer"><div class="fgroup">
+        <div class="fgroup-head"><span class="fgroup-t">Publish</span></div>
+        <div class="row-set">
+          <div class="set-row"><span class="k">Status</span><button type="button" class="val st-published"><span class="vt">Published</span><svg class="ic" aria-hidden="true"><use href="#i-chev-d"/></svg></button></div>
+          <div class="set-row"><span class="k">Cuisine</span><button type="button" class="val"><span class="vt">Sicilian</span><span class="dim">Italian</span><svg class="ic" aria-hidden="true"><use href="#i-chev-d"/></svg></button></div>
+        </div>
+      </div></div>
+    </div>
+
+    <div class="lab-spec">
+      <div class="lab-cap"><b>Open</b><span>None first, then the tree, indented. The chosen one carries a tick, because this list can run to forty rows.</span></div>
+      <div class="drawer" style="overflow:visible"><div class="fgroup">
+        <div class="fgroup-head"><span class="fgroup-t">Publish</span></div>
+        <div class="row-set">
+          <div class="set-row"><span class="k">Cuisine</span><button type="button" class="val" aria-expanded="true"><span class="vt">Sicilian</span><span class="dim">Italian</span><svg class="ic" aria-hidden="true"><use href="#i-chev-d"/></svg></button></div>
+          <div class="xs-list" style="margin:4px 8px 0" role="listbox" aria-label="Cuisine">
+            <button type="button" role="option"><span class="nm none">None</span><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg></button>
+            <button type="button" role="option"><span class="nm">Italian</span><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg></button>
+            <button type="button" role="option" style="--d:1"><span class="nm">Roman</span><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg></button>
+            <button type="button" role="option" aria-selected="true" style="--d:1"><span class="nm">Sicilian</span><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg></button>
+            <button type="button" role="option" style="--d:1"><span class="nm">Tuscan</span><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg></button>
+            <button type="button" role="option"><span class="nm">Middle Eastern</span><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg></button>
+            <button type="button" role="option" style="--d:1"><span class="nm">Levantine</span><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg></button>
+            <button type="button" role="option" style="--d:1"><span class="nm">Persian</span><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg></button>
+            <button type="button" role="option"><span class="nm">Japanese</span><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg></button>
+            <button type="button" role="option"><span class="nm">Mexican</span><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg></button>
+            <button type="button" role="option" style="--d:1"><span class="nm">Oaxacan</span><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg></button>
+          </div>
+        </div>
+      </div></div>
+    </div>
+
+    <div class="lab-spec">
+      <div class="lab-cap"><b>A Term's Parent</b><span>On the Italian cuisine's own page. Its own branch is left out, and the foot of the list says so rather than leaving a gap to puzzle over.</span></div>
+      <div class="drawer" style="overflow:visible"><div class="fgroup">
+        <div class="fgroup-head"><span class="fgroup-t">Publish</span></div>
+        <div class="row-set">
+          <div class="set-row"><span class="k">Parent</span><button type="button" class="val" aria-expanded="true"><span class="vt dim">None</span><svg class="ic" aria-hidden="true"><use href="#i-chev-d"/></svg></button></div>
+          <div class="xs-list" style="margin:4px 8px 0" role="listbox" aria-label="Parent">
+            <button type="button" role="option" aria-selected="true"><span class="nm none">None</span><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg></button>
+            <button type="button" role="option"><span class="nm">Middle Eastern</span><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg></button>
+            <button type="button" role="option" style="--d:1"><span class="nm">Levantine</span><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg></button>
+            <button type="button" role="option" style="--d:1"><span class="nm">Persian</span><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg></button>
+            <button type="button" role="option"><span class="nm">Japanese</span><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg></button>
+            <button type="button" role="option"><span class="nm">Mexican</span><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg></button>
+            <button type="button" role="option" style="--d:1"><span class="nm">Oaxacan</span><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg></button>
+            <div class="gone">Italian and the 3 cuisines inside it aren&rsquo;t listed. A cuisine can't sit inside itself.</div>
+          </div>
+        </div>
+      </div></div>
+    </div>
+
+    <div class="lab-spec">
+      <div class="lab-cap"><b>Inherited, Instead of Its Own</b><span>A translation set to fall back. The original's value stands in, dashed, until the translation picks its own.</span></div>
+      <div class="drawer"><div class="fgroup">
+        <div class="fgroup-head"><span class="fgroup-t">Publish</span></div>
+        <div class="row-set">
+          <div class="set-row"><span class="k">Cuisine</span><button type="button" class="val" style="border:1px dashed var(--border-strong)"><span class="vt" style="color:var(--fg-3)">Sicilian</span><span class="dim" style="display:inline-flex;align-items:center;gap:4px"><svg class="ic" aria-hidden="true"><use href="#i-lang"/></svg>English</span><svg class="ic" aria-hidden="true"><use href="#i-chev-d"/></svg></button></div>
+        </div>
+        <p class="f-hint">Shown from Pasta alla Norma (English) until this translation sets its own.</p>
+      </div></div>
+    </div>
+
+    <div class="lab-spec">
+      <div class="lab-cap"><b>A Person, Exactly One</b><span>A credit that takes one gets Select, not the People rows, and keeps the avatar in its value.</span></div>
+      <div class="drawer"><div class="fgroup">
+        <div class="fgroup-head"><span class="fgroup-t">Publish</span></div>
+        <div class="row-set">
+          <div class="set-row"><span class="k">Tested By</span><button type="button" class="val"><span class="avatar sm">TM</span><span class="vt">Theo Marsh</span><svg class="ic" aria-hidden="true"><use href="#i-chev-d"/></svg></button></div>
+        </div>
+      </div></div>
+    </div>
+
+    <div class="lab-spec">
+      <div class="lab-cap"><b>A Value Not Found</b><span>The slug as written, in danger ink with a glyph, and a hint that offers the closest match.</span></div>
+      <div class="drawer"><div class="fgroup">
+        <div class="fgroup-head"><span class="fgroup-t">Publish</span></div>
+        <div class="row-set">
+          <div class="set-row"><span class="k">Cuisine</span><button type="button" class="val bad"><svg class="ic" aria-hidden="true"><use href="#i-alert"/></svg><span class="vt mono" style="color:var(--danger);font-size:11.5px">sicillian</span><svg class="ic" aria-hidden="true"><use href="#i-chev-d"/></svg></button></div>
+        </div>
+        <p class="f-hint bad"><svg class="ic" aria-hidden="true"><use href="#i-alert"/></svg><span><b>sicillian</b> doesn't match a cuisine. Did you mean Sicilian? <a href="#select" class="act">Replace</a></span></p>
+      </div></div>
+    </div>
+
+    <div class="lab-spec">
+      <div class="lab-cap"><b>13 to 50: With a Filter</b><span>The whole list is still there, with a filter at its top that has focus as the list opens. Typing narrows in place; ancestors of a match stay.</span></div>
+      <div class="drawer" style="overflow:visible"><div class="fgroup">
+        <div class="fgroup-head"><span class="fgroup-t">Publish</span></div>
+        <div class="row-set">
+          <div class="set-row"><span class="k">Cuisine</span><button type="button" class="val" aria-expanded="true"><span class="vt">Sicilian</span><span class="dim">Italian</span><svg class="ic" aria-hidden="true"><use href="#i-chev-d"/></svg></button></div>
+          <div class="xs-list" style="margin:4px 8px 0" role="listbox" aria-label="Cuisine">
+            <div class="xs-filter"><svg class="ic" aria-hidden="true"><use href="#i-search"/></svg><input id="s7" value="an" aria-label="Filter cuisines"></div>
+            <button type="button" role="option"><span class="nm">Italian</span><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg></button>
+            <button type="button" role="option" style="--d:1"><span class="nm">Tuscan</span><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg></button>
+            <button type="button" role="option" style="--d:1"><span class="nm">Roman</span><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg></button>
+            <button type="button" role="option"><span class="nm">Middle Eastern</span><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg></button>
+            <button type="button" role="option" style="--d:1"><span class="nm">Levantine</span><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg></button>
+            <button type="button" role="option" style="--d:1"><span class="nm">Persian</span><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg></button>
+            <button type="button" role="option"><span class="nm">Japanese</span><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg></button>
+            <button type="button" role="option"><span class="nm">Mexican</span><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg></button>
+          </div>
+        </div>
+      </div></div>
+    </div>
+
+    <div class="lab-spec">
+      <div class="lab-cap"><b>Over 50: Search First</b><span>On a site with 214 cuisines the list opens on its search field: the current value, the recently used, and one line saying how many more there are.</span></div>
+      <div class="drawer" style="overflow:visible"><div class="fgroup">
+        <div class="fgroup-head"><span class="fgroup-t">Publish</span></div>
+        <div class="row-set">
+          <div class="set-row"><span class="k">Cuisine</span><button type="button" class="val" aria-expanded="true"><span class="vt">Sicilian</span><span class="dim">Italian</span><svg class="ic" aria-hidden="true"><use href="#i-chev-d"/></svg></button></div>
+          <div class="xs-list" style="margin:4px 8px 0" role="listbox" aria-label="Cuisine">
+            <div class="xs-filter"><svg class="ic" aria-hidden="true"><use href="#i-search"/></svg><input id="s8" placeholder="Search 214 cuisines…" aria-label="Search cuisines"></div>
+            <button type="button" role="option"><span class="nm none">None</span><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg></button>
+            <button type="button" role="option" aria-selected="true"><span class="nm">Sicilian</span><span class="sl">Italian</span><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg></button>
+            <div class="grp">Recently Used</div>
+            <button type="button" role="option"><span class="nm">Levantine</span><span class="sl">Middle Eastern</span><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg></button>
+            <button type="button" role="option"><span class="nm">Oaxacan</span><span class="sl">Mexican</span><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg></button>
+            <button type="button" role="option"><span class="nm">Japanese</span><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg></button>
+            <div class="more">214 cuisines. Type to find the rest.</div>
+          </div>
+        </div>
+      </div></div>
+    </div>
+  </div>
+  <ul class="lab-notes">
+    <li><b>The parent's name follows the value in quiet ink</b> (Sicilian, Italian), so a nested choice reads in place without opening the list.</li>
+    <li><b>Up to 12 options, typing a letter jumps</b>, as a native list does. From 13 the list carries a filter; over 50 it opens on a search and never on every option.</li>
+  </ul>
+</section>
+
+<!-- =============================================================== cards -->
+<section class="lab-board" id="cards">
+  <div class="pk-head">
+    <div class="lab-head">
+      <span class="lab-eyebrow">Picker</span>
+      <h2><span class="pk-ic"><svg class="ic" aria-hidden="true"><use href="#i-cards"/></svg></span>Cards</h2>
+      <p>For entries where a picture and a date tell them apart. What is chosen sits above the search as rows, the way People does, each with a still, the title, the type and the date, so the search field is never crowded by what is already picked. Results open as cards under it. The recipe being edited is never offered.</p>
+    </div>
+    <dl class="pk-facts">
+      <div><dt>Purpose</dt><dd>Links entries to other entries</dd></div>
+      <div><dt>Takes</dt><dd>Several, often up to a limit</dd></div>
+      <div><dt>Points at</dt><dd>Recipes</dd></div>
+      <div><dt>Example</dt><dd>Pairs With <span class="mono">pairs-with</span></dd></div>
+    </dl>
+  </div>
+  <div class="lab-grid">
+    <div class="lab-spec">
+      <div class="lab-cap"><b>Empty</b><span>Just the search. Nothing is listed until it is focused.</span></div>
+      <div class="drawer"><div class="fgroup">
+        <div class="fgroup-head"><span class="fgroup-t">Pairs With</span><span class="fgroup-meta">0 of 3</span></div>
+        <div class="psearch"><svg class="ic" aria-hidden="true"><use href="#i-search"/></svg><input id="c0" placeholder="Find a recipe to pair…" aria-label="Find a recipe"></div>
+      </div></div>
+    </div>
+
+    <div class="lab-spec">
+      <div class="lab-cap"><b>Counted Against the Limit</b><span>Rows above, search below. “2 of 3” replaces “2 selected” as soon as the relationship sets a maximum.</span></div>
+      <div class="drawer"><div class="fgroup">
+        <div class="fgroup-head"><span class="fgroup-t">Pairs With</span><span class="fgroup-meta">2 of 3</span></div>
+        <div class="erows">
+          <div class="erow"><span class="thumb v2"></span><div class="pm"><span class="pn">Caponata</span><span class="pr">Recipe · Apr 2, 2026</span></div><button type="button" class="x" aria-label="Remove Caponata"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button></div>
+          <div class="erow"><span class="thumb v5"></span><div class="pm"><span class="pn">Panzanella</span><span class="pr">Recipe · Jun 30, 2026</span></div><button type="button" class="x" aria-label="Remove Panzanella"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button></div>
+        </div>
+        <div class="psearch"><svg class="ic" aria-hidden="true"><use href="#i-search"/></svg><input id="c1" placeholder="Add another…" aria-label="Find a recipe"></div>
+      </div></div>
+    </div>
+
+    <div class="lab-spec">
+      <div class="lab-cap"><b>Before Typing</b><span>Focus shows the 3 recipes edited most recently, which is usually what an author is pairing with.</span></div>
+      <div class="drawer"><div class="fgroup">
+        <div class="fgroup-head"><span class="fgroup-t">Pairs With</span><span class="fgroup-meta">1 of 3</span></div>
+        <div class="erows">
+          <div class="erow"><span class="thumb v2"></span><div class="pm"><span class="pn">Caponata</span><span class="pr">Recipe · Apr 2, 2026</span></div><button type="button" class="x" aria-label="Remove Caponata"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button></div>
+        </div>
+        <div class="pwrap">
+          <div class="psearch" style="border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft);background:var(--surface)"><svg class="ic" aria-hidden="true"><use href="#i-search"/></svg><input id="c2" placeholder="Search 1,240 recipes…" aria-label="Find a recipe"></div>
+          <div class="cards">
+            <div class="grp">Recently Edited</div>
+            <div class="card cur"><span class="thumb v3"></span><span class="tx"><span class="tt">Arancini</span><span class="mt">Recipe · Oct 6, 2026</span></span><span class="on"><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg></span></div>
+            <div class="card"><span class="thumb v6"></span><span class="tx"><span class="tt">Fennel and Orange Salad</span><span class="mt">Recipe · Oct 5, 2026</span></span><span class="on"><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg></span></div>
+            <div class="card"><span class="thumb v7"></span><span class="tx"><span class="tt">Blood Orange Granita</span><span class="mt">Recipe · Oct 3, 2026 <span class="pill draft"><span class="d"></span>Draft</span></span></span><span class="on"><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg></span></div>
+          </div>
+        </div>
+      </div></div>
+    </div>
+
+    <div class="lab-spec">
+      <div class="lab-cap"><b>Capped Results</b><span>Six cards at most, because a card is taller than a row, then the total. A result already chosen shows its tick; choosing it again takes it out.</span></div>
+      <div class="drawer"><div class="fgroup">
+        <div class="fgroup-head"><span class="fgroup-t">Pairs With</span><span class="fgroup-meta">1 of 3</span></div>
+        <div class="erows">
+          <div class="erow"><span class="thumb v6"></span><div class="pm"><span class="pn">Fennel and Orange Salad</span><span class="pr">Recipe · Feb 11, 2026</span></div><button type="button" class="x" aria-label="Remove Fennel and Orange Salad"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button></div>
+        </div>
+        <div class="pwrap">
+          <div class="psearch" style="border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft);background:var(--surface)"><svg class="ic" aria-hidden="true"><use href="#i-search"/></svg><input id="c3" value="salad" aria-label="Find a recipe"></div>
+          <div class="cards">
+            <div class="card cur"><span class="thumb v1"></span><span class="tx"><span class="tt">Charred Pepper Salad</span><span class="mt">Recipe · Aug 22, 2025</span></span><span class="on"><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg></span></div>
+            <div class="card chosen"><span class="thumb v6"></span><span class="tx"><span class="tt">Fennel and Orange Salad</span><span class="mt">Recipe · Feb 11, 2026</span></span><span class="on"><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg></span></div>
+            <div class="card"><span class="thumb v5"></span><span class="tx"><span class="tt">Grilled Bread Salad</span><span class="mt">Recipe · Jun 2, 2026</span></span><span class="on"><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg></span></div>
+            <div class="card"><span class="thumb v4"></span><span class="tx"><span class="tt">Lentil Salad with Feta</span><span class="mt">Recipe · May 2, 2026</span></span><span class="on"><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg></span></div>
+            <div class="card"><span class="thumb v8"></span><span class="tx"><span class="tt">Salad of Bitter Leaves</span><span class="mt">Recipe · Nov 19, 2025</span></span><span class="on"><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg></span></div>
+            <div class="card"><span class="thumb v3"></span><span class="tx"><span class="tt">Tomato and Peach Salad</span><span class="mt">Recipe · Jul 30, 2026</span></span><span class="on"><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg></span></div>
+            <div class="more"><b>6</b> of 48 matches. Keep typing to narrow.</div>
+          </div>
+        </div>
+      </div></div>
+    </div>
+
+    <div class="lab-spec">
+      <div class="lab-cap"><b>Searching</b><span>Skeleton cards while the server answers. Two, because more promises results that may not come.</span></div>
+      <div class="drawer"><div class="fgroup">
+        <div class="fgroup-head"><span class="fgroup-t">Pairs With</span><span class="fgroup-meta">0 of 3</span></div>
+        <div class="pwrap">
+          <div class="psearch" style="border-color:var(--accent);background:var(--surface)"><svg class="ic" aria-hidden="true"><use href="#i-search"/></svg><input id="c4" value="fen" aria-label="Find a recipe"></div>
+          <div class="cards" aria-busy="true">
+            <div class="card"><span class="thumb skel"></span><span class="tx" style="gap:6px"><span class="skel" style="height:11px;width:60%"></span><span class="skel" style="height:9px;width:38%"></span></span></div>
+            <div class="card"><span class="thumb skel"></span><span class="tx" style="gap:6px"><span class="skel" style="height:11px;width:46%"></span><span class="skel" style="height:9px;width:30%"></span></span></div>
+          </div>
+        </div>
+      </div></div>
+    </div>
+
+    <div class="lab-spec">
+      <div class="lab-cap"><b>At the Limit</b><span>The search goes, rather than refusing what is typed into it, and one line says how to get it back.</span></div>
+      <div class="drawer"><div class="fgroup">
+        <div class="fgroup-head"><span class="fgroup-t">Pairs With</span><span class="fgroup-meta full">3 of 3</span></div>
+        <div class="erows">
+          <div class="erow"><span class="thumb v2"></span><div class="pm"><span class="pn">Caponata</span><span class="pr">Recipe · Apr 2, 2026</span></div><button type="button" class="x" aria-label="Remove Caponata"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button></div>
+          <div class="erow"><span class="thumb v5"></span><div class="pm"><span class="pn">Panzanella</span><span class="pr">Recipe · Jun 30, 2026</span></div><button type="button" class="x" aria-label="Remove Panzanella"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button></div>
+          <div class="erow"><span class="thumb v3"></span><div class="pm"><span class="pn">Arancini</span><span class="pr">Recipe · May 14, 2026</span></div><button type="button" class="x" aria-label="Remove Arancini"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button></div>
+        </div>
+        <p class="f-hint">A recipe pairs with 3 others at most. Remove one to add another.</p>
+      </div></div>
+    </div>
+
+    <div class="lab-spec">
+      <div class="lab-cap"><b>Draft, Trashed or Not Found</b><span>A row has room for the word, so each state gets a pill or a line of its own, and a faded still for anything that won't show.</span></div>
+      <div class="drawer"><div class="fgroup">
+        <div class="fgroup-head"><span class="fgroup-t">Pairs With</span><span class="fgroup-meta">3 of 3</span></div>
+        <div class="erows">
+          <div class="erow is-draft"><span class="thumb v7"></span><div class="pm"><span class="pn"><span>Blood Orange Granita</span><span class="pill draft"><span class="d"></span>Draft</span></span><span class="pr">Recipe · Mar 9, 2026</span></div><button type="button" class="x" aria-label="Remove Blood Orange Granita"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button></div>
+          <div class="erow is-trash"><span class="thumb v6"></span><div class="pm"><span class="pn"><span>Fennel Gratin</span><span class="pill trash"><span class="d"></span>Trash</span></span><span class="pr">Recipe · Jan 8, 2026</span></div><button type="button" class="x" aria-label="Remove Fennel Gratin"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button></div>
+          <div class="erow is-miss"><span class="thumb"><svg class="ic" aria-hidden="true"><use href="#i-help"/></svg></span><div class="pm"><span class="pn">canolli</span><span class="pr" style="color:var(--danger)">No recipe has this slug</span></div><button type="button" class="x" aria-label="Remove canolli"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button></div>
+        </div>
+        <p class="f-hint"><svg class="ic" aria-hidden="true"><use href="#i-info"/></svg><span>Neither the draft nor the trashed recipe shows on this one's page. <b>canolli</b> matches nothing; did you mean Cannoli? <a href="#cards" class="act">Replace</a></span></p>
+      </div></div>
+    </div>
+
+    <div class="lab-spec">
+      <div class="lab-cap"><b>No Results</b><span>Says what was searched and what was looked through.</span></div>
+      <div class="drawer"><div class="fgroup">
+        <div class="fgroup-head"><span class="fgroup-t">Pairs With</span><span class="fgroup-meta">0 of 3</span></div>
+        <div class="pwrap">
+          <div class="psearch" style="border-color:var(--accent);background:var(--surface)"><svg class="ic" aria-hidden="true"><use href="#i-search"/></svg><input id="c6" value="Cassata" aria-label="Find a recipe"></div>
+          <div class="sugg"><div class="quiet">No recipe matches “Cassata”. Drafts are included; the trash is not.</div></div>
+        </div>
+      </div></div>
+    </div>
+  </div>
+  <ul class="lab-notes">
+    <li><b>Rows above, search below, the same as People.</b> Chips with stills wrapped around an input left the input a sliver once two titles were chosen.</li>
+    <li><b>Dates, not times.</b> No two recipes are told apart by “12:00 PM”, and that time is a default nobody entered.</li>
+    <li><b>A recipe with no photo gets a quiet frame, never initials.</b> Initials mean a person, everywhere in the admin.</li>
+  </ul>
+</section>
+
+</main>
+</div>
+</div>
+<script>
+(function () {
+  "use strict";
+  var root = document.documentElement;
+  function $(s, c) { return (c || document).querySelector(s); }
+  function $$(s, c) { return [].slice.call((c || document).querySelectorAll(s)); }
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
+  function ic(n, cls) { return '<svg class="ic' + (cls ? " " + cls : "") + '" aria-hidden="true"><use href="#i-' + n + '"/></svg>'; }
+  function slugify(s) { return s.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, ""); }
+  function plural(n, one, many) { return n + " " + (n === 1 ? one : (many || one + "s")); }
+  function cap(s) { return s.replace(/\b[a-z]/g, function (c) { return c.toUpperCase(); }); }
+
+  /* ------------------------------------------------------------ harness */
+  function seg(id, apply) {
+    var box = $(id);
+    box.addEventListener("click", function (e) {
+      var b = e.target.closest("button"); if (!b) return;
+      $$("button", box).forEach(function (x) { x.setAttribute("aria-pressed", x === b ? "true" : "false"); });
+      apply(b.dataset.v);
+    });
+  }
+  seg("#labTheme", function (v) { if (v === "neutral") root.removeAttribute("data-admin-theme"); else root.setAttribute("data-admin-theme", v); });
+  seg("#labScheme", function (v) { if (v) root.setAttribute("data-color-scheme", v); else root.removeAttribute("data-color-scheme"); });
+  var navLinks = $$("#labNav a");
+  if ("IntersectionObserver" in window) {
+    var io = new IntersectionObserver(function (ents) {
+      ents.forEach(function (en) {
+        if (!en.isIntersecting) return;
+        navLinks.forEach(function (a) { a.setAttribute("aria-current", a.getAttribute("href") === "#" + en.target.id ? "true" : "false"); });
+      });
+    }, { root: $("#labMain"), rootMargin: "-20% 0px -70% 0px" });
+    $$(".lab-board").forEach(function (s) { io.observe(s); });
+  }
+
+  /* --------------------------------------------------------------- data */
+  /* Big enough that the caps are real: 64 profiles, 128 ingredients,
+     1,240 recipes, 26 cuisines. Generated, deterministic. */
+  var FIRST = ["Giulia","Priya","Sam","Theo","Ines","Amara","Luca","Dana","Hana","Omar","Rosa","Maya","Marco","Martha","Lena","Ade","Nadia","Felix","Yara","Tomas","June","Kofi","Elena","Ravi","Sofia","Arjun","Mei","Jonah","Leila","Noor","Pablo","Ana"];
+  var LAST = ["Ferraro","Raman","Okonkwo","Marsh","Okafor","Diallo","Greco","Whitfield","Mori","Haddad","Lindqvist","Rosen","Orsini","Kim","Maier","Matthews"];
+  var PEOPLE = {};
+  ["Giulia Ferraro","Priya Raman","Sam Okonkwo","Theo Marsh","Ines Okafor","Amara Diallo","Luca Greco","Dana Whitfield","Hana Mori","Omar Haddad","Rosa Lindqvist"].forEach(function (n) { PEOPLE[slugify(n)] = n; });
+  for (var pi = 0; Object.keys(PEOPLE).length < 64 && pi < 2000; pi++) { var nm = FIRST[pi % FIRST.length] + " " + LAST[(pi + Math.floor(pi / FIRST.length)) % LAST.length]; if (!PEOPLE[slugify(nm)]) PEOPLE[slugify(nm)] = nm; }
+  var RECENT_COOKS = ["priya-raman", "sam-okonkwo", "theo-marsh", "hana-mori", "omar-haddad"];
+  function initials(slug) { var w = PEOPLE[slug].split(" "); return w[0][0] + w[w.length - 1][0]; }
+
+  var MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  var RECIPES = [
+    { s: "pasta-alla-norma", t: "Pasta alla Norma", d: "Sep 18, 2026", v: 1 },
+    { s: "caponata", t: "Caponata", d: "Apr 2, 2026", v: 2 },
+    { s: "arancini", t: "Arancini", d: "Oct 6, 2026", v: 3 },
+    { s: "panzanella", t: "Panzanella", d: "Jun 30, 2026", v: 5 },
+    { s: "fennel-and-orange-salad", t: "Fennel and Orange Salad", d: "Oct 5, 2026", v: 6 },
+    { s: "blood-orange-granita", t: "Blood Orange Granita", d: "Oct 3, 2026", v: 7, draft: true },
+    { s: "pasta-con-le-sarde", t: "Pasta con le Sarde", d: "Jan 27, 2026", v: 4 },
+    { s: "cannoli", t: "Cannoli", d: "Aug 3, 2026", v: 8 }
+  ];
+  var RECENT_RECIPES = ["arancini", "fennel-and-orange-salad", "blood-orange-granita"];
+  var HOW = ["Roasted","Grilled","Braised","Charred","Smoked","Crispy","Slow-Cooked","Quick","Spiced","Lemony","Herbed","Baked"];
+  var WHAT = ["Fennel","Chickpea","Squash","Lamb","Chicken","Cod","Mushroom","Beet","Carrot","Eggplant","Pepper","Leek","Potato","Lentil","Cabbage","Tomato","Sardine","Pork","Bean","Cauliflower"];
+  var DISH = ["Salad","Soup","Stew","Tart","Gratin","Fritters","Skewers","Risotto","Flatbread","Pilaf","Bake"];
+  for (var ri = 0; RECIPES.length < 1240 && ri < 5000; ri++) {
+    var t = HOW[ri % HOW.length] + " " + WHAT[Math.floor(ri / HOW.length) % WHAT.length] + " " + DISH[Math.floor(ri / (HOW.length * WHAT.length)) % DISH.length];
+    var sl = slugify(t); if (RECIPES.some(function (r) { return r.s === sl; })) continue;
+    RECIPES.push({ s: sl, t: t, d: MONTHS[ri % 12] + " " + (1 + ri % 28) + ", " + (2022 + ri % 4), v: 1 + ri % 8 });
+  }
+  var SELF = "pasta-alla-norma";
+  function recipe(s) { return RECIPES.filter(function (m) { return m.s === s; })[0]; }
+
+  var INGREDIENTS = ["Aubergine","Tomato","Basil","Garlic","Olive Oil","Pecorino Romano","Pecorino Siciliano","Chili Flakes","Capers","Anchovies","Lemon","Oregano","Rigatoni","Sea Salt","Black Pepper","Parsley","Mint","Fennel","Fennel Seed","Saffron","Sage","Rosemary","Thyme","Bay Leaf","Onion","Shallot","Leek","Celery","Carrot","Potato","Sweet Potato","Butternut Squash","Zucchini","Bell Pepper","Cherry Tomatoes","Tomato Paste","Passata","Chickpeas","Cannellini Beans","Lentils","Farro","Arborio Rice","Basmati Rice","Polenta","Spaghetti","Bucatini","Orecchiette","Couscous","Bulgur","Flour","Semolina","Breadcrumbs","Sourdough","Pine Nuts","Almonds","Pistachios","Walnuts","Hazelnuts","Raisins","Currants","Orange","Blood Orange","Lime","Honey","Sugar","Brown Sugar","Vanilla","Cinnamon","Nutmeg","Clove","Cumin","Coriander","Smoked Paprika","Sumac","Za'atar","Tahini","Yogurt","Butter","Cream","Milk","Eggs","Ricotta","Mozzarella","Parmesan","Feta","Halloumi","Mascarpone","Chicken Thighs","Lamb Shoulder","Pork Belly","Sausage","Pancetta","Guanciale","Prosciutto","Cod","Sardines","Swordfish","Tuna","Mussels","Clams","Shrimp","Squid","Spinach","Chard","Kale","Radicchio","Arugula","Escarole","Artichokes","Asparagus","Peas","Fava Beans","Green Beans","Mushrooms","Porcini","Cauliflower","Broccoli Rabe","Cabbage","Beets","Radishes","Cucumber","Avocado","Red Wine Vinegar","White Wine","Marsala","Sesame Seeds","Wasabi","Savoy Cabbage","Salt Cod"].map(function (n, i) {
+    return { s: slugify(n), n: n, c: Math.max(1, Math.round(520 / (1 + i * 0.35))) };
+  });
+  var MOST_USED_INGR = INGREDIENTS.slice().sort(function (a, b) { return b.c - a.c; }).slice(0, 8).map(function (t) { return t.s; });
+
+  var COURSES = [
+    { s: "mains", n: "Mains", c: 24, p: "" }, { s: "pasta", n: "Pasta", c: 11, p: "mains" },
+    { s: "stews", n: "Stews", c: 6, p: "mains" }, { s: "roasts", n: "Roasts", c: 4, p: "mains" },
+    { s: "sides", n: "Sides", c: 13, p: "" }, { s: "salads", n: "Salads", c: 7, p: "sides" },
+    { s: "desserts", n: "Desserts", c: 9, p: "" }, { s: "cakes", n: "Cakes", c: 4, p: "desserts" },
+    { s: "breakfast", n: "Breakfast", c: 5, p: "" }
+  ];
+  /* 26 cuisines: over 12, so the list carries a filter; under 50, so it is
+     still the whole list. */
+  var CUISINES = [];
+  [["Italian", ["Roman", "Sicilian", "Tuscan", "Neapolitan", "Venetian"]], ["Middle Eastern", ["Levantine", "Persian", "Turkish"]],
+   ["Japanese", []], ["Mexican", ["Oaxacan", "Yucatecan"]], ["French", ["Provençal", "Breton"]], ["Indian", ["Punjabi", "Keralan", "Bengali"]],
+   ["Greek", []], ["Spanish", ["Basque", "Catalan"]], ["Korean", []], ["Ethiopian", []]].forEach(function (g) {
+    CUISINES.push({ s: slugify(g[0]), n: g[0], p: "" });
+    g[1].forEach(function (c) { CUISINES.push({ s: slugify(c), n: c, p: slugify(g[0]) }); });
+  });
+  function byS(list, s) { return list.filter(function (x) { return x.s === s; })[0]; }
+  function depthIn(list, g) { var d = 0, p = g.p; while (p) { d++; p = byS(list, p).p; } return d; }
+  function treeOrder(list) {
+    var out = [];
+    (function walk(parent) { list.filter(function (g) { return g.p === parent; }).forEach(function (g) { out.push(g); walk(g.s); }); })("");
+    return out;
+  }
+  /* The server's half of a search, as the sketch fakes it: rank names that
+     start with the query first, then the rest, and return a page plus the
+     total, never the whole set. */
+  function search(list, q, name, cap) {
+    q = q.toLowerCase();
+    var hits = list.filter(function (x) { return name(x).toLowerCase().indexOf(q) > -1; });
+    hits.sort(function (a, b) {
+      var A = name(a).toLowerCase().indexOf(q) === 0 ? 0 : 1, B = name(b).toLowerCase().indexOf(q) === 0 ? 0 : 1;
+      return A - B || name(a).localeCompare(name(b));
+    });
+    return { items: hits.slice(0, cap), total: hits.length };
+  }
+  function more(shown, total) {
+    return total > shown ? '<div class="more"><b>' + shown + '</b> of ' + total.toLocaleString("en-US") + ' matches. Keep typing to narrow.</div>' : "";
+  }
+  function mark(text, q) {
+    var at = text.toLowerCase().indexOf(q.toLowerCase());
+    if (at < 0 || !q) return esc(text);
+    return esc(text.slice(0, at)) + "<b>" + esc(text.slice(at, at + q.length)) + "</b>" + esc(text.slice(at + q.length));
+  }
+  /* A field shows its suggestions before typing only while it has focus. */
+  var FOCUS = {};
+  function watchFocus(group, key, render) {
+    group.addEventListener("focusin", function (e) { if (e.target.matches("input") && !FOCUS[key]) { FOCUS[key] = true; render(); } });
+    group.addEventListener("focusout", function () {
+      setTimeout(function () { if (!group.contains(document.activeElement) && FOCUS[key]) { FOCUS[key] = false; render(); } }, 0);
+    });
+  }
+
+  var S = {
+    cuisine: "sicilian",
+    cooks: ["giulia-ferraro", "priya-raman", "sam-okonkwo"], cooksMin: 1, pq: "", pCur: 0,
+    courses: ["mains", "pasta"], gq: "", gNew: null,
+    ingr: ["aubergine", "tomato", "basil"], newIngr: {}, tq: "", tCur: 0, ingrOpen: false,
+    pairs: ["caponata", "panzanella"], pairsMax: 3, rq: "", rCur: 0, rLoading: false,
+    tried: false
+  };
+
+  var side = $("#liveSide");
+  side.innerHTML =
+    '<div class="ed-tabs" style="position:sticky;top:0;background:var(--surface);z-index:3"><button type="button" class="ed-tab" aria-selected="true">' + ic("recipe") + 'Recipe</button><button type="button" class="ed-tab">' + ic("list") + 'Elements</button><span class="grow"></span><button type="button" class="ed-x" aria-label="Close">' + ic("x") + '</button></div>' +
+    '<div class="fgroup"><div class="fgroup-head"><span class="fgroup-t">Publish</span></div><div class="row-set">' +
+      '<div class="set-row"><span class="k">Status</span><button type="button" class="val st-published"><span class="vt">Published</span>' + ic("chev-d") + '</button></div>' +
+      '<div class="set-row"><span class="k">Slug</span><span class="val" style="color:var(--fg-2)"><span class="vt mono" style="font-size:11.5px">pasta-alla-norma</span></span></div>' +
+      '<div class="set-row" style="position:relative" id="g-cuisine"></div>' +
+    '</div></div>' +
+    '<div class="fgroup" id="g-cooks"></div><div class="fgroup" id="g-courses"></div><div class="fgroup" id="g-ingr"></div><div class="fgroup" id="g-pairs"></div>' +
+    '<button type="button" class="side-link">' + ic("list") + 'Elements in This Entry<span class="n">6</span>' + ic("chev-r") + '</button>';
+
+  /* Re-rendering a group keeps the focused control focused: each control
+     carries a data-fk, and the same key is looked up after the swap. */
+  function paint(el, html) {
+    var a = document.activeElement, fk = a && el.contains(a) ? a.dataset.fk : null;
+    var caret = fk && a.selectionStart != null ? a.selectionStart : null;
+    el.innerHTML = html;
+    if (fk) {
+      var n = el.querySelector('[data-fk="' + fk + '"]');
+      if (n) { n.focus(); if (caret != null && n.setSelectionRange) { try { n.setSelectionRange(caret, caret); } catch (e) {} } }
+    }
+  }
+
+  /* ---------------------------------------------------------- a drawn list */
+  var openPop = null;
+  function closePop() { if (openPop) { openPop.list.remove(); openPop.btn.setAttribute("aria-expanded", "false"); openPop = null; } }
+  /* Over 12 options the list carries a filter at its top, which has focus as
+     the list opens. A match keeps its ancestors, the way the tree does. */
+  function popList(btn, host, opts, onPick) {
+    closePop();
+    var list = document.createElement("div");
+    list.className = "xs-list pop"; list.setAttribute("role", "listbox");
+    var filtered = opts.length > 13, cur = Math.max(0, opts.findIndex(function (o) { return o.on; })), shown = opts;
+    list.innerHTML = (filtered ? '<div class="xs-filter">' + ic("search") + '<input aria-label="Filter" placeholder="Filter ' + (opts.length - 1) + ' options…" autocomplete="off"></div>' : "") + '<div class="xs-items"></div>';
+    host.appendChild(list);
+    var box = $(".xs-items", list), inp = $(".xs-filter input", list);
+    function paintItems(q) {
+      if (q) {
+        var keep = {};
+        opts.forEach(function (o, i) {
+          if (!o.none && o.label.toLowerCase().indexOf(q.toLowerCase()) > -1) {
+            keep[i] = true;
+            for (var j = i - 1, d = o.d || 0; j >= 0 && d > 0; j--) if ((opts[j].d || 0) < d) { keep[j] = true; d = opts[j].d || 0; }
+          }
+        });
+        shown = opts.filter(function (o, i) { return keep[i]; });
+        cur = Math.max(0, shown.findIndex(function (o) { return !o.none && o.label.toLowerCase().indexOf(q.toLowerCase()) > -1; }));
+      } else shown = opts;
+      box.innerHTML = shown.length ? shown.map(function (o, i) {
+        return '<button type="button" role="option" data-i="' + i + '" aria-selected="' + (o.on ? "true" : "false") + '" style="--d:' + (o.d || 0) + '">' + (o.pre || "") + '<span class="nm' + (o.none ? " none" : "") + '">' + (q ? mark(o.label, q) : esc(o.label)) + '</span>' + ic("check") + '</button>';
+      }).join("") : '<div class="quiet">Nothing matches “' + esc(q) + '”.</div>';
+      markCur();
+    }
+    function markCur() { $$("button", box).forEach(function (b, i) { b.classList.toggle("cur", i === cur); if (i === cur) b.scrollIntoView({ block: "nearest" }); }); }
+    paintItems("");
+    btn.setAttribute("aria-expanded", "true");
+    openPop = { list: list, btn: btn };
+    if (inp) { inp.addEventListener("input", function () { paintItems(inp.value.trim()); }); inp.focus(); }
+    box.addEventListener("click", function (e) { var b = e.target.closest("button"); if (!b) return; var o = shown[+b.dataset.i]; closePop(); onPick(o); btn.focus(); });
+    openPop.key = function (e) {
+      var n = $$("button", box).length;
+      if (e.key === "ArrowDown" && n) { cur = Math.min(n - 1, cur + 1); markCur(); e.preventDefault(); }
+      else if (e.key === "ArrowUp" && n) { cur = Math.max(0, cur - 1); markCur(); e.preventDefault(); }
+      else if (e.key === "Enter" && n) { e.preventDefault(); var o = shown[cur]; closePop(); onPick(o); btn.focus(); }
+      else if (e.key === "Escape") { e.preventDefault(); closePop(); btn.focus(); }
+    };
+  }
+  document.addEventListener("keydown", function (e) { if (openPop && openPop.key) openPop.key(e); }, true);
+  document.addEventListener("mousedown", function (e) { if (openPop && !openPop.list.contains(e.target) && !openPop.btn.contains(e.target)) closePop(); });
+
+  /* -------------------------------------------------------- cuisine: Select */
+  function renderCuisine() {
+    var c = S.cuisine ? byS(CUISINES, S.cuisine) : null;
+    paint($("#g-cuisine"), '<span class="k">Cuisine</span><button type="button" class="val" data-fk="cui" aria-haspopup="listbox" aria-expanded="false">' +
+      (c ? '<span class="vt">' + esc(c.n) + '</span>' + (c.p ? '<span class="dim">' + esc(byS(CUISINES, c.p).n) + '</span>' : "") : '<span class="vt dim">None</span>') + ic("chev-d") + '</button>');
+  }
+  $("#g-cuisine").addEventListener("click", function (e) {
+    var b = e.target.closest(".val"); if (!b) return;
+    if (openPop && openPop.btn === b) { closePop(); return; }
+    var opts = [{ label: "None", none: true, v: "", on: !S.cuisine }].concat(treeOrder(CUISINES).map(function (g) {
+      return { label: g.n, v: g.s, d: depthIn(CUISINES, g), on: S.cuisine === g.s };
+    }));
+    popList(b, $("#g-cuisine"), opts, function (o) { S.cuisine = o.v; renderCuisine(); });
+  });
+
+  /* ---------------------------------------------------------- cooks: People */
+  function renderCooks() {
+    var n = S.cooks.length, min = S.cooksMin, below = n < min, bad = below && S.tried;
+    var meta = n === 0 ? '<span class="fgroup-meta ' + (bad ? "bad" : "need") + '">' + (bad ? ic("alert") : "") + 'Needs ' + min + '</span>'
+      : '<span class="fgroup-meta">' + plural(n, "person", "people") + '</span>';
+    var lockLast = n === 1 && min >= 1;
+    var rows = S.cooks.map(function (k, i) {
+      return '<div class="person" data-k="' + k + '" data-i="' + i + '">' +
+        '<button type="button" class="grip" data-fk="grip-' + k + '" aria-label="Move ' + esc(PEOPLE[k]) + ', ' + (i + 1) + ' of ' + n + '. Drag, or press Option with an arrow key." title="Drag, or ⌥↑ ⌥↓">' + ic("grip") + '</button>' +
+        '<span class="avatar">' + initials(k) + '</span><div class="pm"><span class="pn">' + esc(PEOPLE[k]) + (i === 0 && n > 1 ? '<span class="lead">Lead</span>' : "") + '</span><span class="pr">' + k + '</span></div>' +
+        (lockLast ? "" : '<button type="button" class="x" data-fk="x-' + k + '" aria-label="Remove ' + esc(PEOPLE[k]) + '">' + ic("x") + '</button>') + '</div>';
+    }).join("");
+    var q = S.pq.trim(), sugg = "", list = [], label = "", foot = "";
+    if (q) {
+      var r = search(Object.keys(PEOPLE).filter(function (k) { return S.cooks.indexOf(k) < 0; }), q, function (k) { return PEOPLE[k]; }, 8);
+      list = r.items; foot = more(r.items.length, r.total);
+    } else if (FOCUS.cooks) { list = RECENT_COOKS.filter(function (k) { return S.cooks.indexOf(k) < 0; }); label = '<div class="grp">Recently Credited</div>'; }
+    if (q || (FOCUS.cooks && list.length)) {
+      S.pCur = Math.min(S.pCur, Math.max(0, list.length - 1));
+      sugg = '<div class="sugg">' + label + (list.length ? list.map(function (k, i) {
+        return '<button type="button" data-add="' + k + '" class="' + (i === S.pCur ? "cur" : "") + '"><span class="avatar sm">' + initials(k) + '</span><span class="nm">' + mark(PEOPLE[k], q) + '</span><span class="c">' + k + '</span></button>';
+      }).join("") + foot : '<div class="quiet">No profile matches “' + esc(q) + '”.</div>') + '</div>';
+    }
+    var hint = bad ? '<p class="f-hint bad">' + ic("alert") + '<span>Add a cook to publish. Your other changes are saved.</span></p>'
+      : below ? '<p class="f-hint">Publishing needs at least 1 cook. A draft saves without one.</p>'
+      : lockLast ? '<p class="f-hint">A recipe always has a cook, so this one stays until another is added.</p>' : "";
+    paint($("#g-cooks"), '<div class="fgroup-head"><span class="fgroup-t">Cooks</span>' + meta + '</div>' +
+      (n ? '<div class="people" id="cookList">' + rows + '</div>' : "") +
+      '<div class="pwrap"><div class="psearch' + (bad ? " bad" : "") + '">' + ic("search") + '<input data-fk="pq" id="live-cook-q" value="' + esc(S.pq) + '" placeholder="Search ' + Object.keys(PEOPLE).length + ' profiles…" aria-label="Add a cook" autocomplete="off"></div>' + sugg + '</div>' + hint);
+  }
+  function moveCook(i, j) {
+    if (j < 0 || j >= S.cooks.length) return;
+    var k = S.cooks.splice(i, 1)[0]; S.cooks.splice(j, 0, k); renderCooks();
+    var g = $('[data-fk="grip-' + k + '"]'); if (g) g.focus();
+  }
+  var gc = $("#g-cooks");
+  watchFocus(gc, "cooks", function () { renderCooks(); });
+  gc.addEventListener("click", function (e) {
+    var x = e.target.closest(".x");
+    if (x) { var k = x.closest(".person").dataset.k; S.cooks.splice(S.cooks.indexOf(k), 1); renderCooks(); $("#live-cook-q").focus(); return; }
+    var a = e.target.closest("[data-add]");
+    if (a) { S.cooks.push(a.dataset.add); S.pq = ""; renderCooks(); $("#live-cook-q").focus(); }
+  });
+  gc.addEventListener("input", function (e) { if (e.target.id === "live-cook-q") { S.pq = e.target.value; S.pCur = 0; renderCooks(); } });
+  gc.addEventListener("keydown", function (e) {
+    var row = e.target.closest(".person");
+    if (row && e.altKey && (e.key === "ArrowUp" || e.key === "ArrowDown")) { e.preventDefault(); var i = +row.dataset.i; moveCook(i, i + (e.key === "ArrowUp" ? -1 : 1)); return; }
+    if (e.target.id !== "live-cook-q") return;
+    var hits = $$("[data-add]", gc);
+    if (e.key === "ArrowDown" && hits.length) { S.pCur = Math.min(hits.length - 1, S.pCur + 1); renderCooks(); e.preventDefault(); }
+    else if (e.key === "ArrowUp" && hits.length) { S.pCur = Math.max(0, S.pCur - 1); renderCooks(); e.preventDefault(); }
+    else if (e.key === "Enter" && hits.length) { e.preventDefault(); hits[S.pCur].click(); }
+    else if (e.key === "Escape") { S.pq = ""; renderCooks(); }
+  });
+  /* Drag: the grip arms its row, so text in a row can still be selected. */
+  var dragK = null;
+  gc.addEventListener("pointerdown", function (e) { var g = e.target.closest(".grip"); if (g) g.closest(".person").draggable = true; });
+  gc.addEventListener("dragstart", function (e) {
+    var row = e.target.closest(".person"); if (!row) return;
+    dragK = row.dataset.k; e.dataTransfer.effectAllowed = "move";
+    try { e.dataTransfer.setData("text/plain", dragK); } catch (err) {}
+    requestAnimationFrame(function () { row.classList.add("ghost"); $("#cookList").classList.add("dragmode"); });
+  });
+  function clearDrop() { $$(".person", gc).forEach(function (r) { r.classList.remove("drop-before", "drop-after"); }); }
+  gc.addEventListener("dragover", function (e) {
+    var row = e.target.closest(".person"); if (!row || !dragK) return;
+    e.preventDefault(); clearDrop();
+    var r = row.getBoundingClientRect();
+    row.classList.add(e.clientY < r.top + r.height / 2 ? "drop-before" : "drop-after");
+  });
+  gc.addEventListener("drop", function (e) {
+    var row = e.target.closest(".person"); if (!row || !dragK) return;
+    e.preventDefault();
+    var after = row.classList.contains("drop-after"), from = S.cooks.indexOf(dragK);
+    var to = S.cooks.indexOf(row.dataset.k) + (after ? 1 : 0);
+    if (from < to) to--;
+    S.cooks.splice(from, 1); S.cooks.splice(to, 0, dragK); dragK = null; renderCooks();
+  });
+  gc.addEventListener("dragend", function () { dragK = null; renderCooks(); });
+
+  /* --------------------------------------------------------- courses: Tree */
+  function renderCourses() {
+    var q = S.gq.trim().toLowerCase(), order = treeOrder(COURSES), show = {};
+    order.forEach(function (g) {
+      if (!q || g.n.toLowerCase().indexOf(q) > -1) {
+        show[g.s] = "hit";
+        var p = g.p; while (p) { if (!show[p]) show[p] = "ctx"; p = byS(COURSES, p).p; }
+      }
+    });
+    var rows = order.filter(function (g) { return show[g.s]; }).map(function (g) {
+      var on = S.courses.indexOf(g.s) > -1;
+      return '<label class="tax-row' + (on ? " on" : "") + (show[g.s] === "ctx" ? " ctx" : "") + '" style="--d:' + depthIn(COURSES, g) + '"><input type="checkbox" data-g="' + g.s + '" data-fk="g-' + g.s + '"' + (on ? " checked" : "") + '><span class="box">' + ic("check") + '</span><span class="nm">' + esc(g.n) + '</span><span class="c">' + g.c + '</span></label>';
+    }).join("");
+    var foot;
+    if (S.gNew) {
+      var par = S.gNew.p ? byS(COURSES, S.gNew.p).n : "None";
+      foot = '<div class="tax-new"><input class="inp" id="live-g-new" data-fk="gnew" value="' + esc(S.gNew.n) + '" placeholder="Name" aria-label="New course name">' +
+        '<div style="position:relative" id="g-par-host"><button type="button" class="selbtn" id="g-par" data-fk="gpar" aria-haspopup="listbox" aria-expanded="false"><span class="t"><span style="color:var(--fg-3)">Parent:</span> ' + esc(par) + '</span>' + ic("chev-d") + '</button></div>' +
+        '<div class="acts"><button type="button" class="btn primary sm" id="g-add"' + (S.gNew.n.trim() ? "" : " disabled") + '>Add Course</button><button type="button" class="btn ghost sm" id="g-cancel">Cancel</button></div></div>';
+    } else foot = '<button type="button" class="tax-add" id="g-open" data-fk="gopen">' + ic("plus") + 'New Course</button>';
+    paint($("#g-courses"), '<div class="fgroup-head"><span class="fgroup-t">Courses</span><span class="fgroup-meta">' + S.courses.length + ' selected</span></div>' +
+      '<div class="tax-box"><div class="tax-search">' + ic("search") + '<input id="live-g-q" data-fk="gq" value="' + esc(S.gq) + '" placeholder="Find a course…" aria-label="Find a course" autocomplete="off"></div>' +
+      '<div class="tax-tree">' + (rows || '<div class="tax-empty">No course matches “' + esc(S.gq.trim()) + '”.<button type="button" class="lnkb" id="g-make">New Course “' + esc(S.gq.trim()) + '”</button></div>') + '</div>' + foot + '</div>');
+  }
+  var gg = $("#g-courses");
+  gg.addEventListener("change", function (e) {
+    var k = e.target.dataset.g; if (!k) return;
+    var i = S.courses.indexOf(k); if (i > -1) S.courses.splice(i, 1); else S.courses.push(k); renderCourses();
+  });
+  gg.addEventListener("input", function (e) {
+    if (e.target.id === "live-g-q") { S.gq = e.target.value; renderCourses(); }
+    if (e.target.id === "live-g-new") { S.gNew.n = e.target.value; $("#g-add").disabled = !S.gNew.n.trim(); }
+  });
+  gg.addEventListener("click", function (e) {
+    var t = e.target.closest("button"); if (!t) return;
+    if (t.id === "g-open") { S.gNew = { n: "", p: "" }; renderCourses(); $("#live-g-new").focus(); }
+    if (t.id === "g-make") { S.gNew = { n: S.gq.trim(), p: "" }; S.gq = ""; renderCourses(); $("#live-g-new").focus(); }
+    if (t.id === "g-cancel") { S.gNew = null; renderCourses(); $("#g-open").focus(); }
+    if (t.id === "g-add") addCourse();
+    if (t.id === "g-par") {
+      if (openPop && openPop.btn === t) { closePop(); return; }
+      popList(t, $("#g-par-host"), [{ label: "None", none: true, v: "", on: !S.gNew.p }].concat(treeOrder(COURSES).map(function (g) { return { label: g.n, v: g.s, d: depthIn(COURSES, g), on: S.gNew.p === g.s }; })),
+        function (o) { S.gNew.p = o.v; renderCourses(); });
+    }
+  });
+  gg.addEventListener("keydown", function (e) { if (e.target.id === "live-g-new" && e.key === "Enter") { e.preventDefault(); addCourse(); } });
+  function addCourse() {
+    var n = cap(S.gNew.n.trim()); if (!n) return;
+    var s = slugify(n), p = S.gNew.p;
+    if (byS(COURSES, s)) { if (S.courses.indexOf(s) < 0) S.courses.push(s); S.gNew = null; renderCourses(); return; }
+    var at = COURSES.length;
+    if (p) { var sub = [p]; COURSES.forEach(function (g, ix) { if (g.s === p || sub.indexOf(g.p) > -1) { if (g.s !== p) sub.push(g.s); at = ix + 1; } }); }
+    COURSES.splice(at, 0, { s: s, n: n, c: 0, p: p }); S.courses.push(s); S.gNew = null; renderCourses();
+    var cb = $('[data-g="' + s + '"]'); if (cb) cb.focus();
+  }
+
+  /* ------------------------------------------------------ ingredients: Tokens */
+  function ingName(s) { var t = byS(INGREDIENTS, s); return t ? t.n : (S.newIngr[s] || s); }
+  function ingHits() {
+    var q = S.tq.trim();
+    if (!q) {
+      if (!FOCUS.ingr) return null;
+      return { recent: true, hits: MOST_USED_INGR.filter(function (k) { return S.ingr.indexOf(k) < 0; }).slice(0, 5).map(function (k) { return byS(INGREDIENTS, k); }), total: 0, create: false };
+    }
+    var r = search(INGREDIENTS.filter(function (t) { return S.ingr.indexOf(t.s) < 0; }), q, function (t) { return t.n; }, 8);
+    var lq = q.toLowerCase();
+    var exact = INGREDIENTS.some(function (t) { return t.n.toLowerCase() === lq; }) || Object.keys(S.newIngr).some(function (k) { return S.newIngr[k].toLowerCase() === lq; });
+    return { hits: r.items, total: r.total, create: !exact };
+  }
+  function renderIngr() {
+    var h = ingHits(), news = S.ingr.filter(function (s) { return S.newIngr[s]; });
+    var FOLD = 12, folded = !S.ingrOpen && S.ingr.length > FOLD;
+    var chips = (folded ? S.ingr.slice(0, FOLD) : S.ingr).map(function (s) {
+      var isNew = !!S.newIngr[s];
+      return '<span class="token' + (isNew ? " is-new" : "") + '"' + (isNew ? ' title="New ingredient"' : "") + '>' + (isNew ? ic("plus") : "") + '<span class="nm">' + esc(ingName(s)) + '</span><button type="button" class="x" data-rm="' + s + '" data-fk="tx-' + s + '" aria-label="Remove ' + esc(ingName(s)) + '">' + ic("x") + '</button></span>';
+    }).join("") + (folded ? '<button type="button" class="token more-chip" data-unfold="1">+' + (S.ingr.length - FOLD) + ' more</button>' : "");
+    var sugg = "", q = S.tq.trim();
+    if (h && (h.hits.length || h.create || q)) {
+      var total = h.hits.length + (h.create ? 1 : 0);
+      S.tCur = Math.min(S.tCur, Math.max(0, total - 1));
+      sugg = '<div class="sugg">' + (h.recent ? '<div class="grp">Most Used</div>' : "") + h.hits.map(function (t, i) {
+        return '<button type="button" data-take="' + t.s + '" class="' + (i === S.tCur ? "cur" : "") + '"><span class="nm">' + mark(t.n, q) + '</span><span class="c">' + t.c + '</span></button>';
+      }).join("") + (h.recent ? "" : more(h.hits.length, h.total)) +
+        (h.create ? (h.hits.length && h.total <= h.hits.length ? '<div class="sep"></div>' : "") + '<button type="button" class="create' + (S.tCur === h.hits.length ? " cur" : "") + '" data-create="1">' + ic("plus") + '<span class="nm">Create “' + esc(q) + '”</span>' + (h.hits.length ? "" : "<kbd>Enter</kbd>") + '</button>' : "") +
+        (!h.hits.length && !h.create ? '<div class="quiet">“' + esc(q) + '” is already added.</div>' : "") + '</div>';
+    }
+    var hint = news.length ? '<p class="f-hint">' + ic("plus") + '<span><b>' + news.map(function (s) { return esc(S.newIngr[s]); }).join(", ") + '</b> ' + (news.length === 1 ? "is" : "are") + ' new. Updating creates ' + (news.length === 1 ? "it as a published ingredient" : "them as published ingredients") + '.</span></p>' : "";
+    paint($("#g-ingr"), '<div class="fgroup-head"><span class="fgroup-t">Ingredients</span><span class="fgroup-meta">' + S.ingr.length + ' selected</span></div>' +
+      '<div class="tokens">' + chips + '<input id="live-t-q" data-fk="tq" value="' + esc(S.tq) + '" placeholder="' + (S.ingr.length ? "Add another…" : "Search " + INGREDIENTS.length + " ingredients…") + '" aria-label="Add an ingredient" autocomplete="off"></div>' + sugg + hint);
+  }
+  function takeIng(s) { S.ingr.push(s); S.tq = ""; S.tCur = 0; renderIngr(); $("#live-t-q").focus(); }
+  function createIng() {
+    var n = cap(S.tq.trim()); if (!n) return; var s = slugify(n);
+    if (S.ingr.indexOf(s) > -1) { S.tq = ""; renderIngr(); return; }
+    S.newIngr[s] = n; takeIng(s);
+  }
+  var gt = $("#g-ingr");
+  watchFocus(gt, "ingr", function () { renderIngr(); });
+  gt.addEventListener("click", function (e) {
+    var r = e.target.closest("[data-rm]"); if (r) { S.ingr.splice(S.ingr.indexOf(r.dataset.rm), 1); delete S.newIngr[r.dataset.rm]; renderIngr(); $("#live-t-q").focus(); return; }
+    var t = e.target.closest("[data-take]"); if (t) { takeIng(t.dataset.take); return; }
+    if (e.target.closest("[data-create]")) { createIng(); return; }
+    if (e.target.closest("[data-unfold]")) { S.ingrOpen = true; renderIngr(); $("#live-t-q").focus(); return; }
+    if (e.target.closest(".tokens")) $("#live-t-q").focus();
+  });
+  gt.addEventListener("input", function (e) { if (e.target.id === "live-t-q") { S.tq = e.target.value; S.tCur = 0; renderIngr(); } });
+  gt.addEventListener("keydown", function (e) {
+    if (e.target.id !== "live-t-q") return;
+    var h = ingHits(), total = h ? h.hits.length + (h.create ? 1 : 0) : 0;
+    if (e.key === "ArrowDown" && total) { S.tCur = Math.min(total - 1, S.tCur + 1); renderIngr(); e.preventDefault(); }
+    else if (e.key === "ArrowUp" && total) { S.tCur = Math.max(0, S.tCur - 1); renderIngr(); e.preventDefault(); }
+    else if (e.key === "Enter") {
+      e.preventDefault(); if (!h) return;
+      if (S.tCur < h.hits.length) takeIng(h.hits[S.tCur].s); else if (h.create) createIng();
+    } else if (e.key === "Backspace" && !e.target.value && S.ingr.length) {
+      var s = S.ingr.pop(); delete S.newIngr[s]; renderIngr();
+    } else if (e.key === "Escape") { S.tq = ""; renderIngr(); }
+  });
+
+  /* -------------------------------------------------------- pairs: Cards */
+  var rTimer = null;
+  function renderPairs() {
+    var n = S.pairs.length, max = S.pairsMax, full = n >= max;
+    var rows = S.pairs.map(function (s) {
+      var m = recipe(s);
+      return '<div class="erow' + (m.draft ? " is-draft" : "") + '"><span class="thumb v' + m.v + '"></span><div class="pm"><span class="pn"><span>' + esc(m.t) + '</span>' + (m.draft ? '<span class="pill draft"><span class="d"></span>Draft</span>' : "") + '</span><span class="pr">Recipe · ' + m.d + '</span></div><button type="button" class="x" data-rm="' + s + '" data-fk="rx-' + s + '" aria-label="Remove ' + esc(m.t) + '">' + ic("x") + '</button></div>';
+    }).join("");
+    var results = "", q = S.rq.trim();
+    function card(m, i) {
+      var on = S.pairs.indexOf(m.s) > -1;
+      return '<button type="button" role="option" aria-selected="' + on + '" class="card' + (on ? " chosen" : "") + (i === S.rCur ? " cur" : "") + '" data-pick="' + m.s + '"><span class="thumb v' + m.v + '"></span><span class="tx"><span class="tt">' + mark(m.t, q) + '</span><span class="mt">Recipe · ' + m.d + (m.draft ? ' <span class="pill draft"><span class="d"></span>Draft</span>' : "") + '</span></span><span class="on">' + ic("check") + '</span></button>';
+    }
+    if (!full && q) {
+      if (S.rLoading) {
+        results = '<div class="cards" aria-busy="true">' + [60, 44].map(function (w) { return '<div class="card"><span class="thumb skel"></span><span class="tx" style="gap:6px"><span class="skel" style="height:11px;width:' + w + '%"></span><span class="skel" style="height:9px;width:34%"></span></span></div>'; }).join("") + '</div>';
+      } else {
+        var r = search(RECIPES.filter(function (m) { return m.s !== SELF; }), q, function (m) { return m.t; }, 6);
+        S.rCur = Math.min(S.rCur, Math.max(0, r.items.length - 1));
+        results = r.items.length ? '<div class="cards" role="listbox" aria-label="Recipes">' + r.items.map(card).join("") + more(r.items.length, r.total) + '</div>'
+          : '<div class="sugg"><div class="quiet">No recipe matches “' + esc(q) + '”. Drafts are included; the trash is not.</div></div>';
+      }
+    } else if (!full && FOCUS.pairs) {
+      var rec = RECENT_RECIPES.map(recipe);
+      S.rCur = Math.min(S.rCur, rec.length - 1);
+      results = '<div class="cards" role="listbox" aria-label="Recently edited recipes"><div class="grp">Recently Edited</div>' + rec.map(card).join("") + '</div>';
+    }
+    var drafts = S.pairs.filter(function (s) { return recipe(s).draft; });
+    var hint = full ? '<p class="f-hint">A recipe pairs with ' + max + ' others at most. Remove one to add another.</p>'
+      : drafts.length ? '<p class="f-hint">' + ic("info") + '<span><b>' + esc(recipe(drafts[0]).t) + '</b> is a draft, so it won’t show on this recipe’s page until it is published.</span></p>' : "";
+    paint($("#g-pairs"), '<div class="fgroup-head"><span class="fgroup-t">Pairs With</span><span class="fgroup-meta' + (full ? " full" : "") + '">' + n + ' of ' + max + '</span></div>' +
+      (n ? '<div class="erows">' + rows + '</div>' : "") +
+      (full ? "" : '<div class="pwrap"><div class="psearch">' + ic("search") + '<input id="live-r-q" data-fk="rq" value="' + esc(S.rq) + '" placeholder="' + (n ? "Add another…" : "Search " + (RECIPES.length - 1).toLocaleString("en-US") + " recipes…") + '" aria-label="Find a recipe to pair" autocomplete="off"></div>' + results + '</div>') + hint);
+  }
+  function pickPair(s) {
+    var i = S.pairs.indexOf(s);
+    if (i > -1) S.pairs.splice(i, 1); else if (S.pairs.length < S.pairsMax) S.pairs.push(s);
+    if (S.pairs.length >= S.pairsMax) S.rq = "";
+    renderPairs();
+    var inp = $("#live-r-q"); if (inp) inp.focus(); else { var last = $$("#g-pairs .x").pop(); if (last) last.focus(); }
+  }
+  var gr = $("#g-pairs");
+  watchFocus(gr, "pairs", function () { renderPairs(); });
+  gr.addEventListener("click", function (e) {
+    var r = e.target.closest("[data-rm]"); if (r) { S.pairs.splice(S.pairs.indexOf(r.dataset.rm), 1); renderPairs(); var inp = $("#live-r-q"); if (inp) inp.focus(); return; }
+    var p = e.target.closest("[data-pick]"); if (p) { pickPair(p.dataset.pick); return; }
+  });
+  gr.addEventListener("input", function (e) {
+    if (e.target.id !== "live-r-q") return;
+    S.rq = e.target.value; S.rCur = 0; S.rLoading = !!S.rq.trim(); renderPairs();
+    clearTimeout(rTimer); rTimer = setTimeout(function () { S.rLoading = false; renderPairs(); }, 420);
+  });
+  gr.addEventListener("keydown", function (e) {
+    if (e.target.id !== "live-r-q") return;
+    var cards = $$("[data-pick]", gr);
+    if (e.key === "ArrowDown" && cards.length) { S.rCur = Math.min(cards.length - 1, S.rCur + 1); renderPairs(); e.preventDefault(); }
+    else if (e.key === "ArrowUp" && cards.length) { S.rCur = Math.max(0, S.rCur - 1); renderPairs(); e.preventDefault(); }
+    else if (e.key === "Enter" && cards.length) { e.preventDefault(); pickPair(cards[S.rCur].dataset.pick); }
+    else if (e.key === "Escape") { S.rq = ""; renderPairs(); }
+  });
+
+  /* --------------------------------------------------------------- save */
+  $("#liveUpdate").addEventListener("click", function () {
+    S.tried = true;
+    var save = $("#liveSave");
+    if (S.cooks.length < S.cooksMin) {
+      renderCooks();
+      save.innerHTML = '<span class="d" style="background:var(--danger-dot)"></span><span style="color:var(--danger)">Not published: add a cook</span>';
+      $("#live-cook-q").focus();
+      return;
+    }
+    var made = Object.keys(S.newIngr).filter(function (s) { return S.ingr.indexOf(s) > -1; });
+    made.forEach(function (s) { INGREDIENTS.push({ s: s, n: S.newIngr[s], c: 1 }); });
+    S.newIngr = {}; renderIngr();
+    var d = new Date(), h = d.getHours(), m = d.getMinutes();
+    save.innerHTML = '<span class="d"></span>Updated ' + ((h % 12) || 12) + ":" + (m < 10 ? "0" : "") + m + " " + (h < 12 ? "AM" : "PM") + (made.length ? " · created " + plural(made.length, "ingredient") : "");
+  });
+
+  renderCuisine(); renderCooks(); renderCourses(); renderIngr(); renderPairs();
+
+  /* The specimens below the live editor are drawings, not controls. */
+  $$(".lab-spec button").forEach(function (b) { b.setAttribute("tabindex", "-1"); });
+  $$(".lab-spec input").forEach(function (i) { i.setAttribute("tabindex", "-1"); i.readOnly = true; });
+})();
+</script>
+
+</body>
+</html>

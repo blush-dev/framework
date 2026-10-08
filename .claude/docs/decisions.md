@@ -62,9 +62,9 @@ decision, add a new entry that supersedes it and mark the old one
 - **No origin records needed.** The x3p0 repos were themselves spun out of
   ideas for Blush, and they are the author's own projects.
 
-### D-008: Naming: avoid Laravel-isms; use `Core`
+### D-008: Naming: avoid other frameworks' terms; use `Core`
 - **Date:** 2026-09-25
-- **Decision:** Avoid Laravel-specific terms in folders, classes, and commands
+- **Decision:** Avoid another framework's terms in folders, classes, and commands
   (no "Foundation", "Facade", `make:*`, and so on). The application, container
   wiring, and bootstrapping area is `Core`.
 
@@ -2550,8 +2550,7 @@ decision, add a new entry that supersedes it and mark the old one
 ### D-165: A global installer is planned
 - **Date:** 2026-09-27
 - **Decision:** Blush will get a global installer: a small package
-  installed once per machine (`composer global require`, like
-  `laravel/installer`) that provides a `blush` command. It creates new
+  installed once per machine (`composer global require`) that provides a `blush` command. It creates new
   sites (`blush new mysite`, wrapping `composer create-project` and the
   first-run steps) and, inside a site, hands off to that site's
   `bin/blush`, found by walking up from the current folder. It's part of
@@ -3958,8 +3957,8 @@ decision, add a new entry that supersedes it and mark the old one
   Sources live in the framework's `resources/admin/`, and the build goes
   to its `public/admin/`, committed, so sites never need Node.
 - **Why:** the author's criteria, in order: what the wider PHP community
-  uses (Kirby's Panel and Statamic's control panel are Vue; Laravel has
-  long paired with Vue), then modern, documented, and easy to use
+  uses (Kirby's Panel and Statamic's control panel are Vue, and
+  Vue is long paired with PHP frameworks), then modern, documented, and easy to use
   (official router and docs; HTML-like templates suit PHP developers).
   The author's own familiarity with React wasn't a factor.
 
@@ -13376,7 +13375,7 @@ decision, add a new entry that supersedes it and mark the old one
   disagrees with the file's path refuses the upload (to build with
   uploads, D-451).
 - **Checked:** `composer check`.
-- **Why:** most JSON catalog systems (Symfony, Laravel, i18next) rely
+- **Why:** most JSON catalog systems (Symfony, i18next) rely
   on the path alone, but the exchange formats (gettext headers,
   WordPress's JSON, ARB, XLIFF) carry it in the file, so a catalog can
   be recognized away from its folder, sent to a translator and back, or
@@ -15001,25 +15000,25 @@ decision, add a new entry that supersedes it and mark the old one
 ### D-503: The escaping helpers give way to a library's own
 - **Date:** 2026-10-05
 - **Decision:** the author's call, after a Blade adapter (D-502) brought
-  in Laravel's `illuminate/support`, whose `e()` Composer loads before
+  in `illuminate/support`, whose `e()` Composer loads before
   Blush's, so the site stopped with "Cannot redeclare e()". Supersedes
   D-106's "aren't wrapped in `function_exists()`": any library that
   needs `illuminate/support` (many do) would have broken a site.
   - Each of the six helpers in `src/View/functions.php` is defined only
     when no function has the name yet. When another library's wins,
     templates call it.
-  - Laravel's `e()` escapes as Blush's does (`htmlspecialchars`,
+  - `illuminate/support`'s `e()` escapes as Blush's does (`htmlspecialchars`,
     `ENT_QUOTES | ENT_SUBSTITUTE`, UTF-8; `null` prints `''`), and
     prints its `Htmlable` values as they are. Without `ENT_HTML5`, an
     apostrophe is `&#039;`, not `&apos;`; both are the same HTML.
   - **`doctor`** says which helpers aren't Blush's (`View\Helpers`):
-    an Escaping line that passes, said so, for Laravel's `e()`, and
+    an Escaping line that passes, said so, for `illuminate/support`'s `e()`, and
     warns, naming each function and its file, for any other library's.
     Nothing when every helper is Blush's.
   - Whether Blush should have global helper functions at all is open
     (`open-questions.md`).
 - **Checked:** `composer check`; the jtcom trial with `illuminate/view`
-  installed (`doctor`: "e() is Laravel's"), and its Blade copy of the
+  installed (`doctor` naming `illuminate/support`'s `e()`), and its Blade copy of the
   jtcom theme (`example/blade`, `justintadlock/jtcom-blade`) rendering
   all 1,293 linked URLs the same as jtcom, but for whitespace and that
   apostrophe.
@@ -15030,9 +15029,9 @@ decision, add a new entry that supersedes it and mark the old one
   D-503; D-106 stands. The six helpers are global and not wrapped in
   `function_exists()`, and `View\Helpers` and `doctor`'s Escaping line
   are gone.
-  - So a library that defines its own `e()` (Laravel's
-    `illuminate/support`, which `illuminate/view` needs) can't be
-    installed beside Blush: the site stops with "Cannot redeclare e()".
+  - So a library that defines its own `e()` (`illuminate/support`,
+    which `illuminate/view` needs) can't be installed beside Blush:
+    the site stops with "Cannot redeclare e()".
     The jtcom trial's Blade test (`example/blade`,
     `justintadlock/jtcom-blade`) is kept but off, with `illuminate/view`
     removed.
@@ -17977,3 +17976,142 @@ decision, add a new entry that supersedes it and mark the old one
 - **Open:** who links profiles at all. Today only `accounts.edit`
   links, your own included (D-373); members, authors, and future
   sign-ups (D-518) can't claim or create their own.
+
+### D-606: One data layer for every storage area (planned)
+
+- **Date:** 2026-10-07
+- **Status:** Planned; nothing built. Settles how D-486's "full
+  database layers" are built; D-585's links are records in it.
+- **Decision:** a fluent base for talking to storage, the same over
+  flat files and databases, that core, plugins, and sites build on.
+  - **Three layers.** *Drivers* store and fetch **records** (an id,
+    fields, an optional body) grouped in named sets (a content type,
+    `accounts`, `roles`, `sessions`, a plugin's own). A *query* is an
+    immutable description (`QuerySpec`) built by a fluent builder and
+    compiled by each driver: array work over the filesystem driver's
+    index, SQL for a database. *Repositories* (`Entries`, `Accounts`,
+    `Roles`, settings, media metadata, …) turn records into Blush's
+    typed, immutable objects and save them. Names are provisional.
+  - **Data mapper, not active record:** no static `Model::where()` or
+    `$model->save()`, which need global state. Repositories are
+    injected; `$entries->query()->…->get()`, `$entries->save($entry)`.
+  - **Every area** (the author): content, data, accounts, and
+    sessions all move onto it, and the per-area stores
+    (`AccountStore`, `RoleStore`, `SettingsFile`, the content source,
+    index, and writer) become drivers' internals or go. Plugins get
+    storage that works on either driver without writing their own.
+    Content goes first, as the hardest case (bodies, relations,
+    translations, trees).
+  - **Ids are identity, writes included** (the author): writes are
+    keyed by id, replacing `ContentWriter`'s path-keyed API. Paths,
+    folders, file names, and order prefixes are how the filesystem
+    driver writes a record, never how anything else finds one
+    (D-516, D-585).
+  - **The full query language** (the author: "we support it all and
+    make sure we design sound systems against it"): nested and/or
+    groups, comparisons, `in`, `like`, null checks, ranges, relation
+    filters and eager loading (`with()`, `whereRelated()`, over
+    D-585's links), several order keys, aggregates and counts per
+    group, and pagination. Every driver supports every operator; none
+    is a driver extra. The filesystem driver's index is designed to
+    answer them soundly, and a shared conformance suite runs every
+    driver against the same queries and expected results.
+  - **The filesystem driver owns its index and formats.** A database
+    is its own index, so `PhpIndex` and the indexer belong to the
+    filesystem driver, not to a layer every driver passes through.
+    Front matter and Markdown for content, JSON for data, accounts,
+    and roles, are its codecs; the record model never sees a format.
+  - **Drivers ship with core and come from Composer** (the author):
+    core ships `filesystem` and PDO drivers (SQLite, MySQL/MariaDB,
+    PostgreSQL), and a Composer package can add one. Drivers are named
+    in `config/storage.php` or `.env`, not turned on in
+    `settings.json`, since that file is read before plugins and may
+    itself live in a driver (D-486's open point).
+  - Content's `Query` becomes the content-flavored builder over the
+    generic one.
+- **Open:** in `open-questions.md` ("The data layer").
+- **Why:** the author wants "a nice fluid base for talking to the
+  storage system and extending it for either various databases or flat
+  files", with a flat-file driver that sits under the same models as a
+  database's.
+
+### D-607: The relationship pickers, from the pickers sketch
+
+- **Date:** 2026-10-07
+- **Status:** Built (all three stages).
+- **Decision:** the editor's relation pickers follow
+  `.claude/docs/admin-design/meridian-relationship-pickers.html`, the
+  sketch D-599's part 5 asked for, built from the admin's existing
+  pieces (D-509). In the order the author agreed to:
+  1. **Large sites.** A relationship's candidates are counted by the
+     API; with 50 or fewer the picker has them all and filters in the
+     browser, and with more it never asks for the whole set: a tree
+     shows what's chosen with each term's path, then the most used,
+     and a search answers matches with paths, not ancestors. Before
+     anything is typed, a picker offers the most used (tree, tokens),
+     the people most recently credited (people), the current value
+     and the recently used (select), or the recently edited (cards).
+     Matches whose title starts with the search come first, then a
+     word in it, then the rest. Results are capped (8; cards 6) and
+     end in one line saying how many more there are ("8 of 214. Keep
+     typing to narrow."), never a scrollbar. Search waits 200ms, and an
+     answer for an older search is dropped. Past 12 chips the rest fold
+     into "+28 more", which opens in place. A select of up to 12
+     options jumps by letter, from 13 has a filter, and over 50 opens
+     on a search; a nested value shows its parent's name after it.
+  2. **Cards redrawn.** What's chosen sits above the search as rows
+     (a still, the title, the type and date), and results open as cards
+     under it with a tick on chosen ones; an entry with no image gets a
+     quiet frame, never initials (initials mean a person). At the
+     limit the search goes, with a line saying how to get it back;
+     drafts and trashed entries get pills and a faded still; two
+     skeleton cards while the server answers; the entry being edited
+     is never offered.
+  3. **States in every picker:** a draft term's row says Draft, with a
+     line on what it means for the entry; a value that matches nothing
+     offers the closest ("Did you mean Tomato? Replace"); people show
+     Lead only with two or more and only when ordered, say why the last
+     one stays, and say what's missing ("Needs 1"; after Publish, in
+     danger ink, "Add 1 more tester to publish."); the heading's meta
+     carries the field's state ("2 of 3", "1 + 3 from English"); a
+     translation's inherited values are labeled with their original.
+  - **A term typed in new is created when the entry is saved** (the
+    author: "Sketch"), not when Enter is pressed: its chip is the one
+    accent chip, with a plus, and a line says Updating creates it. The
+    server already writes typed targets on save (D-596).
+  - **No read-only state** (the author): the sketch's "Your role can
+    see the courses but not change them" needs a capability nothing
+    has, so it's left out.
+- **Why:** the author's answers, 2026-10-07.
+- **Built:**
+  - **Server:** `GET references/{type}` takes `upto` (every candidate,
+    `whole`, or none), `suggest` (`uses`, `edited`, `recent` with
+    `from`: a relation's key) and `suggestions`, and `except` with
+    `branch` (answering `excluded`); ranks matches (starts with, then a
+    word, then anywhere); gives a nesting type's items a `path`; answers
+    a held trashed entry with `status: trash` and a missing one with its
+    `closest` (Levenshtein, as the console suggests commands). Fields'
+    `relation` carries its `key`; a translation's `inherited` carries
+    the original's `title` and `language` (its name).
+  - **Admin:** `ReferencePicker` is a dispatcher over five components
+    (`ReferenceSelect`, `ReferencePeople`, `ReferenceTree`,
+    `ReferenceCards`, `ReferenceTokens`) sharing `picker.ts`
+    (`usePicker()`, `pickerMeta()`) and `ReferenceResults`,
+    `ReferenceMissing`, and `ReferenceInherited`; the styles moved to
+    `admin.css`. `AdminSelect` gained `remote` (searched by its owner,
+    `search` emitted), `note` (a line at the list's foot), and an
+    option's `mark` (initials as an avatar). `references.ts` has the
+    thresholds (`WHOLE`, `CAP`, `CARD_CAP`, `FOLD`), `ranked()`,
+    `marked()`, and `moreLine()`. Lucide's `grip-vertical` and
+    `languages` joined the icons. The editor puts a relation that takes
+    one (not the parent) in the Publish rows as a plain select, and each
+    relation's heading shows `pickerMeta()`'s state.
+  - **The tree's New {term} still writes at once**, as before: it sets a
+    parent, which a value typed into the field can't say, and the save
+    writes typed targets with only a title (D-596). Only tokens wait
+    for Update.
+- **Checked:** `composer check` (1786 tests; `AdminReferencesTest` for
+  `upto`, ranking, suggestions, `except`, trash, and `closest`;
+  `AdminRelationsTest` for `key` and the inherited original);
+  `npm run admin:build` (admin.js 849 KB, up 19 KB; CSS 180 KB, up
+  3 KB). The pickers weren't exercised in a browser.

@@ -1614,11 +1614,21 @@
 	text-transform: uppercase;
 }
 
-/* A hint at a heading's end: a count, or how what's in it is kept. */
+/* A hint at a heading's end: a count, or how what's in it is kept. A
+   relation's changes its word before its ink (D-607). */
 .options__hint {
 	font-weight: 400;
 	letter-spacing: normal;
 	text-transform: none;
+}
+
+.options__hint .is-need,
+.options__hint .is-full {
+	color: var(--fg-2);
+}
+
+.options__hint .is-bad {
+	color: var(--danger);
 }
 
 .options__note {
@@ -3077,4 +3087,810 @@ button.lnk {
 	--player-card-pad: var(--s-4);
 	--player-art-size: 124px;
 	--player-art-radius: var(--r-2);
+}
+
+/*
+ * The relation pickers (D-599, D-607): tree, tokens, people, select, and
+ * cards, from `meridian-relationship-pickers.html`. Search, tree, and
+ * "new" are one object, not three stacked controls.
+ */
+.reference {
+	display: grid;
+	gap: var(--s-2);
+	min-width: 0;
+}
+
+.reference__box {
+	overflow: hidden;
+	border: 1px solid var(--border);
+	border-radius: var(--r-1);
+	background: var(--surface);
+}
+
+.reference__box.is-invalid,
+.reference__tokens.is-invalid,
+.reference__search.is-invalid {
+	border-color: var(--danger-dot);
+}
+
+.reference__search {
+	display: flex;
+	align-items: center;
+	gap: 9px;
+	height: var(--ctl);
+	padding: 0 12px;
+	border: 1px solid var(--border);
+	border-radius: var(--r-1);
+	background: var(--bg);
+	color: var(--fg-3);
+}
+
+.reference__search--inside {
+	border: 0;
+	border-bottom: 1px solid var(--border);
+	border-radius: 0;
+}
+
+.reference__search svg {
+	flex: none;
+	width: 14px;
+	height: 14px;
+}
+
+.reference__search input,
+.reference__tokens input {
+	flex: 1;
+	min-width: 80px;
+	height: 22px;
+	padding: 0;
+	border: 0;
+	background: none;
+	color: var(--fg);
+	font: inherit;
+	font-size: var(--text-sm);
+}
+
+.reference__search input:focus-visible,
+.reference__tokens input:focus-visible {
+	outline: none;
+}
+
+.reference__search:not(.reference__search--inside):focus-within,
+.reference__tokens:focus-within {
+	border-color: var(--accent);
+	background: var(--surface);
+	box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+/* Up to 50 terms, the tree scrolls in its box past about eight rows, so
+   it never pushes the next relationship out of the drawer. */
+.reference__tree {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr);
+	max-height: 236px;
+	overflow-y: auto;
+}
+
+/* Indent carries depth: this is picking, not browsing. */
+.reference__term {
+	--depth: 0;
+	position: relative;
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	min-width: 0;
+	padding: 7px 12px 7px calc(14px + var(--depth) * 18px);
+	color: var(--fg-2);
+	font-size: var(--text-sm);
+	cursor: pointer;
+}
+
+.reference__term:hover {
+	background: var(--surface-2);
+	color: var(--fg);
+}
+
+.reference__term.is-on {
+	color: var(--fg);
+}
+
+/* A match's parents, kept so it still says where it sits. */
+.reference__term.is-context {
+	color: var(--fg-3);
+}
+
+.reference__term.is-missing .reference__term-name {
+	color: var(--danger);
+}
+
+.reference__term-name,
+.reference__option-name {
+	flex: 1;
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.reference__term-name b,
+.reference__option-name b,
+.reference__card-title b {
+	color: var(--fg);
+	font-weight: 600;
+}
+
+.reference__mark {
+	display: inline-flex;
+	flex: none;
+	align-items: center;
+	gap: 3px;
+	color: var(--fg-3);
+	font-size: var(--text-2xs);
+}
+
+.reference__mark svg {
+	width: 12px;
+	height: 12px;
+}
+
+.reference__count {
+	flex: none;
+	color: var(--fg-3);
+	font-size: var(--text-2xs);
+}
+
+.reference__path {
+	flex: none;
+	max-width: 45%;
+	overflow: hidden;
+	color: var(--fg-3);
+	font-size: var(--text-xs);
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.reference__empty {
+	display: grid;
+	justify-items: center;
+	gap: var(--s-2);
+	margin: 0;
+	padding: 22px 14px;
+	color: var(--fg-3);
+	font-size: var(--text-sm);
+	text-align: center;
+}
+
+/* A heading inside a list (Most Used, Recently Credited, Chosen). */
+.reference__group {
+	margin: 0;
+	padding: 8px 10px 4px;
+	color: var(--fg-3);
+	font-size: var(--text-2xs);
+	font-weight: 600;
+	letter-spacing: .07em;
+	text-transform: uppercase;
+}
+
+/* The last line of a capped list: how much more there is, never a
+   scrollbar. */
+.reference__more {
+	margin: 3px 0 0;
+	padding: 8px 10px 6px;
+	border-top: 1px solid var(--border);
+	color: var(--fg-3);
+	font-size: var(--text-xs);
+	font-variant-numeric: tabular-nums;
+}
+
+.reference__quiet {
+	margin: 0;
+	padding: 9px 10px;
+	color: var(--fg-3);
+	font-size: var(--text-sm);
+}
+
+.reference__add {
+	display: flex;
+	align-items: center;
+	gap: 9px;
+	width: 100%;
+	padding: 10px 12px;
+	border: 0;
+	border-top: 1px solid var(--border);
+	background: var(--bg);
+	color: var(--fg-2);
+	font: inherit;
+	font-size: var(--text-sm);
+	text-align: left;
+	cursor: pointer;
+}
+
+.reference__add:hover {
+	background: var(--surface-2);
+	color: var(--fg);
+}
+
+.reference__add svg {
+	width: 14px;
+	height: 14px;
+	color: var(--fg-3);
+}
+
+.reference__new {
+	display: grid;
+	gap: var(--s-2);
+	padding: var(--s-3);
+	border-top: 1px solid var(--border);
+	background: var(--bg);
+}
+
+.reference__new > input {
+	height: var(--ctl);
+	padding: 0 12px;
+	border: 1px solid var(--border);
+	border-radius: var(--r-1);
+	background: var(--surface);
+	color: var(--fg);
+	font: inherit;
+	font-size: var(--text-sm);
+}
+
+.reference__new > input:focus-visible {
+	border-color: var(--accent);
+	outline: none;
+	box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.reference__new-actions {
+	display: flex;
+	gap: 6px;
+}
+
+/* Tokens: neutral chips with a border; a chip's border and one glyph
+   carry its state. */
+.reference__tokens {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 6px;
+	min-height: var(--ctl);
+	padding: 5px 7px;
+	border: 1px solid var(--border);
+	border-radius: var(--r-1);
+	background: var(--bg);
+	cursor: text;
+}
+
+.reference__tokens--quiet {
+	min-height: 0;
+	padding: 0;
+	border: 0;
+	background: none;
+	cursor: default;
+}
+
+.reference__token {
+	position: relative;
+	display: inline-flex;
+	align-items: center;
+	gap: 5px;
+	max-width: 100%;
+	height: 24px;
+	padding: 0 3px 0 8px;
+	border: 1px solid var(--border);
+	border-radius: var(--r-1);
+	background: var(--surface-2);
+	color: var(--fg);
+	font: inherit;
+	font-size: var(--text-xs);
+	font-weight: 500;
+}
+
+.reference__token-name {
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.reference__token > svg {
+	flex: none;
+	width: 12px;
+	height: 12px;
+	color: var(--fg-3);
+}
+
+.reference__token button {
+	display: grid;
+	place-items: center;
+	width: 18px;
+	height: 18px;
+	padding: 0;
+	border: 0;
+	border-radius: 4px;
+	background: none;
+	color: var(--fg-3);
+	cursor: pointer;
+}
+
+.reference__token button:hover {
+	background: var(--surface-3);
+	color: var(--danger);
+}
+
+.reference__token button svg {
+	width: 11px;
+	height: 11px;
+	stroke-width: 2.2;
+}
+
+.reference__token[draggable="true"] {
+	cursor: grab;
+}
+
+.reference__token.is-draft {
+	border-style: dashed;
+	border-color: var(--border-strong);
+	background: var(--surface);
+	color: var(--fg-2);
+}
+
+.reference__token.is-trash {
+	border-style: dashed;
+	border-color: var(--danger-dot);
+	background: var(--surface);
+	color: var(--fg-2);
+}
+
+.reference__token.is-trash .reference__token-name {
+	text-decoration: line-through;
+	text-decoration-color: var(--fg-3);
+}
+
+/* Shown as written: it names nothing. */
+.reference__token.is-missing {
+	border-style: dashed;
+	border-color: var(--danger-dot);
+	background: var(--danger-soft);
+	color: var(--danger);
+	font-family: var(--font-mono);
+	font-weight: 400;
+}
+
+/* Typed in new, written on Update: the one accent chip. */
+.reference__token.is-new {
+	border-color: var(--accent-line);
+	background: var(--accent-soft);
+	color: var(--accent);
+}
+
+.reference__token.is-new > svg {
+	color: var(--accent);
+}
+
+.reference__token.is-inherited {
+	padding-right: 8px;
+	border-style: dashed;
+	border-color: var(--border-strong);
+	background: none;
+	color: var(--fg-3);
+	font-weight: 400;
+}
+
+.reference__token.is-more {
+	padding: 0 8px;
+	border-style: dashed;
+	background: none;
+	color: var(--fg-2);
+	cursor: pointer;
+}
+
+.reference__token.is-more:hover {
+	background: var(--surface-2);
+	color: var(--fg);
+}
+
+.reference__token.is-drop::before {
+	position: absolute;
+	top: 2px;
+	bottom: 2px;
+	left: -5px;
+	width: 2px;
+	border-radius: 2px;
+	background: var(--accent);
+	content: "";
+}
+
+.reference__token.is-dragging,
+.reference__row.is-dragging {
+	opacity: .4;
+}
+
+/* The search's results, under the field. */
+.reference__results {
+	display: grid;
+	padding: 4px;
+	border: 1px solid var(--border-strong);
+	border-radius: var(--r-2);
+	background: var(--surface);
+	box-shadow: var(--shadow-2);
+}
+
+.reference__options {
+	display: grid;
+	gap: 1px;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.reference__options button {
+	display: flex;
+	align-items: center;
+	gap: 9px;
+	width: 100%;
+	padding: 7px 9px;
+	border: 0;
+	border-radius: var(--r-1);
+	background: none;
+	color: var(--fg-2);
+	font: inherit;
+	font-size: var(--text-sm);
+	text-align: left;
+	cursor: pointer;
+}
+
+.reference__options button:hover,
+.reference__options button.is-active {
+	background: var(--surface-2);
+	color: var(--fg);
+}
+
+.reference__options svg {
+	flex: none;
+	width: 13px;
+	height: 13px;
+	color: var(--fg-3);
+}
+
+.reference__create {
+	margin-top: 3px;
+	padding-top: 3px;
+	border-top: 1px solid var(--border);
+}
+
+.reference__create button,
+.reference__create svg {
+	color: var(--accent);
+}
+
+/* People and entries: rows. The avatar or still identifies, the name
+   confirms, the line under it qualifies. */
+.reference__rows {
+	display: grid;
+	gap: 1px;
+	margin: 0 -8px;
+	padding: 0;
+	list-style: none;
+}
+
+.reference__row {
+	position: relative;
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	padding: 6px 8px;
+	border-radius: var(--r-1);
+}
+
+.reference__row:hover,
+.reference__row:focus-within {
+	background: var(--surface-2);
+}
+
+.reference__row.is-inherited {
+	opacity: .7;
+}
+
+.reference__row.is-inherited:hover {
+	background: none;
+}
+
+.reference__row.is-drop::before {
+	position: absolute;
+	top: -1px;
+	right: 8px;
+	left: 8px;
+	height: 2px;
+	border-radius: 2px;
+	background: var(--accent);
+	content: "";
+}
+
+/* Grips show on hover and focus, and only when order is kept. */
+.reference__grip {
+	display: grid;
+	flex: none;
+	place-items: center;
+	width: 14px;
+	margin: 0 -4px;
+	color: var(--fg-3);
+	opacity: 0;
+	cursor: grab;
+}
+
+.reference__grip svg {
+	width: 13px;
+	height: 13px;
+}
+
+.reference__row:hover .reference__grip,
+.reference__row:focus .reference__grip,
+.reference__token .reference__grip {
+	opacity: 1;
+}
+
+.reference__token .reference__grip {
+	width: 12px;
+	margin: 0 -2px 0 -5px;
+}
+
+.reference__avatar {
+	width: 29px;
+	height: 29px;
+	font-size: var(--text-2xs);
+}
+
+.reference__avatar--small {
+	width: 20px;
+	height: 20px;
+}
+
+.reference__avatar.is-missing {
+	border: 1px dashed var(--danger-dot);
+	background: transparent;
+	color: var(--danger);
+}
+
+.reference__row.is-draft .reference__avatar,
+.reference__row.is-inherited .reference__avatar {
+	border: 1px dashed var(--border-strong);
+	background: transparent;
+}
+
+.reference__who {
+	display: grid;
+	flex: 1;
+	min-width: 0;
+}
+
+.reference__name {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	min-width: 0;
+	overflow: hidden;
+	color: var(--fg);
+	font-size: var(--text-sm);
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.reference__name > span:first-child {
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.reference__row.is-missing .reference__name {
+	color: var(--danger);
+	font-family: var(--font-mono);
+	font-size: var(--text-xs);
+}
+
+.reference__row.is-trash .reference__name > span:first-child {
+	color: var(--fg-2);
+	text-decoration: line-through;
+	text-decoration-color: var(--fg-3);
+}
+
+.reference__meta {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	overflow: hidden;
+	color: var(--fg-3);
+	font-size: var(--text-xs);
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.reference__meta.mono {
+	font-size: var(--text-2xs);
+}
+
+.reference__lead {
+	padding: 0 4px;
+	border: 1px solid var(--border);
+	border-radius: 4px;
+	color: var(--fg-3);
+	font-size: var(--text-2xs);
+	font-weight: 600;
+	letter-spacing: .07em;
+	line-height: 15px;
+	text-transform: uppercase;
+}
+
+/* The × shows on hover or focus, where it's wanted. */
+.reference__remove {
+	display: grid;
+	flex: none;
+	place-items: center;
+	width: 24px;
+	height: 24px;
+	padding: 0;
+	border: 0;
+	border-radius: var(--r-1);
+	background: none;
+	color: var(--fg-3);
+	opacity: 0;
+	cursor: pointer;
+}
+
+.reference__remove svg {
+	width: 13px;
+	height: 13px;
+}
+
+.reference__row:hover .reference__remove,
+.reference__row:focus-within .reference__remove {
+	opacity: 1;
+}
+
+.reference__remove:hover {
+	background: var(--surface-3);
+	color: var(--danger);
+}
+
+@media (hover: none) {
+	.reference__remove,
+	.reference__grip {
+		opacity: 1;
+	}
+}
+
+/* A still: an entry's image in a quiet frame, or the frame alone. Never
+   initials, which mean a person. */
+.reference__still {
+	position: relative;
+	display: grid;
+	flex: none;
+	place-items: center;
+	width: 56px;
+	aspect-ratio: 4 / 3;
+	overflow: hidden;
+	border-radius: 4px;
+	background: var(--surface-3);
+	color: var(--danger);
+	font-family: var(--font-mono);
+	font-size: var(--text-xs);
+}
+
+.reference__still img {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+}
+
+.reference__still--row {
+	width: 44px;
+}
+
+.reference__still.is-missing {
+	border: 1px dashed var(--danger-dot);
+	background: transparent;
+}
+
+.reference__row.is-draft .reference__still,
+.reference__still.is-faded {
+	opacity: .55;
+}
+
+.reference__row.is-trash .reference__still {
+	opacity: .35;
+}
+
+.reference__results--cards .reference__options button {
+	gap: var(--s-3);
+	padding: 6px;
+}
+
+.reference__card-title {
+	overflow: hidden;
+	color: var(--fg);
+	font-family: var(--font-title);
+	font-size: var(--title-size);
+	font-weight: var(--title-weight);
+	letter-spacing: var(--title-track);
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.reference__card-skeleton {
+	display: flex;
+	align-items: center;
+	gap: var(--s-3);
+	padding: 6px;
+}
+
+.reference__card-skeleton .reference__who {
+	gap: 6px;
+}
+
+/* A result's tick: filled when it's chosen. */
+.reference__tick {
+	display: grid;
+	flex: none;
+	place-items: center;
+	width: 18px;
+	height: 18px;
+	border: 1px solid var(--border-strong);
+	border-radius: 50%;
+	color: transparent;
+}
+
+.reference__options .reference__tick svg {
+	width: 11px;
+	height: 11px;
+	color: inherit;
+	stroke-width: 2.6;
+}
+
+.reference__tick.is-on {
+	border-color: var(--accent);
+	background: var(--accent);
+	color: var(--accent-fg);
+}
+
+/* What a translation shows from its original. */
+.reference__inherited {
+	display: grid;
+	gap: var(--s-2);
+	padding: var(--s-3);
+	border: 1px dashed var(--border-strong);
+	border-radius: var(--r-1);
+}
+
+.reference__inherited-head {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	margin: 0;
+	color: var(--fg-3);
+	font-size: var(--text-xs);
+}
+
+.reference__inherited-head svg {
+	flex: none;
+	width: 13px;
+	height: 13px;
+}
+
+.reference__inherited .reference__rows {
+	margin: 0 -8px -4px;
+}
+
+.reference__missing {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: baseline;
+	gap: 4px 8px;
+}
+
+.reference__missing b {
+	font-weight: 500;
+}
+
+.reference__select--inherited .select__label {
+	color: var(--fg-3);
 }

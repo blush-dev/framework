@@ -12,7 +12,10 @@ This is the design for the Blush 2 subsystems. Decisions it relies on are in
   data, accounts, and sessions, so a site can run on flat files or,
   later, a database. Only `filesystem` exists; content reads it (D-485).
   Media files are always files. Build new stored data behind an
-  interface its area's driver can replace.
+  interface its area's driver can replace. Planned (D-606): one data
+  layer for every area, records keyed by id from drivers (filesystem
+  and PDO in core, more from Composer), a fluent query each driver
+  compiles, and repositories over them.
 - **No global state.** Constructor injection everywhere. The only global
   functions are template escaping helpers.
 - **Render anywhere.** Only `RequestFactory::fromGlobals()` touches
@@ -1225,7 +1228,12 @@ by source, keeps recents, and writes the directive text). The
   minimal edits through `markdown.ts`, which also carries list, quote,
   and table markers on Enter (`continuation()`). Reference fields use
   `ReferencePicker` over `GET references/{type}`
-  (`ReferencesController`, D-281); selects are `AdminSelect` and dates
+  (`ReferencesController`, D-281), which hands each relation to its
+  control (`ReferenceSelect`, `ReferencePeople`, `ReferenceTree`,
+  `ReferenceCards`, `ReferenceTokens`) over `picker.ts`'s `usePicker()`
+  (values, the relation's rules, the 50-candidate threshold, capped
+  ranked search, suggestions; D-607), with `ReferenceResults`,
+  `ReferenceMissing`, and `ReferenceInherited` shared; selects are `AdminSelect` and dates
   `DatePicker`; images' variants are
   the theme's `variants.image` classes (`DirectiveVariants::forImages()`,
   `GET directives`' `image`). `MediaPicker` has Library and Upload tabs;

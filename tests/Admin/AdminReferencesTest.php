@@ -129,4 +129,66 @@ final class AdminReferencesTest extends TestCase
 
 		$this->assertSame(3, $this->references('topic')['total'] ?? null);
 	}
+
+	public function testUptoAnswersEveryCandidateOrNone(): void
+	{
+		$this->site();
+
+		$whole = $this->references('topic?upto=3');
+		$over  = $this->references('topic?upto=2&slugs=css');
+
+		$this->assertSame([true, true, 3], [$whole['whole'] ?? null, $whole['tree'] ?? null, $whole['total'] ?? null]);
+		$this->assertSame(['art', 'web', 'css'], array_column((array) ($whole['items'] ?? []), 'slug'));
+		$this->assertSame([false, false, 3], [$over['whole'] ?? null, $over['tree'] ?? null, $over['total'] ?? null], 'Over it, the count and no tree (D-607).');
+		$this->assertSame(['css'], array_column((array) ($over['items'] ?? []), 'slug'), 'Only what the field holds.');
+		$this->assertSame(['Web'], array_column((array) ($over['items'] ?? []), 'path'));
+	}
+
+	public function testASearchRanksTitlesStartingWithItFirst(): void
+	{
+		$this->writeTemporaryFile('user/content/moods/sea-salt.md', "---\ntitle: Sea Salt\n---\n");
+		$this->writeTemporaryFile('user/content/moods/wasabi.md', "---\ntitle: Wasabi\n---\n");
+		$this->writeTemporaryFile('user/content/moods/saffron.md', "---\ntitle: Saffron\n---\n");
+		$this->site();
+
+		$list = $this->references('mood?upto=2&search=sa&limit=2');
+
+		$this->assertSame(['saffron', 'sea-salt'], array_column((array) ($list['items'] ?? []), 'slug'), 'Starts with, then a word, then anywhere.');
+		$this->assertSame([3, false], [$list['total'] ?? null, $list['whole'] ?? null]);
+	}
+
+	public function testSuggestsTheMostUsedTheEditedAndTheRecent(): void
+	{
+		$this->site();
+
+		$this->assertSame(['css'], array_column((array) ($this->references('topic?suggest=uses')['suggested'] ?? []), 'slug'), 'Only terms in use, most first.');
+		$this->assertSame(['css'], array_column((array) ($this->references('topic?suggest=recent&from=page.topic')['suggested'] ?? []), 'slug'));
+		$this->assertCount(2, (array) ($this->references('topic?suggest=edited&suggestions=2')['suggested'] ?? []));
+		$this->assertSame(400, $this->send('GET', '/references/topic?suggest=recent')->getStatusCode(), 'Recent needs a relation.');
+		$this->assertSame(400, $this->send('GET', '/references/topic?suggest=nope')->getStatusCode());
+	}
+
+	public function testLeavesOutAnEntryAndItsBranch(): void
+	{
+		$this->site();
+
+		$alone  = $this->references('topic?except=web');
+		$branch = $this->references('topic?except=web&branch=1');
+
+		$this->assertSame(['art', 'css'], array_column((array) ($alone['items'] ?? []), 'slug'));
+		$this->assertSame(['art'], array_column((array) ($branch['items'] ?? []), 'slug'));
+		$this->assertSame(1, $branch['excluded'] ?? null, 'CSS, under Web.');
+	}
+
+	public function testATrashedOrMistypedSlugSaysSo(): void
+	{
+		$this->writeTemporaryFile('user/content/moods/gloomy.md', "---\ntitle: Gloomy\nstatus: trash\n---\n");
+		$this->site();
+
+		$items = array_slice((array) ($this->references('mood?upto=1&slugs=gloomy,hapy,zzzzzzzz')['items'] ?? []), 1);
+
+		$this->assertSame(['trash', null, null], array_column($items, 'status'));
+		$this->assertSame([false, true, true], array_column($items, 'missing'));
+		$this->assertSame([['slug' => 'happy', 'title' => 'Happy'], null], array_column(array_slice($items, 1), 'closest'), 'A typo finds what it meant.');
+	}
 }

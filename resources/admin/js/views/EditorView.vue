@@ -134,6 +134,7 @@ import { attributeParts, attributeText, blocks, directiveHead, emphasisAt, image
 import { mediaName } from '../media';
 import { onPressOutside } from '../popover';
 import { loadReferences, referenceValues, slugOf, type ReferenceItem } from '../references';
+import { pickerMeta } from '../picker';
 import { canUpload } from '../session';
 import type { IconName } from '../icons';
 import type { SiteIcon } from '../site-icons';
@@ -1050,18 +1051,30 @@ const term = computed(() => entry.value?.type.terms === true);
 const imageField      = computed(() => ownFields.value.find((field) => field.name === 'image' && field.type === 'media'));
 // Each people field (D-353): a reference to profiles, such as `authors`
 // or a recipe's `cooks`, as a people picker under its own label.
-const peopleFields    = computed(() => ownFields.value.filter((field) => field.type === 'reference' && field.to !== undefined && field.to === profileType.value));
+const peopleFields    = computed(() => ownFields.value.filter((field) => field.type === 'reference' && field.to !== undefined && field.to === profileType.value && field.multiple !== false));
 const summaryField    = computed(() => ownFields.value.find((field) => field.name === 'summary' && field.type === 'markdown'));
 const referenceFields = computed(() => ownFields.value.filter((field) => field.type === 'reference' && field.to !== undefined && field.multiple !== false && !peopleFields.value.includes(field)));
+// A relation that takes exactly one (a cuisine, or who tested a recipe)
+// is a value in the Publish rows, as Status and Date are (D-607).
+const singleFields    = computed(() => ownFields.value.filter((field) => field.type === 'reference' && field.to !== undefined && field.multiple === false && field !== parentField.value && field.relation !== undefined));
 
 const otherFields = computed(() => {
-	const placed = [visibilityField.value, parentField.value, positionField.value, imageField.value, ...peopleFields.value, summaryField.value, ...referenceFields.value];
+	const placed = [visibilityField.value, parentField.value, positionField.value, imageField.value, ...peopleFields.value, summaryField.value, ...referenceFields.value, ...singleFields.value];
 
 	return ownFields.value.filter((field) => !placed.includes(field));
 });
 
 function referenceCount(field: FieldDescription): number {
 	return String(form.value[field.name] ?? '').split(',').filter((item) => item.trim() !== '').length;
+}
+
+// A relation's state at a glance, for its heading (D-607).
+function referenceMeta(field: FieldDescription, people = false) {
+	return pickerMeta(field, referenceCount(field), {
+		...(entry.value?.inherited?.[field.name] === undefined ? {} : { inherited: entry.value.inherited[field.name] }),
+		people,
+		attempted: attempted.value && missing.value.some((item) => item.name === field.name)
+	});
 }
 
 // Who can reach it (D-082), with what each choice does. Public is the
@@ -2796,13 +2809,19 @@ function fieldKey(field: FieldDescription): string {
 									<div v-if="parentField" class="settings__row">
 										<dt><label :for="`field-${parentField.name}`">Parent</label></dt>
 										<dd>
-											<ReferencePicker :id="`field-${parentField.name}`" :key="fieldKey(parentField)" :field="parentField" :self="entry.slug" plain :model-value="String(form[parentField.name] ?? '')" @update:model-value="form[parentField.name] = $event" />
+											<ReferencePicker :id="`field-${parentField.name}`" :key="fieldKey(parentField)" :field="parentField" :self="entry.slug" branch plain :model-value="String(form[parentField.name] ?? '')" @update:model-value="form[parentField.name] = $event" />
 										</dd>
 									</div>
 									<div v-if="positionField" class="settings__row">
 										<dt><label for="editor-position">Position</label></dt>
 										<dd>
 											<input id="editor-position" class="settings__input mono" type="number" step="1" inputmode="numeric" placeholder="By title" :value="String(form[positionField.name] ?? '')" aria-describedby="editor-position-help" @input="form[positionField.name] = ($event.target as HTMLInputElement).value">
+										</dd>
+									</div>
+									<div v-for="single in singleFields" :key="fieldKey(single)" class="settings__row">
+										<dt><label :for="`field-${single.name}`">{{ titleCase(single.relation?.label || label(single)) }}</label></dt>
+										<dd>
+											<ReferencePicker :id="`field-${single.name}`" :field="single" :self="entry.slug" :people="single.to === profileType" :keep-last="entry.type.byline === single.name || single.required === true" :inherited="entry.inherited?.[single.name]" :invalid="Boolean(errorFor(single.name))" plain :model-value="String(form[single.name] ?? '')" @update:model-value="form[single.name] = $event" />
 										</dd>
 									</div>
 								</dl>
@@ -2837,16 +2856,16 @@ function fieldKey(field: FieldDescription): string {
 
 							<template v-for="peopleField in peopleFields" :key="fieldKey(peopleField)">
 								<OptionsGroup v-if="!term || referenceCount(peopleField)" :heading="titleCase(peopleField.relation?.label || peopleField.label || (peopleField.multiple === false ? 'Author' : 'Authors'))">
-									<template v-if="referenceCount(peopleField) > 1" #hint>{{ plural(referenceCount(peopleField), 'person', 'people') }}</template>
-									<ReferencePicker :id="`field-${peopleField.name}`" :field="peopleField" :inherited="entry.inherited?.[peopleField.name]" people :keep-last="entry.type.byline === peopleField.name || peopleField.required === true" :model-value="String(form[peopleField.name] ?? '')" :invalid="Boolean(errorFor(peopleField.name))" @update:model-value="form[peopleField.name] = $event" />
+									<template v-if="referenceMeta(peopleField, true).text" #hint><span :class="`is-${referenceMeta(peopleField, true).tone}`">{{ referenceMeta(peopleField, true).text }}</span></template>
+									<ReferencePicker :id="`field-${peopleField.name}`" :field="peopleField" :inherited="entry.inherited?.[peopleField.name]" people :self="entry.slug" :attempted="Boolean(errorFor(peopleField.name))" :keep-last="entry.type.byline === peopleField.name || peopleField.required === true" :model-value="String(form[peopleField.name] ?? '')" :invalid="Boolean(errorFor(peopleField.name))" @update:model-value="form[peopleField.name] = $event" />
 									<p v-if="errorFor(peopleField.name)" class="field__error">{{ errorFor(peopleField.name) }}</p>
 								</OptionsGroup>
 							</template>
 
 							<OptionsGroup v-for="field in referenceFields" :key="fieldKey(field)">
 								<template #heading><label :for="`field-${field.name}`">{{ titleCase(field.label ?? labelsOf(field.to ?? '').plural) }}</label></template>
-								<template v-if="referenceCount(field)" #hint>{{ referenceCount(field).toLocaleString() }} selected</template>
-								<ReferencePicker :id="`field-${field.name}`" :field="field" :inherited="entry.inherited?.[field.name]" :model-value="String(form[field.name] ?? '')" :invalid="Boolean(errorFor(field.name))" @update:model-value="form[field.name] = $event" />
+								<template v-if="referenceMeta(field).text" #hint><span :class="`is-${referenceMeta(field).tone}`">{{ referenceMeta(field).text }}</span></template>
+								<ReferencePicker :id="`field-${field.name}`" :field="field" :inherited="entry.inherited?.[field.name]" :self="entry.slug" :attempted="Boolean(errorFor(field.name))" :model-value="String(form[field.name] ?? '')" :invalid="Boolean(errorFor(field.name))" @update:model-value="form[field.name] = $event" />
 								<p v-if="errorFor(field.name)" class="field__error">{{ errorFor(field.name) }}</p>
 							</OptionsGroup>
 

@@ -268,7 +268,7 @@ final class AdminRelationsTest extends TestCase
 		$field = array_find(is_array($type) && is_array($type['fields'] ?? null) ? $type['fields'] : [], static fn (mixed $field): bool => is_array($field) && ($field['name'] ?? null) === 'cuisine');
 
 		$this->assertIsArray($field);
-		$this->assertSame(['name' => 'cuisine', 'label' => '', 'ordered' => true, 'min' => 2, 'max' => 3, 'create' => true, 'control' => 'tokens'], $field['relation'] ?? null, 'What the picker follows (D-599).');
+		$this->assertSame(['name' => 'cuisine', 'key' => 'recipe.cuisine', 'label' => '', 'ordered' => true, 'min' => 2, 'max' => 3, 'create' => true, 'control' => 'tokens'], $field['relation'] ?? null, 'What the picker follows (D-599).');
 
 		$thai = self::json($this->send('GET', '/entries/0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e60'));
 
@@ -284,7 +284,7 @@ final class AdminRelationsTest extends TestCase
 
 		$translation = self::json($this->send('GET', '/entries/0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e62'));
 
-		$this->assertSame(['cuisine' => ['rule' => 'add', 'values' => ['thai']]], $translation['inherited'] ?? null, 'A translation shows what it uses from its original.');
+		$this->assertSame(['cuisine' => ['rule' => 'add', 'values' => ['thai'], 'title' => 'Curry', 'language' => 'English (United States)']], $translation['inherited'] ?? null, 'A translation shows what it uses from its original.');
 	}
 
 	public function testTakesEveryOptionTheFormSends(): void

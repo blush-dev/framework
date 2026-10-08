@@ -13,7 +13,7 @@
 | M8 | **Port jtcom.** jtcom theme, config, `user/` layout, a URL-parity crawl against the live site, and a redirect map. | Every old URL returns 200 or 301; deployed (dynamically, D-142) |
 | M9 | **Admin stage 2:** operations dashboard. | Publish, clear, and reindex from a browser |
 | M10 | **Admin stage 3:** editor and media library. | Create and edit entries in a browser |
-| Later | Plugin views in the view chain (D-174; on hold, D-380; a plugin's components render themselves since D-382); `SqliteIndex` + search; in-house YAML and Markdown parsers; theme distribution; custom template engine; Vite dev-server integration | — |
+| Later | The data layer for every storage area (D-606); plugin views in the view chain (D-174; on hold, D-380; a plugin's components render themselves since D-382); `SqliteIndex` + search; in-house YAML and Markdown parsers; theme distribution; custom template engine; Vite dev-server integration | — |
 
 ---
 
@@ -510,7 +510,7 @@ Other starting points the author may pick up (none decided):
 - Creating a site: `composer create-project` (once the skeleton is on
   Packagist, running `init` afterward; D-218).
 - **A global installer (D-165):** a separately installed `blush` command
-  (like `laravel/installer`, via `composer global require`) that creates
+  (via `composer global require`) that creates
   sites (`blush new mysite`) and, inside a site, runs that site's
   `bin/blush`. Until then, `docs/installation.md` shows the small
   launcher script that finds the nearest `bin/blush` (D-421). Its shape

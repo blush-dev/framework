@@ -915,6 +915,9 @@ export interface FieldDescription {
  */
 export interface FieldRelation {
 	name: string;
+	// Its key on the entry's type (`recipe.cooks`), which suggestions ask
+	// by (D-607).
+	key: string;
 	// What it's called ("Cooks"), `''` for its name's.
 	label: string;
 	ordered: boolean;
@@ -948,6 +951,9 @@ export interface LinkedGroup {
 export interface InheritedValues {
 	rule: 'fallback' | 'add';
 	values: string[];
+	// The original's title, and its language's name (D-607).
+	title: string;
+	language: string;
 }
 
 /**

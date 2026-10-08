@@ -12,6 +12,20 @@ export function formatDate(iso: string): string {
 }
 
 /**
+ * Returns text with its first letter a capital, to start a sentence.
+ */
+export function capitalized(text: string): string {
+	return text.replace(/^./u, (letter) => letter.toUpperCase());
+}
+
+/**
+ * Returns a noun with its indefinite article: "an ingredient", "a cook".
+ */
+export function withArticle(noun: string): string {
+	return `${/^[aeiou]/i.test(noun) ? 'an' : 'a'} ${noun}`;
+}
+
+/**
  * Returns a count with its noun, plural when it isn't one.
  */
 export function plural(count: number, one: string, many = `${one}s`): string {

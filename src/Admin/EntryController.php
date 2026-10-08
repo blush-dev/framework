@@ -1443,13 +1443,14 @@ final readonly class EntryController
 
 	/**
 	 * Returns what the editor's picker follows of the relation a field
-	 * holds (D-599), as `relation`: its `name`, whether it's `ordered`, its
+	 * holds (D-599), as `relation`: its `name` and `key` (`recipe.cooks`,
+	 * which its picker's suggestions ask by, D-607), whether it's `ordered`, its
 	 * `min` and `max`, and whether targets are created as they're typed
 	 * (`create`); none for a field that isn't one.
 	 *
 	 * The picker draws it with the relation's `control` (D-599).
 	 *
-	 * @return array{relation?: array{name: string, label: string, ordered: bool, min: int, max: ?int, create: bool, control: string}}
+	 * @return array{relation?: array{name: string, key: string, label: string, ordered: bool, min: int, max: ?int, create: bool, control: string}}
 	 */
 	private function relationOf(ContentType $type, Field $field): array
 	{
@@ -1460,6 +1461,7 @@ final readonly class EntryController
 
 		return $relation === null ? [] : ['relation' => [
 			'name'    => $relation->name,
+			'key'     => $relation->key($type->name),
 			'label'   => $relation->label,
 			'ordered' => $relation->ordered,
 			'min'     => $relation->min,
@@ -1496,10 +1498,11 @@ final readonly class EntryController
 	 * from its original by the relation's `translations` rule (D-587,
 	 * D-599), by field: the `rule` (`fallback`: the original's when it has
 	 * none of its own; `add`: the original's and its own) and the
-	 * original's `values`. A relation whose rule is `own`, or whose
+	 * original's `values`, `title`, and `language` (its name, for
+	 * "from English", D-607). A relation whose rule is `own`, or whose
 	 * original has none, isn't listed.
 	 *
-	 * @return array<string, array{rule: string, values: list<string>}>
+	 * @return array<string, array{rule: string, values: list<string>, title: string, language: string}>
 	 */
 	private function inherited(Entry $entry, EditableEntry $file): array
 	{
@@ -1520,7 +1523,12 @@ final readonly class EntryController
 			$values = LinkResolver::values($original->field($relation->field));
 
 			if ($values !== []) {
-				$inherited[$relation->field] = ['rule' => $relation->translations->value, 'values' => $values];
+				$inherited[$relation->field] = [
+					'rule'     => $relation->translations->value,
+					'values'   => $values,
+					'title'    => $original->title,
+					'language' => $this->app->languages->find($original->language)?->name() ?? $original->language
+				];
 			}
 		}
 

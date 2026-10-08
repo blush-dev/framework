@@ -4,6 +4,36 @@ Move each item to `decisions.md` once it's answered.
 
 ## Needs the author's call
 
+- **The data layer** (D-606; planned, nothing built). Settled: three
+  layers (drivers over records, a fluent query compiled per driver,
+  repositories), data mapper, every area, id-keyed writes, the full
+  query language, drivers from core and Composer. Open:
+  - **Schemas and migrations** (the author: "I don't know"). Does a
+    database driver build its tables from type definitions (fields as
+    columns, or a JSON column of fields with indexed columns for what's
+    queried)? Is there a `storage:migrate`, and what changes when a
+    type gains or loses a field? The filesystem driver needs none of
+    it, which argues for schema being the driver's business, derived
+    from types, rather than migrations a site writes by hand.
+  - **Moving between drivers** (D-486's migration tools): copying every
+    set from one driver to another through the record layer, ids kept,
+    as a CLI command and an admin tool.
+  - **Composer drivers:** how they're found before plugins load.
+    Leaning: a key in the package's `composer.json` `extra`, read with
+    the installed packages and cached, and a driver named in
+    `config/storage.php` or `.env`.
+  - **Writes that touch several records** (a rename filing referrers'
+    ids, D-596): transactions on a database; on files, best effort with
+    a journal, or a documented limit.
+  - **The filesystem driver's index** for the full query language:
+    what it keeps per set (sorted keys, value maps per field) so
+    comparisons, groups, and aggregates don't scan every record, and
+    whether `SqliteIndex` becomes its index for large sites.
+  - **Names:** record, set, store, `QuerySpec`, and repositories (and
+    "set" against content's own "collection").
+  - **Publishing** a database-backed site (D-131 pulls `user/` with
+    git; D-486's open point).
+
 - **A front-end interactivity API** (discussed 2026-10-07; nothing to
   build yet). Developers will need a way to build interactive sites.
   The direction discussed: no client framework (Preact or otherwise)
@@ -449,7 +479,7 @@ Move each item to `decisions.md` once it's answered.
     inserters do.
 - **Global helper functions** (D-106, D-504): `e()`, `attr()`, `url()`,
   `js()`, `css()`, and `raw()` are global and unguarded, so Blush can't
-  share a site with a library that defines its own, such as Laravel's
+  share a site with a library that defines its own, such as
   `illuminate/support` (and so `illuminate/view`, for a Blade adapter).
   The author doesn't want pluggable functions (`function_exists()`
   guards, tried as D-503) and wonders whether to avoid global functions
@@ -989,7 +1019,7 @@ Move each item to `decisions.md` once it's answered.
   - **Name:** `blush-dev/cli` over `blush-dev/installer`. It also hands
     off to a site's CLI, which is its everyday use. Peers that do both
     say `cli` (`statamic/cli`, `getkirby/cli`); `installer` is for tools
-    that only create projects (`laravel/installer`). The risk is
+    that only create projects. The risk is
     reading it as where the commands live; its README says it finds the
     site and runs its `bin/blush`.
   - **Contents:** its own repository, no dependencies (global packages
@@ -1387,8 +1417,7 @@ Move each item to `decisions.md` once it's answered.
 
 - **Vite dev-server integration** (D-155, deferred by the author): live
   reload needs asset URLs pointed at Vite's dev server while it runs,
-  typically through a "hot" file the dev server writes (Laravel's
-  approach) that `ThemeAssets` checks in development. `vite build
+  typically through a "hot" file the dev server writes that `ThemeAssets` checks in development. `vite build
   --watch` covers it until then.
 
 - **Design tokens as an add-on** (D-160): the M5b token system (DTCG

@@ -897,3 +897,23 @@ D-541). Where the admin differs from the sketch:
 - **Add a Relationship** is a modal (the shared `AdminModal`) rather
   than a screen of its own (§8, List, then detail): a relation is a few
   choices, and it's made from a type's screen.
+
+## The relationship pickers (`meridian-relationship-pickers.html`, D-607)
+
+- **No read-only state** (the author): the sketch's "Your role can see
+  the courses but not change them" needs a capability nothing has.
+- **Shared pieces over the sketch's own:** the select is `AdminSelect`
+  (its filter is the existing `searchable`, with `remote` and `note`
+  added for over 50); chips, rows, and the results list are one set of
+  `.reference__*` classes; pills are `StatusPill`; skeleton cards use
+  `.skeleton`. The sketch's `.f-hint` lines are `.field__help` and
+  `.field__error`, and its "Replace" a `.lnk` button.
+- **The tree's New {term} writes the term at once**, with its parent;
+  only a token typed in new waits for Update, as the sketch's New on
+  Save board shows for tokens.
+- **"Your other changes are saved"** is left off the after-Publish
+  people line: a publish refused for a missing value saves nothing.
+- **Inherited values in the tree** are a line naming them, not dashed
+  rows, since the tree has no room for rows that can't be ticked.
+- **A translation's language** is the admin's name for it (`English
+  (United States)`), as elsewhere, not the sketch's bare "English".

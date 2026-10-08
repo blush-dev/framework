@@ -124,7 +124,9 @@ where it is, outside "any status" and every status control (D-484);
 and storage as a driver per area (content, data, accounts, sessions)
 named in config or `STORAGE_DRIVER`, with `filesystem` the only one
 for now, so a site can later keep its data in a database (D-485,
-D-486); build stored data with that in mind; and an id for every media
+D-486); build stored data with that in mind, toward one data layer
+for every area, records keyed by id with a fluent query each driver
+compiles (D-606, planned); and an id for every media
 original, with image sizes found by rule and given none
 (D-487), and sizes recorded in their image's details, the library
 listing one item per image (D-488); and Blush's own Markdown API over
@@ -175,7 +177,11 @@ classify relation files entries under, relation definitions are their
 own records (`user/data/relations`, config, `RelationSource`), and a
 type's screen has a Relationships panel (D-591, D-593, D-594), with
 `content:taxonomies` and Site Health migrating data types still written
-as taxonomies.
+as taxonomies; and, from the pickers sketch
+(`.claude/docs/admin-design/meridian-relationship-pickers.html`), the
+relation pickers at scale (50 candidates, capped ranked search,
+suggestions), cards as rows over a search, and every picker's states,
+with tokens typed in new written on Update (D-607).
 The Fields
 API (D-337 to D-348: field types and controls, field sets on content
 types, media, and the Settings screens, slots, and Structure → Fields)

@@ -35,9 +35,16 @@
  * Options may be listed under headings (`group`, D-444), as the time
  * zones are under their regions; a search matches a heading's name too
  * (`europe` lists Europe's).
+ *
+ * A `remote` list's options are searched by whoever gives them (D-607:
+ * a relation's picker over 50 candidates asks the server): typing emits
+ * `search`, and the list shows the options as given. A `note` is a
+ * quiet line at the list's foot (how many more there are, or what's
+ * left out and why), and an option's `mark` is a person's initials,
+ * drawn as an avatar before its label, in the list and on the button.
  */
 
-import { computed, nextTick, onBeforeUnmount, ref } from 'vue';
+import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue';
 import { usePopover } from '../popover';
 import AdminIcon from './AdminIcon.vue';
 
@@ -55,6 +62,8 @@ export interface SelectOption {
 	// The heading it's listed under (D-444: a time zone's region); one
 	// heading starts each run of options that share it.
 	group?: string | null;
+	// A person's initials, drawn as an avatar (D-607).
+	mark?: string;
 }
 
 const props = defineProps<{
@@ -68,17 +77,27 @@ const props = defineProps<{
 	plain?: boolean;
 	// A search field over the open list (D-443).
 	searchable?: boolean;
+	// Searched by whoever gives the options, which `search` asks for.
+	remote?: boolean;
+	// A line at the open list's foot.
+	note?: string;
 }>();
 
 const model = defineModel<string>({ required: true });
 
-const emit = defineEmits<{ picked: [value: string, query: string, matched: boolean] }>();
+const emit = defineEmits<{ picked: [value: string, query: string, matched: boolean]; search: [query: string] }>();
 
 const button = ref<HTMLButtonElement | null>(null);
 const list   = ref<HTMLElement | null>(null);
 const listId = `${props.id}-list`;
 const search = ref<HTMLInputElement | null>(null);
 const query  = ref('');
+
+watch(query, (text) => {
+	if (props.remote) {
+		emit('search', text);
+	}
+});
 
 const popover                = usePopover(button, list, { gap: 4, matchWidth: true });
 const { open, place, close } = popover;
@@ -106,6 +125,10 @@ const found = computed(() => {
 
 	if (!props.searchable || text === '') {
 		return { shown: [...rest, ...pinned], matched: true };
+	}
+
+	if (props.remote) {
+		return { shown: [...rest, ...pinned], matched: rest.length > 0 };
 	}
 
 	const keep = new Set<number>();
@@ -293,6 +316,7 @@ onBeforeUnmount(() => clearTimeout(typedTimer));
 			@click="open ? close() : show()"
 			@keydown="buttonKey"
 		>
+			<span v-if="current?.mark" class="avatar select__mark" aria-hidden="true">{{ current.mark }}</span>
 			<span class="select__label">
 				<span :lang="current?.lang" dir="auto">{{ current?.label ?? '' }}</span>
 				<span v-if="current?.hint" class="select__hint">{{ current.hint }}</span>
@@ -331,12 +355,14 @@ onBeforeUnmount(() => clearTimeout(typedTimer));
 							:data-hint="option.hint ?? undefined"
 							@click="choose(option)"
 						>
+							<span v-if="option.mark" class="avatar select__mark" aria-hidden="true">{{ option.mark }}</span>
 							<span class="select-list__label" :lang="option.lang" dir="auto">{{ option.label }}</span>
 							<span v-if="option.hint" class="select-list__hint">{{ option.hint }}</span>
 							<AdminIcon v-if="option.value === model" name="check" class="select-list__tick" />
 						</button>
 					</template>
 				</div>
+				<p v-if="note" class="select-list__note">{{ note }}</p>
 			</div>
 		</Teleport>
 	</div>
@@ -420,6 +446,13 @@ onBeforeUnmount(() => clearTimeout(typedTimer));
 .select__hint {
 	margin-left: var(--s-2);
 	color: var(--fg-3);
+}
+
+.select__mark {
+	flex: none;
+	width: 20px;
+	height: 20px;
+	font-size: var(--text-2xs);
 }
 
 .select__caret {
@@ -506,6 +539,16 @@ onBeforeUnmount(() => clearTimeout(typedTimer));
 
 .select-list__group:first-child {
 	padding-top: var(--s-1);
+}
+
+.select-list__note {
+	flex: none;
+	margin: 0;
+	padding: var(--s-2) var(--s-3);
+	border-top: 1px solid var(--border);
+	color: var(--fg-3);
+	font-size: var(--text-xs);
+	font-variant-numeric: tabular-nums;
 }
 
 .select-list__empty {
