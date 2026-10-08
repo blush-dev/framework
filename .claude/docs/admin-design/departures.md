@@ -137,7 +137,8 @@ Each is recorded in `.claude/docs/decisions.md`.
   none). The screens themselves are drawn as the
   sketch is, under a `.people` root (D-370), so other screens keep the
   direction's spacing and pills; tabs are the direction's on every
-  screen, these too, with less padding (D-507). "You" marks your own account and profile in those two
+  screen, these too, with less padding (D-507), and so are card heads,
+  with their rule (D-566, D-603). "You" marks your own account and profile in those two
   lists; entry lists keep "Yours" for entries crediting you.
 - **Your Account** (D-235, D-355, D-358, D-369; Your Profile in the
   direction, renamed as the sketch suggests): the account screen on

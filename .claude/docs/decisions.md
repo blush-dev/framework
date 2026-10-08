@@ -17924,3 +17924,26 @@ decision, add a new entry that supersedes it and mark the old one
     inverse `page`/`archive`, `byline`, `singular`), themes (helpers,
     templates), admin (Archives, the form, the API), accounts,
     content, extending, and coming-from-1x.
+
+### D-603: The Users screens' card heads are every card's
+
+- **Date:** 2026-10-07
+- **Decision:** the Users screens (Accounts, an account and Your
+  Account, New Account, Profiles, a profile) draw their panels' heads
+  as every other card does (D-566): the shared `.panel__header`, its
+  height, and the rule under it. The `.people` root no longer takes the
+  rule away or shrinks the head, and a table under a head no longer
+  draws its own line over it. Supersedes the "panel headers carry no
+  rule" part of D-370; the rest of the screens' sketch styling stays.
+- **Why:** the author's call: the account and profile screens' cards
+  didn't match the rest of the admin.
+
+### D-604: Your own account is pinned on Accounts
+
+- **Date:** 2026-10-07
+- **Decision:** the Accounts list pins your own account above the
+  rest, in its own tinted body (`.table__pinned`, as a type's index
+  page is on its entries list, D-255), when the tab and filters leave
+  it in the list. The rest stay in name order.
+- **Why:** the author's call: your own account is the one you open
+  most.

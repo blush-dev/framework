@@ -1428,7 +1428,8 @@ You see the profiles you may edit: your own, or anyone's with
 
 **Accounts** lists the people who can sign in, by name, with tabs for
 their standing (All, Active, Invited, Suspended) and, below them, a
-search, a role, and whether they have a profile. Each row shows the
+search, a role, and whether they have a profile. Your own account,
+marked **You**, is pinned at the top when it's in the list. Each row shows the
 display name and username (an account with no profile is in a dashed
 circle), the email address (**No email** for one made before they were
 asked for), roles, its **Profile** (its name, with its status when

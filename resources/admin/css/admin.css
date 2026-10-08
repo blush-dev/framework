@@ -741,7 +741,7 @@
 }
 
 .table tbody.table__pinned tr:last-child > * {
-	border-bottom: 1px solid var(--border-strong);
+	border-bottom: 1px solid var(--border);
 }
 
 /* The checkbox column (D-301): a drawn box with `aria-checked`, and the
@@ -1686,10 +1686,11 @@
 
 /* The Users screens (Accounts, an account and Your Account, New Account,
    Profiles, a profile), drawn as the profiles sketch has them (D-369,
-   D-370): a `.people` root spaces its sections further apart, panel
-   headers carry no rule, and its pills, tags, facts, and role rows are
-   the sketch's (its notices are every screen's, D-506; its tabs are
-   every screen's, D-507). Other screens keep the direction's. */
+   D-370): a `.people` root spaces its sections further apart, and its
+   pills, tags, facts, and role rows are the sketch's (its notices are
+   every screen's, D-506; its tabs are every screen's, D-507; its card
+   heads are every card's, D-566, D-603). Other screens keep the
+   direction's. */
 
 .people {
 	display: flex;
@@ -1716,20 +1717,6 @@
 
 .people .page-header__sep {
 	color: var(--fg-3);
-}
-
-.people .panel__header {
-	min-height: 0;
-	border-bottom: 0;
-}
-
-.people .panel__hint {
-	flex: 1 1 auto;
-	min-width: 0;
-}
-
-.people .panel__header + .table-wrap {
-	border-top: 1px solid var(--border);
 }
 
 /* Pills a size down, so a row's state sits beside its name. */

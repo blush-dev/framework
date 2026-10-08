@@ -13,7 +13,9 @@
  * count, and a line saying which filters are in force. An account's name
  * is its profile's title, so one without a profile shows its username,
  * in a dashed avatar. Each row's ⋮ opens it, its profile, or makes a
- * password link; **New account** is here.
+ * password link; **New account** is here. Your own account, when the
+ * filters leave it, is pinned above the rest, as a type's index page is
+ * on its entries list (D-604).
  */
 
 import { computed, ref } from 'vue';
@@ -82,6 +84,12 @@ const shown = computed(() => {
 		&& (profile.value === '' || (profile.value === 'linked') === (account.author !== null))
 		&& (words === '' || `${account.displayName} ${account.username} ${account.email ?? ''} ${account.author ?? ''} ${account.profile?.title ?? ''}`.toLowerCase().includes(words)));
 });
+
+// Your own account pinned above the rest (D-604), each group its own body.
+const groups = computed(() => [
+	{ key: 'pinned', accounts: shown.value.filter((account) => mine(account)) },
+	{ key: 'rest', accounts: shown.value.filter((account) => !mine(account)) }
+].filter((group) => group.accounts.length > 0));
 
 // What the filters in force narrow the list to, in words.
 const report = computed(() => {
@@ -189,8 +197,8 @@ async function makeLink(account: AccountInfo): Promise<void> {
 								<th scope="col" class="table__actions"><span class="visually-hidden">Actions</span></th>
 							</tr>
 						</thead>
-						<tbody>
-							<tr v-for="account in shown" :key="account.username">
+						<tbody v-for="group in groups" :key="group.key" :class="{ 'table__pinned': group.key === 'pinned' }">
+							<tr v-for="account in group.accounts" :key="account.username">
 								<th scope="row">
 									<span class="who">
 										<span class="avatar" :class="{ 'avatar--guest': !account.profile }" aria-hidden="true">{{ hasName(account) ? initials(account.displayName) : '—' }}</span>
