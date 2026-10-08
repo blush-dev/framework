@@ -280,6 +280,7 @@ async function copyLink(entry: EntrySummary): Promise<void> {
 					<td v-if="profiles">
 						<template v-if="entry.account"><RouterLink class="lnk" :to="{ name: 'account', params: { username: entry.account.username } }">{{ entry.account.displayName }}</RouterLink>{{ ' ' }}<span class="entry-title__path mono">{{ entry.account.username }}</span></template>
 						<template v-else-if="entry.linked">Linked</template>
+						<span v-else-if="entry.linkable === false" class="tag" title="No account is linked to this profile, and it's locked so none can be">Locked</span>
 						<span v-else class="tag" title="No account is linked to this profile">Guest</span>
 					</td>
 					<td v-if="terms || profiles" class="table__meta table__count">{{ entry.uses?.toLocaleString() ?? '—' }}</td>

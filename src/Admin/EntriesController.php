@@ -518,7 +518,8 @@ final readonly class EntriesController
 	 * heads a later page for the entries under it; otherwise the first
 	 * two are `null` (D-262, D-263). A profile (D-353) says whether an
 	 * account is `linked` to it and, for whoever sees accounts, which
-	 * (`account`: `{"username", "displayName"}`, else `null`).
+	 * (`account`: `{"username", "displayName"}`, else `null`), and whether
+	 * it can be linked (`linkable`, `false` when locked, D-605).
 	 *
 	 * @param  array<string, array<string, int>>                                                     $counts Term counts by taxonomy.
 	 * @param  ?array{entries: list<Entry>, depths: array<string, int>, children: array<string, int>} $tree   The list's tree, if it's one.
@@ -558,7 +559,7 @@ final readonly class EntriesController
 			'depth'       => $tree === null ? null : ($tree['depths'][$entry->path] ?? 0),
 			'children'    => $tree === null ? null : ($tree['children'][$entry->path] ?? 0),
 			'continued'   => $continued,
-			...($entry->type instanceof Profiles ? ['linked' => array_key_exists($entry->key, $linked), 'account' => $linked[$entry->key] ?? null] : [])
+			...($entry->type instanceof Profiles ? ['linked' => array_key_exists($entry->key, $linked), 'account' => $linked[$entry->key] ?? null, 'linkable' => $entry->field('linkable') !== false] : [])
 		];
 	}
 

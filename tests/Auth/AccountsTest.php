@@ -238,6 +238,30 @@ final class AccountsTest extends TestCase
 		$this->assertSame('jane', $accounts->setAuthor($sam, 'jane')->author, 'Free once unlinked (D-356).');
 	}
 
+	public function testRefusesALockedProfile(): void
+	{
+		$this->writeTemporaryFile('user/content/profiles/staff.md', "---\ntitle: Staff\nlinkable: false\n---\n");
+		$this->writeTemporaryFile('user/content/profiles/jane.md', "---\ntitle: Jane\n---\n");
+
+		$accounts = $this->accounts();
+		$sam      = $accounts->create('sam', 'a long enough password', ['author'], email: 'sam@example.test');
+
+		$this->assertFalse($accounts->isLinkable('staff'));
+		$this->assertTrue($accounts->isLinkable('jane'));
+		$this->assertTrue($accounts->isLinkable('lee'), 'A profile with no file yet isn\'t locked.');
+
+		foreach ([static fn () => $accounts->setAuthor($sam, 'staff'), static fn () => $accounts->invite('lee', ['author'], 'staff', email: 'lee@example.test')] as $link) {
+			try {
+				$link();
+				$this->fail('A locked profile (D-605).');
+			} catch (AuthException $e) {
+				$this->assertStringContainsString('is locked', $e->getMessage());
+			}
+		}
+
+		$this->assertSame('jane', $accounts->setAuthor($sam, 'jane')->author);
+	}
+
 	public function testSiteRolesReplaceAndAddToTheBuiltIns(): void
 	{
 		$roles = new Roles(AuthConfig::fromArray(new AuthConfig(roles: [

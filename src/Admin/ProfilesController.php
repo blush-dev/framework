@@ -43,21 +43,26 @@ use Blush\Http\Status;
  *
  * - `GET profiles`: every profile, by name: `{"profiles": [{"slug",
  *   "title", "status", "account"` (the account linked to it, `{"username", "displayName"}`,
- *   or `null`)`}]}`. A profile belongs to one account, so a picker
- *   offers only the ones without.
+ *   or `null`), `"linkable"` (`false` when it's locked, D-605)`}]}`. A
+ *   profile belongs to one account, so a picker offers only the
+ *   unlocked ones without.
  *
  * And a profile's screen (D-353), for accounts that may edit the
  * profile (their own, or anyone's with the profiles type's
  * `edit.others`). A profile is its file (D-584):
  *
  * - `GET profiles/{slug}`: the `profile` (`{"slug", "title", "subtitle",
- *   "avatar", "status", "path", "id", "handle", "url", "uses"}`), where it `appears` (each credit
+ *   "avatar", "status", "path", "id", "handle", "url", "uses", "linkable"}`), where it `appears` (each credit
  *   relation from each type that credits people, D-602: `{"type", "typeLabel", "relation",
  *   "label", "entries"` (published entries crediting them there),
  *   `"archive"` (the archive's address, or `null` without one), `"page"`
  *   (the page written for it, `{"path", "id", "handle", "title", "status"}`, or
  *   `null`; kept, and unreachable, while the relation has no archive)`}`), whether an account is `linked`, and, for whoever
  *   manages accounts, the `account` (as `PeopleJson::account()` has it).
+ * - `PATCH profiles/{slug}` (`{"linkable": bool}`): locks the profile
+ *   against being linked to an account (`linkable: false` in its front
+ *   matter), or unlocks it (the key removed), D-605. Needs
+ *   `accounts.edit` as well; answers `{"linkable"}`.
  * - `POST profiles/{slug}/pages` (`{"type", "relation"}`): writes the page
  *   for the profile's archive under a credit relation (`_cooks/jane` in the type's
  *   folder), a draft titled with the profile's name, and answers `201`
@@ -110,7 +115,7 @@ final readonly class ProfilesController
 		$listed = [];
 
 		foreach ($this->content->query()->any()->type($profiles->name)->limit(null)->get() as $entry) {
-			$listed[$entry->key] = ['slug' => $entry->key, 'title' => $entry->title !== '' ? $entry->title : $entry->key, 'status' => $entry->status->value, 'account' => $linked[$entry->key] ?? null];
+			$listed[$entry->key] = ['slug' => $entry->key, 'title' => $entry->title !== '' ? $entry->title : $entry->key, 'status' => $entry->status->value, 'account' => $linked[$entry->key] ?? null, 'linkable' => $entry->field('linkable') !== false];
 		}
 
 		$listed = array_values($listed);
@@ -144,12 +149,50 @@ final readonly class ProfilesController
 				'type'     => $profiles->name,
 				'handle'   => $this->handles->of($profile),
 				'url'      => $this->urls->profile($profile->slug),
-				'uses'     => $this->content->termCounts($profiles->name)[$profile->slug] ?? 0
+				'uses'     => $this->content->termCounts($profiles->name)[$profile->slug] ?? 0,
+				'linkable' => $profile->field('linkable') !== false
 			],
 			'appears' => $this->appears($profiles, $profile),
 			'linked'  => $account !== null,
 			'account' => $account !== null && $manages ? $this->json->account($account, $viewer) : null
 		]);
+	}
+
+	public function lock(ServerRequestInterface $request, string $slug): ResponseInterface
+	{
+		$found = $this->find($request, $slug);
+
+		if ($found instanceof ResponseInterface) {
+			return $found;
+		}
+
+		[$viewer, , $profile] = $found;
+
+		if (! $this->permissions->can($viewer, Capability::AccountsView) || ! $this->permissions->can($viewer, Capability::AccountsEdit)) {
+			return self::json(['error' => 'You aren\'t allowed to change accounts\' profiles.'], Status::Forbidden);
+		}
+
+		try {
+			$input = json_decode((string) $request->getBody(), true, 4, JSON_THROW_ON_ERROR);
+		} catch (JsonException) {
+			$input = null;
+		}
+
+		if (! is_array($input) || ! is_bool($input['linkable'] ?? null)) {
+			return self::json(['error' => 'Send the JSON "linkable", true or false.'], Status::UnprocessableContent);
+		}
+
+		$linkable = $input['linkable'];
+
+		if ($linkable !== ($profile->field('linkable') !== false)) {
+			try {
+				$this->writer->update($profile->path, $linkable ? new EntryChanges(remove: ['linkable']) : new EntryChanges(set: ['linkable' => false]));
+			} catch (WriteException $error) {
+				return self::json(['error' => $error->getMessage()], Status::Conflict);
+			}
+		}
+
+		return self::json(['linkable' => $linkable]);
 	}
 
 	public function write(ServerRequestInterface $request, string $slug): ResponseInterface

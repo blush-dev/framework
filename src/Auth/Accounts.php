@@ -200,7 +200,7 @@ final readonly class Accounts
 	 */
 	public function setAuthor(Account $account, ?string $author): Account
 	{
-		$this->checkProfile($author, $account->username);
+		$this->checkProfile($author, $account->username, $account->author);
 
 		$account = $account->withAuthor($author);
 		$this->store->save($account);
@@ -311,6 +311,20 @@ final readonly class Accounts
 	}
 
 	/**
+	 * Whether a profile can be linked to an account (D-605): `linkable:
+	 * false` in its front matter locks it, for a byline no one should
+	 * sign in as (an organization, someone who has died, an imported
+	 * contributor). A profile with no file yet can be linked.
+	 */
+	public function isLinkable(string $profile): bool
+	{
+		$authors = $this->types->profiles()?->name;
+		$entry   = $authors === null ? null : $this->content->named($authors, $profile);
+
+		return $entry?->field('linkable') !== false;
+	}
+
+	/**
 	 * Creates an author's entry, published, with its public name, and
 	 * returns its ID (its path under `user/content`).
 	 *
@@ -395,16 +409,26 @@ final readonly class Accounts
 
 	/**
 	 * Refuses a profile another account is linked to: a profile is one
-	 * person's public side, so it belongs to one account (D-356).
+	 * person's public side, so it belongs to one account (D-356). And
+	 * refuses a locked profile (D-605) unless it's the one the account
+	 * already has.
 	 *
 	 * @throws AuthException
 	 */
-	private function checkProfile(?string $profile, string $username): void
+	private function checkProfile(?string $profile, string $username, ?string $current = null): void
 	{
-		$other = $profile === null ? null : $this->linkedTo($profile, $username);
+		if ($profile === null || $profile === $current) {
+			return;
+		}
+
+		$other = $this->linkedTo($profile, $username);
 
 		if ($other !== null) {
 			throw new AuthException(sprintf('The "%s" profile is %s\'s already; a profile belongs to one account.', $profile, $this->displayName($other)));
+		}
+
+		if (! $this->isLinkable($profile)) {
+			throw new AuthException(sprintf('The "%s" profile is locked, so no account can be linked to it. Unlock it on its screen first.', $profile));
 		}
 	}
 }

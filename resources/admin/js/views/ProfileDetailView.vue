@@ -10,7 +10,8 @@
  * - **Identity**: the display name, slug, byline title (its `subtitle`),
  *   and avatar. The bio is the body, written in the editor.
  * - **Linked Account**: at most one, and optional. Without one, it's a
- *   guest profile, and an account with no profile can be linked here.
+ *   guest profile, and an account with no profile can be linked here,
+ *   unless it's locked (D-605): a switch, for whoever links accounts.
  * - **Where This Profile Appears**: the profile's own page, then one row
  *   per profile field of each type that credits people, with its archive
  *   and where its body comes from, as a pill: **Written** (a page written
@@ -28,10 +29,11 @@ import AdminIcon from '../components/AdminIcon.vue';
 import MenuButton from '../components/MenuButton.vue';
 import PickModal, { type PickItem } from '../components/PickModal.vue';
 import StatusPill from '../components/StatusPill.vue';
+import ToggleSwitch from '../components/ToggleSwitch.vue';
 import { entryRoute, errorMessage, patchEntry, trashEntry } from '../api';
 import { config } from '../config';
 import { plural } from '../format';
-import { initials, loadAccounts, loadProfile, removeArchivePage, statusPill, updateAccount, when, writeArchivePage, type AccountInfo, type ProfileAppearance, type ProfileDetail } from '../people';
+import { initials, loadAccounts, loadProfile, removeArchivePage, setLinkable, statusPill, updateAccount, when, writeArchivePage, type AccountInfo, type ProfileAppearance, type ProfileDetail } from '../people';
 import { screenTitle, screenTrail } from '../screen';
 import { confirmAction } from '../confirm';
 import { can, canType, session } from '../session';
@@ -229,9 +231,26 @@ const linkItems = computed<PickItem[] | null>(() => free.value?.map((account) =>
 	guest: true
 })) ?? null);
 const pick     = ref('');
-const canLink  = computed(() => can('accounts.view') && can('accounts.edit') && detail.value !== null && !detail.value.linked && profile.value !== null);
+// Whoever links accounts can lock a guest profile against it (D-605).
+const canLock  = computed(() => can('accounts.view') && can('accounts.edit') && detail.value !== null && !detail.value.linked && profile.value !== null);
+const canLink  = computed(() => canLock.value && profile.value?.linkable === true);
 // Anyone's link you manage, and your own (D-373).
 const canUnlink = computed(() => detail.value?.account !== null && detail.value?.account !== undefined && can('accounts.edit') && (detail.value.account.manages || detail.value.account.username === session.account?.username));
+
+async function lock(linkable: boolean): Promise<void> {
+	busy.value    = 'lock';
+	failure.value = '';
+
+	try {
+		await setLinkable(slug.value, linkable);
+		toast(linkable ? `${name.value} can be linked to an account` : `Locked ${name.value} against linking`);
+		await load();
+	} catch (caught) {
+		failure.value = errorMessage(caught, 'The profile couldn\'t be changed.');
+	} finally {
+		busy.value = '';
+	}
+}
 
 async function startLink(): Promise<void> {
 	linking.value = true;
@@ -351,17 +370,26 @@ async function link(): Promise<void> {
 				<template v-else>
 					<div class="panel__body">
 						<div class="link-box link-box--blank">
-							<span class="avatar avatar--large avatar--guest" aria-hidden="true"><AdminIcon name="key-round" /></span>
+							<span class="avatar avatar--large avatar--guest" aria-hidden="true"><AdminIcon :name="profile.linkable ? 'key-round' : 'lock'" /></span>
 							<span class="link-box__text">
-								<span class="link-box__name">Guest profile</span>
-								<span class="link-box__meta">{{ name }} is credited on the site and has archives, but cannot sign in. Linking an account gives that person the admin.</span>
+								<span class="link-box__name">{{ profile.linkable ? 'Guest profile' : 'Locked guest profile' }}</span>
+								<span v-if="profile.linkable" class="link-box__meta">{{ name }} is credited on the site and has archives, but cannot sign in. Linking an account gives that person the admin.</span>
+								<span v-else class="link-box__meta">{{ name }} is credited on the site and has archives, and no account can be linked to it.</span>
 							</span>
 							<span v-if="canLink" class="link-box__buttons">
 								<button type="button" class="button button--small" @click="startLink"><AdminIcon name="link" />Link an Account</button>
 							</span>
 						</div>
 					</div>
-					<p class="panel__note">A guest profile is the normal state for anyone who writes for the site without working in it.</p>
+					<div v-if="canLock" class="panel__body linked__lock">
+						<dl class="fact-rows">
+							<div>
+								<dt>Can be linked</dt>
+								<dd><ToggleSwitch :checked="profile.linkable" label="Can be linked to an account" :busy="busy === 'lock'" @change="lock" /></dd>
+							</div>
+						</dl>
+					</div>
+					<p class="panel__note">A guest profile is the normal state for anyone who writes for the site without working in it. Lock one no one should sign in as, such as an organization's byline or someone who has died.</p>
 				</template>
 			</section>
 		</div>
@@ -443,6 +471,16 @@ async function link(): Promise<void> {
 </template>
 
 <style scoped>
+/* The lock's switch (D-605), centered on its label. */
+.linked__lock {
+	padding-block: var(--s-2);
+	border-top: 1px solid var(--border);
+}
+
+.linked__lock .fact-rows > div {
+	align-items: center;
+}
+
 .linked__who {
 	padding-top: var(--s-4);
 	padding-bottom: 0;

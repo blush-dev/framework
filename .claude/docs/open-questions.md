@@ -478,6 +478,50 @@ Move each item to `decisions.md` once it's answered.
   - What a byline shows for an entry whose author has no profile (an
     entry credits profiles, never accounts, so today it shows none,
     though the account has a display name, D-370).
+- **Sign-ups and community sites** (discussed 2026-10-07, after D-605;
+  nothing to build until the author says so). The author plans open
+  sign-ups, and wants to think about community sites built on Blush,
+  such as an open forum or a social site, where every member has a
+  profile. Today only `accounts.edit` links or creates a profile, your
+  own included (D-373), and nothing creates one on its own.
+  - **Who gets a profile:** a draft profile for every new account
+    suits a forum or social site, where every member is a public
+    person, but not a blog with open sign-ups, where most accounts
+    never write. Drafts would pile up in `user/content/profiles`, in
+    the Profiles list, its counts, and Site Health, and an open
+    sign-up form would let bots write content files. So it's a site
+    setting, not core behavior. Leaning: **Create a profile for new
+    accounts** on Settings → Accounts: *Never*, *For roles that write*
+    (the default), or *Always* (what a forum or social site, or its
+    plugin, sets). Perhaps also when an account is first credited on
+    an entry.
+  - **Draft or published:** a blog's writer can publish a draft when
+    ready; a forum member's profile has to be live when they first
+    post, or their name links nowhere. So perhaps the setting also
+    names the new profile's status.
+  - **Your own profile is yours** (the first step, needed by everything
+    else): any account, the member included (D-365), can create its own
+    profile from Your Account (one click, the name filled in, a draft),
+    then edit and publish it, whatever its role. Overlaps the Profiles
+    item above (who may edit their own profile).
+  - **Slugs:** a profile made for a new account never takes, or links
+    to, an existing guest profile's slug (`jane` taken means `jane-2`,
+    or the sign-up asks). Locked profiles (D-605) are never claimable.
+  - **An `AccountCreated` event,** so a plugin can make the profile,
+    fill it from the sign-up form, or do more.
+  - **The sign-up page** (see Signing up, under Later milestones) may
+    offer an optional public name step that makes the profile.
+  - **Community features** (threads, replies, feeds, follows,
+    moderation) look like plugins, as the Calendar became (D-550):
+    core supplies accounts, profiles, sign-ups, and events.
+  - **Scale and spam:** thousands of members, each with a profile file
+    and many posts, strain flat files; that's what storage drivers per
+    area are for (D-485, D-486), so such a site can keep accounts and
+    content in a database. Open sign-ups also need D-518's open list
+    (email confirmation, approval, allowed domains, spam protection).
+  - **Suggested order:** your own profile is yours; the new-account
+    profile setting (when, and its status); the `AccountCreated`
+    event; the sign-up page; community features as plugins.
   - Whether `/` belongs to list search: the entries list's search shows
     and answers it, and no document names it, beside ⌘K.
   - Whether a profile can be merged into another: two guest profiles
@@ -1005,7 +1049,8 @@ Move each item to `decisions.md` once it's answered.
   (on the site, the admin's sign-in screen, or both, and themable?),
   email confirmation before the account can sign in, approval by
   someone who can add accounts, allowed or refused email domains, spam
-  protection, and whether a sign-up gets a profile.
+  protection, and whether a sign-up gets a profile (see Sign-ups and
+  community sites, under Needs the author's call).
 - **Uploading a Markdown entry** (raised 2026-10-05, for the future):
   an upload in the admin for a `.md` entry file written elsewhere, added
   to a content type. To settle: where it lives (the entries list, New

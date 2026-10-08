@@ -4,7 +4,8 @@
  * select (`AdminSelect`), not a typed slug. Every profile is listed by
  * name, with its status when it isn't live yet; one already linked to
  * another account is shown but can't be chosen, since a profile belongs
- * to one account. `''` is none, and, when it may `create`, `NEW_PROFILE`
+ * to one account, and so is one that's locked (D-605), unless it's the
+ * account's own already. `''` is none, and, when it may `create`, `NEW_PROFILE`
  * asks for a new one (New Account, D-369).
  */
 
@@ -42,8 +43,17 @@ loadLinkable().then((list) => {
 function labelOf(profile: LinkableProfile): string {
 	const state = profile.status === 'published' ? '' : ` (${profile.status})`;
 	const owner = profile.account && profile.account.username !== props.username ? ` · linked to ${profile.account.displayName}` : '';
+	const lock  = !owner && !choosable(profile) ? ' · locked' : '';
 
-	return `${profile.title}${state}${owner}`;
+	return `${profile.title}${state}${owner}${lock}`;
+}
+
+// Whether the account can be linked to it: no other account has it, and
+// it isn't locked, or it's the account's own already.
+function choosable(profile: LinkableProfile): boolean {
+	const own = profile.account !== null && profile.account.username === props.username;
+
+	return own || (profile.account === null && profile.linkable);
 }
 
 const options = computed<SelectOption[]>(() => [
@@ -52,7 +62,7 @@ const options = computed<SelectOption[]>(() => [
 	...(profiles.value ?? []).map((profile) => ({
 		value: profile.slug,
 		label: labelOf(profile),
-		disabled: profile.account !== null && profile.account.username !== props.username
+		disabled: !choosable(profile)
 	}))
 ]);
 </script>

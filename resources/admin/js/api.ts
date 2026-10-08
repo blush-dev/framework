@@ -159,6 +159,8 @@ export interface EntrySummary {
 	// you manage accounts (D-353).
 	linked?: boolean;
 	account?: { username: string; displayName: string } | null;
+	// A profile's: `false` when it's locked against linking (D-605).
+	linkable?: boolean;
 	// Duplicate: not for landing pages, and needs `content.create` (D-275).
 	// Make homepage: a root page that isn't, with `site.settings` (D-420).
 	can: { delete: boolean; duplicate: boolean; makeHomepage: boolean };

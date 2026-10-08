@@ -184,7 +184,7 @@ final class AdminPeopleTest extends TestCase
 
 		$answer = self::json($this->send('GET', '/profiles/jane'));
 
-		$this->assertSame(['slug' => 'jane', 'title' => 'Jane Author', 'subtitle' => 'Food editor', 'avatar' => null, 'status' => 'published', 'path' => 'profiles/jane.md', 'id' => '0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e71', 'type' => 'profile', 'handle' => 'profile/jane', 'url' => '/profiles/jane', 'uses' => 1], $answer['profile'] ?? null);
+		$this->assertSame(['slug' => 'jane', 'title' => 'Jane Author', 'subtitle' => 'Food editor', 'avatar' => null, 'status' => 'published', 'path' => 'profiles/jane.md', 'id' => '0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e71', 'type' => 'profile', 'handle' => 'profile/jane', 'url' => '/profiles/jane', 'uses' => 1, 'linkable' => true], $answer['profile'] ?? null);
 		$this->assertSame([['type' => 'post', 'typeLabel' => 'Posts', 'relation' => 'authors', 'label' => 'Authors', 'entries' => 1, 'archive' => '/posts/authors/jane', 'page' => null]], $answer['appears'] ?? null);
 		$this->assertTrue($answer['linked'] ?? null);
 		$this->assertSame('jane', is_array($answer['account'] ?? null) ? $answer['account']['username'] : null);
@@ -271,8 +271,8 @@ final class AdminPeopleTest extends TestCase
 		$profiles = self::json($this->send('GET', '/profiles'))['profiles'] ?? null;
 
 		$this->assertSame([
-			['slug' => 'gwen', 'title' => 'Gwen Guest', 'status' => 'draft', 'account' => null],
-			['slug' => 'jane', 'title' => 'Jane Author', 'status' => 'published', 'account' => ['username' => 'jane', 'displayName' => 'Jane Author']]
+			['slug' => 'gwen', 'title' => 'Gwen Guest', 'status' => 'draft', 'account' => null, 'linkable' => true],
+			['slug' => 'jane', 'title' => 'Jane Author', 'status' => 'published', 'account' => ['username' => 'jane', 'displayName' => 'Jane Author'], 'linkable' => true]
 		], $profiles, 'Every profile by name, with the account linked to it (D-356).');
 
 		$taken = $this->write('PATCH', '/accounts/sam', ['author' => 'jane']);
@@ -282,6 +282,43 @@ final class AdminPeopleTest extends TestCase
 		$this->assertSame(422, $this->write('POST', '/accounts', ['username' => 'lee', 'email' => 'lee@example.test', 'roles' => ['author'], 'author' => 'jane'])->getStatusCode());
 		$this->assertSame(200, $this->write('PATCH', '/accounts/sam', ['author' => 'gwen'])->getStatusCode(), 'A guest profile is free.');
 		$this->assertSame(200, $this->write('PATCH', '/accounts/sam', ['author' => 'gwen'])->getStatusCode(), 'Its own stays its own.');
+	}
+
+	public function testLocksAProfileAgainstLinking(): void
+	{
+		$this->profiles();
+		$this->site();
+
+		$this->assertSame(422, $this->write('PATCH', '/profiles/gwen', ['linkable' => 'no'])->getStatusCode());
+		$this->assertSame(['linkable' => false], self::json($this->write('PATCH', '/profiles/gwen', ['linkable' => false])));
+		$this->assertStringContainsString("linkable: false\n", (string) file_get_contents($this->temporaryDirectory() . '/user/content/profiles/gwen.md'));
+
+		$profiles = self::json($this->send('GET', '/profiles'))['profiles'] ?? null;
+		$entries  = self::json($this->send('GET', '/entries?type=profile&sort=title'))['entries'] ?? null;
+
+		$this->assertSame([false, true], array_column(is_array($profiles) ? $profiles : [], 'linkable'), 'Locked (D-605).');
+		$this->assertSame([false, true], array_column(is_array($entries) ? $entries : [], 'linkable'));
+		$profile = self::json($this->send('GET', '/profiles/gwen'))['profile'] ?? null;
+
+		$this->assertFalse(is_array($profile) ? $profile['linkable'] ?? null : null);
+
+		$refused = $this->write('PATCH', '/accounts/sam', ['author' => 'gwen']);
+
+		$this->assertSame(422, $refused->getStatusCode());
+		$this->assertSame(['error' => 'The "gwen" profile is locked, so no account can be linked to it. Unlock it on its screen first.', 'field' => 'author'], self::json($refused));
+		$this->assertSame(422, $this->write('POST', '/accounts', ['username' => 'lee', 'email' => 'lee@example.test', 'roles' => ['author'], 'author' => 'gwen'])->getStatusCode());
+
+		$this->assertSame(['linkable' => true], self::json($this->write('PATCH', '/profiles/gwen', ['linkable' => true])));
+		$this->assertStringNotContainsString('linkable', (string) file_get_contents($this->temporaryDirectory() . '/user/content/profiles/gwen.md'), 'Unlocking takes the key away.');
+		$this->assertSame(200, $this->write('PATCH', '/accounts/sam', ['author' => 'gwen'])->getStatusCode());
+	}
+
+	public function testOnlyWhoeverLinksAccountsLocksProfiles(): void
+	{
+		$this->profiles();
+		$this->site(['editor']);
+
+		$this->assertSame(403, $this->write('PATCH', '/profiles/gwen', ['linkable' => false])->getStatusCode(), 'Editing the profile isn\'t enough; it takes accounts.edit.');
 	}
 
 	/**

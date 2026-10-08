@@ -35,7 +35,8 @@ Every content type is one of three kinds:
 - **`profile`** (profiles): people, in `user/content/profiles/`. Each
   file is one person: the title is their public name, `subtitle` a line
   under it (such as "Food editor"), `avatar` a portrait from
-  `user/media`, and the body their bio. Each profile has a page at
+  `user/media`, `linkable: false` to lock it against being linked to
+  an account (see [Accounts](accounts.md)), and the body their bio. Each profile has a page at
   `/profiles/jane`. Entries credit them through the
   [credit relations](#crediting-people) of their type, such as
   `authors: jane`. Every profile is a file: a person credited with no

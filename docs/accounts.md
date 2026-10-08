@@ -110,6 +110,13 @@ refused (unlink it there first). A profile
 with no account is a guest profile, and an account with no profile
 doesn't appear on the site.
 
+A profile no one should sign in as, such as an organization's byline
+or someone who has died, can be **locked**: `linkable: false` in its
+front matter, or the **Can be linked** switch on its screen in the
+admin. Linking an account to a locked profile is refused, from the
+admin and the CLI alike, until it's unlocked. An account already
+linked to it keeps it.
+
 The account itself (username, password, roles) stays private. When the
 profile has no file yet, `account:add` and `account:author` offer to
 create one and ask for the public name; say no, and bylines show the

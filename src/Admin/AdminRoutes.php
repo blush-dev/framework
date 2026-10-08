@@ -95,7 +95,8 @@ use Blush\Session\StartSession;
  *     (D-596), and `POST health/taxonomies` to migrate data types still written as
  *     taxonomies (D-591).
  *   - `GET  roles` and `GET accounts`: the site's roles and accounts
- *     (`PeopleController`); `GET profiles`, `GET profiles/{slug}`, and `POST` and
+ *     (`PeopleController`); `GET profiles`, `GET` and `PATCH profiles/{slug}`
+ *     (the latter locks it against linking, D-605), and `POST` and
  *     `DELETE` the pages written for its archives (`ProfilesController`,
  *     D-353); `POST accounts`, `PATCH` and `DELETE
  *     accounts/{username}`, and `POST accounts/{username}/link` change
@@ -225,6 +226,7 @@ final readonly class AdminRoutes implements RouteSource
 			Route::get('/accounts', [PeopleController::class, 'accounts'])->named('accounts')->middleware(Authenticate::class),
 			Route::get('/profiles', [ProfilesController::class, 'index'])->named('profiles')->middleware(Authenticate::class),
 			Route::get('/profiles/{slug:[^/]+}', [ProfilesController::class, 'show'])->named('profile.show')->middleware(Authenticate::class),
+			Route::patch('/profiles/{slug:[^/]+}', [ProfilesController::class, 'lock'])->named('profile.lock')->middleware(Authenticate::class),
 			Route::post('/profiles/{slug:[^/]+}/pages', [ProfilesController::class, 'write'])->named('profile.page.write')->middleware(Authenticate::class),
 			Route::delete('/profiles/{slug:[^/]+}/pages/{type:[a-z0-9_]+}/{relation:[a-z0-9_]+}', [ProfilesController::class, 'remove'])->named('profile.page.remove')->middleware(Authenticate::class),
 			Route::post('/accounts', [AccountEditController::class, 'create'])->named('account.create')->middleware(Authenticate::class),

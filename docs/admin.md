@@ -1392,7 +1392,7 @@ username, profiles among the entries. See
 
 **Profiles** is the profiles type's list, like any type's, with a
 **Name** (beside its initials, dashed for a guest), its **Status**, the
-**Account** linked to it (a **Guest** tag without one), how many
+**Account** linked to it (a **Guest** tag without one, **Locked** for a locked one), how many
 published entries credit it (**Bylines**), and when it was updated.
 Besides the usual filters, **Any account** shows only the profiles
 linked to an account, or only guests. **New profile** starts one. A
@@ -1409,7 +1409,11 @@ name opens the profile's screen:
   last sign-in, with **Open Account** and, if you manage it,
   **Unlink**. Unlinking leaves the profile and its bylines, as a guest
   profile, and the account goes by its username. A guest profile can
-  be linked here to an account that has no profile.
+  be linked here to an account that has no profile. If you can link
+  accounts, a guest profile also has a **Can be linked** switch:
+  turning it off locks the profile (`linkable: false` in its file), so
+  no account can be linked to it, and it shows as **Locked** on the
+  Profiles list and can't be chosen when linking from an account.
 - **Where This Profile Appears** lists the profile's own page, then each
   credit relation of each type that credits people: its archive address,
   how many entries credit them there, and where the archive's body
@@ -1743,8 +1747,9 @@ The API is JSON under `/admin/api`, and uses the session cookie:
 | `DELETE roles/{name}` | Delete a role no account holds, or reset a changed built-in; answers `{"role"}` (`null` once deleted) |
 | `PATCH profile` | Change the account's own `name` (`null` or empty removes it) or `email`, or both; answers `{"name", "email", "displayName"}`. A name over 100 characters, or an email address that's missing, invalid, or another account's, is a `422` naming the `field` |
 | `GET accounts` | Every account: `{"username", "email", "name", "displayName", "roles", "author", "profile", "created", "lastLogin", "status", "link", "manages"}`. `author` is the slug of the profile it's linked to, or `null`; `profile` is that profile, when it has a file: `{"path", "id", "handle", "slug", "title", "status", "url", "uses"}` (`uses` counts the published entries crediting it), else `null`; `email` is its email address (`null` only for one made before they were asked for); `name` is its own display name or `null`; `displayName` is what the admin calls it: its name, else its profile's title, else the username; `status` is `active`, `invited`, or `suspended`; `link` is its password link's `{"expires", "expired"}` or `null`; `manages` is whether you may change it. Times are Unix |
-| `GET profiles` | Every profile, for linking accounts: `{"profiles": [{"slug", "title", "status", "account"}]}`, by name, with `account` the one linked to it (`{"username", "displayName"}`) or `null`. Needs `accounts.view` |
-| `GET profiles/{slug}` | A profile's screen: `{"profile", "appears", "linked", "account"}`. `profile` is `{"slug", "title", "subtitle", "avatar", "status", "path", "id", "type", "handle", "url", "uses"}` (`id` and `handle` are `null` for a file without a valid id); `appears` lists each credit relation of each type that credits people: `{"type", "typeLabel", "relation", "label", "entries", "archive", "page"}`, where `entries` counts the published entries crediting them there, `archive` is the archive's address (or `null` without one), and `page` is the page written for it (`{"path", "id", "type", "handle", "title", "status"}`, kept while the archive is off) or `null`; `linked` says whether an account is linked to it, and `account` is that account, as `GET accounts` has it, for whoever has `accounts.view` (else `null`). Needs to be allowed to edit the profile (your own, or anyone's with the profiles type's `edit.others`) |
+| `GET profiles` | Every profile, for linking accounts: `{"profiles": [{"slug", "title", "status", "account", "linkable"}]}`, by name, with `account` the one linked to it (`{"username", "displayName"}`) or `null`, and `linkable` `false` for a locked profile. Needs `accounts.view` |
+| `GET profiles/{slug}` | A profile's screen: `{"profile", "appears", "linked", "account"}`. `profile` is `{"slug", "title", "subtitle", "avatar", "status", "path", "id", "type", "handle", "url", "uses", "linkable"}` (`id` and `handle` are `null` for a file without a valid id); `appears` lists each credit relation of each type that credits people: `{"type", "typeLabel", "relation", "label", "entries", "archive", "page"}`, where `entries` counts the published entries crediting them there, `archive` is the archive's address (or `null` without one), and `page` is the page written for it (`{"path", "id", "type", "handle", "title", "status"}`, kept while the archive is off) or `null`; `linked` says whether an account is linked to it, and `account` is that account, as `GET accounts` has it, for whoever has `accounts.view` (else `null`). Needs to be allowed to edit the profile (your own, or anyone's with the profiles type's `edit.others`) |
+| `PATCH profiles/{slug}` | Lock a profile against being linked to an account, or unlock it: `{"linkable": false}` writes `linkable: false` to its front matter, `{"linkable": true}` removes it; answers `{"linkable"}`. Needs to be allowed to edit the profile, and `accounts.view` and `accounts.edit` |
 | `POST profiles/{slug}/pages` | Write the page for the profile's archive under a credit relation: `{"type", "relation"}`, one with archives under the type. It's a draft at `_{word}/{slug}` in the type's folder, titled with the profile's name; answers `201` with `{"id", "handle"}`, or `409` when it exists. Needs to create entries of that type |
 | `DELETE profiles/{slug}/pages/{type}/{relation}` | Move that page to the trash, so the archive shows the profile's body again; answers `{"removed"}`. Needs to delete that page |
 | `POST accounts` | Make an account: `{"username", "email", "roles", "author", "name"}` (`email` is required; the last two are optional); a missing, invalid, or taken email address is a `422` with `field: email`; answers `201` with `{"account", "link": {"url", "expires"}}`. The link is shown only this once |

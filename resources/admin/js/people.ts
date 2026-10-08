@@ -146,6 +146,8 @@ export interface ProfileDetail {
 		handle: string | null;
 		url: string | null;
 		uses: number;
+		// `false` when it's locked against linking (D-605).
+		linkable: boolean;
 	};
 	appears: ProfileAppearance[];
 	// Whether an account is linked to it, and which, when you manage
@@ -161,6 +163,8 @@ export interface LinkableProfile {
 	title: string;
 	status: EntryStatus;
 	account: { username: string; displayName: string } | null;
+	// `false` when it's locked against linking (D-605).
+	linkable: boolean;
 }
 
 export async function loadLinkable(): Promise<LinkableProfile[]> {
@@ -169,6 +173,12 @@ export async function loadLinkable(): Promise<LinkableProfile[]> {
 
 export function loadProfile(slug: string): Promise<ProfileDetail> {
 	return request<ProfileDetail>('GET', `/profiles/${encodeURIComponent(slug)}`);
+}
+
+// Locks a profile against being linked to an account, or unlocks it
+// (D-605).
+export function setLinkable(slug: string, linkable: boolean): Promise<{ linkable: boolean }> {
+	return request('PATCH', `/profiles/${encodeURIComponent(slug)}`, { linkable });
 }
 
 // Writes the page for a profile's archive under a type's credit relation.

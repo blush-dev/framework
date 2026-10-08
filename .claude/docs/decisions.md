@@ -17947,3 +17947,33 @@ decision, add a new entry that supersedes it and mark the old one
   it in the list. The rest stay in name order.
 - **Why:** the author's call: your own account is the one you open
   most.
+
+### D-605: A profile can be locked against linking
+
+- **Date:** 2026-10-07
+- **Decision:** a profile can be locked so no account can be linked to
+  it: `linkable: false` in its front matter, stored with the profile
+  (its record, D-486). Unlocked is the key's absence.
+  - **Enforced** in `Accounts::checkProfile()`, so `setAuthor()`,
+    `create()`, and `invite()` (the admin's `PATCH accounts/{username}`
+    and `POST accounts`, and the CLI) refuse a locked profile, unless
+    it's the account's own already: locking a linked profile doesn't
+    unlink it. A profile with no file isn't locked.
+  - **Set** with `PATCH profiles/{slug}` (`{"linkable": bool}`), which
+    needs to edit the profile and `accounts.view` and `accounts.edit`,
+    the capabilities linking takes: the lock guards against mistakes by
+    whoever links, it isn't a level above them.
+  - **Admin:** a guest profile's Linked Account card has a **Can be
+    linked** switch for whoever can link; locked, it reads **Locked
+    guest profile** with a lock and no **Link an Account**. `GET
+    profiles`, `GET profiles/{slug}`, and the entries list carry
+    `linkable`; the Profiles list tags a locked guest **Locked**; the
+    profile picker (New Account) shows it disabled, "· locked", and
+    Your Account's **Link an existing one** leaves it out. A `lock`
+    icon (Lucide's) joins the admin's icons.
+- **Why:** the author's call: some guest profiles, an organization's
+  byline, someone who has died, an imported contributor, should never
+  be signed in as, and nothing kept an administrator from linking one.
+- **Open:** who links profiles at all. Today only `accounts.edit`
+  links, your own included (D-373); members, authors, and future
+  sign-ups (D-518) can't claim or create their own.
