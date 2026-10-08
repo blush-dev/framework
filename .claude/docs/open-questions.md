@@ -888,6 +888,17 @@ Move each item to `decisions.md` once it's answered.
   fragments for real holes. What's wanted depends on the use: content
   that changes over time (a year, a random quote) or per visitor.
 - **Skeleton license** (D-070): confirm MIT for `blush-dev/blush` `2.x`.
+- **The skeleton's content model** (noted 2026-10-07, after D-602; not
+  needed until the skeleton is worked on): its `2.x` branch has no
+  content types or relations, so `user/content/blog/` and `blog/tags/`
+  are pages of the page tree, and its post still uses 1.x keys
+  (`author`, `tag`, `date`, which keep working, D-078). Bring it up to
+  a 2.x site: a `post` collection in `blog/` (index page, feed), a
+  `tag` collection in `blog/tags/` with its classify relation,
+  `user/data/relations/authors.json` crediting posts (nothing credits
+  until a relation says so, D-602), and a profile for the post's
+  author. In `user/data`, so the admin can edit them. Done in its own
+  worktree of `2.x`, since `../blush` is on `jtcom-trial`.
 - **Where jtcom's content types live** (D-166, D-169): `config/content.php`
   today. Options: data types in `user/data/types/` (travel with the
   content repo; a checked sketch matches the config exactly), or a

@@ -17847,8 +17847,9 @@ decision, add a new entry that supersedes it and mark the old one
 
 ### D-602: People fields become credit relations; one archive mechanism
 - **Date:** 2026-10-07
-- **Status:** Built. The skeleton (`../blush` on `2.x`) still needs its
-  `user/data/relations/authors.json`.
+- **Status:** Built. The skeleton's `2.x` has no post type yet, so
+  nothing there credits anyone; its content model is in
+  `open-questions.md` for when the skeleton is worked on.
 - **Decision:** The author: there are no 2.x sites, so no back-compat
   for 2.x designs; do it right before shipping. Taking the
   recommendations:
