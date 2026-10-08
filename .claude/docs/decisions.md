@@ -19177,3 +19177,92 @@ decision, add a new entry that supersedes it and mark the old one
 - **Why:** photos need no frame or script, only the image and the
   credit Flickr asks for. Twitch and TikTok have scriptless players
   that can be built from the link, as YouTube's is.
+
+### D-636: A container's closing line names what it closes
+- **Date:** 2026-10-08
+- **Decision:** the first of the easy wins for containers, kept in
+  directive syntax (from a discussion of writing blocks as HTML, which
+  wasn't taken up: CommonMark ends an HTML block at a blank line,
+  doesn't read Markdown inside one without blank lines around it, and
+  reads indented nesting as code). A bare `:::` doesn't say what it
+  closes, so the editor says it:
+  - **The block's full name** follows each closing line in the source
+    view (the author's call, over a label such as "End of Callout"):
+    `blush/callout` for `:::callout`, a core directive's short name
+    with `blush/` once it's registered, and anything else as written
+    (`acme/box`). A closing line that closes several (D-320) names the
+    outermost, the one its colons were written for.
+  - **Drawn, never text:** an empty `.md-closes` span after the line
+    with the name in `data-name`, shown by `::after`, absolutely
+    positioned at its place after the colons, in the source's mono
+    (the author's call) at `--text-sm` and `--fg-3`. It adds no characters to the copy under
+    the field and takes no width, so the caret and wrapping are
+    unchanged, it can't be selected or typed over, and the copy is
+    `aria-hidden` already. Typed as shown, `::: blush/callout`
+    would open a container; the smaller size and muted ink mark it as
+    a note.
+  - **`fullName()`** (`markdown.ts`) gives a directive's full name;
+    `registeredKind()` uses it.
+- **Done:** `docs/admin.md`; `departures.md`.
+- **Checked:** `npm run admin:build`; the highlighter under Node on
+  nested, registered, and unregistered containers, and a screenshot in
+  headless Chrome with the editor's styles, the field's text laid over
+  its copy character for character.
+- **Next:** nesting guides (item 2 of the list), then matching the
+  other end, unclosed containers, and the closer typed for you.
+
+### D-637: Nesting guides beside containers, tried and taken back
+- **Date:** 2026-10-08
+- **Decision:** the second of the easy wins for containers (D-636): a
+  line in the column's left margin beside each container, from its
+  opener to its closer, stepped in by depth, the one the caret is in
+  in the accent (containers only, always shown). Built, then taken
+  out at the author's call ("I don't like it"). The editor draws no
+  nesting guides.
+
+### D-638: A container's opening and closing lines marked as a pair
+- **Date:** 2026-10-08
+- **Decision:** the third of the easy wins for containers (D-636), at
+  the author's call to try it: as an editor marks the bracket matching
+  the one at the caret, with the caret on a container's opening or
+  closing line, the colons on both lines are marked as a pair, in
+  `--accent` (`.md-mark--pair`). The box both lines already have
+  (D-268) stays. In the body, nothing changes. (First built at weight
+  600 too; the author kept the color and took out the bold.)
+  - **`highlight()`** takes `paired`, the container whose line the
+    caret is on (`MarkdownEditor`'s `paired`, from the line at the
+    caret), and keys the line cache on it.
+- **Done:** `docs/admin.md`; `departures.md`.
+- **Checked:** `npm run admin:build`; the real `MarkdownEditor` on a
+  test page in headless Chrome, with the caret on an opener, and in a
+  body, of nested and sibling containers.
+- **Next:** containers never closed (item 4), and the closer typed for
+  you.
+
+### D-639: Enter on a container's opening line writes its closing line
+- **Date:** 2026-10-08
+- **Decision:** the fifth of the easy wins for containers (D-636; the
+  fourth, flagging containers never closed, is skipped for now at the
+  author's call). The direction's "The third backtick writes the block"
+  (`30-editor.md`) names containers as the other construct with a
+  required second half, and leaves them to the inserter; a container
+  typed by hand gets the same now:
+  - **Enter at the end of an opening line** (`:::name`, with any label
+    and attributes) writes a line to write on, with the caret on it,
+    and a closing line of as many colons at the same indent
+    (`closingContainer()`, `markdown.ts`, from `MarkdownEditor`'s
+    `carry()`), as one edit undo takes back.
+  - **Only when it's left open:** it, or a container before it that
+    holds it, has no closing line of its own, which is the fences' "odd
+    means open" for containers. A container typed inside a closed one
+    takes that one's closing line, leaving the outer one open, so the
+    new closing line gives it back. A closed container, text after the
+    caret, a leaf written with three colons (D-531), and code are left
+    to Enter as it is.
+- **Done:** `docs/admin.md`; `departures.md`.
+- **Checked:** `npm run admin:build`; `closingContainer()` under Node:
+  a new container, a label and attributes, one already closed, one
+  typed inside a closed one, four colons, an indent, the caret
+  mid-line, a leaf, code, an earlier container left open, and an
+  unregistered name.
+

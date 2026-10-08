@@ -14,7 +14,9 @@
  * Enter in a list item, quote, or table row carries its marker to the
  * next line, and on an empty one ends it (admin.md §8, Enter carries the
  * marker). The third backtick alone on a line writes the block's closing
- * fence, and Enter from the opening fence steps into it (D-313).
+ * fence, and Enter from the opening fence steps into it (D-313). Enter
+ * at the end of a container's opening line left open writes its closing
+ * line, with the caret on the line between (D-639).
  * Formatting has its usual keys (D-284, D-313): ⌘B strong, ⌘I emphasis
  * (`toggleEmphasis()`: either mark counts, nothing selected means the
  * word at the caret), ⌘E code, and ⌘⇧X struck text, each on or off; ⌘K
@@ -55,7 +57,7 @@ import { config } from '../config';
 import { useFileDrop } from '../drop';
 import { listMove } from '../grid';
 import { htmlCheck } from '../html';
-import { blocks, closingFence, setHtmlCheck, setMentions, continuation, directiveAt, editBetween, highlight, indentedCode, intoFence, isAddress, linkAt, linked, nested, outline, pasted, quoted, safeSpot, toggleEmphasis, toggleMark, typedSpot, unmarked, withHeading, withoutLink, type Change, type Edit, type Emphasis, type MarkdownBlock, type MarkdownOutline } from '../markdown';
+import { blocks, closingContainer, closingFence, setHtmlCheck, setMentions, continuation, directiveAt, editBetween, highlight, indentedCode, intoFence, isAddress, linkAt, linked, nested, outline, pasted, quoted, safeSpot, toggleEmphasis, toggleMark, typedSpot, unmarked, withHeading, withoutLink, type Change, type Edit, type Emphasis, type MarkdownBlock, type MarkdownOutline } from '../markdown';
 import { directiveText, type DirectiveDescription } from '../directives';
 
 const props = defineProps<{
@@ -116,7 +118,15 @@ const current  = computed(() => props.directive ?? (props.image === undefined ? 
 setHtmlCheck(htmlCheck());
 setMentions(config.mentions);
 
-const html = computed(() => highlight(markdown.value, current.value, props.image ?? -1, props.blocks ?? blocks(markdown.value)));
+// The container whose opening or closing line the caret is on, whose
+// two lines are marked as a pair, or -1.
+const paired = computed(() => {
+	const line = markdown.value.lines.find((item) => item.start <= caret.value && caret.value <= item.start + item.text.length);
+
+	return (line?.kind === 'open' || line?.kind === 'close') && line.directive !== undefined ? line.directive : -1;
+});
+
+const html = computed(() => highlight(markdown.value, current.value, props.image ?? -1, props.blocks ?? blocks(markdown.value), paired.value));
 
 const field  = ref<HTMLTextAreaElement | null>(null);
 const source = ref<HTMLElement | null>(null);
@@ -804,6 +814,17 @@ function carry(event: KeyboardEvent): void {
 		return;
 	}
 
+	// From a container's opening line left open, its closing line too,
+	// with the caret on the line between.
+	const closer = closingContainer(element.value, element.selectionStart);
+
+	if (closer !== null) {
+		event.preventDefault();
+		apply(closer.edit, closer.caret);
+
+		return;
+	}
+
 	const next = continuation(element.value, element.selectionStart);
 
 	if (next !== null) {
@@ -1386,6 +1407,26 @@ defineExpose({ apply, change, focusAt, insert, insertBlock, insertText, selectio
 
 .md__highlight :deep(.md-directive__label) {
 	color: var(--fg);
+}
+
+/* A container's opening and closing colons, while the caret is on
+   either line: a pair, as matching brackets are. */
+.md__highlight :deep(.md-mark--pair) {
+	color: var(--accent);
+}
+
+/* A closing line names what it closes, by its full name, after its
+   colons. Out of the line's flow, so it takes no width the field's
+   line doesn't; a step smaller than the source, so it reads as a note
+   on the line rather than part of it. */
+.md__highlight :deep(.md-closes)::after {
+	content: attr(data-name);
+	position: absolute;
+	margin-inline-start: var(--s-2);
+	font-size: var(--text-sm);
+	line-height: calc(var(--doc) * 2);
+	color: var(--fg-3);
+	white-space: nowrap;
 }
 
 .md__highlight :deep(.md-directive.is-current),

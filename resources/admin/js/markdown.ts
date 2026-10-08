@@ -56,7 +56,15 @@ export function registerDirectiveKinds(kinds: Map<string, DirectiveKind>): void 
  * directive's short name, or `undefined` for one that isn't registered.
  */
 export function registeredKind(name: string): DirectiveKind | undefined {
-	return registered.value.get(name.includes('/') ? name : `blush/${name}`);
+	return registered.value.get(fullName(name));
+}
+
+/**
+ * A directive's full name: a core directive's short name with `blush/`,
+ * once it's registered; anything else as written.
+ */
+export function fullName(name: string): string {
+	return name.includes('/') || !registered.value.has(`blush/${name}`) ? name : `blush/${name}`;
 }
 
 export interface Directive {
@@ -496,17 +504,19 @@ const DIRECTIVE_HEAD = new RegExp(`^(:+)(${NAME})(?:(\\[)([^\\]\\n]*)(\\]))?`);
  * A directive: its colons muted, its name in the accent, its label in
  * full ink, and its attributes as the gray chip. It isn't boxed: the box
  * is kept for the one the caret is in (`current`), so a box always means
- * "you are here".
+ * "you are here". A container's colons are marked as a pair (`pair`)
+ * while the caret is on its opening or closing line.
  */
-function directiveHtml(text: string, current: boolean): string {
+function directiveHtml(text: string, current: boolean, pair = false): string {
 	const match = DIRECTIVE_HEAD.exec(text);
+	const kind  = pair ? 'pair' : '';
 	// A container's closing line is all syntax.
-	let html    = /^:+\s*$/.test(text) ? markHtml(text) : escape(text);
+	let html    = /^:+\s*$/.test(text) ? markHtml(text, kind) : escape(text);
 
 	if (match !== null) {
 		const rest = text.slice(match[0].length);
 
-		html = markHtml(match[1] ?? '') + `<span class="md-directive__name">${escape(match[2] ?? '')}</span>`;
+		html = markHtml(match[1] ?? '', kind) + `<span class="md-directive__name">${escape(match[2] ?? '')}</span>`;
 
 		if (match[3] !== undefined) {
 			html += markHtml('[') + `<span class="md-directive__label">${escape(match[4] ?? '')}</span>` + markHtml(']');
@@ -518,6 +528,17 @@ function directiveHtml(text: string, current: boolean): string {
 	}
 
 	return `<span class="md-directive${current ? ' is-current' : ''}">${html}</span>`;
+}
+
+/**
+ * The full name of what a container's closing line closes. It's drawn
+ * by the stylesheet from an attribute, after the line and out of its flow, so
+ * it's never text: it adds no characters to the copy under the field,
+ * takes no width the field's line doesn't, and can't be selected or
+ * typed over.
+ */
+function closesHtml(name: string): string {
+	return `<span class="md-closes" data-name="${escape(name)}"></span>`;
 }
 
 /**
@@ -758,8 +779,12 @@ function lineHtml(line: Line, current: Current, role: LineRole | undefined): str
  * the selected directive or image is, if anywhere), so a keystroke
  * rebuilds the line it changed rather than the whole body (D-316). The
  * lines a call uses are what the next one keeps.
+ *
+ * `paired` is the container whose opening or closing line the caret is
+ * on: both its lines' colons are marked as a pair, as an editor marks
+ * the bracket matching the one at the caret.
  */
-export function highlight(markdown: MarkdownOutline, directive: number, image = -1, found: MarkdownBlock[] = blocks(markdown)): string {
+export function highlight(markdown: MarkdownOutline, directive: number, image = -1, found: MarkdownBlock[] = blocks(markdown), paired = -1): string {
 	const at      = markdown.images[image]?.start ?? -1;
 	const current = markdown.directives[directive];
 	const roles   = lineRoles(found);
@@ -816,11 +841,15 @@ export function highlight(markdown: MarkdownOutline, directive: number, image = 
 			case 'leaf':
 			case 'close': {
 				const selected = line.directive === directive;
+				const pair     = paired !== -1 && line.directive === paired;
+				// What a closing line closes, named after it, since its
+				// colons alone don't say.
+				const closes = line.kind === 'close' ? fullName(markdown.directives[line.directive ?? -1]?.name ?? '') : '';
 
-				html += before + cached(`d\u0000${selected ? 1 : 0}\u0000${line.text}`, () => {
+				html += before + cached(`d\u0000${selected ? 1 : 0}\u0000${pair ? 1 : 0}\u0000${closes}\u0000${line.text}`, () => {
 					const indent = line.text.length - line.text.trimStart().length;
 
-					return escape(line.text.slice(0, indent)) + directiveHtml(line.text.slice(indent), selected);
+					return escape(line.text.slice(0, indent)) + directiveHtml(line.text.slice(indent), selected, pair) + (closes === '' ? '' : closesHtml(closes));
 				});
 
 				return;
@@ -2467,6 +2496,35 @@ export function closingFence(source: string, position: number): Edit | null {
 	const indent = match[1] ?? '';
 
 	return { from: position, to: position, text: `\n${indent}\n${indent}\`\`\`` };
+}
+
+/**
+ * What Enter at the end of a container's opening line writes when the
+ * container is left open: a line to write on, where the caret goes, and
+ * a closing line of as many colons, so a container typed by hand has its
+ * other half as one the inserter writes does. It's left open when it, or
+ * one before it that holds it, has no closing line of its own: a
+ * container typed inside a closed one takes that one's closing line, so
+ * it's the outer one that's left open, and the new closing line gives it
+ * back. `null` otherwise, and for a line with text after the caret.
+ */
+export function closingContainer(source: string, position: number): { edit: Edit; caret: number } | null {
+	const markdown = outline(source);
+	const line     = markdown.lines[lineIndexAt(markdown, position)];
+	const opened   = line?.directive === undefined ? undefined : markdown.directives[line.directive];
+	const match    = /^( {0,3})(:{3,})/.exec(line?.text ?? '');
+
+	if (line === undefined || opened === undefined || match === null || line.kind !== 'open' || position !== line.start + line.text.length) {
+		return null;
+	}
+
+	if (!markdown.directives.some((directive) => directive.kind === 'container' && directive.closed !== true && directive.start <= opened.start)) {
+		return null;
+	}
+
+	const indent = match[1] ?? '';
+
+	return { edit: { from: position, to: position, text: `\n${indent}\n${indent}${match[2] ?? ':::'}` }, caret: position + 1 + indent.length };
 }
 
 /**

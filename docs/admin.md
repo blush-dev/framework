@@ -395,6 +395,13 @@ colored. Attribute blocks, such as `{.bleed-wide}` after an image or a
 heading, are a gray chip with their class and id names in full
 strength. A block's name is colored, and a block or image the
 settings are showing is boxed (a container on its first and last lines).
+A container's closing line is followed by the full name of the block
+it closes, such as `blush/callout`, faintly; it's only shown, never
+part of the text. With the cursor on a container's first or last
+line, the colons on both lines are colored, so you can find its other
+end. Pressing Enter at the end of a container's first line, when
+nothing closes it yet, adds its closing `:::` too, with the cursor on
+the empty line between.
 Only valid Markdown lights up, so something that stays plain won't be
 read the way you meant.
 

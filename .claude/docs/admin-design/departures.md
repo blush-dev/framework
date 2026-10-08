@@ -807,6 +807,20 @@ Each is recorded in `.claude/docs/decisions.md`.
   and the sign-in card's titles flowing into their bodies and a library
   modal's line under its filter bar.
 
+- **A closing line names what it closes** (D-636): after a container's
+  closing colons, the block's full name (`blush/callout`) in the source's mono at `--text-sm` and
+  `--fg-3`, where the direction marks the opener and closer alike. It's
+  drawn from an attribute, out of the line's flow, so no character
+  moves.
+- **A container's two ends are a pair** (D-638): with the caret on its
+  opening or closing line, both lines' colons are `--accent`
+  (`.md-mark--pair`), over the box the direction already draws.
+- **A container typed by hand gets its closing line** (D-639): the
+  direction's "The third backtick writes the block" names containers
+  as the other construct with a required second half and leaves them to
+  the inserter; Enter at the end of an opening line left open writes
+  the closer too.
+
 ## Settled open questions
 
 From §13, now `50-open-questions.md`:
