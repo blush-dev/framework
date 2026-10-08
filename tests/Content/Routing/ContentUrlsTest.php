@@ -50,7 +50,7 @@ final class ContentUrlsTest extends TestCase
 		$this->assertSame('/topics/art', $urls->entry($entry('topics/art.md')));
 		$this->assertSame('/topics', $urls->entry($entry('topics/index.md')));
 		$this->assertNull($urls->entry($entry('_private.md')));
-		$this->assertNull($urls->entry($entry('_posts/2019/nested.md')));
+		$this->assertSame('/archives/nested', $urls->entry($entry('_posts/2019/nested.md')), 'A folder below a collection is only where its file is kept (D-629).');
 
 		$post     = $types->get('post');
 		$category = $types->get('category');

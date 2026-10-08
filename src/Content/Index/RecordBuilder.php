@@ -42,6 +42,10 @@ use Blush\Support\Uuid;
  * - `index` directly in a type's folder is that type's landing page.
  *   Anywhere else, `name/index.md` is a bundle: the entry `name`, listed
  *   in the folder above.
+ * - A tree's folders are part of its entries' keys (`about/biography`).
+ *   A collection's or the profiles' folders below its own are only where
+ *   files are kept (D-629): `_posts/2026/hello.md` is `hello`, listed in
+ *   `_posts`. Their `_` folders are kept in keys as before.
  * - A `_`-prefixed file name, or a `_`-prefixed folder between the type's
  *   folder and the file, makes the entry hidden, whatever its front
  *   matter says (1.x's private files and page segments). A `_drafts`
@@ -105,6 +109,13 @@ final readonly class RecordBuilder
 		$listedIn  = $bundle ? self::directoryOf($directory) : $directory;
 		$segments  = self::segmentsBelow($type, $listedIn);
 		$private   = $bundle ? [...$segments, basename($directory)] : $segments;
+
+		// A collection's folders below its own are only where files are
+		// kept (D-629); its `_` folders still mean something.
+		if (! $type->keysByFolder()) {
+			$segments = array_values(array_filter($segments, static fn (string $segment): bool => str_starts_with($segment, '_')));
+			$listedIn = ltrim(implode('/', [$type->folder, ...$segments]), '/');
+		}
 
 		$slug = match (true) {
 			is_string($values['slug'] ?? null) => $values['slug'],

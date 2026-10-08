@@ -114,6 +114,16 @@ final readonly class Tree extends ContentType
 	}
 
 	/**
+	 * A tree's folders are its pages' (D-088): `about/biography.md` is
+	 * `about/biography`.
+	 */
+	#[Override]
+	public function keysByFolder(): bool
+	{
+		return true;
+	}
+
+	/**
 	 * Returns the entry the folder an entry is in belongs to: `about` for
 	 * `about/biography`. Top-level entries have none.
 	 */

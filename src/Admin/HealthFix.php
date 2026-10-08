@@ -24,7 +24,7 @@ enum HealthFix: string
 	case MediaIds   = 'media-ids';
 	case MediaSizes = 'media-sizes';
 	case FileNames  = 'filenames';
-	case Flatten    = 'flatten';
+	case Folders    = 'folders';
 	case Terms      = 'terms';
 	case Refs       = 'refs';
 
@@ -36,7 +36,7 @@ enum HealthFix: string
 		return match ($this) {
 			self::Ids, self::MediaIds         => 'assigned',
 			self::MediaSizes                  => 'recorded',
-			self::FileNames, self::Flatten    => 'renamed',
+			self::FileNames, self::Folders    => 'renamed',
 			self::Terms                       => 'created',
 			self::Refs                        => 'filed'
 		};
@@ -53,7 +53,7 @@ enum HealthFix: string
 			self::MediaIds   => ['media file', 'media files'],
 			self::MediaSizes => ['image', 'images'],
 			self::FileNames,
-			self::Flatten    => ['entry', 'entries'],
+			self::Folders    => ['entry', 'entries'],
 			self::Terms      => ['term or profile', 'terms and profiles'],
 			default          => ['file', 'files']
 		};

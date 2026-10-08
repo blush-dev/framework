@@ -1829,9 +1829,11 @@ collection and its classify relation in `user/data/relations`, as
 [Moving from taxonomies](content-types.md#moving-from-taxonomies)). It
 migrates them all at once, and needs Site Health and `site.settings`.
 
-**Collection Folders** lists the collection entries kept in folders,
-which [collections](content-types.md#collections-are-flat) don't allow,
-and where each moves to.
+**Collection Folders** lists the collection entries not in the folders
+their [collection](content-types.md#collections-are-flat) keeps them in:
+entries kept as folders, files in other folders, and files in a
+[pattern's folder](content-types.md#folders-for-many-files) for another
+date. It shows where each moves to; no address changes.
 
 **File Names** lists, for each type with a file name
 [pattern](content-types.md#naming-new-files) of its own (not the

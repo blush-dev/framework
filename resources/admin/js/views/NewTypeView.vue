@@ -8,7 +8,8 @@
  * the steps are filled in. **Create type** writes
  * `user/data/types/{key}.json` (`POST types`), adds the index page when
  * asked, and opens the type's screen. Terms are a collection ordered by
- * position, with no authors and out of `llms.txt`, and a classify relation
+ * position, kept in folders by initial (D-630), with no authors and out
+ * of `llms.txt`, and a classify relation
  * named after it that files the chosen types under them (`POST
  * relations`, D-593).
  *
@@ -86,6 +87,10 @@ watch(choice, (value) => {
 	// ordered by position (D-412).
 	form.value.llms  = value !== 'terms';
 	form.value.order = value === 'terms' ? 'position' : 'published';
+
+	// Terms can run to thousands, so they're kept in a folder by initial
+	// (D-630).
+	form.value.folders = value === 'terms' ? '{initial}' : '';
 });
 
 // The types new terms can file: any but profiles.

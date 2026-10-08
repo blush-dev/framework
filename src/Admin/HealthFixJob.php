@@ -21,7 +21,7 @@ use Blush\Content\EntryIds;
 use Blush\Content\EntryRefs;
 use Blush\Content\FileNameRename;
 use Blush\Content\FileNames;
-use Blush\Content\FlatEntries;
+use Blush\Content\EntryFolders;
 use Blush\Content\MissingTerms;
 use Blush\Content\Writer\AssignedIds;
 use Blush\Content\Writer\FiledRefs;
@@ -65,7 +65,7 @@ final class HealthFixJob extends Job
 		private readonly MediaIds $mediaIds,
 		private readonly MediaSizes $mediaSizes,
 		private readonly FileNames $fileNames,
-		private readonly FlatEntries $flat,
+		private readonly EntryFolders $folders,
 		private readonly MissingTerms $terms,
 		private readonly EntryRefs $refs
 	) {}
@@ -140,7 +140,7 @@ final class HealthFixJob extends Job
 			HealthFix::MediaIds   => $this->mediaIds->report()->missing,
 			HealthFix::MediaSizes => $this->mediaSizes->report()->images(),
 			HealthFix::FileNames  => array_map(static fn (FileNameRename $rename): string => $rename->path, $this->fileNames->report()->renames($type)),
-			HealthFix::Flatten    => array_map(strval(...), array_keys($this->flat->report())),
+			HealthFix::Folders    => array_map(strval(...), array_keys($this->folders->report())),
 			HealthFix::Refs       => array_map(strval(...), array_keys($this->refs->report())),
 			HealthFix::Terms      => $this->missingTerms()
 		};
@@ -163,7 +163,7 @@ final class HealthFixJob extends Job
 				HealthFix::MediaIds   => $this->mediaIds->assignMissing($media),
 				HealthFix::MediaSizes => $this->mediaSizes->record($media),
 				HealthFix::FileNames  => $this->fileNames->rename($type, $entries),
-				HealthFix::Flatten    => $this->flat->flatten($entries),
+				HealthFix::Folders    => $this->folders->move($entries),
 				HealthFix::Refs       => $this->refs->file($entries),
 				HealthFix::Terms      => $this->terms->create($this->access->termTypes($account), $paths)
 			};

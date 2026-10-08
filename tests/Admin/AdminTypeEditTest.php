@@ -365,6 +365,29 @@ final class AdminTypeEditTest extends TestCase
 		$this->assertSame(422, $this->write('POST', '/types', ['name' => 'movie'])->getStatusCode(), 'Nor created again.');
 	}
 
+	public function testChangesAFolderPatternButNeverTheFolder(): void
+	{
+		$this->writeTemporaryFile('user/data/types/recipe.yaml', "folder: recipes\n");
+		$this->codeConfig(['types' => ['movie' => ['folder' => 'movies/{year}']]]);
+		$this->site();
+
+		$answer = $this->write('PATCH', '/types/recipe', ['set' => ['folders' => '{initial}']]);
+		$this->assertSame(200, $answer->getStatusCode(), (string) $answer->getBody());
+		$this->assertSame('{initial}', self::json($answer)['folders'] ?? null);
+		$this->assertSame("folder: \"recipes/{initial}\"\n", $this->file('user/data/types/recipe.yaml'), 'Written after the folder (D-629).');
+
+		$this->assertSame(200, $this->write('PATCH', '/types/recipe', ['set' => ['folders' => null]])->getStatusCode());
+		$this->assertSame("folder: recipes\n", $this->file('user/data/types/recipe.yaml'), 'The folder stays without one.');
+
+		$this->assertSame(422, $this->write('PATCH', '/types/recipe', ['set' => ['folder' => 'dishes']])->getStatusCode(), 'The folder itself never changes here.');
+		$this->assertSame(422, $this->write('PATCH', '/types/recipe', ['set' => ['folders' => '{day}']])->getStatusCode());
+
+		$movie = $this->write('PATCH', '/types/movie', ['set' => ['folders' => null]]);
+		$this->assertSame(200, $movie->getStatusCode(), (string) $movie->getBody());
+		$this->assertSame(['folders' => null], array_intersect_key(self::json($movie), ['folders' => true]));
+		$this->assertSame(['folder' => 'movies'], $this->data('user/data/types/movie.json'), 'Over code, none is written out.');
+	}
+
 	public function testChangesACodeTreeInADataFile(): void
 	{
 		$this->codeConfig(['types' => ['doc' => ['kind' => 'tree', 'folder' => '_docs']]]);

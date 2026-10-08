@@ -92,8 +92,8 @@ use Blush\Session\StartSession;
  *     health/media-ids` and `POST health/media-ids/keep` for media's
  *     (D-487), `POST health/media-sizes` to record images' sizes
  *     (D-488), `POST health/filenames` to rename a type's files to its
- *     pattern (D-512), `POST health/flatten` to move collections'
- *     entries out of folders (D-514), and `POST health/terms` to write
+ *     pattern (D-512), `POST health/folders` to move collections'
+ *     entries into their folders (D-514, D-629), and `POST health/terms` to write
  *     the terms and profiles entries name with no file (D-584), `POST
  *     health/refs` to file links between entries with their ids
  *     (D-596), `POST health/ignore` and `POST health/unignore` (D-613),
@@ -226,7 +226,7 @@ final readonly class AdminRoutes implements RouteSource
 			Route::post('/health/media-ids/keep', [HealthController::class, 'keepMedia'])->named('health.media-ids.keep')->middleware(Authenticate::class),
 			Route::post('/health/media-sizes', [HealthController::class, 'recordSizes'])->named('health.media-sizes')->middleware(Authenticate::class),
 			Route::post('/health/filenames', [HealthController::class, 'renameFiles'])->named('health.filenames')->middleware(Authenticate::class),
-			Route::post('/health/flatten', [HealthController::class, 'flatten'])->named('health.flatten')->middleware(Authenticate::class),
+			Route::post('/health/folders', [HealthController::class, 'folders'])->named('health.folders')->middleware(Authenticate::class),
 			Route::post('/health/terms', [HealthController::class, 'createTerms'])->named('health.terms')->middleware(Authenticate::class),
 			Route::post('/health/refs', [HealthController::class, 'fileRefs'])->named('health.refs')->middleware(Authenticate::class),
 			Route::post('/health/taxonomies', [HealthController::class, 'migrateTaxonomies'])->named('health.taxonomies')->middleware(Authenticate::class),

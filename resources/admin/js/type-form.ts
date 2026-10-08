@@ -34,6 +34,9 @@ export interface TypeForm {
 	// Its file name pattern (D-511, any kind, D-514), `''` for the
 	// default, the slug alone (D-515).
 	filename: string;
+	// A collection's or the profiles' folder pattern (D-629), `''` for
+	// none.
+	folders: string;
 	// A collection's: whether an entry may name a parent (D-593), and
 	// whether entries are newest published first or by `position`.
 	hierarchical: boolean;
@@ -53,7 +56,7 @@ export const FEATURED: FieldDescription = { name: 'image', type: 'media', label:
  * A new type's form.
  */
 export function emptyForm(): TypeForm {
-	return { singular: '', plural: '', description: '', icon: '', prefix: '', public: true, sitemap: true, llms: true, feed: false, authors: true, byline: '', dateArchives: 'none', filename: '', hierarchical: false, order: 'published', fields: [], paths: {} };
+	return { singular: '', plural: '', description: '', icon: '', prefix: '', public: true, sitemap: true, llms: true, feed: false, authors: true, byline: '', dateArchives: 'none', filename: '', folders: '', hierarchical: false, order: 'published', fields: [], paths: {} };
 }
 
 /**
@@ -76,6 +79,7 @@ export function formOf(type: ContentTypeDetail): TypeForm {
 		byline: type.byline ?? '',
 		dateArchives: type.dateArchives,
 		filename: type.filename ?? '',
+		folders: type.folders ?? '',
 		hierarchical: type.hierarchical,
 		order: type.order ?? 'published',
 		fields: copy(type.fields),
@@ -124,6 +128,8 @@ export function changesOf(form: TypeForm, initial: TypeForm | null, kind: TypeKi
 		byline: form.byline || null,
 		fields: form.fields,
 		filename: form.filename || null,
+		// A tree's folders are its pages' (D-629).
+		...(kind === 'tree' ? {} : { folders: form.folders || null }),
 		...(kind === 'collection' ? { dateArchives: form.dateArchives === 'none' ? null : form.dateArchives } : {}),
 		...(kind === 'collection' ? { hierarchical: form.hierarchical, order: form.order === 'published' ? null : form.order } : {})
 	};
@@ -194,6 +200,16 @@ export const FILENAMES = [
 	{ value: '{slug}', label: 'Slug', hint: 'hello-world.md' },
 	{ value: '{date}.{slug}', label: 'Date and slug', hint: '2026-10-05.hello-world.md' },
 	{ value: '{date}-{time}.{slug}', label: 'Date, time, and slug', hint: '2026-10-05-093000.hello-world.md' }
+];
+
+/**
+ * The folder patterns offered (D-629), each kept after the type's folder.
+ */
+export const FOLDERS = [
+	{ value: '', label: 'None', hint: 'all in one folder' },
+	{ value: '{year}', label: 'By year', hint: '2026/hello-world.md' },
+	{ value: '{year}/{month}', label: 'By year and month', hint: '2026/10/hello-world.md' },
+	{ value: '{initial}', label: 'By first letter', hint: 'h/hello-world.md' }
 ];
 
 /**

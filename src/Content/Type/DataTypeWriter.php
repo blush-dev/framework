@@ -39,8 +39,9 @@ use Blush\Support\Filesystem;
  * `icon`, `prefix` for the URL prefix, `paths` for route keys' paths
  * (`null` or `''` for a key's default, D-350), `public`, `sitemap`,
  * `llms` (D-398),
- * `feed`, `byline` (D-602), `dateArchives`, `filename` (D-511), `hierarchical`, `order` (D-593), and
- * `fields`); `null` removes one. They're applied to the file's own
+ * `feed`, `byline` (D-602), `dateArchives`, `filename` (D-511), `folders` for the folder pattern
+ * after the type's folder (`{year}`, written into `folder`, D-629), `hierarchical`, `order` (D-593), and
+ * `fields`); `null` removes one. The folder itself never changes here. They're applied to the file's own
  * data (or, for a code type, to the type as the code and the file make
  * it) and the type is built from that (`ContentType::fromArray()`), so
  * it's checked as the loader checks it; each changed option is then
@@ -75,6 +76,7 @@ final readonly class DataTypeWriter
 		'byline'       => [],
 		'dateArchives' => ['date_archives', 'time_archives'],
 		'filename'     => [],
+		'folder'       => ['path'],
 		'hierarchical' => [],
 		'order'        => [],
 		'fields'       => []
@@ -307,7 +309,14 @@ final readonly class DataTypeWriter
 		}
 
 		foreach ($changes as $key => $value) {
-			if ($key === 'prefix') {
+			if ($key === 'folder') {
+				throw new InvalidContentType('A type\'s folder doesn\'t change here, since entries are filed by it; its folder pattern does ("folders").');
+			}
+
+			if ($key === 'folders') {
+				$key   = 'folder';
+				$value = self::folderWith($name, $merged, $value);
+			} elseif ($key === 'prefix') {
 				$key   = 'urls';
 				$value = $this->urls($merged, $value);
 			} elseif ($key === 'paths') {
@@ -426,6 +435,31 @@ final readonly class DataTypeWriter
 	}
 
 	/**
+	 * Returns the `folder` a type's data has with a new folder pattern
+	 * (`{year}`, D-629), or `null` for none: the type's own folder stays.
+	 * `null` back when that's the default folder with no pattern.
+	 *
+	 * @param  array<array-key, mixed> $data
+	 * @throws InvalidContentType
+	 */
+	private static function folderWith(string $name, array $data, mixed $pattern): ?string
+	{
+		if ($pattern !== null && ! is_string($pattern)) {
+			throw new InvalidContentType('"folders" must be a folder pattern, such as {year}, or null.');
+		}
+
+		$folder  = $data['folder'] ?? $data['path'] ?? "_{$name}";
+		$root    = FolderPattern::split(trim(is_string($folder) ? $folder : '', '/'))[0];
+		$pattern = trim($pattern ?? '', '/');
+
+		if ($pattern === '') {
+			return $root === "_{$name}" ? null : $root;
+		}
+
+		return "{$root}/{$pattern}";
+	}
+
+	/**
 	 * An option's value written out when it's at its default, which the
 	 * type itself leaves out, so it can stand over a code type's other
 	 * value.
@@ -442,6 +476,7 @@ final readonly class DataTypeWriter
 			'icon'         => '',
 			'dateArchives' => $type->dateArchives->value,
 			'filename'     => $type->naming()->pattern,
+			'folder'       => $type->folder,
 			'hierarchical' => false,
 			'order'        => TypeOrder::Published->value,
 			default        => []

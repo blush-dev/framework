@@ -458,6 +458,9 @@ export interface ContentTypeDetail extends Omit<ContentTypeSummary, 'fields'> {
 	// Its own file name pattern (D-511, D-514), or `null` for the
 	// default, the slug alone (D-515).
 	filename: string | null;
+	// Its folder pattern after its folder (D-629), such as `{year}`, or
+	// `null` for none: its files are directly in its folder.
+	folders: string | null;
 	// The URL prefix its folder gives it, without slashes.
 	folderPrefix: string;
 	// The data file it's defined or changed in, from the site's root, or `null`.
@@ -1320,9 +1323,9 @@ export interface Health {
 	// are, kept as folders (`POST health/filenames` with the type
 	// renames them, D-512, D-514).
 	fileNames: { type: string; label: string; pattern: string; count: number; items: { path: string; to: string }[]; skipped: number }[];
-	// Collections' files that aren't flat (D-514), and each move (`POST
-	// health/flatten` moves them).
-	flat: { count: number; items: { path: string; to: string }[] };
+	// Collections' and profiles' files that aren't in their folders
+	// (D-514, D-629), and each move (`POST health/folders` moves them).
+	folders: { count: number; items: { path: string; to: string }[] };
 	// Terms and profiles entries name with no file (D-584), each with
 	// its type's label, the title its file gets, and how many entries
 	// name it (`POST health/terms` writes them).

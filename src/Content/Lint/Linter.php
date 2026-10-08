@@ -17,7 +17,7 @@ use Closure;
 use DateMalformedStringException;
 use DateTimeImmutable;
 use Blush\Content\EntryFields;
-use Blush\Content\FlatEntries;
+use Blush\Content\EntryFolders;
 use Blush\Content\Index\IndexRecord;
 use Blush\Content\Index\IndexSnapshot;
 use Blush\Content\Index\ParsedEntry;
@@ -397,26 +397,26 @@ final readonly class Linter
 	}
 
 	/**
-	 * Checks that a collection's entry is a file directly in its folder
-	 * (D-514), or in a `_` folder there: not a folder entry, and not in a
-	 * folder of its own below.
+	 * Checks that a collection's or the profiles' entry is a file in a
+	 * folder of the shape its type keeps files in (D-514, D-629): directly
+	 * in its folder, or in the folders its folder pattern gives, with `_`
+	 * folders there allowed. A file outside a pattern's folders is only a
+	 * warning, since a pattern can change without moving anything.
 	 *
 	 * @return list<Violation>
 	 */
 	private function checkFlat(IndexRecord $record): array
 	{
-		$type = $this->types->find($record->type);
-		$flat = $type === null ? null : FlatEntries::flatPath($type, $record->path, $record->landing);
+		$type   = $this->types->find($record->type);
+		$reason = $type === null ? null : EntryFolders::misplaced($type, $record->path, $record->landing);
 
-		if ($flat === null) {
+		if ($type === null || $reason === null) {
 			return [];
 		}
 
-		return [new Violation(self::FILE, sprintf(
-			'%s; a collection\'s entries are files in its folder. Move it to %s with content:flatten, or on Site Health in the admin.',
-			str_starts_with(basename($record->path), 'index.') ? 'is a folder entry' : 'is in a folder below its collection\'s',
-			$flat
-		), kind: ViolationKind::Folder)];
+		$serious = $type->folders === null || str_starts_with(basename($record->path), 'index.');
+
+		return [new Violation(self::FILE, sprintf('%s. Move it with content:folders, or on Site Health in the admin.', $reason), $serious ? Severity::Error : Severity::Warning, ViolationKind::Folder)];
 	}
 
 	/**

@@ -568,8 +568,10 @@ final readonly class EntryController
 
 		$updated = $this->content->findPath($path);
 
-		// A new date renames a file its type names by date (D-519).
-		if ($updated !== null && $updated->published?->getTimestamp() !== $entry->published?->getTimestamp()) {
+		// A new date renames a file its type names by date (D-519), and
+		// a new date or slug moves it to the folder its type's folder
+		// pattern gives them (D-629).
+		if ($updated !== null && ($rename !== null || $updated->published?->getTimestamp() !== $entry->published?->getTimestamp())) {
 			$followed = $this->fileNames->follow($updated->path);
 
 			if ($followed !== null) {

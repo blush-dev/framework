@@ -3,7 +3,7 @@
  * How a content type behaves (D-311), for the type editor and the
  * new-type wizard: its URL prefix, whether it's public, in the sitemap
  * and `llms.txt` (D-398, D-401), and has a feed; a collection's date archives, featured image (an
- * `image` media field), nesting by a `parent`, and order (D-593); file names, for every kind (D-511, D-514);
+ * `image` media field), nesting by a `parent`, and order (D-593); file names, for every kind (D-511, D-514); folders, for every kind but a tree (D-629);
  * and the index page (D-255), which a type gets once and keeps.
  * A tree (D-386) has no prefix, feed, or author archives: its entries
  * are at their folder paths.
@@ -17,7 +17,7 @@ import { computed } from 'vue';
 import { RouterLink } from 'vue-router';
 import { entryRoute } from '../api';
 import AdminSelect from './AdminSelect.vue';
-import { DATE_ARCHIVES, FEATURED, FILENAMES, ORDERS, hasFeatured, type TypeForm, type TypeKind } from '../type-form';
+import { DATE_ARCHIVES, FEATURED, FILENAMES, FOLDERS, ORDERS, hasFeatured, type TypeForm, type TypeKind } from '../type-form';
 
 const props = defineProps<{
 	idPrefix: string;
@@ -52,6 +52,11 @@ const featured = computed({
 const filenames = computed(() => FILENAMES.some((option) => option.value === form.value.filename)
 	? FILENAMES
 	: [...FILENAMES, { value: form.value.filename, label: form.value.filename, hint: 'from config' }]);
+
+// The folder patterns offered, the same way.
+const folders = computed(() => FOLDERS.some((option) => option.value === form.value.folders)
+	? FOLDERS
+	: [...FOLDERS, { value: form.value.folders, label: form.value.folders, hint: 'from config' }]);
 </script>
 
 <template>
@@ -108,7 +113,13 @@ const filenames = computed(() => FILENAMES.some((option) => option.value === for
 		<div class="field">
 			<label :for="`${idPrefix}filename`">File names</label>
 			<AdminSelect :id="`${idPrefix}filename`" v-model="form.filename" :options="filenames" :described-by="`${idPrefix}filename-help`" />
-			<p :id="`${idPrefix}filename-help`" class="field__help">How new entries' files are named; the default is the slug alone. Changing it renames nothing (Content Health can rename older files to a pattern chosen here, but never to the default): a file's address comes from its slug, after the last dot, so older names keep working.<template v-if="kind === 'tree'"> Folders keep their pages' slugs.</template></p>
+			<p :id="`${idPrefix}filename-help`" class="field__help">How new entries' files are named; the default is the slug alone. Changing it renames nothing (Site Health can rename older files to a pattern chosen here, but never to the default): a file's address comes from its slug, after the last dot, so older names keep working.<template v-if="kind === 'tree'"> Folders keep their pages' slugs.</template></p>
+		</div>
+
+		<div v-if="kind !== 'tree'" class="field">
+			<label :for="`${idPrefix}folders`">Folders</label>
+			<AdminSelect :id="`${idPrefix}folders`" v-model="form.folders" :options="folders" :described-by="`${idPrefix}folders-help`" />
+			<p :id="`${idPrefix}folders-help`" class="field__help">Where entries' files are kept inside the type's folder, for a type with thousands of them; by year and month go by the publish date, and a new date moves the file. Folders are never part of an address. Changing it moves nothing; Site Health moves older files.</p>
 		</div>
 
 	</div>

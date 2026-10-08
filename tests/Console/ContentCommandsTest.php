@@ -17,7 +17,7 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Blush\Console\Commands\CreateContent;
 use Blush\Console\Commands\FixIds;
-use Blush\Console\Commands\FlattenCollections;
+use Blush\Console\Commands\MoveToFolders;
 use Blush\Console\Commands\IndexContent;
 use Blush\Console\Commands\LintContent;
 use Blush\Console\Commands\ListContent;
@@ -35,7 +35,7 @@ use Blush\Tests\Content\BuildsContentSite;
 #[CoversClass(CreateContent::class)]
 #[CoversClass(FixIds::class)]
 #[CoversClass(RenameToPattern::class)]
-#[CoversClass(FlattenCollections::class)]
+#[CoversClass(MoveToFolders::class)]
 #[CoversClass(EntryIds::class)]
 #[CoversClass(EntryIdReport::class)]
 final class ContentCommandsTest extends TestCase
@@ -182,18 +182,18 @@ final class ContentCommandsTest extends TestCase
 		$this->assertFileExists("{$content}/_posts/spring.md");
 	}
 
-	public function testFlattensCollections(): void
+	public function testMovesEntriesToTheirFolders(): void
 	{
 		$this->standardContent();
 		$tester = $this->tester();
 
-		$check = $tester->run('content:flatten');
+		$check = $tester->run('content:folders');
 
 		$this->assertSame(ExitCode::Failure, $check->exitCode, 'They\'re lint errors (D-514).');
 		$this->assertStringContainsString('move     _posts/hello/index.md → _posts/hello.md', $check->output);
-		$this->assertStringContainsString('1 entry is kept in a folder; move it with --write.', $check->errors);
+		$this->assertStringContainsString('1 entry isn\'t in its type\'s folders; move it with --write.', $check->errors);
 
-		$fixed = $tester->run('content:flatten --write');
+		$fixed = $tester->run('content:folders --write');
 
 		$this->assertTrue($fixed->isSuccessful(), $fixed->errors);
 		$this->assertStringContainsString('moved    _posts/hello/index.md → _posts/hello.md', $fixed->output);

@@ -45,7 +45,10 @@ A few rules make the file names flexible:
   have no address. Any type can name the files it creates for you by a
   pattern ([Naming new files](content-types.md#naming-new-files)).
 - **A collection's entries are files in its folder**, never folders of
-  their own ([Collections are flat](content-types.md#collections-are-flat)).
+  their own ([Collections are flat](content-types.md#collections-are-flat)),
+  unless the collection keeps them in folders by year or letter
+  ([Folders for many files](content-types.md#folders-for-many-files)).
+  Those folders are never part of an address.
 - **`index.md` is its folder's page.** `about/index.md` is the page at
   `/about`. (Not in a collection, which is flat.)
 - **Set `slug:`** in front matter to choose the URL name yourself.

@@ -40,12 +40,17 @@ use Blush\Field\Fields\ReferenceField;
  * A collection that's `hierarchical` has a `parent` relation (D-591): an
  * entry names its parent entry by slug in `parent`, so it keeps its file
  * and URL when it moves, and slugs stay unique across the collection.
+ *
+ * A collection's files are directly in its folder unless the folder
+ * ends in a pattern (D-629), such as `_posts/{year}` or
+ * `tags/{initial}`; those folders are only where files are kept, never
+ * part of a key or address.
  */
 final readonly class Collection extends ContentType
 {
 	/**
 	 * @param  string          $name         Lowercase letters, digits, and underscores.
-	 * @param  ?string         $folder       The folder under `user/content`; defaults to `_` and the name.
+	 * @param  ?string         $folder       The folder under `user/content`; defaults to `_` and the name, and may end in a folder pattern (`_posts/{year}`, D-629).
 	 * @param  TypeUrls|false  $urls         URL settings, or `false` for no routes.
 	 * @param  Listing         $listing      How the listing page lists entries.
 	 * @param  TypeFeed|false  $feed         Feed settings, or `false` for no feed.

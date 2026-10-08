@@ -83,7 +83,7 @@ final class ProblemKeys
 			$keys[] = self::of('content', 'terms', self::text($item['type'] ?? '') . '/' . self::text($item['slug'] ?? ''));
 		}
 
-		foreach (['refs' => 'refs', 'flat' => 'folders'] as $name => $check) {
+		foreach (['refs' => 'refs', 'folders' => 'folders'] as $name => $check) {
 			foreach (self::items($report, $name) as $item) {
 				$keys[] = self::of('content', $check, self::text($item['path'] ?? ''));
 			}

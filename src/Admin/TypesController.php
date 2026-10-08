@@ -70,7 +70,7 @@ use Blush\Support\Uuid;
  * through a file there, D-349), whether it's `overridden` (a code type a
  * file changes) and the options that file sets (`overrides`), whether
  * its `fieldsEditable` (none is a field class of the code's own), its
- * `dateArchives`, its own file name pattern (`filename`, D-511, D-514), the prefix its folder gives (`folderPrefix`), the data
+ * `dateArchives`, its own file name pattern (`filename`, D-511, D-514), its folder pattern (`folders`, D-629, `null` for none), the prefix its folder gives (`folderPrefix`), the data
  * `file` it's defined or changed in (`null` for the rest), its `routes`
  * (each route key it answers at, with its `path` and `default` relative
  * to the prefix, the placeholders it `requires` and `allows`, and
@@ -164,6 +164,7 @@ final readonly class TypesController
 			'fields'       => array_values(array_map(static fn (Field $field): array => array_diff_key($field->toArray(), ['class' => true]), $type->schema->fields)),
 			'dateArchives' => $type->dateArchives->value,
 			'filename'     => $type->filename?->pattern,
+			'folders'      => $type->folders?->pattern,
 			'folderPrefix' => DataTypeWriter::folderPrefix($type->folder),
 			'file'         => $file === null ? null : $this->paths->relative($file),
 			'index'        => $this->index($type),

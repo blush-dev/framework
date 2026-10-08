@@ -14,20 +14,12 @@ declare(strict_types=1);
 namespace Blush\Content;
 
 use Closure;
-use DateMalformedStringException;
-use DateTimeImmutable;
 use Blush\Content\Index\ContentIndex;
 use Blush\Content\Index\IndexSnapshot;
 use Blush\Content\Index\Indexer;
-use Blush\Content\Parser\DocumentParser;
-use Blush\Content\Parser\FrontMatter;
-use Blush\Content\Parser\InvalidDocument;
-use Blush\Content\Source\ContentSource;
-use Blush\Content\Source\UnreadableSource;
 use Blush\Content\Type\ContentTypes;
 use Blush\Content\Writer\ContentWriter;
 use Blush\Content\Writer\RenamedFiles;
-use Blush\Core\AppConfig;
 
 /**
  * Finds the entries of each type named by another pattern than its
@@ -49,11 +41,11 @@ use Blush\Core\AppConfig;
  *   name (`hello.fr.md` beside `hello.md`), which keep their language
  *   suffixes, so they stay linked. A translation linked by
  *   `translation_of` keeps its name.
- * - **The date** is the entry's publish date as its file writes it, in
- *   the offset written there (`2013-02-09 00:00:00 -5` is the 9th,
- *   wherever the site is), or in the site's time zone without one;
- *   without a publish date, its `updated` date the same way, else the
- *   file's modified time.
+ * - **The date** is the entry's publish date as its file writes it
+ *   (`WrittenDates`); without a publish date, its `updated` date the
+ *   same way, else the file's modified time.
+ * - **Folders** are `EntryFolders`' (D-629): a name's rename stays in
+ *   the file's folder, and `follow()` moves it to its folder too.
  * - **Left alone:** landing pages, `_`-prefixed names, which a pattern
  *   would unhide, and entries whose date isn't a real date (`skipped`).
  *
@@ -66,9 +58,8 @@ final readonly class FileNames
 		private Indexer $indexer,
 		private ContentTypes $types,
 		private ContentWriter $writer,
-		private AppConfig $app,
-		private ContentSource $source,
-		private DocumentParser $parser
+		private WrittenDates $dates,
+		private EntryFolders $folders
 	) {}
 
 	/**
@@ -105,12 +96,25 @@ final readonly class FileNames
 	/**
 	 * Renames one entry to its type's pattern after its publish date
 	 * changed (D-519), when the pattern has a date in it, so the name
-	 * keeps showing the date. Returns the entry's new path, or `null`
-	 * when it keeps its name: its type's pattern has no date, the name
-	 * already fits, it's left alone (as `report()` leaves it), or the
-	 * new name is taken.
+	 * keeps showing the date, then moves it to the folder its type's
+	 * folder pattern gives its date and slug (`EntryFolders::follow()`,
+	 * D-629), which a new slug calls for too.
+	 * Returns the entry's new path, or `null` when it stays where it is:
+	 * its type's patterns have no date, the name and folder already fit,
+	 * it's left alone (as `report()` leaves it), or the new path is
+	 * taken.
 	 */
 	public function follow(string $path): ?string
+	{
+		$renamed = $this->followName($path);
+
+		return $this->folders->follow($renamed ?? $path) ?? $renamed;
+	}
+
+	/**
+	 * Renames one entry to its type's dated pattern, for `follow()`.
+	 */
+	private function followName(string $path): ?string
 	{
 		$snapshot = $this->index->snapshot();
 		$record   = $snapshot->records[$path] ?? null;
@@ -149,7 +153,7 @@ final readonly class FileNames
 			return 'it\'s kept as a folder, which a pattern never names';
 		}
 
-		$date = $this->writtenDate($path, $type->name) ?? DateTimeImmutable::createFromTimestamp($record['updated'])->setTimezone($this->app->timezone());
+		$date = $this->dates->orUpdated($path, $type->name, $record['updated']);
 
 		if (is_string($date)) {
 			return sprintf('its date, %s, isn\'t a real date; fix it first', $date);
@@ -166,49 +170,6 @@ final readonly class FileNames
 		return $moves === null
 			? 'a translation of it is kept as a folder, so renaming it would break their link'
 			: new FileNameRename($type->name, $path, $moves[$path], $moves);
-	}
-
-	/**
-	 * Returns an entry's publish date, else its updated date, as its file
-	 * writes it: in the offset written there, else the site's time zone,
-	 * so a name gets the day the author wrote. A date that isn't on the
-	 * calendar (a `2007-00-00` placeholder, which PHP rolls over) is
-	 * returned as written, to leave the name alone. `null` when it has
-	 * neither, or the file can't be read.
-	 */
-	private function writtenDate(string $path, string $type): DateTimeImmutable|string|null
-	{
-		try {
-			$contents    = $this->source->read($path);
-			$frontMatter = $this->parser->parse($contents)->frontMatter;
-		} catch (InvalidDocument | UnreadableSource) {
-			return null;
-		}
-
-		$schema = $this->types->schema($type);
-
-		foreach (['published', 'updated'] as $name) {
-			$field = $schema->field($name);
-
-			foreach ([$name, ...$field->aliases ?? []] as $key) {
-				// As written: YAML hands dates over already rolled.
-				$value = FrontMatter::written($contents, $key) ?? $frontMatter[$key] ?? null;
-
-				if (is_string($value) && preg_match('/^\s*(\d{4})-(\d{2})-(\d{2})/', $value, $day) === 1) {
-					if (! checkdate((int) $day[2], (int) $day[3], (int) $day[1])) {
-						return "{$day[1]}-{$day[2]}-{$day[3]}";
-					}
-
-					try {
-						return new DateTimeImmutable(trim($value), $this->app->timezone());
-					} catch (DateMalformedStringException) {
-						continue;
-					}
-				}
-			}
-		}
-
-		return null;
 	}
 
 	/**

@@ -41,7 +41,9 @@ interface ContentWriter
 	/**
 	 * Creates an entry of a type from a slug, named by the type's
 	 * pattern (`ContentType::naming()`, D-511): `{folder}/{slug}.md`
-	 * without one of its own (D-515). A pattern's date defaults to now.
+	 * without one of its own (D-515), in the folders its folder pattern
+	 * gives (`ContentType::directoryFor()`, D-629). A pattern's date
+	 * defaults to now.
 	 *
 	 * @throws WriteException When the file exists or the slug is invalid.
 	 */

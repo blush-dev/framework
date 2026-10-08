@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Blush\Content\Type;
 
+use DateTimeInterface;
 use NoDiscard;
 use Blush\Content\Query\Order;
 use Blush\Field\Definition;
@@ -46,6 +47,13 @@ abstract readonly class ContentType
 	public string $folder;
 
 	/**
+	 * The folders a collection or profiles type keeps its files in below
+	 * its own (D-629), written after it in `folder` (`_posts/{year}`), or
+	 * `null` for none: its files are directly in its folder.
+	 */
+	public ?FolderPattern $folders;
+
+	/**
 	 * The type's own fields, beyond the built-in ones.
 	 */
 	public Schema $schema;
@@ -76,7 +84,7 @@ abstract readonly class ContentType
 
 	/**
 	 * @param  string            $name         Lowercase letters, digits, and underscores.
-	 * @param  ?string           $folder       Defaults to `_` and the name.
+	 * @param  ?string           $folder       Defaults to `_` and the name; may end in a folder pattern (`_posts/{year}`, D-629).
 	 * @param  bool              $public       Whether the type is public at all.
 	 * @param  TypeUrls|false    $urls         URL settings, or `false` for no routes.
 	 * @param  Listing           $listing      How the type's listing page lists entries.
@@ -124,7 +132,7 @@ abstract readonly class ContentType
 			throw new InvalidContentType(sprintf('Content type "%s" has invalid fields: %s', $name, $e->getMessage()), previous: $e);
 		}
 
-		$this->folder      = self::normalizeFolder($folder ?? self::defaultFolder($name), $name);
+		[$this->folder, $this->folders] = self::normalizeFolder($folder ?? static::defaultFolder($name), $name, $this->keysByFolder());
 		$this->labels      = $labels ?? TypeLabels::named($name);
 		$this->description = trim($description);
 		$this->icon        = $icon === null || trim($icon) === '' ? null : trim($icon);
@@ -232,6 +240,59 @@ abstract readonly class ContentType
 	public function parentKey(string $key, array $values): ?string
 	{
 		return null;
+	}
+
+	/**
+	 * Returns whether the folders below the type's are part of its
+	 * entries' keys, as a tree's are (D-088). A collection's and the
+	 * profiles' are only where files are kept (D-629): `_posts/2026/hello.md`
+	 * is `hello`.
+	 */
+	public function keysByFolder(): bool
+	{
+		return false;
+	}
+
+	/**
+	 * Returns the folder an entry's file is kept in: the type's, then the
+	 * folders its pattern gives the slug and date (D-629). With `_`
+	 * folders given (`_drafts`), it's those instead: a hidden file is
+	 * kept where it is, outside the pattern.
+	 *
+	 * @param list<string> $hidden
+	 */
+	public function directoryFor(string $slug, DateTimeInterface $date, array $hidden = []): string
+	{
+		return ltrim(implode('/', [$this->folder, ...($hidden === [] ? $this->folders?->segments($slug, $date) ?? [] : $hidden)]), '/');
+	}
+
+	/**
+	 * Returns the `_` folders between the type's folder and a path's
+	 * file (`_drafts`), which keep what they mean wherever the file is
+	 * kept; a folder entry's own folder isn't one of them.
+	 *
+	 * @return list<string>
+	 */
+	public function hiddenFolders(string $path): array
+	{
+		$below    = $this->folder === '' ? $path : substr($path, strlen($this->folder) + 1);
+		$segments = explode('/', $below);
+		$file     = array_pop($segments);
+
+		if ($segments !== [] && str_starts_with((string) $file, 'index.')) {
+			array_pop($segments);
+		}
+
+		return array_values(array_filter($segments, static fn (string $segment): bool => str_starts_with($segment, '_')));
+	}
+
+	/**
+	 * Returns the type's `folder` as it's written: its own folder, then
+	 * its folder pattern (D-629).
+	 */
+	public function declaredFolder(): string
+	{
+		return $this->folders === null ? $this->folder : ltrim("{$this->folder}/{$this->folders->pattern}", '/');
 	}
 
 	/**
@@ -362,7 +423,8 @@ abstract readonly class ContentType
 	 * Returns the type with a data file's options laid over it (D-349):
 	 * each option the data names replaces the type's whole option, by its
 	 * 2.x or 1.x name. The name, kind, and folder stay the type's, since
-	 * entries are filed by them. The site's pages and profiles types
+	 * entries are filed by them, though its folder pattern may change
+	 * (D-629). The site's pages and profiles types
 	 * can't be overridden (`isOverridable()`).
 	 *
 	 * @param  array<array-key, mixed> $data
@@ -380,12 +442,12 @@ abstract readonly class ContentType
 
 		$data   = self::renamed($data, $this->name);
 		$kind   = array_key_exists('kind', $data) || array_key_exists('taxonomy', $data) ? self::kindOf($data, $this->name) : $this->kind();
-		$folder = $data['folder'] ?? $this->folder;
+		$folder = $data['folder'] ?? $this->declaredFolder();
 
-		unset($data['name'], $data['kind'], $data['folder']);
+		unset($data['name'], $data['kind']);
 
-		if ($kind !== $this->kind() || ! is_string($folder) || trim($folder, '/') !== $this->folder) {
-			throw new InvalidContentType(sprintf('user/data/types/%s can\'t change the type\'s kind or folder; entries are filed by them.', $this->name));
+		if ($kind !== $this->kind() || ! is_string($folder) || FolderPattern::split(trim($folder, '/'))[0] !== $this->folder) {
+			throw new InvalidContentType(sprintf('user/data/types/%s can\'t change the type\'s kind or folder; entries are filed by them. Its folder pattern may change.', $this->name));
 		}
 
 		return self::fromArray([...$this->toArray(), ...$data], $fields);
@@ -402,7 +464,7 @@ abstract readonly class ContentType
 		$data = [
 			'name'        => $this->name,
 			'kind'        => $this->kind()->value,
-			'folder'      => $this->folder === self::defaultFolder($this->name) ? null : $this->folder,
+			'folder'      => $this->declaredFolder() === static::defaultFolder($this->name) ? null : $this->declaredFolder(),
 			'urls'        => $this->urls === false ? false : ($this->urls->toArray() ?: null),
 			'listing'     => $this->listing->toArray(),
 			'feed'        => $this->feed === false ? null : ($this->feed->toArray() ?: true),
@@ -436,9 +498,10 @@ abstract readonly class ContentType
 	/**
 	 * Returns the folder a type has when it doesn't name one: `_` and its
 	 * name, so type folders stand apart from the page folders beside them
-	 * in the content root. The page type overrides it with the root.
+	 * in the content root. The page type passes the root itself, and the
+	 * profiles add a folder by initial (D-630).
 	 */
-	private static function defaultFolder(string $name): string
+	protected static function defaultFolder(string $name): string
 	{
 		return "_{$name}";
 	}
@@ -613,11 +676,14 @@ abstract readonly class ContentType
 	}
 
 	/**
-	 * Trims a type folder's slashes and rejects unsafe segments.
+	 * Trims a type folder's slashes, rejects unsafe segments, and splits
+	 * off its folder pattern (D-629), which a type keyed by folder can't
+	 * have.
 	 *
+	 * @return array{string, ?FolderPattern}
 	 * @throws InvalidContentType
 	 */
-	private static function normalizeFolder(string $folder, string $name): string
+	private static function normalizeFolder(string $folder, string $name, bool $keysByFolder): array
 	{
 		$folder = trim(str_replace('\\', '/', $folder), '/');
 
@@ -625,6 +691,25 @@ abstract readonly class ContentType
 			throw new InvalidContentType(sprintf('Content type "%s" has an invalid folder "%s".', $name, $folder));
 		}
 
-		return $folder;
+		[$root, $pattern] = FolderPattern::split($folder);
+
+		if ($pattern === null) {
+			return [$root, null];
+		}
+
+		if ($root === '' || $keysByFolder) {
+			throw new InvalidContentType(sprintf(
+				'Content type "%s" has the folder "%s"; %s.',
+				$name,
+				$folder,
+				$keysByFolder ? 'a tree\'s folders are its pages\', so it takes no folder pattern' : 'a folder pattern goes after the type\'s own folder, such as _posts/{year}'
+			));
+		}
+
+		try {
+			return [$root, new FolderPattern($pattern)];
+		} catch (InvalidContentType $e) {
+			throw new InvalidContentType(sprintf('Content type "%s": %s', $name, $e->getMessage()), previous: $e);
+		}
 	}
 }

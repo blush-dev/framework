@@ -101,8 +101,8 @@ trait BuildsContentSite
 		$this->entry('topics/art.md', 'title: Art');
 		$this->entry('topics/book-reviews.md', 'title: Book Reviews');
 		$this->entry('topics/old-posts.md', 'title: Old Posts');
-		$this->entry('profiles/justintadlock.md', 'title: Justin Tadlock', 'Writes things.');
-		$this->entry('profiles/guest.md', 'title: A Guest');
+		$this->entry('profiles/j/justintadlock.md', 'title: Justin Tadlock', 'Writes things.');
+		$this->entry('profiles/g/guest.md', 'title: A Guest');
 		$this->entry('notes.md', 'title: Notes', 'Some *notes*.');
 		$this->writeTemporaryFile('user/content/_posts/hello/photo.jpg', 'not content');
 	}

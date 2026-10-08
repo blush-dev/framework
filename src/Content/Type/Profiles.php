@@ -45,7 +45,7 @@ final readonly class Profiles extends ContentType
 
 	/**
 	 * @param  string          $name        Lowercase letters, digits, and underscores.
-	 * @param  ?string         $folder      The folder under `user/content`; defaults to `_` and the name.
+	 * @param  ?string         $folder      The folder under `user/content`; defaults to `_` and the name, by initial (`_profile/{initial}`, D-630), and may end in a folder pattern (D-629).
 	 * @param  TypeUrls|false  $urls        URL settings (the prefix is the base word), or `false` for no pages of their own.
 	 * @param  Listing         $listing     How a profile's page lists the entries crediting them.
 	 * @param  TypeFeed|false  $feed        Feed settings for each profile's feed, or `false` for none.
@@ -60,6 +60,16 @@ final readonly class Profiles extends ContentType
 	 * @param  ?FileName       $filename    How new files are named (D-514).
 	 * @throws InvalidContentType
 	 */
+	/**
+	 * Profiles are kept in a folder by initial unless the type names its
+	 * folder (D-630): `_profile/j/jane.md`.
+	 */
+	#[Override]
+	protected static function defaultFolder(string $name): string
+	{
+		return parent::defaultFolder($name) . '/{initial}';
+	}
+
 	public function __construct(
 		string $name = 'profile',
 		?string $folder = null,

@@ -44,7 +44,7 @@ final class MissingTermsTest extends TestCase
 		$app     = $this->site();
 		$created = $app->container()->make(MissingTerms::class)->create();
 
-		$this->assertSame(['category/lost-cause' => 'topics/lost-cause.md', 'category/zebra' => 'topics/zebra.md', 'profile/nobody' => 'profiles/nobody.md'], $created->created);
+		$this->assertSame(['category/lost-cause' => 'topics/lost-cause.md', 'category/zebra' => 'topics/zebra.md', 'profile/nobody' => 'profiles/n/nobody.md'], $created->created);
 		$this->assertSame([], $created->failed);
 		$this->assertMatchesRegularExpression('/\A---\ntitle: "Lost Cause"\npublished: 2026-06-01 12:00:00 -05:00\nid: [0-9a-f-]{36}\n---\n/', (string) file_get_contents($this->temporaryDirectory() . '/user/content/topics/lost-cause.md'));
 
@@ -59,7 +59,7 @@ final class MissingTermsTest extends TestCase
 	{
 		$created = $this->site()->container()->make(MissingTerms::class)->create(static fn (string $type): bool => $type === 'profile');
 
-		$this->assertSame(['profile/nobody' => 'profiles/nobody.md'], $created->created);
+		$this->assertSame(['profile/nobody' => 'profiles/n/nobody.md'], $created->created);
 		$this->assertFileDoesNotExist($this->temporaryDirectory() . '/user/content/topics/zebra.md');
 	}
 }

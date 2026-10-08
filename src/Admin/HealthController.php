@@ -69,7 +69,7 @@ use Blush\Media\MediaIds;
  * to ignore an error, since the site is already leaving something out.
  *
  * The fixes that change many files (`HealthFix`: ids, media ids, media
- * sizes, file names, flattening, terms, and refs) run as a job (D-624):
+ * sizes, file names, folders, terms, and refs) run as a job (D-624):
  * each answers `{"job": id}`, which the admin runs and follows
  * (`JobController`), and the finished job's `result` is the answer
  * described below. Keeping a shared id and migrating taxonomies run in
@@ -94,9 +94,9 @@ use Blush\Media\MediaIds;
  * renames a type's, those the account may edit, answering the new paths
  * by old (`renamed`) and `failed`.
  *
- * Its `flat` says how many collections' files aren't directly in their
- * collection's folder (`count`, D-514) and the first few moves
- * (`examples`). `POST health/flatten` moves those the account may edit,
+ * Its `folders` says how many collections' and profiles' files aren't
+ * in the folders their type keeps them in (`count`, D-514, D-629) and
+ * each move (`items`). `POST health/folders` moves those the account may edit,
  * answering the new paths by old (`renamed`) and `failed`.
  *
  * Its `terms` say how many terms and profiles entries name have no file
@@ -329,12 +329,12 @@ final readonly class HealthController
 	}
 
 	/**
-	 * Moves collections' files that aren't flat, those the account may
-	 * edit, into their collection's folder (D-514), as a job.
+	 * Moves collections' and profiles' files that aren't in their folders,
+	 * those the account may edit, into them (D-514, D-629), as a job.
 	 */
-	public function flatten(ServerRequestInterface $request): ResponseInterface
+	public function folders(ServerRequestInterface $request): ResponseInterface
 	{
-		return $this->queue($request, HealthFix::Flatten);
+		return $this->queue($request, HealthFix::Folders);
 	}
 
 	/**

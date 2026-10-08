@@ -37,7 +37,6 @@ use Blush\Content\Relation\Relations;
 use Blush\Content\Relation\Resolution;
 use Blush\Content\Source\FilesystemSource;
 use Blush\Content\Storage\FilesystemStorage;
-use Blush\Content\Type\Collection;
 use Blush\Content\Type\ContentType;
 use Blush\Content\Type\ContentTypes;
 use Blush\Content\Type\Tree;
@@ -126,8 +125,9 @@ final readonly class FilesystemWriter implements ContentWriter
 			throw new WriteException(sprintf('"%s" isn\'t a slug; try "%s".', $slug, Slug::from($slug)));
 		}
 
-		$name = $type->naming()->name($slug, $date ?? $this->clock->now()) . '.' . FilesystemStorage::EXTENSION;
-		$path = ltrim("{$type->folder}/{$name}", '/');
+		$date ??= $this->clock->now();
+		$name   = $type->naming()->name($slug, $date) . '.' . FilesystemStorage::EXTENSION;
+		$path   = ltrim($type->directoryFor($slug, $date) . "/{$name}", '/');
 		$file = $this->file($path);
 
 		return $this->locked(function () use ($path, $file, $type, $changes): WriteResult {
@@ -287,13 +287,16 @@ final readonly class FilesystemWriter implements ContentWriter
 			}
 
 			// A copy is a new file, so it's named as its type names them now,
-			// and a collection's is a file in its folder (D-514).
+			// and a collection's is a file in the folder its pattern gives
+			// (D-514, D-629).
 			$type   = $entry->type ?? $this->types->forFile($path);
-			$prefix = $type->naming()->prefix($date ?? $this->clock->now());
+			$date ??= $this->clock->now();
+			$prefix = $type->naming()->prefix($date);
 			$number = 1;
 
 			do {
-				[$from, $to, $newPath, $bundle] = $this->duplicateTargets($path, $number === 1 ? $slug : "{$slug}-{$number}", $prefix, $type instanceof Collection);
+				$copy = $number === 1 ? $slug : "{$slug}-{$number}";
+				[$from, $to, $newPath, $bundle] = $this->duplicateTargets($path, $copy, $prefix, $type->keysByFolder() ? null : $type->directoryFor($copy, $date, $type->hiddenFolders($path)));
 				$number++;
 			} while (file_exists($to));
 
@@ -590,14 +593,15 @@ final readonly class FilesystemWriter implements ContentWriter
 	 * Returns what a copy copies (the file, or a bundle's folder), where
 	 * to, the copy's path, and whether it's a bundle. A file's copy is
 	 * named `$prefix` and its slug (D-511); a bundle's folder is named by
-	 * the slug alone, since a pattern never names folders (D-513), and a
-	 * `$flat` type's (a collection's) bundle is copied as a file beside
-	 * its folder (D-514).
+	 * the slug alone, since a file name pattern never names folders
+	 * (D-513). A collection's or the profiles' copy is a file in
+	 * `$placed`, the folder its folder pattern gives it (D-514, D-629),
+	 * a bundle's included.
 	 *
 	 * @return array{string, string, string, bool}
 	 * @throws WriteException
 	 */
-	private function duplicateTargets(string $path, string $slug, string $prefix, bool $flat): array
+	private function duplicateTargets(string $path, string $slug, string $prefix, ?string $placed): array
 	{
 		$directory = dirname($path) === '.' ? '' : dirname($path);
 		$file      = basename($path);
@@ -605,8 +609,10 @@ final readonly class FilesystemWriter implements ContentWriter
 		if (preg_match('/^index\.([a-z]+)$/', $file, $index) === 1 && $directory !== '') {
 			$parent = dirname($directory) === '.' ? '' : dirname($directory) . '/';
 
-			if ($flat) {
-				return [$this->file($path), $this->file("{$parent}{$prefix}{$slug}.{$index[1]}"), "{$parent}{$prefix}{$slug}.{$index[1]}", false];
+			if ($placed !== null) {
+				$newPath = ltrim("{$placed}/{$prefix}{$slug}.{$index[1]}", '/');
+
+				return [$this->file($path), $this->file($newPath), $newPath, false];
 			}
 
 			return [$this->folder($directory), $this->folder($parent . $slug), "{$parent}{$slug}/{$file}", true];
@@ -614,7 +620,7 @@ final readonly class FilesystemWriter implements ContentWriter
 
 		preg_match('/^.+\.([a-z]+)$/', $file, $match);
 
-		$newPath = ltrim("{$directory}/{$prefix}{$slug}." . ($match[1] ?? 'md'), '/');
+		$newPath = ltrim(($placed ?? $directory) . "/{$prefix}{$slug}." . ($match[1] ?? 'md'), '/');
 
 		return [$this->file($path), $this->file($newPath), $newPath, false];
 	}
@@ -780,6 +786,7 @@ final readonly class FilesystemWriter implements ContentWriter
 				} catch (WriteException $e) {
 					foreach (array_reverse($done, true) as $from => $to) {
 						@rename($this->folder($to), $this->folder($from));
+						$this->removeEmptyFolders(dirname($to));
 					}
 
 					$failed[$path] = $e->getMessage();
@@ -844,6 +851,11 @@ final readonly class FilesystemWriter implements ContentWriter
 
 		if (file_exists($target)) {
 			throw new WriteException(sprintf('%s already exists.', $to));
+		}
+
+		// A folder pattern's folder may not be there yet (D-629).
+		if (! is_dir(dirname($target)) && ! @mkdir(dirname($target), 0775, true) && ! is_dir(dirname($target))) {
+			throw new WriteException(sprintf('The folder for %s couldn\'t be created.', $to));
 		}
 
 		if (! @rename($source, $target)) {

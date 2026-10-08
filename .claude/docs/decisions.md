@@ -15282,7 +15282,8 @@ decision, add a new entry that supersedes it and mark the old one
 ### D-513: File name patterns never touch folders
 - **Date:** 2026-10-05
 - **Status:** Decided. Closes D-511's "folders in a pattern" (not
-  later: never).
+  later: never). Still holds for `filename`; a collection's folders get
+  their own pattern in `folder` (D-629).
 - **Decision:** the author: `filename` is only for file names; it never
   changes the structure of folders. A pattern can't hold a `/`
   (`FileName` already refuses one), so it never adds, moves, or nests
@@ -15292,7 +15293,9 @@ decision, add a new entry that supersedes it and mark the old one
 
 ### D-514: Collections are flat; file names for every type; `published` on every create
 - **Date:** 2026-10-05
-- **Status:** Built. Refines D-088 and D-294 (folder entries stay for
+- **Status:** Built. Partially superseded by D-629 (a collection may
+  keep its files in folders its folder pattern gives; `content:flatten`
+  is `content:folders`). Refines D-088 and D-294 (folder entries stay for
   trees only), D-409 (a pattern's prefix is allowed), D-511 (any kind),
   and D-512 (files only).
 - **Decision:** the author's calls.
@@ -18858,3 +18861,94 @@ decision, add a new entry that supersedes it and mark the old one
   folder, as partials (D-564) and components do. The author also
   considered a `$template->partial()` shortcut for `include('partials/…')`
   and left it out for now.
+
+### D-629: Folders for many files in a collection
+
+- **Date:** 2026-10-08
+- **Status:** Built. Refined by D-630 (profiles and new terms by
+  initial; hidden files stay outside a pattern). Partially supersedes D-514 (collections are flat)
+  and refines D-088 (folders are part of keys) and D-513 (which still
+  holds for `filename`).
+- **Decision:** from a discussion with the author: on shared hosting, a
+  collection with thousands of flat files runs into folder listing
+  limits (FTP and file managers) and slow folder reads, so a collection
+  may keep its files in folders inside its own.
+  - **Written in `folder`:** `_posts/{year}`. The type's folder is
+    everything before the first folder with a `{`, and the rest is a
+    `FolderPattern` (`ContentType::$folders`); `$folder` stays the
+    type's own folder, so everything filing by it is unchanged. Each
+    folder is one token: `{year}`, `{month}` (after `{year}`), or
+    `{initial}` (the slug's first letter or digit, lowercased, else
+    `0`), for terms and profiles without dates. Collections and the
+    profiles type take one; a tree doesn't (its folders are its pages'),
+    and a pattern needs a folder before it.
+  - **Storage only, never a key:** a collection's or the profiles'
+    folders below its own (other than `_` folders) aren't part of an
+    entry's key or `directory` (`ContentType::keysByFolder()`, true only
+    for trees). `_posts/2026/hello.md` is `hello`, listed in `_posts`, at
+    the same URL as `_posts/hello.md`. `_` folders keep their meaning
+    and stay in keys as before, and come before the pattern's folders
+    (`_posts/_drafts/2026/idea.md`).
+  - **Placement:** `ContentType::directoryFor($slug, $date, $hidden)`.
+    `create()` uses the entry's date (now by default), and a copy its
+    date, in the original's `_` folders. A move into a folder that isn't
+    there yet makes it.
+  - **Dates and slugs change it, as file names do (D-519):**
+    `FileNames::follow()` now also calls `EntryFolders::follow()`, which
+    moves an entry to the folder its type's pattern gives its date and
+    slug. The editor calls it on a new date (as before) or a new slug,
+    so `{initial}` follows a renamed slug. A taken path leaves it.
+  - **Changing the pattern moves nothing.** `content:lint` reports a
+    file outside the pattern's folders (by shape, `FolderPattern::explains()`)
+    as a warning, not an error, since older placement keeps working; a
+    folder entry, and a file in a folder below a type without a pattern,
+    stay errors (D-514).
+  - **The tool:** `FlatEntries` is `EntryFolders`, `content:flatten` is
+    `content:folders`, and Site Health's Collection Folders check
+    (`folders` in the report, `POST health/folders`,
+    `HealthFix::Folders`) moves files into the folders their type keeps
+    them in, by the written date (`WrittenDates`, taken out of
+    `FileNames`), else `updated`. Translations linked by name move with
+    their original; one linked by `translation_of` is placed by its own
+    date. The profiles type is covered too now.
+  - **The admin:** a Folders select on a type's screen (None, By year,
+    By year and month, By first letter; one from config shown as
+    itself), sent as `folders` and written into `folder` after the
+    type's folder (`DataTypeWriter`). `folder` itself is refused there,
+    and `overriddenBy()` lets a data file change only a code type's
+    pattern.
+- **Why:** the author: "at a certain point, when running on shared
+  hosting, people will hit limits with a lot of flat files." The author
+  chose the pattern in `folder`, kept separate from `filename`, with
+  `{initial}` included and moves following date changes as file names
+  do. Folders don't help with a host's limit on the number of files
+  (each folder is one more), which the docs say.
+
+### D-630: Profiles and new terms are kept by initial; hidden files stay put
+
+- **Date:** 2026-10-08
+- **Status:** Built. Refines D-629.
+- **Decision:** the author: make `{initial}` the default for profiles
+  and terms "where we can."
+  - **Profiles:** the kind's default folder is `_{name}/{initial}`
+    (`Profiles::defaultFolder()`, now a protected static
+    `ContentType::defaultFolder()` a kind can extend), and the built-in
+    profiles are `profiles/{initial}` (`BuiltInType::Profile`). A type
+    that names its folder keeps it as named (jtcom's `authors`).
+    Existing flat profiles keep working; lint warns of each until it's
+    moved (`content:folders`, Site Health).
+  - **Terms:** a collection doesn't know it's terms (a classify relation
+    makes it one, D-593), so there's no default in the type. The admin's
+    new-type wizard starts terms with Folders set to By first letter.
+    `content:taxonomies` doesn't add one, since it migrates folders that
+    already hold their files.
+  - **Hidden files stay put** (refines D-629, where `_` folders came
+    before the pattern's): a `_` file or a file in a `_` folder isn't
+    placed by the pattern, as file name patterns leave them (D-512). So
+    relation archive pages (`_posts/_authors.md`, `_authors/jane.md`)
+    and `_drafts` stay where they are, a copy of one stays in its `_`
+    folders (`ContentType::directoryFor()` with `$hidden`), and one kept
+    as a folder still becomes a file there. Lint doesn't check their
+    folders against the pattern.
+- **Why:** the author's call; profiles and terms are the types without
+  dates that can grow to thousands of entries.

@@ -358,25 +358,25 @@ export function healthGroups(health: Health, area: 'content' | 'media', check: H
 				}
 			}] : [];
 		case 'folders':
-			return health.flat.items.length ? [{
+			return health.folders.items.length ? [{
 				key: 'folders',
-				name: 'Entries Kept in Folders',
-				says: 'A collection\'s entries are files directly in its folder. Moving one changes no address.',
+				name: 'Entries Not in Their Folders',
+				says: 'A collection\'s entries are files in its folder, or in the folders its folder pattern gives them, such as one for each year. Moving one changes no address.',
 				severity: 'warning',
 				unit: ['entry', 'entries'],
-				rows: health.flat.items.map((item) => ({
+				rows: health.folders.items.map((item) => ({
 					key: `content:folders:${item.path}`,
 					severity: 'warning',
 					path: item.path,
 					...entryOf(item.path),
 					found: `Moves to ${item.to}.`,
-					fix: { label: 'Move Out of Its Folder', change: `→ ${item.to}`, done: `Moved to ${item.to}.` }
+					fix: { label: 'Move to Its Folder', change: `→ ${item.to}`, done: `Moved to ${item.to}.` }
 				})),
-				fix: { path: '/health/flatten', body: (rows) => ({ paths: rows.map((row) => row.path) }), noun: ['entry', 'entries'] },
+				fix: { path: '/health/folders', body: (rows) => ({ paths: rows.map((row) => row.path) }), noun: ['entry', 'entries'] },
 				bulk: {
 					label: (count) => `Move ${count} Entries`,
 					title: (count) => `Move ${plural(count, 'Entry', 'Entries')}?`,
-					say: 'Each moves into its collection\'s folder. Addresses stay the same.'
+					say: 'Each moves into the folder its collection keeps it in. Addresses stay the same.'
 				}
 			}] : [];
 		case 'names':

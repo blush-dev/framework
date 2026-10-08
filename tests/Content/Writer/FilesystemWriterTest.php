@@ -78,7 +78,7 @@ final class FilesystemWriterTest extends TestCase
 	 */
 	private function authorRefs(): string
 	{
-		return "refs:\n  authors:\n    justintadlock: " . $this->content()->findPath('profiles/justintadlock.md')?->id . "\n";
+		return "refs:\n  authors:\n    justintadlock: " . $this->content()->findPath('profiles/j/justintadlock.md')?->id . "\n";
 	}
 
 	private function file(string $id): string

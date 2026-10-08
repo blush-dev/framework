@@ -103,7 +103,7 @@ name goes by its profile's title, then its username.
 An account is someone who can sign in. Their public side is a separate
 thing, a **profile** (see [Content types](content-types.md#built-in-types)):
 the name in bylines, a bio, and a page on the site. An account can be
-linked to one: `--author=jane` links it to `user/content/profiles/jane.md`,
+linked to one: `--author=jane` links it to `user/content/profiles/j/jane.md`,
 or to the `jane` your entries credit even without that file. A profile
 belongs to one account: linking one that another account has is
 refused (unlink it there first). A profile

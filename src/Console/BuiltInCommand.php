@@ -29,10 +29,10 @@ use Blush\Console\Commands\CreateTheme;
 use Blush\Console\Commands\ExplainView;
 use Blush\Console\Commands\Help;
 use Blush\Console\Commands\MigrateTaxonomies;
+use Blush\Console\Commands\MoveToFolders;
 use Blush\Console\Commands\RenameToPattern;
 use Blush\Console\Commands\FileRefs;
 use Blush\Console\Commands\FixIds;
-use Blush\Console\Commands\FlattenCollections;
 use Blush\Console\Commands\FixMediaIds;
 use Blush\Console\Commands\IndexContent;
 use Blush\Console\Commands\IndexMedia;
@@ -85,7 +85,7 @@ enum BuiltInCommand: string
 	case CacheCompile  = 'cache:compile';
 	case RoutesList    = 'routes:list';
 	case ContentFileNames = 'content:filenames';
-	case ContentFlatten = 'content:flatten';
+	case ContentFolders = 'content:folders';
 	case ContentIds    = 'content:ids';
 	case ContentIndex  = 'content:index';
 	case ContentLint   = 'content:lint';
@@ -150,7 +150,7 @@ enum BuiltInCommand: string
 			self::CacheCompile  => CacheCompile::class,
 			self::RoutesList    => RoutesList::class,
 			self::ContentFileNames => RenameToPattern::class,
-			self::ContentFlatten => FlattenCollections::class,
+			self::ContentFolders => MoveToFolders::class,
 			self::ContentIds    => FixIds::class,
 			self::ContentIndex  => IndexContent::class,
 			self::ContentLint   => LintContent::class,

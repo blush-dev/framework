@@ -735,7 +735,7 @@ final class AdminContentTest extends TestCase
 		$this->assertSame(403, $this->send('POST', '/health/media-ids/keep', '{"path": "a.png"}', ['X-CSRF-Token' => $token])->getStatusCode());
 		$this->assertSame(403, $this->send('POST', '/health/media-sizes', '{}', ['X-CSRF-Token' => $token])->getStatusCode(), 'Nor record sizes.');
 		$this->assertSame(403, $this->send('POST', '/health/filenames', '{"type": "post"}', ['X-CSRF-Token' => $token])->getStatusCode(), 'Nor rename files.');
-		$this->assertSame(403, $this->send('POST', '/health/flatten', '{}', ['X-CSRF-Token' => $token])->getStatusCode(), 'Nor move them.');
+		$this->assertSame(403, $this->send('POST', '/health/folders', '{}', ['X-CSRF-Token' => $token])->getStatusCode(), 'Nor move them.');
 		$this->assertSame(403, $this->send('POST', '/health/terms', '{}', ['X-CSRF-Token' => $token])->getStatusCode(), 'Nor write terms.');
 		$this->assertSame(403, $this->send('POST', '/health/refs', '{}', ['X-CSRF-Token' => $token])->getStatusCode(), 'Nor file links.');
 	}
@@ -823,19 +823,19 @@ final class AdminContentTest extends TestCase
 		$this->assertSame([], $this->checkAgain($token)['fileNames'] ?? null);
 	}
 
-	public function testMovesCollectionEntriesOutOfFolders(): void
+	public function testMovesCollectionEntriesToTheirFolders(): void
 	{
 		$this->writeTemporaryFile('user/data/types/post.yaml', "folder: _posts\n");
 		$this->writeTemporaryFile('user/content/_posts/2024/old.md', "---\ntitle: Old\nid: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e03\n---\n");
 		$this->site(['owner']);
 		$token = $this->token();
 
-		$this->assertSame(['count' => 1, 'items' => [['path' => '_posts/2024/old.md', 'to' => '_posts/old.md']]], $this->checkAgain($token)['flat'] ?? null);
+		$this->assertSame(['count' => 1, 'items' => [['path' => '_posts/2024/old.md', 'to' => '_posts/old.md']]], $this->checkAgain($token)['folders'] ?? null);
 
-		$moved = $this->fix('/health/flatten', '{}', $token);
+		$moved = $this->fix('/health/folders', '{}', $token);
 
 		$this->assertSame(['_posts/2024/old.md' => '_posts/old.md'], $moved['renamed'] ?? null);
-		$this->assertSame(['count' => 0, 'items' => []], $this->checkAgain($token)['flat'] ?? null);
+		$this->assertSame(['count' => 0, 'items' => []], $this->checkAgain($token)['folders'] ?? null);
 	}
 
 	public function testWritesTermsAndProfilesWithNoFile(): void
@@ -856,11 +856,11 @@ final class AdminContentTest extends TestCase
 
 		$one = $this->fix('/health/terms', '{"terms": ["profile/sam"]}', $token);
 
-		$this->assertSame(['profile/sam' => 'profiles/sam.md'], $one['created'] ?? null, 'Only the row asked for (D-612).');
+		$this->assertSame(['profile/sam' => 'profiles/s/sam.md'], $one['created'] ?? null, 'Only the row asked for (D-612).');
 
 		$created = $this->fix('/health/terms', '{}', $token);
 
-		$this->assertSame(['profile/jane' => 'profiles/jane.md'], $created['created'] ?? null);
+		$this->assertSame(['profile/jane' => 'profiles/j/jane.md'], $created['created'] ?? null);
 		$this->assertSame(['count' => 0, 'items' => []], $this->checkAgain($token)['terms'] ?? null);
 	}
 

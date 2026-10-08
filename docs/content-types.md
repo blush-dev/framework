@@ -32,7 +32,8 @@ Every content type is one of three kinds:
 ## Built-in types
 
 - **`page`** (tree): every entry that isn't in another type's folder.
-- **`profile`** (profiles): people, in `user/content/profiles/`. Each
+- **`profile`** (profiles): people, in `user/content/profiles/`, in a
+  folder by first letter (`profiles/j/jane.md`; [Folders for many files](#folders-for-many-files)). Each
   file is one person: the title is their public name, `subtitle` a line
   under it (such as "Food editor"), `avatar` a portrait from
   `user/media`, `linkable: false` to lock it against being linked to
@@ -772,7 +773,7 @@ Every kind takes these:
 
 | Option              | Default                                                        | What it does                                                     |
 |---------------------|----------------------------------------------------------------|------------------------------------------------------------------|
-| `folder`            | `_` and the name (`''`, the content root, for the `page` type) | The folder under `user/content/`                                 |
+| `folder`            | `_` and the name (`''`, the content root, for the `page` type) | The folder under `user/content/`, and for collections and profiles, the [folders inside it](#folders-for-many-files) files are kept in (`_posts/{year}`) |
 | `labels`            | Made from the name                                             | [Names in the admin](#names-descriptions-and-icons-in-the-admin) |
 | `description`       |                                                                | What the type is for, in a sentence                              |
 | `icon`              | Its kind's                                                     | An icon for the admin, by name                                   |
@@ -823,7 +824,8 @@ first. Before it you can use `{date}` (`2026-10-05`), `{time}`
 `{second}`, letters, digits, `-`, `_`, and `.`. It can't start with `_`
 or `.`. Dates are the entry's publish date; every new entry gets one.
 
-A pattern names files, never folders. A page's subpages go in a folder
+A pattern names files, never folders (a collection's folders have
+[their own pattern](#folders-for-many-files)). A page's subpages go in a folder
 named for its slug (`about/team.md` under `2026-10-05.about.md`), and a
 page kept as a folder (`about/index.md`) keeps its folder's name.
 
@@ -862,19 +864,77 @@ In the admin, choose it under **File names** on the type's screen.
 
 ### Collections are flat
 
-A collection's entries are files directly in its folder:
-`_posts/hello.md`, not `_posts/hello/index.md` or `_posts/2024/hello.md`.
-Two kinds of folder may sit inside one: another type's folder (a
-type of terms at `writing/genres`), and `_` folders (`_posts/_drafts`), which
-can hold its files. `content:lint` reports an entry kept in a folder as
-an error. To move them, run `bin/blush content:flatten` to see what
-would change, then `bin/blush content:flatten --write`, or use
-**Collection Folders** on Site Health in the admin. Each moves into
-its collection's folder under its folder's name (`_posts/hello/index.md`
-becomes `_posts/hello.md`), and folders left empty are removed.
+A collection's entries are files, never folders of their own:
+`_posts/hello.md`, not `_posts/hello/index.md`. Unless its folder sets
+[folders for many files](#folders-for-many-files), they're directly in
+its folder, not in `_posts/2024/hello.md`. Two kinds of folder may sit
+inside one: another type's folder (a type of terms at
+`writing/genres`), and `_` folders (`_posts/_drafts`), which can hold
+its files. `content:lint` reports an entry kept as a folder, or in a
+folder the collection doesn't keep files in, as an error. To move
+them, run `bin/blush content:folders` to see what would change, then
+`bin/blush content:folders --write`, or use **Collection Folders** on
+Site Health in the admin. Each moves into its folder under its own name
+(`_posts/hello/index.md` becomes `_posts/hello.md`), and folders left
+empty are removed.
 
 A [nesting collection](#nesting-and-order) is flat too: its entries
 name their parents in front matter rather than sitting in their folders.
+
+### Folders for many files
+
+A collection with thousands of entries can keep its files in folders
+inside its own, so no one folder holds them all. Some hosts' file
+managers and FTP clients stop listing a folder past a few thousand
+files, and large folders are slow to read. (Folders don't help with a
+host's limit on the total number of files, since each folder counts as
+one too.)
+
+End `folder` with a pattern, one token to a folder:
+
+```yaml
+# user/data/types/post.yaml
+folder: "_posts/{year}"            # _posts/2026/hello.md
+```
+
+`_posts/{year}/{month}` keeps it in `_posts/2026/10/hello.md`, and
+`tags/{initial}` keeps a tag in `tags/h/hello.md`.
+
+| Token       | Folder                                                                 |
+|-------------|------------------------------------------------------------------------|
+| `{year}`    | The year it was published (`2026`)                                     |
+| `{month}`   | The month it was published (`10`), after `{year}`                      |
+| `{initial}` | The slug's first letter or digit, lowercased (`h`); `0` for anything else |
+
+The profiles type takes a pattern too, and has `{initial}` unless you
+name its folder: the built-in profiles are kept in `profiles/{initial}`
+(`profiles/j/jane.md`). New types of terms made in the admin start with
+`{initial}` as well. Trees don't take one, since a tree's folders are
+their pages'.
+
+These folders are only where files are kept. They're never part of an
+entry's address or how it's found: `_posts/2026/hello.md` is the post
+`hello`, at the same URL as `_posts/hello.md`. Use `slug:` or a
+[file name pattern](#naming-new-files) to tell apart posts with the same
+slug in different years.
+
+- **New entries** go in the folder their publish date and slug give
+  them, and so do copies.
+- **A new date or slug moves the file**, as a new date renames a file
+  [named by date](#naming-new-files): changing a post's publish date
+  from 2025 to 2026 moves it from `_posts/2025` to `_posts/2026`.
+- **Changing the pattern moves nothing.** Older files keep working
+  where they are; `content:lint` warns of each file outside the
+  pattern's folders. `bin/blush content:folders --write`, or
+  **Collection Folders** on Site Health, moves them, by the publish date
+  as the file writes it (else its updated date).
+- **Hidden files stay where they are.** A `_` file (`_posts/_authors.md`)
+  or a file in a `_` folder (`_posts/_drafts/idea.md`) is kept outside
+  the pattern's folders, and isn't moved into them.
+
+In the admin, choose it under **Folders** on the type's screen: None,
+By year, By year and month, or By first letter. The type's folder
+itself doesn't change there.
 
 For the profiles type, `urls` sets where profiles' pages are (its
 `prefix`, `profiles` by default, whatever the folder), `listing` how a profile's page lists

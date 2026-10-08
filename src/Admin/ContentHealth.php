@@ -18,7 +18,7 @@ use Blush\Content\EntryIds;
 use Blush\Content\EntryRefs;
 use Blush\Content\FileNameRename;
 use Blush\Content\FileNames;
-use Blush\Content\FlatEntries;
+use Blush\Content\EntryFolders;
 use Blush\Content\Lint\Linter;
 use Blush\Content\Lint\LintReport;
 use Blush\Content\MissingTerms;
@@ -76,7 +76,7 @@ final readonly class ContentHealth
 		private MediaSizes $mediaSizes,
 		private FileNames $fileNames,
 		private ContentTypes $types,
-		private FlatEntries $flat,
+		private EntryFolders $folders,
 		private MissingTerms $terms,
 		private EntryRefs $refs,
 		private ContentRepository $content,
@@ -88,7 +88,7 @@ final readonly class ContentHealth
 	 * `strict`. `$lint` is a lint already done, a chunk at a time
 	 * (`HealthCheckJob`, D-625); without it, every file is linted now.
 	 *
-	 * @return array{version: int, checked: int, metadata: int, strict: bool, counts: array{error: int, warning: int, notice: ?int}, files: list<array{path: string, area: string, violations: list<array{field: string, message: string, severity: string, kind: ?string}>}>, entries: array<string, array{title: string, type: string, id: ?string}>, ids: array{missing: list<string>, duplicates: list<array{id: string, paths: list<string>}>}, mediaIds: array{missing: list<string>, duplicates: list<array{id: string, paths: list<string>}>}, fileNames: list<array{type: string, label: string, pattern: string, count: int, items: list<array{path: string, to: string}>, skipped: int}>, flat: array{count: int, items: list<array{path: string, to: string}>}, terms: array{count: int, items: list<array{type: string, label: string, slug: string, title: string, entries: int}>}, refs: array{count: int, items: list<array{path: string, relations: list<string>}>}, taxonomies: list<string>, mediaSizes: array{sizes: int, images: int, stale: int, items: list<array{key: string, unrecorded: int, stale: int}>}}
+	 * @return array{version: int, checked: int, metadata: int, strict: bool, counts: array{error: int, warning: int, notice: ?int}, files: list<array{path: string, area: string, violations: list<array{field: string, message: string, severity: string, kind: ?string}>}>, entries: array<string, array{title: string, type: string, id: ?string}>, ids: array{missing: list<string>, duplicates: list<array{id: string, paths: list<string>}>}, mediaIds: array{missing: list<string>, duplicates: list<array{id: string, paths: list<string>}>}, fileNames: list<array{type: string, label: string, pattern: string, count: int, items: list<array{path: string, to: string}>, skipped: int}>, folders: array{count: int, items: list<array{path: string, to: string}>}, terms: array{count: int, items: list<array{type: string, label: string, slug: string, title: string, entries: int}>}, refs: array{count: int, items: list<array{path: string, relations: list<string>}>}, taxonomies: list<string>, mediaSizes: array{sizes: int, images: int, stale: int, items: list<array{key: string, unrecorded: int, stale: int}>}}
 	 */
 	public function report(bool $strict = false, ?LintReport $lint = null): array
 	{
@@ -144,7 +144,7 @@ final readonly class ContentHealth
 			'ids'        => self::ids($ids->missing, $ids->duplicates),
 			'mediaIds'   => self::ids($media->missing, $media->duplicates),
 			'fileNames'  => $this->fileNames(),
-			'flat'       => $this->flatReport(),
+			'folders'    => $this->foldersReport(),
 			'terms'      => $this->termsReport(),
 			'refs'       => $this->refsReport(),
 			'taxonomies' => $this->types->legacy,
@@ -164,7 +164,7 @@ final readonly class ContentHealth
 			...array_column(array_filter($files, static fn (array $file): bool => $file['area'] === 'content'), 'path'),
 			...$result['ids']['missing'],
 			...array_merge(...array_column($result['ids']['duplicates'], 'paths')),
-			...array_column($result['flat']['items'], 'path'),
+			...array_column($result['folders']['items'], 'path'),
 			...array_column($result['refs']['items'], 'path'),
 			...array_merge(...array_map(static fn (array $names): array => array_column($names['items'], 'path'), $result['fileNames']))
 		]);
@@ -210,13 +210,14 @@ final readonly class ContentHealth
 	}
 
 	/**
-	 * Answers how many collections' files aren't flat, and each move.
+	 * Answers how many collections' and profiles' files aren't in their
+	 * folders (D-514, D-629), and each move.
 	 *
 	 * @return array{count: int, items: list<array{path: string, to: string}>}
 	 */
-	private function flatReport(): array
+	private function foldersReport(): array
 	{
-		$moves = $this->flat->report();
+		$moves = $this->folders->report();
 
 		return [
 			'count' => count($moves),
