@@ -179,9 +179,10 @@ The sidebar lists your content types by name. **Content** has your
 collections (such as Posts) and Pages, each with the
 [types of terms](content-types.md#terms-and-relationships) that file
 only that type under it (one whose relation's `from` names one type,
-such as Categories under Posts), then **Media**. **Structure** has
-**Content types**, and **Shared Terms** has the types of terms that
-file several types or every type, each saying which. Profiles are in
+such as Categories under Posts), then **Shared Terms**, the types of
+terms that file several types or every type, each saying which, then
+**Media**. In **Config**, **Structure** has **Content Types**,
+**Relationships**, and **Fields**. Profiles are in
 **Users**, with accounts, since they're the public side of accounts.
 Each type opens a list of its entries you can edit, newest changes
 first. Types are named from their `labels` setting, and
@@ -1027,66 +1028,26 @@ In Behavior, a collection has **Entries can nest under a parent, as
 categories do** (`hierarchical`) and **Order** (`order`; see
 [Nesting and order](content-types.md#nesting-and-order)).
 
-**Relationships** lists each [relation](content-types.md#terms-and-relationships)
-from or to the type, said from its side: "Filed under Topics", "Files
-Posts", "Links to Docs". Relations in `user/data/relations` have
-**Edit** and **Remove** (removing one leaves what entries wrote in
-their files, but the site stops reading it as a link); one from
-`config/content.php` or a plugin says where it's defined. **Add
-Relationship** opens a form for one of three things:
-
-- **Files entries under terms:** the **Terms** type (one nothing files
-  under yet), and which types it **Files**.
-- **Links entries to other entries:** **Entries of** one type **Link
-  to** another, under a **Key** in front matter.
-- **Credits people:** the types **Credited by** it, which credit
-  profiles under a **Key** (`authors` unless you change it), in order,
-  the first the lead.
-
-Then, for either, the rest of its
-[options](content-types.md#relation-options):
-
-- **Called:** what the editor calls it, such as "Cast".
-- **Options:** several or one; whether their order matters; whether
-  writers can add a new one as they type it; and, for a link to its own
-  type, whether a link counts both ways.
-- **Limits:** how many an entry needs to publish, the most it takes,
-  and the most entries that may link to one target (an episode in one
-  season).
-- **Editing:** the picker (**Picked with**: chips, cards, or, for terms
-  that nest, a tree) and which links a translation uses.
-- **What links to** a term or entry: listed on its own page, in
-  archives under the linking type's address by an **Archive word**,
-  both, or nowhere of its own (see
-  [Linking entries to other entries](content-types.md#linking-entries-to-other-entries)),
-  and what the list is **Called there**, such as "Acted in".
-
-It's saved in `user/data/relations/{name}.json`. A relation can't take
-the name of one defined in code.
-
-Changing a relation entries already use is checked against what they
-have:
-
-- It can't **point at another type** while entries have values in it;
-  make a new relationship instead. It can't go from **several to one**
-  while an entry has more than one.
-- A **new Key** keeps the old one working as another name for it, so no
-  file changes, unless you choose to rewrite the files to the new key.
-- **No longer filing a type** asks whether to remove that type's
-  entries' values, unchecked at first.
-- **Tighter limits** say how many entries would be out of them, but
-  aren't refused.
-- **Remove** says how many entries have values, and offers to remove
-  them from their files, unchecked at first: kept, adding the
-  relationship again brings the links back.
+**Relationships** lists every [relation](content-types.md#terms-and-relationships)
+the type takes part in, from either side, each said as a sentence from
+its side ("Credits **Profiles** as Cooks", "Filed under **Courses**",
+"Linked from **Posts** as Mentions"), with its key and what it takes
+("At least 1, in order", "Up to 3"). The rows are split by where each
+is stored: the ones **Stored on** this type (its files carry the key)
+have **Edit** and **Remove**; one stored on another type has only the
+way to that type (**Edit on Posts**), since that's where it's edited.
+One from `config/content.php` or a plugin keeps its row with **In
+code**, and says where it's defined. **View in Relationships** opens
+the [Relationships](#relationships) list for this type, and **Add
+Relationship** starts one stored here.
 
 **Archives** shows each [relation archive](content-types.md#people-archives)
 under the type (its authors', say, at `/blog/authors`): its list page,
 if it has one, or **Has a page introducing the list** to write one,
 titled with the relation's label. A type with more than one credit
 chooses its **Byline** there, the credit that names an entry's author.
-Whether a relation has archives, and their word, are set in its
-Relationships form; a page written for one target's archive is kept
+Whether a relation has archives, and their word, are set on its
+[screen](#a-relationships-screen); a page written for one target's archive is kept
 when they're off, and on a profile it's marked **Unreachable**.
 
 **Addresses** lists every address the type has: its listing and later
@@ -1135,6 +1096,78 @@ is back at the code's values. **Reset to config/content.php** (or to
 the plugin) removes the file, undoing every change made here; a type
 from code can't be deleted here. If some of its fields are field
 classes from code, its fields are shown but changed in code.
+
+## Relationships
+
+With `site.settings`, **Config → Relationships** lists every
+[relation](content-types.md#terms-and-relationships) on the site: the
+place they're made and edited, since a type's screen shows only its
+side. Tabs narrow it by purpose (**Credits**, **Files Under Terms**,
+**Links**), beside a search over names and keys, a type filter that
+matches either end (everything that points at Profiles, and everything
+Recipes points at), and a source filter. Each row has its name (its
+key under it), what it **Connects** (the type that stores it, then the
+one it points at), its kind, its **Source**, and how many entries have
+a value in it. A relation from `config/content.php` or a plugin is
+listed, but changed where it's defined; one still written as a
+taxonomy is marked, with **Migrate** going to
+[Site Health](#site-health). **New Relationship** opens a new one.
+
+### A relationship's screen
+
+A relationship's screen is rows of settings in panels, as the Settings
+screens are. The sentence under its name says it whole ("Recipes
+credit Profiles as Cooks."), and changes as you change it.
+
+- **Purpose:** **Files Entries Under Terms**, **Links Entries to Other
+  Entries**, or **Credits People**. It's chosen when it's made.
+- **Endpoints:** **Stored On**, the types whose files carry its key
+  (for terms and credits, none chosen means every type), and what it
+  points at: the **Terms** type (one nothing files under yet), a type
+  of entries, or, for credits, the profiles.
+- **Names:** the **Front Matter Key** (`authors` for a new credit
+  unless you change it), what it's **Called** in the editor, such as
+  "Cast", and what **One Is Called** ("Add a cook").
+- **Options:** whether each entry takes **Several** or **Exactly One**;
+  whether their **Order Matters** (the first is the lead); whether
+  they're **Created as Typed**; and, for a link to its own type,
+  whether a link counts **Both Ways**.
+- **Limits:** how many an entry needs to publish (**At Least**), the
+  most it takes (**At Most**), and the most entries that may point at
+  one target (an episode in one season), restated as a sentence under
+  them. They're checked when an entry is published; a draft always
+  saves.
+- **Editing:** the **Picker** (chips, cards, or, for terms that nest, a
+  tree) and which links a translation uses: **Fall Back** to its
+  original's, **Add to the Original**, or **Keep Their Own**.
+- **What Links to It:** what the list is called on the other side, such
+  as "Acted in"; whether it's on the target's **Own Page**; and whether
+  it has an **Archive**, under a word (see
+  [Linking entries to other entries](content-types.md#linking-entries-to-other-entries)).
+
+Opened from a type's screen, a new one is stored on that type, and
+saving goes back there. It's saved in
+`user/data/relations/{name}.json`. A relation can't take the name of
+one defined in code. **Remove Relationship**, at the foot, removes it.
+
+Changing a relation entries already use says what it does before it
+does it, with the default the choice that changes no files:
+
+- It can't **point at another type** while entries have values in it,
+  or go from **several to one** while an entry has more than one. It
+  says so, lists the entries in the way (most first, up to 8), and
+  offers to keep the setting as it was; **Show All** opens the type's
+  list with only those entries.
+- A **new key** keeps the old one working as another name for it, so no
+  file changes, unless you check **Rewrite All Files Now**.
+- **No longer filing a type** keeps those entries' values in their
+  files, unread, unless you check to remove them.
+- **Tighter limits** list the entries they put over, which keep their
+  values and can't be published again until they're within them.
+  Nothing in any file changes.
+- **Remove** says how many entries have values, and offers to strip
+  them from their files, unchecked at first: kept, adding the
+  relationship again brings the links back.
 
 ## Fields
 
@@ -1476,8 +1509,8 @@ name opens the profile's screen:
   titled with the profile's name, and opens it; **Edit** opens it, or
   **Move to trash** puts the archive back on the profile's body (the
   page can be restored from its type's Trash tab). A credit whose archive is off
-  says so, and a page written for it shows **Unreachable**. Types that
-  credit no one are listed last.
+  says so, and a page written for it shows **Unreachable**. Each row
+  counts the entries crediting the profile that way.
 
 You see the profiles you may edit: your own, or anyone's with
 `content.profile.edit.others` (or the type's name on your site).
@@ -1835,9 +1868,10 @@ The API is JSON under `/admin/api`, and uses the session cookie:
 | `POST types` | Create a type in `user/data/types`: `{"name", "kind"` (`collection` or `tree`), `"folder", "set", "index", "listPages", "authors"}`; answers `201` with the type. `set` maps options to values: `labels`, `description`, `icon`, `prefix`, `paths` (route keys to paths, `null` for a key's default), `public`, `sitemap`, `llms`, `feed`, `byline` (the [credit relation](content-types.md#crediting-people) its byline uses), `dateArchives`, `hierarchical`, `order`, and `fields`; `index: true` adds its index page, `listPages` (relation names) adds each relation archive's list page, `_{word}.md` titled with its label (a `422` for a relation without archives under it), and `authors: true` adds the type to the `authors` credit relation, writing it when there's none. Needs `site.settings` |
 | `PATCH types/{name}` | Change a `user/data/types` type, or a collection or tree in a folder from code (saved in `user/data/types` over it): `{"set", "index", "listPages"}`, as above (`null` removes an option); answers with the type. A change that doesn't fit is a `422` with the reason |
 | `DELETE types/{name}` | Delete a `user/data/types` type's file (its entries stay); answers `{"deleted"}`. A type a relation names is a `422` saying which |
-| `GET relations` | The site's [relations](content-types.md#terms-and-relationships): `{"relations": [{"name", "kind", "from", "to", "field", "aliases", "label", "multiple", "ordered", "min", "max", "create", "symmetric", "translations", "control", "inverse", "definition", "origin", "editable"}], "create"}`. `inverse` is `false` or `{"label", "page", "archive", "types", "max"}` (`archive` a word or `false`); `definition` is the relation as a data file writes it; `origin` is `extension`, `config`, or `data`; `editable` is whether it's in `user/data/relations` (and not a taxonomy waiting to be migrated); `create` is whether relations can be created here |
+| `GET relations` | The site's [relations](content-types.md#terms-and-relationships): `{"relations": [{"name", "kind", "from", "to", "field", "aliases", "label", "multiple", "ordered", "min", "max", "create", "symmetric", "translations", "control", "inverse", "definition", "origin", "editable", "singular", "entries", "legacy"}], "create"}`. `inverse` is `false` or `{"label", "page", "archive", "types", "max"}` (`archive` a word or `false`); `definition` is the relation as a data file writes it; `origin` is `extension`, `config`, or `data`; `editable` is whether it's in `user/data/relations` (and not a taxonomy waiting to be migrated); `create` is whether relations can be created here; `singular` is what one target is called, `entries` how many entries have a value in it, and `legacy` whether it's still written as a taxonomy |
 | `POST relations` | Create a relation in `user/data/relations/{name}.json`: its whole definition, with `name` (the keys a data file takes); answers `201` with it, as `GET relations` describes it. A definition that doesn't fit, or a name defined in code, is a `422` with the reason. Needs `site.settings` |
 | `PATCH relations/{name}` | Replace a `user/data/relations` relation with the whole definition sent; answers with it. Needs `site.settings` |
+| `POST relations/{name}/check` | What replacing a relation with the definition sent would do, without saving it: `{"refusal", "refused", "inWay", "inWayCount", "warnings", "uses", "moved", "unfiled", "stripped", "over", "overCount", "fewer", "inverseOver"}`. `refused` is `type` (it points at another type while entries have values) or `one` (it takes one where entries have several), or `null`; `inWay` and `over` name up to 8 entries (`{"id", "type", "title", "count"}`, most values first) in the way of a refusal and over a new `max`; `fewer` counts published entries under a new `min`, and `inverseOver` targets over a new inverse `max`. Needs `site.settings` |
 | `DELETE relations/{name}` | Delete a `user/data/relations` relation's file (entries keep what they wrote); answers `{"deleted"}`. Needs `site.settings` |
 | `POST types/{name}/reset` | Put a type from code back as the code defines it, removing its file in `user/data/types`; answers with the type |
 | `POST types/refresh` | After a change: compile the routes again (on a compiled site) and reindex, so the site uses the change; answers `{"routes", "indexed"}` |
@@ -1898,6 +1932,7 @@ or everyone's for an editor. Narrow it with:
 | `terms` | `type:slug` pairs for types of terms, comma separated (`topic:art,era:1990s`); an entry needs every one |
 | `days` | Entries updated in the last so many days, from 1 |
 | `account` | For profiles: `linked` (an account is linked to them) or `guest` (none is) |
+| `over` | A relation's name, with `above` (0 by default): only the entries with more values in it than that. Needs `type`; answered as `over`, `{"label", "above"}` |
 | `sort` | `title`, `status`, `author`, `published`, or `updated` |
 | `dir` | `asc` or `desc`: by default the dates sort newest first and the rest A to Z |
 | `page` | The page, from 1 |

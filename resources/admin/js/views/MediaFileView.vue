@@ -572,7 +572,7 @@ const snippet = computed(() => {
 						</div>
 					</div>
 				</div>
-				<div class="panel__body usage__uses">
+				<div class="panel__body panel__body--ruled usage__uses">
 					<p class="eyebrow">{{ file.usedIn.length === 0 ? 'Not used yet' : `Used in ${plural(file.usedIn.length, 'entry', 'entries')}` }}</p>
 					<p v-if="file.usedIn.length === 0" class="field__help">No entry uses it, by any of its addresses.</p>
 					<template v-else>
@@ -585,7 +585,7 @@ const snippet = computed(() => {
 						<button v-if="longList" type="button" class="button button--ghost button--small" :aria-expanded="showAll" @click="showAll = !showAll"><AdminIcon :name="showAll ? 'chevron-up' : 'chevron-down'" />{{ showAll ? 'Show Fewer' : `Show All ${file.usedIn.length}` }}</button>
 					</template>
 				</div>
-				<div v-if="file.artworkFor.length" class="panel__body usage__uses">
+				<div v-if="file.artworkFor.length" class="panel__body panel__body--ruled usage__uses">
 					<p class="eyebrow">Artwork for {{ plural(file.artworkFor.length, 'file') }}</p>
 					<ul class="used" :class="{ 'used--scroll': file.artworkFor.length > LONG }">
 						<li v-for="shown in file.artworkFor" :key="shown.path">
@@ -943,10 +943,6 @@ const snippet = computed(() => {
 
 .usage__row .button {
 	flex: none;
-}
-
-.usage__uses {
-	border-top: 1px solid var(--border);
 }
 
 .usage__uses > * + * {

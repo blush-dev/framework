@@ -323,9 +323,9 @@ onBeforeRouteUpdate(() => count.value === 0 || confirmLeave());
 	<p v-else-if="editable" class="notice"><AdminIcon name="info" /><span>What you save here is kept in <code>user/data/settings.json</code> and wins over <code>config/</code>. The rest are set in code and only shown.</span></p>
 	<p v-if="error" class="notice notice--error" role="alert">{{ error }}</p>
 
-	<form v-if="groups" class="settings" @submit.prevent="save">
+	<form v-if="groups" class="setting-panels" @submit.prevent="save">
 		<section v-for="group in groups" :key="group.key" class="panel" :aria-labelledby="`settings-${group.key}`">
-			<header class="panel__header settings__header">
+			<header class="panel__header setting-panels__header">
 				<h2 :id="`settings-${group.key}`">{{ group.title }}</h2>
 				<p class="panel__hint">{{ groupHint(group) }}</p>
 			</header>
@@ -338,14 +338,14 @@ onBeforeRouteUpdate(() => count.value === 0 || confirmLeave());
 						:disabled="unset.includes(item.setting)"
 						@update:model-value="setGrid(item.setting!, $event)"
 					/>
-					<p class="settings__foot">
+					<p class="setting-panels__foot">
 						<template v-if="unset.includes(item.setting)">Uses <code>{{ item.file }}</code>'s rules once saved. <button type="button" class="link-button" @click="useConfig(item.setting!, false)">Keep the saved ones</button></template>
 						<template v-else-if="item.saved">Saved here. <button type="button" class="link-button" @click="useConfig(item.setting!, true)">Use <code>{{ item.file }}</code>'s rules</button></template>
 						<template v-else>From <code>{{ item.file }}</code><template v-if="item.default === true">, the default</template>.</template>
 					</p>
 				</template>
 			</template>
-			<div v-if="group.items.some((item) => item.kind !== 'uploads')" class="settings__rows">
+			<div v-if="group.items.some((item) => item.kind !== 'uploads')" class="setting-panels__rows">
 				<template v-for="item in group.items" :key="item.key">
 					<div v-if="item.kind !== 'uploads'" class="setting" :class="{ 'setting--wide': isWide(item), 'is-off': locked(item) }">
 						<template v-if="item.setting !== undefined && item.field !== undefined">
@@ -448,7 +448,7 @@ onBeforeRouteUpdate(() => count.value === 0 || confirmLeave());
 					</div>
 				</template>
 			</div>
-			<p v-if="group.note" class="settings__foot">
+			<p v-if="group.note" class="setting-panels__foot">
 				<template v-for="(part, index) in parts(group.note)" :key="index"><code v-if="part.code">{{ part.text }}</code><template v-else>{{ part.text }}</template></template>
 			</p>
 		</section>
@@ -456,237 +456,7 @@ onBeforeRouteUpdate(() => count.value === 0 || confirmLeave());
 		<SaveBar :count="count" :failure="failure" :saving="saving" @revert="revert" />
 	</form>
 
-	<div v-else-if="!error" class="settings" aria-hidden="true">
+	<div v-else-if="!error" class="setting-panels" aria-hidden="true">
 		<div v-for="index in 3" :key="index" class="panel"><div class="panel__body"><span class="skeleton skeleton--heading" /><span class="skeleton" /><span class="skeleton" /></div></div>
 	</div>
 </template>
-
-<style scoped>
-/* One column of panels, the full width (D-404). The rows read the
-   panel's width, not the window's, so they fit with the section panel
-   open or closed. */
-.settings {
-	display: grid;
-	gap: var(--s-5);
-	container-type: inline-size;
-}
-
-.settings__header {
-	align-items: baseline;
-}
-
-/* Each setting is a row: label, control, help. The width that would sit
-   empty to the right carries the help, so rows get shorter, not taller. */
-.setting {
-	--setting-label: 220px;
-	--setting-control: 420px;
-
-	display: grid;
-	grid-template-columns: var(--setting-label) minmax(0, var(--setting-control)) minmax(0, 1fr);
-	gap: var(--s-2) var(--s-5);
-	align-items: start;
-	padding: var(--s-4) var(--pad-x);
-	border-top: 1px solid var(--border);
-}
-
-.setting:first-child {
-	border-top: 0;
-}
-
-/* A control that wants the width takes the help's column too, with the
-   help under it. */
-.setting--wide {
-	grid-template-columns: var(--setting-label) minmax(0, 1fr);
-}
-
-.setting--wide .setting__help {
-	grid-column: 2;
-	max-width: 72ch;
-	padding-top: 0;
-}
-
-.setting__label {
-	padding-top: 8px;
-	color: var(--fg);
-	font-size: var(--base);
-	font-weight: 500;
-}
-
-.setting__label label {
-	color: inherit;
-	font-size: inherit;
-}
-
-.setting__control {
-	display: grid;
-	gap: var(--s-3);
-	min-width: 0;
-}
-
-.setting__control > * {
-	margin: 0;
-}
-
-.setting__control.is-unset > :first-child {
-	opacity: .6;
-}
-
-.setting__control input[type="number"] {
-	max-width: 8rem;
-}
-
-/* A setting's options sit in a row, unless they're described. */
-.setting__control :deep(.field-input__choices:not(.field-input__choices--detailed)) {
-	display: flex;
-	flex-wrap: wrap;
-	gap: var(--s-2) var(--s-5);
-	min-height: var(--ctl);
-}
-
-.setting__control :deep(.field-input__choices--detailed) {
-	padding-top: 7px;
-}
-
-/* A switch sits on the control line. */
-.setting__switch {
-	display: flex;
-	align-items: center;
-	min-height: var(--ctl);
-}
-
-/* A row turned off by another keeps its control, dimmed, with the reason
-   in its help. */
-.setting.is-off .setting__control {
-	opacity: .55;
-}
-
-.setting__help {
-	display: grid;
-	gap: 4px;
-	max-width: 52ch;
-	padding-top: 8px;
-	color: var(--fg-3);
-	font-size: var(--text-sm);
-	line-height: 1.5;
-}
-
-.setting__help:empty {
-	display: none;
-}
-
-.setting__help p {
-	margin: 0;
-}
-
-/* A value set in code, read where the controls start. */
-.setting__value {
-	display: flex;
-	flex-wrap: wrap;
-	align-items: center;
-	gap: var(--s-2);
-	min-height: var(--ctl);
-	overflow-wrap: anywhere;
-}
-
-.setting__none {
-	color: var(--fg-3);
-}
-
-.setting__pill--on::before {
-	background: var(--good-dot);
-}
-
-.setting__links {
-	display: flex;
-	flex-wrap: wrap;
-	gap: var(--s-1) var(--s-4);
-}
-
-.setting__link {
-	display: inline-flex;
-	align-items: center;
-	gap: var(--s-1);
-	padding-bottom: 1px;
-	border-bottom: 1px solid var(--accent-line);
-	color: var(--accent);
-	font-size: var(--text-sm);
-	text-decoration: none;
-}
-
-.setting__link:hover {
-	border-bottom-color: var(--accent);
-}
-
-.setting__link :deep(.icon) {
-	width: 13px;
-	height: 13px;
-}
-
-.setting__warning {
-	display: flex;
-	align-items: flex-start;
-	gap: var(--s-2);
-	max-width: 64ch;
-	color: var(--warn);
-	font-size: var(--text-sm);
-}
-
-.setting__warning :deep(svg) {
-	flex: none;
-	width: 14px;
-	height: 14px;
-	margin-top: 2px;
-	color: var(--warn-dot);
-}
-
-/* A panel's closing note: plain, under a hairline. */
-.settings__foot {
-	margin: 0;
-	padding: var(--s-3) var(--pad-x);
-	border-top: 1px solid var(--border);
-	color: var(--fg-3);
-	font-size: var(--text-sm);
-}
-
-/* On a wide panel, a little more room for the control and a longer line
-   for the help. */
-@container (width >= 1300px) {
-	.setting {
-		--setting-label: 250px;
-		--setting-control: 520px;
-	}
-
-	.setting__help {
-		max-width: 64ch;
-	}
-}
-
-/* Narrower, the help goes under the control. */
-@container (width < 1080px) {
-	.setting {
-		grid-template-columns: var(--setting-label) minmax(0, 1fr);
-	}
-
-	.setting__help {
-		grid-column: 2;
-		max-width: 72ch;
-		padding-top: 0;
-	}
-}
-
-@container (width < 640px) {
-	.setting,
-	.setting--wide {
-		grid-template-columns: minmax(0, 1fr);
-	}
-
-	.setting__help,
-	.setting--wide .setting__help {
-		grid-column: 1;
-	}
-
-	.setting__label {
-		padding-top: 0;
-	}
-}
-</style>

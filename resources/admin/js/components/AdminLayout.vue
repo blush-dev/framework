@@ -101,7 +101,8 @@ const screen = (name: string, label: string, icon: IconName): NavLink => ({ key:
  * term types that file only it nested under it (D-593), the term types
  * shared by several types (or every type), and Media. **Users** (D-326, D-354):
  * Your Account, Accounts, Profiles, and Roles (D-353, D-358).
- * **Config** (D-325): Structure (content types), Settings (its four
+ * **Config** (D-325): Structure (content types, relationships (D-610),
+ * and fields), Settings (its four
  * screens), and Extensions (Themes, Plugins, and Icon Packs; D-327, D-378,
  * D-380).
  * Links the account can't use aren't shown.
@@ -162,7 +163,7 @@ const sections = computed<Record<Area, NavGroup[]>>(() => {
 	const content = entryTypes.map((type) => ({ ...link(type), links: termTypes.filter((termType) => owner(termType) === type.name).map((termType) => link(termType)) }));
 	const library = usesMedia() ? [counted(screen('media', 'Media', 'image'), navCounts.value?.media)] : [];
 
-	const structure = can('site.settings') ? [counted(screen('types', 'Content Types', 'layers'), navCounts.value?.contentTypes), counted(screen('fields', 'Fields', 'group'), navCounts.value?.fieldSets)] : [];
+	const structure = can('site.settings') ? [counted(screen('types', 'Content Types', 'layers'), navCounts.value?.contentTypes), counted(screen('relations', 'Relationships', 'workflow'), navCounts.value?.relations), counted(screen('fields', 'Fields', 'group'), navCounts.value?.fieldSets)] : [];
 	const settings  = can('site.settings') ? [settingsScreen('general', 'General', 'settings-2'), settingsScreen('reading', 'Reading', 'book-open'), settingsScreen('writing', 'Writing', 'pen-line'), settingsScreen('media', 'Media', 'image'), settingsScreen('search', 'Addresses and Search', 'globe'), settingsScreen('ai', 'AI', 'bot'), settingsScreen('system', 'System', 'settings')] : [];
 	// Each kind of extension needs seeing it (D-389).
 	const extensions = [

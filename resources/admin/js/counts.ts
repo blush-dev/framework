@@ -19,6 +19,7 @@ export interface NavCounts {
 	accounts?: number;
 	roles?: number;
 	contentTypes?: number;
+	relations?: number;
 	fieldSets?: number;
 	themes?: number;
 	plugins?: number;

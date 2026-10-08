@@ -4,8 +4,9 @@ Guidance for agents working in this repository.
 
 ## Status
 
-The `2.x` branch is a **full rewrite** of Blush, a flat-file CMS, targeting
-PHP 8.5. Planning and milestones M0 (setup), M1 (core), M2 (HTTP +
+The `2.x` branch is a **full rewrite** of Blush, a CMS that keeps its data in files by default
+(storage is a driver per area, so a site can later keep its data in a database; D-485),
+targeting PHP 8.5. Planning and milestones M0 (setup), M1 (core), M2 (HTTP +
 Console), M3 (Routing), M4 (Content), M5 (Views + theming), M6 (Caching +
 publishing), and M7 (Static export, since removed for a plugin to
 build, D-476) are **complete**. **Milestone M8
@@ -185,7 +186,9 @@ with tokens typed in new written on Update (D-607); and, from the
 sketch's later boards, rows pinned to the end of the Document tab
 (Archive Page, Linked From, Outline) that open a level down, warnings
 that list what links when an entry leaves the site, and limits shown
-before they refuse (D-608).
+before they refuse (D-608); and the Relationships list in Config, a
+screen for each relationship in place of the modal form, changes asked
+in the shape of what they do, and a type's panel as sentences (D-610).
 The Fields
 API (D-337 to D-348: field types and controls, field sets on content
 types, media, and the Settings screens, slots, and Structure → Fields)

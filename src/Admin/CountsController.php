@@ -54,7 +54,8 @@ use Blush\Theme\Themes;
  * - `media`: the files in the library, with a media capability (D-372,
  *   D-407).
  * - `accounts` and `roles`, with `accounts.view`.
- * - `contentTypes` and `fieldSets`, with `site.settings`.
+ * - `contentTypes`, `relations` (D-610), and `fieldSets`, with
+ *   `site.settings`.
  * - `themes`, `plugins`, and `iconPacks` (installed), each with seeing
  *   its kind (`extensions.themes.view`, and so on, D-389; `themes` since
  *   D-372, counting broken ones since D-381, as the Themes screen lists
@@ -125,6 +126,7 @@ final readonly class CountsController
 
 		if ($this->permissions->can($account, Capability::SiteSettings)) {
 			$counts['contentTypes'] = count($this->types->all());
+			$counts['relations']    = count($this->types->relations());
 			$counts['fieldSets']    = count($this->types->sets->all());
 		}
 

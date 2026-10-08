@@ -1,8 +1,8 @@
 # Blush documentation
 
-Blush is a flat-file CMS for PHP. Your site is a folder of Markdown files:
-there's no database to set up, and every page, post, and setting is a file
-you can edit, copy, and keep in git.
+Blush is a CMS for PHP that keeps your site in files by default. Your site
+is a folder of Markdown files: there's no database to set up, and every
+page, post, and setting is a file you can edit, copy, and keep in git.
 
 > **Blush 2 is under heavy development.** Things will change before the
 > first stable release, so don't run it in production yet.

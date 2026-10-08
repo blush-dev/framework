@@ -1,0 +1,1230 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Meridian Site Health</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=Fira+Code:wght@400;500&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&family=Karla:wght@400;500;600&display=swap">
+<style>
+/* Meridian: Site Health check pages, a sketch. Tokens are design/tokens.css verbatim.
+   Anything prefixed lab- is the harness, not the admin. */
+:root {
+  --bg:#f5f6f9; --surface:#ffffff; --surface-2:#f0f2f6; --surface-3:#e7eaf0;
+  --border:#e2e5ec; --border-strong:#ccd2dd;
+  --fg:#11141b; --fg-2:#535b6b; --fg-3:#858d9d;
+  --accent:#2f5fe0; --accent-hover:#2650c4; --accent-fg:#ffffff; --accent-soft:#e9effc; --accent-line:#bdcdf7;
+  --good:#136b43; --good-soft:#e2f3e9; --good-dot:#1f9d5f;
+  --warn:#8a5806; --warn-soft:#faf0d9; --warn-dot:#cf8d16;
+  --danger:#a92420; --danger-soft:#fbeae9; --danger-dot:#d6403a;
+  --shadow-1:none;
+  --shadow-2:0 2px 8px rgba(17,20,27,.05), 0 1px 2px rgba(17,20,27,.04);
+  --shadow-3:0 10px 28px rgba(17,20,27,.09), 0 2px 6px rgba(17,20,27,.05);
+  --r-1:6px; --r-2:10px; --r-3:16px;
+  --s-1:4px; --s-2:8px; --s-3:12px; --s-4:18px; --s-5:26px; --s-6:36px; --s-7:52px;
+  --font-ui:"IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-display:"IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-title:"IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-mono:"Fira Code", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --base:13px; --h1:26px; --h1-track:-.024em;
+  --title-size:13.5px; --title-weight:500; --title-track:-.005em;
+  --pad-row:14px; --pad-panel:17px; --pad-x:22px; --ctl:34px; --ctl-sm:30px; --stat-v:30px;
+  --railbar:74px; --rail:262px; --bar:62px; --work-max:1400px; --measure:72ch;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-color-scheme="light"]):not([data-theme="light"]) {
+    --bg:#0b0d12; --surface:#13161d; --surface-2:#1a1e27; --surface-3:#222733;
+    --border:#242936; --border-strong:#353c4c;
+    --fg:#e9ebf0; --fg-2:#a3abba; --fg-3:#747d8e;
+    --accent:#7295f7; --accent-hover:#8aa8f9; --accent-fg:#0b0d12; --accent-soft:#182444; --accent-line:#2c3d68;
+    --good:#5ecb92; --good-soft:#102a1e; --good-dot:#35b877;
+    --warn:#e3b360; --warn-soft:#2b2312; --warn-dot:#d69f3c;
+    --danger:#f28d84; --danger-soft:#301917; --danger-dot:#e0655c;
+    --shadow-1:none; --shadow-2:0 2px 8px rgba(0,0,0,.3);
+    --shadow-3:0 10px 28px rgba(0,0,0,.45), 0 2px 6px rgba(0,0,0,.3);
+    color-scheme: dark;
+  }
+}
+:root[data-color-scheme="dark"], :root[data-theme="dark"]:not([data-color-scheme="light"]) {
+  --bg:#0b0d12; --surface:#13161d; --surface-2:#1a1e27; --surface-3:#222733;
+  --border:#242936; --border-strong:#353c4c;
+  --fg:#e9ebf0; --fg-2:#a3abba; --fg-3:#747d8e;
+  --accent:#7295f7; --accent-hover:#8aa8f9; --accent-fg:#0b0d12; --accent-soft:#182444; --accent-line:#2c3d68;
+  --good:#5ecb92; --good-soft:#102a1e; --good-dot:#35b877;
+  --warn:#e3b360; --warn-soft:#2b2312; --warn-dot:#d69f3c;
+  --danger:#f28d84; --danger-soft:#301917; --danger-dot:#e0655c;
+  --shadow-1:none; --shadow-2:0 2px 8px rgba(0,0,0,.3);
+  --shadow-3:0 10px 28px rgba(0,0,0,.45), 0 2px 6px rgba(0,0,0,.3);
+  color-scheme: dark;
+}
+:root[data-admin-theme="editorial"] {
+  --bg:#f6f2ec; --surface:#fffdfa; --surface-2:#f1ece3; --surface-3:#e7e0d4;
+  --border:#e5ded2; --border-strong:#cdc3b3;
+  --fg:#23201b; --fg-2:#5d564c; --fg-3:#8e867a;
+  --accent:#17595e; --accent-hover:#124a4e; --accent-fg:#fffdfa; --accent-soft:#e2eded; --accent-line:#b6d3d5;
+  --good:#4c6d2c; --good-soft:#edf1e2; --good-dot:#6f9b45;
+  --warn:#8a5a14; --warn-soft:#f8eeda; --warn-dot:#c58a2a;
+  --danger:#9c3327; --danger-soft:#f8e7e2; --danger-dot:#c2503f;
+  --shadow-2:0 2px 8px rgba(60,48,32,.05), 0 1px 2px rgba(60,48,32,.04);
+  --shadow-3:0 10px 28px rgba(60,48,32,.09), 0 2px 6px rgba(60,48,32,.05);
+  --r-1:8px; --r-2:12px; --r-3:20px;
+  --font-ui:"Karla", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display:"Newsreader", ui-serif, Georgia, "Times New Roman", serif;
+  --font-title:"Newsreader", ui-serif, Georgia, "Times New Roman", serif;
+  --base:13.5px; --h1:32px; --h1-track:-.014em;
+  --title-size:15.5px; --title-weight:500; --title-track:0;
+  --pad-row:16px; --pad-panel:19px; --pad-x:26px; --stat-v:34px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-color-scheme="light"]):not([data-theme="light"])[data-admin-theme="editorial"] {
+    --bg:#15120e; --surface:#1d1915; --surface-2:#26211a; --surface-3:#322b22;
+    --border:#302a21; --border-strong:#463e31;
+    --fg:#f0e9dd; --fg-2:#b4a996; --fg-3:#877c6c;
+    --accent:#72bec2; --accent-hover:#8bcccf; --accent-fg:#15120e; --accent-soft:#113032; --accent-line:#1d4a4d;
+    --good:#9cc16b; --good-soft:#1c2413; --good-dot:#84ad55;
+    --warn:#dcae63; --warn-soft:#2c2314; --warn-dot:#c79646;
+    --danger:#e8897b; --danger-soft:#2f1a16; --danger-dot:#cf6a5c;
+    --shadow-2:0 2px 8px rgba(0,0,0,.34);
+    --shadow-3:0 10px 28px rgba(0,0,0,.5), 0 2px 6px rgba(0,0,0,.34);
+    color-scheme: dark;
+  }
+}
+:root[data-color-scheme="dark"][data-admin-theme="editorial"],
+:root[data-theme="dark"]:not([data-color-scheme="light"])[data-admin-theme="editorial"] {
+  --bg:#15120e; --surface:#1d1915; --surface-2:#26211a; --surface-3:#322b22;
+  --border:#302a21; --border-strong:#463e31;
+  --fg:#f0e9dd; --fg-2:#b4a996; --fg-3:#877c6c;
+  --accent:#72bec2; --accent-hover:#8bcccf; --accent-fg:#15120e; --accent-soft:#113032; --accent-line:#1d4a4d;
+  --good:#9cc16b; --good-soft:#1c2413; --good-dot:#84ad55;
+  --warn:#dcae63; --warn-soft:#2c2314; --warn-dot:#c79646;
+  --danger:#e8897b; --danger-soft:#2f1a16; --danger-dot:#cf6a5c;
+  --shadow-2:0 2px 8px rgba(0,0,0,.34);
+  --shadow-3:0 10px 28px rgba(0,0,0,.5), 0 2px 6px rgba(0,0,0,.34);
+  color-scheme: dark;
+}
+
+/* ------------------------------------------------------------------ base -- */
+*,*::before,*::after{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--font-ui);font-size:var(--base);line-height:1.5;-webkit-font-smoothing:antialiased}
+h1,h2,h3,h4,p,ul,ol,figure{margin:0;padding:0}
+ul,ol{list-style:none}
+button,input,select{font:inherit;color:inherit}
+button{background:none;border:0;padding:0;cursor:pointer}
+a{color:inherit;text-decoration:none}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:3px}
+.ic{width:16px;height:16px;flex:none;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.mono{font-family:var(--font-mono);font-variant-numeric:tabular-nums}
+.num,td,th,time{font-variant-numeric:tabular-nums}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+/* ============================================================ primitives == */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;height:var(--ctl);padding:0 14px;border-radius:var(--r-1);border:1px solid var(--border);background:var(--surface);color:var(--fg);font-size:12.5px;font-weight:500;white-space:nowrap}
+.btn:hover{background:var(--surface-2);border-color:var(--border-strong)}
+.btn.sm{height:var(--ctl-sm);padding:0 11px;font-size:12px}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-fg)}
+.btn.primary:hover{background:var(--accent-hover);border-color:var(--accent-hover)}
+.btn.ghost{border-color:transparent;background:transparent;color:var(--fg-2)}
+.btn.ghost:hover{background:var(--surface-2);color:var(--fg)}
+.btn.danger{color:var(--danger)}
+.btn.danger:hover{background:var(--danger-soft);border-color:var(--danger-soft)}
+.btn.danger-fill{background:var(--danger);border-color:var(--danger);color:var(--surface)}
+.btn[disabled]{opacity:.45;pointer-events:none}
+.btn .ic{width:15px;height:15px}
+a.lnk{color:var(--accent)}
+a.lnk:hover{text-decoration:underline}
+
+.avatar{width:26px;height:26px;border-radius:99px;background:var(--surface-3);color:var(--fg-2);display:grid;place-items:center;font-size:10.5px;font-weight:600;letter-spacing:.02em;flex:none}
+.avatar.sm{width:20px;height:20px;font-size:9px}
+.avatar.lg{width:44px;height:44px;font-size:14px}
+.avatar.miss{background:transparent;border:1px dashed var(--danger-dot);color:var(--danger)}
+.avatar.miss .ic{width:13px;height:13px}
+
+.pill{display:inline-flex;align-items:center;gap:6px;height:20px;padding:0 9px 0 8px;border-radius:99px;font-size:11px;font-weight:500;white-space:nowrap;border:1px solid transparent;vertical-align:middle;margin-block:-2px}
+.pill .d{width:5px;height:5px;border-radius:99px;flex:none}
+.pill.published{background:var(--good-soft);color:var(--good)} .pill.published .d{background:var(--good-dot)}
+.pill.draft{background:var(--surface-2);color:var(--fg-2);border-color:var(--border)} .pill.draft .d{background:var(--border-strong)}
+.pill.trash{background:var(--danger-soft);color:var(--danger)} .pill.trash .d{background:var(--danger-dot)}
+.pill.written{background:var(--surface-3);color:var(--fg)} .pill.written .d{background:var(--fg-2)}
+.pill.inherited{background:var(--surface-2);color:var(--fg-2)} .pill.inherited .d{background:transparent;box-shadow:inset 0 0 0 1.5px var(--border-strong)}
+.pill.unreach{background:transparent;color:var(--fg-2);border:1px dashed var(--border-strong)} .pill.unreach .ic{width:12px;height:12px}
+.pill.warn{background:var(--warn-soft);color:var(--warn)} .pill.warn .d{background:var(--warn-dot)}
+.tag{display:inline-flex;align-items:center;height:18px;padding:0 6px;border-radius:4px;background:var(--surface-2);color:var(--fg-2);font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;border:1px solid var(--border);flex:none}
+
+.cbx{position:relative;display:inline-flex;align-items:flex-start;gap:10px;cursor:pointer;font-size:12.5px;color:var(--fg)}
+.cbx input{position:absolute;opacity:0;width:1px;height:1px}
+.cbx .bx{width:15px;height:15px;flex:none;margin-top:2px;border:1px solid var(--border-strong);border-radius:4px;display:grid;place-items:center;color:transparent;background:var(--surface)}
+.cbx .bx .ic{width:11px;height:11px;stroke-width:2.6}
+.cbx input:checked + .bx{background:var(--accent);border-color:var(--accent);color:var(--accent-fg)}
+.cbx input:focus-visible + .bx{outline:2px solid var(--accent);outline-offset:2px}
+.cbx .tx{display:flex;flex-direction:column;gap:1px;min-width:0}
+.cbx .tx small{font-size:11.5px;color:var(--fg-3);line-height:1.5}
+.rdo .bx{border-radius:99px}
+.rdo input:checked + .bx{background:var(--surface);border:5px solid var(--accent)}
+/* ======================================================== lab harness == */
+.lab{display:flex;flex-direction:column;height:100%}
+.lab-bar{flex:none;display:flex;align-items:center;gap:var(--s-4);flex-wrap:wrap;
+  padding:var(--s-2) var(--s-4);background:var(--surface-2);border-bottom:1px solid var(--border)}
+.lab-mark{display:flex;align-items:baseline;gap:var(--s-2);margin-right:auto;min-width:0}
+.lab-mark b{font-family:var(--font-display);font-size:14px;font-weight:600;letter-spacing:-.01em}
+.lab-mark span{color:var(--fg-3);font-size:11.5px}
+.lab-grp{display:flex;align-items:center;gap:var(--s-2)}
+.lab-grp > span{font-size:10.5px;text-transform:uppercase;letter-spacing:.07em;color:var(--fg-3);font-weight:600}
+.lab-seg{display:flex;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-1);padding:2px;gap:2px}
+.lab-seg button{font-size:12px;color:var(--fg-2);padding:0 var(--s-3);height:24px;border-radius:calc(var(--r-1) - 2px);white-space:nowrap}
+.lab-seg button:hover{color:var(--fg)}
+.lab-seg button[aria-pressed="true"]{background:var(--accent-soft);color:var(--accent);font-weight:500}
+.lab-notes-btn{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 10px;border-radius:var(--r-1);border:1px solid var(--border);background:var(--surface);font-size:12px;font-weight:500}
+.lab-notes-btn[aria-pressed="true"]{background:var(--accent-soft);color:var(--accent);border-color:var(--accent-line)}
+.lab-notes-btn .ic{width:14px;height:14px}
+@media (max-width:1640px){.lab-mark span{display:none}}
+@media (max-width:760px){.lab-grp > span{display:none}}
+
+/* The rules, in a sheet over the right edge. Harness, not admin. */
+.lab-notes{position:fixed;top:0;right:0;bottom:0;width:min(440px,100vw);background:var(--surface);border-left:1px solid var(--border-strong);box-shadow:var(--shadow-3);z-index:60;overflow-y:auto;padding:var(--s-5);display:none;flex-direction:column;gap:var(--s-4)}
+.lab-notes.on{display:flex}
+.lab-notes h2{font-family:var(--font-display);font-size:17px;font-weight:600;display:flex;align-items:center}
+.lab-notes h2 button{margin-left:auto}
+.lab-notes h3{font-size:10.5px;text-transform:uppercase;letter-spacing:.07em;color:var(--fg-3);font-weight:600;margin-top:var(--s-2)}
+.lab-notes p{font-size:12.5px;color:var(--fg-2);line-height:1.6}
+.lab-notes ol{display:flex;flex-direction:column;gap:var(--s-3)}
+.lab-notes li{display:flex;gap:var(--s-3);font-size:12.5px;color:var(--fg-2);line-height:1.6}
+.lab-notes li b{color:var(--fg);font-weight:600}
+.lab-notes li > i{font-style:normal;font-family:var(--font-mono);font-size:11px;color:var(--fg-3);flex:none;padding-top:2px;width:22px}
+
+/* ============================================================ the shell == */
+.app{flex:1 1 auto;min-height:0;display:flex;background:var(--bg)}
+.rail{flex:none;width:var(--railbar);background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;align-items:center;gap:6px;padding:var(--s-3) 0}
+.rail .logo{width:40px;height:40px;border-radius:var(--r-2);background:var(--fg);color:var(--surface);display:grid;place-items:center;font-weight:600;font-size:15px;margin-bottom:var(--s-3)}
+.rail a{width:62px;display:flex;flex-direction:column;align-items:center;gap:4px;padding:9px 0 7px;border-radius:var(--r-2);font-size:10.5px;color:var(--fg-2)}
+.rail a .ic{width:19px;height:19px}
+.rail a:hover{background:var(--surface-2);color:var(--fg)}
+.rail a[aria-current="true"]{background:var(--accent-soft);color:var(--accent)}
+.side{flex:none;width:var(--rail);background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column}
+.side-h{height:var(--bar);padding:0 var(--s-5);display:flex;flex-direction:column;justify-content:center;border-bottom:1px solid var(--border);box-sizing:content-box;padding-block:6px}
+.side-h b{font-family:var(--font-display);font-size:15px;font-weight:600}
+.side-h span{font-size:11.5px;color:var(--fg-3)}
+.side nav{display:flex;flex-direction:column;gap:2px;padding:var(--s-4) var(--s-3)}
+.side nav a{display:flex;align-items:center;gap:11px;padding:8px 10px;border-radius:var(--r-1);font-size:13px;color:var(--fg-2);position:relative}
+.side nav a:hover{background:var(--surface-2);color:var(--fg)}
+.side nav a .c{margin-left:auto;font-family:var(--font-mono);font-size:11px;color:var(--fg-3)}
+.side nav a[aria-current="page"]{background:var(--accent-soft);color:var(--accent);font-weight:500}
+.side nav a[aria-current="page"] .c{color:var(--accent)}
+.side nav a[aria-current="page"]::before{content:"";position:absolute;left:-12px;top:7px;bottom:7px;width:2px;border-radius:0 2px 2px 0;background:var(--accent)}
+.side .side-g{display:flex;align-items:center;font-size:10.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--fg-3);padding:var(--s-5) var(--s-5) var(--s-1)}
+.side .side-g button{margin-left:auto;font-size:10.5px;letter-spacing:.07em;color:var(--fg-3);font-weight:600}
+.main{flex:1 1 auto;min-width:0;display:flex;flex-direction:column}
+.topbar{flex:none;height:var(--bar);box-sizing:content-box;padding-block:6px;display:flex;align-items:center;gap:var(--s-3);padding-inline:var(--s-5);background:var(--surface);border-bottom:1px solid var(--border)}
+.crumbs{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--fg-2);min-width:0;margin-right:auto;white-space:nowrap;overflow:hidden}
+.crumbs a:hover{color:var(--accent)}
+.crumbs .sep{color:var(--fg-3)}
+.crumbs [aria-current]{color:var(--fg);font-weight:500;overflow:hidden;text-overflow:ellipsis}
+.jump{display:flex;align-items:center;gap:9px;width:240px;height:var(--ctl);padding:0 10px;border:1px solid var(--border);border-radius:var(--r-1);background:var(--bg);color:var(--fg-3);font-size:12.5px}
+.jump .ic{width:14px;height:14px}
+.jump kbd{margin-left:auto}
+kbd{font-family:var(--font-mono);font-size:10px;border:1px solid var(--border);border-bottom-width:2px;border-radius:4px;padding:0 4px;color:var(--fg-3);background:var(--surface)}
+.work{flex:1 1 auto;min-height:0;overflow-y:auto}
+.page{max-width:var(--work-max);margin:0 auto;padding:var(--s-7) var(--s-7) 96px;display:flex;flex-direction:column;gap:var(--s-5)}
+@media (max-width:1180px){.side{display:none}}
+@media (max-width:760px){
+  .rail{display:none}
+  .jump{display:none}
+  .topbar .vs span{display:none}
+  .page{padding:var(--s-5) var(--s-4) 96px}
+}
+
+/* ---------------------------------------------------------- page head -- */
+.ph{display:flex;flex-direction:column;gap:var(--s-2)}
+.ph-back{display:inline-flex;align-items:center;gap:var(--s-1);font-size:12.5px;color:var(--fg-2);align-self:flex-start}
+.ph-back:hover{color:var(--accent)}
+.ph-back .ic{width:14px;height:14px}
+.ph-row{display:flex;align-items:flex-start;gap:var(--s-4);flex-wrap:wrap}
+.ph-row > div:first-child{flex:1 1 360px;min-width:0}
+.ph h1{font-family:var(--font-display);font-size:var(--h1);letter-spacing:var(--h1-track);font-weight:600;line-height:1.2}
+.ph .sub{color:var(--fg-2);font-size:13.5px;margin-top:6px}
+.ph .about{color:var(--fg-2);font-size:13.5px;line-height:1.6;max-width:var(--measure);margin-top:6px}
+.ph .when{display:flex;align-items:center;gap:6px;color:var(--fg-3);font-size:12px;margin-top:var(--s-2)}
+.ph .when .ic{width:13px;height:13px}
+.ph-acts{display:flex;gap:var(--s-2)}
+.btn .spin{animation:spin .9s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.prog{height:2px;background:var(--surface-3);border-radius:2px;overflow:hidden;margin-top:var(--s-3)}
+.prog i{display:block;height:100%;width:0;background:var(--accent);transition:width 1.1s linear}
+
+/* Underlined tabs with count chips, the admin's list style. */
+.utabs{display:flex;gap:var(--s-1);border-bottom:1px solid var(--border);overflow-x:auto;scrollbar-width:none}
+.utabs button{display:inline-flex;align-items:center;gap:8px;padding:12px 16px;font-size:13.5px;color:var(--fg-2);border-bottom:2px solid transparent;margin-bottom:-1px;white-space:nowrap}
+.utabs button:hover{color:var(--fg)}
+.utabs button[aria-selected="true"]{color:var(--fg);font-weight:500;border-bottom-color:var(--accent)}
+.utabs .c{font-family:var(--font-mono);font-size:11px;color:var(--fg-2);background:var(--surface-3);border-radius:99px;padding:1px 8px}
+.utabs button[aria-selected="true"] .c{color:var(--fg-2)}
+
+.ltop{display:flex;flex-direction:column;gap:var(--s-4)}
+.ftools{display:flex;align-items:center;gap:var(--s-3);flex-wrap:wrap}
+.psearch{display:flex;align-items:center;gap:10px;height:var(--ctl);padding:0 10px 0 12px;border:1px solid var(--border);border-radius:var(--r-1);background:var(--surface);flex:1 1 260px;max-width:380px}
+.psearch:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.psearch .ic{width:14px;height:14px;color:var(--fg-3)}
+.psearch input{flex:1;min-width:0;border:0;background:none;outline:none;font-size:12.5px}
+.psearch input::placeholder{color:var(--fg-3)}
+.seg{display:flex;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r-1);padding:2px;gap:2px}
+.seg button{font-size:12px;color:var(--fg-2);padding:0 11px;height:26px;border-radius:calc(var(--r-1) - 2px)}
+.seg button[aria-pressed="true"]{background:var(--surface);color:var(--fg);font-weight:500;box-shadow:0 0 0 1px var(--border)}
+.psearch kbd{margin-left:auto;font-size:11px;padding:0 6px;line-height:18px}
+.dens{display:flex;margin-left:auto;border:1px solid var(--border);border-radius:var(--r-1);overflow:hidden;background:var(--surface)}
+.dens button{width:38px;height:calc(var(--ctl) - 2px);display:grid;place-items:center;color:var(--fg-3)}
+.dens button + button{border-left:1px solid var(--border)}
+.dens button[aria-pressed="true"]{background:var(--surface-2);color:var(--fg)}
+.dens .ic{width:17px;height:17px}
+.hrows.dense > li{padding-block:9px;align-items:center}
+.hrows.dense .h-what p,.hrows.dense .h-lead .p,.hrows.dense .h-lead .m{display:none}
+.sel{position:relative;display:inline-flex;align-items:center;flex:0 1 170px;min-width:150px}
+.sel select{appearance:none;-webkit-appearance:none;width:100%;height:var(--ctl);padding:0 34px 0 12px;border:1px solid var(--border);border-radius:var(--r-1);background:var(--surface);font-size:12.5px;color:var(--fg);cursor:pointer}
+.sel select:hover{border-color:var(--border-strong)}
+.sel select:focus-visible{outline:0;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.sel .ic{position:absolute;right:11px;width:15px;height:15px;color:var(--fg-2);pointer-events:none}
+.ftools .say{margin-left:auto;font-size:12px;color:var(--fg-3)}
+.ftools .lbl{font-size:12px;color:var(--fg-3)}
+
+/* ------------------------------------------------------------ severity -- */
+/* A chip that is a word and a glyph; color is the third cue, never the only. */
+.sev{display:inline-flex;align-items:center;gap:5px;height:22px;padding:0 9px 0 7px;border-radius:99px;font-size:11.5px;font-weight:500;white-space:nowrap;flex:none}
+.sev .ic{width:13px;height:13px;stroke-width:2}
+.sev.error{background:var(--danger-soft);color:var(--danger)} .sev.error .ic{color:var(--danger-dot)}
+.sev.warning{background:var(--warn-soft);color:var(--warn)} .sev.warning .ic{color:var(--warn-dot)}
+.sev.notice{background:var(--surface-2);color:var(--fg-2);box-shadow:inset 0 0 0 1px var(--border)}
+.sev.fixed{background:var(--good-soft);color:var(--good)} .sev.fixed .ic{color:var(--good-dot)}
+.sev.ignored{background:transparent;color:var(--fg-3);box-shadow:inset 0 0 0 1px var(--border-strong)}
+.pill{display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 10px 0 9px;border-radius:99px;font-size:12px;font-weight:500;white-space:nowrap}
+.pill .d{width:6px;height:6px;border-radius:99px}
+.pill.fail{background:var(--danger-soft);color:var(--danger)} .pill.fail .d{background:var(--danger-dot)}
+.pill.check{background:var(--warn-soft);color:var(--warn)} .pill.check .d{background:var(--warn-dot)}
+.pill.note{background:var(--surface-2);color:var(--fg-2);box-shadow:inset 0 0 0 1px var(--border)} .pill.note .d{background:var(--fg-3)}
+.pill.clear{background:var(--good-soft);color:var(--good)} .pill.clear .d{background:var(--good-dot)}
+
+/* ------------------------------------------------------------ overview -- */
+.stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--s-4)}
+@media (max-width:900px){.stats{grid-template-columns:minmax(0,1fr)}}
+.stat{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-3);padding:var(--s-5)}
+.stat.bad{border-color:var(--danger-dot)}
+.stat.warnb{border-color:var(--warn-dot)}
+.stat .k{display:flex;align-items:center;gap:8px;font-size:11.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--fg-2)}
+.stat.bad .k{color:var(--danger)}
+.stat .k .ic{width:15px;height:15px}
+.stat .v{font-size:var(--stat-v);font-weight:600;margin:var(--s-3) 0 var(--s-2);font-variant-numeric:tabular-nums}
+.stat .s{font-size:12.5px;color:var(--fg-3)}
+.ov{display:grid;grid-template-columns:minmax(0,1.75fr) minmax(0,1fr);gap:var(--s-4);align-items:start}
+@media (max-width:1000px){.ov{grid-template-columns:minmax(0,1fr)}}
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-3);overflow:hidden}
+.panel-head{display:flex;align-items:center;gap:var(--s-3);flex-wrap:wrap;padding:var(--pad-panel) var(--pad-x);border-bottom:1px solid var(--border)}
+.panel-head h2{font-family:var(--font-display);font-size:15.5px;font-weight:600;letter-spacing:-.005em}
+.panel-head .hint{font-size:12px;color:var(--fg-3)}
+.irow{display:flex;align-items:center;gap:var(--s-4);padding:var(--s-4) var(--pad-x);border-bottom:1px solid var(--border)}
+.irow:last-child{border-bottom:0}
+.irow:hover{background:var(--surface-2)}
+.irow .tx{flex:1;min-width:0}
+.irow b{display:block;font-size:13.5px;font-weight:500}
+.irow p{font-size:12.5px;color:var(--fg-2);margin-top:3px}
+.irow small{display:block;font-size:12px;color:var(--fg-3);margin-top:3px}
+.irow > .ic{color:var(--fg-3)}
+.arow{display:flex;align-items:flex-start;gap:var(--s-4);padding:var(--s-4) var(--pad-x);border-bottom:1px solid var(--border)}
+.arow:last-child{border-bottom:0}
+.arow > .ic{margin-top:3px;color:var(--fg-2)}
+.arow .tx{flex:1;min-width:0}
+.arow b{display:block;font-size:13.5px;font-weight:500}
+.arow p{font-size:12.5px;color:var(--fg-3);margin-top:2px}
+
+/* ========================================================= a check page == */
+/* A group: the kind of problem, what the site does about it now, and the
+   one fix every row in it shares, when there is one. */
+.grp{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-3);overflow:hidden}
+.grp-h{display:flex;align-items:flex-start;gap:var(--s-3);padding:var(--pad-panel) var(--pad-x);border-bottom:1px solid var(--border);flex-wrap:wrap}
+.grp-h{align-items:center}
+.grp-h .tx{flex:1 1 320px;min-width:0;display:flex;align-items:baseline;gap:6px 12px;flex-wrap:wrap}
+.grp-h .hint{font-size:12.5px;color:var(--fg-3);line-height:1.5}
+.grp-h .hint.mono{font-family:var(--font-mono);font-size:11.5px}
+.grp-h .t{display:flex;align-items:center;gap:var(--s-3);flex-wrap:wrap}
+.grp-h h2{font-family:var(--font-display);font-size:15.5px;font-weight:600;letter-spacing:-.005em}
+.grp-h .n{font-size:12px;color:var(--fg-3);font-variant-numeric:tabular-nums}
+.grp-h p{font-size:12.5px;color:var(--fg-2);margin-top:5px;line-height:1.55;max-width:var(--measure)}
+.grp-h .path{font-family:var(--font-mono);font-size:11.5px;color:var(--fg-3);margin-top:4px;display:block;overflow-wrap:anywhere}
+.grp-h .end{display:flex;gap:var(--s-2);align-items:center;flex-wrap:wrap}
+
+/* A row: where, what was found, what the site does now, and its fix. */
+.hrows > li{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.5fr) 300px;gap:var(--s-2) var(--s-5);align-items:start;padding:var(--pad-row) var(--pad-x);border-bottom:1px solid var(--border)}
+.hrows > li:last-child{border-bottom:0}
+@media (max-width:860px){.hrows > li{grid-template-columns:minmax(0,1fr)}.h-acts{justify-content:flex-start!important}}
+.h-lead{min-width:0}
+.h-lead a.t,.h-lead .t{font-family:var(--font-title);font-size:var(--title-size);font-weight:var(--title-weight);letter-spacing:var(--title-track);color:var(--fg);display:block}
+.h-lead a.t:hover{color:var(--accent)}
+.h-lead .t.none{color:var(--fg-3);font-style:italic}
+.h-lead .p{display:block;font-family:var(--font-mono);font-size:11px;color:var(--fg-3);margin-top:4px;overflow-wrap:anywhere}
+.h-lead .m{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:11.5px;color:var(--fg-3);margin-top:5px}
+.h-lead .m .ic{width:13px;height:13px}
+.h-lead .pill{margin-bottom:6px}
+.h-what{min-width:0}
+.kv{display:inline-block;font-family:var(--font-mono);font-size:12px;color:var(--fg-2);background:var(--bg);border:1px solid var(--border);border-radius:var(--r-1);padding:2px 8px;overflow-wrap:anywhere;max-width:100%}
+.kv .ln{color:var(--fg-3);margin-right:8px;user-select:none}
+.kv mark{background:transparent;color:var(--fg);text-decoration:underline wavy var(--warn-dot);text-underline-offset:3px;text-decoration-thickness:1px}
+.err .kv mark{text-decoration-color:var(--danger-dot)}
+.kv.new mark{text-decoration:none;color:var(--good);font-weight:500}
+.kv.miss{border-style:dashed;color:var(--fg-3)}
+.h-what p{font-size:12.5px;color:var(--fg-2);line-height:1.55;margin-top:6px}
+.h-what p b{color:var(--fg);font-weight:600}
+.h-acts{display:flex;gap:6px;align-items:center;justify-content:flex-end;flex-wrap:wrap}
+.btn.icon{width:var(--ctl-sm);padding:0}
+.btn.icon .ic{width:15px;height:15px}
+.btn[aria-expanded="true"] .ic{transform:rotate(180deg)}
+.h-more{grid-column:1/-1;display:flex;flex-direction:column;gap:var(--s-3);padding:var(--s-3) 0 var(--s-1)}
+.h-more[hidden]{display:none}
+.h-more .lbl{font-size:10.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--fg-3)}
+.h-more .alts{display:flex;gap:var(--s-2);flex-wrap:wrap;align-items:center}
+.h-more .say{font-size:12.5px;color:var(--fg-2);line-height:1.55;max-width:var(--measure)}
+
+/* A fixed row stays where it was until the next check, quieter. */
+.hrows > li.done{background:var(--surface-2)}
+.hrows > li.done .h-lead a.t,.hrows > li.done .h-lead .t{color:var(--fg-2)}
+.hrows > li.done .h-what p{color:var(--fg-3)}
+
+/* An excerpt of the file around the line, numbered like the editor's source. */
+.xc{border:1px solid var(--border);border-radius:var(--r-2);overflow:hidden;background:var(--bg)}
+.xc-h{display:flex;align-items:center;gap:var(--s-3);padding:7px var(--s-3);border-bottom:1px solid var(--border);background:var(--surface-2);font-size:11.5px;flex-wrap:wrap}
+.xc-h .mono{color:var(--fg-2);font-size:11px;overflow-wrap:anywhere;min-width:0}
+.xc-h a{margin-left:auto;color:var(--accent);font-weight:500;display:inline-flex;align-items:center;gap:4px}
+.xc-h a .ic{width:13px;height:13px}
+.xc ol{padding:6px 0;font-family:var(--font-mono);font-size:12px;line-height:1.75;overflow-x:auto}
+.xc li{display:flex;white-space:pre;padding-right:var(--s-3)}
+.xc li i{font-style:normal;width:40px;flex:none;text-align:right;padding-right:14px;color:var(--fg-3);user-select:none}
+.xc li.hit{background:var(--danger-soft)}
+.xc li.hit i{color:var(--danger)}
+.xc li.hit.w{background:var(--warn-soft)}
+.xc li.hit.w i{color:var(--warn)}
+.xc li.cue{color:var(--danger);font-family:var(--font-ui);font-size:11.5px;white-space:normal}
+
+/* Two files claiming one thing: pick which keeps it. */
+.pick2{display:flex;flex-direction:column;gap:6px;margin-top:2px}
+.pick2 label{display:grid;grid-template-columns:auto minmax(0,1fr);gap:2px 10px;align-items:start;padding:9px 12px;border:1px solid var(--border);border-radius:var(--r-2);background:var(--surface);cursor:pointer}
+.pick2 label:hover{border-color:var(--border-strong)}
+.pick2 label:has(input:checked){border-color:var(--accent-line);background:var(--accent-soft)}
+.pick2 input{margin:3px 0 0;accent-color:var(--accent)}
+.pick2 .t{font-size:12.5px;color:var(--fg);font-weight:500}
+.pick2 .s{grid-column:2;font-size:11.5px;color:var(--fg-3)}
+.pick2 .s .mono{color:var(--fg-2)}
+.pick2 .then{grid-column:2;font-size:11.5px;color:var(--fg-2)}
+
+/* A list of entries inside a row or a confirm, capped, never scrolling. */
+.alist{display:flex;flex-direction:column;border:1px solid var(--border);border-radius:var(--r-2);background:var(--surface)}
+.alist li{display:flex;align-items:center;gap:var(--s-3);padding:8px var(--s-3);border-bottom:1px solid var(--border);font-size:12.5px;min-width:0}
+.alist li:last-child{border-bottom:0}
+.alist .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.alist a.nm:hover{color:var(--accent)}
+.alist .via{font-size:11.5px;color:var(--fg-3);white-space:nowrap}
+.alist .rest{color:var(--fg-3);font-size:11.5px}
+.alist .rest a{color:var(--accent)}
+.alist.chg li{flex-direction:column;align-items:stretch;gap:3px}
+.alist.chg .p{font-family:var(--font-mono);font-size:11px;color:var(--fg-3);overflow-wrap:anywhere}
+.alist.chg .d{font-family:var(--font-mono);font-size:11.5px;display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center}
+.alist.chg .d del{color:var(--fg-3);text-decoration:line-through}
+.alist.chg .d ins{text-decoration:none;color:var(--good)}
+.alist.chg .d .ic{width:12px;height:12px;color:var(--fg-3)}
+
+/* A small inline form inside a row's details. */
+.mini{display:grid;grid-template-columns:110px minmax(0,1fr);gap:10px var(--s-4);align-items:center;max-width:560px}
+.mini .k{font-size:12.5px;color:var(--fg-2)}
+.inp{height:var(--ctl);padding:0 10px;border:1px solid var(--border-strong);border-radius:var(--r-1);background:var(--surface);font-size:12.5px;width:100%;outline:none}
+.inp:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.mini .v{font-family:var(--font-mono);font-size:12px;color:var(--fg-2)}
+@media (max-width:640px){.mini{grid-template-columns:minmax(0,1fr)}}
+
+/* Search for another entry, capped at 6 results. */
+.pk{display:flex;flex-direction:column;gap:6px;max-width:560px}
+.pk .psearch{flex:none;max-width:none}
+.pk .res{display:flex;flex-direction:column;border:1px solid var(--border);border-radius:var(--r-2);background:var(--surface)}
+.pk .res button{display:flex;align-items:center;gap:var(--s-3);padding:8px var(--s-3);border-bottom:1px solid var(--border);font-size:12.5px;text-align:left}
+.pk .res button:last-child{border-bottom:0}
+.pk .res button:hover{background:var(--surface-2)}
+.pk .res button[aria-pressed="true"]{background:var(--accent-soft);color:var(--accent)}
+.pk .res button .via{margin-left:auto;font-size:11.5px;color:var(--fg-3);white-space:nowrap}
+.pk .res .more{padding:8px var(--s-3);font-size:11.5px;color:var(--fg-3)}
+
+.h-cap{display:flex;align-items:center;gap:var(--s-3);padding:var(--s-3) var(--pad-x);border-top:1px solid var(--border);background:var(--surface-2);font-size:12px;color:var(--fg-3);flex-wrap:wrap}
+.h-cap button{color:var(--accent);font-weight:500;font-size:12px}
+
+/* Nothing left. */
+.empty{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-3);padding:var(--s-7) var(--s-5);display:flex;flex-direction:column;align-items:center;gap:var(--s-2);text-align:center}
+.empty .badge{width:40px;height:40px;border-radius:99px;display:grid;place-items:center;background:var(--good-soft);color:var(--good);margin-bottom:var(--s-2)}
+.empty .badge.n{background:var(--surface-2);color:var(--fg-3)}
+.empty b{font-family:var(--font-display);font-size:17px;font-weight:600}
+.empty p{font-size:12.5px;color:var(--fg-2);max-width:52ch;line-height:1.6}
+.empty button{color:var(--accent);font-weight:500}
+
+/* ------------------------------------------------- menus, modals, toast -- */
+.menu{position:fixed;z-index:50;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-2);box-shadow:var(--shadow-2);padding:6px;width:236px}
+.menu button,.menu a{display:flex;align-items:center;gap:10px;width:100%;padding:7px 10px;border-radius:var(--r-1);font-size:12.5px;color:var(--fg-2);text-align:left}
+.menu button:hover,.menu a:hover,.menu button:focus-visible{background:var(--surface-2);color:var(--fg);outline:0}
+.menu .ic{width:15px;height:15px;color:var(--fg-3)}
+.menu hr{border:0;height:1px;background:var(--border);margin:5px -6px}
+.menu .note{padding:6px 10px;font-size:11.5px;color:var(--fg-3);line-height:1.5}
+.scrim{position:fixed;inset:0;z-index:55;background:color-mix(in srgb,var(--fg) 28%,transparent);display:grid;place-items:center;padding:var(--s-4)}
+.mdl{width:100%;max-width:520px;max-height:calc(100vh - 32px);overflow-y:auto;background:var(--surface);border:1px solid var(--border-strong);border-radius:var(--r-3);box-shadow:var(--shadow-3);display:flex;flex-direction:column}
+.mdl-h{padding:var(--s-5) var(--s-5) var(--s-3);display:flex;gap:var(--s-3);align-items:flex-start}
+.mdl-h h3{font-family:var(--font-display);font-size:17px;font-weight:600;letter-spacing:-.01em;line-height:1.3}
+.badge{width:30px;height:30px;border-radius:99px;display:grid;place-items:center;flex:none;background:var(--accent-soft);color:var(--accent)}
+.badge .ic{width:15px;height:15px}
+.mdl-b{padding:0 var(--s-5) var(--s-5);font-size:12.5px;color:var(--fg-2);display:flex;flex-direction:column;gap:var(--s-4);line-height:1.6}
+.mdl-b b{color:var(--fg);font-weight:600}
+.mdl-f{display:flex;gap:var(--s-2);justify-content:flex-end;padding:var(--s-4) var(--s-5);border-top:1px solid var(--border);flex-wrap:wrap}
+.toast{position:fixed;right:24px;bottom:24px;z-index:58;display:inline-flex;align-items:center;gap:var(--s-3);background:var(--surface);border:1.5px solid var(--good-dot);border-radius:var(--r-2);box-shadow:var(--shadow-2);padding:9px 9px 9px 14px;font-size:12.5px;color:var(--fg);max-width:calc(100vw - 32px)}
+.toast > .ic{color:var(--good-dot)}
+.toast .div{width:1px;align-self:stretch;margin-block:3px;background:var(--border)}
+.toast .undo{display:inline-flex;align-items:center;gap:6px;height:var(--ctl-sm);padding:0 11px;border-radius:var(--r-1);font-size:12px;font-weight:500;color:var(--accent)}
+.toast .undo:hover{background:var(--accent-soft)}
+.toast .undo .ic{width:14px;height:14px}
+@media (max-width:640px){.toast{right:16px;left:16px;bottom:16px}}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><defs>
+<symbol id="i-rows2" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 12h18"/></symbol>
+<symbol id="i-rows4" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 7.5h18M3 12h18M3 16.5h18"/></symbol>
+<symbol id="i-home" viewBox="0 0 24 24"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/><path d="M3 10a2 2 0 0 1 .7-1.53l7-6a2 2 0 0 1 2.6 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></symbol>
+<symbol id="i-gauge" viewBox="0 0 24 24"><path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/></symbol>
+<symbol id="i-heart" viewBox="0 0 24 24"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/><path d="M3.22 12H9.5l.5-1 2 4.5 2-7 1.5 3.5h5.27"/></symbol>
+<symbol id="i-refresh" viewBox="0 0 24 24"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></symbol>
+<symbol id="i-files" viewBox="0 0 24 24"><path d="M20 7h-3a2 2 0 0 1-2-2V2"/><path d="M9 18a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h7l4 4v10a2 2 0 0 1-2 2Z"/><path d="M3 7.6v12.8A1.6 1.6 0 0 0 4.6 22h9.8"/></symbol>
+<symbol id="i-plug" viewBox="0 0 24 24"><path d="M12 22v-5M9 8V2M15 8V2M18 8v5a4 4 0 0 1-4 4h-4a4 4 0 0 1-4-4V8Z"/></symbol>
+<symbol id="i-ucircle" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="10" r="3"/><path d="M7 20.66V19a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v1.66"/></symbol>
+<symbol id="i-octx" viewBox="0 0 24 24"><path d="M2.59 8.93 8.93 2.59A2 2 0 0 1 10.34 2h3.32a2 2 0 0 1 1.41.59l6.34 6.34a2 2 0 0 1 .59 1.41v3.32a2 2 0 0 1-.59 1.41l-6.34 6.34a2 2 0 0 1-1.41.59h-3.32a2 2 0 0 1-1.41-.59l-6.34-6.34A2 2 0 0 1 2 13.66v-3.32a2 2 0 0 1 .59-1.41Z"/><path d="m15 9-6 6M9 9l6 6"/></symbol>
+<symbol id="i-ccheck" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></symbol>
+<symbol id="i-lchecks" viewBox="0 0 24 24"><path d="m3 17 2 2 4-4M3 7l2 2 4-4M13 6h8M13 12h8M13 18h8"/></symbol>
+<symbol id="i-pen" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.38 3.62a1 1 0 0 1 3 3L7.37 18.64a2 2 0 0 1-.85.5l-2.87.84a.5.5 0 0 1-.62-.62l.84-2.87a2 2 0 0 1 .5-.85Z"/></symbol>
+<symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></symbol>
+<symbol id="i-shield" viewBox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/></symbol>
+<symbol id="i-server" viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><path d="M6 6h.01M6 18h.01"/></symbol>
+<symbol id="i-copy" viewBox="0 0 24 24"><rect x="8" y="8" width="14" height="14" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></symbol>
+<symbol id="i-hash" viewBox="0 0 24 24"><path d="M4 9h16M4 15h16M10 3 8 21M16 3l-2 18"/></symbol>
+<symbol id="i-upload" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></symbol>
+<symbol id="i-film" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M7 3v18M3 7.5h4M3 12h18M3 16.5h4M17 3v18M17 7.5h4M17 16.5h4"/></symbol>
+<symbol id="i-recipe" viewBox="0 0 24 24"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2M7 2v20M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"/></symbol>
+<symbol id="i-undo" viewBox="0 0 24 24"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/></symbol>
+<symbol id="i-layers" viewBox="0 0 24 24"><path d="m12 2 9 5-9 5-9-5 9-5Z"/><path d="m3 12 9 5 9-5"/><path d="m3 17 9 5 9-5"/></symbol>
+<symbol id="i-fields" viewBox="0 0 24 24"><path d="M5 3a2 2 0 0 0-2 2M19 3a2 2 0 0 1 2 2M21 19a2 2 0 0 1-2 2M5 21a2 2 0 0 1-2-2M9 3h1M9 21h1M14 3h1M14 21h1M3 9v1M21 9v1M3 14v1M21 14v1"/><path d="M8 12h8"/></symbol>
+<symbol id="i-config" viewBox="0 0 24 24"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></symbol>
+<symbol id="i-list" viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></symbol>
+<symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol>
+<symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+<symbol id="i-plus" viewBox="0 0 24 24"><path d="M5 12h14M12 5v14"/></symbol>
+<symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></symbol>
+<symbol id="i-chev-d" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+<symbol id="i-chev-l" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></symbol>
+<symbol id="i-chev-r" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></symbol>
+<symbol id="i-updown" viewBox="0 0 24 24"><path d="m7 15 5 5 5-5M7 9l5-5 5 5"/></symbol>
+<symbol id="i-grip" viewBox="0 0 24 24"><circle cx="9" cy="12" r="1"/><circle cx="9" cy="5" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="15" cy="19" r="1"/></symbol>
+<symbol id="i-alert" viewBox="0 0 24 24"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4M12 17h.01"/></symbol>
+<symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></symbol>
+<symbol id="i-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3M12 17h.01"/></symbol>
+<symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></symbol>
+<symbol id="i-dashed" viewBox="0 0 24 24"><path d="M10.1 2.18a10 10 0 0 1 3.8 0M13.9 21.82a10 10 0 0 1-3.8 0M17.61 3.72a10 10 0 0 1 2.69 2.7M2.18 13.9a10 10 0 0 1 0-3.8M20.28 17.61a10 10 0 0 1-2.7 2.69M21.82 10.1a10 10 0 0 1 0 3.8M3.72 6.39a10 10 0 0 1 2.7-2.69M6.39 20.28a10 10 0 0 1-2.69-2.7"/></symbol>
+<symbol id="i-lock" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></symbol>
+<symbol id="i-lang" viewBox="0 0 24 24"><path d="m5 8 6 6M4 14l6-6 2-3M2 5h12M7 2h1M22 22l-5-10-5 10M14 18h6"/></symbol>
+<symbol id="i-tree" viewBox="0 0 24 24"><path d="M21 12h-8M21 6H8M21 18h-8M3 6v4c0 1.1.9 2 2 2h3M3 10v6c0 1.1.9 2 2 2h3"/></symbol>
+<symbol id="i-tag" viewBox="0 0 24 24"><path d="M12.59 2.59A2 2 0 0 0 11.17 2H4a2 2 0 0 0-2 2v7.17a2 2 0 0 0 .59 1.42l8.7 8.7a2.43 2.43 0 0 0 3.42 0l6.58-6.58a2.43 2.43 0 0 0 0-3.42z"/><circle cx="7.5" cy="7.5" r=".5"/></symbol>
+<symbol id="i-users" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></symbol>
+<symbol id="i-user" viewBox="0 0 24 24"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></symbol>
+<symbol id="i-link" viewBox="0 0 24 24"><path d="M10 13.5a4 4 0 0 0 5.7 0l2.8-2.8a4 4 0 0 0-5.7-5.7l-1.6 1.6"/><path d="M14 10.5a4 4 0 0 0-5.7 0l-2.8 2.8a4 4 0 0 0 5.7 5.7l1.6-1.6"/></symbol>
+<symbol id="i-unlink" viewBox="0 0 24 24"><path d="m18.84 12.25 1.72-1.71h-.02a5 5 0 0 0-7.07-7.07l-1.72 1.71M5.17 11.75l-1.71 1.71a5 5 0 0 0 7.07 7.07l1.71-1.71M8 2v3M2 8h3M16 22v-3M22 16h-3"/></symbol>
+<symbol id="i-cards" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></symbol>
+<symbol id="i-select" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m14 11 2 2 2-2"/></symbol>
+<symbol id="i-page" viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4M10 9H8M16 13H8M16 17H8"/></symbol>
+<symbol id="i-book" viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2zM22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></symbol>
+<symbol id="i-sign" viewBox="0 0 24 24"><path d="M12 3v3M18.5 13h-13L2 9.5 5.5 6h13L22 9.5ZM12 13v8"/></symbol>
+<symbol id="i-ext" viewBox="0 0 24 24"><path d="M15 3h6v6M10 14 21 3M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></symbol>
+<symbol id="i-code" viewBox="0 0 24 24"><path d="m16 18 6-6-6-6M8 6l-6 6 6 6"/></symbol>
+<symbol id="i-pencil" viewBox="0 0 24 24"><path d="M21.17 6.81a1 1 0 0 0-3.98-3.98L3.84 16.17a2 2 0 0 0-.5.83l-1.32 4.35a.5.5 0 0 0 .62.62l4.35-1.32a2 2 0 0 0 .83-.5zM15 5l4 4"/></symbol>
+<symbol id="i-eye-off" viewBox="0 0 24 24"><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68M6.61 6.61A13.53 13.53 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61M2 2l20 20M14.12 14.12a3 3 0 1 1-4.24-4.24"/></symbol>
+<symbol id="i-wrench" viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></symbol>
+<symbol id="i-pulse" viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></symbol>
+<symbol id="i-panel" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M15 3v18"/></symbol>
+<symbol id="i-dots" viewBox="0 0 24 24"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></symbol>
+<symbol id="i-image" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.09-3.09a2 2 0 0 0-2.82 0L6 21"/></symbol>
+<symbol id="i-file-plus" viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4M9 15h6M12 18v-6"/></symbol>
+<symbol id="i-arrow-r" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></symbol>
+<symbol id="i-swap" viewBox="0 0 24 24"><path d="m16 3 4 4-4 4M20 7H4M8 21l-4-4 4-4M4 17h16"/></symbol>
+</defs></svg>
+<div class="lab">
+  <div class="lab-bar" role="toolbar" aria-label="Sketch settings">
+    <div class="lab-mark"><b>Meridian · Site Health</b><span>A sketch of the check pages. Fixes are pretend; nothing is written.</span></div>
+    <div class="lab-grp"><span>Screen</span>
+      <div class="lab-seg" id="labScreen">
+        <button data-go="">Overview</button><button data-go="files">Content Files</button><button data-go="ids">Entry IDs</button><button data-go="terms">Terms</button><button data-go="links">Links</button>
+      </div></div>
+    <div class="lab-grp"><span>Theme</span>
+      <div class="lab-seg" id="labTheme"><button data-v="neutral" aria-pressed="true">Neutral</button><button data-v="editorial">Editorial</button></div></div>
+    <div class="lab-grp"><span>Scheme</span>
+      <div class="lab-seg" id="labScheme"><button data-v="auto" aria-pressed="true">Auto</button><button data-v="light">Light</button><button data-v="dark">Dark</button></div></div>
+    <button class="lab-notes-btn" id="labNotesBtn" aria-pressed="false"><svg class="ic" aria-hidden="true"><use href="#i-book"/></svg>Notes</button>
+  </div>
+
+  <div class="app">
+    <nav class="rail" aria-label="Sections">
+      <div class="logo" aria-hidden="true">J</div>
+      <a href="#/" aria-current="true"><svg class="ic" aria-hidden="true"><use href="#i-home"/></svg>Home</a>
+      <a href="#/"><svg class="ic" aria-hidden="true"><use href="#i-page"/></svg>Content</a>
+      <a href="#/"><svg class="ic" aria-hidden="true"><use href="#i-user"/></svg>Users</a>
+      <a href="#/"><svg class="ic" aria-hidden="true"><use href="#i-config"/></svg>Config</a>
+    </nav>
+    <aside class="side">
+      <div class="side-h"><b>Home</b><span>Justin Tadlock</span></div>
+      <nav aria-label="Home">
+        <a href="#/"><svg class="ic" aria-hidden="true"><use href="#i-gauge"/></svg>Dashboard</a>
+        <a href="#/" id="navHealth" aria-current="page"><svg class="ic" aria-hidden="true"><use href="#i-heart"/></svg>Site Health<span class="c" id="navCount"></span></a>
+        <a href="#/"><svg class="ic" aria-hidden="true"><use href="#i-wrench"/></svg>Tools</a>
+      </nav>
+      <div class="side-g">Shortcuts<button>Edit</button></div>
+      <nav aria-label="Shortcuts">
+        <a href="#/"><svg class="ic" aria-hidden="true"><use href="#i-ucircle"/></svg>Your Account</a>
+        <a href="#/"><svg class="ic" aria-hidden="true"><use href="#i-pen"/></svg>Posts</a>
+        <a href="#/"><svg class="ic" aria-hidden="true"><use href="#i-files"/></svg>Pages</a>
+      </nav>
+    </aside>
+    <div class="main">
+      <header class="topbar">
+        <nav class="crumbs" id="crumbs" aria-label="Breadcrumb"></nav>
+        <div class="jump"><svg class="ic" aria-hidden="true"><use href="#i-search"/></svg>Search or jump to…<kbd>⌘K</kbd></div>
+        <a class="btn vs" href="#/"><svg class="ic" aria-hidden="true"><use href="#i-ext"/></svg><span>View Site</span></a>
+        <span class="avatar" aria-label="Justin Tadlock">JT</span>
+      </header>
+      <div class="work" id="work"><main class="page" id="page"></main></div>
+    </div>
+  </div>
+</div>
+
+<aside class="lab-notes" id="labNotes" aria-label="Notes on this sketch"></aside>
+<div id="layer"></div>
+<script>
+/* ============================================================== data == */
+/* Invented, but shaped like the site in the running build's screenshots:
+   an old blog imported into the CMS, 1,218 files. */
+
+const I = n => '<svg class="ic" aria-hidden="true"><use href="#i-' + n + '"/></svg>';
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const fmt = n => n.toLocaleString('en-US');
+const plural = (n, one, many) => fmt(n) + ' ' + (n === 1 ? one : (many || one + 's'));
+const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const longDate = d => { const [y,m,dd] = d.split('-').map(Number); return MONTHS[m-1] + ' ' + dd + ', ' + y; };
+
+/* A deterministic id in the shape the CMS writes (26 characters, Crockford). */
+let SEED = 7;
+const rnd = () => (SEED = (SEED * 16807) % 2147483647) / 2147483647;
+const AB = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
+const newId = () => '01J' + Array.from({length:23}, () => AB[Math.floor(rnd() * 32)]).join('');
+
+/* 212 old posts still carrying the importer's `layout: post`. */
+const W1 = ['Notes on','A Week of','Thinking About','Back to','On','In Praise of','Another Look at','Letters About','Against','Remembering','Missing','Learning From','Still Thinking About','Finding','Losing','Reading About'];
+const W2 = ['Mornings','the Garden','Short Fiction','Moving','Old Notebooks','Coffee','the Rain','Rewriting','Libraries','Train Rides','Winter','Bookshelves','Deadlines','Sundays','Drafts','the Porch','Typewriters','Long Walks','Index Cards','Margins'];
+const slugify = t => t.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+const OLD = [];
+(function () {
+  const seen = new Set();
+  let i = 0;
+  OLD.push({title:'Dark Circles, NaNoWriMo, More Reconstruction', path:'_posts/2005-10-29.dark-circles-nanowrimo-more-reconstruction.md'});
+  OLD.push({title:'6 Weird Things About Me', path:'_posts/2007-03-05.6-weird-things-about-me.md'});
+  while (OLD.length < 212 && i < 5000) {
+    const t = W1[i % W1.length] + ' ' + W2[(i * 7 + Math.floor(i / W1.length)) % W2.length];
+    i++;
+    if (seen.has(t)) continue;
+    seen.add(t);
+    const y = 2004 + (OLD.length % 8), m = 1 + ((OLD.length * 5) % 12), d = 1 + ((OLD.length * 11) % 28);
+    const ds = y + '-' + String(m).padStart(2,'0') + '-' + String(d).padStart(2,'0');
+    OLD.push({title:t, path:'_posts/' + ds + '.' + slugify(t) + '.md', date:ds});
+  }
+  OLD.sort((a, b) => a.path < b.path ? -1 : 1);
+})();
+
+/* Entries a link could point at instead. */
+const SERIES = ['NaNoWriMo 2006','NaNoWriMo 2007','Summer Reading 2025','Reading Lists','The Move','Notebook Experiments','Letters','Weekly Notes'].map(t => ({title:t, type:'Series'}));
+const POSTS = OLD.map(p => ({title:p.title, type:'Post'})).concat([
+  {title:'Ray Kurzweil on C-SPAN2', type:'Post'},{title:'Spring Cleaning', type:'Post'},{title:'Reading Plans for 2027', type:'Post'},
+  {title:'A Week Without Email', type:'Post'},{title:'Moving Day', type:'Post'}]);
+
+/* ---- helpers for rows ---- */
+const kv = (k, v, cls) => '<code class="kv' + (cls ? ' ' + cls : '') + '">' + esc(k) + ': <mark>' + esc(v) + '</mark></code>';
+const lead = (r) => '<a class="t" href="#/">' + esc(r.title) + '</a><span class="p">' + esc(r.path) + '</span>';
+const entries = (list, total, more) => {
+  const shown = list.slice(0, 8);
+  return '<ul class="alist">' + shown.map(e => '<li><a class="nm" href="#/">' + esc(e.title) + '</a><span class="via">' + esc(e.via || 'Published') + '</span></li>').join('') +
+    (total > shown.length ? '<li class="rest">and ' + (total - shown.length) + ' more · <a href="#/">' + esc(more) + '</a></li>' : '') + '</ul>';
+};
+const excerpt = (path, lines, open) => '<div class="xc"><div class="xc-h"><span class="mono">' + esc(path) + '</span><a href="#/">' + I('code') + esc(open) + '</a></div><ol>' +
+  lines.map(l => l.cue ? '<li class="cue"><i></i>' + l.cue + '</li>' : '<li class="' + (l.hit ? 'hit' + (l.w ? ' w' : '') : '') + '"><i>' + l.n + '</i>' + esc(l.t) + '</li>').join('') + '</ol></div>';
+
+/* ---- the checks ----
+   A row: where (lead), what was found (found), what the site does now (now),
+   and its fixes. A fix lists the lines it writes; more than one line, or any
+   group fix, asks first. */
+
+const CHECKS = {};
+
+CHECKS.files = {
+  id:'files', name:'Content Files', area:'Content',
+  about:'Reads the front matter of every entry’s file: whether it can be read at all, and whether each value is one the site can use.',
+  scanned:1218, unit:'file', when:'yesterday at 4:12 PM', byFile:true,
+  why:'A file the site can’t read is left out of it.',
+  summary(c) { return c.errFiles ? plural(c.errFiles,'file') + ' ' + (c.errFiles === 1 ? 'has' : 'have') + ' errors' + (c.warnFiles ? ', and ' + fmt(c.warnFiles) + ' ' + (c.warnFiles === 1 ? 'has' : 'have') + ' warnings.' : '.') : plural(c.warnFiles,'file') + ' ' + (c.warnFiles === 1 ? 'has' : 'have') + ' warnings.'; },
+  groups:[
+    {id:'yaml', sev:'error', name:'Front Matter That Can’t Be Read', unit:'file',
+     says:'The site skips a file it can’t read, so these entries aren’t anywhere on the site.',
+     rows:[{
+       id:'f1', path:'_posts/2008-02-14.valentines-reading-list.md', title:null, open:false,
+       lead:'<span class="t none">The title can’t be read</span><span class="p">_posts/2008-02-14.valentines-reading-list.md</span>',
+       found:'<code class="kv">title: Books<mark>:</mark> a list for Valentine’s Day</code>',
+       now:'A colon inside a value needs quotes around the whole value. Until it has them, none of the front matter is read.',
+       fixes:[{label:'Add Quotes', changes:r => [{path:r.path, from:'title: Books: a list for Valentine’s Day', to:'title: "Books: a list for Valentine’s Day"'}],
+               doneKv:'<code class="kv new">title: <mark>"Books: a list for Valentine’s Day"</mark></code>', doneSay:'Quoted. The file reads again, and the entry is back on the site.'}],
+       detail:r => '<p class="say">The title has a second colon, so the site can’t tell where its name ends and its value starts. The date, the category and everything else in the front matter are unread too.</p><div class="alts"><a class="btn sm" href="#/">' + I('pencil') + 'Open in Editor</a></div>'
+     }]},
+    {id:'slug', sev:'error', name:'Two Entries With One Address', unit:'address',
+     says:'Only one entry can be at an address. The site shows the newer one and leaves the other out.',
+     rows:[{
+       id:'f2', path:'_posts/2010-05-03.moving-day.md', title:'Moving Day', open:true, ui:{keep:'a'},
+       lead:'<span class="t">/blog/moving-day</span><span class="p">2 posts · slug: moving-day</span>',
+       found:kv('slug','moving-day'),
+       now:'Both <b>Moving Day</b> posts use it. The 2012 post is shown, so the 2010 post can’t be reached.',
+       fixes:[{label:'Give the Other a New Address',
+               changes:r => { const o = r.ui.keep === 'a' ? ['_posts/2012-06-18.moving-day.md','2012'] : ['_posts/2010-05-03.moving-day.md','2010']; return [{path:o[0], from:'slug: moving-day', to:'slug: moving-day-' + o[1]}]; },
+               doneKv:r => '<code class="kv new">slug: <mark>moving-day-' + (r.ui.keep === 'a' ? '2012' : '2010') + '</mark></code>',
+               doneSay:r => 'The ' + (r.ui.keep === 'a' ? '2010' : '2012') + ' post keeps /blog/moving-day. The other is at /blog/moving-day-' + (r.ui.keep === 'a' ? '2012' : '2010') + '.'}],
+       detail:r => '<span class="lbl">Which Post Keeps /blog/moving-day</span><div class="pick2">' +
+         [['a','Moving Day, May 3, 2010','_posts/2010-05-03.moving-day.md','Linked from 4 entries','2012'],['b','Moving Day, June 18, 2012','_posts/2012-06-18.moving-day.md','Linked from no entries','2010']].map(o =>
+           '<label><input type="radio" name="keep-f2" data-keep="f2" value="' + o[0] + '"' + (r.ui.keep === o[0] ? ' checked' : '') + '><span class="t">' + o[1] + '</span><span class="s"><span class="mono">' + o[2] + '</span> · ' + o[3] + '</span>' +
+           (r.ui.keep === o[0] ? '<span class="then">Keeps the address.</span>' : '') + '</label>').join('') +
+         '</div><p class="say">The other post moves to <span class="mono">/blog/moving-day-' + (r.ui.keep === 'a' ? '2012' : '2010') + '</span>. The one linked from other entries is chosen to begin with, so those links keep working.</p>'
+     }]},
+    {id:'status', sev:'error', name:'Statuses the Site Doesn’t Know', unit:'file',
+     says:'An entry with a status the site doesn’t know is treated as a draft, so it isn’t on the site.',
+     rows:[{
+       id:'f3', path:'_posts/2019-03-02.spring-cleaning.md', title:'Spring Cleaning',
+       found:kv('status','publised'),
+       now:'Not a status. It reads like <b>published</b> was meant.',
+       fixes:[{label:'Change to published', changes:r => [{path:r.path, from:'status: publised', to:'status: published'}], doneKv:'<code class="kv new">status: <mark>published</mark></code>', doneSay:'On the site with its date, March 2, 2019.'},
+              {label:'Change to draft', changes:r => [{path:r.path, from:'status: publised', to:'status: draft'}], doneKv:'<code class="kv new">status: <mark>draft</mark></code>', doneSay:'A draft, as the site was already treating it.'}],
+       detail:r => '<span class="lbl">Or</span><div class="alts"><button class="btn sm" data-fix="f3:1">Change to draft</button></div>'
+     }]},
+    {id:'title', sev:'error', name:'Missing Titles', unit:'file',
+     says:'Every entry needs a title. Lists show these as Untitled, and they can’t be found by name.',
+     rows:[{
+       id:'f4', path:'_posts/2004-07-30.md', title:null,
+       lead:'<span class="t none">Untitled</span><span class="p">_posts/2004-07-30.md</span>',
+       found:'<code class="kv miss">title is missing</code>',
+       now:'The text starts with a heading: <b>Summer Reading, Part One</b>.',
+       fixes:[{label:'Use “Summer Reading, Part One”', changes:r => [{path:r.path, from:null, to:'title: "Summer Reading, Part One"'}],
+               doneKv:'<code class="kv new">title: <mark>"Summer Reading, Part One"</mark></code>', doneSay:'Titled from its first heading. The heading stays in the text.'}],
+       detail:r => '<span class="lbl">Or</span><div class="alts"><a class="btn sm" href="#/">' + I('pencil') + 'Write a Title in the Editor</a></div>'
+     }]},
+    {id:'date', sev:'warning', name:'Dates That Aren’t Real', unit:'file',
+     says:'Each is read as the last day of the month before, so these posts sort into the wrong place. The file names have the dates that were meant.',
+     bulk:{label:n => 'Use the File Names’ Dates', title:n => 'Use the File Names’ Dates?', say:n => 'Each post takes the date at the start of its file name, and moves to its right place in lists and archives. Addresses stay the same.'},
+     rows:[
+      {id:'f5', path:'_posts/2005-10-29.dark-circles-nanowrimo-more-reconstruction.md', title:'Dark Circles, NaNoWriMo, More Reconstruction',
+       found:kv('date','2005-00-00'), now:'Read as <b>November 30, 2004</b>. The file name says October 29, 2005.',
+       fixes:[{label:'Use 2005-10-29', changes:r => [{path:r.path, from:'date: 2005-00-00', to:'date: 2005-10-29'}], doneKv:'<code class="kv new">date: <mark>2005-10-29</mark></code>', doneSay:'Dated October 29, 2005, from its file name.'}]},
+      {id:'f6', path:'_posts/2007-03-05.6-weird-things-about-me.md', title:'6 Weird Things About Me',
+       found:kv('date','2007-00-00'), now:'Read as <b>November 30, 2006</b>. The file name says March 5, 2007.',
+       fixes:[{label:'Use 2007-03-05', changes:r => [{path:r.path, from:'date: 2007-00-00', to:'date: 2007-03-05'}], doneKv:'<code class="kv new">date: <mark>2007-03-05</mark></code>', doneSay:'Dated March 5, 2007, from its file name.'}]}
+     ]},
+    {id:'kind', sev:'warning', name:'Values of the Wrong Kind', unit:'file',
+     says:'Each is read as the nearest thing it could mean. Writing the value the field expects ends the guessing.',
+     bulk:{label:n => 'Write What Each Is Read As', title:n => 'Write What Each Is Read As?', say:n => 'Nothing on the site changes: each value is already read this way. The files just say so.'},
+     rows:[
+      {id:'f7', path:'_posts/2006-11-26-2.ray-kurzweil-on-c-span2.md', title:'Ray Kurzweil on C-SPAN2',
+       found:kv('featured','"yes"'), now:'Featured is on or off. <b>"yes"</b> is read as on.',
+       fixes:[{label:'Change to true', changes:r => [{path:r.path, from:'featured: "yes"', to:'featured: true'}], doneKv:'<code class="kv new">featured: <mark>true</mark></code>', doneSay:'Still featured.'}]},
+      {id:'f8', path:'_posts/2019-03-02.spring-cleaning.md', title:'Spring Cleaning',
+       found:kv('featured','"no"'), now:'Featured is on or off. <b>"no"</b> is read as off.',
+       fixes:[{label:'Change to false', changes:r => [{path:r.path, from:'featured: "no"', to:'featured: false'}], doneKv:'<code class="kv new">featured: <mark>false</mark></code>', doneSay:'Still not featured.'}]}
+     ]},
+    {id:'future', sev:'warning', name:'Published With a Date Still to Come', unit:'file',
+     says:'A published entry with a future date stays off the site until that date comes.',
+     rows:[{
+       id:'f9', path:'_posts/2026-12-30.reading-plans-for-2027.md', title:'Reading Plans for 2027',
+       found:kv('date','2027-01-04'), now:'Goes live <b>January 4, 2027</b>, though the file name says December 30, 2026.',
+       fixes:[{label:'Use 2026-12-30', changes:r => [{path:r.path, from:'date: 2027-01-04', to:'date: 2026-12-30'}], doneKv:'<code class="kv new">date: <mark>2026-12-30</mark></code>', doneSay:'Goes live December 30, 2026.'},
+              {label:'Schedule It for January 4', changes:r => [{path:r.path, from:'status: published', to:'status: scheduled'}], doneKv:'<code class="kv new">status: <mark>scheduled</mark></code>', doneSay:'Scheduled for January 4, 2027, and shown that way in Posts.'}],
+       detail:r => '<span class="lbl">Or</span><div class="alts"><button class="btn sm" data-fix="f9:1">' + I('clock') + 'Schedule It for January 4</button></div><p class="say">Scheduling keeps the date and says so in the Posts list, instead of a published post nobody can see.</p>'
+     }]},
+    {id:'layout', sev:'notice', name:'Fields Nothing Reads', unit:'file',
+     says:'Nothing in the site reads layout. It came with these posts from the site they were imported from, and does nothing here.',
+     extra:'<a class="btn sm ghost" href="#/">' + I('fields') + 'Add Layout as a Field</a>',
+     bulk:{label:n => 'Remove From ' + fmt(n) + ' Files', title:n => 'Remove layout From ' + fmt(n) + ' Files?', say:n => 'One line comes out of each file. Nothing on the site changes, because nothing reads it.'},
+     rows:OLD.map((p, i) => ({id:'n' + i, path:p.path, title:p.title,
+       found:kv('layout','post'), now:'Not a field on Posts.',
+       fixes:[{label:'Remove It', changes:r => [{path:r.path, from:'layout: post', to:null}], doneKv:'<code class="kv new miss">layout removed</code>', doneSay:'Nothing changed on the site.'}]}))}
+  ]
+};
+
+CHECKS.ids = {
+  id:'ids', name:'Entry IDs', area:'Content',
+  about:'Every entry’s file needs an id of its own. Links between entries are stored as ids, and the admin opens an entry by its id.',
+  scanned:1218, unit:'file', when:'yesterday at 4:12 PM',
+  why:'A file without an id can’t be opened in the admin.',
+  summary(c) { return plural(c.rows,'file') + ' need' + (c.rows === 1 ? 's' : '') + ' an id of ' + (c.rows === 1 ? 'its' : 'their') + ' own.'; },
+  groups:[
+    {id:'none', sev:'warning', name:'No ID, or One That Isn’t Valid', unit:'file',
+     says:'These can’t be opened in the admin or linked to from another entry. Each gets a new id; nothing else in the file changes.',
+     bulk:{label:n => n === 2 ? 'Give Both New IDs' : 'Give ' + fmt(n) + ' Files New IDs', title:n => 'Give ' + fmt(n) + ' Files New IDs?', say:n => 'One line is written at the top of each file’s front matter. Ids never change once written.'},
+     rows:[
+      {id:'i1', path:'_posts/2015-08-14.a-week-without-email.md', title:'A Week Without Email', nid:newId(),
+       found:'<code class="kv miss">id is missing</code>', now:'Written outside the admin. Opening it from Posts says <b>This entry can’t be opened</b>.',
+       fixes:[{label:'Add an ID', changes:r => [{path:r.path, from:null, to:'id: ' + r.nid}], doneKv:r => '<code class="kv new">id: <mark>' + r.nid + '</mark></code>', doneSay:'Opens in the editor, and can be linked to.'}]},
+      {id:'i2', path:'pages/colophon.md', title:'Colophon', nid:newId(),
+       found:kv('id','42'), now:'Too short to be an id. It looks like a number left from the import.',
+       fixes:[{label:'Replace It With a New ID', changes:r => [{path:r.path, from:'id: 42', to:'id: ' + r.nid}], doneKv:r => '<code class="kv new">id: <mark>' + r.nid + '</mark></code>', doneSay:'Opens in the editor. Nothing linked to 42, so no links change.'}],
+       detail:r => '<p class="say">The new id will be <span class="mono">' + r.nid + '</span>. No entry links to <span class="mono">42</span>, so nothing else needs changing.</p>'}
+     ]},
+    {id:'dupe', sev:'warning', name:'Two Files With One ID', unit:'pair',
+     says:'One looks copied from the other. Links to the id open whichever file the site finds first.',
+     rows:[{
+       id:'i3', path:'_posts/2017-01-09.reading-list-2017.md', title:'Reading List: 2016 and 2017', open:true, ui:{keep:'a'}, nid:newId(), shared:'01HQ3V8KX2TB5R9M4WZ7CENJDA',
+       lead:'<a class="t" href="#/">Reading List: 2016</a><a class="t" href="#/">Reading List: 2017</a><span class="p">2 posts</span>',
+       found:kv('id','01HQ3V8KX2TB5R9M4WZ7CENJDA'), now:'Both files have it. The 2017 file was made by copying the 2016 one.',
+       fixes:[{label:'Give the Other a New ID',
+               changes:r => [{path:r.ui.keep === 'a' ? '_posts/2017-01-09.reading-list-2017.md' : '_posts/2016-01-11.reading-list-2016.md', from:'id: ' + r.shared, to:'id: ' + r.nid}],
+               doneKv:r => '<code class="kv new">id: <mark>' + r.nid + '</mark></code>', doneSay:r => 'Given to the ' + (r.ui.keep === 'a' ? '2017' : '2016') + ' post. The ' + (r.ui.keep === 'a' ? '2016' : '2017') + ' post keeps the old id and its links.'}],
+       detail:r => '<span class="lbl">Which Post Keeps the ID</span><div class="pick2">' +
+         [['a','Reading List: 2016','_posts/2016-01-11.reading-list-2016.md','Linked from 3 entries'],['b','Reading List: 2017','_posts/2017-01-09.reading-list-2017.md','Linked from no entries']].map(o =>
+           '<label><input type="radio" name="keep-i3" data-keep="i3" value="' + o[0] + '"' + (r.ui.keep === o[0] ? ' checked' : '') + '><span class="t">' + o[1] + '</span><span class="s"><span class="mono">' + o[2] + '</span> · ' + o[3] + '</span>' +
+           (r.ui.keep === o[0] ? '<span class="then">Keeps the id, so the links to it still open this post.</span>' : '<span class="then">Gets <span class="mono">' + r.nid + '</span>.</span>') + '</label>').join('') + '</div>'
+     }]}
+  ]
+};
+
+const RAY = [{title:'Ray Kurzweil on C-SPAN2'}];
+const JT = [{title:'Notes From the Road'},{title:'Old Notebooks, New Shelves'},{title:'A Short Guide to Index Cards'}];
+const NANO = ['Dark Circles, NaNoWriMo, More Reconstruction','Day One: 1,667 Words','The Middle Is the Hard Part','Word Count Envy','Halfway','Plot Holes and Coffee','Week Three','A Character Who Won’t Behave','30,000','Ten Days Left','The Last Weekend','50,012','What I Learned','Revising in December'].map(t => ({title:t}));
+
+CHECKS.terms = {
+  id:'terms', name:'Terms and Profiles', area:'Content',
+  about:'Looks for topics, tags and profiles that entries name in their front matter but that have no file, so the site has nothing to show for them.',
+  scanned:1218, unit:'file', when:'yesterday at 4:12 PM',
+  why:'The site leaves out a name with no file.',
+  summary(c) { return plural(c.rows,'term or profile','terms and profiles') + ' that entries name ' + (c.rows === 1 ? 'has' : 'have') + ' no file, so the site leaves ' + (c.rows === 1 ? 'it' : 'them') + ' out.'; },
+  groups:[
+    {id:'typo', sev:'warning', name:'Names That Look Like a Typo', unit:'name',
+     says:'Each is close to a topic or profile that exists. Changing the name in the entries files them where they were meant to go.',
+     bulk:{label:n => n === 2 ? 'Use Both Suggestions' : 'Use ' + n + ' Suggestions', title:n => 'Use ' + (n === 2 ? 'Both' : n) + ' Suggestions?', say:n => 'Each entry that names the misspelling gets the name that exists instead.'},
+     rows:[
+      {id:'t1', path:'_posts/2006-11-26-2.ray-kurzweil-on-c-span2.md', title:'science-techology',
+       lead:'<span class="t mono">science-techology</span><span class="m">' + I('tree') + 'Topic · in category · 1 entry</span>',
+       found:kv('category','science-techology'), now:'Did you mean <b>Science and Technology</b> (<span class="mono">science-technology</span>), a topic with 42 entries?',
+       fixes:[{label:'Change to science-technology', changes:r => [{path:r.path, from:'category: science-techology', to:'category: science-technology'}], doneKv:'<code class="kv new">category: <mark>science-technology</mark></code>', doneSay:'Ray Kurzweil on C-SPAN2 is filed under Science and Technology.'},
+              {label:'Create the Topic Instead', changes:r => [{path:'topics/science-techology.md', create:true, from:null, to:'title: Science Techology'}], doneKv:'<code class="kv new">topics/<mark>science-techology.md</mark></code>', doneSay:'Created, published, with one entry.'}],
+       detail:r => '<span class="lbl">Named By</span>' + entries(RAY, 1, '') + '<span class="lbl">Or</span><div class="alts"><button class="btn sm" data-fix="t1:1">' + I('file-plus') + 'Create the Topic Instead</button></div>'},
+      {id:'t2', path:'', title:'jtadlock',
+       lead:'<span class="t mono">jtadlock</span><span class="m">' + I('user') + 'Profile · in author · 3 entries</span>',
+       found:kv('author','jtadlock'), now:'Did you mean <b>Justin Tadlock</b> (<span class="mono">justin-tadlock</span>), the profile on 1,204 entries?',
+       fixes:[{label:'Change to justin-tadlock', changes:r => JT.map((e, i) => ({path:'_posts/2009-0' + (i + 3) + '-1' + i + '.' + slugify(e.title) + '.md', from:'author: jtadlock', to:'author: justin-tadlock'})), doneKv:'<code class="kv new">author: <mark>justin-tadlock</mark></code>', doneSay:'3 entries now credit Justin Tadlock.'}],
+       detail:r => '<span class="lbl">Named By</span>' + entries(JT, 3, '')}
+     ]},
+    {id:'nomatch', sev:'warning', name:'Names With No Match', unit:'name',
+     says:'Nothing close exists, so each needs a file of its own. It’s created published, so the entries that name it show it at once.',
+     rows:[
+      {id:'t3', path:'tags/nanowrimo.md', title:'nanowrimo', ui:{title:'NaNoWriMo'},
+       lead:'<span class="t mono">nanowrimo</span><span class="m">' + I('tag') + 'Tag · in tags · 14 entries</span>',
+       found:'<code class="kv">tags: [ writing, <mark>nanowrimo</mark> ]</code>', now:'No tag has this name, so these 14 posts aren’t listed under it and there’s no tag page.',
+       fixes:[{label:'Create Tag', changes:r => [{path:'tags/nanowrimo.md', create:true, from:null, to:'title: ' + (r.ui.title || 'Nanowrimo')}], doneKv:'<code class="kv new">tags/<mark>nanowrimo.md</mark></code>', doneSay:r => 'Created as ' + esc(r.ui.title || 'Nanowrimo') + ', published, with 14 entries.'}],
+       detail:r => '<span class="lbl">The New Tag</span><div class="mini"><label class="k" for="ttl-t3">Title</label><input class="inp" id="ttl-t3" data-ttl="t3" value="' + esc(r.ui.title) + '"><span class="k">Address</span><span class="v">/tags/nanowrimo</span><span class="k">Status</span><span><span class="sev fixed" style="height:20px">' + I('ccheck') + 'Published</span></span></div>' +
+         '<span class="lbl">Named By</span>' + entries(NANO, 14, 'Show All 14 in Posts')}
+     ]}
+  ]
+};
+
+CHECKS.links = {
+  id:'links', name:'Links Between Entries', area:'Content',
+  about:'Follows every link one entry makes to another (Series, Related and the rest) and reports the ones that end at something that isn’t on the site.',
+  scanned:1218, unit:'file', when:'yesterday at 4:12 PM',
+  why:'A link to something not on the site shows nothing.',
+  summary(c) { return plural(c.reach,'entry','entries') + ' link to entries that aren’t on the site.'; },
+  groups:[
+    {id:'trash', sev:'warning', name:'Links to an Entry in Trash', unit:'entry',
+     says:'Visitors see nothing where these links were. Restoring brings the entry back, but only publishing puts it on the site.',
+     rows:[{
+       id:'l1', path:'series/nanowrimo-2005.md', title:'NaNoWriMo 2005', reach:5, ui:{q:'', pick:null},
+       lead:'<a class="t" href="#/">NaNoWriMo 2005</a><span class="m">' + I('trash') + 'Series · in Trash since September 12</span>',
+       found:kv('series','nanowrimo-2005'), now:'<b>5 published posts</b> name it as their series.',
+       fixes:[{label:'Restore and Publish', changes:r => [{path:r.path, from:'status: trash', to:'status: published'}], doneKv:'<code class="kv new">status: <mark>published</mark></code>', doneSay:'Back on the site, with its 5 posts.'},
+              {label:'Remove From 5 Posts', changes:r => NANO.slice(0,5).map(e => ({path:'_posts/2005-11-' + String(1 + NANO.indexOf(e) * 6).padStart(2,'0') + '.' + slugify(e.title) + '.md', from:'series: nanowrimo-2005', to:null})), doneKv:'<code class="kv new miss">series removed from 5 posts</code>', doneSay:'The posts no longer name a series.'},
+              {pick:true, list:SERIES, noun:'series', count:5, from:'series: nanowrimo-2005', key:'series'}],
+       detail:r => '<span class="lbl">Named By</span>' + entries(NANO.slice(0,5), 5, '') + '<span class="lbl">Or</span><div class="alts"><button class="btn sm" data-fix="l1:1">' + I('unlink') + 'Remove From 5 Posts</button></div>' + picker(r, 2)
+     }]},
+    {id:'gone', sev:'warning', name:'Links That Lead Nowhere', unit:'id',
+     says:'The id matches no file. The entry was deleted permanently, or the id was typed by hand.',
+     rows:[{
+       id:'l2', path:'', title:'01H2YQ7RB3M0ZK5T8XWC9DJFK4', reach:2, ui:{q:'', pick:null},
+       lead:'<span class="t mono">01H2YQ7R…DJFK4</span><span class="m">' + I('help') + 'Matches no entry · in related</span>',
+       found:kv('related','01H2YQ7RB3M0ZK5T8XWC9DJFK4'), now:'<b>2 posts</b> list it under Related, where it shows as nothing.',
+       fixes:[{label:'Remove From 2 Posts', changes:r => [{path:'_posts/2012-04-02.libraries.md', from:'related: [ …, 01H2YQ7R…DJFK4 ]', to:'related: [ … ]'},{path:'_posts/2012-05-19.margins.md', from:'related: [ …, 01H2YQ7R…DJFK4 ]', to:'related: [ … ]'}], doneKv:'<code class="kv new miss">removed from 2 posts</code>', doneSay:'The other related entries stay.'},
+              {pick:true, list:POSTS, noun:'entry', count:2, from:'related: 01H2YQ7R…DJFK4', key:'related'}],
+       detail:r => '<span class="lbl">Named By</span>' + entries([{title:'Libraries'},{title:'Margins'}], 2, '') + picker(r, 1)
+     }]},
+    {id:'draft', sev:'warning', name:'Published Entries Linking to a Draft', unit:'entry',
+     says:'The links are kept, but visitors see nothing in their place until the draft is published.',
+     rows:[{
+       id:'l3', path:'series/summer-reading-2026.md', title:'Summer Reading 2026', reach:3,
+       lead:'<a class="t" href="#/">Summer Reading 2026</a><span class="m">' + I('dashed') + 'Series · Draft</span>',
+       found:kv('series','summer-reading-2026'), now:'<b>3 published posts</b> are in this series.',
+       fixes:[{label:'Publish the Series', changes:r => [{path:r.path, from:'status: draft', to:'status: published'}], doneKv:'<code class="kv new">status: <mark>published</mark></code>', doneSay:'On the site, with its 3 posts.'}],
+       detail:r => '<span class="lbl">Named By</span>' + entries([{title:'Summer Reading, Week One'},{title:'Summer Reading, Week Two'},{title:'Summer Reading, Week Three'}], 3, '') +
+         '<span class="lbl">Or</span><div class="alts"><a class="btn sm" href="#/">' + I('pencil') + 'Open the Draft</a></div>'
+     }]}
+  ]
+};
+
+/* A search for another entry, capped at 6 results, as the editor's pickers are. */
+function picker(r, idx) {
+  const f = r.fixes[idx], q = r.ui.q.trim().toLowerCase();
+  const hits = q ? f.list.filter(e => e.title.toLowerCase().includes(q)) : f.list;
+  const shown = hits.slice(0, 6);
+  const sel = r.ui.pick;
+  return '<span class="lbl">Or Point Them at Another ' + (f.noun === 'series' ? 'Series' : 'Entry') + '</span><div class="pk">' +
+    '<div class="psearch">' + I('search') + '<input data-pk="' + r.id + '" placeholder="Search ' + fmt(f.list.length) + ' ' + (f.noun === 'series' ? 'series' : 'entries') + '" value="' + esc(r.ui.q) + '" aria-label="Search"></div>' +
+    '<div class="res">' + (shown.length ? shown.map(e => '<button data-pkv="' + r.id + '" data-v="' + esc(e.title) + '" aria-pressed="' + (sel === e.title) + '">' + esc(e.title) + '<span class="via">' + e.type + '</span></button>').join('') : '<div class="more">Nothing matches. Try fewer letters.</div>') +
+    (hits.length > 6 ? '<div class="more">6 of ' + fmt(hits.length) + '. Keep typing to narrow.</div>' : '') + '</div>' +
+    '<div><button class="btn sm primary" data-fix="' + r.id + ':' + idx + '"' + (sel ? '' : ' disabled') + '>' + I('swap') + (sel ? 'Point ' + f.count + ' Posts at “' + esc(sel) + '”' : 'Choose One First') + '</button></div></div>';
+}
+
+/* Fixes that pick a replacement build their changes from what was picked. */
+Object.values(CHECKS).forEach(c => c.groups.forEach(g => g.rows.forEach(r => {
+  r.check = c.id; r.gid = g.id; r.sev = g.sev; r.state = null; r.ui = r.ui || {};
+  r.fixes.forEach(f => {
+    if (!f.pick) return;
+    f.label = 'Point at Another';
+    f.changes = r2 => Array.from({length:f.count}, (_, i) => ({path:'_posts/…/' + (i + 1) + '.md', from:f.from, to:f.key + ': ' + slugify(r2.ui.pick || '')}));
+    f.doneKv = r2 => '<code class="kv new">' + f.key + ': <mark>' + slugify(r2.ui.pick || '') + '</mark></code>';
+    f.doneSay = r2 => f.count + ' posts now point at ' + esc(r2.ui.pick) + '.';
+  });
+})));
+const NOTES = '<h2>Site Health Checks<button class="btn sm ghost icon" data-close aria-label="Close notes">' + I('x') + '</button></h2>' +
+'<p>The overview stays as the running build draws it. What changes is the page each issue opens, so that it shows everything the check found and lets each thing be fixed where it’s listed. Open any check from the Screen switch, or from the overview’s Issues.</p>' +
+'<h3>Rules</h3><ol>' +
+'<li><i>H1</i><span><b>One page per check, one row per problem.</b> The running build gives each file a card holding one line. Here problems of one kind are grouped under a heading that names the kind and says what the site does about it now, so the reason is read once and not repeated in every row.</span></li>' +
+'<li><i>H2</i><span><b>Every row says three things:</b> which entry (its title, then its file in mono), what was found (the key and the value as written, with the bad part underlined), and what the site does because of it, in plain words.</span></li>' +
+'<li><i>H3</i><span><b>Every row has its own fix, named for what it writes</b>: <i>Use 2005-10-29</i>, <i>Change to published</i>, <i>Create Tag</i>. Never just <i>Fix</i>. Other fixes and the entries involved are behind the row’s chevron. Front matter is never shown as a block of code: a row names the key and value it found, and a confirm names the lines it will change.</span></li>' +
+'<li><i>H4</i><span><b>Changing one file happens at once, with Undo.</b> A fix that changes more than one file, and any group fix, asks first and lists every line it will change: 8 lines, then “and 204 more”.</span></li>' +
+'<li><i>H5</i><span><b>A group fixes together only when every row would get the same kind of change.</b> Then its heading offers that change with the count. Groups whose rows need a choice each (which post keeps an address, which entry to point at) have no group fix.</span></li>' +
+'<li><i>H6</i><span><b>A fixed row stays where it was</b>, marked Fixed with Undo and showing the new value, until Check Again clears it. The tab counts, the overview and the sidebar count all update at once.</span></li>' +
+'<li><i>H7</i><span><b>Tabs replace the Include Notices checkbox:</b> Needs Attention (errors, then warnings), Notices, and Ignored. Any Severity narrows Needs Attention to errors or warnings. Warnings and notices can be ignored from the row’s menu. Errors can’t, because the site is already leaving something out.</span></li>' +
+'<li><i>H8</i><span><b>Scale.</b> A group shows 5 rows and grows 50 at a time, and search narrows by title or path (press /). Notices on this site are 212 rows of one kind, which is the case this is drawn for.</span></li>' +
+'<li><i>H9</i><span><b>One problem, one check.</b> A term with no file is reported only under Terms and Profiles, not again under Content Files. No copy names a command-line tool, because the button already does what the command did.</span></li>' +
+'<li><i>H10</i><span><b>The list’s own parts.</b> The page head, the stat tiles, the underlined tabs with count chips (Ignored shows even at 0, as Draft does), and the filter row (search with /, dropdowns, the density toggle) are the admin’s list screen pieces, unchanged. Group By is one of those dropdowns, offered only where one file can have several problems (Content Files). It shows each file once, with its problems and Open in Editor.</span></li>' +
+'</ol>' +
+'<h3>What the running build does that this changes</h3>' +
+'<p>The Content Files page tells you how many problems there are in a red banner, then shows one card per file, with notices hidden behind a checkbox. Its error copy says to “run content:terms”. Entry IDs gives a count and one button, but never says which file it is or what id it will get. Neither page lets you fix one thing at a time.</p>' +
+'<h3>Open</h3><ol>' +
+'<li><i>?</i><span><b>Where ignoring is kept.</b> Per site, so everyone stops seeing it, or per account. Per site seems right, since the site’s state is the same for everyone, and then it needs to say who ignored what.</span></li>' +
+'<li><i>?</i><span><b>Whether Check Again runs only this check.</b> This sketch assumes it does. Run a Check on the overview runs all 25.</span></li>' +
+'<li><i>?</i><span><b>Whether fixes are recorded anywhere</b> beyond the files themselves. There is no history screen in the admin.</span></li>' +
+'<li><i>?</i><span><b>“Did you mean”</b> needs a similarity search from the API, the same question the relationship pickers raise.</span></li>' +
+'</ol>';
+/* =============================================================== app == */
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const SEV = {error:['Error','octx'], warning:['Warning','alert'], notice:['Notice','info'], fixed:['Fixed','ccheck'], ignored:['Ignored','eye-off']};
+const PILL = {error:'fail', warning:'check', notice:'note', fixed:'clear', ignored:'note'};
+const chip = k => '<span class="pill ' + PILL[k] + '"><span class="d"></span>' + SEV[k][0] + '</span>';
+const ORDER = ['files','ids','terms','links'];
+const S = {tab:{}, mode:{}, q:{}, sev:{}, shown:{}, busy:null, undo:null, dense:false};
+const ROWS = {};
+Object.values(CHECKS).forEach(c => c.groups.forEach(g => g.rows.forEach(r => ROWS[r.id] = r)));
+const val = (v, r) => typeof v === 'function' ? v(r) : v;
+
+/* ---------------------------------------------------------- counting -- */
+function tally(c) {
+  const t = {err:0, warn:0, notice:0, ignored:0, fixed:0, rows:0, reach:0, errFiles:new Set(), warnFiles:new Set()};
+  c.groups.forEach(g => g.rows.forEach(r => {
+    if (r.state === 'ignored') { t.ignored++; return; }
+    if (r.state === 'fixed') { t.fixed++; return; }
+    if (g.sev === 'error') { t.err++; t.errFiles.add(r.path); }
+    else if (g.sev === 'warning') { t.warn++; t.warnFiles.add(r.path); }
+    else t.notice++;
+    if (g.sev !== 'notice') { t.rows++; t.reach += r.reach || 0; }
+  }));
+  t.errFiles = t.errFiles.size; t.warnFiles = t.warnFiles.size;
+  t.status = t.err ? 'fail' : t.warn ? 'check' : 'clear';
+  return t;
+}
+const inTab = (r, tab) => tab === 'ignored' ? r.state === 'ignored' : r.state !== 'ignored' && (tab === 'notice' ? r.sev === 'notice' : r.sev !== 'notice');
+
+/* ------------------------------------------------------------ routing -- */
+function route() {
+  const m = location.hash.match(/^#\/health\/?([a-z]*)/);
+  return m && CHECKS[m[1]] ? m[1] : '';
+}
+function render() {
+  closeMenu();
+  const id = route();
+  $$('#labScreen button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.go === id)));
+  const att = ORDER.filter(k => tally(CHECKS[k]).status !== 'clear').length;
+  $('#navCount').textContent = att || '';
+  $('#crumbs').innerHTML = '<a href="#/health">Home</a><span class="sep">/</span>' + (id ? '<a href="#/health">Site Health</a><span class="sep">/</span><span aria-current="page">' + CHECKS[id].name + '</span>' : '<span aria-current="page">Site Health</span>');
+  $('#page').innerHTML = id ? renderCheck(CHECKS[id]) : renderOverview();
+  document.title = (id ? CHECKS[id].name + ' · ' : '') + 'Site Health · Meridian';
+}
+
+/* ---------------------------------------------------------- overview -- */
+/* As the running build draws it, with its rows and counts now live. */
+function renderOverview() {
+  const T = ORDER.map(k => [CHECKS[k], tally(CHECKS[k])]);
+  const issues = T.filter(x => x[1].status !== 'clear').sort((a, b) => (a[1].status === 'fail' ? 0 : 1) - (b[1].status === 'fail' ? 0 : 1));
+  const fail = issues.filter(x => x[1].status === 'fail').length, look = issues.length - fail;
+  const pass = 21 + (4 - issues.length);
+  const tile = issues.length ? (fail ? 'bad' : 'warnb') : '';
+  return '<div class="ph"><div class="ph-row"><div><h1>Site Health</h1><p class="about">Last checked yesterday</p></div>' +
+    '<div class="ph-acts"><button class="btn primary">' + I('refresh') + 'Run a Check</button></div></div></div>' +
+    '<div class="utabs" role="tablist"><button role="tab" aria-selected="true">Checks</button><button role="tab" aria-selected="false">Requirements</button></div>' +
+    '<div class="stats">' +
+      '<div class="stat ' + tile + '"><div class="k">' + I(issues.length ? 'alert' : 'ccheck') + 'Needs Attention</div><div class="v">' + issues.length + '</div><div class="s">' + (issues.length ? (fail ? fail + ' failing, ' : '') + look + ' worth a look' : 'Nothing needs you') + '</div></div>' +
+      '<div class="stat"><div class="k">' + I('ccheck') + 'Passing</div><div class="v">' + pass + '</div><div class="s">Nothing to do in those</div></div>' +
+      '<div class="stat"><div class="k">' + I('lchecks') + 'Checks Run</div><div class="v">25</div><div class="s">Across 5 areas</div></div></div>' +
+    '<div class="ov"><section class="panel"><div class="panel-head"><h2>Issues</h2><span class="hint">Failing first</span></div>' +
+      (issues.length ? issues.map(([c, t]) => '<a class="irow" href="#/health/' + c.id + '"><div class="tx"><b>' + c.name + '</b><p>' + c.summary(t) + '</p><small>' + c.area + ' · ' + c.why + '</small></div>' +
+        '<span class="pill ' + t.status + '"><span class="d"></span>' + (t.status === 'fail' ? 'Fail' : 'Check') + '</span>' + I('chev-r') + '</a>').join('')
+        : '<div class="irow"><div class="tx"><b>Nothing to fix</b><p>Every check passed.</p></div></div>') + '</section>' +
+    '<section class="panel"><div class="panel-head"><h2>Areas</h2></div>' +
+      [['files','Content','Entries’ files: their fields, ids, terms, folders, and names', issues.length],['image','Media','Library files’ ids, details, and image sizes',0],['plug','Extensions','The theme, plugins, and icon packs that are on',0],['server','System','PHP, the server, and the folders the site writes to',0],['shield','Accounts','Roles, sign-in settings, and who can publish',0]].map(a =>
+        '<div class="arow">' + I(a[0]) + '<div class="tx"><b>' + a[1] + '</b><p>' + a[2] + '</p></div>' + (a[3] ? '<span class="pill fail"><span class="d"></span>' + plural(a[3],'issue') + '</span>' : '<span class="pill clear"><span class="d"></span>Clear</span>') + '</div>').join('') + '</section></div>';
+}
+
+/* ------------------------------------------------------- a check page -- */
+function renderCheck(c) {
+  const t = tally(c);
+  const hasNotice = c.groups.some(g => g.sev === 'notice');
+  const tabs = [['need','Needs Attention', t.err + t.warn]];
+  if (hasNotice) tabs.push(['notice','Notices', t.notice]);
+  tabs.push(['ignored','Ignored', t.ignored]);
+  let tab = S.tab[c.id] || 'need';
+  const q = (S.q[c.id] || '').trim().toLowerCase();
+  const mode = c.byFile ? (S.mode[c.id] || 'problem') : 'problem';
+  const sevF = tab === 'need' ? (S.sev[c.id] || 'any') : 'any';
+  const busy = S.busy === c.id;
+  const twoSev = c.groups.some(g => g.sev === 'error') && c.groups.some(g => g.sev === 'warning');
+
+  // The page head, as every detail screen has it.
+  let h = '<div class="ph"><a class="ph-back" href="#/health">' + I('chev-l') + 'Site Health</a>' +
+    '<div class="ph-row"><div><h1>' + c.name + '</h1><p class="sub">' + (busy ? 'Checking ' + fmt(c.scanned) + ' files…' : 'Last checked ' + c.when) + '</p></div>' +
+    '<div class="ph-acts"><button class="btn" data-again="' + c.id + '"' + (busy ? ' disabled' : '') + '>' + (busy ? '<svg class="ic spin" aria-hidden="true"><use href="#i-refresh"/></svg>Checking…' : I('refresh') + 'Check Again') + '</button></div></div>' +
+    (busy ? '<div class="prog"><i id="prog"></i></div>' : '') + '</div>';
+
+  // Stat tiles, the overview's own.
+  const need = t.err + t.warn;
+  h += '<div class="stats">' +
+    '<div class="stat ' + (t.err ? 'bad' : t.warn ? 'warnb' : '') + '"><div class="k">' + I(need ? 'alert' : 'ccheck') + 'Needs Attention</div><div class="v">' + fmt(need) + '</div><div class="s">' +
+      (need ? [t.err ? plural(t.err,'error') : '', t.warn ? plural(t.warn,'warning') : ''].filter(Boolean).join(', ') : 'Nothing needs you') + '</div></div>' +
+    '<div class="stat"><div class="k">' + I('ccheck') + 'Fixed</div><div class="v">' + fmt(t.fixed) + '</div><div class="s">' + (t.fixed ? 'Undo lasts until the next check' : 'Nothing yet') + '</div></div>' +
+    (hasNotice ? '<div class="stat"><div class="k">' + I('info') + 'Notices</div><div class="v">' + fmt(t.notice) + '</div><div class="s">Nothing on the site changes</div></div>'
+               : '<div class="stat"><div class="k">' + I('lchecks') + 'Files Checked</div><div class="v">' + fmt(c.scanned) + '</div><div class="s">Every content type</div></div>') + '</div>';
+
+  h += '<div class="ltop"><div class="utabs" role="tablist">' + tabs.map(x => '<button role="tab" data-tab="' + x[0] + '" aria-selected="' + (x[0] === tab) + '">' + x[1] + '<span class="c">' + fmt(x[2]) + '</span></button>').join('') + '</div>';
+
+  const match = r => !q || [r.title, r.path, r.found].join(' ').toLowerCase().includes(q);
+  const groups = c.groups.map(g => ({g, rows:g.rows.filter(r => inTab(r, tab) && match(r) && (sevF === 'any' || r.sev === sevF))})).filter(x => x.rows.length);
+  const visible = groups.reduce((n, x) => n + x.rows.length, 0);
+
+  // The list filter row: search, dropdowns, density.
+  const sel = (key, val, opts) => '<label class="sel"><span class="sr">' + opts[0][1] + '</span><select data-sel="' + key + '">' + opts.map(o => '<option value="' + o[0] + '"' + (o[0] === val ? ' selected' : '') + '>' + o[1] + '</option>').join('') + '</select>' + I('chev-d') + '</label>';
+  h += '<div class="ftools"><label class="psearch">' + I('search') + '<input id="q" data-q="' + c.id + '" placeholder="Search titles and files" value="' + esc(S.q[c.id] || '') + '" aria-label="Search titles and files"><kbd>/</kbd></label>' +
+    (tab === 'need' && twoSev ? sel('sev', sevF, [['any','Any severity'],['error','Errors'],['warning','Warnings']]) : '') +
+    (c.byFile ? sel('mode', mode, [['problem','Group by problem'],['file','Group by file']]) : '') +
+    '<div class="dens" role="group" aria-label="Row density"><button data-dense="0" aria-pressed="' + !S.dense + '" aria-label="Comfortable rows">' + I('rows2') + '</button><button data-dense="1" aria-pressed="' + S.dense + '" aria-label="Compact rows">' + I('rows4') + '</button></div></div></div>';
+
+  if (!visible) {
+    if (q) h += '<div class="empty"><div class="badge n">' + I('search') + '</div><b>Nothing matches “' + esc(S.q[c.id]) + '”</b><p>Search looks at titles and file paths.</p><button data-clear="' + c.id + '">Clear the Search</button></div>';
+    else if (tab === 'need') h += '<div class="empty"><div class="badge">' + I('ccheck') + '</div><b>Nothing needs fixing</b><p>' + fmt(c.scanned) + ' files checked ' + c.when + '.' + (t.notice ? ' ' + plural(t.notice,'notice') + ' ' + (t.notice === 1 ? 'is' : 'are') + ' in their own tab; none of them change what the site shows.' : '') + '</p></div>';
+    else h += '<div class="empty"><div class="badge n">' + I('info') + '</div><b>Nothing here</b></div>';
+    return h;
+  }
+
+  if (mode === 'file') {
+    const byPath = new Map();
+    groups.forEach(x => x.rows.forEach(r => { if (!byPath.has(r.path)) byPath.set(r.path, []); byPath.get(r.path).push(r); }));
+    [...byPath.entries()].sort((a, b) => sevRank(a[1]) - sevRank(b[1])).forEach(([p, rows]) => {
+      const r0 = rows.find(r => r.title && !/^[a-z0-9-]+$/.test(r.title)) || rows[0];
+      h += '<section class="grp"><div class="grp-h"><div class="tx"><h2>' + (r0.title ? esc(r0.title) : 'Title can’t be read') + '</h2><span class="hint mono">' + esc(p) + '</span></div>' +
+        '<div class="end"><span class="n">' + plural(rows.length,'problem') + '</span><a class="btn sm" href="#/">' + I('pencil') + 'Open in Editor</a></div></div><ul class="hrows">' + rows.map(r => rowHtml(r, true)).join('') + '</ul></section>';
+    });
+    return h;
+  }
+
+  groups.forEach(({g, rows}) => {
+    const open = rows.filter(r => !r.state);
+    const cap = S.shown[g.id] || 5;
+    const bulk = g.bulk && open.length > 1 && tab !== 'ignored';
+    h += '<section class="grp' + (g.sev === 'error' ? ' err' : '') + '"><div class="grp-h"><div class="tx"><h2>' + g.name + '</h2><span class="hint">' + g.says + '</span></div>' +
+      '<div class="end"><span class="n">' + (open.length ? plural(open.length, g.unit) : 'All fixed') + '</span>' + chip(g.sev) + (g.extra && tab !== 'ignored' ? g.extra : '') + (bulk ? '<button class="btn sm primary" data-bulk="' + g.id + '">' + g.bulk.label(open.length) + '</button>' : '') + '</div></div>' +
+      '<ul class="hrows' + (S.dense ? ' dense' : '') + '">' + rows.slice(0, cap).map(r => rowHtml(r, false)).join('') + '</ul>' +
+      (rows.length > cap ? '<div class="h-cap">Showing ' + fmt(cap) + ' of ' + fmt(rows.length) + '<button data-more="' + g.id + '">Show ' + Math.min(50, rows.length - cap) + ' More</button></div>' : '') + '</section>';
+  });
+  return h;
+}
+const sevRank = rows => Math.min(...rows.map(r => r.sev === 'error' ? 0 : r.sev === 'warning' ? 1 : 2));
+const groupOf = r => CHECKS[r.check].groups.find(g => g.id === r.gid);
+
+function rowHtml(r, byFile) {
+  const g = groupOf(r), f = r.state === 'fixed' ? r.fixes[r.fixedBy] : null;
+  const lead = byFile ? chip(r.sev) + '<span class="t">' + g.name + '</span>' : (r.lead || lead0(r));
+  let what, acts;
+  if (r.state === 'fixed') {
+    what = val(f.doneKv, r) + '<p>' + val(f.doneSay, r) + '</p>';
+    acts = chip('fixed') + '<button class="btn sm ghost" data-undo="' + r.id + '">' + I('undo') + 'Undo</button>';
+  } else if (r.state === 'ignored') {
+    what = r.found + '<p>' + r.now + '</p>';
+    acts = '<button class="btn sm" data-unignore="' + r.id + '">' + I('undo') + 'Stop Ignoring</button>';
+  } else {
+    what = r.found + '<p>' + r.now + '</p>';
+    const f0 = r.fixes[0];
+    acts = (f0.pick ? '' : '<button class="btn sm" data-fix="' + r.id + ':0">' + fixLabel(r, 0) + '</button>') +
+      '<button class="btn sm ghost icon" data-menu="' + r.id + '" aria-label="More for this problem" aria-haspopup="menu">' + I('dots') + '</button>' +
+      (r.detail ? '<button class="btn sm ghost icon" data-exp="' + r.id + '" aria-expanded="' + !!r.open + '" aria-controls="m-' + r.id + '" aria-label="' + (r.open ? 'Hide' : 'Show') + ' details">' + I('chev-d') + '</button>' : '');
+  }
+  const more = r.detail && !r.state ? '<div class="h-more" id="m-' + r.id + '"' + (r.open ? '' : ' hidden') + '>' + r.detail(r) + '</div>' : '';
+  return '<li class="' + (r.state === 'fixed' ? 'done ' : '') + (r.sev === 'error' ? 'err' : '') + '" data-r="' + r.id + '"><div class="h-lead">' + lead + '</div><div class="h-what">' + what + '</div><div class="h-acts">' + acts + '</div>' + more + '</li>';
+}
+const lead0 = r => r.title ? '<a class="t" href="#/">' + esc(r.title) + '</a><span class="p">' + esc(r.path) + '</span>' : '<span class="p">' + esc(r.path) + '</span>';
+const fixLabel = (r, i) => {
+  const f = r.fixes[i], n = f.changes(r).length;
+  return (f.changes(r)[0] && f.changes(r)[0].create ? I('file-plus') : '') + esc(f.label);
+};
+
+/* ------------------------------------------------------------- fixing -- */
+/* One file: done at once, with Undo. More than one, or a whole group: asked
+   first, with every line it will write. */
+function fix(rows, idxOf, opts) {
+  const changes = rows.flatMap(r => r.fixes[idxOf(r)].changes(r));
+  const go = () => {
+    rows.forEach(r => { r.state = 'fixed'; r.fixedBy = idxOf(r); r.open = false; });
+    const files = new Set(changes.map(c => c.path)).size, made = changes.filter(c => c.create).length;
+    toast(made && made === changes.length ? (made === 1 ? 'Created ' + changes[0].path + '.' : 'Created ' + made + ' files.') : 'Changed ' + plural(files,'file') + '.', () => rows.forEach(r => { r.state = null; }));
+    render();
+  };
+  if (changes.length > 1 || (opts && opts.ask)) confirmBox(opts && opts.title || 'Change ' + plural(changes.length,'File') + '?', opts && opts.say, changes, opts && opts.label || 'Change ' + plural(changes.length,'File'), go);
+  else go();
+}
+
+function confirmBox(title, say, changes, label, go) {
+  const shown = changes.slice(0, 8);
+  $('#layer').innerHTML = '<div class="scrim" id="scrim"><div class="mdl" role="dialog" aria-modal="true" aria-labelledby="mdlT">' +
+    '<div class="mdl-h"><div class="badge">' + I('pencil') + '</div><h3 id="mdlT">' + esc(title) + '</h3></div>' +
+    '<div class="mdl-b"><p>' + (say || 'Each file gets the change below and nothing else. Published entries update on the site as soon as this is done.') + '</p>' +
+    '<ul class="alist chg">' + shown.map(c => '<li><span class="p">' + esc(c.path) + (c.create ? ' · new file' : '') + '</span><span class="d">' +
+      (c.from ? '<del>' + esc(c.from) + '</del>' : '') + (c.from && c.to ? I('arrow-r') : '') + (c.to ? '<ins>' + esc(c.to) + '</ins>' : '<span class="via">line removed</span>') +
+      (!c.from && !c.create ? '<span class="via">line added</span>' : '') + '</span></li>').join('') +
+      (changes.length > 8 ? '<li class="rest">and ' + fmt(changes.length - 8) + ' more, the same change in each</li>' : '') + '</ul>' +
+    '<p>Undo is offered when it’s done, and lasts until the next check.</p></div>' +
+    '<div class="mdl-f"><button class="btn" data-x>Cancel</button><button class="btn primary" data-ok>' + esc(label) + '</button></div></div></div>';
+  const close = () => { $('#layer').innerHTML = ''; };
+  $('#scrim').addEventListener('click', e => {
+    if (e.target.id === 'scrim' || e.target.closest('[data-x]')) close();
+    if (e.target.closest('[data-ok]')) { close(); go(); }
+  });
+  $('[data-ok]').focus();
+}
+
+let toastT;
+function toast(msg, undo) {
+  clearTimeout(toastT);
+  $$('.toast').forEach(t => t.remove());
+  const el = document.createElement('div');
+  el.className = 'toast'; el.setAttribute('role', 'status');
+  el.innerHTML = I('ccheck') + '<span>' + esc(msg) + '</span>' + (undo ? '<span class="div"></span><button class="undo">' + I('undo') + 'Undo</button>' : '');
+  document.body.appendChild(el);
+  if (undo) el.querySelector('.undo').onclick = () => { undo(); el.remove(); render(); };
+  toastT = setTimeout(() => el.remove(), 6000);
+}
+
+/* -------------------------------------------------------------- menus -- */
+function openMenu(btn, r) {
+  closeMenu();
+  const m = document.createElement('div');
+  m.className = 'menu'; m.id = 'menu'; m.setAttribute('role', 'menu');
+  m.innerHTML = (r.path && !r.path.includes('…') ? '<a role="menuitem" href="#/">' + I('pencil') + 'Open in Editor</a><button role="menuitem" data-copy>' + I('copy') + 'Copy File Path</button>' : '') +
+    (r.sev !== 'error' ? (r.path ? '<hr>' : '') + '<button role="menuitem" data-ign="' + r.id + '">' + I('eye-off') + 'Ignore This</button><div class="note">Ignored problems move to their own tab and stop counting.</div>' : '');
+  document.body.appendChild(m);
+  const b = btn.getBoundingClientRect();
+  m.style.top = Math.min(b.bottom + 4, innerHeight - m.offsetHeight - 8) + 'px';
+  m.style.left = Math.max(8, b.right - m.offsetWidth) + 'px';
+  m.addEventListener('click', e => {
+    const ig = e.target.closest('[data-ign]');
+    if (ig) { const rr = ROWS[ig.dataset.ign]; rr.state = 'ignored'; closeMenu(); toast('Ignored. It’s in the Ignored tab.', () => { rr.state = null; }); render(); }
+    if (e.target.closest('[data-copy]')) { closeMenu(); toast('Copied ' + r.path + '.'); }
+  });
+  (m.querySelector('a,button') || m).focus();
+}
+function closeMenu() { const m = $('#menu'); if (m) m.remove(); }
+
+/* ------------------------------------------------------------- events -- */
+$('#page').addEventListener('click', e => {
+  const el = e.target.closest('button,a');
+  if (!el) return;
+  const d = el.dataset, c = CHECKS[route()];
+  if (d.tab) { S.tab[c.id] = d.tab; render(); }
+  else if (d.dense) { S.dense = d.dense === '1'; render(); }
+  else if (d.mode) { S.mode[c.id] = d.mode; render(); }
+  else if (d.more) { S.shown[d.more] = (S.shown[d.more] || 5) + 50; render(); }
+  else if (d.clear) { S.q[d.clear] = ''; render(); }
+  else if (d.exp) { const r = ROWS[d.exp]; r.open = !r.open; render(); const b = $('[data-exp="' + r.id + '"]'); if (b) b.focus(); }
+  else if (d.menu) { e.stopPropagation(); $('#menu') ? closeMenu() : openMenu(el, ROWS[d.menu]); }
+  else if (d.undo) { ROWS[d.undo].state = null; render(); }
+  else if (d.unignore) { ROWS[d.unignore].state = null; render(); }
+  else if (d.fix) {
+    const [id, i] = d.fix.split(':'), r = ROWS[id], f = r.fixes[+i];
+    fix([r], () => +i, {label:f.pick ? 'Point ' + f.count + ' Posts at “' + r.ui.pick + '”' : f.label, title:f.pick ? 'Point ' + f.count + ' Posts at “' + r.ui.pick + '”?' : f.changes(r)[0].create ? 'Create ' + f.changes(r)[0].path + '?' : null});
+  }
+  else if (d.bulk) {
+    const g = c.groups.find(x => x.id === d.bulk), rows = g.rows.filter(r => !r.state);
+    fix(rows, () => 0, {ask:true, title:g.bulk.title(rows.length), say:g.bulk.say(rows.length), label:g.bulk.label(rows.length)});
+  }
+  else if (d.again) {
+    S.busy = d.again; $$('.toast').forEach(t => t.remove()); render();
+    requestAnimationFrame(() => requestAnimationFrame(() => { const p = $('#prog'); if (p) p.style.width = '100%'; }));
+    setTimeout(() => {
+      const cc = CHECKS[d.again];
+      cc.groups.forEach(g => { g.rows = g.rows.filter(r => r.state !== 'fixed'); });
+      cc.when = 'just now'; S.busy = null; render();
+    }, 1300);
+  }
+  else if (d.pkv) { const r = ROWS[d.pkv]; r.ui.pick = d.v; render(); }
+});
+$('#page').addEventListener('change', e => {
+  const sk = e.target.dataset.sel;
+  if (sk) { const id = route(); (sk === 'mode' ? S.mode : S.sev)[id] = e.target.value; render(); const n = $('[data-sel="' + sk + '"]'); if (n) n.focus(); return; }
+  const k = e.target.dataset.keep;
+  if (k) { ROWS[k].ui.keep = e.target.value; render(); const x = $('input[data-keep="' + k + '"]:checked'); if (x) x.focus(); }
+});
+$('#page').addEventListener('input', e => {
+  const t = e.target;
+  if (t.dataset.q) { S.q[t.dataset.q] = t.value; const pos = t.selectionStart; render(); const n = $('#q'); n.focus(); n.setSelectionRange(pos, pos); }
+  if (t.dataset.pk) { const r = ROWS[t.dataset.pk]; r.ui.q = t.value; const pos = t.selectionStart; render(); const n = $('[data-pk="' + r.id + '"]'); n.focus(); n.setSelectionRange(pos, pos); }
+  if (t.dataset.ttl) { ROWS[t.dataset.ttl].ui.title = t.value; }
+});
+document.addEventListener('click', e => { if (!e.target.closest('#menu,[data-menu]')) closeMenu(); });
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { closeMenu(); $('#layer').innerHTML = ''; }
+  if (e.key === '/' && route() && !/INPUT|TEXTAREA/.test(document.activeElement.tagName)) { e.preventDefault(); $('#q').focus(); }
+});
+window.addEventListener('hashchange', () => { render(); $('#work').scrollTop = 0; });
+
+/* ----------------------------------------------------------- harness -- */
+$('#labScreen').addEventListener('click', e => { const b = e.target.closest('button'); if (b) location.hash = '#/health' + (b.dataset.go ? '/' + b.dataset.go : ''); });
+const seg = (id, fn) => $(id).addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; $$(id + ' button').forEach(x => x.setAttribute('aria-pressed', String(x === b))); fn(b.dataset.v); });
+seg('#labTheme', v => v === 'neutral' ? document.documentElement.removeAttribute('data-admin-theme') : document.documentElement.setAttribute('data-admin-theme', v));
+seg('#labScheme', v => v === 'auto' ? document.documentElement.removeAttribute('data-color-scheme') : document.documentElement.setAttribute('data-color-scheme', v));
+$('#labNotesBtn').addEventListener('click', () => { const on = !$('#labNotes').classList.contains('on'); $('#labNotes').classList.toggle('on', on); $('#labNotesBtn').setAttribute('aria-pressed', String(on)); });
+$('#labNotes').addEventListener('click', e => { if (e.target.closest('[data-close]')) $('#labNotesBtn').click(); });
+$('#labNotes').innerHTML = NOTES;
+
+if (!location.hash) location.hash = '#/health/files';
+render();
+</script>
+
+</body>
+</html>

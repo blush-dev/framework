@@ -21,6 +21,8 @@ import HealthView from './views/HealthView.vue';
 import NotFoundView from './views/NotFoundView.vue';
 import AccountView from './views/AccountView.vue';
 import PluginView from './views/PluginView.vue';
+import RelationView from './views/RelationView.vue';
+import RelationsView from './views/RelationsView.vue';
 import PluginsView from './views/PluginsView.vue';
 import IconPackView from './views/IconPackView.vue';
 import IconPacksView from './views/IconPacksView.vue';
@@ -80,6 +82,9 @@ export const router = createRouter({
 		{ path: '/types', name: 'types', component: TypesView, meta: { title: 'Content Types', capability: 'site.settings', area: 'config' } },
 		{ path: '/types/new', name: 'type-new', component: NewTypeView, meta: { title: 'New Content Type', capability: 'site.settings', area: 'config', parent: 'types' } },
 		{ path: '/types/:name', name: 'content-type', component: TypeView, meta: { title: 'Content Type', capability: 'site.settings', area: 'config', parent: 'types' } },
+		{ path: '/relationships', name: 'relations', component: RelationsView, meta: { title: 'Relationships', capability: 'site.settings', area: 'config' } },
+		{ path: '/relationships/new', name: 'relation-new', component: RelationView, meta: { title: 'New Relationship', capability: 'site.settings', area: 'config', parent: 'relations', wide: true } },
+		{ path: '/relationships/:name([a-z0-9_]+)', name: 'relation', component: RelationView, meta: { title: 'Relationship', capability: 'site.settings', area: 'config', parent: 'relations', wide: true } },
 		{ path: '/fields', name: 'fields', component: FieldSetsView, meta: { title: 'Fields', capability: 'site.settings', area: 'config' } },
 		{ path: '/fields/new', name: 'field-set-new', component: NewFieldSetView, meta: { title: 'New Field Set', capability: 'site.settings', area: 'config', parent: 'fields' } },
 		{ path: '/fields/:name', name: 'field-set', component: FieldSetView, meta: { title: 'Field Set', capability: 'site.settings', area: 'config', parent: 'fields' } },

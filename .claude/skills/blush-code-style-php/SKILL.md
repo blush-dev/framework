@@ -1,9 +1,9 @@
 ---
 name: blush-code-style-php
 description: >
-  PHP coding standards for Blush (the flat-file CMS framework) and sites built
-  on it. Use before writing, editing, or reviewing any PHP in this project:
-  classes, templates, config files, tests, CLI commands.
+  PHP coding standards for Blush (the CMS framework) and sites built on it.
+  Use before writing, editing, or reviewing any PHP in this project: classes,
+  templates, config files, tests, CLI commands.
 ---
 
 # Blush PHP style guide

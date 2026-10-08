@@ -66,6 +66,7 @@ const everywhere = computed<Command[]>(() => {
 	const screens: [string, string, IconName, string, string?][] = [
 		['media', 'Go to Media', 'image', 'media', 'files images library uploads'],
 		['types', 'Go to Content Types', 'layers', 'site.settings'],
+		['relations', 'Go to Relationships', 'workflow', 'site.settings', 'relations links taxonomies credits terms'],
 		['fields', 'Go to Fields', 'group', 'site.settings', 'field sets custom fields'],
 		['themes', 'Go to Themes', 'paintbrush', 'extensions.themes.view', 'appearance look'],
 		['plugins', 'Go to Plugins', 'plug', 'extensions.plugins.view', 'addons extensions'],

@@ -15,6 +15,7 @@ namespace Blush\Admin;
 
 use Psr\Http\Message\ResponseInterface;
 use Blush\Content\Relation\Relation;
+use Blush\Content\Relation\RelationChanges;
 use Blush\Content\Relation\RelationOrigin;
 use Blush\Content\Type\ContentConfig;
 use Blush\Content\Type\ContentTypes;
@@ -23,21 +24,31 @@ use Blush\Http\Response;
 /**
  * Answers `GET {path}/api/relations` (D-593): the relations the site
  * defines (from extensions, config, and `user/data/relations`), each as
- * `describe()` gives it, for the admin's Relationships section. They're
- * changed through `TypeEditController` (`POST relations`, `PATCH` and
- * `DELETE relations/{name}`), with the types.
+ * `describe()` gives it, with how many entries have a value in it
+ * (`entries`) and whether it's still written as a taxonomy (`legacy`),
+ * for the Relationships list (D-610). They're changed through
+ * `TypeEditController` (`POST relations`, `PATCH` and `DELETE
+ * relations/{name}`), with the types.
  */
 final readonly class RelationsController
 {
 	public function __construct(
 		private ContentTypes $types,
-		private ContentConfig $config
+		private ContentConfig $config,
+		private RelationChanges $changes
 	) {}
 
 	public function __invoke(): ResponseInterface
 	{
+		$relations = $this->types->relations();
+		$counts    = $this->changes->counts($relations);
+
 		return Response::json([
-			'relations' => array_values(array_map(fn (Relation $relation): array => self::describe($this->types, $relation, $this->config->dataTypes), $this->types->relations())),
+			'relations' => array_values(array_map(fn (Relation $relation): array => [
+				...self::describe($this->types, $relation, $this->config->dataTypes),
+				'entries' => $counts[$relation->name] ?? 0,
+				'legacy'  => in_array($relation->name, $this->types->legacy, true)
+			], $relations)),
 			'create'    => $this->config->dataTypes
 		], headers: ['Cache-Control' => 'no-store']);
 	}
@@ -65,6 +76,7 @@ final readonly class RelationsController
 			'field'        => $relation->field,
 			'aliases'      => $relation->aliases,
 			'label'        => $relation->label,
+			'singular'     => $relation->singular,
 			'multiple'     => $relation->multiple,
 			'ordered'      => $relation->ordered,
 			'min'          => $relation->min,

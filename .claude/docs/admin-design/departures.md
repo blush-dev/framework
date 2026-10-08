@@ -949,3 +949,48 @@ D-541). Where the admin differs from the sketch:
   with room.
 - **Pronouns:** the sketch's "Her name comes off…" is "The name comes
   off…", since the admin doesn't know a profile's pronouns.
+
+## The Relationships list and screen (`meridian-relationship-pickers.html`, D-610)
+
+- **Storage:** relationships are saved in `user/data/relations` (D-593),
+  not with their type in `user/data/types`; the list's notice and the
+  screen's say so. The author's call.
+- **The icon** for Relationships is Lucide's `workflow`; the sketch has
+  none of its own.
+- **Keys** are lowercase letters, digits, and underscores, as every
+  relation name is, not hyphens.
+- **Purpose is fixed once made:** the screen shows it as a value on an
+  existing relationship. The sketch's switch only previews endpoints.
+- **Count Both Ways** isn't built: nothing keeps a count on each
+  target. The Options panel's **Both Ways** row is the symmetric option
+  for a link to its own type, shown only then.
+- **Remove** is also at the foot of a relationship's screen, as a
+  danger zone, beside the type panel's Remove.
+- **A row stored on several other types** (one filing every type) has
+  Edit, to the relationship's screen, since there's no one type to
+  send it to.
+- **Show All in {type}** opens the type's list filtered by a new
+  `over`/`above` filter, with a notebar and Show All, like Linked
+  From's.
+- **The type screen's Archives and Addresses** stay the editable panels
+  (the byline select, list pages written on save, route paths; D-350,
+  D-602), not the sketch's read-only tables.
+- **Where This Profile Appears** keeps its Edit menu rather than
+  separate buttons. Types that credit no one are no longer listed, as in
+  the sketch: with terms as collections, they were a column of dashes.
+- **Refusal titles and buttons** follow what's refused: "Can't Take
+  Exactly One Yet" with Keep as Several, and "Can't Point at Another
+  Type Yet" with Keep {target}.
+- **Checked in a browser** (2026-10-08): the screen's controls take the
+  Settings rows' `field` class, a segmented control keeps its own width,
+  the list's search is `toolbar__search`, and checkbox captions in its
+  confirmations are sentence case.
+- **Built from the admin's own pieces:** the list's name cell is the
+  types list's (the kind's icon beside the name, the key under it, an
+  old taxonomy's note and Migrate under that), with Kind as plain text;
+  the type panel's group rows are Site Health's, now shared as
+  `.table__group`; and the screen's Purpose and Stored On are the
+  Settings screens' radio buttons and checkboxes (`FieldInput`), with
+  help beside each row as on Settings, not under it. On a type shown
+  read-only, the Relationships panel takes the full width under the
+  two columns.

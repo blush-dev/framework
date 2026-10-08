@@ -5,6 +5,7 @@
  * glyphs are the admin's own (D-313): two rules for the text column with
  * a bar between them that matches it, overruns it, or doesn't stop.
  * `bot` is the settings sketch's robot (D-404), for the AI screen.
+ * `workflow` (two boxes joined) marks Relationships (D-610).
  * `link` and `shapes` are Lucide's, scaled about the center to the
  * editor toolbar's 16-unit ink height (D-314), as the direction has them.
  */
@@ -129,6 +130,7 @@ export const icons = {
 	'user-round': '<circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 0 0-16 0"/>',
 	'users': '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><path d="M16 3.128a4 4 0 0 1 0 7.744"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><circle cx="9" cy="7" r="4"/>',
 	'video': '<path d="m16 13 5.223 3.482a.5.5 0 0 0 .777-.416V7.87a.5.5 0 0 0-.752-.432L16 10.5"/><rect x="2" y="6" width="14" height="12" rx="2"/>',
+	'workflow': '<rect width="8" height="8" x="3" y="3" rx="2"/><path d="M7 11v4a2 2 0 0 0 2 2h4"/><rect width="8" height="8" x="13" y="13" rx="2"/>',
 	'wrench': '<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.106-3.105c.32-.322.863-.22.983.218a6 6 0 0 1-8.259 7.057l-7.91 7.91a1 1 0 0 1-2.999-3l7.91-7.91a6 6 0 0 1 7.057-8.259c.438.12.54.662.219.984z"/>',
 	'x': '<path d="M18 6 6 18"/><path d="m6 6 12 12"/>'
 } as const;

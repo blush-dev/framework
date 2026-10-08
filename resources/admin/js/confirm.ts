@@ -16,6 +16,9 @@
  * a line on how it's involved, a count, and a draft's pill, so a count
  * above it can be checked by eye. A list that stops short says where the
  * rest are (`more`), with an `action` that answers Cancel and goes there.
+ *
+ * A refusal (`alone`, D-610) has one button, which keeps things as they
+ * were: there's nothing to confirm, only what has to happen first.
  */
 
 import { onBeforeUnmount, onMounted, ref } from 'vue';
@@ -55,6 +58,8 @@ export interface ConfirmOptions {
 	action?: { label: string; run: () => void };
 	// Paragraphs after the list.
 	after?: string | string[];
+	// Only the confirming button, for a refusal.
+	alone?: boolean;
 }
 
 export interface PendingConfirm extends ConfirmOptions {

@@ -13,14 +13,15 @@
  *   guest profile, and an account with no profile can be linked here,
  *   unless it's locked (D-605): a switch, for whoever links accounts.
  * - **Where This Profile Appears**: the profile's own page, then one row
- *   per profile field of each type that credits people, with its archive
- *   and where its body comes from, as a pill: **Written** (a page written
+ *   per type and credit (D-610: a type crediting people two ways has two
+ *   rows), with its archive, how many entries credit it that way, and
+ *   where its body comes from, as a pill: **Written** (a page written
  *   for that archive) or **Inherited** (the profile's own). **Write one**
  *   creates that page, a draft, and opens it; **Move to trash** puts the
  *   archive back on the profile's body, and the page can be restored from
  *   its type's Trash tab (D-370). A field whose archive is off keeps a
- *   page written for it, marked **Unreachable**. A type with no profile
- *   field is listed last, so it's clear why it isn't anywhere above.
+ *   page written for it, marked **Unreachable**. Types that credit no one
+ *   aren't listed (D-610).
  */
 
 import { computed, ref, watch } from 'vue';
@@ -78,8 +79,6 @@ const editRoute = computed(() => profile.value?.id ? entryRoute({ id: profile.va
 const liveUrl   = computed(() => profile.value?.status === 'published' && profile.value.url ? new URL(profile.value.url, config.site.url).href : null);
 const yours     = computed(() => session.account?.author === slug.value);
 
-// Types that credit no one, so a reader sees why they aren't above.
-const uncredited = computed(() => types.value.filter((type) => (type.kind === 'collection' || type.kind === 'tree') && !type.authors));
 
 // Publishes a draft profile, so its page and bylines go live.
 async function publish(): Promise<void> {
@@ -340,7 +339,7 @@ async function link(): Promise<void> {
 					<p class="panel__hint">At most one, and optional</p>
 				</header>
 				<template v-if="detail.account">
-					<div class="panel__body linked__who">
+					<div class="panel__body">
 						<div class="who">
 							<span class="avatar avatar--large" aria-hidden="true">{{ initials(detail.account.displayName) }}</span>
 							<span class="who__text">
@@ -348,8 +347,6 @@ async function link(): Promise<void> {
 								<span class="who__meta">{{ detail.account.username }}</span>
 							</span>
 						</div>
-					</div>
-					<div class="panel__body">
 						<dl class="fact-rows">
 							<div><dt>Email</dt><dd :class="{ muted: !detail.account.email }">{{ detail.account.email ?? 'None yet' }}</dd></div>
 							<div><dt>Standing</dt><dd>{{ statusPill(detail.account.status).label }}</dd></div>
@@ -377,7 +374,7 @@ async function link(): Promise<void> {
 							</span>
 						</div>
 					</div>
-					<div v-if="canLock" class="panel__body linked__lock">
+					<div v-if="canLock" class="panel__body panel__body--ruled linked__lock">
 						<dl class="fact-rows">
 							<div>
 								<dt>Can be linked</dt>
@@ -393,16 +390,17 @@ async function link(): Promise<void> {
 		<section v-if="detail && profile" class="panel" aria-labelledby="appears-heading">
 			<header class="panel__header">
 				<h2 id="appears-heading">Where This Profile Appears</h2>
-				<p class="panel__hint">Its own page, plus one row per profile field that has an archive</p>
+				<p class="panel__hint">Its own page, then one row per type and credit</p>
 			</header>
 			<div class="table-wrap">
 				<table class="table res" aria-labelledby="appears-heading">
-					<colgroup><col class="res__field"><col><col class="res__content"><col class="res__actions"></colgroup>
+					<colgroup><col class="res__field"><col><col class="res__count"><col class="res__content"><col class="res__actions"></colgroup>
 					<thead>
 						<tr>
-							<th scope="col">Field</th>
+							<th scope="col">Credit</th>
 							<th scope="col">Archive</th>
-							<th scope="col">Content</th>
+							<th scope="col" class="table__count">Entries</th>
+							<th scope="col">Text</th>
 							<th scope="col" class="table__actions"><span class="visually-hidden">Actions</span></th>
 						</tr>
 					</thead>
@@ -413,6 +411,7 @@ async function link(): Promise<void> {
 								<span class="res__about">Its own page, and every archive's default</span>
 							</th>
 							<td><span v-if="profile.url" class="res__path">{{ profile.url }}</span><span v-else class="muted">—</span></td>
+							<td class="table__count muted">—</td>
 							<td><span class="pill pill--written">Written</span></td>
 							<td class="table__actions">
 								<RouterLink v-if="editRoute" class="button button--small" :to="editRoute">Edit</RouterLink>
@@ -421,9 +420,10 @@ async function link(): Promise<void> {
 						<tr v-for="row in detail.appears" :key="`${row.type}.${row.relation}`" :class="{ 'res__off': !row.archive }">
 							<th scope="row">
 								<span class="res__name">{{ row.label }}</span>
-								<span class="res__about">{{ row.typeLabel }} · {{ row.archive ? plural(row.entries, 'entry', 'entries') : 'archive is off' }}</span>
+								<span class="res__about">{{ row.typeLabel }}{{ row.archive ? '' : ' · archive is off' }}</span>
 							</th>
 							<td><span v-if="row.archive" class="res__path">{{ row.archive }}</span><span v-else class="muted">—</span></td>
+							<td class="table__count mono">{{ row.entries.toLocaleString() }}</td>
 							<td>
 								<template v-if="!row.archive">
 									<span v-if="row.page" class="pill" title="Kept, but nothing routes to it while the archive is off">Unreachable</span>
@@ -445,15 +445,6 @@ async function link(): Promise<void> {
 								<RouterLink v-else-if="!row.archive && can('site.settings')" class="button button--ghost button--small" :to="{ name: 'content-type', params: { name: row.type } }">Type Settings</RouterLink>
 							</td>
 						</tr>
-						<tr v-for="type in uncredited" :key="type.name">
-							<th scope="row">
-								<span class="res__name">{{ type.labels.plural }}</span>
-								<span class="res__about">No profile field</span>
-							</th>
-							<td><span class="muted">—</span></td>
-							<td><span class="muted">—</span></td>
-							<td class="table__actions" />
-						</tr>
 					</tbody>
 				</table>
 			</div>
@@ -470,17 +461,10 @@ async function link(): Promise<void> {
 /* The lock's switch (D-605), centered on its label. */
 .linked__lock {
 	padding-block: var(--s-2);
-	border-top: 1px solid var(--border);
 }
 
 .linked__lock .fact-rows > div {
 	align-items: center;
-}
-
-.linked__who {
-	padding-top: var(--s-4);
-	padding-bottom: 0;
-	border-top: 1px solid var(--border);
 }
 
 /* Where it appears: the profile's own row tinted as everyone's default,
@@ -492,6 +476,10 @@ async function link(): Promise<void> {
 
 .res__field {
 	width: 28%;
+}
+
+.res__count {
+	width: 88px;
 }
 
 .res__content {

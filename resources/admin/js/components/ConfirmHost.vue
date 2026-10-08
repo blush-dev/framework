@@ -53,7 +53,7 @@ function follow(): void {
 			<p v-if="current.checkHelp" class="field__help">{{ current.checkHelp }}</p>
 		</div>
 		<template #footer>
-			<button type="button" class="button" :autofocus="current.danger || undefined" @click="answerConfirm(current.id, false)">{{ current.cancel ?? 'Cancel' }}</button>
+			<button v-if="!current.alone" type="button" class="button" :autofocus="current.danger || undefined" @click="answerConfirm(current.id, false)">{{ current.cancel ?? 'Cancel' }}</button>
 			<button type="button" class="button" :class="current.danger ? 'button--danger' : 'button--primary'" :autofocus="!current.danger || undefined" @click="answerConfirm(current.id, true)">{{ current.confirm }}</button>
 		</template>
 	</AdminModal>

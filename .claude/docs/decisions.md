@@ -18207,3 +18207,91 @@ decision, add a new entry that supersedes it and mark the old one
   pinned rows (D-608) drops its bottom border, so one line separates
   them, not two.
 - **Why:** the author asked, 2026-10-07.
+
+### D-610: The Relationships list and screen, from the pickers sketch
+
+- **Date:** 2026-10-07
+- **Status:** Built.
+- **Decision:** the pickers sketch's remaining boards
+  (`.claude/docs/admin-design/meridian-relationship-pickers.html`:
+  Relationships, Editing a Relationship, Changing or Removing a
+  Relationship, A Content Type's Screen, and Where This Profile
+  Appears) are built.
+  1. **Relationships**, a screen of its own in Config → Structure,
+     between Content Types and Fields, with the `workflow` icon (two
+     boxes joined; the author asked for one). It's the primary place
+     relationships are made and edited: tabs by purpose (Credits, Files
+     Under Terms, Links), a search over names and keys, a type filter
+     matching either end, a source filter, and a table of Name (label,
+     key under it), Connects (storing type → target), Kind, Source, and
+     Entries. Rows from config and plugins keep their row with no link;
+     one still written as a taxonomy is flagged with Migrate (Site
+     Health's taxonomies check). No checkboxes.
+  2. **A relationship's screen** (`/relationships/{name}`,
+     `/relationships/new`) replaces the modal form (`RelationForm` is
+     gone): a settings screen, the Settings screens' rows (their styles
+     now shared in `admin.css` as `.setting-panels` and `.setting`, since
+     the editor's Publish panel has its own `.settings`), with the sentence under the title
+     rewritten as purpose, endpoints, and names change, Stored On always
+     a row, and limits restated as a sentence. Opened from a type
+     (`?type=`), a new one is stored on it and saving goes back there.
+     **Storage stays `user/data/relations`** (D-593; the author: "Keep
+     our storage"), though the sketch says `user/data/types`.
+  3. **Changes in five shapes:** refused (no confirm, the entries in the
+     way, 8 then "and N more", Show All in the type's list, one button
+     that puts the setting back), a new key (alias by default, rewrite a
+     checkbox), a type no longer filed (strip a checkbox), tighter limits
+     (the entries over, counted; nothing in a file changes), and remove
+     (strip a checkbox, danger). Confirmations take `alone` for a
+     refusal's single button.
+  4. **A type's Relationships panel** as sentence rows ("Credits
+     **Profiles** as Cooks") with Key and Takes, grouped Stored on
+     {type} and Stored on other types; a row stored elsewhere has one
+     action, Edit on {that type}; code rows show In code. The header has
+     View in Relationships (the list filtered to the type) and Add
+     Relationship.
+  5. **Where This Profile Appears:** columns Credit, Archive, Entries,
+     Text; one row per type and credit, as it already was.
+- **Why:** the author's go, 2026-10-07 ("Keep our storage", "Yes, keep a
+  page of its own. Needs an icon."). The "Shared Terms" heading in the
+  Content panel is unrelated and stays.
+- **Built:**
+  - **Server:** `RelationCheck` adds `refused` (`type`, `one`),
+    `inWay`/`inWayCount`, `over`/`overCount`, `fewer`, and
+    `inverseOver`, with entries named most values first, up to
+    `RelationCheck::LISTED` (8). `RelationChanges::counts()` (entries
+    with a value, every relation in one pass) and `slugsOver()`.
+    `GET relations` adds `entries`, `legacy`, and `singular`. `GET
+    entries` takes `over` (a relation's name) with `above`, answering
+    `over` (`label`, `above`). Counts add `relations`.
+  - **Admin:** `RelationsView`, `RelationView`, `relations.ts` (the
+    sentences, `takes()`, `limitsSay()`, `confirmRelationChange()`,
+    `removeRelation()`), `TypeRelations` redrawn, the entries list's
+    `over` notebar, the palette's Go to Relationships.
+- **Not built (departures):** the sketch's Archives and Addresses
+  tables on a type's screen: ours stay the editable panels (D-350,
+  D-602). "Count Both Ways" (a count kept on each target) has no
+  counterpart; the screen's Both Ways is the symmetric option.
+- **Checked:** `composer check`; `npm run admin:build`. Not exercised in
+  a browser.
+
+### D-611: Two kinds to choose from: Collection and Tree
+
+- **Decision:** New Content Type offers two kinds, **Collection** and
+  **Tree**. Terms stop being a third card. Instead, a collection's
+  Behavior has one choice, "Its entries file other entries, like topics
+  or tags". Choosing it shows **Files** and sets the terms defaults:
+  ordered by position, no authors, left out of `llms.txt`. **Create
+  Type** still writes the classify relation. The Content Types list
+  keeps its **Terms** tab, since that tab describes what a type does,
+  worked out from its relations (D-593). Starting a terms type from a
+  type's Relationships panel ("Filed under → a new type") is an option
+  for the design to consider, not settled.
+- **Why:** since D-593, terms are a collection that a classify relation
+  files entries under. That's a purpose, which changes as relations are
+  added and removed, not a storage kind like collection or tree. A
+  separate card brought back the retired taxonomy idea and gave a
+  second way to do one thing. The author: "update the brief to include
+  the two kinds", 2026-10-08.
+- **Not built yet:** the Content Types brief for the design system
+  carries it; `NewTypeView` still has three cards.

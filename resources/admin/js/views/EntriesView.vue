@@ -133,6 +133,10 @@ const linkedTo = computed(() => !inTrash.value && info.value?.kind === 'profiles
 const linking = computed(() => inTrash.value ? '' : text('linking'));
 const via     = computed(() => linking.value === '' ? '' : text('via'));
 const linked  = computed(() => !inTrash.value && route.query.linked === '1');
+// The entries with more values in a relation than a number: the ones in
+// the way of a relationship change (D-610).
+const over    = computed(() => inTrash.value ? '' : text('over'));
+const above   = computed(() => over.value === '' || !/^\d+$/.test(text('above')) ? '' : text('above'));
 const chosen = computed<Record<string, string>>(() => inTrash.value ? {} : Object.fromEntries(
 	text('terms').split(',').map((pair) => pair.split(':')).filter((parts) => parts.length === 2 && parts[0] !== '' && parts[1] !== '')
 ));
@@ -142,7 +146,7 @@ const sort = computed<EntrySort | ''>(() => SORTS.includes(route.query.sort as E
 const dir  = computed<'asc' | 'desc' | ''>(() => sort.value === '' ? '' : (route.query.dir === 'asc' || route.query.dir === 'desc' ? route.query.dir : (sort.value === 'updated' ? 'desc' : 'asc')));
 const per  = computed(() => PER_OPTIONS.includes(Number(route.query.per)) ? Number(route.query.per) : PER_PAGE);
 
-const filtered = computed(() => search.value !== '' || author.value !== '' || days.value !== '' || linkedTo.value !== '' || linking.value !== '' || linked.value || Object.keys(chosen.value).length > 0);
+const filtered = computed(() => search.value !== '' || author.value !== '' || days.value !== '' || linkedTo.value !== '' || linking.value !== '' || linked.value || over.value !== '' || Object.keys(chosen.value).length > 0);
 
 // Terms (D-593), and the authors type's entries, which are people
 // (D-329): they're counted by use, not credited.
@@ -201,7 +205,7 @@ watch(search, (value) => {
 
 function clear(): void {
 	query.value = '';
-	go({ search: undefined, author: undefined, terms: undefined, days: undefined, account: undefined, linking: undefined, via: undefined, linked: undefined, page: undefined });
+	go({ search: undefined, author: undefined, terms: undefined, days: undefined, account: undefined, linking: undefined, via: undefined, linked: undefined, over: undefined, above: undefined, page: undefined });
 }
 
 // The filters' selects write the URL; the first page shows what they find.
@@ -399,6 +403,11 @@ function params(extra: Record<string, string>, own = status.value === 'mine'): s
 		values.set('linked', '1');
 	}
 
+	if (over.value !== '') {
+		values.set('over', over.value);
+		values.set('above', above.value || '0');
+	}
+
 	return values.toString();
 }
 
@@ -472,7 +481,7 @@ async function load(): Promise<void> {
 	}
 }
 
-watch(() => [status.value, type.value, search.value, page.value, author.value, days.value, linkedTo.value, linking.value, via.value, linked.value, route.query.terms, sort.value, dir.value, per.value], () => {
+watch(() => [status.value, type.value, search.value, page.value, author.value, days.value, linkedTo.value, linking.value, via.value, linked.value, over.value, above.value, route.query.terms, sort.value, dir.value, per.value], () => {
 	selected.value = [];
 	void load();
 }, { immediate: true });
@@ -800,6 +809,11 @@ const emptyText = computed(() => {
 						<span v-if="list.linking">Only the {{ labels.items }} linking to <strong>{{ list.linking.title || 'Untitled' }}</strong><template v-if="list.linking.via"> through {{ list.linking.via }}</template>.</span>
 						<span v-else>Only the {{ labels.items }} live entries link to.</span>
 						<button type="button" class="button button--ghost button--small notebar__action" @click="go({ linking: undefined, via: undefined, linked: undefined, page: undefined })">Show All</button>
+					</p>
+					<p v-if="list.over" class="notebar">
+						<AdminIcon name="workflow" />
+						<span>Only the {{ labels.items }} with {{ list.over.above === 0 ? 'any' : `more than ${list.over.above}` }} in <strong>{{ list.over.label }}</strong>.</span>
+						<button type="button" class="button button--ghost button--small notebar__action" @click="go({ over: undefined, above: undefined, page: undefined })">Show All</button>
 					</p>
 					<p v-if="flattened && list.entries.length" class="notebar">
 						<AdminIcon name="info" />{{ flattened }}

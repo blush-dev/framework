@@ -229,6 +229,11 @@
 	margin-top: var(--s-4);
 }
 
+/* A body that follows another, under a hairline. */
+.panel__body--ruled {
+	border-top: 1px solid var(--border);
+}
+
 /* Named parts of one panel (D-565), each under a hairline, with its own
    hint, so a panel of several short lists doesn't become several panels.
    A `--turn` is a band where the panel turns to another subject. */
@@ -239,7 +244,8 @@
 	border-top: 1px solid var(--border);
 }
 
-.panel__header + .panel__section {
+/* The header's own line is the only one under it, whatever part follows. */
+.panel__header + :is(.panel__section, .panel__body--ruled, .panel__buttons, .panel__note, .panel__foot) {
 	border-top: 0;
 }
 
@@ -685,6 +691,21 @@
 	.row-more[aria-expanded="true"] {
 		opacity: 1;
 	}
+}
+
+/* A group's heading row, over the rows it names (Site Health's
+   requirements, a type's relationships by where they're stored). */
+.table .table__group th {
+	padding-block: 10px;
+	background: var(--surface-2);
+	color: var(--fg);
+	font-size: var(--text-sm);
+	font-weight: 600;
+	text-align: left;
+}
+
+.table tbody tr.table__group:hover > * {
+	background: var(--surface-2);
 }
 
 /* Counts line up on the right. */
@@ -3991,4 +4012,242 @@ button.lnk {
 
 .reference__select--inherited .select__label {
 	color: var(--fg-3);
+}
+
+/* Settings (D-404), shared by the Settings screens and a relationship's
+   screen (D-610): one column of panels, the full width. The rows read the
+   panel's width, not the window's, so they fit with the section panel
+   open or closed. It may be a fieldset, to lock every control at once. */
+.setting-panels {
+	display: grid;
+	gap: var(--s-5);
+	min-width: 0;
+	margin: 0;
+	padding: 0;
+	border: 0;
+	container-type: inline-size;
+}
+
+.setting-panels__header {
+	align-items: baseline;
+}
+
+/* Each setting is a row: label, control, help. The width that would sit
+   empty to the right carries the help, so rows get shorter, not taller. */
+.setting {
+	--setting-label: 220px;
+	--setting-control: 420px;
+
+	display: grid;
+	grid-template-columns: var(--setting-label) minmax(0, var(--setting-control)) minmax(0, 1fr);
+	gap: var(--s-2) var(--s-5);
+	align-items: start;
+	padding: var(--s-4) var(--pad-x);
+	border-top: 1px solid var(--border);
+}
+
+.setting:first-child {
+	border-top: 0;
+}
+
+/* A control that wants the width takes the help's column too, with the
+   help under it. */
+.setting--wide {
+	grid-template-columns: var(--setting-label) minmax(0, 1fr);
+}
+
+.setting--wide .setting__help {
+	grid-column: 2;
+	max-width: 72ch;
+	padding-top: 0;
+}
+
+.setting__label {
+	padding-top: 8px;
+	color: var(--fg);
+	font-size: var(--base);
+	font-weight: 500;
+}
+
+.setting__label label {
+	color: inherit;
+	font-size: inherit;
+}
+
+.setting__control {
+	display: grid;
+	gap: var(--s-3);
+	min-width: 0;
+}
+
+.setting__control > * {
+	margin: 0;
+}
+
+/* A row of buttons keeps its own width, as a switch does. */
+.setting__control > .segmented {
+	justify-self: start;
+}
+
+.setting__control.is-unset > :first-child {
+	opacity: .6;
+}
+
+.setting__control input[type="number"] {
+	max-width: 8rem;
+}
+
+/* A setting's options sit in a row, unless they're described. */
+.setting__control .field-input__choices:not(.field-input__choices--detailed) {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--s-2) var(--s-5);
+	min-height: var(--ctl);
+}
+
+.setting__control .field-input__choices--detailed {
+	padding-top: 7px;
+}
+
+/* A switch sits on the control line. */
+.setting__switch {
+	display: flex;
+	align-items: center;
+	min-height: var(--ctl);
+}
+
+/* A row turned off by another keeps its control, dimmed, with the reason
+   in its help. */
+.setting.is-off .setting__control {
+	opacity: .55;
+}
+
+.setting__help {
+	display: grid;
+	gap: 4px;
+	max-width: 52ch;
+	padding-top: 8px;
+	color: var(--fg-3);
+	font-size: var(--text-sm);
+	line-height: 1.5;
+}
+
+.setting__help:empty {
+	display: none;
+}
+
+.setting__help p {
+	margin: 0;
+}
+
+/* A value set in code, read where the controls start. */
+.setting__value {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: var(--s-2);
+	min-height: var(--ctl);
+	overflow-wrap: anywhere;
+}
+
+.setting__none {
+	color: var(--fg-3);
+}
+
+.setting__pill--on::before {
+	background: var(--good-dot);
+}
+
+.setting__links {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--s-1) var(--s-4);
+}
+
+.setting__link {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--s-1);
+	padding-bottom: 1px;
+	border-bottom: 1px solid var(--accent-line);
+	color: var(--accent);
+	font-size: var(--text-sm);
+	text-decoration: none;
+}
+
+.setting__link:hover {
+	border-bottom-color: var(--accent);
+}
+
+.setting__link .icon {
+	width: 13px;
+	height: 13px;
+}
+
+.setting__warning {
+	display: flex;
+	align-items: flex-start;
+	gap: var(--s-2);
+	max-width: 64ch;
+	color: var(--warn);
+	font-size: var(--text-sm);
+}
+
+.setting__warning svg {
+	flex: none;
+	width: 14px;
+	height: 14px;
+	margin-top: 2px;
+	color: var(--warn-dot);
+}
+
+/* A panel's closing note: plain, under a hairline. */
+.setting-panels__foot {
+	margin: 0;
+	padding: var(--s-3) var(--pad-x);
+	border-top: 1px solid var(--border);
+	color: var(--fg-3);
+	font-size: var(--text-sm);
+}
+
+/* On a wide panel, a little more room for the control and a longer line
+   for the help. */
+@container (width >= 1300px) {
+	.setting {
+		--setting-label: 250px;
+		--setting-control: 520px;
+	}
+
+	.setting__help {
+		max-width: 64ch;
+	}
+}
+
+/* Narrower, the help goes under the control. */
+@container (width < 1080px) {
+	.setting {
+		grid-template-columns: var(--setting-label) minmax(0, 1fr);
+	}
+
+	.setting__help {
+		grid-column: 2;
+		max-width: 72ch;
+		padding-top: 0;
+	}
+}
+
+@container (width < 640px) {
+	.setting,
+	.setting--wide {
+		grid-template-columns: minmax(0, 1fr);
+	}
+
+	.setting__help,
+	.setting--wide .setting__help {
+		grid-column: 1;
+	}
+
+	.setting__label {
+		padding-top: 0;
+	}
 }

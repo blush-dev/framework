@@ -666,7 +666,7 @@ async function changePassword(): Promise<void> {
 					<button v-if="mine" ref="changeButton" type="button" class="button button--small" @click="startPasswordChange"><AdminIcon name="key-round" />Change Password</button>
 					<button v-if="canEditDetails" type="button" class="button button--small" @click="startDetails()">{{ mine ? 'Change Name or Email' : 'Edit Details' }}</button>
 				</div>
-				<div v-if="mine && changing" class="panel__body account-password">
+				<div v-if="mine && changing" class="panel__body panel__body--ruled">
 					<form class="form-stack details-form" :aria-busy="passwordBusy" @submit.prevent="changePassword" @keydown.esc="stopPasswordChange">
 						<input type="text" class="visually-hidden" name="username" :value="account.username" autocomplete="username" tabindex="-1" aria-hidden="true" readonly>
 						<p class="field">
@@ -817,9 +817,5 @@ async function changePassword(): Promise<void> {
 
 .details-form {
 	max-width: 24rem;
-}
-
-.account-password {
-	border-top: 1px solid var(--border);
 }
 </style>

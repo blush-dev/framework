@@ -243,7 +243,7 @@ onMounted(() => {
 							<tr><th scope="col">Requirement</th><th scope="col">Needs</th><th scope="col">Installed</th><th scope="col">Status</th></tr>
 						</thead>
 						<tbody v-for="group in groups" :key="group.name">
-							<tr class="site-health__group"><th scope="rowgroup" colspan="4">{{ group.name }}</th></tr>
+							<tr class="table__group"><th scope="rowgroup" colspan="4">{{ group.name }}</th></tr>
 							<tr v-for="row in group.rows" :key="row.name">
 								<th scope="row">
 									{{ row.name }}
@@ -282,14 +282,6 @@ onMounted(() => {
 </template>
 
 <style scoped>
-.site-health__group th {
-	padding-block: 10px;
-	background: var(--surface-2);
-	color: var(--fg);
-	font-size: var(--text-sm);
-	font-weight: 600;
-	text-align: left;
-}
 
 .site-health__needs {
 	width: 152px;
@@ -319,7 +311,4 @@ tbody th[scope="row"] {
 	text-align: left;
 }
 
-.site-health__group:hover {
-	background: none;
-}
 </style>

@@ -654,6 +654,217 @@ a.erow:hover .pn > span:first-child{color:var(--accent)}
 .xs-list button.full{color:var(--fg-3)}
 .xs-list button.full .sl{color:var(--warn)}
 
+/* ============================================================== screens == */
+.scr{border:1px solid var(--border);border-radius:var(--r-3);background:var(--bg);padding:var(--s-6);display:flex;flex-direction:column;gap:var(--s-5)}
+@media (max-width:640px){.scr{padding:var(--s-4)}}
+.ph{display:flex;flex-direction:column;gap:var(--s-3)}
+.ph-back{display:inline-flex;align-items:center;gap:var(--s-1);font-size:12px;color:var(--fg-2);align-self:flex-start}
+.ph-back:hover{color:var(--accent)}
+.ph-back .ic{width:14px;height:14px}
+.ph-row{display:flex;align-items:flex-start;gap:var(--s-4);flex-wrap:wrap}
+.ph-row h1{font-family:var(--font-display);font-size:var(--h1);letter-spacing:var(--h1-track);font-weight:600;line-height:1.2;text-wrap:balance}
+.ph-sub{color:var(--fg-2);font-size:12.5px;display:flex;align-items:center;gap:var(--s-2);flex-wrap:wrap;margin-top:6px}
+.ph-sub .sep{color:var(--fg-3)}
+.ph-acts{margin-left:auto;display:flex;gap:var(--s-2);flex-wrap:wrap}
+.ph-id{display:flex;align-items:center;gap:var(--s-3);min-width:0}
+
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-3);overflow:hidden}
+.panel-head{display:flex;align-items:center;gap:var(--s-3);flex-wrap:wrap;padding:var(--pad-panel) var(--pad-x);border-bottom:1px solid var(--border)}
+.panel-head h2{font-family:var(--font-display);font-size:15px;font-weight:600;letter-spacing:-.005em}
+.panel-head .hint{font-size:11.5px;color:var(--fg-3)}
+.panel-head .end{margin-left:auto;display:flex;gap:var(--s-2)}
+.panel-note{padding:var(--s-3) var(--pad-x);border-top:1px solid var(--border);background:var(--surface-2);color:var(--fg-2);font-size:11.5px;line-height:1.55}
+.panel-note b{color:var(--fg);font-weight:600}
+.panel-body{padding:var(--s-5) var(--pad-x)}
+
+.tbl-shell{overflow-x:auto;position:relative}
+table.tbl{width:100%;border-collapse:collapse;min-width:680px;table-layout:fixed}
+table.tbl th{text-align:left;font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--fg-3);padding:12px var(--pad-x);border-bottom:1px solid var(--border);white-space:nowrap}
+table.tbl td{padding:var(--pad-row) var(--pad-x);border-bottom:1px solid var(--border);vertical-align:middle;font-size:12.5px}
+table.tbl tbody tr:last-child td{border-bottom:0}
+table.tbl tbody tr:hover td{background:var(--surface-2)}
+table.tbl tr.off td{color:var(--fg-3)}
+table.tbl tr.off td .say,table.tbl tr.off td .u{color:var(--fg-3)}
+table.tbl tr.code td{background:var(--bg)}
+table.tbl tr.grp td{padding-top:var(--s-4);padding-bottom:6px;font-size:10.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--fg-3);border-bottom:0;background:transparent}
+.say{font-size:13px;color:var(--fg)}
+.say b{font-weight:600}
+.say .via{color:var(--fg-3)}
+.sub2{display:block;font-size:11.5px;color:var(--fg-3);margin-top:2px}
+.u{font-family:var(--font-mono);font-size:11.5px;color:var(--fg-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block}
+.u .v{color:var(--accent)}
+.act{text-align:right;white-space:nowrap}
+.act .btn+.btn{margin-left:4px}
+.kicon{display:inline-flex;align-items:center;gap:6px;color:var(--fg-2);font-size:12px}
+.kicon .ic{width:14px;height:14px;color:var(--fg-3)}
+.codenote{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;color:var(--fg-3)}
+.codenote .ic{width:13px;height:13px}
+
+/* ---- the relationship form ---- */
+.rf{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:var(--s-5);align-items:start}
+@media (max-width:1100px){.rf{grid-template-columns:minmax(0,1fr)}}
+.rf-sec{display:grid;grid-template-columns:180px minmax(0,1fr);gap:var(--s-4) var(--s-5);padding:var(--s-5) var(--pad-x);border-bottom:1px solid var(--border)}
+.rf-sec:last-child{border-bottom:0}
+.rf-sec > h3{font-size:13px;font-weight:600;color:var(--fg);line-height:1.4}
+.rf-sec > h3 small{display:block;font-weight:400;font-size:11.5px;color:var(--fg-3);margin-top:3px;line-height:1.5}
+.rf-sec .fields{display:flex;flex-direction:column;gap:var(--s-4);min-width:0}
+@media (max-width:760px){.rf-sec{grid-template-columns:minmax(0,1fr)}}
+.field{display:flex;flex-direction:column;gap:6px;min-width:0}
+.field > label,.field > .lbl{font-size:12.5px;color:var(--fg);font-weight:500}
+.field .hint{font-size:11.5px;color:var(--fg-3);line-height:1.5}
+.field .hint .mono{color:var(--fg-2)}
+.row2{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:var(--s-3)}
+.row3{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:var(--s-3)}
+.choices{display:grid;gap:var(--s-2);grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+.field .seg{align-self:flex-start}
+.choice{display:flex;gap:var(--s-3);align-items:flex-start;text-align:left;padding:var(--s-3) var(--s-3);border:1px solid var(--border-strong);border-radius:var(--r-2);background:var(--surface);min-width:0;cursor:pointer;position:relative}
+.choice:hover{background:var(--surface-2)}
+.choice input{position:absolute;opacity:0;width:1px;height:1px}
+.choice:has(input:checked){border-color:var(--accent);background:var(--accent-soft)}
+.choice:has(input:focus-visible){outline:2px solid var(--accent);outline-offset:2px}
+.choice > .ic{color:var(--fg-2);margin-top:1px}
+.choice:has(input:checked) > .ic{color:var(--accent)}
+.choice .tx b{display:block;font-size:12.5px;font-weight:600;color:var(--fg)}
+.choice .tx span{display:block;font-size:11.5px;color:var(--fg-2);line-height:1.45;margin-top:1px}
+.checks{display:flex;flex-wrap:wrap;gap:var(--s-2) var(--s-4)}
+.seg{display:inline-flex;border:1px solid var(--border);border-radius:var(--r-1);overflow:hidden;background:var(--surface);flex-wrap:wrap}
+.seg button{padding:0 13px;height:32px;font-size:12px;font-weight:500;color:var(--fg-2)}
+.seg button+button{border-left:1px solid var(--border)}
+.seg button[aria-pressed="true"]{background:var(--accent-soft);color:var(--accent)}
+.sentence{display:flex;align-items:center;gap:var(--s-2);flex-wrap:wrap;font-size:13px;color:var(--fg-2)}
+.sentence .selbtn{width:auto;min-width:130px}
+.pick-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gap:var(--s-2)}
+.pick-card{display:flex;flex-direction:column;gap:4px;padding:var(--s-3);border:1px solid var(--border-strong);border-radius:var(--r-2);text-align:left;position:relative;cursor:pointer}
+.pick-card:hover{background:var(--surface-2)}
+.pick-card input{position:absolute;opacity:0;width:1px;height:1px}
+.pick-card:has(input:checked){border-color:var(--accent);background:var(--accent-soft)}
+.pick-card:has(input:focus-visible){outline:2px solid var(--accent);outline-offset:2px}
+.pick-card b{font-size:12.5px;font-weight:600}
+.pick-card span{font-size:11px;color:var(--fg-2);line-height:1.4}
+.pick-card .ic{color:var(--fg-3)}
+.pick-card:has(input:checked) .ic{color:var(--accent)}
+.pick-card .rec{position:absolute;top:8px;right:8px;font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--fg-3);font-weight:600}
+.addr{font-family:var(--font-mono);font-size:11.5px;color:var(--fg-2);background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r-1);padding:6px 9px;overflow-x:auto;white-space:nowrap}
+.addr .v{color:var(--accent)}
+.indent{padding-left:25px;display:flex;flex-direction:column;gap:var(--s-3)}
+.indent[aria-disabled="true"]{opacity:.45;pointer-events:none}
+
+.preview{position:sticky;top:var(--s-4);display:flex;flex-direction:column;gap:var(--s-4)}
+.pv-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-3);overflow:hidden}
+.pv-card > h3{font-size:10.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--fg-3);padding:var(--s-4) var(--s-4) 0}
+.pv-card .pv-b{padding:var(--s-3) var(--s-4) var(--s-4);display:flex;flex-direction:column;gap:var(--s-3);font-size:12.5px;color:var(--fg-2);line-height:1.55}
+.pv-side{display:flex;gap:var(--s-3);align-items:flex-start}
+.pv-side .ic{color:var(--fg-3);margin-top:2px}
+.pv-side b{color:var(--fg);font-weight:600}
+.pv-side em{font-style:normal;color:var(--accent)}
+.fm{font-family:var(--font-mono);font-size:12px;line-height:1.75;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r-1);padding:var(--s-3);white-space:pre;overflow-x:auto;color:var(--fg)}
+.fm .m{color:var(--fg-3)}
+.fm .k{color:var(--accent)}
+
+
+.lmore-row{padding:var(--s-3) var(--pad-x);border-top:1px solid var(--border);font-size:12px;color:var(--fg-3)}
+.lmore-row a{color:var(--accent);font-weight:500}
+
+
+/* ======================================================= the list screen == */
+/* The Config section panel beside the list, so the placement can be judged. */
+.cfg{display:grid;grid-template-columns:262px minmax(0,1fr);border:1px solid var(--border);border-radius:var(--r-3);overflow:hidden;background:var(--bg)}
+@media (max-width:980px){.cfg{grid-template-columns:minmax(0,1fr)}.cfg .navmock{display:none}}
+.navmock{background:var(--surface);border-right:1px solid var(--border);padding-bottom:var(--s-5)}
+.navmock .nm-h{padding:var(--s-4) var(--s-5);border-bottom:1px solid var(--border)}
+.navmock .nm-h b{display:block;font-family:var(--font-display);font-size:15px;font-weight:600}
+.navmock .nm-h span{font-size:11px;color:var(--fg-3)}
+.navmock .nm-g{font-size:10.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--fg-3);padding:var(--s-5) var(--s-5) var(--s-2)}
+.navmock a{display:flex;align-items:center;gap:11px;margin:0 var(--s-3);padding:8px 10px;border-radius:var(--r-1);font-size:13px;color:var(--fg-2);position:relative}
+.navmock a:hover{background:var(--surface-2);color:var(--fg)}
+.navmock a .c{margin-left:auto;font-family:var(--font-mono);font-size:11px;color:var(--fg-3)}
+.navmock a[aria-current="page"]{background:var(--accent-soft);color:var(--accent);font-weight:500}
+.navmock a[aria-current="page"] .ic{color:var(--accent)}
+.navmock a[aria-current="page"]::before{content:"";position:absolute;left:-12px;top:7px;bottom:7px;width:2px;border-radius:0 2px 2px 0;background:var(--accent)}
+.navmock a .new{font-size:9.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--accent);border:1px solid var(--accent-line);border-radius:4px;padding:0 4px;line-height:15px}
+.cfg .scr{border:0;border-radius:0}
+.lhead{display:flex;align-items:flex-start;gap:var(--s-4);flex-wrap:wrap}
+.lhead h1{font-family:var(--font-display);font-size:var(--h1);letter-spacing:var(--h1-track);font-weight:600;line-height:1.2}
+.lhead p{color:var(--fg-2);font-size:13px;margin-top:6px;max-width:70ch}
+.lhead .btn{margin-left:auto}
+.ltabs{display:flex;flex-wrap:wrap;border:1px solid var(--border);border-radius:var(--r-1);overflow:hidden;background:var(--surface)}
+.ltabs button{padding:0 14px;height:32px;font-size:12.5px;color:var(--fg-2);display:inline-flex;align-items:center;gap:6px}
+.ltabs button + button{border-left:1px solid var(--border)}
+.ltabs button em{font-style:normal;font-family:var(--font-mono);font-size:11px;color:var(--fg-3)}
+.ltabs button[aria-selected="true"]{background:var(--surface-2);color:var(--fg);font-weight:500}
+.ltools{display:flex;align-items:center;gap:var(--s-2);flex-wrap:wrap;padding:var(--s-4) var(--pad-x);border-bottom:1px solid var(--border)}
+.ltools .spacer{flex:1}
+.ltools .psearch{width:260px;max-width:100%}
+.ltools .selbtn{width:auto;min-width:170px;background:var(--surface)}
+.ltools .clear{font-size:12px;color:var(--accent);font-weight:500}
+.lsay{font-size:13px;color:var(--fg)}
+.lsay a{color:var(--fg)}
+.lsay a:hover{color:var(--accent)}
+.lsay b{font-weight:600}
+.lsay .via{color:var(--fg-3)}
+.lsub{display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--fg-3);margin-top:3px}
+.lsub .ic{width:13px;height:13px}
+.src{font-family:var(--font-mono);font-size:11.5px;color:var(--fg-2)}
+.src.plug{font-family:var(--font-ui);font-size:12px}
+.lcount{text-align:right;font-variant-numeric:tabular-nums}
+tr.old td{background:var(--warn-soft)}
+tr.old .lsub{color:var(--warn)}
+.lempty{padding:var(--s-7) var(--s-5);text-align:center;color:var(--fg-3);font-size:12.5px}
+.lempty b{display:block;font-family:var(--font-display);font-size:16px;color:var(--fg);font-weight:600;margin-bottom:6px}
+
+
+/* ====================================================== admin list style == */
+/* Underlined status tabs with count chips, as on an entries list. */
+.utabs{display:flex;gap:var(--s-1);border-bottom:1px solid var(--border);overflow-x:auto;scrollbar-width:none}
+.utabs button{display:inline-flex;align-items:center;gap:7px;padding:12px 14px;font-size:13px;color:var(--fg-2);border-bottom:2px solid transparent;margin-bottom:-1px;white-space:nowrap}
+.utabs button:hover{color:var(--fg)}
+.utabs button[aria-selected="true"]{color:var(--fg);font-weight:500;border-bottom-color:var(--accent)}
+.utabs .c{font-family:var(--font-mono);font-size:10.5px;color:var(--fg-3);background:var(--surface-2);border-radius:99px;padding:1px 6px}
+.utabs button[aria-selected="true"] .c{color:var(--fg-2)}
+.ftools{display:flex;align-items:center;gap:var(--s-2);flex-wrap:wrap;padding:var(--s-4) 0}
+.ftools .psearch{flex:1 1 220px;max-width:330px;background:var(--surface)}
+.ftools .psearch kbd{margin-left:auto}
+.ftools .selbtn{width:auto;min-width:150px;background:var(--surface)}
+.tcap{display:flex;align-items:baseline;gap:var(--s-3);padding:var(--pad-panel) var(--pad-x);border-bottom:1px solid var(--border)}
+.tcap b{font-family:var(--font-display);font-size:15px;font-weight:600}
+.tcap span{font-size:12.5px;color:var(--fg-3)}
+.tcap .clear{margin-left:auto;font-size:12px;color:var(--accent);font-weight:500}
+.tname{display:flex;gap:var(--s-3);align-items:flex-start;min-width:0}
+.tname > .ic{margin-top:3px;color:var(--fg-2);flex:none}
+.tname .tx{min-width:0}
+.tname a,.tname .t{font-family:var(--font-title);font-size:var(--title-size);font-weight:var(--title-weight);letter-spacing:var(--title-track);color:var(--fg);display:block}
+.tname a:hover{color:var(--accent)}
+.tname .sl{display:block;font-family:var(--font-mono);font-size:10.5px;color:var(--fg-3);margin-top:4px}
+.tname .flag{display:block;margin-top:6px;font-size:11.5px;color:var(--warn);line-height:1.5}
+.tname .flag .ic{vertical-align:-2px;margin-right:4px}
+.tname .flag .ic{width:13px;height:13px}
+.tname .flag a{display:inline;font-family:var(--font-ui);font-size:11.5px;color:var(--accent);font-weight:500}
+.conn{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--fg)}
+.conn .ic{width:13px;height:13px;color:var(--fg-3)}
+
+/* ======================================================== settings form == */
+/* The edit view reads like a settings page: panels with a heading and a
+   hint, each row a label on the left and its control on the right, with
+   plain hints and where the value comes from under the control. */
+.sform{display:flex;flex-direction:column;gap:var(--s-5);max-width:1100px}
+.sform .panel-head{border-bottom:1px solid var(--border)}
+.srow{display:grid;grid-template-columns:minmax(150px,28%) minmax(0,1fr);gap:var(--s-2) var(--s-5);padding:var(--s-5) var(--pad-x);border-bottom:1px solid var(--border);align-items:start}
+.srow:last-child{border-bottom:0}
+.srow > .lbl{font-size:13px;color:var(--fg);font-weight:500;padding-top:7px}
+.srow > .lbl.flat{padding-top:0}
+.srow > .ctl{display:flex;flex-direction:column;gap:var(--s-2);min-width:0}
+.srow .hint{font-size:12px;color:var(--fg-3);line-height:1.55}
+.srow .hint .mono{font-size:11.5px;color:var(--fg-2)}
+.srow .from{font-size:12px;color:var(--fg-3)}
+.srow .from .mono{font-size:11.5px}
+.srow .inp{max-width:420px;background:var(--surface)}
+.srow .inp.num{max-width:120px}
+.srow .selbtn{max-width:420px;background:var(--surface)}
+.srow .fm{max-width:420px;font-size:11.5px;padding:var(--s-2) var(--s-3)}
+.srow .addr{max-width:420px}
+@media (max-width:760px){.srow{grid-template-columns:minmax(0,1fr)}.srow > .lbl{padding-top:0}}
+.sform .panel-note{border-top:1px solid var(--border)}
+
 /* ======================================================== picker boards == */
 /* Which picker a relationship gets: five cards, one per picker, each saying
    the settings that lead to it. They link to the board below. */
@@ -689,6 +900,9 @@ a.erow:hover .pn > span:first-child{color:var(--accent)}
 <symbol id="i-film" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M7 3v18M3 7.5h4M3 12h18M3 16.5h4M17 3v18M17 7.5h4M17 16.5h4"/></symbol>
 <symbol id="i-recipe" viewBox="0 0 24 24"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2M7 2v20M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"/></symbol>
 <symbol id="i-undo" viewBox="0 0 24 24"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/></symbol>
+<symbol id="i-layers" viewBox="0 0 24 24"><path d="m12 2 9 5-9 5-9-5 9-5Z"/><path d="m3 12 9 5 9-5"/><path d="m3 17 9 5 9-5"/></symbol>
+<symbol id="i-fields" viewBox="0 0 24 24"><path d="M5 3a2 2 0 0 0-2 2M19 3a2 2 0 0 1 2 2M21 19a2 2 0 0 1-2 2M5 21a2 2 0 0 1-2-2M9 3h1M9 21h1M14 3h1M14 21h1M3 9v1M21 9v1M3 14v1M21 14v1"/><path d="M8 12h8"/></symbol>
+<symbol id="i-config" viewBox="0 0 24 24"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></symbol>
 <symbol id="i-list" viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></symbol>
 <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol>
 <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
@@ -743,7 +957,7 @@ a.erow:hover .pn > span:first-child{color:var(--accent)}
 </header>
 <div class="lab-body">
 <nav class="lab-nav" id="labNav" aria-label="Boards">
-  <div class="lab-nav-h">Boards</div>
+  <div class="lab-nav-h">The Editor</div>
   <a href="#editor" aria-current="true"><svg class="ic" aria-hidden="true"><use href="#i-recipe"/></svg>The Recipe Editor</a>
   <a href="#scale"><svg class="ic" aria-hidden="true"><use href="#i-search"/></svg>At Scale</a>
   <a href="#tree"><svg class="ic" aria-hidden="true"><use href="#i-tree"/></svg>Tree</a>
@@ -753,6 +967,12 @@ a.erow:hover .pn > span:first-child{color:var(--accent)}
   <a href="#cards"><svg class="ic" aria-hidden="true"><use href="#i-cards"/></svg>Cards</a>
   <a href="#readonly"><svg class="ic" aria-hidden="true"><use href="#i-link"/></svg>Read-Only Panels</a>
   <a href="#leaving"><svg class="ic" aria-hidden="true"><use href="#i-eye-off"/></svg>Leaving the Site</a>
+  <div class="lab-nav-h">Config</div>
+  <a href="#rellist"><svg class="ic" aria-hidden="true"><use href="#i-link"/></svg>Relationships</a>
+  <a href="#form"><svg class="ic" aria-hidden="true"><use href="#i-pencil"/></svg>Editing a Relationship</a>
+  <a href="#confirm"><svg class="ic" aria-hidden="true"><use href="#i-swap"/></svg>Changing a Relationship</a>
+  <a href="#type"><svg class="ic" aria-hidden="true"><use href="#i-recipe"/></svg>A Content Type</a>
+  <a href="#profile"><svg class="ic" aria-hidden="true"><use href="#i-user"/></svg>A Profile</a>
   <div class="lab-nav-foot">A Recipes type on a food site. Every recipe, cook and count is invented for the sketch.</div>
 </nav>
 <main class="lab-main" id="labMain">
@@ -1981,6 +2201,387 @@ Salt the aubergine and leave it in a colander for 30 minutes, so it fries withou
   </ul>
 </section>
 
+<!-- ============================================================ rel list -->
+<section class="lab-board" id="rellist">
+  <div class="lab-head">
+    <span class="lab-eyebrow">Config / Relationships</span>
+    <h2>Relationships</h2>
+    <p>The primary place relationships are made and edited. A relationship belongs to two types and a type's own screen only shows its side, so this list holds them all, built like the admin's other lists: status-style tabs by kind, a filter row, and a table where the name leads and opens the edit view. Try Touches: Profiles, or search “courses”.</p>
+  </div>
+  <div class="cfg">
+    <nav class="navmock" aria-label="Config">
+      <div class="nm-h"><b>Config</b><span>Types, settings, and the look</span></div>
+      <div class="nm-g">Structure</div>
+      <a href="#type"><svg class="ic" aria-hidden="true"><use href="#i-layers"/></svg>Content Types<span class="c">14</span></a>
+      <a href="#rellist" aria-current="page"><svg class="ic" aria-hidden="true"><use href="#i-link"/></svg>Relationships<span class="c">13</span></a>
+      <a href="#rellist"><svg class="ic" aria-hidden="true"><use href="#i-fields"/></svg>Fields<span class="c">2</span></a>
+      <div class="nm-g">Settings</div>
+      <a href="#rellist"><svg class="ic" aria-hidden="true"><use href="#i-config"/></svg>General</a>
+      <a href="#rellist"><svg class="ic" aria-hidden="true"><use href="#i-book"/></svg>Reading</a>
+      <a href="#rellist"><svg class="ic" aria-hidden="true"><use href="#i-pencil"/></svg>Writing</a>
+    </nav>
+    <div class="scr" style="gap:var(--s-4)">
+      <div class="lhead">
+        <div><h1>Relationships</h1><p>How entries of one type point at entries of another.</p></div>
+        <a href="#form" class="btn primary"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg>New Relationship</a>
+      </div>
+      <div class="notice"><svg class="ic" aria-hidden="true"><use href="#i-info"/></svg><span>Relationships made here live in <span class="mono">user/data/types</span>, with the type that stores them. Ones from <span class="mono">config/content.php</span> and plugins are shown with their source and edited where they are defined.</span></div>
+      <div>
+        <div class="utabs" role="tablist" id="rlTabs">
+          <button type="button" role="tab" data-p="" aria-selected="true">All <span class="c">13</span></button>
+          <button type="button" role="tab" data-p="credits" aria-selected="false">Credits <span class="c">4</span></button>
+          <button type="button" role="tab" data-p="terms" aria-selected="false">Files Under Terms <span class="c">6</span></button>
+          <button type="button" role="tab" data-p="links" aria-selected="false">Links <span class="c">3</span></button>
+        </div>
+        <div class="ftools">
+          <div class="psearch"><svg class="ic" aria-hidden="true"><use href="#i-search"/></svg><input id="rlQ" placeholder="Search names and keys" aria-label="Search relationships" autocomplete="off"><kbd>/</kbd></div>
+          <div style="position:relative" id="rlTypeHost"><button type="button" class="selbtn" id="rlType" aria-haspopup="listbox" aria-expanded="false"><span class="t">Any type</span><svg class="ic" aria-hidden="true"><use href="#i-chev-d"/></svg></button></div>
+          <div style="position:relative" id="rlSrcHost"><button type="button" class="selbtn" id="rlSrc" aria-haspopup="listbox" aria-expanded="false"><span class="t">Any source</span><svg class="ic" aria-hidden="true"><use href="#i-chev-d"/></svg></button></div>
+        </div>
+        <div class="panel">
+          <div class="tcap" id="rlCap"></div>
+          <div class="tbl-shell">
+            <table class="tbl">
+              <colgroup><col style="width:30%"><col style="width:24%"><col style="width:14%"><col style="width:20%"><col style="width:12%"></colgroup>
+              <thead><tr><th>Name</th><th>Connects</th><th>Kind</th><th>Source</th><th style="text-align:right">Entries</th></tr></thead>
+              <tbody id="rlBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="lab-grid two" style="margin-top:var(--s-2)">
+    <div class="lab-spec">
+      <div class="lab-cap"><b>A Type's Panel Points Here</b><span>The type screen keeps a short, read-first view of its own relationships. Edit opens the same edit view; the header links to this list, filtered to the type.</span></div>
+      <div class="panel">
+        <div class="panel-head"><h2>Relationships</h2><span class="hint">Every one Recipes takes part in</span><span class="end"><a href="#rellist" class="btn sm ghost">View in Relationships</a><a href="#form" class="btn sm"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg>Add Relationship</a></span></div>
+        <div class="hrow" style="padding:var(--pad-row) var(--pad-x)"><div class="tx"><span class="say">Credits <b>Profiles</b> as Cooks</span></div><span class="u" style="width:auto">cooks</span></div>
+        <div class="hrow" style="padding:var(--pad-row) var(--pad-x)"><div class="tx"><span class="say">Filed under <b>Courses</b></span></div><span class="u" style="width:auto">courses</span></div>
+        <div class="panel-note">and 7 more, as on the A Content Type board</div>
+      </div>
+    </div>
+  </div>
+
+  <ul class="lab-notes">
+    <li><b>Placed between Content Types and Fields.</b> Relationships connect types, so they come right after them; fields describe what goes inside one. One flat level.</li>
+    <li><b>The name leads, as on every admin list.</b> The label people see in the editor, with the key under it in mono. Connects says which type stores it and which it points at, in that order.</li>
+    <li><b>Any type matches either end.</b> It is the cross-type question this screen exists for: everything that points at Profiles, everything Recipes points at, in one filter.</li>
+    <li><b>Code and plugin rows keep their row; their name isn't a link.</b> The Source column says where they are defined. An old-style taxonomy is flagged in its row and offers Migrate, the same action Site Health has.</li>
+    <li><b>No checkboxes.</b> Nothing done to relationships is safe to do to several at once; each change has its own confirmation, on the board further down.</li>
+  </ul>
+</section>
+
+<!-- ================================================================ form -->
+<section class="lab-board" id="form">
+  <div class="lab-head">
+    <span class="lab-eyebrow">5 · Config / Relationships / Cooks</span>
+    <h2>Editing a Relationship</h2>
+    <p>The edit view is a settings page: a notice saying where it is saved, then panels with a row per setting, label on the left, control on the right, and under each control a plain hint and, where it matters, the result. The sentence under the title rewrites itself as the settings change. Switch the purpose to see the endpoints change under it.</p>
+  </div>
+  <div class="scr" style="gap:var(--s-5)">
+    <div class="ph">
+      <a href="#rellist" class="ph-back"><svg class="ic" aria-hidden="true"><use href="#i-chev-l"/></svg>All Relationships</a>
+      <div class="ph-row"><div><h1 id="rfTitle">Cooks</h1><div class="ph-sub" id="rfSay">Recipes credit Profiles as Cooks.</div></div>
+        <div class="ph-acts"><a href="#rellist" class="btn">Cancel</a><button type="button" class="btn primary" id="rfSave">Save Relationship</button></div></div>
+    </div>
+    <div class="notice"><svg class="ic" aria-hidden="true"><use href="#i-info"/></svg><span>Saved with the type that stores it, in <span class="mono" id="rfFile">user/data/types/recipes.json</span>. Changing it over entries that already use it asks first.</span></div>
+
+    <div class="sform">
+      <div class="panel">
+        <div class="panel-head"><h2>Purpose</h2><span class="hint">What the link means</span></div>
+        <div class="srow"><span class="lbl">Purpose</span><div class="ctl">
+          <div class="choices" role="radiogroup" aria-label="Purpose" style="max-width:640px">
+            <label class="choice"><input type="radio" name="rf-p" value="terms" id="rf-p-terms"><svg class="ic" aria-hidden="true"><use href="#i-tree"/></svg><span class="tx"><b>Files Entries Under Terms</b><span>Courses, ingredients, cuisines</span></span></label>
+            <label class="choice"><input type="radio" name="rf-p" value="links" id="rf-p-links"><svg class="ic" aria-hidden="true"><use href="#i-link"/></svg><span class="tx"><b>Links Entries to Other Entries</b><span>Pairs with, a collection</span></span></label>
+            <label class="choice"><input type="radio" name="rf-p" value="credits" id="rf-p-credits" checked><svg class="ic" aria-hidden="true"><use href="#i-users"/></svg><span class="tx"><b>Credits People</b><span>Cooks, testers, photographers</span></span></label>
+          </div>
+          <span class="hint">It decides the endpoints below and the suggested picker.</span></div></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head"><h2>Endpoints</h2><span class="hint" id="rfEndHint">Which types credit, and which profiles they credit</span></div>
+        <div class="srow"><span class="lbl">Stored On</span><div class="ctl">
+          <div style="position:relative;max-width:420px" id="rf-st-host"><button type="button" class="selbtn" id="rf-st" aria-haspopup="listbox" aria-expanded="false"><span class="t">Recipes</span><svg class="ic" aria-hidden="true"><use href="#i-chev-d"/></svg></button></div>
+          <span class="hint">The type whose files carry the key: the one being edited when the choice is made. A recipe chooses its cooks.</span></div></div>
+        <div id="rfEnds"></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head"><h2>Names</h2><span class="hint">What is written in each file, and what people read</span></div>
+        <div class="srow"><label class="lbl" for="rf-key">Front Matter Key</label><div class="ctl">
+          <input class="inp mono" id="rf-key" value="cooks" spellcheck="false" autocomplete="off">
+          <span class="hint">Lowercase letters, digits and hyphens. Changing it later keeps an alias or rewrites the files; you choose when you save.</span></div></div>
+        <div class="srow"><label class="lbl" for="rf-label">Called</label><div class="ctl">
+          <input class="inp" id="rf-label" value="Cooks"><span class="hint">The heading in the editor, and its name everywhere in the admin.</span></div></div>
+        <div class="srow"><label class="lbl" for="rf-one">One Is Called</label><div class="ctl">
+          <input class="inp" id="rf-one" value="Cook"><span class="hint" id="rf-one-say">“Add a cook”</span></div></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head"><h2>Options</h2><span class="hint">How many, and in what order</span></div>
+        <div class="srow"><span class="lbl">Each <span id="rf-src-n">Recipe</span> Takes</span><div class="ctl">
+          <div class="seg" id="rf-many" style="align-self:flex-start"><button type="button" data-v="many" aria-pressed="true">Several</button><button type="button" data-v="one" aria-pressed="false">Exactly One</button></div></div></div>
+        <div class="srow" id="rf-order-w"><span class="lbl flat">Order Matters</span><div class="ctl">
+          <label class="cbx"><input type="checkbox" id="rf-order" checked><span class="bx"><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg></span><span class="tx">Keep the order<small>Kept on the site, and the first is the lead.</small></span></label></div></div>
+        <div class="srow"><span class="lbl flat">Created as Typed</span><div class="ctl">
+          <label class="cbx"><input type="checkbox" id="rf-create"><span class="bx"><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg></span><span class="tx">Allow new ones from the picker<small>A name that matches nothing becomes a new <span id="rf-create-n">profile</span> on save.</small></span></label></div></div>
+        <div class="srow"><span class="lbl flat">Count Both Ways</span><div class="ctl">
+          <label class="cbx"><input type="checkbox" id="rf-count" checked><span class="bx"><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg></span><span class="tx"><span>Keep a count on each <span id="rf-count-n">profile</span></span><small>Used for lists, sorting and Linked From.</small></span></label></div></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head"><h2>Limits</h2><span class="hint">Gate publishing, never saving</span></div>
+        <div class="srow"><label class="lbl" for="rf-min">At Least</label><div class="ctl"><input class="inp mono num" id="rf-min" value="1" inputmode="numeric"></div></div>
+        <div class="srow"><label class="lbl" for="rf-max">At Most</label><div class="ctl"><input class="inp mono num" id="rf-max" placeholder="No limit" inputmode="numeric"></div></div>
+        <div class="srow"><label class="lbl" for="rf-in">Per <span id="rf-in-n">Profile</span>, At Most</label><div class="ctl"><input class="inp mono num" id="rf-in" placeholder="No limit" inputmode="numeric"><span class="hint">How many entries can point at one of them.</span></div></div>
+        <div class="panel-note" id="rf-lim-say"></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head"><h2>Editing</h2><span class="hint">How it is picked, and what translations do</span></div>
+        <div class="srow"><span class="lbl">Picker</span><div class="ctl"><div class="pick-cards" id="rf-pickers" style="max-width:640px"></div><span class="hint">Only the pickers that fit these settings are offered.</span></div></div>
+        <div class="srow"><span class="lbl">Translations</span><div class="ctl">
+          <div class="seg" id="rf-trans" style="align-self:flex-start"><button type="button" data-v="fallback" aria-pressed="true">Fall Back</button><button type="button" data-v="add" aria-pressed="false">Add to the Original</button><button type="button" data-v="own" aria-pressed="false">Keep Their Own</button></div>
+          <span class="hint" id="rf-trans-say"></span></div></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head"><h2>What Links to It</h2><span class="hint">How the other side shows it</span></div>
+        <div class="srow"><label class="lbl" for="rf-back">The List Is Called</label><div class="ctl">
+          <input class="inp" id="rf-back" value="Recipes"><span class="hint" id="rf-back-say"></span></div></div>
+        <div class="srow"><span class="lbl flat">Own Page</span><div class="ctl">
+          <label class="cbx"><input type="checkbox" id="rf-onpage" checked><span class="bx"><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg></span><span class="tx"><span>Show the list on <span id="rf-onpage-n">the profile's</span> own page</span><small>Under its body.</small></span></label></div></div>
+        <div class="srow" id="rf-arch-row"><span class="lbl flat">Archive</span><div class="ctl">
+          <label class="cbx"><input type="checkbox" id="rf-arch" checked><span class="bx"><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg></span><span class="tx">Give it an archive<small>A page per <span id="rf-arch-n">profile</span> listing what links to it.</small></span></label>
+          <div class="indent" id="rf-arch-w" style="padding-left:25px">
+            <div class="field"><label for="rf-word" class="lbl" style="font-size:12.5px">Under the Word</label><input class="inp mono" id="rf-word" value="cooks" spellcheck="false"></div>
+            <div class="addr" id="rf-addr"></div>
+          </div></div></div>
+      </div>
+    </div>
+  </div>
+  <ul class="lab-notes">
+    <li><b>A settings page, not a builder.</b> Rows of label and control, in panels, the same shape as Reading. No preview column: each result sits under the control that causes it.</li>
+    <li><b>The sentence under the title is the preview that matters.</b> “Recipes credit Profiles as Cooks.” rewrites itself as purpose, endpoints and names change.</li>
+    <li><b>Stored On is always a row.</b> Opened from a type's screen it arrives filled; opened from the list it is the first thing to choose.</li>
+    <li><b>Limits are restated as a sentence</b> at the foot of their panel, because three boxes of numbers are not yet a rule.</li>
+  </ul>
+</section>
+
+<!-- ============================================================= confirm -->
+<section class="lab-board" id="confirm">
+  <div class="lab-head">
+    <span class="lab-eyebrow">6 · Saving the form over existing entries</span>
+    <h2>Changing or Removing a Relationship</h2>
+    <p>Five outcomes, five shapes. A change that would break entries is refused, and lists them. A change that would rewrite files asks, with the rewrite as a checkbox whose default is the safe choice. A change that only tightens the rules warns, with counts. Lists stop at 8, as everywhere else.</p>
+  </div>
+  <div class="lab-grid two">
+    <div class="lab-spec">
+      <div class="lab-cap"><b>Refused</b><span>No confirm button at all. Says what has to happen first, and lists the entries in the way, most affected first.</span></div>
+      <div class="mdl-stage"><div class="mdl">
+        <div class="mdl-h"><span class="badge bad"><svg class="ic" aria-hidden="true"><use href="#i-alert"/></svg></span><h3>Cooks Can't Take Exactly One Yet</h3></div>
+        <div class="mdl-b">
+          <p><b>318 recipes credit more than one cook.</b> Take them down to one each, or keep Cooks as several.</p>
+          <ul class="alist">
+            <li><span class="nm">A Sicilian Feast</span><span class="n">6 cooks</span></li>
+            <li><span class="nm">Arancini</span><span class="n">4 cooks</span></li>
+            <li><span class="nm">Pasta alla Norma</span><span class="n">3 cooks</span></li>
+            <li><span class="nm">Caponata</span><span class="n">3 cooks</span></li>
+            <li><span class="nm">Cannoli</span><span class="n">2 cooks</span></li>
+            <li><span class="nm">Panzanella</span><span class="n">2 cooks</span></li>
+            <li><span class="nm">Pasta con le Sarde</span><span class="n">2 cooks</span></li>
+            <li><span class="nm">Swordfish Involtini</span><span class="n">2 cooks</span></li>
+            <li class="rest">and 310 more</li>
+          </ul>
+        </div>
+        <div class="mdl-f"><a href="#confirm" class="btn ghost lft">Show All 318 in Recipes</a><button type="button" class="btn primary">Keep as Several</button></div>
+      </div></div>
+    </div>
+
+    <div class="lab-spec">
+      <div class="lab-cap"><b>Key Changed</b><span>Keeping the old key as an alias is the default: nothing on disk moves. Rewriting is opt-in, and counted.</span></div>
+      <div class="mdl-stage"><div class="mdl">
+        <div class="mdl-h"><span class="badge"><svg class="ic" aria-hidden="true"><use href="#i-swap"/></svg></span><h3>Change the Key From <span class="mono" style="font-size:.9em">chefs</span> to <span class="mono" style="font-size:.9em">cooks</span>?</h3></div>
+        <div class="mdl-b">
+          <p>1,240 recipe files use <span class="mono">chefs</span>. Saving keeps it working as an alias: those files are read as before, and new saves write <span class="mono">cooks</span>.</p>
+          <label class="cbx"><input type="checkbox" id="cf2"><span class="bx"><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg></span><span class="tx">Rewrite All 1,240 Files Now<small>Changes the key in each file and drops the alias. Each file's history shows the change.</small></span></label>
+        </div>
+        <div class="mdl-f"><button type="button" class="btn">Cancel</button><button type="button" class="btn primary">Change Key</button></div>
+      </div></div>
+    </div>
+
+    <div class="lab-spec">
+      <div class="lab-cap"><b>A Type No Longer Filed</b><span>Unchecked by default: the values stay in the files, unread, and come back if the type is ticked again.</span></div>
+      <div class="mdl-stage"><div class="mdl">
+        <div class="mdl-h"><span class="badge warn"><svg class="ic" aria-hidden="true"><use href="#i-tree"/></svg></span><h3>Stop Filing Posts Under Courses?</h3></div>
+        <div class="mdl-b">
+          <p><b>23 posts are filed under courses.</b> They stop showing in course lists. Their courses stay in their files, unused, unless you remove them.</p>
+          <label class="cbx"><input type="checkbox" id="cf3"><span class="bx"><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg></span><span class="tx">Remove Courses From Those 23 Posts<small>Takes the key out of each file. Each file's history shows the change.</small></span></label>
+        </div>
+        <div class="mdl-f"><button type="button" class="btn">Cancel</button><button type="button" class="btn primary">Save Courses</button></div>
+      </div></div>
+    </div>
+
+    <div class="lab-spec">
+      <div class="lab-cap"><b>Tighter Limits</b><span>Nothing in any file changes. Recipes already over the limit keep their values until someone next publishes them.</span></div>
+      <div class="mdl-stage"><div class="mdl">
+        <div class="mdl-h"><span class="badge warn"><svg class="ic" aria-hidden="true"><use href="#i-alert"/></svg></span><h3>3 Recipes Go Over the New Limit</h3></div>
+        <div class="mdl-b">
+          <p>Pairs With drops from 5 to 3. <b>3 recipes pair with more than 3</b>; they keep them, and can't be published again until they are down to 3.</p>
+          <ul class="alist"><li><span class="nm">Caponata</span><span class="n">5</span></li><li><span class="nm">Arancini</span><span class="n">4</span></li><li><span class="nm">A Sicilian Feast</span><span class="n">4</span></li></ul>
+        </div>
+        <div class="mdl-f"><button type="button" class="btn">Cancel</button><button type="button" class="btn primary">Save Limits</button></div>
+      </div></div>
+    </div>
+
+    <div class="lab-spec">
+      <div class="lab-cap"><b>Remove</b><span>Danger, and the same rule as a type no longer filed: stripping the files is a separate decision, off by default.</span></div>
+      <div class="mdl-stage"><div class="mdl">
+        <div class="mdl-h"><span class="badge bad"><svg class="ic" aria-hidden="true"><use href="#i-trash"/></svg></span><h3>Remove Pairs With?</h3></div>
+        <div class="mdl-b">
+          <p><b>412 recipes pair with others.</b> The picker leaves the editor and the pairings stop showing on the site.</p>
+          <label class="cbx"><input type="checkbox" id="cf5"><span class="bx"><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg></span><span class="tx"><span>Also Strip <span class="mono">pairs-with</span> From the 412 Files</span><small>Left in place, the key is ignored, and comes back if the relationship is added again.</small></span></label>
+        </div>
+        <div class="mdl-f"><button type="button" class="btn">Cancel</button><button type="button" class="btn danger-fill">Remove Relationship</button></div>
+      </div></div>
+    </div>
+  </div>
+  <ul class="lab-notes">
+    <li><b>Refusal names what to do, not what went wrong.</b> Its only button keeps the setting as it was, and a link goes to the list of entries in the way.</li>
+    <li><b>The default is the choice that touches no files.</b> Alias the key, keep values in place, leave stripping to a checkbox. Delete Permanently on an entry is the one exception, and it is explained there.</li>
+    <li><b>Every outcome is counted before it happens</b>, so “1,240 files” is read before the button is pressed, not discovered in the history afterwards.</li>
+  </ul>
+</section>
+
+<!-- ================================================================ type -->
+<section class="lab-board" id="type">
+  <div class="lab-head">
+    <span class="lab-eyebrow">4 · Config / Content Types / Recipes</span>
+    <h2>A Content Type's Screen</h2>
+    <p>Three panels on the type's detail screen. Relationships lists every one Recipes takes part in, in both directions, each written as a sentence from Recipes' side. Archives lists the lists the site builds from them. Addresses lists every route, so a new archive shows up next to the URLs the type already has.</p>
+  </div>
+  <div class="scr">
+    <div class="ph">
+      <a href="#type" class="ph-back"><svg class="ic" aria-hidden="true"><use href="#i-chev-l"/></svg>All Types</a>
+      <div class="ph-row">
+        <div><h1>Recipes</h1>
+          <div class="ph-sub"><span class="mono">/recipes</span><span class="sep">·</span><span>1,240 entries</span><span class="sep">·</span><span>Flat</span><span class="sep">·</span><span>Custom type</span></div></div>
+        <div class="ph-acts"><a href="#type" class="btn">View Index Page</a><button type="button" class="btn primary">Save Type</button></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head"><h2>Relationships</h2><span class="hint">Every one Recipes takes part in, from either side</span><span class="end"><a href="#rellist" class="btn sm ghost">View in Relationships</a><a href="#form" class="btn sm"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg>Add Relationship</a></span></div>
+      <div class="tbl-shell">
+        <table class="tbl">
+          <colgroup><col><col style="width:150px"><col style="width:230px"><col style="width:156px"></colgroup>
+          <thead><tr><th>Relationship</th><th>Key</th><th>Takes</th><th><span class="sr">Actions</span></th></tr></thead>
+          <tbody>
+            <tr class="grp"><td colspan="4">Stored on Recipes</td></tr>
+            <tr><td><span class="say">Credits <b>Profiles</b> as Cooks</span></td><td><span class="u">cooks</span></td><td><span class="kicon"><svg class="ic" aria-hidden="true"><use href="#i-users"/></svg>At least 1, in order</span></td><td class="act"><a href="#form" class="btn sm">Edit</a><button type="button" class="btn sm ghost">Remove</button></td></tr>
+            <tr><td><span class="say">Credits <b>Profiles</b> as Tested By</span></td><td><span class="u">tested-by</span></td><td><span class="kicon"><svg class="ic" aria-hidden="true"><use href="#i-select"/></svg>One</span></td><td class="act"><a href="#form" class="btn sm">Edit</a><button type="button" class="btn sm ghost">Remove</button></td></tr>
+            <tr><td><span class="say">Filed under <b>Cuisines</b></span></td><td><span class="u">cuisine</span></td><td><span class="kicon"><svg class="ic" aria-hidden="true"><use href="#i-select"/></svg>One</span></td><td class="act"><a href="#form" class="btn sm">Edit</a><button type="button" class="btn sm ghost">Remove</button></td></tr>
+            <tr><td><span class="say">Filed under <b>Courses</b></span></td><td><span class="u">courses</span></td><td><span class="kicon"><svg class="ic" aria-hidden="true"><use href="#i-tree"/></svg>Several</span></td><td class="act"><a href="#form" class="btn sm">Edit</a><button type="button" class="btn sm ghost">Remove</button></td></tr>
+            <tr><td><span class="say">Filed under <b>Ingredients</b></span></td><td><span class="u">ingredients</span></td><td><span class="kicon"><svg class="ic" aria-hidden="true"><use href="#i-tag"/></svg>Several, created as typed</span></td><td class="act"><a href="#form" class="btn sm">Edit</a><button type="button" class="btn sm ghost">Remove</button></td></tr>
+            <tr><td><span class="say">Links to <b>Recipes</b> as Pairs With</span></td><td><span class="u">pairs-with</span></td><td><span class="kicon"><svg class="ic" aria-hidden="true"><use href="#i-cards"/></svg>Up to 3</span></td><td class="act"><a href="#form" class="btn sm">Edit</a><button type="button" class="btn sm ghost">Remove</button></td></tr>
+            <tr class="code"><td><span class="say">Filed under <b>Diets</b></span><span class="sub2">Defined by the Nutrition plugin</span></td><td><span class="u">diets</span></td><td><span class="kicon"><svg class="ic" aria-hidden="true"><use href="#i-tag"/></svg>Several</span></td><td class="act"><span class="codenote"><svg class="ic" aria-hidden="true"><use href="#i-code"/></svg>In code</span></td></tr>
+            <tr class="grp"><td colspan="4">Stored on other types</td></tr>
+            <tr><td><span class="say">Linked from <b>Collections</b> as Features</span></td><td><span class="u">features</span></td><td><span class="kicon"><svg class="ic" aria-hidden="true"><use href="#i-cards"/></svg>Up to 12 per collection</span></td><td class="act"><a href="#type" class="btn sm ghost">Edit on Collections</a></td></tr>
+            <tr><td><span class="say">Linked from <b>Posts</b> as Mentions</span></td><td><span class="u">mentions</span></td><td><span class="kicon"><svg class="ic" aria-hidden="true"><use href="#i-tag"/></svg>Any number</span></td><td class="act"><a href="#type" class="btn sm ghost">Edit on Posts</a></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="panel-note">A relationship is edited on the type that stores it. <b>Pairs With</b> is stored on Recipes and points back at Recipes, so it appears once.</div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head"><h2>Archives</h2><span class="hint">Lists the site builds from Recipes' relationships</span></div>
+      <div class="tbl-shell">
+        <table class="tbl">
+          <colgroup><col style="width:22%"><col><col style="width:30%"><col style="width:120px"></colgroup>
+          <thead><tr><th>Word</th><th>Address</th><th>Introduced By</th><th><span class="sr">Actions</span></th></tr></thead>
+          <tbody>
+            <tr><td><span class="say">Cooks</span><span class="sub2">From Cooks</span></td><td><span class="u">/cooks/<span class="v">{profile}</span></span></td><td><a href="#readonly" class="lnk">Cooks</a> <span class="pill published"><span class="d"></span>Published</span></td><td class="act"><button type="button" class="btn sm ghost">Edit</button></td></tr>
+            <tr><td><span class="say">Testers</span><span class="sub2">From Tested By</span></td><td><span class="u">/testers/<span class="v">{profile}</span></span></td><td><span style="color:var(--fg-3)">No page yet</span></td><td class="act"><button type="button" class="btn sm">Write One</button></td></tr>
+            <tr><td><span class="say">Cuisines</span><span class="sub2">From Cuisine</span></td><td><span class="u">/cuisines/<span class="v">{cuisine}</span></span></td><td><span style="color:var(--fg-3)">Each cuisine's own page</span></td><td class="act"><button type="button" class="btn sm ghost">Edit</button></td></tr>
+            <tr><td><span class="say">Courses</span><span class="sub2">From Courses</span></td><td><span class="u">/courses/<span class="v">{course}</span></span></td><td><span style="color:var(--fg-3)">Each course's own page</span></td><td class="act"><button type="button" class="btn sm ghost">Edit</button></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="panel-body" style="border-top:1px solid var(--border)">
+        <div class="field" style="max-width:420px"><span class="lbl">Byline</span>
+          <button type="button" class="selbtn"><span class="t">Cooks</span><svg class="ic" aria-hidden="true"><use href="#i-chev-d"/></svg></button>
+          <span class="hint">Recipes credit people two ways. This one is the “By” line under a recipe's title, in lists and in feeds.</span></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head"><h2>Addresses</h2><span class="hint">Every route the site answers for Recipes</span></div>
+      <div class="tbl-shell">
+        <table class="tbl">
+          <colgroup><col style="width:32%"><col><col style="width:210px"></colgroup>
+          <thead><tr><th>Name</th><th>Address</th><th>Shows</th></tr></thead>
+          <tbody>
+            <tr><td><span class="u">recipes.collection</span></td><td><span class="u">/recipes</span></td><td>The index page</td></tr>
+            <tr><td><span class="u">recipes.single</span></td><td><span class="u">/recipes/<span class="v">{slug}</span></span></td><td>One recipe</td></tr>
+            <tr class="grp"><td colspan="3">Archives</td></tr>
+            <tr><td><span class="u">cooks.collection</span></td><td><span class="u">/cooks</span></td><td>Every cook</td></tr>
+            <tr><td><span class="u">cooks.single</span></td><td><span class="u">/cooks/<span class="v">{profile}</span></span></td><td>One cook's recipes</td></tr>
+            <tr><td><span class="u">testers.collection</span></td><td><span class="u">/testers</span></td><td>Everyone who tests</td></tr>
+            <tr><td><span class="u">testers.single</span></td><td><span class="u">/testers/<span class="v">{profile}</span></span></td><td>What one person tested</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  <ul class="lab-notes">
+    <li><b>Rows are sentences.</b> “Credits Profiles as Cooks” reads as a fact about Recipes; a grid of Source, Target and Kind reads as a schema someone has to translate.</li>
+    <li><b>Both directions, split by where they are stored.</b> A row stored elsewhere has one action, the way to the type that owns it, so nobody edits from the wrong end and wonders why it is read-only.</li>
+    <li><b>Code-defined rows keep their row and lose their buttons.</b> The note says where they live. Leaving them out would make the list a lie about what Recipes takes.</li>
+    <li><b>Byline appears only when a type credits people more than one way.</b> With one credit there is no choice to make.</li>
+  </ul>
+</section>
+
+<!-- ============================================================= profile -->
+<section class="lab-board" id="profile">
+  <div class="lab-head">
+    <span class="lab-eyebrow">7 · Users / Profiles / Giulia Ferraro</span>
+    <h2>Where This Profile Appears</h2>
+    <p>One row per type and credit that has an archive. Each says where that archive lives, how many entries it lists, and where its text comes from: a page written for it, or inherited from the profile's own body. A row whose archive is turned off is dimmed, and a page written for it is marked Unreachable rather than hidden.</p>
+  </div>
+  <div class="scr">
+    <div class="ph">
+      <a href="#profile" class="ph-back"><svg class="ic" aria-hidden="true"><use href="#i-chev-l"/></svg>All Profiles</a>
+      <div class="ph-row"><div class="ph-id"><span class="avatar lg">GF</span><div><h1>Giulia Ferraro</h1><div class="ph-sub"><span class="mono">giulia-ferraro</span><span class="sep">·</span><span>Account: giulia</span><span class="sep">·</span><span>218 credits</span></div></div></div>
+        <div class="ph-acts"><button type="button" class="btn">Edit Profile</button></div></div>
+    </div>
+    <div class="panel">
+      <div class="panel-head"><h2>Where This Profile Appears</h2><span class="hint">Her own page, then one row per type and credit</span></div>
+      <div class="tbl-shell">
+        <table class="tbl">
+          <colgroup><col style="width:24%"><col><col style="width:90px"><col style="width:130px"><col style="width:150px"></colgroup>
+          <thead><tr><th>Credit</th><th>Archive</th><th style="text-align:right">Entries</th><th>Text</th><th><span class="sr">Actions</span></th></tr></thead>
+          <tbody>
+            <tr style="background:var(--accent-soft)"><td><span class="say">The Profile</span><span class="sub2">Her own page, and every archive's default</span></td><td><span class="u">/profiles/giulia-ferraro</span></td><td style="text-align:right">—</td><td><span class="pill written"><span class="d"></span>Written</span></td><td class="act"><button type="button" class="btn sm">Edit</button></td></tr>
+            <tr><td><span class="say">Cooks</span><span class="sub2">Recipes</span></td><td><span class="u">/cooks/giulia-ferraro</span></td><td style="text-align:right" class="mono">208</td><td><span class="pill written"><span class="d"></span>Written</span></td><td class="act"><a href="#readonly" class="btn sm">Edit</a><button type="button" class="btn sm ghost" aria-label="Move the Cooks page to trash"><svg class="ic" aria-hidden="true"><use href="#i-trash"/></svg></button></td></tr>
+            <tr><td><span class="say">Tested By</span><span class="sub2">Recipes</span></td><td><span class="u">/testers/giulia-ferraro</span></td><td style="text-align:right" class="mono">6</td><td><span class="pill inherited"><span class="d"></span>Inherited</span></td><td class="act"><button type="button" class="btn sm">Write One</button></td></tr>
+            <tr><td><span class="say">Byline</span><span class="sub2">Posts</span></td><td><span class="u">/writers/giulia-ferraro</span></td><td style="text-align:right" class="mono">4</td><td><span class="pill inherited"><span class="d"></span>Inherited</span></td><td class="act"><button type="button" class="btn sm">Write One</button></td></tr>
+            <tr class="off"><td><span class="say">Hosts</span><span class="sub2">Classes · archive is off</span></td><td><span class="u">—</span></td><td style="text-align:right" class="mono">3</td><td><span class="pill unreach"><svg class="ic" aria-hidden="true"><use href="#i-eye-off"/></svg>Unreachable</span></td><td class="act"><button type="button" class="btn sm ghost">Edit</button><button type="button" class="btn sm ghost" aria-label="Move the Hosts page to trash"><svg class="ic" aria-hidden="true"><use href="#i-trash"/></svg></button></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="panel-note"><b>Inherited</b> shows her profile's own body on that archive; <b>Write One</b> creates an index page for just that credit. <b>Unreachable</b> means a page was written and the Hosts archive was then turned off on Classes: the page is kept, and nothing on the site leads to it. A filled dot is text of its own; a ring is borrowed.</div>
+    </div>
+  </div>
+  <ul class="lab-notes">
+    <li><b>One row per credit, not per type.</b> Recipes credits Giulia two ways, and each has its own archive and its own text.</li>
+    <li><b>The entry counts are the same numbers as her Linked From</b>, by credit, so the two never disagree.</li>
+    <li><b>Turning an archive off never deletes what was written for it.</b> It stops the routing, the same as the type's own index-page switch.</li>
+  </ul>
+</section>
+
 </main>
 </div>
 </div>
@@ -2530,8 +3131,234 @@ Salt the aubergine and leave it in a colander for 30 minutes, so it fries withou
 
   renderCuisine(); renderCooks(); renderCourses(); renderIngr(); renderPairs();
 
+
+  /* ===================================================== relationship form */
+  var F = { purpose: "credits", many: "many", trans: "fallback", picker: "people", termType: "courses", store: "recipes", linkTo: "recipes" };
+  var TERM_TYPES = {
+    courses: { n: "Courses", one: "course", nest: true, ex: ["mains", "pasta"] },
+    ingredients: { n: "Ingredients", one: "ingredient", nest: false, ex: ["aubergine", "ricotta-salata"] },
+    cuisines: { n: "Cuisines", one: "cuisine", nest: true, ex: ["sicilian"] }
+  };
+  var ENTRY_TYPES = {
+    recipes: { n: "Recipes", one: "recipe", ex: ["caponata", "arancini"] },
+    posts: { n: "Posts", one: "post", ex: ["ten-ways-with-aubergine"] },
+    collections: { n: "Collections", one: "collection", ex: ["sicilian-summer"] }
+  };
+  var DEFAULTS = {
+    credits: { key: "cooks", label: "Cooks", one: "Cook", back: "Recipes", word: "cooks", min: "1", max: "", inb: "", order: true, create: false, arch: true },
+    terms: { key: "courses", label: "Courses", one: "Course", back: "Recipes", word: "courses", min: "", max: "", inb: "", order: false, create: false, arch: true },
+    links: { key: "pairs-with", label: "Pairs With", one: "Pairing", back: "Paired With", word: "", min: "", max: "3", inb: "", order: false, create: false, arch: false }
+  };
+  function v(id) { return $("#" + id).value; }
+  function aan(w) { return (/^[aeiou]/i.test(w) ? "an " : "a ") + w; }
+  function setv(id, x) { $("#" + id).value = x; }
+  function chk(id) { return $("#" + id).checked; }
+  function targetType() {
+    if (F.purpose === "credits") return { n: "Profiles", one: "profile", ex: ["giulia-ferraro", "priya-raman"] };
+    if (F.purpose === "terms") return TERM_TYPES[F.termType];
+    return ENTRY_TYPES[F.linkTo];
+  }
+  function srcType() { return ENTRY_TYPES[F.store]; }
+  function pickersFor() {
+    var one = F.many === "one";
+    if (F.purpose === "terms") return one ? ["select"] : (TERM_TYPES[F.termType].nest ? ["tree", "tokens"] : ["tokens"]);
+    if (F.purpose === "links") return one ? ["select", "cards"] : ["cards", "tokens"];
+    return one ? ["select", "people"] : ["people"];
+  }
+  var PICK = {
+    tree: { n: "Tree", d: "Search, indented checkboxes, New at the foot", i: "tree" },
+    tokens: { n: "Tokens", d: "Chips and an input in one box", i: "tag" },
+    people: { n: "People", d: "Avatar rows above a search", i: "users" },
+    select: { n: "Select", d: "One value, None first", i: "select" },
+    cards: { n: "Cards", d: "Entry rows above a search, results as cards", i: "cards" }
+  };
+  function applyDefaults() {
+    var d = DEFAULTS[F.purpose];
+    setv("rf-key", d.key); setv("rf-label", d.label); setv("rf-one", d.one); setv("rf-back", d.back); setv("rf-word", d.word);
+    setv("rf-min", d.min); setv("rf-max", d.max); setv("rf-in", d.inb);
+    $("#rf-order").checked = d.order; $("#rf-create").checked = d.create; $("#rf-arch").checked = d.arch;
+    F.many = "many"; $$("#rf-many button").forEach(function (b) { b.setAttribute("aria-pressed", b.dataset.v === "many" ? "true" : "false"); });
+    F.picker = pickersFor()[0];
+  }
+  function srow(label, ctl) { return '<div class="srow"><span class="lbl">' + label + '</span><div class="ctl">' + ctl + '</div></div>'; }
+  function renderEnds() {
+    var h, hint;
+    if (F.purpose === "terms") {
+      hint = "Which terms " + srcType().n.toLowerCase() + " are filed under";
+      h = srow("Terms Come From", '<div style="position:relative;max-width:420px" id="rf-tt-host"><button type="button" class="selbtn" id="rf-tt" aria-haspopup="listbox" aria-expanded="false"><span class="t">' + TERM_TYPES[F.termType].n + (TERM_TYPES[F.termType].nest ? " · nesting" : " · flat") + '</span>' + ic("chev-d") + '</button></div><span class="hint">A taxonomy-kind type. Its terms are entries, with their own pages.</span>');
+    } else if (F.purpose === "links") {
+      hint = "Which entries " + srcType().n.toLowerCase() + " link to";
+      h = srow("Points At", '<div style="position:relative;max-width:420px" id="rf-lt-host"><button type="button" class="selbtn" id="rf-lt"><span class="t">' + ENTRY_TYPES[F.linkTo].n + '</span>' + ic("chev-d") + '</button></div>' +
+        (F.store === F.linkTo ? '<span class="hint">' + cap(aan(ENTRY_TYPES[F.linkTo].one)) + ' is never offered as linked to itself.</span>' : '<span class="hint">Any content type.</span>'));
+    } else {
+      hint = "Who " + srcType().n.toLowerCase() + " credit";
+      h = srow("They Credit", '<div class="kicon" style="padding-top:7px">' + ic("user") + '<span><b style="font-weight:600;color:var(--fg)">Profiles</b>, the one collection of people</span></div><span class="hint">Every credit points at Profiles, so one person can cook here and write on Posts.</span>');
+    }
+    $("#rfEnds").innerHTML = h; $("#rfEndHint").textContent = hint;
+  }
+  $("#rf-st").addEventListener("click", function () {
+    var b = this; if (openPop && openPop.btn === b) { closePop(); return; }
+    popList(b, $("#rf-st-host"), Object.keys(ENTRY_TYPES).map(function (k) { return { label: ENTRY_TYPES[k].n, v: k, on: F.store === k }; }), function (o) {
+      F.store = o.v; $("#rf-st .t").textContent = ENTRY_TYPES[o.v].n; renderAll();
+    });
+  });
+  $("#rfEnds").addEventListener("click", function (e) {
+    var b = e.target.closest("button"); if (!b) return;
+    if (openPop && openPop.btn === b) { closePop(); return; }
+    if (b.id === "rf-tt") popList(b, $("#rf-tt-host"), Object.keys(TERM_TYPES).map(function (k) { return { label: TERM_TYPES[k].n + (TERM_TYPES[k].nest ? " · nesting" : " · flat"), v: k, on: F.termType === k }; }), function (o) {
+      F.termType = o.v; var d = DEFAULTS.terms, t = TERM_TYPES[o.v];
+      d.key = o.v === "cuisines" ? "cuisine" : o.v; d.label = t.n; d.one = cap(t.one); d.word = o.v;
+      applyDefaults(); if (o.v === "cuisines") { F.many = "one"; $$("#rf-many button").forEach(function (x) { x.setAttribute("aria-pressed", x.dataset.v === "one" ? "true" : "false"); }); }
+      renderAll();
+    });
+    if (b.id === "rf-lt") popList(b, $("#rf-lt-host"), Object.keys(ENTRY_TYPES).map(function (k) { return { label: ENTRY_TYPES[k].n, v: k, on: F.linkTo === k }; }), function (o) {
+      F.linkTo = o.v; renderAll();
+    });
+  });
+  function renderPickers() {
+    var list = pickersFor(), rec = list[0];
+    if (list.indexOf(F.picker) < 0) F.picker = rec;
+    $("#rf-pickers").innerHTML = list.map(function (p) {
+      return '<label class="pick-card"><input type="radio" name="rf-pick" value="' + p + '"' + (F.picker === p ? " checked" : "") + '>' + ic(PICK[p].i) + '<b>' + PICK[p].n + '</b><span>' + PICK[p].d + '</span>' + (p === rec ? '<span class="rec">Suggested</span>' : "") + '</label>';
+    }).join("");
+  }
+  $("#rf-pickers").addEventListener("change", function (e) { F.picker = e.target.value; renderPreview(); });
+  function limitSentence() {
+    var min = parseInt(v("rf-min"), 10) || 0, max = parseInt(v("rf-max"), 10) || 0, inb = parseInt(v("rf-in"), 10) || 0;
+    var tt = targetType(), src = srcType().one, bits = [];
+    if (max && min > max) return { s: "At least is more than at most, so nothing could be published.", bad: true };
+    if (F.many === "one") bits.push(min ? "Each " + src + " needs exactly one to publish" : "Each " + src + " takes one or none");
+    else if (min && max) bits.push("Each " + src + " takes " + min + " to " + max);
+    else if (min) bits.push("Each " + src + " needs at least " + min + " to publish");
+    else if (max) bits.push("Each " + src + " takes up to " + max);
+    else bits.push("Each " + src + " takes any number");
+    if (inb) bits.push("a " + tt.one + " can be linked from " + plural(inb, src) + " at most");
+    return { s: bits.join(", and ") + ".", bad: false };
+  }
+  function renderPreview() {
+    var tt = targetType(), src = srcType(), label = v("rf-label") || "Untitled", back = v("rf-back") || label;
+    var key = slugify(v("rf-key")) || "key", word = slugify(v("rf-word")), arch = chk("rf-arch") && F.purpose !== "terms";
+    var a, b, slugEx = tt.ex[0], addr = arch && word ? ' at <span class="mono">/' + word + '/' + slugEx + '</span>' : "";
+    if (F.purpose === "credits") {
+      a = src.n + ' credit Profiles as ' + esc(label) + '.';
+      b = 'On a profile, a list called “' + esc(back) + '”' + (chk("rf-onpage") ? " under its body" : "") + (addr ? (chk("rf-onpage") ? ", and" : "") + addr : "") + '. In its Linked From, grouped under ' + esc(label) + '.';
+    } else if (F.purpose === "terms") {
+      a = src.n + ' are filed under ' + tt.n + '.';
+      b = 'On each ' + tt.one + "'s own page, at " + '<span class="mono">/' + F.termType + '/' + slugEx + '</span>, a list called “' + esc(back) + '”.';
+    } else {
+      a = src.n + ' link to ' + tt.n + ' as ' + esc(label) + '.';
+      b = 'On ' + aan(tt.one) + ' linked to, a list called “' + esc(back) + '”' + (chk("rf-onpage") ? " under its body" : "") + (addr ? (chk("rf-onpage") ? ", and" : "") + addr : "") + '. In its Linked From, grouped under ' + esc(label) + '.';
+    }
+    $("#rfSay").innerHTML = a;
+    $("#rf-back-say").innerHTML = b;
+    var L = limitSentence();
+    $("#rf-lim-say").textContent = L.s; $("#rf-lim-say").style.color = L.bad ? "var(--danger)" : "";
+    var one = (v("rf-one") || tt.one).toLowerCase();
+    $("#rf-addr").innerHTML = word ? '/<span class="v">' + word + '</span>/' + slugEx + '<span style="color:var(--fg-3)">  ·  </span>/<span class="v">' + word + '</span>' : '<span style="color:var(--fg-3)">Type a word to see the address</span>';
+    var TT = cap(tt.one);
+    $("#rf-in-n").textContent = TT; $("#rf-create-n").textContent = tt.one; $("#rf-count-n").textContent = tt.one;
+    $("#rf-onpage-n").textContent = "the " + tt.one + "'s"; $("#rf-arch-n").textContent = tt.one;
+    $("#rf-src-n").textContent = cap(src.one);
+    $("#rf-one-say").textContent = "In the picker: “Add " + aan(one) + "”.";
+    $("#rf-trans-say").textContent = {
+      fallback: "A translation with no " + label.toLowerCase() + " of its own shows the original's.",
+      add: "A translation shows its own " + label.toLowerCase() + " and the original's together.",
+      own: "A translation shows only its own, even when it has none."
+    }[F.trans];
+    $("#rf-order-w").hidden = F.many === "one";
+    $("#rf-arch-row").hidden = F.purpose === "terms";
+    $("#rf-arch-w").setAttribute("aria-disabled", chk("rf-arch") ? "false" : "true");
+    $("#rfFile").textContent = "user/data/types/" + F.store + ".json";
+    $("#rfTitle").textContent = v("rf-label") || "New Relationship";
+  }
+  function renderAll() { renderEnds(); renderPickers(); renderPreview(); }
+  $$('input[name="rf-p"]').forEach(function (r) { r.addEventListener("change", function () { F.purpose = r.value; applyDefaults(); renderAll(); }); });
+  function fseg(id, key, after) {
+    $(id).addEventListener("click", function (e) {
+      var b = e.target.closest("button"); if (!b) return;
+      $$("button", $(id)).forEach(function (x) { x.setAttribute("aria-pressed", x === b ? "true" : "false"); });
+      F[key] = b.dataset.v; if (after) after(); renderPreview();
+    });
+  }
+  fseg("#rf-many", "many", function () { renderPickers(); });
+  fseg("#rf-trans", "trans");
+  ["rf-key", "rf-label", "rf-one", "rf-back", "rf-word", "rf-min", "rf-max", "rf-in"].forEach(function (id) { $("#" + id).addEventListener("input", renderPreview); });
+  ["rf-order", "rf-create", "rf-count", "rf-onpage", "rf-arch"].forEach(function (id) { $("#" + id).addEventListener("change", renderPreview); });
+  $("#rf-key").addEventListener("blur", function () { var s = slugify(this.value); if (s) this.value = s; renderPreview(); });
+  $("#rf-word").addEventListener("blur", function () { this.value = slugify(this.value); renderPreview(); });
+  $("#rfSave").addEventListener("click", function () { location.hash = "type"; });
+  renderAll();
+
+
+  /* =================================================== relationships list */
+  var RELS = [
+    { p: "credits", from: "Recipes", to: "Profiles", say: "credit", as: "Cooks", key: "cooks", src: "user/data/types", n: 1240, pick: "users", takes: "At least 1, in order" },
+    { p: "credits", from: "Recipes", to: "Profiles", say: "credit", as: "Tested By", key: "tested-by", src: "user/data/types", n: 214, pick: "select", takes: "One" },
+    { p: "credits", from: "Posts", to: "Profiles", say: "credit", as: "Byline", key: "byline", src: "config/content.php", n: 96, pick: "users", takes: "At least 1", code: true },
+    { p: "credits", from: "Classes", to: "Profiles", say: "credit", as: "Hosts", key: "hosts", src: "Classes plugin", plugin: true, n: 18, pick: "users", takes: "Several", code: true },
+    { p: "terms", from: "Recipes", to: "Courses", key: "courses", src: "user/data/types", n: 1190, pick: "tree", takes: "Several" },
+    { p: "terms", from: "Recipes", to: "Ingredients", key: "ingredients", src: "user/data/types", n: 1238, pick: "tag", takes: "Several, created as typed" },
+    { p: "terms", from: "Recipes", to: "Cuisines", key: "cuisine", src: "user/data/types", n: 1102, pick: "select", takes: "One" },
+    { p: "terms", from: "Posts", to: "Courses", key: "courses", src: "user/data/types", n: 23, pick: "tree", takes: "Several" },
+    { p: "terms", from: "Recipes", to: "Diets", key: "diets", src: "Nutrition plugin", plugin: true, n: 640, pick: "tag", takes: "Several", code: true },
+    { p: "terms", from: "Posts", to: "Tags", key: "tags", src: "config/taxonomies.php", n: 212, pick: "tag", takes: "Several", code: true, old: true },
+    { p: "links", from: "Recipes", to: "Recipes", say: "link to", as: "Pairs With", key: "pairs-with", src: "user/data/types", n: 412, pick: "cards", takes: "Up to 3" },
+    { p: "links", from: "Collections", to: "Recipes", say: "link to", as: "Features", key: "features", src: "user/data/types", n: 38, pick: "cards", takes: "Up to 12 per collection" },
+    { p: "links", from: "Posts", to: "Recipes", say: "link to", as: "Mentions", key: "mentions", src: "config/content.php", n: 150, pick: "tag", takes: "Any number", code: true }
+  ];
+  var RL = { p: "", q: "", t: "", src: "" };
+  var KIND = { credits: "Credits", terms: "Files under", links: "Links" };
+  var KIND_IC = { credits: "users", terms: "tree", links: "link" };
+  function srcGroup(r) { return r.plugin ? "plugins" : r.src === "user/data/types" ? "here" : "code"; }
+  function renderRels() {
+    var q = RL.q.trim().toLowerCase();
+    var rows = RELS.filter(function (r) {
+      if (RL.p && r.p !== RL.p) return false;
+      if (RL.t && r.from !== RL.t && r.to !== RL.t) return false;
+      if (RL.src && srcGroup(r) !== RL.src) return false;
+      if (q && [r.from, r.to, r.as || r.to, r.key].join(" ").toLowerCase().indexOf(q) < 0) return false;
+      return true;
+    });
+    $("#rlBody").innerHTML = rows.length ? rows.map(function (r) {
+      var name = r.as || r.to;
+      var title = r.code ? '<span class="t">' + esc(name) + '</span>' : '<a href="#form">' + esc(name) + '</a>';
+      var flag = r.old ? '<span class="flag">' + ic("alert") + 'Written the old way, as a data type. <a href="#rellist">Migrate</a></span>' : "";
+      return '<tr' + (r.old ? ' class="old"' : "") + '><td><div class="tname">' + ic(KIND_IC[r.p]) + '<div class="tx">' + title + '<span class="sl">' + r.key + '</span>' + flag + '</div></div></td>' +
+        '<td><span class="conn">' + esc(r.from) + ic("arrow-r") + esc(r.to) + '</span></td><td>' + KIND[r.p] + '</td>' +
+        '<td><span class="src' + (r.plugin ? " plug" : "") + '">' + esc(r.src) + '</span></td><td class="lcount mono">' + r.n.toLocaleString("en-US") + '</td></tr>';
+    }).join("") : '<tr><td colspan="5"><div class="lempty"><b>No Relationships Match</b>Nothing in this tab matches those filters. <button type="button" class="clear" data-clear="1">Clear Filters</button></div></td></tr>';
+    var tab = $('#rlTabs [aria-selected="true"]').firstChild.textContent.trim();
+    var filtered = RL.t || RL.src || q;
+    $("#rlCap").innerHTML = '<b>' + esc(tab) + '</b><span>' + plural(rows.length, "relationship") + (filtered ? " of " + RELS.filter(function (r) { return !RL.p || r.p === RL.p; }).length : "") + '</span>' + (filtered ? '<button type="button" class="clear" data-clear="1">Clear Filters</button>' : "");
+    $("#rlType .t").textContent = RL.t || "Any type";
+    $("#rlSrc .t").textContent = { "": "Any source", here: "Made here", code: "Config files", plugins: "Plugins" }[RL.src];
+  }
+  $("#rlTabs").addEventListener("click", function (e) {
+    var b = e.target.closest("button"); if (!b) return;
+    $$("#rlTabs button").forEach(function (x) { x.setAttribute("aria-selected", x === b ? "true" : "false"); });
+    RL.p = b.dataset.p; renderRels();
+  });
+  $("#rlQ").addEventListener("input", function () { RL.q = this.value; renderRels(); });
+  $("#rlType").addEventListener("click", function () {
+    var b = this; if (openPop && openPop.btn === b) { closePop(); return; }
+    var types = []; RELS.forEach(function (r) { [r.from, r.to].forEach(function (t) { if (types.indexOf(t) < 0) types.push(t); }); }); types.sort();
+    popList(b, $("#rlTypeHost"), [{ label: "Any type", none: true, v: "", on: !RL.t }].concat(types.map(function (t) {
+      return { label: t, v: t, on: RL.t === t };
+    })), function (o) { RL.t = o.v; renderRels(); });
+  });
+  $("#rlSrc").addEventListener("click", function () {
+    var b = this; if (openPop && openPop.btn === b) { closePop(); return; }
+    popList(b, $("#rlSrcHost"), [["", "Any source"], ["here", "Made here"], ["code", "Config files"], ["plugins", "Plugins"]].map(function (x) {
+      return { label: x[1], v: x[0], none: !x[0], on: RL.src === x[0] };
+    }), function (o) { RL.src = o.v; renderRels(); });
+  });
+  document.getElementById("rellist").addEventListener("click", function (e) {
+    if (e.target.closest("[data-clear]")) { RL.q = ""; RL.t = ""; RL.src = ""; $("#rlQ").value = ""; renderRels(); }
+  });
+  renderRels();
+
   /* The specimens below the live editor are drawings, not controls. */
-  $$(".lab-spec button").forEach(function (b) { b.setAttribute("tabindex", "-1"); });
+  $$(".lab-spec button, .scr button").forEach(function (b) { if (!b.closest("#form") && !b.closest(".cfg")) b.setAttribute("tabindex", "-1"); });
   $$(".lab-spec input").forEach(function (i) { i.setAttribute("tabindex", "-1"); i.readOnly = true; });
 })();
 </script>

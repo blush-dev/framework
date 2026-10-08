@@ -229,16 +229,6 @@ guardLeave(() => changed.value);
 </template>
 
 <style scoped>
-/* The profile fields' rows run edge to edge under a ruled header, as the
-   profiles sketch has them. */
-.type-people-header {
-	border-bottom: 0;
-}
-
-.type-people-rows {
-	border-top: 1px solid var(--border);
-}
-
 .type-editor__fields {
 	margin: 0;
 	padding-left: 1.2em;

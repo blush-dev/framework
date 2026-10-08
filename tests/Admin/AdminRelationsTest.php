@@ -408,6 +408,44 @@ final class AdminRelationsTest extends TestCase
 		$this->assertSame(['1 entry has more than 1; lint reports it, and it won\'t publish again until it has fewer.'], $limits['warnings'] ?? null);
 	}
 
+	public function testAChangeNamesTheEntriesInItsWay(): void
+	{
+		$this->pairedSite();
+
+		$one  = self::json($this->write('POST', '/relations/pairs/check', ['kind' => 'reference', 'from' => ['recipe'], 'to' => ['recipe'], 'multiple' => false]));
+		$item = ['id' => '0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e73', 'type' => 'recipe', 'title' => 'Stew', 'count' => 2];
+
+		$this->assertSame(['one', [$item], 1], [$one['refused'] ?? null, $one['inWay'] ?? null, $one['inWayCount'] ?? null], 'D-610: refused, with the entries in the way.');
+		$this->assertSame('type', self::json($this->write('POST', '/relations/pairs/check', ['kind' => 'reference', 'from' => ['recipe'], 'to' => ['drink']]))['refused'] ?? null);
+
+		$limits = self::json($this->write('POST', '/relations/pairs/check', ['kind' => 'reference', 'from' => ['recipe'], 'to' => ['recipe'], 'max' => 1]));
+
+		$this->assertSame([null, [$item], 1], [$limits['refused'] ?? null, $limits['over'] ?? null, $limits['overCount'] ?? null], 'Tighter limits name the entries over them.');
+
+		$entries = self::json($this->send('GET', '/entries?type=recipe&over=pairs&above=1'));
+
+		$this->assertSame(['Stew'], array_column(is_array($entries['entries'] ?? null) ? $entries['entries'] : [], 'title'), 'The list shows only the entries in the way.');
+		$this->assertSame(['label' => 'Pairs', 'above' => 1], $entries['over'] ?? null);
+		$this->assertSame(400, $this->send('GET', '/entries?over=pairs')->getStatusCode(), 'It needs a type.');
+	}
+
+	public function testTheListCountsTheEntriesUsingEachRelation(): void
+	{
+		$this->pairedSite();
+
+		$listed    = [];
+		$relations = self::json($this->send('GET', '/relations'))['relations'] ?? [];
+
+		foreach (is_array($relations) ? $relations : [] as $relation) {
+			if (is_array($relation) && is_string($relation['name'] ?? null)) {
+				$listed[$relation['name']] = [$relation['entries'] ?? null, $relation['legacy'] ?? null];
+			}
+		}
+
+		$this->assertSame([1, false], $listed['pairs'] ?? null, 'D-610.');
+		$this->assertSame([2, false], $listed['cuisine'] ?? null, 'Every type it files.');
+	}
+
 	public function testANewKeyKeepsTheOldOneOrRewritesTheFiles(): void
 	{
 		$this->pairedSite();

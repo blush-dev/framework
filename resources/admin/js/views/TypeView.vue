@@ -123,8 +123,6 @@ const related = computed(() => (people.value ? (type.value?.types ?? []) : []).m
 				</div>
 			</section>
 
-			<TypeRelations v-if="!people" :type="type" @changed="load(type.name)" />
-
 			<TypeFieldSets :type="type" />
 		</div>
 
@@ -161,6 +159,8 @@ const related = computed(() => (people.value ? (type.value?.types ?? []) : []).m
 		</section>
 	</div>
 
+	<TypeRelations v-if="type && !type.editable && !people" class="type-relations-panel" :type="type" @changed="load(type.name)" />
+
 	<div v-else-if="!error" class="detail" aria-hidden="true">
 		<div class="panel"><div class="panel__body"><span class="skeleton skeleton--heading" /><span class="skeleton" /><span class="skeleton" /></div></div>
 		<div class="panel"><div class="panel__body"><span class="skeleton skeleton--label" /><span class="skeleton" /></div></div>
@@ -179,6 +179,11 @@ const related = computed(() => (people.value ? (type.value?.types ?? []) : []).m
 	grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr);
 	align-items: start;
 	gap: 16px;
+}
+
+/* Relationships are a table of sentences, so they take the width. */
+.type-relations-panel {
+	margin-top: 16px;
 }
 
 .detail__side {

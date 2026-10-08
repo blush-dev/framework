@@ -201,6 +201,9 @@ export interface EntryList {
 	// to (D-608).
 	linking?: { id: string; title: string; via: string | null } | null;
 	linked?: boolean;
+	// Only the entries with more values in a relation than `above`, for a
+	// relationship change's entries in the way (D-610).
+	over?: { label: string; above: number } | null;
 	// The column it's sorted by and which way, or `null` for the usual
 	// order; and whether it's a tree.
 	sort: EntrySort | null;
@@ -280,6 +283,8 @@ export interface RelationInfo {
 	field: string;
 	aliases: string[];
 	label: string;
+	// What one target is called ("Cook").
+	singular: string;
 	multiple: boolean;
 	ordered: boolean;
 	min: number;
@@ -299,6 +304,49 @@ export interface RelationInfo {
 	origin: 'extension' | 'config' | 'data';
 	// Whether it's one of the site's data relations, changed here.
 	editable: boolean;
+}
+
+/**
+ * A relation on the Relationships list (`GET relations`, D-610): how many
+ * entries have a value in it, and whether it's still written as a
+ * taxonomy until it's migrated.
+ */
+export interface RelationListed extends RelationInfo {
+	entries: number;
+	legacy: boolean;
+}
+
+// An entry a relationship change names (D-610): with how many values it
+// has in the relation.
+export interface RelationCheckItem {
+	id: string | null;
+	type: string;
+	title: string;
+	count: number;
+}
+
+/**
+ * What a change does to the entries using a relation (D-600), from
+ * `POST relations/{name}/check`, counted before it happens (D-610).
+ */
+export interface RelationCheck {
+	refusal: string | null;
+	// Why it's refused: it points at another type, or takes one where
+	// entries have several; with the entries in the way.
+	refused: 'type' | 'one' | null;
+	inWay: RelationCheckItem[];
+	inWayCount: number;
+	warnings: string[];
+	uses: number;
+	moved: number;
+	unfiled: string[];
+	stripped: number;
+	// The entries over a new `max`, the live ones under a new `min`, and
+	// the targets over a new inverse `max`.
+	over: RelationCheckItem[];
+	overCount: number;
+	fewer: number;
+	inverseOver: number;
 }
 
 /**

@@ -72,6 +72,53 @@ final readonly class RelationChanges
 	}
 
 	/**
+	 * Returns how many entries have a value in each relation given, in one
+	 * pass over the index (D-610), by relation name.
+	 *
+	 * @param  array<array-key, Relation> $relations
+	 * @return array<string, int>
+	 */
+	public function counts(array $relations): array
+	{
+		$this->indexer->index();
+
+		$counts = array_fill_keys(array_map(static fn (Relation $relation): string => $relation->name, array_values($relations)), 0);
+
+		foreach ($this->index->snapshot()->records as $record) {
+			$values = [...$record['extra'], ...$record['values']];
+
+			foreach ($relations as $relation) {
+				if ($relation->isFrom($record['type']) && LinkResolver::values($relation->valueIn($values)) !== []) {
+					$counts[$relation->name]++;
+				}
+			}
+		}
+
+		return $counts;
+	}
+
+	/**
+	 * Returns the slugs of a type's entries with more values in a relation
+	 * than a number (D-610), for the list of the entries a change is
+	 * refused or warned over.
+	 *
+	 * @return list<string>
+	 */
+	public function slugsOver(Relation $relation, string $type, int $above): array
+	{
+		$records = $this->index->snapshot()->records;
+		$slugs   = [];
+
+		foreach ($this->uses($relation, [$type]) as $path => $count) {
+			if ($count > $above && isset($records[$path])) {
+				$slugs[] = $records[$path]['slug'];
+			}
+		}
+
+		return array_values(array_unique($slugs));
+	}
+
+	/**
 	 * Says what replacing a relation's definition does to the entries
 	 * using it.
 	 */
@@ -79,36 +126,45 @@ final readonly class RelationChanges
 	{
 		$uses     = $this->uses($old);
 		$refusal  = null;
+		$refused  = null;
+		$inWay    = [];
 		$warnings = [];
 
 		if ($old->to !== $new->to && $uses !== []) {
+			$refused = 'type';
+			$inWay   = $uses;
 			$refusal = sprintf('%s a value in "%s", so it can\'t point at another type; make a new relation instead.', self::entries(count($uses), 'has', 'have'), $old->name);
 		} elseif ($old->multiple && ! $new->multiple) {
-			$several = array_keys(array_filter($uses, static fn (int $count): bool => $count > 1));
+			$several = array_filter($uses, static fn (int $count): bool => $count > 1);
 
 			if ($several !== []) {
-				$refusal = sprintf('%s more than one value in "%s", so it can\'t take just one: %s.', self::entries(count($several), 'has', 'have'), $old->name, implode(', ', array_slice($several, 0, 5)) . (count($several) > 5 ? ', …' : ''));
+				$refused = 'one';
+				$inWay   = $several;
+				$refusal = sprintf('%s more than one value in "%s", so it can\'t take just one: %s.', self::entries(count($several), 'has', 'have'), $old->name, implode(', ', array_slice(array_keys($several), 0, 5)) . (count($several) > 5 ? ', …' : ''));
 			}
 		}
 
 		$unfiled = $new->from === [] ? [] : array_values(array_unique(array_filter(
-			array_map(fn (string $path): string => $this->index->snapshot()->records[$path]['type'] ?? '', array_keys($uses)),
+			array_map(fn (string $path): string => $this->index->snapshot()->records[$path]['type'] ?? '', array_map(strval(...), array_keys($uses))),
 			static fn (string $type): bool => $type !== '' && ! in_array($type, $new->from, true)
 		)));
 
-		$live = $this->live($uses);
+		$live  = $this->live($uses);
+		$fewer = 0;
+		$over  = [];
 
 		if ($new->min > $old->min) {
-			$few = count(array_filter($live, static fn (int $count): bool => $count < $new->min));
-			$few += $new->min > 0 ? $this->liveWithout($new) : 0;
+			$fewer  = count(array_filter($live, static fn (int $count): bool => $count < $new->min));
+			$fewer += $new->min > 0 ? $this->liveWithout($new) : 0;
 
-			if ($few > 0) {
-				$warnings[] = sprintf('%s fewer than %d, so %s published again until %s more.', self::entries($few, 'has', 'have', 'published'), $new->min, $few === 1 ? 'it can\'t be' : 'they can\'t be', $few === 1 ? 'it has' : 'they have');
+			if ($fewer > 0) {
+				$warnings[] = sprintf('%s fewer than %d, so %s published again until %s more.', self::entries($fewer, 'has', 'have', 'published'), $new->min, $fewer === 1 ? 'it can\'t be' : 'they can\'t be', $fewer === 1 ? 'it has' : 'they have');
 			}
 		}
 
 		if ($new->max !== null && ($old->max === null || $new->max < $old->max)) {
-			$many = count(array_filter($uses, static fn (int $count): bool => $count > $new->max));
+			$over = array_filter($uses, static fn (int $count): bool => $count > $new->max);
+			$many = count($over);
 
 			if ($many > 0) {
 				$warnings[] = sprintf('%s more than %d; lint reports %s, and %s publish again until %s fewer.', self::entries($many, 'has', 'have'), $new->max, $many === 1 ? 'it' : 'them', $many === 1 ? 'it won\'t' : 'they won\'t', $many === 1 ? 'it has' : 'they have');
@@ -117,18 +173,58 @@ final readonly class RelationChanges
 
 		$oldMax = $old->inverse === false ? null : $old->inverse->max;
 		$newMax = $new->inverse === false ? null : $new->inverse->max;
+		$beyond = 0;
 
 		if ($newMax !== null && ($oldMax === null || $newMax < $oldMax)) {
-			$over = $this->overInverse($old->name, $newMax);
+			$beyond = $this->overInverse($old->name, $newMax);
 
-			if ($over > 0) {
-				$warnings[] = sprintf('%s named by more than %d %s; lint reports them.', $over === 1 ? '1 entry is' : "{$over} entries are", $newMax, $newMax === 1 ? 'entry' : 'entries');
+			if ($beyond > 0) {
+				$warnings[] = sprintf('%s named by more than %d %s; lint reports them.', $beyond === 1 ? '1 entry is' : "{$beyond} entries are", $newMax, $newMax === 1 ? 'entry' : 'entries');
 			}
 		}
 
 		$moved = $old->field === $new->field ? 0 : count($uses);
 
-		return new RelationCheck($refusal, $warnings, count($uses), $moved, $unfiled, $unfiled === [] ? 0 : count($this->uses($old, $unfiled)));
+		return new RelationCheck(
+			refusal: $refusal,
+			warnings: $warnings,
+			uses: count($uses),
+			moved: $moved,
+			unfiled: $unfiled,
+			stripped: $unfiled === [] ? 0 : count($this->uses($old, $unfiled)),
+			refused: $refused,
+			inWay: $this->items($inWay),
+			inWayCount: count($inWay),
+			over: $this->items($over),
+			overCount: count($over),
+			fewer: $fewer,
+			inverseOver: $beyond
+		);
+	}
+
+	/**
+	 * Names the entries with the most values, up to `RelationCheck::LISTED`,
+	 * then by title.
+	 *
+	 * @param  array<array-key, int> $uses Values by path.
+	 * @return list<array{id: ?string, type: string, title: string, count: int}>
+	 */
+	private function items(array $uses): array
+	{
+		$records = $this->index->snapshot()->records;
+		$items   = [];
+
+		foreach ($uses as $path => $count) {
+			$record = $records[(string) $path] ?? null;
+
+			if ($record !== null) {
+				$items[] = ['id' => $record['id'], 'type' => $record['type'], 'title' => $record['title'], 'count' => $count];
+			}
+		}
+
+		usort($items, static fn (array $a, array $b): int => [$b['count'], $a['title']] <=> [$a['count'], $b['title']]);
+
+		return array_slice($items, 0, RelationCheck::LISTED);
 	}
 
 	/**

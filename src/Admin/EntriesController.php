@@ -31,6 +31,7 @@ use Blush\Content\EntryFields;
 use Blush\Content\Query\Order;
 use Blush\Content\Query\Query;
 use Blush\Content\Relation\Referrers;
+use Blush\Content\Relation\RelationChanges;
 use Blush\Content\Relation\Relations;
 use Blush\Content\Routing\ContentUrls;
 use Blush\Content\Status;
@@ -66,6 +67,10 @@ use Blush\View\ThemedErrorPages;
  *   and `title`, and the relation's label (`via`), or `null`.
  * - `linked`: `1` for only the entries live entries link to, for a
  *   bulk warning's Show Only the Linked (D-608); needs `type`.
+ * - `over`: a relation's name, with `above` (0 by default): only the
+ *   entries with more values in it than that, for a relationship change
+ *   refused or warned over the entries in the way (D-610); needs
+ *   `type`. It's answered as the relation's label and `above`, or `null`.
  * - `sort`: `title`, `status`, `author`, `published`, or `updated`, and
  *   `dir`, `asc` or `desc` (the dates newest first unless `dir` says
  *   otherwise, the rest A to Z).
@@ -145,7 +150,8 @@ final readonly class EntriesController
 		private Homepage $homepage,
 		private ArchivePages $archivePages,
 		private Referrers $referrers,
-		private Relations $relations
+		private Relations $relations,
+		private RelationChanges $changes
 	) {}
 
 	public function __invoke(ServerRequestInterface $request): ResponseInterface
@@ -223,6 +229,15 @@ final readonly class EntriesController
 			return self::json(['error' => '"linked" needs a "type".'], HttpStatus::BadRequest);
 		}
 
+		$overName = $params['over'] ?? '';
+		$over     = is_string($overName) && $overName !== '' ? $this->types->relations()[$overName] ?? null : null;
+		$above    = $params['above'] ?? '0';
+		$above    = $above === '0' ? 0 : self::positive($above);
+
+		if (! is_string($overName) || ($overName !== '' && ($over === null || $type === null)) || $above === null) {
+			return self::json(['error' => '"over" must be a relation\'s name, with a "type", and "above" a whole number.'], HttpStatus::BadRequest);
+		}
+
 		$sort = $params['sort'] ?? '';
 
 		if ($sort !== '' && ! in_array($sort, self::SORTS, true)) {
@@ -283,7 +298,7 @@ final readonly class EntriesController
 			default                       => $query->orderBy($by, Order::Desc)
 		};
 
-		$whole = $status === null && trim($search) === '' && $author === '' && $terms === [] && $days === 0 && $sort === '' && $link === '' && $target === null && ! $onlyLinked;
+		$whole = $status === null && trim($search) === '' && $author === '' && $terms === [] && $days === 0 && $sort === '' && $link === '' && $target === null && ! $onlyLinked && $over === null;
 
 		$pinned      = $contentType !== null && ! $trash;
 		$query       = $this->permissions->restrict($account, $trash ? ContentAction::Delete : ContentAction::Edit, $query);
@@ -297,6 +312,7 @@ final readonly class EntriesController
 			default                                            => $listed->exceptNames(...$this->archivePages->listPages($contentType), ...array_map(strval(...), array_keys($linked)))
 		};
 		$listed      = $target === null && ! $onlyLinked ? $listed : $listed->names(...($this->linkingSlugs($target, $via, $onlyLinked ? $type : null) ?: ['/']));
+		$listed      = $over === null || $type === null ? $listed : $listed->names(...($this->changes->slugsOver($over, $type, $above) ?: ['/']));
 		$errors      = $pinned && $contentType instanceof Tree && $contentType->atRoot();
 		$listed      = $errors ? $listed->exceptIn(...ThemedErrorPages::FOLDERS) : $listed;
 		$errorPages  = $errors && $page === 1 ? $this->errorPages($query) : [];
@@ -342,6 +358,7 @@ final readonly class EntriesController
 				'via'   => $via === '' ? null : $this->viaLabel($via)
 			],
 			'linked'      => $onlyLinked,
+			'over'        => $over === null ? null : ['label' => $over->label === '' ? ucfirst(str_replace('_', ' ', $over->name)) : $over->label, 'above' => $above],
 			'sort'        => $sort === '' ? null : $sort,
 			'dir'         => $sort === '' ? null : $order->value,
 			'tree'        => $tree !== null,

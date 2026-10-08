@@ -1,9 +1,9 @@
 {
 	"$schema": "https://getcomposer.org/schema.json",
 	"name": "blush-dev/framework",
-	"description": "Blush Framework: the core of Blush, a flat-file CMS.",
+	"description": "Blush Framework: the core of Blush, a CMS that keeps its data in files by default.",
 	"type": "library",
-	"keywords": ["cms", "flat-file"],
+	"keywords": ["cms"],
 	"homepage": "https://github.com/blush-dev/framework",
 	"license": "MIT",
 	"authors": [
