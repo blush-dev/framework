@@ -17,8 +17,6 @@ use Override;
 use Blush\Content\Http\CollectionController;
 use Blush\Content\Http\DateArchiveController;
 use Blush\Content\Http\HomeController;
-use Blush\Content\Http\PeopleController;
-use Blush\Content\Http\PersonController;
 use Blush\Content\Http\ProfileController;
 use Blush\Content\Http\SingleController;
 use Blush\Content\Http\RelatedController;
@@ -38,11 +36,10 @@ use Blush\Routing\RouteSource;
  * 1.x (D-078): `{type}.collection`, `.collection.paged`, the date
  * archives the type's granularity allows (`.collection.year` …
  * `.collection.second`, each with `.paged`), and `{type}.single` (plus
- * `.single.paged` for a taxonomy's term archives). Each people field
- * with archives (D-351) adds `{type}.{field}.collection`,
- * `.{field}.single`, and `.{field}.single.paged`, ahead of the type's
- * single route, and so does each relation with an archive word (D-596):
- * `{type}.{relation}.collection`, `.single`, and `.single.paged`. The profiles type has only `{type}.single` and
+ * `.single.paged` for a taxonomy's term archives). Each relation with an
+ * archive word (D-596; a credit's people too, D-602) adds
+ * `{type}.{relation}.collection`, `.single`, and `.single.paged`, ahead
+ * of the type's single route. The profiles type has only `{type}.single` and
  * `.single.paged`, each profile's page; nothing answers at its prefix.
  * Paths come from the type's `TypeUrls` under its prefix.
  *
@@ -58,14 +55,12 @@ use Blush\Routing\RouteSource;
  * and term routes again under `/{code}`, named `{code}:{name}` (`fr:home`,
  * `fr:post.single`), with the code as the `language` parameter. They come
  * first, so a type's pattern at the root can't take a language's paths.
- * Profiles, people archives, and relation archives aren't in other
- * languages yet.
+ * Profiles and relation archives aren't in other languages yet.
  */
 final readonly class ContentRoutes implements RouteSource
 {
 	public function __construct(
 		private ContentTypes $types,
-		private ContentUrls $urls,
 		private AppConfig $app
 	) {}
 
@@ -100,7 +95,7 @@ final readonly class ContentRoutes implements RouteSource
 
 			foreach ($types as $type) {
 				if (! $type instanceof Profiles) {
-					array_push($localized, ...$this->typeRoutes($type, $type->name === $this->types->home, people: false));
+					array_push($localized, ...$this->typeRoutes($type, $type->name === $this->types->home, archives: false));
 				}
 			}
 
@@ -130,12 +125,12 @@ final readonly class ContentRoutes implements RouteSource
 	}
 
 	/**
-	 * Returns one type's routes, with its people archives' unless
-	 * `$people` is `false`.
+	 * Returns one type's routes, with its relation archives' unless
+	 * `$archives` is `false`.
 	 *
 	 * @return list<Route>
 	 */
-	private function typeRoutes(ContentType $type, bool $home, bool $people = true): array
+	private function typeRoutes(ContentType $type, bool $home, bool $archives = true): array
 	{
 		if ($type instanceof Profiles) {
 			return $this->routesFor($type, ['single.paged' => ProfileController::class, 'single' => ProfileController::class]);
@@ -150,17 +145,7 @@ final readonly class ContentRoutes implements RouteSource
 
 		$routes = [];
 
-		foreach ($people ? $type->archivedPeople() : [] as $field) {
-			if ($this->urls->hasArchive($type, $field)) {
-				array_push($routes, ...$this->routesFor($type, [
-					"{$field->field}.single.paged" => PersonController::class,
-					"{$field->field}.single"       => PersonController::class,
-					"{$field->field}.collection"   => PeopleController::class
-				], ['field' => $field->field]));
-			}
-		}
-
-		foreach ($people ? array_keys($this->types->relationArchives($type)) : [] as $relation) {
+		foreach ($archives ? array_keys($this->types->relationArchives($type)) : [] as $relation) {
 			array_push($routes, ...$this->routesFor($type, [
 				"{$relation}.single.paged" => RelatedController::class,
 				"{$relation}.single"       => RelatedController::class,

@@ -45,6 +45,8 @@ use Blush\Content\EntryFields;
  * - `symmetric` makes each link true from both ends (related posts).
  * - `defaults` are written values filled in when an entry is created,
  *   never applied when it's read (D-587).
+ * - `control` names how the admin picks targets (`RelationControl`),
+ *   else its shape's (`control()`, D-599).
  * - An entry never links to itself, and a hierarchical relation refuses
  *   cycles (D-587).
  */
@@ -57,6 +59,12 @@ final readonly class Relation
 	 * @var list<string>
 	 */
 	public const array RESERVED = [EntryFields::ID, Refs::FIELD];
+
+	/**
+	 * The name of the credit setup gives a site (D-602), read from 1.x's
+	 * `author` too.
+	 */
+	public const string AUTHORS = 'authors';
 
 	/**
 	 * The front matter key the relation is written under.
@@ -80,6 +88,24 @@ final readonly class Relation
 	public Inverse|false $inverse;
 
 	/**
+	 * Whether the order targets are written in means something (a lead
+	 * author); always for a credit.
+	 */
+	public bool $ordered;
+
+	/**
+	 * How a translation's links relate to its original's; a credit's add
+	 * to them by default.
+	 */
+	public TranslationRule $translations;
+
+	/**
+	 * What one target is called ("Cook"), for a credit beside a name
+	 * ("Photographer: Sam"); made from the label when it isn't given.
+	 */
+	public string $singular;
+
+	/**
 	 * @param  string          $name       Lowercase letters, digits, and underscores; unique on each source type.
 	 * @param  RelationKind    $kind       What it's for.
 	 * @param  list<string>    $from       The source types; empty for every type.
@@ -96,6 +122,8 @@ final readonly class Relation
 	 * @param  TranslationRule $translations How a translation's links relate to its original's.
 	 * @param  list<string>    $defaults   Written values filled in on create.
 	 * @param  string          $label      What people call it ("Actors"); `''` for its name's.
+	 * @param  ?RelationControl $control   How the admin picks targets, or `null` for its shape's.
+	 * @param  string          $singular   What one target is called ("Cook"); `''` for one made from the label.
 	 * @throws InvalidRelation
 	 */
 	public function __construct(
@@ -106,19 +134,32 @@ final readonly class Relation
 		?string $field = null,
 		public array $aliases = [],
 		bool $multiple = true,
-		public bool $ordered = false,
+		bool $ordered = false,
 		public int $min = 0,
 		?int $max = null,
 		public bool $create = false,
 		public bool $symmetric = false,
 		Inverse|false|null $inverse = null,
-		public TranslationRule $translations = TranslationRule::Fallback,
+		?TranslationRule $translations = null,
 		public array $defaults = [],
-		public string $label = ''
+		public string $label = '',
+		public ?RelationControl $control = null,
+		string $singular = ''
 	) {
 		$this->field    = $field ?? $name;
+		$this->singular = trim($singular) !== '' ? trim($singular) : self::singularOf($label === '' ? ucfirst(str_replace('_', ' ', $name)) : $label);
 		$this->multiple = $multiple && ! $kind->isWithinType();
-		$this->inverse  = $inverse ?? new Inverse(archive: $kind === RelationKind::Classify);
+
+		// A credit's order names its lead, and a translation adds its own
+		// credits (a translator) to its original's (D-587, D-602).
+		$this->ordered      = $ordered || $kind === RelationKind::Credit;
+		$this->translations = $translations ?? ($kind === RelationKind::Credit ? TranslationRule::Add : TranslationRule::Fallback);
+		// A term's and a profile's own pages list what links to them, and
+		// a credit has archives under each type by its name (D-602).
+		$this->inverse  = $inverse ?? new Inverse(
+			page: $kind === RelationKind::Classify || $kind === RelationKind::Credit,
+			archive: $kind === RelationKind::Credit ? $name : false
+		);
 		$this->max      = $this->multiple ? $max : 1;
 
 		self::checkName('name', $name);
@@ -160,6 +201,19 @@ final readonly class Relation
 		if ($symmetric && $from !== [] && array_diff($to, $from) !== []) {
 			throw new InvalidRelation(sprintf('Relation "%s" is symmetric, so every type it points to must be one it points from.', $name));
 		}
+	}
+
+	/**
+	 * Returns the `authors` credit setup and the new-type wizard write
+	 * (D-602): from the types given to the profiles type, read from 1.x's
+	 * `author` too, with archives under each type's `authors`.
+	 *
+	 * @param  list<string> $from
+	 * @throws InvalidRelation
+	 */
+	public static function authors(array $from, string $profiles): self
+	{
+		return new self(self::AUTHORS, RelationKind::Credit, $from, [$profiles], aliases: ['author'], label: 'Authors');
 	}
 
 	/**
@@ -246,6 +300,32 @@ final readonly class Relation
 	}
 
 	/**
+	 * Returns how the admin picks the relation's targets (D-599): its own
+	 * `control` when its shape can draw it, else its shape's: people for
+	 * credits, a select for one target, a tree for a classify relation to
+	 * a type that nests (`$nests`), tokens for other terms, and cards for
+	 * other entries.
+	 */
+	public function control(bool $nests = false): RelationControl
+	{
+		$shape = match (true) {
+			$this->kind === RelationKind::Credit   => RelationControl::People,
+			! $this->multiple                       => RelationControl::Select,
+			$this->kind === RelationKind::Classify => $nests ? RelationControl::Tree : RelationControl::Tokens,
+			default                                 => RelationControl::Cards
+		};
+
+		$fits = match ($this->control) {
+			null                    => false,
+			RelationControl::Select => ! $this->multiple,
+			RelationControl::Tree   => $nests && $this->multiple,
+			default                 => $this->multiple
+		};
+
+		return $fits && $this->control !== null ? $this->control : $shape;
+	}
+
+	/**
 	 * Builds a relation from a definition array: the constructor's
 	 * parameter names, with `kind` and `translations` by value, `inverse`
 	 * a map or `false`, and `required` short for a `min` of 1.
@@ -262,7 +342,7 @@ final readonly class Relation
 		$bool   = static fn (string $key, bool $default): bool => is_bool($data[$key] ?? null) ? $data[$key] : $default;
 		$kind   = RelationKind::tryFrom($string('kind', RelationKind::Reference->value))
 			?? throw new InvalidRelation(sprintf('Relation "%s" has an unknown kind.', $string('name')));
-		$rule   = TranslationRule::tryFrom($string('translations', TranslationRule::Fallback->value))
+		$rule   = $string('translations') === '' ? null : TranslationRule::tryFrom($string('translations'))
 			?? throw new InvalidRelation(sprintf('Relation "%s" has an unknown translations rule.', $string('name')));
 		$min    = is_int($data['min'] ?? null) ? $data['min'] : (($data['required'] ?? false) === true ? 1 : 0);
 		$max    = is_int($data['max'] ?? null) ? $data['max'] : null;
@@ -281,14 +361,25 @@ final readonly class Relation
 			max: $max,
 			create: $bool('create', false),
 			symmetric: $bool('symmetric', false),
-			// A classify relation's terms have pages unless it says otherwise,
-			// with or without other inverse options (D-593).
+			// A classify relation's terms, and a credit's profiles, have
+			// pages unless it says otherwise, with or without other inverse
+			// options (D-593, D-602).
 			inverse: is_array($inverse)
-				? Inverse::fromArray($kind === RelationKind::Classify && ! array_key_exists('archive', $inverse) ? [...$inverse, 'archive' => true] : $inverse)
+				? Inverse::fromArray([
+					...($kind === RelationKind::Classify || $kind === RelationKind::Credit ? ['page' => true] : []),
+					...($kind === RelationKind::Credit ? ['archive' => $string('name')] : []),
+					...$inverse
+				])
 				: ($inverse === false ? false : null),
 			translations: $rule,
 			defaults: $list('defaults'),
-			label: $string('label')
+			label: $string('label'),
+			singular: $string('singular'),
+			control: $string('control') === '' ? null : (RelationControl::tryFrom($string('control')) ?? throw new InvalidRelation(sprintf(
+				'Relation "%s" has an unknown control; it can be %s.',
+				$string('name'),
+				implode(', ', array_map(static fn (RelationControl $control): string => $control->value, RelationControl::cases()))
+			)))
 		);
 	}
 
@@ -308,18 +399,64 @@ final readonly class Relation
 			'field'        => $this->field === $this->name ? null : $this->field,
 			'aliases'      => $this->aliases,
 			'multiple'     => $this->multiple ? null : false,
-			'ordered'      => $this->ordered ?: null,
+			'ordered'      => $this->ordered && $this->kind !== RelationKind::Credit ? true : null,
 			'min'          => $this->min ?: null,
 			'max'          => $this->multiple ? $this->max : null,
 			'create'       => $this->create ?: null,
 			'symmetric'    => $this->symmetric ?: null,
-			'inverse'      => $this->inverse === false ? false : ($this->inverse->toArray() ?: null),
-			'translations' => $this->translations === TranslationRule::Fallback ? null : $this->translations->value,
+			'inverse'      => $this->inverse === false ? false : ($this->inverseArray() ?: null),
+			'translations' => $this->translations === ($this->kind === RelationKind::Credit ? TranslationRule::Add : TranslationRule::Fallback) ? null : $this->translations->value,
 			'defaults'     => $this->defaults,
-			'label'        => $this->label
+			'label'        => $this->label,
+			'singular'     => $this->singular === self::singularOf($this->label === '' ? ucfirst(str_replace('_', ' ', $this->name)) : $this->label) ? null : $this->singular,
+			'control'      => $this->control?->value
 		];
 
 		return array_filter($data, static fn (mixed $value): bool => $value !== null && $value !== [] && $value !== '');
+	}
+
+	/**
+	 * Returns the inverse side as an array, leaving out what its kind
+	 * gives by default (a term's or profile's page, a credit's archive
+	 * under its name) and writing `false` where its kind's default is on,
+	 * so it reads back the same.
+	 *
+	 * @return array<string, mixed>
+	 */
+	private function inverseArray(): array
+	{
+		if ($this->inverse === false) {
+			return [];
+		}
+
+		$data    = $this->inverse->toArray();
+		$page    = $this->kind === RelationKind::Classify || $this->kind === RelationKind::Credit;
+		$archive = $this->kind === RelationKind::Credit ? $this->name : false;
+
+		unset($data['page'], $data['archive']);
+
+		if ($this->inverse->page !== $page) {
+			$data['page'] = $this->inverse->page;
+		}
+
+		if ($this->inverse->archive !== $archive) {
+			$data['archive'] = $this->inverse->archive;
+		}
+
+		return $data;
+	}
+
+	/**
+	 * Returns an English singular for a plural label: "Categories" is
+	 * "Category", "Cooks" "Cook". Other words set `singular`.
+	 */
+	private static function singularOf(string $plural): string
+	{
+		return match (true) {
+			preg_match('/[^aeiou]ies$/i', $plural) === 1 => substr($plural, 0, -3) . 'y',
+			preg_match('/[^s]s$/i', $plural) === 1       => substr($plural, 0, -1),
+			default                                     => $plural
+		};
 	}
 
 	/**

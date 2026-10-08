@@ -17,6 +17,7 @@ use Blush\Console\Commands\ActivateTheme;
 use Blush\Console\Commands\AddAccount;
 use Blush\Console\Commands\CacheClear;
 use Blush\Console\Commands\CacheCompile;
+use Blush\Console\Commands\ChangeRelation;
 use Blush\Console\Commands\CheckIconPacks;
 use Blush\Console\Commands\CheckPlugins;
 use Blush\Console\Commands\CheckSite;
@@ -87,6 +88,7 @@ enum BuiltInCommand: string
 	case ContentNew    = 'content:new';
 	case ContentPreview = 'content:preview';
 	case ContentRefs   = 'content:refs';
+	case ContentRelation = 'content:relation';
 	case ContentTerms  = 'content:terms';
 	case ContentTaxonomies = 'content:taxonomies';
 	case MediaIds      = 'media:ids';
@@ -146,6 +148,7 @@ enum BuiltInCommand: string
 			self::ContentNew    => CreateContent::class,
 			self::ContentPreview => PreviewContent::class,
 			self::ContentRefs   => FileRefs::class,
+			self::ContentRelation => ChangeRelation::class,
 			self::ContentTerms  => CreateMissingTerms::class,
 			self::ContentTaxonomies => MigrateTaxonomies::class,
 			self::MediaIds      => FixMediaIds::class,

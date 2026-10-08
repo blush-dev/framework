@@ -45,7 +45,7 @@ final readonly class Tree extends ContentType
 	 * @param  ?TypeLabels     $labels      What people call it; defaults to labels made from the name ("Pages" and "Page").
 	 * @param  string          $description What pages are for, in a sentence.
 	 * @param  ?string         $icon        An icon name for the admin; defaults to its kind's.
-	 * @param  array<PeopleField>|bool $people How entries credit people (D-351): `true` for `authors`.
+	 * @param  ?string        $byline      The credit relation that's its byline (D-602), or `null` for its only one.
 	 * @param  bool            $llms        Whether its entries are listed in `llms.txt` (D-398).
 	 * @param  ?FileName       $filename    How new files are named (D-514).
 	 * @throws InvalidContentType
@@ -60,11 +60,11 @@ final readonly class Tree extends ContentType
 		?TypeLabels $labels = null,
 		string $description = '',
 		?string $icon = null,
-		array|bool $people = false,
+		?string $byline = null,
 		bool $llms = true,
 		?FileName $filename = null
 	) {
-		parent::__construct($name, $folder ?? ($name === BuiltInType::Page->value ? '' : null), $public, false, new Listing(), false, $sitemap, DateArchives::None, $fields, $closed, $labels, $description, $icon, $people, $llms, $filename);
+		parent::__construct($name, $folder ?? ($name === BuiltInType::Page->value ? '' : null), $public, false, new Listing(), false, $sitemap, DateArchives::None, $fields, $closed, $labels, $description, $icon, $byline, $llms, $filename);
 	}
 
 	/**
@@ -129,6 +129,6 @@ final readonly class Tree extends ContentType
 	#[Override]
 	protected function options(): array
 	{
-		return ['people' => $this->peopleOption(false)];
+		return ['byline' => $this->byline];
 	}
 }

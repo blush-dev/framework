@@ -215,10 +215,11 @@ final readonly class RecordBuilder
 
 	/**
 	 * Returns the term slugs each taxonomy's field holds, and the labels
-	 * of terms written differently from their slugs. The profiles an
-	 * entry credits (D-351) are kept twice: under each people field
-	 * (`profile.cooks`), for that field's archives, and together under
-	 * the profiles type's name, for a profile's own page.
+	 * of terms written differently from their slugs, under each relation's
+	 * key (`Relation::termKey()`). The profiles an entry credits (D-602)
+	 * are kept twice: under each credit relation (`profile.cooks`), for
+	 * its archives, and together under the profiles type's name, for a
+	 * profile's own page.
 	 *
 	 * @param  array<array-key, mixed> $frontMatter
 	 * @param  array<string, mixed>    $values
@@ -226,27 +227,20 @@ final readonly class RecordBuilder
 	 */
 	private function terms(ContentType $type, array $frontMatter, array $values): array
 	{
-		$sources  = [];
-		$profiles = $this->types->profiles()?->name;
+		$sources = [];
 
 		foreach ($this->types->relations() as $relation) {
-			$key = $relation->kind === RelationKind::Credit ? null : $relation->termKey();
+			$key = $relation->termKey();
 
 			if ($key !== null && $relation->isFrom($type->name)) {
-				$sources[] = [$key, $relation->to[0], $relation->field, $relation->aliases];
-			}
-		}
-
-		if ($profiles !== null) {
-			foreach ($type->people as $people) {
-				$sources[] = [$people->termKey($profiles), $profiles, $people->field, $people->aliases];
+				$sources[] = [$key, $relation->to[0], $relation->field, $relation->aliases, $relation->kind === RelationKind::Credit];
 			}
 		}
 
 		$terms  = [];
 		$labels = [];
 
-		foreach ($sources as [$key, $labelKey, $field, $aliases]) {
+		foreach ($sources as [$key, $labelKey, $field, $aliases, $together]) {
 			$value = $values[$field] ?? [];
 			$slugs = is_array($value) ? $value : [$value];
 			$slugs = array_values(array_map(static fn (mixed $slug): string => (string) $slug, array_filter($slugs, static fn (mixed $slug): bool => is_scalar($slug) && $slug !== '')));
@@ -257,7 +251,7 @@ final readonly class RecordBuilder
 
 			$terms[$key] = $slugs;
 
-			if ($key !== $labelKey) {
+			if ($together) {
 				$terms[$labelKey] = array_values(array_unique([...$terms[$labelKey] ?? [], ...$slugs]));
 			}
 

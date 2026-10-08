@@ -22,6 +22,7 @@ use Blush\Cache\CacheNamespace;
 use Blush\Clock\DateFormat;
 use Blush\Clock\DateStyle;
 use Blush\Content\Entry\Entry;
+use Blush\Content\Relation\Relation;
 use Blush\Content\Type\ContentType;
 use Blush\Data\InvalidData;
 use Blush\Menu\Menu;
@@ -600,39 +601,22 @@ final class Template
 	}
 
 	/**
-	 * Returns the profiles an entry credits through one of its type's
-	 * people fields (D-351), in the order front matter lists them; the
-	 * type's first people field, its main byline, when none is named.
-	 * Profiles that aren't published, or have no file, are left out.
+	 * Returns the people an entry's byline credits (D-602): its type's
+	 * byline relation, such as a post's `authors`, in order, published
+	 * profiles only.
 	 *
 	 * @return list<Entry>
 	 */
-	public function people(Entry $entry, ?string $field = null): array
+	public function byline(Entry $entry): array
 	{
-		$profiles = $this->views->services->types->profiles();
-		$people   = $field === null ? array_first($entry->type->people) : $entry->type->peopleField($field);
+		$byline = $this->views->services->types->byline($entry->type->name);
 
-		if ($profiles === null || $people === null) {
-			return [];
-		}
-
-		$credited = [];
-
-		foreach ($entry->terms($people->termKey($profiles->name)) as $slug) {
-			$profile = $this->views->services->content->term($profiles->name, $slug);
-
-			if ($profile !== null && $profile->isPublished() && $profile->isRoutable()) {
-				$credited[] = $profile;
-			}
-		}
-
-		return $credited;
+		return $byline === null ? [] : $this->related($entry, $byline->name);
 	}
 
 	/**
-	 * Returns the first person an entry's main byline credits (the type's
-	 * first people field), such as a post's author, or `null` when it
-	 * credits no one.
+	 * Returns the first person an entry's byline credits, such as a
+	 * post's author, or `null` when it credits no one.
 	 *
 	 * ```php
 	 * <?php if ($author = $template->author($entry)) : ?>
@@ -642,7 +626,47 @@ final class Template
 	 */
 	public function author(Entry $entry): ?Entry
 	{
-		return array_first($this->people($entry));
+		return array_first($this->byline($entry));
+	}
+
+	/**
+	 * Returns the people an entry credits, by credit relation (D-602): its
+	 * byline first, then the type's others by name, each with the people
+	 * it credits, leaving out those that credit no one. A relation's
+	 * `label` and `singular` name it ("Photographers", "Photographer").
+	 *
+	 * ```php
+	 * <?php foreach ($template->credits($entry) as $credit) : ?>
+	 *     <?= e($credit['relation']->label) ?>:
+	 *     <?php foreach ($credit['people'] as $person) : ?> … <?php endforeach ?>
+	 * <?php endforeach ?>
+	 * ```
+	 *
+	 * @return list<array{relation: Relation, byline: bool, people: list<Entry>}>
+	 */
+	public function credits(Entry $entry): array
+	{
+		$types   = $this->views->services->types;
+		$byline  = $types->byline($entry->type->name);
+		$credits = $types->credits($entry->type->name);
+
+		ksort($credits);
+
+		if ($byline !== null) {
+			$credits = [$byline->name => $byline, ...$credits];
+		}
+
+		$found = [];
+
+		foreach ($credits as $relation) {
+			$people = $this->related($entry, $relation->name);
+
+			if ($people !== []) {
+				$found[] = ['relation' => $relation, 'byline' => $relation === $byline, 'people' => $people];
+			}
+		}
+
+		return $found;
 	}
 
 	/**
@@ -675,38 +699,30 @@ final class Template
 	}
 
 	/**
-	 * Returns where a byline on an entry links for a profile it credits:
-	 * the person's archive under the entry's type's field (its first
-	 * people field when none is named), such as `/blog/authors/jane`,
-	 * else the profile's own page, else `''`.
+	 * Returns the URL path of a relation archive under a type (D-596,
+	 * D-602): one target's, such as `/recipes/cooks/jane` or
+	 * `/movies/directors/penny`, or with no target, the list of what the
+	 * relation links to (`/recipes/cooks`). `$relation` is the relation's
+	 * name, or `null` for the type's byline. `''` when there's no such
+	 * archive; a byline's link can fall back to the profile's own page:
+	 *
+	 * ```php
+	 * <?= url($template->archiveUrl($entry->type, null, $person) ?: $template->permalink($person)) ?>
+	 * ```
 	 */
-	public function bylineUrl(Entry $profile, Entry $entry, ?string $field = null): string
+	public function archiveUrl(ContentType|string $type, ?string $relation = null, Entry|string|null $target = null): string
 	{
-		$field ??= array_key_first($entry->type->people);
+		$services = $this->views->services;
+		$type     = is_string($type) ? $services->types->find($type) : $type;
+		$found    = $type === null ? null : ($relation === null ? $services->types->byline($type->name) : $services->types->relationArchives($type)[$relation] ?? null);
 
-		return ($field === null ? $this->views->services->urls->profile($profile->slug) : $this->views->services->urls->byline($entry, $field, $profile->slug)) ?? '';
-	}
+		if ($type === null || $found === null) {
+			return '';
+		}
 
-	/**
-	 * Returns a person's archive URL path under a type's people field,
-	 * such as `/recipes/cooks/jane`, or `''` when the field has none.
-	 */
-	public function personUrl(Entry $profile, ContentType $type, string $field): string
-	{
-		$people = $type->peopleField($field);
+		$slug = $target instanceof Entry ? $target->slug : $target;
 
-		return ($people === null ? null : $this->views->services->urls->person($type, $people, $profile->slug)) ?? '';
-	}
-
-	/**
-	 * Returns the URL path of the people a type's field credits, such as
-	 * `/recipes/cooks`, or `''` when it has none.
-	 */
-	public function peopleUrl(ContentType $type, string $field): string
-	{
-		$people = $type->peopleField($field);
-
-		return ($people === null ? null : $this->views->services->urls->people($type, $people)) ?? '';
+		return ($slug === null ? $services->urls->relatedList($type, $found) : $services->urls->related($type, $found, $slug)) ?? '';
 	}
 
 	/**

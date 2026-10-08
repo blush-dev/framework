@@ -38,10 +38,8 @@ use Blush\Support\Filesystem;
  * `icon`, `prefix` for the URL prefix, `paths` for route keys' paths
  * (`null` or `''` for a key's default, D-350), `public`, `sitemap`,
  * `llms` (D-398),
- * `feed`, `people` (D-351), `dateArchives`, `filename` (D-511), `hierarchical`, `order` (D-593), and
- * `fields`); `null` removes one. Two shortcuts change the `authors`
- * people field alone: `authors` (whether the type has it) and
- * `authorsWord` (its archive word, `false` for none). They're applied to the file's own
+ * `feed`, `byline` (D-602), `dateArchives`, `filename` (D-511), `hierarchical`, `order` (D-593), and
+ * `fields`); `null` removes one. They're applied to the file's own
  * data (or, for a code type, to the type as the code and the file make
  * it) and the type is built from that (`ContentType::fromArray()`), so
  * it's checked as the loader checks it; each changed option is then
@@ -73,7 +71,7 @@ final readonly class DataTypeWriter
 		'sitemap'      => [],
 		'llms'         => [],
 		'feed'         => [],
-		'people'       => ['authors'],
+		'byline'       => [],
 		'dateArchives' => ['date_archives', 'time_archives'],
 		'filename'     => [],
 		'hierarchical' => [],
@@ -315,9 +313,6 @@ final readonly class DataTypeWriter
 				$key   = 'urls';
 				$paths = is_array($value) ? array_keys($value) : [];
 				$value = $this->routePaths($name, $merged, $value);
-			} elseif ($key === 'authors' || $key === 'authorsWord') {
-				$value = $this->authors($merged, $key, $value);
-				$key   = 'people';
 			} elseif ($key === 'labels') {
 				$value = $this->labels($merged, $value);
 			} elseif ($key === 'feed' && $value === true && is_array($merged['feed'] ?? null)) {
@@ -441,7 +436,7 @@ final readonly class DataTypeWriter
 			'sitemap'      => $type->sitemap,
 			'llms'         => $type->llms,
 			'feed'         => $type->hasFeed(),
-			'people'       => $type->peopleValue(),
+			'byline'       => null,
 			'description'  => '',
 			'icon'         => '',
 			'dateArchives' => $type->dateArchives->value,
@@ -554,7 +549,6 @@ final readonly class DataTypeWriter
 		$type  = $types->find($name);
 		$known = [
 			...array_keys(TypeUrls::DEFAULT_PATHS),
-			...array_merge([], ...array_values(array_map(static fn (PeopleField $field): array => $field->routeKeys(), self::people($data)))),
 			...($type === null ? [] : array_keys($types->relationPaths($type)))
 		];
 
@@ -591,69 +585,7 @@ final readonly class DataTypeWriter
 		return $urls === [] ? null : $urls;
 	}
 
-	/**
-	 * The `people` a change to the `authors` people field leaves: with
-	 * `authors`, the field added (keeping any settings it had) or
-	 * removed; with `authorsWord`, its archive word set, turned off
-	 * (`false`), or back to the default (`null` or `''`).
-	 *
-	 * @param  array<array-key, mixed> $data
-	 * @return array<string, mixed>|false
-	 * @throws InvalidContentType When the type has no URLs for a word, or the value isn't one.
-	 */
-	private function authors(array $data, string $key, mixed $value): array|false
-	{
-		$people  = self::people($data);
-		$authors = $people[PeopleField::AUTHORS] ?? PeopleField::authors();
 
-		if ($key === 'authors') {
-			if (! is_bool($value)) {
-				throw new InvalidContentType('"authors" must be true or false.');
-			}
-
-			if ($value) {
-				$people[PeopleField::AUTHORS] = $authors;
-			} else {
-				unset($people[PeopleField::AUTHORS]);
-			}
-		} else {
-			if (($data['urls'] ?? $data['routing'] ?? []) === false) {
-				throw new InvalidContentType('The type has no URLs of its own, so it has no author archives.');
-			}
-
-			if ($value !== null && $value !== false && ! is_string($value)) {
-				throw new InvalidContentType('"authorsWord" must be a word, false, or null.');
-			}
-
-			$word = is_string($value) && trim($value, '/ ') !== '' ? trim($value, '/ ') : ($value === false ? false : null);
-
-			try {
-				$people[PeopleField::AUTHORS] = new PeopleField(PeopleField::AUTHORS, $authors->aliases, $authors->plural, $authors->singular, $word, $authors->multiple, $authors->required);
-			} catch (InvalidSchema $error) {
-				throw new InvalidContentType($error->getMessage(), previous: $error);
-			}
-		}
-
-		return $people === [] ? false : array_map(static fn (PeopleField $field): array|bool => $field->toArray() ?: true, $people);
-	}
-
-	/**
-	 * The people fields a type's data gives it, or its kind's default.
-	 *
-	 * @param  array<array-key, mixed> $data
-	 * @return array<string, PeopleField>
-	 * @throws InvalidContentType
-	 */
-	private static function people(array $data): array
-	{
-		$kind = $data['kind'] ?? TypeKind::Collection->value;
-
-		try {
-			return PeopleField::listFrom($data['people'] ?? $data['authors'] ?? $kind === TypeKind::Collection->value, 'The type');
-		} catch (InvalidSchema $error) {
-			throw new InvalidContentType($error->getMessage(), previous: $error);
-		}
-	}
 
 	/**
 	 * The `labels` a change leaves: the file's own, with the given ones

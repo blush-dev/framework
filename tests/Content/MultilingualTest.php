@@ -94,8 +94,7 @@ final class MultilingualTest extends TestCase
 				],
 				'category' => [
 					'path'   => 'topics',
-					'order'  => 'position',
-					'people' => false
+					'order'  => 'position'
 				]
 			],
 			'relations' => [

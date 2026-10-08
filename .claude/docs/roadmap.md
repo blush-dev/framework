@@ -491,7 +491,9 @@ on demand, for what's loaded at once, is in `open-questions.md`.
   section (D-591, D-593, D-594); (2) limits and
   required, creating as typed, reverse archives, rewriting referrers
   (built, D-596);
-  (3) the admin's controls and a type's Relationships section; (4) data
+  (3) the admin's controls and a type's Relationships section (built,
+  D-599 to D-601), and people fields made credit relations with one
+  archive mechanism (built, D-602); (4) data
   on links and targets of more than one type. Open items in
   `open-questions.md` → Relationships.
 

@@ -24,18 +24,21 @@ use Blush\Auth\Capability;
 use Blush\Auth\Permissions;
 use Blush\Cache\ContentVersion;
 use Blush\Content\EntryFields;
+use Blush\Content\Http\RelatedController;
 use Blush\Content\Index\Indexer;
 use Blush\Content\Relation\DataRelationWriter;
 use Blush\Content\Relation\InvalidRelation;
 use Blush\Content\Relation\Relation;
+use Blush\Content\Relation\RelationChanges;
 use Blush\Content\Type\ContentType;
 use Blush\Content\Type\ContentTypeCache;
+use Blush\Content\Type\ContentTypeLoader;
 use Blush\Content\Type\ContentTypes;
 use Blush\Content\Type\DataTypeWriter;
 use Blush\Content\Type\InvalidContentType;
-use Blush\Content\Type\PeopleField;
 use Blush\Content\Type\Tree;
 use Blush\Content\Type\TypeKind;
+use Blush\Content\Writer\WriteException;
 use Blush\Core\AppConfig;
 use Blush\Core\Paths;
 use Blush\Http\Response;
@@ -51,9 +54,9 @@ use Blush\Support\Uuid;
  * `user/data/relations` (D-593), for accounts with `site.settings`:
  *
  * - `POST types`: `{"name", "kind"` (`collection` or `tree`),
- *   `"folder"`, `"set"`, `"index"`, `"listPages"`, `"authorsPage"}`; answers `201` with
+ *   `"folder"`, `"set"`, `"index"`, `"listPages"`, `"authors"}`; answers `201` with
  *   the type as `GET types/{name}` describes it.
- * - `PATCH types/{name}`: `{"set", "index", "listPages", "authorsPage"}`; answers
+ * - `PATCH types/{name}`: `{"set", "index", "listPages"}`; answers
  *   with the type.
  * - `DELETE types/{name}`: deletes its file (its entries stay); answers
  *   `{"deleted"}`.
@@ -64,16 +67,27 @@ use Blush\Support\Uuid;
  * - `POST relations`: a relation's definition (`Relation::fromArray()`,
  *   with its `name`); `PATCH relations/{name}`: its whole definition
  *   again; both answer with the relation as `RelationsController`
- *   describes it (`201` for a new one). `DELETE relations/{name}`
- *   deletes its file (entries keep their links); answers `{"deleted"}`.
+ *   describes it (`201` for a new one). A change to a relation entries
+ *   use is checked first (D-600, `RelationChanges`): it's refused (`422`)
+ *   when it points at another type while entries have values, or takes
+ *   one where an entry has several; `rewrite: true` moves values to a
+ *   new key (else the old keys become aliases), and `strip: true`
+ *   removes the values of types it no longer files. `POST
+ *   relations/{name}/check` answers what a definition would do
+ *   (`RelationCheck`) without saving it. `DELETE relations/{name}`
+ *   deletes its file; entries keep their values unless `?strip=1`
+ *   removes them first; answers `{"deleted", "stripped"}`. `GET
+ *   relations/{name}/uses` answers how many entries have values
+ *   (`{"entries"}`).
  *
  * `set` holds the options to change (`DataTypeWriter`), including
  * `paths`, route keys' paths (D-350); `index: true`
  * gives a collection its index page (D-255), `{folder}/index.md`
- * titled with its plural name, when it has none, and `listPages` (people
- * field names, D-353) gives each of those fields with archives its list
- * page, `{folder}/_{field}.md` titled with the field's plural name, when
- * it has none; `authorsPage: true` is short for `authors`. A change that doesn't
+ * titled with its plural name, when it has none, and `listPages` (names
+ * of relations with archives under it, D-602) gives each its list page,
+ * `{folder}/_{word}.md` titled with the relation's label, when it has
+ * none. A new type with `authors: true` is added to the `authors` credit
+ * relation's `from` (written when there's none, D-602). A change that doesn't
  * fit (an unknown option, a field that isn't one, two types in one
  * folder) is a `422` with the reason, and nothing is written.
  *
@@ -98,7 +112,9 @@ final readonly class TypeEditController
 		private Paths $paths,
 		private Filesystem $filesystem,
 		private Permissions $permissions,
-		private ClockInterface $clock
+		private ClockInterface $clock,
+		private ContentTypeLoader $loader,
+		private RelationChanges $changes
 	) {}
 
 	public function create(ServerRequestInterface $request): ResponseInterface
@@ -119,7 +135,9 @@ final readonly class TypeEditController
 		$folder = is_string($input['folder'] ?? null) ? $input['folder'] : null;
 
 		/** @var array<string, mixed> $set */
-		return $this->changed(fn (): ContentTypes => $this->writer->create($name, $kind, $folder, $set), $name, ($input['index'] ?? false) === true, self::listPages($input), Status::Created);
+		$authors = ($input['authors'] ?? false) === true;
+
+		return $this->changed(fn (): ContentTypes => $authors ? $this->credit($this->writer->create($name, $kind, $folder, $set), $name) : $this->writer->create($name, $kind, $folder, $set), $name, ($input['index'] ?? false) === true, self::listPages($input), Status::Created);
 	}
 
 	public function update(ServerRequestInterface $request, string $name): ResponseInterface
@@ -182,16 +200,79 @@ final readonly class TypeEditController
 			return self::forbidden();
 		}
 
+		$strip    = in_array($request->getQueryParams()['strip'] ?? null, ['1', 'true'], true);
+		$stripped = [];
+
 		try {
+			$existing = $this->existing($name);
+
+			// Removed from the files first, while the relation still says
+			// where its values are (D-600).
+			if ($strip && $existing !== null && $this->relations->path($name) !== null) {
+				$stripped = $this->changes->strip($existing);
+			}
+
 			$this->relations->delete($name);
 			$this->compile();
-		} catch (InvalidContentType $error) {
+		} catch (InvalidContentType | WriteException $error) {
 			return self::error($error->getMessage(), Status::UnprocessableContent);
 		}
 
 		$this->version->bump();
 
-		return Response::json(['deleted' => $name], headers: ['Cache-Control' => 'no-store']);
+		return Response::json(['deleted' => $name, 'stripped' => count($stripped)], headers: ['Cache-Control' => 'no-store']);
+	}
+
+	/**
+	 * Answers how many entries have values in a relation (D-600).
+	 */
+	public function relationUses(ServerRequestInterface $request, string $name): ResponseInterface
+	{
+		if (! $this->allowed($request)) {
+			return self::forbidden();
+		}
+
+		try {
+			$existing = $this->existing($name);
+		} catch (InvalidContentType $error) {
+			return self::error($error->getMessage(), Status::UnprocessableContent);
+		}
+
+		return $existing === null
+			? self::error(sprintf('There\'s no "%s" relation.', $name), Status::NotFound)
+			: Response::json(['entries' => count($this->changes->uses($existing))], headers: ['Cache-Control' => 'no-store']);
+	}
+
+	/**
+	 * Answers what replacing a relation's definition would do to the
+	 * entries using it, without saving it (D-600).
+	 */
+	public function checkRelation(ServerRequestInterface $request, string $name): ResponseInterface
+	{
+		if (! $this->allowed($request)) {
+			return self::forbidden();
+		}
+
+		try {
+			$existing = $this->existing($name);
+			$proposed = Relation::fromArray([...self::input($request), 'name' => $name]);
+		} catch (InvalidRelation | InvalidContentType $error) {
+			return self::error($error->getMessage(), Status::UnprocessableContent);
+		}
+
+		return $existing === null
+			? self::error(sprintf('There\'s no "%s" relation.', $name), Status::NotFound)
+			: Response::json($this->changes->check($existing, $proposed)->toArray(), headers: ['Cache-Control' => 'no-store']);
+	}
+
+	/**
+	 * Returns a relation's definition as the site has it now, or `null`.
+	 *
+	 * @throws InvalidContentType
+	 */
+	private function existing(string $name): ?Relation
+	{
+		return $this->loader->load()->relations()[$name] ?? null;
 	}
 
 	public function refresh(ServerRequestInterface $request): ResponseInterface
@@ -219,10 +300,10 @@ final readonly class TypeEditController
 
 	/**
 	 * Makes a change, then compiles the types, adds the index page and
-	 * people fields' list pages when asked, and answers with the type.
+	 * relation archives' list pages when asked, and answers with the type.
 	 *
 	 * @param Closure(): ContentTypes $change
-	 * @param list<string>            $listPages The people fields to give list pages.
+	 * @param list<string>            $listPages The relation archives to give list pages.
 	 */
 	private function changed(Closure $change, string $name, bool $index, array $listPages, Status $status = Status::Ok): ResponseInterface
 	{
@@ -262,10 +343,18 @@ final readonly class TypeEditController
 
 		try {
 			$relation = Relation::fromArray($name === null ? $input : [...$input, 'name' => $name]);
-			$types    = $name === null ? $this->relations->create($relation) : $this->relations->update($relation);
+			$existing = $name === null || $this->relations->path($name) === null ? null : $this->existing($name);
+
+			// What entries already use is checked, and the files fitted to
+			// the change (D-600).
+			if ($existing !== null) {
+				$relation = $this->changes->apply($existing, $relation, ($input['rewrite'] ?? false) === true, ($input['strip'] ?? false) === true);
+			}
+
+			$types = $name === null ? $this->relations->create($relation) : $this->relations->update($relation);
 
 			$this->compile();
-		} catch (InvalidRelation | InvalidContentType $error) {
+		} catch (InvalidRelation | InvalidContentType | WriteException $error) {
 			return self::error($error->getMessage(), Status::UnprocessableContent);
 		}
 
@@ -318,32 +407,64 @@ final readonly class TypeEditController
 	}
 
 	/**
-	 * Gives a type a people field's list page (`_cooks`, D-353), titled
-	 * with the field's plural name, unless it has one or the field has no
-	 * archives.
+	 * Gives a type a relation archive's list page (`_cooks`, D-602),
+	 * titled with the relation's label, unless it has one.
 	 *
 	 * @throws InvalidContentType
 	 */
 	private function addListPage(ContentTypes $types, ContentType $type, string $name): void
 	{
-		$field = $type->archivedPeople()[$name] ?? null;
+		$relation = $types->relationArchives($type)[$name] ?? null;
 
-		if ($types->profiles() === null || $type->folder === '' || $field === null) {
+		if ($type->folder === '' || $relation === null) {
 			throw new InvalidContentType(sprintf('%s have no "%s" archives.', $type->labels->plural, $name));
 		}
 
 		$folder = "{$this->paths->content}/{$type->folder}";
+		$key    = RelatedController::word($relation);
+		$label  = $relation->label === '' ? ucfirst(str_replace('_', ' ', $relation->name)) : $relation->label;
 
-		if (glob("{$folder}/{$field->listPage()}.*") !== []) {
+		if (glob("{$folder}/{$key}.*") !== []) {
 			return;
 		}
 
-		$title = json_encode($field->plural, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?: '""';
+		$title = json_encode($label, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?: '""';
 
 		try {
-			$this->filesystem->writeAtomic("{$folder}/{$field->listPage()}.md", $this->page($title));
+			$this->filesystem->writeAtomic("{$folder}/{$key}.md", $this->page($title));
 		} catch (Throwable $error) {
-			throw new InvalidContentType(sprintf('The type was saved, but its %s page couldn\'t be written in %s.', mb_strtolower($field->plural), $this->paths->relative($folder)), previous: $error);
+			throw new InvalidContentType(sprintf('The type was saved, but its %s page couldn\'t be written in %s.', mb_strtolower($label), $this->paths->relative($folder)), previous: $error);
+		}
+	}
+
+	/**
+	 * Adds a new type to the `authors` credit relation's `from` (D-602),
+	 * writing the relation when the site has none, and returns the types
+	 * with it.
+	 *
+	 * @throws InvalidContentType
+	 */
+	private function credit(ContentTypes $types, string $name): ContentTypes
+	{
+		$profiles = $types->profiles();
+		$authors  = $types->relations()[Relation::AUTHORS] ?? null;
+
+		try {
+			if ($profiles === null) {
+				throw new InvalidContentType('The site has no profiles type, so nothing can credit authors.');
+			}
+
+			if ($authors === null) {
+				return $this->relations->create(Relation::authors([$name], $profiles->name));
+			}
+
+			if ($authors->from === [] || in_array($name, $authors->from, true)) {
+				return $types;
+			}
+
+			return $this->relations->update(Relation::fromArray([...$authors->toArray(), 'from' => [...$authors->from, $name]]));
+		} catch (InvalidRelation $error) {
+			throw new InvalidContentType($error->getMessage(), previous: $error);
 		}
 	}
 
@@ -358,17 +479,15 @@ final readonly class TypeEditController
 	}
 
 	/**
-	 * Returns the people fields a request asks list pages for:
-	 * `listPages` (field names), and `authorsPage: true` for `authors`.
+	 * Returns the relation archives a request asks list pages for
+	 * (`listPages`, by relation name).
 	 *
 	 * @param  array<array-key, mixed> $input
 	 * @return list<string>
 	 */
 	private static function listPages(array $input): array
 	{
-		$fields = is_array($input['listPages'] ?? null) ? array_values(array_filter($input['listPages'], is_string(...))) : [];
-
-		return array_values(array_unique([...$fields, ...(($input['authorsPage'] ?? false) === true ? [PeopleField::AUTHORS] : [])]));
+		return is_array($input['listPages'] ?? null) ? array_values(array_unique(array_filter($input['listPages'], is_string(...)))) : [];
 	}
 
 	/**

@@ -19,14 +19,14 @@ use Psr\Http\Message\ResponseInterface;
 use Blush\Content\ContentRepository;
 use Blush\Content\Http\ContentPage;
 use Blush\Content\Http\PageKind;
-use Blush\Content\Http\PeopleController;
-use Blush\Content\Http\PersonController;
 use Blush\Content\Http\ProfileController;
-use Blush\Content\PeopleArchives;
+use Blush\Content\Http\RelatedController;
+use Blush\Content\Http\RelatedListController;
+use Blush\Content\ProfileList;
+use Blush\Content\RelationArchives;
 use Blush\Content\Routing\ContentSiteUrls;
 use Blush\Content\Routing\ContentUrls;
 use Blush\Content\Type\ContentTypes;
-use Blush\Content\Type\PeopleField;
 use Blush\Core\Application;
 use Blush\Feed\FeedSiteUrls;
 use Blush\Http\Kernel;
@@ -43,10 +43,16 @@ use Blush\View\Template;
 use Blush\View\ViewContext;
 use Blush\View\ViewFactory;
 
-#[CoversClass(PeopleController::class)]
-#[CoversClass(PersonController::class)]
+/**
+ * People archives as credit relations' archives (D-602): what were people
+ * fields are relations of kind `credit`, whose archives are relation
+ * archives with an intro page and written pages per person.
+ */
+#[CoversClass(RelatedController::class)]
+#[CoversClass(RelatedListController::class)]
 #[CoversClass(ProfileController::class)]
-#[CoversClass(PeopleArchives::class)]
+#[CoversClass(RelationArchives::class)]
+#[CoversClass(ProfileList::class)]
 #[CoversClass(Template::class)]
 final class PeopleArchivesTest extends TestCase
 {
@@ -56,10 +62,12 @@ final class PeopleArchivesTest extends TestCase
 	 * Writes the standard content with a blog that credits authors, a
 	 * feed, and one post per page, then boots it.
 	 *
-	 * @param array<string, mixed> $post    Options for the post type.
-	 * @param array<string, mixed> $profile Options for the profiles type.
+	 * @param array<string, mixed>                $post      Options for the post type.
+	 * @param array<string, mixed>                $profile   Options for the profiles type.
+	 * @param ?array<string, mixed>               $authors   Options for the `authors` credit, or `null` for none.
+	 * @param array<string, array<string, mixed>> $relations More relations, by name.
 	 */
-	private function boot(array $post = [], array $profile = []): Application
+	private function boot(array $post = [], array $profile = [], ?array $authors = [], array $relations = []): Application
 	{
 		$this->standardContent();
 		$this->contentConfig([
@@ -74,12 +82,15 @@ final class PeopleArchivesTest extends TestCase
 				],
 				'category' => [
 					'path'   => 'topics',
-					'order'  => 'position',
-					'people' => false
+					'order'  => 'position'
 				],
 				...($profile === [] ? [] : ['profile' => ['kind' => 'profiles', 'path' => 'profiles', ...$profile]])
 			],
-			'relations' => ['category' => ['kind' => 'classify', 'from' => ['post'], 'to' => ['category'], 'create' => true]],
+			'relations' => [
+				'category' => ['kind' => 'classify', 'from' => ['post'], 'to' => ['category'], 'create' => true],
+				...($authors === null ? [] : ['authors' => ['kind' => 'credit', 'from' => ['post'], 'to' => ['profile'], 'aliases' => ['author'], 'label' => 'Authors', ...$authors]]),
+				...$relations
+			],
 			'home' => 'post'
 		]);
 		$this->entry('profiles/sam.md', 'title: Sam', 'Credited by nothing yet.');
@@ -99,7 +110,7 @@ final class PeopleArchivesTest extends TestCase
 		$body     = (string) $response->getBody();
 
 		$this->assertSame(200, $response->getStatusCode());
-		$this->assertStringContainsString('<h1 class="archive-header__title">Authors</h1>', $body, 'The field\'s label without a list page.');
+		$this->assertStringContainsString('<h1 class="archive-header__title">Authors</h1>', $body, 'The relation\'s label without a list page.');
 
 		preg_match_all('#<h2 class="people__name"><a href="([^"]*)">([^<]*)</a>#', $body, $people);
 
@@ -108,7 +119,7 @@ final class PeopleArchivesTest extends TestCase
 		$this->assertStringContainsString('<p>Writes things.</p>', $body, 'Each with their bio.');
 	}
 
-	public function testAFieldsListPageIntroducesTheList(): void
+	public function testAnArchivesListPageIntroducesTheList(): void
 	{
 		$this->entry('_posts/_authors.md', 'title: Our Writers', 'The people behind the blog.');
 
@@ -121,7 +132,7 @@ final class PeopleArchivesTest extends TestCase
 		$this->assertStringNotContainsString('Our Writers', (string) $this->get($app, '/feed/json')->getBody(), 'Nor is it in the feed.');
 	}
 
-	public function testServesAPersonsArchiveUnderAField(): void
+	public function testServesAPersonsArchiveUnderACredit(): void
 	{
 		$app      = $this->boot();
 		$response = $this->get($app, '/archives/authors/justintadlock');
@@ -134,7 +145,7 @@ final class PeopleArchivesTest extends TestCase
 		$this->assertStringContainsString('<link rel="next" href="http://localhost/archives/authors/justintadlock/page/2">', $body);
 		$this->assertStringContainsString('<meta property="og:type" content="profile">', $body);
 		$this->assertStringContainsString('href="http://localhost/archives/authors/justintadlock/feed/json"', $body, 'The person\'s feed is advertised.');
-		$this->assertStringContainsString('is-person type-post', $body);
+		$this->assertStringContainsString('is-related type-post', $body);
 
 		$this->assertSame(200, $this->get($app, '/archives/authors/justintadlock/page/2')->getStatusCode());
 		$this->assertSame(404, $this->get($app, '/archives/authors/justintadlock/page/3')->getStatusCode());
@@ -214,7 +225,7 @@ final class PeopleArchivesTest extends TestCase
 		$this->assertNull($app->container()->make(RouteTable::class)->named('profile.collection'));
 	}
 
-	public function testBylinesLinkToTheFieldsArchiveElseTheProfile(): void
+	public function testBylinesLinkToTheCreditsArchiveElseTheProfile(): void
 	{
 		$app  = $this->boot();
 		$body = (string) $this->get($app, '/archives/spring')->getBody();
@@ -223,14 +234,14 @@ final class PeopleArchivesTest extends TestCase
 		$this->assertStringContainsString('<meta property="article:author" content="http://localhost/archives/authors/justintadlock">', $body);
 		$this->assertStringContainsString('<meta property="article:author" content="http://localhost/archives/authors/guest">', $body, 'One tag per person.');
 
-		$app  = $this->boot(['people' => ['authors' => ['archive' => false]]]);
+		$app  = $this->boot(authors: ['inverse' => ['archive' => false]]);
 		$body = (string) $this->get($app, '/archives/spring')->getBody();
 
 		$this->assertStringContainsString('<a class="entry-meta__person" href="/profiles/justintadlock">Justin Tadlock</a>', $body, 'Without archives, the profile\'s page.');
 		$this->assertStringContainsString('<meta property="article:author" content="http://localhost/profiles/justintadlock">', $body);
 		$this->assertSame(404, $this->get($app, '/archives/authors')->getStatusCode());
 
-		$app  = $this->boot(['people' => ['authors' => ['archive' => false]]], ['routing' => false]);
+		$app  = $this->boot(profile: ['routing' => false], authors: ['inverse' => ['archive' => false]]);
 		$body = (string) $this->get($app, '/archives/spring')->getBody();
 
 		$this->assertStringContainsString('<span class="entry-meta__person">Justin Tadlock</span>', $body, 'Nowhere to link.');
@@ -245,7 +256,11 @@ final class PeopleArchivesTest extends TestCase
 		$spring    = $container->make(ContentRepository::class)->named('post', 'spring');
 
 		$this->assertNotNull($spring);
-		$this->assertSame('Justin Tadlock', $template->author($spring)?->title, 'The main byline\'s first person.');
+		$this->assertSame('Justin Tadlock', $template->author($spring)?->title, 'The byline\'s first person.');
+		$this->assertSame(['Justin Tadlock', 'A Guest'], array_map(static fn ($person): string => $person->title, $template->byline($spring)));
+		$this->assertSame('/archives/authors/guest', $template->archiveUrl('post', null, 'guest'), 'The byline\'s archive.');
+		$this->assertSame('/archives/authors', $template->archiveUrl('post', 'authors'));
+		$this->assertSame('', $template->archiveUrl('post', 'nope'));
 		$this->assertNull($template->profile('nobody'));
 
 		$sam = $template->profile('sam');
@@ -260,7 +275,7 @@ final class PeopleArchivesTest extends TestCase
 	{
 		$this->entry('_posts/2009-02-02.shots.md', "title: Shots\npublished: 2009-02-02\nauthor: guest\nphotographer: justintadlock");
 
-		$app  = $this->boot(['people' => ['authors' => ['archive' => 'writers'], 'photographers' => ['multiple' => false, 'aliases' => ['photographer']]]]);
+		$app  = $this->boot(['byline' => 'authors'], authors: ['inverse' => ['archive' => 'writers']], relations: ['photographers' => ['kind' => 'credit', 'from' => ['post'], 'to' => ['profile'], 'multiple' => false, 'aliases' => ['photographer'], 'label' => 'Photographers']]);
 		$body = (string) $this->get($app, '/archives/shots')->getBody();
 
 		$this->assertStringContainsString('By <a class="entry-meta__person" href="/archives/writers/guest">A Guest</a>', $body);
@@ -280,28 +295,28 @@ final class PeopleArchivesTest extends TestCase
 		$this->assertStringContainsString('<a href="/archives/shots">', $profile, 'The profile\'s page lists every credit.');
 		$this->assertStringContainsString('<a href="/archives/spring">', $profile);
 
-		$app = $this->boot(['authors' => false]);
+		$app = $this->boot(authors: null);
 
 		$this->assertStringNotContainsString('entry-meta__people', (string) $this->get($app, '/archives/spring')->getBody(), 'Posts don\'t credit people at all.');
 		$this->assertNull($app->container()->make(RouteTable::class)->named('post.authors.single'));
-		$this->assertNull($app->container()->make(ContentUrls::class)->people($app->container()->make(ContentTypes::class)->get('post'), new PeopleField('authors')));
 	}
 
 	public function testPagesHaveTheirOwnTemplates(): void
 	{
 		$app     = $this->boot();
-		$post    = $app->container()->make(ContentTypes::class)->get('post');
-		$field   = $post->people['authors'];
-		$profile = $app->container()->make(ContentRepository::class)->term('profile', 'justintadlock');
+		$post     = $app->container()->make(ContentTypes::class)->get('post');
+		$relation = $app->container()->make(ContentTypes::class)->relations()['authors'];
+		$profile  = $app->container()->make(ContentRepository::class)->term('profile', 'justintadlock');
 
-		$this->assertSame(['people-post-authors', 'people-authors', 'people', 'collection'], Hierarchy::forPage(new ContentPage(PageKind::People, 'Authors', type: $post, people: $field))->names);
+		$this->assertSame(['related-list-post-authors', 'related-list-authors', 'related-list', 'collection'], Hierarchy::forPage(new ContentPage(PageKind::RelatedList, 'Authors', type: $post, relation: $relation))->names);
 		$this->assertSame(
-			['person-post-authors', 'person-authors', 'person', 'profile', 'collection'],
-			Hierarchy::forPage(new ContentPage(PageKind::Person, 'Justin Tadlock', entry: $profile, type: $post, people: $field, profile: $profile))->names
+			['related-post-authors', 'related-authors', 'related', 'profile', 'collection'],
+			Hierarchy::forPage(new ContentPage(PageKind::Related, 'Justin Tadlock', entry: $profile, type: $post, relation: $relation, target: $profile))->names,
+			'A person\'s archive falls back to the profile template (D-602).'
 		);
 		$this->assertSame(
 			['profile-justintadlock', 'profile', 'collection'],
-			Hierarchy::forPage(new ContentPage(PageKind::Profile, 'Justin Tadlock', entry: $profile, profile: $profile))->names
+			Hierarchy::forPage(new ContentPage(PageKind::Profile, 'Justin Tadlock', entry: $profile, target: $profile))->names
 		);
 	}
 

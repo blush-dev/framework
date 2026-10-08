@@ -71,14 +71,17 @@ final class SiteRelationsTest extends TestCase
 		$this->contentConfig([
 			'types' => [
 				'post'     => ['path' => '_posts', 'routing' => ['prefix' => 'archives']],
-				'category' => ['path' => 'topics', 'order' => 'position', 'hierarchical' => true, 'people' => false],
-				'movie'    => ['path' => '_movies', 'people' => false, 'fields' => [
+				'category' => ['path' => 'topics', 'order' => 'position', 'hierarchical' => true],
+				'movie'    => ['path' => '_movies', 'fields' => [
 					['name' => 'actors', 'type' => 'reference', 'to' => 'person'],
 					['name' => 'director', 'type' => 'reference', 'to' => 'person', 'multiple' => false, 'required' => true]
 				]],
-				'person'   => ['path' => '_people', 'people' => false]
+				'person'   => ['path' => '_people']
 			],
-			'relations' => ['category' => ['kind' => 'classify', 'from' => ['post'], 'to' => ['category'], 'create' => true]]
+			'relations' => [
+				'category' => ['kind' => 'classify', 'from' => ['post'], 'to' => ['category'], 'create' => true],
+				'authors'  => ['kind' => 'credit', 'from' => ['post'], 'to' => ['profile'], 'aliases' => ['author']]
+			]
 		]);
 
 		$this->entry('index.md', 'title: Home');
@@ -127,7 +130,7 @@ final class SiteRelationsTest extends TestCase
 		$this->assertSame(['category', 'authors', 'translation_of', 'related'], array_keys($post));
 		$this->assertSame(RelationKind::Classify, $post['category']->kind);
 		$this->assertSame(['post'], $post['category']->from, 'Defined on its own, from the types it files (D-593).');
-		$this->assertTrue($post['category']->inverse !== false && $post['category']->inverse->archive === true, 'Its terms\' pages list what\'s filed under them.');
+		$this->assertTrue($post['category']->inverse !== false && $post['category']->inverse->page, 'Its terms\' pages list what\'s filed under them.');
 		$this->assertTrue($post['category']->create);
 		$this->assertSame(RelationKind::Credit, $post['authors']->kind);
 		$this->assertSame(['author'], $post['authors']->aliases, '1.x\'s `author` keeps working.');

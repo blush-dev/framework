@@ -36,7 +36,7 @@ final class AdminHtmlTest extends TestCase
 	 */
 	private function site(array $roles): void
 	{
-		$this->writeTemporaryFile('config/content.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn Blush\\Content\\Type\\ContentConfig::fromArray(['types' => ['post' => ['path' => '_posts', 'date_archives' => true]]]);\n");
+		$this->writeTemporaryFile('config/content.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn Blush\\Content\\Type\\ContentConfig::fromArray(['types' => ['post' => ['path' => '_posts', 'date_archives' => true]], 'relations' => ['authors' => ['kind' => 'credit', 'from' => ['post'], 'to' => ['profile']]]]);\n");
 		$this->writeTemporaryFile('user/content/' . self::POST, "---\ntitle: Flame\nauthors: jane\nstatus: draft\n---\n\nSome <iframe src=\"https://example.com\"></iframe> here.\n");
 
 		$this->boot(roles: $roles);

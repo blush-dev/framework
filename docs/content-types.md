@@ -37,7 +37,7 @@ Every content type is one of three kinds:
   under it (such as "Food editor"), `avatar` a portrait from
   `user/media`, and the body their bio. Each profile has a page at
   `/profiles/jane`. Entries credit them through the
-  [people fields](#crediting-people) of their type, such as
+  [credit relations](#crediting-people) of their type, such as
   `authors: jane`. Every profile is a file: a person credited with no
   file is left out of bylines and has no page. `content:lint` reports
   it, and `bin/blush content:terms --write` writes the missing files. An
@@ -216,7 +216,6 @@ return new ContentConfig(
 			'tag',
 			folder: '_blog/tags',
 			order: TypeOrder::Position,
-			people: false,
 			llms: false
 		)
 	],
@@ -243,7 +242,6 @@ dateArchives: month
 # user/data/types/tag.yaml
 folder: _blog/tags
 order: position
-people: false
 llms: false
 ```
 
@@ -309,8 +307,8 @@ There are a few kinds:
   This is what 1.x and early 2.x called a taxonomy.
 - **`reference`** links entries to other entries, such as related
   posts or a recipe's side dishes.
-- **`credit`** is a [people field](#crediting-people), set up with the
-  type's `people` option.
+- **`credit`** credits [people](#crediting-people): a post's authors,
+  a recipe's cooks.
 - **`parent`** and **`translation`** are built in: an entry's parent in
   a [nesting collection](#nesting-and-order) or a tree, and a
   translation's [`translation_of`](content.md#translations).
@@ -332,7 +330,7 @@ use Blush\Content\Type\TypeOrder;
 
 return new ContentConfig(
 	types: [
-		new Collection('category', folder: 'topics', hierarchical: true, order: TypeOrder::Position, people: false, llms: false)
+		new Collection('category', folder: 'topics', hierarchical: true, order: TypeOrder::Position, llms: false)
 	],
 	relations: [
 		new Relation('category', RelationKind::Classify, from: ['post'], to: ['category'], create: true)
@@ -441,7 +439,8 @@ under its child terms. The relation's `inverse` sets the term side:
 
 | Option            | Default                 | What it does                                                                    |
 |-------------------|-------------------------|---------------------------------------------------------------------------------|
-| `archive`         | `true` for `classify`   | Whether each term has a page listing what's filed under it                      |
+| `page`            | `true` for `classify` and `credit` | Whether each target's own page lists what links to it                |
+| `archive`         | The name for `credit`, else `false` | A word for archives under each linking type (`/movies/directors/penny`), or `false` |
 | `types`           | The relation's `from`   | The types a term's page lists                                                   |
 | `listing`         |                         | How a term's page lists entries, with a type's [`listing`](#listing-entries) keys, such as `order` and `perPage` |
 | `label`           |                         | What the term side is called                                                    |
@@ -458,7 +457,7 @@ For example, twenty entries to a term's page:
 }
 ```
 
-`"archive": false`, or `inverse: false`, gives the terms no pages of
+`"page": false`, or `inverse: false`, gives the terms no pages of
 their own.
 
 ### Linking entries to other entries
@@ -477,18 +476,20 @@ related: [lemon-cake, shortbread]
 `ordered: true` keeps the order they're written in. No entry links to
 itself.
 
-The relation's `inverse.archive` says where the entries linking to one
-are listed, paged with a feed:
+The relation's `inverse` says where the entries linking to one are
+listed, paged with a feed. Its two sides can be on at once, and a
+reference has neither by default, so a template lists them with
+`$template->referencedBy()`:
 
-- `false` (the default): nowhere of its own; a template lists them with
-  `$template->referencedBy()`.
-- `true`: on the linked entry's own page, as a term's page lists what's
-  filed under it. With `actors` linking movies to people,
-  `/people/tom` lists Tom's movies.
-- A word, such as `"directors"`: archives under the linking type's
-  address, as a [people field's](#crediting-people) are:
+- `"page": true` lists them on the linked entry's own page, as a term's
+  page lists what's filed under it. With `actors` linking movies to
+  people, `/people/tom` lists Tom's movies.
+- `"archive"`, a word such as `"directors"`, gives archives under the
+  linking type's address, as [credits](#people-archives) have:
   `/movies/directors/penny` lists Penny's movies, and `/movies/directors`
-  lists everyone a movie names.
+  lists everyone a movie names. `_directors.md` in the movie type's
+  folder introduces the list, and `_directors/penny.md` Penny's archive
+  in place of her own page's text.
 
 ```json
 {
@@ -511,7 +512,7 @@ works as before; Blush reads it as a reference relation.
 
 | Option         | Default          | What it does                                                                                       |
 |----------------|------------------|----------------------------------------------------------------------------------------------------|
-| `kind`         | `reference`      | `classify` or `reference` (`credit`, `parent`, and `translation` are built in)                     |
+| `kind`         | `reference`      | `classify`, `reference`, or `credit` (`parent` and `translation` are built in)                     |
 | `from`         | Every type       | The types whose entries make the link                                                              |
 | `to`           |                  | The types linked to. A `classify` relation's is `[its name]`                                       |
 | `field`        | The name         | The front matter key the link is written under                                                     |
@@ -523,8 +524,10 @@ works as before; Blush reads it as a reference relation.
 | `max`          | No limit         | The most an entry may have to be published; `content:lint` reports more                            |
 | `create`       | `false`          | Whether writers may add a target as they type it in the admin, which writes it                     |
 | `symmetric`    | `false`          | Whether a link counts from both ends (`from` and `to` the same types)                              |
+| `control`      | By its shape     | How the admin's editor picks targets: `tree` (a nesting type's terms), `tokens`, `people` (a credit's), `select` (one), or `cards` (search results with images and dates); one its shape can't draw falls back |
 | `translations` | `fallback`       | A translation's links: `fallback` (its own, else its original's), `add` (the original's and its own), or `own` |
-| `inverse`      |                  | The targets' side ([Term pages](#term-pages), and `archive` above for a reference)                     |
+| `inverse`      |                  | The targets' side: `page`, `archive`, `types`, `listing`, `label`, and `max` ([Term pages](#term-pages), and above) |
+| `singular`     | Made from the label | What one target is called ("Cook")                                                           |
 | `label`        |                  | What the relation is called                                                                        |
 
 A relation's name uses lowercase letters, digits, and underscores, and
@@ -547,7 +550,8 @@ Then `bin/blush content:taxonomies --write`, or **Migrate Types** under
 
 - The type's file is edited in place, keeping its other keys and YAML
   comments. The taxonomy's keys are removed, and `order: position`,
-  `llms: false`, and `people: false` are added unless it said otherwise.
+  and `llms: false` are added unless it said otherwise, and its
+  `people` or `authors` key is removed (terms credit no one).
 - Its relation is written to `user/data/relations/{name}.json`: its
   `types` (or `term_collect`) become `from`, `field` and `aliases`
   carry over, and its `termListing` becomes `inverse.listing`.
@@ -765,7 +769,9 @@ false` in `config/fields.php` to ignore `user/data/fields/`.
 
 Editors that read JSON Schema can check a set's file: start it with
 `# yaml-language-server: $schema=../../../vendor/blush-dev/framework/resources/schemas/field-set.schema.json`
-(or a `"$schema"` key in JSON).
+(or a `"$schema"` key in JSON). A relation's file in `user/data/relations`
+can name `relation.schema.json` the same way; the admin keeps a JSON
+file's `"$schema"` when it saves the relation.
 
 ## Listing entries
 
@@ -809,7 +815,7 @@ collection:
 | `orderby`                 | `published` (default), `updated`, `title`, `author`, `position`, or any field |
 | `order`                   | `desc` with no `orderby`, else `asc` (default), or `desc`                     |
 | `terms`                   | Only entries in these terms, such as `{tag: [php]}`                           |
-| `author`                  | Only entries crediting these profiles, through any people field               |
+| `author`                  | Only entries crediting these profiles, through any credit relation            |
 | `names` / `names_exclude` | Only, or never, these slugs                                                   |
 | `meta_key` / `meta_value` | Only entries whose field has this value                                       |
 | `year` … `second`         | Only entries published in this period                                         |
@@ -832,9 +838,9 @@ Every kind takes these:
 
 Collections and trees also take this:
 
-| Option   | Default                                   | What it does                                                                                                                                |
-|----------|-------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------|
-| `people` | `authors` for collections, none otherwise | How entries credit people ([below](#crediting-people)). `authors: true` or `authors: false` is short for the `authors` field alone, or none |
+| Option   | Default                    | What it does                                                                            |
+|----------|----------------------------|-----------------------------------------------------------------------------------------|
+| `byline` | Its only credit relation   | The [credit relation](#crediting-people) its byline uses, by name, when it has several |
 
 Collections and the profiles type also take these:
 
@@ -927,7 +933,7 @@ name their parents in front matter rather than sitting in their folders.
 For the profiles type, `urls` sets where profiles' pages are (its
 `prefix`, `profiles` by default, whatever the folder), `listing` how a profile's page lists
 the entries crediting them, and `feed` whether each profile has a feed.
-It doesn't take `people` or `dateArchives`, and nothing answers at
+It doesn't take `dateArchives`, and nothing answers at
 `/profiles` itself.
 
 ### Custom URLs
@@ -952,16 +958,13 @@ entry) and `collection` (the listing page) set the rest; `paths` sets any
 other route key that `routes:list` shows, such as
 `['collection.paged' => 'p/{page}']`.
 
-Each [people field](#crediting-people) with archives adds route keys
-of its own, such as `authors.collection`, `authors.single`,
-`authors.single.paged`, and the `authors.single.feed` keys; `paths` can
-move those too. Their paths hold `{profile}`.
-
-So does each [relation with an archive word](#linking-entries-to-other-entries)
-from the type: `directors.collection`, `directors.single`,
-`directors.single.paged`, and the `directors.single.feed` keys, named
-after the relation. Their paths hold `{target}`, the linked entry's
-slug. The admin lists them with the type's other addresses.
+Each [relation with an archive word](#linking-entries-to-other-entries)
+from the type, [credits](#people-archives) included, adds route keys of
+its own, named after the relation: `authors.collection`,
+`authors.single`, `authors.single.paged`, and the `authors.single.feed`
+keys. `paths` can move those too. Their paths hold `{target}`, the
+linked entry's slug. The admin lists them with the type's other
+addresses.
 
 Single-entry paths can use `{name}`, `{year}`, `{month}`, `{day}`,
 `{hour}`, `{minute}`, `{second}`, `{profile}` (the first person
@@ -994,73 +997,68 @@ In YAML, that's `user/data/types/page.yaml` with `kind: tree` and
 
 ## Crediting people
 
-A type credits people through its **people fields**. Each is a front
-matter key that names [profiles](#built-in-types), in the type's own
-words: a blog credits its authors, and a recipe box its cooks and
-photographers. Every field points at the same profiles, so Jane is one
-profile whether she wrote a post or cooked a recipe.
+A type credits people through a **credit relation**: a
+[relation](#terms-and-relationships) of kind `credit`, from the types
+that credit, to the [profiles](#built-in-types) type. Each names its
+front matter key in the types' own words: a blog credits its authors,
+and a recipe box its cooks and photographers. Every credit points at the
+same profiles, so Jane is one profile whether she wrote a post or
+cooked a recipe.
 
-Collections have one people field, `authors` (it reads `author` too),
-unless you change it. Pages have none unless you add them, and neither
-do types of terms the admin creates (they say `people: false`):
+Nothing credits anyone until a relation says so. The skeleton ships
+`user/data/relations/authors.json`, crediting posts' authors:
+
+```json
+{
+	"kind": "credit",
+	"from": ["post"],
+	"to": ["profile"],
+	"aliases": ["author"],
+	"label": "Authors"
+}
+```
+
+To credit authors on another type, add it to `from`. The admin's
+new-type form does that when you ask for authors. More credits are more
+relations:
+
+```json
+{
+	"kind": "credit",
+	"from": ["recipe"],
+	"to": ["profile"],
+	"label": "Cooks",
+	"required": true
+}
+```
+
+In PHP, `Relation::authors(['post', 'recipe'], 'profile')` is the
+`authors` relation above, and other credits are a `Relation` of
+`RelationKind::Credit`. A credit takes the [relation
+options](#relation-options), with these differences: `to` is the
+profiles type and nothing else, it's always `ordered` (the order names
+are written in is the byline's), a translation adds its own names to
+its original's (`translations: add`), and its `inverse` has a `page`
+and an `archive` by default ([below](#people-archives)). `singular`
+names one ("Cook"), made from the label when it's left out.
+
+A type with one credit uses it for the byline. A type with several
+names its byline with the type's `byline` option:
 
 ```yaml
 # user/data/types/recipe.yaml
 folder: recipes
-people:
-  cooks:
-    required: true
-  photographers:
-    multiple: false
-    aliases: [photographer]
+byline: cooks
 ```
 
-```yaml
-# user/data/types/page.yaml: pages credit authors too
-kind: tree
-authors: true
-```
-
-```yaml
-# A collection that credits no one
-folder: notes
-authors: false
-```
-
-Each field takes these, all optional:
-
-| Option                | Default                         | What it does                                         |
-|-----------------------|---------------------------------|------------------------------------------------------|
-| `plural` / `singular` | Made from the field's name      | What it's called: "Cooks", "Cook"                    |
-| `aliases`             | `[]` (`[author]` for `authors`) | Other front matter keys it's read from               |
-| `archive`             | The field's name                | The word its archives sit under, or `false` for none |
-| `multiple`            | `true`                          | Whether an entry may credit several people           |
-| `required`            | `false`                         | Whether an entry needs one before it's published     |
-
-In PHP, `people` is a list of `PeopleField`s:
-
-```php
-use Blush\Content\Type\PeopleField;
-
-new Collection('recipe', folder: 'recipes', people: [
-	new PeopleField('cooks', required: true),
-	new PeopleField('photographers', aliases: ['photographer'], multiple: false)
-]);
-```
-
-`people: true` is the `authors` field alone, and `people: false` none. In
-a type without a people field, its key in front matter is just an
-undeclared key. A classify relation's field wins over a people field
-reading the same key, so a 1.x site with an `author` taxonomy keeps it.
-
-The default theme's byline uses the first people field ("By Jane") and
-labels the rest ("Photographer: Sam").
+The default theme's byline uses that relation ("By Jane") and labels
+the rest ("Photographer: Sam").
 
 ### People archives
 
-A routed type gets two kinds of page under its own prefix for each
-people field with archives, so a blog and a recipe box each have their
-own:
+A credit's `inverse.archive` is a word (its name, by default), so every
+type it credits gets two kinds of page under its own prefix, as [any
+relation with an archive word](#linking-entries-to-other-entries) does:
 
 - `/recipes/cooks` lists the people at least one published recipe
   credits as a cook, by name, each with their bio's start.
@@ -1070,13 +1068,13 @@ own:
   `/feed/json`) when the type has a feed. Someone no recipe credits as a
   cook has no archive there.
 
-Bylines link to the archive under the entry's own type and field, or to
-the profile's page when that field has no archives. The sitemap
-includes the archives.
+`"inverse": {"archive": false}` turns them off. Bylines link to the
+archive under the entry's own type, or to the profile's page when the
+credit has no archives. The sitemap includes the archives.
 
-To give a field's list a title and an introduction, add a page named
-after the field to the type's folder: `user/content/recipes/_cooks.md`.
-Its title replaces "Cooks" and its body introduces the list.
+To give the list a title and an introduction, add a page named after
+the word to the type's folder: `user/content/recipes/_cooks.md`. Its
+title replaces "Cooks" and its body introduces the list.
 
 To write something for one person's archive instead of their bio, add
 `user/content/recipes/_cooks/jane.md`. While it's published, its title
@@ -1084,14 +1082,16 @@ and body introduce Jane's cook archive; the profile's bio is used
 otherwise.
 
 The leading underscore keeps both kinds of page out of the type's
-listings and feeds, so they have no address of their own.
+listings and feeds, so they have no address of their own. Every
+relation with an archive word takes the same two pages.
 
 ### Profile pages
 
 Each profile has a page of its own at `/profiles/jane`: the profile,
-then every published entry of any type crediting them, newest file
-first unless the profiles type's `listing` says otherwise. A profile
-has a page before anything credits them.
+then every published entry of any type crediting them, newest first
+unless the profiles type's `listing` says otherwise. It's a credit's
+`inverse.page`, on by default. A profile has a page before anything
+credits them.
 
 They're at `/profiles/{name}` wherever the files are. To keep them in
 another folder, or move their pages, redefine the `profile` type. For

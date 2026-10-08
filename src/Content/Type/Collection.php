@@ -57,7 +57,7 @@ final readonly class Collection extends ContentType
 	 * @param  ?TypeLabels     $labels       What people call it; defaults to labels made from the name.
 	 * @param  string          $description  What the type is for, in a sentence.
 	 * @param  ?string         $icon         An icon name for the admin; defaults to its kind's.
-	 * @param  array<PeopleField>|bool $people How entries credit people (D-351): `true` for `authors`.
+	 * @param  ?string        $byline       The credit relation that's its byline (D-602), or `null` for its only one.
 	 * @param  bool            $llms         Whether entries are listed in `llms.txt` (D-398).
 	 * @param  ?FileName       $filename     How new files are named; defaults to the date and slug with date archives, else the slug.
 	 * @param  bool            $hierarchical Whether an entry may name a `parent` entry.
@@ -78,13 +78,13 @@ final readonly class Collection extends ContentType
 		?TypeLabels $labels = null,
 		string $description = '',
 		?string $icon = null,
-		array|bool $people = true,
+		?string $byline = null,
 		bool $llms = true,
 		?FileName $filename = null,
 		public bool $hierarchical = false,
 		public TypeOrder $order = TypeOrder::Published
 	) {
-		parent::__construct($name, $folder, $public, $urls, $listing, $feed, $sitemap, $dateArchives, $fields, $closed, $labels, $description, $icon, $people, $llms, $filename);
+		parent::__construct($name, $folder, $public, $urls, $listing, $feed, $sitemap, $dateArchives, $fields, $closed, $labels, $description, $icon, $byline, $llms, $filename);
 	}
 
 	/**
@@ -163,7 +163,7 @@ final readonly class Collection extends ContentType
 	{
 		return [
 			'dateArchives' => $this->dateArchives === DateArchives::None ? null : $this->dateArchives->value,
-			'people'       => $this->peopleOption(true),
+			'byline'       => $this->byline,
 			'hierarchical' => $this->hierarchical ?: null,
 			'order'        => $this->order === TypeOrder::Published ? null : $this->order->value
 		];

@@ -107,8 +107,7 @@ final class DefaultThemeTest extends TestCase
 					'date_archives' => true,
 					'time_archives' => true,
 					'feed'          => ['taxonomy' => 'category'],
-					'routing'       => ['prefix' => 'archives'],
-					'people'        => ['editors' => ['aliases' => ['editor']]]
+					'routing'       => ['prefix' => 'archives']
 				],
 				'profile' => [
 					'kind'       => 'profiles',
@@ -118,20 +117,19 @@ final class DefaultThemeTest extends TestCase
 				'category' => [
 					'path'       => 'topics',
 					'order'      => 'position',
-					'people'     => false,
 					'collection' => ['number' => 1],
 					'feed'       => true
 				],
 				'author' => [
 					'path'       => 'authors',
 					'order'      => 'position',
-					'people'     => false,
 					'collection' => ['number' => 1]
 				]
 			],
 			'relations' => [
-				'category' => ['kind' => 'classify', 'from' => ['post'], 'to' => ['category'], 'create' => true, 'inverse' => ['archive' => true, 'listing' => ['number' => 1]]],
-				'author'   => ['kind' => 'classify', 'to' => ['author'], 'field' => 'authors', 'aliases' => ['author'], 'inverse' => ['archive' => true, 'listing' => ['number' => 1]]]
+				'category' => ['kind' => 'classify', 'from' => ['post'], 'to' => ['category'], 'create' => true, 'inverse' => ['page' => true, 'listing' => ['number' => 1]]],
+				'author'   => ['kind' => 'classify', 'to' => ['author'], 'field' => 'authors', 'aliases' => ['author'], 'inverse' => ['page' => true, 'listing' => ['number' => 1]]],
+				'editors'  => ['kind' => 'credit', 'from' => ['post'], 'to' => ['profile'], 'aliases' => ['editor']]
 			],
 			'home' => 'post'
 		]);

@@ -305,8 +305,8 @@ final class IndexedRepository implements ContentRepository
 	}
 
 	/**
-	 * A people field's terms (`profile.author`) are its profiles type's
-	 * entries.
+	 * A relation's terms under `{type}.{name}` (`profile.authors`,
+	 * `person.actors`) are that type's entries.
 	 *
 	 * @inheritDoc
 	 */

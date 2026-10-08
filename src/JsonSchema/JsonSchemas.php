@@ -19,6 +19,9 @@ use Blush\Directive\DirectiveName;
 use Blush\Directive\Variant;
 use Blush\Content\EntryFields;
 use Blush\Content\Relation\Refs;
+use Blush\Content\Relation\RelationControl;
+use Blush\Content\Relation\RelationKind;
+use Blush\Content\Relation\TranslationRule;
 use Blush\Core\Framework;
 use Blush\Extension\ExtensionLinks;
 use Blush\Extension\ExtensionName;
@@ -100,6 +103,7 @@ final readonly class JsonSchemas
 			'menu.schema.json'      => $this->menu(),
 			'plugin.schema.json'    => $this->plugin(),
 			'region.schema.json'    => $this->region(),
+			'relation.schema.json'  => $this->relation(),
 			'theme.schema.json'     => $this->theme()
 		];
 	}
@@ -349,6 +353,65 @@ final readonly class JsonSchemas
 				'authors'     => $this->authors('icon pack'),
 				'license'     => $this->license('icon pack'),
 				...$this->links('icon pack')
+			]
+		];
+	}
+
+	/**
+	 * Returns the schema for a relation's file in `user/data/relations`
+	 * (D-593, D-600): `Relation::fromArray()`'s keys, named after the file.
+	 *
+	 * @return array<string, mixed>
+	 */
+	public function relation(): array
+	{
+		$name  = ['type' => 'string', 'pattern' => '^[a-z][a-z0-9_]*$'];
+		$types = ['type' => 'array', 'items' => ['type' => 'string'], 'uniqueItems' => true];
+		$count = static fn (int $minimum, string $description): array => ['type' => 'integer', 'minimum' => $minimum, 'description' => $description];
+
+		return [
+			'$schema'              => self::DRAFT,
+			'title'                => sprintf('%s relation', Framework::NAME),
+			'description'          => 'A relationship between entries: one type\'s entries filed under another\'s terms, or linked to other entries. It\'s named after its file.',
+			'type'                 => 'object',
+			'additionalProperties' => false,
+			'properties'           => [
+				'$schema'      => ['type' => 'string', 'description' => 'The JSON Schema editors check this file with.'],
+				'kind'         => ['enum' => [RelationKind::Classify->value, RelationKind::Reference->value], 'default' => RelationKind::Reference->value, 'description' => 'classify files entries under terms (named after the terms\' type); reference links entries to other entries.'],
+				'from'         => [...$types, 'description' => 'The types whose entries make the link; left out, every type.'],
+				'to'           => [...$types, 'minItems' => 1, 'description' => 'The types linked to. A classify relation\'s is [its name].'],
+				'field'        => [...$name, 'description' => 'The front matter key it\'s written under; its name by default.'],
+				'aliases'      => ['type' => 'array', 'items' => $name, 'description' => 'Other keys it\'s read from.'],
+				'label'        => ['type' => 'string', 'description' => 'What the admin and templates call it, such as Cast.'],
+				'singular'     => ['type' => 'string', 'description' => 'What one target is called, such as Cook; made from the label by default.'],
+				'multiple'     => ['type' => 'boolean', 'default' => true, 'description' => 'Whether an entry may link to several.'],
+				'ordered'      => ['type' => 'boolean', 'default' => false, 'description' => 'Whether the order they\'re written in matters.'],
+				'required'     => ['type' => 'boolean', 'default' => false, 'description' => 'Short for a min of 1.'],
+				'min'          => $count(0, 'The fewest an entry needs to be published.'),
+				'max'          => $count(1, 'The most an entry may have to be published.'),
+				'create'       => ['type' => 'boolean', 'default' => false, 'description' => 'Whether writers may add a target as they type it in the admin.'],
+				'symmetric'    => ['type' => 'boolean', 'default' => false, 'description' => 'Whether a link counts from both ends (from and to the same types).'],
+				'translations' => ['enum' => array_map(static fn (TranslationRule $rule): string => $rule->value, TranslationRule::cases()), 'default' => TranslationRule::Fallback->value, 'description' => 'A translation\'s links: fallback (its own, else its original\'s), add (both), or own.'],
+				'control'      => ['enum' => array_map(static fn (RelationControl $control): string => $control->value, RelationControl::cases()), 'description' => 'How the admin\'s editor picks targets; left out, by its shape.'],
+				'defaults'     => ['type' => 'array', 'items' => ['type' => 'string'], 'description' => 'Values written into a new entry.'],
+				'inverse'      => [
+					'description' => 'The targets\' side; false for none.',
+					'oneOf'       => [
+						['const' => false],
+						[
+							'type'                 => 'object',
+							'additionalProperties' => false,
+							'properties'           => [
+								'label'   => ['type' => 'string', 'description' => 'What the list is called there, such as Acted in.'],
+								'page'    => ['type' => 'boolean', 'description' => 'Whether each target\'s own page lists what links to it (on for terms and credits).'],
+								'archive' => ['oneOf' => [['const' => false], ['type' => 'string', 'pattern' => '^[a-z0-9][a-z0-9_-]*$']], 'description' => 'A word for archives under each linking type\'s address (/movies/directors/penny), or false for none.'],
+								'types'   => [...$types, 'description' => 'The types a target\'s page lists; left out, the relation\'s from.'],
+								'max'     => $count(1, 'The most entries that may link to one target.'),
+								'listing' => ['type' => 'object', 'description' => 'How a target\'s page lists them, with a type\'s listing keys (order, perPage).']
+							]
+						]
+					]
+				]
 			]
 		];
 	}

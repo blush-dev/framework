@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Blush\Admin;
 
 use Psr\Http\Message\ResponseInterface;
+use Blush\Content\Http\RelatedController;
 use Blush\Content\Relation\Relation;
 use Blush\Content\Storage\FilesystemStorage;
 use Blush\Content\Type\ContentConfig;
@@ -31,7 +32,6 @@ use Blush\Data\DataLoader;
 use Blush\Feed\FeedConfig;
 use Blush\Feed\FeedFormat;
 use Blush\Content\Type\DateArchives;
-use Blush\Content\Type\PeopleField;
 use Blush\Content\Type\Profiles;
 use Blush\Field\Field;
 use Blush\Field\FieldSet;
@@ -75,10 +75,12 @@ use Blush\Support\Uuid;
  * (each route key it answers at, with its `path` and `default` relative
  * to the prefix, the placeholders it `requires` and `allows`, and
  * whether it's at the site's `root`, as the home type's feeds are,
- * D-350), its `index` page (`{"id", "type", "path", "title"}`, or `null`), the
- * word its author archives sit under (`authorsWord`: the word, `false`
- * for none, or `null` for a type without URLs, D-329), and its
- * `authorsPage` (`{"id", "type", "path", "title"}`, or `null`).
+ * D-350), its `index` page (`{"id", "type", "path", "title"}`, or `null`),
+ * its `byline` relation as it names one (`null` for its only credit),
+ * its `credits` (the credit relations from it), and its `archivePages`:
+ * each relation archive under it (D-602) with its `relation`, `label`,
+ * `word`, and list `page` (`{"id", "type", "path", "title"}`, or
+ * `null`).
  * The list adds whether types can be created here (`create`: data types
  * are read) and whether they may set URLs (`urls`).
  *
@@ -165,18 +167,14 @@ final readonly class TypesController
 			'folderPrefix' => DataTypeWriter::folderPrefix($type->folder),
 			'file'         => $file === null ? null : $this->paths->relative($file),
 			'index'        => $this->index($type),
-			'people'       => array_values(array_map(fn (PeopleField $field): array => [
-				'field'    => $field->field,
-				'plural'   => $field->plural,
-				'singular' => $field->singular,
-				'aliases'  => $field->aliases,
-				'archive'  => $field->archive,
-				'multiple' => $field->multiple,
-				'required' => $field->required,
-				'listPage' => $this->page($type, $field->listPage(), $field->plural)
-			], $type->people)),
-			'authorsWord'  => $type->urls === false ? null : ($type->peopleField(PeopleField::AUTHORS)->archive ?? false),
-			'authorsPage'  => $this->page($type, PeopleField::authors()->listPage(), $type->peopleField(PeopleField::AUTHORS)->plural ?? 'Authors'),
+			'byline'       => $type->byline,
+			'credits'      => array_keys($types->credits($name)),
+			'archivePages' => array_values(array_map(fn (Relation $relation): array => [
+				'relation' => $relation->name,
+				'label'    => $relation->label === '' ? ucfirst(str_replace('_', ' ', $relation->name)) : $relation->label,
+				'word'     => (string) ($relation->inverse === false ? $relation->name : $relation->inverse->archive),
+				'page'     => $this->page($type, RelatedController::word($relation), $relation->label === '' ? ucfirst(str_replace('_', ' ', $relation->name)) : $relation->label)
+			], $types->relationArchives($type))),
 			'sets'         => array_map(static fn (FieldSet $set): array => [
 				'name'   => $set->name,
 				'label'  => $set->label,
@@ -225,14 +223,13 @@ final readonly class TypesController
 
 		$home       = $type->name === $types->home;
 		$feeds      = array_map(static fn (FeedFormat $format): string => $format->routeSuffix(), $this->feeds->formats);
-		$profiles   = $types->profiles() !== null;
 		$taxonomies = array_keys($types->termTypes());
 		$archives   = $types->relationArchives($type);
 		$relations  = array_keys($archives);
-		$defaults   = [...TypeUrls::DEFAULT_PATHS, ...$type->peoplePaths(), ...$types->relationPaths($type)];
+		$defaults   = [...TypeUrls::DEFAULT_PATHS, ...$types->relationPaths($type)];
 		$routes     = [];
 
-		foreach (TypeRouteKeys::keys($type, $home, $feeds, $profiles, $types->hasTermPages($type->name), $relations) as $key) {
+		foreach (TypeRouteKeys::keys($type, $home, $feeds, $types->hasTermPages($type->name), $relations) as $key) {
 			$params   = TypeRouteKeys::params($type, $key, $taxonomies, $relations);
 			$relation = $archives[strstr($key, '.', true) ?: $key] ?? null;
 			$routes[] = [
@@ -317,7 +314,7 @@ final readonly class TypesController
 			'icon'        => $type->icon,
 			'kind'        => $type->kind()->value,
 			'dated'       => $type->dateArchives !== DateArchives::None,
-			'authors'     => $type->credits(),
+			'authors'     => $types->credits($type->name) !== [],
 			'terms'       => $types->classification($type->name) !== null,
 			'hierarchical' => $types->nestsByParent($type->name),
 			'order'       => $type instanceof Collection ? $type->order->value : null,

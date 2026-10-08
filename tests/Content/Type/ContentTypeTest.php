@@ -24,7 +24,6 @@ use Blush\Content\Type\ContentType;
 use Blush\Content\Type\DateArchives;
 use Blush\Content\Type\InvalidContentType;
 use Blush\Content\Type\Listing;
-use Blush\Content\Type\PeopleField;
 use Blush\Content\Type\Profiles;
 use Blush\Content\Type\Tree;
 use Blush\Content\Type\TypeOrder;
@@ -45,7 +44,6 @@ use Blush\Tests\Fixtures\Content\JtcomTypes;
 #[CoversClass(LegacyTaxonomy::class)]
 #[CoversClass(Tree::class)]
 #[CoversClass(Profiles::class)]
-#[CoversClass(PeopleField::class)]
 #[CoversClass(TypeKind::class)]
 #[CoversClass(ContentConfig::class)]
 #[CoversClass(TypeUrls::class)]
@@ -179,7 +177,7 @@ final class ContentTypeTest extends TestCase
 		$this->assertFalse(ContentType::fromArray(['name' => 'profile', 'kind' => 'profiles'], $this->fields)->llms);
 		$this->assertTrue(ContentType::fromArray(['name' => 'doc', 'kind' => 'tree'], $this->fields)->llms);
 
-		$terms = new Collection('topic', folder: 'topics', urls: false, feed: new TypeFeed(), people: false, hierarchical: true, order: TypeOrder::Position);
+		$terms = new Collection('topic', folder: 'topics', urls: false, feed: new TypeFeed(), hierarchical: true, order: TypeOrder::Position);
 
 		$this->assertEquals($terms, ContentType::fromArray($terms->toArray(), $this->fields));
 		$this->assertSame(true, $terms->toArray()['feed']);
@@ -196,74 +194,24 @@ final class ContentTypeTest extends TestCase
 		$this->assertEquals($profiles, ContentType::fromArray($profiles->toArray(), $this->fields));
 	}
 
-	public function testPeopleFieldsHaveArchivesUnderTheirWords(): void
+	public function testATypeNamesItsBylineAndRefusesPeopleFields(): void
 	{
-		$type = new Collection('recipe', people: [
-			new PeopleField('cooks', required: true),
-			new PeopleField('photographers', plural: 'Shot by', singular: 'Photographer', archive: false, multiple: false)
-		]);
+		$type = new Collection('recipe', byline: 'cooks');
 
-		$this->assertSame(['cooks', 'photographers'], array_keys($type->people));
-		$this->assertSame(['cooks'], array_keys($type->archivedPeople()));
-		$this->assertSame('/recipe/cooks', $type->routePattern('cooks.collection'));
-		$this->assertSame('/recipe/cooks/{profile}', $type->routePattern('cooks.single'));
-		$this->assertSame('/recipe/cooks/{profile}/feed/json', $type->routePattern('cooks.single.feed.json'));
-		$this->assertNull($type->routePattern('photographers.single'));
-		$this->assertSame('Cook', $type->people['cooks']->singular);
-		$this->assertSame('profile.cooks', $type->people['cooks']->termKey('profile'));
-		$this->assertSame('_cooks/jane', $type->people['cooks']->personPage('jane'));
-		$this->assertSame(['cooks' => ['required' => true], 'photographers' => ['plural' => 'Shot by', 'singular' => 'Photographer', 'archive' => false, 'multiple' => false]], $type->toArray()['people']);
+		$this->assertSame('cooks', $type->byline);
+		$this->assertSame('cooks', $type->toArray()['byline'] ?? null);
 		$this->assertEquals($type, ContentType::fromArray($type->toArray(), $this->fields));
+		$this->assertNull(new Collection('post')->byline, 'None named: its only credit relation (D-602).');
+		$this->assertArrayNotHasKey('byline', new Collection('post')->toArray());
 
-		$field = $type->people['photographers']->referenceField('profile');
-
-		$this->assertSame('profile', $field->to);
-		$this->assertFalse($field->multiple);
-
-		$moved = new Collection('post', urls: new TypeUrls(paths: ['authors.single.paged' => 'writers/{profile}/p/{page}']));
-
-		$this->assertSame('/post/writers/{profile}/p/{page}', $moved->routePattern('authors.single.paged'));
-		$this->assertSame('/post/authors/{profile}', $moved->routePattern('authors.single'));
-		$this->assertSame([], new Collection('post', urls: false)->archivedPeople());
-		$this->assertSame([], new Collection('post', public: false)->archivedPeople());
-
-		$cases = [
-			[['people' => ['single' => true]], 'must start with a lowercase letter'],
-			[['people' => ['cooks' => ['archive' => '']]], '"archive" must be a word'],
-			[['people' => ['cooks' => ['by' => 'x']]], 'unknown options: by'],
-			[['people' => 'cooks'], '"people" must be true, false, or a map'],
-			[['people' => true, 'authors' => true], 'sets both "authors" and "people"']
-		];
-
-		foreach ($cases as [$data, $message]) {
+		foreach (['people' => ['cooks' => true], 'authors' => true] as $key => $value) {
 			try {
-				ContentType::fromArray(['name' => 'post', ...$data], $this->fields);
-				$this->fail($message);
+				ContentType::fromArray(['name' => 'post', $key => $value], $this->fields);
+				$this->fail($key);
 			} catch (InvalidContentType $e) {
-				$this->assertStringContainsString($message, $e->getMessage());
+				$this->assertStringContainsString('credits people through a credit relation', $e->getMessage(), 'Credits are relations (D-602).');
 			}
 		}
-	}
-
-	public function testCollectionsCreditAuthorsByDefault(): void
-	{
-		$this->assertSame(['authors'], array_keys(new Collection('post')->people));
-		$this->assertSame(['author'], new Collection('post')->people['authors']->aliases);
-		$this->assertFalse(new Collection('tag', people: false)->credits());
-		$this->assertFalse(new Tree()->credits());
-
-		$cases = [
-			[new Collection('post', people: false), ['people' => false]],
-			[new Tree(people: true), ['people' => true]]
-		];
-
-		foreach ($cases as [$type, $expected]) {
-			$this->assertSame($expected, array_intersect_key($type->toArray(), ['people' => true]), $type->name);
-			$this->assertEquals($type, ContentType::fromArray($type->toArray(), $this->fields));
-		}
-
-		$this->assertArrayNotHasKey('people', new Collection('post')->toArray(), 'The default is left out.');
-		$this->assertFalse(ContentType::fromArray(['name' => 'post', 'authors' => false], $this->fields)->credits(), '"authors" is short for the default field.');
 	}
 
 	public function testNamesTypesForPeople(): void
@@ -423,13 +371,13 @@ final class ContentTypeTest extends TestCase
 			'hierarchical'    => true
 		]);
 
-		$this->assertSame(['path' => 'tags', 'hierarchical' => true, 'order' => 'position', 'llms' => false, 'people' => false], $type);
-		$this->assertSame(['kind' => 'classify', 'from' => ['post'], 'to' => ['tag'], 'aliases' => ['tags'], 'create' => true, 'inverse' => ['archive' => true, 'listing' => ['order' => 'desc']]], $relation);
+		$this->assertSame(['path' => 'tags', 'hierarchical' => true, 'order' => 'position', 'llms' => false], $type);
+		$this->assertSame(['kind' => 'classify', 'from' => ['post'], 'to' => ['tag'], 'aliases' => ['tags'], 'create' => true, 'inverse' => ['listing' => ['order' => 'desc']]], $relation);
 		$this->assertInstanceOf(Collection::class, ContentType::fromArray(['name' => 'tag', ...$type], $this->fields));
 
 		[$type, $relation] = LegacyTaxonomy::convert('category', ['kind' => 'taxonomy', 'field' => 'categories', 'urls' => false, 'llms' => true, 'people' => true]);
 
-		$this->assertSame(['urls' => false, 'llms' => true, 'people' => true, 'order' => 'position'], $type, 'What the taxonomy said is kept.');
+		$this->assertSame(['urls' => false, 'llms' => true, 'order' => 'position'], $type, 'What the taxonomy said is kept, but who it credits: terms credit nobody (D-602).');
 		$this->assertSame(['kind' => 'classify', 'to' => ['category'], 'field' => 'categories', 'create' => true], $relation, 'Without URLs, terms have no pages.');
 	}
 
@@ -556,7 +504,6 @@ final class ContentTypeTest extends TestCase
 		$this->assertSame('/team/{name}', new Profiles(folder: 'authors', urls: new TypeUrls('team'))->routePattern('single'));
 		$this->assertFalse($profile->servedAsPages());
 		$this->assertFalse($profile->hasFeed());
-		$this->assertFalse($profile->credits());
 		$this->assertTrue(BuiltInType::Profile->canDisable());
 	}
 }

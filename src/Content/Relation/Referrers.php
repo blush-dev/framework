@@ -65,6 +65,39 @@ final readonly class Referrers
 	}
 
 	/**
+	 * Returns the entries linking to an entry by relation, for the editor's
+	 * Linked From (D-599): each relation's key on its source type
+	 * (`movie.actors`), the relation, and the entries, by title.
+	 *
+	 * @return list<array{key: string, type: string, relation: Relation, entries: list<Entry>}>
+	 */
+	public function grouped(Entry $entry): array
+	{
+		$groups = [];
+
+		foreach ($this->links($entry) as $link) {
+			$key      = "{$link->type}.{$link->relation}";
+			$relation = $this->relations->find($link->type, $link->relation);
+			$source   = $this->content->find($link->source);
+
+			if ($relation !== null && $source !== null) {
+				$groups[$key] ??= ['key' => $key, 'type' => $link->type, 'relation' => $relation, 'entries' => []];
+				$groups[$key]['entries'][$source->path] = $source;
+			}
+		}
+
+		ksort($groups);
+
+		return array_values(array_map(static function (array $group): array {
+			$entries = array_values($group['entries']);
+
+			usort($entries, static fn (Entry $a, Entry $b): int => strnatcasecmp($a->title, $b->title));
+
+			return [...$group, 'entries' => $entries];
+		}, $groups));
+	}
+
+	/**
 	 * Returns how many of the entries linking to an entry are live, so the
 	 * site shows the link there.
 	 *

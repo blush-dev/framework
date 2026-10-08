@@ -27,6 +27,7 @@ use Blush\Field\Fields\EnumField;
 use Blush\Field\Fields\ListField;
 use Blush\Field\FieldType;
 use Blush\Field\Schema;
+use Blush\Content\Relation\Relation;
 use Blush\JsonSchema\JsonSchemas;
 use Blush\Menu\Link\MenuLink;
 use Blush\Menu\Link\MenuLinkType;
@@ -52,6 +53,31 @@ final class JsonSchemasTest extends TestCase
 				"{$file} is stale; run `composer schemas`."
 			);
 		}
+	}
+
+	public function testTheRelationSchemaDescribesEveryKeyARelationWrites(): void
+	{
+		$relation = Relation::fromArray([
+			'name' => 'actors', 'kind' => 'reference', 'from' => ['movie'], 'to' => ['person'], 'field' => 'cast', 'aliases' => ['stars'],
+			'label' => 'Cast', 'multiple' => true, 'ordered' => true, 'min' => 1, 'max' => 9, 'create' => true, 'translations' => 'add',
+			'control' => 'cards', 'defaults' => ['tom'], 'inverse' => ['archive' => 'actors', 'label' => 'Acted in', 'types' => ['movie'], 'max' => 5]
+		]);
+		$properties = new JsonSchemas()->relation()['properties'] ?? null;
+		$this->assertIsArray($properties);
+		$inverseSchema = $properties['inverse'] ?? null;
+		$this->assertIsArray($inverseSchema);
+		$this->assertIsArray($inverseSchema['oneOf'] ?? null);
+		$object = $inverseSchema['oneOf'][1] ?? null;
+		$this->assertIsArray($object);
+		$side = $object['properties'] ?? null;
+		$this->assertIsArray($side);
+		$keys     = array_keys($properties);
+		$inverse  = array_keys($side);
+		$written  = $relation->toArray();
+
+		$this->assertSame([], array_diff(array_keys(array_diff_key($written, ['name' => true])), $keys), 'Every key a relation\'s file can hold (D-600).');
+		$this->assertSame([], array_diff(array_keys(is_array($written['inverse'] ?? null) ? $written['inverse'] : []), $inverse));
+		$this->assertContains('$schema', $keys, 'A file may name its schema.');
 	}
 
 	public function testPatternsWriteBackslashesAsHexEscapes(): void

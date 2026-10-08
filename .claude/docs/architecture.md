@@ -465,13 +465,14 @@ Implemented in M4a (D-083, D-084); kinds and option names from D-157.
   and feed keys, not served as pages, with an `avatar` media field).
   Both can be redefined, and `profile` can be disabled. A site has at
   most one `Profiles` type (`ContentTypes::profiles()`). Other types
-  credit profiles through their **people fields** (`PeopleField`,
-  `ContentType::$people`, keyed by front matter field; collections get
-  `authors` reading `author`, pages none), each a
-  `ReferenceField` to the profiles type in the schema. A people field
-  reading a key a classify relation reads is dropped at load
-  (`ContentType::withoutPeopleReading()`), so 1.x `author` taxonomies
-  keep working as relations. `ContentTypes::termTypes()` is the types
+  credit profiles through **credit relations** (D-602:
+  `RelationKind::Credit`, to the profiles type only, always ordered,
+  translations `add`; `Relation::authors()` is the `authors` one,
+  reading `author`). Nothing credits until a relation says so; the
+  skeleton ships `user/data/relations/authors.json`. `ContentTypes::
+  credits()` lists a type's, and `byline()` its byline: the one its
+  `byline` option names, else its only credit. A type's `people` and
+  `authors` options are refused at load with a message. `ContentTypes::termTypes()` is the types
   classify relations file under plus the profiles type: the types the
   index keeps terms for.
 - **`Schema`** (`Blush\Field`, D-338): field types `text`, `markdown`,
@@ -592,22 +593,19 @@ Implemented in M4a (D-080, D-085, D-086).
   reverse side is in the relation graph (`EntryRelations::referencedBy()`).
 - **Profiles** (D-351, D-352) are entries of the profiles type, indexed
   like terms (forward and reverse; files only, D-584). An entry's credits are kept
-  twice in its record's `terms`: per people field
-  (`PeopleField::termKey()`, `profile.cooks`) and together under the
-  profiles type's name. The repository reads 1.x's `author` query
+  twice in its record's `terms`: per credit relation
+  (`Relation::termKey()`, `profile.cooks`) and together under the
+  profiles type's name (`RecordBuilder`, credits only). The repository reads 1.x's `author` query
   argument, `whereAuthor()`, and `orderby: author` as the profiles type
   (`Query::withTaxonomyRenamed()`) unless a type is named `author`.
   Each profile's page (`ProfileController`, `PageKind::Profile`) lists
-  every crediting type's entries. Each people field with archives
-  (`ContentType::archivedPeople()`, `ContentUrls::hasArchive()`) has
-  `{type}.{field}.collection` (`PeopleController`, the profiles
-  `PeopleArchives::credited()` finds, with the type's hidden
-  `_{field}` page) and `{type}.{field}.single` (`PersonController`,
-  paged, with feeds) under its prefix, at the field's archive word.
-  A person's archive is introduced by `_{field}/{slug}` in the type's
-  folder when it's published, else the profile. `PeopleArchives::
-  profiles()` lists every profile with a page, for the sitemap and
-  the site's URLs.
+  every crediting type's entries (`ContentTypes::termKeys()`), a
+  credit's `inverse.page`. A credit's archives are relation archives
+  (D-602): one mechanism for every relation whose `inverse.archive` is
+  a word (`RelatedListController`, `RelatedController`; the list's
+  intro page `_{word}` and each target's written page `_{word}/{slug}`
+  in the type's folder, else the target). `ProfileList::profiles()`
+  lists every profile with a page, for the sitemap and the site's URLs.
 
 ## Source → Index → Repository
 

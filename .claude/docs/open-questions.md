@@ -66,7 +66,7 @@ Move each item to `decisions.md` once it's answered.
   later). One operation under `termCounts()`, a proposed `termStats()`,
   `credited()`, and jtcom's post archives: take what a query finds,
   group it by something entries point to, and report on each group.
-  - **What entries point to:** terms, people (people fields), a parent,
+  - **What entries point to:** terms, people (credit relations, D-602), a parent,
     dates (year, month), references (reference fields, on hold with the
     Fields API, D-348), translations (`translation_of`), mentions,
     media used, and the type, language, or status.
@@ -83,7 +83,7 @@ Move each item to `decisions.md` once it's answered.
     filter such as `query()->whereReferences($entry)`.
   - **Open:** the name (`groups()`, `tally()`, `facets()`); whether
     `credited()` exists as a shortcut; which groupings first (taxonomy,
-    people field, parent, year/month proposed); references when the
+    credit relation, parent, year/month proposed); references when the
     Fields API resumes.
 
 - **Template naming and the hierarchy, as a whole** (the author,
@@ -1073,21 +1073,19 @@ Move each item to `decisions.md` once it's answered.
     - ~~Two extensions defining one relation (or type) name~~: fail
       softly, keeping the first (D-597). Field sets still fail to load
       (Fields API paused, D-348).
-    - **Relationship schemas for editors:** a JSON Schema for
-      `user/data/relations/*` files, as entries and field sets have
-      (D-594 added none).
+    - ~~Relationship schemas for editors~~: `relation.schema.json` (D-601).
     - **Filtered targets** (only a product in Shoes, only a term under
       a parent): later (D-587).
-    - **Output:** structured data (`author`, `about`, `isPartOf`),
+    - **Output** (later, D-601): structured data (`author`, `about`, `isPartOf`),
       feeds, `llms.txt`, and the read-only content API (D-479)
       including related entries (`?include=actors`).
-    - **Bulk and maintenance:** adding a term to many entries from a
+    - **Bulk and maintenance** (later, D-601): adding a term to many entries from a
       list, merging two terms (rewriting referrers), and the reverse
       side's order (series parts by position).
-    - **Changing a relation:** renaming it, changing its target type,
-      one to many and back, deleting a type others relate to (D-311
-      guards taxonomies today), and a plugin that defined a relation
-      being turned off; each migrated by a tool (D-478).
+    - ~~Changing a relation~~: D-600 (refused retargets and several to
+      one while used, keys kept as aliases or rewritten, stripping on
+      unfiling and removing, warnings for tighter limits, `content:relation`).
+      Renaming a relation's name stays a hand edit.
     - **Duplicating an entry** copies its relations, but not a
       one-per-target one?
     - ~~Templates for a reverse archive~~: `related-*` and

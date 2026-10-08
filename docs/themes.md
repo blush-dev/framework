@@ -432,13 +432,12 @@ What a template can use:
 | `$template->terms($entry, 'tag')` | An entry's terms of a [type of terms](content-types.md#terms-and-relationships), such as its tags |
 | `$template->related($entry, 'actors')` | The published entries an entry [links to](content-types.md#linking-entries-to-other-entries) through a relation, in order, each in the entry's language when it's translated |
 | `$template->referencedBy($entry, 'actors')` | The published entries linking to an entry through a relation, newest first: by its name, or `'movie.actors'` for one type's |
-| `$template->people($entry, $field)` | The profiles an entry credits through a [people field](content-types.md#crediting-people), in order; the type's first people field (its byline) when `$field` is left out |
+| `$template->byline($entry)` | The profiles an entry's byline credits, in order: its type's [byline relation](content-types.md#crediting-people), such as a post's `authors` |
 | `$template->author($entry)` | The first person an entry's byline credits, such as a post's author, or `null` |
 | `$template->profile('jane')` | A published profile by its slug, or `null` |
+| `$template->credits($entry)` | Everyone an entry credits, by credit relation: the byline first, then the others, each `['relation' => …, 'byline' => bool, 'people' => [...]]`, leaving out those crediting no one. A relation's `label` and `singular` name it ("Photographers", "Photographer") |
 | `$template->avatar($profile, 48)` | A profile's avatar, to print: a square box with its initials, as an inline SVG (see [Avatars](#avatars)) |
-| `$template->bylineUrl($profile, $entry, $field)` | Where a byline links: the person's archive under the entry's type and field, such as `/blog/authors/jane`, else their profile's page, else `''` |
-| `$template->personUrl($profile, $type, $field)` | A person's archive under a type's people field, such as `/recipes/cooks/jane` (`''` when it has none) |
-| `$template->peopleUrl($type, $field)` | The list of people a type's field credits, such as `/recipes/cooks` |
+| `$template->archiveUrl($type, 'cooks', $profile)` | A [relation's archive](content-types.md#linking-entries-to-other-entries) under a type for one target, such as `/recipes/cooks/jane`, or with no target the list of what it links to (`/recipes/cooks`); `null` for the relation is the type's byline. `''` when there's none, so a byline links with `archiveUrl($entry->type, null, $person) ?: permalink($person)` |
 | `$template->permalink($profile)` | A profile's own page, such as `/profiles/jane` |
 | `$template->parent($entry)` | A page's parent page (from its folder), or the parent of an entry in a [nesting collection](content-types.md#nesting-and-order), such as a category, if published |
 | `$template->ancestors($entry)` | Its parents from the top down, for breadcrumbs |
@@ -827,23 +826,22 @@ Blush picks the most specific template your theme (or its parents) has:
 | A listing | `collection-{type}`, (`collection-terms`), `collection-{kind}`, `collection` |
 | A term's page, or any entry's page listing what links to it | `term-{type}-{slug}`, `term-{type}`, `term`, `collection` |
 | A date archive | `archive-date-{type}`, `archive-date`, `collection` |
-| A type's people (such as `/recipes/cooks`) | `people-{type}-{field}`, `people-{field}`, `people`, `collection` |
-| A person's archive (such as `/recipes/cooks/jane`) | `person-{type}-{field}`, `person-{field}`, `person`, `profile`, `collection` |
-| What a type's relation links to (such as `/movies/directors`) | `related-list-{type}-{relation}`, `related-list-{relation}`, `related-list`, `collection` |
-| An entry's archive under a relation (such as `/movies/directors/penny`) | `related-{type}-{relation}`, `related-{relation}`, `related`, `term`, `collection` |
+| What a type's relation links to (such as `/recipes/cooks` or `/movies/directors`) | `related-list-{type}-{relation}`, `related-list-{relation}`, `related-list`, `collection` |
+| An entry's archive under a relation (such as `/recipes/cooks/jane` or `/movies/directors/penny`) | `related-{type}-{relation}`, `related-{relation}`, `related`, then `profile` for a profile or `term` otherwise, `collection` |
 | A profile's page (such as `/profiles/jane`) | `profile-{slug}`, `profile`, `collection` |
 | The homepage | `home`, then whatever it shows |
 | An error | `error-{status}`, `error` |
 | A site with no homepage yet | `welcome` |
 
-On a type's people page, `$entries` holds the profiles (link each with
-`$template->personUrl($profile, $type, $page->people->field)`) and
-`$entry` is the field's list page (`_cooks`), when it has one. On a
-person's archive, `$entry` is the page written for it
-(`_cooks/jane`) or else the profile, `$page->profile` is always the
-profile, and `$entries` their entries of that type. On a profile's
-page, `$entry` is the profile and `$entries` everything crediting
-them.
+On a relation's list (`/recipes/cooks`), `$entries` holds what it links
+to (link each with `$template->archiveUrl($type, $page->relation->name,
+$target)`), `$page->relation` is the relation, and `$entry` is its
+list page (`_cooks`), when it has one. On one target's archive,
+`$entry` is the page written for it (`_cooks/jane`) or else the target,
+`$page->target` is always the target (a profile, for a credit),
+`$page->relation` the relation, and `$entries` the entries of that type
+linking to it. On a profile's page, `$entry` is the profile and
+`$entries` everything crediting them.
 
 `{kind}` is the kind of the entry's type: `collection` (such as posts),
 `tree` (pages, and any tree of your site's own), or `profiles`. So

@@ -25,8 +25,8 @@ use Blush\Core\AppConfig;
 /**
  * The feeds a page advertises with `<link rel="alternate">`: the home
  * feed on every page, plus the feed of what the page shows (its type's
- * collection, its term's, a person's under its type's people field, or
- * a profile's).
+ * collection, its term's, a target's under a relation archive (a
+ * person's under a credit), or a profile's).
  */
 final readonly class FeedLinks
 {
@@ -56,15 +56,13 @@ final readonly class FeedLinks
 		if ($type !== null && $page->kind !== PageKind::Home) {
 			if ($page->kind === PageKind::Term && $page->entry !== null) {
 				$this->add($links, $type, $page->title, $page->entry->slug);
-			} elseif ($page->kind === PageKind::Person && $page->people !== null && $page->profile !== null) {
-				$this->addFeeds($links, "{$page->title} | {$type->labels->plural}", fn (FeedFormat $format): ?string => $this->urls->personFeed($type, $page->people, $page->profile->slug, $format->routeSuffix()));
 			} elseif ($page->kind === PageKind::Related && $page->relation !== null && $page->entry !== null) {
 				$slug     = $page->entry->slug;
 				$relation = $page->relation;
 
 				$this->addFeeds($links, "{$page->title} | {$type->labels->plural}", fn (FeedFormat $format): ?string => $this->urls->relatedFeed($type, $relation, $slug, $format->routeSuffix()));
-			} elseif ($page->kind === PageKind::Profile && $page->profile !== null) {
-				$this->addFeeds($links, $page->title, fn (FeedFormat $format): ?string => $this->urls->profileFeed($page->profile->slug, 'single.feed' . $format->routeSuffix()));
+			} elseif ($page->kind === PageKind::Profile && $page->target !== null) {
+				$this->addFeeds($links, $page->title, fn (FeedFormat $format): ?string => $this->urls->profileFeed($page->target->slug, 'single.feed' . $format->routeSuffix()));
 			} elseif ($type->hasUrls() && ! $type instanceof Profiles) {
 				$this->add($links, $type, $page->kind === PageKind::Collection && $page->title !== '' ? $page->title : ucfirst($type->name));
 			}

@@ -1,0 +1,171 @@
+{
+	"$schema": "http://json-schema.org/draft-07/schema#",
+	"title": "Blush Framework relation",
+	"description": "A relationship between entries: one type's entries filed under another's terms, or linked to other entries. It's named after its file.",
+	"type": "object",
+	"additionalProperties": false,
+	"properties": {
+		"$schema": {
+			"type": "string",
+			"description": "The JSON Schema editors check this file with."
+		},
+		"kind": {
+			"enum": [
+				"classify",
+				"reference"
+			],
+			"default": "reference",
+			"description": "classify files entries under terms (named after the terms' type); reference links entries to other entries."
+		},
+		"from": {
+			"type": "array",
+			"items": {
+				"type": "string"
+			},
+			"uniqueItems": true,
+			"description": "The types whose entries make the link; left out, every type."
+		},
+		"to": {
+			"type": "array",
+			"items": {
+				"type": "string"
+			},
+			"uniqueItems": true,
+			"minItems": 1,
+			"description": "The types linked to. A classify relation's is [its name]."
+		},
+		"field": {
+			"type": "string",
+			"pattern": "^[a-z][a-z0-9_]*$",
+			"description": "The front matter key it's written under; its name by default."
+		},
+		"aliases": {
+			"type": "array",
+			"items": {
+				"type": "string",
+				"pattern": "^[a-z][a-z0-9_]*$"
+			},
+			"description": "Other keys it's read from."
+		},
+		"label": {
+			"type": "string",
+			"description": "What the admin and templates call it, such as Cast."
+		},
+		"singular": {
+			"type": "string",
+			"description": "What one target is called, such as Cook; made from the label by default."
+		},
+		"multiple": {
+			"type": "boolean",
+			"default": true,
+			"description": "Whether an entry may link to several."
+		},
+		"ordered": {
+			"type": "boolean",
+			"default": false,
+			"description": "Whether the order they're written in matters."
+		},
+		"required": {
+			"type": "boolean",
+			"default": false,
+			"description": "Short for a min of 1."
+		},
+		"min": {
+			"type": "integer",
+			"minimum": 0,
+			"description": "The fewest an entry needs to be published."
+		},
+		"max": {
+			"type": "integer",
+			"minimum": 1,
+			"description": "The most an entry may have to be published."
+		},
+		"create": {
+			"type": "boolean",
+			"default": false,
+			"description": "Whether writers may add a target as they type it in the admin."
+		},
+		"symmetric": {
+			"type": "boolean",
+			"default": false,
+			"description": "Whether a link counts from both ends (from and to the same types)."
+		},
+		"translations": {
+			"enum": [
+				"fallback",
+				"add",
+				"own"
+			],
+			"default": "fallback",
+			"description": "A translation's links: fallback (its own, else its original's), add (both), or own."
+		},
+		"control": {
+			"enum": [
+				"tree",
+				"tokens",
+				"people",
+				"select",
+				"cards"
+			],
+			"description": "How the admin's editor picks targets; left out, by its shape."
+		},
+		"defaults": {
+			"type": "array",
+			"items": {
+				"type": "string"
+			},
+			"description": "Values written into a new entry."
+		},
+		"inverse": {
+			"description": "The targets' side; false for none.",
+			"oneOf": [
+				{
+					"const": false
+				},
+				{
+					"type": "object",
+					"additionalProperties": false,
+					"properties": {
+						"label": {
+							"type": "string",
+							"description": "What the list is called there, such as Acted in."
+						},
+						"page": {
+							"type": "boolean",
+							"description": "Whether each target's own page lists what links to it (on for terms and credits)."
+						},
+						"archive": {
+							"oneOf": [
+								{
+									"const": false
+								},
+								{
+									"type": "string",
+									"pattern": "^[a-z0-9][a-z0-9_-]*$"
+								}
+							],
+							"description": "A word for archives under each linking type's address (/movies/directors/penny), or false for none."
+						},
+						"types": {
+							"type": "array",
+							"items": {
+								"type": "string"
+							},
+							"uniqueItems": true,
+							"description": "The types a target's page lists; left out, the relation's from."
+						},
+						"max": {
+							"type": "integer",
+							"minimum": 1,
+							"description": "The most entries that may link to one target."
+						},
+						"listing": {
+							"type": "object",
+							"description": "How a target's page lists them, with a type's listing keys (order, perPage)."
+						}
+					}
+				}
+			]
+		}
+	}
+}

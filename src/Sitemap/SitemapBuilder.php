@@ -16,7 +16,7 @@ namespace Blush\Sitemap;
 use DateTimeImmutable;
 use Blush\Content\ContentRepository;
 use Blush\Content\Entry\Entry;
-use Blush\Content\PeopleArchives;
+use Blush\Content\ProfileList;
 use Blush\Content\RelationArchives;
 use Blush\Content\Routing\ContentUrls;
 use Blush\Content\Type\ContentType;
@@ -30,9 +30,9 @@ use Blush\Content\Type\Profiles;
  * A type's sitemap holds its collection page (when it has a landing page
  * or lists something), then its listed entries
  * (published, public, not landing pages) that have URLs, with their
- * `updated` dates, then each people field's list and person archives
- * (D-351). The profiles type's holds each profile's page
- * (`PeopleArchives::profiles()`). A term type's holds its published
+ * `updated` dates, then each relation archive's list and targets'
+ * archives (D-596, D-602). The profiles type's holds each profile's page
+ * (`ProfileList::profiles()`). A term type's holds its published
  * terms that list entries, by slug, so empty archives stay out. The type the root
  * `index.md` belongs to also holds `/`, when the homepage isn't a type's
  * collection.
@@ -43,7 +43,7 @@ final readonly class SitemapBuilder
 		private ContentRepository $content,
 		private ContentTypes $types,
 		private ContentUrls $urls,
-		private PeopleArchives $archives,
+		private ProfileList $profileList,
 		private RelationArchives $relationArchives
 	) {}
 
@@ -91,7 +91,7 @@ final readonly class SitemapBuilder
 		$urls = [];
 
 		if ($type instanceof Profiles) {
-			foreach ($this->archives->profiles() as $profile) {
+			foreach ($this->profileList->profiles() as $profile) {
 				$url = $this->urls->profile($profile->slug);
 
 				if ($url !== null) {
@@ -136,37 +136,11 @@ final readonly class SitemapBuilder
 			$this->add($urls, $entry);
 		}
 
-		$this->addPeople($urls, $type);
 		$this->addRelated($urls, $type);
 
 		return array_values($urls);
 	}
 
-	/**
-	 * Adds each of a type's people fields' lists and person archives
-	 * (D-351), when they have any.
-	 *
-	 * @param array<string, SitemapUrl> $urls
-	 */
-	private function addPeople(array &$urls, ContentType $type): void
-	{
-		foreach ($type->archivedPeople() as $field) {
-			$people = $this->urls->hasArchive($type, $field) ? $this->archives->credited($type, $field) : [];
-			$list   = $people === [] ? null : $this->urls->people($type, $field);
-
-			if ($list !== null) {
-				$urls[$list] ??= new SitemapUrl($this->urls->absolute($list));
-			}
-
-			foreach ($people as $person) {
-				$url = $this->urls->person($type, $field, $person->slug);
-
-				if ($url !== null) {
-					$urls[$url] ??= new SitemapUrl($this->urls->absolute($url), $person->updated);
-				}
-			}
-		}
-	}
 
 	/**
 	 * Adds each of a type's relation archives' lists and targets' archives

@@ -21,9 +21,9 @@ use Blush\Field\Field;
  * The type whose entries are the people other entries credit (D-351):
  * each profile's public name (its title), a line under it (its
  * `subtitle`), an `avatar`, and a bio (its body). A site has at most one.
- * Other types credit profiles through their people fields
- * (`PeopleField`), each in its own words, so one profile is a post's
- * author and a recipe's cook alike:
+ * Other types credit profiles through credit relations (D-602), each in
+ * its own words, so one profile is a post's author and a recipe's cook
+ * alike:
  *
  *     new Profiles(folder: 'profiles');
  *
@@ -76,7 +76,7 @@ final readonly class Profiles extends ContentType
 		bool $llms = false,
 		?FileName $filename = null
 	) {
-		parent::__construct($name, $folder, $public, $urls, $listing, $feed, $sitemap, DateArchives::None, $fields, $closed, $labels, $description, $icon, [], $llms, $filename);
+		parent::__construct($name, $folder, $public, $urls, $listing, $feed, $sitemap, DateArchives::None, $fields, $closed, $labels, $description, $icon, null, $llms, $filename);
 	}
 
 	/**

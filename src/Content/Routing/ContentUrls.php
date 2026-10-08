@@ -22,7 +22,6 @@ use Blush\Content\Type\Collection;
 use Blush\Content\Type\ContentType;
 use Blush\Content\Type\ContentTypes;
 use Blush\Content\Type\DateArchives;
-use Blush\Content\Type\PeopleField;
 use Blush\Core\AppConfig;
 use Blush\Routing\InvalidRoute;
 use Blush\Routing\RouteConfig;
@@ -50,17 +49,17 @@ use Blush\Routing\UrlGenerationException;
  * - A landing page is its type's collection. The home type's collection
  *   is `/`, paged as `/page/{page}`.
  * - A profile (D-351) is at its type's `single`, `/profiles/{name}`.
- * - Each people field with an archive word lists the people it credits
- *   at `{field}.collection` and has an archive per person at
- *   `{field}.single`, under its type's prefix, even for the home type
- *   (`/blog/authors/jane`).
+ * - Each relation with an archive word (D-596, D-602) lists what it links
+ *   to at `{relation}.collection` and has an archive per target at
+ *   `{relation}.single`, under its type's prefix, even for the home type
+ *   (`/blog/authors/jane`, `/movies/directors/penny`).
  *
  * - On a multilingual site (D-455), an entry in a language other than
  *   the default is under its code (`/fr/a-propos`), and so are a
  *   language's collections, terms, and date archives when they're asked
  *   for in it. A term is named by its original's slug, which becomes its
  *   translation's (`music` is `/fr/topics/musique` when
- *   `topics/music.fr.md` has `slug: musique`). Profiles, people
+ *   `topics/music.fr.md` has `slug: musique`). Profiles, relation
  *   archives, and feeds aren't in other languages yet.
  *
  * `null` means the thing has no URL: a hidden entry, or values the route
@@ -287,43 +286,6 @@ final readonly class ContentUrls
 	}
 
 	/**
-	 * Returns the URL path of the list of people a type's field credits,
-	 * or `null` when the field has no archives.
-	 */
-	public function people(ContentType $type, PeopleField $field): ?string
-	{
-		return $this->hasArchive($type, $field) ? $this->build($type->routePattern("{$field->field}.collection"), [], $type) : null;
-	}
-
-	/**
-	 * Returns a person's archive URL path under a type's field, or a
-	 * later page's, or `null` when the field has no archives.
-	 */
-	public function person(ContentType $type, PeopleField $field, string $slug, int $page = 1): ?string
-	{
-		if (! $this->hasArchive($type, $field)) {
-			return null;
-		}
-
-		return $page > 1
-			? $this->build($type->routePattern("{$field->field}.single.paged"), ['profile' => $slug, 'page' => (string) $page], $type)
-			: $this->build($type->routePattern("{$field->field}.single"), ['profile' => $slug], $type);
-	}
-
-	/**
-	 * Returns the URL path of a person's feed under a type's field
-	 * (`$suffix` is the feed format's route suffix: `''`, `.atom`, or
-	 * `.json`), or `null` when the type has no feed or the field no
-	 * archives.
-	 */
-	public function personFeed(ContentType $type, PeopleField $field, string $slug, string $suffix = ''): ?string
-	{
-		return $type->hasFeed() && $this->hasArchive($type, $field)
-			? $this->build($type->routePattern("{$field->field}.single.feed{$suffix}"), ['profile' => $slug], $type)
-			: null;
-	}
-
-	/**
 	 * Returns the URL path of the list of what a type's relation links to
 	 * (`/movies/actors`, D-596), or `null` when it has no archives there.
 	 */
@@ -346,7 +308,8 @@ final readonly class ContentUrls
 
 	/**
 	 * Returns the URL path of a target's feed under a type's relation
-	 * (`$suffix` as `personFeed()`'s), or `null`.
+	 * (`$suffix` is the feed format's route suffix: `''`, `.atom`, or
+	 * `.json`), or `null` when the type has no feed.
 	 */
 	public function relatedFeed(ContentType $type, Relation $relation, string $slug, string $suffix = ''): ?string
 	{
@@ -366,23 +329,15 @@ final readonly class ContentUrls
 	}
 
 	/**
-	 * Returns where a byline links (D-351): the person's archive under
-	 * the entry's type's field, else their profile's page, else `null`.
+	 * Returns where a byline links (D-351, D-602): the person's archive
+	 * under the entry's type's byline relation, else their profile's page,
+	 * else `null`.
 	 */
-	public function byline(Entry $entry, string $field, string $slug): ?string
+	public function byline(Entry $entry, string $slug): ?string
 	{
-		$people = $entry->type->peopleField($field);
+		$byline = $this->types->byline($entry->type->name);
 
-		return ($people === null ? null : $this->person($entry->type, $people, $slug)) ?? $this->profile($slug);
-	}
-
-	/**
-	 * Returns whether a type's people field has archives: its own
-	 * setting, and a profiles type on the site.
-	 */
-	public function hasArchive(ContentType $type, PeopleField $field): bool
-	{
-		return isset($type->archivedPeople()[$field->field]) && $this->types->profiles() !== null;
+		return ($byline === null ? null : $this->related($entry->type, $byline, $slug)) ?? $this->profile($slug);
 	}
 
 	/**

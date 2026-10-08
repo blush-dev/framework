@@ -29,9 +29,9 @@ use Blush\View\ViewException;
 
 /**
  * Serves a feed: a type's collection feed (the homepage's at `/feed`),
- * with `{name}`, a term's or a profile's (D-351), or with
- * `{field}` and `{profile}`, a person's entries of the type under that
- * people field. The theme renders it with
+ * with `{name}`, a term's or a profile's (D-351), or with `{relation}`
+ * and `{target}`, a target's entries of the type under a relation
+ * archive (D-596; a person's under a credit, D-602). The theme renders it with
  * `feed-{format}-{type}` → `feed-{format}` (D-029). An empty feed is
  * still a feed.
  */
@@ -52,7 +52,7 @@ final readonly class FeedController
 	 * @throws ThemeException
 	 * @throws ViewException
 	 */
-	public function __invoke(ServerRequestInterface $request, string $type, string $format, ?string $name = null, ?string $field = null, ?string $profile = null, ?string $relation = null, ?string $target = null): ResponseInterface
+	public function __invoke(ServerRequestInterface $request, string $type, string $format, ?string $name = null, ?string $relation = null, ?string $target = null): ResponseInterface
 	{
 		$feedFormat  = FeedFormat::tryFrom($format);
 		$contentType = $this->types->find($type);
@@ -60,8 +60,6 @@ final readonly class FeedController
 		if ($feedFormat === null || ! $this->config->has($feedFormat) || $contentType === null || ! $contentType->hasFeed()) {
 			throw new NotFound(sprintf('There is no %s feed for "%s".', $format, $type));
 		}
-
-		$profiles = $this->types->profiles();
 
 		if ($relation !== null && $target !== null) {
 			$archived = $this->types->relationArchives($contentType)[$relation] ?? null;
@@ -72,15 +70,6 @@ final readonly class FeedController
 			}
 
 			$feed = $this->builder->related($contentType, $archived, $entry, $feedFormat);
-		} elseif ($field !== null && $profile !== null) {
-			$people = $contentType->archivedPeople()[$field] ?? null;
-			$entry  = $profiles === null || $people === null ? null : $this->content->term($profiles->name, $profile);
-
-			if ($people === null || $entry === null || ! $entry->isPublished() || ! $entry->isRoutable()) {
-				throw new NotFound(sprintf('There is no "%s" %s "%s".', $type, $field, $profile));
-			}
-
-			$feed = $this->builder->person($contentType, $people, $entry, $feedFormat);
 		} elseif ($contentType instanceof Profiles) {
 			$entry = $name === null ? null : $this->content->term($contentType->name, $name);
 

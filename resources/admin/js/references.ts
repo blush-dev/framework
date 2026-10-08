@@ -16,6 +16,9 @@ export interface ReferenceItem {
 	depth: number | null;
 	// A slug the field holds that nothing answers to.
 	missing: boolean;
+	// Its image and publish date (`Y-m-d`), for cards (D-599).
+	image?: string | null;
+	date?: string | null;
 }
 
 export interface ReferenceList {

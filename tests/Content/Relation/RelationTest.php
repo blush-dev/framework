@@ -23,6 +23,7 @@ use Blush\Content\Relation\Refs;
 use Blush\Content\Relation\Relation;
 use Blush\Content\Relation\RelationChecker;
 use Blush\Content\Relation\RelationGraph;
+use Blush\Content\Relation\RelationControl;
 use Blush\Content\Relation\RelationKind;
 use Blush\Content\Relation\RelationProblem;
 use Blush\Content\Relation\Relations;
@@ -57,7 +58,7 @@ final class RelationTest extends TestCase
 		$this->assertTrue($relation->isRequired());
 		$this->assertFalse($relation->isHierarchical());
 		$this->assertTrue(new Relation('tag', RelationKind::Classify, to: ['tag'])->isFrom('anything'), 'No `from` is every type.');
-		$this->assertTrue(new Relation('tag', RelationKind::Classify, to: ['tag'])->inverse !== false && new Relation('tag', RelationKind::Classify, to: ['tag'])->inverse->archive === true, 'Terms list what\'s filed under them unless it says otherwise (D-593).');
+		$this->assertTrue(new Relation('tag', RelationKind::Classify, to: ['tag'])->inverse !== false && new Relation('tag', RelationKind::Classify, to: ['tag'])->inverse->page, 'Terms list what\'s filed under them unless it says otherwise (D-593).');
 		$this->assertSame(1, new Relation('director', RelationKind::Reference, to: ['person'], multiple: false, max: 5)->max, 'One target, whatever max says.');
 	}
 
@@ -86,11 +87,9 @@ final class RelationTest extends TestCase
 			'from'         => ['post'],
 			'to'           => ['profile'],
 			'aliases'      => ['author'],
-			'ordered'      => true,
 			'min'          => 1,
 			'max'          => 3,
-			'inverse'      => ['label' => 'Posts', 'archive' => 'authors', 'max' => 9],
-			'translations' => 'add',
+			'inverse'      => ['label' => 'Posts', 'max' => 9, 'page' => false],
 			'defaults'     => ['jane'],
 			'label'        => 'Authors'
 		], $array);
@@ -100,7 +99,7 @@ final class RelationTest extends TestCase
 
 		$listed = Relation::fromArray(['name' => 'tag', 'kind' => 'classify', 'to' => ['tag'], 'inverse' => ['listing' => ['perPage' => 5]]])->inverse;
 
-		$this->assertTrue($listed !== false && $listed->archive === true, 'A classify relation keeps its term pages when only its listing is given.');
+		$this->assertTrue($listed !== false && $listed->page, 'A classify relation keeps its term pages when only its listing is given.');
 	}
 
 	public function testRefusesBadDefinitions(): void
@@ -243,5 +242,23 @@ final class RelationTest extends TestCase
 		], $found, 'A draft movie may go without its director; a live one can\'t.');
 		$this->assertSame(ProblemKind::InverseLimit, $problems[3]->kind);
 		$this->assertSame('At most 1 may name it in season; 2 do.', $problems[3]->message);
+	}
+
+	public function testNamesTheControlItsShapeAllows(): void
+	{
+		$this->assertSame(RelationControl::Cards, new Relation('actors', RelationKind::Reference, ['movie'], ['person'])->control(), 'Other entries are cards (D-599).');
+		$this->assertSame(RelationControl::Tokens, new Relation('tag', RelationKind::Classify, ['post'], ['tag'])->control());
+		$this->assertSame(RelationControl::Tree, new Relation('category', RelationKind::Classify, ['post'], ['category'])->control(nests: true));
+		$this->assertSame(RelationControl::Select, new Relation('director', RelationKind::Reference, ['movie'], ['person'], multiple: false)->control());
+		$this->assertSame(RelationControl::People, new Relation('authors', RelationKind::Credit, ['post'], ['profile'])->control());
+		$this->assertSame(RelationControl::Tokens, new Relation('actors', RelationKind::Reference, ['movie'], ['person'], control: RelationControl::Tokens)->control(), 'Its own, when its shape can draw it.');
+		$this->assertSame(RelationControl::Cards, new Relation('actors', RelationKind::Reference, ['movie'], ['person'], control: RelationControl::Tree)->control(), 'A tree of a type that doesn\'t nest falls back.');
+		$this->assertSame(RelationControl::Select, new Relation('director', RelationKind::Reference, ['movie'], ['person'], multiple: false, control: RelationControl::Cards)->control());
+		$this->assertSame('cards', Relation::fromArray(['name' => 'actors', 'to' => ['person'], 'control' => 'cards'])->toArray()['control'] ?? null);
+
+		$this->expectException(InvalidRelation::class);
+		$this->expectExceptionMessage('unknown control');
+
+		Relation::fromArray(['name' => 'actors', 'to' => ['person'], 'control' => 'wheel']);
 	}
 }

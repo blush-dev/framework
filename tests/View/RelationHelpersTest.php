@@ -29,9 +29,9 @@ final class RelationHelpersTest extends TestCase
 	{
 		$this->contentConfig([
 			'types'     => [
-				'post'   => ['path' => '_posts', 'people' => false, 'routing' => ['prefix' => 'archives']],
-				'movie'  => ['path' => '_movies', 'people' => false, 'routing' => ['prefix' => 'movies']],
-				'person' => ['path' => '_people', 'people' => false, 'routing' => ['prefix' => 'people']]
+				'post'   => ['path' => '_posts', 'routing' => ['prefix' => 'archives']],
+				'movie'  => ['path' => '_movies', 'routing' => ['prefix' => 'movies']],
+				'person' => ['path' => '_people', 'routing' => ['prefix' => 'people']]
 			],
 			'relations' => [
 				'related' => ['kind' => 'reference', 'from' => ['post'], 'to' => ['post'], 'symmetric' => true],

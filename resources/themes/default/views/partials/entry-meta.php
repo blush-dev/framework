@@ -1,10 +1,10 @@
 <?php
 
 /**
- * An entry's byline: its publish date, the people it credits (D-351),
- * and its terms. The type's first people field is the byline ("By
- * Jane"); any others follow with their own label ("Photographer: Sam").
- * Each person links to their archive under the field, else their
+ * An entry's byline: its publish date, the people it credits (D-602),
+ * and its terms. The type's byline relation comes first ("By Jane"); any
+ * other credits follow with their own label ("Photographer: Sam"). Each
+ * person links to their archive under the relation, else their
  * profile's page.
  *
  * @var Blush\View\Template       $template
@@ -16,21 +16,20 @@ declare(strict_types=1);
 $published = $entry->type->name === 'page' ? null : $entry->published;
 $credits   = [];
 
-foreach (array_values($entry->type->people) as $position => $field) {
-	$names = array_map(static function (Blush\Content\Entry\Entry $person) use ($template, $entry, $field): string {
-		$link = $template->bylineUrl($person, $entry, $field->field);
+foreach ($template->credits($entry) as $credit) {
+	$relation = $credit['relation'];
+	$names    = array_map(static function (Blush\Content\Entry\Entry $person) use ($template, $entry, $relation): string {
+		$link = $template->archiveUrl($entry->type, $relation->name, $person) ?: $template->permalink($person);
 
 		return $link === ''
 			? '<span class="entry-meta__person">' . e($person->title) . '</span>'
 			: '<a class="entry-meta__person" href="' . url($link) . '">' . e($person->title) . '</a>';
-	}, $template->people($entry, $field->field));
+	}, $credit['people']);
 
-	if ($names !== []) {
-		$credits[] = [
-			$position === 0 ? $template->t('people.byline') : $template->t('people.credit', label: count($names) > 1 ? $field->plural : $field->singular),
-			implode(', ', $names)
-		];
-	}
+	$credits[] = [
+		$credit['byline'] ? $template->t('people.byline') : $template->t('people.credit', label: count($names) > 1 ? ($relation->label ?: ucfirst($relation->name)) : $relation->singular),
+		implode(', ', $names)
+	];
 }
 
 $terms = [];

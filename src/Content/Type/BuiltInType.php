@@ -19,8 +19,8 @@ namespace Blush\Content\Type;
  * - `page`: everything in `user/content` no other type claims, routed by
  *   the page catch-all rather than routes of its own.
  * - `profile` (D-043, D-351): entries in `user/content/profiles`, the
- *   people other types credit through their people fields, such as a
- *   collection's `authors` (or the 1.x `author`). Each has a page at
+ *   people other types credit through credit relations (D-602), such as
+ *   `authors` (read from 1.x's `author` too). Each has a page at
  *   `/profiles/{slug}`.
  *
  * The site can redefine either in `config/content.php` or as a data type,

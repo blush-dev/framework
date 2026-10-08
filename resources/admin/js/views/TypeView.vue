@@ -100,7 +100,7 @@ const related = computed(() => (people.value ? (type.value?.types ?? []) : []).m
 					<div v-if="type.kind === 'collection'"><dt>Order</dt><dd>{{ type.order === 'position' ? 'By position, then title' : 'Newest published first' }}</dd></div>
 					<div v-if="!people"><dt>Dated</dt><dd>{{ type.dated ? 'Yes' : 'No' }}</dd></div>
 					<div v-if="!people"><dt>Credits authors</dt><dd>{{ type.authors ? 'Yes' : 'No' }}</dd></div>
-					<div v-if="!people && type.authors && type.prefix !== null"><dt>Author archives</dt><dd :class="{ mono: type.authorsWord }">{{ type.authorsWord ? `${type.prefix.replace(/\/+$/, '')}/${type.authorsWord}` : 'None' }}</dd></div>
+					<div v-for="archive in type.archivePages" :key="archive.relation"><dt>{{ archive.label }} archives</dt><dd class="mono">{{ `${(type.prefix ?? '').replace(/\/+$/, '')}/${archive.word}` }}</dd></div>
 					<div><dt>Public</dt><dd>{{ type.public ? 'Yes' : 'No' }}</dd></div>
 					<div><dt>Feed</dt><dd>{{ type.feed ? 'Yes' : 'No' }}</dd></div>
 					<div><dt>In the sitemap</dt><dd>{{ type.sitemap ? 'Yes' : 'No' }}</dd></div>

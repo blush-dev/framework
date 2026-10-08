@@ -28,9 +28,10 @@ use Blush\Field\InvalidSchema;
  * (`collection.feed`, `.feed.atom`, `.feed.json`, and the `single.feed`
  * ones for a taxonomy's terms) are used when the type has a feed.
  *
- * A type's people fields add keys of their own under their archive words
- * (`PeopleField::paths()`, D-351), such as `authors.single`
- * (`{prefix}/authors/{profile}`); `paths` can move those too.
+ * A type's relation archives add keys of their own under their archive
+ * words (`ContentTypes::relationPaths()`, D-596, D-602), such as
+ * `authors.single` (`{prefix}/authors/{target}`); `paths` can move those
+ * too.
  */
 final readonly class TypeUrls
 {

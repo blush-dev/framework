@@ -94,7 +94,7 @@ use Blush\View\ThemedErrorPages;
  * there the same way (D-420). Every entry says whether it's the
  * `homepage` and the `rootPage`, with `homeInstead` (what the homepage
  * shows) for a root page that isn't it, and `can.makeHomepage`. A type's **authors page**
- * (`_authors`, D-329) is set apart the same way, as `authorsPage`. The
+ * (`_authors`, D-329; any relation archive's list page, D-602) is set apart the same way, as `archivePage`. The
  * site's **error pages** (`_errors/404.md`, D-411) are set apart from
  * Pages the same way, as `errorPages`, by status, each with its
  * `errorPage` status (else `null`), with anything else in the error
@@ -134,7 +134,8 @@ final readonly class EntriesController
 		private ClockInterface $clock,
 		private AccountStore $accounts,
 		private Accounts $names,
-		private Homepage $homepage
+		private Homepage $homepage,
+		private ArchivePages $archivePages
 	) {}
 
 	public function __invoke(ServerRequestInterface $request): ResponseInterface
@@ -262,20 +263,20 @@ final readonly class EntriesController
 
 		$pinned      = $contentType !== null && ! $trash;
 		$query       = $this->permissions->restrict($account, $trash ? ContentAction::Delete : ContentAction::Edit, $query);
-		$listed      = $pinned ? $query->withLanding(false)->exceptNames(...PeoplePage::listPages($contentType))->exceptIn(...PeoplePage::personFolders($contentType)) : $query;
+		$listed      = $pinned ? $query->withLanding(false)->exceptNames(...$this->archivePages->listPages($contentType))->exceptIn(...$this->archivePages->targetFolders($contentType)) : $query;
 		$listed      = $trash ? $listed->withLanding(false) : $listed;
 		$linked      = $contentType instanceof Profiles ? $this->linked($account) : [];
 		$listed      = match (true) {
 			! $contentType instanceof Profiles || $link === '' => $listed,
 			// A slug never has a "/", so with none linked, nothing is.
 			$link === 'linked'                                 => $listed->names(...(array_map(strval(...), array_keys($linked)) ?: ['/'])),
-			default                                            => $listed->exceptNames(...PeoplePage::listPages($contentType), ...array_map(strval(...), array_keys($linked)))
+			default                                            => $listed->exceptNames(...$this->archivePages->listPages($contentType), ...array_map(strval(...), array_keys($linked)))
 		};
 		$errors      = $pinned && $contentType instanceof Tree && $contentType->atRoot();
 		$listed      = $errors ? $listed->exceptIn(...ThemedErrorPages::FOLDERS) : $listed;
 		$errorPages  = $errors && $page === 1 ? $this->errorPages($query) : [];
 		$index       = $pinned && $page === 1 ? $this->index($query) : null;
-		$people      = $pinned && $page === 1 ? $this->peoplePage($query, $contentType) : null;
+		$archive     = $pinned && $page === 1 ? $this->archivePage($query, $contentType) : null;
 		$counts      = [];
 		$tree        = null;
 		$continued   = [];
@@ -296,7 +297,7 @@ final readonly class EntriesController
 
 		// How many published entries use each term on the page, one pass
 		// per term type (D-236).
-		foreach ([...$continued, ...$shown, ...($index === null ? [] : [$index]), ...($people === null ? [] : [$people]), ...$errorPages] as $entry) {
+		foreach ([...$continued, ...$shown, ...($index === null ? [] : [$index]), ...($archive === null ? [] : [$archive]), ...$errorPages] as $entry) {
 			if ($this->types->isTermType($entry->type->name)) {
 				$counts[$entry->type->name] ??= $this->content->termCounts($entry->type->name);
 			}
@@ -323,7 +324,7 @@ final readonly class EntriesController
 				...array_map(fn (Entry $entry): array => $this->describe($account, $entry, $counts, $tree, linked: $linked), $shown)
 			],
 			'index'       => $index === null ? null : $this->describe($account, $index, $counts),
-			'authorsPage' => $people === null ? null : $this->describe($account, $people, $counts),
+			'archivePage' => $archive === null ? null : $this->describe($account, $archive, $counts),
 			'errorPages'  => array_map(fn (Entry $entry): array => $this->describe($account, $entry, $counts), $errorPages)
 		]);
 	}
@@ -489,15 +490,15 @@ final readonly class EntriesController
 	}
 
 	/**
-	 * Returns the type's first people list page (D-351), if the list's
-	 * query finds it.
+	 * Returns the type's first relation archive list page (D-602), if the
+	 * list's query finds it.
 	 */
-	private function peoplePage(Query $query, ContentType $type): ?Entry
+	private function archivePage(Query $query, ContentType $type): ?Entry
 	{
-		$names = PeoplePage::listPages($type);
+		$names = $this->archivePages->listPages($type);
 
-		foreach ($names === [] ? [] : $query->names(...$names)->exceptIn(...PeoplePage::personFolders($type))->get() as $entry) {
-			if (PeoplePage::is($entry) && $entry->language === $this->app->languages->default->code) {
+		foreach ($names === [] ? [] : $query->names(...$names)->exceptIn(...$this->archivePages->targetFolders($type))->get() as $entry) {
+			if ($this->archivePages->isList($entry) && $entry->language === $this->app->languages->default->code) {
 				return $entry;
 			}
 		}
@@ -543,13 +544,13 @@ final readonly class EntriesController
 			'authors'     => $authors === null ? [] : $entry->terms($authors),
 			'own'         => $this->permissions->owns($account, $entry),
 			'index'       => IndexPage::is($entry),
-			'authorsPage' => PeoplePage::is($entry),
+			'archivePage' => $this->archivePages->isList($entry),
 			'errorPage'   => ErrorPage::status($entry),
-			'peopleLabel' => PeoplePage::fieldOf($entry)->plural ?? null,
+			'archiveLabel' => ($relation = $this->archivePages->relationOf($entry)) === null ? null : ($relation->label === '' ? ucfirst(str_replace('_', ' ', $relation->name)) : $relation->label),
 			...$home,
 			'can'         => [
 				'delete'       => ! IndexPage::is($entry) && $this->permissions->can($account, ContentAction::Delete, $entry),
-				'duplicate'    => ! $entry->landing && ! PeoplePage::is($entry) && ErrorPage::status($entry) === null && $this->permissions->can($account, ContentAction::Create, $entry->type->name),
+				'duplicate'    => ! $entry->landing && ! $this->archivePages->isList($entry) && ErrorPage::status($entry) === null && $this->permissions->can($account, ContentAction::Create, $entry->type->name),
 				'makeHomepage' => $home['homeInstead'] !== null && $this->permissions->can($account, Capability::SiteSettings->value)
 			],
 			'uses'        => $this->types->isTermType($entry->type->name) ? ($counts[$entry->type->name][$entry->key] ?? 0) : null,

@@ -36,11 +36,11 @@ final class RelationArchivesTest extends TestCase
 	{
 		$this->contentConfig([
 			'types'     => [
-				'movie'  => ['path' => '_movies', 'people' => false, 'routing' => ['prefix' => 'movies'], 'feed' => true],
-				'person' => ['path' => '_people', 'people' => false, 'routing' => ['prefix' => 'people'], 'feed' => true]
+				'movie'  => ['path' => '_movies', 'routing' => ['prefix' => 'movies'], 'feed' => true],
+				'person' => ['path' => '_people', 'routing' => ['prefix' => 'people'], 'feed' => true]
 			],
 			'relations' => [
-				'actors'    => ['kind' => 'reference', 'from' => ['movie'], 'to' => ['person'], 'inverse' => ['archive' => true]],
+				'actors'    => ['kind' => 'reference', 'from' => ['movie'], 'to' => ['person'], 'inverse' => ['page' => true]],
 				'directors' => ['kind' => 'reference', 'from' => ['movie'], 'to' => ['person'], 'inverse' => ['archive' => 'directors'], 'label' => 'Directors']
 			]
 		]);
@@ -80,7 +80,7 @@ final class RelationArchivesTest extends TestCase
 		$this->assertSame(404, $this->get('/movies/directors/tom')->getStatusCode(), 'Only a draft names Tom.');
 		$this->assertSame(404, $this->get('/movies/directors/nobody')->getStatusCode());
 		$this->assertSame(200, $this->get('/movies/directors/penny/feed')->getStatusCode());
-		$this->assertStringContainsString('<title>Penny | Movies | Blush</title>', (string) $this->get('/movies/directors/penny/feed/atom')->getBody());
+		$this->assertStringContainsString('<title>Penny | Directors | Movies | Blush</title>', (string) $this->get('/movies/directors/penny/feed/atom')->getBody());
 
 		$sitemap = (string) $this->get('/sitemap/movie')->getBody();
 

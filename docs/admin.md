@@ -305,15 +305,15 @@ If you can change the site's settings, **Make homepage** beside the tag
 (also in its row menu, and in the editor) switches the homepage back to
 it.
 
-A type whose [people field](content-types.md#crediting-people) has
-archives may have a **list page** for it (`_authors.md` or `_cooks.md`
-in its folder, which introduces the list of people). It's pinned under
-the index page with the field's name as its tag (**Authors**), set
+A type with a [relation archive](content-types.md#people-archives),
+such as its authors', may have a **list page** for it (`_authors.md` or
+`_cooks.md` in its folder, which introduces the list). It's pinned under
+the index page with the relation's label as its tag (**Authors**), set
 apart from the totals the same way, and opens in the editor as **Edit
 Authors Page**, without the type's fields or a date, and with its slug
 fixed. Unlike the index page, it can be moved to the trash. The pages
-written for one person's archive (`_cooks/jane.md`) aren't listed at
-all; they're reached from [the profile's screen](#profiles).
+written for one target's archive (`_cooks/jane.md`) aren't listed at
+all; a profile's are reached from [the profile's screen](#profiles).
 
 Pages' **error pages** (`_errors/404.md`, and 1.x's `_error/` folder,
 whose title and text the site shows for that error) are pinned at the
@@ -586,6 +586,29 @@ is a picker rather than a list of slugs to type:
   indented to show the tree.
 
 A slug that nothing answers to is shown as written, marked as not found.
+
+The relation's settings shape the picker too:
+
+- **How many:** with a `max`, it shows how many of how many you've
+  chosen ("2 of 3") and takes no more once it's full; a `min` above one
+  says how many are needed to publish, and publishing waits for them.
+- **Order:** when the order matters (`ordered`, and always for
+  authors), drag a chip or a person to move it, or focus it and press
+  ⌥↑ or ⌥↓ (Alt with an arrow key).
+- **Picking entries:** a link to other entries (not terms or people),
+  such as a movie's actors, shows each search result with its image,
+  publish date, and status, so two entries named alike can be told
+  apart. A relation can choose its picker with `control` (see
+  [Relation options](content-types.md#relation-options)).
+- **Translations:** a translation shows, dimmed, what it uses from its
+  original: the original's terms when it has none of its own, or, for a
+  relation that adds them (`translations: add`, such as credits), the
+  original's beside its own.
+
+**Linked From**, on the Document tab, lists what links to the entry, by
+relation: a person's movies, say, or a category's posts, with a few of
+each and how many more. It's read-only: change a link on the entry that
+makes it.
 
 ### Changing the slug
 
@@ -924,11 +947,11 @@ Created** beside them:
    **Files**, the types filed under them (none for every type); an
    index page, the type's landing page (on by default); and, when the
    site has profiles, whether entries **credit authors** (on for content,
-   off for terms), whether each author **has an archive** under the
-   type, the **word in the address** (`authors` unless you change it;
-   the hint shows where the list and archives will be), and a **page
-   introducing the list** (see [People archives](content-types.md#people-archives)).
-   Other people fields are added on the type's screen afterward. A tree
+   off for terms), which adds the type to the `authors`
+   [credit relation](content-types.md#crediting-people) (writing it when
+   there's none), and whether its list of authors has a **page
+   introducing it** (see [People archives](content-types.md#people-archives)).
+   Other credits are relationships, added on the type's screen. A tree
    has no URL prefix, feed, or author archives: its entries are at their
    paths in its folder.
 3. **Fields:** the fields its entries carry beside the title, slug,
@@ -944,8 +967,7 @@ ordered by position, with no authors, and left out of `llms.txt`.
 ### Editing a type
 
 A type's screen has General (names, description, icon), Behavior (as
-above), **Relationships**, **Profiles** (named for your site's profiles
-type), Addresses, and Fields.
+above), **Archives**, **Relationships**, Addresses, and Fields.
 
 In Behavior, a collection has **Entries can nest under a parent, as
 categories do** (`hierarchical`) and **Order** (`order`; see
@@ -957,40 +979,61 @@ Posts", "Links to Docs". Relations in `user/data/relations` have
 **Edit** and **Remove** (removing one leaves what entries wrote in
 their files, but the site stops reading it as a link); one from
 `config/content.php` or a plugin says where it's defined. **Add
-Relationship** opens a form for one of two things:
+Relationship** opens a form for one of three things:
 
 - **Files entries under terms:** the **Terms** type (one nothing files
-  under yet), which types it **Files**, and whether writers can add a
-  term as they type it, whether an entry needs one to be published, and
-  whether each term has a page listing what's filed under it.
+  under yet), and which types it **Files**.
 - **Links entries to other entries:** **Entries of** one type **Link
-  to** another, under a **Key** in front matter, with whether they take
-  several entries or one, whether their order matters, whether an
-  entry needs one to be published, and **What links to an entry**:
-  listed nowhere of its own, on each linked entry's own page, or in
-  archives under the linking type's address by an **Archive word**
-  (see [Linking entries to other entries](content-types.md#linking-entries-to-other-entries)).
+  to** another, under a **Key** in front matter.
+- **Credits people:** the types **Credited by** it, which credit
+  profiles under a **Key** (`authors` unless you change it), in order,
+  the first the lead.
+
+Then, for either, the rest of its
+[options](content-types.md#relation-options):
+
+- **Called:** what the editor calls it, such as "Cast".
+- **Options:** several or one; whether their order matters; whether
+  writers can add a new one as they type it; and, for a link to its own
+  type, whether a link counts both ways.
+- **Limits:** how many an entry needs to publish, the most it takes,
+  and the most entries that may link to one target (an episode in one
+  season).
+- **Editing:** the picker (**Picked with**: chips, cards, or, for terms
+  that nest, a tree) and which links a translation uses.
+- **What links to** a term or entry: listed on its own page, in
+  archives under the linking type's address by an **Archive word**,
+  both, or nowhere of its own (see
+  [Linking entries to other entries](content-types.md#linking-entries-to-other-entries)),
+  and what the list is **Called there**, such as "Acted in".
 
 It's saved in `user/data/relations/{name}.json`. A relation can't take
 the name of one defined in code.
 
-**Profiles** lists the type's profile fields ([people fields](content-types.md#crediting-people)
-in its settings), a row each: each credits a profile, under this
-type's own word for it. The first is marked **Main byline**. A row has
-the field's **label** (its singular, and its front matter key, are
-shown under it; a new field's key can be set until it's saved), its
-**archive base** (the word in the address), and what **entries take**:
-one, or one or more, optional or required to publish. **Add a profile
-field** adds another (a recipe's cooks and photographers, say); **×**
-removes one, which stops crediting through it but leaves what entries
-wrote.
+Changing a relation entries already use is checked against what they
+have:
 
-**Archives** has a switch for each field: on, each person has an
-archive under the type; off, nothing routes and nothing is deleted (a
-page written for one person's archive is kept, and marked
-**Unreachable** on their profile). A field with archives can have a
-**page introducing the list**. Addresses shows each field's archive
-addresses while it has them.
+- It can't **point at another type** while entries have values in it;
+  make a new relationship instead. It can't go from **several to one**
+  while an entry has more than one.
+- A **new Key** keeps the old one working as another name for it, so no
+  file changes, unless you choose to rewrite the files to the new key.
+- **No longer filing a type** asks whether to remove that type's
+  entries' values, unchecked at first.
+- **Tighter limits** say how many entries would be out of them, but
+  aren't refused.
+- **Remove** says how many entries have values, and offers to remove
+  them from their files, unchecked at first: kept, adding the
+  relationship again brings the links back.
+
+**Archives** shows each [relation archive](content-types.md#people-archives)
+under the type (its authors', say, at `/blog/authors`): its list page,
+if it has one, or **Has a page introducing the list** to write one,
+titled with the relation's label. A type with more than one credit
+chooses its **Byline** there, the credit that names an entry's author.
+Whether a relation has archives, and their word, are set in its
+Relationships form; a page written for one target's archive is kept
+when they're off, and on a profile it's marked **Unreachable**.
 
 **Addresses** lists every address the type has: its listing and later
 pages, date archives, entries (or terms), feeds, and author archives.
@@ -1368,13 +1411,13 @@ name opens the profile's screen:
   profile, and the account goes by its username. A guest profile can
   be linked here to an account that has no profile.
 - **Where This Profile Appears** lists the profile's own page, then each
-  profile field of each type that credits people: its archive address,
+  credit relation of each type that credits people: its archive address,
   how many entries credit them there, and where the archive's body
   comes from: **Inherited** (the profile's own) or **Written** (a page
   written for that archive). **Write One** creates that page, a draft
   titled with the profile's name, and opens it; **Edit** opens it, or
   **Move to trash** puts the archive back on the profile's body (the
-  page can be restored from its type's Trash tab). A field whose archive is off
+  page can be restored from its type's Trash tab). A credit whose archive is off
   says so, and a page written for it shows **Unreachable**. Types that
   credit no one are listed last.
 
@@ -1514,7 +1557,8 @@ shows a toast with **Undo**, which puts it back as it was, published or
 a draft, and opens it again if you were editing it. Undo needs
 permission to publish for an entry that was published, and it's refused
 if someone changed the entry in the trash meanwhile; restore it from
-the Trash tab instead. Moving several at once has no Undo.
+the Trash tab instead. Moving several at once has no Undo. Moving several to the trash or to draft says first which of them live
+entries link to, and how many each.
 
 **Empty Trash** deletes everything in that tab permanently. Authors and
 contributors see and handle their own trashed entries; editors see
@@ -1699,9 +1743,9 @@ The API is JSON under `/admin/api`, and uses the session cookie:
 | `PATCH profile` | Change the account's own `name` (`null` or empty removes it) or `email`, or both; answers `{"name", "email", "displayName"}`. A name over 100 characters, or an email address that's missing, invalid, or another account's, is a `422` naming the `field` |
 | `GET accounts` | Every account: `{"username", "email", "name", "displayName", "roles", "author", "profile", "created", "lastLogin", "status", "link", "manages"}`. `author` is the slug of the profile it's linked to, or `null`; `profile` is that profile, when it has a file: `{"path", "id", "handle", "slug", "title", "status", "url", "uses"}` (`uses` counts the published entries crediting it), else `null`; `email` is its email address (`null` only for one made before they were asked for); `name` is its own display name or `null`; `displayName` is what the admin calls it: its name, else its profile's title, else the username; `status` is `active`, `invited`, or `suspended`; `link` is its password link's `{"expires", "expired"}` or `null`; `manages` is whether you may change it. Times are Unix |
 | `GET profiles` | Every profile, for linking accounts: `{"profiles": [{"slug", "title", "status", "account"}]}`, by name, with `account` the one linked to it (`{"username", "displayName"}`) or `null`. Needs `accounts.view` |
-| `GET profiles/{slug}` | A profile's screen: `{"profile", "appears", "linked", "account"}`. `profile` is `{"slug", "title", "subtitle", "avatar", "status", "path", "id", "type", "handle", "url", "uses"}` (`id` and `handle` are `null` for a file without a valid id); `appears` lists each people field of each type that credits people: `{"type", "typeLabel", "field", "label", "entries", "archive", "page"}`, where `entries` counts the published entries crediting them there, `archive` is the archive's address (or `null` without one), and `page` is the page written for it (`{"path", "id", "handle", "title", "status"}`, kept while the archive is off) or `null`; `linked` says whether an account is linked to it, and `account` is that account, as `GET accounts` has it, for whoever has `accounts.view` (else `null`). Needs to be allowed to edit the profile (your own, or anyone's with the profiles type's `edit.others`) |
-| `POST profiles/{slug}/pages` | Write the page for the profile's archive under a people field: `{"type", "field"}`, a field with archives. It's a draft at `_{field}/{slug}` in the type's folder, titled with the profile's name; answers `201` with `{"id", "handle"}`, or `409` when it exists. Needs to create entries of that type |
-| `DELETE profiles/{slug}/pages/{type}/{field}` | Move that page to the trash, so the archive shows the profile's body again; answers `{"removed"}`. Needs to delete that page |
+| `GET profiles/{slug}` | A profile's screen: `{"profile", "appears", "linked", "account"}`. `profile` is `{"slug", "title", "subtitle", "avatar", "status", "path", "id", "type", "handle", "url", "uses"}` (`id` and `handle` are `null` for a file without a valid id); `appears` lists each credit relation of each type that credits people: `{"type", "typeLabel", "relation", "label", "entries", "archive", "page"}`, where `entries` counts the published entries crediting them there, `archive` is the archive's address (or `null` without one), and `page` is the page written for it (`{"path", "id", "type", "handle", "title", "status"}`, kept while the archive is off) or `null`; `linked` says whether an account is linked to it, and `account` is that account, as `GET accounts` has it, for whoever has `accounts.view` (else `null`). Needs to be allowed to edit the profile (your own, or anyone's with the profiles type's `edit.others`) |
+| `POST profiles/{slug}/pages` | Write the page for the profile's archive under a credit relation: `{"type", "relation"}`, one with archives under the type. It's a draft at `_{word}/{slug}` in the type's folder, titled with the profile's name; answers `201` with `{"id", "handle"}`, or `409` when it exists. Needs to create entries of that type |
+| `DELETE profiles/{slug}/pages/{type}/{relation}` | Move that page to the trash, so the archive shows the profile's body again; answers `{"removed"}`. Needs to delete that page |
 | `POST accounts` | Make an account: `{"username", "email", "roles", "author", "name"}` (`email` is required; the last two are optional); a missing, invalid, or taken email address is a `422` with `field: email`; answers `201` with `{"account", "link": {"url", "expires"}}`. The link is shown only this once |
 | `PATCH accounts/{username}` | Change an account: any of `roles`, `author` (its profile's slug, `null` unlinks; a profile another account has is a `422` with `field: author`), `name` (`null` or empty removes it), `email`, and `suspended`; answers `{"account"}`. Your own account takes only `author` (with `accounts.edit`) |
 | `POST accounts/{username}/link` | A new password link, replacing any other: `{"account", "link"}` |
@@ -1721,11 +1765,11 @@ The API is JSON under `/admin/api`, and uses the session cookie:
 | `POST {themes,plugins,icon-packs}/{vendor}/{name}/rollback` | Rolls a folder extension back to the version replacing it kept, keeping the version it replaces in its place: `{"rolledBack": {"name", "label", "version", "folder"}, "from", "refresh"}`. No kept version is a `404`; one that wouldn't run (a plugin's requirements, an active theme's missing parent) a `422`. Each extension in its list has `backup`: `{"version"}`, or `null`. Needs `extensions.{kind}.update` |
 | `DELETE {themes,plugins,icon-packs}/{vendor}/{name}/backup` | Discards the kept version: `{"discarded": true}`. Needs `extensions.{kind}.delete` |
 | `GET types` | The site's content types: `{"types": [{"name", "labels", "description", "icon", "kind", "dated", "authors", "origin", "folder", "prefix", "fields"}], "authors"}`, by plural label, types of terms and the profiles type last. `kind` is `collection`, `tree`, or `profiles`, and each type's `authors` is whether its entries credit people. Each also has `terms` (whether a classify relation files entries under it), `hierarchical` (whether its entries nest by a `parent`), and `order` (a collection's, `published` or `position`; `null` for other kinds). A type of terms adds `"types"`, the types its relation files (empty for every type); the profiles type adds `"types"`, the types that credit people. `fields` is how many the type defines, `icon` is `null` for the kind's, and the top-level `authors` names the profiles type (`null` when the site has none). `labels` has every [label](content-types.md#names-descriptions-and-icons-in-the-admin), defaults filled in |
-| `GET types/{name}` | One type, with its own `fields`, the field `sets` added to it (`{"name", "label", "fields"}`), the `taxonomies` (types of terms) whose relations file it, its `relations` (every relation from or to it, each as `GET relations` describes it), `public`, `feed`, `sitemap`, `llms` (whether it's listed in `llms.txt`; off by default for profiles), `editable` (defined in `user/data/types`, or a collection or tree in a folder from code, and not still written as a taxonomy), `overridden` (from code, with a file in `user/data/types` changing it) and `overrides` (the options that file sets), `fieldsEditable`, `routes` (each address: `{"key", "path", "default", "requires", "allows", "root"}`, paths relative to the prefix), `dateArchives`, `folderPrefix` (the URL prefix its folder gives), `file`, its `index` page (`{"id", "path", "title"}` or `null`), its `people` fields (each `{"field", "plural", "singular", "aliases", "archive", "multiple", "required", "listPage"}`: `archive` is its word or `false`, and `listPage` its list page, `{"id", "path", "title"}` or `null`), `authorsWord` (the word its `authors` people field's archives sit under, `false` for none or without the field, `null` without URLs), and its `authorsPage` (`_authors`, `{"id", "path", "title"}` or `null`). `GET types` adds `create` (whether types can be created here) and `urls` (whether they may set URLs) |
-| `POST types` | Create a type in `user/data/types`: `{"name", "kind"` (`collection` or `tree`), `"folder", "set", "index", "listPages", "authorsPage"}`; answers `201` with the type. `set` maps options to values: `labels`, `description`, `icon`, `prefix`, `authorsWord` (the word the `authors` people field's archives sit under; `false` for none, `null` for `authors`), `paths` (route keys to paths, `null` for a key's default), `public`, `sitemap`, `llms`, `feed`, `people` (its [people fields](content-types.md#crediting-people): `false`, or each field's settings by its key), `authors` (whether it has the `authors` people field), `dateArchives`, `hierarchical`, `order`, and `fields`; `index: true` adds its index page, `listPages` (people field keys) adds each one's list page, `_{field}.md` titled with its name (a `422` for a field without archives), and `authorsPage: true` is short for `listPages: ["authors"]`. Needs `site.settings` |
-| `PATCH types/{name}` | Change a `user/data/types` type, or a collection or tree in a folder from code (saved in `user/data/types` over it): `{"set", "index", "listPages", "authorsPage"}`, as above (`null` removes an option); answers with the type. A change that doesn't fit is a `422` with the reason |
+| `GET types/{name}` | One type, with its own `fields`, the field `sets` added to it (`{"name", "label", "fields"}`), the `taxonomies` (types of terms) whose relations file it, its `relations` (every relation from or to it, each as `GET relations` describes it), `public`, `feed`, `sitemap`, `llms` (whether it's listed in `llms.txt`; off by default for profiles), `editable` (defined in `user/data/types`, or a collection or tree in a folder from code, and not still written as a taxonomy), `overridden` (from code, with a file in `user/data/types` changing it) and `overrides` (the options that file sets), `fieldsEditable`, `routes` (each address: `{"key", "path", "default", "requires", "allows", "root"}`, paths relative to the prefix), `dateArchives`, `folderPrefix` (the URL prefix its folder gives), `file`, its `index` page (`{"id", "path", "title"}` or `null`), its `byline` (the credit relation it names, or `null`), `credits` (the names of the credit relations from it), and `archivePages` (each relation archive under it: `{"relation", "label", "word", "page"}`, `page` its list page, `{"id", "path", "title"}` or `null`). `GET types` adds `create` (whether types can be created here) and `urls` (whether they may set URLs) |
+| `POST types` | Create a type in `user/data/types`: `{"name", "kind"` (`collection` or `tree`), `"folder", "set", "index", "listPages", "authors"}`; answers `201` with the type. `set` maps options to values: `labels`, `description`, `icon`, `prefix`, `paths` (route keys to paths, `null` for a key's default), `public`, `sitemap`, `llms`, `feed`, `byline` (the [credit relation](content-types.md#crediting-people) its byline uses), `dateArchives`, `hierarchical`, `order`, and `fields`; `index: true` adds its index page, `listPages` (relation names) adds each relation archive's list page, `_{word}.md` titled with its label (a `422` for a relation without archives under it), and `authors: true` adds the type to the `authors` credit relation, writing it when there's none. Needs `site.settings` |
+| `PATCH types/{name}` | Change a `user/data/types` type, or a collection or tree in a folder from code (saved in `user/data/types` over it): `{"set", "index", "listPages"}`, as above (`null` removes an option); answers with the type. A change that doesn't fit is a `422` with the reason |
 | `DELETE types/{name}` | Delete a `user/data/types` type's file (its entries stay); answers `{"deleted"}`. A type a relation names is a `422` saying which |
-| `GET relations` | The site's [relations](content-types.md#terms-and-relationships): `{"relations": [{"name", "kind", "from", "to", "field", "aliases", "label", "multiple", "ordered", "min", "max", "create", "symmetric", "inverse", "definition", "origin", "editable"}], "create"}`. `inverse` is `false` or `{"label", "archive", "types", "max"}`; `definition` is the relation as a data file writes it; `origin` is `extension`, `config`, or `data`; `editable` is whether it's in `user/data/relations` (and not a taxonomy waiting to be migrated); `create` is whether relations can be created here |
+| `GET relations` | The site's [relations](content-types.md#terms-and-relationships): `{"relations": [{"name", "kind", "from", "to", "field", "aliases", "label", "multiple", "ordered", "min", "max", "create", "symmetric", "translations", "control", "inverse", "definition", "origin", "editable"}], "create"}`. `inverse` is `false` or `{"label", "page", "archive", "types", "max"}` (`archive` a word or `false`); `definition` is the relation as a data file writes it; `origin` is `extension`, `config`, or `data`; `editable` is whether it's in `user/data/relations` (and not a taxonomy waiting to be migrated); `create` is whether relations can be created here |
 | `POST relations` | Create a relation in `user/data/relations/{name}.json`: its whole definition, with `name` (the keys a data file takes); answers `201` with it, as `GET relations` describes it. A definition that doesn't fit, or a name defined in code, is a `422` with the reason. Needs `site.settings` |
 | `PATCH relations/{name}` | Replace a `user/data/relations` relation with the whole definition sent; answers with it. Needs `site.settings` |
 | `DELETE relations/{name}` | Delete a `user/data/relations` relation's file (entries keep what they wrote); answers `{"deleted"}`. Needs `site.settings` |
@@ -1822,11 +1866,11 @@ and `children` are `null`, and `continued` is `false`.
 With a `type` that isn't pages, the type's index page (its landing page)
 is left out of `entries`, `total`, and `pages`, and answered as `index`
 on the first page when it matches `status` and `search` and the account may
-edit it; otherwise `index` is `null`. A people field's list page
+edit it; otherwise `index` is `null`. A relation archive's list page
 (`_authors`, the first the list finds) is answered the same way, as
-`authorsPage`, and each entry says whether it's one (`authorsPage`) and
-for which field (`peopleLabel`). Pages written for one person's archive
-are left out. A page past the last has no entries.
+`archivePage`, and each entry says whether it's one (`archivePage`) and
+for which relation (`archiveLabel`). Pages written for one target's
+archive are left out. A page past the last has no entries.
 
 ### Listing directives
 
@@ -1988,13 +2032,14 @@ entries/{id}` answers with:
 - `index`: whether it's its type's index page. An index page's `type`
   describes only its `title` and `status` fields (the rest of its front
   matter is in `extra`), and `can.delete` is `false`.
-- `authorsPage`: whether it's a people field's list page, which is
+- `archivePage`: whether it's a relation archive's list page, which is
   described the same way, with `can.rename` and `can.duplicate`
   `false`.
-- `peoplePage`: the people page it is, or `null`: `{"field", "label",
-  "profile", "profileTitle"}`, where `profile` is the profile's slug for
-  a page written for one person's archive (described the same way,
-  with `can.delete` also `false`) and `null` for a list page.
+- `archive`: the archive page it is, or `null`: `{"relation", "label",
+  "target", "targetTitle", "targetId", "targetType"}`, where `target` is
+  the target's slug for a page written for one target's archive
+  (described the same way, with `can.delete` also `false`) and `null`
+  for a list page.
 - `violations`: the file's problems, as Site Health shows them.
 
 A change only touches what it names; the rest of the file stays as it

@@ -3,9 +3,9 @@
  * A content type from `user/data/types`, edited (D-311), or a collection
  * from code, changed through a file there (D-349): General (names,
  * description, icon, with its key and folder fixed), Behavior
- * (`TypeBehaviorFields`), Profiles (`TypePeopleFields`, its profile fields,
- * D-353, D-369), Relationships (`TypeRelations`, saved on their own,
- * D-593), Addresses
+ * (`TypeBehaviorFields`), Archives (its relation archives' list pages,
+ * and which credit is its byline, D-602), Relationships (`TypeRelations`,
+ * saved on their own, D-593), Addresses
  * (`TypeRoutesFields`, each route key's path, D-350), and Fields
  * (`FieldListEditor`, with the field sets added to it below, D-337;
  * read-only when the code's fields are classes of its own), saved
@@ -22,7 +22,7 @@
 
 import { computed, ref, watch } from 'vue';
 import { confirmAction, guardLeave } from '../confirm';
-import { useRouter } from 'vue-router';
+import { RouterLink, useRouter } from 'vue-router';
 import AdminIcon from './AdminIcon.vue';
 import DangerZone from './DangerZone.vue';
 import FieldListEditor from './FieldListEditor.vue';
@@ -30,15 +30,15 @@ import SaveBar from './SaveBar.vue';
 import TypeBasicsFields from './TypeBasicsFields.vue';
 import TypeBehaviorFields from './TypeBehaviorFields.vue';
 import TypeFieldSets from './TypeFieldSets.vue';
-import TypePeopleFields from './TypePeopleFields.vue';
+import AdminSelect from './AdminSelect.vue';
 import TypeRelations from './TypeRelations.vue';
 import TypeRoutesFields from './TypeRoutesFields.vue';
-import { request, type ContentTypeDetail } from '../api';
+import { entryRoute, request, type ContentTypeDetail } from '../api';
 import { useAction } from '../action';
 import { label } from '../fields';
 import { changesOf, formOf, type TypeForm, type TypeKind } from '../type-form';
 import { toast } from '../toast';
-import { profileType, refreshTypes, typeUrls, types } from '../types';
+import { refreshTypes, typeUrls, types } from '../types';
 
 const props = defineProps<{ type: ContentTypeDetail }>();
 const emit  = defineEmits<{ saved: [type: ContentTypeDetail]; relations: [] }>();
@@ -48,7 +48,7 @@ const kind    = computed<TypeKind>(() => props.type.kind === 'tree' ? 'tree' : '
 const form    = ref<TypeForm>(formOf(props.type));
 const initial = ref<TypeForm>(formOf(props.type));
 const index   = ref(false);
-// The people fields to give list pages when saved (D-353).
+// The relation archives to give list pages when saved (D-602).
 const pages   = ref<string[]>([]);
 
 const { busy: saving, error: failure, run } = useAction();
@@ -75,8 +75,12 @@ const file   = computed(() => props.type.file ?? `user/data/types/${props.type.n
 // The prefix the addresses sit under, as the form has it.
 const prefix = computed(() => (form.value.prefix || props.type.folderPrefix).replace(/^\/+|\/+$/g, ''));
 
-// The site's profiles type, which the People panel credits.
-const profilesLabel = computed(() => types.value.find((item) => item.name === profileType.value)?.labels.plural ?? null);
+// Which credit is the byline, when it has more than one (D-602).
+const bylineOptions = computed(() => [{ value: '', label: 'Choose one' }, ...props.type.credits.map((name) => ({ value: name, label: name }))]);
+
+function wantPage(relation: string, on: boolean): void {
+	pages.value = on ? [...pages.value, relation] : pages.value.filter((item) => item !== relation);
+}
 
 async function save(): Promise<void> {
 	if (!changed.value || saving.value) {
@@ -159,33 +163,28 @@ guardLeave(() => changed.value);
 				<h2 id="behavior-heading">Behavior</h2>
 			</header>
 			<div class="panel__body">
-				<TypeBehaviorFields v-model="form" v-model:index="index" id-prefix="type-" :kind="kind" :folder-prefix="type.folderPrefix" :urls="typeUrls && type.prefix !== null" :index-page="type.index" :authors-label="null" :authors-page="null" />
+				<TypeBehaviorFields v-model="form" v-model:index="index" id-prefix="type-" :kind="kind" :folder-prefix="type.folderPrefix" :urls="typeUrls && type.prefix !== null" :index-page="type.index" :authors-label="null" />
 			</div>
 		</section>
 
-		<section v-if="profilesLabel !== null && form.people !== null" class="panel" aria-labelledby="people-heading">
-			<header class="panel__header type-people-header">
-				<h2 id="people-heading">{{ profilesLabel }}</h2>
-				<p class="panel__hint">Each field credits a profile, under this type's own word for it</p>
-				<div class="panel__actions">
-					<TypePeopleFields v-model="form.people" v-model:list-pages="pages" part="add" id-prefix="add-" :prefix="prefix" :urls="typeUrls && type.prefix !== null" :saved="type.people" :profiles-label="profilesLabel" />
-				</div>
-			</header>
-			<div class="type-people-rows">
-				<TypePeopleFields v-model="form.people" v-model:list-pages="pages" part="fields" id-prefix="people-" :prefix="prefix" :urls="typeUrls && type.prefix !== null" :saved="type.people" :profiles-label="profilesLabel" />
-			</div>
-			<p class="panel__note">Every field points at the one <strong>{{ profilesLabel }}</strong> collection. A person is one profile with one slug; these are this type's words for how they're credited.</p>
-		</section>
-
-		<section v-if="profilesLabel !== null && form.people !== null && form.people.length && kind !== 'tree'" class="panel" aria-labelledby="archives-heading">
+		<section v-if="type.archivePages.length || type.credits.length > 1" class="panel" aria-labelledby="archives-heading">
 			<header class="panel__header">
 				<h2 id="archives-heading">Archives</h2>
-				<p class="panel__hint">Whether a field's addresses route at all</p>
+				<p class="panel__hint">What its entries link to, listed under its address</p>
 			</header>
-			<div class="panel__body">
-				<TypePeopleFields v-model="form.people" v-model:list-pages="pages" part="archives" id-prefix="archives-" :prefix="prefix" :urls="typeUrls && type.prefix !== null" :saved="type.people" :profiles-label="profilesLabel" />
+			<div class="panel__body form-stack">
+				<div v-if="type.credits.length > 1" class="field">
+					<label for="type-byline">Byline</label>
+					<AdminSelect id="type-byline" v-model="form.byline" :options="bylineOptions" described-by="type-byline-help" />
+					<p id="type-byline-help" class="field__help">Which credit names an entry's author, shown first and linked from its byline.</p>
+				</div>
+				<div v-for="archive in type.archivePages" :key="archive.relation" class="field">
+					<p class="field__label">{{ archive.label }} <span class="mono">/{{ prefix }}/{{ archive.word }}</span></p>
+					<p v-if="archive.page" class="field__help">Introduced by <RouterLink :to="entryRoute(archive.page)">{{ archive.page.title }}</RouterLink>, an entry edited like any other.</p>
+					<label v-else class="checkbox"><input type="checkbox" :checked="pages.includes(archive.relation)" @change="wantPage(archive.relation, ($event.target as HTMLInputElement).checked)"> Has a page introducing the list</label>
+				</div>
 			</div>
-			<p class="panel__note">Same switch as the type's own index page, and the same rule: turning it off stops the routing and deletes nothing that was written. Pages written for that field's archives are kept and marked unreachable on each profile.</p>
+			<p class="panel__note">Each relationship's archives are set under Relationships, below. A page written for one entry's archive is kept on that entry's screen (a profile's, for credits).</p>
 		</section>
 
 		<TypeRelations :type="type" @changed="emit('relations')" />
@@ -196,7 +195,7 @@ guardLeave(() => changed.value);
 				<p class="panel__hint">Under <code>/{{ prefix }}</code></p>
 			</header>
 			<div class="panel__body">
-				<TypeRoutesFields v-model="form" id-prefix="route-" :routes="type.routes" :prefix="prefix" :terms="type.terms" :people="type.people" :editable="typeUrls" />
+				<TypeRoutesFields v-model="form" id-prefix="route-" :routes="type.routes" :prefix="prefix" :terms="type.terms" :editable="typeUrls" />
 			</div>
 		</section>
 

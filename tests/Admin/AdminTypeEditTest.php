@@ -94,63 +94,46 @@ final class AdminTypeEditTest extends TestCase
 		return is_array($data) ? $data : [];
 	}
 
-	public function testSetsWhetherATypeCreditsAuthorsAndWhere(): void
+	public function testANewTypeCanCreditAuthors(): void
 	{
 		$this->site();
 
-		$answer = $this->write('POST', '/types', ['name' => 'recipe', 'kind' => 'collection', 'authorsPage' => true, 'set' => ['labels' => ['singular' => 'Recipe', 'plural' => 'Recipes'], 'authors' => true, 'authorsWord' => 'cooks']]);
+		$answer = $this->write('POST', '/types', ['name' => 'recipe', 'kind' => 'collection', 'authors' => true, 'listPages' => ['authors'], 'set' => ['labels' => ['singular' => 'Recipe', 'plural' => 'Recipes']]]);
 
 		$this->assertSame(201, $answer->getStatusCode(), (string) $answer->getBody());
 		$type = self::json($answer);
-		$this->assertSame([true, 'cooks', ['type' => 'recipe', 'path' => '_recipe/_authors.md', 'title' => 'Authors']], [$type['authors'] ?? null, $type['authorsWord'] ?? null, self::withoutId($type['authorsPage'] ?? null)]);
-		$this->assertSame("{\n    \"people\": {\n        \"authors\": {\n            \"archive\": \"cooks\"\n        }\n    }\n}\n", $this->file('user/data/types/recipe.json'), 'Only the word differs from a collection\'s default (D-351), in a new JSON file (D-490).');
-		$this->assertMatchesRegularExpression('/\A---\ntitle: "Authors"\nid: [0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\n---\n\z/', $this->file('user/content/_recipe/_authors.md'), 'With an id, last (D-477).');
 
-		$this->assertSame('authors', self::json($this->write('PATCH', '/types/recipe', ['set' => ['authorsWord' => null]]))['authorsWord'] ?? null);
-		$this->assertStringNotContainsString('people', $this->file('user/data/types/recipe.json'), 'The default is left out.');
+		$this->assertSame(['authors'], $type['credits'] ?? null, 'Credited through the authors relation (D-602).');
+		$this->assertSame(['kind' => 'credit', 'from' => ['recipe'], 'to' => ['profile'], 'aliases' => ['author'], 'label' => 'Authors'], $this->data('user/data/relations/authors.json'), 'Written when the site has none.');
+		$this->assertArrayNotHasKey('people', $this->data('user/data/types/recipe.json'));
+		$this->assertMatchesRegularExpression('/\A---\ntitle: "Authors"\nid: [0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\n---\n\z/', $this->file('user/content/_recipe/_authors.md'), 'Its list page, with an id, last (D-477).');
+		$this->assertSame([['relation' => 'authors', 'label' => 'Authors', 'word' => 'authors', 'page' => ['type' => 'recipe', 'path' => '_recipe/_authors.md', 'title' => 'Authors']]], array_map(static fn (mixed $item): mixed => is_array($item) ? [...$item, 'page' => self::withoutId($item['page'] ?? null)] : $item, is_array($type['archivePages'] ?? null) ? $type['archivePages'] : []));
 
-		$off = $this->write('PATCH', '/types/recipe', ['set' => ['authorsWord' => false]]);
-		$this->assertSame(200, $off->getStatusCode(), (string) $off->getBody());
-		$this->assertFalse(self::json($off)['authorsWord'] ?? null);
-		$this->assertSame(['people' => ['authors' => ['archive' => false]]], $this->data('user/data/types/recipe.json'));
-
-		$this->assertFalse(self::json($this->write('PATCH', '/types/recipe', ['set' => ['authors' => false]]))['authors'] ?? null);
-		$this->assertSame(['people' => false], $this->data('user/data/types/recipe.json'));
-
-		$refused = $this->write('PATCH', '/types/recipe', ['set' => [], 'authorsPage' => true]);
-		$this->assertSame(422, $refused->getStatusCode(), 'No author archives, no authors page.');
-		$this->assertSame(422, $this->write('PATCH', '/types/recipe', ['set' => ['authorsWord' => 5]])->getStatusCode());
+		$this->assertSame(201, $this->write('POST', '/types', ['name' => 'note', 'kind' => 'collection', 'authors' => true, 'set' => []])->getStatusCode());
+		$this->assertSame(['recipe', 'note'], $this->data('user/data/relations/authors.json')['from'] ?? null, 'A second type joins it.');
 	}
 
-	public function testEditsATypesPeopleFields(): void
+	public function testATypeNamesItsBylineAndRefusesPeopleFields(): void
 	{
+		$this->writeTemporaryFile('user/data/types/recipe.json', '{"folder": "recipes"}');
+		$this->writeTemporaryFile('user/data/relations/cooks.json', '{"kind": "credit", "from": ["recipe"], "to": ["profile"]}');
+		$this->writeTemporaryFile('user/data/relations/photographers.json', '{"kind": "credit", "from": ["recipe"], "to": ["profile"], "inverse": {"archive": false}}');
 		$this->site();
-		$this->assertSame(201, $this->write('POST', '/types', ['name' => 'recipe', 'kind' => 'collection', 'set' => ['labels' => ['singular' => 'Recipe', 'plural' => 'Recipes']]])->getStatusCode());
 
-		$saved = $this->write('PATCH', '/types/recipe', ['set' => ['people' => [
-			'cooks'         => ['plural' => 'Cooks', 'singular' => 'Cook', 'aliases' => [], 'archive' => 'cooks', 'multiple' => true, 'required' => true],
-			'photographers' => ['plural' => 'Photographers', 'singular' => 'Photographer', 'aliases' => ['photographer'], 'archive' => false, 'multiple' => false, 'required' => false]
-		]], 'listPages' => ['cooks']]);
+		$saved = $this->write('PATCH', '/types/recipe', ['set' => ['byline' => 'cooks'], 'listPages' => ['cooks']]);
 
 		$this->assertSame(200, $saved->getStatusCode(), (string) $saved->getBody());
-		$type = self::json($saved);
+		$this->assertSame(['cooks', ['cooks', 'photographers']], [self::json($saved)['byline'] ?? null, self::json($saved)['credits'] ?? null]);
+		$this->assertSame(['folder' => 'recipes', 'byline' => 'cooks'], $this->data('user/data/types/recipe.json'));
+		$this->assertFileExists($this->temporaryDirectory() . '/user/content/recipes/_cooks.md');
 
-		$this->assertSame(['cooks', 'photographers'], array_column(is_array($type['people'] ?? null) ? $type['people'] : [], 'field'));
-		$people = is_array($type['people'] ?? null) ? $type['people'] : [];
-
-		$this->assertSame(['field' => 'cooks', 'plural' => 'Cooks', 'singular' => 'Cook', 'aliases' => [], 'archive' => 'cooks', 'multiple' => true, 'required' => true, 'listPage' => ['type' => 'recipe', 'path' => '_recipe/_cooks.md', 'title' => 'Cooks']], is_array($people[0] ?? null) ? [...$people[0], 'listPage' => self::withoutId($people[0]['listPage'] ?? null)] : null);
-		$this->assertFalse(is_array($people[1] ?? null) ? $people[1]['archive'] ?? null : null);
-		$this->assertSame(['people' => ['cooks' => ['required' => true], 'photographers' => ['aliases' => ['photographer'], 'archive' => false, 'multiple' => false]]], $this->data('user/data/types/recipe.json'), 'Only what differs from each field\'s defaults (D-353).');
-		$this->assertMatchesRegularExpression('/\A---\ntitle: "Cooks"\nid: [0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\n---\n\z/', $this->file('user/content/_recipe/_cooks.md'), 'With an id, last (D-477).');
-		$keys = array_column(is_array($type['routes'] ?? null) ? $type['routes'] : [], 'key');
+		$keys = array_column(is_array(self::json($saved)['routes'] ?? null) ? self::json($saved)['routes'] : [], 'key');
 
 		$this->assertContains('cooks.single', $keys);
 		$this->assertNotContains('photographers.single', $keys, 'No archives, no routes.');
 		$this->assertSame(422, $this->write('PATCH', '/types/recipe', ['set' => [], 'listPages' => ['photographers']])->getStatusCode(), 'No archives, no list page.');
-		$this->assertSame(422, $this->write('PATCH', '/types/recipe', ['set' => ['people' => ['single' => true]]])->getStatusCode());
-
-		$this->assertSame(200, $this->write('PATCH', '/types/recipe', ['set' => ['people' => false]])->getStatusCode());
-		$this->assertSame(['people' => false], $this->data('user/data/types/recipe.json'), 'A collection that credits no one.');
+		$this->assertStringContainsString('isn\'t a credit relation from it', self::error($this->write('PATCH', '/types/recipe', ['set' => ['byline' => 'nope']])));
+		$this->assertSame(422, $this->write('PATCH', '/types/recipe', ['set' => ['people' => false]])->getStatusCode(), 'Credits are relations (D-602).');
 	}
 
 	public function testCreatesATypeWithFieldsAndAnIndexPage(): void
@@ -331,7 +314,7 @@ final class AdminTypeEditTest extends TestCase
 			'kind'   => 'tree',
 			'folder' => '_docs',
 			'index'  => true,
-			'set'    => ['labels' => ['singular' => 'Doc', 'plural' => 'Docs'], 'icon' => 'book', 'public' => true, 'sitemap' => true, 'authors' => false]
+			'set'    => ['labels' => ['singular' => 'Doc', 'plural' => 'Docs'], 'icon' => 'book', 'public' => true, 'sitemap' => true]
 		]);
 
 		$this->assertSame(201, $answer->getStatusCode(), (string) $answer->getBody());
@@ -444,6 +427,7 @@ final class AdminTypeEditTest extends TestCase
 	{
 		$this->writeTemporaryFile('user/data/types/recipe.yaml', "folder: recipes\nfeed: true\nurls:\n  single: 'r/{name}'\n");
 		$this->writeTemporaryFile('user/data/types/cuisine.yaml', "kind: taxonomy\nfolder: cuisines\n");
+		$this->writeTemporaryFile('user/data/relations/authors.json', '{"kind": "credit", "from": ["recipe"], "to": ["profile"]}');
 		$this->site();
 
 		$routes = $this->routes('recipe');

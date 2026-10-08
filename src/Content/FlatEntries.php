@@ -31,7 +31,7 @@ use Blush\Content\Writer\RenamedFiles;
  * remove the folders left empty (D-478).
  *
  * Other types' folders inside a collection's hold other types' files,
- * and `_` folders (`_drafts`, a people field's `_authors`) may hold its
+ * and `_` folders (`_drafts`, a relation archive's `_authors`) may hold its
  * own, so both stay. It reads the index, brought up to date first.
  */
 final readonly class FlatEntries

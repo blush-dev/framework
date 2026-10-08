@@ -19,7 +19,6 @@ use Blush\Content\Query\PageLink;
 use Blush\Content\Query\Paginator;
 use Blush\Content\Relation\Relation;
 use Blush\Content\Type\ContentType;
-use Blush\Content\Type\PeopleField;
 use Blush\Setup\Welcome;
 
 /**
@@ -31,9 +30,10 @@ use Blush\Setup\Welcome;
  * pagination links. For the homepage, `$base` is the kind of page it
  * shows: the home type's `Collection`, or `index.md` as a `Page`.
  *
- * The people pages (D-351) say which people field they're for, and a
- * person's archive which profile: its `$entry` is the page written for
- * that archive when there is one, else the profile itself.
+ * A relation archive's pages (D-596, D-602) say which relation they're
+ * for, and a target's archive which entry it's about (`$target`): its
+ * `$entry` is the page written for that archive when there is one, else
+ * the target itself. A profile's own page is about its profile.
  *
  * The welcome page carries its `Welcome` notes.
  *
@@ -50,9 +50,8 @@ final readonly class ContentPage
 	 * @param array<string, int>         $date    A date archive's date parts, from the year down.
 	 * @param ?Closure(int): ?string     $pageUrl Returns another page's URL path.
 	 * @param ?PageKind                  $base    For the homepage, the kind of page it shows.
-	 * @param ?PeopleField               $people  The people field a people list or person's archive is for.
-	 * @param ?Entry                     $profile The profile a person's archive or profile page is about.
 	 * @param ?Relation                  $relation The relation a related list or a target's archive is for (D-596).
+	 * @param ?Entry                     $target  The entry a target's archive or a profile's page is about.
 	 * @param ?Welcome                   $welcome The welcome page's notes.
 	 * @param ?string                    $language The code of the language the page is in (D-455), when it's a list in another language; `null` for its entry's or the default.
 	 * @param ?Closure(string): ?string  $alternateUrl Returns the page's URL path in a language, or `null`.
@@ -66,12 +65,11 @@ final readonly class ContentPage
 		public array $date = [],
 		public ?Closure $pageUrl = null,
 		public ?PageKind $base = null,
-		public ?PeopleField $people = null,
-		public ?Entry $profile = null,
 		public ?Welcome $welcome = null,
 		public ?string $language = null,
 		public ?Closure $alternateUrl = null,
-		public ?Relation $relation = null
+		public ?Relation $relation = null,
+		public ?Entry $target = null
 	) {}
 
 	/**

@@ -16,7 +16,7 @@ namespace Blush\Content\Routing;
 use Override;
 use Blush\Content\ContentRepository;
 use Blush\Content\Entry\Entry;
-use Blush\Content\PeopleArchives;
+use Blush\Content\ProfileList;
 use Blush\Content\RelationArchives;
 use Blush\Content\Type\ContentType;
 use Blush\Content\Type\ContentTypes;
@@ -38,8 +38,8 @@ use Blush\Routing\UrlSource;
  * 4. Each date archive level of each type with archives, for every
  *    period a listed entry was published in, paged. Periods whose
  *    listing turns out empty are 404s, and so are skipped.
- * 5. Each people field's list and person archives, and each profile's
- *    page (D-351), paged.
+ * 5. Each relation archive's list and targets' archives (D-596, D-602: a
+ *    credit's people), and each profile's page (D-351), paged.
  * 6. Every other published entry with a URL, unlisted ones included.
  *
  * On a multilingual site (D-455), the homepage, collections, terms, and
@@ -57,7 +57,7 @@ final readonly class ContentSiteUrls implements UrlSource
 		private ContentRepository $content,
 		private ContentTypes $types,
 		private ContentUrls $urls,
-		private PeopleArchives $archives,
+		private ProfileList $profileList,
 		private RelationArchives $relationArchives,
 		private AppConfig $app
 	) {}
@@ -75,11 +75,10 @@ final readonly class ContentSiteUrls implements UrlSource
 		}
 
 		foreach ($types as $type) {
-			yield from $this->people($type);
 			yield from $this->related($type);
 		}
 
-		foreach ($this->archives->profiles() as $profile) {
+		foreach ($this->profileList->profiles() as $profile) {
 			$path = $this->urls->profile($profile->slug);
 
 			if ($path !== null) {
@@ -186,30 +185,6 @@ final readonly class ContentSiteUrls implements UrlSource
 		}
 	}
 
-	/**
-	 * Returns each of a type's people fields' lists and person archives.
-	 *
-	 * @return iterable<SiteUrl>
-	 */
-	private function people(ContentType $type): iterable
-	{
-		foreach ($type->archivedPeople() as $field) {
-			$people = $this->urls->hasArchive($type, $field) ? $this->archives->credited($type, $field) : [];
-			$list   = $people === [] ? null : $this->urls->people($type, $field);
-
-			if ($list !== null) {
-				yield new SiteUrl($list);
-			}
-
-			foreach ($people as $person) {
-				$path = $this->urls->person($type, $field, $person->slug);
-
-				if ($path !== null) {
-					yield new SiteUrl($path, fn (int $page): ?string => $this->urls->person($type, $field, $person->slug, $page));
-				}
-			}
-		}
-	}
 
 	/**
 	 * Returns a type's date archives, every level of each.

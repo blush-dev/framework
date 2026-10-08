@@ -28,16 +28,25 @@
  *
  * A slug the field holds that nothing answers to is shown as it's
  * written, marked "not found".
+ *
+ * The field's relation decides the rest (D-599): whether a typed value
+ * may be written as a new entry (`create`), how many it takes (a count
+ * against `max`, and nothing more taken at it; `min` said when it's
+ * above one), and whether its order matters (`ordered`; people always):
+ * then chips and people move by dragging, or with ⌥ and the arrow keys
+ * (`reorder.ts`). A translation shows what it uses from its original,
+ * dimmed (`inherited`).
  */
 
 import { computed, nextTick, ref, watch } from 'vue';
 import { debounced } from '../action';
-import { errorMessage, request, type FieldDescription } from '../api';
+import { errorMessage, request, type FieldDescription, type InheritedValues } from '../api';
 import { label } from '../fields';
-import { plural } from '../format';
+import { formatDate, plural } from '../format';
 import { listMove } from '../grid';
 import { initials } from '../people';
 import { loadReferences, referenceValues, slugOf, type ReferenceItem } from '../references';
+import { moved, useReorder } from '../reorder';
 import { canType } from '../session';
 import { labelsOf } from '../types';
 import AdminIcon from './AdminIcon.vue';
@@ -57,12 +66,20 @@ const props = defineProps<{
 	describedBy?: string;
 	// A single value drawn as a value in a row, not a box.
 	plain?: boolean;
+	// What a translation uses from its original.
+	inherited?: InheritedValues;
 }>();
 
 const model = defineModel<string>({ required: true });
 
 const type     = computed(() => props.field.to ?? '');
 const multiple = computed(() => props.field.multiple !== false);
+
+// How the server says to pick it (D-599): people, a tree, cards, or
+// tokens; a select for one value whatever it says.
+const control  = computed(() => props.field.relation?.control);
+const asPeople = computed(() => props.people === true || control.value === 'people');
+const cards    = computed(() => control.value === 'cards');
 const names    = computed(() => labelsOf(type.value));
 
 // What's known about each slug, from every answer so far.
@@ -100,10 +117,23 @@ function has(slug: string): boolean {
 	return slugs.value.includes(slug);
 }
 
+// How many it takes, and needs to publish (D-599).
+const max     = computed(() => multiple.value ? props.field.relation?.max ?? null : null);
+const minimum = computed(() => props.field.relation?.min ?? 0);
+const full    = computed(() => max.value !== null && values.value.length >= max.value);
+
+// Whether its order matters: people's always does (the first is the lead).
+const ordered = computed(() => asPeople.value || props.field.relation?.ordered === true);
+const reorder = useReorder(() => values.value.length, (from, to) => write(moved(values.value, from, to)));
+
+// What a translation shows from its original: the original's, when it
+// has none of its own, or always beside its own.
+const inheritedShown = computed(() => props.inherited !== undefined && (props.inherited.rule === 'add' || values.value.length === 0) ? props.inherited.values : []);
+
 function add(value: string): void {
 	const slug = slugOf(value);
 
-	if (slug === '' || has(slug)) {
+	if (slug === '' || has(slug) || (multiple.value && full.value)) {
 		return;
 	}
 
@@ -112,7 +142,7 @@ function add(value: string): void {
 
 function remove(slug: string): void {
 	// An entry always has an author (admin.md §8): the last one stays.
-	if (props.people && props.keepLast && values.value.length <= 1) {
+	if (asPeople.value && props.keepLast && values.value.length <= 1) {
 		return;
 	}
 
@@ -133,9 +163,9 @@ async function start(): Promise<void> {
 	error.value = '';
 
 	try {
-		const list = await loadReferences(type.value, { slugs: slugs.value, limit: 100 });
+		const list = await loadReferences(type.value, { slugs: [...slugs.value, ...(props.inherited?.values ?? [])], limit: 100 });
 
-		create.value = list.create;
+		create.value = props.field.relation === undefined ? list.create : props.field.relation.create;
 		tree.value   = list.tree ? list.items.filter((item) => !item.missing) : null;
 		remember(list.items);
 		options.value = list.items.filter((item) => !item.missing);
@@ -184,7 +214,7 @@ const writing   = ref(false);
 // Whether Enter would write a new term named as typed: nothing matches it
 // exactly, the type takes new ones, and the account may create them.
 // People are chosen, never written here.
-const creatable = computed(() => create.value && canCreate.value && !props.people && query.value.trim() !== '' && slugOf(query.value) !== ''
+const creatable = computed(() => create.value && canCreate.value && !asPeople.value && !full.value && query.value.trim() !== '' && slugOf(query.value) !== ''
 	&& !suggestions.value.some((item) => item.slug === slugOf(query.value)) && !has(slugOf(query.value)));
 
 /**
@@ -222,7 +252,7 @@ async function choose(item: ReferenceItem | null): Promise<void> {
 
 	if (item !== null) {
 		add(item.slug);
-	} else if (typed !== '' && create.value && canCreate.value && !props.people && !writing.value) {
+	} else if (typed !== '' && create.value && canCreate.value && !asPeople.value && !writing.value) {
 		const slug = await writeTerm(typed);
 
 		if (slug !== null) {
@@ -243,7 +273,7 @@ function searchKey(event: KeyboardEvent): void {
 		if (count > 0) {
 			void choose(suggestions.value[active.value] ?? null);
 		}
-	} else if (event.key === 'Backspace' && query.value === '' && values.value.length > 0 && !props.people) {
+	} else if (event.key === 'Backspace' && query.value === '' && values.value.length > 0 && !asPeople.value) {
 		const last = values.value.at(-1);
 
 		if (last !== undefined) {
@@ -388,9 +418,9 @@ const persons = computed(() => values.value.map((value) => itemOf(value)));
 		/>
 
 		<!-- Authors: people. -->
-		<template v-else-if="people">
+		<template v-else-if="asPeople">
 			<ul v-if="persons.length" class="reference__people">
-				<li v-for="(person, index) in persons" :key="person.slug" class="reference__person">
+				<li v-for="(person, index) in persons" :key="person.slug" class="reference__person" v-bind="ordered && persons.length > 1 ? reorder.item(index) : {}" :tabindex="ordered && persons.length > 1 ? 0 : undefined">
 					<span class="avatar reference__avatar" aria-hidden="true">{{ initials(person.title) }}</span>
 					<span class="reference__who">
 						<span class="reference__name">{{ person.title }}</span>
@@ -403,7 +433,7 @@ const persons = computed(() => values.value.map((value) => itemOf(value)));
 			</ul>
 			<div class="reference__search">
 				<AdminIcon name="search" />
-				<input :id="id" ref="input" v-model="query" type="text" autocomplete="off" :placeholder="`Add ${names.item === 'author' ? 'an author' : names.item}…`" role="combobox" :aria-expanded="suggestions.length > 0" :aria-controls="`${id}-suggestions`" :aria-describedby="describedBy" @keydown="searchKey">
+				<input :id="id" ref="input" v-model="query" type="text" autocomplete="off" :disabled="full" :placeholder="full ? 'That\'s the most it takes' : `Add ${names.item === 'author' ? 'an author' : names.item}…`" role="combobox" :aria-expanded="suggestions.length > 0" :aria-controls="`${id}-suggestions`" :aria-describedby="describedBy" @keydown="searchKey">
 			</div>
 			<ul v-if="query.trim() && (suggestions.length || creatable)" :id="`${id}-suggestions`" class="reference__suggestions" role="listbox">
 				<li v-for="(item, index) in suggestions" :key="item.slug" role="option" :aria-selected="index === active">
@@ -419,14 +449,14 @@ const persons = computed(() => values.value.map((value) => itemOf(value)));
 		</template>
 
 		<!-- A hierarchical collection: one box of search, tree, and new term. -->
-		<div v-else-if="tree" class="reference__box">
+		<div v-else-if="tree && control !== 'tokens' && control !== 'cards'" class="reference__box">
 			<div class="reference__search reference__search--inside">
 				<AdminIcon name="search" />
 				<input :id="id" v-model="treeQuery" type="search" autocomplete="off" :placeholder="`Search ${names.items}…`" :aria-describedby="describedBy">
 			</div>
 			<div class="reference__tree" role="group" :aria-label="label(field)">
 				<label v-for="item in treeRows" :key="item.slug" class="reference__term" :class="{ 'is-on': has(item.slug) }" :style="{ '--depth': item.depth ?? 0 }">
-					<input type="checkbox" class="check-input" :checked="has(item.slug)" @change="toggle(item.slug)">
+					<input type="checkbox" class="check-input" :checked="has(item.slug)" :disabled="full && !has(item.slug)" @change="toggle(item.slug)">
 					<span class="check-box" aria-hidden="true"><AdminIcon name="check" /></span>
 					<span class="reference__term-name">{{ item.title }}<span v-if="item.status === 'draft'" class="reference__draft"> · draft</span></span>
 					<span class="reference__count mono">{{ item.uses ?? 0 }}</span>
@@ -458,17 +488,27 @@ const persons = computed(() => values.value.map((value) => itemOf(value)));
 		<!-- Anything else: a token field. -->
 		<template v-else>
 			<div class="reference__tokens" :class="{ 'is-invalid': invalid }" @click="focusInput">
-				<span v-for="value in values" :key="value" class="reference__token" :class="{ 'is-missing': itemOf(value).missing }">
+				<span v-for="(value, index) in values" :key="value" class="reference__token" :class="{ 'is-missing': itemOf(value).missing }" v-bind="ordered && values.length > 1 ? reorder.item(index) : {}" :tabindex="ordered && values.length > 1 ? 0 : undefined">
 					{{ itemOf(value).title }}
 					<button type="button" @click="remove(slugOf(value))"><AdminIcon name="x" /><span class="visually-hidden">Remove {{ itemOf(value).title }}</span></button>
 				</span>
-				<input :id="id" ref="input" v-model="query" type="text" autocomplete="off" :placeholder="values.length ? 'Add another…' : 'Type to add…'" role="combobox" :aria-expanded="suggestions.length > 0 || creatable" :aria-controls="`${id}-suggestions`" :aria-describedby="describedBy" @keydown="searchKey">
+				<input :id="id" ref="input" v-model="query" type="text" autocomplete="off" :disabled="full" :placeholder="full ? 'That\'s the most it takes' : (values.length ? 'Add another…' : 'Type to add…')" role="combobox" :aria-expanded="suggestions.length > 0 || creatable" :aria-controls="`${id}-suggestions`" :aria-describedby="describedBy" @keydown="searchKey">
 			</div>
 			<ul v-if="query.trim() && (suggestions.length || creatable)" :id="`${id}-suggestions`" class="reference__suggestions" role="listbox">
 				<li v-for="(item, index) in suggestions" :key="item.slug" role="option" :aria-selected="index === active">
-					<button type="button" :class="{ 'is-active': index === active }" @mousedown.prevent @click="void choose(item)">
-						<span class="reference__suggestion-name">{{ item.title }}</span>
-						<span v-if="item.uses !== null" class="reference__count mono">{{ item.uses }}</span>
+					<button type="button" :class="{ 'is-active': index === active, 'reference__card': cards }" @mousedown.prevent @click="void choose(item)">
+						<template v-if="cards">
+							<img v-if="item.image" :src="item.image" alt="" class="reference__thumb" loading="lazy">
+							<span v-else class="avatar reference__avatar" aria-hidden="true">{{ initials(item.title) }}</span>
+							<span class="reference__who">
+								<span class="reference__name">{{ item.title || 'Untitled' }}</span>
+								<span class="reference__meta"><template v-if="item.date">{{ formatDate(`${item.date}T12:00:00`) }} · </template><template v-if="item.status && item.status !== 'published'">{{ item.status }} · </template><span class="mono">{{ item.slug }}</span></span>
+							</span>
+						</template>
+						<template v-else>
+							<span class="reference__suggestion-name">{{ item.title }}</span>
+							<span v-if="item.uses !== null" class="reference__count mono">{{ item.uses }}</span>
+						</template>
 					</button>
 				</li>
 				<li v-if="creatable" role="option" :aria-selected="active === suggestions.length">
@@ -480,6 +520,15 @@ const persons = computed(() => values.value.map((value) => itemOf(value)));
 			<p v-else-if="query.trim() && !suggestions.length" class="field__help">Nothing matches “{{ query.trim() }}”.</p>
 		</template>
 
+		<p v-if="inheritedShown.length" class="reference__inherited">
+			<span>{{ inherited?.rule === 'add' ? 'Also from the original:' : 'From the original:' }}</span>
+			<span v-for="value in inheritedShown" :key="`inherited-${value}`" class="reference__token is-inherited">{{ itemOf(value).title }}</span>
+		</p>
+		<p v-if="multiple && (max !== null || minimum > 1 || (ordered && values.length > 1))" class="field__help">
+			<template v-if="max !== null">{{ values.length }} of {{ max }}{{ full ? ', the most it takes' : '' }}. </template>
+			<template v-if="minimum > 1">Needs at least {{ minimum }} to publish. </template>
+			<template v-if="ordered && values.length > 1">Drag to reorder, or move one with ⌥↑ and ⌥↓.</template>
+		</p>
 		<p v-if="error" class="field__error">{{ error }}</p>
 		<p v-if="multiple && !people && values.some((value) => itemOf(value).missing)" class="field__help">{{ plural(values.filter((value) => itemOf(value).missing).length, `${names.item} isn't`, `${names.items} aren't`) }} on the site.</p>
 	</div>
@@ -681,6 +730,37 @@ const persons = computed(() => values.value.map((value) => itemOf(value)));
 	border-color: var(--danger);
 }
 
+.reference__token[draggable="true"] {
+	cursor: grab;
+}
+
+.reference__token.is-drop,
+.reference__person.is-drop {
+	box-shadow: inset 2px 0 0 var(--accent);
+}
+
+.reference__token.is-dragging,
+.reference__person.is-dragging {
+	opacity: 0.5;
+}
+
+.reference__inherited {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: var(--s-1);
+	margin: 0;
+	color: var(--fg-3);
+	font-size: var(--text-xs);
+}
+
+.reference__token.is-inherited {
+	padding-right: 9px;
+	border-style: dashed;
+	background: none;
+	color: var(--fg-3);
+}
+
 .reference__token {
 	display: inline-flex;
 	align-items: center;
@@ -786,6 +866,19 @@ const persons = computed(() => values.value.map((value) => itemOf(value)));
 	width: 29px;
 	height: 29px;
 	font-size: var(--text-2xs);
+}
+
+.reference__suggestions .reference__card {
+	gap: var(--s-2);
+	padding-block: var(--s-1);
+}
+
+.reference__thumb {
+	flex: none;
+	width: 29px;
+	height: 29px;
+	border-radius: var(--r-1);
+	object-fit: cover;
 }
 
 .reference__avatar--small {

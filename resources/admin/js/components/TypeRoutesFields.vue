@@ -1,16 +1,16 @@
 <script setup lang="ts">
 /**
  * A content type's addresses (D-350): each route key it answers at (its
- * listing and date archives, entries or terms, feeds, each people
- * field's archives, and each relation's archives, D-596), with the path after its prefix, edited in place. An empty
+ * listing and date archives, entries or terms, feeds, and each
+ * relation's archives, D-596, D-602), with the path after its prefix, edited in place. An empty
  * path is the key's default, shown as the placeholder. Each row says
  * which {placeholders} it needs and may hold, and shows the whole
  * address; the server checks them on save.
  */
 
 import { computed } from 'vue';
-import type { PeopleFieldInfo, TypeRoute } from '../api';
-import { pathOf, peopleWordOf, type TypeForm } from '../type-form';
+import type { TypeRoute } from '../api';
+import { pathOf, type TypeForm } from '../type-form';
 
 const props = defineProps<{
 	idPrefix: string;
@@ -19,9 +19,6 @@ const props = defineProps<{
 	prefix: string;
 	// Whether its entries are terms, with pages and feeds of their own (D-593).
 	terms: boolean;
-	// The people fields as loaded, whose route keys' defaults follow the
-	// words the form gives them now (D-353).
-	people: PeopleFieldInfo[];
 	// Whether the type may set its URLs (`dataTypeUrls`).
 	editable: boolean;
 }>();
@@ -44,8 +41,7 @@ function labelOf(route: TypeRoute): string {
 	}
 
 	if (feed) {
-		const person = props.people.find((item) => feed[1] === `${item.field}.single`);
-		const what   = person ? `${person.singular} feed` : (({ collection: 'Feed', single: props.terms ? 'Term feed' : 'Feed' } as Record<string, string>)[feed[1] ?? ''] ?? 'Feed');
+		const what = ({ collection: 'Feed', single: props.terms ? 'Term feed' : 'Feed' } as Record<string, string>)[feed[1] ?? ''] ?? 'Feed';
 
 		return `${what} (${FEEDS[feed[2] ?? ''] ?? 'RSS'})`;
 	}
@@ -60,10 +56,6 @@ function labelOf(route: TypeRoute): string {
 		label = `${LEVELS[level[1] ?? '']} archive`;
 	} else if (base === 'single') {
 		label = props.terms ? 'Term' : 'Entry';
-	} else if (fieldOf(base)?.[1] === 'collection') {
-		label = fieldOf(base)?.[0].plural ?? key;
-	} else if (fieldOf(base)?.[1] === 'single') {
-		label = `${fieldOf(base)?.[0].singular ?? key} archive`;
 	} else {
 		label = key;
 	}
@@ -71,38 +63,9 @@ function labelOf(route: TypeRoute): string {
 	return paged ? `${label}, later pages` : label;
 }
 
-// The people field a route key belongs to, and the rest of the key
-// (`collection`, `single`, …), or `null`.
-function fieldOf(key: string): [PeopleFieldInfo, string] | null {
-	const field = props.people.find((item) => key.startsWith(`${item.field}.`));
-
-	return field ? [field, key.slice(field.field.length + 1)] : null;
-}
-
-// The word the form gives a loaded people field now: `false` once its
-// archives are off or it's removed.
-function formWord(field: PeopleFieldInfo): string | false {
-	const now = form.value.people?.find((item) => item.field === field.field && !item.added);
-
-	return now ? peopleWordOf(now) : false;
-}
-
-// A key's default with its field's word from the form in place of the
-// loaded one.
-function defaultOf(route: TypeRoute): string {
-	const field = fieldOf(route.key)?.[0];
-	const was   = field?.archive;
-	const now   = field ? formWord(field) : false;
-
-	if (field === undefined || typeof was !== 'string' || typeof now !== 'string' || was === now) {
-		return route.default;
-	}
-
-	return route.default.startsWith(was) ? now + route.default.slice(was.length) : route.default;
-}
 
 function addressOf(route: TypeRoute): string {
-	const path = pathOf(form.value.paths[route.key] ?? '') || defaultOf(route);
+	const path = pathOf(form.value.paths[route.key] ?? '') || route.default;
 
 	return `/${[route.root ? '' : props.prefix, path].filter((part) => part !== '').join('/')}`;
 }
@@ -111,12 +74,7 @@ function braced(names: string[]): string {
 	return names.map((name) => `{${name}}`).join(' ');
 }
 
-// A people field's archives show only while the form has them.
-const shown = computed(() => props.routes.filter((route) => {
-	const field = fieldOf(route.key)?.[0];
-
-	return field === undefined || formWord(field) !== false;
-}));
+const shown = computed(() => props.routes);
 </script>
 
 <template>
@@ -125,7 +83,7 @@ const shown = computed(() => props.routes.filter((route) => {
 		<div class="type-routes__grid">
 			<div v-for="route in shown" :key="route.key" class="field">
 				<label :for="`${idPrefix}${route.key}`">{{ labelOf(route) }}</label>
-				<input :id="`${idPrefix}${route.key}`" v-model="form.paths[route.key]" class="mono" :placeholder="defaultOf(route) || '(the prefix itself)'" :disabled="!editable" autocomplete="off" spellcheck="false" :aria-describedby="`${idPrefix}${route.key}-help`">
+				<input :id="`${idPrefix}${route.key}`" v-model="form.paths[route.key]" class="mono" :placeholder="route.default || '(the prefix itself)'" :disabled="!editable" autocomplete="off" spellcheck="false" :aria-describedby="`${idPrefix}${route.key}-help`">
 				<p :id="`${idPrefix}${route.key}-help`" class="field__help">
 					At <code>{{ addressOf(route) }}</code>.
 					<template v-if="route.requires.length">Needs <code>{{ braced(route.requires) }}</code>{{ route.allows.length ? '' : '.' }}</template>

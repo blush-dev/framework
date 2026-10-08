@@ -71,8 +71,11 @@ final readonly class RelationsController
 			'max'          => $relation->max,
 			'create'       => $relation->create,
 			'symmetric'    => $relation->symmetric,
+			'translations' => $relation->translations->value,
+			'control'      => $relation->control?->value,
 			'inverse'      => $inverse === false ? false : [
 				'label'   => $inverse->label,
+				'page'    => $inverse->page,
 				'archive' => $inverse->archive,
 				'types'   => $inverse->types,
 				'max'     => $inverse->max

@@ -486,7 +486,7 @@ final readonly class Linter
 
 	/**
 	 * Returns errors for the terms the entry references and the profiles
-	 * it credits (by the people field that credits them) that have no
+	 * it credits (by the credit relation's key, D-602) that have no
 	 * file in any language (D-584): entries name terms by the original's
 	 * key (D-455), so a translation's entry references a term whose file
 	 * is in the default language.
@@ -500,15 +500,17 @@ final readonly class Linter
 		foreach ($record->terms as $key => $slugs) {
 			$parts    = explode('.', $key, 2);
 			$taxonomy = $parts[0];
-			$people   = $parts[1] ?? null;
+			$credit   = $parts[1] ?? null;
 			$type     = $this->types->find($taxonomy);
 
-			// The profiles type's own key holds every people field's credits together.
-			if ($type instanceof Profiles && $people === null) {
+			// Only terms and profiles are written by content:terms; a
+			// reference to nothing is the relation check's (D-596). The
+			// profiles type's own key holds every credit together.
+			if (! $this->types->isTermType($taxonomy) || ($type instanceof Profiles && $credit === null)) {
 				continue;
 			}
 
-			$field = $people ?? $this->types->classification($taxonomy)->field ?? $taxonomy;
+			$field = $credit === null ? $this->types->classification($taxonomy)->field ?? $taxonomy : $this->types->relations()[$credit]->field ?? $credit;
 
 			foreach ($slugs as $slug) {
 				if (! $snapshot->has($taxonomy, $slug)) {

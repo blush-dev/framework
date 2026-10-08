@@ -94,12 +94,12 @@ trait BuildsContentSite
 				'category' => [
 					'path'   => 'topics',
 					'order'  => 'position',
-					'people' => false,
 					'llms'   => false
 				]
 			],
 			'relations' => [
-				'category' => ['kind' => 'classify', 'from' => ['post'], 'to' => ['category'], 'create' => true]
+				'category' => ['kind' => 'classify', 'from' => ['post'], 'to' => ['category'], 'create' => true],
+				'authors'  => ['kind' => 'credit', 'from' => ['post'], 'to' => ['profile'], 'aliases' => ['author']]
 			],
 			'home' => 'post'
 		]);

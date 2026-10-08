@@ -1,10 +1,11 @@
 <?php
 
 /**
- * The people a type's people field credits (D-351), such as a blog's
- * authors, each linking to their archive under the field. The field's
- * list page (`_authors` in the type's folder), when it has one, gives the
- * title and introduces the list.
+ * What a type's relation with an archive word links to (D-596, D-602),
+ * such as a blog's authors or a movie library's directors, each linking
+ * to their archive under the relation. The list's own page (`_authors`
+ * in the type's folder), when it has one, gives the title and introduces
+ * the list.
  *
  * @var Blush\View\Template             $template
  * @var Blush\Content\Http\ContentPage  $page
@@ -18,7 +19,7 @@ declare(strict_types=1);
 
 $template->layout('base');
 
-$field = $page->people->field ?? '';
+$relation = $page->relation->name ?? '';
 
 ?>
 <header class="archive-header">
@@ -37,7 +38,7 @@ $field = $page->people->field ?? '';
 	<ul class="people" role="list">
 		<?php foreach ($entries as $person) : ?>
 			<li class="people__item">
-				<h2 class="people__name"><a href="<?= url($template->personUrl($person, $type, $field)) ?>"><?= e($person->title) ?></a></h2>
+				<h2 class="people__name"><a href="<?= url($template->archiveUrl($type, $relation, $person)) ?>"><?= e($person->title) ?></a></h2>
 
 				<?php if ($person->raw() !== '') : ?>
 					<div class="people__bio">

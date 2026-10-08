@@ -93,3 +93,38 @@ export async function confirmPurge(id: string, name: string): Promise<string | n
 
 	return unlink === null ? null : (unlink && found.editable > 0 ? '&unlink=1' : '');
 }
+
+/**
+ * Asks before several entries stop being live at once (a bulk move to
+ * draft or the trash), when live entries link to any of them: which, and
+ * how many each. `body` is what the move says otherwise, and `always`
+ * asks even when nothing links to them (as the trash does). Resolves
+ * whether to go on.
+ */
+export async function confirmLeavingMany(ids: string[], count: string, action: 'trash' | 'draft', body: string[] = [], always = false): Promise<boolean> {
+	let linked: { id: string; title: string; live: number }[] = [];
+
+	try {
+		linked = (await request<{ linked: { id: string; title: string; live: number }[] }>('POST', '/entries/referrers', { ids })).linked;
+	} catch {
+		linked = [];
+	}
+
+	if (linked.length === 0 && !always) {
+		return true;
+	}
+
+	const named = linked.slice(0, 5).map((item) => `“${item.title || 'Untitled'}” (${item.live})`).join(', ');
+	const more  = linked.length > 5 ? `, and ${linked.length - 5} more` : '';
+	const lines = linked.length === 0 ? [] : [
+		`**Live entries link to ${linked.length === 1 ? 'one of them' : `${linked.length} of them`}**: ${named}${more}.`,
+		action === 'trash'
+			? 'The site stops showing them there. Restoring and publishing them brings the links back.'
+			: 'The site stops showing them there until they\'re published again.'
+	];
+
+	return confirmAction(action === 'trash'
+		? { title: `Move ${count} to the Trash?`, body: [...lines, ...body], confirm: 'Move to Trash', danger: true }
+		: { title: `Move ${count} to Draft?`, body: [...lines, ...body], confirm: 'Move to Draft' });
+}
+

@@ -82,7 +82,6 @@ final class ContentRoutingTest extends TestCase
 				'category' => [
 					'path'   => 'topics',
 					'order'  => 'position',
-					'people' => false,
 					'llms'   => false
 				]
 			],
@@ -200,7 +199,7 @@ final class ContentRoutingTest extends TestCase
 		$this->contentConfig([
 			'types' => [
 				'post'     => ['path' => '_posts', 'routing' => ['prefix' => 'archives']],
-				'category' => ['path' => 'topics', 'order' => 'position', 'hierarchical' => true, 'people' => false, 'feed' => true]
+				'category' => ['path' => 'topics', 'order' => 'position', 'hierarchical' => true, 'feed' => true]
 			],
 			'relations' => ['category' => ['kind' => 'classify', 'from' => ['post'], 'to' => ['category'], 'create' => true]]
 		]);

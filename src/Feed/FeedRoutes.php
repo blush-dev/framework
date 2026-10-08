@@ -15,7 +15,6 @@ namespace Blush\Feed;
 
 use Override;
 use Blush\Content\Routing\ContentRoutes;
-use Blush\Content\Routing\ContentUrls;
 use Blush\Content\Type\ContentType;
 use Blush\Content\Type\ContentTypes;
 use Blush\Content\Type\Profiles;
@@ -33,9 +32,9 @@ use Blush\Routing\RouteSource;
  *   `home.feed.json` at the site root instead;
  * - for a term type (D-593), `{type}.single.feed` (`{prefix}/{name}/feed`) and the
  *   Atom and JSON variants, one feed per term;
- * - for each people field with archives (D-351),
- *   `{type}.{field}.single.feed` (`{prefix}/cooks/{profile}/feed`) and
- *   its variants, one feed per person;
+ * - for each relation with an archive word (D-596, D-602),
+ *   `{type}.{relation}.single.feed` (`{prefix}/cooks/{target}/feed`) and
+ *   its variants, one feed per target;
  * - for the profiles type, only `{type}.single.feed`
  *   (`/profiles/{name}/feed`) and its variants, one feed per profile.
  *
@@ -45,7 +44,6 @@ final readonly class FeedRoutes implements RouteSource
 {
 	public function __construct(
 		private ContentTypes $types,
-		private ContentUrls $urls,
 		private FeedConfig $config
 	) {}
 
@@ -114,14 +112,6 @@ final readonly class FeedRoutes implements RouteSource
 
 		if ($single !== null) {
 			$routes[] = ContentRoutes::route($single, FeedController::class, "{$type->name}.single.feed{$suffix}", $defaults, $type);
-		}
-
-		foreach ($type->archivedPeople() as $field) {
-			$person = $this->urls->hasArchive($type, $field) ? $type->routePattern("{$field->field}.single.feed{$suffix}") : null;
-
-			if ($person !== null) {
-				$routes[] = ContentRoutes::route($person, FeedController::class, "{$type->name}.{$field->field}.single.feed{$suffix}", [...$defaults, 'field' => $field->field], $type);
-			}
 		}
 
 		foreach (array_keys($this->types->relationArchives($type)) as $relation) {

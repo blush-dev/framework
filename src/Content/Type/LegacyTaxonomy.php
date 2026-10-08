@@ -63,9 +63,9 @@ final class LegacyTaxonomy
 		$type['order'] ??= TypeOrder::Position->value;
 		$type['llms']  ??= false;
 
-		if (! array_key_exists('people', $type) && ! array_key_exists('authors', $type)) {
-			$type['people'] = false;
-		}
+		// Terms credit nobody; a type credits people through relations now
+		// (D-602).
+		unset($type['people'], $type['authors']);
 
 		$from    = $definition['types'] ?? $definition['term_collect'] ?? [];
 		$field   = $definition['field'] ?? $name;
@@ -80,7 +80,8 @@ final class LegacyTaxonomy
 			'field'   => is_string($field) && $field !== $name ? $field : null,
 			'aliases' => is_string($aliases) ? [$aliases] : (is_array($aliases) ? array_values($aliases) : []),
 			'create'  => true,
-			'inverse' => array_filter(['archive' => $urls !== false, 'listing' => is_array($listing) ? $listing : []])
+			// Terms have pages by default (one without URLs has none anyway).
+			'inverse' => array_filter(['listing' => is_array($listing) ? $listing : []])
 		], static fn (mixed $value): bool => $value !== null && $value !== []);
 
 		return [$type, $relation];

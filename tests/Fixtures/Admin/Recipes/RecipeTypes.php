@@ -24,6 +24,6 @@ final class RecipeTypes implements ContentTypeSource
 	public function types(): iterable
 	{
 		yield new Collection('recipe', folder: 'recipes');
-		yield new Collection('cuisine', folder: 'recipes/cuisines', people: false, llms: false, order: TypeOrder::Position);
+		yield new Collection('cuisine', folder: 'recipes/cuisines', llms: false, order: TypeOrder::Position);
 	}
 }

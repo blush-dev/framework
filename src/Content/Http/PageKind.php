@@ -49,16 +49,6 @@ enum PageKind: string
 	case Date = 'date';
 
 	/**
-	 * The people a type's people field credits (D-351).
-	 */
-	case People = 'people';
-
-	/**
-	 * A person's archive under a type's people field.
-	 */
-	case Person = 'person';
-
-	/**
 	 * What a type's relation links to, with an archive word (D-596):
 	 * `/movies/actors`.
 	 */

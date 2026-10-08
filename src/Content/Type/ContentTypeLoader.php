@@ -50,9 +50,8 @@ use Blush\Field\InvalidSchema;
  * `ContentTypes::$legacy` until `content:taxonomies --write` (or Site
  * Health) writes them (D-591); a taxonomy anywhere else is an error.
  *
- * A people field reading a key a classify relation reads (1.x's
- * `author` taxonomy, with `authors` and `author`) is dropped, so the
- * relation keeps it (D-351).
+ * A credit relation (D-602) must point at the profiles type, and a
+ * type's `byline` must name one of its credit relations.
  *
  * Then: folders must be unique, one type must claim the content root, the
  * types named by listings, relations, feed categories, and the homepage
@@ -129,15 +128,6 @@ final readonly class ContentTypeLoader
 			throw new InvalidContentType($e->getMessage(), previous: $e);
 		}
 
-		$claimed = [];
-
-		foreach ($relations as $relation) {
-			if ($relation->kind === RelationKind::Classify) {
-				array_push($claimed, ...$relation->keys());
-			}
-		}
-
-		$types    = array_map(static fn (ContentType $type): ContentType => $type->withoutPeopleReading(...$claimed), $types);
 		$resolved = new ContentTypes($types, $origins, $this->config->home, $sets, $overrides, $relations, $relationOrigins, $legacy, [...$clashes, ...$relationClashes]);
 		$this->check($resolved);
 
@@ -300,7 +290,19 @@ final readonly class ContentTypeLoader
 			throw new InvalidContentType(sprintf('A site has one profiles type, but "%s" are all profiles types.', implode('", "', $profiles)));
 		}
 
+		foreach ($types->relations() as $relation) {
+			if ($relation->kind === RelationKind::Credit && $relation->to !== $profiles) {
+				throw new InvalidContentType($profiles === []
+					? sprintf('Relation "%s" credits people, but the site has no profiles type.', $relation->name)
+					: sprintf('Relation "%s" credits people, so it points at the profiles type: "to" must be ["%s"].', $relation->name, $profiles[0]));
+			}
+		}
+
 		foreach ($types as $name => $type) {
+			if ($type->byline !== null && ! isset($types->credits($name)[$type->byline])) {
+				throw new InvalidContentType(sprintf('Content type "%s" names "%s" as its byline, which isn\'t a credit relation from it.', $name, $type->byline));
+			}
+
 			if (isset($folders[$type->folder])) {
 				throw new InvalidContentType(sprintf(
 					'The "%s" and "%s" content types share the folder "%s".',

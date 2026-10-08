@@ -15,7 +15,7 @@ namespace Blush\Feed;
 
 use Override;
 use Blush\Content\ContentRepository;
-use Blush\Content\PeopleArchives;
+use Blush\Content\ProfileList;
 use Blush\Content\Relation\Relation;
 use Blush\Content\RelationArchives;
 use Blush\Content\Routing\ContentUrls;
@@ -27,8 +27,9 @@ use Blush\Routing\UrlSource;
 /**
  * Lists every feed (D-136, D-476): each public, routed type's
  * collection feed in every configured format, a term type's per-term
- * feeds for the terms listed entries reference, the per-person feeds of
- * each people field with archives, and each profile's feed (D-351).
+ * feeds for the terms listed entries reference, the feeds of each
+ * relation archive's targets (D-596, D-602: a person's under a credit),
+ * and each profile's feed (D-351).
  */
 final readonly class FeedSiteUrls implements UrlSource
 {
@@ -37,7 +38,7 @@ final readonly class FeedSiteUrls implements UrlSource
 		private ContentTypes $types,
 		private ContentUrls $urls,
 		private FeedConfig $config,
-		private PeopleArchives $archives,
+		private ProfileList $profileList,
 		private RelationArchives $relationArchives
 	) {}
 
@@ -53,7 +54,7 @@ final readonly class FeedSiteUrls implements UrlSource
 			}
 
 			if ($type instanceof Profiles) {
-				foreach ($this->archives->profiles() as $profile) {
+				foreach ($this->profileList->profiles() as $profile) {
 					foreach ($this->config->formats as $format) {
 						$path = $this->urls->profileFeed($profile->slug, "single.feed{$format->routeSuffix()}");
 
@@ -67,11 +68,6 @@ final readonly class FeedSiteUrls implements UrlSource
 			}
 
 			$terms  = $this->types->hasTermPages($type->name) ? array_map(strval(...), array_keys($this->content->termCounts($this->types->termKeys($type->name)))) : [];
-			$people = [];
-
-			foreach ($type->archivedPeople() as $field) {
-				$people[] = [$field, $this->urls->hasArchive($type, $field) ? $this->archives->credited($type, $field) : []];
-			}
 
 			$related = array_map(fn (Relation $relation): array => [$relation, $this->relationArchives->linked($type, $relation)], array_values($this->types->relationArchives($type)));
 
@@ -94,16 +90,6 @@ final readonly class FeedSiteUrls implements UrlSource
 				foreach ($related as [$relation, $targets]) {
 					foreach ($targets as $target) {
 						$path = $this->urls->relatedFeed($type, $relation, $target->slug, $format->routeSuffix());
-
-						if ($path !== null) {
-							yield new SiteUrl($path);
-						}
-					}
-				}
-
-				foreach ($people as [$field, $profiles]) {
-					foreach ($profiles as $profile) {
-						$path = $this->urls->personFeed($type, $field, $profile->slug, $format->routeSuffix());
 
 						if ($path !== null) {
 							yield new SiteUrl($path);

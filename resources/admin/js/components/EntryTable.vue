@@ -162,11 +162,11 @@ function pinTitle(entry: EntrySummary): string {
 		return `Pinned: the page the site shows for error ${entry.errorPage}`;
 	}
 
-	return entry.index ? 'Pinned: the index page for this type' : `Pinned: the page introducing this type's ${(entry.peopleLabel ?? 'people').toLowerCase()}`;
+	return entry.index ? 'Pinned: the index page for this type' : `Pinned: the page introducing this type's ${(entry.archiveLabel ?? 'people').toLowerCase()}`;
 }
 
 function isPinned(entry: EntrySummary): boolean {
-	return entry.index || entry.rootPage || entry.authorsPage || entry.errorPage !== null;
+	return entry.index || entry.rootPage || entry.archivePage || entry.errorPage !== null;
 }
 
 // The homepage's pin is a house, wherever it's pinned (D-420).
@@ -266,7 +266,7 @@ async function copyLink(entry: EntrySummary): Promise<void> {
 									{{ ' ' }}<span class="index-mark" :title="`The homepage shows ${entry.homeInstead?.toLowerCase() ?? 'something else'} instead, so this page isn't on the site`">Not shown</span>
 									<template v-if="entry.can.makeHomepage">{{ ' ' }}<button type="button" class="lnk entry-title__action" @click="$emit('homepage', entry)">Make homepage</button></template>
 								</template>
-								<template v-if="entry.authorsPage">{{ ' ' }}<span class="index-mark">{{ entry.peopleLabel ?? 'People' }}</span></template>
+								<template v-if="entry.archivePage">{{ ' ' }}<span class="index-mark">{{ entry.archiveLabel ?? 'People' }}</span></template>
 								<template v-if="entry.errorPage !== null">{{ ' ' }}<span class="index-mark">Error {{ entry.errorPage }}</span></template>
 								<template v-if="entry.id === null">{{ ' ' }}<RouterLink v-if="can('site.health')" class="index-mark" :to="{ name: 'health-check', params: { area: 'content', check: 'ids' } }" title="This file has no id, so it can't be edited until it has one. Add it on Site Health.">No ID</RouterLink><span v-else class="index-mark" title="This file has no id, so it can't be edited until it has one. Someone who sees Site Health can add it.">No ID</span></template>
 								{{ ' ' }}<span v-if="entry.own && profiles" class="tag--you">You</span>

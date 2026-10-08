@@ -8,8 +8,9 @@
  * A paragraph may mark words to stand out with `**`, as `**12 bylines**`;
  * nothing else is markup, so names typed by people are always text.
  *
- * `confirmChecked()` adds a checkbox, checked at first, for a choice
- * that goes with confirming ("Remove it from 12 entries", D-598).
+ * `confirmChecked()` adds a checkbox, checked at first unless `checked`
+ * says otherwise, for a choice that goes with confirming ("Remove it
+ * from 12 entries", D-598).
  */
 
 import { onBeforeUnmount, onMounted, ref } from 'vue';
@@ -26,8 +27,10 @@ export interface ConfirmOptions {
 	// Whether it destroys something: the button is red, and Cancel has
 	// the focus.
 	danger?: boolean;
-	// A checkbox's words, for `confirmChecked()`.
+	// A checkbox's words, for `confirmChecked()`, and whether it starts
+	// checked (it does unless this says otherwise).
 	check?: string;
+	checked?: boolean;
 }
 
 export interface PendingConfirm extends ConfirmOptions {
@@ -52,7 +55,7 @@ export function confirmAction(options: ConfirmOptions): Promise<boolean> {
  */
 export function confirmChecked(options: ConfirmOptions & { check: string }): Promise<boolean | null> {
 	return new Promise((resolve) => {
-		pendingConfirms.value = [...pendingConfirms.value, { ...options, id: ++next, checked: true, resolve: (answer, checked) => resolve(answer ? checked : null) }];
+		pendingConfirms.value = [...pendingConfirms.value, { ...options, id: ++next, checked: options.checked ?? true, resolve: (answer, checked) => resolve(answer ? checked : null) }];
 	});
 }
 

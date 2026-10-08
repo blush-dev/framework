@@ -42,7 +42,7 @@ final class FileNamesTest extends TestCase
 		$this->contentConfig([
 			'types' => [
 				'post'     => ['path' => '_posts', 'date_archives' => true, 'routing' => ['prefix' => 'archives'], 'filename' => $pattern],
-				'category' => ['path' => 'topics', 'order' => 'position', 'people' => false, 'filename' => $categories]
+				'category' => ['path' => 'topics', 'order' => 'position', 'filename' => $categories]
 			],
 			'relations' => ['category' => ['kind' => 'classify', 'from' => ['post'], 'to' => ['category'], 'create' => true]],
 			'home' => 'post'

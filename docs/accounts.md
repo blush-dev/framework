@@ -120,7 +120,7 @@ Profile** panel links, unlinks, creates, or publishes its profile, and
 bylines in place.
 
 Entries that credit an account's profile are its **own** (through the
-type's main byline, its first people field), and so is the profile
+type's [byline](content-types.md#crediting-people)), and so is the profile
 itself. Roles decide what an account can do with its own entries and
 with everyone else's. An account with no profile owns nothing, which
 suits someone who only runs the site.

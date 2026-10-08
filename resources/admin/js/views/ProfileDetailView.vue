@@ -152,11 +152,11 @@ async function write(row: ProfileAppearance): Promise<void> {
 		return;
 	}
 
-	busy.value    = `${row.type}.${row.field}`;
+	busy.value    = `${row.type}.${row.relation}`;
 	failure.value = '';
 
 	try {
-		const page = await writeArchivePage(slug.value, row.type, row.field);
+		const page = await writeArchivePage(slug.value, row.type, row.relation);
 
 		await router.push(entryRoute(page));
 	} catch (caught) {
@@ -177,11 +177,11 @@ async function deletePage(row: ProfileAppearance): Promise<void> {
 		return;
 	}
 
-	busy.value    = `${row.type}.${row.field}`;
+	busy.value    = `${row.type}.${row.relation}`;
 	failure.value = '';
 
 	try {
-		await removeArchivePage(slug.value, row.type, row.field);
+		await removeArchivePage(slug.value, row.type, row.relation);
 		toast(`Moved the ${row.label} page to the trash`, { kind: 'danger' });
 		await load();
 	} catch (caught) {
@@ -394,7 +394,7 @@ async function link(): Promise<void> {
 								<RouterLink v-if="editRoute" class="button button--small" :to="editRoute">Edit</RouterLink>
 							</td>
 						</tr>
-						<tr v-for="row in detail.appears" :key="`${row.type}.${row.field}`" :class="{ 'res__off': !row.archive }">
+						<tr v-for="row in detail.appears" :key="`${row.type}.${row.relation}`" :class="{ 'res__off': !row.archive }">
 							<th scope="row">
 								<span class="res__name">{{ row.label }}</span>
 								<span class="res__about">{{ row.typeLabel }} · {{ row.archive ? plural(row.entries, 'entry', 'entries') : 'archive is off' }}</span>
@@ -414,10 +414,10 @@ async function link(): Promise<void> {
 									<RouterLink class="menu-item" :to="entryRoute(row.page)"><AdminIcon name="pen-line" />Edit the page</RouterLink>
 									<template v-if="canType(row.type, 'delete')">
 										<div class="menu-divider" />
-										<button type="button" class="menu-item menu-item--danger" :disabled="busy === `${row.type}.${row.field}`" @click="deletePage(row)"><AdminIcon name="trash-2" />Move to trash</button>
+										<button type="button" class="menu-item menu-item--danger" :disabled="busy === `${row.type}.${row.relation}`" @click="deletePage(row)"><AdminIcon name="trash-2" />Move to trash</button>
 									</template>
 								</MenuButton>
-								<button v-else-if="row.archive && canType(row.type, 'create')" type="button" class="button button--small" :disabled="busy === `${row.type}.${row.field}`" @click="write(row)">Write One</button>
+								<button v-else-if="row.archive && canType(row.type, 'create')" type="button" class="button button--small" :disabled="busy === `${row.type}.${row.relation}`" @click="write(row)">Write One</button>
 								<RouterLink v-else-if="!row.archive && can('site.settings')" class="button button--ghost button--small" :to="{ name: 'content-type', params: { name: row.type } }">Type Settings</RouterLink>
 							</td>
 						</tr>

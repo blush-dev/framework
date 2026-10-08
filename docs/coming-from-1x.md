@@ -22,7 +22,10 @@ Copy your `user/` folder across as it is. In particular:
   folders work as before.
 - The 1.x front matter names still work: `date` (now `published`),
   `author` (now `authors`), `excerpt` (now `summary`), and `view` (now
-  `template`). You don't need to rename anything.
+  `template`). You don't need to rename anything. Authors are credited
+  through the `authors` [credit relation](content-types.md#crediting-people)
+  (the skeleton's `user/data/relations/authors.json`); add each type
+  whose entries name authors to its `from`.
 - `_error/404.md` still works as your error page (2.x also reads
   `_errors/`).
 - Media links to `/user/media/...` still resolve.
@@ -97,7 +100,7 @@ For example, a 1.x category taxonomy for posts:
 ]
 ```
 
-becomes a collection ordered by `position`, with no authors and out of
+becomes a collection ordered by `position`, out of
 `llms.txt`, and a classify relation named after it:
 
 ```php
@@ -107,7 +110,6 @@ return ContentConfig::fromArray([
 			'path'         => '_posts/categories',
 			'hierarchical' => true,
 			'order'        => 'position',
-			'people'       => false,
 			'llms'         => false
 		]
 	],

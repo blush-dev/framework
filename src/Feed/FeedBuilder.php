@@ -23,7 +23,6 @@ use Blush\Content\Relation\Relation;
 use Blush\Content\Routing\ContentUrls;
 use Blush\Content\Type\ContentType;
 use Blush\Content\Type\ContentTypes;
-use Blush\Content\Type\PeopleField;
 use Blush\Content\Type\Profiles;
 use Blush\Core\AppConfig;
 use Blush\Markdown\MarkdownException;
@@ -36,8 +35,7 @@ use Blush\Markdown\MarkdownException;
  *
  * Item categories are the terms of the feed's `categories` term type, or
  * of every term type when it has none; authors are the names of the
- * profiles the item's type's first people field credits (D-351), its
- * main byline.
+ * profiles the item's type's byline relation credits (D-602).
  */
 final readonly class FeedBuilder
 {
@@ -97,29 +95,9 @@ final readonly class FeedBuilder
 	}
 
 	/**
-	 * Builds a person's feed under a type's people field (D-351): the
-	 * type's entries crediting them there.
-	 *
-	 * @throws InvalidQuery
-	 * @throws MarkdownException
-	 */
-	public function person(ContentType $type, PeopleField $field, Entry $profile, FeedFormat $format): Feed
-	{
-		$query = $this->query($type, ['type' => $type->name])->whereTerm($field->termKey($profile->type->name), $profile->slug);
-
-		return $this->feed(
-			$format,
-			"{$profile->title} | {$field->plural} | {$type->labels->plural}",
-			$this->urls->person($type, $field, $profile->slug) ?? '/',
-			$this->urls->personFeed($type, $field, $profile->slug, $format->routeSuffix()) ?? '/',
-			$profile,
-			$query
-		);
-	}
-
-	/**
 	 * Builds a target's feed under a type's relation with an archive word
-	 * (D-596): the type's entries linking to it there.
+	 * (D-596, D-602): the type's entries linking to it there, such as a
+	 * person's under a credit.
 	 *
 	 * @throws InvalidQuery
 	 * @throws MarkdownException
@@ -130,7 +108,7 @@ final readonly class FeedBuilder
 
 		return $this->feed(
 			$format,
-			"{$target->title} | {$type->labels->plural}",
+			"{$target->title} | " . ($relation->label === '' ? ucfirst(str_replace('_', ' ', $relation->name)) : $relation->label) . " | {$type->labels->plural}",
 			$this->urls->related($type, $relation, $target->slug) ?? '/',
 			$this->urls->relatedFeed($type, $relation, $target->slug, $format->routeSuffix()) ?? '/',
 			$target,
@@ -147,8 +125,8 @@ final readonly class FeedBuilder
 	 */
 	public function profile(Profiles $profiles, Entry $profile, FeedFormat $format): Feed
 	{
-		$crediting = array_keys($this->types->crediting());
-		$query     = $this->query($profiles, ['type' => $crediting === [] ? $profiles->name : $crediting])->whereTerm($profiles->name, $profile->slug);
+		$types = $this->types->termArguments($profiles->name)['type'] ?? [];
+		$query = $this->query($profiles, ['type' => $types === [] ? $profiles->name : $types])->whereAnyTerm($this->types->termKeys($profiles->name), $profile->slug);
 
 		return $this->feed(
 			$format,
@@ -219,7 +197,7 @@ final readonly class FeedBuilder
 
 		$feed       = $entry->type->feed;
 		$profiles   = $this->types->profiles()?->name;
-		$byline     = array_first($entry->type->people);
+		$byline     = $this->types->byline($entry->type->name)?->termKey();
 		$taxonomies = $feed !== false && $feed->categories !== null
 			? [$feed->categories]
 			: array_values(array_filter(array_keys($entry->terms), fn (string $taxonomy): bool => $this->types->classification($taxonomy) !== null));
@@ -232,14 +210,14 @@ final readonly class FeedBuilder
 			updated: $entry->updated,
 			content: $this->config->content ? $entry->body() : '',
 			summary: $entry->excerpt(),
-			authors: $profiles === null || $byline === null ? [] : $this->titles($entry, [$byline->termKey($profiles)], $profiles),
+			authors: $profiles === null || $byline === null ? [] : $this->titles($entry, [$byline], $profiles),
 			categories: $this->titles($entry, $taxonomies)
 		);
 	}
 
 	/**
 	 * Returns the titles of an entry's terms in some taxonomies (or under
-	 * some people fields' keys, given the profiles type, `$of`).
+	 * some credit relations' keys, given the profiles type, `$of`).
 	 *
 	 * @param  list<string> $taxonomies
 	 * @return list<string>

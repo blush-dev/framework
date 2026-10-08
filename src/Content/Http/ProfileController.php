@@ -52,9 +52,11 @@ final class ProfileController extends ContentController
 			return self::redirect($request, $url);
 		}
 
-		$crediting = array_keys($this->types->crediting());
-		$query     = $this->query($profiles->listing->arguments(), ['type' => $crediting === [] ? $profiles->name : $crediting], self::collectionArguments($profile))
-			->whereTerm($profiles->name, $profile->slug);
+		// What credits them, through each credit relation whose page is on
+		// (D-602), as a term's page lists what's filed under it.
+		$types = $this->types->termArguments($profiles->name)['type'] ?? [];
+		$query = $this->query($profiles->listing->arguments(), ['type' => $types === [] ? $profiles->name : $types], self::collectionArguments($profile))
+			->whereAnyTerm($this->types->termKeys($profiles->name), $profile->slug);
 
 		return $this->renderer->render(new ContentPage(
 			kind: PageKind::Profile,
@@ -63,7 +65,7 @@ final class ProfileController extends ContentController
 			type: $profiles,
 			entries: $this->paginate($query, $page),
 			pageUrl: fn (int $number): ?string => $this->urls->profile($profile->slug, $number),
-			profile: $profile
+			target: $profile
 		), $request);
 	}
 }

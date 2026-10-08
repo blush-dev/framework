@@ -95,7 +95,7 @@ shows any conflicts.
 ### Every URL on the site
 
 `Blush\Routing\SiteUrls` lists every page Blush knows about: entries,
-listings and their terms, date archives, people archives and profiles,
+listings and their terms, date archives, relation archives and profiles,
 feeds, sitemaps, `robots.txt`, `llms.txt` and the Markdown pages, and
 redirects. It's for code that needs to visit every page, such as a
 static site exporter, a cache warmer, or a link checker. Blush doesn't
@@ -1078,12 +1078,11 @@ final class ContentTypes implements ContentTypeSource
 			listing: new Listing(orderBy: 'published', order: Order::Desc)
 		);
 
-		// Cuisines are terms: ordered by position, with no authors.
+		// Cuisines are terms: ordered by position.
 		yield new Collection(
 			'cuisine',
 			folder: 'recipes/cuisines',
 			order: TypeOrder::Position,
-			people: false,
 			llms: false
 		);
 	}

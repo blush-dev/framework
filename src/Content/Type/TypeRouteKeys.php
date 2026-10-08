@@ -29,8 +29,8 @@ use Blush\Routing\RoutePattern;
  * - A term type's `single` keys (one a classify relation files entries
  *   under, D-593), and the profiles type's, hold `{name}`.
  * - Date archives hold the date's parts down to their level.
- * - A people field's `{field}.single` keys hold `{profile}` (D-351).
- * - A relation archive's `{relation}.single` keys hold `{target}` (D-596).
+ * - A relation archive's `{relation}.single` keys hold `{target}` (D-596),
+ *   a credit's included (D-602).
  * - `.paged` keys add `{page}`.
  */
 final readonly class TypeRouteKeys
@@ -38,11 +38,9 @@ final readonly class TypeRouteKeys
 	/**
 	 * Returns the route keys a type answers at, in the order the admin
 	 * lists them: its listing, date archives, entries, feeds, then each
-	 * people field's archives. `$home` drops the listing (the homepage
+	 * relation's archives. `$home` drops the listing (the homepage
 	 * is it), `$feeds` are the feed formats' route suffixes (`''`,
-	 * `.atom`, `.json`), `$profiles` says whether the site has a
-	 * profiles type, without which there are no people archives, and
-	 * `$terms` whether the type's entries are terms with pages of their
+	 * `.atom`, `.json`), and `$terms` whether the type's entries are terms with pages of their
 	 * own (`ContentTypes::hasTermPages()`), paged and with feeds. The
 	 * profiles type answers only at its profiles' pages and feeds.
 	 * `$relations` names the relations with archives under the type
@@ -52,7 +50,7 @@ final readonly class TypeRouteKeys
 	 * @param  list<string> $relations
 	 * @return list<string>
 	 */
-	public static function keys(ContentType $type, bool $home, array $feeds, bool $profiles, bool $terms = false, array $relations = []): array
+	public static function keys(ContentType $type, bool $home, array $feeds, bool $terms = false, array $relations = []): array
 	{
 		if (! $type->hasUrls()) {
 			return [];
@@ -74,14 +72,6 @@ final readonly class TypeRouteKeys
 		if ($type->hasFeed()) {
 			foreach ($feeds as $suffix) {
 				array_push($keys, "collection.feed{$suffix}", ...($taxonomy ? ["single.feed{$suffix}"] : []));
-			}
-		}
-
-		foreach ($profiles ? $type->archivedPeople() : [] as $field) {
-			array_push($keys, "{$field->field}.collection", "{$field->field}.single", "{$field->field}.single.paged");
-
-			foreach ($type->hasFeed() ? $feeds : [] as $suffix) {
-				$keys[] = "{$field->field}.single.feed{$suffix}";
 			}
 		}
 
@@ -115,12 +105,9 @@ final readonly class TypeRouteKeys
 		$required = [];
 		$optional = [];
 
-		$people   = array_find($type->people, static fn (PeopleField $field): bool => str_starts_with($base, "{$field->field}.single"));
 		$relation = array_find($relations, static fn (string $relation): bool => str_starts_with($base, "{$relation}.single"));
 
-		if ($people !== null) {
-			$required = ['profile'];
-		} elseif ($relation !== null) {
+		if ($relation !== null) {
 			$required = ['target'];
 		} elseif ($base === 'single' && ! in_array($type->name, $taxonomies, true)) {
 			$required = ['name'];

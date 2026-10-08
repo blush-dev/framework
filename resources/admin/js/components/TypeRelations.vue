@@ -20,7 +20,8 @@ import AdminIcon from './AdminIcon.vue';
 import RelationForm from './RelationForm.vue';
 import { request, type ContentTypeDetail, type RelationInfo } from '../api';
 import { useAction } from '../action';
-import { confirmAction } from '../confirm';
+import { confirmAction, confirmChecked } from '../confirm';
+import { plural } from '../format';
 import { toast } from '../toast';
 import { canCreateTypes, refreshTypes, types } from '../types';
 
@@ -41,14 +42,19 @@ const rows = computed(() => props.type.relations.map((relation) => {
 	const isTarget = relation.to.includes(here);
 	const filed    = relation.kind === 'classify';
 
+	const credit   = relation.kind === 'credit';
+	const label    = relation.label || relation.name;
+
 	const title = filed
 		? (isTarget ? `Files ${relation.from.length === 0 ? 'every type' : listOf(relation.from)}` : `Filed under ${labelOf(relation.to[0] ?? '')}`)
-		: (isTarget && !relation.from.includes(here) ? `${listOf(relation.from)} link here` : `Links to ${listOf(relation.to)}`);
+		: (credit
+			? (isTarget ? `Credited by ${relation.from.length === 0 ? 'every type' : listOf(relation.from)} as ${label.toLowerCase()}` : `Credits ${label.toLowerCase()}`)
+			: (isTarget && !relation.from.includes(here) ? `${listOf(relation.from)} link here` : `Links to ${listOf(relation.to)}`));
 
 	const asks = [
 		relation.multiple ? (relation.ordered ? 'several, in order' : 'several') : 'one',
 		...(filed && relation.create ? ['added as typed'] : []),
-		...(filed && relation.inverse !== false && relation.inverse.archive === true ? ['each term has a page'] : [])
+		...(filed && relation.inverse !== false && relation.inverse.page ? ['each term has a page'] : [])
 	];
 
 	return { relation, title, sub: `Written as ${relation.field} · ${asks.join(' · ')}`, required: relation.min > 0 };
@@ -69,14 +75,32 @@ function edit(relation: RelationInfo): void {
 }
 
 async function remove(relation: RelationInfo, title: string): Promise<void> {
-	if (!await confirmAction({ title: 'Remove the Relationship?', body: [`**${title}** is removed from user/data/relations.`, 'Entries keep what they name in their files, but the site stops reading it as a link.'], confirm: 'Remove It', danger: true })) {
+	const name    = encodeURIComponent(relation.name);
+	const entries = await request<{ entries: number }>('GET', `/relations/${name}/uses`).then((answer) => answer.entries, () => 0);
+	const body    = [`**${title}** is removed from user/data/relations, and the site stops reading it as a link.`];
+
+	// Entries keep their values unless asked (D-600): kept, the
+	// relationship can come back as it was.
+	const strip = entries === 0
+		? (await confirmAction({ title: 'Remove the Relationship?', body: [...body, 'No entry has a value in it.'], confirm: 'Remove It', danger: true }) ? false : null)
+		: await confirmChecked({
+			title: 'Remove the Relationship?',
+			body: [...body, `**${plural(entries, 'entry has', 'entries have')} values in it**, under \`${relation.field}\`. Kept, they stay in their files, so adding the relationship again brings the links back.`],
+			check: `Also remove them, with their ids, from ${entries === 1 ? 'that entry' : `those ${entries} entries`}`,
+			checked: false,
+			confirm: 'Remove It',
+			danger: true
+		});
+
+	if (strip === null) {
 		return;
 	}
 
 	await run('The relationship couldn\'t be removed.', async () => {
-		await request('DELETE', `/relations/${encodeURIComponent(relation.name)}`);
+		const answer = await request<{ deleted: string; stripped: number }>('DELETE', `/relations/${name}${strip ? '?strip=1' : ''}`);
+
 		refreshTypes();
-		toast('Removed the relationship', { kind: 'danger' });
+		toast(answer.stripped > 0 ? `Removed the relationship, and its values from ${plural(answer.stripped, 'entry', 'entries')}` : 'Removed the relationship', { kind: 'danger' });
 		emit('changed');
 	});
 }
@@ -94,7 +118,7 @@ async function remove(relation: RelationInfo, title: string): Promise<void> {
 		<ul v-if="rows.length" class="rows">
 			<li v-for="row in rows" :key="row.relation.name">
 				<div class="rows__item">
-					<AdminIcon class="rows__icon" :name="row.relation.kind === 'classify' ? 'tag' : 'link'" />
+					<AdminIcon class="rows__icon" :name="row.relation.kind === 'classify' ? 'tag' : (row.relation.kind === 'credit' ? 'user' : 'link')" />
 					<div class="rows__main">
 						<span class="rows__title">{{ row.title }} <span v-if="row.required" class="tag">Required</span></span>
 						<span class="rows__sub">{{ row.sub }}</span>

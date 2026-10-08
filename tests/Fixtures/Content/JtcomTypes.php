@@ -40,14 +40,12 @@ final class JtcomTypes
 				'path'       => 'topics',
 				'collection' => ['number' => 9999],
 				'order'      => 'position',
-				'people'     => false,
 				'llms'       => false
 			],
 			'era' => [
 				'path'       => 'eras',
 				'collection' => ['order' => 'desc', 'number' => 9999],
 				'order'      => 'position',
-				'people'     => false,
 				'llms'       => false
 			],
 			'literature' => [
@@ -57,19 +55,16 @@ final class JtcomTypes
 			'literary_form' => [
 				'path'   => 'writing/forms',
 				'order'  => 'position',
-				'people' => false,
 				'llms'   => false
 			],
 			'literary_genre' => [
 				'path'   => 'writing/genres',
 				'order'  => 'position',
-				'people' => false,
 				'llms'   => false
 			],
 			'literary_technique' => [
 				'path'   => 'writing/techniques',
 				'order'  => 'position',
-				'people' => false,
 				'llms'   => false
 			]
 		];
@@ -83,7 +78,7 @@ final class JtcomTypes
 	 */
 	public static function relations(): array
 	{
-		$relation = static fn (string $from, array $listing): array => ['kind' => 'classify', 'from' => [$from], 'to' => [], 'create' => true, 'inverse' => ['archive' => true, 'listing' => $listing]];
+		$relation = static fn (string $from, array $listing): array => ['kind' => 'classify', 'from' => [$from], 'to' => [], 'create' => true, 'inverse' => ['page' => true, 'listing' => $listing]];
 		$relations = [
 			'category'           => $relation('post', ['order' => 'desc']),
 			'era'                => $relation('post', ['order' => 'desc']),
@@ -95,6 +90,9 @@ final class JtcomTypes
 		foreach ($relations as $name => $definition) {
 			$relations[$name]['to'] = [$name];
 		}
+
+		// Posts and writing credit authors (D-602).
+		$relations['authors'] = ['kind' => 'credit', 'from' => ['post', 'literature'], 'to' => ['profile'], 'aliases' => ['author']];
 
 		return $relations;
 	}

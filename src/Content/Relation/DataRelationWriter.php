@@ -140,6 +140,11 @@ final readonly class DataRelationWriter
 	{
 		$data = array_diff_key($relation->toArray(), ['name' => true]);
 
+		// A JSON file keeps the schema it names for editors.
+		$was    = is_file($path) && str_ends_with($path, '.json') ? json_decode((string) file_get_contents($path), true) : null;
+		$schema = is_array($was) && is_string($was['$schema'] ?? null) ? $was['$schema'] : null;
+		$data   = $schema === null ? $data : ['$schema' => $schema, ...$data];
+
 		try {
 			$contents = str_ends_with($path, '.json')
 				? json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR) . "\n"

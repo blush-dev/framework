@@ -16,6 +16,7 @@ namespace Blush\View;
 use Blush\Content\Entry\Entry;
 use Blush\Content\Http\ContentPage;
 use Blush\Content\Http\PageKind;
+use Blush\Content\Type\Profiles;
 use Blush\Content\Type\TypeKind;
 
 /**
@@ -36,16 +37,12 @@ use Blush\Content\Type\TypeKind;
  *   `collection`.
  * - **Date archive:** `archive-date-{type}` → `archive-date` →
  *   `collection`.
- * - **People** (a type's people field, D-351): `people-{type}-{field}`
- *   → `people-{field}` → `people` → `collection`.
- * - **Person** (an archive under a people field):
- *   `person-{type}-{field}` → `person-{field}` → `person` → `profile`
- *   → `collection`.
  * - **Related list** (what a type's relation with an archive word links
  *   to, D-596): `related-list-{type}-{relation}` → `related-list-{relation}`
  *   → `related-list` → `collection`.
  * - **Related** (a target's archive under it): `related-{type}-{relation}`
- *   → `related-{relation}` → `related` → `term` → `collection`.
+ *   → `related-{relation}` → `related` → `term` (`profile` for a person's
+ *   archive under a credit, D-602) → `collection`.
  * - **Profile** (a profile's own page): `profile-{slug}` → `profile` →
  *   `collection`.
  * - **Home:** `home`, then the hierarchy of what it shows.
@@ -76,10 +73,8 @@ final readonly class Hierarchy
 		$names = match ($page->kind) {
 			PageKind::Welcome    => ['welcome'],
 			PageKind::Home       => ['home', ...self::forKind($page->base ?? PageKind::Page, $name, $kind, $entry, $terms)],
-			PageKind::People     => ["people-{$name}-{$page->people?->field}", "people-{$page->people?->field}", 'people', 'collection'],
-			PageKind::Person     => ["person-{$name}-{$page->people?->field}", "person-{$page->people?->field}", 'person', 'profile', 'collection'],
 			PageKind::RelatedList => ["related-list-{$name}-{$page->relation?->name}", "related-list-{$page->relation?->name}", 'related-list', 'collection'],
-			PageKind::Related    => ["related-{$name}-{$page->relation?->name}", "related-{$page->relation?->name}", 'related', 'term', 'collection'],
+			PageKind::Related    => ["related-{$name}-{$page->relation?->name}", "related-{$page->relation?->name}", 'related', $page->target?->type instanceof Profiles ? 'profile' : 'term', 'collection'],
 			PageKind::Profile    => [...($entry === null ? [] : ["profile-{$entry->slug}"]), 'profile', 'collection'],
 			default              => self::forKind($page->kind, $name, $kind, $entry, $terms)
 		};

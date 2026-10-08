@@ -34,8 +34,9 @@ use Blush\Support\Slug;
  * entries, whether or not they may edit the entries listed (an author
  * files a post under a category they can't edit). Each item is the
  * `slug` a reference stores, its `title`, its `status`, its `parent`'s
- * slug (or `null`), and for terms how many published entries use it
- * (`uses`; else `null`). A type a classify relation files entries
+ * slug (or `null`), for terms how many published entries use it
+ * (`uses`; else `null`), and its `image` and publish `date` (`Y-m-d`)
+ * or `null`, for the picker's cards (D-599). A type a classify relation files entries
  * under answers `create` as the relation says, since the picker writes
  * a new term's file as it's typed (D-584, D-593); other types'
  * references must name an entry.
@@ -171,6 +172,8 @@ final readonly class ReferencesController
 			'parent'  => $this->content->parentKey($entry->type->name, $entry->key),
 			'position' => $entry->type instanceof Tree ? Position::of($entry) : null,
 			'uses'    => $taxonomy ? ($counts[$entry->key] ?? 0) : null,
+			'image'   => is_string($image = $entry->field('image')) && $image !== '' ? $image : null,
+			'date'    => $entry->published?->format('Y-m-d'),
 			'depth'   => null,
 			'missing' => false
 		];

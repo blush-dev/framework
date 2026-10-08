@@ -6,7 +6,7 @@
  * that's blank or back at its default is simply sent.
  */
 
-import type { ContentTypeDetail, FieldDescription, PeopleFieldInfo } from './api';
+import type { ContentTypeDetail, FieldDescription } from './api';
 
 export type TypeKind = 'collection' | 'tree';
 
@@ -23,15 +23,12 @@ export interface TypeForm {
 	// off for a new type of terms (D-401).
 	llms: boolean;
 	feed: boolean;
-	// Whether entries credit authors, and whether those authors have
-	// archives under the type, at a word (`''` for `authors`; D-329). The
-	// new-type wizard's shortcut for the `authors` people field.
+	// The new-type wizard's: whether the type joins the `authors` credit
+	// relation (D-602), sent beside the options, not among them.
 	authors: boolean;
-	authorArchives: boolean;
-	authorsWord: string;
-	// Every people field, as the type editor edits them (D-353); `null`
-	// in the wizard, which uses the shortcut above.
-	people: PeopleForm[] | null;
+	// The credit relation that's its byline, `''` for its only one
+	// (D-602).
+	byline: string;
 	// A collection's: `none`, `year`, `month`, `day`, … (`DateArchives`).
 	dateArchives: string;
 	// Its file name pattern (D-511, any kind, D-514), `''` for the
@@ -48,81 +45,15 @@ export interface TypeForm {
 }
 
 /**
- * One people field as a form (D-353).
- */
-export interface PeopleForm {
-	// The front matter key, fixed once saved.
-	field: string;
-	plural: string;
-	singular: string;
-	aliases: string[];
-	// Whether it has archives, at a word (`''` for the field's name).
-	archives: boolean;
-	word: string;
-	multiple: boolean;
-	required: boolean;
-	// Whether it's been added here and not saved yet.
-	added: boolean;
-}
-
-/**
- * The word a people field's archives sit under, `false` for none.
- */
-export function peopleWordOf(field: PeopleForm): string | false {
-	return field.archives ? (field.word.trim().replace(/^\/+|\/+$/g, '') || field.field) : false;
-}
-
-/**
- * The `people` option a form's fields write: `false` for none, else each
- * field's settings by its key.
- */
-export function peopleValueOf(people: PeopleForm[]): Record<string, unknown> | false {
-	return people.length === 0 ? false : Object.fromEntries(people.map((item) => [item.field, {
-		plural: item.plural.trim(),
-		singular: item.singular.trim(),
-		aliases: item.aliases,
-		archive: peopleWordOf(item),
-		multiple: item.multiple,
-		required: item.required
-	}]));
-}
-
-function peopleFormOf(item: PeopleFieldInfo): PeopleForm {
-	return {
-		field: item.field,
-		plural: item.plural,
-		singular: item.singular,
-		aliases: [...item.aliases],
-		archives: item.archive !== false,
-		word: item.archive === false || item.archive === item.field ? '' : item.archive,
-		multiple: item.multiple,
-		required: item.required,
-		added: false
-	};
-}
-
-/**
  * The field a featured image is (D-281): a media field named `image`.
  */
 export const FEATURED: FieldDescription = { name: 'image', type: 'media', label: 'Featured image', kind: 'image' };
 
 /**
- * The word author archives sit under unless a type says otherwise.
- */
-export const AUTHORS = 'authors';
-
-/**
- * The word a form's author archives sit under, `false` for none.
- */
-export function authorsWordOf(form: TypeForm): string | false {
-	return form.authorArchives ? (form.authorsWord.trim().replace(/^\/+|\/+$/g, '') || AUTHORS) : false;
-}
-
-/**
  * A new type's form.
  */
 export function emptyForm(): TypeForm {
-	return { singular: '', plural: '', description: '', icon: '', prefix: '', public: true, sitemap: true, llms: true, feed: false, authors: true, authorArchives: true, authorsWord: '', people: null, dateArchives: 'none', filename: '', hierarchical: false, order: 'published', fields: [], paths: {} };
+	return { singular: '', plural: '', description: '', icon: '', prefix: '', public: true, sitemap: true, llms: true, feed: false, authors: true, byline: '', dateArchives: 'none', filename: '', hierarchical: false, order: 'published', fields: [], paths: {} };
 }
 
 /**
@@ -142,9 +73,7 @@ export function formOf(type: ContentTypeDetail): TypeForm {
 		llms: type.llms,
 		feed: type.feed,
 		authors: type.authors,
-		authorArchives: typeof type.authorsWord === 'string',
-		authorsWord: typeof type.authorsWord === 'string' && type.authorsWord !== AUTHORS ? type.authorsWord : '',
-		people: type.people.map(peopleFormOf),
+		byline: type.byline ?? '',
 		dateArchives: type.dateArchives,
 		filename: type.filename ?? '',
 		hierarchical: type.hierarchical,
@@ -192,31 +121,24 @@ export function changesOf(form: TypeForm, initial: TypeForm | null, kind: TypeKi
 		sitemap: form.sitemap,
 		llms: form.llms,
 		...(kind === 'tree' ? {} : { feed: form.feed }),
-		...(form.people === null ? { authors: form.authors } : { people: peopleValueOf(form.people) }),
+		byline: form.byline || null,
 		fields: form.fields,
 		filename: form.filename || null,
 		...(kind === 'collection' ? { dateArchives: form.dateArchives === 'none' ? null : form.dateArchives } : {}),
 		...(kind === 'collection' ? { hierarchical: form.hierarchical, order: form.order === 'published' ? null : form.order } : {})
 	};
 
-	// The author word is a URL setting, so it's sent only when it changes
-	// (a site may not let data types set URLs), and the default as `null`.
-	// The type editor's people fields carry their words themselves.
-	const word = form.people === null ? authorsWordOf(form) : AUTHORS;
-
 	if (initial === null) {
-		return word === AUTHORS ? all : { ...all, authorsWord: word };
+		return all;
 	}
 
 	const before = changesOf(initial, null, kind);
-	const was    = initial.people === null ? authorsWordOf(initial) : AUTHORS;
 	const paths  = Object.fromEntries(Object.entries(form.paths)
 		.filter(([key, path]) => pathOf(path) !== pathOf(initial.paths[key] ?? ''))
 		.map(([key, path]) => [key, pathOf(path) || null]));
 
 	return {
 		...Object.fromEntries(Object.entries(all).filter(([key, value]) => JSON.stringify(value) !== JSON.stringify(before[key]))),
-		...(word === was ? {} : { authorsWord: word === AUTHORS ? null : word }),
 		...(Object.keys(paths).length > 0 ? { paths } : {})
 	};
 }

@@ -51,7 +51,7 @@ final class AdminEditingTest extends TestCase
 	private function site(array $roles = ['editor'], array $types = []): void
 	{
 		$types = ['post' => ['path' => '_posts', 'date_archives' => true, 'routing' => ['prefix' => 'archives']], ...$types];
-		$this->writeTemporaryFile('config/content.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn Blush\\Content\\Type\\ContentConfig::fromArray(['types' => " . var_export($types, true) . "]);\n");
+		$this->writeTemporaryFile('config/content.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn Blush\\Content\\Type\\ContentConfig::fromArray(['types' => " . var_export($types, true) . ", 'relations' => ['authors' => ['kind' => 'credit', 'from' => ['post'], 'to' => ['profile'], 'aliases' => ['author']]]]);\n");
 		$this->writeTemporaryFile('user/content/' . self::FLAME, "---\ntitle     : \"Rekindling the Flame\"\nauthors   : jane\ndate      : 2022-03-29 23:00:00 -6\nmood      : hopeful\nid        : " . self::FLAME_ID . "\n---\n\nThe body.\n");
 		$this->writeTemporaryFile('user/content/_posts/2023-01-01.idea.md', "---\ntitle: An Idea\nauthors: jane\nstatus: draft\n---\n");
 		$this->writeTemporaryFile('user/content/_posts/2021-05-05.sams.md', "---\ntitle: Sam's Post\nauthors: sam\npublished: 2021-05-05 09:00:00 -05:00\n---\n");
@@ -570,6 +570,7 @@ final class AdminEditingTest extends TestCase
 	public function testBulkChangesSkipWhatCantChange(): void
 	{
 		$this->writeTemporaryFile('user/data/types/review.json', '{"folder": "reviews", "fields": [{"name": "rating", "type": "number", "required": true, "label": "Rating"}]}');
+		$this->writeTemporaryFile('user/data/relations/authors.json', '{"kind": "credit", "from": ["post", "review"], "to": ["profile"], "aliases": ["author"]}');
 		$this->writeTemporaryFile('user/content/reviews/rated.md', "---\ntitle: Rated\nauthors: jane\nrating: 4\nstatus: draft\n---\n");
 		$this->writeTemporaryFile('user/content/reviews/unrated.md', "---\ntitle: Unrated\nauthors: jane\nstatus: draft\n---\n");
 		$this->site(['author']);

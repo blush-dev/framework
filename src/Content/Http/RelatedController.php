@@ -15,6 +15,7 @@ namespace Blush\Content\Http;
 
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
+use Blush\Content\Entry\Entry;
 use Blush\Content\Query\InvalidQuery;
 use Blush\Content\Relation\Relation;
 use Blush\Content\Type\ContentType;
@@ -23,10 +24,16 @@ use Blush\Http\NotFound;
 
 /**
  * Serves a target's archive under a type's relation with an archive word
- * (`{type}.{relation}.single` and `.single.paged`, D-596), such as
- * `/movies/actors/tom`: the entries of that type linking to it through
- * that relation, listed as the type's listing lists, introduced by the
- * target's own entry. A target nothing links to there has no archive.
+ * (`{type}.{relation}.single` and `.single.paged`, D-596, D-602), such as
+ * `/movies/directors/penny` or `/recipes/cooks/jane`: the entries of that
+ * type linking to it through that relation, listed as the type's listing
+ * lists. What introduces it resolves in order:
+ *
+ * 1. the page written for this archive, `_{word}/{slug}` in the type's
+ *    folder (`_cooks/jane.md`), when it's published;
+ * 2. the target's own entry (a profile's bio).
+ *
+ * A target nothing links to there has no archive.
  */
 final class RelatedController extends ContentController
 {
@@ -61,15 +68,36 @@ final class RelatedController extends ContentController
 			return self::redirect($request, $url);
 		}
 
+		$written = self::page($this->content->named($contentType->name, self::word($archived) . "/{$entry->slug}"));
+
 		return $this->renderer->render(new ContentPage(
 			kind: PageKind::Related,
-			title: $entry->title,
-			entry: $entry,
+			title: $written !== null && $written->title !== '' ? $written->title : $entry->title,
+			entry: $written ?? $entry,
 			type: $contentType,
 			entries: $this->paginate($query, $page),
 			pageUrl: fn (int $number): ?string => $this->urls->related($contentType, $archived, $entry->slug, $number),
-			relation: $archived
+			relation: $archived,
+			target: $entry
 		), $request);
+	}
+
+	/**
+	 * Returns the key, in a type's folder, of a relation archive's own
+	 * pages: `_{word}` introduces its list, and `_{word}/{slug}` one
+	 * target's archive (D-602).
+	 */
+	public static function word(Relation $relation): string
+	{
+		return '_' . ($relation->inverse === false ? $relation->name : (string) $relation->inverse->archive);
+	}
+
+	/**
+	 * Returns an archive's own page when it's published.
+	 */
+	public static function page(?Entry $entry): ?Entry
+	{
+		return $entry !== null && $entry->isPublished() ? $entry : null;
 	}
 
 	/**

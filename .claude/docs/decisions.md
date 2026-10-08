@@ -17716,3 +17716,210 @@ decision, add a new entry that supersedes it and mark the old one
 - **Checked:** `composer check` (`AdminRelationsTest`: referrers, delete
   with and without unlinking, the trash and an inverse limit);
   `npm run admin:build` (admin.js 821 KB, CSS 176 KB).
+
+### D-599: D-585's third stage: relation controls follow the relation
+- **Date:** 2026-10-07
+- **Status:** Built.
+- **Decision:** The author took the recommendations, small ones first.
+  The editor's reference picker (D-281) already has D-585's shapes (a
+  tree of checkboxes, tokens that create, a people list, a select);
+  what's missing is the relation driving it:
+  1. **`create` is the relation's**, not the type's, in the picker and
+     when the server creates.
+  2. **Limits show:** a count against `max` ("2 of 4"), no more taken
+     at `max`, and `min` above 1 said as required is.
+  3. **`ordered` relations reorder** (tokens and people): dragging, and
+     moving with the keyboard.
+  4. **A translation shows what it uses from its original** (the
+     `fallback` and `add` rules), dimmed, when it has none of its own.
+  5. Then **Linked From**, read-only in the document panel, and
+     **cards** for picking entries (a variant of the token field), and a
+     server-named `control` per relation once cards make it a choice;
+     the last two may want a sketch first.
+- **Why:** the author's answers, 2026-10-07.
+- **Built (parts 1 to 4):** each field an entry's type describes carries
+  its relation (`relation`: `name`, `ordered`, `min`, `max`, `create`;
+  a single relation's `max` is 1), and an entry its translation's
+  `inherited` values by field (`rule`, `values`; none for `own`). The
+  picker takes `create` from the relation (else the type's classify
+  relation, as before), counts against `max` and stops taking values at
+  it (input and unticked boxes disabled), says a `min` above one, and
+  reorders an `ordered` relation's chips and people by dragging or ⌥ and
+  the arrow keys (`reorder.ts`, the admin's first drag); a translation's
+  inherited values show dimmed and dashed. The editor's publish check
+  counts a `min` above one.
+- **Checked (parts 1 to 4):** `composer check` (`AdminRelationsTest`:
+  the field's relation and a translation's inherited values);
+  `npm run admin:build` (admin.js 824 KB, up 3 KB; CSS 177 KB). The
+  picker wasn't exercised in a browser.
+- **Built (part 5, from existing pieces, at the author's call):**
+  - `RelationControl` (`tree`, `tokens`, `people`, `select`, `cards`), a
+    relation's optional `control`, and `Relation::control($nests)`: its
+    own when its shape can draw it, else its shape's (credits people,
+    one target a select, a nesting classify a tree, other classify
+    tokens, other references cards). Each field's `relation` carries it,
+    and the picker obeys it.
+  - **Cards:** the token field's search results drawn as the people
+    picker's rows (an image, or initials; the title; date, status, and
+    slug); `GET references/{type}` items carry `image` and `date`.
+    Chosen values stay chips.
+  - **Linked From:** an `OptionsGroup` in the document panel, from
+    `Referrers::grouped()` (`linkedFrom` on an entry: each relation's
+    key, labels, count, and first five), each entry linking to its
+    editor.
+- **Checked (part 5):** `composer check` (1770 tests; `RelationTest`
+  for controls, `AdminRelationsTest` for `control` and `linkedFrom`);
+  `npm run admin:build` (admin.js 825 KB, CSS 177 KB).
+- **Since built, the Relationships form** (`RelationForm`) edits every
+  option the model has, for both purposes: a label (**Called**), one or
+  several, ordered, created as typed, both ways (a link to its own
+  type), `min`, `max`, the inverse's `max`, **Picked with** (`control`),
+  the translations rule, where what links to a target is listed (the
+  inverse's `archive`: its page, a word, or nowhere, for terms too), and
+  the inverse's label. `GET relations` adds `translations` and
+  `control`. Checked: `composer check` (1771 tests;
+  `AdminRelationsTest` round-trips every option); `npm run admin:build`
+  (admin.js 829 KB). The form wasn't exercised in a browser.
+
+
+### D-600: Changing a relation that's in use
+- **Date:** 2026-10-07
+- **Status:** Built.
+- **Decision:** The author took the recommendation for each case:
+  1. **Pointing at another type** is refused while any entry has a
+     value, saying how many; a new relation is made instead.
+  2. **Several to one** is refused while any entry has more than one,
+     naming them. One to several is always allowed.
+  3. **A new key** is offered in the form: the old key becomes an alias,
+     so no file changes, unless "rewrite the files" is chosen, which
+     moves each entry's values to the new key. **The name** isn't
+     changed in the form: templates and queries name it (D-595).
+  4. **Removing a relation** says how many entries have values, and
+     offers (unchecked) to remove them, with their ids, from the files.
+  5. **Unfiling a type** (taking it out of a relation's `from`) does the
+     same for that type's entries.
+  6. **Tightening limits** (`min` up, `max` or the inverse's `max` down)
+     warns with how many live entries would be out of them; it isn't
+     refused.
+  7. **A plugin's relation going away** leaves the files as they are,
+     so turning it on again restores the links.
+  - One service does the rewriting, for the admin and a CLI command
+    (D-478).
+- **Why:** the author's answers, 2026-10-07.
+- **Built:** `Relation\RelationChanges` (`uses()`, `check()` →
+  `RelationCheck`, `apply()`, `strip()`, `moveKey()`), used by
+  `TypeEditController` (`POST relations/{name}/check`, `GET
+  relations/{name}/uses`, `PATCH` with `rewrite`/`strip`, `DELETE
+  ?strip=1`) and `content:relation`. The form shows Key for existing
+  relations (terms too), checks a change before saving, and asks with
+  `confirmChecked()` (now with `checked`, unchecked at first for these);
+  Remove says how many entries have values. Only data relations are
+  changed; one from code is changed where it's defined.
+- **Checked:** `composer check` (1777 tests; `AdminRelationsTest`
+  refusals, warnings, keys, unfiling, removing; `ChangeRelationTest`);
+  `npm run admin:build` (admin.js 832 KB).
+
+### D-601: Relations' small cleanups; maintenance and output later
+- **Date:** 2026-10-07
+- **Status:** Built (the schema and bulk warnings); one cleanup waits on
+  the author.
+- **Decision:** After D-600, the author:
+  - **Later:** term maintenance (merging terms, bulk filing) and output
+    (structured data, feeds, `llms.txt`, the content API's includes);
+    neither affects the site's pages now, which show terms, credits,
+    reverse archives, and related entries through templates.
+  - **Now, the small cleanups:**
+    - **`relation.schema.json`** (`JsonSchemas::relation()`), for files
+      in `user/data/relations`; `DataRelationWriter` keeps a JSON
+      file's `"$schema"` when it saves one.
+    - **Bulk warnings:** a bulk move to draft or the trash says which of
+      the entries live entries link to, and how many each (`POST
+      entries/referrers`, `confirmLeavingMany()`), as one entry's move
+      does (D-598).
+  - **Asked, not built:** moving people fields' archives onto their
+    credit relation's inverse, since they carry what relation archives
+    don't (the `_{field}` list page, a person's written page, the bio
+    fallback, `person-*` templates, byline URLs). Answered by D-602.
+- **Checked:** `composer check` (1779 tests; `JsonSchemasTest` checks the
+  schema covers every key a relation writes, `AdminRelationsTest` the
+  bulk endpoint); `npm run admin:build` (admin.js 833 KB).
+
+
+### D-602: People fields become credit relations; one archive mechanism
+- **Date:** 2026-10-07
+- **Status:** Built. The skeleton (`../blush` on `2.x`) still needs its
+  `user/data/relations/authors.json`.
+- **Decision:** The author: there are no 2.x sites, so no back-compat
+  for 2.x designs; do it right before shipping. Taking the
+  recommendations:
+  1. **Credits are relations.** A type's `people` fields are removed;
+     a credit is a relation of kind `credit` (to the profiles type),
+     defined where other relations are (`user/data/relations`, config,
+     plugins). The type screen's Profiles panel folds into
+     Relationships, whose form gains "Credits people".
+  2. **No implied `authors`.** Setup writes `user/data/relations/authors.json`
+     (credit, from the post type, to profiles); the new-type wizard's
+     authors choice adds the type to its `from` (D-390's "nothing on
+     until named").
+  3. **The byline is named:** a type's `byline` names its byline
+     relation; a type with one credit relation uses it without one.
+  4. **An inverse has two sides:** `page` (the target's own page lists
+     what links to it) and `archive` (a word for archives under each
+     source type, or none), both possible at once. Supersedes D-596's
+     single `archive` (true, a word, or false). A profile's own page is
+     a target page, as a term's is.
+  5. **Every word archive** gets what people archives had: an intro page
+     for the list (`_{word}.md` in the source type's folder), a written
+     page per target (`_{word}/{slug}.md`), and the target's own entry
+     as the fallback.
+  6. **One set of templates** for relation archives (`related-list-*`,
+     `related-*`); `people-*` and `person-*` go. Helpers: `related()`,
+     `referencedBy()`, `author()`, `profile()`, `avatar()`, and one
+     `archiveUrl()`; `people()`, `bylineUrl()`, `personUrl()`, and
+     `peopleUrl()` go.
+  7. Accounts linked to profiles stay an account setting (D-586).
+- **Why:** D-585's one model for every relationship; people archives
+  were the last part reading their own setting instead of the relation.
+- **Built:**
+  - **Model:** `PeopleField` and `ContentType::$people` are gone; a
+    type's `people` or `authors` option is refused at load, with a
+    message. `Relation::authors()` is the `authors` credit (reading
+    `author`). A credit is always `ordered`, adds a translation's
+    names to its original's by default, and goes to the profiles type
+    only (`ContentTypeLoader` refuses others). `Relation::$singular`
+    (made from the label). `ContentType::$byline`, checked against the
+    type's credits; `ContentTypes::credits()`, `byline()`,
+    `crediting()`. `Inverse` takes `page` and `archive` (a word or
+    `false`; `archive: true` is refused, pointing at `page`), and a
+    relation writes only what differs from its kind's defaults
+    (`page` for classify and credit, `archive` its name for credit).
+    `RecordBuilder` merges credits, and only credits, under the
+    profiles type's key.
+  - **Site:** `PeopleController`, `PersonController`, `PeopleArchives`,
+    `PageKind::People` and `Person` are gone. `RelatedController` and
+    `RelatedListController` read the `_{word}/{slug}` and `_{word}`
+    pages; `ContentPage::$target` replaces `$people` and `$profile`;
+    `ProfileList` lists profiles with pages. Feeds, the sitemap,
+    `og:type`, and bylines go through the byline relation. The
+    hierarchy's Related chain falls back to `profile` for a profile
+    target. Template helpers `byline()`, `credits()`, `archiveUrl()`
+    replace `people()`, `bylineUrl()`, `personUrl()`, `peopleUrl()`;
+    the default theme's `people.php` is `related-list.php`.
+  - **Admin:** `ArchivePages` (list and written pages of any relation
+    archive) replaces `PeoplePage`; the editor's `archive` and
+    `archivePage`, the entries list's `archivePage` and
+    `archiveLabel`. A type's screen has **Archives** (list pages, and
+    the byline when it has several credits) in place of Profiles;
+    `TypePeopleFields` is gone. The relationship form has **Credits
+    people** and separate page and archive checkboxes. The new-type
+    wizard's authors choice joins (or writes) `authors.json`.
+    Profiles' pages are by relation
+    (`profiles/{slug}/pages/{type}/{relation}`).
+  - **Trial site:** `config/content.php` credits authors through
+    `Relation::authors()`; the movie types lost `people`; the Second
+    Proof theme uses `byline()`, `archiveUrl()`, `related-list.php`,
+    and `$page->target`.
+  - **Docs:** content-types (Crediting people, People archives,
+    inverse `page`/`archive`, `byline`, `singular`), themes (helpers,
+    templates), admin (Archives, the form, the API), accounts,
+    content, extending, and coming-from-1x.

@@ -45,7 +45,7 @@ use Blush\Theme\Themes;
  *
  * - `types`: each content type the account may edit entries of, by name:
  *   how many entries its list shows the account (any status, without
- *   its index page, root page, or people pages, as `GET entries` counts
+ *   its index page, root page, or relation archive pages, as `GET entries` counts
  *   them).
  * - `actions`: how many actions the account may run, so the Tools screen
  *   is listed only with something on it (D-540).
@@ -76,7 +76,8 @@ final readonly class CountsController
 		private Themes $themes,
 		private IconPacks $iconPacks,
 		private AdminActions $actions,
-		private SiteHealth $health
+		private SiteHealth $health,
+		private ArchivePages $archivePages
 	) {}
 
 	public function __invoke(ServerRequestInterface $request): ResponseInterface
@@ -96,7 +97,7 @@ final readonly class CountsController
 
 			$query = $this->permissions->restrict($account, ContentAction::Edit, $this->content->query()->any()->type($type->name));
 			$query = $query->withLanding(false);
-			$query = $type instanceof Tree && $type->atRoot() ? $query : $query->exceptNames(...PeoplePage::listPages($type))->exceptIn(...PeoplePage::personFolders($type));
+			$query = $type instanceof Tree && $type->atRoot() ? $query : $query->exceptNames(...$this->archivePages->listPages($type))->exceptIn(...$this->archivePages->targetFolders($type));
 
 			$types[$type->name] = $query->count();
 		}

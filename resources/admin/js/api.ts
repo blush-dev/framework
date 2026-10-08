@@ -140,9 +140,9 @@ export interface EntrySummary {
 	authors: string[];
 	own: boolean;
 	// Whether it's its type's index page, pinned above the rest (D-255),
-	// or a people field's list page, pinned below that (D-329, D-353).
+	// or a relation archive's list page, pinned below that (D-329, D-602).
 	index: boolean;
-	authorsPage: boolean;
+	archivePage: boolean;
 	// The status it's the site's error page for, pinned at the top of
 	// Pages (D-411), or `null`.
 	errorPage: number | null;
@@ -153,8 +153,8 @@ export interface EntrySummary {
 	homepage: boolean;
 	rootPage: boolean;
 	homeInstead: string | null;
-	// That list page's field's name ("Cooks"), or `null`.
-	peopleLabel?: string | null;
+	// That list page's relation's label ("Cooks"), or `null`.
+	archiveLabel?: string | null;
 	// A profile's: whether an account is linked to it, and which, when
 	// you manage accounts (D-353).
 	linked?: boolean;
@@ -207,8 +207,8 @@ export interface EntryList {
 	// The type's index page, when the filters find it: not one of the
 	// entries or the total, and on the first page only (D-255, D-264).
 	index: EntrySummary | null;
-	// The type's authors page, the same way (D-329).
-	authorsPage: EntrySummary | null;
+	// The type's first relation archive list page, the same way (D-602).
+	archivePage: EntrySummary | null;
 	// Pages' error pages, by status, the same way (D-411).
 	errorPages?: EntrySummary[];
 	// What the list is in order of (D-413): `position`, `published`,
@@ -280,8 +280,12 @@ export interface RelationInfo {
 	// Whether a target may be created as it's typed.
 	create: boolean;
 	symmetric: boolean;
+	// How a translation's links relate to its original's (D-587).
+	translations: 'fallback' | 'add' | 'own';
+	// How the editor picks targets, when it sets one (D-599).
+	control: 'tree' | 'tokens' | 'people' | 'select' | 'cards' | null;
 	// The targets' side: whether their pages list what links to them.
-	inverse: false | { label: string; archive: string | boolean; types: string[]; max: number | null };
+	inverse: false | { label: string; page: boolean; archive: string | false; types: string[]; max: number | null };
 	// Its definition as written, which a change starts from (a change
 	// sends the whole definition).
 	definition: Record<string, unknown>;
@@ -309,18 +313,13 @@ export interface TypeRoute {
 /**
  * One content type (`GET types/{name}`, D-250).
  */
-// One of a type's people fields (D-353).
-export interface PeopleFieldInfo {
-	field: string;
-	plural: string;
-	singular: string;
-	aliases: string[];
-	// The word its archives sit under, or `false` for none.
-	archive: string | false;
-	multiple: boolean;
-	required: boolean;
-	// The page introducing its list of people, or `null`.
-	listPage: { id: string | null; type: string; path: string; title: string } | null;
+// One of a type's relation archives (D-602): its relation, label, word,
+// and the page introducing its list, or `null`.
+export interface ArchivePageInfo {
+	relation: string;
+	label: string;
+	word: string;
+	page: { id: string | null; type: string; path: string; title: string } | null;
 }
 
 export interface ContentTypeDetail extends Omit<ContentTypeSummary, 'fields'> {
@@ -358,12 +357,11 @@ export interface ContentTypeDetail extends Omit<ContentTypeSummary, 'fields'> {
 	file: string | null;
 	// Its index page (D-255), or `null`.
 	index: { id: string | null; type: string; path: string; title: string } | null;
-	// How its entries credit people (D-353), in order.
-	people: PeopleFieldInfo[];
-	// The word its author archives sit under, `false` for none, or `null`
-	// for a type without URLs (D-329); and its authors page, or `null`.
-	authorsWord: string | false | null;
-	authorsPage: { id: string | null; type: string; path: string; title: string } | null;
+	// Its byline relation as it names one (`null` for its only credit),
+	// the credit relations from it, and its relation archives (D-602).
+	byline: string | null;
+	credits: string[];
+	archivePages: ArchivePageInfo[];
 	// The field sets attached to it (D-337), with how many fields each has.
 	sets: { name: string; label: string; fields: number }[];
 }
@@ -905,7 +903,49 @@ export interface FieldDescription {
 	// one to draw; in a type's definitions, only one chosen over the
 	// type's default.
 	control?: string;
+	// The relation a reference field holds, in an entry's fields (D-599).
+	relation?: FieldRelation;
 	[setting: string]: unknown;
+}
+
+/**
+ * What the reference picker follows of a field's relation (D-599).
+ */
+export interface FieldRelation {
+	name: string;
+	// What it's called ("Cooks"), `''` for its name's.
+	label: string;
+	ordered: boolean;
+	min: number;
+	max: number | null;
+	create: boolean;
+	// How it's picked, as the server names it.
+	control: 'tree' | 'tokens' | 'people' | 'select' | 'cards';
+}
+
+/**
+ * What links to an entry through one relation, for the editor's Linked
+ * From (D-599): what the entry's side is called (`label`, `''` for
+ * none), the linking type's plural and the relation's label, how many,
+ * and the first few.
+ */
+export interface LinkedGroup {
+	key: string;
+	label: string;
+	type: string;
+	relation: string;
+	count: number;
+	entries: { id: string | null; title: string; status: EntryStatus }[];
+}
+
+/**
+ * What a translation uses from its original in a relation (D-599): the
+ * original's values, alone when it has none of its own (`fallback`), or
+ * with its own (`add`).
+ */
+export interface InheritedValues {
+	rule: 'fallback' | 'add';
+	values: string[];
 }
 
 /**
@@ -1032,6 +1072,10 @@ export interface FieldTypeCatalog {
  * An entry for editing (`GET entries/{id}`, D-229).
  */
 export interface EntryDetail {
+	// What a translation uses from its original, by relation field (D-599).
+	inherited?: Record<string, InheritedValues>;
+	// What links to it, by relation (D-599).
+	linkedFrom?: LinkedGroup[];
 	// Its id, which names it to the API (D-481), and its file's path.
 	id: string;
 	path: string;
@@ -1052,13 +1096,13 @@ export interface EntryDetail {
 	own: boolean;
 	url: string | null;
 	// Whether it's its type's index page (D-274): edited without the
-	// type's fields or scheduling, and never trashed; or its authors page
-	// (D-329), edited the same way, with its slug fixed.
+	// type's fields or scheduling, and never trashed; or a relation
+	// archive's list page (D-602), edited the same way, with its slug fixed.
 	index: boolean;
-	authorsPage: boolean;
-	// The people page it is (D-353): a field's list page, or the page
-	// written for one person's archive under it (`profile` set).
-	peoplePage: { field: string; label: string; profile: string | null; profileTitle: string | null } | null;
+	archivePage: boolean;
+	// The relation archive page it is (D-602): a list page, or the page
+	// written for one target's archive (`target` set).
+	archive: { relation: string; label: string; target: string | null; targetTitle: string | null; targetId: string | null; targetType: string | null } | null;
 	// The status it's the site's error page for (D-411), or `null`.
 	errorPage: number | null;
 	// Its part in the homepage, as `EntrySummary` says (D-420).
@@ -1071,6 +1115,8 @@ export interface EntryDetail {
 		// Whether its entries are terms, and nest by a `parent` (D-593).
 		terms: boolean;
 		hierarchical: boolean;
+		// The byline's field (its type's byline credit, D-602), or `null`.
+		byline: string | null;
 		dated: boolean;
 		fields: FieldDescription[];
 		// The field sets attached to the type (D-337), with the names of

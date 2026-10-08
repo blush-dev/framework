@@ -31,7 +31,7 @@
 
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { confirmAction } from '../confirm';
-import { confirmLeaving, confirmPurge } from '../referrers';
+import { confirmLeaving, confirmLeavingMany, confirmPurge } from '../referrers';
 import { RouterLink, useRoute, type LocationQueryRaw } from 'vue-router';
 import { entryPath, errorMessage, request, trashEntry, type ContentTypeSummary, type EntryDetail, type EntryList, type EntrySort, type EntryStatus, type EntrySummary } from '../api';
 import { debounced, latest } from '../action';
@@ -270,7 +270,7 @@ const dateColumn = computed<{ key: 'published' | 'updated'; label: string }>(() 
 // page, D-420), then the authors
 // page (D-255, D-329), then Pages' error pages (D-411).
 function pinnedOf(answer: EntryList): EntrySummary[] {
-	return [answer.index, answer.authorsPage, ...(answer.errorPages ?? [])].filter((entry): entry is EntrySummary => entry !== null && entry !== undefined);
+	return [answer.index, answer.archivePage, ...(answer.errorPages ?? [])].filter((entry): entry is EntrySummary => entry !== null && entry !== undefined);
 }
 
 // The term types that file this type (D-593).
@@ -554,7 +554,12 @@ async function bulk(action: BulkAction): Promise<void> {
 	const ids   = [...selected.value];
 	const count = plural(ids.length, labels.value.item, labels.value.items);
 
-	if (action === 'trash' && !await confirmAction({ title: `Move ${count} to the Trash?`, body: 'You can restore them from the Trash tab.', confirm: 'Move to Trash', danger: true })) {
+	// Live entries linking to them stop showing them (D-598).
+	if (action === 'trash' && !await confirmLeavingMany(ids, count, 'trash', ['You can restore them from the Trash tab.'], true)) {
+		return;
+	}
+
+	if (action === 'draft' && !await confirmLeavingMany(ids, count, 'draft')) {
 		return;
 	}
 

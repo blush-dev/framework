@@ -33,10 +33,13 @@ use Blush\Content\Entry\Position;
 use Blush\Content\EntryFields;
 use Blush\Content\FileNames;
 use Blush\Content\Lint\Linter;
+use Blush\Content\Relation\LinkResolver;
 use Blush\Content\Relation\Referrers;
+use Blush\Content\Relation\Relation;
 use Blush\Content\Relation\RelationLimits;
 use Blush\Content\Relation\RelationProblem;
 use Blush\Content\Relation\Relations;
+use Blush\Content\Relation\TranslationRule;
 use Blush\Content\Routing\ContentUrls;
 use Blush\Content\Status as EntryStatus;
 use Blush\Content\Type\ContentType;
@@ -102,6 +105,9 @@ use Blush\Support\Slug;
  *   entry that's in the trash for good (and only one that is); with
  *   `unlink=1`, it's first taken out of the entries linking to it that
  *   the account may edit (D-598), answering how many (`unlinked`).
+ * - `POST   entries/referrers` (`{"ids"}`, at most 100): of those the
+ *   account may edit, the live ones live entries link to, for a bulk
+ *   change's warning (`linked`: `id`, `title`, and how many `live`).
  * - `GET    entries/{id}/referrers`: what links to an entry (D-598):
  *   `count`, how many are `live`, how many the account may edit
  *   (`editable`),
@@ -193,7 +199,8 @@ final readonly class EntryController
 		private Relations $relations,
 		private RelationLimits $limits,
 		private TypedTargets $typed,
-		private Referrers $referrers
+		private Referrers $referrers,
+		private ArchivePages $archivePages
 	) {}
 
 	/**
@@ -247,8 +254,8 @@ final readonly class EntryController
 			'url'         => null,
 			'type'        => $this->typeOf($type, $fields),
 			'index'       => false,
-			'authorsPage' => false,
-			'peoplePage'  => null,
+			'archivePage' => false,
+			'archive'     => null,
 			'errorPage'   => null,
 			'homepage'    => false,
 			'rootPage'    => false,
@@ -749,6 +756,39 @@ final readonly class EntryController
 	}
 
 	/**
+	 * Answers which of several entries live entries link to (D-598), for
+	 * a bulk move to draft or the trash: only live ones the account may
+	 * edit, each with how many live entries link to it.
+	 */
+	public function manyReferrers(ServerRequestInterface $request): ResponseInterface
+	{
+		$account = self::account($request);
+		$ids     = self::list(self::input($request), 'ids');
+
+		if ($ids === [] || count($ids) > self::BULK_LIMIT) {
+			return self::error(sprintf('Send "ids": from 1 to %d entry ids.', self::BULK_LIMIT), Status::BadRequest);
+		}
+
+		$linked = [];
+
+		foreach ($ids as $id) {
+			$entry = $this->content->find($id);
+
+			if ($entry === null || ! $entry->isPublished() || ! $this->permissions->can($account, ContentAction::Edit, $entry)) {
+				continue;
+			}
+
+			$live = Referrers::live($this->referrers->of($entry));
+
+			if ($live > 0) {
+				$linked[] = ['id' => $id, 'title' => $entry->title, 'live' => $live];
+			}
+		}
+
+		return self::json(['linked' => $linked]);
+	}
+
+	/**
 	 * Brings an entry back from the trash as a draft, or, for an Undo, with
 	 * the status it had, at the revision moving it there wrote (D-525).
 	 */
@@ -1092,9 +1132,9 @@ final readonly class EntryController
 			return 'You aren\'t allowed to publish that entry; keep it a draft.';
 		}
 
-		// The main byline (the type's first people field, D-351) is what
-		// makes an entry yours.
-		$field = $this->types->profiles() === null ? null : array_first($entry->type->people)?->field;
+		// The byline (its type's byline relation, D-602) is what makes an
+		// entry yours.
+		$field = $this->types->byline($entry->type->name)?->field;
 
 		if ($field === null || $this->permissions->can($account, ContentAction::EditOthers, $entry)) {
 			return null;
@@ -1183,19 +1223,18 @@ final readonly class EntryController
 	}
 
 	/**
-	 * Returns the account's profile for a new entry's main byline: the
-	 * type's first people field (D-351), when it has one and the site has
-	 * a profiles type.
+	 * Returns the account's profile for a new entry's byline: the type's
+	 * byline relation (D-602), when it has one.
 	 *
 	 * @return array<string, list<string>|string>
 	 */
 	private function authorDefault(Account $account, string $type): array
 	{
-		$field = array_first($this->types->get($type)->people);
+		$byline = $this->types->byline($type);
 
-		return $field === null || $account->author === null || $this->types->profiles() === null
+		return $byline === null || $account->author === null
 			? []
-			: [$field->field => $field->multiple ? [$account->author] : $account->author];
+			: [$byline->field => $byline->multiple ? [$account->author] : $account->author];
 	}
 
 	/**
@@ -1247,8 +1286,8 @@ final readonly class EntryController
 	private function describe(Account $account, Entry $entry, EditableEntry $file): array
 	{
 		$index  = IndexPage::is($entry);
-		$people = PeoplePage::is($entry);
-		$person = PeoplePage::isPerson($entry);
+		$people = $this->archivePages->isList($entry);
+		$person = $this->archivePages->isTarget($entry);
 		$error  = ErrorPage::status($entry);
 		$home   = $this->homepage->describe($entry);
 		$fields = $this->types->schema($entry->type->name)->fields;
@@ -1256,9 +1295,9 @@ final readonly class EntryController
 
 		// An index page describes the type's archive, not one of its
 		// entries, so the type's fields don't apply; its title and status
-		// do. With no date field, it can't be scheduled. A people field's
-		// list page, and a page written for a person's archive under it
-		// (D-353), introduce their pages the same way.
+		// do. With no date field, it can't be scheduled. A relation
+		// archive's list page, and a page written for one target's archive
+		// (D-602), introduce their pages the same way.
 		if ($index || $people || $person) {
 			$fields = array_filter($fields, static fn (Field $field): bool => in_array($field->name, ['title', 'status'], true));
 		}
@@ -1297,9 +1336,11 @@ final readonly class EntryController
 			'own'         => $this->permissions->owns($account, $entry),
 			'url'         => $entry->isPublished() ? $this->urls->entry($entry) : null,
 			'type'        => $this->typeOf($entry->type, $fields),
+			'inherited'   => (object) $this->inherited($entry, $file),
+			'linkedFrom'  => $this->linkedFrom($entry),
 			'index'       => $index,
-			'authorsPage' => $people,
-			'peoplePage'  => $this->peoplePage($entry),
+			'archivePage' => $people,
+			'archive'     => $this->archiveOf($entry),
 			'errorPage'   => ErrorPage::status($entry),
 			...$home,
 			'values'      => $values,
@@ -1340,32 +1381,33 @@ final readonly class EntryController
 	}
 
 	/**
-	 * Describes the people page an entry is (D-353), or `null`: the
-	 * people field's `field` and plural `label`, and for a page written
-	 * for one person's archive, the profile's `profile` slug and
-	 * `profileTitle` (`null` for a field's list page).
+	 * Describes the relation archive page an entry is (D-602, once people
+	 * fields' D-353), or `null`: the relation's `relation` name and plural
+	 * `label`, and for a page written for one target's archive, the
+	 * target's `target` slug, `targetTitle`, `targetId`, and `targetType`
+	 * (all `null` for a list page).
 	 *
-	 * @return ?array{field: string, label: string, profile: ?string, profileTitle: ?string}
+	 * @return ?array{relation: string, label: string, target: ?string, targetTitle: ?string, targetId: ?string, targetType: ?string}
 	 */
-	private function peoplePage(Entry $entry): ?array
+	private function archiveOf(Entry $entry): ?array
 	{
-		$list = PeoplePage::fieldOf($entry);
+		$label = static fn (Relation $relation): string => $relation->label === '' ? ucfirst(str_replace('_', ' ', $relation->name)) : $relation->label;
+		$list  = $this->archivePages->relationOf($entry);
 
 		if ($list !== null) {
-			return ['field' => $list->field, 'label' => $list->plural, 'profile' => null, 'profileTitle' => null];
+			return ['relation' => $list->name, 'label' => $label($list), 'target' => null, 'targetTitle' => null, 'targetId' => null, 'targetType' => null];
 		}
 
-		$field = PeoplePage::personField($entry);
+		$relation = $this->archivePages->targetRelationOf($entry);
 
-		if ($field === null) {
+		if ($relation === null) {
 			return null;
 		}
 
-		$slug     = basename($entry->key);
-		$profiles = $this->types->profiles();
-		$profile  = $profiles === null ? null : $this->content->term($profiles->name, $slug);
+		$slug   = basename($entry->key);
+		$target = $this->content->named($relation->to[0], $slug);
 
-		return ['field' => $field->field, 'label' => $field->plural, 'profile' => $slug, 'profileTitle' => $profile->title ?? $slug];
+		return ['relation' => $relation->name, 'label' => $label($relation), 'target' => $slug, 'targetTitle' => $target->title ?? $slug, 'targetId' => $target?->id, 'targetType' => $relation->to[0]];
 	}
 
 	/**
@@ -1386,8 +1428,9 @@ final readonly class EntryController
 			'kind'   => $type->kind()->value,
 			'terms'  => $this->types->classification($type->name) !== null,
 			'hierarchical' => $this->types->nestsByParent($type->name),
+			'byline' => $this->types->byline($type->name)?->field,
 			'dated'  => $type->dateArchives !== DateArchives::None,
-			'fields' => array_values(array_map(static fn (Field $field): array => $field->toForm(), $fields)),
+			'fields' => array_values(array_map(fn (Field $field): array => [...$field->toForm(), ...$this->relationOf($type, $field)], $fields)),
 			'sets'   => array_map(fn (FieldSet $set): array => [
 				'name'        => $set->name,
 				'label'       => $set->label,
@@ -1396,6 +1439,92 @@ final readonly class EntryController
 				'fields'      => array_keys($set->schema->fields)
 			], $this->types->setsFor($type->name))
 		];
+	}
+
+	/**
+	 * Returns what the editor's picker follows of the relation a field
+	 * holds (D-599), as `relation`: its `name`, whether it's `ordered`, its
+	 * `min` and `max`, and whether targets are created as they're typed
+	 * (`create`); none for a field that isn't one.
+	 *
+	 * The picker draws it with the relation's `control` (D-599).
+	 *
+	 * @return array{relation?: array{name: string, label: string, ordered: bool, min: int, max: ?int, create: bool, control: string}}
+	 */
+	private function relationOf(ContentType $type, Field $field): array
+	{
+		$relation = array_find(
+			$this->relations->for($type->name),
+			static fn (Relation $relation): bool => ! $relation->kind->isWithinType() && $relation->field === $field->name
+		);
+
+		return $relation === null ? [] : ['relation' => [
+			'name'    => $relation->name,
+			'label'   => $relation->label,
+			'ordered' => $relation->ordered,
+			'min'     => $relation->min,
+			'max'     => $relation->max ?? ($relation->multiple ? null : 1),
+			'create'  => $relation->create,
+			'control' => $relation->control($this->types->nestsByParent($relation->to[0]))->value
+		]];
+	}
+
+	/**
+	 * Returns what links to an entry, by relation, for the editor's Linked
+	 * From (D-599): each group's `key` (`movie.actors`), what the target's
+	 * side is called (`label`, the inverse's, else `''`), the source
+	 * type's plural (`type`), the relation's label (`relation`), how many
+	 * link (`count`), and the first few (`entries`: `id`, `title`,
+	 * `status`).
+	 *
+	 * @return list<array{key: string, label: string, type: string, relation: string, count: int, entries: list<array{id: ?string, title: string, status: string}>}>
+	 */
+	private function linkedFrom(Entry $entry): array
+	{
+		return array_map(fn (array $group): array => [
+			'key'      => $group['key'],
+			'label'    => $group['relation']->inverse === false ? '' : $group['relation']->inverse->label,
+			'type'     => $this->types->find($group['type'])->labels->plural ?? $group['type'],
+			'relation' => $group['relation']->label === '' ? str_replace('_', ' ', $group['relation']->name) : $group['relation']->label,
+			'count'    => count($group['entries']),
+			'entries'  => array_map(static fn (Entry $source): array => ['id' => $source->id, 'title' => $source->title, 'status' => $source->status->value], array_slice($group['entries'], 0, 5))
+		], $this->referrers->grouped($entry));
+	}
+
+	/**
+	 * Returns, for a translation (D-511), what each of its relations uses
+	 * from its original by the relation's `translations` rule (D-587,
+	 * D-599), by field: the `rule` (`fallback`: the original's when it has
+	 * none of its own; `add`: the original's and its own) and the
+	 * original's `values`. A relation whose rule is `own`, or whose
+	 * original has none, isn't listed.
+	 *
+	 * @return array<string, array{rule: string, values: list<string>}>
+	 */
+	private function inherited(Entry $entry, EditableEntry $file): array
+	{
+		$of       = $file->frontMatter[EntryFields::TRANSLATION_OF] ?? null;
+		$original = is_string($of) ? $this->content->find($of) : null;
+
+		if ($original === null || $original->path === $entry->path) {
+			return [];
+		}
+
+		$inherited = [];
+
+		foreach ($this->relations->for($entry->type->name) as $relation) {
+			if ($relation->kind->isWithinType() || $relation->translations === TranslationRule::Own) {
+				continue;
+			}
+
+			$values = LinkResolver::values($original->field($relation->field));
+
+			if ($values !== []) {
+				$inherited[$relation->field] = ['rule' => $relation->translations->value, 'values' => $values];
+			}
+		}
+
+		return $inherited;
 	}
 
 	/**

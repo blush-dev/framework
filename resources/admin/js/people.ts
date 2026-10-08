@@ -116,15 +116,15 @@ export interface AccountProfile {
 	uses: number;
 }
 
-// Where a profile appears: one people field of one type (D-353).
+// Where a profile appears: one credit relation from one type (D-602).
 export interface ProfileAppearance {
 	type: string;
 	typeLabel: string;
-	field: string;
+	relation: string;
 	label: string;
 	// Published entries crediting them there.
 	entries: number;
-	// The archive's address, or `null` when the field has none.
+	// The archive's address, or `null` when the relation has none there.
 	archive: string | null;
 	// The page written for that archive, or `null` when it shows the
 	// profile's own bio.
@@ -171,15 +171,15 @@ export function loadProfile(slug: string): Promise<ProfileDetail> {
 	return request<ProfileDetail>('GET', `/profiles/${encodeURIComponent(slug)}`);
 }
 
-// Writes the page for a profile's archive under a type's people field.
-export function writeArchivePage(slug: string, type: string, field: string): Promise<{ id: string | null; type: string; handle: string | null }> {
-	return request('POST', `/profiles/${encodeURIComponent(slug)}/pages`, { type, field });
+// Writes the page for a profile's archive under a type's credit relation.
+export function writeArchivePage(slug: string, type: string, relation: string): Promise<{ id: string | null; type: string; handle: string | null }> {
+	return request('POST', `/profiles/${encodeURIComponent(slug)}/pages`, { type, relation });
 }
 
 // Moves that page to the trash, so the archive shows the profile's body
 // again (D-370).
-export function removeArchivePage(slug: string, type: string, field: string): Promise<{ removed: string }> {
-	return request('DELETE', `/profiles/${encodeURIComponent(slug)}/pages/${encodeURIComponent(type)}/${encodeURIComponent(field)}`);
+export function removeArchivePage(slug: string, type: string, relation: string): Promise<{ removed: string }> {
+	return request('DELETE', `/profiles/${encodeURIComponent(slug)}/pages/${encodeURIComponent(type)}/${encodeURIComponent(relation)}`);
 }
 
 export function loadRoles(): Promise<RoleList> {

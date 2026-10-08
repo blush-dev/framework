@@ -50,9 +50,8 @@ use Blush\Field\Schema;
  * relation adds its field to the types it's from.
  *
  * Each type's full schema is the built-in entry fields, then the term
- * field of every classify relation from it (which may not reuse a
- * built-in name or alias),
- * then the type's people fields (D-351), or a profile's `avatar`, then
+ * field of every relation from it (which may not reuse a built-in name
+ * or alias; a credit's people too, D-602), or a profile's `avatar`, then
  * the type's own fields (which may replace any of them), then the fields
  * of the field sets attached to it (`type:{name}`, D-337), in set name
  * order, which may not reuse any name or alias before them
@@ -219,7 +218,7 @@ final class ContentTypes implements IteratorAggregate, Countable
 
 	/**
 	 * Returns the relations whose inverse archive is on a type's own
-	 * entries' pages (`archive: true`, D-596): the classify relation
+	 * entries' pages (`page: true`, D-596, D-602): the classify relation
 	 * filing entries under it first, then any reference to it alone, by
 	 * name.
 	 *
@@ -231,10 +230,10 @@ final class ContentTypes implements IteratorAggregate, Countable
 
 		foreach ($this->relations as $relation) {
 			if (
-				($relation->kind === RelationKind::Classify || $relation->kind === RelationKind::Reference)
+				! $relation->kind->isWithinType()
 				&& $relation->to === [$name]
 				&& $relation->inverse !== false
-				&& $relation->inverse->archive === true
+				&& $relation->inverse->page
 			) {
 				$found[] = $relation;
 			}
@@ -258,10 +257,10 @@ final class ContentTypes implements IteratorAggregate, Countable
 
 	/**
 	 * Returns the relations from a type with archives under it, by name
-	 * (an inverse `archive` word, D-596): a classify or reference relation
-	 * to one type, from a public type with URLs, such as `movie.actors`
-	 * with `archive: actors` (`/movies/actors/tom`). People fields' archives
-	 * are their own (`ContentType::archivedPeople()`).
+	 * (an inverse `archive` word, D-596, D-602): a classify, credit, or
+	 * reference relation to one type, from a public type with URLs, such
+	 * as `movie.actors` with `archive: actors` (`/movies/actors/tom`), or
+	 * `post.authors` (`/archives/authors/jane`).
 	 *
 	 * @return array<string, Relation>
 	 */
@@ -271,12 +270,12 @@ final class ContentTypes implements IteratorAggregate, Countable
 			return [];
 		}
 
-		return array_filter($this->relations, fn (Relation $relation): bool => ($relation->kind === RelationKind::Classify || $relation->kind === RelationKind::Reference)
+		return array_filter($this->relations, fn (Relation $relation): bool => ! $relation->kind->isWithinType()
 			&& $relation->isFrom($type->name)
 			&& count($relation->to) === 1
 			&& $this->find($relation->to[0]) !== null
 			&& $relation->inverse !== false
-			&& is_string($relation->inverse->archive));
+			&& $relation->inverse->archive !== false);
 	}
 
 	/**
@@ -320,7 +319,7 @@ final class ContentTypes implements IteratorAggregate, Countable
 	 * Returns whether a type's entries have pages of their own listing
 	 * what links to them (a relation's inverse archive on the target,
 	 * D-593, D-596): a term's, or a person's in a `movie.actors` relation
-	 * with `archive: true`. It needs a collection with URLs.
+	 * with `page: true`. It needs a collection with URLs.
 	 */
 	public function hasTermPages(string $name): bool
 	{
@@ -417,13 +416,36 @@ final class ContentTypes implements IteratorAggregate, Countable
 	}
 
 	/**
+	 * Returns the credit relations a type's entries credit people through
+	 * (D-602), keyed by name.
+	 *
+	 * @return array<string, Relation>
+	 */
+	public function credits(string $type): array
+	{
+		return array_filter($this->relations, static fn (Relation $relation): bool => $relation->kind === RelationKind::Credit && $relation->isFrom($type));
+	}
+
+	/**
+	 * Returns a type's byline (D-602): the credit relation its `byline`
+	 * names, else its only one, or `null`.
+	 */
+	public function byline(string $type): ?Relation
+	{
+		$credits = $this->credits($type);
+		$named   = $this->find($type)?->byline;
+
+		return $named === null ? (count($credits) === 1 ? array_first($credits) : null) : $credits[$named] ?? null;
+	}
+
+	/**
 	 * Returns the types whose entries credit people, keyed by name.
 	 *
 	 * @return array<string, ContentType>
 	 */
 	public function crediting(): array
 	{
-		return array_filter($this->types, static fn (ContentType $type): bool => $type->credits());
+		return array_filter($this->types, fn (ContentType $type): bool => $this->credits($type->name) !== []);
 	}
 
 	/**
@@ -534,9 +556,8 @@ final class ContentTypes implements IteratorAggregate, Countable
 	/**
 	 * Returns a type's schema before its field sets: the built-in entry
 	 * fields, the field of each relation the site defines from it (D-593:
-	 * a classify relation's terms, say), the type's
-	 * people fields (when the site has a profiles type) or a profile's
-	 * `avatar`, a hierarchical collection's `parent`, a tree's or a
+	 * a classify relation's terms, or a credit's profiles, say), a
+	 * profile's `avatar`, a hierarchical collection's `parent`, a tree's or a
 	 * positioned collection's `position` (D-412), then the type's own
 	 * fields.
 	 *
@@ -553,8 +574,6 @@ final class ContentTypes implements IteratorAggregate, Countable
 					->required($relation->isRequired()),
 				array_filter($this->relations, static fn (Relation $relation): bool => ! $relation->kind->isWithinType() && $relation->isFrom($name))
 			));
-			$profiles = $this->profiles()?->name;
-			$people   = $profiles === null ? [] : array_values(array_map(static fn (PeopleField $field): Field => $field->referenceField($profiles), $type->people));
 			$avatar   = $type instanceof Profiles ? [new MediaField('avatar')->described('A portrait, shown beside the name; without one, initials stand in.')] : [];
 			$parent   = $type instanceof Collection ? $type->parentField() : null;
 			$position = $type instanceof Tree || ($type instanceof Collection && $type->isPositioned())
@@ -564,7 +583,6 @@ final class ContentTypes implements IteratorAggregate, Countable
 			return new Schema([
 				...array_values(EntryFields::schema()->fields),
 				...$terms,
-				...$people,
 				...$avatar,
 				...($parent === null ? [] : [$parent]),
 				...$position

@@ -149,7 +149,9 @@ async function create(): Promise<void> {
 			kind: kind.value,
 			folder: folderClean.value,
 			index: index.value,
-			authorsPage: kind.value !== 'tree' && authorsPage.value && form.value.authors && form.value.authorArchives && authorsLabel.value !== null,
+			// It joins the authors credit (D-602), with its list's page.
+			authors: form.value.authors && authorsLabel.value !== null,
+			listPages: kind.value !== 'tree' && authorsPage.value && form.value.authors && authorsLabel.value !== null ? ['authors'] : [],
 			set: changesOf(form.value, null, kind.value)
 		});
 
@@ -239,7 +241,7 @@ const fileLabels   = computed(() => files.value.map((name) => types.value.find((
 					<label v-for="type in fileable" :key="type.name" class="checkbox"><input type="checkbox" :checked="files.includes(type.name)" @change="filed(type.name, ($event.target as HTMLInputElement).checked)"> {{ type.labels.plural }}</label>
 					<p class="field__help">{{ files.length === 0 ? 'None chosen, so its terms file every type.' : 'Entries of these types can be filed under its terms. Change it later under Relationships.' }}</p>
 				</fieldset>
-				<TypeBehaviorFields v-model="form" v-model:index="index" v-model:page-wanted="authorsPage" id-prefix="new-" :kind="kind" :folder-prefix="prefix" :urls="typeUrls" :index-page="null" :authors-label="authorsLabel" :authors-page="null" />
+				<TypeBehaviorFields v-model="form" v-model:index="index" v-model:page-wanted="authorsPage" id-prefix="new-" :kind="kind" :folder-prefix="prefix" :urls="typeUrls" :index-page="null" :authors-label="authorsLabel" />
 			</div>
 
 			<div v-else>
@@ -275,7 +277,7 @@ const fileLabels   = computed(() => files.value.map((name) => types.value.find((
 				<div v-else><dt>Nesting</dt><dd>{{ form.hierarchical ? 'Entries nest by parent' : 'Flat' }}</dd></div>
 				<div v-if="choice === 'terms'"><dt>Files</dt><dd>{{ fileLabels.length ? fileLabels.join(', ') : 'Every type' }}</dd></div>
 				<div><dt>Index page</dt><dd>{{ index ? 'Created and pinned' : 'None' }}</dd></div>
-				<div v-if="authorsLabel !== null"><dt>{{ authorsLabel }}</dt><dd>{{ !form.authors ? 'Not credited' : (form.authorArchives && typeUrls && kind !== 'tree' ? `Credited, with archives at /${prefix || '…'}/${form.authorsWord.trim() || 'authors'}` : 'Credited') }}</dd></div>
+				<div v-if="authorsLabel !== null"><dt>{{ authorsLabel }}</dt><dd>{{ form.authors ? 'Credited, through the authors relationship' : 'Not credited' }}</dd></div>
 				<div v-if="kind !== 'tree'"><dt>Feed</dt><dd>{{ form.feed ? 'Yes' : 'No' }}</dd></div>
 				<div><dt>Fields</dt><dd>{{ form.fields.length ? form.fields.map(fieldLabel).join(', ') : 'None yet' }}</dd></div>
 			</dl>

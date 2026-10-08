@@ -75,7 +75,7 @@ needed in practice. The built-in keys:
 | `visibility` | `public` (the default), `unlisted`, or `hidden` |
 | `summary` | A short Markdown summary for listings and feeds. Without one, the first 50 words are used. (`excerpt` works too.) |
 | `image` | A featured image |
-| `authors` | One author or a list, by profile slug (`author` works too), in types that credit authors. A type can credit people under other names too, such as `cooks` (see [Crediting people](content-types.md#crediting-people)) |
+| `authors` | One author or a list, by profile slug (`author` works too), in types the `authors` relation credits. A type can credit people under other names too, such as `cooks` (see [Crediting people](content-types.md#crediting-people)) |
 | `position` | A page's or term's place among its siblings, a whole number, lowest first. Those without one follow, by title. Only pages (and other [trees](content-types.md#trees)) and collections that [nest or are ordered by position](content-types.md#nesting-and-order), such as categories and tags, have it |
 | `redirect_from` | Old URLs that should redirect here (see below) |
 | `translation_of` | For a translation, the id of the entry it translates, which links them whatever their file names (see [Translations](#translations)) |

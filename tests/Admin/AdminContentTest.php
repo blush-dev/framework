@@ -49,8 +49,12 @@ final class AdminContentTest extends TestCase
 	 */
 	private function site(array $roles, array $environment = [], bool $ids = true): void
 	{
-		// Pages don't credit authors unless the site says so (D-329).
-		$this->writeTemporaryFile('user/data/types/page.yaml', "kind: tree\nauthors: true\n");
+		// Pages credit authors only when a credit relation says so (D-602);
+		// a test that adds posts credits them too.
+		$posts = is_file($this->temporaryDirectory() . '/user/data/types/post.yaml');
+
+		$this->writeTemporaryFile('user/data/types/page.yaml', "kind: tree\n");
+		$this->writeTemporaryFile('user/data/relations/authors.json', '{"kind": "credit", "from": ["page"' . ($posts ? ', "post"' : '') . '], "to": ["profile"], "aliases": ["author"]}');
 		$this->writeTemporaryFile('user/content/jane-draft.md', "---\ntitle: Jane's draft\nstatus: draft\nauthors: jane\nid: 0199b6e2-0000-7000-8000-000000000001\n---\n");
 		$this->writeTemporaryFile('user/content/sam-draft.md', "---\ntitle: Sam's draft\nstatus: draft\nauthors: sam\nid: 0199b6e2-0000-7000-8000-000000000002\n---\n");
 		$this->writeTemporaryFile('user/content/soon.md', "---\ntitle: Soon\npublished: 2099-01-01 09:00:00\nauthors: jane\nid: 0199b6e2-0000-7000-8000-000000000003\n---\n");
@@ -118,7 +122,7 @@ final class AdminContentTest extends TestCase
 		$this->assertStringStartsWith('2099-01-01T09:00:00', $scheduled[0]['published']);
 	}
 
-	public function testPinsATypesAuthorsPage(): void
+	public function testPinsATypesArchivePage(): void
 	{
 		$this->writeTemporaryFile('user/data/types/post.yaml', "folder: _posts\n");
 		$this->writeTemporaryFile('user/content/_posts/one.md', "---\ntitle: One\n---\n");
@@ -129,16 +133,16 @@ final class AdminContentTest extends TestCase
 
 		$this->assertSame(['One'], array_column(is_array($list['entries'] ?? null) ? $list['entries'] : [], 'title'), 'Set apart, like the index page (D-329).');
 		$this->assertSame(1, $list['total'] ?? null);
-		$page = $list['authorsPage'] ?? null;
+		$page = $list['archivePage'] ?? null;
 
 		$this->assertIsArray($page);
 		$this->assertIsArray($page['can'] ?? null);
-		$this->assertSame(['Our Writers', true, false], [$page['title'] ?? null, $page['authorsPage'] ?? null, $page['can']['duplicate'] ?? null]);
-		$this->assertNull($this->list('?type=post&page=2')['authorsPage'] ?? null, 'On the first page only.');
+		$this->assertSame(['Our Writers', true, false], [$page['title'] ?? null, $page['archivePage'] ?? null, $page['can']['duplicate'] ?? null]);
+		$this->assertNull($this->list('?type=post&page=2')['archivePage'] ?? null, 'On the first page only.');
 
 		$entry = self::json($this->send('GET', $this->entryPath('_posts/_authors.md')));
 
-		$this->assertTrue($entry['authorsPage'] ?? null);
+		$this->assertTrue($entry['archivePage'] ?? null, 'A relation archive\'s list page (D-602).');
 		$this->assertIsArray($entry['can'] ?? null);
 		$this->assertIsArray($entry['type'] ?? null);
 		$this->assertFalse($entry['can']['rename'] ?? null, 'Its slug is what makes it the authors page.');

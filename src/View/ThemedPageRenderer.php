@@ -19,6 +19,7 @@ use Psr\Http\Message\ServerRequestInterface;
 use Blush\Content\Entry\Entry;
 use Blush\Content\Http\ContentPage;
 use Blush\Content\Http\PageKind;
+use Blush\Content\Type\Profiles;
 use Blush\Content\Http\PageRenderer;
 use Blush\Content\Routing\ContentUrls;
 use Blush\Content\Type\ContentTypes;
@@ -104,7 +105,8 @@ final readonly class ThemedPageRenderer implements PageRenderer
 			->property('og:title', $isFront || $page->title === '' ? $this->app->name : $page->title)
 			->property('og:type', match ($page->kind) {
 				PageKind::Single                     => 'article',
-				PageKind::Person, PageKind::Profile => 'profile',
+				PageKind::Profile                    => 'profile',
+				PageKind::Related                    => $page->target?->type instanceof Profiles ? 'profile' : 'website',
 				default                              => 'website'
 			})
 			->property('og:url', $canonical);
@@ -215,21 +217,20 @@ final readonly class ThemedPageRenderer implements PageRenderer
 	}
 
 	/**
-	 * Adds an article's byline to the head (D-351): for each profile its
-	 * type's first people field credits, their archive under that field,
-	 * else their profile's page, the URL that stands for the person.
+	 * Adds an article's byline to the head (D-351, D-602): for each profile
+	 * its type's byline relation credits, their archive under it, else
+	 * their profile's page, the URL that stands for the person.
 	 */
 	private function describeByline(Head $head, Entry $entry): void
 	{
-		$profiles = $this->types->profiles();
-		$field    = array_first($entry->type->people);
+		$key = $this->types->byline($entry->type->name)?->termKey();
 
-		if ($profiles === null || $field === null) {
+		if ($key === null) {
 			return;
 		}
 
-		foreach ($entry->terms($field->termKey($profiles->name)) as $slug) {
-			$url = $this->urls->byline($entry, $field->field, $slug);
+		foreach ($entry->terms($key) as $slug) {
+			$url = $this->urls->byline($entry, $slug);
 
 			if ($url !== null) {
 				$head->addProperty('article:author', $this->app->absoluteUrl($url));

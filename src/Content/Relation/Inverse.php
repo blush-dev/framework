@@ -23,9 +23,11 @@ use Blush\Content\Type\Listing;
  *
  * - `label` names the list ("Acted in"); `''` leaves it to the source
  *   type's plural label.
- * - `archive` is where the list is a page: `true` on the target's own
- *   page (a term's), a word for archives under each source type (a
- *   people field's, `/posts/authors/jane`), or `false` for none.
+ * - `page` lists them on the target's own page (a term's, a profile's).
+ * - `archive` is a word for archives under each source type
+ *   (`/posts/authors/jane`, `/movies/directors/penny`), or `false` for
+ *   none. Both may be on at once (D-602): a profile's page lists
+ *   everything crediting them, and each type's archive what it does.
  * - `types` limits the source types a target's page lists, empty for
  *   every one (a taxonomy's `types`).
  * - `max` limits how many entries may point at one target, `null` for
@@ -41,13 +43,14 @@ final readonly class Inverse
 	 */
 	public function __construct(
 		public string $label = '',
-		public string|bool $archive = false,
+		public bool $page = false,
+		public string|false $archive = false,
 		public array $types = [],
 		public ?int $max = null,
 		public Listing $listing = new Listing()
 	) {
-		if ($archive === '') {
-			throw new InvalidRelation('A relation\'s archive word can\'t be empty; use false for no archive.');
+		if ($archive !== false && preg_match('/^[a-z0-9][a-z0-9_-]*$/', $archive) !== 1) {
+			throw new InvalidRelation(sprintf('A relation\'s archive word must be a slug, such as "authors", or false for none; "%s" isn\'t.', $archive));
 		}
 
 		if ($max !== null && $max < 1) {
@@ -65,6 +68,7 @@ final readonly class Inverse
 	public static function fromArray(array $data): self
 	{
 		$archive = $data['archive'] ?? false;
+		$page    = $data['page'] ?? false;
 		$types   = $data['types'] ?? [];
 		$max     = $data['max'] ?? null;
 		$listing = $data['listing'] ?? [];
@@ -77,7 +81,8 @@ final readonly class Inverse
 
 		return new self(
 			label: is_string($data['label'] ?? null) ? $data['label'] : '',
-			archive: is_string($archive) || is_bool($archive) ? $archive : throw new InvalidRelation('A relation\'s inverse archive must be true, false, or a word.'),
+			page: is_bool($page) ? $page : throw new InvalidRelation('A relation\'s inverse page must be true or false.'),
+			archive: is_string($archive) || $archive === false ? $archive : throw new InvalidRelation('A relation\'s inverse archive must be a word or false; for the target\'s own page, use "page": true.'),
 			types: is_array($types) ? array_values(array_map(strval(...), array_filter($types, is_string(...)))) : [],
 			max: is_int($max) || $max === null ? $max : throw new InvalidRelation('A relation\'s inverse max must be a number.'),
 			listing: $listing
@@ -93,6 +98,7 @@ final readonly class Inverse
 	{
 		return array_filter([
 			'label'   => $this->label,
+			'page'    => $this->page,
 			'archive' => $this->archive,
 			'types'   => $this->types,
 			'max'     => $this->max,

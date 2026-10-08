@@ -17,7 +17,6 @@ use Blush\Content\EntryFields;
 use Blush\Content\Type\Collection;
 use Blush\Content\Type\ContentType;
 use Blush\Content\Type\ContentTypes;
-use Blush\Content\Type\PeopleField;
 use Blush\Content\Type\Tree;
 use Blush\Field\Fields\ReferenceField;
 
@@ -27,10 +26,6 @@ use Blush\Field\Fields\ReferenceField;
  * then the ones its content types already say, as presets, so existing
  * content and config keep working (D-078):
  *
- * - **A people field** is a `Credit` relation from its type to the
- *   profiles type, in order, its `required` a min of 1, its archive word
- *   the inverse's archive, a translation adding to its original's
- *   credits (D-587).
  * - **A `reference` field** with a `to` (in a type's own fields or field
  *   sets) is a `Reference` relation; one whose type doesn't exist is
  *   left out (`content:lint` reports it).
@@ -55,7 +50,6 @@ final readonly class RelationCompiler
 	public function compile(ContentTypes $types, iterable $extra = []): Relations
 	{
 		$relations = [];
-		$profiles  = $types->profiles();
 
 		foreach ($types->relations() as $relation) {
 			$relations[] = $relation;
@@ -67,13 +61,6 @@ final readonly class RelationCompiler
 			foreach ($types->relations() as $relation) {
 				if ($relation->isFrom($type->name)) {
 					array_push($own, $relation->name, $relation->field);
-				}
-			}
-
-			if ($profiles !== null) {
-				foreach ($type->people as $people) {
-					$relations[] = self::credit($type, $people, $profiles->name);
-					$own[]       = $people->field;
 				}
 			}
 
@@ -98,25 +85,6 @@ final readonly class RelationCompiler
 		return new Relations($relations, array_keys($types->all()));
 	}
 
-	/**
-	 * Returns a people field's relation.
-	 */
-	private static function credit(ContentType $type, PeopleField $people, string $profiles): Relation
-	{
-		return new Relation(
-			$people->field,
-			RelationKind::Credit,
-			[$type->name],
-			[$profiles],
-			aliases: $people->aliases,
-			multiple: $people->multiple,
-			ordered: true,
-			min: $people->required ? 1 : 0,
-			inverse: new Inverse(label: $type->labels->items, archive: $people->archive),
-			translations: TranslationRule::Add,
-			label: $people->plural
-		);
-	}
 
 	/**
 	 * Returns a reference field's relation.

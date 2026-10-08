@@ -133,7 +133,7 @@ import { childrenOf, elementAt, elementName, excerpt, holdsContent, imageLine, m
 import { attributeParts, attributeText, blocks, directiveHead, emphasisAt, imageText, renumberedAt, inProse, linkAt, linkLabel, outline, withAttribute, withBlockParts, withDirectiveParts, withImage, withLink, withoutDirective, withoutImage, withoutLink, withParts, wordAt, wordCount, type Directive, type Edit, type Emphasis, type MarkdownLink } from '../markdown';
 import { mediaName } from '../media';
 import { onPressOutside } from '../popover';
-import { loadReferences, slugOf, type ReferenceItem } from '../references';
+import { loadReferences, referenceValues, slugOf, type ReferenceItem } from '../references';
 import { canUpload } from '../session';
 import type { IconName } from '../icons';
 import type { SiteIcon } from '../site-icons';
@@ -240,12 +240,12 @@ const inSets    = computed(() => new Set((entry.value?.type.sets ?? []).flatMap(
 const ownFields = computed(() => fields.value.filter((field) => !inSets.value.has(field.name)));
 const dateField = computed(() => entry.value?.type.fields.find((field) => field.name === 'published'));
 const labels    = computed(() => labelsOf(entry.value?.type.name ?? 'entry'));
-// A people page (D-353) is a field's list page ("cooks page") or the page
-// written for one person's archive ("archive page").
+// A relation archive's page (D-602) is its list page ("cooks page") or the
+// page written for one target's archive ("archive page").
 const peopleNoun = computed(() => {
-	const page = entry.value?.peoplePage;
+	const page = entry.value?.archive;
 
-	return page ? (page.profile === null ? `${page.label.toLowerCase()} page` : 'archive page') : null;
+	return page ? (page.target === null ? `${page.label.toLowerCase()} page` : 'archive page') : null;
 });
 const noun      = computed(() => entry.value?.index ? 'index page' : (peopleNoun.value ?? labels.value.item));
 const entryType = computed(() => types.value.find((type) => type.name === entry.value?.type.name));
@@ -568,6 +568,9 @@ const missing = computed(() => {
 			found.push({ name: field.name, label: 'Publish date', control: 'editor-date' });
 		} else if (!PLACED.includes(field.name) && typeof form.value[field.name] !== 'boolean' && empty(form.value[field.name])) {
 			found.push({ name: field.name, label: label(field), control: `field-${field.name}` });
+		} else if ((field.relation?.min ?? 0) > 1 && referenceValues(String(form.value[field.name] ?? '')).length < (field.relation?.min ?? 0)) {
+			// A relation's `min` above one (D-599).
+			found.push({ name: field.name, label: `${label(field)} (at least ${field.relation?.min ?? 0})`, control: `field-${field.name}` });
 		}
 	}
 
@@ -2823,8 +2826,8 @@ function fieldKey(field: FieldDescription): string {
 									The page at <code>user/content/index.md</code>. The homepage shows {{ entry.homeInstead?.toLowerCase() ?? 'something else' }} instead, so this page isn't on the site.
 									<template v-if="entry.can.makeHomepage">{{ ' ' }}<button type="button" class="lnk editor__note-action" @click="toHomepage">Make homepage</button></template>
 								</p>
-								<p v-if="entry.peoplePage && entry.peoplePage.profile === null" class="editor__group-note">The page introducing the {{ entry.peoplePage.label.toLowerCase() }} of <strong>{{ labels.plural }}</strong>: its title heads their list, and its body comes before it. It has no address of its own.</p>
-								<p v-else-if="entry.peoplePage" class="editor__group-note">The page introducing <RouterLink :to="{ name: 'profile-detail', params: { slug: entry.peoplePage.profile } }">{{ entry.peoplePage.profileTitle }}</RouterLink>'s archive as one of the {{ entry.peoplePage.label.toLowerCase() }} of <strong>{{ labels.plural }}</strong>, in place of their bio there. It has no address of its own.</p>
+								<p v-if="entry.archive && entry.archive.target === null" class="editor__group-note">The page introducing the {{ entry.archive.label.toLowerCase() }} of <strong>{{ labels.plural }}</strong>: its title heads their list, and its body comes before it. It has no address of its own.</p>
+								<p v-else-if="entry.archive" class="editor__group-note">The page introducing <RouterLink v-if="entry.archive.targetType === profileType && entry.archive.target" :to="{ name: 'profile-detail', params: { slug: entry.archive.target } }">{{ entry.archive.targetTitle }}</RouterLink><RouterLink v-else-if="entry.archive.targetId && entry.archive.targetType" :to="entryRoute({ id: entry.archive.targetId, type: entry.archive.targetType })">{{ entry.archive.targetTitle }}</RouterLink><template v-else>{{ entry.archive.targetTitle }}</template>'s archive as one of the {{ entry.archive.label.toLowerCase() }} of <strong>{{ labels.plural }}</strong>, in place of their own text there. It has no address of its own.</p>
 							</OptionsGroup>
 
 							<OptionsGroup v-if="imageField && (!term || form[imageField.name])" heading="Featured Image">
@@ -2833,9 +2836,9 @@ function fieldKey(field: FieldDescription): string {
 							</OptionsGroup>
 
 							<template v-for="peopleField in peopleFields" :key="fieldKey(peopleField)">
-								<OptionsGroup v-if="!term || referenceCount(peopleField)" :heading="titleCase(peopleField.label ?? (peopleField.multiple === false ? 'Author' : 'Authors'))">
+								<OptionsGroup v-if="!term || referenceCount(peopleField)" :heading="titleCase(peopleField.relation?.label || peopleField.label || (peopleField.multiple === false ? 'Author' : 'Authors'))">
 									<template v-if="referenceCount(peopleField) > 1" #hint>{{ plural(referenceCount(peopleField), 'person', 'people') }}</template>
-									<ReferencePicker :id="`field-${peopleField.name}`" :field="peopleField" people :keep-last="peopleFields[0] === peopleField || peopleField.required === true" :model-value="String(form[peopleField.name] ?? '')" :invalid="Boolean(errorFor(peopleField.name))" @update:model-value="form[peopleField.name] = $event" />
+									<ReferencePicker :id="`field-${peopleField.name}`" :field="peopleField" :inherited="entry.inherited?.[peopleField.name]" people :keep-last="entry.type.byline === peopleField.name || peopleField.required === true" :model-value="String(form[peopleField.name] ?? '')" :invalid="Boolean(errorFor(peopleField.name))" @update:model-value="form[peopleField.name] = $event" />
 									<p v-if="errorFor(peopleField.name)" class="field__error">{{ errorFor(peopleField.name) }}</p>
 								</OptionsGroup>
 							</template>
@@ -2843,7 +2846,7 @@ function fieldKey(field: FieldDescription): string {
 							<OptionsGroup v-for="field in referenceFields" :key="fieldKey(field)">
 								<template #heading><label :for="`field-${field.name}`">{{ titleCase(field.label ?? labelsOf(field.to ?? '').plural) }}</label></template>
 								<template v-if="referenceCount(field)" #hint>{{ referenceCount(field).toLocaleString() }} selected</template>
-								<ReferencePicker :id="`field-${field.name}`" :field="field" :model-value="String(form[field.name] ?? '')" :invalid="Boolean(errorFor(field.name))" @update:model-value="form[field.name] = $event" />
+								<ReferencePicker :id="`field-${field.name}`" :field="field" :inherited="entry.inherited?.[field.name]" :model-value="String(form[field.name] ?? '')" :invalid="Boolean(errorFor(field.name))" @update:model-value="form[field.name] = $event" />
 								<p v-if="errorFor(field.name)" class="field__error">{{ errorFor(field.name) }}</p>
 							</OptionsGroup>
 
@@ -2863,6 +2866,18 @@ function fieldKey(field: FieldDescription): string {
 							<OptionsGroup v-for="set in setGroups" :key="set.name" :heading="set.label">
 								<p v-if="set.description" class="editor__group-note">{{ set.description }}</p>
 								<FieldControl v-for="field in set.fields" :key="fieldKey(field)" :field="field" :model-value="form[field.name] ?? ''" :error="errorFor(field.name)" pickable @update:model-value="form[field.name] = $event" @pick="pickForField(field)" />
+							</OptionsGroup>
+
+							<!-- What links here (D-599): read-only, edited where it's stored. -->
+							<OptionsGroup v-if="entry.linkedFrom?.length" heading="Linked From">
+								<template #hint>Edited where they're stored</template>
+								<p v-for="group in entry.linkedFrom" :key="group.key" class="editor__group-note">
+									<strong>{{ group.label || `${group.type} (${group.relation})` }}</strong>:
+									<template v-for="(linked, index) in group.entries" :key="linked.id ?? linked.title">
+										<RouterLink v-if="linked.id" :to="entryRoute({ id: linked.id, type: group.key.split('.')[0] ?? '' })">{{ linked.title || 'Untitled' }}</RouterLink><template v-else>{{ linked.title || 'Untitled' }}</template><template v-if="linked.status !== 'published'"> ({{ linked.status }})</template><template v-if="index < group.entries.length - 1">, </template>
+									</template>
+									<template v-if="group.count > group.entries.length">, and {{ group.count - group.entries.length }} more</template>.
+								</p>
 							</OptionsGroup>
 
 							<OptionsGroup v-if="Object.keys(entry.extra).length" heading="Other Front Matter">

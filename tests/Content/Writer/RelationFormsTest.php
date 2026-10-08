@@ -41,8 +41,8 @@ final class RelationFormsTest extends TestCase
 	{
 		$this->contentConfig([
 			'types'     => [
-				'post'     => ['path' => '_posts', 'people' => false],
-				'category' => ['path' => 'topics', 'order' => 'position', 'hierarchical' => true, 'people' => false]
+				'post'     => ['path' => '_posts'],
+				'category' => ['path' => 'topics', 'order' => 'position', 'hierarchical' => true]
 			],
 			'relations' => [
 				'category' => ['kind' => 'classify', 'from' => ['post'], 'to' => ['category'], 'create' => true],

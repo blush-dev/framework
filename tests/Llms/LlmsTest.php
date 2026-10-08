@@ -160,7 +160,7 @@ final class LlmsTest extends TestCase
 		$this->contentConfig([
 			'types' => [
 				'post'     => ['path' => '_posts', 'routing' => ['prefix' => 'archives'], 'llms' => false],
-				'category' => ['path' => 'topics', 'order' => 'position', 'people' => false, 'llms' => false]
+				'category' => ['path' => 'topics', 'order' => 'position', 'llms' => false]
 			],
 			'relations' => ['category' => ['kind' => 'classify', 'from' => ['post'], 'to' => ['category'], 'create' => true]],
 			'home' => 'post'
@@ -182,7 +182,7 @@ final class LlmsTest extends TestCase
 		$this->contentConfig([
 			'types' => [
 				'post'     => ['path' => '_posts', 'routing' => ['prefix' => 'archives']],
-				'category' => ['path' => 'topics', 'order' => 'position', 'people' => false, 'llms' => true],
+				'category' => ['path' => 'topics', 'order' => 'position', 'llms' => true],
 				'profile'  => ['kind' => 'profiles', 'path' => 'profiles', 'llms' => true]
 			],
 			'relations' => ['category' => ['kind' => 'classify', 'from' => ['post'], 'to' => ['category'], 'create' => true]]
