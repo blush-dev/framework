@@ -578,7 +578,7 @@ final readonly class Views
 		[$name, $layoutData] = $layout;
 
 		if ($layoutOverride !== null && ViewFinder::isValidName($layoutOverride)) {
-			$override = str_contains($layoutOverride, '/') ? $layoutOverride : "layouts/{$layoutOverride}";
+			$override = "layouts/{$layoutOverride}";
 			$name     = $this->finder->find($override) === null ? $name : $override;
 		}
 

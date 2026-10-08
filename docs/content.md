@@ -80,7 +80,7 @@ needed in practice. The built-in keys:
 | `redirect_from` | Old URLs that should redirect here (see below) |
 | `translation_of` | For a translation, the id of the entry it translates, which links them whatever their file names (see [Translations](#translations)) |
 | `template` | The theme template to use, such as `single-wide` (`view` works too) |
-| `layout` | The theme layout to use |
+| `layout` | The theme layout to use, by its name in the theme's `layouts/` folder (`wide`, or `shells/wide` for `layouts/shells/wide.php`) |
 | `class` | Extra CSS classes for the page's `<body>` |
 | `stylesheet` | An extra stylesheet for this page |
 | `collection` | List other entries on this page (see [Content types](content-types.md#listing-entries)) |

@@ -4,6 +4,28 @@ Move each item to `decisions.md` once it's answered.
 
 ## Needs the author's call
 
+- **"Views" or "templates" for a theme's folder** (discussed
+  2026-10-08; kept open by the author). The folder is `views/` and the
+  runtime `Blush\View`, but writers and theme authors meet "template":
+  front matter `template` (`view` an alias), the template hierarchy,
+  `$template`, and `template()` on components and directives.
+  CMS theming systems mostly say `templates/`; MVC frameworks say
+  views; Symfony and CakePHP moved to `templates/`. The question is
+  what "template" means:
+  - **Any file a theme draws with:** rename to `templates/`, keep
+    `Blush\View` as the runtime.
+  - **Only the hierarchy's page-level files** (the recommendation):
+    keep `views/` as the umbrella, a file at its root a template and
+    subfolders (`layouts/`, `partials/`, `components/`, `directives/`)
+    the pieces templates draw with. A split into five top-level
+    folders was weighed and judged too crowded.
+  - Either way: plugins put their markup in `views/directives/` and
+    `views/components/` as themes do (the docs now show `views/`,
+    `resources/directives/`, and `resources/components/`, and
+    `resources/` is build sources in a theme); the stale "site's
+    views" comment in `Component.php` and the "`template()` returns
+    another view" wording get fixed.
+
 - **Site Health's check pages** (D-612; the sketch's open points;
   saved for later, the author, 2026-10-08):
   - **Undo** for a fix: what reverses one (ids written, files created,

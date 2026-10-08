@@ -429,7 +429,7 @@ What a template can use:
 
 | Call | What it does |
 |---|---|
-| `$template->layout('base')` | Wrap this template in `layouts/base.php` |
+| `$template->layout('base')` | Wrap this template in `layouts/base.php`; a name with a folder is in `layouts/` too (`layout('shells/wide')` is `layouts/shells/wide.php`) |
 | `$template->section('content')` | In a layout, print the wrapped template |
 | `$template->start('name')` … `$template->stop()` | Capture a named section |
 | `$template->include('partials/header', key: $value)` | Include another template |

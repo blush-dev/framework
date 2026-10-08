@@ -71,13 +71,13 @@ final class Template
 	) {}
 
 	/**
-	 * Wraps this template in a layout (`layouts/{name}`, unless the name
-	 * has a folder), with extra data for it. The template's output
-	 * becomes the layout's `content` section.
+	 * Wraps this template in a layout (`layouts/{name}`, so `shells/wide`
+	 * is `layouts/shells/wide`), with extra data for it. The template's
+	 * output becomes the layout's `content` section.
 	 */
 	public function layout(string $name, mixed ...$data): void
 	{
-		$this->layout = [str_contains($name, '/') ? $name : "layouts/{$name}", self::named($data)];
+		$this->layout = ["layouts/{$name}", self::named($data)];
 	}
 
 	/**

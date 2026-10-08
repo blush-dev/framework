@@ -18844,3 +18844,17 @@ decision, add a new entry that supersedes it and mark the old one
   line has no request to outlast.
 - **Why:** the author asked ("build the publish one"). It was the last
   place in a request that could read a whole library.
+
+### D-628: A layout's name is always under `layouts/`
+
+- **Date:** 2026-10-08
+- **Status:** Built.
+- **Decision:** `$template->layout()` and the front matter `layout`
+  always look in `layouts/`: `layout('shells/wide')` is
+  `layouts/shells/wide`, no longer `views/shells/wide`. A name with a
+  folder used to be a path from `views/`.
+- **Why:** the author asked that a layout name with a slash look in
+  subfolders of `layouts/`, not of `views/`. Layouts have a standard
+  folder, as partials (D-564) and components do. The author also
+  considered a `$template->partial()` shortcut for `include('partials/…')`
+  and left it out for now.

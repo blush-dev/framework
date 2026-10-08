@@ -191,7 +191,7 @@ $template->layout('base', title: $entry->title);
 The template API (kept deliberately small; D-103):
 | Method | Purpose |
 |---|---|
-| `layout($name, ...$data)` | Wrap this template in a layout (`layouts/{name}`) |
+| `layout($name, ...$data)` | Wrap this template in a layout (`layouts/{name}`, a folder in the name included, D-628) |
 | `start($section)` / `stop()` / `section($name, default: '')` / `hasSection($name)` | Define and output sections |
 | `include($views, ...$data)` | Include a partial (shared data plus what it's given); a list tries each in turn (D-159) |
 | `includeIf()` / `includeWhen($when, ...)` / `includeUnless($unless, ...)` | Include only if a view exists, or on a condition (1.x's names, D-159) |
