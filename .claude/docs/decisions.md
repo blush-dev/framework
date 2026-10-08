@@ -19042,3 +19042,138 @@ decision, add a new entry that supersedes it and mark the old one
   change. A theme should ship its own templates; the framework covers
   only the floor (a skeleton, machine formats, and plain fallbacks) so a
   page still renders when a theme leaves something out.
+
+### D-633: More built-in embed providers, and turning providers off
+
+- **Date:** 2026-10-08
+- **Status:** Built. Refines D-184 (step 1 of the embed providers
+  discussion in `open-questions.md`).
+- **Decision:** the author chose each built-in as its own class and a
+  switch for each provider in the admin, then, after testing the
+  candidates in the editor, kept only TED and CodePen.
+  - **Built in:** TED and CodePen join YouTube and Vimeo, each a
+    `ProviderType` case and a final class in `Blush\Embed\Providers`.
+    Each endpoint was asked live on 2026-10-08.
+  - **Frames from the link:** each builds its frame from the link's ID
+    (`EmbedProvider::link()`: the host from a list, the path from a
+    pattern whose groups are safe in a URL), never from the answer's
+    HTML, so a frame is only ever on the provider's own player host
+    (`embed.ted.com`, `codepen.io/{user}/embed`).
+  - **Providers that aren't asked:** `EmbedProvider::$endpoint` is
+    nullable; `null` means the frame comes from the link alone and
+    `Embeds::lookup()` never fetches (`asks()`). CodePen is one: its
+    oEmbed turns servers away (a Cloudflare challenge), so pens are
+    framed as their result (`?default-tab=result`) and named by the
+    embed's title or label. `OEmbedProvider`, for config, still
+    requires an HTTPS endpoint. This also covers Twitch later.
+  - **Dropped:** Kickstarter, whose oEmbed and widget frames both
+    answer servers with a Cloudflare challenge, so nothing could be
+    checked; and Dailymotion, whose player (`geo.dailymotion.com`, the
+    frame its own oEmbed answers with) refused to play on the dev site
+    with a 403, in the author's browser test. Loom, Wistia, and Speaker
+    Deck played, but the author chose not to build them in; a site can
+    still add them in `config/embed.php`.
+  - **Turning off:** `EmbedConfig::$off` names providers turned off,
+    built in or not; `EmbedProviders::forUrl()` skips them, so their
+    links are links, while `all()` still lists them. Settings → Writing
+    has an Embeds panel with a switch for each provider, saved together
+    as one setting, `embed.off` (sorted names), over `config/embed.php`.
+    Any well-formed name is kept, since a plugin's provider may not be
+    loaded. The embed config is in `RenderedBodies`' fingerprint, so
+    cached bodies render again after a change.
+- **Why:** a writer pasting a TED link shouldn't need someone
+  to edit config first, and the "never frame an unknown site" rule
+  still holds. Building frames from the link keeps the provider's
+  answer from choosing what's framed. Sites that don't want a provider
+  (for privacy or taste) need a way to say so without code.
+
+### D-634: Fixed-height players, Spotify, and SoundCloud
+
+- **Date:** 2026-10-08
+- **Status:** Built. Refines D-185 (step 2 of the embed providers
+  discussion in `open-questions.md`).
+- **Decision:** players that fill their column at a set height, rather
+  than keeping a shape, get a second kind of frame. The author chose
+  Spotify and SoundCloud (not Mixcloud), the class and an inferred
+  height, and Spotify's heights as it answers. For SoundCloud the
+  author first chose the visual player, then the compact one, with no
+  per-embed option for now.
+  - **The signal:** `EmbedProvider::fixedHeight($url, $data)` returns a
+    height in pixels, or `null` for a frame that keeps its ratio. By
+    default a frame is fixed when the answer gives its width as a
+    percentage and its height in pixels, so a config provider such as
+    Mixcloud (`"100%"`, 120) is fixed with no code. `EmbedData` keeps
+    that as `$fullWidth` (the width itself is still no size) and writes
+    it back as `"100%"`. Spotify answers a numeric width (456), so its
+    class says so itself.
+  - **The frame:** the directive's `$fixed`; the wrapper gets
+    `--embed-height: {n}px` in place of `--embed-ratio`, the root the
+    `fixed` modifier (`directive-embed--fixed`, never with `portrait`),
+    and the iframe its `height` attribute alone. Themes give
+    `.directive-embed--fixed iframe` `height: var(--embed-height)` and
+    `aspect-ratio: auto`: the default theme, and in the trial, Second
+    Proof, jtcom, and jtcom-blade.
+  - **Spotify:** track, album, playlist, artist, show, and episode
+    links (a `/intl-xx` path allowed), framed as
+    `open.spotify.com/embed/{kind}/{id}`, asked about the plain link
+    (share parameters dropped). Its height is the answer's, else 152
+    for a track or episode and 352 for the rest, with their track lists.
+  - **SoundCloud:** track and set links, a private link's `s-…` part
+    kept, framed by the compact player
+    (`w.soundcloud.com/player/?url={link}&visual=false&show_artwork=true`)
+    with the plain link; an account's own pages (`likes`, `tracks`,
+    `sets`, …) aren't framed. Its height is 166 for a track and 450 for
+    a set, with its track list; the answer's height is the visual
+    player's (400 to 450), so it isn't used.
+- **Why:** a 16:9 frame around a 152-pixel player is mostly empty
+  space. Inferring from a percentage width covers config providers
+  without code, and classes cover what the answers don't say.
+
+### D-635: Photo embeds, Twitch, and TikTok
+
+- **Date:** 2026-10-08
+- **Status:** Built. Refines D-184 (step 3 of the embed providers
+  discussion in `open-questions.md`).
+- **Decision:** the author chose all three, an `alt` attribute, a link
+  and credit line for photos, and every kind of Twitch link.
+  - **Photos:** `EmbedProvider::photo($url, $data)` returns the image
+    to show when nothing is framed; by default a `photo` answer's
+    `url`, so any config provider answering photos works. The
+    directive's `isPhoto()` draws `<figure>` with the image
+    (`photoAttributes()`: `directive-embed__photo`, its size, lazy,
+    `decoding="async"`, an origin-only referrer) linked to the embed's
+    URL, its `alt` printed by the template even when empty, and a
+    `<figcaption>` of the caption then the credit
+    (`<span class="directive-embed__credit">`, `embed.credit`: "Photo
+    by {author} on {provider}") when the provider names an author
+    (`EmbedData::$author`, from `author_name`). The root has the
+    `photo` modifier. Themes give the image `max-width: 100%` and
+    `height: auto`: the default theme, and in the trial, Second Proof,
+    jtcom, and jtcom-blade.
+  - **`alt`:** a new directive prop (`altText()`: `alt`, else `title`,
+    else the provider's title, else empty). Only photos use it.
+  - **Text from providers** is one line: control characters become
+    spaces, and direction marks and overrides (U+200E/F, U+202A–E,
+    U+2066–9) are removed, since Flickr's author names carry them.
+  - **Flickr:** photo pages and `flic.kr/p/` links; the image is kept
+    only on `*.staticflickr.com` with a Flickr file name. Nothing is
+    framed: albums and videos, which Flickr answers with its script,
+    are links. SmugMug and Imgur were checked and their oEmbed failed.
+  - **Twitch:** not asked (no oEmbed). Channels
+    (`player.twitch.tv/?channel=`), videos (`?video=v{id}`), and clips
+    (`clips.twitch.tv/{slug}` or `/{channel}/clip/{slug}`, framed from
+    `clips.twitch.tv/embed`), all `autoplay=false`, with `parent` the
+    host of `AppConfig::$url` (Twitch refuses any other page, and wants
+    HTTPS); Twitch's own pages (`directory`, `videos`, …) aren't
+    channels. The URL is in the body cache's fingerprint, so a new host
+    renders again.
+  - **TikTok:** video, `embed`, and `player/v1` links framed by
+    `www.tiktok.com/player/v1/{id}?rel=0` (no related videos), not the
+    script its oEmbed answers with; asked for the title. Its answer's
+    size is `100%` by `100%`, so `EmbedProvider::size($url, $data)`
+    (the answer's size by default) gives 324 by 576, 9:16, and D-186's
+    portrait cap applies. `vm.tiktok.com` short links only redirect and
+    stay links.
+- **Why:** photos need no frame or script, only the image and the
+  credit Flickr asks for. Twitch and TikTok have scriptless players
+  that can be built from the link, as YouTube's is.

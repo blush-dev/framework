@@ -54,11 +54,11 @@ final class Embeds
 
 	/**
 	 * Returns what a provider says about a URL, or `null` when fetching
-	 * is off or it said nothing usable.
+	 * is off, the provider isn't asked (D-633), or it said nothing usable.
 	 */
 	public function lookup(EmbedProvider $provider, string $url): ?EmbedData
 	{
-		if (! $this->config->fetch) {
+		if (! $this->config->fetch || ! $provider->asks()) {
 			return null;
 		}
 

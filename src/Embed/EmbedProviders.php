@@ -16,7 +16,8 @@ namespace Blush\Embed;
 /**
  * Every embed provider the site has: those in `config/embed.php` first,
  * then the registered ones (a configured provider replaces a registered
- * one of the same name). A URL is embedded by the first that matches it.
+ * one of the same name). A URL is embedded by the first that matches it
+ * among those turned on (`EmbedConfig::$off`, D-633).
  */
 final class EmbedProviders
 {
@@ -34,7 +35,8 @@ final class EmbedProviders
 	) {}
 
 	/**
-	 * Returns every provider, in the order URLs are matched.
+	 * Returns every provider, turned on or off, in the order URLs are
+	 * matched.
 	 *
 	 * @return list<EmbedProvider>
 	 * @throws EmbedException When a registered provider can't be built.
@@ -66,6 +68,6 @@ final class EmbedProviders
 	 */
 	public function forUrl(string $url): ?EmbedProvider
 	{
-		return array_find($this->all(), static fn (EmbedProvider $provider): bool => $provider->matches($url));
+		return array_find($this->all(), fn (EmbedProvider $provider): bool => $this->config->isOn($provider->name) && $provider->matches($url));
 	}
 }

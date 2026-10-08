@@ -13,15 +13,21 @@ declare(strict_types=1);
 
 namespace Blush\Embed;
 
+use Uri\Rfc3986\Uri;
+
 /**
  * An oEmbed provider (D-184): the URLs it embeds, as oembed.com-style
  * schemes with `*` wildcards (`https://vimeo.com/*`), and its oEmbed
- * endpoint, which must be HTTPS. Only URLs a registered provider matches
- * are embedded, so content never frames an unknown site (D-113).
+ * endpoint, which must be HTTPS, or `null` for a provider whose frame is
+ * built from the link alone, which is never asked (D-633). Only URLs a
+ * registered provider matches are embedded, so content never frames an
+ * unknown site (D-113).
  *
  * A subclass adjusts what the provider gives: the URL it asks about
  * (`request()`), and the frame it embeds (`frame()`), such as YouTube's
  * no-cookie host. The base embeds the iframe in the provider's HTML.
+ * Built-in providers build their frame from the link (`link()` reads
+ * it), so a frame is only ever on the provider's own host.
  * `allowsScripts()` is for rich embeds that need the provider's script
  * (X, Instagram); none do yet, so their URLs render as links.
  */
@@ -35,9 +41,9 @@ abstract class EmbedProvider
 		public readonly string $name,
 		public readonly string $label,
 		public readonly array $schemes,
-		public readonly string $endpoint
+		public readonly ?string $endpoint
 	) {
-		if (! str_starts_with($endpoint, 'https://')) {
+		if ($endpoint !== null && ! str_starts_with($endpoint, 'https://')) {
 			throw new EmbedException(sprintf('The "%s" embed provider\'s endpoint must be an HTTPS URL; "%s" given.', $name, $endpoint));
 		}
 	}
@@ -57,10 +63,23 @@ abstract class EmbedProvider
 	}
 
 	/**
-	 * Returns the oEmbed request URL for a URL.
+	 * Returns whether the provider is asked about its URLs over oEmbed.
+	 */
+	public function asks(): bool
+	{
+		return $this->endpoint !== null;
+	}
+
+	/**
+	 * Returns the oEmbed request URL for a URL, or `''` for a provider
+	 * that isn't asked.
 	 */
 	public function request(string $url): string
 	{
+		if ($this->endpoint === null) {
+			return '';
+		}
+
 		return $this->endpoint . (str_contains($this->endpoint, '?') ? '&' : '?') . http_build_query(['url' => $url, 'format' => 'json']);
 	}
 
@@ -75,12 +94,71 @@ abstract class EmbedProvider
 	}
 
 	/**
+	 * Returns the image to show for a URL, for a provider that answers
+	 * with a photo rather than a frame (D-635), or `null`. By default
+	 * it's a photo answer's image, when nothing is framed.
+	 */
+	public function photo(string $url, ?EmbedData $data): ?string
+	{
+		return $data?->type === EmbedType::Photo ? $data->url : null;
+	}
+
+	/**
+	 * Returns the embed's size as width and height, which sets its
+	 * aspect ratio (D-635), or `null` for 16:9. By default it's the
+	 * answer's.
+	 *
+	 * @return ?array{int, int}
+	 */
+	public function size(string $url, ?EmbedData $data): ?array
+	{
+		return $data?->width !== null && $data->height !== null ? [$data->width, $data->height] : null;
+	}
+
+	/**
+	 * Returns the frame's fixed height in pixels, for a player that fills
+	 * its column at a set height rather than keeping a shape (an audio
+	 * player, D-634), or `null` for one that keeps its aspect ratio. By
+	 * default, a player is fixed when the provider gives its width as a
+	 * percentage and its height in pixels.
+	 */
+	public function fixedHeight(string $url, ?EmbedData $data): ?int
+	{
+		return $data !== null && $data->fullWidth ? $data->height : null;
+	}
+
+	/**
 	 * Returns whether the provider's own HTML, script and all, may be
 	 * output for rich embeds. Not supported yet (D-184).
 	 */
 	public function allowsScripts(): bool
 	{
 		return false;
+	}
+
+	/**
+	 * Returns the groups a link's path matches, when the link is on one
+	 * of the hosts (`*.` allows any subdomain) and its path matches the
+	 * pattern; else `null`. Each group is letters, digits, `_`, and `-`
+	 * only where the pattern says so, so it's safe in a frame's URL.
+	 *
+	 * @param  list<string> $hosts
+	 * @return ?list<string>
+	 */
+	protected static function link(string $url, array $hosts, string $pattern): ?array
+	{
+		$uri  = Uri::parse(preg_replace('#^http://#i', 'https://', trim($url)) ?? $url);
+		$host = strtolower((string) $uri?->getHost());
+
+		$known = array_any($hosts, static fn (string $allowed): bool => str_starts_with($allowed, '*.')
+			? str_ends_with($host, substr($allowed, 1)) && strlen($host) > strlen($allowed) - 1
+			: $host === $allowed);
+
+		if ($uri === null || $uri->getScheme() !== 'https' || ! $known || preg_match($pattern, $uri->getPath(), $match) !== 1) {
+			return null;
+		}
+
+		return array_values(array_slice($match, 1));
 	}
 
 	/**

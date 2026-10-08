@@ -19,6 +19,7 @@ use Blush\Asset\AssetCollector;
 use Blush\Content\Entry\BodyCache;
 use Blush\Core\AppConfig;
 use Blush\Core\Framework;
+use Blush\Embed\EmbedConfig;
 use Blush\Markdown\MarkdownConfig;
 use Blush\Media\MediaConfig;
 use Blush\Theme\ThemeException;
@@ -29,8 +30,8 @@ use Blush\Theme\ThemeResolver;
  * `bodies` store, keyed by the content version, the body's own key (its
  * content hash), the theme chain the request renders with (directives
  * render through the theme's templates, D-112), and a fingerprint of the
- * rendering settings (the Markdown and media config, the site URL, and
- * the framework version).
+ * rendering settings (the Markdown, media, and embed config, the site
+ * URL, and the framework version).
  *
  * The content version is in the key because a directive may
  * read other content or site data; a publish re-renders bodies lazily,
@@ -49,6 +50,7 @@ final class RenderedBodies implements BodyCache
 		private readonly ThemeResolver $themes,
 		private readonly MarkdownConfig $markdown,
 		private readonly MediaConfig $media,
+		private readonly EmbedConfig $embed,
 		private readonly AppConfig $app,
 		private readonly AssetCollector $collector
 	) {}
@@ -94,7 +96,8 @@ final class RenderedBodies implements BodyCache
 			Framework::VERSION,
 			$this->app->url,
 			$this->markdown->toArray(),
-			$this->media->toArray()
+			$this->media->toArray(),
+			$this->embed->toArray()
 		]));
 	}
 }

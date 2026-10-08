@@ -1332,8 +1332,12 @@ Move each item to `decisions.md` once it's answered.
   Policy, privacy (these scripts track visitors; a click-to-load
   placeholder with the thumbnail may be the default). Until then they render as links named by
   their title.
-- **More embed providers** (discussed 2026-10-07, after D-584; nothing
-  decided, nothing built). What works where, from memory (each
+- **More embed providers** (discussed 2026-10-07, after D-584). Step 1
+  is built (D-633): TED and CodePen built in; Dailymotion, Loom,
+  Wistia, Speaker Deck, and Kickstarter dropped; and a switch per provider on
+  Settings → Writing. Step 2 is built (D-634): Spotify and SoundCloud
+  at fixed heights, Mixcloud left out. Step 3 is built (D-635): Flickr
+  photos, Twitch, and TikTok. The rest is as discussed, from memory (each
   endpoint and response to be checked live before relying on it):
   - **Frame-answering oEmbed, no code:** these answer with an
     `<iframe>`, so a plain `OEmbedProvider` in `config/embed.php` works
@@ -1371,10 +1375,45 @@ Move each item to `decisions.md` once it's answered.
     text, and without the provider's resize script a framed post is
     cut off or padded, which is why social posts need the rich-embed
     design rather than plain frames.
-  - **A possible order:** Spotify, SoundCloud, Dailymotion, and TED as
-    built-in providers, with the fixed-height frame for audio players;
-    then Twitch and TikTok as provider classes; then rich embeds for
-    social posts as their own design discussion.
+  - **The order, as it went:** steps 1 to 3 are built (D-633 to
+    D-635). Step 4, click-to-load, is below, saved for later. Rich
+    embeds for social posts come after it, as their own design
+    discussion.
+- **Click-to-load embeds** (step 4 of the embed providers discussion,
+  2026-10-08; the author wants these options kept for later; nothing
+  decided, nothing built):
+  - **The idea:** an embed renders first as a placeholder (thumbnail,
+    title, provider, a button such as "Play on YouTube"), and a click
+    swaps in the frame, so the provider gets no request and sets no
+    cookies until a reader asks. Spotify, TikTok, Twitch, and CodePen
+    all track once framed; only YouTube's no-cookie host doesn't. It
+    also keeps pages with several embeds light, and is what makes
+    script (rich) embeds acceptable, behind a click.
+  - **How it would work:** the placeholder is in the `embed` template:
+    a real `<button>` named for what it loads, and without JavaScript a
+    link to the embed's page. A small core site script swaps the frame
+    in, registered and asked for as the audio and video players are
+    (D-569 to D-573), only on pages with embeds. The placeholder keeps
+    the frame's ratio or fixed height, so nothing moves on load.
+    Providers never asked (CodePen, Twitch) have no thumbnail: a plain
+    panel with the provider and label. Themes style it.
+  - **Thumbnails** load from the provider (`i.ytimg.com/…`), which
+    gives back part of the privacy. They could be kept on the site
+    instead: downloaded on first render, served from the site, with a
+    size limit and the address checks the HTTP client plans (D-620).
+  - **Options to settle, with the leanings offered:**
+    1. The default: load right away (as now) or click to load, chosen
+       on Settings → Writing → Embeds. Leaning: click to load.
+    2. Thumbnails: the provider's, or copies kept on the site.
+       Leaning: copies, so the default is private.
+    3. Remembering a reader's choice: "Always load from YouTube" on
+       the placeholder, kept in that browser's local storage (no
+       cookies), or asked every time. Leaning: offered, per provider.
+    4. Scope: one site setting, or one per provider (TikTok behind a
+       click, YouTube right away). Leaning: one for now.
+    5. Photos (Flickr's images also load from Flickr): direct, as now,
+       or behind the same click. Leaning: direct; one request, no
+       script.
 - **More icons** (D-187): bundle all of Lucide (about 2,100) rather than
   the front-end subset. Brand logos are the theme's (D-203).
 - **Extensions the framework ships** (discussed 2026-10-03, after D-418;

@@ -20,6 +20,11 @@ use Dom\HTMLElement;
  * What an oEmbed provider says about a URL: its type, title, provider,
  * size, thumbnail, and HTML. Only the fields Blush uses are kept, and
  * they're checked: sizes must be positive whole numbers and URLs HTTPS.
+ * A width given as a percentage (SoundCloud's `"100%"`) is no size, but
+ * is kept as `$fullWidth`: the player fills its column at its height
+ * (D-634). Text is one line, without control characters or the
+ * direction overrides that can disguise it (Flickr's author names carry
+ * them). A photo's `url` is the image (D-635).
  *
  * The HTML is kept as given. Blush doesn't output it: `frame()` reads the
  * iframe URL out of it, and themes build their own markup (D-184). A
@@ -35,7 +40,9 @@ final readonly class EmbedData
 		public ?int $height = null,
 		public ?string $thumbnail = null,
 		public string $html = '',
-		public ?string $url = null
+		public ?string $url = null,
+		public bool $fullWidth = false,
+		public string $author = ''
 	) {}
 
 	/**
@@ -54,13 +61,15 @@ final readonly class EmbedData
 
 		return new self(
 			$type,
-			self::text($response['title'] ?? null),
-			self::text($response['provider_name'] ?? null),
+			self::line($response['title'] ?? null),
+			self::line($response['provider_name'] ?? null),
 			self::size($response['width'] ?? null),
 			self::size($response['height'] ?? null),
 			self::https($response['thumbnail_url'] ?? null),
 			self::text($response['html'] ?? null),
-			self::https($response['url'] ?? null)
+			self::https($response['url'] ?? null),
+			is_string($response['width'] ?? null) && preg_match('/^\d+(?:\.\d+)?%$/', $response['width']) === 1,
+			self::line($response['author_name'] ?? null)
 		);
 	}
 
@@ -75,11 +84,12 @@ final readonly class EmbedData
 			'type'          => $this->type->value,
 			'title'         => $this->title,
 			'provider_name' => $this->providerName,
-			'width'         => $this->width,
+			'width'         => $this->fullWidth ? '100%' : $this->width,
 			'height'        => $this->height,
 			'thumbnail_url' => $this->thumbnail,
 			'html'          => $this->html,
-			'url'           => $this->url
+			'url'           => $this->url,
+			'author_name'   => $this->author
 		];
 	}
 
@@ -104,6 +114,17 @@ final readonly class EmbedData
 	private static function text(mixed $value): string
 	{
 		return is_string($value) ? trim($value) : '';
+	}
+
+	/**
+	 * Returns a string value as one line of text, or `''`: control
+	 * characters become spaces, and direction marks and overrides go.
+	 */
+	private static function line(mixed $value): string
+	{
+		$text = is_string($value) ? (preg_replace('/[\x{200E}\x{200F}\x{202A}-\x{202E}\x{2066}-\x{2069}]/u', '', $value) ?? '') : '';
+
+		return trim(preg_replace('/\p{Cc}+/u', ' ', $text) ?? '');
 	}
 
 	/**

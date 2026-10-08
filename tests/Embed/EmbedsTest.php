@@ -16,6 +16,7 @@ namespace Blush\Tests\Embed;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Blush\Config\InvalidConfig;
+use Blush\Core\AppConfig;
 use Blush\Core\Application;
 use Blush\Embed\EmbedConfig;
 use Blush\Embed\EmbedData;
@@ -30,6 +31,13 @@ use Blush\Embed\ProviderFactory;
 use Blush\Embed\ProviderRegistrar;
 use Blush\Embed\ProviderRegistry;
 use Blush\Embed\ProviderType;
+use Blush\Embed\Providers\CodePen;
+use Blush\Embed\Providers\Flickr;
+use Blush\Embed\Providers\SoundCloud;
+use Blush\Embed\Providers\Spotify;
+use Blush\Embed\Providers\Ted;
+use Blush\Embed\Providers\TikTok;
+use Blush\Embed\Providers\Twitch;
 use Blush\Embed\Providers\Vimeo;
 use Blush\Embed\Providers\YouTube;
 use Blush\Embed\StreamFetcher;
@@ -48,7 +56,14 @@ use Blush\Tests\Fixtures\Embed\FixtureFetcher;
 #[CoversClass(ProviderRegistrar::class)]
 #[CoversClass(ProviderRegistry::class)]
 #[CoversClass(ProviderType::class)]
+#[CoversClass(CodePen::class)]
+#[CoversClass(Flickr::class)]
+#[CoversClass(SoundCloud::class)]
+#[CoversClass(Spotify::class)]
 #[CoversClass(StreamFetcher::class)]
+#[CoversClass(Ted::class)]
+#[CoversClass(TikTok::class)]
+#[CoversClass(Twitch::class)]
 #[CoversClass(Vimeo::class)]
 #[CoversClass(YouTube::class)]
 final class EmbedsTest extends TestCase
@@ -196,7 +211,7 @@ final class EmbedsTest extends TestCase
 
 		$providers = $this->app([], $config)->container()->make(EmbedProviders::class);
 
-		$this->assertSame(['youtube', 'example', 'vimeo'], array_map(static fn (EmbedProvider $provider): string => $provider->name, $providers->all()));
+		$this->assertSame(['youtube', 'example', 'vimeo', 'ted', 'codepen', 'spotify', 'soundcloud', 'flickr', 'twitch', 'tiktok'], array_map(static fn (EmbedProvider $provider): string => $provider->name, $providers->all()));
 		$this->assertSame('Tube', $providers->forUrl('https://youtu.be/dQw4w9WgXcQ')?->label);
 		$this->assertSame('Example', $providers->forUrl('https://video.example.com/1')?->label);
 		$this->assertNull($providers->forUrl('https://unknown.test/1'));
@@ -207,6 +222,159 @@ final class EmbedsTest extends TestCase
 
 		$this->expectException(InvalidConfig::class);
 		EmbedConfig::fromArray(['providers' => [['name' => 'bad', 'schemes' => [], 'endpoint' => 'http://x.test']]]);
+	}
+
+	public function testMoreBuiltInsFrameFromTheLinkOnTheirOwnHosts(): void
+	{
+		$cases = [
+			'https://www.ted.com/talks/sir_ken_robinson_do_schools_kill_creativity' => 'https://embed.ted.com/talks/sir_ken_robinson_do_schools_kill_creativity',
+			'https://embed.ted.com/talks/sir_ken_robinson_do_schools_kill_creativity' => 'https://embed.ted.com/talks/sir_ken_robinson_do_schools_kill_creativity',
+			'https://codepen.io/chriscoyier/pen/gfdDu'                 => 'https://codepen.io/chriscoyier/embed/gfdDu?default-tab=result',
+			'https://www.ted.com/talks/a"bad'                          => null,
+			'https://evil.test/codepen.io/chriscoyier/pen/gfdDu'       => null,
+			'https://codepen.io.evil.test/chriscoyier/pen/gfdDu'       => null,
+			'https://www.ted.com/talks/a/b'                            => null
+		];
+
+		$providers = [new Ted(), new CodePen()];
+
+		foreach ($cases as $url => $src) {
+			$match = array_find($providers, static fn (EmbedProvider $candidate): bool => $candidate->matches($url));
+
+			$this->assertSame($src, $match?->frame($url, null), $url);
+		}
+	}
+
+	public function testCodePenIsNeverAsked(): void
+	{
+		$embeds  = $this->app()->container()->make(Embeds::class);
+		$codepen = $embeds->provider('https://codepen.io/chriscoyier/pen/gfdDu');
+
+		$this->assertInstanceOf(CodePen::class, $codepen);
+		$this->assertFalse($codepen->asks());
+		$this->assertSame('', $codepen->request('https://codepen.io/chriscoyier/pen/gfdDu'));
+		$this->assertNull($embeds->lookup($codepen, 'https://codepen.io/chriscoyier/pen/gfdDu'));
+		$this->assertSame([], $this->fetcher->requests);
+	}
+
+	public function testProvidersCanBeTurnedOff(): void
+	{
+		$providers = $this->app([], "new EmbedConfig(off: ['ted', 'youtube'])")->container()->make(EmbedProviders::class);
+
+		$this->assertNull($providers->forUrl('https://www.ted.com/talks/sir_ken_robinson_do_schools_kill_creativity'));
+		$this->assertNull($providers->forUrl('https://youtu.be/dQw4w9WgXcQ'));
+		$this->assertSame('vimeo', $providers->forUrl('https://vimeo.com/76979871')?->name);
+		$this->assertContains('ted', array_map(static fn (EmbedProvider $provider): string => $provider->name, $providers->all()));
+		$this->assertSame(['ted'], EmbedConfig::fromArray(['off' => ['ted']])->toArray()['off']);
+
+		$this->expectException(InvalidConfig::class);
+		new EmbedConfig(off: ['Not a name']);
+	}
+
+	public function testAudioPlayersHaveAFixedHeight(): void
+	{
+		$spotify    = new Spotify();
+		$soundcloud = new SoundCloud();
+		$track      = 'https://open.spotify.com/track/4cOdK2wGLETKBW3PvgPWqT?si=abc';
+
+		$this->assertSame('https://open.spotify.com/embed/track/4cOdK2wGLETKBW3PvgPWqT', $spotify->frame($track, null));
+		$this->assertSame('https://open.spotify.com/embed/album/1DFixLWuPkv3KT3TnV35m3', $spotify->frame('https://open.spotify.com/intl-de/album/1DFixLWuPkv3KT3TnV35m3', null));
+		$this->assertStringContainsString('url=https%3A%2F%2Fopen.spotify.com%2Ftrack%2F4cOdK2wGLETKBW3PvgPWqT&', $spotify->request($track));
+		$this->assertNull($spotify->frame('https://open.spotify.com/user/someone', null));
+		$this->assertSame(152, $spotify->fixedHeight($track, null));
+		$this->assertSame(352, $spotify->fixedHeight('https://open.spotify.com/playlist/37i9dQZF1DXcBWIGoYBM5M', null));
+		$this->assertSame(232, $spotify->fixedHeight($track, new EmbedData(EmbedType::Rich, width: 456, height: 232)));
+
+		$this->assertSame('https://w.soundcloud.com/player/?url=https%3A%2F%2Fsoundcloud.com%2Fforss%2Fflickermood&visual=false&show_artwork=true', $soundcloud->frame('https://m.soundcloud.com/forss/flickermood?in=x', null));
+		$this->assertSame('https://w.soundcloud.com/player/?url=https%3A%2F%2Fsoundcloud.com%2Fforss%2Fsets%2Fecclesia&visual=false&show_artwork=true', $soundcloud->frame('https://soundcloud.com/forss/sets/ecclesia', null));
+		$this->assertStringContainsString('%2Fs-AbC123', (string) $soundcloud->frame('https://soundcloud.com/forss/demo/s-AbC123', null));
+		$this->assertNull($soundcloud->frame('https://soundcloud.com/forss/likes', null));
+		$this->assertNull($soundcloud->frame('https://soundcloud.com/forss', null));
+		$this->assertSame(166, $soundcloud->fixedHeight('https://soundcloud.com/forss/flickermood', null));
+		$this->assertSame(166, $soundcloud->fixedHeight('https://soundcloud.com/forss/flickermood', new EmbedData(EmbedType::Rich, height: 400, fullWidth: true)), 'The answer is the visual player\'s.');
+		$this->assertSame(450, $soundcloud->fixedHeight('https://soundcloud.com/forss/sets/ecclesia', null));
+
+		// Any provider whose width is a percentage is fixed at its height.
+		$data = EmbedData::fromResponse(['type' => 'rich', 'width' => '100%', 'height' => 120, 'html' => '<iframe src="https://player.test/1"></iframe>']);
+		$this->assertNotNull($data);
+		$this->assertTrue($data->fullWidth);
+		$this->assertSame(['100%', 120], [$data->toResponse()['width'], EmbedData::fromResponse($data->toResponse())?->height]);
+		$this->assertTrue(EmbedData::fromResponse($data->toResponse())?->fullWidth);
+		$this->assertSame(120, new OEmbedProvider('mix', 'Mix', ['https://mix.test/*'], 'https://mix.test/oembed')->fixedHeight('https://mix.test/1', $data));
+		$this->assertNull(new YouTube()->fixedHeight('https://youtu.be/dQw4w9WgXcQ', new EmbedData(EmbedType::Video, width: 200, height: 113)));
+	}
+
+	public function testTheDirectiveFramesAFixedPlayer(): void
+	{
+		$this->writeTemporaryFile('user/content/index.md', "---\ntitle: Home\n---\n::embed{url=\"https://open.spotify.com/track/4cOdK2wGLETKBW3PvgPWqT\"}\n");
+
+		$app  = $this->app(['https://open.spotify.com/oembed' => '{"type": "rich", "title": "A song", "width": 456, "height": 152, "html": "<iframe width=\\"100%\\" height=\\"152\\" src=\\"https://open.spotify.com/embed/track/4cOdK2wGLETKBW3PvgPWqT?utm_source=oembed\\"></iframe>"}']);
+		$html = (string) $app->container()->make(Kernel::class)->handle(Request::create('/'))->getBody();
+
+		$this->assertStringContainsString('directive-embed--spotify directive-embed--fixed', $html);
+		$this->assertStringContainsString('<div class="directive-embed__wrapper" style="--embed-height: 152px">', $html);
+		$this->assertStringContainsString('<iframe class="directive-embed__frame" src="https://open.spotify.com/embed/track/4cOdK2wGLETKBW3PvgPWqT" height="152" title="A song"', $html);
+	}
+
+	public function testTwitchAndTikTokFrameFromTheLink(): void
+	{
+		$twitch = new Twitch(new AppConfig(url: 'https://example.test'));
+		$cases  = [
+			'https://www.twitch.tv/Shroud'                      => 'https://player.twitch.tv/?channel=shroud&parent=example.test&autoplay=false',
+			'https://www.twitch.tv/videos/2245712345'           => 'https://player.twitch.tv/?video=v2245712345&parent=example.test&autoplay=false',
+			'https://clips.twitch.tv/FunnyClip-abc_123'         => 'https://clips.twitch.tv/embed?clip=FunnyClip-abc_123&parent=example.test&autoplay=false',
+			'https://www.twitch.tv/shroud/clip/FunnyClip-abc'   => 'https://clips.twitch.tv/embed?clip=FunnyClip-abc&parent=example.test&autoplay=false',
+			'https://www.twitch.tv/directory'                   => null,
+			'https://www.twitch.tv/shroud/videos'               => null
+		];
+
+		foreach ($cases as $url => $src) {
+			$this->assertTrue($twitch->matches($url), $url);
+			$this->assertSame($src, $twitch->frame($url, null), $url);
+		}
+
+		$this->assertFalse($twitch->asks());
+
+		$tiktok = new TikTok();
+
+		$this->assertSame('https://www.tiktok.com/player/v1/6718335390845095173?rel=0', $tiktok->frame('https://www.tiktok.com/@scout2015/video/6718335390845095173?lang=en', null));
+		$this->assertSame('https://www.tiktok.com/player/v1/6718335390845095173?rel=0', $tiktok->frame('https://www.tiktok.com/embed/v2/6718335390845095173', null));
+		$this->assertFalse($tiktok->matches('https://vm.tiktok.com/ZMabc/'));
+		$this->assertNull($tiktok->frame('https://www.tiktok.com/@scout2015/video/abc', null));
+		$this->assertSame([324, 576], $tiktok->size('https://www.tiktok.com/@scout2015/video/6718335390845095173', EmbedData::fromResponse(['type' => 'video', 'width' => '100%', 'height' => '100%'])));
+	}
+
+	public function testPhotosShowAsImages(): void
+	{
+		$flickr = new Flickr();
+		$photo  = new EmbedData(EmbedType::Photo, url: 'https://live.staticflickr.com/3123/2341623661_7c99f48bbf_b.jpg');
+
+		$this->assertNull($flickr->frame('https://www.flickr.com/photos/bees/2341623661/', $photo));
+		$this->assertSame('https://live.staticflickr.com/3123/2341623661_7c99f48bbf_b.jpg', $flickr->photo('https://www.flickr.com/photos/bees/2341623661/', $photo));
+		$this->assertNull($flickr->photo('https://www.flickr.com/photos/bees/2341623661/', new EmbedData(EmbedType::Photo, url: 'https://evil.test/3123/2341623661_7c99f48bbf_b.jpg')));
+		$this->assertNull($flickr->photo('https://www.flickr.com/photos/bees/albums/1', new EmbedData(EmbedType::Rich, html: '<a data-flickr-embed="true"></a>')));
+
+		// Text from a provider loses direction overrides and control characters.
+		$this->assertSame('bees', EmbedData::fromResponse(['type' => 'photo', 'author_name' => "\u{202E}\u{202D}\u{202C}bees\u{202C}"])?->author);
+		$this->assertSame('A title', EmbedData::fromResponse(['type' => 'photo', 'title' => "A\ntitle"])?->title);
+
+		$this->writeTemporaryFile('user/content/index.md', <<<'MD'
+			---
+			title: Home
+			---
+			::embed[Bees at work]{url="https://www.flickr.com/photos/bees/2341623661/" alt="Bees on a honeycomb"}
+
+			::embed{url="https://www.flickr.com/photos/bees/2341623661/"}
+			MD);
+
+		$app  = $this->app(['https://www.flickr.com/services/oembed/' => '{"type": "photo", "title": "ZB8T0193", "author_name": "‮bees", "width": 1024, "height": 683, "url": "https://live.staticflickr.com/3123/2341623661_7c99f48bbf_b.jpg"}']);
+		$html = (string) $app->container()->make(Kernel::class)->handle(Request::create('/'))->getBody();
+
+		$this->assertStringContainsString('directive-embed--flickr directive-embed--photo', $html);
+		$this->assertStringContainsString('<a href="https://www.flickr.com/photos/bees/2341623661/"><img class="directive-embed__photo" src="https://live.staticflickr.com/3123/2341623661_7c99f48bbf_b.jpg" width="1024" height="683" loading="lazy" decoding="async" referrerpolicy="strict-origin-when-cross-origin" alt="Bees on a honeycomb"></a>', $html);
+		$this->assertStringContainsString('<figcaption>Bees at work <span class="directive-embed__credit">Photo by bees on Flickr</span></figcaption>', $html);
+		$this->assertStringContainsString('alt="ZB8T0193"></a>', $html, 'Without alt, the title.');
+		$this->assertStringContainsString('<figcaption><span class="directive-embed__credit">', $html);
 	}
 
 	public function testTheDirectiveUsesTheAnswer(): void

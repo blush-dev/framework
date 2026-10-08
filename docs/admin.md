@@ -1256,7 +1256,12 @@ screens:
   default), **Filtered** (script, frames, forms, and styles show as
   text, and `javascript:` links lose their address), or **Shown as
   text**. Who may add HTML in the editor is up to their role (see
-  [Capabilities](accounts.md#capabilities)).
+  [Capabilities](accounts.md#capabilities)). Under **Embeds**, a switch for each
+  site whose links play on the page (YouTube, Vimeo, TED, CodePen,
+  Spotify, SoundCloud, Flickr, Twitch, TikTok, and any your site
+  adds); a site
+  turned off keeps its links as links. They're saved together as
+  `embed.off`, over `config/embed.php`'s `off`.
 - **Media:** what may be uploaded, as a grid: **All Files**, then
   Images, Videos, Audio, Documents, and Other Files, each with an
   **Uploads** switch, its **Largest file** in megabytes, and its

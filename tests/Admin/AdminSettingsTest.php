@@ -212,6 +212,36 @@ final class AdminSettingsTest extends TestCase
 		$this->assertStringContainsString('<h2>Part &lt;b&gt;one&lt;/b&gt;</h2>', $page);
 	}
 
+	public function testTurnsEmbedProvidersOffOnTheWritingScreen(): void
+	{
+		$this->writeTemporaryFile('user/content/hello.md', "---\ntitle: Hello\n---\n::embed{url=\"https://www.ted.com/talks/sir_ken_robinson_do_schools_kill_creativity\"}\n");
+		$this->writeTemporaryFile('config/embed.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn new Blush\\Embed\\EmbedConfig(fetch: false);\n");
+		$this->boot(roles: ['administrator']);
+		$this->login();
+
+		$this->assertStringContainsString('src="https://embed.ted.com/talks/sir_ken_robinson_do_schools_kill_creativity"', (string) $this->visit('GET', '/hello')->getBody());
+
+		$off = $this->setting(self::json($this->send('GET', '/settings/writing')), 'embeds', 'off');
+		$this->assertSame(['embed.off', 'embeds', [], true, 'config/embed.php'], [$off['setting'] ?? null, $off['kind'] ?? null, $off['input'] ?? null, $off['default'] ?? null, $off['file'] ?? null]);
+		$providers = is_array($off['providers'] ?? null) ? $off['providers'] : [];
+		$this->assertContains(['name' => 'youtube', 'label' => 'YouTube', 'hosts' => ['youtube.com', 'm.youtube.com', 'youtube-nocookie.com', 'youtu.be']], $providers);
+		$this->assertContains(['name' => 'ted', 'label' => 'TED', 'hosts' => ['ted.com', 'embed.ted.com']], $providers);
+
+		$response = $this->write('PATCH', '/settings', ['set' => ['embed.off' => ['ted', 'codepen', 'ted']]]);
+		$this->assertSame(200, $response->getStatusCode(), (string) $response->getBody());
+		$this->assertSame(['embed' => ['off' => ['codepen', 'ted']]], json_decode($this->file('user/data/settings.json'), true));
+		$this->assertSame(422, $this->write('PATCH', '/settings', ['set' => ['embed.off' => ['Not a name']]])->getStatusCode());
+
+		// Settings are read at boot; the account is already there.
+		$this->app = $this->scratchApplication(['APP_ENV' => 'development', 'APP_URL' => 'https://example.test', 'APP_SECRET' => str_repeat('s', 64)]);
+		$this->app->boot();
+
+		$page = (string) $this->visit('GET', '/hello')->getBody();
+
+		$this->assertStringNotContainsString('<iframe', $page);
+		$this->assertStringContainsString('<a href="https://www.ted.com/talks/sir_ken_robinson_do_schools_kill_creativity">', $page);
+	}
+
 	public function testShowsAndSavesUntranslatedPagesOnAMultilingualSite(): void
 	{
 		$this->writeTemporaryFile('config/app.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn Blush\\Core\\AppConfig::fromArray(['environment' => 'development', 'languages' => ['fr' => 'fr_FR']]);\n");

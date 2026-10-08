@@ -32,6 +32,9 @@ use Blush\Content\Type\ContentType;
 use Blush\Content\Type\ContentTypes;
 use Blush\Core\AppConfig;
 use Blush\Core\Environment;
+use Blush\Embed\EmbedConfig;
+use Blush\Embed\EmbedProvider;
+use Blush\Embed\EmbedProviders;
 use Blush\Feed\FeedConfig;
 use Blush\Feed\FeedFormat;
 use Blush\Field\Field;
@@ -122,7 +125,9 @@ final readonly class SettingsController
 		private FieldSets $fieldSets,
 		private MediaLibrary $library,
 		private AuthConfig $auth,
-		private Roles $roles
+		private Roles $roles,
+		private EmbedConfig $embed,
+		private EmbedProviders $embeds
 	) {}
 
 	public function __invoke(ServerRequestInterface $request, string $screen): ResponseInterface
@@ -402,8 +407,11 @@ final readonly class SettingsController
 	}
 
 	/**
-	 * Writing (D-494): how what's written in Markdown renders, and what
-	 * raw HTML in it does.
+	 * Writing (D-494): how what's written in Markdown renders, what raw
+	 * HTML in it does, and the sites links embed from (D-633): a switch
+	 * for each provider, built in or not, saved together as the list of
+	 * those turned off (`embed.off`, kind `embeds`), with each provider's
+	 * `name`, `label`, and the `hosts` its links are on.
 	 *
 	 * @return list<array<string, mixed>>
 	 */
@@ -432,8 +440,45 @@ final readonly class SettingsController
 					Setting::Html,
 					$markdown->html->value
 				)
+			]),
+			self::group('embeds', 'Embeds', 'Sites whose links play on the page', [
+				[
+					...$this->edit(
+						self::item('off', Setting::EmbedsOff->field($this->types)->label, $this->embed->off, $this->embed->off === [], 'embeds', Setting::EmbedsOff->field($this->types)->description),
+						$saved,
+						Setting::EmbedsOff,
+						$this->embed->off
+					),
+					'providers' => array_map(static fn (EmbedProvider $provider): array => [
+						'name'  => $provider->name,
+						'label' => $provider->label,
+						'hosts' => self::hosts($provider)
+					], $this->embeds->all())
+				]
 			])
 		];
+	}
+
+	/**
+	 * Returns the sites a provider's links are on, from its schemes, as
+	 * people write them (`youtube.com`, `youtu.be`).
+	 *
+	 * @return list<string>
+	 */
+	private static function hosts(EmbedProvider $provider): array
+	{
+		$hosts = [];
+
+		foreach ($provider->schemes as $scheme) {
+			$host = parse_url(str_replace('*.', 'x.', $scheme), PHP_URL_HOST);
+
+			if (is_string($host)) {
+				$host         = preg_replace('/^(?:www|x)\./', '', strtolower($host)) ?? $host;
+				$hosts[$host] = true;
+			}
+		}
+
+		return array_keys($hosts);
 	}
 
 	/**

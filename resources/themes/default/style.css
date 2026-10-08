@@ -722,3 +722,16 @@ hr {
 	max-width: calc(80svh * (var(--embed-ratio)));
 	margin-inline: auto;
 }
+
+/* A player at a set height (Spotify's, SoundCloud's) fills the column at it. */
+.directive-embed--fixed iframe {
+	height: var(--embed-height);
+	aspect-ratio: auto;
+}
+
+/* A photo (from Flickr) fills the column at most, keeping its shape. */
+.directive-embed__photo {
+	display: block;
+	max-width: 100%;
+	height: auto;
+}

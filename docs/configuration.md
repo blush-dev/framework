@@ -219,8 +219,11 @@ uploaded at.
 
 The [`embed` directive](directives.md#built-in-directives) asks each
 video's site for its size and title (over [oEmbed](https://oembed.com)),
-once a month per URL. YouTube and Vimeo are built in; add other sites
-here:
+once a month per URL. Built in are YouTube, Vimeo, TED, CodePen,
+Spotify, SoundCloud, Flickr, Twitch, and TikTok (CodePen and Twitch
+aren't asked; they're framed from the link). A player the site gives a
+width of `100%` (an audio player) fills the column at the height it
+answers with, and a site that answers with a photo shows the image. Add other sites here:
 
 ```php
 <?php
@@ -232,10 +235,10 @@ use Blush\Embed\OEmbedProvider;
 
 return new EmbedConfig(providers: [
 	new OEmbedProvider(
-		'dailymotion',
-		'Dailymotion',
-		['https://www.dailymotion.com/video/*'],
-		'https://www.dailymotion.com/services/oembed'
+		'streamable',
+		'Streamable',
+		['https://streamable.com/*'],
+		'https://api.streamable.com/oembed.json'
 	)
 ]);
 ```
@@ -249,8 +252,9 @@ Instagram) show as links for now.
 
 | Option | Default | What it does |
 |---|---|---|
-| `providers` | `[]` | oEmbed providers to add; one named `youtube` or `vimeo` replaces the built-in |
-| `fetch` | `true` | Ask providers for sizes and titles; `false` never does (YouTube and Vimeo still embed, at 16:9) |
+| `providers` | `[]` | oEmbed providers to add; one named like a built-in (`youtube`, `vimeo`, `ted`, `codepen`, `spotify`, `soundcloud`, `flickr`, `twitch`, `tiktok`) replaces it |
+| `off` | `[]` | Names of providers turned off, built in or added, whose links stay links. Settings → Writing's switches save over it |
+| `fetch` | `true` | Ask providers for sizes and titles; `false` never does (the built-ins still embed, at 16:9) |
 | `timeout` | `3` | Seconds to wait for a provider |
 | `ttl` | `2592000` | Seconds to keep an answer (30 days) |
 | `failureTtl` | `3600` | Seconds before asking again after a provider didn't answer |

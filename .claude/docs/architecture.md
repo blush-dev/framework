@@ -1023,18 +1023,28 @@ Implemented in M6a (D-127 to D-130), apart from publishing (M6b).
 ## Embeds (D-184)
 
 - **Providers:** `EmbedProvider` (name, label, oembed.com-style schemes,
-  HTTPS endpoint; `request()`, `frame()`, `allowsScripts()`). Built in:
-  `YouTube` and `Vimeo` (enum + registry + factory + registrar); sites
+  HTTPS endpoint or `null` for one never asked; `request()`, `frame()`,
+  `fixedHeight()`, `allowsScripts()`; `link()` reads a link's ID on a
+  known host). Built in: `YouTube`, `Vimeo`, `Ted`, `CodePen` (D-633),
+  `Spotify`, and `SoundCloud` (D-634), `Flickr`, `Twitch`, and
+  `TikTok` (D-635; `photo()` and `size()`), each framing from the link (enum
+  + registry + factory + registrar); sites
   add `OEmbedProvider`s in `config/embed.php` or classes in
   `ProviderRegistry`. `EmbedProviders` matches a URL to the first
-  provider (configured ones first). Unmatched URLs are never framed.
+  provider (configured ones first) that isn't turned off
+  (`EmbedConfig::$off`, Settings → Writing's switches). Unmatched URLs
+  are never framed.
 - **Lookups:** `Embeds::lookup()` asks the provider through `Fetcher`
   (`StreamFetcher` by default) on first render and keeps the answer
   (`EmbedData`) in the persistent `embeds` store: 30 days, failures an
   hour. `EmbedConfig` sets the providers, `fetch`, timeout, and TTLs.
   `cache:clear --embeds` empties the store, with the cache store (D-448).
 - **Rendering:** the `embed` directive frames `provider->frame()` with
-  the answer's size (as `--embed-ratio`) and title; the theme owns the
+  the answer's size (as `--embed-ratio`) and title, or, for a player at
+  a set height (`fixedHeight()`: Spotify's and SoundCloud's, or any
+  answer with a percentage width), `--embed-height` and the `fixed`
+  modifier; a photo answer (`photo()`) is an `<img>` linked to the
+  page, with `alt` and a credit (`photo` modifier); the theme owns the
   markup. Script-based rich embeds render as links for now.
 
 ## Icons (D-187)

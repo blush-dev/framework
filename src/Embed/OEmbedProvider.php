@@ -18,10 +18,19 @@ namespace Blush\Embed;
  * URL schemes, and endpoint, with the base behavior (the iframe in its
  * HTML).
  *
- *     new OEmbedProvider('dailymotion', 'Dailymotion', ['https://www.dailymotion.com/video/*'], 'https://www.dailymotion.com/services/oembed')
+ *     new OEmbedProvider('streamable', 'Streamable', ['https://streamable.com/*'], 'https://api.streamable.com/oembed.json')
  */
 final class OEmbedProvider extends EmbedProvider
 {
+	/**
+	 * @param  list<string> $schemes
+	 * @throws EmbedException When the endpoint isn't HTTPS.
+	 */
+	public function __construct(string $name, string $label, array $schemes, string $endpoint)
+	{
+		parent::__construct($name, $label, $schemes, $endpoint);
+	}
+
 	/**
 	 * Returns the provider as config data.
 	 *
@@ -29,6 +38,6 @@ final class OEmbedProvider extends EmbedProvider
 	 */
 	public function toArray(): array
 	{
-		return ['name' => $this->name, 'label' => $this->label, 'schemes' => $this->schemes, 'endpoint' => $this->endpoint];
+		return ['name' => $this->name, 'label' => $this->label, 'schemes' => $this->schemes, 'endpoint' => $this->endpoint ?? ''];
 	}
 }

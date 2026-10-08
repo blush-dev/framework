@@ -23,6 +23,7 @@ use Blush\Content\Type\ContentTypes;
 use Blush\Content\Type\TypeKind;
 use Blush\Core\AppConfig;
 use Blush\Core\Untranslated;
+use Blush\Embed\EmbedConfig;
 use Blush\Extension\ExtensionName;
 use Blush\Feed\FeedConfig;
 use Blush\Feed\FeedFormat;
@@ -84,6 +85,7 @@ enum Setting: string
 	case HeadingAnchors   = 'markdown.headingAnchors';
 	case Figures          = 'markdown.figures';
 	case Html             = 'markdown.html';
+	case EmbedsOff        = 'embed.off';
 	case Sitemap          = 'sitemap.enabled';
 	case SitemapDisallow  = 'sitemap.disallow';
 	case Llms             = 'llms.enabled';
@@ -139,7 +141,7 @@ enum Setting: string
 			self::Home, self::FeedFormats, self::FeedContent, self::FeedLimit => SettingsScreen::Reading,
 			self::MediaUploads, self::AddArtwork                          => SettingsScreen::Media,
 			self::Mentions, self::SmartPunctuation, self::HeadingAnchors,
-			self::Figures, self::Html                                     => SettingsScreen::Writing,
+			self::Figures, self::Html, self::EmbedsOff                    => SettingsScreen::Writing,
 			self::TrailingSlash, self::Sitemap, self::SitemapDisallow     => SettingsScreen::Search,
 			self::Llms, self::LlmsFull, self::BlockAi                     => SettingsScreen::Ai
 		};
@@ -175,6 +177,7 @@ enum Setting: string
 			self::HeadingAnchors  => new BoolField('headingAnchors')->labeled('Heading anchors')->described('Each heading gets a link to itself, so a section can be shared.'),
 			self::Figures         => new BoolField('figures')->labeled('Images as figures')->described('An image on a line of its own becomes a figure, with its title as the caption.'),
 			self::Html            => new EnumField('html', array_column(RawHtml::cases(), 'value'))->labeled('Raw HTML')->described('What HTML written in content does on the page, whoever wrote it. Who may add HTML in the admin is up to their role.')->control(Control::Radios)->required(),
+			self::EmbedsOff       => new ListField('off')->labeled('Embeds turned off')->described('A site turned off keeps its links as links, rather than playing them on the page.'),
 			self::FeedLimit       => new NumberField('limit', integer: true, min: 1, max: self::FEED_LIMIT_MAX)->labeled('Entries per feed')->described(sprintf('From 1 to %d.', self::FEED_LIMIT_MAX)),
 			self::TrailingSlash   => new BoolField('trailingSlash')->labeled('Trailing slash')->described('The other form redirects, so links to either still work.'),
 			self::Sitemap         => new BoolField('enabled')->labeled('Sitemap and robots.txt')->described('Off, the site has neither, and search engines find pages by their links.'),
@@ -318,6 +321,7 @@ enum Setting: string
 			'llms'    => LlmsConfig::class,
 			'media'   => MediaConfig::class,
 			'markdown' => MarkdownConfig::class,
+			'embed'   => EmbedConfig::class,
 			default   => SitemapConfig::class
 		};
 	}
@@ -373,6 +377,7 @@ enum Setting: string
 			self::Theme           => self::theme($value),
 			self::Plugins         => self::names($value, 'plugins'),
 			self::IconPacks       => self::names($value, 'icon packs'),
+			self::EmbedsOff       => self::providers($value),
 			default               => is_bool($value) ? $value : throw new InvalidSetting(sprintf('"%s" must be true or false.', $this->value))
 		};
 	}
@@ -543,6 +548,31 @@ enum Setting: string
 		foreach ($value as $name) {
 			if (! is_string($name) || ! ExtensionName::isValid($name)) {
 				throw new InvalidSetting(sprintf('"%s" isn\'t a name; the %s turned off are named vendor/name, such as "acme/gallery".', is_string($name) ? $name : get_debug_type($name), $kind));
+			}
+		}
+
+		$names = array_values(array_unique($value));
+		sort($names);
+
+		return $names;
+	}
+
+	/**
+	 * The embed providers turned off (D-633): names, sorted, once each.
+	 * Any name is kept, as a plugin's provider may not be loaded.
+	 *
+	 * @return list<string>
+	 * @throws InvalidSetting
+	 */
+	private static function providers(mixed $value): array
+	{
+		if (! is_array($value) || ! array_is_list($value)) {
+			throw new InvalidSetting('The embeds turned off must be a list of providers\' names.');
+		}
+
+		foreach ($value as $name) {
+			if (! is_string($name) || ! EmbedConfig::isName($name)) {
+				throw new InvalidSetting(sprintf('"%s" isn\'t an embed provider\'s name, such as "codepen".', is_string($name) ? $name : get_debug_type($name)));
 			}
 		}
 

@@ -281,7 +281,7 @@ final class DirectivesTest extends TestCase
 		$this->assertNotNull($callout);
 		$this->assertSame(Embed::class, $embed->class);
 		$this->assertSame(DirectiveContent::Text, $embed->content());
-		$this->assertSame(['url', 'title', 'label'], array_map(static fn ($field): string => $field->name, $embed->props()));
+		$this->assertSame(['url', 'title', 'alt', 'label'], array_map(static fn ($field): string => $field->name, $embed->props()));
 		$this->assertSame(DirectiveContent::Blocks, $callout->content());
 		$this->assertSame(['info', 'tip', 'warning', 'danger'], array_map(static fn ($variant): string => $variant->name, $callout->variants()));
 		$this->assertSame('blush', $callout->variants()[0]->registrant);

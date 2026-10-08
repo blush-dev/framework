@@ -143,13 +143,16 @@
 		},
 		"embed": {
 			"label": "Embed",
-			"description": "A YouTube or Vimeo video, or a link to any other page.",
+			"description": "A video, sound, or photo from a known site, or a link to any other page.",
 			"props": {
 				"url": {
 					"label": "URL"
 				},
 				"title": {
 					"label": "Title"
+				},
+				"alt": {
+					"label": "Alt text"
 				}
 			}
 		},
@@ -895,7 +898,8 @@
 		"file_details": "{format}, {size}"
 	},
 	"embed": {
-		"title": "Embedded content from {provider}"
+		"title": "Embedded content from {provider}",
+		"credit": "Photo by {author} on {provider}"
 	},
 	"toc": {
 		"label": "Table of contents"

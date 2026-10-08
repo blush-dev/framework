@@ -18,7 +18,9 @@
  * Media's upload rules (D-406) are one setting drawn as a grid
  * (`UploadRules`), the whole of its panel, with where they're set under
  * it; the form holds the grid as text, so it's compared as the others
- * are.
+ * are. Writing's embeds (D-633) are one setting, the providers turned
+ * off, drawn as a row with a switch for each provider, with where it's
+ * set under them.
  *
  * Each setting is edited as a field (D-343), with the control the server
  * names (`FieldInput`, as every form draws them), but a yes or no is a
@@ -55,6 +57,7 @@ import { errorMessage, request, saveSettings, type FieldDescription, type Settin
 import { control, fromForm, toForm, type FormValue } from '../fields';
 import { screenTitle, screenTrail } from '../screen';
 import { toast } from '../toast';
+import { series } from '../format';
 import { fromGrid, summary, toGrid, type UploadGrid } from '../uploads';
 
 const props = defineProps<{ screen: string }>();
@@ -195,6 +198,19 @@ function gridOf(setting: string, from: Record<string, FormValue>): UploadGrid {
 
 function setGrid(setting: string, grid: UploadGrid): void {
 	form.value[setting] = JSON.stringify(grid);
+}
+
+// The embed providers turned off, in and out of the form's lines.
+function offList(setting: string): string[] {
+	const value = form.value[setting];
+
+	return typeof value === 'string' ? value.split('\n').map((line) => line.trim()).filter((line) => line !== '') : [];
+}
+
+function setProvider(setting: string, name: string, on: boolean): void {
+	const off = offList(setting).filter((entry) => entry !== name);
+
+	form.value[setting] = (on ? off : [...off, name]).sort().join('\n');
 }
 
 // A group's hint: the upload grid's says what it does.
@@ -347,7 +363,27 @@ onBeforeRouteUpdate(() => count.value === 0 || confirmLeave());
 			</template>
 			<div v-if="group.items.some((item) => item.kind !== 'uploads')" class="setting-panels__rows">
 				<template v-for="item in group.items" :key="item.key">
-					<div v-if="item.kind !== 'uploads'" class="setting" :class="{ 'setting--wide': isWide(item), 'is-off': locked(item) }">
+					<template v-if="item.kind === 'embeds' && item.setting !== undefined && item.providers !== undefined">
+						<div v-for="provider in item.providers" :key="provider.name" class="setting">
+							<div class="setting__label"><span :id="`setting-embed-${provider.name}-label`">{{ provider.label }}</span></div>
+							<div class="field setting__control" :class="{ 'is-unset': unset.includes(item.setting) }">
+								<div class="setting__switch">
+									<ToggleSwitch
+										form
+										:checked="!offList(item.setting).includes(provider.name)"
+										:label="provider.label"
+										:described-by="`setting-embed-${provider.name}-help`"
+										:locked="unset.includes(item.setting)"
+										@change="setProvider(item.setting!, provider.name, $event)"
+									/>
+								</div>
+							</div>
+							<div :id="`setting-embed-${provider.name}-help`" class="setting__help">
+								<p>Embeds links to {{ series(provider.hosts) }}.</p>
+							</div>
+						</div>
+					</template>
+					<div v-else-if="item.kind !== 'uploads'" class="setting" :class="{ 'setting--wide': isWide(item), 'is-off': locked(item) }">
 						<template v-if="item.setting !== undefined && item.field !== undefined">
 							<div class="setting__label">
 								<label v-if="!isGroup(item) && kindOf(item) !== 'checkbox'" :for="`setting-${item.key}`">{{ item.label }}</label>
@@ -448,6 +484,14 @@ onBeforeRouteUpdate(() => count.value === 0 || confirmLeave());
 					</div>
 				</template>
 			</div>
+			<template v-for="item in group.items" :key="`${item.key}-source`">
+				<p v-if="item.kind === 'embeds' && item.setting !== undefined" class="setting-panels__foot">
+					{{ item.help }}
+					<template v-if="unset.includes(item.setting)">Uses <code>{{ item.file }}</code>'s once saved. <button type="button" class="link-button" @click="useConfig(item.setting!, false)">Keep the saved ones</button></template>
+					<template v-else-if="item.saved">Saved here. <button type="button" class="link-button" @click="useConfig(item.setting!, true)">Use <code>{{ item.file }}</code>'s</button></template>
+					<template v-else>From <code>{{ item.file }}</code><template v-if="item.default === true">, the default</template>.</template>
+				</p>
+			</template>
 			<p v-if="group.note" class="setting-panels__foot">
 				<template v-for="(part, index) in parts(group.note)" :key="index"><code v-if="part.code">{{ part.text }}</code><template v-else>{{ part.text }}</template></template>
 			</p>

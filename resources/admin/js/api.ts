@@ -919,8 +919,10 @@ export interface SettingItem {
 	key: string;
 	label: string;
 	value: string | boolean | string[];
-	// `uploads` is Media's upload rules, drawn as a grid (D-406).
-	kind: 'text' | 'mono' | 'bool' | 'list' | 'uploads';
+	// `uploads` is Media's upload rules, drawn as a grid (D-406);
+	// `embeds` is the embed providers turned off, drawn as a switch for
+	// each of `providers` (D-633).
+	kind: 'text' | 'mono' | 'bool' | 'list' | 'uploads' | 'embeds';
 	// Whether it's still the default; `null` when it follows from others.
 	default: boolean | null;
 	help: string | null;
@@ -944,6 +946,9 @@ export interface SettingItem {
 	requires?: { setting: string; note: string };
 	// What the upload rules' grid needs (D-406).
 	uploads?: UploadsInfo;
+	// The embed providers, each a switch (D-633), with the sites their
+	// links are on.
+	providers?: { name: string; label: string; hosts: string[] }[];
 	// The language menu (D-441): each locale, named in its own language
 	// with its English name as the `hint` (D-442), regions under their
 	// language.
