@@ -1232,18 +1232,27 @@ export interface Violation {
 	field: string;
 	message: string;
 	severity: 'error' | 'warning' | 'notice';
+	// What kind of problem it is (D-612), for Site Health's groups, or
+	// `null` for one with no kind of its own.
+	kind: string | null;
 }
 
 export interface Health {
-	// When it was checked (D-546), and how many files.
+	// The report's shape (D-612), when it was checked (D-546), and how
+	// many files.
+	version: number;
 	at: string;
 	checked: number;
 	metadata: number;
 	strict: boolean;
 	counts: { error: number; warning: number; notice: number | null };
 	// Each file's problems, and whether it's an entry's (`content`) or a
-	// media file's or its details' (`media`, D-543).
+	// media file's or its details' (`media`, D-543). A problem another
+	// check reports (ids, terms, folders, sizes) isn't here (D-612).
 	files: { path: string; area: 'content' | 'media'; violations: Violation[] }[];
+	// The title, type, and id of each content file the report names, by
+	// path, for its rows (D-612).
+	entries: Record<string, { title: string; type: string; id: string | null }>;
 	// Files missing a valid id, and ids files share (D-477), for fixing
 	// here (`POST health/ids`, `POST health/ids/keep`, D-478).
 	ids: HealthIds;
@@ -1252,26 +1261,30 @@ export interface Health {
 	mediaIds: HealthIds;
 	// Sizes that images' details don't list as they are (D-488), and the
 	// images they're of, and how many images list files that aren't
-	// their sizes (`POST health/media-sizes`).
-	mediaSizes: { sizes: number; images: number; stale: number };
+	// their sizes, with each image (`POST health/media-sizes`).
+	mediaSizes: { sizes: number; images: number; stale: number; items: { key: string; unrecorded: number; stale: number }[] };
 	// By type, the entries named by another pattern than its `filename`
-	// (D-511): how many, the first few renames, and how many it leaves
-	// as they are, kept as folders (`POST health/filenames` with the type
+	// (D-511): how many, each rename, and how many it leaves as they
+	// are, kept as folders (`POST health/filenames` with the type
 	// renames them, D-512, D-514).
-	fileNames: { type: string; label: string; pattern: string; count: number; examples: { path: string; to: string }[]; skipped: number }[];
-	// Collections' files that aren't flat (D-514): how many, and the
-	// first few moves (`POST health/flatten` moves them).
-	flat: { count: number; examples: { path: string; to: string }[] };
-	// Terms and profiles entries name with no file (D-584): how many, and
-	// the first few, with the title each file gets (`POST health/terms`
-	// writes them).
-	terms: { count: number; examples: { type: string; slug: string; title: string }[] };
-	// Files with links between entries not filed with their ids (D-596):
-	// how many, and the first few, with the relations that differ (`POST
-	// health/refs` files them).
-	refs: { count: number; examples: { path: string; relations: string[] }[] };
+	fileNames: { type: string; label: string; pattern: string; count: number; items: { path: string; to: string }[]; skipped: number }[];
+	// Collections' files that aren't flat (D-514), and each move (`POST
+	// health/flatten` moves them).
+	flat: { count: number; items: { path: string; to: string }[] };
+	// Terms and profiles entries name with no file (D-584), each with
+	// its type's label, the title its file gets, and how many entries
+	// name it (`POST health/terms` writes them).
+	terms: { count: number; items: { type: string; label: string; slug: string; title: string; entries: number }[] };
+	// Files with links between entries not filed with their ids (D-596),
+	// each with the relations that differ (`POST health/refs` files
+	// them).
+	refs: { count: number; items: { path: string; relations: string[] }[] };
 	// Data types still written as taxonomies (D-591).
 	taxonomies: string[];
+	// The problems ignored for the site (D-613), by key, with who
+	// ignored each (a username, and the name shown) and when (`POST
+	// health/ignore` and `POST health/unignore`).
+	ignored: Record<string, { by: string; name: string; at: string }>;
 }
 
 export type HealthArea = 'content' | 'media' | 'extensions' | 'system' | 'accounts';

@@ -215,8 +215,22 @@
 	font-size: var(--text-sm);
 }
 
+/* A heading with its hint under it, when the hint is a sentence or two
+   (D-612), so the header's actions keep their place beside both. */
+.panel__header-text {
+	display: grid;
+	flex: 1 1 20rem;
+	gap: 2px;
+	min-width: 0;
+}
+
+.panel__header-text > * {
+	margin: 0;
+}
+
 .panel__actions {
 	display: flex;
+	align-items: center;
 	gap: var(--s-2);
 	margin-left: auto;
 }
@@ -1555,6 +1569,22 @@
 
 .search-field input::placeholder {
 	color: var(--fg-3);
+}
+
+/* The key that focuses a list's search (`/`), shown until it has the
+   focus. */
+.search-field__key {
+	padding: 0 5px;
+	border: 1px solid var(--border);
+	border-radius: var(--r-1);
+	color: var(--fg-3);
+	font-family: var(--font-mono);
+	font-size: var(--text-xs);
+	line-height: 1.5;
+}
+
+.search-field:focus-within .search-field__key {
+	display: none;
 }
 
 /* A short, fixed set of choices side by side (All, Images, Video…). */
@@ -3122,6 +3152,145 @@ button.lnk {
 @media (width <= 640px) {
 	.rows__when {
 		display: none;
+	}
+}
+
+/* What a Site Health check found (D-612): a row each, saying which file
+   (its entry's title, then its path), what was found and what the site
+   does because of it, and its fix. A fixed row stays, on a quieter
+   ground. Compact rows keep only the first line of each. */
+.problems {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.problem {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr) 18rem;
+	align-items: start;
+	gap: var(--s-2) var(--s-5);
+	padding: var(--pad-row) var(--pad-x);
+	border-top: 1px solid var(--border);
+}
+
+.problem:first-child {
+	border-top: 0;
+}
+
+.problem--fixed {
+	background: var(--surface-2);
+}
+
+.problem__lead,
+.problem__what {
+	display: grid;
+	align-content: start;
+	gap: 4px;
+	min-width: 0;
+}
+
+.problem__lead .pill {
+	justify-self: start;
+}
+
+.problem__title {
+	color: var(--fg);
+	font-family: var(--font-title);
+	font-size: var(--title-size);
+	font-weight: var(--title-weight);
+	letter-spacing: var(--title-track);
+	overflow-wrap: anywhere;
+}
+
+a.problem__title {
+	text-decoration: none;
+}
+
+a.problem__title:hover {
+	color: var(--accent);
+	text-decoration: underline;
+}
+
+.problem__title.mono {
+	font-family: var(--font-mono);
+	font-size: var(--text-sm);
+}
+
+.problem--fixed .problem__title {
+	color: var(--fg-2);
+}
+
+.problem__path,
+.problem__meta {
+	color: var(--fg-3);
+	font-size: var(--text-xs);
+	overflow-wrap: anywhere;
+}
+
+.problem__path {
+	font-family: var(--font-mono);
+}
+
+.problem__found,
+.problem__says {
+	margin: 0;
+	font-size: var(--text-sm);
+	overflow-wrap: anywhere;
+}
+
+.problem__found {
+	color: var(--fg);
+}
+
+.problem__says,
+.problem--fixed .problem__found {
+	color: var(--fg-2);
+}
+
+.problem__actions {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: flex-end;
+	gap: 6px;
+}
+
+.problem__more {
+	display: grid;
+	grid-column: 1 / -1;
+	gap: var(--s-3);
+}
+
+.problem__more .pick-list {
+	margin: 0;
+}
+
+.problem__label {
+	margin: 0;
+	color: var(--fg-3);
+	font-size: var(--text-2xs);
+	font-weight: 600;
+	letter-spacing: .07em;
+	text-transform: uppercase;
+}
+
+.panel--compact .problem {
+	align-items: center;
+	padding-block: 7px;
+}
+
+.panel--compact :is(.problem__path, .problem__meta, .problem__says) {
+	display: none;
+}
+
+@media (width <= 860px) {
+	.problem {
+		grid-template-columns: minmax(0, 1fr);
+	}
+
+	.problem__actions {
+		justify-content: flex-start;
 	}
 }
 

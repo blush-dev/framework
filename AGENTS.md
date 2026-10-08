@@ -188,7 +188,13 @@ sketch's later boards, rows pinned to the end of the Document tab
 that list what links when an entry leaves the site, and limits shown
 before they refuse (D-608); and the Relationships list in Config, a
 screen for each relationship in place of the modal form, changes asked
-in the shape of what they do, and a type's panel as sentences (D-610).
+in the shape of what they do, and a type's panel as sentences (D-610);
+and, from the Site Health sketch
+(`.claude/docs/admin-design/meridian-site-health.html`), each check's
+page as groups of problems by kind, a row each with its own fix, group
+fixes that ask first, and fixed rows kept until Check Again (D-612),
+and problems ignored per site, with no figure cards on check pages
+(D-613).
 The Fields
 API (D-337 to D-348: field types and controls, field sets on content
 types, media, and the Settings screens, slots, and Structure → Fields)

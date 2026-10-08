@@ -29,7 +29,7 @@
  * and search, says what the type is for, and offers its first entry.
  */
 
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { confirmAction } from '../confirm';
 import { confirmLeaving, confirmLeavingMany, confirmPurge } from '../referrers';
 import { RouterLink, useRoute, type LocationQueryRaw } from 'vue-router';
@@ -40,6 +40,7 @@ import AdminSelect, { type SelectOption } from '../components/AdminSelect.vue';
 import EmptyState from '../components/EmptyState.vue';
 import EntryTable from '../components/EntryTable.vue';
 import { compact } from '../density';
+import { useSearchKey } from '../search-key';
 import { makeHomepage } from '../homepage';
 import SkeletonTable from '../components/SkeletonTable.vue';
 import TrashTable from '../components/TrashTable.vue';
@@ -340,21 +341,7 @@ watch([type, types, profileType], () => {
 }, { immediate: true });
 
 // `/` puts the caret in the search, unless something is being typed.
-const searchField = ref<HTMLInputElement | null>(null);
-
-function slash(event: KeyboardEvent): void {
-	const target = event.target as HTMLElement | null;
-
-	if (event.key !== '/' || event.metaKey || event.ctrlKey || event.altKey || target?.closest('input, textarea, select, [contenteditable="true"], [role="listbox"]')) {
-		return;
-	}
-
-	event.preventDefault();
-	searchField.value?.focus();
-}
-
-onMounted(() => window.addEventListener('keydown', slash));
-onBeforeUnmount(() => window.removeEventListener('keydown', slash));
+const searchField = useSearchKey();
 
 function tabQuery(tab: Tab): LocationQueryRaw {
 	const next: LocationQueryRaw = { ...route.query, status: tab === 'any' ? undefined : tab };
@@ -732,11 +719,11 @@ const emptyText = computed(() => {
 			</nav>
 
 			<div class="toolbar" role="search">
-				<label class="search-field toolbar__search entries-search">
+				<label class="search-field toolbar__search">
 					<AdminIcon name="search" />
 					<span class="visually-hidden">{{ labels.searchItems }}</span>
 					<input id="entries-search" ref="searchField" v-model="query" type="search" :placeholder="labels.searchItems" autocomplete="off" aria-keyshortcuts="/">
-					<kbd class="entries-search__key" aria-hidden="true">/</kbd>
+					<kbd class="search-field__key" aria-hidden="true">/</kbd>
 				</label>
 				<template v-if="!inTrash">
 					<div v-if="authorOptions.length && status !== 'mine'" class="toolbar__filter">
@@ -881,20 +868,6 @@ const emptyText = computed(() => {
 <style scoped>
 .entries-root {
 	display: contents;
-}
-
-.entries-search__key {
-	padding: 0 5px;
-	border: 1px solid var(--border);
-	border-radius: var(--r-1);
-	color: var(--fg-3);
-	font-family: var(--font-mono);
-	font-size: var(--text-xs);
-	line-height: 1.5;
-}
-
-.entries-search:focus-within .entries-search__key {
-	display: none;
 }
 
 .notebar__action {

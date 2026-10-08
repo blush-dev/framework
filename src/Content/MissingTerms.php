@@ -81,13 +81,26 @@ final readonly class MissingTerms
 	}
 
 	/**
+	 * Returns how many entries name each slug, by type name, then by slug,
+	 * as the index has them now (after `report()`).
+	 *
+	 * @return array<string, array<string, int>>
+	 */
+	public function namedBy(): array
+	{
+		return array_map(static fn (array $slugs): array => array_map(count(...), $slugs), $this->index->snapshot()->terms);
+	}
+
+	/**
 	 * Writes a file for every slug named with no file, or only for the
 	 * types `$allowed` passes (by name), such as those an account may
-	 * create and publish entries of.
+	 * create and publish entries of, and only the `{type}/{slug}`s in
+	 * `$only` when it's given (one row on Site Health, D-612).
 	 *
 	 * @param ?Closure(string): bool $allowed
+	 * @param ?list<string>          $only
 	 */
-	public function create(?Closure $allowed = null): CreatedTerms
+	public function create(?Closure $allowed = null, ?array $only = null): CreatedTerms
 	{
 		$created = [];
 		$failed  = [];
@@ -101,6 +114,10 @@ final readonly class MissingTerms
 			}
 
 			foreach ($slugs as $slug => $title) {
+				if ($only !== null && ! in_array("{$name}/{$slug}", $only, true)) {
+					continue;
+				}
+
 				try {
 					$created["{$name}/{$slug}"] = $this->writer->create($type, $slug, new EntryChanges(set: [
 						'title'     => $title,

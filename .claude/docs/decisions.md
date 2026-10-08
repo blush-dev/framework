@@ -18295,3 +18295,117 @@ decision, add a new entry that supersedes it and mark the old one
   the two kinds", 2026-10-08.
 - **Not built yet:** the Content Types brief for the design system
   carries it; `NewTypeView` still has three cards.
+
+### D-612: Site Health's check pages, from the Site Health sketch
+
+- **Decision:** each Content and Media check's page
+  (`meridian-site-health.html`) shows everything the check found and
+  fixes it where it's listed:
+  1. **One page per check, one row per problem.** Problems of one kind
+     are grouped under a heading that names the kind and says what the
+     site does about them. A row says which file (the entry's title,
+     then its path in mono), what was found (the key as code, then the
+     message), and what the site does, in plain words.
+  2. **Every fixable row has its own fix, named for what it writes**
+     (Add an ID, Create Profile, File Links, Rename It), never "Fix".
+     Problems Blush can't fix (a value that doesn't fit its field) have
+     Open in Editor. A row's menu opens the entry or media file and
+     copies its path.
+  3. **One row's fix happens at once.** More than one row, and any group
+     fix, asks first, listing each file and its change (8, then "and N
+     more").
+  4. **A group fixes together only when every row gets the same kind
+     of change.** Groups whose rows need a choice each (which file keeps
+     a shared id) have no group fix.
+  5. **A fixed row stays where it was**, marked Fixed with what changed,
+     until Check Again. The check runs again after each fix, so the
+     figures, Site Health, and its count follow at once.
+  6. **The list's own parts:** the figures (Needs Attention, Fixed, and
+     Notices or Files Checked), status tabs (Needs Attention, and
+     Notices where a check has them) in place of the Include notices
+     checkbox, the search (`/`), a severity filter, Group by file on
+     Content Files and Media Details, and the density toggle. A group
+     shows 5 rows and grows 50 at a time (Group by file shows 20 files,
+     then 50 more).
+  7. **One problem, one check.** A lint problem another check reports
+     (an id, a term with no file, an entry in a folder, an image's
+     sizes) is left out of the files' problems.
+- **Built:**
+  - **Server:** `ViolationKind` (`Blush\Field`), a violation's optional
+    `kind`, set where lint, the schema, and media checks make them.
+    `ContentHealth::VERSION` (2): the report lists every problem, not
+    the first few (`terms`, `refs`, `flat`, `fileNames` have `items`;
+    `mediaSizes` has `items` by image), each violation's `kind`, and
+    `entries` (title, type, and id by path); a kept report in an older
+    shape is checked again. Every fix but `keep` and the taxonomies'
+    takes `paths` (`terms` for `POST health/terms`, each
+    `{type}/{slug}`; `MissingTerms::create($allowed, $only)`,
+    `MissingTerms::namedBy()`).
+  - **Admin:** `health.ts` (each check's groups, rows, and copy),
+    `HealthRow`, `HealthView` redrawn, the shared `.problems` and
+    `.problem*` classes, and `search-key.ts` with
+    `.search-field__key`, shared from the entries list.
+- **Not built** (see `open-questions.md` → Site Health):
+  - **Ignore and the Ignored tab:** where ignoring is kept is the
+    sketch's open question (settled by D-613).
+  - **Undo** on a fixed row and in its toast: nothing reverses a fix
+    yet.
+  - **"Did you mean"** for a name with no file (a term close to one
+    that exists): it needs a similarity search, the question the
+    relationship pickers raise too.
+  - **Fixes for lint problems** (quote a value, change a status, use
+    the file name's date, remove a key nothing reads): rows have Open
+    in Editor until a fix can write front matter for each kind.
+  - **The sketch's Links Between Entries** (links to trashed, deleted,
+    and draft entries, with Restore and Point at Another) is a check
+    Blush doesn't have; ours files links' ids, and links that can't be
+    followed are a group in Content Files.
+- **Why:** the author added the sketch "based on your ask relating to
+  relationship design yesterday" and asked for it to be used "how we
+  can for site health pages", within the design system, 2026-10-08.
+- **Checked:** `composer check`; `npm run admin:build`; the report run
+  against the trial site's content (1,218 files: 4 date warnings, 302
+  keys nothing reads, 2,189 older field names, 107 renames, 3 terms).
+  Not exercised in a browser.
+
+### D-613: Ignoring Site Health problems, per site; no figures on check pages
+
+- **Decision:**
+  1. **Ignoring is per site** (the sketch's open question): a warning or
+     notice ignored is ignored for everyone, with who ignored it and
+     when. Errors can't be ignored. An ignored problem moves to the
+     check page's **Ignored** tab (shown even at 0), says "Ignored by
+     {name}, {when}", and has **Stop Ignoring**; ignoring offers Undo
+     in its toast. Ignored problems stop counting on the check page, on
+     Site Health's overview, and in the panel's count.
+  2. **A check page has no figure cards**: its tabs' counts say what
+     they did (Needs Attention, Notices, Ignored). The overview keeps
+     its figures.
+- **Built:** `IgnoredProblems` with `FileIgnoredProblems`
+  (`user/data/health/ignored.json`: records keyed by problem key, each
+  `by` (username) and `at`; site data, so it's kept with the site;
+  bound in `SINGLETONS_IF` beside the report store). `ProblemKeys`
+  defines each problem's key (`{area}:{check}:…`), which `health.ts`
+  builds the same way. `SiteHealth` sums up content and media without
+  ignored problems (`withoutIgnored()`), forgets ignores a check no
+  longer finds (so a problem that comes back is seen again), and
+  `resummarize()` sums up the kept report again after an ignore. `GET`
+  and `POST health` answer `ignored` (with each one's `name`); `POST
+  health/ignore` and `POST health/unignore` take `{"key"}`. In the
+  admin, `HealthRow`'s menu has Ignore This, and the shared panel part
+  `.panel__header-text` holds a heading with a sentence-long hint, so
+  a header's actions stay beside them.
+- **Why:** the author, 2026-10-08: "I think ignoring at the site level
+  is fine." and "We don't need the header cards on sub-pages of site
+  health since we have the tabs."
+- **Checked in a browser** (2026-10-08, the trial site): Content Files
+  (both tabs, grouped by file, compact), File Names, Terms and Profiles
+  (menu, ignoring, the Ignored tab, Stop Ignoring, the overview's
+  count), Entry IDs, and an 820px window. Fixed from it: the space
+  between a key and its message, titles underlined, the actions
+  column's width (now 18rem, so the middle column lines up), headers'
+  actions wrapping under a long hint, Open in Editor repeated on each
+  row when grouped by file, counts without thousands separators, and
+  `.panel__actions` centering its items. A shared id's choice wasn't
+  seen (the trial site has none).
+

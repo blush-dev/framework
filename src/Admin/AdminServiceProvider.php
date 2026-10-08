@@ -53,13 +53,14 @@ final class AdminServiceProvider extends ServiceProvider
 	];
 
 	/**
-	 * Where Site Health keeps its last report (D-545), unless something
-	 * bound another store first.
+	 * Where Site Health keeps its last report (D-545) and the problems
+	 * ignored (D-613), unless something bound another store first.
 	 *
 	 * @inheritDoc
 	 */
 	protected const array SINGLETONS_IF = [
-		HealthReportStore::class => FileHealthReportStore::class
+		HealthReportStore::class => FileHealthReportStore::class,
+		IgnoredProblems::class   => FileIgnoredProblems::class
 	];
 
 	/**

@@ -4,6 +4,20 @@ Move each item to `decisions.md` once it's answered.
 
 ## Needs the author's call
 
+- **Site Health's check pages** (D-612; the sketch's open points;
+  saved for later, the author, 2026-10-08):
+  - **Undo** for a fix: what reverses one (ids written, files created,
+    renames), and how long it lasts.
+  - **Whether fixes are recorded** anywhere beyond the files (a log
+    entry, a history screen).
+  - **"Did you mean"** for a term or profile name with no file: a
+    similarity search from the API, as the pickers' `closest` has.
+  - **Fixes for lint problems** by kind (quote a value, use the file
+    name's date, remove a key nothing reads, change an older field name
+    to the one it's read as), which need a front matter writer for each.
+  - **Whether Check Again runs only its check.** It checks every
+    content and media file now.
+
 - **The data layer** (D-606; planned, nothing built). Settled: three
   layers (drivers over records, a fluent query compiled per driver,
   repositories), data mapper, every area, id-keyed writes, the full

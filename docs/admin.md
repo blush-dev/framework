@@ -1735,61 +1735,98 @@ asked for in a bug report. **Copy Report** copies them all as text.
 
 Each Content and Media issue opens a screen of its own, where it's
 fixed: **Content Files**, **Entry IDs**, **Terms and Profiles**,
-**Collection Folders**, **File Names**, and **Taxonomies**; **Media Details**, **Media IDs**, and **Image Sizes**.
-Each shows the last check, with when it ran. **Check Again** checks
-every content and media file again, and so does every fix once it's
-done; either updates Site Health too.
+**Links Between Entries**, **Collection Folders**, **File Names**, and
+**Taxonomies**; **Media Details**, **Media IDs**, and **Image Sizes**.
+Each shows the last check, with when it ran, and **Check Again**
+checks every content and media file again, which updates Site Health
+too.
+
+Each screen lists everything its check found, one row per problem.
+Problems of one kind are grouped under a heading that says what the
+site does about them, such as **Dates That Aren't Real** or **No ID,
+or One That Isn't Valid**. A row says which entry (its title, then its
+file), what was found, and what the site does because of it.
+
+- **Fixing one row:** a row Blush can fix has a button named for what
+  it writes, such as **Add an ID** or **Create Profile**. It changes
+  that file at once. The row stays where it was, marked **Fixed**, until
+  you check again. Problems Blush can't fix for you, such as a value
+  that doesn't fit its field, have **Open in Editor**. A row's menu
+  (**…**) opens the entry and copies its file's path.
+- **Fixing a group:** when every row in a group would get the same
+  kind of change, its heading has a button for all of them, such as
+  **Give 12 Files New IDs**. It asks first, listing the files and what
+  each gets. Groups whose rows each need a choice, such as which file
+  keeps a shared id, are fixed a row at a time.
+- **Ignoring:** a warning or notice you've decided to leave can be
+  ignored from its row's menu (**Ignore This**). It's ignored for
+  everyone on the site, moves to the **Ignored** tab, which says who
+  ignored it and when, and stops counting here and in Site Health.
+  **Stop Ignoring** brings it back. Errors can't be ignored, since the
+  site is already leaving something out. An ignored problem that's
+  fixed some other way is forgotten, so if it comes back, it's seen
+  again. Blush keeps them in `user/data/health/ignored.json`.
+- **Finding rows:** the tabs say how many problems need attention, how
+  many are notices (on screens that have them; notices change nothing
+  on the site), and how many are ignored. Search titles and files
+  (press `/`), narrow to errors or warnings, and switch between roomy
+  and compact rows. On Content Files and Media Details, **Group by
+  file** shows each file once with all its problems. A group shows 5
+  rows; **Show 50 More** shows more.
+
+Every fix changes only files you may edit. One problem is reported by
+one check: a missing id is under Entry IDs, not Content Files too.
 
 **Content Files** lists the problems in content files, as
-`bin/blush content:lint` finds them: front matter that isn't valid, such as an
-unknown status or a date that isn't one, and two files claiming the same
-entry. Turn on **Include notices** to also see undeclared keys and 1.x
-names.
+`bin/blush content:lint` finds them: front matter that can't be read,
+values that don't fit their fields, missing required fields, dates that
+aren't real, two files claiming the same entry, parents and
+translations that can't be used, and links that can't be followed.
+Its notices are keys nothing reads and 1.x field names.
 
-It also lists the files missing an [id](content.md#ids), or with one
-that isn't valid, and the ids two or more files share (usually a copied
-file). **Add Missing IDs** gives each of those files a new one. For a
-shared id, choose **Keep Here** beside the file that should keep it;
-the others get new ids. Either changes only files you may edit.
+**Entry IDs** lists the files missing an [id](content.md#ids), or with
+one that isn't valid; **Add an ID** gives one a new id. For an id two
+or more files share (usually a copied file), choose the file that keeps
+it, and **Give the Others New IDs**. A file without an id shows **No
+ID** in its list, and can't be opened in the editor until it has one;
+its links lead here.
 
-A file without an id shows **No ID** in its list, and can't be opened
-in the editor until it has one; its links lead here.
+**Terms and Profiles** lists each term and profile your entries name
+that has no file, which the site leaves out, with how many entries name
+it. **Create** writes its file, published and titled as the entries
+name it, for the types you may create and publish.
 
-**Terms and Profiles** says how many terms and profiles your entries
-name that have no file, which the site leaves out. **Write Files**
-writes each, published and titled as the entries name it, for the
-types you may create and publish.
+**Links Between Entries** lists the files whose links aren't filed with
+their ids. **File Links** files them, so they follow what they link to
+through a rename or a move.
 
 **Taxonomies** lists the types in `user/data/types` still written as
-taxonomies, which Blush no longer has. **Migrate Types** rewrites each
-as a collection and its classify relation in `user/data/relations`, as
+taxonomies, which Blush no longer has. **Migrate** rewrites each as a
+collection and its classify relation in `user/data/relations`, as
 `bin/blush content:taxonomies --write` does (see
 [Moving from taxonomies](content-types.md#moving-from-taxonomies)). It
-needs Site Health and `site.settings`.
+migrates them all at once, and needs Site Health and `site.settings`.
 
-**Collection Folders** says how many collection entries are kept in
-folders, which [collections](content-types.md#collections-are-flat)
-don't allow. **Move Out of Folders** moves those you may edit into
-their collection's folder.
+**Collection Folders** lists the collection entries kept in folders,
+which [collections](content-types.md#collections-are-flat) don't allow,
+and where each moves to.
 
 **File Names** lists, for each type with a file name
 [pattern](content-types.md#naming-new-files) of its own (not the
 default), the entries whose files aren't named by it, such as posts
-written before you changed it. **Rename Files** renames a type's
-entries, those you may edit, to the pattern. No address changes.
-Entries kept as folders keep their names.
+written before you changed it, and the name each gets. No address
+changes. Entries kept as folders keep their names.
 
 **Media Details** lists the problems in media details in
-`user/data/media/`: one that
-can't be read, a value that doesn't fit its field, or details left for
-a file that's gone. **Media IDs** works as entry ids do, for
-[media files](media.md#ids-and-image-sizes), by their paths in the media
-folder, changing only files whose details you may edit. A media file's
-screen shows its id under **File**. **Image Sizes** says how many
-[image sizes](media.md#ids-and-image-sizes) Blush found that aren't
-listed in their images' details yet; **Record Sizes** lists them. In
-the Media library, an image's sizes aren't items of their own: its
-screen lists them under **Sizes**.
+`user/data/media/`: one that can't be read, a value that doesn't fit
+its field, or details left for a file that's gone. **Media IDs** works
+as entry ids do, for [media files](media.md#ids-and-image-sizes), by
+their paths in the media folder, changing only files whose details you
+may edit. A media file's screen shows its id under **File**. **Image
+Sizes** lists the images whose details don't list their
+[sizes](media.md#ids-and-image-sizes) as they are; **Record Sizes**
+lists them. In the Media library, an image's sizes aren't items of
+their own: its screen lists them under **Sizes**.
 
 ## Your own admin
 
@@ -1884,10 +1921,10 @@ The API is JSON under `/admin/api`, and uses the session cookie:
 | `GET references/{type}` | What a reference field to `type` can point at, for the editor's picker (see below) |
 | `GET entries` | The entries the account may edit, a page at a time (see below) |
 | `GET health/site` | Site Health's last check, checking first when there's none, and `POST health/site` checks again; with `site.health`: `{"checked", "areas", "checks", "requirements", "site", "server"}`. Each check is `{"area", "key", "status", "label", "message", "hint", "link"}` (`status` is `pass`, `warning`, or `failure`; `link` names what the admin opens, or `null`), each requirement `{"group", "name", "why", "needs", "installed", "status"}` (`status` may also be `optional`), and each fact `{"label", "value", "mono"}` |
-| `GET health` | Content and media problems by file, as Site Health last checked them (checking first when it never has), and `POST health` checks again; with `site.health` like every `health` route. It answers `at` (when), each file with its `area` (`content` or `media`), notices included, with counts, and `ids`: `{"missing", "duplicates"}`, the files missing a valid id and each id files share (`{"id", "paths"}`) |
-| `POST health/terms` | Write a published file for each term and profile entries name with no file, of the types the account may create and publish: `{"created", "failed"}`, the new paths and why any couldn't be written, each by `{type}/{slug}`. `GET health`'s `terms` (`{"count", "examples"}`, each example `{"type", "slug", "title"}`) says what's missing |
+| `GET health` | Content and media problems by file, as Site Health last checked them (checking first when it never has), and `POST health` checks again; with `site.health` like every `health` route. It answers `version` (the report's shape), `at` (when), each file with its `area` (`content` or `media`) and its problems, each `{"field", "message", "severity", "kind"}`, notices included, with counts; `entries`, each content file's `{"title", "type", "id"}` by path; and `ids`: `{"missing", "duplicates"}`, the files missing a valid id and each id files share (`{"id", "paths"}`). A problem another check reports (an id, a term with no file, an entry in a folder, an image's sizes) isn't among the files' problems. It also answers `ignored`: the problems ignored for the site, by key, each `{"by", "name", "at"}`; `POST health/ignore` and `POST health/unignore` take `{"key"}` and answer `ignored`. Each fix below that takes `paths` (a list) changes only those files; without it, every file the check found |
+| `POST health/terms` | Write a published file for each term and profile entries name with no file, of the types the account may create and publish: `{"created", "failed"}`, the new paths and why any couldn't be written, each by `{type}/{slug}`. Send `{"terms": ["{type}/{slug}", …]}` to write only those. `GET health`'s `terms` (`{"count", "items"}`, each `{"type", "label", "slug", "title", "entries"}`) says what's missing |
 | `POST health/taxonomies` | Migrate each `user/data/types` type still written as a taxonomy to a collection and its classify relation, as `content:taxonomies --write` does: `{"migrated", "failed"}`, the files written for each type and why any couldn't be. `GET health`'s `taxonomies` names the types left. Needs `site.health` and `site.settings` |
-| `POST health/ids` | Give each file missing a valid id, that the account may edit, a new one: `{"assigned", "failed"}`, the new ids by path and why any file couldn't be changed |
+| `POST health/ids` | Give each file missing a valid id, that the account may edit, a new one (or only `{"paths"}`): `{"assigned", "failed"}`, the new ids by path and why any file couldn't be changed |
 | `POST health/ids/keep` | Keep a shared id on `{"path"}` and give the other files sharing it (that the account may edit) new ones; answers as above, or a `422` when the file doesn't share its id |
 | `POST previews` | A preview link to an entry the account may edit, from `{"entry": id}`: `{"url", "expires"}` |
 | `GET entries/{id}` | An entry for editing (see below) |

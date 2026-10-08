@@ -16,6 +16,7 @@ namespace Blush\Tests\Admin;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\ResponseInterface;
+use Blush\Admin\ContentHealth;
 use Blush\Admin\DirectivesController;
 use Blush\Admin\EntriesController;
 use Blush\Admin\HealthController;
@@ -594,6 +595,13 @@ final class AdminContentTest extends TestCase
 		$this->assertIsString($health['at'] ?? null);
 		$this->assertIsArray($health['files'] ?? null);
 		$this->assertContains('broken.md', array_column($health['files'], 'path'));
+		$this->assertSame(ContentHealth::VERSION, $health['version'] ?? null);
+
+		// Each problem says what kind it is, for its group (D-612).
+		$broken = array_find($health['files'], static fn (mixed $file): bool => is_array($file) && ($file['path'] ?? null) === 'broken.md');
+		$this->assertIsArray($broken);
+		$this->assertIsArray($broken['violations'] ?? null);
+		$this->assertNotSame([], array_filter(array_column($broken['violations'], 'kind')));
 		$this->assertSame(['missing' => [], 'duplicates' => []], $health['ids'] ?? null);
 	}
 
@@ -637,7 +645,7 @@ final class AdminContentTest extends TestCase
 		$this->assertIsArray($checks);
 		$files = array_column($checks, null, 'label')['Content files'] ?? null;
 		$this->assertIsArray($files);
-		$this->assertSame('failure', $files['status'] ?? null, 'A credited author has no profile, which the site leaves out (D-584).');
+		$this->assertSame('pass', $files['status'] ?? null, 'A credited author with no profile is under Terms and profiles alone: one problem, one check (D-612).');
 		$terms = array_column($checks, null, 'label')['Terms and profiles'] ?? null;
 		$this->assertIsArray($terms);
 		$this->assertSame(['warning', 'content', 'terms'], [$terms['status'] ?? null, $terms['link'] ?? null, $terms['key'] ?? null], 'Site Health writes them.');
@@ -683,7 +691,9 @@ final class AdminContentTest extends TestCase
 		$this->assertIsArray($files);
 		$this->assertSame(['bad-id.md', 'no-id.md'], $ids['missing'] ?? null, 'Missing ids, and ids that aren\'t UUIDs (D-477).');
 		$this->assertSame([['id' => self::LIVE, 'paths' => ['copy.md', 'live.md']]], $ids['duplicates'] ?? null);
-		$this->assertContains('no-id.md', array_column($files, 'path'), 'They\'re errors too.');
+		$this->assertNotContains('no-id.md', array_column($files, 'path'), 'Reported under Entry IDs alone: one problem, one check (D-612).');
+		$this->assertIsArray($health['entries'] ?? null);
+		$this->assertSame(['title' => 'No ID', 'type' => 'page', 'id' => null], $health['entries']['no-id.md'] ?? null, 'With its title, to show in its row.');
 
 		$row = array_find($this->entries('any'), static fn (array $entry): bool => $entry['path'] === 'no-id.md');
 
@@ -691,10 +701,16 @@ final class AdminContentTest extends TestCase
 		$this->assertArrayHasKey('id', $row);
 		$this->assertNull($row['id'], 'Lists show it, with no id.');
 
+		// One row's fix changes only that file (D-612).
+		$one = self::json($this->send('POST', '/health/ids', '{"paths": ["no-id.md"]}', ['X-CSRF-Token' => $token]))['assigned'] ?? null;
+
+		$this->assertIsArray($one);
+		$this->assertSame(['no-id.md'], array_keys($one));
+
 		$assigned = self::json($this->send('POST', '/health/ids', '{}', ['X-CSRF-Token' => $token]))['assigned'] ?? null;
 
 		$this->assertIsArray($assigned);
-		$this->assertSame(['bad-id.md', 'no-id.md'], array_keys($assigned));
+		$this->assertSame(['bad-id.md'], array_keys($assigned));
 
 		$this->assertSame(422, $this->send('POST', '/health/ids/keep', '{"path": "soon.md"}', ['X-CSRF-Token' => $token])->getStatusCode(), 'Only a file that shares its id.');
 		$this->assertSame(400, $this->send('POST', '/health/ids/keep', '{}', ['X-CSRF-Token' => $token])->getStatusCode());
@@ -727,14 +743,18 @@ final class AdminContentTest extends TestCase
 			'label'    => 'Posts',
 			'pattern'  => '{date}.{slug}',
 			'count'    => 2,
-			'examples' => [['path' => '_posts/one.md', 'to' => '_posts/2026-01-02.one.md'], ['path' => '_posts/two.md', 'to' => '_posts/2025-03-04.two.md']],
+			'items'    => [['path' => '_posts/one.md', 'to' => '_posts/2026-01-02.one.md'], ['path' => '_posts/two.md', 'to' => '_posts/2025-03-04.two.md']],
 			'skipped'  => 0
 		]], $names, 'Without a publish date, when it was updated (D-514).');
 		$this->assertSame(400, $this->send('POST', '/health/filenames', '{}', ['X-CSRF-Token' => $token])->getStatusCode());
 
+		$one = self::json($this->send('POST', '/health/filenames', '{"type": "post", "paths": ["_posts/one.md"]}', ['X-CSRF-Token' => $token]));
+
+		$this->assertSame(['_posts/one.md' => '_posts/2026-01-02.one.md'], $one['renamed'] ?? null, 'Only the row asked for (D-612).');
+
 		$renamed = self::json($this->send('POST', '/health/filenames', '{"type": "post"}', ['X-CSRF-Token' => $token]));
 
-		$this->assertSame(['_posts/one.md' => '_posts/2026-01-02.one.md', '_posts/two.md' => '_posts/2025-03-04.two.md'], $renamed['renamed'] ?? null);
+		$this->assertSame(['_posts/two.md' => '_posts/2025-03-04.two.md'], $renamed['renamed'] ?? null);
 		$this->assertSame([], self::json($this->send('POST', '/health', headers: ['X-CSRF-Token' => $token]))['fileNames'] ?? null);
 	}
 
@@ -745,12 +765,12 @@ final class AdminContentTest extends TestCase
 		$this->site(['owner']);
 		$token = $this->token();
 
-		$this->assertSame(['count' => 1, 'examples' => [['path' => '_posts/2024/old.md', 'to' => '_posts/old.md']]], self::json($this->send('POST', '/health', headers: ['X-CSRF-Token' => $token]))['flat'] ?? null);
+		$this->assertSame(['count' => 1, 'items' => [['path' => '_posts/2024/old.md', 'to' => '_posts/old.md']]], self::json($this->send('POST', '/health', headers: ['X-CSRF-Token' => $token]))['flat'] ?? null);
 
 		$moved = self::json($this->send('POST', '/health/flatten', '{}', ['X-CSRF-Token' => $token]));
 
 		$this->assertSame(['_posts/2024/old.md' => '_posts/old.md'], $moved['renamed'] ?? null);
-		$this->assertSame(['count' => 0, 'examples' => []], self::json($this->send('POST', '/health', headers: ['X-CSRF-Token' => $token]))['flat'] ?? null);
+		$this->assertSame(['count' => 0, 'items' => []], self::json($this->send('POST', '/health', headers: ['X-CSRF-Token' => $token]))['flat'] ?? null);
 	}
 
 	public function testWritesTermsAndProfilesWithNoFile(): void
@@ -758,12 +778,65 @@ final class AdminContentTest extends TestCase
 		$this->site(['owner']);
 		$token = $this->token();
 
-		$this->assertSame(['count' => 2, 'examples' => [['type' => 'profile', 'slug' => 'jane', 'title' => 'jane'], ['type' => 'profile', 'slug' => 'sam', 'title' => 'sam']]], self::json($this->send('POST', '/health', headers: ['X-CSRF-Token' => $token]))['terms'] ?? null, 'Credited, with no file (D-584).');
+		$terms = self::json($this->send('POST', '/health', headers: ['X-CSRF-Token' => $token]))['terms'] ?? null;
+
+		$this->assertIsArray($terms);
+		$this->assertSame(2, $terms['count'] ?? null, 'Credited, with no file (D-584).');
+		$items = $terms['items'] ?? null;
+		$this->assertIsArray($items);
+		$this->assertSame([['profile', 'Profile', 'jane', 'jane'], ['profile', 'Profile', 'sam', 'sam']], array_map(static fn (mixed $item): array => is_array($item) ? [$item['type'] ?? null, $item['label'] ?? null, $item['slug'] ?? null, $item['title'] ?? null] : [], $items));
+		$first = $items[0] ?? null;
+		$this->assertIsArray($first);
+		$this->assertGreaterThan(0, $first['entries'] ?? 0, 'With how many entries name it.');
+
+		$one = self::json($this->send('POST', '/health/terms', '{"terms": ["profile/sam"]}', ['X-CSRF-Token' => $token]));
+
+		$this->assertSame(['profile/sam' => 'profiles/sam.md'], $one['created'] ?? null, 'Only the row asked for (D-612).');
 
 		$created = self::json($this->send('POST', '/health/terms', '{}', ['X-CSRF-Token' => $token]));
 
-		$this->assertSame(['profile/jane' => 'profiles/jane.md', 'profile/sam' => 'profiles/sam.md'], $created['created'] ?? null);
-		$this->assertSame(['count' => 0, 'examples' => []], self::json($this->send('POST', '/health', headers: ['X-CSRF-Token' => $token]))['terms'] ?? null);
+		$this->assertSame(['profile/jane' => 'profiles/jane.md'], $created['created'] ?? null);
+		$this->assertSame(['count' => 0, 'items' => []], self::json($this->send('POST', '/health', headers: ['X-CSRF-Token' => $token]))['terms'] ?? null);
+	}
+
+	public function testIgnoresProblemsForTheSite(): void
+	{
+		$this->site(['owner']);
+		$token = $this->token();
+
+		$this->send('POST', '/health/site', headers: ['X-CSRF-Token' => $token]);
+		$this->assertSame(400, $this->send('POST', '/health/ignore', '{}', ['X-CSRF-Token' => $token])->getStatusCode());
+
+		$ignored = self::json($this->send('POST', '/health/ignore', '{"key": "content:terms:profile/jane"}', ['X-CSRF-Token' => $token]))['ignored'] ?? null;
+
+		$this->assertIsArray($ignored);
+		$this->assertIsArray($ignored['content:terms:profile/jane'] ?? null, 'Kept for the site, with who and when (D-613).');
+		$this->assertSame('jane', $ignored['content:terms:profile/jane']['by'] ?? null);
+		$this->assertFileExists($this->temporaryDirectory() . '/user/data/health/ignored.json');
+		$this->assertSame($ignored, self::json($this->send('GET', '/health'))['ignored'] ?? null);
+
+		$terms = static fn (array $health): mixed => array_column(is_array($health['checks'] ?? null) ? $health['checks'] : [], 'message', 'key')['terms'] ?? null;
+
+		$this->assertIsString($terms(self::json($this->send('GET', '/health/site'))));
+		$this->assertStringStartsWith('1 term', (string) $terms(self::json($this->send('GET', '/health/site'))), 'An ignored problem stops counting.');
+
+		$status = function (): mixed {
+			$checks = self::json($this->send('GET', '/health/site'))['checks'] ?? null;
+
+			return is_array($checks) ? (array_column($checks, 'status', 'key')['terms'] ?? null) : null;
+		};
+
+		$this->send('POST', '/health/ignore', '{"key": "content:terms:profile/sam"}', ['X-CSRF-Token' => $token]);
+		$this->assertSame('pass', $status());
+
+		$this->send('POST', '/health/unignore', '{"key": "content:terms:profile/sam"}', ['X-CSRF-Token' => $token]);
+		$this->assertSame('warning', $status());
+
+		// A problem the check no longer finds is forgotten, so it's seen
+		// again if it comes back.
+		$this->send('POST', '/health/terms', '{"terms": ["profile/jane"]}', ['X-CSRF-Token' => $token]);
+		$this->send('POST', '/health', headers: ['X-CSRF-Token' => $token]);
+		$this->assertEquals([], self::json($this->send('GET', '/health'))['ignored'] ?? null);
 	}
 
 	public function testFilesLinksWithTheirIds(): void
@@ -778,14 +851,15 @@ final class AdminContentTest extends TestCase
 		$this->assertIsArray($refs);
 		$this->assertIsInt($refs['count'] ?? null);
 		$this->assertGreaterThan(0, $refs['count'], 'Entries crediting the new profiles name them by slug alone (D-596).');
-		$this->assertIsArray($refs['examples'] ?? null);
-		$this->assertSame(['authors'], array_column($refs['examples'], 'relations')[0] ?? null);
+		$this->assertIsArray($refs['items'] ?? null);
+		$this->assertCount($refs['count'], $refs['items'], 'Every one, for a row each (D-612).');
+		$this->assertSame(['authors'], array_column($refs['items'], 'relations')[0] ?? null);
 
 		$filed = self::json($this->send('POST', '/health/refs', '{}', ['X-CSRF-Token' => $token]))['filed'] ?? null;
 
 		$this->assertIsArray($filed);
 		$this->assertCount($refs['count'], $filed);
-		$this->assertSame(['count' => 0, 'examples' => []], self::json($this->send('POST', '/health', headers: ['X-CSRF-Token' => $token]))['refs'] ?? null);
+		$this->assertSame(['count' => 0, 'items' => []], self::json($this->send('POST', '/health', headers: ['X-CSRF-Token' => $token]))['refs'] ?? null);
 	}
 
 	public function testFixesMediaIds(): void
@@ -828,12 +902,12 @@ final class AdminContentTest extends TestCase
 		$this->site(['owner']);
 		$token = $this->token();
 
-		$this->assertSame(['sizes' => 1, 'images' => 1, 'stale' => 0], self::json($this->send('POST', '/health', headers: ['X-CSRF-Token' => $token]))['mediaSizes'] ?? null, 'Sizes found by rule, not yet recorded (D-488).');
+		$this->assertSame(['sizes' => 1, 'images' => 1, 'stale' => 0, 'items' => [['key' => '2019/photo.png', 'unrecorded' => 1, 'stale' => 0]]], self::json($this->send('POST', '/health', headers: ['X-CSRF-Token' => $token]))['mediaSizes'] ?? null, 'Sizes found by rule, not yet recorded (D-488).');
 
 		$recorded = self::json($this->send('POST', '/health/media-sizes', '{}', ['X-CSRF-Token' => $token]));
 
 		$this->assertSame(['2019/photo.png' => ['2019/photo-30x20.png']], $recorded['recorded'] ?? null);
-		$this->assertSame(['sizes' => 0, 'images' => 0, 'stale' => 0], self::json($this->send('POST', '/health', headers: ['X-CSRF-Token' => $token]))['mediaSizes'] ?? null);
+		$this->assertSame(['sizes' => 0, 'images' => 0, 'stale' => 0, 'items' => []], self::json($this->send('POST', '/health', headers: ['X-CSRF-Token' => $token]))['mediaSizes'] ?? null);
 	}
 
 	public function testMakesPreviewLinksForEntriesTheAccountMayEdit(): void

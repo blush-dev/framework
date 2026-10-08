@@ -92,7 +92,8 @@ use Blush\Session\StartSession;
  *     entries out of folders (D-514), and `POST health/terms` to write
  *     the terms and profiles entries name with no file (D-584), `POST
  *     health/refs` to file links between entries with their ids
- *     (D-596), and `POST health/taxonomies` to migrate data types still written as
+ *     (D-596), `POST health/ignore` and `POST health/unignore` (D-613),
+ *     and `POST health/taxonomies` to migrate data types still written as
  *     taxonomies (D-591).
  *   - `GET  roles` and `GET accounts`: the site's roles and accounts
  *     (`PeopleController`); `GET profiles`, `GET` and `PATCH profiles/{slug}`
@@ -219,6 +220,8 @@ final readonly class AdminRoutes implements RouteSource
 			Route::post('/health/terms', [HealthController::class, 'createTerms'])->named('health.terms')->middleware(Authenticate::class),
 			Route::post('/health/refs', [HealthController::class, 'fileRefs'])->named('health.refs')->middleware(Authenticate::class),
 			Route::post('/health/taxonomies', [HealthController::class, 'migrateTaxonomies'])->named('health.taxonomies')->middleware(Authenticate::class),
+			Route::post('/health/ignore', [HealthController::class, 'ignore'])->named('health.ignore')->middleware(Authenticate::class),
+			Route::post('/health/unignore', [HealthController::class, 'unignore'])->named('health.unignore')->middleware(Authenticate::class),
 			Route::get('/roles', [PeopleController::class, 'roles'])->named('roles')->middleware(Authenticate::class),
 			Route::post('/roles', [RoleEditController::class, 'create'])->named('role.create')->middleware(Authenticate::class),
 			Route::patch('/roles/{name:[a-z][a-z0-9_-]*}', [RoleEditController::class, 'update'])->named('role.update')->middleware(Authenticate::class),

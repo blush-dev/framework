@@ -43,6 +43,7 @@ use Blush\Core\AppConfig;
 use Blush\Field\Fields\DateField;
 use Blush\Field\Severity;
 use Blush\Field\Violation;
+use Blush\Field\ViolationKind;
 use Blush\Routing\RouteTable;
 use Blush\Media\MediaMetadataCheck;
 
@@ -116,7 +117,7 @@ final readonly class Linter
 				$records[]               = $parsed->record;
 				$violations[$file->path] = [...$parsed->violations, ...$this->checkCollection($parsed->record), ...$this->checkOwnParent($parsed->record), ...$this->checkPrefix($parsed->record), ...$this->checkFlat($parsed->record), ...$this->checkDates($parsed, $contents), ...$this->variants->check($contents)];
 			} catch (InvalidDocument | UnreadableSource $e) {
-				$violations[$file->path] = [new Violation(self::FILE, $e->getMessage())];
+				$violations[$file->path] = [new Violation(self::FILE, $e->getMessage(), kind: ViolationKind::Unreadable)];
 			}
 
 			if ($progress !== null) {
@@ -136,8 +137,8 @@ final readonly class Linter
 				}
 
 				$violations[$path][] = ($snapshot->records[$path]['original'] ?? null) === $winner
-					? new Violation(self::FILE, sprintf('has the default language\'s suffix beside %s, which wins; the default language needs none, so remove one.', $winner), Severity::Warning)
-					: new Violation(self::FILE, sprintf('is the same entry as %s, which wins.', $winner), Severity::Warning);
+					? new Violation(self::FILE, sprintf('has the default language\'s suffix beside %s, which wins; the default language needs none, so remove one.', $winner), Severity::Warning, ViolationKind::Duplicate)
+					: new Violation(self::FILE, sprintf('is the same entry as %s, which wins.', $winner), Severity::Warning, ViolationKind::Duplicate);
 			}
 		}
 
@@ -145,7 +146,7 @@ final readonly class Linter
 			foreach ($paths as $path) {
 				$others = array_values(array_diff($paths, [$path]));
 
-				$violations[$path][] = new Violation(EntryFields::ID, sprintf('is also the id of %s; keep it on one file and give the others new ones with content:ids --keep, or on Site Health in the admin.', implode(', ', $others)));
+				$violations[$path][] = new Violation(EntryFields::ID, sprintf('is also the id of %s; keep it on one file and give the others new ones with content:ids --keep, or on Site Health in the admin.', implode(', ', $others)), kind: ViolationKind::Id);
 			}
 		}
 
@@ -153,7 +154,7 @@ final readonly class Linter
 			[, $problem] = IndexSnapshot::translationOf($record, $snapshot->ids, $snapshot->records);
 
 			if ($problem !== null) {
-				$violations[$path][] = new Violation(EntryFields::TRANSLATION_OF, $problem);
+				$violations[$path][] = new Violation(EntryFields::TRANSLATION_OF, $problem, kind: ViolationKind::Translation);
 			}
 		}
 
@@ -191,7 +192,7 @@ final readonly class Linter
 		$file = $this->source->stat($path);
 
 		if ($file === null) {
-			return [new Violation(self::FILE, 'doesn\'t exist.')];
+			return [new Violation(self::FILE, 'doesn\'t exist.', kind: ViolationKind::Unreadable)];
 		}
 
 		try {
@@ -200,7 +201,7 @@ final readonly class Linter
 
 			return [...$parsed->violations, ...$this->checkCollection($parsed->record), ...$this->checkOwnParent($parsed->record), ...$this->checkPrefix($parsed->record), ...$this->checkFlat($parsed->record), ...$this->checkDates($parsed, $contents), ...$this->variants->check($contents)];
 		} catch (InvalidDocument | UnreadableSource $e) {
-			return [new Violation(self::FILE, $e->getMessage())];
+			return [new Violation(self::FILE, $e->getMessage(), kind: ViolationKind::Unreadable)];
 		}
 	}
 
@@ -221,13 +222,13 @@ final readonly class Linter
 		try {
 			Query::fromArray($collection);
 		} catch (InvalidQuery $e) {
-			return [new Violation('collection', $e->getMessage())];
+			return [new Violation('collection', $e->getMessage(), kind: ViolationKind::Collection)];
 		}
 
 		$orderBy = $collection['orderby'] ?? null;
 
 		return in_array($orderBy, Query::FILE_ORDER, true)
-			? [new Violation('collection', sprintf('"orderby: %s" is read as "published"; entries are never sorted by file. Write "orderby: published".', $orderBy), Severity::Warning)]
+			? [new Violation('collection', sprintf('"orderby: %s" is read as "published"; entries are never sorted by file. Write "orderby: published".', $orderBy), Severity::Warning, ViolationKind::Collection)]
 			: [];
 	}
 
@@ -270,7 +271,7 @@ final readonly class Linter
 				continue;
 			}
 
-			$violations[] = new Violation($key, sprintf('"%s-%s-%s" isn\'t a real date, so it\'s read as %s.', $matches[1], $matches[2], $matches[3], $read), Severity::Warning);
+			$violations[] = new Violation($key, sprintf('"%s-%s-%s" isn\'t a real date, so it\'s read as %s.', $matches[1], $matches[2], $matches[3], $read), Severity::Warning, ViolationKind::Date);
 		}
 
 		return $violations;
@@ -334,7 +335,7 @@ final readonly class Linter
 			$type->labels->items,
 			$type->filename === null ? '' : sprintf(', beyond their file name pattern (%s) on files', $type->filename->pattern),
 			$suggested
-		))];
+		), kind: ViolationKind::Prefix)];
 	}
 
 	/**
@@ -357,7 +358,7 @@ final readonly class Linter
 			'%s; a collection\'s entries are files in its folder. Move it to %s with content:flatten, or on Site Health in the admin.',
 			str_starts_with(basename($record->path), 'index.') ? 'is a folder entry' : 'is in a folder below its collection\'s',
 			$flat
-		))];
+		), kind: ViolationKind::Folder)];
 	}
 
 	/**
@@ -369,7 +370,7 @@ final readonly class Linter
 	private function checkOwnParent(IndexRecord $record): array
 	{
 		return $this->types->nestsByParent($record->type) && ($record->values['parent'] ?? null) === $record->key
-			? [new Violation('parent', 'names the entry itself; an entry can\'t be its own parent.')]
+			? [new Violation('parent', 'names the entry itself; an entry can\'t be its own parent.', kind: ViolationKind::Parent)]
 			: [];
 	}
 
@@ -394,13 +395,13 @@ final readonly class Linter
 
 			if ($path === null) {
 				return $key === $record->parent
-					? [new Violation('parent', sprintf('"%s" has no %s entry; the entry is shown at the top level.', $key, $record->type), Severity::Warning)]
+					? [new Violation('parent', sprintf('"%s" has no %s entry; the entry is shown at the top level.', $key, $record->type), Severity::Warning, ViolationKind::Parent)]
 					: [];
 			}
 
 			if (in_array($key, $chain, true)) {
 				return $key === $record->key
-					? [new Violation('parent', sprintf('makes a loop: %s.', implode(' → ', [...$chain, $key])))]
+					? [new Violation('parent', sprintf('makes a loop: %s.', implode(' → ', [...$chain, $key])), kind: ViolationKind::Parent)]
 					: [];
 			}
 
@@ -431,7 +432,7 @@ final readonly class Linter
 		$route  = $this->routes->find('GET', "{$prefix}/{$record->key}")?->route;
 
 		return $route !== null && $route->name !== $single
-			? [new Violation(self::FILE, sprintf('is at %s/%s, but the %s route answers there, so the page can\'t be reached; move the page or change the type\'s prefix.', $prefix, $record->key, $route->name ?? $route->handlerName()), Severity::Warning)]
+			? [new Violation(self::FILE, sprintf('is at %s/%s, but the %s route answers there, so the page can\'t be reached; move the page or change the type\'s prefix.', $prefix, $record->key, $route->name ?? $route->handlerName()), Severity::Warning, ViolationKind::Route)]
 			: [];
 	}
 
@@ -477,7 +478,7 @@ final readonly class Linter
 				|| ($problem->kind === ProblemKind::Missing && $relation?->kind !== RelationKind::Reference);
 
 			if ($path !== null && $relation !== null && ! $skip) {
-				$found[$path][] = new Violation($relation->field, $problem->message);
+				$found[$path][] = new Violation($relation->field, $problem->message, kind: ViolationKind::Relation);
 			}
 		}
 
@@ -514,7 +515,7 @@ final readonly class Linter
 
 			foreach ($slugs as $slug) {
 				if (! $snapshot->has($taxonomy, $slug)) {
-					$errors[] = new Violation($field, sprintf('"%s" has no %s entry, so the site leaves it out; add one, or run content:terms.', $slug, $type->labels->item ?? $taxonomy));
+					$errors[] = new Violation($field, sprintf('"%s" has no %s entry, so the site leaves it out; add one, or run content:terms.', $slug, $type->labels->item ?? $taxonomy), kind: ViolationKind::Term);
 				}
 			}
 		}

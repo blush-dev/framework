@@ -14,10 +14,13 @@ declare(strict_types=1);
 namespace Blush\Admin;
 
 use Closure;
+use DateTimeInterface;
+use Psr\Clock\ClockInterface;
 use JsonException;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Blush\Auth\Account;
+use Blush\Auth\AccountStore;
 use Blush\Auth\Capability;
 use Blush\Auth\ContentAction;
 use Blush\Auth\Permissions;
@@ -60,6 +63,19 @@ use Blush\Media\MediaSizes;
  *
  * Each changes only the files the account may edit, and answers the
  * `assigned` ids by path and the files that `failed`, with why.
+ *
+ * Its `ignored` are the problems ignored (D-613), by key (`ProblemKeys`),
+ * each with who ignored it (`by`, a username, and `name`, as shown) and
+ * when (`at`). `POST health/ignore` and `POST health/unignore` (`{"key"}`)
+ * ignore a problem for everyone and stop, answering `ignored`; Site
+ * Health's summary leaves ignored problems out. The admin never offers
+ * to ignore an error, since the site is already leaving something out.
+ *
+ * Every fix but `keep` and the taxonomies' takes a JSON `paths` (a list,
+ * media files' by their keys) to change only those, one row or a page
+ * of rows on Site Health (D-612); without it, it changes every file the
+ * check found. `POST health/terms` takes `terms` instead, each
+ * `{type}/{slug}`.
  *
  * Its `mediaIds` do the same for media files (D-487), by their paths
  * under `user/media`: `POST health/media-ids` and `POST
@@ -118,7 +134,10 @@ final readonly class HealthController
 		private FlatEntries $flat,
 		private MissingTerms $terms,
 		private EntryRefs $refs,
-		private TaxonomyMigration $taxonomies
+		private TaxonomyMigration $taxonomies,
+		private IgnoredProblems $ignored,
+		private AccountStore $accounts,
+		private ClockInterface $clock
 	) {}
 
 	public function __invoke(ServerRequestInterface $request): ResponseInterface
@@ -127,7 +146,7 @@ final readonly class HealthController
 			return Response::json(['error' => 'You aren\'t allowed to see site health.'], Status::Forbidden, ['Cache-Control' => 'no-store']);
 		}
 
-		return Response::json($this->siteHealth->files($request->getServerParams()), headers: ['Cache-Control' => 'no-store']);
+		return Response::json([...$this->siteHealth->files($request->getServerParams()), 'ignored' => $this->ignoredList()], headers: ['Cache-Control' => 'no-store']);
 	}
 
 	/**
@@ -140,7 +159,66 @@ final readonly class HealthController
 			return Response::json(['error' => 'You aren\'t allowed to see site health.'], Status::Forbidden, ['Cache-Control' => 'no-store']);
 		}
 
-		return Response::json($this->siteHealth->checkFiles($request->getServerParams()), headers: ['Cache-Control' => 'no-store']);
+		return Response::json([...$this->siteHealth->checkFiles($request->getServerParams()), 'ignored' => $this->ignoredList()], headers: ['Cache-Control' => 'no-store']);
+	}
+
+	/**
+	 * Ignores a problem for everyone (D-613), and sums up Site Health
+	 * again without it.
+	 */
+	public function ignore(ServerRequestInterface $request): ResponseInterface
+	{
+		return $this->changeIgnored($request, true);
+	}
+
+	/**
+	 * Stops ignoring a problem (D-613).
+	 */
+	public function unignore(ServerRequestInterface $request): ResponseInterface
+	{
+		return $this->changeIgnored($request, false);
+	}
+
+	private function changeIgnored(ServerRequestInterface $request, bool $ignore): ResponseInterface
+	{
+		$account = $request->getAttribute(Account::class);
+
+		if (! $account instanceof Account || ! $this->permissions->can($account, Capability::SiteHealth)) {
+			return Response::json(['error' => 'You aren\'t allowed to change site health.'], Status::Forbidden, ['Cache-Control' => 'no-store']);
+		}
+
+		$key = self::input($request, 'key');
+
+		if ($key === null) {
+			return Response::json(['error' => 'Send a JSON "key": the problem\'s.'], Status::BadRequest, ['Cache-Control' => 'no-store']);
+		}
+
+		if ($ignore) {
+			$this->ignored->ignore($key, $account->username, $this->clock->now()->format(DateTimeInterface::ATOM));
+		} else {
+			$this->ignored->unignore($key);
+		}
+
+		$this->siteHealth->resummarize();
+
+		return Response::json(['ignored' => $this->ignoredList()], headers: ['Cache-Control' => 'no-store']);
+	}
+
+	/**
+	 * The problems ignored, by key, with who ignored each, by name.
+	 *
+	 * @return array<string, array{by: string, name: string, at: string}>|object
+	 */
+	private function ignoredList(): array|object
+	{
+		$list = [];
+
+		foreach ($this->ignored->all() as $key => $record) {
+			$account    = $this->accounts->find($record['by']);
+			$list[$key] = [...$record, 'name' => ($account === null ? null : $account->name) ?? $record['by']];
+		}
+
+		return $list === [] ? (object) [] : $list;
 	}
 
 	/**
@@ -155,7 +233,7 @@ final readonly class HealthController
 			return Response::json(['error' => 'You aren\'t allowed to fix content.'], Status::Forbidden, ['Cache-Control' => 'no-store']);
 		}
 
-		return self::assigned($this->ids->assignMissing($this->editable($account)));
+		return self::assigned($this->ids->assignMissing(self::only($this->editable($account), self::paths($request))));
 	}
 
 	/**
@@ -196,7 +274,7 @@ final readonly class HealthController
 		}
 
 		try {
-			return self::assignedMedia($this->mediaIds->assignMissing($this->editableMedia($account)));
+			return self::assignedMedia($this->mediaIds->assignMissing(self::only($this->editableMedia($account), self::paths($request))));
 		} catch (MediaException $e) {
 			return Response::json(['error' => $e->getMessage()], Status::InternalServerError, ['Cache-Control' => 'no-store']);
 		}
@@ -240,7 +318,7 @@ final readonly class HealthController
 		}
 
 		try {
-			$recorded = $this->mediaSizes->record($this->editableMedia($account));
+			$recorded = $this->mediaSizes->record(self::only($this->editableMedia($account), self::paths($request)));
 		} catch (MediaException $e) {
 			return Response::json(['error' => $e->getMessage()], Status::InternalServerError, ['Cache-Control' => 'no-store']);
 		}
@@ -266,7 +344,7 @@ final readonly class HealthController
 			return Response::json(['error' => 'Send a JSON "type": the type whose entries to rename.'], Status::BadRequest, ['Cache-Control' => 'no-store']);
 		}
 
-		$renamed = $this->fileNames->rename($type, $this->editable($account));
+		$renamed = $this->fileNames->rename($type, self::only($this->editable($account), self::paths($request)));
 
 		return Response::json(['renamed' => (object) $renamed->renamed, 'failed' => (object) $renamed->failed], headers: ['Cache-Control' => 'no-store']);
 	}
@@ -283,7 +361,7 @@ final readonly class HealthController
 			return Response::json(['error' => 'You aren\'t allowed to fix content.'], Status::Forbidden, ['Cache-Control' => 'no-store']);
 		}
 
-		$moved = $this->flat->flatten($this->editable($account));
+		$moved = $this->flat->flatten(self::only($this->editable($account), self::paths($request)));
 
 		return Response::json(['renamed' => (object) $moved->renamed, 'failed' => (object) $moved->failed], headers: ['Cache-Control' => 'no-store']);
 	}
@@ -300,7 +378,7 @@ final readonly class HealthController
 			return Response::json(['error' => 'You aren\'t allowed to fix content.'], Status::Forbidden, ['Cache-Control' => 'no-store']);
 		}
 
-		$created = $this->terms->create(fn (string $type): bool => $this->permissions->can($account, ContentAction::Create, $type) && $this->permissions->can($account, ContentAction::Publish, $type));
+		$created = $this->terms->create(fn (string $type): bool => $this->permissions->can($account, ContentAction::Create, $type) && $this->permissions->can($account, ContentAction::Publish, $type), self::list($request, 'terms'));
 
 		return Response::json(['created' => (object) $created->created, 'failed' => (object) $created->failed], headers: ['Cache-Control' => 'no-store']);
 	}
@@ -317,7 +395,7 @@ final readonly class HealthController
 			return Response::json(['error' => 'You aren\'t allowed to fix content.'], Status::Forbidden, ['Cache-Control' => 'no-store']);
 		}
 
-		$filed = $this->refs->file($this->editable($account));
+		$filed = $this->refs->file(self::only($this->editable($account), self::paths($request)));
 
 		return Response::json(['filed' => $filed->paths, 'failed' => (object) $filed->failed], headers: ['Cache-Control' => 'no-store']);
 	}
@@ -362,9 +440,47 @@ final readonly class HealthController
 	}
 
 	/**
-	 * A string a fix sends in its JSON body, or `null`.
+	 * The `paths` a fix sends in its JSON body, to change only those, or
+	 * `null` for every file the check found.
+	 *
+	 * @return ?list<string>
 	 */
-	private static function input(ServerRequestInterface $request, string $key): ?string
+	private static function paths(ServerRequestInterface $request): ?array
+	{
+		return self::list($request, 'paths');
+	}
+
+	/**
+	 * A list of strings a fix sends in its JSON body, or `null`.
+	 *
+	 * @return ?list<string>
+	 */
+	private static function list(ServerRequestInterface $request, string $key): ?array
+	{
+		$value = self::decode($request)[$key] ?? null;
+
+		return is_array($value) ? array_values(array_filter($value, is_string(...))) : null;
+	}
+
+	/**
+	 * Narrows what a fix may change to the `paths` it was sent, when it
+	 * was sent any.
+	 *
+	 * @param  Closure(string): bool $allowed
+	 * @param  ?list<string>         $paths
+	 * @return Closure(string): bool
+	 */
+	private static function only(Closure $allowed, ?array $paths): Closure
+	{
+		return $paths === null ? $allowed : static fn (string $path): bool => in_array($path, $paths, true) && $allowed($path);
+	}
+
+	/**
+	 * The JSON body a fix sends, or an empty array.
+	 *
+	 * @return array<array-key, mixed>
+	 */
+	private static function decode(ServerRequestInterface $request): array
 	{
 		try {
 			$input = json_decode((string) $request->getBody(), true, 8, JSON_THROW_ON_ERROR);
@@ -372,7 +488,15 @@ final readonly class HealthController
 			$input = null;
 		}
 
-		$value = is_array($input) ? ($input[$key] ?? null) : null;
+		return is_array($input) ? $input : [];
+	}
+
+	/**
+	 * A string a fix sends in its JSON body, or `null`.
+	 */
+	private static function input(ServerRequestInterface $request, string $key): ?string
+	{
+		$value = self::decode($request)[$key] ?? null;
 
 		return is_string($value) && $value !== '' ? $value : null;
 	}

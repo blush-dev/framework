@@ -15,6 +15,7 @@ namespace Blush\Content\Lint;
 
 use Blush\Core\Paths;
 use Blush\Field\Violation;
+use Blush\Field\ViolationKind;
 use Blush\Support\Filesystem;
 
 /**
@@ -43,7 +44,7 @@ final readonly class FormatCheck
 			$message = self::message(strtolower(pathinfo($path, PATHINFO_EXTENSION)));
 
 			if ($message !== null) {
-				$violations[str_replace('\\', '/', $path)] = [new Violation(Linter::FILE, $message)];
+				$violations[str_replace('\\', '/', $path)] = [new Violation(Linter::FILE, $message, kind: ViolationKind::Unreadable)];
 			}
 		}
 

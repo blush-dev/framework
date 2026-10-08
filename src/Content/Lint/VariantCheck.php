@@ -20,6 +20,7 @@ use Blush\Directive\Variant;
 use Blush\Content\Parser\FrontMatter;
 use Blush\Field\Severity;
 use Blush\Field\Violation;
+use Blush\Field\ViolationKind;
 use Blush\Markdown\CommonMark\Directive\DirectiveAttributes;
 use Blush\Theme\ThemeException;
 use Blush\Theme\ThemeResolver;
@@ -76,7 +77,7 @@ final readonly class VariantCheck
 					$parsed,
 					$variant,
 					$names === [] ? 'it has no variants' : 'it has ' . implode(', ', $names)
-				), Severity::Warning);
+				), Severity::Warning, ViolationKind::Variant);
 			}
 		}
 

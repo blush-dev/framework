@@ -32,6 +32,8 @@ way to go; record the answer here.
 .claude/docs/admin-design/blush-themes-screen.html, blush-extensions.html
                                                sketches of the Extensions screens (D-381, D-385)
 .claude/docs/admin-design/toast-sketch.html     the toast, as every toast in the admin is drawn (D-387)
+.claude/docs/admin-design/meridian-site-health.html
+                                               Site Health's check pages (D-612)
 .claude/docs/admin-design/departures.md        this file
 .claude/docs/admin-design/tokens.css           the prototype's tokens (reference only)
 .claude/docs/admin-design/old/                 the earlier single admin.md and its prototype
@@ -994,3 +996,31 @@ D-541). Where the admin differs from the sketch:
   help beside each row as on Settings, not under it. On a type shown
   read-only, the Relationships panel takes the full width under the
   two columns.
+
+## Site Health's check pages (`meridian-site-health.html`, D-612)
+
+- **Built from the admin's own pieces:** each group is a `.panel` with
+  its `.panel__header` (the name, what the site does as the hint, and
+  the count, severity pill, and group fix in `.panel__actions`); the
+  figures are `.stats--three`; the tabs are `.status-tabs` with
+  `.status-tabs__count`; the filter row is `.toolbar` with
+  `.search-field`, `AdminSelect`, and the density `.segmented`
+  (`panel--compact` drops a row's second lines); "Showing 5 of N" is
+  `.panel__foot` with a `.lnk`; the file that keeps a shared id is
+  chosen from `.pick-list`; the confirmation lists changes as
+  `confirm-list` items (the file, then its change); the row's menu is
+  `MenuButton`. Only the row is new: `.problems` and `.problem*`.
+- **The key found is code, not underlined:** the report has a
+  violation's field and message, not the value as written, so a row
+  shows `` `date` "2005-00-00" isn't a real date… `` rather than the
+  sketch's `date: 2005-00-00` with the bad part underlined.
+- **No figure cards on a check page** (D-613, the author's call): the
+  tabs' counts say it. The overview keeps its figures.
+- **Ignored** (D-613) is per site, as the sketch leaned; the tab shows
+  even at 0. **No Undo for a fix, no "Did you mean":** see D-612.
+- **Group copy is ours:** the sketch's kinds are its imagined site's;
+  ours are Blush's lint kinds (Files That Can't Be Read, Values the
+  Site Can't Use, Dates That Aren't Real, Fields Nothing Reads, Older
+  Field Names, and so on).
+- **The overview** stays as it was, as the sketch says.
+

@@ -1,127 +1,105 @@
 <script setup lang="ts">
 /**
- * One of Site Health's issues, and its fix (D-546; once Content Health,
- * D-543): content files' problems as `content:lint` finds them, entry
- * ids, collection folders, or file names; or media files' details, media
- * ids, or image sizes. It shows Site Health's last check (`GET health`),
- * says when it ran, and checks again when asked or after a fix (`POST
+ * One of Site Health's checks (D-546; once Content Health, D-543), drawn
+ * from the Site Health sketch (D-612): everything the check found, each
+ * fixable where it's listed. It shows Site Health's last check (`GET
+ * health`), says when it ran, and checks again when asked (`POST
  * health`), which updates Site Health too.
  *
- * Files' problems: notices (undeclared keys, 1.x names) are optional,
- * and severity is written out, never shown by color alone.
- * Ids (D-477, D-478, D-487): missing ids are added in one go, and for a
- * shared id, you choose the file that keeps it; the others get new ones.
- * Image sizes are recorded in their details (D-488), entries named by
- * another pattern than their type's are renamed to it, a type at a time
- * (D-512), collections' entries kept in folders are moved into their
- * collections' folders (D-514), terms and profiles entries name with
- * no file are written (D-584), links between entries are filed with
- * their ids (D-596), and data types still written as taxonomies
- * are migrated to collections and relations (D-591, D-593).
+ * - **Groups and rows** (`health.ts`): problems of one kind under a
+ *   heading that says what the site does about them; a row each, with
+ *   its own fix where Blush has one.
+ * - **Fixing:** one row's fix runs at once. More than one row, and any
+ *   group fix, asks first, listing every change (8, then "and N more").
+ *   A fixed row stays where it was, marked Fixed, until Check Again
+ *   clears it; the check runs again after each fix, so the figures,
+ *   Site Health, and its count follow at once.
+ * - **Ignoring** (D-613): a warning or notice can be ignored from its
+ *   row's menu, for the site, and moves to the Ignored tab, where it
+ *   says who ignored it and Stop Ignoring brings it back. Ignored
+ *   problems stop counting here and in Site Health.
+ * - **The list's own parts:** the tabs with their counts (Needs
+ *   Attention, Notices where a check has them, and Ignored), which say
+ *   what the figures would, the search (`/`), a severity filter, Group
+ *   By where one file can have several problems, and the rows' density.
+ * - **Scale:** a group shows 5 rows and grows 50 at a time.
  */
 
 import { computed, onMounted, ref, watch } from 'vue';
-import { RouterLink } from 'vue-router';
-import { errorMessage, request, type AssignedIds, type Health, type HealthIds, type Violation } from '../api';
+import { RouterLink, useRoute } from 'vue-router';
+import { entryRoute, errorMessage, request, type Health } from '../api';
 import { useAction } from '../action';
+import { confirmAction } from '../confirm';
 import { loadCounts } from '../counts';
+import { compact } from '../density';
 import AdminIcon from '../components/AdminIcon.vue';
+import AdminSelect from '../components/AdminSelect.vue';
 import EmptyState from '../components/EmptyState.vue';
+import HealthRow from '../components/HealthRow.vue';
 import { formatWhen, plural } from '../format';
+import { healthGroups, SCREENS, type HealthCheckKey, type HealthGroup, type HealthRow as Row, type Severity } from '../health';
 import { screenTitle } from '../screen';
+import { useSearchKey } from '../search-key';
 import { toast } from '../toast';
 import { refreshTypes } from '../types';
 
 const props = defineProps<{
 	area: 'content' | 'media';
-	check: 'files' | 'ids' | 'terms' | 'refs' | 'taxonomies' | 'folders' | 'names' | 'sizes';
+	check: HealthCheckKey;
 }>();
 
-const severities: Record<Violation['severity'], string> = {
-	error: 'pill--danger',
-	warning: 'pill--warn',
-	notice: ''
-};
+const route = useRoute();
 
-// Each issue's title and what it's about.
-// Each issue's title, what it's about, and what all clear means.
-const SCREENS: Record<string, { title: string; hint: string; clear: string }> = {
-	'content:files': { title: 'Content Files', hint: 'Problems in entries\' files, as content:lint finds them', clear: '' },
-	'content:ids': { title: 'Entry IDs', hint: 'Every content file needs an id of its own', clear: 'Every content file has an id of its own.' },
-	'content:terms': { title: 'Terms and Profiles', hint: 'A term or profile entries name is left out of the site until it has a file', clear: 'Every term and profile entries name has a file.' },
-	'content:refs': { title: 'Links Between Entries', hint: 'A link filed with its id follows what it links to through a rename or move', clear: 'Every link between entries is filed with its id.' },
-	'content:taxonomies': { title: 'Taxonomies', hint: 'Read as collections and their relationships until they\'re migrated', clear: 'Every content type is written as a collection or a tree.' },
-	'content:folders': { title: 'Collection Folders', hint: 'A collection\'s entries are files in its folder', clear: 'Every collection\'s entries are files in its folder.' },
-	'content:names': { title: 'File Names', hint: 'Older names keep working; renaming them changes no address', clear: 'Every entry is named by its type\'s pattern.' },
-	'media:files': { title: 'Media Details', hint: 'Problems in media files\' details, as content:lint finds them', clear: '' },
-	'media:ids': { title: 'Media IDs', hint: 'Every media file needs an id of its own; an image\'s sizes share its', clear: 'Every media file has an id of its own.' },
-	'media:sizes': { title: 'Image Sizes', hint: 'An image\'s other sizes are listed in its details', clear: 'Every image lists its sizes.' }
-};
-
-const screen = computed(() => SCREENS[`${props.area}:${props.check}`] ?? { title: 'Site Health', hint: '', clear: '' });
+const screen = computed(() => SCREENS[`${props.area}:${props.check}`] ?? { title: 'Site Health', about: '', clear: '', byFile: false });
 
 watch(screen, (value) => {
 	screenTitle.value = value.title;
 }, { immediate: true });
 
-const health  = ref<Health | null>(null);
-const notices = ref(false);
-const fixing  = ref<string | null>(null);
+const health = ref<Health | null>(null);
 
 const { busy: loading, error, run } = useAction();
 
-// The area's files with problems, notices only when asked.
-const files = computed(() => (health.value?.files ?? [])
-	.filter((file) => file.area === props.area)
-	.map((file) => ({ ...file, violations: file.violations.filter((violation) => notices.value || violation.severity !== 'notice') }))
-	.filter((file) => file.violations.length > 0));
+// The row or group whose fix is running.
+const fixing = ref<string | null>(null);
 
-// The area's ids: entries', or media files' (D-487).
-const ids = computed<{ ids: HealthIds; missing: string; keep: string } | null>(() => {
-	if (health.value === null) {
-		return null;
-	}
+// Rows fixed since the check last ran, by key: kept where they were,
+// with what the fix did, until Check Again.
+interface Fixed {
+	group: Omit<HealthGroup, 'rows'>;
+	row: Row;
+	at: number;
+	done: string;
+}
 
-	return props.area === 'content'
-		? { ids: health.value.ids, missing: '/health/ids', keep: '/health/ids/keep' }
-		: { ids: health.value.mediaIds, missing: '/health/media-ids', keep: '/health/media-ids/keep' };
-});
+const fixed = ref<Record<string, Fixed>>({});
 
-// Whether the issue has anything to fix.
-const found = computed(() => {
-	const value = health.value;
+const PER_GROUP = 5;
+const MORE      = 50;
 
-	if (value === null) {
-		return false;
-	}
+const query = ref('');
+const sev   = ref<'any' | Severity>('any');
+const mode  = ref<'problem' | 'file'>('problem');
+const shown = ref<Record<string, number>>({});
 
-	switch (props.check) {
-		case 'files':
-			return files.value.length > 0;
-		case 'ids':
-			return (ids.value?.ids.missing.length ?? 0) + (ids.value?.ids.duplicates.length ?? 0) > 0;
-		case 'terms':
-			return value.terms.count > 0;
-		case 'refs':
-			return value.refs.count > 0;
-		case 'taxonomies':
-			return value.taxonomies.length > 0;
-		case 'folders':
-			return value.flat.count > 0;
-		case 'names':
-			return value.fileNames.length > 0;
-		default:
-			return value.mediaSizes.images + value.mediaSizes.stale > 0;
-	}
-});
+// Grouped by file, how many files show; more come 50 at a time.
+const FILES      = 20;
+const filesShown = ref(FILES);
+
+const searchField = useSearchKey();
 
 /**
  * Loads the last check, or checks again (`again`), which Site Health and
- * its count follow.
+ * its count follow. Checking again when asked (`clear`) clears the rows
+ * marked Fixed.
  */
-async function load(again = false): Promise<void> {
+async function load(again = false, clear = again): Promise<void> {
 	await run('The files couldn\'t be checked.', async () => {
 		health.value = await request<Health>(again ? 'POST' : 'GET', '/health');
+
+		if (clear) {
+			fixed.value = {};
+		}
 
 		if (again) {
 			void loadCounts();
@@ -129,134 +107,237 @@ async function load(again = false): Promise<void> {
 	});
 }
 
-// How many of the area's problems are of a severity.
-function counted(severity: Violation['severity']): number {
-	return files.value.reduce((total, file) => total + file.violations.filter((violation) => violation.severity === severity).length, 0);
-}
+// Another check starts afresh.
+watch(() => [props.area, props.check], () => {
+	fixed.value = {};
+	query.value = '';
+	sev.value   = 'any';
+	mode.value  = 'problem';
+	shown.value = {};
+	filesShown.value = FILES;
+});
 
-function summary(result: Health): string {
-	const counts = [plural(counted('error'), 'error'), plural(counted('warning'), 'warning')];
+// The check's groups, with the rows fixed since it last ran put back
+// where they were.
+const groups = computed<HealthGroup[]>(() => {
+	const built = health.value === null ? [] : healthGroups(health.value, props.area, props.check);
 
-	if (notices.value) {
-		counts.push(plural(counted('notice'), 'notice'));
-	}
+	for (const item of Object.values(fixed.value)) {
+		let group = built.find((each) => each.key === item.group.key);
 
-	return props.area === 'content'
-		? `${plural(result.checked, 'file')} checked: ${counts.join(', ')}.`
-		: `${plural(result.metadata, 'details file')} checked: ${counts.join(', ')}.`;
-}
-
-interface FixAnswer {
-	failed: Record<string, string>;
-}
-
-/**
- * Runs a fix (`key` marks its button busy), says what it did, or which
- * files (`noun`, singular and plural) it couldn't change and why, and checks again. `done`
- * says what changed, or what to say when nothing did.
- */
-async function runFix<T extends FixAnswer>(key: string, path: string, body: Record<string, string>, noun: [string, string], failure: string, done: (answer: T) => { changed: number; text: string }): Promise<void> {
-	fixing.value = key;
-
-	try {
-		const answer = await request<T>('POST', path, body);
-		const failed = Object.entries(answer.failed);
-
-		if (failed.length) {
-			toast(`${plural(failed.length, ...noun)} couldn't be changed: ${failed.map(([file, why]) => `${file} (${why})`).join('; ')}`, { kind: 'warn' });
-		} else {
-			const { changed, text } = done(answer);
-
-			toast(text, { kind: changed ? 'good' : 'info' });
+		if (group === undefined) {
+			group = { ...item.group, rows: [] };
+			built.push(group);
 		}
 
-		await load(true);
+		if (!group.rows.some((row) => row.key === item.row.key)) {
+			group.rows.splice(Math.min(item.at, group.rows.length), 0, item.row);
+		}
+	}
+
+	return built;
+});
+
+const isFixed   = (row: Row): boolean => fixed.value[row.key] !== undefined;
+const ignoredOf = (row: Row): { name: string; at: string } | undefined => health.value?.ignored[row.key];
+
+const tally = computed(() => {
+	const counts = { error: 0, warning: 0, notice: 0, fixed: 0, ignored: 0 };
+
+	for (const group of groups.value) {
+		for (const row of group.rows) {
+			counts[isFixed(row) ? 'fixed' : (ignoredOf(row) ? 'ignored' : row.severity)]++;
+		}
+	}
+
+	return counts;
+});
+
+type Tab = 'need' | 'notices' | 'ignored';
+
+const needs     = computed(() => tally.value.error + tally.value.warning);
+const hasNotice = computed(() => groups.value.some((group) => group.severity === 'notice'));
+const tab       = computed<Tab>(() => {
+	switch (route.query.tab) {
+		case 'notices':
+			return hasNotice.value ? 'notices' : 'need';
+		case 'ignored':
+			return 'ignored';
+		default:
+			return 'need';
+	}
+});
+const twoKinds  = computed(() => groups.value.some((group) => group.severity === 'error') && groups.value.some((group) => group.severity === 'warning'));
+
+const sevOptions  = [{ value: 'any', label: 'Any severity' }, { value: 'error', label: 'Errors' }, { value: 'warning', label: 'Warnings' }];
+const modeOptions = [{ value: 'problem', label: 'Group by problem' }, { value: 'file', label: 'Group by file' }];
+
+const sevValue = computed({
+	get: () => sev.value,
+	set: (value: string) => {
+		sev.value = value === 'error' || value === 'warning' ? value : 'any';
+	}
+});
+
+const modeValue = computed({
+	get: () => mode.value,
+	set: (value: string) => {
+		mode.value = value === 'file' ? 'file' : 'problem';
+	}
+});
+
+// Whether a row is in a tab: an ignored one only in Ignored, the rest by
+// severity (a fixed row stays in its own).
+function inTab(row: Row, group: HealthGroup): boolean {
+	if (tab.value === 'ignored') {
+		return !isFixed(row) && ignoredOf(row) !== undefined;
+	}
+
+	return (isFixed(row) || ignoredOf(row) === undefined) && (tab.value === 'notices') === (group.severity === 'notice');
+}
+
+// The groups' rows in this tab that match the search and severity.
+const visible = computed(() => {
+	const words = query.value.trim().toLowerCase();
+	const match = (row: Row): boolean => words === '' || [row.title ?? '', row.path, row.field ?? '', row.found, row.meta ?? ''].join(' ').toLowerCase().includes(words);
+
+	return groups.value
+		.filter((group) => tab.value !== 'need' || sev.value === 'any' || group.severity === sev.value)
+		.map((group) => ({ group, rows: group.rows.filter((row) => inTab(row, group) && match(row)) }))
+		.filter((item) => item.rows.length > 0);
+});
+
+const visibleCount = computed(() => visible.value.reduce((total, item) => total + item.rows.length, 0));
+
+// Grouped by file: each file once, with its problems, worst first.
+const files = computed(() => {
+	const byPath = new Map<string, { path: string; title: string | null; entry?: Row['entry']; rows: { row: Row; group: HealthGroup }[] }>();
+
+	for (const { group, rows } of visible.value) {
+		for (const row of rows) {
+			const file = byPath.get(row.path) ?? { path: row.path, title: row.title, entry: row.entry, rows: [] };
+
+			file.rows.push({ row, group });
+			byPath.set(row.path, file);
+		}
+	}
+
+	const rank = (rows: { row: Row }[]): number => Math.min(...rows.map(({ row }) => ['error', 'warning', 'notice'].indexOf(row.severity)));
+
+	return [...byPath.values()].sort((a, b) => rank(a.rows) - rank(b.rows));
+});
+
+const PILLS: Record<Severity, { label: string; kind: string }> = {
+	error: { label: 'Error', kind: 'pill--danger' },
+	warning: { label: 'Warning', kind: 'pill--warn' },
+	notice: { label: 'Notice', kind: '' }
+};
+
+// Ignored shows even at 0, as a list's Draft tab does.
+const tabs = computed(() => [
+	{ key: 'need', label: 'Needs Attention', count: needs.value },
+	...(hasNotice.value ? [{ key: 'notices', label: 'Notices', count: tally.value.notice }] : []),
+	{ key: 'ignored', label: 'Ignored', count: tally.value.ignored }
+]);
+
+// The rows a group's fix would change: those not fixed or ignored, and
+// not waiting on a choice of their own.
+const bulkRows = (rows: Row[]): Row[] => rows.filter((row) => !isFixed(row) && ignoredOf(row) === undefined && row.choices === undefined);
+
+// What a group's heading counts: its rows still open.
+const openCount = (rows: Row[]): number => rows.filter((row) => !isFixed(row)).length;
+
+/**
+ * Ignores a row's problem for the site, or stops (D-613), with Undo for
+ * ignoring; Site Health's count follows.
+ */
+async function setIgnored(row: Row, ignore: boolean): Promise<void> {
+	if (health.value === null || fixing.value !== null) {
+		return;
+	}
+
+	fixing.value = row.key;
+
+	try {
+		const answer = await request<{ ignored: Health['ignored'] }>('POST', ignore ? '/health/ignore' : '/health/unignore', { key: row.key });
+
+		health.value = { ...health.value, ignored: answer.ignored };
+		void loadCounts();
+
+		if (ignore) {
+			toast('Ignored. It\'s in the Ignored tab.', { undo: () => void setIgnored(row, false) });
+		} else {
+			toast('No longer ignored');
+		}
 	} catch (caught) {
-		toast(errorMessage(caught, failure), { kind: 'danger' });
+		toast(errorMessage(caught, 'It couldn\'t be changed.'), { kind: 'danger' });
 	} finally {
 		fixing.value = null;
 	}
 }
 
 /**
- * Runs an id fix.
+ * Runs a group's fix for some of its rows (`choice`, the file a row
+ * chose to keep), asking first for more than one row or a group fix,
+ * with every change listed. Rows it fixed are marked Fixed; a file it
+ * couldn't change is named, with why. Then the check runs again.
  */
-function fix(key: string, path: string, body: Record<string, string> = {}): Promise<void> {
-	return runFix<AssignedIds>(key, path, body, ['file', 'files'], 'The ids couldn\'t be fixed.', (answer) => {
-		const added = Object.keys(answer.assigned).length;
+async function fix(group: HealthGroup, rows: Row[], options: { bulk?: boolean; choice?: string } = {}): Promise<void> {
+	const fixer = group.fix;
 
-		return { changed: added, text: added ? `Gave ${plural(added, 'file')} a new id` : 'No files you may edit needed an id' };
-	});
-}
+	if (fixer === undefined || rows.length === 0 || fixing.value !== null) {
+		return;
+	}
 
-/**
- * Records images' sizes in their details.
- */
-function recordSizes(): Promise<void> {
-	return runFix<FixAnswer & { recorded: Record<string, string[]> }>('sizes', '/health/media-sizes', {}, ['image', 'images'], 'The sizes couldn\'t be recorded.', (answer) => {
-		const images = Object.keys(answer.recorded).length;
+	if (options.bulk || rows.length > 1) {
+		const listed = rows.slice(0, 8);
+		const ok     = await confirmAction({
+			title: group.bulk?.title(rows.length) ?? `Change ${plural(rows.length, 'File')}?`,
+			body: group.bulk?.say ?? 'Each file gets the change below and nothing else.',
+			items: listed.map((row) => ({ title: row.path, meta: row.fix?.change ?? '' })),
+			more: rows.length > listed.length ? `and ${rows.length - listed.length} more, the same change in each` : undefined,
+			after: 'Published entries change on the site as soon as this is done.',
+			confirm: group.bulk?.label(rows.length) ?? `Change ${plural(rows.length, 'File')}`
+		});
 
-		return { changed: images, text: images ? `Recorded the sizes of ${plural(images, 'image')}` : 'No images you may edit needed their sizes recorded' };
-	});
-}
+		if (!ok) {
+			return;
+		}
+	}
 
-/**
- * Moves collections' entries kept in folders into their collection's
- * folder (D-514).
- */
-function flatten(): Promise<void> {
-	return runFix<FixAnswer & { renamed: Record<string, string> }>('flat', '/health/flatten', {}, ['entry', 'entries'], 'The entries couldn\'t be moved.', (answer) => {
-		const moved = Object.keys(answer.renamed).length;
+	fixing.value = options.bulk ? group.key : (rows[0]?.key ?? null);
 
-		return { changed: moved, text: moved ? `Moved ${plural(moved, 'entry', 'entries')} into their collections' folders` : 'No entries you may edit needed moving' };
-	});
-}
+	try {
+		const answer = await request<{ failed: Record<string, string> }>('POST', fixer.path, fixer.body(rows, options.choice));
+		const failed = Object.entries(answer.failed ?? {});
+		const done   = rows.filter((row) => answer.failed?.[row.path] === undefined && (row.choices === undefined || failed.length === 0));
 
-/**
- * Writes the terms and profiles entries name with no file (D-584).
- */
-function writeTerms(): Promise<void> {
-	return runFix<FixAnswer & { created: Record<string, string> }>('terms', '/health/terms', {}, ['term', 'terms'], 'The terms couldn\'t be written.', (answer) => {
-		const written = Object.keys(answer.created).length;
+		const next = { ...fixed.value };
 
-		return { changed: written, text: written ? `Wrote ${plural(written, 'file')}` : 'No terms or profiles you may create were missing' };
-	});
-}
+		for (const row of done) {
+			const { rows: _rows, ...meta } = group;
 
-/**
- * Files links between entries with their ids (D-596).
- */
-function fileRefs(): Promise<void> {
-	return runFix<FixAnswer & { filed: string[] }>('refs', '/health/refs', {}, ['file', 'files'], 'The links couldn\'t be filed.', (answer) => {
-		const filed = answer.filed.length;
+			next[row.key] = { group: meta, row, at: group.rows.indexOf(row), done: row.fix?.done ?? 'Fixed.' };
+		}
 
-		return { changed: filed, text: filed ? `Filed links in ${plural(filed, 'file')}` : 'No files you may edit needed their links filed' };
-	});
-}
+		fixed.value = next;
 
-/**
- * Migrates the data types still written as taxonomies (D-591), then
- * loads the types again.
- */
-function migrateTaxonomies(): Promise<void> {
-	return runFix<FixAnswer & { migrated: Record<string, string[]> }>('taxonomies', '/health/taxonomies', {}, ['type', 'types'], 'The types couldn\'t be migrated.', (answer) => {
-		const migrated = Object.keys(answer.migrated).length;
+		if (failed.length) {
+			toast(`${plural(failed.length, ...fixer.noun)} couldn't be changed: ${failed.map(([file, why]) => `${file} (${why})`).join('; ')}`, { kind: 'warn' });
+		} else if (done.length) {
+			toast(done.length === 1 ? `Fixed ${done[0]?.title ?? done[0]?.path}` : `Fixed ${plural(done.length, ...group.unit)}`, { kind: 'good' });
+		}
 
-		refreshTypes();
+		if (props.check === 'taxonomies') {
+			refreshTypes();
+		}
 
-		return { changed: migrated, text: migrated ? `Migrated ${plural(migrated, 'type')}` : 'No types needed migrating' };
-	});
-}
-
-/**
- * Renames a type's entries to its file name pattern (D-512).
- */
-function renameFiles(type: string): Promise<void> {
-	return runFix<FixAnswer & { renamed: Record<string, string> }>(`names:${type}`, '/health/filenames', { type }, ['entry', 'entries'], 'The files couldn\'t be renamed.', (answer) => {
-		const renamed = Object.keys(answer.renamed).length;
-
-		return { changed: renamed, text: renamed ? `Renamed the files of ${plural(renamed, 'entry', 'entries')}` : 'No entries you may edit needed renaming' };
-	});
+		await load(true, false);
+	} catch (caught) {
+		toast(errorMessage(caught, 'It couldn\'t be fixed.'), { kind: 'danger' });
+	} finally {
+		fixing.value = null;
+	}
 }
 
 onMounted(() => {
@@ -269,7 +350,7 @@ onMounted(() => {
 		<RouterLink class="page-back" :to="{ name: 'health' }"><AdminIcon name="chevron-left" />Site Health</RouterLink>
 		<div class="page-header__text">
 			<h1 tabindex="-1">{{ screen.title }}</h1>
-			<p class="page-header__hint">{{ health ? `Last checked ${formatWhen(health.at).toLowerCase()}` : screen.hint }}</p>
+			<p class="page-header__hint">{{ loading && health ? 'Checking…' : (health ? `Last checked ${formatWhen(health.at).toLowerCase()}` : screen.about) }}</p>
 		</div>
 		<div class="page-header__actions">
 			<button type="button" class="button" :disabled="loading || fixing !== null" @click="load(true)">
@@ -281,228 +362,118 @@ onMounted(() => {
 	<p v-if="error" class="notice notice--error" role="alert">{{ error }}</p>
 	<p v-else-if="!health" class="loading">Loading the last check…</p>
 
-	<template v-else-if="check === 'files'">
-		<div class="toolbar">
-			<label class="checkbox">
-				<input v-model="notices" type="checkbox">
-				Include notices
+	<template v-else>
+		<nav class="status-tabs" aria-label="Problems">
+			<RouterLink v-for="item in tabs" :key="item.key" class="status-tabs__tab" :to="{ query: item.key === 'need' ? {} : { tab: item.key } }" :aria-current="tab === item.key ? 'page' : undefined">
+				{{ item.label }}
+				<span class="status-tabs__count">{{ item.count.toLocaleString() }}</span>
+			</RouterLink>
+		</nav>
+
+		<div v-if="groups.length" class="toolbar" role="search">
+			<label class="search-field toolbar__search">
+				<AdminIcon name="search" />
+				<span class="visually-hidden">Search titles and files</span>
+				<input ref="searchField" v-model="query" type="search" placeholder="Search titles and files" autocomplete="off" aria-keyshortcuts="/">
+				<kbd class="search-field__key" aria-hidden="true">/</kbd>
 			</label>
+			<div v-if="tab === 'need' && twoKinds" class="toolbar__filter">
+				<label class="visually-hidden" for="health-severity">Severity</label>
+				<AdminSelect id="health-severity" v-model="sevValue" :options="sevOptions" />
+			</div>
+			<div v-if="screen.byFile" class="toolbar__filter">
+				<label class="visually-hidden" for="health-group">Group by</label>
+				<AdminSelect id="health-group" v-model="modeValue" :options="modeOptions" />
+			</div>
+			<div class="segmented segmented--icons toolbar__end" role="group" aria-label="Rows">
+				<button type="button" :aria-pressed="!compact" title="Roomy rows" @click="compact = false">
+					<AdminIcon name="rows-3" /><span class="visually-hidden">Roomy</span>
+				</button>
+				<button type="button" :aria-pressed="compact" title="Compact rows" @click="compact = true">
+					<AdminIcon name="rows-4" /><span class="visually-hidden">Compact</span>
+				</button>
+			</div>
 		</div>
 
-		<p class="notice" :class="counted('error') ? 'notice--error' : 'notice--success'" aria-live="polite">{{ summary(health) }}</p>
-
-		<div v-if="!files.length" class="panel">
-			<EmptyState icon="circle-check" heading="No Problems Found">
-				Every file passed{{ notices ? ', notices included' : '' }}.
+		<div v-if="!visibleCount" class="panel">
+			<EmptyState v-if="query.trim()" icon="search" :heading="`Nothing Matches “${query.trim()}”`" text="The search looks at titles, files, and what was found.">
+				<template #actions>
+					<button type="button" class="button" @click="query = ''">Clear the Search</button>
+				</template>
 			</EmptyState>
+			<EmptyState v-else-if="tab === 'need'" icon="circle-check" heading="Nothing Needs Fixing" :text="tally.notice ? `${screen.clear} ${plural(tally.notice, 'notice')} ${tally.notice === 1 ? 'is' : 'are'} in their own tab; none of them change what the site shows.` : screen.clear" />
+			<EmptyState v-else-if="tab === 'ignored'" icon="eye-off" heading="Nothing Ignored" text="Ignore a warning or notice from its row's menu. Ignored problems stop counting, for everyone." />
+			<EmptyState v-else icon="info" heading="No Notices" />
 		</div>
 
-		<section v-for="file in files" :key="file.path" class="panel">
-			<header class="panel__header">
-				<h2 class="mono">{{ file.path }}</h2>
-				<p class="panel__hint">{{ plural(file.violations.length, 'problem') }}</p>
-			</header>
-			<ul class="violations">
-				<li v-for="(violation, index) in file.violations" :key="index" class="violation">
-					<span class="pill" :class="severities[violation.severity]">{{ violation.severity }}</span>
-					<p><code>{{ violation.field }}</code>: {{ violation.message }}</p>
-				</li>
-			</ul>
-		</section>
+		<template v-else-if="mode === 'file' && screen.byFile">
+<section v-for="file in files.slice(0, filesShown)" :key="file.path" class="panel" :class="{ 'panel--compact': compact }" :aria-label="file.title ?? file.path">
+				<header class="panel__header">
+					<div class="panel__header-text">
+						<h2>{{ file.title ?? 'The Title Can\'t Be Read' }}</h2>
+						<p class="panel__hint mono">{{ file.path }}</p>
+					</div>
+					<div class="panel__actions">
+						<span class="panel__hint">{{ plural(file.rows.length, 'problem') }}</span>
+						<RouterLink v-if="file.entry" class="button button--small" :to="entryRoute(file.entry)"><AdminIcon name="file-pen-line" />Open in Editor</RouterLink>
+					</div>
+				</header>
+				<ul class="problems">
+					<HealthRow
+						v-for="{ row, group } in file.rows"
+						:key="row.key"
+						:row="row"
+						:group="group.name"
+						:fixed="fixed[row.key]?.done"
+						:busy="fixing !== null"
+						:fixing="fixing === row.key"
+						:ignored="ignoredOf(row)"
+						@fix="(choice) => fix(group, [row], { choice })"
+						@ignore="setIgnored(row, true)"
+						@unignore="setIgnored(row, false)"
+					/>
+				</ul>
+			</section>
+			<p v-if="files.length > filesShown" class="panel panel__foot">
+				<span>Showing {{ filesShown.toLocaleString() }} of {{ files.length.toLocaleString() }} files</span>
+				<button type="button" class="lnk" @click="filesShown += MORE">Show {{ Math.min(MORE, files.length - filesShown) }} More</button>
+			</p>
+		</template>
+
+		<template v-else>
+			<section v-for="{ group, rows } in visible" :key="group.key" class="panel" :class="{ 'panel--compact': compact }" :aria-labelledby="`group-${group.key}`">
+				<header class="panel__header">
+					<div class="panel__header-text">
+						<h2 :id="`group-${group.key}`">{{ group.name }}</h2>
+						<p class="panel__hint">{{ group.says }}</p>
+					</div>
+					<div class="panel__actions">
+						<span class="panel__hint">{{ openCount(rows) ? plural(openCount(rows), ...group.unit) : 'All fixed' }}</span>
+						<span class="pill" :class="PILLS[group.severity].kind">{{ PILLS[group.severity].label }}</span>
+						<button v-if="tab !== 'ignored' && group.bulk && bulkRows(rows).length > 1" type="button" class="button button--small button--primary" :disabled="fixing !== null" @click="fix(group, bulkRows(rows), { bulk: true })">
+							<span v-if="fixing === group.key" class="spin" aria-hidden="true" />{{ group.bulk.label(bulkRows(rows).length) }}
+						</button>
+					</div>
+				</header>
+				<ul class="problems">
+					<HealthRow
+						v-for="row in rows.slice(0, shown[group.key] ?? PER_GROUP)"
+						:key="row.key"
+						:row="row"
+						:fixed="fixed[row.key]?.done"
+						:busy="fixing !== null"
+						:fixing="fixing === row.key"
+						:ignored="ignoredOf(row)"
+						@fix="(choice) => fix(group, [row], { choice })"
+						@ignore="setIgnored(row, true)"
+						@unignore="setIgnored(row, false)"
+					/>
+				</ul>
+				<p v-if="rows.length > (shown[group.key] ?? PER_GROUP)" class="panel__foot">
+					<span>Showing {{ (shown[group.key] ?? PER_GROUP).toLocaleString() }} of {{ rows.length.toLocaleString() }}</span>
+					<button type="button" class="lnk" @click="shown = { ...shown, [group.key]: (shown[group.key] ?? PER_GROUP) + MORE }">Show {{ Math.min(MORE, rows.length - (shown[group.key] ?? PER_GROUP)) }} More</button>
+				</p>
+			</section>
+		</template>
 	</template>
-
-	<div v-else-if="!found" class="panel">
-		<EmptyState icon="circle-check" heading="Nothing to Fix" :text="screen.clear" />
-	</div>
-
-	<section v-else-if="check === 'ids' && ids" class="panel" aria-labelledby="ids-heading">
-		<header class="panel__header">
-			<h2 id="ids-heading">{{ area === 'content' ? 'Files Without Their Own ID' : 'Media Without Their Own ID' }}</h2>
-			<p class="panel__hint">{{ screen.hint }}</p>
-		</header>
-		<div v-if="ids.ids.missing.length" class="ids__row">
-			<p>{{ plural(ids.ids.missing.length, 'file') }} {{ ids.ids.missing.length === 1 ? 'has' : 'have' }} no id, or one that isn't valid.</p>
-			<button type="button" class="button button--primary button--small" :disabled="fixing !== null" @click="fix('missing', ids.missing)">
-				{{ fixing === 'missing' ? 'Adding…' : 'Add Missing IDs' }}
-			</button>
-		</div>
-		<div v-for="shared in ids.ids.duplicates" :key="shared.id" class="ids__row ids__row--shared">
-			<p>These files share the id <code>{{ shared.id }}</code>. Keep it on one; the others get new ids.</p>
-			<ul class="ids__files">
-				<li v-for="file in shared.paths" :key="file">
-					<code>{{ file }}</code>
-					<button type="button" class="button button--small" :disabled="fixing !== null" @click="fix(`keep:${file}`, ids.keep, { path: file })">
-						{{ fixing === `keep:${file}` ? 'Keeping…' : 'Keep Here' }}<span class="visually-hidden"> ({{ file }})</span>
-					</button>
-				</li>
-			</ul>
-		</div>
-	</section>
-
-	<section v-else-if="check === 'sizes'" class="panel" aria-labelledby="sizes-heading">
-		<header class="panel__header">
-			<h2 id="sizes-heading">Sizes Not Recorded</h2>
-			<p class="panel__hint">{{ screen.hint }}</p>
-		</header>
-		<div class="ids__row">
-			<p>
-				<template v-if="health.mediaSizes.sizes">{{ plural(health.mediaSizes.sizes, 'size') }} of {{ plural(health.mediaSizes.images, 'image') }} {{ health.mediaSizes.sizes === 1 ? 'isn\'t' : 'aren\'t' }} recorded yet.</template>
-				<template v-if="health.mediaSizes.stale"> {{ plural(health.mediaSizes.stale, 'image') }} {{ health.mediaSizes.stale === 1 ? 'lists' : 'list' }} files that aren't {{ health.mediaSizes.stale === 1 ? 'its' : 'their' }} sizes.</template>
-			</p>
-			<button type="button" class="button button--primary button--small" :disabled="fixing !== null" @click="recordSizes">
-				{{ fixing === 'sizes' ? 'Recording…' : 'Record Sizes' }}
-			</button>
-		</div>
-	</section>
-
-	<section v-else-if="check === 'terms'" class="panel" aria-labelledby="terms-heading">
-		<header class="panel__header">
-			<h2 id="terms-heading">Named Without a File</h2>
-			<p class="panel__hint">{{ screen.hint }}</p>
-		</header>
-		<div class="ids__row">
-			<p>{{ plural(health.terms.count, 'term or profile has', 'terms and profiles have') }} no file, such as <code>{{ health.terms.examples[0]?.type }}/{{ health.terms.examples[0]?.slug }}</code>. Each is written published, titled as entries name it.</p>
-			<button type="button" class="button button--primary button--small" :disabled="fixing !== null" @click="writeTerms">
-				{{ fixing === 'terms' ? 'Writing…' : 'Write Files' }}
-			</button>
-		</div>
-	</section>
-
-	<section v-else-if="check === 'refs'" class="panel" aria-labelledby="refs-heading">
-		<header class="panel__header">
-			<h2 id="refs-heading">Links Without IDs</h2>
-			<p class="panel__hint">{{ screen.hint }}</p>
-		</header>
-		<div class="ids__row">
-			<p>{{ plural(health.refs.count, 'file has', 'files have') }} links not filed with their ids, such as <code>{{ health.refs.examples[0]?.path }}</code> ({{ health.refs.examples[0]?.relations.join(', ') }}). Each link's id is filed under <code>refs</code>, and a value naming an id or an old slug is written as the slug it has now.</p>
-			<button type="button" class="button button--primary button--small" :disabled="fixing !== null" @click="fileRefs">
-				{{ fixing === 'refs' ? 'Filing…' : 'File Links' }}
-			</button>
-		</div>
-	</section>
-
-	<section v-else-if="check === 'taxonomies'" class="panel" aria-labelledby="taxonomies-heading">
-		<header class="panel__header">
-			<h2 id="taxonomies-heading">Written as Taxonomies</h2>
-			<p class="panel__hint">{{ screen.hint }}</p>
-		</header>
-		<div class="ids__row">
-			<p>{{ plural(health.taxonomies.length, 'type is', 'types are') }} still written as {{ health.taxonomies.length === 1 ? 'a taxonomy' : 'taxonomies' }}: <code>{{ health.taxonomies.join(', ') }}</code>. Each file in <code>user/data/types</code> becomes a collection, keeping its other settings, and what it files moves to a relationship in <code>user/data/relations</code>.</p>
-			<button type="button" class="button button--primary button--small" :disabled="fixing !== null" @click="migrateTaxonomies">
-				{{ fixing === 'taxonomies' ? 'Migrating…' : 'Migrate Types' }}
-			</button>
-		</div>
-	</section>
-
-	<section v-else-if="check === 'folders'" class="panel" aria-labelledby="flat-heading">
-		<header class="panel__header">
-			<h2 id="flat-heading">Entries in Folders</h2>
-			<p class="panel__hint">{{ screen.hint }}</p>
-		</header>
-		<div class="ids__row">
-			<p>{{ plural(health.flat.count, 'entry is', 'entries are') }} kept in a folder, such as <code>{{ health.flat.examples[0]?.path }}</code> → <code>{{ health.flat.examples[0]?.to }}</code>.</p>
-			<button type="button" class="button button--primary button--small" :disabled="fixing !== null" @click="flatten">
-				{{ fixing === 'flat' ? 'Moving…' : 'Move Out of Folders' }}
-			</button>
-		</div>
-	</section>
-
-	<section v-else-if="check === 'names'" class="panel" aria-labelledby="names-heading">
-		<header class="panel__header">
-			<h2 id="names-heading">Older File Names</h2>
-			<p class="panel__hint">{{ screen.hint }}</p>
-		</header>
-		<div v-for="names in health.fileNames" :key="names.type" class="ids__row">
-			<p>
-				{{ plural(names.count, 'entry', 'entries') }} in {{ names.label }} {{ names.count === 1 ? 'isn\'t' : 'aren\'t' }} named <code>{{ names.pattern }}</code>, such as <code>{{ names.examples[0]?.path }}</code> → <code>{{ names.examples[0]?.to }}</code>.
-				<template v-if="names.skipped"> {{ plural(names.skipped, 'entry', 'entries') }} kept as {{ names.skipped === 1 ? 'a folder keeps its' : 'folders keep their' }} name.</template>
-			</p>
-			<button type="button" class="button button--primary button--small" :disabled="fixing !== null" @click="renameFiles(names.type)">
-				{{ fixing === `names:${names.type}` ? 'Renaming…' : 'Rename Files' }}<span class="visually-hidden"> ({{ names.label }})</span>
-			</button>
-		</div>
-	</section>
 </template>
-
-<style scoped>
-h2.mono {
-	font-family: var(--font-mono);
-	font-size: var(--text-sm);
-	font-weight: 500;
-	overflow-wrap: anywhere;
-}
-
-.violations {
-	margin: 0;
-	padding: 0;
-	list-style: none;
-}
-
-.violation {
-	display: grid;
-	grid-template-columns: 5.5rem minmax(0, 1fr);
-	align-items: baseline;
-	gap: 12px;
-	padding: var(--pad-row) var(--pad-x);
-}
-
-.violation + .violation {
-	border-top: 1px solid var(--border);
-}
-
-.violation .pill {
-	justify-self: start;
-	text-transform: capitalize;
-}
-
-.violation code {
-	overflow-wrap: anywhere;
-}
-
-.ids__row {
-	display: flex;
-	flex-wrap: wrap;
-	align-items: center;
-	justify-content: space-between;
-	gap: var(--s-3);
-	padding: var(--pad-row) var(--pad-x);
-}
-
-.ids__row p {
-	margin: 0;
-}
-
-.ids__row + .ids__row {
-	border-top: 1px solid var(--border);
-}
-
-.ids__row--shared {
-	display: block;
-}
-
-.ids__files {
-	margin: var(--s-2) 0 0;
-	padding: 0;
-	list-style: none;
-}
-
-.ids__files li {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	gap: var(--s-3);
-	padding: var(--s-1) 0;
-}
-
-.ids__files code,
-.ids__row code {
-	overflow-wrap: anywhere;
-}
-
-@media (width <= 640px) {
-	.violation {
-		grid-template-columns: minmax(0, 1fr);
-		gap: 6px;
-	}
-}
-</style>

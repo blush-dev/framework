@@ -149,8 +149,8 @@ final readonly class Schema
 			if ($name === null) {
 				$extra[$key]  = $value;
 				$violations[] = $this->closed
-					? new Violation($key, 'is not a field of this type.')
-					: new Violation($key, 'is not declared by the schema.', Severity::Notice);
+					? new Violation($key, 'is not a field of this type.', kind: ViolationKind::Unknown)
+					: new Violation($key, 'is not declared by the schema.', Severity::Notice, ViolationKind::Unknown);
 
 				continue;
 			}
@@ -161,12 +161,12 @@ final readonly class Schema
 
 			if ($key !== $name) {
 				if (isset($seen[$name]) || ! self::isEmpty($data[$name] ?? null)) {
-					$violations[] = new Violation($key, sprintf('is ignored because "%s" is set.', $name), Severity::Notice);
+					$violations[] = new Violation($key, sprintf('is ignored because "%s" is set.', $name), Severity::Notice, ViolationKind::Alias);
 
 					continue;
 				}
 
-				$violations[] = new Violation($key, sprintf('is read as "%s".', $name), Severity::Notice);
+				$violations[] = new Violation($key, sprintf('is read as "%s".', $name), Severity::Notice, ViolationKind::Alias);
 			}
 
 			$seen[$name] = true;
@@ -174,7 +174,7 @@ final readonly class Schema
 			try {
 				$normalized = $this->fields[$name]->normalize($value, $context);
 			} catch (InvalidField $e) {
-				$violations[] = new Violation($key, $e->getMessage());
+				$violations[] = new Violation($key, $e->getMessage(), kind: ViolationKind::Value);
 
 				continue;
 			}
@@ -193,10 +193,10 @@ final readonly class Schema
 				try {
 					$values[$name] = $field->normalize($field->default, $context);
 				} catch (InvalidField $e) {
-					$violations[] = new Violation($name, sprintf('has an invalid default: %s', $e->getMessage()));
+					$violations[] = new Violation($name, sprintf('has an invalid default: %s', $e->getMessage()), kind: ViolationKind::Value);
 				}
 			} elseif ($field->required) {
-				$violations[] = new Violation($name, 'is required.');
+				$violations[] = new Violation($name, 'is required.', kind: ViolationKind::Required);
 			}
 		}
 
