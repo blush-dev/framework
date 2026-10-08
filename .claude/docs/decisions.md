@@ -18541,3 +18541,15 @@ decision, add a new entry that supersedes it and mark the old one
   the empty `style.css` it was given replaced the parent's styles. The
   author: "skip style.css for child themes, but we need to review all
   commands at some point."
+
+### D-619: Your Account has no notes about itself
+
+- **Date:** 2026-10-08
+- **Status:** Built.
+- **Decision:** Your Account drops the sketch's "This is your account"
+  note, and the notes on why an account isn't yours to change (an
+  owner's, or one that can do things you can't) show only on someone
+  else's account, never your own. The no-owner warning with Make Me
+  the Owner stays.
+- **Why:** the author: "On the Your Account page, I don't think we need
+  these two note boxes." The screen already shows what's yours to change.

@@ -597,15 +597,14 @@ async function changePassword(): Promise<void> {
 		<p v-if="actionsError" class="notice notice--error" role="alert">{{ actionsError }}</p>
 		<p v-if="linkError" class="notice notice--error" role="alert">{{ linkError }}</p>
 
-		<p v-if="account && mine" class="notice"><AdminIcon name="info" /><span class="notice__text"><strong>This is your account.</strong> It's the same screen anyone who manages accounts sees, with two differences: your password, email, and theme are yours to change, and your own roles and standing aren't. Someone else who manages accounts changes those.</span></p>
 		<div v-if="account && mine && claimable" class="notice notice--warn">
 			<AdminIcon name="shield" />
 			<span class="notice__text"><strong>This site has no owner.</strong> An owner can do everything, and only an owner can change an owner's account, so nobody can lock them out. You can make yourself the owner.</span>
 			<span class="notice__buttons"><button type="button" class="button button--small" :disabled="claimBusy" @click="claimOwner">{{ claimBusy ? 'Saving…' : 'Make Me the Owner' }}</button></span>
 		</div>
 		<p v-if="claimError" class="notice notice--error" role="alert">{{ claimError }}</p>
-		<p v-else-if="account && !account.manages && account.roles.includes(OWNER)" class="notice"><AdminIcon name="info" /><span class="notice__text"><strong>{{ account.displayName }} is an owner,</strong> and only an owner can change an owner's details, roles, standing, and profile.</span></p>
-		<p v-else-if="account && !account.manages" class="notice"><AdminIcon name="info" /><span class="notice__text"><strong>{{ account.displayName }} can do things you can't,</strong> so its details, roles, standing, and profile aren't yours to change.</span></p>
+		<p v-else-if="account && !mine && !account.manages && account.roles.includes(OWNER)" class="notice"><AdminIcon name="info" /><span class="notice__text"><strong>{{ account.displayName }} is an owner,</strong> and only an owner can change an owner's details, roles, standing, and profile.</span></p>
+		<p v-else-if="account && !mine && !account.manages" class="notice"><AdminIcon name="info" /><span class="notice__text"><strong>{{ account.displayName }} can do things you can't,</strong> so its details, roles, standing, and profile aren't yours to change.</span></p>
 
 		<div v-if="account && !account.email" class="notice notice--warn">
 			<AdminIcon name="triangle-alert" />

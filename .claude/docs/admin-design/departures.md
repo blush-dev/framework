@@ -150,7 +150,9 @@ Each is recorded in `.claude/docs/decisions.md`.
   read-only. The editor never holds account settings (D-332's Account
   tab is gone). Where the sketch gives an account no name of its own,
   the admin keeps one (the author's call, D-370): its display name,
-  else its profile's title, else its username.
+  else its profile's title, else its username. It has no "This is your
+  account" note, and no note on why an owner's account isn't yours to
+  change (D-619).
 - **A people field's list page** (D-329, D-332, D-353): `_authors` (or
   `_cooks`) in its folder, pinned under the index page tagged with the
   field's name, edited like an index page (no type fields or date, slug
