@@ -108,7 +108,7 @@ final class MarkdownRenderingTest extends TestCase
 	 */
 	public function testAnImageWithoutAltTextHasEmptyAltText(): void
 	{
-		$this->writeTemporaryFile('user/data/media/2019/cat.png.yml', "alt: A cat\n");
+		$this->writeTemporaryFile('user/data/media/2019/cat.png.json', '{"alt": "A cat"}');
 
 		$this->assertStringContainsString('alt=""', $this->parser()->toHtml('![](/media/2019/cat.png)'));
 	}

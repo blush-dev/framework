@@ -161,7 +161,7 @@ final class AdminPickersTest extends TestCase
 		$this->png('user/media/2019/photo.png', 60, 40);
 		$this->png('user/media/2019/photo-30x20.png', 30, 20);
 		$this->png('user/media/2019/photo-15x10.png', 15, 10);
-		$this->writeTemporaryFile('user/data/media/2019/photo.png.yml', "alt: A photo\nsizes:\n  2019/photo-15x10.png: { width: 15, height: 10 }\n");
+		$this->writeTemporaryFile('user/data/media/2019/photo.png.json', '{"alt": "A photo", "sizes": {"2019/photo-15x10.png": {"width": 15, "height": 10}}}');
 		$this->writeTemporaryFile('user/content/uses-size.md', "---\ntitle: Uses a Size\nauthors: jane\n---\n![](/media/2019/photo-30x20.png)\n");
 		$this->site();
 
@@ -185,13 +185,13 @@ final class AdminPickersTest extends TestCase
 		$this->assertSame(422, $this->patch('2019/photo-30x20.png', ['alt' => 'Its own'])->getStatusCode());
 
 		$this->assertSame(200, $this->remove('2019/photo-15x10.png')->getStatusCode());
-		$this->assertStringNotContainsString('photo-15x10', (string) file_get_contents($this->temporaryDirectory() . '/user/data/media/2019/photo.png.yml'), 'A deleted size leaves its image\'s list.');
+		$this->assertStringNotContainsString('photo-15x10', (string) file_get_contents($this->temporaryDirectory() . '/user/data/media/2019/photo.png.json'), 'A deleted size leaves its image\'s list.');
 
 		$deleted = self::json($this->remove('2019/photo.png'));
 
 		$this->assertSame(['2019/photo-30x20.png'], $deleted['sizes'] ?? null, 'An image goes with its sizes.');
 		$this->assertFileDoesNotExist($this->temporaryDirectory() . '/user/media/2019/photo-30x20.png');
-		$this->assertFileDoesNotExist($this->temporaryDirectory() . '/user/data/media/2019/photo.png.yml');
+		$this->assertFileDoesNotExist($this->temporaryDirectory() . '/user/data/media/2019/photo.png.json');
 	}
 
 	/**
@@ -343,7 +343,7 @@ final class AdminPickersTest extends TestCase
 	public function testDeletesMediaSayingWhereItsUsed(): void
 	{
 		$this->writeTemporaryFile('user/content/notes.md', "---\ntitle: Notes\nauthors: jane\n---\n![Old](/media/2020/old.png)\n");
-		$this->writeTemporaryFile('user/data/media/2020/old.png.yml', "alt: Old\n");
+		$this->writeTemporaryFile('user/data/media/2020/old.png.json', '{"alt": "Old"}');
 		$this->site(['editor']);
 
 		$old = self::json($this->send('GET', '/media/2020/old.png'));
@@ -352,7 +352,7 @@ final class AdminPickersTest extends TestCase
 		$this->assertSame([['id' => $this->idOf('notes.md'), 'path' => 'notes.md', 'title' => 'Notes', 'type' => 'page', 'typeLabel' => 'Page']], $old['usedIn'] ?? null, 'Where it\'s used.');
 		$this->assertSame(200, $this->remove('2020/old.png')->getStatusCode());
 		$this->assertFileDoesNotExist($this->temporaryDirectory() . '/user/media/2020/old.png');
-		$this->assertFileDoesNotExist($this->temporaryDirectory() . '/user/data/media/2020/old.png.yml', 'Its details go with it.');
+		$this->assertFileDoesNotExist($this->temporaryDirectory() . '/user/data/media/2020/old.png.json', 'Its details go with it.');
 		$this->assertSame(404, $this->send('GET', '/media/2020/old.png')->getStatusCode());
 	}
 
@@ -389,17 +389,14 @@ final class AdminPickersTest extends TestCase
 		$this->assertIsArray($files);
 		$this->assertSame('A red square.', is_array($files[0] ?? null) ? $files[0]['alt'] ?? null : null, 'The library lists it.');
 
-		// One changed, the other kept; keys it doesn't know stay as written,
-		// and a YAML file someone wrote stays YAML.
-		unlink($data);
-		$data = $this->temporaryDirectory() . '/user/data/media/2026/new-photo.png.yml';
-		file_put_contents($data, "# Credit goes here.\ncredit: Jane\nalt: \"A red square.\"\ncaption: \"The first one\"\n");
+		// One changed, the other kept; keys it doesn't know stay as written.
+		file_put_contents($data, '{"credit": "Jane", "alt": "A red square.", "caption": "The first one"}');
 		$this->patch('2026/new-photo.png', ['caption' => '']);
 
-		$this->assertSame("# Credit goes here.\ncredit: Jane\nalt: \"A red square.\"\n", (string) file_get_contents($data));
+		$this->assertSame(['credit' => 'Jane', 'alt' => 'A red square.'], json_decode((string) file_get_contents($data), true));
 
 		$this->patch('2026/new-photo.png', ['alt' => '']);
-		$this->assertSame("# Credit goes here.\ncredit: Jane\n", (string) file_get_contents($data));
+		$this->assertSame(['credit' => 'Jane'], json_decode((string) file_get_contents($data), true));
 
 		unlink($data);
 		$this->writeTemporaryFile('user/data/media/2020/old.png.json', '{"$schema": "../../../media.schema.json", "credit": "Sam"}');
@@ -425,7 +422,7 @@ final class AdminPickersTest extends TestCase
 		$this->assertSame(404, $this->patch('2026/missing.png', ['alt' => 'x'])->getStatusCode());
 		$this->assertSame(404, $this->patch('notes.txt', ['alt' => 'x'])->getStatusCode());
 
-		$this->writeTemporaryFile('user/data/media/2026/broken.png.yml', "alt: [\n");
+		$this->writeTemporaryFile('user/data/media/2026/broken.png.json', '{"alt": [');
 		$this->assertSame('', self::json($this->send('GET', '/media/2026/new-photo.png'))['alt'] ?? null, 'Its own file, not a broken one.');
 	}
 
@@ -442,7 +439,7 @@ final class AdminPickersTest extends TestCase
 
 		$folder = date('Y/m');
 
-		$this->writeTemporaryFile("user/data/media/{$folder}/gone.png.yml", "alt: Someone else's\n");
+		$this->writeTemporaryFile("user/data/media/{$folder}/gone.png.json", '{"alt": "Someone else\'s"}');
 
 		$this->assertSame('gone-2.png', self::json($this->upload('gone.png', (string) base64_decode(self::PNG, true)))['name'] ?? null);
 	}

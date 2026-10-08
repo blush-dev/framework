@@ -14,7 +14,6 @@ declare(strict_types=1);
 namespace Blush\Content\Parser;
 
 use Blush\Data\InvalidData;
-use Blush\Data\YamlParser;
 
 /**
  * Splits YAML front matter off the top of a document and parses it. Front

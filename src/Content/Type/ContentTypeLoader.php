@@ -37,7 +37,7 @@ use Blush\Field\InvalidSchema;
  * 1. The built-in types (`BuiltInType`), minus those the config disables.
  * 2. Extension types, from sources tagged `ContentTypeSource::TAG`. Two
  *    extensions defining one name is an error.
- * 3. Data types from `user/data/types/{name}.json|yaml`, when allowed.
+ * 3. Data types from `user/data/types/{name}.json`, when allowed.
  *    They may redefine a built-in type. A file named for an extension
  *    collection changes it instead (D-349): each
  *    option it sets replaces the code's (`ContentType::overriddenBy()`),

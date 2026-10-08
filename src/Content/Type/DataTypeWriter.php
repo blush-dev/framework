@@ -49,9 +49,8 @@ use Blush\Support\Filesystem;
  * leaves out defaults, under the name the file already uses, replacing
  * any 1.x name for it. For a code type, an option back at the code's
  * value is removed from the file, and the file with it when it's empty.
- * Everything else in the file is left as the author wrote it: a JSON
- * file keeps its other keys, and a YAML file its other lines, comments
- * included. A new type is a JSON file (D-490).
+ * Everything else in the file is left as the author wrote it: the
+ * file keeps its other keys. Types are JSON files (D-490, D-631).
  *
  * Each change is checked against every other type before it's kept: the
  * file is written, all the types are loaded again (`ContentTypeLoader`),
@@ -400,7 +399,7 @@ final readonly class DataTypeWriter
 			}
 
 			try {
-				$next = DataFileKeys::edit($path, $before ?? '', $sets, self::OPTIONS, ['fields' => 3]);
+				$next = DataFileKeys::edit($before ?? '', $sets, self::OPTIONS);
 			} catch (InvalidData $error) {
 				throw new InvalidContentType(str_replace('The file', 'The type\'s file', $error->getMessage()), previous: $error);
 			}

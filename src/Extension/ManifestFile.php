@@ -14,37 +14,23 @@ declare(strict_types=1);
 namespace Blush\Extension;
 
 use JsonException;
-use Blush\Data\InvalidData;
-use Blush\Data\SymfonyYamlParser;
 
 /**
- * Finds and reads an extension's manifest file, for every kind: JSON,
- * else YAML (D-032). Extensions are found before the container exists,
- * so YAML is read with the framework's parser directly. A manifest file
- * is optional when the folder's `composer.json` has the kind's `type`
+ * Finds and reads an extension's manifest file, for every kind: JSON, as
+ * every data file is (D-631). A manifest file is optional when the folder's `composer.json` has the kind's `type`
  * (D-432); `load()` reads a folder either way.
  */
 final readonly class ManifestFile
 {
 	/**
-	 * The manifest formats, in precedence order.
-	 *
-	 * @var list<string>
+	 * Returns a folder's manifest file of a kind, or `null` when it has
+	 * none.
 	 */
-	public const array FORMATS = ['json', 'yaml', 'yml'];
-
-	/**
-	 * Returns a folder's manifest files of a kind, the winning one first
-	 * and then any it shadows.
-	 *
-	 * @return list<string>
-	 */
-	public static function find(string $folder, ExtensionKind $kind): array
+	public static function find(string $folder, ExtensionKind $kind): ?string
 	{
-		return array_values(array_filter(
-			array_map(static fn (string $format): string => "{$folder}/{$kind->manifest()}.{$format}", self::FORMATS),
-			is_file(...)
-		));
+		$file = "{$folder}/{$kind->manifest()}.json";
+
+		return is_file($file) ? $file : null;
 	}
 
 	/**
@@ -57,7 +43,7 @@ final readonly class ManifestFile
 	 */
 	public static function load(string $folder, ExtensionKind $kind): array
 	{
-		$file = self::find($folder, $kind)[0] ?? null;
+		$file = self::find($folder, $kind);
 
 		return ComposerJson::fill($file === null ? [] : self::read($file), $folder);
 	}
@@ -75,10 +61,8 @@ final readonly class ManifestFile
 		$contents = (string) file_get_contents($file);
 
 		try {
-			$data = str_ends_with($file, '.json')
-				? json_decode($contents, true, 512, JSON_THROW_ON_ERROR)
-				: new SymfonyYamlParser()->parse($contents);
-		} catch (JsonException | InvalidData $e) {
+			$data = json_decode($contents, true, 512, JSON_THROW_ON_ERROR);
+		} catch (JsonException $e) {
 			throw new ExtensionException(sprintf('The manifest %s is invalid: %s', $file, $e->getMessage()), previous: $e);
 		}
 

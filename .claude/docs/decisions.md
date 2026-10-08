@@ -229,6 +229,7 @@ decision, add a new entry that supersedes it and mark the old one
 
 ### D-032: Data files may be JSON or YAML; JSON wins
 - **Date:** 2026-09-25
+- **Status:** Superseded by D-631 (data files are JSON only).
 - **Decision:** Data files (theme manifests, tokens, `user/data/*`, message
   catalogs) may be JSON or YAML, validated against the same schema. If both
   `name.json` and `name.yaml`/`name.yml` exist, **JSON wins** (`doctor` and
@@ -18952,3 +18953,35 @@ decision, add a new entry that supersedes it and mark the old one
     folders against the pattern.
 - **Why:** the author's call; profiles and terms are the types without
   dates that can grow to thousands of entries.
+
+### D-631: Data files are JSON only
+
+- **Date:** 2026-10-08
+- **Status:** Built. Supersedes D-032.
+- **Decision:** the author: drop YAML for data files and keep only JSON.
+  The only YAML Blush reads is front matter.
+  - **What's JSON only:** everything `DataLoader` reads (`user/data`:
+    settings, theme data, menus, regions, redirects, types, relations,
+    field sets, media metadata), extension manifests (`plugin.json`,
+    `theme.json`, `icons.json`, with `composer.json` still the fallback,
+    D-432), and message catalogs (`lang/*.json`). A `.yaml` or `.yml`
+    file in their place isn't read.
+  - **No format registry:** `DataFormat`, `DataParser`,
+    `DataParserRegistry`, `DataParserRegistrar`, `JsonParser`, and
+    `YamlDataParser` are gone, as D-501 removed the document parsers.
+    `DataLoader` parses JSON itself (`DataLoader::parse()`), with nothing
+    to inject. With one format there's nothing to shadow, so
+    `DataLoader::shadowed()`, the media library's `shadowed` files, and
+    `theme:check`'s shadowed-manifest warning are gone, and
+    `ManifestFile::find()` returns one file or `null`.
+  - **Writers:** `DataFileKeys::edit()`, `DataRelationWriter`, and
+    `MediaMetadataStore` write JSON only; their paths for keeping a
+    YAML file's lines and comments are gone. `YamlMap` stays, for front
+    matter.
+  - **Front matter's parser:** `YamlParser` and `SymfonyYamlParser`
+    move to `Blush\Content\Parser`, bound by the content provider.
+  - **No lint for stray YAML:** YAML data files were only ever a 2.x
+    design, and 1.x had none, so nothing flags one and no migration
+    tool is needed (D-478).
+- **Why:** one mechanism and fewer places to go wrong, and JSON is
+  universal. It's also the shape a database driver (D-486) hands over.

@@ -23,9 +23,8 @@ use Blush\View\ViewFinder;
  * A partial from the site or the theme chain, with the item's other keys
  * as its data (text in them may be locale maps, D-202):
  *
- * ```yaml
- * - view: partials/newsletter
- *   heading: Get new posts by email
+ * ```json
+ * {"view": "partials/newsletter", "heading": "Get new posts by email"}
  * ```
  */
 final class ViewItem extends RegionItem

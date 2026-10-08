@@ -19,14 +19,16 @@ use Blush\Data\InvalidData;
 
 /**
  * Reads the site's regions: one data file per region in
- * `user/data/regions/` (D-201), JSON or YAML (JSON wins, D-032), named for
- * the region. A file holds its `items`, or is the list of items itself:
+ * `user/data/regions/` (D-201), JSON (D-631), named for the region. A
+ * file holds its `items`, or is the list of items itself:
  *
- * ```yaml
- * items:
- *   - directive: menu
- *     name: social
- *   - markdown: "Powered by **Blush**."
+ * ```json
+ * {
+ *     "items": [
+ *         {"directive": "menu", "name": "social"},
+ *         {"markdown": "Powered by **Blush**."}
+ *     ]
+ * }
  * ```
  *
  * A `$schema` key, for editors (D-207), is allowed. The files are read

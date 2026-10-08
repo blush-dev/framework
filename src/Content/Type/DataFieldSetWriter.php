@@ -39,7 +39,7 @@ use Blush\Support\Filesystem;
  * checked as the loader checks it; each changed key is then written as
  * the set itself writes it (`FieldSet::toArray()`: no label its name
  * gives, and no field classes). Everything else in the file is left as
- * the author wrote it, comments included. A new set is a JSON file (D-490).
+ * the author wrote it. Sets are JSON files (D-490, D-631).
  *
  * Since a set's fields join the places it targets, each change is checked
  * against all of them before it's kept: the file is written, the types
@@ -195,7 +195,7 @@ final readonly class DataFieldSetWriter
 			$before = is_file($path) ? (string) @file_get_contents($path) : null;
 
 			try {
-				$next = DataFileKeys::edit($path, $before ?? '', $sets, [], ['fields' => 3]);
+				$next = DataFileKeys::edit($before ?? '', $sets);
 			} catch (InvalidData $error) {
 				throw new InvalidContentType(str_replace('The file', 'The field set\'s file', $error->getMessage()), previous: $error);
 			}

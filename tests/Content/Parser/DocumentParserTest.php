@@ -19,7 +19,7 @@ use Blush\Content\Parser\Document;
 use Blush\Content\Parser\DocumentParser;
 use Blush\Content\Parser\FrontMatter;
 use Blush\Content\Parser\InvalidDocument;
-use Blush\Data\SymfonyYamlParser;
+use Blush\Content\Parser\SymfonyYamlParser;
 
 #[CoversClass(DocumentParser::class)]
 #[CoversClass(Document::class)]

@@ -269,7 +269,7 @@ final class ContentRoutingTest extends TestCase
 	public function testRedirectsFromFrontMatterAndData(): void
 	{
 		$this->entry('_posts/2008-04-05.spring.md', "title: spring\npublished: 2008-04-05 09:00:00\nredirect_from: [/spring, 'https://old.example.com/old/spring/', '/bad/{x}']");
-		$this->writeTemporaryFile('user/data/redirects.yaml', "/old-about: /about\n/promo: { to: 'https://example.com/sale', status: 302 }\n/spring: /not-this-one\n");
+		$this->writeTemporaryFile('user/data/redirects.json', '{"/old-about": "/about", "/promo": {"to": "https://example.com/sale", "status": 302}, "/spring": "/not-this-one"}');
 		$this->app = $this->site('development');
 
 		$this->assertPage('/spring', 301, '/not-this-one');

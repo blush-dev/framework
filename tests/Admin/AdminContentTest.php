@@ -110,9 +110,9 @@ final class AdminContentTest extends TestCase
 	{
 		// Pages credit authors only when a credit relation says so (D-602);
 		// a test that adds posts credits them too.
-		$posts = is_file($this->temporaryDirectory() . '/user/data/types/post.yaml');
+		$posts = is_file($this->temporaryDirectory() . '/user/data/types/post.json');
 
-		$this->writeTemporaryFile('user/data/types/page.yaml', "kind: tree\n");
+		$this->writeTemporaryFile('user/data/types/page.json', '{"kind": "tree"}');
 		$this->writeTemporaryFile('user/data/relations/authors.json', '{"kind": "credit", "from": ["page"' . ($posts ? ', "post"' : '') . '], "to": ["profile"], "aliases": ["author"]}');
 		$this->writeTemporaryFile('user/content/jane-draft.md', "---\ntitle: Jane's draft\nstatus: draft\nauthors: jane\nid: 0199b6e2-0000-7000-8000-000000000001\n---\n");
 		$this->writeTemporaryFile('user/content/sam-draft.md', "---\ntitle: Sam's draft\nstatus: draft\nauthors: sam\nid: 0199b6e2-0000-7000-8000-000000000002\n---\n");
@@ -183,7 +183,7 @@ final class AdminContentTest extends TestCase
 
 	public function testPinsATypesArchivePage(): void
 	{
-		$this->writeTemporaryFile('user/data/types/post.yaml', "folder: _posts\n");
+		$this->writeTemporaryFile('user/data/types/post.json', '{"folder": "_posts"}');
 		$this->writeTemporaryFile('user/content/_posts/one.md', "---\ntitle: One\n---\n");
 		$this->writeTemporaryFile('user/content/_posts/_authors.md', "---\ntitle: Our Writers\n---\nThe people.\n");
 		$this->site(['editor']);
@@ -458,7 +458,7 @@ final class AdminContentTest extends TestCase
 
 	public function testOrdersEachKindsAllTab(): void
 	{
-		$this->writeTemporaryFile('user/data/types/post.yaml', "folder: _posts\n");
+		$this->writeTemporaryFile('user/data/types/post.json', '{"folder": "_posts"}');
 		$this->writeTemporaryFile('user/data/types/mood.json', '{"taxonomy": true, "folder": "moods"}');
 		$this->writeTemporaryFile('user/content/_posts/old.md', "---\ntitle: Old\npublished: 2001-01-01\n---\n");
 		$this->writeTemporaryFile('user/content/_posts/new.md', "---\ntitle: New\npublished: 2020-01-01\n---\n");
@@ -794,7 +794,7 @@ final class AdminContentTest extends TestCase
 
 	public function testRenamesFilesToTheirTypesPattern(): void
 	{
-		$this->writeTemporaryFile('user/data/types/post.yaml', "folder: _posts\nfilename: \"{date}.{slug}\"\n");
+		$this->writeTemporaryFile('user/data/types/post.json', '{"folder": "_posts", "filename": "{date}.{slug}"}');
 		$this->writeTemporaryFile('user/content/_posts/one.md', "---\ntitle: One\npublished: 2026-01-02 10:00:00\nid: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e01\n---\n");
 		$this->writeTemporaryFile('user/content/_posts/two.md', "---\ntitle: Two\nid: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e02\n---\n");
 		touch($this->temporaryDirectory() . '/user/content/_posts/two.md', (int) strtotime('2025-03-04 12:00:00 UTC'));
@@ -825,7 +825,7 @@ final class AdminContentTest extends TestCase
 
 	public function testMovesCollectionEntriesToTheirFolders(): void
 	{
-		$this->writeTemporaryFile('user/data/types/post.yaml', "folder: _posts\n");
+		$this->writeTemporaryFile('user/data/types/post.json', '{"folder": "_posts"}');
 		$this->writeTemporaryFile('user/content/_posts/2024/old.md', "---\ntitle: Old\nid: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e03\n---\n");
 		$this->site(['owner']);
 		$token = $this->token();
@@ -934,8 +934,8 @@ final class AdminContentTest extends TestCase
 		$this->writeTemporaryFile('user/media/2026/lake.png', $png);
 		$this->writeTemporaryFile('user/media/2026/copy.png', $png);
 		$this->writeTemporaryFile('user/media/2026/new.png', $png);
-		$this->writeTemporaryFile('user/data/media/2026/lake.png.yml', "id: " . self::LIVE . "\n");
-		$this->writeTemporaryFile('user/data/media/2026/copy.png.yml', "alt: A copy\nid: " . self::LIVE . "\n");
+		$this->writeTemporaryFile('user/data/media/2026/lake.png.json', '{"id": "' . self::LIVE . '"}');
+		$this->writeTemporaryFile('user/data/media/2026/copy.png.json', '{"alt": "A copy", "id": "' . self::LIVE . '"}');
 		$this->site(['owner']);
 		$token = $this->token();
 

@@ -962,13 +962,12 @@ the media paths: `user/media/2026/09/lake.jpg` has
 }
 ```
 
-The admin writes new ones as JSON. You can write these by hand, in JSON
-or YAML (`lake.jpg.yml` or `.yaml`); if both exist, JSON wins. Any JSON
+You can write these by hand too. Any JSON
 file in `user/data` may start with a `"$schema"` key for your editor;
 it isn't read as data, and the admin keeps it when it saves. Saving
-from the admin edits the file that's there, YAML included, changing
+from the admin edits the file that's there, changing
 only the fields you changed and keeping the rest (keys that aren't
-fields are listed, as they are, and a YAML file's comments stay), and
+fields are listed, as they are), and
 removes a file left with nothing in it. If you rename or
 delete a media file by hand, move or delete its metadata file too. **Upload** opens the same picker the editor uses, with only its
 Upload panel (the library is the screen behind it); **Open** goes to the

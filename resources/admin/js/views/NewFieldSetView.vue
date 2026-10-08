@@ -2,7 +2,7 @@
 /**
  * New Field Set (D-337): its own screen, as every New is (admin.md §8),
  * with the set's editor (`FieldSetEditor`) empty. Creating it writes
- * `user/data/fields/{key}.yaml` and moves to the set's screen.
+ * `user/data/fields/{key}.json` and moves to the set's screen.
  */
 
 import { ref } from 'vue';

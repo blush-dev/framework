@@ -28,7 +28,7 @@ use Blush\Data\InvalidData;
  * domain (`domainOf()`), for directive and icon labels.
  *
  * A domain's catalogs are data files named by locale
- * (`lang/en_US.json`, `lang/en.yaml`) in an ordered list of directories.
+ * (`lang/en_US.json`, `lang/en.json`) in an ordered list of directories.
  * Ahead of them, the site's own catalogs in `user/lang` win (D-451),
  * arranged by language: `user/lang/fr/blush.json`, `user/lang/fr/app.json`,
  * and `user/lang/fr/extensions/acme/hello.json`. A lookup can take a list

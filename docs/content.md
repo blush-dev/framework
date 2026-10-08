@@ -260,19 +260,17 @@ redirect_from:
 ```
 
 For redirects that aren't tied to one entry, create
-`user/data/redirects.yaml` (or `.json`):
+`user/data/redirects.json`. Each key is an old path and its value the
+new one (a permanent, 301 redirect). Placeholders such as `{name}` carry
+parts of the path across, and a value with a `status` makes a temporary
+redirect:
 
-```yaml
-# old path: new path (301, permanent)
-/old-about: /about
-
-# Placeholders carry parts of the path across.
-/news/{name}: /blog/{name}
-
-# A temporary redirect.
-/sale:
-  to: /shop
-  status: 302
+```json
+{
+    "/old-about": "/about",
+    "/news/{name}": "/blog/{name}",
+    "/sale": {"to": "/shop", "status": 302}
+}
 ```
 
 Redirects apply only when nothing else answers the URL, so they never hide

@@ -612,7 +612,7 @@ side. The folder must match the manifest's `name`. One that doesn't is
 listed as broken, saying where it belongs.
 
 What kind an extension is comes from its manifest file, `plugin.json`,
-`theme.json`, or `icons.json` (or `.yaml`), or from the `type` in its
+`theme.json`, or `icons.json`, or from the `type` in its
 `composer.json`: `blush-plugin`, `blush-theme`, or `blush-icons`, as
 Composer has it. Either is enough, and a folder may have both, as long
 as they name the same kind. A folder holds one kind, so one that names
@@ -748,7 +748,7 @@ Themes work as they always have: one is active, set in
 ## Plugins
 
 **A local plugin** lives in `extensions/{vendor}/{name}/`, with a
-`plugin.json` (or `plugin.yaml`). `bin/blush plugin:new acme/hello`
+`plugin.json`. `bin/blush plugin:new acme/hello`
 starts one for you in `extensions/acme/hello/`: the manifest, an
 empty provider in `src/HelloServiceProvider.php` to fill in, and a
 `lang/en.json` for its text, with its
@@ -881,9 +881,6 @@ schema Blush ships (the path is relative to `plugin.json`):
 	"name": "acme/hello"
 }
 ```
-
-In `plugin.yaml`, use a first-line comment instead:
-`# yaml-language-server: $schema=../../../vendor/blush-dev/framework/resources/schemas/plugin.schema.json`.
 
 **A Composer plugin** is a package of type `blush-plugin`. Its name is
 the package's, and the rest of the manifest goes in its `composer.json`
@@ -1438,8 +1435,7 @@ when its readers change.
 ## Icon packs
 
 An icon pack is a set of SVG icons in a namespace of its own, with no
-code. Put it in `extensions/{vendor}/{name}/`, with an `icons.json` (or
-`icons.yaml`):
+code. Put it in `extensions/{vendor}/{name}/`, with an `icons.json`:
 
 ```json
 {

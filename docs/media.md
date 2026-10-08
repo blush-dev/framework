@@ -49,15 +49,20 @@ at the kinds of file it's for: `media:image`, `media:video`,
 `media:audio`, `media:document` (PDFs, office files, plain text), or
 `media:file` (anything else):
 
-```yaml
-# user/data/fields/photo-rights.yaml
-label: Photo Rights
-targets: [media:image]
-fields:
-  photographer: {}
-  license:
-    type: enum
-    options: [cc-by, all-rights-reserved]
+`user/data/fields/photo-rights.json`:
+
+```json
+{
+    "label": "Photo Rights",
+    "targets": ["media:image"],
+    "fields": {
+        "photographer": {},
+        "license": {
+            "type": "enum",
+            "options": ["cc-by", "all-rights-reserved"]
+        }
+    }
+}
 ```
 
 List all four kinds for fields every file should have. A set's fields
@@ -66,11 +71,9 @@ can't reuse a built-in field's name. **Config → Fields** in the admin
 creates and edits sets ([Fields](admin.md#fields)).
 
 A metadata file can point your editor at the built-in fields'
-schema, with a `"$schema"` key in JSON:
+schema, with a `"$schema"` key:
 `"$schema": "../../../vendor/blush-dev/framework/resources/schemas/media.schema.json"`
-(with as many `../` as it's deep), or in YAML, a first-line comment:
-`# yaml-language-server: $schema=../../../vendor/blush-dev/framework/resources/schemas/media.schema.json`.
-The admin keeps the key when it saves the file.
+(with as many `../` as it's deep). The admin keeps the key when it saves the file.
 
 ## What a file says about itself
 
@@ -157,10 +160,13 @@ warns about artwork that names an image that's no longer in the library.
 Every media file has an id, a UUID kept last in its details file, as
 entries have (see [Ids](content.md#ids)):
 
-```yaml
-# user/data/media/2026/10/sunset.jpg.yml
-alt: The sun going down over the lake
-id: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e74
+`user/data/media/2026/10/sunset.jpg.json`:
+
+```json
+{
+    "alt": "The sun going down over the lake",
+    "id": "0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e74"
+}
 ```
 
 Uploading a file gives it one. Blush writes the id, so leave it alone,
@@ -194,13 +200,17 @@ it keep working. Deleting an image deletes its sizes too.
 An image's details list its sizes, each file with its width and
 height:
 
-```yaml
-# user/data/media/2019/photo.jpg.yml
-alt: The lake at dawn
-sizes:
-  2019/photo-150x100.jpg: { width: 150, height: 100 }
-  2019/photo-300x200.jpg: { width: 300, height: 200 }
-id: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e74
+`user/data/media/2019/photo.jpg.json`:
+
+```json
+{
+    "alt": "The lake at dawn",
+    "sizes": {
+        "2019/photo-150x100.jpg": { "width": 150, "height": 100 },
+        "2019/photo-300x200.jpg": { "width": 300, "height": 200 }
+    },
+    "id": "0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e74"
+}
 ```
 
 A file listed there is a size, whatever it's named. Until an image's
@@ -257,16 +267,14 @@ the command line always read everything in one go.
 `bin/blush content:lint` (and **Site Health** in the admin) checks
 every file in `user/data/media/` along with your content:
 
-- **Errors:** a file that can't be read, such as YAML with a typo, or a
+- **Errors:** a file that can't be read, such as JSON with a typo, or a
   value that doesn't fit its field. The library treats such a file as
   empty until it's fixed. A media file with no id, or one that isn't a
   UUID, and an id two files share (see [Ids and image
   sizes](#ids-and-image-sizes)).
 - **Warnings:** details for a file that's gone, such as after renaming
   or deleting the file by hand (move the details file with it, or
-  delete it), or for a file of a type the site doesn't allow; and a
-  file hidden by another in a different format (`sunset.jpg.json`
-  is read, so `sunset.jpg.yml` beside it isn't); details for an
+  delete it), or for a file of a type the site doesn't allow; details for an
   image size, which the original's details stand in for; and `sizes`
   listing a file that's gone. (`sizes` that isn't a list of files with
   their width and height is an error.)

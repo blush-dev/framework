@@ -14,9 +14,7 @@ declare(strict_types=1);
 namespace Blush\Media;
 
 use JsonException;
-use SplFileInfo;
 use Throwable;
-use Blush\Content\Writer\YamlMap;
 use Blush\Core\Paths;
 use Blush\Data\DataException;
 use Blush\Data\DataLoader;
@@ -29,14 +27,14 @@ use Blush\Support\Filesystem;
  * `user/data/media/` mirrors the media paths, one data file per media
  * file, and only for one that has something to say.
  * `user/media/2024/sunset.jpg` has `user/data/media/2024/sunset.jpg.json`
- * (or `.yaml` or `.yml`, read in the data loader's order).
+ * (D-631).
  *
- * Saving changes only the keys asked for (D-287), leaving any others,
- * and the rest of a YAML file, as they were written; a field is written
+ * Saving changes only the keys asked for (D-287), leaving any others as
+ * they were written; a field is written
  * under whichever of its name and aliases the file already uses, and a
  * new key goes before the `id`, which stays last (D-487). A file
- * left with nothing in it is removed. A new file is JSON (D-490). A metadata file that
- * can't be read counts as none, so one bad file can't break the library;
+ * left with nothing in it is removed. A metadata file that can't be
+ * read counts as none, so one bad file can't break the library;
  * `content:lint` is the place to hear about it.
  */
 final readonly class MediaMetadataStore
@@ -75,39 +73,26 @@ final readonly class MediaMetadataStore
 
 	/**
 	 * Every metadata file, found in one walk of `user/data/media`, by the
-	 * media key it describes (`2024/sunset.jpg`): the path the data loader reads,
-	 * its modified time, and the files in other formats it hides (a
-	 * `.json` beside a `.yml`), for the media index and `content:lint`.
+	 * media key it describes (`2024/sunset.jpg`): its path and modified
+	 * time, for the media index and `content:lint`.
 	 *
-	 * @return array<string, array{path: string, modified: int, shadowed: list<string>}>
+	 * @return array<string, array{path: string, modified: int}>
 	 */
 	public function files(): array
 	{
-		$order = array_flip($this->data->extensions());
 		$found = [];
 
 		foreach ($this->filesystem->files($this->paths->data . '/' . self::FOLDER) as $relative => $file) {
-			$extension = strtolower($file->getExtension());
+			if (DataLoader::isDataFile($file->getFilename())) {
+				$key = substr(str_replace('\\', '/', (string) $relative), 0, -strlen($file->getExtension()) - 1);
 
-			if (isset($order[$extension])) {
-				$key = substr(str_replace('\\', '/', (string) $relative), 0, -strlen($extension) - 1);
-
-				$found[$key][$order[$extension]] = $file;
+				$found[$key] = ['path' => $file->getPathname(), 'modified' => (int) $file->getMTime()];
 			}
 		}
 
 		ksort($found, SORT_STRING);
 
-		return array_map(static function (array $files): array {
-			ksort($files);
-			$winner = array_shift($files);
-
-			return [
-				'path'     => $winner->getPathname(),
-				'modified' => (int) $winner->getMTime(),
-				'shadowed' => array_map(static fn (SplFileInfo $file): string => $file->getPathname(), array_values($files))
-			];
-		}, $found);
+		return $found;
 	}
 
 	/**
@@ -202,9 +187,7 @@ final readonly class MediaMetadataStore
 			$changes[] = [$field === null ? [(string) $key] : [$field->name, ...$field->aliases], $value === '' || $value === [] ? null : $value];
 		}
 
-		$next = strtolower(pathinfo($path, PATHINFO_EXTENSION)) === 'json'
-			? self::json($text, $changes)
-			: self::yaml($text, $changes);
+		$next = self::json($text, $changes);
 
 		if (trim($next) === '') {
 			if (is_file($path) && ! @unlink($path)) {
@@ -229,7 +212,7 @@ final readonly class MediaMetadataStore
 
 	/**
 	 * Removes a media file's metadata (D-407), by the file's path under
-	 * `user/media`, in every format it's kept in.
+	 * `user/media`.
 	 *
 	 * @throws MediaException When a file can't be removed.
 	 */
@@ -238,10 +221,10 @@ final readonly class MediaMetadataStore
 		$name = self::FOLDER . '/' . trim($relative, '/');
 
 		try {
-			while (($path = $this->data->find($this->paths->data, $name)) !== null) {
-				if (! @unlink($path)) {
-					throw new MediaException(sprintf('Unable to remove "%s".', $path));
-				}
+			$path = $this->data->find($this->paths->data, $name);
+
+			if ($path !== null && ! @unlink($path)) {
+				throw new MediaException(sprintf('Unable to remove "%s".', $path));
 			}
 		} catch (DataException $error) {
 			throw new MediaException($error->getMessage(), previous: $error);
@@ -249,8 +232,7 @@ final readonly class MediaMetadataStore
 	}
 
 	/**
-	 * The data file name for a media file (without the data format's
-	 * extension), or `null` for a file outside the media folder.
+	 * The data file name for a media file (without `.json`), or `null` for a file outside the media folder.
 	 */
 	private function name(MediaFile $file): ?string
 	{
@@ -259,29 +241,6 @@ final readonly class MediaMetadataStore
 		$root = $this->filesystem->normalize($this->paths->media) . '/';
 
 		return str_starts_with($path, $root) ? self::FOLDER . '/' . substr($path, strlen($root)) : null;
-	}
-
-	/**
-	 * YAML with the changes made: each a field's keys and its value, or
-	 * `null` to remove it.
-	 *
-	 * @param list<array{list<string>, mixed}> $changes
-	 */
-	private static function yaml(string $text, array $changes): string
-	{
-		$map = YamlMap::fromText($text);
-
-		foreach ($changes as [$keys, $value]) {
-			// An image's sizes go one to a line (D-488).
-			$map = match (true) {
-				$value === null                  => $map->without($keys),
-				$keys === [MediaMetadata::ID]    => $map->without($keys)->with($keys, $value),
-				$keys === [MediaMetadata::SIZES] => $map->with($keys, $value, 2, MediaMetadata::ID),
-				default                          => $map->with($keys, $value, before: MediaMetadata::ID)
-			};
-		}
-
-		return $map->text();
 	}
 
 	/**

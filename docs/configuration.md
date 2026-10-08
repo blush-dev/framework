@@ -409,7 +409,7 @@ All of these can also be changed in the admin, on **Settings → AI**.
 | `routes` | `[]` | Your own routes (see [Extending](extending.md#your-own-pages)) |
 | `controllers` | `[]` | Classes whose attributes declare routes |
 
-Most redirects are easier in `user/data/redirects.yaml`; see
+Most redirects are easier in `user/data/redirects.json`; see
 [Writing content](content.md#redirects).
 
 ### Caching

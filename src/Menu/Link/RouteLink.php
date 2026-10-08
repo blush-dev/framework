@@ -20,9 +20,8 @@ use Blush\Routing\UrlGenerator;
 /**
  * Links to a named route, with any `params` it takes:
  *
- * ```yaml
- * - route: feed
- *   label: Feed
+ * ```json
+ * {"route": "feed", "label": "Feed"}
  * ```
  *
  * Routes bring no label, so the item names itself.

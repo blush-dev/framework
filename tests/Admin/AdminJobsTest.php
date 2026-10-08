@@ -184,7 +184,7 @@ final class AdminJobsTest extends TestCase
 		$this->assertSame(205, $first['checked'] ?? null);
 
 		$this->writeTemporaryFile('user/content/broken.md', "---\ntitle: [unclosed\n---\n");
-		$this->writeTemporaryFile('user/data/media/2026/lake.png.yml', "alt: [unclosed\n");
+		$this->writeTemporaryFile('user/data/media/2026/lake.png.json', '{"alt": [');
 
 		$site = self::json($this->send('POST', '/health/site', headers: ['X-CSRF-Token' => $token]));
 		$id   = $site['job'] ?? null;
@@ -215,7 +215,7 @@ final class AdminJobsTest extends TestCase
 
 		$this->assertSame(206, $health['checked'] ?? null);
 		$this->assertContains('broken.md', array_column(is_array($health['files'] ?? null) ? $health['files'] : [], 'path'), 'What a chunk found is in the report.');
-		$this->assertContains('user/data/media/2026/lake.png.yml', array_column(is_array($health['files'] ?? null) ? $health['files'] : [], 'path'), 'And the media details.');
+		$this->assertContains('user/data/media/2026/lake.png.json', array_column(is_array($health['files'] ?? null) ? $health['files'] : [], 'path'), 'And the media details.');
 	}
 
 	public function testAFixStopsWhenItsAccountCanNoLongerMakeIt(): void

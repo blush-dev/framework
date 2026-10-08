@@ -47,7 +47,7 @@ use Blush\Translation\CatalogCheck;
  *   can't be read.
  * - **Warnings:** another theme's chain with a requirement that isn't
  *   met, so it can't be activated; a `version` Composer can't read
- *   (D-430, D-431); an abandoned theme (D-433); shadowed manifests (JSON wins); site setting values
+ *   (D-430, D-431); an abandoned theme (D-433); site setting values
  *   that don't fit; other broken themes; a directive or component with a
  *   class but no template to render; a template in `directives/` for no
  *   registered directive, or in `components/` not named for a component;
@@ -152,17 +152,13 @@ final readonly class ThemeChecker
 	}
 
 	/**
-	 * Checks a theme's manifest files and provider.
+	 * Checks what a theme's manifest declares.
 	 *
 	 * @return list<Violation>
 	 */
 	private function manifest(ThemeManifest $theme): array
 	{
 		$problems = [];
-
-		foreach (array_slice(ThemeDiscovery::manifestFiles($theme->path), 1) as $shadowed) {
-			$problems[] = new Violation('manifest', sprintf('%s is ignored; the "%s" theme\'s %s wins (D-032).', basename($shadowed), $theme->name, basename(ThemeDiscovery::manifestFiles($theme->path)[0])), Severity::Warning);
-		}
 
 		if ($theme->provider !== null && ! is_subclass_of($theme->provider, ServiceProvider::class)) {
 			$problems[] = new Violation('provider', sprintf('The "%s" theme\'s provider %s isn\'t a service provider class (check its "autoload").', $theme->name, $theme->provider));

@@ -21,7 +21,7 @@ use Blush\Data\InvalidData;
 /**
  * Loads the field sets from every source (D-337), each replacing a set of
  * the same name before it: extensions (`FieldSetSource`), then
- * `config/fields.php`, then `user/data/fields/*.{json,yaml,yml}` (a set
+ * `config/fields.php`, then `user/data/fields/*.json` (a set
  * named after its file) unless `FieldConfig::$dataSets` is off. Two
  * extensions can't define the same set.
  */

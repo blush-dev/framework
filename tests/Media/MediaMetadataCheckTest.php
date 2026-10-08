@@ -56,16 +56,15 @@ final class MediaMetadataCheckTest extends TestCase
 		$this->writeTemporaryFile('user/content/trip/index.md', "---\ntitle: Trip\nid: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e75\n---\n");
 		$this->writeTemporaryFile('user/media/trip/shell.png', $png);
 
-		$this->writeTemporaryFile('user/data/media/2026/lake.png.yml', "alt: A lake at dawn\ncaption: Mist on the water\nid: 0199b6e2-7f3a-7c41-9d2e-000000000001\n");
+		$this->writeTemporaryFile('user/data/media/2026/lake.png.json', '{"alt": "A lake at dawn", "caption": "Mist on the water", "id": "0199b6e2-7f3a-7c41-9d2e-000000000001"}');
 		$this->writeTemporaryFile('user/data/media/2026/sunset.png.json', '{"alt": "The sun going down", "id": "0199b6e2-7f3a-7c41-9d2e-000000000002"}');
-		$this->writeTemporaryFile('user/data/media/2026/sunset.png.yml', "alt: An older description\n");
-		$this->writeTemporaryFile('user/data/media/2026/broken.png.yml', "alt: [unclosed\n");
-		$this->writeTemporaryFile('user/data/media/2026/listed.png.yml', "- A lake\n- At dawn\n");
-		$this->writeTemporaryFile('user/data/media/2026/odd.png.yml', "alt:\n  nested: value\nmood: calm\nid: 0199b6e2-7f3a-7c41-9d2e-000000000003\n");
-		$this->writeTemporaryFile('user/data/media/2019/gone.png.yml', "alt: Deleted\n");
-		$this->writeTemporaryFile('user/data/media/fake.png.yml', "alt: Not an image\n");
-		$this->writeTemporaryFile('user/data/media/_content/trip/beach.png.yml', "credit: Jane Doe\n");
-		$this->writeTemporaryFile('user/data/media/trip/shell.png.yml', "alt: A shell\nid: 0199b6e2-7f3a-7c41-9d2e-000000000004\n");
+		$this->writeTemporaryFile('user/data/media/2026/broken.png.json', '{"alt": [');
+		$this->writeTemporaryFile('user/data/media/2026/listed.png.json', '["A lake", "At dawn"]');
+		$this->writeTemporaryFile('user/data/media/2026/odd.png.json', '{"alt": {"nested": "value"}, "mood": "calm", "id": "0199b6e2-7f3a-7c41-9d2e-000000000003"}');
+		$this->writeTemporaryFile('user/data/media/2019/gone.png.json', '{"alt": "Deleted"}');
+		$this->writeTemporaryFile('user/data/media/fake.png.json', '{"alt": "Not an image"}');
+		$this->writeTemporaryFile('user/data/media/_content/trip/beach.png.json', '{"credit": "Jane Doe"}');
+		$this->writeTemporaryFile('user/data/media/trip/shell.png.json', '{"alt": "A shell", "id": "0199b6e2-7f3a-7c41-9d2e-000000000004"}');
 
 		$app = $this->scratchApplication();
 		$app->boot();
@@ -96,10 +95,7 @@ final class MediaMetadataCheckTest extends TestCase
 		$files = $this->site()->container()->make(MediaMetadataStore::class)->files();
 
 		$this->assertSame(['2019/gone.png', '2026/broken.png', '2026/lake.png', '2026/listed.png', '2026/odd.png', '2026/sunset.png', '_content/trip/beach.png', 'fake.png', 'trip/shell.png'], array_keys($files));
-		$this->assertStringEndsWith('user/data/media/2026/sunset.png.json', $files['2026/sunset.png']['path'], 'JSON wins, as the data loader reads it.');
-		$this->assertCount(1, $files['2026/sunset.png']['shadowed']);
-		$this->assertStringEndsWith('user/data/media/2026/sunset.png.yml', $files['2026/sunset.png']['shadowed'][0]);
-		$this->assertSame([], $files['2026/lake.png']['shadowed']);
+		$this->assertStringEndsWith('user/data/media/2026/sunset.png.json', $files['2026/sunset.png']['path']);
 	}
 
 	public function testReportsOrphanedUnreadableAndInvalidMetadata(): void
@@ -107,25 +103,23 @@ final class MediaMetadataCheckTest extends TestCase
 		[$checked, $violations] = $this->site()->container()->make(MediaMetadataCheck::class)->check();
 		$messages               = self::messages($violations);
 
-		$this->assertSame(10, $checked, 'Every file, hidden ones too.');
+		$this->assertSame(9, $checked);
 		$this->assertSame([
-			'user/data/media/2019/gone.png.yml',
-			'user/data/media/2026/broken.png.yml',
-			'user/data/media/2026/listed.png.yml',
-			'user/data/media/2026/odd.png.yml',
-			'user/data/media/2026/sunset.png.yml',
-			'user/data/media/_content/trip/beach.png.yml',
-			'user/data/media/fake.png.yml'
+			'user/data/media/2019/gone.png.json',
+			'user/data/media/2026/broken.png.json',
+			'user/data/media/2026/listed.png.json',
+			'user/data/media/2026/odd.png.json',
+			'user/data/media/_content/trip/beach.png.json',
+			'user/data/media/fake.png.json'
 		], array_keys($messages), 'Well-formed files that describe a file there pass.');
 
-		$this->assertSame(['warning file: describes user/media/2019/gone.png, which isn\'t there; move this file with its media file, or delete it.'], $messages['user/data/media/2019/gone.png.yml']);
-		$this->assertSame(['warning file: describes user/media/_content/trip/beach.png, which isn\'t there; move this file with its media file, or delete it.'], $messages['user/data/media/_content/trip/beach.png.yml'], 'Details for a file beside an entry, which isn\'t media (D-294).');
-		$this->assertSame(['warning file: describes user/media/fake.png, which isn\'t a type of media the site allows.'], $messages['user/data/media/fake.png.yml']);
-		$this->assertSame(['warning file: is hidden by sunset.png.json, which is read instead; merge them into one file.'], $messages['user/data/media/2026/sunset.png.yml']);
-		$this->assertStringStartsWith('error file: can\'t be read, so the file has no details: Invalid YAML', $messages['user/data/media/2026/broken.png.yml'][0]);
-		$this->assertSame(['error file: isn\'t a map of fields, so the file has no details.'], $messages['user/data/media/2026/listed.png.yml']);
+		$this->assertSame(['warning file: describes user/media/2019/gone.png, which isn\'t there; move this file with its media file, or delete it.'], $messages['user/data/media/2019/gone.png.json']);
+		$this->assertSame(['warning file: describes user/media/_content/trip/beach.png, which isn\'t there; move this file with its media file, or delete it.'], $messages['user/data/media/_content/trip/beach.png.json'], 'Details for a file beside an entry, which isn\'t media (D-294).');
+		$this->assertSame(['warning file: describes user/media/fake.png, which isn\'t a type of media the site allows.'], $messages['user/data/media/fake.png.json']);
+		$this->assertStringStartsWith('error file: can\'t be read, so the file has no details: Invalid JSON', $messages['user/data/media/2026/broken.png.json'][0]);
+		$this->assertSame(['error file: isn\'t a map of fields, so the file has no details.'], $messages['user/data/media/2026/listed.png.json']);
 
-		$odd = $messages['user/data/media/2026/odd.png.yml'];
+		$odd = $messages['user/data/media/2026/odd.png.json'];
 
 		$this->assertCount(2, $odd);
 		$this->assertStringStartsWith('error alt: ', $odd[0], 'A value that doesn\'t fit its field.');
@@ -139,16 +133,16 @@ final class MediaMetadataCheckTest extends TestCase
 
 		$report = $app->container()->make(Linter::class)->lint();
 
-		$this->assertSame(10, $report->metadata);
+		$this->assertSame(9, $report->metadata);
 		$this->assertTrue($report->hasErrors());
 		$this->assertSame(3, $report->count(Severity::Error));
-		$this->assertSame(4, $report->count(Severity::Warning));
-		$this->assertArrayHasKey('user/data/media/2019/gone.png.yml', $report->violations(Severity::Warning));
+		$this->assertSame(3, $report->count(Severity::Warning));
+		$this->assertArrayHasKey('user/data/media/2019/gone.png.json', $report->violations(Severity::Warning));
 
 		$result = new CommandTester($app->container()->make(Console::class))->run('content:lint');
 
 		$this->assertFalse($result->isSuccessful());
-		$this->assertStringContainsString('user/data/media/2019/gone.png.yml', $result->output);
-		$this->assertStringContainsString('and 10 media metadata files: 3 errors, 4 warnings.', $result->output . $result->errors);
+		$this->assertStringContainsString('user/data/media/2019/gone.png.json', $result->output);
+		$this->assertStringContainsString('and 9 media metadata files: 3 errors, 3 warnings.', $result->output . $result->errors);
 	}
 }

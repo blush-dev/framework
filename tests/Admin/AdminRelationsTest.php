@@ -48,8 +48,8 @@ final class AdminRelationsTest extends TestCase
 	 */
 	private function site(array $roles = ['owner']): void
 	{
-		$this->writeTemporaryFile('user/data/types/recipe.yaml', "folder: recipes\n");
-		$this->writeTemporaryFile('user/data/types/cuisine.yaml', "# Kinds of food.\nfolder: cuisines\norder: position\n");
+		$this->writeTemporaryFile('user/data/types/recipe.json', '{"folder": "recipes"}');
+		$this->writeTemporaryFile('user/data/types/cuisine.json', '{"folder": "cuisines", "order": "position"}');
 		$this->boot(roles: $roles);
 		$this->login();
 	}
@@ -379,7 +379,7 @@ final class AdminRelationsTest extends TestCase
 	 */
 	private function pairedSite(): void
 	{
-		$this->writeTemporaryFile('user/data/types/drink.yaml', "folder: drinks\n");
+		$this->writeTemporaryFile('user/data/types/drink.json', '{"folder": "drinks"}');
 		$this->writeTemporaryFile('user/data/relations/pairs.json', '{"kind": "reference", "from": ["recipe"], "to": ["recipe"]}');
 		$this->writeTemporaryFile('user/data/relations/cuisine.json', '{"kind": "classify", "from": ["recipe", "drink"], "to": ["cuisine"]}');
 		$this->writeTemporaryFile('user/content/cuisines/thai.md', "---\ntitle: Thai\nid: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e70\n---\n");
@@ -533,7 +533,7 @@ final class AdminRelationsTest extends TestCase
 
 	public function testMigratesDataTaxonomiesKeepingWhatTheyHad(): void
 	{
-		$this->writeTemporaryFile('user/data/types/genre.yaml', "# Kinds of writing.\nkind: taxonomy\nfolder: genres\ntypes: [page]\nhierarchical: true\ntermListing:\n  perPage: 5\n");
+		$this->writeTemporaryFile('user/data/types/genre.json', '{"kind": "taxonomy", "folder": "genres", "types": ["page"], "hierarchical": true, "termListing": {"perPage": 5}}');
 		$this->site();
 
 		$types = $this->app->container()->make(ContentTypes::class);
@@ -551,18 +551,18 @@ final class AdminRelationsTest extends TestCase
 
 		$migrated = self::json($this->write('POST', '/health/taxonomies'));
 
-		$this->assertSame(['genre' => ['user/data/types/genre.yaml', 'user/data/relations/genre.json']], $migrated['migrated'] ?? null);
-		$this->assertSame("# Kinds of writing.\nfolder: genres\nhierarchical: true\norder: position\nllms: false\n", $this->file('user/data/types/genre.yaml'), 'Its other keys and comments stay.');
+		$this->assertSame(['genre' => ['user/data/types/genre.json', 'user/data/relations/genre.json']], $migrated['migrated'] ?? null);
+		$this->assertSame(['folder' => 'genres', 'hierarchical' => true, 'order' => 'position', 'llms' => false], json_decode($this->file('user/data/types/genre.json'), true), 'Its other keys stay.');
 		$this->assertSame(['kind' => 'classify', 'from' => ['page'], 'to' => ['genre'], 'create' => true, 'inverse' => ['listing' => ['perPage' => 5]]], json_decode($this->file('user/data/relations/genre.json'), true));
 		$this->assertSame([], $this->app->container()->make(TaxonomyMigration::class)->report());
 	}
 
 	public function testMigratingNeedsTheSettingsCapabilityToo(): void
 	{
-		$this->writeTemporaryFile('user/data/types/genre.yaml', "kind: taxonomy\n");
+		$this->writeTemporaryFile('user/data/types/genre.json', '{"kind": "taxonomy"}');
 		$this->site(['editor']);
 
 		$this->assertSame(403, $this->write('POST', '/health/taxonomies')->getStatusCode());
-		$this->assertStringContainsString('kind: taxonomy', $this->file('user/data/types/genre.yaml'));
+		$this->assertSame(['kind' => 'taxonomy'], json_decode($this->file('user/data/types/genre.json'), true));
 	}
 }

@@ -15,13 +15,8 @@ namespace Blush\Tests\Translation;
 
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
-use Blush\Container\ServiceContainer;
 use Blush\Data\DataLoader;
-use Blush\Data\DataParserRegistrar;
-use Blush\Data\DataParserRegistry;
 use Blush\Data\InvalidData;
-use Blush\Data\YamlParser;
-use Blush\Data\SymfonyYamlParser;
 use Blush\Tests\TemporaryDirectory;
 use Blush\Translation\Translator;
 
@@ -32,13 +27,7 @@ final class TranslatorTest extends TestCase
 
 	private function loader(): DataLoader
 	{
-		$registry = new DataParserRegistry();
-		new DataParserRegistrar($registry)->register();
-
-		$container = new ServiceContainer();
-		$container->singleton(YamlParser::class, SymfonyYamlParser::class);
-
-		return new DataLoader($registry, $container);
+		return new DataLoader();
 	}
 
 	private function translator(string $locale = 'en_US'): Translator
@@ -51,7 +40,7 @@ final class TranslatorTest extends TestCase
 	public function testChildCatalogsWinKeyByKey(): void
 	{
 		$this->writeTemporaryFile('parent/en.json', '{"hello": "Hello", "bye": "Goodbye", "nav": {"next": "Next"}}');
-		$this->writeTemporaryFile('child/en.yaml', "hello: Howdy\n");
+		$this->writeTemporaryFile('child/en.json', '{"hello": "Howdy"}');
 
 		$translator = $this->translator();
 
@@ -117,7 +106,7 @@ final class TranslatorTest extends TestCase
 	public function testMetadataKeysArentMessages(): void
 	{
 		$this->writeTemporaryFile('parent/en.json', '{"@@locale": "en", "@@domain": "acme/hello", "hello": "Hello"}');
-		$this->writeTemporaryFile('child/en.yaml', "'@@locale': en\nhello: Howdy\n");
+		$this->writeTemporaryFile('child/en.json', '{"@@locale": "en", "hello": "Howdy"}');
 
 		$translator = $this->translator();
 

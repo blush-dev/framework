@@ -11,11 +11,13 @@
 
 declare(strict_types=1);
 
-namespace Blush\Data;
+namespace Blush\Content\Parser;
+
+use Blush\Data\InvalidData;
 
 /**
- * Parses YAML into plain PHP data: arrays, strings, ints, floats, bools,
- * and nulls. It never builds objects. Timestamps come back as ISO 8601
+ * Parses front matter, the only YAML Blush reads (D-631), into plain PHP
+ * data: arrays, strings, ints, floats, bools, and nulls. It never builds objects. Timestamps come back as ISO 8601
  * strings; one written without an offset comes back without one, so the
  * caller can read it in the site timezone (D-080).
  *

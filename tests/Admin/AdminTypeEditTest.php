@@ -192,7 +192,7 @@ final class AdminTypeEditTest extends TestCase
 
 	public function testEditsOnlyWhatChangedAndKeepsTheRest(): void
 	{
-		$this->writeTemporaryFile('user/data/types/recipe.yaml', "# Recipes, by the book.\nfolder: recipes   # where they live\nrouting:\n  single: 'r/{name}'\nlisting: { orderBy: title }\n");
+		$this->writeTemporaryFile('user/data/types/recipe.json', '{"folder": "recipes", "routing": {"single": "r/{name}"}, "listing": {"orderBy": "title"}}');
 		$this->site();
 
 		$answer = $this->write('PATCH', '/types/recipe', ['set' => ['description' => 'Food.', 'prefix' => 'cook', 'hierarchical' => null]]);
@@ -200,18 +200,18 @@ final class AdminTypeEditTest extends TestCase
 		$this->assertSame(200, $answer->getStatusCode(), (string) $answer->getBody());
 		$this->assertSame('/cook', self::json($answer)['prefix'] ?? null);
 		$this->assertSame(
-			"# Recipes, by the book.\nfolder: recipes   # where they live\nlisting: { orderBy: title }\ndescription: Food.\nurls:\n  prefix: cook\n  paths: { single: 'r/{name}' }\n",
-			$this->file('user/data/types/recipe.yaml'),
-			'routing becomes urls; comments and other keys stay.'
+			['folder' => 'recipes', 'listing' => ['orderBy' => 'title'], 'description' => 'Food.', 'urls' => ['prefix' => 'cook', 'paths' => ['single' => 'r/{name}']]],
+			json_decode($this->file('user/data/types/recipe.json'), true),
+			'routing becomes urls; other keys stay.'
 		);
 
 		$this->assertSame(200, $this->write('PATCH', '/types/recipe', ['set' => ['prefix' => 'recipes']])->getStatusCode());
-		$this->assertStringNotContainsString('prefix', $this->file('user/data/types/recipe.yaml'), 'A prefix the folder gives is left out.');
+		$this->assertStringNotContainsString('prefix', $this->file('user/data/types/recipe.json'), 'A prefix the folder gives is left out.');
 	}
 
 	public function testRewritesCompiledTypes(): void
 	{
-		$this->writeTemporaryFile('user/data/types/recipe.yaml', "folder: recipes\n");
+		$this->writeTemporaryFile('user/data/types/recipe.json', '{"folder": "recipes"}');
 		$this->boot(roles: ['administrator'], environment: ['APP_ENV' => 'production']);
 		$this->login();
 		$cache = $this->app->container()->make(ContentTypeCache::class);
@@ -242,13 +242,13 @@ final class AdminTypeEditTest extends TestCase
 
 	public function testRefusesWhatDoesNotFitAndWritesNothing(): void
 	{
-		$this->writeTemporaryFile('user/data/types/recipe.yaml', "folder: recipes\n");
+		$this->writeTemporaryFile('user/data/types/recipe.json', '{"folder": "recipes"}');
 		$this->site();
 
 		$badField = $this->write('PATCH', '/types/recipe', ['set' => ['fields' => [['name' => 'x', 'type' => 'colour']]]]);
 		$this->assertSame(422, $badField->getStatusCode());
 		$this->assertStringContainsString('colour', self::error($badField));
-		$this->assertSame("folder: recipes\n", $this->file('user/data/types/recipe.yaml'));
+		$this->assertSame(['folder' => 'recipes'], json_decode($this->file('user/data/types/recipe.json'), true));
 
 		$clash = $this->write('POST', '/types', ['name' => 'dish', 'folder' => 'recipes']);
 		$this->assertSame(422, $clash->getStatusCode(), 'Two types can\'t share a folder.');
@@ -262,8 +262,8 @@ final class AdminTypeEditTest extends TestCase
 
 	public function testDeletesATypeButNotOneOthersNeed(): void
 	{
-		$this->writeTemporaryFile('user/data/types/recipe.yaml', "folder: recipes\n");
-		$this->writeTemporaryFile('user/data/types/cuisine.yaml', "folder: cuisines\norder: position\n");
+		$this->writeTemporaryFile('user/data/types/recipe.json', '{"folder": "recipes"}');
+		$this->writeTemporaryFile('user/data/types/cuisine.json', '{"folder": "cuisines", "order": "position"}');
 		$this->writeTemporaryFile('user/data/relations/cuisine.json', '{"kind": "classify", "from": ["recipe"], "to": ["cuisine"]}');
 		$this->writeTemporaryFile('user/content/recipes/soup.md', "---\ntitle: Soup\n---\n");
 		$this->site();
@@ -271,12 +271,12 @@ final class AdminTypeEditTest extends TestCase
 		$needed = $this->write('DELETE', '/types/recipe');
 		$this->assertSame(422, $needed->getStatusCode());
 		$this->assertSame('The "cuisine" relation names recipe; remove it first.', self::error($needed));
-		$this->assertFileExists($this->temporaryDirectory() . '/user/data/types/recipe.yaml', 'It\'s put back.');
+		$this->assertFileExists($this->temporaryDirectory() . '/user/data/types/recipe.json', 'It\'s put back.');
 
 		$this->assertSame(200, $this->write('DELETE', '/relations/cuisine')->getStatusCode());
 		$this->assertSame(200, $this->write('DELETE', '/types/cuisine')->getStatusCode());
 		$this->assertSame(200, $this->write('DELETE', '/types/recipe')->getStatusCode());
-		$this->assertFileDoesNotExist($this->temporaryDirectory() . '/user/data/types/recipe.yaml');
+		$this->assertFileDoesNotExist($this->temporaryDirectory() . '/user/data/types/recipe.json');
 		$this->assertFileExists($this->temporaryDirectory() . '/user/content/recipes/soup.md', 'Entries stay.');
 	}
 
@@ -367,17 +367,17 @@ final class AdminTypeEditTest extends TestCase
 
 	public function testChangesAFolderPatternButNeverTheFolder(): void
 	{
-		$this->writeTemporaryFile('user/data/types/recipe.yaml', "folder: recipes\n");
+		$this->writeTemporaryFile('user/data/types/recipe.json', '{"folder": "recipes"}');
 		$this->codeConfig(['types' => ['movie' => ['folder' => 'movies/{year}']]]);
 		$this->site();
 
 		$answer = $this->write('PATCH', '/types/recipe', ['set' => ['folders' => '{initial}']]);
 		$this->assertSame(200, $answer->getStatusCode(), (string) $answer->getBody());
 		$this->assertSame('{initial}', self::json($answer)['folders'] ?? null);
-		$this->assertSame("folder: \"recipes/{initial}\"\n", $this->file('user/data/types/recipe.yaml'), 'Written after the folder (D-629).');
+		$this->assertSame(['folder' => 'recipes/{initial}'], json_decode($this->file('user/data/types/recipe.json'), true), 'Written after the folder (D-629).');
 
 		$this->assertSame(200, $this->write('PATCH', '/types/recipe', ['set' => ['folders' => null]])->getStatusCode());
-		$this->assertSame("folder: recipes\n", $this->file('user/data/types/recipe.yaml'), 'The folder stays without one.');
+		$this->assertSame(['folder' => 'recipes'], json_decode($this->file('user/data/types/recipe.json'), true), 'The folder stays without one.');
 
 		$this->assertSame(422, $this->write('PATCH', '/types/recipe', ['set' => ['folder' => 'dishes']])->getStatusCode(), 'The folder itself never changes here.');
 		$this->assertSame(422, $this->write('PATCH', '/types/recipe', ['set' => ['folders' => '{day}']])->getStatusCode());
@@ -424,7 +424,7 @@ final class AdminTypeEditTest extends TestCase
 
 	public function testMovesARelationsArchives(): void
 	{
-		$this->writeTemporaryFile('user/data/types/recipe.yaml', "folder: recipes\n");
+		$this->writeTemporaryFile('user/data/types/recipe.json', '{"folder": "recipes"}');
 		$this->writeTemporaryFile('user/data/relations/pairs_with.json', '{"kind": "reference", "from": ["recipe"], "to": ["recipe"], "inverse": {"archive": "pairs"}}');
 		$this->site();
 
@@ -441,13 +441,13 @@ final class AdminTypeEditTest extends TestCase
 		$saved = $this->write('PATCH', '/types/recipe', ['set' => ['paths' => ['pairs_with.single' => 'goes-with/{target}']]]);
 
 		$this->assertSame(200, $saved->getStatusCode(), (string) $saved->getBody());
-		$this->assertStringContainsString("pairs_with.single: 'goes-with/{target}'", $this->file('user/data/types/recipe.yaml'));
+		$this->assertSame(['folder' => 'recipes', 'urls' => ['paths' => ['pairs_with.single' => 'goes-with/{target}']]], json_decode($this->file('user/data/types/recipe.json'), true));
 	}
 
 	public function testChangesAndChecksRoutePaths(): void
 	{
-		$this->writeTemporaryFile('user/data/types/recipe.yaml', "folder: recipes\nfeed: true\nurls:\n  single: 'r/{name}'\n");
-		$this->writeTemporaryFile('user/data/types/cuisine.yaml', "kind: taxonomy\nfolder: cuisines\n");
+		$this->writeTemporaryFile('user/data/types/recipe.json', '{"folder": "recipes", "feed": true, "urls": {"single": "r/{name}"}}');
+		$this->writeTemporaryFile('user/data/types/cuisine.json', '{"kind": "taxonomy", "folder": "cuisines"}');
 		$this->writeTemporaryFile('user/data/relations/authors.json', '{"kind": "credit", "from": ["recipe"], "to": ["profile"]}');
 		$this->site();
 
@@ -471,14 +471,14 @@ final class AdminTypeEditTest extends TestCase
 
 		$this->assertSame(422, $this->write('PATCH', '/types/recipe', ['set' => ['paths' => ['nope' => 'x']]])->getStatusCode());
 		$this->assertSame(422, $this->write('PATCH', '/types/recipe', ['set' => ['paths' => ['collection.paged' => 'p']]])->getStatusCode(), 'A paged address needs {page}.');
-		$this->assertStringContainsString("single: 'r/{name}'", $this->file('user/data/types/recipe.yaml'), 'Nothing written.');
+		$this->assertSame(['folder' => 'recipes', 'feed' => true, 'urls' => ['single' => 'r/{name}']], json_decode($this->file('user/data/types/recipe.json'), true), 'Nothing written.');
 
 		$saved = $this->write('PATCH', '/types/recipe', ['set' => ['paths' => ['single' => '/{cuisine}/{year}/{name}/', 'collection.paged' => 'p/{page}']]]);
 		$this->assertSame(200, $saved->getStatusCode(), (string) $saved->getBody());
-		$this->assertSame("folder: recipes\nfeed: true\nurls:\n  paths: { single: '{cuisine}/{year}/{name}', collection.paged: 'p/{page}' }\n", $this->file('user/data/types/recipe.yaml'), 'The shortcut moves into paths (D-350).');
+		$this->assertSame(['folder' => 'recipes', 'feed' => true, 'urls' => ['paths' => ['single' => '{cuisine}/{year}/{name}', 'collection.paged' => 'p/{page}']]], json_decode($this->file('user/data/types/recipe.json'), true), 'The shortcut moves into paths (D-350).');
 
 		$this->assertSame(200, $this->write('PATCH', '/types/recipe', ['set' => ['paths' => ['single' => null, 'collection.paged' => '']]])->getStatusCode());
-		$this->assertSame("folder: recipes\nfeed: true\n", $this->file('user/data/types/recipe.yaml'), 'Defaults are left out.');
+		$this->assertSame(['folder' => 'recipes', 'feed' => true], json_decode($this->file('user/data/types/recipe.json'), true), 'Defaults are left out.');
 	}
 
 	public function testListsTheHomeTypesFeedsAtTheRoot(): void
@@ -494,7 +494,7 @@ final class AdminTypeEditTest extends TestCase
 
 	public function testNeedsSiteSettings(): void
 	{
-		$this->writeTemporaryFile('user/data/types/recipe.yaml', "folder: recipes\n");
+		$this->writeTemporaryFile('user/data/types/recipe.json', '{"folder": "recipes"}');
 		$this->site(['editor']);
 
 		$this->assertSame(403, $this->write('POST', '/types', ['name' => 'dish'])->getStatusCode());

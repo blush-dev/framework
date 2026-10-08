@@ -30,7 +30,7 @@ use Blush\Extension\ExtensionKeywords;
 use Blush\Extension\ExtensionSuggest;
 
 /**
- * A theme, as its `theme.json` (or `.yaml`, D-032) describes it: its
+ * A theme, as its `theme.json` describes it: its
  * name (`vendor/name`, the key it's known by), label, and namespace
  * (D-378), a version, an optional parent (by name), and the stylesheets
  * and scripts every page loads. Only `name` is required (its `label` is

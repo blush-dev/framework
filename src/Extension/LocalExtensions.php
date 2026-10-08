@@ -104,7 +104,7 @@ final readonly class LocalExtensions
 		$claims = [];
 
 		foreach (ExtensionKind::cases() as $kind) {
-			$file = ManifestFile::find($folder, $kind)[0] ?? null;
+			$file = ManifestFile::find($folder, $kind);
 
 			if ($file !== null || $kind === $type) {
 				$claims[$kind->value] = $file;

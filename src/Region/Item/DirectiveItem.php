@@ -23,9 +23,8 @@ use Blush\Translation\LocaleMap;
  * A directive (D-532), with the item's other keys as its props (text in
  * them may be locale maps, D-202):
  *
- * ```yaml
- * - directive: menu
- *   name: social
+ * ```json
+ * {"directive": "menu", "name": "social"}
  * ```
  *
  * It renders in the page's context, so a menu marks the current item.

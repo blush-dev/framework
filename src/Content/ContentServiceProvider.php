@@ -32,6 +32,8 @@ use Blush\Content\Index\RecordBuilder;
 use Blush\Content\Lint\Linter;
 use Blush\Content\Parser\DocumentParser;
 use Blush\Content\Parser\FrontMatter;
+use Blush\Content\Parser\SymfonyYamlParser;
+use Blush\Content\Parser\YamlParser;
 use Blush\Content\Relation\EntryRelations;
 use Blush\Content\Relation\RelationCompiler;
 use Blush\Content\Relation\Relations;
@@ -109,7 +111,8 @@ final class ContentServiceProvider extends ServiceProvider
 	protected const array SINGLETONS_IF = [
 		ContentIndex::class      => PhpIndex::class,
 		ContentRepository::class => IndexedRepository::class,
-		MentionResolver::class   => ProfileMentions::class
+		MentionResolver::class   => ProfileMentions::class,
+		YamlParser::class        => SymfonyYamlParser::class
 	];
 
 	/**

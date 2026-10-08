@@ -501,16 +501,19 @@ final class MultilingualTest extends TestCase
 
 	public function testMenusLinkToTranslations(): void
 	{
-		$this->writeTemporaryFile('user/data/menus/primary.yaml', <<<'YAML'
-			label: { en: Main, fr: Principal }
-			items:
-			  - entry: page/about
-			  - entry: page/about/team/jane
-			  - entry: page/notes
-			  - term: category/art
-			  - term: category/old-posts
-			  - collection: post
-			YAML);
+		$this->writeTemporaryFile('user/data/menus/primary.json', <<<'JSON'
+			{
+				"label": {"en": "Main", "fr": "Principal"},
+				"items": [
+					{"entry": "page/about"},
+					{"entry": "page/about/team/jane"},
+					{"entry": "page/notes"},
+					{"term": "category/art"},
+					{"term": "category/old-posts"},
+					{"collection": "post"}
+				]
+			}
+			JSON);
 
 		$app   = $this->site();
 		$menus = $app->container()->make(Menus::class);

@@ -14,85 +14,69 @@ declare(strict_types=1);
 namespace Blush\Data;
 
 use DirectoryIterator;
-use Blush\Container\Container;
+use JsonException;
 
 /**
- * Reads data files by name, without their extension, through the parser
- * registered for each extension (D-032). `load($paths->data, 'menus')`
- * reads `menus.json`, `menus.yaml`, or `menus.yml`, whichever exists
- * first in precedence order: the built-in formats in `DataFormat` order
- * (JSON wins), then any formats extensions registered. The files a winner
- * hides are reported by `shadowed()`, for `doctor` to warn about.
+ * Reads data files by name, without their extension. Data is JSON, and
+ * only JSON (D-631): `load($paths->data, 'menus')` reads `menus.json`.
+ * The one YAML Blush reads is front matter.
  *
  * A top-level `$schema` key, which points an editor at a file's JSON
  * Schema, is never part of the data (D-491).
  *
  * Names may contain `/` to reach into subdirectories (`types/post`), but
- * never `..`. Parsers are built through the container on first use.
+ * never `..`.
  */
 final class DataLoader
 {
 	/**
-	 * Parsers built so far, keyed by extension.
-	 *
-	 * @var array<string, DataParser>
+	 * The data file extension.
 	 */
-	private array $parsers = [];
-
-	public function __construct(
-		private readonly DataParserRegistry $registry,
-		private readonly Container $container
-	) {}
+	public const string EXTENSION = 'json';
 
 	/**
-	 * Returns the registered extensions in precedence order.
-	 *
-	 * @return list<string>
+	 * The key that points an editor at a file's JSON Schema.
 	 */
-	public function extensions(): array
-	{
-		$builtIn = array_map(static fn (DataFormat $format): string => $format->value, DataFormat::cases());
-		$known   = array_keys($this->registry->all());
+	public const string SCHEMA = '$schema';
 
-		return array_values(array_unique([
-			...array_intersect($builtIn, $known),
-			...array_diff($known, $builtIn)
-		]));
+	/**
+	 * Returns whether `$path` is a data file by its extension.
+	 */
+	public static function isDataFile(string $path): bool
+	{
+		return strtolower(pathinfo($path, PATHINFO_EXTENSION)) === self::EXTENSION;
 	}
 
 	/**
-	 * Returns whether `$path`'s extension has a parser.
-	 */
-	public function supports(string $path): bool
-	{
-		return $this->registry->isRegistered(strtolower(pathinfo($path, PATHINFO_EXTENSION)));
-	}
-
-	/**
-	 * Returns the path of the winning file for a name, or `null` when there
-	 * is none.
+	 * Returns the path of the file for a name, or `null` when there is
+	 * none.
 	 *
 	 * @throws InvalidData When the name is unsafe.
 	 */
 	public function find(string $directory, string $name): ?string
 	{
-		return array_first($this->candidates($directory, $name));
+		$path = $this->path($directory, $name);
+
+		return is_file($path) ? $path : null;
 	}
 
 	/**
-	 * Returns the files a name's winning file hides.
+	 * Returns the path a name's file has, or would have.
 	 *
-	 * @return list<string>
 	 * @throws InvalidData When the name is unsafe.
 	 */
-	public function shadowed(string $directory, string $name): array
+	public function path(string $directory, string $name): string
 	{
-		return array_slice($this->candidates($directory, $name), 1);
+		if ($name === '' || str_starts_with($name, '/') || in_array('..', explode('/', $name), true)) {
+			throw new InvalidData(sprintf('Invalid data file name "%s".', $name));
+		}
+
+		return rtrim($directory, '/') . '/' . $name . '.' . self::EXTENSION;
 	}
 
 	/**
-	 * Parses the winning file for a name. Returns `null` when no file
-	 * exists, so callers can tell "missing" from "empty".
+	 * Parses the file for a name. Returns `null` when no file exists, so
+	 * callers can tell "missing" from "empty".
 	 *
 	 * @return ?array<array-key, mixed>
 	 * @throws InvalidData
@@ -106,7 +90,6 @@ final class DataLoader
 
 	/**
 	 * Parses every data file directly inside a directory, keyed by name.
-	 * When a name exists in several formats, only the winner is read.
 	 * Returns an empty array for a missing directory.
 	 *
 	 * @return array<string, array<array-key, mixed>>
@@ -121,31 +104,24 @@ final class DataLoader
 		$names = [];
 
 		foreach (new DirectoryIterator($directory) as $file) {
-			if ($file->isFile() && ! str_starts_with($file->getFilename(), '.') && $this->supports($file->getFilename())) {
-				$names[$file->getBasename('.' . $file->getExtension())] = true;
+			if ($file->isFile() && ! str_starts_with($file->getFilename(), '.') && self::isDataFile($file->getFilename())) {
+				$names[] = $file->getBasename('.' . $file->getExtension());
 			}
 		}
 
-		$names = array_keys($names);
 		sort($names);
 
 		$data = [];
 
 		foreach ($names as $name) {
-			$data[(string) $name] = $this->load($directory, (string) $name) ?? [];
+			$data[$name] = $this->load($directory, $name) ?? [];
 		}
 
 		return $data;
 	}
 
 	/**
-	 * The key that points an editor at a file's JSON Schema.
-	 */
-	public const string SCHEMA = '$schema';
-
-	/**
-	 * Parses one file with the parser for its extension, leaving out a
-	 * top-level `$schema` key.
+	 * Parses one file, leaving out a top-level `$schema` key.
 	 *
 	 * @return array<array-key, mixed>
 	 * @throws InvalidData
@@ -159,7 +135,7 @@ final class DataLoader
 		}
 
 		try {
-			$data = $this->parser(pathinfo($path, PATHINFO_EXTENSION))->parse($contents);
+			$data = self::parse($contents);
 		} catch (InvalidData $e) {
 			throw InvalidData::inFile($path, $e);
 		}
@@ -170,44 +146,28 @@ final class DataLoader
 	}
 
 	/**
-	 * Returns the parser for a file extension.
+	 * Parses JSON data. Objects become associative arrays, and an empty
+	 * string is an empty array.
 	 *
-	 * @throws InvalidData When no parser is registered for it.
+	 * @return array<array-key, mixed>
+	 * @throws InvalidData
 	 */
-	public function parser(string $extension): DataParser
+	public static function parse(string $contents): array
 	{
-		$extension = strtolower($extension);
-
-		if (isset($this->parsers[$extension])) {
-			return $this->parsers[$extension];
+		if (trim($contents) === '') {
+			return [];
 		}
 
-		$class = $this->registry->get($extension);
-
-		if ($class === null) {
-			throw new InvalidData(sprintf('No data parser is registered for ".%s" files.', $extension));
+		try {
+			$data = json_decode($contents, true, 512, JSON_THROW_ON_ERROR);
+		} catch (JsonException $e) {
+			throw new InvalidData(sprintf('Invalid JSON: %s', $e->getMessage()), previous: $e);
 		}
 
-		return $this->parsers[$extension] = $this->container->make($class);
-	}
-
-	/**
-	 * Returns the existing files for a name, in precedence order.
-	 *
-	 * @return list<string>
-	 * @throws InvalidData When the name is unsafe.
-	 */
-	private function candidates(string $directory, string $name): array
-	{
-		if ($name === '' || str_starts_with($name, '/') || in_array('..', explode('/', $name), true)) {
-			throw new InvalidData(sprintf('Invalid data file name "%s".', $name));
+		if (! is_array($data)) {
+			throw new InvalidData('A data file must hold an object or an array.');
 		}
 
-		$base = rtrim($directory, '/') . '/' . $name;
-
-		return array_values(array_filter(
-			array_map(static fn (string $extension): string => "{$base}.{$extension}", $this->extensions()),
-			is_file(...)
-		));
+		return $data;
 	}
 }

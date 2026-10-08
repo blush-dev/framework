@@ -174,7 +174,7 @@ final class ContentTypeLoaderTest extends TestCase
 
 	public function testLoadsDataTypes(): void
 	{
-		$this->writeTemporaryFile('user/data/types/movie.yaml', "path: movies\nfields:\n  - name: rating\n    type: number\n");
+		$this->writeTemporaryFile('user/data/types/movie.json', '{"path": "movies", "fields": [{"name": "rating", "type": "number"}]}');
 		$this->writeTemporaryFile('user/data/types/profile.json', '{"path": "people", "kind": "profiles"}');
 
 		$types = $this->types();
@@ -189,7 +189,7 @@ final class ContentTypeLoaderTest extends TestCase
 	public function testDataFilesChangeCodeCollections(): void
 	{
 		$this->codeConfig(['types' => ['movie' => ['path' => 'movies', 'routing' => ['prefix' => 'films', 'single' => '{year}/{name}'], 'feed' => ['listing' => ['perPage' => 5]], 'description' => 'Films.'], 'genre' => ['order' => 'position']]]);
-		$this->writeTemporaryFile('user/data/types/movie.yaml', "description: Movies we watched.\nrouting:\n  prefix: watched\n");
+		$this->writeTemporaryFile('user/data/types/movie.json', '{"description": "Movies we watched.", "routing": {"prefix": "watched"}}');
 		$this->writeTemporaryFile('user/data/types/genre.json', '{"hierarchical": true}');
 
 		$types = $this->types();
@@ -233,7 +233,7 @@ final class ContentTypeLoaderTest extends TestCase
 
 	public function testDataFilesDefineTrees(): void
 	{
-		$this->writeTemporaryFile('user/data/types/doc.yaml', "kind: tree\nicon: book\n");
+		$this->writeTemporaryFile('user/data/types/doc.json', '{"kind": "tree", "icon": "book"}');
 		$doc = $this->types()->get('doc');
 
 		$this->assertInstanceOf(Tree::class, $doc);

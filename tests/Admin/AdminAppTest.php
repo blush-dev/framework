@@ -168,7 +168,7 @@ final class AdminAppTest extends TestCase
 	public function testTheDashboardListsWhatNeedsTheAccountFirst(): void
 	{
 		// Pages don't credit authors unless the site says so (D-329).
-		$this->writeTemporaryFile('user/data/types/page.yaml', "kind: tree\n");
+		$this->writeTemporaryFile('user/data/types/page.json', '{"kind": "tree"}');
 		$this->writeTemporaryFile('user/data/relations/authors.json', '{"kind": "credit", "from": ["page"], "to": ["profile"], "aliases": ["author"]}');
 		$this->writeTemporaryFile('user/content/about.md', "---\ntitle: About\nauthors: jane\n---\n");
 		$this->writeTemporaryFile('user/content/idea.md', "---\ntitle: Idea\nstatus: draft\nauthors: jane\nupdated: 2026-01-02\n---\n");

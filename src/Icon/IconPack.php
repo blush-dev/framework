@@ -28,7 +28,7 @@ use Blush\Extension\ExtensionSuggest;
 
 /**
  * An icon pack (D-378): SVG icons in its own namespace, with no code. Its
- * `icons.json` (or `.yaml`) gives its name (`vendor/name`), label (its
+ * `icons.json` gives its name (`vendor/name`), label (its
  * name without one, D-423), namespace (its name, hyphenated, without
  * one, D-424), and optionally a version, a description, and the `folder`
  * inside the pack its `*.svg` files are in (the pack's own folder by

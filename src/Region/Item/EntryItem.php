@@ -23,8 +23,8 @@ use Blush\Region\RegionRender;
  * An entry's rendered body, by type and key, such as a page kept out of
  * the site's URLs in a `_regions/` folder:
  *
- * ```yaml
- * - entry: page/_regions/about
+ * ```json
+ * {"entry": "page/_regions/about"}
  * ```
  *
  * The entry in the page's locale is used when there is one, else the

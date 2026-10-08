@@ -18,8 +18,7 @@ use Blush\Data\DataLoader;
 use Blush\Data\InvalidData;
 
 /**
- * The site owner's theme data, `user/data/theme.json` (or `.yaml`,
- * D-022): setting values, which the future admin edits, and which site
+ * The site owner's theme data, `user/data/theme.json` (D-022): setting values, which the future admin edits, and which site
  * menu or region fills a theme location whose name differs (D-199,
  * D-201).
  *

@@ -44,8 +44,8 @@ final class AdminMediaFieldsTest extends TestCase
 		$this->writeTemporaryFile('user/media/photo.png', (string) base64_decode(self::PNG, true));
 
 		if ($fields) {
-			$this->writeTemporaryFile('user/data/fields/photo.yaml', "label: Photo\ntargets: [media:image]\nfields:\n  - name: photographer\n    aliases: [shot_by]\n");
-			$this->writeTemporaryFile('user/data/fields/rights.yaml', "targets: [media:image, media:video, media:audio, media:file]\nfields:\n  - name: license\n    type: enum\n    options: [cc-by, all-rights]\n    required: true\n");
+			$this->writeTemporaryFile('user/data/fields/photo.json', '{"label": "Photo", "targets": ["media:image"], "fields": [{"name": "photographer", "aliases": ["shot_by"]}]}');
+			$this->writeTemporaryFile('user/data/fields/rights.json', '{"targets": ["media:image", "media:video", "media:audio", "media:file"], "fields": [{"name": "license", "type": "enum", "options": ["cc-by", "all-rights"], "required": true}]}');
 		}
 
 		$this->boot();
@@ -137,7 +137,7 @@ final class AdminMediaFieldsTest extends TestCase
 
 	public function testASetCantReuseABuiltInField(): void
 	{
-		$this->writeTemporaryFile('user/data/fields/strict.yaml', "targets: [media:image]\nfields: [{name: alt, required: true}]\n");
+		$this->writeTemporaryFile('user/data/fields/strict.json', '{"targets": ["media:image"], "fields": [{"name": "alt", "required": true}]}');
 		$this->site(false);
 
 		$this->expectException(InvalidConfig::class);
@@ -150,14 +150,14 @@ final class AdminMediaFieldsTest extends TestCase
 	{
 		$this->site();
 
-		$metadata = 'user/data/media/photo.png.yml';
-		$this->writeTemporaryFile($metadata, "# Mine\nshot_by: Jane\ncredit: Old\nnotes: kept\n");
+		$metadata = 'user/data/media/photo.png.json';
+		$this->writeTemporaryFile($metadata, '{"shot_by": "Jane", "credit": "Old", "notes": "kept"}');
 
 		$response = $this->patch(['set' => ['photographer' => 'Sam', 'license' => 'cc-by', 'alt' => "A   dog\nrunning"], 'remove' => ['credit']]);
 		$file     = self::json($response);
 
 		$this->assertSame(200, $response->getStatusCode(), (string) $response->getBody());
-		$this->assertSame("# Mine\nshot_by: Sam\nnotes: kept\nlicense: cc-by\nalt: \"A dog running\"\n", file_get_contents($this->temporaryDirectory() . "/{$metadata}"), 'An alias in use is kept; other keys and comments stay.');
+		$this->assertSame(['shot_by' => 'Sam', 'notes' => 'kept', 'license' => 'cc-by', 'alt' => 'A dog running'], json_decode((string) file_get_contents($this->temporaryDirectory() . "/{$metadata}"), true), 'An alias in use is kept; other keys stay.');
 		$this->assertSame(['alt' => 'A dog running', 'photographer' => 'Sam', 'license' => 'cc-by'], $file['values'] ?? null, 'In the fields\' order.');
 		$this->assertSame(['notes' => 'kept'], $file['extra'] ?? null);
 		$this->assertSame('A dog running', $file['alt'] ?? null);

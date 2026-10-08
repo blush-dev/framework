@@ -69,7 +69,7 @@ const changed = computed(() => count.value > 0);
 
 // A type from code, changed through a file in user/data/types (D-349).
 const code   = computed(() => props.type.origin !== 'data');
-const file   = computed(() => props.type.file ?? `user/data/types/${props.type.name}.yaml`);
+const file   = computed(() => props.type.file ?? `user/data/types/${props.type.name}.json`);
 
 // The prefix the addresses sit under, as the form has it.
 const prefix = computed(() => (form.value.prefix || props.type.folderPrefix).replace(/^\/+|\/+$/g, ''));

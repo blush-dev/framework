@@ -47,14 +47,14 @@ final class MenuCommandsTest extends TestCase
 
 	public function testListsLocationsAndMenus(): void
 	{
-		$this->writeTemporaryFile('user/data/menus/primary.yaml', "- entry: page/about\n- entry: page/gone\n");
-		$this->writeTemporaryFile('user/data/menus/footer.yaml', "- url: /x\n  label: X\n");
+		$this->writeTemporaryFile('user/data/menus/primary.json', '[{"entry":"page/about"},{"entry":"page/gone"}]');
+		$this->writeTemporaryFile('user/data/menus/footer.json', '[{"url":"/x","label":"X"}]');
 
 		$result = $this->command('menu:list');
 
 		$this->assertSame(ExitCode::Success, $result->exitCode);
-		$this->assertMatchesRegularExpression('#primary\s*\|\s*Primary\s*\|\s*primary\s*\|\s*1\s*\|\s*user/data/menus/primary\.yaml#', $result->output);
-		$this->assertMatchesRegularExpression('#\(none\)\s*\|\s*\|\s*footer\s*\|\s*1\s*\|\s*user/data/menus/footer\.yaml#', $result->output);
+		$this->assertMatchesRegularExpression('#primary\s*\|\s*Primary\s*\|\s*primary\s*\|\s*1\s*\|\s*user/data/menus/primary\.json#', $result->output);
+		$this->assertMatchesRegularExpression('#\(none\)\s*\|\s*\|\s*footer\s*\|\s*1\s*\|\s*user/data/menus/footer\.json#', $result->output);
 		$this->assertStringContainsString('menu primary: item 2: No entry "page/gone".', $result->output . $result->errors);
 		$this->assertStringContainsString('menu footer: No location of the "blush/default" theme shows it.', $result->output . $result->errors);
 	}
@@ -68,14 +68,7 @@ final class MenuCommandsTest extends TestCase
 
 	public function testShowsAResolvedMenu(): void
 	{
-		$this->writeTemporaryFile('user/data/menus/primary.yaml', <<<'YAML'
-			label: { en: Main, fr: Principal }
-			items:
-			  - entry: page/about
-			    children:
-			      - entry: page/team
-			  - entry: page/gone
-			YAML);
+		$this->writeTemporaryFile('user/data/menus/primary.json', '{"label":{"en":"Main","fr":"Principal"},"items":[{"entry":"page/about","children":[{"entry":"page/team"}]},{"entry":"page/gone"}]}');
 
 		$result = $this->command('menu:show primary');
 

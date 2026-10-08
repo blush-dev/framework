@@ -56,24 +56,22 @@ final class MenusTest extends TestCase
 {
 	use BootsScratchSite;
 
-	private const string PRIMARY = <<<'YAML'
-		items:
-		  - entry: page/about
-		  - entry: page/contact
-		  - label: More
-		    children:
-		      - entry: page/team
-		        label: The team
-		        description: Who we are
-		        badge: New
-		      - route: sitemap.type
-		        params: { type: page }
-		        label: Sitemap
-		  - url: https://example.org/
-		    label: Elsewhere
-		    rel: me
-		    icon: house
-		YAML;
+	private const string PRIMARY = <<<'JSON'
+		{
+			"items": [
+				{"entry": "page/about"},
+				{"entry": "page/contact"},
+				{
+					"label": "More",
+					"children": [
+						{"entry": "page/team", "label": "The team", "description": "Who we are", "badge": "New"},
+						{"route": "sitemap.type", "params": {"type": "page"}, "label": "Sitemap"}
+					]
+				},
+				{"url": "https://example.org/", "label": "Elsewhere", "rel": "me", "icon": "house"}
+			]
+		}
+		JSON;
 
 	private function app(): Application
 	{
@@ -116,7 +114,7 @@ final class MenusTest extends TestCase
 
 	public function testResolvesLinksAndLeavesOutWhatDoesNotResolve(): void
 	{
-		$this->writeTemporaryFile('user/data/menus/primary.yaml', self::PRIMARY);
+		$this->writeTemporaryFile('user/data/menus/primary.json', self::PRIMARY);
 
 		$menu = $this->menu($this->app(), 'primary');
 
@@ -138,7 +136,7 @@ final class MenusTest extends TestCase
 
 	public function testRendersInTheDefaultThemeWithTheCurrentItem(): void
 	{
-		$this->writeTemporaryFile('user/data/menus/primary.yaml', self::PRIMARY);
+		$this->writeTemporaryFile('user/data/menus/primary.json', self::PRIMARY);
 
 		$html = $this->page($this->app(), '/team');
 
@@ -180,14 +178,30 @@ final class MenusTest extends TestCase
 
 	public function testPicksTextInThePageLocale(): void
 	{
-		$this->writeTemporaryFile('user/data/menus/primary.yaml', <<<'YAML'
-			label: { en: Main, fr: Principal }
-			items:
-			  - entry: page/about
-			    label: { en: About, fr: À propos }
-			  - url: /elsewhere
-			    label: { en_US: Elsewhere, de: Anderswo }
-			YAML);
+		$this->writeTemporaryFile('user/data/menus/primary.json', <<<'JSON'
+			{
+				"label": {
+					"en": "Main",
+					"fr": "Principal"
+				},
+				"items": [
+					{
+						"entry": "page/about",
+						"label": {
+							"en": "About",
+							"fr": "À propos"
+						}
+					},
+					{
+						"url": "/elsewhere",
+						"label": {
+							"en_US": "Elsewhere",
+							"de": "Anderswo"
+						}
+					}
+				]
+			}
+			JSON);
 
 		$app = $this->app();
 
@@ -199,7 +213,7 @@ final class MenusTest extends TestCase
 
 	public function testMapsALocationToAnotherMenu(): void
 	{
-		$this->writeTemporaryFile('user/data/menus/main.yaml', "- entry: page/about\n");
+		$this->writeTemporaryFile('user/data/menus/main.json', '[{"entry":"page/about"}]');
 		$this->writeTemporaryFile('user/data/theme.json', '{"menus": {"primary": "main"}}');
 
 		$menu = $this->menu($this->app(), 'primary');
@@ -219,13 +233,7 @@ final class MenusTest extends TestCase
 			]
 		], JSON_THROW_ON_ERROR));
 		$this->writeTemporaryFile('config/theme.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn new Blush\\Theme\\ThemeConfig(active: 'acme/nova');\n");
-		$this->writeTemporaryFile('user/data/menus/primary.yaml', <<<'YAML'
-			- entry: page/about
-			  columns: 3
-			  children:
-			    - entry: page/team
-			- entry: page/team
-			YAML);
+		$this->writeTemporaryFile('user/data/menus/primary.json', '[{"entry":"page/about","columns":3,"children":[{"entry":"page/team"}]},{"entry":"page/team"}]');
 
 		$menu = $this->menu($this->app(), 'primary');
 
@@ -237,20 +245,35 @@ final class MenusTest extends TestCase
 
 	public function testChecksMenus(): void
 	{
-		$this->writeTemporaryFile('user/data/menus/primary.yaml', <<<'YAML'
-			items:
-			  - entry: page/missing
-			  - entry: page/about
-			    url: /about
-			  - route: sitemap
-			  - url: "javascript:alert(1)"
-			    label: Bad
-			  - entry: page/about
-			    colour: red
-			  - label: Empty
-			  - just text
-			YAML);
-		$this->writeTemporaryFile('user/data/menus/extra.yaml', '{"$schema": "menu.schema.json", "items": "x", "title": "x"}');
+		$this->writeTemporaryFile('user/data/menus/primary.json', <<<'JSON'
+			{
+				"items": [
+					{
+						"entry": "page/missing"
+					},
+					{
+						"entry": "page/about",
+						"url": "/about"
+					},
+					{
+						"route": "sitemap"
+					},
+					{
+						"url": "javascript:alert(1)",
+						"label": "Bad"
+					},
+					{
+						"entry": "page/about",
+						"colour": "red"
+					},
+					{
+						"label": "Empty"
+					},
+					"just text"
+				]
+			}
+			JSON);
+		$this->writeTemporaryFile('user/data/menus/extra.json', '{"$schema":"menu.schema.json","items":"x","title":"x"}');
 
 		$app      = $this->app();
 		$problems = $app->container()->make(Menus::class)->check($app->container()->make(ThemeResolver::class)->active());
@@ -273,7 +296,7 @@ final class MenusTest extends TestCase
 
 	public function testRendersFromAMarkdownDirective(): void
 	{
-		$this->writeTemporaryFile('user/data/menus/primary.yaml', self::PRIMARY);
+		$this->writeTemporaryFile('user/data/menus/primary.json', self::PRIMARY);
 		$this->writeTemporaryFile('user/content/links.md', "---\ntitle: Links\n---\n::menu{name=primary label=\"Site links\"}\n");
 
 		$html = $this->page($this->app(), '/links');

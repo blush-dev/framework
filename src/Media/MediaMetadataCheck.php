@@ -28,7 +28,7 @@ use Blush\Support\Uuid;
 /**
  * Checks the metadata files under `user/data/media` (D-238, D-293), as
  * `content:lint` reports them, by their path from the site root
- * (`user/data/media/2024/sunset.jpg.yml`). The media library reads a bad
+ * (`user/data/media/2024/sunset.jpg.json`). The media library reads a bad
  * one as none, so this is where a site hears about it:
  *
  * - errors: a file that can't be read, or isn't a map of fields, and a
@@ -39,8 +39,7 @@ use Blush\Support\Uuid;
  *   isn't a map of files to their width and height; and an `artwork`
  *   (D-581) that isn't a UUID;
  * - warnings: a file whose media file is gone (renamed or deleted
- *   without it), or isn't a type the site allows, a file hidden by
- *   one in another format (`sunset.jpg.json` beside a `.yml`), and one
+ *   without it), or isn't a type the site allows, and one
  *   describing a size of another image (D-239), whose details are that
  *   image's, and listed sizes that aren't the image's (`MediaSizes`);
  *   and artwork naming no image in the library, or on a file that
@@ -110,15 +109,11 @@ final readonly class MediaMetadataCheck
 			$found = $this->checkFile((string) $key, $file['path']);
 
 			$violations[$path] = $found;
-			$checked          += 1 + count($file['shadowed']);
+			$checked++;
 
 			// A file that can't be read already says so; its id can't be told.
 			if (array_any($found, static fn (Violation $violation): bool => $violation->field === Linter::FILE && $violation->severity === Severity::Error)) {
 				$unreadable[] = (string) $key;
-			}
-
-			foreach ($file['shadowed'] as $hidden) {
-				$violations[$this->paths->relative($hidden)] = [new Violation(Linter::FILE, sprintf('is hidden by %s, which is read instead; merge them into one file.', basename($file['path'])), Severity::Warning, ViolationKind::Details)];
 			}
 		}
 
@@ -145,8 +140,8 @@ final readonly class MediaMetadataCheck
 	 * Checks every media file's id (D-487), and the metadata files of
 	 * sizes of other images, by path from the site root.
 	 *
-	 * @param  array<array-key, array{path: string, modified: int, shadowed: list<string>}> $files      The readable metadata files, by key.
-	 * @param  list<string>                                                                $unreadable The keys of the others.
+	 * @param  array<array-key, array{path: string, modified: int}> $files      The readable metadata files, by key.
+	 * @param  list<string>                                              $unreadable The keys of the others.
 	 * @return array<string, list<Violation>>
 	 */
 	private function checkIds(array $files, array $unreadable): array

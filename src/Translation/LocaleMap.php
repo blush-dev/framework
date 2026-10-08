@@ -19,10 +19,8 @@ use Locale;
  * Text in user data that may be written once per locale (D-202): a text
  * value is a string, or a map of locales to strings.
  *
- * ```yaml
- * label:
- *     en: About
- *     fr_CA: À propos
+ * ```json
+ * {"label": {"en": "About", "fr_CA": "À propos"}}
  * ```
  *
  * A map is picked by locale with the message catalogs' fallback (the

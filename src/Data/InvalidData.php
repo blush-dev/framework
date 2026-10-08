@@ -17,8 +17,8 @@ use RuntimeException;
 
 /**
  * Thrown when a data file or string can't be read or parsed: malformed
- * JSON or YAML, a YAML tag that would build an object, or a top level that
- * isn't a map or list.
+ * JSON, malformed front matter or a YAML tag in it that would build an
+ * object, or a top level that isn't a map or list.
  */
 final class InvalidData extends RuntimeException implements DataException
 {

@@ -66,8 +66,8 @@ final class MediaIndexTest extends TestCase
 		$this->writeTemporaryFile('user/media/fake.png', 'not a PNG');
 		touch($this->writeTemporaryFile('user/content/trip/beach.png', $png), 1_650_000_000);
 		$this->writeTemporaryFile('user/content/trip/index.md', "---\ntitle: Trip\n---\n");
-		$this->writeTemporaryFile('user/data/media/2026/lake.png.yml', "alt: A lake at dawn\ncaption: Mist on the water\n");
-		$this->writeTemporaryFile('user/data/media/2019/gone.png.yml', "alt: Deleted\n");
+		$this->writeTemporaryFile('user/data/media/2026/lake.png.json', '{"alt": "A lake at dawn", "caption": "Mist on the water"}');
+		$this->writeTemporaryFile('user/data/media/2019/gone.png.json', '{"alt": "Deleted"}');
 
 		$app = $this->scratchApplication();
 		$app->boot();
@@ -98,7 +98,7 @@ final class MediaIndexTest extends TestCase
 
 		$this->assertFalse($indexer->index()->written, 'Nothing changed.');
 
-		$metadata = $this->writeTemporaryFile('user/data/media/2026/lake.png.yml', "alt: A lake at noon\n");
+		$metadata = $this->writeTemporaryFile('user/data/media/2026/lake.png.json', '{"alt": "A lake at noon"}');
 		touch($metadata, time() + 10);
 		unlink($this->temporaryDirectory() . '/user/media/2020/old.png');
 

@@ -15,12 +15,7 @@ namespace Blush\Tests\Translation;
 
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
-use Blush\Container\ServiceContainer;
 use Blush\Data\DataLoader;
-use Blush\Data\DataParserRegistrar;
-use Blush\Data\DataParserRegistry;
-use Blush\Data\YamlParser;
-use Blush\Data\SymfonyYamlParser;
 use Blush\Field\Violation;
 use Blush\Tests\TemporaryDirectory;
 use Blush\Translation\Catalog;
@@ -39,13 +34,7 @@ final class CatalogCheckTest extends TestCase
 	 */
 	private function check(string $domain = 'acme/hello'): array
 	{
-		$registry = new DataParserRegistry();
-		new DataParserRegistrar($registry)->register();
-
-		$container = new ServiceContainer();
-		$container->singleton(YamlParser::class, SymfonyYamlParser::class);
-
-		$check = new CatalogCheck(new DataLoader($registry, $container));
+		$check = new CatalogCheck(new DataLoader());
 
 		return array_map(
 			static fn (Violation $violation): string => "{$violation->severity->value} {$violation}",
@@ -56,7 +45,7 @@ final class CatalogCheckTest extends TestCase
 	public function testMatchingCatalogsPass(): void
 	{
 		$this->writeTemporaryFile('lang/en.json', Catalog::starter('acme/hello'));
-		$this->writeTemporaryFile('lang/fr_CA.yaml', "'@@locale': fr-ca\n'@@domain': acme/hello\nhello: Bonjour\n");
+		$this->writeTemporaryFile('lang/fr_CA.json', '{"@@locale": "fr-ca", "@@domain": "acme/hello", "hello": "Bonjour"}');
 
 		$this->assertSame([], $this->check());
 	}

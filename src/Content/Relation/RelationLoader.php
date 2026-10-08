@@ -23,7 +23,7 @@ use Blush\Extension\DefinitionClash;
 /**
  * Loads the site's relation definitions (D-593), each replacing one of
  * the same name before it: extensions (`RelationSource`), then
- * `user/data/relations/*.{json,yaml,yml}` (a relation named after its
+ * `user/data/relations/*.json` (a relation named after its
  * file) unless `ContentConfig::$dataTypes` is off. When two extensions
  * define a relation by one name, the first is kept and the clash is
  * returned with the others (D-597), so the site keeps loading.

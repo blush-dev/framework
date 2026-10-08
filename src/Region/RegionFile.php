@@ -14,7 +14,7 @@ declare(strict_types=1);
 namespace Blush\Region;
 
 /**
- * A site region as its data file (`user/data/regions/{name}.yaml`,
+ * A site region as its data file (`user/data/regions/{name}.json`,
  * D-201) holds it: its raw items. Problems with the file's shape are kept
  * for `theme:check`.
  */

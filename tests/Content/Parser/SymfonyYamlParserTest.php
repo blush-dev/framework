@@ -11,12 +11,12 @@
 
 declare(strict_types=1);
 
-namespace Blush\Tests\Data;
+namespace Blush\Tests\Content\Parser;
 
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Blush\Data\InvalidData;
-use Blush\Data\SymfonyYamlParser;
+use Blush\Content\Parser\SymfonyYamlParser;
 
 #[CoversClass(SymfonyYamlParser::class)]
 #[CoversClass(InvalidData::class)]

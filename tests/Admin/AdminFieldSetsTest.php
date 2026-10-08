@@ -42,8 +42,8 @@ final class AdminFieldSetsTest extends TestCase
 	 */
 	private function site(array $roles = ['administrator'], string $config = ''): void
 	{
-		$this->writeTemporaryFile('user/data/types/recipe.yaml', "fields:\n  - name: servings\n    type: number\n");
-		$this->writeTemporaryFile('user/data/fields/kitchen.yaml', "# Kept by hand.\nlabel: In the Kitchen\ntargets: [type:recipe, type:gone]\nfields:\n  - name: oven\n    type: enum\n    options: [gas, electric]\n");
+		$this->writeTemporaryFile('user/data/types/recipe.json', '{"fields": [{"name": "servings", "type": "number"}]}');
+		$this->writeTemporaryFile('user/data/fields/kitchen.json', '{"label": "In the Kitchen", "targets": ["type:recipe", "type:gone"], "fields": [{"name": "oven", "type": "enum", "options": ["gas", "electric"]}]}');
 
 		$config = $config === '' ? "new Blush\\Field\\FieldConfig(sets: [new Blush\\Field\\FieldSet('seo', [], ['type:page'])])" : $config;
 
@@ -88,7 +88,7 @@ final class AdminFieldSetsTest extends TestCase
 			'slot'        => 'details',
 			'origin'      => 'data',
 			'editable'    => true,
-			'file'        => 'user/data/fields/kitchen.yaml',
+			'file'        => 'user/data/fields/kitchen.json',
 			'targets'     => [['key' => 'type:recipe', 'label' => 'Recipes', 'found' => true], ['key' => 'type:gone', 'label' => 'type:gone', 'found' => false]],
 			'fields'      => 1
 		], $sets['kitchen']);
@@ -135,32 +135,36 @@ final class AdminFieldSetsTest extends TestCase
 		$response = $this->write('PATCH', '/fields/sets/kitchen', ['set' => ['description' => 'Where it\'s cooked.']]);
 
 		$this->assertSame(200, $response->getStatusCode(), (string) $response->getBody());
-		$this->assertStringStartsWith("# Kept by hand.\nlabel: In the Kitchen\ntargets: [type:recipe, type:gone]\n", $this->file('kitchen.yaml'));
-		$this->assertStringEndsWith("description: \"Where it's cooked.\"\n", $this->file('kitchen.yaml'));
+		$this->assertSame([
+			'label'       => 'In the Kitchen',
+			'targets'     => ['type:recipe', 'type:gone'],
+			'fields'      => [['name' => 'oven', 'type' => 'enum', 'options' => ['gas', 'electric']]],
+			'description' => 'Where it\'s cooked.'
+		], json_decode($this->file('kitchen.json'), true), 'Its other keys stay.');
 	}
 
 	public function testRefusesAFieldATargetAlreadyHas(): void
 	{
 		$this->site();
-		$before = $this->file('kitchen.yaml');
+		$before = $this->file('kitchen.json');
 
 		$response = $this->write('PATCH', '/fields/sets/kitchen', ['set' => ['fields' => [['name' => 'servings']]]]);
 
 		$this->assertSame(422, $response->getStatusCode());
 		$this->assertStringContainsString('can\'t take field set "kitchen"', is_string($error = self::json($response)['error'] ?? null) ? $error : '');
-		$this->assertSame($before, $this->file('kitchen.yaml'), 'The file is put back.');
+		$this->assertSame($before, $this->file('kitchen.json'), 'The file is put back.');
 	}
 
 	public function testRefusesAFieldAMediaKindAlreadyHas(): void
 	{
 		$this->site();
-		$before = $this->file('kitchen.yaml');
+		$before = $this->file('kitchen.json');
 
 		$response = $this->write('PATCH', '/fields/sets/kitchen', ['set' => ['targets' => ['media:image'], 'fields' => [['name' => 'alt']]]]);
 
 		$this->assertSame(422, $response->getStatusCode());
 		$this->assertStringContainsString('media:image can\'t take field set "kitchen"', is_string($error = self::json($response)['error'] ?? null) ? $error : '');
-		$this->assertSame($before, $this->file('kitchen.yaml'));
+		$this->assertSame($before, $this->file('kitchen.json'));
 	}
 
 	public function testOffersEveryPlaceBySource(): void
@@ -199,7 +203,7 @@ final class AdminFieldSetsTest extends TestCase
 		$response = $this->write('DELETE', '/fields/sets/kitchen');
 
 		$this->assertSame(['deleted' => 'kitchen'], self::json($response));
-		$this->assertFileDoesNotExist($this->temporaryDirectory() . '/user/data/fields/kitchen.yaml');
+		$this->assertFileDoesNotExist($this->temporaryDirectory() . '/user/data/fields/kitchen.json');
 		$this->assertSame(422, $this->write('DELETE', '/fields/sets/seo')->getStatusCode());
 	}
 

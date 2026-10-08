@@ -42,7 +42,7 @@ my-site/
   .env            Settings that differ per machine (URL, environment, secrets)
   config/         Site settings, as PHP files
   user/
-    content/      Your pages and posts (Markdown, HTML, JSON, or YAML)
+    content/      Your pages and posts, as Markdown files
     media/        Images, audio, and video
     data/         Editable data: menus, regions, redirects, theme settings, content types
   extensions/     Themes, plugins, and icon packs you've made or installed, at their names (acme/hello/)

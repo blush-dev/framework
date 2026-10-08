@@ -19,16 +19,17 @@ use Blush\Data\InvalidData;
 
 /**
  * Reads the site's menus: one data file per menu in `user/data/menus/`
- * (D-199), JSON or YAML (JSON wins, D-032), named for the menu. A file
- * holds the menu's `label` (optional) and its `items`, or is the list of
- * items itself:
+ * (D-199), JSON (D-631), named for the menu. A file holds the menu's
+ * `label` (optional) and its `items`, or is the list of items itself:
  *
- * ```yaml
- * label: Primary
- * items:
- *   - entry: page/about
- *   - route: feed
- *     label: Feed
+ * ```json
+ * {
+ *     "label": "Primary",
+ *     "items": [
+ *         {"entry": "page/about"},
+ *         {"route": "feed", "label": "Feed"}
+ *     ]
+ * }
  * ```
  *
  * A `$schema` key, for editors (D-207), is allowed. The files are read

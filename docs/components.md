@@ -42,9 +42,8 @@ content, and **named slots** hold other pieces, filled with `->slot()`:
 A [region](menus.md#regions) can show one too, with its props as the
 item's other keys:
 
-```yaml
-- component: newsletter/signup
-  title: Stay in touch
+```json
+{"component": "newsletter/signup", "title": "Stay in touch"}
 ```
 
 To see every component the active theme can draw, run:

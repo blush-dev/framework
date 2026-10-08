@@ -92,7 +92,7 @@ final class ThemeSystemTest extends TestCase
 			['name' => 'acme/library', 'type' => 'library']
 		]], JSON_THROW_ON_ERROR));
 		$this->writeTemporaryFile('vendor/acme/nova-theme/theme.json', '{"label": "Nova", "namespace": "nova"}');
-		$this->writeTemporaryFile('vendor/acme/renamed/theme.yaml', "name: acme/dusk\nlabel: Dusk\nnamespace: dusk\n");
+		$this->writeTemporaryFile('vendor/acme/renamed/theme.json', '{"name":"acme/dusk","label":"Dusk","namespace":"dusk"}');
 		$this->writeTemporaryFile('vendor/acme/local-wins/theme.json', '{"name": "acme/local-wins", "label": "From Composer", "namespace": "local-wins"}');
 		$this->writeTemporaryFile('extensions/acme/local-wins/theme.json', '{"name": "acme/local-wins", "label": "From extensions", "namespace": "local-wins"}');
 		$this->writeTemporaryFile('extensions/blush/default/theme.json', '{"name": "blush/default", "label": "Not the default", "namespace": "not-default"}');
@@ -268,7 +268,7 @@ final class ThemeSystemTest extends TestCase
 	{
 		$this->contentConfig(['types' => ['post' => ['path' => 'posts']], 'home' => 'post']);
 		$this->writeTemporaryFile('user/content/posts/hello.md', "---\ntitle: Hello\n---\nThe excerpt text.");
-		$this->writeTemporaryFile('user/data/fields/brand.yaml', "targets: [settings:general]\nfields:\n  tagline:\n    default: Plain tagline\n");
+		$this->writeTemporaryFile('user/data/fields/brand.json', '{"targets":["settings:general"],"fields":{"tagline":{"default":"Plain tagline"}}}');
 		$this->writeTemporaryFile('extensions/acme/noted/theme.json', '{"name": "acme/noted", "label": "Noted", "namespace": "noted"}');
 		$this->writeTemporaryFile('extensions/acme/noted/views/partials/entry-summary.php', "<p><?= e((string) \$template->site('tagline')) ?>|<?= e((string) \$template->site('missing', 'none')) ?></p>");
 		$this->activeTheme('acme/noted');

@@ -32,7 +32,7 @@ blush-framework/
     Container/Plan/     Compiled resolution plans (D-052)
     Event/              Event system (from x3p0-event)
     Config/  Env/  Error/  Log/  Clock/
-    Data/               DataLoader + JSON/YAML parser registry (D-032)
+    Data/               DataLoader, JSON only (D-631)
     Extension/          Shared by every kind (D-378): ExtensionKind, ExtensionName,
                         ExtensionNamespace, ManifestFile, LocalAutoloader
     Plugin/             Plugins (D-041, D-378): PluginManifest, discovery, cache, config
@@ -148,7 +148,7 @@ site/
     media/              Uploaded media
     data/               Other user data: menus/ and regions/ (one file each, D-199, D-201),
                         redirects, theme.json, types/ (D-042), media/ (metadata
-                        mirroring media paths, planned, D-238); JSON or YAML;
+                        mirroring media paths, D-238); JSON only (D-631);
                         settings.json, the admin's saved settings by config section
                         (JSON only, D-324, D-325)
   public/               Web root: index.php, .htaccess, and published assets ONLY

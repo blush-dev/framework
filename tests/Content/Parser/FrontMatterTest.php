@@ -18,7 +18,7 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Blush\Content\Parser\FrontMatter;
 use Blush\Content\Parser\InvalidDocument;
-use Blush\Data\SymfonyYamlParser;
+use Blush\Content\Parser\SymfonyYamlParser;
 
 #[CoversClass(FrontMatter::class)]
 #[CoversClass(InvalidDocument::class)]

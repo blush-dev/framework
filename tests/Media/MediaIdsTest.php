@@ -77,9 +77,9 @@ final class MediaIdsTest extends TestCase
 		$this->png('user/media/2026/lake.png', 20, 10);
 		$this->png('user/media/2026/copy.png', 20, 10);
 
-		$this->writeTemporaryFile('user/data/media/2019/kept-30x20.png.yml', "alt: Cropped on purpose\nid: 0199b6e2-7f3a-7c41-9d2e-000000000001\n");
-		$this->writeTemporaryFile('user/data/media/2019/photo-15x10.png.yml', "alt: A small one\n");
-		$this->writeTemporaryFile('user/data/media/2026/lake.png.yml', "alt: A lake\nid: " . self::SHARED . "\n");
+		$this->writeTemporaryFile('user/data/media/2019/kept-30x20.png.json', '{"alt": "Cropped on purpose", "id": "0199b6e2-7f3a-7c41-9d2e-000000000001"}');
+		$this->writeTemporaryFile('user/data/media/2019/photo-15x10.png.json', '{"alt": "A small one"}');
+		$this->writeTemporaryFile('user/data/media/2026/lake.png.json', '{"alt": "A lake", "id": "' . self::SHARED . '"}');
 		$this->writeTemporaryFile('user/data/media/2026/copy.png.json', '{"id": "' . self::SHARED . '", "alt": "A copy"}');
 
 		$app = $this->scratchApplication();
@@ -145,13 +145,13 @@ final class MediaIdsTest extends TestCase
 	public function testTheIdStaysLastAndIsNoField(): void
 	{
 		$app = $this->site();
-		$this->writeTemporaryFile('user/data/media/2019/photo.png.yml', "alt: A photo\nid: 42\ncredit: Me\n");
+		$this->writeTemporaryFile('user/data/media/2019/photo.png.json', '{"alt": "A photo", "id": 42, "credit": "Me"}');
 
 		$assigned = $app->container()->make(MediaIds::class)->assignMissing();
 		$id       = $assigned->ids['2019/photo.png'] ?? '';
-		$path     = $this->temporaryDirectory() . '/user/data/media/2019/photo.png.yml';
+		$path     = $this->temporaryDirectory() . '/user/data/media/2019/photo.png.json';
 
-		$this->assertSame("alt: A photo\ncredit: Me\nid: {$id}\n", file_get_contents($path), 'One that isn\'t a UUID is replaced, and moved last.');
+		$this->assertSame(['alt' => 'A photo', 'credit' => 'Me', 'id' => $id], json_decode((string) file_get_contents($path), true), 'One that isn\'t a UUID is replaced, and moved last.');
 
 		$metadata = MediaMetadata::fromArray(['alt' => 'A photo', 'id' => strtoupper($id), 'owner' => 'jane']);
 
@@ -163,26 +163,26 @@ final class MediaIdsTest extends TestCase
 	public function testLeavesUnreadableMetadataAlone(): void
 	{
 		$app = $this->site();
-		$this->writeTemporaryFile('user/data/media/2019/kept.png.yml', "alt: [unclosed\n");
+		$this->writeTemporaryFile('user/data/media/2019/kept.png.json', '{"alt": [');
 
 		$assigned = $app->container()->make(MediaIds::class)->assignMissing();
 
 		$this->assertArrayHasKey('2019/kept.png', $assigned->failed);
-		$this->assertSame("alt: [unclosed\n", file_get_contents($this->temporaryDirectory() . '/user/data/media/2019/kept.png.yml'));
+		$this->assertSame('{"alt": [', file_get_contents($this->temporaryDirectory() . '/user/data/media/2019/kept.png.json'));
 	}
 
 	public function testLintReportsIds(): void
 	{
 		$app = $this->site();
-		$this->writeTemporaryFile('user/data/media/2019/photo.png.yml', "id: not-a-uuid\n");
+		$this->writeTemporaryFile('user/data/media/2019/photo.png.json', '{"id": "not-a-uuid"}');
 
 		[, $violations] = $app->container()->make(MediaMetadataCheck::class)->check();
 		$messages       = array_map(static fn (array $list): array => array_map(static fn (Violation $violation): string => "{$violation->severity->value} {$violation}", $list), array_filter($violations));
 
 		$this->assertSame(['error id: has no id; add one with media:ids --write, or on Site Health in the admin.'], $messages['user/media/2019/kept.png'] ?? null, 'By the media file, which has no metadata file.');
-		$this->assertSame(['error id: isn\'t a UUID; give the file a new one with media:ids --write, or on Site Health in the admin.'], $messages['user/data/media/2019/photo.png.yml'] ?? null);
-		$this->assertSame(['error id: is also the id of user/data/media/2026/lake.png.yml; keep it on one file and give the others new ones with media:ids --keep, or on Site Health in the admin.'], $messages['user/data/media/2026/copy.png.json'] ?? null);
-		$this->assertSame(['warning file: describes user/media/2019/photo-15x10.png, a size of user/media/2019/photo.png, whose details are read instead; move these there, or give this file an id of its own to keep it apart.'], $messages['user/data/media/2019/photo-15x10.png.yml'] ?? null);
+		$this->assertSame(['error id: isn\'t a UUID; give the file a new one with media:ids --write, or on Site Health in the admin.'], $messages['user/data/media/2019/photo.png.json'] ?? null);
+		$this->assertSame(['error id: is also the id of user/data/media/2026/lake.png.json; keep it on one file and give the others new ones with media:ids --keep, or on Site Health in the admin.'], $messages['user/data/media/2026/copy.png.json'] ?? null);
+		$this->assertSame(['warning file: describes user/media/2019/photo-15x10.png, a size of user/media/2019/photo.png, whose details are read instead; move these there, or give this file an id of its own to keep it apart.'], $messages['user/data/media/2019/photo-15x10.png.json'] ?? null);
 		$this->assertArrayNotHasKey('user/media/2019/photo-30x20.png', $messages, 'Sizes need no id.');
 	}
 

@@ -45,7 +45,7 @@ enum ExtensionKind: string
 
 	/**
 	 * Returns the manifest's file name, without its format
-	 * (`plugin.json`, `theme.yaml`, `icons.json`).
+	 * (`plugin.json`, `theme.json`, `icons.json`).
 	 */
 	public function manifest(): string
 	{

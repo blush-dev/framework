@@ -47,13 +47,13 @@ Every content type is one of three kinds:
 
 ## Two ways to define a type
 
-**In YAML or JSON** (no PHP needed): create a file in `user/data/types/`
+**In JSON** (no PHP needed): create a file in `user/data/types/`
 named after the type, or let the admin's **New Content Type** write it.
 Use `kind` to pick the kind; it's `collection` if you leave it out.
+`user/data/types/recipe.json`:
 
-```yaml
-# user/data/types/recipe.yaml
-folder: recipes
+```json
+{ "folder": "recipes" }
 ```
 
 **In a plugin**, in PHP, when the types belong with code you install.
@@ -72,34 +72,35 @@ for the class that returns them.
 A file in `user/data/types/` named after a collection or
 [tree](#trees) from a plugin changes that type rather than
 defining a new one. Each option it sets replaces the code's, and the
-rest stay as the code has them:
+rest stay as the code has them. For recipes defined in a plugin,
+`user/data/types/recipe.json`:
 
-```yaml
-# user/data/types/recipe.yaml: recipes are defined in a plugin
-description: Dinners worth making twice.
-feed: false
+```json
+{
+	"description": "Dinners worth making twice.",
+	"feed": false
+}
 ```
 
-This is what the admin writes when you edit such a type (as
-`recipe.json`, unless a `recipe.yaml` is already there, which it edits), and
+This is what the admin writes when you edit such a type, and
 it keeps only what differs from the code. A file like this can't change the
 type's kind or folder, and the `page` type and the profiles type from
 code can't be changed this way. Delete the file (or use **Reset the
 Type** in the admin) to go back to the plugin's definition. With `dataTypes` off, these files aren't read either.
 
 Both do the same thing, and every option below works in each. (In
-YAML, use the option names as keys.) A type's name uses lowercase letters,
+JSON, use the option names as keys.) A type's name uses lowercase letters,
 digits, and underscores.
 
 If two places define the same type, a plugin's type replaces a
-built-in one. A YAML type may replace a built-in type; one named for a
+built-in one. A JSON type may replace a built-in type; one named for a
 plugin's type changes it, as above. When two plugins define the
 same type, the first plugin's is used and the other's is left out, and
 Site Health says so (see [Extending](extending.md)).
 
 Which to pick:
 
-- **YAML** keeps a type with your content, so a copy of `user/` carries
+- **JSON** keeps a type with your content, so a copy of `user/` carries
   it along. It's the only kind the [admin](admin.md#content-types) can
   create and edit.
 - **A plugin** keeps it with a feature you can reuse or version on its
@@ -134,19 +135,22 @@ something else. `menu` shortens a long name in the navigation only, such
 as "Forms" for literary forms listed under Literature; the navigation is
 sorted by it:
 
-```yaml
-# user/data/types/person.yaml
-folder: people
-labels:
-  plural: People
-  newItem: Add someone
+`user/data/types/person.json`:
+
+```json
+{
+	"folder": "people",
+	"labels": { "plural": "People", "newItem": "Add someone" }
+}
 ```
 
-```yaml
-# user/data/types/literary_form.yaml
-order: position
-labels:
-  menu: Forms
+`user/data/types/literary_form.json`:
+
+```json
+{
+	"order": "position",
+	"labels": { "menu": "Forms" }
+}
 ```
 
 In PHP, `TypeLabels` takes `singular` first and the rest by name:
@@ -163,39 +167,43 @@ icon to show the type with in the admin's menu, from the icons the `icon`
 directive offers (`bin/blush icon:list`), such as `film` or
 `book-open`. Without one, the type gets its kind's icon.
 
-```yaml
-# user/data/types/recipe.yaml
-folder: recipes
-description: Dishes we cook at home, with what goes in them.
-icon: notebook-pen
+`user/data/types/recipe.json`:
+
+```json
+{
+	"folder": "recipes",
+	"description": "Dishes we cook at home, with what goes in them.",
+	"icon": "notebook-pen"
+}
 ```
 
 ## Example: a blog
 
 Posts live in `user/content/_blog/` and are listed at `/blog`, newest
-first, with a feed and monthly archives:
+first, with a feed and monthly archives, in `user/data/types/post.json`:
 
-```yaml
-# user/data/types/post.yaml
-folder: _blog
-listing:
-  orderBy: published
-  order: desc
-feed: true
-dateArchives: month
+```json
+{
+	"folder": "_blog",
+	"listing": { "orderBy": "published", "order": "desc" },
+	"feed": true,
+	"dateArchives": "month"
+}
 ```
 
-Tags live in `user/content/_blog/tags/`, ordered by position:
+Tags live in `user/content/_blog/tags/`, ordered by position, in
+`user/data/types/tag.json`:
 
-```yaml
-# user/data/types/tag.yaml
-folder: _blog/tags
-order: position
-llms: false
+```json
+{
+	"folder": "_blog/tags",
+	"order": "position",
+	"llms": false
+}
 ```
 
 And posts are filed under tags with a `tag` key, through a relation in
-`user/data/relations/tag.json` (or `tag.yaml`):
+`user/data/relations/tag.json`:
 
 ```json
 {"kind": "classify", "from": ["post"], "to": ["tag"], "create": true}
@@ -275,16 +283,18 @@ A type of terms is a plain collection, usually ordered by `position`,
 with no authors, and left out of `llms.txt`. What makes it terms is a
 `classify` relation, named after it, that says which types are filed
 under it. For categories filing posts, that's the type in
-`user/data/types/category.yaml`:
+`user/data/types/category.json`:
 
-```yaml
-folder: topics
-hierarchical: true
-order: position
-llms: false
+```json
+{
+	"folder": "topics",
+	"hierarchical": true,
+	"order": "position",
+	"llms": false
+}
 ```
 
-And the relation in `user/data/relations/category.json` (or `.yaml`),
+And the relation in `user/data/relations/category.json`,
 named by its file:
 
 ```json
@@ -363,13 +373,15 @@ entry is shown at the top level) and an entry that's its own ancestor.
 A collection's `order` sets how it lists its entries: `published`
 (newest first, the default) or `position`, by the `position` front
 matter (lowest first), then title. A collection that nests or is
-ordered by position has the `position` field.
+ordered by position has the `position` field. In
+`user/data/types/category.json`:
 
-```yaml
-# user/data/types/category.yaml
-folder: topics
-hierarchical: true
-order: position
+```json
+{
+	"folder": "topics",
+	"hierarchical": true,
+	"order": "position"
+}
 ```
 
 ### Term pages
@@ -495,8 +507,7 @@ bin/blush content:taxonomies
 Then `bin/blush content:taxonomies --write`, or **Migrate Types** under
 **Taxonomies** in the admin's Site Health, rewrites each:
 
-- The type's file is edited in place, keeping its other keys and YAML
-  comments. The taxonomy's keys are removed, and `order: position`,
+- The type's file is edited in place, keeping its other keys. The taxonomy's keys are removed, and `order: position`,
   and `llms: false` are added unless it said otherwise, and its
   `people` or `authors` key is removed (terms credit no one).
 - Its relation is written to `user/data/relations/{name}.json`: its
@@ -524,8 +535,8 @@ use Blush\Content\Type\Tree;
 new Tree('doc', folder: '_docs', icon: 'book')
 ```
 
-In YAML, that's `user/data/types/doc.yaml` with `kind: tree`; the
-admin's **New Content Type** writes the same as `doc.json`. A tree from a plugin
+In JSON, that's `user/data/types/doc.json` with `"kind": "tree"`, as
+the admin's **New Content Type** writes it. A tree from a plugin
 can be [changed from the admin](#changing-a-type-from-code), as
 collections can; the `page` type can't.
 
@@ -548,22 +559,18 @@ A tree's folder defaults to `_` and its name, like other types; only the
 ## Custom fields
 
 Declare the fields a type's entries use, and Blush checks them when it
-indexes your content and in `bin/blush content:lint`:
+indexes your content and in `bin/blush content:lint`. In
+`user/data/types/recipe.json`:
 
-```yaml
-# user/data/types/recipe.yaml
-folder: recipes
-fields:
-  - name: servings
-    type: number
-    integer: true
-    required: true
-  - name: difficulty
-    type: enum
-    options: [easy, medium, hard]
-    default: easy
-  - name: ingredients
-    type: list
+```json
+{
+	"folder": "recipes",
+	"fields": [
+		{ "name": "servings", "type": "number", "integer": true, "required": true },
+		{ "name": "difficulty", "type": "enum", "options": ["easy", "medium", "hard"], "default": "easy" },
+		{ "name": "ingredients", "type": "list" }
+	]
+}
 ```
 
 Field types:
@@ -588,14 +595,13 @@ read from), `label`, `description`, and `control`.
 `fields` can also be a map of names to definitions, which some people
 find easier to read:
 
-```yaml
-fields:
-  servings:
-    type: number
-    integer: true
-  difficulty:
-    type: enum
-    options: [easy, medium, hard]
+```json
+{
+	"fields": {
+		"servings": { "type": "number", "integer": true },
+		"difficulty": { "type": "enum", "options": ["easy", "medium", "hard"] }
+	}
+}
 ```
 
 ### How the admin edits a field
@@ -617,18 +623,18 @@ use another one instead: set `control` to pick it.
 | `slug`      | `mono`                                                                                |
 | `object`    | `readonly` (edited in the file for now)                                               |
 
-```yaml
-fields:
-  - name: difficulty
-    type: enum
-    options: [easy, medium, hard]
-    control: radios
-  - name: diets
-    type: list
-    control: checks
-    item:
-      type: enum
-      options: [vegetarian, vegan, gluten-free]
+```json
+{
+	"fields": [
+		{ "name": "difficulty", "type": "enum", "options": ["easy", "medium", "hard"], "control": "radios" },
+		{
+			"name": "diets",
+			"type": "list",
+			"control": "checks",
+			"item": { "type": "enum", "options": ["vegetarian", "vegan", "gluten-free"] }
+		}
+	]
+}
 ```
 
 A list's items need to fit on one line to be written one per line, so a
@@ -643,20 +649,18 @@ them. Set `closed: true` on the type to make them errors instead.
 A field set is a group of fields you can add to several types at once:
 SEO fields for posts and pages, say. Put each set in its own file in
 `user/data/fields/`, named for the set, and list the types it's for in
-`targets`, as `type:` and the type's name:
+`targets`, as `type:` and the type's name. `user/data/fields/seo.json`:
 
-```yaml
-# user/data/fields/seo.yaml
-label: SEO
-description: How the entry appears in search results.
-targets: [type:post, type:page]
-fields:
-  meta_title:
-    type: text
-    label: Title for search engines
-  noindex:
-    type: bool
-    label: Hide from search engines
+```json
+{
+	"label": "SEO",
+	"description": "How the entry appears in search results.",
+	"targets": ["type:post", "type:page"],
+	"fields": {
+		"meta_title": { "type": "text", "label": "Title for search engines" },
+		"noindex": { "type": "bool", "label": "Hide from search engines" }
+	}
+}
 ```
 
 `fields` takes the same field definitions as a type's, as a list or a
@@ -715,10 +719,10 @@ name, and a set in `user/data/fields/` replaces either. Set `dataSets:
 false` in `config/fields.php` to ignore `user/data/fields/`.
 
 Editors that read JSON Schema can check a set's file: start it with
-`# yaml-language-server: $schema=../../../vendor/blush-dev/framework/resources/schemas/field-set.schema.json`
-(or a `"$schema"` key in JSON). A relation's file in `user/data/relations`
-can name `relation.schema.json` the same way; the admin keeps a JSON
-file's `"$schema"` when it saves the relation.
+`"$schema": "../../../vendor/blush-dev/framework/resources/schemas/field-set.schema.json"`.
+A relation's file in `user/data/relations` can name
+`relation.schema.json` the same way; the admin keeps a file's
+`"$schema"` when it saves the relation.
 
 ## Listing entries
 
@@ -811,11 +815,11 @@ Every type names the files it creates (from the admin, `content:new`,
 or a copy) by its `filename` pattern. Without one, files are named by
 their slug alone (`hello.md`), whether or not the type has date
 archives. For dated names, set `filename: "{date}.{slug}"`
-(`2026-10-05.hello.md`).
+(`2026-10-05.hello.md`). With `user/data/types/note.json` like this,
+a note is named `2026-10-05-093000.hello.md`:
 
-```yaml
-# user/data/types/note.yaml
-filename: "{date}-{time}.{slug}"   # 2026-10-05-093000.hello.md
+```json
+{ "filename": "{date}-{time}.{slug}" }
 ```
 
 A pattern ends in `{slug}`, with a `.` before it when anything comes
@@ -890,11 +894,12 @@ files, and large folders are slow to read. (Folders don't help with a
 host's limit on the total number of files, since each folder counts as
 one too.)
 
-End `folder` with a pattern, one token to a folder:
+End `folder` with a pattern, one token to a folder. With
+`user/data/types/post.json` like this, a post is kept in
+`_posts/2026/hello.md`:
 
-```yaml
-# user/data/types/post.yaml
-folder: "_posts/{year}"            # _posts/2026/hello.md
+```json
+{ "folder": "_posts/{year}" }
 ```
 
 `_posts/{year}/{month}` keeps it in `_posts/2026/10/hello.md`, and
@@ -986,13 +991,13 @@ admin's **Addresses** panel on a type's screen edits these paths too
 ## Giving pages fields
 
 To declare fields for pages, redefine the built-in `page` type in
-`user/data/types/page.yaml`:
+`user/data/types/page.json`:
 
-```yaml
-kind: tree
-fields:
-  - name: subtitle
-    type: text
+```json
+{
+	"kind": "tree",
+	"fields": [{ "name": "subtitle", "type": "text" }]
+}
 ```
 
 A plugin can do the same with `new Tree(fields: [new TextField('subtitle')])`.
@@ -1045,12 +1050,14 @@ and an `archive` by default ([below](#people-archives)). `singular`
 names one ("Cook"), made from the label when it's left out.
 
 A type with one credit uses it for the byline. A type with several
-names its byline with the type's `byline` option:
+names its byline with the type's `byline` option. In
+`user/data/types/recipe.json`:
 
-```yaml
-# user/data/types/recipe.yaml
-folder: recipes
-byline: cooks
+```json
+{
+	"folder": "recipes",
+	"byline": "cooks"
+}
 ```
 
 The default theme's byline uses that relation ("By Jane") and labels
@@ -1098,14 +1105,14 @@ credits them.
 They're at `/profiles/{name}` wherever the files are. To keep them in
 another folder, or move their pages, redefine the `profile` type. For
 example, a 1.x site that keeps its author files in `authors/`, and its
-author pages at `/authors/jane`:
+author pages at `/authors/jane`, `user/data/types/profile.json`:
 
-```yaml
-# user/data/types/profile.yaml
-kind: profiles
-folder: authors
-urls:
-  prefix: authors
+```json
+{
+	"kind": "profiles",
+	"folder": "authors",
+	"urls": { "prefix": "authors" }
+}
 ```
 
 Without `urls`, those profiles would still be at `/profiles/jane`.

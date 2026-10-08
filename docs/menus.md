@@ -13,21 +13,21 @@ decides where they appear: it declares **locations** (`primary`, `social`,
 Add a file named for the location to `user/data/menus/`. The default
 theme shows a `primary` menu in its header:
 
-```yaml
-# user/data/menus/primary.yaml
-items:
-  - entry: page/about
-  - entry: page/contact
-  - collection: post
-    label: Blog
-  - route: home.feed
-    label: Feed
-  - url: https://github.com/example
-    label: GitHub
+`user/data/menus/primary.json`:
+
+```json
+{
+	"items": [
+		{ "entry": "page/about" },
+		{ "entry": "page/contact" },
+		{ "collection": "post", "label": "Blog" },
+		{ "route": "home.feed", "label": "Feed" },
+		{ "url": "https://github.com/example", "label": "GitHub" }
+	]
+}
 ```
 
-JSON works too (`primary.json`); if both exist, JSON wins. A file can
-also be the list of items on its own, without `items:`.
+A file can also be the list of items on its own, without `items`.
 
 ### Links
 
@@ -35,11 +35,11 @@ Each item links to one thing:
 
 | Key | Links to | Example |
 |---|---|---|
-| `entry` | An entry, as `{type}/{key}`. Its title is the label. | `entry: page/about`, `entry: post/hello-world` |
-| `term` | A term's page, as `{type}/{slug}`, for a [type of terms](content-types.md#terms-and-relationships) with pages. Its title is the label. | `term: category/art` |
-| `collection` | A content type's listing. Its landing page's title is the label, if it has one. | `collection: post` |
-| `route` | A named route, with any `params` it needs. Run `bin/blush routes:list` for names. | `route: home.feed` |
-| `url` | Any URL, as written | `url: https://example.org/` |
+| `entry` | An entry, as `{type}/{key}`. Its title is the label. | `"entry": "page/about"`, `"entry": "post/hello-world"` |
+| `term` | A term's page, as `{type}/{slug}`, for a [type of terms](content-types.md#terms-and-relationships) with pages. Its title is the label. | `"term": "category/art"` |
+| `collection` | A content type's listing. Its landing page's title is the label, if it has one. | `"collection": "post"` |
+| `route` | A named route, with any `params` it needs. Run `bin/blush routes:list` for names. | `"route": "home.feed"` |
+| `url` | Any URL, as written | `"url": "https://example.org/"` |
 
 Linking to an entry rather than typing its URL means the menu follows
 along when a slug or permalink changes. Drafts, scheduled entries, and
@@ -67,15 +67,19 @@ below its type's folder: `user/content/about.md` is `page/about`, and
 A menu can have its own `label`, which names the navigation for screen
 readers. Without one, the theme's name for the location is used.
 
-```yaml
-label: Main
-items:
-  - label: Services
-    children:
-      - entry: page/services/design
-        description: Websites and brands
-      - entry: page/services/writing
-        badge: New
+```json
+{
+	"label": "Main",
+	"items": [
+		{
+			"label": "Services",
+			"children": [
+				{ "entry": "page/services/design", "description": "Websites and brands" },
+				{ "entry": "page/services/writing", "badge": "New" }
+			]
+		}
+	]
+}
 ```
 
 Themes may accept more options for their menus, such as a number of
@@ -97,15 +101,17 @@ is left out of the page and reported by both commands, by
 Add a file named for the location to `user/data/regions/`. The default
 theme shows a `footer` region above its credit line:
 
-```yaml
-# user/data/regions/footer.yaml
-items:
-  - directive: menu
-    name: social
-  - markdown: "Thanks for reading. **Subscribe** to the [feed](/feed)."
-  - entry: page/_regions/newsletter
-  - view: partials/newsletter
-    heading: Get new posts by email
+`user/data/regions/footer.json`:
+
+```json
+{
+	"items": [
+		{ "directive": "menu", "name": "social" },
+		{ "markdown": "Thanks for reading. **Subscribe** to the [feed](/feed)." },
+		{ "entry": "page/_regions/newsletter" },
+		{ "view": "partials/newsletter", "heading": "Get new posts by email" }
+	]
+}
 ```
 
 Each item is one of:
@@ -120,11 +126,11 @@ Each item is one of:
 
 For longer text, write a page in a folder whose name starts with `_`,
 such as `user/content/_regions/newsletter.md`. It never gets a URL of its
-own, but a region can show it with `entry: page/_regions/newsletter`.
+own, but a region can show it with `"entry": "page/_regions/newsletter"`.
 
 A theme can fill a region with defaults, such as a search box in its
 sidebar. Your file replaces the theme's items, so an empty
-`items: []` clears them.
+`"items": []` clears them.
 
 ## Autocomplete in your editor
 
@@ -132,16 +138,8 @@ Blush ships JSON Schemas for menu and region files, so editors such as
 VS Code and PhpStorm can suggest keys and flag mistakes, like a typo in a
 key or an entry written as a URL. A new site's `.vscode/settings.json`
 already maps `user/data/menus/` and `user/data/regions/` to them. For
-other editors, point a file at its schema. In YAML, that's a comment on
-the first line:
-
-```yaml
-# yaml-language-server: $schema=../../../vendor/blush-dev/framework/resources/schemas/menu.schema.json
-items:
-  - entry: page/about
-```
-
-In JSON, it's a `$schema` key (`region.schema.json` for regions):
+other editors, point a file at its schema with a `$schema` key
+(`region.schema.json` for regions):
 
 ```json
 {
@@ -166,17 +164,14 @@ files:
 }
 ```
 
-Here the theme's `main` location shows `menus/primary.yaml`.
+Here the theme's `main` location shows `menus/primary.json`.
 
 ## More than one language
 
 Any text can be written once per language:
 
-```yaml
-- entry: page/about
-  label:
-    en: About
-    fr: À propos
+```json
+{ "entry": "page/about", "label": { "en": "About", "fr": "À propos" } }
 ```
 
 The page's language picks the text: an entry's `locale`, or your site's
@@ -186,8 +181,8 @@ the first one written.
 
 On a site with [translations](content.md#translations), links follow the
 page's language too, so write each link once. On a French page,
-`entry: page/about` links to `about.fr.md` with its French title,
-`term:` links to the French topic, and `collection:` links to the French
+`"entry": "page/about"` links to `about.fr.md` with its French title,
+`term` links to the French topic, and `collection` links to the French
 listing when there are French entries. Anything that isn't translated
 yet links to the original. Leave `label` off entry, term, and collection
 links so the translated title shows.

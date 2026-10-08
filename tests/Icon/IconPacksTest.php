@@ -51,7 +51,7 @@ final class IconPacksTest extends TestCase
 		$this->writeTemporaryFile('extensions/acme/brands/svg/github.svg', self::SVG);
 		$this->writeTemporaryFile('extensions/acme/brands/svg/mastodon.svg', self::SVG);
 		$this->writeTemporaryFile('extensions/acme/brands/lang/en.json', '{"icons": {"github": {"label": "GitHub"}}}');
-		$this->writeTemporaryFile('extensions/acme/weather/icons.yaml', "name: acme/weather\nlabel: Weather\nnamespace: weather\n");
+		$this->writeTemporaryFile('extensions/acme/weather/icons.json', '{"name": "acme/weather", "label": "Weather", "namespace": "weather"}');
 		$this->writeTemporaryFile('extensions/acme/weather/sun.svg', self::SVG);
 		$this->writeTemporaryFile('extensions/acme/broken/icons.json', '{"name": "acme/broken", "label": "Broken", "namespace": "Not Valid"}');
 		$this->writeTemporaryFile('extensions/acme/not-a-pack/readme.md', 'No manifest.');

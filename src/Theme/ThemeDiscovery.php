@@ -29,8 +29,7 @@ use Blush\Support\ComposerPackages;
  * `extensions/{vendor}/{name}` (D-418). Each is known by its manifest's
  * `name` (D-378), which for a folder theme must be its folder's.
  * It runs before the container exists (theme providers register at boot),
- * so it reads manifests itself: `theme.json`, else `theme.yaml` or
- * `theme.yml` (D-032).
+ * so it reads manifests itself: `theme.json` (D-631).
  *
  * A manifest file is optional when the `composer.json` in the folder has
  * the type `blush-theme` (D-432). What a manifest leaves out it takes
@@ -148,15 +147,5 @@ final readonly class ThemeDiscovery
 			ThemeSource::Composer,
 			ThemeSource::Framework => $theme->name
 		};
-	}
-
-	/**
-	 * Returns the winning manifest file in a folder, and any it shadows.
-	 *
-	 * @return list<string>
-	 */
-	public static function manifestFiles(string $path): array
-	{
-		return ManifestFile::find($path, ExtensionKind::Theme);
 	}
 }

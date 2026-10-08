@@ -65,21 +65,47 @@ final class RegionsTest extends TestCase
 
 	public function testRendersEveryItemKindInTheFooter(): void
 	{
-		$this->writeTemporaryFile('user/data/menus/social.yaml', "- url: https://example.org/\n  label: Example\n- entry: page/about\n");
-		$this->writeTemporaryFile('user/data/regions/footer.yaml', <<<'YAML'
-			items:
-			  - directive: menu
-			    name: social
-			  - markdown: { en: "Powered by **words**.", fr: "Propulsé par des **mots**." }
-			  - entry: page/_regions/blurb
-			  - view: partials/hello
-			    name: { en: friend, fr: ami }
-			  - directive: callout
-			    variant: info
-			  - component: site/badge
-			    text: { en: New, fr: Nouveau }
-			  - view: partials/missing
-			YAML);
+		$this->writeTemporaryFile('user/data/menus/social.json', '[{"url":"https://example.org/","label":"Example"},{"entry":"page/about"}]');
+		$this->writeTemporaryFile('user/data/regions/footer.json', <<<'JSON'
+			{
+				"items": [
+					{
+						"directive": "menu",
+						"name": "social"
+					},
+					{
+						"markdown": {
+							"en": "Powered by **words**.",
+							"fr": "Propulsé par des **mots**."
+						}
+					},
+					{
+						"entry": "page/_regions/blurb"
+					},
+					{
+						"view": "partials/hello",
+						"name": {
+							"en": "friend",
+							"fr": "ami"
+						}
+					},
+					{
+						"directive": "callout",
+						"variant": "info"
+					},
+					{
+						"component": "site/badge",
+						"text": {
+							"en": "New",
+							"fr": "Nouveau"
+						}
+					},
+					{
+						"view": "partials/missing"
+					}
+				]
+			}
+			JSON);
 		$this->themeView('partials/hello.php', "<?php declare(strict_types=1); ?><p class=\"hello\">Hello, <?= e(\$name) ?>.</p>");
 		$this->themeView('components/site-badge.php', '<span <?= $component->attributes() ?>><?= e($component->prop("text")) ?></span>');
 
@@ -121,7 +147,7 @@ final class RegionsTest extends TestCase
 
 		$this->assertStringContainsString('<p>Theme default.</p>', $this->page($this->app(), '/about'));
 
-		$this->writeTemporaryFile('user/data/regions/bottom.yaml', "- markdown: Site text.\n");
+		$this->writeTemporaryFile('user/data/regions/bottom.json', '[{"markdown":"Site text."}]');
 		$this->writeTemporaryFile('user/data/theme.json', '{"regions": {"footer": "bottom"}}');
 
 		$html = $this->page($this->app(), '/about');
@@ -132,16 +158,33 @@ final class RegionsTest extends TestCase
 
 	public function testChecksRegions(): void
 	{
-		$this->writeTemporaryFile('user/data/regions/footer.yaml', <<<'YAML'
-			- markdown: Fine.
-			- markdown: [1, 2]
-			- component: "../x"
-			- directive: "acme/"
-			- view: partials/a
-			  entry: page/about
-			- nothing: here
-			YAML);
-		$this->writeTemporaryFile('user/data/regions/aside.yaml', '{"$schema": "region.schema.json", "items": [], "title": "x"}');
+		$this->writeTemporaryFile('user/data/regions/footer.json', <<<'JSON'
+			[
+				{
+					"markdown": "Fine."
+				},
+				{
+					"markdown": [
+						1,
+						2
+					]
+				},
+				{
+					"component": "../x"
+				},
+				{
+					"directive": "acme/"
+				},
+				{
+					"view": "partials/a",
+					"entry": "page/about"
+				},
+				{
+					"nothing": "here"
+				}
+			]
+			JSON);
+		$this->writeTemporaryFile('user/data/regions/aside.json', '{"$schema":"region.schema.json","items":[],"title":"x"}');
 
 		$app      = $this->app();
 		$problems = $app->container()->make(Regions::class)->check($app->container()->make(ThemeResolver::class)->active());

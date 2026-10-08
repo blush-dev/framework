@@ -83,17 +83,18 @@ final class ExtensionNamespacesTest extends TestCase
 		$this->assertFalse(ExtensionNamespace::isReserved('app'), 'The site has no namespace of its own (D-617).');
 	}
 
-	public function testManifestsAreJsonOrYamlMaps(): void
+	public function testManifestsAreJsonMaps(): void
 	{
 		$this->writeTemporaryFile('one/plugin.json', '{"name": "acme/one"}');
-		$this->writeTemporaryFile('one/plugin.yaml', 'name: acme/yaml');
-		$this->writeTemporaryFile('two/icons.yml', '- a list');
+		$this->writeTemporaryFile('two/icons.yaml', 'name: acme/yaml');
+		$this->writeTemporaryFile('two/icons.json', '["a list"]');
 
-		$files = ManifestFile::find($this->temporaryDirectory() . '/one', ExtensionKind::Plugin);
+		$file = ManifestFile::find($this->temporaryDirectory() . '/one', ExtensionKind::Plugin);
 
-		$this->assertSame(['plugin.json', 'plugin.yaml'], array_map(basename(...), $files));
-		$this->assertSame(['name' => 'acme/one'], ManifestFile::read($files[0]));
-		$this->assertSame([], ManifestFile::find($this->temporaryDirectory() . '/one', ExtensionKind::Theme));
+		$this->assertSame($this->temporaryDirectory() . '/one/plugin.json', $file);
+		$this->assertSame(['name' => 'acme/one'], ManifestFile::read((string) $file));
+		$this->assertNull(ManifestFile::find($this->temporaryDirectory() . '/one', ExtensionKind::Theme));
+		$this->assertSame($this->temporaryDirectory() . '/two/icons.json', ManifestFile::find($this->temporaryDirectory() . '/two', ExtensionKind::IconPack), 'Manifests are JSON only (D-631).');
 
 		$this->writeTemporaryFile('three/theme.json', '{}');
 
@@ -101,7 +102,7 @@ final class ExtensionNamespacesTest extends TestCase
 
 		$this->expectException(ExtensionException::class);
 
-		ManifestFile::read($this->temporaryDirectory() . '/two/icons.yml');
+		ManifestFile::read($this->temporaryDirectory() . '/two/icons.json');
 	}
 
 	public function testTwoPluginsCantShareANamespace(): void

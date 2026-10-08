@@ -88,7 +88,7 @@ final class AdminPeopleTest extends TestCase
 	 */
 	private function profiles(): void
 	{
-		$this->writeTemporaryFile('user/data/types/post.yaml', "folder: _posts\n");
+		$this->writeTemporaryFile('user/data/types/post.json', '{"folder": "_posts"}');
 		$this->writeTemporaryFile('user/data/relations/authors.json', '{"kind": "credit", "from": ["post"], "to": ["profile"], "aliases": ["author"], "label": "Authors"}');
 		$this->writeTemporaryFile('user/content/profiles/jane.md', "---\ntitle: Jane Author\nsubtitle: Food editor\nid: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e71\n---\nWrites.\n");
 		$this->writeTemporaryFile('user/content/profiles/gwen.md', "---\ntitle: Gwen Guest\nstatus: draft\n---\n");

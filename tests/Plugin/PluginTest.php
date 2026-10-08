@@ -235,20 +235,23 @@ final class PluginTest extends TestCase
 		$this->assertStringContainsString('is named "ok/other"; an extension\'s folder is its name, so move it to bad13/ok/other.', self::finder($this->temporaryDirectory() . '/bad13', $this->temporaryDirectory())->find()->broken[0]->reason ?? '');
 	}
 
-	public function testReadsYamlManifestsAndJsonWins(): void
+	public function testReadsManifests(): void
 	{
-		$this->writeTemporaryFile('plugins/acme/gallery/plugin.yaml', <<<'YAML'
-			name: acme/gallery
-			label: Gallery
-			namespace: gallery
-			version: 1.0.0
-			provider: Acme\Gallery\GalleryServiceProvider
-			autoload:
-			  psr-4:
-			    Acme\Gallery\: src/
-			YAML);
+		$this->writeTemporaryFile('plugins/acme/gallery/plugin.json', <<<'JSON'
+			{
+				"name": "acme/gallery",
+				"label": "Gallery",
+				"namespace": "gallery",
+				"version": "1.0.0",
+				"provider": "Acme\\Gallery\\GalleryServiceProvider",
+				"autoload": {
+					"psr-4": {
+						"Acme\\Gallery\\": "src/"
+					}
+				}
+			}
+			JSON);
 		$this->writeTemporaryFile('plugins/acme/json/plugin.json', '{"name": "acme/json", "label": "JSON", "namespace": "json", "provider": "A\\\\B"}');
-		$this->writeTemporaryFile('plugins/acme/json/plugin.yml', "name: acme/yaml\nlabel: YAML\nnamespace: yaml\nprovider: A\\B\n");
 		$this->writeTemporaryFile('plugins/acme/none/readme.md', 'No manifest.');
 		$this->writeTemporaryFile('plugins/acme/old/extension.json', '{"name": "acme/old", "label": "Old", "namespace": "old", "provider": "A\\\\B"}');
 		$this->writeTemporaryFile('plugins/.install-123/acme/plugin.json', '{"name": "acme/hidden", "label": "Hidden", "namespace": "hidden", "provider": "A\\\\B"}');
@@ -262,9 +265,9 @@ final class PluginTest extends TestCase
 		$this->assertSame(['Acme\Gallery\\' => 'src/'], $manifests[0]->autoload->psr4);
 	}
 
-	public function testInvalidYamlManifestsAreBroken(): void
+	public function testManifestsThatArentMapsAreBroken(): void
 	{
-		$this->writeTemporaryFile('bad/acme/ext/plugin.yaml', "- a list\n- not a map\n");
+		$this->writeTemporaryFile('bad/acme/ext/plugin.json', '["a list","not a map"]');
 
 		$this->assertCount(1, self::finder($this->temporaryDirectory() . '/bad')->find()->broken);
 	}

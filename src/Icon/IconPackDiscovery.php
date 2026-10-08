@@ -26,7 +26,7 @@ use Blush\Support\ComposerPackages;
  * Finds every installed icon pack (D-378): Composer packages of type
  * `blush-icons` (the manifest is the `icons.json` in the package, if it
  * has one, and its name is the package's) and folders in
- * `extensions/{vendor}/{name}` holding an `icons.json` (or `.yaml`) or a
+ * `extensions/{vendor}/{name}` holding an `icons.json` or a
  * `composer.json` of type `blush-icons`, whose name must be the folder's
  * (D-418, D-432). What a manifest leaves out it takes from its
  * `composer.json`: Blush's keys from `extra.blush`, and the keys it

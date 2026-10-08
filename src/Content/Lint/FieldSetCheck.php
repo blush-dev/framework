@@ -120,9 +120,6 @@ final readonly class FieldSetCheck
 	 */
 	private function dataFile(string $name): string
 	{
-		$directory = $this->paths->data . '/' . FieldSetLoader::DATA_DIRECTORY;
-		$file      = array_find(['json', 'yaml', 'yml'], static fn (string $extension): bool => is_file("{$directory}/{$name}.{$extension}"));
-
-		return $this->paths->relative("{$directory}/{$name}" . ($file === null ? '' : ".{$file}"));
+		return $this->paths->relative("{$this->paths->data}/" . FieldSetLoader::DATA_DIRECTORY . "/{$name}.json");
 	}
 }

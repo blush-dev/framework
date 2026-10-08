@@ -14,7 +14,7 @@ declare(strict_types=1);
 namespace Blush\Menu;
 
 /**
- * A site menu as its data file (`user/data/menus/{name}.yaml`, D-199)
+ * A site menu as its data file (`user/data/menus/{name}.json`, D-199)
  * holds it: its own label (text or a locale map) and its raw items, which
  * `Menus` resolves for a location. Problems with the file's shape are
  * kept for `menu:list` and `theme:check`.

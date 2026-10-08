@@ -64,8 +64,8 @@ D-431); `autoload` takes `psr-4` and `files`. Its `require` is enforced
 as a plugin's is (D-431): a theme whose chain's requirements aren't met
 can't be activated, and an active one whose requirements stop being met
 falls back to the default theme, whole chain at once.
-With the same name, `extensions/` beats Composer. Any data file may be JSON or YAML, and **JSON wins** if both
-exist (D-032).
+With the same name, `extensions/` beats Composer. Data files are JSON
+only (D-631).
 
 ### `theme.json`
 ```json

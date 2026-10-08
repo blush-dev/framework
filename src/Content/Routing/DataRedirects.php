@@ -22,7 +22,7 @@ use Blush\Routing\Redirect;
 use Blush\Routing\RedirectSource;
 
 /**
- * Redirects from `user/data/redirects.json` (or `.yaml`, D-032), the
+ * Redirects from `user/data/redirects.json`, the
  * site owner's redirect map. Either a map of paths to targets, where a
  * target may be a map with a `status`:
  *

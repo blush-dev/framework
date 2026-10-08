@@ -37,7 +37,7 @@ final class FieldSetsTest extends TestCase
 	 */
 	private function recipes(): void
 	{
-		$this->writeTemporaryFile('user/data/types/recipe.yaml', "fields:\n  - name: servings\n    type: number\n");
+		$this->writeTemporaryFile('user/data/types/recipe.json', '{"fields": [{"name": "servings", "type": "number"}]}');
 	}
 
 	private function types(?Application $application = null): ContentTypes
@@ -48,7 +48,7 @@ final class FieldSetsTest extends TestCase
 	public function testASetsFieldsComeAfterTheTypesOwn(): void
 	{
 		$this->recipes();
-		$this->writeTemporaryFile('user/data/fields/kitchen.yaml', "label: In the Kitchen\ntargets: [type:recipe]\nfields:\n  cook_time:\n    type: number\n  oven:\n    type: enum\n    options: [gas, electric]\n");
+		$this->writeTemporaryFile('user/data/fields/kitchen.json', '{"label": "In the Kitchen", "targets": ["type:recipe"], "fields": {"cook_time": {"type": "number"}, "oven": {"type": "enum", "options": ["gas", "electric"]}}}');
 
 		$types  = $this->types();
 		$schema = $types->schema('recipe');
@@ -64,7 +64,7 @@ final class FieldSetsTest extends TestCase
 	public function testSetsAreAttachedInNameOrder(): void
 	{
 		$this->recipes();
-		$this->writeTemporaryFile('user/data/fields/zest.yaml', "targets: type:recipe\nfields: [{name: zest}]\n");
+		$this->writeTemporaryFile('user/data/fields/zest.json', '{"targets": "type:recipe", "fields": [{"name": "zest"}]}');
 		$this->writeTemporaryFile('user/data/fields/apron.json', '{"targets": ["type:recipe"], "fields": [{"name": "apron"}]}');
 
 		$this->assertSame(['servings', 'apron', 'zest'], array_slice(array_keys($this->types()->schema('recipe')->fields), -3));
@@ -73,7 +73,7 @@ final class FieldSetsTest extends TestCase
 	public function testASetCantReuseAFieldsName(): void
 	{
 		$this->recipes();
-		$this->writeTemporaryFile('user/data/fields/kitchen.yaml', "targets: [type:recipe]\nfields: [{name: servings}]\n");
+		$this->writeTemporaryFile('user/data/fields/kitchen.json', '{"targets": ["type:recipe"], "fields": [{"name": "servings"}]}');
 
 		$this->expectException(InvalidContentType::class);
 		$this->expectExceptionMessage('type:recipe can\'t take field set "kitchen": Schema key "servings"');
@@ -83,7 +83,7 @@ final class FieldSetsTest extends TestCase
 
 	public function testASetCantReuseABuiltInFieldsAlias(): void
 	{
-		$this->writeTemporaryFile('user/data/fields/dates.yaml', "targets: [type:page]\nfields: [{name: date}]\n");
+		$this->writeTemporaryFile('user/data/fields/dates.json', '{"targets": ["type:page"], "fields": [{"name": "date"}]}');
 
 		$this->expectException(InvalidContentType::class);
 		$this->expectExceptionMessage('can\'t take field set "dates"');
@@ -110,7 +110,7 @@ final class FieldSetsTest extends TestCase
 		$this->assertSame(FieldSetOrigin::Config, $types->sets->origin('seo'));
 		$this->assertFalse($types->schema('page')->has('noindex'), 'The config\'s set replaces the extension\'s whole.');
 
-		$this->writeTemporaryFile('user/data/fields/seo.yaml', "targets: [type:page]\nfields: [{name: canonical}]\n");
+		$this->writeTemporaryFile('user/data/fields/seo.json', '{"targets": ["type:page"], "fields": [{"name": "canonical"}]}');
 
 		$types = $this->types();
 
@@ -121,14 +121,14 @@ final class FieldSetsTest extends TestCase
 	public function testDataSetsCanBeTurnedOff(): void
 	{
 		$this->writeTemporaryFile('config/fields.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn new Blush\\Field\\FieldConfig(dataSets: false);\n");
-		$this->writeTemporaryFile('user/data/fields/seo.yaml', "targets: [type:page]\nfields: [{name: canonical}]\n");
+		$this->writeTemporaryFile('user/data/fields/seo.json', '{"targets": ["type:page"], "fields": [{"name": "canonical"}]}');
 
 		$this->assertSame([], $this->types()->sets->all());
 	}
 
 	public function testADataSetIsNamedAfterItsFile(): void
 	{
-		$this->writeTemporaryFile('user/data/fields/seo.yaml', "name: search\ntargets: [type:page]\n");
+		$this->writeTemporaryFile('user/data/fields/seo.json', '{"name": "search", "targets": ["type:page"]}');
 
 		$this->expectException(InvalidContentType::class);
 		$this->expectExceptionMessage('user/data/fields/seo names the field set "search"; a data set is named after its file.');
@@ -138,7 +138,7 @@ final class FieldSetsTest extends TestCase
 
 	public function testAnInvalidSetNamesItsFile(): void
 	{
-		$this->writeTemporaryFile('user/data/fields/seo.yaml', "targets: [type:page]\nfields: [{name: x, type: nope}]\n");
+		$this->writeTemporaryFile('user/data/fields/seo.json', '{"targets": ["type:page"], "fields": [{"name": "x", "type": "nope"}]}');
 
 		$this->expectException(InvalidContentType::class);
 		$this->expectExceptionMessage('user/data/fields/seo: Field set "seo": Field "x" has an unknown type "nope".');
@@ -148,7 +148,7 @@ final class FieldSetsTest extends TestCase
 
 	public function testATargetThatIsntThereIsLeftAlone(): void
 	{
-		$this->writeTemporaryFile('user/data/fields/shop.yaml', "targets: [type:product]\nfields: [{name: price, type: number}]\n");
+		$this->writeTemporaryFile('user/data/fields/shop.json', '{"targets": ["type:product"], "fields": [{"name": "price", "type": "number"}]}');
 
 		$types = $this->types();
 
@@ -159,7 +159,7 @@ final class FieldSetsTest extends TestCase
 	public function testSetsAreCompiledWithTheTypes(): void
 	{
 		$this->recipes();
-		$this->writeTemporaryFile('user/data/fields/kitchen.yaml', "targets: [type:recipe]\nfields: [{name: oven, type: enum, options: [gas, electric], control: radios}]\n");
+		$this->writeTemporaryFile('user/data/fields/kitchen.json', '{"targets": ["type:recipe"], "fields": [{"name": "oven", "type": "enum", "options": ["gas", "electric"], "control": "radios"}]}');
 
 		$application = $this->scratchApplication();
 		$types       = $this->types($application);

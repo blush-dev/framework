@@ -208,7 +208,7 @@ final class AccountsTest extends TestCase
 	{
 		$this->writeTemporaryFile('user/content/profiles/jane.md', "---\ntitle: Jane\n---\n");
 		$this->writeTemporaryFile('user/content/_posts/credited.md', "---\ntitle: Credited\nauthors: lee\n---\n");
-		$this->writeTemporaryFile('user/data/types/post.yaml', "folder: _posts\n");
+		$this->writeTemporaryFile('user/data/types/post.json', '{"folder": "_posts"}');
 
 		$this->assertTrue($this->accounts()->hasAuthorPage('jane'));
 		$this->assertFalse($this->accounts()->hasAuthorPage('lee'), 'Credited with no file isn\'t a profile (D-584).');

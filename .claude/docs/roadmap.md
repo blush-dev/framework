@@ -846,7 +846,9 @@ YAML extension manifests (D-058), now that the data loader exists.
   interfaces (D-080).
 - `Blush\Data`: `YamlParser` (+ Symfony adapter), `DataParser` with JSON and
   YAML parsers, `DataFormat` enum, registry and registrar, and `DataLoader`
-  (by name, JSON wins, reports shadowed files) (D-032).
+  (by name, JSON wins, reports shadowed files) (D-032). Since D-631,
+  data is JSON only: `YamlParser` is front matter's alone, and the rest
+  is gone.
 - `Blush\Markdown`: `MarkdownParser` (+ CommonMark adapter), `MarkdownConfig`
   (options, extensions, inline parsers), and the
   `MarkdownEnvironmentBuilding` event.

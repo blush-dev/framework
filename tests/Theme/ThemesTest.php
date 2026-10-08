@@ -69,7 +69,24 @@ final class ThemesTest extends TestCase
 	{
 		$this->writeTemporaryFile('extensions/acme/parent/theme.json', '{"name": "acme/parent", "label": "Parent", "namespace": "parent", "version": "1.0.0", "styles": ["css/parent.css"]}');
 		$this->writeTemporaryFile('extensions/acme/parent/css/parent.css', 'body { color: red; }');
-		$this->writeTemporaryFile('extensions/acme/child/theme.yaml', "name: acme/child\nlabel: Child\nnamespace: child\nparent: acme/parent\nstyles: [style.css, css/parent.css]\nsettings: {dark: {type: bool, default: true}}\n");
+		$this->writeTemporaryFile('extensions/acme/child/theme.json', <<<'JSON'
+			{
+				"name": "acme/child",
+				"label": "Child",
+				"namespace": "child",
+				"parent": "acme/parent",
+				"styles": [
+					"style.css",
+					"css/parent.css"
+				],
+				"settings": {
+					"dark": {
+						"type": "bool",
+						"default": true
+					}
+				}
+			}
+			JSON);
 		$this->writeTemporaryFile('extensions/acme/child/style.css', 'body {}');
 	}
 
@@ -118,7 +135,7 @@ final class ThemesTest extends TestCase
 	{
 		$this->writeThemes();
 		$this->writeTemporaryFile('extensions/acme/parent/theme.json', '{"name": "acme/parent", "label": "Parent", "namespace": "parent", "bleed": {"wide": "stretch-wide", "full": "stretch-full"}}');
-		$this->writeTemporaryFile('extensions/acme/child/theme.yaml', "name: acme/child\nlabel: Child\nnamespace: child\nparent: acme/parent\nbleed: {full: edge}\n");
+		$this->writeTemporaryFile('extensions/acme/child/theme.json', '{"name":"acme/child","label":"Child","namespace":"child","parent":"acme/parent","bleed":{"full":"edge"}}');
 
 		$themes = $this->themes();
 
@@ -138,7 +155,7 @@ final class ThemesTest extends TestCase
 		$this->assertSame("/themes/acme/parent/css/parent.css?v={$hash}", $assets->url('css/parent.css'));
 		$this->assertStringStartsWith('/themes/acme/child/style.css?v=', (string) $assets->url('style.css'));
 		$this->assertNull($assets->url('missing.css'));
-		$this->assertNull($assets->url('theme.yaml'));
+		$this->assertNull($assets->url('theme.json'));
 		$this->assertNull($chain->asset('views/layouts/base.php'));
 		$this->assertTrue(ThemeChain::isServable('fonts/a.woff2'));
 		$this->assertFalse(ThemeChain::isServable('views/x.css'));
@@ -296,7 +313,7 @@ final class ThemesTest extends TestCase
 		$this->assertSame('sandbox', $svg->getHeaderLine('Content-Security-Policy'));
 		$this->assertSame(200, $this->get($app, '/themes/blush/default/style.css')->getStatusCode());
 
-		foreach (['/themes/acme/child/views/single.php', '/themes/acme/child/theme.yaml', '/themes/acme/child/missing.css', '/themes/acme/nope/style.css', '/themes/nope/style.css', '/themes/acme/child/css/parent.css'] as $uri) {
+		foreach (['/themes/acme/child/views/single.php', '/themes/acme/child/theme.json', '/themes/acme/child/missing.css', '/themes/acme/nope/style.css', '/themes/nope/style.css', '/themes/acme/child/css/parent.css'] as $uri) {
 			$this->assertSame(404, $this->get($app, $uri)->getStatusCode(), $uri);
 		}
 	}

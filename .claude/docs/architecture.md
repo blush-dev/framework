@@ -129,12 +129,9 @@ This is the design for the Blush 2 subsystems. Decisions it relies on are in
   anything the admin writes) is data files under `user/data/`, and theme
   manifests are data files too.
 - **`DataLoader`** (`Blush\Data`, M4a, D-085): reads a data file by name
-  without its extension, through `DataParserRegistry` (keyed by extension,
-  enum + registry, D-019). JSON, YAML, and YML are built in (D-032). If
-  several exist, JSON wins and `shadowed()` lists the others for `doctor`.
-  `loadAll()` reads a whole directory. The admin only writes JSON.
-- **`YamlParser`:** the Symfony adapter returns plain data only, with
-  timestamps as strings (D-080).
+  without its extension. Data files are JSON only (D-631, superseding
+  D-032's JSON or YAML and its parser registry); the only YAML Blush
+  reads is front matter. `loadAll()` reads a whole directory.
 - **Schema validation:** data files have schemas (the same field-type system as
   content). JSON Schemas are published for editor autocomplete.
 - **Editor JSON Schemas (D-206):** `Blush\JsonSchema\JsonSchemas` builds
@@ -146,8 +143,8 @@ This is the design for the Blush 2 subsystems. Decisions it relies on are in
   Manifests and items are open; menu and region files are closed, like
   their loaders. `entry.schema.json` is the built-in front matter, from
   `Field::valueSchema()` and `Schema::jsonSchema()` (D-211). Sites reach
-  them through `vendor/` (a `$schema` key or
-  YAML comment, or the skeleton's `.vscode/settings.json`). Other data
+  them through `vendor/` (a `$schema` key, or the skeleton's
+  `.vscode/settings.json`). Other data
   files come later.
 
 ## Menus and regions (D-199 to D-204)
@@ -442,7 +439,7 @@ Implemented in M4a (D-083, D-084); kinds and option names from D-157.
   until `TaxonomyMigration` (`content:taxonomies --write`, Site Health)
   rewrites it.
 - **Sources, one model** (D-042, D-083): built-ins, extension
-  `ContentTypeSource`s, and data types (`user/data/types/*.json|yaml`,
+  `ContentTypeSource`s, and data types (`user/data/types/*.json`,
   edited in the admin, D-311); config defines none (D-617).
   Relation definitions load with them (`RelationLoader`: extension
   `RelationSource`s and
@@ -529,9 +526,10 @@ Implemented in M4a (D-080, D-085, D-086).
   a `.md` file (`FilesystemStorage::EXTENSION`), and `FilesystemSource`
   and `FilesystemWriter` read and write only those; `FormatCheck` has
   `content:lint` report files in the formats read before D-501.
-- **Front matter:** YAML behind the `YamlParser` interface, split off by
-  `FrontMatter` (1.x's `---` rules). It starts with a temporary adapter
-  (symfony/yaml, objects refused, timestamps as strings); a small in-house
+- **Front matter:** YAML behind the `YamlParser` interface
+  (`Blush\Content\Parser`, D-631), split off by `FrontMatter` (1.x's
+  `---` rules). It starts with a temporary adapter (symfony/yaml,
+  objects refused, timestamps as strings, D-080); a small in-house
   YAML-subset parser is the long-term plan (D-006).
 - **Markdown:** behind the `MarkdownParser` interface (`Blush\Markdown`).
   It starts with a CommonMark adapter (`CommonMarkParser`), with an
@@ -751,12 +749,11 @@ Implemented in M4c (D-099), apart from image derivatives.
   kind's schema from the built-in fields (`alt` for images, then
   `title`, `caption`, `credit`, `description` for all), then the field
   sets aimed at the kind (`media:{kind}`, D-341). Values are
-  stored in `user/data/media/`, mirroring the media paths (`{path}.yml`),
+  stored in `user/data/media/`, mirroring the media paths (`{path}.json`, D-631),
   never next to the file, as
   `MediaMetadata` (values by key), read and written by
   `MediaMetadataStore` (only the keys changed, under the name or alias
-  in use; YAML edited key by key with `YamlMap`, JSON kept JSON, an
-  empty file removed). `GET media/{path}` answers the fields, values,
+  in use, an empty file removed). `GET media/{path}` answers the fields, values,
   other keys, and violations; `PATCH media/{path}` sets and removes
   fields, checked by their fields. Pages use the library's alt text
   where an image has none (D-270); captions fill in on insert only.
@@ -1256,8 +1253,8 @@ of a few **kinds** (`Extension\ExtensionKind`): **plugins**, **themes**,
 and **icon packs**; **admin themes** are planned on the same pieces.
 
 - **Shared by every kind** (`Blush\Extension`): a manifest named for its
-  kind (`plugin.json`, `theme.json`, `icons.json`, or `.yaml`/`.yml`;
-  `ManifestFile`, JSON wins), one folder for every kind,
+  kind (`plugin.json`, `theme.json`, `icons.json`; `ManifestFile`,
+  JSON only, D-631), one folder for every kind,
   `extensions/{vendor}/{name}` (D-418; `LocalExtensions` finds a kind's
   folders, `LocalExtension` reads one, and a folder claiming two kinds
   is broken for each), a Composer package type per kind

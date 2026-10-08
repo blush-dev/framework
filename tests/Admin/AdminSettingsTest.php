@@ -369,7 +369,7 @@ final class AdminSettingsTest extends TestCase
 
 	public function testSavesSettingsOverTheConfig(): void
 	{
-		$this->writeTemporaryFile('user/data/types/post.yaml', "folder: posts\n");
+		$this->writeTemporaryFile('user/data/types/post.json', '{"folder": "posts"}');
 		$this->boot(roles: ['administrator'], environment: ['APP_NAME' => 'Notes']);
 		$this->login();
 
@@ -406,7 +406,7 @@ final class AdminSettingsTest extends TestCase
 
 	public function testFieldSetsAddSettings(): void
 	{
-		$this->writeTemporaryFile('user/data/fields/brand.yaml', "label: Brand\ndescription: How the site presents itself.\ntargets: [settings:general]\nfields:\n  tagline:\n    required: true\n  accent:\n    type: enum\n    options: [red, blue]\n    default: blue\n");
+		$this->writeTemporaryFile('user/data/fields/brand.json', '{"label": "Brand", "description": "How the site presents itself.", "targets": ["settings:general"], "fields": {"tagline": {"required": true}, "accent": {"type": "enum", "options": ["red", "blue"], "default": "blue"}}}');
 		$this->boot(roles: ['administrator']);
 		$this->login();
 
@@ -439,7 +439,7 @@ final class AdminSettingsTest extends TestCase
 
 	public function testRefusesValuesThatDontFit(): void
 	{
-		$this->writeTemporaryFile('user/data/types/topic.yaml', "folder: topics\nurls: false\n");
+		$this->writeTemporaryFile('user/data/types/topic.json', '{"folder": "topics", "urls": false}');
 		$this->boot(roles: ['administrator']);
 		$this->login();
 
@@ -476,7 +476,7 @@ final class AdminSettingsTest extends TestCase
 
 	public function testCompilingLeavesTheSettingsOut(): void
 	{
-		$this->writeTemporaryFile('user/data/types/post.yaml', "folder: posts\n");
+		$this->writeTemporaryFile('user/data/types/post.json', '{"folder": "posts"}');
 		$this->writeTemporaryFile('user/data/settings.json', '{"app": {"name": "Saved"}}');
 		$bootstrap = new Bootstrap(Paths::fromRoot($this->temporaryDirectory()), ['APP_ENV' => 'production', 'APP_URL' => 'https://example.test', 'APP_NAME' => 'Configured']);
 		$bootstrap->compile();
@@ -487,7 +487,7 @@ final class AdminSettingsTest extends TestCase
 
 	public function testRefreshCompilesWhatASaveCleared(): void
 	{
-		$this->writeTemporaryFile('user/data/types/post.yaml', "folder: posts\n");
+		$this->writeTemporaryFile('user/data/types/post.json', '{"folder": "posts"}');
 		$this->boot(roles: ['administrator'], environment: ['APP_ENV' => 'production']);
 		$this->login();
 		$bootstrap = $this->app->container()->make(Bootstrap::class);

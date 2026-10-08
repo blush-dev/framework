@@ -21,7 +21,7 @@ use Blush\Extension\ManifestFile;
 
 /**
  * Finds local plugins: folders in `extensions/{vendor}/{name}` holding a
- * `plugin.json` (or `plugin.yaml`/`.yml`) manifest (D-378, D-418), or a
+ * `plugin.json` manifest (D-378, D-418), or a
  * `composer.json` of type `blush-plugin`, with Blush's keys under
  * `extra.blush` (D-432):
  *
@@ -40,8 +40,7 @@ use Blush\Extension\ManifestFile;
  * broken. What the manifest leaves out, its `composer.json` may say
  * (Blush's keys under `extra.blush`, and the keys it shares with
  * Composer). Blush autoloads it itself (see
- * `LocalAutoloader`). When a folder has manifests in several formats,
- * JSON wins (D-032). A folder whose manifest doesn't hold is broken,
+ * `LocalAutoloader`). A folder whose manifest doesn't hold is broken,
  * known by its path from the site's root (D-394).
  */
 final readonly class LocalPluginFinder implements PluginFinder
@@ -83,7 +82,7 @@ final readonly class LocalPluginFinder implements PluginFinder
 	 */
 	public static function manifest(string $folder): PluginManifest
 	{
-		$file = ManifestFile::find($folder, ExtensionKind::Plugin)[0] ?? "{$folder}/composer.json";
+		$file = ManifestFile::find($folder, ExtensionKind::Plugin) ?? "{$folder}/composer.json";
 
 		return self::build(ManifestFile::load($folder, ExtensionKind::Plugin), $folder, $file);
 	}

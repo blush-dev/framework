@@ -121,7 +121,7 @@ final readonly class TaxonomyMigration
 		}
 
 		$this->filesystem->writeAtomic($relationPath, $json);
-		$this->filesystem->writeAtomic($typePath, DataFileKeys::edit($typePath, $before, $sets));
+		$this->filesystem->writeAtomic($typePath, DataFileKeys::edit($before, $sets));
 
 		try {
 			($this->loader)()->load();

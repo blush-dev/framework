@@ -707,7 +707,7 @@ final class AdminEditingTest extends TestCase
 
 	public function testDescribesTheFieldSetsAttachedToTheType(): void
 	{
-		$this->writeTemporaryFile('user/data/fields/feelings.yaml', "description: How it felt to write.\ntargets: [type:post]\nfields:\n  mood:\n    type: enum\n    options: [hopeful, glum]\n    control: radios\n");
+		$this->writeTemporaryFile('user/data/fields/feelings.json', '{"description": "How it felt to write.", "targets": ["type:post"], "fields": {"mood": {"type": "enum", "options": ["hopeful", "glum"], "control": "radios"}}}');
 		$this->site();
 
 		$entry = $this->load(self::FLAME);

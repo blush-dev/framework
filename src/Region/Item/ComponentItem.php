@@ -24,9 +24,8 @@ use Blush\Translation\LocaleMap;
  * A component (D-532), with the item's other keys as its props (text in
  * them may be locale maps, D-202):
  *
- * ```yaml
- * - component: acme/card
- *   title: Hello
+ * ```json
+ * {"component": "acme/card", "title": "Hello"}
  * ```
  *
  * It renders in the page's context.

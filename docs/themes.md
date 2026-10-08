@@ -83,17 +83,17 @@ admin's **Settings** screens with a [field set](content-types.md#field-sets)
 aimed at one: `settings:general`, `settings:reading`, or
 `settings:search`.
 
-```yaml
-# user/data/fields/brand.yaml
-label: Brand
-targets: [settings:general]
-fields:
-  tagline:
-    label: Tagline
-  accent:
-    type: enum
-    options: [red, blue]
-    default: blue
+`user/data/fields/brand.json`:
+
+```json
+{
+	"label": "Brand",
+	"targets": ["settings:general"],
+	"fields": {
+		"tagline": { "label": "Tagline" },
+		"accent": { "type": "enum", "options": ["red", "blue"], "default": "blue" }
+	}
+}
 ```
 
 The set's fields show as a panel of their own on that screen, and what's
@@ -365,18 +365,8 @@ PhpStorm can suggest keys, show what each one does, and flag mistakes.
 }
 ```
 
-The path is relative to `theme.json`. In a YAML manifest, put it in a
-comment on the first line instead:
-
-```yaml
-# yaml-language-server: $schema=../../../vendor/blush-dev/framework/resources/schemas/theme.schema.json
-name: acme/notebook
-label: Notebook
-namespace: notebook
-```
-
-A new site's `.vscode/settings.json` also maps every
-`extensions/*/*/theme.json` (and `.yaml`) to the schema, so VS Code
+The path is relative to `theme.json`. A new site's `.vscode/settings.json` also maps every
+`extensions/*/*/theme.json` to the schema, so VS Code
 finds it even without `$schema`.
 
 The schema covers the built-in field types. A field type from a plugin
@@ -659,7 +649,7 @@ provider, or `"blush/player": {}` under `assets`.
 ### Translations
 
 A theme's text lives in its `lang/` folder, one catalog per language
-(`en.json`, `fr.json`, `fr_CA.json`; YAML works too), read with
+(`en.json`, `fr.json`, `fr_CA.json`), read with
 `$template->t('key')`. Start each catalog with `@@locale` and `@@domain`,
 which say what it translates: the language, and your theme's name.
 
@@ -680,7 +670,7 @@ Keys that start with `@@` aren't messages, so they never show on a page.
 They let a catalog be recognized on its own, away from its folder, such
 as when it's sent to a translator and back. Every catalog Blush ships
 has them, and plugins and icon packs use them the same way, with their
-own names. In YAML, quote them: `'@@locale': fr`. `theme:check` warns
+own names. `theme:check` warns
 about a catalog whose `@@locale` or `@@domain` doesn't match its file or
 your theme (and, with `--strict`, notes one without them).
 

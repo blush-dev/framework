@@ -23,7 +23,7 @@ namespace Blush\Config;
  *         timezone: 'America/Chicago'
  *     );
  *
- * `fromArray()` builds one from array, JSON, YAML, or env-sourced data, and
+ * `fromArray()` builds one from array, JSON, or env-sourced data, and
  * `toArray()` is its inverse. The pair is also how the merged config is
  * compiled to a PHP file and read back, so `toArray()` must return only
  * scalars, `null`, enum cases, and arrays of those.

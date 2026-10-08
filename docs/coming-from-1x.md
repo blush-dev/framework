@@ -45,16 +45,16 @@ arrays can be passed straight in.
 
 **Content types** move out of config. Put each 1.x type in a data file
 in `user/data/types/`, named after it, with the same keys (or define it
-in a [plugin](extending.md#content-types-from-a-plugin)):
+in a [plugin](extending.md#content-types-from-a-plugin)). Your 1.x type
+carries over unchanged, `date_archives`, `routing`, `feed`, and the rest
+(taxonomies change; see below), as `user/data/types/post.json`:
 
-```yaml
-# user/data/types/post.yaml
-# Your 1.x type, unchanged: date_archives, routing, feed, and the rest
-# (taxonomies change; see below).
-path: _posts
-collection:
-  order: desc
-date_archives: true
+```json
+{
+	"path": "_posts",
+	"collection": { "order": "desc" },
+	"date_archives": true
+}
 ```
 
 Move `home_alias` from `config/app.php` into `config/content.php` as
@@ -72,7 +72,7 @@ return new ContentConfig(home: 'post');
 
 One default changed: a type without a `path` (or `folder`) now lives in
 `_` and its name (`_recipe/`), not a folder named after it. If a 1.x type
-leaves `path` out, add `path: recipe` to keep its folder. Its URLs
+leaves `path` out, add `"path": "recipe"` to keep its folder. Its URLs
 don't change either way.
 
 ### Taxonomies
@@ -92,25 +92,28 @@ So a 1.x type with `taxonomy: true` needs moving:
 - **In a plugin**, it stops Blush from loading, with a message saying
   what to change. Rewrite it by hand.
 
-For example, a 1.x category taxonomy for posts:
+For example, a 1.x category taxonomy for posts, in
+`user/data/types/category.json`:
 
-```yaml
-# user/data/types/category.yaml
-taxonomy: true
-path: _posts/categories
-term_collect: post
-hierarchical: true
+```json
+{
+	"taxonomy": true,
+	"path": "_posts/categories",
+	"term_collect": "post",
+	"hierarchical": true
+}
 ```
 
 becomes a collection ordered by `position`, out of
 `llms.txt`, and a classify relation named after it:
 
-```yaml
-# user/data/types/category.yaml
-path: _posts/categories
-hierarchical: true
-order: position
-llms: false
+```json
+{
+	"path": "_posts/categories",
+	"hierarchical": true,
+	"order": "position",
+	"llms": false
+}
 ```
 
 And in `user/data/relations/category.json`:

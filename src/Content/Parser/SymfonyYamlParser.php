@@ -11,12 +11,13 @@
 
 declare(strict_types=1);
 
-namespace Blush\Data;
+namespace Blush\Content\Parser;
 
 use DateTimeInterface;
 use Override;
 use Symfony\Component\Yaml\Exception\ParseException;
 use Symfony\Component\Yaml\Yaml;
+use Blush\Data\InvalidData;
 
 /**
  * The temporary `YamlParser` adapter over symfony/yaml (D-045, D-080).

@@ -26,8 +26,8 @@ use Blush\Translation\LocaleMap;
  * rendered as an entry's body is, directives included. The HTML is kept
  * in the body cache, per content version and theme.
  *
- * ```yaml
- * - markdown: "Powered by **Blush**."
+ * ```json
+ * {"markdown": "Powered by **Blush**."}
  * ```
  */
 final class MarkdownItem extends RegionItem

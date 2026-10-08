@@ -202,7 +202,8 @@ a worker, the admin, or page visits, with Tools → Jobs (D-621, D-622);
 and a collection's files kept in folders by a pattern in its `folder`
 (`_posts/{year}`, `{month}`, `{initial}`), only where files are kept,
 never part of a key or address (D-629), with profiles and new terms
-kept by initial by default (D-630).
+kept by initial by default (D-630); and data files JSON only, with
+YAML for front matter alone (D-631).
 The Fields
 API (D-337 to D-348: field types and controls, field sets on content
 types, media, and the Settings screens, slots, and Structure → Fields)

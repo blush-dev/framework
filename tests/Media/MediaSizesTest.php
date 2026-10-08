@@ -71,10 +71,10 @@ final class MediaSizesTest extends TestCase
 		$this->png('user/media/2026/lake-small.png', 20, 10);
 		$this->png('user/media/2026/kite.png', 20, 20);
 
-		$this->writeTemporaryFile('user/data/media/2019/photo.png.yml', "alt: A photo\nid: 0199b6e2-7f3a-7c41-9d2e-000000000001\n");
-		$this->writeTemporaryFile('user/data/media/2026/lake.png.yml', "alt: A lake\nsizes:\n  2026/lake-small.png: { width: 20, height: 10 }\nid: 0199b6e2-7f3a-7c41-9d2e-000000000002\n");
-		$this->writeTemporaryFile('user/data/media/2026/lake-small.png.yml', "id: 0199b6e2-7f3a-7c41-9d2e-000000000003\n");
-		$this->writeTemporaryFile('user/data/media/2026/kite.png.yml', "sizes:\n  2026/kite-10x10.png: { width: 10, height: 10 }\nid: 0199b6e2-7f3a-7c41-9d2e-000000000004\n");
+		$this->writeTemporaryFile('user/data/media/2019/photo.png.json', '{"alt": "A photo", "id": "0199b6e2-7f3a-7c41-9d2e-000000000001"}');
+		$this->writeTemporaryFile('user/data/media/2026/lake.png.json', '{"alt": "A lake", "sizes": {"2026/lake-small.png": {"width": 20, "height": 10}}, "id": "0199b6e2-7f3a-7c41-9d2e-000000000002"}');
+		$this->writeTemporaryFile('user/data/media/2026/lake-small.png.json', '{"id": "0199b6e2-7f3a-7c41-9d2e-000000000003"}');
+		$this->writeTemporaryFile('user/data/media/2026/kite.png.json', '{"sizes": {"2026/kite-10x10.png": {"width": 10, "height": 10}}, "id": "0199b6e2-7f3a-7c41-9d2e-000000000004"}');
 
 		$app = $this->scratchApplication();
 		$app->boot();
@@ -118,14 +118,14 @@ final class MediaSizesTest extends TestCase
 
 		$this->assertSame(['2019/photo.png' => ['2019/photo-15x10.png', '2019/photo-30x20.png']], $recorded->images, 'Only the images allowed.');
 		$this->assertSame(
-			"alt: A photo\nsizes:\n  2019/photo-15x10.png: { width: 15, height: 10 }\n  2019/photo-30x20.png: { width: 30, height: 20 }\nid: 0199b6e2-7f3a-7c41-9d2e-000000000001\n",
-			file_get_contents($this->temporaryDirectory() . '/user/data/media/2019/photo.png.yml'),
-			'One to a line, before the id.'
+			['alt' => 'A photo', 'sizes' => ['2019/photo-15x10.png' => ['width' => 15, 'height' => 10], '2019/photo-30x20.png' => ['width' => 30, 'height' => 20]], 'id' => '0199b6e2-7f3a-7c41-9d2e-000000000001'],
+			json_decode((string) file_get_contents($this->temporaryDirectory() . '/user/data/media/2019/photo.png.json'), true),
+			'Before the id.'
 		);
 
 		$sizes->record();
 
-		$this->assertSame("id: 0199b6e2-7f3a-7c41-9d2e-000000000004\n", file_get_contents($this->temporaryDirectory() . '/user/data/media/2026/kite.png.yml'), 'An image with no sizes loses the key.');
+		$this->assertSame(['id' => '0199b6e2-7f3a-7c41-9d2e-000000000004'], json_decode((string) file_get_contents($this->temporaryDirectory() . '/user/data/media/2026/kite.png.json'), true), 'An image with no sizes loses the key.');
 		$this->assertTrue($sizes->report()->isClean());
 
 		$metadata = new MediaMetadata(['alt' => 'A photo', 'sizes' => ['2019/photo-15x10.png' => ['width' => 15, 'height' => 10], 'bad' => 'value']]);
@@ -141,7 +141,7 @@ final class MediaSizesTest extends TestCase
 
 		// Renamed from the rule's shape, so only the list says what it is.
 		rename($this->temporaryDirectory() . '/user/media/2019/photo-30x20.png', $this->temporaryDirectory() . '/user/media/2019/photo-medium.png');
-		$this->writeTemporaryFile('user/data/media/2019/photo.png.yml', "sizes:\n  2019/photo-medium.png: { width: 30, height: 20 }\n  2019/photo-15x10.png: { width: 15, height: 10 }\nid: 0199b6e2-7f3a-7c41-9d2e-000000000001\n");
+		$this->writeTemporaryFile('user/data/media/2019/photo.png.json', '{"sizes": {"2019/photo-medium.png": {"width": 30, "height": 20}, "2019/photo-15x10.png": {"width": 15, "height": 10}}, "id": "0199b6e2-7f3a-7c41-9d2e-000000000001"}');
 
 		$library = $app->container()->make(MediaLibrary::class);
 		$library->refresh(['2019/photo.png']);
@@ -152,14 +152,14 @@ final class MediaSizesTest extends TestCase
 	public function testLintReportsSizes(): void
 	{
 		$app = $this->site();
-		$this->writeTemporaryFile('user/data/media/2019/photo.png.yml', "sizes: [one, two]\nid: 0199b6e2-7f3a-7c41-9d2e-000000000001\n");
+		$this->writeTemporaryFile('user/data/media/2019/photo.png.json', '{"sizes": ["one", "two"], "id": "0199b6e2-7f3a-7c41-9d2e-000000000001"}');
 
 		[, $violations] = $app->container()->make(MediaMetadataCheck::class)->check();
 		$messages       = array_map(static fn (array $list): array => array_map(static fn (Violation $violation): string => "{$violation->severity->value} {$violation}", $list), array_filter($violations));
 
-		$this->assertSame(['error sizes: isn\'t a map of each size\'s file to its width and height; record them again with media:sizes --write.'], $messages['user/data/media/2019/photo.png.yml'] ?? null);
-		$this->assertSame(['warning sizes: lists user/media/2026/kite-10x10.png, which isn\'t one of its sizes (it\'s gone, or another image\'s); record them again with media:sizes --write, or on Site Health in the admin.'], $messages['user/data/media/2026/kite.png.yml'] ?? null);
-		$this->assertSame(['warning file: describes user/media/2026/lake-small.png, a size of user/media/2026/lake.png, whose details are read instead; move these there, or give this file an id of its own to keep it apart.'], $messages['user/data/media/2026/lake-small.png.yml'] ?? null);
+		$this->assertSame(['error sizes: isn\'t a map of each size\'s file to its width and height; record them again with media:sizes --write.'], $messages['user/data/media/2019/photo.png.json'] ?? null);
+		$this->assertSame(['warning sizes: lists user/media/2026/kite-10x10.png, which isn\'t one of its sizes (it\'s gone, or another image\'s); record them again with media:sizes --write, or on Site Health in the admin.'], $messages['user/data/media/2026/kite.png.json'] ?? null);
+		$this->assertSame(['warning file: describes user/media/2026/lake-small.png, a size of user/media/2026/lake.png, whose details are read instead; move these there, or give this file an id of its own to keep it apart.'], $messages['user/data/media/2026/lake-small.png.json'] ?? null);
 		$this->assertArrayNotHasKey('user/media/2026/lake-small.png', $messages, 'A recorded size needs no id.');
 	}
 
