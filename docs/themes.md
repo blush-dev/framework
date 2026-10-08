@@ -4,8 +4,10 @@ A theme controls how your site looks. It never owns your content or your
 URLs, so you can switch themes at any time without breaking anything.
 
 Blush ships with a **default theme**: plain, accessible, light and dark,
-with no build step. Every other theme builds on it, so a theme only has to
-include what it changes.
+with no build step. A theme is expected to include its own templates;
+anything it leaves out comes from Blush's own plain versions, not from
+the default theme. To build on the default theme, name it as your
+theme's `parent`.
 
 There are three ways to change how your site looks, from least to most
 work:
@@ -171,9 +173,25 @@ extensions/acme/notebook/
 `--label`, `--namespace`, and `--parent` (another theme's name) set those
 instead of the defaults.
 
-Every template your theme doesn't include comes from the default theme.
-Its **stylesheet** doesn't, though: only the active theme's `styles` are
-loaded, so your `style.css` starts from a blank page. Copy the default
+Every template your theme doesn't include comes from its parent, if it
+has one, and last from Blush's own templates. Those are plain on
+purpose:
+
+- **`layouts/base`** is the page skeleton: the `<head>`
+  (`$template->head()`), a skip link, the page in `<main id="main">`,
+  and the end of the body (`$template->foot()`). It has no site header
+  or footer, so most themes include their own `layouts/base.php`.
+  `bin/blush theme:check --strict` notes a theme without one.
+- **`single`, `collection`, and `error`**, with the parts `entries`,
+  `entry-summary`, `entry-meta`, and `pagination`, are bare HTML, so a
+  page still shows when your theme doesn't have a template for it.
+- **The welcome page, feeds, and sitemaps** are Blush's, and your theme
+  can replace any of them.
+
+To start from the default theme's design instead, make it your theme's
+parent (`bin/blush theme:new acme/notebook --parent=blush/default`).
+Its **stylesheet** still isn't loaded: only the active theme's `styles`
+are, so your `style.css` starts from a blank page. Copy the default
 theme's `style.css` in as a starting point if you like.
 
 A full theme can have:
@@ -859,13 +877,14 @@ type has no term pages).
 
 The welcome page shows until `user/content/index.md` exists. Its
 content (the next steps, and, outside production, any problems
-`bin/blush doctor` would report) is the default theme's
+`bin/blush doctor` would report) is Blush's own
 `partials/welcome` part, so a theme's own `welcome` view can wrap it in
 its markup with `$template->include('partials/welcome')`.
 
 An entry's `template` front matter is always tried first. Feeds
 (`feed-rss`, `feed-atom`, `feed-json`) and sitemaps (`sitemap`,
-`sitemap-index`) are templates too, if you need to change them.
+`sitemap-index`) are templates too, Blush's own unless your theme has
+them, if you need to change them.
 
 ### Directives and components
 
@@ -1018,8 +1037,9 @@ Give each a label (and a description, if you like) in your theme's
 ```
 
 The default theme offers `inline-left` (Float Left) and `inline-right`
-(Float Right), and styles them. They're only offered while it's the active theme, since
-another theme's stylesheet may not style them; list the ones yours does.
+(Float Right), and styles them. They're only offered while it's the active theme, not
+when it's a parent, since another theme's stylesheet may not style them;
+list the ones yours does.
 `theme:check` notes an image variant without a label.
 
 ### Building assets with Vite

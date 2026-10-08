@@ -53,7 +53,7 @@ final class ThemedRenderingTest extends TestCase
 
 	private function childTheme(): void
 	{
-		$this->writeTemporaryFile('extensions/acme/child/theme.json', '{"name": "acme/child", "label": "Child", "namespace": "child", "styles": ["style.css", "extra.css"], "scripts": ["app.js"], "preload": ["fonts/body.woff2"]}');
+		$this->writeTemporaryFile('extensions/acme/child/theme.json', '{"name": "acme/child", "label": "Child", "namespace": "child", "parent": "blush/default", "styles": ["style.css", "extra.css"], "scripts": ["app.js"], "preload": ["fonts/body.woff2"]}');
 		$this->writeTemporaryFile('extensions/acme/child/extra.css', '');
 		$this->writeTemporaryFile('extensions/acme/child/fonts/body.woff2', 'font');
 		$this->writeTemporaryFile('extensions/acme/child/app.js', '');
@@ -94,6 +94,25 @@ final class ThemedRenderingTest extends TestCase
 		$this->assertStringContainsString('<body class="is-date type-post">', $this->body('/archives/2008/04', $app));
 		$this->assertStringContainsString('<h1 class="entry__title">Biography</h1>', $this->body('/about/biography', $app));
 		$this->assertStringContainsString('<h1 class="archive-header__title">Blog</h1>', $home);
+	}
+
+	public function testAThemeWithoutViewsRendersInTheFrameworksOwn(): void
+	{
+		$this->standardContent();
+		$this->writeTemporaryFile('extensions/acme/bare/theme.json', '{"name": "acme/bare", "label": "Bare", "namespace": "bare"}');
+		$this->activeTheme('acme/bare');
+
+		$app    = $this->site();
+		$single = $this->body('/archives/spring', $app);
+
+		$this->assertStringContainsString('<html lang="en-US" dir="ltr">', $single);
+		$this->assertStringContainsString('<a href="#main">Skip to content</a>', $single, 'The skeleton\'s skip link, in the framework\'s words (D-632).');
+		$this->assertStringContainsString('<main id="main" tabindex="-1">', $single);
+		$this->assertStringContainsString('<h1>spring</h1>', $single);
+		$this->assertStringNotContainsString('blush/default', $single, 'The default theme isn\'t in the chain.');
+		$this->assertStringNotContainsString('site-header', $single);
+		$this->assertStringContainsString('<h1>Art</h1>', $this->body('/topics/art', $app));
+		$this->assertStringContainsString('Page not found', $this->body('/nope', $app));
 	}
 
 	public function testLaterPagesOfAListingAreNumberedAndTitledByPage(): void

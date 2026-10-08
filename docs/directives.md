@@ -812,9 +812,8 @@ Without a label, one is made from the name (`recent-posts` becomes
 | A plugin (registered by its provider)     | Adds its directives while it's on. See [Extending Blush](extending.md#plugins). |
 | A theme's `views/directives/`             | Draws directives its own way, while it or a child of it is active               |
 
-The active theme's templates come first, then its parents', then the
-default theme's, and last the directive's own
-`render()`. `bin/blush theme:why directives/callout` shows which file is
+The active theme's templates come first, then its parents', and last
+the directive's own `render()`. `bin/blush theme:why directives/callout` shows which file is
 used and what it overrides; `directive:list` says `(its own)` for a
 directive that no file overrides. To draw a directive your way, make a
 [child theme](themes.md#overriding-templates) of the active one, with

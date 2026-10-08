@@ -172,7 +172,7 @@ final class VariantsTest extends TestCase
 
 		$this->assertSame(['inline-left', 'polaroid'], self::names($variants), 'An invalid name is skipped, and the default theme\'s aren\'t styled here.');
 		$this->assertSame('alt', $variants[0]->registrant);
-		$this->assertSame('Float Left', $views->imageVariantText($variants[0], 'label'), 'The theme catalogs fall back through the chain.');
+		$this->assertNull($views->imageVariantText($variants[0], 'label'), 'The default theme isn\'t in the chain to label it (D-632).');
 		$this->assertSame('A white border.', $views->imageVariantText($variants[1], 'description'));
 
 		$container = $this->app->container();
@@ -185,6 +185,17 @@ final class VariantsTest extends TestCase
 
 		$this->assertSame(['inline-left', 'inline-right'], self::names($default));
 		$this->assertSame('default', $default[1]->registrant);
+
+		$this->writeTemporaryFile('extensions/acme/kid/theme.json', '{"name": "acme/kid", "label": "Kid", "namespace": "kid", "parent": "acme/alt"}');
+		$this->writeTemporaryFile('extensions/acme/heir/theme.json', '{"name": "acme/heir", "label": "Heir", "namespace": "heir", "parent": "blush/default"}');
+
+		$views = $this->boot('acme/kid');
+
+		$this->assertSame(['inline-left', 'polaroid'], self::names($views->imageVariants()), 'A parent\'s variants are kept, the last in a chain too (D-632).');
+		$container = $this->app->container();
+		$heir      = $container->make(ViewFactory::class)->forChain($container->make(Themes::class)->chain('acme/heir'));
+
+		$this->assertSame([], self::names($heir->imageVariants()), 'The default theme\'s only while it\'s active.');
 	}
 
 	public function testAVariantsOwnTemplateWins(): void

@@ -85,9 +85,9 @@ const halves = computed(() => {
 // The themes that fall back to it, as the Dependencies panel lists them.
 const fallingBack = computed(() => deps.value.map((dep) => ({ name: dep.name, label: dep.label, kind: 'theme' as const })));
 
-// The theme it falls back to, by name, and whether it's missing.
-const parentName    = computed(() => theme.value?.parent ?? 'blush/default');
-const missingParent = computed(() => !installed(parentName.value));
+// The theme it falls back to, by name, if any (D-632), and whether it's missing.
+const parentName    = computed(() => theme.value?.parent ?? '');
+const missingParent = computed(() => parentName.value !== '' && !installed(parentName.value));
 
 // What deleting does, and how many themes fall back to this one.
 const deleteNote = computed(() => {
@@ -178,7 +178,7 @@ async function remove(): Promise<void> {
 			</ExtensionFacts>
 
 			<ExtensionDependencies :extension="theme" noun="theme" replaces-hint="It can't run" :as-if-active="!theme.active">
-				<template v-if="theme.source !== 'framework'" #own>
+				<template v-if="parentName !== ''" #own>
 					<section class="panel__section" aria-labelledby="fallback-heading">
 						<div class="panel__section-head"><h3 id="fallback-heading" class="eyebrow">Falls back to</h3><span>Where what it doesn't define comes from</span></div>
 						<ul class="dependencies">
@@ -198,13 +198,10 @@ async function remove(): Promise<void> {
 						</ul>
 					</section>
 				</template>
-				<template v-if="theme.source === 'framework' || deps.length" #others>
+				<template v-if="deps.length" #others>
 					<section class="panel__section" aria-labelledby="fallback-by-heading">
 						<div class="panel__section-head"><h3 id="fallback-by-heading" class="eyebrow">Used as fallback by</h3></div>
-						<ul v-if="theme.source === 'framework'" class="dependencies">
-							<li><AdminIcon name="paintbrush" /><div class="dependencies__ref">Every theme</div></li>
-						</ul>
-						<ExtensionDependents v-else :dependents="fallingBack" />
+						<ExtensionDependents :dependents="fallingBack" />
 					</section>
 				</template>
 			</ExtensionDependencies>

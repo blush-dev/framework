@@ -11,7 +11,7 @@
 			"role": "Developer"
 		}
 	],
-	"description": "The Blush framework default theme: plain, accessible, modern CSS with no build step. Every theme falls back to it.",
+	"description": "The Blush framework default theme: plain, accessible, modern CSS with no build step.",
 	"styles": ["style.css"],
 	"preview": {
 		"layout": "centered",

@@ -61,7 +61,7 @@ final class AdminThemesTest extends TestCase
 		$answer = self::json($this->send('GET', '/themes'));
 
 		$this->assertSame('acme/pocket', $answer['active'] ?? null);
-		$this->assertSame(['acme/pocket', 'acme/notebook', 'blush/default'], $answer['chain'] ?? null);
+		$this->assertSame(['acme/pocket', 'acme/notebook'], $answer['chain'] ?? null);
 		$this->assertTrue($answer['config'] ?? null);
 		$this->assertTrue($answer['preview'] ?? null, 'Previews work in development.');
 

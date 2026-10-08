@@ -203,7 +203,7 @@ final class ThemeSystemTest extends TestCase
 			}
 			PHP);
 		$this->writeTemporaryFile('extensions/acme/pro/views/partials/footer.php', '<footer><?= e($note ?? "no note") ?></footer>');
-		$this->writeTemporaryFile('extensions/acme/base/theme.json', '{"name": "acme/base", "label": "Base", "namespace": "base", "provider": "Missing\\\\Provider"}');
+		$this->writeTemporaryFile('extensions/acme/base/theme.json', '{"name": "acme/base", "label": "Base", "namespace": "base", "parent": "blush/default", "provider": "Missing\\\\Provider"}');
 		$this->activeTheme('acme/pro');
 
 		$this->assertStringContainsString('<footer>Pro note</footer>', $this->get('/'));
@@ -337,7 +337,7 @@ final class ThemeSystemTest extends TestCase
 		$this->assertTrue($assets->isBuilt('src/main.js'));
 		$this->assertFalse($assets->isBuilt('logo.svg'));
 		$this->assertStringStartsWith('/themes/acme/built/logo.svg?v=', (string) $assets->url('logo.svg'));
-		$this->assertStringStartsWith('/themes/blush/default/style.css?v=', (string) $assets->url('style.css'));
+		$this->assertNull($assets->url('style.css'), 'The default theme isn\'t in the chain (D-632).');
 		$this->assertSame([], $assets->css('logo.svg'));
 
 		$this->writeTemporaryFile('extensions/acme/built/dist/.vite/manifest.json', '{broken');

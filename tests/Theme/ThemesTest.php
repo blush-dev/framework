@@ -118,17 +118,17 @@ final class ThemesTest extends TestCase
 		$this->assertSame('child', $child->namespace);
 		$this->assertSame(['style.css', 'css/parent.css'], $child->styles);
 		$this->assertSame(['dark' => ['type' => 'bool', 'default' => true]], $child->settings());
-		$this->assertSame(['acme/child', 'acme/parent', 'blush/default'], $chain->names());
-		$this->assertSame(['child', 'parent', 'default'], $chain->namespaces());
-		$this->assertCount(3, $chain);
+		$this->assertSame(['acme/child', 'acme/parent'], $chain->names(), 'The default theme isn\'t added to a chain (D-632).');
+		$this->assertSame(['child', 'parent'], $chain->namespaces());
+		$this->assertCount(2, $chain);
 		$this->assertSame('acme/child', $chain->active()->name);
 		$this->assertSame(['blush/default', 'acme/child', 'acme/parent'], array_keys($themes->all()));
 		$this->assertNull($themes->find('acme/not-a-theme'));
 		$this->assertNull($themes->find('../etc'));
 		$this->assertSame($this->temporaryDirectory() . '/extensions/acme/child/views', $chain->viewDirectories()[0]);
-		$this->assertSame([Framework::path('resources/themes/default/lang')], $chain->langDirectories()['blush/default']);
-		$this->assertSame(['acme/child', 'acme/parent', 'blush/default'], array_keys($chain->langDirectories()), 'Each theme\'s domain is its name (D-451).');
-		$this->assertSame(['child' => 'acme/child', 'parent' => 'acme/parent', 'default' => 'blush/default'], $chain->namespaceDomains());
+		$this->assertSame([$this->temporaryDirectory() . '/extensions/acme/parent/lang'], $chain->langDirectories()['acme/parent']);
+		$this->assertSame(['acme/child', 'acme/parent'], array_keys($chain->langDirectories()), 'Each theme\'s domain is its name (D-451).');
+		$this->assertSame(['child' => 'acme/child', 'parent' => 'acme/parent'], $chain->namespaceDomains());
 	}
 
 	public function testBleedClassesComeFromTheChain(): void

@@ -21,6 +21,7 @@ use Blush\Directive\DirectiveListing;
 use Blush\Directive\DirectiveName;
 use Blush\Directive\DirectiveVariants;
 use Blush\Content\Http\PageKind;
+use Blush\Core\Framework;
 use Blush\Core\ServiceProvider;
 use Blush\Extension\ExtensionAbandoned;
 use Blush\Extension\ExtensionState;
@@ -52,13 +53,15 @@ use Blush\Translation\CatalogCheck;
  *   class but no template to render; a template in `directives/` for no
  *   registered directive, or in `components/` not named for a component;
  *   site menu and region files or items that are invalid or don't
- *   resolve (D-199, D-201); a layout without `<header>` or `<footer>`,
+ *   resolve (D-199, D-201); a theme's layout without `<header>` or `<footer>`,
  *   or with other than one `<h1>`, or `foot()` outside `<body>`, or one that prints a tag `head()`
  *   prints (`<meta charset>`, `viewport`, `generator`, `<title>`; D-472); a catalog whose `@@locale` or
  *   `@@domain` doesn't match its file or theme (D-452).
  * - **Notices:** variants without a translated label; site menus and
  *   regions no location shows; a catalog without `@@locale` and
- *   `@@domain`; a base layout without `dir` on `<html>` (D-470).
+ *   `@@domain`; a base layout without `dir` on `<html>` (D-470); no
+ *   base layout of the theme's own, so pages render in the framework's
+ *   skeleton (D-632).
  *
  * The layout is checked by rendering the `welcome` page.
  */
@@ -361,7 +364,8 @@ final readonly class ThemeChecker
 	}
 
 	/**
-	 * Renders the welcome page and checks its landmarks.
+	 * Renders the welcome page and checks its landmarks: the header and
+	 * footer only in a theme's own base layout.
 	 *
 	 * @return list<Violation>
 	 */
@@ -416,9 +420,15 @@ final readonly class ThemeChecker
 			$problems[] = new Violation('layout', 'The base layout needs a skip link (the first in-page link) to the <main> content.');
 		}
 
-		foreach (['header', 'footer'] as $landmark) {
-			if (! self::hasLandmark($document, $landmark)) {
-				$problems[] = new Violation('layout', "The base layout has no <{$landmark}> landmark.", Severity::Warning);
+		// The framework's skeleton has no header or footer of its own
+		// (D-632), so a theme without a base layout hears that instead.
+		if (str_starts_with($views->finder->find('layouts/base') ?? '', Framework::path(ViewFactory::VIEWS) . '/')) {
+			$problems[] = new Violation('layout', 'The theme has no layouts/base view, so pages render in the framework\'s skeleton, with no site header or footer.', Severity::Notice);
+		} else {
+			foreach (['header', 'footer'] as $landmark) {
+				if (! self::hasLandmark($document, $landmark)) {
+					$problems[] = new Violation('layout', "The base layout has no <{$landmark}> landmark.", Severity::Warning);
+				}
 			}
 		}
 

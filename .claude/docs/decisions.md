@@ -176,6 +176,7 @@ decision, add a new entry that supersedes it and mark the old one
 
 ### D-024: Theme inheritance is a generic parent chain
 - **Date:** 2026-09-25
+- **Status:** Its last step superseded by D-632 (the framework's own views, not the default theme, are the floor).
 - **Decision:** Build for layered themes. A theme may name a `parent`; the
   loader resolves a chain of any depth (with cycle detection). Views,
   components, assets, tokens, and settings all resolve through the same chain:
@@ -1481,6 +1482,7 @@ decision, add a new entry that supersedes it and mark the old one
 
 ### D-110: The framework default theme
 - **Date:** 2026-09-25
+- **Status:** Partly superseded by D-632 (it's no longer every theme's fallback; feeds, sitemaps, and the welcome page moved to `resources/views`).
 - **Decision:** `resources/themes/default` (D-045: plain CSS, no build
   step; D-030: WCAG 2.2 AA): `layouts/base` (`lang`, skip link,
   `<header>`, `<main id="main">`, `<footer>` landmarks), `single`,
@@ -18985,3 +18987,58 @@ decision, add a new entry that supersedes it and mark the old one
     tool is needed (D-478).
 - **Why:** one mechanism and fewer places to go wrong, and JSON is
   universal. It's also the shape a database driver (D-486) hands over.
+
+### D-632: The framework's own views, and no default theme in every chain
+
+- **Date:** 2026-10-08
+- **Status:** Built. Supersedes D-024's last step (framework default
+  theme) and D-110's place for the default theme as every theme's
+  fallback.
+- **Decision:** the author: themes don't all fall back to the default
+  theme, which will change over time. The framework keeps its own views
+  in `resources/views` instead, as the floor under every theme.
+  - **The chain:** the active theme, then its ancestors.
+    `blush/default` is in a chain only as the active theme or a named
+    `parent`. It's still always installed, still config's default
+    `active`, and still what runs in place of a chain whose requirements
+    aren't met (D-431).
+  - **Framework views:** `ViewFactory::directories()` adds
+    `resources/views` (`ViewFactory::VIEWS`) after the chain's `views/`
+    folders. It isn't a theme: there's no manifest, assets, settings,
+    variants, or bleed classes. It holds:
+    - `layouts/base`, the page skeleton: doctype, `<html lang dir>`,
+      `$template->head()`, the body class, a skip link, the `content`
+      section in `<main id="main">`, and `$template->foot()`. There's no
+      header or footer, and no optional sections for them: a theme's
+      own base layout replaces it whole.
+    - Feeds (`feed-rss`, `feed-atom`, `feed-json`) and sitemaps
+      (`sitemap`, `sitemap-index`), moved out of the default theme. A
+      theme can still override them.
+    - The `welcome` page and `partials/welcome`, moved out of the
+      default theme, since setup shows them whatever theme is active.
+    - Plain fallbacks for what core asks for: `single`, `collection`,
+      `error`, and the partials `entries`, `entry-summary`,
+      `entry-meta`, and `pagination`, in bare semantic HTML. The default
+      theme keeps its own styled copies.
+  - **Text:** `$template->t()` searches the chain's domains, then
+    `blush` (`Views::$messages`). The strings the framework's views and
+    the core directives use (`skip_to_content`, `no_entries`,
+    `pagination`, `terms`, `people.byline` and `.credit`, `welcome`,
+    `error`, `media`, `embed`, `toc`, `menu`, `progress`, `meter`,
+    `measure`) move from the default theme's catalog to
+    `resources/lang`. A theme still rewords any of them in its own
+    catalog.
+  - **Image variants:** `DirectiveVariants::forImages()` no longer drops
+    the last theme in a chain. It leaves out the default theme's only
+    when the default theme is an ancestor, since its stylesheet loads
+    only while it's active.
+  - **`theme:check`:** a theme whose `layouts/base` is the framework's
+    gets a notice that pages render in the skeleton, in place of the
+    header and footer landmark warnings.
+  - **Directives:** core directive templates stay in
+    `resources/directives` for now. Moving them to
+    `resources/views/directives` is noted for later.
+- **Why:** the default theme is one design among many, and it will
+  change. A theme should ship its own templates; the framework covers
+  only the floor (a skeleton, machine formats, and plain fallbacks) so a
+  page still renders when a theme leaves something out.

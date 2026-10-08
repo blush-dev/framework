@@ -58,7 +58,8 @@ final readonly class Views
 	public ThemeChain $chain;
 
 	/**
-	 * The translator bound to the chain's domains, child first (D-451):
+	 * The translator bound to the chain's domains, child first (D-451),
+	 * then the framework's, for the text its own views use (D-632):
 	 * what `$template->t()` reads.
 	 */
 	public DomainTranslator $messages;
@@ -71,7 +72,7 @@ final readonly class Views
 		public ThemeSettings $settings = new ThemeSettings()
 	) {
 		$this->chain    = $assets->chain;
-		$this->messages = new DomainTranslator($translator, $this->chain->names());
+		$this->messages = new DomainTranslator($translator, [...$this->chain->names(), 'blush']);
 	}
 
 	/**

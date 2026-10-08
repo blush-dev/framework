@@ -187,7 +187,8 @@ overrides in D-451, catalog metadata in D-452, `en` last in D-453.
 - **Lists of domains:** `translate()`, `has()`, and `group()` take one
   domain or a list, searched in order within each locale.
   `DomainTranslator` binds a list: `Views::$messages` is the theme
-  chain's, child first (`$template->t()`, `tGroup()`); a directive or
+  chain's, child first, then `blush` for the framework's own views
+  (`$template->t()`, `tGroup()`; D-632); a directive or
   component gets the chain's and then its own extension's (`Renderable::t()`).
 - **Locale fallback:** `en_US` → `en` → the default locale and its
   language → `en` (D-453).
@@ -845,7 +846,8 @@ view layer was implemented in M5 (D-103 to D-125).
   is every engine's API, with `#[ReturnsHtml]` and `SafeHtml` marking
   rendered HTML for engines that escape on their own.
 - **`ViewFinder`:** view names (`single-post`, `layouts/base`) resolve
-  through the theme chain (the site has none, D-617), in each engine's extension (the first registered wins
+  through the theme chain (the site has none, D-617), then the
+  framework's own `resources/views` (D-632), in each engine's extension (the first registered wins
   within a folder). `ViewFactory` builds one `Views` per chain and the per-page
   `ViewContext` (the `PageMarkup` with its head and foot, sections, shared `$site`, body classes, and
   the front matter `layout`).

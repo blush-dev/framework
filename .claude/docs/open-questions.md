@@ -1530,6 +1530,13 @@ Move each item to `decisions.md` once it's answered.
   released.
 
 ## Later
+- **Core directive templates under `resources/views`** (D-632, noted
+  2026-10-08). The core directives' templates are in
+  `resources/directives`, and each directive's `render()` names its own
+  file. They could move to `resources/views/directives`, the floor of
+  view lookup, so `theme:why directives/callout` and the theme's
+  `directives/` folder resolve the same way as every other view. Left
+  as it is for now.
 - **Example plugins, and the gaps they show** (discussed 2026-10-08;
   ideas only, nothing decided). Plugins to build as samples and tests
   of the extension points:

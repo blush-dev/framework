@@ -237,7 +237,8 @@ final class ThemeCommandsTest extends TestCase
 		$result = $this->command(['theme:check', 'acme/classy']);
 
 		$this->assertSame(ExitCode::Success, $result->exitCode, $result->output);
-		$this->assertStringNotContainsString('layout', $result->output);
+		$this->assertStringNotContainsString('doesn\'t render', $result->output);
+		$this->assertStringContainsString('notice  layout: The theme has no layouts/base view, so pages render in the framework\'s skeleton', $this->command(['theme:check', 'acme/classy', '--strict'])->output, 'D-632.');
 	}
 
 	public function testChecksReportProblems(): void
@@ -380,7 +381,7 @@ final class ThemeCommandsTest extends TestCase
 		$this->assertStringNotContainsString('"bordered" variant', $check);
 		$this->assertStringContainsString('warning variants image: theme.json lists an image variant that isn\'t valid', $check);
 		$this->assertStringContainsString('notice  variants image: The "polaroid" image variant has no label; add "images.variants.polaroid.label" to the theme\'s lang/ catalog.', $check);
-		$this->assertStringNotContainsString('"inline-left" image variant', $check, 'The default theme has its label.');
+		$this->assertStringContainsString('notice  variants image: The "inline-left" image variant has no label', $check, 'The default theme isn\'t in the chain to label it (D-632).');
 		$this->assertStringNotContainsString('"image", which isn\'t a directive', $check);
 		$this->assertMatchesRegularExpression('#\| blush/callout\s*\| Callout\s*\| Blush\\\\Directive\\\\Callout\s*\| info, tip, warning, danger, bordered\s*\|#', $this->command(['directive:list', '--theme=acme/nova'])->output);
 	}
@@ -395,12 +396,12 @@ final class ThemeCommandsTest extends TestCase
 		$result = $this->command(['theme:why', 'single', '--theme=acme/kid']);
 
 		$this->assertSame(ExitCode::Success, $result->exitCode);
-		$this->assertMatchesRegularExpression('#uses    extensions/acme/kid/views/single.php\nshadows extensions/acme/nova/views/single.php\nshadows .+resources/themes/default/views/single.php#', $result->output);
+		$this->assertMatchesRegularExpression('#uses    extensions/acme/kid/views/single.php\nshadows extensions/acme/nova/views/single.php\nshadows .+resources/views/single.php#', $result->output);
 
 		$missing = $this->command(['theme:why', 'nope']);
 
 		$this->assertSame(ExitCode::Failure, $missing->exitCode);
-		$this->assertStringContainsString('resources/themes/default/views/nope.php', $missing->output);
+		$this->assertStringContainsString('resources/views/nope.php', $missing->output);
 		$this->assertSame(ExitCode::Invalid, $this->command(['theme:why', '../x'])->exitCode);
 	}
 
@@ -423,7 +424,7 @@ final class ThemeCommandsTest extends TestCase
 		$this->assertStringContainsString('acme/nova: copied 2, 0 already current, removed 0.', $result->output);
 		$this->assertSame('nova', file_get_contents("{$public}/acme/nova/style.css"));
 		$this->assertFileExists("{$public}/acme/nova/fonts/a.woff2");
-		$this->assertFileExists("{$public}/blush/default/style.css");
+		$this->assertFileDoesNotExist("{$public}/blush/default/style.css", 'The default theme isn\'t in the chain (D-632).');
 		$this->assertFileDoesNotExist("{$public}/acme/nova/views/single.php");
 		$this->assertFileDoesNotExist("{$public}/acme/nova/src/Provider.php");
 		$this->assertFileDoesNotExist("{$public}/acme/nova/theme.json");

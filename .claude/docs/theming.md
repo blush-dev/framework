@@ -31,8 +31,9 @@ extensions/acme/minimal/
   theme.json        { "name": "acme/minimal", "label": "Minimal", "namespace": "minimal" }
   style.css
 ```
-Every template it doesn't provide falls back to the framework
-default theme.
+Every template it doesn't provide falls back to the framework's own
+views in `resources/views` (D-632): a bare skeleton layout and plain
+fallbacks, not the default theme's design.
 
 A full theme:
 ```
@@ -137,15 +138,25 @@ only (D-631).
 ```
 active theme (config and user/data settings over its defaults)
     → its parent(s) (any depth, cycle-checked)
-      → framework default theme (`resources/themes/default`, named
-        `blush/default`, namespace `default`; styles the core
-        directives, D-033, D-532)
+      → framework views (`resources/views`; views only, D-632)
 ```
+- The framework default theme (`resources/themes/default`, named
+  `blush/default`, namespace `default`; styles the core directives,
+  D-033, D-532) is in a chain only as the active theme or a `parent`
+  (D-632). It's what runs when a chain's requirements aren't met
+  (D-431).
+- The framework's views aren't a theme (no manifest, assets, settings,
+  or variants). They hold `layouts/base` (the skeleton: head, skip
+  link, `<main id="main">`, foot; no header or footer), feeds and
+  sitemaps, `welcome` and `partials/welcome`, and plain `single`,
+  `collection`, `error`, `partials/entries`, `entry-summary`,
+  `entry-meta`, and `pagination`. Their text is in the `blush` domain,
+  which `$template->t()` searches after the chain's.
 - Views resolve through each theme's `views/`, the active theme first
   (D-103). The site has no views of its own (D-617): a site changes a
   theme with a child theme.
 - The chain applies to views, directive and component templates, assets, settings defaults,
-  and message catalogs.
+  and message catalogs; only views have the framework floor.
 - `theme:why <view>` (CLI) shows which file in the chain wins. This makes
   layering easy to debug.
 
@@ -326,8 +337,8 @@ plugins', never a theme's (D-532) or the site's (D-617).
   (`{.stretch-wide}`; `FigureRenderer` puts them on the figure), with
   text at `images.variants.{name}.label` and `.description` in the
   theme's catalog. `DirectiveVariants::forImages()` collects them from
-  the chain, leaving out the framework default theme's unless it's the
-  active theme. The default theme offers and styles `stretch-wide`,
+  the chain, leaving out the framework default theme's when it's an
+  ancestor rather than the active theme (D-632). The default theme offers and styles `stretch-wide`,
   `stretch-full`, `inline-left`, and `inline-right`.
 - **Text (D-172):** `Views::directiveText($name, 'label')` reads
   `directives.{name}.{key}` from the namespace's catalog domain (`blush`

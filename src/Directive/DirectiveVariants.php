@@ -17,6 +17,7 @@ use InvalidArgumentException;
 use Blush\Directive\Events\DirectiveVariantsCollecting;
 use Blush\Event\Dispatcher;
 use Blush\Theme\ThemeChain;
+use Blush\Theme\ThemeManifest;
 use Blush\Theme\Themes;
 
 /**
@@ -78,14 +79,15 @@ final class DirectiveVariants
 	 * the ones its themes list, the child's winning a name they share.
 	 * They're classes, which only a stylesheet gives a look, and the
 	 * framework default theme's stylesheet loads only while it's the
-	 * active theme, so only then are its variants included.
+	 * active theme, so only then are its variants included, not when
+	 * it's an ancestor (D-632).
 	 *
 	 * @return list<Variant>
 	 */
 	public function forImages(ThemeChain $chain): array
 	{
 		$variants = [];
-		$themes   = count($chain->themes) > 1 ? array_slice($chain->themes, 0, -1) : $chain->themes;
+		$themes   = array_filter($chain->themes, static fn (ThemeManifest $theme, int $index): bool => $index === 0 || $theme->name !== Themes::DEFAULT, ARRAY_FILTER_USE_BOTH);
 
 		foreach (array_reverse($themes) as $theme) {
 			foreach ($theme->variants()[self::IMAGE] ?? [] as $item) {

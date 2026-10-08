@@ -19,7 +19,8 @@ use Blush\Extension\Requirement;
  * The installed themes, as `ThemeDiscovery` (or the theme cache) found
  * them: valid manifests by name (D-378), plus the themes whose manifests
  * are broken, by where they were found, with the reason. The framework
- * default theme, `blush/default`, is always last in a chain.
+ * default theme, `blush/default`, is always installed, but it's in a
+ * chain only as the active theme or an ancestor (D-632).
  */
 final readonly class Themes
 {
@@ -157,8 +158,8 @@ final readonly class Themes
 	}
 
 	/**
-	 * Returns a theme's chain: the theme, its ancestors, then the default
-	 * theme.
+	 * Returns a theme's chain: the theme, then its ancestors. Views they
+	 * don't have come from the framework's own (D-632).
 	 *
 	 * @throws ThemeException When a theme in the chain is missing or
 	 *         broken, or the chain loops.
@@ -168,7 +169,7 @@ final readonly class Themes
 		$themes = [];
 		$next   = $name;
 
-		while ($next !== null && $next !== self::DEFAULT) {
+		while ($next !== null) {
 			if (isset($themes[$next])) {
 				throw new ThemeException(sprintf('The "%s" theme\'s parents loop back to "%s".', $name, $next));
 			}
@@ -183,9 +184,7 @@ final readonly class Themes
 			$next          = $theme->parent;
 		}
 
-		$default = $this->find(self::DEFAULT) ?? throw new ThemeException('The framework default theme is missing.');
-
-		return new ThemeChain([...array_values($themes), $default]);
+		return new ThemeChain(array_values($themes));
 	}
 
 	/**

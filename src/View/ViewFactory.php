@@ -28,11 +28,19 @@ use Blush\Translation\Translator;
  * a page renders in.
  *
  * Views resolve through the chain's themes, the active theme first
- * (D-024); the site has no views of its own (D-617). The translator's `theme` domain reads the
- * chain's `lang` folders.
+ * (D-024), then the framework's own views in `resources/views` (D-632):
+ * the base layout's skeleton, feeds, sitemaps, the welcome page, and
+ * plain fallbacks for what a theme leaves out. The site has no views of
+ * its own (D-617). The translator reads the chain's `lang` folders, each
+ * theme's domain, then the framework's `blush`.
  */
 final class ViewFactory
 {
+	/**
+	 * The framework's views folder, relative to the framework root.
+	 */
+	public const string VIEWS = 'resources/views';
+
 	/**
 	 * Views built so far, by active theme name.
 	 *
@@ -65,13 +73,14 @@ final class ViewFactory
 	}
 
 	/**
-	 * Returns the view directories for a chain, highest precedence first.
+	 * Returns the view directories for a chain, highest precedence first:
+	 * its themes', then the framework's.
 	 *
 	 * @return list<string>
 	 */
 	public function directories(ThemeChain $chain): array
 	{
-		return $chain->viewDirectories();
+		return [...$chain->viewDirectories(), Framework::path(self::VIEWS)];
 	}
 
 	/**

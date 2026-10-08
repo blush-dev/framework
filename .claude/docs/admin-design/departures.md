@@ -670,8 +670,8 @@ Each is recorded in `.claude/docs/decisions.md`.
     paintbrush, or shapes, as the Config panel has them) rather than an
     on/off verdict; Provides keeps the neutral package glyph, since what
     it names has no kind. A theme's **Falls back to** is a section of
-    it, as the sketch has; the default theme's **Used as fallback by**
-    says "Every theme". A PHP extension reads "PHP Extension: intl", as
+    it, as the sketch has, shown only for a theme with a `parent`; no
+    theme falls back to the default theme unless it names it (D-632). A PHP extension reads "PHP Extension: intl", as
     the sketch has it (the author's call).
   - A theme without a palette is still sketched in the admin's colors,
     with the note on declaring one, where the sketch has a warning and

@@ -146,9 +146,8 @@ async function remove(name: string, folder: string, falling: ThemeSummary[] = []
 					<li v-else-if="theme.source === 'composer'"><AdminIcon name="package" /><span>Composer · <span class="mono">{{ theme.name }}</span></span></li>
 					<li v-else><AdminIcon name="folder" /><span class="mono">{{ theme.folder }}</span></li>
 					<li v-if="theme.preview?.type"><AdminIcon name="type" />{{ theme.preview.type }}</li>
-					<li v-if="theme.source === 'framework'"><AdminIcon name="corner-down-right" />Every theme falls back to this one</li>
-					<li v-else-if="theme.parent && !installed(theme.parent)" class="is-warn"><AdminIcon name="triangle-alert" /><span>Falls back to <span class="mono">{{ theme.parent }}</span>, which isn't installed</span></li>
-					<li v-else><AdminIcon name="corner-down-right" /><span>Falls back to <RouterLink :to="extensionRoute('theme', theme.parent ?? 'blush/default')">{{ label(theme.parent ?? 'blush/default') }}</RouterLink></span></li>
+					<li v-if="theme.parent && !installed(theme.parent)" class="is-warn"><AdminIcon name="triangle-alert" /><span>Falls back to <span class="mono">{{ theme.parent }}</span>, which isn't installed</span></li>
+					<li v-else-if="theme.parent"><AdminIcon name="corner-down-right" /><span>Falls back to <RouterLink :to="extensionRoute('theme', theme.parent)">{{ label(theme.parent) }}</RouterLink></span></li>
 				</ul>
 				<p v-if="fallbackMessage(theme)" class="notice notice--small notice--warn extension__message">
 					<AdminIcon name="triangle-alert" /><span>{{ fallbackMessage(theme) }}</span>

@@ -20,10 +20,11 @@ use Override;
 use Blush\Asset\Asset;
 
 /**
- * The active theme, its ancestors, and the framework default theme, in
- * lookup order (D-024). Views, message catalogs, and assets resolve
- * through it: the first theme that has a file wins, so a child theme
- * overrides only what it provides.
+ * The active theme and its ancestors, in lookup order (D-024). Views,
+ * message catalogs, and assets resolve through it: the first theme that
+ * has a file wins, so a child theme overrides only what it provides. The
+ * framework default theme is in a chain only as one of them (D-632);
+ * views no theme has come from the framework's `resources/views`.
  *
  * @implements IteratorAggregate<int, ThemeManifest>
  */
@@ -76,7 +77,7 @@ final readonly class ThemeChain implements IteratorAggregate, Countable
 	private const string PRIVATE_FILES = '#(^|/)[^/]+\.config\.[cm]?js$#i';
 
 	/**
-	 * @param non-empty-list<ThemeManifest> $themes The active theme first, the framework default theme last.
+	 * @param non-empty-list<ThemeManifest> $themes The active theme first, then its ancestors.
 	 */
 	public function __construct(public array $themes)
 	{}

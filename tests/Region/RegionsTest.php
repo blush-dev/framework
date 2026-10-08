@@ -141,6 +141,7 @@ final class RegionsTest extends TestCase
 			'name'      => 'acme/nova',
 			'label'     => 'Nova',
 			'namespace' => 'nova',
+			'parent'    => 'blush/default',
 			'regions'   => ['footer' => ['label' => 'Footer', 'items' => [['markdown' => 'Theme default.']]]]
 		], JSON_THROW_ON_ERROR));
 		$this->writeTemporaryFile('config/theme.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn new Blush\\Theme\\ThemeConfig(active: 'acme/nova');\n");

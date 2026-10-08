@@ -41,7 +41,7 @@ use Blush\Theme\ThemeSource;
 /**
  * Answers `GET {path}/api/themes` (D-306, D-381, D-422), for accounts with
  * `extensions.themes.view` (D-389): the `active` theme's name, its `chain` (the theme,
- * its ancestors, then the default theme, by name; empty, with the
+ * then its ancestors, by name, D-632; empty, with the
  * `problem`, when it can't be built), whether `config/theme.php` exists
  * (`config`), whether the active theme is `saved` in
  * `user/data/settings.json` (over `config/theme.php`), whether

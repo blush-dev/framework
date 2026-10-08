@@ -212,8 +212,8 @@ final readonly class ThemedPageRenderer implements PageRenderer
 
 		$key = $title === '' ? 'document_title.page' : 'document_title.paged';
 
-		// The theme's wording first, then the framework's.
-		return $views->messages->with('blush')->translate($key, ['title' => $title, 'page' => $number]);
+		// The theme's wording first, then the framework's (D-632).
+		return $views->messages->translate($key, ['title' => $title, 'page' => $number]);
 	}
 
 	/**
