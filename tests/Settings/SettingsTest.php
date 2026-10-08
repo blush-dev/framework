@@ -26,6 +26,7 @@ use Blush\Settings\InvalidSetting;
 use Blush\Settings\Setting;
 use Blush\Settings\Settings;
 use Blush\Settings\SettingsStore;
+use Blush\Storage\File\FileTransactions;
 use Blush\Support\Filesystem;
 use Blush\Tests\TemporaryDirectory;
 
@@ -44,7 +45,9 @@ final class SettingsTest extends TestCase
 
 	private function file(): SettingsStore
 	{
-		return new SettingsStore(new FileDataStore(Paths::fromRoot($this->temporaryDirectory()), new DataLoader(), new Filesystem()));
+		$paths = Paths::fromRoot($this->temporaryDirectory());
+
+		return new SettingsStore(new FileDataStore($paths, new DataLoader(), new Filesystem(), new FileTransactions($paths, new Filesystem())));
 	}
 
 	private function path(): string

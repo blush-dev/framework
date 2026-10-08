@@ -26,7 +26,7 @@ use Blush\Content\Relation\Relations;
 use Blush\Content\Status;
 use Blush\Content\Entry\Entry;
 use Blush\Content\Entry\Position;
-use Blush\Content\Query\Order;
+use Blush\Storage\Record\Order;
 use Blush\Content\Type\ContentTypes;
 use Blush\Content\Type\Tree;
 use Blush\Http\Response;

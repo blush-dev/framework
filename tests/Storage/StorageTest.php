@@ -18,7 +18,7 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Blush\Auth\AccountStore;
 use Blush\Auth\FileAccountStore;
-use Blush\Auth\FileRoleStore;
+use Blush\Auth\RecordRoleStore;
 use Blush\Auth\RoleStore;
 use Blush\Content\Source\ContentSource;
 use Blush\Content\Source\FilesystemSource;
@@ -60,7 +60,7 @@ final class StorageTest extends TestCase
 		$this->assertInstanceOf(FilesystemWriter::class, $container->make(ContentWriter::class));
 		$this->assertInstanceOf(FileDataStore::class, $container->make(DataStore::class));
 		$this->assertInstanceOf(FileAccountStore::class, $container->make(AccountStore::class));
-		$this->assertInstanceOf(FileRoleStore::class, $container->make(RoleStore::class));
+		$this->assertInstanceOf(RecordRoleStore::class, $container->make(RoleStore::class));
 		$this->assertInstanceOf(FileSessionStore::class, $container->make(SessionStore::class));
 		$this->assertInstanceOf(FileJobStore::class, $container->make(JobStore::class));
 	}

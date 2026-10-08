@@ -15,10 +15,17 @@ namespace Blush\Storage;
 
 use Override;
 use Blush\Core\ServiceProvider;
+use Blush\Storage\File\FileLayouts;
+use Blush\Storage\File\FileTransactions;
+use Blush\Storage\Record\RecordStores;
+use Blush\Storage\Record\TableRegistry;
 
 /**
- * Binds the storage drivers (D-486, D-642). Each subsystem binds its own
- * contracts through `ServiceProvider`'s `STORAGE`, which these resolve.
+ * Binds the storage drivers (D-486, D-642), and the record layer's
+ * services (D-643): the stores by area, the table registry, and the
+ * filesystem driver's layouts and transactions. Each subsystem binds its
+ * own contracts through `ServiceProvider`'s `STORAGE`, which these
+ * resolve.
  */
 final class StorageServiceProvider extends ServiceProvider
 {
@@ -27,7 +34,11 @@ final class StorageServiceProvider extends ServiceProvider
 	 */
 	protected const array SINGLETONS = [
 		StorageDriverFactory::class,
-		StorageResolver::class
+		StorageResolver::class,
+		RecordStores::class,
+		TableRegistry::class,
+		FileLayouts::class,
+		FileTransactions::class
 	];
 
 	/**

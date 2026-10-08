@@ -25,6 +25,7 @@ use Blush\Auth\AccountStore;
 use Blush\Auth\BuiltInRole;
 use Blush\Auth\PasswordLink;
 use Blush\Auth\RoleEditor;
+use Blush\Support\Uuid;
 
 #[CoversClass(AccountEditController::class)]
 #[CoversClass(RoleEditController::class)]
@@ -313,7 +314,12 @@ final class AdminPeopleEditTest extends TestCase
 		$created = $this->write('POST', '/roles', ['name' => 'reviewer', 'label' => ' Reviewer ', 'description' => 'Reads drafts.', 'capabilities' => ['content.*.edit', 'content.*.edit.others']]);
 
 		$this->assertSame(201, $created->getStatusCode(), self::error($created));
-		$this->assertSame(['roles' => [['name' => 'reviewer', 'label' => 'Reviewer', 'capabilities' => ['content.*.edit', 'content.*.edit.others'], 'description' => 'Reads drafts.']]], json_decode($this->file('storage/roles.json'), true));
+		$file = json_decode($this->file('storage/roles.json'), true);
+		$list = is_array($file) && is_array($file['roles'] ?? null) ? $file['roles'] : [];
+		$id   = is_array($list[0] ?? null) ? ($list[0]['id'] ?? null) : null;
+
+		$this->assertTrue(is_string($id) && Uuid::isValid($id), 'Kept as a record, with its id (D-646).');
+		$this->assertSame(['roles' => [['name' => 'reviewer', 'label' => 'Reviewer', 'capabilities' => ['content.*.edit', 'content.*.edit.others'], 'description' => 'Reads drafts.', 'id' => $id]]], $file);
 		$this->assertSame('custom', self::role($created)['origin'] ?? null);
 		$this->assertSame(422, $this->write('POST', '/roles', ['name' => 'manager', 'label' => 'Again'])->getStatusCode(), 'The name is in use.');
 

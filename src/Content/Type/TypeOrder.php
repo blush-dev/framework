@@ -14,7 +14,7 @@ declare(strict_types=1);
 namespace Blush\Content\Type;
 
 use Blush\Content\Entry\Position;
-use Blush\Content\Query\Order;
+use Blush\Storage\Record\Order;
 
 /**
  * How a collection's entries are ordered when nothing says otherwise

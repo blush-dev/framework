@@ -19,7 +19,7 @@ use Blush\Content\ContentRepository;
 use Blush\Content\Entry\Entry;
 use Blush\Content\Entry\Position;
 use Blush\Content\Index\ArraySelector;
-use Blush\Content\Query\Order;
+use Blush\Storage\Record\Order;
 use Blush\Content\Type\ContentTypes;
 
 #[CoversClass(Position::class)]

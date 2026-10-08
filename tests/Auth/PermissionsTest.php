@@ -22,7 +22,7 @@ use Blush\Auth\Capabilities;
 use Blush\Auth\Capability;
 use Blush\Auth\ContentAction;
 use Blush\Auth\ExtensionAction;
-use Blush\Auth\FileRoleStore;
+use Blush\Auth\RoleStore;
 use Blush\Auth\Permissions;
 use Blush\Auth\Role;
 use Blush\Auth\Roles;
@@ -145,7 +145,7 @@ final class PermissionsTest extends TestCase
 	{
 		$this->writeTemporaryFile('storage/roles.json', (string) json_encode(['roles' => [['name' => 'uploader', 'label' => 'Uploader', 'capabilities' => ['media.upload', 'media.delete']]]]));
 
-		$this->assertSame(['media.delete'], $this->app->container()->make(FileRoleStore::class)->all()[0]->capabilities ?? null, 'media.upload is gone, with nothing in its place.');
+		$this->assertSame(['media.delete'], $this->app->container()->make(RoleStore::class)->all()[0]->capabilities ?? null, 'media.upload is gone, with nothing in its place.');
 	}
 
 	public function testListsAnAccountsCapabilities(): void

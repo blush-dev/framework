@@ -60,6 +60,7 @@ use Blush\Routing\RouteConfig;
 use Blush\Session\SessionConfig;
 use Blush\Settings\SettingsStore;
 use Blush\Sitemap\SitemapConfig;
+use Blush\Storage\File\FileTransactions;
 use Blush\Storage\StorageArea;
 use Blush\Storage\StorageConfig;
 use Blush\Storage\StorageDriver;
@@ -361,7 +362,9 @@ final readonly class Bootstrap
 			throw new StorageException(sprintf('Unknown storage driver "%s" for data: the saved settings are read before extensions load, so the data area\'s driver must be built in (%s).', $driver, StorageConfig::FILESYSTEM));
 		}
 
-		return new FileDataStore($this->paths, new DataLoader(), new Filesystem());
+		$filesystem = new Filesystem();
+
+		return new FileDataStore($this->paths, new DataLoader(), $filesystem, new FileTransactions($this->paths, $filesystem));
 	}
 
 	/**

@@ -32,7 +32,7 @@ use Blush\Content\Entry\Entry;
 use Blush\Content\Entry\Position;
 use Blush\Content\EntryFields;
 use Blush\Content\FileNames;
-use Blush\Content\Query\Order;
+use Blush\Storage\Record\Order;
 use Blush\Content\Lint\Linter;
 use Blush\Content\Relation\LinkResolver;
 use Blush\Content\Relation\ProblemKind;

@@ -19435,3 +19435,158 @@ decision, add a new entry that supersedes it and mark the old one
   data writing/getting. Files are our default, but we need to be
   prepared for the introduction of database support and be coding
   against interfaces." Then: "Go ahead with all four."
+
+### D-643: The data layer's names
+
+- **Date:** 2026-10-08
+- **Status:** Decided; nothing built. Settles D-606's provisional names
+  (its "Names" open question).
+- **Decision:**
+  - **`Record`**: the unit a driver keeps: an id, its **`values`** (by
+    key), and an optional body. Not "fields", which reads like the
+    Field API's definitions, and not "data", which names the area.
+  - **Table**: a named group of records (a content type's entries,
+    `accounts`, `roles`, a plugin's own), in place of D-606's "set",
+    which clashes with field sets. On files, a table is a folder.
+  - **`RecordStore`**: the interface a driver implements to keep and
+    fetch records, after the existing stores (`AccountStore`,
+    `DataStore`, `JobStore`): `FileRecordStore`, `SqliteRecordStore`,
+    and so on. "Driver" stays the name of the bundle a site picks
+    (`Blush\Storage\Storage`, D-642).
+  - **`RecordQuery`**: one immutable fluent builder (each call returns
+    a copy) that is itself the description each driver compiles; no
+    separate `QuerySpec`. Content's `Query` wraps it.
+  - **Repositories** are plural nouns with no suffix, as `Accounts` and
+    `Roles` already are, with `Entries` for content. Whether
+    `ContentRepository` is renamed is settled when content moves onto
+    records.
+  - The layer lives in `Blush\Storage`, beside the drivers.
+- **Why:** the author chose each from the options asked: "table",
+  "RecordStore", one "RecordQuery", and "values", each the
+  recommendation, avoiding names the code already uses (`Collection`,
+  `FieldSet`, the cache's `Store`, `Document`, content's `Query`).
+
+### D-644: Database drivers manage their own schema; no hand-written migrations
+
+- **Date:** 2026-10-08
+- **Status:** Decided (by Claude, delegated); nothing built. Settles
+  the "Schemas and migrations" open question under the data layer
+  (D-606), taking D-640's leaning, and the shape of "Moving between
+  drivers".
+- **Decision:**
+  - **Each database driver builds its own schema**, from what it
+    knows, never from migrations a site writes. A table (D-643) is one
+    database table, created when it's first written: `id` (the UUID,
+    primary key), `values` (JSON), and `body` (nullable text).
+    Plugins' tables work the same way, with no setup.
+  - **Each field a type declares gets a generated, indexed column**
+    read from `values` (each database's own JSON syntax), so queries
+    on it stay fast. Keys no type declares can still be queried,
+    unindexed.
+  - **Type changes rewrite no records.** Values are JSON, so a field
+    added or removed changes only its generated column, which the
+    driver adds or drops when a type is saved in the admin and with
+    `storage:sync` (for deploys). Renamed fields keep working through
+    field aliases.
+  - **Moving between drivers** copies every table through the record
+    layer, ids kept: `storage:copy --from=filesystem --to=sqlite` on
+    the command line, an admin tool later.
+  - The filesystem driver has no schema; files need none.
+- **Why:** the author: "As long as we can swap storage mechanisms and
+  migrate, choose what's best." A schema derived from type definitions
+  keeps the filesystem and database drivers equal (the filesystem
+  driver has nothing to migrate), and a JSON column with generated
+  columns is what SQLite, MySQL/MariaDB, and PostgreSQL each index
+  well (D-640).
+
+### D-645: Sessions and jobs keep narrow contracts
+
+- **Date:** 2026-10-08
+- **Status:** Decided; already the shape since D-642. Settles the
+  "Narrower drivers for areas that never query" open question (D-640).
+- **Decision:** the `sessions` and `jobs` areas never move onto the
+  record layer's contracts (D-643). They keep `SessionStore` (read,
+  write, delete, prune) and `JobStore` (save, find, list, claim,
+  delete, state, locks), which never answer a `RecordQuery`.
+  - A database driver's `SessionStore` and `JobStore` are built on its
+    `RecordStore` inside, so a database site needs no other setup.
+  - A driver for these areas alone (Redis, D-640) implements the narrow
+    contracts directly and gives nothing else; `areas` in
+    `config/storage.php` points `sessions` and `jobs` at it.
+- **Why:** how other frameworks do it, compared for the author: their
+  sessions and queues each take a small contract with its own drivers
+  (file, database, Redis, Memcached), apart from their database layer,
+  whose database versions use that layer inside. Sessions and jobs only
+  get, put, expire, and claim, which Redis does well and the full query
+  language can't ask of it. The author agreed.
+
+### D-646: Records have ids and an optional key; roles adopt the record layer first
+
+- **Date:** 2026-10-08
+- **Status:** Decided; nothing built. Settles the two open questions
+  in the record layer's plan (`roadmap.md`, "The data layer (D-606):
+  plan", step 2).
+- **Decision:**
+  - **Every record has a UUID `id`** (identity, D-606). **A table may
+    declare a unique key value** (`name`, `username`) that lookups use
+    alongside the id, and that the filesystem driver names files by; a
+    table without one names files by id. A database driver keeps the
+    key as a unique indexed column.
+  - **Roles are the first adopter**: `storage/roles.json` becomes a
+    one-file table keyed by role name, read and written through
+    `RecordStore`, its file kept in place and shape, each role gaining
+    an `id` on its next save. Accounts follow with the other areas
+    (step 6), since every account file needs an id.
+- **Why:** the author agreed to both leanings. Names are how types,
+  menus, roles, and accounts are known and their files named, so ids
+  alone would rename files and break lookups; roles are the smallest
+  real table, prove the one-file layout and the key, and change no
+  screen.
+
+### D-647: The record layer, built (the data layer's step 2)
+
+- **Date:** 2026-10-08
+- **Status:** Built. Step 2 of the plan in `roadmap.md` ("The data
+  layer (D-606): plan"), with the names (D-643) and keys and adopter
+  (D-646) as decided; the choices made while building are below.
+- **Decision:**
+  - **What's built:** `Blush\Storage\Record` (`Record`, `Table`,
+    `TableRegistry`, `RecordStore`, `RecordStores`, `RecordQuery`,
+    `Condition`, `ConditionGroup`, `Junction`, `Operator`, `Sort`,
+    `Order`, `Aggregate`, `RecordResult`, `ArrayEvaluator`,
+    `ArrayRecordStore`, and the exceptions `RecordException`,
+    `InvalidRecord`, `InvalidRecordQuery`, `RecordStoreFailure`),
+    `Blush\Storage\File` (`FileRecordStore`, `FileLayout`,
+    `FileLayouts`, `FileTransactions`), `Uuid::fromName()`, the
+    conformance suite, and roles as the first table
+    (`RecordRoleStore` in place of `FileRoleStore`).
+  - **`Order` moved** from `Content\Query` to `Storage\Record`, so
+    content's query (step 3) and records share one; the trial site's
+    extension was updated.
+  - **Order without `orderBy()`** is the order records were added:
+    a one-file table's file order (new ones last), a folder's ids
+    (version 7, so when each was made), insertion for a database. Ties
+    keep it. Null sorts last ascending and descending. Mixed types sort
+    false, true, numbers, text, then lists and maps.
+  - **Comparisons are strict** (documented on `Operator`): numbers
+    equal numbers, never numeric text; `=` is case-sensitive and `like`
+    isn't; `!=` and `not in` match null; `<`, `>`, and `between`
+    compare like with like only. An empty "any" group matches nothing.
+    Aggregates and `countBy()` ignore the limit and offset.
+  - **One-file tables** list their records, under a top-level key or as
+    the whole file, keeping other keys. Writing one writes every record,
+    so records without ids gain their steady ones then.
+  - **Registration** of tables and file layouts happens in a
+    `resolving()` callback, so they're in place before the first read,
+    whenever that is.
+  - **`FileTransactions`** is shared by `FileDataStore` and
+    `FileRecordStore`, so one transaction holds both, under one lock.
+  - **Deferred to step 3:** codecs (a table's file format; JSON only
+    now) and relation filters. No per-request cache: every read reads
+    the table, so long-running workers never see stale data; data-sized
+    tables don't need one.
+- **Not checked:** `composer bench` fails at `HEAD` already: its
+  generated site writes `Blush\Content\Type\ContentConfig` and types in
+  `config/content.php`, gone since D-617, so no subject runs. Fixing
+  the benchmark fixture is its own task.
+- **Why:** the author's go for step 2 ("go ahead and build step 2").

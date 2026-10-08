@@ -16,7 +16,7 @@ namespace Blush\Tests\Content\Type;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Blush\Config\InvalidConfig;
-use Blush\Content\Query\Order;
+use Blush\Storage\Record\Order;
 use Blush\Content\Relation\Relation;
 use Blush\Content\Type\BuiltInType;
 use Blush\Content\Type\Collection;

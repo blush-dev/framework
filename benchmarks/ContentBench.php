@@ -19,7 +19,7 @@ use Blush\Cache\CacheConfig;
 use Blush\Content\ContentRepository;
 use Blush\Content\Index\Indexer;
 use Blush\Content\Index\PhpIndex;
-use Blush\Content\Query\Order;
+use Blush\Storage\Record\Order;
 use Blush\Core\Application;
 use Blush\Core\Bootstrap;
 use Blush\Core\Paths;

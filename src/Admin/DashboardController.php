@@ -22,7 +22,7 @@ use Blush\Auth\Permissions;
 use Blush\Cache\ContentVersion;
 use Blush\Content\ContentRepository;
 use Blush\Content\Entry\Entry;
-use Blush\Content\Query\Order;
+use Blush\Storage\Record\Order;
 use Blush\Content\Query\Query;
 use Blush\Content\Routing\ContentUrls;
 use Blush\Content\Status;

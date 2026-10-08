@@ -19,6 +19,7 @@ use Blush\Content\Entry\Entry;
 use Blush\Content\Status;
 use Blush\Content\Type\ContentType;
 use Blush\Content\Visibility;
+use Blush\Storage\Record\Order;
 
 /**
  * An immutable description of which entries to find, built fluently:

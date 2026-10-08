@@ -25,6 +25,11 @@ use DateTimeInterface;
 final class Uuid
 {
 	/**
+	 * The namespace `fromName()` makes UUIDs in.
+	 */
+	private const string NAMESPACE = '6f1c2b7e-3d4a-4e9b-8c5f-2a7d9e0b1c43';
+
+	/**
 	 * Returns a new version 7 UUID for a time.
 	 */
 	public static function v7(DateTimeInterface $time): string
@@ -35,6 +40,24 @@ final class Uuid
 
 		// The version (7) and variant (10xx) bits.
 		$bytes[6] = chr(0x70 | (ord($bytes[6]) & 0x0F));
+		$bytes[8] = chr(0x80 | (ord($bytes[8]) & 0x3F));
+
+		$hex = bin2hex($bytes);
+
+		return sprintf('%s-%s-%s-%s-%s', substr($hex, 0, 8), substr($hex, 8, 4), substr($hex, 12, 4), substr($hex, 16, 4), substr($hex, 20));
+	}
+
+	/**
+	 * Returns the version 5 UUID for a name (SHA-1, RFC 9562), the same
+	 * every time: for something stored before it had an id, so it has a
+	 * steady one until an id is written for it (D-646).
+	 */
+	public static function fromName(string $name): string
+	{
+		$bytes = substr(sha1((string) hex2bin(str_replace('-', '', self::NAMESPACE)) . $name, true), 0, 16);
+
+		// The version (5) and variant (10xx) bits.
+		$bytes[6] = chr(0x50 | (ord($bytes[6]) & 0x0F));
 		$bytes[8] = chr(0x80 | (ord($bytes[8]) & 0x3F));
 
 		$hex = bin2hex($bytes);

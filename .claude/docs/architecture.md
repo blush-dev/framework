@@ -127,6 +127,53 @@ This is the design for the Blush 2 subsystems. Decisions it relies on are in
   - `EntryParsed`, `ViewRendering`, `ResponseReady` (M2)
   - `ContentIndexed` (M4b; the content version listens, M6a), `ContentWritten`, `ContentPublished`, `CacheCleared` (D-415)
 
+## Records (D-643 to D-647)
+
+The data layer's base (D-606, step 2; see `roadmap.md`), in
+`Blush\Storage\Record` and `Blush\Storage\File`. Content, data, and
+accounts move onto it in later steps; roles are on it now.
+
+- **`Record`**: an `id` (UUID), `values` (never `id` or `body`), and an
+  optional `body`; `value()` reaches dotted keys. **`Table`**: a name,
+  its `StorageArea` (content, data, or accounts; sessions and jobs keep
+  narrow stores, D-645), an optional unique key value (D-646), and the
+  values it declares (for a database's indexes, D-644).
+  `TableRegistry` lists every table; core and plugins register in a
+  `resolving()` callback.
+- **`RecordStore`** (each driver's): find by id, key, or ids; save
+  (replacing in place) and delete; `select()` (a `RecordResult` with the
+  total), `count()`, `countBy()`, `aggregate()`; and `transaction()`.
+  **`RecordStores`** gives the store for a table's area, from that
+  area's driver (D-642), and bound queries.
+- **`RecordQuery`**: immutable and fluent, itself what drivers compile:
+  a condition tree (`Condition`, `ConditionGroup` with `Junction`),
+  `Operator` (strict comparisons, documented on the enum), several
+  `Sort`s with `Order` (moved here from content), limit, offset, and
+  pages. Without an order, records come in the order they were added;
+  ties keep it. Null sorts last either way. An empty "any" group matches
+  nothing.
+- **`ArrayEvaluator`** runs queries over records in memory: the
+  reference behavior. **`ArrayRecordStore`** keeps records in memory.
+- **`FileRecordStore`** keeps each table as its **`FileLayout`** says
+  (`FileLayouts`, the filesystem driver's alone): a folder of JSON files
+  named by key or id (by default `user/content/{table}`,
+  `user/data/{table}`, or `storage/{table}`), or one JSON file listing
+  the records, under a top-level key whose siblings are kept. A record
+  is written as its values, its `body`, then its `id`, last. A record
+  without an id gets a steady one from its table and key
+  (`Uuid::fromName()`) until it's written. Every read reads the table
+  again; writes are atomic and each is in a transaction.
+- **`FileTransactions`**: the filesystem driver's one transaction
+  journal and lock (`storage/cache/data.lock`), shared by
+  `FileDataStore` and `FileRecordStore`.
+- **The conformance suite** (`tests/Storage/Conformance`): the pinned
+  answer to every operator, group, order, page, aggregate, and
+  transaction; `ArrayRecordStore` and `FileRecordStore` (both layouts)
+  run it, as every driver must.
+- **Roles** (`RecordRoleStore`, D-646): the `roles` table, keyed by
+  name, kept on files as `storage/roles.json` (`{"roles": [...]}`,
+  0660), each role gaining its id when the roles are next saved.
+
 ## Data files
 
 - **Split (D-022):** developer config is typed PHP objects (D-017).

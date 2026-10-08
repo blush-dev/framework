@@ -27,7 +27,7 @@ use Blush\Content\Index\ContentIndex;
 use Blush\Content\Index\RecordMatcher;
 use Blush\Content\IndexedRepository;
 use Blush\Content\Query\EntryCollection;
-use Blush\Content\Query\Order;
+use Blush\Storage\Record\Order;
 use Blush\Content\Query\Paginator;
 use Blush\Content\Query\Query;
 use Blush\Content\Query\Selection;

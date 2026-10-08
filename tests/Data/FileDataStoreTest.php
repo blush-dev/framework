@@ -21,6 +21,7 @@ use Blush\Data\DataKeys;
 use Blush\Data\DataLoader;
 use Blush\Data\FileDataStore;
 use Blush\Data\InvalidData;
+use Blush\Storage\File\FileTransactions;
 use Blush\Support\Filesystem;
 use Blush\Tests\TemporaryDirectory;
 
@@ -37,7 +38,9 @@ final class FileDataStoreTest extends TestCase
 
 	private function store(): FileDataStore
 	{
-		return new FileDataStore(Paths::fromRoot($this->temporaryDirectory()), new DataLoader(), new Filesystem());
+		$paths = Paths::fromRoot($this->temporaryDirectory());
+
+		return new FileDataStore($paths, new DataLoader(), new Filesystem(), new FileTransactions($paths, new Filesystem()));
 	}
 
 	private function file(string $name): string

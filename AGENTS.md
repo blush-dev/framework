@@ -127,7 +127,10 @@ named in config or `STORAGE_DRIVER`, with `filesystem` the only one
 for now, so a site can later keep its data in a database (D-485,
 D-486); build stored data with that in mind, toward one data layer
 for every area, records keyed by id with a fluent query each driver
-compiles (D-606, planned); and an id for every media
+compiles (D-606): every area resolves through its driver, the data
+area a `DataStore` (D-642), and the record layer built on files with
+its conformance suite, roles its first table (D-643 to D-647; plan in
+`roadmap.md`); and an id for every media
 original, with image sizes found by rule and given none
 (D-487), and sizes recorded in their image's details, the library
 listing one item per image (D-488); and Blush's own Markdown API over

@@ -60,26 +60,13 @@ Move each item to `decisions.md` once it's answered.
 - **The data layer** (D-606; planned, nothing built). Settled: three
   layers (drivers over records, a fluent query compiled per driver,
   repositories), data mapper, every area, id-keyed writes, the full
-  query language, drivers from core and Composer. Open:
-  - **Schemas and migrations** (the author: "I don't know"). Does a
-    database driver build its tables from type definitions (fields as
-    columns, or a JSON column of fields with indexed columns for what's
-    queried)? Is there a `storage:migrate`, and what changes when a
-    type gains or loses a field? The filesystem driver needs none of
-    it, which argues for schema being the driver's business, derived
-    from types, rather than migrations a site writes by hand.
-    Leaning (D-640): fields as one JSON column per record, with a
-    generated, indexed column for each field a query uses, built by
-    the driver from type definitions, since SQLite, MySQL/MariaDB, and
-    PostgreSQL each query JSON with their own syntax.
-  - **Narrower drivers for areas that never query** (D-640): sessions
-    and jobs need only get, put, claim, and expire, which Redis does
-    well and the full query language can't ask of it. Leaning: areas
-    can take a narrower driver, as `CacheConfig` picks stores per
-    namespace; which areas, and what the narrower contract is.
-  - **Moving between drivers** (D-486's migration tools): copying every
-    set from one driver to another through the record layer, ids kept,
-    as a CLI command and an admin tool.
+  query language, drivers from core and Composer, and the names
+  (D-643: `Record` with `values`, tables, `RecordStore`, one
+  `RecordQuery`, plural-noun repositories), and schemas and moving
+  between drivers (D-644: drivers derive their schema from types, a
+  JSON `values` column with generated indexed columns, no hand-written
+  migrations, `storage:sync` and `storage:copy`), and sessions and jobs
+  keeping narrow contracts (D-645). Open:
   - **Composer drivers:** how they're found before plugins load.
     Leaning: a key in the package's `composer.json` `extra`, read with
     the installed packages and cached, and a driver named in
@@ -102,8 +89,6 @@ Move each item to `decisions.md` once it's answered.
     value maps built in PHP; `PhpIndex` answers the same queries, and
     the conformance suite runs both. Against it: two indexes to keep.
     The other choice was SQLite only, `pdo_sqlite` required.
-  - **Names:** record, set, store, `QuerySpec`, and repositories (and
-    "set" against content's own "collection").
   - **Publishing** a database-backed site (D-131 pulls `user/` with
     git; D-486's open point).
 

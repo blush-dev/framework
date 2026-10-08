@@ -14,7 +14,7 @@ declare(strict_types=1);
 namespace Blush\Content\Type;
 
 use Blush\Content\Query\InvalidQuery;
-use Blush\Content\Query\Order;
+use Blush\Storage\Record\Order;
 use Blush\Content\Query\Query;
 use Blush\Field\Definition;
 use Blush\Field\InvalidSchema;

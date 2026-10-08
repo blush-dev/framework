@@ -11,10 +11,10 @@
 
 declare(strict_types=1);
 
-namespace Blush\Content\Query;
+namespace Blush\Storage\Record;
 
 /**
- * The direction a query sorts in.
+ * The direction a query sorts in: records (D-643) and entries alike.
  */
 enum Order: string
 {

@@ -15,7 +15,7 @@ namespace Blush\Content\Type;
 
 use Override;
 use Blush\Content\Entry\Position;
-use Blush\Content\Query\Order;
+use Blush\Storage\Record\Order;
 use Blush\Field\Field;
 
 /**

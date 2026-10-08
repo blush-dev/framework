@@ -322,6 +322,107 @@ The writer only writes content files inside `user/content`, and refuses
 any edit it can't make without changing something else (it throws
 `WriteException`, and the file is left as it was).
 
+## Storing your own data
+
+A plugin that keeps its own records, such as albums or sign-ups, keeps
+them in a **table**. Tables work the same whatever stores the site's
+data, so your code keeps working if a site moves to a database later.
+
+Describe the table, and register it when Blush starts, in your
+provider's `register()`:
+
+```php
+use Blush\Storage\Record\Table;
+use Blush\Storage\Record\TableRegistry;
+use Blush\Storage\StorageArea;
+
+public static function albums(): Table
+{
+	return new Table('gallery/albums', StorageArea::Data, key: 'slug');
+}
+
+public function register(): void
+{
+	$this->container->resolving(TableRegistry::class, static function (object $tables): void {
+		$tables->register(self::albums());
+	});
+}
+```
+
+- **The name** is lowercase letters, digits, `_`, and `-`, with `/` to
+  group a plugin's tables (`gallery/albums`).
+- **The area** is `Data` for site data, `Accounts` for data about
+  people, or `Content`.
+- **The key** is optional: a value each record has, unique in the table,
+  such as a slug or a name, that you can find records by. Key values are
+  letters, digits, `.`, `_`, and `-`, starting with a letter or digit.
+
+Then ask for `Blush\Storage\Record\RecordStores` in a constructor:
+
+```php
+use Blush\Storage\Record\Order;
+use Blush\Storage\Record\Record;
+use Blush\Storage\Record\RecordQuery;
+
+$table = Gallery::albums();
+$store = $stores->store($table);
+
+// Add one. Every record has an id; create() makes a new one.
+$store->save($table, Record::create($clock->now(), ['slug' => 'summer', 'title' => 'Summer', 'year' => 2026]));
+
+// Find one by id or by key.
+$album = $store->findByKey($table, 'summer');
+
+// Change it: save it again with new values.
+$store->save($table, $album->with('title', 'Summer 2026'));
+
+// Query.
+$recent = $stores->query($table)
+	->where('year', '>=', 2024)
+	->whereAny(
+		static fn (RecordQuery $q): RecordQuery => $q->where('featured', '=', true),
+		static fn (RecordQuery $q): RecordQuery => $q->where('tags', 'contains', 'travel')
+	)
+	->orderBy('year', Order::Desc)
+	->paginate(perPage: 20, page: 1)
+	->get();
+
+foreach ($recent as $album) {
+	echo $album->value('title');
+}
+
+$store->delete($table, $album->id);
+```
+
+- **A record** is an `id` (a UUID), its **values** (text, numbers,
+  `true`/`false`, `null`, and lists or maps of them; never `id` or
+  `body`), and an optional **body** of text. `value('seo.title')`
+  reaches into nested values.
+- **Conditions:** `=`, `!=`, `<`, `<=`, `>`, `>=`, `between` (two
+  values, inclusive), `in` and `not in` (a list), `like` (`%` for any
+  run of characters, `_` for one, without regard to case), `contains`
+  (a list value holds it), `null`, and `not null`. A missing value is
+  `null`.
+- **Comparisons are strict:** the number `2020` and the text `"2020"`
+  aren't equal, and `<` compares numbers with numbers and text with text.
+  Text matches with `=` are case-sensitive.
+- **Order:** `orderBy()` takes several keys; `null` sorts last either
+  way. Without an order, records come in the order they were added.
+- **Counting:** `count()`, `countBy('tags')` (how many records have each
+  value), and `min()`, `max()`, `sum()`, and `avg()` of a key. The limit
+  and page don't apply to them.
+- **Transactions:** `$store->transaction(fn () => …)` runs several
+  writes so none from elsewhere interleave; if it throws, each write is
+  put back.
+
+On a flat-file site, a table is a folder of JSON files, one a record,
+named by its key (or its id): `gallery/albums` is
+`user/data/gallery/albums/summer.json`. Don't edit those files from
+code; go through the store.
+
+For tests, `Blush\Storage\Record\ArrayRecordStore` keeps records in
+memory and answers queries the same way.
+
 ## Admin actions
 
 An action is a button on [the admin's](admin.md#tools) Tools screen,

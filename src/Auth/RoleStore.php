@@ -16,7 +16,7 @@ namespace Blush\Auth;
 /**
  * Where the roles made or changed in the admin are kept (D-312): custom
  * roles, and the capabilities of a built-in role other than the
- * owner and the member. A file outside git by default (`FileRoleStore`), so a
+ * owner and the member. Kept outside git by default (`RecordRoleStore`, D-646), so a
  * pull never changes who can do what.
  */
 interface RoleStore

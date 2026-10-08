@@ -14,7 +14,7 @@ declare(strict_types=1);
 namespace Blush\Content\Index;
 
 use Blush\Content\Entry\Position;
-use Blush\Content\Query\Order;
+use Blush\Storage\Record\Order;
 use Blush\Content\Query\Query;
 use Blush\Content\Query\Selection;
 

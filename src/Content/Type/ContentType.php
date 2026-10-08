@@ -15,7 +15,7 @@ namespace Blush\Content\Type;
 
 use DateTimeInterface;
 use NoDiscard;
-use Blush\Content\Query\Order;
+use Blush\Storage\Record\Order;
 use Blush\Field\Definition;
 use Blush\Field\Field;
 use Blush\Field\FieldFactory;

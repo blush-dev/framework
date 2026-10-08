@@ -19,7 +19,7 @@ use Blush\Auth\Account;
 use Blush\Benchmarks\Fixture\JtcomSizedSite;
 use Blush\Content\ContentRepository;
 use Blush\Content\Index\Indexer;
-use Blush\Content\Query\Order;
+use Blush\Storage\Record\Order;
 use Blush\Core\Application;
 use Blush\Core\Bootstrap;
 use Blush\Core\Paths;

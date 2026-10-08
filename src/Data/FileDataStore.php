@@ -19,6 +19,8 @@ use JsonException;
 use Override;
 use Throwable;
 use Blush\Core\Paths;
+use Blush\Storage\File\FileTransactions;
+use Blush\Storage\StorageException;
 use Blush\Support\Filesystem;
 
 /**
@@ -28,30 +30,16 @@ use Blush\Support\Filesystem;
  * A file's `$schema` key, which points an editor at its JSON Schema, is
  * never part of a record (D-491), and saving keeps it first. A file that
  * can't be read is named by its path from the site's root. Writes are
- * atomic, and transactions take `storage/cache/data.lock`, keeping each
- * file's text as it was before its first write, to put back.
+ * atomic, and transactions are the filesystem driver's
+ * (`FileTransactions`), shared with its records.
  */
-final class FileDataStore implements DataStore
+final readonly class FileDataStore implements DataStore
 {
-	/**
-	 * The files written by each open transaction, outermost first, with
-	 * their text before it (`null` for none).
-	 *
-	 * @var list<array<string, ?string>>
-	 */
-	private array $transactions = [];
-
-	/**
-	 * The open lock, while a transaction runs.
-	 *
-	 * @var ?resource
-	 */
-	private mixed $lock = null;
-
 	public function __construct(
-		private readonly Paths $paths,
-		private readonly DataLoader $loader,
-		private readonly Filesystem $filesystem
+		private Paths $paths,
+		private DataLoader $loader,
+		private Filesystem $filesystem,
+		private FileTransactions $transactions
 	) {}
 
 	/**
@@ -153,7 +141,7 @@ final class FileDataStore implements DataStore
 			throw new DataStoreException(sprintf('The values for %s can\'t be written as JSON: %s', $this->location($name), $error->getMessage()), previous: $error);
 		}
 
-		$this->remember($path, $text);
+		$this->transactions->remember($path);
 
 		try {
 			$this->filesystem->writeAtomic($path, $json);
@@ -174,7 +162,7 @@ final class FileDataStore implements DataStore
 			return;
 		}
 
-		$this->remember($path, $this->text($path));
+		$this->transactions->remember($path);
 
 		if (! @unlink($path)) {
 			throw new DataStoreException(sprintf('Unable to delete %s.', $this->location($name)));
@@ -187,36 +175,11 @@ final class FileDataStore implements DataStore
 	#[Override]
 	public function transaction(Closure $write): mixed
 	{
-		$outer = $this->transactions === [];
-
-		if ($outer) {
-			$this->acquire();
-		}
-
-		$this->transactions[] = [];
-
 		try {
-			$result = $write();
-		} catch (Throwable $error) {
-			$this->restore((array) array_pop($this->transactions));
-
-			if ($outer) {
-				$this->release();
-			}
-
-			throw $error;
+			return $this->transactions->run($write);
+		} catch (StorageException $error) {
+			throw new DataStoreException($error->getMessage(), previous: $error);
 		}
-
-		$written = (array) array_pop($this->transactions);
-
-		if ($outer) {
-			$this->release();
-		} else {
-			// The outer transaction keeps the text from before either wrote.
-			$this->transactions[] = (array) array_pop($this->transactions) + $written;
-		}
-
-		return $result;
 	}
 
 	/**
@@ -269,70 +232,5 @@ final class FileDataStore implements DataStore
 		$data = $text === null ? null : json_decode($text, true);
 
 		return is_array($data) && is_string($data[DataLoader::SCHEMA] ?? null) ? [DataLoader::SCHEMA => $data[DataLoader::SCHEMA]] : [];
-	}
-
-	/**
-	 * Keeps a file's text from before the open transaction first wrote it.
-	 */
-	private function remember(string $path, ?string $text): void
-	{
-		$last = array_key_last($this->transactions);
-
-		if ($last !== null && ! array_key_exists($path, $this->transactions[$last])) {
-			$this->transactions[$last][$path] = $text;
-		}
-	}
-
-	/**
-	 * Puts files back as they were, the last written first.
-	 *
-	 * @param array<string, ?string> $written
-	 */
-	private function restore(array $written): void
-	{
-		foreach (array_reverse($written, true) as $path => $text) {
-			try {
-				if ($text === null) {
-					@unlink($path);
-				} else {
-					$this->filesystem->writeAtomic($path, $text);
-				}
-			} catch (Throwable) {
-				// The error that started this goes on; one file left is all this can't fix.
-			}
-		}
-	}
-
-	/**
-	 * Takes the data lock.
-	 *
-	 * @throws DataStoreException
-	 */
-	private function acquire(): void
-	{
-		if (! is_dir($this->paths->cache)) {
-			@mkdir($this->paths->cache, 0775, true);
-		}
-
-		$lock = @fopen("{$this->paths->cache}/data.lock", 'c');
-
-		if ($lock === false || ! flock($lock, LOCK_EX)) {
-			throw new DataStoreException('Unable to take the data lock.');
-		}
-
-		$this->lock = $lock;
-	}
-
-	/**
-	 * Lets the data lock go.
-	 */
-	private function release(): void
-	{
-		if (is_resource($this->lock)) {
-			flock($this->lock, LOCK_UN);
-			fclose($this->lock);
-		}
-
-		$this->lock = null;
 	}
 }

@@ -16,8 +16,6 @@ namespace Blush\Storage;
 use Override;
 use Blush\Auth\AccountStore;
 use Blush\Auth\FileAccountStore;
-use Blush\Auth\FileRoleStore;
-use Blush\Auth\RoleStore;
 use Blush\Content\Source\ContentSource;
 use Blush\Content\Source\FilesystemSource;
 use Blush\Content\Writer\ContentWriter;
@@ -28,11 +26,14 @@ use Blush\Job\FileJobStore;
 use Blush\Job\JobStore;
 use Blush\Session\FileSessionStore;
 use Blush\Session\SessionStore;
+use Blush\Storage\File\FileRecordStore;
+use Blush\Storage\Record\RecordStore;
 
 /**
  * Keeps every area in files, as a flat-file site does: Markdown in
- * `user/content`, JSON in `user/data`, and accounts, roles, sessions,
- * and jobs under `storage/` (D-485, D-486).
+ * `user/content`, JSON in `user/data`, and accounts, sessions, and jobs
+ * under `storage/` (D-485, D-486), with records in tables kept as their
+ * `FileLayout` says (D-643).
  */
 final readonly class FilesystemStorage implements Storage
 {
@@ -46,8 +47,8 @@ final readonly class FilesystemStorage implements Storage
 			ContentSource::class => FilesystemSource::class,
 			ContentWriter::class => FilesystemWriter::class,
 			DataStore::class     => FileDataStore::class,
+			RecordStore::class   => FileRecordStore::class,
 			AccountStore::class  => FileAccountStore::class,
-			RoleStore::class     => FileRoleStore::class,
 			SessionStore::class  => FileSessionStore::class,
 			JobStore::class      => FileJobStore::class
 		];

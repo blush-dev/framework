@@ -28,7 +28,7 @@ use Blush\Content\ContentRepository;
 use Blush\Content\Entry\Entry;
 use Blush\Content\Entry\Position;
 use Blush\Content\EntryFields;
-use Blush\Content\Query\Order;
+use Blush\Storage\Record\Order;
 use Blush\Content\Query\Query;
 use Blush\Content\Relation\Referrers;
 use Blush\Content\Relation\RelationChanges;

@@ -103,6 +103,111 @@ Carried from M7: the 114 dead links in old posts feed the redirect map.
   `publish` and the webhook on the host, the CLI-publish opcache
   question): wait until the author is ready to go live.
 
+## The data layer (D-606): plan
+
+Groundwork done: every storage area resolves through its driver, and
+the data area is a `DataStore` (D-642). Settled: the names (D-643),
+schemas and moving between drivers (D-644), and sessions and jobs
+keeping narrow contracts (D-645). The steps, each reviewed before it's
+built:
+
+1. **Settle what blocks code** (done: D-643 to D-646).
+2. **The record layer, on files only** (built, D-647). Roles are its
+   first table.
+3. **Content onto records**: writes keyed by id in place of
+   `ContentWriter`'s paths, the index owned by the filesystem driver,
+   content's `Query` wrapping `RecordQuery`, relation filters over
+   D-585's links. The biggest step; it changes the admin's write paths.
+4. **The filesystem driver's SQLite index**, falling back to
+   `PhpIndex` without `pdo_sqlite` (the leaning in `open-questions.md`).
+5. **The SQLite driver** (D-640), its schema from types (D-644), and
+   `storage:sync` and `storage:copy`.
+6. **The other areas onto records** (data, accounts, roles; sessions
+   and jobs built on `RecordStore` inside a database driver, D-645),
+   then Composer drivers, the admin's copy tool, and publishing a
+   database site.
+
+### Step 2: the record layer, on files only (built, D-647)
+
+**Goal:** the generic layer every later step builds on, proven by a
+conformance suite and one real adopter, with nothing a site or the
+admin can see changing.
+
+**2a. The model** (`Blush\Storage\Record`):
+- `Record` (final, readonly): `id`, `values` (by key), `body` (nullable).
+  `with()` and `without()` return copies.
+- `Table` (final, readonly): a table's definition as a driver needs
+  it: `name`, the `StorageArea` it belongs to, its key (below), and the
+  values it declares (for indexes later, D-644). Tables are registered
+  (`TableRegistry`), by core and by plugins in `boot()`, as the other
+  registries are.
+- `RecordStore` (interface): `find(Table, id)`, `findMany(Table, ids)`,
+  `save(Table, Record)`, `delete(Table, id)`, `select(Table,
+  RecordQuery)` (a `RecordResult`: records, and the total before limit
+  and offset), `count`, `aggregate`, and `transaction(Closure)`, as
+  `DataStore`'s works.
+- Exceptions: `RecordException` (base), `RecordNotFound`,
+  `InvalidRecordQuery`.
+
+**2b. The query** (`RecordQuery`, immutable, each call a copy):
+- Conditions: `where(key, Operator, value)` with `Operator` an enum
+  (`=`, `!=`, `<`, `<=`, `>`, `>=`, `in`, `not in`, `like`, `null`,
+  `not null`, `between`), on values, `id`, or `body`; dotted keys reach
+  into nested values. `whereAny()` and `whereAll()` take closures for
+  nested or-and-and groups, kept as a condition tree (`Condition`,
+  `ConditionGroup`).
+- `orderBy()` (several keys, each with `Order`), `limit()`, `offset()`,
+  `paginate()`.
+- Aggregates: `count()`, `countBy(key)` (counts per value), `min`,
+  `max`, `sum`, `avg`.
+- Relation filters and eager loading (`whereRelated()`, `with()`) are
+  designed into the condition tree now and built in step 3, where
+  D-585's links become records.
+- Values compare by type: no SQL-style coercion, so every driver can
+  match (the conformance suite pins each case: nulls, missing keys,
+  numbers against numeric strings, dates as ISO 8601 strings,
+  case-sensitive `=` and case-insensitive `like`).
+
+**2c. The filesystem driver** (`FileRecordStore`):
+- A table is kept one of two ways, chosen per table: a **folder** in
+  its area's root (data: `user/data/{table}/`), one file per record,
+  named by its key; or **one file** holding every record by key, for
+  small tables kept that way today (`storage/roles.json`,
+  `user/data/health/ignored.json`, `user/data/redirects.json`). Writes
+  are atomic. Its format
+  is a codec the driver picks per table: JSON now (`JsonCodec`), front
+  matter and Markdown in step 3. The record model never sees a format.
+- Queries load a table's records once per request and run them through
+  `ArrayEvaluator`: the condition tree, order, and aggregates over
+  arrays, compiled to closures. Fine for data-sized tables; content
+  keeps its own index until steps 3 and 4.
+- Transactions: the same put-back on throw as `FileDataStore` (D-642),
+  shared, not copied.
+- `FilesystemStorage` binds `RecordStore` for the areas it covers.
+
+**2d. The conformance suite** (`tests/Storage/Conformance`): an
+abstract test case with fixture tables and records and the expected
+answer to every operator, group, order, page, and aggregate, plus
+transactions. `FileRecordStore` runs it, and so does
+`ArrayRecordStore` (in memory, for tests). Every later driver extends
+it; a driver that fails a case isn't done.
+
+**2e. One adopter, to prove it:** roles (D-646). Tests
+for the adopter pass unchanged, and `composer bench` shows no
+regression.
+
+**Done when:** the conformance suite passes on both stores, the
+adopter runs on `RecordStore` with its file in the same place and shape
+(an `id` added to each record, nothing else), `composer
+check` passes, and `docs/` documents tables for plugin authors (what's
+built only).
+
+**Settled (D-646):** every record has a UUID `id`, and a table may
+declare a unique key value (`name`, `username`) that lookups use and
+the filesystem driver names files by. The first adopter is **roles**
+(`storage/roles.json`, a one-file table keyed by role name; each role
+gains an `id` on its next save). Accounts follow in step 6.
+
 ## Next: setup DX/UX (D-156)
 
 The current focus: the experience of setting up a Blush site.
