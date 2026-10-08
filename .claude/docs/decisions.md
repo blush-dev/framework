@@ -18409,3 +18409,51 @@ decision, add a new entry that supersedes it and mark the old one
   `.panel__actions` centering its items. A shared id's choice wasn't
   seen (the trial site has none).
 
+### D-614: Site Health's facts on their own tab
+
+- **Date:** 2026-10-08
+- **Status:** Built.
+- **Decision:** Site Health has three tabs: **Checks**, **Requirements**,
+  and **Site & Server** (`?tab=info`). Requirements is its table alone,
+  full width, so what each needs and its note have room. Site & Server
+  has This Site and The Server side by side, in equal columns (the
+  shared `.columns--even`). Copy Report is on both, and still copies
+  the requirements and the facts. Each fact list stays a panel of
+  its own; there's no tab for each. Amends D-543's "Beside them".
+- **Why:** the author, 2026-10-08, asked about giving Site Info and
+  Server Info their own tabs. The tab named Requirements held facts that
+  aren't requirements, but a tab for each short list would be thin and
+  split Copy Report, so they share one: "Let's go with the two tab
+  look: Requirements and the info one (choose the best name)."
+  "Site & Server" names both panels; "System" would be confused with
+  the System area on Checks.
+
+### D-615: Site & Server's facts in words, raw in Copy Report
+
+- **Date:** 2026-10-08
+- **Status:** Built.
+- **Decision:** each fact on Site Health's Site & Server tab (D-614) is
+  shown in words and kept as configured. A fact is `key`, `label`,
+  `value` (to read), `raw` (as configured), `note` (the setting it comes
+  from, under the label, or `null`), and `mono`. Copy Report writes
+  `key: raw`. Labels stay sentence case, as every fact list's are.
+  - **This Site:** Version ("Blush Framework 2.0.0", from
+    `Framework::NAME`); Environment capitalized, and Debugging (On or
+    Off) its own row; Admin URL in full; Content folder and Media
+    folder; the time zone with its offset now ("UTC−5"); languages by
+    `Language::name()`; the theme by its manifest's label, its
+    `vendor/name` as the note; the cache driver by `CacheDriver::label()`
+    (new; a driver a plugin adds shows its key).
+  - **The Server:** Web server; Operating system ("macOS (Darwin 25.0.0,
+    arm64)": Darwin's release is its kernel's, not macOS's, so the macOS
+    version isn't claimed); PHP with how it's run in words ("PHP-FPM",
+    "Apache module"); Memory limit and Time limit in MB and seconds, or
+    "No limit", their ini names as notes; PHP time zone, saying when it
+    isn't the site's; Disk space. Sizes drop a trailing ".0".
+  - **Requirements and facts are read on every load** (`SiteHealth::
+    current()`, which `GET health/site` answers), not from the kept
+    report: they cost nothing, and a kept copy went stale with no Run a
+    Check on their tabs. The checks are still the last report's (D-545).
+- **Why:** the author, 2026-10-08, asked whether better labels could be
+  derived, then: "Build all of it, keep raw values in Copy Report".
+

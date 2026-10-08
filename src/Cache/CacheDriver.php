@@ -40,4 +40,18 @@ enum CacheDriver: string
 			self::Null    => NullStore::class
 		};
 	}
+
+	/**
+	 * Returns the driver's name, for reading.
+	 */
+	public function label(): string
+	{
+		return match ($this) {
+			self::File    => 'Files',
+			self::PhpFile => 'PHP files',
+			self::Apcu    => 'APCu',
+			self::Array   => 'Memory, for one request',
+			self::Null    => 'Off'
+		};
+	}
 }

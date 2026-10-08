@@ -859,6 +859,12 @@ D-541). Where the admin differs from the sketch:
   minimums; the two-column layout is the shared `.columns` class, and
   issue rows the shared `.rows` with `.rows__item` for rows that lead
   nowhere.
+- **Site Health's third tab** (D-614): the sketch's Requirements tab is
+  two, **Requirements** (the table alone, full width) and **Site &
+  Server** (This Site and The Server side by side, in the shared
+  `.columns--even`), with Copy Report on both.
+  Its facts are in words, with the PHP setting or theme name as a note
+  under the label, and Copy Report keeps them as configured (D-615).
 - **From a screenshot check against the sketch** (2026-10-06): a
   figure's label takes its warn or danger color, the side column is
   the sketch's 420px, requirement groups are shaded bands with the

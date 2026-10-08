@@ -14,12 +14,14 @@ declare(strict_types=1);
 namespace Blush\Admin;
 
 use DateTimeInterface;
+use DateTimeZone;
 use Psr\Clock\ClockInterface;
 use Blush\Cache\CacheConfig;
 use Blush\Cache\CacheDriver;
 use Blush\Content\ContentRepository;
 use Blush\Core\AppConfig;
 use Blush\Core\Framework;
+use Blush\Core\Language;
 use Blush\Core\Paths;
 use Blush\Extension\ExtensionState;
 use Blush\Media\Index\MediaLibrary;
@@ -35,7 +37,9 @@ use Blush\Setup\SiteChecks;
  * facts, as the web server's PHP sees them (`doctor` runs under the
  * command line's, which may differ). `run()` checks everything and keeps
  * the report (`HealthReportStore`), so the screen shows the last one at
- * once and checks again only when asked; `saved()` is that report. It
+ * once and checks again only when asked; `saved()` is that report, and
+ * `current()` is it with the requirements and facts read again, since
+ * they cost nothing and a kept copy goes stale unseen (D-615). It
  * keeps the content and media files' full report (`files`), which their
  * detail screens show (`files()`); checking those again (`checkFiles()`,
  * as after a fix) sums them up again in the report too (D-546).
@@ -131,6 +135,29 @@ final readonly class SiteHealth
 	public function saved(): ?array
 	{
 		return $this->store->load();
+	}
+
+	/**
+	 * Returns the last report with its requirements and facts read now,
+	 * or checks everything when there's no report.
+	 *
+	 * @param  array<array-key, mixed> $server
+	 * @return array<string, mixed>
+	 */
+	public function current(array $server = []): array
+	{
+		$report = $this->saved();
+
+		if ($report === null) {
+			return $this->run($server);
+		}
+
+		return [
+			...$report,
+			'requirements' => $this->requirements(),
+			'site'         => $this->siteFacts(),
+			'server'       => $this->serverFacts($server)
+		];
 	}
 
 	/**
@@ -438,51 +465,146 @@ final readonly class SiteHealth
 	}
 
 	/**
-	 * Returns facts about the site.
+	 * Returns facts about the site, each in words for reading and as it's
+	 * kept (`key`, `raw`) for Copy Report.
 	 *
-	 * @return list<array{label: string, value: string, mono: bool}>
+	 * @return list<array{key: string, label: string, value: string, raw: string, note: ?string, mono: bool}>
 	 */
 	private function siteFacts(): array
 	{
-		$languages = array_map(static fn (object $language): string => $language->code, $this->app->languages->all());
+		$languages = $this->app->languages->all();
+		$theme     = $this->extensions->themes->find($this->extensions->theme);
+		$label     = $theme->label ?? $this->extensions->theme;
+		$driver    = CacheDriver::tryFrom($this->cache->driver);
+		$zone      = $this->app->timezone();
+		$entries   = number_format($this->content->query()->any()->count());
+		$media     = number_format($this->library->query(new MediaQuery(per: 1))->total);
 
 		return [
-			['label' => 'Blush', 'value' => Framework::VERSION, 'mono' => true],
-			['label' => 'Environment', 'value' => $this->app->environment->value . ($this->app->debug ? ', debugging on' : ''), 'mono' => true],
-			['label' => 'Site URL', 'value' => $this->app->url, 'mono' => true],
-			['label' => 'Admin path', 'value' => $this->admin->path, 'mono' => true],
-			['label' => 'Content', 'value' => $this->paths->relative($this->paths->content) . '/', 'mono' => true],
-			['label' => 'Media', 'value' => $this->paths->relative($this->paths->media) . '/', 'mono' => true],
-			['label' => 'Time zone', 'value' => $this->app->timezone()->getName(), 'mono' => true],
-			['label' => 'Languages', 'value' => implode(', ', $languages), 'mono' => true],
-			['label' => 'Theme', 'value' => $this->extensions->theme, 'mono' => true],
-			['label' => 'Cache', 'value' => $this->cache->driver, 'mono' => true],
-			['label' => 'Entries', 'value' => number_format($this->content->query()->any()->count()), 'mono' => false],
-			['label' => 'Media files', 'value' => number_format($this->library->query(new MediaQuery(per: 1))->total), 'mono' => false]
+			self::fact('version', 'Version', Framework::NAME . ' ' . Framework::VERSION, Framework::VERSION),
+			self::fact('environment', 'Environment', ucfirst($this->app->environment->value), $this->app->environment->value, mono: false),
+			self::fact('debug', 'Debugging', $this->app->debug ? 'On' : 'Off', $this->app->debug ? 'true' : 'false', mono: false),
+			self::fact('url', 'Site URL', $this->app->url),
+			self::fact('admin', 'Admin URL', rtrim($this->app->url, '/') . $this->admin->path, $this->admin->path),
+			self::fact('content', 'Content folder', $this->paths->relative($this->paths->content) . '/'),
+			self::fact('media', 'Media folder', $this->paths->relative($this->paths->media) . '/'),
+			self::fact('timezone', 'Time zone', sprintf('%s (%s)', $zone->getName(), $this->offset($zone)), $zone->getName()),
+			self::fact(
+				'languages',
+				'Languages',
+				implode(', ', array_map(static fn (Language $language): string => $language->name(), $languages)),
+				implode(', ', array_map(static fn (Language $language): string => $language->code, $languages)),
+				mono: false
+			),
+			self::fact('theme', 'Theme', $label, $this->extensions->theme, $label !== $this->extensions->theme ? $this->extensions->theme : null, false),
+			self::fact('cache', 'Cache', $driver?->label() ?? $this->cache->driver, $this->cache->driver, mono: $driver === null),
+			self::fact('entries', 'Entries', $entries, mono: false),
+			self::fact('media_files', 'Media files', $media, mono: false)
 		];
 	}
 
 	/**
-	 * Returns facts about the server, as PHP sees it from here.
+	 * Returns facts about the server, as PHP sees it from here, each in
+	 * words for reading and as PHP has it (`key`, `raw`) for Copy Report.
 	 *
 	 * @param  array<array-key, mixed> $server
-	 * @return list<array{label: string, value: string, mono: bool}>
+	 * @return list<array{key: string, label: string, value: string, raw: string, note: ?string, mono: bool}>
 	 */
 	private function serverFacts(array $server): array
 	{
 		$software = $server['SERVER_SOFTWARE'] ?? null;
 		$free     = @disk_free_space($this->paths->root);
 		$total    = @disk_total_space($this->paths->root);
+		$memory   = (string) ini_get('memory_limit');
+		$time     = (int) ini_get('max_execution_time');
+		$os       = sprintf('%s %s (%s)', PHP_OS_FAMILY, php_uname('r'), php_uname('m'));
+		$phpZone  = date_default_timezone_get();
+		$siteZone = $this->app->timezone()->getName();
 
 		return array_values(array_filter([
-			is_string($software) && $software !== '' ? ['label' => 'Software', 'value' => $software, 'mono' => true] : null,
-			['label' => 'Operating system', 'value' => sprintf('%s %s (%s)', PHP_OS_FAMILY, php_uname('r'), php_uname('m')), 'mono' => true],
-			['label' => 'PHP', 'value' => sprintf('%s (%s)', PHP_VERSION, PHP_SAPI), 'mono' => true],
-			['label' => 'memory_limit', 'value' => (string) ini_get('memory_limit'), 'mono' => true],
-			['label' => 'max_execution_time', 'value' => ((string) ini_get('max_execution_time')) . 's', 'mono' => true],
-			['label' => 'PHP time zone', 'value' => date_default_timezone_get(), 'mono' => true],
-			$free !== false && $total !== false ? ['label' => 'Disk', 'value' => sprintf('%s free of %s', self::size($free), self::size($total)), 'mono' => false] : null
+			is_string($software) && $software !== '' ? self::fact('software', 'Web server', $software) : null,
+			self::fact(
+				'os',
+				'Operating system',
+				PHP_OS_FAMILY === 'Darwin' ? sprintf('macOS (Darwin %s, %s)', php_uname('r'), php_uname('m')) : $os,
+				$os
+			),
+			self::fact('php', 'PHP', sprintf('%s, %s', PHP_VERSION, self::sapi(PHP_SAPI)), sprintf('%s (%s)', PHP_VERSION, PHP_SAPI)),
+			self::fact(
+				'memory_limit',
+				'Memory limit',
+				match (true) {
+					$memory === '-1'          => 'No limit',
+					self::bytes($memory) > 0  => self::size(self::bytes($memory)),
+					default                   => $memory
+				},
+				$memory,
+				'memory_limit',
+				false
+			),
+			self::fact(
+				'max_execution_time',
+				'Time limit',
+				$time === 0 ? 'No limit' : self::count($time, 'second', 'seconds'),
+				(string) $time,
+				'max_execution_time',
+				false
+			),
+			self::fact(
+				'date.timezone',
+				'PHP time zone',
+				$phpZone === $siteZone ? $phpZone : sprintf('%s, not the site\'s (%s)', $phpZone, $siteZone),
+				$phpZone,
+				'date.timezone'
+			),
+			$free !== false && $total !== false
+				? self::fact('disk', 'Disk space', sprintf('%s free of %s', self::size($free), self::size($total)), mono: false)
+				: null
 		]));
+	}
+
+	/**
+	 * Describes a fact: `$value` to read, and `$raw` (the value when not
+	 * given) as it's kept, for a bug report. `$note` names the setting.
+	 *
+	 * @return array{key: string, label: string, value: string, raw: string, note: ?string, mono: bool}
+	 */
+	private static function fact(string $key, string $label, string $value, ?string $raw = null, ?string $note = null, bool $mono = true): array
+	{
+		return ['key' => $key, 'label' => $label, 'value' => $value, 'raw' => $raw ?? $value, 'note' => $note, 'mono' => $mono];
+	}
+
+	/**
+	 * Names how PHP is run (its SAPI): "PHP-FPM", "Apache module".
+	 */
+	private static function sapi(string $sapi): string
+	{
+		return match ($sapi) {
+			'fpm-fcgi'       => 'PHP-FPM',
+			'apache2handler' => 'Apache module',
+			'cgi-fcgi'       => 'FastCGI',
+			'cli-server'     => 'PHP\'s built-in server',
+			'cli'            => 'command line',
+			'litespeed'      => 'LiteSpeed',
+			'frankenphp'     => 'FrankenPHP',
+			default          => $sapi
+		};
+	}
+
+	/**
+	 * A time zone's offset from UTC now: "UTC−5", "UTC+5:30", "UTC".
+	 */
+	private function offset(DateTimeZone $zone): string
+	{
+		$seconds = $zone->getOffset($this->clock->now());
+
+		if ($seconds === 0) {
+			return 'UTC';
+		}
+
+		$minutes = intdiv(abs($seconds), 60);
+
+		return sprintf('UTC%s%d%s', $seconds < 0 ? '−' : '+', intdiv($minutes, 60), $minutes % 60 === 0 ? '' : sprintf(':%02d', $minutes % 60));
 	}
 
 	/**
@@ -592,6 +714,8 @@ final readonly class SiteHealth
 			$unit++;
 		}
 
-		return sprintf($unit === 0 ? '%.0f %s' : '%.1f %s', $bytes, $units[$unit]);
+		$number = sprintf($unit === 0 ? '%.0f' : '%.1f', $bytes);
+
+		return (str_ends_with($number, '.0') ? substr($number, 0, -2) : $number) . ' ' . $units[$unit];
 	}
 }

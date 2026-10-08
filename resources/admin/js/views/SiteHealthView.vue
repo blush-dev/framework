@@ -7,8 +7,8 @@
  * side. Content and media lead to their details (`HealthView`), which
  * hold the fixes. The rest are `doctor`'s checks, as the web server's
  * PHP sees them. **Requirements** compares what Blush needs with what
- * this host has, beside facts for a bug report, and Copy Report copies
- * them all. It shows the last report (D-545), checking first only when
+ * this host has, and **Site & Server** lists facts for a bug report;
+ * Copy Report, on both, copies them all. It shows the last report (D-545), checking first only when
  * there's none, and checks again when asked.
  */
 
@@ -20,14 +20,18 @@ import { loadCounts, navCounts } from '../counts';
 import { formatWhen, plural } from '../format';
 import { can, session } from '../session';
 import { copyText, toast } from '../toast';
-import { request, type HealthArea, type HealthCheck, type HealthRequirement, type SiteHealth } from '../api';
+import { request, type HealthArea, type HealthCheck, type HealthFact, type HealthRequirement, type SiteHealth } from '../api';
 import type { IconName } from '../icons';
 
-type Tab = 'checks' | 'requirements';
+type Tab = 'checks' | 'requirements' | 'info';
 
 const route = useRoute();
-const tab   = computed<Tab>(() => route.query.tab === 'requirements' ? 'requirements' : 'checks');
-const TABS: { key: Tab; label: string }[] = [{ key: 'checks', label: 'Checks' }, { key: 'requirements', label: 'Requirements' }];
+const TABS: { key: Tab; label: string }[] = [
+	{ key: 'checks', label: 'Checks' },
+	{ key: 'requirements', label: 'Requirements' },
+	{ key: 'info', label: 'Site & Server' }
+];
+const tab = computed<Tab>(() => TABS.find((item) => item.key === route.query.tab)?.key ?? 'checks');
 
 const health = ref<SiteHealth | null>(null);
 
@@ -117,7 +121,8 @@ function copyReport(): void {
 		return;
 	}
 
-	const facts = (rows: { label: string; value: string }[]): string[] => rows.map((row) => `${row.label}: ${row.value}`);
+	// As PHP and the config have them, not as they're shown (D-615).
+	const facts = (rows: HealthFact[]): string[] => rows.map((row) => `${row.key}: ${row.raw}`);
 	const lines = [
 		'Site report',
 		'',
@@ -229,66 +234,69 @@ onMounted(() => {
 		</div>
 	</template>
 
-	<div v-else class="columns">
-		<div class="columns__col">
-			<section class="panel" aria-labelledby="requirements-heading">
-				<header class="panel__header">
-					<h2 id="requirements-heading">Requirements</h2>
-					<p class="panel__hint">{{ unmet ? `${plural(health.requirements.length, 'requirement')} · ${unmet} worth a look` : `All ${health.requirements.length} met` }}</p>
-				</header>
-				<div class="table-wrap">
-					<table class="table" aria-labelledby="requirements-heading">
-						<colgroup><col><col class="site-health__needs"><col class="site-health__installed"><col class="site-health__status"></colgroup>
-						<thead>
-							<tr><th scope="col">Requirement</th><th scope="col">Needs</th><th scope="col">Installed</th><th scope="col">Status</th></tr>
-						</thead>
-						<tbody v-for="group in groups" :key="group.name">
-							<tr class="table__group"><th scope="rowgroup" colspan="4">{{ group.name }}</th></tr>
-							<tr v-for="row in group.rows" :key="row.name">
-								<th scope="row">
-									{{ row.name }}
-									<span v-if="row.why" class="site-health__why">{{ row.why }}</span>
-								</th>
-								<td class="site-health__value">{{ row.needs }}</td>
-								<td class="site-health__value">{{ row.installed }}</td>
-								<td><span class="pill" :class="PILLS[row.status].kind">{{ PILLS[row.status].label }}</span></td>
-							</tr>
-						</tbody>
-					</table>
+	<section v-else-if="tab === 'requirements'" class="panel" aria-labelledby="requirements-heading">
+		<header class="panel__header">
+			<h2 id="requirements-heading">Requirements</h2>
+			<p class="panel__hint">{{ unmet ? `${plural(health.requirements.length, 'requirement')} · ${unmet} worth a look` : `All ${health.requirements.length} met` }}</p>
+		</header>
+		<div class="table-wrap">
+			<table class="table" aria-labelledby="requirements-heading">
+				<colgroup><col><col class="site-health__needs"><col class="site-health__installed"><col class="site-health__status"></colgroup>
+				<thead>
+					<tr><th scope="col">Requirement</th><th scope="col">Needs</th><th scope="col">Installed</th><th scope="col">Status</th></tr>
+				</thead>
+				<tbody v-for="group in groups" :key="group.name">
+					<tr class="table__group"><th scope="rowgroup" colspan="4">{{ group.name }}</th></tr>
+					<tr v-for="row in group.rows" :key="row.name">
+						<th scope="row">
+							{{ row.name }}
+							<span v-if="row.why" class="site-health__why">{{ row.why }}</span>
+						</th>
+						<td class="site-health__value">{{ row.needs }}</td>
+						<td class="site-health__value">{{ row.installed }}</td>
+						<td><span class="pill" :class="PILLS[row.status].kind">{{ PILLS[row.status].label }}</span></td>
+					</tr>
+				</tbody>
+			</table>
+		</div>
+	</section>
+
+	<div v-else class="columns columns--even">
+		<section class="panel" aria-labelledby="site-heading">
+			<header class="panel__header">
+				<h2 id="site-heading">This Site</h2>
+				<p class="panel__hint">As Blush reports it</p>
+			</header>
+			<dl class="fact-rows fact-rows--panel">
+				<div v-for="fact in health.site" :key="fact.key">
+					<dt>{{ fact.label }}<span v-if="fact.note" class="site-health__why mono">{{ fact.note }}</span></dt>
+					<dd :class="{ mono: fact.mono }">{{ fact.value }}</dd>
 				</div>
-			</section>
-		</div>
-		<div class="columns__col">
-			<section class="panel" aria-labelledby="site-heading">
-				<header class="panel__header">
-					<h2 id="site-heading">This Site</h2>
-					<p class="panel__hint">As Blush reports it</p>
-				</header>
-				<dl class="fact-rows fact-rows--panel">
-					<div v-for="fact in health.site" :key="fact.label"><dt>{{ fact.label }}</dt><dd :class="{ mono: fact.mono }">{{ fact.value }}</dd></div>
-				</dl>
-			</section>
-			<section class="panel" aria-labelledby="server-heading">
-				<header class="panel__header">
-					<h2 id="server-heading">The Server</h2>
-					<p class="panel__hint">What PHP sees from here</p>
-				</header>
-				<dl class="fact-rows fact-rows--panel">
-					<div v-for="fact in health.server" :key="fact.label"><dt :class="{ mono: fact.label.includes('_') }">{{ fact.label }}</dt><dd :class="{ mono: fact.mono }">{{ fact.value }}</dd></div>
-				</dl>
-			</section>
-		</div>
+			</dl>
+		</section>
+		<section class="panel" aria-labelledby="server-heading">
+			<header class="panel__header">
+				<h2 id="server-heading">The Server</h2>
+				<p class="panel__hint">What PHP sees from here</p>
+			</header>
+			<dl class="fact-rows fact-rows--panel">
+				<div v-for="fact in health.server" :key="fact.key">
+					<dt>{{ fact.label }}<span v-if="fact.note" class="site-health__why mono">{{ fact.note }}</span></dt>
+					<dd :class="{ mono: fact.mono }">{{ fact.value }}</dd>
+				</div>
+			</dl>
+		</section>
 	</div>
 </template>
 
 <style scoped>
 
 .site-health__needs {
-	width: 152px;
+	width: 200px;
 }
 
 .site-health__installed {
-	width: 124px;
+	width: 200px;
 }
 
 .site-health__status {
@@ -305,6 +313,7 @@ onMounted(() => {
 	display: block;
 	color: var(--fg-3);
 	font-size: var(--text-sm);
+	overflow-wrap: anywhere;
 }
 
 tbody th[scope="row"] {

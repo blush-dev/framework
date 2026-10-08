@@ -1311,8 +1311,13 @@ export interface HealthRequirement {
 }
 
 export interface HealthFact {
+	// The fact as it's kept, for Copy Report (D-615).
+	key: string;
+	raw: string;
 	label: string;
 	value: string;
+	// The setting it comes from (`memory_limit`), or `null`.
+	note: string | null;
 	mono: boolean;
 }
 

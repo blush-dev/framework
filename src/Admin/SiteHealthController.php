@@ -37,11 +37,12 @@ final readonly class SiteHealthController
 	) {}
 
 	/**
-	 * Answers the last report, or a new one when there's none.
+	 * Answers the last report, its requirements and facts read now, or a
+	 * new one when there's none.
 	 */
 	public function show(ServerRequestInterface $request): ResponseInterface
 	{
-		return $this->refusal($request) ?? self::json($this->health->saved() ?? $this->health->run($request->getServerParams()));
+		return $this->refusal($request) ?? self::json($this->health->current($request->getServerParams()));
 	}
 
 	/**

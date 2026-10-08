@@ -1728,8 +1728,13 @@ recommended; `zip` installs extensions from a `.zip`, `exif` reads
 photos' embedded details, and `apcu` is needed only by that cache
 driver), PHP's upload limits against the largest upload the
 [Media settings](#settings) allow, and the storage folders Blush writes
-to. Beside it, **This Site** and **The Server** list the facts you'd be
-asked for in a bug report. **Copy Report** copies them all as text.
+to. **Site & Server** lists the facts you'd be asked for in a bug
+report, about this site and the server it runs on, in plain words: the
+theme by its name, languages by theirs, PHP's memory and time limits in
+megabytes and seconds, with the PHP setting each comes from beneath its
+label. **Copy Report**, on either tab, copies the requirements and the
+facts as text, the facts as they're configured (`memory_limit: 256M`,
+`languages: en, es`), which is what a bug report needs.
 
 ### Fixing content and media
 

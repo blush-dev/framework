@@ -627,7 +627,14 @@ final class AdminContentTest extends TestCase
 		$this->assertIsArray($requirements['PHP'] ?? null);
 		$this->assertSame('pass', $requirements['PHP']['status'] ?? null);
 		$this->assertIsArray($health['site'] ?? null);
-		$this->assertContains('Blush', array_column($health['site'], 'label'));
+		$facts = array_column($health['site'], null, 'key');
+		$this->assertIsArray($version = $facts['version'] ?? null);
+		$this->assertSame('Version', $version['label'] ?? null);
+		$this->assertIsArray($environment = $facts['environment'] ?? null);
+		$this->assertSame(['Development', 'development'], [$environment['value'] ?? null, $environment['raw'] ?? null], 'Copy Report keeps the value as configured (D-615).');
+		$this->assertIsArray($health['server'] ?? null);
+		$this->assertIsArray($memory = array_column($health['server'], null, 'key')['memory_limit'] ?? null);
+		$this->assertSame(['Memory limit', 'memory_limit', (string) ini_get('memory_limit')], [$memory['label'] ?? null, $memory['note'] ?? null, $memory['raw'] ?? null]);
 
 		// The report is kept, and shown again until checked again (D-545).
 		$this->assertFileExists($this->temporaryDirectory() . '/storage/health.json');
