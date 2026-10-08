@@ -30,6 +30,7 @@ import { RouterLink, useRoute } from 'vue-router';
 import { entryRoute, errorMessage, request, type Health } from '../api';
 import { useAction } from '../action';
 import { confirmAction } from '../confirm';
+import { finish } from '../jobs';
 import { loadCounts } from '../counts';
 import { compact } from '../density';
 import AdminIcon from '../components/AdminIcon.vue';
@@ -60,8 +61,13 @@ const health = ref<Health | null>(null);
 
 const { busy: loading, error, run } = useAction();
 
-// The row or group whose fix is running.
-const fixing = ref<string | null>(null);
+// The row or group whose fix is running, and how far along a fix that
+// runs as a job is (D-624).
+const fixing   = ref<string | null>(null);
+const progress = ref<number | null>(null);
+
+// How far along checking again is, when it runs as a job (D-625).
+const checking = ref<number | null>(null);
 
 // Rows fixed since the check last ran, by key: kept where they were,
 // with what the fix did, until Check Again.
@@ -94,8 +100,21 @@ const searchField = useSearchKey();
  * marked Fixed.
  */
 async function load(again = false, clear = again): Promise<void> {
+	checking.value = null;
+
 	await run('The files couldn\'t be checked.', async () => {
-		health.value = await request<Health>(again ? 'POST' : 'GET', '/health');
+		const answer = await request<Health | { job: string }>(again ? 'POST' : 'GET', '/health');
+
+		// Checking again reads every file, a chunk at a time in a job
+		// (D-625), then the new check is loaded.
+		if ('job' in answer) {
+			await finish(answer.job, (job) => {
+				checking.value = job.progress;
+			});
+		}
+
+		health.value   = 'job' in answer ? await request<Health>('GET', '/health') : answer;
+		checking.value = null;
 
 		if (clear) {
 			fixed.value = {};
@@ -308,7 +327,7 @@ async function fix(group: HealthGroup, rows: Row[], options: { bulk?: boolean; c
 	fixing.value = options.bulk ? group.key : (rows[0]?.key ?? null);
 
 	try {
-		const answer = await request<{ failed: Record<string, string> }>('POST', fixer.path, fixer.body(rows, options.choice));
+		const answer = await sendFix(fixer.path, fixer.body(rows, options.choice));
 		const failed = Object.entries(answer.failed ?? {});
 		const done   = rows.filter((row) => answer.failed?.[row.path] === undefined && (row.choices === undefined || failed.length === 0));
 
@@ -336,8 +355,27 @@ async function fix(group: HealthGroup, rows: Row[], options: { bulk?: boolean; c
 	} catch (caught) {
 		toast(errorMessage(caught, 'It couldn\'t be fixed.'), { kind: 'danger' });
 	} finally {
-		fixing.value = null;
+		fixing.value   = null;
+		progress.value = null;
 	}
+}
+
+/**
+ * Sends a fix. One that changes many files answers a job (D-624), run
+ * and followed here to its end, whose result is the fix's answer.
+ */
+async function sendFix(path: string, body: Record<string, unknown>): Promise<{ failed?: Record<string, string> }> {
+	const answer = await request<{ failed?: Record<string, string> } | { job: string }>('POST', path, body);
+
+	if (!('job' in answer)) {
+		return answer;
+	}
+
+	const job = await finish(answer.job, (update) => {
+		progress.value = update.progress;
+	});
+
+	return job.result as { failed?: Record<string, string> };
 }
 
 onMounted(() => {
@@ -354,7 +392,7 @@ onMounted(() => {
 		</div>
 		<div class="page-header__actions">
 			<button type="button" class="button" :disabled="loading || fixing !== null" @click="load(true)">
-				<span v-if="loading" class="spin" aria-hidden="true" /><AdminIcon v-else name="refresh-cw" />{{ loading ? 'Checking…' : 'Check Again' }}
+				<span v-if="loading" class="spin" aria-hidden="true" /><AdminIcon v-else name="refresh-cw" />{{ loading ? (checking !== null ? `Checking… ${checking}%` : 'Checking…') : 'Check Again' }}
 			</button>
 		</div>
 	</header>
@@ -451,7 +489,7 @@ onMounted(() => {
 						<span class="panel__hint">{{ openCount(rows) ? plural(openCount(rows), ...group.unit) : 'All fixed' }}</span>
 						<span class="pill" :class="PILLS[group.severity].kind">{{ PILLS[group.severity].label }}</span>
 						<button v-if="tab !== 'ignored' && group.bulk && bulkRows(rows).length > 1" type="button" class="button button--small button--primary" :disabled="fixing !== null" @click="fix(group, bulkRows(rows), { bulk: true })">
-							<span v-if="fixing === group.key" class="spin" aria-hidden="true" />{{ group.bulk.label(bulkRows(rows).length) }}
+							<span v-if="fixing === group.key" class="spin" aria-hidden="true" />{{ fixing === group.key && progress !== null && progress < 100 ? `Working… ${progress}%` : group.bulk.label(bulkRows(rows).length) }}
 						</button>
 					</div>
 				</header>

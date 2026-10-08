@@ -20,6 +20,7 @@ use Blush\Content\FileNameRename;
 use Blush\Content\FileNames;
 use Blush\Content\FlatEntries;
 use Blush\Content\Lint\Linter;
+use Blush\Content\Lint\LintReport;
 use Blush\Content\MissingTerms;
 use Blush\Content\Type\ContentTypes;
 use Blush\Core\Paths;
@@ -84,13 +85,14 @@ final readonly class ContentHealth
 
 	/**
 	 * Returns the report: errors and warnings, and notices too when
-	 * `strict`.
+	 * `strict`. `$lint` is a lint already done, a chunk at a time
+	 * (`HealthCheckJob`, D-625); without it, every file is linted now.
 	 *
 	 * @return array{version: int, checked: int, metadata: int, strict: bool, counts: array{error: int, warning: int, notice: ?int}, files: list<array{path: string, area: string, violations: list<array{field: string, message: string, severity: string, kind: ?string}>}>, entries: array<string, array{title: string, type: string, id: ?string}>, ids: array{missing: list<string>, duplicates: list<array{id: string, paths: list<string>}>}, mediaIds: array{missing: list<string>, duplicates: list<array{id: string, paths: list<string>}>}, fileNames: list<array{type: string, label: string, pattern: string, count: int, items: list<array{path: string, to: string}>, skipped: int}>, flat: array{count: int, items: list<array{path: string, to: string}>}, terms: array{count: int, items: list<array{type: string, label: string, slug: string, title: string, entries: int}>}, refs: array{count: int, items: list<array{path: string, relations: list<string>}>}, taxonomies: list<string>, mediaSizes: array{sizes: int, images: int, stale: int, items: list<array{key: string, unrecorded: int, stale: int}>}}
 	 */
-	public function report(bool $strict = false): array
+	public function report(bool $strict = false, ?LintReport $lint = null): array
 	{
-		$report = $this->linter->lint();
+		$report = $lint ?? $this->linter->lint();
 		$files  = [];
 		$counts = ['error' => 0, 'warning' => 0, 'notice' => 0];
 

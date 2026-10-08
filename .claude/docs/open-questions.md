@@ -715,6 +715,47 @@ Move each item to `decisions.md` once it's answered.
       backed by entries, and draw through a built-in component, so a
       theme overrides their markup as it does any component's (D-382),
       and a theme's own component (a footer) can hold an area.
+- **An outgoing HTTP client** (D-620; discussed 2026-10-08, leanings
+  the author hasn't confirmed):
+  - **The transport:** curl only, and optional. Without `ext-curl`
+    (and no PSR-18 transport bound by the site) the client says it's
+    unavailable, the features needing it (embeds, AI, webhooks,
+    importers) are off and say why, Site Health names it, and plugins
+    `require` `ext-curl`. Symfony's client and Guzzle prefer curl and
+    fall back to streams; Kirby requires curl. One transport is one
+    place to get the address checks right; the cost is embeds on a
+    host without curl, which work through streams today.
+  - **Security, fixed rules rather than a caller's say-so:** `http`
+    and `https` only, HTTPS unless allowed; TLS always verified; every
+    address a host resolves to checked, and the connection pinned to
+    it (`CURLOPT_RESOLVE`); loopback, private, link-local (cloud
+    metadata), CGNAT, `0.0.0.0`, multicast, reserved, and their IPv6
+    and IPv4-mapped forms refused; redirects limited and each hop
+    checked, HTTPS to HTTP refused, credentials dropped when a
+    redirect leaves the host; size and time limits always. The one
+    exception is an allowed list of origins (scheme, host, port),
+    such as Ollama's `http://localhost:11434`, written only by `.env`
+    and `config/`: never admin settings, plugins at runtime, or
+    content. A provider's base URL from `.env` joins it.
+  - **Caching:** opt-in per GET (`->cache()` by the server's headers,
+    or a TTL), in its own cache namespace that `cache:clear` empties;
+    POSTs never. Embeds keep caching their parsed answer a level up
+    (D-448). Open: whether GETs cache by default instead.
+  - **Shape, from the uses foreseen** (AI, webhooks, CDN purges,
+    importers, embeds, extension downloads and update checks, link
+    checking, webmentions, remote feeds, posting to social sites,
+    ActivityPub, remote storage): bodies as streams, with downloads
+    to a file and uploads from one; request middleware from the start
+    (signing, auth, logging); many requests at once later (curl's
+    multi interface), not ruled out by the API; HEAD and conditional
+    GETs; retries opt-in, only on 429, 502 to 504, and dropped
+    connections, honoring `Retry-After`, never a POST silently, and
+    longer waits handed to jobs; streamed answers later.
+  - **Also:** a fake transport in core for tests; debug logging of
+    method, host, status, and time, with auth headers removed; an
+    `HttpClientConfig` (timeouts, user agent, proxy from
+    `HTTPS_PROXY`, the allowed list); `Blush\Http\Client` as its
+    namespace.
 - **APIs, agents, and headless** (discussed 2026-10-03; the author wants
   to explore or build most of these; nothing decided):
   - **The content API** (decided in D-479: two surfaces over one
@@ -831,7 +872,7 @@ Move each item to `decisions.md` once it's answered.
       assets (`media:publish`, `themes:publish`), for files uploaded
       over FTP.
     - Scheduled tasks (`schedule:run`): when it last ran, and Run now,
-      for hosts without cron.
+      for hosts without cron. Built as Tools → Jobs (D-622).
     - Logs: the latest lines in `storage/logs`, read-only.
     - Backups: `storage/backups` (the versions extension replacements
       keep, D-393) listed with restore and delete; later a "back up
@@ -1450,6 +1491,40 @@ Move each item to `decisions.md` once it's answered.
   released.
 
 ## Later
+- **Example plugins, and the gaps they show** (discussed 2026-10-08;
+  ideas only, nothing decided). Plugins to build as samples and tests
+  of the extension points:
+  - **Buildable now:** static export (D-476; a command walking every
+    URL through `Kernel::handle()`, an admin action, incremental on
+    `ContentPublished` and `CacheCleared`); a CDN purge (`CacheCleared`'s
+    `namespaces`, `ContentPublished`, and a Purge CDN action; the
+    smallest sample); a front-end search index (JSON written on
+    `ContentIndexed`, a script by handle, a directive or component;
+    see **Front-end search**); reading time and a table of contents;
+    more iframe or oEmbed embed providers; related posts from the
+    relations index (D-590 to D-592); Twig or Blade views (D-502);
+    a redirects file in `user/data` with a CSV or `.htaccess` import
+    command (no screen to edit them); and more media metadata readers.
+  - **Waiting on APIs:** the Calendar (D-550) needs plugins to add
+    admin screens and rail items, the largest gap, which also blocks
+    a redirects screen, a forms inbox, and anything a plugin shows in
+    the admin; podcasts need feed extension points, enclosures, and an
+    id `guid` (see **Podcasts**), with episode fields on the Fields API
+    (paused, D-348); a WXR importer needs the `Importer` registry and
+    source keys (see **Media as records**); outgoing webhooks want
+    signed delivery, retries, and a log (see **APIs, agents, and
+    headless**); AI helpers (alt text, summaries, translation drafts)
+    need `Blush\Ai` (D-397), an `ai.use` capability, and extension
+    points in the editor, which has none; comments, forms, and
+    community features need `AccountCreated`, sign-ups, spam
+    protection, and likely a database driver (D-485, D-486), plus the
+    front-end interactivity API; script embeds wait on D-184's open
+    list.
+  - **Plugin settings screens:** nearly every plugin above wants
+    settings, which live only in config today; theme settings (D-342)
+    are on hold and the Fields API is paused. The second largest gap.
+  - **Suggested order:** CDN purge, then static export, then the
+    Calendar, which would force the admin screens API.
 - **A components screen with options** (raised 2026-10-06, after
   D-532): components (not directives) declare options a site owner
   sets on their own admin screen, such as a card's featured image and

@@ -15,23 +15,14 @@ namespace Blush\Admin\Action;
 
 use Override;
 use Blush\Auth\Capability;
-use Blush\Cache\ContentVersion;
-use Blush\Content\Index\Indexer;
-use Blush\Media\Index\MediaIndexer;
+use Blush\Job\JobType;
 
 /**
- * Brings the content index up to date with the files, as `content:index`
- * does, then the media index, as `media:index` does (D-288). When anything changed, the content version moves on, so cached
- * pages that showed the old content aren't served again.
+ * Brings the content and media indexes up to date with the files, as a
+ * job (`blush/reindex`, D-621), so it can take longer than a request.
  */
 final class ReindexAction extends AdminAction
 {
-	public function __construct(
-		private readonly Indexer $indexer,
-		private readonly MediaIndexer $media,
-		private readonly ContentVersion $version
-	) {}
-
 	/**
 	 * @inheritDoc
 	 */
@@ -63,31 +54,8 @@ final class ReindexAction extends AdminAction
 	 * @inheritDoc
 	 */
 	#[Override]
-	public function run(): ActionResult
+	public function job(): string
 	{
-		$report = $this->indexer->index();
-		$media  = $this->media->index();
-
-		if ($report->written) {
-			$this->version->bump();
-		}
-
-		$summary = sprintf(
-			'Indexed %d %s: %d added, %d changed, %d removed.',
-			$report->total,
-			$report->total === 1 ? 'entry' : 'entries',
-			count($report->added),
-			count($report->changed),
-			count($report->removed)
-		) . sprintf(' Indexed %d media %s.', $media->total, $media->total === 1 ? 'file' : 'files');
-
-		if ($report->failures === []) {
-			return ActionResult::success($summary);
-		}
-
-		return ActionResult::failure(
-			sprintf('%s %d file(s) couldn\'t be indexed.', $summary, count($report->failures)),
-			array_map(static fn (string $path, string $message): string => "{$path}: {$message}", array_keys($report->failures), $report->failures)
-		);
+		return JobType::Reindex->value;
 	}
 }

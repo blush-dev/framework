@@ -4,7 +4,7 @@ The admin is where people with an [account](accounts.md) run the site
 from a browser. So far it has a dashboard (what you were editing, and
 the entries waiting on you), a list of each content type's entries, an editor, a content
 health check, and Tools (buttons to publish, reindex, and clear caches,
-and the site's log).
+background jobs, and the site's log).
 
 > **The admin is early.** The editor edits Markdown as text; a live
 > preview, a form for a block's options, and a media library come
@@ -160,7 +160,19 @@ asks first says so.
 | Clear caches | Empty the page, body, and fragment caches | Anyone with `cache.clear` (editors) |
 
 Actions you can't run don't appear. Plugins can add their own actions
-(see [Extending Blush](extending.md#admin-actions)).
+(see [Extending Blush](extending.md#admin-actions)). Publish and Reindex
+content run as [background jobs](going-live.md#background-jobs-and-cron):
+the button shows their progress while they run, and if you leave the
+screen, they finish on their own.
+
+With `site.jobs` (administrators), the **Jobs** tab shows the work done
+in the background. **Scheduled Tasks** lists what runs on a timetable
+(putting scheduled posts live, and cleaning out the cache, idle
+sessions, and old jobs), how often, and when each last ran, with **Run
+Now**. **Jobs** lists recent jobs, newest first: what each is, who
+started it, its status, and what it last said, with **Retry** for a
+failed job and **Delete**. Above them, a notice says whether cron is
+running jobs, and if it isn't, the line to add to your server's crontab.
 
 With `site.logs` (administrators), the **Logs** tab shows the last 50
 entries in the site's log (`storage/logs/blush.log` unless
@@ -171,8 +183,8 @@ whole file. It's read only, for when something fails on a host you
 can't reach over SSH. A site that logs to the server's error output, or
 not at all, has no file to show.
 
-Tools is in the panel when your account can run an action or read the
-log.
+Tools is in the panel when your account can run an action, see the
+jobs, or read the log.
 
 ## Entries
 
@@ -1742,7 +1754,9 @@ fixed: **Content Files**, **Entry IDs**, **Terms and Profiles**,
 **Taxonomies**; **Media Details**, **Media IDs**, and **Image Sizes**.
 Each shows the last check, with when it ran, and **Check Again**
 checks every content and media file again, which updates Site Health
-too.
+too. It reads the files in the background, a couple of hundred at a
+time, and its button shows how far along it is; **Run a Check** on Site
+Health does the same for the files, after checking the rest at once.
 
 Each screen lists everything its check found, one row per problem.
 Problems of one kind are grouped under a heading that says what the
@@ -1760,7 +1774,11 @@ file), what was found, and what the site does because of it.
   kind of change, its heading has a button for all of them, such as
   **Give 12 Files New IDs**. It asks first, listing the files and what
   each gets. Groups whose rows each need a choice, such as which file
-  keeps a shared id, are fixed a row at a time.
+  keeps a shared id, are fixed a row at a time. A group fix runs as a
+  [background job](going-live.md#background-jobs-and-cron), a hundred
+  files at a time, and its button shows how far along it is; on a large
+  site, if you leave the screen, it finishes on its own (you'll find it
+  under **Tools → Jobs**).
 - **Ignoring:** a warning or notice you've decided to leave can be
   ignored from its row's menu (**Ignore This**). It's ignored for
   everyone on the site, moves to the **Ignored** tab, which says who

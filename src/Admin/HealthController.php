@@ -13,7 +13,6 @@ declare(strict_types=1);
 
 namespace Blush\Admin;
 
-use Closure;
 use DateTimeInterface;
 use Psr\Clock\ClockInterface;
 use JsonException;
@@ -22,14 +21,8 @@ use Psr\Http\Message\ServerRequestInterface;
 use Blush\Auth\Account;
 use Blush\Auth\AccountStore;
 use Blush\Auth\Capability;
-use Blush\Auth\ContentAction;
 use Blush\Auth\Permissions;
-use Blush\Content\ContentRepository;
 use Blush\Content\EntryIds;
-use Blush\Content\FileNames;
-use Blush\Content\FlatEntries;
-use Blush\Content\EntryRefs;
-use Blush\Content\MissingTerms;
 use Blush\Content\Type\ContentTypes;
 use Blush\Content\Type\InvalidContentType;
 use Blush\Content\Type\TaxonomyMigration;
@@ -37,17 +30,21 @@ use Blush\Content\Writer\AssignedIds;
 use Blush\Content\Writer\WriteException;
 use Blush\Http\Response;
 use Blush\Http\Status;
+use Blush\Job\JobException;
+use Blush\Job\JobQueue;
+use Blush\Job\JobType;
 use Blush\Media\AssignedMediaIds;
-use Blush\Media\Index\MediaLibrary;
 use Blush\Media\MediaException;
 use Blush\Media\MediaIds;
-use Blush\Media\MediaSizes;
 
 /**
  * Answers `GET {path}/api/health`: the content and media files' problems
  * (`ContentHealth`, notices included), for Site Health's detail screens
  * (D-543), as Site Health's last report has them (D-546); `POST
- * {path}/api/health` checks them again, reading every file.
+ * {path}/api/health` checks them again, reading every file, as a job a
+ * chunk at a time (`HealthCheckJob`, D-625), answering `{"job": id}`
+ * for the admin to run and follow and then ask for them again (or at
+ * once, answering them, before there's a report).
  *
  * It and every fix need `site.health` (D-543); a fix changes only the
  * files the account may edit. Checking again updates Site Health's
@@ -70,6 +67,13 @@ use Blush\Media\MediaSizes;
  * ignore a problem for everyone and stop, answering `ignored`; Site
  * Health's summary leaves ignored problems out. The admin never offers
  * to ignore an error, since the site is already leaving something out.
+ *
+ * The fixes that change many files (`HealthFix`: ids, media ids, media
+ * sizes, file names, flattening, terms, and refs) run as a job (D-624):
+ * each answers `{"job": id}`, which the admin runs and follows
+ * (`JobController`), and the finished job's `result` is the answer
+ * described below. Keeping a shared id and migrating taxonomies run in
+ * the request.
  *
  * Every fix but `keep` and the taxonomies' takes a JSON `paths` (a list,
  * media files' by their keys) to change only those, one row or a page
@@ -125,16 +129,11 @@ final readonly class HealthController
 		private SiteHealth $siteHealth,
 		private Permissions $permissions,
 		private EntryIds $ids,
-		private ContentRepository $content,
 		private MediaIds $mediaIds,
-		private MediaSizes $mediaSizes,
-		private MediaLibrary $library,
-		private FileNames $fileNames,
 		private ContentTypes $types,
-		private FlatEntries $flat,
-		private MissingTerms $terms,
-		private EntryRefs $refs,
 		private TaxonomyMigration $taxonomies,
+		private FixAccess $access,
+		private JobQueue $jobs,
 		private IgnoredProblems $ignored,
 		private AccountStore $accounts,
 		private ClockInterface $clock
@@ -159,7 +158,19 @@ final readonly class HealthController
 			return Response::json(['error' => 'You aren\'t allowed to see site health.'], Status::Forbidden, ['Cache-Control' => 'no-store']);
 		}
 
-		return Response::json([...$this->siteHealth->checkFiles($request->getServerParams()), 'ignored' => $this->ignoredList()], headers: ['Cache-Control' => 'no-store']);
+		$account = $request->getAttribute(Account::class);
+
+		if (! $this->siteHealth->hasFiles() || ! $account instanceof Account) {
+			return Response::json([...$this->siteHealth->checkFiles($request->getServerParams()), 'ignored' => $this->ignoredList()], headers: ['Cache-Control' => 'no-store']);
+		}
+
+		try {
+			$job = $this->jobs->push(JobType::HealthCheck->value, account: $account->username, unique: JobType::HealthCheck->value);
+		} catch (JobException $e) {
+			return Response::json(['error' => $e->getMessage()], Status::InternalServerError, ['Cache-Control' => 'no-store']);
+		}
+
+		return Response::json(['job' => $job->id], headers: ['Cache-Control' => 'no-store']);
 	}
 
 	/**
@@ -223,17 +234,11 @@ final readonly class HealthController
 
 	/**
 	 * Gives each file missing a valid id, that the account may edit, a
-	 * new one.
+	 * new one, as a job.
 	 */
 	public function assign(ServerRequestInterface $request): ResponseInterface
 	{
-		$account = $request->getAttribute(Account::class);
-
-		if (! $account instanceof Account || ! $this->permissions->can($account, Capability::SiteHealth)) {
-			return Response::json(['error' => 'You aren\'t allowed to fix content.'], Status::Forbidden, ['Cache-Control' => 'no-store']);
-		}
-
-		return self::assigned($this->ids->assignMissing(self::only($this->editable($account), self::paths($request))));
+		return $this->queue($request, HealthFix::Ids);
 	}
 
 	/**
@@ -255,7 +260,7 @@ final readonly class HealthController
 		}
 
 		try {
-			return self::assigned($this->ids->keep($path, $this->editable($account)));
+			return self::assigned($this->ids->keep($path, $this->access->entries($account)));
 		} catch (WriteException $e) {
 			return Response::json(['error' => $e->getMessage()], Status::UnprocessableContent, ['Cache-Control' => 'no-store']);
 		}
@@ -263,21 +268,11 @@ final readonly class HealthController
 
 	/**
 	 * Gives each media file missing a valid id, whose details the account
-	 * may edit, a new one.
+	 * may edit, a new one, as a job.
 	 */
 	public function assignMedia(ServerRequestInterface $request): ResponseInterface
 	{
-		$account = $request->getAttribute(Account::class);
-
-		if (! $account instanceof Account || ! $this->permissions->can($account, Capability::SiteHealth)) {
-			return Response::json(['error' => 'You aren\'t allowed to fix media.'], Status::Forbidden, ['Cache-Control' => 'no-store']);
-		}
-
-		try {
-			return self::assignedMedia($this->mediaIds->assignMissing(self::only($this->editableMedia($account), self::paths($request))));
-		} catch (MediaException $e) {
-			return Response::json(['error' => $e->getMessage()], Status::InternalServerError, ['Cache-Control' => 'no-store']);
-		}
+		return $this->queue($request, HealthFix::MediaIds);
 	}
 
 	/**
@@ -299,7 +294,7 @@ final readonly class HealthController
 		}
 
 		try {
-			return self::assignedMedia($this->mediaIds->keep($path, $this->editableMedia($account)));
+			return self::assignedMedia($this->mediaIds->keep($path, $this->access->media($account)));
 		} catch (MediaException $e) {
 			return Response::json(['error' => $e->getMessage()], Status::UnprocessableContent, ['Cache-Control' => 'no-store']);
 		}
@@ -307,35 +302,21 @@ final readonly class HealthController
 
 	/**
 	 * Records the sizes of the images, whose details the account may
-	 * edit, that don't list them as they are (D-488).
+	 * edit, that don't list them as they are (D-488), as a job.
 	 */
 	public function recordSizes(ServerRequestInterface $request): ResponseInterface
 	{
-		$account = $request->getAttribute(Account::class);
-
-		if (! $account instanceof Account || ! $this->permissions->can($account, Capability::SiteHealth)) {
-			return Response::json(['error' => 'You aren\'t allowed to fix media.'], Status::Forbidden, ['Cache-Control' => 'no-store']);
-		}
-
-		try {
-			$recorded = $this->mediaSizes->record(self::only($this->editableMedia($account), self::paths($request)));
-		} catch (MediaException $e) {
-			return Response::json(['error' => $e->getMessage()], Status::InternalServerError, ['Cache-Control' => 'no-store']);
-		}
-
-		return Response::json(['recorded' => (object) $recorded->images, 'failed' => (object) $recorded->failed], headers: ['Cache-Control' => 'no-store']);
+		return $this->queue($request, HealthFix::MediaSizes);
 	}
 
 	/**
 	 * Renames a type's entries, those the account may edit, to its file
-	 * name pattern (D-512).
+	 * name pattern (D-512), as a job.
 	 */
 	public function renameFiles(ServerRequestInterface $request): ResponseInterface
 	{
-		$account = $request->getAttribute(Account::class);
-
-		if (! $account instanceof Account || ! $this->permissions->can($account, Capability::SiteHealth)) {
-			return Response::json(['error' => 'You aren\'t allowed to fix content.'], Status::Forbidden, ['Cache-Control' => 'no-store']);
+		if (! $this->allowed($request)) {
+			return Response::json(['error' => 'You aren\'t allowed to fix files.'], Status::Forbidden, ['Cache-Control' => 'no-store']);
 		}
 
 		$type = self::input($request, 'type');
@@ -344,60 +325,34 @@ final readonly class HealthController
 			return Response::json(['error' => 'Send a JSON "type": the type whose entries to rename.'], Status::BadRequest, ['Cache-Control' => 'no-store']);
 		}
 
-		$renamed = $this->fileNames->rename($type, self::only($this->editable($account), self::paths($request)));
-
-		return Response::json(['renamed' => (object) $renamed->renamed, 'failed' => (object) $renamed->failed], headers: ['Cache-Control' => 'no-store']);
+		return $this->queue($request, HealthFix::FileNames, $type);
 	}
 
 	/**
 	 * Moves collections' files that aren't flat, those the account may
-	 * edit, into their collection's folder (D-514).
+	 * edit, into their collection's folder (D-514), as a job.
 	 */
 	public function flatten(ServerRequestInterface $request): ResponseInterface
 	{
-		$account = $request->getAttribute(Account::class);
-
-		if (! $account instanceof Account || ! $this->permissions->can($account, Capability::SiteHealth)) {
-			return Response::json(['error' => 'You aren\'t allowed to fix content.'], Status::Forbidden, ['Cache-Control' => 'no-store']);
-		}
-
-		$moved = $this->flat->flatten(self::only($this->editable($account), self::paths($request)));
-
-		return Response::json(['renamed' => (object) $moved->renamed, 'failed' => (object) $moved->failed], headers: ['Cache-Control' => 'no-store']);
+		return $this->queue($request, HealthFix::Flatten);
 	}
 
 	/**
 	 * Writes a file for each term and profile entries name with no file
-	 * (D-584), of the types the account may create and publish.
+	 * (D-584), of the types the account may create and publish, as a job.
 	 */
 	public function createTerms(ServerRequestInterface $request): ResponseInterface
 	{
-		$account = $request->getAttribute(Account::class);
-
-		if (! $account instanceof Account || ! $this->permissions->can($account, Capability::SiteHealth)) {
-			return Response::json(['error' => 'You aren\'t allowed to fix content.'], Status::Forbidden, ['Cache-Control' => 'no-store']);
-		}
-
-		$created = $this->terms->create(fn (string $type): bool => $this->permissions->can($account, ContentAction::Create, $type) && $this->permissions->can($account, ContentAction::Publish, $type), self::list($request, 'terms'));
-
-		return Response::json(['created' => (object) $created->created, 'failed' => (object) $created->failed], headers: ['Cache-Control' => 'no-store']);
+		return $this->queue($request, HealthFix::Terms);
 	}
 
 	/**
 	 * Files both forms of the links between entries (D-589, D-596) in the
-	 * files the account may edit.
+	 * files the account may edit, as a job.
 	 */
 	public function fileRefs(ServerRequestInterface $request): ResponseInterface
 	{
-		$account = $request->getAttribute(Account::class);
-
-		if (! $account instanceof Account || ! $this->permissions->can($account, Capability::SiteHealth)) {
-			return Response::json(['error' => 'You aren\'t allowed to fix content.'], Status::Forbidden, ['Cache-Control' => 'no-store']);
-		}
-
-		$filed = $this->refs->file(self::only($this->editable($account), self::paths($request)));
-
-		return Response::json(['filed' => $filed->paths, 'failed' => (object) $filed->failed], headers: ['Cache-Control' => 'no-store']);
+		return $this->queue($request, HealthFix::Refs);
 	}
 
 	/**
@@ -422,6 +377,30 @@ final readonly class HealthController
 	}
 
 	/**
+	 * Queues a fix as a job (`HealthFixJob`, D-624), for the request's
+	 * account, over the `paths` (or `terms`) it sent, else every file the
+	 * check finds, and answers its id, which the admin runs and follows.
+	 */
+	private function queue(ServerRequestInterface $request, HealthFix $fix, ?string $type = null): ResponseInterface
+	{
+		$account = $request->getAttribute(Account::class);
+
+		if (! $account instanceof Account || ! $this->permissions->can($account, Capability::SiteHealth)) {
+			return Response::json(['error' => 'You aren\'t allowed to fix files.'], Status::Forbidden, ['Cache-Control' => 'no-store']);
+		}
+
+		$paths = self::list($request, $fix === HealthFix::Terms ? 'terms' : 'paths');
+
+		try {
+			$job = $this->jobs->push(JobType::HealthFix->value, ['fix' => $fix->value, 'type' => $type, 'remaining' => $paths], $account->username);
+		} catch (JobException $e) {
+			return Response::json(['error' => $e->getMessage()], Status::InternalServerError, ['Cache-Control' => 'no-store']);
+		}
+
+		return Response::json(['job' => $job->id], headers: ['Cache-Control' => 'no-store']);
+	}
+
+	/**
 	 * Whether the request's account may see site health (D-543).
 	 */
 	private function allowed(ServerRequestInterface $request): bool
@@ -440,17 +419,6 @@ final readonly class HealthController
 	}
 
 	/**
-	 * The `paths` a fix sends in its JSON body, to change only those, or
-	 * `null` for every file the check found.
-	 *
-	 * @return ?list<string>
-	 */
-	private static function paths(ServerRequestInterface $request): ?array
-	{
-		return self::list($request, 'paths');
-	}
-
-	/**
 	 * A list of strings a fix sends in its JSON body, or `null`.
 	 *
 	 * @return ?list<string>
@@ -460,19 +428,6 @@ final readonly class HealthController
 		$value = self::decode($request)[$key] ?? null;
 
 		return is_array($value) ? array_values(array_filter($value, is_string(...))) : null;
-	}
-
-	/**
-	 * Narrows what a fix may change to the `paths` it was sent, when it
-	 * was sent any.
-	 *
-	 * @param  Closure(string): bool $allowed
-	 * @param  ?list<string>         $paths
-	 * @return Closure(string): bool
-	 */
-	private static function only(Closure $allowed, ?array $paths): Closure
-	{
-		return $paths === null ? $allowed : static fn (string $path): bool => in_array($path, $paths, true) && $allowed($path);
 	}
 
 	/**
@@ -502,40 +457,11 @@ final readonly class HealthController
 	}
 
 	/**
-	 * Returns whether the account may edit the details of the media file
-	 * at a key (D-407).
-	 *
-	 * @return Closure(string): bool
-	 */
-	private function editableMedia(Account $account): Closure
-	{
-		return function (string $key) use ($account): bool {
-			$record = $this->library->find($key);
-
-			return $record !== null && $this->permissions->mayChangeMedia($account, Capability::MediaEdit, $record->metadata()->owner);
-		};
-	}
-
-	/**
 	 * Answers what a media fix did.
 	 */
 	private static function assignedMedia(AssignedMediaIds $assigned): ResponseInterface
 	{
 		return Response::json(['assigned' => $assigned->ids, 'failed' => $assigned->failed], headers: ['Cache-Control' => 'no-store']);
-	}
-
-	/**
-	 * Returns whether the account may edit the entry at a path.
-	 *
-	 * @return Closure(string): bool
-	 */
-	private function editable(Account $account): Closure
-	{
-		return function (string $path) use ($account): bool {
-			$entry = $this->content->findPath($path);
-
-			return $entry !== null && $this->permissions->can($account, ContentAction::Edit, $entry);
-		};
 	}
 
 	/**

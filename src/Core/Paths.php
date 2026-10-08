@@ -43,6 +43,7 @@ final readonly class Paths
 		'index'      => 'storage/index',
 		'logs'       => 'storage/logs',
 		'sessions'   => 'storage/sessions',
+		'jobs'       => 'storage/jobs',
 		'accounts'   => 'storage/accounts',
 		'extensions' => 'extensions',
 		'vendor'     => 'vendor'
@@ -61,6 +62,7 @@ final readonly class Paths
 		public string $index,
 		public string $logs,
 		public string $sessions,
+		public string $jobs,
 		public string $accounts,
 		public string $extensions,
 		public string $vendor
@@ -146,6 +148,7 @@ final readonly class Paths
 			'index'      => $this->index,
 			'logs'       => $this->logs,
 			'sessions'   => $this->sessions,
+			'jobs'       => $this->jobs,
 			'accounts'   => $this->accounts,
 			'extensions' => $this->extensions,
 			'vendor'     => $this->vendor

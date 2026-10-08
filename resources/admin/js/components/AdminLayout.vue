@@ -115,8 +115,9 @@ const sections = computed<Record<Area, NavGroup[]>>(() => {
 		home.push({ ...screen('health', 'Site Health', 'heart-pulse'), count: navCounts.value?.health || undefined });
 	}
 
-	// Tools, with an action the account may run or the log (D-540).
-	if ((navCounts.value?.actions ?? 0) > 0 || can('site.logs')) {
+	// Tools, with an action the account may run, the jobs, or the log
+	// (D-540, D-621).
+	if ((navCounts.value?.actions ?? 0) > 0 || can('site.logs') || can('site.jobs')) {
 		home.push(screen('tools', 'Tools', 'wrench'));
 	}
 

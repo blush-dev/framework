@@ -19,6 +19,7 @@ use Psr\Clock\ClockInterface;
 use Blush\Cache\CacheConfig;
 use Blush\Cache\CacheDriver;
 use Blush\Content\ContentRepository;
+use Blush\Content\Lint\LintReport;
 use Blush\Core\AppConfig;
 use Blush\Core\Framework;
 use Blush\Core\Language;
@@ -161,6 +162,53 @@ final readonly class SiteHealth
 	}
 
 	/**
+	 * Whether the last report has its content and media files, in their
+	 * current shape, so checking them again can be left to a job.
+	 */
+	public function hasFiles(): bool
+	{
+		$report = $this->saved();
+		$files  = $report['files'] ?? null;
+
+		return $report !== null && is_array($report['checks'] ?? null) && is_array($files) && ($files['version'] ?? null) === ContentHealth::VERSION;
+	}
+
+	/**
+	 * Checks everything but the content and media files again, which a
+	 * job checks a chunk at a time (`HealthCheckJob`, D-625), keeping the
+	 * last report's files and their summary, and returns the report.
+	 * The rest is cheap, and is checked here so it's the web server's
+	 * PHP that's described, not cron's. Without a report, or one whose
+	 * files are in an older shape, it checks everything.
+	 *
+	 * @param  array<array-key, mixed> $server
+	 * @return array<string, mixed>
+	 */
+	public function checkSite(array $server = []): array
+	{
+		$report = $this->saved();
+
+		if ($report === null || ! $this->hasFiles() || ! is_array($report['checks'] ?? null)) {
+			return $this->run($server);
+		}
+
+		$kept = array_values(array_filter($report['checks'], static fn (mixed $check): bool => is_array($check) && in_array($check['area'] ?? null, ['content', 'media'], true)));
+
+		$report = [
+			...$report,
+			'checked'      => $this->clock->now()->format(DateTimeInterface::ATOM),
+			'checks'       => [...$kept, ...$this->site()],
+			'requirements' => $this->requirements(),
+			'site'         => $this->siteFacts(),
+			'server'       => $this->serverFacts($server)
+		];
+
+		$this->store->save($report);
+
+		return $report;
+	}
+
+	/**
 	 * Returns the last report's content and media files (`ContentHealth`,
 	 * notices included, with `at`, when), checking first when there's no
 	 * report, or its files are in an older shape (D-612).
@@ -178,12 +226,14 @@ final readonly class SiteHealth
 	/**
 	 * Checks content and media files again, keeping them and their
 	 * summary in the last report (the rest of it as it was), and returns
-	 * them. Without a report, it checks everything.
+	 * them. Without a report, it checks everything. `$lint` is a lint of
+	 * the files already done, a chunk at a time (`HealthCheckJob`,
+	 * D-625).
 	 *
 	 * @param  array<array-key, mixed> $server
 	 * @return array<string, mixed>
 	 */
-	public function checkFiles(array $server = []): array
+	public function checkFiles(array $server = [], ?LintReport $lint = null): array
 	{
 		$report = $this->saved();
 
@@ -193,7 +243,7 @@ final readonly class SiteHealth
 			return is_array($files) ? array_filter($files, is_string(...), ARRAY_FILTER_USE_KEY) : [];
 		}
 
-		$files  = $this->fileReport();
+		$files  = $this->fileReport($lint);
 		$others = array_values(array_filter($report['checks'], static fn (mixed $check): bool => ! is_array($check) || ! in_array($check['area'] ?? null, ['content', 'media'], true)));
 
 		$report['checks'] = [...$this->summarizeFiles($files), ...$others];
@@ -293,9 +343,9 @@ final readonly class SiteHealth
 	 *
 	 * @return array{at: string, version: int, checked: int, metadata: int, strict: bool, counts: array{error: int, warning: int, notice: ?int}, files: list<array{path: string, area: string, violations: list<array{field: string, message: string, severity: string, kind: ?string}>}>, entries: array<string, array{title: string, type: string, id: ?string}>, ids: array{missing: list<string>, duplicates: list<array{id: string, paths: list<string>}>}, mediaIds: array{missing: list<string>, duplicates: list<array{id: string, paths: list<string>}>}, fileNames: list<array{type: string, label: string, pattern: string, count: int, items: list<array{path: string, to: string}>, skipped: int}>, flat: array{count: int, items: list<array{path: string, to: string}>}, terms: array{count: int, items: list<array{type: string, label: string, slug: string, title: string, entries: int}>}, refs: array{count: int, items: list<array{path: string, relations: list<string>}>}, taxonomies: list<string>, mediaSizes: array{sizes: int, images: int, stale: int, items: list<array{key: string, unrecorded: int, stale: int}>}}
 	 */
-	private function fileReport(): array
+	private function fileReport(?LintReport $lint = null): array
 	{
-		return ['at' => $this->clock->now()->format(DateTimeInterface::ATOM), ...$this->health->report(true)];
+		return ['at' => $this->clock->now()->format(DateTimeInterface::ATOM), ...$this->health->report(true, $lint)];
 	}
 
 	/**

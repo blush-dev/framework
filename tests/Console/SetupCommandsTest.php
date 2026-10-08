@@ -143,7 +143,8 @@ final class SetupCommandsTest extends TestCase
 		$this->assertMatchesRegularExpression('/ok\s+PHP: 8\.5/', $result->output);
 		$this->assertStringContainsString('storage/: Created when it\'s needed.', $result->output);
 		$this->assertStringContainsString('ok      Extensions: Everything that\'s on runs.', $result->output);
-		$this->assertStringContainsString('0 failure(s), 0 warning(s).', $result->output);
+		$this->assertStringContainsString('warning Background jobs: Cron isn\'t set up', $result->output, 'A new site has no cron yet.');
+		$this->assertStringContainsString('0 failure(s), 1 warning(s).', $result->output);
 	}
 
 	public function testDoctorFailsWithHints(): void

@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Blush\Tests\Publish;
 
+use DateTimeZone;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\ResponseInterface;
@@ -28,11 +29,14 @@ use Blush\Console\Console;
 use Blush\Console\ExitCode;
 use Blush\Console\Testing\CommandTester;
 use Blush\Content\ContentRepository;
+use Blush\Content\Entry\Entry;
+use Blush\Content\Events\EntriesWentLive;
 use Blush\Core\Application;
 use Blush\Env\Env;
 use Blush\Event\Listener\ListenerRegistry;
 use Blush\Http\Kernel;
 use Blush\Http\Request;
+use Blush\Job\Jobs\GoLiveJob;
 use Blush\Publish\Events\ContentPublished;
 use Blush\Publish\GitPuller;
 use Blush\Publish\PublishConfig;
@@ -61,6 +65,8 @@ use Blush\Tests\Fixtures\Publish\RecordingPuller;
 #[CoversClass(GitPuller::class)]
 #[CoversClass(Publish::class)]
 #[CoversClass(RunSchedule::class)]
+#[CoversClass(GoLiveJob::class)]
+#[CoversClass(EntriesWentLive::class)]
 #[CoversClass(ContentPublished::class)]
 #[CoversClass(Caches::class)]
 final class PublishTest extends TestCase
@@ -294,23 +300,61 @@ final class PublishTest extends TestCase
 		$this->assertStringContainsString('fatal: offline', $failed->output);
 	}
 
-	public function testScheduleRun(): void
+	public function testScheduleRunPutsScheduledEntriesLiveOnTime(): void
+	{
+		$this->standardContent();
+
+		$app     = $this->site();
+		$tester  = new CommandTester($app->container()->make(Console::class));
+		$version = $app->container()->make(ContentVersion::class);
+
+		$this->get($app, '/');
+
+		$result = $tester->run('schedule:run -v');
+
+		$this->assertTrue($result->isSuccessful(), $result->output . $result->errors);
+		$this->assertStringContainsString('Queued 4 scheduled tasks; ran 4 jobs: 4 done, 0 failed, 0 to go on.', $result->output);
+		$this->assertNotNull($version->scheduled());
+
+		$went = [];
+
+		$app->container()->make(ListenerRegistry::class)->listen(EntriesWentLive::class, static function (EntriesWentLive $event) use (&$went): void {
+			$went[] = $event;
+		});
+
+		$this->clock->set('2026-12-26 00:00:00 America/Chicago');
+
+		$late = $tester->run('schedule:run -v');
+
+		$this->assertTrue($late->isSuccessful());
+		$this->assertStringContainsString('1 entry went live.', $late->output);
+		$this->assertNull($version->scheduled(), 'The go-live job moved the version past the scheduled entry.');
+		$this->assertCount(1, $went);
+		$this->assertSame(['Future'], array_map(static fn (Entry $entry): string => $entry->title, $went[0]->entries));
+		$this->assertSame('2026-06-01 12:00', $went[0]->since?->setTimezone(new DateTimeZone('America/Chicago'))->format('Y-m-d H:i'), 'Since the last look, before a long quiet spell.');
+
+		$this->clock->advance('PT1M');
+		$tester->run('schedule:run');
+
+		$this->assertCount(1, $went, 'An entry goes live once.');
+	}
+
+	public function testTheFirstLookAnnouncesNothing(): void
 	{
 		$this->standardContent();
 
 		$app    = $this->site();
 		$tester = new CommandTester($app->container()->make(Console::class));
+		$went   = 0;
 
-		$this->get($app, '/');
-
-		$result = $tester->run('schedule:run');
-
-		$this->assertTrue($result->isSuccessful());
-		$this->assertStringContainsString('next go-live: 2026-12-25T08:00:00-06:00. Pruned 0 expired cache entries.', $result->output);
+		$app->container()->make(ListenerRegistry::class)->listen(EntriesWentLive::class, static function () use (&$went): void {
+			$went++;
+		});
 
 		$this->clock->set('2026-12-26 00:00:00 America/Chicago');
+		$tester->run('schedule:run');
 
-		$this->assertStringContainsString('next go-live: none.', $tester->run('schedule:run')->output);
+		$this->assertSame(0, $went, 'The future post was never seen scheduled, so it isn\'t news.');
 	}
 
 	public function testTheWebhookIsOffWithoutASecret(): void

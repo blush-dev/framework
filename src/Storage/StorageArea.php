@@ -40,4 +40,9 @@ enum StorageArea: string
 	 * Login sessions (`storage/sessions`).
 	 */
 	case Sessions = 'sessions';
+
+	/**
+	 * Background jobs and the scheduler's state (`storage/jobs`, D-621).
+	 */
+	case Jobs = 'jobs';
 }

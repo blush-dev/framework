@@ -395,6 +395,17 @@ on demand, for what's loaded at once, is in `open-questions.md`.
 
 ### Still to scope
 
+- **Background jobs and the scheduler (D-621; built, D-622):**
+  `Blush\Job` (jobs by key, records in the `jobs` area, chunks,
+  retries, the schedule), cron's `schedule:run` and the runners
+  (worker, admin, after visits), the `jobs:*` and `schedule:list`
+  commands, Tools → Jobs with `site.jobs`, Site Health's cron check,
+  and Publish and Reindex in the admin as jobs. `EntriesWentLive`
+  and the `RecordingQueue` for tests followed (D-623), Site
+  Health's fixes as a chunked job (D-624), and Check Again too
+  (D-625). Not chunked yet: the media indexer and the media metadata
+  check. The first of the layers AI plugins need
+  (D-397), with the HTTP client (D-620).
 - **APIs, agents, and headless (discussed 2026-10-03):** a versioned
   content API, API tokens, an MCP server, a headless mode, revisions
   and an activity log, outgoing webhooks, and an image pipeline; see

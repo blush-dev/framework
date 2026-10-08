@@ -197,7 +197,8 @@ and problems ignored per site, with no figure cards on check pages
 (D-613); and the site layer as config, with code in extensions: no
 site templates, icons, or text, no `app` namespace, and no types or
 relations in `config/content.php`, with `src/` providers kept as an
-escape hatch (D-617).
+escape hatch (D-617); and background jobs and a scheduler run by cron,
+a worker, the admin, or page visits, with Tools → Jobs (D-621, D-622).
 The Fields
 API (D-337 to D-348: field types and controls, field sets on content
 types, media, and the Settings screens, slots, and Structure → Fields)

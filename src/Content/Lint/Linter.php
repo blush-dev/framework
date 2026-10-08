@@ -125,7 +125,28 @@ final readonly class Linter
 			}
 		}
 
-		$snapshot = IndexSnapshot::build($records, '', 0);
+		foreach ($this->lintSite(IndexSnapshot::build($records, '', 0)) as $path => $found) {
+			$violations[$path] = [...$violations[$path] ?? [], ...$found];
+		}
+
+		[$rest, $metadata] = $this->lintRest();
+
+		return new LintReport(count($files), [...$violations, ...$rest], $metadata);
+	}
+
+	/**
+	 * Lints what needs every file at once, from a snapshot of them all:
+	 * two files claiming one entry, ids files share, translations,
+	 * missing terms, parents, page addresses, and relations, by path.
+	 * `lint()` builds the snapshot from the files it just read; a check
+	 * done a chunk at a time (D-625) lints each file with `lintFile()`
+	 * and passes the content index's.
+	 *
+	 * @return array<string, list<Violation>>
+	 */
+	public function lintSite(IndexSnapshot $snapshot): array
+	{
+		$violations = [];
 
 		foreach ($snapshot->conflicts as $key => $paths) {
 			[$language, $type, $entryKey] = explode('/', $key, 3) + ['', '', ''];
@@ -158,9 +179,13 @@ final readonly class Linter
 			}
 		}
 
-		foreach ($records as $record) {
+		foreach (array_keys($snapshot->records) as $path) {
 			// With a translation's key and parent in its language (D-457).
-			$record = $snapshot->record($record->path) ?? $record;
+			$record = $snapshot->record((string) $path);
+
+			if ($record === null) {
+				continue;
+			}
 
 			foreach ([...$this->missingTerms($snapshot, $record), ...$this->checkParent($snapshot, $record), ...$this->checkPageAddress($record)] as $violation) {
 				$violations[$record->path][] = $violation;
@@ -173,10 +198,22 @@ final readonly class Linter
 			}
 		}
 
-		// Media metadata files, by their path from the site root (D-293).
+		return $violations;
+	}
+
+	/**
+	 * Lints what isn't an entry: formats Blush no longer reads in
+	 * `user/content`, media metadata files (by their path from the site
+	 * root, D-293), and field sets. Returns the violations by path and
+	 * how many media metadata files were checked.
+	 *
+	 * @return array{array<string, list<Violation>>, int}
+	 */
+	public function lintRest(): array
+	{
 		[$metadata, $described] = $this->media->check();
 
-		return new LintReport(count($files), [...$violations, ...$this->formats->check(), ...$described, ...$this->sets->check()], $metadata);
+		return [[...$this->formats->check(), ...$described, ...$this->sets->check()], $metadata];
 	}
 
 	/**

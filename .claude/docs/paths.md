@@ -166,6 +166,7 @@ site/
     index/              content.php, the content index (D-087)
     logs/
     sessions/           One JSON file per session, named by the id's SHA-256 (D-219)
+    jobs/               Background jobs (D-621, D-622): queued/, running/, done/, failed/ with one {id}.json each; schedule.json, runners.json; *.lock
     accounts/           {username}.json admin accounts (D-217, D-219), with any non-default
                         preferences (D-235), suspension, and password link hash (D-312);
                         never cleared

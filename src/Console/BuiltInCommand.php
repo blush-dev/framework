@@ -41,18 +41,22 @@ use Blush\Console\Commands\ListAccounts;
 use Blush\Console\Commands\ListCommands;
 use Blush\Console\Commands\ListComponents;
 use Blush\Console\Commands\ListDirectives;
+use Blush\Console\Commands\ListJobs;
 use Blush\Console\Commands\ListIcons;
 use Blush\Console\Commands\ListMenus;
 use Blush\Console\Commands\ListPlugins;
+use Blush\Console\Commands\ListSchedule;
 use Blush\Console\Commands\ListContent;
 use Blush\Console\Commands\ListThemes;
 use Blush\Console\Commands\PreviewContent;
+use Blush\Console\Commands\PruneJobs;
 use Blush\Console\Commands\Publish;
 use Blush\Console\Commands\PublishMedia;
 use Blush\Console\Commands\RecordMediaSizes;
 use Blush\Console\Commands\PublishThemes;
 use Blush\Console\Commands\ReinstateAccount;
 use Blush\Console\Commands\RemoveAccount;
+use Blush\Console\Commands\RetryJobs;
 use Blush\Console\Commands\RoutesList;
 use Blush\Console\Commands\RunSchedule;
 use Blush\Console\Commands\Serve;
@@ -64,6 +68,7 @@ use Blush\Console\Commands\SetAccountRoles;
 use Blush\Console\Commands\SetUpSite;
 use Blush\Console\Commands\ShowMenu;
 use Blush\Console\Commands\SuspendAccount;
+use Blush\Console\Commands\WorkJobs;
 
 /**
  * The framework's own commands, keyed by name (the "Type enum" of the
@@ -112,6 +117,11 @@ enum BuiltInCommand: string
 	case MenuShow      = 'menu:show';
 	case Publish       = 'publish';
 	case ScheduleRun   = 'schedule:run';
+	case ScheduleList  = 'schedule:list';
+	case JobsWork      = 'jobs:work';
+	case JobsList      = 'jobs:list';
+	case JobsRetry     = 'jobs:retry';
+	case JobsPrune     = 'jobs:prune';
 	case AccountAdd       = 'account:add';
 	case AccountList      = 'account:list';
 	case AccountPassword  = 'account:password';
@@ -172,6 +182,11 @@ enum BuiltInCommand: string
 			self::MenuShow      => ShowMenu::class,
 			self::Publish       => Publish::class,
 			self::ScheduleRun   => RunSchedule::class,
+			self::ScheduleList  => ListSchedule::class,
+			self::JobsWork      => WorkJobs::class,
+			self::JobsList      => ListJobs::class,
+			self::JobsRetry     => RetryJobs::class,
+			self::JobsPrune     => PruneJobs::class,
 			self::AccountAdd       => AddAccount::class,
 			self::AccountList      => ListAccounts::class,
 			self::AccountPassword  => SetAccountPassword::class,

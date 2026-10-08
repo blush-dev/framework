@@ -1076,7 +1076,7 @@ Implemented in M6a (D-127 to D-130), apart from publishing (M6b).
     store, and an address locked out (429) after `maxAttempts` failed
     signatures within `lockout` seconds (`WebhookThrottle`, D-414).
   - `publish` on the CLI does the same over SSH; `schedule:run` is the
-    optional cron entry.
+    cron entry (see Background jobs, under Hosting).
 - **Stage 2: operations dashboard**
   - Auth: several accounts, each linked to an `author` entry, with roles
     that hold capabilities (D-216); passkeys later. Sessions, CSRF, and
@@ -1427,8 +1427,56 @@ and **icon packs**; **admin themes** are planned on the same pieces.
   The public path, public URL, and asset and media publish targets all come
   from config.
 - **Nothing needs a long-running process.** Scheduled go-live is handled by
-  checking at request time against the content version, with an optional cron
-  hitting `blush schedule:run`.
+  checking at request time against the content version, with cron
+  hitting `blush schedule:run` to do it on time.
+- **Background jobs (`Blush\Job`, D-621, D-622).** Work outside the
+  request that asked for it.
+  - A `Job` (abstract; Type enum `JobType` + `JobRegistry` +
+    `JobFactory` + `JobRegistrar`) is registered by a `vendor/name` key;
+    `handle(JobRecord)` returns a `JobResult`: `done()`, `failed()` (no
+    retry), or `more($data, $progress)` (queued again where it got to;
+    no run may count on more than one request's time). A throw is
+    retried after `backoff()` up to `attempts()` (3: 1, 5, 25 minutes).
+  - `JobRecord` is a record keyed by a UUIDv7 id (D-606): key, plain
+    data (ids and scalars), status (`JobStatus`), attempts, `available`,
+    times, progress, message, details, error, `account`, `unique`.
+  - `JobQueue` (interface; `StoredJobQueue`, or
+    `Testing\RecordingQueue` in tests, D-623): `push()` (unique keys
+    return the copy waiting; `sync` mode runs it at once), `retry()`,
+    `delete()`, `prune()`.
+  - `JobStore` is the `jobs` storage area (`StorageArea::Jobs`);
+    `FileJobStore` keeps `storage/jobs/{status}/{id}.json` and claims a
+    job by renaming it from `queued/` to `running/` (atomic, so runners
+    need no shared lock), plus named state and `flock()` locks.
+  - `JobRunner::work(RunnerKind, seconds)` records the runner's time,
+    recovers jobs running past `timeout` (as a throw), and runs due
+    jobs oldest first until none are left or time's up. Done jobs the
+    scheduler queued are deleted; others are kept `keepDone`.
+  - `Schedule` (job key → `ScheduledTask` with a `Frequency`, a
+    five-field cron expression read in the site's time zone, with
+    named shapes) and `Scheduler::tick()`: under a lock, queue each task
+    whose frequency's next time after its last run has come (a missed
+    run happens once), under the unique key `schedule:{job}`. Core's:
+    `blush/go-live` every minute (which also dispatches
+    `EntriesWentLive` for entries it saw scheduled that are published
+    now, D-623), `blush/prune-cache` and
+    `blush/prune-sessions` hourly, `blush/prune-jobs` daily at 03:00.
+  - Runners: cron (`schedule:run`), a worker (`jobs:work`), the admin
+    (`POST jobs/{id}/run`, for the jobs a person starts and follows),
+    and `WebRunner` after the response (`HttpRunner`, PHP-FPM's
+    `fastcgi_finish_request()`), in `auto` mode only, at most once a
+    minute, and only while cron and a worker have been quiet two
+    minutes. Site Health (`SiteChecks::jobs()`) warns after ten.
+  - Admin actions name a job with `AdminAction::job()` (Publish and
+    Reindex do); the admin queues it once (`action:{job}`) and follows
+    it with progress.
+  - Site Health's many-file fixes are `blush/health-fix`
+    (`HealthFixJob`, D-624): 100 paths a run, permissions from the
+    queuing account on every run (`FixAccess`), and the endpoint's old
+    answer as the job's `result` (`JobRecord::$result`). Check Again is
+    `blush/health-check` (`HealthCheckJob`, D-625): 200 files a run
+    through `Linter::lintFile()`, then `lintSite()` from the index's
+    snapshot and `lintRest()`.
 - **Publishing without shell access:** upload by SFTP, then use the signed
   webhook or the admin to reindex and bust caches. `git pull` is an optional
   step for hosts with git.

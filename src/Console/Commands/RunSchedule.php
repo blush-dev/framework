@@ -13,56 +13,61 @@ declare(strict_types=1);
 
 namespace Blush\Console\Commands;
 
-use DateTimeImmutable;
-use DateTimeInterface;
-use Psr\Clock\ClockInterface;
-use Blush\Cache\Caches;
-use Blush\Cache\ContentVersion;
 use Blush\Console\Attributes\Command;
+use Blush\Console\Attributes\Option;
 use Blush\Console\ExitCode;
 use Blush\Console\Output;
-use Blush\Core\AppConfig;
-use Blush\Session\SessionConfig;
-use Blush\Session\SessionStore;
+use Blush\Console\Verbosity;
+use Blush\Job\JobConfig;
+use Blush\Job\JobFactory;
+use Blush\Job\JobRunner;
+use Blush\Job\JobStatus;
+use Blush\Job\RunnerKind;
+use Blush\Job\Scheduler;
 
 /**
- * The optional cron entry (D-040): moves the content version on if a
- * scheduled entry's time has come, and removes expired cache entries
- * and idle sessions.
- * Requests do the first by themselves, so this only makes a go-live
- * happen on time for a site that nobody visits, and keeps the store
- * tidy.
+ * The cron entry (D-040, D-621): queues the scheduled tasks that are due,
+ * then works the queue for `JobConfig::$budget` seconds (`--budget`
+ * changes it), and records cron's time, so Site Health knows it's set
+ * up. Run it every minute:
  *
- *     * * * * * cd /path/to/site && php bin/blush schedule:run
+ *     * * * * * cd /path/to/site && php bin/blush schedule:run > /dev/null 2>&1
+ *
+ * It fails when a job failed for good, so a cron that mails its errors
+ * says so.
  */
-#[Command('schedule:run', 'Process scheduled go-live times and prune the cache store.')]
+#[Command('schedule:run', 'Queue the scheduled tasks that are due, then work the queue.')]
 final readonly class RunSchedule
 {
 	public function __construct(
-		private ContentVersion $version,
-		private Caches $caches,
-		private AppConfig $app,
-		private SessionStore $sessions,
-		private SessionConfig $sessionConfig,
-		private ClockInterface $clock
+		private Scheduler $scheduler,
+		private JobRunner $runner,
+		private JobFactory $jobs,
+		private JobConfig $config
 	) {}
 
-	public function __invoke(Output $output): ExitCode
-	{
-		$version = $this->version->current();
-		$next    = $this->version->scheduled();
-		$pruned  = $this->caches->prune();
+	public function __invoke(
+		Output $output,
+		#[Option('Seconds to work the queue for; defaults to the jobs config\'s budget.')] int $budget = 0
+	): ExitCode {
+		$queued = $this->scheduler->tick();
+		$report = $this->runner->work(RunnerKind::Cron, $budget > 0 ? $budget : $this->config->budget);
 
-		$this->sessions->prune($this->clock->now()->getTimestamp() - $this->sessionConfig->idle);
+		foreach ($report->runs as $run) {
+			$output->line(sprintf('%s: %s. %s', $this->jobs->label($run->job), $run->status->label(), $run->error ?? $run->message), $run->status === JobStatus::Failed ? Verbosity::Normal : Verbosity::Verbose);
+		}
 
 		$output->success(sprintf(
-			'The content version is %s; next go-live: %s. Pruned %d expired cache entr%s.',
-			$version,
-			$next === null ? 'none' : DateTimeImmutable::createFromTimestamp($next)->setTimezone($this->app->timezone())->format(DateTimeInterface::ATOM),
-			$pruned,
-			$pruned === 1 ? 'y' : 'ies'
-		));
+			'Queued %d scheduled task%s; ran %d job%s: %d done, %d failed, %d to go on.',
+			count($queued),
+			count($queued) === 1 ? '' : 's',
+			$report->count(),
+			$report->count() === 1 ? '' : 's',
+			$report->count(JobStatus::Done),
+			$report->count(JobStatus::Failed),
+			$report->count(JobStatus::Queued)
+		), Verbosity::Verbose);
 
-		return ExitCode::Success;
+		return $report->count(JobStatus::Failed) > 0 ? ExitCode::Failure : ExitCode::Success;
 	}
 }

@@ -65,7 +65,7 @@ final class StorageConfigTest extends TestCase
 	public function testRejectsAnUnknownArea(): void
 	{
 		$this->expectException(InvalidConfig::class);
-		$this->expectExceptionMessage('StorageConfig "areas" keys must be content, data, accounts, sessions; "media" given.');
+		$this->expectExceptionMessage('StorageConfig "areas" keys must be content, data, accounts, sessions, jobs; "media" given.');
 		new StorageConfig(areas: ['media' => 'filesystem']);
 	}
 }

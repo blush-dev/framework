@@ -18553,3 +18553,238 @@ decision, add a new entry that supersedes it and mark the old one
   the Owner stays.
 - **Why:** the author: "On the Your Account page, I don't think we need
   these two note boxes." The screen already shows what's yours to change.
+
+### D-620: An outgoing HTTP client in two layers
+
+- **Date:** 2026-10-08
+- **Status:** Planned; nothing built. The rest of its design is in
+  `open-questions.md` (**An outgoing HTTP client**).
+- **Decision:** Core gets one client for outgoing requests, in two
+  layers: a PSR-18 transport (`psr/http-client`) as the swap point, so
+  a site can bind Guzzle or Symfony's client, and Blush's own client
+  over it for what PSR-18 leaves out (per-request timeouts, size
+  limits, the address checks, retries, JSON helpers, the user agent),
+  sending Blush's PSR-7 messages. Embeds' `Fetcher` and
+  `StreamFetcher` give way to it. It's the first of the layers AI
+  plugins need (D-397), and serves webhooks, CDN purges, importers,
+  and embeds too.
+- **Why:** the author agreed to both layers: PSR-18 alone has no
+  timeouts or limits, and an interface of Blush's own alone shuts out
+  the clients sites already have.
+
+### D-621: Background jobs and a scheduler
+
+- **Date:** 2026-10-08
+- **Status:** Built in D-622, which records where the build departs.
+  The author: "I just want you to decide how to build this best."
+- **Decision:** Core gets work done outside the request that asked
+  for it, in `Blush\Job`:
+  - **One kind of work: the job.** A job is registered by key
+    (`blush/reindex`, `acme/transcribe`) through the usual enum,
+    registry, factory, and registrar, so a stored job never names a
+    PHP class. Its data is ids and scalars, never objects. Each job
+    is a record (D-606): a UUIDv7 `id`, its key, its data, attempts,
+    a not-before time, status (queued, running, done, failed),
+    progress, its last error, and the account that queued it.
+  - **Scheduled tasks are jobs on a timetable.** Core and plugins
+    register a job key with a frequency (every minute, hourly, daily
+    at a time, or a cron expression); when one is due, the scheduler
+    queues it under a unique key, so it never runs twice at once.
+    One path runs everything, and one list shows it.
+  - **Long work in chunks.** A job's handler returns either done or
+    more: new data and progress, and the job is queued again. No job
+    may assume more than one run's time, as on shared hosting.
+    Failure is an exception: retried with backoff (three attempts by
+    default), then kept as failed with Retry and Delete.
+  - **Unique keys,** so a job asked for many times (a reindex after
+    many saves) is queued once.
+  - **Capabilities are checked when a job is queued,** and the job
+    records who asked; the runner is the system.
+  - **A `jobs` storage area** (D-485), beside `sessions`: its writes
+    are frequent and short-lived, the likeliest area to want a
+    database first. On files, a JSON file per job, claimed by an
+    atomic rename, so two runners never take one job. Done jobs are
+    kept a day (for progress), failed ones a week, pruned by a core
+    task.
+  - **Runners, all sharing a lock and a time budget:**
+    - **cron, the recommended one:** `* * * * * php bin/blush
+      schedule:run` queues what's due and works the queue for about
+      50 seconds. Each run records the time, the heartbeat.
+    - **`jobs:work`,** a long-running worker for servers that keep
+      one going.
+    - **The admin:** while someone's signed in, the admin asks an
+      endpoint to run the next chunk of the jobs they started, which
+      is how an import or a transcript shows progress with no cron.
+    - **After a page is served,** where PHP-FPM gives
+      `fastcgi_finish_request()`: about 10 seconds of due work, at
+      most once a minute, and only while the heartbeat is stale, so
+      a site with cron never runs work on visits. On by default as
+      `auto`; `jobs.runner` in config also takes `cron` (never on
+      visits) and `off`.
+  - **Seen in the admin and the CLI:** Tools lists jobs (queued,
+    running, failed) with Retry, Delete, and Run Now, and the
+    scheduled tasks with their last and next runs; Site Health warns
+    when no runner has run lately and says how to add the cron line.
+    Commands: `schedule:run`, `schedule:list`, `jobs:work`,
+    `jobs:list`, `jobs:retry`, `jobs:prune`.
+  - **Core's own work moves onto it:** the admin's Publish and
+    Reindex become jobs, started at once by the admin runner with
+    progress, and the CLI commands stay as they are, running in the
+    foreground; whole-site fixes (`content:ids`, file names), media
+    indexing and image sizes, and pruning logs, sessions, login
+    throttles, and jobs follow. A core task each minute notices a
+    scheduled entry's time arriving (`ContentVersion` already knows
+    it) and announces it, once per-entry events exist, so a scheduled
+    post can send webhooks and purges.
+  - **Testing:** a sync mode that runs a job when it's queued, and a
+    fake that records what was queued.
+- **Why:** one cron line is the dependable runner everywhere, and the
+  fallbacks cover shared hosts without one: the admin for work a
+  person is waiting on, and visits only while cron is missing, so
+  visitors never pay for a site that has it. Making scheduled tasks
+  jobs keeps one runner, one record, and one list. Chunks and atomic
+  claims let it work on files today and a database later. AI plugins
+  (D-397) need it, and so do importers, webhooks, and core's own long
+  admin actions.
+
+### D-622: Background jobs and the scheduler, as built
+
+- **Date:** 2026-10-08
+- **Status:** Built. Builds D-621, with the departures below.
+- **Decision:** `Blush\Job` as D-621 has it (jobs by `vendor/name` key,
+  records keyed by UUIDv7 in the `jobs` storage area, `FileJobStore`
+  claiming by rename, chunks with `JobResult::more()`, retries with
+  backoff, scheduled tasks as jobs with a cron-expression `Frequency`),
+  the runners, the commands (`schedule:run`, `schedule:list`,
+  `jobs:work`, `jobs:list`, `jobs:retry`, `jobs:prune`), Tools → Jobs,
+  Site Health's check, and the admin's Publish and Reindex as jobs
+  (`blush/publish`, `blush/reindex`). Where it settles or departs from
+  D-621:
+  - **No `off` runner mode.** `JobConfig::$runner` is `auto`, `cron`,
+    or `sync`: `cron` already keeps work off visits, and the admin only
+    runs work a person started and is waiting on, so turning that off
+    would leave Publish hanging.
+  - **No lock between runners.** Claiming by rename is enough; locks
+    are only for the scheduler's tick and for taking a minute's turn
+    after visits.
+  - **Done jobs the scheduler queued aren't kept** (only their last run
+    on the schedule), so the every-minute go-live job doesn't leave a
+    file a minute. A task someone runs with Run Now is kept for them.
+  - **Thresholds:** visits run work (10 seconds, at most once a minute)
+    while cron and a worker have been quiet two minutes; Site Health
+    and `doctor` warn after ten; a job running past `timeout` (15
+    minutes) is taken for stopped and treated as one that threw.
+  - **The admin's runner is a request per chunk:** `POST jobs/{id}/run`
+    runs the job's next chunk and answers with it, and the admin asks
+    again until it's finished (`jobs.ts`'s `follow()`). Anyone may
+    follow a job they queued; `site.jobs` (a new capability, in Site;
+    administrators have it, as everything but `site.health`) sees and
+    manages every job and runs scheduled tasks now.
+  - **Admin actions name a job** with `AdminAction::job()`, and
+    `run()` is no longer abstract (it's for actions that don't). A job
+    action is queued under `action:{job}`, so two clicks queue it once.
+  - **`schedule:run` replaces D-040's command:** its go-live, cache, and
+    session pruning are core scheduled jobs (`blush/go-live` every
+    minute, `blush/prune-cache` and `blush/prune-sessions` hourly), with
+    `blush/prune-jobs` daily at 03:00. It prints only failures unless
+    `-v`, and fails when a job failed for good, for cron's mail.
+  - **Not built yet:** moving whole-site fixes and media indexing onto
+    jobs. (Announcing a scheduled entry's going live and a fake queue
+    for tests followed in D-623, and the fixes in D-624.)
+- **Why:** the author asked for D-621 to be built ("Let's go ahead and
+  build the cron jobs feature"), with the calls left to Claude.
+
+### D-623: Announcing entries that go live, and a recording queue for tests
+
+- **Date:** 2026-10-08
+- **Status:** Built. Finishes two of D-622's three open items.
+- **Decision:**
+  - **`Blush\Content\Events\EntriesWentLive`**, dispatched by the
+    go-live job (`blush/go-live`) with the `entries` that went live,
+    `since` (its last look) and `at`. It doesn't wait on general
+    per-entry events: each run keeps the scheduled entries it sees (by
+    id, else `path:{path}`) in the jobs' `go-live` state, and an entry
+    it saw scheduled that's published now went live. The first run
+    only looks, so a site's past posts are never news. An entry
+    published as it's saved isn't in it (that's for per-entry events
+    later), nor one scheduled and going live between two looks (under
+    a minute with cron). Without cron, the next runner catches up, so
+    `since` can be long ago and listeners decide what's stale.
+  - **`JobQueue` is an interface**, with `StoredJobQueue` the queue
+    (bound with `SINGLETONS_IF`) and **`Blush\Job\Testing\RecordingQueue`**
+    the fake: kept in memory, never run, with `pushed(?job)` and
+    `clear()`, refusing what the real queue refuses and keeping
+    `unique` keys alike. `JobRecord::isPlain()` is the shared data
+    check.
+- **Why:** the author asked to build both ("build 1 and 3"). Keeping
+  the scheduled set, rather than a time window, keeps entries published
+  as they're saved out of an event about scheduled ones.
+
+### D-624: Site Health's fixes as jobs, a chunk at a time
+
+- **Date:** 2026-10-08
+- **Status:** Built. Finishes D-622's last open item, as far as it goes
+  (below).
+- **Decision:** The seven Site Health fixes that change many files
+  (`HealthFix`: ids, media ids, media sizes, file names, flattening,
+  terms, refs) run as one job, `blush/health-fix` (`HealthFixJob`).
+  - `POST health/{fix}` checks `site.health` and answers `{"job": id}`;
+    the admin follows it (`follow()`), and the finished job's `result`
+    is what the endpoint used to answer (its changes under the fix's
+    key, and `failed`), so the screen marks rows Fixed as before. A
+    group fix's button shows the job's progress.
+  - **Chunks of 100** (`HealthFixJob::CHUNK`): the job keeps the paths
+    still to fix (the `paths` or `terms` sent, else everything the
+    check finds, read on its first run) and fixes the next hundred a
+    run, through the same services the CLI uses, which reindex first,
+    so each run sees the last one's changes. What changed and failed
+    so far rides along in its data.
+  - **Permissions are checked on every run** from the account that
+    queued it (`FixAccess`, shared with the fixes still run in a
+    request), so a role taken away, or an account removed or
+    suspended, stops it (failed, not retried).
+  - **A job can hand back a result:** `JobRecord::$result`, set by
+    `JobResult::done()` and `failed()`, and answered by the jobs API.
+  - **Still in the request:** keeping a shared id (one id's files) and
+    migrating taxonomies (a few types, and `site.settings` too), and
+    Check Again, which reads every file (a job since D-625). Media indexing runs as a job
+    through Reindex (D-622); the indexer itself isn't chunked.
+- **Why:** the author asked for it ("build 2 too"). One job with a fix
+  name keeps the seven alike; answering the old shape as the result
+  kept the screen's handling of rows.
+
+### D-625: Check Again as a job, a chunk at a time
+
+- **Date:** 2026-10-08
+- **Status:** Built.
+- **Decision:** Checking content and media files again (Check Again on
+  a check's page, and Run a Check on Site Health) is a job,
+  `blush/health-check` (`HealthCheckJob`), chunked, since the admin runs
+  each chunk in a request and one long run would still time out.
+  - **`Linter` in parts:** `lintFile()` (each file on its own, which
+    `lint()` already did per file), `lintSite(IndexSnapshot)` (what
+    needs every file: duplicates, shared ids, translations, terms,
+    parents, page addresses, relations), and `lintRest()` (formats,
+    media metadata, field sets). `lint()` is the three together, as
+    before.
+  - **The job** lints 200 content files a run, keeping what it found
+    (as plain data) and the files left; its last run brings the content
+    index up to date and lints the whole site from the index's snapshot
+    (where `lint()` builds one from the files it read), then
+    `lintRest()`, and saves the report through `SiteHealth::checkFiles()`
+    with that lint (`ContentHealth::report()` takes one).
+  - **Run a Check** (`POST health/site`) checks everything else at
+    once (`SiteHealth::checkSite()`), so the system checks and
+    requirements describe the web server's PHP, not cron's, and
+    answers that report with the files' `job`; the admin follows it and
+    loads the report again. `POST health` answers only `{"job": id}`.
+    One check at a time: both queue under the job's key as `unique`.
+  - **The first check** of a site (no report with files yet) is still
+    made at once, as before.
+  - The admin's `finish()` (`jobs.ts`) follows a job and throws unless
+    it's done; the fixes use it too. Both buttons show the progress.
+  - Not chunked: `lintRest()`'s media metadata check, which reads every
+    metadata file in the last run.
+- **Why:** the author asked ("make Check Again a job too"). Measured on
+  the jtcom trial: about 1,250 entries in seven chunks, about two
+  seconds.

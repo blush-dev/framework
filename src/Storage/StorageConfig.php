@@ -29,7 +29,7 @@ use Blush\Env\Env;
  *   flat-file site keeps them, is the default and, for now, the only one;
  *   database drivers are planned.
  * - `areas` picks another driver per `StorageArea` (`content`, `data`,
- *   `accounts`, `sessions`).
+ *   `accounts`, `sessions`, `jobs`).
  *
  * Media files aren't an area: they stay files whatever the driver.
  */

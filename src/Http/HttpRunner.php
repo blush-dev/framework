@@ -17,9 +17,11 @@ use Override;
 use Throwable;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
+use Psr\Log\LoggerInterface;
 use Blush\Core\Runner;
 use Blush\Error\ErrorHandler;
 use Blush\Error\HtmlRenderer;
+use Blush\Job\WebRunner;
 use Blush\Setup\SetupChecks;
 use Blush\Setup\SetupPage;
 
@@ -32,9 +34,17 @@ use Blush\Setup\SetupPage;
  *
  * The project path is the one line to change when the web root lives
  * somewhere else, such as a host's fixed `public_html` (D-046).
+ *
+ * Once the response is sent, a site without cron may run due background
+ * jobs (`WebRunner`, D-621).
  */
 final class HttpRunner extends Runner
 {
+	/**
+	 * Whether the application handled the request (not the setup page).
+	 */
+	private bool $handled = false;
+
 	/**
 	 * Handles the current request and sends the response. Anything
 	 * printed along the way (a `dump()`, say) is buffered and added to the
@@ -62,6 +72,8 @@ final class HttpRunner extends Runner
 			StrayOutput::insert($response, self::endBuffers($level)),
 			withBody: $request->getMethod() !== 'HEAD'
 		);
+
+		$this->afterResponse();
 	}
 
 	/**
@@ -77,7 +89,28 @@ final class HttpRunner extends Runner
 			return SetupPage::response($failures);
 		}
 
+		$this->handled = true;
+
 		return $this->application()->container()->make(Kernel::class)->handle($request);
+	}
+
+	/**
+	 * Runs due background jobs, when it's this request's turn. A failure
+	 * here is logged, never shown: the response is already sent.
+	 */
+	private function afterResponse(): void
+	{
+		if (! $this->handled || ! WebRunner::isAvailable()) {
+			return;
+		}
+
+		$container = $this->application()->container();
+
+		try {
+			$container->make(WebRunner::class)->afterResponse();
+		} catch (Throwable $exception) {
+			$container->make(LoggerInterface::class)->error('Background jobs after a request failed: {message}', ['message' => $exception->getMessage(), 'exception' => $exception]);
+		}
 	}
 
 	/**

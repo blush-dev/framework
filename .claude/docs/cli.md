@@ -90,7 +90,12 @@ Implemented in M2 (D-065, D-069).
 | `plugin:list` | List installed plugins (name, label, namespace, version, source, and on, off, or can't run, D-385), and broken manifests as warnings (D-394) |
 | `plugin:check [name]` | Check every plugin's manifest, `require`, `conflict`, and `replace` (D-435, D-436; or one plugin's), one that's off as if it were on; a plugin turned on that can't run, or a broken one config turns on, is an error and fails it, one that's off a warning (D-394), and so are a `version` Composer can't normalize (D-430) an `abandoned` plugin, which still runs (D-433), and a mismatched `lang/` catalog (D-454; an unreadable one is an error) |
 | `plugin:new <vendor/name> [--label] [--namespace] [--php-namespace]` | Create a plugin (manifest, an empty service provider in `src/`, autoloaded PSR-4, and a starter `lang/en.json`, D-452) in `extensions/{vendor}/{name}`, off until turned on (D-416, D-418); the namespace defaults to the name, hyphenated (`acme-hello`, D-424), the name and namespace must be free across every installed extension, the PHP namespace defaults to the name in StudlyCase, and the manifest has a `$schema` key (D-206) |
-| `schedule:run` | Optional cron entry: move the content version on at go-live times and prune the store (D-040, D-133) |
+| `schedule:run [--budget]` | The cron entry, every minute: queue the scheduled tasks that are due, then work the queue for `JobConfig::$budget` seconds, recording cron's time; fails when a job failed for good (D-040, D-133, D-621, D-622) |
+| `schedule:list` | The scheduled tasks (job, label, frequency in words, last and next run) and each runner's last run (D-622) |
+| `jobs:work [--sleep] [--max-time] [--stop-when-empty]` | A long-running worker: tick and work the queue, resting when idle (D-621, D-622) |
+| `jobs:list [--status]` | Jobs, newest first: id, label, status, queued, by whom, last message or error (D-622) |
+| `jobs:retry [id] [--all]` | Queue a failed job, or every failed job, again (D-622) |
+| `jobs:prune` | Remove finished jobs past `keepDone` and `keepFailed` (D-622) |
 | `bench` | Run the performance suite (dev only, D-044). For now it's `composer bench` in the framework (D-101) |
 | `init [--webhook]` | Create `.env` from `.env.example` (asking for name, URL, timezone, and environment in a terminal), optionally add a `PUBLISH_SECRET`, create the storage folders, and report unwritable ones; idempotent (D-218) |
 | `account:add <username> [--email] [--role]... [--author] [--name]` | Create an account, asking for the email when `--email` is left out and twice for the password (needs a terminal); owner while the site has none, else administrator (D-219, D-322, D-370, D-500) |

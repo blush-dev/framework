@@ -22,7 +22,10 @@ namespace Blush\Admin\Action;
  *     $container->get(AdminActionRegistry::class)->register('shop-sync', SyncOrders::class);
  *
  * Actions are built through the container, so constructors can ask for
- * services. `run()` should finish within a request.
+ * services. `run()` should finish within a request. Work that may not
+ * names a registered job instead (`job()`, D-621): the admin queues it
+ * and runs it a chunk at a time, showing its progress, and `run()` is
+ * never called.
  */
 abstract class AdminAction
 {
@@ -42,9 +45,21 @@ abstract class AdminAction
 	abstract public function capability(): string;
 
 	/**
-	 * Runs the action.
+	 * Runs the action, when it doesn't name a job.
 	 */
-	abstract public function run(): ActionResult;
+	public function run(): ActionResult
+	{
+		return ActionResult::failure('This action has nothing to run.');
+	}
+
+	/**
+	 * Returns the key of the job the action queues (`blush/publish`), or
+	 * `null` for one that runs in the request.
+	 */
+	public function job(): ?string
+	{
+		return null;
+	}
 
 	/**
 	 * Returns a question to confirm before running, or `null` to run

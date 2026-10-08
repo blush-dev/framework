@@ -19,7 +19,7 @@ for even more), `-q` for errors only, `-n` to never ask questions, and
 | Command | What it does |
 |---|---|
 | `init` | Set up a new site: create `.env` (asking for the basics) with an `APP_SECRET`, create the `storage/` folders, report any Blush can't write to, and offer to create the first admin account. `--webhook` adds a `PUBLISH_SECRET`, which turns on the publish webhook. Safe to run again; it never changes an existing `.env` except to add missing secrets. |
-| `doctor` | Check that the site is set up to run: PHP and its extensions, `.env`, risky production settings, `public/`, and writable storage. Fails when something needs fixing. It also warns of extensions that are on but can't run: an active theme whose [requirements](extending.md#requirements) aren't met (so the default theme shows), and plugins and icon packs that are on but don't run, and a site with accounts but no [owner](accounts.md#owners). |
+| `doctor` | Check that the site is set up to run: PHP and its extensions, `.env`, risky production settings, `public/`, and writable storage. Fails when something needs fixing. It also warns when cron hasn't run [background jobs](going-live.md#background-jobs-and-cron) in the last ten minutes. It also warns of extensions that are on but can't run: an active theme whose [requirements](extending.md#requirements) aren't met (so the default theme shows), and plugins and icon packs that are on but don't run, and a site with accounts but no [owner](accounts.md#owners). |
 
 ## Accounts
 
@@ -62,11 +62,23 @@ See [Accounts and roles](accounts.md) and [The admin](admin.md).
 | `cache:compile` | Precompile config, routes, content types, themes, plugins, and icon packs for speed |
 | `cache:clear` | Clear every compiled file and cache. Flags clear just one: `--config`, `--plugins`, `--container`, `--routes`, `--types`, `--themes`, `--icon-packs`, `--store`. `--embeds` also clears the saved oEmbed answers (which nothing else clears) and the cache store, so providers are asked again. |
 | `content:index` | Update the content index. `--full` rebuilds it from scratch. (`publish` does this for you.) |
-| `schedule:run` | For cron: puts scheduled posts live on time, and prunes the cache and idle admin sessions |
 | `media:ids` | Say how many media files are missing an [id](media.md#ids-and-image-sizes), and which ids files share (`-v` lists each file). `--write` gives each file missing one a new id; `--keep=<path>` (in the media folder) keeps a shared id on that file and gives the others new ones. An image's other sizes don't need one. |
 | `media:sizes` | Say how many [image sizes](media.md#ids-and-image-sizes) aren't listed in their images' details yet (`-v` lists them). `--write` lists them, and takes out listed files that are gone. |
 | `media:index` | Update the media index, which the admin's library lists and searches. `--full` rebuilds it; it also warns of metadata files whose media file is gone. (`publish` does this for you.) |
 | `media:publish` | Link `user/media` into `public/` so the web server serves it. `--copy` copies instead, for hosts without symlinks. Writes an `.htaccess` there so no script runs and SVGs are sandboxed. |
+
+## Background jobs
+
+See [Going live](going-live.md#background-jobs-and-cron) for setting up cron.
+
+| Command | What it does |
+|---|---|
+| `schedule:run` | For cron, every minute: queue the scheduled tasks that are due (putting scheduled posts live, pruning the cache, idle admin sessions, and old jobs), then run queued jobs for up to 50 seconds. `--budget=` changes the seconds. Fails when a job failed for good. `-v` lists each job it ran. |
+| `schedule:list` | List the scheduled tasks, how often each runs, and when it last ran and runs next; then when cron, a worker, page visits, and the admin last ran jobs |
+| `jobs:work` | Keep running jobs and scheduled tasks until stopped, for a server that keeps a process going (then cron isn't needed). `--sleep=` sets the seconds to rest when there's nothing to do (3), `--max-time=` stops after that many seconds, and `--stop-when-empty` stops once the queue is empty. Restart it after updating code. |
+| `jobs:list` | List the background jobs, newest first, with their ids, status, who queued them, and what they last said. `--status=` shows one: `queued`, `running`, `done`, or `failed`. |
+| `jobs:retry <id>` | Queue a failed job again. `--all` queues every failed job. |
+| `jobs:prune` | Remove finished jobs kept past their time (a day for done, a week for failed). A scheduled task does this daily. |
 
 ## Plugins
 

@@ -28,7 +28,9 @@ namespace Blush\Auth;
  *
  * Logs (D-541): reading the site's log on the Tools screen, which can hold
  * paths and error details. Health (D-543): Site Health, its checks and
- * requirements, and its fixes for content and media files.
+ * requirements, and its fixes for content and media files. Jobs (D-621):
+ * every background job and scheduled task on the Tools screen, with
+ * Retry, Delete, and Run Now; anyone can follow the jobs they start.
  *
  * HTML (D-495): adding raw HTML to a body in the admin, from the allowed
  * list (`html.allowed`) or anything but what's always refused
@@ -50,6 +52,7 @@ enum Capability: string
 	case SiteSettings    = 'site.settings';
 	case SiteLogs        = 'site.logs';
 	case SiteHealth      = 'site.health';
+	case SiteJobs        = 'site.jobs';
 	case AccountsView    = 'accounts.view';
 	case AccountsCreate  = 'accounts.create';
 	case AccountsEdit    = 'accounts.edit';
@@ -102,7 +105,8 @@ enum Capability: string
 			self::HtmlAllowed, self::HtmlUnfiltered                 => 'HTML',
 			self::MenusEdit, self::RegionsEdit                      => 'Structure',
 			self::SitePublish, self::CacheClear,
-			self::SiteSettings, self::SiteLogs, self::SiteHealth    => 'Site',
+			self::SiteSettings, self::SiteLogs, self::SiteHealth,
+			self::SiteJobs                                          => 'Site',
 			default                                                 => 'Users'
 		};
 	}
@@ -126,6 +130,7 @@ enum Capability: string
 			self::SiteSettings    => 'Change site settings',
 			self::SiteLogs        => 'Read the site\'s log',
 			self::SiteHealth      => 'See site health and fix what it finds',
+			self::SiteJobs        => 'See and manage background jobs',
 			self::AccountsView    => 'See accounts and roles',
 			self::AccountsCreate  => 'Create accounts',
 			self::AccountsEdit    => 'Edit accounts',

@@ -20,6 +20,8 @@ use Blush\Auth\Account;
 use Blush\Auth\Permissions;
 use Blush\Http\Response;
 use Blush\Http\Status;
+use Blush\Job\JobException;
+use Blush\Job\JobQueue;
 
 /**
  * The Tools screen's actions (D-222, D-540). `GET {path}/api/actions`
@@ -27,14 +29,18 @@ use Blush\Http\Status;
  * (`Provenance::ofClass()`): Blush's first, then the site's, then each
  * plugin's. `POST {path}/api/actions/{action}` runs one: an unknown
  * action is a 404 and one the account may not run a 403; otherwise the
- * answer is the action's result, whether it worked or not.
+ * answer is the action's result, whether it worked or not. An action that
+ * names a job (D-621) is queued instead, once however many ask, and the
+ * answer is its `job`'s id, which the admin runs and follows
+ * (`JobController`) to its result.
  */
 final readonly class ActionController
 {
 	public function __construct(
 		private AdminActions $actions,
 		private Permissions $permissions,
-		private Provenance $provenance
+		private Provenance $provenance,
+		private JobQueue $queue
 	) {}
 
 	/**
@@ -83,7 +89,17 @@ final readonly class ActionController
 			return self::json(['error' => 'You aren\'t allowed to do that.'], Status::Forbidden);
 		}
 
-		return self::json($instance->run()->toArray());
+		$job = $instance->job();
+
+		if ($job === null) {
+			return self::json($instance->run()->toArray());
+		}
+
+		try {
+			return self::json(['job' => $this->queue->push($job, account: $account->username, unique: "action:{$job}")->id]);
+		} catch (JobException $e) {
+			return self::json(['successful' => false, 'message' => $e->getMessage(), 'details' => []]);
+		}
 	}
 
 	/**

@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Blush\Setup;
 
+use Psr\Clock\ClockInterface;
 use Blush\Auth\AccountStore;
 use Blush\Auth\Accounts;
 use Blush\Auth\AuthException;
@@ -22,13 +23,18 @@ use Blush\Core\Framework;
 use Blush\Extension\DefinitionClash;
 use Blush\Extension\ExtensionState;
 use Blush\Extension\Requirements;
+use Blush\Job\JobConfig;
+use Blush\Job\JobRunner;
+use Blush\Job\RunnerMode;
+use Blush\Job\WebRunner;
 
 /**
  * The checks `doctor` runs and Site Health shows (D-543), by area:
  *
  * - `system`: the setup checks (`SetupChecks`): PHP and its extensions,
  *   `.env`, risky production settings, the public folder, and writable
- *   storage.
+ *   storage; and whether cron or a worker runs background jobs (`jobs`,
+ *   D-621).
  * - `extensions`: extensions that are on but can't run (D-431): an active
  *   theme whose chain falls back to the default theme (`theme`), and
  *   plugins (`plugins`) and icon packs (`icon-packs`) that are on but
@@ -42,13 +48,21 @@ use Blush\Extension\Requirements;
  */
 final readonly class SiteChecks
 {
+	/**
+	 * Seconds since cron or a worker last ran before Site Health warns.
+	 */
+	public const int STALE = 600;
+
 	public function __construct(
 		private SetupChecks $setup,
 		private AppConfig $app,
 		private ExtensionState $extensions,
 		private AccountStore $store,
 		private Accounts $accounts,
-		private ContentTypes $types
+		private ContentTypes $types,
+		private JobRunner $jobs,
+		private JobConfig $jobConfig,
+		private ClockInterface $clock
 	) {}
 
 	/**
@@ -59,7 +73,7 @@ final readonly class SiteChecks
 	public function byArea(): array
 	{
 		return [
-			'system'     => $this->setup->all($this->app),
+			'system'     => [...$this->setup->all($this->app), ...$this->jobs()],
 			'extensions' => $this->extensions(),
 			'accounts'   => $this->owner()
 		];
@@ -73,6 +87,36 @@ final readonly class SiteChecks
 	public function all(): array
 	{
 		return array_merge(...array_map(array_values(...), array_values($this->byArea())));
+	}
+
+	/**
+	 * Passes when cron or a worker has run background jobs in the last
+	 * `STALE` seconds; otherwise warns, saying whether visits stand in
+	 * (D-621).
+	 *
+	 * @return array<string, CheckResult>
+	 */
+	public function jobs(): array
+	{
+		if ($this->jobConfig->runner === RunnerMode::Sync) {
+			return ['jobs' => CheckResult::pass('Background jobs', 'Jobs run when they\'re queued (the "sync" runner).')];
+		}
+
+		$last = $this->jobs->lastDependableRun();
+
+		if ($last !== null && $last >= $this->clock->now()->getTimestamp() - self::STALE) {
+			return ['jobs' => CheckResult::pass('Background jobs', 'Cron or a worker runs them.')];
+		}
+
+		$hint = sprintf('Add "* * * * * cd /path/to/site && php bin/%s schedule:run" to cron, or keep "%s jobs:work" running.', Framework::BINARY, Framework::BINARY);
+
+		$message = match (true) {
+			$last !== null                                                      => 'Cron hasn\'t run in the last 10 minutes, so scheduled tasks and background jobs may wait.',
+			$this->jobConfig->runner === RunnerMode::Auto && WebRunner::isAvailable() => 'Cron isn\'t set up, so scheduled tasks and background jobs run only after page visits.',
+			default                                                             => 'Cron isn\'t set up, so scheduled tasks and background jobs run only while someone waits on them in the admin.'
+		};
+
+		return ['jobs' => CheckResult::warning('Background jobs', $message, $hint)];
 	}
 
 	/**

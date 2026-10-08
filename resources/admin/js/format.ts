@@ -19,6 +19,14 @@ export function capitalized(text: string): string {
 }
 
 /**
+ * Returns `formatWhen()`'s answer to sit mid-sentence: "ran today, 9:00",
+ * "queued 5 minutes ago".
+ */
+export function formatWhenInline(iso: string, now = new Date()): string {
+	return formatWhen(iso, now).replace(/^./u, (letter) => letter.toLowerCase());
+}
+
+/**
  * Returns a noun with its indefinite article: "an ingredient", "a cook".
  */
 export function withArticle(noun: string): string {

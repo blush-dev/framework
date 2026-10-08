@@ -379,7 +379,144 @@ $this->container->get(AdminActionRegistry::class)->register('sync-orders', App\A
 
 Only accounts with the action's capability see it. `confirm()` is
 optional; without it, the action runs straight away. Keep `run()` short
-enough to finish within a request.
+enough to finish within a request. For work that may take longer, have
+the action queue a [job](#background-jobs) instead: return the job's key
+from `job()` and leave out `run()`. The admin queues it, runs it while
+the person watches, with its progress, and shows how it ended:
+
+```php
+public function job(): ?string
+{
+	return 'acme/sync-orders';
+}
+```
+
+## Background jobs
+
+A job is work done outside the request that asked for it: an import, a
+sync with another service, anything that might outlast a page load.
+Jobs are queued and run by [cron, a worker, page visits, or the
+admin](going-live.md#background-jobs-and-cron). Extend
+`Blush\Job\Job`:
+
+```php
+namespace Acme\Shop;
+
+use Blush\Job\Job;
+use Blush\Job\JobRecord;
+use Blush\Job\JobResult;
+
+final class SyncOrders extends Job
+{
+	public function __construct(private readonly Orders $orders)
+	{}
+
+	public function label(): string
+	{
+		return 'Sync orders';
+	}
+
+	public function handle(JobRecord $job): JobResult
+	{
+		return JobResult::done(sprintf('Fetched %d orders.', $this->orders->sync()));
+	}
+}
+```
+
+Register it under a `vendor/name` key from a provider's `boot()`, and
+queue it from anywhere with the queue:
+
+```php
+use Blush\Job\JobQueue;
+use Blush\Job\JobRegistry;
+
+$this->container->get(JobRegistry::class)->register('acme/sync-orders', Acme\Shop\SyncOrders::class);
+
+$queue->push('acme/sync-orders', ['since' => '2026-10-01'], account: $account->username);
+```
+
+- **Data** is what the job works on: ids and plain values (strings,
+  numbers, booleans, and arrays of them), never objects, since it's
+  saved until a runner picks it up. Read it from `$job->data`.
+- **`unique:`** keeps a second copy out while one waits or runs, such
+  as `unique: 'sync-orders'`. Pushing again returns the one already
+  there. **`delay:`** holds a job back that many seconds.
+- **`account:`** records who asked. Check their capability before you
+  push; the job runs as the site. A person can follow a job they queued
+  in the admin.
+
+**Long work, a chunk at a time.** On shared hosting, a request may get
+only 30 seconds, so a job does what it can and hands back where it got
+to with `JobResult::more()`, and it's queued again to carry on:
+
+```php
+public function handle(JobRecord $job): JobResult
+{
+	$offset = (int) ($job->data['offset'] ?? 0);
+	$total  = $this->orders->count();
+
+	$this->orders->syncBatch($offset, 50);
+
+	return $offset + 50 >= $total
+		? JobResult::done("Synced {$total} orders.")
+		: JobResult::more(['offset' => $offset + 50], intdiv(($offset + 50) * 100, $total), 'Syncing…');
+}
+```
+
+The second argument to `more()` is how far along it is (0 to 100), which
+the admin shows as a progress bar.
+
+**When it fails.** Throw when trying again might work (a service is
+down): the job is tried again after a minute, then five, and failed
+after three attempts. Override `attempts()` and `backoff()` to change
+that. Return `JobResult::failed('Why.')` when trying again won't help;
+it's failed at once. Failed jobs can be retried from the admin's Tools
+screen or with `jobs:retry`.
+
+### Scheduled tasks
+
+A scheduled task is a job queued on a timetable. Schedule a job you've
+registered from your provider's `boot()`:
+
+```php
+use Blush\Job\Frequency;
+use Blush\Job\Schedule;
+
+$this->container->get(Schedule::class)->add('acme/sync-orders', Frequency::hourly());
+```
+
+`Frequency` has `everyMinute()`, `everyMinutes(15)`, `hourly(30)` (at
+half past), `daily('03:00')`, `weekly(1, '06:00')` (Mondays; 0 is
+Sunday), and `cron('0 9 1 * *')` for any cron expression, in the site's
+time zone. A run missed while nothing came by (no cron, a quiet site)
+happens once, when a runner next comes by. `add()` again replaces a
+job's place on the schedule, and `remove()` takes it off, Blush's own
+tasks included (`blush/go-live`, `blush/prune-cache`,
+`blush/prune-sessions`, `blush/prune-jobs`).
+
+### Testing code that queues jobs
+
+To check what your code queued without running it, bind
+`Blush\Job\Testing\RecordingQueue` in place of the queue. It refuses
+what the real queue refuses (unregistered jobs, data that isn't plain
+values) and keeps `unique` keys the same way:
+
+```php
+use Blush\Job\JobQueue;
+use Blush\Job\JobRegistry;
+use Blush\Job\Testing\RecordingQueue;
+use Psr\Clock\ClockInterface;
+
+$queue = new RecordingQueue($container->get(JobRegistry::class), $container->get(ClockInterface::class));
+$container->instance(JobQueue::class, $queue);
+
+// … run your code …
+
+$this->assertCount(1, $queue->pushed('acme/sync-orders'));
+```
+
+To run jobs as they're queued instead, use the `sync` runner in
+`config/jobs.php` (see [Configuration](configuration.md#background-jobs)).
 
 ## Capabilities and signed-in routes
 
@@ -1476,6 +1613,8 @@ Blush announces what it's doing through events you can listen for, such as
 `Blush\View\Events\PageRendering` (a page is about to render; see
 [Scripts and styles](#scripts-and-styles)),
 `Blush\Content\Events\ContentIndexed` (content changed),
+`Blush\Content\Events\EntriesWentLive` (scheduled entries went live; see
+below),
 `Blush\Publish\Events\ContentPublished`, and
 `Blush\Cache\Events\CacheCleared` (the cache store was emptied by
 `cache:clear`, the admin's Clear caches, a publish, or `cache:compile`;
@@ -1493,6 +1632,15 @@ public function boot(): void
 ```
 
 A listener is an invokable class that takes the event.
+
+`EntriesWentLive` comes from the [scheduled task](#scheduled-tasks) that
+puts scheduled entries live, every minute with cron. Its `entries` are
+the entries that were scheduled when it last looked and are published
+now, so you can send a webhook, purge a CDN, or post to a social site
+when a scheduled post goes live. An entry published as it's saved isn't
+in it. Without cron, the next runner catches up, so `since` (when it
+last looked) can be long before `at`; check an entry's `published` if
+you only want fresh news.
 
 ## Debugging
 

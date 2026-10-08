@@ -18,6 +18,7 @@ import AdminIcon from '../components/AdminIcon.vue';
 import { useAction } from '../action';
 import { loadCounts, navCounts } from '../counts';
 import { formatWhen, plural } from '../format';
+import { finish } from '../jobs';
 import { can, session } from '../session';
 import { copyText, toast } from '../toast';
 import { request, type HealthArea, type HealthCheck, type HealthFact, type HealthRequirement, type SiteHealth } from '../api';
@@ -37,10 +38,29 @@ const health = ref<SiteHealth | null>(null);
 
 const { busy: loading, error, run } = useAction();
 
+// How far along checking the files is, when it runs as a job (D-625).
+const checking = ref<number | null>(null);
+
 // The last report, or checking again (D-545); the panel's count follows.
+// Checking again answers at once but for the content and media files,
+// which a job reads a chunk at a time (D-625); once it's done, the
+// report is loaded again.
 async function check(again = false): Promise<void> {
+	checking.value = null;
+
 	await run('Site health couldn\'t be checked.', async () => {
-		health.value = await request<SiteHealth>(again ? 'POST' : 'GET', '/health/site');
+		const answer = await request<SiteHealth & { job?: string }>(again ? 'POST' : 'GET', '/health/site');
+
+		health.value = answer;
+
+		if (answer.job !== undefined) {
+			await finish(answer.job, (job) => {
+				checking.value = job.progress;
+			});
+
+			health.value   = await request<SiteHealth>('GET', '/health/site');
+			checking.value = null;
+		}
 
 		if (again) {
 			toast(`Ran ${plural(health.value.checks.length, 'check')}`);
@@ -152,7 +172,7 @@ onMounted(() => {
 		</div>
 		<div class="page-header__actions">
 			<button v-if="tab === 'checks'" type="button" class="button button--primary" :disabled="loading" @click="check(true)">
-				<span v-if="loading" class="spin" aria-hidden="true" /><AdminIcon v-else name="refresh-cw" />{{ loading ? 'Checking…' : 'Run a Check' }}
+				<span v-if="loading" class="spin" aria-hidden="true" /><AdminIcon v-else name="refresh-cw" />{{ loading ? (checking !== null ? `Checking… ${checking}%` : 'Checking…') : 'Run a Check' }}
 			</button>
 			<button v-else type="button" class="button" :disabled="!health" @click="copyReport"><AdminIcon name="copy" />Copy Report</button>
 		</div>

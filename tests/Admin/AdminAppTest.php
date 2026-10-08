@@ -322,9 +322,18 @@ final class AdminAppTest extends TestCase
 		$this->assertIsString($result['message'] ?? null);
 		$this->assertStringStartsWith('Cleared the caches', $result['message']);
 
-		$reindex = self::json($this->send('POST', '/actions/reindex', headers: ['X-CSRF-Token' => $token]));
+		$queued = self::json($this->send('POST', '/actions/reindex', headers: ['X-CSRF-Token' => $token]));
 
-		$this->assertTrue($reindex['successful'] ?? null);
+		$this->assertIsString($queued['job'] ?? null, 'Reindex is a job.');
+		$this->assertSame($queued, self::json($this->send('POST', '/actions/reindex', headers: ['X-CSRF-Token' => $token])), 'Asking again while it waits queues it once.');
+
+		$job = self::json($this->send('POST', "/jobs/{$queued['job']}/run", headers: ['X-CSRF-Token' => $token]))['job'] ?? null;
+
+		$this->assertIsArray($job);
+		$this->assertSame('done', $job['status'] ?? null);
+		$this->assertSame('Reindex content', $job['label'] ?? null);
+		$this->assertIsString($job['message'] ?? null);
+		$this->assertStringStartsWith('Indexed', $job['message']);
 		$this->assertSame(404, $this->send('POST', '/actions/nothing', headers: ['X-CSRF-Token' => $token])->getStatusCode());
 	}
 

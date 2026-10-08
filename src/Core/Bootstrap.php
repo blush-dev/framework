@@ -39,6 +39,7 @@ use Blush\Icon\IconConfig;
 use Blush\Icon\IconPackCache;
 use Blush\Icon\IconPackDiscovery;
 use Blush\Icon\IconPacks;
+use Blush\Job\JobConfig;
 use Blush\Llms\LlmsConfig;
 use Blush\Log\LogConfig;
 use Blush\Markdown\MarkdownConfig;
@@ -325,6 +326,7 @@ final readonly class Bootstrap
 			PublishConfig::fromEnv($env),
 			new EmbedConfig(),
 			new SessionConfig(),
+			new JobConfig(),
 			new AuthConfig(),
 			new AdminConfig(),
 			PreviewConfig::fromEnv($env)

@@ -220,6 +220,7 @@ The rest are for the whole site:
 | `cache.clear` | Clearing caches |
 | `site.settings` | Changing site settings |
 | `site.logs` | Reading the site's log on the Tools screen |
+| `site.jobs` | Seeing every background job and scheduled task on the Tools screen, with Retry, Delete, and Run Now. Anyone can follow the jobs they start. |
 | `site.health` | Seeing Site Health, and its fixes for content and media files (owners only, by default) |
 | `accounts.view` | Seeing accounts and roles (each account action below also needs it) |
 | `accounts.create` | Creating accounts, with their first roles |

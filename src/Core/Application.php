@@ -34,6 +34,7 @@ use Blush\Event\Dispatcher;
 use Blush\Event\EventServiceProvider;
 use Blush\Embed\EmbedServiceProvider;
 use Blush\Icon\IconServiceProvider;
+use Blush\Job\JobServiceProvider;
 use Blush\Menu\MenuServiceProvider;
 use Blush\Region\RegionServiceProvider;
 use Blush\Feed\FeedServiceProvider;
@@ -98,6 +99,7 @@ class Application implements Bootable
 		MenuServiceProvider::class,
 		RegionServiceProvider::class,
 		SessionServiceProvider::class,
+		JobServiceProvider::class,
 		AuthServiceProvider::class,
 		AdminServiceProvider::class,
 		PreviewServiceProvider::class,

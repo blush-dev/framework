@@ -146,7 +146,7 @@ Without `config/app.php`, these come from the `APP_*` variables.
 | Option | Default | What it does |
 |---|---|---|
 | `driver` | `'filesystem'` | Where the site's data is kept. `filesystem` (files, as a flat-file site keeps them) is the only one for now. |
-| `areas` | `[]` | A different driver for an area: `content`, `data`, `accounts`, or `sessions`, such as `['sessions' => 'filesystem']` |
+| `areas` | `[]` | A different driver for an area: `content`, `data`, `accounts`, `sessions`, or `jobs`, such as `['sessions' => 'filesystem']` |
 
 Without this file, `STORAGE_DRIVER` is used. Media files are always
 files, whatever the driver.
@@ -441,6 +441,21 @@ Most redirects are easier in `user/data/redirects.yaml`; see
 
 Without this file, the `PUBLISH_*` variables are used. Keep the secret in
 `.env` either way.
+
+### Background jobs
+
+`config/jobs.php` · `Blush\Job\JobConfig`
+
+| Option | Default | What it does |
+|---|---|---|
+| `runner` | `RunnerMode::Auto` | When jobs run besides cron and `jobs:work`. `Auto` also runs them after a page is served while cron hasn't run lately; `Cron` never runs them on a visit; `Sync` runs each job as soon as it's queued (for local development and tests). The admin always runs the jobs you start and wait on. |
+| `budget` | `50` | How many seconds `schedule:run` works through the queue |
+| `webBudget` | `10` | How many seconds of work after a page is served |
+| `timeout` | `900` | How many seconds a job may run before it's taken for stopped (its process died) and tried again |
+| `keepDone` | `86400` | How many seconds finished jobs are kept, for their results (a day) |
+| `keepFailed` | `604800` | How many seconds failed jobs are kept (a week) |
+
+See [Going live](going-live.md#background-jobs-and-cron) for cron.
 
 ### Admin
 

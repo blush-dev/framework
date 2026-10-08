@@ -41,7 +41,7 @@ final readonly class SetupChecks
 	/**
 	 * The storage paths Blush writes to, by name.
 	 */
-	public const array STORAGE = ['storage', 'cache', 'index', 'logs', 'sessions', 'accounts'];
+	public const array STORAGE = ['storage', 'cache', 'index', 'logs', 'sessions', 'jobs', 'accounts'];
 
 	public function __construct(private Paths $paths)
 	{

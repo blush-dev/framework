@@ -43,6 +43,10 @@ use Blush\Session\StartSession;
  *     (D-538).
  *   - `GET  actions`: the actions the account may run, by source, and
  *     `POST actions/{action}` runs one (D-540).
+ *   - `GET  jobs`: background jobs, the schedule, and the runners,
+ *     `GET jobs/{id}` one job, `POST jobs/{id}/run` its next chunk,
+ *     `POST jobs/{id}/retry`, `DELETE jobs/{id}`, and `POST
+ *     jobs/schedule/{job}` to run a scheduled task now (D-621).
  *   - `GET  logs`: the end of the site's log, and `GET logs/download`
  *     all of it (D-540, D-541).
  *   - `GET  types`: the site's content types, and `GET types/{name}` one;
@@ -162,6 +166,12 @@ final readonly class AdminRoutes implements RouteSource
 			Route::get('/counts', CountsController::class)->named('counts')->middleware(Authenticate::class),
 			Route::get('/actions', [ActionController::class, 'index'])->named('actions')->middleware(Authenticate::class),
 			Route::post('/actions/{action:[a-z0-9][a-z0-9-]*}', ActionController::class)->named('action')->middleware(Authenticate::class),
+			Route::get('/jobs', [JobController::class, 'index'])->named('jobs')->middleware(Authenticate::class),
+			Route::post('/jobs/schedule/{job:[a-z0-9][a-z0-9-]*/[a-z0-9][a-z0-9-]*}', [JobController::class, 'schedule'])->named('jobs.schedule')->middleware(Authenticate::class),
+			Route::get('/jobs/{id:[0-9a-f-]{36}}', [JobController::class, 'show'])->named('job')->middleware(Authenticate::class),
+			Route::post('/jobs/{id:[0-9a-f-]{36}}/run', [JobController::class, 'run'])->named('job.run')->middleware(Authenticate::class),
+			Route::post('/jobs/{id:[0-9a-f-]{36}}/retry', [JobController::class, 'retry'])->named('job.retry')->middleware(Authenticate::class),
+			Route::delete('/jobs/{id:[0-9a-f-]{36}}', [JobController::class, 'delete'])->named('job.delete')->middleware(Authenticate::class),
 			Route::get('/logs', [LogController::class, 'show'])->named('logs')->middleware(Authenticate::class),
 			Route::get('/logs/download', [LogController::class, 'download'])->named('logs.download')->middleware(Authenticate::class),
 			Route::get('/types', TypesController::class)->named('types')->middleware(Authenticate::class),

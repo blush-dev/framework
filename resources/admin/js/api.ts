@@ -67,6 +67,58 @@ export interface ActionGroup {
 	actions: ActionDescription[];
 }
 
+// What running an action answers: its result, or, for an action that
+// queues a job (D-621), the job's id, which the admin follows.
+export type ActionAnswer = ActionResult | { job: string };
+
+// A background job (D-621): times are ISO 8601, `account` the username
+// of whoever queued it (null for the scheduler), and `due` whether a
+// queued one may run now (not waiting to try again).
+export type JobStatus = 'queued' | 'running' | 'done' | 'failed';
+
+export interface Job {
+	id: string;
+	job: string;
+	label: string;
+	status: JobStatus;
+	attempts: number;
+	queued: string;
+	available: string;
+	started: string | null;
+	finished: string | null;
+	progress: number | null;
+	message: string;
+	details: string[];
+	error: string | null;
+	account: string | null;
+	// What a finished job handed back (D-624), such as a Site Health
+	// fix's changes and `failed`.
+	result: Record<string, unknown>;
+	due: boolean;
+}
+
+export interface ScheduledTask {
+	job: string;
+	label: string;
+	frequency: string;
+	last: string | null;
+	next: string | null;
+}
+
+export type RunnerKind = 'cron' | 'worker' | 'web' | 'admin';
+
+// The Tools screen's Jobs tab: the newest jobs, the schedule, each
+// runner's last run, the cron line to add, and whether visits can run
+// jobs on this server (`afterVisits`).
+export interface JobsOverview {
+	jobs: Job[];
+	tasks: ScheduledTask[];
+	runners: Record<RunnerKind, string | null>;
+	mode: 'auto' | 'cron' | 'sync';
+	cron: string;
+	afterVisits: boolean;
+}
+
 // The end of the site's log (D-540), `file` null when the driver
 // writes none: its last entries, newest first, each with the lines under
 // it (an exception's trace) as `details`.
