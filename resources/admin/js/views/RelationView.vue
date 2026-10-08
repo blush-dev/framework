@@ -448,7 +448,7 @@ async function remove(): Promise<void> {
 	<p v-if="failed" class="notice notice--error" role="alert">{{ failed }}</p>
 
 	<template v-else-if="loaded">
-		<p v-if="relation && !relation.editable" class="notice"><AdminIcon name="info" /><span>Defined in <code v-if="relation.origin === 'config'">config/content.php</code><template v-else>{{ sourceOf(relation).toLowerCase() }}</template>, so it's changed there and shown here.</span></p>
+		<p v-if="relation && !relation.editable" class="notice"><AdminIcon name="info" /><span>Defined in {{ sourceOf(relation).toLowerCase() }}, so it's changed there and shown here.</span></p>
 		<p v-else class="notice"><AdminIcon name="info" /><span>Saved in <code>user/data/relations{{ fileName ? `/${fileName}.json` : '' }}</code>. Changing it over entries that already use it asks first.</span></p>
 		<p v-if="error" class="notice notice--error" role="alert">{{ error }}</p>
 

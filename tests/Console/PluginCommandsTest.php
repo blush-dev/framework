@@ -241,7 +241,7 @@ final class PluginCommandsTest extends TestCase
 		$this->assertSame(ExitCode::Invalid, $this->command(['plugin:new', 'other/x', '--namespace=nova'])->exitCode, 'A theme has the namespace.');
 		$this->assertSame(ExitCode::Invalid, $this->command(['plugin:new', 'acme/nova', '--namespace=free'])->exitCode, 'A theme has the name.');
 		$this->assertSame(ExitCode::Invalid, $this->command(['plugin:new', 'hello'])->exitCode);
-		$this->assertSame(ExitCode::Invalid, $this->command(['plugin:new', 'acme/x', '--namespace=app'])->exitCode, 'A reserved namespace.');
+		$this->assertSame(ExitCode::Invalid, $this->command(['plugin:new', 'acme/x', '--namespace=theme'])->exitCode, 'A reserved namespace.');
 		$this->assertSame(ExitCode::Invalid, $this->command(['plugin:new', 'acme/2fa'])->exitCode, 'Not a PHP namespace.');
 	}
 }

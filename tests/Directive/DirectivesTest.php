@@ -23,6 +23,7 @@ use Blush\Field\Fields\TextField;
 use Blush\Http\Kernel;
 use Blush\Http\Request;
 use Blush\Tests\BootsScratchSite;
+use Blush\Tests\WritesThemeViews;
 use Blush\Embed\Fetcher;
 use Blush\Tests\Fixtures\Embed\FixtureFetcher;
 use Blush\Tests\Fixtures\Directive\Box;
@@ -72,6 +73,7 @@ use Blush\View\Views;
 final class DirectivesTest extends TestCase
 {
 	use BootsScratchSite;
+	use WritesThemeViews;
 
 	private Application $app;
 
@@ -88,7 +90,7 @@ final class DirectivesTest extends TestCase
 
 	private function view(string $name, string $code): void
 	{
-		$this->writeTemporaryFile("resources/views/{$name}.php", $code);
+		$this->themeView("{$name}.php", $code);
 	}
 
 	public function testNamesAreNamespacedAndOnlyCoreOnesAreShort(): void
@@ -103,7 +105,7 @@ final class DirectivesTest extends TestCase
 
 		$this->assertSame(['directives/callout', 'directives/blush-callout'], new DirectiveName('blush', 'callout')->views());
 		$this->assertSame(['directives/acme-tabs'], new DirectiveName('acme', 'tabs')->views());
-		$this->assertSame('Pricing table', new DirectiveName('app', 'pricing-table')->label());
+		$this->assertSame('Pricing table', new DirectiveName('acme', 'pricing-table')->label());
 
 		// A file name takes the longest namespace that fits.
 		$this->assertSame('my-plugin/tabs', (string) DirectiveName::fromFileName('my-plugin-tabs', ['my', 'my-plugin']));
@@ -115,54 +117,54 @@ final class DirectivesTest extends TestCase
 
 	public function testOnlyRegisteredDirectivesExist(): void
 	{
-		$this->view('directives/app-box', '<div <?= $directive->attributes(["data-tone" => $directive->prop("tone", "plain")]) ?>><?= $directive->content() ?></div>');
-		$this->view('page', '<?= $template->directive("app/box", tone: "info")->content("<p>Body</p>") ?>');
+		$this->view('directives/acme-box', '<div <?= $directive->attributes(["data-tone" => $directive->prop("tone", "plain")]) ?>><?= $directive->content() ?></div>');
+		$this->view('page', '<?= $template->directive("acme/box", tone: "info")->content("<p>Body</p>") ?>');
 
 		$views = $this->boot();
 
-		$this->assertFalse($views->hasDirective('app/box'), 'A template alone isn\'t a directive (D-532).');
+		$this->assertFalse($views->hasDirective('acme/box'), 'A template alone isn\'t a directive (D-532).');
 		$this->assertTrue($views->hasDirective('callout'));
 		$this->assertTrue($views->hasDirective('blush/callout'));
 
-		$this->app->container()->make(DirectiveRegistry::class)->register('app/box', Box::class);
+		$this->app->container()->make(DirectiveRegistry::class)->register('acme/box', Box::class);
 
-		$this->assertTrue($views->hasDirective('app/box'));
+		$this->assertTrue($views->hasDirective('acme/box'));
 		$this->assertFalse($views->hasDirective('box'));
 		$this->assertFalse($views->hasDirective('../x'));
 		$this->assertSame('<div class="directive-box" data-tone="info"><p>Body</p></div>', $views->render('page'));
-		$this->assertSame('<div class="directive-box extra" id="b" data-tone="plain"></div>', $views->directive('app/box', ['class' => 'extra', 'id' => 'b'], '', new ViewContext()));
+		$this->assertSame('<div class="directive-box extra" id="b" data-tone="plain"></div>', $views->directive('acme/box', ['class' => 'extra', 'id' => 'b'], '', new ViewContext()));
 	}
 
 	public function testCoreTemplatesMayUseEitherNameAndTheNearestWins(): void
 	{
-		// The site's blush-callout.php beats the default theme's
+		// A child theme's blush-callout.php beats the framework's
 		// callout.php, whichever name it uses.
-		$this->view('directives/blush-callout', 'site: <?= $directive->content() ?>');
+		$this->view('directives/blush-callout', 'child: <?= $directive->content() ?>');
 
 		$views = $this->boot();
 
-		$this->assertSame('site: hi', $views->directive('callout', [], 'hi', new ViewContext()));
-		$this->assertSame('site: hi', $views->directive('blush/callout', [], 'hi', new ViewContext()));
+		$this->assertSame('child: hi', $views->directive('callout', [], 'hi', new ViewContext()));
+		$this->assertSame('child: hi', $views->directive('blush/callout', [], 'hi', new ViewContext()));
 	}
 
 	public function testBackedEnumPropsAreCastAndFallBackToTheirDefault(): void
 	{
-		$this->view('directives/app-toned', '<?= e($directive->heading) ?>:<?= e($directive->tone->value) ?>:<?= $directive->level ?>:<?= $directive->open ? "open" : "shut" ?>');
+		$this->view('directives/acme-toned', '<?= e($directive->heading) ?>:<?= e($directive->tone->value) ?>:<?= $directive->level ?>:<?= $directive->open ? "open" : "shut" ?>');
 
 		$views = $this->boot();
-		$this->app->container()->make(DirectiveRegistry::class)->register('app/toned', Toned::class);
+		$this->app->container()->make(DirectiveRegistry::class)->register('acme/toned', Toned::class);
 
-		$this->assertSame('Hi:loud:3:open', $views->directive('app/toned', ['heading' => 'Hi', 'tone' => 'loud', 'level' => '3', 'open' => 'true'], '', new ViewContext()));
-		$this->assertSame('Hi:quiet:2:shut', $views->directive('app/toned', ['heading' => 'Hi', 'tone' => 'bogus'], '', new ViewContext()));
-		$this->assertSame('Hi:loud:2:shut', $views->directive('app/toned', ['heading' => 'Hi', 'tone' => Tone::Loud], '', new ViewContext()));
+		$this->assertSame('Hi:loud:3:open', $views->directive('acme/toned', ['heading' => 'Hi', 'tone' => 'loud', 'level' => '3', 'open' => 'true'], '', new ViewContext()));
+		$this->assertSame('Hi:quiet:2:shut', $views->directive('acme/toned', ['heading' => 'Hi', 'tone' => 'bogus'], '', new ViewContext()));
+		$this->assertSame('Hi:loud:2:shut', $views->directive('acme/toned', ['heading' => 'Hi', 'tone' => Tone::Loud], '', new ViewContext()));
 
 		$this->expectException(ViewException::class);
-		$views->directive('app/toned', ['heading' => ['not', 'a', 'string']], '', new ViewContext());
+		$views->directive('acme/toned', ['heading' => ['not', 'a', 'string']], '', new ViewContext());
 	}
 
 	public function testDefinitionsReadPropsAndContentFromTheClass(): void
 	{
-		$definition = new DirectiveDefinition(new DirectiveName('app', 'toned'), Toned::class);
+		$definition = new DirectiveDefinition(new DirectiveName('acme', 'toned'), Toned::class);
 		$props      = $definition->props();
 
 		$this->assertSame(DirectiveContent::Blocks, $definition->content());
@@ -180,24 +182,24 @@ final class DirectivesTest extends TestCase
 		$this->assertInstanceOf(BoolField::class, $props[3]);
 
 		$this->assertSame(DirectiveKind::Container, $definition->kind());
-		$this->assertSame([], new DirectiveDefinition(new DirectiveName('app', 'stamp'), Stamp::class)->variants());
+		$this->assertSame([], new DirectiveDefinition(new DirectiveName('acme', 'stamp'), Stamp::class)->variants());
 	}
 
 	public function testListsEveryDirective(): void
 	{
-		$this->view('directives/app-note', 'note');
-		$this->view('directives/app-box', 'not registered');
+		$this->view('directives/acme-note', 'note');
+		$this->view('directives/acme-box', 'not registered');
 		$this->view('directives/cards/post', 'a subfolder is not a directive');
-		$this->view('directives/callout', 'site callout');
-		$this->view('directives/blush-gallery', 'site gallery');
+		$this->view('directives/callout', 'child callout');
+		$this->view('directives/blush-gallery', 'child gallery');
 		$this->view('directives/loose', 'not named for a directive');
 		$this->view('directives/callout-warning', 'a variant\'s template');
-		$this->writeTemporaryFile('resources/lang/en.json', '{"directives": {"note": {"label": "Note to self", "description": "Holds a note."}}}');
+		$this->writeTemporaryFile('user/lang/en/acme.json', '{"directives": {"note": {"label": "Note to self", "description": "Holds a note."}}}');
 
 		$views    = $this->boot();
 		$registry = $this->app->container()->make(DirectiveRegistry::class);
-		$registry->register('app/note', Box::class);
-		$registry->register('app/orphan', Orphan::class);
+		$registry->register('acme/note', Box::class);
+		$registry->register('acme/orphan', Orphan::class);
 
 		$directives = [];
 
@@ -205,35 +207,35 @@ final class DirectivesTest extends TestCase
 			$directives[(string) $directive->name] = $directive;
 		}
 
-		$this->assertSame(['app/note', 'app/orphan', 'blush/abbr', 'blush/audio', 'blush/badge', 'blush/button', 'blush/callout', 'blush/cite', 'blush/dfn', 'blush/embed', 'blush/figure', 'blush/file', 'blush/gallery', 'blush/grid', 'blush/group', 'blush/icon', 'blush/ins', 'blush/kbd', 'blush/menu', 'blush/meter', 'blush/progress', 'blush/row', 'blush/samp', 'blush/small', 'blush/stack', 'blush/time', 'blush/toc', 'blush/var', 'blush/video'], array_keys($directives));
+		$this->assertSame(['acme/note', 'acme/orphan', 'blush/abbr', 'blush/audio', 'blush/badge', 'blush/button', 'blush/callout', 'blush/cite', 'blush/dfn', 'blush/embed', 'blush/figure', 'blush/file', 'blush/gallery', 'blush/grid', 'blush/group', 'blush/icon', 'blush/ins', 'blush/kbd', 'blush/menu', 'blush/meter', 'blush/progress', 'blush/row', 'blush/samp', 'blush/small', 'blush/stack', 'blush/time', 'blush/toc', 'blush/var', 'blush/video'], array_keys($directives));
 		$this->assertTrue($directives['blush/callout']->isCore());
-		$this->assertFalse($directives['app/note']->isCore());
+		$this->assertFalse($directives['acme/note']->isCore());
 		$this->assertSame(Embed::class, $directives['blush/embed']->className());
 		$this->assertSame(Callout::class, $directives['blush/callout']->className());
-		$this->assertSame(Box::class, $directives['app/note']->className());
+		$this->assertSame(Box::class, $directives['acme/note']->className());
 		$this->assertCount(1, $directives['blush/callout']->files, 'Only the site\'s: core directives render themselves (D-382).');
-		$this->assertStringEndsWith('resources/views/directives/callout.php', (string) $directives['blush/callout']->file());
-		$this->assertStringEndsWith('resources/views/directives/blush-gallery.php', (string) $directives['blush/gallery']->file());
+		$this->assertStringEndsWith('extensions/test/site/views/directives/callout.php', (string) $directives['blush/callout']->file());
+		$this->assertStringEndsWith('extensions/test/site/views/directives/blush-gallery.php', (string) $directives['blush/gallery']->file());
 		$this->assertSame([], $directives['blush/meter']->files);
 		$this->assertTrue($directives['blush/meter']->rendersItself());
 		$this->assertFalse($directives['blush/meter']->isMissingTemplate());
-		$this->assertFalse($directives['app/orphan']->rendersItself(), 'Its render() can return null.');
+		$this->assertFalse($directives['acme/orphan']->rendersItself(), 'Its render() can return null.');
 
 		// Text comes from the namespace's catalog, or is made from the name.
 		$this->assertSame('Callout', $directives['blush/callout']->label);
-		$this->assertSame('Note to self', $directives['app/note']->label);
-		$this->assertSame('Holds a note.', $directives['app/note']->description);
-		$this->assertNull($directives['app/orphan']->label);
-		$this->assertSame('Orphan', $directives['app/orphan']->displayLabel());
+		$this->assertSame('Note to self', $directives['acme/note']->label);
+		$this->assertSame('Holds a note.', $directives['acme/note']->description);
+		$this->assertNull($directives['acme/orphan']->label);
+		$this->assertSame('Orphan', $directives['acme/orphan']->displayLabel());
 		$this->assertSame(['info', 'tip', 'warning', 'danger'], array_map(static fn ($variant): string => $variant->name, $directives['blush/callout']->variants));
 		$this->assertSame('Warning', $views->variantText(new DirectiveName('blush', 'callout'), $directives['blush/callout']->variants[2], 'label'));
 
-		$this->assertTrue($directives['app/orphan']->isMissingTemplate());
-		$this->assertFalse($directives['app/note']->isMissingTemplate());
+		$this->assertTrue($directives['acme/orphan']->isMissingTemplate());
+		$this->assertFalse($directives['acme/note']->isMissingTemplate());
 
 		// A variant's template is neither a directive nor a stray file; a
 		// template for a directive no one registered is.
-		$this->assertSame(['app-box.php', 'loose.php'], array_map(basename(...), $views->strayDirectiveFiles()));
+		$this->assertSame(['acme-box.php', 'loose.php'], array_map(basename(...), $views->strayDirectiveFiles()));
 	}
 
 	public function testPluginDirectivesUseTheirOwnCatalogs(): void
@@ -302,10 +304,10 @@ final class DirectivesTest extends TestCase
 		$this->assertSame(DirectiveKind::Inline, $kinds('button'));
 		$this->assertSame(DirectiveKind::Inline, $kinds('time'));
 
-		$registry->register('app/tag', Tag::class);
-		$registry->register('app/note', Box::class);
-		$this->assertSame(DirectiveKind::Inline, $kinds('app/tag'));
-		$this->assertSame(DirectiveKind::Container, $kinds('app/note'));
+		$registry->register('acme/tag', Tag::class);
+		$registry->register('acme/note', Box::class);
+		$this->assertSame(DirectiveKind::Inline, $kinds('acme/tag'));
+		$this->assertSame(DirectiveKind::Container, $kinds('acme/note'));
 
 		$odd = [
 			'text in a container' => new class () extends Directive {
@@ -332,7 +334,7 @@ final class DirectivesTest extends TestCase
 
 		foreach ($odd as $case => $directive) {
 			try {
-				$registry->register('app/odd', $directive::class);
+				$registry->register('acme/odd', $directive::class);
 				$this->fail("{$case} should be refused.");
 			} catch (RegistrationException $error) {
 				$this->assertStringContainsString('only a directive that wraps blocks is a container', $error->getMessage());
@@ -349,7 +351,7 @@ final class DirectivesTest extends TestCase
 
 		$this->expectException(RegistrationException::class);
 		$this->expectExceptionMessage('must declare its KIND: DirectiveKind::Container, Leaf, or Inline.');
-		$registry->register('app/kindless', $kindless::class);
+		$registry->register('acme/kindless', $kindless::class);
 	}
 
 	public function testDirectivesWorkOnlyAsTheirKind(): void
@@ -387,21 +389,21 @@ final class DirectivesTest extends TestCase
 		// A provider may replace a core directive, by either name.
 		$registry->register('callout', Stamp::class);
 		$this->assertSame(Stamp::class, $registry->get('blush/callout')?->class);
-		$registry->register('app/note', Box::class);
-		$this->assertSame(Box::class, $registry->get('app/note')?->class);
-		$this->assertSame(['blush', 'app'], $registry->namespaces());
+		$registry->register('acme/note', Box::class);
+		$this->assertSame(Box::class, $registry->get('acme/note')?->class);
+		$this->assertSame(['blush', 'acme'], $registry->namespaces());
 
-		$registry->registerIf('app/note', Stamp::class);
-		$this->assertSame(Box::class, $registry->get('app/note')?->class);
+		$registry->registerIf('acme/note', Stamp::class);
+		$this->assertSame(Box::class, $registry->get('acme/note')?->class);
 
-		$registry->unregister('app/note');
-		$this->assertFalse($registry->isRegistered('app/note'));
+		$registry->unregister('acme/note');
+		$this->assertFalse($registry->isRegistered('acme/note'));
 
 		$cases = [
 			'tabs'           => '"tabs" needs its namespace, such as "vendor/tabs"; only core directives have short names.',
 			'blush/tabs'     => '"blush/tabs" is in the "blush" namespace, which only core directives use.',
 			'acme/tabs/more' => '"acme/tabs/more" is not a valid directive name.',
-			'nova/badge'     => '"nova/badge" is in a theme\'s namespace, and themes can\'t register directives (D-532): register it from a plugin or the site (app/badge), or make it a component the theme\'s templates use.'
+			'nova/badge'     => '"nova/badge" is in a theme\'s namespace, and themes can\'t register directives (D-532): register it from a plugin, or make it a component the theme\'s templates use.'
 		];
 
 		foreach ($cases as $name => $message) {
@@ -415,7 +417,7 @@ final class DirectivesTest extends TestCase
 
 		$this->expectException(RegistrationException::class);
 		// @phpstan-ignore argument.type (verifies the runtime guard)
-		$registry->register('app/x', Tone::class);
+		$registry->register('acme/x', Tone::class);
 	}
 
 	public function testThemesCantRegisterDirectives(): void
@@ -434,10 +436,10 @@ final class DirectivesTest extends TestCase
 		$views = $this->boot();
 
 		try {
-			$views->directive('app/nope', [], '', new ViewContext());
+			$views->directive('acme/nope', [], '', new ViewContext());
 			$this->fail('An unregistered directive should throw.');
 		} catch (ViewException $error) {
-			$this->assertSame('No directive "app/nope" is registered (D-532).', $error->getMessage());
+			$this->assertSame('No directive "acme/nope" is registered (D-532).', $error->getMessage());
 		}
 
 		try {
@@ -447,11 +449,11 @@ final class DirectivesTest extends TestCase
 			$this->assertSame('"nope" isn\'t a core directive, so it needs its namespace, such as "acme/nope" (D-171).', $error->getMessage());
 		}
 
-		$this->app->container()->make(DirectiveRegistry::class)->register('app/note', Box::class);
+		$this->app->container()->make(DirectiveRegistry::class)->register('acme/note', Box::class);
 
 		$this->expectException(ViewNotFound::class);
-		$this->expectExceptionMessage('No view found for: directives/app-note.');
-		$views->directive('app/note', [], '', new ViewContext());
+		$this->expectExceptionMessage('No view found for: directives/acme-note.');
+		$views->directive('acme/note', [], '', new ViewContext());
 	}
 
 	public function testDirectivesRenderInEntries(): void
@@ -496,21 +498,21 @@ final class DirectivesTest extends TestCase
 
 			::unknown[Kept as text]
 
-			::app/badge[Site badge]{tone=new}
+			::acme/badge[Site badge]{tone=new}
 
-			::app/box[A template alone]
+			::acme/box[A template alone]
 
 			:::badge
 			A badge isn't a container.
 			:::
 
-			Read the :app/badge[inline]{tone=tip} notes at https://example.com or 10:30.
+			Read the :acme/badge[inline]{tone=tip} notes at https://example.com or 10:30.
 			MD);
-		$this->view('directives/app-badge', '<span class="badge badge--<?= attr($directive->prop("tone")) ?>"><?= $directive->content() ?></span>');
-		$this->view('directives/app-box', 'box');
+		$this->view('directives/acme-badge', '<span class="badge badge--<?= attr($directive->prop("tone")) ?>"><?= $directive->content() ?></span>');
+		$this->view('directives/acme-box', 'box');
 
 		$this->boot();
-		$this->app->container()->make(DirectiveRegistry::class)->register('app/badge', Tag::class);
+		$this->app->container()->make(DirectiveRegistry::class)->register('acme/badge', Tag::class);
 
 		$html = (string) $this->app->container()->make(Kernel::class)->handle(Request::create('/'))->getBody();
 
@@ -551,18 +553,18 @@ final class DirectivesTest extends TestCase
 	{
 		$views    = $this->boot();
 		$registry = $this->app->container()->make(DirectiveRegistry::class);
-		$registry->register('app/stamp', Stamp::class);
+		$registry->register('acme/stamp', Stamp::class);
 
-		$this->assertSame('<span class="directive-stamp">Paid &amp; done</span>', $views->directive('app/stamp', ['text' => 'Paid & done'], '', new ViewContext()));
+		$this->assertSame('<span class="directive-stamp">Paid &amp; done</span>', $views->directive('acme/stamp', ['text' => 'Paid & done'], '', new ViewContext()));
 		$this->assertStringContainsString('<aside class="directive-callout"', $views->directive('callout', [], '<p>Hi</p>', new ViewContext()), 'A core directive renders the framework\'s template.');
 
-		$this->view('directives/app-stamp', 'site stamp: <?= e($directive->text) ?>');
-		$this->view('directives/callout', 'site callout');
+		$this->view('directives/acme-stamp', 'child stamp: <?= e($directive->text) ?>');
+		$this->view('directives/callout', 'child callout');
 
 		$views = $this->boot();
-		$this->app->container()->make(DirectiveRegistry::class)->register('app/stamp', Stamp::class);
+		$this->app->container()->make(DirectiveRegistry::class)->register('acme/stamp', Stamp::class);
 
-		$this->assertSame('site stamp: Paid', $views->directive('app/stamp', ['text' => 'Paid'], '', new ViewContext()), 'A template in the chain wins.');
-		$this->assertSame('site callout', $views->directive('callout', [], '', new ViewContext()));
+		$this->assertSame('child stamp: Paid', $views->directive('acme/stamp', ['text' => 'Paid'], '', new ViewContext()), 'A template in the chain wins.');
+		$this->assertSame('child callout', $views->directive('callout', [], '', new ViewContext()));
 	}
 }

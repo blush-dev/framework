@@ -22,6 +22,7 @@ use Blush\Support\RegistrationException;
 use Blush\Tests\BootsScratchSite;
 use Blush\Tests\Fixtures\View\BladeEngine;
 use Blush\Tests\Fixtures\View\TokenEngine;
+use Blush\Tests\WritesThemeViews;
 use Blush\Theme\ThemeResolver;
 use Blush\View\Engine\PhpEngine;
 use Blush\View\Engine\ViewEngineRegistrar;
@@ -52,6 +53,7 @@ use Blush\View\Views;
 final class ViewEnginesTest extends TestCase
 {
 	use BootsScratchSite;
+	use WritesThemeViews;
 
 	/**
 	 * Returns the active chain's views, with the `.tpl` engine (and any
@@ -101,10 +103,10 @@ final class ViewEnginesTest extends TestCase
 
 	public function testEnginesMixAcrossLayoutsPartialsAndComponents(): void
 	{
-		$this->writeTemporaryFile('resources/views/layouts/plain.php', '<main><?= $template->section(\'content\') ?>|<?= $template->section(\'aside\') ?></main>');
-		$this->writeTemporaryFile('resources/views/partials/note.php', '<i>note</i>');
-		$this->writeTemporaryFile('resources/views/components/app-badge.tpl', '<span>badge</span>');
-		$this->writeTemporaryFile('resources/views/page.tpl', '{layout:plain}{set:aside}Hi, {name}. {include:partials/note} {component:app/badge}');
+		$this->themeView('layouts/plain.php', '<main><?= $template->section(\'content\') ?>|<?= $template->section(\'aside\') ?></main>');
+		$this->themeView('partials/note.php', '<i>note</i>');
+		$this->themeView('components/site-badge.tpl', '<span>badge</span>');
+		$this->themeView('page.tpl', '{layout:plain}{set:aside}Hi, {name}. {include:partials/note} {component:site/badge}');
 
 		$this->assertSame(
 			'<main>Hi, Ada &lt;3. <i>note</i> <span>badge</span>|<b>set</b></main>',
@@ -114,29 +116,29 @@ final class ViewEnginesTest extends TestCase
 
 	public function testTheFirstEngineWinsInAFolderAndFoldersStillDecide(): void
 	{
-		$this->writeTemporaryFile('resources/views/both.php', 'php');
-		$this->writeTemporaryFile('resources/views/both.tpl', 'tpl');
-		$this->writeTemporaryFile('resources/views/themes/blush/default/single.tpl', 'site single');
+		$this->themeView('both.php', 'php');
+		$this->themeView('both.tpl', 'tpl');
+		$this->themeView('single.tpl', 'child single');
 
 		$views = $this->views();
 
 		$this->assertSame('php', $views->render('both', [], $this->context()));
 		$this->assertCount(2, $views->finder->all('both'));
-		$this->assertStringEndsWith('single.tpl', $views->finder->find('single') ?? '');
+		$this->assertStringEndsWith('extensions/test/site/views/single.tpl', $views->finder->find('single') ?? '');
 		$this->assertSame(['php', 'tpl'], $views->finder->extensions());
 	}
 
 	public function testTheLongestExtensionPicksTheEngine(): void
 	{
-		$this->writeTemporaryFile('resources/views/card.blade.php', 'card');
-		$this->writeTemporaryFile('resources/views/components/app-chip.blade.php', 'chip');
+		$this->themeView('card.blade.php', 'card');
+		$this->themeView('components/site-chip.blade.php', 'chip');
 
 		$views = $this->views(['blade.php' => BladeEngine::class]);
 
 		$this->assertSame('blade:card', $views->render('card', [], $this->context()));
-		$this->assertTrue($views->hasComponent('app/chip'));
-		$this->assertNotContains('app/card.blade', array_map(strval(...), array_column($views->components(), 'name')));
-		$this->assertSame([], array_filter($views->strayComponentFiles(), static fn (string $file): bool => str_contains($file, 'app-chip')));
+		$this->assertTrue($views->hasComponent('site/chip'));
+		$this->assertNotContains('site/card.blade', array_map(strval(...), array_column($views->components(), 'name')));
+		$this->assertSame([], array_filter($views->strayComponentFiles(), static fn (string $file): bool => str_contains($file, 'site-chip')));
 	}
 
 	public function testAFileNoEngineRendersFails(): void

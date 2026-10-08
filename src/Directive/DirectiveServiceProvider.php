@@ -22,10 +22,9 @@ use Blush\Theme\Themes;
  * built-ins, and the Markdown directive renderer, a default an extension
  * can replace by binding its own.
  *
- * A plugin or site provider registers a directive in `boot()` (a theme
- * can't):
+ * A plugin's provider registers a directive in `boot()` (a theme can't):
  *
- *     $this->container->make(DirectiveRegistry::class)->register('app/pricing', Pricing::class);
+ *     $this->container->make(DirectiveRegistry::class)->register('acme/pricing', Pricing::class);
  */
 final class DirectiveServiceProvider extends ServiceProvider
 {

@@ -71,7 +71,6 @@ const typeOptions = computed(() => [
 const sourceOptions = [
 	{ value: '', label: 'Any source' },
 	{ value: 'data', label: 'Made here' },
-	{ value: 'config', label: 'config/content.php' },
 	{ value: 'extension', label: 'Plugins' }
 ];
 
@@ -119,7 +118,7 @@ const target = (relation: RelationListed): string => relation.to.map((name) => l
 		</div>
 	</header>
 
-	<p class="notice"><AdminIcon name="info" /><span>Relationships made here live in <code>user/data/relations</code>. Ones from <code>config/content.php</code> and plugins are shown with their source and edited where they're defined.</span></p>
+	<p class="notice"><AdminIcon name="info" /><span>Relationships made here live in <code>user/data/relations</code>. Ones from plugins are shown with their source and edited where they're defined.</span></p>
 	<p v-if="error" class="notice notice--error" role="alert">{{ error }}</p>
 
 	<template v-if="!error">

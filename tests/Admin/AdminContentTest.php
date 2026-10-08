@@ -455,7 +455,7 @@ final class AdminContentTest extends TestCase
 		$this->site(['author']);
 
 		$registry = $this->app->container()->make(DirectiveRegistry::class);
-		$registry->register('app/note', Callout::class);
+		$registry->register('acme/note', Callout::class);
 		$registry->register('acme/panel', Callout::class);
 
 		$directives = self::json($this->send('GET', '/directives'))['directives'] ?? null;
@@ -498,9 +498,9 @@ final class AdminContentTest extends TestCase
 		$this->assertIsArray($choices);
 		$this->assertSame('After the text', $choices['end'] ?? null);
 
-		$note = $this->directive($directives, 'app/note');
+		$note = $this->directive($directives, 'acme/note');
 
-		$this->assertSame(['kind' => 'site', 'label' => 'This site'], $note['source'] ?? null);
+		$this->assertSame(['kind' => 'plugin', 'label' => 'acme'], $note['source'] ?? null);
 		$this->assertArrayHasKey('category', $note);
 		$this->assertNull($note['category']);
 		$this->assertSame(['kind' => 'plugin', 'label' => 'acme'], $this->directive($directives, 'acme/panel')['source'] ?? null);

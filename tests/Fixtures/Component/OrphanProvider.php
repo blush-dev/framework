@@ -25,6 +25,6 @@ final class OrphanProvider extends ServiceProvider
 	#[Override]
 	public function boot(): void
 	{
-		$this->container->make(ComponentRegistry::class)->register('app/orphan', Orphan::class);
+		$this->container->make(ComponentRegistry::class)->register('acme/orphan', Orphan::class);
 	}
 }

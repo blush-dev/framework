@@ -22,6 +22,7 @@ use Blush\Admin\IndexPage;
 use Blush\Admin\InvalidEdit;
 use Blush\Content\Index\Indexer;
 use Blush\Content\Lint\Linter;
+use Blush\Tests\WritesContentConfig;
 
 #[CoversClass(EntryController::class)]
 #[CoversClass(EntryHandles::class)]
@@ -31,6 +32,7 @@ use Blush\Content\Lint\Linter;
 final class AdminEditingTest extends TestCase
 {
 	use BootsAdmin;
+	use WritesContentConfig;
 
 	private const string FLAME = '_posts/2022-03-29.flame.md';
 
@@ -46,12 +48,13 @@ final class AdminEditingTest extends TestCase
 	 * `date`, and an undeclared key), her draft, and Sam's post.
 	 *
 	 * @param list<string>                        $roles
-	 * @param array<string, array<string, mixed>> $types More types, by name.
+	 * @param array<string, array<string, mixed>> $types   More types, by name.
+	 * @param list<string>                        $credits The types credited to authors.
 	 */
-	private function site(array $roles = ['editor'], array $types = []): void
+	private function site(array $roles = ['editor'], array $types = [], array $credits = ['post']): void
 	{
 		$types = ['post' => ['path' => '_posts', 'date_archives' => true, 'routing' => ['prefix' => 'archives']], ...$types];
-		$this->writeTemporaryFile('config/content.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn Blush\\Content\\Type\\ContentConfig::fromArray(['types' => " . var_export($types, true) . ", 'relations' => ['authors' => ['kind' => 'credit', 'from' => ['post'], 'to' => ['profile'], 'aliases' => ['author']]]]);\n");
+		$this->contentConfig(['types' => $types, 'relations' => ['authors' => ['kind' => 'credit', 'from' => $credits, 'to' => ['profile'], 'aliases' => ['author']]]]);
 		$this->writeTemporaryFile('user/content/' . self::FLAME, "---\ntitle     : \"Rekindling the Flame\"\nauthors   : jane\ndate      : 2022-03-29 23:00:00 -6\nmood      : hopeful\nid        : " . self::FLAME_ID . "\n---\n\nThe body.\n");
 		$this->writeTemporaryFile('user/content/_posts/2023-01-01.idea.md', "---\ntitle: An Idea\nauthors: jane\nstatus: draft\n---\n");
 		$this->writeTemporaryFile('user/content/_posts/2021-05-05.sams.md', "---\ntitle: Sam's Post\nauthors: sam\npublished: 2021-05-05 09:00:00 -05:00\n---\n");
@@ -570,10 +573,9 @@ final class AdminEditingTest extends TestCase
 	public function testBulkChangesSkipWhatCantChange(): void
 	{
 		$this->writeTemporaryFile('user/data/types/review.json', '{"folder": "reviews", "fields": [{"name": "rating", "type": "number", "required": true, "label": "Rating"}]}');
-		$this->writeTemporaryFile('user/data/relations/authors.json', '{"kind": "credit", "from": ["post", "review"], "to": ["profile"], "aliases": ["author"]}');
 		$this->writeTemporaryFile('user/content/reviews/rated.md', "---\ntitle: Rated\nauthors: jane\nrating: 4\nstatus: draft\n---\n");
 		$this->writeTemporaryFile('user/content/reviews/unrated.md', "---\ntitle: Unrated\nauthors: jane\nstatus: draft\n---\n");
-		$this->site(['author']);
+		$this->site(['author'], credits: ['post', 'review']);
 
 		$answer = self::json($this->call('POST', '/entries/bulk', ['action' => 'publish', 'ids' => [$this->idOf('reviews/rated.md'), $this->idOf('reviews/unrated.md')]]));
 

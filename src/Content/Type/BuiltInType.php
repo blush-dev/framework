@@ -23,8 +23,7 @@ namespace Blush\Content\Type;
  *   `authors` (read from 1.x's `author` too). Each has a page at
  *   `/profiles/{slug}`.
  *
- * The site can redefine either in `config/content.php` or as a data type,
- * and can disable `profile`.
+ * The site can redefine either as a data type, and can disable `profile`.
  */
 enum BuiltInType: string
 {

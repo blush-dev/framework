@@ -181,7 +181,7 @@ final class ThemesTest extends TestCase
 			'{"name": "bad", "label": "X", "namespace": "bad"}' => 'needs a "name"',
 			'{"name": "acme/bad", "label": 5, "namespace": "bad"}' => '"label" must be a string',
 			'{"name": "acme/bad", "label": "X", "namespace": ""}' => 'needs a "namespace"',
-			'{"name": "acme/bad", "label": "X", "namespace": "app"}' => 'needs a "namespace"',
+			'{"name": "acme/bad", "label": "X", "namespace": "theme"}' => 'needs a "namespace"',
 			"{{$x}, \"parent\": \"Bad Slug\"}"         => '"parent" must be a theme\'s name',
 			"{{$x}, \"parent\": \"bad\"}"              => '"parent" must be a theme\'s name',
 			"{{$x}, \"styles\": \"style.css\"}"        => '"styles" must be a list',

@@ -20,6 +20,8 @@ use PHPUnit\Framework\TestCase;
 use Blush\Content\ContentRepository;
 use Blush\Core\Framework;
 use Blush\Tests\BootsScratchSite;
+use Blush\Tests\WritesContentConfig;
+use Blush\Tests\WritesThemeViews;
 use Blush\Theme\ThemeResolver;
 use Blush\View\PageMarkup;
 use Blush\View\Site;
@@ -44,6 +46,8 @@ use Blush\View\ViewServiceProvider;
 final class ViewsTest extends TestCase
 {
 	use BootsScratchSite;
+	use WritesContentConfig;
+	use WritesThemeViews;
 
 	private function views(): Views
 	{
@@ -56,11 +60,11 @@ final class ViewsTest extends TestCase
 	}
 
 	/**
-	 * Writes a site view under `resources/views`.
+	 * Writes a view into the test theme.
 	 */
 	private function view(string $name, string $code): void
 	{
-		$this->writeTemporaryFile("resources/views/{$name}.php", $code);
+		$this->themeView("{$name}.php", $code);
 	}
 
 	/**
@@ -191,18 +195,17 @@ final class ViewsTest extends TestCase
 
 	public function testFindsViewsThroughTheChain(): void
 	{
-		$this->view('partials/footer', 'site footer');
-		$this->writeTemporaryFile('resources/views/themes/blush/default/partials/footer.php', 'theme-scoped footer');
+		$this->view('partials/footer', 'child footer');
 
 		$views = $this->views();
 		$files = $views->finder->all('partials/footer');
 
-		$this->assertCount(3, $files);
-		$this->assertStringEndsWith('resources/views/themes/blush/default/partials/footer.php', $files[0]);
-		$this->assertSame(Framework::path('resources/themes/default/views/partials/footer.php'), $files[2]);
+		$this->assertCount(2, $files, 'Only themes have views; the site has none (D-617).');
+		$this->assertStringEndsWith('extensions/test/site/views/partials/footer.php', $files[0]);
+		$this->assertSame(Framework::path('resources/themes/default/views/partials/footer.php'), $files[1]);
 		$this->assertTrue($views->exists('single'));
 		$this->assertFalse($views->exists('nope'));
-		$this->assertSame('theme-scoped footer', $views->partial('partials/footer', [], new ViewContext()));
+		$this->assertSame('child footer', $views->partial('partials/footer', [], new ViewContext()));
 		$this->assertNull($views->finder->first(['../secret', 'nope']));
 		$this->assertSame('single', $views->finder->first(['bad name', 'single'])[0] ?? null);
 		$this->assertFalse(ViewFinder::isValidName('a/../b'));
@@ -236,7 +239,7 @@ final class ViewsTest extends TestCase
 
 	public function testHelpers(): void
 	{
-		$this->writeTemporaryFile('resources/views/helpers.php', <<<'PHP'
+		$this->themeView('helpers.php', <<<'PHP'
 			<?php $template->head()->title('Helpers'); $template->head()->meta('robots', 'noindex') ?>
 			<?= $template->t('pagination.page', page: 2, pages: 9) ?>|<?= $template->t('no.such.key') ?>|<?= $template->date($when) ?>|<?= $template->date($when, 'MMMM y') ?>|<?= $template->asset('style.css') !== '' ? 'asset' : '' ?>|<?= $template->asset('nope.css') ?>|<?= $template->bodyClass() ?>
 			PHP);
@@ -258,7 +261,7 @@ final class ViewsTest extends TestCase
 
 	public function testTranslationsKeepHtmlMarkedWithRaw(): void
 	{
-		$this->writeTemporaryFile('resources/views/marked.php', <<<'PHP'
+		$this->themeView('marked.php', <<<'PHP'
 			<?= e($template->t('pagination.page', page: raw('<b>2</b>'), pages: '<9>')) ?>|<?= attr($template->t('pagination.page', page: raw('<b>2</b>'), pages: 9)) ?>|<?= e($template->t('pagination.page', page: '<b>2</b>', pages: 9)) ?>
 			PHP);
 
@@ -271,7 +274,7 @@ final class ViewsTest extends TestCase
 
 	public function testWidontJoinsTheLastTwoWords(): void
 	{
-		$this->writeTemporaryFile('resources/views/widont.php', <<<'PHP'
+		$this->themeView('widont.php', <<<'PHP'
 			<?= $template->widont('Tom & Jerry go  home') ?>|<?= $template->widont('Three short words') ?>|<?= $template->widont('') ?>
 			PHP);
 
@@ -280,27 +283,15 @@ final class ViewsTest extends TestCase
 
 	public function testParentsAncestorsAndChildren(): void
 	{
-		$this->writeTemporaryFile('config/content.php', <<<'PHP'
-			<?php
-
-			declare(strict_types=1);
-
-			use Blush\Content\Relation\Relation;
-			use Blush\Content\Relation\RelationKind;
-			use Blush\Content\Type\Collection;
-			use Blush\Content\Type\ContentConfig;
-			use Blush\Content\Type\TypeOrder;
-
-			return new ContentConfig(
-				types: [new Collection('topic', folder: 'topics', hierarchical: true, order: TypeOrder::Position)],
-				relations: [new Relation('topic', RelationKind::Classify, to: ['topic'])]
-			);
-			PHP);
+		$this->contentConfig([
+			'types'     => ['topic' => ['folder' => 'topics', 'hierarchical' => true, 'order' => 'position']],
+			'relations' => ['topic' => ['kind' => 'classify', 'to' => ['topic']]]
+		]);
 		$this->writeTemporaryFile('user/content/topics/web.md', "---\ntitle: Web\n---\n");
 		$this->writeTemporaryFile('user/content/topics/css.md', "---\ntitle: CSS\nparent: web\n---\n");
 		$this->writeTemporaryFile('user/content/topics/grid.md', "---\ntitle: Grid\nparent: css\n---\n");
 		$this->writeTemporaryFile('user/content/topics/flex.md', "---\ntitle: Flex\nparent: css\nstatus: draft\n---\n");
-		$this->writeTemporaryFile('resources/views/tree.php', <<<'PHP'
+		$this->themeView('tree.php', <<<'PHP'
 			<?= e(implode('/', array_map(fn ($entry) => $entry->title, $template->ancestors($term)))) ?>|<?= e($template->parent($term)?->title ?? '') ?>|<?= e(implode(',', array_map(fn ($entry) => $entry->title, $template->children($template->parent($term))))) ?>
 			PHP);
 
@@ -317,7 +308,7 @@ final class ViewsTest extends TestCase
 
 	public function testInlineReadsOnlyServableThemeAssets(): void
 	{
-		$this->writeTemporaryFile('resources/views/inline.php', <<<'PHP'
+		$this->themeView('inline.php', <<<'PHP'
 			<?= strlen($template->inline('style.css')) > 0 ? 'css' : '' ?>|<?= $template->inline('views/single.php') ?>|<?= $template->inline('theme.json') ?>|<?= $template->inline('../../../composer.json') ?>|<?= $template->inline('nope.svg') ?>
 			PHP);
 

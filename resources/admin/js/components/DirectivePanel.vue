@@ -185,7 +185,7 @@ defineExpose({ move, choose, focus });
 			<template v-if="current">
 				<p class="inserter__preview-title">
 					{{ current.label }}
-					<span v-if="current.source && current.source.kind !== 'site'" class="inserter__source">{{ current.source.label }}</span>
+					<span v-if="current.source" class="inserter__source">{{ current.source.label }}</span>
 				</p>
 				<p class="inserter__preview-text">{{ current.description || current.name }}</p>
 			</template>

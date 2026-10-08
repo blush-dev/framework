@@ -31,6 +31,7 @@ use Blush\Http\Kernel;
 use Blush\Http\Request;
 use Blush\Routing\RouteTable;
 use Blush\Tests\Content\BuildsContentSite;
+use Blush\Tests\WritesThemeViews;
 use Blush\View\DocumentRenderer;
 
 #[CoversClass(Feed::class)]
@@ -46,6 +47,7 @@ use Blush\View\DocumentRenderer;
 final class FeedsTest extends TestCase
 {
 	use BuildsContentSite;
+	use WritesThemeViews;
 
 	private Application $app;
 
@@ -195,8 +197,8 @@ final class FeedsTest extends TestCase
 
 	public function testThemesCanOverrideFeedTemplates(): void
 	{
+		$this->themeView('feed-rss-category.php', 'category feed: <?= e($feed->title) ?>');
 		$this->feeds();
-		$this->writeTemporaryFile('resources/views/feed-rss-category.php', 'category feed: <?= e($feed->title) ?>');
 
 		$this->assertSame('category feed: Art | Blush', (string) $this->get('/topics/art/feed')->getBody());
 		$this->assertStringStartsWith('<?xml', (string) $this->get('/feed')->getBody());

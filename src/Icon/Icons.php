@@ -14,20 +14,17 @@ declare(strict_types=1);
 namespace Blush\Icon;
 
 use Blush\Core\Framework;
-use Blush\Core\Paths;
 use Blush\Theme\ThemeChain;
 
 /**
  * Finds icons' SVG files for a theme chain (D-187). For `{ns}/{name}`, the
  * first that exists wins:
  *
- * 1. The site's `resources/icons/{ns}/{name}.svg` (or, for its own `app`
- *    icons, `resources/icons/{name}.svg`).
- * 2. Each theme in the chain, the active one first: `icons/{name}.svg`
+ * 1. Each theme in the chain, the active one first: `icons/{name}.svg`
  *    for its own namespace, or `icons/{ns}/{name}.svg` to restyle another
  *    one's icon (such as `icons/blush/house.svg`).
- * 3. The folders an extension added for the namespace (`IconRegistry`).
- * 4. For `blush`, the core icons in the framework's `resources/icons`.
+ * 2. The folders an extension added for the namespace (`IconRegistry`).
+ * 3. For `blush`, the core icons in the framework's `resources/icons`.
  */
 final class Icons
 {
@@ -39,7 +36,6 @@ final class Icons
 	private array $found = [];
 
 	public function __construct(
-		private readonly Paths $paths,
 		private readonly IconRegistry $registry
 	) {}
 
@@ -108,8 +104,7 @@ final class Icons
 	 */
 	private function candidates(IconName $name, ThemeChain $chain): array
 	{
-		$icons = "{$this->paths->resources}/icons";
-		$files = [$name->namespace === IconName::SITE ? "{$icons}/{$name->name}.svg" : "{$icons}/{$name->namespace}/{$name->name}.svg"];
+		$files = [];
 
 		foreach ($chain as $theme) {
 			$files[] = $theme->namespace === $name->namespace
@@ -135,7 +130,7 @@ final class Icons
 	 */
 	private function folders(ThemeChain $chain): array
 	{
-		$folders = [IconName::CORE => [Framework::path('resources/icons/blush')], IconName::SITE => ["{$this->paths->resources}/icons"]];
+		$folders = [IconName::CORE => [Framework::path('resources/icons/blush')]];
 
 		foreach ($chain as $theme) {
 			$folders[$theme->namespace][] = "{$theme->path}/icons";

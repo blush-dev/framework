@@ -154,10 +154,9 @@ site/
   public/               Web root: index.php, .htaccess, and published assets ONLY
                         (themes/, and media at MediaConfig::$url, D-099). Relocatable
                         (e.g. cPanel public_html, D-046)
-  resources/views/      Site-level view overrides (resources/views/themes/{vendor}/{name}/ for theme-scoped ones)
-  resources/lang/       The site's `app` translation domain, e.g. its directives' text (D-173)
-  resources/icons/      The site's own icons (`app/{name}`), and `{ns}/{name}.svg` overrides (D-187)
-  src/                  App\ namespace: providers, directives, components, controllers
+  src/                  App\ namespace: providers in AppConfig's `providers`, an escape
+                        hatch with no conventions; reusable code goes in a plugin. No
+                        site resources/ (views, icons, lang) and no `app` namespace (D-617)
   storage/
     cache/              Compiled config.php, plugins.php, container.php, routes.php,
                         content-types.php, themes.php, icon-packs.php (D-060, D-077,

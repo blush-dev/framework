@@ -29,6 +29,7 @@ use Blush\Extension\DefinitionClash;
 use Blush\Field\FieldFactory;
 use Blush\Field\FieldRegistry;
 use Blush\Tests\BootsScratchSite;
+use Blush\Tests\WritesContentConfig;
 use Blush\Tests\Fixtures\Content\ColorField;
 use Blush\Tests\Fixtures\Content\JtcomTypes;
 use Blush\Tests\Fixtures\Content\MoreRecipeProvider;
@@ -46,23 +47,7 @@ use Blush\Tests\Fixtures\Content\RecipeTypes;
 final class ContentTypeLoaderTest extends TestCase
 {
 	use BootsScratchSite;
-
-	/**
-	 * Writes `config/content.php` returning `ContentConfig::fromArray()` of
-	 * the given PHP array source.
-	 */
-	private function contentConfig(string $source): void
-	{
-		$this->writeTemporaryFile('config/content.php', <<<PHP
-			<?php
-
-			declare(strict_types=1);
-
-			use Blush\Content\Type\ContentConfig;
-
-			return ContentConfig::fromArray({$source});
-			PHP);
-	}
+	use WritesContentConfig;
 
 	private function types(?Application $application = null): ContentTypes
 	{
@@ -83,11 +68,11 @@ final class ContentTypeLoaderTest extends TestCase
 		$this->assertCount(2, $types);
 	}
 
-	public function testConfigTypesUseFieldTypesExtensionsRegister(): void
+	public function testDataTypesUseFieldTypesExtensionsRegister(): void
 	{
-		// The config file runs before extensions register field types, so
-		// its types are built when types load (D-337).
-		$this->contentConfig("['types' => ['swatch' => ['fields' => ['accent' => ['type' => 'color']]]]]");
+		// Types are built when they load, after extensions register field
+		// types (D-337).
+		$this->contentConfig(['types' => ['swatch' => ['fields' => ['accent' => ['type' => 'color']]]]]);
 
 		$application = $this->scratchApplication();
 		$application->container()->make(FieldRegistry::class)->register('color', ColorField::class);
@@ -95,23 +80,13 @@ final class ContentTypeLoaderTest extends TestCase
 		$this->assertInstanceOf(ColorField::class, $this->types($application)->get('swatch')->schema->field('accent'));
 	}
 
-	public function testReportsAnInvalidConfigTypeWhenTypesLoad(): void
-	{
-		$this->contentConfig("['types' => ['post' => ['routing' => 'x']]]");
-
-		$this->expectException(InvalidContentType::class);
-		$this->expectExceptionMessage('config/content.php: ');
-
-		$this->types();
-	}
-
 	public function testLoadsJtcomsTypesAndResolvesFiles(): void
 	{
-		$this->contentConfig(var_export(['types' => JtcomTypes::definitions(), 'relations' => JtcomTypes::relations(), 'home' => 'post'], true));
+		$this->contentConfig(['types' => JtcomTypes::definitions(), 'relations' => JtcomTypes::relations(), 'home' => 'post']);
 
 		$types = $this->types();
 
-		$this->assertSame(TypeOrigin::Config, $types->origin('post'));
+		$this->assertSame(TypeOrigin::Data, $types->origin('post'));
 		$this->assertSame('post', $types->homeType()?->name);
 
 		$cases = [
@@ -138,7 +113,7 @@ final class ContentTypeLoaderTest extends TestCase
 
 	public function testSchemasIncludeTheBuiltInAndTermFields(): void
 	{
-		$this->contentConfig(var_export(['types' => JtcomTypes::definitions(), 'relations' => JtcomTypes::relations()], true));
+		$this->contentConfig(['types' => JtcomTypes::definitions(), 'relations' => JtcomTypes::relations()]);
 
 		$types  = $this->types();
 		$schema = $types->schema('post');
@@ -159,19 +134,17 @@ final class ContentTypeLoaderTest extends TestCase
 		$this->assertTrue($types->schema('profile')->has('avatar'));
 	}
 
-	public function testExtensionsAddTypesAndTheConfigReplacesThem(): void
+	public function testExtensionsAddTypesAndRelations(): void
 	{
-		$this->contentConfig("['types' => ['ingredient' => ['order' => 'position', 'path' => 'pantry']]]");
-
 		$application = $this->scratchApplication();
 		$application->register(RecipeProvider::class);
 
 		$types = $this->types($application);
 
 		$this->assertSame(TypeOrigin::Extension, $types->origin('recipe'));
-		$this->assertSame(TypeOrigin::Config, $types->origin('ingredient'));
-		$this->assertSame('pantry', $types->get('ingredient')->folder);
-		$this->assertSame(RelationOrigin::Extension, $types->relationOrigin('ingredient'), 'The extension\'s relation still files recipes under it.');
+		$this->assertSame(TypeOrigin::Extension, $types->origin('ingredient'));
+		$this->assertSame('_ingredient', $types->get('ingredient')->folder);
+		$this->assertSame(RelationOrigin::Extension, $types->relationOrigin('ingredient'));
 		$this->assertSame(['recipe'], $types->classification('ingredient')?->from);
 	}
 
@@ -194,7 +167,7 @@ final class ContentTypeLoaderTest extends TestCase
 
 	public function testDisablesBuiltInTypes(): void
 	{
-		$this->contentConfig("['disabled' => ['profile']]");
+		$this->contentConfig(['disabled' => ['profile']]);
 
 		$this->assertFalse($this->types()->has('profile'));
 	}
@@ -213,16 +186,16 @@ final class ContentTypeLoaderTest extends TestCase
 		$this->assertSame(TypeOrigin::Data, $types->origin('profile'));
 	}
 
-	public function testDataFilesChangeConfigCollections(): void
+	public function testDataFilesChangeCodeCollections(): void
 	{
-		$this->contentConfig("['types' => ['movie' => ['path' => 'movies', 'routing' => ['prefix' => 'films', 'single' => '{year}/{name}'], 'feed' => ['listing' => ['perPage' => 5]], 'description' => 'Films.'], 'genre' => ['order' => 'position']]]");
+		$this->codeConfig(['types' => ['movie' => ['path' => 'movies', 'routing' => ['prefix' => 'films', 'single' => '{year}/{name}'], 'feed' => ['listing' => ['perPage' => 5]], 'description' => 'Films.'], 'genre' => ['order' => 'position']]]);
 		$this->writeTemporaryFile('user/data/types/movie.yaml', "description: Movies we watched.\nrouting:\n  prefix: watched\n");
 		$this->writeTemporaryFile('user/data/types/genre.json', '{"hierarchical": true}');
 
 		$types = $this->types();
 		$movie = $types->get('movie');
 
-		$this->assertSame(TypeOrigin::Config, $types->origin('movie'), 'It\'s still a config type.');
+		$this->assertSame(TypeOrigin::Extension, $types->origin('movie'), 'It\'s still the plugin\'s type.');
 		$this->assertTrue($types->isOverridden('movie'));
 		$this->assertTrue($types->isEditable('movie'));
 		$this->assertFalse($types->isOverridden('page'));
@@ -241,7 +214,7 @@ final class ContentTypeLoaderTest extends TestCase
 			'{"path": "films"}'    => 'user/data/types/movie can\'t change the type\'s kind or folder'
 		];
 
-		$this->contentConfig("['types' => ['movie' => ['path' => 'movies']]]");
+		$this->codeConfig(['types' => ['movie' => ['path' => 'movies']]]);
 
 		foreach ($cases as $json => $message) {
 			$this->writeTemporaryFile('user/data/types/movie.json', $json);
@@ -271,7 +244,7 @@ final class ContentTypeLoaderTest extends TestCase
 
 	public function testDataFilesCantChangeTheCodesPagesType(): void
 	{
-		$this->contentConfig("['types' => ['page' => ['kind' => 'tree', 'description' => 'Pages.']]]");
+		$this->codeConfig(['types' => ['page' => ['kind' => 'tree', 'description' => 'Pages.']]]);
 		$this->writeTemporaryFile('user/data/types/page.json', '{"description": "Mine."}');
 
 		$this->expectException(InvalidContentType::class);
@@ -283,11 +256,11 @@ final class ContentTypeLoaderTest extends TestCase
 	public function testDataTypesCanBeTurnedOffOrRestricted(): void
 	{
 		$this->writeTemporaryFile('user/data/types/movie.json', '{"routing": {"prefix": "films"}}');
-		$this->contentConfig("['dataTypes' => false]");
+		$this->contentConfig(['dataTypes' => false]);
 
 		$this->assertFalse($this->types()->has('movie'));
 
-		$this->contentConfig("['dataTypeUrls' => false]");
+		$this->contentConfig(['dataTypeUrls' => false]);
 
 		$this->expectException(InvalidContentType::class);
 		$this->expectExceptionMessage('The "movie" data type sets "routing", which ContentConfig "dataTypeUrls" doesn\'t allow.');
@@ -318,24 +291,24 @@ final class ContentTypeLoaderTest extends TestCase
 	public function testChecksThatTypesFitTogether(): void
 	{
 		$cases = [
-			"['types' => ['post' => ['path' => 'profiles']]]"                => 'The "profile" and "post" content types share the folder "profiles".',
-			"['types' => ['post' => ['collect' => 'nope']]]"                 => 'Content type "post" listing type names "nope", which doesn\'t exist.',
-			"['types' => ['tag' => []], 'relations' => ['tag' => ['kind' => 'classify', 'from' => ['nope'], 'to' => ['tag']]]]" => 'Relation "tag" names a "nope" content type, which doesn\'t exist.',
-			"['relations' => ['tag' => ['kind' => 'classify', 'to' => ['tag']]]]" => 'Relation "tag" names a "tag" content type, which doesn\'t exist.',
-			"['types' => ['tag' => []], 'relations' => ['tag' => ['kind' => 'classify', 'to' => ['tag'], 'inverse' => ['listing' => ['type' => 'nope']]]]]" => 'Relation "tag" inverse listing type names "nope"',
-			"['types' => ['post' => ['feed' => ['taxonomy' => 'nope']]]]"   => 'Content type "post" feed categories names "nope"',
-			"['types' => ['post' => ['feed' => ['taxonomy' => 'page']]]]"   => 'Content type "post" feed categories "page" isn\'t a type a classify relation files entries under.',
-			"['types' => ['tag' => ['taxonomy' => true]]]"                  => 'config/content.php: Content type "tag" is a taxonomy',
-			"['types' => ['page' => ['path' => 'pages']]]"                   => 'No content type claims the content root',
-			"['home' => 'post']"                                              => 'ContentConfig "home" names "post", which isn\'t a content type.',
-			"['types' => ['title' => []], 'relations' => ['title' => ['kind' => 'classify', 'to' => ['title']]]]" => 'Content type "page" has clashing fields: Schema key "title"',
-			"['types' => ['post' => ['fields' => ['refs' => ['type' => 'text']]]]]" => 'Content type "post" has a field (or alias) named "refs", which is reserved',
-			"['types' => ['person' => ['kind' => 'profiles']]]"              => 'A site has one profiles type, but "profile", "person" are all profiles types.',
-			"['types' => ['post' => ['fields' => ['id' => ['type' => 'text']]]]]" => 'Content type "post" has a field (or alias) named "id", which is reserved for the entry\'s id; rename it.',
-			"['types' => ['post' => ['fields' => ['code' => ['type' => 'text', 'aliases' => ['id']]]]]]" => 'Content type "post" has a field (or alias) named "id"'
+			[['types' => ['post' => ['path' => 'profiles']]], 'The "profile" and "post" content types share the folder "profiles".'],
+			[['types' => ['post' => ['collect' => 'nope']]], 'Content type "post" listing type names "nope", which doesn\'t exist.'],
+			[['types' => ['tag' => []], 'relations' => ['tag' => ['kind' => 'classify', 'from' => ['nope'], 'to' => ['tag']]]], 'Relation "tag" names a "nope" content type, which doesn\'t exist.'],
+			[['relations' => ['tag' => ['kind' => 'classify', 'to' => ['tag']]]], 'Relation "tag" names a "tag" content type, which doesn\'t exist.'],
+			[['types' => ['tag' => []], 'relations' => ['tag' => ['kind' => 'classify', 'to' => ['tag'], 'inverse' => ['listing' => ['type' => 'nope']]]]], 'Relation "tag" inverse listing type names "nope"'],
+			[['types' => ['post' => ['feed' => ['taxonomy' => 'nope']]]], 'Content type "post" feed categories names "nope"'],
+			[['types' => ['post' => ['feed' => ['taxonomy' => 'page']]]], 'Content type "post" feed categories "page" isn\'t a type a classify relation files entries under.'],
+			[['types' => ['page' => ['path' => 'pages']]], 'No content type claims the content root'],
+			[['home' => 'post'], 'ContentConfig "home" names "post", which isn\'t a content type.'],
+			[['types' => ['title' => []], 'relations' => ['title' => ['kind' => 'classify', 'to' => ['title']]]], 'Content type "page" has clashing fields: Schema key "title"'],
+			[['types' => ['post' => ['fields' => ['refs' => ['type' => 'text']]]]], 'Content type "post" has a field (or alias) named "refs", which is reserved'],
+			[['types' => ['person' => ['kind' => 'profiles']]], 'A site has one profiles type, but "profile", "person" are all profiles types.'],
+			[['types' => ['post' => ['fields' => ['id' => ['type' => 'text']]]]], 'Content type "post" has a field (or alias) named "id", which is reserved for the entry\'s id; rename it.'],
+			[['types' => ['post' => ['fields' => ['code' => ['type' => 'text', 'aliases' => ['id']]]]]], 'Content type "post" has a field (or alias) named "id"']
 		];
 
-		foreach ($cases as $config => $message) {
+		foreach ($cases as [$config, $message]) {
+			$this->clearContentConfig();
 			$this->contentConfig($config);
 
 			try {
@@ -368,7 +341,7 @@ final class ContentTypeLoaderTest extends TestCase
 
 	public function testRoundTripsThroughArrays(): void
 	{
-		$this->contentConfig(var_export(['types' => JtcomTypes::definitions(), 'relations' => JtcomTypes::relations(), 'home' => 'post'], true));
+		$this->contentConfig(['types' => JtcomTypes::definitions(), 'relations' => JtcomTypes::relations(), 'home' => 'post']);
 
 		$application = $this->scratchApplication();
 		$types       = $this->types($application);
@@ -382,7 +355,7 @@ final class ContentTypeLoaderTest extends TestCase
 
 	public function testRoundTripsOverrides(): void
 	{
-		$this->contentConfig("['types' => ['movie' => []]]");
+		$this->codeConfig(['types' => ['movie' => []]]);
 		$this->writeTemporaryFile('user/data/types/movie.json', '{"description": "Films."}');
 
 		$application = $this->scratchApplication();

@@ -178,7 +178,7 @@ overrides in D-451, catalog metadata in D-452, `en` last in D-453.
 
 - **`Translator`:** CMS-wide, in-house, using ICU MessageFormat via `ext-intl`
   (`MessageFormatter`) for plurals, select, and number/date arguments.
-- **Catalogs:** per domain (`blush`, `app`, and each extension's
+- **Catalogs:** per domain (`blush` and each extension's
   `vendor/name`), per locale, stored as data files (`lang/{locale}.json`),
   starting with `@@locale` and `@@domain` (D-452). `Translator::domainOf()`
   maps an extension namespace to its domain, for directive and icon
@@ -442,10 +442,10 @@ Implemented in M4a (D-083, D-084); kinds and option names from D-157.
   until `TaxonomyMigration` (`content:taxonomies --write`, Site Health)
   rewrites it.
 - **Sources, one model** (D-042, D-083): built-ins, extension
-  `ContentTypeSource`s, `ContentConfig` (`config/content.php`), and
-  data types (`user/data/types/*.json|yaml`, edited in the admin, D-311).
+  `ContentTypeSource`s, and data types (`user/data/types/*.json|yaml`,
+  edited in the admin, D-311); config defines none (D-617).
   Relation definitions load with them (`RelationLoader`: extension
-  `RelationSource`s, `ContentConfig::$relations`, and
+  `RelationSource`s and
   `user/data/relations/*`, D-593) and the types carry them
   (`ContentTypes::relations()`), since a relation adds its field to its
   `from` types' schemas.
@@ -848,8 +848,7 @@ view layer was implemented in M5 (D-103 to D-125).
   is every engine's API, with `#[ReturnsHtml]` and `SafeHtml` marking
   rendered HTML for engines that escape on their own.
 - **`ViewFinder`:** view names (`single-post`, `layouts/base`) resolve
-  through `resources/views/themes/{active}`, `resources/views`, then the
-  theme chain, in each engine's extension (the first registered wins
+  through the theme chain (the site has none, D-617), in each engine's extension (the first registered wins
   within a folder). `ViewFactory` builds one `Views` per chain and the per-page
   `ViewContext` (the `PageMarkup` with its head and foot, sections, shared `$site`, body classes, and
   the front matter `layout`).
@@ -1288,7 +1287,7 @@ and **icon packs**; **admin themes** are planned on the same pieces.
 - **Namespace:** every manifest declares one (`ExtensionNamespace`):
   what its directives, components, and icons go by (its translation domain is its
   `vendor/name`, mapped from the namespace, D-451). Reserved:
-  `blush`, `app`, `theme`, and `default` (the default theme's). No two
+  `blush`, `theme`, and `default` (the default theme's). No two
   installed extensions share one: two plugins doing so fail discovery;
   two themes, or two icon packs, are both broken; across kinds,
   `Bootstrap` lets installed plugins (even ones turned off) claim first,
@@ -1364,8 +1363,7 @@ and **icon packs**; **admin themes** are planned on the same pieces.
   `theme:activate`, the check commands (`plugin:check`, `theme:check`,
   `icon-pack:check`), and `doctor`.
 - **Themes:** see `theming.md`. Known by name everywhere (`active`,
-  `parent`, `?theme=`, `/themes/{vendor}/{name}/…`,
-  `resources/views/themes/{vendor}/{name}`); the default theme is
+  `parent`, `?theme=`, `/themes/{vendor}/{name}/…`); the default theme is
   `blush/default`. Broken ones are listed by where they were found.
 - **Icon packs** (`Icon\IconPack`): SVGs in the pack's folder (or its
   manifest's `folder`), each `{namespace}/{icon}`, labeled from its

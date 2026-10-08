@@ -127,7 +127,7 @@ final class SiteRelationsTest extends TestCase
 	{
 		$post = $this->relations->for('post');
 
-		$this->assertSame(['category', 'authors', 'translation_of', 'related'], array_keys($post));
+		$this->assertSame(['authors', 'category', 'translation_of', 'related'], array_keys($post));
 		$this->assertSame(RelationKind::Classify, $post['category']->kind);
 		$this->assertSame(['post'], $post['category']->from, 'Defined on its own, from the types it files (D-593).');
 		$this->assertTrue($post['category']->inverse !== false && $post['category']->inverse->page, 'Its terms\' pages list what\'s filed under them.');

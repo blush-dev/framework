@@ -25,11 +25,11 @@ use Blush\Plugin\Plugins;
 
 /**
  * Binds the translator in the site locale (D-451), with the framework's
- * own `blush` domain, the site's `app` domain (`resources/lang`), and a
- * domain for each enabled plugin and icon pack that's on, by its
- * `vendor/name` (its `lang` folder), with its namespace mapped to it for
- * directive and icon labels. The site's overrides in `user/lang` win over
- * them all. The view layer adds the theme chain's domains.
+ * own `blush` domain and a domain for each enabled plugin and icon pack
+ * that's on, by its `vendor/name` (its `lang` folder), with its namespace
+ * mapped to it for directive and icon labels. The site's overrides in
+ * `user/lang` win over them all. The view layer adds the theme chain's
+ * domains.
  */
 final class TranslationServiceProvider extends ServiceProvider
 {
@@ -46,10 +46,7 @@ final class TranslationServiceProvider extends ServiceProvider
 			Translator::class,
 			static function (ServiceResolver $resolver) use ($plugins, $packs): Translator {
 				$paths      = $resolver->make(Paths::class);
-				$domains    = [
-					'blush' => [Framework::path('resources/lang')],
-					'app'   => ["{$paths->resources}/lang"]
-				];
+				$domains    = ['blush' => [Framework::path('resources/lang')]];
 				$namespaces = [];
 
 				foreach ([...($plugins ? $resolver->make(Plugins::class)->all() : []), ...($packs ? $resolver->make(IconPacks::class)->enabled() : [])] as $extension) {

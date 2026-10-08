@@ -27,6 +27,7 @@ use Blush\Http\Kernel;
 use Blush\Http\Middleware\ConditionalGet;
 use Blush\Http\Request;
 use Blush\Tests\Content\BuildsContentSite;
+use Blush\Tests\WritesThemeViews;
 
 #[CoversClass(PageCache::class)]
 #[CoversClass(ConditionalGet::class)]
@@ -38,6 +39,7 @@ use Blush\Tests\Content\BuildsContentSite;
 final class PageCacheTest extends TestCase
 {
 	use BuildsContentSite;
+	use WritesThemeViews;
 
 	/**
 	 * @param array<string, string> $headers
@@ -64,7 +66,7 @@ final class PageCacheTest extends TestCase
 
 		// A new process (another request) is served the stored page, even
 		// though the template changed underneath it.
-		$this->writeTemporaryFile('resources/views/single-post.php', 'changed');
+		$this->themeView('single-post.php', 'changed');
 
 		$again = $this->site();
 		$hit   = $this->get($again, '/archives/spring');

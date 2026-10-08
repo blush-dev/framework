@@ -35,7 +35,8 @@ use Blush\Translation\Catalog;
  * Starts a theme in `extensions/{vendor}/{name}` (D-418): the smallest
  * valid theme, a manifest and a stylesheet (D-021), with a starter
  * `lang/en.json` that names what it translates (D-452). Everything else falls
- * back to its parent, or to the default theme. The theme is named
+ * back to its parent, or to the default theme. A child theme gets no
+ * stylesheet, since its own would replace its parent's (D-618). The theme is named
  * `vendor/name` (D-378); its namespace defaults to its name, hyphenated
  * (D-424), and its label to one made from the part after the `/`. The name and namespace must be free
  * across every installed extension (`InstalledExtensions`, D-417). The
@@ -94,10 +95,14 @@ final readonly class CreateTheme
 
 		$label  ??= ucwords(str_replace(['-', '_', '.'], ' ', $short));
 		$schema   = $this->filesystem->relative($folder, sprintf('%s/%s/%s/theme.schema.json', $this->paths->vendor, Framework::PACKAGE, JsonSchemas::DIRECTORY));
-		$manifest = ['$schema' => $schema, 'name' => $name, 'label' => $label, 'namespace' => $namespace, 'version' => '1.0.0', ...($parent === null ? [] : ['parent' => $parent]), 'styles' => ['style.css']];
+		$manifest = ['$schema' => $schema, 'name' => $name, 'label' => $label, 'namespace' => $namespace, 'version' => '1.0.0', ...($parent === null ? ['styles' => ['style.css']] : ['parent' => $parent])];
 
 		$this->filesystem->writeAtomic("{$folder}/theme.json", json_encode($manifest, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR) . "\n");
-		$this->filesystem->writeAtomic("{$folder}/style.css", "/**\n * {$label} theme styles.\n */\n");
+
+		if ($parent === null) {
+			$this->filesystem->writeAtomic("{$folder}/style.css", "/**\n * {$label} theme styles.\n */\n");
+		}
+
 		$this->filesystem->writeAtomic("{$folder}/lang/en.json", Catalog::starter($name));
 
 		$output->success(sprintf('Created %s. Activate it with: %s theme:activate %s', $this->paths->relative($folder), Framework::BINARY, $name));

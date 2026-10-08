@@ -7,7 +7,7 @@ decides how it looks. In the admin's editor, directives are called
 **blocks**.
 
 Directives are part of your content, and content outlives themes, so a
-directive comes from Blush, a plugin, or your site, never from a theme.
+directive comes from Blush or a plugin, never from a theme.
 Themes give directives their look; switching themes changes how a
 callout looks, never whether it's there. For the reusable pieces a
 theme builds its own templates from, see [Components](components.md).
@@ -20,7 +20,6 @@ from different places never clash:
 | Namespace              | Whose directives  | Example         |
 |------------------------|-------------------|-----------------|
 | `blush`                | The built-in ones | `blush/callout` |
-| `app`                  | Your site's own   | `app/post-list` |
 | The plugin's namespace | A plugin's own    | `tabs/tabs`     |
 
 A [plugin](extending.md#plugins) declares its namespace in its manifest
@@ -40,7 +39,7 @@ Back up your site before updating.
 
 ::embed[Our launch]{url="https://youtu.be/…" title="Launch video"}
 
-Read the :app/badge[new]{tone=tip} release notes.
+Read the :acme/badge[new]{tone=tip} release notes.
 ```
 
 | Form              | Use it for                                                   |
@@ -297,21 +296,21 @@ In a template, `<?= $template->icon('house') ?>` shows a decorative
 icon, and `<?= $template->icon('rss', 'RSS feed') ?>` a labeled one.
 
 Icons are named like directives: the built-in ones are `blush/{name}`
-(or just `{name}`), and your own are in your theme's, site's, or an
+(or just `{name}`), and others are in a theme's, a plugin's, or an
 [icon pack's](extending.md#icon-packs) namespace. To add some, put SVG
 files in a folder:
 
 | Where                                   | Name                                     |
 |-----------------------------------------|------------------------------------------|
 | Your theme's `icons/badge.svg`          | `notebook/badge` (the theme's namespace) |
-| Your site's `resources/icons/badge.svg` | `app/badge`                              |
 | An icon pack's `github.svg`             | `brands/github` (the pack's namespace)   |
 
 To give another namespace's icon your own look, add a file named after
 it in a subfolder named for its namespace: a theme's
-`icons/blush/house.svg` or `icons/brands/github.svg`, or your site's
-`resources/icons/blush/house.svg`. The site's file wins, then the
-active theme's, then its parents', then icon packs' and plugins'. Draw
+`icons/blush/house.svg` or `icons/brands/github.svg` (a
+[child theme](themes.md#overriding-templates) can do this for the theme
+it builds on). The active theme's file wins, then its parents', then
+icon packs' and plugins'. Draw
 icons in `currentColor` so they take the text's color.
 
 Labels shown in lists (and, later, the admin) are translatable, under
@@ -355,8 +354,8 @@ text in a `<span>` with a class or id (see
 
 ### Good to know
 
-- **Directives never come from a theme.** They're Blush's, a plugin's,
-  or your site's, so switching themes changes how they look but never
+- **Directives never come from a theme.** They're Blush's or a
+  plugin's, so switching themes changes how they look but never
   turns them into plain text. Turning off the plugin that adds one does.
 - **They're cached with the page's content.** A directive in Markdown is
   drawn once and kept with the rest of the rendered text, until your content
@@ -405,7 +404,7 @@ Back up your site before updating.
 - **A variant the directive doesn't have renders as Default,** such as
   one from a theme that isn't active. `content:lint` warns about these.
 - **Variants belong to whoever declares them.** The built-in directives
-  come with a few; a theme, your site, or a plugin can add more to
+  come with a few; a theme or a plugin can add more to
   any directive. A theme's apply only while it (or a child of it) is
   active. This is how a theme adds looks to content without adding
   directives of its own.
@@ -453,7 +452,7 @@ directive:
 }
 ```
 
-Your site, a plugin, or a theme's provider can add (or remove)
+A plugin's or a theme's provider can add (or remove)
 variants from PHP, by listening for `DirectiveVariantsCollecting`. It
 fires once per directive, the first time its variants are needed, so the
 order providers boot in doesn't matter. The second argument is the
@@ -467,7 +466,7 @@ $this->container->get(ListenerRegistry::class)->listen(
 	DirectiveVariantsCollecting::class,
 	function (DirectiveVariantsCollecting $event): void {
 		if ($event->is('callout')) {
-			$event->add('bordered', 'app');
+			$event->add('bordered', 'acme');
 		}
 	}
 );
@@ -476,7 +475,7 @@ $this->container->get(ListenerRegistry::class)->listen(
 A variant's name is lowercase letters, digits, and hyphens, starting with
 a letter, and it can't be `default`. To add a class other than
 `--{variant}`, give it a modifier: `{"name": "compact", "modifier":
-"tight"}` in `theme.json`, or `$event->add('compact', 'app', 'tight')`.
+"tight"}` in `theme.json`, or `$event->add('compact', 'acme', 'tight')`.
 
 Each variant's label and description are translatable, in the catalog
 of whoever added it (see [Labels and translations](#labels-and-translations)).
@@ -486,8 +485,9 @@ of whoever added it (see [Labels and translations](#labels-and-translations)).
 A directive is a PHP class for its props and logic, plus a template that
 draws it. Every class draws itself by default with its `render()`
 method, and a theme draws it its own way with a template. Every
-directive has a class. Make one in your site or a plugin; a theme can't
-register one.
+directive has a class. Make one in a [plugin](extending.md#plugins); a
+theme can't register one. The examples here are from a plugin named
+`acme/recent-posts`, with the namespace `acme`.
 
 ### The class
 
@@ -495,11 +495,11 @@ The constructor declares the props as public properties, and can also ask
 for any of Blush's services:
 
 ```php
-<?php // src/View/RecentPosts.php
+<?php // extensions/acme/recent-posts/src/RecentPosts.php
 
 declare(strict_types=1);
 
-namespace App\View;
+namespace Acme\RecentPosts;
 
 use Blush\Content\ContentRepository;
 use Blush\Content\Entry\Entry;
@@ -543,7 +543,7 @@ final class RecentPosts extends Directive
 	 */
 	public function render(): DirectiveView
 	{
-		return $this->view(dirname(__DIR__, 2) . '/resources/views/directives/app-recent-posts.php');
+		return $this->view(dirname(__DIR__) . '/resources/directives/recent-posts.php');
 	}
 }
 ```
@@ -552,7 +552,7 @@ final class RecentPosts extends Directive
   converts them to the types you declare: `{limit=3}` arrives as the
   integer `3`. A prop typed as a PHP backed enum gets the matching case,
   and a value the enum doesn't have falls back to the default.
-- **`label`** gets the Markdown label (`::app/recent-posts[Latest]`), if
+- **`label`** gets the Markdown label (`::acme/recent-posts[Latest]`), if
   the constructor takes it.
 - **The `ContentRepository` follows the page's language.** On a
   [translated](content.md#translations) page, such as `/fr/a-propos`,
@@ -625,21 +625,21 @@ final class RecentPosts extends Directive
   the admin's picker offers only that kind for it. Leave it out for a
   prop that takes any file, such as a download.
 
-Register the class in a service provider's `boot()` method:
+Register the class in the plugin's service provider's `boot()` method:
 
 ```php
 use Blush\Directive\DirectiveRegistry;
 
 public function boot(): void
 {
-	$this->container->get(DirectiveRegistry::class)->register('app/recent-posts', View\RecentPosts::class);
+	$this->container->get(DirectiveRegistry::class)->register('acme/recent-posts', RecentPosts::class);
 }
 ```
 
 ### Rendering itself
 
 Every directive class has a `render()` method, which draws it when no
-theme in use (and not your site) has a template for it. It returns one
+theme in use has a template for it. It returns one
 of three things:
 
 - **A template file it ships with**, `$this->view($path)`, with any more
@@ -660,23 +660,23 @@ of three things:
   template. Declare the return type as `null` (or a nullable type), and
   `theme:check` warns when no template is found.
 
-A template in the theme chain or your site's `views/directives/` always
+A template in the theme chain's `views/directives/` always
 wins, so themes restyle a directive without touching its class. This is
 how a plugin's directive works in any theme.
 
 ### The template
 
-The template is a file in `views/directives/` named
-`{namespace}-{name}.php`: here, `resources/views/directives/app-recent-posts.php`.
-A theme that draws it its own way has the same file in its
-`views/directives/`.
+The plugin's own template is the file its `render()` returns: here,
+`resources/directives/recent-posts.php` in the plugin. A theme that
+draws it its own way has a file in its `views/directives/` named
+`{namespace}-{name}.php`: here, `views/directives/acme-recent-posts.php`.
 
 ```php
 <?php
 
 /**
  * @var Blush\View\Template   $template
- * @var App\View\RecentPosts  $directive
+ * @var Acme\RecentPosts\RecentPosts  $directive
  */
 
 declare(strict_types=1);
@@ -762,7 +762,7 @@ theme's namespace is refused: themes can't register directives.
 
 A directive's label, description, prop names, and variants are
 translatable text, kept in the translation catalog of the plugin that
-owns its namespace (or your site's, for `app`), under
+owns its namespace, under
 `directives.{name}`:
 
 ```json
@@ -790,12 +790,8 @@ owns its namespace (or your site's, for `app`), under
 }
 ```
 
-| Namespace            | Catalog                              |
-|----------------------|--------------------------------------|
-| `app`                | Your site's `resources/lang/en.json` |
-| A plugin's namespace | The plugin's `lang/en.json`          |
-
-Any of them can be reworded by your site's catalogs in `user/lang/`
+Blush's own directives have theirs in Blush's catalog. Any of them can
+be reworded by your site's catalogs in `user/lang/`
 (see [Your own wording](themes.md#your-own-wording)). A directive that
 translates text as it renders (`$this->t()` in its class) reads the
 theme's catalogs first, then its own plugin's.
@@ -814,12 +810,12 @@ Without a label, one is made from the name (`recent-posts` becomes
 |-------------------------------------------|---------------------------------------------------------------------------------|
 | Blush                                     | The built-in directives, each drawing itself                                    |
 | A plugin (registered by its provider)     | Adds its directives while it's on. See [Extending Blush](extending.md#plugins). |
-| Your site's `src/` (registered by yours)  | Adds your own, in `app`. See [Extending Blush](extending.md).                   |
 | A theme's `views/directives/`             | Draws directives its own way, while it or a child of it is active               |
-| Your site's `resources/views/directives/` | Draws directives your way, with every theme                                     |
 
-Your site's templates come first, then the active theme's, then its
-parents', then the default theme's, and last the directive's own
+The active theme's templates come first, then its parents', then the
+default theme's, and last the directive's own
 `render()`. `bin/blush theme:why directives/callout` shows which file is
 used and what it overrides; `directive:list` says `(its own)` for a
-directive that no file overrides.
+directive that no file overrides. To draw a directive your way, make a
+[child theme](themes.md#overriding-templates) of the active one, with
+its own template.

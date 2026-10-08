@@ -365,8 +365,22 @@ final class ContentRepositoryTest extends TestCase
 		$this->assertSame(['art', 'lost-cause'], $this->content->named('post', 'dangling')?->terms('category'), 'The entry still names it.');
 	}
 
+	/**
+	 * Removes the standard content set's types, relations, and content
+	 * settings, leaving the built-in types.
+	 */
+	private function removeDataTypes(): void
+	{
+		$root = $this->temporaryDirectory();
+
+		foreach ([...glob("{$root}/user/data/types/*.json") ?: [], ...glob("{$root}/user/data/relations/*.json") ?: [], "{$root}/config/content.php"] as $file) {
+			@unlink($file);
+		}
+	}
+
 	public function testPagesNestByFolderAndHierarchicalTermsByParent(): void
 	{
+		$this->removeDataTypes();
 		$this->contentConfig(['types' => ['topic' => ['folder' => 'topics', 'order' => 'position', 'hierarchical' => true]], 'relations' => ['topic' => ['kind' => 'classify', 'to' => ['topic']]]]);
 		$this->entry('topics/web.md', 'title: Web');
 		$this->entry('topics/css.md', "title: CSS\nparent: web");
@@ -425,7 +439,7 @@ final class ContentRepositoryTest extends TestCase
 	public function testAStaleIndexIsRebuilt(): void
 	{
 		$this->repository()->query()->get();
-		$this->contentConfig([]);
+		$this->removeDataTypes();
 
 		$content = $this->repository($this->site());
 

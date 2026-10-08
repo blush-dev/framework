@@ -194,9 +194,8 @@ final class DirectiveRegistry implements Countable
 
 		if (! $parsed->isCore() && $this->isTheme !== null && ($this->isTheme)($parsed->namespace)) {
 			throw new RegistrationException(sprintf(
-				'"%s" is in a theme\'s namespace, and themes can\'t register directives (D-532): register it from a plugin or the site (app/%s), or make it a component the theme\'s templates use.',
-				$name,
-				$parsed->name
+				'"%s" is in a theme\'s namespace, and themes can\'t register directives (D-532): register it from a plugin, or make it a component the theme\'s templates use.',
+				$name
 			));
 		}
 

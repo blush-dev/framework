@@ -18,7 +18,7 @@ use Blush\Auth\AuthConfig;
 use Blush\Clock\DateFormat;
 use Blush\Config\Config;
 use Blush\Config\InvalidConfig;
-use Blush\Content\Type\ContentConfig;
+use Blush\Content\ContentConfig;
 use Blush\Content\Type\ContentTypes;
 use Blush\Content\Type\TypeKind;
 use Blush\Core\AppConfig;

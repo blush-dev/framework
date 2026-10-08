@@ -25,6 +25,7 @@ use Blush\Core\Application;
 use Blush\Event\Listener\ListenerRegistry;
 use Blush\Support\RegistrationException;
 use Blush\Tests\BootsScratchSite;
+use Blush\Tests\WritesThemeViews;
 use Blush\Tests\Fixtures\Directive\Box;
 use Blush\Tests\Fixtures\Directive\Defaulted;
 use Blush\Theme\ThemeException;
@@ -41,6 +42,7 @@ use Blush\View\Views;
 final class VariantsTest extends TestCase
 {
 	use BootsScratchSite;
+	use WritesThemeViews;
 
 	private Application $app;
 
@@ -80,22 +82,22 @@ final class VariantsTest extends TestCase
 		$this->assertFalse(Variant::isValidName('default'));
 		$this->assertFalse(Variant::isValidName('Wide'));
 		$this->assertTrue(Variant::isValidName('wide-left'));
-		$this->assertSame('tight', new Variant('compact', 'app', 'tight')->modifier());
+		$this->assertSame('tight', new Variant('compact', 'acme', 'tight')->modifier());
 
 		$this->expectException(InvalidArgumentException::class);
-		new Variant('default', 'app');
+		new Variant('default', 'acme');
 	}
 
 	public function testRegistrationRejectsADefaultVariant(): void
 	{
 		$registry = new DirectiveRegistry();
 
-		$registry->register('app/note', Box::class);
-		$this->assertSame(['wide'], self::names($registry->get('app/note')?->variants() ?? []));
-		$this->assertSame('app', $registry->get('app/note')?->variants()[0]->registrant);
+		$registry->register('acme/note', Box::class);
+		$this->assertSame(['wide'], self::names($registry->get('acme/note')?->variants() ?? []));
+		$this->assertSame('acme', $registry->get('acme/note')?->variants()[0]->registrant);
 
 		$this->expectException(RegistrationException::class);
-		$registry->register('app/box', Defaulted::class);
+		$registry->register('acme/box', Defaulted::class);
 	}
 
 	public function testVariantsAddTheirModifierAndDefaultAddsNothing(): void
@@ -116,8 +118,8 @@ final class VariantsTest extends TestCase
 		$this->app->container()->make(ListenerRegistry::class)->listen(DirectiveVariantsCollecting::class, static function (DirectiveVariantsCollecting $event) use (&$calls): void {
 			if ($event->is('callout')) {
 				$calls++;
-				$event->add('bordered', 'app');
-				$event->add('boxed', 'app', 'box');
+				$event->add('bordered', 'acme');
+				$event->add('boxed', 'acme', 'box');
 				$event->add('themed', 'other-theme');
 				$event->remove('tip');
 			}
@@ -187,7 +189,7 @@ final class VariantsTest extends TestCase
 
 	public function testAVariantsOwnTemplateWins(): void
 	{
-		$this->writeTemporaryFile('resources/views/directives/callout-warning.php', 'warning template: <?= $directive->variant ?>');
+		$this->themeView('directives/callout-warning.php', 'warning template: <?= $directive->variant ?>');
 
 		$views = $this->boot();
 

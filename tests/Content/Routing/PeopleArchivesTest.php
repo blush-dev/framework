@@ -70,6 +70,12 @@ final class PeopleArchivesTest extends TestCase
 	private function boot(array $post = [], array $profile = [], ?array $authors = [], array $relations = []): Application
 	{
 		$this->standardContent();
+
+		// Only what this boot defines: types and relations are files.
+		foreach ([...glob($this->temporaryDirectory() . '/user/data/types/*.json') ?: [], ...glob($this->temporaryDirectory() . '/user/data/relations/*.json') ?: []] as $file) {
+			unlink($file);
+		}
+
 		$this->contentConfig([
 			'types' => [
 				'post' => [

@@ -23,6 +23,7 @@ use Blush\Content\RelationArchives;
 use Blush\Http\Kernel;
 use Blush\Http\Request;
 use Blush\Tests\Content\BuildsContentSite;
+use Blush\Tests\WritesThemeViews;
 
 #[CoversClass(TermController::class)]
 #[CoversClass(RelatedController::class)]
@@ -31,6 +32,7 @@ use Blush\Tests\Content\BuildsContentSite;
 final class RelationArchivesTest extends TestCase
 {
 	use BuildsContentSite;
+	use WritesThemeViews;
 
 	protected function setUp(): void
 	{
@@ -55,9 +57,9 @@ final class RelationArchivesTest extends TestCase
 
 		$list = '<?= e(implode(", ", array_map(fn ($item) => $item->title, $entries->all()))) ?>';
 
-		$this->writeTemporaryFile('resources/views/term.php', "term {$list}");
-		$this->writeTemporaryFile('resources/views/related.php', "related <?= e(\$title) ?>: {$list}");
-		$this->writeTemporaryFile('resources/views/related-list.php', "list <?= e(\$title) ?>: {$list}");
+		$this->themeView('term.php', "term {$list}");
+		$this->themeView('related.php', "related <?= e(\$title) ?>: {$list}");
+		$this->themeView('related-list.php', "list <?= e(\$title) ?>: {$list}");
 	}
 
 	private function get(string $uri): ResponseInterface

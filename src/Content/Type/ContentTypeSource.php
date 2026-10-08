@@ -15,8 +15,9 @@ namespace Blush\Content\Type;
 
 /**
  * Supplies content types from an extension (D-041). An extension tags its
- * source with `ContentTypeSource::TAG` in a provider's `TAGS`. The site's
- * `config/content.php` can redefine any type an extension adds.
+ * source with `ContentTypeSource::TAG` in a provider's `TAGS`. A data type
+ * in `user/data/types` can change a collection or tree an extension adds
+ * (D-349).
  */
 interface ContentTypeSource
 {

@@ -24,6 +24,7 @@ use Blush\Content\Entry\EntryHydrator;
 use Blush\Http\Kernel;
 use Blush\Http\Request;
 use Blush\Tests\Content\BuildsContentSite;
+use Blush\Tests\WritesThemeViews;
 use Blush\View\Template;
 use Blush\View\ViewFactory;
 
@@ -36,6 +37,7 @@ use Blush\View\ViewFactory;
 final class RenderedBodiesTest extends TestCase
 {
 	use BuildsContentSite;
+	use WritesThemeViews;
 
 	/**
 	 * Returns the number of entries in a store namespace.
@@ -100,7 +102,7 @@ final class RenderedBodiesTest extends TestCase
 		$this->standardContent();
 		$this->writeTemporaryFile('config/cache.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn new Blush\\Cache\\CacheConfig(pages: false);\n");
 		$this->writeTemporaryFile('fragment.txt', 'first');
-		$this->writeTemporaryFile('resources/views/single.php', sprintf(
+		$this->themeView('single.php', sprintf(
 			'<?php $template->layout("base") ?>[<?= $template->cache("note", fn () => file_get_contents(%s)) ?>]',
 			var_export($this->temporaryDirectory() . '/fragment.txt', true)
 		));

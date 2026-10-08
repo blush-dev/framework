@@ -714,7 +714,7 @@ needs are written empty for you to fill in, such as
 `::blush/video{src=""}`. Undo takes an insertion back.
 
 The list has every registered directive with a class: the built-in
-ones, your site's, and your plugins' (grouped by where they come from).
+ones and your plugins' (grouped by where they come from).
 Themes don't add blocks; they style them. See
 [Making a directive](directives.md#making-a-directive) to add yours.
 
@@ -766,8 +766,7 @@ kind, saying why.
 
 The shapes button opens your theme's [icons](directives.md#icons),
 grouped: the built-in icons by category (Status, Interface, Arrows, and
-so on), then your theme's, your site's, your icon packs', and your
-plugins'. Pick a
+so on), then your theme's, your icon packs', and your plugins'. Pick a
 group on the left, or search by name or what it shows (`home` finds the
 house), then choose one and **Insert** (or double-click it; after a
 search, Enter inserts the first match). It goes in at the cursor as
@@ -968,14 +967,14 @@ file you uploaded. You can also put files in
 
 With `site.settings`, **Config → Content types** lists every type, with
 its kind (**Terms** for a [type of terms](content-types.md#terms-and-relationships)),
-where it's defined, how many fields it has, and how many entries. Tabs
+where it's defined (built in, a plugin, or `user/data/types`), how
+many fields it has, and how many entries. Tabs
 narrow it (Collections, Terms, Trees, Profiles; only the ones the site
 has), beside a search. Choose one for its settings, its relationships,
 and its fields; **Type Settings** on a type's list goes there too.
 
 Types in `user/data/types` are edited on their screen. So are
-collections and [trees](content-types.md#trees) from
-`config/content.php` and plugins:
+collections and [trees](content-types.md#trees) from plugins:
 what you change is saved in `user/data/types/{key}.json` over the code's
 definition (see [Changing a type from code](content-types.md#changing-a-type-from-code)).
 The pages and profiles types defined in code stay as they are, so their
@@ -1037,8 +1036,7 @@ its side ("Credits **Profiles** as Cooks", "Filed under **Courses**",
 is stored: the ones **Stored on** this type (its files carry the key)
 have **Edit** and **Remove**; one stored on another type has only the
 way to that type (**Edit on Posts**), since that's where it's edited.
-One from `config/content.php` or a plugin keeps its row with **In
-code**, and says where it's defined. **View in Relationships** opens
+One from a plugin keeps its row with **In code**, and says where it's defined. **View in Relationships** opens
 the [Relationships](#relationships) list for this type, and **Add
 Relationship** starts one stored here.
 
@@ -1093,8 +1091,8 @@ names post; remove it first.").
 
 A type from code says where it's defined and where changes go. Its file
 keeps only what differs from the code, and is removed when everything
-is back at the code's values. **Reset to config/content.php** (or to
-the plugin) removes the file, undoing every change made here; a type
+is back at the code's values. **Reset the Type** removes the file,
+going back to the plugin's definition and undoing every change made here; a type
 from code can't be deleted here. If some of its fields are field
 classes from code, its fields are shown but changed in code.
 
@@ -1109,8 +1107,7 @@ matches either end (everything that points at Profiles, and everything
 Recipes points at), and a source filter. Each row has its name (its
 key under it), what it **Connects** (the type that stores it, then the
 one it points at), its kind, its **Source**, and how many entries have
-a value in it. A relation from `config/content.php` or a plugin is
-listed, but changed where it's defined; one still written as a
+a value in it. A relation from a plugin is listed, but changed where it's defined; one still written as a
 taxonomy is marked, with **Migrate** going to
 [Site Health](#site-health). **New Relationship** opens a new one.
 

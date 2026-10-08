@@ -205,7 +205,7 @@ has `dir="rtl"`, so it reads right to left.
 Date archive titles are written the language's way too
 (`3 de diciembre de 2025`). Directives follow the page as well, in
 templates and in Markdown: a
-`::app/recent-posts` in `about.fr.md` lists the French posts, and
+`::acme/recent-posts` in `about.fr.md` lists the French posts, and
 `time`, `progress`, `meter`, and `file` write their dates and numbers
 the French way (`1 250,5`, `62 %`).
 

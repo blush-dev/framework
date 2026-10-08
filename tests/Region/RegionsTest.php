@@ -29,6 +29,7 @@ use Blush\Region\RegionLoader;
 use Blush\Region\RegionLocation;
 use Blush\Region\Regions;
 use Blush\Tests\BootsScratchSite;
+use Blush\Tests\WritesThemeViews;
 use Blush\Theme\ThemeResolver;
 
 #[CoversClass(Regions::class)]
@@ -43,13 +44,13 @@ use Blush\Theme\ThemeResolver;
 final class RegionsTest extends TestCase
 {
 	use BootsScratchSite;
+	use WritesThemeViews;
 
 	private function app(): Application
 	{
 		$this->writeTemporaryFile('user/content/about.md', "---\ntitle: About\n---\nAbout.");
 		$this->writeTemporaryFile('user/content/bonjour.md', "---\ntitle: Bonjour\nlocale: fr\n---\nBonjour.");
 		$this->writeTemporaryFile('user/content/_regions/blurb.md', "---\ntitle: Blurb\n---\nA *blurb* from an entry.");
-		$this->writeTemporaryFile('resources/views/partials/hello.php', "<?php declare(strict_types=1); ?><p class=\"hello\">Hello, <?= e(\$name) ?>.</p>");
 
 		$app = $this->scratchApplication(['APP_ENV' => 'development']);
 		$app->boot();
@@ -75,11 +76,12 @@ final class RegionsTest extends TestCase
 			    name: { en: friend, fr: ami }
 			  - directive: callout
 			    variant: info
-			  - component: app/badge
+			  - component: site/badge
 			    text: { en: New, fr: Nouveau }
 			  - view: partials/missing
 			YAML);
-		$this->writeTemporaryFile('resources/views/components/app-badge.php', '<span <?= $component->attributes() ?>><?= e($component->prop("text")) ?></span>');
+		$this->themeView('partials/hello.php', "<?php declare(strict_types=1); ?><p class=\"hello\">Hello, <?= e(\$name) ?>.</p>");
+		$this->themeView('components/site-badge.php', '<span <?= $component->attributes() ?>><?= e($component->prop("text")) ?></span>');
 
 		$app  = $this->app();
 		$html = $this->page($app, '/about');

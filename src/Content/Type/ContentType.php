@@ -476,7 +476,7 @@ abstract readonly class ContentType
 		// Credits are relations (D-602).
 		foreach (['people', 'authors'] as $gone) {
 			if (array_key_exists($gone, $data)) {
-				throw new InvalidContentType(sprintf('Content type "%s" sets "%s", but a type credits people through a credit relation now, defined with the others (user/data/relations or config/content.php\'s relations): {"kind": "credit", "from": ["%s"], "to": ["profile"]}.', $name, $gone, $name));
+				throw new InvalidContentType(sprintf('Content type "%s" sets "%s", but a type credits people through a credit relation now, defined with the others (in user/data/relations or a plugin): {"kind": "credit", "from": ["%s"], "to": ["profile"]}.', $name, $gone, $name));
 			}
 		}
 

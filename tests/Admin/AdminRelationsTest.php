@@ -25,6 +25,7 @@ use Blush\Content\Relation\RelationLoader;
 use Blush\Content\Type\ContentTypeLoader;
 use Blush\Content\Type\ContentTypes;
 use Blush\Content\Type\TaxonomyMigration;
+use Blush\Tests\WritesContentConfig;
 
 #[CoversClass(RelationsController::class)]
 #[CoversClass(TypeEditController::class)]
@@ -35,6 +36,7 @@ use Blush\Content\Type\TaxonomyMigration;
 final class AdminRelationsTest extends TestCase
 {
 	use BootsAdmin;
+	use WritesContentConfig;
 
 	protected function tearDown(): void
 	{
@@ -508,7 +510,7 @@ final class AdminRelationsTest extends TestCase
 
 	public function testWontReplaceARelationDefinedInCode(): void
 	{
-		$this->writeTemporaryFile('config/content.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn Blush\\Content\\Type\\ContentConfig::fromArray(['relations' => ['cuisine' => ['kind' => 'classify', 'from' => ['recipe'], 'to' => ['cuisine']]]]);\n");
+		$this->codeConfig(['relations' => ['cuisine' => ['kind' => 'classify', 'from' => ['recipe'], 'to' => ['cuisine']]]]);
 		$this->site();
 
 		$response = $this->write('POST', '/relations', ['name' => 'cuisine', 'kind' => 'classify', 'to' => ['cuisine']]);

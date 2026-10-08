@@ -14,9 +14,10 @@ declare(strict_types=1);
 namespace Blush\Tests\Fixtures\Content;
 
 /**
- * jtcom's `config/content.php` from 1.x, verbatim apart from the routing
- * controller it didn't use. `ContentConfig::fromArray()` must accept it
- * unchanged (D-078).
+ * jtcom's types from its 1.x `config/content.php`, verbatim apart from
+ * the routing controller it didn't use. A type's definition must accept
+ * them unchanged (D-078), as data files in `user/data/types` or a
+ * plugin's.
  */
 final class JtcomTypes
 {

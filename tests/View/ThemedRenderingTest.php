@@ -22,6 +22,7 @@ use Blush\Http\Kernel;
 use Blush\Http\Middleware\HandleErrors;
 use Blush\Http\Request;
 use Blush\Tests\Content\BuildsContentSite;
+use Blush\Tests\WritesThemeViews;
 use Blush\View\Hierarchy;
 use Blush\View\ThemedErrorPages;
 use Blush\View\ThemedPageRenderer;
@@ -33,6 +34,7 @@ use Blush\View\ThemedPageRenderer;
 final class ThemedRenderingTest extends TestCase
 {
 	use BuildsContentSite;
+	use WritesThemeViews;
 
 	private function get(string $uri, ?Application $app = null): ResponseInterface
 	{
@@ -156,26 +158,6 @@ final class ThemedRenderingTest extends TestCase
 		$this->assertStringContainsString('<h1 class="entry__title">Biography</h1>', $this->body('/about/biography', $app));
 	}
 
-	public function testSiteViewsOverrideThemes(): void
-	{
-		$this->standardContent();
-		$this->childTheme();
-		$this->activeTheme('acme/child');
-		$this->writeTemporaryFile('resources/views/single-post.php', 'site override');
-		$this->writeTemporaryFile('resources/views/themes/acme/child/single-post.php', 'child-scoped override');
-		$this->writeTemporaryFile('resources/views/themes/acme/other/single.php', 'other-scoped override');
-
-		// Template changes reach a cached site on deploy (`cache:clear`);
-		// this test changes them between requests.
-		$this->writeTemporaryFile('config/cache.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn new Blush\\Cache\\CacheConfig(enabled: false);\n");
-
-		$this->assertSame('child-scoped override', $this->body('/archives/spring'));
-
-		unlink($this->temporaryDirectory() . '/resources/views/themes/acme/child/single-post.php');
-
-		$this->assertSame('site override', $this->body('/archives/spring'));
-	}
-
 	public function testSiteTranslationsOverrideThemes(): void
 	{
 		$this->standardContent();
@@ -205,9 +187,9 @@ final class ThemedRenderingTest extends TestCase
 	public function testPartialsSeeThePageAndTaxonomyListingsShareATemplate(): void
 	{
 		$this->standardContent();
-		$this->writeTemporaryFile('resources/views/collection-terms.php', '<?php $template->layout(\'base\') ?><?= $template->include(\'partials/terms-title\') ?>');
-		$this->writeTemporaryFile('resources/views/partials/terms-title.php', '<p class="terms"><?= e($title) ?>: <?= e($type->name) ?>, <?= count($page->entries ?? []) ?></p>');
-		$this->writeTemporaryFile('resources/views/partials/footer.php', '<footer><?= e($entry?->title ?? "none") ?></footer>');
+		$this->themeView('collection-terms.php', '<?php $template->layout(\'base\') ?><?= $template->include(\'partials/terms-title\') ?>');
+		$this->themeView('partials/terms-title.php', '<p class="terms"><?= e($title) ?>: <?= e($type->name) ?>, <?= count($page->entries ?? []) ?></p>');
+		$this->themeView('partials/footer.php', '<footer><?= e($entry?->title ?? "none") ?></footer>');
 
 		$app = $this->site();
 
@@ -220,8 +202,8 @@ final class ThemedRenderingTest extends TestCase
 	{
 		$this->standardContent();
 		$this->entry('about/index.md', "title: About\ntemplate: [about-page]\nlayout: plain\nclass: [wide, 'dark mode']");
-		$this->writeTemporaryFile('resources/views/about-page.php', '<?php $template->layout(\'base\') ?>custom about');
-		$this->writeTemporaryFile('resources/views/layouts/plain.php', '<body class="<?= attr($template->bodyClass()) ?>"><?= $template->section(\'content\') ?></body>');
+		$this->themeView('about-page.php', '<?php $template->layout(\'base\') ?>custom about');
+		$this->themeView('layouts/plain.php', '<body class="<?= attr($template->bodyClass()) ?>"><?= $template->section(\'content\') ?></body>');
 
 		$this->assertSame('<body class="wide dark mode is-page type-page">custom about</body>', $this->body('/about'));
 	}
@@ -285,14 +267,14 @@ final class ThemedRenderingTest extends TestCase
 		$this->assertStringContainsString('<h1 class="entry__title">404</h1>', $this->body('/nowhere', $app));
 
 		$this->entry('_errors/404.md', "title: Lost?\ntemplate: lost", 'Try the *archives*.');
-		$this->writeTemporaryFile('resources/views/lost.php', '<?php $template->layout(\'base\') ?>lost view');
+		$lost = $this->themeView('lost.php', '<?php $template->layout(\'base\') ?>lost view');
 
 		$html = $this->body('/nowhere', $this->site('development'));
 
 		$this->assertStringContainsString('<title>Lost? | Blush</title>', $html);
 		$this->assertStringContainsString('lost view', $html);
 
-		unlink($this->temporaryDirectory() . '/resources/views/lost.php');
+		unlink($lost);
 
 		$this->assertStringContainsString('<p>Try the <em>archives</em>.</p>', $this->body('/nowhere', $this->site('development')));
 		$this->assertSame(404, $this->get('/_errors/404')->getStatusCode());
@@ -330,7 +312,7 @@ final class ThemedRenderingTest extends TestCase
 	public function testABrokenErrorPageFallsBackToTheGenericOne(): void
 	{
 		$this->standardContent();
-		$this->writeTemporaryFile('resources/views/error.php', '<?php throw new RuntimeException("Broken error view");');
+		$this->themeView('error.php', '<?php throw new RuntimeException("Broken error view");');
 
 		$response = $this->get('/nowhere');
 

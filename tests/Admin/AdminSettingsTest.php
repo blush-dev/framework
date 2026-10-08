@@ -19,7 +19,7 @@ use Psr\Http\Message\ResponseInterface;
 use Blush\Admin\MediaUploadController;
 use Blush\Admin\SettingsController;
 use Blush\Admin\SettingsEditController;
-use Blush\Content\Type\ContentConfig;
+use Blush\Content\ContentConfig;
 use Blush\Core\AppConfig;
 use Blush\Core\Bootstrap;
 use Blush\Core\CompiledCache;
@@ -27,6 +27,7 @@ use Blush\Core\Paths;
 use Blush\Feed\FeedConfig;
 use Blush\Settings\SiteSettings;
 use Blush\Settings\SettingsTargets;
+use Blush\Tests\WritesContentConfig;
 
 #[CoversClass(SettingsController::class)]
 #[CoversClass(SettingsEditController::class)]
@@ -35,6 +36,7 @@ use Blush\Settings\SettingsTargets;
 final class AdminSettingsTest extends TestCase
 {
 	use BootsAdmin;
+	use WritesContentConfig;
 
 	protected function tearDown(): void
 	{
@@ -59,7 +61,7 @@ final class AdminSettingsTest extends TestCase
 
 	public function testShowsTheSettingsAndWhichAreDefaults(): void
 	{
-		$this->writeTemporaryFile('config/content.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn Blush\\Content\\Type\\ContentConfig::fromArray(['types' => ['post' => ['path' => 'posts']], 'home' => 'post']);\n");
+		$this->contentConfig(['types' => ['post' => ['path' => 'posts']], 'home' => 'post']);
 		$this->writeTemporaryFile('config/feed.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn new Blush\\Feed\\FeedConfig(content: false);\n");
 		$this->boot(roles: ['administrator'], environment: ['APP_NAME' => 'Notes', 'APP_TIMEZONE' => 'America/Chicago', 'PUBLISH_SECRET' => str_repeat('p', 40)]);
 		$this->login();
@@ -127,7 +129,7 @@ final class AdminSettingsTest extends TestCase
 
 	public function testShowsAndSavesTheAiScreen(): void
 	{
-		$this->writeTemporaryFile('config/content.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn Blush\\Content\\Type\\ContentConfig::fromArray(['types' => ['post' => ['path' => 'posts', 'llms' => false], 'note' => ['path' => 'notes'], 'tag' => ['path' => 'tags', 'order' => 'position', 'llms' => false]], 'relations' => ['tag' => ['kind' => 'classify', 'to' => ['tag']]]]);\n");
+		$this->contentConfig(['types' => ['post' => ['path' => 'posts', 'llms' => false], 'note' => ['path' => 'notes'], 'tag' => ['path' => 'tags', 'order' => 'position', 'llms' => false]], 'relations' => ['tag' => ['kind' => 'classify', 'to' => ['tag']]]]);
 		$this->writeTemporaryFile('user/content/about.md', "---\ntitle: About\n---\n");
 		$this->writeTemporaryFile('user/content/notes/one.md', "---\ntitle: One\n---\n");
 		$this->boot(roles: ['administrator'], environment: ['APP_ENV' => 'production']);

@@ -46,13 +46,9 @@ my-site/
     media/        Images, audio, and video
     data/         Editable data: menus, regions, redirects, theme settings, content types
   extensions/     Themes, plugins, and icon packs you've made or installed, at their names (acme/hello/)
-  resources/
-    views/        Template overrides for whatever theme is active
-    lang/         Translations for your own directives and icons (the `app` namespace)
-    icons/        Your own SVG icons (see Directives)
   public/         The web root: index.php and published files only
   storage/        Caches, the content index, logs, sessions, admin accounts, and deleted entries (never commit)
-  src/            Your own PHP classes (the App\ namespace)
+  src/            Optional PHP classes of your own (the App\ namespace); reusable code belongs in a plugin
   bin/blush       The command-line tool
 ```
 
@@ -65,4 +61,7 @@ its `git pull`) only ever touches `user/`, so publishing content never
 deploys code. The [extensions](extending.md#extensions) you add, themes,
 plugins, and icon packs, live in `extensions/`, each in a folder at its
 name (`extensions/acme/notebook/`), the way Composer keeps packages in
-`vendor/`. Each can be its own git repository.
+`vendor/`. Each can be its own git repository. The site itself has no
+templates, icons, or code conventions of its own: templates come from
+themes (to change one, make a [child theme](themes.md#child-themes)),
+icons from icon packs, plugins, and themes, and code from plugins.

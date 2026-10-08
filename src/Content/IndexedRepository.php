@@ -27,7 +27,7 @@ use Blush\Content\Index\Indexer;
 use Blush\Content\Query\EntryCollection;
 use Blush\Content\Query\Paginator;
 use Blush\Content\Query\Query;
-use Blush\Content\Type\ContentConfig;
+use Blush\Content\ContentConfig;
 use Blush\Content\Type\ContentTypes;
 use Blush\Core\AppConfig;
 

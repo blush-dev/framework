@@ -380,8 +380,6 @@ Move each item to `decisions.md` once it's answered.
   - **Shape:** helpers on `ServiceProvider` (`components()`,
     `directives()`, `icons()`), or an `ExtensionProvider` base for
     themes and plugins.
-  - **The site's provider** (`App\SiteProvider`): the `app` namespace
-    and `resources/`, the same way.
 
 - **A pull quote directive** (discussed 2026-10-06, from D-556). A
   pull quote and a quote are two different things (the author):
@@ -866,8 +864,6 @@ Move each item to `decisions.md` once it's answered.
   - Multilingual sites in 2.0.0 (D-451, D-036): the site's languages,
     translated content, and translated strings likely belong on one
     screen, with what's missing per language.
-  - Whether `user/lang/{locale}/app.json` is offered in the admin, or
-    the site's own strings stay in `resources/lang`.
   - The admin's own strings, which aren't translatable yet (D-278).
 - **Turning languages on and off** (raised 2026-10-04, D-470): the
   author asked for a switch for multilingual as a whole. Proposed
@@ -933,7 +929,7 @@ Move each item to `decisions.md` once it's answered.
     the parameters raw.
   - **`lang:extract [vendor/name] [--prune] [--dry-run]`**: reads an
     extension's PHP (templates and `src/`; also the framework's `blush`
-    domain and the site's `app`) with PHP's tokenizer for `text()`
+    domain) with PHP's tokenizer for `text()`
     calls; checks each message is valid ICU; adds new keys with their
     English and `@key` context to `lang/en.json`, keeping what's there;
     marks a key whose English changed, so translators recheck it;
@@ -987,11 +983,6 @@ Move each item to `decisions.md` once it's answered.
   until a relation says so, D-602), and a profile for the post's
   author. In `user/data`, so the admin can edit them. Done in its own
   worktree of `2.x`, since `../blush` is on `jtcom-trial`.
-- **Where jtcom's content types live** (D-166, D-169): `config/content.php`
-  today. Options: data types in `user/data/types/` (travel with the
-  content repo; a checked sketch matches the config exactly), or a
-  plugin in `extensions/` (WordPress-style, with site PHP such as a
-  future blog plugin; D-418).
 - **Live preview** (D-252): the author is leaning toward a more visual
   editor in the admin, with live preview on the front end (the site
   itself) rather than a rendered preview inside the editor. Not settled.
@@ -1441,6 +1432,13 @@ Move each item to `decisions.md` once it's answered.
   design and what it taught are in `theming.md` → Design.
 
 ## Tooling
+- **Review every CLI command** (raised 2026-10-08, D-617, D-618): the
+  author wants all commands reviewed against the scaled-back site
+  layer (code in extensions, templates in themes, types from plugins
+  or the admin). `theme:new`'s stylesheet for child themes is done
+  (D-618); look for other commands that assume site views, the `app`
+  namespace, or types in config, and for ones that no longer earn
+  their place.
 - **Benchmark regressions in CI** (D-044, D-101): CI machines differ from
   the author's, so absolute baselines don't transfer. Options: compare
   against a baseline measured in the same CI run (the base branch), or

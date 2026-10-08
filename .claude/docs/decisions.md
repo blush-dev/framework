@@ -18477,3 +18477,67 @@ decision, add a new entry that supersedes it and mark the old one
   with extensions under it." Config had 13 links in three groups.
   Labels are short verbs because the rail's 60px buttons leave about
   56px for a 10px label, and "Extensions" would barely fit.
+
+### D-617: The site layer is config, with code in extensions
+
+- **Date:** 2026-10-08
+- **Status:** Built. Amends D-042 and D-593 (types and relations from
+  config), D-103 (`ViewFinder`'s site folders), D-173 (the `app`
+  translation domain), D-187 (the site's icons), and D-532 (directives
+  from the site).
+- **Decision:** 2.x is a way for agencies to set up installs for
+  clients, and configure them. Code lives in extensions wherever it
+  can. The site's root is config, `user/`, `extensions/`, `storage/`,
+  `public/`, and `src/`:
+  - **No site templates.** `resources/` at the site's root is gone
+    (`Paths::$resources` with it): no `resources/views` (or
+    `resources/views/themes/{vendor}/{name}`) searched before the
+    theme, no site components or directive templates, no `app`
+    translation domain (`resources/lang`), and no site icons
+    (`resources/icons`, `app/{name}` or `{ns}/{name}.svg` overrides).
+    Templates are a theme's, so a child theme changes a theme. Icons
+    come from icon packs, and text from the extension that shows it.
+  - **The `app` namespace is retired** for directives, components, and
+    icons (`DirectiveName::SITE`, `ComponentName::SITE`,
+    `IconName::SITE`). Directives come from core and plugins.
+  - **`src/` stays, as an escape hatch:** providers in `AppConfig`'s
+    `providers`, under `App\`, may call any registry, but the framework
+    has no site conventions for them (nothing found by file). Tools
+    still label an `App\` class "This site".
+  - **No types or relations in config.** `ContentConfig` loses
+    `types`, `definitions` (its types in array form), and `relations`.
+    Types come from core, plugins (`ContentTypeSource`), and
+    `user/data/types` (the admin); relations from plugins
+    (`RelationSource`) and `user/data/relations`. `TypeOrigin::Config`
+    and `RelationOrigin::Config` are gone. `ContentConfig` keeps
+    `home`, `dataTypes`, `dataTypeUrls`, `disabled`, and `autoIndex`,
+    and moves from `Blush\Content\Type` to `Blush\Content`, beside
+    the subsystem it configures, as `MediaConfig` and `FeedConfig` are
+    (the author's call).
+  - **White-labeling, planned:** when the admin shows a Blush credit
+    or logo, `AdminConfig` gets an option to turn it off.
+  - **The jtcom trial** moves its types, relations, and
+    `post-archives` directive into a plugin,
+    `justintadlock/jtcom-content`, and keeps `home` in config.
+- **Why:** the author, 2026-10-08: "I don't think it should have its
+  own things like templates. That's for the theme. Of course, with code
+  access, they're welcome to do whatever they want," and
+  `config/content.php` is "an old-school 1.x carryover that I think is
+  either best done through code or the admin." One place for each kind
+  of thing also answers "where does this come from?" for people and
+  for the admin.
+
+### D-618: theme:new gives a child theme no stylesheet
+
+- **Date:** 2026-10-08
+- **Status:** Built.
+- **Decision:** `theme:new --parent=…` writes no `style.css` and no
+  `styles` in the child's `theme.json`. `styles` defaults to
+  `["style.css"]`, found through the chain, so the parent's
+  stylesheet loads. A theme without a parent still gets its
+  `style.css`. Every CLI command is due a review against D-617 (see
+  `open-questions.md`).
+- **Why:** with D-617, a child theme is how a site changes a theme, and
+  the empty `style.css` it was given replaced the parent's styles. The
+  author: "skip style.css for child themes, but we need to review all
+  commands at some point."

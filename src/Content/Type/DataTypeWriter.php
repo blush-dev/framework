@@ -16,6 +16,7 @@ namespace Blush\Content\Type;
 use Closure;
 use Throwable;
 use Blush\Container\Attributes\Defer;
+use Blush\Content\ContentConfig;
 use Blush\Content\Relation\Relation;
 use Blush\Content\Writer\DataFileKeys;
 use Blush\Core\Paths;
@@ -197,7 +198,7 @@ final readonly class DataTypeWriter
 
 	/**
 	 * Returns the type the code defines under a name, when the admin may
-	 * change it through a data file: an extension's or the config's
+	 * change it through a data file: an extension's
 	 * collection, taxonomy, or tree in a folder. `null` for a name the code doesn't define
 	 * (or only as a built-in type, which a data type replaces whole).
 	 *
@@ -209,7 +210,7 @@ final readonly class DataTypeWriter
 
 		$origin = $origins[$name] ?? null;
 
-		if ($origin !== TypeOrigin::Config && $origin !== TypeOrigin::Extension) {
+		if ($origin !== TypeOrigin::Extension) {
 			return null;
 		}
 

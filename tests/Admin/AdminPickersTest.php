@@ -56,7 +56,9 @@ final class AdminPickersTest extends TestCase
 		$this->writeTemporaryFile('user/content/trip/index.md', "---\ntitle: Trip\nauthors: jane\n---\n");
 		$this->writeTemporaryFile('user/content/trip/beach.png', $png);
 		$this->writeTemporaryFile('user/content/other.md', "---\ntitle: Other\nauthors: sam\n---\n");
-		$this->writeTemporaryFile('resources/icons/logo.svg', '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/></svg>');
+		$this->writeTemporaryFile('extensions/test/site/theme.json', '{"name": "test/site", "label": "Test Site", "namespace": "site", "parent": "blush/default"}');
+		$this->writeTemporaryFile('config/theme.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn new Blush\\Theme\\ThemeConfig(active: 'test/site');\n");
+		$this->writeTemporaryFile('extensions/test/site/icons/logo.svg', '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/></svg>');
 
 		$this->boot(roles: $roles);
 		$this->login();
@@ -465,9 +467,9 @@ final class AdminPickersTest extends TestCase
 
 		$this->assertSame([], array_column($uncategorized, 'name'), 'Every core icon has a category in categories.json.');
 
-		$logo = array_find($icons, static fn (mixed $icon): bool => is_array($icon) && ($icon['name'] ?? null) === 'app/logo');
+		$logo = array_find($icons, static fn (mixed $icon): bool => is_array($icon) && ($icon['name'] ?? null) === 'site/logo');
 
-		$this->assertIsArray($logo, 'The site\'s icons are named in full.');
-		$this->assertSame([null, ['kind' => 'site', 'label' => 'This site']], [$logo['category'] ?? null, $logo['source'] ?? null], 'The rest are grouped by where they come from.');
+		$this->assertIsArray($logo, 'A theme\'s icons are named in full.');
+		$this->assertSame([null, ['kind' => 'theme', 'label' => 'Test Site']], [$logo['category'] ?? null, $logo['source'] ?? null], 'The rest are grouped by where they come from.');
 	}
 }

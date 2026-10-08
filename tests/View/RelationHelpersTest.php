@@ -18,12 +18,14 @@ use PHPUnit\Framework\TestCase;
 use Blush\Http\Kernel;
 use Blush\Http\Request;
 use Blush\Tests\Content\BuildsContentSite;
+use Blush\Tests\WritesThemeViews;
 use Blush\View\Template;
 
 #[CoversClass(Template::class)]
 final class RelationHelpersTest extends TestCase
 {
 	use BuildsContentSite;
+	use WritesThemeViews;
 
 	protected function setUp(): void
 	{
@@ -48,9 +50,9 @@ final class RelationHelpersTest extends TestCase
 		$this->entry('_people/tom.md', 'title: Tom');
 		$this->entry('_people/meg.md', 'title: Meg');
 
-		$this->writeTemporaryFile('resources/views/single-post.php', '<?= e(implode(", ", array_map(fn ($post) => $post->title, $template->related($entry, "related")))) ?>');
-		$this->writeTemporaryFile('resources/views/single-movie.php', '<?= e(implode(", ", array_map(fn ($person) => $person->title, $template->related($entry, "actors")))) ?>');
-		$this->writeTemporaryFile('resources/views/single-person.php', '<?= e(implode(", ", array_map(fn ($movie) => $movie->title, $template->referencedBy($entry, "movie.actors")))) ?>');
+		$this->themeView('single-post.php', '<?= e(implode(", ", array_map(fn ($post) => $post->title, $template->related($entry, "related")))) ?>');
+		$this->themeView('single-movie.php', '<?= e(implode(", ", array_map(fn ($person) => $person->title, $template->related($entry, "actors")))) ?>');
+		$this->themeView('single-person.php', '<?= e(implode(", ", array_map(fn ($movie) => $movie->title, $template->referencedBy($entry, "movie.actors")))) ?>');
 	}
 
 	private function body(string $uri): string

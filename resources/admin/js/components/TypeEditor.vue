@@ -69,7 +69,6 @@ const changed = computed(() => count.value > 0);
 
 // A type from code, changed through a file in user/data/types (D-349).
 const code   = computed(() => props.type.origin !== 'data');
-const source = computed(() => props.type.origin === 'config' ? 'config/content.php' : 'a plugin');
 const file   = computed(() => props.type.file ?? `user/data/types/${props.type.name}.yaml`);
 
 // The prefix the addresses sit under, as the form has it.
@@ -106,7 +105,7 @@ function revert(): void {
 async function reset(): Promise<void> {
 	removal.value = '';
 
-	if (!await confirmAction({ title: `Reset ${props.type.labels.plural}?`, body: `It goes back to how ${source.value} defines it: **${file.value}** is removed, and every change made here with it.`, confirm: 'Reset the Type', danger: true })) {
+	if (!await confirmAction({ title: `Reset ${props.type.labels.plural}?`, body: `It goes back to how its plugin defines it: **${file.value}** is removed, and every change made here with it.`, confirm: 'Reset the Type', danger: true })) {
 		return;
 	}
 
@@ -145,7 +144,7 @@ guardLeave(() => changed.value);
 		<section class="panel" aria-labelledby="general-heading">
 			<header class="panel__header">
 				<h2 id="general-heading">General</h2>
-				<p v-if="code" class="panel__hint">From {{ source }}; changes are saved in <code>{{ file }}</code></p>
+				<p v-if="code" class="panel__hint">From its plugin; changes are saved in <code>{{ file }}</code></p>
 				<p v-else class="panel__hint">In <code>{{ type.file }}</code></p>
 			</header>
 			<div class="panel__body form-stack">
@@ -209,15 +208,15 @@ guardLeave(() => changed.value);
 				<ul class="type-editor__fields">
 					<li v-for="field in type.fields" :key="field.name">{{ label(field) }} <span class="mono">{{ field.type }}</span></li>
 				</ul>
-				<p class="field__help">Some of its fields are field classes {{ source }} defines, so they're changed there.</p>
+				<p class="field__help">Some of its fields are field classes its plugin defines, so they're changed there.</p>
 			</div>
 		</section>
 
 		<TypeFieldSets :type="type" />
 
 		<DangerZone v-if="code" :error="removal">
-			{{ type.overridden ? `Removes ${file}, so every setting is as ${source} has it.` : `Nothing has changed it here yet.` }} It's defined in code, so it can't be deleted here.
-			<template #action><button type="button" class="button button--danger" :disabled="!type.overridden" @click="reset"><AdminIcon name="refresh-cw" />Reset to {{ source }}</button></template>
+			{{ type.overridden ? `Removes ${file}, so every setting is as its plugin has it.` : `Nothing has changed it here yet.` }} It's defined in code, so it can't be deleted here.
+			<template #action><button type="button" class="button button--danger" :disabled="!type.overridden" @click="reset"><AdminIcon name="refresh-cw" />Reset the Type</button></template>
 		</DangerZone>
 		<DangerZone v-else :error="removal">
 			Removes its file. Its entries stay on disk, unlisted until a type claims <code>user/content/{{ type.folder }}</code> again. Relationships that name it must be removed first.

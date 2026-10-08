@@ -16,7 +16,6 @@ namespace Blush\View;
 use Psr\Log\LoggerInterface;
 use Blush\Content\Entry\Entry;
 use Blush\Core\Framework;
-use Blush\Core\Paths;
 use Blush\Data\InvalidData;
 use Blush\Theme\SettingsResolver;
 use Blush\Theme\ThemeAssets;
@@ -28,9 +27,8 @@ use Blush\Translation\Translator;
  * Builds the `Views` for a theme chain, once per chain, and the context
  * a page renders in.
  *
- * Views resolve through the site's overrides first
- * (`resources/views/themes/{active}`, then `resources/views`), then the
- * chain's themes (D-024). The translator's `theme` domain reads the
+ * Views resolve through the chain's themes, the active theme first
+ * (D-024); the site has no views of its own (D-617). The translator's `theme` domain reads the
  * chain's `lang` folders.
  */
 final class ViewFactory
@@ -43,7 +41,6 @@ final class ViewFactory
 	private array $views = [];
 
 	public function __construct(
-		private readonly Paths $paths,
 		private readonly Translator $translator,
 		private readonly ViewServices $services,
 		private readonly SettingsResolver $settings,
@@ -74,11 +71,7 @@ final class ViewFactory
 	 */
 	public function directories(ThemeChain $chain): array
 	{
-		return [
-			"{$this->paths->resources}/views/themes/{$chain->active()->name}",
-			"{$this->paths->resources}/views",
-			...$chain->viewDirectories()
-		];
+		return $chain->viewDirectories();
 	}
 
 	/**

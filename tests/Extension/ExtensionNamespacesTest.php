@@ -76,9 +76,11 @@ final class ExtensionNamespacesTest extends TestCase
 		$this->assertSame('a-b-c-d', ExtensionNamespace::fromName('a.b/c-d'));
 		$this->assertTrue(ExtensionNamespace::isValid(ExtensionNamespace::fromName('a.b/c_d--e')));
 
-		foreach (['blush', 'app', 'theme', 'default'] as $reserved) {
+		foreach (['blush', 'theme', 'default'] as $reserved) {
 			$this->assertTrue(ExtensionNamespace::isReserved($reserved), $reserved);
 		}
+
+		$this->assertFalse(ExtensionNamespace::isReserved('app'), 'The site has no namespace of its own (D-617).');
 	}
 
 	public function testManifestsAreJsonOrYamlMaps(): void

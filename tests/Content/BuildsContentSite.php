@@ -20,6 +20,7 @@ use Blush\Clock\FrozenClock;
 use Blush\Content\ContentRepository;
 use Blush\Core\Application;
 use Blush\Tests\BootsScratchSite;
+use Blush\Tests\WritesContentConfig;
 
 /**
  * Writes a small, jtcom-shaped site into the scratch directory and boots
@@ -33,29 +34,9 @@ use Blush\Tests\BootsScratchSite;
 trait BuildsContentSite
 {
 	use BootsScratchSite;
+	use WritesContentConfig;
 
 	private FrozenClock $clock;
-
-	/**
-	 * Writes `config/content.php` returning `ContentConfig::fromArray()`
-	 * of the given array.
-	 *
-	 * @param array<string, mixed> $config
-	 */
-	private function contentConfig(array $config): void
-	{
-		$source = var_export($config, true);
-
-		$this->writeTemporaryFile('config/content.php', <<<PHP
-			<?php
-
-			declare(strict_types=1);
-
-			use Blush\Content\Type\ContentConfig;
-
-			return ContentConfig::fromArray({$source});
-			PHP);
-	}
 
 	/**
 	 * Writes a content file with front matter, starting with an id made

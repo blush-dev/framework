@@ -27,7 +27,7 @@ use Blush\Cache\CacheConfig;
 use Blush\Cache\PageCache;
 use Blush\Clock\DateFormat;
 use Blush\Clock\TimeZones;
-use Blush\Content\Type\ContentConfig;
+use Blush\Content\ContentConfig;
 use Blush\Content\Type\ContentType;
 use Blush\Content\Type\ContentTypes;
 use Blush\Core\AppConfig;

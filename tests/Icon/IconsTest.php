@@ -73,13 +73,11 @@ final class IconsTest extends TestCase
 		}
 	}
 
-	public function testIconsResolveThroughTheSiteThemesExtensionsAndCore(): void
+	public function testIconsResolveThroughThemesExtensionsAndCore(): void
 	{
 		$this->writeTemporaryFile('extensions/acme/alt/icons/badge.svg', self::SVG);
 		$this->writeTemporaryFile('extensions/acme/alt/icons/blush/star.svg', self::SVG);
-		$this->writeTemporaryFile('resources/icons/blush/heart.svg', self::SVG);
 		$this->writeTemporaryFile('extensions/acme/alt/icons/blush/heart.svg', self::SVG);
-		$this->writeTemporaryFile('resources/icons/logo.svg', self::SVG);
 		$this->writeTemporaryFile('extension-icons/tabs.svg', self::SVG);
 
 		$app = $this->app();
@@ -89,8 +87,7 @@ final class IconsTest extends TestCase
 		$this->assertStringNotContainsString($this->temporaryDirectory(), $this->svg($app, 'house'));
 		$this->assertStringEndsWith('extensions/acme/alt/icons/badge.svg', $this->svg($app, 'alt/badge'));
 		$this->assertStringEndsWith('extensions/acme/alt/icons/blush/star.svg', $this->svg($app, 'star'));
-		$this->assertStringEndsWith($this->temporaryDirectory() . '/resources/icons/blush/heart.svg', $this->svg($app, 'heart'));
-		$this->assertStringEndsWith('resources/icons/logo.svg', $this->svg($app, 'app/logo'));
+		$this->assertStringEndsWith($this->temporaryDirectory() . '/extensions/acme/alt/icons/blush/heart.svg', $this->svg($app, 'heart'));
 		$this->assertStringEndsWith('extension-icons/tabs.svg', $this->svg($app, 'acme/tabs'));
 		$this->assertSame('(none)', $this->svg($app, 'badge'));
 		$this->assertSame('(none)', $this->svg($app, 'nope/badge'));
@@ -98,10 +95,9 @@ final class IconsTest extends TestCase
 		$all = $app->container()->make(Icons::class)->all($app->container()->make(ThemeResolver::class)->active());
 
 		$this->assertArrayHasKey('alt/badge', $all);
-		$this->assertArrayHasKey('app/logo', $all);
 		$this->assertArrayHasKey('acme/tabs', $all);
 		$this->assertArrayHasKey('blush/house', $all);
-		$this->assertCount(131 + 3, $all);
+		$this->assertCount(131 + 2, $all);
 	}
 
 	public function testTheMarkupIsAccessible(): void
@@ -135,7 +131,7 @@ final class IconsTest extends TestCase
 	public function testIconsRenderInMarkdownAndTemplates(): void
 	{
 		$this->writeTemporaryFile('user/content/index.md', "---\ntitle: Home\n---\nGo :icon[Home]{name=house} or :icon[]{name=heart .loved}.\n");
-		$this->writeTemporaryFile('resources/views/partials/footer.php', '<?= $template->icon("rss", "Feed") ?>');
+		$this->writeTemporaryFile('extensions/acme/alt/views/partials/footer.php', '<?= $template->icon("rss", "Feed") ?>');
 
 		$html = (string) $this->app()->container()->make(Kernel::class)->handle(Request::create('/'))->getBody();
 

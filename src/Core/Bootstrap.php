@@ -24,7 +24,7 @@ use Blush\Container\Plan\PlanCache;
 use Blush\Container\Plan\Planner;
 use Blush\Container\Plan\ReflectionPlanner;
 use Blush\Container\ServiceContainer;
-use Blush\Content\Type\ContentConfig;
+use Blush\Content\ContentConfig;
 use Blush\Content\Type\ContentTypeCache;
 use Blush\Env\Env;
 use Blush\Embed\EmbedConfig;

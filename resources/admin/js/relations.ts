@@ -70,7 +70,7 @@ export function storedOn(relation: Pick<RelationInfo, 'from' | 'to'>, type: stri
  * Where a relation is defined, for people.
  */
 export function sourceOf(relation: Pick<RelationInfo, 'origin'>): string {
-	return { data: 'user/data/relations', config: 'config/content.php', extension: 'A plugin' }[relation.origin];
+	return { data: 'user/data/relations', extension: 'A plugin' }[relation.origin];
 }
 
 /**

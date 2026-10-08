@@ -14,7 +14,7 @@ declare(strict_types=1);
 namespace Blush\Content\Relation;
 
 use Blush\Container\Container;
-use Blush\Content\Type\ContentConfig;
+use Blush\Content\ContentConfig;
 use Blush\Core\Paths;
 use Blush\Data\DataLoader;
 use Blush\Data\InvalidData;
@@ -23,7 +23,6 @@ use Blush\Extension\DefinitionClash;
 /**
  * Loads the site's relation definitions (D-593), each replacing one of
  * the same name before it: extensions (`RelationSource`), then
- * `config/content.php`'s `relations`, then
  * `user/data/relations/*.{json,yaml,yml}` (a relation named after its
  * file) unless `ContentConfig::$dataTypes` is off. When two extensions
  * define a relation by one name, the first is kept and the clash is
@@ -67,11 +66,6 @@ final readonly class RelationLoader
 			$relations[$relation->name] = $relation;
 			$origins[$relation->name]   = RelationOrigin::Extension;
 			$sources[$relation->name]   = $source;
-		}
-
-		foreach ($this->config->relations as $relation) {
-			$relations[$relation->name] = $relation;
-			$origins[$relation->name]   = RelationOrigin::Config;
 		}
 
 		foreach ($this->dataRelations() as $relation) {

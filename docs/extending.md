@@ -3,9 +3,15 @@
 Most sites never need PHP beyond their config files. When yours does, this
 page shows where your code goes. It assumes you know PHP.
 
+Code belongs in a [plugin](#plugins) wherever it can: a plugin can be
+turned on and off, versioned, and reused on another site. The examples
+on this page use a provider and classes under `App\` for short, but
+each works the same from a plugin's provider.
+
 ## Your site's code
 
-Put your classes in `src/`, under the `App\` namespace (Composer autoloads
+For code that's only ever this site's, there's an escape hatch: put
+your classes in `src/`, under the `App\` namespace (Composer autoloads
 it). Connect them to Blush with a **service provider**, and list it in
 `config/app.php`:
 
@@ -50,6 +56,11 @@ way.
 
 For work that needs more than constants, override `register()` or
 `boot()` and use `$this->container`.
+
+Blush finds nothing in your site by file: no templates, icons, or
+classes are picked up from folders, only what your provider registers.
+Templates and icons belong to [themes](themes.md) and icon packs, and
+directives, content types, and relations to plugins.
 
 ## Your own pages
 
@@ -210,17 +221,18 @@ child, a term), check `isPublished() && isRoutable()`.
 
 ## Directives and components
 
-Your site's own directives and components are in the `app` namespace.
+Directives and components come from extensions, in the extension's
+namespace, never from the site itself:
 
 - **[Directives](directives.md)** are what your content says, such as
-  `::app/pricing`. Each is a class registered from your provider; its
-  template can go in `resources/views/directives/` (`app-pricing.php`).
-  They work with every theme, so content that uses them never breaks
-  when you switch.
-- **[Components](components.md)** are pieces for your templates, such as
-  `app/post-header`. Their templates go in `resources/views/components/`
-  (`app-post-header.php`), and any classes are registered by your
-  provider.
+  `::acme/pricing`. They come from Blush and [plugins](#directives-and-components-from-a-plugin),
+  so they work with every theme, and content that uses them never
+  breaks when you switch.
+- **[Components](components.md)** are pieces for templates, such as
+  `notebook/post-header`. They come from themes and plugins.
+
+To change how a theme draws either one, make a
+[child theme](themes.md#overriding-templates).
 
 ## Embed providers
 
@@ -428,8 +440,8 @@ includes it.
 
 Extensions are what a site installs. There are three kinds:
 
-- **Plugins** package the same kind of code as your site's, for reuse
-  across sites: a manifest plus, usually, a service provider. Below.
+- **Plugins** are where a site's code belongs, so it can be turned on,
+  off, and reused across sites: a manifest plus, usually, a service provider. Below.
 - **[Themes](themes.md)** control how the site looks.
 - **[Icon packs](#icon-packs)** are SVG icons, with no code.
 
@@ -442,7 +454,7 @@ Every extension's manifest has the same three keys:
   the extension is shown by its `name`.
 - **`namespace`:** what its directives, components, icons, and translations go by
   (`hello`, for `hello/tabs`). Lowercase letters, digits, `-`, and `_`.
-  `blush`, `app`, `theme`, and `default` are reserved. Optional, and
+  `blush`, `theme`, and `default` are reserved. Optional, and
   best left out: without one, it's the name with a hyphen for the `/`
   (and for any `.`), so `acme/hello` goes by `acme-hello`
   (`acme-hello/tabs`). Since names are unique, so is that namespace.
@@ -978,14 +990,14 @@ text (labels, descriptions) goes in the plugin's `lang/en.json`, under
 the top ([Translations](themes.md#translations)). A plugin's directive
 draws itself with its `render()`, usually a template file in the plugin
 returned by `$this->view(__DIR__ . '/../views/tabs.php')` (see
-[Rendering itself](directives.md#rendering-itself)); a theme or your
-site restyles it with `views/directives/hello-tabs.php`. Turning the
+[Rendering itself](directives.md#rendering-itself)); a theme (or a
+child theme) restyles it with `views/directives/hello-tabs.php`. Turning the
 plugin off turns its directives in your content into plain text.
 
 A plugin can also offer [components](components.md) for themes to use
 in their templates, such as a newsletter plugin's `newsletter/signup`,
 registered with `ComponentRegistry` and drawn by their own `render()`,
-which a theme or your site replaces with a template of its own.
+which a theme replaces with a template of its own.
 
 ### Template engines from a plugin
 
@@ -1123,10 +1135,12 @@ protected const array TAGS = [
 ];
 ```
 
-The kinds and options are the same as in `config/content.php`. A site can
-still redefine one of your types in its `config/content.php`, but not in
-`user/data/types/`. The same goes for relations: one in
-`config/content.php` replaces yours by name.
+The kinds and options are the same as a [data type's](content-types.md#two-ways-to-define-a-type).
+A site can change one of your collections or trees with a file in
+`user/data/types/` named for it (which the admin writes when someone
+edits the type): each option the file sets replaces yours, and the
+admin's **Reset the Type** removes the file, going back to yours. A
+relation in `user/data/relations/` replaces yours by name.
 
 When two plugins define a type or a relation by the same name, the
 site uses the first plugin's and leaves the other's out. Site Health
@@ -1257,7 +1271,7 @@ public function boot(): void
 }
 ```
 
-Then `type: color` works in `user/data/types`, `config/content.php`, and
+Then `type: color` works in `user/data/types`, `user/data/fields`, and
 the rest, and the admin's field editor offers it. The admin has a fixed
 set of controls (`Blush\Field\Control`), so a field type picks from
 those; it can't bring its own. Options of its own, described by
@@ -1331,9 +1345,8 @@ Every installed pack is on, and its icons appear in `bin/blush
 icon:list` and the admin's icon inserter. Turn one off on the admin's
 [Icon Packs](admin.md#icon-packs) screen, or by its name in
 [`config/icons.php`](configuration.md#plugins-and-middleware); its icons
-then show nowhere. A theme can restyle one with
-`icons/brands/github.svg`, and your site with
-`resources/icons/brands/github.svg` (see [Icons](directives.md#icons)).
+then show nowhere. A theme (or a child theme) can restyle one with
+`icons/brands/github.svg` (see [Icons](directives.md#icons)).
 
 For autocomplete, point `$schema` at
 `vendor/blush-dev/framework/resources/schemas/icons.schema.json`.
@@ -1385,7 +1398,7 @@ where the theme's layout prints `$template->foot()`, instead of in the
 
 Registering a handle that's already taken replaces it. Core's are
 registered first, then plugins', then themes' (those in `theme.json`'s
-`assets`, then their providers'), then your site's, so a theme can
+`assets`, then their providers'), then your site's own providers' (in `src/`), so a theme can
 replace core's `blush/player` with its own, or with an empty
 `new Asset('blush/player')` to load nothing. A theme without a
 provider lists its assets in `theme.json` instead

@@ -17,7 +17,7 @@ use Closure;
 use JsonException;
 use Symfony\Component\Yaml\Yaml;
 use Blush\Container\Attributes\Defer;
-use Blush\Content\Type\ContentConfig;
+use Blush\Content\ContentConfig;
 use Blush\Content\Type\ContentTypeLoader;
 use Blush\Content\Type\ContentTypes;
 use Blush\Content\Type\InvalidContentType;

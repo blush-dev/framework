@@ -127,7 +127,7 @@ final class ContentCommandsTest extends TestCase
 		$unknown = $tester->run('content:list --type=movie');
 
 		$this->assertSame(ExitCode::Invalid, $unknown->exitCode);
-		$this->assertStringContainsString('There is no "movie" content type; the types are page, profile, post, category.', $unknown->errors);
+		$this->assertStringContainsString('There is no "movie" content type; the types are page, profile, category, post.', $unknown->errors);
 	}
 
 	public function testChecksAndFixesIds(): void
@@ -161,7 +161,8 @@ final class ContentCommandsTest extends TestCase
 	public function testRenamesFilesToTheirTypesPattern(): void
 	{
 		$this->standardContent();
-		$this->writeTemporaryFile('user/data/types/post.yaml', "filename: \"{slug}\"\n");
+		$post = json_decode((string) file_get_contents($this->temporaryDirectory() . '/user/data/types/post.json'), true, flags: JSON_THROW_ON_ERROR);
+		$this->writeTemporaryFile('user/data/types/post.json', json_encode([...(array) $post, 'filename' => '{slug}'], JSON_THROW_ON_ERROR));
 		$tester  = $this->tester();
 		$content = $this->temporaryDirectory() . '/user/content';
 

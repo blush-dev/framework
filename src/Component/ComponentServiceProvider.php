@@ -17,9 +17,9 @@ use Blush\Core\ServiceProvider;
 
 /**
  * Binds components (D-025, D-532): the registry of component classes. A
- * theme, site, or plugin provider registers a class in `boot()`:
+ * theme or plugin provider registers a class in `boot()`:
  *
- *     $this->container->make(ComponentRegistry::class)->register('app/card', Card::class);
+ *     $this->container->make(ComponentRegistry::class)->register('acme/card', Card::class);
  */
 final class ComponentServiceProvider extends ServiceProvider
 {

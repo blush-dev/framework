@@ -189,8 +189,8 @@ final class LinterTest extends TestCase
 		$messages = self::messages($this->site()->container()->make(Linter::class)->lint(), Severity::Notice);
 
 		$this->assertSame([
-			'error category: "missing" has no category entry, so the site leaves it out; add one, or run content:terms.',
-			'error authors: "sam-smith" has no profile entry, so the site leaves it out; add one, or run content:terms.'
+			'error authors: "sam-smith" has no profile entry, so the site leaves it out; add one, or run content:terms.',
+			'error category: "missing" has no category entry, so the site leaves it out; add one, or run content:terms.'
 		], $messages['_posts/2009-01-01.credits.md'] ?? null, 'A term or profile is its file (D-584).');
 	}
 

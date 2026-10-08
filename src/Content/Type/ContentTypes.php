@@ -143,7 +143,7 @@ final class ContentTypes implements IteratorAggregate, Countable
 	 */
 	public function origin(string $name): TypeOrigin
 	{
-		return $this->origins[$name] ?? TypeOrigin::Config;
+		return $this->origins[$name] ?? TypeOrigin::Extension;
 	}
 
 	/**
@@ -166,7 +166,7 @@ final class ContentTypes implements IteratorAggregate, Countable
 		$origin = $this->origin($name);
 
 		return $origin === TypeOrigin::Data
-			|| (($origin === TypeOrigin::Config || $origin === TypeOrigin::Extension) && ($this->find($name)?->isOverridable() ?? false));
+			|| ($origin === TypeOrigin::Extension && ($this->find($name)?->isOverridable() ?? false));
 	}
 
 	/**
@@ -193,7 +193,7 @@ final class ContentTypes implements IteratorAggregate, Countable
 	 */
 	public function relationOrigin(string $name): ?RelationOrigin
 	{
-		return isset($this->relations[$name]) ? $this->relationOrigins[$name] ?? RelationOrigin::Config : null;
+		return isset($this->relations[$name]) ? $this->relationOrigins[$name] ?? RelationOrigin::Extension : null;
 	}
 
 	/**

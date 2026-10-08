@@ -23,7 +23,7 @@ export interface DirectiveDescription {
 	kind: 'container' | 'leaf' | 'inline';
 	// A core directive's group; `null` for the rest, which have a source.
 	category: string | null;
-	source: { kind: 'theme' | 'site' | 'icon-pack' | 'plugin'; label: string } | null;
+	source: { kind: 'theme' | 'icon-pack' | 'plugin'; label: string } | null;
 	props: DirectiveProp[];
 	// Its variants under the active theme, Default not included (D-266).
 	variants: DirectiveVariant[];
@@ -42,7 +42,7 @@ export interface DirectiveVariant {
 	label: string;
 	description: string;
 	// Where it comes from, when not from the directive's own namespace.
-	source: { kind: 'theme' | 'site' | 'icon-pack' | 'plugin'; label: string } | null;
+	source: { kind: 'theme' | 'icon-pack' | 'plugin'; label: string } | null;
 }
 
 /**
@@ -64,7 +64,7 @@ const CATEGORIES: Record<string, { label: string; icon: IconName }> = {
 	data: { label: 'Data', icon: 'sliders-horizontal' }
 };
 
-const SOURCE_ICONS: Record<string, IconName> = { theme: 'paintbrush', site: 'house', 'icon-pack': 'shapes', plugin: 'plug' };
+const SOURCE_ICONS: Record<string, IconName> = { theme: 'paintbrush', 'icon-pack': 'shapes', plugin: 'plug' };
 
 const ICONS: Record<string, IconName> = {
 	abbr: 'book-open',
@@ -219,7 +219,7 @@ export function groupOf(directive: DirectiveDescription): DirectiveGroup {
 		key: `${source.kind}:${source.label}`,
 		label: source.label,
 		icon: SOURCE_ICONS[source.kind] ?? 'plug',
-		source: source.kind === 'theme' ? 'Theme' : (source.kind === 'site' ? undefined : 'Plugin')
+		source: source.kind === 'theme' ? 'Theme' : 'Plugin'
 	};
 }
 

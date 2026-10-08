@@ -52,9 +52,8 @@ const people   = computed(() => type.value?.kind === 'profiles');
 const origin = computed(() => ({
 	'built-in': 'Built in',
 	extension: 'A plugin',
-	config: 'config/content.php',
 	data: 'user/data/types'
-})[type.value?.origin ?? 'config']);
+})[type.value?.origin ?? 'extension']);
 
 // The types that credit people, on the profiles type's screen.
 const related = computed(() => (people.value ? (type.value?.types ?? []) : []).map((name) => ({ name, label: findType(name)?.labels.plural ?? humanize(name) })));

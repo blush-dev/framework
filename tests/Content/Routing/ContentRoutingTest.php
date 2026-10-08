@@ -307,7 +307,7 @@ final class ContentRoutingTest extends TestCase
 	public function testTheHomePageIsIndexOrTheWelcomePage(): void
 	{
 		$this->get('/');
-		$this->contentConfig([]);
+		unlink($this->temporaryDirectory() . '/config/content.php');
 		$this->app = $this->site();
 
 		$this->assertPage('/', 200, 'Home');

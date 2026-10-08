@@ -17,13 +17,13 @@ use Psr\Http\Message\ResponseInterface;
 use Blush\Content\Relation\Relation;
 use Blush\Content\Relation\RelationChanges;
 use Blush\Content\Relation\RelationOrigin;
-use Blush\Content\Type\ContentConfig;
+use Blush\Content\ContentConfig;
 use Blush\Content\Type\ContentTypes;
 use Blush\Http\Response;
 
 /**
  * Answers `GET {path}/api/relations` (D-593): the relations the site
- * defines (from extensions, config, and `user/data/relations`), each as
+ * defines (from extensions and `user/data/relations`), each as
  * `describe()` gives it, with how many entries have a value in it
  * (`entries`) and whether it's still written as a taxonomy (`legacy`),
  * for the Relationships list (D-610). They're changed through
@@ -65,7 +65,7 @@ final readonly class RelationsController
 	 */
 	public static function describe(ContentTypes $types, Relation $relation, bool $dataTypes): array
 	{
-		$origin  = $types->relationOrigin($relation->name) ?? RelationOrigin::Config;
+		$origin  = $types->relationOrigin($relation->name) ?? RelationOrigin::Extension;
 		$inverse = $relation->inverse;
 
 		return [

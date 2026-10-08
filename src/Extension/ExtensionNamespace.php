@@ -20,8 +20,8 @@ use Blush\Directive\DirectiveName;
  * directives and components (D-171, D-532), icons (D-187), and
  * translation domain go by (`jtcom`, for `jtcom/entry-terms` and
  * `jtcom/github`). No two installed extensions may claim one, and core's
- * (`blush`), the site's (`app`), the theme chain's translation domain
- * (`theme`), and the framework default theme's (`default`) are reserved.
+ * (`blush`), the theme chain's translation domain (`theme`), and the
+ * framework default theme's (`default`) are reserved.
  * A manifest without one goes by its name, hyphenated (D-424).
  */
 final readonly class ExtensionNamespace
@@ -37,7 +37,7 @@ final readonly class ExtensionNamespace
 	 *
 	 * @var list<string>
 	 */
-	public const array RESERVED = [DirectiveName::CORE, DirectiveName::SITE, 'theme', 'default'];
+	public const array RESERVED = [DirectiveName::CORE, 'theme', 'default'];
 
 	/**
 	 * Returns whether a string is a valid namespace.

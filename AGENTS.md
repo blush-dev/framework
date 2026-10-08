@@ -194,7 +194,10 @@ and, from the Site Health sketch
 page as groups of problems by kind, a row each with its own fix, group
 fixes that ask first, and fixed rows kept until Check Again (D-612),
 and problems ignored per site, with no figure cards on check pages
-(D-613).
+(D-613); and the site layer as config, with code in extensions: no
+site templates, icons, or text, no `app` namespace, and no types or
+relations in `config/content.php`, with `src/` providers kept as an
+escape hatch (D-617).
 The Fields
 API (D-337 to D-348: field types and controls, field sets on content
 types, media, and the Settings screens, slots, and Structure → Fields)

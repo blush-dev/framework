@@ -2677,7 +2677,7 @@ function fieldKey(field: FieldDescription): string {
 							<button v-for="described in inlineDirectives" :key="described.name" type="button" class="menu-item menu-item--described" @click="chooseInline(described)">
 								<AdminIcon :name="directiveIcon(described)" />
 								<span>
-									<span class="menu-item__name">{{ described.label }}<template v-if="described.source && described.source.kind !== 'site'"> · {{ described.source.label }}</template></span>
+									<span class="menu-item__name">{{ described.label }}<template v-if="described.source"> · {{ described.source.label }}</template></span>
 									<span v-if="described.description" class="menu-item__text">{{ described.description }}</span>
 								</span>
 							</button>

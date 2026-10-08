@@ -406,7 +406,7 @@ final class MultilingualTest extends TestCase
 	public function testComponentsFollowThePageLanguage(): void
 	{
 		$container = $this->app->container();
-		$container->make(ComponentRegistry::class)->register('app/post-titles', PostTitleList::class);
+		$container->make(ComponentRegistry::class)->register('acme/post-titles', PostTitleList::class);
 
 		$views    = $container->make(ViewFactory::class)->forChain($container->make(ThemeResolver::class)->active());
 		$content  = $this->content();
@@ -415,10 +415,10 @@ final class MultilingualTest extends TestCase
 		$listing  = $container->make(ViewFactory::class)->context($views, null, '/fr', 'fr');
 
 		$this->assertSame(['fr', '', 'fr'], [$french->language, $english->language, $listing->language]);
-		$this->assertSame('Printemps | L\'art', $views->component('app/post-titles', [], '', new Slots(), $french));
-		$this->assertSame('Printemps | L\'art', $views->component('app/post-titles', [], '', new Slots(), $listing));
-		$this->assertStringNotContainsString('Printemps', $views->component('app/post-titles', [], '', new Slots(), $english));
-		$this->assertStringEndsWith('| Art', $views->component('app/post-titles', [], '', new Slots(), $english));
+		$this->assertSame('Printemps | L\'art', $views->component('acme/post-titles', [], '', new Slots(), $french));
+		$this->assertSame('Printemps | L\'art', $views->component('acme/post-titles', [], '', new Slots(), $listing));
+		$this->assertStringNotContainsString('Printemps', $views->component('acme/post-titles', [], '', new Slots(), $english));
+		$this->assertStringEndsWith('| Art', $views->component('acme/post-titles', [], '', new Slots(), $english));
 
 		$localized = new LocalizedRepository($content, 'fr');
 
@@ -433,11 +433,11 @@ final class MultilingualTest extends TestCase
 	{
 		// The same file in both languages, so only the language tells the
 		// cached bodies apart.
-		$this->entry('lists.md', 'title: Lists', "::app/post-titles\n");
-		$this->entry('lists.fr.md', 'title: Lists', "::app/post-titles\n");
+		$this->entry('lists.md', 'title: Lists', "::acme/post-titles\n");
+		$this->entry('lists.fr.md', 'title: Lists', "::acme/post-titles\n");
 
 		$app = $this->site();
-		$app->container()->make(DirectiveRegistry::class)->register('app/post-titles', PostTitles::class);
+		$app->container()->make(DirectiveRegistry::class)->register('acme/post-titles', PostTitles::class);
 
 		$content = $app->container()->make(ContentRepository::class);
 		$french  = $content->named('page', 'lists', 'fr')?->body() ?? '';
@@ -737,6 +737,10 @@ final class MultilingualTest extends TestCase
 
 	public function testHierarchicalTermsTranslateTheirParents(): void
 	{
+		// Topics are the `topic` type's here, in place of the categories.
+		unlink($this->temporaryDirectory() . '/user/data/types/category.json');
+		unlink($this->temporaryDirectory() . '/user/data/relations/category.json');
+
 		$this->contentConfig([
 			'types'     => ['topic' => ['path' => 'topics', 'order' => 'position', 'hierarchical' => true]],
 			'relations' => ['topic' => ['kind' => 'classify', 'to' => ['topic']]]

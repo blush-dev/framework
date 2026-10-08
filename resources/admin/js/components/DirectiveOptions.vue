@@ -72,7 +72,7 @@ function changeVariant(value: string): void {
 // that isn't here, kept.
 const variantOptions = computed(() => [
 	{ value: '', label: 'Default' },
-	...variants.value.map((item) => ({ value: item.name, label: item.source && item.source.kind !== 'site' ? `${item.label} (${item.source.label})` : item.label })),
+	...variants.value.map((item) => ({ value: item.name, label: item.source ? `${item.label} (${item.source.label})` : item.label })),
 	...(variant.value !== '' && variant.value !== 'default' && !chosen.value ? [{ value: variant.value, label: `${variant.value} (not available here)` }] : [])
 ]);
 

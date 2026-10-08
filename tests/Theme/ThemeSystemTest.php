@@ -40,6 +40,7 @@ use Blush\Theme\ThemeResolver;
 use Blush\Theme\Themes;
 use Blush\Theme\ThemeSettings;
 use Blush\Theme\ThemeSource;
+use Blush\Tests\WritesContentConfig;
 
 #[CoversClass(ThemeDiscovery::class)]
 #[CoversClass(ThemeCache::class)]
@@ -55,6 +56,7 @@ use Blush\Theme\ThemeSource;
 final class ThemeSystemTest extends TestCase
 {
 	use BootsScratchSite;
+	use WritesContentConfig;
 
 	private ?Application $app = null;
 
@@ -243,7 +245,7 @@ final class ThemeSystemTest extends TestCase
 
 	public function testASettingReachesTemplates(): void
 	{
-		$this->writeTemporaryFile('config/content.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn Blush\\Content\\Type\\ContentConfig::fromArray(['types' => ['post' => ['path' => 'posts']], 'home' => 'post']);\n");
+		$this->contentConfig(['types' => ['post' => ['path' => 'posts']], 'home' => 'post']);
 		$this->writeTemporaryFile('user/content/posts/hello.md', "---\ntitle: Hello\n---\nThe excerpt text.");
 		$this->writeTemporaryFile('extensions/acme/noted/theme.json', '{"name": "acme/noted", "label": "Noted", "namespace": "noted", "settings": {"note": {"type": "text", "default": "Plain note"}}}');
 		$this->writeTemporaryFile('extensions/acme/noted/views/partials/entry-summary.php', "<p><?= e((string) \$template->setting('note')) ?></p>");
@@ -264,7 +266,7 @@ final class ThemeSystemTest extends TestCase
 
 	public function testASiteSettingReachesTemplates(): void
 	{
-		$this->writeTemporaryFile('config/content.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn Blush\\Content\\Type\\ContentConfig::fromArray(['types' => ['post' => ['path' => 'posts']], 'home' => 'post']);\n");
+		$this->contentConfig(['types' => ['post' => ['path' => 'posts']], 'home' => 'post']);
 		$this->writeTemporaryFile('user/content/posts/hello.md', "---\ntitle: Hello\n---\nThe excerpt text.");
 		$this->writeTemporaryFile('user/data/fields/brand.yaml', "targets: [settings:general]\nfields:\n  tagline:\n    default: Plain tagline\n");
 		$this->writeTemporaryFile('extensions/acme/noted/theme.json', '{"name": "acme/noted", "label": "Noted", "namespace": "noted"}');

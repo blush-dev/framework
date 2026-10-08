@@ -25,7 +25,6 @@
 			"not": {
 				"enum": [
 					"blush",
-					"app",
 					"theme",
 					"default"
 				]

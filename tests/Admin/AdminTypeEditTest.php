@@ -22,6 +22,8 @@ use Blush\Content\Type\ContentTypeCache;
 use Blush\Content\Type\ContentTypes;
 use Blush\Content\Type\DataTypeWriter;
 use Blush\Support\Uuid;
+use Blush\Tests\Fixtures\Content\ColorField;
+use Blush\Tests\WritesContentConfig;
 
 #[CoversClass(TypeEditController::class)]
 #[CoversClass(TypesController::class)]
@@ -29,6 +31,7 @@ use Blush\Support\Uuid;
 final class AdminTypeEditTest extends TestCase
 {
 	use BootsAdmin;
+	use WritesContentConfig;
 
 	/**
 	 * Returns a page as a type answers it, without its id, once that's
@@ -279,7 +282,7 @@ final class AdminTypeEditTest extends TestCase
 
 	public function testTheListSaysWhetherTypesCanBeCreated(): void
 	{
-		$this->writeTemporaryFile('config/content.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn new Blush\\Content\\Type\\ContentConfig(dataTypes: false);\n");
+		$this->writeTemporaryFile('config/content.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn new Blush\\Content\\ContentConfig(dataTypes: false);\n");
 		$this->site();
 
 		$this->assertFalse(self::json($this->send('GET', '/types'))['create'] ?? null);
@@ -329,14 +332,9 @@ final class AdminTypeEditTest extends TestCase
 		$this->assertSame(422, $this->write('POST', '/types', ['name' => 'person', 'kind' => 'profiles', 'set' => []])->getStatusCode(), 'The site has one profiles type.');
 	}
 
-	private function contentConfig(string $source): void
-	{
-		$this->writeTemporaryFile('config/content.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn Blush\\Content\\Type\\ContentConfig::fromArray({$source});\n");
-	}
-
 	public function testChangesACodeTypeInADataFile(): void
 	{
-		$this->contentConfig("['types' => ['movie' => ['folder' => 'movies', 'urls' => ['prefix' => 'films'], 'description' => 'Films.', 'feed' => true, 'fields' => [['name' => 'rating', 'type' => 'number']]]]]");
+		$this->codeConfig(['types' => ['movie' => ['folder' => 'movies', 'urls' => ['prefix' => 'films'], 'description' => 'Films.', 'feed' => true, 'fields' => [['name' => 'rating', 'type' => 'number']]]]]);
 		$this->site();
 
 		$before = self::json($this->send('GET', '/types/movie'));
@@ -345,7 +343,7 @@ final class AdminTypeEditTest extends TestCase
 		$answer = $this->write('PATCH', '/types/movie', ['set' => ['description' => 'Movies.', 'feed' => false]]);
 		$this->assertSame(200, $answer->getStatusCode(), (string) $answer->getBody());
 		$type = self::json($answer);
-		$this->assertSame(['config', true, ['description', 'feed'], 'user/data/types/movie.json', false], [$type['origin'] ?? null, $type['overridden'] ?? null, $type['overrides'] ?? null, $type['file'] ?? null, $type['feed'] ?? null]);
+		$this->assertSame(['extension', true, ['description', 'feed'], 'user/data/types/movie.json', false], [$type['origin'] ?? null, $type['overridden'] ?? null, $type['overrides'] ?? null, $type['file'] ?? null, $type['feed'] ?? null]);
 		$this->assertSame(['description' => 'Movies.', 'feed' => false], $this->data('user/data/types/movie.json'), 'Only what differs from the code, with a default the code doesn\'t have written out (D-349).');
 		$this->assertSame('/films', $type['prefix'] ?? null);
 
@@ -369,14 +367,14 @@ final class AdminTypeEditTest extends TestCase
 
 	public function testChangesACodeTreeInADataFile(): void
 	{
-		$this->contentConfig("['types' => ['doc' => ['kind' => 'tree', 'folder' => '_docs']]]");
+		$this->codeConfig(['types' => ['doc' => ['kind' => 'tree', 'folder' => '_docs']]]);
 		$this->site();
 
 		$this->assertTrue(self::json($this->send('GET', '/types/doc'))['editable'] ?? null, 'A tree in a folder can change (D-386).');
 
 		$answer = $this->write('PATCH', '/types/doc', ['set' => ['description' => 'The manual.', 'sitemap' => false, 'llms' => false]]);
 		$this->assertSame(200, $answer->getStatusCode(), (string) $answer->getBody());
-		$this->assertSame(['config', true, 'The manual.', false], [self::json($answer)['origin'] ?? null, self::json($answer)['overridden'] ?? null, self::json($answer)['description'] ?? null, self::json($answer)['llms'] ?? null]);
+		$this->assertSame(['extension', true, 'The manual.', false], [self::json($answer)['origin'] ?? null, self::json($answer)['overridden'] ?? null, self::json($answer)['description'] ?? null, self::json($answer)['llms'] ?? null]);
 		$this->assertSame(['description' => 'The manual.', 'sitemap' => false, 'llms' => false], $this->data('user/data/types/doc.json'));
 
 		$this->assertSame(200, $this->write('POST', '/types/doc/reset')->getStatusCode());
@@ -385,7 +383,7 @@ final class AdminTypeEditTest extends TestCase
 
 	public function testLeavesCodeFieldClassesAndThePagesTypeAlone(): void
 	{
-		$this->contentConfig("['types' => ['swatch' => ['fields' => [['name' => 'tint', 'type' => 'color', 'class' => Blush\\Tests\\Fixtures\\Content\\ColorField::class]]], 'page' => ['kind' => 'tree']]]");
+		$this->codeConfig(['types' => ['swatch' => ['fields' => [['name' => 'tint', 'type' => 'color', 'class' => ColorField::class]]]]]);
 		$this->site();
 
 		$this->assertFalse(self::json($this->send('GET', '/types/swatch'))['fieldsEditable'] ?? null);
@@ -396,7 +394,7 @@ final class AdminTypeEditTest extends TestCase
 		$this->assertSame(['description' => 'Colors.'], $this->data('user/data/types/swatch.json'), 'Its fields stay in code.');
 
 		$this->assertFalse(self::json($this->send('GET', '/types/page'))['editable'] ?? null);
-		$this->assertStringContainsString('the site\'s pages', self::error($this->write('PATCH', '/types/page', ['set' => ['description' => 'x']])));
+		$this->assertStringContainsString('isn\'t defined in user/data/types', self::error($this->write('PATCH', '/types/page', ['set' => ['description' => 'x']])), 'A built-in type isn\'t changed here.');
 		$this->assertSame(422, $this->write('PATCH', '/types/page', ['set' => ['description' => 'x']])->getStatusCode());
 		$this->assertFalse(self::json($this->send('GET', '/types/profile'))['editable'] ?? null);
 	}
@@ -462,7 +460,7 @@ final class AdminTypeEditTest extends TestCase
 
 	public function testListsTheHomeTypesFeedsAtTheRoot(): void
 	{
-		$this->contentConfig("['types' => ['post' => ['feed' => true, 'dateArchives' => 'month']], 'home' => 'post']");
+		$this->contentConfig(['types' => ['post' => ['feed' => true, 'dateArchives' => 'month']], 'home' => 'post']);
 		$this->site();
 
 		$routes = $this->routes('post');

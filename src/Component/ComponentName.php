@@ -18,18 +18,12 @@ use Stringable;
 
 /**
  * A component's name, `{namespace}/{name}` (D-171, D-532): a theme's or
- * plugin's namespace (D-378), or `app` for the site's own. There are no
- * core components, so a component is always written with its namespace.
+ * plugin's namespace (D-378). There are no core components, so a component is always written with its namespace.
  *
  * A component's template is `components/{namespace}-{name}`.
  */
 final readonly class ComponentName implements Stringable
 {
-	/**
-	 * The site's own components' namespace.
-	 */
-	public const string SITE = 'app';
-
 	/**
 	 * The syntax of a name, as a regex fragment without delimiters or
 	 * anchors.

@@ -24,6 +24,7 @@ use Blush\Http\Kernel;
 use Blush\Http\Request;
 use Blush\Support\RegistrationException;
 use Blush\Tests\BootsScratchSite;
+use Blush\Tests\WritesThemeViews;
 use Blush\Tests\Fixtures\Component\Card;
 use Blush\Tests\Fixtures\Component\Chip;
 use Blush\Tests\Fixtures\Component\Orphan;
@@ -47,6 +48,7 @@ use Blush\View\Views;
 final class ComponentsTest extends TestCase
 {
 	use BootsScratchSite;
+	use WritesThemeViews;
 
 	private Application $app;
 
@@ -62,54 +64,54 @@ final class ComponentsTest extends TestCase
 
 	private function view(string $name, string $code): void
 	{
-		$this->writeTemporaryFile("resources/views/{$name}.php", $code);
+		$this->themeView("{$name}.php", $code);
 	}
 
 	public function testTemplateOnlyComponentsGetPropsAndSlots(): void
 	{
-		$this->view('components/app-box', '<div <?= $component->attributes(["data-tone" => $component->prop("tone", "plain")]) ?> data-n="<?= attr($component->prop("data-n", "")) ?>"><?= $component->content() ?>|<?= $component->slots->footer ?>|<?= $component->slots->has("header") ? "has header" : "no header" ?></div>');
-		$this->view('page', '<?= $template->component("app/box", tone: "info")->content("<p>Body</p>")->slot("footer", "<small>Foot</small>") ?>');
+		$this->view('components/site-box', '<div <?= $component->attributes(["data-tone" => $component->prop("tone", "plain")]) ?> data-n="<?= attr($component->prop("data-n", "")) ?>"><?= $component->content() ?>|<?= $component->slots->footer ?>|<?= $component->slots->has("header") ? "has header" : "no header" ?></div>');
+		$this->view('page', '<?= $template->component("site/box", tone: "info")->content("<p>Body</p>")->slot("footer", "<small>Foot</small>") ?>');
 
 		$views = $this->boot();
 
 		$this->assertSame('<div class="component-box" data-tone="info" data-n=""><p>Body</p>|<small>Foot</small>|no header</div>', $views->render('page'));
-		$this->assertSame('<div class="component-box extra" id="b" data-tone="plain" data-n="3">|' . '|no header</div>', $views->component('app/box', ['data-n' => '3', 'class' => 'extra', 'id' => 'b'], '', new Slots(), new ViewContext()));
-		$this->assertTrue($views->hasComponent('app/box'));
+		$this->assertSame('<div class="component-box extra" id="b" data-tone="plain" data-n="3">|' . '|no header</div>', $views->component('site/box', ['data-n' => '3', 'class' => 'extra', 'id' => 'b'], '', new Slots(), new ViewContext()));
+		$this->assertTrue($views->hasComponent('site/box'));
 		$this->assertFalse($views->hasComponent('callout'), 'A directive isn\'t a component (D-532).');
 		$this->assertFalse($views->hasComponent('box'));
-		$this->assertFalse($views->hasComponent('app/nope'));
+		$this->assertFalse($views->hasComponent('acme/nope'));
 		$this->assertFalse($views->hasComponent('../x'));
 	}
 
 	public function testClassBackedComponentsBuildTheirProps(): void
 	{
-		$this->view('components/app-card', '<?= e($component->heading) ?>:<?= $component->columns + 1 ?>:<?= isset($heading) ? "leak" : "sealed" ?>:<?= e($component->secret()) ?>:<?= e($component->prop("extra")) ?>');
+		$this->view('components/acme-card', '<?= e($component->heading) ?>:<?= $component->columns + 1 ?>:<?= isset($heading) ? "leak" : "sealed" ?>:<?= e($component->secret()) ?>:<?= e($component->prop("extra")) ?>');
 		$this->view('components/card-wide', 'wide <?= e($component->title) ?>');
 
 		$views = $this->boot();
-		$this->app->container()->make(ComponentRegistry::class)->register('app/card', Card::class);
+		$this->app->container()->make(ComponentRegistry::class)->register('acme/card', Card::class);
 
-		$this->assertSame('HI:3:sealed:hidden:x', $views->component('app/card', ['title' => 'hi', 'columns' => '2', 'extra' => 'x'], '', new Slots(), new ViewContext()));
-		$this->assertSame('wide yo', $views->component('app/card', ['title' => 'yo', 'wide' => 'yes'], '', new Slots(), new ViewContext()));
-		$this->assertSame('', $views->component('app/card', ['title' => 'skip'], '', new Slots(), new ViewContext()));
-		$this->assertTrue($views->hasComponent('app/card'));
+		$this->assertSame('HI:3:sealed:hidden:x', $views->component('acme/card', ['title' => 'hi', 'columns' => '2', 'extra' => 'x'], '', new Slots(), new ViewContext()));
+		$this->assertSame('wide yo', $views->component('acme/card', ['title' => 'yo', 'wide' => 'yes'], '', new Slots(), new ViewContext()));
+		$this->assertSame('', $views->component('acme/card', ['title' => 'skip'], '', new Slots(), new ViewContext()));
+		$this->assertTrue($views->hasComponent('acme/card'));
 
 		$this->expectException(ViewException::class);
-		$views->component('app/card', ['title' => ['not', 'a', 'string']], '', new Slots(), new ViewContext());
+		$views->component('acme/card', ['title' => ['not', 'a', 'string']], '', new Slots(), new ViewContext());
 	}
 
 	public function testRegistrationNeedsAFullNameAndAComponentClass(): void
 	{
 		$registry = new ComponentRegistry();
 		$registry->register('acme/card', Card::class);
-		$registry->register('app/chip', Chip::class);
+		$registry->register('nova/chip', Chip::class);
 
 		$this->assertSame(Card::class, $registry->get('acme/card'));
-		$this->assertSame(['acme', 'app'], $registry->namespaces());
+		$this->assertSame(['acme', 'nova'], $registry->namespaces());
 		$this->assertCount(2, $registry);
 
-		$registry->unregister('app/chip');
-		$this->assertFalse($registry->isRegistered('app/chip'));
+		$registry->unregister('nova/chip');
+		$this->assertFalse($registry->isRegistered('nova/chip'));
 
 		try {
 			$registry->register('card', Card::class);
@@ -120,20 +122,20 @@ final class ComponentsTest extends TestCase
 
 		$this->expectException(RegistrationException::class);
 		// @phpstan-ignore argument.type (verifies the runtime guard)
-		$registry->register('app/stamp', Stamp::class);
+		$registry->register('acme/stamp', Stamp::class);
 	}
 
 	public function testListsEveryComponentTheChainCanRender(): void
 	{
-		$this->view('components/app-box', 'box');
+		$this->view('components/site-box', 'box');
 		$this->view('components/cards/post', 'a subfolder is not a component');
 		$this->view('components/loose', 'not named for a component');
 
 		$views    = $this->boot();
 		$registry = $this->app->container()->make(ComponentRegistry::class);
-		$registry->register('app/card', Card::class);
-		$registry->register('app/chip', Chip::class);
-		$registry->register('app/orphan', Orphan::class);
+		$registry->register('acme/card', Card::class);
+		$registry->register('acme/chip', Chip::class);
+		$registry->register('acme/orphan', Orphan::class);
 
 		$components = [];
 
@@ -141,20 +143,20 @@ final class ComponentsTest extends TestCase
 			$components[(string) $component->name] = $component;
 		}
 
-		$this->assertSame(['app/box', 'app/card', 'app/chip', 'app/orphan'], array_keys($components));
-		$this->assertSame(Card::class, $components['app/card']->class);
-		$this->assertNull($components['app/box']->class);
-		$this->assertStringEndsWith('resources/views/components/app-box.php', (string) $components['app/box']->file());
-		$this->assertNull($components['app/card']->file());
-		$this->assertTrue($components['app/chip']->rendersItself());
-		$this->assertFalse($components['app/orphan']->rendersItself(), 'Its render() can return null.');
+		$this->assertSame(['acme/card', 'acme/chip', 'acme/orphan', 'site/box'], array_keys($components));
+		$this->assertSame(Card::class, $components['acme/card']->class);
+		$this->assertNull($components['site/box']->class);
+		$this->assertStringEndsWith('extensions/test/site/views/components/site-box.php', (string) $components['site/box']->file());
+		$this->assertNull($components['acme/card']->file());
+		$this->assertTrue($components['acme/chip']->rendersItself());
+		$this->assertFalse($components['acme/orphan']->rendersItself(), 'Its render() can return null.');
 
 		// A class that picks its own view isn't missing a template; one
 		// that relies on its components/ template is.
-		$this->assertFalse($components['app/card']->isMissingTemplate());
-		$this->assertFalse($components['app/chip']->isMissingTemplate());
-		$this->assertTrue($components['app/orphan']->isMissingTemplate());
-		$this->assertFalse($components['app/box']->isMissingTemplate());
+		$this->assertFalse($components['acme/card']->isMissingTemplate());
+		$this->assertFalse($components['acme/chip']->isMissingTemplate());
+		$this->assertTrue($components['acme/orphan']->isMissingTemplate());
+		$this->assertFalse($components['site/box']->isMissingTemplate());
 
 		$this->assertSame(['loose.php'], array_map(basename(...), $views->strayComponentFiles()));
 	}
@@ -162,16 +164,16 @@ final class ComponentsTest extends TestCase
 	public function testComponentsRenderThemselvesUnlessTheChainHasATemplate(): void
 	{
 		$views = $this->boot();
-		$this->app->container()->make(ComponentRegistry::class)->register('app/chip', Chip::class);
+		$this->app->container()->make(ComponentRegistry::class)->register('acme/chip', Chip::class);
 
-		$this->assertSame('<span class="component-chip">Paid &amp; done</span>', $views->component('app/chip', ['text' => 'Paid & done'], '', new Slots(), new ViewContext()));
+		$this->assertSame('<span class="component-chip">Paid &amp; done</span>', $views->component('acme/chip', ['text' => 'Paid & done'], '', new Slots(), new ViewContext()));
 
-		$this->view('components/app-chip', 'site chip: <?= e($component->text) ?>');
+		$this->view('components/acme-chip', 'child chip: <?= e($component->text) ?>');
 
 		$views = $this->boot();
-		$this->app->container()->make(ComponentRegistry::class)->register('app/chip', Chip::class);
+		$this->app->container()->make(ComponentRegistry::class)->register('acme/chip', Chip::class);
 
-		$this->assertSame('site chip: Paid', $views->component('app/chip', ['text' => 'Paid'], '', new Slots(), new ViewContext()), 'A template in the chain wins.');
+		$this->assertSame('child chip: Paid', $views->component('acme/chip', ['text' => 'Paid'], '', new Slots(), new ViewContext()), 'A template in the chain wins.');
 	}
 
 	public function testMissingAndInvalidComponentsThrow(): void
@@ -179,10 +181,10 @@ final class ComponentsTest extends TestCase
 		$views = $this->boot();
 
 		try {
-			$views->component('app/nope', [], '', new Slots(), new ViewContext());
+			$views->component('acme/nope', [], '', new Slots(), new ViewContext());
 			$this->fail('A missing component should throw.');
 		} catch (ViewNotFound $error) {
-			$this->assertSame('No view found for: components/app-nope.', $error->getMessage());
+			$this->assertSame('No view found for: components/acme-nope.', $error->getMessage());
 		}
 
 		try {
@@ -198,8 +200,8 @@ final class ComponentsTest extends TestCase
 
 	public function testContentCantNameAComponent(): void
 	{
-		$this->view('components/app-box', 'a box');
-		$this->writeTemporaryFile('user/content/index.md', "---\ntitle: Home\n---\n::app/box[Just text]\n");
+		$this->view('components/site-box', 'a box');
+		$this->writeTemporaryFile('user/content/index.md', "---\ntitle: Home\n---\n::site/box[Just text]\n");
 
 		$this->boot();
 

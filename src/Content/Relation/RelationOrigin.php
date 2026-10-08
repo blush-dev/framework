@@ -20,6 +20,5 @@ namespace Blush\Content\Relation;
 enum RelationOrigin: string
 {
 	case Extension = 'extension';
-	case Config    = 'config';
 	case Data      = 'data';
 }

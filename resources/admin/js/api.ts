@@ -263,7 +263,7 @@ export interface ContentTypeSummary {
 	types?: string[];
 	// Where it was defined, its folder, its URL prefix (`null` without
 	// URLs), and how many fields it defines (D-250).
-	origin: 'built-in' | 'extension' | 'config' | 'data';
+	origin: 'built-in' | 'extension' | 'data';
 	folder: string;
 	prefix: string | null;
 	fields: number;
@@ -301,7 +301,7 @@ export interface RelationInfo {
 	// Its definition as written, which a change starts from (a change
 	// sends the whole definition).
 	definition: Record<string, unknown>;
-	origin: 'extension' | 'config' | 'data';
+	origin: 'extension' | 'data';
 	// Whether it's one of the site's data relations, changed here.
 	editable: boolean;
 }
@@ -1071,7 +1071,7 @@ export interface FieldSetSummary {
 	// The kind of place its targets are (`type`), and the slot it's in.
 	kind: string | null;
 	slot: string | null;
-	origin: 'extension' | 'config' | 'data';
+	origin: 'extension' | 'data';
 	editable: boolean;
 	file: string | null;
 	targets: (FieldSetTargetOption & { found: boolean })[];

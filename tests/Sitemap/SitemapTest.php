@@ -83,7 +83,7 @@ final class SitemapTest extends TestCase
 
 		$this->assertSame('application/xml; charset=UTF-8', $index->getHeaderLine('Content-Type'));
 		$this->assertSame(
-			['http://localhost/sitemap/page', 'http://localhost/sitemap/profile', 'http://localhost/sitemap/post', 'http://localhost/sitemap/category'],
+			['http://localhost/sitemap/page', 'http://localhost/sitemap/profile', 'http://localhost/sitemap/category', 'http://localhost/sitemap/post'],
 			$this->locations('/sitemap')
 		);
 		$this->assertSame($this->locations('/sitemap'), $this->locations('/sitemap.xml'));
@@ -118,12 +118,12 @@ final class SitemapTest extends TestCase
 	public function testTypesCanLeaveTheSitemap(): void
 	{
 		$this->standardContent();
-		$this->contentConfig(['types' => ['category' => ['path' => 'topics', 'order' => 'position', 'sitemap' => false]], 'relations' => ['category' => ['kind' => 'classify', 'to' => ['category']]]]);
+		$this->contentConfig(['types' => ['category' => ['path' => 'topics', 'order' => 'position', 'sitemap' => false]]]);
 		$this->boot();
 
 		$this->assertSame(404, $this->get('/sitemap/category')->getStatusCode());
 		$this->assertNotContains('http://localhost/sitemap/category', $this->locations('/sitemap'));
-		$this->assertContains('http://localhost/', $this->locations('/sitemap/page'));
+		$this->assertContains('http://localhost/sitemap/post', $this->locations('/sitemap'), 'The other types stay.');
 	}
 
 	public function testServesRobotsTxt(): void

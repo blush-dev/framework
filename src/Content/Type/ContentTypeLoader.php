@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Blush\Content\Type;
 
 use Blush\Container\Container;
+use Blush\Content\ContentConfig;
 use Blush\Content\Relation\InvalidRelation;
 use Blush\Content\Relation\Relation;
 use Blush\Content\Relation\RelationCompiler;
@@ -36,10 +37,9 @@ use Blush\Field\InvalidSchema;
  * 1. The built-in types (`BuiltInType`), minus those the config disables.
  * 2. Extension types, from sources tagged `ContentTypeSource::TAG`. Two
  *    extensions defining one name is an error.
- * 3. The site's `ContentConfig` types.
- * 4. Data types from `user/data/types/{name}.json|yaml`, when allowed.
- *    They may redefine a built-in type. A file named for an extension or
- *    config collection changes it instead (D-349): each
+ * 3. Data types from `user/data/types/{name}.json|yaml`, when allowed.
+ *    They may redefine a built-in type. A file named for an extension
+ *    collection changes it instead (D-349): each
  *    option it sets replaces the code's (`ContentType::overriddenBy()`),
  *    and the type keeps its origin. One named for a code pages or profiles
  *    type is an error.
@@ -93,13 +93,13 @@ final readonly class ContentTypeLoader
 
 			// Only a type of the site's own data is read as what replaced
 			// it; a file over a code type can't make it a taxonomy.
-			if (LegacyTaxonomy::is($definition) && $origin !== TypeOrigin::Extension && $origin !== TypeOrigin::Config) {
+			if (LegacyTaxonomy::is($definition) && $origin !== TypeOrigin::Extension) {
 				[$definition, $relation] = LegacyTaxonomy::convert($name, $definition);
 				$legacy[]                = $name;
 				$converted[$name]        = $relation;
 			}
 
-			if ($origin === TypeOrigin::Extension || $origin === TypeOrigin::Config) {
+			if ($origin === TypeOrigin::Extension) {
 				$types[$name] = $types[$name]->overriddenBy($definition, $this->fields);
 				$overrides[]  = $name;
 				continue;
@@ -136,7 +136,7 @@ final readonly class ContentTypeLoader
 
 	/**
 	 * Returns the types code defines, before any data: the built-in
-	 * types, extension types, then the config's, each with its origin.
+	 * types, then extension types, each with its origin.
 	 * The admin overrides code types against these (D-349).
 	 *
 	 * Two extensions defining a type by one name keep the first, and the
@@ -171,34 +171,7 @@ final readonly class ContentTypeLoader
 			$sources[$type->name] = $source;
 		}
 
-		foreach ($this->configTypes() as $type) {
-			$types[$type->name]   = $type;
-			$origins[$type->name] = TypeOrigin::Config;
-		}
-
 		return [$types, $origins, $clashes];
-	}
-
-	/**
-	 * Returns the config's types, building those in array form with every
-	 * registered field type.
-	 *
-	 * @return list<ContentType>
-	 * @throws InvalidContentType
-	 */
-	private function configTypes(): array
-	{
-		$types = $this->config->types;
-
-		foreach ($this->config->definitions as $definition) {
-			try {
-				$types[] = ContentType::fromArray($definition, $this->fields);
-			} catch (InvalidContentType $e) {
-				throw new InvalidContentType(sprintf('config/content.php: %s', $e->getMessage()), previous: $e);
-			}
-		}
-
-		return $types;
 	}
 
 	/**

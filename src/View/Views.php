@@ -275,8 +275,8 @@ final readonly class Views
 	 * Returns a directive's translated text, such as its `label` or
 	 * `description`, or `null` when no catalog has it (D-172). Text is
 	 * keyed `directives.{name}.{key}` in the namespace's domain: `blush`
-	 * for core directives, and otherwise the namespace itself (`app` for
-	 * the site, a vendor for an extension). Prop text is
+	 * for core directives, and otherwise the namespace itself (a vendor
+	 * for an extension). Prop text is
 	 * `props.{prop}.label` and `props.{prop}.choices.{value}`.
 	 *
 	 * @param array<string, mixed> $params
@@ -480,7 +480,7 @@ final readonly class Views
 	 * Returns a message from a namespace's catalog domain (D-451):
 	 * `blush` for core, the chain's themes for any of theirs (so a child
 	 * theme can reword its parent's), and otherwise the namespace's
-	 * extension's `vendor/name` (or `app`).
+	 * extension's `vendor/name`.
 	 *
 	 * @param array<string, mixed> $params
 	 */
@@ -519,14 +519,13 @@ final readonly class Views
 
 	/**
 	 * Returns the namespaces a component template's file name may start
-	 * with: the site, the chain's themes, and every registered one.
+	 * with: the chain's themes, and every registered one.
 	 *
 	 * @return list<string>
 	 */
 	private function componentNamespaces(): array
 	{
 		return array_values(array_unique([
-			ComponentName::SITE,
 			...$this->chain->namespaces(),
 			...$this->services->components->namespaces()
 		]));

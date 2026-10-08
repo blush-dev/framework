@@ -17,9 +17,10 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Blush\Config\InvalidConfig;
 use Blush\Content\Query\Order;
+use Blush\Content\Relation\Relation;
 use Blush\Content\Type\BuiltInType;
 use Blush\Content\Type\Collection;
-use Blush\Content\Type\ContentConfig;
+use Blush\Content\ContentConfig;
 use Blush\Content\Type\ContentType;
 use Blush\Content\Type\DateArchives;
 use Blush\Content\Type\InvalidContentType;
@@ -106,14 +107,12 @@ final class ContentTypeTest extends TestCase
 		$this->assertNull(new Collection('tag')->parentKey('css', ['parent' => 'web']));
 	}
 
-	public function testAcceptsJtcoms1xConfigUnchanged(): void
+	public function testAcceptsJtcoms1xDefinitionsUnchanged(): void
 	{
-		$config = ContentConfig::fromArray(['types' => JtcomTypes::definitions(), 'relations' => JtcomTypes::relations(), 'home' => 'post']);
-		$types  = [];
+		$types = [];
 
-		foreach ($config->definitions as $definition) {
-			$type               = ContentType::fromArray($definition, $this->fields);
-			$types[$type->name] = $type;
+		foreach (JtcomTypes::definitions() as $name => $definition) {
+			$types[$name] = ContentType::fromArray(['name' => $name, ...$definition], $this->fields);
 		}
 
 		$post = $types['post'];
@@ -133,9 +132,11 @@ final class ContentTypeTest extends TestCase
 		$this->assertInstanceOf(Collection::class, $form);
 		$this->assertSame('writing/forms', $form->folder);
 		$this->assertSame(['position', Order::Asc], $form->order());
-		$this->assertSame(['literature'], $config->relations[2]->from);
-		$this->assertEquals(new Listing(order: Order::Desc, perPage: 9999), $config->relations[2]->inverse === false ? null : $config->relations[2]->inverse->listing);
-		$this->assertSame('post', $config->home);
+
+		$relation = Relation::fromArray(['name' => 'literary_form', ...JtcomTypes::relations()['literary_form']]);
+
+		$this->assertSame(['literature'], $relation->from);
+		$this->assertEquals(new Listing(order: Order::Desc, perPage: 9999), $relation->inverse === false ? null : $relation->inverse->listing);
 	}
 
 	public function testRoundTripsThroughArrays(): void
@@ -458,15 +459,13 @@ final class ContentTypeTest extends TestCase
 		(void) new Listing(query: ['number' => 5]);
 	}
 
-	public function testConfigRejectsDuplicatesAndDisablingPages(): void
+	public function testConfigRejectsTypesAndDisablingPages(): void
 	{
 		$cases = [
-			static fn (): ContentConfig => new ContentConfig(types: [new Collection('post'), new Collection('post')]),
 			static fn (): ContentConfig => new ContentConfig(disabled: ['page']),
 			static fn (): ContentConfig => new ContentConfig(disabled: ['nope']),
-			static fn (): ContentConfig => ContentConfig::fromArray(['types' => 'post']),
-			static fn (): ContentConfig => new ContentConfig(types: [new Collection('post')], definitions: [['name' => 'post']]),
-			static fn (): ContentConfig => new ContentConfig(definitions: [['kind' => 'collection']])
+			static fn (): ContentConfig => ContentConfig::fromArray(['types' => ['post' => []]]),
+			static fn (): ContentConfig => ContentConfig::fromArray(['relations' => []])
 		];
 
 		foreach ($cases as $build) {
@@ -481,7 +480,7 @@ final class ContentTypeTest extends TestCase
 
 	public function testConfigRoundTrips(): void
 	{
-		$config = ContentConfig::fromArray(['types' => JtcomTypes::definitions(), 'relations' => JtcomTypes::relations(), 'home' => 'post', 'dataTypeUrls' => false, 'disabled' => ['profile']]);
+		$config = ContentConfig::fromArray(['home' => 'post', 'dataTypeUrls' => false, 'disabled' => ['profile']]);
 
 		$this->assertEquals($config, ContentConfig::fromArray($config->toArray()));
 	}

@@ -23,8 +23,8 @@ use Blush\Data\InvalidData;
  * The CMS-wide translator (D-028). Messages are ICU MessageFormat
  * patterns (plurals, select, and number and date arguments), looked up
  * by key in catalogs grouped by domain (D-451): `blush` for the
- * framework, `app` for the site, and each extension's `vendor/name`
- * (`acme/hello`, `blush/default`). An extension's namespace maps to its
+ * framework, and each extension's `vendor/name` (`acme/hello`,
+ * `blush/default`). An extension's namespace maps to its
  * domain (`domainOf()`), for directive and icon labels.
  *
  * A domain's catalogs are data files named by locale
@@ -58,7 +58,7 @@ final class Translator
 	 *
 	 * @var list<string>
 	 */
-	public const array OWN = ['blush', 'app'];
+	public const array OWN = ['blush'];
 
 	/**
 	 * Loaded layers, keyed by `{domain}|{locale}`: the site's override,
@@ -104,7 +104,7 @@ final class Translator
 
 	/**
 	 * Returns the domain an extension namespace's text is in: its
-	 * extension's `vendor/name`, or the namespace itself (`blush`, `app`).
+	 * extension's `vendor/name`, or the namespace itself (`blush`).
 	 */
 	public function domainOf(string $namespace): string
 	{

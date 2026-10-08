@@ -99,6 +99,10 @@ final class DefaultThemeTest extends TestCase
 	protected function setUp(): void
 	{
 		$this->standardContent();
+
+		// This setup credits authors through its own `author` relation.
+		unlink($this->temporaryDirectory() . '/user/data/relations/authors.json');
+
 		$this->contentConfig([
 			'types' => [
 				'post' => [

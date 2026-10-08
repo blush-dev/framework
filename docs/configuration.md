@@ -129,12 +129,10 @@ Without `config/app.php`, these come from the `APP_*` variables.
 
 ### Content
 
-`config/content.php` · `Blush\Content\Type\ContentConfig`
+`config/content.php` · `Blush\Content\ContentConfig`
 
 | Option | Default | What it does |
 |---|---|---|
-| `types` | `[]` | Your [content types](content-types.md) |
-| `relations` | `[]` | How entries link to entries of other types, such as posts filed under categories (`Relation` objects; in `fromArray()`, a list or map of definitions). See [Terms and relationships](content-types.md#terms-and-relationships) |
 | `home` | `null` | A type whose listing is the homepage |
 | `disabled` | `[]` | Built-in types to turn off (`'profile'`) |
 | `dataTypes` | `true` | Whether types in `user/data/types/` and relations in `user/data/relations/` are read |

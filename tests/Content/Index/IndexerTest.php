@@ -211,7 +211,8 @@ final class IndexerTest extends TestCase
 
 		$this->assertTrue($this->indexer()->index(full: true)->full);
 
-		$this->contentConfig(['types' => ['post' => ['path' => '_posts']]]);
+		unlink($this->temporaryDirectory() . '/user/data/types/category.json');
+		unlink($this->temporaryDirectory() . '/user/data/relations/category.json');
 		$this->app = $this->site();
 
 		$report = $this->indexer()->index();

@@ -44,69 +44,55 @@ Every content type is one of three kinds:
   it, and `bin/blush content:terms --write` writes the missing files. An
   [account](accounts.md#profiles) can be linked to a profile.
 
-## Three ways to define a type
+## Two ways to define a type
 
 **In YAML or JSON** (no PHP needed): create a file in `user/data/types/`
-named after the type. Use `kind` to pick the kind; it's `collection` if
-you leave it out.
+named after the type, or let the admin's **New Content Type** write it.
+Use `kind` to pick the kind; it's `collection` if you leave it out.
 
 ```yaml
 # user/data/types/recipe.yaml
 folder: recipes
 ```
 
-**In PHP**, in `config/content.php`, which gives you editor autocomplete
-and type checking. Each kind is its own class: `Collection`, `Tree`, or
-`Profiles`.
+**In a plugin**, in PHP, when the types belong with code you install.
+Each kind is its own class (`Collection`, `Tree`, or `Profiles`), which
+gives you editor autocomplete and type checking:
 
 ```php
-<?php
-
-declare(strict_types=1);
-
-use Blush\Content\Type\Collection;
-use Blush\Content\Type\ContentConfig;
-
-return new ContentConfig(
-	types: [
-		new Collection('recipe', folder: 'recipes')
-	]
-);
+new Collection('recipe', folder: 'recipes')
 ```
 
-**In a plugin**, with the same classes, when the types belong with
-code you install. See
-[Content types from a plugin](extending.md#content-types-from-a-plugin).
+See [Content types from a plugin](extending.md#content-types-from-a-plugin)
+for the class that returns them.
 
 ### Changing a type from code
 
 A file in `user/data/types/` named after a collection or
-[tree](#trees) from
-`config/content.php` or a plugin changes that type rather than
+[tree](#trees) from a plugin changes that type rather than
 defining a new one. Each option it sets replaces the code's, and the
 rest stay as the code has them:
 
 ```yaml
-# user/data/types/post.yaml: posts are defined in config/content.php
-description: Writing, mostly.
+# user/data/types/recipe.yaml: recipes are defined in a plugin
+description: Dinners worth making twice.
 feed: false
 ```
 
 This is what the admin writes when you edit such a type (as
-`post.json`, unless a `post.yaml` is already there, which it edits), and
+`recipe.json`, unless a `recipe.yaml` is already there, which it edits), and
 it keeps only what differs from the code. A file like this can't change the
 type's kind or folder, and the `page` type and the profiles type from
-code can't be changed this way. Delete the file to go back to the code's
-definition. With `dataTypes` off, these files aren't read either.
+code can't be changed this way. Delete the file (or use **Reset the
+Type** in the admin) to go back to the plugin's definition. With `dataTypes` off, these files aren't read either.
 
-All three do the same thing, and every option below works in each. (In
+Both do the same thing, and every option below works in each. (In
 YAML, use the option names as keys.) A type's name uses lowercase letters,
 digits, and underscores.
 
-If two places define the same type, `config/content.php` replaces a
-plugin's type, and both replace a built-in one. A YAML type may
-replace a built-in type, but not one from a plugin or
-`config/content.php`; that's an error. When two plugins define the
+If two places define the same type, a plugin's type replaces a
+built-in one. A YAML type may replace a built-in type; one named for a
+plugin's type changes it, as above. When two plugins define the
 same type, the first plugin's is used and the other's is left out, and
 Site Health says so (see [Extending](extending.md)).
 
@@ -115,7 +101,6 @@ Which to pick:
 - **YAML** keeps a type with your content, so a copy of `user/` carries
   it along. It's the only kind the [admin](admin.md#content-types) can
   create and edit.
-- **`config/content.php`** keeps it with your site's code.
 - **A plugin** keeps it with a feature you can reuse or version on its
   own.
 
@@ -186,48 +171,8 @@ icon: notebook-pen
 
 ## Example: a blog
 
-```php
-<?php
-
-declare(strict_types=1);
-
-use Blush\Content\Query\Order;
-use Blush\Content\Relation\Relation;
-use Blush\Content\Relation\RelationKind;
-use Blush\Content\Type\Collection;
-use Blush\Content\Type\ContentConfig;
-use Blush\Content\Type\DateArchives;
-use Blush\Content\Type\Listing;
-use Blush\Content\Type\TypeFeed;
-use Blush\Content\Type\TypeOrder;
-
-return new ContentConfig(
-	types: [
-		// Posts live in user/content/_blog/ and are listed at /blog.
-		new Collection(
-			'post',
-			folder: '_blog',
-			listing: new Listing(orderBy: 'published', order: Order::Desc),
-			feed: new TypeFeed(),
-			dateArchives: DateArchives::Month
-		),
-
-		// Tags live in user/content/_blog/tags/, ordered by position.
-		new Collection(
-			'tag',
-			folder: '_blog/tags',
-			order: TypeOrder::Position,
-			llms: false
-		)
-	],
-	relations: [
-		// Posts are filed under tags with a `tag` key.
-		new Relation('tag', RelationKind::Classify, from: ['post'], to: ['tag'], create: true)
-	]
-);
-```
-
-The same types in YAML:
+Posts live in `user/content/_blog/` and are listed at `/blog`, newest
+first, with a feed and monthly archives:
 
 ```yaml
 # user/data/types/post.yaml
@@ -239,6 +184,8 @@ feed: true
 dateArchives: month
 ```
 
+Tags live in `user/content/_blog/tags/`, ordered by position:
+
 ```yaml
 # user/data/types/tag.yaml
 folder: _blog/tags
@@ -246,14 +193,17 @@ order: position
 llms: false
 ```
 
-And the relation, in `user/data/relations/tag.json` (or `tag.yaml`):
+And posts are filed under tags with a `tag` key, through a relation in
+`user/data/relations/tag.json` (or `tag.yaml`):
 
 ```json
 {"kind": "classify", "from": ["post"], "to": ["tag"], "create": true}
 ```
 
 The admin's **New Content Type** writes both when you choose **Terms**
-(see [Content types](admin.md#content-types)).
+(see [Content types](admin.md#content-types)). A plugin can define the
+same types and relation in PHP (see
+[Content types from a plugin](extending.md#content-types-from-a-plugin)).
 
 Now:
 
@@ -279,13 +229,17 @@ tag: [php, news]
 
 ### Making the blog the homepage
 
-To show the latest posts on the homepage, name the type as `home`:
+To show the latest posts on the homepage, name the type as `home` in
+`config/content.php`:
 
 ```php
-return new ContentConfig(
-	home: 'post',
-	types: [ /* ... */ ]
-);
+<?php
+
+declare(strict_types=1);
+
+use Blush\Content\ContentConfig;
+
+return new ContentConfig(home: 'post');
 ```
 
 The homepage then lists posts, with `/page/2` and so on, and the feed
@@ -319,33 +273,25 @@ There are a few kinds:
 A type of terms is a plain collection, usually ordered by `position`,
 with no authors, and left out of `llms.txt`. What makes it terms is a
 `classify` relation, named after it, that says which types are filed
-under it.
+under it. For categories filing posts, that's the type in
+`user/data/types/category.yaml`:
 
-In `config/content.php`:
-
-```php
-use Blush\Content\Relation\Relation;
-use Blush\Content\Relation\RelationKind;
-use Blush\Content\Type\Collection;
-use Blush\Content\Type\TypeOrder;
-
-return new ContentConfig(
-	types: [
-		new Collection('category', folder: 'topics', hierarchical: true, order: TypeOrder::Position, llms: false)
-	],
-	relations: [
-		new Relation('category', RelationKind::Classify, from: ['post'], to: ['category'], create: true)
-	]
-);
+```yaml
+folder: topics
+hierarchical: true
+order: position
+llms: false
 ```
 
-Or as data, with the type in `user/data/types/category.yaml` and the
-relation in `user/data/relations/category.json` (or `.yaml`), named by
-its file:
+And the relation in `user/data/relations/category.json` (or `.yaml`),
+named by its file:
 
 ```json
 {"kind": "classify", "from": ["post"], "to": ["category"], "create": true}
 ```
+
+A plugin defines them with a `ContentTypeSource` and a `RelationSource`
+(see [Content types from a plugin](extending.md#content-types-from-a-plugin)).
 
 In the admin, **New Content Type** with **Terms** creates both, and
 **Add Relationship** on any type's screen adds a relation (see
@@ -381,8 +327,7 @@ category: [painting, news]
   Profiles** in Site Health) writes a file for each, titled as the
   entry wrote it.
 
-Relations come from plugins, `config/content.php`, and
-`user/data/relations/`, in that order, and a later one replaces an
+Relations come from plugins and `user/data/relations/`, in that order, and a later one replaces an
 earlier one of the same name. The admin won't create a relation with
 the name of one defined in code. With `dataTypes` off,
 `user/data/relations/` isn't read.
@@ -560,7 +505,7 @@ Then `bin/blush content:taxonomies --write`, or **Migrate Types** under
 Entries' front matter and term URLs don't change. The admin won't edit
 a type still written as a taxonomy until it's migrated.
 
-A taxonomy defined in `config/content.php` or a plugin stops Blush from
+A taxonomy defined in a plugin stops Blush from
 loading, with a message saying what to change: make it a `Collection`
 (with `order: TypeOrder::Position`, and `hierarchical: true` if its
 terms nest) and add a classify relation named after it, as in
@@ -579,7 +524,7 @@ new Tree('doc', folder: '_docs', icon: 'book')
 ```
 
 In YAML, that's `user/data/types/doc.yaml` with `kind: tree`; the
-admin's **New Content Type** writes the same as `doc.json`. A tree from `config/content.php`
+admin's **New Content Type** writes the same as `doc.json`. A tree from a plugin
 can be [changed from the admin](#changing-a-type-from-code), as
 collections can; the `page` type can't.
 
@@ -980,21 +925,17 @@ admin's **Addresses** panel on a type's screen edits these paths too
 
 ## Giving pages fields
 
-To declare fields for pages, redefine the built-in `page` type:
+To declare fields for pages, redefine the built-in `page` type in
+`user/data/types/page.yaml`:
 
-```php
-use Blush\Field\Fields\TextField;
-use Blush\Content\Type\Tree;
-
-return new ContentConfig(
-	types: [
-		new Tree(fields: [new TextField('subtitle')])
-	]
-);
+```yaml
+kind: tree
+fields:
+  - name: subtitle
+    type: text
 ```
 
-In YAML, that's `user/data/types/page.yaml` with `kind: tree` and
-`fields`.
+A plugin can do the same with `new Tree(fields: [new TextField('subtitle')])`.
 
 ## Crediting people
 
@@ -1099,20 +1040,19 @@ another folder, or move their pages, redefine the `profile` type. For
 example, a 1.x site that keeps its author files in `authors/`, and its
 author pages at `/authors/jane`:
 
-```php
-use Blush\Content\Type\Profiles;
-use Blush\Content\Type\TypeUrls;
-
-return new ContentConfig(types: [
-	new Profiles(folder: 'authors', urls: new TypeUrls(prefix: 'authors'))
-]);
+```yaml
+# user/data/types/profile.yaml
+kind: profiles
+folder: authors
+urls:
+  prefix: authors
 ```
 
 Without `urls`, those profiles would still be at `/profiles/jane`.
 
 ## Turning off a built-in type
 
-If you don't want profiles:
+If you don't want profiles, in `config/content.php`:
 
 ```php
 return new ContentConfig(disabled: ['profile']);

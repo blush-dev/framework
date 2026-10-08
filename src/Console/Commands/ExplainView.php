@@ -28,8 +28,8 @@ use Blush\View\ViewFactory;
 
 /**
  * Shows which file wins for a view name (`single-post`, `layouts/base`,
- * `directives/callout`) and which it shadows, down the site overrides and
- * the theme chain, so layering is easy to debug.
+ * `directives/callout`) and which it shadows, down the theme chain, so
+ * layering is easy to debug.
  */
 #[Command('theme:why', 'Show which file a view name resolves to.')]
 final readonly class ExplainView

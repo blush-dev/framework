@@ -17,7 +17,7 @@ use Psr\Http\Message\ResponseInterface;
 use Blush\Content\Http\RelatedController;
 use Blush\Content\Relation\Relation;
 use Blush\Content\Storage\FilesystemStorage;
-use Blush\Content\Type\ContentConfig;
+use Blush\Content\ContentConfig;
 use Blush\Content\Type\Collection;
 use Blush\Content\Type\ContentType;
 use Blush\Content\Type\ContentTypes;
@@ -52,7 +52,7 @@ use Blush\Support\Uuid;
  * the `types` its relation files (empty for every type), which places it
  * in the admin's navigation; the profiles type adds the `types` that
  * credit people. Each also has its `origin` (`built-in`,
- * `extension`, `config`, or `data`), its `folder`, its URL `prefix` (or
+ * `extension`, or `data`), its `folder`, its URL `prefix` (or
  * `null` without URLs), and how many `fields` it defines (D-250).
  * Term types and the profiles type come last. Beside them, `authors`
  * names the authors type, which accounts' authors belong to and the

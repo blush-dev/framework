@@ -18,12 +18,14 @@ use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\ResponseInterface;
 use Blush\Admin\EntryController;
 use Blush\Admin\HtmlGuard;
+use Blush\Tests\WritesContentConfig;
 
 #[CoversClass(EntryController::class)]
 #[CoversClass(HtmlGuard::class)]
 final class AdminHtmlTest extends TestCase
 {
 	use BootsAdmin;
+	use WritesContentConfig;
 
 	private const string POST = '_posts/2022-03-29.flame.md';
 
@@ -36,7 +38,7 @@ final class AdminHtmlTest extends TestCase
 	 */
 	private function site(array $roles): void
 	{
-		$this->writeTemporaryFile('config/content.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn Blush\\Content\\Type\\ContentConfig::fromArray(['types' => ['post' => ['path' => '_posts', 'date_archives' => true]], 'relations' => ['authors' => ['kind' => 'credit', 'from' => ['post'], 'to' => ['profile']]]]);\n");
+		$this->contentConfig(['types' => ['post' => ['path' => '_posts', 'date_archives' => true]], 'relations' => ['authors' => ['kind' => 'credit', 'from' => ['post'], 'to' => ['profile']]]]);
 		$this->writeTemporaryFile('user/content/' . self::POST, "---\ntitle: Flame\nauthors: jane\nstatus: draft\n---\n\nSome <iframe src=\"https://example.com\"></iframe> here.\n");
 
 		$this->boot(roles: $roles);

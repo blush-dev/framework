@@ -12,7 +12,7 @@ work:
 
 1. [Adjust the active theme's settings](#settings)
    with a data file.
-2. [Override a few templates](#overriding-templates) from your site.
+2. [Override a few templates](#overriding-templates) with a child theme.
 3. [Build your own theme](#building-a-theme).
 
 ## Managing themes
@@ -112,11 +112,29 @@ content:lint` says so.
 
 ## Overriding templates
 
-To change one piece of the active theme, copy its template into your site's
-`resources/views/` folder and edit the copy. Your copy wins.
+Templates belong to themes; your site has none of its own. To change
+one piece of a theme, make a **child theme**: a theme whose `parent` is
+the one you're changing. Anything the child doesn't include comes from
+its parent, so it holds only the templates you change.
 
-For example, to change the site footer, copy the default theme's
-`views/partials/footer.php` to `resources/views/partials/footer.php`.
+```sh
+bin/blush theme:new acme/notebook-child --parent=acme/notebook
+bin/blush theme:activate acme/notebook-child
+```
+
+Then copy the template into the child's `views/` folder and edit the
+copy. The child's copy wins. For example, to change the site footer,
+copy the default theme's `views/partials/footer.php` to
+`extensions/acme/notebook-child/views/partials/footer.php`.
+
+Only the active theme's `styles` are loaded, but a file the child
+doesn't have is found in its parent. `theme:new` gives a child no
+`style.css` and no `styles`, which means `["style.css"]`, so the
+parent's `style.css` loads. To add styles on top, add your own file and
+list both: `"styles": ["style.css", "child.css"]`. If the parent's
+stylesheets have other names, list them the same way. Icons work the same way
+(the child's `icons/`), and a child's catalogs reword its parent's text
+(see [Translations](#translations)).
 
 The default footer ends with a "Powered by" line ("Powered by coffee.",
 "Powered by sleepless nights.", and others), picked at random
@@ -125,10 +143,6 @@ need to copy the template: see [Your own wording](#your-own-wording). Each line 
 under `powered_by` in the theme's `lang/en.json` (`powered_by.coffee`).
 A translation's `powered_by` replaces the whole group, so it can have
 more lines or fewer, and none of the English ones show through.
-
-To override a template for one theme only, use
-`resources/views/themes/{vendor}/{name}/` instead, by the theme's name
-(`resources/views/themes/acme/notebook/`).
 
 Not sure which file is in charge of a view? Ask:
 
@@ -237,7 +251,7 @@ Only `name` is required.
   for the `/` (and any `.`), so `acme/notebook` goes by `acme-notebook`.
   `theme:new` writes that form. Give one only when you want something
   shorter.
-  `blush`, `app`, `theme`, and `default` are reserved, and no two
+  `blush`, `theme`, and `default` are reserved, and no two
   installed extensions (plugins, themes, icon packs) may share one: two
   themes that do are both broken, and a theme whose namespace a plugin
   has is broken too.
@@ -608,7 +622,8 @@ A file is a path inside your theme or a full URL, or an object with
 that `path`, its `attributes`, and, for a script, `footer`. Themes
 register theirs after plugins, a parent's before its child's, and a
 theme's provider after its `theme.json`, so a provider's handle wins;
-your site's registrations win over any theme's. `theme.json`'s `styles`
+registrations from your site's own providers (in `src/`) win over any
+theme's. `theme.json`'s `styles`
 and `scripts` stay as they are: files every page loads.
 
 The player draws its colors from `--player-*` properties, set to your
@@ -693,7 +708,6 @@ language:
 user/lang/
   en/
     blush.json                          Blush's own text
-    app.json                            your site's (resources/lang)
     extensions/acme/notebook.json       a theme's, by its name
     extensions/acme/hello.json          a plugin's or icon pack's
   fr/
@@ -781,7 +795,7 @@ The key names the piece, so give each variation its own key. Only the
 HTML is kept, so don't add to the head inside it. In development,
 nothing is cached, so your changes always show.
 
-A directive used in an entry's Markdown (`::app/post-list{limit=5}`)
+A directive used in an entry's Markdown (`::acme/post-list{limit=5}`)
 needs no `cache()`: it's kept with the entry's rendered content, on the
 same terms.
 
@@ -844,7 +858,7 @@ linking to it. On a profile's page, `$entry` is the profile and
 `$entries` everything crediting them.
 
 `{kind}` is the kind of the entry's type: `collection` (such as posts),
-`tree` (pages, and any tree of your site's own), or `profiles`. So
+`tree` (pages, and any other tree), or `profiles`. So
 `single-tree.php` draws every tree's pages and `single-collection.php`
 every collection's entries, whatever a site names its types. A
 [type of terms](content-types.md#terms-and-relationships) (one a
@@ -868,8 +882,8 @@ An entry's `template` front matter is always tried first. Feeds
 Your theme draws two kinds of pieces:
 
 - **[Directives](directives.md)** are what content says: callouts,
-  galleries, buttons. They come from Blush, plugins, and the site, never
-  a theme, so content never depends on one theme. Your theme gives them
+  galleries, buttons. They come from Blush and plugins, never a
+  theme, so content never depends on one theme. Your theme gives them
   their look.
 - **[Components](components.md)** are your theme's own building blocks
   for its templates: a card, a post header, a list of archives. Content
@@ -917,8 +931,8 @@ map in `theme.json`:
 
 The provider registers the class in its `boot()` method, and the
 template in `views/components/` (here, `notebook-recent-posts.php`) draws
-it, so the class needs no `render()`; a site can override the template
-with its own:
+it, so the class needs no `render()`; a child theme can override the
+template with its own:
 
 ```php
 <?php // src/ThemeProvider.php

@@ -20,7 +20,7 @@ use Blush\Theme\ThemeChain;
 /**
  * Names where a directive or icon that isn't core comes from, for the
  * editor's inserters to group by (D-243, D-265): a theme in the chain,
- * the site (`app`), an icon pack, or a plugin (by the namespace each
+ * an icon pack, or a plugin (by the namespace each
  * declares, D-378). The Tools screen groups actions by where their class
  * comes from the same way (D-540).
  */
@@ -32,7 +32,7 @@ final readonly class Provenance
 	) {}
 
 	/**
-	 * Describes a namespace's source as its `kind` (`theme`, `site`,
+	 * Describes a namespace's source as its `kind` (`theme`,
 	 * `icon-pack`, or `plugin`) and a `label` to show.
 	 *
 	 * @return array{kind: string, label: string}
@@ -43,10 +43,6 @@ final readonly class Provenance
 			if ($theme->namespace === $namespace) {
 				return ['kind' => 'theme', 'label' => $theme->label];
 			}
-		}
-
-		if ($namespace === 'app') {
-			return ['kind' => 'site', 'label' => 'This site'];
 		}
 
 		$pack = $this->packs->byNamespace($namespace);

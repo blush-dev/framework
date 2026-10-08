@@ -96,7 +96,7 @@ async function remove(relation: RelationInfo): Promise<void> {
 						<tr v-for="row in rows[group[0]]" :key="row.relation.name">
 							<th scope="row">
 								<span class="type-relations__say">{{ row.say.before }} <strong>{{ row.say.type }}</strong> {{ row.say.after }}</span>
-								<span v-if="!row.relation.editable" class="type-relations__sub">{{ row.relation.origin === 'extension' ? 'Defined by a plugin' : (row.relation.origin === 'config' ? 'Defined in config/content.php' : 'Written as a taxonomy until it\'s migrated') }}</span>
+								<span v-if="!row.relation.editable" class="type-relations__sub">{{ row.relation.origin === 'extension' ? 'Defined by a plugin' : 'Written as a taxonomy until it\'s migrated' }}</span>
 							</th>
 							<td><span class="type-relations__key-text">{{ row.relation.field }}</span></td>
 							<td><span class="type-relations__takes-text"><AdminIcon :name="purposeIcon(row.relation)" />{{ row.takes }}</span></td>

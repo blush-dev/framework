@@ -119,10 +119,9 @@ exist (D-032).
   A malformed `preview` breaks the manifest, as other keys do.
 - `name` is required (D-378); `label` is the name without one (D-423),
   and `namespace` the name, hyphenated (D-424). `parent`, the
-  config's `active`, `?theme=`, asset URLs, and site overrides all use
-  the name. The namespace is unique across installed extensions; the
-  reserved ones are `blush`, `app`, `theme`, and `default` (the default
-  theme's own).
+  config's `active`, `?theme=`, and asset URLs all use the name. The namespace is unique across installed extensions; the
+  reserved ones are `blush`, `theme`, and `default` (the default
+  theme's own; `app` was the site's until D-617).
 - `provider` registers after plugins' and before the site's, ancestors
   first; `autoload.psr-4` is registered for local themes (D-116). Themes
   run PHP, but still add no content types, routes, or commands (D-020).
@@ -136,19 +135,17 @@ exist (D-032).
 ## Resolution chain
 
 ```
-site overrides (resources/views, config, user/data)
-  → active theme
+active theme (config and user/data settings over its defaults)
     → its parent(s) (any depth, cycle-checked)
       → framework default theme (`resources/themes/default`, named
         `blush/default`, namespace `default`; styles the core
         directives, D-033, D-532)
 ```
-- Views resolve through `resources/views/themes/{active}`, then
-  `resources/views`, then each theme's `views/` (D-103).
+- Views resolve through each theme's `views/`, the active theme first
+  (D-103). The site has no views of its own (D-617): a site changes a
+  theme with a child theme.
 - The chain applies to views, directive and component templates, assets, settings defaults,
   and message catalogs.
-- Theme-scoped site overrides go in `resources/views/themes/{vendor}/{name}/…` and apply
-  only while that theme is active.
 - `theme:why <view>` (CLI) shows which file in the chain wins. This makes
   layering easy to debug.
 
@@ -278,8 +275,8 @@ either from a class.
 
 ### Directives
 
-What content says: content vocabulary (D-026), core's (`blush`),
-plugins', and the site's (`app`), never a theme's.
+What content says: content vocabulary (D-026), core's (`blush`) and
+plugins', never a theme's (D-532) or the site's (D-617).
 
 - **Names (D-171):** `{namespace}/{name}` (`DirectiveName`). Only core
   directives have short names (`callout` is `blush/callout`). The
@@ -333,8 +330,8 @@ plugins', and the site's (`app`), never a theme's.
   active theme. The default theme offers and styles `stretch-wide`,
   `stretch-full`, `inline-left`, and `inline-right`.
 - **Text (D-172):** `Views::directiveText($name, 'label')` reads
-  `directives.{name}.{key}` from the namespace's catalog domain (`blush`,
-  `app`, or a plugin's), falling back to `DirectiveName::label()`.
+  `directives.{name}.{key}` from the namespace's catalog domain (`blush`
+  or a plugin's), falling back to `DirectiveName::label()`.
 - **Discovery:** `DirectiveType` declares the core directives (the
   registrar seeds them). `Views::directives()` lists every registered one
   as a `DirectiveListing` (files in the chain, label, variants);

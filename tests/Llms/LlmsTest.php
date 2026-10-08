@@ -105,7 +105,7 @@ final class LlmsTest extends TestCase
 	public function testServesTheRootIndexWithoutAHomeType(): void
 	{
 		$this->standardContent();
-		$this->contentConfig(['types' => ['post' => ['path' => '_posts', 'routing' => ['prefix' => 'archives']]]]);
+		$this->contentConfig(['types' => ['post' => ['path' => '_posts', 'routing' => ['prefix' => 'archives']]], 'home' => null]);
 		$this->boot();
 
 		$this->assertStringContainsString("title: \"Home\"\nurl: \"http://localhost/\"", (string) $this->get('/index.md')->getBody());

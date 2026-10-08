@@ -43,33 +43,36 @@ uses. They're reported as notices, not problems.
 1.x config files returned arrays. In 2.x they return objects, but the 1.x
 arrays can be passed straight in.
 
-**Content types** (`config/content.php`): wrap your 1.x array, and move
-`home_alias` from `config/app.php` into it as `home`:
+**Content types** move out of config. Put each 1.x type in a data file
+in `user/data/types/`, named after it, with the same keys (or define it
+in a [plugin](extending.md#content-types-from-a-plugin)):
+
+```yaml
+# user/data/types/post.yaml
+# Your 1.x type, unchanged: date_archives, routing, feed, and the rest
+# (taxonomies change; see below).
+path: _posts
+collection:
+  order: desc
+date_archives: true
+```
+
+Move `home_alias` from `config/app.php` into `config/content.php` as
+`home`:
 
 ```php
 <?php
 
 declare(strict_types=1);
 
-use Blush\Content\Type\ContentConfig;
+use Blush\Content\ContentConfig;
 
-return ContentConfig::fromArray([
-	'home'  => 'post',
-	'types' => [
-		// Your 1.x types, unchanged: date_archives, routing, feed,
-		// and the rest (taxonomies change; see below).
-		'post' => [
-			'path'          => '_posts',
-			'collection'    => ['order' => 'desc'],
-			'date_archives' => true
-		]
-	]
-]);
+return new ContentConfig(home: 'post');
 ```
 
 One default changed: a type without a `path` (or `folder`) now lives in
 `_` and its name (`_recipe/`), not a folder named after it. If a 1.x type
-leaves `path` out, add `'path' => 'recipe'` to keep its folder. Its URLs
+leaves `path` out, add `path: recipe` to keep its folder. Its URLs
 don't change either way.
 
 ### Taxonomies
@@ -86,47 +89,39 @@ So a 1.x type with `taxonomy: true` needs moving:
   **Taxonomies** in Site Health) to rewrite each: the type's file is
   edited in place, and its relation is written to
   `user/data/relations/{name}.json`.
-- **In `config/content.php`** (or a plugin), it stops Blush from
-  loading, with a message saying what to change. Rewrite it by hand.
+- **In a plugin**, it stops Blush from loading, with a message saying
+  what to change. Rewrite it by hand.
 
 For example, a 1.x category taxonomy for posts:
 
-```php
-'category' => [
-	'taxonomy'     => true,
-	'path'         => '_posts/categories',
-	'term_collect' => 'post',
-	'hierarchical' => true
-]
+```yaml
+# user/data/types/category.yaml
+taxonomy: true
+path: _posts/categories
+term_collect: post
+hierarchical: true
 ```
 
 becomes a collection ordered by `position`, out of
 `llms.txt`, and a classify relation named after it:
 
-```php
-return ContentConfig::fromArray([
-	'types' => [
-		'category' => [
-			'path'         => '_posts/categories',
-			'hierarchical' => true,
-			'order'        => 'position',
-			'llms'         => false
-		]
-	],
-	'relations' => [
-		'category' => [
-			'kind'   => 'classify',
-			'from'   => ['post'],
-			'to'     => ['category'],
-			'create' => true
-		]
-	]
-]);
+```yaml
+# user/data/types/category.yaml
+path: _posts/categories
+hierarchical: true
+order: position
+llms: false
+```
+
+And in `user/data/relations/category.json`:
+
+```json
+{"kind": "classify", "from": ["post"], "to": ["category"], "create": true}
 ```
 
 A taxonomy's `field` and `field_aliases` become the relation's `field`
 and `aliases`, and its `term_collection` the relation's
-`inverse.listing` (as `'inverse' => ['listing' => [...]]`). Entries' front matter (`category: news`) doesn't
+`inverse.listing` (as `"inverse": {"listing": {...}}`). Entries' front matter (`category: news`) doesn't
 change, and neither do the terms' URLs.
 
 ### New option names

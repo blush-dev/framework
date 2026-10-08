@@ -15,16 +15,14 @@ namespace Blush\Content\Type;
 
 /**
  * Where a content type was defined. Data types from `user/data/types` are
- * editable (D-042). A collection or taxonomy from code (an extension or
- * `config/content.php`) keeps its origin when a data file changes it
- * (D-349; `ContentTypes::isOverridden()`); the built-in types stay as
+ * editable (D-042). A collection or tree from code (an extension) keeps its
+ * origin when a data file changes it (D-349; `ContentTypes::isOverridden()`); the built-in types stay as
  * they are unless a data type replaces one whole.
  */
 enum TypeOrigin: string
 {
 	case BuiltIn   = 'built-in';
 	case Extension = 'extension';
-	case Config    = 'config';
 	case Data      = 'data';
 
 	/**
