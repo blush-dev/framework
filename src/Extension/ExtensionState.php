@@ -185,6 +185,17 @@ final readonly class ExtensionState
 	}
 
 	/**
+	 * The extensions that are on, of every kind, by name: those that run
+	 * and those that can't.
+	 *
+	 * @return array<string, ExtensionManifest>
+	 */
+	public function on(): array
+	{
+		return array_intersect_key($this->installed, $this->running + $this->blocked);
+	}
+
+	/**
 	 * Checks an extension's requirements against what runs, as if it
 	 * were on.
 	 *

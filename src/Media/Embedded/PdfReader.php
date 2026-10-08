@@ -22,7 +22,8 @@ use Override;
  * information: title, author, subject, keywords, what made it
  * (`software`), what wrote the PDF (`producer`), and when. Objects are
  * found by their headers, and those in compressed object streams
- * (Flate) are read too; the information of an encrypted PDF can't be.
+ * (Flate) are read too when PHP has `zlib`; the information of an
+ * encrypted PDF can't be.
  * A file over 16 MB is read at its start and end, where a PDF keeps its
  * structure, and may give less.
  */
@@ -148,6 +149,10 @@ final readonly class PdfReader implements EmbeddedReader
 	 */
 	private static function packed(string $dict, string $stream): array
 	{
+		if (! function_exists('gzuncompress')) {
+			return [];
+		}
+
 		$stream = ltrim($stream, "\r\n");
 		$length = preg_match('/\/Length\s+(\d+)(?!\s+\d+\s+R)/', $dict, $match) === 1 ? (int) $match[1] : null;
 		$end    = strrpos($stream, 'endstream');

@@ -19266,3 +19266,99 @@ decision, add a new entry that supersedes it and mark the old one
   mid-line, a leaf, code, an earlier container left open, and an
   unregistered name.
 
+
+### D-640: Which databases Blush supports
+
+- **Date:** 2026-10-08
+- **Status:** Planned; nothing built. Extends D-606's "drivers ship
+  with core and come from Composer" with the list.
+- **Decision:** from the author's starting list (MySQL, SQLite,
+  MariaDB, PostgreSQL, MongoDB, Redis):
+  - **Storage drivers in core** (D-606's PDO drivers): **SQLite**,
+    **MySQL/MariaDB**, and **PostgreSQL**.
+    - SQLite matters most: no server, one file in `user/` that copies
+      and backs up like the rest of a site.
+    - MySQL and MariaDB are **one driver** (`mysql`) that knows which
+      server it's on, for where they differ (MariaDB's `JSON` is
+      `LONGTEXT`; `RETURNING`, `JSON_TABLE`, and index details). Both
+      run in the test matrix and the conformance suite.
+    - PostgreSQL stores fields as `jsonb`, with GIN indexes.
+    - Floors, to check when a driver is built: MySQL 8.0, MariaDB
+      10.11, PostgreSQL 14. SQLite has **no version floor**: PHP links
+      the operating system's SQLite (no bundled copy since PHP 7.4), so
+      its version is the host's (Ubuntu 22.04 has 3.37), and the
+      driver checks for the features instead, its JSON functions and
+      FTS5, when it starts.
+    - SQLite needs no server or install, only PHP's `pdo_sqlite`
+      extension: on by default in PHP's own build and most hosts, a
+      separate package on some Linux distributions, and never
+      shippable through Composer. The database is a file a site can
+      keep and ship in `user/`. Site Health says plainly when the
+      extension or a feature is missing.
+  - **MongoDB isn't in core.** It needs a PECL extension few PHP hosts
+    have, and a second query compiler (not SQL) kept forever. It's a
+    Composer driver's job if anyone asks for it. `QuerySpec` is still
+    designed so a compiler that isn't SQL could exist; Mongo is the
+    test of that.
+  - **Redis isn't a storage driver for records**: it's in memory with
+    optional persistence and can't answer the full query language. It
+    comes to core in three narrower places: a **cache driver**
+    (`CacheDriver`, beside `apcu`, for caches shared across servers),
+    the **`sessions` area**, and the **job store** (D-621, D-622;
+    claiming atomically when several workers run). **Memcached** comes
+    as a cache driver too.
+  - **Hosted variants** (Turso/libSQL, Cloudflare D1, PlanetScale,
+    Neon) speak SQLite, MySQL, or PostgreSQL over HTTP, not PDO: they're
+    Composer drivers that reuse core's SQL. So each SQL dialect's
+    compiler is kept apart from the PDO connection it runs on.
+- **Open:** in `open-questions.md` ("The data layer"): narrower drivers
+  for areas that never query, and a leaning for schemas.
+- **Why:** the author wants several databases supported out of the
+  box with 2.x and asked which. The three SQL databases cover nearly
+  every PHP host; MongoDB costs more than its users would gain; Redis
+  is the right tool for caches, sessions, and queues, not content.
+
+### D-641: PHP extensions in composer.json, and what extensions ask of PHP on Requirements
+
+- **Date:** 2026-10-08
+- **Status:** Built. Extends D-543's Requirements tab.
+- **Decision:**
+  - **composer.json** `require`s every PHP extension core uses
+    unguarded: `dom`, `intl`, `mbstring`, and `json` and `uri`, which
+    every PHP 8.5 has (so IDEs and Composer see them). The optional
+    ones are in `suggest`: `apcu`, `exif`, `fileinfo`, `zip`, and
+    `zlib`.
+  - **`zlib`** is optional: `PdfReader` reads compressed object
+    streams only when `gzuncompress()` exists, and gives less without
+    it (it called it unguarded, a fatal error without `zlib`). It's an
+    optional row on Requirements ("Reads compressed PDFs' details").
+  - **Requirements leaves out what can't be missing.** Extensions every
+    PHP 8.5 has (`json`, `uri`, `pcre`, `random`, and so on) get no row;
+    the PHP row covers them.
+  - **Each required extension says what uses it**
+    (`SetupChecks::EXTENSIONS` is now a map of name to reason): `dom`
+    reads and rewrites HTML and photos' XMP details, `intl` dates,
+    numbers, sorting, and translations, `mbstring` text in every
+    language and Markdown. The group is now **PHP Extensions**.
+  - **What extensions ask of PHP.** Of the plugins, themes, and icon
+    packs that are **on** (running or not; `ExtensionState::on()`), each
+    `ext-{name}` in `require` is checked as boot checks it
+    (`ExtensionState::check()`), and listed in a **Plugins and Themes**
+    group, its note naming who asks ("Required by Gallery and Shop"),
+    `needs` the versions asked for or `required`, failing when unmet.
+    A `php` constraint is listed only when Blush's oldest PHP or this
+    server's doesn't meet it. Each `ext-{name}` in `suggest` is an
+    optional row with the extension's reason ("Gallery: For speed.").
+    An optional core extension a plugin requires becomes required in
+    its own row, the note adding who asks; a required core extension
+    isn't repeated unless a plugin asks for versions it doesn't have.
+    Extensions that are installed but off ask nothing.
+  - **`apcu` says what it does**: "Keeps the cache in memory instead of
+    files, when the cache driver is set to apcu", or, when the cache
+    `driver` or any of its `stores` is `apcu` (only `driver` was read
+    before), required with "Keeps the cache in memory: this site's
+    cache driver is set to apcu".
+- **Why:** the author's questions: PhpStorm flagged `ext-uri` missing
+  from composer.json; a plugin that doesn't run for a missing PHP
+  extension should say so where the server's requirements are; and
+  each extension should say why it's needed.

@@ -124,6 +124,52 @@ final class AdminContentTest extends TestCase
 		$this->login();
 	}
 
+	public function testListsWhatExtensionsAskOfPhp(): void
+	{
+		$this->writeTemporaryFile('config/icons.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn new Blush\\Icon\\IconConfig(enabled: ['acme/needs', 'acme/more']);\n");
+		$this->writeTemporaryFile('extensions/acme/needs/icons.json', '{"name": "acme/needs", "label": "Needs", "namespace": "needs", "require": {"php": ">=99.0", "ext-json": "*", "ext-blushmissing": "*", "ext-zip": "*"}, "suggest": {"ext-blushoptional": "For speed.", "ext-mbstring": "Already required."}}');
+		$this->writeTemporaryFile('extensions/acme/more/icons.json', '{"name": "acme/more", "label": "More", "namespace": "more", "require": {"php": ">=8.5", "ext-blushmissing": "*"}}');
+		$this->writeTemporaryFile('extensions/acme/off/icons.json', '{"name": "acme/off", "label": "Off", "namespace": "off", "require": {"ext-blushoff": "*"}}');
+		$this->site(['owner']);
+
+		$health = self::json($this->send('GET', '/health/site'));
+
+		$this->assertIsArray($health['requirements'] ?? null);
+
+		$rows = [];
+
+		foreach ($health['requirements'] as $row) {
+			if (is_array($row) && ($row['group'] ?? null) === 'Plugins and Themes') {
+				$rows[] = array_intersect_key($row, array_flip(['group', 'name', 'why', 'needs', 'status']));
+			}
+		}
+
+		$this->assertSame([
+			['group' => 'Plugins and Themes', 'name' => 'blushmissing', 'why' => 'Required by More and Needs', 'needs' => 'required', 'status' => 'failure'],
+			['group' => 'Plugins and Themes', 'name' => 'PHP', 'why' => 'Required by Needs', 'needs' => '>=99.0', 'status' => 'failure'],
+			['group' => 'Plugins and Themes', 'name' => 'json', 'why' => 'Required by Needs', 'needs' => 'required', 'status' => 'pass'],
+			['group' => 'Plugins and Themes', 'name' => 'blushoptional', 'why' => 'Needs: For speed.', 'needs' => 'optional', 'status' => 'optional']
+		], $rows, 'Only what\'s on asks; a PHP every Blush has, and core\'s own extensions, aren\'t repeated.');
+
+		$zip = array_find($health['requirements'], static fn (mixed $row): bool => is_array($row) && ($row['name'] ?? null) === 'zip');
+
+		$this->assertIsArray($zip);
+		$this->assertSame(['PHP Extensions', 'required'], [$zip['group'] ?? null, $zip['needs'] ?? null], 'An optional extension a plugin requires is required.');
+		$this->assertStringEndsWith('; required by Needs', is_string($zip['why'] ?? null) ? $zip['why'] : '');
+	}
+
+	public function testRequiresApcuWhenAStoreUsesIt(): void
+	{
+		$this->writeTemporaryFile('config/cache.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn new Blush\\Cache\\CacheConfig(enabled: false, stores: ['pages' => 'apcu']);\n");
+		$this->site(['owner']);
+
+		$health = self::json($this->send('GET', '/health/site'));
+
+		$this->assertIsArray($health['requirements'] ?? null);
+		$this->assertIsArray($apcu = array_column($health['requirements'], null, 'name')['apcu'] ?? null);
+		$this->assertSame(['required', 'Keeps the cache in memory: this site\'s cache driver is set to apcu'], [$apcu['needs'] ?? null, $apcu['why'] ?? null]);
+	}
+
 	/**
 	 * Asks for a preview link to an entry, by title.
 	 */
@@ -684,6 +730,9 @@ final class AdminContentTest extends TestCase
 		$requirements = array_column($health['requirements'], null, 'name');
 		$this->assertIsArray($requirements['PHP'] ?? null);
 		$this->assertSame('pass', $requirements['PHP']['status'] ?? null);
+		$this->assertIsArray($mbstring = $requirements['mbstring'] ?? null);
+		$this->assertSame('PHP Extensions', $mbstring['group'] ?? null);
+		$this->assertNotSame('', $mbstring['why'] ?? '', 'Core\'s extensions say what uses them.');
 		$this->assertIsArray($health['site'] ?? null);
 		$facts = array_column($health['site'], null, 'key');
 		$this->assertIsArray($version = $facts['version'] ?? null);

@@ -947,6 +947,8 @@ One with no `version` counts as `0.0.0`.
 - `blush-dev/framework`: the Blush version.
 - `php`: the PHP version.
 - `ext-{name}`: a PHP extension that must be loaded (`"ext-intl": "*"`).
+  Site Health's Requirements tab lists it under Plugins and Themes,
+  naming your extension.
 - Another plugin, theme, or icon pack, by its name: `"acme/shop": "^2.0"`
   needs Shop installed at a version that fits, and running. A plugin or
   icon pack runs when it's turned on and its own requirements are met;

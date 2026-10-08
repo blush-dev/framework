@@ -1744,13 +1744,18 @@ Extensions, System, and Accounts are the checks
 PHP, which can differ from the command line's.
 
 **Requirements** compares what Blush needs with what this server has:
-the PHP version, the required extensions (`dom`, `intl`, `mbstring`),
-the optional ones and what uses them (`opcache` and `fileinfo` are
-recommended; `zip` installs extensions from a `.zip`, `exif` reads
-photos' embedded details, and `apcu` is needed only by that cache
-driver), PHP's upload limits against the largest upload the
-[Media settings](#settings) allow, and the storage folders Blush writes
-to. **Site & Server** lists the facts you'd be asked for in a bug
+the PHP version, the required extensions and what uses them (`dom`,
+`intl`, `mbstring`), the optional ones and what uses them (`opcache` and
+`fileinfo` are recommended; `zip` installs extensions from a `.zip`,
+`exif` reads photos' embedded details, `zlib` reads compressed PDFs'
+details, and `apcu` keeps the cache in memory, needed only when the
+cache or one of its stores uses the `apcu` driver), PHP's upload
+limits against the largest upload the [Media settings](#settings) allow,
+and the storage folders Blush writes to. Under **Plugins and Themes**
+are the PHP extensions the plugins, themes, and icon packs that are on
+require or suggest, each naming which ones ask, and a PHP version when
+one needs a newer PHP than Blush does. One that requires an extension
+that's missing doesn't run until it's installed. **Site & Server** lists the facts you'd be asked for in a bug
 report, about this site and the server it runs on, in plain words: the
 theme by its name, languages by theirs, PHP's memory and time limits in
 megabytes and seconds, with the PHP setting each comes from beneath its

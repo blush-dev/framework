@@ -34,9 +34,17 @@ final readonly class SetupChecks
 	public const string MINIMUM_PHP = '8.5.0';
 
 	/**
-	 * The PHP extensions Blush needs.
+	 * The PHP extensions Blush needs, by what uses them. Those every PHP
+	 * 8.5 has (`json`, `uri`, and so on) are left out: they can't be
+	 * missing.
+	 *
+	 * @var array<string, string>
 	 */
-	public const array EXTENSIONS = ['dom', 'intl', 'mbstring'];
+	public const array EXTENSIONS = [
+		'dom'      => 'Reads and rewrites HTML (pages, embeds, icons, theme checks) and photos\' XMP details',
+		'intl'     => 'Dates, numbers, and sorting in the site\'s language, and translations',
+		'mbstring' => 'Handles text in every language (lengths, excerpts, slugs), and Markdown needs it'
+	];
 
 	/**
 	 * The storage paths Blush writes to, by name.
@@ -70,7 +78,7 @@ final readonly class SetupChecks
 				: CheckResult::failure('PHP', sprintf('%s is too old.', PHP_VERSION), sprintf('Blush needs PHP %s or newer.', self::MINIMUM_PHP))
 		];
 
-		foreach (self::EXTENSIONS as $extension) {
+		foreach (array_keys(self::EXTENSIONS) as $extension) {
 			$results[] = extension_loaded($extension)
 				? CheckResult::pass("ext-{$extension}", 'Loaded.')
 				: CheckResult::failure("ext-{$extension}", 'Not loaded.', sprintf('Install or enable PHP\'s "%s" extension.', $extension));

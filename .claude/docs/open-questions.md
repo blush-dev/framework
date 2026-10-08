@@ -68,6 +68,15 @@ Move each item to `decisions.md` once it's answered.
     type gains or loses a field? The filesystem driver needs none of
     it, which argues for schema being the driver's business, derived
     from types, rather than migrations a site writes by hand.
+    Leaning (D-640): fields as one JSON column per record, with a
+    generated, indexed column for each field a query uses, built by
+    the driver from type definitions, since SQLite, MySQL/MariaDB, and
+    PostgreSQL each query JSON with their own syntax.
+  - **Narrower drivers for areas that never query** (D-640): sessions
+    and jobs need only get, put, claim, and expire, which Redis does
+    well and the full query language can't ask of it. Leaning: areas
+    can take a narrower driver, as `CacheConfig` picks stores per
+    namespace; which areas, and what the narrower contract is.
   - **Moving between drivers** (D-486's migration tools): copying every
     set from one driver to another through the record layer, ids kept,
     as a CLI command and an admin tool.
@@ -81,7 +90,18 @@ Move each item to `decisions.md` once it's answered.
   - **The filesystem driver's index** for the full query language:
     what it keeps per set (sorted keys, value maps per field) so
     comparisons, groups, and aggregates don't scan every record, and
-    whether `SqliteIndex` becomes its index for large sites.
+    whether `SqliteIndex` becomes its index for large sites. Leaning
+    (D-640's discussion, 2026-10-08): the filesystem driver indexes
+    into SQLite whenever `pdo_sqlite` and its JSON functions are
+    there, and falls back to `PhpIndex` when they aren't, so no site
+    breaks over a missing extension and large sites get it without
+    setup. The files stay the source of truth; the SQLite index is
+    derived (a file under `storage/`, ignored by git, rebuilt by
+    `content:index`), so publishing with git (D-131) is unchanged.
+    Queries compile to SQL against it, rather than array work over
+    value maps built in PHP; `PhpIndex` answers the same queries, and
+    the conformance suite runs both. Against it: two indexes to keep.
+    The other choice was SQLite only, `pdo_sqlite` required.
   - **Names:** record, set, store, `QuerySpec`, and repositories (and
     "set" against content's own "collection").
   - **Publishing** a database-backed site (D-131 pulls `user/` with
@@ -647,7 +667,8 @@ Move each item to `decisions.md` once it's answered.
   - Only public, published entries, never drafts, private, or
     future-dated ones (`Query`'s visibility filters).
   - Whether `SqliteIndex` and FTS5 stay planned, for large sites PHP
-    serves.
+    serves. Leaning: yes, with the SQLite index when it's there (see
+    "The filesystem driver's index" under "The data layer").
   - Its records could be the content API's (below).
 - **Data types: types without a body** (discussed 2026-10-06; leaning,
   not decided): types that are data more than prose (testimonials,

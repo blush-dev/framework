@@ -25,6 +25,9 @@ use Blush\Core\Framework;
 use Blush\Core\Language;
 use Blush\Core\Paths;
 use Blush\Extension\ExtensionState;
+use Blush\Extension\Requirement;
+use Blush\Extension\RequirementKind;
+use Blush\Extension\VersionConstraint;
 use Blush\Media\Index\MediaLibrary;
 use Blush\Media\Index\MediaQuery;
 use Blush\Media\MediaConfig;
@@ -59,7 +62,8 @@ use Blush\Setup\SiteChecks;
  *   `optional` for an optional extension that isn't loaded). Only what
  *   Blush really needs: PHP and its required extensions, the optional
  *   ones by what uses them, the upload limits against the Media
- *   settings, and writable storage.
+ *   settings, and writable storage; and what the plugins, themes, and
+ *   icon packs that are on ask of PHP, each saying which (D-641).
  * - `site` and `server`: facts for a bug report, each a `label`, a
  *   `value`, and whether it's `mono` (machine data).
  * - `files`: content and media files' `ContentHealth` report, notices
@@ -78,7 +82,8 @@ final readonly class SiteHealth
 		'fileinfo' => ['why' => 'Tells uploaded and served files\' types apart', 'recommended' => true],
 		'zip'      => ['why' => 'Installs plugins and themes from a .zip', 'recommended' => false],
 		'exif'     => ['why' => 'Reads photos\' embedded details', 'recommended' => false],
-		'apcu'     => ['why' => 'The APCu cache driver', 'recommended' => false]
+		'zlib'     => ['why' => 'Reads compressed PDFs\' details', 'recommended' => false],
+		'apcu'     => ['why' => 'Keeps the cache in memory instead of files, when the cache driver is set to apcu', 'recommended' => false]
 	];
 
 	public function __construct(
@@ -467,21 +472,65 @@ final readonly class SiteHealth
 			'status'    => version_compare(PHP_VERSION, SetupChecks::MINIMUM_PHP, '>=') ? 'pass' : 'failure'
 		]];
 
-		foreach (SetupChecks::EXTENSIONS as $extension) {
+		[$required, $suggested] = $this->asked();
+
+		foreach (SetupChecks::EXTENSIONS as $extension => $why) {
 			$loaded = extension_loaded($extension);
-			$rows[] = ['group' => 'Extensions', 'name' => $extension, 'why' => '', 'needs' => 'required', 'installed' => $loaded ? 'loaded' : 'missing', 'status' => $loaded ? 'pass' : 'failure'];
+			$rows[] = ['group' => 'PHP Extensions', 'name' => $extension, 'why' => $why, 'needs' => 'required', 'installed' => $loaded ? 'loaded' : 'missing', 'status' => $loaded ? 'pass' : 'failure'];
+
+			// A plugin asking for versions this one isn't keeps its own row.
+			if (array_all($required["ext-{$extension}"] ?? [], static fn (Requirement $requirement): bool => $requirement->met)) {
+				unset($required["ext-{$extension}"]);
+			}
+
+			unset($suggested["ext-{$extension}"]);
 		}
 
 		foreach (self::OPTIONAL as $extension => ['why' => $why, 'recommended' => $recommended]) {
-			$loaded   = $extension === 'opcache' ? self::opcache() : extension_loaded($extension);
-			$required = $extension === 'apcu' && $this->cache->driver === CacheDriver::Apcu->value;
-			$rows[]   = [
-				'group'     => 'Extensions',
+			$loaded  = $extension === 'opcache' ? self::opcache() : extension_loaded($extension);
+			$asking  = $required["ext-{$extension}"] ?? [];
+			$cache   = $extension === 'apcu' && in_array(CacheDriver::Apcu->value, [$this->cache->driver, ...array_values($this->cache->stores)], true);
+			$needed  = $cache || $asking !== [];
+			$met     = $loaded && array_all($asking, static fn (Requirement $requirement): bool => $requirement->met);
+			$why     = $cache ? 'Keeps the cache in memory: this site\'s cache driver is set to apcu' : $why;
+			$rows[]  = [
+				'group'     => 'PHP Extensions',
 				'name'      => $extension,
-				'why'       => $required ? "{$why}, which the cache uses" : $why,
-				'needs'     => $required ? 'required' : ($recommended ? 'recommended' : 'optional'),
-				'installed' => $loaded ? ($extension === 'opcache' ? 'on' : 'loaded') : ($extension === 'opcache' && extension_loaded('Zend OPcache') ? 'off' : 'missing'),
-				'status'    => $loaded ? 'pass' : ($required ? 'failure' : ($recommended ? 'warning' : 'optional'))
+				'why'       => $asking === [] ? $why : $why . '; ' . lcfirst(self::askedBy($asking)),
+				'needs'     => $needed ? self::needs($asking) : ($recommended ? 'recommended' : 'optional'),
+				'installed' => $loaded ? ($extension === 'opcache' ? 'on' : self::loaded($extension, $asking)) : ($extension === 'opcache' && extension_loaded('Zend OPcache') ? 'off' : 'missing'),
+				'status'    => $met || (! $needed && $loaded) ? 'pass' : ($needed ? 'failure' : ($recommended ? 'warning' : 'optional'))
+			];
+
+			unset($required["ext-{$extension}"], $suggested["ext-{$extension}"]);
+		}
+
+		foreach ($required as $name => $asking) {
+			$extension = substr($name, 4);
+			$php       = $name === 'php';
+			$loaded    = $php || extension_loaded($extension);
+			$rows[]    = [
+				'group'     => 'Plugins and Themes',
+				'name'      => $php ? 'PHP' : $extension,
+				'why'       => self::askedBy($asking),
+				'needs'     => self::needs($asking),
+				'installed' => $php ? PHP_VERSION : ($loaded ? self::loaded($extension, $asking) : 'missing'),
+				'status'    => array_all($asking, static fn (Requirement $requirement): bool => $requirement->met) ? 'pass' : 'failure'
+			];
+
+			unset($suggested[$name]);
+		}
+
+		foreach ($suggested as $name => $reasons) {
+			$extension = substr($name, 4);
+			$loaded    = extension_loaded($extension);
+			$rows[]    = [
+				'group'     => 'Plugins and Themes',
+				'name'      => $extension,
+				'why'       => implode('; ', array_map(static fn (string $label, string $reason): string => $reason === '' ? "Suggested by {$label}" : "{$label}: {$reason}", array_keys($reasons), $reasons)),
+				'needs'     => 'optional',
+				'installed' => $loaded ? 'loaded' : 'missing',
+				'status'    => $loaded ? 'pass' : 'optional'
 			];
 		}
 
@@ -512,6 +561,78 @@ final readonly class SiteHealth
 		}
 
 		return $rows;
+	}
+
+	/**
+	 * What the plugins, themes, and icon packs that are on ask of PHP
+	 * (D-641): each `ext-{name}` they require, checked as boot checks it,
+	 * and each `php` stricter than Blush's own (one Blush's oldest PHP
+	 * doesn't meet, or this server's doesn't); and each `ext-{name}` they
+	 * suggest, with its reason. Each is by name, then by the label of the
+	 * extension asking.
+	 *
+	 * @return array{array<string, array<string, Requirement>>, array<string, array<string, string>>}
+	 */
+	private function asked(): array
+	{
+		$required  = [];
+		$suggested = [];
+
+		foreach ($this->extensions->on() as $extension) {
+			foreach ($this->extensions->check($extension) as $requirement) {
+				$php = $requirement->kind === RequirementKind::Php
+					&& ! (VersionConstraint::satisfies(SetupChecks::MINIMUM_PHP, $requirement->constraint) && $requirement->met);
+
+				if (! $requirement->conflict && ($php || $requirement->kind === RequirementKind::Extension)) {
+					$required[$php ? 'php' : strtolower($requirement->name)][$extension->label] = $requirement;
+				}
+			}
+
+			foreach ($extension->suggest as $name => $reason) {
+				if (str_starts_with($name, 'ext-')) {
+					$suggested[strtolower($name)][$extension->label] = $reason;
+				}
+			}
+		}
+
+		return [$required, $suggested];
+	}
+
+	/**
+	 * Says which extensions require something: "Required by Gallery and
+	 * Shop".
+	 *
+	 * @param array<string, Requirement> $asking By the label of the extension asking.
+	 */
+	private static function askedBy(array $asking): string
+	{
+		$labels = array_map(strval(...), array_keys($asking));
+		$last   = array_pop($labels);
+
+		return 'Required by ' . ($labels === [] ? $last : implode(', ', $labels) . (count($labels) > 1 ? ',' : '') . " and {$last}");
+	}
+
+	/**
+	 * What's needed: `required`, or the versions when one asks for them.
+	 *
+	 * @param array<string, Requirement> $asking
+	 */
+	private static function needs(array $asking): string
+	{
+		$constraints = array_values(array_unique(array_filter(array_map(static fn (Requirement $requirement): string => $requirement->constraint, $asking), static fn (string $constraint): bool => $constraint !== '*')));
+
+		return $constraints === [] ? 'required' : implode(', ', $constraints);
+	}
+
+	/**
+	 * A loaded extension as installed: its version when one asks for
+	 * versions, or `loaded`.
+	 *
+	 * @param array<string, Requirement> $asking
+	 */
+	private static function loaded(string $extension, array $asking): string
+	{
+		return self::needs($asking) === 'required' ? 'loaded' : (phpversion($extension) ?: 'loaded');
 	}
 
 	/**

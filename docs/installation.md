@@ -2,7 +2,11 @@
 
 ## Requirements
 
-- **PHP 8.5** or newer, with the `dom`, `intl`, and `mbstring` extensions
+- **PHP 8.5** or newer, with the `dom`, `intl`, and `mbstring` extensions.
+  Recommended: `opcache` and `fileinfo`. Optional: `zip` (installing
+  extensions from a `.zip`), `exif` (photos' embedded details), `zlib`
+  (compressed PDFs' details), and `apcu` (keeping the cache in memory
+  instead of files, with the `apcu` cache driver).
 - **Composer**
 - A web server: Apache (including most shared hosting), nginx, or PHP's
   built-in server for local work

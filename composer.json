@@ -21,7 +21,9 @@
 		"php": ">=8.5",
 		"ext-dom": "*",
 		"ext-intl": "*",
+		"ext-json": "*",
 		"ext-mbstring": "*",
+		"ext-uri": "*",
 		"league/commonmark": "^2.10",
 		"psr/clock": "^1.0",
 		"psr/container": "^2.0",
@@ -42,6 +44,13 @@
 		"phpunit/phpunit": "^12.5",
 		"squizlabs/php_codesniffer": "^4.0.4",
 		"symfony/var-dumper": "^8.1"
+	},
+	"suggest": {
+		"ext-apcu": "To keep the cache in memory instead of files (the apcu cache driver)",
+		"ext-exif": "To read photos' embedded details",
+		"ext-fileinfo": "To tell uploaded and served files' types apart (recommended)",
+		"ext-zip": "To install plugins and themes from a .zip",
+		"ext-zlib": "To read compressed PDFs' details"
 	},
 	"autoload": {
 		"psr-4": {
