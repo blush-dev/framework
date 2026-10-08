@@ -95,7 +95,7 @@ final class MediaMetadataCheckTest extends TestCase
 		$files = $this->site()->container()->make(MediaMetadataStore::class)->files();
 
 		$this->assertSame(['2019/gone.png', '2026/broken.png', '2026/lake.png', '2026/listed.png', '2026/odd.png', '2026/sunset.png', '_content/trip/beach.png', 'fake.png', 'trip/shell.png'], array_keys($files));
-		$this->assertStringEndsWith('user/data/media/2026/sunset.png.json', $files['2026/sunset.png']['path']);
+		$this->assertSame('user/data/media/2026/sunset.png.json', $files['2026/sunset.png']['location']);
 	}
 
 	public function testReportsOrphanedUnreadableAndInvalidMetadata(): void

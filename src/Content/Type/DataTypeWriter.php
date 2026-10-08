@@ -14,18 +14,14 @@ declare(strict_types=1);
 namespace Blush\Content\Type;
 
 use Closure;
-use Throwable;
 use Blush\Container\Attributes\Defer;
 use Blush\Content\ContentConfig;
 use Blush\Content\Relation\Relation;
-use Blush\Content\Writer\DataFileKeys;
-use Blush\Core\Paths;
 use Blush\Data\DataException;
-use Blush\Data\DataLoader;
-use Blush\Data\InvalidData;
+use Blush\Data\DataKeys;
+use Blush\Data\DataStore;
 use Blush\Field\FieldFactory;
 use Blush\Field\InvalidSchema;
-use Blush\Support\Filesystem;
 
 /**
  * Writes the types the site defines in data, `user/data/types/{name}`
@@ -52,11 +48,12 @@ use Blush\Support\Filesystem;
  * Everything else in the file is left as the author wrote it: the
  * file keeps its other keys. Types are JSON files (D-490, D-631).
  *
- * Each change is checked against every other type before it's kept: the
- * file is written, all the types are loaded again (`ContentTypeLoader`),
- * and when they don't fit together (two types in one folder, a relation
- * listing a type that's gone), the file is put back as it was. Writes
- * take a lock, so two can't interleave.
+ * Types are records in the data store (`types/{name}`, D-642). Each
+ * change is checked against every other type before it's kept: in a
+ * transaction, the record is written, all the types are loaded again
+ * (`ContentTypeLoader`), and when they don't fit together (two types in
+ * one folder, a relation listing a type that's gone), the transaction
+ * puts the record back as it was, so two writes can't interleave.
  */
 final readonly class DataTypeWriter
 {
@@ -85,27 +82,44 @@ final readonly class DataTypeWriter
 	 * @param Closure(): ContentTypeLoader $loader
 	 */
 	public function __construct(
-		private Paths $paths,
 		private ContentConfig $config,
-		private DataLoader $data,
+		private DataStore $data,
 		private FieldFactory $fields,
-		private Filesystem $filesystem,
 		#[Defer(ContentTypeLoader::class)] private Closure $loader
 	) {}
 
 	/**
-	 * Returns a data type's file, or `null` when it has none.
+	 * Returns where a data type is kept (`user/data/types/post.json`), or
+	 * `null` when the data store has none by its name.
 	 *
 	 * @throws InvalidContentType When the name isn't a type name.
 	 */
-	public function path(string $name): ?string
+	public function location(string $name): ?string
 	{
 		self::assertName($name);
 
 		try {
-			return $this->data->find($this->directory(), $name);
+			return $this->data->has(self::record($name)) ? $this->data->location(self::record($name)) : null;
 		} catch (DataException $error) {
 			throw new InvalidContentType($error->getMessage(), previous: $error);
+		}
+	}
+
+	/**
+	 * Returns a data type's own options, as kept (with any 1.x names), or
+	 * an empty array when it has none.
+	 *
+	 * @return array<array-key, mixed>
+	 * @throws InvalidContentType When the name isn't a type name, or the record can't be read.
+	 */
+	public function data(string $name): array
+	{
+		self::assertName($name);
+
+		try {
+			return $this->data->load(self::record($name)) ?? [];
+		} catch (DataException $error) {
+			throw new InvalidContentType(sprintf('%s Fix it by hand first.', $error->getMessage()), previous: $error);
 		}
 	}
 
@@ -123,7 +137,7 @@ final readonly class DataTypeWriter
 			throw new InvalidContentType('The site has one profiles type; create a collection or a tree.');
 		}
 
-		if ($this->path($name) !== null) {
+		if ($this->location($name) !== null) {
 			throw new InvalidContentType(sprintf('user/data/types already defines "%s".', $name));
 		}
 
@@ -136,7 +150,7 @@ final readonly class DataTypeWriter
 			...($folder === null || trim($folder, '/') === '' ? [] : ['folder' => trim($folder, '/')])
 		];
 
-		return $this->write($name, "{$this->directory()}/{$name}.json", $base, $changes, ['kind', 'folder']);
+		return $this->write($name, $base, $changes, ['kind', 'folder']);
 	}
 
 	/**
@@ -150,24 +164,19 @@ final readonly class DataTypeWriter
 	{
 		$this->assertEnabled();
 
-		$path = $this->path($name);
 		$code = $this->codeType($name);
 
-		if ($path === null && $code === null) {
+		if ($this->location($name) === null && $code === null) {
 			throw new InvalidContentType(sprintf('"%s" isn\'t defined in user/data/types, so it can\'t be changed here.', $name));
 		}
 
-		try {
-			$data = $path === null ? [] : $this->data->loadFile($path);
-		} catch (DataException $error) {
-			throw new InvalidContentType(sprintf('%s Fix it by hand first.', $error->getMessage()), previous: $error);
-		}
+		$data = $this->data($name);
 
 		if (LegacyTaxonomy::is($data)) {
 			throw new InvalidContentType(sprintf('"%s" is still written as a taxonomy; migrate it first, on Site Health or with content:taxonomies --write.', $name));
 		}
 
-		return $this->write($name, $path ?? "{$this->directory()}/{$name}.json", $data, $changes, code: $code);
+		return $this->write($name, $data, $changes, code: $code);
 	}
 
 	/**
@@ -184,16 +193,12 @@ final readonly class DataTypeWriter
 			throw new InvalidContentType(sprintf('"%s" isn\'t defined in code, so there\'s nothing to reset it to.', $name));
 		}
 
-		$path = $this->path($name) ?? throw new InvalidContentType(sprintf('Nothing in user/data/types changes "%s".', $name));
+		if ($this->location($name) === null) {
+			throw new InvalidContentType(sprintf('Nothing in user/data/types changes "%s".', $name));
+		}
 
-		return $this->locked(function () use ($path): ContentTypes {
-			$before = (string) @file_get_contents($path);
-
-			if (! @unlink($path)) {
-				throw new InvalidContentType(sprintf('Unable to delete %s.', $this->paths->relative($path)));
-			}
-
-			return $this->checked($path, $before);
+		return $this->checked(function () use ($name): void {
+			$this->data->delete(self::record($name));
 		});
 	}
 
@@ -261,7 +266,9 @@ final readonly class DataTypeWriter
 			throw new InvalidContentType(sprintf('"%s" is defined in code, so it can\'t be deleted here; reset it to undo the changes made here.', $name));
 		}
 
-		$path = $this->path($name) ?? throw new InvalidContentType(sprintf('"%s" isn\'t defined in user/data/types, so it can\'t be deleted here.', $name));
+		if ($this->location($name) === null) {
+			throw new InvalidContentType(sprintf('"%s" isn\'t defined in user/data/types, so it can\'t be deleted here.', $name));
+		}
 
 		// The relations that name it say why it can't go yet (D-593).
 		$naming = array_filter(($this->loader)()->load()->relations(), static fn (Relation $relation): bool => in_array($name, [...$relation->from, ...$relation->to], true));
@@ -276,14 +283,8 @@ final readonly class DataTypeWriter
 			));
 		}
 
-		return $this->locked(function () use ($path): ContentTypes {
-			$before = (string) @file_get_contents($path);
-
-			if (! @unlink($path)) {
-				throw new InvalidContentType(sprintf('Unable to delete %s.', $this->paths->relative($path)));
-			}
-
-			return $this->checked($path, $before);
+		return $this->checked(function () use ($name): void {
+			$this->data->delete(self::record($name));
 		});
 	}
 
@@ -291,13 +292,13 @@ final readonly class DataTypeWriter
 	 * Applies changes to a type's data, checks the type, and writes the
 	 * changed options.
 	 *
-	 * @param  array<array-key, mixed> $data    The file's data.
+	 * @param  array<array-key, mixed> $data    The record's data.
 	 * @param  array<string, mixed>    $changes
 	 * @param  list<string>            $also    More keys to write as they are (a new type's `kind` and `folder`).
 	 * @param  ?ContentType             $code    The type the code defines, when the file changes it.
 	 * @throws InvalidContentType
 	 */
-	private function write(string $name, string $path, array $data, array $changes, array $also = [], ?ContentType $code = null): ContentTypes
+	private function write(string $name, array $data, array $changes, array $also = [], ?ContentType $code = null): ContentTypes
 	{
 		$merged  = $code === null ? $data : $code->overriddenBy($data, $this->fields)->toArray();
 		$written = [];
@@ -387,30 +388,16 @@ final readonly class DataTypeWriter
 			}
 		}
 
-		return $this->locked(function () use ($path, $sets, $code, $left): ContentTypes {
-			$before = is_file($path) ? (string) @file_get_contents($path) : null;
+		return $this->checked(function () use ($name, $sets, $code, $left): void {
+			$record = self::record($name);
 
 			if ($code !== null && $left === []) {
-				if ($before !== null && ! @unlink($path)) {
-					throw new InvalidContentType(sprintf('Unable to delete %s.', $this->paths->relative($path)));
-				}
+				$this->data->delete($record);
 
-				return $this->checked($path, $before);
+				return;
 			}
 
-			try {
-				$next = DataFileKeys::edit($before ?? '', $sets, self::OPTIONS);
-			} catch (InvalidData $error) {
-				throw new InvalidContentType(str_replace('The file', 'The type\'s file', $error->getMessage()), previous: $error);
-			}
-
-			try {
-				$this->filesystem->writeAtomic($path, $next);
-			} catch (Throwable $error) {
-				throw new InvalidContentType(sprintf('Unable to write %s.', $this->paths->relative($path)), previous: $error);
-			}
-
-			return $this->checked($path, $before);
+			$this->data->save($record, DataKeys::apply($this->data->load($record) ?? [], $sets, self::OPTIONS));
 		});
 	}
 
@@ -509,23 +496,22 @@ final readonly class DataTypeWriter
 	}
 
 	/**
-	 * Loads every type again, putting the file back when they don't fit
-	 * together.
+	 * Runs a write in a transaction and loads every type again, which
+	 * puts the record back when they don't fit together.
 	 *
+	 * @param  Closure(): void $write
 	 * @throws InvalidContentType
 	 */
-	private function checked(string $path, ?string $before): ContentTypes
+	private function checked(Closure $write): ContentTypes
 	{
 		try {
-			return ($this->loader)()->load();
-		} catch (InvalidContentType $error) {
-			if ($before === null) {
-				@unlink($path);
-			} else {
-				$this->filesystem->writeAtomic($path, $before);
-			}
+			return $this->data->transaction(function () use ($write): ContentTypes {
+				$write();
 
-			throw $error;
+				return ($this->loader)()->load();
+			});
+		} catch (DataException $error) {
+			throw new InvalidContentType($error->getMessage(), previous: $error);
 		}
 	}
 
@@ -686,36 +672,11 @@ final readonly class DataTypeWriter
 	}
 
 	/**
-	 * Runs a write under the types lock.
-	 *
-	 * @template T
-	 * @param  Closure(): T $write
-	 * @return T
-	 * @throws InvalidContentType
+	 * A type's record name in the data store.
 	 */
-	private function locked(Closure $write): mixed
+	private static function record(string $name): string
 	{
-		if (! is_dir($this->paths->cache)) {
-			@mkdir($this->paths->cache, 0775, true);
-		}
-
-		$lock = @fopen("{$this->paths->cache}/types.lock", 'c');
-
-		if ($lock === false || ! flock($lock, LOCK_EX)) {
-			throw new InvalidContentType('Unable to take the content types lock.');
-		}
-
-		try {
-			return $write();
-		} finally {
-			flock($lock, LOCK_UN);
-			fclose($lock);
-		}
-	}
-
-	private function directory(): string
-	{
-		return "{$this->paths->data}/" . ContentTypeLoader::DATA_DIRECTORY;
+		return ContentTypeLoader::DATA_DIRECTORY . "/{$name}";
 	}
 
 	/**

@@ -60,6 +60,15 @@ interface ContentWriter
 	public function createAt(ContentType $type, string $key, EntryChanges $changes): WriteResult;
 
 	/**
+	 * Returns the path of the page a type keeps at a fixed key, as
+	 * `createAt()` writes it, whether or not it exists yet, so callers
+	 * can look for it in the source (D-642).
+	 *
+	 * @throws WriteException When the key is invalid.
+	 */
+	public function pathAt(ContentType $type, string $key): string;
+
+	/**
 	 * Creates a page of a tree under another (D-408), undated:
 	 * `{folder}/{parent key}/{slug}.md`, so its key is the parent's
 	 * and its slug. A parent kept as a file named for its key

@@ -20,11 +20,11 @@ use Blush\Console\Attributes\Option;
 use Blush\Console\ExitCode;
 use Blush\Console\InvalidInput;
 use Blush\Console\Output;
+use Blush\Content\Source\ContentSource;
 use Blush\Content\Type\ContentTypes;
 use Blush\Content\Writer\ContentWriter;
 use Blush\Content\Writer\EntryChanges;
 use Blush\Content\Writer\WriteException;
-use Blush\Core\Paths;
 use Blush\Support\Slug;
 
 /**
@@ -39,7 +39,7 @@ final readonly class CreateContent
 {
 	public function __construct(
 		private ContentTypes $types,
-		private Paths $paths,
+		private ContentSource $source,
 		private ClockInterface $clock,
 		private ContentWriter $writer
 	) {}
@@ -79,7 +79,7 @@ final readonly class CreateContent
 			return ExitCode::Failure;
 		}
 
-		$output->success(sprintf('Created %s', $this->paths->relative("{$this->paths->content}/{$result->path}")));
+		$output->success(sprintf('Created %s', $this->source->location($result->path)));
 
 		return ExitCode::Success;
 	}

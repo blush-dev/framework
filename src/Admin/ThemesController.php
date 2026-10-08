@@ -31,7 +31,7 @@ use Blush\Http\Response;
 use Blush\Http\Status;
 use Blush\Settings\InvalidSetting;
 use Blush\Settings\Setting;
-use Blush\Settings\SettingsFile;
+use Blush\Settings\SettingsStore;
 use Blush\Theme\ThemeConfig;
 use Blush\Theme\ThemeException;
 use Blush\Theme\ThemeManifest;
@@ -76,7 +76,7 @@ final readonly class ThemesController
 		private Themes $themes,
 		private ThemeConfig $config,
 		private ExtensionState $extensions,
-		private SettingsFile $settings,
+		private SettingsStore $settings,
 		private AppConfig $app,
 		private Paths $paths,
 		private Permissions $permissions,

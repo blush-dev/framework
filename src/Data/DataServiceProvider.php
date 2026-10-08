@@ -14,9 +14,11 @@ declare(strict_types=1);
 namespace Blush\Data;
 
 use Blush\Core\ServiceProvider;
+use Blush\Storage\StorageArea;
 
 /**
- * Binds the data loader.
+ * Binds the data loader, which reads JSON files, and the data store, the
+ * site's data area from the storage driver for data (D-642).
  */
 final class DataServiceProvider extends ServiceProvider
 {
@@ -25,5 +27,12 @@ final class DataServiceProvider extends ServiceProvider
 	 */
 	protected const array SINGLETONS = [
 		DataLoader::class
+	];
+
+	/**
+	 * @inheritDoc
+	 */
+	protected const array STORAGE = [
+		DataStore::class => StorageArea::Data
 	];
 }

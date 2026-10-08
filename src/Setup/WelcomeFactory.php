@@ -15,9 +15,10 @@ namespace Blush\Setup;
 
 use Blush\Admin\AdminConfig;
 use Blush\Auth\AccountStore;
+use Blush\Content\Source\ContentSource;
+use Blush\Content\Source\FilesystemSource;
 use Blush\Core\AppConfig;
 use Blush\Core\Framework;
-use Blush\Core\Paths;
 
 /**
  * Gathers the welcome page's notes. Setup problems are left out in
@@ -26,7 +27,7 @@ use Blush\Core\Paths;
 final readonly class WelcomeFactory
 {
 	public function __construct(
-		private Paths $paths,
+		private ContentSource $source,
 		private AppConfig $app,
 		private AdminConfig $admin,
 		private AccountStore $accounts,
@@ -44,7 +45,7 @@ final readonly class WelcomeFactory
 		));
 
 		return new Welcome(
-			homepage: $this->paths->relative("{$this->paths->content}/index.md"),
+			homepage: $this->source->location('index.' . FilesystemSource::EXTENSION),
 			binary: 'bin/' . Framework::BINARY,
 			admin: $this->admin->enabled ? $this->admin->path : null,
 			accounts: ! $this->accounts->isEmpty(),

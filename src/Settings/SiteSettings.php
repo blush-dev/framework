@@ -38,7 +38,7 @@ final class SiteSettings
 
 	public function __construct(
 		private readonly FieldSets $sets,
-		private readonly SettingsFile $file,
+		private readonly SettingsStore $store,
 		private readonly FieldContext $context
 	) {}
 
@@ -63,7 +63,7 @@ final class SiteSettings
 		}
 
 		try {
-			$saved = $this->file->read()->site();
+			$saved = $this->store->read()->site();
 		} catch (InvalidSetting) {
 			$saved = [];
 		}

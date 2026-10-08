@@ -20,6 +20,7 @@ use Blush\Cache\CacheConfig;
 use Blush\Cache\CacheDriver;
 use Blush\Content\ContentRepository;
 use Blush\Content\Lint\LintReport;
+use Blush\Content\Source\ContentSource;
 use Blush\Core\AppConfig;
 use Blush\Core\Framework;
 use Blush\Core\Language;
@@ -97,6 +98,7 @@ final readonly class SiteHealth
 		private Paths $paths,
 		private ExtensionState $extensions,
 		private ContentRepository $content,
+		private ContentSource $source,
 		private MediaLibrary $library,
 		private ClockInterface $clock,
 		private HealthReportStore $store,
@@ -657,7 +659,7 @@ final readonly class SiteHealth
 			self::fact('debug', 'Debugging', $this->app->debug ? 'On' : 'Off', $this->app->debug ? 'true' : 'false', mono: false),
 			self::fact('url', 'Site URL', $this->app->url),
 			self::fact('admin', 'Admin URL', rtrim($this->app->url, '/') . $this->admin->path, $this->admin->path),
-			self::fact('content', 'Content folder', $this->paths->relative($this->paths->content) . '/'),
+			self::fact('content', 'Content folder', $this->source->location('') . '/'),
 			self::fact('media', 'Media folder', $this->paths->relative($this->paths->media) . '/'),
 			self::fact('timezone', 'Time zone', sprintf('%s (%s)', $zone->getName(), $this->offset($zone)), $zone->getName()),
 			self::fact(

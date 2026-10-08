@@ -45,10 +45,6 @@ use Blush\Content\Routing\DataRedirects;
 use Blush\Content\Routing\PageRoutes;
 use Blush\Content\Routing\RefreshRouteCache;
 use Blush\Content\Source\ContentSource;
-use Blush\Content\Storage\ContentStorage;
-use Blush\Content\Storage\StorageDriverFactory;
-use Blush\Content\Storage\StorageDriverRegistrar;
-use Blush\Content\Storage\StorageDriverRegistry;
 use Blush\Content\Type\ContentTypeCache;
 use Blush\Content\Type\ContentTypeLoader;
 use Blush\Content\Type\ContentTypes;
@@ -71,7 +67,6 @@ use Blush\Routing\RedirectSource;
 use Blush\Routing\RouteSource;
 use Blush\Routing\UrlSource;
 use Blush\Storage\StorageArea;
-use Blush\Storage\StorageConfig;
 
 /**
  * Binds the content layer: field types, content types, the document
@@ -99,7 +94,6 @@ final class ContentServiceProvider extends ServiceProvider
 		EntryHydrator::class,
 		Indexer::class,
 		IndexFingerprint::class,
-		StorageDriverFactory::class,
 		ContentUrls::class,
 		DocumentEditor::class,
 		EntryRelations::class
@@ -113,6 +107,14 @@ final class ContentServiceProvider extends ServiceProvider
 		ContentRepository::class => IndexedRepository::class,
 		MentionResolver::class   => ProfileMentions::class,
 		YamlParser::class        => SymfonyYamlParser::class
+	];
+
+	/**
+	 * @inheritDoc
+	 */
+	protected const array STORAGE = [
+		ContentSource::class => StorageArea::Content,
+		ContentWriter::class => StorageArea::Content
 	];
 
 	/**
@@ -149,39 +151,12 @@ final class ContentServiceProvider extends ServiceProvider
 	];
 
 	/**
-	 * Binds the registries, the storage, the field context, and the
+	 * Binds the registries, the field context, and the
 	 * content types.
 	 */
 	#[Override]
 	public function register(): void
 	{
-		$this->container->singleton(
-			StorageDriverRegistry::class,
-			static function (): StorageDriverRegistry {
-				$registry = new StorageDriverRegistry();
-				new StorageDriverRegistrar($registry)->register();
-
-				return $registry;
-			}
-		);
-
-		$this->container->singletonIf(
-			ContentStorage::class,
-			static fn (ServiceResolver $resolver): ContentStorage => $resolver->make(StorageDriverFactory::class)->make(
-				$resolver->make(StorageConfig::class)->driverFor(StorageArea::Content)
-			)
-		);
-
-		$this->container->singletonIf(
-			ContentSource::class,
-			static fn (ServiceResolver $resolver): ContentSource => $resolver->make($resolver->make(ContentStorage::class)->source())
-		);
-
-		$this->container->singletonIf(
-			ContentWriter::class,
-			static fn (ServiceResolver $resolver): ContentWriter => $resolver->make($resolver->make(ContentStorage::class)->writer())
-		);
-
 		$this->container->singleton(
 			FieldRegistry::class,
 			static function (): FieldRegistry {

@@ -26,7 +26,7 @@ final readonly class RegionFile
 	 */
 	public function __construct(
 		public string $name,
-		public string $path,
+		public string $location,
 		public array $items = [],
 		public array $problems = []
 	) {}

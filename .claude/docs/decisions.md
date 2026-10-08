@@ -19362,3 +19362,76 @@ decision, add a new entry that supersedes it and mark the old one
   from composer.json; a plugin that doesn't run for a missing PHP
   extension should say so where the server's requirements are; and
   each extension should say why it's needed.
+
+### D-642: Every storage area resolves through its driver; the data area is a `DataStore`
+
+- **Date:** 2026-10-08
+- **Status:** Built. Settles D-485's "Not yet" and D-486's open item on
+  code reaching `user/` through `Paths`; a step toward D-606, not its
+  data layer.
+- **Decision:** from a review of the classes that read and write
+  stored data directly, everything that keeps site data codes against
+  an interface its area's driver supplies, so a database driver
+  (D-640) can stand in without touching callers.
+  - **Drivers cover every area.** `Blush\Storage\Storage` (in place of
+    `Content\Storage\ContentStorage`) maps contracts to the classes that
+    implement them (`bindings()`). `FilesystemStorage` gives
+    `ContentSource`, `ContentWriter`, `DataStore`, `AccountStore`,
+    `RoleStore`, `SessionStore`, and `JobStore`. The enum, registry,
+    registrar, factory, and `StorageException` moved to `Blush\Storage`,
+    with `StorageServiceProvider`. A driver needn't cover every area (a
+    sessions-and-jobs driver, D-640); naming one for an area it doesn't
+    cover fails, naming the contract.
+  - **`ServiceProvider::STORAGE`** maps a subsystem's contracts to their
+    area (`[AccountStore::class => StorageArea::Accounts]`); each is
+    bound as a default (`singletonIf`) to the class `StorageResolver`
+    builds from the area's driver in `StorageConfig`. Content, data,
+    accounts, sessions, and jobs all bind this way, so `areas` in
+    `config/storage.php` now means something for each.
+  - **`Blush\Data\DataStore`** is the data area's one contract: records
+    by name (`types/post`, `media/2024/sunset.jpg`, `settings`) with
+    `has`, `load`, `loadAll` (a folder's records), `records` (every
+    record under a folder, with when it changed), `save`, `delete`,
+    `transaction` (writes put back when it throws; nested ones put back
+    their own), and `location` (where a record is kept, for messages).
+    `FileDataStore` keeps them as JSON in `user/data`, keeps a file's
+    `$schema` first, and names an unreadable file by its path from the
+    site root. `DataLoader` stays as the JSON file reader (translations
+    and `FileDataStore`).
+  - **Everything in the data area reads and writes through it:** the
+    type, relation, and field set loaders and writers, the taxonomy
+    migration, menus, regions, redirects, the site theme data, media
+    metadata, the saved settings, and ignored problems. The writers'
+    own locks and put-backs became store transactions (one data lock,
+    `storage/cache/data.lock`, in place of `types.lock` and
+    `settings.lock`). `DataFileKeys` (text in, text out) became
+    `Data\DataKeys::apply()` over arrays. The writers' `path()` became
+    `location()`, and the admin's `file` is that location.
+  - **Settings and media metadata need no interfaces of their own:**
+    they sit on `DataStore`, so they keep any driver's data.
+    `SettingsFile` became `SettingsStore` (`location()` for `path()`);
+    `MediaMetadataStore::files()` gives each record's `location` and
+    `modified`, and `load()` reads one for checks and the index.
+    `FileIgnoredProblems` became `StoredIgnoredProblems`. `MenuFile` and
+    `RegionFile` keep a `location`.
+  - **The bootstrap** reads the saved settings before the container,
+    and before extensions load, so it builds the data store itself and
+    only for a built-in driver: today the filesystem, the D-486 open
+    item made a rule. Any other driver for `data` fails at boot.
+  - **Content leaks closed:** the type screens find a type's index and
+    list pages through `ContentSource` and the new
+    `ContentWriter::pathAt()` (where `createAt()` puts a page), and
+    write them with `createAt()`, so they get a `published` date like
+    every new entry (D-514). `ContentSource::location()` names where a
+    document is kept, for `content:create`, the welcome page, and Site
+    Health. `FormatCheck` asks `FilesystemSource::others()` and checks
+    nothing on another driver: only files have formats.
+    `FilesystemStorage::EXTENSION` is `FilesystemSource::EXTENSION`.
+  - **Left as files, by design:** media files, caches, logs, `.env`,
+    config, extensions and installer backups, theme assets, and
+    `storage/health.json` (the last report, which is derived, not kept).
+- **Why:** the author: "review what classes we have in place now that
+  need to be set to an interface for it being one implementation of
+  data writing/getting. Files are our default, but we need to be
+  prepared for the introduction of database support and be coding
+  against interfaces." Then: "Go ahead with all four."

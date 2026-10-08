@@ -151,6 +151,9 @@ Without `config/app.php`, these come from the `APP_*` variables.
 Without this file, `STORAGE_DRIVER` is used. Media files are always
 files, whatever the driver.
 
+The saved settings are read before plugins load, so the `data` area's
+driver must be one built into Blush.
+
 ### Fields
 
 `config/fields.php` · `Blush\Field\FieldConfig`

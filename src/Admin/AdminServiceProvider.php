@@ -60,7 +60,7 @@ final class AdminServiceProvider extends ServiceProvider
 	 */
 	protected const array SINGLETONS_IF = [
 		HealthReportStore::class => FileHealthReportStore::class,
-		IgnoredProblems::class   => FileIgnoredProblems::class
+		IgnoredProblems::class   => StoredIgnoredProblems::class
 	];
 
 	/**

@@ -109,7 +109,7 @@ final class AdminTypeEditTest extends TestCase
 		$this->assertSame(['authors'], $type['credits'] ?? null, 'Credited through the authors relation (D-602).');
 		$this->assertSame(['kind' => 'credit', 'from' => ['recipe'], 'to' => ['profile'], 'aliases' => ['author'], 'label' => 'Authors'], $this->data('user/data/relations/authors.json'), 'Written when the site has none.');
 		$this->assertArrayNotHasKey('people', $this->data('user/data/types/recipe.json'));
-		$this->assertMatchesRegularExpression('/\A---\ntitle: "Authors"\nid: [0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\n---\n\z/', $this->file('user/content/_recipe/_authors.md'), 'Its list page, with an id, last (D-477).');
+		$this->assertMatchesRegularExpression('/\A---\ntitle: Authors\npublished: \S+ \S+ \S+\nid: [0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\n---\n\z/', $this->file('user/content/_recipe/_authors.md'), 'Its list page, written as every new entry is (D-514), with an id, last (D-477).');
 		$this->assertSame([['relation' => 'authors', 'label' => 'Authors', 'word' => 'authors', 'page' => ['type' => 'recipe', 'path' => '_recipe/_authors.md', 'title' => 'Authors']]], array_map(static fn (mixed $item): mixed => is_array($item) ? [...$item, 'page' => self::withoutId($item['page'] ?? null)] : $item, is_array($type['archivePages'] ?? null) ? $type['archivePages'] : []));
 
 		$this->assertSame(201, $this->write('POST', '/types', ['name' => 'note', 'kind' => 'collection', 'authors' => true, 'set' => []])->getStatusCode());
@@ -181,7 +181,7 @@ final class AdminTypeEditTest extends TestCase
 			$this->data('user/data/types/recipe.json'),
 			'Defaults (the singular and plural a recipe type gets, public) are left out.'
 		);
-		$this->assertMatchesRegularExpression('/\A---\ntitle: "Recipes"\nid: [0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\n---\n\z/', $this->file('user/content/recipes/index.md'), 'With an id, last (D-477).');
+		$this->assertMatchesRegularExpression('/\A---\ntitle: Recipes\npublished: \S+ \S+ \S+\nid: [0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\n---\n\z/', $this->file('user/content/recipes/index.md'), 'Written as every new entry is (D-514), with an id, last (D-477).');
 
 		$this->assertSame(200, $this->write('POST', '/types/refresh')->getStatusCode());
 

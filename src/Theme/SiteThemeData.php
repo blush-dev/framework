@@ -13,8 +13,7 @@ declare(strict_types=1);
 
 namespace Blush\Theme;
 
-use Blush\Core\Paths;
-use Blush\Data\DataLoader;
+use Blush\Data\DataStore;
 use Blush\Data\InvalidData;
 
 /**
@@ -43,8 +42,7 @@ final class SiteThemeData
 	private ?array $data = null;
 
 	public function __construct(
-		private readonly Paths $paths,
-		private readonly DataLoader $loader
+		private readonly DataStore $store
 	) {}
 
 	/**
@@ -109,6 +107,6 @@ final class SiteThemeData
 	 */
 	private function data(): array
 	{
-		return $this->data ??= $this->loader->load($this->paths->data, 'theme') ?? [];
+		return $this->data ??= $this->store->load('theme') ?? [];
 	}
 }

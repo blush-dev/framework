@@ -32,7 +32,7 @@ use Blush\Icon\IconPack;
 use Blush\Icon\IconPacks;
 use Blush\Icon\IconPackSource;
 use Blush\Settings\Setting;
-use Blush\Settings\SettingsFile;
+use Blush\Settings\SettingsStore;
 
 /**
  * Answers the Icon Packs screens (D-378, D-385), for accounts with
@@ -79,7 +79,7 @@ final readonly class IconPacksController
 		private IconPacks $packs,
 		private ExtensionState $extensions,
 		private Paths $paths,
-		private SettingsFile $settings,
+		private SettingsStore $settings,
 		private Permissions $permissions,
 		private ExtensionInstaller $installer
 	) {}

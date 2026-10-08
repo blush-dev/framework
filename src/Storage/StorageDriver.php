@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Content storage drivers.
+ * Storage drivers.
  *
  * @author    Justin Tadlock <justintadlock@gmail.com>
  * @copyright Copyright (c) 2026, Justin Tadlock
@@ -11,12 +11,10 @@
 
 declare(strict_types=1);
 
-namespace Blush\Content\Storage;
-
-use Blush\Storage\StorageConfig;
+namespace Blush\Storage;
 
 /**
- * The built-in content storage drivers, keyed by the name `StorageConfig`
+ * The built-in storage drivers, keyed by the name `StorageConfig`
  * uses (the "Type enum" of the enum + registry pattern, D-019).
  */
 enum StorageDriver: string
@@ -26,7 +24,7 @@ enum StorageDriver: string
 	/**
 	 * Returns the driver's storage class.
 	 *
-	 * @return class-string<ContentStorage>
+	 * @return class-string<Storage>
 	 */
 	public function storage(): string
 	{

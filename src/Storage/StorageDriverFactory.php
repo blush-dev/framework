@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Content storage driver factory.
+ * Storage driver factory.
  *
  * @author    Justin Tadlock <justintadlock@gmail.com>
  * @copyright Copyright (c) 2026, Justin Tadlock
@@ -11,7 +11,7 @@
 
 declare(strict_types=1);
 
-namespace Blush\Content\Storage;
+namespace Blush\Storage;
 
 use Throwable;
 use Blush\Container\Container;
@@ -31,13 +31,13 @@ final readonly class StorageDriverFactory
 	 *
 	 * @throws StorageException When the driver is unknown or can't be built.
 	 */
-	public function make(string $driver): ContentStorage
+	public function make(string $driver): Storage
 	{
 		$class = $this->registry->get($driver);
 
 		if ($class === null) {
 			throw new StorageException(sprintf(
-				'Unknown content storage driver "%s"; registered drivers: %s.',
+				'Unknown storage driver "%s"; registered drivers: %s.',
 				$driver,
 				implode(', ', array_keys($this->registry->all()))
 			));
@@ -48,7 +48,7 @@ final readonly class StorageDriverFactory
 		} catch (StorageException $e) {
 			throw $e;
 		} catch (Throwable $e) {
-			throw new StorageException(sprintf('Unable to build the "%s" content storage: %s', $driver, $e->getMessage()), 0, $e);
+			throw new StorageException(sprintf('Unable to build the "%s" storage: %s', $driver, $e->getMessage()), 0, $e);
 		}
 	}
 }

@@ -9,10 +9,14 @@ This is the design for the Blush 2 subsystems. Decisions it relies on are in
   interfaces.
 - **Storage is configured per area** (D-486): `Blush\Storage\StorageConfig`
   (`config/storage.php` or `STORAGE_DRIVER`) names a driver for content,
-  data, accounts, and sessions, so a site can run on flat files or,
-  later, a database. Only `filesystem` exists; content reads it (D-485).
-  Media files are always files. Build new stored data behind an
-  interface its area's driver can replace. Planned (D-606): one data
+  data, accounts, sessions, and jobs, so a site can run on flat files or,
+  later, a database. A driver (`Blush\Storage\Storage`) maps contracts
+  to classes; each subsystem lists its contracts and their area in
+  `ServiceProvider::STORAGE`, and `StorageResolver` builds them (D-642).
+  Only `filesystem` exists. Media files are always files. Build new
+  stored data behind an area's contract: site data through `DataStore`,
+  never `user/data`'s files, and content through `ContentSource` and
+  `ContentWriter`, never `user/content`'s. Planned (D-606): one data
   layer for every area, records keyed by id from drivers (filesystem
   and PDO in core, more from Composer), a fluent query each driver
   compiles, and repositories over them.
@@ -82,7 +86,8 @@ This is the design for the Blush 2 subsystems. Decisions it relies on are in
   container by class.
 - **Settings** (`Blush\Settings`, D-324, D-325): the few settings the
   admin can change (`Setting`, `{section}.{key}` such as `feed.limit`)
-  are saved in `user/data/settings.json` (`SettingsFile`), in sections
+  are saved in the data store's `settings` record (`SettingsStore`,
+  D-642; `user/data/settings.json` for files), in sections
   named for the config files, and laid over the config on every build
   (`Settings::apply()`, through each object's `toArray()`/`fromArray()`),
   so a saved value wins. Compiling leaves them out. Each `Setting` is
@@ -132,6 +137,16 @@ This is the design for the Blush 2 subsystems. Decisions it relies on are in
   without its extension. Data files are JSON only (D-631, superseding
   D-032's JSON or YAML and its parser registry); the only YAML Blush
   reads is front matter. `loadAll()` reads a whole directory.
+- **`DataStore`** (`Blush\Data`, D-642): the data area's contract, from
+  the storage driver for `data`. Records by name (`types/post`,
+  `menus/main`, `media/2024/sunset.jpg`, `settings`, `health/ignored`):
+  `has`, `load`, `loadAll` (a folder's records), `records` (every record
+  under a folder, with when it changed), `save`, `delete`,
+  `transaction` (writes put back when it throws), and `location` (for
+  messages). `FileDataStore` keeps JSON files in `user/data` through
+  `DataLoader`, under `storage/cache/data.lock`. Nothing else reaches
+  `user/data`'s files; `DataKeys::apply()` sets and removes a record's
+  top-level keys in place.
 - **Schema validation:** data files have schemas (the same field-type system as
   content). JSON Schemas are published for editor autocomplete.
 - **Editor JSON Schemas (D-206):** `Blush\JsonSchema\JsonSchemas` builds
@@ -149,7 +164,7 @@ This is the design for the Blush 2 subsystems. Decisions it relies on are in
 
 ## Menus and regions (D-199 to D-204)
 
-- `Blush\Menu`: `MenuLoader` reads `user/data/menus/{name}.*`; `Menus`
+- `Blush\Menu`: `MenuLoader` reads the `menus/{name}` records (`DataStore`); `Menus`
   resolves a location's menu for a chain and locale into immutable
   `Menu`/`MenuItem` objects, kept per process (the page cache keeps
   pages). Link kinds (`entry`, `term`, `collection`, `route`, `url`)
@@ -524,9 +539,10 @@ Implemented in M4a (D-080, D-085, D-086).
   registry (D-501). A content document is YAML front matter and a
   Markdown body, whatever stores it; it returns a `Document` (front
   matter, unrendered body). The filesystem driver keeps each document as
-  a `.md` file (`FilesystemStorage::EXTENSION`), and `FilesystemSource`
+  a `.md` file (`FilesystemSource::EXTENSION`), and `FilesystemSource`
   and `FilesystemWriter` read and write only those; `FormatCheck` has
-  `content:lint` report files in the formats read before D-501.
+  `content:lint` report files in the formats read before D-501
+  (`FilesystemSource::others()`; nothing on another driver).
 - **Front matter:** YAML behind the `YamlParser` interface
   (`Blush\Content\Parser`, D-631), split off by `FrontMatter` (1.x's
   `---` rules). It starts with a temporary adapter (symfony/yaml,
@@ -614,14 +630,18 @@ Implemented in M4a (D-080, D-085, D-086).
 Implemented in M4b (D-087, D-090).
 
 - **`ContentSource`** (`Content\Source`) reads raw documents: `files()`,
-  `stat()`, `read()`. The default is `FilesystemSource` (content files by
+  `stat()`, `read()`, and `location()` (where a document is kept, for
+  messages, D-642). The default is `FilesystemSource` (content files by
   parser extension, dotfiles skipped, paths confined). Git, S3, or a
   database could follow later.
-- **`ContentStorage`** (`Content\Storage`, D-485) pairs a source class with
-  a writer class. `StorageConfig`'s driver for `StorageArea::Content`
-  (D-486) names one from `StorageDriverRegistry`; the only built-in is
-  `filesystem` (`FilesystemSource` + `FilesystemWriter`). An extension
-  registers a driver, or binds `ContentSource` / `ContentWriter` itself.
+- **Storage drivers** (`Blush\Storage`, D-485, D-642): `StorageConfig`'s
+  driver for `StorageArea::Content` (D-486), from `StorageDriverRegistry`,
+  gives the `ContentSource` and `ContentWriter` classes; the only
+  built-in is `filesystem` (`FilesystemStorage`: `FilesystemSource` +
+  `FilesystemWriter`). An extension registers a driver, or binds
+  `ContentSource` / `ContentWriter` itself. `ContentWriter::pathAt()`
+  says where `createAt()` puts a page, so callers look for it in the
+  source, never on disk.
 - **`ContentIndex`** (`Content\Index`) is the queryable metadata store.
   - `PhpIndex` (default): `storage/index/content.php`, a `var_export`'d
     `IndexSnapshot` kept in opcache shared memory. Records stay arrays;
@@ -750,11 +770,11 @@ Implemented in M4c (D-099), apart from image derivatives.
   kind's schema from the built-in fields (`alt` for images, then
   `title`, `caption`, `credit`, `description` for all), then the field
   sets aimed at the kind (`media:{kind}`, D-341). Values are
-  stored in `user/data/media/`, mirroring the media paths (`{path}.json`, D-631),
-  never next to the file, as
+  stored as `media/{path}` records in the `DataStore` (D-642; for files,
+  `user/data/media/{path}.json`, D-631), never next to the file, as
   `MediaMetadata` (values by key), read and written by
   `MediaMetadataStore` (only the keys changed, under the name or alias
-  in use, an empty file removed). `GET media/{path}` answers the fields, values,
+  in use, an empty record removed). `GET media/{path}` answers the fields, values,
   other keys, and violations; `PATCH media/{path}` sets and removes
   fields, checked by their fields. Pages use the library's alt text
   where an image has none (D-270); captions fill in on insert only.

@@ -17,7 +17,6 @@ use Closure;
 use Psr\Clock\ClockInterface;
 use Throwable;
 use Blush\Core\Paths;
-use Blush\Data\DataLoader;
 use Blush\Media\Embedded\EmbeddedMetadataReader;
 use Blush\Media\MediaConfig;
 use Blush\Media\MediaException;
@@ -51,7 +50,6 @@ final readonly class MediaIndexer
 		private MediaConfig $config,
 		private MediaResolver $resolver,
 		private MediaIndex $index,
-		private DataLoader $data,
 		private ClockInterface $clock,
 		private EmbeddedMetadataReader $embedded,
 		private MediaMetadataStore $store
@@ -83,7 +81,7 @@ final readonly class MediaIndexer
 		$previous    = $this->index->snapshot();
 		$rebuild     = $full || $previous->fingerprint !== $fingerprint;
 		$files       = $this->files();
-		$described   = array_map(static fn (array $file): array => [$file['path'], $file['modified']], $this->store->files());
+		$described   = array_map(static fn (array $file): int => $file['modified'], $this->store->files());
 		$reread      = array_flip($written);
 
 		// A rebuild reads every file; one under way reads what it has left.
@@ -99,7 +97,7 @@ final readonly class MediaIndexer
 
 			$known = $old !== null || ($previous->rejected[$key] ?? null) === [$size, $modified];
 
-			if (! isset($waiting[$key]) && (isset($reread[$key]) || ! $known || ($old !== null && ($old->size !== $size || $old->modified !== $modified || $old->described !== ($data[1] ?? null))))) {
+			if (! isset($waiting[$key]) && (isset($reread[$key]) || ! $known || ($old !== null && ($old->size !== $size || $old->modified !== $modified || $old->described !== $data)))) {
 				$stale[] = (string) $key;
 			}
 		}
@@ -204,9 +202,9 @@ final readonly class MediaIndexer
 	 * Reads one media file's record, or `null` when it isn't one the
 	 * library takes (its contents aren't an allowed type).
 	 *
-	 * @param ?array{string, int} $written Its metadata file, if it has one.
+	 * @param ?int $described When its metadata last changed, if it has any.
 	 */
-	private function record(string $key, int $modified, ?array $written): ?MediaRecord
+	private function record(string $key, int $modified, ?int $described): ?MediaRecord
 	{
 		$file = $this->resolver->fromKey($key);
 
@@ -216,9 +214,9 @@ final readonly class MediaIndexer
 
 		$metadata = [];
 
-		if ($written !== null) {
+		if ($described !== null) {
 			try {
-				$data = $this->data->loadFile($written[0]);
+				$data = $this->store->load($key);
 
 				foreach ($data as $name => $value) {
 					$metadata[(string) $name] = $value;
@@ -235,6 +233,6 @@ final readonly class MediaIndexer
 		$width    = $file->width ?? (is_int($said['width'] ?? null) ? $said['width'] : null);
 		$height   = $file->height ?? (is_int($said['height'] ?? null) ? $said['height'] : null);
 
-		return new MediaRecord($key, $file->url, $file->mime, $file->size, $modified, $width, $height, $metadata, $written[1] ?? null, $embedded === null || $embedded->isEmpty() ? null : $embedded);
+		return new MediaRecord($key, $file->url, $file->mime, $file->size, $modified, $width, $height, $metadata, $described, $embedded === null || $embedded->isEmpty() ? null : $embedded);
 	}
 }

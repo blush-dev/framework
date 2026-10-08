@@ -43,7 +43,7 @@ use Blush\Plugin\PluginSource;
 use Blush\Settings\InvalidSetting;
 use Blush\Settings\Setting;
 use Blush\Settings\Settings;
-use Blush\Settings\SettingsFile;
+use Blush\Settings\SettingsStore;
 use Blush\Support\Filesystem;
 use Blush\Support\FilesystemException;
 
@@ -76,7 +76,7 @@ final readonly class PluginEditController
 		private Plugins $plugins,
 		private PluginConfig $config,
 		private ExtensionState $extensions,
-		private SettingsFile $settings,
+		private SettingsStore $settings,
 		private ContentVersion $version,
 		private Bootstrap $bootstrap,
 		private Permissions $permissions,

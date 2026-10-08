@@ -14,8 +14,7 @@ declare(strict_types=1);
 namespace Blush\Field;
 
 use Blush\Container\Container;
-use Blush\Core\Paths;
-use Blush\Data\DataLoader;
+use Blush\Data\DataStore;
 use Blush\Data\InvalidData;
 
 /**
@@ -34,8 +33,7 @@ final readonly class FieldSetLoader
 
 	public function __construct(
 		private FieldConfig $config,
-		private Paths $paths,
-		private DataLoader $data,
+		private DataStore $data,
 		private FieldFactory $fields,
 		private Container $container
 	) {}
@@ -129,7 +127,7 @@ final readonly class FieldSetLoader
 		}
 
 		try {
-			$definitions = $this->data->loadAll($this->paths->data . '/' . self::DATA_DIRECTORY);
+			$definitions = $this->data->loadAll(self::DATA_DIRECTORY);
 		} catch (InvalidData $e) {
 			throw new InvalidSchema($e->getMessage(), previous: $e);
 		}

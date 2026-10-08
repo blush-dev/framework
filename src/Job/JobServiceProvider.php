@@ -15,11 +15,13 @@ namespace Blush\Job;
 
 use Override;
 use Blush\Core\ServiceProvider;
+use Blush\Storage\StorageArea;
 
 /**
  * Binds background jobs and the scheduler (D-621): the job registry and
- * schedule, seeded with the framework's jobs and tasks, the store (files,
- * unless a site or extension binds another), the queue (which a test
+ * schedule, seeded with the framework's jobs and tasks, the store (from
+ * the storage driver for jobs, D-642, unless a site or extension binds
+ * another), the queue (which a test
  * can swap for `Testing\RecordingQueue`), and the runners.
  * Extensions register jobs and schedule them in their own `boot()`.
  */
@@ -39,8 +41,14 @@ final class JobServiceProvider extends ServiceProvider
 	 * @inheritDoc
 	 */
 	protected const array SINGLETONS_IF = [
-		JobStore::class => FileJobStore::class,
 		JobQueue::class => StoredJobQueue::class
+	];
+
+	/**
+	 * @inheritDoc
+	 */
+	protected const array STORAGE = [
+		JobStore::class => StorageArea::Jobs
 	];
 
 	/**

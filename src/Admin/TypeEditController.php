@@ -16,20 +16,20 @@ namespace Blush\Admin;
 use Closure;
 use JsonException;
 use Throwable;
-use Psr\Clock\ClockInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Blush\Auth\Account;
 use Blush\Auth\Capability;
 use Blush\Auth\Permissions;
 use Blush\Cache\ContentVersion;
-use Blush\Content\EntryFields;
 use Blush\Content\Http\RelatedController;
 use Blush\Content\Index\Indexer;
 use Blush\Content\Relation\DataRelationWriter;
 use Blush\Content\Relation\InvalidRelation;
 use Blush\Content\Relation\Relation;
 use Blush\Content\Relation\RelationChanges;
+use Blush\Content\Source\ContentSource;
+use Blush\Content\Source\UnreadableSource;
 use Blush\Content\Type\ContentType;
 use Blush\Content\Type\ContentTypeCache;
 use Blush\Content\Type\ContentTypeLoader;
@@ -38,14 +38,13 @@ use Blush\Content\Type\DataTypeWriter;
 use Blush\Content\Type\InvalidContentType;
 use Blush\Content\Type\Tree;
 use Blush\Content\Type\TypeKind;
+use Blush\Content\Writer\ContentWriter;
+use Blush\Content\Writer\EntryChanges;
 use Blush\Content\Writer\WriteException;
 use Blush\Core\AppConfig;
-use Blush\Core\Paths;
 use Blush\Http\Response;
 use Blush\Http\Status;
 use Blush\Routing\RouteCache;
-use Blush\Support\Filesystem;
-use Blush\Support\Uuid;
 
 /**
  * Creates, changes, and deletes the content types the site defines in
@@ -109,10 +108,9 @@ final readonly class TypeEditController
 		private Indexer $indexer,
 		private ContentVersion $version,
 		private AppConfig $app,
-		private Paths $paths,
-		private Filesystem $filesystem,
+		private ContentSource $source,
+		private ContentWriter $content,
 		private Permissions $permissions,
-		private ClockInterface $clock,
 		private ContentTypeLoader $loader,
 		private RelationChanges $changes
 	) {}
@@ -208,7 +206,7 @@ final readonly class TypeEditController
 
 			// Removed from the files first, while the relation still says
 			// where its values are (D-600).
-			if ($strip && $existing !== null && $this->relations->path($name) !== null) {
+			if ($strip && $existing !== null && $this->relations->location($name) !== null) {
 				$stripped = $this->changes->strip($existing);
 			}
 
@@ -343,7 +341,7 @@ final readonly class TypeEditController
 
 		try {
 			$relation = Relation::fromArray($name === null ? $input : [...$input, 'name' => $name]);
-			$existing = $name === null || $this->relations->path($name) === null ? null : $this->existing($name);
+			$existing = $name === null || $this->relations->location($name) === null ? null : $this->existing($name);
 
 			// What entries already use is checked, and the files fitted to
 			// the change (D-600).
@@ -391,19 +389,7 @@ final readonly class TypeEditController
 			throw new InvalidContentType(sprintf('%s have no index page.', $type->labels->plural));
 		}
 
-		$folder = "{$this->paths->content}/{$type->folder}";
-
-		if (glob("{$folder}/index.*") !== []) {
-			return;
-		}
-
-		$title = json_encode($type->labels->plural, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?: '""';
-
-		try {
-			$this->filesystem->writeAtomic("{$folder}/index.md", $this->page($title));
-		} catch (Throwable $error) {
-			throw new InvalidContentType(sprintf('The type was saved, but its index page couldn\'t be written in %s.', $this->paths->relative($folder)), previous: $error);
-		}
+		$this->addPage($type, 'index', $type->labels->plural, 'index');
 	}
 
 	/**
@@ -420,20 +406,27 @@ final readonly class TypeEditController
 			throw new InvalidContentType(sprintf('%s have no "%s" archives.', $type->labels->plural, $name));
 		}
 
-		$folder = "{$this->paths->content}/{$type->folder}";
-		$key    = RelatedController::word($relation);
-		$label  = $relation->label === '' ? ucfirst(str_replace('_', ' ', $relation->name)) : $relation->label;
+		$label = $relation->label === '' ? ucfirst(str_replace('_', ' ', $relation->name)) : $relation->label;
 
-		if (glob("{$folder}/{$key}.*") !== []) {
-			return;
-		}
+		$this->addPage($type, RelatedController::word($relation), $label, mb_strtolower($label));
+	}
 
-		$title = json_encode($label, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?: '""';
-
+	/**
+	 * Writes a page a type keeps at a key, through the content writer
+	 * (D-642), unless the source already has it.
+	 *
+	 * @throws InvalidContentType
+	 */
+	private function addPage(ContentType $type, string $key, string $title, string $what): void
+	{
 		try {
-			$this->filesystem->writeAtomic("{$folder}/{$key}.md", $this->page($title));
-		} catch (Throwable $error) {
-			throw new InvalidContentType(sprintf('The type was saved, but its %s page couldn\'t be written in %s.', mb_strtolower($label), $this->paths->relative($folder)), previous: $error);
+			if ($this->source->stat($this->content->pathAt($type, $key)) !== null) {
+				return;
+			}
+
+			$this->content->createAt($type, $key, new EntryChanges(set: ['title' => $title]));
+		} catch (WriteException | UnreadableSource $error) {
+			throw new InvalidContentType(sprintf('The type was saved, but its %s page couldn\'t be written: %s', $what, $error->getMessage()), previous: $error);
 		}
 	}
 
@@ -466,16 +459,6 @@ final readonly class TypeEditController
 		} catch (InvalidRelation $error) {
 			throw new InvalidContentType($error->getMessage(), previous: $error);
 		}
-	}
-
-	/**
-	 * Returns a new page's file: its title (JSON, which YAML reads), then a
-	 * new id (D-477). The type may be new to the content writer, which is
-	 * why it's written here.
-	 */
-	private function page(string $title): string
-	{
-		return "---\ntitle: {$title}\n" . EntryFields::ID . ': ' . Uuid::v7($this->clock->now()) . "\n---\n";
 	}
 
 	/**

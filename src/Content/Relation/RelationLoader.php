@@ -15,8 +15,7 @@ namespace Blush\Content\Relation;
 
 use Blush\Container\Container;
 use Blush\Content\ContentConfig;
-use Blush\Core\Paths;
-use Blush\Data\DataLoader;
+use Blush\Data\DataStore;
 use Blush\Data\InvalidData;
 use Blush\Extension\DefinitionClash;
 
@@ -37,8 +36,7 @@ final readonly class RelationLoader
 
 	public function __construct(
 		private ContentConfig $config,
-		private Paths $paths,
-		private DataLoader $data,
+		private DataStore $data,
 		private Container $container
 	) {}
 
@@ -77,14 +75,6 @@ final readonly class RelationLoader
 	}
 
 	/**
-	 * Returns the folder data relations are kept in.
-	 */
-	public function directory(): string
-	{
-		return $this->paths->data . '/' . self::DATA_DIRECTORY;
-	}
-
-	/**
 	 * Returns the relations from extension sources, each with its
 	 * source's class.
 	 *
@@ -117,7 +107,7 @@ final readonly class RelationLoader
 		}
 
 		try {
-			$definitions = $this->data->loadAll($this->directory());
+			$definitions = $this->data->loadAll(self::DATA_DIRECTORY);
 		} catch (InvalidData $e) {
 			throw new InvalidRelation($e->getMessage(), previous: $e);
 		}

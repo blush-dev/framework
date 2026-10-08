@@ -20,7 +20,6 @@ use RecursiveIteratorIterator;
 use SplFileInfo;
 use UnexpectedValueException;
 use Override;
-use Blush\Content\Storage\FilesystemStorage;
 use Blush\Core\Paths;
 use Blush\Support\Filesystem;
 use Blush\Support\FilesystemException;
@@ -34,10 +33,16 @@ use Blush\Support\FilesystemException;
  */
 final readonly class FilesystemSource implements ContentSource
 {
+	/**
+	 * The extension of a content file, without the dot. Other files in
+	 * the content folder aren't content.
+	 */
+	public const string EXTENSION = 'md';
+
 	private string $root;
 
 	public function __construct(
-		Paths $paths,
+		private Paths $paths,
 		private Filesystem $filesystem = new Filesystem()
 	) {
 		$this->root = $paths->content;
@@ -111,11 +116,43 @@ final readonly class FilesystemSource implements ContentSource
 	}
 
 	/**
+	 * @inheritDoc
+	 */
+	#[Override]
+	public function location(string $path): string
+	{
+		$path = trim($path, '/');
+
+		return $this->paths->relative($path === '' ? $this->root : "{$this->root}/{$path}");
+	}
+
+	/**
+	 * Returns the files in the content folder that aren't content, by
+	 * path in it, sorted: what `FormatCheck` looks over (D-501).
+	 *
+	 * @return list<string>
+	 */
+	public function others(): array
+	{
+		$others = [];
+
+		foreach ($this->filesystem->files($this->root) as $path => $file) {
+			if (! self::isContent($file->getFilename())) {
+				$others[] = str_replace('\\', '/', (string) $path);
+			}
+		}
+
+		sort($others, SORT_STRING);
+
+		return $others;
+	}
+
+	/**
 	 * Returns whether a file is content: whether it's a `.md` file.
 	 */
 	public static function isContent(string $path): bool
 	{
-		return strtolower(pathinfo($path, PATHINFO_EXTENSION)) === FilesystemStorage::EXTENSION;
+		return strtolower(pathinfo($path, PATHINFO_EXTENSION)) === self::EXTENSION;
 	}
 
 	/**

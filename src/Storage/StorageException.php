@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Content storage exception.
+ * Storage exception.
  *
  * @author    Justin Tadlock <justintadlock@gmail.com>
  * @copyright Copyright (c) 2026, Justin Tadlock
@@ -11,14 +11,14 @@
 
 declare(strict_types=1);
 
-namespace Blush\Content\Storage;
+namespace Blush\Storage;
 
 use RuntimeException;
-use Blush\Content\ContentException;
+use Blush\Core\BlushException;
 
 /**
- * Thrown when the configured content storage is unknown or can't be built.
+ * Thrown when the configured storage is unknown or can't be built.
  */
-final class StorageException extends RuntimeException implements ContentException
+final class StorageException extends RuntimeException implements BlushException
 {
 }

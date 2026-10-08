@@ -30,6 +30,7 @@ use Blush\Field\ViolationKind;
 use Blush\Media\MediaException;
 use Blush\Media\MediaIdReport;
 use Blush\Media\MediaIds;
+use Blush\Media\MediaMetadataStore;
 use Blush\Media\MediaSizeReport;
 use Blush\Media\MediaSizes;
 
@@ -80,6 +81,7 @@ final readonly class ContentHealth
 		private MissingTerms $terms,
 		private EntryRefs $refs,
 		private ContentRepository $content,
+		private MediaMetadataStore $metadata,
 		private Paths $paths
 	) {}
 
@@ -92,9 +94,10 @@ final readonly class ContentHealth
 	 */
 	public function report(bool $strict = false, ?LintReport $lint = null): array
 	{
-		$report = $lint ?? $this->linter->lint();
-		$files  = [];
-		$counts = ['error' => 0, 'warning' => 0, 'notice' => 0];
+		$report   = $lint ?? $this->linter->lint();
+		$files    = [];
+		$counts   = ['error' => 0, 'warning' => 0, 'notice' => 0];
+		$metadata = array_flip(array_column($this->metadata->files(), 'location'));
 
 		foreach ($report->violations($strict ? Severity::Notice : Severity::Warning) as $path => $violations) {
 			$kept = array_values(array_filter($violations, static fn (Violation $violation): bool => ! in_array($violation->kind, self::ELSEWHERE, true)));
@@ -109,7 +112,7 @@ final readonly class ContentHealth
 
 			$files[] = [
 				'path'       => (string) $path,
-				'area'       => $this->isMedia((string) $path) ? 'media' : 'content',
+				'area'       => $this->isMedia((string) $path, $metadata) ? 'media' : 'content',
 				'violations' => array_map(static fn (Violation $violation): array => [
 					'field'    => $violation->field,
 					'message'  => $violation->message,
@@ -195,18 +198,15 @@ final readonly class ContentHealth
 	}
 
 	/**
-	 * Whether a reported path is a media file's or its metadata's, both
-	 * from the site root, where an entry's is from `user/content`.
+	 * Whether a reported path is a media file's, from the site root, or
+	 * where its metadata is kept (D-642), where an entry's is from
+	 * `user/content`.
+	 *
+	 * @param array<string, int> $metadata Where metadata is kept.
 	 */
-	private function isMedia(string $path): bool
+	private function isMedia(string $path, array $metadata): bool
 	{
-		foreach ([$this->paths->media, "{$this->paths->data}/media"] as $folder) {
-			if (str_starts_with($path, $this->paths->relative($folder) . '/')) {
-				return true;
-			}
-		}
-
-		return false;
+		return isset($metadata[$path]) || str_starts_with($path, $this->paths->relative($this->paths->media) . '/');
 	}
 
 	/**

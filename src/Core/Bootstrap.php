@@ -26,6 +26,9 @@ use Blush\Container\Plan\ReflectionPlanner;
 use Blush\Container\ServiceContainer;
 use Blush\Content\ContentConfig;
 use Blush\Content\Type\ContentTypeCache;
+use Blush\Data\DataLoader;
+use Blush\Data\DataStore;
+use Blush\Data\FileDataStore;
 use Blush\Env\Env;
 use Blush\Embed\EmbedConfig;
 use Blush\Extension\ComposerInstalled;
@@ -55,9 +58,13 @@ use Blush\Publish\PublishConfig;
 use Blush\Routing\RouteCache;
 use Blush\Routing\RouteConfig;
 use Blush\Session\SessionConfig;
-use Blush\Settings\SettingsFile;
+use Blush\Settings\SettingsStore;
 use Blush\Sitemap\SitemapConfig;
+use Blush\Storage\StorageArea;
 use Blush\Storage\StorageConfig;
+use Blush\Storage\StorageDriver;
+use Blush\Storage\StorageException;
+use Blush\Support\Filesystem;
 use Blush\Support\PhpArrayFile;
 use Blush\Theme\ThemeCache;
 use Blush\Theme\ThemeAssetProvider;
@@ -333,10 +340,28 @@ final readonly class Bootstrap
 		);
 
 		if ($settings) {
-			$config = new SettingsFile($this->paths)->read()->apply($config);
+			$config = new SettingsStore($this->dataStore($config->get(StorageConfig::class)))->read()->apply($config);
 		}
 
 		return $config->with(...$this->overrides);
+	}
+
+	/**
+	 * Returns the data store the saved settings are read from, before
+	 * the container exists (D-486, D-642). Only a built-in driver can be
+	 * built this early, and for now that's the filesystem.
+	 *
+	 * @throws StorageException When the data area's driver isn't one.
+	 */
+	private function dataStore(StorageConfig $storage): DataStore
+	{
+		$driver = $storage->driverFor(StorageArea::Data);
+
+		if (StorageDriver::tryFrom($driver) !== StorageDriver::Filesystem) {
+			throw new StorageException(sprintf('Unknown storage driver "%s" for data: the saved settings are read before extensions load, so the data area\'s driver must be built in (%s).', $driver, StorageConfig::FILESYSTEM));
+		}
+
+		return new FileDataStore($this->paths, new DataLoader(), new Filesystem());
 	}
 
 	/**

@@ -16,8 +16,9 @@ namespace Blush\Admin;
 use Psr\Http\Message\ResponseInterface;
 use Blush\Content\Http\RelatedController;
 use Blush\Content\Relation\Relation;
-use Blush\Content\Storage\FilesystemStorage;
 use Blush\Content\ContentConfig;
+use Blush\Content\Source\ContentSource;
+use Blush\Content\Source\UnreadableSource;
 use Blush\Content\Type\Collection;
 use Blush\Content\Type\ContentType;
 use Blush\Content\Type\ContentTypes;
@@ -26,9 +27,8 @@ use Blush\Content\Type\InvalidContentType;
 use Blush\Content\Type\TypeOrigin;
 use Blush\Content\Type\TypeRouteKeys;
 use Blush\Content\Type\TypeUrls;
-use Blush\Core\Paths;
-use Blush\Data\DataException;
-use Blush\Data\DataLoader;
+use Blush\Content\Writer\ContentWriter;
+use Blush\Content\Writer\WriteException;
 use Blush\Feed\FeedConfig;
 use Blush\Feed\FeedFormat;
 use Blush\Content\Type\DateArchives;
@@ -93,8 +93,8 @@ final readonly class TypesController
 		private ContentTypes $types,
 		private ContentConfig $config,
 		private DataTypeWriter $writer,
-		private Paths $paths,
-		private DataLoader $data,
+		private ContentSource $source,
+		private ContentWriter $content,
 		private FeedConfig $feeds
 	) {}
 
@@ -143,7 +143,7 @@ final readonly class TypesController
 		$editable = $types->isEditable($name) && $this->config->dataTypes;
 
 		try {
-			$file = $data || $types->isOverridden($name) ? $this->writer->path($name) : null;
+			$file = $data || $types->isOverridden($name) ? $this->writer->location($name) : null;
 		} catch (InvalidContentType) {
 			$file = null;
 		}
@@ -156,7 +156,7 @@ final readonly class TypesController
 			'llms'         => $type->llms,
 			'editable'     => $editable && ($file !== null || ! $data),
 			'overridden'   => $types->isOverridden($name),
-			'overrides'    => $types->isOverridden($name) ? $this->overrides($file) : [],
+			'overrides'    => $types->isOverridden($name) ? $this->overrides($name) : [],
 			'fieldsEditable' => $data || $this->writer->fieldsEditable($type),
 			'routes'       => $this->routes($types, $type),
 			'taxonomies'   => $taxonomies,
@@ -166,7 +166,7 @@ final readonly class TypesController
 			'filename'     => $type->filename?->pattern,
 			'folders'      => $type->folders?->pattern,
 			'folderPrefix' => DataTypeWriter::folderPrefix($type->folder),
-			'file'         => $file === null ? null : $this->paths->relative($file),
+			'file'         => $file,
 			'index'        => $this->index($type),
 			'byline'       => $type->byline,
 			'credits'      => array_keys($types->credits($name)),
@@ -185,15 +185,15 @@ final readonly class TypesController
 	}
 
 	/**
-	 * The options a file changing a code type sets, by their 2.x names.
+	 * The options a record changing a code type sets, by their 2.x names.
 	 *
 	 * @return list<string>
 	 */
-	private function overrides(?string $file): array
+	private function overrides(string $name): array
 	{
 		try {
-			$keys = $file === null ? [] : array_map(strval(...), array_keys($this->data->loadFile($file)));
-		} catch (DataException) {
+			$keys = array_map(strval(...), array_keys($this->writer->data($name)));
+		} catch (InvalidContentType) {
 			return [];
 		}
 
@@ -248,8 +248,8 @@ final readonly class TypesController
 	}
 
 	/**
-	 * A collection's or taxonomy's index page (D-255), found on disk so a
-	 * type just created has one: the `index` file in its folder.
+	 * A collection's or taxonomy's index page (D-255), found in the source
+	 * so a type just created has one: the `index` page in its folder.
 	 *
 	 * @return ?array{id: ?string, type: string, path: string, title: string}
 	 */
@@ -259,45 +259,48 @@ final readonly class TypesController
 	}
 
 	/**
-	 * A file in a type's folder, found on disk: `{"id", "type", "path", "title"}`
-	 * (`id` is `null` until it has one), titled
-	 * with its own `title` or the fallback, or `null`.
+	 * A page a type keeps at a key in its folder, found in the source
+	 * (not the index, which may not have it yet): `{"id", "type", "path",
+	 * "title"}` (`id` is `null` until it has one), titled with its own
+	 * `title` or the fallback, or `null`.
 	 *
 	 * @return ?array{id: ?string, type: string, path: string, title: string}
 	 */
-	private function page(ContentType $type, string $name, string $fallback): ?array
+	private function page(ContentType $type, string $key, string $fallback): ?array
 	{
 		if ($type->folder === '') {
 			return null;
 		}
 
-		$path = "{$type->folder}/{$name}." . FilesystemStorage::EXTENSION;
-
-		if (! is_file("{$this->paths->content}/{$path}")) {
+		try {
+			$path = $this->content->pathAt($type, $key);
+			$head = $this->source->stat($path) === null ? null : substr($this->source->read($path), 0, 4096);
+		} catch (WriteException | UnreadableSource) {
 			return null;
 		}
 
-		return ['id' => self::id("{$this->paths->content}/{$path}"), 'type' => $type->name, 'path' => $path, 'title' => self::title("{$this->paths->content}/{$path}") ?? $fallback];
+		if ($head === null) {
+			return null;
+		}
+
+		return ['id' => self::id($head), 'type' => $type->name, 'path' => $path, 'title' => self::title($head) ?? $fallback];
 	}
 
 	/**
-	 * The `title` in a file's front matter, if it's on a line of its own.
+	 * The `title` in a document's front matter, if it's on a line of its
+	 * own.
 	 */
-	private static function title(string $path): ?string
+	private static function title(string $head): ?string
 	{
-		$head = (string) @file_get_contents($path, length: 4096);
-
 		return preg_match('/^title:\s*["\']?(.+?)["\']?\s*$/m', $head, $match) === 1 ? $match[1] : null;
 	}
 
 	/**
-	 * The `id` in a file's front matter (D-477), read the way its title
-	 * is, since a page just written may not be in the index yet.
+	 * The `id` in a document's front matter (D-477), read the way its
+	 * title is, since a page just written may not be in the index yet.
 	 */
-	private static function id(string $path): ?string
+	private static function id(string $head): ?string
 	{
-		$head = (string) @file_get_contents($path, length: 4096);
-
 		return preg_match('/^id\s*:\s*["\']?([0-9a-fA-F-]{36})["\']?\s*$/m', $head, $match) === 1 && Uuid::isValid($match[1]) ? strtolower($match[1]) : null;
 	}
 

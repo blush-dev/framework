@@ -13,7 +13,7 @@ declare(strict_types=1);
 
 namespace Blush\Content\Lint;
 
-use Blush\Core\Paths;
+use Blush\Data\DataStore;
 use Blush\Field\FieldSetLoader;
 use Blush\Field\FieldSetOrigin;
 use Blush\Field\FieldSets;
@@ -47,7 +47,7 @@ final readonly class FieldSetCheck
 	public function __construct(
 		private FieldSets $sets,
 		private FieldTargets $targets,
-		private Paths $paths
+		private DataStore $data
 	) {}
 
 	/**
@@ -120,6 +120,6 @@ final readonly class FieldSetCheck
 	 */
 	private function dataFile(string $name): string
 	{
-		return $this->paths->relative("{$this->paths->data}/" . FieldSetLoader::DATA_DIRECTORY . "/{$name}.json");
+		return $this->data->location(FieldSetLoader::DATA_DIRECTORY . "/{$name}");
 	}
 }

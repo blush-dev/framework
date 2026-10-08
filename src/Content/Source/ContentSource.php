@@ -42,4 +42,11 @@ interface ContentSource
 	 * @throws UnreadableSource
 	 */
 	public function read(string $path): string;
+
+	/**
+	 * Where a document is kept, for people reading a message or a report
+	 * (D-642): `user/content/blog/hello.md` for a file. An empty path
+	 * names where the content is kept as a whole.
+	 */
+	public function location(string $path): string;
 }

@@ -13,22 +13,23 @@ declare(strict_types=1);
 
 namespace Blush\Content\Lint;
 
-use Blush\Core\Paths;
+use Blush\Content\Source\ContentSource;
+use Blush\Content\Source\FilesystemSource;
 use Blush\Field\Violation;
 use Blush\Field\ViolationKind;
-use Blush\Support\Filesystem;
 
 /**
  * Finds files in `user/content` in the formats Blush read before entries
  * became Markdown only (D-501): `.markdown`, `.html`, `.json`, `.yaml`,
  * and `.yml`. They aren't read any more, so each is an error, keyed by
  * its path in the content folder, saying how to make it a `.md` file.
+ * Only files have formats, so it checks only the filesystem driver's
+ * content (D-642).
  */
 final readonly class FormatCheck
 {
 	public function __construct(
-		private Paths $paths,
-		private Filesystem $filesystem = new Filesystem()
+		private ContentSource $source
 	) {}
 
 	/**
@@ -38,17 +39,19 @@ final readonly class FormatCheck
 	 */
 	public function check(): array
 	{
+		if (! $this->source instanceof FilesystemSource) {
+			return [];
+		}
+
 		$violations = [];
 
-		foreach ($this->filesystem->files($this->paths->content) as $path => $file) {
+		foreach ($this->source->others() as $path) {
 			$message = self::message(strtolower(pathinfo($path, PATHINFO_EXTENSION)));
 
 			if ($message !== null) {
-				$violations[str_replace('\\', '/', $path)] = [new Violation(Linter::FILE, $message, kind: ViolationKind::Unreadable)];
+				$violations[$path] = [new Violation(Linter::FILE, $message, kind: ViolationKind::Unreadable)];
 			}
 		}
-
-		ksort($violations, SORT_STRING);
 
 		return $violations;
 	}

@@ -14,16 +14,13 @@ declare(strict_types=1);
 namespace Blush\Content\Relation;
 
 use Closure;
-use JsonException;
 use Blush\Container\Attributes\Defer;
 use Blush\Content\ContentConfig;
 use Blush\Content\Type\ContentTypeLoader;
 use Blush\Content\Type\ContentTypes;
 use Blush\Content\Type\InvalidContentType;
-use Blush\Core\Paths;
 use Blush\Data\DataException;
-use Blush\Data\DataLoader;
-use Blush\Support\Filesystem;
+use Blush\Data\DataStore;
 
 /**
  * Writes the relations the site defines in data,
@@ -33,10 +30,10 @@ use Blush\Support\Filesystem;
  * `Relation::toArray()` writes it, without its name (the file's), in
  * the file's own format (JSON for a new one).
  *
- * Every change is checked against the whole site: the file is written,
- * every type and relation is loaded again (`ContentTypeLoader`), and when
- * they don't fit together the file is put back. Writes take the content
- * types' lock, as type writes do.
+ * Every change is checked against the whole site: in a data store
+ * transaction (D-642), the record is written, every type and relation is
+ * loaded again (`ContentTypeLoader`), and when they don't fit together
+ * the transaction puts the record back.
  */
 final readonly class DataRelationWriter
 {
@@ -44,26 +41,26 @@ final readonly class DataRelationWriter
 	 * @param Closure(): ContentTypeLoader $loader
 	 */
 	public function __construct(
-		private Paths $paths,
 		private ContentConfig $config,
-		private DataLoader $data,
-		private Filesystem $filesystem,
+		private DataStore $data,
 		#[Defer(ContentTypeLoader::class)] private Closure $loader
 	) {}
 
 	/**
-	 * Returns a data relation's file, or `null` when it has none.
+	 * Returns where a data relation is kept
+	 * (`user/data/relations/tags.json`), or `null` when the data store
+	 * has none by its name.
 	 *
 	 * @throws InvalidContentType When the name isn't a relation name.
 	 */
-	public function path(string $name): ?string
+	public function location(string $name): ?string
 	{
 		if (preg_match('/^[a-z][a-z0-9_]*$/', $name) !== 1) {
 			throw new InvalidContentType(sprintf('"%s" isn\'t a relation name: lowercase letters, digits, and underscores, starting with a letter.', $name));
 		}
 
 		try {
-			return $this->data->find($this->directory(), $name);
+			return $this->data->has(self::record($name)) ? $this->data->location(self::record($name)) : null;
 		} catch (DataException $error) {
 			throw new InvalidContentType($error->getMessage(), previous: $error);
 		}
@@ -79,7 +76,7 @@ final readonly class DataRelationWriter
 	{
 		$this->assertEnabled();
 
-		if ($this->path($relation->name) !== null) {
+		if ($this->location($relation->name) !== null) {
 			throw new InvalidContentType(sprintf('user/data/relations already defines "%s".', $relation->name));
 		}
 
@@ -89,7 +86,7 @@ final readonly class DataRelationWriter
 			throw new InvalidContentType(sprintf('The "%s" relation is already defined in code; change it there.', $relation->name));
 		}
 
-		return $this->write("{$this->directory()}/{$relation->name}.json", $relation);
+		return $this->write($relation);
 	}
 
 	/**
@@ -102,9 +99,11 @@ final readonly class DataRelationWriter
 	{
 		$this->assertEnabled();
 
-		$path = $this->path($relation->name) ?? throw new InvalidContentType(sprintf('"%s" isn\'t defined in user/data/relations, so it can\'t be changed here.', $relation->name));
+		if ($this->location($relation->name) === null) {
+			throw new InvalidContentType(sprintf('"%s" isn\'t defined in user/data/relations, so it can\'t be changed here.', $relation->name));
+		}
 
-		return $this->write($path, $relation);
+		return $this->write($relation);
 	}
 
 	/**
@@ -117,100 +116,53 @@ final readonly class DataRelationWriter
 	{
 		$this->assertEnabled();
 
-		$path = $this->path($name) ?? throw new InvalidContentType(sprintf('"%s" isn\'t defined in user/data/relations, so it can\'t be deleted here.', $name));
+		if ($this->location($name) === null) {
+			throw new InvalidContentType(sprintf('"%s" isn\'t defined in user/data/relations, so it can\'t be deleted here.', $name));
+		}
 
-		return $this->locked(function () use ($path): ContentTypes {
-			$before = (string) @file_get_contents($path);
-
-			if (! @unlink($path)) {
-				throw new InvalidContentType(sprintf('Unable to delete %s.', $this->paths->relative($path)));
-			}
-
-			return $this->checked($path, $before);
+		return $this->checked(function () use ($name): void {
+			$this->data->delete(self::record($name));
 		});
 	}
 
 	/**
-	 * Writes a relation to a file and checks the site still loads.
+	 * Writes a relation and checks the site still loads.
 	 *
 	 * @throws InvalidContentType
 	 */
-	private function write(string $path, Relation $relation): ContentTypes
+	private function write(Relation $relation): ContentTypes
 	{
-		$data = array_diff_key($relation->toArray(), ['name' => true]);
+		return $this->checked(function () use ($relation): void {
+			$this->data->save(self::record($relation->name), array_diff_key($relation->toArray(), ['name' => true]));
+		});
+	}
 
-		// A file keeps the schema it names for editors.
-		$was    = is_file($path) ? json_decode((string) file_get_contents($path), true) : null;
-		$schema = is_array($was) && is_string($was['$schema'] ?? null) ? $was['$schema'] : null;
-		$data   = $schema === null ? $data : ['$schema' => $schema, ...$data];
-
+	/**
+	 * Runs a write in a transaction and loads every type and relation
+	 * again, which puts the record back when they don't fit.
+	 *
+	 * @param  Closure(): void $write
+	 * @throws InvalidContentType
+	 */
+	private function checked(Closure $write): ContentTypes
+	{
 		try {
-			$contents = json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR) . "\n";
-		} catch (JsonException $error) {
+			return $this->data->transaction(function () use ($write): ContentTypes {
+				$write();
+
+				return ($this->loader)()->load();
+			});
+		} catch (DataException $error) {
 			throw new InvalidContentType($error->getMessage(), previous: $error);
 		}
-
-		return $this->locked(function () use ($path, $contents): ContentTypes {
-			$before = is_file($path) ? (string) file_get_contents($path) : null;
-
-			$this->filesystem->writeAtomic($path, $contents);
-
-			return $this->checked($path, $before);
-		});
 	}
 
 	/**
-	 * Loads every type and relation again, putting the file back as it was
-	 * when they don't fit.
-	 *
-	 * @throws InvalidContentType
+	 * A relation's record name in the data store.
 	 */
-	private function checked(string $path, ?string $before): ContentTypes
+	private static function record(string $name): string
 	{
-		try {
-			return ($this->loader)()->load();
-		} catch (InvalidContentType $error) {
-			if ($before === null) {
-				@unlink($path);
-			} else {
-				$this->filesystem->writeAtomic($path, $before);
-			}
-
-			throw $error;
-		}
-	}
-
-	/**
-	 * Runs a write under the content types' lock.
-	 *
-	 * @template T
-	 * @param  Closure(): T $write
-	 * @return T
-	 * @throws InvalidContentType
-	 */
-	private function locked(Closure $write): mixed
-	{
-		if (! is_dir($this->paths->cache)) {
-			@mkdir($this->paths->cache, 0775, true);
-		}
-
-		$lock = @fopen("{$this->paths->cache}/types.lock", 'c');
-
-		if ($lock === false || ! flock($lock, LOCK_EX)) {
-			throw new InvalidContentType('Unable to take the content types lock.');
-		}
-
-		try {
-			return $write();
-		} finally {
-			flock($lock, LOCK_UN);
-			fclose($lock);
-		}
-	}
-
-	private function directory(): string
-	{
-		return "{$this->paths->data}/" . RelationLoader::DATA_DIRECTORY;
+		return RelationLoader::DATA_DIRECTORY . "/{$name}";
 	}
 
 	/**

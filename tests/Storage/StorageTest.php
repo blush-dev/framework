@@ -1,0 +1,165 @@
+<?php
+
+/**
+ * Storage tests.
+ *
+ * @author    Justin Tadlock <justintadlock@gmail.com>
+ * @copyright Copyright (c) 2026, Justin Tadlock
+ * @license   https://opensource.org/licenses/MIT MIT
+ * @link      https://github.com/blush-dev/framework
+ */
+
+declare(strict_types=1);
+
+namespace Blush\Tests\Storage;
+
+use Override;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\TestCase;
+use Blush\Auth\AccountStore;
+use Blush\Auth\FileAccountStore;
+use Blush\Auth\FileRoleStore;
+use Blush\Auth\RoleStore;
+use Blush\Content\Source\ContentSource;
+use Blush\Content\Source\FilesystemSource;
+use Blush\Content\Writer\ContentWriter;
+use Blush\Content\Writer\FilesystemWriter;
+use Blush\Data\DataStore;
+use Blush\Data\FileDataStore;
+use Blush\Job\FileJobStore;
+use Blush\Job\JobStore;
+use Blush\Session\FileSessionStore;
+use Blush\Session\SessionStore;
+use Blush\Storage\FilesystemStorage;
+use Blush\Storage\Storage;
+use Blush\Storage\StorageConfig;
+use Blush\Storage\StorageDriver;
+use Blush\Storage\StorageDriverFactory;
+use Blush\Storage\StorageDriverRegistrar;
+use Blush\Storage\StorageDriverRegistry;
+use Blush\Storage\StorageException;
+use Blush\Storage\StorageResolver;
+use Blush\Tests\BootsScratchSite;
+
+#[CoversClass(FilesystemStorage::class)]
+#[CoversClass(StorageDriver::class)]
+#[CoversClass(StorageDriverFactory::class)]
+#[CoversClass(StorageDriverRegistrar::class)]
+#[CoversClass(StorageDriverRegistry::class)]
+#[CoversClass(StorageResolver::class)]
+final class StorageTest extends TestCase
+{
+	use BootsScratchSite;
+
+	public function testFilesystemIsTheDefaultForEveryArea(): void
+	{
+		$container = $this->scratchApplication()->container();
+
+		$this->assertSame('filesystem', $container->make(StorageConfig::class)->driver);
+		$this->assertInstanceOf(FilesystemSource::class, $container->make(ContentSource::class));
+		$this->assertInstanceOf(FilesystemWriter::class, $container->make(ContentWriter::class));
+		$this->assertInstanceOf(FileDataStore::class, $container->make(DataStore::class));
+		$this->assertInstanceOf(FileAccountStore::class, $container->make(AccountStore::class));
+		$this->assertInstanceOf(FileRoleStore::class, $container->make(RoleStore::class));
+		$this->assertInstanceOf(FileSessionStore::class, $container->make(SessionStore::class));
+		$this->assertInstanceOf(FileJobStore::class, $container->make(JobStore::class));
+	}
+
+	public function testAConfigFileWinsOverTheEnvironment(): void
+	{
+		$this->writeTemporaryFile('config/storage.php', "<?php\nreturn new Blush\\Storage\\StorageConfig(areas: ['content' => 'filesystem']);\n");
+
+		$container = $this->scratchApplication(['STORAGE_DRIVER' => 'nowhere'])->container();
+
+		$this->assertInstanceOf(FilesystemSource::class, $container->make(ContentSource::class));
+	}
+
+	public function testAnAreaUsesItsOwnDriver(): void
+	{
+		$this->writeTemporaryFile('config/storage.php', "<?php\nreturn new Blush\\Storage\\StorageConfig(areas: ['sessions' => 'memory']);\n");
+
+		$container = $this->scratchApplication()->container();
+		$container->make(StorageDriverRegistry::class)->register('memory', SessionsOnly::class);
+
+		$this->assertInstanceOf(TestSessions::class, $container->make(SessionStore::class));
+		$this->assertInstanceOf(FileAccountStore::class, $container->make(AccountStore::class), 'Other areas keep the default.');
+	}
+
+	public function testADriverWithoutAContractFails(): void
+	{
+		$this->writeTemporaryFile('config/storage.php', "<?php\nreturn new Blush\\Storage\\StorageConfig(areas: ['accounts' => 'memory']);\n");
+
+		$container = $this->scratchApplication()->container();
+		$container->make(StorageDriverRegistry::class)->register('memory', SessionsOnly::class);
+
+		$this->expectException(StorageException::class);
+		$this->expectExceptionMessage(sprintf('The "memory" storage driver, named for accounts, has no %s.', AccountStore::class));
+
+		$container->make(AccountStore::class);
+	}
+
+	public function testAnUnknownDriverFails(): void
+	{
+		$this->writeTemporaryFile('config/storage.php', "<?php\nreturn new Blush\\Storage\\StorageConfig(areas: ['content' => 'nowhere']);\n");
+
+		$container = $this->scratchApplication()->container();
+
+		$this->expectException(StorageException::class);
+		$this->expectExceptionMessage('Unknown storage driver "nowhere"; registered drivers: filesystem.');
+
+		$container->make(ContentSource::class);
+	}
+
+	public function testTheSavedSettingsNeedABuiltInDataDriver(): void
+	{
+		$this->expectException(StorageException::class);
+		$this->expectExceptionMessage('Unknown storage driver "nowhere" for data');
+
+		$this->scratchApplication(['STORAGE_DRIVER' => 'nowhere']);
+	}
+
+	public function testTheRegistrarKeepsAnExtensionsName(): void
+	{
+		$registry = new StorageDriverRegistry(['filesystem' => SessionsOnly::class]);
+		new StorageDriverRegistrar($registry)->register();
+
+		$this->assertSame(SessionsOnly::class, $registry->get('filesystem'));
+	}
+}
+
+/**
+ * A driver an extension might register for sessions alone (D-640).
+ */
+final readonly class SessionsOnly implements Storage
+{
+	#[Override]
+	public function bindings(): array
+	{
+		return [SessionStore::class => TestSessions::class];
+	}
+}
+
+final class TestSessions implements SessionStore
+{
+	#[Override]
+	public function read(string $id): ?array
+	{
+		return null;
+	}
+
+	#[Override]
+	public function write(string $id, array $record): void
+	{
+	}
+
+	#[Override]
+	public function delete(string $id): void
+	{
+	}
+
+	#[Override]
+	public function prune(int $before): int
+	{
+		return 0;
+	}
+}

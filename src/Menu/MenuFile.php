@@ -27,7 +27,7 @@ final readonly class MenuFile
 	 */
 	public function __construct(
 		public string $name,
-		public string $path,
+		public string $location,
 		public mixed $label = null,
 		public array $items = [],
 		public array $problems = []

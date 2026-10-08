@@ -14,18 +14,19 @@ declare(strict_types=1);
 namespace Blush\Session;
 
 use Blush\Core\ServiceProvider;
+use Blush\Storage\StorageArea;
 
 /**
- * Binds the session store (files, unless a site or extension binds
- * another) and the `StartSession` middleware.
+ * Binds the session store (from the storage driver for sessions,
+ * D-642, unless a site or extension binds another) and the `StartSession` middleware.
  */
 final class SessionServiceProvider extends ServiceProvider
 {
 	/**
 	 * @inheritDoc
 	 */
-	protected const array SINGLETONS_IF = [
-		SessionStore::class => FileSessionStore::class
+	protected const array STORAGE = [
+		SessionStore::class => StorageArea::Sessions
 	];
 
 	/**

@@ -19,10 +19,12 @@ use Blush\Auth\Middleware\VerifyCsrf;
 use Blush\Container\Container;
 use Blush\Content\Type\ContentTypes;
 use Blush\Core\ServiceProvider;
+use Blush\Storage\StorageArea;
 
 /**
  * Binds accounts, roles, capabilities, and permissions (D-219). Accounts
- * live in files unless a site or extension binds another `AccountStore`.
+ * and roles are kept by the storage driver for accounts (D-642) unless a
+ * site or extension binds another `AccountStore` or `RoleStore`.
  * Extensions add capabilities to `Capabilities` from their own `boot()`.
  */
 final class AuthServiceProvider extends ServiceProvider
@@ -43,9 +45,9 @@ final class AuthServiceProvider extends ServiceProvider
 	/**
 	 * @inheritDoc
 	 */
-	protected const array SINGLETONS_IF = [
-		AccountStore::class => FileAccountStore::class,
-		RoleStore::class    => FileRoleStore::class
+	protected const array STORAGE = [
+		AccountStore::class => StorageArea::Accounts,
+		RoleStore::class    => StorageArea::Accounts
 	];
 
 	/**

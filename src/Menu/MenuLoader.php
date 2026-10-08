@@ -13,8 +13,7 @@ declare(strict_types=1);
 
 namespace Blush\Menu;
 
-use Blush\Core\Paths;
-use Blush\Data\DataLoader;
+use Blush\Data\DataStore;
 use Blush\Data\InvalidData;
 
 /**
@@ -56,8 +55,7 @@ final class MenuLoader
 	private ?array $files = null;
 
 	public function __construct(
-		private readonly Paths $paths,
-		private readonly DataLoader $loader
+		private readonly DataStore $store
 	) {}
 
 	/**
@@ -72,11 +70,10 @@ final class MenuLoader
 			return $this->files;
 		}
 
-		$directory = $this->directory();
 		$files     = [];
 
-		foreach ($this->loader->loadAll($directory) as $name => $data) {
-			$files[$name] = self::file($name, $this->loader->find($directory, $name) ?? '', $data);
+		foreach ($this->store->loadAll(self::FOLDER) as $name => $data) {
+			$files[$name] = self::file($name, $this->store->location(self::FOLDER . "/{$name}"), $data);
 		}
 
 		return $this->files = $files;
@@ -92,20 +89,13 @@ final class MenuLoader
 		return $this->all()[$name] ?? null;
 	}
 
-	/**
-	 * Returns the menus' folder.
-	 */
-	public function directory(): string
-	{
-		return "{$this->paths->data}/" . self::FOLDER;
-	}
 
 	/**
 	 * Builds a menu from its parsed file.
 	 *
 	 * @param array<array-key, mixed> $data
 	 */
-	private static function file(string $name, string $path, array $data): MenuFile
+	private static function file(string $name, string $location, array $data): MenuFile
 	{
 		$problems = [];
 
@@ -114,7 +104,7 @@ final class MenuLoader
 		}
 
 		if (array_is_list($data)) {
-			return new MenuFile($name, $path, null, $data, $problems);
+			return new MenuFile($name, $location, null, $data, $problems);
 		}
 
 		foreach (array_keys(array_diff_key($data, ['label' => true, 'items' => true, '$schema' => true])) as $key) {
@@ -128,6 +118,6 @@ final class MenuLoader
 			$items      = [];
 		}
 
-		return new MenuFile($name, $path, $data['label'] ?? null, $items, $problems);
+		return new MenuFile($name, $location, $data['label'] ?? null, $items, $problems);
 	}
 }

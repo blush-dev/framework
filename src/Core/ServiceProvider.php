@@ -16,7 +16,10 @@ namespace Blush\Core;
 use Override;
 use Blush\Container\Container;
 use Blush\Container\ContainerException;
+use Blush\Container\ServiceResolver;
 use Blush\Core\Bootable;
+use Blush\Storage\StorageArea;
+use Blush\Storage\StorageResolver;
 
 /**
  * Service providers allow you to connect services to the application container.
@@ -77,6 +80,17 @@ abstract class ServiceProvider implements Bootable
 	protected const array TRANSIENTS_IF = [];
 
 	/**
+	 * A map of storage contracts to the area that keeps them (D-642).
+	 * Each is bound as an overridable default singleton (as in
+	 * `SINGLETONS_IF`) to the class the area's storage driver gives:
+	 *
+	 *     protected const array STORAGE = [AccountStore::class => StorageArea::Accounts];
+	 *
+	 * @var  array<class-string, StorageArea> Contracts mapped to areas.
+	 */
+	protected const array STORAGE = [];
+
+	/**
 	 * A map of alias names to the abstracts they resolve to. Resolving an
 	 * alias resolves its abstract instead, returning the same instance and
 	 * lifetime, mirroring the container's `alias()` method.
@@ -103,7 +117,7 @@ abstract class ServiceProvider implements Bootable
 
 	/**
 	 * Registers the bindings listed in the `SINGLETONS`, `SINGLETONS_IF`,
-	 * `TRANSIENTS`, and `TRANSIENTS_IF` constants, assigns each tag listed
+	 * `TRANSIENTS`, `TRANSIENTS_IF`, and `STORAGE` constants, assigns each tag listed
 	 * in the `TAGS` constant, and registers each alias in the `ALIASES`
 	 * constant. The application calls this before `register()`, so the
 	 * declared bindings are always processed regardless of what a subclass
@@ -117,6 +131,13 @@ abstract class ServiceProvider implements Bootable
 		$this->registerBindings(static::SINGLETONS_IF, $this->container->singletonIf(...));
 		$this->registerBindings(static::TRANSIENTS, $this->container->transient(...));
 		$this->registerBindings(static::TRANSIENTS_IF, $this->container->transientIf(...));
+
+		foreach (static::STORAGE as $contract => $area) {
+			$this->container->singletonIf(
+				$contract,
+				static fn (ServiceResolver $resolver): object => $resolver->make(StorageResolver::class)->resolve($area, $contract)
+			);
+		}
 
 		foreach (static::ALIASES as $alias => $abstract) {
 			$this->container->alias($alias, $abstract);

@@ -39,7 +39,7 @@ use Blush\Icon\IconPackSource;
 use Blush\Settings\InvalidSetting;
 use Blush\Settings\Setting;
 use Blush\Settings\Settings;
-use Blush\Settings\SettingsFile;
+use Blush\Settings\SettingsStore;
 use Blush\Support\Filesystem;
 use Blush\Support\FilesystemException;
 
@@ -71,7 +71,7 @@ final readonly class IconPackEditController
 		private Paths $paths,
 		private IconPacks $packs,
 		private ExtensionState $extensions,
-		private SettingsFile $settings,
+		private SettingsStore $settings,
 		private ContentVersion $version,
 		private Bootstrap $bootstrap,
 		private Permissions $permissions,

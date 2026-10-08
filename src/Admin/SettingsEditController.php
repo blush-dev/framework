@@ -39,7 +39,7 @@ use Blush\Routing\RouteCache;
 use Blush\Settings\InvalidSetting;
 use Blush\Settings\Setting;
 use Blush\Settings\Settings;
-use Blush\Settings\SettingsFile;
+use Blush\Settings\SettingsStore;
 use Blush\Settings\SiteSettings;
 use Blush\Theme\ThemeException;
 use Blush\Theme\Themes;
@@ -81,7 +81,7 @@ use Blush\Theme\Themes;
 final readonly class SettingsEditController
 {
 	public function __construct(
-		private SettingsFile $file,
+		private SettingsStore $store,
 		private ContentTypes $types,
 		private ContentTypeCache $typeCache,
 		private RouteCache $routes,
@@ -144,7 +144,7 @@ final readonly class SettingsEditController
 			self::assertUploads($check);
 
 			$changed  = [...array_filter(Setting::cases(), $check->has(...)), ...$removed];
-			$settings = $this->file->update(static fn (Settings $settings): Settings => $settings->without(...$removed)->with($builtIns)->withSite($site));
+			$settings = $this->store->update(static fn (Settings $settings): Settings => $settings->without(...$removed)->with($builtIns)->withSite($site));
 		} catch (InvalidSetting $error) {
 			return self::error($error->getMessage(), Status::UnprocessableContent);
 		}

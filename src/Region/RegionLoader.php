@@ -13,8 +13,7 @@ declare(strict_types=1);
 
 namespace Blush\Region;
 
-use Blush\Core\Paths;
-use Blush\Data\DataLoader;
+use Blush\Data\DataStore;
 use Blush\Data\InvalidData;
 
 /**
@@ -50,8 +49,7 @@ final class RegionLoader
 	private ?array $files = null;
 
 	public function __construct(
-		private readonly Paths $paths,
-		private readonly DataLoader $loader
+		private readonly DataStore $store
 	) {}
 
 	/**
@@ -66,11 +64,10 @@ final class RegionLoader
 			return $this->files;
 		}
 
-		$directory = $this->directory();
 		$files     = [];
 
-		foreach ($this->loader->loadAll($directory) as $name => $data) {
-			$files[$name] = self::file($name, $this->loader->find($directory, $name) ?? '', $data);
+		foreach ($this->store->loadAll(self::FOLDER) as $name => $data) {
+			$files[$name] = self::file($name, $this->store->location(self::FOLDER . "/{$name}"), $data);
 		}
 
 		return $this->files = $files;
@@ -86,23 +83,16 @@ final class RegionLoader
 		return $this->all()[$name] ?? null;
 	}
 
-	/**
-	 * Returns the regions' folder.
-	 */
-	public function directory(): string
-	{
-		return "{$this->paths->data}/" . self::FOLDER;
-	}
 
 	/**
 	 * Builds a region from its parsed file.
 	 *
 	 * @param array<array-key, mixed> $data
 	 */
-	private static function file(string $name, string $path, array $data): RegionFile
+	private static function file(string $name, string $location, array $data): RegionFile
 	{
 		if (array_is_list($data)) {
-			return new RegionFile($name, $path, $data);
+			return new RegionFile($name, $location, $data);
 		}
 
 		$problems = [];
@@ -118,6 +108,6 @@ final class RegionLoader
 			$items      = [];
 		}
 
-		return new RegionFile($name, $path, $items, $problems);
+		return new RegionFile($name, $location, $items, $problems);
 	}
 }

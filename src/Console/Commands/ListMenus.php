@@ -18,7 +18,6 @@ use Blush\Console\Attributes\Option;
 use Blush\Console\ExitCode;
 use Blush\Console\InvalidInput;
 use Blush\Console\Output;
-use Blush\Core\Paths;
 use Blush\Data\InvalidData;
 use Blush\Field\Severity;
 use Blush\Menu\MenuException;
@@ -40,8 +39,7 @@ final readonly class ListMenus
 	public function __construct(
 		private Themes $themes,
 		private ThemeConfig $config,
-		private Menus $menus,
-		private Paths $paths
+		private Menus $menus
 	) {}
 
 	/**
@@ -67,7 +65,7 @@ final readonly class ListMenus
 					$location->label,
 					$file === null ? '(none)' : $menuName,
 					$file === null ? '' : (string) count($menu->items ?? []),
-					$file === null ? '' : $this->paths->relative($file->path)
+					$file === null ? '' : $file->location
 				];
 
 				$shown[$menuName] = true;
@@ -75,7 +73,7 @@ final readonly class ListMenus
 
 			foreach ($files as $name => $file) {
 				if (! isset($shown[$name])) {
-					$rows[] = ['(none)', '', $name, (string) count($file->items), $this->paths->relative($file->path)];
+					$rows[] = ['(none)', '', $name, (string) count($file->items), $file->location];
 				}
 			}
 		} catch (ThemeException | MenuException | InvalidData $error) {

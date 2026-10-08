@@ -19,12 +19,12 @@ use Psr\Http\Message\ResponseInterface;
 use Blush\Admin\FieldSetEditController;
 use Blush\Admin\FieldSetsController;
 use Blush\Content\Type\DataFieldSetWriter;
-use Blush\Content\Writer\DataFileKeys;
+use Blush\Data\DataKeys;
 
 #[CoversClass(FieldSetsController::class)]
 #[CoversClass(FieldSetEditController::class)]
 #[CoversClass(DataFieldSetWriter::class)]
-#[CoversClass(DataFileKeys::class)]
+#[CoversClass(DataKeys::class)]
 final class AdminFieldSetsTest extends TestCase
 {
 	use BootsAdmin;

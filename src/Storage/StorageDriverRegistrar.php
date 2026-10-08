@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Content storage driver registrar.
+ * Storage driver registrar.
  *
  * @author    Justin Tadlock <justintadlock@gmail.com>
  * @copyright Copyright (c) 2026, Justin Tadlock
@@ -11,7 +11,7 @@
 
 declare(strict_types=1);
 
-namespace Blush\Content\Storage;
+namespace Blush\Storage;
 
 use Blush\Support\RegistrationException;
 

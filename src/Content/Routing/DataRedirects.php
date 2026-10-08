@@ -14,8 +14,7 @@ declare(strict_types=1);
 namespace Blush\Content\Routing;
 
 use Override;
-use Blush\Core\Paths;
-use Blush\Data\DataLoader;
+use Blush\Data\DataStore;
 use Blush\Data\InvalidData;
 use Blush\Routing\InvalidRoute;
 use Blush\Routing\Redirect;
@@ -41,8 +40,7 @@ final readonly class DataRedirects implements RedirectSource
 	public const string FILE = 'redirects';
 
 	public function __construct(
-		private DataLoader $data,
-		private Paths $paths
+		private DataStore $data
 	) {}
 
 	/**
@@ -54,7 +52,7 @@ final readonly class DataRedirects implements RedirectSource
 	public function redirects(): iterable
 	{
 		try {
-			$data = $this->data->load($this->paths->data, self::FILE) ?? [];
+			$data = $this->data->load(self::FILE) ?? [];
 		} catch (InvalidData $e) {
 			throw new InvalidRoute(sprintf('user/data/%s is invalid: %s', self::FILE, $e->getMessage()), previous: $e);
 		}

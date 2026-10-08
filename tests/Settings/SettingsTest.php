@@ -18,17 +18,21 @@ use PHPUnit\Framework\TestCase;
 use Blush\Config\ConfigRepository;
 use Blush\Core\AppConfig;
 use Blush\Core\Paths;
+use Blush\Data\DataLoader;
+use Blush\Data\FileDataStore;
 use Blush\Feed\FeedConfig;
 use Blush\Routing\RouteConfig;
 use Blush\Settings\InvalidSetting;
 use Blush\Settings\Setting;
 use Blush\Settings\Settings;
-use Blush\Settings\SettingsFile;
+use Blush\Settings\SettingsStore;
+use Blush\Support\Filesystem;
 use Blush\Tests\TemporaryDirectory;
 
 #[CoversClass(Setting::class)]
 #[CoversClass(Settings::class)]
-#[CoversClass(SettingsFile::class)]
+#[CoversClass(SettingsStore::class)]
+#[CoversClass(FileDataStore::class)]
 final class SettingsTest extends TestCase
 {
 	use TemporaryDirectory;
@@ -38,9 +42,14 @@ final class SettingsTest extends TestCase
 		$this->removeTemporaryDirectory();
 	}
 
-	private function file(): SettingsFile
+	private function file(): SettingsStore
 	{
-		return new SettingsFile(Paths::fromRoot($this->temporaryDirectory()));
+		return new SettingsStore(new FileDataStore(Paths::fromRoot($this->temporaryDirectory()), new DataLoader(), new Filesystem()));
+	}
+
+	private function path(): string
+	{
+		return $this->temporaryDirectory() . '/user/data/settings.json';
 	}
 
 	public function testLaysSettingsOverTheirConfigObjects(): void
@@ -75,8 +84,8 @@ final class SettingsTest extends TestCase
 
 		$file->update(static fn (Settings $settings): Settings => $settings->with(['app.name' => 'Café', 'sitemap.disallow' => ['/a/']]));
 
-		$this->assertSame(['app' => ['name' => 'Café'], 'sitemap' => ['disallow' => ['/a/']]], json_decode((string) file_get_contents($file->path()), true));
-		$this->assertStringContainsString('"Café"', (string) file_get_contents($file->path()), 'Text is written as is.');
+		$this->assertSame(['app' => ['name' => 'Café'], 'sitemap' => ['disallow' => ['/a/']]], json_decode((string) file_get_contents($this->path()), true));
+		$this->assertStringContainsString('"Café"', (string) file_get_contents($this->path()), 'Text is written as is.');
 		$this->assertSame('Café', $file->read()->get(Setting::Name));
 	}
 
@@ -89,7 +98,7 @@ final class SettingsTest extends TestCase
 
 		$file->update(static fn (Settings $settings): Settings => $settings->with(['app.name' => 'Notes']));
 
-		$this->assertSame(['$schema' => 'settings.schema.json', 'app' => ['name' => 'Notes']], json_decode((string) file_get_contents($file->path()), true), 'Kept first.');
+		$this->assertSame(['$schema' => 'settings.schema.json', 'app' => ['name' => 'Notes']], json_decode((string) file_get_contents($this->path()), true), 'Kept first.');
 	}
 
 	public function testRefusesABrokenFile(): void

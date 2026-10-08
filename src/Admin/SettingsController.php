@@ -58,7 +58,7 @@ use Blush\Publish\PublishConfig;
 use Blush\Routing\RouteConfig;
 use Blush\Settings\Setting;
 use Blush\Settings\Settings;
-use Blush\Settings\SettingsFile;
+use Blush\Settings\SettingsStore;
 use Blush\Settings\SettingsScreen;
 use Blush\Settings\SettingsTarget;
 use Blush\Sitemap\AiCrawlerGroup;
@@ -119,7 +119,7 @@ final readonly class SettingsController
 		private CacheConfig $cache,
 		private PublishConfig $publish,
 		private PreviewConfig $preview,
-		private SettingsFile $file,
+		private SettingsStore $store,
 		private ClockInterface $clock,
 		private Permissions $permissions,
 		private FieldSets $fieldSets,
@@ -138,7 +138,7 @@ final readonly class SettingsController
 			return Response::json(['error' => 'You aren\'t allowed to see the site\'s settings.'], Status::Forbidden, ['Cache-Control' => 'no-store']);
 		}
 
-		$saved = $this->file->read();
+		$saved = $this->store->read();
 
 		$groups = match ($screen) {
 			'general' => $this->general($saved),

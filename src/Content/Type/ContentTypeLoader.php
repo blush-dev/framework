@@ -21,8 +21,7 @@ use Blush\Content\Relation\RelationCompiler;
 use Blush\Content\Relation\RelationKind;
 use Blush\Content\Relation\RelationLoader;
 use Blush\Content\Relation\RelationOrigin;
-use Blush\Core\Paths;
-use Blush\Data\DataLoader;
+use Blush\Data\DataStore;
 use Blush\Data\InvalidData;
 use Blush\Extension\DefinitionClash;
 use Blush\Field\FieldFactory;
@@ -67,8 +66,7 @@ final readonly class ContentTypeLoader
 
 	public function __construct(
 		private ContentConfig $config,
-		private Paths $paths,
-		private DataLoader $data,
+		private DataStore $data,
 		private FieldFactory $fields,
 		private Container $container,
 		private FieldSetLoader $sets,
@@ -211,10 +209,8 @@ final readonly class ContentTypeLoader
 			return [];
 		}
 
-		$directory = $this->paths->data . '/' . self::DATA_DIRECTORY;
-
 		try {
-			$definitions = $this->data->loadAll($directory);
+			$definitions = $this->data->loadAll(self::DATA_DIRECTORY);
 		} catch (InvalidData $e) {
 			throw new InvalidContentType($e->getMessage(), previous: $e);
 		}

@@ -26,7 +26,7 @@ use Blush\Extension\Requirements;
 use Blush\Settings\InvalidSetting;
 use Blush\Settings\Setting;
 use Blush\Settings\Settings;
-use Blush\Settings\SettingsFile;
+use Blush\Settings\SettingsStore;
 use Blush\Support\Filesystem;
 use Blush\Theme\ThemeException;
 use Blush\Theme\Themes;
@@ -51,7 +51,7 @@ final readonly class ActivateTheme
 		private Paths $paths,
 		private Bootstrap $bootstrap,
 		private Filesystem $filesystem,
-		private SettingsFile $settings
+		private SettingsStore $settings
 	) {}
 
 	/**
@@ -105,7 +105,7 @@ final readonly class ActivateTheme
 		try {
 			if ($this->settings->read()->has(Setting::Theme)) {
 				$this->settings->update(static fn (Settings $settings): Settings => $settings->without(Setting::Theme));
-				$output->comment(sprintf('Cleared the theme activated in the admin (%s).', $this->paths->relative($this->settings->path())));
+				$output->comment(sprintf('Cleared the theme activated in the admin (%s).', $this->settings->location()));
 			}
 		} catch (InvalidSetting $error) {
 			$output->warning(sprintf('The theme activated in the admin may still win over config/theme.php: %s', $error->getMessage()));

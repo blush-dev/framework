@@ -69,7 +69,7 @@ final readonly class ChangeRelation
 				return ExitCode::Success;
 			}
 
-			if (($key !== null || $remove) && $this->relations->path($name) === null) {
+			if (($key !== null || $remove) && $this->relations->location($name) === null) {
 				$output->error(sprintf('"%s" isn\'t defined in user/data/relations, so it\'s changed where it\'s defined.', $name));
 
 				return ExitCode::Failure;

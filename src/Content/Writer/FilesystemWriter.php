@@ -36,7 +36,6 @@ use Blush\Content\Relation\LinkBuilder;
 use Blush\Content\Relation\Relations;
 use Blush\Content\Relation\Resolution;
 use Blush\Content\Source\FilesystemSource;
-use Blush\Content\Storage\FilesystemStorage;
 use Blush\Content\Type\ContentType;
 use Blush\Content\Type\ContentTypes;
 use Blush\Content\Type\Tree;
@@ -126,7 +125,7 @@ final readonly class FilesystemWriter implements ContentWriter
 		}
 
 		$date ??= $this->clock->now();
-		$name   = $type->naming()->name($slug, $date) . '.' . FilesystemStorage::EXTENSION;
+		$name   = $type->naming()->name($slug, $date) . '.' . FilesystemSource::EXTENSION;
 		$path   = ltrim($type->directoryFor($slug, $date) . "/{$name}", '/');
 		$file = $this->file($path);
 
@@ -149,11 +148,7 @@ final readonly class FilesystemWriter implements ContentWriter
 	#[Override]
 	public function createAt(ContentType $type, string $key, EntryChanges $changes): WriteResult
 	{
-		if (! array_all(explode('/', $key), static fn (string $segment): bool => Slug::isSlug(ltrim($segment, '_')) && strlen(ltrim($segment, '_')) >= strlen($segment) - 1)) {
-			throw new WriteException(sprintf('"%s" isn\'t a page key: slugs separated by "/", each may start with "_".', $key));
-		}
-
-		$path = ltrim("{$type->folder}/{$key}." . FilesystemStorage::EXTENSION, '/');
+		$path = $this->pathAt($type, $key);
 		$file = $this->file($path);
 
 		return $this->locked(function () use ($path, $file, $type, $changes): WriteResult {
@@ -167,6 +162,19 @@ final readonly class FilesystemWriter implements ContentWriter
 
 			return new WriteResult($path, $this->revisionOf($path), $report);
 		});
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	#[Override]
+	public function pathAt(ContentType $type, string $key): string
+	{
+		if (! array_all(explode('/', $key), static fn (string $segment): bool => Slug::isSlug(ltrim($segment, '_')) && strlen(ltrim($segment, '_')) >= strlen($segment) - 1)) {
+			throw new WriteException(sprintf('"%s" isn\'t a page key: slugs separated by "/", each may start with "_".', $key));
+		}
+
+		return ltrim("{$type->folder}/{$key}." . FilesystemSource::EXTENSION, '/');
 	}
 
 	/**
@@ -192,13 +200,13 @@ final readonly class FilesystemWriter implements ContentWriter
 
 			$type   = $parent->type;
 			$folder = ltrim("{$type->folder}/{$parent->key}", '/');
-			$path   = "{$folder}/" . $type->naming()->name($slug, $this->clock->now()) . '.' . FilesystemStorage::EXTENSION;
+			$path   = "{$folder}/" . $type->naming()->name($slug, $this->clock->now()) . '.' . FilesystemSource::EXTENSION;
 			$file   = $this->file($path);
 
 			if (
 				$this->content->named($type->name, "{$parent->key}/{$slug}") !== null
 				|| file_exists($file)
-				|| file_exists($this->folder("{$folder}/{$slug}") . '/index.' . FilesystemStorage::EXTENSION)
+				|| file_exists($this->folder("{$folder}/{$slug}") . '/index.' . FilesystemSource::EXTENSION)
 			) {
 				throw new WriteException(sprintf('There\'s already a page at %s/%s.', $parent->key, $slug));
 			}
@@ -208,7 +216,7 @@ final readonly class FilesystemWriter implements ContentWriter
 			$moved    = [];
 			$made     = ! is_dir($this->folder($folder));
 
-			if ($parent->path === "{$folder}." . FilesystemStorage::EXTENSION) {
+			if ($parent->path === "{$folder}." . FilesystemSource::EXTENSION) {
 				$moved = [$parent->path => $this->promote($parent->path, $folder)];
 			}
 
@@ -243,7 +251,7 @@ final readonly class FilesystemWriter implements ContentWriter
 	{
 		$directory = $this->folder($folder);
 
-		if (file_exists("{$directory}/index." . FilesystemStorage::EXTENSION)) {
+		if (file_exists("{$directory}/index." . FilesystemSource::EXTENSION)) {
 			throw new WriteException(sprintf('%s can\'t move into %s/: that folder already has a page. Remove one of the two, then try again.', $path, $folder));
 		}
 
@@ -253,7 +261,7 @@ final readonly class FilesystemWriter implements ContentWriter
 			throw new WriteException(sprintf('The folder %s couldn\'t be created.', $this->paths->relative($directory)));
 		}
 
-		$newPath = "{$folder}/index." . FilesystemStorage::EXTENSION;
+		$newPath = "{$folder}/index." . FilesystemSource::EXTENSION;
 
 		if (! @rename($this->file($path), $this->file($newPath))) {
 			if ($made) {
@@ -476,7 +484,7 @@ final readonly class FilesystemWriter implements ContentWriter
 			$made = ! is_dir($this->folder($target));
 
 			try {
-				if ($parent !== null && $parent->path === "{$target}." . FilesystemStorage::EXTENSION) {
+				if ($parent !== null && $parent->path === "{$target}." . FilesystemSource::EXTENSION) {
 					$promoted = $this->promote($parent->path, $target);
 					$done[]   = [$this->file($parent->path), $this->file($promoted)];
 					$moved    = [$parent->path => $promoted, ...$moved];

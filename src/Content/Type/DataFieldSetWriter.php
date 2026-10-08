@@ -14,20 +14,16 @@ declare(strict_types=1);
 namespace Blush\Content\Type;
 
 use Closure;
-use Throwable;
 use Blush\Container\Attributes\Defer;
-use Blush\Content\Writer\DataFileKeys;
-use Blush\Core\Paths;
 use Blush\Data\DataException;
-use Blush\Data\DataLoader;
-use Blush\Data\InvalidData;
+use Blush\Data\DataKeys;
+use Blush\Data\DataStore;
 use Blush\Field\FieldConfig;
 use Blush\Field\FieldFactory;
 use Blush\Field\FieldSet;
 use Blush\Field\FieldSetLoader;
 use Blush\Field\FieldTargets;
 use Blush\Field\InvalidSchema;
-use Blush\Support\Filesystem;
 
 /**
  * Writes the field sets the site defines in data, `user/data/fields/{name}`
@@ -42,11 +38,11 @@ use Blush\Support\Filesystem;
  * the author wrote it. Sets are JSON files (D-490, D-631).
  *
  * Since a set's fields join the places it targets, each change is checked
- * against all of them before it's kept: the file is written, the types
- * are loaded again (`ContentTypeLoader`), every target's schema is built
- * with the new sets (`FieldTargets`), and when a field clashes, the file
- * is put back. Writes take the content types' lock (`DataTypeWriter`'s),
- * so a set and a type can't be written at once.
+ * against all of them before it's kept: in a data store transaction
+ * (D-642), the record is written, the types are loaded again
+ * (`ContentTypeLoader`), every target's schema is built with the new
+ * sets (`FieldTargets`), and when a field clashes, the transaction puts
+ * the record back.
  */
 final readonly class DataFieldSetWriter
 {
@@ -61,28 +57,27 @@ final readonly class DataFieldSetWriter
 	 * @param Closure(): ContentTypeLoader $loader
 	 */
 	public function __construct(
-		private Paths $paths,
 		private FieldConfig $config,
-		private DataLoader $data,
+		private DataStore $data,
 		private FieldFactory $fields,
-		private Filesystem $filesystem,
 		private FieldTargets $targets,
 		#[Defer(ContentTypeLoader::class)] private Closure $loader
 	) {}
 
 	/**
-	 * Returns a data set's file, or `null` when it has none.
+	 * Returns where a data set is kept (`user/data/fields/seo.json`), or
+	 * `null` when the data store has none by its name.
 	 *
 	 * @throws InvalidContentType When the name isn't a set name.
 	 */
-	public function path(string $name): ?string
+	public function location(string $name): ?string
 	{
 		if (preg_match(FieldSet::NAME_PATTERN, $name) !== 1) {
 			throw new InvalidContentType(sprintf('"%s" isn\'t a field set name: use lowercase letters, digits, "_", and "-".', $name));
 		}
 
 		try {
-			return $this->data->find($this->directory(), $name);
+			return $this->data->has(self::record($name)) ? $this->data->location(self::record($name)) : null;
 		} catch (DataException $error) {
 			throw new InvalidContentType($error->getMessage(), previous: $error);
 		}
@@ -98,11 +93,11 @@ final readonly class DataFieldSetWriter
 	{
 		$this->assertEnabled();
 
-		if ($this->path($name) !== null) {
+		if ($this->location($name) !== null) {
 			throw new InvalidContentType(sprintf('user/data/fields already defines "%s".', $name));
 		}
 
-		return $this->write($name, "{$this->directory()}/{$name}.json", [], $changes);
+		return $this->write($name, [], $changes);
 	}
 
 	/**
@@ -115,15 +110,17 @@ final readonly class DataFieldSetWriter
 	{
 		$this->assertEnabled();
 
-		$path = $this->path($name) ?? throw new InvalidContentType(sprintf('"%s" isn\'t defined in user/data/fields, so it can\'t be changed here.', $name));
+		if ($this->location($name) === null) {
+			throw new InvalidContentType(sprintf('"%s" isn\'t defined in user/data/fields, so it can\'t be changed here.', $name));
+		}
 
 		try {
-			$data = $this->data->loadFile($path);
+			$data = $this->data->load(self::record($name)) ?? [];
 		} catch (DataException $error) {
 			throw new InvalidContentType(sprintf('%s Fix it by hand first.', $error->getMessage()), previous: $error);
 		}
 
-		return $this->write($name, $path, $data, $changes);
+		return $this->write($name, $data, $changes);
 	}
 
 	/**
@@ -136,16 +133,12 @@ final readonly class DataFieldSetWriter
 	{
 		$this->assertEnabled();
 
-		$path = $this->path($name) ?? throw new InvalidContentType(sprintf('"%s" isn\'t defined in user/data/fields, so it can\'t be deleted here.', $name));
+		if ($this->location($name) === null) {
+			throw new InvalidContentType(sprintf('"%s" isn\'t defined in user/data/fields, so it can\'t be deleted here.', $name));
+		}
 
-		return $this->locked(function () use ($path): ContentTypes {
-			$before = (string) @file_get_contents($path);
-
-			if (! @unlink($path)) {
-				throw new InvalidContentType(sprintf('Unable to delete %s.', $this->paths->relative($path)));
-			}
-
-			return $this->checked($path, $before);
+		return $this->checked(function () use ($name): void {
+			$this->data->delete(self::record($name));
 		});
 	}
 
@@ -153,11 +146,11 @@ final readonly class DataFieldSetWriter
 	 * Applies changes to a set's data, checks the set, and writes the
 	 * changed keys.
 	 *
-	 * @param  array<array-key, mixed> $data    The file's data.
+	 * @param  array<array-key, mixed> $data    The record's data.
 	 * @param  array<string, mixed>    $changes
 	 * @throws InvalidContentType
 	 */
-	private function write(string $name, string $path, array $data, array $changes): ContentTypes
+	private function write(string $name, array $data, array $changes): ContentTypes
 	{
 		$merged = $data;
 
@@ -191,58 +184,45 @@ final readonly class DataFieldSetWriter
 			$sets[$key] = $value === [] ? null : $value;
 		}
 
-		return $this->locked(function () use ($path, $sets): ContentTypes {
-			$before = is_file($path) ? (string) @file_get_contents($path) : null;
+		return $this->checked(function () use ($name, $sets): void {
+			$record = self::record($name);
 
-			try {
-				$next = DataFileKeys::edit($before ?? '', $sets);
-			} catch (InvalidData $error) {
-				throw new InvalidContentType(str_replace('The file', 'The field set\'s file', $error->getMessage()), previous: $error);
-			}
-
-			try {
-				$this->filesystem->writeAtomic($path, $next);
-			} catch (Throwable $error) {
-				throw new InvalidContentType(sprintf('Unable to write %s.', $this->paths->relative($path)), previous: $error);
-			}
-
-			return $this->checked($path, $before);
+			$this->data->save($record, DataKeys::apply($this->data->load($record) ?? [], $sets));
 		});
 	}
 
 	/**
-	 * Loads every type again and checks the sets against every other
-	 * place they attach to (media kinds, D-341), putting the file back
-	 * when a set doesn't fit.
+	 * Runs a write in a transaction, loads every type again, and checks
+	 * the sets against every other place they attach to (media kinds,
+	 * D-341), which puts the record back when a set doesn't fit.
 	 *
+	 * @param  Closure(): void $write
 	 * @throws InvalidContentType
 	 */
-	private function checked(string $path, ?string $before): ContentTypes
+	private function checked(Closure $write): ContentTypes
 	{
 		try {
-			$types = ($this->loader)()->load();
+			return $this->data->transaction(function () use ($write): ContentTypes {
+				$write();
 
-			try {
-				$problems = $this->targets->problems($types->sets);
-			} catch (InvalidSchema $error) {
-				throw new InvalidContentType($error->getMessage(), previous: $error);
-			}
+				$types = ($this->loader)()->load();
 
-			$first = array_first(array_merge(...array_values($problems)));
+				try {
+					$problems = $this->targets->problems($types->sets);
+				} catch (InvalidSchema $error) {
+					throw new InvalidContentType($error->getMessage(), previous: $error);
+				}
 
-			if ($first !== null) {
-				throw new InvalidContentType($first);
-			}
+				$first = array_first(array_merge(...array_values($problems)));
 
-			return $types;
-		} catch (InvalidContentType $error) {
-			if ($before === null) {
-				@unlink($path);
-			} else {
-				$this->filesystem->writeAtomic($path, $before);
-			}
+				if ($first !== null) {
+					throw new InvalidContentType($first);
+				}
 
-			throw $error;
+				return $types;
+			});
+		} catch (DataException $error) {
+			throw new InvalidContentType($error->getMessage(), previous: $error);
 		}
 	}
 
@@ -269,36 +249,11 @@ final readonly class DataFieldSetWriter
 	}
 
 	/**
-	 * Runs a write under the content types' lock.
-	 *
-	 * @template T
-	 * @param  Closure(): T $write
-	 * @return T
-	 * @throws InvalidContentType
+	 * A set's record name in the data store.
 	 */
-	private function locked(Closure $write): mixed
+	private static function record(string $name): string
 	{
-		if (! is_dir($this->paths->cache)) {
-			@mkdir($this->paths->cache, 0775, true);
-		}
-
-		$lock = @fopen("{$this->paths->cache}/types.lock", 'c');
-
-		if ($lock === false || ! flock($lock, LOCK_EX)) {
-			throw new InvalidContentType('Unable to take the content types lock.');
-		}
-
-		try {
-			return $write();
-		} finally {
-			flock($lock, LOCK_UN);
-			fclose($lock);
-		}
-	}
-
-	private function directory(): string
-	{
-		return "{$this->paths->data}/" . FieldSetLoader::DATA_DIRECTORY;
+		return FieldSetLoader::DATA_DIRECTORY . "/{$name}";
 	}
 
 	/**

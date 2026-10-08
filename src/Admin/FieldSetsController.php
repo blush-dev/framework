@@ -17,7 +17,6 @@ use Psr\Http\Message\ResponseInterface;
 use Blush\Content\Type\ContentTypes;
 use Blush\Content\Type\DataFieldSetWriter;
 use Blush\Content\Type\InvalidContentType;
-use Blush\Core\Paths;
 use Blush\Field\Field;
 use Blush\Field\FieldConfig;
 use Blush\Field\FieldSet;
@@ -57,8 +56,7 @@ final readonly class FieldSetsController
 		private ContentTypes $types,
 		private FieldConfig $config,
 		private DataFieldSetWriter $writer,
-		private FieldTargets $targets,
-		private Paths $paths
+		private FieldTargets $targets
 	) {}
 
 	public function __invoke(): ResponseInterface
@@ -164,7 +162,7 @@ final readonly class FieldSetsController
 		$origin = $types->sets->origin($set->name);
 
 		try {
-			$file = $origin === FieldSetOrigin::Data ? $this->writer->path($set->name) : null;
+			$file = $origin === FieldSetOrigin::Data ? $this->writer->location($set->name) : null;
 		} catch (InvalidContentType) {
 			$file = null;
 		}
@@ -177,7 +175,7 @@ final readonly class FieldSetsController
 			'slot'        => $this->slot($set),
 			'origin'      => $origin->value,
 			'editable'    => $file !== null && $this->config->dataSets,
-			'file'        => $file === null ? null : $this->paths->relative($file),
+			'file'        => $file,
 			'targets'     => array_map(function (string $key): array {
 				try {
 					$target = $this->targets->find($key);

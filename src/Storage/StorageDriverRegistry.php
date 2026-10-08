@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Content storage driver registry.
+ * Storage driver registry.
  *
  * @author    Justin Tadlock <justintadlock@gmail.com>
  * @copyright Copyright (c) 2026, Justin Tadlock
@@ -11,7 +11,7 @@
 
 declare(strict_types=1);
 
-namespace Blush\Content\Storage;
+namespace Blush\Storage;
 
 use Blush\Support\Registry;
 
@@ -21,12 +21,12 @@ use Blush\Support\Registry;
  *
  *     $this->container->make(StorageDriverRegistry::class)->register('sqlite', SqliteStorage::class);
  *
- * @extends Registry<ContentStorage>
+ * @extends Registry<Storage>
  */
 final class StorageDriverRegistry extends Registry
 {
 	/**
 	 * @inheritDoc
 	 */
-	protected const string CONTRACT = ContentStorage::class;
+	protected const string CONTRACT = Storage::class;
 }

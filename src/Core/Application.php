@@ -49,6 +49,7 @@ use Blush\Session\SessionServiceProvider;
 use Blush\Settings\SettingsServiceProvider;
 use Blush\Routing\RoutingServiceProvider;
 use Blush\Sitemap\SitemapServiceProvider;
+use Blush\Storage\StorageServiceProvider;
 use Blush\Theme\ThemeServiceProvider;
 use Blush\Translation\TranslationServiceProvider;
 use Blush\View\ViewServiceProvider;
@@ -78,6 +79,7 @@ class Application implements Bootable
 		ClockServiceProvider::class,
 		LogServiceProvider::class,
 		ErrorServiceProvider::class,
+		StorageServiceProvider::class,
 		DataServiceProvider::class,
 		MarkdownServiceProvider::class,
 		ContentServiceProvider::class,
