@@ -20,13 +20,16 @@ use PHPUnit\Framework\TestCase;
 use Blush\Auth\AuthException;
 use Blush\Auth\Role;
 use Blush\Auth\Roles;
+use Blush\Clock\FrozenClock;
 use Blush\Content\Index\IndexStore;
 use Blush\Core\Paths;
 use Blush\Storage\File\FileLayout;
 use Blush\Storage\File\FileLayouts;
 use Blush\Storage\File\FileRecordStore;
 use Blush\Storage\File\FileTransactions;
+use Blush\Storage\Record\ArrayRecordStore;
 use Blush\Storage\Record\InvalidRecord;
+use Blush\Storage\Record\KeyedTable;
 use Blush\Storage\Record\Record;
 use Blush\Storage\Record\RecordQuery;
 use Blush\Storage\Record\Table;
@@ -39,6 +42,7 @@ use Blush\Tests\BootsScratchSite;
 #[CoversClass(FileRecordStore::class)]
 #[CoversClass(FileLayout::class)]
 #[CoversClass(FileLayouts::class)]
+#[CoversClass(KeyedTable::class)]
 #[CoversClass(Roles::class)]
 final class FileRecordStoreTest extends TestCase
 {
@@ -114,6 +118,69 @@ final class FileRecordStoreTest extends TestCase
 				['slug' => 'autumn', 'id' => self::ID]
 			]
 		], $this->json('user/data/albums.json'), 'Other keys stay; the file written, every record has its id; new ones go last.');
+	}
+
+	public function testAFileWhoseNameIsItsKeyNeverSaysSo(): void
+	{
+		$this->writeTemporaryFile('user/data/types/movie.json', "{\n\t\"\$schema\": \"../../../vendor/blush/framework/resources/schemas/type.json\",\n\t\"folder\": \"movies\"\n}\n");
+		$paths   = Paths::fromRoot($this->temporaryDirectory());
+		$layouts = new FileLayouts($paths);
+		$layouts->register('types', FileLayout::folder("{$paths->data}/types", keyInName: true));
+		$store   = $this->store($layouts);
+		$table   = new Table('types', StorageArea::Data, key: 'name');
+		$movie   = $store->findByKey($table, 'movie');
+
+		$this->assertNotNull($movie);
+		$this->assertSame(['folder' => 'movies', 'name' => 'movie'], $movie->fields, 'Its key from its name; its $schema isn\'t a field (D-491).');
+
+		$saved = $store->save($table, $movie->with('icon', 'film'));
+
+		$this->assertSame(['$schema' => '../../../vendor/blush/framework/resources/schemas/type.json', 'folder' => 'movies', 'icon' => 'film', 'id' => Uuid::fromName('types/movie')], $this->json('user/data/types/movie.json'), 'Its $schema first, no name, the id last (D-672).');
+		$this->assertSame($saved->version, $store->findByKey($table, 'movie')?->version, 'The version is the file\'s.');
+		$this->assertSame('user/data/types/movie.json', $store->location($table, 'movie'));
+
+		$this->writeTemporaryFile('user/data/types/show.json', '{"name": "series"}');
+
+		$this->expectException(InvalidRecord::class);
+		$this->expectExceptionMessage('user/data/types/show.json names the record "series"; a record here is named after its file.');
+
+		$store->select($table, new RecordQuery());
+	}
+
+	public function testAKeyedTableIsDataByKey(): void
+	{
+		$tables = [new ArrayRecordStore(), $this->store()];
+
+		foreach ($tables as $store) {
+			$table = new KeyedTable($store, new Table('albums', StorageArea::Data, key: 'slug'), new FrozenClock(new DateTimeImmutable('2026-10-09')));
+
+			$table->save('summer', ['title' => 'Summer', 'slug' => 'ignored']);
+			$table->save('autumn', ['title' => 'Autumn']);
+			$id = $store->findByKey($table->table, 'summer')?->id;
+
+			$this->assertSame(['autumn' => ['title' => 'Autumn'], 'summer' => ['title' => 'Summer']], $table->all(), 'By key, sorted, without the key.');
+			$this->assertTrue($table->has('summer'));
+			$this->assertFalse($table->has('../summer'));
+
+			$table->save('summer', ['title' => 'High Summer']);
+
+			$this->assertSame($id, $store->findByKey($table->table, 'summer')?->id, 'Saving keeps the id.');
+			$this->assertSame(['title' => 'High Summer'], $table->find('summer'));
+
+			$table->delete('summer');
+			$table->delete('winter');
+
+			$this->assertNull($table->find('summer'));
+
+			try {
+				$table->save('winter', ['content' => 'Cold']);
+				$this->fail('Saved a record\'s own key as a field.');
+			} catch (InvalidRecord $error) {
+				$this->assertStringContainsString('"content" is a record\'s own', $error->getMessage());
+			}
+		}
+
+		$this->assertSame('albums/summer', new KeyedTable($tables[0], new Table('albums', StorageArea::Data, key: 'slug'), new FrozenClock(new DateTimeImmutable('2026-10-09')))->location('summer'), 'A store that can\'t say is named by table and key.');
 	}
 
 	public function testAFileNamedByItsKeyFillsTheKeyIn(): void

@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Blush\Settings;
 
+use Blush\Config\Config;
 use Blush\Config\ConfigRepository;
 use Blush\Config\InvalidConfig;
 
@@ -174,6 +175,39 @@ final readonly class Settings
 	public function isEmpty(): bool
 	{
 		return $this->values === [] && $this->site === [];
+	}
+
+	/**
+	 * Lays the settings over one config object, built again from its
+	 * `toArray()` with the settings' keys replaced: for a group read when
+	 * its config object is first asked for (D-673).
+	 *
+	 * @template T of Config
+	 * @param    T $config
+	 * @return   T
+	 * @throws   InvalidSetting When the config object refuses a value.
+	 */
+	public function applyTo(Config $config): Config
+	{
+		$values = [];
+
+		foreach (Setting::cases() as $setting) {
+			if ($this->has($setting) && $setting->config() === $config::class) {
+				$values[$setting->configKey()] = $this->values[$setting->value];
+			}
+		}
+
+		if ($values === []) {
+			return $config;
+		}
+
+		try {
+			$applied = $config::fromArray([...$config->toArray(), ...$values]);
+		} catch (InvalidConfig $error) {
+			throw new InvalidSetting(sprintf('A saved setting doesn\'t fit: %s', $error->getMessage()), previous: $error);
+		}
+
+		return $applied instanceof $config ? $applied : $config;
 	}
 
 	/**

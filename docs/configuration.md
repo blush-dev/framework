@@ -15,30 +15,37 @@ A few settings can also be changed in the admin's
 time zone, the homepage, the trailing slash, feeds, and the sitemap;
 the [Themes](admin.md#themes) screen activates a theme; and the
 [Plugins](admin.md#plugins) and [Icon Packs](admin.md#icon-packs)
-screens turn plugins and icon packs on and off. The admin saves them in `user/data/settings.json`, in sections named for the
-config files, with the same keys:
+screens turn plugins and icon packs on and off. The admin saves them in
+`user/data/settings/`, a file for each group, named for its config file,
+with the same keys:
 
-```json
-{
-    "app": { "name": "Field Notes", "timezone": "Europe/Brussels" },
-    "content": { "home": "post" },
-    "routes": { "trailingSlash": true },
-    "feed": { "formats": ["rss", "json"], "content": true, "limit": 20 },
-    "sitemap": { "enabled": true, "disallow": ["/drafts/"] },
-    "theme": { "active": "acme/notebook" },
-    "plugins": { "enabled": ["acme/gallery"] },
-    "icons": { "enabled": ["acme/brands"] }
-}
+```text
+user/data/settings/app.json       {"name": "Field Notes", "timezone": "Europe/Brussels"}
+user/data/settings/content.json   {"home": "post"}
+user/data/settings/routes.json    {"trailingSlash": true}
+user/data/settings/feed.json      {"formats": ["rss", "json"], "fullContent": true, "limit": 20}
+user/data/settings/sitemap.json   {"enabled": true, "disallow": ["/drafts/"]}
+user/data/settings/theme.json     {"active": "acme/notebook"}
+user/data/settings/plugins.json   {"enabled": ["acme/gallery"]}
+user/data/settings/icons.json     {"enabled": ["acme/brands"]}
 ```
 
-Only those keys are allowed, plus `site`, which holds the settings
-[field sets](content-types.md#field-sets) add to the Settings screens
-(`{"site": {"tagline": "Notes from the field"}}`; see
-[Your own settings](themes.md#your-own-settings)). A value saved there wins over the one from
-`config/` or `.env`; remove it from the file (or choose **Use
-`config/…`'s value** in the admin) to go back to the config's value.
-Compiling (`bin/blush cache:compile`) leaves the file out, so saving
-there needs no compiling.
+(Feeds' full content is saved as `fullContent`, though `config/feed.php`
+calls it `content`, which a saved record keeps for itself.) Only those
+keys are allowed in core's groups. Another group,
+`site.json`, holds the settings [field sets](content-types.md#field-sets)
+add to the Settings screens (`{"tagline": "Notes from the field"}`; see
+[Your own settings](themes.md#your-own-settings)), and themes and plugins
+keep groups of their own, named for them (`acme__gallery.json` for
+`acme/gallery`). A file gains an `"id"` at its end when the admin saves
+it. A value saved there wins over the one from `config/` or `.env`;
+remove it from the file (or choose **Use `config/…`'s value** in the
+admin) to go back to the config's value. Compiling (`bin/blush
+cache:compile`) leaves the files out, so saving there needs no
+compiling. Only `app`, `theme`, `plugins`, and `icons` are read on every
+request; each other group is read when something needs it.
+On the [SQLite driver](going-live.md#large-sites-sqlite), the groups are
+kept in the database instead.
 
 ## `.env`
 
@@ -191,7 +198,7 @@ PowerPoint, and OpenDocument files) can be served and uploaded once
 you add their types to `types`.
 
 `uploads` is what the Media settings screen edits, and what it saves
-in `user/data/settings.json` wins over this file:
+in `user/data/settings/media.json` wins over this file:
 
 ```php
 use Blush\Media\MediaConfig;
@@ -529,7 +536,7 @@ either way.
   (`new PluginConfig(enabled: ['acme/hello'])`). A local plugin is off
   until it's named; a Composer plugin is on. Turning plugins on and off
   in the admin saves its own `enabled` list in
-  `user/data/settings.json`, in place of this one, naming every plugin
+  `user/data/settings/plugins.json`, in place of this one, naming every plugin
   that's on, Composer's included; a plugin it doesn't name is off. A
   plugin that's on
   still runs only when its [requirements](extending.md#requirements) are

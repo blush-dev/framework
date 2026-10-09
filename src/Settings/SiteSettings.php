@@ -22,7 +22,7 @@ use Blush\Field\SchemaResult;
 /**
  * The settings field sets add to the Settings screens (D-343), for
  * themes (`$template->site('tagline')`) and extensions: each value saved
- * in `user/data/settings.json`'s `site` section, read through its field
+ * in the `site` group of saved settings (`user/data/settings/site.json`), read through its field
  * (normalized, then hydrated, as an entry's fields are), or the field's
  * default. A saved value that no longer fits its field is left out, as
  * if it weren't saved; one whose set is gone is ignored.
@@ -38,7 +38,7 @@ final class SiteSettings
 
 	public function __construct(
 		private readonly FieldSets $sets,
-		private readonly SettingsStore $store,
+		private readonly SettingGroups $groups,
 		private readonly FieldContext $context
 	) {}
 
@@ -63,7 +63,7 @@ final class SiteSettings
 		}
 
 		try {
-			$saved = $this->store->read()->site();
+			$saved = $this->groups->get(Settings::SITE);
 		} catch (InvalidSetting) {
 			$saved = [];
 		}

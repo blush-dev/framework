@@ -85,6 +85,19 @@ final class AdminRelationsTest extends TestCase
 		return is_string($error) ? $error : '';
 	}
 
+	/**
+	 * A JSON data file's data, without the `id` a record's file ends with
+	 * (D-672).
+	 *
+	 * @return array<array-key, mixed>
+	 */
+	private function data(string $relative): array
+	{
+		$data = json_decode($this->file($relative), true);
+
+		return is_array($data) ? array_diff_key($data, ['id' => true]) : [];
+	}
+
 	private function file(string $relative): string
 	{
 		return (string) @file_get_contents($this->temporaryDirectory() . "/{$relative}");
@@ -98,7 +111,7 @@ final class AdminRelationsTest extends TestCase
 
 		$this->assertSame(201, $created->getStatusCode());
 		$this->assertEquals(['name' => 'cuisine', 'kind' => 'classify', 'from' => ['recipe'], 'to' => ['cuisine'], 'create' => true, 'editable' => true, 'origin' => 'data'], array_intersect_key(self::json($created), array_flip(['name', 'kind', 'from', 'to', 'create', 'editable', 'origin'])));
-		$this->assertSame(['kind' => 'classify', 'from' => ['recipe'], 'to' => ['cuisine'], 'create' => true], json_decode($this->file('user/data/relations/cuisine.json'), true), 'Written without its name, the file\'s (D-593).');
+		$this->assertSame(['kind' => 'classify', 'from' => ['recipe'], 'to' => ['cuisine'], 'create' => true], $this->data('user/data/relations/cuisine.json'), 'Written without its name, the file\'s (D-593).');
 
 		$this->reload();
 
@@ -552,8 +565,8 @@ final class AdminRelationsTest extends TestCase
 		$migrated = self::json($this->write('POST', '/health/taxonomies'));
 
 		$this->assertSame(['genre' => ['user/data/types/genre.json', 'user/data/relations/genre.json']], $migrated['migrated'] ?? null);
-		$this->assertSame(['folder' => 'genres', 'hierarchical' => true, 'order' => 'position', 'llms' => false], json_decode($this->file('user/data/types/genre.json'), true), 'Its other keys stay.');
-		$this->assertSame(['kind' => 'classify', 'from' => ['page'], 'to' => ['genre'], 'create' => true, 'inverse' => ['listing' => ['perPage' => 5]]], json_decode($this->file('user/data/relations/genre.json'), true));
+		$this->assertSame(['folder' => 'genres', 'hierarchical' => true, 'order' => 'position', 'llms' => false], $this->data('user/data/types/genre.json'), 'Its other keys stay.');
+		$this->assertSame(['kind' => 'classify', 'from' => ['page'], 'to' => ['genre'], 'create' => true, 'inverse' => ['listing' => ['perPage' => 5]]], $this->data('user/data/relations/genre.json'));
 		$this->assertSame([], $this->app->container()->make(TaxonomyMigration::class)->report());
 	}
 
@@ -563,6 +576,6 @@ final class AdminRelationsTest extends TestCase
 		$this->site(['editor']);
 
 		$this->assertSame(403, $this->write('POST', '/health/taxonomies')->getStatusCode());
-		$this->assertSame(['kind' => 'taxonomy'], json_decode($this->file('user/data/types/genre.json'), true));
+		$this->assertSame(['kind' => 'taxonomy'], $this->data('user/data/types/genre.json'));
 	}
 }

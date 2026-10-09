@@ -20,6 +20,10 @@ namespace Blush\Storage\File;
  * JSON list, under a top-level key or as the whole file. Other top-level
  * keys in a one-file table are kept as they are.
  *
+ * A folder table's files may hold their key in their name only
+ * (`keyInName`): `user/data/types/movie.json` is the type `movie`, and
+ * the file never says so, nor names another.
+ *
  * Paths are absolute; `mode` is what new files are written with.
  */
 final readonly class FileLayout
@@ -28,15 +32,16 @@ final readonly class FileLayout
 		public bool $oneFile,
 		public string $path,
 		public ?string $root = null,
-		public int $mode = 0664
+		public int $mode = 0664,
+		public bool $keyInName = false
 	) {}
 
 	/**
 	 * A folder of files, one a record.
 	 */
-	public static function folder(string $path, int $mode = 0664): self
+	public static function folder(string $path, int $mode = 0664, bool $keyInName = false): self
 	{
-		return new self(false, rtrim($path, '/'), null, $mode);
+		return new self(false, rtrim($path, '/'), null, $mode, $keyInName);
 	}
 
 	/**

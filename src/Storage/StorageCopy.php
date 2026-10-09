@@ -23,6 +23,7 @@ use Blush\Content\Record\EntryRecords;
 use Blush\Content\Record\EntryTable;
 use Blush\Content\Relation\Relations;
 use Blush\Content\Type\ContentTypes;
+use Blush\Content\Type\DefinitionTables;
 use Blush\Content\Writer\FilesystemContentWriter;
 use Blush\Content\Writer\RecordContentWriter;
 use Blush\Core\Paths;
@@ -31,6 +32,7 @@ use Blush\Data\RecordDataStore;
 use Blush\Job\FileJobStore;
 use Blush\Job\RecordJobStore;
 use Blush\Session\RecordSessionStore;
+use Blush\Settings\SettingGroups;
 use Blush\Storage\Record\RecordQuery;
 use Blush\Storage\Record\RecordStores;
 use Blush\Storage\Record\Ref;
@@ -200,15 +202,23 @@ final readonly class StorageCopy
 	}
 
 	/**
-	 * Copies the data area's records, by name.
+	 * Copies the data area's records kept by name, the tables apart.
 	 */
 	private function data(RecordStores $target): int
 	{
-		$from  = $this->container->make(FileDataStore::class);
-		$to    = new RecordDataStore($target, $this->clock);
-		$count = 0;
+		$from   = $this->container->make(FileDataStore::class);
+		$to     = new RecordDataStore($target, $this->clock);
+		$tables = [DefinitionTables::TYPES . '/', DefinitionTables::RELATIONS . '/', SettingGroups::TABLE . '/'];
+		$count  = 0;
 
 		foreach (array_keys($from->records('')) as $name) {
+			// Types, relations, and settings are tables of their own
+			// (D-672, D-673), copied
+			// with the other tables.
+			if (array_any($tables, static fn (string $folder): bool => str_starts_with($name, $folder))) {
+				continue;
+			}
+
 			$to->save($name, $from->load($name) ?? []);
 			$count++;
 		}

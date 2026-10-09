@@ -15,28 +15,23 @@ namespace Blush\Content\Relation;
 
 use Blush\Container\Container;
 use Blush\Content\ContentConfig;
-use Blush\Data\DataStore;
-use Blush\Data\InvalidData;
+use Blush\Content\Type\DefinitionTables;
 use Blush\Extension\DefinitionClash;
+use Blush\Storage\Record\RecordException;
 
 /**
  * Loads the site's relation definitions (D-593), each replacing one of
  * the same name before it: extensions (`RelationSource`), then
- * `user/data/relations/*.json` (a relation named after its
- * file) unless `ContentConfig::$dataTypes` is off. When two extensions
+ * the `relations` table (`DefinitionTables`, D-672; on files
+ * `user/data/relations/*.json`, a relation named after its file) unless `ContentConfig::$dataTypes` is off. When two extensions
  * define a relation by one name, the first is kept and the clash is
  * returned with the others (D-597), so the site keeps loading.
  */
 final readonly class RelationLoader
 {
-	/**
-	 * The folder under `user/data` that holds data relations.
-	 */
-	public const string DATA_DIRECTORY = 'relations';
-
 	public function __construct(
 		private ContentConfig $config,
-		private DataStore $data,
+		private DefinitionTables $tables,
 		private Container $container
 	) {}
 
@@ -106,9 +101,11 @@ final readonly class RelationLoader
 			return [];
 		}
 
+		$table = $this->tables->relations();
+
 		try {
-			$definitions = $this->data->loadAll(self::DATA_DIRECTORY);
-		} catch (InvalidData $e) {
+			$definitions = $table->all();
+		} catch (RecordException $e) {
 			throw new InvalidRelation($e->getMessage(), previous: $e);
 		}
 
@@ -118,7 +115,7 @@ final readonly class RelationLoader
 			try {
 				$relations[] = Relation::fromArray([...$definition, 'name' => (string) $name]);
 			} catch (InvalidRelation $e) {
-				throw new InvalidRelation(sprintf('user/data/%s/%s: %s', self::DATA_DIRECTORY, $name, $e->getMessage()), previous: $e);
+				throw new InvalidRelation(sprintf('%s: %s', $table->location($name), $e->getMessage()), previous: $e);
 			}
 		}
 

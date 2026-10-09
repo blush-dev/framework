@@ -30,6 +30,7 @@ use Blush\Llms\MarkdownController;
 use Blush\Llms\MarkdownPages;
 use Blush\Routing\SiteUrl;
 use Blush\Tests\Content\BuildsContentSite;
+use Blush\Tests\SavedSettings;
 
 #[CoversClass(LlmsConfig::class)]
 #[CoversClass(LlmsSiteUrls::class)]
@@ -42,6 +43,7 @@ use Blush\Tests\Content\BuildsContentSite;
 final class LlmsTest extends TestCase
 {
 	use BuildsContentSite;
+	use SavedSettings;
 
 	private Application $app;
 
@@ -138,7 +140,7 @@ final class LlmsTest extends TestCase
 	{
 		$this->standardContent();
 		$this->entry('_posts/2009-01-01.summed.md', "title: \"Summed [up]\"\npublished: 2009-01-01 10:00:00\nsummary: |\n  Two\n  [lines](/about).");
-		$this->writeTemporaryFile('user/data/settings.json', '{"app": {"description": "Notes on the web."}}');
+		$this->writeSettings('{"app": {"description": "Notes on the web."}}');
 		$this->boot();
 
 		$response = $this->get('/llms.txt');

@@ -18,7 +18,7 @@ use Blush\Core\BlushException;
 
 /**
  * Thrown when a saved setting is unknown or has a value that doesn't fit,
- * or `user/data/settings.json` can't be read or written. The message is
+ * or the saved settings (`user/data/settings/`) can't be read or written. The message is
  * written for the person who changed it.
  */
 final class InvalidSetting extends InvalidArgumentException implements BlushException

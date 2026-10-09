@@ -51,7 +51,7 @@ use Blush\Plugin\PluginSource;
  *
  * - `folder`: its folder in `extensions/`, or `null` for a Composer one.
  * - `enabled`: whether it's turned on (`config/plugins.php`, or the list
- *   the admin saved in `user/data/settings.json` over it), and `running`:
+ *   the admin saved in its settings over it), and `running`:
  *   whether it runs on this request, which an enabled plugin doesn't when
  *   its requirements aren't met.
  * - `requirements`: each of its `require`, checked against the site
@@ -70,7 +70,7 @@ use Blush\Plugin\PluginSource;
  * Composer package's name, or its folder), `reason`, `name` (`null` when
  * its manifest doesn't say), `enabled` (config turns it on, though it
  * can't run), and `deletable` (a folder in `extensions/` config doesn't
- * turn on by name); `saved` (the admin's list is in `settings.json`); and `config`
+ * turn on by name); `saved` (the admin's list is in the saved settings); and `config`
  * (whether `config/plugins.php` exists). What a plugin registers isn't
  * listed: it shows on the screens it belongs to, and a plugin that's off
  * registers nothing to list.

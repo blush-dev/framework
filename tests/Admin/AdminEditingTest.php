@@ -23,6 +23,7 @@ use Blush\Admin\InvalidEdit;
 use Blush\Content\Index\Indexer;
 use Blush\Content\Lint\Linter;
 use Blush\Tests\WritesContentConfig;
+use Blush\Tests\SavedSettings;
 
 #[CoversClass(EntryController::class)]
 #[CoversClass(EntryHandles::class)]
@@ -32,6 +33,7 @@ use Blush\Tests\WritesContentConfig;
 final class AdminEditingTest extends TestCase
 {
 	use BootsAdmin;
+	use SavedSettings;
 	use WritesContentConfig;
 
 	private const string FLAME = '_posts/2022-03-29.flame.md';
@@ -377,7 +379,7 @@ final class AdminEditingTest extends TestCase
 	{
 		$this->writeTemporaryFile('user/content/index.md', "---\ntitle: Home\n---\n");
 		$this->writeTemporaryFile('user/content/_posts/index.md', "---\ntitle: Writing\n---\n");
-		$this->writeTemporaryFile('user/data/settings.json', '{"content": {"home": "post"}}');
+		$this->writeSettings('{"content": {"home": "post"}}');
 		$this->site(['administrator']);
 
 		$marks = static fn (mixed $entry): array => is_array($entry) ? [$entry['path'] ?? null, $entry['index'] ?? null, $entry['homepage'] ?? null, $entry['rootPage'] ?? null, $entry['homeInstead'] ?? null] : [];
@@ -393,7 +395,7 @@ final class AdminEditingTest extends TestCase
 	public function testMakingTheRootPageTheHomepageNeedsSiteSettings(): void
 	{
 		$this->writeTemporaryFile('user/content/index.md', "---\ntitle: Home\n---\n");
-		$this->writeTemporaryFile('user/data/settings.json', '{"content": {"home": "post"}}');
+		$this->writeSettings('{"content": {"home": "post"}}');
 		$this->site();
 
 		$this->assertFalse(self::at(self::json($this->call('GET', '/entries?type=page')), 'index', 'can', 'makeHomepage'));

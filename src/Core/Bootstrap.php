@@ -24,13 +24,10 @@ use Blush\Container\Plan\PlanCache;
 use Blush\Container\Plan\Planner;
 use Blush\Container\Plan\ReflectionPlanner;
 use Blush\Container\ServiceContainer;
+use Blush\Container\ServiceResolver;
 use Blush\Content\ContentConfig;
 use Blush\Content\Type\ContentTypeCache;
 use Blush\Clock\SystemClock;
-use Blush\Data\DataLoader;
-use Blush\Data\DataStore;
-use Blush\Data\FileDataStore;
-use Blush\Data\RecordDataStore;
 use Blush\Env\Env;
 use Blush\Embed\EmbedConfig;
 use Blush\Extension\ComposerInstalled;
@@ -60,8 +57,12 @@ use Blush\Publish\PublishConfig;
 use Blush\Routing\RouteCache;
 use Blush\Routing\RouteConfig;
 use Blush\Session\SessionConfig;
-use Blush\Settings\SettingsStore;
+use Blush\Settings\Setting;
+use Blush\Settings\SettingGroups;
+use Blush\Settings\Settings;
 use Blush\Sitemap\SitemapConfig;
+use Blush\Storage\File\FileLayouts;
+use Blush\Storage\File\FileRecordStore;
 use Blush\Storage\File\FileTransactions;
 use Blush\Storage\StorageArea;
 use Blush\Storage\StorageConfig;
@@ -86,12 +87,14 @@ use Blush\Theme\Themes;
  * 1. `.env` is loaded under the process environment.
  * 2. Config comes from the compiled cache when present, otherwise from the
  *    `config/*.php` files, with defaults for anything unconfigured. The
- *    settings saved in the admin (`user/data/settings.json`, D-324) are
- *    laid over it on every build, and never compiled, so a save needs no
- *    compiling.
+ *    settings saved in the admin (D-324) are laid over it on every build,
+ *    and never compiled, so a save needs no compiling: the boot groups
+ *    (`SettingGroups::BOOT`) now, each other group when its config object
+ *    is first asked for (D-673).
  * 3. Outside development, the container reads compiled resolution plans.
  * 4. The bootstrap itself, `Paths`, `Env`, the config repository, and
- *    every config object are bound in the container.
+ *    every config object are bound in the container, those a group of
+ *    settings lays over when it's first read.
  * 5. Plugins, themes, and icon packs are discovered (or read from
  *    cache). A theme or icon pack whose namespace or name an installed
  *    plugin (or, for a pack, a theme) claims is left out as broken
@@ -234,8 +237,20 @@ final readonly class Bootstrap
 		$container->instance(Env::class, $env);
 		$container->instance(ConfigRepository::class, $config);
 
+		$lazy = $this->lazySettings();
+
 		foreach ($config->all() as $object) {
-			$container->instance($object::class, $object);
+			$section = $lazy[$object::class] ?? null;
+
+			if ($section === null) {
+				$container->instance($object::class, $object);
+
+				continue;
+			}
+
+			// The group is read, and laid over the object, when the object
+			// is first asked for (D-673).
+			$container->singleton($object::class, static fn (ServiceResolver $resolver): Config => Settings::fromArray([$section => $resolver->make(SettingGroups::class)->get($section)])->applyTo($object));
 		}
 
 		$installed = $this->discoverPlugins($app->environment);
@@ -346,22 +361,43 @@ final readonly class Bootstrap
 		);
 
 		if ($settings) {
-			$config = new SettingsStore($this->dataStore($config->get(StorageConfig::class)))->read()->apply($config);
+			$config = Settings::fromArray($this->settingGroups($config->get(StorageConfig::class))->boot())->apply($config);
 		}
 
 		return $config->with(...$this->overrides);
 	}
 
 	/**
-	 * Returns the data store the saved settings are read from, before
-	 * the container exists (D-486, D-642). Only a built-in driver can be
-	 * built this early: the filesystem, or SQLite (D-662), over a
+	 * Returns the config classes a group of settings is laid over when
+	 * first asked for, with their groups: every core section but the boot
+	 * groups, and none an override replaces (overrides win over settings).
+	 *
+	 * @return array<class-string<Config>, string>
+	 */
+	private function lazySettings(): array
+	{
+		$overridden = array_map(static fn (Config $config): string => $config::class, $this->overrides);
+		$lazy       = [];
+
+		foreach (Setting::cases() as $setting) {
+			if (! in_array($setting->section(), SettingGroups::BOOT, true) && ! in_array($setting->config(), $overridden, true)) {
+				$lazy[$setting->config()] = $setting->section();
+			}
+		}
+
+		return $lazy;
+	}
+
+	/**
+	 * Returns the groups of settings the boot groups are read from, before
+	 * the container exists (D-486, D-642, D-673). Only a built-in driver
+	 * can be built this early: the filesystem, or SQLite (D-662), over a
 	 * connection of its own.
 	 *
 	 * @throws StorageException When the data area's driver isn't one, or
 	 *                          PHP can't open SQLite.
 	 */
-	private function dataStore(StorageConfig $storage): DataStore
+	private function settingGroups(StorageConfig $storage): SettingGroups
 	{
 		$driver = $storage->driverFor(StorageArea::Data);
 
@@ -370,7 +406,7 @@ final readonly class Bootstrap
 				throw new StorageException(SqliteStorage::UNAVAILABLE);
 			}
 
-			return RecordDataStore::on(SqliteRecordStore::forSite($storage, $this->paths->root), new SystemClock());
+			return new SettingGroups(SqliteRecordStore::forSite($storage, $this->paths->root), new SystemClock());
 		}
 
 		if (StorageDriver::tryFrom($driver) !== StorageDriver::Filesystem) {
@@ -378,8 +414,14 @@ final readonly class Bootstrap
 		}
 
 		$filesystem = new Filesystem();
+		$layouts    = new FileLayouts($this->paths);
 
-		return new FileDataStore($this->paths, new DataLoader(), $filesystem, new FileTransactions($this->paths, $filesystem));
+		$layouts->register(SettingGroups::TABLE, SettingGroups::layout($this->paths));
+
+		return new SettingGroups(
+			new FileRecordStore($this->paths, $layouts, new FileTransactions($this->paths, $filesystem), $filesystem, static fn (): never => throw new StorageException('Settings keep no content.')),
+			new SystemClock()
+		);
 	}
 
 	/**

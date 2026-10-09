@@ -21,12 +21,14 @@ use Blush\Admin\ThemeEditController;
 use Blush\Theme\ThemeConfig;
 use Blush\Theme\ThemeResolver;
 use Blush\Theme\Themes;
+use Blush\Tests\SavedSettings;
 
 #[CoversClass(ThemesController::class)]
 #[CoversClass(ThemeEditController::class)]
 final class AdminThemesTest extends TestCase
 {
 	use BootsAdmin;
+	use SavedSettings;
 
 	protected function tearDown(): void
 	{
@@ -137,7 +139,7 @@ final class AdminThemesTest extends TestCase
 		$this->assertSame(422, $this->write('PATCH', '/settings', ['set' => ['theme.active' => 'acme/missing']])->getStatusCode());
 		$this->assertSame(422, $this->write('PATCH', '/settings', ['set' => ['theme.active' => 'acme/orphan']])->getStatusCode(), 'It falls back to a theme that isn\'t installed.');
 		$this->assertSame(422, $this->write('PATCH', '/settings', ['set' => ['theme.active' => 'plate']])->getStatusCode());
-		$this->assertFileDoesNotExist($this->temporaryDirectory() . '/user/data/settings.json');
+		$this->assertSame([], $this->savedSettings());
 	}
 
 	public function testEnforcesAThemesRequirements(): void

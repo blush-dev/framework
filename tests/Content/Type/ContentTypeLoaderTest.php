@@ -273,7 +273,7 @@ final class ContentTypeLoaderTest extends TestCase
 		$this->writeTemporaryFile('user/data/types/movie.json', '{"name": "film"}');
 
 		$this->expectException(InvalidContentType::class);
-		$this->expectExceptionMessage('user/data/types/movie names the type "film"');
+		$this->expectExceptionMessage('user/data/types/movie.json names the record "film"; a record here is named after its file.');
 
 		$this->types();
 	}
@@ -283,7 +283,7 @@ final class ContentTypeLoaderTest extends TestCase
 		$this->writeTemporaryFile('user/data/types/movie.json', '{');
 
 		$this->expectException(InvalidContentType::class);
-		$this->expectExceptionMessage('Invalid JSON');
+		$this->expectExceptionMessage('user/data/types/movie.json isn\'t valid JSON');
 
 		$this->types();
 	}

@@ -24,6 +24,7 @@ use Throwable;
 use Blush\Storage\Record\Aggregate;
 use Blush\Storage\Record\ArrayEvaluator;
 use Blush\Storage\Record\InvalidRecord;
+use Blush\Storage\Record\LocatingStore;
 use Blush\Storage\Record\Record;
 use Blush\Storage\Record\RecordConflict;
 use Blush\Storage\Record\RecordQuery;
@@ -48,7 +49,7 @@ use Blush\Storage\StorageConfig;
  *
  * @phpstan-import-type Row from ArrayEvaluator
  */
-final class SqliteRecordStore implements RecordStore, SchemaStore
+final class SqliteRecordStore implements RecordStore, SchemaStore, LocatingStore
 {
 	/**
 	 * The tables made so far, by name in the database.
@@ -526,6 +527,15 @@ final class SqliteRecordStore implements RecordStore, SchemaStore
 			'content' => is_string($row['content'] ?? null) ? $row['content'] : null,
 			'version' => is_string($row['version'] ?? null) ? $row['version'] : null
 		];
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	#[Override]
+	public function location(Table $table, string $key): string
+	{
+		return sprintf('%s/%s in the database', $table->name, $key);
 	}
 
 	/**

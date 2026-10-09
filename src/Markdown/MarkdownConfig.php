@@ -31,7 +31,7 @@ use Blush\Config\InvalidConfig;
  * lists, highlighting, attributes, and directives, which the admin's
  * editor writes and reads. These settings change how it renders, not
  * what it means. The ones the Writing screen shows (D-494) can be saved
- * in `user/data/settings.json` over this file.
+ * in the saved settings (`user/data/settings/`) over this file.
  */
 final readonly class MarkdownConfig implements Config
 {

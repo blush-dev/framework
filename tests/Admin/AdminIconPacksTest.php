@@ -19,6 +19,7 @@ use Psr\Http\Message\ResponseInterface;
 use Blush\Admin\IconPackEditController;
 use Blush\Admin\IconPacksController;
 use Blush\Admin\Provenance;
+use Blush\Tests\SavedSettings;
 
 #[CoversClass(IconPacksController::class)]
 #[CoversClass(IconPackEditController::class)]
@@ -26,6 +27,7 @@ use Blush\Admin\Provenance;
 final class AdminIconPacksTest extends TestCase
 {
 	use BootsAdmin;
+	use SavedSettings;
 
 	private const string SVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M1 1h22"/></svg>';
 
@@ -150,7 +152,7 @@ final class AdminIconPacksTest extends TestCase
 
 		$response = $this->write('PUT', '/icon-packs/acme/brands', ['enabled' => false]);
 		$this->assertSame(200, $response->getStatusCode(), (string) $response->getBody());
-		$this->assertSame(['icons' => ['enabled' => ['acme/arrows']]], json_decode((string) file_get_contents($this->temporaryDirectory() . '/user/data/settings.json'), true));
+		$this->assertSame(['icons' => ['enabled' => ['acme/arrows']]], $this->savedSettings());
 
 		$this->app = $this->scratchApplication(['APP_ENV' => 'development', 'APP_URL' => 'https://example.test', 'APP_SECRET' => str_repeat('s', 64)]);
 		$this->app->boot();
@@ -164,7 +166,7 @@ final class AdminIconPacksTest extends TestCase
 		$this->assertNull(array_find($icons, static fn (mixed $icon): bool => is_array($icon) && ($icon['name'] ?? null) === 'brands/github'), 'A pack that\'s off adds no icons.');
 
 		$this->assertSame(200, $this->write('PUT', '/icon-packs/acme/brands', ['enabled' => true])->getStatusCode());
-		$this->assertSame(['icons' => ['enabled' => ['acme/arrows', 'acme/brands']]], json_decode((string) file_get_contents($this->temporaryDirectory() . '/user/data/settings.json'), true));
+		$this->assertSame(['icons' => ['enabled' => ['acme/arrows', 'acme/brands']]], $this->savedSettings());
 		$this->assertSame(404, $this->write('PUT', '/icon-packs/acme/missing', ['enabled' => true])->getStatusCode());
 	}
 

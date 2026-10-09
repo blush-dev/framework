@@ -86,7 +86,7 @@ use Blush\Translation\Locales;
  * as (`feed.limit`), its `field` (D-343: as forms take it, with the
  * `control` to draw, `choices` naming its options, and a `caption` for a
  * checkbox or an empty choice), the `input` the form starts from, and
- * whether it's `saved` in `user/data/settings.json`; its `file` is where
+ * whether it's `saved` in the saved settings (`user/data/settings/`); its `file` is where
  * its value comes from when it isn't. After a screen's own groups, each
  * field set on it (`settings:{screen}`) adds a group of its settings,
  * saved as `site.{name}`, with no `file` behind them. Media's upload
@@ -197,7 +197,7 @@ final readonly class SettingsController
 	/**
 	 * The groups the field sets on a screen add (D-343): one per set,
 	 * headed by its label, each of its fields a setting saved in
-	 * `user/data/settings.json`'s `site` section (`site.{name}`), with no
+	 * the `site` group of saved settings (`user/data/settings/site.json`) (`site.{name}`), with no
 	 * config value behind it.
 	 *
 	 * @return list<array<string, mixed>>

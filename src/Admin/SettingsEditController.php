@@ -56,7 +56,7 @@ use Blush\Theme\Themes;
  *   by `Setting` value (`feed.limit`), or `site.{name}` for a setting a
  *   field set adds (D-343), checked by its field and saved as sent (an
  *   empty one removed). `set` saves values in
- *   `user/data/settings.json`; `unset` removes saved ones, so their
+ *   the saved settings (`user/data/settings/`); `unset` removes saved ones, so their
  *   config values are used again. Answers `{"saved", "refresh"}`: the
  *   saved settings as the file holds them, and whether the admin should
  *   ask for `settings/refresh`.

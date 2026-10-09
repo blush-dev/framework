@@ -16,7 +16,8 @@ namespace Blush\Tests\Admin;
 use PHPUnit\Framework\Attributes\CoversNothing;
 use PHPUnit\Framework\TestCase;
 use Blush\Clock\SystemClock;
-use Blush\Data\RecordDataStore;
+use Blush\Content\Type\DefinitionTables;
+use Blush\Storage\Record\KeyedTable;
 use Blush\Storage\Sql\SqliteConnection;
 use Blush\Storage\Sql\SqliteRecordStore;
 use Blush\Storage\StorageConfig;
@@ -40,12 +41,14 @@ final class AdminOnSqliteTest extends TestCase
 			$this->markTestSkipped('PHP has no SQLite with JSON functions.');
 		}
 
-		// Types and relations are data, kept in the database too.
-		$data = RecordDataStore::on(SqliteRecordStore::forSite(new StorageConfig('sqlite'), $this->temporaryDirectory()), new SystemClock());
-		$data->save('types/post', ['path' => '_posts', 'date_archives' => true, 'routing' => ['prefix' => 'archives']]);
-		$data->save('types/category', ['path' => 'topics']);
-		$data->save('relations/category', ['kind' => 'classify', 'from' => ['post'], 'to' => ['category']]);
-		$data->save('relations/authors', ['kind' => 'credit', 'from' => ['post'], 'to' => ['profile']]);
+		// Types and relations are tables, kept in the database too (D-672).
+		$store     = SqliteRecordStore::forSite(new StorageConfig('sqlite'), $this->temporaryDirectory());
+		$types     = new KeyedTable($store, DefinitionTables::typesTable(), new SystemClock());
+		$relations = new KeyedTable($store, DefinitionTables::relationsTable(), new SystemClock());
+		$types->save('post', ['path' => '_posts', 'date_archives' => true, 'routing' => ['prefix' => 'archives']]);
+		$types->save('category', ['path' => 'topics']);
+		$relations->save('category', ['kind' => 'classify', 'from' => ['post'], 'to' => ['category']]);
+		$relations->save('authors', ['kind' => 'credit', 'from' => ['post'], 'to' => ['profile']]);
 
 		$this->boot(roles: ['owner'], environment: ['STORAGE_DRIVER' => 'sqlite'], ids: false);
 		$this->login();
@@ -110,6 +113,23 @@ final class AdminOnSqliteTest extends TestCase
 
 		$this->assertSame(200, $trashed->getStatusCode(), (string) $trashed->getBody());
 		$this->assertSame('trash', self::json($this->send('GET', "/entries/{$id}"))['status'] ?? null);
+	}
+
+	public function testEditsTypesAndRelationsInTheDatabase(): void
+	{
+		$changed = $this->call('PATCH', '/types/post', ['set' => ['description' => 'Writing.']]);
+
+		$this->assertSame(200, $changed->getStatusCode(), (string) $changed->getBody());
+
+		$created = $this->call('POST', '/relations', ['name' => 'related', 'kind' => 'reference', 'from' => ['post'], 'to' => ['post']]);
+
+		$this->assertSame(201, $created->getStatusCode(), (string) $created->getBody());
+
+		$store = SqliteRecordStore::forSite(new StorageConfig('sqlite'), $this->temporaryDirectory());
+
+		$this->assertSame('Writing.', new KeyedTable($store, DefinitionTables::typesTable(), new SystemClock())->find('post')['description'] ?? null, 'Kept as the type\'s record (D-672).');
+		$this->assertTrue(new KeyedTable($store, DefinitionTables::relationsTable(), new SystemClock())->has('related'));
+		$this->assertFileDoesNotExist($this->temporaryDirectory() . '/user/data/types/post.json');
 	}
 
 	public function testEveryScreensApiAnswers(): void

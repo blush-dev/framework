@@ -190,8 +190,8 @@ final class BootstrapTest extends TestCase
 		$root      = $this->fixtureSite();
 		$bootstrap = $this->bootstrap($root, ['APP_ENV' => 'production']);
 
-		@mkdir("{$root}/user/data", 0777, true);
-		file_put_contents("{$root}/user/data/settings.json", '{"plugins": {"enabled": []}}');
+		@mkdir("{$root}/user/data/settings", 0777, true);
+		file_put_contents("{$root}/user/data/settings/plugins.json", '{"enabled": []}');
 
 		$bootstrap->compile();
 
@@ -199,7 +199,7 @@ final class BootstrapTest extends TestCase
 		$this->assertFalse($app->container()->make(Plugins::class)->has('fixture/hello'));
 
 		// Turned on in the admin later, it's found in the cache (D-385).
-		unlink("{$root}/user/data/settings.json");
+		unlink("{$root}/user/data/settings/plugins.json");
 
 		$app              = $bootstrap->createApplication();
 		$this->autoloader = $app->container()->make(LocalAutoloader::class);

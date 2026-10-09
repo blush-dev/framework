@@ -26,6 +26,7 @@ use Blush\Http\Request;
 use Blush\Http\UploadedFile;
 use Blush\Support\Uuid;
 use Psr\Http\Message\ResponseInterface;
+use Blush\Tests\SavedSettings;
 
 #[CoversClass(IconsController::class)]
 #[CoversClass(MediaListController::class)]
@@ -36,6 +37,7 @@ use Psr\Http\Message\ResponseInterface;
 final class AdminPickersTest extends TestCase
 {
 	use BootsAdmin;
+	use SavedSettings;
 
 	/**
 	 * A 1×1 PNG.
@@ -276,7 +278,7 @@ final class AdminPickersTest extends TestCase
 
 	public function testFollowsTheUploadRules(): void
 	{
-		$this->writeTemporaryFile('user/data/settings.json', (string) json_encode(['media' => ['uploads' => [
+		$this->writeSettings((string) json_encode(['media' => ['uploads' => [
 			'path'  => '{kind}/{year}',
 			'kinds' => ['image' => ['path' => 'pics/{ext}', 'maxSize' => 1], 'audio' => ['enabled' => false]]
 		]]]));
@@ -292,7 +294,7 @@ final class AdminPickersTest extends TestCase
 		$this->assertSame(413, $this->upload('big.png', $png . str_repeat("\0", 1024 * 1024))->getStatusCode(), 'Larger than the kind\'s largest.');
 		$this->assertSame(422, $this->upload('song.mp3', 'ID3')->getStatusCode(), 'A kind turned off.');
 
-		$this->writeTemporaryFile('user/data/settings.json', (string) json_encode(['media' => ['uploads' => ['enabled' => false]]]));
+		$this->writeSettings((string) json_encode(['media' => ['uploads' => ['enabled' => false]]]));
 		// The settings are read at boot; the session carries over.
 		$this->app = $this->scratchApplication(['APP_ENV' => 'development', 'APP_URL' => 'https://example.test', 'APP_SECRET' => str_repeat('s', 64)]);
 		$this->app->boot();

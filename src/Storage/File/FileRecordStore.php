@@ -24,6 +24,7 @@ use Blush\Core\Paths;
 use Blush\Storage\Record\Aggregate;
 use Blush\Storage\Record\ArrayEvaluator;
 use Blush\Storage\Record\InvalidRecord;
+use Blush\Storage\Record\LocatingStore;
 use Blush\Storage\Record\Record;
 use Blush\Storage\Record\RecordConflict;
 use Blush\Storage\Record\RecordQuery;
@@ -56,15 +57,26 @@ use Blush\Support\Uuid;
  * - **Writes** are atomic, each in a transaction (`FileTransactions`,
  *   shared with `FileDataStore`), so a write that reads the table first
  *   can't lose another's.
+ * - **`$schema`**, which points an editor at a file's JSON Schema
+ *   (D-491), is never part of a record: a folder table's file keeps its
+ *   own, first, when the record is written again.
+ * - **A key in the file's name** (`FileLayout::$keyInName`) is the
+ *   record's key, never written inside the file; a file naming another
+ *   is refused. Finding a record by its key reads that one file.
  *
  * @phpstan-import-type Row from ArrayEvaluator
  */
-final readonly class FileRecordStore implements RecordStore
+final readonly class FileRecordStore implements RecordStore, LocatingStore
 {
 	/**
 	 * The extension of a record's file.
 	 */
 	public const string EXTENSION = 'json';
+
+	/**
+	 * The key pointing an editor at a file's JSON Schema (D-491).
+	 */
+	private const string SCHEMA = '$schema';
 
 	/**
 	 * @param Closure(): IndexStore $content
@@ -103,6 +115,21 @@ final readonly class FileRecordStore implements RecordStore
 
 		if ($table->key === null) {
 			throw new InvalidRecord(sprintf('"%s" has no key; find its records by id.', $table->name));
+		}
+
+		$layout = $this->layouts->for($table);
+
+		// A file named for its key is the only place the record can be, so
+		// it's read alone, not with its whole folder.
+		if (! $layout->oneFile && $layout->keyInName) {
+			if (! Table::isKeyValue($key)) {
+				return null;
+			}
+
+			$path = "{$layout->path}/{$key}." . self::EXTENSION;
+			$data = $this->read($path);
+
+			return $data === null ? null : $this->decode($table, $data, $this->paths->relative($path), $key, true);
 		}
 
 		return array_find($this->records($table), static fn (Record $record): bool => ($record->fields[$table->key] ?? null) === $key);
@@ -167,9 +194,13 @@ final readonly class FileRecordStore implements RecordStore
 				$this->remove($this->file($layout, $table, $old));
 			}
 
-			$this->write($path, $this->json(self::encode($record)), $layout->mode);
+			// What the file holds, and so its version: its `$schema` first,
+			// and no key when its name is the key.
+			$written = [...self::schema($this->read($path)), ...self::encode($layout->keyInName ? $record->without((string) $table->key) : $record)];
 
-			return $stored;
+			$this->write($path, $this->json($written), $layout->mode);
+
+			return $record->withVersion(self::version($written));
 		});
 	}
 
@@ -275,6 +306,17 @@ final readonly class FileRecordStore implements RecordStore
 	}
 
 	/**
+	 * @inheritDoc
+	 */
+	#[Override]
+	public function location(Table $table, string $key): string
+	{
+		$layout = $this->layouts->for($table);
+
+		return $this->paths->relative($layout->oneFile ? $layout->path : "{$layout->path}/{$key}." . self::EXTENSION);
+	}
+
+	/**
 	 * A table's records as rows, in order, for the evaluator.
 	 *
 	 * @return list<Row>
@@ -355,7 +397,7 @@ final readonly class FileRecordStore implements RecordStore
 
 			$name     = $file->getBasename('.' . $file->getExtension());
 			$location = $this->paths->relative($file->getPathname());
-			$record   = $this->decode($table, $this->read($file->getPathname()) ?? [], $location, $name);
+			$record   = $this->decode($table, $this->read($file->getPathname()) ?? [], $location, $name, $layout->keyInName);
 
 			if (isset($records[$record->id])) {
 				throw new InvalidRecord(sprintf('%s has the id of another record in %s.', $location, $this->paths->relative($layout->path)));
@@ -398,18 +440,27 @@ final readonly class FileRecordStore implements RecordStore
 
 	/**
 	 * A record from what a file holds. A file named by its key fills in
-	 * a missing key value.
+	 * a missing key value, and one whose name is its key (`$keyInName`)
+	 * may not name another.
 	 *
 	 * @param  array<array-key, mixed> $data
 	 * @throws InvalidRecord
 	 */
-	private function decode(Table $table, array $data, string $location, ?string $name = null): Record
+	private function decode(Table $table, array $data, string $location, ?string $name = null, bool $keyInName = false): Record
 	{
 		if ($data !== [] && array_is_list($data)) {
 			throw new InvalidRecord(sprintf('%s has a record that isn\'t a JSON object.', $location));
 		}
 
-		$fields = array_diff_key($data, array_flip(Record::RESERVED));
+		$fields = array_diff_key($data, array_flip([...Record::RESERVED, self::SCHEMA]));
+
+		if ($keyInName && $table->key !== null && $name !== null && array_key_exists($table->key, $fields) && $fields[$table->key] !== $name) {
+			throw new InvalidRecord(sprintf(
+				'%s names the record "%s"; a record here is named after its file.',
+				$location,
+				is_scalar($fields[$table->key]) ? (string) $fields[$table->key] : get_debug_type($fields[$table->key])
+			));
+		}
 
 		if ($table->key !== null && ! isset($fields[$table->key]) && $name !== null && ! Uuid::isValid($name)) {
 			$fields[$table->key] = $name;
@@ -461,6 +512,17 @@ final readonly class FileRecordStore implements RecordStore
 		$data = $layout->root === null ? $list : [...($this->read($layout->path) ?? []), $layout->root => $list];
 
 		$this->write($layout->path, $this->json($data), $layout->mode);
+	}
+
+	/**
+	 * A file's `$schema`, to keep first when it's written again.
+	 *
+	 * @param  ?array<array-key, mixed> $data
+	 * @return array<string, mixed>
+	 */
+	private static function schema(?array $data): array
+	{
+		return is_string($data[self::SCHEMA] ?? null) ? [self::SCHEMA => $data[self::SCHEMA]] : [];
 	}
 
 	/**

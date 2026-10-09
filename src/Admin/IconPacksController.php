@@ -55,7 +55,7 @@ use Blush\Settings\SettingsStore;
  *   names, as the icon directive takes them); the `invalid` ones, by
  *   `where` they were found, with the `reason` and whether they're
  *   `deletable`; `saved` (the admin's list of packs turned on is in
- *   `user/data/settings.json`); and `config` (whether `config/icons.php`
+ *   the saved settings); and `config` (whether `config/icons.php`
  *   exists).
  * - `GET icon-packs/{vendor}/{name}`: one pack, with every icon.
  * - `GET icon-packs/core`: the core set, with every icon.

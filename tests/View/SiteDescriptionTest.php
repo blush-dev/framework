@@ -22,6 +22,7 @@ use Blush\Feed\FeedBuilder;
 use Blush\Http\Kernel;
 use Blush\Http\Request;
 use Blush\Tests\Content\BuildsContentSite;
+use Blush\Tests\SavedSettings;
 use Blush\View\Site;
 use Blush\View\ThemedPageRenderer;
 
@@ -32,6 +33,7 @@ use Blush\View\ThemedPageRenderer;
 final class SiteDescriptionTest extends TestCase
 {
 	use BuildsContentSite;
+	use SavedSettings;
 
 	private Application $app;
 
@@ -52,7 +54,7 @@ final class SiteDescriptionTest extends TestCase
 			'home' => 'post'
 		]);
 		$this->writeTemporaryFile('config/cache.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn new Blush\\Cache\\CacheConfig(enabled: false);\n");
-		$this->writeTemporaryFile('user/data/settings.json', '{"app": {"description": "Notes on the web."}}');
+		$this->writeSettings('{"app": {"description": "Notes on the web."}}');
 		$this->app = $this->site();
 
 		$this->assertSame('Notes on the web.', $this->app->container()->make(AppConfig::class)->description);

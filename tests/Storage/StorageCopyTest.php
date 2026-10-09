@@ -150,6 +150,6 @@ final class StorageCopyTest extends TestCase
 		$synced = self::command($this->onSqlite(), 'storage:sync');
 
 		$this->assertTrue($synced->isSuccessful());
-		$this->assertStringContainsString('Made or updated 8 tables.', $synced->output);
+		$this->assertStringContainsString('Made or updated 11 tables.', $synced->output, 'Types, relations, and settings are tables of their own (D-672, D-673).');
 	}
 }

@@ -16,9 +16,7 @@ namespace Blush\Content\Type;
 use Closure;
 use Throwable;
 use Blush\Container\Attributes\Defer;
-use Blush\Content\Relation\RelationLoader;
 use Blush\Data\DataKeys;
-use Blush\Data\DataStore;
 
 /**
  * Migrates the data types still written as taxonomies (D-591, D-593),
@@ -37,7 +35,7 @@ final readonly class TaxonomyMigration
 	 * @param Closure(): ContentTypeLoader $loader
 	 */
 	public function __construct(
-		private DataStore $data,
+		private DefinitionTables $tables,
 		#[Defer(ContentTypeLoader::class)] private Closure $loader
 	) {}
 
@@ -66,7 +64,7 @@ final readonly class TaxonomyMigration
 
 		foreach ($this->report() as $name) {
 			try {
-				$migrated[$name] = $this->data->transaction(fn (): array => $this->migrateOne($name));
+				$migrated[$name] = $this->tables->types()->transaction(fn (): array => $this->migrateOne($name));
 			} catch (Throwable $error) {
 				$failed[$name] = $error->getMessage();
 			}
@@ -83,12 +81,12 @@ final readonly class TaxonomyMigration
 	 */
 	private function migrateOne(string $name): array
 	{
-		$typeRecord     = ContentTypeLoader::DATA_DIRECTORY . "/{$name}";
-		$relationRecord = RelationLoader::DATA_DIRECTORY . "/{$name}";
-		$definition     = $this->data->load($typeRecord) ?? throw new InvalidContentType(sprintf('user/data/types has no "%s".', $name));
+		$types      = $this->tables->types();
+		$relations  = $this->tables->relations();
+		$definition = $types->find($name) ?? throw new InvalidContentType(sprintf('user/data/types has no "%s".', $name));
 
-		if ($this->data->has($relationRecord)) {
-			throw new InvalidContentType(sprintf('%s already exists; move it aside first.', $this->data->location($relationRecord)));
+		if ($relations->has($name)) {
+			throw new InvalidContentType(sprintf('%s already exists; move it aside first.', $relations->location($name)));
 		}
 
 		[$type, $relation] = LegacyTaxonomy::convert($name, $definition);
@@ -106,11 +104,11 @@ final readonly class TaxonomyMigration
 			}
 		}
 
-		$this->data->save($relationRecord, $relation);
-		$this->data->save($typeRecord, DataKeys::apply($definition, $sets));
+		$relations->save($name, $relation);
+		$types->save($name, DataKeys::apply($definition, $sets));
 
 		($this->loader)()->load();
 
-		return [$this->data->location($typeRecord), $this->data->location($relationRecord)];
+		return [$types->location($name), $relations->location($name)];
 	}
 }

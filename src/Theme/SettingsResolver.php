@@ -13,13 +13,14 @@ declare(strict_types=1);
 
 namespace Blush\Theme;
 
-use Blush\Data\InvalidData;
 use Blush\Field\FieldContext;
 use Blush\Field\FieldFactory;
 use Blush\Field\InvalidSchema;
 use Blush\Field\Schema;
 use Blush\Field\Severity;
 use Blush\Field\Violation;
+use Blush\Settings\InvalidSetting;
+use Blush\Settings\SettingGroups;
 
 /**
  * Resolves a theme chain's settings (D-022). A manifest's `settings` are
@@ -34,7 +35,10 @@ use Blush\Field\Violation;
  * ```
  *
  * Definitions merge down the chain (a child's replaces its ancestor's of
- * the same name), values come from `user/data/theme.json`, and anything
+ * the same name), values come from the active theme's own group of saved
+ * settings, by its name (`SettingGroups`, D-673; on files
+ * `user/data/settings/{vendor}__{name}.json`), so each theme keeps its
+ * own when another is active, and anything
  * missing falls back to its default. Values that don't fit are reported,
  * not fatal: the default is used instead. Values for undeclared settings
  * are ignored.
@@ -51,14 +55,14 @@ final class SettingsResolver
 	public function __construct(
 		private readonly FieldFactory $fields,
 		private readonly FieldContext $context,
-		private readonly SiteThemeData $data
+		private readonly SettingGroups $groups
 	) {}
 
 	/**
 	 * Returns a chain's settings.
 	 *
 	 * @throws ThemeException When a definition is invalid.
-	 * @throws InvalidData When the site's theme data can't be read.
+	 * @throws InvalidSetting When the theme's saved settings can't be read.
 	 */
 	public function for(ThemeChain $chain): ThemeSettings
 	{
@@ -69,7 +73,7 @@ final class SettingsResolver
 	 * Resolves a chain's settings.
 	 *
 	 * @throws ThemeException
-	 * @throws InvalidData
+	 * @throws InvalidSetting
 	 */
 	private function resolve(ThemeChain $chain): ThemeSettings
 	{
@@ -88,7 +92,7 @@ final class SettingsResolver
 			}
 		}
 
-		$values = array_intersect_key($this->data->settings(), $names);
+		$values = array_intersect_key($this->groups->get($chain->active()->name), $names);
 		$first  = $schema->resolve($values, $this->context);
 		$failed = array_map(static fn (Violation $violation): string => $violation->field, $first->violations(Severity::Error));
 

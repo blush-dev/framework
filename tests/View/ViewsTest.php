@@ -20,6 +20,7 @@ use PHPUnit\Framework\TestCase;
 use Blush\Content\Entries;
 use Blush\Core\Framework;
 use Blush\Tests\BootsScratchSite;
+use Blush\Tests\SavedSettings;
 use Blush\Tests\WritesContentConfig;
 use Blush\Tests\WritesThemeViews;
 use Blush\Theme\ThemeResolver;
@@ -46,6 +47,7 @@ use Blush\View\ViewServiceProvider;
 final class ViewsTest extends TestCase
 {
 	use BootsScratchSite;
+	use SavedSettings;
 	use WritesContentConfig;
 	use WritesThemeViews;
 
@@ -77,7 +79,7 @@ final class ViewsTest extends TestCase
 
 	public function testDatesAndTimesUseTheSitesFormats(): void
 	{
-		$this->writeTemporaryFile('user/data/settings.json', '{"app": {"dateFormat": "d MMMM y", "timeFormat": "HH:mm"}}');
+		$this->writeSettings('{"app": {"dateFormat": "d MMMM y", "timeFormat": "HH:mm"}}');
 		$this->view('dates', '<?= $template->date($when) ?>|<?= $template->time($when) ?>|<?= $template->datetime($when) ?>|<?= $template->date($when, \'short\') ?>|<?= $template->date($when, Blush\\Clock\\DateStyle::Medium) ?>|<?= $template->time($when, \'h:mm a\') ?>|<?= $template->datetime($when, \'long\', \'short\') ?>');
 
 		$html = $this->render('dates', ['when' => new DateTimeImmutable('2026-01-05 23:30:00', new DateTimeZone('UTC'))]);

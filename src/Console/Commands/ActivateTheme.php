@@ -37,7 +37,7 @@ use Blush\Theme\Themes;
  * plain string literal, so hand-written config is never mangled. The
  * compiled config (and theme cache) are cleared, since they hold the old
  * value. A theme activated in the admin is saved in
- * `user/data/settings.json` over `config/theme.php` (D-381), so that's
+ * the saved settings (`user/data/settings/`) over `config/theme.php` (D-381), so that's
  * cleared too, or the command wouldn't change the theme. A theme whose
  * chain's requirements aren't met is refused, since it wouldn't run
  * (D-431).
@@ -105,7 +105,7 @@ final readonly class ActivateTheme
 		try {
 			if ($this->settings->read()->has(Setting::Theme)) {
 				$this->settings->update(static fn (Settings $settings): Settings => $settings->without(Setting::Theme));
-				$output->comment(sprintf('Cleared the theme activated in the admin (%s).', $this->settings->location()));
+				$output->comment(sprintf('Cleared the theme activated in the admin (%s).', $this->settings->location(Setting::Theme->section())));
 			}
 		} catch (InvalidSetting $error) {
 			$output->warning(sprintf('The theme activated in the admin may still win over config/theme.php: %s', $error->getMessage()));

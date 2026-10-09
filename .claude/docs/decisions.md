@@ -20613,3 +20613,168 @@ decision, add a new entry that supersedes it and mark the old one
   their ids in SQLite), `SqliteAreasTest`, and the console tests. The trial
   site's `account:list` reads its rewritten files. Not checked in a browser.
 - **Why:** the author's go ("go, do 6a"), on D-668's plan.
+
+### D-670: Settings as groups, read at boot or on demand
+
+- **Date:** 2026-10-09
+- **Status:** Decided; nothing built. Plan in `roadmap.md` ("Step 6",
+  6c). Supersedes D-668's `settings` as one record and ignored problems
+  as a setting, and renumbers step 6's later parts (media 6d; menus,
+  regions, and theme data 6e; retiring the data store 6f).
+- **Decision:**
+  - **A record per group** in a `settings` table: core's sections
+    (`app`, `feed`, `theme`, …), each extension's, each theme's own, and
+    the site's field-set settings (`site`). A record's fields are the
+    group's settings, keyed by `group`. On files, one file per group,
+    `user/data/settings/{group}.json`, in place of `settings.json`.
+  - **Group names:** code names a group as it is (`acme/gallery`). It's
+    stored with `__` for its `/` (`acme__gallery`), so the name can be
+    the table's key (no `/` allowed) without a nested file layout. Not
+    `-` (the author's first thought): extension names hold `-` on both
+    sides, so `acme/gallery-pro` and `acme-gallery/pro` would meet,
+    while no extension name holds `__`.
+  - **Boot groups declared, the rest on demand:** whoever registers a
+    group says whether it's needed at boot. The bootstrap reads only
+    those (core's `app`, `theme`, `plugins`, `icons`); any other group
+    is read when first asked for and kept for the request. No autoload
+    flag on records: whether a group is needed at boot is a fact of the
+    code, not the data.
+  - **Themes and plugins keep their own settings** in their own groups,
+    by name; a theme's settings move out of `user/data/theme.json` into
+    its group, so each theme keeps its own. Values are checked by the
+    group's owner (core's `Setting`, an extension's own code) until the
+    Fields API (paused, D-348) is picked up again.
+  - **Ignored problems** are Site Health's own group (`health`), read on
+    demand, not a core setting laid over config.
+  - **Redirects aren't settings:** a map people maintain, read only when
+    routes compile; their shape is still open (6b).
+- **Why:** the author: "I don't see why settings would be a single
+  record. Why isn't app a record, and feed a record, and theme a
+  record? And do we need to load all settings or until we need them.
+  Should there be a concept of autoloading settings? Also, I'd imagine
+  that themes and plugins would want to store their own settings."
+  Then: "Yes, a record per group", "Yes, boot declared and demand",
+  "Yes" (extensions' and themes' groups), and asked whether a group's
+  name could be converted to and from a key while code uses
+  `acme/gallery` (yes, with `__`).
+
+### D-671: Field sets and redirects wait; 6b is types and relations
+
+- **Date:** 2026-10-09
+- **Status:** Decided; nothing built. Narrows D-668's 6b (`roadmap.md`).
+- **Decision:**
+  - **6b moves only types and relations** onto tables (folder tables
+    keyed by `name`, files in place).
+  - **Field sets wait** for the Fields API (paused, D-348): their shape
+    isn't settled, and they'll have their own table when it is.
+  - **Redirects wait:** they're likely user settings (D-670's groups),
+    and no site uses `user/data/redirects.json` yet (neither `../blush`
+    nor `../ten-thousand`; only two framework tests).
+  - Both keep `DataStore` until picked up, so retiring it (6f) waits
+    for them too.
+- **Why:** the author: "Redirects seem like user settings to me. Are we
+  even using redirects right now in any test project? We could just put
+  this on hold until later." And: "Field sets shape isn't 100%
+  determined yet ... I know it'd have its own table."
+
+### D-672: Types and relations as tables (step 6b)
+
+- **Date:** 2026-10-09
+- **Status:** Built. Part 6b of step 6 (D-668, as narrowed by D-671).
+- **Decision:**
+  - **`types` and `relations` are tables** in the data area, keyed by
+    `name` (`DefinitionTables::typesTable()`, `relationsTable()`, both
+    registered with `TableRegistry`), holding only what the site defines;
+    code's types and relations aren't stored. Every option (`kind`,
+    `labels`, `from`, `inverse`, …) is a top-level field of the record,
+    as written; only `name` is declared, so on SQLite a row is `id`, the
+    JSON `fields`, and a generated `name` column, and options can come
+    and go with no schema change (the author: "things like kind and
+    labels … feel more like data than individual table columns"). Links
+    stay by name.
+  - **On files** they're folder tables, `user/data/types/{name}.json` and
+    `user/data/relations/{name}.json`, in place, with a new layout option,
+    `FileLayout::folder(keyInName: true)`: the file's name is the record's
+    key, never written inside it; a file naming another record is
+    refused ("…/movie.json names the record \"film\"; a record here is
+    named after its file."). A file gains its `id`, last, on its next
+    save; until then it has a steady one (`Uuid::fromName("types/movie")`).
+  - **`$schema` is never part of a record** in any folder table: the
+    filesystem driver drops it on read and keeps a file's own, first, on
+    write (as `FileDataStore` did, D-491). A record's version is the hash
+    of what its file holds.
+  - **`KeyedTable`** (`Blush\Storage\Record`): a keyed table's records as
+    plain data by key (`all`, `find`, `has`, `save`, `delete`,
+    `transaction`, `location`), keeping a record's id on save. Every
+    failure is a `RecordException`. The loaders (`ContentTypeLoader`,
+    `RelationLoader`) and writers (`DataTypeWriter`, `DataRelationWriter`,
+    `TaxonomyMigration`) use it through `DefinitionTables`, in place of
+    `DataStore`; field sets stay on `DataStore` (D-671).
+  - **`LocatingStore`** (optional, like `SchemaStore`): a store that says
+    where a record is kept, for messages: the filesystem driver a path
+    (`user/data/types/movie.json`), SQLite `types/movie in the database`;
+    else the table and key.
+  - **`storage:copy`** copies types and relations as tables, and leaves
+    them out of the generic `data` records; `storage:sync` makes 10
+    tables.
+- **Proof:** `composer check` (2,087 tests): `FileRecordStoreTest` (the
+  key in the name, `$schema` kept, versions, a file naming another
+  refused, `KeyedTable` on files and in memory), the admin's type and
+  relation tests (files written as before, plus their id),
+  `AdminOnSqliteTest` (a type changed and a relation created through the
+  admin land in their tables), `StorageCopyTest`. The trial site's types
+  and relations load unchanged (`routes:list`).
+- **Why:** the author's go ("Looks right, go build 6b"), on the field
+  lists shown.
+
+### D-673: Settings as groups, built (step 6c)
+
+- **Date:** 2026-10-09
+- **Status:** Built. Part 6c of step 6, as D-670 planned it.
+- **Decision:**
+  - **`SettingGroups`** (`Blush\Settings`, a container singleton): the
+    `settings` table, keyed by `group`, a record a group, its fields the
+    group's settings. `get()` reads a group once and keeps it for the
+    request; `save()` writes a group whole (empty removes it); `update()`
+    reads it fresh in a transaction; `all()`, `boot()`, `location()`.
+    Names: lowercase words or an extension's `vendor/name`, stored with
+    `__` for `/` (`key()`, `name()`). On files, a group is
+    `user/data/settings/{key}.json` (`FileLayout::folder(keyInName:
+    true)`); `user/data/settings.json` is gone, with no fallback.
+  - **Boot and on demand:** the bootstrap builds a store of its own and
+    reads only `BOOT` (`app`, `theme`, `plugins`, `icons`) before the
+    container; every other core section's config object is bound as a
+    singleton that reads its group and lays it over the object
+    (`Settings::applyTo()`) when first resolved. A config an override
+    replaces isn't (overrides win, as before). **Extensions' groups are
+    always on demand:** the boot groups are read before plugins load, so
+    only core declares boot groups.
+  - **`SettingsStore`** reads core's groups (`Setting::sections()`, plus
+    `site`) and, in `update()`, writes only the groups that changed;
+    `location()` takes a section. `SiteSettings` reads the `site` group
+    alone.
+  - **Theme settings** are the active theme's own group, by its name
+    (`SettingsResolver`); `user/data/theme.json` keeps only its location
+    maps (`menus`, `regions`, 6e).
+  - **Ignored problems** are under `ignored` in Site Health's group,
+    `health` (`StoredIgnoredProblems`).
+  - **`feed.content` is saved as `feed.fullContent`**, still laid over
+    `FeedConfig`'s `content` (`Setting::configKey()`), since `content` is
+    a record's own field (`Record::RESERVED`). `KeyedTable::save()` now
+    refuses data holding `id` or `content` rather than dropping it.
+  - **Reading by key on files** reads only the record's file when the
+    file's name is its key, so a request reads the few group files it
+    needs, not the folder each time.
+  - `storage:copy` copies settings as their table; `storage:sync` makes 11
+    tables.
+  - **Not built:** deleting an extension doesn't offer to delete its
+    group yet.
+- **Proof:** `composer check` (2,089 tests): `SettingsTest` (a group a
+  file, only changed groups written, empty groups removed, `$schema`
+  kept, broken groups named, extensions' groups, the boot groups at boot
+  and another on first use), `SqliteAreasTest` (both on SQLite), the
+  admin's settings, plugins, icon packs, themes, and Site Health tests,
+  `ThemeSystemTest` (a theme's own group), `BootstrapTest`. The trial
+  site's `settings.json` was split into `user/data/settings/` and it
+  boots with its theme and plugins.
+- **Why:** the author's go ("go, do 6c"), on D-670.

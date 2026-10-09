@@ -17,11 +17,11 @@ use Closure;
 use Blush\Container\Attributes\Defer;
 use Blush\Content\ContentConfig;
 use Blush\Content\Relation\Relation;
-use Blush\Data\DataException;
 use Blush\Data\DataKeys;
-use Blush\Data\DataStore;
 use Blush\Field\FieldFactory;
 use Blush\Field\InvalidSchema;
+use Blush\Storage\Record\KeyedTable;
+use Blush\Storage\Record\RecordException;
 
 /**
  * Writes the types the site defines in data, `user/data/types/{name}`
@@ -48,9 +48,9 @@ use Blush\Field\InvalidSchema;
  * Everything else in the file is left as the author wrote it: the
  * file keeps its other keys. Types are JSON files (D-490, D-631).
  *
- * Types are records in the data store (`types/{name}`, D-642). Each
- * change is checked against every other type before it's kept: in a
- * transaction, the record is written, all the types are loaded again
+ * Types are records in the `types` table (`DefinitionTables`, D-672).
+ * Each change is checked against every other type before it's kept: in
+ * a transaction, the record is written, all the types are loaded again
  * (`ContentTypeLoader`), and when they don't fit together (two types in
  * one folder, a relation listing a type that's gone), the transaction
  * puts the record back as it was, so two writes can't interleave.
@@ -83,14 +83,14 @@ final readonly class DataTypeWriter
 	 */
 	public function __construct(
 		private ContentConfig $config,
-		private DataStore $data,
+		private DefinitionTables $tables,
 		private FieldFactory $fields,
 		#[Defer(ContentTypeLoader::class)] private Closure $loader
 	) {}
 
 	/**
 	 * Returns where a data type is kept (`user/data/types/post.json`), or
-	 * `null` when the data store has none by its name.
+	 * `null` when the `types` table has none by its name.
 	 *
 	 * @throws InvalidContentType When the name isn't a type name.
 	 */
@@ -99,8 +99,8 @@ final readonly class DataTypeWriter
 		self::assertName($name);
 
 		try {
-			return $this->data->has(self::record($name)) ? $this->data->location(self::record($name)) : null;
-		} catch (DataException $error) {
+			return $this->table()->has($name) ? $this->table()->location($name) : null;
+		} catch (RecordException $error) {
 			throw new InvalidContentType($error->getMessage(), previous: $error);
 		}
 	}
@@ -117,8 +117,8 @@ final readonly class DataTypeWriter
 		self::assertName($name);
 
 		try {
-			return $this->data->load(self::record($name)) ?? [];
-		} catch (DataException $error) {
+			return $this->table()->find($name) ?? [];
+		} catch (RecordException $error) {
 			throw new InvalidContentType(sprintf('%s Fix it by hand first.', $error->getMessage()), previous: $error);
 		}
 	}
@@ -198,7 +198,7 @@ final readonly class DataTypeWriter
 		}
 
 		return $this->checked(function () use ($name): void {
-			$this->data->delete(self::record($name));
+			$this->table()->delete($name);
 		});
 	}
 
@@ -284,7 +284,7 @@ final readonly class DataTypeWriter
 		}
 
 		return $this->checked(function () use ($name): void {
-			$this->data->delete(self::record($name));
+			$this->table()->delete($name);
 		});
 	}
 
@@ -389,15 +389,15 @@ final readonly class DataTypeWriter
 		}
 
 		return $this->checked(function () use ($name, $sets, $code, $left): void {
-			$record = self::record($name);
+			$table = $this->table();
 
 			if ($code !== null && $left === []) {
-				$this->data->delete($record);
+				$table->delete($name);
 
 				return;
 			}
 
-			$this->data->save($record, DataKeys::apply($this->data->load($record) ?? [], $sets, self::OPTIONS));
+			$table->save($name, DataKeys::apply($table->find($name) ?? [], $sets, self::OPTIONS));
 		});
 	}
 
@@ -505,12 +505,12 @@ final readonly class DataTypeWriter
 	private function checked(Closure $write): ContentTypes
 	{
 		try {
-			return $this->data->transaction(function () use ($write): ContentTypes {
+			return $this->table()->transaction(function () use ($write): ContentTypes {
 				$write();
 
 				return ($this->loader)()->load();
 			});
-		} catch (DataException $error) {
+		} catch (RecordException $error) {
 			throw new InvalidContentType($error->getMessage(), previous: $error);
 		}
 	}
@@ -672,11 +672,11 @@ final readonly class DataTypeWriter
 	}
 
 	/**
-	 * A type's record name in the data store.
+	 * The types' table.
 	 */
-	private static function record(string $name): string
+	private function table(): KeyedTable
 	{
-		return ContentTypeLoader::DATA_DIRECTORY . "/{$name}";
+		return $this->tables->types();
 	}
 
 	/**

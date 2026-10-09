@@ -86,16 +86,21 @@ This is the design for the Blush 2 subsystems. Decisions it relies on are in
   container by class.
 - **Settings** (`Blush\Settings`, D-324, D-325): the few settings the
   admin can change (`Setting`, `{section}.{key}` such as `feed.limit`)
-  are saved in the data store's `settings` record (`SettingsStore`,
-  D-642; `user/data/settings.json` for files), in sections
-  named for the config files, and laid over the config on every build
-  (`Settings::apply()`, through each object's `toArray()`/`fromArray()`),
-  so a saved value wins. Compiling leaves them out. Each `Setting` is
+  are saved in groups (`SettingGroups`, D-670, D-673): the `settings`
+  table, a record per group keyed by `group` (`/` stored as `__`), on
+  files `user/data/settings/{group}.json`; core's groups are sections
+  named for the config files (`SettingsStore` reads and changes them
+  together), beside `site`, `health` (ignored problems), and extensions'
+  and themes' own. They're laid over the config (`Settings::apply()`,
+  `applyTo()`, through each object's `toArray()`/`fromArray()`), so a
+  saved value wins: the boot groups (`app`, `theme`, `plugins`, `icons`)
+  by the bootstrap, every other when its config object is first resolved
+  (a container singleton). Compiling leaves them out. Each `Setting` is
   also a field on its screen (`Setting::field()`, `SettingsScreen`,
   D-343): general, reading, search, and ai (D-398), and the editable
   screens are field set targets (`settings:{screen}`, `SettingsTargets`;
   plugins' AI settings go on `settings:ai`, D-397); a set's settings are saved
-  raw in the file's `site` section and read through their fields by
+  raw in the `site` group and read through their fields by
   `SiteSettings` (`$template->site()`).
 - **Errors** (`Blush\Error`, D-059):
   - Every exception implements `Blush\Core\BlushException` (D-055).
@@ -199,6 +204,13 @@ accounts move onto it in later steps; roles are on it now.
   username, kept on files as `storage/accounts/{username}.json` (0660),
   each gaining its id on its next save (steady from the username until
   then). What links to an account holds its id (D-668).
+- **Types and relations** (`DefinitionTables`, D-672): the `types` and
+  `relations` tables, keyed by `name`, the options as written in each
+  record's fields, kept on files as `user/data/types/{name}.json` and
+  `user/data/relations/{name}.json` (`FileLayout::folder(keyInName:
+  true)`: the name only in the file's name; `$schema` kept first, never
+  a field). Read and written through `KeyedTable` (data by key, ids kept);
+  stores that can say where a record is kept implement `LocatingStore`.
 
 ## Data files
 
@@ -211,8 +223,7 @@ accounts move onto it in later steps; roles are on it now.
   D-032's JSON or YAML and its parser registry); the only YAML Blush
   reads is front matter. `loadAll()` reads a whole directory.
 - **`DataStore`** (`Blush\Data`, D-642): the data area's contract, from
-  the storage driver for `data`. Records by name (`types/post`,
-  `menus/main`, `media/2024/sunset.jpg`, `settings`, `health/ignored`):
+  the storage driver for `data`. Records by name (`menus/main`, `media/2024/sunset.jpg`, `settings`, `health/ignored`):
   `has`, `load`, `loadAll` (a folder's records), `records` (every record
   under a folder, with when it changed), `save`, `delete`,
   `transaction` (writes put back when it throws), and `location` (for
@@ -1478,7 +1489,7 @@ and **icon packs**; **admin themes** are planned on the same pieces.
   - By default a Composer plugin is on, and a local one only when
     `PluginConfig`'s `enabled` (`config/plugins.php`) names it (D-390).
     Once the admin saves a list (`plugins.enabled` in
-    `user/data/settings.json`, laid over `PluginConfig::$saved`), it
+    the `plugins` group, laid over `PluginConfig::$saved`), it
     names every plugin that's on, Composer's included, and nothing else
     is (D-391). Config never lists what's off. Naming one that isn't
     installed fails boot (naming a broken one doesn't). Discovery is
@@ -1541,7 +1552,7 @@ and **icon packs**; **admin themes** are planned on the same pieces.
   seed `IconRegistry`, so themes and the site can restyle them.
 - **Admin:** Extensions lists Themes, Plugins, and Icon Packs. Themes
   are activated and deleted (D-381); plugins and icon packs are turned on
-  and off and deleted (D-385), each saved in `user/data/settings.json`.
+  and off and deleted (D-385), each saved in its group of settings.
   **Install** takes a `.zip` (D-392).
 - **Installing** (`Extension\Install`, D-388, D-392, D-418):
   `ExtensionInstaller` installs a `.zip` of a folder into

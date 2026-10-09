@@ -25,6 +25,7 @@ use Blush\Core\Application;
 use Blush\Data\DataStore;
 use Blush\Data\InvalidData;
 use Blush\Data\RecordDataStore;
+use Blush\Feed\FeedConfig;
 use Blush\Job\JobRecord;
 use Blush\Job\JobStatus;
 use Blush\Job\JobStore;
@@ -144,9 +145,12 @@ final class SqliteAreasTest extends TestCase
 
 	public function testTheSavedSettingsAreReadBeforeTheContainer(): void
 	{
-		$this->make(SettingsStore::class)->update(static fn (Settings $settings): Settings => $settings->with(['app.name' => 'Notes']));
+		$this->make(SettingsStore::class)->update(static fn (Settings $settings): Settings => $settings->with(['app.name' => 'Notes', 'feed.limit' => 7]));
 
-		$this->assertSame('Notes', $this->boot()->container()->make(AppConfig::class)->name, 'Read by the bootstrap from the database.');
+		$container = $this->boot()->container();
+
+		$this->assertSame('Notes', $container->make(AppConfig::class)->name, 'Read by the bootstrap from the database.');
+		$this->assertSame(7, $container->make(FeedConfig::class)->limit, 'A group read when its config is first asked for (D-673).');
 	}
 
 	public function testKeepsAccountsAndRoles(): void

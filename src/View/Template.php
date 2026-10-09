@@ -339,7 +339,7 @@ final class Template
 
 	/**
 	 * Returns a site setting's value (D-343): one a field set adds to the
-	 * admin's Settings screens, saved in `user/data/settings.json`, or its
+	 * admin's Settings screens, saved in the `site` group of settings, or its
 	 * field's default, or `$default` when it has neither.
 	 */
 	public function site(string $name, mixed $default = null): mixed

@@ -51,10 +51,12 @@ use Blush\Content\Source\ContentSource;
 use Blush\Content\Type\ContentTypeCache;
 use Blush\Content\Type\ContentTypeLoader;
 use Blush\Content\Type\ContentTypes;
+use Blush\Content\Type\DefinitionTables;
 use Blush\Content\Type\ContentTypeTargets;
 use Blush\Content\Writer\ContentWriter;
 use Blush\Content\Writer\DocumentEditor;
 use Blush\Core\AppConfig;
+use Blush\Core\Paths;
 use Blush\Core\ServiceProvider;
 use Blush\Event\Listener\ListenerRegistry;
 use Blush\Field\FieldContext;
@@ -69,6 +71,9 @@ use Blush\Markdown\MentionResolver;
 use Blush\Routing\RedirectSource;
 use Blush\Routing\RouteSource;
 use Blush\Routing\UrlSource;
+use Blush\Storage\File\FileLayout;
+use Blush\Storage\File\FileLayouts;
+use Blush\Storage\Record\TableRegistry;
 use Blush\Storage\StorageArea;
 
 /**
@@ -157,8 +162,8 @@ final class ContentServiceProvider extends ServiceProvider
 	];
 
 	/**
-	 * Binds the registries, the field context, and the
-	 * content types.
+	 * Binds the registries, the field context, and the content types, and
+	 * registers the tables of the site's types and relations (D-672).
 	 */
 	#[Override]
 	public function register(): void
@@ -195,6 +200,24 @@ final class ContentServiceProvider extends ServiceProvider
 			FieldSets::class,
 			static fn (Container $container): FieldSets => $container->make(ContentTypes::class)->sets
 		);
+
+		// The site's types and relations are tables (D-672), kept on files
+		// as folders under `user/data`, each file named for its record.
+		$this->container->resolving(TableRegistry::class, static function (object $tables): void {
+			if ($tables instanceof TableRegistry) {
+				$tables->register(DefinitionTables::typesTable());
+				$tables->register(DefinitionTables::relationsTable());
+			}
+		});
+
+		$this->container->resolving(FileLayouts::class, static function (object $layouts, ServiceResolver $resolver): void {
+			if ($layouts instanceof FileLayouts) {
+				$data = $resolver->make(Paths::class)->data;
+
+				$layouts->register(DefinitionTables::TYPES, FileLayout::folder("{$data}/" . DefinitionTables::TYPES, keyInName: true));
+				$layouts->register(DefinitionTables::RELATIONS, FileLayout::folder("{$data}/" . DefinitionTables::RELATIONS, keyInName: true));
+			}
+		});
 	}
 
 	/**

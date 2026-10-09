@@ -49,7 +49,7 @@ use Blush\Support\FilesystemException;
  * `extensions.icon-packs.delete` to delete them (D-389):
  *
  * - `PUT icon-packs/{vendor}/{name}` with `{"enabled": true|false}`
- *   saves every pack that's on in `user/data/settings.json`
+ *   saves every pack that's on in the saved settings (`user/data/settings/`)
  *   (`icons.enabled`), Composer's included, over `config/icons.php`
  *   (D-391); the first save starts from what's on by default. A pack
  *   that's off adds no icons, so anywhere one is used shows nothing.

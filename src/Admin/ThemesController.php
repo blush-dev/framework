@@ -44,7 +44,7 @@ use Blush\Theme\ThemeSource;
  * then its ancestors, by name, D-632; empty, with the
  * `problem`, when it can't be built), whether `config/theme.php` exists
  * (`config`), whether the active theme is `saved` in
- * `user/data/settings.json` (over `config/theme.php`), whether
+ * the saved settings (over `config/theme.php`), whether
  * `?theme=` previews work (`preview`, in development only), every
  * installed theme, and the `invalid` ones.
  *

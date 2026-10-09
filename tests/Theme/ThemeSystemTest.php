@@ -28,6 +28,7 @@ use Blush\Http\Request;
 use Blush\Support\ComposerPackages;
 use Blush\Support\PhpArrayFile;
 use Blush\Tests\BootsScratchSite;
+use Blush\Tests\SavedSettings;
 use Blush\Theme\SettingsResolver;
 use Blush\Theme\SiteThemeData;
 use Blush\Theme\ThemeAssets;
@@ -56,6 +57,7 @@ use Blush\Tests\WritesContentConfig;
 final class ThemeSystemTest extends TestCase
 {
 	use BootsScratchSite;
+	use SavedSettings;
 	use WritesContentConfig;
 
 	private ?Application $app = null;
@@ -222,7 +224,8 @@ final class ThemeSystemTest extends TestCase
 				'columns'  => ['type' => 'number', 'default' => 2]
 			]
 		], JSON_THROW_ON_ERROR));
-		$this->writeTemporaryFile('user/data/theme.json', '{"settings": {"layout": "grid", "columns": "many", "unknown": 1}}');
+		// The active theme's own group of settings (D-673).
+		$this->writeSettings('{"acme/kid": {"layout": "grid", "columns": "many", "unknown": 1}}');
 
 		$app      = $this->boot();
 		$resolver = $app->container()->make(SettingsResolver::class);
@@ -253,7 +256,7 @@ final class ThemeSystemTest extends TestCase
 
 		$this->assertStringContainsString('Plain note', $this->get('/'));
 
-		$this->writeTemporaryFile('user/data/theme.json', '{"settings": {"note": "Site note"}}');
+		$this->writeSettings('{"acme/noted": {"note": "Site note"}}');
 
 		// Site data reaches a cached site on publish, which moves the
 		// content version on.
@@ -276,7 +279,7 @@ final class ThemeSystemTest extends TestCase
 		$this->assertStringContainsString('Plain tagline|none', $this->get('/'), 'A field\'s default, then the fallback.');
 
 		// The admin's save moves the content version on, so cached pages go.
-		$this->writeTemporaryFile('user/data/settings.json', '{"site": {"tagline": "Saved tagline"}}');
+		$this->writeSettings('{"site": {"tagline": "Saved tagline"}}');
 		$this->app?->container()->make(ContentVersion::class)->bump();
 		$this->app = null;
 

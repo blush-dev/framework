@@ -21,12 +21,11 @@ use Blush\Content\Relation\RelationCompiler;
 use Blush\Content\Relation\RelationKind;
 use Blush\Content\Relation\RelationLoader;
 use Blush\Content\Relation\RelationOrigin;
-use Blush\Data\DataStore;
-use Blush\Data\InvalidData;
 use Blush\Extension\DefinitionClash;
 use Blush\Field\FieldFactory;
 use Blush\Field\FieldSetLoader;
 use Blush\Field\InvalidSchema;
+use Blush\Storage\Record\RecordException;
 
 /**
  * Gathers the content types from every source and checks that they fit
@@ -36,7 +35,8 @@ use Blush\Field\InvalidSchema;
  * 1. The built-in types (`BuiltInType`), minus those the config disables.
  * 2. Extension types, from sources tagged `ContentTypeSource::TAG`. Two
  *    extensions defining one name is an error.
- * 3. Data types from `user/data/types/{name}.json`, when allowed.
+ * 3. Data types from the `types` table (`DefinitionTables`, D-672; on
+ *    files `user/data/types/{name}.json`), when allowed.
  *    They may redefine a built-in type. A file named for an extension
  *    collection changes it instead (D-349): each
  *    option it sets replaces the code's (`ContentType::overriddenBy()`),
@@ -59,14 +59,9 @@ use Blush\Field\InvalidSchema;
  */
 final readonly class ContentTypeLoader
 {
-	/**
-	 * The folder under `user/data` holding data-defined types.
-	 */
-	public const string DATA_DIRECTORY = 'types';
-
 	public function __construct(
 		private ContentConfig $config,
-		private DataStore $data,
+		private DefinitionTables $tables,
 		private FieldFactory $fields,
 		private Container $container,
 		private FieldSetLoader $sets,
@@ -210,25 +205,14 @@ final readonly class ContentTypeLoader
 		}
 
 		try {
-			$definitions = $this->data->loadAll(self::DATA_DIRECTORY);
-		} catch (InvalidData $e) {
+			$definitions = $this->tables->types()->all();
+		} catch (RecordException $e) {
 			throw new InvalidContentType($e->getMessage(), previous: $e);
 		}
 
 		$types = [];
 
 		foreach ($definitions as $name => $definition) {
-			$declared = $definition['name'] ?? $name;
-
-			if ($declared !== $name) {
-				throw new InvalidContentType(sprintf(
-					'user/data/%s/%s names the type "%s"; a data type is named after its file.',
-					self::DATA_DIRECTORY,
-					$name,
-					is_scalar($declared) ? (string) $declared : get_debug_type($declared)
-				));
-			}
-
 			$urls = array_find(['urls', 'routing'], static fn (string $key): bool => array_key_exists($key, $definition));
 
 			if (! $this->config->dataTypeUrls && $urls !== null) {

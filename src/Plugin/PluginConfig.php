@@ -25,7 +25,7 @@ use Blush\Config\ConfigValues;
  *   (in `extensions/`) is on only when `config/plugins.php` names it in
  *   `enabled`.
  * - **Once the admin saves a list** (`plugins.enabled` in
- *   `user/data/settings.json`, laid over `saved`), that list is all of
+ *   the saved settings, laid over `saved`), that list is all of
  *   what's on, Composer plugins included: one it doesn't name is off,
  *   even one installed after it was saved.
  */

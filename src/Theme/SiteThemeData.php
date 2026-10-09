@@ -17,20 +17,20 @@ use Blush\Data\DataStore;
 use Blush\Data\InvalidData;
 
 /**
- * The site owner's theme data, `user/data/theme.json` (D-022): setting values, which the future admin edits, and which site
- * menu or region fills a theme location whose name differs (D-199,
- * D-201).
+ * The site owner's theme data, `user/data/theme.json` (D-022): which
+ * site menu or region fills a theme location whose name differs (D-199,
+ * D-201). A theme's setting values are its own group of settings
+ * (`SettingGroups`, D-673), not here.
  *
  * ```json
  * {
- *     "settings": { "wide": true },
  *     "menus": { "main": "primary" },
  *     "regions": { "aside": "sidebar" }
  * }
  * ```
  *
- * They apply to whichever theme is active: a setting a theme doesn't
- * declare is ignored, and so is a location it doesn't have.
+ * They apply to whichever theme is active: a location a theme doesn't
+ * have is ignored.
  */
 final class SiteThemeData
 {
@@ -44,19 +44,6 @@ final class SiteThemeData
 	public function __construct(
 		private readonly DataStore $store
 	) {}
-
-	/**
-	 * Returns the setting values.
-	 *
-	 * @return array<array-key, mixed>
-	 * @throws InvalidData
-	 */
-	public function settings(): array
-	{
-		$settings = $this->data()['settings'] ?? [];
-
-		return is_array($settings) ? $settings : throw new InvalidData('user/data/theme "settings" must be an object.');
-	}
 
 	/**
 	 * Returns the site menus that fill theme menu locations, by location.

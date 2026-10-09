@@ -466,6 +466,29 @@ code; go through the store.
 For tests, `Blush\Storage\Record\ArrayRecordStore` keeps records in
 memory and answers queries the same way.
 
+### Your own settings
+
+A plugin's or theme's settings, such as a gallery's column count, go in
+a **group of settings** of its own, named for it. Ask for
+`Blush\Settings\SettingGroups` in a constructor:
+
+```php
+use Blush\Settings\SettingGroups;
+
+$settings = $groups->get('acme/gallery');            // ['columns' => 3], or [] when nothing's saved
+$groups->save('acme/gallery', ['columns' => 4]);    // the whole group; [] removes it
+$groups->update('acme/gallery', static fn (array $values): array => [...$values, 'columns' => 5]);
+```
+
+A group is read the first time it's asked for on a request, not on every
+request, and `update()` reads it fresh in a transaction, so two saves at
+once don't lose each other's changes. Check the values yourself: Blush
+keeps what you save. `id` and `content` can't be keys in a group.
+
+On a flat-file site, a group is a file named for it, with `__` for its
+`/`: `user/data/settings/acme__gallery.json`. A theme's settings from its
+manifest are kept in its group the same way.
+
 ## Admin actions
 
 An action is a button on [the admin's](admin.md#tools) Tools screen,
@@ -879,7 +902,7 @@ A plugin or icon pack installed with Composer is on by default:
 installing it is the decision to use it.
 
 Once the admin has turned something on or off, it saves its own list in
-`user/data/settings.json`, used in place of the config file's. That list
+`user/data/settings/plugins.json` (or `icons.json`), used in place of the config file's. That list
 names everything that's on, Composer's included, so you can turn a
 Composer plugin off there. It starts from what was already on, so the
 first switch changes only that one. From then on, anything the list

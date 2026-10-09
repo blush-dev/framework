@@ -28,6 +28,7 @@ use Blush\Feed\FeedConfig;
 use Blush\Settings\SiteSettings;
 use Blush\Settings\SettingsTargets;
 use Blush\Tests\WritesContentConfig;
+use Blush\Tests\SavedSettings;
 
 #[CoversClass(SettingsController::class)]
 #[CoversClass(SettingsEditController::class)]
@@ -36,6 +37,7 @@ use Blush\Tests\WritesContentConfig;
 final class AdminSettingsTest extends TestCase
 {
 	use BootsAdmin;
+	use SavedSettings;
 	use WritesContentConfig;
 
 	protected function tearDown(): void
@@ -158,7 +160,7 @@ final class AdminSettingsTest extends TestCase
 		$response = $this->write('PATCH', '/settings', ['set' => ['app.description' => ' Notes on the web. ', 'sitemap.blockAi' => ['search', 'training'], 'llms.enabled' => false, 'llms.full' => true]]);
 		$this->assertSame(200, $response->getStatusCode(), (string) $response->getBody());
 		$this->assertTrue(self::json($response)['refresh'] ?? null, 'Markdown copies change the routes.');
-		$this->assertSame(['app' => ['description' => 'Notes on the web.'], 'llms' => ['enabled' => false, 'full' => true], 'sitemap' => ['blockAi' => ['training', 'search']]], json_decode($this->file('user/data/settings.json'), true));
+		$this->assertSame(['app' => ['description' => 'Notes on the web.'], 'llms' => ['enabled' => false, 'full' => true], 'sitemap' => ['blockAi' => ['training', 'search']]], $this->savedSettings());
 
 		// Settings are read at boot; the account is already there.
 		$this->app = $this->scratchApplication(['APP_ENV' => 'production', 'APP_URL' => 'https://example.test', 'APP_SECRET' => str_repeat('s', 64)]);
@@ -199,7 +201,7 @@ final class AdminSettingsTest extends TestCase
 
 		$response = $this->write('PATCH', '/settings', ['set' => ['markdown.mentions' => false, 'markdown.smartPunctuation' => false, 'markdown.headingAnchors' => false, 'markdown.html' => 'escape']]);
 		$this->assertSame(200, $response->getStatusCode(), (string) $response->getBody());
-		$this->assertSame(['markdown' => ['mentions' => false, 'smartPunctuation' => false, 'headingAnchors' => false, 'html' => 'escape']], json_decode($this->file('user/data/settings.json'), true));
+		$this->assertSame(['markdown' => ['mentions' => false, 'smartPunctuation' => false, 'headingAnchors' => false, 'html' => 'escape']], $this->savedSettings());
 		$this->assertSame(422, $this->write('PATCH', '/settings', ['set' => ['markdown.html' => 'sometimes']])->getStatusCode());
 
 		// Settings are read at boot; the account is already there.
@@ -229,7 +231,7 @@ final class AdminSettingsTest extends TestCase
 
 		$response = $this->write('PATCH', '/settings', ['set' => ['embed.off' => ['ted', 'codepen', 'ted']]]);
 		$this->assertSame(200, $response->getStatusCode(), (string) $response->getBody());
-		$this->assertSame(['embed' => ['off' => ['codepen', 'ted']]], json_decode($this->file('user/data/settings.json'), true));
+		$this->assertSame(['embed' => ['off' => ['codepen', 'ted']]], $this->savedSettings());
 		$this->assertSame(422, $this->write('PATCH', '/settings', ['set' => ['embed.off' => ['Not a name']]])->getStatusCode());
 
 		// Settings are read at boot; the account is already there.
@@ -260,7 +262,7 @@ final class AdminSettingsTest extends TestCase
 		$response = $this->write('PATCH', '/settings', ['set' => ['app.untranslated' => 'include']]);
 		$this->assertSame(200, $response->getStatusCode(), (string) $response->getBody());
 		$this->assertFalse(self::json($response)['refresh'] ?? null, 'It changes no addresses.');
-		$this->assertSame(['app' => ['untranslated' => 'include']], json_decode($this->file('user/data/settings.json'), true));
+		$this->assertSame(['app' => ['untranslated' => 'include']], $this->savedSettings());
 		$this->assertSame(422, $this->write('PATCH', '/settings', ['set' => ['app.untranslated' => 'fallback']])->getStatusCode());
 	}
 
@@ -283,7 +285,7 @@ final class AdminSettingsTest extends TestCase
 		$response = $this->write('PATCH', '/settings', ['set' => ['auth.signups' => true, 'auth.signupRole' => 'contributor']]);
 		$this->assertSame(200, $response->getStatusCode(), (string) $response->getBody());
 		$this->assertFalse(self::json($response)['refresh'] ?? null, 'It changes no addresses.');
-		$this->assertSame(['auth' => ['signups' => true, 'signupRole' => 'contributor']], json_decode($this->file('user/data/settings.json'), true));
+		$this->assertSame(['auth' => ['signups' => true, 'signupRole' => 'contributor']], $this->savedSettings());
 
 		// Settings are read at boot; the account is already there.
 		$this->app = $this->scratchApplication(['APP_ENV' => 'development', 'APP_URL' => 'https://example.test', 'APP_SECRET' => str_repeat('s', 64)]);
@@ -305,7 +307,7 @@ final class AdminSettingsTest extends TestCase
 		$response = $this->write('PATCH', '/settings', ['set' => ['app.dateFormat' => ' d MMMM y ', 'app.timeFormat' => 'short']]);
 		$this->assertSame(200, $response->getStatusCode(), (string) $response->getBody());
 		$this->assertFalse(self::json($response)['refresh'] ?? null, 'Formats change no addresses.');
-		$this->assertSame(['app' => ['dateFormat' => 'd MMMM y', 'timeFormat' => 'short']], json_decode($this->file('user/data/settings.json'), true));
+		$this->assertSame(['app' => ['dateFormat' => 'd MMMM y', 'timeFormat' => 'short']], $this->savedSettings());
 
 		foreach ([['app.dateFormat' => ''], ['app.dateFormat' => "d 'de MMMM"], ['app.timeFormat' => 'jj:mm'], ['app.timeFormat' => 5]] as $set) {
 			$this->assertSame(422, $this->write('PATCH', '/settings', ['set' => $set])->getStatusCode(), (string) json_encode($set));
@@ -342,7 +344,7 @@ final class AdminSettingsTest extends TestCase
 
 		$this->assertSame(200, $response->getStatusCode());
 		$this->assertFalse(self::json($response)['refresh'] ?? null, 'Nothing to compile.');
-		$this->assertSame(['media' => ['uploads' => ['enabled' => true, 'maxSize' => 1, 'path' => 'uploads', 'kinds' => ['file' => ['enabled' => false, 'maxSize' => null, 'path' => null]]]]], json_decode($this->file('user/data/settings.json'), true));
+		$this->assertSame(['media' => ['uploads' => ['enabled' => true, 'maxSize' => 1, 'path' => 'uploads', 'kinds' => ['file' => ['enabled' => false, 'maxSize' => null, 'path' => null]]]]], $this->savedSettings());
 
 		// The settings are read at boot; the session carries over.
 		$this->app = $this->scratchApplication(['APP_ENV' => 'development', 'APP_URL' => 'https://example.test', 'APP_SECRET' => str_repeat('s', 64)]);
@@ -394,7 +396,7 @@ final class AdminSettingsTest extends TestCase
 		$this->assertSame(403, $this->send('GET', '/settings/general')->getStatusCode());
 		$this->assertSame(403, $this->write('PATCH', '/settings', ['set' => ['app.name' => 'Mine']])->getStatusCode());
 		$this->assertSame(403, $this->write('POST', '/settings/refresh')->getStatusCode());
-		$this->assertFileDoesNotExist($this->temporaryDirectory() . '/user/data/settings.json');
+		$this->assertSame([], $this->savedSettings());
 	}
 
 	public function testSavesSettingsOverTheConfig(): void
@@ -414,7 +416,7 @@ final class AdminSettingsTest extends TestCase
 				'feed'    => ['formats' => ['rss', 'json'], 'limit' => 20],
 				'sitemap' => ['disallow' => ['/drafts/']]
 			],
-			json_decode($this->file('user/data/settings.json'), true)
+			$this->savedSettings()
 		);
 
 		$this->assertSame(200, $this->write('POST', '/settings/refresh')->getStatusCode());
@@ -425,13 +427,13 @@ final class AdminSettingsTest extends TestCase
 		$this->assertSame('post', $container->make(ContentConfig::class)->home);
 		$this->assertSame(20, $container->make(FeedConfig::class)->limit);
 
-		$answer = self::json($this->write('PATCH', '/settings', ['set' => ['feed.content' => false], 'unset' => ['app.name', 'content.home', 'app.timezone', 'feed.formats', 'feed.limit', 'sitemap.disallow']]));
-		$this->assertSame(['feed' => ['content' => false]], $answer['saved'] ?? null);
+		$answer = self::json($this->write('PATCH', '/settings', ['set' => ['feed.fullContent' => false], 'unset' => ['app.name', 'content.home', 'app.timezone', 'feed.formats', 'feed.limit', 'sitemap.disallow']]));
+		$this->assertSame(['feed' => ['fullContent' => false]], $answer['saved'] ?? null, 'Saved as fullContent, since content is a record\'s own (D-673).');
 		$this->assertTrue($answer['refresh'] ?? null, 'Unsetting the homepage needs a refresh too.');
 		$this->assertSame('Notes', $this->scratchApplication(['APP_NAME' => 'Notes'])->container()->make(AppConfig::class)->name, 'Unset, the config is used again.');
 
-		$this->assertFalse(self::json($this->write('PATCH', '/settings', ['unset' => ['feed.content']]))['refresh'] ?? null);
-		$this->assertFileDoesNotExist($this->temporaryDirectory() . '/user/data/settings.json', 'Nothing saved removes the file.');
+		$this->assertFalse(self::json($this->write('PATCH', '/settings', ['unset' => ['feed.fullContent']]))['refresh'] ?? null);
+		$this->assertSame([], $this->savedSettings(), 'Nothing saved removes the file.');
 	}
 
 	public function testFieldSetsAddSettings(): void
@@ -501,13 +503,13 @@ final class AdminSettingsTest extends TestCase
 
 		$this->assertSame(422, $this->write('PATCH', '/settings', ['unset' => ['app.environment']])->getStatusCode());
 		$this->assertSame(400, $this->write('PATCH', '/settings', ['set' => ['a', 'b']])->getStatusCode());
-		$this->assertFileDoesNotExist($this->temporaryDirectory() . '/user/data/settings.json', 'A refusal writes nothing.');
+		$this->assertSame([], $this->savedSettings(), 'A refusal writes nothing.');
 	}
 
 	public function testCompilingLeavesTheSettingsOut(): void
 	{
 		$this->writeTemporaryFile('user/data/types/post.json', '{"folder": "posts"}');
-		$this->writeTemporaryFile('user/data/settings.json', '{"app": {"name": "Saved"}}');
+		$this->writeSettings('{"app": {"name": "Saved"}}');
 		$bootstrap = new Bootstrap(Paths::fromRoot($this->temporaryDirectory()), ['APP_ENV' => 'production', 'APP_URL' => 'https://example.test', 'APP_NAME' => 'Configured']);
 		$bootstrap->compile();
 

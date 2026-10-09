@@ -123,7 +123,7 @@ use Blush\Session\StartSession;
  *     (`IconPackEditController`, D-385).
  *   - `GET  settings/{screen}`: a Settings screen's settings
  *     (`SettingsController`, D-325); `PATCH settings` saves the ones
- *     the admin can change in `user/data/settings.json`, and `POST
+ *     the admin can change in the saved settings (`user/data/settings/`), and `POST
  *     settings/refresh` compiles and reindexes after
  *     (`SettingsEditController`, D-324). `GET settings/date-format`
  *     shows how a date or time format reads now (D-445).

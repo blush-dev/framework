@@ -507,29 +507,50 @@ narrow stores (D-645).
 - **Proof:** the account and role tests on files, SQLite, and in memory;
   `AdminOnSqliteTest`.
 
-**6b. Data as a table per kind:**
-- **`settings`:** one record, its file `user/data/settings.json` (a
-  file layout for a table of one record, the file the record). The
-  bootstrap reads it through a record store it builds for the purpose
-  (D-642's early read).
-- **Ignored problems become a setting** (the author's suggestion), a
-  map of each problem key to who ignored it (an account id) and when,
-  in place of `user/data/health/ignored.json`, so a site can also
-  ignore a problem in `config/` and have every copy of it agree.
-- **`types`, `relations`, and `fields`** (field sets): folder tables
-  keyed by `name`, in `user/data/types`, `relations`, and `fields`.
-  A file's `$schema` stays first on files and is never part of a record
-  (D-491). Field sets move as storage only; nothing is added to the
-  paused Fields API (D-348).
-- **`redirects`:** a row per redirect (`from`, `to`, `status`), a
-  one-file table in `user/data/redirects.json`. The file becomes a list
-  only; the map form goes.
+**6b. Types and relations as tables** (D-671; built, D-672):
+- **`types` and `relations`:** folder tables keyed by `name`, in
+  `user/data/types` and `relations`, files in place, each gaining an
+  `id`. A file's `$schema` stays first on files and is never part of a
+  record (D-491).
 - Messages and reports that say where a record is kept ask the store
   (a file's path, or "in the database").
-- **Proof:** each reader's tests on files, SQLite, and in memory;
-  settings read back by the bootstrap on both drivers.
+- **On hold** (D-671): field sets, whose shape waits for the Fields API
+  (D-348; their own table then), and redirects (likely user settings;
+  no site uses them yet). Both keep `DataStore` until they're picked up.
+- **Proof:** each reader's tests on files, SQLite, and in memory.
 
-**6c. Media metadata as a table:**
+**6c. Settings as groups** (D-670; built, D-673: extensions' groups are always on demand, since the boot groups are read before plugins load; `feed.content` is saved as `feed.fullContent`):
+- **A `settings` table, a record per group:** `app`, `feed`, `theme`,
+  …, each extension's (`acme/gallery`), each theme's own, and the
+  site's (`site`, field sets' settings). The table's key is `group`;
+  a record's other fields are the group's settings, so `id`,
+  `content`, and `group` can't be a setting's key.
+- **Names:** code names a group as it is (`acme/gallery`); stored, its
+  `/` is `__` (`acme__gallery`), which no extension name contains, so
+  the name is a table key. On files, a group is
+  `user/data/settings/{group}.json` (`settings.json` goes); on
+  SQLite, a row.
+- **Loading:** whoever registers a group says whether it's needed at
+  boot. Boot groups (core's `app`, `theme`, `plugins`, `icons`) are
+  read together by the bootstrap, before the container, through a
+  record store built for it (D-642's early read); every other group is
+  read the first time something asks for it and kept for the request.
+  Core's groups are laid over their config objects as now, a lazy
+  group when its config object is first fetched. No autoload flag on
+  records.
+- **Extensions' settings:** each plugin reads and writes its own group
+  by its name; a theme's settings are its own group, so switching
+  themes keeps each one's (from `user/data/theme.json`'s `settings`);
+  deleting an extension can offer to delete its group. Values are
+  checked by whoever owns the group (core by `Setting`, an extension by
+  its own code) until the Fields API is picked up again.
+- **Ignored problems** are a group of Site Health's (`health`, on
+  demand), in place of `user/data/health/ignored.json`.
+- **Proof:** settings read back by the bootstrap on both drivers; a
+  request reading only the boot groups; groups' tests on files, SQLite,
+  and in memory.
+
+**6d. Media metadata as a table:**
 - `media`, keyed by its id (in every record already, D-487), with
   `path` (the original's under `user/media`) a declared field the store
   keeps unique. On files, the records stay
@@ -538,15 +559,16 @@ narrow stores (D-645).
 - Its own table, not a content type (the author): media need no URLs,
   kinds, or editor.
 - How the media index and `content:lint` see a changed record (today
-  file times; versions, likely) is settled when 6c is reviewed.
+  file times; versions, likely) is settled when 6d is reviewed.
 
-**6d. Menus, regions, and theme data:** wait for a discussion
+**6e. Menus, regions, and theme data:** wait for a discussion
 (`open-questions.md`, "Menus, regions, and theme data in the data
 layer"): regions may become written content (entries), menus are to be
-looked at, and `user/data/theme.json`'s location maps depend on both;
-its setting values may join settings. Planned once that's settled.
+looked at, and `user/data/theme.json`'s location maps depend on both
+(its settings move in 6c). Planned once that's settled.
 
-**6e. Retiring the data store, docs, proof:** `DataStore`,
+**6f. Retiring the data store, docs, proof** (after field sets and
+redirects, D-671): `DataStore`,
 `FileDataStore`, `RecordDataStore`, and SQLite's `data` table go;
 `storage:copy` copies every registered table, with nothing per area
 but content's; `docs/` (accounts, redirects, settings, ignored

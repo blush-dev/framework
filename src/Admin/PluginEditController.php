@@ -53,7 +53,7 @@ use Blush\Support\FilesystemException;
  * `extensions.plugins.delete` to delete them (D-389):
  *
  * - `PUT plugins/{vendor}/{name}` with `{"enabled": true|false}` saves
- *   every plugin that's on in `user/data/settings.json`
+ *   every plugin that's on in the saved settings (`user/data/settings/`)
  *   (`plugins.enabled`), Composer's included, over `config/plugins.php`
  *   (D-391), as activating a theme does (D-381). The first save starts
  *   from what's on by default, so only the plugin switched changes.

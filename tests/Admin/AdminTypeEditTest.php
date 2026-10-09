@@ -86,7 +86,8 @@ final class AdminTypeEditTest extends TestCase
 	}
 
 	/**
-	 * A JSON data file's data.
+	 * A JSON data file's data, without the `id` a record's file ends with
+	 * (D-672), which is checked.
 	 *
 	 * @return array<array-key, mixed>
 	 */
@@ -94,7 +95,24 @@ final class AdminTypeEditTest extends TestCase
 	{
 		$data = json_decode($this->file($relative), true);
 
-		return is_array($data) ? $data : [];
+		return is_array($data) ? self::withoutRecordId($data) : [];
+	}
+
+	/**
+	 * A record's file's data without its `id`, checking that it's a UUID
+	 * and comes last.
+	 *
+	 * @param  array<array-key, mixed> $data
+	 * @return array<array-key, mixed>
+	 */
+	private static function withoutRecordId(array $data): array
+	{
+		if (array_key_exists('id', $data)) {
+			self::assertTrue(Uuid::isValid($data['id']), 'A record\'s id.');
+			self::assertSame('id', array_key_last($data), 'Its id comes last.');
+		}
+
+		return array_diff_key($data, ['id' => true]);
 	}
 
 	public function testANewTypeCanCreditAuthors(): void
@@ -201,7 +219,7 @@ final class AdminTypeEditTest extends TestCase
 		$this->assertSame('/cook', self::json($answer)['prefix'] ?? null);
 		$this->assertSame(
 			['folder' => 'recipes', 'listing' => ['orderBy' => 'title'], 'description' => 'Food.', 'urls' => ['prefix' => 'cook', 'paths' => ['single' => 'r/{name}']]],
-			json_decode($this->file('user/data/types/recipe.json'), true),
+			$this->data('user/data/types/recipe.json'),
 			'routing becomes urls; other keys stay.'
 		);
 
@@ -229,7 +247,7 @@ final class AdminTypeEditTest extends TestCase
 		$this->assertSame(200, $this->write('PATCH', '/types/topic', ['set' => ['hierarchical' => true, 'labels' => ['plural' => 'Subjects']]])->getStatusCode());
 		$this->assertSame(
 			['$schema' => '../type.schema.json', 'folder' => 'topics', 'order' => 'position', 'hierarchical' => true, 'labels' => ['plural' => 'Subjects']],
-			json_decode($this->file('user/data/types/topic.json'), true),
+			$this->data('user/data/types/topic.json'),
 			'An editor\'s schema key isn\'t an option, and stays (D-491).'
 		);
 
@@ -248,7 +266,7 @@ final class AdminTypeEditTest extends TestCase
 		$badField = $this->write('PATCH', '/types/recipe', ['set' => ['fields' => [['name' => 'x', 'type' => 'colour']]]]);
 		$this->assertSame(422, $badField->getStatusCode());
 		$this->assertStringContainsString('colour', self::error($badField));
-		$this->assertSame(['folder' => 'recipes'], json_decode($this->file('user/data/types/recipe.json'), true));
+		$this->assertSame(['folder' => 'recipes'], $this->data('user/data/types/recipe.json'));
 
 		$clash = $this->write('POST', '/types', ['name' => 'dish', 'folder' => 'recipes']);
 		$this->assertSame(422, $clash->getStatusCode(), 'Two types can\'t share a folder.');
@@ -374,10 +392,10 @@ final class AdminTypeEditTest extends TestCase
 		$answer = $this->write('PATCH', '/types/recipe', ['set' => ['folders' => '{initial}']]);
 		$this->assertSame(200, $answer->getStatusCode(), (string) $answer->getBody());
 		$this->assertSame('{initial}', self::json($answer)['folders'] ?? null);
-		$this->assertSame(['folder' => 'recipes/{initial}'], json_decode($this->file('user/data/types/recipe.json'), true), 'Written after the folder (D-629).');
+		$this->assertSame(['folder' => 'recipes/{initial}'], $this->data('user/data/types/recipe.json'), 'Written after the folder (D-629).');
 
 		$this->assertSame(200, $this->write('PATCH', '/types/recipe', ['set' => ['folders' => null]])->getStatusCode());
-		$this->assertSame(['folder' => 'recipes'], json_decode($this->file('user/data/types/recipe.json'), true), 'The folder stays without one.');
+		$this->assertSame(['folder' => 'recipes'], $this->data('user/data/types/recipe.json'), 'The folder stays without one.');
 
 		$this->assertSame(422, $this->write('PATCH', '/types/recipe', ['set' => ['folder' => 'dishes']])->getStatusCode(), 'The folder itself never changes here.');
 		$this->assertSame(422, $this->write('PATCH', '/types/recipe', ['set' => ['folders' => '{day}']])->getStatusCode());
@@ -441,7 +459,7 @@ final class AdminTypeEditTest extends TestCase
 		$saved = $this->write('PATCH', '/types/recipe', ['set' => ['paths' => ['pairs_with.single' => 'goes-with/{target}']]]);
 
 		$this->assertSame(200, $saved->getStatusCode(), (string) $saved->getBody());
-		$this->assertSame(['folder' => 'recipes', 'urls' => ['paths' => ['pairs_with.single' => 'goes-with/{target}']]], json_decode($this->file('user/data/types/recipe.json'), true));
+		$this->assertSame(['folder' => 'recipes', 'urls' => ['paths' => ['pairs_with.single' => 'goes-with/{target}']]], $this->data('user/data/types/recipe.json'));
 	}
 
 	public function testChangesAndChecksRoutePaths(): void
@@ -471,14 +489,14 @@ final class AdminTypeEditTest extends TestCase
 
 		$this->assertSame(422, $this->write('PATCH', '/types/recipe', ['set' => ['paths' => ['nope' => 'x']]])->getStatusCode());
 		$this->assertSame(422, $this->write('PATCH', '/types/recipe', ['set' => ['paths' => ['collection.paged' => 'p']]])->getStatusCode(), 'A paged address needs {page}.');
-		$this->assertSame(['folder' => 'recipes', 'feed' => true, 'urls' => ['single' => 'r/{name}']], json_decode($this->file('user/data/types/recipe.json'), true), 'Nothing written.');
+		$this->assertSame(['folder' => 'recipes', 'feed' => true, 'urls' => ['single' => 'r/{name}']], $this->data('user/data/types/recipe.json'), 'Nothing written.');
 
 		$saved = $this->write('PATCH', '/types/recipe', ['set' => ['paths' => ['single' => '/{cuisine}/{year}/{name}/', 'collection.paged' => 'p/{page}']]]);
 		$this->assertSame(200, $saved->getStatusCode(), (string) $saved->getBody());
-		$this->assertSame(['folder' => 'recipes', 'feed' => true, 'urls' => ['paths' => ['single' => '{cuisine}/{year}/{name}', 'collection.paged' => 'p/{page}']]], json_decode($this->file('user/data/types/recipe.json'), true), 'The shortcut moves into paths (D-350).');
+		$this->assertSame(['folder' => 'recipes', 'feed' => true, 'urls' => ['paths' => ['single' => '{cuisine}/{year}/{name}', 'collection.paged' => 'p/{page}']]], $this->data('user/data/types/recipe.json'), 'The shortcut moves into paths (D-350).');
 
 		$this->assertSame(200, $this->write('PATCH', '/types/recipe', ['set' => ['paths' => ['single' => null, 'collection.paged' => '']]])->getStatusCode());
-		$this->assertSame(['folder' => 'recipes', 'feed' => true], json_decode($this->file('user/data/types/recipe.json'), true), 'Defaults are left out.');
+		$this->assertSame(['folder' => 'recipes', 'feed' => true], $this->data('user/data/types/recipe.json'), 'Defaults are left out.');
 	}
 
 	public function testListsTheHomeTypesFeedsAtTheRoot(): void

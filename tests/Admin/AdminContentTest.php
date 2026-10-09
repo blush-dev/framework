@@ -953,7 +953,7 @@ final class AdminContentTest extends TestCase
 		$this->assertIsArray($ignored);
 		$this->assertIsArray($ignored['content:terms:profile/jane'] ?? null, 'Kept for the site, with who and when (D-613).');
 		$this->assertSame($this->janeId(), $ignored['content:terms:profile/jane']['by'] ?? null, 'By the account\'s id (D-668).');
-		$this->assertFileExists($this->temporaryDirectory() . '/user/data/health/ignored.json');
+		$this->assertFileExists($this->temporaryDirectory() . '/user/data/settings/health.json', 'Site Health\'s own group of settings (D-673).');
 		$this->assertSame($ignored, self::json($this->send('GET', '/health'))['ignored'] ?? null);
 
 		$terms = static fn (array $health): mixed => array_column(is_array($health['checks'] ?? null) ? $health['checks'] : [], 'message', 'key')['terms'] ?? null;

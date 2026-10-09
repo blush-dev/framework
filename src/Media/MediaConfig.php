@@ -34,7 +34,7 @@ use Blush\Config\InvalidConfig;
  *   `media:index`, publishing, or the admin refreshes it.
  * - `uploads` is what the admin may upload, how large, and where it goes
  *   (`MediaUploads`, D-406); the Media settings screen saves it in
- *   `user/data/settings.json`.
+ *   the saved settings (`user/data/settings/`).
  * - `addArtwork` adds the picture an uploaded sound or video carries to
  *   the library as its artwork (`MediaArtwork`, D-581), when the account
  *   may upload images. Off by default, since an album uploaded track by

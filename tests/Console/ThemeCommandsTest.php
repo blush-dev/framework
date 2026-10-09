@@ -32,6 +32,7 @@ use Blush\Core\CompiledCache;
 use Blush\Core\Paths;
 use Blush\Extension\InstalledExtensions;
 use Blush\Tests\BootsScratchSite;
+use Blush\Tests\SavedSettings;
 use Blush\Tests\WritesThemeViews;
 use Blush\Theme\ThemeChecker;
 use Blush\Theme\ThemeConfig;
@@ -51,6 +52,7 @@ use Blush\Theme\ThemeReport;
 final class ThemeCommandsTest extends TestCase
 {
 	use BootsScratchSite;
+	use SavedSettings;
 	use WritesThemeViews;
 
 	/**
@@ -176,13 +178,13 @@ final class ThemeCommandsTest extends TestCase
 	{
 		$this->writeTemporaryFile('extensions/acme/nova/theme.json', '{"name": "acme/nova", "label": "Nova", "namespace": "nova"}');
 		$this->writeTemporaryFile('extensions/acme/dusk/theme.json', '{"name": "acme/dusk", "label": "Dusk", "namespace": "dusk"}');
-		$this->writeTemporaryFile('user/data/settings.json', '{"app": {"name": "Field Notes"}, "theme": {"active": "acme/dusk"}}');
+		$this->writeSettings('{"app": {"name": "Field Notes"}, "theme": {"active": "acme/dusk"}}');
 
 		$result = $this->command(['theme:activate', 'acme/nova']);
 
 		$this->assertSame(ExitCode::Success, $result->exitCode, $result->errors);
 		$this->assertStringContainsString('Cleared the theme activated in the admin', $result->output);
-		$this->assertSame(['app' => ['name' => 'Field Notes']], json_decode((string) file_get_contents($this->root() . '/user/data/settings.json'), true), 'Other settings stay.');
+		$this->assertSame(['app' => ['name' => 'Field Notes']], $this->savedSettings(), 'Other settings stay.');
 		$this->assertSame('acme/nova', $this->config()->active);
 	}
 
@@ -254,7 +256,7 @@ final class ThemeCommandsTest extends TestCase
 			'settings'  => ['size' => ['type' => 'number', 'default' => 1]]
 		], JSON_THROW_ON_ERROR));
 		$this->writeTemporaryFile('extensions/acme/rough/views/layouts/base.php', '<!DOCTYPE html><html><head><meta charset="utf-8"><?= $template->head() ?></head><body><div><?= $template->section("content") ?></div></body></html>');
-		$this->writeTemporaryFile('user/data/theme.json', '{"settings": {"size": "big"}}');
+		$this->writeSettings('{"acme/rough": {"size": "big"}}');
 		$this->writeTemporaryFile('extensions/acme/other/theme.json', '{"name": 1}');
 
 		$result = $this->command(['theme:check', 'acme/rough', '--strict']);

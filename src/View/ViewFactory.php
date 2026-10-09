@@ -16,7 +16,7 @@ namespace Blush\View;
 use Psr\Log\LoggerInterface;
 use Blush\Content\Entry\Entry;
 use Blush\Core\Framework;
-use Blush\Data\InvalidData;
+use Blush\Settings\InvalidSetting;
 use Blush\Theme\SettingsResolver;
 use Blush\Theme\ThemeAssets;
 use Blush\Theme\ThemeChain;
@@ -59,7 +59,7 @@ final class ViewFactory
 	 * Returns the views for a theme chain.
 	 *
 	 * @throws ThemeException When the chain's settings are invalid.
-	 * @throws InvalidData When the site's theme data can't be read.
+	 * @throws InvalidSetting When the theme's saved settings can't be read.
 	 */
 	public function forChain(ThemeChain $chain): Views
 	{

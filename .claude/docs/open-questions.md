@@ -67,7 +67,7 @@ Move each item to `decisions.md` once it's answered.
   JSON `values` column with generated indexed columns, no hand-written
   migrations, `storage:sync` and `storage:copy`), and sessions and jobs
   keeping narrow contracts (D-645). Step 6 planned (D-668). Open:
-  - **Menus, regions, and theme data in the data layer** (step 6d;
+  - **Menus, regions, and theme data in the data layer** (step 6e;
     raised by the author, 2026-10-09: "I do want to explore whether we
     have regions and menus in their current form ... I'm still not sold
     on regions being a feature"). Regions may become written content
@@ -75,8 +75,8 @@ Move each item to `decisions.md` once it's answered.
     would put them in the content area, not data); whether menus stay
     `user/data/menus` files, become a table, or change shape is to be
     looked at; `user/data/theme.json`'s location maps (`menus`,
-    `regions`) depend on both, and its setting values may join
-    settings. Until it's settled they keep `DataStore`, which step 6
+    `regions`) depend on both (its setting values move to settings groups,
+    D-670). Until it's settled they keep `DataStore`, which step 6
     retires after them.
   - **Composer drivers:** how they're found before plugins load.
     Leaning: a key in the package's `composer.json` `extra`, read with

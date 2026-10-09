@@ -56,6 +56,14 @@ Use `kind` to pick the kind; it's `collection` if you leave it out.
 { "folder": "recipes" }
 ```
 
+The file's name is the type's name; the file never says it, and one
+naming another type is refused. When the admin saves a type, it adds an
+`"id"` at the end of its file: the type's record id, which stays the
+same from then on. A file without one works just as well. Relations in
+`user/data/relations/` work the same way. On the
+[SQLite driver](going-live.md#large-sites-sqlite), types and relations
+are kept in the database instead.
+
 **In a plugin**, in PHP, when the types belong with code you install.
 Each kind is its own class (`Collection`, `Tree`, or `Profiles`), which
 gives you editor autocomplete and type checking:

@@ -49,8 +49,9 @@ use Blush\Theme\ThemeConfig;
 
 /**
  * A setting the site owner may change in the admin (D-324, D-325). Its
- * value is `{section}.{key}`: the section of `user/data/settings.json` it's
- * saved in, named for the config file by convention (`feed` for
+ * value is `{section}.{key}`: the group of settings it's saved in
+ * (`SettingGroups`, D-673; on files `user/data/settings/{section}.json`),
+ * named for the config file by convention (`feed` for
  * `config/feed.php`), and the key it sets in that config object's
  * `toArray()`. Everything else stays in `config/` and `.env`.
  *
@@ -76,7 +77,7 @@ enum Setting: string
 	case Home             = 'content.home';
 	case TrailingSlash    = 'routes.trailingSlash';
 	case FeedFormats      = 'feed.formats';
-	case FeedContent      = 'feed.content';
+	case FeedContent      = 'feed.fullContent';
 	case FeedLimit        = 'feed.limit';
 	case MediaUploads     = 'media.uploads';
 	case AddArtwork       = 'media.addArtwork';
@@ -119,6 +120,17 @@ enum Setting: string
 	 * The most paths robots.txt may be asked to skip.
 	 */
 	public const int DISALLOW_MAX = 50;
+
+	/**
+	 * Every section the settings are saved in, each a group of settings
+	 * (`SettingGroups`, D-673), in the enum's order.
+	 *
+	 * @return list<string>
+	 */
+	public static function sections(): array
+	{
+		return array_values(array_unique(array_map(static fn (self $setting): string => $setting->section(), self::cases())));
+	}
 
 	/**
 	 * The setting saved under a section and key, if there is one.
@@ -292,12 +304,15 @@ enum Setting: string
 	/**
 	 * The key it replaces in its config object: its own key, except the
 	 * admin's lists of what's on, which are kept apart from the config
-	 * file's (`saved`, D-391) because they name Composer extensions too.
+	 * file's (`saved`, D-391) because they name Composer extensions too,
+	 * and feeds' full content, saved as `fullContent` since `content` is a
+	 * record's own (D-673).
 	 */
 	public function configKey(): string
 	{
 		return match ($this) {
 			self::Plugins, self::IconPacks => 'saved',
+			self::FeedContent              => 'content',
 			default                        => $this->key()
 		};
 	}

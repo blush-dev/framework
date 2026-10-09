@@ -18,20 +18,21 @@ use Blush\Container\Attributes\Defer;
 use Blush\Content\ContentConfig;
 use Blush\Content\Type\ContentTypeLoader;
 use Blush\Content\Type\ContentTypes;
+use Blush\Content\Type\DefinitionTables;
 use Blush\Content\Type\InvalidContentType;
-use Blush\Data\DataException;
-use Blush\Data\DataStore;
+use Blush\Storage\Record\KeyedTable;
+use Blush\Storage\Record\RecordException;
 
 /**
- * Writes the relations the site defines in data,
- * `user/data/relations/{name}` (D-593), for the admin's Relationships
+ * Writes the relations the site defines in data, the `relations` table
+ * (`user/data/relations/{name}` on files, D-593, D-672), for the admin's Relationships
  * section and the migration from taxonomies (D-591): creates one,
  * replaces one's definition, and deletes one. A relation is written as
  * `Relation::toArray()` writes it, without its name (the file's), in
  * the file's own format (JSON for a new one).
  *
- * Every change is checked against the whole site: in a data store
- * transaction (D-642), the record is written, every type and relation is
+ * Every change is checked against the whole site: in a transaction of
+ * the table's store, the record is written, every type and relation is
  * loaded again (`ContentTypeLoader`), and when they don't fit together
  * the transaction puts the record back.
  */
@@ -42,14 +43,14 @@ final readonly class DataRelationWriter
 	 */
 	public function __construct(
 		private ContentConfig $config,
-		private DataStore $data,
+		private DefinitionTables $tables,
 		#[Defer(ContentTypeLoader::class)] private Closure $loader
 	) {}
 
 	/**
 	 * Returns where a data relation is kept
-	 * (`user/data/relations/tags.json`), or `null` when the data store
-	 * has none by its name.
+	 * (`user/data/relations/tags.json`), or `null` when the `relations`
+	 * table has none by its name.
 	 *
 	 * @throws InvalidContentType When the name isn't a relation name.
 	 */
@@ -60,8 +61,8 @@ final readonly class DataRelationWriter
 		}
 
 		try {
-			return $this->data->has(self::record($name)) ? $this->data->location(self::record($name)) : null;
-		} catch (DataException $error) {
+			return $this->table()->has($name) ? $this->table()->location($name) : null;
+		} catch (RecordException $error) {
 			throw new InvalidContentType($error->getMessage(), previous: $error);
 		}
 	}
@@ -121,7 +122,7 @@ final readonly class DataRelationWriter
 		}
 
 		return $this->checked(function () use ($name): void {
-			$this->data->delete(self::record($name));
+			$this->table()->delete($name);
 		});
 	}
 
@@ -133,7 +134,7 @@ final readonly class DataRelationWriter
 	private function write(Relation $relation): ContentTypes
 	{
 		return $this->checked(function () use ($relation): void {
-			$this->data->save(self::record($relation->name), array_diff_key($relation->toArray(), ['name' => true]));
+			$this->table()->save($relation->name, array_diff_key($relation->toArray(), ['name' => true]));
 		});
 	}
 
@@ -147,22 +148,22 @@ final readonly class DataRelationWriter
 	private function checked(Closure $write): ContentTypes
 	{
 		try {
-			return $this->data->transaction(function () use ($write): ContentTypes {
+			return $this->table()->transaction(function () use ($write): ContentTypes {
 				$write();
 
 				return ($this->loader)()->load();
 			});
-		} catch (DataException $error) {
+		} catch (RecordException $error) {
 			throw new InvalidContentType($error->getMessage(), previous: $error);
 		}
 	}
 
 	/**
-	 * A relation's record name in the data store.
+	 * The relations' table.
 	 */
-	private static function record(string $name): string
+	private function table(): KeyedTable
 	{
-		return RelationLoader::DATA_DIRECTORY . "/{$name}";
+		return $this->tables->relations();
 	}
 
 	/**

@@ -23,7 +23,7 @@ use Blush\Field\Schema;
  * A Settings screen as a place field sets attach to (D-343):
  * `settings:general`, `settings:reading`, or `settings:search`. Its own
  * fields are its built-in settings (`Setting::field()`); a set's settings
- * are saved in `user/data/settings.json`'s `site` section, which holds
+ * are saved in the `site` group of saved settings (`user/data/settings/site.json`), which holds
  * any value, so it takes every field.
  */
 final readonly class SettingsTarget implements FieldTarget

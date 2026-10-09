@@ -40,7 +40,7 @@ return new ThemeConfig(active: 'acme/notebook');
 ```
 
 A theme activated in the admin's [Themes screen](admin.md#themes) is
-saved in `user/data/settings.json` instead, and wins over
+saved in `user/data/settings/theme.json` instead, and wins over
 `config/theme.php`. `theme:activate` clears that saved theme, so the
 command always takes effect.
 
@@ -57,19 +57,18 @@ theme's provider adds don't take effect until it's activated.
 
 ## Settings
 
-Create `user/data/theme.json` to adjust the active theme without touching
-its files:
+To adjust a theme without touching its files, set the options it offers,
+if any, in its own group of settings, a file named for the theme with
+`__` for its `/`. For `acme/notebook`, `user/data/settings/acme__notebook.json`:
 
 ```json
 {
-	"settings": {
-		"layout": "grid"
-	}
+	"layout": "grid"
 }
 ```
 
-**`settings`** are the options a theme offers, if any. The default theme
-has none.
+Each theme keeps its own, so switching themes and back keeps what you
+set. The default theme has none.
 
 A single entry can change its own look too, with front matter:
 
@@ -99,7 +98,7 @@ aimed at one: `settings:general`, `settings:reading`, or
 ```
 
 The set's fields show as a panel of their own on that screen, and what's
-saved goes in `user/data/settings.json` under `site`. Read them in a
+saved goes in `user/data/settings/site.json`. Read them in a
 template with `$template->site()`:
 
 ```php
@@ -335,7 +334,8 @@ Only `name` is required.
 - **`assets`:** styles and scripts your theme registers by name, which
   pages load only when they ask for them. A theme with a `provider`
   registers them there instead. See [Scripts and styles](#scripts-and-styles).
-- **`settings`:** options site owners set in `user/data/theme.json`. They
+- **`settings`:** options site owners set in your theme's own group of
+  settings (`user/data/settings/{vendor}__{name}.json`). They
   use the same field types as [custom fields](content-types.md#custom-fields).
 - **`menus` and `regions`:** the places your theme shows the site's menus
   and regions. See [Menus and regions](menus.md#for-theme-authors).
