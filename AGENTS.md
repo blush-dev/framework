@@ -130,7 +130,8 @@ for every area, records keyed by id with a fluent query each driver
 compiles (D-606): every area resolves through its driver, the data
 area a `DataStore` (D-642), and the record layer built on files with
 its conformance suite, roles its first table (D-643 to D-647; plan in
-`roadmap.md`); and an id for every media
+`roadmap.md`), then content queries on records and content written by
+id through `Entries` (D-651 to D-654); and an id for every media
 original, with image sizes found by rule and given none
 (D-487), and sizes recorded in their image's details, the library
 listing one item per image (D-488); and Blush's own Markdown API over
@@ -305,7 +306,7 @@ Single test: `vendor/bin/phpunit --filter FrameworkTest`.
   so `Kernel::handle(Request)` works from the web, the CLI, tests, static
   export, and admin preview.
 - **Flat files are the default, not the only option.** Content storage goes
-  through `ContentSource` / `ContentIndex` / `ContentRepository` interfaces.
+  through `ContentSource` / `ContentWriter` / `Entries` interfaces.
 - **The admin shares what repeats** (D-505 to D-509). Before writing
   admin UI, use the shared components (`resources/admin/js/components`),
   classes (`admin.css`), and modules (`resources/admin/js/*.ts`) that

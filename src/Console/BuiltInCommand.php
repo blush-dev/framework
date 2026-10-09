@@ -23,16 +23,11 @@ use Blush\Console\Commands\CheckPlugins;
 use Blush\Console\Commands\CheckSite;
 use Blush\Console\Commands\CheckTheme;
 use Blush\Console\Commands\CreateContent;
-use Blush\Console\Commands\CreateMissingTerms;
 use Blush\Console\Commands\CreatePlugin;
 use Blush\Console\Commands\CreateTheme;
 use Blush\Console\Commands\ExplainView;
 use Blush\Console\Commands\Help;
 use Blush\Console\Commands\MigrateTaxonomies;
-use Blush\Console\Commands\MoveToFolders;
-use Blush\Console\Commands\RenameToPattern;
-use Blush\Console\Commands\FileRefs;
-use Blush\Console\Commands\FixIds;
 use Blush\Console\Commands\FixMediaIds;
 use Blush\Console\Commands\IndexContent;
 use Blush\Console\Commands\IndexMedia;
@@ -84,17 +79,12 @@ enum BuiltInCommand: string
 	case CacheClear    = 'cache:clear';
 	case CacheCompile  = 'cache:compile';
 	case RoutesList    = 'routes:list';
-	case ContentFileNames = 'content:filenames';
-	case ContentFolders = 'content:folders';
-	case ContentIds    = 'content:ids';
 	case ContentIndex  = 'content:index';
 	case ContentLint   = 'content:lint';
 	case ContentList   = 'content:list';
 	case ContentNew    = 'content:new';
 	case ContentPreview = 'content:preview';
-	case ContentRefs   = 'content:refs';
 	case ContentRelation = 'content:relation';
-	case ContentTerms  = 'content:terms';
 	case ContentTaxonomies = 'content:taxonomies';
 	case MediaIds      = 'media:ids';
 	case MediaIndex    = 'media:index';
@@ -149,17 +139,12 @@ enum BuiltInCommand: string
 			self::CacheClear    => CacheClear::class,
 			self::CacheCompile  => CacheCompile::class,
 			self::RoutesList    => RoutesList::class,
-			self::ContentFileNames => RenameToPattern::class,
-			self::ContentFolders => MoveToFolders::class,
-			self::ContentIds    => FixIds::class,
 			self::ContentIndex  => IndexContent::class,
 			self::ContentLint   => LintContent::class,
 			self::ContentList   => ListContent::class,
 			self::ContentNew    => CreateContent::class,
 			self::ContentPreview => PreviewContent::class,
-			self::ContentRefs   => FileRefs::class,
 			self::ContentRelation => ChangeRelation::class,
-			self::ContentTerms  => CreateMissingTerms::class,
 			self::ContentTaxonomies => MigrateTaxonomies::class,
 			self::MediaIds      => FixMediaIds::class,
 			self::MediaIndex    => IndexMedia::class,

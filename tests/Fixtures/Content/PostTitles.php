@@ -16,14 +16,14 @@ namespace Blush\Tests\Fixtures\Content;
 use Override;
 use Blush\Directive\Directive;
 use Blush\Directive\DirectiveKind;
-use Blush\Content\ContentRepository;
+use Blush\Content\Entries;
 use Blush\Content\Entry\Entry;
 
 final class PostTitles extends Directive
 {
 	public const ?DirectiveKind KIND = DirectiveKind::Leaf;
 
-	public function __construct(private readonly ContentRepository $content)
+	public function __construct(private readonly Entries $content)
 	{}
 
 	/**

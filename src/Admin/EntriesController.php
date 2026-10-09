@@ -24,7 +24,7 @@ use Blush\Auth\AuthException;
 use Blush\Auth\Capability;
 use Blush\Auth\ContentAction;
 use Blush\Auth\Permissions;
-use Blush\Content\ContentRepository;
+use Blush\Content\Entries;
 use Blush\Content\Entry\Entry;
 use Blush\Content\Entry\Position;
 use Blush\Content\EntryFields;
@@ -138,7 +138,7 @@ final readonly class EntriesController
 	private const int MAX_DAYS = 36500;
 
 	public function __construct(
-		private ContentRepository $content,
+		private Entries $content,
 		private ContentTypes $types,
 		private EntryHandles $handles,
 		private ContentUrls $urls,

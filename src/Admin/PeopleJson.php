@@ -22,7 +22,7 @@ use Blush\Auth\Permissions;
 use Blush\Auth\Role;
 use Blush\Auth\RoleOrigin;
 use Blush\Auth\Roles;
-use Blush\Content\ContentRepository;
+use Blush\Content\Entries;
 use Blush\Content\Routing\ContentUrls;
 use Blush\Content\Type\ContentTypes;
 
@@ -38,7 +38,7 @@ final readonly class PeopleJson
 		private Permissions $permissions,
 		private Accounts $accounts,
 		private ClockInterface $clock,
-		private ContentRepository $content,
+		private Entries $content,
 		private ContentTypes $types,
 		private EntryHandles $handles,
 		private ContentUrls $urls

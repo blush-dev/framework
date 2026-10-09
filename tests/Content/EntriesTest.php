@@ -17,14 +17,14 @@ use DateTimeImmutable;
 use ReflectionClass;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
-use Blush\Content\ContentRepository;
+use Blush\Content\Entries;
 use Blush\Content\Entry\Body;
 use Blush\Content\Entry\BodySource;
 use Blush\Content\Entry\Entry;
 use Blush\Content\Entry\EntryHydrator;
 use Blush\Content\Index\ContentIndex;
 use Blush\Content\Index\SnapshotRecords;
-use Blush\Content\IndexedRepository;
+use Blush\Content\StoredEntries;
 use Blush\Content\Query\EntryCollection;
 use Blush\Content\Record\QueryCompiler;
 use Blush\Storage\Record\Order;
@@ -34,7 +34,7 @@ use Blush\Content\Query\Selection;
 use Blush\Content\Status;
 use Blush\Content\Visibility;
 
-#[CoversClass(IndexedRepository::class)]
+#[CoversClass(StoredEntries::class)]
 #[CoversClass(QueryCompiler::class)]
 #[CoversClass(SnapshotRecords::class)]
 #[CoversClass(EntryHydrator::class)]
@@ -43,11 +43,11 @@ use Blush\Content\Visibility;
 #[CoversClass(EntryCollection::class)]
 #[CoversClass(Paginator::class)]
 #[CoversClass(Selection::class)]
-final class ContentRepositoryTest extends TestCase
+final class EntriesTest extends TestCase
 {
 	use BuildsContentSite;
 
-	private ContentRepository $content;
+	private Entries $content;
 
 	protected function setUp(): void
 	{
@@ -254,12 +254,12 @@ final class ContentRepositoryTest extends TestCase
 
 	public function testFindsEntriesByIdAndKey(): void
 	{
-		$this->assertSame('Biography', $this->content->findPath('about/biography.md')?->title);
-		$this->assertNull($this->content->findPath('missing.md'));
+		$this->assertSame('Biography', $this->content->named('page', 'about/biography')?->title);
+		$this->assertNull($this->content->named('page', 'missing'));
 
 		$id = self::idFor('about/biography.md');
 
-		$this->assertSame($id, $this->content->findPath('about/biography.md')?->id);
+		$this->assertSame($id, $this->content->named('page', 'about/biography')?->id);
 		$this->assertSame('about/biography.md', $this->content->find($id)?->path, 'By its id (D-477).');
 		$this->assertSame('about/biography.md', $this->content->find(strtoupper($id))?->path, 'In either case.');
 		$this->assertNull($this->content->find('0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e74'));
@@ -293,7 +293,7 @@ final class ContentRepositoryTest extends TestCase
 		$this->assertTrue($entry->isListed());
 		$this->assertSame('_posts/2008-04-05.spring.md', $entry->source->path);
 		$this->assertFalse($this->content->named('post', '')?->isListed());
-		$this->assertFalse($this->content->findPath('_private.md')?->isRoutable());
+		$this->assertFalse($this->content->named('page', '_private')?->isRoutable());
 	}
 
 	public function testBodiesAreReadOnlyWhenUsed(): void
@@ -442,8 +442,6 @@ final class ContentRepositoryTest extends TestCase
 		$this->repository()->query()->get();
 		$this->removeDataTypes();
 
-		$content = $this->repository($this->site());
-
-		$this->assertSame('page', $content->findPath('_posts/2003-04-15.welcome.md')?->type->name);
+		$this->assertSame('page', $this->entryAt('_posts/2003-04-15.welcome.md', $this->site())?->type->name);
 	}
 }

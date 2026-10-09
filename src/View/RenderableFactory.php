@@ -19,8 +19,8 @@ use ReflectionNamedType;
 use TypeError;
 use Blush\Container\Container;
 use Blush\Container\ContainerException;
-use Blush\Content\ContentRepository;
-use Blush\Content\LocalizedRepository;
+use Blush\Content\Entries;
+use Blush\Content\LocalizedEntries;
 
 /**
  * Builds directives and components (anything `Renderable`) with a class
@@ -38,8 +38,8 @@ final readonly class RenderableFactory
 
 	/**
 	 * Builds a directive or component. On a page in another language
-	 * (`$language`, a code; D-458), a `ContentRepository` it asks for is
-	 * one in that language (`LocalizedRepository`), so its queries and
+	 * (`$language`, a code; D-458), a `Entries` it asks for is
+	 * one in that language (`LocalizedEntries`), so its queries and
 	 * lookups find the page's entries.
 	 *
 	 * @template T of Renderable
@@ -58,8 +58,8 @@ final readonly class RenderableFactory
 			$type = $parameter->getType();
 
 			if (! array_key_exists($name, $props)) {
-				if ($language !== '' && $type instanceof ReflectionNamedType && $type->getName() === ContentRepository::class) {
-					$parameters[$name] = new LocalizedRepository($this->container->make(ContentRepository::class), $language);
+				if ($language !== '' && $type instanceof ReflectionNamedType && $type->getName() === Entries::class) {
+					$parameters[$name] = new LocalizedEntries($this->container->make(Entries::class), $language);
 				}
 
 				continue;

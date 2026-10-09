@@ -20,10 +20,11 @@ use Blush\Auth\AccountStore;
 use Blush\Auth\FileAccountStore;
 use Blush\Auth\RecordRoleStore;
 use Blush\Auth\RoleStore;
+use Blush\Console\CommandRegistry;
 use Blush\Content\Source\ContentSource;
 use Blush\Content\Source\FilesystemSource;
 use Blush\Content\Writer\ContentWriter;
-use Blush\Content\Writer\FilesystemWriter;
+use Blush\Content\Writer\FilesystemContentWriter;
 use Blush\Data\DataStore;
 use Blush\Data\FileDataStore;
 use Blush\Job\FileJobStore;
@@ -32,6 +33,7 @@ use Blush\Session\FileSessionStore;
 use Blush\Session\SessionStore;
 use Blush\Storage\FilesystemStorage;
 use Blush\Storage\Storage;
+use Blush\Storage\StorageArea;
 use Blush\Storage\StorageConfig;
 use Blush\Storage\StorageDriver;
 use Blush\Storage\StorageDriverFactory;
@@ -57,7 +59,7 @@ final class StorageTest extends TestCase
 
 		$this->assertSame('filesystem', $container->make(StorageConfig::class)->driver);
 		$this->assertInstanceOf(FilesystemSource::class, $container->make(ContentSource::class));
-		$this->assertInstanceOf(FilesystemWriter::class, $container->make(ContentWriter::class));
+		$this->assertInstanceOf(FilesystemContentWriter::class, $container->make(ContentWriter::class));
 		$this->assertInstanceOf(FileDataStore::class, $container->make(DataStore::class));
 		$this->assertInstanceOf(FileAccountStore::class, $container->make(AccountStore::class));
 		$this->assertInstanceOf(RecordRoleStore::class, $container->make(RoleStore::class));
@@ -83,6 +85,24 @@ final class StorageTest extends TestCase
 
 		$this->assertInstanceOf(TestSessions::class, $container->make(SessionStore::class));
 		$this->assertInstanceOf(FileAccountStore::class, $container->make(AccountStore::class), 'Other areas keep the default.');
+	}
+
+	public function testADriversOwnToolsComeWithIt(): void
+	{
+		$container = $this->scratchApplication()->container();
+
+		$this->assertTrue($container->make(CommandRegistry::class)->has('content:ids'), 'Content kept as files has its tools (D-654).');
+
+		$this->writeTemporaryFile('config/storage.php', "<?php\nreturn new Blush\\Storage\\StorageConfig(areas: ['content' => 'memory']);\n");
+
+		$container = $this->scratchApplication()->container();
+		$container->make(StorageDriverRegistry::class)->register('memory', SessionsOnly::class);
+
+		$registry = $container->make(CommandRegistry::class);
+
+		$this->assertFalse($registry->has('content:ids'), 'Content kept elsewhere doesn\'t.');
+		$this->assertFalse($registry->has('content:filenames'));
+		$this->assertTrue($registry->has('content:lint'), 'Built-in commands stay.');
 	}
 
 	public function testADriverWithoutAContractFails(): void
@@ -136,6 +156,12 @@ final readonly class SessionsOnly implements Storage
 	public function bindings(): array
 	{
 		return [SessionStore::class => TestSessions::class];
+	}
+
+	#[Override]
+	public function commands(StorageArea $area): array
+	{
+		return [];
 	}
 }
 

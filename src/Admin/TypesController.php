@@ -17,8 +17,7 @@ use Psr\Http\Message\ResponseInterface;
 use Blush\Content\Http\RelatedController;
 use Blush\Content\Relation\Relation;
 use Blush\Content\ContentConfig;
-use Blush\Content\Source\ContentSource;
-use Blush\Content\Source\UnreadableSource;
+use Blush\Content\Entries;
 use Blush\Content\Type\Collection;
 use Blush\Content\Type\ContentType;
 use Blush\Content\Type\ContentTypes;
@@ -27,7 +26,6 @@ use Blush\Content\Type\InvalidContentType;
 use Blush\Content\Type\TypeOrigin;
 use Blush\Content\Type\TypeRouteKeys;
 use Blush\Content\Type\TypeUrls;
-use Blush\Content\Writer\ContentWriter;
 use Blush\Content\Writer\WriteException;
 use Blush\Feed\FeedConfig;
 use Blush\Feed\FeedFormat;
@@ -37,7 +35,6 @@ use Blush\Field\Field;
 use Blush\Field\FieldSet;
 use Blush\Http\Response;
 use Blush\Http\Status;
-use Blush\Support\Uuid;
 
 /**
  * Answers `GET {path}/api/types` (D-233, D-234): the site's content types, so
@@ -93,8 +90,7 @@ final readonly class TypesController
 		private ContentTypes $types,
 		private ContentConfig $config,
 		private DataTypeWriter $writer,
-		private ContentSource $source,
-		private ContentWriter $content,
+		private Entries $content,
 		private FeedConfig $feeds
 	) {}
 
@@ -248,8 +244,7 @@ final readonly class TypesController
 	}
 
 	/**
-	 * A collection's or taxonomy's index page (D-255), found in the source
-	 * so a type just created has one: the `index` page in its folder.
+	 * A collection's or tree's index page (D-255): its landing page.
 	 *
 	 * @return ?array{id: ?string, type: string, path: string, title: string}
 	 */
@@ -259,10 +254,10 @@ final readonly class TypesController
 	}
 
 	/**
-	 * A page a type keeps at a key in its folder, found in the source
-	 * (not the index, which may not have it yet): `{"id", "type", "path",
+	 * A page a type keeps at a key (`index` for its landing page), as
+	 * it's stored, so a type just created has it: `{"id", "type", "path",
 	 * "title"}` (`id` is `null` until it has one), titled with its own
-	 * `title` or the fallback, or `null`.
+	 * title or the fallback, or `null`.
 	 *
 	 * @return ?array{id: ?string, type: string, path: string, title: string}
 	 */
@@ -273,35 +268,19 @@ final readonly class TypesController
 		}
 
 		try {
-			$path = $this->content->pathAt($type, $key);
-			$head = $this->source->stat($path) === null ? null : substr($this->source->read($path), 0, 4096);
-		} catch (WriteException | UnreadableSource) {
+			$page = $this->content->editableAt($type, $key);
+		} catch (WriteException) {
 			return null;
 		}
 
-		if ($head === null) {
-			return null;
-		}
+		$title = $page?->frontMatter['title'] ?? null;
 
-		return ['id' => self::id($head), 'type' => $type->name, 'path' => $path, 'title' => self::title($head) ?? $fallback];
-	}
-
-	/**
-	 * The `title` in a document's front matter, if it's on a line of its
-	 * own.
-	 */
-	private static function title(string $head): ?string
-	{
-		return preg_match('/^title:\s*["\']?(.+?)["\']?\s*$/m', $head, $match) === 1 ? $match[1] : null;
-	}
-
-	/**
-	 * The `id` in a document's front matter (D-477), read the way its
-	 * title is, since a page just written may not be in the index yet.
-	 */
-	private static function id(string $head): ?string
-	{
-		return preg_match('/^id\s*:\s*["\']?([0-9a-fA-F-]{36})["\']?\s*$/m', $head, $match) === 1 && Uuid::isValid($match[1]) ? strtolower($match[1]) : null;
+		return $page === null ? null : [
+			'id'    => $page->id === '' ? null : $page->id,
+			'type'  => $type->name,
+			'path'  => $page->path ?? '',
+			'title' => is_string($title) && $title !== '' ? $title : $fallback
+		];
 	}
 
 	/**

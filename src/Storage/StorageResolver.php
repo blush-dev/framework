@@ -61,6 +61,17 @@ final class StorageResolver
 	}
 
 	/**
+	 * Returns the commands the driver an area uses offers for it.
+	 *
+	 * @return list<class-string>
+	 * @throws StorageException When the driver is unknown.
+	 */
+	public function commands(StorageArea $area): array
+	{
+		return $this->driver($this->config->driverFor($area))->commands($area);
+	}
+
+	/**
 	 * Returns a driver by name, built once.
 	 *
 	 * @throws StorageException

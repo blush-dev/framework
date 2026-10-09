@@ -72,13 +72,13 @@ use Blush\Storage\StorageArea;
 
 /**
  * Binds the content layer: field types, content types, the document
- * parser, the storage, the index, and the repository. Everything is built
+ * parser, the storage, the index, and the entries (`Entries`, D-654). Everything is built
  * on first use. The field and storage driver registries start with the
  * built-ins; an extension adds to them in a `resolving()` callback, and
  * adds content types by tagging a `ContentTypeSource` with
  * `ContentTypeSource::TAG`. The source and writer come from the storage
- * driver `StorageConfig` names for content (D-485, D-486); they, the index, and the
- * repository are defaults an extension can replace by binding its own
+ * driver `StorageConfig` names for content (D-485, D-486); they, the index, and
+ * `Entries` are defaults an extension can replace by binding its own
  * (D-003).
  */
 final class ContentServiceProvider extends ServiceProvider
@@ -107,10 +107,10 @@ final class ContentServiceProvider extends ServiceProvider
 	 * @inheritDoc
 	 */
 	protected const array SINGLETONS_IF = [
-		ContentIndex::class      => PhpIndex::class,
-		ContentRepository::class => IndexedRepository::class,
-		MentionResolver::class   => ProfileMentions::class,
-		YamlParser::class        => SymfonyYamlParser::class
+		ContentIndex::class    => PhpIndex::class,
+		Entries::class         => StoredEntries::class,
+		MentionResolver::class => ProfileMentions::class,
+		YamlParser::class      => SymfonyYamlParser::class
 	];
 
 	/**

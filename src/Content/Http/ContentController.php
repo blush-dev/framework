@@ -16,7 +16,7 @@ namespace Blush\Content\Http;
 use Closure;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
-use Blush\Content\ContentRepository;
+use Blush\Content\Entries;
 use Blush\Content\Entry\Entry;
 use Blush\Content\Query\InvalidQuery;
 use Blush\Content\Query\Paginator;
@@ -51,7 +51,7 @@ use Blush\Http\Status;
 abstract class ContentController
 {
 	public function __construct(
-		protected readonly ContentRepository $content,
+		protected readonly Entries $content,
 		protected readonly ContentTypes $types,
 		protected readonly ContentUrls $urls,
 		protected readonly PageRenderer $renderer

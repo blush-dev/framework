@@ -15,13 +15,13 @@ namespace Blush\Content\Relation;
 
 use Closure;
 use Psr\Clock\ClockInterface;
-use Blush\Content\ContentRepository;
+use Blush\Content\Entries;
 use Blush\Content\Entry\Entry;
-use Blush\Content\Index\ContentIndex;
+use Blush\Content\Record\EntryRecords;
+use Blush\Content\Record\EntryTable;
 use Blush\Content\Status;
 use Blush\Content\Type\ContentTypes;
 use Blush\Content\Type\Tree;
-use Blush\Content\Writer\ContentWriter;
 use Blush\Content\Writer\EntryChanges;
 use Blush\Content\Writer\WriteException;
 
@@ -32,15 +32,17 @@ use Blush\Content\Writer\WriteException;
  *
  * Every relation counts but a translation's link to its original, and a
  * tree page's parent, which is its folder. Links are read from the
- * index, in every status, to the entry's original.
+ * records (`EntryLinks`, D-654), in every status, to the entry's
+ * original.
  */
 final readonly class Referrers
 {
 	public function __construct(
-		private ContentIndex $index,
-		private ContentRepository $content,
+		private EntryLinks $links,
+		private EntryTargets $targets,
+		private EntryRecords $records,
+		private Entries $content,
 		private Relations $relations,
-		private ContentWriter $writer,
 		private ContentTypes $types,
 		private ClockInterface $clock
 	) {}
@@ -71,8 +73,8 @@ final readonly class Referrers
 			$source   = $this->content->find($link->source);
 
 			if ($relation !== null && $source !== null) {
-				$found[$source->path] ??= ['entry' => $source, 'relations' => []];
-				$found[$source->path]['relations'][$relation->name] = $relation;
+				$found[$link->source] ??= ['entry' => $source, 'relations' => []];
+				$found[$link->source]['relations'][$relation->name] = $relation;
 			}
 		}
 
@@ -90,7 +92,6 @@ final readonly class Referrers
 	 */
 	public function soleCredits(Entry $entry): int
 	{
-		$graph = $this->index->snapshot()->graph();
 		$count = 0;
 
 		foreach ($this->sources($entry) as ['entry' => $source, 'relations' => $relations]) {
@@ -101,7 +102,7 @@ final readonly class Referrers
 				&& $source->id !== null
 				&& $source->isPublished()
 				&& array_any($relations, static fn (Relation $relation): bool => $relation->name === $byline->name)
-				&& count($graph->targets($source->id, $byline->name)) === 1
+				&& count($this->links->targets($source->id, $byline->name)) === 1
 			) {
 				$count++;
 			}
@@ -119,26 +120,22 @@ final readonly class Referrers
 	 */
 	public function linkedIn(string $type): array
 	{
-		$snapshot = $this->index->snapshot();
-		$now      = $this->clock->now()->getTimestamp();
-		$tree     = $this->types->find($type) instanceof Tree;
-		$live     = [];
-		$sources  = [];
+		$now     = EntryTable::time($this->clock->now()->getTimestamp());
+		$tree    = $this->types->find($type) instanceof Tree;
+		$links   = array_filter($this->links->all(), static fn (Link $link): bool => $link->targetType === $type);
+		$records = $this->records->findMany(array_values(array_unique(array_map(static fn (Link $link): string => $link->source, $links))));
+		$sources = [];
 
-		foreach ($snapshot->graph()->all() as $link) {
-			if ($link->targetType !== $type) {
-				continue;
-			}
-
+		foreach ($links as $link) {
 			$relation = $this->relations->find($link->type, $link->relation);
+			$source   = $records[$link->source] ?? null;
 
-			if ($relation === null || $relation->kind === RelationKind::Translation || ($tree && $relation->kind === RelationKind::Parent)) {
+			if ($source === null || $relation === null || $relation->kind === RelationKind::Translation || ($tree && $relation->kind === RelationKind::Parent)) {
 				continue;
 			}
 
-			$live[$link->source] ??= $snapshot->record((string) $snapshot->path($link->source))?->statusAt($now) === Status::Published;
-
-			if ($live[$link->source]) {
+			// Live: published, and not still to come.
+			if (EntryRecords::text($source, 'status') === Status::Published->value && EntryRecords::text($source, 'published') <= $now) {
 				$sources[$link->target][$link->source] = true;
 			}
 		}
@@ -164,7 +161,7 @@ final readonly class Referrers
 
 			if ($relation !== null && $source !== null) {
 				$groups[$key] ??= ['key' => $key, 'type' => $link->type, 'relation' => $relation, 'entries' => []];
-				$groups[$key]['entries'][$source->path] = $source;
+				$groups[$key]['entries'][$link->source] = $source;
 			}
 		}
 
@@ -194,8 +191,8 @@ final readonly class Referrers
 	 * Removes an entry from the files linking to it, in both forms (D-589),
 	 * or only from those `$allowed` passes (by entry), such as the ones an
 	 * account may edit: a value naming it goes, and a relation left with
-	 * none is removed. Returns the paths changed, and why each file it
-	 * couldn't change was left.
+	 * none is removed. Returns the ids of the entries changed, and why each
+	 * it couldn't change was left, by id.
 	 *
 	 * @param  ?Closure(Entry): bool $allowed
 	 * @return array{list<string>, array<string, string>}
@@ -203,8 +200,7 @@ final readonly class Referrers
 	public function unlink(Entry $entry, ?Closure $allowed = null): array
 	{
 		$target  = $this->target($entry);
-		$targets = new SnapshotTargets($this->index->snapshot());
-		$written = $target === null ? null : $targets->written($target);
+		$written = $target === null ? null : $this->targets->written($target);
 		$changed = [];
 		$failed  = [];
 		$bySource = [];
@@ -221,15 +217,15 @@ final readonly class Referrers
 			}
 
 			try {
-				$front   = $this->writer->load($referrer->path)->frontMatter;
+				$front   = $this->content->editable($referrer)->frontMatter;
 				$changes = self::without($front, $byType, $this->relations, (string) $target, $written);
 
 				if (! $changes->isEmpty()) {
-					$this->writer->update($referrer->path, $changes);
-					$changed[] = $referrer->path;
+					$this->content->change($referrer, $changes);
+					$changed[] = (string) $source;
 				}
 			} catch (WriteException $e) {
-				$failed[$referrer->path] = $e->getMessage();
+				$failed[(string) $source] = $e->getMessage();
 			}
 		}
 
@@ -306,7 +302,7 @@ final readonly class Referrers
 		$tree = $entry->type instanceof Tree;
 
 		return array_values(array_filter(
-			$this->index->snapshot()->graph()->linksTo($target),
+			$this->links->linksTo($target),
 			fn (Link $link): bool => ($relation = $this->relations->find($link->type, $link->relation)) !== null
 				&& $relation->kind !== RelationKind::Translation
 				&& ! ($tree && $relation->kind === RelationKind::Parent)
@@ -319,6 +315,6 @@ final readonly class Referrers
 	 */
 	private function target(Entry $entry): ?string
 	{
-		return $entry->id === null ? null : new SnapshotTargets($this->index->snapshot())->original($entry->id) ?? $entry->id;
+		return $entry->id === null ? null : $this->targets->original($entry->id) ?? $entry->id;
 	}
 }

@@ -18,7 +18,6 @@ use Psr\Clock\ClockInterface;
 use Blush\Content\Index\ContentIndex;
 use Blush\Content\Index\Indexer;
 use Blush\Content\Type\ContentTypes;
-use Blush\Content\Writer\ContentWriter;
 use Blush\Content\Writer\EntryChanges;
 use Blush\Content\Writer\WriteException;
 use Blush\Core\AppConfig;
@@ -39,7 +38,7 @@ final readonly class MissingTerms
 		private ContentIndex $index,
 		private Indexer $indexer,
 		private ContentTypes $types,
-		private ContentWriter $writer,
+		private Entries $content,
 		private ClockInterface $clock,
 		private AppConfig $app
 	) {}
@@ -119,10 +118,10 @@ final readonly class MissingTerms
 				}
 
 				try {
-					$created["{$name}/{$slug}"] = $this->writer->create($type, $slug, new EntryChanges(set: [
+					$created["{$name}/{$slug}"] = $this->content->create($type, $slug, new EntryChanges(set: [
 						'title'     => $title,
 						'published' => $now->format('Y-m-d H:i:s P')
-					]), $now)->path;
+					]), null, $now)->path;
 				} catch (WriteException $e) {
 					$failed["{$name}/{$slug}"] = $e->getMessage();
 				}

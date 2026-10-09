@@ -14,7 +14,7 @@ declare(strict_types=1);
 namespace Blush\Content\Routing;
 
 use Override;
-use Blush\Content\ContentRepository;
+use Blush\Content\Entries;
 use Blush\Content\Entry\Entry;
 use Blush\Content\ProfileList;
 use Blush\Content\RelationArchives;
@@ -54,7 +54,7 @@ final readonly class ContentSiteUrls implements UrlSource
 	private const array PARTS = ['year' => 'Y', 'month' => 'n', 'day' => 'j', 'hour' => 'G', 'minute' => 'i', 'second' => 's'];
 
 	public function __construct(
-		private ContentRepository $content,
+		private Entries $content,
 		private ContentTypes $types,
 		private ContentUrls $urls,
 		private ProfileList $profileList,

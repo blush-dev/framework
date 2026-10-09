@@ -15,7 +15,7 @@ namespace Blush\Content\Routing;
 
 use Closure;
 use Blush\Container\Attributes\Defer;
-use Blush\Content\ContentRepository;
+use Blush\Content\Entries;
 use Blush\Content\Entry\Entry;
 use Blush\Content\Relation\Relation;
 use Blush\Content\Type\Collection;
@@ -106,13 +106,13 @@ final readonly class ContentUrls
 	];
 
 	/**
-	 * @param Closure(): ContentRepository $content Deferred: only terms' paths need it.
+	 * @param Closure(): Entries $content Deferred: only terms' paths need it.
 	 */
 	public function __construct(
 		private ContentTypes $types,
 		private RouteConfig $routes,
 		private AppConfig $app,
-		#[Defer(ContentRepository::class)] private Closure $content
+		#[Defer(Entries::class)] private Closure $content
 	) {}
 
 	/**

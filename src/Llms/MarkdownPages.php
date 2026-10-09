@@ -14,7 +14,7 @@ declare(strict_types=1);
 namespace Blush\Llms;
 
 use DateTimeInterface;
-use Blush\Content\ContentRepository;
+use Blush\Content\Entries;
 use Blush\Content\Entry\Entry;
 use Blush\Content\Routing\ContentUrls;
 use Blush\Content\Status;
@@ -42,7 +42,7 @@ final readonly class MarkdownPages
 	public const string MEDIA_TYPE = 'text/markdown';
 
 	public function __construct(
-		private ContentRepository $content,
+		private Entries $content,
 		private ContentUrls $urls,
 		private ContentTypes $types,
 		private LlmsConfig $config,

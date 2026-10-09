@@ -19,7 +19,7 @@ use Blush\Content\Index\Indexer;
 use Blush\Content\Relation\LinkBuilder;
 use Blush\Content\Relation\Relations;
 use Blush\Content\Type\ContentTypes;
-use Blush\Content\Writer\ContentWriter;
+use Blush\Content\Writer\FilesystemWriter;
 use Blush\Content\Writer\FiledRefs;
 
 /**
@@ -39,7 +39,7 @@ final readonly class EntryRefs
 		private Indexer $indexer,
 		private Relations $relations,
 		private ContentTypes $types,
-		private ContentWriter $writer
+		private FilesystemWriter $writer
 	) {}
 
 	/**

@@ -15,7 +15,7 @@ namespace Blush\Tests\Content\Routing;
 
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
-use Blush\Content\ContentRepository;
+use Blush\Content\Entries;
 use Blush\Content\Entry\Entry;
 use Blush\Content\Routing\ContentUrls;
 use Blush\Content\Type\ContentType;
@@ -36,10 +36,10 @@ final class ContentUrlsTest extends TestCase
 		$this->entry('_posts/2019/nested.md', "title: Nested\npublished: 2019-01-01");
 
 		$app     = $this->site();
-		$content = $app->container()->make(ContentRepository::class);
+		$content = $app->container()->make(Entries::class);
 		$urls    = $app->container()->make(ContentUrls::class);
 		$types   = $app->container()->make(ContentTypes::class);
-		$entry   = static fn (string $path): Entry => $content->findPath($path) ?? self::fail("No entry {$path}.");
+		$entry   = fn (string $path): Entry => $this->entryAt($path, $app) ?? self::fail("No entry {$path}.");
 
 		$this->assertSame('/archives/welcome', $urls->entry($entry('_posts/2003-04-15.welcome.md')));
 		$this->assertSame('/archives/hello', $urls->entry($entry('_posts/hello/index.md')));
@@ -74,7 +74,7 @@ final class ContentUrlsTest extends TestCase
 		$this->standardContent();
 
 		$app  = $this->site();
-		$urls = new ContentUrls($app->container()->make(ContentTypes::class), new RouteConfig(trailingSlash: true), new AppConfig(url: 'https://example.com:8443/sub'), static fn (): ContentRepository => $app->container()->make(ContentRepository::class));
+		$urls = new ContentUrls($app->container()->make(ContentTypes::class), new RouteConfig(trailingSlash: true), new AppConfig(url: 'https://example.com:8443/sub'), static fn (): Entries => $app->container()->make(Entries::class));
 
 		$this->assertSame('/topics/art/', $urls->term($app->container()->make(ContentTypes::class)->get('category'), 'art'));
 		$this->assertSame('https://example.com:8443/topics', $urls->absolute('topics'));

@@ -15,7 +15,7 @@ namespace Blush\Tests\Content;
 
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
-use Blush\Content\ContentRepository;
+use Blush\Content\Entries;
 use Blush\Content\CreatedTerms;
 use Blush\Content\MissingTerms;
 
@@ -48,7 +48,7 @@ final class MissingTermsTest extends TestCase
 		$this->assertSame([], $created->failed);
 		$this->assertMatchesRegularExpression('/\A---\ntitle: "Lost Cause"\npublished: 2026-06-01 12:00:00 -05:00\nid: [0-9a-f-]{36}\n---\n/', (string) file_get_contents($this->temporaryDirectory() . '/user/content/topics/lost-cause.md'));
 
-		$content = $app->container()->make(ContentRepository::class);
+		$content = $app->container()->make(Entries::class);
 
 		$this->assertSame('Lost Cause', $content->term('category', 'lost-cause')?->title);
 		$this->assertTrue($content->term('profile', 'nobody')?->isPublished());

@@ -17,7 +17,7 @@ use Closure;
 use Blush\Content\Index\ContentIndex;
 use Blush\Content\Index\Indexer;
 use Blush\Content\Writer\AssignedIds;
-use Blush\Content\Writer\ContentWriter;
+use Blush\Content\Writer\FilesystemWriter;
 use Blush\Content\Writer\WriteException;
 
 /**
@@ -38,7 +38,7 @@ final readonly class EntryIds
 	public function __construct(
 		private ContentIndex $index,
 		private Indexer $indexer,
-		private ContentWriter $writer
+		private FilesystemWriter $writer
 	) {}
 
 	/**

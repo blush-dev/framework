@@ -15,7 +15,7 @@ namespace Blush\Feed;
 
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
-use Blush\Content\ContentRepository;
+use Blush\Content\Entries;
 use Blush\Content\Query\InvalidQuery;
 use Blush\Content\Type\ContentTypes;
 use Blush\Content\Type\Profiles;
@@ -39,7 +39,7 @@ final readonly class FeedController
 {
 	public function __construct(
 		private FeedBuilder $builder,
-		private ContentRepository $content,
+		private Entries $content,
 		private ContentTypes $types,
 		private FeedConfig $config,
 		private DocumentRenderer $documents

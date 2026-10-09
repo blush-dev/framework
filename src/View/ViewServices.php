@@ -16,7 +16,7 @@ namespace Blush\View;
 use Blush\Asset\AssetCollector;
 use Blush\Asset\Assets;
 use Blush\Cache\ContentCache;
-use Blush\Content\ContentRepository;
+use Blush\Content\Entries;
 use Blush\Content\Relation\EntryRelations;
 use Blush\Content\Routing\ContentUrls;
 use Blush\Content\Type\ContentTypes;
@@ -43,7 +43,7 @@ final readonly class ViewServices
 {
 	public function __construct(
 		public ContentUrls $urls,
-		public ContentRepository $content,
+		public Entries $content,
 		public ContentTypes $types,
 		public UrlGenerator $router,
 		public AppConfig $app,

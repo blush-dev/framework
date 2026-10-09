@@ -26,7 +26,7 @@ use Blush\Content\Type\ContentType;
  */
 final readonly class RelationArchives
 {
-	public function __construct(private ContentRepository $content)
+	public function __construct(private Entries $content)
 	{}
 
 	/**

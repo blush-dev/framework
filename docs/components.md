@@ -113,12 +113,12 @@ declare(strict_types=1);
 namespace Acme\Archives\View;
 
 use Blush\Component\Component;
-use Blush\Content\ContentRepository;
+use Blush\Content\Entries;
 
 final class PostArchives extends Component
 {
 	public function __construct(
-		private readonly ContentRepository $content,
+		private readonly Entries $content,
 		public readonly string $by = 'year'
 	) {}
 
@@ -150,13 +150,13 @@ A theme's template for it is `views/components/archives-post-archives.php`,
 found by its name like any other.
 
 - **Props fill its constructor's parameters by name**, public or not;
-  Blush fills the rest (such as the `ContentRepository`). Make a prop a
+  Blush fills the rest (such as `Entries`). Make a prop a
   public property (`public readonly string $by`) when the template
   reads it: `$component->by`. Don't give a prop the name of a service
   parameter, since a prop with that name would be passed instead. A
   prop given as a string is converted to the type you declare (an
   `int`, `float`, `bool`, or backed enum).
-- **The `ContentRepository` follows the page's language**, so on a
+- **`Entries` follows the page's language**, so on a
   [translated](content.md#translations) page it finds that language's
   entries.
 - **`render()`** is optional: the component's own markup, used only when

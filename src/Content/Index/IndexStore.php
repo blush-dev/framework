@@ -25,13 +25,18 @@ use Blush\Content\Type\ContentTypes;
 use Blush\Content\Type\Tree;
 use Blush\Content\Writer\ContentWriter;
 use Blush\Content\Writer\EntryChanges;
+use Blush\Content\Writer\FilesystemWriter;
 use Blush\Content\Writer\WriteConflict;
 use Blush\Content\Writer\WriteException;
 use Blush\Core\AppConfig;
 use Blush\Storage\File\FileTransactions;
 use Blush\Storage\Record\Aggregate;
 use Blush\Storage\Record\ArrayEvaluator;
+use Blush\Storage\Record\Condition;
+use Blush\Storage\Record\ConditionGroup;
 use Blush\Storage\Record\InvalidRecord;
+use Blush\Storage\Record\Junction;
+use Blush\Storage\Record\Operator;
 use Blush\Storage\Record\Record;
 use Blush\Storage\Record\RecordConflict;
 use Blush\Storage\Record\RecordQuery;
@@ -39,6 +44,8 @@ use Blush\Storage\Record\RecordResult;
 use Blush\Storage\Record\RecordStore;
 use Blush\Storage\Record\RecordStoreFailure;
 use Blush\Storage\Record\Ref;
+use Blush\Storage\Record\Related;
+use Blush\Storage\Record\Subquery;
 use Blush\Storage\Record\Table;
 use Blush\Storage\StorageArea;
 use Blush\Storage\StorageException;
@@ -52,7 +59,7 @@ use Blush\Storage\StorageException;
  * stored (`SnapshotRecords`), so nothing is built for an entry a query
  * doesn't find; a record found carries its Markdown, read from its file,
  * unless the query leaves content out. An entry's version is its file's
- * hash, the writer's revision.
+ * hash.
  *
  * **Writing an entry** compares the record with the stored one and does
  * what files need, through the content writer, so every file convention
@@ -79,7 +86,19 @@ final readonly class IndexStore implements RecordStore
 	private const array FRONT_MATTER = ['title', 'visibility', 'position'];
 
 	/**
-	 * @param Closure(): ContentWriter $writer
+	 * The keys whose rows the index looks up for a query, by table, most
+	 * narrowing first.
+	 *
+	 * @var array<string, list<string>>
+	 */
+	private const array LOOKUPS = [
+		EntryTable::TABLE => ['id', 'parent_id', 'original_id'],
+		Ref::TABLE        => ['source_id', 'target_id']
+	];
+
+	/**
+	 * @param Closure(): ContentWriter    $writer
+	 * @param Closure(): FilesystemWriter $files
 	 */
 	public function __construct(
 		private IndexFreshness $index,
@@ -87,6 +106,7 @@ final readonly class IndexStore implements RecordStore
 		private AppConfig $app,
 		private FileTransactions $transactions,
 		#[Defer(ContentWriter::class)] private Closure $writer,
+		#[Defer(FilesystemWriter::class)] private Closure $files,
 		private ArrayEvaluator $evaluator = new ArrayEvaluator()
 	) {}
 
@@ -145,7 +165,7 @@ final readonly class IndexStore implements RecordStore
 	#[Override]
 	public function select(Table $table, RecordQuery $query): RecordResult
 	{
-		$found = $this->evaluator->select($table, $query, $this->rows(...), $this->refs(...));
+		$found = $this->evaluator->select($table, $query, $this->rowsFor($table, $query), $this->refs(...));
 
 		if (! $query->content || $table->name !== EntryTable::TABLE) {
 			return $found;
@@ -164,7 +184,7 @@ final readonly class IndexStore implements RecordStore
 	#[Override]
 	public function count(Table $table, RecordQuery $query): int
 	{
-		return $this->evaluator->count($table, $query, $this->rows(...), $this->refs(...));
+		return $this->evaluator->count($table, $query, $this->rowsFor($table, $query), $this->refs(...));
 	}
 
 	/**
@@ -173,7 +193,7 @@ final readonly class IndexStore implements RecordStore
 	#[Override]
 	public function countBy(Table $table, RecordQuery $query, string $key): array
 	{
-		return $this->evaluator->countBy($table, $query, $key, $this->rows(...), $this->refs(...));
+		return $this->evaluator->countBy($table, $query, $key, $this->rowsFor($table, $query), $this->refs(...));
 	}
 
 	/**
@@ -182,7 +202,7 @@ final readonly class IndexStore implements RecordStore
 	#[Override]
 	public function aggregate(Table $table, RecordQuery $query, Aggregate $function, string $key): int|float|string|bool|null
 	{
-		return $this->evaluator->aggregate($table, $query, $function, $key, $this->rows(...), $this->refs(...));
+		return $this->evaluator->aggregate($table, $query, $function, $key, $this->rowsFor($table, $query), $this->refs(...));
 	}
 
 	/**
@@ -228,7 +248,7 @@ final readonly class IndexStore implements RecordStore
 			}
 
 			try {
-				($this->writer)()->delete($this->path($stored['id']), $stored['version'] ?? null);
+				($this->writer)()->delete($stored['id'], $stored['version'] ?? null);
 			} catch (WriteConflict $error) {
 				throw new RecordConflict($error->getMessage(), previous: $error);
 			} catch (WriteException $error) {
@@ -265,6 +285,56 @@ final readonly class IndexStore implements RecordStore
 	}
 
 	/**
+	 * A table's rows for a query, for the evaluator: when every condition
+	 * must hold, none is a subquery or a related one, and one asks for an
+	 * id or a looked-up column to be (`=`) or be among (`in`) some values,
+	 * only the rows with those values, found in the index's lookups
+	 * (`SnapshotRecords::rowsWhere()`), which the evaluator still checks
+	 * against every condition; else every row.
+	 *
+	 * @return Closure(Table): list<Row>
+	 */
+	private function rowsFor(Table $table, RecordQuery $query): Closure
+	{
+		$narrowed = $this->narrowed($table, $query->conditions);
+
+		return fn (Table $of): array => $narrowed !== null && $of->name === $table->name && $of->area === $table->area ? $narrowed : $this->rows($of);
+	}
+
+	/**
+	 * The rows a query's own condition narrows a table to, or `null`.
+	 *
+	 * @return ?list<Row>
+	 */
+	private function narrowed(Table $table, ConditionGroup $conditions): ?array
+	{
+		if ($conditions->junction !== Junction::All || self::nests($conditions)) {
+			return null;
+		}
+
+		foreach (self::LOOKUPS[$table->name] ?? [] as $key) {
+			foreach ($conditions->conditions as $condition) {
+				if ($condition instanceof Condition && $condition->key === $key && ($condition->operator === Operator::Equal || $condition->operator === Operator::In)) {
+					$values = $condition->operator === Operator::Equal ? [$condition->value] : $condition->value;
+
+					return is_array($values) ? $this->records()->rowsWhere($table->name, $key, array_values($values)) : null;
+				}
+			}
+		}
+
+		return null;
+	}
+
+	/**
+	 * Whether a group holds a subquery, a related condition, or a group,
+	 * any of which may read the same table.
+	 */
+	private static function nests(ConditionGroup $conditions): bool
+	{
+		return array_any($conditions->conditions, static fn (Condition|ConditionGroup|Related $condition): bool => ! $condition instanceof Condition || $condition->value instanceof Subquery);
+	}
+
+	/**
 	 * Refs looked up, for related conditions: the index's, built once a
 	 * request.
 	 *
@@ -296,27 +366,18 @@ final readonly class IndexStore implements RecordStore
 	}
 
 	/**
-	 * An entry's Markdown, from its file.
+	 * An entry's Markdown, from its file (an entry without an id's
+	 * too, by the steady one its path gives it).
 	 */
 	private function content(string $id): ?string
 	{
 		$path = $this->records()->path($id);
 
 		try {
-			return $path === null ? null : ($this->writer)()->load($path)->body;
+			return $path === null ? null : ($this->files)()->load($path)->body;
 		} catch (WriteException) {
 			return null;
 		}
-	}
-
-	/**
-	 * An entry's path, by id.
-	 *
-	 * @throws RecordStoreFailure When the index has none.
-	 */
-	private function path(string $id): string
-	{
-		return $this->records()->path($id) ?? throw new RecordStoreFailure(sprintf('The index has no file for the entry %s.', $id));
 	}
 
 	/**
@@ -348,17 +409,18 @@ final readonly class IndexStore implements RecordStore
 		$writer  = ($this->writer)();
 
 		match (true) {
-			$parent !== null && $type instanceof Tree => $writer->createUnder($this->path($parent), $slug, $changes),
+			$parent !== null && $type instanceof Tree => $writer->create($type, $slug, $changes, $parent),
 			$parent !== null                          => throw new InvalidRecord(sprintf('On files, only a tree\'s pages have a parent by place; %s name theirs in front matter.', $type->labels->plural)),
 			$slug === ''                              => $writer->createAt($type, 'index', $changes),
-			default                                   => $writer->create($type, $slug, $changes, self::date($fields['published'] ?? null))
+			default                                   => $writer->create($type, $slug, $changes, null, self::date($fields['published'] ?? null))
 		};
 	}
 
 	/**
 	 * Writes what changed in an entry: front matter (and its Markdown),
-	 * then its trash status, its slug, and its parent, each with the
-	 * revision the last left.
+	 * then its trash status, its slug, and its parent. The version was
+	 * checked first, in the transaction, so only the first write checks
+	 * it again.
 	 *
 	 * @param  Row $stored
 	 * @throws InvalidRecord|WriteConflict|WriteException
@@ -374,24 +436,24 @@ final readonly class IndexStore implements RecordStore
 			}
 		}
 
-		$writer   = ($this->writer)();
-		$path     = $this->path($stored['id']);
-		$revision = $stored['version'] ?? null;
-		$changes  = $this->changes($old, $new, $record->content === null ? null : [$record->content, $this->content($stored['id'])]);
+		$writer  = ($this->writer)();
+		$id      = $stored['id'];
+		$version = $stored['version'] ?? null;
+		$changes = $this->changes($old, $new, $record->content === null ? null : [$record->content, $this->content($id)]);
 
 		if ($changes !== null) {
-			$result   = $writer->update($path, $changes, $revision);
-			[$path, $revision] = [$result->path, $result->revision];
+			$id      = $writer->update($id, $changes, $version);
+			$version = null;
 		}
 
 		$was = $old['status'] ?? null;
 		$is  = $new['status'] ?? null;
 
 		if ($is !== $was && ($is === Status::Trash->value || $was === Status::Trash->value)) {
-			$result = $is === Status::Trash->value
-				? $writer->trash($path, $revision)
-				: $writer->restore($path, $revision, Status::tryFrom(is_string($is) ? $is : '') ?? Status::Draft);
-			[$path, $revision] = [$result->path, $result->revision];
+			$id = $is === Status::Trash->value
+				? $writer->trash($id, $version)
+				: $writer->restore($id, $version, Status::tryFrom(is_string($is) ? $is : '') ?? Status::Draft);
+			$version = null;
 		}
 
 		if (($new['slug'] ?? null) !== ($old['slug'] ?? null)) {
@@ -399,8 +461,8 @@ final readonly class IndexStore implements RecordStore
 				throw new InvalidRecord('On files, a landing page\'s slug doesn\'t change, and an entry keeps a slug.');
 			}
 
-			$result = $writer->rename($path, $new['slug'], $revision);
-			[$path, $revision] = [$result->path, $result->revision];
+			$id      = $writer->rename($id, $new['slug'], $version);
+			$version = null;
 		}
 
 		if (($new['parent_id'] ?? null) !== ($old['parent_id'] ?? null)) {
@@ -410,9 +472,7 @@ final readonly class IndexStore implements RecordStore
 				throw new InvalidRecord('On files, only a tree\'s pages move to another parent here; others name theirs in front matter.');
 			}
 
-			$parent = is_string($new['parent_id'] ?? null) ? $this->path($new['parent_id']) : null;
-
-			$writer->move($path, $parent, $revision);
+			$writer->move($id, is_string($new['parent_id'] ?? null) ? $new['parent_id'] : null, $version);
 		}
 	}
 

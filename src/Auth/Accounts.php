@@ -14,9 +14,9 @@ declare(strict_types=1);
 namespace Blush\Auth;
 
 use Psr\Clock\ClockInterface;
-use Blush\Content\ContentRepository;
+use Blush\Content\Entries;
+use Blush\Content\Entry\Entry;
 use Blush\Content\Type\ContentTypes;
-use Blush\Content\Writer\ContentWriter;
 use Blush\Content\Writer\EntryChanges;
 use Blush\Content\Writer\WriteException;
 
@@ -38,9 +38,8 @@ final readonly class Accounts
 		private Roles $roles,
 		private AuthConfig $config,
 		private ClockInterface $clock,
-		private ContentRepository $content,
-		private ContentTypes $types,
-		private ContentWriter $writer
+		private Entries $content,
+		private ContentTypes $types
 	) {}
 
 	/**
@@ -326,17 +325,17 @@ final readonly class Accounts
 
 	/**
 	 * Creates an author's entry, published, with its public name, and
-	 * returns its ID (its path under `user/content`).
+	 * returns it.
 	 *
 	 * @throws AuthException When the site has no author type, or the file
 	 *                       exists or can't be written.
 	 */
-	public function createAuthorPage(string $author, string $name): string
+	public function createAuthorPage(string $author, string $name): Entry
 	{
 		$type = $this->types->profiles() ?? throw new AuthException('The site has no profiles type.');
 
 		try {
-			return $this->writer->create($type, $author, new EntryChanges(set: ['title' => $name], body: "\n"), $this->clock->now())->path;
+			return $this->content->create($type, $author, new EntryChanges(set: ['title' => $name], body: "\n"), null, $this->clock->now());
 		} catch (WriteException $e) {
 			throw new AuthException($e->getMessage(), previous: $e);
 		}

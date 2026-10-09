@@ -45,14 +45,14 @@ final class AuthorPage
 		}
 
 		try {
-			$path = $accounts->createAuthorPage($author, trim($prompt->ask('Public name:', $author)) ?: $author);
+			$page = $accounts->createAuthorPage($author, trim($prompt->ask('Public name:', $author)) ?: $author);
 		} catch (AuthException $e) {
 			$output->error($e->getMessage());
 
 			return ExitCode::Failure;
 		}
 
-		$output->success(sprintf('Created the author page user/content/%s.', $path));
+		$output->success(sprintf('Created the author page user/content/%s.', $page->path));
 
 		return ExitCode::Success;
 	}

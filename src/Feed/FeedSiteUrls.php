@@ -14,7 +14,7 @@ declare(strict_types=1);
 namespace Blush\Feed;
 
 use Override;
-use Blush\Content\ContentRepository;
+use Blush\Content\Entries;
 use Blush\Content\ProfileList;
 use Blush\Content\Relation\Relation;
 use Blush\Content\RelationArchives;
@@ -34,7 +34,7 @@ use Blush\Routing\UrlSource;
 final readonly class FeedSiteUrls implements UrlSource
 {
 	public function __construct(
-		private ContentRepository $content,
+		private Entries $content,
 		private ContentTypes $types,
 		private ContentUrls $urls,
 		private FeedConfig $config,

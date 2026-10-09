@@ -17,7 +17,7 @@ use DateTimeImmutable;
 use Override;
 use Psr\Clock\ClockInterface;
 use Blush\Cache\ContentVersion;
-use Blush\Content\ContentRepository;
+use Blush\Content\Entries;
 use Blush\Content\Entry\Entry;
 use Blush\Content\Events\EntriesWentLive;
 use Blush\Content\Status;
@@ -33,7 +33,8 @@ use Blush\Job\JobStore;
  * (requests do it by themselves too), and announces the entries that
  * went live (`EntriesWentLive`, D-623).
  *
- * Each run keeps the scheduled entries it saw (by id, else path) in the
+ * Each run keeps the scheduled entries it saw (by id, else by type,
+ * language, and key) in the
  * jobs' `go-live` state; an entry it saw scheduled that's published now
  * went live. The first run only looks, so a site's past posts are never
  * announced.
@@ -47,7 +48,7 @@ final class GoLiveJob extends Job
 
 	public function __construct(
 		private readonly ContentVersion $version,
-		private readonly ContentRepository $content,
+		private readonly Entries $content,
 		private readonly JobStore $store,
 		private readonly Dispatcher $events,
 		private readonly ClockInterface $clock
@@ -109,11 +110,12 @@ final class GoLiveJob extends Job
 	}
 
 	/**
-	 * Returns how an entry is kept in the state: its id, else its path.
+	 * Returns how an entry is kept in the state: its id, else its type,
+	 * language, and key.
 	 */
 	private static function keyOf(Entry $entry): string
 	{
-		return $entry->id ?? "path:{$entry->path}";
+		return $entry->id ?? "key:{$entry->type->name}:{$entry->language}:{$entry->key}";
 	}
 
 	/**
@@ -121,6 +123,12 @@ final class GoLiveJob extends Job
 	 */
 	private function entry(string $key): ?Entry
 	{
-		return str_starts_with($key, 'path:') ? $this->content->findPath(substr($key, 5)) : $this->content->find($key);
+		if (! str_starts_with($key, 'key:')) {
+			return $this->content->find($key);
+		}
+
+		[, $type, $language, $named] = explode(':', $key, 4) + ['', '', '', ''];
+
+		return $this->content->named($type, $named, $language);
 	}
 }

@@ -20,7 +20,7 @@ use Blush\Auth\Account;
 use Blush\Auth\ContentAction;
 use Blush\Auth\Permissions;
 use Blush\Cache\ContentVersion;
-use Blush\Content\ContentRepository;
+use Blush\Content\Entries;
 use Blush\Content\Entry\Entry;
 use Blush\Storage\Record\Order;
 use Blush\Content\Query\Query;
@@ -62,7 +62,7 @@ final readonly class DashboardController
 
 	public function __construct(
 		private AppConfig $site,
-		private ContentRepository $content,
+		private Entries $content,
 		private ContentTypes $types,
 		private ContentUrls $urls,
 		private ContentVersion $version,

@@ -50,7 +50,7 @@ final class SiteServiceProvider extends ServiceProvider
 
 Classes get what they need through their constructor: ask for a Blush
 service (or one of your own) by its type, and Blush passes it in. For
-example, `Blush\Content\ContentRepository` finds entries, and every
+example, `Blush\Content\Entries` finds entries, and every
 config object (`Blush\Core\AppConfig` and the rest) is available the same
 way.
 
@@ -147,12 +147,12 @@ use Blush\Console\Attributes\Command;
 use Blush\Console\Attributes\Option;
 use Blush\Console\ExitCode;
 use Blush\Console\Output;
-use Blush\Content\ContentRepository;
+use Blush\Content\Entries;
 
 #[Command('stats', 'Count the published posts.')]
 final readonly class Stats
 {
-	public function __construct(private ContentRepository $content) {}
+	public function __construct(private Entries $content) {}
 
 	public function __invoke(
 		Output $output,
@@ -173,7 +173,7 @@ method's parameters, so `bin/blush help stats` is written for you.
 
 ## Finding entries
 
-`Blush\Content\ContentRepository` finds entries. Ask for it in a
+`Blush\Content\Entries` finds entries. Ask for it in a
 constructor (a command's, a directive's, a component's), and build a
 query from it:
 
@@ -279,19 +279,21 @@ services.
 
 ## Changing content from code
 
-`Blush\Content\Writer\ContentWriter` creates and edits entries, the
-same way `content:new` and the admin do. Ask for it in a constructor:
+`Blush\Content\Entries`, which finds entries, also creates and changes
+them, the same way `content:new` and the admin do. Each change names an
+entry by its id (or takes the `Entry` itself) and answers the entry as
+it is afterward:
 
 ```php
-use Blush\Content\Writer\ContentWriter;
+use Blush\Content\Entries;
 use Blush\Content\Writer\EntryChanges;
 
-$entry = $writer->load('_posts/2026-09-29.hello.md');
+$post = $this->content->find('0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e74');
 
-$writer->update($entry->path, new EntryChanges(
+$post = $this->content->change($post, new EntryChanges(
 	set: ['status' => 'draft', 'tags' => ['news']],
 	remove: ['summary']
-), $entry->revision);
+), $post->version);
 ```
 
 - **Only what you change changes.** Other front matter keeps its order,
@@ -300,27 +302,36 @@ $writer->update($entry->path, new EntryChanges(
 - **Values** are plain data: text, numbers, `true`/`false`, `null`, and
   lists or maps of them. Write dates as text, such as
   `2026-09-29 09:00:00 -05:00`.
-- **`$entry->revision`** protects against lost edits: if the file changed
-  since you loaded it, `update()` throws `WriteConflict` and writes
+- **`$post->version`** protects against lost edits: if the entry changed
+  since you read it, the change throws `WriteConflict` and writes
   nothing. Leave it out to skip the check.
-- Entries are named by their path in `user/content`. `create()`,
-  `rename()` (a new slug; a dated file keeps its date, and a
-  an entry in its own folder, `trip/index.md`, moves the folder), `duplicate($path, $slug,
-  $changes)` (a copy beside it under the first free name from `$slug`,
-  dated today if it's dated, an entry's own folder copied whole),
-  `trash($path)` (sets `status: trash` and `trashed`, leaving the file
-  where it is), `restore($path)` (back to `status: draft`, without
-  `trashed`), and `delete()` (removes the file for good) work the same
-  way.
-- **Ids** (see [Ids](content.md#ids)): every entry the writer creates,
-  a copy included, gets a new `id`, last in its front matter, and an
-  `update()` adds one to a file that has none. Changes never set or
-  remove `id`; `assignIds($paths)` gives files new ones.
-- Every change reindexes content and refreshes cached pages.
+- The other changes work the same way:
+  - `create($type, $slug, $changes)` writes a new entry of a type, and
+    `create($type, $slug, $changes, $parent)` a tree's page under
+    another (by id).
+  - `rename($entry, $slug)` gives it a new slug, so a new address.
+  - `move($page, $parent)` puts a tree's page under another, with the
+    pages under it (`null` for the top).
+  - `duplicate($entry, $slug, $changes)` copies it under the first free
+    slug from `$slug`.
+  - `trash($entry)` sets `status: trash` and `trashed`, leaving it
+    where it is; `restore($entry)` brings it back as a draft.
+  - `delete($entry)` removes it for good.
+  - `editable($entry)` reads its front matter as written, its Markdown,
+    and its version, for an editor of your own.
+- **Where a file goes** is Blush's to work out: a new slug or date
+  renames a file its type names by date and moves it to the folder its
+  type keeps it in, and a file that names its slug in `slug:` keeps its
+  name.
+- **Ids** (see [Ids](content.md#ids)): every new entry, a copy included,
+  gets an `id`, last in its front matter. Changes never set or remove
+  `id`. An entry without one can't be changed until it has one: run
+  `bin/blush content:ids --write`, or use Site Health.
+- Every change refreshes cached pages.
 
-The writer only writes content files inside `user/content`, and refuses
-any edit it can't make without changing something else (it throws
-`WriteException`, and the file is left as it was).
+Changes are written only as content files inside `user/content`, and
+any edit that can't be made without changing something else is refused
+(`WriteException`), leaving the file as it was.
 
 ## Storing your own data
 

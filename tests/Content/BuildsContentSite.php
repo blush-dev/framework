@@ -17,7 +17,9 @@ use DateTimeImmutable;
 use DateTimeZone;
 use Psr\Clock\ClockInterface;
 use Blush\Clock\FrozenClock;
-use Blush\Content\ContentRepository;
+use Blush\Content\Entries;
+use Blush\Content\Entry\Entry;
+use Blush\Content\Index\EntryFiles;
 use Blush\Core\Application;
 use Blush\Tests\BootsScratchSite;
 use Blush\Tests\WritesContentConfig;
@@ -124,8 +126,17 @@ trait BuildsContentSite
 	/**
 	 * Returns the repository of a booted site.
 	 */
-	private function repository(?Application $app = null): ContentRepository
+	private function repository(?Application $app = null): Entries
 	{
-		return ($app ?? $this->site())->container()->make(ContentRepository::class);
+		return ($app ?? $this->site())->container()->make(Entries::class);
+	}
+
+	/**
+	 * Returns the entry kept at a path, through the filesystem driver's
+	 * own lookup (D-654), since these sites are files.
+	 */
+	private function entryAt(string $path, ?Application $app = null): ?Entry
+	{
+		return ($app ?? $this->site())->container()->make(EntryFiles::class)->at($path);
 	}
 }

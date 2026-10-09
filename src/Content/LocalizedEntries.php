@@ -13,11 +13,15 @@ declare(strict_types=1);
 
 namespace Blush\Content;
 
+use DateTimeInterface;
 use Override;
 use Blush\Content\Entry\Entry;
 use Blush\Content\Query\EntryCollection;
 use Blush\Content\Query\Paginator;
 use Blush\Content\Query\Query;
+use Blush\Content\Type\ContentType;
+use Blush\Content\Writer\EditableEntry;
+use Blush\Content\Writer\EntryChanges;
 
 /**
  * A repository whose default language is a page's (D-458): what a
@@ -26,10 +30,10 @@ use Blush\Content\Query\Query;
  * lookup that names a language (or `Query::ANY_LANGUAGE`) keeps it.
  * Everything else is the wrapped repository's.
  */
-final readonly class LocalizedRepository implements ContentRepository
+final readonly class LocalizedEntries implements Entries
 {
 	public function __construct(
-		private ContentRepository $content,
+		private Entries $content,
 		public string $language
 	) {}
 
@@ -76,15 +80,6 @@ final readonly class LocalizedRepository implements ContentRepository
 	public function find(string $id): ?Entry
 	{
 		return $this->content->find($id);
-	}
-
-	/**
-	 * @inheritDoc
-	 */
-	#[Override]
-	public function findPath(string $path): ?Entry
-	{
-		return $this->content->findPath($path);
 	}
 
 	/**
@@ -175,6 +170,105 @@ final readonly class LocalizedRepository implements ContentRepository
 	public function redirects(): array
 	{
 		return $this->content->redirects();
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	#[Override]
+	public function editable(Entry|string $entry): EditableEntry
+	{
+		return $this->content->editable($entry);
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	#[Override]
+	public function editableAt(ContentType $type, string $key): ?EditableEntry
+	{
+		return $this->content->editableAt($type, $key);
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	#[Override]
+	public function create(ContentType $type, string $slug, EntryChanges $changes, Entry|string|null $parent = null, ?DateTimeInterface $date = null): Entry
+	{
+		return $this->content->create($type, $slug, $changes, $parent, $date);
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	#[Override]
+	public function createAt(ContentType $type, string $key, EntryChanges $changes): Entry
+	{
+		return $this->content->createAt($type, $key, $changes);
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	#[Override]
+	public function duplicate(Entry|string $entry, string $slug, EntryChanges $changes, ?DateTimeInterface $date = null): Entry
+	{
+		return $this->content->duplicate($entry, $slug, $changes, $date);
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	#[Override]
+	public function change(Entry|string $entry, EntryChanges $changes, ?string $version = null): Entry
+	{
+		return $this->content->change($entry, $changes, $version);
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	#[Override]
+	public function rename(Entry|string $entry, string $slug, ?string $version = null): Entry
+	{
+		return $this->content->rename($entry, $slug, $version);
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	#[Override]
+	public function move(Entry|string $entry, Entry|string|null $parent, ?string $version = null): Entry
+	{
+		return $this->content->move($entry, $parent, $version);
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	#[Override]
+	public function trash(Entry|string $entry, ?string $version = null): Entry
+	{
+		return $this->content->trash($entry, $version);
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	#[Override]
+	public function restore(Entry|string $entry, ?string $version = null, ?Status $status = Status::Draft): Entry
+	{
+		return $this->content->restore($entry, $version, $status);
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	#[Override]
+	public function delete(Entry|string $entry, ?string $version = null): void
+	{
+		$this->content->delete($entry, $version);
 	}
 
 	/**

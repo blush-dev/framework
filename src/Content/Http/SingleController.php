@@ -15,7 +15,7 @@ namespace Blush\Content\Http;
 
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
-use Blush\Content\ContentRepository;
+use Blush\Content\Entries;
 use Blush\Content\Query\InvalidQuery;
 use Blush\Content\Routing\ContentUrls;
 use Blush\Content\Type\ContentTypes;
@@ -31,7 +31,7 @@ use Blush\Http\NotFound;
 final class SingleController extends ContentController
 {
 	public function __construct(
-		ContentRepository $content,
+		Entries $content,
 		ContentTypes $types,
 		ContentUrls $urls,
 		PageRenderer $renderer,

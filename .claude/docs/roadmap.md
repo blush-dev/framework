@@ -208,7 +208,7 @@ the filesystem driver names files by. The first adopter is **roles**
 (`storage/roles.json`, a one-file table keyed by role name; each role
 gains an `id` on its next save). Accounts follow in step 6.
 
-### Step 3: content onto records (planned)
+### Step 3: content onto records (3a to 3d built; 3e next)
 
 **Goal:** content reads and writes through the record layer, keyed by
 id, so a database driver (step 5) can keep it, while a flat-file site
@@ -313,7 +313,10 @@ making each file's path-derived values explicit in its record.
   path (`Uuid::fromName()`), and can't be edited until `content:ids`
   gives them one, as now (D-481).
 
-**3d. Writes by id, and callers moved:** `Entries` (the repository,
+**3d. Writes by id, and callers moved** (built, D-654, with these left
+open: keys a record can't rebuild, so entries still hydrate from the
+index; `content:lint`'s split into entry and file checks; `Link` beside
+`Ref`; see `open-questions.md`): `Entries` (the repository,
 D-643) gains id-keyed writes: create (by type, or under a parent),
 change fields and content, rename (a new slug), move (a new parent),
 duplicate, trash, restore, and delete, each with a revision, returning

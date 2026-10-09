@@ -16,7 +16,7 @@ namespace Blush\Tests\Content\Routing;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\ResponseInterface;
-use Blush\Content\ContentRepository;
+use Blush\Content\Entries;
 use Blush\Content\Http\ContentPage;
 use Blush\Content\Http\PageKind;
 use Blush\Content\Http\ProfileController;
@@ -212,7 +212,7 @@ final class PeopleArchivesTest extends TestCase
 		$this->assertSame(404, $this->get($app, '/profiles/nobody')->getStatusCode());
 		$this->assertSame(404, $this->get($app, '/profiles')->getStatusCode(), 'Nothing answers at the base.');
 		$this->assertSame(404, $this->get($app, '/profiles/page/2')->getStatusCode());
-		$this->assertSame('/profiles/justintadlock', $app->container()->make(ContentUrls::class)->entry($app->container()->make(ContentRepository::class)->term('profile', 'justintadlock') ?? $this->fail('No profile.')));
+		$this->assertSame('/profiles/justintadlock', $app->container()->make(ContentUrls::class)->entry($app->container()->make(Entries::class)->term('profile', 'justintadlock') ?? $this->fail('No profile.')));
 	}
 
 	public function testAProfilesTypeSetsItsBaseAndFeed(): void
@@ -259,7 +259,7 @@ final class PeopleArchivesTest extends TestCase
 		$container = $app->container();
 		$views     = $container->make(ViewFactory::class)->forChain($container->make(ThemeResolver::class)->active());
 		$template  = new Template($views, new ViewContext());
-		$spring    = $container->make(ContentRepository::class)->named('post', 'spring');
+		$spring    = $container->make(Entries::class)->named('post', 'spring');
 
 		$this->assertNotNull($spring);
 		$this->assertSame('Justin Tadlock', $template->author($spring)?->title, 'The byline\'s first person.');
@@ -312,7 +312,7 @@ final class PeopleArchivesTest extends TestCase
 		$app     = $this->boot();
 		$post     = $app->container()->make(ContentTypes::class)->get('post');
 		$relation = $app->container()->make(ContentTypes::class)->relations()['authors'];
-		$profile  = $app->container()->make(ContentRepository::class)->term('profile', 'justintadlock');
+		$profile  = $app->container()->make(Entries::class)->term('profile', 'justintadlock');
 
 		$this->assertSame(['related-list-post-authors', 'related-list-authors', 'related-list', 'collection'], Hierarchy::forPage(new ContentPage(PageKind::RelatedList, 'Authors', type: $post, relation: $relation))->names);
 		$this->assertSame(
@@ -332,7 +332,7 @@ final class PeopleArchivesTest extends TestCase
 		$types = $app->container()->make(ContentTypes::class);
 		$post  = $types->get('post');
 		$page  = $types->get('page');
-		$entry = $app->container()->make(ContentRepository::class)->named('page', 'about');
+		$entry = $app->container()->make(Entries::class)->named('page', 'about');
 
 		$this->assertNotNull($entry);
 		$this->assertSame(['single-page-about', 'single-page', 'single-tree', 'single'], Hierarchy::forPage(new ContentPage(PageKind::Single, 'About', entry: $entry, type: $page))->names, 'D-561.');

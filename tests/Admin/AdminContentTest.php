@@ -24,7 +24,7 @@ use Blush\Admin\PreviewLinkController;
 use Blush\Admin\TypesController;
 use Blush\Directive\Callout;
 use Blush\Directive\DirectiveRegistry;
-use Blush\Content\ContentRepository;
+use Blush\Content\Entries;
 use Blush\Content\Type\TypeLabels;
 
 #[CoversClass(DirectivesController::class)]
@@ -838,7 +838,7 @@ final class AdminContentTest extends TestCase
 		$this->assertSame(['copy.md'], array_keys($kept['assigned']), 'The other file gets a new id.');
 		$this->assertSame([], $kept['failed'] ?? null);
 
-		$content = $this->app->container()->make(ContentRepository::class);
+		$content = $this->app->container()->make(Entries::class);
 
 		$this->assertSame('live.md', $content->find(self::LIVE)?->path, 'The one kept keeps it.');
 		$this->assertSame(['missing' => [], 'duplicates' => []], $this->checkAgain($token)['ids'] ?? null);
@@ -1051,7 +1051,7 @@ final class AdminContentTest extends TestCase
 		$this->site(['author']);
 		$token = $this->token();
 
-		$sam = $this->app->container()->make(ContentRepository::class)->named('page', 'sam-draft');
+		$sam = $this->app->container()->make(Entries::class)->named('page', 'sam-draft');
 		$this->assertNotNull($sam);
 
 		$this->assertSame(403, $this->send('POST', '/previews', json_encode(['entry' => $sam->id]) ?: '', ['X-CSRF-Token' => $token])->getStatusCode());

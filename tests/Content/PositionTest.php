@@ -15,7 +15,7 @@ namespace Blush\Tests\Content;
 
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
-use Blush\Content\ContentRepository;
+use Blush\Content\Entries;
 use Blush\Content\Entry\Entry;
 use Blush\Content\Entry\Position;
 use Blush\Content\Record\QueryCompiler;
@@ -28,7 +28,7 @@ final class PositionTest extends TestCase
 {
 	use BuildsContentSite;
 
-	private function content(): ContentRepository
+	private function content(): Entries
 	{
 		$this->contentConfig(['types' => ['topic' => ['folder' => 'topics', 'order' => 'position'], 'note' => ['kind' => 'collection', 'folder' => '_notes']], 'relations' => ['topic' => ['kind' => 'classify', 'to' => ['topic']]]]);
 		$this->entry('guide/index.md', 'title: Guide');
@@ -40,7 +40,7 @@ final class PositionTest extends TestCase
 		$this->entry('topics/sooner.md', "title: Sooner\nposition: 1");
 		$this->entry('topics/whenever.md', 'title: Whenever');
 
-		return $this->site()->container()->make(ContentRepository::class);
+		return $this->site()->container()->make(Entries::class);
 	}
 
 	/**

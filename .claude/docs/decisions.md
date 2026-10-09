@@ -19854,3 +19854,80 @@ decision, add a new entry that supersedes it and mark the old one
     contributor list 4.2 ms (from 2.5). Close enough to leave, to be
     looked at again with the SQLite index (step 4).
 - **Why:** the author's go for 3c ("go ahead and build 3c").
+
+### D-654: Entries write by id; path tools are the filesystem driver's (step 3d)
+
+- **Date:** 2026-10-08
+- **Status:** Built. Part 3d of the data layer's step 3 (`roadmap.md`),
+  with D-643's `Entries` and D-648's `version`.
+- **Decision:**
+  - **`Entries`** in place of `ContentRepository` (`StoredEntries` and
+    `LocalizedEntries` in place of `IndexedRepository` and
+    `LocalizedRepository`), in core, the docs, and the trial site's
+    extensions. `findPath()` goes: code finds entries by id or key.
+  - **Writes by id on `Entries`,** each answering the entry after it:
+    `create()` (a tree's page under a parent by id), `createAt()` (a
+    fixed key: an index page, a relation archive's pages), `change()`,
+    `rename()`, `move()`, `duplicate()`, `trash()`, `restore()`, and
+    `delete()`, each taking an `Entry` or an id and an optional version;
+    `editable()` and `editableAt()` read an entry as stored (front matter
+    as written, Markdown, version) for editors and for a type just
+    defined, whose pages the index doesn't know yet in that request.
+    `Entry::$version` is the version (a file's hash). An `Entry` without
+    an id can't be changed (D-481); the write says so.
+  - **`ContentWriter` is the driver's contract, by id:** `load`,
+    `loadAt`, `create`, `createAt`, `duplicate`, `update`, `rename`,
+    `move`, `trash`, `restore`, `delete`, each returning the entry's id
+    after it, since a file without one is named by its record's steady
+    id (D-652) and given its own when it's changed (maintenance such as
+    a relation's new key still reaches 1.x files). `EditableEntry` has
+    `id` and `version` (and `path`, for showing).
+  - **The filesystem driver decides what a write means for a file**
+    (`FilesystemContentWriter`): a new slug goes in a `slug:` key when
+    the file has one, else in its name (D-277), and a new slug or
+    publish date renames and moves the file by its type's patterns
+    (`FileNames::follow()`, D-519, D-629). The editing API no longer
+    knows either. `FilesystemWriter` keeps the path API as the driver's
+    own, with its tools (`assignIds`, `fileRefs`, `renameFiles`), and
+    reads the index instead of `Entries`. `WriteResult` and the writer
+    say `version` for revision.
+  - **Callers by id:** the editing API, profiles, the type screens,
+    accounts' profile pages, `content:new`, missing and typed terms,
+    `Referrers::unlink()` (ids changed, failures by id), and
+    `RelationChanges` (uses, strips, and key moves by id, read from
+    `entries` records; a refusal names titles, not paths).
+  - **Snapshot readers read records** (`Record\EntryRecords`):
+    `EntryLinks` (refs, plus each parent from `parent_id` through its
+    type's parent relation, as `Link`s with both ends' types; a batch
+    `targetsOf()` for the pickers' recent targets) and `EntryTargets`
+    (`TargetLookup` over `Entries` and records) serve `EntryRelations`,
+    `Referrers`, `RelationLimits`, `TypedTargets`, and
+    `ReferencesController`; `ContentVersion` finds the next scheduled
+    time with a record query (the snapshot's `nextScheduled()` is gone).
+    `SnapshotTargets` stays inside the driver, for `LinkBuilder`.
+  - **Path tools are the filesystem driver's own:** `Index\EntryFiles`
+    finds the entry kept in a file, for Site Health's file checks,
+    fixes' permissions, `MediaUsage`, and tests. A driver names the
+    commands it offers per area (`Storage::commands()`); the filesystem
+    driver's content tools (`content:ids`, `content:filenames`,
+    `content:folders`, `content:refs`, and `content:terms`, whose titles
+    come from the labels only files keep) left the built-in commands and
+    register only while content is kept as files, and Site Health checks
+    ids, names, folders, missing terms, and refs only then too.
+  - **The filesystem store looks up rows** (`IndexStore`): a query whose
+    conditions all hold, with no subquery, related condition, or group,
+    and an `=` or `in` on `id`, `parent_id`, `original_id`, `source_id`,
+    or `target_id`, starts from the rows with those values
+    (`SnapshotRecords::rowsWhere()`, lookups built once a request); the
+    evaluator still checks every condition.
+  - **Left open** (`open-questions.md`): keys a record can't rebuild
+    (`_cooks/jane`, a tree's page in a folder without a page), so
+    `Entries` still hydrates from the index; `content:lint`'s split into
+    entry and file checks; `Link` beside D-649's `Ref`.
+  - **Speed, against `before_step3`:** the home request 12.3 ms (5%
+    faster), a single post's 11.8 ms (10% slower), admin lists as after
+    3c; term and date archives (1.6 and 1.1 ms) and the contributor list
+    (4.2 ms) as D-653 left them, for step 4. Before the row lookups,
+    requests were 60 to 80% slower, each id or ref lookup scanning
+    every row.
+- **Why:** the author's go for 3d ("Let's do stage 3d").

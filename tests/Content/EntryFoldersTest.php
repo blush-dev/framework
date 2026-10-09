@@ -16,12 +16,13 @@ namespace Blush\Tests\Content;
 use DateTimeImmutable;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
-use Blush\Content\ContentRepository;
+use Blush\Content\Entries;
+use Blush\Content\Index\EntryFiles;
 use Blush\Content\EntryFolders;
 use Blush\Content\FileNames;
 use Blush\Content\Lint\Linter;
 use Blush\Content\Type\ContentTypes;
-use Blush\Content\Writer\ContentWriter;
+use Blush\Content\Writer\FilesystemWriter;
 use Blush\Content\Writer\EntryChanges;
 use Blush\Core\Application;
 use Blush\Field\Severity;
@@ -110,7 +111,7 @@ final class EntryFoldersTest extends TestCase
 		$entry = $this->repository()->named('post', 'old');
 
 		$this->assertSame('_posts/2024/old.md', $entry?->path, 'Found by its slug alone (D-629).');
-		$this->assertSame('_drafts/idea', $this->repository()->findPath('_posts/_drafts/idea.md')?->key, 'A `_` folder is still part of it.');
+		$this->assertSame('_drafts/idea', $this->entryAt('_posts/_drafts/idea.md')?->key, 'A `_` folder is still part of it.');
 	}
 
 	public function testAPatternPlacesFilesByTheirWrittenDate(): void
@@ -146,13 +147,13 @@ final class EntryFoldersTest extends TestCase
 
 		$app     = $this->site();
 		$type    = $app->container()->make(ContentTypes::class)->get('post');
-		$writer  = $app->container()->make(ContentWriter::class);
+		$writer  = $app->container()->make(FilesystemWriter::class);
 		$created = $writer->create($type, 'brand-new', new EntryChanges(['title' => 'Brand New']));
 		$copied  = $writer->duplicate('_posts/2024/old.md', 'old-copy', new EntryChanges(), new DateTimeImmutable('2025-03-01'));
 
 		$this->assertSame('_posts/2026/brand-new.md', $created->path, 'Now, from the frozen clock.');
 		$this->assertSame('_posts/2025/old-copy.md', $copied->path);
-		$this->assertSame('brand-new', $app->container()->make(ContentRepository::class)->findPath($created->path)?->key);
+		$this->assertSame('brand-new', $app->container()->make(EntryFiles::class)->at($created->path)?->key);
 	}
 
 	public function testHiddenFilesStayOutsideAPattern(): void
@@ -173,7 +174,7 @@ final class EntryFoldersTest extends TestCase
 		$this->entry('_posts/2024/2024-05-01.moving.md', "title: Moving\npublished: 2024-05-01 09:00:00");
 
 		$app = $this->site();
-		$app->container()->make(ContentWriter::class)->update('_posts/2024/2024-05-01.moving.md', new EntryChanges(['published' => '2025-02-03 09:00:00']));
+		$app->container()->make(FilesystemWriter::class)->update('_posts/2024/2024-05-01.moving.md', new EntryChanges(['published' => '2025-02-03 09:00:00']));
 
 		$this->assertSame('_posts/2025/2024-05-01.moving.md', $app->container()->make(FileNames::class)->follow('_posts/2024/2024-05-01.moving.md'), 'Its folder follows the date; its name has no pattern of its own to follow.');
 	}

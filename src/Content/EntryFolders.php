@@ -20,7 +20,7 @@ use Blush\Content\Index\IndexSnapshot;
 use Blush\Content\Index\Indexer;
 use Blush\Content\Type\ContentType;
 use Blush\Content\Type\ContentTypes;
-use Blush\Content\Writer\ContentWriter;
+use Blush\Content\Writer\FilesystemWriter;
 use Blush\Content\Writer\RenamedFiles;
 
 /**
@@ -56,7 +56,7 @@ final readonly class EntryFolders
 		private ContentIndex $index,
 		private Indexer $indexer,
 		private ContentTypes $types,
-		private ContentWriter $writer,
+		private FilesystemWriter $writer,
 		private WrittenDates $dates
 	) {}
 

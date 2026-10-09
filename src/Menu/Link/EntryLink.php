@@ -14,7 +14,7 @@ declare(strict_types=1);
 namespace Blush\Menu\Link;
 
 use Override;
-use Blush\Content\ContentRepository;
+use Blush\Content\Entries;
 use Blush\Content\Routing\ContentUrls;
 use Blush\Core\AppConfig;
 
@@ -29,7 +29,7 @@ use Blush\Core\AppConfig;
 final class EntryLink extends MenuLink
 {
 	public function __construct(
-		private readonly ContentRepository $content,
+		private readonly Entries $content,
 		private readonly ContentUrls $urls,
 		private readonly AppConfig $app
 	) {}

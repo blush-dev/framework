@@ -14,7 +14,7 @@ declare(strict_types=1);
 namespace Blush\Region\Item;
 
 use Override;
-use Blush\Content\ContentRepository;
+use Blush\Content\Entries;
 use Blush\Markdown\MarkdownException;
 use Blush\Region\RegionException;
 use Blush\Region\RegionRender;
@@ -32,7 +32,7 @@ use Blush\Region\RegionRender;
  */
 final class EntryItem extends RegionItem
 {
-	public function __construct(private readonly ContentRepository $content)
+	public function __construct(private readonly Entries $content)
 	{}
 
 	/**

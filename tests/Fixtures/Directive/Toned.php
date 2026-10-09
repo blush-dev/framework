@@ -14,7 +14,7 @@ declare(strict_types=1);
 namespace Blush\Tests\Fixtures\Directive;
 
 use Override;
-use Blush\Content\ContentRepository;
+use Blush\Content\Entries;
 use Blush\Directive\Directive;
 use Blush\Directive\DirectiveKind;
 use Blush\Directive\DirectiveContent;
@@ -26,7 +26,7 @@ final class Toned extends Directive
 	public const DirectiveContent CONTENT = DirectiveContent::Blocks;
 
 	public function __construct(
-		private readonly ContentRepository $content,
+		private readonly Entries $content,
 		public readonly string $heading,
 		public readonly Tone $tone = Tone::Quiet,
 		public readonly int $level = 2,

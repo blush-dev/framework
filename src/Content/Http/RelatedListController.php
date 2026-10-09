@@ -15,7 +15,7 @@ namespace Blush\Content\Http;
 
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
-use Blush\Content\ContentRepository;
+use Blush\Content\Entries;
 use Blush\Content\Query\EntryCollection;
 use Blush\Content\Query\Paginator;
 use Blush\Content\RelationArchives;
@@ -35,7 +35,7 @@ use Blush\Http\NotFound;
 final class RelatedListController extends ContentController
 {
 	public function __construct(
-		ContentRepository $content,
+		Entries $content,
 		ContentTypes $types,
 		ContentUrls $urls,
 		PageRenderer $renderer,

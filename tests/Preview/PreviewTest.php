@@ -24,7 +24,7 @@ use Blush\Console\Commands\PreviewContent;
 use Blush\Console\Console;
 use Blush\Console\ExitCode;
 use Blush\Console\Testing\CommandTester;
-use Blush\Content\ContentRepository;
+use Blush\Content\Entries;
 use Blush\Content\Entry\Entry;
 use Blush\Core\Application;
 use Blush\Http\Kernel;
@@ -75,7 +75,7 @@ final class PreviewTest extends TestCase
 
 	private function entry(string $name): Entry
 	{
-		$entry = $this->app->container()->make(ContentRepository::class)->named('page', $name);
+		$entry = $this->app->container()->make(Entries::class)->named('page', $name);
 		$this->assertNotNull($entry);
 
 		return $entry;

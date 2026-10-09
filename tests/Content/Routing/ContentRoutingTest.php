@@ -16,7 +16,7 @@ namespace Blush\Tests\Content\Routing;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\ResponseInterface;
-use Blush\Content\ContentRepository;
+use Blush\Content\Entries;
 use Blush\Content\Http\CollectionController;
 use Blush\Content\Http\ContentController;
 use Blush\Content\Http\ContentPage;
@@ -249,7 +249,7 @@ final class ContentRoutingTest extends TestCase
 		$this->entry('_doc/install/requirements.md', 'title: Requirements');
 
 		$this->app = $this->site();
-		$content   = $this->app->container()->make(ContentRepository::class);
+		$content   = $this->app->container()->make(Entries::class);
 		$urls      = $this->app->container()->make(ContentUrls::class);
 		$types     = $this->app->container()->make(ContentTypes::class);
 

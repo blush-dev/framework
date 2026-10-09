@@ -23,7 +23,7 @@ use Blush\Auth\AuthException;
 use Blush\Auth\Capability;
 use Blush\Auth\ContentAction;
 use Blush\Auth\Permissions;
-use Blush\Content\ContentRepository;
+use Blush\Content\Entries;
 use Blush\Content\Entry\Entry;
 use Blush\Content\Routing\ContentUrls;
 use Blush\Content\Http\RelatedController;
@@ -31,7 +31,6 @@ use Blush\Content\Relation\Relation;
 use Blush\Content\Type\ContentType;
 use Blush\Content\Type\ContentTypes;
 use Blush\Content\Type\Profiles;
-use Blush\Content\Writer\ContentWriter;
 use Blush\Content\Writer\EntryChanges;
 use Blush\Content\Writer\WriteException;
 use Blush\Http\Response;
@@ -74,10 +73,9 @@ use Blush\Http\Status;
 final readonly class ProfilesController
 {
 	public function __construct(
-		private ContentRepository $content,
+		private Entries $content,
 		private ContentTypes $types,
 		private ContentUrls $urls,
-		private ContentWriter $writer,
 		private EntryHandles $handles,
 		private Permissions $permissions,
 		private AccountStore $accounts,
@@ -186,7 +184,7 @@ final readonly class ProfilesController
 
 		if ($linkable !== ($profile->field('linkable') !== false)) {
 			try {
-				$this->writer->update($profile->path, $linkable ? new EntryChanges(remove: ['linkable']) : new EntryChanges(set: ['linkable' => false]));
+				$this->content->change($profile, $linkable ? new EntryChanges(remove: ['linkable']) : new EntryChanges(set: ['linkable' => false]));
 			} catch (WriteException $error) {
 				return self::json(['error' => $error->getMessage()], Status::Conflict);
 			}
@@ -224,14 +222,12 @@ final readonly class ProfilesController
 		}
 
 		try {
-			$result = $this->writer->createAt($type, RelatedController::word($relation) . "/{$profile->slug}", new EntryChanges(set: ['title' => $profile->title, 'status' => 'draft'], body: "\n"));
+			$entry = $this->content->createAt($type, RelatedController::word($relation) . "/{$profile->slug}", new EntryChanges(set: ['title' => $profile->title, 'status' => 'draft'], body: "\n"));
 		} catch (WriteException $error) {
 			return self::json(['error' => $error->getMessage()], Status::Conflict);
 		}
 
-		$entry = $this->content->findPath($result->path);
-
-		return self::json(['id' => $entry?->id, 'type' => $type->name, 'handle' => $entry === null ? null : $this->handles->of($entry)], Status::Created);
+		return self::json(['id' => $entry->id, 'type' => $type->name, 'handle' => $this->handles->of($entry)], Status::Created);
 	}
 
 	public function remove(ServerRequestInterface $request, string $slug, string $type, string $relation): ResponseInterface
@@ -256,7 +252,7 @@ final readonly class ProfilesController
 		}
 
 		try {
-			$this->writer->delete($page->path);
+			$this->content->delete($page);
 		} catch (WriteException $error) {
 			return self::json(['error' => $error->getMessage()], Status::Conflict);
 		}

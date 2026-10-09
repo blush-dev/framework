@@ -18,7 +18,7 @@ use PHPUnit\Framework\TestCase;
 use Blush\Cache\ContentCache;
 use Blush\Cache\ContentVersion;
 use Blush\Cache\RenderedBodies;
-use Blush\Content\ContentRepository;
+use Blush\Content\Entries;
 use Blush\Content\Entry\Body;
 use Blush\Content\Entry\EntryHydrator;
 use Blush\Http\Kernel;
@@ -74,7 +74,7 @@ final class RenderedBodiesTest extends TestCase
 		$this->standardContent();
 
 		$app = $this->site();
-		$this->assertSame("<p>Spring is here.</p>\n", $app->container()->make(ContentRepository::class)->named('post', 'spring')?->content());
+		$this->assertSame("<p>Spring is here.</p>\n", $app->container()->make(Entries::class)->named('post', 'spring')?->content());
 
 		$this->writeTemporaryFile('extensions/acme/child/theme.json', '{"name": "acme/child", "label": "Child", "namespace": "child"}');
 		$this->writeTemporaryFile('config/theme.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn new Blush\\Theme\\ThemeConfig(active: 'acme/child');\n");

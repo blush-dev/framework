@@ -15,7 +15,7 @@ namespace Blush\Feed;
 
 use DateTimeImmutable;
 use Psr\Clock\ClockInterface;
-use Blush\Content\ContentRepository;
+use Blush\Content\Entries;
 use Blush\Content\Entry\Entry;
 use Blush\Content\Query\InvalidQuery;
 use Blush\Content\Query\Query;
@@ -40,7 +40,7 @@ use Blush\Markdown\MarkdownException;
 final readonly class FeedBuilder
 {
 	public function __construct(
-		private ContentRepository $content,
+		private Entries $content,
 		private ContentTypes $types,
 		private ContentUrls $urls,
 		private FeedConfig $config,

@@ -93,6 +93,30 @@ Move each item to `decisions.md` once it's answered.
     The other choice was SQLite only, `pdo_sqlite` required.
   - **Publishing** a database-backed site (D-131 pulls `user/` with
     git; D-486's open point).
+  - **Keys a record can't rebuild** (found building D-654): an entry's
+    key on files can name folders that aren't entries: a relation
+    archive's target page (`_cooks/jane`, D-602, when there's no
+    `_cooks` page) or a tree's page in a folder without a page of its
+    own (`guide/intro`). D-649's records keep no key (an address walks
+    parents), so on a database those keys are lost. Today `Entries`
+    still hydrates from the index, which keeps them, and `createAt()`
+    takes a key. Options: write the missing parents (as
+    `content:terms` writes missing terms), keep such a page's place in
+    a value of its own (its relation and target for an archive page),
+    or keep a stored key after all. Leaning: a value for archive pages,
+    and parents written for trees.
+  - **`content:lint` in two parts** (3d's plan, left from D-654): the
+    linter reads files fresh, by design; which of its checks are about
+    an entry (field values, limits, parents, addresses) and which about
+    a file (parse errors, aliases, prefixes, formats, two files for one
+    entry) is clearer with a second driver to check entries for. Until
+    then it's one tool, and the editor asks it about an entry's file.
+  - **`Link` and `Ref`:** D-649 renamed `Link` to `Ref`; the content
+    side still uses `Link` (source and target types included) for what
+    `EntryLinks` answers, and `LinkBuilder` and the graph stay inside
+    the filesystem driver's index, where they build its refs. Leaning:
+    keep `Link` as content's view of a ref with its types, and rename
+    the driver's builder when the index is reworked (step 4).
 
 - **A front-end interactivity API** (discussed 2026-10-07; nothing to
   build yet). Developers will need a way to build interactive sites.

@@ -15,7 +15,7 @@ namespace Blush\Content\Routing;
 
 use Override;
 use Uri\Rfc3986\Uri;
-use Blush\Content\ContentRepository;
+use Blush\Content\Entries;
 use Blush\Routing\Redirect;
 use Blush\Routing\RedirectSource;
 
@@ -29,7 +29,7 @@ use Blush\Routing\RedirectSource;
 final readonly class ContentRedirects implements RedirectSource
 {
 	public function __construct(
-		private ContentRepository $content,
+		private Entries $content,
 		private ContentUrls $urls
 	) {}
 

@@ -24,12 +24,11 @@ use Blush\Auth\Permissions;
 use Blush\Cache\ContentVersion;
 use Blush\Content\Http\RelatedController;
 use Blush\Content\Index\Indexer;
+use Blush\Content\Entries;
 use Blush\Content\Relation\DataRelationWriter;
 use Blush\Content\Relation\InvalidRelation;
 use Blush\Content\Relation\Relation;
 use Blush\Content\Relation\RelationChanges;
-use Blush\Content\Source\ContentSource;
-use Blush\Content\Source\UnreadableSource;
 use Blush\Content\Type\ContentType;
 use Blush\Content\Type\ContentTypeCache;
 use Blush\Content\Type\ContentTypeLoader;
@@ -38,7 +37,6 @@ use Blush\Content\Type\DataTypeWriter;
 use Blush\Content\Type\InvalidContentType;
 use Blush\Content\Type\Tree;
 use Blush\Content\Type\TypeKind;
-use Blush\Content\Writer\ContentWriter;
 use Blush\Content\Writer\EntryChanges;
 use Blush\Content\Writer\WriteException;
 use Blush\Core\AppConfig;
@@ -108,8 +106,7 @@ final readonly class TypeEditController
 		private Indexer $indexer,
 		private ContentVersion $version,
 		private AppConfig $app,
-		private ContentSource $source,
-		private ContentWriter $content,
+		private Entries $content,
 		private Permissions $permissions,
 		private ContentTypeLoader $loader,
 		private RelationChanges $changes
@@ -412,20 +409,20 @@ final readonly class TypeEditController
 	}
 
 	/**
-	 * Writes a page a type keeps at a key, through the content writer
-	 * (D-642), unless the source already has it.
+	 * Writes a page a type keeps at a key (`index` for its landing page),
+	 * unless it has one.
 	 *
 	 * @throws InvalidContentType
 	 */
 	private function addPage(ContentType $type, string $key, string $title, string $what): void
 	{
 		try {
-			if ($this->source->stat($this->content->pathAt($type, $key)) !== null) {
+			if ($this->content->editableAt($type, $key) !== null) {
 				return;
 			}
 
 			$this->content->createAt($type, $key, new EntryChanges(set: ['title' => $title]));
-		} catch (WriteException | UnreadableSource $error) {
+		} catch (WriteException $error) {
 			throw new InvalidContentType(sprintf('The type was saved, but its %s page couldn\'t be written: %s', $what, $error->getMessage()), previous: $error);
 		}
 	}

@@ -54,6 +54,10 @@ See [Accounts and roles](accounts.md) and [The admin](admin.md).
 | `content:ids` | List content files missing an [id](content.md#ids), and ids files share. `--write` gives each file missing one a new id; `--keep=<path>` keeps a shared id on that file and gives the others new ones (repeat it for more). |
 | `routes:list` | Show every URL pattern and redirect, and which one wins when two overlap |
 
+`content:filenames`, `content:folders`, `content:terms`, `content:refs`,
+and `content:ids` fix things only content files have, so they're there
+while your content is kept as files, as it is by default.
+
 ## Publishing and caches
 
 | Command | What it does |

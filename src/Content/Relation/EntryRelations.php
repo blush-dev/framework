@@ -13,9 +13,8 @@ declare(strict_types=1);
 
 namespace Blush\Content\Relation;
 
-use Blush\Content\ContentRepository;
+use Blush\Content\Entries;
 use Blush\Content\Entry\Entry;
-use Blush\Content\Index\ContentIndex;
 
 /**
  * Reads relations for the site (D-585): an entry's targets, and the
@@ -38,8 +37,9 @@ final readonly class EntryRelations
 {
 	public function __construct(
 		private Relations $relations,
-		private ContentIndex $index,
-		private ContentRepository $content
+		private EntryLinks $links,
+		private EntryTargets $targets,
+		private Entries $content
 	) {}
 
 	/**
@@ -56,16 +56,16 @@ final readonly class EntryRelations
 			return [];
 		}
 
-		$ids = $this->graph()->targets($entry->id, $relation);
+		$ids = $this->links->targets($entry->id, $relation);
 
 		if ($definition->symmetric) {
-			$ids = array_values(array_unique([...$ids, ...$this->graph()->sources($entry->id, $definition->key($entry->type->name))]));
+			$ids = array_values(array_unique([...$ids, ...$this->links->sources($entry->id, $definition->key($entry->type->name))]));
 		}
 
-		$original = $this->targets()->original($entry->id);
+		$original = $this->targets->original($entry->id);
 
 		if ($original !== null && $original !== $entry->id) {
-			$ids = $definition->translations->apply($ids, $this->graph()->targets($original, $relation));
+			$ids = $definition->translations->apply($ids, $this->links->targets($original, $relation));
 		}
 
 		return $this->entries($ids, $language ?? $entry->language);
@@ -79,7 +79,7 @@ final readonly class EntryRelations
 	 */
 	public function links(Entry $entry, string $relation): array
 	{
-		return $entry->id === null ? [] : $this->graph()->links($entry->id, $relation);
+		return $entry->id === null ? [] : $this->links->links($entry->id, $relation);
 	}
 
 	/**
@@ -99,7 +99,7 @@ final readonly class EntryRelations
 	 */
 	public function referencedBy(Entry $entry, string $relation, ?string $language = null): array
 	{
-		$target = $entry->id === null ? null : $this->targets()->original($entry->id);
+		$target = $entry->id === null ? null : $this->targets->original($entry->id);
 
 		if ($target === null) {
 			return [];
@@ -107,7 +107,7 @@ final readonly class EntryRelations
 
 		$entries = [];
 
-		foreach ($this->graph()->linksTo($target, $relation) as $link) {
+		foreach ($this->links->linksTo($target, $relation) as $link) {
 			$shown = $this->source($link, $target, $language ?? $entry->language);
 
 			if ($shown !== null && $shown->isPublished()) {
@@ -136,7 +136,7 @@ final readonly class EntryRelations
 		}
 
 		// A translation's own link shows only in its own language.
-		if ($this->targets()->original($link->source) !== $link->source) {
+		if ($this->targets->original($link->source) !== $link->source) {
 			return $source->language === $language ? $source : null;
 		}
 
@@ -147,8 +147,8 @@ final readonly class EntryRelations
 		}
 
 		$shown = $definition->translations->apply(
-			$this->graph()->targets($translation->id, $link->relation),
-			$this->graph()->targets($link->source, $link->relation)
+			$this->links->targets($translation->id, $link->relation),
+			$this->links->targets($link->source, $link->relation)
 		);
 
 		return in_array($target, $shown, true) ? $translation : null;
@@ -176,21 +176,5 @@ final readonly class EntryRelations
 		}
 
 		return array_values($entries);
-	}
-
-	/**
-	 * Returns the current index's relation graph.
-	 */
-	private function graph(): RelationGraph
-	{
-		return $this->index->snapshot()->graph();
-	}
-
-	/**
-	 * Returns the current index's targets.
-	 */
-	private function targets(): TargetLookup
-	{
-		return new SnapshotTargets($this->index->snapshot());
 	}
 }

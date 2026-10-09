@@ -42,8 +42,9 @@ blush-framework/
     Routing/            Route, compiler, matcher, UrlGenerator, attributes
     Field/              Field base, Fields/ (the built-in types), Control, Schema, FieldType,
                         registry, factory, registrar (D-337, D-338)
-    Content/            Source, Storage (D-485), Parser, Type, Index, Entry, Query, Lint, Writer (ContentWriter,
-                        FilesystemWriter, DocumentEditor, YamlMap, EntryChanges, D-228)
+    Content/            Source, Storage (D-485), Parser, Type, Index, Entry, Query, Lint, Writer (ContentWriter by id,
+                        FilesystemContentWriter, FilesystemWriter by path, DocumentEditor,
+                        YamlMap, EntryChanges; D-228, D-654)
     Markdown/           Parser interface + adapter; CommonMark/Directive/ (D-112)
     Media/              MediaConfig, resolver, streaming controller (M4c); image derivatives later
     View/               Views, Template, ViewFinder, ViewFactory, Hierarchy, Head, Escaper,

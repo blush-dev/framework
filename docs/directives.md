@@ -501,7 +501,7 @@ declare(strict_types=1);
 
 namespace Acme\RecentPosts;
 
-use Blush\Content\ContentRepository;
+use Blush\Content\Entries;
 use Blush\Content\Entry\Entry;
 use Blush\Content\Query\Order;
 use Blush\Directive\Directive;
@@ -516,7 +516,7 @@ final class RecentPosts extends Directive
 	public const ?DirectiveKind KIND = DirectiveKind::Leaf;
 
 	public function __construct(
-		private readonly ContentRepository $content,
+		private readonly Entries $content,
 		public readonly int $limit = 5,
 		public readonly string $label = ''
 	) {}
@@ -554,7 +554,7 @@ final class RecentPosts extends Directive
   and a value the enum doesn't have falls back to the default.
 - **`label`** gets the Markdown label (`::acme/recent-posts[Latest]`), if
   the constructor takes it.
-- **The `ContentRepository` follows the page's language.** On a
+- **`Entries` follows the page's language.** On a
   [translated](content.md#translations) page, such as `/fr/a-propos`,
   `$this->content->query()` finds French entries and `term()` finds French
   topics, so `posts()` above lists the French posts, whether a template

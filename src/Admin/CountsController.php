@@ -24,7 +24,7 @@ use Blush\Auth\ContentAction;
 use Blush\Auth\ExtensionAction;
 use Blush\Auth\Permissions;
 use Blush\Auth\Roles;
-use Blush\Content\ContentRepository;
+use Blush\Content\Entries;
 use Blush\Content\Type\ContentTypes;
 use Blush\Content\Type\Tree;
 use Blush\Core\Paths;
@@ -67,7 +67,7 @@ use Blush\Theme\Themes;
 final readonly class CountsController
 {
 	public function __construct(
-		private ContentRepository $content,
+		private Entries $content,
 		private ContentTypes $types,
 		private Permissions $permissions,
 		private AccountStore $accounts,

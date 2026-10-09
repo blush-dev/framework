@@ -17,7 +17,7 @@ use DateTimeImmutable;
 use DateTimeZone;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
-use Blush\Content\ContentRepository;
+use Blush\Content\Entries;
 use Blush\Core\Framework;
 use Blush\Tests\BootsScratchSite;
 use Blush\Tests\WritesContentConfig;
@@ -310,7 +310,7 @@ final class ViewsTest extends TestCase
 		$app->boot();
 
 		$container = $app->container();
-		$term      = $container->make(ContentRepository::class)->named('topic', 'grid');
+		$term      = $container->make(Entries::class)->named('topic', 'grid');
 		$views     = $container->make(ViewFactory::class)->forChain($container->make(ThemeResolver::class)->active());
 		$context   = new ViewContext(new PageMarkup('Test Site'), ['site' => new Site('Test Site', 'http://localhost', 'en_US', 'en-US')]);
 

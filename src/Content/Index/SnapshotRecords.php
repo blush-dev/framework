@@ -76,6 +76,14 @@ final class SnapshotRecords implements EntryLocations
 	private ?array $byId = null;
 
 	/**
+	 * Each table's row offsets by a key's value, once asked for, by
+	 * `{table}:{key}`.
+	 *
+	 * @var array<string, array<string, list<int>>>
+	 */
+	private array $offsets = [];
+
+	/**
 	 * Paths by id.
 	 *
 	 * @var array<string, string>
@@ -330,6 +338,53 @@ final class SnapshotRecords implements EntryLocations
 		}
 
 		return $this->lookups[$key] = $lookup;
+	}
+
+	/**
+	 * Returns a table's rows whose value at a key (`id`, or a field) is
+	 * one of some values, in the table's order: a store's shortcut for a
+	 * query asking for those, ahead of the conditions it then checks. The
+	 * lookup is built once a request for each key asked by.
+	 *
+	 * @param  list<mixed>    $values
+	 * @return list<RowArray>
+	 */
+	public function rowsWhere(string $table, string $key, array $values): array
+	{
+		$rows    = $table === EntryTable::TABLE ? $this->entries : $this->refRows;
+		$lookup  = $this->offsets["{$table}:{$key}"] ??= self::offsetsBy($rows, $key);
+		$offsets = [];
+
+		foreach ($values as $value) {
+			foreach (is_string($value) ? $lookup[$value] ?? [] : [] as $offset) {
+				$offsets[$offset] = true;
+			}
+		}
+
+		ksort($offsets);
+
+		return array_map(static fn (int $offset): array => $rows[$offset], array_keys($offsets));
+	}
+
+	/**
+	 * Returns rows' offsets by their text value at a key.
+	 *
+	 * @param  list<RowArray>             $rows
+	 * @return array<string, list<int>>
+	 */
+	private static function offsetsBy(array $rows, string $key): array
+	{
+		$lookup = [];
+
+		foreach ($rows as $offset => $row) {
+			$value = $key === 'id' ? $row['id'] : $row['fields'][$key] ?? null;
+
+			if (is_string($value)) {
+				$lookup[$value][] = $offset;
+			}
+		}
+
+		return $lookup;
 	}
 
 	/**

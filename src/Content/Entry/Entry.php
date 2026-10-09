@@ -44,6 +44,7 @@ final readonly class Entry implements Stringable
 	 * @param SourceFile                  $source      The file.
 	 * @param string                      $language    The code of the language it's written in (D-455).
 	 * @param ?string                     $id          Its id (D-477), or `null` for a file without a valid one.
+	 * @param ?string                     $version     Its version (D-648), for the edit-conflict check: on files, a hash of its file.
 	 */
 	public function __construct(
 		public string $path,
@@ -63,7 +64,8 @@ final readonly class Entry implements Stringable
 		public SourceFile $source,
 		private Body $body,
 		public string $language = '',
-		public ?string $id = null
+		public ?string $id = null,
+		public ?string $version = null
 	) {}
 
 	/**

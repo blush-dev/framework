@@ -13,12 +13,15 @@ declare(strict_types=1);
 
 namespace Blush\Content\Relation;
 
-use Blush\Content\Index\ContentIndex;
-use Blush\Content\Index\Indexer;
+use Blush\Content\Entries;
+use Blush\Content\Record\EntryTable;
 use Blush\Content\Status;
-use Blush\Content\Writer\ContentWriter;
 use Blush\Content\Writer\EntryChanges;
 use Blush\Content\Writer\WriteException;
+use Blush\Storage\Record\Operator;
+use Blush\Storage\Record\Record;
+use Blush\Storage\Record\RecordStores;
+use Blush\Storage\Record\Ref;
 
 /**
  * Changing a relation that entries use (D-600), for the admin's form and
@@ -31,20 +34,22 @@ use Blush\Content\Writer\WriteException;
  * - `apply()` makes it: a new key keeps the old one as an alias unless
  *   the files are rewritten, and an unfiled type's values are removed
  *   when asked.
- * - `strip()` removes a relation's values, with their ids, from files.
+ * - `strip()` removes a relation's values, with their ids, from entries.
  *
- * Values are read from the index, brought up to date first.
+ * Values are read from the `entries` records (D-649), as written in
+ * their fields, and entries are changed by id through `Entries` (D-654):
+ * an entry kept without an id is named by its record's steady one, and
+ * given one of its own when it's changed.
  */
 final readonly class RelationChanges
 {
 	public function __construct(
-		private ContentIndex $index,
-		private Indexer $indexer,
-		private ContentWriter $writer
+		private RecordStores $stores,
+		private Entries $content
 	) {}
 
 	/**
-	 * Returns the entries with a value in a relation (by path, with how
+	 * Returns the entries with a value in a relation (by id, with how
 	 * many values), of its `from` types or only the types given.
 	 *
 	 * @param  ?list<string> $types
@@ -52,19 +57,19 @@ final readonly class RelationChanges
 	 */
 	public function uses(Relation $relation, ?array $types = null): array
 	{
-		$this->indexer->index();
-
 		$uses = [];
 
-		foreach ($this->index->snapshot()->records as $path => $record) {
-			if (! $relation->isFrom($record['type']) || ($types !== null && ! in_array($record['type'], $types, true))) {
+		foreach ($this->records() as $record) {
+			$type = self::type($record);
+
+			if (! $relation->isFrom($type) || ($types !== null && ! in_array($type, $types, true))) {
 				continue;
 			}
 
-			$count = count(LinkResolver::values($relation->valueIn([...$record['extra'], ...$record['values']])));
+			$count = count(LinkResolver::values($relation->valueIn(self::front($record))));
 
 			if ($count > 0) {
-				$uses[(string) $path] = $count;
+				$uses[$record->id] = $count;
 			}
 		}
 
@@ -80,15 +85,13 @@ final readonly class RelationChanges
 	 */
 	public function counts(array $relations): array
 	{
-		$this->indexer->index();
-
 		$counts = array_fill_keys(array_map(static fn (Relation $relation): string => $relation->name, array_values($relations)), 0);
 
-		foreach ($this->index->snapshot()->records as $record) {
-			$values = [...$record['extra'], ...$record['values']];
+		foreach ($this->records() as $record) {
+			$values = self::front($record);
 
 			foreach ($relations as $relation) {
-				if ($relation->isFrom($record['type']) && LinkResolver::values($relation->valueIn($values)) !== []) {
+				if ($relation->isFrom(self::type($record)) && LinkResolver::values($relation->valueIn($values)) !== []) {
 					$counts[$relation->name]++;
 				}
 			}
@@ -106,12 +109,14 @@ final readonly class RelationChanges
 	 */
 	public function slugsOver(Relation $relation, string $type, int $above): array
 	{
-		$records = $this->index->snapshot()->records;
+		$records = $this->records();
 		$slugs   = [];
 
-		foreach ($this->uses($relation, [$type]) as $path => $count) {
-			if ($count > $above && isset($records[$path])) {
-				$slugs[] = $records[$path]['slug'];
+		foreach ($this->uses($relation, [$type]) as $id => $count) {
+			$slug = $records[$id]->fields['slug'] ?? null;
+
+			if ($count > $above && is_string($slug)) {
+				$slugs[] = $slug;
 			}
 		}
 
@@ -140,12 +145,13 @@ final readonly class RelationChanges
 			if ($several !== []) {
 				$refused = 'one';
 				$inWay   = $several;
-				$refusal = sprintf('%s more than one value in "%s", so it can\'t take just one: %s.', self::entries(count($several), 'has', 'have'), $old->name, implode(', ', array_slice(array_keys($several), 0, 5)) . (count($several) > 5 ? ', …' : ''));
+				$refusal = sprintf('%s more than one value in "%s", so it can\'t take just one: %s.', self::entries(count($several), 'has', 'have'), $old->name, implode(', ', array_slice($this->titles(array_keys($several)), 0, 5)) . (count($several) > 5 ? ', …' : ''));
 			}
 		}
 
+		$records = $this->records();
 		$unfiled = $new->from === [] ? [] : array_values(array_unique(array_filter(
-			array_map(fn (string $path): string => $this->index->snapshot()->records[$path]['type'] ?? '', array_map(strval(...), array_keys($uses))),
+			array_map(static fn (string $id): string => isset($records[$id]) ? self::type($records[$id]) : '', array_map(strval(...), array_keys($uses))),
 			static fn (string $type): bool => $type !== '' && ! in_array($type, $new->from, true)
 		)));
 
@@ -206,25 +212,26 @@ final readonly class RelationChanges
 	 * Names the entries with the most values, up to `RelationCheck::LISTED`,
 	 * then by title.
 	 *
-	 * @param  array<array-key, int> $uses Values by path.
+	 * @param  array<array-key, int> $uses Values by id.
 	 * @return list<array{id: ?string, type: string, title: string, count: int}>
 	 */
 	private function items(array $uses): array
 	{
-		$records = $this->index->snapshot()->records;
+		$records = $this->records();
 		$items   = [];
 
-		foreach ($uses as $path => $count) {
-			$record = $records[(string) $path] ?? null;
+		foreach ($uses as $id => $count) {
+			$record = $records[(string) $id] ?? null;
 
 			if ($record !== null) {
-				$items[] = ['id' => $record['id'], 'type' => $record['type'], 'title' => $record['title'], 'count' => $count];
+				$items[] = ['id' => $record->id, 'type' => self::type($record), 'title' => self::title($record), 'count' => $count];
 			}
 		}
 
 		usort($items, static fn (array $a, array $b): int => [$b['count'], $a['title']] <=> [$a['count'], $b['title']]);
 
-		return array_slice($items, 0, RelationCheck::LISTED);
+		// An entry kept without an id has none to link to.
+		return array_map(fn (array $item): array => [...$item, 'id' => $this->content->find($item['id'])?->id], array_slice($items, 0, RelationCheck::LISTED));
 	}
 
 	/**
@@ -264,20 +271,20 @@ final readonly class RelationChanges
 	}
 
 	/**
-	 * Removes a relation's values and their ids from the files that have
-	 * them (of its `from` types, or only those given). Returns the paths
-	 * changed.
+	 * Removes a relation's values and their ids from the entries that
+	 * have them (of its `from` types, or only those given). Returns the
+	 * ids of the entries changed.
 	 *
 	 * @param  ?list<string> $types
 	 * @return list<string>
-	 * @throws WriteException When a file can't be changed.
+	 * @throws WriteException When an entry can't be changed.
 	 */
 	public function strip(Relation $relation, ?array $types = null): array
 	{
 		$changed = [];
 
-		foreach (array_keys($this->uses($relation, $types)) as $path) {
-			$front  = $this->writer->load($path)->frontMatter;
+		foreach (array_keys($this->uses($relation, $types)) as $id) {
+			$front  = $this->content->editable((string) $id)->frontMatter;
 			$remove = array_values(array_filter($relation->keys(), static fn (string $key): bool => array_key_exists($key, $front)));
 			$refs   = Refs::fromValue($front[Refs::FIELD] ?? null)->with($relation->name, []);
 			$set    = [];
@@ -288,8 +295,7 @@ final readonly class RelationChanges
 				$set[Refs::FIELD] = $refs->toArray();
 			}
 
-			$this->writer->update($path, new EntryChanges($set, array_values(array_intersect($remove, array_keys($front)))));
-			$changed[] = $path;
+			$changed[] = $this->content->change((string) $id, new EntryChanges($set, array_values(array_intersect($remove, array_keys($front)))))->id ?? (string) $id;
 		}
 
 		return $changed;
@@ -297,28 +303,27 @@ final readonly class RelationChanges
 
 	/**
 	 * Moves each entry's values in a relation from its key (or an alias)
-	 * to a new one. Returns the paths changed.
+	 * to a new one. Returns the ids of the entries changed.
 	 *
 	 * @return list<string>
-	 * @throws WriteException When a file can't be changed.
+	 * @throws WriteException When an entry can't be changed.
 	 */
 	public function moveKey(Relation $relation, string $field): array
 	{
 		$changed = [];
 
-		foreach (array_keys($this->uses($relation)) as $path) {
-			$front = $this->writer->load($path)->frontMatter;
+		foreach (array_keys($this->uses($relation)) as $id) {
+			$front = $this->content->editable((string) $id)->frontMatter;
 			$value = $relation->valueIn($front);
 
 			if (! is_scalar($value) && ! is_array($value)) {
 				continue;
 			}
 
-			$this->writer->update($path, new EntryChanges(
+			$changed[] = $this->content->change((string) $id, new EntryChanges(
 				[$field => $value],
 				array_values(array_filter($relation->keys(), static fn (string $key): bool => $key !== $field && array_key_exists($key, $front)))
-			));
-			$changed[] = $path;
+			))->id ?? (string) $id;
 		}
 
 		return $changed;
@@ -332,9 +337,9 @@ final readonly class RelationChanges
 	 */
 	private function live(array $uses): array
 	{
-		$records = $this->index->snapshot()->records;
+		$records = $this->records();
 
-		return array_filter($uses, static fn (string $path): bool => ($records[$path]['status'] ?? null) === Status::Published->value, ARRAY_FILTER_USE_KEY);
+		return array_filter($uses, static fn (string $id): bool => ($records[$id]->fields['status'] ?? null) === Status::Published->value, ARRAY_FILTER_USE_KEY);
 	}
 
 	/**
@@ -346,8 +351,8 @@ final readonly class RelationChanges
 		$uses  = $this->uses($relation);
 		$count = 0;
 
-		foreach ($this->index->snapshot()->records as $path => $record) {
-			if ($relation->isFrom($record['type']) && $record['status'] === Status::Published->value && ! isset($uses[(string) $path])) {
+		foreach ($this->records() as $id => $record) {
+			if ($relation->isFrom(self::type($record)) && ($record->fields['status'] ?? null) === Status::Published->value && ! isset($uses[$id])) {
 				$count++;
 			}
 		}
@@ -361,18 +366,82 @@ final readonly class RelationChanges
 	 */
 	private function overInverse(string $relation, int $max): int
 	{
-		$snapshot = $this->index->snapshot();
-		$counts   = [];
+		$table   = Ref::table(EntryTable::table()->area);
+		$records = $this->records();
+		$counts  = [];
 
-		foreach ($snapshot->graph()->all() as $link) {
-			$path = $snapshot->path($link->source);
+		foreach ($this->stores->query($table)->where('relation', Operator::Equal, $relation)->get() as $ref) {
+			$source = $ref->fields['source_id'] ?? null;
+			$target = $ref->fields['target_id'] ?? null;
 
-			if ($link->relation === $relation && $path !== null && ($snapshot->records[$path]['status'] ?? null) !== Status::Trash->value) {
-				$counts[$link->target] = ($counts[$link->target] ?? 0) + 1;
+			if (is_string($source) && is_string($target) && isset($records[$source]) && ($records[$source]->fields['status'] ?? null) !== Status::Trash->value) {
+				$counts[$target] = ($counts[$target] ?? 0) + 1;
 			}
 		}
 
 		return count(array_filter($counts, static fn (int $count): bool => $count > $max));
+	}
+
+	/**
+	 * Returns every entry's record, without its content, by id.
+	 *
+	 * @return array<string, Record>
+	 */
+	private function records(): array
+	{
+		$records = [];
+
+		foreach ($this->stores->query(EntryTable::table())->withoutContent()->get() as $record) {
+			$records[$record->id] = $record;
+		}
+
+		return $records;
+	}
+
+	/**
+	 * Returns the titles of entries, by id, for naming them.
+	 *
+	 * @param  list<array-key> $ids
+	 * @return list<string>
+	 */
+	private function titles(array $ids): array
+	{
+		$records = $this->records();
+
+		return array_values(array_filter(array_map(static fn (int|string $id): ?string => isset($records[(string) $id]) ? self::title($records[(string) $id]) : null, $ids), is_string(...)));
+	}
+
+	/**
+	 * Returns an entry record's type.
+	 */
+	private static function type(Record $record): string
+	{
+		$type = $record->fields['type'] ?? null;
+
+		return is_string($type) ? $type : '';
+	}
+
+	/**
+	 * Returns an entry record's title, else its slug.
+	 */
+	private static function title(Record $record): string
+	{
+		$title = $record->fields['title'] ?? null;
+		$slug  = $record->fields['slug'] ?? null;
+
+		return is_string($title) && $title !== '' ? $title : (is_string($slug) ? $slug : $record->id);
+	}
+
+	/**
+	 * Returns an entry record's front matter.
+	 *
+	 * @return array<array-key, mixed>
+	 */
+	private static function front(Record $record): array
+	{
+		$front = $record->fields['fields'] ?? null;
+
+		return is_array($front) ? $front : [];
 	}
 
 	/**

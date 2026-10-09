@@ -19,16 +19,15 @@ use FilesystemIterator;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
 use SplFileInfo;
-use Override;
 use Psr\Clock\ClockInterface;
 use Blush\Cache\ContentVersion;
-use Blush\Content\ContentRepository;
 use Blush\Content\Index\RecordBuilder;
 use Blush\Content\Index\ContentIndex;
 use Blush\Content\Index\Indexer;
+use Blush\Content\Index\IndexFreshness;
+use Blush\Content\Index\IndexRecord;
 use Blush\Content\Index\IndexReport;
 use Blush\Content\Index\IndexSnapshot;
-use Blush\Content\Entry\Entry;
 use Blush\Content\EntryFields;
 use Blush\Content\Status;
 use Blush\Content\Parser\DocumentParser;
@@ -48,7 +47,11 @@ use Blush\Support\Slug;
 use Blush\Support\Uuid;
 
 /**
- * Writes content files in `user/content` (D-228):
+ * Writes content files in `user/content` (D-228), by path: the
+ * filesystem driver's own writer, under its `ContentWriter`
+ * (`FilesystemContentWriter`, which names entries by id) and the tools
+ * only files have (`content:ids`, `content:refs`, file names and folders;
+ * D-654):
  *
  * - **Confined:** every path is resolved inside the content folder, and
  *   only `.md` files are written (D-501), never anything executable
@@ -56,7 +59,7 @@ use Blush\Support\Uuid;
  * - **Safe:** edits go through `DocumentEditor`, which keeps the file's
  *   formatting and refuses results that wouldn't read back as intended;
  *   files are written atomically, one write at a time (a lock file in
- *   `storage/cache`), and checked against the caller's revision first.
+ *   `storage/cache`), and checked against the caller's version (a hash of the file) first.
  * - **Nested:** `createUnder()` writes a tree's page in its parent's
  *   folder, first making a parent kept as a file its folder's page
  *   (D-408), and moving it back if the page can't be written; `move()`
@@ -77,7 +80,7 @@ use Blush\Support\Uuid;
  * Front matter keys go through the entry's type schema, so setting
  * `published` updates a file's `date` alias in place.
  */
-final readonly class FilesystemWriter implements ContentWriter
+final readonly class FilesystemWriter
 {
 	public function __construct(
 		private Paths $paths,
@@ -85,19 +88,21 @@ final readonly class FilesystemWriter implements ContentWriter
 		private DocumentParser $parser,
 		private DocumentEditor $editor,
 		private ContentTypes $types,
-		private ContentRepository $content,
+		private IndexFreshness $freshness,
 		private Indexer $indexer,
 		private ContentIndex $index,
 		private Relations $relations,
-		private ContentVersion $version,
+		private ContentVersion $contentVersion,
 		private ClockInterface $clock,
 		private AppConfig $app
 	) {}
 
 	/**
-	 * @inheritDoc
+	 * Reads an entry's file for editing: its front matter as written, its
+	 * body, and its version.
+	 *
+	 * @throws WriteException When there's no such file or it can't be read.
 	 */
-	#[Override]
 	public function load(string $path): EditableEntry
 	{
 		$file     = $this->file($path);
@@ -112,13 +117,30 @@ final readonly class FilesystemWriter implements ContentWriter
 		clearstatcache(true, $file);
 		$modified = @filemtime($file);
 
-		return new EditableEntry($path, $document->frontMatter, $document->body, self::revision($contents), $modified === false ? null : $modified);
+		$id = $document->frontMatter[EntryFields::ID] ?? null;
+
+		return new EditableEntry(is_string($id) && Uuid::isValid($id) ? strtolower($id) : '', $document->frontMatter, $document->body, self::version($contents), $modified === false ? null : $modified, $path);
 	}
 
 	/**
-	 * @inheritDoc
+	 * Returns whether there's a content file at a path.
+	 *
+	 * @throws WriteException When the path isn't a content file's.
 	 */
-	#[Override]
+	public function exists(string $path): bool
+	{
+		return is_file($this->file($path));
+	}
+
+	/**
+	 * Creates an entry of a type from a slug, named by the type's
+	 * pattern (`ContentType::naming()`, D-511): `{folder}/{slug}.md`
+	 * without one of its own (D-515), in the folders its folder pattern
+	 * gives (`ContentType::directoryFor()`, D-629). A pattern's date
+	 * defaults to now.
+	 *
+	 * @throws WriteException When the file exists or the slug is invalid.
+	 */
 	public function create(ContentType $type, string $slug, EntryChanges $changes, ?DateTimeInterface $date = null): WriteResult
 	{
 		if (! Slug::isSlug($slug)) {
@@ -139,14 +161,16 @@ final readonly class FilesystemWriter implements ContentWriter
 
 			$report = $this->refresh([$path]);
 
-			return new WriteResult($path, $this->revisionOf($path), $report);
+			return new WriteResult($path, $this->versionOf($path), $report);
 		});
 	}
 
 	/**
-	 * @inheritDoc
+	 * Creates a page a type keeps at a fixed key in its folder, undated:
+	 * `{folder}/{key}.md`.
+	 *
+	 * @throws WriteException When the file exists or the key is invalid.
 	 */
-	#[Override]
 	public function createAt(ContentType $type, string $key, EntryChanges $changes): WriteResult
 	{
 		$path = $this->pathAt($type, $key);
@@ -161,14 +185,18 @@ final readonly class FilesystemWriter implements ContentWriter
 
 			$report = $this->refresh([$path]);
 
-			return new WriteResult($path, $this->revisionOf($path), $report);
+			return new WriteResult($path, $this->versionOf($path), $report);
 		});
 	}
 
 	/**
-	 * @inheritDoc
+	 * Returns the path of the page a type keeps at a fixed key, as
+	 * `createAt()` writes it, whether or not it exists yet. Each of the
+	 * key's segments is a slug, and may start with `_` to keep it out of
+	 * listings, such as `_cooks` or `_cooks/jane` (D-602).
+	 *
+	 * @throws WriteException When the key is invalid.
 	 */
-	#[Override]
 	public function pathAt(ContentType $type, string $key): string
 	{
 		if (! array_all(explode('/', $key), static fn (string $segment): bool => Slug::isSlug(ltrim($segment, '_')) && strlen(ltrim($segment, '_')) >= strlen($segment) - 1)) {
@@ -179,9 +207,19 @@ final readonly class FilesystemWriter implements ContentWriter
 	}
 
 	/**
-	 * @inheritDoc
+	 * Creates a page of a tree under another (D-408), undated:
+	 * `{folder}/{parent key}/{slug}.md`, so its key is the parent's
+	 * and its slug. A parent kept as a file named for its key
+	 * (`about.md`) becomes its folder's page first (`about/index.md`), so
+	 * a page and its children share a folder; its key and address stay
+	 * the same, and the result's `moved` names its new path. A parent
+	 * that's already a folder's page, or whose file name says more than
+	 * its key (an order prefix, a `slug:` of its own), stays where it is.
+	 *
+	 * @throws WriteException When the parent isn't a page of a tree, its
+	 *                        folder already has a page, the page exists,
+	 *                        or the slug is invalid.
 	 */
-	#[Override]
 	public function createUnder(string $parentPath, string $slug, EntryChanges $changes): WriteResult
 	{
 		if (! Slug::isSlug($slug)) {
@@ -189,9 +227,10 @@ final readonly class FilesystemWriter implements ContentWriter
 		}
 
 		return $this->locked(function () use ($parentPath, $slug, $changes): WriteResult {
-			$parent = $this->content->findPath($parentPath);
+			$parent = $this->record($parentPath);
+			$type   = $parent === null ? null : $this->types->find($parent->type);
 
-			if ($parent === null || ! $parent->type instanceof Tree) {
+			if ($parent === null || ! $type instanceof Tree) {
 				throw new WriteException(sprintf('%s isn\'t a page other pages can go under.', $parentPath));
 			}
 
@@ -199,13 +238,12 @@ final readonly class FilesystemWriter implements ContentWriter
 				throw new WriteException(sprintf('%s is an index page; pages under it go at the top.', $parentPath));
 			}
 
-			$type   = $parent->type;
 			$folder = ltrim("{$type->folder}/{$parent->key}", '/');
 			$path   = "{$folder}/" . $type->naming()->name($slug, $this->clock->now()) . '.' . FilesystemSource::EXTENSION;
 			$file   = $this->file($path);
 
 			if (
-				$this->content->named($type->name, "{$parent->key}/{$slug}") !== null
+				$this->named($type->name, "{$parent->key}/{$slug}") !== null
 				|| file_exists($file)
 				|| file_exists($this->folder("{$folder}/{$slug}") . '/index.' . FilesystemSource::EXTENSION)
 			) {
@@ -237,7 +275,7 @@ final readonly class FilesystemWriter implements ContentWriter
 
 			$report = $this->refresh([$path]);
 
-			return new WriteResult($path, $this->revisionOf($path), $report, $moved);
+			return new WriteResult($path, $this->versionOf($path), $report, $moved);
 		});
 	}
 
@@ -276,9 +314,14 @@ final readonly class FilesystemWriter implements ContentWriter
 	}
 
 	/**
-	 * @inheritDoc
+	 * Copies an entry beside it (D-275) under a new slug, with changes
+	 * applied to the copy: `{slug}`, or the first of `{slug}-2`,
+	 * `{slug}-3`, … that's free. The copy is named as its type names new
+	 * files (D-511), with the date given (default now). A bundle's copy is a copy of its
+	 * folder. A landing page can't be copied; its name is its folder's.
+	 *
+	 * @throws WriteException When the entry can't be read or the copy written.
 	 */
-	#[Override]
 	public function duplicate(string $path, string $slug, EntryChanges $changes, ?DateTimeInterface $date = null): WriteResult
 	{
 		if (! Slug::isSlug($slug)) {
@@ -289,7 +332,7 @@ final readonly class FilesystemWriter implements ContentWriter
 
 		return $this->locked(function () use ($path, $file, $slug, $changes, $date): WriteResult {
 			$contents = $this->read($file);
-			$entry    = $this->content->findPath($path);
+			$entry    = $this->record($path);
 
 			if ($entry?->landing === true) {
 				throw new WriteException(sprintf('%s is a landing page; its name is its folder\'s, so it can\'t be copied.', $path));
@@ -298,7 +341,7 @@ final readonly class FilesystemWriter implements ContentWriter
 			// A copy is a new file, so it's named as its type names them now,
 			// and a collection's is a file in the folder its pattern gives
 			// (D-514, D-629).
-			$type   = $entry->type ?? $this->types->forFile($path);
+			$type   = ($entry === null ? null : $this->types->find($entry->type)) ?? $this->types->forFile($path);
 			$date ??= $this->clock->now();
 			$prefix = $type->naming()->prefix($date);
 			$number = 1;
@@ -313,52 +356,58 @@ final readonly class FilesystemWriter implements ContentWriter
 				$this->copyFolder($from, $to);
 			}
 
-			$this->write($this->file($newPath), $this->editor->edit($newPath, $contents, $this->withNew($changes, $this->frontMatter($contents)), $this->keys($entry?->type->name)));
+			$this->write($this->file($newPath), $this->editor->edit($newPath, $contents, $this->withNew($changes, $this->frontMatter($contents)), $this->keys($entry?->type)));
 
 			$report = $this->refresh([$newPath]);
 
-			return new WriteResult($newPath, $this->revisionOf($newPath), $report);
+			return new WriteResult($newPath, $this->versionOf($newPath), $report);
 		});
 	}
 
 	/**
-	 * @inheritDoc
+	 * Changes an entry's front matter and body. A file without an id is
+	 * given one.
+	 *
+	 * @throws WriteException
 	 */
-	#[Override]
-	public function update(string $path, EntryChanges $changes, ?string $revision = null): WriteResult
+	public function update(string $path, EntryChanges $changes, ?string $version = null): WriteResult
 	{
 		$file = $this->file($path);
 
-		return $this->locked(function () use ($path, $file, $changes, $revision): WriteResult {
-			$contents = $this->current($path, $file, $revision);
+		return $this->locked(function () use ($path, $file, $changes, $version): WriteResult {
+			$contents = $this->current($path, $file, $version);
 
 			if ($changes->isEmpty()) {
-				return new WriteResult($path, self::revision($contents), new IndexReport());
+				return new WriteResult($path, self::version($contents), new IndexReport());
 			}
 
 			// The id isn't changed by an edit, but one is given to a file without it.
 			$changes = $this->hasId($path, $contents) ? self::withoutId($changes) : $this->withId($changes);
-			$edited  = $this->editor->edit($path, $contents, $changes, $this->keys($this->content->findPath($path)?->type->name));
+			$edited  = $this->editor->edit($path, $contents, $changes, $this->keys($this->record($path)?->type));
 
 			if ($edited !== $contents) {
 				$this->write($file, $edited);
 			}
 
 			if ($edited === $contents) {
-				return new WriteResult($path, self::revision($edited), new IndexReport());
+				return new WriteResult($path, self::version($edited), new IndexReport());
 			}
 
 			$report = $this->refresh([$path]);
 
-			return new WriteResult($path, $this->revisionOf($path), $report);
+			return new WriteResult($path, $this->versionOf($path), $report);
 		});
 	}
 
 	/**
-	 * @inheritDoc
+	 * Gives an entry's file a new slug: it's renamed (keeping any prefix,
+	 * whatever pattern named it, and a language suffix; D-511), or its
+	 * folder for a bundle (`{slug}/index.md`).
+	 *
+	 * @throws WriteConflict
+	 * @throws WriteException When the new name is taken or invalid.
 	 */
-	#[Override]
-	public function rename(string $path, string $slug, ?string $revision = null): WriteResult
+	public function rename(string $path, string $slug, ?string $version = null): WriteResult
 	{
 		if (! Slug::isSlug($slug)) {
 			throw new WriteException(sprintf('"%s" isn\'t a slug; try "%s".', $slug, Slug::from($slug)));
@@ -366,17 +415,19 @@ final readonly class FilesystemWriter implements ContentWriter
 
 		$file = $this->file($path);
 
-		return $this->locked(function () use ($path, $file, $slug, $revision): WriteResult {
-			$contents = $this->current($path, $file, $revision);
+		return $this->locked(function () use ($path, $file, $slug, $version): WriteResult {
+			$contents = $this->current($path, $file, $version);
 
-			if ($this->content->findPath($path)?->landing === true) {
+			$entry = $this->record($path);
+
+			if ($entry?->landing === true) {
 				throw new WriteException(sprintf('%s is a landing page; its name is its folder\'s.', $path));
 			}
 
-			[$from, $to, $newPath] = $this->renameTargets($path, $slug, $this->content->findPath($path));
+			[$from, $to, $newPath] = $this->renameTargets($path, $slug, $entry);
 
 			if ($from === $to) {
-				return new WriteResult($path, self::revision($contents), new IndexReport());
+				return new WriteResult($path, self::version($contents), new IndexReport());
 			}
 
 			if (file_exists($to)) {
@@ -391,23 +442,33 @@ final readonly class FilesystemWriter implements ContentWriter
 
 			$report = $this->refresh($filed, $referrers);
 
-			return new WriteResult($newPath, $this->revisionOf($newPath), $report);
+			return new WriteResult($newPath, $this->versionOf($newPath), $report);
 		});
 	}
 
 	/**
-	 * @inheritDoc
+	 * Moves a tree's page under another of its pages, or to the top with
+	 * `null` (D-410), keeping its slug: its file (or its folder, for one
+	 * kept as `{slug}/index.md`) moves into the new parent's folder, with
+	 * the folder of pages under it, so they come along. A new parent kept
+	 * as a file named for its key becomes its folder's page first, as in
+	 * `createUnder()`. Moving to where it already is changes nothing. The
+	 * result's `moved` names every entry that moved, old path to new.
+	 *
+	 * @throws WriteException When it isn't a tree's page, the parent isn't
+	 *                        one of its pages (or is the page itself, or
+	 *                        under it), or a page is already there.
 	 */
-	#[Override]
-	public function move(string $path, ?string $parentPath, ?string $revision = null): WriteResult
+	public function move(string $path, ?string $parentPath, ?string $version = null): WriteResult
 	{
 		$file = $this->file($path);
 
-		return $this->locked(function () use ($path, $file, $parentPath, $revision): WriteResult {
-			$contents = $this->current($path, $file, $revision);
-			$entry    = $this->content->findPath($path);
+		return $this->locked(function () use ($path, $file, $parentPath, $version): WriteResult {
+			$contents = $this->current($path, $file, $version);
+			$entry    = $this->record($path);
+			$type     = $entry === null ? null : $this->types->find($entry->type);
 
-			if ($entry === null || ! $entry->type instanceof Tree) {
+			if ($entry === null || ! $type instanceof Tree) {
 				throw new WriteException(sprintf('%s isn\'t a page that can move.', $path));
 			}
 
@@ -415,10 +476,9 @@ final readonly class FilesystemWriter implements ContentWriter
 				throw new WriteException(sprintf('%s is an index page; it stays at the top of its folder.', $path));
 			}
 
-			$type   = $entry->type;
-			$parent = $parentPath === null ? null : $this->content->findPath($parentPath);
+			$parent = $parentPath === null ? null : $this->record($parentPath);
 
-			if ($parentPath !== null && ($parent === null || $parent->type->name !== $type->name || $parent->landing)) {
+			if ($parentPath !== null && ($parent === null || $parent->type !== $type->name || $parent->landing)) {
 				throw new WriteException(sprintf('%s isn\'t one of the %s a page can go under.', $parentPath, $type->labels->items));
 			}
 
@@ -427,14 +487,14 @@ final readonly class FilesystemWriter implements ContentWriter
 			}
 
 			if ($type->parentKey($entry->key, []) === $parent?->key) {
-				return new WriteResult($path, self::revision($contents), new IndexReport());
+				return new WriteResult($path, self::version($contents), new IndexReport());
 			}
 
 			$slug   = basename($entry->key);
 			$newKey = $parent === null ? $slug : "{$parent->key}/{$slug}";
 			$target = ltrim($type->folder . ($parent === null ? '' : "/{$parent->key}"), '/');
 
-			if ($this->content->named($type->name, $newKey) !== null) {
+			if ($this->named($type->name, $newKey) !== null) {
 				throw new WriteException(sprintf('There\'s already a page at %s.', $newKey));
 			}
 
@@ -514,45 +574,52 @@ final readonly class FilesystemWriter implements ContentWriter
 
 			$report = $this->refresh($filed, $referrers);
 
-			return new WriteResult($newPath, $this->revisionOf($newPath), $report, $moved);
+			return new WriteResult($newPath, $this->versionOf($newPath), $report, $moved);
 		});
 	}
 
 	/**
-	 * @inheritDoc
+	 * Moves an entry to the trash (D-484): it stays where it is, with
+	 * `status: trash` and `trashed` (when) in its front matter.
+	 *
+	 * @throws WriteConflict
+	 * @throws WriteException
 	 */
-	#[Override]
-	public function trash(string $path, ?string $revision = null): WriteResult
+	public function trash(string $path, ?string $version = null): WriteResult
 	{
 		return $this->update($path, new EntryChanges([
 			'status'              => Status::Trash->value,
 			EntryFields::TRASHED => $this->clock->now()->format('Y-m-d H:i:s P')
-		]), $revision);
+		]), $version);
 	}
 
 	/**
-	 * @inheritDoc
+	 * Brings an entry back from the trash (D-484): its `status` becomes
+	 * `$status`, or goes when that's `null`, and its `trashed` date goes.
+	 *
+	 * @throws WriteException
 	 */
-	#[Override]
-	public function restore(string $path, ?string $revision = null, ?Status $status = Status::Draft): WriteResult
+	public function restore(string $path, ?string $version = null, ?Status $status = Status::Draft): WriteResult
 	{
 		return $this->update($path, $status === null
 			? new EntryChanges([], ['status', EntryFields::TRASHED])
-			: new EntryChanges(['status' => $status->value], [EntryFields::TRASHED]), $revision);
+			: new EntryChanges(['status' => $status->value], [EntryFields::TRASHED]), $version);
 	}
 
 	/**
-	 * @inheritDoc
+	 * Deletes an entry for good: its file, and its bundle's folder when
+	 * nothing else is left in it.
+	 *
+	 * @throws WriteException
 	 */
-	#[Override]
-	public function delete(string $path, ?string $revision = null): WriteResult
+	public function delete(string $path, ?string $version = null): WriteResult
 	{
 		$file = $this->file($path);
 
-		return $this->locked(function () use ($path, $file, $revision): WriteResult {
-			$this->current($path, $file, $revision);
+		return $this->locked(function () use ($path, $file, $version): WriteResult {
+			$this->current($path, $file, $version);
 
-			$bundle = preg_match('#(^|/)index\.[a-z]+$#', $path) === 1 && $this->content->findPath($path)?->landing !== true;
+			$bundle = preg_match('#(^|/)index\.[a-z]+$#', $path) === 1 && $this->record($path)?->landing !== true;
 
 			if (! @unlink($file)) {
 				throw new WriteException(sprintf('%s couldn\'t be deleted.', $path));
@@ -573,7 +640,7 @@ final readonly class FilesystemWriter implements ContentWriter
 	 *
 	 * @return array{string, string, string}
 	 */
-	private function renameTargets(string $path, string $slug, ?Entry $entry): array
+	private function renameTargets(string $path, string $slug, ?IndexRecord $entry): array
 	{
 		$directory = dirname($path) === '.' ? '' : dirname($path);
 		$file      = basename($path);
@@ -662,16 +729,16 @@ final readonly class FilesystemWriter implements ContentWriter
 	}
 
 	/**
-	 * Returns a file's contents after checking the revision.
+	 * Returns a file's contents after checking the version.
 	 *
 	 * @throws WriteConflict
 	 * @throws WriteException
 	 */
-	private function current(string $path, string $file, ?string $revision): string
+	private function current(string $path, string $file, ?string $version): string
 	{
 		$contents = $this->read($file);
 
-		if ($revision !== null && ! hash_equals(self::revision($contents), $revision)) {
+		if ($version !== null && ! hash_equals(self::version($contents), $version)) {
 			throw new WriteConflict(sprintf('%s changed since it was opened. Reload it, then make your change again.', $path));
 		}
 
@@ -740,9 +807,13 @@ final readonly class FilesystemWriter implements ContentWriter
 	}
 
 	/**
-	 * @inheritDoc
+	 * Gives entries new ids (D-477), for `content:ids` and Site Health:
+	 * each file's `id` is set to a new UUIDv7 (added last when it has
+	 * none), all in one reindex. A file that can't be read or changed is
+	 * left as it is and named in the result.
+	 *
+	 * @param list<string> $paths
 	 */
-	#[Override]
 	public function assignIds(array $paths): AssignedIds
 	{
 		return $this->locked(function () use ($paths): AssignedIds {
@@ -756,7 +827,7 @@ final readonly class FilesystemWriter implements ContentWriter
 					$id       = Uuid::v7($this->clock->now());
 					$changes  = new EntryChanges([EntryFields::ID => $id]);
 
-					$this->write($file, $this->editor->edit($path, $contents, $changes, $this->keys($this->content->findPath($path)?->type->name)));
+					$this->write($file, $this->editor->edit($path, $contents, $changes, $this->keys($this->record($path)?->type)));
 
 					$ids[$path] = $id;
 				} catch (WriteException $e) {
@@ -769,9 +840,16 @@ final readonly class FilesystemWriter implements ContentWriter
 	}
 
 	/**
-	 * @inheritDoc
+	 * Renames entries' files and folders (D-512), for `content:filenames`,
+	 * folders (D-629), and Site Health: each entry, by its path, moves a
+	 * set of files or folders (paths in the content folder, old to new)
+	 * together, so an entry and its translations move as one, all in one
+	 * reindex. When a move can't be made (a new path is taken, an old one
+	 * is gone), the entry's earlier moves are undone, and it's named in
+	 * the result. A folder a move leaves empty is removed (D-514).
+	 *
+	 * @param array<string, array<string, string>> $moves Old paths to new, by entry path; the entry's own file comes first.
 	 */
-	#[Override]
 	public function renameFiles(array $moves): RenamedFiles
 	{
 		return $this->locked(function () use ($moves): RenamedFiles {
@@ -968,9 +1046,14 @@ final readonly class FilesystemWriter implements ContentWriter
 	}
 
 	/**
-	 * @inheritDoc
+	 * Files both forms of entries' relations (D-589, D-596), for
+	 * `content:refs` and Site Health: each file whose written values or
+	 * `refs` differ from what its links say is rewritten, all in one
+	 * reindex. A file that can't be read or changed is left as it is and
+	 * named in the result.
+	 *
+	 * @param list<string> $paths
 	 */
-	#[Override]
 	public function fileRefs(array $paths): FiledRefs
 	{
 		return $this->locked(function () use ($paths): FiledRefs {
@@ -1019,7 +1102,7 @@ final readonly class FilesystemWriter implements ContentWriter
 			}
 		}
 
-		$this->version->bump();
+		$this->contentVersion->bump();
 
 		return $report;
 	}
@@ -1106,13 +1189,31 @@ final readonly class FilesystemWriter implements ContentWriter
 	}
 
 	/**
-	 * Returns a file's revision as it is now.
+	 * Returns the index's record of the entry at a path, the index brought
+	 * up to date once a request.
+	 */
+	private function record(string $path): ?IndexRecord
+	{
+		return $this->freshness->fresh()->snapshot()->record($path);
+	}
+
+	/**
+	 * Returns the path of a type's entry with a key in the site's default
+	 * language, or `null`.
+	 */
+	private function named(string $type, string $key): ?string
+	{
+		return $this->freshness->fresh()->snapshot()->find($this->app->languages->default->code, $type, $key);
+	}
+
+	/**
+	 * Returns a file's version as it is now.
 	 *
 	 * @throws WriteException When it can't be read.
 	 */
-	private function revisionOf(string $path): string
+	private function versionOf(string $path): string
 	{
-		return self::revision($this->read($this->file($path)));
+		return self::version($this->read($this->file($path)));
 	}
 
 	/**
@@ -1146,9 +1247,9 @@ final readonly class FilesystemWriter implements ContentWriter
 	}
 
 	/**
-	 * Returns a file's revision: a hash of its contents.
+	 * Returns a file's version (D-648): a hash of its contents.
 	 */
-	private static function revision(string $contents): string
+	private static function version(string $contents): string
 	{
 		return RecordBuilder::hash($contents);
 	}

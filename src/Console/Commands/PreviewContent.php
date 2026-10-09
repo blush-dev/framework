@@ -21,7 +21,7 @@ use Blush\Console\ExitCode;
 use Blush\Console\InvalidInput;
 use Blush\Console\Output;
 use Blush\Console\Verbosity;
-use Blush\Content\ContentRepository;
+use Blush\Content\Entries;
 use Blush\Core\AppConfig;
 use Blush\Core\Framework;
 use Blush\Preview\PreviewConfig;
@@ -35,7 +35,7 @@ use Blush\Preview\PreviewLinks;
 final readonly class PreviewContent
 {
 	public function __construct(
-		private ContentRepository $content,
+		private Entries $content,
 		private PreviewLinks $links,
 		private PreviewConfig $config,
 		private AppConfig $app

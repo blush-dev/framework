@@ -17,7 +17,7 @@ use Override;
 use Throwable;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
-use Blush\Content\ContentRepository;
+use Blush\Content\Entries;
 use Blush\Content\Entry\Entry;
 use Blush\Content\Type\ContentTypes;
 use Blush\Core\AppConfig;
@@ -54,7 +54,7 @@ final readonly class ThemedErrorPages implements ErrorPages
 	public function __construct(
 		private ThemeResolver $themes,
 		private ViewFactory $views,
-		private ContentRepository $content,
+		private Entries $content,
 		private ContentTypes $types,
 		private AppConfig $app,
 		private Dispatcher $events

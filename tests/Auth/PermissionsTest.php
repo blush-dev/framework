@@ -26,7 +26,7 @@ use Blush\Auth\RoleStore;
 use Blush\Auth\Permissions;
 use Blush\Auth\Role;
 use Blush\Auth\Roles;
-use Blush\Content\ContentRepository;
+use Blush\Content\Entries;
 use Blush\Content\Entry\Entry;
 use Blush\Content\Type\ContentTypes;
 use Blush\Core\Application;
@@ -72,7 +72,7 @@ final class PermissionsTest extends TestCase
 
 	private function entry(string $key, string $type = 'page'): Entry
 	{
-		$entry = $this->app->container()->make(ContentRepository::class)->named($type, $key);
+		$entry = $this->app->container()->make(Entries::class)->named($type, $key);
 		$this->assertNotNull($entry, $key);
 
 		return $entry;
@@ -215,7 +215,7 @@ final class PermissionsTest extends TestCase
 			$this->app->container()->make(ContentTypes::class)
 		);
 
-		$content  = $this->app->container()->make(ContentRepository::class);
+		$content  = $this->app->container()->make(Entries::class);
 		$entries  = $content->query()->any()->get()->all();
 		$roles    = ['administrator', 'editor', 'author', 'contributor', 'reviewer', 'proofreader', 'pager', 'ghost'];
 		$checked  = 0;

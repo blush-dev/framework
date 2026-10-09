@@ -70,7 +70,8 @@ final readonly class EntryHydrator
 			source: $record->source(),
 			body: $this->body($record),
 			language: $record->language,
-			id: $record->id
+			id: $record->id,
+			version: $record->hash
 		);
 	}
 

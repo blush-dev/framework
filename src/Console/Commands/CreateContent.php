@@ -20,9 +20,9 @@ use Blush\Console\Attributes\Option;
 use Blush\Console\ExitCode;
 use Blush\Console\InvalidInput;
 use Blush\Console\Output;
+use Blush\Content\Entries;
 use Blush\Content\Source\ContentSource;
 use Blush\Content\Type\ContentTypes;
-use Blush\Content\Writer\ContentWriter;
 use Blush\Content\Writer\EntryChanges;
 use Blush\Content\Writer\WriteException;
 use Blush\Support\Slug;
@@ -41,7 +41,7 @@ final readonly class CreateContent
 		private ContentTypes $types,
 		private ContentSource $source,
 		private ClockInterface $clock,
-		private ContentWriter $writer
+		private Entries $content
 	) {}
 
 	/**
@@ -72,14 +72,14 @@ final readonly class CreateContent
 		], body: "\n");
 
 		try {
-			$result = $this->writer->create($contentType, $slug, $changes, $now);
+			$entry = $this->content->create($contentType, $slug, $changes, null, $now);
 		} catch (WriteException $e) {
 			$output->error($e->getMessage());
 
 			return ExitCode::Failure;
 		}
 
-		$output->success(sprintf('Created %s', $this->source->location($result->path)));
+		$output->success(sprintf('Created %s', $this->source->location($entry->path)));
 
 		return ExitCode::Success;
 	}

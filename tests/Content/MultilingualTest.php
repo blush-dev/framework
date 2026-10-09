@@ -23,7 +23,7 @@ use Blush\Directive\Directive;
 use Blush\View\RenderableFactory;
 use Blush\Directive\DirectiveRegistry;
 use Blush\Component\Slots;
-use Blush\Content\ContentRepository;
+use Blush\Content\Entries;
 use Blush\Content\Entry\Entry;
 use Blush\Content\Index\ContentIndex;
 use Blush\Content\Index\IndexSnapshot;
@@ -32,12 +32,12 @@ use Blush\Content\Index\IndexRecord;
 use Blush\Content\Index\TranslatedKeys;
 use Blush\Content\Index\RecordBuilder;
 use Blush\Content\Lint\Linter;
-use Blush\Content\LocalizedRepository;
+use Blush\Content\LocalizedEntries;
 use Blush\Content\Query\EntryCollection;
 use Blush\Content\Routing\ContentSiteUrls;
 use Blush\Content\Routing\ContentUrls;
 use Blush\Content\Type\ContentTypes;
-use Blush\Content\Writer\ContentWriter;
+use Blush\Content\Writer\FilesystemWriter;
 use Blush\Core\AppConfig;
 use Blush\Core\Application;
 use Blush\Core\Language;
@@ -67,7 +67,7 @@ use Blush\View\ViewFactory;
 #[CoversClass(IndexRecord::class)]
 #[CoversClass(ContentUrls::class)]
 #[CoversClass(ContentSiteUrls::class)]
-#[CoversClass(LocalizedRepository::class)]
+#[CoversClass(LocalizedEntries::class)]
 #[CoversClass(RenderableFactory::class)]
 #[CoversClass(Component::class)]
 #[CoversClass(Directive::class)]
@@ -149,9 +149,9 @@ final class MultilingualTest extends TestCase
 		return $this->app->container()->make(Kernel::class)->handle(Request::create($uri));
 	}
 
-	private function content(): ContentRepository
+	private function content(): Entries
 	{
-		return $this->app->container()->make(ContentRepository::class);
+		return $this->app->container()->make(Entries::class);
 	}
 
 	public function testLanguagesFromConfig(): void
@@ -200,7 +200,7 @@ final class MultilingualTest extends TestCase
 	private function snapshot(?Application $app = null): IndexSnapshot
 	{
 		$app ??= $this->app;
-		$app->container()->make(ContentRepository::class)->query()->count();
+		$app->container()->make(Entries::class)->query()->count();
 
 		return $app->container()->make(ContentIndex::class)->snapshot();
 	}
@@ -236,7 +236,7 @@ final class MultilingualTest extends TestCase
 
 		$app      = $this->site();
 		$snapshot = $this->snapshot($app);
-		$content  = $app->container()->make(ContentRepository::class);
+		$content  = $app->container()->make(Entries::class);
 		$urls     = $app->container()->make(ContentUrls::class);
 
 		$this->assertEquals(['en' => 'contact/index.md', 'fr' => 'contact.fr.md'], $snapshot->translations('contact/index.md'));
@@ -400,7 +400,7 @@ final class MultilingualTest extends TestCase
 		$this->assertSame(['Hello Bundle', 'Printemps', 'Welcome'], $titles($content->query()->type('post')->language('fr')->limit(null)->get()));
 		$this->assertSame(['Printemps'], $titles($content->query()->type('post')->language('fr')->withOriginals(false)->limit(null)->get()));
 		$this->assertSame(['Hello Bundle', 'spring', 'Welcome'], $titles($content->query()->type('post')->limit(null)->get()), 'The default language has no originals to add.');
-		$this->assertContains('Welcome', $titles(new LocalizedRepository($content, 'fr')->query()->type('post')->limit(null)->get()), 'Directives and components list them too.');
+		$this->assertContains('Welcome', $titles(new LocalizedEntries($content, 'fr')->query()->type('post')->limit(null)->get()), 'Directives and components list them too.');
 	}
 
 	public function testComponentsFollowThePageLanguage(): void
@@ -420,7 +420,7 @@ final class MultilingualTest extends TestCase
 		$this->assertStringNotContainsString('Printemps', $views->component('acme/post-titles', [], '', new Slots(), $english));
 		$this->assertStringEndsWith('| Art', $views->component('acme/post-titles', [], '', new Slots(), $english));
 
-		$localized = new LocalizedRepository($content, 'fr');
+		$localized = new LocalizedEntries($content, 'fr');
 
 		$this->assertSame('Printemps', $localized->query()->type('post')->first()?->title);
 		$this->assertContains('Printemps', array_map(static fn (Entry $entry): string => $entry->title, $localized->query()->type('post')->anyLanguage()->limit(null)->get()->all()));
@@ -439,7 +439,7 @@ final class MultilingualTest extends TestCase
 		$app = $this->site();
 		$app->container()->make(DirectiveRegistry::class)->register('acme/post-titles', PostTitles::class);
 
-		$content = $app->container()->make(ContentRepository::class);
+		$content = $app->container()->make(Entries::class);
 		$french  = $content->named('page', 'lists', 'fr')?->content() ?? '';
 		$english = $content->named('page', 'lists')?->content() ?? '';
 
@@ -448,7 +448,7 @@ final class MultilingualTest extends TestCase
 		$this->assertStringContainsString('| Art', $english);
 
 		// Rendered again, from the cache.
-		$this->assertStringContainsString('Printemps', $app->container()->make(ContentRepository::class)->named('page', 'lists', 'fr')?->content() ?? '');
+		$this->assertStringContainsString('Printemps', $app->container()->make(Entries::class)->named('page', 'lists', 'fr')?->content() ?? '');
 		$this->assertStringContainsString("Printemps | L'art", (string) $app->container()->make(Kernel::class)->handle(Request::create('/fr/lists'))->getBody());
 	}
 
@@ -459,7 +459,7 @@ final class MultilingualTest extends TestCase
 		$app       = $this->site();
 		$container = $app->container();
 		$views     = $container->make(ViewFactory::class)->forChain($container->make(ThemeResolver::class)->active());
-		$content   = $container->make(ContentRepository::class);
+		$content   = $container->make(Entries::class);
 		$french    = $container->make(ViewFactory::class)->context($views, $content->named('page', 'a-propos', 'fr'));
 		$english   = $container->make(ViewFactory::class)->context($views, $content->named('page', 'about'));
 
@@ -658,7 +658,7 @@ final class MultilingualTest extends TestCase
 
 	public function testRenamingATranslationKeepsItsSuffix(): void
 	{
-		$renamed = $this->site('development')->container()->make(ContentWriter::class)->rename('_posts/2008-04-05.spring.fr.md', 'avril');
+		$renamed = $this->site('development')->container()->make(FilesystemWriter::class)->rename('_posts/2008-04-05.spring.fr.md', 'avril');
 
 		$this->assertSame('_posts/2008-04-05.avril.fr.md', $renamed->path, 'D-511');
 	}
@@ -755,7 +755,7 @@ final class MultilingualTest extends TestCase
 
 		$app      = $this->site();
 		$snapshot = $this->snapshot($app);
-		$content  = $app->container()->make(ContentRepository::class);
+		$content  = $app->container()->make(Entries::class);
 		$css      = $content->named('topic', 'css', 'fr');
 
 		$this->assertSame('toile', $snapshot->record('topics/css.fr.md')?->parent);

@@ -13,7 +13,7 @@ declare(strict_types=1);
 
 namespace Blush\Media;
 
-use Blush\Content\ContentRepository;
+use Blush\Content\Index\EntryFiles;
 use Blush\Content\Source\ContentSource;
 use Blush\Content\Source\UnreadableSource;
 use Blush\Support\UrlPath;
@@ -29,7 +29,7 @@ final readonly class MediaUsage
 {
 	public function __construct(
 		private ContentSource $source,
-		private ContentRepository $content,
+		private EntryFiles $files,
 		private MediaConfig $config
 	) {}
 
@@ -71,7 +71,7 @@ final readonly class MediaUsage
 				continue;
 			}
 
-			$entry   = $this->content->findPath($file->path);
+			$entry   = $this->files->at($file->path);
 			$found[] = [
 				'id'    => $entry?->id,
 				'path'  => $file->path,

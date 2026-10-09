@@ -18,7 +18,7 @@ use DateTimeZone;
 use Psr\Clock\ClockInterface;
 use Blush\Cache\CacheConfig;
 use Blush\Cache\CacheDriver;
-use Blush\Content\ContentRepository;
+use Blush\Content\Entries;
 use Blush\Content\Lint\LintReport;
 use Blush\Content\Source\ContentSource;
 use Blush\Core\AppConfig;
@@ -97,7 +97,7 @@ final readonly class SiteHealth
 		private MediaConfig $media,
 		private Paths $paths,
 		private ExtensionState $extensions,
-		private ContentRepository $content,
+		private Entries $content,
 		private ContentSource $source,
 		private MediaLibrary $library,
 		private ClockInterface $clock,

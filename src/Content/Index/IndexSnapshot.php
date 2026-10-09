@@ -269,24 +269,6 @@ final readonly class IndexSnapshot
 	}
 
 	/**
-	 * Returns the earliest publish time after `$now` of an entry that
-	 * isn't a draft, or `null` when nothing is scheduled. The content
-	 * version changes at that time (D-128).
-	 */
-	public function nextScheduled(int $now): ?int
-	{
-		$next = null;
-
-		foreach ($this->records as $record) {
-			if ($record['status'] === Status::Published->value && $record['published'] !== null && $record['published'] > $now) {
-				$next = min($next ?? PHP_INT_MAX, $record['published']);
-			}
-		}
-
-		return $next;
-	}
-
-	/**
 	 * Returns whether the snapshot has no records.
 	 */
 	public function isEmpty(): bool

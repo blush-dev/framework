@@ -15,8 +15,8 @@ This is the design for the Blush 2 subsystems. Decisions it relies on are in
   `ServiceProvider::STORAGE`, and `StorageResolver` builds them (D-642).
   Only `filesystem` exists. Media files are always files. Build new
   stored data behind an area's contract: site data through `DataStore`,
-  never `user/data`'s files, and content through `ContentSource` and
-  `ContentWriter`, never `user/content`'s. Planned (D-606): one data
+  never `user/data`'s files, and content through `Entries` (D-654),
+  never `user/content`'s. Planned (D-606): one data
   layer for every area, records keyed by id from drivers (filesystem
   and PDO in core, more from Composer), a fluent query each driver
   compiles, and repositories over them.
@@ -708,10 +708,13 @@ Implemented in M4b (D-087, D-090).
   driver for `StorageArea::Content` (D-486), from `StorageDriverRegistry`,
   gives the `ContentSource` and `ContentWriter` classes; the only
   built-in is `filesystem` (`FilesystemStorage`: `FilesystemSource` +
-  `FilesystemWriter`). An extension registers a driver, or binds
-  `ContentSource` / `ContentWriter` itself. `ContentWriter::pathAt()`
-  says where `createAt()` puts a page, so callers look for it in the
-  source, never on disk.
+  `FilesystemContentWriter`). An extension registers a driver, or binds
+  `ContentSource` / `ContentWriter` itself. A driver also names the
+  commands it offers per area (`Storage::commands()`, D-654): the
+  filesystem driver's content tools (`content:ids`, `content:filenames`,
+  `content:folders`, `content:refs`, `content:terms`), registered only
+  while content is kept as files; Site Health checks those only then
+  too.
 - **`ContentIndex`** (`Content\Index`) is the queryable metadata store.
   - `PhpIndex` (default): `storage/index/content.php`, a `var_export`'d
     `IndexSnapshot` kept in opcache shared memory. Records stay arrays.
@@ -728,7 +731,7 @@ Implemented in M4b (D-087, D-090).
   `$id` the UUID; the snapshot (index v6) keeps `ids` (id to path, the
   first by path) and `duplicates`. `Support\Uuid` makes v7 UUIDs and
   checks any version. `Content\EntryIds` finds files missing a valid id
-  or sharing one, and fixes them through `ContentWriter::assignIds()`,
+  or sharing one, and fixes them through `FilesystemWriter::assignIds()`,
   for `content:ids` and Content health.
 - **`Indexer`:**
   - A full scan, or an incremental one that skips files whose mtime and
@@ -740,47 +743,78 @@ Implemented in M4b (D-087, D-090).
     request's first use refreshes it (`ContentConfig::$autoIndex`). In
     production, reindexing is triggered by CLI, webhook, or admin save.
   - Emits `ContentIndexed` with the `IndexReport` when it writes.
-- **`ContentRepository`** is the facade: `query()`, `find(id)` (by the
-  UUID, D-480), `findPath(path)`, `named(type, key)`, `term()`, `termCounts()`, `parent()` and
+- **`Entries`** (D-643, D-654; `StoredEntries` by default) is the facade:
+  `query()`, `find(id)` (by the UUID, D-480), `named(type, key)`,
+  `term()`, `termCounts()`, `parent()` and
   `children()` (from records' `parent` keys and the snapshot's reverse
   `children` map, D-257), `parentKey()` (for a hierarchical term's
   nested URL, which `ContentUrls::termPath()` builds, D-260), plus `get()`,
   `paginate()`, and `count()` for queries, plus `redirects()` for
   `redirect_from`. URLs are resolved by the router's content routes, not
-  the repository. A stale index (another fingerprint) is rebuilt on first
-  use in any environment (D-098).
+  `Entries`. A stale index (another fingerprint) is rebuilt on first
+  use in any environment (D-098). It writes by id (D-654), each write
+  answering the entry after it: `create()` (a tree's page under a parent
+  by id), `createAt()` (a fixed key), `change()`, `rename()`, `move()`,
+  `duplicate()`, `trash()`, `restore()`, and `delete()`, each taking an
+  `Entry` or an id and an optional `version` (`Entry::$version`, D-648),
+  and `editable()` / `editableAt()` (front matter as stored, Markdown,
+  version). Queries go through the record store (D-652, D-653); entries
+  are still hydrated from the index. Code that finds an entry by its file
+  is the filesystem driver's own (`Index\EntryFiles::at()`, for Site
+  Health's file checks and `MediaUsage`).
+- **Relations and references read records** (D-654): `EntryLinks` (refs,
+  plus each parent's `parent_id` through its type's parent relation, as
+  `Link`s) and `EntryTargets` (a `TargetLookup` over `Entries` and the
+  `entries` records) serve `EntryRelations`, `Referrers`,
+  `RelationLimits`, `TypedTargets`, and the reference pickers;
+  `RelationChanges` reads `entries` records and writes by id;
+  `ContentVersion` finds the next scheduled time with a record query.
+  `Record\EntryRecords` reads `entries` and `refs` records without
+  content. The filesystem store (`IndexStore`) answers a query's `=` or
+  `in` on `id`, `parent_id`, `original_id`, `source_id`, or `target_id`
+  from lookups built once a request (`SnapshotRecords::rowsWhere()`).
 - **`Linter`** checks every file for `content:lint` (D-091; dates not
   on the calendar, read from the key's line since YAML has already
   rolled them, D-449), then the
   media metadata files (`Media\MediaMetadataCheck`, D-293: unreadable,
   out-of-schema, hidden, and orphaned ones, by their path from the site
   root).
-- **`ContentWriter`** (D-228; `Blush\Content\Writer`, `FilesystemWriter`
-  by default): `load` (raw front matter, body, and a revision hash),
-  `create`, `createAt` (a fixed key), `createUnder` (a tree's page in
-  its parent's folder, a parent kept as `about.md` first becoming
-  `about/index.md`; `WriteResult::$moved`; D-408), `move` (a tree's
-  page and those under it to another parent, D-410), `update`
-  (`EntryChanges`: set, remove, body), `rename` (a
-  new slug; date prefixes kept, bundles move their folder), `duplicate`
-  (a copy beside it under the first free name, `-2` and on; a new date
-  prefix; a bundle's folder copied; D-275), and
-  `trash` (`status: trash` and `trashed`, the file left in place),
-  `restore` (to `status: draft`, `trashed` removed), and `delete` (the
-  file, and a bundle's folder once empty, for good; D-484). Writes are atomic, serialized
-  by a lock file, checked against the caller's revision (`WriteConflict`),
-  confined to the content root and content formats, and followed by an
-  incremental reindex and a content version bump. `DocumentEditor`
-  edits Markdown and HTML front matter and YAML entries key by key
-  (`YamlMap`, keeping formatting and aliases), rewrites JSON entries,
-  and parses every result to confirm only the intended values changed.
-  Entries are named by path. Every new entry (a copy too) gets a new
-  `id`, written last; `update` adds one to a file without it and never
-  changes or removes one; a new key goes before an `id` that's last, else
-  at the end; every write files its relations (D-596); and
-  `assignIds` gives files new ones in one reindex (D-477, D-480).
-  Outside the writer, entries are named by id (D-481): the admin API,
-  preview links, and the editor's addresses.
+- **`ContentWriter`** (D-228, D-654; `Blush\Content\Writer`) is the
+  driver's writer, by id: `load`, `loadAt`, `create` (a tree's page under
+  a parent id), `createAt`, `duplicate`, `update`, `rename`, `move`,
+  `trash`, `restore`, and `delete`, each returning the entry's id after
+  it (an entry kept without one is named by its record's steady id and
+  given its own when it's changed). The filesystem driver's,
+  `FilesystemContentWriter`, finds each id's path in the index and
+  writes through `FilesystemWriter`, deciding what a write means for a
+  file: a new slug goes in a `slug:` key when the file has one, else in
+  its name (D-277), and a new slug or publish date renames and moves the
+  file by its type's patterns (`FileNames::follow()`, D-519, D-629).
+- **`FilesystemWriter`** (D-228; the filesystem driver's own, by path):
+  `load` (raw front matter, body, and a version hash), `create`,
+  `createAt` (a fixed key, `pathAt()` its path), `createUnder` (a tree's
+  page in its parent's folder, a parent kept as `about.md` first
+  becoming `about/index.md`; `WriteResult::$moved`; D-408), `move` (a
+  tree's page and those under it to another parent, D-410), `update`
+  (`EntryChanges`: set, remove, body), `rename` (a new slug; date
+  prefixes kept, bundles move their folder), `duplicate` (a copy beside
+  it under the first free name, `-2` and on; a new date prefix; a
+  bundle's folder copied; D-275), and `trash` (`status: trash` and
+  `trashed`, the file left in place), `restore` (to `status: draft`,
+  `trashed` removed), and `delete` (the file, and a bundle's folder once
+  empty, for good; D-484). Writes are atomic, serialized by a lock file,
+  checked against the caller's version (`WriteConflict`), confined to
+  the content root and content formats, and followed by an incremental
+  reindex and a content version bump. `DocumentEditor` edits Markdown
+  and HTML front matter and YAML entries key by key (`YamlMap`, keeping
+  formatting and aliases), rewrites JSON entries, and parses every
+  result to confirm only the intended values changed. Every new entry
+  (a copy too) gets a new `id`, written last; `update` adds one to a
+  file without it and never changes or removes one; a new key goes
+  before an `id` that's last, else at the end; every write files its
+  relations (D-596). Its tools: `assignIds` (D-477, D-480), `fileRefs`,
+  and `renameFiles` (names and folders, D-512, D-629). Outside the
+  filesystem driver, entries are named by id (D-481, D-654).
 
 ## Query
 
@@ -1197,7 +1231,7 @@ Implemented in M6a (D-127 to D-130), apart from publishing (M6b).
 - **Stage 3: editor**
   - The editing API (built, D-229): load, create, change (with the
     status shortcut and renames), duplicate (D-275), and delete entries through
-    `ContentWriter`, with permissions judged on the change.
+    `Entries`' writes by id (D-654), with permissions judged on the change.
   - Forms generated from schemas.
   - A Markdown editor with live preview through `Kernel::handle()`.
   - A block inserter for dropping directives into content: only

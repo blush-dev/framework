@@ -13,7 +13,8 @@ declare(strict_types=1);
 
 namespace Blush\Admin;
 
-use Blush\Content\ContentRepository;
+use Blush\Content\Index\EntryFiles;
+use Blush\Content\EntryIdReport;
 use Blush\Content\EntryIds;
 use Blush\Content\EntryRefs;
 use Blush\Content\FileNameRename;
@@ -22,6 +23,8 @@ use Blush\Content\EntryFolders;
 use Blush\Content\Lint\Linter;
 use Blush\Content\Lint\LintReport;
 use Blush\Content\MissingTerms;
+use Blush\Content\Source\ContentSource;
+use Blush\Content\Source\FilesystemSource;
 use Blush\Content\Type\ContentTypes;
 use Blush\Core\Paths;
 use Blush\Field\Severity;
@@ -80,9 +83,10 @@ final readonly class ContentHealth
 		private EntryFolders $folders,
 		private MissingTerms $terms,
 		private EntryRefs $refs,
-		private ContentRepository $content,
+		private EntryFiles $files,
 		private MediaMetadataStore $metadata,
-		private Paths $paths
+		private Paths $paths,
+		private ContentSource $source
 	) {}
 
 	/**
@@ -122,7 +126,11 @@ final readonly class ContentHealth
 			];
 		}
 
-		$ids = $this->ids->report();
+		// What only files have (ids missing from files, names, folders,
+		// terms named without a file, both forms of relations) is checked
+		// only on content kept as files (D-654).
+		$onFiles = $this->source instanceof FilesystemSource;
+		$ids     = $onFiles ? $this->ids->report() : new EntryIdReport();
 
 		try {
 			$media = $this->mediaIds->report();
@@ -146,10 +154,10 @@ final readonly class ContentHealth
 			'entries'    => [],
 			'ids'        => self::ids($ids->missing, $ids->duplicates),
 			'mediaIds'   => self::ids($media->missing, $media->duplicates),
-			'fileNames'  => $this->fileNames(),
-			'folders'    => $this->foldersReport(),
-			'terms'      => $this->termsReport(),
-			'refs'       => $this->refsReport(),
+			'fileNames'  => $onFiles ? $this->fileNames() : [],
+			'folders'    => $onFiles ? $this->foldersReport() : ['count' => 0, 'items' => []],
+			'terms'      => $onFiles ? $this->termsReport() : ['count' => 0, 'items' => []],
+			'refs'       => $onFiles ? $this->refsReport() : ['count' => 0, 'items' => []],
 			'taxonomies' => $this->types->legacy,
 			'mediaSizes' => [
 				'sizes'  => $sizes->count(),
@@ -187,7 +195,7 @@ final readonly class ContentHealth
 		$entries = [];
 
 		foreach (array_unique($paths) as $path) {
-			$entry = $this->content->findPath($path);
+			$entry = $this->files->at($path);
 
 			if ($entry !== null) {
 				$entries[$path] = ['title' => $entry->title, 'type' => $entry->type->name, 'id' => $entry->id];

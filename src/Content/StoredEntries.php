@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Indexed content repository.
+ * Stored entries.
  *
  * @author    Justin Tadlock <justintadlock@gmail.com>
  * @copyright Copyright (c) 2026, Justin Tadlock
@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Blush\Content;
 
 use Closure;
+use DateTimeInterface;
 use Override;
 use Psr\Clock\ClockInterface;
 use Blush\Container\Attributes\Defer;
@@ -33,14 +34,21 @@ use Blush\Content\ContentConfig;
 use Blush\Content\Query\Selection;
 use Blush\Content\Record\EntryTable;
 use Blush\Content\Record\QueryCompiler;
+use Blush\Content\Type\ContentType;
 use Blush\Content\Type\ContentTypes;
+use Blush\Content\Writer\ContentWriter;
+use Blush\Content\Writer\EditableEntry;
+use Blush\Content\Writer\EntryChanges;
+use Blush\Content\Writer\WriteException;
 use Blush\Core\AppConfig;
 use Blush\Storage\Record\Record;
 use Blush\Storage\Record\RecordStores;
 
 /**
- * The default repository: reads the content index and hydrates entries
- * from it.
+ * The default `Entries` (D-654): queries compile to record queries the
+ * content area's store answers (D-652, D-653), entries are hydrated from
+ * the content index, and writes go through the storage driver's
+ * `ContentWriter`, each answering the entry as it is after.
  *
  * The index is built on first use when none exists, or when it was built
  * with other content types, timezone, or locale (`IndexFingerprint`), so
@@ -51,13 +59,16 @@ use Blush\Storage\Record\RecordStores;
  * production, reindexing is explicit: the CLI, the publish webhook, or
  * the admin.
  */
-final class IndexedRepository implements ContentRepository
+final class StoredEntries implements Entries
 {
 	/**
 	 * The name 1.x queries credit people by.
 	 */
 	private const string AUTHOR = 'author';
 
+	/**
+	 * @param Closure(): ContentWriter $writer
+	 */
 	public function __construct(
 		private readonly IndexFreshness $freshness,
 		private readonly EntryHydrator $hydrator,
@@ -65,7 +76,8 @@ final class IndexedRepository implements ContentRepository
 		private readonly AppConfig $app,
 		private readonly ClockInterface $clock,
 		private readonly QueryCompiler $compiler,
-		private readonly RecordStores $stores
+		private readonly RecordStores $stores,
+		#[Defer(ContentWriter::class)] private readonly Closure $writer
 	) {}
 
 	/**
@@ -160,14 +172,13 @@ final class IndexedRepository implements ContentRepository
 	{
 		$path = $this->snapshot()->path($id);
 
-		return $path === null ? null : $this->findPath($path);
+		return $path === null ? null : $this->atPath($path);
 	}
 
 	/**
-	 * @inheritDoc
+	 * Returns the entry the index keeps at a path.
 	 */
-	#[Override]
-	public function findPath(string $path): ?Entry
+	private function atPath(string $path): ?Entry
 	{
 		$record = $this->snapshot()->record($path);
 
@@ -182,7 +193,7 @@ final class IndexedRepository implements ContentRepository
 	{
 		$path = $this->snapshot()->find($language ?? $this->app->languages->default->code, $type, $key);
 
-		return $path === null ? null : $this->findPath($path);
+		return $path === null ? null : $this->atPath($path);
 	}
 
 	/**
@@ -201,7 +212,7 @@ final class IndexedRepository implements ContentRepository
 
 		// In the languages' order, the default first.
 		foreach (array_keys($this->app->languages->all()) as $code) {
-			$translation = isset($paths[$code]) ? $this->findPath($paths[$code]) : null;
+			$translation = isset($paths[$code]) ? $this->atPath($paths[$code]) : null;
 
 			if ($translation !== null) {
 				$entries[$code] = $translation;
@@ -223,7 +234,7 @@ final class IndexedRepository implements ContentRepository
 
 		$path = $this->snapshot()->translations($entry->path)[$language] ?? null;
 
-		return $path === null ? null : $this->findPath($path);
+		return $path === null ? null : $this->atPath($path);
 	}
 
 	/**
@@ -288,7 +299,7 @@ final class IndexedRepository implements ContentRepository
 		}
 
 		$children = array_values(array_filter(array_map(
-			$this->findPath(...),
+			$this->atPath(...),
 			$this->snapshot()->children($entry->language, $entry->type->name, $entry->key)
 		)));
 
@@ -318,8 +329,8 @@ final class IndexedRepository implements ContentRepository
 		}
 
 		return [
-			'before' => isset($paths[$index - 1]) ? $this->findPath($paths[$index - 1]) : null,
-			'after'  => isset($paths[$index + 1]) ? $this->findPath($paths[$index + 1]) : null
+			'before' => isset($paths[$index - 1]) ? $this->atPath($paths[$index - 1]) : null,
+			'after'  => isset($paths[$index + 1]) ? $this->atPath($paths[$index + 1]) : null
 		];
 	}
 
@@ -376,6 +387,147 @@ final class IndexedRepository implements ContentRepository
 		}
 
 		return $redirects;
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	#[Override]
+	public function editable(Entry|string $entry): EditableEntry
+	{
+		return $this->writer()->load(self::id($entry));
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	#[Override]
+	public function editableAt(ContentType $type, string $key): ?EditableEntry
+	{
+		return $this->writer()->loadAt($type, $key);
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	#[Override]
+	public function create(ContentType $type, string $slug, EntryChanges $changes, Entry|string|null $parent = null, ?DateTimeInterface $date = null): Entry
+	{
+		return $this->written($this->writer()->create($type, $slug, $changes, $parent === null ? null : self::id($parent), $date));
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	#[Override]
+	public function createAt(ContentType $type, string $key, EntryChanges $changes): Entry
+	{
+		return $this->written($this->writer()->createAt($type, $key, $changes));
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	#[Override]
+	public function duplicate(Entry|string $entry, string $slug, EntryChanges $changes, ?DateTimeInterface $date = null): Entry
+	{
+		return $this->written($this->writer()->duplicate(self::id($entry), $slug, $changes, $date));
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	#[Override]
+	public function change(Entry|string $entry, EntryChanges $changes, ?string $version = null): Entry
+	{
+		$id = $this->writer()->update(self::id($entry), $changes, $version);
+
+		return $this->written($id);
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	#[Override]
+	public function rename(Entry|string $entry, string $slug, ?string $version = null): Entry
+	{
+		$id = $this->writer()->rename(self::id($entry), $slug, $version);
+
+		return $this->written($id);
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	#[Override]
+	public function move(Entry|string $entry, Entry|string|null $parent, ?string $version = null): Entry
+	{
+		$id = $this->writer()->move(self::id($entry), $parent === null ? null : self::id($parent), $version);
+
+		return $this->written($id);
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	#[Override]
+	public function trash(Entry|string $entry, ?string $version = null): Entry
+	{
+		$id = $this->writer()->trash(self::id($entry), $version);
+
+		return $this->written($id);
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	#[Override]
+	public function restore(Entry|string $entry, ?string $version = null, ?Status $status = Status::Draft): Entry
+	{
+		$id = $this->writer()->restore(self::id($entry), $version, $status);
+
+		return $this->written($id);
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	#[Override]
+	public function delete(Entry|string $entry, ?string $version = null): void
+	{
+		$this->writer()->delete(self::id($entry), $version);
+	}
+
+	/**
+	 * Returns an entry's id, or an id as given.
+	 *
+	 * @throws WriteException When the entry has none.
+	 */
+	private static function id(Entry|string $entry): string
+	{
+		if (is_string($entry)) {
+			return $entry;
+		}
+
+		return $entry->id ?? throw new WriteException(sprintf('"%s" has no id, so it can\'t be changed here until it has one (Site Health, or `content:ids`; D-481).', $entry->title === '' ? $entry->key : $entry->title));
+	}
+
+	/**
+	 * Returns the storage driver's writer.
+	 */
+	private function writer(): ContentWriter
+	{
+		return ($this->writer)();
+	}
+
+	/**
+	 * Returns an entry just written.
+	 *
+	 * @throws WriteException When it can't be read back.
+	 */
+	private function written(string $id): Entry
+	{
+		return $this->find($id) ?? throw new WriteException('The entry was written but couldn\'t be read back; check Site Health.');
 	}
 
 	/**

@@ -13,10 +13,17 @@ declare(strict_types=1);
 
 namespace Blush\Cache;
 
+use Closure;
+use DateTimeImmutable;
+use Exception;
 use Throwable;
 use Psr\Clock\ClockInterface;
-use Blush\Content\Index\ContentIndex;
+use Blush\Container\Attributes\Defer;
+use Blush\Content\Record\EntryRecords;
+use Blush\Content\Record\EntryTable;
+use Blush\Content\Status;
 use Blush\Core\Paths;
+use Blush\Storage\Record\Operator;
 use Blush\Support\Filesystem;
 
 /**
@@ -31,7 +38,8 @@ use Blush\Support\Filesystem;
  * scheduled time. Reading it is one small file per process. When that
  * time has passed, the version moves on by itself: to a hash of the old
  * version and the time, so every request that notices computes the same
- * new version, and the next scheduled time is found in the index.
+ * new version, and the next scheduled time is found in the entries'
+ * records (D-654).
  */
 final class ContentVersion
 {
@@ -47,10 +55,13 @@ final class ContentVersion
 	 */
 	private ?array $state = null;
 
+	/**
+	 * @param Closure(): EntryRecords $records
+	 */
 	public function __construct(
 		private readonly Paths $paths,
 		private readonly ClockInterface $clock,
-		private readonly ContentIndex $index
+		#[Defer(EntryRecords::class)] private readonly Closure $records
 	) {}
 
 	/**
@@ -97,7 +108,7 @@ final class ContentVersion
 	}
 
 	/**
-	 * Stores a new version with the index's next scheduled time. A
+	 * Stores a new version with the next scheduled time. A
 	 * failed write is ignored: the version still holds for this process,
 	 * and the next one tries again.
 	 *
@@ -105,7 +116,7 @@ final class ContentVersion
 	 */
 	private function next(string $version): array
 	{
-		$this->state = ['version' => $version, 'scheduled' => $this->index->snapshot()->nextScheduled($this->now())];
+		$this->state = ['version' => $version, 'scheduled' => $this->nextScheduled()];
 
 		try {
 			new Filesystem()->writeAtomic($this->path(), json_encode($this->state, JSON_THROW_ON_ERROR) . "\n");
@@ -114,6 +125,24 @@ final class ContentVersion
 		}
 
 		return $this->state;
+	}
+
+	/**
+	 * Returns the earliest publish time still to come of an entry that
+	 * isn't a draft, or `null` when nothing is scheduled (D-128).
+	 */
+	private function nextScheduled(): ?int
+	{
+		$next = ($this->records)()->entries()
+			->where('status', Operator::Equal, Status::Published->value)
+			->where('published', Operator::Greater, EntryTable::time($this->now()))
+			->min('published');
+
+		try {
+			return is_string($next) ? new DateTimeImmutable($next)->getTimestamp() : null;
+		} catch (Exception) {
+			return null;
+		}
 	}
 
 	/**

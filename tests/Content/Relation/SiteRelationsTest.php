@@ -15,7 +15,7 @@ namespace Blush\Tests\Content\Relation;
 
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
-use Blush\Content\ContentRepository;
+use Blush\Content\Entries;
 use Blush\Content\Entry\Entry;
 use Blush\Content\Index\ContentIndex;
 use Blush\Content\Index\Indexer;
@@ -273,7 +273,7 @@ final class SiteRelationsTest extends TestCase
 	 */
 	private function at(string $path): Entry
 	{
-		$entry = $this->repository($this->app)->findPath($path);
+		$entry = $this->entryAt($path, $this->app);
 
 		$this->assertNotNull($entry, "No entry at {$path}.");
 

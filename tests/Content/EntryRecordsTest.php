@@ -15,7 +15,7 @@ namespace Blush\Tests\Content;
 
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
-use Blush\Content\ContentRepository;
+use Blush\Content\Entries;
 use Blush\Content\Index\ContentIndex;
 use Blush\Content\Index\IndexSnapshot;
 use Blush\Content\Index\SnapshotRecords;
@@ -69,7 +69,7 @@ final class EntryRecordsTest extends TestCase
 	public function testTheIndexKeepsEntriesAsRecords(): void
 	{
 		$app = $this->site();
-		$app->container()->make(ContentRepository::class)->query()->count();
+		$app->container()->make(Entries::class)->query()->count();
 
 		$index  = $app->container()->make(ContentIndex::class);
 		$posts  = $this->records($index, 'post');
@@ -92,7 +92,7 @@ final class EntryRecordsTest extends TestCase
 	public function testRefsJoinEntriesToTheirTerms(): void
 	{
 		$app     = $this->site();
-		$content = $app->container()->make(ContentRepository::class);
+		$content = $app->container()->make(Entries::class);
 		$content->query()->count();
 
 		$records = SnapshotRecords::fromSnapshot($app->container()->make(ContentIndex::class)->snapshot());

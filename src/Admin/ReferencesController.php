@@ -18,8 +18,8 @@ use Psr\Http\Message\ServerRequestInterface;
 use Blush\Auth\Account;
 use Blush\Auth\ContentAction;
 use Blush\Auth\Permissions;
-use Blush\Content\ContentRepository;
-use Blush\Content\Index\ContentIndex;
+use Blush\Content\Entries;
+use Blush\Content\Relation\EntryLinks;
 use Blush\Content\Relation\Relation;
 use Blush\Content\Relation\RelationLimits;
 use Blush\Content\Relation\Relations;
@@ -117,10 +117,10 @@ final readonly class ReferencesController
 	private const int RECENT_SOURCES = 200;
 
 	public function __construct(
-		private ContentRepository $content,
+		private Entries $content,
 		private ContentTypes $types,
 		private Permissions $permissions,
-		private ContentIndex $index,
+		private EntryLinks $links,
 		private Relations $relations,
 		private RelationLimits $limits
 	) {}
@@ -370,12 +370,12 @@ final readonly class ReferencesController
 	 */
 	private function recent(string $type, array $items, string $source, Relation $from, int $few): array
 	{
-		$graph   = $this->index->snapshot()->graph();
 		$sources = $this->content->query()->any()->type($source)->orderBy('updated', Order::Desc)->limit(self::RECENT_SOURCES)->get()->all();
+		$targets = $this->links->targetsOf(array_values(array_filter(array_map(static fn (Entry $entry): ?string => $entry->id, $sources), is_string(...))), $from->name);
 		$found   = [];
 
 		foreach ($sources as $entry) {
-			foreach ($entry->id === null ? [] : $graph->targets($entry->id, $from->name) as $id) {
+			foreach ($entry->id === null ? [] : $targets[$entry->id] ?? [] as $id) {
 				$target = isset($found[$id]) ? null : $this->content->find($id);
 
 				if ($target !== null && $target->type->name === $type && isset($items[$target->key])) {

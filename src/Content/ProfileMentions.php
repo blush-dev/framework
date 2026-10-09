@@ -33,12 +33,12 @@ use Blush\Markdown\MentionResolver;
 final readonly class ProfileMentions implements MentionResolver
 {
 	/**
-	 * @param Closure(): ContentRepository $content
+	 * @param Closure(): Entries $content
 	 */
 	public function __construct(
 		private ContentTypes $types,
 		private ContentUrls $urls,
-		#[Defer(ContentRepository::class)] private Closure $content
+		#[Defer(Entries::class)] private Closure $content
 	) {}
 
 	/**

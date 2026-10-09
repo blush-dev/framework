@@ -18,7 +18,7 @@ use Blush\Console\Attributes\Option;
 use Blush\Console\ExitCode;
 use Blush\Console\InvalidInput;
 use Blush\Console\Output;
-use Blush\Content\ContentRepository;
+use Blush\Content\Entries;
 use Blush\Content\Entry\Entry;
 use Blush\Content\Status;
 use Blush\Content\Type\ContentTypes;
@@ -31,7 +31,7 @@ use Blush\Content\Type\ContentTypes;
 final readonly class ListContent
 {
 	public function __construct(
-		private ContentRepository $content,
+		private Entries $content,
 		private ContentTypes $types
 	) {}
 

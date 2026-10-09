@@ -21,7 +21,7 @@ use Psr\Http\Message\ServerRequestInterface;
 use Blush\Auth\Account;
 use Blush\Auth\ContentAction;
 use Blush\Auth\Permissions;
-use Blush\Content\ContentRepository;
+use Blush\Content\Entries;
 use Blush\Content\Status as EntryStatus;
 use Blush\Preview\PreviewConfig;
 use Blush\Preview\PreviewLinks;
@@ -38,7 +38,7 @@ final readonly class PreviewLinkController
 	public function __construct(
 		private PreviewLinks $links,
 		private PreviewConfig $config,
-		private ContentRepository $content,
+		private Entries $content,
 		private Permissions $permissions
 	) {}
 

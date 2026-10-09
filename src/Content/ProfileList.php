@@ -25,7 +25,7 @@ use Blush\Content\Type\ContentTypes;
 final readonly class ProfileList
 {
 	public function __construct(
-		private ContentRepository $content,
+		private Entries $content,
 		private ContentTypes $types
 	) {}
 

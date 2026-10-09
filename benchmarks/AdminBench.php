@@ -17,7 +17,7 @@ use PhpBench\Attributes as Bench;
 use Blush\Admin\EntriesController;
 use Blush\Auth\Account;
 use Blush\Benchmarks\Fixture\JtcomSizedSite;
-use Blush\Content\ContentRepository;
+use Blush\Content\Entries;
 use Blush\Content\Index\Indexer;
 use Blush\Storage\Record\Order;
 use Blush\Core\Application;
@@ -55,7 +55,7 @@ final class AdminBench
 		$this->app = new Bootstrap(Paths::fromRoot(JtcomSizedSite::root()))->createApplication();
 		$this->app->boot();
 		$this->app->container()->make(Indexer::class)->index();
-		$this->app->container()->make(ContentRepository::class)->findPath('index.md');
+		$this->app->container()->make(Entries::class)->named('page', '');
 
 		$this->controller  = $this->app->container()->make(EntriesController::class);
 		$this->editor      = new Account('editor', '', ['editor']);
@@ -102,7 +102,7 @@ final class AdminBench
 	#[Bench\Subject]
 	public function benchIndexPage(): void
 	{
-		$this->app->container()->make(ContentRepository::class)->query()->any()->orderBy('updated', Order::Desc)->paginate(EntriesController::PER_PAGE)->all();
+		$this->app->container()->make(Entries::class)->query()->any()->orderBy('updated', Order::Desc)->paginate(EntriesController::PER_PAGE)->all();
 	}
 
 	/**

@@ -16,11 +16,14 @@ namespace Blush\Console;
 use Override;
 use Blush\Container\Container;
 use Blush\Core\ServiceProvider;
+use Blush\Storage\StorageArea;
+use Blush\Storage\StorageResolver;
 
 /**
  * Binds the command registry and the console. The registry is built on first
  * use: commands tagged with `CommandRegistry::TAG` register first, then the
- * built-ins fill any names left free. Nothing here costs anything on a web
+ * storage drivers' own (`Storage::commands()`), then the built-ins fill
+ * any names left free. Nothing here costs anything on a web
  * request.
  */
 final class ConsoleServiceProvider extends ServiceProvider
@@ -57,6 +60,13 @@ final class ConsoleServiceProvider extends ServiceProvider
 
 				foreach ($container->taggedAbstracts(CommandRegistry::TAG) as $class) {
 					$registry->register($class);
+				}
+
+				// The storage drivers' own tools, for the areas they keep (D-654).
+				foreach (StorageArea::cases() as $area) {
+					foreach ($container->make(StorageResolver::class)->commands($area) as $class) {
+						$registry->registerIf($class);
+					}
 				}
 
 				new CommandRegistrar($registry)->register();

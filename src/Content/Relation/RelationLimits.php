@@ -13,7 +13,7 @@ declare(strict_types=1);
 
 namespace Blush\Content\Relation;
 
-use Blush\Content\Index\ContentIndex;
+use Blush\Content\Record\EntryRecords;
 use Blush\Content\Status;
 
 /**
@@ -31,7 +31,9 @@ final readonly class RelationLimits
 {
 	public function __construct(
 		private Relations $relations,
-		private ContentIndex $index
+		private EntryLinks $links,
+		private EntryTargets $targets,
+		private EntryRecords $records
 	) {}
 
 	/**
@@ -43,7 +45,6 @@ final readonly class RelationLimits
 	 */
 	public function check(string $type, ?string $id, string $language, array $frontMatter): array
 	{
-		$snapshot = $this->index->snapshot();
 		$problems = [];
 		$refs     = Refs::fromValue($frontMatter[Refs::FIELD] ?? null);
 		$source   = $id ?? '';
@@ -72,16 +73,18 @@ final readonly class RelationLimits
 				continue;
 			}
 
-			foreach (new LinkResolver(new SnapshotTargets($snapshot))->resolve($relation, $value, $refs, $source, $type, $language)->links as $link) {
+			foreach (new LinkResolver($this->targets)->resolve($relation, $value, $refs, $source, $type, $language)->links as $link) {
 				if (($this->taken($relation, [$link->target], $source)[$link->target] ?? 0) < $max) {
 					continue;
 				}
 
-				$target = $snapshot->record((string) $snapshot->path($link->target));
+				$target = $this->records->find($link->target);
+				$slug   = $target === null ? '' : EntryRecords::text($target, 'slug');
+				$title  = $target === null ? '' : EntryRecords::text($target, 'title');
 
-				$problems[] = new RelationProblem(ProblemKind::InverseLimit, $key, $source, $target->slug ?? $link->target, sprintf(
+				$problems[] = new RelationProblem(ProblemKind::InverseLimit, $key, $source, $slug === '' ? $link->target : $slug, sprintf(
 					'"%s" already has the most entries naming it in %s (%d).',
-					$target->title ?? $link->target,
+					$title === '' ? $link->target : $title,
 					$noun,
 					$max
 				));
@@ -102,14 +105,15 @@ final readonly class RelationLimits
 	 */
 	public function taken(Relation $relation, array $targets, string $except = ''): array
 	{
-		$snapshot = $this->index->snapshot();
-		$graph    = $snapshot->graph();
-		$taken    = [];
+		$taken = [];
 
 		foreach ($targets as $target) {
+			$sources = array_values(array_diff($this->links->sources($target, $relation->name), [$except]));
+			$records = $this->records->findMany($sources);
+
 			$taken[$target] = count(array_filter(
-				array_diff($graph->sources($target, $relation->name), [$except]),
-				static fn (string $id): bool => ($snapshot->records[(string) $snapshot->path($id)]['status'] ?? null) !== Status::Trash->value
+				$sources,
+				static fn (string $id): bool => isset($records[$id]) && EntryRecords::text($records[$id], 'status') !== Status::Trash->value
 			));
 		}
 

@@ -15,7 +15,8 @@ namespace Blush\Tests\Admin;
 
 use Psr\Http\Message\ResponseInterface;
 use Blush\Auth\Accounts;
-use Blush\Content\ContentRepository;
+use Blush\Content\Entries;
+use Blush\Content\Index\EntryFiles;
 use Blush\Content\EntryIds;
 use Blush\Core\Application;
 use Blush\Http\Kernel;
@@ -71,7 +72,7 @@ trait BootsAdmin
 	 */
 	private function idOf(string $path): string
 	{
-		$id = $this->app->container()->make(ContentRepository::class)->findPath($path)?->id;
+		$id = $this->app->container()->make(EntryFiles::class)->at($path)?->id;
 		$this->assertIsString($id, "{$path} has an id.");
 
 		return $id;

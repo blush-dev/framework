@@ -13,7 +13,7 @@ declare(strict_types=1);
 
 namespace Blush\Admin;
 
-use Blush\Content\ContentRepository;
+use Blush\Content\Entries;
 use Blush\Content\Entry\Entry;
 use Blush\Core\AppConfig;
 
@@ -38,7 +38,7 @@ final readonly class EntryHandles
 	private const string LANDING = 'index';
 
 	public function __construct(
-		private ContentRepository $content,
+		private Entries $content,
 		private AppConfig $app
 	) {}
 

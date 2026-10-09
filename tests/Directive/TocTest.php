@@ -15,7 +15,7 @@ namespace Blush\Tests\Directive;
 
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
-use Blush\Content\ContentRepository;
+use Blush\Content\Entries;
 use Blush\Core\Application;
 use Blush\Http\Kernel;
 use Blush\Http\Request;
@@ -153,7 +153,7 @@ final class TocTest extends TestCase
 
 		$this->assertStringContainsString('<h2>A heading</h2>', $this->page($app, '/plain'));
 
-		$guide = $app->container()->make(ContentRepository::class)->named('page', 'guide');
+		$guide = $app->container()->make(Entries::class)->named('page', 'guide');
 
 		$this->assertNotNull($guide);
 		$this->assertStringStartsWith('<p>Intro words here. Install it', $guide->excerpt());

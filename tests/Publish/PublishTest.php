@@ -28,7 +28,7 @@ use Blush\Console\Commands\RunSchedule;
 use Blush\Console\Console;
 use Blush\Console\ExitCode;
 use Blush\Console\Testing\CommandTester;
-use Blush\Content\ContentRepository;
+use Blush\Content\Entries;
 use Blush\Content\Entry\Entry;
 use Blush\Content\Events\EntriesWentLive;
 use Blush\Core\Application;
@@ -243,7 +243,7 @@ final class PublishTest extends TestCase
 		$this->publishConfig("git: true, remote: 'origin', branch: 'main'");
 
 		$app = $this->site();
-		$this->assertNull($app->container()->make(ContentRepository::class)->named('page', 'about'));
+		$this->assertNull($app->container()->make(Entries::class)->named('page', 'about'));
 
 		$this->writeTemporaryFile('author/content/about.md', "---\ntitle: About\n---\n");
 		$this->git($author, 'add', '.');

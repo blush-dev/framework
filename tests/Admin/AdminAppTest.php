@@ -29,7 +29,8 @@ use Blush\Admin\LogController;
 use Blush\Admin\ShellController;
 use Blush\Auth\AccountStore;
 use Blush\Auth\Capabilities;
-use Blush\Content\ContentRepository;
+use Blush\Content\Entries;
+use Blush\Content\Index\EntryFiles;
 use Blush\Tests\Fixtures\Admin\GreetAction;
 
 #[CoversClass(AdminApp::class)]
@@ -211,7 +212,7 @@ final class AdminAppTest extends TestCase
 		$this->writeTemporaryFile('user/content/idea.md', "---\ntitle: Idea\nstatus: draft\nauthors: jane\n---\n");
 		$this->boot();
 		$token = $this->token();
-		$id    = $this->app->container()->make(ContentRepository::class)->findPath('idea.md')?->id;
+		$id    = $this->app->container()->make(EntryFiles::class)->at('idea.md')?->id;
 		$this->assertIsString($id);
 
 		$revision = self::json($this->send('GET', "/entries/{$id}"))['revision'] ?? null;

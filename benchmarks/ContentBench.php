@@ -16,7 +16,7 @@ namespace Blush\Benchmarks;
 use PhpBench\Attributes as Bench;
 use Blush\Benchmarks\Fixture\JtcomSizedSite;
 use Blush\Cache\CacheConfig;
-use Blush\Content\ContentRepository;
+use Blush\Content\Entries;
 use Blush\Content\Index\Indexer;
 use Blush\Content\Index\PhpIndex;
 use Blush\Storage\Record\Order;
@@ -43,7 +43,7 @@ final class ContentBench
 {
 	private Application $app;
 
-	private ContentRepository $content;
+	private Entries $content;
 
 	public function setUp(): void
 	{
@@ -54,8 +54,8 @@ final class ContentBench
 		$indexer = $this->app->container()->make(Indexer::class);
 		$indexer->index();
 
-		$this->content = $this->app->container()->make(ContentRepository::class);
-		$this->content->findPath('index.md');
+		$this->content = $this->app->container()->make(Entries::class);
+		$this->content->named('page', '');
 	}
 
 	#[Bench\Revs(1)]

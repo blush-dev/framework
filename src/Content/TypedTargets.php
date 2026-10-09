@@ -14,12 +14,10 @@ declare(strict_types=1);
 namespace Blush\Content;
 
 use Psr\Clock\ClockInterface;
-use Blush\Content\Index\ContentIndex;
 use Blush\Content\Relation\LinkResolver;
 use Blush\Content\Relation\Relations;
-use Blush\Content\Relation\SnapshotTargets;
+use Blush\Content\Relation\EntryTargets;
 use Blush\Content\Type\ContentTypes;
-use Blush\Content\Writer\ContentWriter;
 use Blush\Content\Writer\EntryChanges;
 use Blush\Content\Writer\WriteException;
 use Blush\Core\AppConfig;
@@ -40,9 +38,9 @@ final readonly class TypedTargets
 {
 	public function __construct(
 		private Relations $relations,
-		private ContentIndex $index,
+		private EntryTargets $targets,
 		private ContentTypes $types,
-		private ContentWriter $writer,
+		private Entries $content,
 		private ClockInterface $clock,
 		private AppConfig $app
 	) {}
@@ -58,7 +56,7 @@ final readonly class TypedTargets
 	 */
 	public function find(string $type, string $language, array $before, array $after): array
 	{
-		$targets = new SnapshotTargets($this->index->snapshot());
+		$targets = $this->targets;
 		$found   = [];
 
 		foreach ($this->relations->for($type) as $relation) {
@@ -108,10 +106,10 @@ final readonly class TypedTargets
 					}
 
 					try {
-						$created["{$name}/{$slug}"] = $this->writer->create($type, $slug, new EntryChanges(set: [
+						$created["{$name}/{$slug}"] = $this->content->create($type, $slug, new EntryChanges(set: [
 							'title'     => $title,
 							'published' => $now->format('Y-m-d H:i:s P')
-						]), $now)->path;
+						]), null, $now)->path;
 					} catch (WriteException $e) {
 						$failed["{$name}/{$slug}"] = $e->getMessage();
 					}

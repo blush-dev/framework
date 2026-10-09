@@ -15,7 +15,7 @@ namespace Blush\Preview;
 
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
-use Blush\Content\ContentRepository;
+use Blush\Content\Entries;
 use Blush\Content\Status as EntryStatus;
 use Blush\Content\Http\ContentPage;
 use Blush\Content\Http\PageKind;
@@ -46,7 +46,7 @@ final readonly class PreviewController
 
 	public function __construct(
 		private PreviewLinks $links,
-		private ContentRepository $content,
+		private Entries $content,
 		private PageRenderer $renderer
 	) {}
 
