@@ -191,8 +191,8 @@ final class ThemedRenderingTest extends TestCase
 	public function testAnEntrysImageBecomesTheSharingImage(): void
 	{
 		$this->standardContent();
-		$this->writeTemporaryFile('user/content/about/photo.md', "---\ntitle: Photo\nimage: /user/media/me.jpg\nsummary: A *photo* of me.\n---\nBody");
-		$this->writeTemporaryFile('user/content/about/remote.md', "---\ntitle: Remote\nimage: https://cdn.example.com/me.jpg\n---\nBody");
+		$this->writeTemporaryFile('user/content/about/photo.md', "---\nid: 9b92581d-f1d3-06c1-8620-92b9d7e0ec1b\ntitle: Photo\nimage: /user/media/me.jpg\nsummary: A *photo* of me.\n---\nBody");
+		$this->writeTemporaryFile('user/content/about/remote.md', "---\nid: bb40824a-2574-820b-0d26-5041e81bbe39\ntitle: Remote\nimage: https://cdn.example.com/me.jpg\n---\nBody");
 
 		$app   = $this->site();
 		$photo = $this->body('/about/photo', $app);
@@ -278,6 +278,8 @@ final class ThemedRenderingTest extends TestCase
 	public function testErrorPagesComeFromContent(): void
 	{
 		$this->standardContent();
+		$this->entry('_error/index.md', 'title: Error');
+		$this->entry('_errors/index.md', 'title: Errors');
 		$this->entry('_error/404.md', 'title: "404"', 'Sorry, nothing was found here (1.x).');
 
 		// Development reindexes on each request, so new error entries show.

@@ -30,7 +30,6 @@ use Blush\Content\Record\QueryCompiler;
 use Blush\Storage\Record\Order;
 use Blush\Content\Query\Paginator;
 use Blush\Content\Query\Query;
-use Blush\Content\Query\Selection;
 use Blush\Content\Status;
 use Blush\Content\Visibility;
 
@@ -42,7 +41,6 @@ use Blush\Content\Visibility;
 #[CoversClass(Body::class)]
 #[CoversClass(EntryCollection::class)]
 #[CoversClass(Paginator::class)]
-#[CoversClass(Selection::class)]
 final class EntriesTest extends TestCase
 {
 	use BuildsContentSite;
@@ -291,7 +289,6 @@ final class EntriesTest extends TestCase
 		$this->assertTrue($entry->isPublished());
 		$this->assertTrue($entry->isRoutable());
 		$this->assertTrue($entry->isListed());
-		$this->assertSame('_posts/2008-04-05.spring.md', $entry->source->path);
 		$this->assertFalse($this->content->named('post', '')?->isListed());
 		$this->assertFalse($this->content->named('page', '_private')?->isRoutable());
 	}
@@ -349,8 +346,8 @@ final class EntriesTest extends TestCase
 		$this->assertSame('Justin Tadlock', $this->content->term('profile', 'justintadlock')?->title, 'Profiles are terms too (D-351).');
 		$this->assertNull($this->content->term('category', 'unused'));
 		$this->assertNull($this->content->term('post', 'welcome'));
-		$this->assertSame(['old-posts' => 1, 'art' => 1, 'book-reviews' => 1], $this->content->termCounts('category'));
-		$this->assertSame(['justintadlock' => 2, 'guest' => 1], $this->content->termCounts('profile'));
+		$this->assertSame(['art' => 1, 'book-reviews' => 1, 'old-posts' => 1], $this->content->termCounts('category'), 'By slug.');
+		$this->assertSame(['guest' => 1, 'justintadlock' => 2], $this->content->termCounts('profile'));
 		$this->assertSame([], $this->content->termCounts('missing'));
 	}
 

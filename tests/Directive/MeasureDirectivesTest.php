@@ -79,6 +79,7 @@ final class MeasureDirectivesTest extends TestCase
 	{
 		$this->writeTemporaryFile('user/content/index.md', <<<'MD'
 			---
+			id: d680e8a8-54a7-cbad-6d49-0c445cba2eba
 			title: Home
 			---
 			::progress[Reading challenge]{value=12 max=50}

@@ -301,8 +301,8 @@ overrides in D-451, catalog metadata in D-452, `en` last in D-453.
   `untranslated` (`Core\Untranslated`, D-467 to D-469) says what a
   language does without an entry's translation: a 404, a 302 to the
   original (`ContentController::untranslated()`), or that plus lists
-  with the originals (a query's `fallback` language, set by the
-  repository; `QueryCompiler` leaves out a fallback entry whose
+  with the originals (a query's `fallback` language, set by
+  `QueryCompiler` as it resolves every query, D-655, which leaves out a fallback entry whose
   translation the query finds, with subqueries, D-652).
 
 ## HTTP (custom, D-005)
@@ -843,8 +843,17 @@ Implemented in M4b (D-089).
   `RecordQuery` over the `entries` table (D-649): statuses by
   `published` against now, terms by refs or the slugs written under a
   relation's keys, dates as ranges from the year down, the language
-  fallback as subqueries, folders and parent keys through the index's
-  `EntryLocations`, and the record layer's sort rules (D-648).
+  fallback as subqueries, folders and parent keys through the store's
+  `EntryLocations` (`IndexLocations` on files; `RecordLocations`, read
+  from records alone, for a store without files; keys by parents and an
+  `archive` value, `EntryPlaces`, D-656, D-657), and the record layer's sort rules (D-648). The
+  compiler resolves each query first (the default language, the
+  fallback, 1.x's `author`), so every driver answers the same query.
+  The content conformance suite (`tests/Content/Conformance`) runs
+  `Entries` on the filesystem driver and on `ArrayRecordStore`.
+- `StoredEntries` reads records only (D-657): entries are built from
+  them (`EntryHydrator`), collections are keyed by id, and a page
+  written at a key gets its missing parents written first.
   `PhpIndex` runs it over every entry record, so a query's cost grows
   with the site (about 4 ms per 1,200 entries after D-652, from 2 ms;
   step 3c works on it); `SqliteIndex` is the answer for much larger

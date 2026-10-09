@@ -247,7 +247,7 @@ design › CSS"). Click a title to edit the entry.
 
 Beside the tabs is a row of filters:
 
-- **Search** matches titles and file paths. Press `/` anywhere on the
+- **Search** matches titles and slugs. Press `/` anywhere on the
   list to start typing in it.
 - **Author** shows only the entries crediting one author (not on a
   list of terms, since terms aren't credited).
@@ -332,7 +332,8 @@ all; a profile's are reached from [the profile's screen](#profiles).
 Pages' **error pages** (`_errors/404.md`, and 1.x's `_error/` folder,
 whose title and text the site shows for that error) are pinned at the
 top of Pages with a pin and their status as a tag (**Error 404**), by
-status, followed by anything else kept in those folders. They aren't
+status, followed by anything else kept in those folders. The folders'
+own pages (`_errors/index.md`) aren't listed. They aren't
 counted in the totals, aren't offered as a parent, can't be duplicated,
 and keep their slug, since it's the status. Moving one to the trash is
 allowed: the theme's own message is shown in its place.
@@ -1767,7 +1768,7 @@ facts as text, the facts as they're configured (`memory_limit: 256M`,
 
 Each Content and Media issue opens a screen of its own, where it's
 fixed: **Content Files**, **Entry IDs**, **Terms and Profiles**,
-**Links Between Entries**, **Collection Folders**, **File Names**, and
+**Parent Pages**, **Links Between Entries**, **Collection Folders**, **File Names**, and
 **Taxonomies**; **Media Details**, **Media IDs**, and **Image Sizes**.
 Each shows the last check, with when it ran, and **Check Again**
 checks every content and media file again, which updates Site Health
@@ -1826,14 +1827,18 @@ Its notices are keys nothing reads and 1.x field names.
 **Entry IDs** lists the files missing an [id](content.md#ids), or with
 one that isn't valid; **Add an ID** gives one a new id. For an id two
 or more files share (usually a copied file), choose the file that keeps
-it, and **Give the Others New IDs**. A file without an id shows **No
-ID** in its list, and can't be opened in the editor until it has one;
-its links lead here.
+it, and **Give the Others New IDs**. A file without an id isn't an
+entry, so lists leave it out until it has one.
 
 **Terms and Profiles** lists each term and profile your entries name
 that has no file, which the site leaves out, with how many entries name
 it. **Create** writes its file, published and titled as the entries
 name it, for the types you may create and publish.
+
+**Parent Pages** lists each folder of pages with no page of its own,
+which leaves the pages in it at the top of their tree, with how many
+pages it holds. **Create** writes its page as a draft, titled by the
+folder, for the types you may create.
 
 **Links Between Entries** lists the files whose links aren't filed with
 their ids. **File Links** files them, so they follow what they link to
@@ -2005,7 +2010,7 @@ or everyone's for an editor. Narrow it with:
 |---|---|
 | `status` | `draft`, `scheduled`, `published`, `any` (the default: every status but the trash), or `trash` (the entries in the trash the account may delete, most recently trashed first, each with its `trashed` time) |
 | `type` | A content type's name |
-| `search` | Text the title or file path must contain, in any case |
+| `search` | Text the title or slug must contain, in any case |
 | `author` | An author's slug the entries must credit |
 | `terms` | `type:slug` pairs for types of terms, comma separated (`topic:art,era:1990s`); an entry needs every one |
 | `days` | Entries updated in the last so many days, from 1 |

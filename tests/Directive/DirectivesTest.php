@@ -358,6 +358,7 @@ final class DirectivesTest extends TestCase
 	{
 		$this->writeTemporaryFile('user/content/index.md', <<<'MD'
 			---
+			id: d680e8a8-54a7-cbad-6d49-0c445cba2eba
 			title: Home
 			---
 			::button[Leaf button]{url=/a}
@@ -460,6 +461,7 @@ final class DirectivesTest extends TestCase
 	{
 		$this->writeTemporaryFile('user/content/index.md', <<<'MD'
 			---
+			id: d680e8a8-54a7-cbad-6d49-0c445cba2eba
 			title: Home
 			---
 			:::callout[Heads up]{variant=warning}
@@ -540,7 +542,7 @@ final class DirectivesTest extends TestCase
 	{
 		$this->writeTemporaryFile('extensions/acme/alt/theme.json', '{"name": "acme/alt", "label": "Alt", "namespace": "alt"}');
 		$this->writeTemporaryFile('extensions/acme/alt/views/directives/callout.php', 'alt callout: <?= $directive->content() ?>');
-		$this->writeTemporaryFile('user/content/index.md', "---\ntitle: Home\n---\n:::callout\nHi\n:::\n");
+		$this->writeTemporaryFile('user/content/index.md', "---\nid: d680e8a8-54a7-cbad-6d49-0c445cba2eba\ntitle: Home\n---\n:::callout\nHi\n:::\n");
 
 		$this->boot('development');
 

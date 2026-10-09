@@ -246,7 +246,7 @@ final class ThemeSystemTest extends TestCase
 	public function testASettingReachesTemplates(): void
 	{
 		$this->contentConfig(['types' => ['post' => ['path' => 'posts']], 'home' => 'post']);
-		$this->writeTemporaryFile('user/content/posts/hello.md', "---\ntitle: Hello\n---\nThe excerpt text.");
+		$this->writeTemporaryFile('user/content/posts/hello.md', "---\nid: b12471fd-d907-a48f-cf04-4812e1eea8d8\ntitle: Hello\n---\nThe excerpt text.");
 		$this->writeTemporaryFile('extensions/acme/noted/theme.json', '{"name": "acme/noted", "label": "Noted", "namespace": "noted", "settings": {"note": {"type": "text", "default": "Plain note"}}}');
 		$this->writeTemporaryFile('extensions/acme/noted/views/partials/entry-summary.php', "<p><?= e((string) \$template->setting('note')) ?></p>");
 		$this->activeTheme('acme/noted');
@@ -267,7 +267,7 @@ final class ThemeSystemTest extends TestCase
 	public function testASiteSettingReachesTemplates(): void
 	{
 		$this->contentConfig(['types' => ['post' => ['path' => 'posts']], 'home' => 'post']);
-		$this->writeTemporaryFile('user/content/posts/hello.md', "---\ntitle: Hello\n---\nThe excerpt text.");
+		$this->writeTemporaryFile('user/content/posts/hello.md', "---\nid: b12471fd-d907-a48f-cf04-4812e1eea8d8\ntitle: Hello\n---\nThe excerpt text.");
 		$this->writeTemporaryFile('user/data/fields/brand.json', '{"targets":["settings:general"],"fields":{"tagline":{"default":"Plain tagline"}}}');
 		$this->writeTemporaryFile('extensions/acme/noted/theme.json', '{"name": "acme/noted", "label": "Noted", "namespace": "noted"}');
 		$this->writeTemporaryFile('extensions/acme/noted/views/partials/entry-summary.php', "<p><?= e((string) \$template->site('tagline')) ?>|<?= e((string) \$template->site('missing', 'none')) ?></p>");
@@ -286,7 +286,7 @@ final class ThemeSystemTest extends TestCase
 	public function testAnEntryStylesheetReachesThePage(): void
 	{
 		$this->writeTemporaryFile('extensions/acme/tinted/theme.json', '{"name": "acme/tinted", "label": "Tinted", "namespace": "tinted"}');
-		$this->writeTemporaryFile('user/content/index.md', "---\ntitle: Home\nstylesheet: extra.css\n---\nHi");
+		$this->writeTemporaryFile('user/content/index.md', "---\nid: d680e8a8-54a7-cbad-6d49-0c445cba2eba\ntitle: Home\nstylesheet: extra.css\n---\nHi");
 		$this->writeTemporaryFile('extensions/acme/tinted/extra.css', '');
 		$this->activeTheme('acme/tinted');
 

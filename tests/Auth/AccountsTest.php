@@ -124,7 +124,7 @@ final class AccountsTest extends TestCase
 
 	public function testNamesAccounts(): void
 	{
-		$this->writeTemporaryFile('user/content/profiles/jane.md', "---\ntitle: Jane Author\n---\n");
+		$this->writeTemporaryFile('user/content/profiles/jane.md', "---\nid: 04e1cf46-8734-1fc4-7399-c1e7571e878e\ntitle: Jane Author\n---\n");
 
 		$account = $this->accounts()->create('jane', 'a long enough password', ['author'], 'jane', "  Jane\t\n  Doe ", email: 'jane@example.test');
 
@@ -206,8 +206,8 @@ final class AccountsTest extends TestCase
 
 	public function testChecksAuthors(): void
 	{
-		$this->writeTemporaryFile('user/content/profiles/jane.md', "---\ntitle: Jane\n---\n");
-		$this->writeTemporaryFile('user/content/_posts/credited.md', "---\ntitle: Credited\nauthors: lee\n---\n");
+		$this->writeTemporaryFile('user/content/profiles/jane.md', "---\nid: 04e1cf46-8734-1fc4-7399-c1e7571e878e\ntitle: Jane\n---\n");
+		$this->writeTemporaryFile('user/content/_posts/credited.md', "---\nid: 43432b5f-3e36-5bde-fad8-73fc3316fd8e\ntitle: Credited\nauthors: lee\n---\n");
 		$this->writeTemporaryFile('user/data/types/post.json', '{"folder": "_posts"}');
 
 		$this->assertTrue($this->accounts()->hasAuthorPage('jane'));
@@ -240,8 +240,8 @@ final class AccountsTest extends TestCase
 
 	public function testRefusesALockedProfile(): void
 	{
-		$this->writeTemporaryFile('user/content/profiles/staff.md', "---\ntitle: Staff\nlinkable: false\n---\n");
-		$this->writeTemporaryFile('user/content/profiles/jane.md', "---\ntitle: Jane\n---\n");
+		$this->writeTemporaryFile('user/content/profiles/staff.md', "---\nid: 4c955e2c-0b36-ecf4-eb83-68d67d798a53\ntitle: Staff\nlinkable: false\n---\n");
+		$this->writeTemporaryFile('user/content/profiles/jane.md', "---\nid: 04e1cf46-8734-1fc4-7399-c1e7571e878e\ntitle: Jane\n---\n");
 
 		$accounts = $this->accounts();
 		$sam      = $accounts->create('sam', 'a long enough password', ['author'], email: 'sam@example.test');

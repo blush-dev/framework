@@ -14,12 +14,13 @@ declare(strict_types=1);
 namespace Blush\Content\Record;
 
 /**
- * What only the store that keeps entries can say about where they are,
- * for the query arguments that name places rather than values: the
- * folders 1.x's `path` and the admin's `in()` and `exceptIn()` name, and
- * the keys `whereParent()` names. The filesystem driver answers from its
- * index; until queries name parents and types instead (the data layer's
- * step 3d), a database driver answers from its own structure.
+ * Where the store that keeps entries says they are: the folders 1.x's
+ * `path` and the admin's `in()` and `exceptIn()` name, the keys
+ * `whereParent()` and `Entries::named()` name, and where each is kept,
+ * for showing. Keys and folders follow parents (`EntryPlaces`, D-656)
+ * on every driver; the filesystem driver answers from its index
+ * (`IndexLocations`), a store without files from its records
+ * (`RecordLocations`).
  */
 interface EntryLocations
 {
@@ -39,4 +40,22 @@ interface EntryLocations
 	 * @return list<string>
 	 */
 	public function idsWithKey(string $key): array;
+
+	/**
+	 * Returns an entry's key within its type, by id, or `null` for an id
+	 * the store doesn't keep.
+	 */
+	public function key(string $id): ?string;
+
+	/**
+	 * Returns where the store keeps an entry, for showing (a file's path
+	 * from the content folder), or `''` for a store that keeps no files.
+	 */
+	public function path(string $id): string;
+
+	/**
+	 * Forgets what was read, after a write, so the next question reads
+	 * the store again.
+	 */
+	public function refresh(): void;
 }

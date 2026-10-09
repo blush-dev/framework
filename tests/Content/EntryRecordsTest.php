@@ -108,14 +108,14 @@ final class EntryRecordsTest extends TestCase
 		);
 	}
 
-	public function testFilesWithoutIdsReferToTheTermsTheyWrite(): void
+	public function testAFileWithoutAnIdHasNoRecord(): void
 	{
 		$this->writeTemporaryFile('user/content/_posts/2009-01-01.no-id.md', "---\ntitle: No id\npublished: 2009-01-01\ncategory: art\n---\n");
 
 		$content = $this->repository();
 
-		$this->assertContains('no-id', array_map(static fn (mixed $entry): string => $entry->slug, $content->query()->type('post')->whereTerm('category', 'art')->get()->all()));
-		$this->assertSame(Uuid::fromName('content/_posts/2009-01-01.no-id.md'), $this->records($this->site()->container()->make(ContentIndex::class), 'post')['no-id']->id ?? null, 'A steady id from its path.');
+		$this->assertNotContains('no-id', array_map(static fn (mixed $entry): string => $entry->slug, $content->query()->type('post')->any()->get()->all()), 'It isn\'t an entry until it has an id (D-656).');
+		$this->assertArrayNotHasKey('no-id', $this->records($this->site()->container()->make(ContentIndex::class), 'post'));
 	}
 
 	public function testDatesMatchFromTheYearDown(): void

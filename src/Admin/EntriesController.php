@@ -55,7 +55,7 @@ use Blush\View\ThemedErrorPages;
  *   account may delete (D-484), most recently trashed first, each with
  *   its `trashed` date. The trash pins nothing and isn't a tree.
  * - `type`: a content type's name.
- * - `search`: text the title or file path must contain (any case).
+ * - `search`: text the title or slug must contain (any case).
  * - `author`: an author's slug the entries must credit (D-300).
  * - `terms`: `type:slug` pairs of term types (D-593), comma separated; an entry needs each.
  * - `days`: entries updated in the last so many days.
@@ -314,7 +314,8 @@ final readonly class EntriesController
 		$listed      = $target === null && ! $onlyLinked ? $listed : $listed->names(...($this->linkingSlugs($target, $via, $onlyLinked ? $type : null) ?: ['/']));
 		$listed      = $over === null || $type === null ? $listed : $listed->names(...($this->changes->slugsOver($over, $type, $above) ?: ['/']));
 		$errors      = $pinned && $contentType instanceof Tree && $contentType->atRoot();
-		$listed      = $errors ? $listed->exceptIn(...ThemedErrorPages::FOLDERS) : $listed;
+		// The error pages' folders are pages too (D-656), kept out with them.
+		$listed      = $errors ? $listed->exceptIn(...ThemedErrorPages::FOLDERS)->exceptNames(...ThemedErrorPages::FOLDERS) : $listed;
 		$errorPages  = $errors && $page === 1 ? $this->errorPages($query) : [];
 		$index       = $pinned && $page === 1 ? $this->index($query) : null;
 		$archive     = $pinned && $page === 1 ? $this->archivePage($query, $contentType) : null;
@@ -499,11 +500,11 @@ final readonly class EntriesController
 		while (($item = array_pop($stack)) !== null) {
 			[$entry, $depth] = $item;
 
-			if (isset($depths[$entry->path])) {
+			if (isset($depths[$entry->id ?? $entry->path])) {
 				continue;
 			}
 
-			$depths[$entry->path] = $depth;
+			$depths[$entry->id ?? $entry->path] = $depth;
 			$ordered[]          = $entry;
 			$children           = $under[$entry->key] ?? [];
 
@@ -511,13 +512,13 @@ final readonly class EntriesController
 			array_push($stack, ...array_map(static fn (Entry $child): array => [$child, $depth + 1], array_reverse($children)));
 		}
 
-		$rest = array_values(array_filter($entries, static fn (Entry $entry): bool => ! isset($depths[$entry->path])));
+		$rest = array_values(array_filter($entries, static fn (Entry $entry): bool => ! isset($depths[$entry->id ?? $entry->path])));
 		usort($rest, $byTitle);
 
 		$children = [];
 
 		foreach ($entries as $entry) {
-			$children[$entry->path] = count($under[$entry->key] ?? []);
+			$children[$entry->id ?? $entry->path] = count($under[$entry->key] ?? []);
 		}
 
 		return ['entries' => [...$ordered, ...$rest], 'depths' => $depths, 'children' => $children];
@@ -535,13 +536,13 @@ final readonly class EntriesController
 	private static function continued(array $tree, int $start): array
 	{
 		$first = $tree['entries'][$start] ?? null;
-		$want  = $first === null ? -1 : ($tree['depths'][$first->path] ?? 0) - 1;
+		$want  = $first === null ? -1 : ($tree['depths'][$first->id ?? $first->path] ?? 0) - 1;
 		$above = [];
 
 		for ($i = $start - 1; $i >= 0 && $want >= 0; $i--) {
 			$entry = $tree['entries'][$i];
 
-			if (($tree['depths'][$entry->path] ?? 0) === $want) {
+			if (($tree['depths'][$entry->id ?? $entry->path] ?? 0) === $want) {
 				array_unshift($above, $entry);
 				$want--;
 			}
@@ -655,8 +656,8 @@ final readonly class EntriesController
 			],
 			'uses'        => $this->types->isTermType($entry->type->name) ? ($counts[$entry->type->name][$entry->key] ?? 0) : null,
 			'ancestors'   => $this->ancestors($entry),
-			'depth'       => $tree === null ? null : ($tree['depths'][$entry->path] ?? 0),
-			'children'    => $tree === null ? null : ($tree['children'][$entry->path] ?? 0),
+			'depth'       => $tree === null ? null : ($tree['depths'][$entry->id ?? $entry->path] ?? 0),
+			'children'    => $tree === null ? null : ($tree['children'][$entry->id ?? $entry->path] ?? 0),
 			'continued'   => $continued,
 			...($entry->type instanceof Profiles ? ['linked' => array_key_exists($entry->key, $linked), 'account' => $linked[$entry->key] ?? null, 'linkable' => $entry->field('linkable') !== false] : [])
 		];
@@ -699,10 +700,10 @@ final readonly class EntriesController
 	private function ancestors(Entry $entry): array
 	{
 		$titles = [];
-		$seen   = [$entry->path => true];
+		$seen   = [$entry->id ?? $entry->path => true];
 
-		while (($entry = $this->content->parent($entry)) !== null && ! isset($seen[$entry->path])) {
-			$seen[$entry->path] = true;
+		while (($entry = $this->content->parent($entry)) !== null && ! isset($seen[$entry->id ?? $entry->path])) {
+			$seen[$entry->id ?? $entry->path] = true;
 			array_unshift($titles, $entry->title === '' ? $entry->slug : $entry->title);
 		}
 

@@ -128,6 +128,7 @@ final class LayoutDirectivesTest extends TestCase
 		$this->writeTemporaryFile('extensions/acme/bare/theme.json', '{"name": "acme/bare", "label": "Bare", "namespace": "bare"}');
 		$this->writeTemporaryFile('user/content/index.md', <<<'MD'
 			---
+			id: d680e8a8-54a7-cbad-6d49-0c445cba2eba
 			title: Home
 			---
 			::::grid{columns=3 min=10rem gap=2rem .features #features}

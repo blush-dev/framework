@@ -22,7 +22,7 @@ import { plural } from './format';
 
 export type Severity = Violation['severity'];
 
-export type HealthCheckKey = 'files' | 'ids' | 'terms' | 'refs' | 'taxonomies' | 'folders' | 'names' | 'sizes';
+export type HealthCheckKey = 'files' | 'ids' | 'terms' | 'parents' | 'refs' | 'taxonomies' | 'folders' | 'names' | 'sizes';
 
 export interface HealthChoice {
 	path: string;
@@ -102,6 +102,7 @@ export const SCREENS: Record<string, HealthScreen> = {
 	'content:files': { title: 'Content Files', about: 'Reads every entry\'s file: whether it can be read, and whether each value is one the site can use.', clear: 'Every entry\'s file can be read, and every value is one the site can use.', byFile: true },
 	'content:ids': { title: 'Entry IDs', about: 'Every entry\'s file needs an id of its own. Links between entries are kept by id, and the admin opens an entry by its id.', clear: 'Every content file has an id of its own.', byFile: false },
 	'content:terms': { title: 'Terms and Profiles', about: 'Looks for terms and profiles entries name that have no file, so the site has nothing to show for them.', clear: 'Every term and profile entries name has a file.', byFile: false },
+	'content:parents': { title: 'Parent Pages', about: 'A page is under its parent page, so a page kept in a folder with no page of its own is at the top of its tree, its address without the folder.', clear: 'Every page is under a parent page that exists.', byFile: false },
 	'content:refs': { title: 'Links Between Entries', about: 'A link filed with its id follows what it links to through a rename or a move.', clear: 'Every link between entries is filed with its id.', byFile: false },
 	'content:taxonomies': { title: 'Taxonomies', about: 'Content types still written as taxonomies are read as collections and their relationships until they\'re migrated.', clear: 'Every content type is written as a collection or a tree.', byFile: false },
 	'content:folders': { title: 'Collection Folders', about: 'A collection\'s entries are files directly in its folder.', clear: 'Every collection\'s entries are files in its folder.', byFile: false },
@@ -306,6 +307,31 @@ export function healthGroups(health: Health, area: 'content' | 'media', check: H
 					label: (count) => `Create ${count} Files`,
 					title: (count) => `Create ${plural(count, 'File')}?`,
 					say: 'Each is written published, titled as entries name it, and shows with them at once.'
+				}
+			}] : [];
+		case 'parents':
+			return health.parents.items.length ? [{
+				key: 'parents',
+				name: 'Folders With No Page',
+				says: 'A page kept in a folder with no page of its own is at the top of its tree. Each parent is created as a draft, titled by its folder, so the pages under it are back at their addresses at once.',
+				severity: 'warning',
+				unit: ['folder', 'folders'],
+				rows: health.parents.items.map((item) => ({
+					key: `content:parents:${item.type}/${item.key}`,
+					severity: 'warning',
+					path: `${item.type}/${item.key}`,
+					title: item.key,
+					mono: true,
+					meta: `${item.label} · ${plural(item.pages, 'page')} under it`,
+					found: `No ${item.label.toLowerCase()} is kept at this folder.`,
+					says: 'The pages under it are at the top of their tree, without the folder in their addresses.',
+					fix: { label: `Create ${item.label}`, change: `new draft, titled “${item.title}”`, done: `Created as “${item.title}”, a draft.` }
+				})),
+				fix: { path: '/health/parents', body: (rows) => ({ parents: rows.map((row) => row.path) }), noun: ['page', 'pages'] },
+				bulk: {
+					label: (count) => `Create ${count} Pages`,
+					title: (count) => `Create ${plural(count, 'Page')}?`,
+					say: 'Each is written as a draft, titled by its folder, and the pages under it are back at their addresses at once.'
 				}
 			}] : [];
 		case 'refs':

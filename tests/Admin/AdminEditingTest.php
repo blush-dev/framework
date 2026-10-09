@@ -274,13 +274,14 @@ final class AdminEditingTest extends TestCase
 
 	public function testDescribesEachEntrysHandle(): void
 	{
-		$this->writeTemporaryFile('user/content/about/team.md', "---\ntitle: The Team\n---\n");
-		$this->writeTemporaryFile('user/content/index.md', "---\ntitle: Home\n---\n");
+		$this->writeTemporaryFile('user/content/about.md', "---\nid: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1a08\ntitle: About\n---\n");
+		$this->writeTemporaryFile('user/content/about/team.md', "---\nid: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1a09\ntitle: The Team\n---\n");
+		$this->writeTemporaryFile('user/content/index.md', "---\nid: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1a0a\ntitle: Home\n---\n");
 		$this->site();
 
 		$this->assertSame('post/flame', $this->load(self::FLAME)['handle'] ?? null, 'A type and the key, without the date or extension.');
 
-		$this->assertSame('page/about/team', $this->load('about/team.md')['handle'] ?? null, 'A page\'s key has its folders.');
+		$this->assertSame('page/about/team', $this->load('about/team.md')['handle'] ?? null, 'A page\'s key has its parents\' slugs (D-656).');
 		$this->assertSame('page/index', $this->load('index.md')['handle'] ?? null, 'A landing page is `index`.');
 		$this->assertSame(404, $this->call('GET', '/content/post/flame')->getStatusCode(), 'Entries are found by id, not handle (D-483).');
 

@@ -111,7 +111,7 @@ final class EntryFoldersTest extends TestCase
 		$entry = $this->repository()->named('post', 'old');
 
 		$this->assertSame('_posts/2024/old.md', $entry?->path, 'Found by its slug alone (D-629).');
-		$this->assertSame('_drafts/idea', $this->entryAt('_posts/_drafts/idea.md')?->key, 'A `_` folder is still part of it.');
+		$this->assertSame('idea', $this->entryAt('_posts/_drafts/idea.md')?->key, 'Nor is a `_` folder: a key is what records say (D-656).');
 	}
 
 	public function testAPatternPlacesFilesByTheirWrittenDate(): void

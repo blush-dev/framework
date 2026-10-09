@@ -26,6 +26,7 @@ enum HealthFix: string
 	case FileNames  = 'filenames';
 	case Folders    = 'folders';
 	case Terms      = 'terms';
+	case Parents    = 'parents';
 	case Refs       = 'refs';
 
 	/**
@@ -37,7 +38,7 @@ enum HealthFix: string
 			self::Ids, self::MediaIds         => 'assigned',
 			self::MediaSizes                  => 'recorded',
 			self::FileNames, self::Folders    => 'renamed',
-			self::Terms                       => 'created',
+			self::Terms, self::Parents        => 'created',
 			self::Refs                        => 'filed'
 		};
 	}
@@ -55,6 +56,7 @@ enum HealthFix: string
 			self::FileNames,
 			self::Folders    => ['entry', 'entries'],
 			self::Terms      => ['term or profile', 'terms and profiles'],
+			self::Parents    => ['parent page', 'parent pages'],
 			default          => ['file', 'files']
 		};
 	}

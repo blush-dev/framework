@@ -162,6 +162,7 @@ final class MediaDirectivesTest extends TestCase
 	{
 		$this->writeTemporaryFile('user/content/trip/index.md', <<<'MD'
 			---
+			id: b2090039-1464-4780-c373-9311341cb105
 			title: Trip
 			---
 			:::gallery
@@ -208,6 +209,7 @@ final class MediaDirectivesTest extends TestCase
 	{
 		$this->writeTemporaryFile('user/content/trip/index.md', <<<'MD'
 			---
+			id: b2090039-1464-4780-c373-9311341cb105
 			title: Trip
 			---
 			:::gallery
@@ -243,6 +245,7 @@ final class MediaDirectivesTest extends TestCase
 	{
 		$this->writeTemporaryFile('user/content/trip/index.md', <<<'MD'
 			---
+			id: b2090039-1464-4780-c373-9311341cb105
 			title: Trip
 			---
 			:::gallery
@@ -265,6 +268,7 @@ final class MediaDirectivesTest extends TestCase
 	{
 		$this->writeTemporaryFile('user/content/trip/index.md', <<<'MD'
 			---
+			id: b2090039-1464-4780-c373-9311341cb105
 			title: Trip
 			---
 			::video[Launch]{src=/media/trip/clip.mp4 poster=/media/trip/poster.png track=/media/trip/clip.vtt muted}
@@ -313,6 +317,7 @@ final class MediaDirectivesTest extends TestCase
 		$this->writeTemporaryFile('user/media/audio/novas-anthem-001.mp3', self::mp3());
 		$this->writeTemporaryFile('user/content/songs/index.md', <<<'MD'
 			---
+			id: 053b70d3-822e-4793-54ba-e2fdec6b5927
 			title: Songs
 			---
 			::audio[Nova's Anthem]{src=user/media/audio/novas-anthem-001.mp3}
@@ -363,6 +368,7 @@ final class MediaDirectivesTest extends TestCase
 	{
 		$this->writeTemporaryFile('user/content/songs/index.md', <<<'MD'
 			---
+			id: 053b70d3-822e-4793-54ba-e2fdec6b5927
 			title: Songs
 			---
 			::audio{src=/media/song.mp3 variant=card}
@@ -410,6 +416,7 @@ final class MediaDirectivesTest extends TestCase
 	{
 		$this->writeTemporaryFile('user/content/songs/index.md', <<<'MD'
 			---
+			id: 053b70d3-822e-4793-54ba-e2fdec6b5927
 			title: Songs
 			---
 			::audio{src=/media/song.mp3 variant=card}

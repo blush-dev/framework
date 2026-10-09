@@ -306,7 +306,7 @@ final class EmbedsTest extends TestCase
 
 	public function testTheDirectiveFramesAFixedPlayer(): void
 	{
-		$this->writeTemporaryFile('user/content/index.md', "---\ntitle: Home\n---\n::embed{url=\"https://open.spotify.com/track/4cOdK2wGLETKBW3PvgPWqT\"}\n");
+		$this->writeTemporaryFile('user/content/index.md', "---\nid: d680e8a8-54a7-cbad-6d49-0c445cba2eba\ntitle: Home\n---\n::embed{url=\"https://open.spotify.com/track/4cOdK2wGLETKBW3PvgPWqT\"}\n");
 
 		$app  = $this->app(['https://open.spotify.com/oembed' => '{"type": "rich", "title": "A song", "width": 456, "height": 152, "html": "<iframe width=\\"100%\\" height=\\"152\\" src=\\"https://open.spotify.com/embed/track/4cOdK2wGLETKBW3PvgPWqT?utm_source=oembed\\"></iframe>"}']);
 		$html = (string) $app->container()->make(Kernel::class)->handle(Request::create('/'))->getBody();
@@ -360,6 +360,7 @@ final class EmbedsTest extends TestCase
 
 		$this->writeTemporaryFile('user/content/index.md', <<<'MD'
 			---
+			id: d680e8a8-54a7-cbad-6d49-0c445cba2eba
 			title: Home
 			---
 			::embed[Bees at work]{url="https://www.flickr.com/photos/bees/2341623661/" alt="Bees on a honeycomb"}
@@ -388,6 +389,7 @@ final class EmbedsTest extends TestCase
 
 		$this->writeTemporaryFile('user/content/index.md', <<<'MD'
 			---
+			id: d680e8a8-54a7-cbad-6d49-0c445cba2eba
 			title: Home
 			---
 			::embed{url="https://youtu.be/dQw4w9WgXcQ"}

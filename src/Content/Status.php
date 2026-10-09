@@ -37,6 +37,19 @@ enum Status: string
 	case Trash     = 'trash';
 
 	/**
+	 * Returns the status a stored status has at a Unix time: a published
+	 * entry whose date is still to come is scheduled.
+	 */
+	public static function at(string $status, ?int $published, int $now): self
+	{
+		if ($status === self::Draft->value || $status === self::Trash->value) {
+			return self::from($status);
+		}
+
+		return $published !== null && $published > $now ? self::Scheduled : self::Published;
+	}
+
+	/**
 	 * Returns the values front matter may set.
 	 *
 	 * @return list<string>

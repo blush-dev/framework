@@ -162,11 +162,7 @@ final readonly class IndexRecord
 	 */
 	public static function effectiveStatus(string $status, ?int $published, int $now): Status
 	{
-		if ($status === Status::Draft->value || $status === Status::Trash->value) {
-			return Status::from($status);
-		}
-
-		return $published !== null && $published > $now ? Status::Scheduled : Status::Published;
+		return Status::at($status, $published, $now);
 	}
 
 	/**

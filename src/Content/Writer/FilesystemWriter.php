@@ -190,6 +190,15 @@ final readonly class FilesystemWriter
 	}
 
 	/**
+	 * Returns whether a key is one a page can be written at: slugs
+	 * separated by `/`, each of which may start with one `_`.
+	 */
+	public static function isPageKey(string $key): bool
+	{
+		return array_all(explode('/', $key), static fn (string $segment): bool => Slug::isSlug(ltrim($segment, '_')) && strlen(ltrim($segment, '_')) >= strlen($segment) - 1);
+	}
+
+	/**
 	 * Returns the path of the page a type keeps at a fixed key, as
 	 * `createAt()` writes it, whether or not it exists yet. Each of the
 	 * key's segments is a slug, and may start with `_` to keep it out of
@@ -199,7 +208,7 @@ final readonly class FilesystemWriter
 	 */
 	public function pathAt(ContentType $type, string $key): string
 	{
-		if (! array_all(explode('/', $key), static fn (string $segment): bool => Slug::isSlug(ltrim($segment, '_')) && strlen(ltrim($segment, '_')) >= strlen($segment) - 1)) {
+		if (! self::isPageKey($key)) {
 			throw new WriteException(sprintf('"%s" isn\'t a page key: slugs separated by "/", each may start with "_".', $key));
 		}
 

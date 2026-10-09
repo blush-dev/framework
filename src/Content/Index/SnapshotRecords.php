@@ -13,30 +13,28 @@ declare(strict_types=1);
 
 namespace Blush\Content\Index;
 
-use Override;
-use Blush\Content\Record\EntryLocations;
+use Blush\Content\Http\RelatedController;
 use Blush\Content\Record\EntryTable;
 use Blush\Content\Record\EntryValues;
 use Blush\Content\Relation\RelationKind;
 use Blush\Content\Type\ContentTypes;
 use Blush\Storage\Record\ArrayEvaluator;
 use Blush\Storage\Record\Ref;
-use Blush\Support\Uuid;
 
 /**
  * The index's entries as the record layer keeps them (D-649): one
  * `entries` row each, and a `refs` row for each link that isn't a
  * parent or a translation (those are the entries' `parent_id` and
- * `original_id`), built once from a snapshot. An entry without an id,
- * which links nothing in the graph, has refs from the terms its front
- * matter writes, each to the entry of the relation's types with that
- * key, as 1.x files do (D-078).
+ * `original_id`), built once from a snapshot. A file without an id
+ * isn't an entry (D-656): it has no row, and Site Health and
+ * `content:ids` give it one.
  *
  * Everything files imply by where they are becomes a value: the type,
  * language, slug (`''` for a landing page), parent (the entry at the
- * parent key, in the entry's type and language), and original (the
- * entry of its translation group without a language suffix). An entry
- * without an id has a steady one from its path (`Uuid::fromName()`).
+ * parent key, in the entry's type and language), original (the entry of
+ * its translation group without a language suffix), and, for a page in
+ * a relation archive's `_{word}/` folder in a type that doesn't nest,
+ * its archive place (D-657).
  *
  * Records come in id order: for version 7 ids, the order entries were
  * made in, never their paths (D-516). They're built when the index is
@@ -44,8 +42,9 @@ use Blush\Support\Uuid;
  *
  * @phpstan-import-type RowsArray from IndexSnapshot
  * @phpstan-import-type RowArray from IndexSnapshot
+ * @phpstan-import-type RecordArray from IndexRecord
  */
-final class SnapshotRecords implements EntryLocations
+final class SnapshotRecords
 {
 	/**
 	 * Entry rows, in id order.
@@ -129,29 +128,23 @@ final class SnapshotRecords implements EntryLocations
 
 	/**
 	 * Builds a snapshot's records, with the relations its parents and
-	 * translations are held in left out of refs (they're columns), and
-	 * the relations each term key names, for the refs of entries without
-	 * ids.
+	 * translations are held in left out of refs (they're columns).
 	 */
 	public static function build(IndexSnapshot $snapshot, ContentTypes $types): self
 	{
 		$structural = [];
-		$terms      = [];
+		$archives   = [];
 
 		foreach ($types->relations() as $relation) {
 			if ($relation->kind === RelationKind::Parent || $relation->kind === RelationKind::Translation) {
 				$structural[] = $relation->name;
 			}
+		}
 
-			$key = $relation->termKey();
-
-			if ($key !== null) {
-				$terms[$key][$relation->name] = $relation->to;
-			}
-
-			// A credit relation files under its profiles type too (D-602).
-			if ($relation->kind === RelationKind::Credit && count($relation->to) === 1) {
-				$terms[$relation->to[0]][$relation->name] = $relation->to;
+		// The folders of relation archives' pages in types that don't nest.
+		foreach ($types->all() as $type) {
+			if (! $type->keysByFolder()) {
+				$archives[$type->name] = array_values(array_map(RelatedController::word(...), $types->relationArchives($type)));
 			}
 		}
 
@@ -159,7 +152,7 @@ final class SnapshotRecords implements EntryLocations
 		$originals = [];
 
 		foreach ($snapshot->records as $path => $record) {
-			if ($record['original'] === null) {
+			if ($record['original'] === null && isset($ids[$path])) {
 				$originals[IndexRecord::groupOf($record)] = $ids[$path];
 			}
 		}
@@ -167,25 +160,22 @@ final class SnapshotRecords implements EntryLocations
 		$entries = [];
 
 		foreach ($snapshot->records as $path => $record) {
-			$id     = $ids[$path];
-			$parent = $record['parent'] === null ? null : $snapshot->find($record['language'], $record['type'], $record['parent']);
-			$front  = [...$record['extra'], ...$record['values']];
+			$id = $ids[$path] ?? null;
 
-			$entries[$id] = ['id' => $id, 'version' => $record['hash'], 'fields' => [
-				'type'        => $record['type'],
-				'language'    => $record['language'],
-				'parent_id'   => $parent === null ? null : ($ids[$parent] ?? null),
-				'slug'        => $record['landing'] ? '' : $record['slug'],
-				'original_id' => $record['original'] === null ? null : ($originals[IndexRecord::groupOf($record)] ?? null),
-				'status'      => $record['status'],
-				'visibility'  => $record['visibility'],
-				'published'   => $record['published'] === null ? null : EntryTable::time($record['published']),
-				'updated'     => EntryTable::time($record['updated']),
-				'title'       => $record['title'],
-				'position'    => is_int($record['values']['position'] ?? null) ? $record['values']['position'] : null,
-				'fields'      => $front,
-				'slugs'       => EntryValues::slugs($front)
-			]];
+			if ($id === null) {
+				continue;
+			}
+
+			$parent = $record['parent'] === null ? null : $snapshot->find($record['language'], $record['type'], $record['parent']);
+
+			$place  = explode('/', $record['key']);
+
+			$entries[$id] = ['id' => $id, 'version' => $record['hash'], 'fields' => self::fields(
+				$record,
+				$parent === null ? null : ($ids[$parent] ?? null),
+				$record['original'] === null ? null : ($originals[IndexRecord::groupOf($record)] ?? null),
+				count($place) === 2 && in_array($place[0], $archives[$record['type']] ?? [], true) ? $record['key'] : null
+			)];
 		}
 
 		ksort($entries, SORT_STRING);
@@ -198,9 +188,36 @@ final class SnapshotRecords implements EntryLocations
 			}
 		}
 
-		$built = new self($snapshot, array_values($entries), $refs);
+		return new self($snapshot, array_values($entries), $refs);
+	}
 
-		return new self($snapshot, $built->entries, [...$refs, ...$built->termRefs($terms, $originals)]);
+	/**
+	 * Returns an index record's `entries` values, with its parent's and
+	 * original's ids, and its place as a relation archive's page.
+	 *
+	 * @param  RecordArray          $record
+	 * @return array<string, mixed>
+	 */
+	public static function fields(array $record, ?string $parentId, ?string $originalId, ?string $archive = null): array
+	{
+		$front = [...$record['extra'], ...$record['values']];
+
+		return [
+			'type'        => $record['type'],
+			'language'    => $record['language'],
+			'parent_id'   => $parentId,
+			'slug'        => $record['landing'] ? '' : $record['slug'],
+			'original_id' => $originalId,
+			'status'      => $record['status'],
+			'visibility'  => $record['visibility'],
+			'published'   => $record['published'] === null ? null : EntryTable::time($record['published']),
+			'updated'     => EntryTable::time($record['updated']),
+			'title'       => $record['title'],
+			'position'    => is_int($record['values']['position'] ?? null) ? $record['values']['position'] : null,
+			'archive'     => $archive,
+			'fields'      => $front,
+			'slugs'       => EntryValues::slugs($front)
+		];
 	}
 
 	/**
@@ -214,7 +231,7 @@ final class SnapshotRecords implements EntryLocations
 	}
 
 	/**
-	 * Each entry's id, by path: its own, or a steady one from its path.
+	 * Each entry's id, by path, for the files that have one.
 	 *
 	 * @return array<string, string>
 	 */
@@ -223,72 +240,12 @@ final class SnapshotRecords implements EntryLocations
 		$ids = [];
 
 		foreach ($snapshot->records as $path => $record) {
-			$ids[$path] = $record['id'] ?? Uuid::fromName('content/' . $path);
+			if ($record['id'] !== null) {
+				$ids[$path] = $record['id'];
+			}
 		}
 
 		return $ids;
-	}
-
-	/**
-	 * Refs for entries without an id, from the terms their front matter
-	 * writes: to the entry of the relation's types with the written key,
-	 * in the entry's language first, then any, and to its original when
-	 * it's a translation. Written values that name no entry make none.
-	 *
-	 * @param  array<string, array<string, list<string>>> $terms
-	 * @param  array<string, string>                      $originals
-	 * @return list<RowArray>
-	 */
-	private function termRefs(array $terms, array $originals): array
-	{
-		$refs = [];
-
-		foreach ($this->snapshot->records as $path => $record) {
-			if ($record['id'] !== null) {
-				continue;
-			}
-
-			foreach ($record['terms'] as $key => $written) {
-				foreach ($terms[$key] ?? [] as $relation => $types) {
-					foreach ($written as $position => $value) {
-						$target = $this->target($types, (string) $value, $record['language'], $originals);
-
-						if ($target !== null) {
-							$ref = new Ref($this->ids[$path], $relation, $target, $position)->record();
-
-							$refs[$ref->id] = ArrayEvaluator::row($ref);
-						}
-					}
-				}
-			}
-		}
-
-		return array_values($refs);
-	}
-
-	/**
-	 * The id of the original entry a written key names in some types.
-	 *
-	 * @param list<string>          $types
-	 * @param array<string, string> $originals
-	 */
-	private function target(array $types, string $key, string $language, array $originals): ?string
-	{
-		foreach ($types as $type) {
-			$path = $this->snapshot->find($language, $type, $key);
-
-			foreach ($path === null ? array_keys($this->snapshot->keys) : [] as $other) {
-				$path ??= $this->snapshot->find((string) $other, $type, $key);
-			}
-
-			if ($path !== null) {
-				$record = $this->snapshot->records[$path];
-
-				return $record['original'] === null ? $this->ids[$path] : ($originals[IndexRecord::groupOf($record)] ?? $this->ids[$path]);
-			}
-		}
-
-		return null;
 	}
 
 	/**
@@ -397,39 +354,5 @@ final class SnapshotRecords implements EntryLocations
 		$this->byId ??= array_column($this->entries, null, 'id');
 
 		return $this->byId[strtolower($id)] ?? null;
-	}
-
-	/**
-	 * @inheritDoc
-	 */
-	#[Override]
-	public function idsIn(array $folders): array
-	{
-		$ids = [];
-
-		foreach ($this->snapshot->records as $path => $record) {
-			if (in_array($record['directory'], $folders, true)) {
-				$ids[] = $this->ids[$path];
-			}
-		}
-
-		return $ids;
-	}
-
-	/**
-	 * @inheritDoc
-	 */
-	#[Override]
-	public function idsWithKey(string $key): array
-	{
-		$ids = [];
-
-		foreach ($this->snapshot->records as $path => $record) {
-			if ($record['key'] === $key) {
-				$ids[] = $this->ids[$path];
-			}
-		}
-
-		return $ids;
 	}
 }

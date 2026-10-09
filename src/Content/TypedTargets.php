@@ -89,7 +89,7 @@ final readonly class TypedTargets
 	 *
 	 * @param array<string, array<string, array<string, string>>> $found As `find()` returns them.
 	 */
-	public function create(array $found): CreatedTerms
+	public function create(array $found): CreatedEntries
 	{
 		$created = [];
 		$failed  = [];
@@ -117,7 +117,7 @@ final readonly class TypedTargets
 			}
 		}
 
-		return new CreatedTerms($created, $failed);
+		return new CreatedEntries($created, $failed);
 	}
 
 	/**

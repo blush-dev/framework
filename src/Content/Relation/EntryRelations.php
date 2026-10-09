@@ -170,8 +170,8 @@ final readonly class EntryRelations
 			$entry    = $original === null ? null : $this->content->translation($original, $language);
 			$entry    = $entry !== null && $entry->isPublished() ? $entry : $original;
 
-			if ($entry !== null && $entry->isPublished() && ! isset($entries[$entry->path])) {
-				$entries[$entry->path] = $entry;
+			if ($entry !== null && $entry->isPublished() && ! isset($entries[$entry->id ?? $entry->path])) {
+				$entries[$entry->id ?? $entry->path] = $entry;
 			}
 		}
 

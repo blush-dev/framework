@@ -53,7 +53,13 @@ A few rules make the file names flexible:
   `/about`. (Not in a collection, which is flat.)
 - **Set `slug:`** in front matter to choose the URL name yourself.
 - **Folders nest pages.** `about/team.md` is a subpage of the `about`
-  page, which themes can use for breadcrumbs and lists of subpages.
+  page, which themes can use for breadcrumbs and lists of subpages. The
+  folder needs a page of its own (`about.md` or `about/index.md`): a
+  page in a folder with no page is at the top, at `/team`. Run
+  `bin/blush content:parents --write` (or **Parent Pages** in Site
+  Health) to write each missing one as a draft, titled by its folder,
+  and the pages under it are back at their addresses. Creating a page
+  in the admin or with `content:new` writes any parent it needs.
 
 Folders can also hold a whole [content type](content-types.md), like a
 blog whose posts are listed at `/blog`. A type's folder starts with an
@@ -236,7 +242,9 @@ language's code beside the original (`about.en.md` next to `about.md`).
 
 ## Error pages
 
-Create `user/content/_errors/404.md` to write your own "not found" page:
+Create `user/content/_errors/404.md` to write your own "not found" page,
+with a page for the `_errors` folder itself (`user/content/_errors/index.md`,
+any title; `content:parents --write` writes it):
 
 ```markdown
 ---
@@ -388,8 +396,9 @@ bin/blush content:ids --keep=blog/2026-10-05.hello.md
 ```
 
 Don't edit an id by hand, and never give two files the same one. A file
-without a valid id still shows on the site, but `content:lint` reports
-it as an error. Types can't have a field named `id`.
+without a valid id isn't an entry: the site, its feeds, and the admin's
+lists leave it out until it has one, and `content:lint` reports it as an
+error. Types can't have a field named `id`.
 
 ### Links between entries
 
@@ -463,6 +472,7 @@ admin) lists them:
 bin/blush content:lint           # report problems in front matter
 bin/blush content:lint --strict  # also unknown keys and old 1.x names
 bin/blush content:ids --write    # give files without an id one
+bin/blush content:parents --write  # write the pages folders of pages need
 bin/blush content:list           # everything Blush has found
 bin/blush content:new page "Contact me"   # create a new entry
 ```

@@ -72,7 +72,7 @@ export const router = createRouter({
 		{ path: '/drafts', redirect: { name: 'dashboard' } },
 		// Dated entries by month (D-368); `?month=YYYY-MM`.
 		{ path: '/health', name: 'health', component: SiteHealthView, meta: { title: 'Site Health', capability: 'site.health', area: 'home' } },
-		{ path: '/health/:area(content)/:check(files|ids|terms|refs|taxonomies|folders|names)', name: 'health-check', component: HealthView, props: true, meta: { title: 'Site Health', capability: 'site.health', area: 'home', parent: 'health' } },
+		{ path: '/health/:area(content)/:check(files|ids|terms|parents|refs|taxonomies|folders|names)', name: 'health-check', component: HealthView, props: true, meta: { title: 'Site Health', capability: 'site.health', area: 'home', parent: 'health' } },
 		{ path: '/health/:area(media)/:check(files|ids|sizes)', name: 'health-media-check', component: HealthView, props: true, meta: { title: 'Site Health', capability: 'site.health', area: 'home', parent: 'health' } },
 		{ path: '/health/:area(content|media)', redirect: (to) => ({ name: to.params.area === 'media' ? 'health-media-check' : 'health-check', params: { area: to.params.area, check: 'files' } }) },
 		{ path: '/tools', name: 'tools', component: ToolsView, meta: { title: 'Tools', area: 'home' } },

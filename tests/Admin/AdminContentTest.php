@@ -256,9 +256,11 @@ final class AdminContentTest extends TestCase
 
 	public function testPinsTheErrorPagesOnPages(): void
 	{
-		$this->writeTemporaryFile('user/content/_errors/500.md', "---\ntitle: Something Broke\n---\n");
-		$this->writeTemporaryFile('user/content/_error/404.md', "---\ntitle: Not Here\n---\n");
-		$this->writeTemporaryFile('user/content/_errors/notes.md', "---\ntitle: Notes\n---\n");
+		$this->writeTemporaryFile('user/content/_errors/index.md', "---\nid: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1a03\ntitle: Errors\n---\n");
+		$this->writeTemporaryFile('user/content/_error/index.md', "---\nid: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1a04\ntitle: Error\n---\n");
+		$this->writeTemporaryFile('user/content/_errors/500.md', "---\nid: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1a05\ntitle: Something Broke\n---\n");
+		$this->writeTemporaryFile('user/content/_error/404.md', "---\nid: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1a06\ntitle: Not Here\n---\n");
+		$this->writeTemporaryFile('user/content/_errors/notes.md', "---\nid: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1a07\ntitle: Notes\n---\n");
 		$this->site(['editor']);
 
 		$list   = $this->list('?type=page');
@@ -267,7 +269,8 @@ final class AdminContentTest extends TestCase
 
 		$this->assertSame(['Not Here', 'Something Broke', 'Notes'], array_column($pinned, 'title'), 'By status, in either folder, then the rest kept there (D-411).');
 		$this->assertSame([404, 500, null], array_column($pinned, 'errorPage'));
-		$this->assertNotContains('Not Here', $titles, 'Not among the pages.');
+		$this->assertNotContains('Not Here', $titles, 'Not among the pages…');
+		$this->assertNotContains('Errors', $titles, '…and neither are their folders\' pages (D-656).');
 		$this->assertSame([], $this->list('?type=page&page=2')['errorPages'] ?? null, 'On the first page only.');
 
 		$entry = self::json($this->send('GET', $this->entryPath('_errors/500.md')));
@@ -812,11 +815,7 @@ final class AdminContentTest extends TestCase
 		$this->assertIsArray($health['entries'] ?? null);
 		$this->assertSame(['title' => 'No ID', 'type' => 'page', 'id' => null], $health['entries']['no-id.md'] ?? null, 'With its title, to show in its row.');
 
-		$row = array_find($this->entries('any'), static fn (array $entry): bool => $entry['path'] === 'no-id.md');
-
-		$this->assertIsArray($row);
-		$this->assertArrayHasKey('id', $row);
-		$this->assertNull($row['id'], 'Lists show it, with no id.');
+		$this->assertNull(array_find($this->entries('any'), static fn (array $entry): bool => $entry['path'] === 'no-id.md'), 'A file without an id isn\'t an entry, so lists leave it out (D-656).');
 
 		// One row's fix changes only that file (D-612).
 		$one = $this->fix('/health/ids', '{"paths": ["no-id.md"]}', $token)['assigned'] ?? null;
@@ -914,6 +913,23 @@ final class AdminContentTest extends TestCase
 
 		$this->assertSame(['profile/jane' => 'profiles/j/jane.md'], $created['created'] ?? null);
 		$this->assertSame(['count' => 0, 'items' => []], $this->checkAgain($token)['terms'] ?? null);
+	}
+
+	public function testWritesParentPagesFoldersImply(): void
+	{
+		$this->writeTemporaryFile('user/content/_regions/blurb.md', "---\nid: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1c01\ntitle: Blurb\n---\n");
+		$this->site(['owner']);
+		$token = $this->token();
+
+		$parents = $this->checkAgain($token)['parents'] ?? null;
+
+		$this->assertIsArray($parents);
+		$this->assertSame(['count' => 1, 'items' => [['type' => 'page', 'label' => 'Page', 'key' => '_regions', 'title' => 'Regions', 'pages' => 1]]], $parents, 'A page kept in a folder with no page (D-656).');
+
+		$created = $this->fix('/health/parents', '{"parents": ["page/_regions"]}', $token);
+
+		$this->assertSame(['page/_regions'], array_keys(is_array($created['created'] ?? null) ? $created['created'] : []));
+		$this->assertSame(['count' => 0, 'items' => []], $this->checkAgain($token)['parents'] ?? null);
 	}
 
 	public function testIgnoresProblemsForTheSite(): void

@@ -36,6 +36,7 @@ use Blush\Content\Parser\DocumentParser;
 use Blush\Content\Parser\FrontMatter;
 use Blush\Content\Parser\SymfonyYamlParser;
 use Blush\Content\Parser\YamlParser;
+use Blush\Content\Record\EntryLocations;
 use Blush\Content\Relation\EntryRelations;
 use Blush\Content\Relation\RelationCompiler;
 use Blush\Content\Relation\Relations;
@@ -117,8 +118,9 @@ final class ContentServiceProvider extends ServiceProvider
 	 * @inheritDoc
 	 */
 	protected const array STORAGE = [
-		ContentSource::class => StorageArea::Content,
-		ContentWriter::class => StorageArea::Content
+		ContentSource::class  => StorageArea::Content,
+		ContentWriter::class  => StorageArea::Content,
+		EntryLocations::class => StorageArea::Content
 	];
 
 	/**

@@ -48,9 +48,10 @@ final class RegionsTest extends TestCase
 
 	private function app(): Application
 	{
-		$this->writeTemporaryFile('user/content/about.md', "---\ntitle: About\n---\nAbout.");
-		$this->writeTemporaryFile('user/content/bonjour.md', "---\ntitle: Bonjour\nlocale: fr\n---\nBonjour.");
-		$this->writeTemporaryFile('user/content/_regions/blurb.md', "---\ntitle: Blurb\n---\nA *blurb* from an entry.");
+		$this->writeTemporaryFile('user/content/about.md', "---\nid: 6083a88e-e341-1b0d-17ce-02d738f69d47\ntitle: About\n---\nAbout.");
+		$this->writeTemporaryFile('user/content/bonjour.md', "---\nid: 0b4c7c6d-50bf-525a-c913-1b8255ae1c3a\ntitle: Bonjour\nlocale: fr\n---\nBonjour.");
+		$this->writeTemporaryFile('user/content/_regions/index.md', "---\nid: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1a02\ntitle: Regions\n---\n");
+		$this->writeTemporaryFile('user/content/_regions/blurb.md', "---\nid: 45abaff4-253d-bcee-ff7c-cce444af2c0f\ntitle: Blurb\n---\nA *blurb* from an entry.");
 
 		$app = $this->scratchApplication(['APP_ENV' => 'development']);
 		$app->boot();

@@ -117,7 +117,7 @@ final readonly class SiteHealth
 		$report = [
 			'checked'      => $this->clock->now()->format(DateTimeInterface::ATOM),
 			'areas'        => [
-				['key' => 'content', 'label' => 'Content', 'description' => 'Entries\' files: their fields, ids, terms, folders, and names'],
+				['key' => 'content', 'label' => 'Content', 'description' => 'Entries\' files: their fields, ids, terms, parents, folders, and names'],
 				['key' => 'media', 'label' => 'Media', 'description' => 'Library files\' ids, details, and image sizes'],
 				['key' => 'extensions', 'label' => 'Extensions', 'description' => 'The theme, plugins, and icon packs that are on'],
 				['key' => 'system', 'label' => 'System', 'description' => 'PHP, settings, the public folder, and storage'],
@@ -274,7 +274,7 @@ final readonly class SiteHealth
 			return;
 		}
 
-		/** @var array{files: list<array{path: string, area: string, violations: list<array{field: string, message: string, severity: string, kind: ?string}>}>, checked: int, metadata: int, ids: array{missing: list<string>, duplicates: list<array{id: string, paths: list<string>}>}, mediaIds: array{missing: list<string>, duplicates: list<array{id: string, paths: list<string>}>}, fileNames: list<array{count: int, items: list<array{path: string, to: string}>}>, folders: array{count: int, items: list<array{path: string, to: string}>}, terms: array{count: int, items: list<array{type: string, slug: string}>}, refs: array{count: int, items: list<array{path: string}>}, taxonomies: list<string>, mediaSizes: array{sizes: int, images: int, stale: int, items: list<array{key: string, unrecorded: int, stale: int}>}} $files */
+		/** @var array{files: list<array{path: string, area: string, violations: list<array{field: string, message: string, severity: string, kind: ?string}>}>, checked: int, metadata: int, ids: array{missing: list<string>, duplicates: list<array{id: string, paths: list<string>}>}, mediaIds: array{missing: list<string>, duplicates: list<array{id: string, paths: list<string>}>}, fileNames: list<array{count: int, items: list<array{path: string, to: string}>}>, folders: array{count: int, items: list<array{path: string, to: string}>}, terms: array{count: int, items: list<array{type: string, slug: string}>}, parents: array{count: int, items: list<array{type: string, key: string}>}, refs: array{count: int, items: list<array{path: string}>}, taxonomies: list<string>, mediaSizes: array{sizes: int, images: int, stale: int, items: list<array{key: string, unrecorded: int, stale: int}>}} $files */
 		$others = array_values(array_filter($report['checks'], static fn (mixed $check): bool => ! is_array($check) || ! in_array($check['area'] ?? null, ['content', 'media'], true)));
 
 		$report['checks'] = [...$this->summarize($this->withoutIgnored($files)), ...$others];
@@ -285,7 +285,7 @@ final readonly class SiteHealth
 	 * Sums up a new files report, first forgetting the ignored problems
 	 * it no longer finds (D-613).
 	 *
-	 * @param  array{files: list<array{path: string, area: string, violations: list<array{field: string, message: string, severity: string, kind: ?string}>}>, checked: int, metadata: int, ids: array{missing: list<string>, duplicates: list<array{id: string, paths: list<string>}>}, mediaIds: array{missing: list<string>, duplicates: list<array{id: string, paths: list<string>}>}, fileNames: list<array{count: int, items: list<array{path: string, to: string}>}>, folders: array{count: int, items: list<array{path: string, to: string}>}, terms: array{count: int, items: list<array{type: string, slug: string}>}, refs: array{count: int, items: list<array{path: string}>}, taxonomies: list<string>, mediaSizes: array{sizes: int, images: int, stale: int, items: list<array{key: string, unrecorded: int, stale: int}>}} $files
+	 * @param  array{files: list<array{path: string, area: string, violations: list<array{field: string, message: string, severity: string, kind: ?string}>}>, checked: int, metadata: int, ids: array{missing: list<string>, duplicates: list<array{id: string, paths: list<string>}>}, mediaIds: array{missing: list<string>, duplicates: list<array{id: string, paths: list<string>}>}, fileNames: list<array{count: int, items: list<array{path: string, to: string}>}>, folders: array{count: int, items: list<array{path: string, to: string}>}, terms: array{count: int, items: list<array{type: string, slug: string}>}, parents: array{count: int, items: list<array{type: string, key: string}>}, refs: array{count: int, items: list<array{path: string}>}, taxonomies: list<string>, mediaSizes: array{sizes: int, images: int, stale: int, items: list<array{key: string, unrecorded: int, stale: int}>}} $files
 	 * @return list<array<string, mixed>>
 	 */
 	private function summarizeFiles(array $files): array
@@ -299,8 +299,8 @@ final readonly class SiteHealth
 	 * Returns a files report without its ignored problems, so they don't
 	 * count (D-613).
 	 *
-	 * @param  array{files: list<array{path: string, area: string, violations: list<array{field: string, message: string, severity: string, kind: ?string}>}>, checked: int, metadata: int, ids: array{missing: list<string>, duplicates: list<array{id: string, paths: list<string>}>}, mediaIds: array{missing: list<string>, duplicates: list<array{id: string, paths: list<string>}>}, fileNames: list<array{count: int, items: list<array{path: string, to: string}>}>, folders: array{count: int, items: list<array{path: string, to: string}>}, terms: array{count: int, items: list<array{type: string, slug: string}>}, refs: array{count: int, items: list<array{path: string}>}, taxonomies: list<string>, mediaSizes: array{sizes: int, images: int, stale: int, items: list<array{key: string, unrecorded: int, stale: int}>}} $files
-	 * @return array{files: list<array{path: string, area: string, violations: list<array{field: string, message: string, severity: string, kind: ?string}>}>, checked: int, metadata: int, ids: array{missing: list<string>, duplicates: list<array{id: string, paths: list<string>}>}, mediaIds: array{missing: list<string>, duplicates: list<array{id: string, paths: list<string>}>}, fileNames: list<array{count: int, items: list<array{path: string, to: string}>}>, folders: array{count: int, items: list<array{path: string, to: string}>}, terms: array{count: int, items: list<array{type: string, slug: string}>}, refs: array{count: int, items: list<array{path: string}>}, taxonomies: list<string>, mediaSizes: array{sizes: int, images: int, stale: int, items: list<array{key: string, unrecorded: int, stale: int}>}}
+	 * @param  array{files: list<array{path: string, area: string, violations: list<array{field: string, message: string, severity: string, kind: ?string}>}>, checked: int, metadata: int, ids: array{missing: list<string>, duplicates: list<array{id: string, paths: list<string>}>}, mediaIds: array{missing: list<string>, duplicates: list<array{id: string, paths: list<string>}>}, fileNames: list<array{count: int, items: list<array{path: string, to: string}>}>, folders: array{count: int, items: list<array{path: string, to: string}>}, terms: array{count: int, items: list<array{type: string, slug: string}>}, parents: array{count: int, items: list<array{type: string, key: string}>}, refs: array{count: int, items: list<array{path: string}>}, taxonomies: list<string>, mediaSizes: array{sizes: int, images: int, stale: int, items: list<array{key: string, unrecorded: int, stale: int}>}} $files
+	 * @return array{files: list<array{path: string, area: string, violations: list<array{field: string, message: string, severity: string, kind: ?string}>}>, checked: int, metadata: int, ids: array{missing: list<string>, duplicates: list<array{id: string, paths: list<string>}>}, mediaIds: array{missing: list<string>, duplicates: list<array{id: string, paths: list<string>}>}, fileNames: list<array{count: int, items: list<array{path: string, to: string}>}>, folders: array{count: int, items: list<array{path: string, to: string}>}, terms: array{count: int, items: list<array{type: string, slug: string}>}, parents: array{count: int, items: list<array{type: string, key: string}>}, refs: array{count: int, items: list<array{path: string}>}, taxonomies: list<string>, mediaSizes: array{sizes: int, images: int, stale: int, items: list<array{key: string, unrecorded: int, stale: int}>}}
 	 */
 	private function withoutIgnored(array $files): array
 	{
@@ -325,6 +325,8 @@ final readonly class SiteHealth
 
 		$files['terms']['items'] = array_values(array_filter($files['terms']['items'], static fn (array $item): bool => $out(ProblemKeys::of('content', 'terms', "{$item['type']}/{$item['slug']}"))));
 		$files['terms']['count'] = count($files['terms']['items']);
+		$files['parents']['items'] = array_values(array_filter($files['parents']['items'], static fn (array $item): bool => $out(ProblemKeys::of('content', 'parents', "{$item['type']}/{$item['key']}"))));
+		$files['parents']['count'] = count($files['parents']['items']);
 		$files['refs']['items']  = array_values(array_filter($files['refs']['items'], static fn (array $item): bool => $out(ProblemKeys::of('content', 'refs', $item['path']))));
 		$files['refs']['count']  = count($files['refs']['items']);
 		$files['folders']['items']  = array_values(array_filter($files['folders']['items'], static fn (array $item): bool => $out(ProblemKeys::of('content', 'folders', $item['path']))));
@@ -348,7 +350,7 @@ final readonly class SiteHealth
 	 * Returns a new `ContentHealth` report, notices included (the admin
 	 * hides them until asked), and when it was made (`at`).
 	 *
-	 * @return array{at: string, version: int, checked: int, metadata: int, strict: bool, counts: array{error: int, warning: int, notice: ?int}, files: list<array{path: string, area: string, violations: list<array{field: string, message: string, severity: string, kind: ?string}>}>, entries: array<string, array{title: string, type: string, id: ?string}>, ids: array{missing: list<string>, duplicates: list<array{id: string, paths: list<string>}>}, mediaIds: array{missing: list<string>, duplicates: list<array{id: string, paths: list<string>}>}, fileNames: list<array{type: string, label: string, pattern: string, count: int, items: list<array{path: string, to: string}>, skipped: int}>, folders: array{count: int, items: list<array{path: string, to: string}>}, terms: array{count: int, items: list<array{type: string, label: string, slug: string, title: string, entries: int}>}, refs: array{count: int, items: list<array{path: string, relations: list<string>}>}, taxonomies: list<string>, mediaSizes: array{sizes: int, images: int, stale: int, items: list<array{key: string, unrecorded: int, stale: int}>}}
+	 * @return array{at: string, version: int, checked: int, metadata: int, strict: bool, counts: array{error: int, warning: int, notice: ?int}, files: list<array{path: string, area: string, violations: list<array{field: string, message: string, severity: string, kind: ?string}>}>, entries: array<string, array{title: string, type: string, id: ?string}>, ids: array{missing: list<string>, duplicates: list<array{id: string, paths: list<string>}>}, mediaIds: array{missing: list<string>, duplicates: list<array{id: string, paths: list<string>}>}, fileNames: list<array{type: string, label: string, pattern: string, count: int, items: list<array{path: string, to: string}>, skipped: int}>, folders: array{count: int, items: list<array{path: string, to: string}>}, terms: array{count: int, items: list<array{type: string, label: string, slug: string, title: string, entries: int}>}, parents: array{count: int, items: list<array{type: string, label: string, key: string, title: string, pages: int}>}, refs: array{count: int, items: list<array{path: string, relations: list<string>}>}, taxonomies: list<string>, mediaSizes: array{sizes: int, images: int, stale: int, items: list<array{key: string, unrecorded: int, stale: int}>}}
 	 */
 	private function fileReport(?LintReport $lint = null): array
 	{
@@ -370,7 +372,7 @@ final readonly class SiteHealth
 	 * Sums up content and media files' health, each linking to its area's
 	 * details. Notices, when the report has them, don't count.
 	 *
-	 * @param  array{files: list<array{path: string, area: string, violations: list<array{field: string, message: string, severity: string, kind: ?string}>}>, checked: int, metadata: int, ids: array{missing: list<string>, duplicates: list<mixed>}, mediaIds: array{missing: list<string>, duplicates: list<mixed>}, fileNames: list<array{count: int}>, folders: array{count: int}, terms: array{count: int}, refs: array{count: int}, taxonomies: list<string>, mediaSizes: array{sizes: int, images: int, stale: int}} $report
+	 * @param  array{files: list<array{path: string, area: string, violations: list<array{field: string, message: string, severity: string, kind: ?string}>}>, checked: int, metadata: int, ids: array{missing: list<string>, duplicates: list<mixed>}, mediaIds: array{missing: list<string>, duplicates: list<mixed>}, fileNames: list<array{count: int}>, folders: array{count: int}, terms: array{count: int}, parents: array{count: int}, refs: array{count: int}, taxonomies: list<string>, mediaSizes: array{sizes: int, images: int, stale: int}} $report
 	 * @return list<array<string, mixed>>
 	 */
 	private function summarize(array $report): array
@@ -411,6 +413,12 @@ final readonly class SiteHealth
 		$checks[] = self::check('content', 'terms', $terms > 0
 			? CheckResult::warning('Terms and profiles', sprintf('%s no file, so the site leaves %s out.', self::count($terms, 'term or profile entries name has', 'terms and profiles entries name have'), $terms === 1 ? 'it' : 'them'))
 			: CheckResult::pass('Terms and profiles', 'Every term and profile entries name has a file.'), 'content');
+
+		$parents = $report['parents']['count'];
+
+		$checks[] = self::check('content', 'parents', $parents > 0
+			? CheckResult::warning('Parent pages', sprintf('%s no page, so the pages under %s are at the top of their tree.', self::count($parents, 'folder pages are kept in has', 'folders pages are kept in have'), $parents === 1 ? 'it' : 'them'))
+			: CheckResult::pass('Parent pages', 'Every page is under a parent page that exists.'), 'content');
 
 		$refs = $report['refs']['count'];
 

@@ -16,7 +16,6 @@ namespace Blush\Content\Entry;
 use DateTimeImmutable;
 use Stringable;
 use Override;
-use Blush\Content\Source\SourceFile;
 use Blush\Content\Status;
 use Blush\Content\Type\ContentType;
 use Blush\Content\Visibility;
@@ -26,25 +25,28 @@ use Blush\Markdown\MarkdownException;
  * One piece of content, as templates and controllers see it. Its front
  * matter is typed by its type's schema (`fields`, keyed by canonical
  * name), and undeclared keys are kept as they were written (`extra`,
- * D-081). The body is a lazy ghost: the file is read and rendered only
- * when `body()` is called.
+ * D-081). The body is a lazy ghost: its Markdown is read and rendered
+ * only when `content()` is called.
  *
- * Every entry has a file (D-584): a term or profile that's named but has
- * no file isn't an entry, and lookups skip it.
+ * Entries are built from their records (D-649), whatever keeps them.
+ * Every entry is stored (D-584): a term or profile that's named but
+ * isn't kept isn't an entry, and neither is a file without an id
+ * (D-656).
  */
 final readonly class Entry implements Stringable
 {
 	/**
-	 * @param string                      $path        The source path.
-	 * @param string                      $key         The slug with any folders below the type's (see `IndexRecord`).
+	 * @param string                      $path        Where its store keeps it, for showing (a file's path from the content folder), or `''`.
+	 * @param string                      $key         Its slug after its parents' (D-656); `''` for a landing page.
 	 * @param array<string, mixed>        $fields      Typed front matter, by field name.
 	 * @param array<string, mixed>        $extra       Undeclared front matter.
 	 * @param array<string, list<string>> $terms       Term slugs by taxonomy.
 	 * @param bool                        $landing     Whether this is a type folder's landing page.
-	 * @param SourceFile                  $source      The file.
 	 * @param string                      $language    The code of the language it's written in (D-455).
-	 * @param ?string                     $id          Its id (D-477), or `null` for a file without a valid one.
+	 * @param ?string                     $id          Its id (D-477); `null` only for a file without one, which the filesystem driver's tools build.
 	 * @param ?string                     $version     Its version (D-648), for the edit-conflict check: on files, a hash of its file.
+	 * @param ?string                     $parentId    Its parent's id, in a type that nests.
+	 * @param ?string                     $originalId  The id of the original it's a translation of.
 	 */
 	public function __construct(
 		public string $path,
@@ -61,11 +63,12 @@ final readonly class Entry implements Stringable
 		public array $extra,
 		public array $terms,
 		public bool $landing,
-		public SourceFile $source,
 		private Body $body,
 		public string $language = '',
 		public ?string $id = null,
-		public ?string $version = null
+		public ?string $version = null,
+		public ?string $parentId = null,
+		public ?string $originalId = null
 	) {}
 
 	/**

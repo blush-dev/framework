@@ -75,10 +75,10 @@ final class MenusTest extends TestCase
 
 	private function app(): Application
 	{
-		$this->writeTemporaryFile('user/content/about.md', "---\ntitle: About us\n---\nAbout.");
-		$this->writeTemporaryFile('user/content/team.md', "---\ntitle: Team\n---\nTeam.");
-		$this->writeTemporaryFile('user/content/contact.md', "---\ntitle: Contact\nstatus: draft\n---\nDraft.");
-		$this->writeTemporaryFile('user/content/bonjour.md', "---\ntitle: Bonjour\nlocale: fr_CA\n---\nBonjour.");
+		$this->writeTemporaryFile('user/content/about.md', "---\nid: 6083a88e-e341-1b0d-17ce-02d738f69d47\ntitle: About us\n---\nAbout.");
+		$this->writeTemporaryFile('user/content/team.md', "---\nid: 0032aa43-ab4d-0a52-da10-e3dd5643e52b\ntitle: Team\n---\nTeam.");
+		$this->writeTemporaryFile('user/content/contact.md', "---\nid: 3c4864f0-0d23-f7ea-3551-1ec930ce1d9c\ntitle: Contact\nstatus: draft\n---\nDraft.");
+		$this->writeTemporaryFile('user/content/bonjour.md', "---\nid: 0b4c7c6d-50bf-525a-c913-1b8255ae1c3a\ntitle: Bonjour\nlocale: fr_CA\n---\nBonjour.");
 
 		$app = $this->scratchApplication();
 		$app->boot();
@@ -297,7 +297,7 @@ final class MenusTest extends TestCase
 	public function testRendersFromAMarkdownDirective(): void
 	{
 		$this->writeTemporaryFile('user/data/menus/primary.json', self::PRIMARY);
-		$this->writeTemporaryFile('user/content/links.md', "---\ntitle: Links\n---\n::menu{name=primary label=\"Site links\"}\n");
+		$this->writeTemporaryFile('user/content/links.md', "---\nid: 42406911-3a08-a425-6349-764ee38dbbbf\ntitle: Links\n---\n::menu{name=primary label=\"Site links\"}\n");
 
 		$html = $this->page($this->app(), '/links');
 

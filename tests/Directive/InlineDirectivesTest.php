@@ -87,6 +87,7 @@ final class InlineDirectivesTest extends TestCase
 	{
 		$this->writeTemporaryFile('user/content/index.md', <<<'MD'
 			---
+			id: d680e8a8-54a7-cbad-6d49-0c445cba2eba
 			title: Home
 			---
 			A :abbr[CMS]{title="content management system"}, saved with :kbd[Ctrl+S] on :time[Tuesday]{datetime=2026-10-06}.

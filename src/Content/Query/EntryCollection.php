@@ -21,9 +21,9 @@ use Override;
 use Blush\Content\Entry\Entry;
 
 /**
- * The entries a query found, in order. Entries are built from the index
- * the first time they're needed, and bodies only when read, so a listing
- * that shows titles never renders one.
+ * The entries a query found, in order, by id. Entries are built from
+ * their records the first time they're needed, and bodies only when read,
+ * so a listing that shows titles never renders one.
  *
  * `count()` is the entries here; `total()` is how many matched before the
  * query's limit and offset.
@@ -38,12 +38,12 @@ final class EntryCollection implements IteratorAggregate, Countable
 	private ?array $entries = null;
 
 	/**
-	 * @param list<string>                              $paths The entries' paths, in order.
+	 * @param list<string>                              $ids   The entries' ids, in order.
 	 * @param int                                       $total How many matched in all.
-	 * @param ?Closure(list<string>): list<Entry>       $load  Builds the entries for paths.
+	 * @param ?Closure(list<string>): list<Entry>       $load  Builds the entries for ids.
 	 */
 	public function __construct(
-		public readonly array $paths = [],
+		public readonly array $ids = [],
 		private readonly int $total = 0,
 		private readonly ?Closure $load = null
 	) {}
@@ -54,7 +54,7 @@ final class EntryCollection implements IteratorAggregate, Countable
 	public static function of(Entry ...$entries): self
 	{
 		$entries    = array_values($entries);
-		$collection = new self(array_map(static fn (Entry $entry): string => $entry->path, $entries), count($entries));
+		$collection = new self(array_map(static fn (Entry $entry): string => $entry->id ?? '', $entries), count($entries));
 
 		$collection->entries = $entries;
 
@@ -68,7 +68,7 @@ final class EntryCollection implements IteratorAggregate, Countable
 	 */
 	public function all(): array
 	{
-		return $this->entries ??= $this->load === null ? [] : ($this->load)($this->paths);
+		return $this->entries ??= $this->load === null ? [] : ($this->load)($this->ids);
 	}
 
 	/**
@@ -92,7 +92,7 @@ final class EntryCollection implements IteratorAggregate, Countable
 	 */
 	public function isEmpty(): bool
 	{
-		return $this->paths === [];
+		return $this->ids === [];
 	}
 
 	/**
@@ -117,7 +117,7 @@ final class EntryCollection implements IteratorAggregate, Countable
 	#[Override]
 	public function count(): int
 	{
-		return count($this->paths);
+		return count($this->ids);
 	}
 
 	/**

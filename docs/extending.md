@@ -189,11 +189,11 @@ A query finds published, listed entries in the site's language, newest
 first, unless it says otherwise (`orderBy()`, `status()`, `language()`).
 A few things to know:
 
-- **`search('grid')`** matches entries whose title or file path contains
+- **`search('grid')`** matches entries whose title or slug contains
   the text, in any case. It doesn't search what an entry says.
 - **`termCounts('category')`** gives how many entries name each term, by
-  slug. A parent term counts only the entries that name it, not those
-  filed under its children.
+  slug, in slug order. A parent term counts only the entries that name
+  it, not those filed under its children.
 - **`neighbors($entry)`** gives the entries just `before` and `after`
   one in its type's listing, in that listing's order, so for a
   collection (newest first) `before` is newer and `after` older. Either
@@ -329,9 +329,11 @@ $post = $this->content->change($post, new EntryChanges(
   `bin/blush content:ids --write`, or use Site Health.
 - Every change refreshes cached pages.
 
-Changes are written only as content files inside `user/content`, and
-any edit that can't be made without changing something else is refused
-(`WriteException`), leaving the file as it was.
+Content is kept as files for now, so changes are written only as
+content files inside `user/content`, and any edit that can't be made
+without changing something else is refused (`WriteException`), leaving
+the file as it was. Name entries by id, never by file path, and your
+code keeps working when a site keeps its content another way.
 
 ## Storing your own data
 

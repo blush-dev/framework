@@ -50,9 +50,20 @@ use Blush\Support\Slug;
  * - **Folders and parent keys** ask the store (`EntryLocations`).
  * - **Order:** the record layer's rules (D-648): the key, then the
  *   order entries were made in; positions, then titles.
+ *
+ * Every query is resolved first, the same for every driver: no language
+ * means the default language (D-455); in another language, the default
+ * language's entries stand in for missing translations when the site
+ * lists them (D-469); and 1.x's `author` reads the profiles type
+ * (D-351), unless a type is named `author`.
  */
 final readonly class QueryCompiler
 {
+	/**
+	 * 1.x's term key for authors.
+	 */
+	private const string AUTHOR = 'author';
+
 	public function __construct(
 		private ContentTypes $types,
 		private AppConfig $app
@@ -65,6 +76,7 @@ final readonly class QueryCompiler
 	 */
 	public function compile(Query $query, int $now, EntryLocations $locations): RecordQuery
 	{
+		$query   = $this->resolved($query);
 		$records = $this->conditions(new RecordQuery(), $query, $now, $locations)->offset($query->offset)->limit($query->limit);
 
 		foreach ($this->sorts($query) as [$key, $order]) {
@@ -72,6 +84,27 @@ final readonly class QueryCompiler
 		}
 
 		return $records;
+	}
+
+	/**
+	 * Returns a query with its language, its fallback, and 1.x's
+	 * `author` resolved for this site.
+	 */
+	private function resolved(Query $query): Query
+	{
+		$profiles  = $this->types->profiles()?->name;
+		$languages = $this->app->languages;
+
+		if ($query->language === null) {
+			$query = $query->language($languages->default->code);
+		}
+
+		$originals = $query->originals ?? $this->app->untranslated->lists();
+		$query     = $query->fallback($originals && $languages->isOther($query->language ?? '') ? $languages->default->code : null);
+
+		return $profiles === null || $profiles === self::AUTHOR || $this->types->has(self::AUTHOR)
+			? $query
+			: $query->withTaxonomyRenamed(self::AUTHOR, $profiles);
 	}
 
 	/**
@@ -252,7 +285,7 @@ final readonly class QueryCompiler
 	 *
 	 * @return list<Relation>
 	 */
-	private function termRelations(string $key): array
+	public function termRelations(string $key): array
 	{
 		return array_values(array_filter(
 			$this->types->relations(),

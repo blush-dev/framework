@@ -347,6 +347,16 @@ final readonly class HealthController
 	}
 
 	/**
+	 * Writes each parent page tree pages are kept under with no page of
+	 * their own (D-656), a draft, of the types the account may create, as
+	 * a job.
+	 */
+	public function createParents(ServerRequestInterface $request): ResponseInterface
+	{
+		return $this->queue($request, HealthFix::Parents);
+	}
+
+	/**
 	 * Files both forms of the links between entries (D-589, D-596) in the
 	 * files the account may edit, as a job.
 	 */
@@ -389,7 +399,11 @@ final readonly class HealthController
 			return Response::json(['error' => 'You aren\'t allowed to fix files.'], Status::Forbidden, ['Cache-Control' => 'no-store']);
 		}
 
-		$paths = self::list($request, $fix === HealthFix::Terms ? 'terms' : 'paths');
+		$paths = self::list($request, match ($fix) {
+			HealthFix::Terms   => 'terms',
+			HealthFix::Parents => 'parents',
+			default            => 'paths'
+		});
 
 		try {
 			$job = $this->jobs->push(JobType::HealthFix->value, ['fix' => $fix->value, 'type' => $type, 'remaining' => $paths], $account->username);

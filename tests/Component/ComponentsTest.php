@@ -201,7 +201,7 @@ final class ComponentsTest extends TestCase
 	public function testContentCantNameAComponent(): void
 	{
 		$this->view('components/site-box', 'a box');
-		$this->writeTemporaryFile('user/content/index.md', "---\ntitle: Home\n---\n::site/box[Just text]\n");
+		$this->writeTemporaryFile('user/content/index.md', "---\nid: d680e8a8-54a7-cbad-6d49-0c445cba2eba\ntitle: Home\n---\n::site/box[Just text]\n");
 
 		$this->boot();
 

@@ -19931,3 +19931,168 @@ decision, add a new entry that supersedes it and mark the old one
     requests were 60 to 80% slower, each id or ref lookup scanning
     every row.
 - **Why:** the author's go for 3d ("Let's do stage 3d").
+
+### D-655: The content conformance suite; `Entries` on records is 3f (step 3e)
+
+- **Date:** 2026-10-08
+- **Status:** Built. Part 3e of the data layer's step 3 (`roadmap.md`),
+  scoped down from the plan.
+- **Context:** 3e's plan was a conformance suite running content's
+  queries on the filesystem driver and on `ArrayRecordStore`. Mapping
+  it showed `Entries` can't run on another store yet: `QueryCompiler`
+  asks `EntryLocations` for folders and parent keys, answered only by
+  the index (`SnapshotRecords`), and `StoredEntries` turns each record
+  found back into a path and hydrates from the index, as D-654 left it
+  ("keys a record can't rebuild").
+- **Decision** (the author chose the split):
+  - **3e is a suite at the record level:**
+    `tests/Content/Conformance/EntryStoreConformance` builds the
+    standard content set, compiles content's queries, and runs them on
+    the store under test: statuses and scheduling against now, names,
+    folders and parents, terms (refs and written slugs), authors,
+    fields, dates, locales, search, alternatives, order, pages, 1.x
+    arguments, records' values and content, refs, counts by value,
+    aggregates, and a write checked by version.
+    `FilesystemEntryStoreTest` runs it on files;
+    `ArrayEntryStoreTest` on the site's records copied into an
+    `ArrayRecordStore`, the target a database driver answers.
+  - **`RecordLocations`** (`Content\Record`) answers `EntryLocations`
+    from the `entries` table alone: a tree's key walks `parent_id`, a
+    collection's is its slug, and an entry is listed in its type's
+    folder plus its key's folders. It agrees with the index wherever a
+    record can say the same (tested); a folder no entry is
+    (`__drafts/idea`) is where they differ.
+  - **`QueryCompiler` resolves every query** (the default language,
+    the fallback language, 1.x's `author` read as the profiles type),
+    moved from `StoredEntries`, so a driver compiling a query gets the
+    same answer without the repository.
+  - **3f, after the keys question is settled:** `Entries` finds and
+    hydrates entries from records, not paths (collections keyed by id,
+    bodies from `content`), so the suite runs `Entries` itself on both
+    stores. Until then, step 3's "no code outside the filesystem
+    driver reads a content path" isn't met.
+  - **Docs:** `search()` matches titles and slugs, not file paths
+    (`docs/extending.md`, `docs/admin.md`, the admin's API comment);
+    "Changing content from code" says content is files for now and to
+    name entries by id.
+  - **Speed, against `before_step3`:** home request 12.1 ms (6%
+    faster); the single request (a term's page, `/topics/topic-7`)
+    12.0 ms (12% slower) and 3.9 ms with cached bodies (50% slower),
+    both the term archive's query: a related condition in a group
+    skips the index store's row lookups and checks every row. Term and
+    date archives (1.6 and 1.1 ms) and the contributor list (4.2 ms)
+    stay for step 4; peak memory 28 MB (86% more, the records kept
+    with the index).
+- **Why:** the author's choice ("Split: 3e now, 3f later") when asked
+  how to scope 3e, given content's `Query` still depending on the
+  index and paths.
+
+### D-656: Entries need an id and real parents to be found (for 3f)
+
+- **Date:** 2026-10-08
+- **Status:** Decided, not built. Settles "Keys a record can't rebuild"
+  (`open-questions.md`) and amends D-481 and D-652 for step 3f.
+- **Decision:**
+  - **A file without an id isn't an entry.** It's left out of
+    `Entries` entirely: the site, feeds, sitemaps, `llms.txt`, and the
+    admin's lists. Site Health's ids check and `content:ids --write`
+    (D-480) list such files and give them ids. The steady id made from a
+    path (`Uuid::fromName()`), the refs built from front matter slugs
+    for entries without ids, and "readable but not editable" (D-481)
+    go. D-478 allows it: a tool in the admin and the CLI migrates the
+    content.
+  - **No stored key; parents are written.** A page whose address names
+    a folder that isn't an entry (a tree's `__drafts/idea` with no
+    `__drafts` page, a relation archive's `_cooks/jane` with no
+    `_cooks` page) is found by what its record says: at the top of its
+    tree until its parent exists. A tool in Site Health and the CLI
+    writes the missing parent pages, as `content:terms` writes missing
+    terms (D-584). Records keep no key (D-649); an address walks
+    parents.
+  - Left to settle when 3f is built: what a written parent page holds
+    (its title from the folder's name; an `_` folder's page stays
+    hidden by its name) and the tool's name.
+- **Why:** the author: "I'm ok with the file-based system not showing
+  posts on the front end when it doesn't have a proper id. we should
+  have an action tool to fix that. I'm not worried about back-compat if
+  that's a concern here." Then, asked, chose leaving such files out
+  everywhere but Site Health, and the same rule for folders that aren't
+  entries ("write the parents").
+
+### D-657: `Entries` on records, with an archive value (step 3f)
+
+- **Date:** 2026-10-08
+- **Status:** Built. Part 3f of the data layer's step 3 (`roadmap.md`),
+  building D-656. Amends D-649 (one more `entries` column) and D-602
+  (an archive page's key comes from a value).
+- **Decision:**
+  - **`Entries` (`StoredEntries`) reads records only:** queries compile
+    and run on the content store; `find`, `named`, `translations`,
+    `parent`, `children`, `neighbors`, `termCounts` (refs to the key's
+    relations, an entry once a term, by slug in slug order), and
+    `redirects` are record queries; `EntryCollection` is keyed by id
+    (`$ids`); `Selection` goes. The index snapshot isn't read.
+  - **`EntryHydrator` builds an `Entry` from a record:** front matter
+    split by the type's schema into fields and extra; times from the
+    fields, else the columns (`EntryTable::timestamp()`); the locale
+    from the language, else `locale`; terms from the written values
+    (`EntryTerms`), a value filed with an id in `refs`, or written as an
+    id, read as that entry's slug now (the slugs of every entry a batch
+    names are read in one query); the body read from the record's
+    `content` on first use; `parentId` and `originalId` on `Entry`.
+    `Entry::$source` (the file's stat) goes; `Entry::$path` is where the
+    store keeps it, for showing (`''` without files).
+  - **`EntryLocations` is the driver's:** `idsIn`, `idsWithKey`, and now
+    `key`, `path`, and `refresh`, bound per driver (`STORAGE`). Keys and
+    folders come from `EntryPlaces` for every driver: a tree's key walks
+    parents, each in the entry's language where it has a translation,
+    else as its original is, and a translation with no parent of its own
+    under its original's (D-457); a collection's is its slug.
+    `IndexLocations` answers on files (from the index's rows, worked out
+    once per index version); `RecordLocations` from records alone.
+  - **An `archive` column** (the author's choice when asked: "Go with
+    option 1, the archive value"): a page written for one target's
+    relation archive in a type that doesn't nest (`_posts/_authors/jane.md`,
+    D-602) keeps its place, `_authors/jane`, which is its key; the
+    filesystem driver reads it from the `_{word}/` folder. Collections
+    keep no other folders in keys, so `_drafts/idea` is `idea`.
+  - **Files without ids** (D-656) have no row; `EntryFiles` builds one
+    for the file tools alone, without an id.
+  - **Parents written:** `createAt()` writes the missing parent pages a
+    tree's key names first, drafts titled by their folders
+    (`StoredEntries::titleOf()`); `MissingParents`, `content:parents`
+    (the filesystem driver's), and Site Health's **Parent Pages** check
+    (`POST health/parents`, `FixAccess::createTypes()`) write them for
+    existing files. A folder no page can be keyed at (`__drafts`) is
+    left (the author: "Ignore __drafts"). The admin leaves the error
+    folders' own pages out of Pages, as it does the error pages.
+  - **Callers by id:** the admin's tree depths and ancestors, the
+    dashboard's resumed entry, handles, inherited translation values,
+    `Template::ancestors()`, and `EntryRelations` compare entries by id.
+  - **`CreatedTerms` is `CreatedEntries`,** shared by missing terms and
+    parents. `Status::at()` decides a stored status at a time.
+  - **The conformance suite runs `Entries`** on both stores (a fixture
+    storage driver gives `ArrayRecordStore` for the content area); writes
+    through `Entries` only on files, until a driver has a writer of its
+    own.
+  - **Speed, against `before_step3`** (after cutting term counts' and
+    translations' scans): home request 13.4 ms (4% slower), the term
+    page request 13.0 ms (21% slower), admin list of everything 16.4 ms
+    (34% slower; 11.5 ms after 3e), term counts 4.0 ms, a lookup by key
+    0.02 ms. Building an entry from a record costs about 7 µs; step 4's
+    index is where the rest is won back.
+  - **The trial site** got an id for `elements.md` and parent pages for
+    `_error` and `playground` (not committed).
+- **Why:** the author's go ("Let's do 3f"), with D-656.
+
+### D-658: 1.x conventions go when they get in the way
+
+- **Date:** 2026-10-08
+- **Status:** Decided. Supersedes D-078 in part, beyond D-478.
+- **Decision:** No 1.x content convention needs to be kept when it gets
+  in the way of 2.x's design. The only 1.x site is the author's, whose
+  files are updated by hand or by a tool. Conventions that cost nothing
+  stay; none is kept for its own sake.
+- **Why:** the author: "Note that there's no back-compat concerns if they
+  get in the way. We can always simply update the files on our system. I
+  was the only 1.x user."

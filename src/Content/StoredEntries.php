@@ -19,21 +19,17 @@ use Override;
 use Psr\Clock\ClockInterface;
 use Blush\Container\Attributes\Defer;
 use Blush\Content\Entry\Entry;
-use Blush\Content\Entry\Position;
 use Blush\Content\Entry\EntryHydrator;
-use Blush\Content\Index\ContentIndex;
-use Blush\Content\Index\IndexFingerprint;
-use Blush\Content\Index\IndexFreshness;
-use Blush\Content\Index\IndexSnapshot;
-use Blush\Content\Index\Indexer;
+use Blush\Content\Entry\Position;
 use Blush\Content\Query\EntryCollection;
 use Blush\Content\Query\InvalidQuery;
 use Blush\Content\Query\Paginator;
 use Blush\Content\Query\Query;
-use Blush\Content\ContentConfig;
-use Blush\Content\Query\Selection;
+use Blush\Content\Record\EntryLocations;
+use Blush\Content\Record\EntryRecords;
 use Blush\Content\Record\EntryTable;
 use Blush\Content\Record\QueryCompiler;
+use Blush\Content\Relation\Refs;
 use Blush\Content\Type\ContentType;
 use Blush\Content\Type\ContentTypes;
 use Blush\Content\Writer\ContentWriter;
@@ -42,41 +38,39 @@ use Blush\Content\Writer\EntryChanges;
 use Blush\Content\Writer\WriteException;
 use Blush\Core\AppConfig;
 use Blush\Storage\Record\Record;
+use Blush\Storage\Record\RecordQuery;
+use Blush\Storage\Record\RecordResult;
+use Blush\Storage\Record\RecordStore;
 use Blush\Storage\Record\RecordStores;
+use Blush\Storage\Record\Ref;
+use Blush\Support\Uuid;
 
 /**
- * The default `Entries` (D-654): queries compile to record queries the
- * content area's store answers (D-652, D-653), entries are hydrated from
- * the content index, and writes go through the storage driver's
- * `ContentWriter`, each answering the entry as it is after.
+ * The default `Entries` (D-654), on records (D-649), the same for every
+ * driver: queries compile to record queries the content area's store
+ * answers (D-652, D-653), entries are built from the records found, at
+ * the keys and places the store's `EntryLocations` gives (by parents,
+ * D-656), and writes go through the storage driver's `ContentWriter`,
+ * each answering the entry as it is after. Writing a page at a fixed key
+ * writes the parent pages its key names that don't exist yet, so its
+ * key holds.
  *
- * The index is built on first use when none exists, or when it was built
- * with other content types, timezone, or locale (`IndexFingerprint`), so
- * a new or reconfigured site works without running `content:index`. In
- * development (with
- * `ContentConfig::$autoIndex`), the first use in each request also runs
- * an incremental index, which only reads files whose stat changed. In
- * production, reindexing is explicit: the CLI, the publish webhook, or
- * the admin.
+ * The filesystem driver keeps its index up to date itself
+ * (`IndexFreshness`).
  */
 final class StoredEntries implements Entries
 {
 	/**
-	 * The name 1.x queries credit people by.
-	 */
-	private const string AUTHOR = 'author';
-
-	/**
 	 * @param Closure(): ContentWriter $writer
 	 */
 	public function __construct(
-		private readonly IndexFreshness $freshness,
 		private readonly EntryHydrator $hydrator,
 		private readonly ContentTypes $types,
 		private readonly AppConfig $app,
 		private readonly ClockInterface $clock,
 		private readonly QueryCompiler $compiler,
 		private readonly RecordStores $stores,
+		private readonly EntryLocations $locations,
 		#[Defer(ContentWriter::class)] private readonly Closure $writer
 	) {}
 
@@ -95,52 +89,24 @@ final class StoredEntries implements Entries
 	#[Override]
 	public function get(Query $query): EntryCollection
 	{
-		$selection = $this->select($this->resolved($query));
+		$found = $this->select($query);
 
-		return new EntryCollection($selection->paths, $selection->total, $this->load(...));
+		return new EntryCollection(self::ids($found->records), $found->total, fn (): array => $this->entries($found->records));
 	}
 
 	/**
 	 * Runs a query: compiled to a record query over `entries` (D-649),
 	 * as of now, and answered by the store that keeps them (D-653), the
-	 * entries found without their content, which hydration reads lazily.
-	 * Entries are still hydrated from the index, by path, until the
-	 * repository reads records (the data layer's step 3d).
+	 * records found without their content, which entries read lazily.
+	 * The compiler resolves the query's language and 1.x arguments.
 	 *
 	 * @throws InvalidQuery
 	 */
-	private function select(Query $query): Selection
+	private function select(Query $query): RecordResult
 	{
-		$records = $this->fresh()->records();
-		$table   = EntryTable::table();
-		$found   = $this->stores->store($table)->select($table, $this->compiler->compile($query, $this->now(), $records)->withoutContent());
+		$table = EntryTable::table();
 
-		return new Selection(array_values(array_filter(array_map(static fn (Record $record): ?string => $records->path($record->id), $found->records))), $found->total);
-	}
-
-	/**
-	 * Returns a query with 1.x's `author` reading the profiles type
-	 * (D-351), unless a type is named `author`, with no language meaning
-	 * the default language (D-455), and in another language, the default
-	 * language's entries standing in for missing translations when it
-	 * asks for originals or the site's `untranslated` setting lists them
-	 * (D-469).
-	 */
-	private function resolved(Query $query): Query
-	{
-		$profiles  = $this->types->profiles()?->name;
-		$languages = $this->app->languages;
-
-		if ($query->language === null) {
-			$query = $query->language($languages->default->code);
-		}
-
-		$originals = $query->originals ?? $this->app->untranslated->lists();
-		$query     = $query->fallback($originals && $languages->isOther($query->language ?? '') ? $languages->default->code : null);
-
-		return $profiles === null || $profiles === self::AUTHOR || $this->types->has(self::AUTHOR)
-			? $query
-			: $query->withTaxonomyRenamed(self::AUTHOR, $profiles);
+		return $this->store()->select($table, $this->compiler->compile($query, $this->now(), $this->locations)->withoutContent());
 	}
 
 	/**
@@ -161,7 +127,7 @@ final class StoredEntries implements Entries
 	#[Override]
 	public function count(Query $query): int
 	{
-		return $this->select($this->resolved($query)->limit(0))->total;
+		return $this->select($query->limit(0))->total;
 	}
 
 	/**
@@ -170,19 +136,7 @@ final class StoredEntries implements Entries
 	#[Override]
 	public function find(string $id): ?Entry
 	{
-		$path = $this->snapshot()->path($id);
-
-		return $path === null ? null : $this->atPath($path);
-	}
-
-	/**
-	 * Returns the entry the index keeps at a path.
-	 */
-	private function atPath(string $path): ?Entry
-	{
-		$record = $this->snapshot()->record($path);
-
-		return $record === null ? null : $this->hydrator->hydrate($record);
+		return array_first($this->where(new RecordQuery()->where('id', '=', strtolower($id))->limit(1)));
 	}
 
 	/**
@@ -191,9 +145,15 @@ final class StoredEntries implements Entries
 	#[Override]
 	public function named(string $type, string $key, ?string $language = null): ?Entry
 	{
-		$path = $this->snapshot()->find($language ?? $this->app->languages->default->code, $type, $key);
+		$ids = $this->locations->idsWithKey($key);
 
-		return $path === null ? null : $this->atPath($path);
+		return $ids === [] ? null : array_first($this->where(
+			new RecordQuery()
+				->where('id', 'in', $ids)
+				->where('type', '=', $type)
+				->where('language', '=', $language ?? $this->app->languages->default->code)
+				->limit(1)
+		));
 	}
 
 	/**
@@ -202,9 +162,21 @@ final class StoredEntries implements Entries
 	#[Override]
 	public function translations(Entry $entry): array
 	{
-		$paths = $this->snapshot()->translations($entry->path);
+		$group = $entry->originalId ?? $entry->id;
 
-		if ($paths === []) {
+		// Two lookups by id, which stores answer without a scan, not one
+		// query of either.
+		$grouped = $group === null ? [] : [
+			...$this->where(new RecordQuery()->where('id', '=', $group)),
+			...$this->where(new RecordQuery()->where('original_id', '=', $group))
+		];
+		$found   = [];
+
+		foreach ($grouped as $translation) {
+			$found[$translation->language] ??= $translation;
+		}
+
+		if (count($found) < 2) {
 			return [$entry->language => $entry];
 		}
 
@@ -212,10 +184,8 @@ final class StoredEntries implements Entries
 
 		// In the languages' order, the default first.
 		foreach (array_keys($this->app->languages->all()) as $code) {
-			$translation = isset($paths[$code]) ? $this->atPath($paths[$code]) : null;
-
-			if ($translation !== null) {
-				$entries[$code] = $translation;
+			if (isset($found[$code])) {
+				$entries[$code] = $found[$code];
 			}
 		}
 
@@ -228,13 +198,7 @@ final class StoredEntries implements Entries
 	#[Override]
 	public function translation(Entry $entry, string $language): ?Entry
 	{
-		if ($entry->language === $language) {
-			return $entry;
-		}
-
-		$path = $this->snapshot()->translations($entry->path)[$language] ?? null;
-
-		return $path === null ? null : $this->atPath($path);
+		return $entry->language === $language ? $entry : $this->translations($entry)[$language] ?? null;
 	}
 
 	/**
@@ -268,12 +232,9 @@ final class StoredEntries implements Entries
 	#[Override]
 	public function parentKey(string $type, string $key, ?string $language = null): ?string
 	{
-		$snapshot = $this->snapshot();
-		$language ??= $this->app->languages->default->code;
-		$path     = $snapshot->find($language, $type, $key);
-		$parent   = $path === null ? null : $snapshot->records[$path]['parent'];
+		$parent = $this->named($type, $key, $language)?->parentId;
 
-		return $parent !== null && $snapshot->find($language, $type, $parent) !== null ? $parent : null;
+		return $parent === null ? null : $this->locations->key($parent);
 	}
 
 	/**
@@ -282,10 +243,7 @@ final class StoredEntries implements Entries
 	#[Override]
 	public function parent(Entry $entry): ?Entry
 	{
-		// The index's parent, which a translation's is in its language (D-457).
-		$key = $this->snapshot()->records[$entry->path]['parent'] ?? null;
-
-		return $key === null ? null : $this->named($entry->type->name, $key, $entry->language);
+		return $entry->parentId === null ? null : $this->find($entry->parentId);
 	}
 
 	/**
@@ -294,14 +252,11 @@ final class StoredEntries implements Entries
 	#[Override]
 	public function children(Entry $entry): array
 	{
-		if ($entry->landing) {
+		if ($entry->landing || $entry->id === null) {
 			return [];
 		}
 
-		$children = array_values(array_filter(array_map(
-			$this->atPath(...),
-			$this->snapshot()->children($entry->language, $entry->type->name, $entry->key)
-		)));
+		$children = $this->where(new RecordQuery()->where('parent_id', '=', $entry->id));
 
 		usort($children, Position::siblings(...));
 
@@ -309,8 +264,8 @@ final class StoredEntries implements Entries
 	}
 
 	/**
-	 * Finds the entry's place among the listing's paths in the index, so
-	 * only the two neighbors are built.
+	 * Finds the entry's place among the listing's ids, so only the two
+	 * neighbors are built.
 	 *
 	 * @inheritDoc
 	 */
@@ -321,43 +276,70 @@ final class StoredEntries implements Entries
 			->type($entry->type)
 			->language($entry->language === '' ? null : $entry->language);
 
-		$paths = $this->select($this->resolved($query->limit(null)->offset(0)))->paths;
-		$index = array_search($entry->path, $paths, true);
+		$ids   = self::ids($this->select($query->limit(null)->offset(0))->records);
+		$index = $entry->id === null ? false : array_search($entry->id, $ids, true);
 
 		if ($index === false) {
 			return ['before' => null, 'after' => null];
 		}
 
 		return [
-			'before' => isset($paths[$index - 1]) ? $this->atPath($paths[$index - 1]) : null,
-			'after'  => isset($paths[$index + 1]) ? $this->atPath($paths[$index + 1]) : null
+			'before' => isset($ids[$index - 1]) ? $this->find($ids[$index - 1]) : null,
+			'after'  => isset($ids[$index + 1]) ? $this->find($ids[$index + 1]) : null
 		];
 	}
 
 	/**
-	 * A relation's terms under `{type}.{name}` (`profile.authors`,
-	 * `person.actors`) are that type's entries.
+	 * Counts the refs from the entries the query finds to the terms of
+	 * each key's relations, an entry once a term. A relation's terms
+	 * under `{type}.{name}` (`profile.authors`, `person.actors`) are that
+	 * type's entries.
 	 *
 	 * @inheritDoc
 	 */
 	#[Override]
 	public function termCounts(string|array $taxonomy, ?Query $query = null): array
 	{
-		$snapshot = $this->snapshot();
-		$listed   = array_flip($this->get(($query ?? $this->query())->limit(null)->offset(0))->paths);
-		$found    = [];
+		$relations = [];
 
 		foreach (is_array($taxonomy) ? $taxonomy : [$taxonomy] as $key) {
-			$type = strstr($key, '.', true) ?: $key;
-
-			foreach ($snapshot->terms[$key] ?? [] as $slug => $paths) {
-				if ($snapshot->has($type, (string) $slug)) {
-					$found[(string) $slug] = [...$found[(string) $slug] ?? [], ...array_filter($paths, static fn (string $path): bool => isset($listed[$path]))];
-				}
+			foreach ($this->compiler->termRelations($key) as $relation) {
+				$relations[$relation->name] = $relation;
 			}
 		}
 
-		return array_map(static fn (array $paths): int => count(array_unique($paths)), $found);
+		$listed = self::ids($this->select(($query ?? $this->query())->limit(null)->offset(0))->records);
+
+		if ($relations === [] || $listed === []) {
+			return [];
+		}
+
+		$table   = Ref::table(EntryTable::table()->area);
+		$listed  = array_flip($listed);
+		$sources = [];
+
+		foreach ($this->stores->store($table)->select($table, new RecordQuery()->where('relation', 'in', array_keys($relations)))->records as $ref) {
+			$source = EntryRecords::text($ref, 'source_id');
+
+			if (isset($listed[$source])) {
+				$sources[EntryRecords::text($ref, 'target_id')][$source] = true;
+			}
+		}
+
+		$bySlug = [];
+		$terms  = $sources === [] ? [] : $this->store()->select(EntryTable::table(), new RecordQuery()->where('id', 'in', array_map(strval(...), array_keys($sources)))->withoutContent())->records;
+
+		foreach ($terms as $term) {
+			$slug = EntryRecords::text($term, 'slug');
+
+			if ($slug !== '') {
+				$bySlug[$slug] = [...$bySlug[$slug] ?? [], ...$sources[$term->id] ?? []];
+			}
+		}
+
+		ksort($bySlug, SORT_STRING);
+
+		return array_map(count(...), $bySlug);
 	}
 
 	/**
@@ -366,21 +348,13 @@ final class StoredEntries implements Entries
 	#[Override]
 	public function redirects(): array
 	{
-		$snapshot  = $this->snapshot();
 		$redirects = [];
 
-		foreach ($snapshot->records as $path => $record) {
-			$from = $record['values']['redirect_from'] ?? null;
+		foreach ($this->where(new RecordQuery()->where('fields.redirect_from', 'not null')) as $entry) {
+			$from = $entry->field('redirect_from');
 
-			if (! is_array($from) || $from === []) {
-				continue;
-			}
-
-			$record = $snapshot->record((string) $path);
-			$entry  = $record === null ? null : $this->hydrator->hydrate($record);
-
-			foreach ($from as $old) {
-				if ($entry !== null && is_string($old) && ! isset($redirects[$old])) {
+			foreach (is_array($from) ? $from : [] as $old) {
+				if (is_string($old) && ! isset($redirects[$old])) {
 					$redirects[$old] = $entry;
 				}
 			}
@@ -422,6 +396,8 @@ final class StoredEntries implements Entries
 	#[Override]
 	public function createAt(ContentType $type, string $key, EntryChanges $changes): Entry
 	{
+		$this->writeParents($type, $key);
+
 		return $this->written($this->writer()->createAt($type, $key, $changes));
 	}
 
@@ -499,6 +475,37 @@ final class StoredEntries implements Entries
 	}
 
 	/**
+	 * Writes the parent pages a tree's key names that don't exist yet
+	 * (D-656), from the top, each a draft titled by its folder's name,
+	 * so the page written at the key is under them.
+	 */
+	private function writeParents(ContentType $type, string $key): void
+	{
+		if (! $type->keysByFolder() || ! str_contains($key, '/')) {
+			return;
+		}
+
+		$above = '';
+
+		foreach (array_slice(explode('/', $key), 0, -1) as $segment) {
+			$above = ltrim("{$above}/{$segment}", '/');
+
+			if ($this->named($type->name, $above) === null) {
+				$this->writer()->createAt($type, $above, new EntryChanges(set: ['title' => self::titleOf($segment), 'status' => Status::Draft->value]));
+				$this->locations->refresh();
+			}
+		}
+	}
+
+	/**
+	 * Returns a title made from a folder's name: `_cooks` is "Cooks".
+	 */
+	public static function titleOf(string $folder): string
+	{
+		return ucwords(trim(str_replace(['-', '_'], ' ', $folder)));
+	}
+
+	/**
 	 * Returns an entry's id, or an id as given.
 	 *
 	 * @throws WriteException When the entry has none.
@@ -527,45 +534,81 @@ final class StoredEntries implements Entries
 	 */
 	private function written(string $id): Entry
 	{
+		$this->locations->refresh();
+
 		return $this->find($id) ?? throw new WriteException('The entry was written but couldn\'t be read back; check Site Health.');
 	}
 
 	/**
-	 * Returns the index, brought up to date once a request.
+	 * Returns the store that keeps entries.
 	 */
-	private function fresh(): ContentIndex
+	private function store(): RecordStore
 	{
-		return $this->freshness->fresh();
+		return $this->stores->store(EntryTable::table());
 	}
 
 	/**
-	 * Returns the current snapshot.
-	 */
-	private function snapshot(): IndexSnapshot
-	{
-		return $this->fresh()->snapshot();
-	}
-
-	/**
-	 * Hydrates entries by path.
+	 * Returns the entries a record query over `entries` finds, whatever
+	 * their status, without their content.
 	 *
-	 * @param  list<string> $paths
 	 * @return list<Entry>
 	 */
-	private function load(array $paths): array
+	private function where(RecordQuery $query): array
 	{
-		$snapshot = $this->snapshot();
-		$entries  = [];
+		return $this->entries($this->store()->select(EntryTable::table(), $query->withoutContent())->records);
+	}
 
-		foreach ($paths as $path) {
-			$record = $snapshot->record($path);
+	/**
+	 * Builds entries from their records, with the slugs of every entry
+	 * their `refs` name, or their values name by id, read in one go, for
+	 * their terms.
+	 *
+	 * @param  list<Record> $records
+	 * @return list<Entry>
+	 */
+	private function entries(array $records): array
+	{
+		$ids = [];
 
-			if ($record !== null) {
-				$entries[] = $this->hydrator->hydrate($record);
+		foreach ($records as $record) {
+			$front = EntryRecords::front($record);
+
+			foreach (Refs::fromValue($front[Refs::FIELD] ?? null)->map as $targets) {
+				foreach ($targets as $id) {
+					$ids[$id] = true;
+				}
+			}
+
+			foreach ($front as $value) {
+				foreach (is_array($value) ? $value : [$value] as $item) {
+					if (is_string($item) && strlen($item) === 36 && Uuid::isValid($item)) {
+						$ids[strtolower($item)] = true;
+					}
+				}
 			}
 		}
 
-		return $entries;
+		$slugs = [];
+
+		foreach ($ids === [] ? [] : $this->store()->select(EntryTable::table(), new RecordQuery()->where('id', 'in', array_keys($ids))->withoutContent())->records as $target) {
+			$slugs[$target->id] = EntryRecords::text($target, 'slug');
+		}
+
+		return array_map(
+			fn (Record $record): Entry => $this->hydrator->hydrate($record, $this->locations->key($record->id) ?? '', $this->locations->path($record->id), $slugs),
+			$records
+		);
+	}
+
+	/**
+	 * Returns records' ids.
+	 *
+	 * @param  list<Record> $records
+	 * @return list<string>
+	 */
+	private static function ids(array $records): array
+	{
+		return array_map(static fn (Record $record): string => $record->id, $records);
 	}
 
 	/**

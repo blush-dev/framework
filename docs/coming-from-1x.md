@@ -27,7 +27,10 @@ Copy your `user/` folder across as it is. In particular:
   (the skeleton's `user/data/relations/authors.json`); add each type
   whose entries name authors to its `from`.
 - `_error/404.md` still works as your error page (2.x also reads
-  `_errors/`).
+  `_errors/`), once the folder has a page of its own: run
+  `bin/blush content:parents --write`.
+- Every file needs an id; one without isn't shown. Run
+  `bin/blush content:ids --write` once.
 - Media links to `/user/media/...` still resolve.
 - 1.x showed a term or author your entries named even without a file.
   2.x needs the file, and leaves one without it out of the site. Run

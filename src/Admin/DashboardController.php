@@ -79,7 +79,7 @@ final readonly class DashboardController
 		}
 
 		$resume   = $this->resume($account);
-		$except   = $resume?->path;
+		$except   = $resume?->id;
 		$profiles = $this->types->profiles()?->name;
 		$base     = $this->permissions->restrict($account, ContentAction::Edit, $this->content->query()->any()->withLanding(false)->type(...$this->listed()));
 
@@ -122,7 +122,7 @@ final readonly class DashboardController
 	private function groups(Query $query, Account $account, ?string $except): array
 	{
 		$take  = function (Query $query) use ($account, $except): array {
-			$entries = array_filter($query->limit(self::PER_GROUP + 1)->get()->all(), static fn (Entry $entry): bool => $entry->path !== $except);
+			$entries = array_filter($query->limit(self::PER_GROUP + 1)->get()->all(), static fn (Entry $entry): bool => $except === null || $entry->id !== $except);
 
 			return array_map(fn (Entry $entry): array => $this->describe($entry, $account), array_slice(array_values($entries), 0, self::PER_GROUP));
 		};

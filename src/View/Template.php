@@ -747,10 +747,10 @@ final class Template
 	public function ancestors(Entry $entry): array
 	{
 		$ancestors = [];
-		$seen      = [$entry->path => true];
+		$seen      = [$entry->id ?? $entry->path => true];
 
-		while (($entry = $this->parent($entry)) !== null && ! isset($seen[$entry->path])) {
-			$seen[$entry->path] = true;
+		while (($entry = $this->parent($entry)) !== null && ! isset($seen[$entry->id ?? $entry->path])) {
+			$seen[$entry->id ?? $entry->path] = true;
 			array_unshift($ancestors, $entry);
 		}
 

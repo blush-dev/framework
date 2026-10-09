@@ -228,6 +228,7 @@ final readonly class AdminRoutes implements RouteSource
 			Route::post('/health/filenames', [HealthController::class, 'renameFiles'])->named('health.filenames')->middleware(Authenticate::class),
 			Route::post('/health/folders', [HealthController::class, 'folders'])->named('health.folders')->middleware(Authenticate::class),
 			Route::post('/health/terms', [HealthController::class, 'createTerms'])->named('health.terms')->middleware(Authenticate::class),
+			Route::post('/health/parents', [HealthController::class, 'createParents'])->named('health.parents')->middleware(Authenticate::class),
 			Route::post('/health/refs', [HealthController::class, 'fileRefs'])->named('health.refs')->middleware(Authenticate::class),
 			Route::post('/health/taxonomies', [HealthController::class, 'migrateTaxonomies'])->named('health.taxonomies')->middleware(Authenticate::class),
 			Route::post('/health/ignore', [HealthController::class, 'ignore'])->named('health.ignore')->middleware(Authenticate::class),

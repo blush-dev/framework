@@ -16,11 +16,14 @@ namespace Blush\Storage;
 use Override;
 use Blush\Auth\AccountStore;
 use Blush\Auth\FileAccountStore;
+use Blush\Console\Commands\CreateMissingParents;
 use Blush\Console\Commands\CreateMissingTerms;
 use Blush\Console\Commands\FileRefs;
 use Blush\Console\Commands\FixIds;
 use Blush\Console\Commands\MoveToFolders;
 use Blush\Console\Commands\RenameToPattern;
+use Blush\Content\Index\IndexLocations;
+use Blush\Content\Record\EntryLocations;
 use Blush\Content\Source\ContentSource;
 use Blush\Content\Source\FilesystemSource;
 use Blush\Content\Writer\ContentWriter;
@@ -40,8 +43,9 @@ use Blush\Storage\Record\RecordStore;
  * under `storage/` (D-485, D-486), with records in tables kept as their
  * `FileLayout` says (D-643). Content kept as files has tools of its own
  * (D-654): giving files ids, renaming them to their type's pattern and
- * moving them to its folders, filing both forms of their relations, and
- * writing a file for each term named without one.
+ * moving them to its folders, filing both forms of their relations,
+ * writing a file for each term named without one, and writing the parent
+ * pages a tree's folders imply (D-656).
  */
 final readonly class FilesystemStorage implements Storage
 {
@@ -52,13 +56,14 @@ final readonly class FilesystemStorage implements Storage
 	public function bindings(): array
 	{
 		return [
-			ContentSource::class => FilesystemSource::class,
-			ContentWriter::class => FilesystemContentWriter::class,
-			DataStore::class     => FileDataStore::class,
-			RecordStore::class   => FileRecordStore::class,
-			AccountStore::class  => FileAccountStore::class,
-			SessionStore::class  => FileSessionStore::class,
-			JobStore::class      => FileJobStore::class
+			ContentSource::class  => FilesystemSource::class,
+			ContentWriter::class  => FilesystemContentWriter::class,
+			EntryLocations::class => IndexLocations::class,
+			DataStore::class      => FileDataStore::class,
+			RecordStore::class    => FileRecordStore::class,
+			AccountStore::class   => FileAccountStore::class,
+			SessionStore::class   => FileSessionStore::class,
+			JobStore::class       => FileJobStore::class
 		];
 	}
 
@@ -69,7 +74,7 @@ final readonly class FilesystemStorage implements Storage
 	public function commands(StorageArea $area): array
 	{
 		return $area === StorageArea::Content
-			? [FixIds::class, RenameToPattern::class, MoveToFolders::class, FileRefs::class, CreateMissingTerms::class]
+			? [FixIds::class, RenameToPattern::class, MoveToFolders::class, FileRefs::class, CreateMissingTerms::class, CreateMissingParents::class]
 			: [];
 	}
 }

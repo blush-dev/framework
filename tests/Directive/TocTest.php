@@ -33,6 +33,7 @@ final class TocTest extends TestCase
 
 	private const string GUIDE = <<<'MD'
 		---
+		id: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1a01
 		title: Guide
 		---
 		::toc[On this page]
@@ -149,7 +150,7 @@ final class TocTest extends TestCase
 	public function testPagesWithoutOneAreUnchangedAndExcerptsSkipIt(): void
 	{
 		$app = $this->app();
-		$this->writeTemporaryFile('user/content/plain.md', "---\ntitle: Plain\n---\n## A heading\n\nText.\n");
+		$this->writeTemporaryFile('user/content/plain.md', "---\nid: 547d77ee-03e9-fd45-beeb-0eed17fde3b6\ntitle: Plain\n---\n## A heading\n\nText.\n");
 
 		$this->assertStringContainsString('<h2>A heading</h2>', $this->page($app, '/plain'));
 

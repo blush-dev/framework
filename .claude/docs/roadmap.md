@@ -208,12 +208,12 @@ the filesystem driver names files by. The first adopter is **roles**
 (`storage/roles.json`, a one-file table keyed by role name; each role
 gains an `id` on its next save). Accounts follow in step 6.
 
-### Step 3: content onto records (3a to 3d built; 3e next)
+### Step 3: content onto records (built, D-651 to D-657)
 
 **Goal:** content reads and writes through the record layer, keyed by
 id, so a database driver (step 5) can keep it, while a flat-file site
 keeps every file convention it has (D-078) and sees no change. The
-biggest step, so it's built in five parts, each reviewed and built on
+biggest step, so it's built in six parts (3e split in two, D-655), each reviewed and built on
 its own, with `composer check` and the benchmarks passing after each.
 
 **What the code does today** (mapped 2026-10-08):
@@ -328,15 +328,31 @@ becomes the filesystem driver's own, offered only on it: `content:ids`,
 file names and folders (`FileNames`, `EntryFolders`), filing refs, the
 format check, and the parts of `content:lint` about files.
 
-**3e. Parity and docs:** a content conformance suite (the same entries
-and queries on the filesystem driver and on `ArrayRecordStore`, so a
-database driver has its target), the benchmarks compared with before
-3a, `docs/` for the id-keyed API, and the trial site checked.
+**3e. Parity and docs** (built, D-655, scoped to the record level): a
+content conformance suite (`tests/Content/Conformance`: the same
+entries and compiled queries on the filesystem driver and on
+`ArrayRecordStore`, so a database driver has its target), with
+`RecordLocations` answering folders and keys from records and
+`QueryCompiler` resolving every query; the benchmarks compared with
+before 3a; `docs/` corrected.
 
-**Done when:** no code outside the filesystem driver reads a content
+**3f. `Entries` on records** (built, D-657; its keys question settled
+by D-656: files without ids aren't entries, and a tool writes missing
+parents rather than records keeping keys, with an `archive` value for a
+collection's archive pages): `Entries` finds and
+hydrates entries from records, not paths (collections keyed by id,
+bodies from `content`, `find`, `children`, `neighbors`, and
+`termCounts` as record queries), so the conformance suite runs
+`Entries` itself on both stores.
+
+**Done when** (after 3f): no code outside the filesystem driver reads a content
 path to find, query, or write an entry; content's queries answer as
 before on files; the content conformance suite passes on both stores;
-`composer check` passes; the benchmarks show no slowdown.
+`composer check` passes; the benchmarks show no slowdown. Met but for
+the last: building entries from records is slower than from the
+index's rows (D-657's figures), left for step 4. Paths outside the
+driver remain only in its own tools (`EntryFiles`, the linter, Site
+Health's file checks) and for showing.
 
 **Prerequisite (done, D-650):** `composer bench` runs again, and its
 results before step 3 are stored locally as `before_step3`; compare

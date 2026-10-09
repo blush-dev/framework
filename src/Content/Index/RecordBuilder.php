@@ -18,9 +18,9 @@ use Blush\Content\EntryFields;
 use Blush\Content\Parser\DocumentParser;
 use Blush\Content\Parser\InvalidDocument;
 use Blush\Content\Relation\Refs;
-use Blush\Content\Relation\RelationKind;
 use Blush\Content\Source\SourceFile;
 use Blush\Content\Status;
+use Blush\Content\Record\EntryTerms;
 use Blush\Content\Type\ContentType;
 use Blush\Content\Type\ContentTypes;
 use Blush\Content\Visibility;
@@ -239,34 +239,10 @@ final readonly class RecordBuilder
 	 */
 	private function terms(ContentType $type, array $frontMatter, array $values): array
 	{
-		$sources = [];
+		$sources = EntryTerms::sources($this->types, $type);
+		$labels  = [];
 
-		foreach ($this->types->relations() as $relation) {
-			$key = $relation->termKey();
-
-			if ($key !== null && $relation->isFrom($type->name)) {
-				$sources[] = [$key, $relation->to[0], $relation->field, $relation->aliases, $relation->kind === RelationKind::Credit];
-			}
-		}
-
-		$terms  = [];
-		$labels = [];
-
-		foreach ($sources as [$key, $labelKey, $field, $aliases, $together]) {
-			$value = $values[$field] ?? [];
-			$slugs = is_array($value) ? $value : [$value];
-			$slugs = array_values(array_map(static fn (mixed $slug): string => (string) $slug, array_filter($slugs, static fn (mixed $slug): bool => is_scalar($slug) && $slug !== '')));
-
-			if ($slugs === []) {
-				continue;
-			}
-
-			$terms[$key] = $slugs;
-
-			if ($together) {
-				$terms[$labelKey] = array_values(array_unique([...$terms[$labelKey] ?? [], ...$slugs]));
-			}
-
+		foreach ($sources as [, $labelKey, $field, $aliases]) {
 			$raw = array_find(
 				[$frontMatter[$field] ?? null, ...array_map(static fn (string $alias): mixed => $frontMatter[$alias] ?? null, $aliases)],
 				static fn (mixed $value): bool => $value !== null && $value !== '' && $value !== []
@@ -279,7 +255,7 @@ final readonly class RecordBuilder
 			}
 		}
 
-		return [$terms, $labels];
+		return [EntryTerms::of($sources, $values), $labels];
 	}
 
 	/**

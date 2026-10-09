@@ -125,8 +125,10 @@ Each item is one of:
 | `view` | A template part from your site or theme. The item's other keys are its data. |
 
 For longer text, write a page in a folder whose name starts with `_`,
-such as `user/content/_regions/newsletter.md`. It never gets a URL of its
-own, but a region can show it with `"entry": "page/_regions/newsletter"`.
+such as `user/content/_regions/newsletter.md`, with a page for the
+folder itself (`user/content/_regions/index.md`; `bin/blush
+content:parents --write` writes it). It never gets a URL of its own,
+but a region can show it with `"entry": "page/_regions/newsletter"`.
 
 A theme can fill a region with defaults, such as a search box in its
 sidebar. Your file replaces the theme's items, so an empty

@@ -52,14 +52,14 @@ final class PermissionsTest extends TestCase
 		// Pages don't credit authors unless the site says so (D-329).
 		$this->writeTemporaryFile('user/data/types/page.json', '{"kind": "tree"}');
 		$this->writeTemporaryFile('user/data/relations/authors.json', '{"kind": "credit", "from": ["page"], "to": ["profile"], "aliases": ["author"]}');
-		$this->writeTemporaryFile('user/content/mine.md', "---\ntitle: Mine\nauthors: jane\n---\n");
-		$this->writeTemporaryFile('user/content/my-draft.md', "---\ntitle: My draft\nauthors: jane\nstatus: draft\n---\n");
-		$this->writeTemporaryFile('user/content/theirs.md', "---\ntitle: Theirs\nauthors: [sam, lee]\n---\n");
-		$this->writeTemporaryFile('user/content/their-draft.md', "---\ntitle: Their draft\nauthors: sam\nstatus: draft\n---\n");
-		$this->writeTemporaryFile('user/content/my-scheduled.md', "---\ntitle: My scheduled\nauthors: [sam, jane]\npublished: 2099-01-01\n---\n");
-		$this->writeTemporaryFile('user/content/nobodys.md', "---\ntitle: Nobody's\n---\n");
-		$this->writeTemporaryFile('user/content/profiles/jane.md', "---\ntitle: Jane\n---\n");
-		$this->writeTemporaryFile('user/content/profiles/sam.md', "---\ntitle: Sam\n---\n");
+		$this->writeTemporaryFile('user/content/mine.md', "---\nid: 46a0e5fd-ec10-015a-9df1-cf880649d5d2\ntitle: Mine\nauthors: jane\n---\n");
+		$this->writeTemporaryFile('user/content/my-draft.md', "---\nid: 7c65ba47-3ddc-81a6-9756-9426c6c0bbf0\ntitle: My draft\nauthors: jane\nstatus: draft\n---\n");
+		$this->writeTemporaryFile('user/content/theirs.md', "---\nid: dfa06296-3e2e-c055-9225-577df64507e2\ntitle: Theirs\nauthors: [sam, lee]\n---\n");
+		$this->writeTemporaryFile('user/content/their-draft.md', "---\nid: 132aafcd-1c14-f988-a19f-1d615683b2ed\ntitle: Their draft\nauthors: sam\nstatus: draft\n---\n");
+		$this->writeTemporaryFile('user/content/my-scheduled.md', "---\nid: c5fede04-af7c-179c-ec65-0471134715f6\ntitle: My scheduled\nauthors: [sam, jane]\npublished: 2099-01-01\n---\n");
+		$this->writeTemporaryFile('user/content/nobodys.md', "---\nid: 2a6fa078-34d3-123d-8700-a30179fd7867\ntitle: Nobody's\n---\n");
+		$this->writeTemporaryFile('user/content/profiles/jane.md', "---\nid: 04e1cf46-8734-1fc4-7399-c1e7571e878e\ntitle: Jane\n---\n");
+		$this->writeTemporaryFile('user/content/profiles/sam.md', "---\nid: dc24b740-5b4f-dcea-63e7-28c113a2936d\ntitle: Sam\n---\n");
 
 		$this->app = $this->scratchApplication(['APP_ENV' => 'development']);
 		$this->app->boot();

@@ -51,11 +51,12 @@ See [Accounts and roles](accounts.md) and [The admin](admin.md).
 | `content:taxonomies` | List types in `user/data/types/` still written as taxonomies, which Blush no longer has, and fail while any are left. `--write` [migrates](content-types.md#moving-from-taxonomies) each to a collection and a classify relation in `user/data/relations/`. |
 | `content:relation <name>` | Say how many entries have values in a relation. `--key=<key>` gives it a new front matter key, keeping the old one as an alias unless `--rewrite` moves the values; `--remove` deletes its file in `user/data/relations`; `--strip` removes its values, with their ids, from entries' files. |
 | `content:refs` | List content files whose [links to other entries](content.md#links-between-entries) aren't filed with their ids under `refs`. `--write` files them, writing each value as the slug its entry has now. |
+| `content:parents` | List the folders of pages that have no page of their own, which leaves the pages in them at the top of the tree. `--write` writes each as a draft, titled by its folder. |
 | `content:ids` | List content files missing an [id](content.md#ids), and ids files share. `--write` gives each file missing one a new id; `--keep=<path>` keeps a shared id on that file and gives the others new ones (repeat it for more). |
 | `routes:list` | Show every URL pattern and redirect, and which one wins when two overlap |
 
-`content:filenames`, `content:folders`, `content:terms`, `content:refs`,
-and `content:ids` fix things only content files have, so they're there
+`content:filenames`, `content:folders`, `content:terms`, `content:parents`,
+`content:refs`, and `content:ids` fix things only content files have, so they're there
 while your content is kept as files, as it is by default.
 
 ## Publishing and caches

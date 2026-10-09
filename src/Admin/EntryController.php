@@ -1614,7 +1614,7 @@ final readonly class EntryController
 		$of       = $file->frontMatter[EntryFields::TRANSLATION_OF] ?? null;
 		$original = is_string($of) ? $this->content->find($of) : null;
 
-		if ($original === null || $original->path === $entry->path) {
+		if ($original === null || $original->id === $entry->id) {
 			return [];
 		}
 

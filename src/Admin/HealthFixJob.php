@@ -16,12 +16,13 @@ namespace Blush\Admin;
 use Override;
 use Blush\Auth\Account;
 use Blush\Auth\AccountStore;
-use Blush\Content\CreatedTerms;
+use Blush\Content\CreatedEntries;
 use Blush\Content\EntryIds;
 use Blush\Content\EntryRefs;
 use Blush\Content\FileNameRename;
 use Blush\Content\FileNames;
 use Blush\Content\EntryFolders;
+use Blush\Content\MissingParents;
 use Blush\Content\MissingTerms;
 use Blush\Content\Writer\AssignedIds;
 use Blush\Content\Writer\FiledRefs;
@@ -67,6 +68,7 @@ final class HealthFixJob extends Job
 		private readonly FileNames $fileNames,
 		private readonly EntryFolders $folders,
 		private readonly MissingTerms $terms,
+		private readonly MissingParents $parents,
 		private readonly EntryRefs $refs
 	) {}
 
@@ -142,7 +144,8 @@ final class HealthFixJob extends Job
 			HealthFix::FileNames  => array_map(static fn (FileNameRename $rename): string => $rename->path, $this->fileNames->report()->renames($type)),
 			HealthFix::Folders    => array_map(strval(...), array_keys($this->folders->report())),
 			HealthFix::Refs       => array_map(strval(...), array_keys($this->refs->report())),
-			HealthFix::Terms      => $this->missingTerms()
+			HealthFix::Terms      => $this->missingTerms(),
+			HealthFix::Parents    => $this->missingParents()
 		};
 	}
 
@@ -165,7 +168,8 @@ final class HealthFixJob extends Job
 				HealthFix::FileNames  => $this->fileNames->rename($type, $entries),
 				HealthFix::Folders    => $this->folders->move($entries),
 				HealthFix::Refs       => $this->refs->file($entries),
-				HealthFix::Terms      => $this->terms->create($this->access->termTypes($account), $paths)
+				HealthFix::Terms      => $this->terms->create($this->access->termTypes($account), $paths),
+				HealthFix::Parents    => $this->parents->create($this->access->createTypes($account), $paths)
 			};
 		} catch (MediaException $e) {
 			return [[], array_fill_keys($paths, $e->getMessage())];
@@ -176,10 +180,28 @@ final class HealthFixJob extends Job
 			$done instanceof RecordedMediaSizes                             => $done->images,
 			$done instanceof RenamedFiles                                   => $done->renamed,
 			$done instanceof FiledRefs                                      => $done->paths,
-			$done instanceof CreatedTerms                                   => $done->created
+			$done instanceof CreatedEntries                                   => $done->created
 		};
 
 		return [$changes, $done->failed];
+	}
+
+	/**
+	 * Returns every missing parent page's `{type}/{key}`.
+	 *
+	 * @return list<string>
+	 */
+	private function missingParents(): array
+	{
+		$parents = [];
+
+		foreach ($this->parents->report() as $type => $keys) {
+			foreach (array_keys($keys) as $key) {
+				$parents[] = "{$type}/{$key}";
+			}
+		}
+
+		return $parents;
 	}
 
 	/**

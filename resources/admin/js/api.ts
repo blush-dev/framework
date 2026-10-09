@@ -1335,6 +1335,10 @@ export interface Health {
 	// its type's label, the title its file gets, and how many entries
 	// name it (`POST health/terms` writes them).
 	terms: { count: number; items: { type: string; label: string; slug: string; title: string; entries: number }[] };
+	// Parent pages tree pages are kept under with no page of their own
+	// (D-656), each with its type's label, the title its page gets, and
+	// how many pages are under it (`POST health/parents` writes them).
+	parents: { count: number; items: { type: string; label: string; key: string; title: string; pages: number }[] };
 	// Files with links between entries not filed with their ids (D-596),
 	// each with the relations that differ (`POST health/refs` files
 	// them).

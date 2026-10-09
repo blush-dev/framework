@@ -22,6 +22,7 @@ use Blush\Content\FileNames;
 use Blush\Content\EntryFolders;
 use Blush\Content\Lint\Linter;
 use Blush\Content\Lint\LintReport;
+use Blush\Content\MissingParents;
 use Blush\Content\MissingTerms;
 use Blush\Content\Source\ContentSource;
 use Blush\Content\Source\FilesystemSource;
@@ -82,6 +83,7 @@ final readonly class ContentHealth
 		private ContentTypes $types,
 		private EntryFolders $folders,
 		private MissingTerms $terms,
+		private MissingParents $parents,
 		private EntryRefs $refs,
 		private EntryFiles $files,
 		private MediaMetadataStore $metadata,
@@ -94,7 +96,7 @@ final readonly class ContentHealth
 	 * `strict`. `$lint` is a lint already done, a chunk at a time
 	 * (`HealthCheckJob`, D-625); without it, every file is linted now.
 	 *
-	 * @return array{version: int, checked: int, metadata: int, strict: bool, counts: array{error: int, warning: int, notice: ?int}, files: list<array{path: string, area: string, violations: list<array{field: string, message: string, severity: string, kind: ?string}>}>, entries: array<string, array{title: string, type: string, id: ?string}>, ids: array{missing: list<string>, duplicates: list<array{id: string, paths: list<string>}>}, mediaIds: array{missing: list<string>, duplicates: list<array{id: string, paths: list<string>}>}, fileNames: list<array{type: string, label: string, pattern: string, count: int, items: list<array{path: string, to: string}>, skipped: int}>, folders: array{count: int, items: list<array{path: string, to: string}>}, terms: array{count: int, items: list<array{type: string, label: string, slug: string, title: string, entries: int}>}, refs: array{count: int, items: list<array{path: string, relations: list<string>}>}, taxonomies: list<string>, mediaSizes: array{sizes: int, images: int, stale: int, items: list<array{key: string, unrecorded: int, stale: int}>}}
+	 * @return array{version: int, checked: int, metadata: int, strict: bool, counts: array{error: int, warning: int, notice: ?int}, files: list<array{path: string, area: string, violations: list<array{field: string, message: string, severity: string, kind: ?string}>}>, entries: array<string, array{title: string, type: string, id: ?string}>, ids: array{missing: list<string>, duplicates: list<array{id: string, paths: list<string>}>}, mediaIds: array{missing: list<string>, duplicates: list<array{id: string, paths: list<string>}>}, fileNames: list<array{type: string, label: string, pattern: string, count: int, items: list<array{path: string, to: string}>, skipped: int}>, folders: array{count: int, items: list<array{path: string, to: string}>}, terms: array{count: int, items: list<array{type: string, label: string, slug: string, title: string, entries: int}>}, parents: array{count: int, items: list<array{type: string, label: string, key: string, title: string, pages: int}>}, refs: array{count: int, items: list<array{path: string, relations: list<string>}>}, taxonomies: list<string>, mediaSizes: array{sizes: int, images: int, stale: int, items: list<array{key: string, unrecorded: int, stale: int}>}}
 	 */
 	public function report(bool $strict = false, ?LintReport $lint = null): array
 	{
@@ -127,7 +129,8 @@ final readonly class ContentHealth
 		}
 
 		// What only files have (ids missing from files, names, folders,
-		// terms named without a file, both forms of relations) is checked
+		// terms named without a file, parent pages folders imply, both
+		// forms of relations) is checked
 		// only on content kept as files (D-654).
 		$onFiles = $this->source instanceof FilesystemSource;
 		$ids     = $onFiles ? $this->ids->report() : new EntryIdReport();
@@ -157,6 +160,7 @@ final readonly class ContentHealth
 			'fileNames'  => $onFiles ? $this->fileNames() : [],
 			'folders'    => $onFiles ? $this->foldersReport() : ['count' => 0, 'items' => []],
 			'terms'      => $onFiles ? $this->termsReport() : ['count' => 0, 'items' => []],
+			'parents'    => $onFiles ? $this->parentsReport() : ['count' => 0, 'items' => []],
 			'refs'       => $onFiles ? $this->refsReport() : ['count' => 0, 'items' => []],
 			'taxonomies' => $this->types->legacy,
 			'mediaSizes' => [
@@ -251,6 +255,28 @@ final readonly class ContentHealth
 
 			foreach ($slugs as $slug => $title) {
 				$missing[] = ['type' => (string) $type, 'label' => $label, 'slug' => (string) $slug, 'title' => $title, 'entries' => $named[$type][$slug] ?? 0];
+			}
+		}
+
+		return ['count' => count($missing), 'items' => $missing];
+	}
+
+	/**
+	 * Answers how many parent pages tree pages are kept under with no
+	 * page of their own (D-656), and each, with its type's label, the
+	 * title its page gets, and how many pages are under it.
+	 *
+	 * @return array{count: int, items: list<array{type: string, label: string, key: string, title: string, pages: int}>}
+	 */
+	private function parentsReport(): array
+	{
+		$missing = [];
+
+		foreach ($this->parents->report() as $type => $keys) {
+			$label = $this->types->find((string) $type)?->labels->singular ?? (string) $type;
+
+			foreach ($keys as $key => $parent) {
+				$missing[] = ['type' => (string) $type, 'label' => $label, 'key' => (string) $key, 'title' => $parent['title'], 'pages' => $parent['pages']];
 			}
 		}
 

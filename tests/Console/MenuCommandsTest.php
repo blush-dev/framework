@@ -36,8 +36,8 @@ final class MenuCommandsTest extends TestCase
 	 */
 	private function command(string|array $command): CommandResult
 	{
-		$this->writeTemporaryFile('user/content/about.md', "---\ntitle: About\n---\nAbout.");
-		$this->writeTemporaryFile('user/content/team.md', "---\ntitle: Team\n---\nTeam.");
+		$this->writeTemporaryFile('user/content/about.md', "---\nid: 6083a88e-e341-1b0d-17ce-02d738f69d47\ntitle: About\n---\nAbout.");
+		$this->writeTemporaryFile('user/content/team.md', "---\nid: 0032aa43-ab4d-0a52-da10-e3dd5643e52b\ntitle: Team\n---\nTeam.");
 
 		$app = $this->scratchApplication();
 		$app->boot();

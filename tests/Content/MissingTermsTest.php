@@ -16,11 +16,11 @@ namespace Blush\Tests\Content;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Blush\Content\Entries;
-use Blush\Content\CreatedTerms;
+use Blush\Content\CreatedEntries;
 use Blush\Content\MissingTerms;
 
 #[CoversClass(MissingTerms::class)]
-#[CoversClass(CreatedTerms::class)]
+#[CoversClass(CreatedEntries::class)]
 final class MissingTermsTest extends TestCase
 {
 	use BuildsContentSite;

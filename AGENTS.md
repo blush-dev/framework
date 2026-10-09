@@ -131,7 +131,11 @@ compiles (D-606): every area resolves through its driver, the data
 area a `DataStore` (D-642), and the record layer built on files with
 its conformance suite, roles its first table (D-643 to D-647; plan in
 `roadmap.md`), then content queries on records and content written by
-id through `Entries` (D-651 to D-654); and an id for every media
+id through `Entries` (D-651 to D-654), a content conformance suite on
+files and in memory (D-655), and `Entries` on records, with files
+without ids left out and parent pages written for folders (D-656,
+D-657; step 3 done); 1.x conventions go when they get in the way
+(D-658); and an id for every media
 original, with image sizes found by rule and given none
 (D-487), and sizes recorded in their image's details, the library
 listing one item per image (D-488); and Blush's own Markdown API over
@@ -222,9 +226,9 @@ from `resources/admin/css/tokens.css` only: no literal colors, fonts,
 type sizes, or radii elsewhere (D-231).
 The dev site is `../blush` (`ddev start`, https://blush.ddev.site), on
 `jtcom-trial` for now (the skeleton itself is its `2.x` branch). Code on
-`master` (1.x) is not a reference implementation, with one exception:
-every content convention 1.x supports must keep working (D-078), unless
-a tool in the admin and the CLI migrates existing content (D-478).
+`master` (1.x) is not a reference implementation. 1.x content
+conventions are kept only where they cost nothing: one that gets in the
+way goes, and the author's files are updated (D-078, D-478, D-658).
 
 "Blush" is a working name. Keep product-name references centralized so a rename
 stays mechanical.

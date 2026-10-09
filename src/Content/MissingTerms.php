@@ -99,7 +99,7 @@ final readonly class MissingTerms
 	 * @param ?Closure(string): bool $allowed
 	 * @param ?list<string>          $only
 	 */
-	public function create(?Closure $allowed = null, ?array $only = null): CreatedTerms
+	public function create(?Closure $allowed = null, ?array $only = null): CreatedEntries
 	{
 		$created = [];
 		$failed  = [];
@@ -128,6 +128,6 @@ final readonly class MissingTerms
 			}
 		}
 
-		return new CreatedTerms($created, $failed);
+		return new CreatedEntries($created, $failed);
 	}
 }

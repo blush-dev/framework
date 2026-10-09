@@ -302,7 +302,7 @@ final class FilesystemWriterTest extends TestCase
 
 	public function testMakesAParentKeptAsAFileItsFoldersPage(): void
 	{
-		$this->writeTemporaryFile('user/content/services.md', "---\ntitle: Services\n---\n\nWhat I do.\n");
+		$this->writeTemporaryFile('user/content/services.md', "---\nid: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1b01\ntitle: Services\n---\n\nWhat I do.\n");
 		$this->app = $this->site('development');
 
 		$page = $this->writer()->createUnder('services.md', 'writing', new EntryChanges(set: ['title' => 'Writing']));
@@ -310,7 +310,7 @@ final class FilesystemWriterTest extends TestCase
 		$this->assertSame('services/writing.md', $page->path);
 		$this->assertSame(['services.md' => 'services/index.md'], $page->moved);
 		$this->assertFileDoesNotExist($this->temporaryDirectory() . '/user/content/services.md');
-		$this->assertSame("---\ntitle: Services\n---\n\nWhat I do.\n", $this->file('services/index.md'), 'Moved as it was.');
+		$this->assertSame("---\nid: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1b01\ntitle: Services\n---\n\nWhat I do.\n", $this->file('services/index.md'), 'Moved as it was.');
 		$this->assertSame('services', $this->entryAt('services/index.md', $this->app)?->key, 'Its key, and so its address, stay the same.');
 		$this->assertSame('services', $this->content()->parentKey('page', 'services/writing'));
 
@@ -320,7 +320,7 @@ final class FilesystemWriterTest extends TestCase
 
 	public function testLeavesAParentWhoseFileNameSaysMore(): void
 	{
-		$this->writeTemporaryFile('user/content/01.services.md', "---\ntitle: Services\n---\n");
+		$this->writeTemporaryFile('user/content/01.services.md', "---\nid: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1b02\ntitle: Services\n---\n");
 		$this->app = $this->site('development');
 
 		$page = $this->writer()->createUnder('01.services.md', 'writing', new EntryChanges(set: ['title' => 'Writing']));
@@ -367,7 +367,7 @@ final class FilesystemWriterTest extends TestCase
 
 	public function testMovesAPageUnderAnother(): void
 	{
-		$this->writeTemporaryFile('user/content/services.md', "---\ntitle: Services\n---\n");
+		$this->writeTemporaryFile('user/content/services.md', "---\nid: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1b03\ntitle: Services\n---\n");
 		$this->app = $this->site('development');
 
 		$result = $this->writer()->move('services.md', 'about/index.md', $this->writer()->load('services.md')->version);
@@ -401,8 +401,8 @@ final class FilesystemWriterTest extends TestCase
 
 	public function testMovesAPageKeptAsAFileWithTheFolderBesideIt(): void
 	{
-		$this->writeTemporaryFile('user/content/work.md', "---\ntitle: Work\n---\n");
-		$this->writeTemporaryFile('user/content/work/design.md', "---\ntitle: Design\n---\n");
+		$this->writeTemporaryFile('user/content/work.md', "---\nid: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1b04\ntitle: Work\n---\n");
+		$this->writeTemporaryFile('user/content/work/design.md', "---\nid: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1b05\ntitle: Design\n---\n");
 		$this->app = $this->site('development');
 
 		$result = $this->writer()->move('work.md', 'about/index.md');

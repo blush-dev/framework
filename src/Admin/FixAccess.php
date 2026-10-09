@@ -77,6 +77,17 @@ final readonly class FixAccess
 	}
 
 	/**
+	 * Returns whether the account may create entries of a type, by name,
+	 * as drafts.
+	 *
+	 * @return Closure(string): bool
+	 */
+	public function createTypes(Account $account): Closure
+	{
+		return fn (string $type): bool => $this->permissions->can($account, ContentAction::Create, $type);
+	}
+
+	/**
 	 * Narrows what a fix may change to some paths (or keys), when it's
 	 * given any.
 	 *
