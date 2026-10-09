@@ -73,7 +73,9 @@ Move each item to `decisions.md` once it's answered.
     `config/storage.php` or `.env`.
   - **Writes that touch several records** (a rename filing referrers'
     ids, D-596): transactions on a database; on files, best effort with
-    a journal, or a documented limit.
+    a journal, or a documented limit. Now concrete (D-653): the content
+    store's transactions take the lock, but the writer's file writes
+    (and the referrers it files) aren't put back when one fails.
   - **The filesystem driver's index** for the full query language:
     what it keeps per set (sorted keys, value maps per field) so
     comparisons, groups, and aggregates don't scan every record, and

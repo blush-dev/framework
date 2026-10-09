@@ -28,7 +28,7 @@ $template->layout('base');
 	</header>
 
 	<div class="entry__content">
-		<?= raw($entry->body()) ?>
+		<?= raw($entry->content()) ?>
 	</div>
 </article>
 

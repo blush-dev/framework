@@ -28,7 +28,7 @@ $heading = match (true) {
 	<h1><?= e($heading) ?></h1>
 
 	<?php if ($entry !== null && $entry->raw() !== '') : ?>
-		<?= raw($entry->body()) ?>
+		<?= raw($entry->content()) ?>
 	<?php endif ?>
 </header>
 

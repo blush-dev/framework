@@ -18,6 +18,7 @@ use PHPUnit\Framework\TestCase;
 use Blush\Console\Commands\FileRefs;
 use Blush\Console\Console;
 use Blush\Content\EntryRefs;
+use Blush\Content\Index\RecordBuilder;
 use Blush\Content\Type\ContentTypes;
 use Blush\Content\Writer\ContentWriter;
 use Blush\Content\Writer\EntryChanges;
@@ -82,7 +83,7 @@ final class RelationFormsTest extends TestCase
 			$this->file('_posts/a.md'),
 			'The slug Blush writes, a value naming nothing kept as typed, and the ids of what links (D-596).'
 		);
-		$this->assertSame(hash('sha256', $this->file('_posts/a.md')), $result->revision, 'The revision is the file as filed.');
+		$this->assertSame(RecordBuilder::hash($this->file('_posts/a.md')), $result->revision, 'The revision is the file as filed.');
 
 		$this->writer()->update('_posts/c.md', new EntryChanges(set: ['title' => 'C, Again']));
 

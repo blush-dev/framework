@@ -22,11 +22,11 @@ use Blush\Content\Entry\Body;
 use Blush\Content\Entry\BodySource;
 use Blush\Content\Entry\Entry;
 use Blush\Content\Entry\EntryHydrator;
-use Blush\Content\Index\ArraySelector;
 use Blush\Content\Index\ContentIndex;
-use Blush\Content\Index\RecordMatcher;
+use Blush\Content\Index\SnapshotRecords;
 use Blush\Content\IndexedRepository;
 use Blush\Content\Query\EntryCollection;
+use Blush\Content\Record\QueryCompiler;
 use Blush\Storage\Record\Order;
 use Blush\Content\Query\Paginator;
 use Blush\Content\Query\Query;
@@ -35,8 +35,8 @@ use Blush\Content\Status;
 use Blush\Content\Visibility;
 
 #[CoversClass(IndexedRepository::class)]
-#[CoversClass(ArraySelector::class)]
-#[CoversClass(RecordMatcher::class)]
+#[CoversClass(QueryCompiler::class)]
+#[CoversClass(SnapshotRecords::class)]
 #[CoversClass(EntryHydrator::class)]
 #[CoversClass(Entry::class)]
 #[CoversClass(Body::class)]
@@ -119,7 +119,7 @@ final class ContentRepositoryTest extends TestCase
 		$query = $this->content->query();
 
 		$this->assertSame(['biography'], self::slugs($query->in('about')->get()));
-		$this->assertSame(['notes', 'about'], self::slugs($query->in('')->get()));
+		$this->assertSame(['about', 'notes'], self::slugs($query->in('')->get()), 'Without dates or ids, in the order of the ids their paths give.');
 		$this->assertSame(['hello', 'spring', 'welcome'], self::slugs($query->in('_posts')->get()));
 		$this->assertSame(['spring'], self::slugs($query->whereTerm('category', 'art')->get()));
 		$this->assertSame(['spring'], self::slugs($query->whereTerm('category', 'Book Reviews')->get()));
@@ -136,13 +136,14 @@ final class ContentRepositoryTest extends TestCase
 		$this->assertSame([], self::slugs($query->locale('fr_FR')->get()));
 	}
 
-	public function testSearchesTitlesAndPaths(): void
+	public function testSearchesTitlesAndSlugs(): void
 	{
 		$posts = $this->content->query()->type('post')->any();
 
 		$this->assertSame(['welcome'], self::slugs($posts->search('WELCOME')->get()), 'Titles, in any case.');
-		$this->assertSame(['hello'], self::slugs($posts->search('hello/index')->get()), 'Paths.');
-		$this->assertSame(['rainy', 'spring'], self::slugs($posts->search('2008-')->get()));
+		$this->assertSame(['hello'], self::slugs($posts->search('hell')->get()), 'Slugs.');
+		$this->assertSame([], self::slugs($posts->search('hello/index')->get()), 'Never paths, which only files have (D-649).');
+		$this->assertSame([], self::slugs($posts->search('100%')->get()), 'Text, not patterns.');
 		$this->assertCount(7, $posts->search('  ')->get(), 'Blank text matches everything.');
 		$this->assertSame([], self::slugs($posts->search('nothing')->get()));
 	}
@@ -169,8 +170,8 @@ final class ContentRepositoryTest extends TestCase
 		$this->assertSame(['hello', 'spring', 'welcome'], self::slugs($posts->orderBy('published', Order::Desc)->get()));
 		$this->assertSame(['hello', 'spring', 'welcome'], self::slugs($posts->orderBy('title')->get()));
 		$this->assertSame(['welcome', 'spring', 'hello'], self::slugs($posts->orderBy('title', Order::Desc)->get()));
-		$this->assertSame(['hello', 'spring', 'welcome'], self::slugs($posts->orderBy('author')->get()));
-		$this->assertSame(['hello', 'welcome', 'spring'], self::slugs($posts->orderBy('tag')->get()));
+		$this->assertSame(['spring', 'welcome', 'hello'], self::slugs($posts->orderBy('author')->get()), 'By the slugs written for the relation, lists compared as the record layer compares them, then none (D-648).');
+		$this->assertSame(['spring', 'welcome', 'hello'], self::slugs($posts->orderBy('tag')->get()), 'Entries without one last (D-648).');
 
 		$page = $posts->limit(1)->offset(1)->get();
 
@@ -211,8 +212,8 @@ final class ContentRepositoryTest extends TestCase
 
 		$posts = $this->repository($this->site('development'))->query()->type('post')->names('a', 'b');
 
-		$this->assertSame(['a', 'b'], self::slugs($posts->get()), 'Newest first: the later id (D-516).');
-		$this->assertSame(['b', 'a'], self::slugs($posts->orderBy('title')->get()), 'Earliest first, whatever the file names.');
+		$this->assertSame(['b', 'a'], self::slugs($posts->get()), 'Ties keep the order entries were made in, the earlier id first, whichever way the query sorts (D-648).');
+		$this->assertSame(['b', 'a'], self::slugs($posts->orderBy('title')->get()), 'Whatever the file names (D-516).');
 	}
 
 	public function testRunsOneXQueryArguments(): void
@@ -307,10 +308,10 @@ final class ContentRepositoryTest extends TestCase
 		$this->assertInstanceOf(BodySource::class, $source);
 		$this->assertTrue(new ReflectionClass(BodySource::class)->isUninitializedLazyObject($source));
 
-		$this->assertSame("<p>Hello and welcome to my site.</p>\n", $entry->body());
+		$this->assertSame("<p>Hello and welcome to my site.</p>\n", $entry->content());
 		$this->assertSame('Hello and welcome to my site.', $entry->raw());
 		$this->assertFalse(new ReflectionClass(BodySource::class)->isUninitializedLazyObject($source));
-		$this->assertSame("<p>Some <em>notes</em>.</p>\n", $this->content->named('page', 'notes')?->body());
+		$this->assertSame("<p>Some <em>notes</em>.</p>\n", $this->content->named('page', 'notes')?->content());
 	}
 
 	public function testExcerptsAndPresentationFields(): void
@@ -405,7 +406,7 @@ final class ContentRepositoryTest extends TestCase
 
 		$topics = $content->query()->type('topic')->orderBy('title');
 
-		$this->assertSame(['art', 'book-reviews', 'old-posts', 'web'], self::slugs($topics->whereParent(null)->get()), 'Top-level terms (D-562); an orphan names a parent, so it isn\'t one.');
+		$this->assertSame(['art', 'book-reviews', 'old-posts', 'orphan', 'web'], self::slugs($topics->whereParent(null)->get()), 'Top-level terms (D-562); an orphan names a parent that isn\'t an entry, so it has none (D-649).');
 		$this->assertSame(['css', 'html'], self::slugs($topics->whereParent($web)->get()), 'Under a parent, by entry.');
 		$this->assertSame(['grid'], self::slugs($topics->whereParent('css')->get()), 'Or by key.');
 		$this->assertSame(['about/biography'], array_map(static fn (Entry $entry): string => $entry->key, $content->query()->type('page')->whereParent($about)->get()->all()), 'Pages too.');

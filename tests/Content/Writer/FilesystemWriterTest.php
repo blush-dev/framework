@@ -18,6 +18,7 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Blush\Cache\ContentVersion;
 use Blush\Content\ContentRepository;
+use Blush\Content\Index\RecordBuilder;
 use Blush\Content\Status;
 use Blush\Content\Type\ContentTypes;
 use Blush\Content\Writer\AssignedIds;
@@ -93,7 +94,7 @@ final class FilesystemWriterTest extends TestCase
 		$this->assertSame('justintadlock', $entry->frontMatter['author'] ?? null);
 		$this->assertArrayHasKey('date', $entry->frontMatter);
 		$this->assertSame("\nThe body.\n", $entry->body);
-		$this->assertSame(hash('sha256', self::POST), $entry->revision);
+		$this->assertSame(RecordBuilder::hash(self::POST), $entry->revision);
 		$this->assertSame(filemtime($this->temporaryDirectory() . '/user/content/_posts/2022-03-29.rekindling-the-flame.md'), $entry->modified);
 	}
 
@@ -109,7 +110,7 @@ final class FilesystemWriterTest extends TestCase
 			$this->file($id),
 			'The author\'s id is filed under refs (D-596).'
 		);
-		$this->assertSame(hash('sha256', $this->file($id)), $result->revision);
+		$this->assertSame(RecordBuilder::hash($this->file($id)), $result->revision);
 		$this->assertContains($id, $result->index->changed);
 		$this->assertNotSame($version, $this->app->container()->make(ContentVersion::class)->current());
 		$this->assertSame(Status::Draft, $this->content()->findPath($id)?->status);

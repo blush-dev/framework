@@ -22,7 +22,7 @@ $template->layout('base');
 	<h1><?= e($title) ?></h1>
 
 	<?php if ($entry !== null && $entry->raw() !== '') : ?>
-		<?= raw($entry->body()) ?>
+		<?= raw($entry->content()) ?>
 	<?php else : ?>
 		<p><?= e($description) ?></p>
 	<?php endif ?>

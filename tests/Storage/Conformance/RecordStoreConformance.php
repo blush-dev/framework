@@ -20,8 +20,11 @@ use Blush\Storage\Record\Aggregate;
 use Blush\Storage\Record\InvalidRecord;
 use Blush\Storage\Record\Order;
 use Blush\Storage\Record\Record;
+use Blush\Storage\Record\RecordConflict;
 use Blush\Storage\Record\RecordQuery;
 use Blush\Storage\Record\RecordStore;
+use Blush\Storage\Record\Ref;
+use Blush\Storage\Record\Subquery;
 use Blush\Storage\Record\Table;
 use Blush\Storage\StorageArea;
 
@@ -49,7 +52,7 @@ abstract class RecordStoreConformance extends TestCase
 
 	protected function table(): Table
 	{
-		return new Table('albums', StorageArea::Data, key: 'slug', values: ['slug', 'year']);
+		return new Table('albums', StorageArea::Data, key: 'slug', fields: ['slug', 'year']);
 	}
 
 	/**
@@ -77,7 +80,7 @@ abstract class RecordStoreConformance extends TestCase
 	 */
 	protected function slugs(RecordStore $store, Closure $build): array
 	{
-		return array_map(static fn (Record $record): mixed => $record->values['slug'] ?? null, $store->select($this->table(), $build(new RecordQuery()))->records);
+		return array_map(static fn (Record $record): mixed => $record->fields['slug'] ?? null, $store->select($this->table(), $build(new RecordQuery()))->records);
 	}
 
 	public function testFindsSavesAndDeletes(): void
@@ -85,8 +88,8 @@ abstract class RecordStoreConformance extends TestCase
 		$store = $this->seeded();
 		$table = $this->table();
 
-		$this->assertSame('Gamma', $store->find($table, self::GAMMA)?->values['title']);
-		$this->assertSame('Hello world', $store->find($table, strtoupper(self::GAMMA))?->body, 'Ids are found in either case.');
+		$this->assertSame('Gamma', $store->find($table, self::GAMMA)?->fields['title']);
+		$this->assertSame('Hello world', $store->find($table, strtoupper(self::GAMMA))?->content, 'Ids are found in either case.');
 		$this->assertNull($store->find($table, '01900000-0000-7000-8000-000000000099'));
 		$this->assertSame(self::DELTA, $store->findByKey($table, 'delta')?->id);
 		$this->assertNull($store->findByKey($table, 'zeta'));
@@ -94,7 +97,7 @@ abstract class RecordStoreConformance extends TestCase
 
 		$store->save($table, new Record(self::BETA, ['slug' => 'beta', 'title' => 'Beta']));
 
-		$this->assertSame(['slug' => 'beta', 'title' => 'Beta'], $store->find($table, self::BETA)?->values, 'Saving replaces the record whole.');
+		$this->assertSame(['slug' => 'beta', 'title' => 'Beta'], $store->find($table, self::BETA)?->fields, 'Saving replaces the record whole.');
 		$this->assertSame(['alpha', 'beta', 'gamma', 'delta', 'epsilon'], $this->slugs($store, static fn (RecordQuery $q): RecordQuery => $q), 'It keeps its place.');
 
 		$store->delete($table, self::GAMMA);
@@ -147,7 +150,7 @@ abstract class RecordStoreConformance extends TestCase
 		$store->save($table, new Record(self::ALPHA, ['text' => 'One']));
 		$store->save($table, new Record(self::BETA, ['text' => 'Two']));
 
-		$this->assertSame('Two', $store->find($table, self::BETA)?->values['text']);
+		$this->assertSame('Two', $store->find($table, self::BETA)?->fields['text']);
 		$this->assertSame(2, $store->count($table, new RecordQuery()));
 
 		$this->expectException(InvalidRecord::class);
@@ -186,13 +189,15 @@ abstract class RecordStoreConformance extends TestCase
 			'like one character'           => [['title', 'like', '_eta'], ['beta']],
 			'like escaped'                 => [['title', 'like', '% 100\%'], ['delta']],
 			'like accents'                 => [['title', 'like', 'é%'], ['epsilon']],
+			'intersects'                   => [['tags', 'intersects', ['food', 'travel']], ['alpha', 'delta', 'epsilon']],
+			'intersects nothing'           => [['tags', 'intersects', []], []],
 			'like text only'               => [['year', 'like', '20%'], ['gamma']],
 			'contains'                     => [['tags', 'contains', 'art'], ['alpha', 'beta', 'epsilon']],
 			'null'                         => [['rating', 'null'], ['gamma']],
 			'not null'                     => [['featured', 'not null'], ['alpha', 'beta', 'gamma', 'epsilon']],
 			'dotted keys'                  => [['seo.title', '=', 'E'], ['epsilon']],
 			'a missing nested key'         => [['seo.title', 'null'], ['beta', 'gamma', 'delta']],
-			'body'                         => [['body', 'like', '%world'], ['gamma']],
+			'content'                         => [['content', 'like', '%world'], ['gamma']],
 			'id'                           => [['id', '=', self::GAMMA], ['gamma']]
 		];
 
@@ -232,7 +237,7 @@ abstract class RecordStoreConformance extends TestCase
 			'null last, ascending'          => [[['rating', Order::Asc]], ['epsilon', 'beta', 'alpha', 'delta', 'gamma']],
 			'several keys'                  => [[['status', Order::Asc], ['title', Order::Desc]], ['epsilon', 'beta', 'gamma', 'delta', 'alpha']],
 			'false, true, then missing'     => [[['featured', Order::Asc]], ['beta', 'gamma', 'alpha', 'epsilon', 'delta']],
-			'text byte by byte'             => [[['title', Order::Asc]], ['alpha', 'delta', 'gamma', 'beta', 'epsilon']],
+			'text without regard to case'   => [[['title', Order::Asc]], ['alpha', 'beta', 'delta', 'gamma', 'epsilon']],
 			'ties keep the order added'     => [[['status', Order::Desc]], ['alpha', 'gamma', 'delta', 'beta', 'epsilon']]
 		];
 
@@ -254,12 +259,12 @@ abstract class RecordStoreConformance extends TestCase
 
 		$page = $store->select($table, new RecordQuery()->orderBy('slug')->limit(2)->offset(1));
 
-		$this->assertSame(['beta', 'delta'], array_map(static fn (Record $record): mixed => $record->values['slug'], $page->records));
+		$this->assertSame(['beta', 'delta'], array_map(static fn (Record $record): mixed => $record->fields['slug'], $page->records));
 		$this->assertSame(5, $page->total, 'The total is before the limit and offset.');
 
 		$last = $store->select($table, new RecordQuery()->orderBy('slug')->paginate(perPage: 2, page: 3));
 
-		$this->assertSame(['gamma'], array_map(static fn (Record $record): mixed => $record->values['slug'], $last->records));
+		$this->assertSame(['gamma'], array_map(static fn (Record $record): mixed => $record->fields['slug'], $last->records));
 		$this->assertSame([], $store->select($table, new RecordQuery()->paginate(perPage: 2, page: 4))->records);
 		$this->assertSame([], $store->select($table, new RecordQuery()->limit(0))->records);
 		$this->assertSame(3, $store->count($table, new RecordQuery()->where('status', '=', 'published')->limit(1)), 'A count ignores the limit.');
@@ -300,6 +305,108 @@ abstract class RecordStoreConformance extends TestCase
 		$this->assertSame(0, $store->aggregate($table, $none, Aggregate::Sum, 'rating'));
 	}
 
+	public function testVersionsRefuseStaleWrites(): void
+	{
+		$store = $this->seeded();
+		$table = $this->table();
+		$alpha = $store->find($table, self::ALPHA) ?? throw new RuntimeException('No alpha.');
+
+		$this->assertNotNull($alpha->version, 'A record read carries its version.');
+
+		$saved = $store->save($table, $alpha->with('title', 'Alpha 2'), $alpha->version);
+
+		$this->assertNotSame($alpha->version, $saved->version, 'A save changes it.');
+		$this->assertSame($saved->version, $store->find($table, self::ALPHA)?->version);
+		$this->assertSame($saved->version, $store->select($table, new RecordQuery()->where('id', '=', self::ALPHA))->first()?->version, 'Queries carry it too.');
+
+		$conflicts = [
+			'a stale save'   => static fn () => $store->save($table, $alpha->with('title', 'Alpha 3'), $alpha->version),
+			'a stale delete' => static fn () => $store->delete($table, self::ALPHA, $alpha->version)
+		];
+
+		foreach ($conflicts as $name => $write) {
+			try {
+				$write();
+				$this->fail("Allowed {$name}.");
+			} catch (RecordConflict) {
+				$this->addToAssertionCount(1);
+			}
+		}
+
+		$this->assertSame('Alpha 2', $store->find($table, self::ALPHA)?->fields['title'], 'Nothing was written.');
+
+		$store->delete($table, self::ALPHA, $saved->version);
+
+		$this->assertNull($store->find($table, self::ALPHA));
+
+		try {
+			$store->save($table, $saved, $saved->version);
+			$this->fail('Saved over a record that\'s gone.');
+		} catch (RecordConflict) {
+			$this->addToAssertionCount(1);
+		}
+
+		$store->save($table, $saved);
+
+		$this->assertNotNull($store->find($table, self::ALPHA), 'Without a version, a save writes whatever is there.');
+	}
+
+	public function testSubqueries(): void
+	{
+		$store = $this->seeded();
+		$picks = new Table('picks', StorageArea::Data);
+
+		$store->save($picks, new Record('01900000-0000-7000-8000-000000000101', ['album' => 'gamma']));
+		$store->save($picks, new Record('01900000-0000-7000-8000-000000000102', ['album' => 'alpha']));
+
+		$cases = [
+			'in the same table'     => [['year', 'in', new Subquery(new RecordQuery()->where('status', '=', 'draft'), 'year')], ['beta']],
+			'not in'                => [['status', 'not in', new Subquery(new RecordQuery()->where('featured', '=', true), 'status')], ['beta']],
+			'its order and limit'   => [['slug', 'in', new Subquery(new RecordQuery()->orderBy('rating', Order::Desc)->limit(1), 'slug')], ['delta']],
+			'in another table'      => [['slug', 'in', new Subquery(new RecordQuery(), 'album', $picks)], ['alpha', 'gamma']],
+			'nothing found'         => [['slug', 'in', new Subquery(new RecordQuery()->where('status', '=', 'gone'), 'slug')], []]
+		];
+
+		foreach ($cases as $name => [$where, $expected]) {
+			$this->assertSame($expected, $this->slugs($store, static fn (RecordQuery $q): RecordQuery => $q->where(...$where)), $name);
+		}
+	}
+
+	public function testRefsFilterAndLoad(): void
+	{
+		$store = $this->seeded();
+		$table = $this->table();
+		$refs  = Ref::table($table->area);
+
+		$store->save($refs, new Ref(self::ALPHA, 'similar', self::GAMMA, 0)->record());
+		$store->save($refs, new Ref(self::ALPHA, 'similar', self::BETA, 1)->record());
+		$store->save($refs, new Ref(self::DELTA, 'similar', self::ALPHA, 0)->record());
+		$store->save($refs, new Ref(self::DELTA, 'sequel', self::EPSILON, 0)->record());
+
+		$cases = [
+			'refers to'             => [static fn (RecordQuery $q): RecordQuery => $q->whereRelated('similar', [self::GAMMA]), ['alpha']],
+			'refers to any'         => [static fn (RecordQuery $q): RecordQuery => $q->whereRelated('similar', [self::GAMMA, self::ALPHA]), ['alpha', 'delta']],
+			'by relation'           => [static fn (RecordQuery $q): RecordQuery => $q->whereRelated('sequel', [self::ALPHA]), []],
+			'referred to'           => [static fn (RecordQuery $q): RecordQuery => $q->whereRelated('similar', [self::ALPHA], inverse: true), ['beta', 'gamma']],
+			'a subquery of targets' => [static fn (RecordQuery $q): RecordQuery => $q->whereRelated('similar', new Subquery(new RecordQuery()->where('status', '=', 'draft'), 'id')), ['alpha']],
+			'in a group'            => [static fn (RecordQuery $q): RecordQuery => $q->whereAny(
+				static fn (RecordQuery $q): RecordQuery => $q->whereRelated('sequel', [self::EPSILON]),
+				static fn (RecordQuery $q): RecordQuery => $q->where('slug', '=', 'beta')
+			), ['beta', 'delta']]
+		];
+
+		foreach ($cases as $name => [$build, $expected]) {
+			$this->assertSame($expected, $this->slugs($store, $build), $name);
+		}
+
+		$result = new RecordQuery(store: $store, table: $table)->where('slug', 'in', ['alpha', 'beta', 'delta'])->with('similar')->get();
+
+		$this->assertSame([self::GAMMA, self::BETA], $result->refs(self::ALPHA, 'similar'), 'Loaded in order.');
+		$this->assertSame([self::ALPHA], $result->refs(strtoupper(self::DELTA), 'similar'));
+		$this->assertSame([], $result->refs(self::DELTA, 'sequel'), 'Only the relations asked for.');
+		$this->assertSame([], $result->refs(self::BETA, 'similar'));
+	}
+
 	public function testAFailedTransactionPutsBackItsWrites(): void
 	{
 		$store = $this->seeded();
@@ -317,7 +424,7 @@ abstract class RecordStoreConformance extends TestCase
 			$this->assertSame('Doesn\'t fit.', $error->getMessage());
 		}
 
-		$this->assertSame('Alpha', $store->find($table, self::ALPHA)?->values['title']);
+		$this->assertSame('Alpha', $store->find($table, self::ALPHA)?->fields['title']);
 		$this->assertSame(['alpha', 'beta', 'gamma', 'delta', 'epsilon'], $this->slugs($store, static fn (RecordQuery $q): RecordQuery => $q));
 	}
 

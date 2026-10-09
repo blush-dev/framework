@@ -18,11 +18,14 @@ use DirectoryIterator;
 use JsonException;
 use Override;
 use Throwable;
+use Blush\Container\Attributes\Defer;
+use Blush\Content\Index\IndexStore;
 use Blush\Core\Paths;
 use Blush\Storage\Record\Aggregate;
 use Blush\Storage\Record\ArrayEvaluator;
 use Blush\Storage\Record\InvalidRecord;
 use Blush\Storage\Record\Record;
+use Blush\Storage\Record\RecordConflict;
 use Blush\Storage\Record\RecordQuery;
 use Blush\Storage\Record\RecordResult;
 use Blush\Storage\Record\RecordStore;
@@ -35,8 +38,8 @@ use Blush\Support\Uuid;
 /**
  * The filesystem driver's records (D-643): each table kept as its
  * `FileLayout` says, a folder of JSON files or one JSON file, a record
- * written as its values, then its body (`body`) when it has one, then
- * its `id`, last (D-477).
+ * written as its fields, then its `content` when it has one, then its
+ * `id`, last (D-477). Its version (D-648) is a hash of that.
  *
  * - **Order:** a one-file table's records come in the file's order, new
  *   ones added at the end; a folder's by id, which for version 7 ids is
@@ -46,10 +49,15 @@ use Blush\Support\Uuid;
  *   their file's name when it's an id, until they're saved with it.
  * - **Queries** read the table and run through `ArrayEvaluator`; each
  *   call reads it again, so nothing goes stale in a long-running worker.
- *   It suits data-sized tables; content keeps its own index.
+ *   It suits data-sized tables.
+ * - **Content** (the content area's `entries` and `refs`, D-649) is the
+ *   content store's, which keeps it as Markdown files with an index
+ *   (`IndexStore`, D-653); this hands those tables to it.
  * - **Writes** are atomic, each in a transaction (`FileTransactions`,
  *   shared with `FileDataStore`), so a write that reads the table first
  *   can't lose another's.
+ *
+ * @phpstan-import-type Row from ArrayEvaluator
  */
 final readonly class FileRecordStore implements RecordStore
 {
@@ -58,11 +66,15 @@ final readonly class FileRecordStore implements RecordStore
 	 */
 	public const string EXTENSION = 'json';
 
+	/**
+	 * @param Closure(): IndexStore $content
+	 */
 	public function __construct(
 		private Paths $paths,
 		private FileLayouts $layouts,
 		private FileTransactions $transactions,
 		private Filesystem $filesystem,
+		#[Defer(IndexStore::class)] private Closure $content,
 		private ArrayEvaluator $evaluator = new ArrayEvaluator()
 	) {}
 
@@ -72,6 +84,10 @@ final readonly class FileRecordStore implements RecordStore
 	#[Override]
 	public function find(Table $table, string $id): ?Record
 	{
+		if (IndexStore::keeps($table)) {
+			return ($this->content)()->find($table, $id);
+		}
+
 		return $this->records($table)[strtolower($id)] ?? null;
 	}
 
@@ -81,11 +97,15 @@ final readonly class FileRecordStore implements RecordStore
 	#[Override]
 	public function findByKey(Table $table, string $key): ?Record
 	{
+		if (IndexStore::keeps($table)) {
+			return ($this->content)()->findByKey($table, $key);
+		}
+
 		if ($table->key === null) {
 			throw new InvalidRecord(sprintf('"%s" has no key; find its records by id.', $table->name));
 		}
 
-		return array_find($this->records($table), static fn (Record $record): bool => ($record->values[$table->key] ?? null) === $key);
+		return array_find($this->records($table), static fn (Record $record): bool => ($record->fields[$table->key] ?? null) === $key);
 	}
 
 	/**
@@ -94,6 +114,10 @@ final readonly class FileRecordStore implements RecordStore
 	#[Override]
 	public function findMany(Table $table, array $ids): array
 	{
+		if (IndexStore::keeps($table)) {
+			return ($this->content)()->findMany($table, $ids);
+		}
+
 		$records = $this->records($table);
 		$found   = [];
 
@@ -112,20 +136,27 @@ final readonly class FileRecordStore implements RecordStore
 	 * @inheritDoc
 	 */
 	#[Override]
-	public function save(Table $table, Record $record): void
+	public function save(Table $table, Record $record, ?string $version = null): Record
 	{
-		$this->transaction(function () use ($table, $record): void {
+		if (IndexStore::keeps($table)) {
+			return ($this->content)()->save($table, $record, $version);
+		}
+
+		return $this->transaction(function () use ($table, $record, $version): Record {
 			$records = $this->records($table);
 			$layout  = $this->layouts->for($table);
+			$stored  = $record->withVersion(self::version(self::encode($record)));
+
+			RecordConflict::check($table, $record->id, $records[$record->id] ?? null, $version);
 
 			$table->checkKey($record, $records);
 
 			if ($layout->oneFile) {
-				$records[$record->id] = $record;
+				$records[$record->id] = $stored;
 
 				$this->writeOneFile($layout, $records);
 
-				return;
+				return $stored;
 			}
 
 			$path = $this->file($layout, $table, $record);
@@ -137,6 +168,8 @@ final readonly class FileRecordStore implements RecordStore
 			}
 
 			$this->write($path, $this->json(self::encode($record)), $layout->mode);
+
+			return $stored;
 		});
 	}
 
@@ -144,11 +177,19 @@ final readonly class FileRecordStore implements RecordStore
 	 * @inheritDoc
 	 */
 	#[Override]
-	public function delete(Table $table, string $id): void
+	public function delete(Table $table, string $id, ?string $version = null): void
 	{
-		$this->transaction(function () use ($table, $id): void {
+		if (IndexStore::keeps($table)) {
+			($this->content)()->delete($table, $id, $version);
+
+			return;
+		}
+
+		$this->transaction(function () use ($table, $id, $version): void {
 			$records = $this->records($table);
 			$record  = $records[strtolower($id)] ?? null;
+
+			RecordConflict::check($table, $id, $record, $version);
 
 			if ($record === null) {
 				return;
@@ -174,7 +215,11 @@ final readonly class FileRecordStore implements RecordStore
 	#[Override]
 	public function select(Table $table, RecordQuery $query): RecordResult
 	{
-		return $this->evaluator->select(array_values($this->records($table)), $query);
+		if (IndexStore::keeps($table)) {
+			return ($this->content)()->select($table, $query);
+		}
+
+		return $this->evaluator->select($table, $query, $this->list(...));
 	}
 
 	/**
@@ -183,7 +228,11 @@ final readonly class FileRecordStore implements RecordStore
 	#[Override]
 	public function count(Table $table, RecordQuery $query): int
 	{
-		return $this->evaluator->count(array_values($this->records($table)), $query);
+		if (IndexStore::keeps($table)) {
+			return ($this->content)()->count($table, $query);
+		}
+
+		return $this->evaluator->count($table, $query, $this->list(...));
 	}
 
 	/**
@@ -192,7 +241,11 @@ final readonly class FileRecordStore implements RecordStore
 	#[Override]
 	public function countBy(Table $table, RecordQuery $query, string $key): array
 	{
-		return $this->evaluator->countBy(array_values($this->records($table)), $query, $key);
+		if (IndexStore::keeps($table)) {
+			return ($this->content)()->countBy($table, $query, $key);
+		}
+
+		return $this->evaluator->countBy($table, $query, $key, $this->list(...));
 	}
 
 	/**
@@ -201,7 +254,11 @@ final readonly class FileRecordStore implements RecordStore
 	#[Override]
 	public function aggregate(Table $table, RecordQuery $query, Aggregate $function, string $key): int|float|string|bool|null
 	{
-		return $this->evaluator->aggregate(array_values($this->records($table)), $query, $function, $key);
+		if (IndexStore::keeps($table)) {
+			return ($this->content)()->aggregate($table, $query, $function, $key);
+		}
+
+		return $this->evaluator->aggregate($table, $query, $function, $key, $this->list(...));
 	}
 
 	/**
@@ -215,6 +272,17 @@ final readonly class FileRecordStore implements RecordStore
 		} catch (StorageException $error) {
 			throw new RecordStoreFailure($error->getMessage(), previous: $error);
 		}
+	}
+
+	/**
+	 * A table's records as rows, in order, for the evaluator.
+	 *
+	 * @return list<Row>
+	 * @throws InvalidRecord
+	 */
+	private function list(Table $table): array
+	{
+		return array_values(array_map(ArrayEvaluator::row(...), $this->records($table)));
 	}
 
 	/**
@@ -341,13 +409,13 @@ final readonly class FileRecordStore implements RecordStore
 			throw new InvalidRecord(sprintf('%s has a record that isn\'t a JSON object.', $location));
 		}
 
-		$values = array_diff_key($data, array_flip(Record::RESERVED));
+		$fields = array_diff_key($data, array_flip(Record::RESERVED));
 
-		if ($table->key !== null && ! isset($values[$table->key]) && $name !== null && ! Uuid::isValid($name)) {
-			$values[$table->key] = $name;
+		if ($table->key !== null && ! isset($fields[$table->key]) && $name !== null && ! Uuid::isValid($name)) {
+			$fields[$table->key] = $name;
 		}
 
-		$key   = $table->key === null ? null : ($values[$table->key] ?? null);
+		$key   = $table->key === null ? null : ($fields[$table->key] ?? null);
 		$given = $data['id'] ?? null;
 		$id    = match (true) {
 			is_string($given) && Uuid::isValid($given)  => $given,
@@ -356,8 +424,8 @@ final readonly class FileRecordStore implements RecordStore
 			default                                     => throw new InvalidRecord(sprintf('%s has a record with no id%s.', $location, $table->key === null ? '' : " or \"{$table->key}\""))
 		};
 
-		/** @var array<string, mixed> $values */
-		return new Record($id, $values, is_string($data['body'] ?? null) ? $data['body'] : null);
+		/** @var array<string, mixed> $fields */
+		return new Record($id, $fields, is_string($data['content'] ?? null) ? $data['content'] : null, self::version($data));
 	}
 
 	/**
@@ -367,7 +435,18 @@ final readonly class FileRecordStore implements RecordStore
 	 */
 	private static function encode(Record $record): array
 	{
-		return [...$record->values, ...($record->body === null ? [] : ['body' => $record->body]), 'id' => $record->id];
+		return [...$record->fields, ...($record->content === null ? [] : ['content' => $record->content]), 'id' => $record->id];
+	}
+
+	/**
+	 * A record's version (D-648): a hash of what its file, or its place
+	 * in a one-file table, holds.
+	 *
+	 * @param array<array-key, mixed> $data
+	 */
+	private static function version(array $data): string
+	{
+		return hash('xxh128', (string) json_encode($data, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
 	}
 
 	/**

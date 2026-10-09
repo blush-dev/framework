@@ -45,7 +45,7 @@ use Blush\Directive\PendingDirective;
  *
  * <article class="entry">
  *     <h1><?= e($entry->title) ?></h1>
- *     <?= raw($entry->body()) ?>
+ *     <?= raw($entry->content()) ?>
  * </article>
  * ```
  */

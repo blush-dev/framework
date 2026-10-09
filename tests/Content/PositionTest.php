@@ -18,12 +18,12 @@ use PHPUnit\Framework\TestCase;
 use Blush\Content\ContentRepository;
 use Blush\Content\Entry\Entry;
 use Blush\Content\Entry\Position;
-use Blush\Content\Index\ArraySelector;
+use Blush\Content\Record\QueryCompiler;
 use Blush\Storage\Record\Order;
 use Blush\Content\Type\ContentTypes;
 
 #[CoversClass(Position::class)]
-#[CoversClass(ArraySelector::class)]
+#[CoversClass(QueryCompiler::class)]
 final class PositionTest extends TestCase
 {
 	use BuildsContentSite;

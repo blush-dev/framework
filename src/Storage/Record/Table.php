@@ -18,7 +18,7 @@ use Blush\Storage\StorageArea;
 /**
  * A named group of records (D-643), as a driver needs to know it: its
  * name, the storage area it belongs to (whose driver keeps it), its key,
- * and the values it declares.
+ * and the fields it declares.
  *
  *     new Table('roles', StorageArea::Accounts, key: 'name');
  *
@@ -27,8 +27,9 @@ use Blush\Storage\StorageArea;
  *   driver names files by. Its values are letters, digits, `.`, `_`, and
  *   `-`, starting with a letter or digit. A table without one is known
  *   by ids alone.
- * - **The declared values** are the ones a database driver gives an
- *   indexed column (D-644). Others are kept and queried all the same.
+ * - **The declared fields** are the ones a database driver indexes
+ *   (D-644, D-648): those queried or sorted by. Others are kept and
+ *   queried all the same.
  *
  * Tables belong to the content, data, and accounts areas; sessions and
  * jobs keep their own narrow stores (D-645). Names are lowercase
@@ -38,14 +39,14 @@ use Blush\Storage\StorageArea;
 final readonly class Table
 {
 	/**
-	 * @param  list<string> $values The declared values' keys.
+	 * @param  list<string> $fields The declared fields' keys.
 	 * @throws InvalidRecord When the name, area, or key can't be a table's.
 	 */
 	public function __construct(
 		public string $name,
 		public StorageArea $area,
 		public ?string $key = null,
-		public array $values = []
+		public array $fields = []
 	) {
 		if (preg_match('/\A[a-z][a-z0-9_-]*(?:\/[a-z][a-z0-9_-]*)*\z/', $name) !== 1) {
 			throw new InvalidRecord(sprintf('"%s" can\'t be a table name; use lowercase letters, digits, "_", and "-", with "/" between groups.', $name));
@@ -71,7 +72,7 @@ final readonly class Table
 			return null;
 		}
 
-		$value = $record->values[$this->key] ?? null;
+		$value = $record->fields[$this->key] ?? null;
 
 		if (! is_string($value) || ! self::isKeyValue($value)) {
 			throw new InvalidRecord(sprintf(
@@ -103,7 +104,7 @@ final readonly class Table
 		$name = (string) $this->key;
 
 		foreach ($records as $other) {
-			if ($other->id !== $record->id && ($other->values[$name] ?? null) === $key) {
+			if ($other->id !== $record->id && ($other->fields[$name] ?? null) === $key) {
 				throw new InvalidRecord(sprintf('"%s" already has a record whose "%s" is "%s".', $this->name, $name, $key));
 			}
 		}

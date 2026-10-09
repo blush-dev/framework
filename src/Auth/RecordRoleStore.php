@@ -48,7 +48,7 @@ final readonly class RecordRoleStore implements RoleStore
 	 */
 	public static function table(): Table
 	{
-		return new Table(self::TABLE, StorageArea::Accounts, key: 'name', values: ['name']);
+		return new Table(self::TABLE, StorageArea::Accounts, key: 'name', fields: ['name']);
 	}
 
 	/**
@@ -64,7 +64,7 @@ final readonly class RecordRoleStore implements RoleStore
 		}
 
 		return array_map(static function (Record $record): Role {
-			$role = $record->values;
+			$role = $record->fields;
 
 			if (is_array($role['capabilities'] ?? null)) {
 				$role['capabilities'] = array_values(array_filter($role['capabilities'], static fn (mixed $name): bool => ! in_array($name, Capability::RETIRED, true)));
@@ -93,7 +93,7 @@ final readonly class RecordRoleStore implements RoleStore
 				$kept = [];
 
 				foreach ($this->stores->query($table)->get()->records as $record) {
-					$name = $record->values['name'] ?? null;
+					$name = $record->fields['name'] ?? null;
 
 					if (is_string($name)) {
 						$kept[$name] = $record;
@@ -103,7 +103,7 @@ final readonly class RecordRoleStore implements RoleStore
 				foreach ($roles as $role) {
 					$record = $kept[$role->name] ?? Record::create($this->clock->now());
 
-					$store->save($table, $record->withValues($role->toArray()));
+					$store->save($table, $record->withFields($role->toArray()));
 
 					unset($kept[$role->name]);
 				}

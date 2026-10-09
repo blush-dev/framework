@@ -440,15 +440,15 @@ final class MultilingualTest extends TestCase
 		$app->container()->make(DirectiveRegistry::class)->register('acme/post-titles', PostTitles::class);
 
 		$content = $app->container()->make(ContentRepository::class);
-		$french  = $content->named('page', 'lists', 'fr')?->body() ?? '';
-		$english = $content->named('page', 'lists')?->body() ?? '';
+		$french  = $content->named('page', 'lists', 'fr')?->content() ?? '';
+		$english = $content->named('page', 'lists')?->content() ?? '';
 
 		$this->assertStringContainsString("Printemps | L'art", $french);
 		$this->assertStringNotContainsString('Printemps', $english);
 		$this->assertStringContainsString('| Art', $english);
 
 		// Rendered again, from the cache.
-		$this->assertStringContainsString('Printemps', $app->container()->make(ContentRepository::class)->named('page', 'lists', 'fr')?->body() ?? '');
+		$this->assertStringContainsString('Printemps', $app->container()->make(ContentRepository::class)->named('page', 'lists', 'fr')?->content() ?? '');
 		$this->assertStringContainsString("Printemps | L'art", (string) $app->container()->make(Kernel::class)->handle(Request::create('/fr/lists'))->getBody());
 	}
 

@@ -75,7 +75,7 @@ final class EntryItem extends RegionItem
 		}
 
 		try {
-			return $entry->body();
+			return $entry->content();
 		} catch (MarkdownException $error) {
 			throw new RegionException($error->getMessage(), 0, $error);
 		}

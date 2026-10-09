@@ -24,7 +24,7 @@ $template->layout('base');
 
 	<div class="entry__content">
 		<?php if ($entry !== null && $entry->raw() !== '') : ?>
-			<?= raw($entry->body()) ?>
+			<?= raw($entry->content()) ?>
 		<?php else : ?>
 			<p><?= e($description) ?></p>
 		<?php endif ?>

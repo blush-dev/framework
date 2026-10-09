@@ -208,7 +208,7 @@ final readonly class FeedBuilder
 			url: $this->urls->absolute($url),
 			published: $entry->published ?? $entry->updated,
 			updated: $entry->updated,
-			content: $this->config->content ? $entry->body() : '',
+			content: $this->config->content ? $entry->content() : '',
 			summary: $entry->excerpt(),
 			authors: $profiles === null || $byline === null ? [] : $this->titles($entry, [$byline], $profiles),
 			categories: $this->titles($entry, $taxonomies)

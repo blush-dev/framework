@@ -55,9 +55,14 @@ use Blush\Support\Uuid;
  *   index was built, for cache invalidation.
  * - `fingerprint` identifies what the records were built with (content
  *   types, timezone, locale). A different one forces a full rebuild.
+ * - `rows` are the entries and refs as the record layer keeps them
+ *   (`SnapshotRecords`, D-649), built when the index is, so a request
+ *   only reads them.
  *
  * @phpstan-import-type RecordArray from IndexRecord
  * @phpstan-import-type GraphArray from RelationGraph
+ * @phpstan-type RowArray array{id: string, fields: array<string, mixed>, content?: ?string, version?: ?string}
+ * @phpstan-type RowsArray array{entries: list<RowArray>, refs: list<RowArray>}
  * @phpstan-type SnapshotArray array{
  *     version: int,
  *     fingerprint: string,
@@ -72,7 +77,8 @@ use Blush\Support\Uuid;
  *     scheduled: ?int,
  *     ids: array<string, string>,
  *     duplicates: array<string, list<string>>,
- *     links: GraphArray
+ *     links: GraphArray,
+ *     rows: ?RowsArray
  * }
  */
 final readonly class IndexSnapshot
@@ -81,7 +87,7 @@ final readonly class IndexSnapshot
 	 * The index format's version. A stored index with another version is
 	 * rebuilt.
 	 */
-	public const int VERSION = 9;
+	public const int VERSION = 11;
 
 	/**
 	 * @param array<string, RecordArray>                                $records   Keyed by path, sorted by path.
@@ -94,6 +100,7 @@ final readonly class IndexSnapshot
 	 * @param array<string, string>                                     $ids          Paths by id.
 	 * @param array<string, list<string>>                               $duplicates   Paths sharing each id held by more than one.
 	 * @param ?GraphArray                                               $links        The relation graph, or `null` for none.
+	 * @param ?RowsArray                                                $rows         The entries and refs as records, or `null` before they're built.
 	 */
 	private function __construct(
 		public string $fingerprint,
@@ -108,7 +115,8 @@ final readonly class IndexSnapshot
 		public array $translations = [],
 		public array $ids = [],
 		public array $duplicates = [],
-		private ?array $links = null
+		private ?array $links = null,
+		private ?array $rows = null
 	) {}
 
 	/**
@@ -401,6 +409,27 @@ final readonly class IndexSnapshot
 	}
 
 	/**
+	 * Returns the snapshot with its entries and refs as records.
+	 *
+	 * @param RowsArray $rows
+	 */
+	public function withRows(array $rows): self
+	{
+		return clone($this, ['rows' => $rows]);
+	}
+
+	/**
+	 * Returns the entries and refs as records, or `null` before they're
+	 * built.
+	 *
+	 * @return ?RowsArray
+	 */
+	public function rows(): ?array
+	{
+		return $this->rows;
+	}
+
+	/**
 	 * Returns the snapshot as an array for storage.
 	 *
 	 * @return SnapshotArray
@@ -421,7 +450,8 @@ final readonly class IndexSnapshot
 			'scheduled'    => $this->scheduled,
 			'ids'          => $this->ids,
 			'duplicates'   => $this->duplicates,
-			'links'        => $this->links ?? RelationGraph::empty()->toArray()
+			'links'        => $this->links ?? RelationGraph::empty()->toArray(),
+			'rows'         => $this->rows
 		];
 	}
 
@@ -451,7 +481,8 @@ final readonly class IndexSnapshot
 			$data['translations'],
 			$data['ids'],
 			$data['duplicates'],
-			$data['links']
+			$data['links'],
+			$data['rows']
 		);
 	}
 

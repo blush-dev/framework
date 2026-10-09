@@ -13,8 +13,10 @@ declare(strict_types=1);
 
 namespace Blush\Tests\Storage\Conformance;
 
+use LogicException;
 use Override;
 use PHPUnit\Framework\Attributes\CoversClass;
+use Blush\Content\Index\IndexStore;
 use Blush\Core\Paths;
 use Blush\Storage\File\FileLayout;
 use Blush\Storage\File\FileLayouts;
@@ -44,6 +46,6 @@ final class FileRecordStoreOneFileTest extends RecordStoreConformance
 		$layouts->register('albums', FileLayout::oneFile("{$paths->data}/albums.json", 'albums'));
 		$layouts->register('notes', FileLayout::oneFile("{$paths->data}/notes.json"));
 
-		return new FileRecordStore($paths, $layouts, new FileTransactions($paths, new Filesystem()), new Filesystem());
+		return new FileRecordStore($paths, $layouts, new FileTransactions($paths, new Filesystem()), new Filesystem(), static fn (): IndexStore => throw new LogicException('These tests keep no content.'));
 	}
 }

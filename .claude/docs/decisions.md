@@ -19590,3 +19590,267 @@ decision, add a new entry that supersedes it and mark the old one
   `config/content.php`, gone since D-617, so no subject runs. Fixing
   the benchmark fixture is its own task.
 - **Why:** the author's go for step 2 ("go ahead and build step 2").
+
+### D-648: One entries table, the record layer's sort rules, and versions
+
+- **Date:** 2026-10-08
+- **Status:** Decided; nothing built. Settles the step 3 plan's open
+  questions (`roadmap.md`); the entries table's columns are discussed
+  next. Refines D-644's indexes.
+- **Decision:**
+  - **One `entries` table** for every content type, `type` a column,
+    as CMSes whose sites define their own types keep content: core
+    columns every entry has, each type's fields in the JSON `values`.
+    Never a row per field value (an entity–attribute–value meta table,
+    whose every field condition is another unindexed join). Queries
+    and search across types stay one query.
+  - **Indexes (refines D-644):** a database driver indexes the core
+    columns always, and a field only when something queries or sorts
+    by it (a type's order, a field marked for filtering), since one
+    table can't index every type's every field (MySQL allows 64
+    indexes a table); PostgreSQL's one GIN index over `values` covers
+    the rest.
+  - **Content sorts by the record layer's rules,** with no
+    content-only sort rules or workarounds to keep today's order; a
+    listing whose order changes is fine. (The step 3 plan's derived
+    title sort key and content sort options are dropped.)
+  - **`version`** names the record layer's edit-conflict check (a
+    store-given value on each record read, and the expected one on
+    save and delete), in place of content's "revision", which is kept
+    for revision history: saved past versions, a later question
+    (`open-questions.md`; with a database, likely a table of its own,
+    not a content type).
+- **Why:** the author: one table "sounds good"; "Today's behavior is
+  not important. We need to work cleanly across the board without
+  doing workarounds if we can help it"; "version sounds good". Asked
+  whether one table repeats a known problem: the trouble in the
+  well-known case is the per-value meta table, not one table.
+
+### D-649: The entries and refs tables; records' `fields` and `content`
+
+- **Date:** 2026-10-08
+- **Status:** Decided; nothing built. The shape the step 3 plan builds
+  (`roadmap.md`); refines D-643's names and D-648.
+- **Decision:**
+  - **`entries`** (one table for every type, D-648):
+
+    | Column | Holds |
+    |---|---|
+    | `id` | UUID, the primary key |
+    | `type` | the content type's name |
+    | `language` | `''` on a one-language site, else its code |
+    | `parent_id` | the parent entry's id, or null |
+    | `slug` | unique among siblings: (`type`, `language`, `parent_id`, `slug`) |
+    | `original_id` | a translation's original; null on an original |
+    | `status`, `visibility` | |
+    | `published`, `updated` | |
+    | `title`, `position` | |
+    | `fields` | JSON: the type's fields, `locale`, and undeclared keys |
+    | `content` | the Markdown |
+    | `version` | the edit-conflict check (D-648) |
+
+    Indexed: `type`, `language`, `parent_id`, `original_id`, `status`,
+    `published`, `title`, and the unique sibling key; fields only when
+    queried (D-648).
+  - **No stored key.** An address is found by walking parents (one
+    indexed lookup a level, or one recursive query), and a URL is built
+    by walking up, remembered per request and in the route cache.
+    Moving a page changes one row; translated URLs (D-457) follow from
+    each translation's own slug and parent. On files the filesystem
+    driver keeps using paths.
+  - **Derived, no column:** a landing page is the entry with no slug in
+    its type's root (the filesystem driver's `index`); the translation
+    group is `original_id`, else `id`; "scheduled" is `published` with
+    a time still to come; `date()` compiles to ranges on `published`
+    (year, then month, down to the second, as a prefix; other
+    combinations aren't supported); `created` is the time in a version
+    7 id.
+  - **`refs`** (D-585's rows; front matter's `refs` in a table):
+    `id` (from source, relation, and target, `Uuid::fromName()`),
+    `source_id`, `relation`, `target_id` (always an original, D-587),
+    and `position` (from 0, in written order). Unique (`source_id`,
+    `relation`, `target_id`); indexed (`source_id`, `relation`,
+    `position`) and (`target_id`, `relation`). No copies of types (a
+    join on `entries` gives them) or written forms (the filesystem
+    driver's). Parents and translations are `entries` columns, not
+    refs. The code follows: `Link` becomes `Ref`, `LinkBuilder`
+    `RefBuilder`, and so on.
+  - **Records' names (supersedes D-643's `values` and body):** a
+    `Record` holds `fields` and `content` (`Record::RESERVED` is `id`
+    and `content`), and `Entry` follows in step 3: `$entry->content()`
+    in place of `body()`, `raw()` the unrendered Markdown.
+  - **Text sorts without regard to case** in the record layer, for
+    every table (a database's collation); replaces D-647's byte-by-byte
+    order. Numbers aren't sorted naturally inside text.
+- **Why:** the author, from the shape discussed: "we could get away
+  with parent_id"; `locale` in fields; "body" is the content; `fields`
+  over `values` or `meta` (meta tables are what one table avoids, and
+  `Entry` already says `field()`); `refs` over "links" or
+  "relationships" (the same word front matter uses, and apart from
+  `relations`, the definitions); case-insensitive text, "+1".
+
+### D-650: The benchmark site keeps types as data, with ids
+
+- **Date:** 2026-10-08
+- **Status:** Built. Fixes `composer bench`, broken since D-617 (noted
+  in D-647), ahead of the data layer's step 3.
+- **Decision:** the generated jtcom-sized site (`JtcomSizedSite`,
+  `VERSION` 3) is a site as D-617 has them:
+  - `config/content.php` names only the home type
+    (`new ContentConfig(home: 'post')`); the types and relations from
+    `JtcomTypes` are data files in `user/data/types` and
+    `user/data/relations`, as the tests' `WritesContentConfig` writes
+    them.
+  - Every entry has an `id`, last (D-480), from its path
+    (`Uuid::fromName()`), so the output stays the same run to run and
+    relations resolve to refs as on a real site.
+  - The author's profile is a file (`profiles/j/justintadlock.md`,
+    D-584), so the authors credit relation (D-602) has its target.
+  - **A baseline for step 3:** the results before it are stored
+    locally as `before_step3` (`phpbench run --tag=before_step3`, in
+    the ignored `.phpbench`); each step 3 part compares with
+    `vendor/bin/phpbench run --report=aggregate --ref=before_step3`.
+- **Why:** the author: "fix the benchmarks first", so step 3c's speed
+  can be measured against today's.
+
+### D-651: The record layer grows what content needs (step 3a)
+
+- **Date:** 2026-10-08
+- **Status:** Built. Part 3a of the data layer's step 3 (`roadmap.md`),
+  with D-648's versions and D-649's names, refs, and sorting.
+- **Decision:**
+  - **Names:** `Record` holds `fields` and `content` (`withFields()`,
+    `withContent()`; `RESERVED` is `id` and `content`); `Table`
+    declares `fields`. Files write `content` where they wrote `body`.
+  - **Versions:** a record read carries `version`; `save()` returns the
+    stored record with its new one, and `save()` and `delete()` take the
+    version read, refusing with `RecordConflict` when the record has
+    changed or gone (`RecordConflict::check()`, shared). On files the
+    version is a hash of the record's JSON as written (whitespace in a
+    hand-edited file doesn't count); in memory, of its fields and
+    content.
+  - **Subqueries:** `Subquery` (a query, a key, and optionally another
+    table of the area), for `in` and `not in`; plain values only; its
+    order, limit, and offset apply; run once a call.
+  - **`intersects`:** a list field holds any of a list's values.
+  - **Refs:** `Ref` and each area's `refs` table (`Ref::table()`),
+    `Related` in the condition tree (`whereRelated()`, `inverse` for
+    what the targets refer to), `with()` loading a result's refs
+    (`RecordResult::refs()`, when a query runs itself), and `Refs`
+    (`set()` replaces a source's refs for a relation in order, once
+    each, in a transaction; `of()` reads them).
+  - **Text sorts without regard to case** (`mb_strtolower`, as a
+    database's case-insensitive collation); comparisons in conditions
+    stay byte by byte and `=` case-sensitive.
+  - **`ArrayEvaluator`** takes the table and a callback reading any
+    table's records (`ArrayEvaluation`), for subqueries and refs.
+- **Why:** the author's go for 3a ("go ahead and build 3a").
+
+### D-652: Content queries compile to record queries (step 3b)
+
+- **Date:** 2026-10-08
+- **Status:** Built. Part 3b of the data layer's step 3 (`roadmap.md`),
+  building D-649's `entries` and `refs` shape.
+- **Decision:**
+  - **`Entry::content()`** in place of `body()` (`raw()` the Markdown),
+    in core, its themes and views, the docs, and the trial site's
+    themes.
+  - **The entry record** (`Content\Record\EntryTable`): D-649's columns
+    as record fields, `published` and `updated` as UTC ISO 8601 text
+    (`EntryTable::time()`), `fields` the front matter, a landing page's
+    slug `''`, and `slugs` (each front matter value as slugs,
+    `EntryValues`) for 1.x queries that compare values that way.
+  - **The index keeps them** (`Content\Index\SnapshotRecords`): built
+    from the snapshot when it's indexed and stored with it (index
+    version 10, `IndexSnapshot::rows()`), read back per request (refs
+    only when a query reaches them). Parents are the entry at the
+    parent key in the entry's type and language; originals, the
+    entry of the translation group without a suffix; an entry without
+    an id has a steady one from its path; refs are the graph's links
+    but parents and translations, plus, for entries without ids, refs
+    from the terms their front matter writes.
+  - **`ContentIndex`** answers `select(RecordQuery)` and
+    `locations()` (`EntryLocations`: ids in folders, ids with a key) in
+    place of `select(Query, now)`; `ArraySelector` and `RecordMatcher`
+    are gone. `IndexedRepository` compiles each query (`QueryCompiler`)
+    as of now.
+  - **Compiling** keeps every query argument, with these choices:
+    statuses by `published` against now; terms match refs to a term of
+    the relation's types with the slug, or the slug written under the
+    relation's front matter keys (an account's author before its
+    profile exists, D-584), and a key no relation names reads front
+    matter under that key; sorting by a term key sorts by those written
+    slugs; `meta_key`/`meta_value` compare slugs; dates are ranges on
+    `published` from the year down, other combinations refused
+    (`InvalidQuery`); `in()`/`exceptIn()` ask the index which entries
+    are in the folders; `whereParent()` by key asks it which entries
+    have the key.
+  - **What changes, by D-648's rules:** search matches titles and
+    slugs, never paths; ties keep the order entries were made in; text
+    sorts without regard to case and entries without a value sort
+    last; sorting by status uses the stored status (a scheduled entry
+    sorts with the published); an entry naming a parent that isn't an
+    entry is top level.
+  - **Still to come (3c, 3d):** `Link` and `RelationGraph` stay inside
+    the index for now; they give way to refs when the snapshot readers
+    move (3d).
+  - **Speed:** the evaluator now compiles a query's conditions into
+    closures once and sorts precomputed keys. Against `before_step3`,
+    a 1,200-entry home query takes about 3.8 ms (from 2.3), date and
+    term archives 2.3 and 3.3 ms (from 0.5 and 0.6), and whole page
+    requests are 12 to 24% slower. Evaluating over the index's arrays
+    rather than record objects, with its lookups as fast paths, is
+    step 3c's first job.
+- **Why:** the author's go for 3b ("go ahead and build 3b").
+
+### D-653: The filesystem driver's content store (step 3c)
+
+- **Date:** 2026-10-08
+- **Status:** Built. Part 3c of the data layer's step 3 (`roadmap.md`).
+- **Decision:**
+  - **Rows, not objects, while querying.** `ArrayEvaluator` reads and
+    tests rows (plain arrays: `id`, `fields`, `content`, `version`;
+    `ArrayEvaluator::row()`, `record()`, `value()`), and only the
+    records found become `Record`s. A query's conditions compile to
+    closures, those on a key with a common operator (`=`, `!=`, the
+    comparisons, `in`, `not in`, `between`, `intersects`, `null`, and
+    `like` as `%text%`) reading and comparing inline through a reader
+    made for the key; a sort whose keys are all text or all numbers
+    runs through `array_multisort`, the comparator the fallback. A
+    store may pass a ref lookup (sources by target for a relation, and
+    the inverse), which related conditions read in place of scanning
+    refs, and a subquery or related condition alike another is worked
+    out once a call.
+  - **`RecordQuery::withoutContent()`**: records found without their
+    content, which a store keeping large text need not read.
+  - **`IndexStore`** (`Content\Index`): the content area's `entries`
+    and `refs` on files, which `FileRecordStore` hands it. It reads the
+    index's rows as stored (index version 11, rows carrying versions,
+    the file's hash), a record found carrying its Markdown unless the
+    query leaves it out, refs looked up once a request
+    (`SnapshotRecords::refsBy()`). Writing an entry compares it with
+    the stored one, through the writer: front matter edits (comments
+    and aliases kept), a new slug a rename, a new parent in a tree a
+    move, trash and back a trash and a restore, a new entry written
+    where its type keeps them with its own id; a type, language, or
+    original can't change, a translation can't be created, and a
+    collection's parent isn't set by id, on files. Refs are read-only
+    there (front matter writes them). Transactions take the driver's
+    lock, but the writer's writes aren't put back when one fails, a
+    limit on files.
+  - **`IndexFreshness`**: the index, brought up to date once a
+    request, which the repository and the store share.
+  - **The repository queries through the store**
+    (`RecordStores`), hydrating by path until 3d; `ContentIndex`
+    gives `records()` in place of `select()` and `locations()`.
+  - **The writer's revision is the index's hash** (`RecordBuilder`'s
+    xxh128), so an entry's version and the writer's revision match; a
+    new entry keeps an id its changes give when no entry has it.
+  - **Speed, against `before_step3`:** home and list queries are faster
+    (home query 1.5 ms from 2.3; list pages and the home page request
+    faster too); a term archive is 1.6 ms (from 0.6), a date archive
+    1.1 ms (from 0.5), a single post's request about 10 to 20% slower
+    (its previous and next sort the whole listing), and the admin's
+    contributor list 4.2 ms (from 2.5). Close enough to leave, to be
+    looked at again with the SQLite index (step 4).
+- **Why:** the author's go for 3c ("go ahead and build 3c").

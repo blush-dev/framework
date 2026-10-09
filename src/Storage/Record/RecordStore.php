@@ -24,6 +24,15 @@ use Closure;
  * Without an order, a query's records come in the order they were added
  * to their table. A store is reached through `RecordStores`, which
  * picks the one for a table's area.
+ *
+ * Every record a store reads carries its **version** (D-648), which
+ * differs whenever its stored form changes: a file's hash, a database's
+ * version column. A save or delete given the version it read refuses
+ * (`RecordConflict`) when the record has changed or gone since; without
+ * one, it writes whatever is there.
+ *
+ * Refs (D-649) are records of each area's `refs` table (`Ref`), kept
+ * and queried like any other.
  */
 interface RecordStore
 {
@@ -53,18 +62,24 @@ interface RecordStore
 	public function findMany(Table $table, array $ids): array;
 
 	/**
-	 * Adds a record, or replaces the one with its id, keeping its place.
+	 * Adds a record, or replaces the one with its id, keeping its place,
+	 * and returns it as stored, with its new version.
 	 *
+	 * @param  ?string $version The version read, to refuse the save when the record changed since.
+	 * @throws RecordConflict When it did.
 	 * @throws RecordException When its key is malformed or another record's, or it can't be written.
 	 */
-	public function save(Table $table, Record $record): void;
+	public function save(Table $table, Record $record, ?string $version = null): Record;
 
 	/**
-	 * Removes a record. A missing one is nothing to remove.
+	 * Removes a record. A missing one is nothing to remove, unless a
+	 * version was given.
 	 *
+	 * @param  ?string $version The version read, to refuse the delete when the record changed since.
+	 * @throws RecordConflict When it did, or is gone.
 	 * @throws RecordException When it can't be removed.
 	 */
-	public function delete(Table $table, string $id): void;
+	public function delete(Table $table, string $id, ?string $version = null): void;
 
 	/**
 	 * Returns the records a query matches, within its limit and offset,

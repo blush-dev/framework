@@ -53,12 +53,12 @@ final class RenderedBodiesTest extends TestCase
 
 		$entry = $this->repository()->named('post', 'spring');
 
-		$this->assertSame("<p>Spring is here.</p>\n", $entry?->body());
+		$this->assertSame("<p>Spring is here.</p>\n", $entry?->content());
 		$this->assertSame(1, $this->stored('bodies'));
 
 		unlink($this->temporaryDirectory() . '/user/content/_posts/2008-04-05.spring.md');
 
-		$this->assertSame("<p>Spring is here.</p>\n", $this->repository()->named('post', 'spring')?->body());
+		$this->assertSame("<p>Spring is here.</p>\n", $this->repository()->named('post', 'spring')?->content());
 	}
 
 	public function testSummariesAreCachedToo(): void
@@ -74,17 +74,17 @@ final class RenderedBodiesTest extends TestCase
 		$this->standardContent();
 
 		$app = $this->site();
-		$this->assertSame("<p>Spring is here.</p>\n", $app->container()->make(ContentRepository::class)->named('post', 'spring')?->body());
+		$this->assertSame("<p>Spring is here.</p>\n", $app->container()->make(ContentRepository::class)->named('post', 'spring')?->content());
 
 		$this->writeTemporaryFile('extensions/acme/child/theme.json', '{"name": "acme/child", "label": "Child", "namespace": "child"}');
 		$this->writeTemporaryFile('config/theme.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn new Blush\\Theme\\ThemeConfig(active: 'acme/child');\n");
 
-		$this->repository()->named('post', 'spring')?->body();
+		$this->repository()->named('post', 'spring')?->content();
 		$this->assertSame(2, $this->stored('bodies'));
 
 		$app->container()->make(ContentVersion::class)->bump();
 
-		$this->repository()->named('post', 'spring')?->body();
+		$this->repository()->named('post', 'spring')?->content();
 		$this->assertSame(3, $this->stored('bodies'));
 	}
 
@@ -92,7 +92,7 @@ final class RenderedBodiesTest extends TestCase
 	{
 		$this->standardContent();
 
-		$this->repository($this->site('development'))->named('post', 'spring')?->body();
+		$this->repository($this->site('development'))->named('post', 'spring')?->content();
 
 		$this->assertSame(0, $this->stored('bodies'));
 	}

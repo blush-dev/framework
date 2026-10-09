@@ -114,7 +114,7 @@ built:
 1. **Settle what blocks code** (done: D-643 to D-646).
 2. **The record layer, on files only** (built, D-647). Roles are its
    first table.
-3. **Content onto records**: writes keyed by id in place of
+3. **Content onto records** (planned below): writes keyed by id in place of
    `ContentWriter`'s paths, the index owned by the filesystem driver,
    content's `Query` wrapping `RecordQuery`, relation filters over
    D-585's links. The biggest step; it changes the admin's write paths.
@@ -207,6 +207,146 @@ declare a unique key value (`name`, `username`) that lookups use and
 the filesystem driver names files by. The first adopter is **roles**
 (`storage/roles.json`, a one-file table keyed by role name; each role
 gains an `id` on its next save). Accounts follow in step 6.
+
+### Step 3: content onto records (planned)
+
+**Goal:** content reads and writes through the record layer, keyed by
+id, so a database driver (step 5) can keep it, while a flat-file site
+keeps every file convention it has (D-078) and sees no change. The
+biggest step, so it's built in five parts, each reviewed and built on
+its own, with `composer check` and the benchmarks passing after each.
+
+**What the code does today** (mapped 2026-10-08):
+- **Identity comes from paths.** Type (the nearest type folder), key
+  (tree folders plus slug; `_` segments), slug (file or bundle name
+  after its last `.`), landing page (`index` in the type's folder),
+  bundle, tree parent (`dirname` of the key), language and locale (the
+  `.fr` suffix), translation group (the path without the suffix, unless
+  `translation_of`), hidden (`_` names and folders), draft (`_drafts`),
+  error pages (`_errors/`), `updated`'s fallback (mtime), and which of
+  two files claiming a key wins. A database must store each as a value.
+- **Writes are keyed by path.** Every `ContentWriter` method takes and
+  returns paths; callers find an entry by id, then pass its path
+  (EntryController, Referrers, RelationChanges, ProfilesController,
+  Accounts, MissingTerms, TypedTargets, CreateContent). Revisions are
+  the file's hash; front matter is edited as text (`DocumentEditor`,
+  `YamlMap`) to keep comments, order, and aliases.
+- **About 20 classes read the index snapshot directly**, not through
+  the repository: relations (RelationChanges, Referrers,
+  RelationLimits, EntryRelations), maintenance (EntryIds, FileNames,
+  EntryFolders, EntryRefs, MissingTerms, TypedTargets, Linter),
+  ReferencesController, ContentVersion, and FilesystemWriter.
+- **Queries the record layer can't express yet:** effective status
+  ("scheduled" depends on now), terms (any of several slugs, falling
+  back to slugged front matter), 1.x `meta_key`/`meta_value` (compared
+  as slugs), `date()` by parts (an hour without a day isn't a range),
+  the fallback language's dedup (drop a fallback entry whose group has
+  one in the query's language), and content's sort rules (natural,
+  case-insensitive text; nulls first ascending; ties by id in the
+  query's direction; position before title).
+- **Relations** are computed: `LinkBuilder` resolves front matter and
+  `refs` into `Link` rows (source id, relation, target id, position)
+  over the whole snapshot; written forms that drift are "stale" and
+  filed back (D-596). A database keeps only the rows.
+
+**3a. The record layer grows what content needs** (built, D-651;
+generic, in the conformance suite):
+- **Versions** (D-648): a store-given `version` on each record read,
+  and an optional expected version on `save()` and `delete()` that
+  fails with a conflict when the record changed (a file's hash; a
+  database's version column).
+- **Subqueries:** `in` and `not in` take a `RecordQuery` over a key of
+  the same table (SQL's `IN (SELECT …)`), for the fallback language's
+  dedup and "children of".
+- **`intersects`:** a list value holds any of several values, for terms.
+- **Refs** (D-649): `whereRelated()` (a record that refers, through a
+  relation, to given ids or to a subquery's records, or is referred
+  to) and `with()` (each record's refs, loaded in one go), over the
+  `refs` table.
+- **Renames** (D-649): `Record`'s `values` and `body` become `fields`
+  and `content`; text sorts without regard to case.
+
+**3b. The entry record:** the `entries` and `refs` tables (D-649).
+Built (D-652), with these left for later: `Link` and the graph stay
+inside the index until 3d, and queries are slower until 3c (see
+below).
+- **Explicit columns** for everything paths imply today: `type`,
+  `language`, `parent_id`, `slug`, `original_id`, `status`,
+  `visibility`, `published`, `updated`, `title`, `position`; the rest
+  in `fields` (`locale` and undeclared keys included), the Markdown in
+  `content`. No stored key: addresses walk parents; URLs walk up,
+  remembered. Landing pages, translation groups, "scheduled", and
+  `created` are derived.
+- **Refs** replace links: `Link` becomes `Ref` (`source_id`,
+  `relation`, `target_id`, `position`), parents and translations
+  moving to `entries` columns.
+- **Slugged copies** of the values 1.x queries compare as slugs
+  (`meta_key`/`meta_value`), computed by core on every save
+  (`EntryValues`), the same for every driver, while those query
+  arguments are kept (D-078).
+- **`Entry`** follows the names: `$entry->content()` in place of
+  `body()`, themes (the trial site's included) updated.
+- **Entry ↔ record mapping** (`EntryRecords`), and the hydrator reading
+  records instead of `IndexRecord`s; bodies stay lazy and cached.
+- **Content's `Query` compiles to `RecordQuery`:** status to
+  `status`/`published` against now; terms to `whereRelated()` over
+  refs (`intersects` on slugged values for entries without ids); dates
+  to ranges on `published`; language fallback to a subquery. Content sorts by the record layer's rules (D-648); query
+  tests whose order changes are updated, the rest keep their answers.
+
+**3c. The filesystem driver's content table** (built, D-653, speed
+mostly won back; the rest is noted there): `FileRecordStore` hands
+the entries table to a content backend: today's indexer, `RecordBuilder`
+(every 1.x convention), and `PhpIndex`, now the driver's own index (D-606),
+making each file's path-derived values explicit in its record.
+- **Reads** run `RecordQuery` over the index (`ArrayEvaluator` over
+  index arrays, not objects, so a query over 1,200 entries stays as
+  fast as now), with the snapshot's lookups (keys, children,
+  translations, the graph) as its fast paths.
+- **Writes** compare the record with the stored one: changed values
+  become a front matter edit through `DocumentEditor` (comments and
+  aliases kept); a changed slug, parent, language, or type becomes the
+  file move it is today (name and folder patterns, bundles promoted,
+  `moved` reported). Stale written forms keep being filed (D-596), as
+  the driver's business.
+- **Files without an id** stay readable, with a steady id from their
+  path (`Uuid::fromName()`), and can't be edited until `content:ids`
+  gives them one, as now (D-481).
+
+**3d. Writes by id, and callers moved:** `Entries` (the repository,
+D-643) gains id-keyed writes: create (by type, or under a parent),
+change fields and content, rename (a new slug), move (a new parent),
+duplicate, trash, restore, and delete, each with a revision, returning
+the entry. `ContentWriter`'s path API goes; `ContentRepository` becomes
+`Entries`. Every caller moves to ids, and the snapshot readers move to
+`Entries` and `RecordQuery` (relations, references, the content
+version's next scheduled time). What only files have, path tools,
+becomes the filesystem driver's own, offered only on it: `content:ids`,
+file names and folders (`FileNames`, `EntryFolders`), filing refs, the
+format check, and the parts of `content:lint` about files.
+
+**3e. Parity and docs:** a content conformance suite (the same entries
+and queries on the filesystem driver and on `ArrayRecordStore`, so a
+database driver has its target), the benchmarks compared with before
+3a, `docs/` for the id-keyed API, and the trial site checked.
+
+**Done when:** no code outside the filesystem driver reads a content
+path to find, query, or write an entry; content's queries answer as
+before on files; the content conformance suite passes on both stores;
+`composer check` passes; the benchmarks show no slowdown.
+
+**Prerequisite (done, D-650):** `composer bench` runs again, and its
+results before step 3 are stored locally as `before_step3`; compare
+each part with `vendor/bin/phpbench run --report=aggregate
+--ref=before_step3`.
+
+**Settled (D-648):** one `entries` table, `type` a column, fields in
+`values`, a database indexing core columns and only queried fields;
+content sorts by the record layer's rules; `version` for the
+edit-conflict check.
+
+**Shape (D-649):** the `entries` and `refs` tables above; records'
+`fields` and `content`; text sorted without regard to case.
 
 ## Next: setup DX/UX (D-156)
 

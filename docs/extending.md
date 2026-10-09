@@ -373,8 +373,9 @@ $store->save($table, Record::create($clock->now(), ['slug' => 'summer', 'title' 
 // Find one by id or by key.
 $album = $store->findByKey($table, 'summer');
 
-// Change it: save it again with new values.
-$store->save($table, $album->with('title', 'Summer 2026'));
+// Change it: save it again with new fields. Passing the version you
+// read refuses the save if someone changed the record since.
+$store->save($table, $album->with('title', 'Summer 2026'), $album->version);
 
 // Query.
 $recent = $stores->query($table)
@@ -394,26 +395,55 @@ foreach ($recent as $album) {
 $store->delete($table, $album->id);
 ```
 
-- **A record** is an `id` (a UUID), its **values** (text, numbers,
+- **A record** is an `id` (a UUID), its **fields** (text, numbers,
   `true`/`false`, `null`, and lists or maps of them; never `id` or
-  `body`), and an optional **body** of text. `value('seo.title')`
-  reaches into nested values.
+  `content`), and optional **content**, such as Markdown.
+  `value('seo.title')` reaches into nested fields.
+- **Versions:** every record you read has a `version`, which changes
+  when it's saved. Pass it to `save()` or `delete()`, and the write is
+  refused with `RecordConflict` if the record changed or was deleted
+  since; leave it out to write regardless. `save()` returns the record
+  as stored, with its new version.
 - **Conditions:** `=`, `!=`, `<`, `<=`, `>`, `>=`, `between` (two
   values, inclusive), `in` and `not in` (a list), `like` (`%` for any
   run of characters, `_` for one, without regard to case), `contains`
-  (a list value holds it), `null`, and `not null`. A missing value is
-  `null`.
+  (a list field holds it), `intersects` (a list field holds any of a
+  list), `null`, and `not null`. A missing field is `null`.
+- **Subqueries:** `in` and `not in` also take the values one key has in
+  the records another query finds, in the same table or another of the
+  same area:
+  `->where('id', 'not in', new Subquery(new RecordQuery()->where('status', '=', 'hidden'), 'album_id', $photos))`.
 - **Comparisons are strict:** the number `2020` and the text `"2020"`
   aren't equal, and `<` compares numbers with numbers and text with text.
   Text matches with `=` are case-sensitive.
-- **Order:** `orderBy()` takes several keys; `null` sorts last either
-  way. Without an order, records come in the order they were added.
+- **Order:** `orderBy()` takes several keys; text sorts without regard
+  to case, and `null` sorts last either way. Without an order, records
+  come in the order they were added.
 - **Counting:** `count()`, `countBy('tags')` (how many records have each
   value), and `min()`, `max()`, `sum()`, and `avg()` of a key. The limit
   and page don't apply to them.
 - **Transactions:** `$store->transaction(fn () => …)` runs several
   writes so none from elsewhere interleave; if it throws, each write is
   put back.
+
+**Refs** join one record to others through a named relation, in order:
+an album's photos, say. Ask for `Blush\Storage\Record\Refs`:
+
+```php
+$refs->set($albums, $album->id, 'photos', [$first->id, $second->id]);
+
+// Albums with a given photo, or the photos an album has.
+$stores->query($albums)->whereRelated('photos', [$photo->id])->get();
+$stores->query($photos)->whereRelated('photos', [$album->id], inverse: true)->get();
+
+// Load each album's photo ids with the albums.
+$result = $stores->query($albums)->with('photos')->get();
+$result->refs($album->id, 'photos'); // [$first->id, $second->id]
+```
+
+`set()` replaces the record's refs for that relation; an empty list
+removes them. Refs live in their area's `refs` table, so they work
+between any of the area's tables.
 
 On a flat-file site, a table is a folder of JSON files, one a record,
 named by its key (or its id): `gallery/albums` is

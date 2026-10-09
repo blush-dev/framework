@@ -15,12 +15,13 @@ namespace Blush\Storage\Record;
 
 /**
  * Conditions joined one way: all must hold, or any. Groups nest, so a
- * query's conditions are a tree.
+ * query's conditions are a tree; its leaves are conditions on values
+ * (`Condition`) and on refs (`Related`).
  */
 final readonly class ConditionGroup
 {
 	/**
-	 * @param list<Condition|ConditionGroup> $conditions
+	 * @param list<Condition|ConditionGroup|Related> $conditions
 	 */
 	public function __construct(
 		public Junction $junction = Junction::All,
@@ -31,7 +32,7 @@ final readonly class ConditionGroup
 	 * Returns the group with another condition or group.
 	 */
 	#[\NoDiscard]
-	public function with(Condition|ConditionGroup $condition): self
+	public function with(Condition|ConditionGroup|Related $condition): self
 	{
 		return new self($this->junction, [...$this->conditions, $condition]);
 	}

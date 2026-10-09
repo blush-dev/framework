@@ -67,17 +67,17 @@ final readonly class Entry implements Stringable
 	) {}
 
 	/**
-	 * Returns the rendered body.
+	 * Returns the rendered content (D-649).
 	 *
 	 * @throws MarkdownException
 	 */
-	public function body(): string
+	public function content(): string
 	{
 		return $this->body->html();
 	}
 
 	/**
-	 * Returns the body as written.
+	 * Returns the content as written: its Markdown.
 	 */
 	public function raw(): string
 	{

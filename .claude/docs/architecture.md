@@ -127,39 +127,61 @@ This is the design for the Blush 2 subsystems. Decisions it relies on are in
   - `EntryParsed`, `ViewRendering`, `ResponseReady` (M2)
   - `ContentIndexed` (M4b; the content version listens, M6a), `ContentWritten`, `ContentPublished`, `CacheCleared` (D-415)
 
-## Records (D-643 to D-647)
+## Records (D-643 to D-651)
 
 The data layer's base (D-606, step 2; see `roadmap.md`), in
 `Blush\Storage\Record` and `Blush\Storage\File`. Content, data, and
 accounts move onto it in later steps; roles are on it now.
 
-- **`Record`**: an `id` (UUID), `values` (never `id` or `body`), and an
-  optional `body`; `value()` reaches dotted keys. **`Table`**: a name,
+- **`Record`**: an `id` (UUID), `fields` (never `id` or `content`), and
+  optional `content` (D-649); `value()` reaches dotted keys. A record
+  read from a store carries its `version` (D-648). **`Table`**: a name,
   its `StorageArea` (content, data, or accounts; sessions and jobs keep
   narrow stores, D-645), an optional unique key value (D-646), and the
-  values it declares (for a database's indexes, D-644).
+  fields it declares (for a database's indexes, D-644, D-648).
   `TableRegistry` lists every table; core and plugins register in a
   `resolving()` callback.
 - **`RecordStore`** (each driver's): find by id, key, or ids; save
-  (replacing in place) and delete; `select()` (a `RecordResult` with the
-  total), `count()`, `countBy()`, `aggregate()`; and `transaction()`.
+  (replacing in place, returning the record with its new version) and
+  delete, each refusing with `RecordConflict` when given a version the
+  record no longer has; `select()` (a `RecordResult` with the total),
+  `count()`, `countBy()`, `aggregate()`; and `transaction()`.
   **`RecordStores`** gives the store for a table's area, from that
   area's driver (D-642), and bound queries.
 - **`RecordQuery`**: immutable and fluent, itself what drivers compile:
-  a condition tree (`Condition`, `ConditionGroup` with `Junction`),
-  `Operator` (strict comparisons, documented on the enum), several
-  `Sort`s with `Order` (moved here from content), limit, offset, and
-  pages. Without an order, records come in the order they were added;
-  ties keep it. Null sorts last either way. An empty "any" group matches
-  nothing.
-- **`ArrayEvaluator`** runs queries over records in memory: the
-  reference behavior. **`ArrayRecordStore`** keeps records in memory.
+  a condition tree (`Condition`, `ConditionGroup` with `Junction`, and
+  `Related` for refs), `Operator` (strict comparisons, documented on
+  the enum; `intersects`; `in` and `not in` taking a `Subquery` of one
+  key's values, in the same table or another of the area), several
+  `Sort`s with `Order` (moved here from content), limit, offset, pages,
+  and `with()`. Without an order, records come in the order they were
+  added; ties keep it. Text sorts without regard to case; null sorts
+  last either way. An empty "any" group matches nothing.
+- **Refs** (D-649): `Ref` rows (`source_id`, `relation`, `target_id`,
+  `position`; an id from the three) in each area's `refs` table.
+  `whereRelated()` filters by them (inverse: what the targets refer
+  to); `with()` loads a result's (`RecordResult::refs()`); `Refs`
+  replaces a record's refs for a relation (`set()`) and reads them
+  (`of()`).
+- **`ArrayEvaluator`** runs queries over rows (plain arrays) in memory,
+  reading any table of the area through a callback, and a store's ref
+  lookup when it has one (`ArrayEvaluation` keeps each call's tables and
+  each subquery's answer): the reference behavior. Conditions compile
+  to closures once a query, common ones read inline; sorts of all text
+  or all numbers run natively (D-653).
+- **`IndexStore`** (`Content\Index`, D-653): the filesystem driver's
+  `entries` and `refs`, from the content index's stored rows, entries
+  written through the content writer (front matter edits, renames,
+  moves, trash); refs read-only. `FileRecordStore` hands it the
+  content area's two tables; `IndexFreshness` keeps the index current
+  once a request. **`ArrayRecordStore`** keeps records in memory.
 - **`FileRecordStore`** keeps each table as its **`FileLayout`** says
   (`FileLayouts`, the filesystem driver's alone): a folder of JSON files
   named by key or id (by default `user/content/{table}`,
   `user/data/{table}`, or `storage/{table}`), or one JSON file listing
   the records, under a top-level key whose siblings are kept. A record
-  is written as its values, its `body`, then its `id`, last. A record
+  is written as its fields, its `content`, then its `id`, last; its
+  version is a hash of that. A record
   without an id gets a steady one from its table and key
   (`Uuid::fromName()`) until it's written. Every read reads the table
   again; writes are atomic and each is in a transaction.
@@ -280,7 +302,8 @@ overrides in D-451, catalog metadata in D-452, `en` last in D-453.
   language does without an entry's translation: a 404, a 302 to the
   original (`ContentController::untranslated()`), or that plus lists
   with the originals (a query's `fallback` language, set by the
-  repository; `ArraySelector` keeps one record per translation group).
+  repository; `QueryCompiler` leaves out a fallback entry whose
+  translation the query finds, with subqueries, D-652).
 
 ## HTTP (custom, D-005)
 
@@ -691,8 +714,11 @@ Implemented in M4b (D-087, D-090).
   source, never on disk.
 - **`ContentIndex`** (`Content\Index`) is the queryable metadata store.
   - `PhpIndex` (default): `storage/index/content.php`, a `var_export`'d
-    `IndexSnapshot` kept in opcache shared memory. Records stay arrays;
-    queries are array filters (`ArraySelector`).
+    `IndexSnapshot` kept in opcache shared memory. Records stay arrays.
+    The snapshot also stores its entries and refs as record rows
+    (`SnapshotRecords`, D-652), built when the index is; `select()`
+    answers a `RecordQuery` over them (`ArrayEvaluator`), and
+    `locations()` answers folders and parent keys.
   - `SqliteIndex` (optional, later): for large sites and FTS5 search.
 - **`RecordBuilder`** turns a file into an `IndexRecord` (the 1.x file
   conventions, D-088) and its schema violations. It reads `id` before
@@ -779,11 +805,16 @@ Implemented in M4b (D-089).
 - `Paginator::links($url, endSize, midSize, adjacent)` builds numbered
   pagination as `PageLink`s (kind, number, URL; D-161);
   `ContentPage::pageLinks()` passes the page's URL builder.
-- Compiled per index: array filters for `PhpIndex` (`ArraySelector`,
-  with a `RecordMatcher` per query and per alternative), SQL for
-  `SqliteIndex`. `PhpIndex` scans every record for each query, so a
-  query's cost grows with the site (about 2 ms per 1,200 entries,
-  D-230); `SqliteIndex` is the answer for much larger sites.
+- Compiled by `QueryCompiler` (`Content\Record`, D-652) to a
+  `RecordQuery` over the `entries` table (D-649): statuses by
+  `published` against now, terms by refs or the slugs written under a
+  relation's keys, dates as ranges from the year down, the language
+  fallback as subqueries, folders and parent keys through the index's
+  `EntryLocations`, and the record layer's sort rules (D-648).
+  `PhpIndex` runs it over every entry record, so a query's cost grows
+  with the site (about 4 ms per 1,200 entries after D-652, from 2 ms;
+  step 3c works on it); `SqliteIndex` is the answer for much larger
+  sites.
 
 ## Media
 

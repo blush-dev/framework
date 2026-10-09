@@ -27,7 +27,7 @@ $template->layout('base');
 		<?= $template->include('partials/entry-meta', entry: $entry) ?>
 	</header>
 
-	<?= raw($entry->body()) ?>
+	<?= raw($entry->content()) ?>
 </article>
 
 <?php if ($entries !== null) : ?>

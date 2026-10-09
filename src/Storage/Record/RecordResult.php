@@ -19,20 +19,45 @@ use IteratorAggregate;
 use Override;
 
 /**
- * The records a query found, within its limit and offset, and how many
- * it matched in all.
+ * The records a query found, within its limit and offset, how many it
+ * matched in all, and, when it asked for them (`with()`), what each
+ * refers to.
  *
  * @implements IteratorAggregate<int, Record>
  */
 final readonly class RecordResult implements IteratorAggregate, Countable
 {
 	/**
-	 * @param list<Record> $records
+	 * @param list<Record>                               $records
+	 * @param array<string, array<string, list<string>>> $refs    Targets by record id, then relation, in order.
 	 */
 	public function __construct(
 		public array $records,
-		public int $total
+		public int $total,
+		public array $refs = []
 	) {}
+
+	/**
+	 * Returns the ids a record refers to through a relation, in order,
+	 * as loaded with `with()`.
+	 *
+	 * @return list<string>
+	 */
+	public function refs(string $id, string $relation): array
+	{
+		return $this->refs[strtolower($id)][$relation] ?? [];
+	}
+
+	/**
+	 * Returns the result with refs loaded.
+	 *
+	 * @param array<string, array<string, list<string>>> $refs
+	 */
+	#[\NoDiscard]
+	public function withRefs(array $refs): self
+	{
+		return new self($this->records, $this->total, $refs);
+	}
 
 	/**
 	 * Returns the first record, or `null` when there's none.

@@ -30,12 +30,17 @@ use Closure;
  *         ->paginate(perPage: 20, page: 2)
  *         ->get();
  *
- * Keys are values' keys, dotted to reach into nested values, or `id` or
- * `body`; `Operator` says how each compares. Every condition must hold;
- * `whereAny()` takes alternatives, each a group of its own, and groups
- * nest. Ties in the order, and a query with none, keep the order records
- * were added in. Relation filters and eager loading join the condition
- * tree with content (D-585, the data layer's step 3).
+ * Keys are fields' keys, dotted to reach into nested fields, or `id` or
+ * `content`; `Operator` says how each compares, and `in` and `not in`
+ * take a `Subquery`. Every condition must hold; `whereAny()` takes
+ * alternatives, each a group of its own, and groups nest. Ties in the
+ * order, and a query with none, keep the order records were added in;
+ * text sorts without regard to case (D-649).
+ *
+ * Refs (D-649): `whereRelated()` keeps records that refer, through a
+ * relation, to any of some ids or a subquery's (or, inverse, that they
+ * refer to), and `with()` loads what each found record refers to into
+ * the result.
  *
  * A query from a store (`RecordStores::query()`) runs itself with
  * `get()`, `first()`, `count()`, `countBy()`, and the aggregates.
@@ -43,13 +48,17 @@ use Closure;
 final readonly class RecordQuery
 {
 	/**
-	 * @param list<Sort> $sorts
+	 * @param list<Sort>   $sorts
+	 * @param list<string> $with    Relations whose refs a run loads.
+	 * @param bool         $content Whether the records found carry their content.
 	 */
 	public function __construct(
 		public ConditionGroup $conditions = new ConditionGroup(),
 		public array $sorts = [],
 		public ?int $limit = null,
 		public int $offset = 0,
+		public array $with = [],
+		public bool $content = true,
 		private ?RecordStore $store = null,
 		private ?Table $table = null
 	) {}
@@ -88,6 +97,46 @@ final readonly class RecordQuery
 		}
 
 		return clone($this, ['conditions' => $this->conditions->with($group)]);
+	}
+
+	/**
+	 * Keeps records that refer, through a relation, to any of the
+	 * targets (ids, or a subquery of them); inverse, records any of the
+	 * targets refer to.
+	 *
+	 * @param  list<string>|Subquery $targets
+	 * @throws InvalidRecordQuery
+	 */
+	#[\NoDiscard]
+	public function whereRelated(string $relation, array|Subquery $targets, bool $inverse = false): self
+	{
+		return clone($this, ['conditions' => $this->conditions->with(new Related($relation, $targets, $inverse))]);
+	}
+
+	/**
+	 * Loads, when the query runs itself, what each record found refers
+	 * to through these relations (`RecordResult::refs()`).
+	 *
+	 * @throws InvalidRecordQuery When a relation is empty.
+	 */
+	#[\NoDiscard]
+	public function with(string ...$relations): self
+	{
+		if (in_array('', $relations, true)) {
+			throw new InvalidRecordQuery('Name the relations to load.');
+		}
+
+		return clone($this, ['with' => array_values(array_unique([...$this->with, ...$relations]))]);
+	}
+
+	/**
+	 * Leaves the records found without their content, which a store
+	 * keeping large text need not read (a listing of entries, say).
+	 */
+	#[\NoDiscard]
+	public function withoutContent(): self
+	{
+		return clone($this, ['content' => false]);
 	}
 
 	/**
@@ -147,7 +196,7 @@ final readonly class RecordQuery
 	}
 
 	/**
-	 * Returns the records found.
+	 * Returns the records found, with the refs `with()` asked for.
 	 *
 	 * @throws RecordException
 	 */
@@ -155,7 +204,13 @@ final readonly class RecordQuery
 	{
 		[$store, $table] = $this->runner();
 
-		return $store->select($table, $this);
+		$result = $store->select($table, $this);
+
+		if ($this->with === []) {
+			return $result;
+		}
+
+		return $result->withRefs(Refs::group($store, $table, array_map(static fn (Record $record): string => $record->id, $result->records), $this->with));
 	}
 
 	/**

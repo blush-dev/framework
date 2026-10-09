@@ -23,6 +23,7 @@ use Override;
 use Psr\Clock\ClockInterface;
 use Blush\Cache\ContentVersion;
 use Blush\Content\ContentRepository;
+use Blush\Content\Index\RecordBuilder;
 use Blush\Content\Index\ContentIndex;
 use Blush\Content\Index\Indexer;
 use Blush\Content\Index\IndexReport;
@@ -872,7 +873,9 @@ final readonly class FilesystemWriter implements ContentWriter
 	}
 
 	/**
-	 * Returns changes for a new file: a new id, and a `published` date
+	 * Returns changes for a new file: its id (one the changes give, when
+	 * it's a UUID no entry has, as a record saved with its id, D-653;
+	 * else a new one), and a `published` date
 	 * of now in the site's time zone when neither the changes nor the
 	 * front matter it starts from (a copy's) has one (every kind, D-514).
 	 *
@@ -880,7 +883,8 @@ final readonly class FilesystemWriter implements ContentWriter
 	 */
 	private function withNew(EntryChanges $changes, array $frontMatter = []): EntryChanges
 	{
-		$changes = $this->withId($changes);
+		$given   = $changes->set[EntryFields::ID] ?? null;
+		$changes = $this->withId($changes, is_string($given) && Uuid::isValid($given) && $this->index->snapshot()->path(strtolower($given)) === null ? strtolower($given) : null);
 
 		if (array_intersect_key([...$frontMatter, ...$changes->set], ['published' => true, 'date' => true]) !== []) {
 			return $changes;
@@ -900,11 +904,11 @@ final readonly class FilesystemWriter implements ContentWriter
 	 * none gets it at the end of its front matter, and one that has one
 	 * (a copy) gets it in its place.
 	 */
-	private function withId(EntryChanges $changes): EntryChanges
+	private function withId(EntryChanges $changes, ?string $id = null): EntryChanges
 	{
 		$changes = self::withoutId($changes);
 
-		return new EntryChanges([...$changes->set, EntryFields::ID => Uuid::v7($this->clock->now())], $changes->remove, $changes->body);
+		return new EntryChanges([...$changes->set, EntryFields::ID => $id ?? Uuid::v7($this->clock->now())], $changes->remove, $changes->body);
 	}
 
 	/**
@@ -1146,6 +1150,6 @@ final readonly class FilesystemWriter implements ContentWriter
 	 */
 	private static function revision(string $contents): string
 	{
-		return hash('sha256', $contents);
+		return RecordBuilder::hash($contents);
 	}
 }

@@ -13,14 +13,11 @@ declare(strict_types=1);
 
 namespace Blush\Content\Index;
 
-use Blush\Content\Query\Query;
-use Blush\Content\Query\Selection;
-
 /**
  * The queryable store of what the indexer learned about every entry
- * (D-003). `PhpIndex` is the default; a `SqliteIndex` for large sites and
- * search can replace it by binding `ContentIndex`, compiling queries to
- * SQL instead of array filters.
+ * (D-003): the filesystem driver's own (D-606). `PhpIndex` is the
+ * default. Its entries and refs as rows (`records()`) are what the
+ * driver's content store (`IndexStore`) answers record queries over.
  */
 interface ContentIndex
 {
@@ -47,8 +44,9 @@ interface ContentIndex
 	public function clear(): void;
 
 	/**
-	 * Returns the paths a query matches, as of a Unix time (which decides
-	 * whether published entries are still scheduled).
+	 * Returns the index's entries and refs as rows (D-649), which also
+	 * say where entries are, for queries that name folders or parent
+	 * keys.
 	 */
-	public function select(Query $query, int $now): Selection;
+	public function records(): SnapshotRecords;
 }

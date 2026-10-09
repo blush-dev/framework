@@ -130,7 +130,9 @@ final readonly class Indexer
 			$links    = new LinkBuilder()->build($snapshot, $this->relations, $this->types);
 			$stale    = $links->stale;
 
-			$this->index->save($snapshot->withLinks($links));
+			$snapshot = $snapshot->withLinks($links);
+
+			$this->index->save($snapshot->withRows(SnapshotRecords::build($snapshot, $this->types)->toArray()));
 		}
 
 		$report = new IndexReport(count($records), $added, $changed, $removed, $failures, $full, $write, $stale);

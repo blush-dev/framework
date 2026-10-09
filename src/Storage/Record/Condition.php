@@ -15,8 +15,9 @@ namespace Blush\Storage\Record;
 
 /**
  * One condition of a record query: a key, an operator, and the value to
- * compare with. The key is a value's key, dotted to reach into nested
- * values (`seo.title`), or `id` or `body`.
+ * compare with. The key is a field's key, dotted to reach into nested
+ * fields (`seo.title`), or `id` or `content`. `in` and `not in` may take
+ * a `Subquery`.
  */
 final readonly class Condition
 {

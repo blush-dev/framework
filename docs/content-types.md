@@ -735,15 +735,17 @@ new Listing(orderBy: 'published', order: Order::Desc, perPage: 20)
 | Option    | Default         | What it does                                                           |
 |-----------|-----------------|------------------------------------------------------------------------|
 | `type`    | The type itself | Which type to list                                                     |
-| `orderBy` | Its type's order | `published`, `updated`, `title`, `author`, `position` (a tree's, or a collection's that [nests or is ordered by position](#nesting-and-order); those without one come last, by title), or any field. A collection lists by its `order`: newest published first, or by `position`, then title |
+| `orderBy` | Its type's order | `published`, `updated`, `title`, `author`, `position` (a tree's, or a collection's that [nests or is ordered by position](#nesting-and-order), then title), or any field. A collection lists by its `order`: newest published first, or by `position`, then title |
 | `order`   | Its type's order | `asc` or `desc` (`Order::Asc` or `Order::Desc` in PHP)                 |
 | `perPage` | `10`            | How many per page; `0` (`Listing::ALL`) for all of them                |
 | `query`   |                 | Any other option from the table below, such as `{terms: {tag: [php]}}` |
 
 Entries are never sorted by file name, so the order holds when file
-names change or content moves to a database. Ties go by when each entry
-was made (its id). 1.x's `orderby: filename` is read as `published`, and
-`content:lint` warns where a page still says it.
+names change or content moves to a database. Text sorts without regard
+to case; entries without the value come last, whichever way; and ties
+go by when each entry was made (its id), earliest first. 1.x's
+`orderby: filename` is read as `published`, and `content:lint` warns
+where a page still says it.
 
 To list entries on any page, use `collection` in its front matter:
 
@@ -769,7 +771,7 @@ collection:
 | `author`                  | Only entries crediting these profiles, through any credit relation            |
 | `names` / `names_exclude` | Only, or never, these slugs                                                   |
 | `meta_key` / `meta_value` | Only entries whose field has this value                                       |
-| `year` … `second`         | Only entries published in this period                                         |
+| `year` … `second`         | Only entries published in this period: `year`, then `month`, down to `second`, each with the ones before it |
 
 ## All type options
 

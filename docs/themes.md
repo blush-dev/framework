@@ -411,7 +411,7 @@ $template->layout('base');
 		<p><?= e($template->date($entry->published)) ?></p>
 	<?php endif ?>
 
-	<?= raw($entry->body()) ?>
+	<?= raw($entry->content()) ?>
 </article>
 ```
 
@@ -515,11 +515,12 @@ items, it includes the `empty` template, if you gave one:
 <?= $template->each('partials/entry-summary', $entries, as: 'entry', empty: 'partials/no-entries') ?>
 ```
 
-An entry offers `title`, `slug`, `published`, `updated`, `body()`,
+An entry offers `title`, `slug`, `published`, `updated`, `content()`
+(its rendered Markdown; `raw()` is the Markdown as written),
 `summary()`, `excerpt()`, `subtitle()`, `wordCount()`, `readingTime()`
 (in minutes), and `field('name')` for anything in its front matter.
 `excerpt(50, $more)` takes the number of words and HTML to end with when
-the body is cut short, such as a "Continue reading" link:
+the content is cut short, such as a "Continue reading" link:
 
 ```php
 <?= raw($entry->excerpt(40, ' <a href="' . url($template->permalink($entry)) . '">Continue reading</a>')) ?>

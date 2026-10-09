@@ -281,7 +281,7 @@ final class AssetsTest extends TestCase
 			$entry     = $this->repository($app)->named('post', 'episode');
 
 			$this->assertSame([], $collector->collect(static fn (): string => (string) $entry?->excerpt())[1], $environment);
-			$this->assertSame([AssetRegistrar::PLAYER], $collector->collect(static fn (): string => (string) $entry?->body())[1], $environment);
+			$this->assertSame([AssetRegistrar::PLAYER], $collector->collect(static fn (): string => (string) $entry?->content())[1], $environment);
 		}
 	}
 

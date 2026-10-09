@@ -27,7 +27,7 @@ $relation = $page->relation->name ?? '';
 
 	<?php if ($entry !== null && $entry->raw() !== '') : ?>
 		<div class="archive-header__description">
-			<?= raw($entry->body()) ?>
+			<?= raw($entry->content()) ?>
 		</div>
 	<?php endif ?>
 </header>

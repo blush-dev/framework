@@ -345,12 +345,13 @@ final class AdminContentTest extends TestCase
 		$this->assertEqualsCanonicalizing(["Jane's draft", 'Soon', 'Live'], array_column($this->listed(), 'title'));
 	}
 
-	public function testSearchesTitlesAndPaths(): void
+	public function testSearchesTitlesAndSlugs(): void
 	{
 		$this->site(['editor']);
 
 		$this->assertEqualsCanonicalizing(["Jane's draft", "Sam's draft"], array_column($this->listed('?search=DRAFT&status=draft'), 'title'), 'In any case.');
-		$this->assertSame(['Soon'], array_column($this->listed('?search=soon.md'), 'title'));
+		$this->assertSame(["Jane's draft"], array_column($this->listed('?search=jane-dr&status=draft'), 'title'), 'Slugs.');
+		$this->assertSame(0, $this->list('?search=soon.md')['total'], 'Never paths, which only files have (D-649).');
 		$this->assertSame(0, $this->list('?search=nothing')['total']);
 	}
 
@@ -387,7 +388,7 @@ final class AdminContentTest extends TestCase
 
 		$this->assertSame(['Broken', "Jane's draft", 'Live', "Sam's draft", 'Soon'], array_column($this->listed('?sort=title'), 'title'));
 		$this->assertSame(['Soon', "Sam's draft", 'Live', "Jane's draft", 'Broken'], array_column($this->listed('?sort=title&dir=desc'), 'title'));
-		$this->assertSame(['draft', 'draft', 'published', 'published', 'scheduled'], array_column($this->listed('?sort=status'), 'status'), 'A scheduled entry sorts as scheduled.');
+		$this->assertSame(['draft', 'draft', 'scheduled', 'published', 'published'], array_column($this->listed('?sort=status'), 'status'), 'By the status kept: a scheduled entry is a published one whose time is to come (D-649), in the order entries were made.');
 		$first = $this->listed('?sort=author&dir=desc')[0] ?? [];
 
 		$this->assertSame(['sam'], $first['authors'] ?? null, 'Authors sort by their slug.');
@@ -435,7 +436,9 @@ final class AdminContentTest extends TestCase
 		$this->writeTemporaryFile('user/content/guides/setup/install.md', "---\ntitle: Install\n---\n");
 		$this->site(['editor']);
 
-		$ancestors = array_column($this->listed('?type=page&search=guides'), 'ancestors', 'title');
+		$ancestors = array_column($this->listed('?type=page'), 'ancestors', 'title');
+
+		ksort($ancestors);
 
 		$this->assertSame(['Guides' => [], 'Install' => ['Guides', 'Setup'], 'Setup' => ['Guides']], array_intersect_key($ancestors, ['Guides' => true, 'Setup' => true, 'Install' => true]), 'By title, with no positions (D-413).');
 	}

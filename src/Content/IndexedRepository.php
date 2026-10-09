@@ -22,14 +22,21 @@ use Blush\Content\Entry\Position;
 use Blush\Content\Entry\EntryHydrator;
 use Blush\Content\Index\ContentIndex;
 use Blush\Content\Index\IndexFingerprint;
+use Blush\Content\Index\IndexFreshness;
 use Blush\Content\Index\IndexSnapshot;
 use Blush\Content\Index\Indexer;
 use Blush\Content\Query\EntryCollection;
+use Blush\Content\Query\InvalidQuery;
 use Blush\Content\Query\Paginator;
 use Blush\Content\Query\Query;
 use Blush\Content\ContentConfig;
+use Blush\Content\Query\Selection;
+use Blush\Content\Record\EntryTable;
+use Blush\Content\Record\QueryCompiler;
 use Blush\Content\Type\ContentTypes;
 use Blush\Core\AppConfig;
+use Blush\Storage\Record\Record;
+use Blush\Storage\Record\RecordStores;
 
 /**
  * The default repository: reads the content index and hydrates entries
@@ -51,20 +58,14 @@ final class IndexedRepository implements ContentRepository
 	 */
 	private const string AUTHOR = 'author';
 
-	private bool $checked = false;
-
-	/**
-	 * @param Closure(): Indexer $indexer
-	 */
 	public function __construct(
-		private readonly ContentIndex $index,
+		private readonly IndexFreshness $freshness,
 		private readonly EntryHydrator $hydrator,
 		private readonly ContentTypes $types,
 		private readonly AppConfig $app,
-		private readonly ContentConfig $config,
 		private readonly ClockInterface $clock,
-		private readonly IndexFingerprint $fingerprint,
-		#[Defer(Indexer::class)] private readonly Closure $indexer
+		private readonly QueryCompiler $compiler,
+		private readonly RecordStores $stores
 	) {}
 
 	/**
@@ -82,9 +83,27 @@ final class IndexedRepository implements ContentRepository
 	#[Override]
 	public function get(Query $query): EntryCollection
 	{
-		$selection = $this->fresh()->select($this->resolved($query), $this->now());
+		$selection = $this->select($this->resolved($query));
 
 		return new EntryCollection($selection->paths, $selection->total, $this->load(...));
+	}
+
+	/**
+	 * Runs a query: compiled to a record query over `entries` (D-649),
+	 * as of now, and answered by the store that keeps them (D-653), the
+	 * entries found without their content, which hydration reads lazily.
+	 * Entries are still hydrated from the index, by path, until the
+	 * repository reads records (the data layer's step 3d).
+	 *
+	 * @throws InvalidQuery
+	 */
+	private function select(Query $query): Selection
+	{
+		$records = $this->fresh()->records();
+		$table   = EntryTable::table();
+		$found   = $this->stores->store($table)->select($table, $this->compiler->compile($query, $this->now(), $records)->withoutContent());
+
+		return new Selection(array_values(array_filter(array_map(static fn (Record $record): ?string => $records->path($record->id), $found->records))), $found->total);
 	}
 
 	/**
@@ -130,7 +149,7 @@ final class IndexedRepository implements ContentRepository
 	#[Override]
 	public function count(Query $query): int
 	{
-		return $this->fresh()->select($this->resolved($query)->limit(0), $this->now())->total;
+		return $this->select($this->resolved($query)->limit(0))->total;
 	}
 
 	/**
@@ -291,7 +310,7 @@ final class IndexedRepository implements ContentRepository
 			->type($entry->type)
 			->language($entry->language === '' ? null : $entry->language);
 
-		$paths = $this->fresh()->select($this->resolved($query->limit(null)->offset(0)), $this->now())->paths;
+		$paths = $this->select($this->resolved($query->limit(null)->offset(0)))->paths;
 		$index = array_search($entry->path, $paths, true);
 
 		if ($index === false) {
@@ -360,22 +379,11 @@ final class IndexedRepository implements ContentRepository
 	}
 
 	/**
-	 * Returns the index, refreshed first if it's missing or stale or, in
-	 * development, not yet checked in this request.
+	 * Returns the index, brought up to date once a request.
 	 */
 	private function fresh(): ContentIndex
 	{
-		if (! $this->checked) {
-			$this->checked = true;
-
-			$stale = ! $this->index->exists() || ! $this->fingerprint->matches($this->index->snapshot());
-
-			if ($stale || ($this->config->autoIndex && $this->app->environment->isDevelopment())) {
-				($this->indexer)()->index();
-			}
-		}
-
-		return $this->index;
+		return $this->freshness->fresh();
 	}
 
 	/**

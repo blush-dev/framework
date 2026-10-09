@@ -17,18 +17,23 @@ use DateTimeInterface;
 use Blush\Support\Uuid;
 
 /**
- * What a storage driver keeps (D-643): an id, its values by key, and an
- * optional body. The id is a UUID, identity for every driver (D-606);
- * the values are what a JSON object holds (text, numbers, true and
- * false, null, lists, and maps), and never `id` or `body`, which a
- * query reaches as themselves.
+ * What a storage driver keeps (D-643, D-649): an id, its fields by key,
+ * and optional content (an entry's Markdown, say). The id is a UUID,
+ * identity for every driver (D-606); fields hold what a JSON object
+ * holds (text, numbers, true and false, null, lists, and maps), and
+ * never `id` or `content`, which a query reaches as themselves.
+ *
+ * A record read from a store carries its **version** (D-648), which
+ * changes whenever it's saved; pass it back to `save()` or `delete()`
+ * to refuse the write when someone else changed the record since. The
+ * `with*()` copies keep it.
  */
 final readonly class Record
 {
 	/**
-	 * Keys a record's values can't use.
+	 * Keys a record's fields can't use.
 	 */
-	public const array RESERVED = ['id', 'body'];
+	public const array RESERVED = ['id', 'content'];
 
 	/**
 	 * The id, lowercase.
@@ -36,21 +41,23 @@ final readonly class Record
 	public string $id;
 
 	/**
-	 * @param  array<string, mixed> $values
-	 * @throws InvalidRecord When the id isn't a UUID or a value's key is reserved.
+	 * @param  array<string, mixed> $fields
+	 * @param  ?string              $version The store's, when it was read from one.
+	 * @throws InvalidRecord When the id isn't a UUID or a field's key is reserved.
 	 */
 	public function __construct(
 		string $id,
-		public array $values = [],
-		public ?string $body = null
+		public array $fields = [],
+		public ?string $content = null,
+		public ?string $version = null
 	) {
 		if (! Uuid::isValid($id)) {
 			throw new InvalidRecord(sprintf('"%s" isn\'t a record id; ids are UUIDs.', $id));
 		}
 
-		foreach (array_keys($values) as $key) {
-			if ($key === '' || in_array($key, self::RESERVED, true)) {
-				throw new InvalidRecord(sprintf('A record\'s values can\'t use the key "%s".', $key));
+		foreach (['', ...self::RESERVED] as $key) {
+			if (array_key_exists($key, $fields)) {
+				throw new InvalidRecord(sprintf('A record\'s fields can\'t use the key "%s".', $key));
 			}
 		}
 
@@ -60,18 +67,19 @@ final readonly class Record
 	/**
 	 * Makes a new record with a new id (a version 7 UUID, D-477).
 	 *
-	 * @param  array<string, mixed> $values
-	 * @throws InvalidRecord When a value's key is reserved.
+	 * @param  array<string, mixed> $fields
+	 * @throws InvalidRecord When a field's key is reserved.
 	 */
-	public static function create(DateTimeInterface $now, array $values = [], ?string $body = null): self
+	public static function create(DateTimeInterface $now, array $fields = [], ?string $content = null): self
 	{
-		return new self(Uuid::v7($now), $values, $body);
+		return new self(Uuid::v7($now), $fields, $content);
 	}
 
 	/**
-	 * Returns a value by key, or `null` when there's none: `id`, `body`,
-	 * a value's key, or keys joined by dots to reach into nested values
-	 * (`seo.title`). A key with a dot in it is found as it is first.
+	 * Returns a value by key, or `null` when there's none: `id`,
+	 * `content`, a field's key, or keys joined by dots to reach into
+	 * nested fields (`seo.title`). A key with a dot in it is found as it
+	 * is first.
 	 */
 	public function value(string $key): mixed
 	{
@@ -79,15 +87,15 @@ final readonly class Record
 			return $this->id;
 		}
 
-		if ($key === 'body') {
-			return $this->body;
+		if ($key === 'content') {
+			return $this->content;
 		}
 
-		if (array_key_exists($key, $this->values)) {
-			return $this->values[$key];
+		if (array_key_exists($key, $this->fields)) {
+			return $this->fields[$key];
 		}
 
-		$value = $this->values;
+		$value = $this->fields;
 
 		foreach (explode('.', $key) as $segment) {
 			if (! is_array($value) || ! array_key_exists($segment, $value)) {
@@ -101,43 +109,52 @@ final readonly class Record
 	}
 
 	/**
-	 * Returns the record with a value set.
+	 * Returns the record with a field set.
 	 *
 	 * @throws InvalidRecord When the key is reserved.
 	 */
 	#[\NoDiscard]
 	public function with(string $key, mixed $value): self
 	{
-		return new self($this->id, [...$this->values, $key => $value], $this->body);
+		return new self($this->id, [...$this->fields, $key => $value], $this->content, $this->version);
 	}
 
 	/**
-	 * Returns the record with other values.
+	 * Returns the record with other fields.
 	 *
-	 * @param  array<string, mixed> $values
+	 * @param  array<string, mixed> $fields
 	 * @throws InvalidRecord When a key is reserved.
 	 */
 	#[\NoDiscard]
-	public function withValues(array $values): self
+	public function withFields(array $fields): self
 	{
-		return new self($this->id, $values, $this->body);
+		return new self($this->id, $fields, $this->content, $this->version);
 	}
 
 	/**
-	 * Returns the record without some values.
+	 * Returns the record without some fields.
 	 */
 	#[\NoDiscard]
 	public function without(string ...$keys): self
 	{
-		return new self($this->id, array_diff_key($this->values, array_flip($keys)), $this->body);
+		return new self($this->id, array_diff_key($this->fields, array_flip($keys)), $this->content, $this->version);
 	}
 
 	/**
-	 * Returns the record with another body, or none.
+	 * Returns the record with other content, or none.
 	 */
 	#[\NoDiscard]
-	public function withBody(?string $body): self
+	public function withContent(?string $content): self
 	{
-		return new self($this->id, $this->values, $body);
+		return new self($this->id, $this->fields, $content, $this->version);
+	}
+
+	/**
+	 * Returns the record as a store read it, at a version.
+	 */
+	#[\NoDiscard]
+	public function withVersion(?string $version): self
+	{
+		return new self($this->id, $this->fields, $this->content, $version);
 	}
 }

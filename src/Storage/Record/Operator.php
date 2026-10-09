@@ -27,7 +27,9 @@ namespace Blush\Storage\Record;
  *   as text); anything else, `null` included, doesn't match.
  * - `like` matches text against a pattern, `%` for any run and `_` for
  *   one character (`\` escapes either), without regard to case.
- * - `contains` matches a list holding the value.
+ * - `contains` matches a list holding the value; `intersects`, a list
+ *   holding any of the values.
+ * - `in` and `not in` take a list of values, or a `Subquery`.
  * - `null` and `not null` take no value.
  */
 enum Operator: string
@@ -43,6 +45,7 @@ enum Operator: string
 	case Between        = 'between';
 	case Like           = 'like';
 	case Contains       = 'contains';
+	case Intersects     = 'intersects';
 	case Null           = 'null';
 	case NotNull        = 'not null';
 
@@ -59,7 +62,8 @@ enum Operator: string
 		$valid = match ($this) {
 			self::Equal, self::NotEqual, self::Contains => $scalar($value),
 			self::Less, self::LessOrEqual, self::Greater, self::GreaterOrEqual => $ordered($value),
-			self::In, self::NotIn => is_array($value) && array_is_list($value) && array_all($value, static fn (mixed $item): bool => $scalar($item)),
+			self::In, self::NotIn => $value instanceof Subquery || (is_array($value) && array_is_list($value) && array_all($value, static fn (mixed $item): bool => $scalar($item))),
+			self::Intersects => is_array($value) && array_is_list($value) && array_all($value, static fn (mixed $item): bool => $scalar($item)),
 			self::Between => is_array($value) && array_is_list($value) && count($value) === 2 && $ordered($value[0]) && $ordered($value[1]),
 			self::Like => is_string($value),
 			self::Null, self::NotNull => $value === null
@@ -67,7 +71,8 @@ enum Operator: string
 
 		if (! $valid) {
 			throw new InvalidRecordQuery(match ($this) {
-				self::In, self::NotIn => sprintf('"%s" takes a list of plain values.', $this->value),
+				self::In, self::NotIn => sprintf('"%s" takes a list of plain values, or a subquery.', $this->value),
+				self::Intersects => '"intersects" takes a list of plain values.',
 				self::Between => '"between" takes a list of two numbers or two strings.',
 				self::Like => '"like" takes a pattern string.',
 				self::Null, self::NotNull => sprintf('"%s" takes no value.', $this->value),

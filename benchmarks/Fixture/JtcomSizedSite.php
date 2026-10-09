@@ -14,23 +14,27 @@ declare(strict_types=1);
 namespace Blush\Benchmarks\Fixture;
 
 use RuntimeException;
+use Blush\Support\Uuid;
 use Blush\Tests\Fixtures\Content\JtcomTypes;
 
 /**
  * Generates a site shaped like jtcom (D-044): its seven content types
- * (from `JtcomTypes`), 1,183 content files (940 dated posts across 23
- * years with categories, eras, and an author; 124 topics; 6 eras; 46
- * pieces of writing with forms, genres, and techniques; and pages), and
- * Markdown bodies of a few hundred words. Output is deterministic (a
- * fixed seed), and the site is built once per `VERSION` in the system
- * temp folder, so runs compare like with like.
+ * and their relations (from `JtcomTypes`, as data files in
+ * `user/data/types` and `user/data/relations`, D-617), 1,184 content
+ * files (940 dated posts across 23 years with categories, eras, and an
+ * author; 124 topics; 6 eras; 46 pieces of writing with forms, genres,
+ * and techniques; pages; and the author's profile), each with an `id`
+ * (D-480), and Markdown bodies of a few hundred words. Output is
+ * deterministic (a fixed seed, and ids from each file's path), and the
+ * site is built once per `VERSION` in the system temp folder, so runs
+ * compare like with like.
  */
 final class JtcomSizedSite
 {
 	/**
 	 * Bump when the generated content changes.
 	 */
-	public const int VERSION = 2;
+	public const int VERSION = 3;
 
 	public const int POSTS = 940;
 
@@ -83,8 +87,6 @@ final class JtcomSizedSite
 	{
 		mt_srand(2026);
 
-		$types = var_export(['types' => JtcomTypes::definitions(), 'home' => 'post'], true);
-
 		self::write("{$root}/config/app.php", <<<PHP
 			<?php
 
@@ -101,14 +103,21 @@ final class JtcomSizedSite
 
 			declare(strict_types=1);
 
-			use Blush\\Content\\Type\\ContentConfig;
+			use Blush\\Content\\ContentConfig;
 
-			return ContentConfig::fromArray({$types});
+			return new ContentConfig(home: 'post');
 			PHP);
+
+		foreach (['types' => JtcomTypes::definitions(), 'relations' => JtcomTypes::relations()] as $folder => $definitions) {
+			foreach ($definitions as $name => $definition) {
+				self::write("{$root}/user/data/{$folder}/{$name}.json", json_encode($definition, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR) . "\n");
+			}
+		}
 
 		$content = "{$root}/user/content";
 
 		self::entry("{$content}/index.md", ['title' => 'Home'], self::body(2));
+		self::entry("{$content}/profiles/j/justintadlock.md", ['title' => 'Justin Tadlock'], self::body(1));
 		self::entry("{$content}/_posts/index.md", ['title' => 'Blog'], '');
 		self::entry("{$content}/topics/index.md", ['title' => 'Topics', 'collection' => ['number' => -1]], '');
 		self::entry("{$content}/eras/index.md", ['title' => 'Eras'], '');
@@ -168,7 +177,7 @@ final class JtcomSizedSite
 	}
 
 	/**
-	 * Writes a Markdown entry.
+	 * Writes a Markdown entry, with an id from its path, last.
 	 *
 	 * @param array<string, mixed> $frontMatter
 	 */
@@ -176,7 +185,7 @@ final class JtcomSizedSite
 	{
 		$yaml = '';
 
-		foreach ($frontMatter as $key => $value) {
+		foreach ([...$frontMatter, 'id' => Uuid::fromName('bench/' . substr($path, (int) strpos($path, '/user/content/')))] as $key => $value) {
 			$yaml .= "{$key}: " . json_encode($value, JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR) . "\n";
 		}
 

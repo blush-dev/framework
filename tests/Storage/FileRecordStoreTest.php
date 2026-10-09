@@ -14,12 +14,14 @@ declare(strict_types=1);
 namespace Blush\Tests\Storage;
 
 use DateTimeImmutable;
+use LogicException;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Blush\Auth\AuthException;
 use Blush\Auth\RecordRoleStore;
 use Blush\Auth\Role;
 use Blush\Auth\RoleStore;
+use Blush\Content\Index\IndexStore;
 use Blush\Core\Paths;
 use Blush\Storage\File\FileLayout;
 use Blush\Storage\File\FileLayouts;
@@ -49,7 +51,7 @@ final class FileRecordStoreTest extends TestCase
 	{
 		$paths = Paths::fromRoot($this->temporaryDirectory());
 
-		return new FileRecordStore($paths, $layouts ?? new FileLayouts($paths), new FileTransactions($paths, new Filesystem()), new Filesystem());
+		return new FileRecordStore($paths, $layouts ?? new FileLayouts($paths), new FileTransactions($paths, new Filesystem()), new Filesystem(), static fn (): IndexStore => throw new LogicException('These tests keep no content.'));
 	}
 
 	private function json(string $relative): mixed
@@ -82,7 +84,7 @@ final class FileRecordStoreTest extends TestCase
 		$store->save($keyed, new Record(self::ID, ['slug' => 'summer', 'title' => 'Summer'], 'About summer.'));
 		$store->save($byId, new Record(self::ID, ['text' => 'One']));
 
-		$this->assertSame(['slug' => 'summer', 'title' => 'Summer', 'body' => 'About summer.', 'id' => self::ID], $this->json('user/data/albums/summer.json'), 'Values, the body, then the id, last.');
+		$this->assertSame(['slug' => 'summer', 'title' => 'Summer', 'content' => 'About summer.', 'id' => self::ID], $this->json('user/data/albums/summer.json'), 'Fields, the content, then the id, last.');
 		$this->assertSame(['text' => 'One', 'id' => self::ID], $this->json('storage/notes/' . self::ID . '.json'), 'Named by id without a key; accounts under storage/.');
 
 		$store->save($keyed, new Record(self::ID, ['slug' => 'autumn', 'title' => 'Autumn']));
@@ -121,7 +123,7 @@ final class FileRecordStoreTest extends TestCase
 
 		$record = $this->store()->findByKey(new Table('albums', StorageArea::Data, key: 'slug'), 'summer');
 
-		$this->assertSame(['title' => 'Summer', 'slug' => 'summer'], $record?->values);
+		$this->assertSame(['title' => 'Summer', 'slug' => 'summer'], $record?->fields);
 	}
 
 	public function testNamesAFileItCantRead(): void

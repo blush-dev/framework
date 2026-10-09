@@ -76,7 +76,7 @@ final class ContentBench
 	#[Bench\Subject]
 	public function benchLoadIndex(): void
 	{
-		new PhpIndex(Paths::fromRoot(JtcomSizedSite::root()))->snapshot();
+		$this->app->container()->build(PhpIndex::class)->snapshot();
 	}
 
 	#[Bench\Subject]

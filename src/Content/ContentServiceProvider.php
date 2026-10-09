@@ -26,6 +26,8 @@ use Blush\Content\Http\SingleController;
 use Blush\Content\Http\TermController;
 use Blush\Content\Index\ContentIndex;
 use Blush\Content\Index\IndexFingerprint;
+use Blush\Content\Index\IndexFreshness;
+use Blush\Content\Index\IndexStore;
 use Blush\Content\Index\Indexer;
 use Blush\Content\Index\PhpIndex;
 use Blush\Content\Index\RecordBuilder;
@@ -85,6 +87,8 @@ final class ContentServiceProvider extends ServiceProvider
 	 * @inheritDoc
 	 */
 	protected const array SINGLETONS = [
+		IndexFreshness::class,
+		IndexStore::class,
 		FieldFactory::class,
 		FieldTargets::class,
 		FrontMatter::class,

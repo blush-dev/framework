@@ -13,8 +13,10 @@ declare(strict_types=1);
 
 namespace Blush\Tests\Storage\Conformance;
 
+use LogicException;
 use Override;
 use PHPUnit\Framework\Attributes\CoversClass;
+use Blush\Content\Index\IndexStore;
 use Blush\Core\Paths;
 use Blush\Storage\File\FileLayouts;
 use Blush\Storage\File\FileRecordStore;
@@ -39,6 +41,6 @@ final class FileRecordStoreFolderTest extends RecordStoreConformance
 	{
 		$paths = Paths::fromRoot($this->temporaryDirectory());
 
-		return new FileRecordStore($paths, new FileLayouts($paths), new FileTransactions($paths, new Filesystem()), new Filesystem());
+		return new FileRecordStore($paths, new FileLayouts($paths), new FileTransactions($paths, new Filesystem()), new Filesystem(), static fn (): IndexStore => throw new LogicException('These tests keep no content.'));
 	}
 }

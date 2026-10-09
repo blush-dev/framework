@@ -14,8 +14,7 @@ declare(strict_types=1);
 namespace Blush\Content\Index;
 
 use Override;
-use Blush\Content\Query\Query;
-use Blush\Content\Query\Selection;
+use Blush\Content\Type\ContentTypes;
 use Blush\Core\Paths;
 use Blush\Support\FilesystemException;
 use Blush\Support\PhpArrayFile;
@@ -23,8 +22,9 @@ use Blush\Support\PhpArrayFile;
 /**
  * The default index: `storage/index/content.php`, a PHP file returning the
  * snapshot's array (D-044). Opcache keeps it in shared memory, so reading
- * it costs no parsing, and it's read once per request. Queries run as
- * array filters (`ArraySelector`).
+ * it costs no parsing, and it's read once per request. Its entries and
+ * refs are stored as rows (`SnapshotRecords`, D-649), which the
+ * filesystem driver's content store queries (`IndexStore`).
  */
 final class PhpIndex implements ContentIndex
 {
@@ -35,10 +35,17 @@ final class PhpIndex implements ContentIndex
 
 	private ?IndexSnapshot $snapshot = null;
 
+	/**
+	 * The snapshot's records, once built.
+	 */
+	private ?SnapshotRecords $records = null;
+
 	private readonly PhpArrayFile $file;
 
-	public function __construct(Paths $paths, private readonly ArraySelector $selector = new ArraySelector())
-	{
+	public function __construct(
+		Paths $paths,
+		private readonly ContentTypes $types
+	) {
 		$this->file = new PhpArrayFile("{$paths->index}/" . self::FILE);
 	}
 
@@ -91,6 +98,7 @@ final class PhpIndex implements ContentIndex
 		}
 
 		$this->snapshot = $snapshot;
+		$this->records  = null;
 	}
 
 	/**
@@ -101,14 +109,18 @@ final class PhpIndex implements ContentIndex
 	{
 		$this->file->delete();
 		$this->snapshot = null;
+		$this->records  = null;
 	}
 
 	/**
-	 * @inheritDoc
+	 * The snapshot's records, as stored with it, or built from it for an
+	 * index stored without them.
 	 */
 	#[Override]
-	public function select(Query $query, int $now): Selection
+	public function records(): SnapshotRecords
 	{
-		return $this->selector->select($this->snapshot()->records, $query, $now);
+		$snapshot = $this->snapshot();
+
+		return $this->records ??= SnapshotRecords::fromSnapshot($snapshot) ?? SnapshotRecords::build($snapshot, $this->types);
 	}
 }
