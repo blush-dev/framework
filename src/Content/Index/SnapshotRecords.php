@@ -75,6 +75,13 @@ final class SnapshotRecords
 	private ?array $byId = null;
 
 	/**
+	 * Ref rows by id, once asked for.
+	 *
+	 * @var ?array<string, RowArray>
+	 */
+	private ?array $refsById = null;
+
+	/**
 	 * Each table's row offsets by a key's value, once asked for, by
 	 * `{table}:{key}`.
 	 *
@@ -354,5 +361,17 @@ final class SnapshotRecords
 		$this->byId ??= array_column($this->entries, null, 'id');
 
 		return $this->byId[strtolower($id)] ?? null;
+	}
+
+	/**
+	 * Returns a ref's row, by id.
+	 *
+	 * @return ?RowArray
+	 */
+	public function ref(string $id): ?array
+	{
+		$this->refsById ??= array_column($this->refRows, null, 'id');
+
+		return $this->refsById[strtolower($id)] ?? null;
 	}
 }

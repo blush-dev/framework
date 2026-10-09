@@ -68,6 +68,16 @@ abstract class EntryStoreConformance extends TestCase
 	abstract protected function entries(Application $app, RecordStores $stores): Entries;
 
 	/**
+	 * Returns the content settings the site is booted with.
+	 *
+	 * @return array<string, mixed>
+	 */
+	protected function settings(): array
+	{
+		return [];
+	}
+
+	/**
 	 * Returns whether the driver writes entries through `Entries`.
 	 */
 	protected function writes(): bool
@@ -77,7 +87,7 @@ abstract class EntryStoreConformance extends TestCase
 
 	protected function setUp(): void
 	{
-		$this->standardContent();
+		$this->standardContent($this->settings());
 		$this->entry('about/biography.md', "title: Biography\nredirect_from: [/bio, /about-me]");
 		$this->entry('_posts/_authors/justintadlock.md', 'title: Justin, Blogger');
 		$this->writeTemporaryFile('user/content/_posts/2009-01-01.no-id.md', "---\ntitle: No Id\n---\nA file without an id.");

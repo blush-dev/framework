@@ -20096,3 +20096,95 @@ decision, add a new entry that supersedes it and mark the old one
 - **Why:** the author: "Note that there's no back-compat concerns if they
   get in the way. We can always simply update the files on our system. I
   was the only 1.x user."
+
+### D-659: Step 4's plan, and SQL for record queries (step 4a)
+
+- **Date:** 2026-10-08
+- **Status:** Plan decided; 4a built. Settles "The filesystem driver's
+  index" (`open-questions.md`) as its leaning; plan in `roadmap.md`
+  ("Step 4").
+- **Decision:**
+  - **The plan** (the author's choices when asked): the filesystem
+    driver keeps its index's rows in a derived SQLite file
+    (`storage/index/content.sqlite`) when PHP has `pdo_sqlite` with
+    SQLite's JSON functions, and **falls back to `PhpIndex`** without
+    them ("Fall back to the PHP index"); built **part by part** (4a SQL,
+    4b the rows in SQLite, 4c requests without the snapshot, 4d parity
+    and docs), each reviewed before the next.
+  - **4a, `Blush\Storage\Sql`:** `SqlDialect` (`SqliteDialect`): reading
+    a key's JSON type and value (`id`, `content`, a declared value's
+    columns, a field, a nested field read from the declared value it's
+    in, a field named with dots first, and keys no JSON path names
+    alike, with a `"` or a numeric part, read by PHP), lists bound as
+    one JSON value (`json_each`), and a table's schema (`{area}:{name}`:
+    `id`, `fields` JSON, `content`, `version`, `dotted` (whether a field
+    is named with a dot), and for each declared value a value column
+    `f:{name}`, indexed, and a type column `t:{name}`, stored when the
+    table is made so reading them parses no JSON, virtual when added
+    later, D-644). `entries` declares `slugs` too, for term queries. `SqlCompiler`: conditions and order as SQL, every condition
+    true or false (never `NULL`), compared by type as `ArrayEvaluator`
+    compares (text never a number, `true` never `1`, `1` equal to
+    `1.0`), integers bound as integers and floats cast; subqueries and
+    related conditions worked out first and bound as lists; order with
+    nulls last, then booleans, numbers, text folded, and lists and
+    maps by their PHP JSON, ties in the order added (`rowid`).
+    `SqliteConnection` opens databases with PHP functions for what
+    SQLite does only in ASCII (`blush_fold`, `blush_like`) and for
+    `blush_json` and `blush_get`, and says whether SQLite with JSON is
+    `available()`. `SqliteRecordStore` implements `RecordStore`
+    (upserts keep a record's place; transactions as savepoints; counts
+    by value and aggregates reduced by `ArrayEvaluator::counts()` and
+    `reduce()`).
+  - **Proof:** the record conformance suite passes on SQLite unchanged,
+    and `SqlParityTest` runs every operator, list operator, order, page,
+    group, subquery, count, and aggregate against every kind of value,
+    over records of every kind, in a table that declares their values
+    and one that doesn't, with the same answers from SQLite and
+    `ArrayRecordStore` (about 2,800 comparisons).
+  - **Speed** (the benchmark site's 1,249 entries in memory, a query's
+    ten): published posts 1.2 ms (1.8 from the PHP index), a term's
+    2.0 (1.9), a year's 1.0 (1.4), everything by title 1.4 (1.9). A
+    page's total is counted again for conditions on columns and with
+    the rows (`COUNT(*) OVER ()`) for ones that read into lists
+    (`SqlFragment::$costly`).
+- **Why:** the author's go ("Let's do step 4"), with the two choices.
+
+### D-660: The index's rows in SQLite, read where SQL wins (step 4b)
+
+- **Date:** 2026-10-08
+- **Status:** Built. Part 4b of the data layer's step 4 (D-659).
+- **Decision:**
+  - **Written with the index:** each save of `PhpIndex` stamps the
+    snapshot with a new random token (`IndexSnapshot::$stamp`, index
+    v13) and writes the `entries` and `refs` rows, without content, to
+    `storage/index/content.sqlite` (`SqliteIndex`): a new file loaded in
+    one go (`SqliteRecordStore::replace()`, versions kept), analysed
+    (`analyze()`, so a lookup by id beats a common type's index),
+    stamped, and swapped in whole; no write-ahead log beside it. When it
+    can't be written, the old file goes and queries read the PHP index.
+    `content:index -v` says which one queries read (`IndexReport::$sqlite`).
+  - **Read where SQL wins:** `IndexStore` asks SQLite only for the ids a
+    query over entries finds, in order, and its total
+    (`SqliteRecordStore::ids()`), and builds the records from the PHP
+    index's rows, already in memory (no JSON decoded); counts by value
+    and aggregates the same way. Queries the rows answer at once stay
+    in PHP: ones naming rows by id, parent, or original (the rows'
+    lookups), ones that follow refs (refs looked up by relation), and
+    refs themselves. A lookup by id never touches SQLite.
+  - **Off by config or by host:** `ContentConfig::$sqliteIndex` (on by
+    default) and `SqliteConnection::available()`; either way the site
+    works the same. The content conformance suite runs on files with
+    SQLite (`FilesystemEntryStoreTest`), without it
+    (`FilesystemPhpEntryStoreTest`), and in memory.
+  - **What was learned on the way:** reading rows out of SQLite costs
+    more than the PHP index's rows, which opcache keeps decoded in
+    shared memory (requests were twice as slow when records came from
+    SQLite); a query's plan needs statistics (`ANALYZE`) or an id lookup
+    loses to the type index; a store per request must be shared
+    (`SqliteIndex` a singleton).
+  - **Speed, against after 3f** (D-657): a year's archive 0.20 ms
+    (1.12), published posts in the admin 3.6 ms (5.6), the home page's
+    query 1.2 ms (1.6), the admin's everything list 15.2 ms (16.4);
+    term pages, authors, lookups, term counts, and whole requests about
+    even (13.2 ms home). A full index takes about 55 ms more (273 ms).
+- **Why:** the author's go ("Let's do 4b").

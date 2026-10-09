@@ -30,6 +30,7 @@ use Blush\Content\Index\IndexFreshness;
 use Blush\Content\Index\IndexStore;
 use Blush\Content\Index\Indexer;
 use Blush\Content\Index\PhpIndex;
+use Blush\Content\Index\SqliteIndex;
 use Blush\Content\Index\RecordBuilder;
 use Blush\Content\Lint\Linter;
 use Blush\Content\Parser\DocumentParser;
@@ -90,6 +91,7 @@ final class ContentServiceProvider extends ServiceProvider
 	protected const array SINGLETONS = [
 		IndexFreshness::class,
 		IndexStore::class,
+		SqliteIndex::class,
 		FieldFactory::class,
 		FieldTargets::class,
 		FrontMatter::class,

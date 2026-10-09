@@ -76,21 +76,33 @@ Move each item to `decisions.md` once it's answered.
     a journal, or a documented limit. Now concrete (D-653): the content
     store's transactions take the lock, but the writer's file writes
     (and the referrers it files) aren't put back when one fails.
-  - **The filesystem driver's index** for the full query language:
-    what it keeps per set (sorted keys, value maps per field) so
-    comparisons, groups, and aggregates don't scan every record, and
-    whether `SqliteIndex` becomes its index for large sites. Leaning
-    (D-640's discussion, 2026-10-08): the filesystem driver indexes
-    into SQLite whenever `pdo_sqlite` and its JSON functions are
-    there, and falls back to `PhpIndex` when they aren't, so no site
-    breaks over a missing extension and large sites get it without
-    setup. The files stay the source of truth; the SQLite index is
-    derived (a file under `storage/`, ignored by git, rebuilt by
-    `content:index`), so publishing with git (D-131) is unchanged.
-    Queries compile to SQL against it, rather than array work over
-    value maps built in PHP; `PhpIndex` answers the same queries, and
-    the conformance suite runs both. Against it: two indexes to keep.
-    The other choice was SQLite only, `pdo_sqlite` required.
+  - **The filesystem driver's index:** settled by D-659 (SQLite when
+    there, `PhpIndex` without; plan in `roadmap.md`, step 4).
+  - **Step 4c, and sites much larger than jtcom** (raised 2026-10-08,
+    after 4b, D-660; tabled for the day). 4c's plan was requests that
+    don't load the PHP snapshot. 4b found that at jtcom's size (1,249
+    entries) the snapshot is the cheap part: opcache keeps its rows
+    decoded in shared memory, and records are built from them; records
+    read from SQLite cost twice as much (each one's JSON decoded). So
+    4c, as planned, would slow jtcom-sized sites. Reasoned, not
+    measured, for many thousands of entries:
+    - The PHP side grows linearly: queries it scans, the snapshot's size
+      (8.8 MB on disk for 1,251 entries), opcache's room for it (128 MB
+      by default, shared with all code), a recompile after a deploy or
+      reindex (seconds on the first request), and work built from every
+      row once a request even on the SQLite path (the id map, refs by
+      relation, `IndexLocations`' keys and folders).
+    - SQLite holds up better: indexed filters stay close to flat, and
+      scans run in C.
+    - So 4c matters at scale: keep what requests need (keys, folders,
+      refs looked up) in SQLite and build records from its rows there,
+      accepting the decoding cost, or choose by size.
+    - **Next:** a second benchmark site (10,000 to 25,000 entries) run
+      on both paths, before 4c's shape is chosen. Then 4d (Requirements
+      and Site Health say which index is read; docs; benchmarks).
+    - Unconfirmed: whether DDEV's PHP for the trial site has
+      `pdo_sqlite` with JSON (`ddev exec php -m`); its CLI here does,
+      and its config leaves `sqliteIndex` on by default.
   - **Publishing** a database-backed site (D-131 pulls `user/` with
     git; D-486's open point).
   - **`content:lint` in two parts** (3d's plan, left from D-654): the

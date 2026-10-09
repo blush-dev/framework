@@ -138,6 +138,7 @@ Without `config/app.php`, these come from the `APP_*` variables.
 | `dataTypes` | `true` | Whether types in `user/data/types/` and relations in `user/data/relations/` are read |
 | `dataTypeUrls` | `true` | Whether those types may set their own `urls` |
 | `autoIndex` | `true` | Whether development requests pick up content changes |
+| `sqliteIndex` | `true` | Whether the content index is also kept in SQLite (`storage/index/content.sqlite`), which makes listings that look through every entry faster. It's used only when PHP has the `pdo_sqlite` extension with SQLite's JSON functions; without them, or with this off, the site reads the PHP index alone and works the same. |
 
 ### Storage
 

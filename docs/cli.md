@@ -66,7 +66,7 @@ while your content is kept as files, as it is by default.
 | `publish` | Put content changes live: reindex, refresh, and clear the caches. `--pull` runs `git pull` in `user/` first; `--no-pull` skips it. See [Going live](going-live.md#publishing-changes). |
 | `cache:compile` | Precompile config, routes, content types, themes, plugins, and icon packs for speed |
 | `cache:clear` | Clear every compiled file and cache. Flags clear just one: `--config`, `--plugins`, `--container`, `--routes`, `--types`, `--themes`, `--icon-packs`, `--store`. `--embeds` also clears the saved oEmbed answers (which nothing else clears) and the cache store, so providers are asked again. |
-| `content:index` | Update the content index. `--full` rebuilds it from scratch. (`publish` does this for you.) |
+| `content:index` | Update the content index (and its SQLite copy, when PHP has SQLite). `--full` rebuilds it from scratch. `-v` says which one queries read. (`publish` does this for you.) |
 | `media:ids` | Say how many media files are missing an [id](media.md#ids-and-image-sizes), and which ids files share (`-v` lists each file). `--write` gives each file missing one a new id; `--keep=<path>` (in the media folder) keeps a shared id on that file and gives the others new ones. An image's other sizes don't need one. |
 | `media:sizes` | Say how many [image sizes](media.md#ids-and-image-sizes) aren't listed in their images' details yet (`-v` lists them). `--write` lists them, and takes out listed files that are gone. |
 | `media:index` | Update the media index, which the admin's library lists and searches. `--full` rebuilds it; it also warns of metadata files whose media file is gone. (`publish` does this for you.) |

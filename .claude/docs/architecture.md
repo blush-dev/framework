@@ -851,6 +851,10 @@ Implemented in M4b (D-089).
   fallback, 1.x's `author`), so every driver answers the same query.
   The content conformance suite (`tests/Content/Conformance`) runs
   `Entries` on the filesystem driver and on `ArrayRecordStore`.
+- On files, `IndexStore` asks the index's SQLite copy
+  (`storage/index/content.sqlite`, `SqliteIndex`, D-660) for the ids a
+  scan finds and builds records from the PHP index's rows; lookups by
+  id and queries that follow refs stay in PHP.
 - `StoredEntries` reads records only (D-657): entries are built from
   them (`EntryHydrator`), collections are keyed by id, and a page
   written at a key gets its missing parents written first.

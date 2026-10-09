@@ -126,10 +126,23 @@ final readonly class ArrayEvaluator
 	{
 		RecordQuery::checkKey($key);
 
+		return self::counts(array_map(static fn (array $record): mixed => self::value($record, $key), $this->matching($table, $query, new ArrayEvaluation($records, $refs))));
+	}
+
+	/**
+	 * Counts values as `countBy()` does: a list counts once for each
+	 * value it holds, `null` and maps aren't counted, and the counts come
+	 * in the order values sort in. For stores that find the records some
+	 * other way (`SqliteRecordStore`), so every store counts alike.
+	 *
+	 * @param  list<mixed> $values
+	 * @return list<array{value: bool|int|float|string, count: int}>
+	 */
+	public static function counts(array $values): array
+	{
 		$counts = [];
 
-		foreach ($this->matching($table, $query, new ArrayEvaluation($records, $refs)) as $record) {
-			$value = self::value($record, $key);
+		foreach ($values as $value) {
 			$items = is_array($value) && array_is_list($value) ? $value : [$value];
 			$seen  = [];
 
@@ -167,8 +180,18 @@ final readonly class ArrayEvaluator
 	{
 		RecordQuery::checkKey($key);
 
-		$values = array_map(static fn (array $record): mixed => self::value($record, $key), $this->matching($table, $query, new ArrayEvaluation($records, $refs)));
+		return self::reduce($function, array_map(static fn (array $record): mixed => self::value($record, $key), $this->matching($table, $query, new ArrayEvaluation($records, $refs))));
+	}
 
+	/**
+	 * Reduces values as `aggregate()` does: sums and averages over the
+	 * numbers, the least and greatest in the order values sort in. For
+	 * stores that find the records some other way.
+	 *
+	 * @param list<mixed> $values
+	 */
+	public static function reduce(Aggregate $function, array $values): int|float|string|bool|null
+	{
 		if ($function === Aggregate::Sum || $function === Aggregate::Avg) {
 			$numbers = array_values(array_filter($values, static fn (mixed $value): bool => is_int($value) || is_float($value)));
 
@@ -744,6 +767,26 @@ final readonly class ArrayEvaluator
 			is_int($value) || is_float($value) => 'n:' . (is_float($value) && floor($value) === $value && abs($value) < PHP_INT_MAX ? (string) (int) $value : (string) $value),
 			default                            => 's:' . $value
 		};
+	}
+
+	/**
+	 * Returns a `like` pattern as the regular expression `meets()` tests
+	 * text with, for stores whose own `like` differs (SQLite's ignores
+	 * case only in ASCII).
+	 */
+	public static function likePattern(string $pattern): string
+	{
+		return self::pattern($pattern);
+	}
+
+	/**
+	 * Returns a value as it sorts within its rank: text lowercased, lists
+	 * and maps as their JSON, as `compareSorted()` compares them, for
+	 * stores that sort some other way.
+	 */
+	public static function sortValue(mixed $value): mixed
+	{
+		return self::sortKey($value)[1] ?? null;
 	}
 
 	/**

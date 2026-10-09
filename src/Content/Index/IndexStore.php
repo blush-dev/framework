@@ -47,6 +47,7 @@ use Blush\Storage\Record\Ref;
 use Blush\Storage\Record\Related;
 use Blush\Storage\Record\Subquery;
 use Blush\Storage\Record\Table;
+use Blush\Storage\Sql\SqliteRecordStore;
 use Blush\Storage\StorageArea;
 use Blush\Storage\StorageException;
 
@@ -55,11 +56,16 @@ use Blush\Storage\StorageException;
  * (D-649) as its index has them, Markdown files underneath. The file
  * record store hands it the content area's two tables.
  *
- * **Reading** runs record queries over the index's rows as they're
- * stored (`SnapshotRecords`), so nothing is built for an entry a query
- * doesn't find; a record found carries its Markdown, read from its file,
- * unless the query leaves content out. An entry's version is its file's
- * hash.
+ * **Reading** finds a query's records by running it over the rows as
+ * `PhpIndex` stores them (`SnapshotRecords`) when it names the rows it
+ * wants by id (or parent, original, or a ref's ends), which the rows
+ * look up at once, and otherwise, when it would read every row, with SQL
+ * over the rows in SQLite, when they're kept there and match the index
+ * (`SqliteIndex`, D-659). Either way the records are built from the
+ * rows, already in memory, so no JSON is read, and nothing is built for
+ * an entry a query doesn't find. A
+ * record found carries its Markdown, read from its file, unless the
+ * query leaves content out. An entry's version is its file's hash.
  *
  * **Writing an entry** compares the record with the stored one and does
  * what files need, through the content writer, so every file convention
@@ -107,6 +113,7 @@ final readonly class IndexStore implements RecordStore
 		private FileTransactions $transactions,
 		#[Defer(ContentWriter::class)] private Closure $writer,
 		#[Defer(FilesystemWriter::class)] private Closure $files,
+		private SqliteIndex $sqlite,
 		private ArrayEvaluator $evaluator = new ArrayEvaluator()
 	) {}
 
@@ -124,9 +131,7 @@ final readonly class IndexStore implements RecordStore
 	#[Override]
 	public function find(Table $table, string $id): ?Record
 	{
-		$row = $table->name === EntryTable::TABLE
-			? $this->records()->entry($id)
-			: array_find($this->records()->refs(), static fn (array $ref): bool => $ref['id'] === strtolower($id));
+		$row = $table->name === EntryTable::TABLE ? $this->records()->entry($id) : $this->records()->ref($id);
 
 		return $row === null ? null : $this->record($table, $row, content: true);
 	}
@@ -165,7 +170,7 @@ final readonly class IndexStore implements RecordStore
 	#[Override]
 	public function select(Table $table, RecordQuery $query): RecordResult
 	{
-		$found = $this->evaluator->select($table, $query, $this->rowsFor($table, $query), $this->refs(...));
+		$found = $this->found($table, $query) ?? $this->evaluator->select($table, $query, $this->rowsFor($table, $query), $this->refs(...));
 
 		if (! $query->content || $table->name !== EntryTable::TABLE) {
 			return $found;
@@ -184,7 +189,7 @@ final readonly class IndexStore implements RecordStore
 	#[Override]
 	public function count(Table $table, RecordQuery $query): int
 	{
-		return $this->evaluator->count($table, $query, $this->rowsFor($table, $query), $this->refs(...));
+		return $this->sqlite($table, $query)?->count($table, $query) ?? $this->evaluator->count($table, $query, $this->rowsFor($table, $query), $this->refs(...));
 	}
 
 	/**
@@ -193,7 +198,9 @@ final readonly class IndexStore implements RecordStore
 	#[Override]
 	public function countBy(Table $table, RecordQuery $query, string $key): array
 	{
-		return $this->evaluator->countBy($table, $query, $key, $this->rowsFor($table, $query), $this->refs(...));
+		$rows = $this->matchingRows($table, $query);
+
+		return $rows !== null ? ArrayEvaluator::counts(array_map(static fn (array $row): mixed => ArrayEvaluator::value($row, $key), $rows)) : $this->evaluator->countBy($table, $query, $key, $this->rowsFor($table, $query), $this->refs(...));
 	}
 
 	/**
@@ -202,7 +209,9 @@ final readonly class IndexStore implements RecordStore
 	#[Override]
 	public function aggregate(Table $table, RecordQuery $query, Aggregate $function, string $key): int|float|string|bool|null
 	{
-		return $this->evaluator->aggregate($table, $query, $function, $key, $this->rowsFor($table, $query), $this->refs(...));
+		$rows = $this->matchingRows($table, $query);
+
+		return $rows !== null ? ArrayEvaluator::reduce($function, array_map(static fn (array $row): mixed => ArrayEvaluator::value($row, $key), $rows)) : $this->evaluator->aggregate($table, $query, $function, $key, $this->rowsFor($table, $query), $this->refs(...));
 	}
 
 	/**
@@ -343,6 +352,89 @@ final readonly class IndexStore implements RecordStore
 	private function refs(StorageArea $area, string $relation, bool $inverse): array
 	{
 		return $this->records()->refsBy($relation, $inverse);
+	}
+
+	/**
+	 * The index's rows in SQLite, for a query over entries that would read
+	 * every row, when they're kept there and match the index as it's
+	 * brought up to date; `null` for refs, for a query the rows look up at
+	 * once (by id, parent, original) or answer from refs looked up (one
+	 * that follows refs), or without SQLite.
+	 */
+	private function sqlite(Table $table, RecordQuery $query): ?SqliteRecordStore
+	{
+		if ($table->name !== EntryTable::TABLE || $this->narrowed($table, $query->conditions) !== null || self::follows($query->conditions)) {
+			return null;
+		}
+
+		return $this->sqlite->store($this->index->fresh()->snapshot()->stamp);
+	}
+
+	/**
+	 * Whether conditions follow refs (a related condition, here or in a
+	 * group or subquery), which the rows answer from refs looked up by
+	 * relation.
+	 */
+	private static function follows(ConditionGroup $conditions): bool
+	{
+		return array_any($conditions->conditions, static fn (Condition|ConditionGroup|Related $condition): bool => match (true) {
+			$condition instanceof Related        => true,
+			$condition instanceof ConditionGroup => self::follows($condition),
+			default                              => $condition->value instanceof Subquery && self::follows($condition->value->query->conditions)
+		});
+	}
+
+	/**
+	 * The records a query finds, without content, found in SQLite and
+	 * built from the index's rows, or `null` without SQLite.
+	 */
+	private function found(Table $table, RecordQuery $query): ?RecordResult
+	{
+		$sqlite = $this->sqlite($table, $query);
+
+		if ($sqlite === null) {
+			return null;
+		}
+
+		[$ids, $total] = $sqlite->ids($table, $query);
+
+		return new RecordResult(array_map(static fn (array $row): Record => ArrayEvaluator::record($row, false), $this->rowsById($table, $ids)), $total);
+	}
+
+	/**
+	 * The rows of every record a query finds (its limit and offset left
+	 * out, as counts and aggregates leave them), found in SQLite, or
+	 * `null` without SQLite.
+	 *
+	 * @return ?list<Row>
+	 */
+	private function matchingRows(Table $table, RecordQuery $query): ?array
+	{
+		$sqlite = $this->sqlite($table, $query);
+
+		return $sqlite === null ? null : $this->rowsById($table, $sqlite->ids($table, $query->limit(null)->offset(0))[0]);
+	}
+
+	/**
+	 * The index's rows with some ids, in their order.
+	 *
+	 * @param  list<string> $ids
+	 * @return list<Row>
+	 */
+	private function rowsById(Table $table, array $ids): array
+	{
+		$records = $this->records();
+		$rows    = [];
+
+		foreach ($ids as $id) {
+			$row = $table->name === EntryTable::TABLE ? $records->entry($id) : $records->ref($id);
+
+			if ($row !== null) {
+				$rows[] = $row;
+			}
+		}
+
+		return $rows;
 	}
 
 	/**

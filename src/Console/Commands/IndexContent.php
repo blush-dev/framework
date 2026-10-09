@@ -71,6 +71,7 @@ final readonly class IndexContent
 		}
 
 		$output->success($summary);
+		$output->comment($report->sqlite ? 'Queries read the index in SQLite.' : 'Queries read the PHP index (SQLite is off, or PHP lacks it or its JSON functions).', Verbosity::Verbose);
 
 		if (! $report->written) {
 			$output->comment('The index was already up to date.', Verbosity::Verbose);

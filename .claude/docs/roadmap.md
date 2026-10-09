@@ -367,6 +367,81 @@ edit-conflict check.
 **Shape (D-649):** the `entries` and `refs` tables above; records'
 `fields` and `content`; text sorted without regard to case.
 
+### Step 4: the filesystem driver's SQLite index (4a, 4b built, D-659, D-660; 4c to revisit)
+
+**Goal:** a flat-file site answers content queries from a SQLite file
+the filesystem driver builds from its files, whenever PHP has
+`pdo_sqlite` with its JSON functions, and from `PhpIndex` as now when
+it hasn't (the leaning in `open-questions.md`). The files stay the
+source of truth; the SQLite file is derived (`storage/index/content.sqlite`,
+ignored by git, rebuilt by `content:index`), so publishing with git
+(D-131) doesn't change. Queries become SQL instead of PHP loops over
+every row, which wins back step 3's slowdown and takes the PHP
+snapshot out of most requests. The SQL is built so step 5's SQLite
+driver reuses it.
+
+**What the code does today:** `PhpIndex` keeps one PHP array file
+(the snapshot: index records, keys, terms, the graph, and the
+`entries` and `refs` rows), loaded whole on a request's first content
+use (28 MB peak on the benchmark site). `IndexStore` runs every
+`RecordQuery` through `ArrayEvaluator` over those rows, with lookups
+for `=` and `in` on ids. `IndexLocations` works out keys and folders
+from every row once a request.
+
+**4a. SQL for record queries** (built, D-659; generic,
+`Blush\Storage\Sql`, shared with step 5):
+- **A dialect** (`SqlDialect`, `SqliteDialect`; MySQL and PostgreSQL
+  later, D-640) kept apart from the connection it runs on, so hosted
+  variants can reuse it.
+- **Tables as SQL** (D-644): `id` (primary key), `fields` (JSON),
+  `content`, `version`, plus a generated column and an index for each
+  value a `Table` declares; a table's key, unique.
+- **`SqlCompiler`:** `RecordQuery` to SQL and bindings: every operator
+  on values, `id`, `content`, and dotted keys (`json_extract`), compared
+  by type as `ArrayEvaluator` compares them (D-648: no coercion; nulls
+  and missing keys; case-sensitive `=`, case-insensitive `like` and
+  text order; ties by id); groups; subqueries; `intersects` and
+  `contains` over lists (`json_each`); related conditions and `with()`
+  over the area's `refs` table; order, limit, offset; `count`,
+  `countBy`, and aggregates.
+- **`SqliteRecordStore`** (PDO, a file or memory): runs the record
+  conformance suite (`RecordStoreConformance`). A case it fails is a
+  compiler bug, never a changed test.
+
+**4b. The index's rows in SQLite** (built, D-660, reading SQLite only
+for the ids a scan finds; records come from the PHP index's rows): the indexer writes the `entries`
+and `refs` rows to `storage/index/content.sqlite` as it writes the
+snapshot (in one transaction, swapped in whole on a full index), and
+`IndexStore` hands queries to SQLite when the file is there and fresh,
+else to `ArrayEvaluator` as now. Content still comes from files.
+`content:index` says which index it built. The content conformance
+suite runs on files with SQLite, on files without it, and in memory.
+
+**4c. Requests without the snapshot** (to revisit before it's built:
+4b found that the PHP index's rows, decoded in opcache's shared memory,
+cost next to nothing to read, and records are built from them; leaving
+them out would read every record's JSON from SQLite; at many thousands
+of entries the balance likely turns, so a larger benchmark site comes
+first: see "Step 4c, and sites much larger than jtcom" in
+`open-questions.md`): keys and folders (`EntryPlaces`)
+worked out at index time and kept in SQLite, so `IndexLocations`,
+lookups, and queries read SQLite alone; the PHP snapshot is loaded
+only by the driver's file tools (linting, links, `EntryFiles`, Site
+Health's file checks) and by development's incremental index.
+
+**4d. Parity and docs:** Requirements and Site Health say which index
+the site uses and why (`pdo_sqlite` or SQLite's JSON functions
+missing); `docs/` (installation, going live); the benchmarks against
+`before_step3`; the trial site checked.
+
+**Done when:** both record conformance suites pass on SQLite; content
+queries answer the same with and without it; requests on the
+benchmark site load no PHP snapshot when SQLite is there; `composer
+check` passes; the benchmarks are at or better than before step 3.
+
+**Left for later:** full-text search (FTS5, `open-questions.md`);
+the database driver itself (step 5).
+
 ## Next: setup DX/UX (D-156)
 
 The current focus: the experience of setting up a Blush site.

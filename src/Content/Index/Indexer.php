@@ -50,7 +50,8 @@ final readonly class Indexer
 		private ClockInterface $clock,
 		private Dispatcher $events,
 		private Relations $relations,
-		private ContentTypes $types
+		private ContentTypes $types,
+		private SqliteIndex $sqlite
 	) {}
 
 	/**
@@ -135,7 +136,7 @@ final readonly class Indexer
 			$this->index->save($snapshot->withRows(SnapshotRecords::build($snapshot, $this->types)->toArray()));
 		}
 
-		$report = new IndexReport(count($records), $added, $changed, $removed, $failures, $full, $write, $stale);
+		$report = new IndexReport(count($records), $added, $changed, $removed, $failures, $full, $write, $stale, $this->sqlite->store($this->index->snapshot()->stamp) !== null);
 
 		if ($write) {
 			$this->events->dispatch(new ContentIndexed($report));

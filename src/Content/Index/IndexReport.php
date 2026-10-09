@@ -21,7 +21,8 @@ use Blush\Content\Relation\Resolution;
  * A file that fails to parse is left out of the index, so its entry
  * disappears until it's fixed. A run that wrote the index also says
  * which entries' relations Blush would file differently (D-589), so a
- * writer can file both forms of what it just wrote (D-596).
+ * writer can file both forms of what it just wrote (D-596). `$sqlite`
+ * says whether queries read the index's rows in SQLite after it (D-659).
  */
 final readonly class IndexReport
 {
@@ -43,7 +44,8 @@ final readonly class IndexReport
 		public array $failures = [],
 		public bool $full = false,
 		public bool $written = false,
-		public array $stale = []
+		public array $stale = [],
+		public bool $sqlite = false
 	) {}
 
 	/**

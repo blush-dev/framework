@@ -24,7 +24,9 @@ use Blush\Support\PhpArrayFile;
  * snapshot's array (D-044). Opcache keeps it in shared memory, so reading
  * it costs no parsing, and it's read once per request. Its entries and
  * refs are stored as rows (`SnapshotRecords`, D-649), which the
- * filesystem driver's content store queries (`IndexStore`).
+ * filesystem driver's content store queries (`IndexStore`), and, when
+ * PHP has SQLite, kept in SQLite too (`SqliteIndex`, D-659), written
+ * with each save under the snapshot's new stamp.
  */
 final class PhpIndex implements ContentIndex
 {
@@ -44,7 +46,8 @@ final class PhpIndex implements ContentIndex
 
 	public function __construct(
 		Paths $paths,
-		private readonly ContentTypes $types
+		private readonly ContentTypes $types,
+		private readonly SqliteIndex $sqlite
 	) {
 		$this->file = new PhpArrayFile("{$paths->index}/" . self::FILE);
 	}
@@ -91,6 +94,11 @@ final class PhpIndex implements ContentIndex
 	#[Override]
 	public function save(IndexSnapshot $snapshot): void
 	{
+		$snapshot = $snapshot->withStamp(bin2hex(random_bytes(8)));
+		$records  = SnapshotRecords::fromSnapshot($snapshot) ?? SnapshotRecords::build($snapshot, $this->types);
+
+		$this->sqlite->write($records, $snapshot->stamp);
+
 		try {
 			$this->file->write($snapshot->toArray());
 		} catch (FilesystemException $e) {
@@ -108,6 +116,7 @@ final class PhpIndex implements ContentIndex
 	public function clear(): void
 	{
 		$this->file->delete();
+		$this->sqlite->clear();
 		$this->snapshot = null;
 		$this->records  = null;
 	}

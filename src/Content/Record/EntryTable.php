@@ -57,7 +57,7 @@ final class EntryTable
 	public static function table(): Table
 	{
 		return new Table(self::TABLE, StorageArea::Content, fields: [
-			'type', 'language', 'parent_id', 'slug', 'original_id', 'status', 'visibility', 'published', 'updated', 'title', 'position', 'archive'
+			'type', 'language', 'parent_id', 'slug', 'original_id', 'status', 'visibility', 'published', 'updated', 'title', 'position', 'archive', 'slugs'
 		]);
 	}
 

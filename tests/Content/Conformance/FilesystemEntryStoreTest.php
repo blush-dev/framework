@@ -18,7 +18,9 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use Blush\Content\Entries;
 use Blush\Content\Entry\EntryHydrator;
 use Blush\Content\Index\IndexLocations;
+use Blush\Content\Index\IndexFreshness;
 use Blush\Content\Index\IndexStore;
+use Blush\Content\Index\SqliteIndex;
 use Blush\Content\Index\SnapshotRecords;
 use Blush\Content\Record\EntryLocations;
 use Blush\Content\Record\EntryPlaces;
@@ -31,13 +33,15 @@ use Blush\Storage\File\FileRecordStore;
 use Blush\Storage\Record\RecordStores;
 
 /**
- * The filesystem driver: content kept as files, answered from its index.
+ * The filesystem driver: content kept as files, answered from its index's
+ * rows in SQLite (D-659).
  */
 #[CoversClass(StoredEntries::class)]
 #[CoversClass(EntryHydrator::class)]
 #[CoversClass(FileRecordStore::class)]
 #[CoversClass(IndexStore::class)]
 #[CoversClass(IndexLocations::class)]
+#[CoversClass(SqliteIndex::class)]
 #[CoversClass(SnapshotRecords::class)]
 #[CoversClass(QueryCompiler::class)]
 #[CoversClass(RecordLocations::class)]
@@ -54,6 +58,19 @@ final class FilesystemEntryStoreTest extends EntryStoreConformance
 	protected function entries(Application $app, RecordStores $stores): Entries
 	{
 		return $app->container()->make(Entries::class);
+	}
+
+	public function testQueriesReadTheSqliteIndex(): void
+	{
+		$container = $this->app->container();
+		$sqlite    = $container->make(SqliteIndex::class);
+		$stamp     = $container->make(IndexFreshness::class)->fresh()->snapshot()->stamp;
+
+		$this->assertTrue($sqlite->enabled());
+		$this->assertFileExists($sqlite->path());
+		$this->assertNotSame('', $stamp);
+		$this->assertNotNull($sqlite->store($stamp), 'Stamped as the index is.');
+		$this->assertNull($sqlite->store('another'), 'Never read against another index.');
 	}
 
 	public function testTheIndexsLocationsAreTheRecordsOwn(): void
