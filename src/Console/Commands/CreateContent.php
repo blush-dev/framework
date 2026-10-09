@@ -21,7 +21,7 @@ use Blush\Console\ExitCode;
 use Blush\Console\InvalidInput;
 use Blush\Console\Output;
 use Blush\Content\Entries;
-use Blush\Content\Source\ContentSource;
+use Blush\Content\Source\ContentFiles;
 use Blush\Content\Type\ContentTypes;
 use Blush\Content\Writer\EntryChanges;
 use Blush\Content\Writer\WriteException;
@@ -39,7 +39,7 @@ final readonly class CreateContent
 {
 	public function __construct(
 		private ContentTypes $types,
-		private ContentSource $source,
+		private ContentFiles $contentFiles,
 		private ClockInterface $clock,
 		private Entries $content
 	) {}
@@ -79,7 +79,9 @@ final readonly class CreateContent
 			return ExitCode::Failure;
 		}
 
-		$output->success(sprintf('Created %s', $this->source->location($entry->path)));
+		$output->success($this->contentFiles->kept()
+			? sprintf('Created %s', $this->contentFiles->source()->location($entry->path))
+			: sprintf('Created the %s "%s" (%s).', $contentType->labels->item, $entry->title, $entry->key));
 
 		return ExitCode::Success;
 	}

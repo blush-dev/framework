@@ -21,6 +21,9 @@ use Blush\Auth\FileAccountStore;
 use Blush\Auth\RecordRoleStore;
 use Blush\Auth\RoleStore;
 use Blush\Console\CommandRegistry;
+use Blush\Content\Record\EntryLocations;
+use Blush\Content\Record\EntryTable;
+use Blush\Content\Record\RecordLocations;
 use Blush\Content\Source\ContentSource;
 use Blush\Content\Source\FilesystemSource;
 use Blush\Content\Writer\ContentWriter;
@@ -32,6 +35,11 @@ use Blush\Job\JobStore;
 use Blush\Session\FileSessionStore;
 use Blush\Session\SessionStore;
 use Blush\Storage\FilesystemStorage;
+use Blush\Storage\Record\RecordStores;
+use Blush\Storage\Record\Ref;
+use Blush\Storage\SqliteStorage;
+use Blush\Storage\Sql\SqliteConnection;
+use Blush\Storage\Sql\SqliteRecordStore;
 use Blush\Storage\Storage;
 use Blush\Storage\StorageArea;
 use Blush\Storage\StorageConfig;
@@ -44,6 +52,7 @@ use Blush\Storage\StorageResolver;
 use Blush\Tests\BootsScratchSite;
 
 #[CoversClass(FilesystemStorage::class)]
+#[CoversClass(SqliteStorage::class)]
 #[CoversClass(StorageDriver::class)]
 #[CoversClass(StorageDriverFactory::class)]
 #[CoversClass(StorageDriverRegistrar::class)]
@@ -105,6 +114,28 @@ final class StorageTest extends TestCase
 		$this->assertTrue($registry->has('content:lint'), 'Built-in commands stay.');
 	}
 
+	public function testSqliteKeepsContentRecordsInTheSitesDatabase(): void
+	{
+		if (! SqliteConnection::available()) {
+			$this->markTestSkipped('PHP has no SQLite with JSON functions.');
+		}
+
+		$this->writeTemporaryFile('config/storage.php', "<?php\nreturn new Blush\\Storage\\StorageConfig(areas: ['content' => 'sqlite']);\n");
+
+		$container = $this->scratchApplication()->container();
+		$store     = $container->make(RecordStores::class)->store(EntryTable::table());
+
+		$this->assertInstanceOf(SqliteRecordStore::class, $store);
+		$this->assertSame($store, $container->make(RecordStores::class)->store(Ref::table(StorageArea::Content)), 'One store for the database.');
+		$this->assertInstanceOf(RecordLocations::class, $container->make(EntryLocations::class));
+		$this->assertInstanceOf(FileAccountStore::class, $container->make(AccountStore::class), 'Other areas keep theirs.');
+		$this->assertFalse($container->make(CommandRegistry::class)->has('content:ids'), 'File tools aren\'t offered.');
+
+		$store->find(EntryTable::table(), '0198c0de-0000-7000-8000-000000000000');
+
+		$this->assertFileExists($this->temporaryDirectory() . '/user/site.sqlite', 'In user/ by default (D-662).');
+	}
+
 	public function testADriverWithoutAContractFails(): void
 	{
 		$this->writeTemporaryFile('config/storage.php', "<?php\nreturn new Blush\\Storage\\StorageConfig(areas: ['accounts' => 'memory']);\n");
@@ -125,7 +156,7 @@ final class StorageTest extends TestCase
 		$container = $this->scratchApplication()->container();
 
 		$this->expectException(StorageException::class);
-		$this->expectExceptionMessage('Unknown storage driver "nowhere"; registered drivers: filesystem.');
+		$this->expectExceptionMessage('Unknown storage driver "nowhere"; registered drivers: filesystem, sqlite.');
 
 		$container->make(ContentSource::class);
 	}

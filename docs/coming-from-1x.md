@@ -33,7 +33,8 @@ Copy your `user/` folder across as it is. In particular:
   `bin/blush content:ids --write` once.
 - Media links to `/user/media/...` still resolve.
 - 1.x showed a term or author your entries named even without a file.
-  2.x needs the file, and leaves one without it out of the site. Run
+  2.x needs the file, and leaves one without it out of the site,
+  entries' term lists and bylines included. Run
   `bin/blush content:terms --write` once to write them all (or choose
   **Write Files** under **Terms and Profiles** in Site Health), titled
   as your entries wrote them.

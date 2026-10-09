@@ -32,7 +32,7 @@ use Blush\Content\Relation\Relation;
 use Blush\Content\Relation\RelationChecker;
 use Blush\Content\Relation\RelationKind;
 use Blush\Content\Relation\Relations;
-use Blush\Content\Source\ContentSource;
+use Blush\Content\Source\ContentFiles;
 use Blush\Content\Source\UnreadableSource;
 use Blush\Content\Status;
 use Blush\Content\Type\ContentTypes;
@@ -84,7 +84,7 @@ final readonly class Linter
 	public const string FILE = 'file';
 
 	public function __construct(
-		private ContentSource $source,
+		private ContentFiles $contentFiles,
 		private RecordBuilder $builder,
 		private ContentTypes $types,
 		private RouteTable $routes,
@@ -105,13 +105,13 @@ final readonly class Linter
 	 */
 	public function lint(?Closure $progress = null): LintReport
 	{
-		$files      = $this->source->files();
+		$files      = $this->contentFiles->kept() ? $this->contentFiles->source()->files() : [];
 		$records    = [];
 		$violations = [];
 
 		foreach ($files as $done => $file) {
 			try {
-				$contents = $this->source->read($file->path);
+				$contents = $this->contentFiles->source()->read($file->path);
 				$parsed   = $this->builder->build($file, $contents);
 
 				$records[]               = $parsed->record;
@@ -247,14 +247,19 @@ final readonly class Linter
 	 */
 	public function lintFile(string $path): array
 	{
-		$file = $this->source->stat($path);
+		// Only files have a file to check (D-667).
+		if (! $this->contentFiles->kept()) {
+			return [];
+		}
+
+		$file = $this->contentFiles->source()->stat($path);
 
 		if ($file === null) {
 			return [new Violation(self::FILE, 'doesn\'t exist.', kind: ViolationKind::Unreadable)];
 		}
 
 		try {
-			$contents = $this->source->read($path);
+			$contents = $this->contentFiles->source()->read($path);
 			$parsed   = $this->builder->build($file, $contents);
 
 			return [...$parsed->violations, ...$this->checkCollection($parsed->record), ...$this->checkOwnParent($parsed->record), ...$this->checkPrefix($parsed->record), ...$this->checkFlat($parsed->record), ...$this->checkDates($parsed, $contents), ...$this->variants->check($contents)];

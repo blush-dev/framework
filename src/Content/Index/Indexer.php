@@ -19,7 +19,7 @@ use Blush\Content\Events\ContentIndexed;
 use Blush\Content\Parser\InvalidDocument;
 use Blush\Content\Relation\LinkBuilder;
 use Blush\Content\Relation\Relations;
-use Blush\Content\Source\ContentSource;
+use Blush\Content\Source\ContentFiles;
 use Blush\Content\Source\UnreadableSource;
 use Blush\Content\Type\ContentTypes;
 use Blush\Event\Dispatcher;
@@ -43,15 +43,14 @@ use Blush\Event\Dispatcher;
 final readonly class Indexer
 {
 	public function __construct(
-		private ContentSource $source,
+		private ContentFiles $contentFiles,
 		private ContentIndex $index,
 		private RecordBuilder $builder,
 		private IndexFingerprint $fingerprint,
 		private ClockInterface $clock,
 		private Dispatcher $events,
 		private Relations $relations,
-		private ContentTypes $types,
-		private SqliteIndex $sqlite
+		private ContentTypes $types
 	) {}
 
 	/**
@@ -69,11 +68,16 @@ final readonly class Indexer
 	 */
 	public function index(bool $full = false, ?Closure $progress = null, array $written = []): IndexReport
 	{
+		// A database is its own index (D-606); there are no files to read.
+		if (! $this->contentFiles->kept()) {
+			return new IndexReport();
+		}
+
 		$written     = array_flip($written);
 		$fingerprint = $this->fingerprint->value();
 		$previous    = $this->index->snapshot();
 		$full        = $full || $previous->fingerprint !== $fingerprint;
-		$files       = $this->source->files();
+		$files       = $this->contentFiles->source()->files();
 		$count       = count($files);
 		$records     = [];
 		$added       = [];
@@ -91,7 +95,7 @@ final readonly class Indexer
 					continue;
 				}
 
-				$contents = $this->source->read($file->path);
+				$contents = $this->contentFiles->source()->read($file->path);
 
 				if (! $full && $old !== null && $old['hash'] === RecordBuilder::hash($contents)) {
 					$records[] = IndexRecord::fromArray($old)->withSource($file);
@@ -136,7 +140,7 @@ final readonly class Indexer
 			$this->index->save($snapshot->withRows(SnapshotRecords::build($snapshot, $this->types)->toArray()));
 		}
 
-		$report = new IndexReport(count($records), $added, $changed, $removed, $failures, $full, $write, $stale, $this->sqlite->store($this->index->snapshot()->stamp) !== null);
+		$report = new IndexReport(count($records), $added, $changed, $removed, $failures, $full, $write, $stale);
 
 		if ($write) {
 			$this->events->dispatch(new ContentIndexed($report));

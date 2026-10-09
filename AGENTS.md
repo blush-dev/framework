@@ -134,7 +134,10 @@ its conformance suite, roles its first table (D-643 to D-647; plan in
 id through `Entries` (D-651 to D-654), a content conformance suite on
 files and in memory (D-655), and `Entries` on records, with files
 without ids left out and parent pages written for folders (D-656,
-D-657; step 3 done); 1.x conventions go when they get in the way
+D-657; step 3 done; SQLite a driver, never an index beside files, D-661,
+built as step 5, D-662 to D-667: every area in `user/site.sqlite`,
+`storage:copy` and `storage:sync`);
+1.x conventions go when they get in the way
 (D-658); and an id for every media
 original, with image sizes found by rule and given none
 (D-487), and sizes recorded in their image's details, the library

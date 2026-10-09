@@ -100,7 +100,14 @@ final readonly class ArrayEvaluator
 		$matched = $this->sorted($this->matching($table, $query, new ArrayEvaluation($records, $refs)), $query);
 		$found   = array_slice($matched, $query->offset, $query->limit);
 
-		return new RecordResult(array_map(static fn (array $row): Record => self::record($row, $query->content), $found), count($matched));
+		$records = array_map(static fn (array $row): Record => self::record($row, $query->content), $found);
+
+		if ($query->only !== null) {
+			$keys    = array_flip($query->only);
+			$records = array_map(static fn (Record $record): Record => new Record($record->id, array_intersect_key($record->fields, $keys), null, $record->version), $records);
+		}
+
+		return new RecordResult($records, count($matched));
 	}
 
 	/**

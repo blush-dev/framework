@@ -61,6 +61,20 @@ final class StorageResolver
 	}
 
 	/**
+	 * Returns whether the driver an area uses gives a contract.
+	 *
+	 * @param class-string $contract
+	 */
+	public function covers(StorageArea $area, string $contract): bool
+	{
+		try {
+			return isset($this->driver($this->config->driverFor($area))->bindings()[$contract]);
+		} catch (StorageException) {
+			return false;
+		}
+	}
+
+	/**
 	 * Returns the commands the driver an area uses offers for it.
 	 *
 	 * @return list<class-string>

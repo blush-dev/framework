@@ -1233,17 +1233,21 @@ final readonly class EntryController
 
 	/**
 	 * Returns the account's profile for a new entry's byline: the type's
-	 * byline relation (D-602), when it has one.
+	 * byline relation (D-602), when it has one and the profile is an
+	 * entry, since a credit links only entries (D-584, D-663).
 	 *
 	 * @return array<string, list<string>|string>
 	 */
 	private function authorDefault(Account $account, string $type): array
 	{
-		$byline = $this->types->byline($type);
+		$byline   = $this->types->byline($type);
+		$profiles = $this->types->profiles()?->name;
 
-		return $byline === null || $account->author === null
-			? []
-			: [$byline->field => $byline->multiple ? [$account->author] : $account->author];
+		if ($byline === null || $account->author === null || $profiles === null || $this->content->named($profiles, $account->author) === null) {
+			return [];
+		}
+
+		return [$byline->field => $byline->multiple ? [$account->author] : $account->author];
 	}
 
 	/**

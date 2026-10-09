@@ -1831,8 +1831,9 @@ it, and **Give the Others New IDs**. A file without an id isn't an
 entry, so lists leave it out until it has one.
 
 **Terms and Profiles** lists each term and profile your entries name
-that has no file, which the site leaves out, with how many entries name
-it. **Create** writes its file, published and titled as the entries
+that has no file, which the site leaves out (entries' terms and bylines
+too, so an author isn't credited until their profile has a file), with
+how many entries name it. **Create** writes its file, published and titled as the entries
 name it, for the types you may create and publish.
 
 **Parent Pages** lists each folder of pages with no page of its own,

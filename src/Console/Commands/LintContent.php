@@ -19,6 +19,7 @@ use Blush\Console\ExitCode;
 use Blush\Console\Output;
 use Blush\Console\Style;
 use Blush\Content\Lint\Linter;
+use Blush\Content\Source\ContentFiles;
 use Blush\Field\Severity;
 
 /**
@@ -32,13 +33,19 @@ use Blush\Field\Severity;
 #[Command('content:lint', 'Check content front matter against the schemas.')]
 final readonly class LintContent
 {
-	public function __construct(private Linter $linter)
-	{}
+	public function __construct(
+		private Linter $linter,
+		private ContentFiles $files
+	) {}
 
 	public function __invoke(
 		Output $output,
 		#[Option('Also report undeclared keys and 1.x aliases.')] bool $strict = false
 	): ExitCode {
+		if (! $this->files->kept()) {
+			$output->comment('The site keeps its content in a database, so there are no content files to check; data and media are checked.');
+		}
+
 		$bar    = $output->progress();
 		$report = $this->linter->lint(static function (int $done, int $total) use ($bar): void {
 			$bar->update($done, $total);

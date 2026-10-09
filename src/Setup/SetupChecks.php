@@ -17,6 +17,8 @@ use Uri\Rfc3986\Uri;
 use Blush\Core\AppConfig;
 use Blush\Core\Framework;
 use Blush\Core\Paths;
+use Blush\Storage\Sql\SqliteConnection;
+use Blush\Storage\StorageConfig;
 
 /**
  * Checks that a site is set up to run: PHP and its extensions, `.env`,
@@ -51,9 +53,10 @@ final readonly class SetupChecks
 	 */
 	public const array STORAGE = ['storage', 'cache', 'index', 'logs', 'sessions', 'jobs', 'accounts'];
 
-	public function __construct(private Paths $paths)
-	{
-	}
+	public function __construct(
+		private Paths $paths,
+		private ?StorageConfig $storage = null
+	) {}
 
 	/**
 	 * Runs every check.
@@ -62,7 +65,32 @@ final readonly class SetupChecks
 	 */
 	public function all(AppConfig $app): array
 	{
-		return [...$this->php(), ...$this->site($app), ...$this->storage()];
+		return [...$this->php(), ...$this->site($app), ...$this->storage(), ...$this->driver()];
+	}
+
+	/**
+	 * Checks the storage driver (D-662): files need nothing more; SQLite
+	 * needs PHP's `pdo_sqlite` with SQLite's JSON functions, and a
+	 * writable folder for its database.
+	 *
+	 * @return list<CheckResult>
+	 */
+	public function driver(): array
+	{
+		if ($this->storage === null || ! $this->storage->uses(StorageConfig::SQLITE)) {
+			return [CheckResult::pass('Storage', 'Files.')];
+		}
+
+		$file = str_starts_with($this->storage->sqlite, '/') ? $this->storage->sqlite : "{$this->paths->root}/{$this->storage->sqlite}";
+
+		if (! SqliteConnection::available()) {
+			return [CheckResult::failure('Storage', 'SQLite is named, but PHP can\'t open SQLite databases with their JSON functions.', 'Turn on PHP\'s pdo_sqlite extension, or set the storage driver back to "filesystem".')];
+		}
+
+		return [
+			CheckResult::pass('Storage', sprintf('SQLite, in %s.', $this->paths->relative($file))),
+			$this->writable(dirname($file))
+		];
 	}
 
 	/**

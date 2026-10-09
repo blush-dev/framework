@@ -68,6 +68,25 @@ trait BootsAdmin
 	}
 
 	/**
+	 * Writes profile pages for authors, each with its `profileId()`, so
+	 * credits link them (refs link only entries, D-584, D-662).
+	 */
+	private function profiles(string ...$slugs): void
+	{
+		foreach ($slugs as $slug) {
+			$this->writeTemporaryFile("user/content/profiles/{$slug}.md", "---\ntitle: " . ucfirst($slug) . "\nid: " . self::profileId($slug) . "\n---\n");
+		}
+	}
+
+	/**
+	 * Returns the id `profiles()` gives an author's profile.
+	 */
+	private static function profileId(string $slug): string
+	{
+		return sprintf('0199b6e2-0000-7000-8000-%012x', crc32($slug));
+	}
+
+	/**
 	 * Returns the id of the entry at a path.
 	 */
 	private function idOf(string $path): string

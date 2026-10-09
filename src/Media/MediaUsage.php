@@ -13,9 +13,16 @@ declare(strict_types=1);
 
 namespace Blush\Media;
 
+use Closure;
+use Blush\Content\Entries;
 use Blush\Content\Index\EntryFiles;
-use Blush\Content\Source\ContentSource;
+use Blush\Content\Record\EntryRecords;
+use Blush\Content\Record\EntryTable;
+use Blush\Content\Source\ContentFiles;
 use Blush\Content\Source\UnreadableSource;
+use Blush\Storage\Record\Operator;
+use Blush\Storage\Record\RecordQuery;
+use Blush\Storage\Record\RecordStores;
 use Blush\Support\UrlPath;
 
 /**
@@ -28,9 +35,11 @@ use Blush\Support\UrlPath;
 final readonly class MediaUsage
 {
 	public function __construct(
-		private ContentSource $source,
+		private ContentFiles $contentFiles,
 		private EntryFiles $files,
-		private MediaConfig $config
+		private MediaConfig $config,
+		private RecordStores $stores,
+		private Entries $content
 	) {}
 
 	/**
@@ -54,15 +63,19 @@ final readonly class MediaUsage
 		$pattern = '#' . $prefix . '(?:' . implode('|', array_map(static fn (string $name): string => preg_quote($name, '#'), $names)) . ')(?![A-Za-z0-9._%~-])#';
 		$found   = [];
 
+		if (! $this->contentFiles->kept()) {
+			return $this->inRecords(array_values($names), $pattern);
+		}
+
 		try {
-			$files = $this->source->files();
+			$files = $this->contentFiles->source()->files();
 		} catch (UnreadableSource) {
 			return [];
 		}
 
 		foreach ($files as $file) {
 			try {
-				$text = $this->source->read($file->path);
+				$text = $this->contentFiles->source()->read($file->path);
 			} catch (UnreadableSource) {
 				continue;
 			}
@@ -76,6 +89,41 @@ final readonly class MediaUsage
 				'id'    => $entry?->id,
 				'path'  => $file->path,
 				'title'     => $entry === null || $entry->title === '' ? $file->path : $entry->title,
+				'type'      => $entry?->type->name ?? '',
+				'typeLabel' => $entry?->type->labels->singular ?? ''
+			];
+		}
+
+		return $found;
+	}
+
+	/**
+	 * The entries kept in a database whose Markdown uses a file (D-667):
+	 * those whose content names it, found by the store, then checked as a
+	 * file's text is.
+	 *
+	 * @param  list<string> $names
+	 * @return list<array{id: ?string, path: string, title: string, type: string, typeLabel: string}>
+	 */
+	private function inRecords(array $names, string $pattern): array
+	{
+		$query = $this->stores->query(EntryTable::table());
+		$query = $query->whereAny(...array_map(
+			static fn (string $name): Closure => static fn (RecordQuery $query): RecordQuery => $query->where('content', Operator::Like, '%' . str_replace(['%', '_'], ['\\%', '\\_'], $name) . '%'),
+			$names
+		));
+		$found = [];
+
+		foreach ($query->get() as $record) {
+			if (preg_match($pattern, $record->content ?? '') !== 1) {
+				continue;
+			}
+
+			$entry   = $this->content->find($record->id);
+			$found[] = [
+				'id'        => $record->id,
+				'path'      => $entry === null ? '' : $entry->key,
+				'title'     => $entry === null || $entry->title === '' ? EntryRecords::text($record, 'slug') : $entry->title,
 				'type'      => $entry?->type->name ?? '',
 				'typeLabel' => $entry?->type->labels->singular ?? ''
 			];

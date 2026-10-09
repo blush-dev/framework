@@ -57,8 +57,53 @@ final class EntryTable
 	public static function table(): Table
 	{
 		return new Table(self::TABLE, StorageArea::Content, fields: [
-			'type', 'language', 'parent_id', 'slug', 'original_id', 'status', 'visibility', 'published', 'updated', 'title', 'position', 'archive', 'slugs'
+			'type', 'language', 'parent_id', 'slug', 'original_id', 'status', 'visibility', 'published', 'updated', 'title', 'position', 'archive'
 		]);
+	}
+
+	/**
+	 * Returns an entry's record fields (D-649), the same for every
+	 * driver: its columns, its front matter's normalized values and the
+	 * keys its type doesn't declare (`fields`), and each value as slugs
+	 * (`slugs`, `EntryValues`).
+	 *
+	 * @param  array<string, mixed> $values Normalized values its type declares.
+	 * @param  array<string, mixed> $extra  Keys its type doesn't declare.
+	 * @return array<string, mixed>
+	 */
+	public static function fields(
+		string $type,
+		string $language,
+		?string $parentId,
+		string $slug,
+		?string $originalId,
+		string $status,
+		string $visibility,
+		?int $published,
+		int $updated,
+		string $title,
+		array $values,
+		array $extra,
+		?string $archive = null
+	): array {
+		$front = [...$extra, ...$values];
+
+		return [
+			'type'        => $type,
+			'language'    => $language,
+			'parent_id'   => $parentId,
+			'slug'        => $slug,
+			'original_id' => $originalId,
+			'status'      => $status,
+			'visibility'  => $visibility,
+			'published'   => $published === null ? null : self::time($published),
+			'updated'     => self::time($updated),
+			'title'       => $title,
+			'position'    => is_int($values['position'] ?? null) ? $values['position'] : null,
+			'archive'     => $archive,
+			'fields'      => $front,
+			'slugs'       => EntryValues::slugs($front)
+		];
 	}
 
 	/**

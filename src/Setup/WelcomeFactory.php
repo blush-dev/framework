@@ -15,7 +15,7 @@ namespace Blush\Setup;
 
 use Blush\Admin\AdminConfig;
 use Blush\Auth\AccountStore;
-use Blush\Content\Source\ContentSource;
+use Blush\Content\Source\ContentFiles;
 use Blush\Content\Source\FilesystemSource;
 use Blush\Core\AppConfig;
 use Blush\Core\Framework;
@@ -27,7 +27,7 @@ use Blush\Core\Framework;
 final readonly class WelcomeFactory
 {
 	public function __construct(
-		private ContentSource $source,
+		private ContentFiles $contentFiles,
 		private AppConfig $app,
 		private AdminConfig $admin,
 		private AccountStore $accounts,
@@ -45,7 +45,7 @@ final readonly class WelcomeFactory
 		));
 
 		return new Welcome(
-			homepage: $this->source->location('index.' . FilesystemSource::EXTENSION),
+			homepage: $this->contentFiles->kept() ? $this->contentFiles->source()->location('index.' . FilesystemSource::EXTENSION) : null,
 			binary: 'bin/' . Framework::BINARY,
 			admin: $this->admin->enabled ? $this->admin->path : null,
 			accounts: ! $this->accounts->isEmpty(),

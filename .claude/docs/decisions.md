@@ -20100,9 +20100,10 @@ decision, add a new entry that supersedes it and mark the old one
 ### D-659: Step 4's plan, and SQL for record queries (step 4a)
 
 - **Date:** 2026-10-08
-- **Status:** Plan decided; 4a built. Settles "The filesystem driver's
-  index" (`open-questions.md`) as its leaning; plan in `roadmap.md`
-  ("Step 4").
+- **Status:** Superseded by D-661 (step 4 dropped; 4a's SQL kept for
+  the SQLite driver). Was: plan decided; 4a built. Settles "The
+  filesystem driver's index" (`open-questions.md`) as its leaning; plan
+  in `roadmap.md` ("Step 4").
 - **Decision:**
   - **The plan** (the author's choices when asked): the filesystem
     driver keeps its index's rows in a derived SQLite file
@@ -20152,7 +20153,8 @@ decision, add a new entry that supersedes it and mark the old one
 ### D-660: The index's rows in SQLite, read where SQL wins (step 4b)
 
 - **Date:** 2026-10-08
-- **Status:** Built. Part 4b of the data layer's step 4 (D-659).
+- **Status:** Superseded by D-661 (removed). Was: built, part 4b of
+  the data layer's step 4 (D-659).
 - **Decision:**
   - **Written with the index:** each save of `PhpIndex` stamps the
     snapshot with a new random token (`IndexSnapshot::$stamp`, index
@@ -20188,3 +20190,325 @@ decision, add a new entry that supersedes it and mark the old one
     term pages, authors, lookups, term counts, and whole requests about
     even (13.2 ms home). A full index takes about 55 ms more (273 ms).
 - **Why:** the author's go ("Let's do 4b").
+
+### D-661: SQLite is a storage driver, not a second index; step 4 dropped
+
+- **Date:** 2026-10-09
+- **Status:** Decided and built (removed). Supersedes D-659's plan and
+  D-660; keeps D-659's 4a (`Blush\Storage\Sql`) as the start of the
+  SQLite driver (step 5). Takes back D-659's `slugs` column.
+- **Decision:**
+  - **SQLite is a driver a site chooses** (D-640, step 5:
+    `STORAGE_DRIVER=sqlite`), keeping the site's records in one
+    database. The filesystem driver keeps one index, `PhpIndex`, and
+    never a derived SQLite copy beside it. Step 4 (the filesystem
+    driver's SQLite index) is dropped.
+  - **Removed:** `SqliteIndex` and `storage/index/content.sqlite`;
+    `IndexStore`'s SQLite reads; `ContentConfig::$sqliteIndex`; the
+    snapshot's stamp (index format back to v12, so stored v13 indexes
+    rebuild); `IndexReport::$sqlite` and `content:index -v`'s line; the
+    second filesystem conformance test (`FilesystemPhpEntryStoreTest`);
+    `SqliteRecordStore`'s index-only `ids()`, `replace()`, and
+    `analyze()`, and `open()`'s `$wal` switch (a file always keeps a
+    write-ahead log).
+  - **Kept:** `SqlDialect`, `SqliteDialect`, `SqlCompiler`,
+    `SqlFragment`, `SqliteConnection`, and `SqliteRecordStore`, passing
+    the record conformance suite, and `SqlParityTest`: generic SQL for
+    record queries, which the SQLite driver builds on.
+  - **No `slugs` column:** `entries` declares only D-649's columns and
+    D-657's `archive`. `slugs` stays a value in `fields`, as step 3b
+    computed it. Adding a column to a settled table is asked first.
+  - **Large sites use the SQLite driver.** At about 10,000 entries the
+    PHP index fails at PHP's default 128 MB (`open-questions.md` has
+    the figures); the filesystem driver isn't expected to serve sites
+    that size. Planned, not built: an admin warning that suggests the
+    SQLite driver when a flat-file site grows past what it handles well.
+  - **Learned in 4b, for the driver:** a query plan needs statistics
+    (`ANALYZE` after a bulk load) or an id lookup loses to a common
+    type's index; one connection per request, shared.
+- **Why:** the author: "what i wanted was just a driver option, not
+  some weird hybrid", and the `slugs` column was added to a settled
+  table without asking; "big sites use the SQLite driver. and i think
+  we'll have an admin warning down the road on this."
+
+### D-662: The SQLite driver's plan (step 5)
+
+- **Date:** 2026-10-09
+- **Status:** Plan decided; nothing built. Plan in `roadmap.md`
+  ("Step 5"). Builds D-640's SQLite driver on D-659's
+  `Blush\Storage\Sql`, as D-661 settled.
+- **Decision:**
+  - **`sqlite` is a driver for every area** (`SqliteStorage`,
+    `STORAGE_DRIVER=sqlite`): content, roles, sessions, and jobs on
+    `SqliteRecordStore`, and data and accounts as plain keyed tables
+    now (`DataStore` by name, `AccountStore` by username), reshaped
+    when step 6 moves them onto repositories. Media files, config,
+    caches, and logs stay files (D-486).
+  - **The database is `user/site.sqlite`** by default (D-640: with the
+    site's own data, backed up and copied with `user/`; no product
+    name in it), with a `path` in `config/storage.php` over it.
+  - **Built in parts, each reviewed:** 5a the driver and content reads;
+    5b content writes on records (`RecordContentWriter`, shared by every
+    database driver); 5c data, accounts, sessions, and jobs; 5d
+    `storage:sync` and `storage:copy`; 5e what only files have, docs,
+    and benchmarks.
+  - **`storage:copy` goes from files to SQLite only** in this step;
+    SQLite to files comes later.
+  - **Terms come from `refs` for every driver:** entries' terms are read
+    from the `refs` rows, not front matter, on files too (the index
+    already builds the rows), so there's one path (D-649: a database
+    keeps no written forms).
+  - **Proof:** the record and content conformance suites (writes
+    included) pass on SQLite; the jtcom-sized site is benchmarked on
+    both drivers; `../ten-thousand`, copied to SQLite, serves pages
+    within PHP's default 128 MB.
+- **Why:** the author, planning the driver: "Every area now",
+  "user/site.sqlite", "Files → SQLite only", and "Refs for every
+  driver", each asked.
+
+### D-663: The SQLite driver and content reads (step 5a)
+
+- **Date:** 2026-10-09
+- **Status:** Built. Part 5a of the SQLite driver's plan (D-662).
+- **Decision:**
+  - **`sqlite` is registered** (`StorageDriver::Sqlite`,
+    `SqliteStorage`): it gives `RecordStore` (`SqliteRecordStore`) and
+    `EntryLocations` (`RecordLocations`), and no file tools. Content
+    writes, data, accounts, sessions, and jobs come in 5b and 5c, so
+    for now it's named for content alone, and only reads.
+  - **One store per site:** `StorageServiceProvider` binds
+    `SqliteRecordStore` as a singleton on `StorageConfig::$sqlite`
+    (`user/site.sqlite` by default, from the site's root or absolute;
+    its folder made when missing), so every area on the driver shares
+    one connection. The database and each table are made on first use.
+  - **Checked at boot:** when any area uses `sqlite`
+    (`StorageConfig::uses()`) and PHP lacks `pdo_sqlite` with SQLite's
+    JSON functions, boot fails with a `StorageException` saying so.
+  - **Terms come from refs for every driver** (D-662):
+    `StoredEntries` reads the records' `refs` rows in one query
+    (`Refs::group()`) and their targets' slugs, and `EntryTerms::of()`
+    builds terms from them, in the refs' order. A value that links no
+    entry isn't a term, on files too: an author whose profile has no
+    file isn't credited, so doesn't own the entry, until
+    `content:terms --write` (or Site Health) writes it (D-584). The
+    filesystem index still finds the terms files name as written
+    (`EntryTerms::written()`), for `content:terms`.
+  - **Proof:** `SqliteEntryStoreTest` runs the content conformance
+    suite's reads on the `sqlite` driver (records copied into
+    `user/site.sqlite`), and `StorageTest` boots a site with content on
+    it. Admin tests that credit authors now write their profiles
+    (`BootsAdmin::profiles()`). The trial site's two terms without
+    files were written.
+- **Why:** the author's go ("go, do 5a").
+
+### D-664: Content written as records (step 5b)
+
+- **Date:** 2026-10-09
+- **Status:** Built. Part 5b of the SQLite driver's plan (D-662).
+- **Decision:**
+  - **`RecordContentWriter`** implements `ContentWriter` over
+    `RecordStore`, for every driver that keeps content as records; the
+    `sqlite` driver binds it. An entry and its `refs` rows are saved in
+    one transaction against the stored version (`WriteConflict` when it
+    no longer matches), then places are worked out again and the
+    content version moves on.
+  - **Front matter twice, in one record** (the author's choice when
+    asked: "Both, written copy inside"): `written`, front matter as
+    written without the id, `refs`, `slug`, or relations, which `load()`
+    gives the editor and changes apply to (a value set where its field's
+    alias already is); and the normalized `fields` and columns every
+    driver's records have, built by `EntryTable::fields()` (shared with
+    the filesystem index's `SnapshotRecords`). No new column. A record
+    copied from files without `written` is loaded from its normalized
+    front matter; `storage:copy` (5d) carries the written form over.
+  - **Relations as refs only** (the author: "From refs, current
+    slugs"): each relation's value is resolved when the entry is written
+    (`LinkResolver` over `EntryTargets`) and kept as `refs` rows; `load()`
+    fills each relation's field with its targets' keys now, so a renamed
+    target is never stale and nothing like D-596's filing is needed. A
+    value that names no entry is refused with the resolver's message.
+    The normalized `fields` hold the relation's slugs as written then.
+  - **Places as columns:** a tree's page by its parent's id (`create()`
+    under a parent, `move()`, `createAt()` by its parent's key), a
+    hierarchical collection's entry by the id its `parent` names, a page
+    at a relation archive's key by `archive` (D-657), a landing page by an
+    empty slug. Slugs are unique among an entry's siblings (a nesting
+    type) or in its type and language; a key with a `_` part is hidden,
+    as a file's would be. New entries get an id (one the changes give,
+    when free) and a `published` date of now unless written (D-514), in
+    the site's language; `updated` falls back to `published`, then the
+    time written. A rename or move changes one record; deleting removes
+    the entry's refs both ways. A copy takes `{slug}`, then `{slug}-2`,
+    and so on, among its siblings.
+  - **Proof:** the content conformance suite gained writes (create with
+    relations, change by version, rename with referrers following, move
+    with the pages under a page, trash, restore, delete, duplicate),
+    run on files, on SQLite, and in memory (`ArrayEntryStoreTest` now
+    writes too, through `RecordContentWriter`); `RecordContentWriterTest`
+    boots a site with content on `sqlite` for what only records do.
+- **Why:** the author's go ("go, do 5b"), with the two choices asked.
+
+### D-665: Data, accounts, sessions, and jobs as records (step 5c)
+
+- **Date:** 2026-10-09
+- **Status:** Built. Part 5c of the SQLite driver's plan (D-662).
+  Amends D-647's `Table` (tables in every area) as D-645 foresaw.
+- **Decision:**
+  - **The `sqlite` driver covers every area:** `DataStore` is
+    `RecordDataStore`, `AccountStore` `RecordAccountStore`,
+    `SessionStore` `RecordSessionStore`, `JobStore` `RecordJobStore`;
+    roles were records already (`RecordRoleStore`). Each is generic over
+    `RecordStores`, for any database driver, and every area shares the
+    site's one connection.
+  - **Data** is the `data` table: a record a name (`types/post`), with
+    its `folder`, when it was `modified`, and its `data`. Names hold `/`,
+    which a table key's values can't, so `name` is a declared, indexed
+    field kept unique by the store, not the table's key. An editor's
+    `$schema` key isn't kept (D-491). `location()` is "`{name}` in the
+    database". A plain keyed table until step 6.
+  - **Saved settings before the container** (D-642): the bootstrap
+    builds `RecordDataStore::on()` over a SQLite store of its own
+    (`SqliteRecordStore::forSite()`, shared with the provider) when the
+    data area is `sqlite`, failing plainly without SQLite
+    (`SqliteStorage::UNAVAILABLE`). Built-in drivers for data are now the
+    filesystem and SQLite.
+  - **Accounts** are the `accounts` table, keyed by username, each as
+    `Account::toArray()` writes it.
+  - **Sessions** are the `sessions` table, keyed by a SHA-256 of the
+    session id (never the id), with when each was last `written`, which
+    `prune()` goes by, as files go by their times.
+  - **Jobs** are the `jobs` table (the record's id the job's, `status`
+    declared) and `job_state`, keyed by name. A runner claims a job by
+    saving it as running against the version it read, in a transaction;
+    a conflict or a busy database means another runner has it. Named
+    locks stay `flock()` on files in `storage/jobs`, as `FileJobStore`
+    takes them: they keep runners on one server apart, and a SQLite site
+    is one server.
+  - **Tables in every area:** `Table` no longer refuses the sessions
+    and jobs areas. They're still reached only through their narrow
+    stores (D-645); a database driver's versions of those stores keep
+    their tables there, so `areas` can still move sessions and jobs to
+    another driver.
+  - **SQLite waits for a busy database:** connections set
+    `busy_timeout` to five seconds, so requests writing sessions side by
+    side wait for each other rather than failing.
+  - **Proof:** `SqliteAreasTest` boots a site with `STORAGE_DRIVER=sqlite`
+    and checks each contract as the file stores' tests do (data by name
+    and folder, transactions put back, settings read back by the
+    bootstrap, accounts and roles, sessions and pruning, jobs claimed
+    once, state, locks). A site wholly on SQLite boots and serves its
+    sitemap; pages still need what only files have (`ContentSource`),
+    which is 5e.
+- **Why:** the author's go ("go, do 5c").
+
+### D-666: `storage:sync` and `storage:copy` (step 5d)
+
+- **Date:** 2026-10-09
+- **Status:** Built. Part 5d of the SQLite driver's plan (D-662).
+- **Decision:**
+  - **`storage:copy`** (`StorageCopy`, `CopyStorage`) copies from files
+    into SQLite only (`--from=filesystem --to=sqlite`, the defaults; any
+    other pair is refused as not supported yet), ids kept, in one
+    database transaction:
+    - **content:** the filesystem index brought up to date, then every
+      entry record in pages of 200, each with its front matter as the
+      file's editor reads it (`RecordContentWriter::asWritten()`, shared
+      with the writer: no id, `refs`, `slug`, or relations) under
+      `written`; and every `refs` row. Files without ids aren't entries
+      (D-656), so they're counted and named in a warning, not copied.
+    - **data** (each record by name, from `FileDataStore`), **accounts**,
+      **jobs** (every status; named state isn't, the scheduler keeps
+      its own), and every other registered table as its records are
+      (roles, and plugins' tables).
+    - **Not sessions:** everyone signs in again.
+    - A database that already holds records in any copied table is
+      refused unless `--replace`, which empties those tables first. The
+      site keeps its driver until its config names the other; the
+      command says how.
+  - **`storage:sync`** (`SyncStorage`) prepares every registered table on
+    a store that keeps a schema (`SchemaStore`, which
+    `SqliteRecordStore` implements with `prepare()`): the table, its
+    declared fields' columns, and their indexes. On files there's
+    nothing to do. Per-field indexes from types (D-644, D-648) wait for
+    fields to be registered-only (`open-questions.md`, "The `entries`
+    table's shape, later").
+  - **Core tables are registered** (`TableRegistry`, in
+    `StorageServiceProvider`): `entries`, `refs`, `data`, `accounts`,
+    `sessions`, `jobs`, and `job_state`, beside `roles` (Auth).
+  - **At scale** (`../ten-thousand`, 10,384 entries): the copy takes
+    9.3 s and 555 MB at its peak, most of it the filesystem index's
+    build (which needs more than 128 MB at that size already, D-661),
+    and writes a 63 MB `user/site.sqlite` with 35,377 links.
+  - The YAML parser reads an unquoted timestamp as ISO 8601 text
+    (`2003-04-15T17:39:00-05:00`), so that's what "as written" holds on
+    both drivers; and relations come back under their field's name
+    (`authors`), not the alias a file used (`author`), which the editor
+    reads either way.
+- **Why:** the author's go ("build the next stage 5 piece").
+
+### D-667: What only files have steps aside on a database (step 5e)
+
+- **Date:** 2026-10-09
+- **Status:** Built. Part 5e of the SQLite driver's plan (D-662); the
+  SQLite driver (step 5) is done.
+- **Decision:**
+  - **`ContentFiles`** (`Blush\Content\Source`) says whether content is
+    kept as files (`kept()`, from `StorageResolver::covers()`) and gives
+    their `ContentSource` lazily (`source()`, a clear error on a
+    database). Everything that read files through `ContentSource` takes
+    it instead (the indexer, linter, format check, `EntryFiles`,
+    `WrittenDates`, Site Health, the health check job, the welcome page,
+    media usage, `content:new`), so each is built on any driver and
+    steps aside on a database:
+    - `Indexer::index()` returns an empty report (a database is its own
+      index), so `content:index` says there's nothing to index, and
+      publishing, `autoIndex`, and type and settings saves go on.
+    - The linter checks no content files (`lint()` reads none,
+      `lintFile()` finds nothing), and says so in `content:lint`; data,
+      media, and field sets are still checked. The health check job
+      lints no files and skips the checks over every file.
+    - Site Health names the driver (a Storage fact: "Files", "SQLite", or
+      each area's) and shows content "In the database (`user/site.sqlite`)"
+      in place of the content folder; its file checks were already gated.
+    - The welcome page says to add a homepage in the admin.
+    - Media usage finds entries whose Markdown names a file with a
+      record query (`content like`), then checks each as a file's text.
+    - `content:new` names the entry it made, not a file.
+  - **A new entry credits the account's profile only when it's an
+    entry** (`EntryController::authorDefault()`), since a credit links
+    only entries (D-584, D-663); on a database a credit naming nothing
+    is refused (D-664).
+  - **`doctor` checks the storage driver** (`SetupChecks::driver()`):
+    files need nothing; SQLite needs `pdo_sqlite` with its JSON
+    functions, and a writable folder for its database.
+  - **Reading a few fields of many records** (`RecordQuery::only()`):
+    records carry only those top-level fields, read by SQLite from their
+    columns (or the JSON), filtered by the array stores. `RecordLocations`
+    reads entries' places this way, which took a 10,384-entry site's
+    requests from 78 MB to 26 MB.
+  - **Statistics for the query planner:** without them SQLite picks the
+    `type` index over the primary key, and lookups by id took 7 to 18 ms
+    each (a page made about 200). `storage:copy` and `storage:sync` run
+    `ANALYZE`; each connection sets `analysis_limit` and runs `PRAGMA
+    optimize` as it closes, which refreshes statistics only when tables
+    changed enough. On the large site, pages went from about 500 ms to
+    50 to 85 ms.
+  - **Benchmarks** (`SqliteContentBench`, the jtcom-sized site copied once
+    into SQLite, beside `ContentBench` on files): home query 3.8 ms (files
+    1.7), deep page 5.3 (1.8), date archive 0.37 (1.2), term archive 4.5
+    (1.8), named lookup 0.21 (0.05), term counts 13.4 (4.3), a home
+    request 22 ms (15), a term page 22 (15); memory 4 to 16 MB a request
+    (files 52). At 1,249 entries files are faster, as D-661 expects; the
+    large site is what SQLite is for: every page within PHP's default
+    128 MB at 26 MB, which files can't serve at all.
+  - **Left open** (`open-questions.md`): lists of every entry at once
+    (the sitemap, `llms.txt`, `content:list`) peak near or past 128 MB at
+    10,000 entries on either driver; SQL ordering folds text through a
+    PHP function on every row, and term counts read every ref.
+  - **Docs:** `going-live.md` ("Large sites: SQLite": when, how to move,
+    what changes), `configuration.md` (`sqlite`, `driver`), `cli.md`.
+  - **Proof:** `AdminOnSqliteTest` runs a site wholly on SQLite through
+    the admin's API (entries created with relations, changed, refused on
+    a stale version, trashed; every screen's API; Site Health); a setup
+    check test; the large site's pages and commands at 128 MB.
+- **Why:** the author's go ("go, do 5e").

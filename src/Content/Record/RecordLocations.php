@@ -96,7 +96,7 @@ final class RecordLocations implements EntryLocations
 		$table = EntryTable::table();
 		$rows  = [];
 
-		foreach ($this->stores->store($table)->select($table, new RecordQuery()->withoutContent())->records as $record) {
+		foreach ($this->stores->store($table)->select($table, new RecordQuery()->only('type', 'slug', 'parent_id', 'language', 'original_id', 'archive'))->records as $record) {
 			$parent   = EntryRecords::text($record, 'parent_id');
 			$original = EntryRecords::text($record, 'original_id');
 			$archive  = EntryRecords::text($record, 'archive');

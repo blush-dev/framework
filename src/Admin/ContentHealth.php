@@ -24,7 +24,7 @@ use Blush\Content\Lint\Linter;
 use Blush\Content\Lint\LintReport;
 use Blush\Content\MissingParents;
 use Blush\Content\MissingTerms;
-use Blush\Content\Source\ContentSource;
+use Blush\Content\Source\ContentFiles;
 use Blush\Content\Source\FilesystemSource;
 use Blush\Content\Type\ContentTypes;
 use Blush\Core\Paths;
@@ -88,7 +88,7 @@ final readonly class ContentHealth
 		private EntryFiles $files,
 		private MediaMetadataStore $metadata,
 		private Paths $paths,
-		private ContentSource $source
+		private ContentFiles $contentFiles
 	) {}
 
 	/**
@@ -132,7 +132,7 @@ final readonly class ContentHealth
 		// terms named without a file, parent pages folders imply, both
 		// forms of relations) is checked
 		// only on content kept as files (D-654).
-		$onFiles = $this->source instanceof FilesystemSource;
+		$onFiles = $this->contentFiles->kept();
 		$ids     = $onFiles ? $this->ids->report() : new EntryIdReport();
 
 		try {

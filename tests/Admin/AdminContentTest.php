@@ -206,6 +206,7 @@ final class AdminContentTest extends TestCase
 
 	public function testEditorsSeeEveryDraftAndScheduledEntry(): void
 	{
+		$this->profiles('jane', 'sam');
 		$this->site(['editor']);
 
 		$drafts = $this->entries('draft');
@@ -387,12 +388,13 @@ final class AdminContentTest extends TestCase
 
 	public function testSortsByAColumn(): void
 	{
+		$this->profiles('jane', 'sam');
 		$this->site(['editor']);
 
-		$this->assertSame(['Broken', "Jane's draft", 'Live', "Sam's draft", 'Soon'], array_column($this->listed('?sort=title'), 'title'));
-		$this->assertSame(['Soon', "Sam's draft", 'Live', "Jane's draft", 'Broken'], array_column($this->listed('?sort=title&dir=desc'), 'title'));
-		$this->assertSame(['draft', 'draft', 'scheduled', 'published', 'published'], array_column($this->listed('?sort=status'), 'status'), 'By the status kept: a scheduled entry is a published one whose time is to come (D-649), in the order entries were made.');
-		$first = $this->listed('?sort=author&dir=desc')[0] ?? [];
+		$this->assertSame(['Broken', "Jane's draft", 'Live', "Sam's draft", 'Soon'], array_column($this->listed('?type=page&sort=title'), 'title'));
+		$this->assertSame(['Soon', "Sam's draft", 'Live', "Jane's draft", 'Broken'], array_column($this->listed('?type=page&sort=title&dir=desc'), 'title'));
+		$this->assertSame(['draft', 'draft', 'scheduled', 'published', 'published'], array_column($this->listed('?type=page&sort=status'), 'status'), 'By the status kept: a scheduled entry is a published one whose time is to come (D-649), in the order entries were made.');
+		$first = $this->listed('?type=page&sort=author&dir=desc')[0] ?? [];
 
 		$this->assertSame(['sam'], $first['authors'] ?? null, 'Authors sort by their slug.');
 
@@ -1045,6 +1047,7 @@ final class AdminContentTest extends TestCase
 
 	public function testMakesPreviewLinksForEntriesTheAccountMayEdit(): void
 	{
+		$this->profiles('jane', 'sam');
 		$this->site(['author']);
 		$token = $this->token();
 

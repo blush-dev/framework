@@ -76,33 +76,53 @@ Move each item to `decisions.md` once it's answered.
     a journal, or a documented limit. Now concrete (D-653): the content
     store's transactions take the lock, but the writer's file writes
     (and the referrers it files) aren't put back when one fails.
-  - **The filesystem driver's index:** settled by D-659 (SQLite when
-    there, `PhpIndex` without; plan in `roadmap.md`, step 4).
-  - **Step 4c, and sites much larger than jtcom** (raised 2026-10-08,
-    after 4b, D-660; tabled for the day). 4c's plan was requests that
-    don't load the PHP snapshot. 4b found that at jtcom's size (1,249
-    entries) the snapshot is the cheap part: opcache keeps its rows
-    decoded in shared memory, and records are built from them; records
-    read from SQLite cost twice as much (each one's JSON decoded). So
-    4c, as planned, would slow jtcom-sized sites. Reasoned, not
-    measured, for many thousands of entries:
-    - The PHP side grows linearly: queries it scans, the snapshot's size
-      (8.8 MB on disk for 1,251 entries), opcache's room for it (128 MB
-      by default, shared with all code), a recompile after a deploy or
-      reindex (seconds on the first request), and work built from every
-      row once a request even on the SQLite path (the id map, refs by
-      relation, `IndexLocations`' keys and folders).
-    - SQLite holds up better: indexed filters stay close to flat, and
-      scans run in C.
-    - So 4c matters at scale: keep what requests need (keys, folders,
-      refs looked up) in SQLite and build records from its rows there,
-      accepting the decoding cost, or choose by size.
-    - **Next:** a second benchmark site (10,000 to 25,000 entries) run
-      on both paths, before 4c's shape is chosen. Then 4d (Requirements
-      and Site Health say which index is read; docs; benchmarks).
-    - Unconfirmed: whether DDEV's PHP for the trial site has
-      `pdo_sqlite` with JSON (`ddev exec php -m`); its CLI here does,
-      and its config leaves `sqliteIndex` on by default.
+  - **The filesystem driver's index:** settled by D-661 (it keeps
+    `PhpIndex` alone; SQLite is a driver, and large sites use it).
+  - **Indexing large flat-file sites** (measured 2026-10-08 on
+    `../ten-thousand`, 10,384 entries, 43 MB of Markdown;
+    `JtcomSizedSite::build()` at scale 9): a full index takes 4.3 s and
+    395 MB at its peak, past PHP's default 128 MB (it fails in
+    `RelationGraph`); `content.php` is 65 MB, and every page request
+    fails at 128 MB loading it (works with 1 GB). D-661: sites that size
+    use the SQLite driver, with an admin warning planned. Open: at what
+    size the warning shows, and whether indexing should still be made
+    to stream within 128 MB so such a site can be indexed once to copy
+    it to SQLite (`storage:copy`).
+  - **The `entries` table's shape, later** (the author, 2026-10-09,
+    reading the tables laid out after D-665; to decide later, nothing
+    built):
+    - **Translations as refs:** the translation system may move onto
+      entry relationships (refs), so `original_id` would no longer be
+      needed as a column.
+    - **`parent_id` as a relationship:** a parent is likely just another
+      relationship, so `parent_id` may fold into refs too.
+    - **Only registered fields stored:** `fields` would keep only what's
+      registered (a type's declared fields), not any front matter key.
+    - Also raised then, unanswered: uniqueness enforced by the database
+      (a unique index on an entry's place, unique table keys) and
+      D-649's composite indexes on refs, which are checked in PHP and
+      single-column today.
+  - **The SQLite driver at scale, what's left** (after D-667): lists
+    of every entry at once (the sitemap, `llms.txt`, `content:list`)
+    hydrate every entry and peak near or past 128 MB at 10,000 entries
+    on either driver, so they need paging or a lighter read (`only()`);
+    SQL ordering folds text through `blush_fold` (a PHP function) on
+    every row, which costs at scale and isn't needed for dates; term
+    counts read every ref (13 ms on the benchmark site, 4 on files).
+  - **Duplicating should answer the same on every driver** (raised
+    2026-10-09, after D-664; the author: make copying handle the same,
+    decide later). Copying `spring` as `spring` gives `spring-2` on
+    SQLite (`RecordContentWriter` checks slugs among siblings), but a
+    second `spring` on files (`FilesystemWriter::duplicate()` checks only
+    whether the new file name exists, and a dated pattern names a free
+    one). To decide: which rule both follow (likely the free slug among
+    siblings), and whether the conformance suite pins it.
+  - **The skeleton's `2.x` branch** has a stale `config/markdown.php`
+    (it names `MarkdownConfig::DEFAULT_EXTENSIONS`, gone since D-492),
+    so a fresh install from it fails; the trial site's copy is current.
+  - **Whether DDEV's PHP has `pdo_sqlite` with JSON** (`ddev exec php
+    -m`), for trying the SQLite driver on the trial site; the CLI here
+    does.
   - **Publishing** a database-backed site (D-131 pulls `user/` with
     git; D-486's open point).
   - **`content:lint` in two parts** (3d's plan, left from D-654): the
@@ -660,8 +680,8 @@ Move each item to `decisions.md` once it's answered.
   - A read-only `view` capability (the sketch's), which needs a
     read-only editor first.
 - **Front-end search** (raised 2026-10-03; the author wants to pursue
-  it): the plan in `architecture.md` ("needs `SqliteIndex`", FTS5) needs
-  SQLite and leaves static copies of the site out. The idea instead: a
+  it): the plan in `architecture.md` (FTS5) needs the SQLite driver
+  and leaves static copies of the site out. The idea instead: a
   JSON search index as a route (`/search.json`, built the way feeds
   are, and listed in the site's URLs as `FeedSiteUrls` lists feeds,
   D-476), searched in the
@@ -684,9 +704,8 @@ Move each item to `decisions.md` once it's answered.
     interface?
   - Only public, published entries, never drafts, private, or
     future-dated ones (`Query`'s visibility filters).
-  - Whether `SqliteIndex` and FTS5 stay planned, for large sites PHP
-    serves. Leaning: yes, with the SQLite index when it's there (see
-    "The filesystem driver's index" under "The data layer").
+  - Whether FTS5 search is planned for sites on the SQLite driver
+    (D-661: no SQLite index beside files).
   - Its records could be the content API's (below).
 - **Data types: types without a body** (discussed 2026-10-06; leaning,
   not decided): types that are data more than prose (testimonials,

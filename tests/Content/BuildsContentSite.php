@@ -62,13 +62,11 @@ trait BuildsContentSite
 	}
 
 	/**
-	 * Writes the standard content set, with any other content settings.
-	 *
-	 * @param array<string, mixed> $settings
+	 * Writes the standard content set.
 	 */
-	private function standardContent(array $settings = []): void
+	private function standardContent(): void
 	{
-		$this->contentConfig([...$settings,
+		$this->contentConfig([
 			'types' => [
 				'post' => [
 					'path'          => '_posts',

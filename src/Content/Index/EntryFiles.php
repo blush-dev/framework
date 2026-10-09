@@ -17,7 +17,7 @@ use Blush\Content\Entries;
 use Blush\Content\Entry\Entry;
 use Blush\Content\Entry\EntryHydrator;
 use Blush\Content\Parser\DocumentParser;
-use Blush\Content\Source\ContentSource;
+use Blush\Content\Source\ContentFiles;
 use Blush\Storage\Record\Record;
 use Blush\Support\Uuid;
 
@@ -35,7 +35,7 @@ final readonly class EntryFiles
 		private IndexFreshness $freshness,
 		private EntryHydrator $hydrator,
 		private Entries $content,
-		private ContentSource $source,
+		private ContentFiles $contentFiles,
 		private DocumentParser $parser
 	) {}
 
@@ -59,7 +59,7 @@ final readonly class EntryFiles
 			new Record(Uuid::fromName("content/{$path}"), SnapshotRecords::fields($record, null, null), version: $record['hash']),
 			$record['key'],
 			$path,
-			content: fn (): string => $this->parser->parse($this->source->read($path))->body,
+			content: fn (): string => $this->parser->parse($this->contentFiles->source()->read($path))->body,
 			identified: false
 		);
 	}

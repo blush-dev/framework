@@ -26,9 +26,11 @@ use Blush\Container\Plan\ReflectionPlanner;
 use Blush\Container\ServiceContainer;
 use Blush\Content\ContentConfig;
 use Blush\Content\Type\ContentTypeCache;
+use Blush\Clock\SystemClock;
 use Blush\Data\DataLoader;
 use Blush\Data\DataStore;
 use Blush\Data\FileDataStore;
+use Blush\Data\RecordDataStore;
 use Blush\Env\Env;
 use Blush\Embed\EmbedConfig;
 use Blush\Extension\ComposerInstalled;
@@ -64,6 +66,9 @@ use Blush\Storage\File\FileTransactions;
 use Blush\Storage\StorageArea;
 use Blush\Storage\StorageConfig;
 use Blush\Storage\StorageDriver;
+use Blush\Storage\SqliteStorage;
+use Blush\Storage\Sql\SqliteConnection;
+use Blush\Storage\Sql\SqliteRecordStore;
 use Blush\Storage\StorageException;
 use Blush\Support\Filesystem;
 use Blush\Support\PhpArrayFile;
@@ -350,16 +355,26 @@ final readonly class Bootstrap
 	/**
 	 * Returns the data store the saved settings are read from, before
 	 * the container exists (D-486, D-642). Only a built-in driver can be
-	 * built this early, and for now that's the filesystem.
+	 * built this early: the filesystem, or SQLite (D-662), over a
+	 * connection of its own.
 	 *
-	 * @throws StorageException When the data area's driver isn't one.
+	 * @throws StorageException When the data area's driver isn't one, or
+	 *                          PHP can't open SQLite.
 	 */
 	private function dataStore(StorageConfig $storage): DataStore
 	{
 		$driver = $storage->driverFor(StorageArea::Data);
 
+		if (StorageDriver::tryFrom($driver) === StorageDriver::Sqlite) {
+			if (! SqliteConnection::available()) {
+				throw new StorageException(SqliteStorage::UNAVAILABLE);
+			}
+
+			return RecordDataStore::on(SqliteRecordStore::forSite($storage, $this->paths->root), new SystemClock());
+		}
+
 		if (StorageDriver::tryFrom($driver) !== StorageDriver::Filesystem) {
-			throw new StorageException(sprintf('Unknown storage driver "%s" for data: the saved settings are read before extensions load, so the data area\'s driver must be built in (%s).', $driver, StorageConfig::FILESYSTEM));
+			throw new StorageException(sprintf('Unknown storage driver "%s" for data: the saved settings are read before extensions load, so the data area\'s driver must be built in (%s or %s).', $driver, StorageConfig::FILESYSTEM, StorageConfig::SQLITE));
 		}
 
 		$filesystem = new Filesystem();

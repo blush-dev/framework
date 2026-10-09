@@ -100,11 +100,11 @@ final class RecordTest extends TestCase
 
 		$this->assertSame('summer-2026', $table->keyOf(new Record(self::ID, ['slug' => 'summer-2026'])));
 		$this->assertNull(new Table('notes', StorageArea::Data)->keyOf(new Record(self::ID)));
+		$this->assertSame(StorageArea::Sessions, new Table('sessions', StorageArea::Sessions)->area, 'A database driver\'s session and job stores keep tables (D-645).');
 
 		$cases = [
 			static fn (): Table => new Table('Albums', StorageArea::Data),
 			static fn (): Table => new Table('albums/', StorageArea::Data),
-			static fn (): Table => new Table('sessions', StorageArea::Sessions),
 			static fn (): Table => new Table('albums', StorageArea::Data, key: 'id'),
 			static fn (): ?string => $table->keyOf(new Record(self::ID, ['slug' => '.hidden']))
 		];

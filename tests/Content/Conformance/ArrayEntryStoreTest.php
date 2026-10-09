@@ -83,26 +83,6 @@ final class ArrayEntryStoreTest extends EntryStoreConformance
 	#[Override]
 	protected function entries(Application $app, RecordStores $stores): Entries
 	{
-		$container = $app->container();
-		$types     = $container->make(ContentTypes::class);
-		$config    = $container->make(AppConfig::class);
-		$clock     = $container->make(ClockInterface::class);
-
-		return new StoredEntries(
-			new EntryHydrator($types, $container->make(FieldContext::class), $stores, $container->make(MarkdownParser::class), $clock, $config),
-			$types,
-			$config,
-			$clock,
-			$container->make(QueryCompiler::class),
-			$stores,
-			new RecordLocations($stores, $types),
-			static fn (): never => throw new LogicException('This store has no writer.')
-		);
-	}
-
-	#[Override]
-	protected function writes(): bool
-	{
-		return false;
+		return self::recordEntries($app, $stores);
 	}
 }

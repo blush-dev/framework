@@ -722,7 +722,15 @@ Implemented in M4b (D-087, D-090).
     (`SnapshotRecords`, D-652), built when the index is; `select()`
     answers a `RecordQuery` over them (`ArrayEvaluator`), and
     `locations()` answers folders and parent keys.
-  - `SqliteIndex` (optional, later): for large sites and FTS5 search.
+  - No SQLite copy (D-661): large sites use the SQLite storage driver
+    (`SqliteStorage`, `user/site.sqlite`; content reads and writes
+    built, D-663, D-664). Content kept as records is written by
+    `RecordContentWriter`: front matter as written (`written`) beside
+    its normalized values, relations as `refs` rows only. Data,
+    accounts, sessions, and jobs are tables too (`RecordDataStore`,
+    `RecordAccountStore`, `RecordSessionStore`, `RecordJobStore`,
+    D-665). What only files have asks `ContentFiles` (`kept()`,
+    `source()`) and steps aside on a database (D-667).
 - **`RecordBuilder`** turns a file into an `IndexRecord` (the 1.x file
   conventions, D-088) and its schema violations. It reads `id` before
   the schema (`EntryFields::ID`, a reserved key no field may claim), and
@@ -851,17 +859,14 @@ Implemented in M4b (D-089).
   fallback, 1.x's `author`), so every driver answers the same query.
   The content conformance suite (`tests/Content/Conformance`) runs
   `Entries` on the filesystem driver and on `ArrayRecordStore`.
-- On files, `IndexStore` asks the index's SQLite copy
-  (`storage/index/content.sqlite`, `SqliteIndex`, D-660) for the ids a
-  scan finds and builds records from the PHP index's rows; lookups by
-  id and queries that follow refs stay in PHP.
 - `StoredEntries` reads records only (D-657): entries are built from
   them (`EntryHydrator`), collections are keyed by id, and a page
-  written at a key gets its missing parents written first.
+  written at a key gets its missing parents written first. Terms come
+  from the records' `refs` rows on every driver (D-663).
   `PhpIndex` runs it over every entry record, so a query's cost grows
   with the site (about 4 ms per 1,200 entries after D-652, from 2 ms;
-  step 3c works on it); `SqliteIndex` is the answer for much larger
-  sites.
+  step 3c works on it); much larger sites use the SQLite driver
+  (D-661).
 
 ## Media
 
@@ -1134,7 +1139,7 @@ reusable pieces, from themes, the site, and plugins.
   (so the admin's and media's own `.md` paths win, and content routes'
   `{name}` never takes `hello.md`); themed pages link the version with
   `<link rel="alternate" type="text/markdown">`. Both are site URLs.
-- **Search:** optional; needs `SqliteIndex` (under discussion: a JSON index; see `open-questions.md`).
+- **Search:** optional; FTS5 with the SQLite driver, or a JSON index (under discussion; see `open-questions.md`).
 
 ## Caching
 

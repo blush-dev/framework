@@ -18,7 +18,7 @@ use DateTimeImmutable;
 use Blush\Content\Parser\DocumentParser;
 use Blush\Content\Parser\FrontMatter;
 use Blush\Content\Parser\InvalidDocument;
-use Blush\Content\Source\ContentSource;
+use Blush\Content\Source\ContentFiles;
 use Blush\Content\Source\UnreadableSource;
 use Blush\Content\Type\ContentTypes;
 use Blush\Core\AppConfig;
@@ -35,7 +35,7 @@ final readonly class WrittenDates
 	public function __construct(
 		private ContentTypes $types,
 		private AppConfig $app,
-		private ContentSource $source,
+		private ContentFiles $contentFiles,
 		private DocumentParser $parser
 	) {}
 
@@ -49,7 +49,7 @@ final readonly class WrittenDates
 	public function of(string $path, string $type): DateTimeImmutable|string|null
 	{
 		try {
-			$contents    = $this->source->read($path);
+			$contents    = $this->contentFiles->source()->read($path);
 			$frontMatter = $this->parser->parse($contents)->frontMatter;
 		} catch (InvalidDocument | UnreadableSource) {
 			return null;

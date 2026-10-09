@@ -6,6 +6,7 @@
 |---|---|
 | Blush framework (this repo, `2.x` branch) | `/Applications/XAMPP/xamppfiles/htdocs/blush-framework` |
 | Blush site skeleton, `blush-dev/blush` (default install; 1.x on `master`; the M8 trial on `jtcom-trial`, D-142) | `/Applications/XAMPP/xamppfiles/htdocs/blush` |
+| A 10,384-entry test site (not a repo): the skeleton's `2.x` without its sample content, jtcom-shaped content from `JtcomSizedSite::build(…, 9, app: false)`, default Markdown config, served with `php -d memory_limit=1G -S 127.0.0.1:8000 -t public …/blush-framework/resources/server.php` (`bin/blush serve` passes no `-d`) | `/Applications/XAMPP/xamppfiles/htdocs/ten-thousand` |
 | jtcom (first site built on Blush) | `/Applications/XAMPP/xamppfiles/htdocs/jtcom` |
 | jtcom content (separate git repo) | `/Applications/XAMPP/xamppfiles/htdocs/jtcom/user` |
 | x3p0-framework (container, application) | `/Applications/XAMPP/xamppfiles/htdocs/wp/wp-content/x3p0-framework` |

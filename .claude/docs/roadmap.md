@@ -13,7 +13,7 @@
 | M8 | **Port jtcom.** jtcom theme, config, `user/` layout, a URL-parity crawl against the live site, and a redirect map. | Every old URL returns 200 or 301; deployed (dynamically, D-142) |
 | M9 | **Admin stage 2:** operations dashboard. | Publish, clear, and reindex from a browser |
 | M10 | **Admin stage 3:** editor and media library. | Create and edit entries in a browser |
-| Later | The data layer for every storage area (D-606), with SQLite, MySQL/MariaDB, and PostgreSQL drivers, and Redis and Memcached cache drivers (D-640); plugin views in the view chain (D-174; on hold, D-380; a plugin's components render themselves since D-382); `SqliteIndex` + search; in-house YAML and Markdown parsers; theme distribution; custom template engine; Vite dev-server integration | — |
+| Later | The data layer for every storage area (D-606), with SQLite, MySQL/MariaDB, and PostgreSQL drivers, and Redis and Memcached cache drivers (D-640); plugin views in the view chain (D-174; on hold, D-380; a plugin's components render themselves since D-382); search (FTS5 on the SQLite driver); in-house YAML and Markdown parsers; theme distribution; custom template engine; Vite dev-server integration | — |
 
 ---
 
@@ -118,14 +118,31 @@ built:
    `ContentWriter`'s paths, the index owned by the filesystem driver,
    content's `Query` wrapping `RecordQuery`, relation filters over
    D-585's links. The biggest step; it changes the admin's write paths.
-4. **The filesystem driver's SQLite index**, falling back to
-   `PhpIndex` without `pdo_sqlite` (the leaning in `open-questions.md`).
-5. **The SQLite driver** (D-640), its schema from types (D-644), and
-   `storage:sync` and `storage:copy`.
+4. ~~The filesystem driver's SQLite index~~ (dropped, D-661: SQLite
+   is a driver a site chooses, never a second index beside files).
+5. **The SQLite driver** (D-640, built: D-662 to D-667), its schema
+   from types (D-644), and `storage:sync` and `storage:copy`, built on `Blush\Storage\Sql`
+   (D-659's 4a, kept). The driver for large sites (D-661); an admin
+   warning suggesting it is planned.
 6. **The other areas onto records** (data, accounts, roles; sessions
    and jobs built on `RecordStore` inside a database driver, D-645),
    then Composer drivers, the admin's copy tool, and publishing a
-   database site.
+   database site. Not planned yet; plan it with the author first.
+   Where it starts (after step 5, 2026-10-09):
+   - Roles are on records (D-646). Data and accounts have record stores
+     only as plain keyed tables for the SQLite driver
+     (`RecordDataStore`, `RecordAccountStore`, D-665); on files they're
+     still `FileDataStore` and `FileAccountStore`, with no repositories.
+     Sessions and jobs keep narrow stores, with database versions
+     (`RecordSessionStore`, `RecordJobStore`, D-665).
+   - Raised by the author for later (`open-questions.md`, "The `entries`
+     table's shape, later"): translations and `parent_id` as refs, and
+     `fields` keeping only registered fields; also database-enforced
+     uniqueness and D-649's composite ref indexes.
+   - Also open: duplicating answering alike on every driver; the SQLite
+     driver at scale (lists of every entry, folded sorting, term
+     counts); per-field indexes from types (`storage:sync`, D-666);
+     `storage:copy` from SQLite back to files.
 
 ### Step 2: the record layer, on files only (built, D-647)
 
@@ -367,80 +384,78 @@ edit-conflict check.
 **Shape (D-649):** the `entries` and `refs` tables above; records'
 `fields` and `content`; text sorted without regard to case.
 
-### Step 4: the filesystem driver's SQLite index (4a, 4b built, D-659, D-660; 4c to revisit)
+### Step 4: dropped (D-661)
 
-**Goal:** a flat-file site answers content queries from a SQLite file
-the filesystem driver builds from its files, whenever PHP has
-`pdo_sqlite` with its JSON functions, and from `PhpIndex` as now when
-it hasn't (the leaning in `open-questions.md`). The files stay the
-source of truth; the SQLite file is derived (`storage/index/content.sqlite`,
-ignored by git, rebuilt by `content:index`), so publishing with git
-(D-131) doesn't change. Queries become SQL instead of PHP loops over
-every row, which wins back step 3's slowdown and takes the PHP
-snapshot out of most requests. The SQL is built so step 5's SQLite
-driver reuses it.
+Planned as a derived SQLite copy of the filesystem driver's index
+(D-659, D-660). Dropped: SQLite is a storage driver a site chooses
+(step 5), and the filesystem driver keeps `PhpIndex` alone. What was
+built of it that's generic stays for step 5: SQL for record queries
+(`Blush\Storage\Sql`: `SqlDialect`, `SqliteDialect`, `SqlCompiler`,
+`SqliteConnection`, `SqliteRecordStore`), passing the record
+conformance suite and `SqlParityTest`.
 
-**What the code does today:** `PhpIndex` keeps one PHP array file
-(the snapshot: index records, keys, terms, the graph, and the
-`entries` and `refs` rows), loaded whole on a request's first content
-use (28 MB peak on the benchmark site). `IndexStore` runs every
-`RecordQuery` through `ArrayEvaluator` over those rows, with lookups
-for `=` and `in` on ids. `IndexLocations` works out keys and folders
-from every row once a request.
+### Step 5: the SQLite driver (built, D-662 to D-667)
 
-**4a. SQL for record queries** (built, D-659; generic,
-`Blush\Storage\Sql`, shared with step 5):
-- **A dialect** (`SqlDialect`, `SqliteDialect`; MySQL and PostgreSQL
-  later, D-640) kept apart from the connection it runs on, so hosted
-  variants can reuse it.
-- **Tables as SQL** (D-644): `id` (primary key), `fields` (JSON),
-  `content`, `version`, plus a generated column and an index for each
-  value a `Table` declares; a table's key, unique.
-- **`SqlCompiler`:** `RecordQuery` to SQL and bindings: every operator
-  on values, `id`, `content`, and dotted keys (`json_extract`), compared
-  by type as `ArrayEvaluator` compares them (D-648: no coercion; nulls
-  and missing keys; case-sensitive `=`, case-insensitive `like` and
-  text order; ties by id); groups; subqueries; `intersects` and
-  `contains` over lists (`json_each`); related conditions and `with()`
-  over the area's `refs` table; order, limit, offset; `count`,
-  `countBy`, and aggregates.
-- **`SqliteRecordStore`** (PDO, a file or memory): runs the record
-  conformance suite (`RecordStoreConformance`). A case it fails is a
-  compiler bug, never a changed test.
+**Goal:** `STORAGE_DRIVER=sqlite` (or `driver: 'sqlite'` in
+`config/storage.php`) keeps every area's records in one database,
+`user/site.sqlite` by default (`path` overrides it). Media files,
+config, caches, and logs stay files (D-486). The driver for large
+sites (D-661).
 
-**4b. The index's rows in SQLite** (built, D-660, reading SQLite only
-for the ids a scan finds; records come from the PHP index's rows): the indexer writes the `entries`
-and `refs` rows to `storage/index/content.sqlite` as it writes the
-snapshot (in one transaction, swapped in whole on a full index), and
-`IndexStore` hands queries to SQLite when the file is there and fresh,
-else to `ArrayEvaluator` as now. Content still comes from files.
-`content:index` says which index it built. The content conformance
-suite runs on files with SQLite, on files without it, and in memory.
+**What exists:** `SqliteRecordStore` (D-659's 4a) passes the record
+conformance suite. `FilesystemStorage::bindings()` lists what each area
+needs: content `ContentWriter` and `EntryLocations`, data `DataStore`,
+accounts `AccountStore`, roles `RecordRoleStore` (on records already),
+sessions `SessionStore`, jobs `JobStore`. `RecordLocations` answers
+keys from records alone.
 
-**4c. Requests without the snapshot** (to revisit before it's built:
-4b found that the PHP index's rows, decoded in opcache's shared memory,
-cost next to nothing to read, and records are built from them; leaving
-them out would read every record's JSON from SQLite; at many thousands
-of entries the balance likely turns, so a larger benchmark site comes
-first: see "Step 4c, and sites much larger than jtcom" in
-`open-questions.md`): keys and folders (`EntryPlaces`)
-worked out at index time and kept in SQLite, so `IndexLocations`,
-lookups, and queries read SQLite alone; the PHP snapshot is loaded
-only by the driver's file tools (linting, links, `EntryFiles`, Site
-Health's file checks) and by development's incremental index.
+**What's missing:** a content writer over records (only the filesystem
+driver has one); terms read from `refs` (entries read them from front
+matter today; D-649: a database keeps only the rows); `ContentVersion`
+moving on after a write (it follows the index today); `MediaUsage`
+reading records (it reads content files).
 
-**4d. Parity and docs:** Requirements and Site Health say which index
-the site uses and why (`pdo_sqlite` or SQLite's JSON functions
-missing); `docs/` (installation, going live); the benchmarks against
-`before_step3`; the trial site checked.
+**5a. The driver and content reads** (built, D-663): `SqliteStorage` (`sqlite`) gives
+`RecordStore` (on the site's database) and `EntryLocations`
+(`RecordLocations`); it checks for `pdo_sqlite` with SQLite's JSON
+functions at boot and fails plainly without them. Entries' terms come
+from `refs` for every driver. The content conformance suite's reads
+pass on SQLite.
 
-**Done when:** both record conformance suites pass on SQLite; content
-queries answer the same with and without it; requests on the
-benchmark site load no PHP snapshot when SQLite is there; `composer
-check` passes; the benchmarks are at or better than before step 3.
+**5b. Content writes on records** (built, D-664): `RecordContentWriter` (every
+database driver's) implements `ContentWriter` over `RecordStore`: an
+entry and its `refs` rows saved in one transaction; core's derived
+values (`slugs`, `published` on new entries, slugs unique among
+siblings) and relation values resolved to `refs`; `EditableEntry` from
+`fields` and `content`; conflicts by `version`. A rename or move
+changes one record. Writes move `ContentVersion` on. The content
+conformance suite, writes included, passes on SQLite.
 
-**Left for later:** full-text search (FTS5, `open-questions.md`);
-the database driver itself (step 5).
+**5c. The other areas** (built, D-665): data and accounts as plain keyed tables
+(`DataStore` by name, `AccountStore` by username; reshaped in step 6),
+and sessions and jobs on `RecordStore` inside (D-645). Each contract's
+tests run on SQLite.
+
+**5d. Schema and copying** (built, D-666; per-field indexes wait): `storage:sync` makes tables and columns, and
+indexes the fields types sort or filter by (D-644, D-648).
+`storage:copy --from=filesystem --to=sqlite` copies every area, ids
+kept (SQLite to files later).
+
+**5e. What only files have, docs, benchmarks** (built, D-667): on SQLite,
+`content:index`, `publish`'s reindex, and `autoIndex` have nothing to do
+and say so; the linter, format, and file checks in Site Health and
+`WrittenDates` step aside; `MediaUsage` queries records. Requirements
+and Site Health name the driver. `docs/` (installing on SQLite, moving
+a site). Benchmarks: the jtcom-sized site on both drivers, and
+`../ten-thousand` on SQLite within 128 MB.
+
+**Done when:** the record and content conformance suites pass on
+SQLite; a site copied to SQLite renders and edits in the admin as on
+files; `composer check` passes; the large site serves within 128 MB.
+
+**Left for later:** the admin's large-site warning (D-661), full-text
+search, publishing a database site, SQLite to files, MySQL and
+PostgreSQL, and step 6's repositories for data and accounts.
 
 ## Next: setup DX/UX (D-156)
 

@@ -29,7 +29,6 @@ use Blush\Content\Record\EntryLocations;
 use Blush\Content\Record\EntryRecords;
 use Blush\Content\Record\EntryTable;
 use Blush\Content\Record\QueryCompiler;
-use Blush\Content\Relation\Refs;
 use Blush\Content\Type\ContentType;
 use Blush\Content\Type\ContentTypes;
 use Blush\Content\Writer\ContentWriter;
@@ -43,7 +42,7 @@ use Blush\Storage\Record\RecordResult;
 use Blush\Storage\Record\RecordStore;
 use Blush\Storage\Record\RecordStores;
 use Blush\Storage\Record\Ref;
-use Blush\Support\Uuid;
+use Blush\Storage\Record\Refs;
 
 /**
  * The default `Entries` (D-654), on records (D-649), the same for every
@@ -559,43 +558,35 @@ final class StoredEntries implements Entries
 	}
 
 	/**
-	 * Builds entries from their records, with the slugs of every entry
-	 * their `refs` name, or their values name by id, read in one go, for
-	 * their terms.
+	 * Builds entries from their records, with what each refers to (the
+	 * `refs` rows, D-649) and the slugs of those targets, read in one go,
+	 * for their terms.
 	 *
 	 * @param  list<Record> $records
 	 * @return list<Entry>
 	 */
 	private function entries(array $records): array
 	{
-		$ids = [];
+		$table = EntryTable::table();
+		$refs  = Refs::group($this->store(), $table, self::ids($records));
+		$ids   = [];
 
-		foreach ($records as $record) {
-			$front = EntryRecords::front($record);
-
-			foreach (Refs::fromValue($front[Refs::FIELD] ?? null)->map as $targets) {
+		foreach ($refs as $relations) {
+			foreach ($relations as $targets) {
 				foreach ($targets as $id) {
 					$ids[$id] = true;
-				}
-			}
-
-			foreach ($front as $value) {
-				foreach (is_array($value) ? $value : [$value] as $item) {
-					if (is_string($item) && strlen($item) === 36 && Uuid::isValid($item)) {
-						$ids[strtolower($item)] = true;
-					}
 				}
 			}
 		}
 
 		$slugs = [];
 
-		foreach ($ids === [] ? [] : $this->store()->select(EntryTable::table(), new RecordQuery()->where('id', 'in', array_keys($ids))->withoutContent())->records as $target) {
+		foreach ($ids === [] ? [] : $this->store()->select($table, new RecordQuery()->where('id', 'in', array_keys($ids))->withoutContent())->records as $target) {
 			$slugs[$target->id] = EntryRecords::text($target, 'slug');
 		}
 
 		return array_map(
-			fn (Record $record): Entry => $this->hydrator->hydrate($record, $this->locations->key($record->id) ?? '', $this->locations->path($record->id), $slugs),
+			fn (Record $record): Entry => $this->hydrator->hydrate($record, $this->locations->key($record->id) ?? '', $this->locations->path($record->id), $refs[$record->id] ?? [], $slugs),
 			$records
 		);
 	}

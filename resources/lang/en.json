@@ -869,6 +869,7 @@
 		"running": "{generator} is running.",
 		"next": "Next steps",
 		"start": "Add a homepage at {path} to replace this page.",
+		"start_admin": "Add a homepage in the admin to replace this page.",
 		"admin": {
 			"off": "To write in your browser, turn on the admin in {path}.",
 			"account": "Create an account with {command}, then sign in to the admin at {admin}.",

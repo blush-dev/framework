@@ -20,6 +20,7 @@ namespace Blush\Storage;
 enum StorageDriver: string
 {
 	case Filesystem = StorageConfig::FILESYSTEM;
+	case Sqlite     = StorageConfig::SQLITE;
 
 	/**
 	 * Returns the driver's storage class.
@@ -29,7 +30,8 @@ enum StorageDriver: string
 	public function storage(): string
 	{
 		return match ($this) {
-			self::Filesystem => FilesystemStorage::class
+			self::Filesystem => FilesystemStorage::class,
+			self::Sqlite     => SqliteStorage::class
 		};
 	}
 }

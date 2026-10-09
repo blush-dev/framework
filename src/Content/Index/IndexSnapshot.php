@@ -78,7 +78,6 @@ use Blush\Support\Uuid;
  *     ids: array<string, string>,
  *     duplicates: array<string, list<string>>,
  *     links: GraphArray,
- *     stamp?: string,
  *     rows: ?RowsArray
  * }
  */
@@ -88,7 +87,7 @@ final readonly class IndexSnapshot
 	 * The index format's version. A stored index with another version is
 	 * rebuilt.
 	 */
-	public const int VERSION = 13;
+	public const int VERSION = 12;
 
 	/**
 	 * @param array<string, RecordArray>                                $records   Keyed by path, sorted by path.
@@ -102,7 +101,6 @@ final readonly class IndexSnapshot
 	 * @param array<string, list<string>>                               $duplicates   Paths sharing each id held by more than one.
 	 * @param ?GraphArray                                               $links        The relation graph, or `null` for none.
 	 * @param ?RowsArray                                                $rows         The entries and refs as records, or `null` before they're built.
-	 * @param string                                                    $stamp        A token new with each save, which the SQLite index is written with, so it's known to match (D-659).
 	 */
 	private function __construct(
 		public string $fingerprint,
@@ -118,8 +116,7 @@ final readonly class IndexSnapshot
 		public array $ids = [],
 		public array $duplicates = [],
 		private ?array $links = null,
-		private ?array $rows = null,
-		public string $stamp = ''
+		private ?array $rows = null
 	) {}
 
 	/**
@@ -404,15 +401,6 @@ final readonly class IndexSnapshot
 	}
 
 	/**
-	 * Returns a copy with a stamp.
-	 */
-	#[\NoDiscard]
-	public function withStamp(string $stamp): self
-	{
-		return clone($this, ['stamp' => $stamp]);
-	}
-
-	/**
 	 * Returns the entries and refs as records, or `null` before they're
 	 * built.
 	 *
@@ -445,8 +433,7 @@ final readonly class IndexSnapshot
 			'ids'          => $this->ids,
 			'duplicates'   => $this->duplicates,
 			'links'        => $this->links ?? RelationGraph::empty()->toArray(),
-			'rows'         => $this->rows,
-			'stamp'        => $this->stamp
+			'rows'         => $this->rows
 		];
 	}
 
@@ -477,8 +464,7 @@ final readonly class IndexSnapshot
 			$data['ids'],
 			$data['duplicates'],
 			$data['links'],
-			$data['rows'],
-			$data['stamp'] ?? ''
+			$data['rows']
 		);
 	}
 

@@ -233,7 +233,7 @@ final class SiteRelationsTest extends TestCase
 
 		$this->assertSame($this->report->graph->toArray(), $this->snapshot->graph()->toArray(), 'The index stores the graph.');
 		$this->assertSame(['painting'], $this->at('_posts/b.md')->terms('category'), 'terms() follows the id in refs through a rename.');
-		$this->assertSame(['art', 'nowhere'], $this->at('_posts/c.md')->terms('category'), 'An id written as a value reads as its slug; a term without a file is kept (D-584).');
+		$this->assertSame(['art'], $this->at('_posts/c.md')->terms('category'), 'An id written as a value reads as its slug; a value that links nothing isn\'t a term (D-662).');
 		$this->assertSame(['jane'], $this->at('_posts/b.md')->terms('profile.authors'));
 		$this->assertSame(['jane'], $this->at('_posts/b.md')->terms('profile'));
 		$this->assertContains('_posts/b.md', $this->snapshot->referencing('category', 'painting'));

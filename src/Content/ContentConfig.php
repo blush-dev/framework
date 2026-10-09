@@ -32,9 +32,7 @@ use Blush\Content\Type\BuiltInType;
  *
  * With `autoIndex` on (the default), development requests refresh the
  * content index incrementally on first use; elsewhere, `content:index`
- * (or publishing) refreshes it. With `sqliteIndex` on (the default), the
- * index's rows are also kept in SQLite when PHP can, and queries read
- * them there (D-659); off, they're read from the PHP index alone.
+ * (or publishing) refreshes it.
  */
 final readonly class ContentConfig implements Config
 {
@@ -44,7 +42,6 @@ final readonly class ContentConfig implements Config
 	 * @param  bool         $dataTypeUrls Whether data types may set `urls`.
 	 * @param  list<string> $disabled     Built-in types to leave out.
 	 * @param  bool         $autoIndex    Whether development requests refresh the index.
-	 * @param  bool         $sqliteIndex  Whether the index's rows are kept in SQLite when PHP can.
 	 * @throws InvalidConfig
 	 */
 	public function __construct(
@@ -52,8 +49,7 @@ final readonly class ContentConfig implements Config
 		public bool $dataTypes = true,
 		public bool $dataTypeUrls = true,
 		public array $disabled = [],
-		public bool $autoIndex = true,
-		public bool $sqliteIndex = true
+		public bool $autoIndex = true
 	) {
 		foreach ($disabled as $name) {
 			$builtIn = BuiltInType::tryFrom($name);
@@ -74,15 +70,14 @@ final readonly class ContentConfig implements Config
 	public static function fromArray(array $data): static
 	{
 		$values = new ConfigValues($data, self::class);
-		$values->assertKnownKeys(['home', 'dataTypes', 'dataTypeUrls', 'disabled', 'autoIndex', 'sqliteIndex']);
+		$values->assertKnownKeys(['home', 'dataTypes', 'dataTypeUrls', 'disabled', 'autoIndex']);
 
 		return new static(
 			home: $values->nullableString('home'),
 			dataTypes: $values->bool('dataTypes', true),
 			dataTypeUrls: $values->bool('dataTypeUrls', true),
 			disabled: $values->stringList('disabled'),
-			autoIndex: $values->bool('autoIndex', true),
-			sqliteIndex: $values->bool('sqliteIndex', true)
+			autoIndex: $values->bool('autoIndex', true)
 		);
 	}
 
@@ -97,8 +92,7 @@ final readonly class ContentConfig implements Config
 			'dataTypes'    => $this->dataTypes,
 			'dataTypeUrls' => $this->dataTypeUrls,
 			'disabled'     => $this->disabled,
-			'autoIndex'    => $this->autoIndex,
-			'sqliteIndex'  => $this->sqliteIndex
+			'autoIndex'    => $this->autoIndex
 		];
 	}
 }

@@ -19,6 +19,7 @@ use Blush\Console\ExitCode;
 use Blush\Console\Output;
 use Blush\Console\Verbosity;
 use Blush\Content\Index\Indexer;
+use Blush\Content\Source\ContentFiles;
 
 /**
  * Builds or refreshes the content index. By default only files whose stat
@@ -29,13 +30,21 @@ use Blush\Content\Index\Indexer;
 #[Command('content:index', 'Build or refresh the content index.')]
 final readonly class IndexContent
 {
-	public function __construct(private Indexer $indexer)
-	{}
+	public function __construct(
+		private Indexer $indexer,
+		private ContentFiles $files
+	) {}
 
 	public function __invoke(
 		Output $output,
 		#[Option('Parse every file again.')] bool $full = false
 	): ExitCode {
+		if (! $this->files->kept()) {
+			$output->success('Nothing to index: the site keeps its content in a database, which is its own index.');
+
+			return ExitCode::Success;
+		}
+
 		$start  = hrtime(true);
 		$bar    = $output->progress();
 		$report = $this->indexer->index($full, static function (int $done, int $total) use ($bar): void {
@@ -71,7 +80,6 @@ final readonly class IndexContent
 		}
 
 		$output->success($summary);
-		$output->comment($report->sqlite ? 'Queries read the index in SQLite.' : 'Queries read the PHP index (SQLite is off, or PHP lacks it or its JSON functions).', Verbosity::Verbose);
 
 		if (! $report->written) {
 			$output->comment('The index was already up to date.', Verbosity::Verbose);

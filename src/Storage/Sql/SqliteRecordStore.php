@@ -30,10 +30,12 @@ use Blush\Storage\Record\RecordQuery;
 use Blush\Storage\Record\RecordResult;
 use Blush\Storage\Record\RecordStore;
 use Blush\Storage\Record\RecordStoreFailure;
+use Blush\Storage\Record\SchemaStore;
 use Blush\Storage\Record\Ref;
 use Blush\Storage\Record\Related;
 use Blush\Storage\Record\Subquery;
 use Blush\Storage\Record\Table;
+use Blush\Storage\StorageConfig;
 
 /**
  * Keeps records in a SQLite database (D-606, D-640): a table each, its
@@ -42,12 +44,11 @@ use Blush\Storage\Record\Table;
  * (`SqlCompiler`); counts by value and aggregates reduce the matching
  * values as `ArrayEvaluator` does, so every store counts alike.
  *
- * The filesystem driver's index keeps its rows in one (step 4), and the
- * SQLite storage driver will keep a site's data in one (step 5).
+ * The SQLite storage driver (step 5) will keep a site's data in one.
  *
  * @phpstan-import-type Row from ArrayEvaluator
  */
-final class SqliteRecordStore implements RecordStore
+final class SqliteRecordStore implements RecordStore, SchemaStore
 {
 	/**
 	 * The tables made so far, by name in the database.
@@ -61,8 +62,6 @@ final class SqliteRecordStore implements RecordStore
 	 */
 	private int $depth = 0;
 
-
-
 	private readonly SqliteDialect $dialect;
 
 	private readonly SqlCompiler $compiler;
@@ -75,53 +74,64 @@ final class SqliteRecordStore implements RecordStore
 	}
 
 	/**
+	 * Opens the store a site keeps its records in: the database file
+	 * `StorageConfig::$sqlite` names, from the site's root unless it's
+	 * absolute, its folder made when missing (D-662).
+	 *
+	 * @throws RecordStoreFailure
+	 */
+	public static function forSite(StorageConfig $config, string $root): self
+	{
+		$file = str_starts_with($config->sqlite, '/') ? $config->sqlite : "{$root}/{$config->sqlite}";
+
+		if (! is_dir(dirname($file)) && ! @mkdir(dirname($file), 0o755, true) && ! is_dir(dirname($file))) {
+			throw new RecordStoreFailure(sprintf('The SQLite database\'s folder, %s, couldn\'t be made.', dirname($file)));
+		}
+
+		return self::open($file);
+	}
+
+	/**
 	 * Opens a store on a database file, made if it doesn't exist, or
 	 * `:memory:`.
 	 *
 	 * @throws RecordStoreFailure
 	 */
-	public static function open(string $path, bool $wal = true): self
+	public static function open(string $path): self
 	{
-		return new self(SqliteConnection::open($path, $wal));
+		return new self(SqliteConnection::open($path));
 	}
 
 	/**
-	 * Replaces a table's records with others, as they are, versions
-	 * kept: for a store that holds what's derived from somewhere else
-	 * (the filesystem driver's index, whose versions are its files'
-	 * hashes), loaded in one go, without the checks a save makes.
-	 *
-	 * @param  iterable<Record> $records
-	 * @throws RecordStoreFailure
+	 * @inheritDoc
 	 */
-	public function replace(Table $table, iterable $records): void
+	#[Override]
+	public function prepare(Table $table): void
 	{
-		$this->transaction(function () use ($table, $records): void {
-			$name = $this->table($table);
-
-			$this->run("DELETE FROM {$name}");
-
-			try {
-				$insert = $this->pdo->prepare("INSERT INTO {$name} (id, fields, content, version, dotted) VALUES (?, ?, ?, ?, ?)");
-
-				foreach ($records as $record) {
-					$insert->execute([$record->id, self::encode($record->fields), $record->content, $record->version, self::dotted($record) ? 1 : 0]);
-				}
-			} catch (PDOException $e) {
-				throw new RecordStoreFailure(sprintf('The SQLite store couldn\'t load "%s": %s', $table->name, $e->getMessage()), 0, $e);
-			}
-		});
+		$this->table($table);
 	}
 
 	/**
-	 * Gathers statistics on the tables' values, so queries use the right
-	 * index (an id lookup over a common type); worth it after a load.
-	 *
-	 * @throws RecordStoreFailure
+	 * @inheritDoc
 	 */
+	#[Override]
 	public function analyze(): void
 	{
 		$this->run('ANALYZE');
+	}
+
+	/**
+	 * Keeps the statistics queries plan by up to date as the connection
+	 * closes, as SQLite advises for short-lived connections: it gathers
+	 * them only for tables that changed enough to need it (D-667).
+	 */
+	public function __destruct()
+	{
+		try {
+			$this->pdo->exec('PRAGMA optimize');
+		} catch (Throwable) {
+			// A connection that can't be optimized still closed fine.
+		}
 	}
 
 	/**
@@ -220,25 +230,62 @@ final class SqliteRecordStore implements RecordStore
 	#[Override]
 	public function select(Table $table, RecordQuery $query): RecordResult
 	{
+		if ($query->only !== null) {
+			return $this->projected($table, $query, $query->only);
+		}
+
 		[$rows, $total] = $this->matches($table, $query, $query->content ? 'id, fields, content, version' : 'id, fields, version');
 
 		return new RecordResult(array_map(fn (array $row): Record => ArrayEvaluator::record($this->decoded($table, $row), $query->content), $rows), $total);
 	}
 
 	/**
-	 * Returns the ids a query finds, in order, within its limit and
-	 * offset, and how many it finds in all: for a store that keeps the
-	 * records' values another way (the filesystem driver's index, whose
-	 * rows are already in memory), so no record's JSON is read.
+	 * Returns the records a query finds with only some fields, read from
+	 * their columns when the table declares them, else from the JSON, so
+	 * no record's JSON is decoded whole.
 	 *
-	 * @return array{list<string>, int}
-	 * @throws RecordStoreFailure
+	 * @param list<string> $keys
 	 */
-	public function ids(Table $table, RecordQuery $query): array
+	private function projected(Table $table, RecordQuery $query, array $keys): RecordResult
 	{
-		[$rows, $total] = $this->matches($table, $query, 'id');
+		$columns = ['id', 'version'];
 
-		return [array_values(array_filter(array_map(static fn (array $row): mixed => $row['id'] ?? null, $rows), is_string(...))), $total];
+		foreach ($keys as $index => $key) {
+			[$type, $value] = $this->dialect->read($table, $key);
+			$columns[]      = "{$type} AS t{$index}";
+			$columns[]      = "{$value} AS v{$index}";
+		}
+
+		[$rows, $total] = $this->matches($table, $query, implode(', ', $columns));
+		$records        = [];
+
+		foreach ($rows as $row) {
+			$fields = [];
+
+			foreach ($keys as $index => $key) {
+				$type  = $row["t{$index}"] ?? null;
+				$value = $row["v{$index}"] ?? null;
+
+				if (! is_string($type) || $type === 'null') {
+					continue;
+				}
+
+				$fields[$key] = match ($type) {
+					'true'           => true,
+					'false'          => false,
+					'integer'        => is_numeric($value) ? (int) $value : $value,
+					'real'           => is_numeric($value) ? (float) $value : $value,
+					'array', 'object' => is_string($value) ? json_decode($value, true) : $value,
+					default          => $value
+				};
+			}
+
+			if (is_string($row['id'] ?? null)) {
+				$records[] = new Record($row['id'], $fields, null, is_string($row['version'] ?? null) ? $row['version'] : null);
+			}
+		}
+
+		return new RecordResult($records, $total);
 	}
 
 	/**

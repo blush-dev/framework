@@ -138,7 +138,6 @@ Without `config/app.php`, these come from the `APP_*` variables.
 | `dataTypes` | `true` | Whether types in `user/data/types/` and relations in `user/data/relations/` are read |
 | `dataTypeUrls` | `true` | Whether those types may set their own `urls` |
 | `autoIndex` | `true` | Whether development requests pick up content changes |
-| `sqliteIndex` | `true` | Whether the content index is also kept in SQLite (`storage/index/content.sqlite`), which makes listings that look through every entry faster. It's used only when PHP has the `pdo_sqlite` extension with SQLite's JSON functions; without them, or with this off, the site reads the PHP index alone and works the same. |
 
 ### Storage
 
@@ -146,14 +145,15 @@ Without `config/app.php`, these come from the `APP_*` variables.
 
 | Option | Default | What it does |
 |---|---|---|
-| `driver` | `'filesystem'` | Where the site's data is kept. `filesystem` (files, as a flat-file site keeps them) is the only one for now. |
+| `driver` | `'filesystem'` | Where the site's data is kept: `filesystem` (files, as a flat-file site keeps them) or `sqlite` (one SQLite database; see [Large sites](going-live.md#large-sites-sqlite)) |
 | `areas` | `[]` | A different driver for an area: `content`, `data`, `accounts`, `sessions`, or `jobs`, such as `['sessions' => 'filesystem']` |
+| `sqlite` | `'user/site.sqlite'` | The SQLite database's file, from the site's folder (or a full path) |
 
 Without this file, `STORAGE_DRIVER` is used. Media files are always
 files, whatever the driver.
 
 The saved settings are read before plugins load, so the `data` area's
-driver must be one built into Blush.
+driver must be one built into Blush (`filesystem` or `sqlite`).
 
 ### Fields
 

@@ -20,7 +20,9 @@ use Blush\Cache\CacheConfig;
 use Blush\Cache\CacheDriver;
 use Blush\Content\Entries;
 use Blush\Content\Lint\LintReport;
-use Blush\Content\Source\ContentSource;
+use Blush\Content\Source\ContentFiles;
+use Blush\Storage\StorageArea;
+use Blush\Storage\StorageConfig;
 use Blush\Core\AppConfig;
 use Blush\Core\Framework;
 use Blush\Core\Language;
@@ -98,7 +100,8 @@ final readonly class SiteHealth
 		private Paths $paths,
 		private ExtensionState $extensions,
 		private Entries $content,
-		private ContentSource $source,
+		private ContentFiles $contentFiles,
+		private StorageConfig $storage,
 		private MediaLibrary $library,
 		private ClockInterface $clock,
 		private HealthReportStore $store,
@@ -667,7 +670,10 @@ final readonly class SiteHealth
 			self::fact('debug', 'Debugging', $this->app->debug ? 'On' : 'Off', $this->app->debug ? 'true' : 'false', mono: false),
 			self::fact('url', 'Site URL', $this->app->url),
 			self::fact('admin', 'Admin URL', rtrim($this->app->url, '/') . $this->admin->path, $this->admin->path),
-			self::fact('content', 'Content folder', $this->source->location('') . '/'),
+			$this->contentFiles->kept()
+				? self::fact('content', 'Content folder', $this->contentFiles->source()->location('') . '/')
+				: self::fact('content', 'Content', sprintf('In the database (%s)', $this->database())),
+			self::fact('storage', 'Storage', $this->drivers(), mono: false),
 			self::fact('media', 'Media folder', $this->paths->relative($this->paths->media) . '/'),
 			self::fact('timezone', 'Time zone', sprintf('%s (%s)', $zone->getName(), $this->offset($zone)), $zone->getName()),
 			self::fact(
@@ -898,5 +904,34 @@ final readonly class SiteHealth
 		$number = sprintf($unit === 0 ? '%.0f' : '%.1f', $bytes);
 
 		return (str_ends_with($number, '.0') ? substr($number, 0, -2) : $number) . ' ' . $units[$unit];
+	}
+
+	/**
+	 * Returns which driver keeps each area, as Site Health shows it:
+	 * `SQLite`, or each area's when they differ.
+	 */
+	private function drivers(): string
+	{
+		$names   = [StorageConfig::FILESYSTEM => 'Files', StorageConfig::SQLITE => 'SQLite'];
+		$drivers = [];
+
+		foreach (StorageArea::cases() as $area) {
+			$driver                      = $this->storage->driverFor($area);
+			$drivers[$names[$driver] ?? $driver][] = $area->value;
+		}
+
+		if (count($drivers) === 1) {
+			return (string) array_key_first($drivers);
+		}
+
+		return implode('; ', array_map(static fn (string $driver, array $areas): string => sprintf('%s (%s)', $driver, implode(', ', $areas)), array_keys($drivers), $drivers));
+	}
+
+	/**
+	 * Returns the SQLite database's file, from the site's root.
+	 */
+	private function database(): string
+	{
+		return str_starts_with($this->storage->sqlite, '/') ? $this->paths->relative($this->storage->sqlite) : $this->storage->sqlite;
 	}
 }

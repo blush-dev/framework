@@ -21,7 +21,6 @@ use Blush\Asset\AssetCollector;
 use Blush\Content\Record\EntryRecords;
 use Blush\Content\Record\EntryTable;
 use Blush\Content\Record\EntryTerms;
-use Blush\Content\Relation\Refs;
 use Blush\Content\Status;
 use Blush\Content\Type\ContentTypes;
 use Blush\Content\Visibility;
@@ -63,16 +62,18 @@ final class EntryHydrator
 
 	/**
 	 * Builds the entry for a record, at its key within its type, kept at
-	 * a path (for showing; `''` for a store without files), with the
-	 * slugs of the entries its `refs` name, by id, for its terms. Its
+	 * a path (for showing; `''` for a store without files), with what it
+	 * refers to (target ids by relation, in order, from the `refs` rows)
+	 * and those targets' slugs, by id, for its terms. Its
 	 * Markdown comes from `$content` when given, else from the store; an
 	 * entry built for a file without an id (`$identified` false) has
 	 * none.
 	 *
-	 * @param array<string, string> $targets
-	 * @param ?Closure(): string    $content
+	 * @param array<string, list<string>> $refs
+	 * @param array<string, string>       $targets
+	 * @param ?Closure(): string          $content
 	 */
-	public function hydrate(Record $record, string $key, string $path = '', array $targets = [], ?Closure $content = null, bool $identified = true): Entry
+	public function hydrate(Record $record, string $key, string $path = '', array $refs = [], array $targets = [], ?Closure $content = null, bool $identified = true): Entry
 	{
 		$type     = $this->types->get(EntryRecords::text($record, 'type'));
 		$schema   = $this->types->schema($type->name);
@@ -109,7 +110,7 @@ final class EntryHydrator
 			locale: $this->locale($language, $front),
 			fields: $schema->hydrate($values, $this->context),
 			extra: array_diff_key($front, $values),
-			terms: EntryTerms::of($this->terms[$type->name] ??= EntryTerms::sources($this->types, $type), $values, Refs::fromValue($front[Refs::FIELD] ?? null), $targets),
+			terms: EntryTerms::of($this->terms[$type->name] ??= EntryTerms::sources($this->types, $type), $refs, $targets),
 			landing: $slug === '',
 			body: $this->body($record, $language, $content),
 			language: $language,

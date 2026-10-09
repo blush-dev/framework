@@ -45,6 +45,8 @@ use Blush\Console\Commands\ListContent;
 use Blush\Console\Commands\ListThemes;
 use Blush\Console\Commands\PreviewContent;
 use Blush\Console\Commands\PruneJobs;
+use Blush\Console\Commands\SyncStorage;
+use Blush\Console\Commands\CopyStorage;
 use Blush\Console\Commands\Publish;
 use Blush\Console\Commands\PublishMedia;
 use Blush\Console\Commands\RecordMediaSizes;
@@ -112,6 +114,8 @@ enum BuiltInCommand: string
 	case JobsList      = 'jobs:list';
 	case JobsRetry     = 'jobs:retry';
 	case JobsPrune     = 'jobs:prune';
+	case StorageSync   = 'storage:sync';
+	case StorageCopy   = 'storage:copy';
 	case AccountAdd       = 'account:add';
 	case AccountList      = 'account:list';
 	case AccountPassword  = 'account:password';
@@ -172,6 +176,8 @@ enum BuiltInCommand: string
 			self::JobsList      => ListJobs::class,
 			self::JobsRetry     => RetryJobs::class,
 			self::JobsPrune     => PruneJobs::class,
+			self::StorageSync   => SyncStorage::class,
+			self::StorageCopy   => CopyStorage::class,
 			self::AccountAdd       => AddAccount::class,
 			self::AccountList      => ListAccounts::class,
 			self::AccountPassword  => SetAccountPassword::class,

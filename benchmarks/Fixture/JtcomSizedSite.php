@@ -28,6 +28,10 @@ use Blush\Tests\Fixtures\Content\JtcomTypes;
  * deterministic (a fixed seed, and ids from each file's path), and the
  * site is built once per `VERSION` in the system temp folder, so runs
  * compare like with like.
+ *
+ * `build()` writes the same shape at a larger scale (every count times
+ * the scale, dates as close together) into any folder, such as a site
+ * project's, for trying a site of many thousands of entries.
  */
 final class JtcomSizedSite
 {
@@ -66,7 +70,8 @@ final class JtcomSizedSite
 		$root = sys_get_temp_dir() . '/blush-bench-site-v' . self::VERSION;
 
 		if (! is_file("{$root}/.generated")) {
-			self::generate($root);
+			self::build($root);
+			touch("{$root}/.generated");
 		}
 
 		return $root;
@@ -81,22 +86,33 @@ final class JtcomSizedSite
 	}
 
 	/**
-	 * Writes the site.
+	 * Writes the site, at a scale: every count times it (9 makes about
+	 * 10,400 entries), posts and writing dated as many times closer
+	 * together over the same years. With `$app` off, `config/app.php`
+	 * is left as it is (a site project's own).
 	 */
-	private static function generate(string $root): void
+	public static function build(string $root, int $scale = 1, bool $app = true): void
 	{
 		mt_srand(2026);
 
-		self::write("{$root}/config/app.php", <<<PHP
-			<?php
+		$scale   = max(1, $scale);
+		$posts   = self::POSTS * $scale;
+		$topics  = self::TOPICS * $scale;
+		$writing = self::WRITING * $scale;
+		$pages   = self::PAGES * $scale;
 
-			declare(strict_types=1);
+		if ($app) {
+			self::write("{$root}/config/app.php", <<<PHP
+				<?php
 
-			use Blush\\Core\\AppConfig;
-			use Blush\\Core\\Environment;
+				declare(strict_types=1);
 
-			return new AppConfig(name: 'Bench', url: 'https://bench.example', environment: Environment::Production, timezone: 'America/Chicago');
-			PHP);
+				use Blush\\Core\\AppConfig;
+				use Blush\\Core\\Environment;
+
+				return new AppConfig(name: 'Bench', url: 'https://bench.example', environment: Environment::Production, timezone: 'America/Chicago');
+				PHP);
+		}
 
 		self::write("{$root}/config/content.php", <<<PHP
 			<?php
@@ -108,6 +124,14 @@ final class JtcomSizedSite
 			return new ContentConfig(home: 'post');
 			PHP);
 
+		self::content($root, $posts, $topics, $writing, $pages, $scale);
+	}
+
+	/**
+	 * Writes the types, relations, and content.
+	 */
+	private static function content(string $root, int $posts, int $topics, int $writing, int $pages, int $scale): void
+	{
 		foreach (['types' => JtcomTypes::definitions(), 'relations' => JtcomTypes::relations()] as $folder => $definitions) {
 			foreach ($definitions as $name => $definition) {
 				self::write("{$root}/user/data/{$folder}/{$name}.json", json_encode($definition, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR) . "\n");
@@ -123,7 +147,7 @@ final class JtcomSizedSite
 		self::entry("{$content}/eras/index.md", ['title' => 'Eras'], '');
 		self::entry("{$content}/writing/index.md", ['title' => 'Writing'], '');
 
-		for ($i = 1; $i <= self::TOPICS; $i++) {
+		for ($i = 1; $i <= $topics; $i++) {
 			self::entry("{$content}/topics/topic-{$i}.md", ['title' => "Topic {$i}"], self::body(1));
 		}
 
@@ -133,17 +157,17 @@ final class JtcomSizedSite
 
 		$start = strtotime('2003-04-15 17:39:00 America/Chicago');
 
-		for ($i = 1; $i <= self::POSTS; $i++) {
-			$published = $start + (int) ($i * 8.8 * 86400) + mt_rand(0, 36000);
+		for ($i = 1; $i <= $posts; $i++) {
+			$published = $start + (int) ($i * 8.8 / $scale * 86400) + mt_rand(0, 36000);
 			$date      = date('Y-m-d', $published);
-			$topics    = array_map(static fn (): string => 'topic-' . mt_rand(1, self::TOPICS), range(1, mt_rand(1, 3)));
+			$named     = array_map(static fn (): string => 'topic-' . mt_rand(1, $topics), range(1, mt_rand(1, 3)));
 
 			self::entry("{$content}/_posts/{$date}." . self::postSlug($i) . '.md', [
 				'title'    => ucfirst(self::words(mt_rand(3, 7))),
 				'author'   => 'justintadlock',
 				'date'     => date('Y-m-d H:i:s', $published),
-				'era'      => 'era-' . min(self::ERAS, intdiv($i * self::ERAS, self::POSTS) + 1),
-				'category' => array_values(array_unique($topics)),
+				'era'      => 'era-' . min(self::ERAS, intdiv($i * self::ERAS, $posts) + 1),
+				'category' => array_values(array_unique($named)),
 				'image'    => '/user/media/' . date('Y/m', $published) . '/image.jpg'
 			], self::body(mt_rand(3, 8)));
 		}
@@ -156,24 +180,24 @@ final class JtcomSizedSite
 			}
 		}
 
-		for ($i = 1; $i <= self::WRITING; $i++) {
-			self::entry(sprintf('%s/writing/%s.writing-%d.md', $content, date('Y-m-d', $start + $i * 86400 * 90), $i), [
+		for ($i = 1; $i <= $writing; $i++) {
+			$written = $start + intdiv($i * 86400 * 90, $scale);
+
+			self::entry(sprintf('%s/writing/%s.writing-%d.md', $content, date('Y-m-d', $written), $i), [
 				'title'              => ucfirst(self::words(4)),
-				'date'               => date('Y-m-d', $start + $i * 86400 * 90),
+				'date'               => date('Y-m-d', $written),
 				'literary_form'      => 'forms-' . mt_rand(1, 8),
 				'literary_genre'     => 'genres-' . mt_rand(1, 6),
 				'literary_technique' => 'techniques-' . mt_rand(1, 5)
 			], self::body(mt_rand(6, 12)));
 		}
 
-		for ($i = 1; $i <= self::PAGES; $i++) {
+		for ($i = 1; $i <= $pages; $i++) {
 			$folder = ['about', 'archives', 'services', 'playground'][$i % 4];
 			$path   = $i <= 4 ? "{$content}/{$folder}/index.md" : "{$content}/{$folder}/page-{$i}.md";
 
 			self::entry($path, ['title' => ucfirst($folder) . " {$i}"], self::body(mt_rand(1, 4)));
 		}
-
-		touch("{$root}/.generated");
 	}
 
 	/**

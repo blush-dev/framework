@@ -31,8 +31,9 @@ use Blush\Storage\StorageArea;
  *   (D-644, D-648): those queried or sorted by. Others are kept and
  *   queried all the same.
  *
- * Tables belong to the content, data, and accounts areas; sessions and
- * jobs keep their own narrow stores (D-645). Names are lowercase
+ * Every area can keep tables. Sessions and jobs are reached only through
+ * their narrow stores (D-645), whose database versions keep theirs in
+ * tables of their area (`sessions`, `jobs`; D-662). Names are lowercase
  * letters, digits, `_`, and `-`, and may use `/` to group tables
  * (`gallery/albums`).
  */
@@ -50,10 +51,6 @@ final readonly class Table
 	) {
 		if (preg_match('/\A[a-z][a-z0-9_-]*(?:\/[a-z][a-z0-9_-]*)*\z/', $name) !== 1) {
 			throw new InvalidRecord(sprintf('"%s" can\'t be a table name; use lowercase letters, digits, "_", and "-", with "/" between groups.', $name));
-		}
-
-		if (! in_array($area, [StorageArea::Content, StorageArea::Data, StorageArea::Accounts], true)) {
-			throw new InvalidRecord(sprintf('The %s area keeps no tables (D-645).', $area->value));
 		}
 
 		if ($key !== null && ($key === '' || in_array($key, Record::RESERVED, true))) {

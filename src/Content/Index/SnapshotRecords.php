@@ -15,7 +15,6 @@ namespace Blush\Content\Index;
 
 use Blush\Content\Http\RelatedController;
 use Blush\Content\Record\EntryTable;
-use Blush\Content\Record\EntryValues;
 use Blush\Content\Relation\RelationKind;
 use Blush\Content\Type\ContentTypes;
 use Blush\Storage\Record\ArrayEvaluator;
@@ -73,13 +72,6 @@ final class SnapshotRecords
 	 * @var ?array<string, RowArray>
 	 */
 	private ?array $byId = null;
-
-	/**
-	 * Ref rows by id, once asked for.
-	 *
-	 * @var ?array<string, RowArray>
-	 */
-	private ?array $refsById = null;
 
 	/**
 	 * Each table's row offsets by a key's value, once asked for, by
@@ -207,24 +199,21 @@ final class SnapshotRecords
 	 */
 	public static function fields(array $record, ?string $parentId, ?string $originalId, ?string $archive = null): array
 	{
-		$front = [...$record['extra'], ...$record['values']];
-
-		return [
-			'type'        => $record['type'],
-			'language'    => $record['language'],
-			'parent_id'   => $parentId,
-			'slug'        => $record['landing'] ? '' : $record['slug'],
-			'original_id' => $originalId,
-			'status'      => $record['status'],
-			'visibility'  => $record['visibility'],
-			'published'   => $record['published'] === null ? null : EntryTable::time($record['published']),
-			'updated'     => EntryTable::time($record['updated']),
-			'title'       => $record['title'],
-			'position'    => is_int($record['values']['position'] ?? null) ? $record['values']['position'] : null,
-			'archive'     => $archive,
-			'fields'      => $front,
-			'slugs'       => EntryValues::slugs($front)
-		];
+		return EntryTable::fields(
+			$record['type'],
+			$record['language'],
+			$parentId,
+			$record['landing'] ? '' : $record['slug'],
+			$originalId,
+			$record['status'],
+			$record['visibility'],
+			$record['published'],
+			$record['updated'],
+			$record['title'],
+			$record['values'],
+			$record['extra'],
+			$archive
+		);
 	}
 
 	/**
@@ -361,17 +350,5 @@ final class SnapshotRecords
 		$this->byId ??= array_column($this->entries, null, 'id');
 
 		return $this->byId[strtolower($id)] ?? null;
-	}
-
-	/**
-	 * Returns a ref's row, by id.
-	 *
-	 * @return ?RowArray
-	 */
-	public function ref(string $id): ?array
-	{
-		$this->refsById ??= array_column($this->refRows, null, 'id');
-
-		return $this->refsById[strtolower($id)] ?? null;
 	}
 }

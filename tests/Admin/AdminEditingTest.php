@@ -55,6 +55,7 @@ final class AdminEditingTest extends TestCase
 	{
 		$types = ['post' => ['path' => '_posts', 'date_archives' => true, 'routing' => ['prefix' => 'archives']], ...$types];
 		$this->contentConfig(['types' => $types, 'relations' => ['authors' => ['kind' => 'credit', 'from' => $credits, 'to' => ['profile'], 'aliases' => ['author']]]]);
+		$this->profiles('jane', 'sam');
 		$this->writeTemporaryFile('user/content/' . self::FLAME, "---\ntitle     : \"Rekindling the Flame\"\nauthors   : jane\ndate      : 2022-03-29 23:00:00 -6\nmood      : hopeful\nid        : " . self::FLAME_ID . "\n---\n\nThe body.\n");
 		$this->writeTemporaryFile('user/content/_posts/2023-01-01.idea.md', "---\ntitle: An Idea\nauthors: jane\nstatus: draft\n---\n");
 		$this->writeTemporaryFile('user/content/_posts/2021-05-05.sams.md', "---\ntitle: Sam's Post\nauthors: sam\npublished: 2021-05-05 09:00:00 -05:00\n---\n");
@@ -187,7 +188,7 @@ final class AdminEditingTest extends TestCase
 
 		$this->assertSame(200, $this->call('POST', $this->entryPath(self::FLAME) . '/restore', ['status' => $restore['status'], 'revision' => $restore['revision'] ?? null])->getStatusCode());
 		$this->assertSame('published', $this->load(self::FLAME)['status'] ?? null);
-		$this->assertSame($before, $this->file(self::FLAME), 'The file is as it was.');
+		$this->assertSame(str_replace("mood      : hopeful\n", "mood      : hopeful\n" . self::filedRefs(), $before), $this->file(self::FLAME), 'The file is as it was, with its credit filed by id (D-596).');
 
 		$idea  = '_posts/2023-01-01.idea.md';
 		$draft = self::json($this->call('DELETE', $this->entryPath($idea) . '?revision=' . $this->revision($idea)))['restore'] ?? null;
@@ -415,7 +416,7 @@ final class AdminEditingTest extends TestCase
 
 	public function testEditsTheIndexPageWithoutTheTypesFieldsOrTheTrash(): void
 	{
-		$this->writeTemporaryFile('user/content/_posts/index.md', "---\ntitle: Writing\nstatus: draft\nauthors: [jane]\n---\n");
+		$this->writeTemporaryFile('user/content/_posts/index.md', "---\ntitle: Writing\nstatus: draft\nauthors: [jane]\nrefs:\n  authors:\n    jane: " . self::profileId('jane') . "\n---\n");
 		$this->writeTemporaryFile('user/content/index.md', "---\ntitle: Home\n---\n");
 		$this->site();
 
@@ -425,7 +426,7 @@ final class AdminEditingTest extends TestCase
 		$this->assertIsArray($index['type']['fields'] ?? null);
 		$this->assertSame(['title', 'status'], array_column($index['type']['fields'], 'name'), 'Only its title and status are fields.');
 		$this->assertSame(['title' => 'Writing', 'status' => 'draft'], $index['values'] ?? null);
-		$this->assertSame(['authors' => ['jane']], $index['extra'] ?? null, 'The rest is kept as it is.');
+		$this->assertSame(['authors' => ['jane'], 'refs' => ['authors' => ['jane' => self::profileId('jane')]]], $index['extra'] ?? null, 'The rest is kept as it is.');
 		$this->assertIsArray($index['can'] ?? null);
 		$this->assertFalse($index['can']['delete'] ?? null);
 
@@ -488,6 +489,14 @@ final class AdminEditingTest extends TestCase
 	}
 
 	/**
+	 * The `refs` block a save files for Jane's credit (D-596).
+	 */
+	private static function filedRefs(): string
+	{
+		return "refs:\n  authors:\n    jane: " . self::profileId('jane') . "\n";
+	}
+
+	/**
 	 * The id of the index page a list pins, if any.
 	 */
 	private function pinned(string $path): ?string
@@ -506,7 +515,7 @@ final class AdminEditingTest extends TestCase
 		$saved    = self::json($response);
 
 		$this->assertSame(200, $response->getStatusCode(), (string) $response->getBody());
-		$this->assertSame("---\ntitle     : \"The Flame\"\nauthors   : jane\ndate      : 2022-04-01 08:00:00 -05:00\nmood      : hopeful\nid        : " . self::FLAME_ID . "\n---\n\nThe body.\n", $this->file(self::FLAME));
+		$this->assertSame("---\ntitle     : \"The Flame\"\nauthors   : jane\ndate      : 2022-04-01 08:00:00 -05:00\nmood      : hopeful\n" . self::filedRefs() . "id        : " . self::FLAME_ID . "\n---\n\nThe body.\n", $this->file(self::FLAME));
 		$this->assertSame('The Flame', $saved['title'] ?? null);
 		$this->assertNotSame($revision, $saved['revision'] ?? null);
 

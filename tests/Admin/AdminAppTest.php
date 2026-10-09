@@ -171,6 +171,7 @@ final class AdminAppTest extends TestCase
 		// Pages don't credit authors unless the site says so (D-329).
 		$this->writeTemporaryFile('user/data/types/page.json', '{"kind": "tree"}');
 		$this->writeTemporaryFile('user/data/relations/authors.json', '{"kind": "credit", "from": ["page"], "to": ["profile"], "aliases": ["author"]}');
+		$this->profiles('jane', 'sam');
 		$this->writeTemporaryFile('user/content/about.md', "---\ntitle: About\nauthors: jane\n---\n");
 		$this->writeTemporaryFile('user/content/idea.md', "---\ntitle: Idea\nstatus: draft\nauthors: jane\nupdated: 2026-01-02\n---\n");
 		$this->writeTemporaryFile('user/content/notes.md', "---\ntitle: Notes\nstatus: draft\nauthors: sam\nupdated: 2026-01-01\n---\n");
@@ -184,7 +185,7 @@ final class AdminAppTest extends TestCase
 
 		$this->assertIsArray($dashboard['site'] ?? null);
 		$this->assertSame('development', $dashboard['site']['environment'] ?? null);
-		$this->assertSame(1, $dashboard['published'] ?? null);
+		$this->assertSame(3, $dashboard['published'] ?? null, 'About, and Jane\'s and Sam\'s profiles.');
 		$this->assertArrayHasKey('resume', $dashboard);
 		$this->assertNull($dashboard['resume']);
 		$this->assertArrayNotHasKey('actions', $dashboard, 'Actions are on the Tools screen.');

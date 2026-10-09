@@ -61,15 +61,26 @@ final class DataLoader
 	}
 
 	/**
+	 * Refuses a record's name that could reach outside the data: empty,
+	 * absolute, or with a `..` part.
+	 *
+	 * @throws InvalidData
+	 */
+	public static function checkName(string $name): void
+	{
+		if ($name === '' || str_starts_with($name, '/') || in_array('..', explode('/', $name), true)) {
+			throw new InvalidData(sprintf('Invalid data file name "%s".', $name));
+		}
+	}
+
+	/**
 	 * Returns the path a name's file has, or would have.
 	 *
 	 * @throws InvalidData When the name is unsafe.
 	 */
 	public function path(string $directory, string $name): string
 	{
-		if ($name === '' || str_starts_with($name, '/') || in_array('..', explode('/', $name), true)) {
-			throw new InvalidData(sprintf('Invalid data file name "%s".', $name));
-		}
+		self::checkName($name);
 
 		return rtrim($directory, '/') . '/' . $name . '.' . self::EXTENSION;
 	}

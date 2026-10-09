@@ -94,6 +94,23 @@ final class SetupChecksTest extends TestCase
 		}
 	}
 
+	public function testNamesTheStorageDriver(): void
+	{
+		$files = $this->checks()->driver();
+
+		$this->assertSame('Storage', $files[0]->label);
+		$this->assertSame('Files.', $files[0]->message);
+
+		if (! \Blush\Storage\Sql\SqliteConnection::available()) {
+			return;
+		}
+
+		$sqlite = new SetupChecks(Paths::fromRoot($this->temporaryDirectory()), new \Blush\Storage\StorageConfig('sqlite'))->driver();
+
+		$this->assertSame('SQLite, in user/site.sqlite.', $sqlite[0]->message);
+		$this->assertFalse($sqlite[1]->isFailure(), 'Its folder can be written to.');
+	}
+
 	public function testChecksPhp(): void
 	{
 		$results = $this->checks()->php();
@@ -140,7 +157,7 @@ final class SetupChecksTest extends TestCase
 		$app    = new AppConfig();
 
 		$this->assertCount(
-			count($checks->php()) + count($checks->site($app)) + count($checks->storage()),
+			count($checks->php()) + count($checks->site($app)) + count($checks->storage()) + count($checks->driver()),
 			$checks->all($app)
 		);
 	}

@@ -21,14 +21,14 @@ namespace Blush\Setup;
 final readonly class Welcome
 {
 	/**
-	 * @param string            $homepage The homepage's file, relative to the root.
+	 * @param ?string           $homepage The homepage's file, relative to the root, or `null` when content is kept in a database.
 	 * @param string            $binary   The CLI's path, relative to the root.
 	 * @param ?string           $admin    The admin's URL path, or `null` while it's off.
 	 * @param bool              $accounts Whether any accounts exist.
 	 * @param list<CheckResult> $problems Setup warnings and failures.
 	 */
 	public function __construct(
-		public string $homepage,
+		public ?string $homepage,
 		public string $binary,
 		public ?string $admin = null,
 		public bool $accounts = false,

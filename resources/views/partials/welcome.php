@@ -24,7 +24,11 @@ $link = $welcome?->admin === null ? '' : raw('<a href="' . url($welcome->admin) 
 	<h2><?= e($template->t('welcome.next')) ?></h2>
 
 	<ol class="welcome-steps">
-		<li><?= e($template->t('welcome.start', path: $code($welcome->homepage))) ?></li>
+		<?php if ($welcome->homepage === null) : ?>
+			<li><?= e($template->t('welcome.start_admin')) ?></li>
+		<?php else : ?>
+			<li><?= e($template->t('welcome.start', path: $code($welcome->homepage))) ?></li>
+		<?php endif ?>
 
 		<?php if ($welcome->admin === null) : ?>
 			<li><?= e($template->t('welcome.admin.off', path: $code('config/admin.php'))) ?></li>

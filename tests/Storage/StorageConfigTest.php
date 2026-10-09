@@ -50,10 +50,24 @@ final class StorageConfigTest extends TestCase
 
 	public function testTheConfigRoundTrips(): void
 	{
-		$data = ['driver' => 'sqlite', 'areas' => ['accounts' => 'filesystem']];
+		$data = ['driver' => 'sqlite', 'areas' => ['accounts' => 'filesystem'], 'sqlite' => '/var/data/site.sqlite'];
 
 		$this->assertSame($data, StorageConfig::fromArray($data)->toArray());
-		$this->assertSame(['driver' => 'filesystem', 'areas' => []], StorageConfig::fromArray([])->toArray());
+		$this->assertSame(['driver' => 'filesystem', 'areas' => [], 'sqlite' => 'user/site.sqlite'], StorageConfig::fromArray([])->toArray());
+	}
+
+	public function testSaysWhetherAnyAreaUsesADriver(): void
+	{
+		$this->assertFalse(new StorageConfig()->uses('sqlite'));
+		$this->assertTrue(new StorageConfig(areas: ['content' => 'sqlite'])->uses('sqlite'));
+		$this->assertTrue(new StorageConfig('sqlite')->uses('sqlite'));
+		$this->assertFalse(new StorageConfig('sqlite', array_fill_keys(['content', 'data', 'accounts', 'sessions', 'jobs'], 'filesystem'))->uses('sqlite'));
+	}
+
+	public function testRejectsAnEmptyDatabaseFile(): void
+	{
+		$this->expectException(InvalidConfig::class);
+		new StorageConfig(sqlite: ' ');
 	}
 
 	public function testRejectsABadDriverName(): void

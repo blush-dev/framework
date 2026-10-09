@@ -13,16 +13,31 @@ declare(strict_types=1);
 
 namespace Blush\Tests\Content\Conformance;
 
+use Psr\Clock\ClockInterface;
 use PHPUnit\Framework\TestCase;
+use Blush\Cache\ContentVersion;
 use Blush\Content\Entries;
 use Blush\Content\Entry\Entry;
+use Blush\Content\Entry\EntryHydrator;
 use Blush\Content\Query\Query;
 use Blush\Content\Record\EntryRecords;
 use Blush\Content\Record\EntryTable;
+use Blush\Content\Record\QueryCompiler;
+use Blush\Content\Record\RecordLocations;
+use Blush\Content\Relation\EntryTargets;
+use Blush\Content\Relation\Relations;
 use Blush\Content\Status;
+use Blush\Content\StoredEntries;
+use Blush\Content\Type\ContentTypes;
 use Blush\Content\Visibility;
 use Blush\Content\Writer\EntryChanges;
+use Blush\Content\Writer\RecordContentWriter;
+use Blush\Content\Writer\WriteConflict;
+use Blush\Content\Writer\WriteException;
+use Blush\Core\AppConfig;
 use Blush\Core\Application;
+use Blush\Field\FieldContext;
+use Blush\Markdown\MarkdownParser;
 use Blush\Storage\Record\Aggregate;
 use Blush\Storage\Record\Order;
 use Blush\Storage\Record\Record;
@@ -68,16 +83,6 @@ abstract class EntryStoreConformance extends TestCase
 	abstract protected function entries(Application $app, RecordStores $stores): Entries;
 
 	/**
-	 * Returns the content settings the site is booted with.
-	 *
-	 * @return array<string, mixed>
-	 */
-	protected function settings(): array
-	{
-		return [];
-	}
-
-	/**
 	 * Returns whether the driver writes entries through `Entries`.
 	 */
 	protected function writes(): bool
@@ -87,7 +92,7 @@ abstract class EntryStoreConformance extends TestCase
 
 	protected function setUp(): void
 	{
-		$this->standardContent($this->settings());
+		$this->standardContent();
 		$this->entry('about/biography.md', "title: Biography\nredirect_from: [/bio, /about-me]");
 		$this->entry('_posts/_authors/justintadlock.md', 'title: Justin, Blogger');
 		$this->writeTemporaryFile('user/content/_posts/2009-01-01.no-id.md', "---\ntitle: No Id\n---\nA file without an id.");
@@ -96,6 +101,58 @@ abstract class EntryStoreConformance extends TestCase
 		$stores        = $this->stores($this->app);
 		$this->store   = $stores->store(EntryTable::table());
 		$this->content = $this->entries($this->app, $stores);
+	}
+
+	/**
+	 * Returns `Entries` over records alone, as a database driver gives
+	 * it: locations from records, and writes as records
+	 * (`RecordContentWriter`, D-662).
+	 */
+	protected static function recordEntries(Application $app, RecordStores $stores): Entries
+	{
+		$container = $app->container();
+		$types     = $container->make(ContentTypes::class);
+		$config    = $container->make(AppConfig::class);
+		$clock     = $container->make(ClockInterface::class);
+		$locations = new RecordLocations($stores, $types);
+		$entries   = null;
+
+		$entries = new StoredEntries(
+			new EntryHydrator($types, $container->make(FieldContext::class), $stores, $container->make(MarkdownParser::class), $clock, $config),
+			$types,
+			$config,
+			$clock,
+			$container->make(QueryCompiler::class),
+			$stores,
+			$locations,
+			static function () use (&$entries, $stores, $locations, $types, $container, $clock, $config): RecordContentWriter {
+				assert($entries instanceof Entries);
+
+				return new RecordContentWriter(
+					$stores,
+					$locations,
+					$types,
+					$container->make(Relations::class),
+					new EntryTargets($entries, new EntryRecords($stores), $config),
+					$container->make(FieldContext::class),
+					$container->make(ContentVersion::class),
+					$clock,
+					$config
+				);
+			}
+		);
+
+		return $entries;
+	}
+
+	/**
+	 * Skips a test of writes for a store under test without a writer.
+	 */
+	private function needsWrites(): void
+	{
+		if (! $this->writes()) {
+			$this->markTestSkipped('This store has no writer.');
+		}
 	}
 
 	/**
@@ -387,9 +444,7 @@ abstract class EntryStoreConformance extends TestCase
 
 	public function testWritingAPageAtAKeyWritesItsParents(): void
 	{
-		if (! $this->writes()) {
-			$this->markTestSkipped('This store has no writer.');
-		}
+		$this->needsWrites();
 
 		$type = $this->named('page', 'about')->type;
 		$jane = $this->content->createAt($type, '_cooks/jane', new EntryChanges(set: ['title' => 'Jane']));
@@ -405,5 +460,110 @@ abstract class EntryStoreConformance extends TestCase
 
 		$this->assertSame('Jane Doe', $changed->title);
 		$this->assertSame('Jane Doe', $this->content->named('page', '_cooks/jane')?->title);
+	}
+
+	public function testCreatesAnEntryWithAnIdAPublishedDateAndItsRelations(): void
+	{
+		$this->needsWrites();
+
+		$type  = $this->named('post', 'spring')->type;
+		$fresh = $this->content->create($type, 'fresh', new EntryChanges(set: ['title' => 'Fresh', 'category' => ['art'], 'authors' => ['guest']], body: "Fresh text.\n"));
+
+		$this->assertNotNull($fresh->id);
+		$this->assertSame('fresh', $fresh->key);
+		$this->assertSame(Status::Published, $fresh->status);
+		$this->assertNotNull($fresh->published, 'Dated now (D-514).');
+		$this->assertSame(['art'], $fresh->terms('category'));
+		$this->assertSame(['guest'], $fresh->terms('profile'));
+		$this->assertSame('Fresh text.', trim($this->content->editable($fresh)->body));
+		$this->assertSame(['art'], $this->content->editable($fresh)->frontMatter['category'] ?? null, 'The editor gets the relation\'s slugs.');
+		$this->assertContains('fresh', $this->found($this->query()->type('post')->whereTerm('category', 'art')));
+
+		$this->expectException(WriteException::class);
+
+		$this->content->create($type, 'fresh', new EntryChanges(set: ['title' => 'Again']));
+	}
+
+	public function testChangesAreCheckedByVersion(): void
+	{
+		$this->needsWrites();
+
+		$spring  = $this->named('post', 'spring');
+		$changed = $this->content->change($spring, new EntryChanges(set: ['title' => 'Springtime'], body: "Changed.\n"), $spring->version);
+
+		$this->assertSame('Springtime', $changed->title);
+		$this->assertSame($spring->id, $changed->id);
+		$this->assertSame('Changed.', trim($this->content->editable($changed)->body));
+		$this->assertSame(['art', 'book-reviews'], $changed->terms('category'), 'Its relations are kept.');
+
+		$this->expectException(WriteConflict::class);
+
+		$this->content->change($spring, new EntryChanges(set: ['title' => 'Stale']), $spring->version);
+	}
+
+	public function testRenamingKeepsLinksToIt(): void
+	{
+		$this->needsWrites();
+
+		$art     = $this->named('category', 'art');
+		$renamed = $this->content->rename($art, 'arts', $art->version);
+
+		$this->assertSame('arts', $renamed->key);
+		$this->assertNull($this->content->named('category', 'art'));
+		$this->assertSame(['arts', 'book-reviews'], $this->named('post', 'spring')->terms('category'), 'Its referrers follow it.');
+
+		$this->expectException(WriteException::class);
+
+		$this->content->rename($this->named('post', ''), 'blog');
+	}
+
+	public function testMovingATreesPageTakesThePagesUnderIt(): void
+	{
+		$this->needsWrites();
+
+		$type  = $this->named('page', 'about')->type;
+		$team  = $this->content->create($type, 'team', new EntryChanges(set: ['title' => 'Team']), $this->named('page', 'about'));
+
+		$this->assertSame('about/team', $team->key);
+
+		$about = $this->named('page', 'about');
+		$moved = $this->content->move($about, $this->named('page', 'notes'), $about->version);
+
+		$this->assertSame('notes/about', $moved->key);
+		$this->assertSame('notes/about/biography', $this->content->find((string) $this->named('page', 'notes/about/biography')->id)?->key);
+		$this->assertNotNull($this->content->named('page', 'notes/about/team'));
+
+		$this->expectException(WriteException::class);
+
+		$this->content->move($this->named('page', 'notes'), $this->named('page', 'notes/about/team'));
+	}
+
+	public function testTrashRestoreAndDelete(): void
+	{
+		$this->needsWrites();
+
+		$spring  = $this->named('post', 'spring');
+		$trashed = $this->content->trash($spring, $spring->version);
+
+		$this->assertSame(Status::Trash, $trashed->status);
+		$this->assertSame(Status::Draft, $this->content->restore($trashed, $trashed->version)->status);
+
+		$this->content->delete((string) $spring->id);
+
+		$this->assertNull($this->content->find((string) $spring->id));
+		$this->assertSame(0, $this->store->count(Ref::table(StorageArea::Content), new RecordQuery()->where('source_id', '=', $spring->id)), 'Its refs go with it.');
+	}
+
+	public function testDuplicatingCopiesAnEntry(): void
+	{
+		$this->needsWrites();
+
+		$copy = $this->content->duplicate($this->named('post', 'spring'), 'spring-again', new EntryChanges(set: ['title' => 'Spring Again']));
+
+		$this->assertSame('spring-again', $copy->slug);
+		$this->assertSame('Spring Again', $copy->title);
+		$this->assertSame('Spring is here.', trim($this->content->editable($copy)->body));
+		$this->assertNotSame($this->named('post', 'spring')->id, $copy->id);
+		$this->assertSame(['art', 'book-reviews'], $copy->terms('category'));
 	}
 }

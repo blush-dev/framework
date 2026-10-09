@@ -360,7 +360,7 @@ final class EntriesTest extends TestCase
 		$this->assertNull($this->content->term('profile', 'nobody'), 'Nor is a credit.');
 		$this->assertArrayNotHasKey('lost-cause', $this->content->termCounts('category'));
 		$this->assertArrayNotHasKey('nobody', $this->content->termCounts('profile'));
-		$this->assertSame(['art', 'lost-cause'], $this->content->named('post', 'dangling')?->terms('category'), 'The entry still names it.');
+		$this->assertSame(['art'], $this->content->named('post', 'dangling')?->terms('category'), 'Terms come from refs, which link only entries (D-662).');
 	}
 
 	/**

@@ -51,6 +51,7 @@ final readonly class RecordQuery
 	 * @param list<Sort>   $sorts
 	 * @param list<string> $with    Relations whose refs a run loads.
 	 * @param bool         $content Whether the records found carry their content.
+	 * @param ?list<string> $only   The only fields the records found carry (`only()`), or `null` for all.
 	 */
 	public function __construct(
 		public ConditionGroup $conditions = new ConditionGroup(),
@@ -59,6 +60,7 @@ final readonly class RecordQuery
 		public int $offset = 0,
 		public array $with = [],
 		public bool $content = true,
+		public ?array $only = null,
 		private ?RecordStore $store = null,
 		private ?Table $table = null
 	) {}
@@ -137,6 +139,26 @@ final readonly class RecordQuery
 	public function withoutContent(): self
 	{
 		return clone($this, ['content' => false]);
+	}
+
+	/**
+	 * Returns a copy whose records found carry only some fields (top-level
+	 * keys), without their content: for reading a few values of many
+	 * records, which a database reads from their columns. A record read
+	 * this way is part of one; it's never saved back.
+	 *
+	 * @throws InvalidRecordQuery When a key isn't a top-level field's.
+	 */
+	#[\NoDiscard]
+	public function only(string ...$keys): self
+	{
+		foreach ($keys as $key) {
+			if ($key === '' || str_contains($key, '.') || in_array($key, Record::RESERVED, true)) {
+				throw new InvalidRecordQuery(sprintf('"%s" isn\'t a top-level field to read alone.', $key));
+			}
+		}
+
+		return clone($this, ['content' => false, 'only' => array_values(array_unique($keys))]);
 	}
 
 	/**

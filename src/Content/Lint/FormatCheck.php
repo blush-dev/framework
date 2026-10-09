@@ -13,7 +13,7 @@ declare(strict_types=1);
 
 namespace Blush\Content\Lint;
 
-use Blush\Content\Source\ContentSource;
+use Blush\Content\Source\ContentFiles;
 use Blush\Content\Source\FilesystemSource;
 use Blush\Field\Violation;
 use Blush\Field\ViolationKind;
@@ -29,7 +29,7 @@ use Blush\Field\ViolationKind;
 final readonly class FormatCheck
 {
 	public function __construct(
-		private ContentSource $source
+		private ContentFiles $contentFiles
 	) {}
 
 	/**
@@ -39,13 +39,15 @@ final readonly class FormatCheck
 	 */
 	public function check(): array
 	{
-		if (! $this->source instanceof FilesystemSource) {
+		$source = $this->contentFiles->kept() ? $this->contentFiles->source() : null;
+
+		if (! $source instanceof FilesystemSource) {
 			return [];
 		}
 
 		$violations = [];
 
-		foreach ($this->source->others() as $path) {
+		foreach ($source->others() as $path) {
 			$message = self::message(strtolower(pathinfo($path, PATHINFO_EXTENSION)));
 
 			if ($message !== null) {

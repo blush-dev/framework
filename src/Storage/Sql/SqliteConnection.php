@@ -53,12 +53,15 @@ final class SqliteConnection
 
 	/**
 	 * Opens a database file, made if it doesn't exist, or `:memory:`. A
-	 * file written in place keeps a write-ahead log, so reads don't wait
-	 * on writes; one swapped in whole (`$wal` off) keeps none beside it.
+	 * file keeps a write-ahead log, so reads don't wait on writes, and a
+	 * write waits up to five seconds for another to finish rather than
+	 * failing at once (requests write sessions side by side). Statistics
+	 * are gathered from a sample (`analysis_limit`), so keeping them up to
+	 * date stays quick on a large table.
 	 *
 	 * @throws RecordStoreFailure When it can't be opened.
 	 */
-	public static function open(string $path, bool $wal = true): Sqlite
+	public static function open(string $path): Sqlite
 	{
 		try {
 			$pdo = new Sqlite("sqlite:{$path}", options: [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
@@ -88,9 +91,11 @@ final class SqliteConnection
 			return $json === false ? null : $json;
 		}, 2, Sqlite::DETERMINISTIC);
 
-		if ($path !== ':memory:' && $wal) {
+		if ($path !== ':memory:') {
 			$pdo->exec('PRAGMA journal_mode = WAL');
 			$pdo->exec('PRAGMA synchronous = NORMAL');
+			$pdo->exec('PRAGMA busy_timeout = 5000');
+			$pdo->exec('PRAGMA analysis_limit = 1000');
 		}
 
 		return $pdo;

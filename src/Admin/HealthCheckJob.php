@@ -18,7 +18,7 @@ use Blush\Content\Index\ContentIndex;
 use Blush\Content\Index\Indexer;
 use Blush\Content\Lint\Linter;
 use Blush\Content\Lint\LintReport;
-use Blush\Content\Source\ContentSource;
+use Blush\Content\Source\ContentFiles;
 use Blush\Content\Source\SourceFile;
 use Blush\Field\Severity;
 use Blush\Field\Violation;
@@ -56,7 +56,7 @@ final class HealthCheckJob extends Job
 	public const int CHUNK = 200;
 
 	public function __construct(
-		private readonly ContentSource $source,
+		private readonly ContentFiles $contentFiles,
 		private readonly Linter $linter,
 		private readonly MediaMetadataCheck $media,
 		private readonly Indexer $indexer,
@@ -96,14 +96,14 @@ final class HealthCheckJob extends Job
 	 */
 	private function content(array $data): JobResult
 	{
-		$remaining = self::strings($data['remaining'] ?? null) ?? array_map(static fn (SourceFile $file): string => $file->path, $this->source->files());
+		$remaining = self::strings($data['remaining'] ?? null) ?? ($this->contentFiles->kept() ? array_map(static fn (SourceFile $file): string => $file->path, $this->contentFiles->source()->files()) : []);
 		$total     = is_int($data['total'] ?? null) ? $data['total'] : count($remaining);
 		$checked   = is_int($data['checked'] ?? null) ? $data['checked'] : 0;
 		$found     = is_array($data['found'] ?? null) ? $data['found'] : [];
 
 		foreach (array_slice($remaining, 0, self::CHUNK) as $path) {
 			// A file removed since the check started isn't there to check.
-			if ($this->source->stat($path) === null) {
+			if ($this->contentFiles->source()->stat($path) === null) {
 				continue;
 			}
 
@@ -162,12 +162,16 @@ final class HealthCheckJob extends Job
 		$checked   = is_int($data['checked'] ?? null) ? $data['checked'] : 0;
 		$described = is_int($data['described'] ?? null) ? $data['described'] : 0;
 
-		$this->indexer->index();
-
 		$files = self::violations($data['found'] ?? null);
 
-		foreach ($this->linter->lintSite($this->index->snapshot()) as $path => $violations) {
-			$files[$path] = [...$files[$path] ?? [], ...$violations];
+		// What needs every file at once is checked over the filesystem
+		// index; a database has no files (D-667).
+		if ($this->contentFiles->kept()) {
+			$this->indexer->index();
+
+			foreach ($this->linter->lintSite($this->index->snapshot()) as $path => $violations) {
+				$files[$path] = [...$files[$path] ?? [], ...$violations];
+			}
 		}
 
 		$media = self::violations($data['mediaFound'] ?? null);

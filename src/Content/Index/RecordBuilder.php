@@ -255,7 +255,7 @@ final readonly class RecordBuilder
 			}
 		}
 
-		return [EntryTerms::of($sources, $values), $labels];
+		return [EntryTerms::written($sources, $values), $labels];
 	}
 
 	/**
