@@ -22,8 +22,8 @@ use Psr\Clock\ClockInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Blush\Auth\Account;
-use Blush\Auth\AccountStore;
-use Blush\Auth\AuthException;
+use Blush\Auth\AccountProfiles;
+use Blush\Auth\Accounts;
 use Blush\Auth\Capability;
 use Blush\Auth\ContentAction;
 use Blush\Auth\Permissions;
@@ -47,7 +47,6 @@ use Blush\Content\Status as EntryStatus;
 use Blush\Content\Type\ContentType;
 use Blush\Content\Type\ContentTypes;
 use Blush\Content\Type\DateArchives;
-use Blush\Content\Type\Profiles;
 use Blush\Content\Type\Tree;
 use Blush\Content\TypedTargets;
 use Blush\Content\Writer\DocumentEditor;
@@ -206,7 +205,8 @@ final readonly class EntryController
 		private AppConfig $app,
 		private ClockInterface $clock,
 		private FieldTargets $targets,
-		private AccountStore $accounts,
+		private Accounts $accounts,
+		private AccountProfiles $profiles,
 		private Homepage $homepage,
 		private HtmlGuard $html,
 		private Relations $relations,
@@ -484,7 +484,7 @@ final readonly class EntryController
 
 		$rename  = is_string($slug) && $slug !== '' && $slug !== $entry->slug ? $slug : null;
 		$folder  = $move === false ? dirname($entry->key) : ($move === null ? '.' : $move->key);
-		$problem = $rename === null ? null : ($this->isLinked($entry) ? 'An account is linked to this profile by its slug, so the slug stays.' : $this->slugProblem($entry, $rename, $folder));
+		$problem = $rename === null ? null : $this->slugProblem($entry, $rename, $folder);
 
 		if ($problem !== null) {
 			return self::error($problem, Status::UnprocessableContent, 'slug');
@@ -1159,7 +1159,9 @@ final readonly class EntryController
 		$value   = array_find_key($changes->set, static fn (mixed $value, string|int $key): bool => in_array($key, $keys, true));
 		$authors = $value === null ? [] : (array) $changes->set[$value];
 
-		return $account->author !== null && in_array($account->author, $authors, true)
+		$own = $this->profiles->slug($account);
+
+		return $own !== null && in_array($own, $authors, true)
 			? null
 			: 'You can add authors, but not take yourself off an entry.';
 	}
@@ -1240,14 +1242,14 @@ final readonly class EntryController
 	 */
 	private function authorDefault(Account $account, string $type): array
 	{
-		$byline   = $this->types->byline($type);
-		$profiles = $this->types->profiles()?->name;
+		$byline = $this->types->byline($type);
+		$own    = $byline === null ? null : $this->profiles->slug($account);
 
-		if ($byline === null || $account->author === null || $profiles === null || $this->content->named($profiles, $account->author) === null) {
+		if ($byline === null || $own === null) {
 			return [];
 		}
 
-		return [$byline->field => $byline->multiple ? [$account->author] : $account->author];
+		return [$byline->field => $byline->multiple ? [$own] : $own];
 	}
 
 	/**
@@ -1363,7 +1365,7 @@ final readonly class EntryController
 			'can'         => [
 				'edit'         => $live && $this->permissions->can($account, ContentAction::Edit, $entry),
 				'publish'      => $live && $this->permissions->can($account, ContentAction::Publish, $entry),
-				'rename'       => $live && ! $entry->landing && ! $people && ! $person && $error === null && ! $this->isLinked($entry),
+				'rename'       => $live && ! $entry->landing && ! $people && ! $person && $error === null,
 				'move'         => $live && $entry->type instanceof Tree && ! $entry->landing && $error === null,
 				'delete'       => ! $index && ! $person && $this->permissions->can($account, ContentAction::Delete, $entry),
 				'duplicate'    => $live && ! $entry->landing && ! $people && ! $person && $error === null && $this->permissions->can($account, ContentAction::Create, $entry->type->name),
@@ -1375,23 +1377,6 @@ final readonly class EntryController
 				'severity' => $violation->severity->value
 			], $this->linter->lintFile($entry->path))
 		];
-	}
-
-	/**
-	 * Whether an entry is a profile an account is linked to, by its slug
-	 * (D-355), which then can't change.
-	 */
-	private function isLinked(Entry $entry): bool
-	{
-		if (! $entry->type instanceof Profiles) {
-			return false;
-		}
-
-		try {
-			return array_any($this->accounts->all(), static fn (Account $account): bool => $account->author === $entry->key);
-		} catch (AuthException) {
-			return true;
-		}
 	}
 
 	/**

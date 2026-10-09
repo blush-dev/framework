@@ -23,7 +23,6 @@ use Blush\Admin\PreferencesController;
 use Blush\Admin\ProfileController;
 use Blush\Admin\SessionController;
 use Blush\Auth\Accounts;
-use Blush\Auth\AccountStore;
 use Blush\Auth\Authenticator;
 use Blush\Auth\AdminTheme;
 use Blush\Auth\ColorScheme;
@@ -79,7 +78,7 @@ final class AdminApiTest extends TestCase
 		$this->assertNotContains('accounts.view', $account['capabilities']);
 		$this->assertStringNotContainsString('passwordHash', (string) $response->getBody());
 		$this->assertIsString($state['csrfToken'] ?? null);
-		$this->assertNotNull($this->app->container()->make(AccountStore::class)->find('jane')?->lastLogin);
+		$this->assertNotNull($this->app->container()->make(Accounts::class)->find('jane')?->lastLogin);
 
 		$this->assertSame('jane', self::account($this->send('GET', '/session'))['username'] ?? null);
 
@@ -134,7 +133,7 @@ final class AdminApiTest extends TestCase
 		$this->login();
 
 		$container = $this->app->container();
-		$account   = $container->make(AccountStore::class)->find('jane');
+		$account   = $container->make(Accounts::class)->find('jane');
 		$this->assertNotNull($account);
 		$container->make(Accounts::class)->setPassword($account, 'a brand new password');
 
@@ -153,12 +152,12 @@ final class AdminApiTest extends TestCase
 
 		$this->assertSame(200, $answer->getStatusCode());
 		$this->assertSame(['preferences' => ['colorScheme' => 'dark', 'adminTheme' => 'neutral', 'lastEdited' => null, 'setupSkipped' => false, 'shortcuts' => null]], self::json($answer));
-		$this->assertSame(ColorScheme::Dark, $this->app->container()->make(AccountStore::class)->find('jane')?->preferences->colorScheme);
+		$this->assertSame(ColorScheme::Dark, $this->app->container()->make(Accounts::class)->find('jane')?->preferences->colorScheme);
 		$this->assertSame(['colorScheme' => 'dark', 'adminTheme' => 'neutral', 'lastEdited' => null, 'setupSkipped' => false, 'shortcuts' => null], self::account($this->send('GET', '/session'))['preferences'] ?? null, 'Saving doesn\'t sign the account out.');
 
 		$this->send('PATCH', '/preferences', '{"adminTheme": "editorial"}', ['X-CSRF-Token' => $token]);
 
-		$saved = $this->app->container()->make(AccountStore::class)->find('jane');
+		$saved = $this->app->container()->make(Accounts::class)->find('jane');
 
 		$this->assertNotNull($saved);
 		$this->assertSame(AdminTheme::Editorial, $saved->preferences->adminTheme);
@@ -193,7 +192,7 @@ final class AdminApiTest extends TestCase
 
 		$this->assertSame(200, $answer->getStatusCode());
 		$this->assertSame(['name' => 'Jane Doe', 'email' => 'jane@example.test', 'displayName' => 'Jane Doe'], self::json($answer), 'Its own name comes first (D-370).');
-		$this->assertSame('Jane Doe', $this->app->container()->make(AccountStore::class)->find('jane')?->name);
+		$this->assertSame('Jane Doe', $this->app->container()->make(Accounts::class)->find('jane')?->name);
 		$this->assertSame('Jane Doe', self::account($this->send('GET', '/session'))['displayName'] ?? null);
 
 		$this->assertSame(422, $this->send('PATCH', '/profile', json_encode(['name' => str_repeat('a', 101)]) ?: '', ['X-CSRF-Token' => $token])->getStatusCode());

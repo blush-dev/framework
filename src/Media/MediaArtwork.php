@@ -198,7 +198,7 @@ final readonly class MediaArtwork
 	 * Adds the picture a file carries to the library and links it as the
 	 * file's artwork: the image that already has its bytes, else a new
 	 * one beside the file (`song-artwork.jpg`, or `-2` and on when that's
-	 * taken), titled "Artwork for" the file's title, uploaded by `$owner`.
+	 * taken), titled "Artwork for" the file's title, uploaded by `$owner` (an account id).
 	 * Returns the image.
 	 *
 	 * @throws MediaException When the file carries no picture, or one the library can't take, or it can't be written.

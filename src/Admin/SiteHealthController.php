@@ -73,7 +73,7 @@ final readonly class SiteHealthController
 		$report = $this->health->checkSite($request->getServerParams());
 
 		try {
-			$job = $this->jobs->push(JobType::HealthCheck->value, account: $account->username, unique: JobType::HealthCheck->value);
+			$job = $this->jobs->push(JobType::HealthCheck->value, account: $account->id, unique: JobType::HealthCheck->value);
 		} catch (JobException $e) {
 			return self::json(['error' => $e->getMessage()], Status::InternalServerError);
 		}

@@ -13,7 +13,7 @@ declare(strict_types=1);
 
 namespace Blush\Console\Commands;
 
-use Blush\Auth\AccountStore;
+use Blush\Auth\AccountProfiles;
 use Blush\Auth\Accounts;
 use Blush\Auth\AuthException;
 use Blush\Console\Attributes\Argument;
@@ -30,8 +30,8 @@ use Blush\Console\Output;
 final readonly class SetAccountName
 {
 	public function __construct(
-		private AccountStore $store,
-		private Accounts $accounts
+		private Accounts $accounts,
+		private AccountProfiles $profiles
 	) {}
 
 	public function __invoke(
@@ -40,7 +40,7 @@ final readonly class SetAccountName
 		#[Argument('The name, quoted when it has spaces; leave it out to remove it.')] ?string $name = null
 	): ExitCode {
 		try {
-			$account = $this->store->find($username) ?? throw new AuthException(sprintf('There\'s no account named "%s".', $username));
+			$account = $this->accounts->find($username) ?? throw new AuthException(sprintf('There\'s no account named "%s".', $username));
 			$account = $this->accounts->setName($account, $name);
 		} catch (AuthException $e) {
 			$output->error($e->getMessage());
@@ -49,7 +49,7 @@ final readonly class SetAccountName
 		}
 
 		$output->success($account->name === null
-			? sprintf('"%s" has no name now; the admin calls it "%s".', $username, $this->accounts->displayName($account))
+			? sprintf('"%s" has no name now; the admin calls it "%s".', $username, $this->profiles->displayName($account))
 			: sprintf('"%s" is named "%s" now.', $username, $account->name));
 
 		return ExitCode::Success;

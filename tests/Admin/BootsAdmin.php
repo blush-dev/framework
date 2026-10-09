@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Blush\Tests\Admin;
 
 use Psr\Http\Message\ResponseInterface;
+use Blush\Auth\AccountProfiles;
 use Blush\Auth\Accounts;
 use Blush\Content\Entries;
 use Blush\Content\Index\EntryFiles;
@@ -42,7 +43,7 @@ trait BootsAdmin
 
 	/**
 	 * Boots a scratch site with the admin on (or off) and an editor
-	 * account, `jane`. `$config` is more arguments for `AdminConfig`, and
+	 * account, `jane`, linked to the `jane` profile. `$config` is more arguments for `AdminConfig`, and
 	 * `$environment` replaces or adds variables (`null` removes one).
 	 *
 	 * @param list<string>                $roles
@@ -59,12 +60,26 @@ trait BootsAdmin
 
 		$this->app = $this->scratchApplication($environment);
 		$this->app->boot();
-		$this->app->container()->make(Accounts::class)->create('jane', self::PASSWORD, $roles, 'jane', email: 'jane@example.test');
 
 		// Content has ids (D-477) unless a test is about files without them.
 		if ($ids) {
 			$this->app->container()->make(EntryIds::class)->assignMissing();
 		}
+
+		// Linked to the `jane` profile by its id (D-668): the file's when
+		// there's one, else the id `profiles()` writes it with.
+		$jane = $this->app->container()->make(AccountProfiles::class)->find('jane')->id ?? self::profileId('jane');
+
+		$this->app->container()->make(Accounts::class)->create('jane', self::PASSWORD, $roles, $jane, email: 'jane@example.test');
+	}
+
+	/**
+	 * Returns the id of the `jane` account, which what links to her holds
+	 * (D-668).
+	 */
+	private function janeId(): string
+	{
+		return $this->app->container()->make(Accounts::class)->find('jane')->id ?? '';
 	}
 
 	/**

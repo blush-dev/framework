@@ -77,7 +77,7 @@ export interface AccountInfo {
 	roles: string[];
 	// The slug of the profile it's linked to, if any.
 	author: string | null;
-	// That profile, when it has a file (D-353), or `null`.
+	// That profile (D-353), or `null`.
 	profile: AccountProfile | null;
 	created: number;
 	lastLogin: number | null;
@@ -210,7 +210,7 @@ export async function loadAccounts(): Promise<AccountInfo[]> {
  */
 export const freshLink = ref<{ username: string; link: PasswordLink } | null>(null);
 
-export function createAccount(account: { username: string; email: string; name: string | null; roles: string[]; author: string | null }): Promise<{ account: AccountInfo; link: PasswordLink }> {
+export function createAccount(account: { username: string; email: string; name: string | null; roles: string[]; author: string | null; profileTitle?: string }): Promise<{ account: AccountInfo; link: PasswordLink }> {
 	return request('POST', '/accounts', account);
 }
 

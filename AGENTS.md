@@ -136,7 +136,9 @@ files and in memory (D-655), and `Entries` on records, with files
 without ids left out and parent pages written for folders (D-656,
 D-657; step 3 done; SQLite a driver, never an index beside files, D-661,
 built as step 5, D-662 to D-667: every area in `user/site.sqlite`,
-`storage:copy` and `storage:sync`);
+`storage:copy` and `storage:sync`; then step 6, data and
+accounts onto records, D-668: accounts and roles through their
+repositories, links to accounts by id, D-669);
 1.x conventions go when they get in the way
 (D-658); and an id for every media
 original, with image sizes found by rule and given none

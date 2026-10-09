@@ -19,7 +19,6 @@ use Psr\Clock\ClockInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Blush\Auth\Accounts;
-use Blush\Auth\AccountStore;
 use Blush\Auth\AuthConfig;
 use Blush\Auth\AuthException;
 use Blush\Auth\Authenticator;
@@ -45,7 +44,6 @@ final readonly class SetPasswordController
 {
 	public function __construct(
 		private Accounts $accounts,
-		private AccountStore $store,
 		private Authenticator $authenticator,
 		private LoginThrottle $throttle,
 		private AuthConfig $config,
@@ -92,7 +90,7 @@ final readonly class SetPasswordController
 		$this->throttle->clear($ip, $username);
 
 		$account = $account->withLastLogin($this->clock->now()->getTimestamp());
-		$this->store->save($account);
+		$this->accounts->save($account);
 		$this->authenticator->login(self::session($request), $account);
 
 		return new Response(Status::NoContent, ['Cache-Control' => 'no-store']);

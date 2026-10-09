@@ -19,7 +19,7 @@ use JsonException;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Blush\Auth\Account;
-use Blush\Auth\AccountStore;
+use Blush\Auth\Accounts;
 use Blush\Auth\Capability;
 use Blush\Auth\Permissions;
 use Blush\Content\EntryIds;
@@ -135,7 +135,7 @@ final readonly class HealthController
 		private FixAccess $access,
 		private JobQueue $jobs,
 		private IgnoredProblems $ignored,
-		private AccountStore $accounts,
+		private Accounts $accounts,
 		private ClockInterface $clock
 	) {}
 
@@ -165,7 +165,7 @@ final readonly class HealthController
 		}
 
 		try {
-			$job = $this->jobs->push(JobType::HealthCheck->value, account: $account->username, unique: JobType::HealthCheck->value);
+			$job = $this->jobs->push(JobType::HealthCheck->value, account: $account->id, unique: JobType::HealthCheck->value);
 		} catch (JobException $e) {
 			return Response::json(['error' => $e->getMessage()], Status::InternalServerError, ['Cache-Control' => 'no-store']);
 		}
@@ -205,7 +205,7 @@ final readonly class HealthController
 		}
 
 		if ($ignore) {
-			$this->ignored->ignore($key, $account->username, $this->clock->now()->format(DateTimeInterface::ATOM));
+			$this->ignored->ignore($key, $account->id, $this->clock->now()->format(DateTimeInterface::ATOM));
 		} else {
 			$this->ignored->unignore($key);
 		}
@@ -225,8 +225,8 @@ final readonly class HealthController
 		$list = [];
 
 		foreach ($this->ignored->all() as $key => $record) {
-			$account    = $this->accounts->find($record['by']);
-			$list[$key] = [...$record, 'name' => ($account === null ? null : $account->name) ?? $record['by']];
+			$account    = $this->accounts->findById($record['by']);
+			$list[$key] = [...$record, 'name' => $account === null ? 'a removed account' : $account->name ?? $account->username];
 		}
 
 		return $list === [] ? (object) [] : $list;
@@ -406,7 +406,7 @@ final readonly class HealthController
 		});
 
 		try {
-			$job = $this->jobs->push(JobType::HealthFix->value, ['fix' => $fix->value, 'type' => $type, 'remaining' => $paths], $account->username);
+			$job = $this->jobs->push(JobType::HealthFix->value, ['fix' => $fix->value, 'type' => $type, 'remaining' => $paths], $account->id);
 		} catch (JobException $e) {
 			return Response::json(['error' => $e->getMessage()], Status::InternalServerError, ['Cache-Control' => 'no-store']);
 		}

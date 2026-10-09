@@ -13,7 +13,6 @@ declare(strict_types=1);
 
 namespace Blush\Console\Commands;
 
-use Blush\Auth\AccountStore;
 use Blush\Auth\Accounts;
 use Blush\Auth\AuthException;
 use Blush\Console\Attributes\Argument;
@@ -30,7 +29,6 @@ use Blush\Console\Prompt;
 final readonly class SetAccountPassword
 {
 	public function __construct(
-		private AccountStore $store,
 		private Accounts $accounts
 	) {}
 
@@ -43,7 +41,7 @@ final readonly class SetAccountPassword
 		#[Argument('The account\'s username.')] string $username
 	): ExitCode {
 		try {
-			$account = $this->store->find($username) ?? throw new AuthException(sprintf('There\'s no account named "%s".', $username));
+			$account = $this->accounts->find($username) ?? throw new AuthException(sprintf('There\'s no account named "%s".', $username));
 
 			$this->accounts->setPassword($account, $prompt->newSecret('New password:', 'New password again:', $this->accounts->passwordProblem(...)));
 		} catch (AuthException $e) {

@@ -24,13 +24,12 @@ use Blush\Core\ServiceProvider;
 use Blush\Storage\File\FileLayout;
 use Blush\Storage\File\FileLayouts;
 use Blush\Storage\Record\TableRegistry;
-use Blush\Storage\StorageArea;
 
 /**
  * Binds accounts, roles, capabilities, and permissions (D-219). Accounts
- * are kept by the storage driver for accounts (D-642), and roles as
- * records in its `roles` table (D-646), unless a site or extension binds
- * another `AccountStore` or `RoleStore`.
+ * and stored roles are records in the accounts area's `accounts` and
+ * `roles` tables (D-646, D-669), kept by its storage driver (D-642): on
+ * files, `storage/accounts/{username}.json` and `storage/roles.json`.
  * Extensions add capabilities to `Capabilities` from their own `boot()`.
  */
 final class AuthServiceProvider extends ServiceProvider
@@ -39,6 +38,7 @@ final class AuthServiceProvider extends ServiceProvider
 	 * @inheritDoc
 	 */
 	protected const array SINGLETONS = [
+		AccountProfiles::class,
 		Accounts::class,
 		Authenticator::class,
 		LoginThrottle::class,
@@ -51,20 +51,6 @@ final class AuthServiceProvider extends ServiceProvider
 	/**
 	 * @inheritDoc
 	 */
-	protected const array SINGLETONS_IF = [
-		RoleStore::class => RecordRoleStore::class
-	];
-
-	/**
-	 * @inheritDoc
-	 */
-	protected const array STORAGE = [
-		AccountStore::class => StorageArea::Accounts
-	];
-
-	/**
-	 * @inheritDoc
-	 */
 	protected const array TRANSIENTS = [
 		Authenticate::class,
 		VerifyCsrf::class
@@ -72,7 +58,8 @@ final class AuthServiceProvider extends ServiceProvider
 
 	/**
 	 * Binds the capability registry, seeded with the built-ins, and
-	 * registers the roles' table and, for files, where it's kept.
+	 * registers the accounts' and roles' tables and, for files, where
+	 * they're kept.
 	 */
 	#[Override]
 	public function register(): void
@@ -81,13 +68,17 @@ final class AuthServiceProvider extends ServiceProvider
 
 		$this->container->resolving(TableRegistry::class, static function (object $tables): void {
 			if ($tables instanceof TableRegistry) {
-				$tables->register(RecordRoleStore::table());
+				$tables->register(Accounts::table());
+				$tables->register(Roles::table());
 			}
 		});
 
 		$this->container->resolving(FileLayouts::class, static function (object $layouts, ServiceResolver $resolver): void {
 			if ($layouts instanceof FileLayouts) {
-				$layouts->register(RecordRoleStore::TABLE, FileLayout::oneFile("{$resolver->make(Paths::class)->storage}/roles.json", 'roles', 0660));
+				$paths = $resolver->make(Paths::class);
+
+				$layouts->register(Accounts::TABLE, FileLayout::folder($paths->accounts, 0660));
+				$layouts->register(Roles::TABLE, FileLayout::oneFile("{$paths->storage}/roles.json", 'roles', 0660));
 			}
 		});
 	}

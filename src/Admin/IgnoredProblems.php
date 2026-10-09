@@ -22,7 +22,7 @@ namespace Blush\Admin;
 interface IgnoredProblems
 {
 	/**
-	 * Returns every ignored problem, by key: who ignored it (a username)
+	 * Returns every ignored problem, by key: who ignored it (an account id, D-668)
 	 * and when (ISO 8601).
 	 *
 	 * @return array<string, array{by: string, at: string}>

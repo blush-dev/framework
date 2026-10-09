@@ -14,7 +14,7 @@ declare(strict_types=1);
 namespace Blush\Setup;
 
 use Blush\Admin\AdminConfig;
-use Blush\Auth\AccountStore;
+use Blush\Auth\Accounts;
 use Blush\Content\Source\ContentFiles;
 use Blush\Content\Source\FilesystemSource;
 use Blush\Core\AppConfig;
@@ -30,7 +30,7 @@ final readonly class WelcomeFactory
 		private ContentFiles $contentFiles,
 		private AppConfig $app,
 		private AdminConfig $admin,
-		private AccountStore $accounts,
+		private Accounts $accounts,
 		private SetupChecks $checks
 	) {}
 

@@ -16,10 +16,7 @@ namespace Blush\Tests\Storage;
 use Override;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
-use Blush\Auth\AccountStore;
-use Blush\Auth\FileAccountStore;
-use Blush\Auth\RecordRoleStore;
-use Blush\Auth\RoleStore;
+use Blush\Auth\Accounts;
 use Blush\Console\CommandRegistry;
 use Blush\Content\Record\EntryLocations;
 use Blush\Content\Record\EntryTable;
@@ -42,6 +39,7 @@ use Blush\Storage\Sql\SqliteConnection;
 use Blush\Storage\Sql\SqliteRecordStore;
 use Blush\Storage\Storage;
 use Blush\Storage\StorageArea;
+use Blush\Storage\Record\RecordStore;
 use Blush\Storage\StorageConfig;
 use Blush\Storage\StorageDriver;
 use Blush\Storage\StorageDriverFactory;
@@ -70,8 +68,7 @@ final class StorageTest extends TestCase
 		$this->assertInstanceOf(FilesystemSource::class, $container->make(ContentSource::class));
 		$this->assertInstanceOf(FilesystemContentWriter::class, $container->make(ContentWriter::class));
 		$this->assertInstanceOf(FileDataStore::class, $container->make(DataStore::class));
-		$this->assertInstanceOf(FileAccountStore::class, $container->make(AccountStore::class));
-		$this->assertInstanceOf(RecordRoleStore::class, $container->make(RoleStore::class));
+		$this->assertInstanceOf(Accounts::class, $container->make(Accounts::class));
 		$this->assertInstanceOf(FileSessionStore::class, $container->make(SessionStore::class));
 		$this->assertInstanceOf(FileJobStore::class, $container->make(JobStore::class));
 	}
@@ -93,7 +90,7 @@ final class StorageTest extends TestCase
 		$container->make(StorageDriverRegistry::class)->register('memory', SessionsOnly::class);
 
 		$this->assertInstanceOf(TestSessions::class, $container->make(SessionStore::class));
-		$this->assertInstanceOf(FileAccountStore::class, $container->make(AccountStore::class), 'Other areas keep the default.');
+		$this->assertInstanceOf(Accounts::class, $container->make(Accounts::class), 'Other areas keep the default.');
 	}
 
 	public function testADriversOwnToolsComeWithIt(): void
@@ -128,7 +125,7 @@ final class StorageTest extends TestCase
 		$this->assertInstanceOf(SqliteRecordStore::class, $store);
 		$this->assertSame($store, $container->make(RecordStores::class)->store(Ref::table(StorageArea::Content)), 'One store for the database.');
 		$this->assertInstanceOf(RecordLocations::class, $container->make(EntryLocations::class));
-		$this->assertInstanceOf(FileAccountStore::class, $container->make(AccountStore::class), 'Other areas keep theirs.');
+		$this->assertInstanceOf(Accounts::class, $container->make(Accounts::class), 'Other areas keep theirs.');
 		$this->assertFalse($container->make(CommandRegistry::class)->has('content:ids'), 'File tools aren\'t offered.');
 
 		$store->find(EntryTable::table(), '0198c0de-0000-7000-8000-000000000000');
@@ -144,9 +141,9 @@ final class StorageTest extends TestCase
 		$container->make(StorageDriverRegistry::class)->register('memory', SessionsOnly::class);
 
 		$this->expectException(StorageException::class);
-		$this->expectExceptionMessage(sprintf('The "memory" storage driver, named for accounts, has no %s.', AccountStore::class));
+		$this->expectExceptionMessage(sprintf('The "memory" storage driver, named for accounts, has no %s.', RecordStore::class));
 
-		$container->make(AccountStore::class);
+		$container->make(RecordStores::class)->store(Accounts::table());
 	}
 
 	public function testAnUnknownDriverFails(): void

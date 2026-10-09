@@ -14,15 +14,21 @@ declare(strict_types=1);
 namespace Blush\Auth;
 
 use NoDiscard;
+use Blush\Support\Uuid;
 
 /**
  * Someone who signs in to the admin (D-216, D-217). Accounts aren't
- * content: they live in `storage/accounts`, outside git and `user/`.
+ * content: they're the `accounts` table (`Accounts`, D-669), kept on
+ * files in `storage/accounts`, outside git and `user/`.
  *
- * - `username` is lowercase letters, digits, `.`, `_`, and `-`.
+ * - `id` is the account's record id, what everything that links to an
+ *   account holds (D-668); `''` only for an account not yet saved.
+ * - `username` is lowercase letters, digits, `.`, `_`, and `-`. It's
+ *   how people name the account, and never changes.
  * - `roles` names one or more roles; the account can do what any allows.
- * - `author` optionally links the account to an entry of the `author`
- *   type by slug. Entries crediting that author are the account's own.
+ * - `profile` optionally links the account to its profile, by the
+ *   profile entry's id. Entries crediting that profile are the
+ *   account's own.
  * - `created` and `lastLogin` are Unix timestamps.
  * - `preferences` are how the person likes the admin (D-235).
  * - `suspended` accounts can't sign in, and their sessions end (D-312).
@@ -54,27 +60,32 @@ final readonly class Account
 
 	/**
 	 * @param list<string> $roles
-	 * @throws AuthException For an invalid username, author slug, name, or email.
+	 * @throws AuthException For an invalid username, profile id, id, name, or email.
 	 */
 	public function __construct(
 		public string $username,
 		public string $passwordHash,
 		public array $roles = [],
-		public ?string $author = null,
+		public ?string $profile = null,
 		public int $created = 0,
 		public ?int $lastLogin = null,
 		public Preferences $preferences = new Preferences(),
 		public bool $suspended = false,
 		public ?PasswordLink $passwordLink = null,
 		public ?string $name = null,
-		public ?string $email = null
+		public ?string $email = null,
+		public string $id = ''
 	) {
 		if (! self::isValidUsername($username)) {
 			throw new AuthException(sprintf('"%s" can\'t be a username; use lowercase letters, digits, ".", "_", and "-" (up to 64).', $username));
 		}
 
-		if ($author !== null && preg_match('/^[\p{Ll}\p{Lo}\p{N}][\p{Ll}\p{Lo}\p{N}_-]*$/u', $author) !== 1) {
-			throw new AuthException(sprintf('"%s" isn\'t an author slug.', $author));
+		if ($profile !== null && ! Uuid::isValid($profile)) {
+			throw new AuthException(sprintf('"%s" isn\'t a profile\'s id.', $profile));
+		}
+
+		if ($id !== '' && ! Uuid::isValid($id)) {
+			throw new AuthException(sprintf('"%s" isn\'t an account\'s id.', $id));
 		}
 
 		if ($name !== null && ! self::isValidName($name)) {
@@ -148,12 +159,25 @@ final readonly class Account
 	}
 
 	/**
-	 * Returns a copy linked to another author, or none.
+	 * Returns a copy with its id, once it's saved.
+	 *
+	 * @throws AuthException For an invalid id.
 	 */
 	#[NoDiscard]
-	public function withAuthor(?string $author): self
+	public function withId(string $id): self
 	{
-		return new self($this->username, $this->passwordHash, $this->roles, $author, $this->created, $this->lastLogin, $this->preferences, $this->suspended, $this->passwordLink, $this->name, $this->email);
+		return new self($this->username, $this->passwordHash, $this->roles, $this->profile, $this->created, $this->lastLogin, $this->preferences, $this->suspended, $this->passwordLink, $this->name, $this->email, $id);
+	}
+
+	/**
+	 * Returns a copy linked to another profile, by its id, or none.
+	 *
+	 * @throws AuthException For an invalid id.
+	 */
+	#[NoDiscard]
+	public function withProfile(?string $profile): self
+	{
+		return new self($this->username, $this->passwordHash, $this->roles, $profile, $this->created, $this->lastLogin, $this->preferences, $this->suspended, $this->passwordLink, $this->name, $this->email, $this->id);
 	}
 
 	/**
@@ -164,7 +188,7 @@ final readonly class Account
 	#[NoDiscard]
 	public function withName(?string $name): self
 	{
-		return new self($this->username, $this->passwordHash, $this->roles, $this->author, $this->created, $this->lastLogin, $this->preferences, $this->suspended, $this->passwordLink, $name, $this->email);
+		return new self($this->username, $this->passwordHash, $this->roles, $this->profile, $this->created, $this->lastLogin, $this->preferences, $this->suspended, $this->passwordLink, $name, $this->email, $this->id);
 	}
 
 	/**
@@ -175,7 +199,7 @@ final readonly class Account
 	#[NoDiscard]
 	public function withEmail(string $email): self
 	{
-		return new self($this->username, $this->passwordHash, $this->roles, $this->author, $this->created, $this->lastLogin, $this->preferences, $this->suspended, $this->passwordLink, $this->name, $email);
+		return new self($this->username, $this->passwordHash, $this->roles, $this->profile, $this->created, $this->lastLogin, $this->preferences, $this->suspended, $this->passwordLink, $this->name, $email, $this->id);
 	}
 
 	/**
@@ -235,12 +259,12 @@ final readonly class Account
 	}
 
 	/**
-	 * Builds an account from its stored array.
+	 * Builds an account from its stored array and its record's id.
 	 *
 	 * @param  array<mixed> $data
 	 * @throws AuthException When the data isn't an account.
 	 */
-	public static function fromArray(array $data): self
+	public static function fromArray(array $data, string $id = ''): self
 	{
 		$roles = $data['roles'] ?? [];
 
@@ -253,24 +277,26 @@ final readonly class Account
 			username: $data['username'],
 			passwordHash: $data['passwordHash'],
 			roles: $roles,
-			author: is_string($data['author'] ?? null) ? $data['author'] : null,
+			profile: is_string($data['profile'] ?? null) && Uuid::isValid($data['profile']) ? strtolower($data['profile']) : null,
 			created: is_int($data['created'] ?? null) ? $data['created'] : 0,
 			lastLogin: is_int($data['lastLogin'] ?? null) ? $data['lastLogin'] : null,
 			preferences: Preferences::fromArray(is_array($data['preferences'] ?? null) ? $data['preferences'] : []),
 			suspended: ($data['suspended'] ?? false) === true,
 			passwordLink: is_array($data['passwordLink'] ?? null) ? PasswordLink::fromArray($data['passwordLink']) : null,
 			name: is_string($data['name'] ?? null) ? self::tidyName($data['name']) : null,
-			email: is_string($data['email'] ?? null) && $data['email'] !== '' ? $data['email'] : null
+			email: is_string($data['email'] ?? null) && $data['email'] !== '' ? $data['email'] : null,
+			id: $id
 		);
 	}
 
 	/**
-	 * Returns the account as its stored array. Preferences at their
+	 * Returns the account as its stored array, without its id, which is
+	 * the record's. Preferences at their
 	 * defaults are left out, and so is `preferences` when all are;
 	 * `name`, `email`, `suspended`, and `passwordLink` are written only
 	 * when set.
 	 *
-	 * @return array{username: string, email?: string, name?: string, passwordHash: string, roles: list<string>, author: ?string, created: int, lastLogin: ?int, preferences?: array<string, string|bool|list<string>>, suspended?: true, passwordLink?: array{hash: string, expires: int}}
+	 * @return array{username: string, email?: string, name?: string, passwordHash: string, roles: list<string>, profile: ?string, created: int, lastLogin: ?int, preferences?: array<string, string|bool|list<string>>, suspended?: true, passwordLink?: array{hash: string, expires: int}}
 	 */
 	public function toArray(): array
 	{
@@ -282,7 +308,7 @@ final readonly class Account
 			...($this->name === null ? [] : ['name' => $this->name]),
 			'passwordHash' => $this->passwordHash,
 			'roles'        => $this->roles,
-			'author'       => $this->author,
+			'profile'      => $this->profile,
 			'created'      => $this->created,
 			'lastLogin'    => $this->lastLogin,
 			...($preferences === [] ? [] : ['preferences' => $preferences]),

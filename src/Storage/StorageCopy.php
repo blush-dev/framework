@@ -15,8 +15,7 @@ namespace Blush\Storage;
 
 use Closure;
 use Psr\Clock\ClockInterface;
-use Blush\Auth\FileAccountStore;
-use Blush\Auth\RecordAccountStore;
+use Blush\Auth\Accounts;
 use Blush\Container\Container;
 use Blush\Content\Index\IndexFreshness;
 use Blush\Content\Index\Indexer;
@@ -134,12 +133,12 @@ final readonly class StorageCopy
 			$done('entries', $this->entries($source, $target));
 			$done('links', $this->table(Ref::table(StorageArea::Content), $source, $target));
 			$done('data records', $this->data($target));
-			$done('accounts', $this->accounts($target));
+			$done('accounts', $this->table(Accounts::table(), $source, $target));
 
 			$others = 0;
 
 			foreach ($tables as $table) {
-				if (! in_array($table->name, [EntryTable::TABLE, Ref::TABLE, RecordDataStore::TABLE, RecordAccountStore::TABLE, RecordSessionStore::TABLE, RecordJobStore::TABLE, RecordJobStore::STATE], true)) {
+				if (! in_array($table->name, [EntryTable::TABLE, Ref::TABLE, RecordDataStore::TABLE, Accounts::TABLE, RecordSessionStore::TABLE, RecordJobStore::TABLE, RecordJobStore::STATE], true)) {
 					$others += $this->table($table, $source, $target);
 				}
 			}
@@ -215,21 +214,6 @@ final readonly class StorageCopy
 		}
 
 		return $count;
-	}
-
-	/**
-	 * Copies the accounts.
-	 */
-	private function accounts(RecordStores $target): int
-	{
-		$to       = new RecordAccountStore($target, $this->clock);
-		$accounts = $this->container->make(FileAccountStore::class)->all();
-
-		foreach ($accounts as $account) {
-			$to->save($account);
-		}
-
-		return count($accounts);
 	}
 
 	/**

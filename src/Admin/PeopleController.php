@@ -16,7 +16,7 @@ namespace Blush\Admin;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Blush\Auth\Account;
-use Blush\Auth\AccountStore;
+use Blush\Auth\Accounts;
 use Blush\Auth\AuthException;
 use Blush\Auth\Capabilities;
 use Blush\Auth\Capability;
@@ -50,7 +50,7 @@ final readonly class PeopleController
 		private Roles $roles,
 		private Capabilities $capabilities,
 		private ContentTypes $types,
-		private AccountStore $accounts,
+		private Accounts $accounts,
 		private Permissions $permissions,
 		private PeopleJson $json,
 		private PeopleRules $rules

@@ -17,13 +17,15 @@ use JsonException;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Blush\Auth\Account;
+use Blush\Auth\AccountProfiles;
 use Blush\Auth\Accounts;
-use Blush\Auth\AccountStore;
 use Blush\Auth\AuthException;
 use Blush\Auth\BuiltInRole;
 use Blush\Auth\Capability;
+use Blush\Auth\ContentAction;
 use Blush\Auth\Permissions;
 use Blush\Auth\Roles;
+use Blush\Content\Type\ContentTypes;
 use Blush\Core\AppConfig;
 use Blush\Http\Response;
 use Blush\Http\Status;
@@ -35,8 +37,8 @@ use Blush\Http\Status;
  *
  * - `POST accounts` (`accounts.create`; its first roles also need
  *   `accounts.roles`, else it's a member, D-365): `{"username",
- *   "email", "roles", "author", "name"}` (the last two optional; every
- *   account needs an email, D-370) makes an account
+ *   "email", "roles", "author", "profileTitle", "name"}` (the last three
+ *   optional; every account needs an email, D-370) makes an account
  *   with no password and a one-time link for choosing one (not named
  *   `new`, the admin's screen for making one). The answer
  *   (`201`) is the `account` and its `link`: the `url` to send and when
@@ -45,7 +47,7 @@ use Blush\Http\Status;
  * - `PATCH accounts/{username}` (your own only for `author`, D-373, and
  *   for making yourself the owner of a site that has none, D-500):
  *   any of `roles` (`accounts.roles`),
- *   `author` (`null` unlinks), `name` (`null` or empty takes it
+ *   `author` (a profile's slug; `null` unlinks), `name` (`null` or empty takes it
  *   away, D-322), and `email` (D-370; all three `accounts.edit`), and `suspended`
  *   (`accounts.suspend`); answers with the `account`.
  * - `POST accounts/{username}/link` (`accounts.edit`): a new password
@@ -54,6 +56,11 @@ use Blush\Http\Status;
  * - `DELETE accounts/{username}` (`accounts.delete`): removes the
  *   account (`204`). Its author entry and the entries crediting it
  *   stay.
+ *
+ * An account links to its profile by the profile's id (D-668); the
+ * admin names it by its slug, `author`. Linking to a slug with no
+ * profile makes it, a draft titled `profileTitle` (else the slug), which
+ * needs creating profiles too (`AccountProfiles::prepare()`).
  *
  * Refusals are `403` (not allowed), `404` (no such account), or `422`
  * with an `error` and, when one input is at fault, its `field`.
@@ -71,7 +78,8 @@ final readonly class AccountEditController
 
 	public function __construct(
 		private Accounts $accounts,
-		private AccountStore $store,
+		private AccountProfiles $profiles,
+		private ContentTypes $types,
 		private Roles $roles,
 		private Permissions $permissions,
 		private PeopleRules $rules,
@@ -92,6 +100,7 @@ final readonly class AccountEditController
 		$username = is_string($input['username'] ?? null) ? strtolower(trim($input['username'])) : '';
 		$roles    = self::strings($input['roles'] ?? null);
 		$author   = is_string($input['author'] ?? null) && trim($input['author']) !== '' ? trim($input['author']) : null;
+		$title    = is_string($input['profileTitle'] ?? null) ? $input['profileTitle'] : null;
 		$name     = is_string($input['name'] ?? null) ? Account::tidyName($input['name']) : null;
 		$email    = is_string($input['email'] ?? null) ? trim($input['email']) : '';
 
@@ -104,7 +113,7 @@ final readonly class AccountEditController
 			return self::error('"new" can\'t be a username here; pick another.', field: 'username');
 		}
 
-		if ($this->store->find($username) !== null) {
+		if ($this->accounts->find($username) !== null) {
 			return self::error(sprintf('There\'s already an account named "%s".', $username), field: 'username');
 		}
 
@@ -131,8 +140,14 @@ final readonly class AccountEditController
 			return $refusal;
 		}
 
+		$refusal = $this->checkCreating($actor, $author);
+
+		if ($refusal !== null) {
+			return $refusal;
+		}
+
 		try {
-			[$account, $token] = $this->accounts->invite($username, $roles, $author, $name, $email);
+			[$account, $token] = $this->accounts->invite($username, $roles, $this->profiles->prepare($author, $title ?? $name, $username), $name, $email);
 		} catch (AuthException $e) {
 			return self::error($e->getMessage(), field: 'author');
 		}
@@ -157,7 +172,8 @@ final readonly class AccountEditController
 
 		$roles     = array_key_exists('roles', $input) ? self::strings($input['roles']) : $account->roles;
 		$suspended = $input['suspended'] ?? $account->suspended;
-		$author    = array_key_exists('author', $input) ? $input['author'] : $account->author;
+		$linked    = $this->profiles->slug($account);
+		$author    = array_key_exists('author', $input) ? $input['author'] : $linked;
 		$name      = array_key_exists('name', $input) ? $input['name'] : $account->name;
 		$email     = array_key_exists('email', $input) ? $input['email'] : $account->email;
 
@@ -167,11 +183,12 @@ final readonly class AccountEditController
 
 		$roles   = Accounts::settle($roles);
 		$author  = is_string($author) && trim($author) !== '' ? trim($author) : null;
+		$relinks = array_key_exists('author', $input) && ($author !== $linked || ($author === null && $account->profile !== null));
 		$name    = is_string($name) ? Account::tidyName($name) : null;
 		$needs   = array_filter([
 			Capability::AccountsRoles->value   => $roles !== $account->roles,
 			Capability::AccountsSuspend->value => $suspended !== $account->suspended,
-			Capability::AccountsEdit->value    => $author !== $account->author || $name !== $account->name || ($email !== null && trim($email) !== $account->email)
+			Capability::AccountsEdit->value    => $relinks || $name !== $account->name || ($email !== null && trim($email) !== $account->email)
 		]);
 
 		foreach (array_keys($needs) as $capability) {
@@ -193,6 +210,7 @@ final readonly class AccountEditController
 		}
 
 		$refusal = $roles === $account->roles ? null : $this->checkRoles($actor, $roles);
+		$refusal ??= $relinks ? $this->checkCreating($actor, $author) : null;
 
 		if ($refusal !== null) {
 			return $refusal;
@@ -207,7 +225,7 @@ final readonly class AccountEditController
 		try {
 			$account = $roles === $account->roles ? $account : $this->accounts->setRoles($account, $roles);
 			$account = $suspended === $account->suspended ? $account : $this->accounts->setSuspended($account, $suspended);
-			$account = $author === $account->author ? $account : $this->accounts->setAuthor($account, $author);
+			$account = $relinks ? $this->profiles->link($account, $author) : $account;
 			$account = $name === $account->name ? $account : $this->accounts->setName($account, $name);
 			$account = $email === null || $email === $account->email ? $account : $this->accounts->setEmail($account, $email);
 		} catch (AuthException $e) {
@@ -258,9 +276,22 @@ final readonly class AccountEditController
 			return self::error(sprintf('%s is the only account left that can manage accounts and roles.', $account->username));
 		}
 
-		$this->store->delete($account->username);
+		$this->accounts->delete($account->username);
 
 		return new Response(Status::NoContent, ['Cache-Control' => 'no-store']);
+	}
+
+	/**
+	 * Refuses linking to a slug with no profile, which makes one, when the
+	 * actor may not create profiles; else `null`.
+	 */
+	private function checkCreating(Account $actor, ?string $author): ?ResponseInterface
+	{
+		$type = $this->types->profiles()?->name;
+
+		return $this->profiles->wouldCreate($author) && ($type === null || ! $this->permissions->can($actor, ContentAction::Create, $type))
+			? self::error(sprintf('There\'s no "%s" profile, and you aren\'t allowed to create profiles.', $author), Status::Forbidden, 'author')
+			: null;
 	}
 
 	/**
@@ -310,7 +341,7 @@ final readonly class AccountEditController
 	 */
 	private function target(Account $actor, string $username): Account|ResponseInterface
 	{
-		$account = $this->store->find($username);
+		$account = $this->accounts->find($username);
 
 		return match (true) {
 			$account === null                          => self::error(sprintf('There\'s no "%s" account.', $username), Status::NotFound),
@@ -357,7 +388,7 @@ final readonly class AccountEditController
 	 */
 	private function keepsManager(Account $account, ?Account $after): bool
 	{
-		$accounts = array_values(array_filter($this->store->all(), static fn (Account $item): bool => $item->username !== $account->username));
+		$accounts = array_values(array_filter($this->accounts->all(), static fn (Account $item): bool => $item->username !== $account->username));
 
 		return $this->rules->keepsManager($after === null ? $accounts : [...$accounts, $after], $this->roles);
 	}

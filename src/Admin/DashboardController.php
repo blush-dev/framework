@@ -17,6 +17,7 @@ use DateTimeInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Blush\Auth\Account;
+use Blush\Auth\AccountProfiles;
 use Blush\Auth\ContentAction;
 use Blush\Auth\Permissions;
 use Blush\Cache\ContentVersion;
@@ -67,7 +68,8 @@ final readonly class DashboardController
 		private ContentUrls $urls,
 		private ContentVersion $version,
 		private EntryHandles $handles,
-		private Permissions $permissions
+		private Permissions $permissions,
+		private AccountProfiles $profiles
 	) {}
 
 	public function __invoke(ServerRequestInterface $request): ResponseInterface
@@ -81,6 +83,7 @@ final readonly class DashboardController
 		$resume   = $this->resume($account);
 		$except   = $resume?->id;
 		$profiles = $this->types->profiles()?->name;
+		$own      = $this->profiles->slug($account);
 		$base     = $this->permissions->restrict($account, ContentAction::Edit, $this->content->query()->any()->withLanding(false)->type(...$this->listed()));
 
 		return Response::json([
@@ -92,7 +95,7 @@ final readonly class DashboardController
 			],
 			'published' => $this->content->query()->status(Status::Published)->count(),
 			'resume'    => $resume === null ? null : $this->describe($resume, $account),
-			'yours'     => $profiles === null || $account->author === null ? null : $this->groups($base->whereTerm($profiles, $account->author), $account, $except),
+			'yours'     => $profiles === null || $own === null ? null : $this->groups($base->whereTerm($profiles, $own), $account, $except),
 			'everyone'  => $this->groups($base, $account, $except),
 			'setup'     => $this->setup($account)
 		], headers: ['Cache-Control' => 'no-store']);
@@ -198,7 +201,7 @@ final readonly class DashboardController
 			'published' => $entry->published?->format(DateTimeInterface::ATOM),
 			'updated'   => $entry->updated->format(DateTimeInterface::ATOM),
 			'authors'   => array_map(fn (string $slug): string => $this->name($profiles, $slug), $credited),
-			'yours'     => $account->author !== null && in_array($account->author, $credited, true)
+			'yours'     => in_array($this->profiles->slug($account), $credited, true)
 		];
 	}
 

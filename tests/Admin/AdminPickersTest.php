@@ -323,7 +323,7 @@ final class AdminPickersTest extends TestCase
 		$mine = self::json($this->upload('mine.png', $png));
 		$path = sprintf('%s/mine.png', is_string($mine['folder'] ?? null) ? $mine['folder'] : '');
 
-		$this->assertSame('jane', $mine['owner'] ?? null, 'The uploader is recorded.');
+		$this->assertSame($this->janeId(), $mine['owner'] ?? null, 'The uploader is recorded, by id (D-668).');
 		$upload = $this->media()['upload'] ?? null;
 		$offers = is_array($upload) && is_array($upload['extensions'] ?? null) ? $upload['extensions'] : [];
 

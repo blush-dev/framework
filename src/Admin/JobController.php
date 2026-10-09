@@ -220,7 +220,7 @@ final readonly class JobController
 		}
 
 		try {
-			$record = $this->scheduler->runNow($job, $account->username);
+			$record = $this->scheduler->runNow($job, $account->id);
 		} catch (JobException $e) {
 			return self::json(['error' => $e->getMessage()], Status::InternalServerError);
 		}
@@ -265,7 +265,7 @@ final readonly class JobController
 	 */
 	private function canFollow(?Account $account, JobRecord $job): bool
 	{
-		return $account !== null && ($job->account === $account->username || $this->permissions->can($account, Capability::SiteJobs));
+		return $account !== null && ($job->account === $account->id || $this->permissions->can($account, Capability::SiteJobs));
 	}
 
 	/**

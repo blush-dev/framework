@@ -13,7 +13,7 @@ declare(strict_types=1);
 
 namespace Blush\Console\Commands;
 
-use Blush\Auth\AccountStore;
+use Blush\Auth\Accounts;
 use Blush\Auth\AuthException;
 use Blush\Console\Attributes\Argument;
 use Blush\Console\Attributes\Command;
@@ -30,7 +30,7 @@ use Blush\Console\Prompt;
 #[Command('account:remove', 'Delete an admin account.')]
 final readonly class RemoveAccount
 {
-	public function __construct(private AccountStore $store)
+	public function __construct(private Accounts $store)
 	{}
 
 	/**

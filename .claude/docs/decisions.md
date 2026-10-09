@@ -20512,3 +20512,104 @@ decision, add a new entry that supersedes it and mark the old one
     a stale version, trashed; every screen's API; Site Health); a setup
     check test; the large site's pages and commands at 128 MB.
 - **Why:** the author's go ("go, do 5e").
+
+### D-668: Data and accounts onto records (step 6's plan)
+
+- **Date:** 2026-10-09
+- **Status:** Plan decided; nothing built. Plan in `roadmap.md`
+  ("Step 6"). Narrows the roadmap's step 6, and moves D-646's "accounts
+  follow" and D-665's plain keyed tables onto repositories.
+- **Decision:**
+  - **Step 6 is the areas only:** data and accounts onto records.
+    Composer drivers, the admin's copy tool, publishing a database site,
+    and the `entries` table's later shape are later steps, each planned
+    on its own. Sessions and jobs keep their narrow stores (D-645).
+  - **Links to an account hold its id** (D-606: ids are identity):
+    sessions, jobs' `account`, media `owner`, and who ignored a problem;
+    and an account links to its profile by the profile entry's id
+    (`profile`, in place of the `author` slug). Usernames stay how
+    people name accounts in the CLI and the admin. Roles stay linked by
+    name, since config and code name them. No fallback for old values.
+  - **The data area becomes a table per kind:** `settings` (one
+    record), `types`, `relations`, `fields`, and `redirects` (a row per
+    redirect), files in place, each record gaining an `id`.
+  - **Ignored problems become a setting** (D-613's records, with who as
+    an account id), not a table of their own.
+  - **Media metadata is its own table** (`media`, keyed by id, found by
+    path), not a content type: media need no URLs, kinds, or editor.
+  - **Menus, regions, and theme data wait** for a discussion
+    (`open-questions.md`); the data store is retired once they've moved.
+  - **Built in parts, each reviewed:** 6a accounts (and roles' store
+    folded into `Roles`), 6b data tables, 6c media, 6d menus, regions,
+    and theme data once settled, 6e retiring `DataStore`, docs, and
+    proof.
+- **Why:** the author, asked: "Areas only", "Ids everywhere", a table
+  per kind ("mostly": "I do want to explore whether we have regions and
+  menus in their current form ... Is there no other place for ignored
+  problems, such as in settings?"), and on media: "I'm OK with media
+  having its own table then. ... They don't need all that other stuff
+  that content types have." Redirects as rows and settings as one record
+  were Claude's, to be checked when 6b is reviewed.
+
+### D-669: Accounts on records, linked by id (step 6a)
+
+- **Date:** 2026-10-09
+- **Status:** Built. Part 6a of step 6's plan (D-668). Supersedes D-355's
+  rename lock and D-259's "an account can be linked before its profile
+  is written"; amends D-665's `RecordAccountStore` and D-646's
+  `RecordRoleStore` (both gone).
+- **Decision:**
+  - **`Accounts` is the repository over the `accounts` table**
+    (`Accounts::table()`, keyed by `username`), on whichever driver keeps
+    the accounts area: on files a folder layout,
+    `storage/accounts/{username}.json` (0660, in place), on SQLite its
+    table. It reads (`find`, `findById`, `all`, `isEmpty`), saves
+    (`save()` returns the account with its id), and deletes, beside
+    creating and changing with checks. `AccountStore`, `FileAccountStore`,
+    and `RecordAccountStore` are gone; the 24 classes that took the store
+    take `Accounts`. `storage:copy` copies accounts as a table.
+  - **`Account` has its `id`**, the record's: written on the account's
+    next save, steady from the username until then (`Uuid::fromName`,
+    as the filesystem driver gives a keyed record without one), so a link
+    written before the save still finds it. `toArray()` leaves it out;
+    the record holds it.
+  - **Links to an account hold its id:** the session (`auth.account`),
+    jobs' `account`, media `owner` (and artwork adopted for a file), and
+    who ignored a Site Health problem (`by`; the admin shows the
+    account's name, or "a removed account"). Usernames stay how people
+    name accounts in the CLI, the API's routes, and the throttle. Old
+    values aren't read: sessions sign in again, and the trial site's
+    files were rewritten once (accounts, media metadata, jobs).
+  - **An account links to its profile by the profile entry's id**
+    (`Account::$profile`, replacing the `author` slug). **`AccountProfiles`**
+    (new, `Blush\Auth`) holds what needs the content layer, so `Accounts`
+    stays free of it for signing in: the profile entry (`entry()`, `slug()`),
+    `displayName()` (moved from `Accounts`), finding a profile by slug,
+    `isLinkable()`, and linking by slug (`link()`, `prepare()`).
+    `Permissions` asks it for ownership: an account owns its profile by id,
+    and entries crediting the profile's slug.
+  - **Linking to a slug with no profile makes the profile**, a draft titled
+    with the name given (else the slug), so an account is never linked to
+    nothing (D-584's every profile a file). The admin's `POST accounts`
+    takes `profileTitle` for it, and making one needs creating profiles
+    (a `403` otherwise). The CLI's `account:add --author=` and
+    `account:author` ask for its public name; `AuthorPage` is gone. The
+    admin's "linked to a slug with no file yet" state is gone (the
+    account screen's **Create It**, the accounts list's **No file yet**,
+    and New Account's second request).
+  - **A linked profile can be renamed** (D-355's lock existed because the
+    link was its slug): `can.rename` no longer checks for a linked
+    account, and the account keeps its profile.
+  - The admin API still names a profile by its slug (`author`), and the
+    `account:author` command keeps its name.
+  - **Roles:** `RoleStore` and `RecordRoleStore` fold into `Roles`:
+    `Roles::table()`, `stored()` (the roles made or changed in the admin)
+    and `save()` (replacing them, and reloading); `RoleEditor` uses them.
+    Roles stay linked by name (config and code name them).
+- **Proof:** `composer check` (2,084 tests): `AccountsTest` (ids written on
+  save, steady before, a link outliving a rename, a new slug making a draft),
+  `PermissionsTest` (media by owner id), the admin's people, content,
+  jobs, media, and Site Health tests, `StorageCopyTest` (accounts keep
+  their ids in SQLite), `SqliteAreasTest`, and the console tests. The trial
+  site's `account:list` reads its rewritten files. Not checked in a browser.
+- **Why:** the author's go ("go, do 6a"), on D-668's plan.

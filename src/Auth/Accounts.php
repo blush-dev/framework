@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Account management.
+ * Accounts.
  *
  * @author    Justin Tadlock <justintadlock@gmail.com>
  * @copyright Copyright (c) 2026, Justin Tadlock
@@ -13,17 +13,29 @@ declare(strict_types=1);
 
 namespace Blush\Auth;
 
+use Closure;
 use Psr\Clock\ClockInterface;
-use Blush\Content\Entries;
-use Blush\Content\Entry\Entry;
-use Blush\Content\Type\ContentTypes;
-use Blush\Content\Writer\EntryChanges;
-use Blush\Content\Writer\WriteException;
+use Blush\Storage\Record\Record;
+use Blush\Storage\Record\RecordException;
+use Blush\Storage\Record\RecordQuery;
+use Blush\Storage\Record\RecordStore;
+use Blush\Storage\Record\RecordStores;
+use Blush\Storage\Record\Table;
+use Blush\Storage\StorageArea;
+use Blush\Storage\StorageException;
 
 /**
- * Creates and changes accounts, checking what goes into them: a free
- * username, a long enough password, and roles that exist. The `account:*`
- * commands, `init`, and the admin use it.
+ * The accounts repository (D-669): the `accounts` table, keyed by
+ * username, on whichever driver keeps the accounts area (on files,
+ * `storage/accounts/{username}.json`). It reads and saves accounts, and
+ * creates and changes them, checking what goes into them: a free
+ * username, a long enough password, roles that exist, and a profile no
+ * other account has. The `account:*` commands, `init`, and the admin
+ * use it; what needs an account's profile entry asks `AccountProfiles`.
+ *
+ * An account's id is its record's (D-668), and it's what everything
+ * that links to an account holds. An account file without one has a
+ * steady id made from its username until its next save writes it.
  *
  * The admin creates an account without a password (`invite()`, D-312):
  * it gets a one-time link instead, for its person to choose one with
@@ -32,35 +44,158 @@ use Blush\Content\Writer\WriteException;
  */
 final readonly class Accounts
 {
+	/**
+	 * The table's name.
+	 */
+	public const string TABLE = 'accounts';
+
 	public function __construct(
-		private AccountStore $store,
+		private RecordStores|RecordStore $stores,
 		private Passwords $passwords,
 		private Roles $roles,
 		private AuthConfig $config,
-		private ClockInterface $clock,
-		private Entries $content,
-		private ContentTypes $types
+		private ClockInterface $clock
 	) {}
+
+	/**
+	 * The accounts' table.
+	 */
+	public static function table(): Table
+	{
+		return new Table(self::TABLE, StorageArea::Accounts, key: 'username', fields: ['username']);
+	}
+
+	/**
+	 * Returns an account, or `null` when there's none by that username.
+	 *
+	 * @throws AuthException When the account's record is damaged.
+	 */
+	public function find(string $username): ?Account
+	{
+		if (! Account::isValidUsername($username)) {
+			return null;
+		}
+
+		$record = $this->read($username, fn (RecordStore $store): ?Record => $store->findByKey(self::table(), $username));
+
+		return $record === null ? null : self::account($record);
+	}
+
+	/**
+	 * Returns an account by its id, or `null` when there's none.
+	 *
+	 * @throws AuthException When the account's record is damaged.
+	 */
+	public function findById(string $id): ?Account
+	{
+		if ($id === '') {
+			return null;
+		}
+
+		$record = $this->read($id, fn (RecordStore $store): ?Record => $store->find(self::table(), $id));
+
+		return $record === null ? null : self::account($record);
+	}
+
+	/**
+	 * Returns every account, sorted by username.
+	 *
+	 * @return list<Account>
+	 * @throws AuthException When a record is damaged.
+	 */
+	public function all(): array
+	{
+		$table    = self::table();
+		$records  = $this->read('', fn (RecordStore $store): array => $store->select($table, new RecordQuery())->records);
+		$accounts = array_map(self::account(...), $records);
+
+		usort($accounts, static fn (Account $a, Account $b): int => strcmp($a->username, $b->username));
+
+		return $accounts;
+	}
+
+	/**
+	 * Whether there are any accounts.
+	 *
+	 * @throws AuthException When the accounts can't be read.
+	 */
+	public function isEmpty(): bool
+	{
+		$table = self::table();
+
+		return $this->read('', fn (RecordStore $store): int => $store->count($table, new RecordQuery())) === 0;
+	}
+
+	/**
+	 * Saves an account, adding or replacing it, and returns it with its
+	 * id: a new account gets one, and one without its id written gets
+	 * its steady one written.
+	 *
+	 * @throws AuthException When it can't be saved.
+	 */
+	public function save(Account $account): Account
+	{
+		$table = self::table();
+
+		try {
+			$store  = $this->store();
+			$record = ($account->id === '' ? null : $store->find($table, $account->id))
+				?? $store->findByKey($table, $account->username)
+				?? Record::create($this->clock->now());
+
+			$saved = $store->save($table, $record->withFields($account->toArray()));
+		} catch (RecordException | StorageException $e) {
+			throw new AuthException(sprintf('The account "%s" couldn\'t be saved: %s', $account->username, $e->getMessage()), previous: $e);
+		}
+
+		return $account->withId($saved->id);
+	}
+
+	/**
+	 * Deletes an account. A missing one is nothing to delete.
+	 *
+	 * @throws AuthException When it can't be deleted.
+	 */
+	public function delete(string $username): void
+	{
+		$table  = self::table();
+		$record = Account::isValidUsername($username)
+			? $this->read($username, fn (RecordStore $store): ?Record => $store->findByKey($table, $username))
+			: null;
+
+		if ($record === null) {
+			return;
+		}
+
+		try {
+			$this->store()->delete($table, $record->id);
+		} catch (RecordException | StorageException $e) {
+			throw new AuthException(sprintf('The account "%s" couldn\'t be deleted: %s', $username, $e->getMessage()), previous: $e);
+		}
+	}
 
 	/**
 	 * Creates and saves an account.
 	 *
-	 * @param  list<string> $roles
 	 * Every account needs an email address (D-370); `$email` is required,
 	 * though it comes last so the other arguments keep their places.
+	 * `$profile` is a profile entry's id (`AccountProfiles::prepare()`
+	 * finds or makes it from a slug).
 	 *
+	 * @param  list<string> $roles
 	 * @throws AuthException When the username is taken or invalid, the
 	 *                       password is too short, a role doesn't exist,
-	 *                       the name is too long, or the email address is
-	 *                       missing, invalid, or another account's.
+	 *                       the profile is another account's, the name is
+	 *                       too long, or the email address is missing,
+	 *                       invalid, or another account's.
 	 */
-	public function create(string $username, string $password, array $roles, ?string $author = null, ?string $name = null, string $email = ''): Account
+	public function create(string $username, string $password, array $roles, ?string $profile = null, ?string $name = null, string $email = ''): Account
 	{
 		if (! Account::isValidUsername($username)) {
 			throw new AuthException(sprintf('"%s" can\'t be a username; use lowercase letters, digits, ".", "_", and "-" (up to 64).', $username));
 		}
 
-		if ($this->store->find($username) !== null) {
+		if ($this->find($username) !== null) {
 			throw new AuthException(sprintf('There\'s already an account named "%s".', $username));
 		}
 
@@ -68,21 +203,19 @@ final readonly class Accounts
 
 		$this->checkPassword($password);
 		$this->checkRoles($roles);
-		$this->checkProfile($author, $username);
+		$this->checkProfile($profile, $username);
 
 		$account = new Account(
 			username: $username,
 			passwordHash: $this->passwords->hash($password),
 			roles: self::settle($roles),
-			author: $author,
+			profile: $profile,
 			created: $this->clock->now()->getTimestamp(),
 			name: $name === null ? null : Account::tidyName($name),
 			email: $email
 		);
 
-		$this->store->save($account);
-
-		return $account;
+		return $this->save($account);
 	}
 
 	/**
@@ -92,12 +225,13 @@ final readonly class Accounts
 	 * @param  list<string> $roles
 	 * @return array{Account, string}
 	 * @throws AuthException When the username is taken or invalid, a role
-	 *                       doesn't exist, the name is too long, or the
-	 *                       email address won't do.
+	 *                       doesn't exist, the profile is another
+	 *                       account's, the name is too long, or the email
+	 *                       address won't do.
 	 */
-	public function invite(string $username, array $roles, ?string $author = null, ?string $name = null, string $email = ''): array
+	public function invite(string $username, array $roles, ?string $profile = null, ?string $name = null, string $email = ''): array
 	{
-		return $this->issuePasswordLink($this->create($username, bin2hex(random_bytes(32)), $roles, $author, $name, $email));
+		return $this->issuePasswordLink($this->create($username, bin2hex(random_bytes(32)), $roles, $profile, $name, $email));
 	}
 
 	/**
@@ -111,10 +245,7 @@ final readonly class Accounts
 	{
 		[$link, $token] = PasswordLink::make($this->clock->now()->getTimestamp(), $this->config->passwordLinkLifetime);
 
-		$account = $account->withPasswordLink($link);
-		$this->store->save($account);
-
-		return [$account, $token];
+		return [$this->save($account->withPasswordLink($link)), $token];
 	}
 
 	/**
@@ -128,7 +259,7 @@ final readonly class Accounts
 	 */
 	public function usePasswordLink(string $username, string $token, string $password): Account
 	{
-		$account = $this->store->find(strtolower(trim($username)));
+		$account = $this->find(strtolower(trim($username)));
 
 		if ($account === null || $account->passwordLink === null || ! $account->passwordLink->accepts($token, $this->clock->now()->getTimestamp())) {
 			throw new AuthException('This link has expired, was used, or was replaced. Ask an administrator for a new one.');
@@ -140,10 +271,7 @@ final readonly class Accounts
 
 		$this->checkPassword($password);
 
-		$account = $account->withPasswordHash($this->passwords->hash($password))->withPasswordLink(null);
-		$this->store->save($account);
-
-		return $account;
+		return $this->save($account->withPasswordHash($this->passwords->hash($password))->withPasswordLink(null));
 	}
 
 	/**
@@ -152,10 +280,7 @@ final readonly class Accounts
 	 */
 	public function setSuspended(Account $account, bool $suspended): Account
 	{
-		$account = $account->withSuspended($suspended);
-		$this->store->save($account);
-
-		return $account;
+		return $this->save($account->withSuspended($suspended));
 	}
 
 	/**
@@ -168,10 +293,7 @@ final readonly class Accounts
 	{
 		$this->checkPassword($password);
 
-		$account = $account->withPasswordHash($this->passwords->hash($password))->withPasswordLink(null);
-		$this->store->save($account);
-
-		return $account;
+		return $this->save($account->withPasswordHash($this->passwords->hash($password))->withPasswordLink(null));
 	}
 
 	/**
@@ -184,27 +306,22 @@ final readonly class Accounts
 	{
 		$this->checkRoles($roles);
 
-		$account = $account->withRoles(self::settle($roles));
-		$this->store->save($account);
-
-		return $account;
+		return $this->save($account->withRoles(self::settle($roles)));
 	}
 
 	/**
-	 * Links an account to a profile, or unlinks it. A profile belongs to
-	 * one account (D-356).
+	 * Links an account to a profile, by the profile entry's id, or
+	 * unlinks it. A profile belongs to one account (D-356).
+	 * `AccountProfiles::link()` links by slug, checking the profile.
 	 *
-	 * @throws AuthException For an invalid slug, or a profile another
+	 * @throws AuthException For an invalid id, or a profile another
 	 *                       account is linked to.
 	 */
-	public function setAuthor(Account $account, ?string $author): Account
+	public function setProfile(Account $account, ?string $profile): Account
 	{
-		$this->checkProfile($author, $account->username, $account->author);
+		$this->checkProfile($profile, $account->username, $account->profile);
 
-		$account = $account->withAuthor($author);
-		$this->store->save($account);
-
-		return $account;
+		return $this->save($account->withProfile($profile));
 	}
 
 	/**
@@ -215,10 +332,7 @@ final readonly class Accounts
 	 */
 	public function setName(Account $account, ?string $name): Account
 	{
-		$account = $account->withName($name === null ? null : Account::tidyName($name));
-		$this->store->save($account);
-
-		return $account;
+		return $this->save($account->withName($name === null ? null : Account::tidyName($name)));
 	}
 
 	/**
@@ -229,10 +343,7 @@ final readonly class Accounts
 	 */
 	public function setEmail(Account $account, string $email): Account
 	{
-		$account = $account->withEmail($this->checkEmail($email, $account->username));
-		$this->store->save($account);
-
-		return $account;
+		return $this->save($account->withEmail($this->checkEmail($email, $account->username)));
 	}
 
 	/**
@@ -253,29 +364,13 @@ final readonly class Accounts
 			throw new AuthException(sprintf('"%s" isn\'t an email address.', $email));
 		}
 
-		$other = array_find($this->store->all(), static fn (Account $account): bool => $account->username !== $username && $account->email !== null && mb_strtolower($account->email) === mb_strtolower($email));
+		$other = array_find($this->all(), static fn (Account $account): bool => $account->username !== $username && $account->email !== null && mb_strtolower($account->email) === mb_strtolower($email));
 
 		if ($other !== null) {
-			throw new AuthException(sprintf('%s already has that email address.', $this->displayName($other)));
+			throw new AuthException(sprintf('%s already has that email address.', $other->name ?? $other->username));
 		}
 
 		return $email;
-	}
-
-	/**
-	 * Returns what the admin calls an account: its own name (D-322,
-	 * D-370), else its profile's title, else its username.
-	 */
-	public function displayName(Account $account): string
-	{
-		if ($account->name !== null) {
-			return $account->name;
-		}
-
-		$authors = $this->types->profiles()?->name;
-		$title   = $account->author === null || $authors === null ? '' : ($this->content->named($authors, $account->author)->title ?? '');
-
-		return $title !== '' ? $title : $account->username;
 	}
 
 	/**
@@ -283,62 +378,18 @@ final readonly class Accounts
 	 */
 	public function setPreferences(Account $account, Preferences $preferences): Account
 	{
-		$account = $account->withPreferences($preferences);
-		$this->store->save($account);
-
-		return $account;
+		return $this->save($account->withPreferences($preferences));
 	}
 
 	/**
-	 * Returns the account linked to a profile, other than one, or `null`.
+	 * Returns the account linked to a profile, by the profile entry's
+	 * id, other than one, or `null`.
+	 *
+	 * @throws AuthException When a record is damaged.
 	 */
 	public function linkedTo(string $profile, ?string $except = null): ?Account
 	{
-		return array_find($this->store->all(), static fn (Account $account): bool => $account->author === $profile && $account->username !== $except);
-	}
-
-	/**
-	 * Whether an author has an entry of its own: the account's public
-	 * name and bio (D-259). An author without one isn't on the site
-	 * (D-584), but an account can be linked before it's written.
-	 */
-	public function hasAuthorPage(string $author): bool
-	{
-		$authors = $this->types->profiles()?->name;
-
-		return $authors !== null && $this->content->named($authors, $author) !== null;
-	}
-
-	/**
-	 * Whether a profile can be linked to an account (D-605): `linkable:
-	 * false` in its front matter locks it, for a byline no one should
-	 * sign in as (an organization, someone who has died, an imported
-	 * contributor). A profile with no file yet can be linked.
-	 */
-	public function isLinkable(string $profile): bool
-	{
-		$authors = $this->types->profiles()?->name;
-		$entry   = $authors === null ? null : $this->content->named($authors, $profile);
-
-		return $entry?->field('linkable') !== false;
-	}
-
-	/**
-	 * Creates an author's entry, published, with its public name, and
-	 * returns it.
-	 *
-	 * @throws AuthException When the site has no author type, or the file
-	 *                       exists or can't be written.
-	 */
-	public function createAuthorPage(string $author, string $name): Entry
-	{
-		$type = $this->types->profiles() ?? throw new AuthException('The site has no profiles type.');
-
-		try {
-			return $this->content->create($type, $author, new EntryChanges(set: ['title' => $name], body: "\n"), null, $this->clock->now());
-		} catch (WriteException $e) {
-			throw new AuthException($e->getMessage(), previous: $e);
-		}
+		return array_find($this->all(), static fn (Account $account): bool => $account->profile === $profile && $account->username !== $except);
 	}
 
 	/**
@@ -372,7 +423,7 @@ final readonly class Accounts
 	 */
 	public function hasOwner(): bool
 	{
-		return array_any($this->store->all(), static fn (Account $account): bool => $account->isOwner() && ! $account->suspended);
+		return array_any($this->all(), static fn (Account $account): bool => $account->isOwner() && ! $account->suspended);
 	}
 
 	/**
@@ -408,9 +459,7 @@ final readonly class Accounts
 
 	/**
 	 * Refuses a profile another account is linked to: a profile is one
-	 * person's public side, so it belongs to one account (D-356). And
-	 * refuses a locked profile (D-605) unless it's the one the account
-	 * already has.
+	 * person's public side, so it belongs to one account (D-356).
 	 *
 	 * @throws AuthException
 	 */
@@ -423,11 +472,44 @@ final readonly class Accounts
 		$other = $this->linkedTo($profile, $username);
 
 		if ($other !== null) {
-			throw new AuthException(sprintf('The "%s" profile is %s\'s already; a profile belongs to one account.', $profile, $this->displayName($other)));
+			throw new AuthException(sprintf('That profile is %s\'s already; a profile belongs to one account.', $other->name ?? $other->username));
 		}
+	}
 
-		if (! $this->isLinkable($profile)) {
-			throw new AuthException(sprintf('The "%s" profile is locked, so no account can be linked to it. Unlock it on its screen first.', $profile));
+	/**
+	 * Returns what reading the table gives.
+	 *
+	 * @template T
+	 * @param  Closure(RecordStore): T $read
+	 * @return T
+	 * @throws AuthException When it can't be read.
+	 */
+	private function read(string $what, Closure $read): mixed
+	{
+		try {
+			return $read($this->store());
+		} catch (RecordException | StorageException $e) {
+			throw new AuthException($what === '' ? sprintf('The accounts can\'t be read: %s', $e->getMessage()) : sprintf('The account "%s" can\'t be read: %s', $what, $e->getMessage()), previous: $e);
 		}
+	}
+
+	/**
+	 * The store that keeps the table.
+	 *
+	 * @throws StorageException
+	 */
+	private function store(): RecordStore
+	{
+		return $this->stores instanceof RecordStores ? $this->stores->store(self::table()) : $this->stores;
+	}
+
+	/**
+	 * Returns a record's account.
+	 *
+	 * @throws AuthException When it isn't one.
+	 */
+	private static function account(Record $record): Account
+	{
+		return Account::fromArray($record->fields, $record->id);
 	}
 }

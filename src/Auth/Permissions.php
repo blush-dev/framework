@@ -48,7 +48,8 @@ final readonly class Permissions
 	public function __construct(
 		private Roles $roles,
 		private Capabilities $capabilities,
-		private ContentTypes $types
+		private ContentTypes $types,
+		private AccountProfiles $profiles
 	) {}
 
 	/**
@@ -98,7 +99,7 @@ final readonly class Permissions
 	{
 		$types        = $query->types === [] ? array_keys($this->types->all()) : $query->types;
 		$authors      = $this->types->profiles()?->name;
-		$author       = $account->author;
+		$author       = $this->profiles->slug($account);
 		$alternatives = [];
 		$everything   = true;
 
@@ -155,10 +156,17 @@ final readonly class Permissions
 	{
 		$authors = $this->types->profiles()?->name;
 
-		return $account->author !== null && $authors !== null && (
-			$entry->hasTerm($authors, $account->author)
-			|| ($entry->type->name === $authors && $entry->key === $account->author)
-		);
+		if ($account->profile === null || $authors === null) {
+			return false;
+		}
+
+		if ($entry->type->name === $authors) {
+			return $entry->id === $account->profile;
+		}
+
+		$author = $this->profiles->slug($account);
+
+		return $author !== null && $entry->hasTerm($authors, $author);
 	}
 
 	/**
@@ -172,7 +180,7 @@ final readonly class Permissions
 	/**
 	 * Whether the account may edit a media file's details, or delete it
 	 * (`Capability::MediaEdit` or `MediaDelete`, D-407), by whose it is:
-	 * its own (`$owner` is its username) needs the capability; anyone
+	 * its own (`$owner` is its id, D-668) needs the capability; anyone
 	 * else's, or one with no owner (`''`), also needs its `.others` form,
 	 * as content does.
 	 */
@@ -184,7 +192,7 @@ final readonly class Permissions
 			return false;
 		}
 
-		return ($owner !== '' && $owner === $account->username) || $this->grants($account, $others->value);
+		return ($owner !== '' && $owner === $account->id) || $this->grants($account, $others->value);
 	}
 
 	/**

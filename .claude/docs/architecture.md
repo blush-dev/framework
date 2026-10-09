@@ -192,9 +192,13 @@ accounts move onto it in later steps; roles are on it now.
   answer to every operator, group, order, page, aggregate, and
   transaction; `ArrayRecordStore` and `FileRecordStore` (both layouts)
   run it, as every driver must.
-- **Roles** (`RecordRoleStore`, D-646): the `roles` table, keyed by
+- **Roles** (`Roles`, D-646, D-669): the `roles` table, keyed by
   name, kept on files as `storage/roles.json` (`{"roles": [...]}`,
   0660), each role gaining its id when the roles are next saved.
+- **Accounts** (`Accounts`, D-669): the `accounts` table, keyed by
+  username, kept on files as `storage/accounts/{username}.json` (0660),
+  each gaining its id on its next save (steady from the username until
+  then). What links to an account holds its id (D-668).
 
 ## Data files
 
@@ -728,8 +732,8 @@ Implemented in M4b (D-087, D-090).
     `RecordContentWriter`: front matter as written (`written`) beside
     its normalized values, relations as `refs` rows only. Data,
     accounts, sessions, and jobs are tables too (`RecordDataStore`,
-    `RecordAccountStore`, `RecordSessionStore`, `RecordJobStore`,
-    D-665). What only files have asks `ContentFiles` (`kept()`,
+    `RecordSessionStore`, `RecordJobStore`, D-665; accounts and roles
+    through `Accounts` and `Roles` on every driver, D-669). What only files have asks `ContentFiles` (`kept()`,
     `source()`) and steps aside on a database (D-667).
 - **`RecordBuilder`** turns a file into an `IndexRecord` (the 1.x file
   conventions, D-088) and its schema violations. It reads `id` before
@@ -1264,13 +1268,16 @@ Implemented in M6a (D-127 to D-130), apart from publishing (M6b).
     named by a hash of the id), started only by `StartSession` on the
     routes that need them; a new session is saved only once something is
     stored in it; `__Host-` cookie over HTTPS.
-  - `Blush\Auth`: accounts (`FileAccountStore`, `storage/accounts`),
-    `Accounts` (create and change, with checks), `Passwords` (Argon2id),
-    `Roles` (built-ins, then the admin's `RoleStore` in
+  - `Blush\Auth`: `Accounts` (the `accounts` table on the accounts
+    area's driver, `storage/accounts` on files; reads, and creates and
+    changes with checks, D-669), `AccountProfiles` (an account's profile
+    entry, linked by its id, D-668; display names; linking by slug, a
+    missing profile made as a draft), `Passwords` (Argon2id),
+    `Roles` (built-ins, then the stored roles, the `roles` table in
     `storage/roles.json`, then `AuthConfig::$roles`, each with its
     `RoleOrigin`; `RoleEditor` changes the stored ones and reloads them,
     D-312), `Capabilities` (the
-    registry), `Permissions` (roles, ownership through the author link,
+    registry), `Permissions` (roles, ownership through the profile link,
     and the live-entry rule, as statuses per own/others' entries that
     both `can()` and the query filter `restrict()` use; and media, D-407:
     `mayUpload()` by kind, `mayChangeMedia()` by a file's `owner`, and

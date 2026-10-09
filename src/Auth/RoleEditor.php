@@ -14,8 +14,7 @@ declare(strict_types=1);
 namespace Blush\Auth;
 
 /**
- * Makes and changes the roles the admin keeps (D-312), in the
- * `RoleStore`:
+ * Makes and changes the roles the admin keeps (D-312), `Roles::stored()`:
  *
  * - **Custom roles** are created, changed (label, description, and
  *   capabilities), and deleted, but not while an account holds one.
@@ -33,10 +32,9 @@ namespace Blush\Auth;
 final readonly class RoleEditor
 {
 	public function __construct(
-		private RoleStore $store,
 		private Roles $roles,
 		private Capabilities $capabilities,
-		private AccountStore $accounts
+		private Accounts $accounts
 	) {}
 
 	/**
@@ -47,7 +45,7 @@ final readonly class RoleEditor
 	 */
 	public function stored(): array
 	{
-		return $this->store->all();
+		return $this->roles->stored();
 	}
 
 	/**
@@ -76,7 +74,7 @@ final readonly class RoleEditor
 
 		$role = new Role($name, self::label($label), $this->checked($capabilities, []), trim($description));
 
-		return $this->save([...$this->store->all(), $role]);
+		return $this->save([...$this->roles->stored(), $role]);
 	}
 
 	/**
@@ -105,7 +103,7 @@ final readonly class RoleEditor
 			$description === null ? $current->description : trim($description)
 		);
 
-		$stored = array_values(array_filter($this->store->all(), static fn (Role $item): bool => $item->name !== $name));
+		$stored = array_values(array_filter($this->roles->stored(), static fn (Role $item): bool => $item->name !== $name));
 
 		return $this->save([...$stored, $custom ? $role : new Role($name, $role->label, $role->capabilities)]);
 	}
@@ -136,7 +134,7 @@ final readonly class RoleEditor
 			}
 		}
 
-		return $this->save(array_values(array_filter($this->store->all(), static fn (Role $item): bool => $item->name !== $name)));
+		return $this->save(array_values(array_filter($this->roles->stored(), static fn (Role $item): bool => $item->name !== $name)));
 	}
 
 	/**
@@ -147,8 +145,7 @@ final readonly class RoleEditor
 	 */
 	private function save(array $roles): Roles
 	{
-		$this->store->save($roles);
-		$this->roles->reload();
+		$this->roles->save($roles);
 
 		return $this->roles;
 	}

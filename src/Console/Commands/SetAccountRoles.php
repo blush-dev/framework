@@ -13,7 +13,6 @@ declare(strict_types=1);
 
 namespace Blush\Console\Commands;
 
-use Blush\Auth\AccountStore;
 use Blush\Auth\Accounts;
 use Blush\Auth\AuthException;
 use Blush\Console\Attributes\Argument;
@@ -30,7 +29,6 @@ use Blush\Console\Output;
 final readonly class SetAccountRoles
 {
 	public function __construct(
-		private AccountStore $store,
 		private Accounts $accounts
 	) {}
 
@@ -48,7 +46,7 @@ final readonly class SetAccountRoles
 		}
 
 		try {
-			$account = $this->store->find($username) ?? throw new AuthException(sprintf('There\'s no account named "%s".', $username));
+			$account = $this->accounts->find($username) ?? throw new AuthException(sprintf('There\'s no account named "%s".', $username));
 			$account = $this->accounts->setRoles($account, $role);
 		} catch (AuthException $e) {
 			$output->error($e->getMessage());

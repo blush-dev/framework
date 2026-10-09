@@ -18,9 +18,8 @@ use LogicException;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Blush\Auth\AuthException;
-use Blush\Auth\RecordRoleStore;
 use Blush\Auth\Role;
-use Blush\Auth\RoleStore;
+use Blush\Auth\Roles;
 use Blush\Content\Index\IndexStore;
 use Blush\Core\Paths;
 use Blush\Storage\File\FileLayout;
@@ -40,7 +39,7 @@ use Blush\Tests\BootsScratchSite;
 #[CoversClass(FileRecordStore::class)]
 #[CoversClass(FileLayout::class)]
 #[CoversClass(FileLayouts::class)]
-#[CoversClass(RecordRoleStore::class)]
+#[CoversClass(Roles::class)]
 final class FileRecordStoreTest extends TestCase
 {
 	use BootsScratchSite;
@@ -154,22 +153,21 @@ final class FileRecordStoreTest extends TestCase
 		]]));
 
 		$container = $this->scratchApplication()->container();
-		$roles     = $container->make(RoleStore::class);
+		$roles     = $container->make(Roles::class);
 
-		$this->assertInstanceOf(RecordRoleStore::class, $roles);
-		$this->assertSame(['editor', 'reviewer'], array_map(static fn (Role $role): string => $role->name, $roles->all()), 'In the file\'s order.');
-		$this->assertSame(['content.*.edit'], $roles->all()[0]->capabilities, 'Retired capabilities are dropped as they\'re read.');
+		$this->assertSame(['editor', 'reviewer'], array_map(static fn (Role $role): string => $role->name, $roles->stored()), 'In the file\'s order.');
+		$this->assertSame(['content.*.edit'], $roles->stored()[0]->capabilities, 'Retired capabilities are dropped as they\'re read.');
 		$this->assertArrayHasKey('roles', $container->make(TableRegistry::class)->all());
 
-		$roles->save([...$roles->all(), new Role('critic', 'Critic', ['content.*.view'])]);
+		$roles->save([...$roles->stored(), new Role('critic', 'Critic', ['content.*.view'])]);
 
 		$this->assertSame(['name' => 'editor', 'label' => 'Editor', 'capabilities' => ['content.*.edit'], 'id' => Uuid::fromName('roles/editor')], $this->roles()[0], 'Each role gains its id, last.');
 		$this->assertSame(['editor', 'reviewer', 'critic'], array_column($this->roles(), 'name'));
 		$this->assertSame('0660', substr(sprintf('%o', fileperms($this->temporaryDirectory() . '/storage/roles.json')), -4), 'Kept from other users, as before.');
 
-		$roles->save([$roles->all()[2]]);
+		$roles->save([$roles->stored()[2]]);
 
-		$this->assertSame(['critic'], array_map(static fn (Role $role): string => $role->name, $roles->all()), 'Roles left out are removed.');
+		$this->assertSame(['critic'], array_map(static fn (Role $role): string => $role->name, $roles->stored()), 'Roles left out are removed.');
 		$id = $this->roles()[0]['id'] ?? null;
 
 		$this->assertTrue(is_string($id) && Uuid::isValid($id));
@@ -183,7 +181,7 @@ final class FileRecordStoreTest extends TestCase
 		$this->expectException(AuthException::class);
 		$this->expectExceptionMessage('storage/roles.json needs a list of records under "roles".');
 
-		$this->scratchApplication()->container()->make(RoleStore::class)->all();
+		$this->scratchApplication()->container()->make(Roles::class)->stored();
 	}
 
 	public function testANewRecordGetsAVersionSevenId(): void

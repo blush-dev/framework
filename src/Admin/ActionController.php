@@ -96,7 +96,7 @@ final readonly class ActionController
 		}
 
 		try {
-			return self::json(['job' => $this->queue->push($job, account: $account->username, unique: "action:{$job}")->id]);
+			return self::json(['job' => $this->queue->push($job, account: $account->id, unique: "action:{$job}")->id]);
 		} catch (JobException $e) {
 			return self::json(['successful' => false, 'message' => $e->getMessage(), 'details' => []]);
 		}

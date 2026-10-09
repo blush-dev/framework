@@ -15,7 +15,7 @@ namespace Blush\Admin;
 
 use Override;
 use Blush\Auth\Account;
-use Blush\Auth\AccountStore;
+use Blush\Auth\Accounts;
 use Blush\Content\CreatedEntries;
 use Blush\Content\EntryIds;
 use Blush\Content\EntryRefs;
@@ -60,7 +60,7 @@ final class HealthFixJob extends Job
 	public const int CHUNK = 100;
 
 	public function __construct(
-		private readonly AccountStore $accounts,
+		private readonly Accounts $accounts,
 		private readonly FixAccess $access,
 		private readonly EntryIds $ids,
 		private readonly MediaIds $mediaIds,
@@ -88,7 +88,7 @@ final class HealthFixJob extends Job
 	public function handle(JobRecord $job): JobResult
 	{
 		$fix     = is_string($job->data['fix'] ?? null) ? HealthFix::tryFrom($job->data['fix']) : null;
-		$account = $job->account === null ? null : $this->accounts->find($job->account);
+		$account = $job->account === null ? null : $this->accounts->findById($job->account);
 		$type    = is_string($job->data['type'] ?? null) ? $job->data['type'] : null;
 
 		if ($fix === null) {

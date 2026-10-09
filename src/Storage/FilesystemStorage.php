@@ -14,8 +14,6 @@ declare(strict_types=1);
 namespace Blush\Storage;
 
 use Override;
-use Blush\Auth\AccountStore;
-use Blush\Auth\FileAccountStore;
 use Blush\Console\Commands\CreateMissingParents;
 use Blush\Console\Commands\CreateMissingTerms;
 use Blush\Console\Commands\FileRefs;
@@ -61,7 +59,6 @@ final readonly class FilesystemStorage implements Storage
 			EntryLocations::class => IndexLocations::class,
 			DataStore::class      => FileDataStore::class,
 			RecordStore::class    => FileRecordStore::class,
-			AccountStore::class   => FileAccountStore::class,
 			SessionStore::class   => FileSessionStore::class,
 			JobStore::class       => FileJobStore::class
 		];

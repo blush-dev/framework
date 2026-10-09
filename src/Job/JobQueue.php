@@ -16,7 +16,7 @@ namespace Blush\Job;
 /**
  * Puts work aside for a runner (D-621), and looks after what's waiting:
  *
- *     $queue->push('acme/transcribe', ['media' => $id], account: $account->username);
+ *     $queue->push('acme/transcribe', ['media' => $id], account: $account->id);
  *
  * - Data is ids and scalars (in arrays), never objects, so a job reads
  *   the same whichever runner picks it up, and a database could keep it.

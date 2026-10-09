@@ -224,10 +224,6 @@ async function makeLink(account: AccountInfo): Promise<void> {
 										<template v-else>{{ account.profile.title || account.profile.slug }}</template>
 										{{ ' ' }}<StatusPill v-if="account.profile.status !== 'published'" :status="account.profile.status" />
 									</template>
-									<template v-else-if="account.author">
-										<span class="mono">{{ account.author }}</span>
-										{{ ' ' }}<span class="tag" title="Entries may credit this slug, but there's no profile file yet">No file yet</span>
-									</template>
 									<span v-else class="muted">None</span>
 								</td>
 								<td class="muted">{{ when(account.lastLogin) }}</td>

@@ -71,7 +71,7 @@ final class AdminJobsTest extends TestCase
 
 		$this->assertIsArray($waiting);
 		$this->assertSame('queued', $waiting['status'] ?? null);
-		$this->assertSame('jane', $waiting['account'] ?? null);
+		$this->assertSame($this->janeId(), $waiting['account'] ?? null);
 		$this->assertTrue($waiting['due'] ?? null);
 
 		$this->assertSame(403, $this->send('POST', "/jobs/{$id}/run")->getStatusCode(), 'Running needs the CSRF token.');
@@ -132,7 +132,7 @@ final class AdminJobsTest extends TestCase
 
 		$this->assertIsArray($now);
 		$this->assertSame('blush/prune-jobs', $now['job'] ?? null);
-		$this->assertSame('jane', $now['account'] ?? null);
+		$this->assertSame($this->janeId(), $now['account'] ?? null);
 		$this->assertSame(404, $this->send('POST', '/jobs/schedule/test/refuse', headers: ['X-CSRF-Token' => $token])->getStatusCode(), 'It isn\'t on the schedule.');
 	}
 

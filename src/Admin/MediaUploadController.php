@@ -178,7 +178,7 @@ final readonly class MediaUploadController
 		// file has an id (D-487). A file whose metadata can't be written
 		// stays, with neither; `media:ids` can add the id.
 		try {
-			$this->metadata->save($file, [MediaMetadata::OWNER => $account->username, MediaMetadata::ID => Uuid::v7($this->clock->now())]);
+			$this->metadata->save($file, [MediaMetadata::OWNER => $account->id, MediaMetadata::ID => Uuid::v7($this->clock->now())]);
 		} catch (MediaException) {
 		}
 
@@ -197,7 +197,7 @@ final readonly class MediaUploadController
 				$record = $this->library->find($relative);
 
 				if ($record !== null && MediaArtwork::carries($record)) {
-					$this->artwork->adopt($record, $account->username);
+					$this->artwork->adopt($record, $account->id);
 				}
 			} catch (MediaException) {
 			}

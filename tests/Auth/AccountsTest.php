@@ -16,20 +16,22 @@ namespace Blush\Tests\Auth;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Blush\Auth\Account;
+use Blush\Auth\AccountProfiles;
 use Blush\Auth\Accounts;
-use Blush\Auth\AccountStore;
 use Blush\Auth\AuthConfig;
 use Blush\Auth\AuthException;
-use Blush\Auth\FileAccountStore;
 use Blush\Auth\Passwords;
 use Blush\Auth\Role;
 use Blush\Auth\Roles;
+use Blush\Clock\SystemClock;
+use Blush\Content\Entries;
 use Blush\Core\Application;
+use Blush\Storage\Record\ArrayRecordStore;
 use Blush\Tests\BootsScratchSite;
 
 #[CoversClass(Account::class)]
+#[CoversClass(AccountProfiles::class)]
 #[CoversClass(Accounts::class)]
-#[CoversClass(FileAccountStore::class)]
 #[CoversClass(Passwords::class)]
 #[CoversClass(Roles::class)]
 #[CoversClass(Role::class)]
@@ -55,18 +57,31 @@ final class AccountsTest extends TestCase
 		return $this->app()->container()->make(Accounts::class);
 	}
 
-	private function store(): AccountStore
+	private function store(): Accounts
 	{
-		return $this->app()->container()->make(AccountStore::class);
+		return $this->app()->container()->make(Accounts::class);
+	}
+
+	private function profiles(): AccountProfiles
+	{
+		return $this->app()->container()->make(AccountProfiles::class);
+	}
+
+	private function writeJane(string $extra = ''): void
+	{
+		$this->writeTemporaryFile('user/content/profiles/jane.md', "---\nid: 04e1cf46-8734-1fc4-7399-c1e7571e878e\ntitle: Jane Author\n{$extra}---\n");
 	}
 
 	public function testCreatesAnAccountFile(): void
 	{
-		$account = $this->accounts()->create('jane', 'a long enough password', ['editor', 'editor'], 'jane-doe', email: 'jane@example.test');
+		$account = $this->accounts()->create('jane', 'a long enough password', ['editor', 'editor'], email: 'jane@example.test');
 		$file    = $this->temporaryDirectory() . '/storage/accounts/jane.json';
 
 		$this->assertSame(['editor'], $account->roles);
 		$this->assertFileExists($file);
+		$this->assertNotSame('', $account->id, 'A saved account has its id (D-669).');
+		$this->assertStringContainsString("\"id\": \"{$account->id}\"", (string) file_get_contents($file));
+		$this->assertEquals($account, $this->store()->findById($account->id));
 		$this->assertSame('0660', substr(sprintf('%o', fileperms($file)), -4));
 		$this->assertStringNotContainsString('a long enough password', (string) file_get_contents($file));
 		$this->assertEquals($account, $this->store()->find('jane'));
@@ -110,27 +125,29 @@ final class AccountsTest extends TestCase
 		$account = $this->accounts()->create('jane', 'a long enough password', ['author'], email: 'jane@example.test');
 		$account = $this->accounts()->setPassword($account, 'another long password');
 		$account = $this->accounts()->setRoles($account, ['editor', 'contributor']);
-		$account = $this->accounts()->setAuthor($account, 'jane');
+		$this->writeJane();
+		$account = $this->profiles()->link($account, 'jane');
 
 		$stored = $this->store()->find('jane');
 
 		$this->assertTrue(new Passwords()->verify('another long password', $stored->passwordHash ?? ''));
 		$this->assertSame(['editor', 'contributor'], $stored?->roles);
-		$this->assertSame('jane', $stored->author);
+		$this->assertSame('04e1cf46-8734-1fc4-7399-c1e7571e878e', $stored->profile, 'Linked by the profile\'s id (D-668).');
+		$this->assertSame('jane', $this->profiles()->slug($stored));
 
-		$this->accounts()->setAuthor($account, null);
-		$this->assertNull($this->store()->find('jane')?->author);
+		$this->profiles()->link($account, null);
+		$this->assertNull($this->store()->find('jane')?->profile);
 	}
 
 	public function testNamesAccounts(): void
 	{
-		$this->writeTemporaryFile('user/content/profiles/jane.md', "---\nid: 04e1cf46-8734-1fc4-7399-c1e7571e878e\ntitle: Jane Author\n---\n");
+		$this->writeJane();
 
-		$account = $this->accounts()->create('jane', 'a long enough password', ['author'], 'jane', "  Jane\t\n  Doe ", email: 'jane@example.test');
+		$account = $this->accounts()->create('jane', 'a long enough password', ['author'], '04e1cf46-8734-1fc4-7399-c1e7571e878e', "  Jane\t\n  Doe ", email: 'jane@example.test');
 
 		$this->assertSame('Jane Doe', $account->name, 'Spaces and line breaks are tidied.');
-		$this->assertSame('Jane Doe', $this->accounts()->displayName($account), 'An account\'s own name comes first (D-370).');
-		$this->assertSame('Jane Doe', $this->accounts()->displayName($account->withAuthor(null)));
+		$this->assertSame('Jane Doe', $this->profiles()->displayName($account), 'An account\'s own name comes first (D-370).');
+		$this->assertSame('Jane Doe', $this->profiles()->displayName($account->withProfile(null)));
 		$this->assertStringContainsString('"name": "Jane Doe"', (string) file_get_contents($this->temporaryDirectory() . '/storage/accounts/jane.json'));
 		$this->assertEquals($account, $this->store()->find('jane'));
 
@@ -140,8 +157,8 @@ final class AccountsTest extends TestCase
 
 		$account = $this->accounts()->setName($account, '   ');
 		$this->assertNull($account->name);
-		$this->assertSame('Jane Author', $this->accounts()->displayName($account), 'Without one, its profile\'s title.');
-		$this->assertSame('jane', $this->accounts()->displayName($account->withAuthor(null)), 'Then the username.');
+		$this->assertSame('Jane Author', $this->profiles()->displayName($account), 'Without one, its profile\'s title.');
+		$this->assertSame('jane', $this->profiles()->displayName($account->withProfile(null)), 'Then the username.');
 
 		foreach ([str_repeat('a', Account::NAME_LENGTH + 1), "Jane\u{0007}"] as $bad) {
 			try {
@@ -177,7 +194,15 @@ final class AccountsTest extends TestCase
 		$this->assertSame('jane@new.example', $this->store()->find('jane')?->email);
 
 		$this->writeTemporaryFile('storage/accounts/old.json', (string) json_encode(['username' => 'old', 'passwordHash' => 'x', 'roles' => ['author']]));
-		$this->assertNull($this->store()->find('old')?->email, 'One saved before emails has none until it\'s given one.');
+
+		$old = $this->store()->find('old');
+		$this->assertNotNull($old);
+
+		$this->assertNull($old->email, 'One saved before emails has none until it\'s given one.');
+		$this->assertNotSame('', $old->id, 'A file without an id has a steady one (D-669).');
+		$this->assertSame($old->id, $this->store()->find('old')?->id);
+		$this->assertSame($old->id, $this->accounts()->setEmail($old, 'old@example.test')->id, 'Its next save writes it.');
+		$this->assertStringContainsString($old->id, (string) file_get_contents($this->temporaryDirectory() . '/storage/accounts/old.json'));
 	}
 
 	public function testListsAndDeletesAccounts(): void
@@ -196,36 +221,64 @@ final class AccountsTest extends TestCase
 
 	public function testReportsADamagedAccountFile(): void
 	{
-		$this->writeTemporaryFile('storage/accounts/jane.json', '{"username": "sam", "passwordHash": "x", "roles": []}');
+		$this->writeTemporaryFile('storage/accounts/jane.json', '{"username": "jane", "passwordHash": ');
 
 		$this->expectException(AuthException::class);
-		$this->expectExceptionMessage('holds the account "sam"');
+		$this->expectExceptionMessage('isn\'t valid JSON');
 
 		$this->store()->find('jane');
 	}
 
-	public function testChecksAuthors(): void
+	public function testFindsProfiles(): void
 	{
-		$this->writeTemporaryFile('user/content/profiles/jane.md', "---\nid: 04e1cf46-8734-1fc4-7399-c1e7571e878e\ntitle: Jane\n---\n");
+		$this->writeJane();
 		$this->writeTemporaryFile('user/content/_posts/credited.md', "---\nid: 43432b5f-3e36-5bde-fad8-73fc3316fd8e\ntitle: Credited\nauthors: lee\n---\n");
 		$this->writeTemporaryFile('user/data/types/post.json', '{"folder": "_posts"}');
 
-		$this->assertTrue($this->accounts()->hasAuthorPage('jane'));
-		$this->assertFalse($this->accounts()->hasAuthorPage('lee'), 'Credited with no file isn\'t a profile (D-584).');
-		$this->assertFalse($this->accounts()->hasAuthorPage('sam'));
+		$this->assertSame('04e1cf46-8734-1fc4-7399-c1e7571e878e', $this->profiles()->find('jane')?->id);
+		$this->assertNull($this->profiles()->find('lee'), 'Credited with no file isn\'t a profile (D-584).');
+		$this->assertTrue($this->profiles()->wouldCreate('lee'));
+		$this->assertFalse($this->profiles()->wouldCreate('jane'));
+	}
+
+	public function testLinkingToANewSlugMakesADraftProfile(): void
+	{
+		$sam = $this->profiles()->link($this->accounts()->create('sam', 'a long enough password', ['author'], email: 'sam@example.test'), 'sam-smith', 'Sam Smith');
+		$new = $this->profiles()->entry($sam);
+
+		$this->assertSame('sam-smith', $new?->key, 'An account is never linked to nothing (D-668).');
+		$this->assertSame('Sam Smith', $new->title);
+		$this->assertSame('draft', $new->status->value);
+		$this->assertSame($new->id, $sam->profile);
+	}
+
+	public function testALinkOutlivesARename(): void
+	{
+		$this->writeJane();
+
+		$jane    = $this->profiles()->link($this->accounts()->create('jane', 'a long enough password', ['author'], email: 'jane@example.test'), 'jane');
+		$content = $this->app()->container()->make(Entries::class);
+
+		$content->rename('04e1cf46-8734-1fc4-7399-c1e7571e878e', 'jane-doe');
+
+		$this->assertSame('jane-doe', $this->profiles()->slug($jane), 'The link is by id, so a rename keeps it (D-668).');
 	}
 
 	public function testLinksAProfileToOneAccount(): void
 	{
+		$this->writeJane();
+
 		$accounts = $this->accounts();
-		$jane     = $accounts->create('jane', 'a long enough password', ['author'], 'jane', email: 'jane@example.test');
+		$profiles = $this->profiles();
+		$jane     = $accounts->create('jane', 'a long enough password', ['author'], '04e1cf46-8734-1fc4-7399-c1e7571e878e', email: 'jane@example.test');
 		$sam      = $accounts->create('sam', 'a long enough password', ['author'], email: 'sam@example.test');
 
-		$this->assertSame('jane', $accounts->linkedTo('jane')?->username);
-		$this->assertNull($accounts->linkedTo('jane', except: 'jane'));
-		$this->assertSame('jane', $accounts->setAuthor($jane, 'jane')->author, 'Its own stays its own.');
+		$this->assertSame('jane', $accounts->linkedTo('04e1cf46-8734-1fc4-7399-c1e7571e878e')?->username);
+		$this->assertSame('jane', $profiles->accountFor('jane')?->username);
+		$this->assertNull($accounts->linkedTo('04e1cf46-8734-1fc4-7399-c1e7571e878e', except: 'jane'));
+		$this->assertSame('04e1cf46-8734-1fc4-7399-c1e7571e878e', $profiles->link($jane, 'jane')->profile, 'Its own stays its own.');
 
-		foreach ([static fn () => $accounts->setAuthor($sam, 'jane'), static fn () => $accounts->create('lee', 'a long enough password', ['author'], 'jane', email: 'lee@example.test')] as $link) {
+		foreach ([static fn () => $profiles->link($sam, 'jane'), static fn () => $accounts->create('lee', 'a long enough password', ['author'], '04e1cf46-8734-1fc4-7399-c1e7571e878e', email: 'lee@example.test')] as $link) {
 			try {
 				$link();
 				$this->fail('A second account.');
@@ -234,8 +287,8 @@ final class AccountsTest extends TestCase
 			}
 		}
 
-		$accounts->setAuthor($jane, null);
-		$this->assertSame('jane', $accounts->setAuthor($sam, 'jane')->author, 'Free once unlinked (D-356).');
+		$profiles->link($jane, null);
+		$this->assertSame('04e1cf46-8734-1fc4-7399-c1e7571e878e', $profiles->link($sam, 'jane')->profile, 'Free once unlinked (D-356).');
 	}
 
 	public function testRefusesALockedProfile(): void
@@ -243,14 +296,14 @@ final class AccountsTest extends TestCase
 		$this->writeTemporaryFile('user/content/profiles/staff.md', "---\nid: 4c955e2c-0b36-ecf4-eb83-68d67d798a53\ntitle: Staff\nlinkable: false\n---\n");
 		$this->writeTemporaryFile('user/content/profiles/jane.md', "---\nid: 04e1cf46-8734-1fc4-7399-c1e7571e878e\ntitle: Jane\n---\n");
 
-		$accounts = $this->accounts();
-		$sam      = $accounts->create('sam', 'a long enough password', ['author'], email: 'sam@example.test');
+		$profiles = $this->profiles();
+		$sam      = $this->accounts()->create('sam', 'a long enough password', ['author'], email: 'sam@example.test');
 
-		$this->assertFalse($accounts->isLinkable('staff'));
-		$this->assertTrue($accounts->isLinkable('jane'));
-		$this->assertTrue($accounts->isLinkable('lee'), 'A profile with no file yet isn\'t locked.');
+		$this->assertFalse($profiles->isLinkable('staff'));
+		$this->assertTrue($profiles->isLinkable('jane'));
+		$this->assertTrue($profiles->isLinkable('lee'), 'A profile with no file yet isn\'t locked.');
 
-		foreach ([static fn () => $accounts->setAuthor($sam, 'staff'), static fn () => $accounts->invite('lee', ['author'], 'staff', email: 'lee@example.test')] as $link) {
+		foreach ([static fn () => $profiles->link($sam, 'staff'), static fn () => $profiles->prepare('staff', null, 'lee')] as $link) {
 			try {
 				$link();
 				$this->fail('A locked profile (D-605).');
@@ -259,7 +312,7 @@ final class AccountsTest extends TestCase
 			}
 		}
 
-		$this->assertSame('jane', $accounts->setAuthor($sam, 'jane')->author);
+		$this->assertSame('jane', $profiles->slug($profiles->link($sam, 'jane')));
 	}
 
 	public function testSiteRolesReplaceAndAddToTheBuiltIns(): void
@@ -269,7 +322,7 @@ final class AccountsTest extends TestCase
 			new Role('reviewer', 'Reviewer', ['content.*.edit']),
 			new Role('member', 'Member', ['site.settings']),
 			new Role('owner', 'Owner', ['site.settings'])
-		])->toArray()), new MemoryRoleStore());
+		])->toArray()), new ArrayRecordStore(), new SystemClock());
 
 		$this->assertSame(['owner', 'administrator', 'editor', 'author', 'contributor', 'member', 'reviewer'], array_keys($roles->all()));
 		$this->assertSame('Copy editor', $roles->get('editor')?->label);

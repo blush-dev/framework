@@ -17,6 +17,7 @@ use JsonException;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Blush\Auth\Account;
+use Blush\Auth\AccountProfiles;
 use Blush\Auth\Accounts;
 use Blush\Auth\AuthException;
 use Blush\Http\Response;
@@ -33,7 +34,8 @@ use Blush\Http\Status;
 final readonly class ProfileController
 {
 	public function __construct(
-		private Accounts $accounts
+		private Accounts $accounts,
+		private AccountProfiles $profiles
 	) {}
 
 	public function __invoke(ServerRequestInterface $request): ResponseInterface
@@ -71,7 +73,7 @@ final readonly class ProfileController
 			return self::json(['error' => $e->getMessage(), 'field' => 'email'], Status::UnprocessableContent);
 		}
 
-		return self::json(['name' => $account->name, 'email' => $account->email, 'displayName' => $this->accounts->displayName($account)]);
+		return self::json(['name' => $account->name, 'email' => $account->email, 'displayName' => $this->profiles->displayName($account)]);
 	}
 
 	/**

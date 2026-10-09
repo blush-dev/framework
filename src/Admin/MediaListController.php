@@ -18,7 +18,7 @@ use SplFileInfo;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Blush\Auth\Account;
-use Blush\Auth\AccountStore;
+use Blush\Auth\AccountProfiles;
 use Blush\Auth\Accounts;
 use Blush\Auth\Capability;
 use Blush\Auth\ContentAction;
@@ -154,8 +154,8 @@ final readonly class MediaListController
 		private AppConfig $app,
 		private MediaLibrary $library,
 		private MediaUsage $usage,
-		private AccountStore $store,
 		private Accounts $accounts,
+		private AccountProfiles $profiles,
 		private EmbeddedMetadataReader $embedded,
 		private MediaArtwork $artworks
 	) {}
@@ -186,7 +186,7 @@ final readonly class MediaListController
 			search: trim($search),
 			kind: $kind === 'any' ? null : MediaKind::from($kind),
 			missingAlt: $missing === 'alt',
-			owner: $mine === '1' ? $account->username : null,
+			owner: $mine === '1' ? $account->id : null,
 			page: $page,
 			per: $per
 		));
@@ -287,7 +287,7 @@ final readonly class MediaListController
 		}
 
 		try {
-			is_string($image) ? $this->artworks->link($record, $image) : $this->artworks->adopt($record, $account->username);
+			is_string($image) ? $this->artworks->link($record, $image) : $this->artworks->adopt($record, $account->id);
 		} catch (MediaException $error) {
 			return self::error($error->getMessage(), Status::UnprocessableContent);
 		}
@@ -595,7 +595,7 @@ final readonly class MediaListController
 	 */
 	private function details(MediaFile $file, string $reference, string $relative, MediaMetadata $metadata, Account $account): array
 	{
-		$owner = $metadata->owner === '' ? null : $this->store->find($metadata->owner);
+		$owner = $metadata->owner === '' ? null : $this->accounts->findById($metadata->owner);
 
 		$schema = $this->schemas->forFile($file);
 		$result = $schema->resolve($metadata->fields(), new FieldContext($this->app->timezone()));
@@ -634,7 +634,7 @@ final readonly class MediaListController
 				'message'  => $violation->message,
 				'severity' => $violation->severity->value
 			], $result->violations),
-			'uploader'   => $metadata->owner === '' ? null : ['username' => $metadata->owner, 'name' => $owner === null ? $metadata->owner : $this->accounts->displayName($owner)],
+			'uploader'   => $metadata->owner === '' ? null : ($owner === null ? ['username' => null, 'name' => 'A removed account'] : ['username' => $owner->username, 'name' => $this->profiles->displayName($owner)]),
 			'may'        => [
 				'edit'       => $original === null && $this->permissions->mayChangeMedia($account, Capability::MediaEdit, $metadata->owner),
 				'delete'     => $this->permissions->mayChangeMedia($account, Capability::MediaDelete, $metadata->owner),

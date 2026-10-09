@@ -124,10 +124,12 @@ built:
    from types (D-644), and `storage:sync` and `storage:copy`, built on `Blush\Storage\Sql`
    (D-659's 4a, kept). The driver for large sites (D-661); an admin
    warning suggesting it is planned.
-6. **The other areas onto records** (data, accounts, roles; sessions
-   and jobs built on `RecordStore` inside a database driver, D-645),
-   then Composer drivers, the admin's copy tool, and publishing a
-   database site. Not planned yet; plan it with the author first.
+6. **Data and accounts onto records** (planned below, D-668): accounts
+   and roles read through their repositories, links to accounts by id,
+   and the data area as a table per kind. Sessions and jobs keep their
+   narrow stores (D-645). Composer drivers, the admin's copy tool,
+   publishing a database site, and reshaping the `entries` table are
+   later steps, each planned on its own.
    Where it starts (after step 5, 2026-10-09):
    - Roles are on records (D-646). Data and accounts have record stores
      only as plain keyed tables for the SQLite driver
@@ -456,6 +458,108 @@ files; `composer check` passes; the large site serves within 128 MB.
 **Left for later:** the admin's large-site warning (D-661), full-text
 search, publishing a database site, SQLite to files, MySQL and
 PostgreSQL, and step 6's repositories for data and accounts.
+
+### Step 6: data and accounts onto records (planned, D-668)
+
+**Goal:** everything the data and accounts areas keep is a table of
+records, read and written through its repository on every driver, so
+`DataStore`, `AccountStore`, and `RoleStore` go (D-606: the per-area
+stores become drivers' internals or go). Files keep their places and
+shapes, each record gaining an `id`. Sessions and jobs keep their
+narrow stores (D-645).
+
+**Where it starts** (mapped 2026-10-09):
+- **Accounts:** `FileAccountStore` (`storage/accounts/{username}.json`,
+  no ids) on files, `RecordAccountStore` (keyed by username) on
+  SQLite, with `Accounts` over either. What links to an account holds
+  its username: sessions, jobs' `account`, media `owner`, and ignored
+  problems' `by`. An account links to its profile by the profile's
+  slug (`author`). Usernames can't be changed.
+- **Roles:** on records already (`RecordRoleStore`, D-646), with `Roles`
+  over `RoleStore`.
+- **Data:** `FileDataStore` on files, one generic `data` table keyed by
+  a `name` with `/` on SQLite (D-665). Ten readers share it: settings,
+  types, relations, field sets, menus, regions, redirects, theme data,
+  ignored problems, and media metadata (which has ids, D-487, but is
+  found by path).
+- `docs/extending.md` already points plugins at tables; `DataStore`
+  isn't public.
+
+**6a. Accounts on records, linked by id** (built, D-669; a slug with no profile makes a draft, and a linked profile can be renamed):
+- One `accounts` table on every driver, keyed by `username`, kept on
+  files as a folder (`storage/accounts/{username}.json`, in place).
+  `Account` gains its `id`, written on the account's next save, steady
+  until then (from the username, as one-file tables give records
+  without ids theirs), so a link written before the save still finds it.
+- `Accounts` reads the table through `RecordStores`; `AccountStore`,
+  `FileAccountStore`, and `RecordAccountStore` go. `Roles` does the
+  same over the `roles` table; `RoleStore` and `RecordRoleStore` go.
+- **Links to an account hold its id:** sessions, jobs' `account`, media
+  `owner`, and who ignored a problem. **An account links to its
+  profile by the profile entry's id** (`author`, a slug, becomes
+  `profile`), so renaming a profile can't break it. The CLI and the
+  admin still take and show usernames and display names, looking up the
+  id; a link to a removed account says so.
+- No fallback for the old values (no 2.x sites): sessions sign in
+  again, and the trial site's files are rewritten once.
+- **Roles stay linked by name:** config and code name them (`owner`,
+  `administrator`), and a role's name never changes.
+- **Proof:** the account and role tests on files, SQLite, and in memory;
+  `AdminOnSqliteTest`.
+
+**6b. Data as a table per kind:**
+- **`settings`:** one record, its file `user/data/settings.json` (a
+  file layout for a table of one record, the file the record). The
+  bootstrap reads it through a record store it builds for the purpose
+  (D-642's early read).
+- **Ignored problems become a setting** (the author's suggestion), a
+  map of each problem key to who ignored it (an account id) and when,
+  in place of `user/data/health/ignored.json`, so a site can also
+  ignore a problem in `config/` and have every copy of it agree.
+- **`types`, `relations`, and `fields`** (field sets): folder tables
+  keyed by `name`, in `user/data/types`, `relations`, and `fields`.
+  A file's `$schema` stays first on files and is never part of a record
+  (D-491). Field sets move as storage only; nothing is added to the
+  paused Fields API (D-348).
+- **`redirects`:** a row per redirect (`from`, `to`, `status`), a
+  one-file table in `user/data/redirects.json`. The file becomes a list
+  only; the map form goes.
+- Messages and reports that say where a record is kept ask the store
+  (a file's path, or "in the database").
+- **Proof:** each reader's tests on files, SQLite, and in memory;
+  settings read back by the bootstrap on both drivers.
+
+**6c. Media metadata as a table:**
+- `media`, keyed by its id (in every record already, D-487), with
+  `path` (the original's under `user/media`) a declared field the store
+  keeps unique. On files, the records stay
+  `user/data/media/{path}.json`: a folder layout that names files by a
+  field and reads nested folders. Moving a file renames its record's.
+- Its own table, not a content type (the author): media need no URLs,
+  kinds, or editor.
+- How the media index and `content:lint` see a changed record (today
+  file times; versions, likely) is settled when 6c is reviewed.
+
+**6d. Menus, regions, and theme data:** wait for a discussion
+(`open-questions.md`, "Menus, regions, and theme data in the data
+layer"): regions may become written content (entries), menus are to be
+looked at, and `user/data/theme.json`'s location maps depend on both;
+its setting values may join settings. Planned once that's settled.
+
+**6e. Retiring the data store, docs, proof:** `DataStore`,
+`FileDataStore`, `RecordDataStore`, and SQLite's `data` table go;
+`storage:copy` copies every registered table, with nothing per area
+but content's; `docs/` (accounts, redirects, settings, ignored
+problems, plugin tables); `composer bench` shows no regression.
+
+**Done when:** every table the data and accounts areas keep is read
+through a repository on files, SQLite, and in memory; stored links to
+accounts are ids; a site copied to SQLite renders and edits in the
+admin as on files; `composer check` passes.
+
+**Not in step 6:** Composer drivers, the admin's copy tool, publishing
+a database site, SQLite to files, and the `entries` table's later shape
+(`open-questions.md`).
 
 ## Next: setup DX/UX (D-156)
 

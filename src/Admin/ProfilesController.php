@@ -17,7 +17,7 @@ use JsonException;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Blush\Auth\Account;
-use Blush\Auth\AccountStore;
+use Blush\Auth\AccountProfiles;
 use Blush\Auth\Accounts;
 use Blush\Auth\AuthException;
 use Blush\Auth\Capability;
@@ -78,9 +78,9 @@ final readonly class ProfilesController
 		private ContentUrls $urls,
 		private EntryHandles $handles,
 		private Permissions $permissions,
-		private AccountStore $accounts,
+		private Accounts $accounts,
 		private PeopleJson $json,
-		private Accounts $names
+		private AccountProfiles $names
 	) {}
 
 	public function index(ServerRequestInterface $request): ResponseInterface
@@ -105,15 +105,15 @@ final readonly class ProfilesController
 		$linked = [];
 
 		foreach ($accounts as $account) {
-			if ($account->author !== null) {
-				$linked[$account->author] ??= ['username' => $account->username, 'displayName' => $this->names->displayName($account)];
+			if ($account->profile !== null) {
+				$linked[$account->profile] ??= ['username' => $account->username, 'displayName' => $this->names->displayName($account)];
 			}
 		}
 
 		$listed = [];
 
 		foreach ($this->content->query()->any()->type($profiles->name)->limit(null)->get() as $entry) {
-			$listed[$entry->key] = ['slug' => $entry->key, 'title' => $entry->title !== '' ? $entry->title : $entry->key, 'status' => $entry->status->value, 'account' => $linked[$entry->key] ?? null, 'linkable' => $entry->field('linkable') !== false];
+			$listed[$entry->key] = ['slug' => $entry->key, 'title' => $entry->title !== '' ? $entry->title : $entry->key, 'status' => $entry->status->value, 'account' => $entry->id === null ? null : $linked[$entry->id] ?? null, 'linkable' => $entry->field('linkable') !== false];
 		}
 
 		$listed = array_values($listed);
@@ -132,7 +132,7 @@ final readonly class ProfilesController
 
 		[$viewer, $profiles, $profile] = $found;
 
-		$account = $this->linkedAccount($profile->slug);
+		$account = $this->linkedAccount($profile);
 		$manages = $this->permissions->can($viewer, Capability::AccountsView);
 
 		return self::json([
@@ -335,12 +335,12 @@ final readonly class ProfilesController
 	}
 
 	/**
-	 * Returns the first account linked to a profile, or `null`.
+	 * Returns the account linked to a profile, or `null`.
 	 */
-	private function linkedAccount(string $slug): ?Account
+	private function linkedAccount(Entry $profile): ?Account
 	{
 		try {
-			return array_find($this->accounts->all(), static fn (Account $account): bool => $account->author === $slug);
+			return $profile->id === null ? null : $this->accounts->linkedTo($profile->id);
 		} catch (AuthException) {
 			return null;
 		}

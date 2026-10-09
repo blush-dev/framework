@@ -16,7 +16,7 @@ namespace Blush\Admin;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Blush\Auth\Account;
-use Blush\Auth\AccountStore;
+use Blush\Auth\Accounts;
 use Blush\Admin\Action\AdminActions;
 use Blush\Auth\AuthException;
 use Blush\Auth\Capability;
@@ -70,7 +70,7 @@ final readonly class CountsController
 		private Entries $content,
 		private ContentTypes $types,
 		private Permissions $permissions,
-		private AccountStore $accounts,
+		private Accounts $accounts,
 		private Roles $roles,
 		private Paths $paths,
 		private MediaLibrary $media,

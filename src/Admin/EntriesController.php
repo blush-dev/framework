@@ -18,7 +18,7 @@ use Psr\Clock\ClockInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Blush\Auth\Account;
-use Blush\Auth\AccountStore;
+use Blush\Auth\AccountProfiles;
 use Blush\Auth\Accounts;
 use Blush\Auth\AuthException;
 use Blush\Auth\Capability;
@@ -145,8 +145,8 @@ final readonly class EntriesController
 		private Permissions $permissions,
 		private AppConfig $app,
 		private ClockInterface $clock,
-		private AccountStore $accounts,
-		private Accounts $names,
+		private Accounts $accounts,
+		private AccountProfiles $names,
 		private Homepage $homepage,
 		private ArchivePages $archivePages,
 		private Referrers $referrers,
@@ -682,8 +682,10 @@ final readonly class EntriesController
 		$linked  = [];
 
 		foreach ($accounts as $account) {
-			if ($account->author !== null && ! array_key_exists($account->author, $linked)) {
-				$linked[$account->author] = $manages ? ['username' => $account->username, 'displayName' => $this->names->displayName($account)] : null;
+			$slug = $this->names->slug($account);
+
+			if ($slug !== null && ! array_key_exists($slug, $linked)) {
+				$linked[$slug] = $manages ? ['username' => $account->username, 'displayName' => $this->names->displayName($account)] : null;
 			}
 		}
 

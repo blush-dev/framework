@@ -16,9 +16,8 @@ namespace Blush\Tests\Storage;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Blush\Auth\Accounts;
-use Blush\Auth\AccountStore;
 use Blush\Auth\Role;
-use Blush\Auth\RoleStore;
+use Blush\Auth\Roles;
 use Blush\Console\Commands\CopyStorage;
 use Blush\Console\Commands\SyncStorage;
 use Blush\Console\Console;
@@ -62,8 +61,8 @@ final class StorageCopyTest extends TestCase
 		$container = $this->app->container();
 		$container->make(DataStore::class)->save('menus/main', ['label' => 'Main']);
 		$container->make(Accounts::class)->create('jane', 'correct horse battery staple', ['editor'], email: 'jane@example.test');
-		$roles = $container->make(RoleStore::class);
-		$roles->save([...$roles->all(), new Role('reviewer', 'Reviewer')]);
+		$roles = $container->make(Roles::class);
+		$roles->save([...$roles->stored(), new Role('reviewer', 'Reviewer')]);
 		$container->make(JobStore::class)->save(new JobRecord(Uuid::v7(new DateTimeImmutable('2026-01-01')), 'test/count'));
 	}
 
@@ -93,6 +92,7 @@ final class StorageCopyTest extends TestCase
 		$this->assertStringContainsString('Copied 1 accounts.', $copied->output);
 		$this->assertStringContainsString('1 content file without an id weren\'t copied', $copied->output . $copied->errors);
 
+		$jane   = $this->app->container()->make(Accounts::class)->find('jane')?->id;
 		$files  = $this->app->container()->make(Entries::class);
 		$app    = $this->onSqlite();
 		$sqlite = $app->container()->make(Entries::class);
@@ -119,8 +119,9 @@ final class StorageCopyTest extends TestCase
 		$container = $app->container();
 
 		$this->assertSame(['label' => 'Main'], $container->make(DataStore::class)->load('menus/main'));
-		$this->assertSame('jane@example.test', $container->make(AccountStore::class)->find('jane')?->email);
-		$this->assertContains('reviewer', array_map(static fn (Role $role): string => $role->name, $container->make(RoleStore::class)->all()));
+		$this->assertSame('jane@example.test', $container->make(Accounts::class)->find('jane')?->email);
+		$this->assertSame('jane', $container->make(Accounts::class)->findById((string) $jane)?->username, 'Accounts keep their ids, which links hold (D-668).');
+		$this->assertContains('reviewer', array_map(static fn (Role $role): string => $role->name, $container->make(Roles::class)->stored()));
 		$this->assertCount(1, $container->make(JobStore::class)->all());
 	}
 

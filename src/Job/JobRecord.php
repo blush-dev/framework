@@ -29,7 +29,7 @@ use Blush\Support\Uuid;
  * - `progress` (0 to 100), `message`, and `details` are what the job last
  *   said about itself; `error` is its last failure's message; `result` is
  *   plain data a finished job hands whoever follows it (D-624).
- * - `account` is the username of whoever queued it, or `null` for the
+ * - `account` is the id of the account that queued it (D-668), or `null` for the
  *   system (the scheduler); `unique` keeps a second copy from being
  *   queued while one waits or runs.
  */

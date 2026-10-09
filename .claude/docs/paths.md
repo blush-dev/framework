@@ -72,7 +72,7 @@ blush-framework/
     Publish/            Publisher, PublishConfig, Puller + GitPuller, webhook (D-131, D-132)
     Setup/              SetupChecks, CheckResult, CheckStatus, SetupPage (init, doctor, D-218)
     Session/            Session, SessionStore + FileSessionStore, SessionConfig, StartSession (D-219)
-    Auth/               Account, AccountStore + FileAccountStore, Accounts, Passwords, Roles,
+    Auth/               Account, Accounts (the accounts table), AccountProfiles, Passwords, Roles,
                         Role, BuiltInRole, Capabilities, Capability, Permissions, Authenticator,
                         LoginThrottle, AuthConfig; Middleware/ (VerifyCsrf, Authenticate) (D-219)
     Preview/            PreviewConfig, PreviewLinks, PreviewLink, PreviewController,

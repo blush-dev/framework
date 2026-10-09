@@ -284,6 +284,8 @@ final class AdminContentTest extends TestCase
 
 	public function testAuthorsSeeTheirOwn(): void
 	{
+		// Jane's entries are hers through her profile (D-668).
+		$this->profiles('jane');
 		$this->site(['author']);
 
 		$this->assertSame(["Jane's draft"], array_column($this->entries('draft'), 'title'));
@@ -292,6 +294,8 @@ final class AdminContentTest extends TestCase
 
 	public function testContributorsSeeOnlyTheirDrafts(): void
 	{
+		// Jane's entries are hers through her profile (D-668).
+		$this->profiles('jane');
 		$this->site(['contributor']);
 
 		$this->assertSame(["Jane's draft"], array_column($this->entries('draft'), 'title'));
@@ -344,9 +348,11 @@ final class AdminContentTest extends TestCase
 
 	public function testListsAnAuthorsOwnEntries(): void
 	{
+		// Jane's entries are hers through her profile (D-668).
+		$this->profiles('jane');
 		$this->site(['author']);
 
-		$this->assertEqualsCanonicalizing(["Jane's draft", 'Soon', 'Live'], array_column($this->listed(), 'title'));
+		$this->assertEqualsCanonicalizing(["Jane's draft", 'Soon', 'Live', 'Jane'], array_column($this->listed(), 'title'), 'Her profile is hers too.');
 	}
 
 	public function testSearchesTitlesAndSlugs(): void
@@ -946,7 +952,7 @@ final class AdminContentTest extends TestCase
 
 		$this->assertIsArray($ignored);
 		$this->assertIsArray($ignored['content:terms:profile/jane'] ?? null, 'Kept for the site, with who and when (D-613).');
-		$this->assertSame('jane', $ignored['content:terms:profile/jane']['by'] ?? null);
+		$this->assertSame($this->janeId(), $ignored['content:terms:profile/jane']['by'] ?? null, 'By the account\'s id (D-668).');
 		$this->assertFileExists($this->temporaryDirectory() . '/user/data/health/ignored.json');
 		$this->assertSame($ignored, self::json($this->send('GET', '/health'))['ignored'] ?? null);
 

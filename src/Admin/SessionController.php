@@ -18,7 +18,7 @@ use LogicException;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Blush\Auth\Account;
-use Blush\Auth\Accounts;
+use Blush\Auth\AccountProfiles;
 use Blush\Auth\AccountSuspended;
 use Blush\Auth\AuthConfig;
 use Blush\Auth\AuthException;
@@ -43,7 +43,7 @@ final readonly class SessionController
 	public function __construct(
 		private Authenticator $authenticator,
 		private Permissions $permissions,
-		private Accounts $accounts,
+		private AccountProfiles $accounts,
 		private Roles $roles,
 		private AuthConfig $config,
 		private PeopleJson $json
@@ -125,7 +125,7 @@ final readonly class SessionController
 				'email'        => $account->email,
 				'name'         => $account->name,
 				'displayName'  => $this->accounts->displayName($account),
-				'author'       => $account->author,
+				'author'       => $this->accounts->slug($account),
 				'profile'      => $this->json->profile($account),
 				'created'      => $account->created,
 				'roles'        => array_map(fn (string $name): array => ['name' => $name, 'label' => $this->roles->get($name)->label ?? $name], $account->roles),

@@ -245,22 +245,21 @@ final class AdminPeopleTest extends TestCase
 		$this->assertSame(404, $this->write('DELETE', '/profiles/jane/pages/post/authors')->getStatusCode());
 	}
 
-	public function testALinkedProfileKeepsItsSlug(): void
+	public function testALinkedProfileCanBeRenamed(): void
 	{
 		$this->profiles();
 		$this->site();
 
 		$jane = self::json($this->send('GET', $this->entryPath('profiles/jane.md')));
-		$gwen = self::json($this->send('GET', $this->entryPath('profiles/gwen.md')));
 
-		$this->assertFalse(is_array($jane['can'] ?? null) ? $jane['can']['rename'] ?? null : null, 'An account is linked by it (D-355).');
-		$this->assertTrue(is_array($gwen['can'] ?? null) ? $gwen['can']['rename'] ?? null : null, 'A guest profile can be renamed.');
+		$this->assertTrue(is_array($jane['can'] ?? null) ? $jane['can']['rename'] ?? null : null, 'An account is linked by the profile\'s id (D-668), so its slug can change.');
 
 		$renamed = $this->write('PATCH', $this->entryPath('profiles/jane.md'), ['revision' => $jane['revision'] ?? '', 'slug' => 'jane-doe']);
 
-		$this->assertSame(422, $renamed->getStatusCode());
-		$this->assertStringContainsString('linked to this profile by its slug', (string) $renamed->getBody());
-		$this->assertFileExists($this->temporaryDirectory() . '/user/content/profiles/jane.md');
+		$this->assertSame(200, $renamed->getStatusCode(), (string) $renamed->getBody());
+		$account = self::json($this->send('GET', '/session'))['account'] ?? null;
+		$this->assertIsArray($account);
+		$this->assertSame('jane-doe', $account['author'] ?? null, 'The account keeps its profile.');
 	}
 
 	public function testAProfileBelongsToOneAccount(): void

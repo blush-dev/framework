@@ -16,22 +16,24 @@ namespace Blush\Tests\Auth;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Blush\Auth\Account;
+use Blush\Auth\AccountProfiles;
 use Blush\Auth\AuthConfig;
 use Blush\Auth\BuiltInRole;
 use Blush\Auth\Capabilities;
 use Blush\Auth\Capability;
 use Blush\Auth\ContentAction;
 use Blush\Auth\ExtensionAction;
-use Blush\Auth\RoleStore;
 use Blush\Auth\Permissions;
 use Blush\Auth\Role;
 use Blush\Auth\Roles;
+use Blush\Clock\SystemClock;
 use Blush\Content\Entries;
 use Blush\Content\Entry\Entry;
 use Blush\Content\Type\ContentTypes;
 use Blush\Core\Application;
 use Blush\Extension\ExtensionKind;
 use Blush\Media\MediaKind;
+use Blush\Storage\Record\ArrayRecordStore;
 use Blush\Tests\BootsScratchSite;
 
 #[CoversClass(Permissions::class)]
@@ -78,9 +80,14 @@ final class PermissionsTest extends TestCase
 		return $entry;
 	}
 
+	/**
+	 * An account with a role, linked to a profile by its slug.
+	 */
 	private function account(string $role, ?string $author = 'jane'): Account
 	{
-		return new Account('someone', 'hash', [$role], $author);
+		$profiles = ['jane' => '04e1cf46-8734-1fc4-7399-c1e7571e878e', 'sam' => 'dc24b740-5b4f-dcea-63e7-28c113a2936d'];
+
+		return new Account('someone', 'hash', [$role], $author === null ? null : $profiles[$author]);
 	}
 
 	public function testRolesGrantTheirCapabilities(): void
@@ -126,16 +133,16 @@ final class PermissionsTest extends TestCase
 	public function testMediaIsByKindAndWhoseItIs(): void
 	{
 		$permissions = $this->permissions();
-		$contributor = new Account('jane', 'hash', ['contributor']);
+		$contributor = new Account('jane', 'hash', ['contributor'], id: '0199a3b2-1c4d-7e5f-8a6b-7c8d9e0f1a2b');
 		$editor      = new Account('ed', 'hash', ['editor']);
 
 		$this->assertTrue($permissions->mayUpload($contributor, MediaKind::Image));
 		$this->assertFalse($permissions->mayUpload($contributor, MediaKind::Video), 'Images only (D-407).');
 		$this->assertTrue($permissions->mayUpload($editor, MediaKind::Document), 'media.*.upload is every kind.');
-		$this->assertTrue($permissions->mayChangeMedia($contributor, Capability::MediaEdit, 'jane'), 'Their own.');
-		$this->assertFalse($permissions->mayChangeMedia($contributor, Capability::MediaEdit, 'sam'));
+		$this->assertTrue($permissions->mayChangeMedia($contributor, Capability::MediaEdit, $contributor->id), 'Their own, by its id (D-668).');
+		$this->assertFalse($permissions->mayChangeMedia($contributor, Capability::MediaEdit, 'jane'), 'Not by username.');
 		$this->assertFalse($permissions->mayChangeMedia($contributor, Capability::MediaEdit, ''), 'No owner is anyone\'s.');
-		$this->assertFalse($permissions->mayChangeMedia($contributor, Capability::MediaDelete, 'jane'));
+		$this->assertFalse($permissions->mayChangeMedia($contributor, Capability::MediaDelete, $contributor->id));
 		$this->assertTrue($permissions->mayChangeMedia($editor, Capability::MediaDelete, ''));
 		$this->assertTrue($permissions->usesMedia($contributor));
 		$this->assertFalse($permissions->usesMedia(new Account('mo', 'hash', ['member'])));
@@ -145,7 +152,7 @@ final class PermissionsTest extends TestCase
 	{
 		$this->writeTemporaryFile('storage/roles.json', (string) json_encode(['roles' => [['name' => 'uploader', 'label' => 'Uploader', 'capabilities' => ['media.upload', 'media.delete']]]]));
 
-		$this->assertSame(['media.delete'], $this->app->container()->make(RoleStore::class)->all()[0]->capabilities ?? null, 'media.upload is gone, with nothing in its place.');
+		$this->assertSame(['media.delete'], $this->app->container()->make(Roles::class)->stored()[0]->capabilities ?? null, 'media.upload is gone, with nothing in its place.');
 	}
 
 	public function testListsAnAccountsCapabilities(): void
@@ -168,9 +175,10 @@ final class PermissionsTest extends TestCase
 			new Roles(new AuthConfig(roles: [
 				new Role('blind', 'Blind', ['extensions.plugins.delete']),
 				new Role('stylist', 'Stylist', ['extensions.*.view', 'extensions.themes.activate'])
-			]), new MemoryRoleStore()),
+			]), new ArrayRecordStore(), new SystemClock()),
 			$this->app->container()->make(Capabilities::class),
-			$this->app->container()->make(ContentTypes::class)
+			$this->app->container()->make(ContentTypes::class),
+			$this->app->container()->make(AccountProfiles::class)
 		);
 
 		$this->assertFalse($permissions->can($this->account('blind'), 'extensions.plugins.delete'), 'Deleting needs seeing (D-389).');
@@ -210,9 +218,10 @@ final class PermissionsTest extends TestCase
 				new Role('reviewer', 'Reviewer', ['content.*.edit', 'content.*.edit.others', 'content.*.publish', 'content.*.delete']),
 				new Role('proofreader', 'Proofreader', ['content.*.edit.others', 'content.*.publish.others']),
 				new Role('pager', 'Pager', ['content.page.edit', 'content.page.edit.others', 'content.page.publish', 'content.profile.edit'])
-			]), new MemoryRoleStore()),
+			]), new ArrayRecordStore(), new SystemClock()),
 			$this->app->container()->make(Capabilities::class),
-			$this->app->container()->make(ContentTypes::class)
+			$this->app->container()->make(ContentTypes::class),
+			$this->app->container()->make(AccountProfiles::class)
 		);
 
 		$content  = $this->app->container()->make(Entries::class);

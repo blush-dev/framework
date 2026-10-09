@@ -66,7 +66,18 @@ Move each item to `decisions.md` once it's answered.
   between drivers (D-644: drivers derive their schema from types, a
   JSON `values` column with generated indexed columns, no hand-written
   migrations, `storage:sync` and `storage:copy`), and sessions and jobs
-  keeping narrow contracts (D-645). Open:
+  keeping narrow contracts (D-645). Step 6 planned (D-668). Open:
+  - **Menus, regions, and theme data in the data layer** (step 6d;
+    raised by the author, 2026-10-09: "I do want to explore whether we
+    have regions and menus in their current form ... I'm still not sold
+    on regions being a feature"). Regions may become written content
+    (see **Regions as written content**: entries with no URLs, which
+    would put them in the content area, not data); whether menus stay
+    `user/data/menus` files, become a table, or change shape is to be
+    looked at; `user/data/theme.json`'s location maps (`menus`,
+    `regions`) depend on both, and its setting values may join
+    settings. Until it's settled they keep `DataStore`, which step 6
+    retires after them.
   - **Composer drivers:** how they're found before plugins load.
     Leaning: a key in the package's `composer.json` `extra`, read with
     the installed packages and cached, and a driver named in
@@ -109,6 +120,19 @@ Move each item to `decisions.md` once it's answered.
     SQL ordering folds text through `blush_fold` (a PHP function) on
     every row, which costs at scale and isn't needed for dates; term
     counts read every ref (13 ms on the benchmark site, 4 on files).
+    - **A post's Markdown copy loads something site-wide** (found
+      2026-10-09, not looked into): `/archives/…/post-8134.md` on
+      `../ten-thousand` takes 630 ms and 134 MB on SQLite (990 ms on
+      files), past 128 MB, though it should need one entry. Look at
+      what `MarkdownController` builds first.
+    - **Measured on `../ten-thousand`, 2026-10-09** (a fresh PHP
+      process per page, page cache off, CLI without opcache): ordinary
+      pages on SQLite take 137 to 286 ms and 26 MB; on files 566 to 671
+      ms and 432 MB (the 65 MB PHP index loaded each time; opcache would
+      lower that under a web server), and files can't serve the home page
+      at 128 MB. The sitemap (2,088 ms, 120 MB on SQLite), `llms.txt`
+      (777 ms, 120 MB), and a post's Markdown copy run out of memory at
+      128 MB on either driver.
   - **Duplicating should answer the same on every driver** (raised
     2026-10-09, after D-664; the author: make copying handle the same,
     decide later). Copying `spring` as `spring` gives `spring-2` on

@@ -16,7 +16,6 @@ namespace Blush\Console\Commands;
 use DateTimeZone;
 use Uri\Rfc3986\Uri;
 use Blush\Auth\Account;
-use Blush\Auth\AccountStore;
 use Blush\Auth\Accounts;
 use Blush\Auth\AuthException;
 use Blush\Auth\BuiltInRole;
@@ -62,7 +61,7 @@ final readonly class SetUpSite
 	public function __construct(
 		private Paths $paths,
 		private Filesystem $filesystem,
-		private AccountStore $accounts,
+		private Accounts $accounts,
 		private Accounts $manager
 	) {}
 

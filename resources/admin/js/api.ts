@@ -1434,7 +1434,7 @@ export interface MediaItem {
 	title: string;
 	alt: string;
 	caption: string;
-	// The uploader's username (D-407), `''` for none.
+	// The uploader's account id (D-407, D-668), `''` for none.
 	owner: string;
 	// The file's id (D-487), `''` for none.
 	id: string;
@@ -1475,7 +1475,7 @@ export interface MediaDetail extends MediaItem {
 	// IPTC, and XMP, and whether it has a location (never the location).
 	embedded: { values: Record<string, string | number | string[]>; location: boolean };
 	// Who uploaded it (D-407), or `null` when no one's recorded.
-	uploader: { username: string; name: string } | null;
+	uploader: { username: string | null; name: string } | null;
 	// What the account may do to it: change its details (and a sound's or
 	// video's artwork), delete it, and add the artwork it carries to the
 	// library (D-581).

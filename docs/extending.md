@@ -576,7 +576,7 @@ use Blush\Job\JobRegistry;
 
 $this->container->get(JobRegistry::class)->register('acme/sync-orders', Acme\Shop\SyncOrders::class);
 
-$queue->push('acme/sync-orders', ['since' => '2026-10-01'], account: $account->username);
+$queue->push('acme/sync-orders', ['since' => '2026-10-01'], account: $account->id);
 ```
 
 - **Data** is what the job works on: ids and plain values (strings,
@@ -585,7 +585,7 @@ $queue->push('acme/sync-orders', ['since' => '2026-10-01'], account: $account->u
 - **`unique:`** keeps a second copy out while one waits or runs, such
   as `unique: 'sync-orders'`. Pushing again returns the one already
   there. **`delay:`** holds a job back that many seconds.
-- **`account:`** records who asked. Check their capability before you
+- **`account:`** records who asked, by the account's `id`. Check their capability before you
   push; the job runs as the site. A person can follow a job they queued
   in the admin.
 

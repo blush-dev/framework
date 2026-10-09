@@ -14,7 +14,6 @@ declare(strict_types=1);
 namespace Blush\Setup;
 
 use Psr\Clock\ClockInterface;
-use Blush\Auth\AccountStore;
 use Blush\Auth\Accounts;
 use Blush\Auth\AuthException;
 use Blush\Content\Type\ContentTypes;
@@ -57,7 +56,6 @@ final readonly class SiteChecks
 		private SetupChecks $setup,
 		private AppConfig $app,
 		private ExtensionState $extensions,
-		private AccountStore $store,
 		private Accounts $accounts,
 		private ContentTypes $types,
 		private JobRunner $jobs,
@@ -129,7 +127,7 @@ final readonly class SiteChecks
 	public function owner(): array
 	{
 		try {
-			if ($this->store->isEmpty()) {
+			if ($this->accounts->isEmpty()) {
 				return [];
 			}
 

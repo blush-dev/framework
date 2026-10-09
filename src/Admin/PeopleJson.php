@@ -15,7 +15,7 @@ namespace Blush\Admin;
 
 use Psr\Clock\ClockInterface;
 use Blush\Auth\Account;
-use Blush\Auth\Accounts;
+use Blush\Auth\AccountProfiles;
 use Blush\Auth\BuiltInRole;
 use Blush\Auth\Capability;
 use Blush\Auth\Permissions;
@@ -24,7 +24,6 @@ use Blush\Auth\RoleOrigin;
 use Blush\Auth\Roles;
 use Blush\Content\Entries;
 use Blush\Content\Routing\ContentUrls;
-use Blush\Content\Type\ContentTypes;
 
 /**
  * Describes accounts and roles for the admin's people screens (D-249,
@@ -36,10 +35,9 @@ final readonly class PeopleJson
 	public function __construct(
 		private PeopleRules $rules,
 		private Permissions $permissions,
-		private Accounts $accounts,
+		private AccountProfiles $accounts,
 		private ClockInterface $clock,
 		private Entries $content,
-		private ContentTypes $types,
 		private EntryHandles $handles,
 		private ContentUrls $urls
 	) {}
@@ -48,9 +46,9 @@ final readonly class PeopleJson
 	 * Describes an account: its `username`, its `email` (D-370), its own
 	 * `name` (or `null`), its `displayName` (D-370: the name, else the
 	 * profile's title, else the username), `roles`, `author` (the linked
-	 * profile's slug), its
+	 * profile's slug, or `null`), its
 	 * `profile` (D-353: `{"id", "handle", "slug", "title", "status",
-	 * "url", "uses"}`, or `null` without a file), `created` and `lastLogin`
+	 * "url", "uses"}`, or `null`), `created` and `lastLogin`
 	 * (Unix times), `status`, its password `link` (`expires`, and whether
 	 * it has `expired`; `null` for none), and whether the viewer
 	 * `manages` it.
@@ -67,7 +65,7 @@ final readonly class PeopleJson
 			'name'        => $account->name,
 			'displayName' => $this->accounts->displayName($account),
 			'roles'       => $account->roles,
-			'author'      => $account->author,
+			'author'      => $this->accounts->slug($account),
 			'profile'     => $this->profile($account),
 			'created'     => $account->created,
 			'lastLogin'   => $account->lastLogin,
@@ -79,7 +77,7 @@ final readonly class PeopleJson
 
 	/**
 	 * Returns an account's profile, or `null` when it links to none or
-	 * the profile has no file: its `id`, `handle`, `slug`, `title`,
+	 * the profile is gone: its `id`, `handle`, `slug`, `title`,
 	 * `status`, `url` on the site, and how many published entries credit
 	 * it (`uses`).
 	 *
@@ -87,8 +85,7 @@ final readonly class PeopleJson
 	 */
 	public function profile(Account $account): ?array
 	{
-		$profiles = $this->types->profiles();
-		$entry    = $account->author === null || $profiles === null ? null : $this->content->named($profiles->name, $account->author);
+		$entry = $this->accounts->entry($account);
 
 		return $entry === null ? null : [
 			'path'   => $entry->path,

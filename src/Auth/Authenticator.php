@@ -24,7 +24,7 @@ use Blush\Session\Session;
  *   (`LoginThrottle`), and takes as long for an unknown username as for a
  *   known one. A success rehashes an old hash and records the time.
  * - `login()` gives the session a new id (against session fixation) and
- *   stores the username, a fingerprint of the password hash, and a new
+ *   stores the account's id, a fingerprint of the password hash, and a new
  *   CSRF token.
  * - `confirm()` checks a signed-in account's password again (before
  *   changing it), throttled like a sign-in.
@@ -40,7 +40,7 @@ use Blush\Session\Session;
 final readonly class Authenticator
 {
 	/**
-	 * The session key for the signed-in username.
+	 * The session key for the signed-in account's id (D-668).
 	 */
 	public const string ACCOUNT = 'auth.account';
 
@@ -55,7 +55,7 @@ final readonly class Authenticator
 	public const string CSRF = 'auth.csrf';
 
 	public function __construct(
-		private AccountStore $accounts,
+		private Accounts $accounts,
 		private Passwords $passwords,
 		private LoginThrottle $throttle,
 		private ClockInterface $clock
@@ -95,10 +95,7 @@ final readonly class Authenticator
 			$account = $account->withPasswordHash($this->passwords->hash($password));
 		}
 
-		$account = $account->withLastLogin($this->clock->now()->getTimestamp());
-		$this->accounts->save($account);
-
-		return $account;
+		return $this->accounts->save($account->withLastLogin($this->clock->now()->getTimestamp()));
 	}
 
 	/**
@@ -143,7 +140,7 @@ final readonly class Authenticator
 	public function login(Session $session, Account $account): void
 	{
 		$session->regenerate();
-		$session->set(self::ACCOUNT, $account->username);
+		$session->set(self::ACCOUNT, $account->id);
 		$session->set(self::FINGERPRINT, self::fingerprint($account));
 		$session->set(self::CSRF, bin2hex(random_bytes(32)));
 	}
@@ -165,14 +162,14 @@ final readonly class Authenticator
 	 */
 	public function account(Session $session): ?Account
 	{
-		$username    = $session->get(self::ACCOUNT);
+		$id          = $session->get(self::ACCOUNT);
 		$fingerprint = $session->get(self::FINGERPRINT);
 
-		if (! is_string($username) || ! is_string($fingerprint)) {
+		if (! is_string($id) || ! is_string($fingerprint)) {
 			return null;
 		}
 
-		$account = $this->accounts->find($username);
+		$account = $this->accounts->findById($id);
 
 		if ($account !== null && ! $account->suspended && hash_equals(self::fingerprint($account), $fingerprint)) {
 			return $account;

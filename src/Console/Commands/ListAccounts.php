@@ -14,7 +14,8 @@ declare(strict_types=1);
 namespace Blush\Console\Commands;
 
 use DateTimeImmutable;
-use Blush\Auth\AccountStore;
+use Blush\Auth\AccountProfiles;
+use Blush\Auth\Accounts;
 use Blush\Auth\AuthException;
 use Blush\Auth\Roles;
 use Blush\Console\Attributes\Command;
@@ -32,7 +33,8 @@ use Blush\Core\Framework;
 final readonly class ListAccounts
 {
 	public function __construct(
-		private AccountStore $store,
+		private Accounts $store,
+		private AccountProfiles $profiles,
 		private Roles $roles,
 		private AppConfig $app
 	) {}
@@ -58,7 +60,7 @@ final readonly class ListAccounts
 				$account->name ?? '',
 				$account->email ?? '(none)',
 				implode(', ', array_map(fn (string $role): string => $this->roles->has($role) ? $role : "{$role} (unknown)", $account->roles)),
-				$account->author ?? '',
+				$this->profiles->slug($account) ?? '',
 				$account->status()->value,
 				$account->lastLogin === null
 					? 'never'
@@ -66,7 +68,7 @@ final readonly class ListAccounts
 			];
 		}
 
-		$output->table(['Username', 'Name', 'Email', 'Roles', 'Author', 'Status', 'Last sign-in'], $rows);
+		$output->table(['Username', 'Name', 'Email', 'Roles', 'Profile', 'Status', 'Last sign-in'], $rows);
 
 		return ExitCode::Success;
 	}

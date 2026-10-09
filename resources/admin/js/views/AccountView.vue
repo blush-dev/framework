@@ -40,7 +40,7 @@ import PickModal, { type PickItem } from '../components/PickModal.vue';
 import RoleChecks from '../components/RoleChecks.vue';
 import StatusPill from '../components/StatusPill.vue';
 import { useAction } from '../action';
-import { ApiError, entryRoute, errorMessage, patchEntry, request, type EntryDetail } from '../api';
+import { ApiError, errorMessage, patchEntry, request, type EntryDetail } from '../api';
 import { config } from '../config';
 import { plural } from '../format';
 import { confirmAction } from '../confirm';
@@ -284,7 +284,7 @@ function linkProfile(): Promise<void> {
 async function unlinkProfile(): Promise<void> {
 	const current = account.value;
 	const page    = current?.profile;
-	const title   = page ? page.title || page.slug : (current?.author ?? '');
+	const title   = page ? page.title || page.slug : '';
 
 	if (current === undefined || !await confirmAction({
 		title: `Unlink ${title}?`,
@@ -321,26 +321,6 @@ async function createProfile(): Promise<void> {
 		profileMode.value = '';
 		toast(`Created ${newName.value.trim()}`);
 		await router.push({ name: 'profile-detail', params: { slug: created.slug } });
-	});
-}
-
-// Gives the profile an account links to its file: a draft, titled with
-// the slug until it's named, opened to write.
-async function createLinked(): Promise<void> {
-	const current = account.value;
-
-	if (current === undefined || !current.author || profileType.value === null) {
-		return;
-	}
-
-	const type   = profileType.value;
-	const author = current.author;
-
-	await runProfile('The profile couldn\'t be created.', async () => {
-		const created = await request<EntryDetail>('POST', '/entries', { type, title: author, slug: author, status: 'draft' });
-
-		await refresh();
-		await router.push(entryRoute({ id: created.id, type: created.type.name }));
 	});
 }
 
@@ -732,17 +712,6 @@ async function changePassword(): Promise<void> {
 						<button v-if="linking" type="button" class="button button--small" :disabled="profileBusy" @click="unlinkProfile"><AdminIcon name="unlink" />Unlink</button>
 					</span>
 				</div>
-				<div v-else-if="account.author" class="link-box link-box--blank">
-					<span class="avatar avatar--large avatar--guest" aria-hidden="true"><AdminIcon name="user-round" /></span>
-					<span class="link-box__text">
-						<strong class="link-box__name">Linked to <span class="mono">{{ account.author }}</span></strong>
-						<span class="link-box__meta">It has no profile file yet, so bylines show the slug and there's no bio.</span>
-					</span>
-					<span class="link-box__buttons">
-						<button v-if="profileType !== null && canType(profileType, 'create')" type="button" class="button button--primary button--small" :disabled="profileBusy" @click="createLinked">{{ profileBusy ? 'Creating…' : 'Create It' }}</button>
-						<button v-if="linking" type="button" class="button button--small" :disabled="profileBusy" @click="unlinkProfile"><AdminIcon name="unlink" />Unlink</button>
-					</span>
-				</div>
 				<div v-else class="link-box link-box--blank">
 					<span class="avatar avatar--large avatar--guest" aria-hidden="true"><AdminIcon name="user-round" /></span>
 					<span class="link-box__text">
@@ -757,7 +726,7 @@ async function changePassword(): Promise<void> {
 				<p v-if="profileError && profileMode === ''" class="field__error" role="alert">{{ profileError }}</p>
 			</div>
 			<p v-if="account.profile && linking" class="panel__note">Unlinking leaves the profile and its <strong>{{ plural(account.profile.uses, 'byline', 'bylines') }}</strong> in place, as a guest profile.</p>
-			<p v-else-if="!account.profile && !account.author && linking" class="panel__note"><strong>Create one</strong> makes a draft profile with the name you give, linked to this account, and opens it: the common case, and why an account and a profile being separate costs almost nothing.</p>
+			<p v-else-if="!account.profile && linking" class="panel__note"><strong>Create one</strong> makes a draft profile with the name you give, linked to this account, and opens it: the common case, and why an account and a profile being separate costs almost nothing.</p>
 		</section>
 
 		<AccountPreferences v-if="account && mine" />

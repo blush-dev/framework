@@ -84,7 +84,7 @@ abstract class ServiceProvider implements Bootable
 	 * Each is bound as an overridable default singleton (as in
 	 * `SINGLETONS_IF`) to the class the area's storage driver gives:
 	 *
-	 *     protected const array STORAGE = [AccountStore::class => StorageArea::Accounts];
+	 *     protected const array STORAGE = [SessionStore::class => StorageArea::Sessions];
 	 *
 	 * @var  array<class-string, StorageArea> Contracts mapped to areas.
 	 */

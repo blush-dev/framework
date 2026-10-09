@@ -15,10 +15,9 @@ namespace Blush\Tests\Console;
 
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
-use Blush\Auth\AccountStore;
+use Blush\Auth\Accounts;
 use Blush\Auth\Passwords;
 use Blush\Console\Commands\AddAccount;
-use Blush\Console\Commands\AuthorPage;
 use Blush\Console\Commands\ListAccounts;
 use Blush\Console\Commands\RemoveAccount;
 use Blush\Console\Commands\SetAccountAuthor;
@@ -37,7 +36,6 @@ use Blush\Tests\BootsScratchSite;
 #[CoversClass(SetAccountPassword::class)]
 #[CoversClass(SetAccountRoles::class)]
 #[CoversClass(SetAccountAuthor::class)]
-#[CoversClass(AuthorPage::class)]
 #[CoversClass(RemoveAccount::class)]
 #[CoversClass(Prompt::class)]
 final class AccountCommandsTest extends TestCase
@@ -67,9 +65,9 @@ final class AccountCommandsTest extends TestCase
 		return new CommandTester($this->app()->container()->make(Console::class))->run($command, $answers);
 	}
 
-	private function store(): AccountStore
+	private function store(): Accounts
 	{
-		return $this->app()->container()->make(AccountStore::class);
+		return $this->app()->container()->make(Accounts::class);
 	}
 
 	public function testAddsAnOwnerThenAdministratorsByDefault(): void
@@ -88,27 +86,18 @@ final class AccountCommandsTest extends TestCase
 		$this->assertSame(['administrator'], $this->store()->find('sam')?->roles);
 	}
 
-	public function testAddsAnAccountWithRolesAndAnAuthor(): void
+	public function testAddsAnAccountWithRolesAndANewProfile(): void
 	{
-		$result = $this->command('account:add sam --email=sam@example.test --role=editor --role=author --author=sam', [self::PASSWORD, self::PASSWORD, 'yes', 'Sam Smith']);
+		$result = $this->command('account:add sam --email=sam@example.test --role=editor --role=author --author=sam', [self::PASSWORD, self::PASSWORD, 'Sam Smith']);
+		$file   = $this->temporaryDirectory() . '/user/content/profiles/s/sam.md';
 
 		$this->assertSame(ExitCode::Success, $result->exitCode, $result->errors);
-		$this->assertStringContainsString('The "sam" author has no page for its name and bio yet. Create it?', $result->output);
-		$this->assertStringContainsString('Created the author page user/content/profiles/s/sam.md.', $result->output);
-		$this->assertStringContainsString('title: "Sam Smith"', (string) file_get_contents($this->temporaryDirectory() . '/user/content/profiles/s/sam.md'));
+		$this->assertStringContainsString('The "sam" profile doesn\'t exist yet, so it\'s made as a draft.', $result->output);
+		$this->assertStringContainsString('title: "Sam Smith"', (string) file_get_contents($file));
+		$this->assertStringContainsString('status: draft', (string) file_get_contents($file));
 		$this->assertSame(['editor', 'author'], $this->store()->find('sam')?->roles);
-		$this->assertSame('sam', $this->store()->find('sam')->author);
-		$this->assertSame(ExitCode::Success, $this->command('account:author sam sam', ['unused'])->exitCode, 'An author with a page isn\'t offered another.');
-	}
-
-	public function testAnAuthorPageCanWait(): void
-	{
-		$result = $this->command('account:add lee --email=lee@example.test --role=author --author=lee', [self::PASSWORD, self::PASSWORD, 'no']);
-
-		$this->assertSame(ExitCode::Success, $result->exitCode, $result->errors);
-		$this->assertStringContainsString('Bylines show "lee" until the author has a page', $result->errors . $result->output);
-		$this->assertFileDoesNotExist($this->temporaryDirectory() . '/user/content/profiles/l/lee.md');
-		$this->assertSame('lee', $this->store()->find('lee')?->author);
+		$this->assertNotNull($this->store()->find('sam')->profile, 'Linked by the new profile\'s id (D-668).');
+		$this->assertSame(ExitCode::Success, $this->command('account:author sam sam', ['unused'])->exitCode, 'A profile that exists isn\'t made again.');
 	}
 
 	public function testRefusesAnUnknownRoleBeforeAskingForAPassword(): void
@@ -136,7 +125,7 @@ final class AccountCommandsTest extends TestCase
 
 		$this->assertSame(ExitCode::Failure, $this->command('account:roles jane --role=editor --role=gone')->exitCode);
 		$this->assertSame(ExitCode::Success, $this->command('account:roles jane --role=editor')->exitCode);
-		$this->assertSame(ExitCode::Success, $this->command('account:author jane jane')->exitCode);
+		$this->assertSame(ExitCode::Success, $this->command('account:author jane jane', ['Jane'])->exitCode);
 		$this->assertSame(ExitCode::Success, $this->command('account:password jane', ['another long password', 'another long password'])->exitCode);
 
 		$list = $this->command('account:list')->output;
@@ -145,7 +134,7 @@ final class AccountCommandsTest extends TestCase
 		$this->assertTrue(new Passwords()->verify('another long password', $this->store()->find('jane')->passwordHash ?? ''));
 
 		$this->assertSame(ExitCode::Success, $this->command('account:author jane')->exitCode);
-		$this->assertNull($this->store()->find('jane')?->author);
+		$this->assertNull($this->store()->find('jane')?->profile);
 	}
 
 	public function testNamesAnAccount(): void

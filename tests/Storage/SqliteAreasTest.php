@@ -18,10 +18,7 @@ use RuntimeException;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Blush\Auth\Accounts;
-use Blush\Auth\AccountStore;
-use Blush\Auth\RecordAccountStore;
 use Blush\Auth\Role;
-use Blush\Auth\RoleStore;
 use Blush\Auth\Roles;
 use Blush\Core\AppConfig;
 use Blush\Core\Application;
@@ -48,7 +45,7 @@ use Blush\Tests\BootsScratchSite;
  */
 #[CoversClass(SqliteStorage::class)]
 #[CoversClass(RecordDataStore::class)]
-#[CoversClass(RecordAccountStore::class)]
+#[CoversClass(Accounts::class)]
 #[CoversClass(RecordSessionStore::class)]
 #[CoversClass(RecordJobStore::class)]
 final class SqliteAreasTest extends TestCase
@@ -92,7 +89,7 @@ final class SqliteAreasTest extends TestCase
 	public function testEveryAreaIsKeptInTheSitesDatabase(): void
 	{
 		$this->assertInstanceOf(RecordDataStore::class, $this->make(DataStore::class));
-		$this->assertInstanceOf(RecordAccountStore::class, $this->make(AccountStore::class));
+		$this->assertInstanceOf(Accounts::class, $this->make(Accounts::class));
 		$this->assertInstanceOf(RecordSessionStore::class, $this->make(SessionStore::class));
 		$this->assertInstanceOf(RecordJobStore::class, $this->make(JobStore::class));
 		$this->assertDirectoryDoesNotExist($this->temporaryDirectory() . '/user/data', 'Nothing kept as files.');
@@ -155,7 +152,7 @@ final class SqliteAreasTest extends TestCase
 	public function testKeepsAccountsAndRoles(): void
 	{
 		$accounts = $this->make(Accounts::class);
-		$store    = $this->make(AccountStore::class);
+		$store    = $accounts;
 
 		$this->assertTrue($store->isEmpty());
 
@@ -171,8 +168,8 @@ final class SqliteAreasTest extends TestCase
 
 		$this->assertNull($store->find('abe'));
 
-		$roles = $this->make(RoleStore::class);
-		$roles->save([...$roles->all(), new Role('reviewer', 'Reviewer', [])]);
+		$roles = $this->make(Roles::class);
+		$roles->save([...$roles->stored(), new Role('reviewer', 'Reviewer', [])]);
 
 		$this->assertContains('reviewer', array_map(static fn (Role $role): string => $role->name, $this->boot()->container()->make(Roles::class)->all()));
 	}

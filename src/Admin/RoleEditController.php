@@ -17,7 +17,7 @@ use JsonException;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Blush\Auth\Account;
-use Blush\Auth\AccountStore;
+use Blush\Auth\Accounts;
 use Blush\Auth\AuthException;
 use Blush\Auth\BuiltInRole;
 use Blush\Auth\Capability;
@@ -52,7 +52,7 @@ final readonly class RoleEditController
 	public function __construct(
 		private RoleEditor $editor,
 		private Roles $roles,
-		private AccountStore $accounts,
+		private Accounts $accounts,
 		private Permissions $permissions,
 		private PeopleRules $rules,
 		private PeopleJson $json

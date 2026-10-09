@@ -25,7 +25,7 @@ use Blush\Support\Uuid;
  * is used, what's written there wins; the library's fill the gaps.
  *
  * Four keys aren't fields, and the details form doesn't edit them:
- * `owner`, the username of the account that uploaded the file (D-407);
+ * `owner`, the id of the account that uploaded the file (D-407, D-668);
  * `sizes`, an image's other sizes (D-488), their keys in `user/media`
  * mapped to their `width` and `height`; `artwork`, the id of the library
  * image a sound or video shows as its artwork (D-581), which the file's

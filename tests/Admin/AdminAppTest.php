@@ -27,7 +27,7 @@ use Blush\Admin\AssetController;
 use Blush\Admin\DashboardController;
 use Blush\Admin\LogController;
 use Blush\Admin\ShellController;
-use Blush\Auth\AccountStore;
+use Blush\Auth\Accounts;
 use Blush\Auth\Capabilities;
 use Blush\Content\Entries;
 use Blush\Content\Index\EntryFiles;
@@ -211,6 +211,7 @@ final class AdminAppTest extends TestCase
 	public function testTheDashboardResumesTheEntryLastSaved(): void
 	{
 		$this->writeTemporaryFile('user/content/idea.md', "---\ntitle: Idea\nstatus: draft\nauthors: jane\n---\n");
+		$this->profiles('jane');
 		$this->boot();
 		$token = $this->token();
 		$id    = $this->app->container()->make(EntryFiles::class)->at('idea.md')?->id;
@@ -220,7 +221,7 @@ final class AdminAppTest extends TestCase
 		$this->assertIsString($revision);
 
 		$this->assertSame(200, $this->send('PATCH', "/entries/{$id}", json_encode(['revision' => $revision, 'set' => ['title' => 'A Better Idea']]) ?: '', ['X-CSRF-Token' => $token])->getStatusCode());
-		$this->assertSame($id, $this->app->container()->make(AccountStore::class)->find('jane')?->preferences->lastEdited);
+		$this->assertSame($id, $this->app->container()->make(Accounts::class)->find('jane')?->preferences->lastEdited);
 
 		$dashboard = self::json($this->send('GET', '/dashboard'));
 
@@ -241,7 +242,7 @@ final class AdminAppTest extends TestCase
 
 		$this->assertIsArray($answer['preferences'] ?? null);
 		$this->assertTrue($answer['preferences']['setupSkipped'] ?? null);
-		$this->assertTrue($this->app->container()->make(AccountStore::class)->find('jane')?->preferences->setupSkipped);
+		$this->assertTrue($this->app->container()->make(Accounts::class)->find('jane')?->preferences->setupSkipped);
 	}
 
 	public function testKeepsTheAccountsShortcuts(): void
@@ -257,7 +258,7 @@ final class AdminAppTest extends TestCase
 
 		$this->assertIsArray($answer['preferences'] ?? null);
 		$this->assertSame(['type:post', 'media', 'settings:general'], $answer['preferences']['shortcuts'] ?? null);
-		$this->assertSame(['type:post', 'media', 'settings:general'], $this->app->container()->make(AccountStore::class)->find('jane')?->preferences->shortcuts);
+		$this->assertSame(['type:post', 'media', 'settings:general'], $this->app->container()->make(Accounts::class)->find('jane')?->preferences->shortcuts);
 
 		$reset = self::json($this->send('PATCH', '/preferences', '{"shortcuts": null}', ['X-CSRF-Token' => $token]));
 

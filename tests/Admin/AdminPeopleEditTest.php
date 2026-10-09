@@ -21,7 +21,6 @@ use Blush\Admin\PeopleRules;
 use Blush\Admin\RoleEditController;
 use Blush\Admin\SetPasswordController;
 use Blush\Auth\Accounts;
-use Blush\Auth\AccountStore;
 use Blush\Auth\BuiltInRole;
 use Blush\Auth\PasswordLink;
 use Blush\Auth\RoleEditor;
@@ -62,9 +61,9 @@ final class AdminPeopleEditTest extends TestCase
 		return $this->app->container()->make(Accounts::class);
 	}
 
-	private function store(): AccountStore
+	private function store(): Accounts
 	{
-		return $this->app->container()->make(AccountStore::class);
+		return $this->app->container()->make(Accounts::class);
 	}
 
 	/**
@@ -231,10 +230,15 @@ final class AdminPeopleEditTest extends TestCase
 		$sam = $this->store()->find('sam');
 		$this->assertNotNull($sam);
 		$this->assertSame(['editor', 'author'], $sam->roles);
-		$this->assertSame('sam', $sam->author);
+		$answer = self::json($changed)['account'] ?? null;
+		$this->assertIsArray($answer);
+		$this->assertSame('sam', $answer['author'] ?? null);
+		$this->assertIsArray($answer['profile'] ?? null);
+		$this->assertSame('draft', $answer['profile']['status'] ?? null, 'A slug with no profile makes one, a draft (D-668).');
+		$this->assertNotNull($sam->profile);
 
 		$this->assertSame(200, $this->write('PATCH', '/accounts/sam', ['author' => null])->getStatusCode());
-		$this->assertNull($this->store()->find('sam')?->author);
+		$this->assertNull($this->store()->find('sam')?->profile);
 	}
 
 	public function testSuspendingSignsOutAndBlocksSignIn(): void
@@ -281,7 +285,7 @@ final class AdminPeopleEditTest extends TestCase
 		$this->assertSame(403, $this->write('PATCH', '/accounts/jane', ['suspended' => true])->getStatusCode());
 		$this->assertSame(403, $this->write('PATCH', '/accounts/jane', ['author' => null, 'roles' => ['author']])->getStatusCode(), 'Only the link, on your own.');
 		$this->assertSame(200, $this->write('PATCH', '/accounts/jane', ['author' => null])->getStatusCode(), 'Your own profile link is yours to change (D-373).');
-		$this->assertNull($this->store()->find('jane')?->author);
+		$this->assertNull($this->store()->find('jane')?->profile);
 		$this->assertSame(200, $this->write('PATCH', '/accounts/jane', ['author' => 'jane'])->getStatusCode());
 		$this->assertSame(403, $this->write('POST', '/accounts/jane/link')->getStatusCode());
 		$this->assertSame(403, $this->write('DELETE', '/accounts/jane')->getStatusCode());

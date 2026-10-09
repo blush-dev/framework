@@ -27,7 +27,7 @@ Passwords must be at least 12 characters.
 | Command | What it does |
 |---|---|
 | `account:add <username>` | Create an account. `--email=` (asked for when left out), `--role=` (repeat for more; owner while the site has none, else administrator), `--author=` (its profile; see [Profiles](#profiles)), and `--name=` (see [Names](#names)) |
-| `account:list` | List the accounts, their names, emails, roles, and authors, and when each last signed in |
+| `account:list` | List the accounts, their names, emails, roles, and profiles, and when each last signed in |
 | `account:password <username>` | Set a new password, which signs the account out everywhere |
 | `account:roles <username> --role=…` | Replace an account's roles |
 | `account:name <username> ["name"]` | Name an account, or leave out the name to remove it |
@@ -41,9 +41,17 @@ Usernames are lowercase letters, digits, `.`, `_`, and `-`.
 
 ### Where accounts live
 
-Each account is a file in `storage/accounts/`, holding a hash of the
-password, never the password itself. Accounts aren't content: they stay
-out of `user/` and out of git. Clearing caches never touches them.
+Each account is a file in `storage/accounts/`, named for its username
+and holding a hash of the password, never the password itself, and the
+account's `id`. Accounts aren't content: they stay out of `user/` and
+out of git. Clearing caches never touches them. On the SQLite driver
+they're in the database instead (see
+[Going live](going-live.md#large-sites-sqlite)).
+
+What points at an account (the session it signed in to, the media it
+uploaded, the jobs it started, the Site Health problems it ignored)
+holds that `id`, not the username. An account file without an `id`
+gets one the next time it's saved.
 
 If your host has no shell, create the first account on your own
 computer and upload `storage/accounts/` with the site; create the rest
@@ -103,9 +111,9 @@ name goes by its profile's title, then its username.
 An account is someone who can sign in. Their public side is a separate
 thing, a **profile** (see [Content types](content-types.md#built-in-types)):
 the name in bylines, a bio, and a page on the site. An account can be
-linked to one: `--author=jane` links it to `user/content/profiles/j/jane.md`,
-or to the `jane` your entries credit even without that file. A profile
-belongs to one account: linking one that another account has is
+linked to one: `--author=jane` links it to `user/content/profiles/j/jane.md`.
+The link is kept by the profile's id, so renaming the profile keeps it.
+A profile belongs to one account: linking one that another account has is
 refused (unlink it there first). A profile
 with no account is a guest profile, and an account with no profile
 doesn't appear on the site.
@@ -117,10 +125,10 @@ admin. Linking an account to a locked profile is refused, from the
 admin and the CLI alike, until it's unlocked. An account already
 linked to it keeps it.
 
-The account itself (username, password, roles) stays private. When the
-profile has no file yet, `account:add` and `account:author` offer to
-create one and ask for the public name; say no, and bylines show the
-slug until someone creates it. In the admin, an account's **Public
+The account itself (username, password, roles) stays private. When
+there's no profile at the slug yet, `account:add` and `account:author`
+make one, a draft, and ask for its public name; publish it in the admin
+when it's ready. In the admin, an account's **Public
 Profile** panel links, unlinks, creates, or publishes its profile, and
 **Your account** links to your own (see
 [The admin](admin.md#profiles)). Unlinking leaves the profile and its

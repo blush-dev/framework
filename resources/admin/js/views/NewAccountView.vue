@@ -19,7 +19,7 @@ import AdminIcon from '../components/AdminIcon.vue';
 import ProfilePicker from '../components/ProfilePicker.vue';
 import RoleChecks from '../components/RoleChecks.vue';
 import { useAction } from '../action';
-import { ApiError, errorMessage, request } from '../api';
+import { ApiError, errorMessage } from '../api';
 import { createAccount, freshLink, loadRoles, MEMBER, NEW_PROFILE, type LinkableProfile, type RoleInfo } from '../people';
 import { slugOf } from '../references';
 import { can, canType } from '../session';
@@ -96,28 +96,18 @@ async function submit(): Promise<void> {
 	}
 
 	await run('The account couldn\'t be created.', async () => {
+		// A new profile is made with the account, a draft (D-668).
 		const answer = await createAccount({
 			username: username.value.trim().toLowerCase(),
 			email: email.value.trim(),
 			name: name.value.trim() === '' ? null : name.value,
 			roles: chosen.value,
-			author: creating.value ? slug.value : (author.value === '' ? null : author.value)
+			author: creating.value ? slug.value : (author.value === '' ? null : author.value),
+			...(creating.value ? { profileTitle: newName.value.trim() } : {})
 		});
-		let called   = answer.account.displayName;
+		const called = answer.account.displayName;
 
 		freshLink.value = { username: answer.account.username, link: answer.link };
-
-		// The account is made and linked; its profile is made after, so a
-		// refusal leaves an account linked to a slug with no file yet,
-		// which its screen can create.
-		if (creating.value && profileType.value !== null) {
-			try {
-				await request('POST', '/entries', { type: profileType.value, title: newName.value.trim(), slug: slug.value, status: 'draft' });
-				called = name.value.trim() === '' ? newName.value.trim() : called;
-			} catch (caught) {
-				toast(caught instanceof ApiError ? `Created the account, but not its profile: ${caught.message}` : 'Created the account, but not its profile.', { kind: 'warn' });
-			}
-		}
 
 		toast(`Created ${called}`);
 		await router.push({ name: 'account', params: { username: answer.account.username } });
@@ -193,7 +183,6 @@ async function submit(): Promise<void> {
 								<AdminIcon name="info" />
 								<span v-if="willBe">The admin will call this account <strong>{{ willBe }}</strong>.</span>
 								<span v-else-if="creating">Name the profile, and the admin calls this account by it unless it has a display name.</span>
-								<span v-else-if="author !== ''">That profile has no file yet, so the admin calls this account by its username until it does.</span>
 								<span v-else>With no profile, this account has <strong>no presence</strong> on the site. You can link or create one later.</span>
 							</p>
 						</div>
