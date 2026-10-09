@@ -86,7 +86,6 @@ needed in practice. The built-in keys:
 | `image` | A featured image |
 | `authors` | One author or a list, by profile slug (`author` works too), in types the `authors` relation credits. A type can credit people under other names too, such as `cooks` (see [Crediting people](content-types.md#crediting-people)) |
 | `position` | A page's or term's place among its siblings, a whole number, lowest first. Those without one follow, by title. Only pages (and other [trees](content-types.md#trees)) and collections that [nest or are ordered by position](content-types.md#nesting-and-order), such as categories and tags, have it |
-| `redirect_from` | Old URLs that should redirect here (see below) |
 | `translation_of` | For a translation, the id of the entry it translates, which links them whatever their file names (see [Translations](#translations)) |
 | `template` | The theme template to use, such as `single-wide` (`view` works too) |
 | `layout` | The theme layout to use, by its name in the theme's `layouts/` folder (`wide`, or `shells/wide` for `layouts/shells/wide.php`) |
@@ -259,27 +258,29 @@ the theme shows a generic message.
 
 ## Redirects
 
-When you move or rename an entry, list its old URLs in `redirect_from`:
-
-```yaml
-redirect_from:
-  - /old-name
-  - /2019/05/old-name
-```
-
-For redirects that aren't tied to one entry, create
-`user/data/redirects.json`. Each key is an old path and its value the
-new one (a permanent, 301 redirect). Placeholders such as `{name}` carry
-parts of the path across, and a value with a `status` makes a temporary
-redirect:
+Redirects send visitors from an old address to a new one. When you
+rename or move a published entry in the admin, **Redirect the old
+address here** adds one for you. To add your own, create
+`user/data/redirects.json`, a list with one redirect each: the old path
+in `from` and the new one in `to`. A redirect is permanent (301) unless
+it has a `status`, such as 302 for a temporary one. Placeholders such as
+`{name}` carry parts of the path across:
 
 ```json
-{
-    "/old-about": "/about",
-    "/news/{name}": "/blog/{name}",
-    "/sale": {"to": "/shop", "status": 302}
-}
+[
+    {"from": "/old-about", "to": "/about"},
+    {"from": "/news/{name}", "to": "/blog/{name}"},
+    {"from": "/sale", "to": "/shop", "status": 302}
+]
 ```
+
+Each old path can have one redirect. Blush adds an `id` to each when it
+saves the file. When the admin adds a redirect to a page that already
+had some, those lead straight to the new address too, so visitors never
+pass through two redirects. On a live site, publish after editing the
+file yourself (`bin/blush publish`); redirects the admin adds work right
+away. A site [kept in a database](going-live.md#large-sites-sqlite)
+keeps its redirects there instead.
 
 Redirects apply only when nothing else answers the URL, so they never hide
 a real page.

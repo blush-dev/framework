@@ -172,7 +172,7 @@ final class PublishTest extends TestCase
 		$app = $this->site();
 		$app->container()->make(RouteCache::class)->write();
 
-		$this->writeTemporaryFile('user/data/redirects.json', '{"/old": "/about"}');
+		$this->writeTemporaryFile('user/data/redirects.json', '[{"from": "/old", "to": "/about"}]');
 
 		$this->assertSame(404, $this->get($this->site(), '/old')->getStatusCode());
 

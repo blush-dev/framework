@@ -5,7 +5,7 @@ Unresolved items are listed at the bottom.
 
 **Status:** M5a and M5b (D-102 to D-121) implemented everything here except
 image derivatives (`image()`); `require` is enforced since D-431. Menus and
-regions came later (D-199 to D-204). M5c (D-122 to D-124) added the feed and sitemap templates.
+regions came later (D-199 to D-204); regions were removed in D-676. M5c (D-122 to D-124) added the feed and sitemap templates.
 
 ## Principles
 
@@ -38,7 +38,7 @@ fallbacks, not the default theme's design.
 A full theme:
 ```
 extensions/acme/nova/
-  theme.json        Manifest, settings schema, image sizes, menus, regions
+  theme.json        Manifest, settings schema, image sizes, menu locations
   views/
     layouts/        base.php, …
     partials/          header.php, footer.php, pagination.php, …
@@ -82,9 +82,8 @@ only (D-631).
 	"imageSizes": { "card": [640, 360, "crop"], "wide": [1600, 0] },
 	"menus": {
 		"primary": { "label": "Primary", "depth": 2, "fields": { "columns": { "type": "number", "integer": true, "default": 1 } } },
-		"social": "Social"
+		"social": { "label": "Social", "items": [{ "url": "https://github.com/example", "label": "GitHub" }] }
 	},
-	"regions": { "sidebar": { "label": "Sidebar", "items": [{ "directive": "menu", "name": "social" }] } },
 	"settings": {
 		"showReadingTime": { "type": "bool", "default": true, "label": "Show reading time" },
 		"archiveLayout": { "type": "enum", "options": ["grid", "list"], "default": "list" }
@@ -105,7 +104,8 @@ only (D-631).
   (D-105).
 - `settings` use the **same field types as content schemas**, so the future
   admin renders both with one form system. Definitions merge down the chain;
-  values come from `user/data/theme.json` (D-117).
+  values come from the theme's own group of settings (D-673), where no
+  setting may be named `menus` (the site's menu assignments, D-676).
 - `authors` (D-384) are `composer.json`'s shape (`ExtensionAuthor`:
   `name`, optional `email`, `homepage`, `role`), checked strictly;
   without them, `ThemeDiscovery` takes the valid entries from the
@@ -166,8 +166,8 @@ active theme (config and user/data settings over its defaults)
 |---|---|---|
 | Theme defaults | `extensions/{vendor}/{name}/theme.json` | Theme author |
 | Site code config | `config/theme.php` → `ThemeConfig` (active theme, component overrides) | Developer |
-| Site data | `user/data/theme.json` (setting values, location maps), `user/data/menus/`, `user/data/regions/` | Site owner, later the admin |
-| Admin settings | `user/data/settings.json`'s `theme.active` (D-381), over `config/theme.php`; `theme:activate` clears it | Site owner, through the admin's Themes screen |
+| Site data | The theme's settings group (setting values, menu assignments; D-673, D-676), the `menus` table (`user/data/menus/`) | Site owner, later the admin |
+| Admin settings | The `theme` settings group's `active` (D-381, D-673), over `config/theme.php`; `theme:activate` clears it | Site owner, through the admin's Themes screen |
 
 ## Templates
 
@@ -351,7 +351,7 @@ plugins', never a theme's (D-532) or the site's (D-617).
   `theme:check` warns about a class with no template and a stray file in
   the theme ("themes can't add directives").
 - **In templates:** `$template->directive('callout', variant: 'tip')->content($html)`
-  (`PendingDirective`), and region items `directive: menu`.
+  (`PendingDirective`).
 - **In Markdown** (D-026):
   ```
   :::gallery{columns=3}
@@ -396,7 +396,7 @@ slots, from themes, the site, and plugins. Content never names one.
   `theme:check` warns about a class with no template and a stray file.
   Another theme's components are left out (`Themes::isOutside()`).
 - **In templates:** `$template->component('notebook/card', entry: $entry)->slot('footer', $html)`
-  (`PendingComponent`), and region items `component: acme/card`.
+  (`PendingComponent`).
 
 ## Context providers
 
@@ -505,38 +505,39 @@ to `<body>` (D-109), and `stylesheet` is a URL or a theme asset path (D-119).
 - `$template->image($media, 'card')` outputs `<img>` with `srcset`, `sizes`,
   `width`/`height`, and `loading`.
 
-## Navigation and regions
+## Navigation
 
-D-199 to D-204; the user guide is `docs/menus.md`.
+D-199 to D-204 and D-676; the user guide is `docs/menus.md`.
 
-- **Locations:** `theme.json` `menus` and `regions` declare locations,
-  each a label string or an object. A menu location may set `depth` and
-  extra per-item `fields` (content schema field types, D-200); a region
-  location may list default `items`, shown when the site has no file for
-  it (D-201).
-- **Site data:** `user/data/menus/{name}.*` and `user/data/regions/{name}.*`
-  fill the locations of the same name. `user/data/theme.json` may map a
-  location to another name (`"menus": {"main": "primary"}`).
+- **Locations:** `theme.json` `menus` declares locations, each a label
+  string or an object with `depth`, extra per-item `fields` (content
+  schema field types, D-200), and default `items` (D-676).
+- **Site data:** the `menus` table (`user/data/menus/{name}.json`), as
+  many menus as the site wants. The site assigns them to the active
+  theme's locations, a menu to any number, kept in the theme's settings
+  group under `menus`. An unassigned location shows the theme's default
+  items, else nothing.
 - **Menu items** link to an `entry` (`{type}/{key}`), `term`,
   `collection`, `route`, or `url`, with optional `label`, `children`,
-  `icon`, `description`, `image`, `badge`, `class`, and `rel`. Links are
-  resolved and cached per content version; the current item gets
-  `aria-current="page"` at render time. Dropdowns use the disclosure
-  pattern, never `role="menu"`; the theme owns the behavior.
-- **Region items** are a `component` (props as sibling keys),
-  `markdown`, an `entry`'s body, or a `view`.
+  `icon`, `description`, `image`, `badge`, `class`, and `rel`; `entry`
+  and `term` keep the target's id in `ref`, which wins (D-676). The
+  current item gets `aria-current="page"` at render time. Dropdowns use
+  the disclosure pattern, never `role="menu"`; the theme owns the
+  behavior.
 - **Text values** may be locale maps (`{en: About, fr_CA: À propos}`,
   D-202).
-- **Templates:** the core `menu` component, `$template->menu($name)` for
-  custom markup, and `$template->region($name)` / `hasRegion()`.
+- **Templates:** the core `menu` directive by `location` (or by menu
+  `name` in content), and `$template->menu($location)` for custom markup.
 - **Location labels** name the menu's `<nav>`: short, without
   "navigation".
-- **Problems** (unresolved links, unknown keys) leave the item out, are
-  logged, and show in `menu:list`, `menu:show`, and `theme:check`.
+- **Problems** (unresolved links, unknown keys, assignments to missing
+  menus) leave the item out, are logged, and show in `menu:list`,
+  `menu:show`, and `theme:check`.
 - **Brand icons** (for social menus) come from the theme's own icon
   namespace, not core (D-203).
-- **Later:** front matter menu entries, mega-menu `panel` entries, and
-  per-page region conditions.
+- **Regions** were removed (D-676); `open-questions.md` keeps the plan
+  for when they return.
+- **Later:** front matter menu entries and mega-menu `panel` entries.
 
 ## Translation (D-028)
 

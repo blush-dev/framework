@@ -227,7 +227,6 @@ extensions/acme/notebook/
 	"scripts": ["app.js"],
 	"preload": ["fonts/body.woff2"],
 	"menus": { "primary": "Primary", "social": "Social" },
-	"regions": { "sidebar": "Sidebar" },
 	"preview": {
 		"layout": "centered",
 		"type": "Serif headings · sans body",
@@ -337,8 +336,9 @@ Only `name` is required.
 - **`settings`:** options site owners set in your theme's own group of
   settings (`user/data/settings/{vendor}__{name}.json`). They
   use the same field types as [custom fields](content-types.md#custom-fields).
-- **`menus` and `regions`:** the places your theme shows the site's menus
-  and regions. See [Menus and regions](menus.md#for-theme-authors).
+  None may be named `menus`, which keeps the site's menu assignments.
+- **`menus`:** the places your theme shows the site's menus, with a
+  default menu for each if you like. See [Menus](menus.md#for-theme-authors).
 - **`bleed`:** the classes that widen an element past the text column;
   see [Bleed](#bleed).
 - **`variants`:** styles your theme adds to directives, by directive,
@@ -1158,7 +1158,7 @@ folder, so your server never needs Node. A build that hashes file names
 bin/blush theme:check
 ```
 
-It checks the manifest and settings, the site's menus and regions, and
+It checks the manifest and settings, the site's menus, and
 makes sure the base layout has the landmarks and skip link screen reader
 users rely on, and prints `$template->foot()`. Name a theme to check one that isn't active
 (`bin/blush theme:check acme/notebook`): its code runs as it would if it

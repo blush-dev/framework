@@ -127,8 +127,8 @@ named in config or `STORAGE_DRIVER`, with `filesystem` the only one
 for now, so a site can later keep its data in a database (D-485,
 D-486); build stored data with that in mind, toward one data layer
 for every area, records keyed by id with a fluent query each driver
-compiles (D-606): every area resolves through its driver, the data
-area a `DataStore` (D-642), and the record layer built on files with
+compiles (D-606): every area resolves through its driver (D-642), and
+the record layer built on files with
 its conformance suite, roles its first table (D-643 to D-647; plan in
 `roadmap.md`), then content queries on records and content written by
 id through `Entries` (D-651 to D-654), a content conformance suite on
@@ -137,8 +137,11 @@ without ids left out and parent pages written for folders (D-656,
 D-657; step 3 done; SQLite a driver, never an index beside files, D-661,
 built as step 5, D-662 to D-667: every area in `user/site.sqlite`,
 `storage:copy` and `storage:sync`; then step 6, data and
-accounts onto records, D-668: accounts and roles through their
-repositories, links to accounts by id, D-669);
+accounts onto records, done, D-668 to D-682: accounts and roles through
+their repositories, links to accounts by id, D-669; types, relations,
+settings groups, media, menus (regions removed, D-676), field sets, and
+redirects as tables, `redirect_from` gone, D-680; `DataStore` retired,
+D-682);
 1.x conventions go when they get in the way
 (D-658); and an id for every media
 original, with image sizes found by rule and given none

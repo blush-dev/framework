@@ -23,17 +23,12 @@ use Blush\Content\Record\EntryRecords;
 use Blush\Content\Record\EntryTable;
 use Blush\Content\Relation\Relations;
 use Blush\Content\Type\ContentTypes;
-use Blush\Content\Type\DefinitionTables;
 use Blush\Content\Writer\FilesystemContentWriter;
 use Blush\Content\Writer\RecordContentWriter;
 use Blush\Core\Paths;
-use Blush\Data\FileDataStore;
-use Blush\Data\RecordDataStore;
 use Blush\Job\FileJobStore;
-use Blush\Media\MediaMetadataStore;
 use Blush\Job\RecordJobStore;
 use Blush\Session\RecordSessionStore;
-use Blush\Settings\SettingGroups;
 use Blush\Storage\Record\RecordQuery;
 use Blush\Storage\Record\RecordStores;
 use Blush\Storage\Record\Ref;
@@ -46,8 +41,9 @@ use Blush\Storage\Record\TableRegistry;
  * ids kept: from files into SQLite for now. Content is read from the
  * filesystem index, brought up to date first, each entry keeping its
  * front matter as written (`RecordContentWriter::asWritten()`) beside
- * its values, with the links between entries; then data, accounts, the
- * other registered tables (roles, plugins'), and jobs. Sessions aren't
+ * its values, with the links between entries; then accounts, every
+ * other registered table (settings, types, media, menus, roles,
+ * plugins'), and jobs. Sessions aren't
  * copied: everyone signs in again. Files without ids aren't entries
  * (D-656), so they're counted, not copied.
  *
@@ -135,13 +131,12 @@ final readonly class StorageCopy
 
 			$done('entries', $this->entries($source, $target));
 			$done('links', $this->table(Ref::table(StorageArea::Content), $source, $target));
-			$done('data records', $this->data($target));
 			$done('accounts', $this->table(Accounts::table(), $source, $target));
 
 			$others = 0;
 
 			foreach ($tables as $table) {
-				if (! in_array($table->name, [EntryTable::TABLE, Ref::TABLE, RecordDataStore::TABLE, Accounts::TABLE, RecordSessionStore::TABLE, RecordJobStore::TABLE, RecordJobStore::STATE], true)) {
+				if (! in_array($table->name, [EntryTable::TABLE, Ref::TABLE, Accounts::TABLE, RecordSessionStore::TABLE, RecordJobStore::TABLE, RecordJobStore::STATE], true)) {
 					$others += $this->table($table, $source, $target);
 				}
 			}
@@ -196,31 +191,6 @@ final readonly class StorageCopy
 
 		foreach ($source->store($table)->select($table, new RecordQuery())->records as $record) {
 			$to->save($table, $record->withVersion(null));
-			$count++;
-		}
-
-		return $count;
-	}
-
-	/**
-	 * Copies the data area's records kept by name, the tables apart.
-	 */
-	private function data(RecordStores $target): int
-	{
-		$from   = $this->container->make(FileDataStore::class);
-		$to     = new RecordDataStore($target, $this->clock);
-		$tables = [DefinitionTables::TYPES . '/', DefinitionTables::RELATIONS . '/', SettingGroups::TABLE . '/', MediaMetadataStore::FOLDER . '/'];
-		$count  = 0;
-
-		foreach (array_keys($from->records('')) as $name) {
-			// Types, relations, settings, and media metadata are tables of
-			// their own (D-672, D-673, D-675), copied
-			// with the other tables.
-			if (array_any($tables, static fn (string $folder): bool => str_starts_with($name, $folder))) {
-				continue;
-			}
-
-			$to->save($name, $from->load($name) ?? []);
 			$count++;
 		}
 

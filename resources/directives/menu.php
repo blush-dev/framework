@@ -1,10 +1,10 @@
 <?php
 
 /**
- * Menu directive (`Directive\Menu`): the menu a theme location shows, in
- * a `<nav>` named by its label.
+ * Menu directive (`Directive\Menu`): the menu a theme location shows, or
+ * a site menu by name, in a `<nav>` named by its label.
  *
- *     <?= $template->directive('menu', name: 'primary') ?>
+ *     <?= $template->directive('menu', location: 'primary') ?>
  *
  * @var Blush\View\Template   $template
  * @var Blush\Directive\Menu  $directive

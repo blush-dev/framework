@@ -20,9 +20,10 @@ use Blush\Storage\StorageException;
 use Blush\Support\Filesystem;
 
 /**
- * Transactions over files, for the filesystem driver's stores
- * (`FileDataStore`, `FileRecordStore`; D-642, D-643), which share one,
- * so a transaction in one holds the other's writes too.
+ * Transactions over files, for the filesystem driver's records
+ * (`FileRecordStore`, D-643) and the stores that keep tables for it
+ * (`IndexStore`, `MediaFiles`), which share one, so a transaction in one holds the
+ * other's writes too.
  *
  * A transaction takes `storage/cache/data.lock`, so none interleave.
  * Before a store first writes a file in one, it says so (`remember()`),

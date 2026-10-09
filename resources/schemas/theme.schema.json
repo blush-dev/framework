@@ -1,7 +1,7 @@
 {
 	"$schema": "http://json-schema.org/draft-07/schema#",
 	"title": "Blush Framework theme manifest",
-	"description": "A theme's theme.json: its name, label, namespace, assets, settings, and the menu and region locations it shows.",
+	"description": "A theme's theme.json: its name, label, namespace, assets, settings, and the menu locations it shows.",
 	"type": "object",
 	"required": [],
 	"properties": {
@@ -365,7 +365,12 @@
 		},
 		"settings": {
 			"type": "object",
-			"description": "Options site owners set in user/data/theme.json, by name. They use the same field types as custom fields.",
+			"description": "Options site owners set, kept in the theme's own group of settings, by name. They use the same field types as custom fields. None may be named menus.",
+			"not": {
+				"required": [
+					"menus"
+				]
+			},
 			"additionalProperties": {
 				"$ref": "#/definitions/field"
 			}
@@ -400,36 +405,12 @@
 								"additionalProperties": {
 									"$ref": "#/definitions/field"
 								}
-							}
-						}
-					}
-				]
-			}
-		},
-		"regions": {
-			"type": "object",
-			"description": "The places the theme shows the site's regions, by name: a label, or an object.",
-			"propertyNames": {
-				"pattern": "^[a-z0-9][a-z0-9_-]*$"
-			},
-			"additionalProperties": {
-				"anyOf": [
-					{
-						"type": "string",
-						"description": "The location's label."
-					},
-					{
-						"type": "object",
-						"properties": {
-							"label": {
-								"type": "string",
-								"description": "The location's name."
 							},
 							"items": {
 								"type": "array",
-								"description": "What the region shows until the site has a region file for it.",
+								"description": "What the location shows until the site assigns it a menu, written as a menu's items are. Leave it out to show nothing.",
 								"items": {
-									"$ref": "#/definitions/regionItem"
+									"$ref": "#/definitions/menuItem"
 								}
 							}
 						}
@@ -1137,26 +1118,52 @@
 				}
 			]
 		},
-		"regionItem": {
+		"menuItem": {
 			"type": "object",
-			"description": "One thing a region shows. An item is one kind: component, directive, entry, markdown, view.",
+			"description": "A menu item: one link (or none, for a heading over children) and its options. A theme may accept more keys.",
 			"properties": {
-				"component": {
+				"collection": {
 					"type": "string",
-					"pattern": "^[A-Za-z][A-Za-z0-9_-]*/[A-Za-z][A-Za-z0-9_-]*$",
-					"description": "Shows a component, such as acme/card. The item's other keys are its props."
-				},
-				"directive": {
-					"type": "string",
-					"pattern": "^[A-Za-z][A-Za-z0-9_-]*(?:/[A-Za-z][A-Za-z0-9_-]*)?$",
-					"description": "Shows a directive, such as menu or acme/tabs. The item's other keys are its props."
+					"pattern": "^[a-z][a-z0-9_]*$",
+					"description": "Links to a content type's listing, such as post. Its landing page's title is the label, if it has one."
 				},
 				"entry": {
 					"type": "string",
-					"pattern": "^[a-z][a-z0-9_]*/[^/].*$",
-					"description": "Shows an entry's content, as {type}/{key}, such as page/_regions/about."
+					"pattern": "^[a-z][a-z0-9_]*(/[^/].*|/)?$",
+					"description": "Links to an entry, as {type}/{key}, such as page/about; {type}/ is its landing page. Its title is the label."
 				},
-				"markdown": {
+				"ref": {
+					"type": "string",
+					"pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$",
+					"description": "The id of the entry it links to, which wins over the readable form when it finds one. bin/blush menu:refs --write fills it in."
+				},
+				"route": {
+					"type": "string",
+					"minLength": 1,
+					"description": "Links to a named route, such as home.feed (bin/blush routes:list lists them). Needs a label."
+				},
+				"params": {
+					"type": "object",
+					"description": "The route's parameters, by name.",
+					"additionalProperties": {
+						"type": [
+							"string",
+							"number",
+							"boolean"
+						]
+					}
+				},
+				"term": {
+					"type": "string",
+					"pattern": "^[a-z][a-z0-9_]*/[^/]+$",
+					"description": "Links to a term's archive, as {type}/{slug}, such as category/art. Its title is the label."
+				},
+				"url": {
+					"type": "string",
+					"minLength": 1,
+					"description": "Links to a URL, as written, such as https://example.org/ or /about. Needs a label."
+				},
+				"label": {
 					"anyOf": [
 						{
 							"type": "string"
@@ -1165,12 +1172,80 @@
 							"$ref": "#/definitions/localeText"
 						}
 					],
-					"description": "Shows Markdown text, with directives, or a map of locales to it."
+					"description": "The text shown. Needed for route and url links; for the others it replaces the title."
 				},
-				"view": {
-					"type": "string",
-					"pattern": "^[A-Za-z0-9_-]+(/[A-Za-z0-9_-]+)*$",
-					"description": "Shows a template part from the site or theme, such as partials/newsletter. The item's other keys are its data."
+				"children": {
+					"type": "array",
+					"description": "Items shown under this one. An item with children and no link is a heading for them.",
+					"items": {
+						"$ref": "#/definitions/menuItem"
+					}
+				},
+				"icon": {
+					"anyOf": [
+						{
+							"type": "string"
+						},
+						{
+							"$ref": "#/definitions/localeText"
+						}
+					],
+					"description": "An icon shown with the label, such as house or mytheme/github."
+				},
+				"description": {
+					"anyOf": [
+						{
+							"type": "string"
+						},
+						{
+							"$ref": "#/definitions/localeText"
+						}
+					],
+					"description": "A short line of text under the label, for larger dropdown menus."
+				},
+				"image": {
+					"anyOf": [
+						{
+							"type": "string"
+						},
+						{
+							"$ref": "#/definitions/localeText"
+						}
+					],
+					"description": "The URL of a small image shown with the label."
+				},
+				"badge": {
+					"anyOf": [
+						{
+							"type": "string"
+						},
+						{
+							"$ref": "#/definitions/localeText"
+						}
+					],
+					"description": "A short tag, such as New."
+				},
+				"class": {
+					"anyOf": [
+						{
+							"type": "string"
+						},
+						{
+							"$ref": "#/definitions/localeText"
+						}
+					],
+					"description": "A CSS class for the item."
+				},
+				"rel": {
+					"anyOf": [
+						{
+							"type": "string"
+						},
+						{
+							"$ref": "#/definitions/localeText"
+						}
+					],
+					"description": "The link's rel, such as me for your own profiles."
 				}
 			}
 		},

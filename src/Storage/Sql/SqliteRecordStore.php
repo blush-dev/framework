@@ -52,7 +52,7 @@ use Blush\Storage\StorageConfig;
 final class SqliteRecordStore implements RecordStore, SchemaStore, LocatingStore
 {
 	/**
-	 * The tables made so far, by name in the database.
+	 * The tables known to be there, by name in the database.
 	 *
 	 * @var array<string, true>
 	 */
@@ -371,6 +371,7 @@ final class SqliteRecordStore implements RecordStore, SchemaStore, LocatingStore
 	public function transaction(Closure $write): mixed
 	{
 		$savepoint = 'blush_' . ++$this->depth;
+		$known     = $this->tables;
 
 		$this->run("SAVEPOINT {$savepoint}");
 
@@ -380,6 +381,9 @@ final class SqliteRecordStore implements RecordStore, SchemaStore, LocatingStore
 			$this->run("ROLLBACK TO {$savepoint}");
 			$this->run("RELEASE {$savepoint}");
 			$this->depth--;
+
+			// A table made inside it was put back too, so it's made again.
+			$this->tables = $known;
 
 			throw $error;
 		}

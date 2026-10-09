@@ -33,7 +33,6 @@ use Blush\Field\Schema;
 use Blush\Media\MediaMetadata;
 use Blush\Media\MediaSchemas;
 use Blush\Menu\Link\MenuLinkType;
-use Blush\Region\Item\RegionItemType;
 use Blush\Theme\PreviewLayout;
 use Blush\Theme\ThemePreview;
 use Blush\Translation\LocaleMap;
@@ -41,14 +40,13 @@ use Blush\Translation\LocaleMap;
 /**
  * Builds the JSON Schemas editors use to autocomplete and check Blush's
  * data files (D-206, D-207, D-211): `theme.json`, `plugin.json`, the
- * site's menu and region files, and entries' built-in front matter. They're written to `resources/schemas`
+ * site's menu files, and entries' built-in front matter. They're written to `resources/schemas`
  * with `composer schemas`, and a test fails when the committed files are
  * stale.
  *
  * Each schema is as open as the file it describes: manifests and items
- * allow keys the schema doesn't describe (a directive's props, a theme's
- * menu fields), and menu and region files allow only their own keys.
- * The built-in field types, menu links, and region items describe
+ * allow keys the schema doesn't describe (a theme's menu fields), and menu files allow only their own keys.
+ * The built-in field types and menu links describe
  * themselves; a plugin's are allowed but not described.
  *
  * Class names and namespace prefixes have no pattern, as in Composer's
@@ -102,7 +100,6 @@ final readonly class JsonSchemas
 			'media.schema.json'     => $this->media(),
 			'menu.schema.json'      => $this->menu(),
 			'plugin.schema.json'    => $this->plugin(),
-			'region.schema.json'    => $this->region(),
 			'relation.schema.json'  => $this->relation(),
 			'theme.schema.json'     => $this->theme()
 		];
@@ -184,7 +181,7 @@ final readonly class JsonSchemas
 		return [
 			'$schema'     => self::DRAFT,
 			'title'       => sprintf('%s theme manifest', Framework::NAME),
-			'description' => 'A theme\'s theme.json: its name, label, namespace, assets, settings, and the menu and region locations it shows.',
+			'description' => 'A theme\'s theme.json: its name, label, namespace, assets, settings, and the menu locations it shows.',
 			'type'        => 'object',
 			'required'    => [],
 			'properties'  => [
@@ -224,7 +221,8 @@ final readonly class JsonSchemas
 				'autoload'    => $this->autoload('theme', 'Namespace prefixes and the folders inside the theme their classes are in, such as {"Notebook\\\\": "src/"}.'),
 				'settings'    => [
 					'type'                 => 'object',
-					'description'          => 'Options site owners set in user/data/theme.json, by name. They use the same field types as custom fields.',
+					'description'          => 'Options site owners set, kept in the theme\'s own group of settings, by name. They use the same field types as custom fields. None may be named menus.',
+					'not'                  => ['required' => ['menus']],
 					'additionalProperties' => $field
 				],
 				'menus'       => $this->locations('The places the theme shows the site\'s menus, by name: a label, or an object.', [
@@ -234,14 +232,11 @@ final readonly class JsonSchemas
 						'type'                 => 'object',
 						'description'          => 'Extra keys menu items may have, as field definitions by name.',
 						'additionalProperties' => $field
-					]
-				]),
-				'regions'     => $this->locations('The places the theme shows the site\'s regions, by name: a label, or an object.', [
-					'label' => ['type' => 'string', 'description' => 'The location\'s name.'],
-					'items' => [
+					],
+					'items'  => [
 						'type'        => 'array',
-						'description' => 'What the region shows until the site has a region file for it.',
-						'items'       => ['$ref' => '#/definitions/regionItem']
+						'description' => 'What the location shows until the site assigns it a menu, written as a menu\'s items are. Leave it out to show nothing.',
+						'items'       => ['$ref' => '#/definitions/menuItem']
 					]
 				]),
 				'preview'     => $this->themePreview(),
@@ -283,7 +278,7 @@ final readonly class JsonSchemas
 			],
 			'definitions' => [
 				'field'      => $this->field(),
-				'regionItem' => $this->regionItem(),
+				'menuItem'   => $this->menuItem(),
 				'localeText' => $this->localeText()
 			]
 		];
@@ -377,6 +372,7 @@ final readonly class JsonSchemas
 			'additionalProperties' => false,
 			'properties'           => [
 				'$schema'      => ['type' => 'string', 'description' => 'The JSON Schema editors check this file with.'],
+				'id'           => ['type' => 'string', 'description' => 'The relation\'s id, written when it\'s saved.'],
 				'kind'         => ['enum' => [RelationKind::Classify->value, RelationKind::Reference->value], 'default' => RelationKind::Reference->value, 'description' => 'classify files entries under terms (named after the terms\' type); reference links entries to other entries.'],
 				'from'         => [...$types, 'description' => 'The types whose entries make the link; left out, every type.'],
 				'to'           => [...$types, 'minItems' => 1, 'description' => 'The types linked to. A classify relation\'s is [its name].'],
@@ -458,7 +454,8 @@ final readonly class JsonSchemas
 						['type' => 'array', 'items' => ['allOf' => [$field, ['required' => ['name']]]]],
 						['type' => 'object', 'additionalProperties' => $field]
 					]
-				]
+				],
+				'id'          => ['type' => 'string', 'description' => 'The set\'s id, written when it\'s saved.']
 			],
 			'definitions'          => [
 				'field' => $this->field()
@@ -547,73 +544,31 @@ final readonly class JsonSchemas
 	}
 
 	/**
-	 * Returns the schema for a site menu file, `user/data/menus/{name}`: a
-	 * label and items, or the list of items on its own.
+	 * Returns the schema for a site menu file, `user/data/menus/{name}`:
+	 * a label and items (D-676).
 	 *
 	 * @return array<string, mixed>
 	 */
 	public function menu(): array
 	{
-		$items = [
-			'type'        => 'array',
-			'description' => 'The menu\'s items, in order.',
-			'items'       => ['$ref' => '#/definitions/menuItem']
-		];
-
 		return [
-			'$schema'     => self::DRAFT,
-			'title'       => sprintf('%s menu', Framework::NAME),
-			'description' => 'A site menu in user/data/menus/, shown by the theme location with the same name.',
-			'anyOf'       => [
-				[
-					'type'                 => 'object',
-					'properties'           => [
-						'$schema' => ['type' => 'string', 'description' => 'The JSON Schema editors check this file with.'],
-						'label'   => [...self::text(), 'description' => 'Names the navigation for screen readers. Defaults to the theme\'s name for the location.'],
-						'items'   => $items
-					],
-					'additionalProperties' => false
+			'$schema'              => self::DRAFT,
+			'title'                => sprintf('%s menu', Framework::NAME),
+			'description'          => 'A site menu in user/data/menus/, named for its file. Assign it to a theme location with bin/blush menu:assign.',
+			'type'                 => 'object',
+			'properties'           => [
+				'$schema' => ['type' => 'string', 'description' => 'The JSON Schema editors check this file with.'],
+				'label'   => [...self::text(), 'description' => 'Names the navigation for screen readers. Defaults to the theme\'s name for the location.'],
+				'items'   => [
+					'type'        => 'array',
+					'description' => 'The menu\'s items, in order.',
+					'items'       => ['$ref' => '#/definitions/menuItem']
 				],
-				$items
+				'id'      => ['type' => 'string', 'description' => 'The menu\'s id, written when it\'s saved.']
 			],
-			'definitions' => [
+			'additionalProperties' => false,
+			'definitions'          => [
 				'menuItem'   => $this->menuItem(),
-				'localeText' => $this->localeText()
-			]
-		];
-	}
-
-	/**
-	 * Returns the schema for a site region file, `user/data/regions/{name}`:
-	 * items, or the list of items on its own.
-	 *
-	 * @return array<string, mixed>
-	 */
-	public function region(): array
-	{
-		$items = [
-			'type'        => 'array',
-			'description' => 'What the region shows, in order. They replace the theme\'s items; an empty list clears them.',
-			'items'       => ['$ref' => '#/definitions/regionItem']
-		];
-
-		return [
-			'$schema'     => self::DRAFT,
-			'title'       => sprintf('%s region', Framework::NAME),
-			'description' => 'A site region in user/data/regions/, shown by the theme location with the same name.',
-			'anyOf'       => [
-				[
-					'type'                 => 'object',
-					'properties'           => [
-						'$schema' => ['type' => 'string', 'description' => 'The JSON Schema editors check this file with.'],
-						'items'   => $items
-					],
-					'additionalProperties' => false
-				],
-				$items
-			],
-			'definitions' => [
-				'regionItem' => $this->regionItem(),
 				'localeText' => $this->localeText()
 			]
 		];
@@ -651,27 +606,6 @@ final readonly class JsonSchemas
 				'class'       => [...self::text(), 'description' => 'A CSS class for the item.'],
 				'rel'         => [...self::text(), 'description' => 'The link\'s rel, such as me for your own profiles.']
 			]
-		];
-	}
-
-	/**
-	 * Returns the schema for a region item: each built-in kind's key.
-	 * Other keys are a directive's or component's props or a view's data.
-	 *
-	 * @return array<string, mixed>
-	 */
-	private function regionItem(): array
-	{
-		$kinds = [];
-
-		foreach (RegionItemType::cases() as $type) {
-			$kinds += $type->className()::itemSchema($type->value, self::text());
-		}
-
-		return [
-			'type'        => 'object',
-			'description' => sprintf('One thing a region shows. An item is one kind: %s.', implode(', ', array_map(static fn (RegionItemType $type): string => $type->value, RegionItemType::cases()))),
-			'properties'  => $kinds
 		];
 	}
 

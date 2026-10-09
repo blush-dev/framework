@@ -57,10 +57,13 @@ final class AdminBench
 		$this->app->container()->make(Indexer::class)->index();
 		$this->app->container()->make(Entries::class)->named('page', '');
 
+		// Accounts link to their profile by its id (D-669).
+		$profile = $this->app->container()->make(Entries::class)->named('profile', 'justintadlock')?->id;
+
 		$this->controller  = $this->app->container()->make(EntriesController::class);
 		$this->editor      = new Account('editor', '', ['editor']);
-		$this->author      = new Account('author', '', ['author'], 'justintadlock');
-		$this->contributor = new Account('contributor', '', ['contributor'], 'justintadlock');
+		$this->author      = new Account('author', '', ['author'], $profile);
+		$this->contributor = new Account('contributor', '', ['contributor'], $profile);
 	}
 
 	#[Bench\Subject]

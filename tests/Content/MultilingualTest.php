@@ -502,6 +502,7 @@ final class MultilingualTest extends TestCase
 
 	public function testMenusLinkToTranslations(): void
 	{
+		$this->writeTemporaryFile('user/data/settings/blush__default.json', '{"menus": {"primary": "primary"}}');
 		$this->writeTemporaryFile('user/data/menus/primary.json', <<<'JSON'
 			{
 				"label": {"en": "Main", "fr": "Principal"},

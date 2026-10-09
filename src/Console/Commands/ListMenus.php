@@ -18,7 +18,6 @@ use Blush\Console\Attributes\Option;
 use Blush\Console\ExitCode;
 use Blush\Console\InvalidInput;
 use Blush\Console\Output;
-use Blush\Data\InvalidData;
 use Blush\Field\Severity;
 use Blush\Menu\MenuException;
 use Blush\Menu\Menus;
@@ -28,10 +27,11 @@ use Blush\Theme\Themes;
 
 /**
  * Lists a theme's menu locations (the active theme's by default) and the
- * site menus (D-199): each location's label, the site menu that fills it,
- * how many top-level items resolve, and its file. Site menus no location
- * shows are listed after, and problems (items that don't resolve, keys
- * that don't fit) at the end.
+ * site menus (D-199): each location's label, the site menu assigned to
+ * it (D-676) or the theme's default, how many top-level items resolve,
+ * and where the menu is kept. Site menus no location shows are listed
+ * after, and problems (items that don't resolve, keys that don't fit,
+ * assignments to menus the site doesn't have) at the end.
  */
 #[Command('menu:list', 'List the menu locations and site menus.')]
 final readonly class ListMenus
@@ -50,33 +50,41 @@ final readonly class ListMenus
 		#[Option('The theme to list for; defaults to the active theme.')] ?string $theme = null
 	): ExitCode {
 		try {
-			$chain     = $this->themes->chain($theme ?? $this->config->active);
-			$locations = $this->menus->locations($chain);
-			$files     = $this->menus->files();
-			$rows      = [];
-			$shown     = [];
+			$chain       = $this->themes->chain($theme ?? $this->config->active);
+			$locations   = $this->menus->locations($chain);
+			$menus       = $this->menus->menus();
+			$assignments = $this->menus->assignments($chain);
+			$rows        = [];
+			$shown       = [];
 
 			foreach ($locations as $name => $location) {
-				$menuName = $this->menus->menuName($name);
-				$file     = $files[$menuName] ?? null;
-				$menu     = $file === null ? null : $this->menus->forLocation($chain, $name);
+				$menuName = $assignments[$name] ?? null;
+				$record   = $menuName === null ? null : $menus[$menuName] ?? null;
+				$default  = $menuName === null && $location->items !== [];
+				$menu     = $record !== null || $default ? $this->menus->forLocation($chain, $name) : null;
 				$rows[]   = [
 					$name,
 					$location->label,
-					$file === null ? '(none)' : $menuName,
-					$file === null ? '' : (string) count($menu->items ?? []),
-					$file === null ? '' : $file->location
+					match (true) {
+						$menuName !== null => $record === null ? "{$menuName} (missing)" : $menuName,
+						$default           => '(theme default)',
+						default            => '(none)'
+					},
+					$menu === null && $record === null && ! $default ? '' : (string) count($menu->items ?? []),
+					$record->location ?? ($default ? 'theme.json' : '')
 				];
 
-				$shown[$menuName] = true;
-			}
-
-			foreach ($files as $name => $file) {
-				if (! isset($shown[$name])) {
-					$rows[] = ['(none)', '', $name, (string) count($file->items), $file->location];
+				if ($menuName !== null) {
+					$shown[$menuName] = true;
 				}
 			}
-		} catch (ThemeException | MenuException | InvalidData $error) {
+
+			foreach ($menus as $name => $menu) {
+				if (! isset($shown[$name])) {
+					$rows[] = ['(none)', '', $name, (string) count($menu->items), $menu->location];
+				}
+			}
+		} catch (ThemeException | MenuException $error) {
 			throw new InvalidInput($error->getMessage(), 0, $error);
 		}
 
@@ -86,7 +94,7 @@ final readonly class ListMenus
 			return ExitCode::Success;
 		}
 
-		$output->table(['Location', 'Label', 'Menu', 'Items', 'File'], $rows);
+		$output->table(['Location', 'Label', 'Menu', 'Items', 'Kept in'], $rows);
 
 		foreach ($this->menus->check($chain) as $problem) {
 			match ($problem->severity) {

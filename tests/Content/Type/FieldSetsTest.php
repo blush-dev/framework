@@ -131,7 +131,7 @@ final class FieldSetsTest extends TestCase
 		$this->writeTemporaryFile('user/data/fields/seo.json', '{"name": "search", "targets": ["type:page"]}');
 
 		$this->expectException(InvalidContentType::class);
-		$this->expectExceptionMessage('user/data/fields/seo names the field set "search"; a data set is named after its file.');
+		$this->expectExceptionMessage('user/data/fields/seo.json names the record "search"; a record here is named after its file.');
 
 		$this->types();
 	}
@@ -141,7 +141,7 @@ final class FieldSetsTest extends TestCase
 		$this->writeTemporaryFile('user/data/fields/seo.json', '{"targets": ["type:page"], "fields": [{"name": "x", "type": "nope"}]}');
 
 		$this->expectException(InvalidContentType::class);
-		$this->expectExceptionMessage('user/data/fields/seo: Field set "seo": Field "x" has an unknown type "nope".');
+		$this->expectExceptionMessage('user/data/fields/seo.json: Field set "seo": Field "x" has an unknown type "nope".');
 
 		$this->types();
 	}

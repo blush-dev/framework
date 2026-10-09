@@ -36,9 +36,10 @@ use Blush\Tests\Fixtures\Content\JtcomTypes;
 final class JtcomSizedSite
 {
 	/**
-	 * Bump when the generated content changes.
+	 * Bump when the generated content, or how it's stored, changes (4:
+	 * the data area's tables, so its SQLite copy is made again, D-682).
 	 */
-	public const int VERSION = 3;
+	public const int VERSION = 4;
 
 	public const int POSTS = 940;
 

@@ -16,13 +16,14 @@ namespace Blush\Menu;
 /**
  * A place a theme shows a menu, declared in `theme.json` `menus` (D-199,
  * D-200): a label string, or an object with a `label`, the deepest
- * nesting it shows (`depth`), and extra per-item `fields` (field
- * definitions, as theme settings are).
+ * nesting it shows (`depth`), extra per-item `fields` (field
+ * definitions, as theme settings are), and the `items` it shows until
+ * the site assigns it a menu (D-676), as a menu's items are written.
  *
  * ```json
  * "menus": {
  *     "primary": { "label": "Primary navigation", "depth": 2, "fields": { "columns": { "type": "number", "integer": true } } },
- *     "social": "Social links"
+ *     "social": { "label": "Social links", "items": [{ "url": "https://example.org/", "label": "Example" }] }
  * }
  * ```
  */
@@ -31,12 +32,14 @@ final readonly class MenuLocation
 	/**
 	 * @param ?int                                  $depth  The deepest level shown (1 is the top), or `null` for any.
 	 * @param array<string, array<array-key, mixed>> $fields Field definitions, by name.
+	 * @param list<mixed>                           $items  The theme's default items, raw.
 	 */
 	public function __construct(
 		public string $name,
 		public string $label = '',
 		public ?int $depth = null,
-		public array $fields = []
+		public array $fields = [],
+		public array $items = []
 	) {}
 
 	/**
@@ -57,6 +60,7 @@ final readonly class MenuLocation
 		$label  = $value['label'] ?? '';
 		$depth  = $value['depth'] ?? null;
 		$fields = $value['fields'] ?? [];
+		$items  = $value['items'] ?? [];
 
 		if (! is_string($label)) {
 			throw new MenuException(sprintf('The "%s" theme\'s menu location "%s" has a "label" that isn\'t a string.', $theme, $name));
@@ -70,7 +74,11 @@ final readonly class MenuLocation
 			throw new MenuException(sprintf('The "%s" theme\'s menu location "%s" must map "fields" names to field definitions.', $theme, $name));
 		}
 
+		if (! is_array($items) || ! array_is_list($items)) {
+			throw new MenuException(sprintf('The "%s" theme\'s menu location "%s" has "items" that aren\'t a list.', $theme, $name));
+		}
+
 		/** @var array<string, array<array-key, mixed>> $fields */
-		return new self($name, trim($label), $depth, $fields);
+		return new self($name, trim($label), $depth, $fields, $items);
 	}
 }

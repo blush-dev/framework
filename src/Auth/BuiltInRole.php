@@ -110,7 +110,6 @@ enum BuiltInRole: string
 				Capability::MediaDeleteOthers,
 				Capability::HtmlAllowed,
 				Capability::MenusEdit,
-				Capability::RegionsEdit,
 				Capability::SitePublish,
 				Capability::CacheClear
 			],

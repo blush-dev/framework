@@ -15,7 +15,6 @@ namespace Blush\Storage;
 
 use Override;
 use Blush\Content\Record\EntryTable;
-use Blush\Data\RecordDataStore;
 use Blush\Job\RecordJobStore;
 use Blush\Session\RecordSessionStore;
 use Blush\Container\ServiceResolver;
@@ -72,7 +71,7 @@ final class StorageServiceProvider extends ServiceProvider
 		// their own.
 		$this->container->resolving(TableRegistry::class, static function (object $tables): void {
 			if ($tables instanceof TableRegistry) {
-				foreach ([EntryTable::table(), Ref::table(StorageArea::Content), RecordDataStore::table(), RecordSessionStore::table(), RecordJobStore::table(), RecordJobStore::stateTable()] as $table) {
+				foreach ([EntryTable::table(), Ref::table(StorageArea::Content), RecordSessionStore::table(), RecordJobStore::table(), RecordJobStore::stateTable()] as $table) {
 					$tables->register($table);
 				}
 			}

@@ -26,7 +26,7 @@ page, post, and setting is a file you can edit, copy, and keep in git.
 | [Directives](directives.md) | Callouts, galleries, buttons, and your own directives, in your content |
 | [Components](components.md) | Reusable pieces of a theme's templates |
 | [Themes](themes.md) | Choosing, customizing, and building themes |
-| [Menus and regions](menus.md) | Navigation menus, and the sidebar and footer areas themes offer |
+| [Menus](menus.md) | Navigation menus, and assigning them to your theme's locations |
 | [The admin](admin.md) | Turning on the admin, its dashboard, and building your own |
 | [Accounts and roles](accounts.md) | Who can sign in to the admin, and what they can do |
 | [Configuration](configuration.md) | `.env` and every `config/` option |
@@ -44,7 +44,7 @@ my-site/
   user/
     content/      Your pages and posts, as Markdown files
     media/        Images, audio, and video
-    data/         Editable data: menus, regions, redirects, theme settings, content types
+    data/         Editable data: menus, redirects, settings, content types
   extensions/     Themes, plugins, and icon packs you've made or installed, at their names (acme/hello/)
   public/         The web root: index.php and published files only
   storage/        Caches, the content index, logs, sessions, admin accounts, and deleted entries (never commit)

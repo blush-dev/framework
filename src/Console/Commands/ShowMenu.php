@@ -19,7 +19,6 @@ use Blush\Console\Attributes\Option;
 use Blush\Console\ExitCode;
 use Blush\Console\InvalidInput;
 use Blush\Console\Output;
-use Blush\Data\InvalidData;
 use Blush\Field\Violation;
 use Blush\Menu\MenuException;
 use Blush\Menu\MenuItem;
@@ -30,9 +29,9 @@ use Blush\Theme\Themes;
 
 /**
  * Shows the menu a theme location shows (D-199), resolved as a page
- * would see it: each item's label and URL, nested, with the items that
- * don't resolve reported. `--locale` resolves it for another locale
- * (D-202).
+ * would see it: the menu assigned to it, or the theme's default (D-676),
+ * each item's label and URL, nested, with the items that don't resolve
+ * reported. `--locale` resolves it for another locale (D-202).
  */
 #[Command('menu:show', 'Show the menu a location shows, resolved.')]
 final readonly class ShowMenu
@@ -55,19 +54,25 @@ final readonly class ShowMenu
 		try {
 			$chain    = $this->themes->chain($theme ?? $this->config->active);
 			$menu     = $this->menus->forLocation($chain, $location, $locale);
-			$menuName = $this->menus->menuName($location);
+			$menuName = $this->menus->menuName($chain, $location);
+			$record   = $menuName === null ? null : $this->menus->menus()[$menuName] ?? null;
+			$subject  = $menuName === null ? "location {$location} (the theme's default)" : "menu {$menuName}";
 			$problems = array_filter(
 				$this->menus->check($chain),
-				static fn (Violation $problem): bool => $problem->field === "menu {$menuName}"
+				static fn (Violation $problem): bool => $problem->field === $subject || $problem->field === "location {$location}"
 			);
-		} catch (ThemeException | MenuException | InvalidData $error) {
+		} catch (ThemeException | MenuException $error) {
 			throw new InvalidInput($error->getMessage(), 0, $error);
 		}
 
 		if ($menu === null) {
-			$output->warning(sprintf('The "%s" location shows no menu: the site has no user/data/menus/%s file, or none of its items resolve.', $location, $menuName));
+			$output->warning(match (true) {
+				$menuName === null => sprintf('The "%s" location shows no menu: the site hasn\'t assigned it one (bin/blush menu:assign), and the theme has no default for it.', $location),
+				$record === null   => sprintf('The "%s" location shows no menu: it\'s assigned the menu "%s", which the site doesn\'t have.', $location, $menuName),
+				default            => sprintf('The "%s" location shows no menu: none of the "%s" menu\'s items resolve.', $location, $menuName)
+			});
 		} else {
-			$output->line(sprintf('%s (%s: user/data/menus/%s)', $menu->label !== '' ? $menu->label : $location, $location, $menu->name));
+			$output->line(sprintf('%s (%s: %s)', $menu->label !== '' ? $menu->label : $location, $location, $record === null ? 'the theme\'s default' : "{$menuName}, {$record->location}"));
 			$this->tree($output, $menu->items, 1);
 		}
 

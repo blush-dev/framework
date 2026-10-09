@@ -13,9 +13,9 @@ declare(strict_types=1);
 
 namespace Blush\Menu;
 
+use Closure;
 use Psr\Log\LoggerInterface;
 use Blush\Core\AppConfig;
-use Blush\Data\InvalidData;
 use Blush\Field\FieldContext;
 use Blush\Field\FieldFactory;
 use Blush\Field\InvalidSchema;
@@ -24,18 +24,23 @@ use Blush\Field\Severity;
 use Blush\Field\Violation;
 use Blush\Menu\Link\MenuLinkFactory;
 use Blush\Menu\Link\UnresolvedLink;
-use Blush\Theme\SiteThemeData;
+use Blush\Settings\InvalidSetting;
+use Blush\Settings\SettingGroups;
 use Blush\Theme\ThemeChain;
+use Blush\Theme\ThemeManifest;
 use Blush\Translation\LocaleMap;
 
 /**
  * The site's menus, resolved for a theme's locations (D-199, D-200).
  *
  * A theme declares locations in `theme.json` `menus`; its templates ask
- * for one by name. A location shows the site menu of the same name
- * (`user/data/menus/{name}`), unless `user/data/theme.json` points it at
- * another (`"menus": {"main": "primary"}`). An undeclared location works
- * the same way, with no label, depth limit, or fields.
+ * for one by name. The site makes as many menus as it wants (the `menus`
+ * table, `MenuLoader`) and assigns them to the active theme's locations
+ * (D-676), a menu to any number of them, kept in the theme's own group
+ * of settings under `menus` (`{"primary": "main"}`), so each theme keeps
+ * its own. A location the site hasn't assigned a menu shows the theme's
+ * default items, if it has them, else nothing. Content shows a menu by
+ * its name (`named()`), whatever location it fills.
  *
  * Resolving a menu turns each item's link (`entry`, `term`,
  * `collection`, `route`, `url`, or a kind an extension registered) into
@@ -43,7 +48,8 @@ use Blush\Translation\LocaleMap;
  * location's declared fields, and stops at its depth. An item that
  * doesn't resolve (a missing or unpublished entry, an unknown route, a
  * missing label) is left out, with its children, and logged; `check()`
- * reports the same problems for `menu:list` and `theme:check`.
+ * reports the same problems for `menu:list` and `theme:check`. Menus or
+ * assignments that can't be read are logged, and pages show no menu.
  *
  * Resolved menus are kept per theme, location, and locale for the
  * process; the page cache keeps whole pages.
@@ -80,9 +86,9 @@ final class Menus
 	private array $schemas = [];
 
 	public function __construct(
-		private readonly MenuLoader $files,
+		private readonly MenuLoader $menus,
 		private readonly MenuLinkFactory $links,
-		private readonly SiteThemeData $site,
+		private readonly SettingGroups $groups,
 		private readonly FieldFactory $fields,
 		private readonly FieldContext $fieldContext,
 		private readonly AppConfig $app,
@@ -91,30 +97,40 @@ final class Menus
 
 	/**
 	 * Returns the menu a location shows, marked for no page, or `null`
-	 * when it shows none: the site has no menu for it, or none of the
-	 * menu's items resolve. `$locale` is the page's (the site's when
-	 * `''`).
-	 *
-	 * @throws MenuException When the theme's location declaration is invalid.
-	 * @throws InvalidData When a menu file or the site's theme data can't be read.
+	 * when it shows none: the site hasn't assigned it a menu and the theme
+	 * has no default for it, or none of the items resolve. `$locale` is the
+	 * page's (the site's when `''`).
 	 */
 	public function forLocation(ThemeChain $chain, string $location, string $locale = ''): ?Menu
 	{
-		$locale = $locale === '' ? $this->app->locale : $locale;
-		$key    = "{$chain->active()->name}|{$location}|{$locale}";
+		return $this->remember("{$chain->active()->name}|{$location}", $locale, function (string $locale) use ($chain, $location): array {
+			$problems = [];
 
-		if (array_key_exists($key, $this->resolved)) {
-			return $this->resolved[$key];
-		}
+			return [$this->resolve($chain, $location, $locale, $problems), $problems];
+		});
+	}
 
-		$problems = [];
-		$menu     = $this->resolve($chain, $location, $locale, $problems);
+	/**
+	 * Returns a site menu by its name, for content (`::menu{name=social}`),
+	 * marked for no page, or `null` when the site has none by that name or
+	 * none of its items resolve. It's resolved for the first location it's
+	 * assigned to, if any, for that location's depth and fields.
+	 */
+	public function named(ThemeChain $chain, string $name, string $locale = ''): ?Menu
+	{
+		return $this->remember("{$chain->active()->name}|menu {$name}", $locale, function (string $locale) use ($chain, $name): array {
+			$menu     = $this->menus->get($name);
+			$problems = [];
 
-		foreach ($problems as $problem) {
-			$this->logger->warning('Menu {menu}: {problem}', ['menu' => $problem->field, 'problem' => $problem->message]);
-		}
+			if ($menu === null) {
+				return [null, []];
+			}
 
-		return $this->resolved[$key] = $menu === null || $menu->items === [] ? null : $menu;
+			$location = array_search($name, $this->assignments($chain), true);
+			$location = is_string($location) ? $this->locations($chain)[$location] ?? new MenuLocation($location) : new MenuLocation('');
+
+			return [$this->build($location, $menu, $chain->active()->name, $locale, "menu {$name}", $problems), $problems];
+		});
 	}
 
 	/**
@@ -146,111 +162,238 @@ final class Menus
 	}
 
 	/**
-	 * Returns the name of the site menu a location shows.
+	 * Returns the menus the site assigned to a theme chain's locations:
+	 * menu names, by location, from the active theme's group of settings.
 	 *
-	 * @throws InvalidData
+	 * @return array<string, string>
+	 * @throws MenuException When they can't be read or have the wrong shape.
 	 */
-	public function menuName(string $location): string
+	public function assignments(ThemeChain $chain): array
 	{
-		return $this->site->menus()[$location] ?? $location;
+		$theme = $chain->active()->name;
+
+		try {
+			$map = $this->groups->get($theme)[ThemeManifest::MENUS] ?? [];
+		} catch (InvalidSetting $error) {
+			throw new MenuException($error->getMessage(), 0, $error);
+		}
+
+		if (
+			! is_array($map)
+			|| ($map !== [] && array_is_list($map))
+			|| ! array_all($map, static fn (mixed $menu): bool => is_string($menu) && preg_match(MenuLoader::NAME, $menu) === 1)
+		) {
+			throw new MenuException(sprintf('%s: "%s" must map location names to menu names.', $this->groups->location($theme), ThemeManifest::MENUS));
+		}
+
+		/** @var array<string, string> $map */
+		return $map;
+	}
+
+	/**
+	 * Assigns a menu to a location of a theme chain, or with `null` takes
+	 * its menu away, so it shows the theme's default.
+	 *
+	 * @throws MenuException When the assignments can't be read or saved.
+	 */
+	public function assign(ThemeChain $chain, string $location, ?string $menu): void
+	{
+		$this->assignments($chain);
+
+		try {
+			$this->groups->update($chain->active()->name, static function (array $group) use ($location, $menu): array {
+				$map = is_array($group[ThemeManifest::MENUS] ?? null) ? $group[ThemeManifest::MENUS] : [];
+
+				if ($menu === null) {
+					unset($map[$location]);
+				} else {
+					$map[$location] = $menu;
+				}
+
+				ksort($map, SORT_STRING);
+
+				if ($map === []) {
+					unset($group[ThemeManifest::MENUS]);
+				} else {
+					$group[ThemeManifest::MENUS] = $map;
+				}
+
+				return $group;
+			});
+		} catch (InvalidSetting $error) {
+			throw new MenuException($error->getMessage(), 0, $error);
+		}
+
+		$this->resolved = [];
+	}
+
+	/**
+	 * Returns the name of the site menu a location shows, or `null` when
+	 * it's assigned none.
+	 *
+	 * @throws MenuException
+	 */
+	public function menuName(ThemeChain $chain, string $location): ?string
+	{
+		return $this->assignments($chain)[$location] ?? null;
 	}
 
 	/**
 	 * Returns the site's menus, by name.
 	 *
-	 * @return array<string, MenuFile>
-	 * @throws InvalidData
+	 * @return array<string, MenuRecord>
+	 * @throws MenuException
 	 */
-	public function files(): array
+	public function menus(): array
 	{
-		return $this->files->all();
+		return $this->menus->all();
 	}
 
 	/**
-	 * Returns the problems with a theme chain's locations and the site's
-	 * menus: invalid declarations (errors), menu files with the wrong
-	 * shape and items that don't resolve (warnings), and menus no location
-	 * shows (notices). A location the site hasn't filled isn't a problem;
-	 * it shows nothing.
+	 * Returns the problems with a theme chain's locations, the site's
+	 * menus, and its assignments: invalid declarations, and menus or
+	 * assignments that can't be read (errors); menus with the wrong shape,
+	 * items that don't resolve, theme defaults among them, and
+	 * assignments to menus the site doesn't have (warnings); and menus no
+	 * location shows and assignments to locations the theme doesn't
+	 * declare (notices). A location with nothing to show isn't a problem.
 	 *
 	 * @return list<Violation>
 	 */
 	public function check(ThemeChain $chain): array
 	{
 		try {
-			$locations = $this->locations($chain);
-			$files     = $this->files->all();
-			$shown     = [];
-			$problems  = [];
+			$locations   = $this->locations($chain);
+			$menus       = $this->menus->all();
+			$assignments = $this->assignments($chain);
+			$theme       = $chain->active()->name;
+			$shown       = [];
+			$problems    = [];
 
-			foreach ($locations as $name => $location) {
-				$menuName = $this->menuName($name);
+			foreach ($assignments as $location => $name) {
+				if (! isset($locations[$location])) {
+					$problems[] = new Violation("location {$location}", sprintf('It\'s assigned the menu "%s", but the "%s" theme has no such location.', $name, $theme), Severity::Notice);
+				}
 
-				if (isset($files[$menuName])) {
-					$shown[$menuName] = true;
-
-					$this->resolve($chain, $name, $this->app->locale, $problems);
+				if (! isset($menus[$name])) {
+					$problems[] = new Violation("location {$location}", sprintf('It\'s assigned the menu "%s", which the site doesn\'t have.', $name), Severity::Warning);
 				}
 			}
 
-			foreach ($files as $name => $file) {
+			foreach ($locations as $name => $location) {
+				$menuName = $assignments[$name] ?? null;
+
+				if ($menuName === null) {
+					if ($location->items !== []) {
+						$this->build($location, new MenuRecord('', 'theme.json'), $theme, $this->app->locale, "location {$name} (the theme's default)", $problems, $location->items);
+					}
+				} elseif (isset($menus[$menuName]) && ! isset($shown[$menuName])) {
+					$shown[$menuName] = true;
+
+					$this->build($location, $menus[$menuName], $theme, $this->app->locale, "menu {$menuName}", $problems);
+				}
+			}
+
+			foreach ($menus as $name => $menu) {
 				if (! isset($shown[$name])) {
-					$problems[] = new Violation("menu {$name}", sprintf('No location of the "%s" theme shows it.', $chain->active()->name), Severity::Notice);
+					$problems[] = new Violation("menu {$name}", sprintf('No location of the "%s" theme shows it.', $theme), Severity::Notice);
 
 					// Resolve it on its own, to check its items.
-					$this->build(new MenuLocation($name), $file, $chain->active()->name, $this->app->locale, $problems);
+					$this->build(new MenuLocation(''), $menu, $theme, $this->app->locale, "menu {$name}", $problems);
 				}
 			}
 
 			return $problems;
-		} catch (MenuException | InvalidData $error) {
+		} catch (MenuException $error) {
 			return [new Violation('menus', $error->getMessage())];
 		}
 	}
 
 	/**
-	 * Resolves the menu a location shows, collecting problems.
+	 * Resolves a menu once per key and locale, logging its problems, or
+	 * the error that kept it from resolving.
 	 *
-	 * @param  list<Violation> $problems
-	 * @throws MenuException
-	 * @throws InvalidData
+	 * @param Closure(string): array{?Menu, list<Violation>} $resolve
 	 */
-	private function resolve(ThemeChain $chain, string $location, string $locale, array &$problems): ?Menu
+	private function remember(string $key, string $locale, Closure $resolve): ?Menu
 	{
-		$file = $this->files->get($this->menuName($location));
+		$locale = $locale === '' ? $this->app->locale : $locale;
+		$key    = "{$key}|{$locale}";
 
-		if ($file === null) {
-			return null;
+		if (array_key_exists($key, $this->resolved)) {
+			return $this->resolved[$key];
 		}
 
-		return $this->build($this->locations($chain)[$location] ?? new MenuLocation($location), $file, $chain->active()->name, $locale, $problems);
+		$problems = [];
+
+		try {
+			[$menu, $problems] = $resolve($locale);
+		} catch (MenuException $error) {
+			$this->logger->error('Menus: {problem}', ['problem' => $error->getMessage()]);
+			$menu = null;
+		}
+
+		foreach ($problems as $problem) {
+			$this->logger->warning('Menu {menu}: {problem}', ['menu' => $problem->field, 'problem' => $problem->message]);
+		}
+
+		return $this->resolved[$key] = $menu === null || $menu->items === [] ? null : $menu;
 	}
 
 	/**
-	 * Builds a menu from its file for a location.
+	 * Resolves what a location shows, collecting problems: its assigned
+	 * menu, else the theme's default items.
 	 *
 	 * @param  list<Violation> $problems
 	 * @throws MenuException
 	 */
-	private function build(MenuLocation $location, MenuFile $file, string $theme, string $locale, array &$problems): Menu
+	private function resolve(ThemeChain $chain, string $location, string $locale, array &$problems): ?Menu
 	{
-		$subject = "menu {$file->name}";
+		$declared = $this->locations($chain)[$location] ?? new MenuLocation($location);
+		$name     = $this->menuName($chain, $location);
 
-		foreach ($file->problems as $problem) {
+		if ($name === null) {
+			return $declared->items === []
+				? null
+				: $this->build($declared, new MenuRecord('', 'theme.json'), $chain->active()->name, $locale, "location {$location} (the theme's default)", $problems, $declared->items);
+		}
+
+		$menu = $this->menus->get($name);
+
+		if ($menu === null) {
+			$problems[] = new Violation("location {$location}", sprintf('It\'s assigned the menu "%s", which the site doesn\'t have.', $name), Severity::Warning);
+
+			return null;
+		}
+
+		return $this->build($declared, $menu, $chain->active()->name, $locale, "menu {$name}", $problems);
+	}
+
+	/**
+	 * Builds a menu for a location from its record, or from `$items` (the
+	 * theme's default) when given.
+	 *
+	 * @param  list<Violation> $problems
+	 * @param  ?list<mixed>    $items
+	 * @throws MenuException
+	 */
+	private function build(MenuLocation $location, MenuRecord $menu, string $theme, string $locale, string $subject, array &$problems, ?array $items = null): Menu
+	{
+		foreach ($menu->problems as $problem) {
 			$problems[] = new Violation($subject, $problem, Severity::Warning);
 		}
 
-		$label = LocaleMap::text($file->label, $locale, $this->app->locale);
+		$label = LocaleMap::text($menu->label, $locale, $this->app->locale);
 
-		if ($file->label !== null && $label === null) {
+		if ($menu->label !== null && $label === null) {
 			$problems[] = new Violation($subject, '"label" must be text or a map of locales to text.', Severity::Warning);
 		}
 
-		$schema = $this->schema($location, $theme);
-		$items  = $this->items($file->items, $location, $schema, $locale, 1, '', $subject, $problems);
-		$label  = trim($label ?? '');
+		$schema   = $this->schema($location, $theme);
+		$resolved = $this->items($items ?? $menu->items, $location, $schema, $locale, 1, '', $subject, $problems);
+		$label    = trim($label ?? '');
 
-		return new Menu($location->name, $file->name, $label !== '' ? $label : $location->label, $items);
+		return new Menu($location->name, $menu->name, $label !== '' ? $label : $location->label, $resolved);
 	}
 
 	/**

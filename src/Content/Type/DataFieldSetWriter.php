@@ -15,19 +15,20 @@ namespace Blush\Content\Type;
 
 use Closure;
 use Blush\Container\Attributes\Defer;
-use Blush\Data\DataException;
 use Blush\Data\DataKeys;
-use Blush\Data\DataStore;
 use Blush\Field\FieldConfig;
 use Blush\Field\FieldFactory;
 use Blush\Field\FieldSet;
 use Blush\Field\FieldSetLoader;
 use Blush\Field\FieldTargets;
 use Blush\Field\InvalidSchema;
+use Blush\Storage\Record\KeyedTable;
+use Blush\Storage\Record\RecordException;
 
 /**
- * Writes the field sets the site defines in data, `user/data/fields/{name}`
- * (D-337), for the admin: creates one, changes it, and deletes one.
+ * Writes the field sets the site defines in data (D-337), the
+ * `field_sets` table (D-678; on files `user/data/fields/{name}.json`),
+ * for the admin: creates one, changes it, and deletes one.
  *
  * Changes are given by key (`label`, `description`, `targets`, `slot`,
  * and `fields`); `null` removes one. They're applied to the file's own data
@@ -38,8 +39,8 @@ use Blush\Field\InvalidSchema;
  * the author wrote it. Sets are JSON files (D-490, D-631).
  *
  * Since a set's fields join the places it targets, each change is checked
- * against all of them before it's kept: in a data store transaction
- * (D-642), the record is written, the types are loaded again
+ * against all of them before it's kept: in a transaction of the table's
+ * store, the record is written, the types are loaded again
  * (`ContentTypeLoader`), every target's schema is built with the new
  * sets (`FieldTargets`), and when a field clashes, the transaction puts
  * the record back.
@@ -58,7 +59,7 @@ final readonly class DataFieldSetWriter
 	 */
 	public function __construct(
 		private FieldConfig $config,
-		private DataStore $data,
+		private FieldSetLoader $loaded,
 		private FieldFactory $fields,
 		private FieldTargets $targets,
 		#[Defer(ContentTypeLoader::class)] private Closure $loader
@@ -66,7 +67,7 @@ final readonly class DataFieldSetWriter
 
 	/**
 	 * Returns where a data set is kept (`user/data/fields/seo.json`), or
-	 * `null` when the data store has none by its name.
+	 * `null` when the table has none by its name.
 	 *
 	 * @throws InvalidContentType When the name isn't a set name.
 	 */
@@ -77,8 +78,8 @@ final readonly class DataFieldSetWriter
 		}
 
 		try {
-			return $this->data->has(self::record($name)) ? $this->data->location(self::record($name)) : null;
-		} catch (DataException $error) {
+			return $this->table()->has($name) ? $this->table()->location($name) : null;
+		} catch (RecordException $error) {
 			throw new InvalidContentType($error->getMessage(), previous: $error);
 		}
 	}
@@ -115,8 +116,8 @@ final readonly class DataFieldSetWriter
 		}
 
 		try {
-			$data = $this->data->load(self::record($name)) ?? [];
-		} catch (DataException $error) {
+			$data = $this->table()->find($name) ?? [];
+		} catch (RecordException $error) {
 			throw new InvalidContentType(sprintf('%s Fix it by hand first.', $error->getMessage()), previous: $error);
 		}
 
@@ -138,7 +139,7 @@ final readonly class DataFieldSetWriter
 		}
 
 		return $this->checked(function () use ($name): void {
-			$this->data->delete(self::record($name));
+			$this->table()->delete($name);
 		});
 	}
 
@@ -185,9 +186,9 @@ final readonly class DataFieldSetWriter
 		}
 
 		return $this->checked(function () use ($name, $sets): void {
-			$record = self::record($name);
+			$table = $this->table();
 
-			$this->data->save($record, DataKeys::apply($this->data->load($record) ?? [], $sets));
+			$table->save($name, DataKeys::apply($table->find($name) ?? [], $sets));
 		});
 	}
 
@@ -202,7 +203,7 @@ final readonly class DataFieldSetWriter
 	private function checked(Closure $write): ContentTypes
 	{
 		try {
-			return $this->data->transaction(function () use ($write): ContentTypes {
+			return $this->table()->transaction(function () use ($write): ContentTypes {
 				$write();
 
 				$types = ($this->loader)()->load();
@@ -221,7 +222,7 @@ final readonly class DataFieldSetWriter
 
 				return $types;
 			});
-		} catch (DataException $error) {
+		} catch (RecordException $error) {
 			throw new InvalidContentType($error->getMessage(), previous: $error);
 		}
 	}
@@ -249,11 +250,11 @@ final readonly class DataFieldSetWriter
 	}
 
 	/**
-	 * A set's record name in the data store.
+	 * The data sets' table.
 	 */
-	private static function record(string $name): string
+	private function table(): KeyedTable
 	{
-		return FieldSetLoader::DATA_DIRECTORY . "/{$name}";
+		return $this->loaded->records();
 	}
 
 	/**

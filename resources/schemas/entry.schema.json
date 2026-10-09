@@ -195,26 +195,6 @@
 			],
 			"description": "For a translation, the id of the entry it translates, which links them whatever their file names."
 		},
-		"redirect_from": {
-			"anyOf": [
-				{
-					"type": "array",
-					"items": {
-						"type": [
-							"string",
-							"number"
-						]
-					}
-				},
-				{
-					"type": [
-						"string",
-						"number"
-					]
-				}
-			],
-			"description": "Old URLs that should redirect here."
-		},
 		"collection": {
 			"type": "object",
 			"description": "Lists other entries on this page."

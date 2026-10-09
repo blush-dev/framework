@@ -157,7 +157,7 @@ final class ViewEnginesTest extends TestCase
 			array_filter(new ReflectionClass(Template::class)->getMethods(), static fn (ReflectionMethod $method): bool => $method->getAttributes(ReturnsHtml::class) !== [])
 		);
 
-		$this->assertSame(['section', 'include', 'includeIf', 'includeWhen', 'includeUnless', 'each', 'component', 'directive', 'icon', 'region', 'cache', 'widont', 'avatar'], array_values($marked));
+		$this->assertSame(['section', 'include', 'includeIf', 'includeWhen', 'includeUnless', 'each', 'component', 'directive', 'icon', 'cache', 'widont', 'avatar'], array_values($marked));
 		$this->assertContains(SafeHtml::class, class_implements(PendingDirective::class));
 		$this->assertContains(SafeHtml::class, class_implements(Head::class));
 	}

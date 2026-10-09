@@ -32,7 +32,6 @@ final class ThemeServiceProvider extends ServiceProvider
 	 */
 	protected const array SINGLETONS = [
 		ThemeResolver::class,
-		SiteThemeData::class,
 		SettingsResolver::class
 	];
 

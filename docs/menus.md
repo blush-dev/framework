@@ -1,19 +1,16 @@
-# Menus and regions
+# Menus
 
 A **menu** is a list of links, such as your site's main navigation or
-your social profiles. A **region** is an area of the page, such as a
-sidebar or the footer, filled with directives, components, text, or template parts.
+your social profiles. You can make as many menus as you like. Your theme
+decides where menus can appear: it declares **locations** (`primary`,
+`social`, `footer`), and you **assign** a menu to each location you want
+filled. One menu can fill several locations.
 
-Both are files in `user/data/`, one file per menu or region. Your theme
-decides where they appear: it declares **locations** (`primary`, `social`,
-`footer`), and each one shows your menu or region with the same name.
+## Making a menu
 
-## Menus
+Each menu is a file in `user/data/menus/`, named for the menu:
 
-Add a file named for the location to `user/data/menus/`. The default
-theme shows a `primary` menu in its header:
-
-`user/data/menus/primary.json`:
+`user/data/menus/main.json`:
 
 ```json
 {
@@ -27,9 +24,36 @@ theme shows a `primary` menu in its header:
 }
 ```
 
-A file can also be the list of items on its own, without `items`.
+A menu's name is its file name. It never changes, since locations and
+content use it to find the menu. Use lowercase letters, digits, hyphens,
+and underscores. A site [kept in a database](going-live.md#large-sites-sqlite)
+keeps its menus there instead of in files.
 
-### Links
+## Showing a menu
+
+Assign a menu to one of your theme's locations:
+
+```sh
+bin/blush menu:assign primary main      # the primary location shows the main menu
+bin/blush menu:assign primary --clear   # take it away again
+```
+
+Each theme keeps its own assignments, so switching themes and back
+again keeps them. Add `--theme=vendor/name` to assign menus for a theme
+that isn't active.
+
+Until you assign a menu to a location, it shows the theme's default
+menu for it, if the theme has one, and nothing otherwise. The default
+theme has a `primary` location in its header, with no default.
+
+To show a menu inside a page's content, name it in a
+[`menu` directive](directives.md#menus):
+
+```md
+::menu{name=social}
+```
+
+## Links
 
 Each item links to one thing:
 
@@ -50,6 +74,22 @@ An entry's `key` is its file name without the extension, with any folders
 below its type's folder: `user/content/about.md` is `page/about`, and
 `user/content/about/team.md` is `page/about/team`. A landing page
 (`index.md` in a type's folder) is `{type}/`.
+
+### Links that survive renaming
+
+An `entry` or `term` link can also hold the entry's id, in `ref`:
+
+```json
+{ "entry": "page/about", "ref": "0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1c01" }
+```
+
+When `ref` finds the entry, it wins, so the link still works after the
+entry is renamed or moved. You don't need to write ids yourself:
+
+```sh
+bin/blush menu:refs           # lists menus with links not filed with their ids
+bin/blush menu:refs --write   # adds each id, and updates links to renamed entries
+```
 
 ### Item options
 
@@ -89,59 +129,21 @@ columns for a large dropdown. Their documentation lists them.
 
 ```sh
 bin/blush menu:list          # each location, the menu it shows, and any problems
-bin/blush menu:show primary  # the menu as a page shows it, with every URL
+bin/blush menu:show primary  # what a location shows, with every URL
 ```
 
 An item that can't be shown (a missing entry, a typo in a key, no label)
 is left out of the page and reported by both commands, by
-`bin/blush theme:check`, and in the log.
-
-## Regions
-
-Add a file named for the location to `user/data/regions/`. The default
-theme shows a `footer` region above its credit line:
-
-`user/data/regions/footer.json`:
-
-```json
-{
-	"items": [
-		{ "directive": "menu", "name": "social" },
-		{ "markdown": "Thanks for reading. **Subscribe** to the [feed](/feed)." },
-		{ "entry": "page/_regions/newsletter" },
-		{ "view": "partials/newsletter", "heading": "Get new posts by email" }
-	]
-}
-```
-
-Each item is one of:
-
-| Key | What it shows |
-|---|---|
-| `directive` | A [directive](directives.md), such as `menu`. The item's other keys are its props. |
-| `component` | A [component](components.md). The item's other keys are its props. |
-| `markdown` | Markdown text, with directives. |
-| `entry` | An entry's content, as `{type}/{key}`. |
-| `view` | A template part from your site or theme. The item's other keys are its data. |
-
-For longer text, write a page in a folder whose name starts with `_`,
-such as `user/content/_regions/newsletter.md`, with a page for the
-folder itself (`user/content/_regions/index.md`; `bin/blush
-content:parents --write` writes it). It never gets a URL of its own,
-but a region can show it with `"entry": "page/_regions/newsletter"`.
-
-A theme can fill a region with defaults, such as a search box in its
-sidebar. Your file replaces the theme's items, so an empty
-`"items": []` clears them.
+`bin/blush theme:check`, and in the log. So is a location assigned a
+menu you don't have.
 
 ## Autocomplete in your editor
 
-Blush ships JSON Schemas for menu and region files, so editors such as
-VS Code and PhpStorm can suggest keys and flag mistakes, like a typo in a
-key or an entry written as a URL. A new site's `.vscode/settings.json`
-already maps `user/data/menus/` and `user/data/regions/` to them. For
-other editors, point a file at its schema with a `$schema` key
-(`region.schema.json` for regions):
+Blush ships a JSON Schema for menu files, so editors such as VS Code
+and PhpStorm can suggest keys and flag mistakes, like a typo in a key
+or an entry written as a URL. A new site's `.vscode/settings.json`
+already maps `user/data/menus/` to it. For other editors, point a file
+at the schema with a `$schema` key:
 
 ```json
 {
@@ -150,23 +152,8 @@ other editors, point a file at its schema with a `$schema` key
 }
 ```
 
-Options a theme adds to its menu items, and a directive's or component's props, aren't
-in the schema, so the editor won't suggest them.
-
-## Using another name
-
-If you switch to a theme that calls its locations something else, point
-them at your files in `user/data/theme.json` instead of renaming the
-files:
-
-```json
-{
-	"menus": { "main": "primary" },
-	"regions": { "aside": "sidebar" }
-}
-```
-
-Here the theme's `main` location shows `menus/primary.json`.
+Options a theme adds to its menu items aren't in the schema, so the
+editor won't suggest them.
 
 ## More than one language
 
@@ -204,18 +191,16 @@ or an object:
 			"columns": { "type": "number", "integer": true, "default": 1, "label": "Columns" }
 		}
 	},
-	"social": "Social"
-},
-"regions": {
-	"sidebar": {
-		"label": "Sidebar",
-		"items": [{ "directive": "menu", "name": "social" }]
-	},
-	"footer": "Footer"
+	"social": {
+		"label": "Social",
+		"items": [
+			{ "url": "https://github.com/example", "label": "GitHub", "icon": "mytheme/github" }
+		]
+	}
 }
 ```
 
-- A menu location's label also names its `<nav>` for screen readers, so
+- A location's label also names its `<nav>` for screen readers, so
   keep it short and leave out "navigation" or "menu" ("Primary", not
   "Primary navigation").
 - `depth` is how many levels deep the location shows (1 is the top
@@ -224,30 +209,36 @@ or an object:
   [custom fields](content-types.md#custom-fields). Read one with
   `$item->field('columns')`. A key that isn't a built-in option or a
   declared field is reported as a problem.
-- A region location's `items` are the defaults it shows until the site
-  has its own file.
+- `items` are the location's default menu, written as a menu's items
+  are, shown until the site assigns the location a menu. Leave it out to
+  show nothing. Link to entries by `{type}/{key}`; your theme can't know
+  a site's ids.
 
 A child theme inherits its parent's locations, and can redeclare one to
 change it.
 
+The site's assignments are kept in your theme's settings under `menus`,
+so none of your [settings](themes.md#settings) can be named `menus`.
+
 ### Printing a menu
 
-The `menu` directive prints a menu with accessible markup: a `<nav>` named
-by the menu's label, nested lists, and `aria-current="page"` on the link
-to the current page.
+The `menu` directive prints what a location shows with accessible
+markup: a `<nav>` named by the menu's label, nested lists, and
+`aria-current="page"` on the link to the current page.
 
 ```php
-<?= $template->directive('menu', name: 'primary') ?>
+<?= $template->directive('menu', location: 'primary') ?>
 ```
 
-It prints nothing when the site has no menu for the location. Its
-classes start with `directive-menu` (`directive-menu--primary`,
+It prints nothing when the location has nothing to show. Its classes
+start with `directive-menu` (`directive-menu--primary`,
 `directive-menu__item--current`, `directive-menu__link`). Items with
 children get a toggle button, hidden, for a dropdown: your script can
 show it and open and close the submenu it controls (`aria-controls`),
 updating `aria-expanded`. Without a script, submenus stay open.
 
-For markup of your own, get the menu with `$template->menu()`:
+For markup of your own, get what a location shows with
+`$template->menu()`:
 
 ```php
 <?php if ($menu = $template->menu('social')) : ?>
@@ -270,20 +261,8 @@ Each item has `label`, `url` (`null` for a heading), `icon`,
 `ancestor` for the items above it. `ariaCurrent()` prints the attribute
 that says so: `aria-current="page"` on the current page's item,
 `aria-current="true"` on the items above it, and nothing on the rest.
+The menu's `name` is the site menu's, and `''` for your default.
 
 For a social menu, ship the brand icons you need with your theme, in its
 `icons/` folder (`icons/github.svg` is `mytheme/github`); Blush doesn't
 include brand logos.
-
-### Printing a region
-
-```php
-<?php if ($template->hasRegion('sidebar')) : ?>
-	<aside class="sidebar">
-		<?= $template->region('sidebar') ?>
-	</aside>
-<?php endif ?>
-```
-
-`region()` returns the items' HTML in order, and `''` when there are
-none. An item that can't be shown is left out and logged.

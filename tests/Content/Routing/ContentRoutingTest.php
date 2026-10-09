@@ -16,6 +16,7 @@ namespace Blush\Tests\Content\Routing;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\ResponseInterface;
+use Blush\Clock\SystemClock;
 use Blush\Content\Entries;
 use Blush\Content\Http\CollectionController;
 use Blush\Content\Http\ContentController;
@@ -26,14 +27,13 @@ use Blush\Content\Http\PageController;
 use Blush\Content\Http\PageKind;
 use Blush\Content\Http\SingleController;
 use Blush\Content\Http\TermController;
-use Blush\Content\Routing\ContentRedirects;
 use Blush\Content\Routing\ContentRoutes;
 use Blush\Content\Routing\ContentUrls;
 use Blush\Content\Routing\DataRedirects;
 use Blush\Content\Routing\PageRoutes;
+use Blush\Content\Routing\RedirectWriter;
 use Blush\Content\Routing\RefreshRouteCache;
 use Blush\Console\Console;
-use Blush\Console\Testing\CommandTester;
 use Blush\Content\Type\ContentTypes;
 use Blush\Core\AppConfig;
 use Blush\Core\Application;
@@ -41,15 +41,19 @@ use Blush\Core\Bootstrap;
 use Blush\Core\Paths;
 use Blush\Http\Kernel;
 use Blush\Http\Request;
+use Blush\Publish\Publisher;
+use Blush\Routing\InvalidRoute;
 use Blush\Routing\RouteTable;
+use Blush\Storage\Record\KeyedTable;
+use Blush\Storage\Record\RecordStores;
 use Blush\Tests\Content\BuildsContentSite;
 use Blush\View\Hierarchy;
 use Blush\View\ThemedPageRenderer;
 
 #[CoversClass(ContentRoutes::class)]
 #[CoversClass(PageRoutes::class)]
-#[CoversClass(ContentRedirects::class)]
 #[CoversClass(DataRedirects::class)]
+#[CoversClass(RedirectWriter::class)]
 #[CoversClass(RefreshRouteCache::class)]
 #[CoversClass(ContentController::class)]
 #[CoversClass(HomeController::class)]
@@ -266,25 +270,48 @@ final class ContentRoutingTest extends TestCase
 		$this->assertPage('/about', 200, 'About');
 	}
 
-	public function testRedirectsFromFrontMatterAndData(): void
+	public function testRedirectsFromData(): void
 	{
-		$this->entry('_posts/2008-04-05.spring.md', "title: spring\npublished: 2008-04-05 09:00:00\nredirect_from: [/spring, 'https://old.example.com/old/spring/', '/bad/{x}']");
-		$this->writeTemporaryFile('user/data/redirects.json', '{"/old-about": "/about", "/promo": {"to": "https://example.com/sale", "status": 302}, "/spring": "/not-this-one"}');
+		$this->entry('_posts/2008-04-05.spring.md', "title: spring\npublished: 2008-04-05 09:00:00\nredirect_from: [/spring]");
+		$this->writeTemporaryFile('user/data/redirects.json', '[{"from": "/old-about", "to": "/about"}, {"from": "/promo", "to": "https://example.com/sale", "status": 302}]');
 		$this->app = $this->site('development');
 
-		$this->assertPage('/spring', 301, '/not-this-one');
-		$this->assertPage('/old/spring', 301, '/archives/2008/04/05/spring');
 		$this->assertPage('/old-about', 301, '/about');
 		$this->assertPage('/promo', 302, 'https://example.com/sale');
-		$this->assertPage('/bad/x', 404);
+		$this->assertSame(404, $this->get('/spring')->getStatusCode(), 'Front matter asks for none (D-680).');
 	}
 
-	public function testDataRedirectsMayBeAList(): void
+	public function testDataRedirectsCarryPlaceholders(): void
 	{
 		$this->writeTemporaryFile('user/data/redirects.json', '[{"from": "/blog/{slug}", "to": "/archives/{slug}", "status": 307}]');
 		$this->app = $this->site('development');
 
 		$this->assertPage('/blog/hello', 307, '/archives/hello');
+	}
+
+	public function testDataRedirectsAreAList(): void
+	{
+		$this->writeTemporaryFile('user/data/redirects.json', '{"/old-about": "/about"}');
+
+		$this->expectException(InvalidRoute::class);
+		$this->expectExceptionMessage('user/data/redirects.json needs a list of records.');
+
+		new DataRedirects($this->site('development')->container()->make(RecordStores::class))->redirects();
+	}
+
+	public function testDataRedirectsAreKeptByTheirPaths(): void
+	{
+		$this->writeTemporaryFile('user/data/redirects.json', '[{"from": "/old-about", "to": "/about"}]');
+
+		$app   = $this->site('development');
+		$table = new KeyedTable($app->container()->make(RecordStores::class), DataRedirects::table(), new SystemClock());
+
+		$this->assertSame(['to' => '/about'], $table->find('/old-about'), 'A path is the key (D-679).');
+
+		$table->save('/news/{name}', ['to' => '/blog/{name}', 'status' => 302]);
+
+		$this->assertSame(['/news/{name}', '/old-about'], array_keys($table->all()));
+		$this->assertStringContainsString('"from": "/news/{name}"', (string) file_get_contents($this->temporaryDirectory() . '/user/data/redirects.json'), 'Kept in the one file.');
 	}
 
 	public function testTheSitesOwnHomeRouteWins(): void
@@ -310,6 +337,9 @@ final class ContentRoutingTest extends TestCase
 		unlink($this->temporaryDirectory() . '/config/content.php');
 		$this->app = $this->site();
 
+		// Production notices changed files when they're published.
+		$this->app->container()->make(Publisher::class)->publish();
+
 		$this->assertPage('/', 200, 'Home');
 		$this->assertStringContainsString('<title>' . $this->app->container()->make(AppConfig::class)->name . '</title>', (string) $this->get('/')->getBody());
 
@@ -320,22 +350,16 @@ final class ContentRoutingTest extends TestCase
 		$this->assertSame(404, $this->get('/page/2')->getStatusCode());
 	}
 
-	public function testRedirectsReachACompiledRouteTable(): void
+	public function testAMoveReachesACompiledRouteTable(): void
 	{
 		new Bootstrap(Paths::fromRoot($this->temporaryDirectory()), ['APP_ENV' => 'production', 'APP_TIMEZONE' => 'America/Chicago'])->compile();
-
-		$this->entry('about/index.md', "title: About\nredirect_from: /who");
-		touch($this->temporaryDirectory() . '/user/content/about/index.md', time() + 10);
 
 		$app = $this->site();
 		$this->assertSame(404, $this->get('/who', $app)->getStatusCode());
 
-		$this->assertTrue($this->tester($app)->run('content:index')->isSuccessful());
-		$this->assertSame('/about', $this->get('/who', $this->site())->getHeaderLine('Location'));
-	}
+		$app->container()->make(RedirectWriter::class)->moved(['/who' => '/about', 'not a path' => '/about', '/same' => '/same']);
 
-	private function tester(Application $app): CommandTester
-	{
-		return new CommandTester($app->container()->make(Console::class));
+		$this->assertSame('/about', $this->get('/who', $this->site())->getHeaderLine('Location'), 'Written again, so it works without a cache:compile.');
+		$this->assertSame(['/who'], array_keys(new KeyedTable($app->container()->make(RecordStores::class), DataRedirects::table(), new SystemClock())->all()), 'What isn\'t a path, or didn\'t change, is left out.');
 	}
 }

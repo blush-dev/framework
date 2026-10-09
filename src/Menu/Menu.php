@@ -14,9 +14,10 @@ declare(strict_types=1);
 namespace Blush\Menu;
 
 /**
- * A resolved menu for one location, as templates see it (D-199): the
- * location's name, the site menu that fills it, the navigation's label,
- * and its items, with the links that don't resolve left out.
+ * A resolved menu, as templates see it (D-199): the location it fills,
+ * the site menu that fills it (`''` for the theme's default items,
+ * D-676), the navigation's label, and its items, with the links that
+ * don't resolve left out.
  *
  * ```php
  * <?php if ($menu = $template->menu('social')) : ?>
@@ -29,8 +30,8 @@ namespace Blush\Menu;
 final readonly class Menu
 {
 	/**
-	 * @param string         $location The theme location it fills.
-	 * @param string         $name     The site menu's name (`user/data/menus/{name}`).
+	 * @param string         $location The theme location it fills, or `''` for a menu content shows by name outside one.
+	 * @param string         $name     The site menu's name, or `''` for the theme's default.
 	 * @param string         $label    The navigation's accessible name.
 	 * @param list<MenuItem> $items
 	 */

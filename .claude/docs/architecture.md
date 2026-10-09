@@ -13,10 +13,11 @@ This is the design for the Blush 2 subsystems. Decisions it relies on are in
   later, a database. A driver (`Blush\Storage\Storage`) maps contracts
   to classes; each subsystem lists its contracts and their area in
   `ServiceProvider::STORAGE`, and `StorageResolver` builds them (D-642).
-  Only `filesystem` exists. Media files are always files. Build new
-  stored data behind an area's contract: site data through `DataStore`,
-  never `user/data`'s files, and content through `Entries` (D-654),
-  never `user/content`'s. Planned (D-606): one data
+  `filesystem` and `sqlite` exist (D-662). Media files are always files.
+  Build new stored data as a table of records read through a repository
+  (`TableRegistry`, `RecordStores`, `KeyedTable`), never `user/data`'s
+  files, and content through `Entries` (D-654), never `user/content`'s;
+  the data area's generic `DataStore` is gone (D-682). Planned (D-606): one data
   layer for every area, records keyed by id from drivers (filesystem
   and PDO in core, more from Composer), a fluent query each driver
   compiles, and repositories over them.
@@ -142,7 +143,8 @@ accounts move onto it in later steps; roles are on it now.
   optional `content` (D-649); `value()` reaches dotted keys. A record
   read from a store carries its `version` (D-648). **`Table`**: a name,
   its `StorageArea` (content, data, or accounts; sessions and jobs keep
-  narrow stores, D-645), an optional unique key value (D-646), and the
+  narrow stores, D-645), an optional unique key value (D-646; a path
+  key holds paths, kept on files only as one file, D-679), and the
   fields it declares (for a database's indexes, D-644, D-648).
   `TableRegistry` lists every table; core and plugins register in a
   `resolving()` callback.
@@ -192,7 +194,8 @@ accounts move onto it in later steps; roles are on it now.
   again; writes are atomic and each is in a transaction.
 - **`FileTransactions`**: the filesystem driver's one transaction
   journal and lock (`storage/cache/data.lock`), shared by
-  `FileDataStore` and `FileRecordStore`.
+  `FileRecordStore` and the stores that keep tables for it (`IndexStore`,
+  `MediaFiles`).
 - **The conformance suite** (`tests/Storage/Conformance`): the pinned
   answer to every operator, group, order, page, aggregate, and
   transaction; `ArrayRecordStore` and `FileRecordStore` (both layouts)
@@ -230,50 +233,50 @@ accounts move onto it in later steps; roles are on it now.
   without its extension. Data files are JSON only (D-631, superseding
   D-032's JSON or YAML and its parser registry); the only YAML Blush
   reads is front matter. `loadAll()` reads a whole directory.
-- **`DataStore`** (`Blush\Data`, D-642): the data area's contract, from
-  the storage driver for `data`. Records by name (`menus/main`, `media/2024/sunset.jpg`, `settings`, `health/ignored`):
-  `has`, `load`, `loadAll` (a folder's records), `records` (every record
-  under a folder, with when it changed), `save`, `delete`,
-  `transaction` (writes put back when it throws), and `location` (for
-  messages). `FileDataStore` keeps JSON files in `user/data` through
-  `DataLoader`, under `storage/cache/data.lock`. Nothing else reaches
-  `user/data`'s files; `DataKeys::apply()` sets and removes a record's
-  top-level keys in place.
+- **The data area is tables** (D-668 to D-682): settings groups,
+  types, relations, field sets, menus, redirects, and media metadata,
+  each read through its repository; `DataStore` (D-642), which kept
+  records by name, is gone (D-682). `DataKeys::apply()` sets and
+  removes a record's top-level keys in place.
 - **Schema validation:** data files have schemas (the same field-type system as
   content). JSON Schemas are published for editor autocomplete.
 - **Editor JSON Schemas (D-206):** `Blush\JsonSchema\JsonSchemas` builds
-  `resources/schemas/{theme,plugin,icons,menu,region}.schema.json`
+  `resources/schemas/{theme,plugin,icons,menu}.schema.json`
   (`composer schemas`; a test fails when they're stale). Field definitions
   come from each built-in type's `Field::definitionSchema()`, checked with
-  `if`/`then` on `type`; menu items and region items from each kind's
-  static `MenuLink::itemSchema()` and `RegionItem::itemSchema()` (D-207).
-  Manifests and items are open; menu and region files are closed, like
-  their loaders. `entry.schema.json` is the built-in front matter, from
+  `if`/`then` on `type`; menu items from each kind's static
+  `MenuLink::itemSchema()` (D-207). Manifests and items are open; menu
+  files are closed, like their loader. `entry.schema.json` is the built-in front matter, from
   `Field::valueSchema()` and `Schema::jsonSchema()` (D-211). Sites reach
   them through `vendor/` (a `$schema` key, or the skeleton's
   `.vscode/settings.json`). Other data
   files come later.
 
-## Menus and regions (D-199 to D-204)
+## Menus (D-199 to D-204, D-676)
 
-- `Blush\Menu`: `MenuLoader` reads the `menus/{name}` records (`DataStore`); `Menus`
-  resolves a location's menu for a chain and locale into immutable
-  `Menu`/`MenuItem` objects, kept per process (the page cache keeps
-  pages). Link kinds (`entry`, `term`, `collection`, `route`, `url`)
-  are `Link\MenuLinkType` + registry + factory + registrar.
-  `Menu::forPath()` marks the current item from `ViewContext::$path`.
-- `Blush\Region`: `RegionLoader` reads `user/data/regions/{name}.*`;
-  `Regions` renders a location's items (site file, else the theme's
-  defaults). Item kinds (`directive`, `component`, `markdown`, `entry`,
-  `view`) are `Item\RegionItemType` + registry + factory + registrar.
-  Markdown renders through the body cache; directives and components
-  render per request.
-- Unresolved links and items that fail are left out and logged;
-  `check()` on each feeds `menu:list` and `theme:check`.
-- Locations come from the theme manifest; same-name matching, with an
-  optional map in `user/data/theme.json`.
-- Text values in these files may be locale maps, resolved by the page's
-  locale with catalog-style fallback (D-202).
+- `Blush\Menu`: `MenuLoader` reads and writes the `menus` table (a record
+  per menu keyed by `name`, kept on files as `user/data/menus/{name}.json`,
+  D-676) as `MenuRecord`s; `Menus` resolves what a location shows for a
+  chain and locale into immutable `Menu`/`MenuItem` objects, kept per
+  process (the page cache keeps pages). Link kinds (`entry`, `term`,
+  `collection`, `route`, `url`) are `Link\MenuLinkType` + registry +
+  factory + registrar. `Menu::forPath()` marks the current item from
+  `ViewContext::$path`.
+- **Assignments:** a location shows the site menu assigned to it, kept in
+  the active theme's own settings group under `menus` (location → menu
+  name; `Menus::assignments()`/`assign()`, `menu:assign`), else the
+  theme's default `items` from `theme.json`, else nothing. No matching by
+  name. Content shows a menu by name (`Menus::named()`, the directive's
+  `name`); templates by location (`location`, `$template->menu()`).
+- **Links by id:** kinds implementing `Link\LinksEntry` (`entry`, `term`)
+  read the target's id from the item's `ref` first, then the readable
+  form; `MenuRefs` (`menu:refs`) files both.
+- Unresolved links are left out and logged, and menus or assignments that
+  can't be read are logged with pages showing no menu; `Menus::check()`
+  feeds `menu:list` and `theme:check`.
+- Text values may be locale maps, resolved by the page's locale with
+  catalog-style fallback (D-202).
+- Regions (`Blush\Region`, D-201) were removed in D-676.
 
 ## Translation (D-028)
 
@@ -418,9 +421,14 @@ Implemented in M3 (D-073 to D-077).
   Extra params become the query string. Entry, collection, term, and
   date-archive URLs come from `ContentUrls`, which builds them from type
   routing without the route table (D-096).
-- **Redirects:** `RouteConfig::$redirects`, then `user/data/redirects.*`,
-  then `redirect_from` front matter (D-097), and any tagged
-  `RedirectSource`s, with pattern placeholders. They're checked only before a 404, including when a
+- **Redirects:** `RouteConfig::$redirects`, then the `redirects` table
+  (`DataRedirects`, a row per redirect keyed by its `from` path, a path
+  key; on files the one list `user/data/redirects.json`; D-678, D-679),
+  and any tagged
+  `RedirectSource`s, with pattern placeholders. The admin's rename and
+  move redirects are rows written by `RedirectWriter` (D-680), which
+  repoints rows that led to the old address and rewrites a compiled
+  route table. They're checked only before a 404, including when a
   handler throws `NotFound`. `/public/...` URLs redirect to the canonical
   path (D-076).
 - **Site URLs** (D-476): `SiteUrls::all()` lists every concrete URL
@@ -444,7 +452,8 @@ forms; `GET fields/types`, the catalog; definitions as a list or a map
 (`FieldFactory::definitions()`); and config types and media fields in
 array form built with the container's registry. Field sets on content
 types are built (D-339): `FieldSet`, `FieldTarget`, `ContentTypeTarget`,
-`FieldSetLoader` (extensions, `config/fields.php`, `user/data/fields`),
+`FieldSetLoader` (extensions, `config/fields.php`, the `field_sets` table
+kept as `user/data/fields`, D-678),
 `FieldSets`, sets in `ContentTypes::schema()` and its compiled array,
 `FieldSetCheck` in `content:lint`, and a group per set in the editor.
 Structure → Fields is built too (D-340): `DataFieldSetWriter`, the
@@ -469,7 +478,8 @@ right:
 - **`FieldSet`:** a named, labeled, ordered list of fields with
   `targets` (`type:post`, all of one kind, D-347), attached from the
   set's side. From extension
-  `FieldSetSource`s, `config/fields.php`, and `user/data/fields/*`, a
+  `FieldSetSource`s, `config/fields.php`, and the `field_sets` table
+  (`user/data/fields/*`, D-678), a
   later set replacing an earlier one with its name. A type's own inline
   `fields` are its own set.
 - **`FieldTarget`:** a place fields attach to. It says which fields it
@@ -595,7 +605,7 @@ Implemented in M4a (D-083, D-084); kinds and option names from D-157.
 - **Built-in entry fields** (`EntryFields`): `title`, `subtitle`, `slug`,
   `published` (alias `date`), `updated`, `status`, `visibility`, `summary`
   (alias `excerpt`), `image`, `locale`, `template` (alias `view`),
-  `layout`, `stylesheet`, `class`, `redirect_from`, and
+  `layout`, `stylesheet`, `class`, and
   `collection`, plus the field of each relation the site defines from
   the type (a classify relation's terms).
 - Schemas drive **validation/casting** (at index time and in `content:lint`),
@@ -750,8 +760,8 @@ Implemented in M4b (D-087, D-090).
     built, D-663, D-664). Content kept as records is written by
     `RecordContentWriter`: front matter as written (`written`) beside
     its normalized values, relations as `refs` rows only. Data,
-    accounts, sessions, and jobs are tables too (`RecordDataStore`,
-    `RecordSessionStore`, `RecordJobStore`, D-665; accounts and roles
+    accounts, sessions, and jobs are tables too (each data table's
+    repository, `RecordSessionStore`, `RecordJobStore`, D-665; accounts and roles
     through `Accounts` and `Roles` on every driver, D-669). What only files have asks `ContentFiles` (`kept()`,
     `source()`) and steps aside on a database (D-667).
 - **`RecordBuilder`** turns a file into an `IndexRecord` (the 1.x file
@@ -780,8 +790,8 @@ Implemented in M4b (D-087, D-090).
   `children()` (from records' `parent` keys and the snapshot's reverse
   `children` map, D-257), `parentKey()` (for a hierarchical term's
   nested URL, which `ContentUrls::termPath()` builds, D-260), plus `get()`,
-  `paginate()`, and `count()` for queries, plus `redirects()` for
-  `redirect_from`. URLs are resolved by the router's content routes, not
+  `paginate()`, and `count()` for queries (`redirect_from` and
+  `redirects()` went in D-680). URLs are resolved by the router's content routes, not
   `Entries`. A stale index (another fingerprint) is rebuilt on first
   use in any environment (D-098). It writes by id (D-654), each write
   answering the entry after it: `create()` (a tree's page under a parent
@@ -923,7 +933,7 @@ Implemented in M4c (D-099), apart from image derivatives.
   kind's schema from the built-in fields (`alt` for images, then
   `title`, `caption`, `credit`, `description` for all), then the field
   sets aimed at the kind (`media:{kind}`, D-341). Values are
-  stored as `media/{path}` records in the `DataStore` (D-642; for files,
+  stored as records in the `media` table (D-675; for files,
   `user/data/media/{path}.json`, D-631), never next to the file, as
   `MediaMetadata` (values by key), read and written by
   `MediaMetadataStore` (only the keys changed, under the name or alias

@@ -345,27 +345,6 @@ final class StoredEntries implements Entries
 	 * @inheritDoc
 	 */
 	#[Override]
-	public function redirects(): array
-	{
-		$redirects = [];
-
-		foreach ($this->where(new RecordQuery()->where('fields.redirect_from', 'not null')) as $entry) {
-			$from = $entry->field('redirect_from');
-
-			foreach (is_array($from) ? $from : [] as $old) {
-				if (is_string($old) && ! isset($redirects[$old])) {
-					$redirects[$old] = $entry;
-				}
-			}
-		}
-
-		return $redirects;
-	}
-
-	/**
-	 * @inheritDoc
-	 */
-	#[Override]
 	public function editable(Entry|string $entry): EditableEntry
 	{
 		return $this->writer()->load(self::id($entry));

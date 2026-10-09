@@ -696,9 +696,11 @@ final class AdminEditingTest extends TestCase
 
 		$this->assertSame(200, $response->getStatusCode(), (string) $response->getBody());
 		$this->assertSame(['services/work/index.md', 'services'], [$moved['path'] ?? null, $moved['parent'] ?? null]);
-		$this->assertStringContainsString('/work', $this->file('services/work/index.md'), 'The page redirects from its old address (D-410).');
-		$this->assertStringContainsString('/work/design', $this->file('services/work/design.md'), 'So does a published page under it.');
-		$this->assertStringNotContainsString('redirect_from', $this->file('services/work/_notes.md'), 'A hidden one has no address to keep.');
+		$this->assertSame(
+			['/work' => '/services/work', '/work/design' => '/services/work/design'],
+			$this->redirects(),
+			'The page redirects from its old address (D-410), as does a published page under it, in the redirects table (D-680); a hidden one has no address to keep.'
+		);
 		$this->assertFileExists($this->temporaryDirectory() . '/user/content/services/index.md', 'The new parent became its folder\'s page.');
 
 		$top = $this->call('PATCH', $this->entryPath('services/work/design.md'), ['revision' => $this->revision('services/work/design.md'), 'parent' => '']);
@@ -825,26 +827,62 @@ final class AdminEditingTest extends TestCase
 
 	public function testRenamingKeepsOldLinksAndChangesASlugKey(): void
 	{
-		$this->writeTemporaryFile('user/content/_posts/2020-02-02.file-name.md', "---\ntitle: Keyed\nslug: keyed\nredirect_from: /older\n---\n");
+		$this->writeTemporaryFile('user/content/_posts/2020-02-02.file-name.md', "---\ntitle: Keyed\nslug: keyed\n---\n");
+		$this->writeTemporaryFile('user/data/redirects.json', '[{"from": "/older", "to": "/archives/keyed"}, {"from": "/archives/keyed-again", "to": "/elsewhere"}]');
 		$this->site();
 
 		$redirected = self::json($this->call('PATCH', $this->entryPath(self::FLAME), ['revision' => $this->revision(self::FLAME), 'slug' => 'the-flame', 'redirect' => true]));
 		$this->assertSame('/archives/the-flame', $redirected['url'] ?? null);
-		$this->assertStringContainsString("redirect_from: [/archives/flame]\n", $this->file('_posts/2022-03-29.the-flame.md'), 'The old address redirects.');
+		$this->assertSame('/archives/the-flame', $this->redirects()['/archives/flame'] ?? null, 'The old address redirects (D-680).');
+		$this->assertStringNotContainsString('redirect_from', $this->file('_posts/2022-03-29.the-flame.md'), 'Not in the entry.');
 
 		$id    = '_posts/2020-02-02.file-name.md';
 		$keyed = self::json($this->call('PATCH', $this->entryPath($id), ['revision' => $this->revision($id), 'slug' => 'keyed-again', 'redirect' => true]));
 		$this->assertSame([$id, 'keyed-again', '/archives/keyed-again'], [$keyed['path'] ?? null, $keyed['slug'] ?? null, $keyed['url'] ?? null], 'A slug key is changed, not the file.');
 		$this->assertStringContainsString("slug: keyed-again\n", $this->file($id));
-		$this->assertStringContainsString('/older', $this->file($id));
-		$this->assertStringContainsString('/archives/keyed', $this->file($id), 'Old addresses stay, and the new old one joins them.');
+		$this->assertSame('/archives/keyed-again', $this->redirects()['/archives/keyed'] ?? null, 'The new old address joins them.');
+		$this->assertSame('/archives/keyed-again', $this->redirects()['/older'] ?? null, 'A redirect to the old address now leads to the new one, so there\'s no chain.');
+		$this->assertArrayNotHasKey('/archives/keyed-again', $this->redirects(), 'One from the new address goes; the entry answers there.');
 
 		$copy = self::json($this->call('POST', $this->entryPath($id) . '/duplicate'));
 		$this->assertIsString($copy['path'] ?? null);
 		$this->assertSame('_posts/keyed-again-copy.md', $copy['path']);
 		$this->assertSame('keyed-again-copy', $copy['slug'] ?? null);
 		$this->assertStringNotContainsString('slug:', $this->file($copy['path']), 'A copy is named by its file.');
-		$this->assertStringNotContainsString('redirect_from', $this->file($copy['path']), 'The original keeps its old addresses.');
+	}
+
+	public function testRenamingWithoutARedirectLeavesNone(): void
+	{
+		$this->site();
+
+		$this->call('PATCH', $this->entryPath(self::FLAME), ['revision' => $this->revision(self::FLAME), 'slug' => 'the-flame', 'redirect' => false]);
+
+		$this->assertSame([], $this->redirects());
+	}
+
+	/**
+	 * Returns the site's redirects, as `user/data/redirects.json` keeps
+	 * them: new addresses, by old address.
+	 *
+	 * @return array<string, mixed>
+	 */
+	private function redirects(): array
+	{
+		$path = $this->temporaryDirectory() . '/user/data/redirects.json';
+		$rows = is_file($path) ? json_decode((string) file_get_contents($path), true) : [];
+
+		$this->assertIsArray($rows);
+
+		$redirects = [];
+
+		foreach ($rows as $row) {
+			$this->assertIsArray($row);
+			$this->assertIsString($row['from'] ?? null);
+
+			$redirects[$row['from']] = $row['to'] ?? null;
+		}
+
+		return $redirects;
 	}
 
 	public function testDeletesToTheTrash(): void

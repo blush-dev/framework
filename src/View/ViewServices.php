@@ -22,7 +22,6 @@ use Blush\Content\Routing\ContentUrls;
 use Blush\Content\Type\ContentTypes;
 use Blush\Core\AppConfig;
 use Blush\Menu\Menus;
-use Blush\Region\Regions;
 use Blush\Routing\UrlGenerator;
 use Blush\Settings\SiteSettings;
 use Blush\View\Engine\ViewEngines;
@@ -33,7 +32,7 @@ use Blush\Directive\DirectiveVariants;
 /**
  * The services every `Views` shares, whatever its theme chain: what
  * templates reach through `Template` (URLs, content, routes, the app
- * config, menus, regions, the site settings field sets add, links
+ * config, menus, the site settings field sets add, links
  * between entries), context
  * providers, directives and components (D-532), the view engines
  * (D-502), and assets: what prints them into a page's head, and what
@@ -53,7 +52,6 @@ final readonly class ViewServices
 		public RenderableFactory $factory,
 		public DirectiveVariants $variants,
 		public Menus $menus,
-		public Regions $regions,
 		public SiteSettings $site,
 		public ViewEngines $engines,
 		public Assets $assets,

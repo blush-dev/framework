@@ -72,7 +72,6 @@ final class EntryFields
 			new TextField('stylesheet')->described('An extra stylesheet for this page.'),
 			new ListField('class')->described('Extra CSS classes for the page\'s <body>.'),
 			new TextField(self::TRANSLATION_OF)->described('For a translation, the id of the entry it translates, which links them whatever their file names.'),
-			new ListField('redirect_from')->described('Old URLs that should redirect here.'),
 			new ObjectField('collection')->described('Lists other entries on this page.')
 		]);	}
 }

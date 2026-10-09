@@ -20867,3 +20867,243 @@ decision, add a new entry that supersedes it and mark the old one
   files with `sizes` or `description` were rewritten; every one has an
   id, and `media:ids` and `media:sizes` report nothing to do.
 - **Why:** the author's go ("go, do 6d"), on D-674.
+
+### D-676: Regions removed, menus as a table, assigned to locations (step 6e)
+
+- **Date:** 2026-10-09
+- **Status:** Built in D-677. Supersedes D-201 and D-204's
+  regions parts, D-199's "a location shows the site menu of the same
+  name" and its `user/data/theme.json` map, and D-201's "Menus get no
+  theme defaults."
+- **Decision:**
+  - **Regions are removed for now:** `Blush\Region`, its item kinds,
+    `user/data/regions/`, `$template->region()` and `hasRegion()`,
+    `theme.json` `regions`, the `regions.edit` capability, and their
+    docs and checks. When the feature returns it's planned again from
+    scratch (`open-questions.md`, **Regions as written content**).
+  - **Menus are a table:** `menus`, a record per menu, keyed by `name`,
+    kept on files as `user/data/menus/{name}.json` (a folder layout,
+    as `types` in 6b), each record gaining an `id`. Its `label` and
+    nested `items` are fields; items aren't rows. A menu's name never
+    changes (its label can), so `::menu{name=…}` and assignments name
+    it. Users make as many menus as they want.
+  - **Links hold ids:** `entry` and `term` items keep their readable
+    form (`page/about`) and gain a `ref`, the target's id, which wins
+    when both are there (as relations file both forms, D-587); checks
+    fill in a missing `ref`. `collection`, `route`, and `url` items are
+    unchanged (types and routes are named).
+  - **Assigning:** the user assigns a menu to one or more of the
+    theme's locations; a location shows at most one menu. There's no
+    matching by name: an unassigned location shows the theme's default
+    structure, if it has one, else nothing.
+  - **Theme defaults:** a `theme.json` `menus` location may give
+    default `items` (readable links only; a theme can't know ids),
+    or none.
+  - **`user/data/theme.json` goes.** The assignments are kept in the
+    theme's own settings group (D-670), under `menus` (location → menu
+    name), so each theme keeps its own and switching themes back
+    restores them. `menus` is reserved there, as `theme.json` already
+    uses it for locations.
+- **Why:** the author ("Let's go with a table for now. Themes should be
+  able to provide a default structure (or none). Users build menus (as
+  many as they want). They can then assign those menus to one or more
+  locations defined by the theme"; regions: "let's remove regions for
+  now"; menu links: "Yes, ids"; dropping `user/data/theme.json`: "OK").
+  Where assignments are kept, and names (not ids) for menus, are
+  Claude's calls, to check at review: assignments are per theme because
+  locations are, and a menu's name is already its stable handle in
+  content.
+
+### D-677: Menus as a table, regions removed, built (step 6e)
+
+- **Date:** 2026-10-09
+- **Status:** Built. Part 6e of step 6, with D-676's shape.
+- **Decision:**
+  - **Regions are gone:** `Blush\Region`, `region.schema.json`,
+    `Template::region()`/`hasRegion()`, `ThemeManifest::regions()`,
+    `Capability::RegionsEdit`, and the default theme's `footer` region.
+  - **`menus` table:** `MenuLoader::table()` (key `name`), registered in
+    `MenuServiceProvider` with a `keyInName` folder layout. `MenuLoader`
+    reads it through `RecordStores` into `MenuRecord`s (in place of
+    `MenuFile`) and changes a menu in a transaction (`change()`). A menu
+    is a map of `label` and `items`; a bare list of items is no longer a
+    menu. Its id is the steady one from its name until it's saved
+    (D-646). `storage:copy` copies it as a table.
+  - **Assignments:** `Menus::assignments()`, `assign()`, and
+    `menuName($chain, $location)` over the active theme's settings group
+    (`ThemeManifest::MENUS`); `menu:assign <location> [menu] [--clear]
+    [--theme]` writes them. `SiteThemeData` is gone. A theme setting
+    named `menus` is refused.
+  - **Theme defaults:** `MenuLocation::$items`, checked as a list; a
+    location's resolved `Menu` has `name` `''` for them.
+  - **Content and templates:** the `menu` directive takes `location`
+    (templates) or `name` (content, `Menus::named()`, resolved for the
+    first location the menu is assigned to, for its depth and fields);
+    its modifier is the location, else the menu's name. The default
+    theme and the trial site's themes use `location:`.
+  - **Links by id:** `Link\LinksEntry` (`entry()`, `value()`, `REF`),
+    implemented by `EntryLink` and `TermLink` (a `ref` naming a
+    translated term finds its original); an item's `ref` must be an id.
+    `MenuRefs` and `menu:refs [--write]` file both forms, the `ref` right
+    after the link, and update a renamed entry's readable form.
+  - **Problems don't break pages:** menus or assignments that can't be
+    read are logged as errors and the page shows no menu; `check()`
+    reports them, assignments to missing menus (warnings), and to
+    locations the theme doesn't declare (notices).
+  - **Not built:** Site Health doesn't check menus (it never has);
+    `menu:refs` and `menu:list` do.
+- **Proof:** `composer check`. `MenusTest` (assignments, theme defaults,
+  links by id, a setting named `menus`), `MenuCommandsTest` (`menu:assign`,
+  `menu:refs`), `SqliteAreasTest` (menus and assignments as rows),
+  `StorageCopyTest` (13 tables). The trial site's menus are assigned for
+  its three themes and filed with refs, and both themes render them.
+- **Why:** the author's go ("go, do 6e"), on D-676.
+
+### D-678: Redirects and field sets as tables (step 6f)
+
+- **Date:** 2026-10-09
+- **Status:** Built in D-679. Settles D-671's waits.
+- **Decision:**
+  - **Redirects are a `redirects` table**, a row per redirect (`from`,
+    `to`, `status`), keyed by `from`. On files the table stays one file,
+    `user/data/redirects.json`, as a list of `{from, to, status}`; the
+    map form (`"/old": "/new"`) goes (no site uses it). On SQLite, rows.
+    Not a settings group: redirects grow (a move from another system
+    brings many), are edited one at a time, and are looked up by path.
+    Site-wide redirects stay in core; import tools (CSV, `.htaccess`)
+    may be plugins.
+  - **Field sets are a `field_sets` table now**, keyed by `name`, files
+    in place (`user/data/fields/{name}.json`, a folder layout with the
+    name in the file name, as types in D-672), a set's definition stored
+    as written. Moving storage isn't building on the paused Fields API
+    (D-348); reshaping sets later changes records, not the table.
+  - **Still open:** whether entries keep `redirect_from` in front matter
+    or every redirect lives in the table, and the Redirects screen
+    (`open-questions.md`).
+- **Why:** the author: "Sounds good on your plan" (redirects as rows,
+  the list form only); field sets as a table now: "Yes."
+
+### D-679: Redirects and field sets as tables, built (step 6f)
+
+- **Date:** 2026-10-09
+- **Status:** Built. Part 6f of step 6, with D-678's shape.
+- **Decision:**
+  - **Path keys:** a table key's values are letters, digits, `.`, `_`,
+    and `-` (D-646), since folder tables name files by them, so a path
+    couldn't key redirects as D-678 says. `Table` gains `pathKey`: its
+    key holds paths (`/` then no whitespace, `Table::isKey()`), and
+    `FileLayouts::for()` refuses a folder layout for such a table, so on
+    files it's always one file. Steady ids come from the path as from
+    any key (`redirects//old-about`).
+  - **`redirects`:** `DataRedirects::table()` (key `from`, a path key,
+    `from` declared) and `layout()` (one file,
+    `user/data/redirects.json`, the whole file a list), registered in
+    `ContentServiceProvider`. `DataRedirects` reads the rows through
+    `RecordStores`; a row's problem names where it's kept. The map form
+    is refused ("needs a list of records"). Two rows with one `from` are
+    refused as any key's duplicates are.
+  - **`field_sets`:** `FieldSetLoader::table()` and `records()` (a
+    `KeyedTable`), registered beside types and relations with a
+    `keyInName` folder layout at `user/data/fields`. `FieldSetLoader`,
+    `DataFieldSetWriter`, and `FieldSetCheck` read and write through it;
+    a file naming another set is refused by the store. Saved sets gain
+    an `id`, as types do.
+  - **Schemas:** `field-set.schema.json` and `relation.schema.json`
+    allow the `id` a saved record has (the relation's was missed in 6b).
+  - Nothing outside `Blush\Data` and `Blush\Storage` reads `DataStore`
+    now; 6g retires it.
+- **Proof:** `composer check` (2,098 tests). `FieldSetsTest`,
+  `AdminFieldSetsTest` (saved sets keep their id), `ContentRoutingTest`
+  (the list form, placeholders, the map form refused, paths as keys),
+  `FileRecordStoreTest` (path keys in one file, refused for folders),
+  `SqliteAreasTest` (both as rows), `StorageCopyTest` (15 tables). The
+  trial site's field sets load (`content:lint`); it has no redirects.
+- **Why:** the author's go ("go, do 6f"), on D-678. Path keys are
+  Claude's way to key redirects by path, to check at review: the
+  alternative, a table without a key, would have left hand-written rows
+  without steady ids.
+
+### D-680: `redirect_from` goes (planned)
+
+- **Date:** 2026-10-09
+- **Status:** Built in D-681. Settles D-678's open question.
+- **Decision:** Entries no longer keep their own redirects: the
+  `redirect_from` front matter key and `ContentRedirects` go, leaving
+  `config/routes.php` and the `redirects` table as the sources. It can
+  come back if a site needs it. No site uses it (`../blush` and
+  `../ten-thousand` have none).
+  - **Still open:** what the admin's **Redirect the old address here**
+    (on by default when a published entry's slug or parent changes,
+    today written to `redirect_from`) does instead: add a row to the
+    `redirects` table, or go with the key.
+- **Why:** the author: "On redirect_from in front matter, i've literally
+  never used this. I don't think we need it for now and can just leave
+  it out. It can always be brought back if it becomes a need."
+
+### D-681: Rename redirects as rows, `redirect_from` gone, built
+
+- **Date:** 2026-10-09
+- **Status:** Built. D-680, with the author's choice: the admin's
+  **Redirect the old address here** adds a row to the `redirects`
+  table.
+- **Decision:**
+  - **Gone:** the `redirect_from` built-in field (and the entry
+    schema's), `ContentRedirects`, `Entries::redirects()`, and the
+    duplicate's removal of the key. `RefreshRouteCache` stays: it also
+    keeps a compiled route table current as content changes (what
+    answers the home page), not only for `redirect_from`.
+  - **`RedirectWriter::moved()`** (`Blush\Content\Routing`): for each old
+    address → new one, in a transaction, it removes a row from the new
+    address (the entry answers there), points rows that led to the old
+    address at the new one (no chains), and writes a permanent redirect
+    from the old address, replacing any row from it; addresses that
+    aren't paths, or didn't change, are left out. It then rewrites an
+    existing compiled route table outside development, so the redirect
+    works without a `cache:compile`.
+  - **The admin:** `EntryController` notes a published entry's address
+    before a slug or parent change with `redirect: true`, and after the
+    save passes the entry's and every published page's under a moved
+    tree page to `RedirectWriter`. The entry is saved by then, so a
+    redirect that can't be written is logged (warning) and the save
+    stands. The editor's checkbox and the API are unchanged.
+  - **A side effect gone:** compiling routes used to query entries for
+    `redirect_from`, which checked the content index on every request
+    of a production site without a compiled route table. Production
+    notices changed files when they're published, as
+    `docs/going-live.md` says; two tests that changed config on a
+    production site relied on the side effect and now publish.
+- **Proof:** `composer check`. `AdminEditingTest` (renames and tree
+  moves write rows, a row to the old address repointed, one from the new
+  address removed, none without `redirect`), `ContentRoutingTest` (data
+  redirects only, `RedirectWriter` reaching a compiled route table).
+- **Why:** the author: "A, go."
+
+### D-682: The data store retired (step 6g); step 6 done
+
+- **Date:** 2026-10-09
+- **Status:** Built. Part 6g of step 6, the last.
+- **Decision:**
+  - **Gone:** `DataStore`, `FileDataStore`, `RecordDataStore`,
+    `DataStoreException`, their bindings in both drivers, and SQLite's
+    generic `data` table; `storage:sync` makes 14 tables. `Blush\Data`
+    keeps `DataLoader`, `DataKeys`, `InvalidData`, and `DataException`,
+    which translations, parsers, and the type writers use.
+  - **`storage:copy`** copies entries and links, accounts, every other
+    registered table, and jobs; nothing is copied by name any more.
+  - **A SQLite fix:** the store makes a table the first time it's used
+    and remembers it; a table made inside a transaction that rolled
+    back was rolled back too, but stayed remembered, so later reads
+    failed ("no such table"). A failed transaction now forgets the
+    tables it made (`SqliteRecordStore::transaction()`).
+  - **Benchmarks:** `AdminBench` made accounts with a profile slug,
+    broken since 6a (D-669); they link the profile by id now. The bench
+    site's version is 4, so its SQLite copy, made before the data
+    tables, is made again.
+- **Proof:** `composer check` (2,089 tests; the data store's own tests
+  went with it). `SqliteAreasTest` (a failed transaction across two
+  tables puts both back), `StorageCopyTest` (14 tables). `composer
+  bench`, run alternately against the last commit (6d) in a worktree:
+  requests within noise (files 13.5–14.1 ms now against 13.6–14.4 ms;
+  SQLite 19.6–19.9 ms against 20.2–21.1 ms). The trial site renders
+  and lists its menus.
+- **Why:** the author's go ("go, do 6g").

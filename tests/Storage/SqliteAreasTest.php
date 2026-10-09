@@ -20,26 +20,33 @@ use PHPUnit\Framework\TestCase;
 use Blush\Auth\Accounts;
 use Blush\Auth\Role;
 use Blush\Auth\Roles;
+use Blush\Content\Routing\DataRedirects;
+use Blush\Content\Type\DefinitionTables;
 use Blush\Core\AppConfig;
 use Blush\Core\Application;
-use Blush\Data\DataStore;
-use Blush\Data\InvalidData;
-use Blush\Data\RecordDataStore;
 use Blush\Feed\FeedConfig;
+use Blush\Field\FieldSetLoader;
 use Blush\Job\JobRecord;
 use Blush\Job\JobStatus;
 use Blush\Job\JobStore;
 use Blush\Job\RecordJobStore;
 use Blush\Media\MediaMetadataStore;
 use Blush\Media\MediaResolver;
+use Blush\Menu\MenuLoader;
+use Blush\Menu\Menus;
+use Blush\Routing\Redirect;
 use Blush\Session\RecordSessionStore;
 use Blush\Session\SessionStore;
 use Blush\Settings\Settings;
 use Blush\Settings\SettingsStore;
+use Blush\Storage\Record\KeyedTable;
+use Blush\Storage\Record\RecordStores;
 use Blush\Storage\SqliteStorage;
 use Blush\Storage\Sql\SqliteConnection;
 use Blush\Support\Uuid;
 use Blush\Tests\BootsScratchSite;
+use Blush\Theme\ThemeResolver;
+use Psr\Clock\ClockInterface;
 
 /**
  * A site with every area on the SQLite driver (D-662): data, accounts,
@@ -47,7 +54,6 @@ use Blush\Tests\BootsScratchSite;
  * its contract as the filesystem's stores do.
  */
 #[CoversClass(SqliteStorage::class)]
-#[CoversClass(RecordDataStore::class)]
 #[CoversClass(Accounts::class)]
 #[CoversClass(RecordSessionStore::class)]
 #[CoversClass(RecordJobStore::class)]
@@ -91,7 +97,6 @@ final class SqliteAreasTest extends TestCase
 
 	public function testEveryAreaIsKeptInTheSitesDatabase(): void
 	{
-		$this->assertInstanceOf(RecordDataStore::class, $this->make(DataStore::class));
 		$this->assertInstanceOf(Accounts::class, $this->make(Accounts::class));
 		$this->assertInstanceOf(RecordSessionStore::class, $this->make(SessionStore::class));
 		$this->assertInstanceOf(RecordJobStore::class, $this->make(JobStore::class));
@@ -123,51 +128,51 @@ final class SqliteAreasTest extends TestCase
 		$this->assertSame('', $store->find($file)->alt);
 	}
 
-	public function testKeepsDataByName(): void
+	public function testKeepsMenusAndTheirAssignmentsAsRecords(): void
 	{
-		$data = $this->make(DataStore::class);
+		new KeyedTable($this->make(RecordStores::class), MenuLoader::table(), $this->make(ClockInterface::class))
+			->save('main', ['label' => 'Main', 'items' => [['url' => '/x', 'label' => 'X']]]);
 
-		$this->assertFalse($data->has('types/post'));
-		$this->assertNull($data->load('types/post'), 'A missing record is null, not empty.');
+		$menus = $this->make(Menus::class);
+		$chain = $this->make(ThemeResolver::class)->active();
 
-		$data->save('types/post', ['$schema' => 'type.schema.json', 'labels' => ['singular' => 'Café']]);
-		$data->save('media/a.png', ['alt' => 'A']);
-		$data->save('media/2026/b.png', ['alt' => 'B']);
+		$menus->assign($chain, 'primary', 'main');
 
-		$this->assertTrue($data->has('types/post'));
-		$this->assertSame(['labels' => ['singular' => 'Café']], $data->load('types/post'), 'An editor\'s schema key isn\'t data (D-491).');
-		$this->assertSame(['a.png' => ['alt' => 'A']], $data->loadAll('media'), 'Only the records directly in it.');
-		$this->assertSame(['2026/b.png', 'a.png'], array_keys($data->records('media')), 'Every record under it.');
-		$this->assertSame([], $data->loadAll('missing'));
-		$this->assertSame('types/post in the database', $data->location('types/post'));
-
-		$data->delete('types/post');
-		$data->delete('types/post');
-
-		$this->assertFalse($data->has('types/post'), 'Deleting a missing record is nothing to do.');
-
-		$this->expectException(InvalidData::class);
-
-		$data->load('../config');
+		$this->assertSame(['X /x'], array_map(static fn ($item): string => "{$item->label} {$item->url}", $menus->forLocation($chain, 'primary')->items ?? []));
+		$this->assertSame('menus/main in the database', $this->make(MenuLoader::class)->location('main'));
+		$this->assertDirectoryDoesNotExist($this->temporaryDirectory() . '/user/data', 'Menus and assignments kept in the database (D-676).');
 	}
 
-	public function testAFailedDataTransactionPutsEveryRecordBack(): void
+	public function testKeepsFieldSetsAndRedirectsAsRecords(): void
 	{
-		$data = $this->make(DataStore::class);
-		$data->save('types/post', ['icon' => 'pen']);
+		$this->make(FieldSetLoader::class)->records()->save('kitchen', ['targets' => ['type:post'], 'fields' => ['oven' => ['type' => 'text']]]);
+		new KeyedTable($this->make(RecordStores::class), DataRedirects::table(), $this->make(ClockInterface::class))->save('/news/{name}', ['to' => '/blog/{name}']);
+
+		$this->assertSame(['type:post'], $this->make(FieldSetLoader::class)->load()->find('kitchen')->targets ?? null);
+		$this->assertSame(['/news/{name}'], array_map(static fn (Redirect $redirect): string => $redirect->from, [...$this->make(DataRedirects::class)->redirects()]));
+		$this->assertDirectoryDoesNotExist($this->temporaryDirectory() . '/user/data', 'Kept in the database (D-678).');
+	}
+
+	public function testAFailedTransactionPutsEveryTableBack(): void
+	{
+		$tables    = $this->make(DefinitionTables::class);
+		$types     = $tables->types();
+		$relations = $tables->relations();
+
+		$types->save('post', ['icon' => 'pen']);
 
 		try {
-			$data->transaction(static function () use ($data): void {
-				$data->save('types/post', ['icon' => 'book']);
-				$data->save('relations/tags', ['kind' => 'classify']);
+			$types->transaction(static function () use ($types, $relations): void {
+				$types->save('post', ['icon' => 'book']);
+				$relations->save('tags', ['kind' => 'classify']);
 
 				throw new RuntimeException('Doesn\'t fit.');
 			});
 		} catch (RuntimeException) {
 		}
 
-		$this->assertSame(['icon' => 'pen'], $data->load('types/post'));
-		$this->assertFalse($data->has('relations/tags'));
+		$this->assertSame(['icon' => 'pen'], $types->find('post'));
+		$this->assertFalse($relations->has('tags'), 'One database, one transaction.');
 	}
 
 	public function testTheSavedSettingsAreReadBeforeTheContainer(): void

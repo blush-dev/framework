@@ -26,8 +26,6 @@ use Blush\Content\Source\ContentSource;
 use Blush\Content\Source\FilesystemSource;
 use Blush\Content\Writer\ContentWriter;
 use Blush\Content\Writer\FilesystemContentWriter;
-use Blush\Data\DataStore;
-use Blush\Data\FileDataStore;
 use Blush\Job\FileJobStore;
 use Blush\Media\MediaFiles;
 use Blush\Job\JobStore;
@@ -58,7 +56,6 @@ final readonly class FilesystemStorage implements Storage
 			ContentSource::class  => FilesystemSource::class,
 			ContentWriter::class  => FilesystemContentWriter::class,
 			EntryLocations::class => IndexLocations::class,
-			DataStore::class      => FileDataStore::class,
 			MediaFiles::class     => MediaFiles::class,
 			RecordStore::class    => FileRecordStore::class,
 			SessionStore::class   => FileSessionStore::class,

@@ -189,12 +189,12 @@ download.
 
 ### Menus
 
-`::menu{name=social}` shows one of your site's [menus](menus.md), by the
-theme location that shows it. `label` names the navigation for screen
-readers. In content, no link is marked as the current page, since the
-same content is shown on every page. Themes usually print menus from
-their templates instead:
-`<?= $template->directive('menu', name: 'primary') ?>`.
+`::menu{name=social}` shows one of your site's [menus](menus.md), by its
+name. `label` names the navigation for screen readers. In content, no
+link is marked as the current page, since the same content is shown on
+every page. Themes usually print what a location shows from their
+templates instead:
+`<?= $template->directive('menu', location: 'primary') ?>`.
 
 ### Table of contents
 

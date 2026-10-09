@@ -148,7 +148,7 @@ An account can do anything any of its roles allows.
 |---|---|
 | `owner` | Everything, always, including what plugins add; only an owner changes an owner (see [Owners](#owners)) |
 | `administrator` | Everything built in but installing, updating, and deleting plugins and themes, and Site Health: accounts, roles, settings, and every entry |
-| `editor` | Create, edit, publish, and delete anyone's entries; manage media, menus, and regions; publish the site; clear caches |
+| `editor` | Create, edit, publish, and delete anyone's entries; manage media and menus; publish the site; clear caches |
 | `author` | Create, edit, publish, and delete their own entries; upload media |
 | `contributor` | Create and edit their own drafts, but never publish |
 | `member` | Sign in and look after their own account, nothing else |
@@ -223,7 +223,7 @@ The rest are for the whole site:
 
 | Capability | Allows |
 |---|---|
-| `menus.edit`, `regions.edit` | Editing menus and regions |
+| `menus.edit` | Editing menus |
 | `site.publish` | Publishing the site |
 | `cache.clear` | Clearing caches |
 | `site.settings` | Changing site settings |

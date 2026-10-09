@@ -58,7 +58,7 @@ use Blush\Support\Uuid;
  *   which keeps it as the files it always was (D-675); this hands those
  *   tables to them.
  * - **Writes** are atomic, each in a transaction (`FileTransactions`,
- *   shared with `FileDataStore`), so a write that reads the table first
+ *   shared with `MediaFiles`), so a write that reads the table first
  *   can't lose another's.
  * - **`$schema`**, which points an editor at a file's JSON Schema
  *   (D-491), is never part of a record: a folder table's file keeps its

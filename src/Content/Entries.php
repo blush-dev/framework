@@ -129,15 +129,6 @@ interface Entries extends QueryRunner
 	public function termCounts(string|array $taxonomy, ?Query $query = null): array;
 
 	/**
-	 * Returns the entries that ask for redirects, keyed by each path in
-	 * their `redirect_from` front matter (the first entry to claim a path
-	 * keeps it).
-	 *
-	 * @return array<string, Entry>
-	 */
-	public function redirects(): array;
-
-	/**
 	 * Returns an entry as it's stored, for editing: its front matter as
 	 * written, its Markdown, and its version.
 	 *

@@ -31,8 +31,6 @@ use Blush\Content\Relation\Relation;
 use Blush\JsonSchema\JsonSchemas;
 use Blush\Menu\Link\MenuLink;
 use Blush\Menu\Link\MenuLinkType;
-use Blush\Region\Item\RegionItem;
-use Blush\Region\Item\RegionItemType;
 use ReflectionClass;
 use Blush\Theme\ThemeManifest;
 
@@ -41,7 +39,6 @@ use Blush\Theme\ThemeManifest;
 #[CoversClass(FieldType::class)]
 #[CoversClass(Schema::class)]
 #[CoversClass(MenuLink::class)]
-#[CoversClass(RegionItem::class)]
 final class JsonSchemasTest extends TestCase
 {
 	public function testCommittedSchemasAreCurrent(): void
@@ -142,13 +139,6 @@ final class JsonSchemasTest extends TestCase
 				array_keys($type->className()::itemSchema($type->value, [])),
 				"The {$type->value} link's schema doesn't match the keys it reads."
 			);
-		}
-	}
-
-	public function testDescribesEveryBuiltInRegionItemKind(): void
-	{
-		foreach (RegionItemType::cases() as $type) {
-			$this->assertSame([$type->value], array_keys($type->className()::itemSchema($type->value, [])));
 		}
 	}
 

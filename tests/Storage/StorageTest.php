@@ -25,8 +25,6 @@ use Blush\Content\Source\ContentSource;
 use Blush\Content\Source\FilesystemSource;
 use Blush\Content\Writer\ContentWriter;
 use Blush\Content\Writer\FilesystemContentWriter;
-use Blush\Data\DataStore;
-use Blush\Data\FileDataStore;
 use Blush\Job\FileJobStore;
 use Blush\Job\JobStore;
 use Blush\Session\FileSessionStore;
@@ -67,7 +65,6 @@ final class StorageTest extends TestCase
 		$this->assertSame('filesystem', $container->make(StorageConfig::class)->driver);
 		$this->assertInstanceOf(FilesystemSource::class, $container->make(ContentSource::class));
 		$this->assertInstanceOf(FilesystemContentWriter::class, $container->make(ContentWriter::class));
-		$this->assertInstanceOf(FileDataStore::class, $container->make(DataStore::class));
 		$this->assertInstanceOf(Accounts::class, $container->make(Accounts::class));
 		$this->assertInstanceOf(FileSessionStore::class, $container->make(SessionStore::class));
 		$this->assertInstanceOf(FileJobStore::class, $container->make(JobStore::class));

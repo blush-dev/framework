@@ -93,7 +93,7 @@ abstract class EntryStoreConformance extends TestCase
 	protected function setUp(): void
 	{
 		$this->standardContent();
-		$this->entry('about/biography.md', "title: Biography\nredirect_from: [/bio, /about-me]");
+		$this->entry('about/biography.md', "title: Biography");
 		$this->entry('_posts/_authors/justintadlock.md', 'title: Justin, Blogger');
 		$this->writeTemporaryFile('user/content/_posts/2009-01-01.no-id.md', "---\ntitle: No Id\n---\nA file without an id.");
 
@@ -387,7 +387,7 @@ abstract class EntryStoreConformance extends TestCase
 		$this->assertNull($this->content->named('post', 'no-id'));
 	}
 
-	public function testTranslationsNeighborsTermCountsAndRedirects(): void
+	public function testTranslationsNeighborsAndTermCounts(): void
 	{
 		$spring = $this->named('post', 'spring');
 
@@ -401,8 +401,6 @@ abstract class EntryStoreConformance extends TestCase
 		$this->assertSame(['art' => 1, 'book-reviews' => 1, 'old-posts' => 1], $this->content->termCounts('category'));
 		$this->assertSame(['guest' => 1, 'justintadlock' => 2], $this->content->termCounts('profile'));
 		$this->assertSame(['art' => 2, 'book-reviews' => 1, 'old-posts' => 1], $this->content->termCounts('category', $this->query()->visibility(Visibility::Public, Visibility::Unlisted)));
-		$this->assertSame(['/bio', '/about-me'], array_keys($this->content->redirects()));
-		$this->assertSame('biography', $this->content->redirects()['/bio']->slug);
 		$this->assertSame('justintadlock', $this->content->term('profile', 'justintadlock')?->slug);
 	}
 

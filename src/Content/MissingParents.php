@@ -25,7 +25,7 @@ use Blush\Core\AppConfig;
 /**
  * A tree's page is under its parent page by what its record says
  * (D-656), so a page kept in a folder with no page of its own (a
- * `_regions/` or `_errors/` folder, or `guide/` without a guide page) is
+ * `_notes/` or `_errors/` folder, or `guide/` without a guide page) is
  * at the top of its tree, its address without the folder. `content:parents`
  * and Site Health write each missing parent page, a draft titled by its
  * folder's name, and the pages under it are back at their addresses.

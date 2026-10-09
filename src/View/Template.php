@@ -26,8 +26,6 @@ use Blush\Content\Relation\Relation;
 use Blush\Content\Type\ContentType;
 use Blush\Data\InvalidData;
 use Blush\Menu\Menu;
-use Blush\Menu\MenuException;
-use Blush\Region\RegionException;
 use Blush\Routing\UrlGenerationException;
 use Blush\Theme\ThemeException;
 use Blush\Component\PendingComponent;
@@ -273,8 +271,9 @@ final class Template
 	/**
 	 * Returns the menu a theme location shows (D-199), with the page's
 	 * item marked current, or `null` when it shows none, for markup of
-	 * the theme's own. The `menu` directive prints one with the default
-	 * markup: `<?= $template->directive('menu', name: 'primary') ?>`.
+	 * the theme's own: the menu the site assigned it, else the theme's
+	 * default items (D-676). The `menu` directive prints one with the
+	 * default markup: `<?= $template->directive('menu', location: 'primary') ?>`.
 	 *
 	 * ```php
 	 * <?php if ($menu = $template->menu('social')) : ?>
@@ -285,9 +284,6 @@ final class Template
 	 *     </ul>
 	 * <?php endif ?>
 	 * ```
-	 *
-	 * @throws MenuException When the theme's location declaration is invalid.
-	 * @throws InvalidData When a menu file can't be read.
 	 */
 	public function menu(string $location): ?Menu
 	{
@@ -297,39 +293,8 @@ final class Template
 	}
 
 	/**
-	 * Returns the HTML of the region a theme location shows (D-201), or
-	 * `''`: its items rendered in order. Wrap it in the theme's own markup,
-	 * guarded by `hasRegion()`:
-	 *
-	 * ```php
-	 * <?php if ($template->hasRegion('sidebar')) : ?>
-	 *     <aside class="sidebar"><?= $template->region('sidebar') ?></aside>
-	 * <?php endif ?>
-	 * ```
-	 *
-	 * @throws RegionException When the theme's location declaration is invalid.
-	 * @throws InvalidData When a region file can't be read.
-	 */
-	#[ReturnsHtml]
-	public function region(string $location): string
-	{
-		return $this->views->services->regions->render($this->views, $this->context, $location);
-	}
-
-	/**
-	 * Returns whether a theme location shows a region with any items.
-	 *
-	 * @throws RegionException
-	 * @throws InvalidData
-	 */
-	public function hasRegion(string $location): bool
-	{
-		return $this->views->services->regions->has($this->views->chain, $location);
-	}
-
-	/**
-	 * Returns a theme setting's value (from `user/data/theme.json`, or
-	 * the theme's default), or `$default` when no theme in the chain
+	 * Returns a theme setting's value (from the theme's own group of
+	 * settings, or the theme's default), or `$default` when no theme in the chain
 	 * declares it.
 	 */
 	public function setting(string $name, mixed $default = null): mixed

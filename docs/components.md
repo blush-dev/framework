@@ -39,13 +39,6 @@ content, and **named slots** hold other pieces, filled with `->slot()`:
 	->slot('footer', '<a href="/more">More</a>') ?>
 ```
 
-A [region](menus.md#regions) can show one too, with its props as the
-item's other keys:
-
-```json
-{"component": "newsletter/signup", "title": "Stay in touch"}
-```
-
 To see every component the active theme can draw, run:
 
 ```sh

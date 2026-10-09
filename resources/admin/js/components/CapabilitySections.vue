@@ -215,7 +215,7 @@ function typeSentence(type: string): { text: string; none: boolean } {
 	return { text: `Can ${join(yes, 'and')}.${no.length ? ` Cannot ${join(no, 'or')}.` : ''}`, none: false };
 }
 
-// "Edit menus and edit regions" is what a plain join says; phrases that
+// "Edit posts and edit pages" is what a plain join says; phrases that
 // start with the same verb share it.
 function phrases(list: string[], word: string): string {
 	const shared: { verb: string; rest: string[] }[] = [];

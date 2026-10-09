@@ -67,17 +67,13 @@ Move each item to `decisions.md` once it's answered.
   JSON `values` column with generated indexed columns, no hand-written
   migrations, `storage:sync` and `storage:copy`), and sessions and jobs
   keeping narrow contracts (D-645). Step 6 planned (D-668). Open:
-  - **Menus, regions, and theme data in the data layer** (step 6e;
-    raised by the author, 2026-10-09: "I do want to explore whether we
-    have regions and menus in their current form ... I'm still not sold
-    on regions being a feature"). Regions may become written content
-    (see **Regions as written content**: entries with no URLs, which
-    would put them in the content area, not data); whether menus stay
-    `user/data/menus` files, become a table, or change shape is to be
-    looked at; `user/data/theme.json`'s location maps (`menus`,
-    `regions`) depend on both (its setting values move to settings groups,
-    D-670). Until it's settled they keep `DataStore`, which step 6
-    retires after them.
+  - **Redirects in front matter, and a Redirects screen** (raised by
+    the author, 2026-10-09, D-678; `redirect_from` gone and rename
+    redirects written as rows, D-680, D-681): a screen listing them
+    all. A design brief (Claude Docs, "Redirects screen — design
+    brief") was written before D-680; its option A (entries keep
+    `redirect_from`) is moot, and B (every redirect a row, a row's `to`
+    a path or an entry by id) is the direction.
   - **Generating renditions** (the author, 2026-10-09, D-674): a
     feature for site owners to make an image's other renditions (sizes,
     WebP or AVIF copies) on demand or on upload, recorded in its
@@ -778,7 +774,8 @@ Move each item to `decisions.md` once it's answered.
       types as the use case that restarts it, or `body: false` first
       for types needing only a title and a few front matter keys?
 - **Regions as written content** (discussed 2026-10-06; the author's
-  leanings, not decided; don't build yet): a region becomes an editable
+  leanings, not decided; don't build yet; regions are removed for now,
+  D-676, and this is the starting point when they return): a region becomes an editable
   area a theme registers, filled with Markdown the user writes, instead
   of a typed item list in `user/data/regions/` (D-201, D-204).
   - **Why:** since D-532, directives are what content says and

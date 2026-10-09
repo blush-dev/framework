@@ -36,7 +36,6 @@ use Blush\Embed\EmbedServiceProvider;
 use Blush\Icon\IconServiceProvider;
 use Blush\Job\JobServiceProvider;
 use Blush\Menu\MenuServiceProvider;
-use Blush\Region\RegionServiceProvider;
 use Blush\Feed\FeedServiceProvider;
 use Blush\Http\HttpServiceProvider;
 use Blush\Llms\LlmsServiceProvider;
@@ -99,7 +98,6 @@ class Application implements Bootable
 		EmbedServiceProvider::class,
 		IconServiceProvider::class,
 		MenuServiceProvider::class,
-		RegionServiceProvider::class,
 		SessionServiceProvider::class,
 		JobServiceProvider::class,
 		AuthServiceProvider::class,

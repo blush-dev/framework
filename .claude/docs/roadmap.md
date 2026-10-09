@@ -459,7 +459,7 @@ files; `composer check` passes; the large site serves within 128 MB.
 search, publishing a database site, SQLite to files, MySQL and
 PostgreSQL, and step 6's repositories for data and accounts.
 
-### Step 6: data and accounts onto records (planned, D-668)
+### Step 6: data and accounts onto records (done, D-668 to D-682)
 
 **Goal:** everything the data and accounts areas keep is a table of
 records, read and written through its repository on every driver, so
@@ -561,14 +561,42 @@ narrow stores (D-645).
 - How the media index and `content:lint` see a changed record (today
   file times; versions, likely) is settled when 6d is reviewed.
 
-**6e. Menus, regions, and theme data:** wait for a discussion
-(`open-questions.md`, "Menus, regions, and theme data in the data
-layer"): regions may become written content (entries), menus are to be
-looked at, and `user/data/theme.json`'s location maps depend on both
-(its settings move in 6c). Planned once that's settled.
+**6e. Menus as a table, regions removed** (D-676; built, D-677: the directive takes `location` in templates and `name` in content, `menu:assign` writes assignments, `menu:refs` files ids, Site Health doesn't check menus):
+- **Regions go:** `Blush\Region`, `user/data/regions/`,
+  `$template->region()`/`hasRegion()`, `theme.json` `regions`,
+  `regions.edit`, `theme:check`'s region checks, and the docs. The
+  default theme's `footer` location and the trial site's templates
+  are updated.
+- **`menus`:** a folder table keyed by `name`, files in place
+  (`user/data/menus/{name}.json`), each record gaining an `id`;
+  `label` and nested `items` are fields. `MenuLoader` reads the table
+  through `RecordStores`.
+- **Item links by id:** `entry` and `term` items gain `ref` (the
+  target's id, winning over the readable form); `menu:refs --write`
+  fills a missing one; the trial site's menus get theirs.
+- **Assignments:** in the theme's own settings group, `menus`
+  (location → menu name); a menu may fill several locations. No
+  matching by name; an unassigned location shows the theme's default
+  `items` from `theme.json`, or nothing. `user/data/theme.json` and
+  `SiteThemeData` go; the trial site's theme group gets its two
+  assignments. `menu:list` shows assignments and defaults.
+- **Proof:** the menu tests on files, SQLite, and in memory; a theme's
+  default shown until a menu is assigned; `storage:copy` copies
+  `menus`.
 
-**6f. Retiring the data store, docs, proof** (after field sets and
-redirects, D-671): `DataStore`,
+**6f. Redirects and field sets as tables** (D-678; built, D-679: redirects keyed by a path key, kept only as one file; saved field sets gain ids):
+- **`redirects`:** a one-file table (`user/data/redirects.json`, a list
+  of `{from, to, status}`), keyed by `from`; `DataRedirects` reads it
+  through `RecordStores`. The map form goes. Whether `redirect_from`
+  stays in front matter waits on the Redirects screen's discussion.
+- **`field_sets`:** a folder table keyed by `name`
+  (`user/data/fields/{name}.json`, `keyInName`); `FieldSetLoader`,
+  `DataFieldSetWriter`, and `FieldSetCheck` read and write it through a
+  `KeyedTable`.
+- **Proof:** each reader's tests on files, SQLite, and in memory;
+  `storage:copy` copies both.
+
+**6g. Retiring the data store, docs, proof** (built, D-682; step 6 done): `DataStore`,
 `FileDataStore`, `RecordDataStore`, and SQLite's `data` table go;
 `storage:copy` copies every registered table, with nothing per area
 but content's; `docs/` (accounts, redirects, settings, ignored
@@ -1398,7 +1426,7 @@ tests):
   until M5. Canonical redirects for `/page/1` and misdated singles.
 - `ContentUrls` (entry, collection, term, and date-archive URLs from type
   routing), and `AppConfig::origin()`/`absoluteUrl()`.
-- Redirects from `user/data/redirects.*` and `redirect_from`, after the
+- Redirects from `user/data/redirects` (a table since D-678) and `redirect_from`, after the
   config's, kept current in a compiled route table by
   `RefreshRouteCache`.
 - The router treats fallback routes as soft (D-095), and `int` route

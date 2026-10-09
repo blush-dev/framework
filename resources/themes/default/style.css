@@ -291,10 +291,6 @@ hr {
 	font-size: 0.875rem;
 }
 
-.site-footer__region > * + * {
-	margin-block-start: var(--space-m);
-}
-
 /* Menus: submenus stay open; a theme's script can make them disclosures. */
 
 .directive-menu__list {

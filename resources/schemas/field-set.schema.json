@@ -70,6 +70,10 @@
 					}
 				}
 			]
+		},
+		"id": {
+			"type": "string",
+			"description": "The set's id, written when it's saved."
 		}
 	},
 	"definitions": {

@@ -13,6 +13,8 @@ declare(strict_types=1);
 
 namespace Blush\Menu\Link;
 
+use Blush\Support\Uuid;
+
 /**
  * A kind of menu item link (D-199), keyed in the item by its registered
  * name: `entry: page/about`, `route: feed`, `url: https://…`. An item has
@@ -69,4 +71,31 @@ abstract class MenuLink
 	 * @throws UnresolvedLink When it doesn't lead anywhere now.
 	 */
 	abstract public function resolve(string $value, array $item, string $locale): LinkTarget;
+
+	/**
+	 * Returns the JSON Schema of an item's `ref`, for kinds that link an
+	 * entry (`LinksEntry`).
+	 *
+	 * @return array<string, mixed>
+	 */
+	protected static function refSchema(): array
+	{
+		return [
+			'type'        => 'string',
+			'pattern'     => '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$',
+			'description' => 'The id of the entry it links to, which wins over the readable form when it finds one. bin/blush menu:refs --write fills it in.'
+		];
+	}
+
+	/**
+	 * Returns whether an item's `ref`, if it has one, is an id.
+	 *
+	 * @param array<string, mixed> $item
+	 */
+	protected static function validRef(array $item): bool
+	{
+		$ref = $item[LinksEntry::REF] ?? null;
+
+		return $ref === null || (is_string($ref) && Uuid::isValid($ref));
+	}
 }

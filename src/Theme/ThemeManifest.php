@@ -41,8 +41,10 @@ use Blush\Extension\ExtensionSuggest;
  * A theme with PHP names a `provider` (a service provider, registered
  * before the site's, D-054) and, for a local theme, the `autoload.psr-4`
  * map Blush registers for it. Its `settings` are field definitions
- * (D-022), and its `menus` and `regions` declare the locations the site
- * fills (D-199, D-201), each a label or an object. Its `variants` list
+ * (D-022), none named `menus`, which keeps the site's menu assignments
+ * in the theme's group of settings (D-676); its `menus` declare the
+ * locations the site fills (D-199), each a label or an object, with the
+ * theme's default items if it has them. Its `variants` list
  * directive variants by directive (D-266). Its `preview` is what the
  * admin sketches it from (D-381). Keys this version doesn't read (image
  * sizes) are kept in `$data`. Its `authors` are in `composer.json`'s
@@ -60,6 +62,13 @@ use Blush\Extension\ExtensionSuggest;
  */
 final readonly class ThemeManifest implements ExtensionManifest
 {
+	/**
+	 * The key of the theme's menu locations in `theme.json`, and of the
+	 * site's menu assignments in the theme's group of settings (D-676),
+	 * so no setting has it.
+	 */
+	public const string MENUS = 'menus';
+
 	/**
 	 * @param string               $name    The theme's `vendor/name`.
 	 * @param string               $path    The theme's absolute folder.
@@ -166,16 +175,18 @@ final readonly class ThemeManifest implements ExtensionManifest
 			throw new ThemeException(sprintf('The "%s" theme\'s "settings" must map names to field definitions.', $theme));
 		}
 
-		foreach (['menus', 'regions'] as $key) {
-			$locations = $data[$key] ?? [];
+		if (array_key_exists(self::MENUS, $settings)) {
+			throw new ThemeException(sprintf('The "%s" theme can\'t have a setting named "%s": it keeps which menus the site shows in the theme\'s locations.', $theme, self::MENUS));
+		}
 
-			if (
-				! is_array($locations)
-				|| ($locations !== [] && array_is_list($locations))
-				|| ! array_all($locations, static fn (mixed $value, int|string $name): bool => (is_string($value) || is_array($value)) && preg_match('/^[a-z0-9][a-z0-9_-]*$/', (string) $name) === 1)
-			) {
-				throw new ThemeException(sprintf('The "%s" theme\'s "%s" must map location names (lowercase letters, digits, hyphens, underscores) to labels or objects.', $theme, $key));
-			}
+		$locations = $data['menus'] ?? [];
+
+		if (
+			! is_array($locations)
+			|| ($locations !== [] && array_is_list($locations))
+			|| ! array_all($locations, static fn (mixed $value, int|string $name): bool => (is_string($value) || is_array($value)) && preg_match('/^[a-z0-9][a-z0-9_-]*$/', (string) $name) === 1)
+		) {
+			throw new ThemeException(sprintf('The "%s" theme\'s "menus" must map location names (lowercase letters, digits, hyphens, underscores) to labels or objects.', $theme));
 		}
 
 		$variants = $data['variants'] ?? [];
@@ -286,18 +297,6 @@ final readonly class ThemeManifest implements ExtensionManifest
 	{
 		/** @var array<string, string|array<array-key, mixed>> Checked by `fromArray()`. */
 		return $this->data['menus'] ?? [];
-	}
-
-	/**
-	 * Returns the manifest's region location declarations, by name:
-	 * labels or objects (see `Region\RegionLocation`).
-	 *
-	 * @return array<string, string|array<array-key, mixed>>
-	 */
-	public function regions(): array
-	{
-		/** @var array<string, string|array<array-key, mixed>> Checked by `fromArray()`. */
-		return $this->data['regions'] ?? [];
 	}
 
 	/**

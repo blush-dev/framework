@@ -254,7 +254,7 @@ to the parent's; override `frame()` to change the URL that's framed. A
 plain provider needs no code: list it in
 [`config/embed.php`](configuration.md#embeds).
 
-## Menu links and region items
+## Menu links
 
 A new kind of [menu](menus.md) link is a class that extends
 `Blush\Menu\Link\MenuLink`. Its `resolve()` returns a `LinkTarget` (a URL
@@ -271,11 +271,10 @@ public function boot(): void
 }
 ```
 
-Then a menu item can say `product: blue-mug`. A new kind of region item
-extends `Blush\Region\Item\RegionItem`, whose `render()` returns HTML, and
-is registered with `Blush\Region\Item\RegionItemRegistry` the same way.
-Both are built through the container, so their constructors can ask for
-services.
+Then a menu item can say `product: blue-mug`. A link is built through
+the container, so its constructor can ask for services. A link to an
+entry can also implement `Blush\Menu\Link\LinksEntry`, so its items keep
+the entry's id in `ref` and `bin/blush menu:refs` files it.
 
 ## Changing content from code
 
@@ -369,6 +368,9 @@ public function register(): void
 - **The key** is optional: a value each record has, unique in the table,
   such as a slug or a name, that you can find records by. Key values are
   letters, digits, `.`, `_`, and `-`, starting with a letter or digit.
+  A table keyed by a site's paths (`/old-about`) says so with
+  `pathKey: true`; on files it's kept as one file, registered with
+  `FileLayout::oneFile()`, since its records can't name files.
 
 Then ask for `Blush\Storage\Record\RecordStores` in a constructor:
 

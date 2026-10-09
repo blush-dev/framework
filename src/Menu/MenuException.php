@@ -17,8 +17,9 @@ use RuntimeException;
 use Blush\Core\BlushException;
 
 /**
- * A menu or region problem that stops it from loading: a theme's location
- * declaration or a site data file that has the wrong shape.
+ * A menu problem that stops it from loading: a theme's location
+ * declaration with the wrong shape, menus or assignments that can't be
+ * read, or a change that can't be saved.
  */
 final class MenuException extends RuntimeException implements BlushException
 {

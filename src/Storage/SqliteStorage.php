@@ -18,8 +18,6 @@ use Blush\Content\Record\EntryLocations;
 use Blush\Content\Record\RecordLocations;
 use Blush\Content\Writer\ContentWriter;
 use Blush\Content\Writer\RecordContentWriter;
-use Blush\Data\DataStore;
-use Blush\Data\RecordDataStore;
 use Blush\Job\JobStore;
 use Blush\Job\RecordJobStore;
 use Blush\Session\RecordSessionStore;
@@ -31,9 +29,9 @@ use Blush\Storage\Sql\SqliteRecordStore;
  * The SQLite driver (D-640, D-662): a site's records in one database
  * file, `user/site.sqlite` unless `StorageConfig::$sqlite` names another.
  * Every area shares one `SqliteRecordStore`: content, worked out and
- * written as records (`RecordLocations`, `RecordContentWriter`); data
- * as a keyed table (`RecordDataStore`); accounts and roles as their
- * repositories' tables (`Accounts`, `Roles`); and sessions and jobs
+ * written as records (`RecordLocations`, `RecordContentWriter`); data,
+ * accounts, and roles as their repositories' tables (settings, types,
+ * menus, `Accounts`, `Roles`, …); and sessions and jobs
  * built on records inside (D-645).
  */
 final readonly class SqliteStorage implements Storage
@@ -52,7 +50,6 @@ final readonly class SqliteStorage implements Storage
 		return [
 			ContentWriter::class  => RecordContentWriter::class,
 			EntryLocations::class => RecordLocations::class,
-			DataStore::class      => RecordDataStore::class,
 			RecordStore::class    => SqliteRecordStore::class,
 			SessionStore::class   => RecordSessionStore::class,
 			JobStore::class       => RecordJobStore::class

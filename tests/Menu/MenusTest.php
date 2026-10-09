@@ -86,6 +86,16 @@ final class MenusTest extends TestCase
 		return $app;
 	}
 
+	/**
+	 * Assigns menus to a theme's locations, as the site would (D-676).
+	 *
+	 * @param array<string, string> $menus Menu names, by location.
+	 */
+	private function assign(array $menus, string $theme = 'blush__default'): void
+	{
+		$this->writeTemporaryFile("user/data/settings/{$theme}.json", json_encode(['menus' => $menus], JSON_THROW_ON_ERROR));
+	}
+
 	private function page(Application $app, string $path): string
 	{
 		return (string) $app->container()->make(Kernel::class)->handle(Request::create($path))->getBody();
@@ -115,6 +125,7 @@ final class MenusTest extends TestCase
 	public function testResolvesLinksAndLeavesOutWhatDoesNotResolve(): void
 	{
 		$this->writeTemporaryFile('user/data/menus/primary.json', self::PRIMARY);
+		$this->assign(['primary' => 'primary']);
 
 		$menu = $this->menu($this->app(), 'primary');
 
@@ -137,6 +148,7 @@ final class MenusTest extends TestCase
 	public function testRendersInTheDefaultThemeWithTheCurrentItem(): void
 	{
 		$this->writeTemporaryFile('user/data/menus/primary.json', self::PRIMARY);
+		$this->assign(['primary' => 'primary']);
 
 		$html = $this->page($this->app(), '/team');
 
@@ -178,6 +190,7 @@ final class MenusTest extends TestCase
 
 	public function testPicksTextInThePageLocale(): void
 	{
+		$this->assign(['primary' => 'primary']);
 		$this->writeTemporaryFile('user/data/menus/primary.json', <<<'JSON'
 			{
 				"label": {
@@ -211,15 +224,83 @@ final class MenusTest extends TestCase
 		$this->assertStringContainsString('aria-label="Principal"', $this->page($app, '/bonjour'));
 	}
 
-	public function testMapsALocationToAnotherMenu(): void
+	public function testShowsTheMenuAssignedToALocation(): void
 	{
-		$this->writeTemporaryFile('user/data/menus/main.json', '[{"entry":"page/about"}]');
-		$this->writeTemporaryFile('user/data/theme.json', '{"menus": {"primary": "main"}}');
+		$this->writeTemporaryFile('user/data/menus/main.json', '{"items":[{"entry":"page/about"}]}');
+		$this->writeTemporaryFile('user/data/menus/primary.json', '{"items":[{"entry":"page/team"}]}');
+		$this->assign(['primary' => 'main']);
 
 		$menu = $this->menu($this->app(), 'primary');
 
 		$this->assertSame('main', $menu->name);
-		$this->assertSame(['About us /about'], self::shape($menu->items));
+		$this->assertSame(['About us /about'], self::shape($menu->items), 'A location shows what it\'s assigned, not the menu of its name.');
+	}
+
+	public function testALocationShowsNothingUntilAssigned(): void
+	{
+		$this->writeTemporaryFile('user/data/menus/primary.json', self::PRIMARY);
+
+		$app = $this->app();
+
+		$this->assertNull($app->container()->make(Menus::class)->forLocation($app->container()->make(ThemeResolver::class)->active(), 'primary'));
+		$this->assertStringNotContainsString('directive-menu', $this->page($app, '/about'));
+	}
+
+	public function testThemeDefaultsShowUntilTheSiteAssignsAMenu(): void
+	{
+		$this->writeTemporaryFile('extensions/acme/nova/theme.json', json_encode([
+			'name'      => 'acme/nova',
+			'label'     => 'Nova',
+			'namespace' => 'nova',
+			'menus'     => [
+				'primary' => ['label' => 'Main', 'items' => [['entry' => 'page/team'], ['url' => 'https://example.org/', 'label' => 'Example']]],
+				'footer'  => 'Footer'
+			]
+		], JSON_THROW_ON_ERROR));
+		$this->writeTemporaryFile('config/theme.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn new Blush\\Theme\\ThemeConfig(active: 'acme/nova');\n");
+		$this->writeTemporaryFile('user/data/menus/site.json', '{"items":[{"entry":"page/about"}]}');
+
+		$app   = $this->app();
+		$menus = $app->container()->make(Menus::class);
+		$chain = $app->container()->make(ThemeResolver::class)->active();
+		$menu  = $this->menu($app, 'primary');
+
+		$this->assertSame('', $menu->name, 'The theme\'s default is no site menu.');
+		$this->assertSame('Main', $menu->label);
+		$this->assertSame(['Team /team', 'Example https://example.org/'], self::shape($menu->items));
+		$this->assertNull($menus->forLocation($chain, 'footer'), 'A location without defaults shows nothing.');
+
+		$menus->assign($chain, 'primary', 'site');
+		$menus->assign($chain, 'footer', 'site');
+
+		$this->assertSame(['footer' => 'site', 'primary' => 'site'], $menus->assignments($chain), 'A menu may fill several locations.');
+		$this->assertSame(['About us /about'], self::shape($this->menu($app, 'primary')->items));
+		$this->assertSame(['About us /about'], self::shape($this->menu($app, 'footer')->items));
+		$saved = json_decode((string) file_get_contents($this->temporaryDirectory() . '/user/data/settings/acme__nova.json'), true);
+
+		$this->assertIsArray($saved);
+		$this->assertSame(['footer' => 'site', 'primary' => 'site'], $saved['menus'] ?? null, 'Kept in the theme\'s own group of settings.');
+
+		$menus->assign($chain, 'primary', null);
+		$menus->assign($chain, 'footer', null);
+
+		$this->assertSame(['Team /team', 'Example https://example.org/'], self::shape($this->menu($app, 'primary')->items), 'Taken away, the default is back.');
+		$this->assertFileDoesNotExist($this->temporaryDirectory() . '/user/data/settings/acme__nova.json', 'A group left empty is removed.');
+	}
+
+	public function testLinksFindEntriesByIdFirst(): void
+	{
+		$this->writeTemporaryFile('user/data/menus/primary.json', '{"items":[{"entry":"page/old-name","ref":"0032aa43-ab4d-0a52-da10-e3dd5643e52b"},{"entry":"page/about","ref":"0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1c99"},{"entry":"page/about","ref":"nope"}]}');
+		$this->assign(['primary' => 'primary']);
+
+		$app  = $this->app();
+		$menu = $this->menu($app, 'primary');
+
+		$this->assertSame(['Team /team', 'About us /about'], self::shape($menu->items), 'The id wins; a ref that finds nothing falls back to the readable form.');
+		$this->assertContains('warning menu primary: item 3: "entry" has a "ref" that isn\'t an entry\'s id.', array_map(
+			static fn (Violation $problem): string => "{$problem->severity->value} {$problem}",
+			$app->container()->make(Menus::class)->check($app->container()->make(ThemeResolver::class)->active())
+		));
 	}
 
 	public function testThemeLocationsSetDepthFieldsAndLabels(): void
@@ -233,7 +314,8 @@ final class MenusTest extends TestCase
 			]
 		], JSON_THROW_ON_ERROR));
 		$this->writeTemporaryFile('config/theme.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn new Blush\\Theme\\ThemeConfig(active: 'acme/nova');\n");
-		$this->writeTemporaryFile('user/data/menus/primary.json', '[{"entry":"page/about","columns":3,"children":[{"entry":"page/team"}]},{"entry":"page/team"}]');
+		$this->writeTemporaryFile('user/data/menus/primary.json', '{"items":[{"entry":"page/about","columns":3,"children":[{"entry":"page/team"}]},{"entry":"page/team"}]}');
+		$this->assign(['primary' => 'primary'], 'acme__nova');
 
 		$menu = $this->menu($this->app(), 'primary');
 
@@ -274,12 +356,15 @@ final class MenusTest extends TestCase
 			}
 			JSON);
 		$this->writeTemporaryFile('user/data/menus/extra.json', '{"$schema":"menu.schema.json","items":"x","title":"x"}');
+		$this->assign(['primary' => 'primary', 'aside' => 'gone']);
 
 		$app      = $this->app();
 		$problems = $app->container()->make(Menus::class)->check($app->container()->make(ThemeResolver::class)->active());
 		$messages = array_map(static fn (Violation $problem): string => "{$problem->severity->value} {$problem}", $problems);
 
 		$this->assertSame([
+			'notice location aside: It\'s assigned the menu "gone", but the "blush/default" theme has no such location.',
+			'warning location aside: It\'s assigned the menu "gone", which the site doesn\'t have.',
 			'warning menu primary: item 1: No entry "page/missing".',
 			'warning menu primary: item 2: has more than one link (entry, url); use one.',
 			'warning menu primary: item 3: needs a "label".',
@@ -306,14 +391,14 @@ final class MenusTest extends TestCase
 
 	public function testChecksLocationDeclarations(): void
 	{
-		$this->writeTemporaryFile('extensions/acme/nova/theme.json', '{"name": "acme/nova", "label": "Nova", "namespace": "nova", "menus": {"primary": {"depth": 0}}, "regions": {"side": {"items": {"a": 1}}}}');
+		$this->writeTemporaryFile('extensions/acme/nova/theme.json', '{"name": "acme/nova", "label": "Nova", "namespace": "nova", "menus": {"primary": {"depth": 0}, "side": {"items": {"a": 1}}}}');
 
 		$app    = $this->app();
 		$report = $app->container()->make(ThemeChecker::class)->check('acme/nova');
 		$errors = array_map(strval(...), $report->violations);
 
 		$this->assertContains('menus: The "acme/nova" theme\'s menu location "primary" has a "depth" that isn\'t a whole number from 1.', $errors);
-		$this->assertContains('regions: The "acme/nova" theme\'s region location "side" has "items" that aren\'t a list.', $errors);
+		$this->assertContains('menus: The "acme/nova" theme\'s menu location "primary" has a "depth" that isn\'t a whole number from 1.', $errors);
 		$this->assertTrue($report->hasErrors());
 	}
 
@@ -323,5 +408,13 @@ final class MenusTest extends TestCase
 		$this->expectExceptionMessage('"menus" must map location names');
 
 		ThemeManifest::fromArray('/tmp/nova', ['name' => 'acme/nova', 'label' => 'Nova', 'namespace' => 'nova', 'menus' => ['primary']]);
+	}
+
+	public function testNoThemeSettingIsNamedMenus(): void
+	{
+		$this->expectException(ThemeException::class);
+		$this->expectExceptionMessage('can\'t have a setting named "menus"');
+
+		ThemeManifest::fromArray('/tmp/nova', ['name' => 'acme/nova', 'label' => 'Nova', 'namespace' => 'nova', 'settings' => ['menus' => ['type' => 'text']]]);
 	}
 }

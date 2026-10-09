@@ -27,6 +27,10 @@ use Blush\Storage\StorageArea;
  *   driver names files by. Its values are letters, digits, `.`, `_`, and
  *   `-`, starting with a letter or digit. A table without one is known
  *   by ids alone.
+ * - **A path key** (`pathKey`, D-679) holds a site's paths instead, such
+ *   as a redirect's `from` (`/news/{name}`): `/` then anything but
+ *   whitespace. Files can't be named by it, so the filesystem driver
+ *   keeps such a table as one file.
  * - **The declared fields** are the ones a database driver indexes
  *   (D-644, D-648): those queried or sorted by. Others are kept and
  *   queried all the same.
@@ -40,14 +44,16 @@ use Blush\Storage\StorageArea;
 final readonly class Table
 {
 	/**
-	 * @param  list<string> $fields The declared fields' keys.
+	 * @param  list<string> $fields  The declared fields' keys.
+	 * @param  bool         $pathKey Whether the key's values are paths.
 	 * @throws InvalidRecord When the name, area, or key can't be a table's.
 	 */
 	public function __construct(
 		public string $name,
 		public StorageArea $area,
 		public ?string $key = null,
-		public array $fields = []
+		public array $fields = [],
+		public bool $pathKey = false
 	) {
 		if (preg_match('/\A[a-z][a-z0-9_-]*(?:\/[a-z][a-z0-9_-]*)*\z/', $name) !== 1) {
 			throw new InvalidRecord(sprintf('"%s" can\'t be a table name; use lowercase letters, digits, "_", and "-", with "/" between groups.', $name));
@@ -55,6 +61,10 @@ final readonly class Table
 
 		if ($key !== null && ($key === '' || in_array($key, Record::RESERVED, true))) {
 			throw new InvalidRecord(sprintf('"%s" can\'t be a table\'s key.', $key));
+		}
+
+		if ($pathKey && $key === null) {
+			throw new InvalidRecord(sprintf('"%s" has no key, so its key can\'t hold paths.', $name));
 		}
 	}
 
@@ -71,9 +81,11 @@ final readonly class Table
 
 		$value = $record->fields[$this->key] ?? null;
 
-		if (! is_string($value) || ! self::isKeyValue($value)) {
+		if (! is_string($value) || ! $this->isKey($value)) {
 			throw new InvalidRecord(sprintf(
-				'A record in "%s" needs a "%s" of letters, digits, ".", "_", and "-", starting with a letter or digit; %s given.',
+				$this->pathKey
+					? 'A record in "%s" needs a "%s" that\'s a path: "/" then no spaces; %s given.'
+					: 'A record in "%s" needs a "%s" of letters, digits, ".", "_", and "-", starting with a letter or digit; %s given.',
 				$this->name,
 				$this->key,
 				is_string($value) ? "\"{$value}\"" : get_debug_type($value)
@@ -105,6 +117,15 @@ final readonly class Table
 				throw new InvalidRecord(sprintf('"%s" already has a record whose "%s" is "%s".', $this->name, $name, $key));
 			}
 		}
+	}
+
+	/**
+	 * Returns whether a value can be this table's key: a path for a path
+	 * key, else what `isKeyValue()` allows.
+	 */
+	public function isKey(string $value): bool
+	{
+		return $this->pathKey ? preg_match('/\A\/\S*\z/u', $value) === 1 : self::isKeyValue($value);
 	}
 
 	/**

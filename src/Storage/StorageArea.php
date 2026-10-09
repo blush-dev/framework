@@ -27,7 +27,7 @@ enum StorageArea: string
 
 	/**
 	 * Site data (`user/data`): settings, types, field sets, menus,
-	 * regions, redirects, and media metadata.
+	 * redirects, and media metadata.
 	 */
 	case Data = 'data';
 

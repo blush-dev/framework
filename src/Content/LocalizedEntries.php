@@ -167,15 +167,6 @@ final readonly class LocalizedEntries implements Entries
 	 * @inheritDoc
 	 */
 	#[Override]
-	public function redirects(): array
-	{
-		return $this->content->redirects();
-	}
-
-	/**
-	 * @inheritDoc
-	 */
-	#[Override]
 	public function editable(Entry|string $entry): EditableEntry
 	{
 		return $this->content->editable($entry);

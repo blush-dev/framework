@@ -46,7 +46,6 @@ enum Capability: string
 	case HtmlAllowed       = 'html.allowed';
 	case HtmlUnfiltered    = 'html.unfiltered';
 	case MenusEdit       = 'menus.edit';
-	case RegionsEdit     = 'regions.edit';
 	case SitePublish     = 'site.publish';
 	case CacheClear      = 'cache.clear';
 	case SiteSettings    = 'site.settings';
@@ -103,7 +102,7 @@ enum Capability: string
 			self::MediaEdit, self::MediaEditOthers,
 			self::MediaDelete, self::MediaDeleteOthers              => 'Media',
 			self::HtmlAllowed, self::HtmlUnfiltered                 => 'HTML',
-			self::MenusEdit, self::RegionsEdit                      => 'Structure',
+			self::MenusEdit                                         => 'Structure',
 			self::SitePublish, self::CacheClear,
 			self::SiteSettings, self::SiteLogs, self::SiteHealth,
 			self::SiteJobs                                          => 'Site',
@@ -124,7 +123,6 @@ enum Capability: string
 			self::HtmlAllowed       => 'Add HTML from the allowed list',
 			self::HtmlUnfiltered    => 'Add any HTML but what\'s always refused',
 			self::MenusEdit       => 'Edit menus',
-			self::RegionsEdit     => 'Edit regions',
 			self::SitePublish     => 'Publish the site',
 			self::CacheClear      => 'Clear caches',
 			self::SiteSettings    => 'Change site settings',

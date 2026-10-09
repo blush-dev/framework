@@ -164,7 +164,7 @@ final readonly class KeyedTable
 	 */
 	private function record(string $key): ?Record
 	{
-		return Table::isKeyValue($key) ? $this->store()->findByKey($this->table, $key) : null;
+		return $this->table->isKey($key) ? $this->store()->findByKey($this->table, $key) : null;
 	}
 
 	/**

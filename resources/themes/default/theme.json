@@ -28,9 +28,6 @@
 	"menus": {
 		"primary": "Primary"
 	},
-	"regions": {
-		"footer": "Footer"
-	},
 	"variants": {
 		"image": ["inline-left", "inline-right"]
 	}

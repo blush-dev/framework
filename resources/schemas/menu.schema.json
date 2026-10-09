@@ -1,44 +1,37 @@
 {
 	"$schema": "http://json-schema.org/draft-07/schema#",
 	"title": "Blush Framework menu",
-	"description": "A site menu in user/data/menus/, shown by the theme location with the same name.",
-	"anyOf": [
-		{
-			"type": "object",
-			"properties": {
-				"$schema": {
-					"type": "string",
-					"description": "The JSON Schema editors check this file with."
-				},
-				"label": {
-					"anyOf": [
-						{
-							"type": "string"
-						},
-						{
-							"$ref": "#/definitions/localeText"
-						}
-					],
-					"description": "Names the navigation for screen readers. Defaults to the theme's name for the location."
-				},
-				"items": {
-					"type": "array",
-					"description": "The menu's items, in order.",
-					"items": {
-						"$ref": "#/definitions/menuItem"
-					}
-				}
-			},
-			"additionalProperties": false
+	"description": "A site menu in user/data/menus/, named for its file. Assign it to a theme location with bin/blush menu:assign.",
+	"type": "object",
+	"properties": {
+		"$schema": {
+			"type": "string",
+			"description": "The JSON Schema editors check this file with."
 		},
-		{
+		"label": {
+			"anyOf": [
+				{
+					"type": "string"
+				},
+				{
+					"$ref": "#/definitions/localeText"
+				}
+			],
+			"description": "Names the navigation for screen readers. Defaults to the theme's name for the location."
+		},
+		"items": {
 			"type": "array",
 			"description": "The menu's items, in order.",
 			"items": {
 				"$ref": "#/definitions/menuItem"
 			}
+		},
+		"id": {
+			"type": "string",
+			"description": "The menu's id, written when it's saved."
 		}
-	],
+	},
+	"additionalProperties": false,
 	"definitions": {
 		"menuItem": {
 			"type": "object",
@@ -53,6 +46,11 @@
 					"type": "string",
 					"pattern": "^[a-z][a-z0-9_]*(/[^/].*|/)?$",
 					"description": "Links to an entry, as {type}/{key}, such as page/about; {type}/ is its landing page. Its title is the label."
+				},
+				"ref": {
+					"type": "string",
+					"pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$",
+					"description": "The id of the entry it links to, which wins over the readable form when it finds one. bin/blush menu:refs --write fills it in."
 				},
 				"route": {
 					"type": "string",

@@ -120,6 +120,27 @@ final class FileRecordStoreTest extends TestCase
 		], $this->json('user/data/albums.json'), 'Other keys stay; the file written, every record has its id; new ones go last.');
 	}
 
+	public function testAPathKeyIsKeptInOneFile(): void
+	{
+		$this->writeTemporaryFile('user/data/links.json', '[{"from": "/old", "to": "/new"}]');
+		$paths   = Paths::fromRoot($this->temporaryDirectory());
+		$layouts = new FileLayouts($paths);
+		$layouts->register('links', FileLayout::oneFile("{$paths->data}/links.json"));
+		$table   = new Table('links', StorageArea::Data, key: 'from', pathKey: true);
+		$store   = $this->store($layouts);
+
+		$this->assertSame(Uuid::fromName('links//old'), $store->findByKey($table, '/old')?->id, 'A path is a key (D-679), with a steady id from it.');
+		$this->assertTrue($table->isKey('/news/{name}'));
+		$this->assertFalse($table->isKey('old'), 'A path starts with "/".');
+		$this->assertFalse($table->isKey('/a b'), 'And has no spaces.');
+		$this->assertFalse(new Table('names', StorageArea::Data, key: 'from')->isKey('/old'), 'Other keys hold no paths.');
+
+		$this->expectException(InvalidRecord::class);
+		$this->expectExceptionMessage('"folders" is keyed by paths, so it\'s kept as one file');
+
+		$this->store()->findByKey(new Table('folders', StorageArea::Data, key: 'from', pathKey: true), '/old');
+	}
+
 	public function testAFileWhoseNameIsItsKeyNeverSaysSo(): void
 	{
 		$this->writeTemporaryFile('user/data/types/movie.json', "{\n\t\"\$schema\": \"../../../vendor/blush/framework/resources/schemas/type.json\",\n\t\"folder\": \"movies\"\n}\n");

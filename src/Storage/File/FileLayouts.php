@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Blush\Storage\File;
 
 use Blush\Core\Paths;
+use Blush\Storage\Record\InvalidRecord;
 use Blush\Storage\Record\Table;
 use Blush\Storage\StorageArea;
 
@@ -54,13 +55,21 @@ final class FileLayouts
 
 	/**
 	 * Returns how a table is kept.
+	 *
+	 * @throws InvalidRecord When a table whose key holds paths would be a folder, whose files are named by it.
 	 */
 	public function for(Table $table): FileLayout
 	{
-		return $this->layouts[$table->name] ?? FileLayout::folder(match ($table->area) {
+		$layout = $this->layouts[$table->name] ?? FileLayout::folder(match ($table->area) {
 			StorageArea::Content => $this->paths->content,
 			StorageArea::Data    => $this->paths->data,
 			default              => $this->paths->storage
 		} . "/{$table->name}");
+
+		if ($table->pathKey && ! $layout->oneFile) {
+			throw new InvalidRecord(sprintf('"%s" is keyed by paths, so it\'s kept as one file; register a one-file layout for it.', $table->name));
+		}
+
+		return $layout;
 	}
 }

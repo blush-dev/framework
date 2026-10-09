@@ -20,9 +20,9 @@ use Blush\Routing\RouteCache;
 
 /**
  * Rewrites the compiled route table after the content index changes, so
- * `redirect_from` front matter takes effect in production without a
- * `cache:compile`. Only an existing cache is rewritten; development
- * compiles routes on every request anyway.
+ * routes that follow content (such as what answers the home page) take
+ * effect in production without a `cache:compile`. Only an existing cache
+ * is rewritten; development compiles routes on every request anyway.
  */
 final readonly class RefreshRouteCache
 {

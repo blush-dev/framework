@@ -24,10 +24,12 @@ use Blush\Console\Console;
 use Blush\Console\Testing\CommandResult;
 use Blush\Console\Testing\CommandTester;
 use Blush\Content\Entries;
+use Blush\Content\Routing\DataRedirects;
 use Blush\Core\Application;
-use Blush\Data\DataStore;
 use Blush\Job\JobRecord;
 use Blush\Job\JobStore;
+use Blush\Menu\MenuLoader;
+use Blush\Routing\Redirect;
 use Blush\Storage\Sql\SqliteConnection;
 use Blush\Storage\StorageCopy;
 use Blush\Support\Uuid;
@@ -56,10 +58,11 @@ final class StorageCopyTest extends TestCase
 
 		$this->standardContent();
 		$this->writeTemporaryFile('user/content/_posts/2009-01-01.no-id.md', "---\ntitle: No Id\n---\nA file without an id.");
+		$this->writeTemporaryFile('user/data/menus/main.json', '{"label": "Main", "items": [{"url": "/x", "label": "X"}]}');
+		$this->writeTemporaryFile('user/data/redirects.json', '[{"from": "/old-about", "to": "/about"}]');
 		$this->app = $this->site();
 
 		$container = $this->app->container();
-		$container->make(DataStore::class)->save('menus/main', ['label' => 'Main']);
 		$container->make(Accounts::class)->create('jane', 'correct horse battery staple', ['editor'], email: 'jane@example.test');
 		$roles = $container->make(Roles::class);
 		$roles->save([...$roles->stored(), new Role('reviewer', 'Reviewer')]);
@@ -118,7 +121,8 @@ final class StorageCopyTest extends TestCase
 
 		$container = $app->container();
 
-		$this->assertSame(['label' => 'Main'], $container->make(DataStore::class)->load('menus/main'));
+		$this->assertSame('Main', $container->make(MenuLoader::class)->get('main')?->label, 'Menus are a table of their own (D-676).');
+		$this->assertSame(['/old-about'], array_map(static fn (Redirect $redirect): string => $redirect->from, [...$container->make(DataRedirects::class)->redirects()]), 'Redirects are rows (D-678).');
 		$this->assertSame('jane@example.test', $container->make(Accounts::class)->find('jane')?->email);
 		$this->assertSame('jane', $container->make(Accounts::class)->findById((string) $jane)?->username, 'Accounts keep their ids, which links hold (D-668).');
 		$this->assertContains('reviewer', array_map(static fn (Role $role): string => $role->name, $container->make(Roles::class)->stored()));
@@ -150,6 +154,6 @@ final class StorageCopyTest extends TestCase
 		$synced = self::command($this->onSqlite(), 'storage:sync');
 
 		$this->assertTrue($synced->isSuccessful());
-		$this->assertStringContainsString('Made or updated 12 tables.', $synced->output, 'Types, relations, settings, and media are tables of their own (D-672, D-673, D-675).');
+		$this->assertStringContainsString('Made or updated 14 tables.', $synced->output, 'Types, relations, settings, media, menus, field sets, and redirects are tables of their own (D-672, D-673, D-675, D-676, D-678), and the generic data table is gone (D-682).');
 	}
 }

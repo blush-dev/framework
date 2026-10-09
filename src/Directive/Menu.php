@@ -22,19 +22,21 @@ use Blush\Menu\Menus;
 use Blush\Theme\ThemeResolver;
 
 /**
- * A site menu in a `<nav>` (D-199, D-200): the menu a theme location
- * shows, by `name`, or a `Menu` given as `menu` (from
- * `$template->menu()`). Nothing renders when the location shows no menu.
+ * A site menu in a `<nav>` (D-199, D-200): what a theme location shows,
+ * by `location`, a site menu by its `name` (D-676), or a `Menu` given as
+ * `menu` (from `$template->menu()`). Nothing renders when there's no
+ * menu to show.
  *
  * ```php
- * <?= $template->directive('menu', name: 'primary') ?>
+ * <?= $template->directive('menu', location: 'primary') ?>
  * ```
  *
- * In Markdown, `::menu{name=social}`. A menu in an entry's body is
+ * In Markdown, `::menu{name=social}`, by the menu's name, since content
+ * doesn't know the theme's locations. A menu in an entry's body is
  * rendered once for every page, so none of its items is marked current.
  *
- * The root is `directive-menu` with the location as a modifier
- * (`directive-menu--primary`). Items with children get a disclosure
+ * The root is `directive-menu` with the location (else the menu's name)
+ * as a modifier (`directive-menu--primary`). Items with children get a disclosure
  * button next to their link, `hidden` until a theme's script shows it
  * and toggles the submenu (the behavior is the theme's); without one,
  * submenus stay open.
@@ -55,6 +57,7 @@ final class Menu extends Directive
 		private readonly Menus $menus,
 		private readonly ThemeResolver $themes,
 		private readonly AppConfig $app,
+		public readonly string $location = '',
 		public readonly string $name = '',
 		public readonly string $label = '',
 		public readonly ?SiteMenu $menu = null
@@ -69,11 +72,13 @@ final class Menu extends Directive
 			return $this->menu;
 		}
 
-		if ($this->resolved === null && trim($this->name) !== '') {
+		if ($this->resolved === null && (trim($this->location) !== '' || trim($this->name) !== '')) {
 			$context        = $this->context();
-			$this->resolved = $this->menus
-				->forLocation($this->themes->current(), trim($this->name), $context->locale ?? '')
-				?->forPath($context->path ?? '', $this->app->origin());
+			$chain          = $this->themes->current();
+			$menu           = trim($this->location) !== ''
+				? $this->menus->forLocation($chain, trim($this->location), $context->locale ?? '')
+				: $this->menus->named($chain, trim($this->name), $context->locale ?? '');
+			$this->resolved = $menu?->forPath($context->path ?? '', $this->app->origin());
 		}
 
 		return $this->resolved;
@@ -189,9 +194,10 @@ final class Menu extends Directive
 	#[Override]
 	protected function modifiers(): array
 	{
-		$location = $this->menu()->location ?? '';
+		$modifier = $this->menu()->location ?? '';
+		$modifier = $modifier !== '' ? $modifier : $this->menu()->name ?? '';
 
-		return $location === '' ? [] : [$location];
+		return $modifier === '' ? [] : [$modifier];
 	}
 
 	/**
@@ -204,12 +210,12 @@ final class Menu extends Directive
 	}
 
 	/**
-	 * Returns a submenu's ID, from the root's ID (or the location) and the
+	 * Returns a submenu's ID, from the root's ID (or the modifier) and the
 	 * item's position.
 	 */
 	private function submenuId(string $trail): string
 	{
-		$base = $this->id !== '' ? $this->id : 'menu-' . ($this->menu()->location ?? 'nav');
+		$base = $this->id !== '' ? $this->id : 'menu-' . ($this->modifiers()[0] ?? 'nav');
 
 		return "{$base}-{$trail}";
 	}

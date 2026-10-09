@@ -17,7 +17,7 @@ use Attribute;
 
 /**
  * Marks a `Template` method whose result is rendered HTML to print as it
- * is (D-502): a section, a partial, a component, a region. A view engine
+ * is (D-502): a section, a partial, a component. A view engine
  * that escapes on its own reads it to mark the method safe (Twig's
  * `is_safe`) instead of keeping its own list.
  */

@@ -13,34 +13,39 @@ declare(strict_types=1);
 
 namespace Blush\Menu;
 
-use Blush\Data\DataStore;
-use Blush\Data\InvalidData;
+use Closure;
+use Psr\Clock\ClockInterface;
+use Blush\Storage\Record\KeyedTable;
+use Blush\Storage\Record\RecordException;
+use Blush\Storage\Record\RecordStores;
+use Blush\Storage\Record\Table;
+use Blush\Storage\StorageArea;
 
 /**
- * Reads the site's menus: one data file per menu in `user/data/menus/`
- * (D-199), JSON (D-631), named for the menu. A file holds the menu's
- * `label` (optional) and its `items`, or is the list of items itself:
+ * Reads and writes the site's menus: the `menus` table (D-676), a
+ * record per menu keyed by its `name`, with a `label` (optional) and
+ * its `items`. On files, each is `user/data/menus/{name}.json`, named
+ * for its menu:
  *
  * ```json
  * {
  *     "label": "Primary",
  *     "items": [
- *         {"entry": "page/about"},
+ *         {"entry": "page/about", "ref": "0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1c01"},
  *         {"route": "feed", "label": "Feed"}
  *     ]
  * }
  * ```
  *
- * A `$schema` key, for editors (D-207), is allowed. The files are read
- * once. A file with the wrong shape loads as an empty menu, with its
- * problems kept.
+ * The table is read once. A menu with the wrong shape loads as far as
+ * it can, with its problems kept.
  */
 final class MenuLoader
 {
 	/**
-	 * The menus' folder, under the data folder.
+	 * The table's name, and its folder under `user/data`.
 	 */
-	public const string FOLDER = 'menus';
+	public const string TABLE = 'menus';
 
 	/**
 	 * What a menu's name looks like.
@@ -48,54 +53,111 @@ final class MenuLoader
 	public const string NAME = '/^[a-z0-9][a-z0-9_-]*$/';
 
 	/**
-	 * The menu files, by name, once read.
+	 * The menus, by name, once read.
 	 *
-	 * @var ?array<string, MenuFile>
+	 * @var ?array<string, MenuRecord>
 	 */
-	private ?array $files = null;
+	private ?array $menus = null;
 
 	public function __construct(
-		private readonly DataStore $store
+		private readonly RecordStores $stores,
+		private readonly ClockInterface $clock
 	) {}
+
+	/**
+	 * The menus' table.
+	 */
+	public static function table(): Table
+	{
+		return new Table(self::TABLE, StorageArea::Data, key: 'name', fields: ['name']);
+	}
 
 	/**
 	 * Returns every menu, by name.
 	 *
-	 * @return array<string, MenuFile>
-	 * @throws InvalidData When a file can't be parsed.
+	 * @return array<string, MenuRecord>
+	 * @throws MenuException When the table can't be read.
 	 */
 	public function all(): array
 	{
-		if ($this->files !== null) {
-			return $this->files;
+		if ($this->menus !== null) {
+			return $this->menus;
 		}
 
-		$files     = [];
+		$records = $this->records();
 
-		foreach ($this->store->loadAll(self::FOLDER) as $name => $data) {
-			$files[$name] = self::file($name, $this->store->location(self::FOLDER . "/{$name}"), $data);
+		try {
+			$all = $records->all();
+		} catch (RecordException $error) {
+			throw new MenuException(sprintf('The menus can\'t be read: %s', $error->getMessage()), 0, $error);
 		}
 
-		return $this->files = $files;
+		$menus = [];
+
+		foreach ($all as $name => $data) {
+			$menus[$name] = self::menu($name, $records->location($name), $data);
+		}
+
+		return $this->menus = $menus;
 	}
 
 	/**
 	 * Returns a menu, or `null` when the site has none by that name.
 	 *
-	 * @throws InvalidData
+	 * @throws MenuException
 	 */
-	public function get(string $name): ?MenuFile
+	public function get(string $name): ?MenuRecord
 	{
 		return $this->all()[$name] ?? null;
 	}
 
+	/**
+	 * Changes a menu's stored data in a transaction: `$change` gets it
+	 * as kept and returns it as it should be.
+	 *
+	 * @param  Closure(array<string, mixed>): array<string, mixed> $change
+	 * @throws MenuException When there's no menu by that name, or it can't be saved.
+	 */
+	public function change(string $name, Closure $change): void
+	{
+		$records = $this->records();
+
+		try {
+			$records->transaction(static function () use ($records, $name, $change): void {
+				$data = $records->find($name) ?? throw new MenuException(sprintf('The site has no menu "%s".', $name));
+
+				$records->save($name, $change($data));
+			});
+		} catch (RecordException $error) {
+			throw new MenuException(sprintf('The menu "%s" couldn\'t be saved in %s: %s', $name, $records->location($name), $error->getMessage()), 0, $error);
+		} finally {
+			$this->menus = null;
+		}
+	}
 
 	/**
-	 * Builds a menu from its parsed file.
-	 *
-	 * @param array<array-key, mixed> $data
+	 * Where a menu is kept, for people: `user/data/menus/primary.json`
+	 * for a file.
 	 */
-	private static function file(string $name, string $location, array $data): MenuFile
+	public function location(string $name): string
+	{
+		return $this->records()->location($name);
+	}
+
+	/**
+	 * The table's records.
+	 */
+	private function records(): KeyedTable
+	{
+		return new KeyedTable($this->stores, self::table(), $this->clock);
+	}
+
+	/**
+	 * Builds a menu from its record's data.
+	 *
+	 * @param array<string, mixed> $data
+	 */
+	private static function menu(string $name, string $location, array $data): MenuRecord
 	{
 		$problems = [];
 
@@ -103,11 +165,7 @@ final class MenuLoader
 			$problems[] = 'Its name isn\'t valid: use lowercase letters, digits, hyphens, and underscores.';
 		}
 
-		if (array_is_list($data)) {
-			return new MenuFile($name, $location, null, $data, $problems);
-		}
-
-		foreach (array_keys(array_diff_key($data, ['label' => true, 'items' => true, '$schema' => true])) as $key) {
+		foreach (array_keys(array_diff_key($data, ['label' => true, 'items' => true])) as $key) {
 			$problems[] = sprintf('"%s" isn\'t a menu key; a menu has "label" and "items".', $key);
 		}
 
@@ -118,6 +176,6 @@ final class MenuLoader
 			$items      = [];
 		}
 
-		return new MenuFile($name, $location, $data['label'] ?? null, $items, $problems);
+		return new MenuRecord($name, $location, $data['label'] ?? null, $items, $problems);
 	}
 }

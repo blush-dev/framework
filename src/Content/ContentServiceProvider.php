@@ -40,7 +40,6 @@ use Blush\Content\Record\EntryLocations;
 use Blush\Content\Relation\EntryRelations;
 use Blush\Content\Relation\RelationCompiler;
 use Blush\Content\Relation\Relations;
-use Blush\Content\Routing\ContentRedirects;
 use Blush\Content\Routing\ContentRoutes;
 use Blush\Content\Routing\ContentSiteUrls;
 use Blush\Content\Routing\ContentUrls;
@@ -138,7 +137,6 @@ final class ContentServiceProvider extends ServiceProvider
 		ContentRoutes::class,
 		PageRoutes::class,
 		ContentSiteUrls::class,
-		ContentRedirects::class,
 		DataRedirects::class,
 		RefreshRouteCache::class,
 		HomeController::class,
@@ -201,12 +199,15 @@ final class ContentServiceProvider extends ServiceProvider
 			static fn (Container $container): FieldSets => $container->make(ContentTypes::class)->sets
 		);
 
-		// The site's types and relations are tables (D-672), kept on files
-		// as folders under `user/data`, each file named for its record.
+		// The site's types, relations, and field sets are tables (D-672,
+		// D-678), kept on files as folders under `user/data`, each file
+		// named for its record; its redirects are one file of them all.
 		$this->container->resolving(TableRegistry::class, static function (object $tables): void {
 			if ($tables instanceof TableRegistry) {
 				$tables->register(DefinitionTables::typesTable());
 				$tables->register(DefinitionTables::relationsTable());
+				$tables->register(FieldSetLoader::table());
+				$tables->register(DataRedirects::table());
 			}
 		});
 
@@ -216,20 +217,21 @@ final class ContentServiceProvider extends ServiceProvider
 
 				$layouts->register(DefinitionTables::TYPES, FileLayout::folder("{$data}/" . DefinitionTables::TYPES, keyInName: true));
 				$layouts->register(DefinitionTables::RELATIONS, FileLayout::folder("{$data}/" . DefinitionTables::RELATIONS, keyInName: true));
+				$layouts->register(FieldSetLoader::TABLE, FileLayout::folder("{$data}/" . FieldSetLoader::DATA_DIRECTORY, keyInName: true));
+				$layouts->register(DataRedirects::TABLE, DataRedirects::layout($resolver->make(Paths::class)));
 			}
 		});
 	}
 
 	/**
-	 * Adds the content redirect sources, after the ones providers declared
-	 * so `config/routes.php` redirects win, then data-file redirects, then
-	 * `redirect_from` front matter. Also keeps a compiled route table's
-	 * redirects current as content changes.
+	 * Adds the site's redirect source, the `redirects` table (D-678),
+	 * after the ones providers declared, so `config/routes.php` redirects
+	 * win. Also keeps a compiled route table current as content changes.
 	 */
 	#[Override]
 	public function boot(): void
 	{
-		$this->container->tag([DataRedirects::class, ContentRedirects::class], RedirectSource::TAG);
+		$this->container->tag([DataRedirects::class], RedirectSource::TAG);
 
 		if ($this->container->has(ListenerRegistry::class)) {
 			$this->container->make(ListenerRegistry::class)->listen(ContentIndexed::class, RefreshRouteCache::class);

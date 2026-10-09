@@ -291,9 +291,8 @@ The **⋯** button at the end of each row has **Edit**, then **View** and
 **Duplicate** copies the entry beside the original as a draft titled
 "… (Copy)", with the original's slug plus `-copy` (then `-copy-2`, and so
 on, if that's taken). Everything else is copied as it is: the body, the
-authors, and the other front matter, except its own `slug` and
-`redirect_from` (the copy is named by its file, and old addresses stay
-the original's); a dated entry is dated today, and
+authors, and the other front matter, except its own `slug` (the copy is
+named by its file); a dated entry is dated today, and
 an entry in its own folder is copied with its media. A message at the
 bottom right says so; the copy is listed with the drafts. Terms and index pages can't
 be duplicated.
@@ -688,8 +687,9 @@ and hyphens, and another entry of the same type can't already have it;
 if the name is refused, nothing is saved and the field says why.
 
 For a published entry, the field shows the new address, and **Redirect
-the old address here** (on by default) adds the old address to the
-entry's `redirect_from`, so links to it keep working. Landing pages
+the old address here** (on by default) adds a
+[redirect](content.md#redirects) from the old address to the new one, so
+links to it keep working. Landing pages
 (the homepage, and a folder's `index.md`) take their folder's name,
 so they have no Slug field.
 
@@ -1078,7 +1078,7 @@ under; later pages need
 `{page}`. A path that leaves out what it needs, or holds something it
 can't fill, is refused with the reason. Changing an address moves those
 pages, so add [redirects](content.md#redirects) for the old ones in
-`user/data/redirects`.
+`user/data/redirects.json`.
 
 In **Fields**, open a field to change its
 label, key, type, help, whether it's required, its default, and its
@@ -2262,8 +2262,8 @@ changed; otherwise its file is renamed first (a dated file keeps its
 date, and an entry in its own folder moves the folder), so a refused name
 changes nothing. A slug that isn't one, that another entry of the type
 has, or that's a landing page's is a `422` with `"field": "slug"`. With
-`"redirect": true`, a published entry's old address is added to its
-`redirect_from`. The answer is the entry as `GET` would show it, with
+`"redirect": true`, a published entry's old address
+[redirects](content.md#redirects) to its new one. The answer is the entry as `GET` would show it, with
 its new id and revision.
 
 New entries are drafts unless `status` says otherwise, credit the

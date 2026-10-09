@@ -14,29 +14,57 @@ declare(strict_types=1);
 namespace Blush\Field;
 
 use Blush\Container\Container;
-use Blush\Data\DataStore;
-use Blush\Data\InvalidData;
+use Psr\Clock\ClockInterface;
+use Blush\Storage\Record\KeyedTable;
+use Blush\Storage\Record\RecordException;
+use Blush\Storage\Record\RecordStores;
+use Blush\Storage\Record\Table;
+use Blush\Storage\StorageArea;
 
 /**
  * Loads the field sets from every source (D-337), each replacing a set of
  * the same name before it: extensions (`FieldSetSource`), then
- * `config/fields.php`, then `user/data/fields/*.json` (a set
- * named after its file) unless `FieldConfig::$dataSets` is off. Two
+ * `config/fields.php`, then the `field_sets` table (D-678; on files
+ * `user/data/fields/*.json`, a set named after its file) unless
+ * `FieldConfig::$dataSets` is off. Two
  * extensions can't define the same set.
  */
 final readonly class FieldSetLoader
 {
 	/**
-	 * The folder under `user/data` that holds data sets.
+	 * The table of the sets the site defines in data (D-678).
+	 */
+	public const string TABLE = 'field_sets';
+
+	/**
+	 * The folder under `user/data` that keeps the table on files.
 	 */
 	public const string DATA_DIRECTORY = 'fields';
 
 	public function __construct(
 		private FieldConfig $config,
-		private DataStore $data,
+		private RecordStores $stores,
+		private ClockInterface $clock,
 		private FieldFactory $fields,
 		private Container $container
 	) {}
+
+	/**
+	 * The data sets' table: keyed by `name`, a record's other fields the
+	 * set's definition as written.
+	 */
+	public static function table(): Table
+	{
+		return new Table(self::TABLE, StorageArea::Data, key: 'name', fields: ['name']);
+	}
+
+	/**
+	 * The data sets, by name.
+	 */
+	public function records(): KeyedTable
+	{
+		return new KeyedTable($this->stores, self::table(), $this->clock);
+	}
 
 	/**
 	 * Loads the sets.
@@ -126,30 +154,21 @@ final readonly class FieldSetLoader
 			return [];
 		}
 
+		$records = $this->records();
+
 		try {
-			$definitions = $this->data->loadAll(self::DATA_DIRECTORY);
-		} catch (InvalidData $e) {
+			$definitions = $records->all();
+		} catch (RecordException $e) {
 			throw new InvalidSchema($e->getMessage(), previous: $e);
 		}
 
 		$sets = [];
 
 		foreach ($definitions as $name => $definition) {
-			$declared = $definition['name'] ?? $name;
-
-			if ($declared !== $name) {
-				throw new InvalidSchema(sprintf(
-					'user/data/%s/%s names the field set "%s"; a data set is named after its file.',
-					self::DATA_DIRECTORY,
-					$name,
-					is_scalar($declared) ? (string) $declared : get_debug_type($declared)
-				));
-			}
-
 			try {
 				$sets[] = FieldSet::fromArray(['name' => $name, ...$definition], $this->fields);
 			} catch (InvalidSchema $e) {
-				throw new InvalidSchema(sprintf('user/data/%s/%s: %s', self::DATA_DIRECTORY, $name, $e->getMessage()), previous: $e);
+				throw new InvalidSchema(sprintf('%s: %s', $records->location($name), $e->getMessage()), previous: $e);
 			}
 		}
 

@@ -21,6 +21,7 @@ use LogicException;
 use Psr\Clock\ClockInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
+use Psr\Log\LoggerInterface;
 use Blush\Auth\Account;
 use Blush\Auth\AccountProfiles;
 use Blush\Auth\Accounts;
@@ -32,6 +33,7 @@ use Blush\Content\Entry\Entry;
 use Blush\Content\Entry\Position;
 use Blush\Content\EntryFields;
 use Blush\Storage\Record\Order;
+use Blush\Storage\Record\RecordException;
 use Blush\Content\Lint\Linter;
 use Blush\Content\Relation\LinkResolver;
 use Blush\Content\Relation\ProblemKind;
@@ -43,6 +45,7 @@ use Blush\Content\Relation\Relations;
 use Blush\Content\Relation\TranslationRule;
 use Blush\Content\RelationArchives;
 use Blush\Content\Routing\ContentUrls;
+use Blush\Content\Routing\RedirectWriter;
 use Blush\Content\Status as EntryStatus;
 use Blush\Content\Type\ContentType;
 use Blush\Content\Type\ContentTypes;
@@ -61,6 +64,7 @@ use Blush\Field\FieldTargets;
 use Blush\Field\Violation;
 use Blush\Http\Response;
 use Blush\Http\Status;
+use Blush\Routing\InvalidRoute;
 use Blush\Support\Slug;
 
 /**
@@ -89,7 +93,8 @@ use Blush\Support\Slug;
  *   else the file, first, so a slug that's refused (not a slug, another
  *   entry's, or a landing page's) changes nothing; the refusal is a 422
  *   with `field: "slug"`. With `redirect: true`, a published entry's old
- *   address is added to its `redirect_from`. A tree's page takes `parent`
+ *   address redirects to its new one, a row in the `redirects` table
+ *   (`RedirectWriter`, D-680). A tree's page takes `parent`
  *   (another of its pages, by key, or `""` for the top) to move under
  *   it (D-410), with the pages under it; a parent that isn't there, or a
  *   page already at the new place, is a 422 with `field: "parent"`. When
@@ -214,7 +219,9 @@ final readonly class EntryController
 		private RelationArchives $relationArchives,
 		private TypedTargets $typed,
 		private Referrers $referrers,
-		private ArchivePages $archivePages
+		private ArchivePages $archivePages,
+		private RedirectWriter $redirects,
+		private LoggerInterface $logger
 	) {}
 
 	/**
@@ -508,10 +515,8 @@ final readonly class EntryController
 			))
 			: [];
 
-		// The old address can redirect to the new one.
-		if ($move !== false || $rename !== null) {
-			$changes = $this->withRedirect($changes, $entry, $file, $redirect);
-		}
+		// The old address can redirect to the new one, once it's saved.
+		$from = $redirect && ($move !== false || $rename !== null) && $entry->isPublished() ? $this->urls->entry($entry) : null;
 
 		try {
 			$related = $this->related($account, $entry->type, $entry, $file->frontMatter, $changes);
@@ -543,7 +548,7 @@ final readonly class EntryController
 			return self::error($e->getMessage(), Status::UnprocessableContent);
 		}
 
-		$this->redirectUnder($entry, $updated, $under);
+		$this->redirectMoved($from, $entry, $updated, $under);
 		$this->remember($account, $updated);
 
 		return self::json($this->describe($account, $updated, $file));
@@ -562,27 +567,37 @@ final readonly class EntryController
 	}
 
 	/**
-	 * Adds a redirect from each published page's old address, under a
-	 * tree's page that moved or was renamed, to its new one (D-410). The
-	 * page itself is saved by then, so one that can't take its redirect
-	 * is left as it is.
+	 * Redirects the old addresses of a published entry that moved or was
+	 * renamed, and of the published pages under a tree's page that did
+	 * (D-410), to their new ones (D-680). The entry is saved by then, so
+	 * a redirect that can't be written is logged, and the move stands.
 	 *
+	 * @param ?string     $from  The entry's old address, when it redirects.
 	 * @param list<Entry> $under The pages that were under it, as they were.
 	 */
-	private function redirectUnder(Entry $was, Entry $now, array $under): void
+	private function redirectMoved(?string $from, Entry $was, Entry $now, array $under): void
 	{
+		$moves = [];
+		$to    = $from === null ? null : $this->urls->entry($now);
+
+		if ($from !== null && $to !== null) {
+			$moves[$from] = $to;
+		}
+
 		foreach ($under as $page) {
 			$found = $this->content->named($now->type->name, $now->key . substr($page->key, strlen($was->key)));
+			$old   = $page->isPublished() ? $this->urls->entry($page) : null;
+			$new   = $found === null ? null : $this->urls->entry($found);
 
-			if ($found === null) {
-				continue;
+			if ($old !== null && $new !== null) {
+				$moves[$old] = $new;
 			}
+		}
 
-			try {
-				$this->content->change($found, $this->withRedirect(new EntryChanges(), $page, $this->content->editable($found), true));
-			} catch (WriteException) {
-				// The move stands; this page keeps working at its new address.
-			}
+		try {
+			$this->redirects->moved($moves);
+		} catch (RecordException | InvalidRoute $error) {
+			$this->logger->warning('The redirects for "{title}" couldn\'t be written: {problem}', ['title' => $now->title, 'problem' => $error->getMessage()]);
 		}
 	}
 
@@ -625,7 +640,7 @@ final readonly class EntryController
 		try {
 			// The copy's name is its file's, and the original's old
 			// addresses stay the original's.
-			$copy = $this->content->duplicate($entry, Slug::from(($entry->slug === '' ? $title : $entry->slug) . '-copy'), new EntryChanges(set: $set, remove: ['slug', 'redirect_from']), $now);
+			$copy = $this->content->duplicate($entry, Slug::from(($entry->slug === '' ? $title : $entry->slug) . '-copy'), new EntryChanges(set: $set, remove: ['slug']), $now);
 			$file = $this->content->editable($copy);
 		} catch (WriteException $e) {
 			return self::error($e->getMessage(), Status::UnprocessableContent);
@@ -1074,34 +1089,6 @@ final readonly class EntryController
 		$problems = $this->limits->check($entry->type->name, $entry->id, $entry->language, $this->content->editable($entry)->frontMatter);
 
 		return $problems === [] ? null : implode(' ', array_map(static fn (RelationProblem $problem): string => $problem->message, $problems));
-	}
-
-	/**
-	 * Adds a published entry's address to its `redirect_from`, after the
-	 * old addresses (the changes' own, if they set them).
-	 */
-	private function withRedirect(EntryChanges $changes, Entry $entry, EditableEntry $file, bool $redirect): EntryChanges
-	{
-		$from = $entry->isPublished() && $redirect ? $this->urls->entry($entry) : null;
-
-		if ($from === null) {
-			return $changes;
-		}
-
-		$keys = $this->keys($entry->type->name, 'redirect_from');
-		$key  = array_find($keys, static fn (string $key): bool => array_key_exists($key, $changes->set))
-			?? array_find($keys, static fn (string $key): bool => array_key_exists($key, $file->frontMatter));
-		$old  = $key === null ? [] : ($changes->set[$key] ?? $file->frontMatter[$key] ?? []);
-		$list = array_values(array_filter(is_array($old) ? $old : [$old], is_string(...)));
-
-		if (in_array($from, $list, true)) {
-			return $changes;
-		}
-
-		$set = $changes->set;
-		unset($set[$key ?? 'redirect_from']);
-
-		return new EntryChanges([...$set, ($key ?? 'redirect_from') => [...$list, $from]], $changes->remove, $changes->body);
 	}
 
 	/**

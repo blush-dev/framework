@@ -31,6 +31,7 @@ use Blush\Core\Application;
 use Blush\Feed\FeedSiteUrls;
 use Blush\Http\Kernel;
 use Blush\Http\Request;
+use Blush\Publish\Publisher;
 use Blush\Routing\RouteTable;
 use Blush\Routing\SiteUrl;
 use Blush\Routing\SiteUrls;
@@ -101,7 +102,12 @@ final class PeopleArchivesTest extends TestCase
 		]);
 		$this->entry('profiles/sam.md', 'title: Sam', 'Credited by nothing yet.');
 
-		return $this->site();
+		// A test may boot again with other config; production notices
+		// changes when they're published.
+		$app = $this->site();
+		$app->container()->make(Publisher::class)->publish();
+
+		return $app;
 	}
 
 	private function get(Application $app, string $uri): ResponseInterface

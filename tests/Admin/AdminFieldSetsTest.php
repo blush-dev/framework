@@ -70,6 +70,24 @@ final class AdminFieldSetsTest extends TestCase
 		return (string) file_get_contents($this->temporaryDirectory() . "/user/data/fields/{$name}");
 	}
 
+	/**
+	 * Returns a saved set's file as data, without the id a record gains
+	 * when it's saved (D-678).
+	 *
+	 * @return array<array-key, mixed>
+	 */
+	private function saved(string $name): array
+	{
+		$data = json_decode($this->file($name), true);
+
+		$this->assertIsArray($data);
+		$this->assertIsString($data['id'] ?? null, 'A saved set has its id.');
+
+		unset($data['id']);
+
+		return $data;
+	}
+
 	public function testListsTheSets(): void
 	{
 		$this->site();
@@ -125,7 +143,7 @@ final class AdminFieldSetsTest extends TestCase
 		$this->assertSame(201, $response->getStatusCode(), (string) $response->getBody());
 		$this->assertSame('pantry', self::json($response)['name'] ?? null);
 		$this->assertSame('details', self::json($response)['slot'] ?? null, 'The kind\'s default.');
-		$this->assertSame(['targets' => ['type:recipe'], 'fields' => [['name' => 'shelf', 'type' => 'text', 'control' => 'mono']]], json_decode($this->file('pantry.json'), true), 'A new set is JSON (D-490), and a label the name gives is left out.');
+		$this->assertSame(['targets' => ['type:recipe'], 'fields' => [['name' => 'shelf', 'type' => 'text', 'control' => 'mono']]], $this->saved('pantry.json'), 'A new set is JSON (D-490), and a label the name gives is left out.');
 	}
 
 	public function testChangesOnlyWhatChanged(): void
@@ -140,7 +158,7 @@ final class AdminFieldSetsTest extends TestCase
 			'targets'     => ['type:recipe', 'type:gone'],
 			'fields'      => [['name' => 'oven', 'type' => 'enum', 'options' => ['gas', 'electric']]],
 			'description' => 'Where it\'s cooked.'
-		], json_decode($this->file('kitchen.json'), true), 'Its other keys stay.');
+		], $this->saved('kitchen.json'), 'Its other keys stay.');
 	}
 
 	public function testRefusesAFieldATargetAlreadyHas(): void

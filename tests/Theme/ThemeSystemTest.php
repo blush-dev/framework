@@ -30,7 +30,6 @@ use Blush\Support\PhpArrayFile;
 use Blush\Tests\BootsScratchSite;
 use Blush\Tests\SavedSettings;
 use Blush\Theme\SettingsResolver;
-use Blush\Theme\SiteThemeData;
 use Blush\Theme\ThemeAssets;
 use Blush\Theme\ThemeCache;
 use Blush\Theme\ThemeDiscovery;
@@ -50,7 +49,6 @@ use Blush\Tests\WritesContentConfig;
 #[CoversClass(ThemeAssets::class)]
 #[CoversClass(SettingsResolver::class)]
 #[CoversClass(ThemeSettings::class)]
-#[CoversClass(SiteThemeData::class)]
 #[CoversClass(ComposerPackages::class)]
 #[CoversClass(Bootstrap::class)]
 #[CoversClass(LocalAutoloader::class)]

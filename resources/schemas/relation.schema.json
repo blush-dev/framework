@@ -9,6 +9,10 @@
 			"type": "string",
 			"description": "The JSON Schema editors check this file with."
 		},
+		"id": {
+			"type": "string",
+			"description": "The relation's id, written when it's saved."
+		},
 		"kind": {
 			"enum": [
 				"classify",

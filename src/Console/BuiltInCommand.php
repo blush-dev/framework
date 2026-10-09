@@ -15,6 +15,7 @@ namespace Blush\Console;
 
 use Blush\Console\Commands\ActivateTheme;
 use Blush\Console\Commands\AddAccount;
+use Blush\Console\Commands\AssignMenu;
 use Blush\Console\Commands\CacheClear;
 use Blush\Console\Commands\CacheCompile;
 use Blush\Console\Commands\ChangeRelation;
@@ -28,6 +29,7 @@ use Blush\Console\Commands\CreateTheme;
 use Blush\Console\Commands\ExplainView;
 use Blush\Console\Commands\Help;
 use Blush\Console\Commands\MigrateTaxonomies;
+use Blush\Console\Commands\FileMenuRefs;
 use Blush\Console\Commands\FixMediaIds;
 use Blush\Console\Commands\IndexContent;
 use Blush\Console\Commands\IndexMedia;
@@ -107,6 +109,8 @@ enum BuiltInCommand: string
 	case IconPackCheck = 'icon-pack:check';
 	case MenuList      = 'menu:list';
 	case MenuShow      = 'menu:show';
+	case MenuAssign    = 'menu:assign';
+	case MenuRefs      = 'menu:refs';
 	case Publish       = 'publish';
 	case ScheduleRun   = 'schedule:run';
 	case ScheduleList  = 'schedule:list';
@@ -169,6 +173,8 @@ enum BuiltInCommand: string
 			self::IconPackCheck => CheckIconPacks::class,
 			self::MenuList      => ListMenus::class,
 			self::MenuShow      => ShowMenu::class,
+			self::MenuAssign    => AssignMenu::class,
+			self::MenuRefs      => FileMenuRefs::class,
 			self::Publish       => Publish::class,
 			self::ScheduleRun   => RunSchedule::class,
 			self::ScheduleList  => ListSchedule::class,
