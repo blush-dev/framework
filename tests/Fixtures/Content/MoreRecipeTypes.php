@@ -16,12 +16,13 @@ namespace Blush\Tests\Fixtures\Content;
 use Override;
 use Blush\Content\Type\Collection;
 use Blush\Content\Type\ContentTypeSource;
+use Blush\Content\Type\TypeUrls;
 
 final class MoreRecipeTypes implements ContentTypeSource
 {
 	#[Override]
 	public function types(): iterable
 	{
-		yield new Collection('recipe', folder: 'cookbook');
+		yield new Collection('recipe', urls: new TypeUrls(prefix: 'cookbook'));
 	}
 }

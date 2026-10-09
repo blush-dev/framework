@@ -1,9 +1,10 @@
 # Coming from Blush 1.x
 
-Blush 2 is a rewrite, but **your content doesn't change**. Every file,
-folder, and front matter convention 1.x understood still works (terms
-and authors need files, which one command writes, and taxonomy types
-are written a new way; see below), and your URLs stay the same. What changes is the code around it: config, themes,
+Blush 2 is a rewrite, but **your content doesn't change**. Every file
+and front matter convention 1.x understood still works (terms and
+authors need files, which one command writes, each type's files move
+into a folder named for it, and taxonomy types are written a new way;
+see below), and your URLs stay the same. What changes is the code around it: config, themes,
 and the command line.
 
 ## Your content
@@ -50,7 +51,7 @@ arrays can be passed straight in.
 **Content types** move out of config. Put each 1.x type in a data file
 in `user/data/types/`, named after it, with the same keys (or define it
 in a [plugin](extending.md#content-types-from-a-plugin)). Your 1.x type
-carries over unchanged, `date_archives`, `routing`, `feed`, and the rest
+carries over, `date_archives`, `routing`, `feed`, and the rest
 (taxonomies change; see below), as `user/data/types/post.json`:
 
 ```json
@@ -60,6 +61,19 @@ carries over unchanged, `date_archives`, `routing`, `feed`, and the rest
 	"date_archives": true
 }
 ```
+
+One thing moves: every 2.x type is kept in `_` and its name (`_post/`
+for `post`), and never names its own folder. A type in
+`user/data/types/` that still has `path` is read there, so its entries
+aren't found until they move. Run `bin/blush content:type-folders` to
+list them, then `bin/blush content:type-folders --write` (or **Move
+Types** under **Type Folders** in Site Health): each type's files move
+from `_posts/` to `_post/`, and its file is written without `path`,
+with `"urls": {"prefix": "posts"}` where its URLs came from the folder,
+so they stay the same (see
+[Moving a type into its folder](content-types.md#moving-a-type-into-its-folder)).
+A type in a plugin with `path` stops Blush from loading, saying what to
+change.
 
 Move `home_alias` from `config/app.php` into `config/content.php` as
 `home`:
@@ -74,10 +88,8 @@ use Blush\Content\ContentConfig;
 return new ContentConfig(home: 'post');
 ```
 
-One default changed: a type without a `path` (or `folder`) now lives in
-`_` and its name (`_recipe/`), not a folder named after it. If a 1.x type
-leaves `path` out, add `"path": "recipe"` to keep its folder. Its URLs
-don't change either way.
+A 1.x type that left `path` out kept its files in a folder named after
+it (`recipe/`); move them to `_recipe/` by hand. Its URLs don't change.
 
 ### Taxonomies
 
@@ -120,7 +132,8 @@ becomes a collection ordered by `position`, out of
 }
 ```
 
-And in `user/data/relations/category.json`:
+Its `path` then moves with the other types' (above). And in
+`user/data/relations/category.json`:
 
 ```json
 {"kind": "classify", "from": ["post"], "to": ["category"], "create": true}
@@ -140,7 +153,7 @@ names. When you're ready, you can move to them (see
 | 1.x | 2.x |
 |---|---|
 | `taxonomy: true` | A collection and a classify relation ([above](#taxonomies)) |
-| `path` | `folder` |
+| `path` | None: a type is kept in `_` and its name, and `urls` `prefix` keeps its URLs ([above](#config)) |
 | `routing` (`prefix`, `paths`) | `urls` (`prefix`, `single`, `collection`, `paths`) |
 | `collection` and `collect` | `listing` (`type`, `orderBy`, `order`, `perPage`, `query`) |
 | `term_collect` | The relation's `from` (a list) |

@@ -1384,21 +1384,23 @@ use Blush\Content\Type\Collection;
 use Blush\Content\Type\ContentTypeSource;
 use Blush\Content\Type\Listing;
 use Blush\Content\Type\TypeOrder;
+use Blush\Content\Type\TypeUrls;
 
 final class ContentTypes implements ContentTypeSource
 {
 	public function types(): iterable
 	{
+		// Kept in user/content/_recipe, served under /recipes.
 		yield new Collection(
 			'recipe',
-			folder: 'recipes',
+			urls: new TypeUrls(prefix: 'recipes'),
 			listing: new Listing(orderBy: 'published', order: Order::Desc)
 		);
 
 		// Cuisines are terms: ordered by position.
 		yield new Collection(
 			'cuisine',
-			folder: 'recipes/cuisines',
+			urls: new TypeUrls(prefix: 'recipes/cuisines'),
 			order: TypeOrder::Position,
 			llms: false
 		);

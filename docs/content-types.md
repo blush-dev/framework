@@ -5,11 +5,13 @@ site. When you want a blog, a portfolio, or a recipe box, where entries
 are listed, dated, tagged, or given their own fields, define a **content
 type**.
 
-Each content type owns a folder in `user/content/`. Entries in that folder
-belong to it, and its `index.md` becomes the listing page. The folder is
-the type's name after an underscore (`_recipe` for `recipe`) unless you
-choose one. The underscore keeps type folders apart from your page
-folders, and it's left out of URLs: `_recipe/` is served at `/recipe`.
+Each content type owns a folder in `user/content/`: its name after an
+underscore (`_recipe` for `recipe`). Entries in that folder belong to
+it, and its `index.md` becomes the listing page. Every type is kept this
+way; a type never names its own folder. The underscore keeps type
+folders apart from your page folders. A type's addresses come from its
+[URL prefix](#custom-urls), which is its name unless you set one: `_recipe/`
+is served at `/recipe`, or at `/recipes` with the prefix `recipes`.
 
 ## Three kinds of type
 
@@ -21,7 +23,8 @@ Every content type is one of three kinds:
   entries are **terms**, which other entries are filed under through a
   [relation](#terms-and-relationships), and each term gets a page
   listing the entries filed under it.
-- **Tree:** entries that nest by folder, each served at its file path.
+- **Tree:** entries that nest by folder, each served at its path under
+  the tree's prefix.
   The built-in `page` type is a tree: it holds every entry that isn't in
   another type's folder, and `about/team.md` is a subpage of `about.md`
   (or `about/index.md`). You can add [trees of your own](#trees), such as
@@ -32,8 +35,7 @@ Every content type is one of three kinds:
 ## Built-in types
 
 - **`page`** (tree): every entry that isn't in another type's folder.
-- **`profile`** (profiles): people, in `user/content/profiles/`, in a
-  folder by first letter (`profiles/j/jane.md`; [Folders for many files](#folders-for-many-files)). Each
+- **`profile`** (profiles): people, in `user/content/_profile/`. Each
   file is one person: the title is their public name, `subtitle` a line
   under it (such as "Food editor"), `avatar` a portrait from
   `user/media`, `linkable: false` to lock it against being linked to
@@ -53,10 +55,11 @@ Use `kind` to pick the kind; it's `collection` if you leave it out.
 `user/data/types/recipe.json`:
 
 ```json
-{ "folder": "recipes" }
+{ "urls": { "prefix": "recipes" } }
 ```
 
-The file's name is the type's name; the file never says it, and one
+Its entries go in `user/content/_recipe/` and are served under
+`/recipes`. The file's name is the type's name; the file never says it, and one
 naming another type is refused. When the admin saves a type, it adds an
 `"id"` at the end of its file: the type's record id, which stays the
 same from then on. A file without one works just as well. Relations in
@@ -69,7 +72,7 @@ Each kind is its own class (`Collection`, `Tree`, or `Profiles`), which
 gives you editor autocomplete and type checking:
 
 ```php
-new Collection('recipe', folder: 'recipes')
+new Collection('recipe', urls: new TypeUrls(prefix: 'recipes'))
 ```
 
 See [Content types from a plugin](extending.md#content-types-from-a-plugin)
@@ -92,13 +95,14 @@ rest stay as the code has them. For recipes defined in a plugin,
 
 This is what the admin writes when you edit such a type, and
 it keeps only what differs from the code. A file like this can't change the
-type's kind or folder, and the `page` type and the profiles type from
+type's kind, and the `page` type and the profiles type from
 code can't be changed this way. Delete the file (or use **Reset the
 Type** in the admin) to go back to the plugin's definition. With `dataTypes` off, these files aren't read either.
 
 Both do the same thing, and every option below works in each. (In
 JSON, use the option names as keys.) A type's name uses lowercase letters,
-digits, and underscores.
+digits, and underscores. It can't be `system`, `error`, or `drafts`:
+`_system`, `_error`, and `_drafts` are folders your pages keep.
 
 If two places define the same type, a plugin's type replaces a
 built-in one. A JSON type may replace a built-in type; one named for a
@@ -113,6 +117,26 @@ Which to pick:
   create and edit.
 - **A plugin** keeps it with a feature you can reuse or version on its
   own.
+
+### Moving a type into its folder
+
+Types once named their own folder (`"folder": "recipes"`, or 1.x's
+`"path"`). A file in `user/data/types/` that still does is read in `_`
+and its name, with the folder's path as its URL prefix, so the admin
+keeps working. Its entries aren't found until they're moved, since
+they're still in the old folder. To move them, run
+`bin/blush content:type-folders` to see what would change, then
+`bin/blush content:type-folders --write`, or use **Type Folders** on
+Site Health in the admin. Each type's files move into `_` and its name,
+and its file is written without the folder: a folder pattern after it
+(`_posts/{year}`) becomes `folders`, and a collection or tree whose
+addresses came from the folder gets that path as its `prefix`, so no
+address changes. Another type's folder inside the old one stays for
+that type's own move.
+
+A type from a plugin that names its folder stops the site from loading,
+saying what to change: take out `folder` (and move its files), and give
+it a `prefix` if its addresses came from the folder.
 
 ## Names, descriptions, and icons in the admin
 
@@ -147,7 +171,6 @@ sorted by it:
 
 ```json
 {
-	"folder": "people",
 	"labels": { "plural": "People", "newItem": "Add someone" }
 }
 ```
@@ -166,7 +189,7 @@ In PHP, `TypeLabels` takes `singular` first and the rest by name:
 ```php
 use Blush\Content\Type\TypeLabels;
 
-new Collection('person', folder: 'people', labels: new TypeLabels('Person', plural: 'People'))
+new Collection('person', labels: new TypeLabels('Person', plural: 'People'))
 ```
 
 `description` says what the type is for, in a sentence. The admin shows it
@@ -179,7 +202,6 @@ directive offers (`bin/blush icon:list`), such as `film` or
 
 ```json
 {
-	"folder": "recipes",
 	"description": "Dishes we cook at home, with what goes in them.",
 	"icon": "notebook-pen"
 }
@@ -187,24 +209,24 @@ directive offers (`bin/blush icon:list`), such as `film` or
 
 ## Example: a blog
 
-Posts live in `user/content/_blog/` and are listed at `/blog`, newest
+Posts live in `user/content/_post/` and are listed at `/blog`, newest
 first, with a feed and monthly archives, in `user/data/types/post.json`:
 
 ```json
 {
-	"folder": "_blog",
+	"urls": { "prefix": "blog" },
 	"listing": { "orderBy": "published", "order": "desc" },
 	"feed": true,
 	"dateArchives": "month"
 }
 ```
 
-Tags live in `user/content/_blog/tags/`, ordered by position, in
-`user/data/types/tag.json`:
+Tags live in `user/content/_tag/`, listed under `/blog/tags`, ordered
+by position, in `user/data/types/tag.json`:
 
 ```json
 {
-	"folder": "_blog/tags",
+	"urls": { "prefix": "blog/tags" },
 	"order": "position",
 	"llms": false
 }
@@ -226,11 +248,11 @@ Now:
 
 | File                        | URL                                                |
 |-----------------------------|----------------------------------------------------|
-| `_blog/index.md`            | `/blog` (the post listing, newest first)           |
-| `_blog/2026-09-26.hello.md` | `/blog/hello`                                      |
+| `_post/index.md`            | `/blog` (the post listing, newest first)           |
+| `_post/2026-09-26.hello.md` | `/blog/hello`                                      |
 |                             | `/blog/2026` and `/blog/2026/09` (date archives)   |
 |                             | `/blog/feed`, `/blog/feed/atom`, `/blog/feed/json` |
-| `_blog/tags/php.md`         | `/blog/tags/php` (every post tagged `php`)         |
+| `_tag/php.md`               | `/blog/tags/php` (every post tagged `php`)         |
 
 Create a post with:
 
@@ -295,7 +317,7 @@ under it. For categories filing posts, that's the type in
 
 ```json
 {
-	"folder": "topics",
+	"urls": { "prefix": "topics" },
 	"hierarchical": true,
 	"order": "position",
 	"llms": false
@@ -339,7 +361,7 @@ category: [painting, news]
   published; drafts can be saved without one. `min` can ask for more.
   `multiple: false` allows one term, and `max` a number of them; the
   admin won't publish an entry with more.
-- Every term is a file (such as `topics/painting.md`), which gives it
+- Every term is a file (such as `_category/painting.md`), which gives it
   its title and description. A slug an entry names with no file is left
   out of the site: no link, no page, and no feed. `content:lint`
   reports it, and `bin/blush content:terms --write` (or **Terms and
@@ -386,7 +408,7 @@ ordered by position has the `position` field. In
 
 ```json
 {
-	"folder": "topics",
+	"urls": { "prefix": "topics" },
 	"hierarchical": true,
 	"order": "position"
 }
@@ -395,8 +417,8 @@ ordered by position has the `position` field. In
 ### Term pages
 
 A type of terms with URLs gets a page for each term, listing the
-entries filed under it, at `/{folder}/{slug}` (without the folder's
-underscores; nested for a nesting collection). Term pages are paged
+entries filed under it, at `/{prefix}/{slug}` (nested for a nesting
+collection). Term pages are paged
 (`/topics/painting/page/2`), and have feeds (`/topics/painting/feed`)
 when the type of terms has `feed`. The type's own listing page (such as
 `/topics`) lists its terms, as its `listing` says.
@@ -535,21 +557,27 @@ terms nest) and add a classify relation named after it, as in
 ## Trees
 
 A tree is a type whose entries nest by folder, as pages do, in a folder
-of its own. Use one for docs, a manual, or a handbook:
+of its own, `_` and its name. Use one for docs, a manual, or a handbook:
 
 ```php
 use Blush\Content\Type\Tree;
 
-new Tree('doc', folder: '_docs', icon: 'book')
+new Tree('doc', icon: 'book', prefix: 'docs')
 ```
 
-In JSON, that's `user/data/types/doc.json` with `"kind": "tree"`, as
-the admin's **New Content Type** writes it. A tree from a plugin
+In JSON, that's `user/data/types/doc.json`, as the admin's **New
+Content Type** writes it:
+
+```json
+{ "kind": "tree", "icon": "book", "prefix": "docs" }
+```
+
+ A tree from a plugin
 can be [changed from the admin](#changing-a-type-from-code), as
 collections can; the `page` type can't.
 
-- Each entry is served at its path in the folder, without the folder's
-  underscores: `_docs/install/requirements.md` is at
+- Each entry is served at its path under the tree's `prefix` (its name
+  when it has none): `_doc/install/requirements.md` is at
   `/docs/install/requirements`.
 - The folder's `index.md` is the tree's landing page, at `/docs`, and the
   admin pins it above the tree's other entries.
@@ -561,8 +589,8 @@ collections can; the `page` type can't.
 - A tree has no listing page, feed, or routes of its own. Its entries use
   the `single-{type}` and `single` views.
 
-A tree's folder defaults to `_` and its name, like other types; only the
-`page` type sits at the content root.
+Only the `page` type sits at the content root, and it takes no
+prefix.
 
 ## Custom fields
 
@@ -572,7 +600,6 @@ indexes your content and in `bin/blush content:lint`. In
 
 ```json
 {
-	"folder": "recipes",
 	"fields": [
 		{ "name": "servings", "type": "number", "integer": true, "required": true },
 		{ "name": "difficulty", "type": "enum", "options": ["easy", "medium", "hard"], "default": "easy" },
@@ -783,11 +810,16 @@ collection:
 
 ## All type options
 
+No type takes a folder: each is kept in `_` and its name (`page`, at
+the content root). An older definition naming one (`folder`, or 1.x's
+`path`) is refused from a plugin; one in `user/data/types/` is read in
+`_` and its name until it's moved (see
+[Moving a type into its folder](#moving-a-type-into-its-folder)).
+
 Every kind takes these:
 
 | Option              | Default                                                        | What it does                                                     |
 |---------------------|----------------------------------------------------------------|------------------------------------------------------------------|
-| `folder`            | `_` and the name (`''`, the content root, for the `page` type) | The folder under `user/content/`, and for collections and profiles, the [folders inside it](#folders-for-many-files) files are kept in (`_posts/{year}`) |
 | `labels`            | Made from the name                                             | [Names in the admin](#names-descriptions-and-icons-in-the-admin) |
 | `description`       |                                                                | What the type is for, in a sentence                              |
 | `icon`              | Its kind's                                                     | An icon for the admin, by name                                   |
@@ -803,6 +835,12 @@ Collections and trees also take this:
 |----------|----------------------------|-----------------------------------------------------------------------------------------|
 | `byline` | Its only credit relation   | The [credit relation](#crediting-people) its byline uses, by name, when it has several |
 
+Trees also take this:
+
+| Option   | Default   | What it does                                                          |
+|----------|-----------|-----------------------------------------------------------------------|
+| `prefix` | Its name  | The path its pages are served under ([Trees](#trees)); not for `page` |
+
 Collections and the profiles type also take these:
 
 | Option    | Default       | What it does                                                                                                                      |
@@ -810,6 +848,7 @@ Collections and the profiles type also take these:
 | `urls`    | Standard URLs | `false` for no URLs of its own, or [custom URLs](#custom-urls)                                                                    |
 | `listing` |               | How the listing page lists entries ([above](#listing-entries))                                                                    |
 | `feed`    | `false`       | RSS, Atom, and JSON feeds: `true`, or a `TypeFeed` with `categories` (the [type of terms](#terms-and-relationships) used for each item's categories) and `listing` |
+| `folders` |               | The [folders its files are kept in](#folders-for-many-files) inside its own: `{year}`, `{year}/{month}`, or `{initial}`             |
 
 Only collections take:
 
@@ -879,17 +918,15 @@ In the admin, choose it under **File names** on the type's screen.
 ### Collections are flat
 
 A collection's entries are files, never folders of their own:
-`_posts/hello.md`, not `_posts/hello/index.md`. Unless its folder sets
+`_post/hello.md`, not `_post/hello/index.md`. Unless it sets
 [folders for many files](#folders-for-many-files), they're directly in
-its folder, not in `_posts/2024/hello.md`. Two kinds of folder may sit
-inside one: another type's folder (a type of terms at
-`writing/genres`), and `_` folders (`_posts/_drafts`), which can hold
-its files. `content:lint` reports an entry kept as a folder, or in a
+its folder, not in `_post/2024/hello.md`. Only `_` folders
+(`_post/_drafts`) may sit inside one, and they can hold its files. `content:lint` reports an entry kept as a folder, or in a
 folder the collection doesn't keep files in, as an error. To move
 them, run `bin/blush content:folders` to see what would change, then
 `bin/blush content:folders --write`, or use **Collection Folders** on
 Site Health in the admin. Each moves into its folder under its own name
-(`_posts/hello/index.md` becomes `_posts/hello.md`), and folders left
+(`_post/hello/index.md` becomes `_post/hello.md`), and folders left
 empty are removed.
 
 A [nesting collection](#nesting-and-order) is flat too: its entries
@@ -904,16 +941,17 @@ files, and large folders are slow to read. (Folders don't help with a
 host's limit on the total number of files, since each folder counts as
 one too.)
 
-End `folder` with a pattern, one token to a folder. With
+Set `folders` to a pattern, one token to a folder. With
 `user/data/types/post.json` like this, a post is kept in
-`_posts/2026/hello.md`:
+`_post/2026/hello.md`:
 
 ```json
-{ "folder": "_posts/{year}" }
+{ "folders": "{year}" }
 ```
 
-`_posts/{year}/{month}` keeps it in `_posts/2026/10/hello.md`, and
-`tags/{initial}` keeps a tag in `tags/h/hello.md`.
+`{year}/{month}` keeps it in `_post/2026/10/hello.md`, and `{initial}`
+keeps a tag in `_tag/h/hello.md`. In PHP, it's the `folders` argument:
+`new Collection('post', folders: '{year}')`.
 
 | Token       | Folder                                                                 |
 |-------------|------------------------------------------------------------------------|
@@ -921,15 +959,19 @@ End `folder` with a pattern, one token to a folder. With
 | `{month}`   | The month it was published (`10`), after `{year}`                      |
 | `{initial}` | The slug's first letter or digit, lowercased (`h`); `0` for anything else |
 
-The profiles type takes a pattern too, and has `{initial}` unless you
-name its folder: the built-in profiles are kept in `profiles/{initial}`
-(`profiles/j/jane.md`). New types of terms made in the admin start with
-`{initial}` as well. Trees don't take one, since a tree's folders are
-their pages'.
+The profiles type takes a pattern too, though the built-in one has
+none: its files are directly in `_profile/`, as a new type of terms'
+are. Trees don't take one, since a tree's
+folders are their pages'.
+
+Folders, like [file name patterns](#naming-new-files), are only for a
+site that keeps its content in files. A site whose content is in a
+[database](going-live.md#large-sites-sqlite) has no folders to fill, so
+the admin doesn't offer either there.
 
 These folders are only where files are kept. They're never part of an
-entry's address or how it's found: `_posts/2026/hello.md` is the post
-`hello`, at the same URL as `_posts/hello.md`. Use `slug:` or a
+entry's address or how it's found: `_post/2026/hello.md` is the post
+`hello`, at the same URL as `_post/hello.md`. Use `slug:` or a
 [file name pattern](#naming-new-files) to tell apart posts with the same
 slug in different years.
 
@@ -937,44 +979,43 @@ slug in different years.
   them, and so do copies.
 - **A new date or slug moves the file**, as a new date renames a file
   [named by date](#naming-new-files): changing a post's publish date
-  from 2025 to 2026 moves it from `_posts/2025` to `_posts/2026`.
+  from 2025 to 2026 moves it from `_post/2025` to `_post/2026`.
 - **Changing the pattern moves nothing.** Older files keep working
   where they are; `content:lint` warns of each file outside the
   pattern's folders. `bin/blush content:folders --write`, or
   **Collection Folders** on Site Health, moves them, by the publish date
   as the file writes it (else its updated date).
-- **Hidden files stay where they are.** A `_` file (`_posts/_authors.md`)
-  or a file in a `_` folder (`_posts/_drafts/idea.md`) is kept outside
+- **Hidden files stay where they are.** A `_` file (`_post/_authors.md`)
+  or a file in a `_` folder (`_post/_drafts/idea.md`) is kept outside
   the pattern's folders, and isn't moved into them.
 
 In the admin, choose it under **Folders** on the type's screen: None,
-By year, By year and month, or By first letter. The type's folder
-itself doesn't change there.
+By year, By year and month, or By first letter.
 
 For the profiles type, `urls` sets where profiles' pages are (its
-`prefix`, `profiles` by default, whatever the folder), `listing` how a profile's page lists
+`prefix`, `profiles` by default), `listing` how a profile's page lists
 the entries crediting them, and `feed` whether each profile has a feed.
 It doesn't take `dateArchives`, and nothing answers at
 `/profiles` itself.
 
 ### Custom URLs
 
-`urls` moves a type's URLs. For example, to serve posts from `blog/` at
-`/archives/2026/09/26/hello`:
+`urls` moves a type's URLs. For example, to serve posts from `_post/`
+at `/archives/2026/09/26/hello`:
 
 ```php
 use Blush\Content\Type\TypeUrls;
 
 new Collection(
 	'post',
-	folder: 'blog',
 	urls: new TypeUrls(prefix: 'archives', single: '{year}/{month}/{day}/{name}'),
 	dateArchives: DateArchives::Day
 );
 ```
 
-`prefix` replaces the folder (less its underscores) at the start of every
-URL. `single` (an
+`prefix` starts every URL; without it, that's the type's name. (A
+[tree](#trees) takes `prefix` on its own, since it has no other URL
+settings.) `single` (an
 entry) and `collection` (the listing page) set the rest; `paths` sets any
 other route key that `routes:list` shows, such as
 `['collection.paged' => 'p/{page}']`.
@@ -1065,7 +1106,6 @@ names its byline with the type's `byline` option. In
 
 ```json
 {
-	"folder": "recipes",
 	"byline": "cooks"
 }
 ```
@@ -1092,11 +1132,11 @@ archive under the entry's own type, or to the profile's page when the
 credit has no archives. The sitemap includes the archives.
 
 To give the list a title and an introduction, add a page named after
-the word to the type's folder: `user/content/recipes/_cooks.md`. Its
+the word to the type's folder: `user/content/_recipe/_cooks.md`. Its
 title replaces "Cooks" and its body introduces the list.
 
 To write something for one person's archive instead of their bio, add
-`user/content/recipes/_cooks/jane.md`. While it's published, its title
+`user/content/_recipe/_cooks/jane.md`. While it's published, its title
 and body introduce Jane's cook archive; the profile's bio is used
 otherwise.
 
@@ -1112,20 +1152,18 @@ unless the profiles type's `listing` says otherwise. It's a credit's
 `inverse.page`, on by default. A profile has a page before anything
 credits them.
 
-They're at `/profiles/{name}` wherever the files are. To keep them in
-another folder, or move their pages, redefine the `profile` type. For
-example, a 1.x site that keeps its author files in `authors/`, and its
-author pages at `/authors/jane`, `user/data/types/profile.json`:
+They're at `/profiles/{name}`, with their files in `_profile/`. To move
+their pages, redefine the `profile` type. For example, a 1.x site with
+its author pages at `/authors/jane`, `user/data/types/profile.json`:
 
 ```json
 {
 	"kind": "profiles",
-	"folder": "authors",
 	"urls": { "prefix": "authors" }
 }
 ```
 
-Without `urls`, those profiles would still be at `/profiles/jane`.
+Its author files move from `authors/` to `_profile/`.
 
 ## Turning off a built-in type
 

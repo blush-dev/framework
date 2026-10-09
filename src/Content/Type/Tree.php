@@ -21,23 +21,29 @@ use Blush\Field\Field;
 /**
  * A type whose entries nest by folder (D-386). The built-in `page` type is
  * one: every file no other type claims, from the content root down.
- * Others live in a folder of their own, served under it without its `_`
- * (`_docs/install.md` at `/docs/install`), with the folder's `index` as
- * their landing page. Trees have no listing, feed, or routes of their own;
- * the page catch-all serves them. A site replaces the built-in to give
- * pages fields:
+ * Others are kept in `_` and their name like every type (D-683), served
+ * under their prefix, their name unless they give one (`_doc/install.md`
+ * at `/docs/install` with the prefix `docs`), with the folder's `index`
+ * as their landing page. Trees have no listing, feed, or routes of their
+ * own; the page catch-all serves them. A site replaces the built-in to
+ * give pages fields:
  *
  *     new Tree(fields: [new StringField('subtitle')]);
  *
  * and adds a tree of its own beside it:
  *
- *     new Tree('doc', labels: new TypeLabels('Doc'));
+ *     new Tree('doc', labels: new TypeLabels('Doc'), prefix: 'docs');
  */
 final readonly class Tree extends ContentType
 {
 	/**
-	 * @param  string          $name        Lowercase letters, digits, and underscores.
-	 * @param  ?string         $folder      The folder under `user/content`: the content root for `page`, else `_` and the name.
+	 * The path a tree in a folder is served under, without slashes, or
+	 * `null` for its name (D-683). The site's pages have none.
+	 */
+	public ?string $urlPrefix;
+
+	/**
+	 * @param  string          $name        Lowercase letters, digits, and underscores; `page` is the site's pages, at the content root, and any other is kept in `_` and its name.
 	 * @param  bool            $public      Whether its entries are public at all.
 	 * @param  bool            $sitemap     Whether its entries are in the sitemap.
 	 * @param  iterable<Field> $fields      Fields beyond the built-in ones.
@@ -48,11 +54,11 @@ final readonly class Tree extends ContentType
 	 * @param  ?string        $byline      The credit relation that's its byline (D-602), or `null` for its only one.
 	 * @param  bool            $llms        Whether its entries are listed in `llms.txt` (D-398).
 	 * @param  ?FileName       $filename    How new files are named (D-514).
+	 * @param  ?string         $prefix      The path a tree in a folder is served under (D-683); its name by default.
 	 * @throws InvalidContentType
 	 */
 	public function __construct(
 		string $name = 'page',
-		?string $folder = null,
 		bool $public = true,
 		bool $sitemap = true,
 		iterable $fields = [],
@@ -62,9 +68,32 @@ final readonly class Tree extends ContentType
 		?string $icon = null,
 		?string $byline = null,
 		bool $llms = true,
-		?FileName $filename = null
+		?FileName $filename = null,
+		?string $prefix = null
 	) {
-		parent::__construct($name, $folder ?? ($name === BuiltInType::Page->value ? '' : null), $public, false, new Listing(), false, $sitemap, DateArchives::None, $fields, $closed, $labels, $description, $icon, $byline, $llms, $filename);
+		parent::__construct($name, null, $public, false, new Listing(), false, $sitemap, DateArchives::None, $fields, $closed, $labels, $description, $icon, $byline, $llms, $filename);
+
+		$prefix = trim($prefix ?? '', '/ ');
+
+		if ($prefix !== '' && $this->atRoot()) {
+			throw new InvalidContentType(sprintf('Content type "%s" is the site\'s pages, served from the root, so it takes no prefix.', $name));
+		}
+
+		if ($prefix !== '' && array_any(explode('/', $prefix), static fn (string $segment): bool => in_array($segment, ['', '.', '..'], true) || str_starts_with($segment, '_'))) {
+			throw new InvalidContentType(sprintf('Content type "%s" has an invalid prefix "%s".', $name, $prefix));
+		}
+
+		$this->urlPrefix = $prefix === '' ? null : $prefix;
+	}
+
+	/**
+	 * Returns the path its pages are served under: its prefix, else its
+	 * name; the site's pages are served from the root.
+	 */
+	#[Override]
+	public function pagePath(): string
+	{
+		return $this->atRoot() ? '' : $this->urlPrefix ?? $this->name;
 	}
 
 	/**
@@ -139,6 +168,16 @@ final readonly class Tree extends ContentType
 	#[Override]
 	protected function options(): array
 	{
-		return ['byline' => $this->byline];
+		return ['byline' => $this->byline, 'prefix' => $this->urlPrefix];
+	}
+
+	/**
+	 * The site's pages are the content root; any other tree is kept in
+	 * `_` and its name.
+	 */
+	#[Override]
+	protected static function folderOf(string $name): string
+	{
+		return $name === BuiltInType::Page->value ? '' : parent::folderOf($name);
 	}
 }

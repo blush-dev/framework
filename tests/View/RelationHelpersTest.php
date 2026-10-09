@@ -31,9 +31,9 @@ final class RelationHelpersTest extends TestCase
 	{
 		$this->contentConfig([
 			'types'     => [
-				'post'   => ['path' => '_posts', 'routing' => ['prefix' => 'archives']],
-				'movie'  => ['path' => '_movies', 'routing' => ['prefix' => 'movies']],
-				'person' => ['path' => '_people', 'routing' => ['prefix' => 'people']]
+				'post'   => ['routing' => ['prefix' => 'archives']],
+				'movie'  => ['routing' => ['prefix' => 'movies']],
+				'person' => ['routing' => ['prefix' => 'people']]
 			],
 			'relations' => [
 				'related' => ['kind' => 'reference', 'from' => ['post'], 'to' => ['post'], 'symmetric' => true],
@@ -41,14 +41,14 @@ final class RelationHelpersTest extends TestCase
 			]
 		]);
 
-		$this->entry('_posts/a.md', "title: A\npublished: 2026-01-01\nrelated: [b]");
-		$this->entry('_posts/b.md', "title: B\npublished: 2026-01-02");
-		$this->entry('_posts/c.md', "title: C\npublished: 2026-01-03\nrelated: [b, d]");
-		$this->entry('_posts/d.md', "title: D\npublished: 2026-01-04\nstatus: draft");
-		$this->entry('_movies/big.md', "title: Big\npublished: 2026-01-01\nactors: [tom, meg]");
-		$this->entry('_movies/splash.md', "title: Splash\npublished: 2026-02-01\nactors: [tom]");
-		$this->entry('_people/tom.md', 'title: Tom');
-		$this->entry('_people/meg.md', 'title: Meg');
+		$this->entry('_post/a.md', "title: A\npublished: 2026-01-01\nrelated: [b]");
+		$this->entry('_post/b.md', "title: B\npublished: 2026-01-02");
+		$this->entry('_post/c.md', "title: C\npublished: 2026-01-03\nrelated: [b, d]");
+		$this->entry('_post/d.md', "title: D\npublished: 2026-01-04\nstatus: draft");
+		$this->entry('_movie/big.md', "title: Big\npublished: 2026-01-01\nactors: [tom, meg]");
+		$this->entry('_movie/splash.md', "title: Splash\npublished: 2026-02-01\nactors: [tom]");
+		$this->entry('_person/tom.md', 'title: Tom');
+		$this->entry('_person/meg.md', 'title: Meg');
 
 		$this->themeView('single-post.php', '<?= e(implode(", ", array_map(fn ($post) => $post->title, $template->related($entry, "related")))) ?>');
 		$this->themeView('single-movie.php', '<?= e(implode(", ", array_map(fn ($person) => $person->title, $template->related($entry, "actors")))) ?>');
@@ -64,7 +64,7 @@ final class RelationHelpersTest extends TestCase
 	{
 		$this->assertSame('Tom, Meg', $this->body('/movies/big'), 'In the order front matter lists them.');
 		$this->assertSame('Splash, Big', $this->body('/people/tom'), 'What links to it, newest first (D-596).');
-		$this->assertSame('A, C', $this->body('/archives/b'), 'A symmetric relation answers from both ends.');
+		$this->assertSame('C, A', $this->body('/archives/b'), 'A symmetric relation answers from both ends.');
 		$this->assertSame('B', $this->body('/archives/c'), 'Drafts are left out.');
 	}
 }

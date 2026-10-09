@@ -26,6 +26,7 @@ use Blush\Content\EntryIds;
 use Blush\Content\Type\ContentTypes;
 use Blush\Content\Type\InvalidContentType;
 use Blush\Content\Type\TaxonomyMigration;
+use Blush\Content\Type\TypeFolderMigration;
 use Blush\Content\Writer\AssignedIds;
 use Blush\Content\Writer\WriteException;
 use Blush\Http\Response;
@@ -72,10 +73,10 @@ use Blush\Media\MediaIds;
  * sizes, file names, folders, terms, and refs) run as a job (D-624):
  * each answers `{"job": id}`, which the admin runs and follows
  * (`JobController`), and the finished job's `result` is the answer
- * described below. Keeping a shared id and migrating taxonomies run in
- * the request.
+ * described below. Keeping a shared id, migrating taxonomies, and moving
+ * type folders run in the request.
  *
- * Every fix but `keep` and the taxonomies' takes a JSON `paths` (a list,
+ * Every fix but `keep`, the taxonomies', and the type folders' takes a JSON `paths` (a list,
  * media files' by their keys) to change only those, one row or a page
  * of rows on Site Health (D-612); without it, it changes every file the
  * check found. `POST health/terms` takes `terms` instead, each
@@ -117,6 +118,12 @@ use Blush\Media\MediaIds;
  * types (`site.settings`), answering the files written by type
  * (`migrated`) and `failed`.
  *
+ * Its `typeFolders` name the data types that still name their folder
+ * (D-683), each with the folder it names (`from`) and its own (`to`).
+ * `POST health/type-folders` moves their files and writes them without
+ * it (`TypeFolderMigration`), for accounts that may also change content
+ * types, answering how many moved by type (`migrated`) and `failed`.
+ *
  * Its `mediaSizes` say how many images' sizes aren't recorded in their
  * metadata files (D-488): `sizes` and the `images` they're of, and
  * `stale` (images listing files that aren't their sizes). `POST health/media-sizes`
@@ -132,6 +139,7 @@ final readonly class HealthController
 		private MediaIds $mediaIds,
 		private ContentTypes $types,
 		private TaxonomyMigration $taxonomies,
+		private TypeFolderMigration $typeFolders,
 		private FixAccess $access,
 		private JobQueue $jobs,
 		private IgnoredProblems $ignored,
@@ -379,6 +387,27 @@ final readonly class HealthController
 
 		try {
 			$done = $this->taxonomies->migrate();
+		} catch (InvalidContentType $error) {
+			return Response::json(['error' => $error->getMessage()], Status::UnprocessableContent, ['Cache-Control' => 'no-store']);
+		}
+
+		return Response::json(['migrated' => (object) $done['migrated'], 'failed' => (object) $done['failed']], headers: ['Cache-Control' => 'no-store']);
+	}
+
+	/**
+	 * Moves the data types that still name their folder into `_` and
+	 * their name (D-683), for an account that may change content types.
+	 */
+	public function moveTypeFolders(ServerRequestInterface $request): ResponseInterface
+	{
+		$account = $request->getAttribute(Account::class);
+
+		if (! $account instanceof Account || ! $this->permissions->can($account, Capability::SiteHealth) || ! $this->permissions->can($account, Capability::SiteSettings)) {
+			return Response::json(['error' => 'You aren\'t allowed to change content types.'], Status::Forbidden, ['Cache-Control' => 'no-store']);
+		}
+
+		try {
+			$done = $this->typeFolders->migrate();
 		} catch (InvalidContentType $error) {
 			return Response::json(['error' => $error->getMessage()], Status::UnprocessableContent, ['Cache-Control' => 'no-store']);
 		}

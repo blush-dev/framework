@@ -15,7 +15,8 @@ export interface TypeForm {
 	plural: string;
 	description: string;
 	icon: string;
-	// The URL prefix, without slashes; `''` for the folder's.
+	// The URL prefix, without slashes (a tree's too, D-683); `''` for
+	// its key's.
 	prefix: string;
 	public: boolean;
 	sitemap: boolean;
@@ -34,8 +35,8 @@ export interface TypeForm {
 	// Its file name pattern (D-511, any kind, D-514), `''` for the
 	// default, the slug alone (D-515).
 	filename: string;
-	// A collection's or the profiles' folder pattern (D-629), `''` for
-	// none.
+	// A collection's or the profiles' folder pattern (D-629), below its
+	// folder, `_` and its key (D-683); `''` for none.
 	folders: string;
 	// A collection's: whether an entry may name a parent (D-593), and
 	// whether entries are newest published first or by `position`.
@@ -70,7 +71,7 @@ export function formOf(type: ContentTypeDetail): TypeForm {
 		plural: type.labels.plural,
 		description: type.description,
 		icon: type.icon ?? '',
-		prefix: prefix === type.folderPrefix ? '' : prefix,
+		prefix: prefix === type.defaultPrefix ? '' : prefix,
 		public: type.public,
 		sitemap: type.sitemap,
 		llms: type.llms,
@@ -119,11 +120,11 @@ export function changesOf(form: TypeForm, initial: TypeForm | null, kind: TypeKi
 		labels: { singular: form.singular.trim(), plural: form.plural.trim() },
 		description: form.description.trim() || null,
 		icon: form.icon.trim() || null,
-		// A tree has no URLs or feed of its own (D-386).
-		...(kind === 'tree' ? {} : { prefix: form.prefix.trim().replace(/^\/+|\/+$/g, '') || null }),
+		prefix: form.prefix.trim().replace(/^\/+|\/+$/g, '') || null,
 		public: form.public,
 		sitemap: form.sitemap,
 		llms: form.llms,
+		// A tree has no feed of its own (D-386).
 		...(kind === 'tree' ? {} : { feed: form.feed }),
 		byline: form.byline || null,
 		fields: form.fields,
@@ -203,7 +204,7 @@ export const FILENAMES = [
 ];
 
 /**
- * The folder patterns offered (D-629), each kept after the type's folder.
+ * The folder patterns offered (D-629), each below the type's folder.
  */
 export const FOLDERS = [
 	{ value: '', label: 'None', hint: 'all in one folder' },

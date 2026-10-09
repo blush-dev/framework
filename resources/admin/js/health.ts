@@ -22,7 +22,7 @@ import { plural } from './format';
 
 export type Severity = Violation['severity'];
 
-export type HealthCheckKey = 'files' | 'ids' | 'terms' | 'parents' | 'refs' | 'taxonomies' | 'folders' | 'names' | 'sizes';
+export type HealthCheckKey = 'files' | 'ids' | 'terms' | 'parents' | 'refs' | 'taxonomies' | 'types' | 'folders' | 'names' | 'sizes';
 
 export interface HealthChoice {
 	path: string;
@@ -105,6 +105,7 @@ export const SCREENS: Record<string, HealthScreen> = {
 	'content:parents': { title: 'Parent Pages', about: 'A page is under its parent page, so a page kept in a folder with no page of its own is at the top of its tree, its address without the folder.', clear: 'Every page is under a parent page that exists.', byFile: false },
 	'content:refs': { title: 'Links Between Entries', about: 'A link filed with its id follows what it links to through a rename or a move.', clear: 'Every link between entries is filed with its id.', byFile: false },
 	'content:taxonomies': { title: 'Taxonomies', about: 'Content types still written as taxonomies are read as collections and their relationships until they\'re migrated.', clear: 'Every content type is written as a collection or a tree.', byFile: false },
+	'content:types': { title: 'Type Folders', about: 'Every content type is kept in _ and its name. One that still names its own folder is read there, so its entries aren\'t found until they move.', clear: 'Every content type is kept in _ and its name.', byFile: false },
 	'content:folders': { title: 'Collection Folders', about: 'A collection\'s entries are files directly in its folder.', clear: 'Every collection\'s entries are files in its folder.', byFile: false },
 	'content:names': { title: 'File Names', about: 'Each type names its entries\' files by a pattern. Older names keep working; renaming them changes no address.', clear: 'Every entry is named by its type\'s pattern.', byFile: false },
 	'media:files': { title: 'Media Details', about: 'Reads every media file\'s details: whether they can be read, and whether each value is one the site can use.', clear: 'Every media file\'s details can be read, and every value is one the site can use.', byFile: true },
@@ -381,6 +382,31 @@ export function healthGroups(health: Health, area: 'content' | 'media', check: H
 					label: (count) => `Migrate ${count} Types`,
 					title: (count) => `Migrate ${plural(count, 'Type')}?`,
 					say: 'Each file in user/data/types becomes a collection, and what it files moves to a relationship in user/data/relations.'
+				}
+			}] : [];
+		case 'types':
+			return health.typeFolders.length ? [{
+				key: 'types',
+				name: 'Types Naming Their Folder',
+				says: 'Each is kept in _ and its name, so its entries aren\'t found until they move there. Moving them writes its file in user/data/types without the folder, with the prefix its addresses came from, so no address changes.',
+				severity: 'warning',
+				unit: ['type', 'types'],
+				rows: health.typeFolders.map((item) => ({
+					key: `content:types:${item.name}`,
+					severity: 'warning',
+					path: `user/data/types/${item.name}`,
+					title: item.name,
+					mono: true,
+					found: `Names ${item.from}/ as its folder.`,
+					says: `Its entries move to ${item.to}/.`,
+					// The move is every type's at once.
+					fix: health.typeFolders.length === 1 ? { label: 'Move It', change: `moved to ${item.to}/`, done: `Moved to ${item.to}/.` } : undefined
+				})),
+				fix: { path: '/health/type-folders', body: () => ({}), noun: ['type', 'types'] },
+				bulk: {
+					label: (count) => `Move ${count} Types`,
+					title: (count) => `Move ${plural(count, 'Type')}?`,
+					say: 'Each type\'s entries move into _ and its name, and its file in user/data/types is written without the folder. Addresses stay the same.'
 				}
 			}] : [];
 		case 'folders':

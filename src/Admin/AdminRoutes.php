@@ -98,7 +98,8 @@ use Blush\Session\StartSession;
  *     health/refs` to file links between entries with their ids
  *     (D-596), `POST health/ignore` and `POST health/unignore` (D-613),
  *     and `POST health/taxonomies` to migrate data types still written as
- *     taxonomies (D-591).
+ *     taxonomies (D-591), and `POST health/type-folders` to move data
+ *     types that name their folder (D-683).
  *   - `GET  roles` and `GET accounts`: the site's roles and accounts
  *     (`PeopleController`); `GET profiles`, `GET` and `PATCH profiles/{slug}`
  *     (the latter locks it against linking, D-605), and `POST` and
@@ -231,6 +232,7 @@ final readonly class AdminRoutes implements RouteSource
 			Route::post('/health/parents', [HealthController::class, 'createParents'])->named('health.parents')->middleware(Authenticate::class),
 			Route::post('/health/refs', [HealthController::class, 'fileRefs'])->named('health.refs')->middleware(Authenticate::class),
 			Route::post('/health/taxonomies', [HealthController::class, 'migrateTaxonomies'])->named('health.taxonomies')->middleware(Authenticate::class),
+			Route::post('/health/type-folders', [HealthController::class, 'moveTypeFolders'])->named('health.type-folders')->middleware(Authenticate::class),
 			Route::post('/health/ignore', [HealthController::class, 'ignore'])->named('health.ignore')->middleware(Authenticate::class),
 			Route::post('/health/unignore', [HealthController::class, 'unignore'])->named('health.unignore')->middleware(Authenticate::class),
 			Route::get('/roles', [PeopleController::class, 'roles'])->named('roles')->middleware(Authenticate::class),

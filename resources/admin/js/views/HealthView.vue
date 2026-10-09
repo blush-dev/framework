@@ -347,7 +347,7 @@ async function fix(group: HealthGroup, rows: Row[], options: { bulk?: boolean; c
 			toast(done.length === 1 ? `Fixed ${done[0]?.title ?? done[0]?.path}` : `Fixed ${plural(done.length, ...group.unit)}`, { kind: 'good' });
 		}
 
-		if (props.check === 'taxonomies') {
+		if (props.check === 'taxonomies' || props.check === 'types') {
 			refreshTypes();
 		}
 

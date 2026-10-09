@@ -30,8 +30,9 @@ use Blush\Tests\WritesContentConfig;
  * scheduled entries are predictable.
  *
  * The standard content (`standardContent()`) has a `post` type in
- * `_posts` (date archives, prefix `archives`) and `category` terms in
- * `topics`, filed by a classify relation (D-593), like jtcom.
+ * `_post` (date archives, prefix `archives`) and `category` terms in
+ * `_category` (prefix `topics`), filed by a classify relation (D-593),
+ * like jtcom.
  */
 trait BuildsContentSite
 {
@@ -69,13 +70,12 @@ trait BuildsContentSite
 		$this->contentConfig([
 			'types' => [
 				'post' => [
-					'path'          => '_posts',
 					'collection'    => ['order' => 'desc'],
 					'date_archives' => true,
 					'routing'       => ['prefix' => 'archives']
 				],
 				'category' => [
-					'path'   => 'topics',
+					'urls' => ['prefix' => 'topics'],
 					'order'  => 'position',
 					'llms'   => false
 				]
@@ -92,21 +92,21 @@ trait BuildsContentSite
 		$this->entry('about/biography.md', 'title: Biography');
 		$this->entry('_private.md', 'title: Private');
 		$this->entry('__drafts/idea.md', 'title: Idea');
-		$this->entry('_posts/index.md', 'title: Blog');
-		$this->entry('_posts/2003-04-15.welcome.md', "title: Welcome\ndate: 2003-04-15 17:39:00 -5\ncategory: old-posts\nauthor: justintadlock", 'Hello and welcome to my site.');
-		$this->entry('_posts/2008-04-05.spring.md', "title: spring\npublished: 2008-04-05 09:00:00\ncategory: [art, Book Reviews]\nauthor: [justintadlock, guest]\ntag: flowers", 'Spring is here.');
-		$this->entry('_posts/2008-04-20.rainy.md', "title: Rainy\npublished: 2008-04-20 10:00:00\nvisibility: unlisted\ncategory: art");
-		$this->entry('_posts/2026-12-25.future.md', "title: Future\npublished: 2026-12-25 08:00:00");
-		$this->entry('_posts/2020-01-01.unfinished.md', "title: Unfinished\npublished: 2020-01-01\nstatus: draft");
-		$this->entry('_posts/hello/index.md', "title: Hello Bundle\npublished: 2010-01-01 12:00:00", 'A bundle.');
-		$this->entry('topics/index.md', 'title: Topics');
-		$this->entry('topics/art.md', 'title: Art');
-		$this->entry('topics/book-reviews.md', 'title: Book Reviews');
-		$this->entry('topics/old-posts.md', 'title: Old Posts');
-		$this->entry('profiles/j/justintadlock.md', 'title: Justin Tadlock', 'Writes things.');
-		$this->entry('profiles/g/guest.md', 'title: A Guest');
+		$this->entry('_post/index.md', 'title: Blog');
+		$this->entry('_post/2003-04-15.welcome.md', "title: Welcome\ndate: 2003-04-15 17:39:00 -5\ncategory: old-posts\nauthor: justintadlock", 'Hello and welcome to my site.');
+		$this->entry('_post/2008-04-05.spring.md', "title: spring\npublished: 2008-04-05 09:00:00\ncategory: [art, Book Reviews]\nauthor: [justintadlock, guest]\ntag: flowers", 'Spring is here.');
+		$this->entry('_post/2008-04-20.rainy.md', "title: Rainy\npublished: 2008-04-20 10:00:00\nvisibility: unlisted\ncategory: art");
+		$this->entry('_post/2026-12-25.future.md', "title: Future\npublished: 2026-12-25 08:00:00");
+		$this->entry('_post/2020-01-01.unfinished.md', "title: Unfinished\npublished: 2020-01-01\nstatus: draft");
+		$this->entry('_post/hello/index.md', "title: Hello Bundle\npublished: 2010-01-01 12:00:00", 'A bundle.');
+		$this->entry('_category/index.md', 'title: Topics');
+		$this->entry('_category/art.md', 'title: Art');
+		$this->entry('_category/book-reviews.md', 'title: Book Reviews');
+		$this->entry('_category/old-posts.md', 'title: Old Posts');
+		$this->entry('_profile/justintadlock.md', 'title: Justin Tadlock', 'Writes things.');
+		$this->entry('_profile/guest.md', 'title: A Guest');
 		$this->entry('notes.md', 'title: Notes', 'Some *notes*.');
-		$this->writeTemporaryFile('user/content/_posts/hello/photo.jpg', 'not content');
+		$this->writeTemporaryFile('user/content/_post/hello/photo.jpg', 'not content');
 	}
 
 	/**

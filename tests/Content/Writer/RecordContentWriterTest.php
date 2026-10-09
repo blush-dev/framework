@@ -54,9 +54,9 @@ final class RecordContentWriterTest extends TestCase
 		$this->writeTemporaryFile('config/storage.php', "<?php\nreturn new Blush\\Storage\\StorageConfig(areas: ['content' => 'sqlite']);\n");
 		$this->contentConfig([
 			'types'     => [
-				'post'     => ['path' => '_posts', 'collection' => ['order' => 'desc']],
-				'category' => ['path' => 'topics'],
-				'chapter'  => ['path' => 'chapters', 'hierarchical' => true]
+				'post'     => ['urls' => ['prefix' => 'posts'], 'collection' => ['order' => 'desc']],
+				'category' => ['urls' => ['prefix' => 'topics']],
+				'chapter'  => ['urls' => ['prefix' => 'chapters'], 'hierarchical' => true]
 			],
 			'relations' => [
 				'category' => ['kind' => 'classify', 'from' => ['post'], 'to' => ['category']]

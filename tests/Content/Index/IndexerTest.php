@@ -91,7 +91,7 @@ final class IndexerTest extends TestCase
 		$this->assertCount(19, $report->added);
 		$this->assertSame([], $report->failures);
 		$this->assertFileExists($this->temporaryDirectory() . '/storage/index/content.php');
-		$this->assertNotContains('_posts/hello/photo.jpg', array_keys($this->snapshot()->records));
+		$this->assertNotContains('_post/hello/photo.jpg', array_keys($this->snapshot()->records));
 		$this->assertCount(1, $this->events);
 		$this->assertSame($report, $this->events[0]->report);
 	}
@@ -105,10 +105,10 @@ final class IndexerTest extends TestCase
 			'index.md'                     => ['page', 'index', '', '', true],
 			'about/index.md'               => ['page', 'about', 'about', '', false],
 			'about/biography.md'           => ['page', 'biography', 'about/biography', 'about', false],
-			'_posts/index.md'              => ['post', 'index', '', '_posts', true],
-			'_posts/2003-04-15.welcome.md' => ['post', 'welcome', 'welcome', '_posts', false],
-			'_posts/hello/index.md'        => ['post', 'hello', 'hello', '_posts', false],
-			'topics/art.md'                => ['category', 'art', 'art', 'topics', false],
+			'_post/index.md'              => ['post', 'index', '', '_post', true],
+			'_post/2003-04-15.welcome.md' => ['post', 'welcome', 'welcome', '_post', false],
+			'_post/hello/index.md'        => ['post', 'hello', 'hello', '_post', false],
+			'_category/art.md'                => ['category', 'art', 'art', '_category', false],
 			'notes.md'                     => ['page', 'notes', 'notes', '', false]
 		];
 
@@ -121,23 +121,23 @@ final class IndexerTest extends TestCase
 
 	public function testPrivateNamesAreHiddenAndDraftFoldersAreDrafts(): void
 	{
-		$this->entry('_posts/_drafts/soon.md', 'title: Soon');
-		$this->entry('_posts/visible.md', "title: Visible\nvisibility: unlisted");
+		$this->entry('_post/_drafts/soon.md', 'title: Soon');
+		$this->entry('_post/visible.md', "title: Visible\nvisibility: unlisted");
 		$this->indexer()->index();
 
 		$this->assertSame(Visibility::Hidden, $this->record('_private.md')->visibility);
 		$this->assertSame(Visibility::Hidden, $this->record('__drafts/idea.md')->visibility);
-		$this->assertSame(Visibility::Hidden, $this->record('_posts/_drafts/soon.md')->visibility);
-		$this->assertSame(Status::Draft, $this->record('_posts/_drafts/soon.md')->status);
-		$this->assertSame(Visibility::Unlisted, $this->record('_posts/visible.md')->visibility);
-		$this->assertSame(Visibility::Public, $this->record('_posts/2003-04-15.welcome.md')->visibility);
+		$this->assertSame(Visibility::Hidden, $this->record('_post/_drafts/soon.md')->visibility);
+		$this->assertSame(Status::Draft, $this->record('_post/_drafts/soon.md')->status);
+		$this->assertSame(Visibility::Unlisted, $this->record('_post/visible.md')->visibility);
+		$this->assertSame(Visibility::Public, $this->record('_post/2003-04-15.welcome.md')->visibility);
 	}
 
 	public function testRecordsDatesTermsAndFrontMatter(): void
 	{
 		$this->indexer()->index();
 
-		$welcome = $this->record('_posts/2003-04-15.welcome.md');
+		$welcome = $this->record('_post/2003-04-15.welcome.md');
 
 		$this->assertSame(strtotime('2003-04-15 17:39:00 -05:00'), $welcome->published);
 		$this->assertSame($welcome->published, $welcome->updated);
@@ -147,7 +147,7 @@ final class IndexerTest extends TestCase
 		$this->assertSame(['old-posts'], $welcome->terms['category']);
 		$this->assertSame(['justintadlock'], $welcome->terms['profile']);
 
-		$spring = $this->record('_posts/2008-04-05.spring.md');
+		$spring = $this->record('_post/2008-04-05.spring.md');
 
 		$this->assertSame(['art', 'book-reviews'], $spring->terms['category']);
 		$this->assertSame(['book-reviews' => 'Book Reviews'], $spring->labels['category']);
@@ -169,8 +169,8 @@ final class IndexerTest extends TestCase
 
 		$this->assertSame('about/index.md', $snapshot->find('en', 'page', 'about'));
 		$this->assertSame(['en/page/about' => ['about.md', 'about/index.md']], $snapshot->conflicts);
-		$this->assertSame('_posts/index.md', $snapshot->find('en', 'post', ''));
-		$this->assertSame(['_posts/2003-04-15.welcome.md', '_posts/2008-04-05.spring.md'], $snapshot->referencing('profile', 'justintadlock'));
+		$this->assertSame('_post/index.md', $snapshot->find('en', 'post', ''));
+		$this->assertSame(['_post/2003-04-15.welcome.md', '_post/2008-04-05.spring.md'], $snapshot->referencing('profile', 'justintadlock'));
 		$this->assertSame(['old-posts' => 'old-posts', 'art' => 'art', 'book-reviews' => 'Book Reviews'], $snapshot->termLabels('category'));
 		$this->assertSame(strtotime('2026-12-25 08:00:00 America/Chicago'), $snapshot->scheduled);
 	}
@@ -186,22 +186,22 @@ final class IndexerTest extends TestCase
 		$this->assertFalse($unchanged->hasChanges());
 		$this->assertCount(1, $this->events);
 
-		$path = $this->temporaryDirectory() . '/user/content/_posts/2003-04-15.welcome.md';
+		$path = $this->temporaryDirectory() . '/user/content/_post/2003-04-15.welcome.md';
 		touch($path, time() + 10);
-		$this->entry('_posts/2008-04-05.spring.md', "title: Spring Again\npublished: 2008-04-05 09:00:00");
-		touch($this->temporaryDirectory() . '/user/content/_posts/2008-04-05.spring.md', time() + 20);
-		$this->entry('_posts/new.md', 'title: New');
-		unlink($this->temporaryDirectory() . '/user/content/topics/art.md');
+		$this->entry('_post/2008-04-05.spring.md', "title: Spring Again\npublished: 2008-04-05 09:00:00");
+		touch($this->temporaryDirectory() . '/user/content/_post/2008-04-05.spring.md', time() + 20);
+		$this->entry('_post/new.md', 'title: New');
+		unlink($this->temporaryDirectory() . '/user/content/_category/art.md');
 
 		$report = $this->indexer()->index();
 
 		$this->assertTrue($report->written);
-		$this->assertSame(['_posts/new.md'], $report->added);
-		$this->assertSame(['_posts/2008-04-05.spring.md'], $report->changed);
-		$this->assertSame(['topics/art.md'], $report->removed);
-		$this->assertSame(['_posts/new.md', '_posts/2008-04-05.spring.md', 'topics/art.md'], $report->changedIds());
-		$this->assertSame('Spring Again', $this->record('_posts/2008-04-05.spring.md')->title);
-		$this->assertSame(time() + 10, $this->record('_posts/2003-04-15.welcome.md')->modified);
+		$this->assertSame(['_post/new.md'], $report->added);
+		$this->assertSame(['_post/2008-04-05.spring.md'], $report->changed);
+		$this->assertSame(['_category/art.md'], $report->removed);
+		$this->assertSame(['_post/new.md', '_post/2008-04-05.spring.md', '_category/art.md'], $report->changedIds());
+		$this->assertSame('Spring Again', $this->record('_post/2008-04-05.spring.md')->title);
+		$this->assertSame(time() + 10, $this->record('_post/2003-04-15.welcome.md')->modified);
 		$this->assertCount(2, $this->events);
 	}
 
@@ -218,22 +218,22 @@ final class IndexerTest extends TestCase
 		$report = $this->indexer()->index();
 
 		$this->assertTrue($report->full);
-		$this->assertSame('page', $this->record('topics/art.md')->type);
+		$this->assertSame('page', $this->record('_category/art.md')->type);
 	}
 
 	public function testReportsFilesThatCannotBeParsed(): void
 	{
 		$this->indexer()->index();
-		$this->entry('_posts/2003-04-15.welcome.md', "title: [unclosed\n");
+		$this->entry('_post/2003-04-15.welcome.md', "title: [unclosed\n");
 
 		$progress = [];
 		$report   = $this->indexer()->index(progress: static function (int $done, int $total) use (&$progress): void {
 			$progress[] = "{$done}/{$total}";
 		});
 
-		$this->assertArrayHasKey('_posts/2003-04-15.welcome.md', $report->failures);
-		$this->assertSame(['_posts/2003-04-15.welcome.md'], $report->removed);
-		$this->assertNull($this->snapshot()->record('_posts/2003-04-15.welcome.md'));
+		$this->assertArrayHasKey('_post/2003-04-15.welcome.md', $report->failures);
+		$this->assertSame(['_post/2003-04-15.welcome.md'], $report->removed);
+		$this->assertNull($this->snapshot()->record('_post/2003-04-15.welcome.md'));
 		$this->assertSame('19/19', array_last($progress));
 		$this->assertCount(19, $progress);
 	}

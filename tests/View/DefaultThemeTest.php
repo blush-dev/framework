@@ -106,7 +106,6 @@ final class DefaultThemeTest extends TestCase
 		$this->contentConfig([
 			'types' => [
 				'post' => [
-					'path'          => '_posts',
 					'collection'    => ['order' => 'desc', 'orderby' => 'published', 'number' => 1],
 					'date_archives' => true,
 					'time_archives' => true,
@@ -115,17 +114,17 @@ final class DefaultThemeTest extends TestCase
 				],
 				'profile' => [
 					'kind'       => 'profiles',
-					'path'       => 'profiles',
+					'urls' => ['prefix' => 'profiles'],
 					'collection' => ['number' => 1]
 				],
 				'category' => [
-					'path'       => 'topics',
+					'urls' => ['prefix' => 'topics'],
 					'order'      => 'position',
 					'collection' => ['number' => 1],
 					'feed'       => true
 				],
 				'author' => [
-					'path'       => 'authors',
+					'urls' => ['prefix' => 'authors'],
 					'order'      => 'position',
 					'collection' => ['number' => 1]
 				]
@@ -137,13 +136,13 @@ final class DefaultThemeTest extends TestCase
 			],
 			'home' => 'post'
 		]);
-		$this->entry('_posts/2008-04-05-2.twin.md', "title: Twin\npublished: 2008-04-05 09:00:00\ncategory: art\nauthor: justintadlock", 'Same second as spring.');
-		$this->entry('topics/news.md', 'title: News');
-		$this->entry('_posts/2009-03-03.edited.md', "title: Edited\npublished: 2009-03-03\neditor: sam");
-		$this->entry('_posts/2009-03-04.edited-again.md', "title: Edited Again\npublished: 2009-03-04\neditor: sam");
-		$this->entry('profiles/sam.md', 'title: Sam', 'Edits things.');
-		$this->entry('authors/justintadlock.md', 'title: Justin Tadlock');
-		$this->entry('authors/guest.md', 'title: Guest');
+		$this->entry('_post/2008-04-05-2.twin.md', "title: Twin\npublished: 2008-04-05 09:00:00\ncategory: art\nauthor: justintadlock", 'Same second as spring.');
+		$this->entry('_category/news.md', 'title: News');
+		$this->entry('_post/2009-03-03.edited.md', "title: Edited\npublished: 2009-03-03\neditor: sam");
+		$this->entry('_post/2009-03-04.edited-again.md', "title: Edited Again\npublished: 2009-03-04\neditor: sam");
+		$this->entry('_profile/sam.md', 'title: Sam', 'Edits things.');
+		$this->entry('_author/justintadlock.md', 'title: Justin Tadlock');
+		$this->entry('_author/guest.md', 'title: Guest');
 		$this->writeTemporaryFile('extensions/acme/stats/plugin.json', '{"name": "acme/stats", "label": "Stats", "namespace": "stats"}');
 		$this->writeTemporaryFile('extensions/acme/stats/js/stats.js', 'console.log("stats");');
 		$this->writeTemporaryFile('config/plugins.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn new Blush\\Plugin\\PluginConfig(enabled: ['acme/stats']);\n");

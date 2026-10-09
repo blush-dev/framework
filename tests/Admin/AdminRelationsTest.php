@@ -48,8 +48,8 @@ final class AdminRelationsTest extends TestCase
 	 */
 	private function site(array $roles = ['owner']): void
 	{
-		$this->writeTemporaryFile('user/data/types/recipe.json', '{"folder": "recipes"}');
-		$this->writeTemporaryFile('user/data/types/cuisine.json', '{"folder": "cuisines", "order": "position"}');
+		$this->writeTemporaryFile('user/data/types/recipe.json', '{"urls": {"prefix": "recipes"}}');
+		$this->writeTemporaryFile('user/data/types/cuisine.json', '{"urls": {"prefix": "cuisines"}, "order": "position"}');
 		$this->boot(roles: $roles);
 		$this->login();
 	}
@@ -140,16 +140,16 @@ final class AdminRelationsTest extends TestCase
 	public function testCreatesTargetsAsTheyreTyped(): void
 	{
 		$this->writeTemporaryFile('user/data/relations/cuisine.json', '{"kind": "classify", "from": ["recipe"], "to": ["cuisine"], "create": true}');
-		$this->writeTemporaryFile('user/content/cuisines/thai.md', "---\ntitle: Thai\nid: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e10\n---\n");
+		$this->writeTemporaryFile('user/content/_cuisine/thai.md', "---\ntitle: Thai\nid: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e10\n---\n");
 		$this->site();
 
 		$created = $this->write('POST', '/entries', ['type' => 'recipe', 'title' => 'Curry', 'status' => 'published', 'set' => ['cuisine' => ['thai', 'Street Food']]]);
 
 		$this->assertSame(201, $created->getStatusCode(), (string) $created->getBody());
-		$this->assertStringContainsString("title: \"Street Food\"\n", $this->file('user/content/cuisines/street-food.md'), 'Written, titled as typed (D-596).');
-		$this->assertStringNotContainsString('status:', $this->file('user/content/cuisines/street-food.md'), 'Published.');
+		$this->assertStringContainsString("title: \"Street Food\"\n", $this->file('user/content/_cuisine/street-food.md'), 'Written, titled as typed (D-596).');
+		$this->assertStringNotContainsString('status:', $this->file('user/content/_cuisine/street-food.md'), 'Published.');
 
-		$recipe = $this->file('user/content/recipes/curry.md');
+		$recipe = $this->file('user/content/_recipe/curry.md');
 
 		$this->assertStringContainsString("cuisine: [thai, street-food]\n", $recipe, 'Written as slugs.');
 		$this->assertStringContainsString("  cuisine:\n    thai: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e10\n    street-food: ", $recipe, 'And linked by id.');
@@ -165,16 +165,16 @@ final class AdminRelationsTest extends TestCase
 		$this->assertSame(403, $refused->getStatusCode(), (string) $refused->getBody());
 		$this->assertSame('cuisine', self::json($refused)['field'] ?? null);
 		$this->assertStringContainsString('Street Food', self::message($refused));
-		$this->assertFileDoesNotExist($this->temporaryDirectory() . '/user/content/recipes/curry.md', 'Nothing is written.');
-		$this->assertFileDoesNotExist($this->temporaryDirectory() . '/user/content/cuisines/street-food.md');
+		$this->assertFileDoesNotExist($this->temporaryDirectory() . '/user/content/_recipe/curry.md', 'Nothing is written.');
+		$this->assertFileDoesNotExist($this->temporaryDirectory() . '/user/content/_cuisine/street-food.md');
 	}
 
 	public function testPublishingKeepsRelationsInTheirLimits(): void
 	{
 		$this->writeTemporaryFile('user/data/relations/cuisine.json', '{"kind": "classify", "from": ["recipe"], "to": ["cuisine"], "min": 2, "max": 3}');
 		$this->writeTemporaryFile('user/data/relations/variant_of.json', '{"kind": "reference", "from": ["recipe"], "to": ["recipe"], "multiple": false, "inverse": {"max": 1}}');
-		$this->writeTemporaryFile('user/content/recipes/soup.md', "---\ntitle: Soup\nid: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e20\n---\n");
-		$this->writeTemporaryFile('user/content/recipes/stew.md', "---\ntitle: Stew\ncuisine: [a, b]\nvariant_of: soup\nid: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e21\n---\n");
+		$this->writeTemporaryFile('user/content/_recipe/soup.md', "---\ntitle: Soup\nid: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e20\n---\n");
+		$this->writeTemporaryFile('user/content/_recipe/stew.md', "---\ntitle: Stew\ncuisine: [a, b]\nvariant_of: soup\nid: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e21\n---\n");
 		$this->site();
 
 		$few = $this->write('POST', '/entries', ['type' => 'recipe', 'title' => 'Curry', 'status' => 'published', 'set' => ['cuisine' => ['a']]]);
@@ -200,9 +200,9 @@ final class AdminRelationsTest extends TestCase
 	public function testCountsWhatNamesEachTargetAgainstTheInverseLimit(): void
 	{
 		$this->writeTemporaryFile('user/data/relations/variant_of.json', '{"kind": "reference", "from": ["recipe"], "to": ["recipe"], "multiple": false, "inverse": {"max": 2}}');
-		$this->writeTemporaryFile('user/content/recipes/soup.md', "---\ntitle: Soup\nid: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e90\n---\n");
-		$this->writeTemporaryFile('user/content/recipes/stew.md', "---\ntitle: Stew\nvariant_of: soup\nid: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e91\n---\n");
-		$this->writeTemporaryFile('user/content/recipes/broth.md', "---\ntitle: Broth\nstatus: trash\nvariant_of: soup\nid: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e92\n---\n");
+		$this->writeTemporaryFile('user/content/_recipe/soup.md', "---\ntitle: Soup\nid: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e90\n---\n");
+		$this->writeTemporaryFile('user/content/_recipe/stew.md', "---\ntitle: Stew\nvariant_of: soup\nid: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e91\n---\n");
+		$this->writeTemporaryFile('user/content/_recipe/broth.md', "---\ntitle: Broth\nstatus: trash\nvariant_of: soup\nid: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e92\n---\n");
 		$this->site();
 
 		$answer = self::json($this->send('GET', '/references/recipe?upto=50&from=recipe.variant_of'));
@@ -217,11 +217,11 @@ final class AdminRelationsTest extends TestCase
 	{
 		$thai = '0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e30';
 		$this->writeTemporaryFile('user/data/relations/cuisine.json', '{"kind": "classify", "from": ["recipe"], "to": ["cuisine"]}');
-		$this->writeTemporaryFile('user/content/cuisines/thai.md', "---\ntitle: Thai\nid: {$thai}\n---\n");
-		$this->writeTemporaryFile('user/content/cuisines/indian.md', "---\ntitle: Indian\nid: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e31\n---\n");
-		$this->writeTemporaryFile('user/content/recipes/curry.md', "---\ntitle: Curry\ncuisine: [thai, indian]\nid: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e32\n---\n");
-		$this->writeTemporaryFile('user/content/recipes/soup.md', "---\ntitle: Soup\nstatus: draft\ncuisine: thai\nid: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e33\n---\n");
-		$this->writeTemporaryFile('user/content/recipes/stew.md', "---\ntitle: Stew\ncuisine: thai\nid: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e34\n---\n");
+		$this->writeTemporaryFile('user/content/_cuisine/thai.md', "---\ntitle: Thai\nid: {$thai}\n---\n");
+		$this->writeTemporaryFile('user/content/_cuisine/indian.md', "---\ntitle: Indian\nid: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e31\n---\n");
+		$this->writeTemporaryFile('user/content/_recipe/curry.md', "---\ntitle: Curry\ncuisine: [thai, indian]\nid: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e32\n---\n");
+		$this->writeTemporaryFile('user/content/_recipe/soup.md', "---\ntitle: Soup\nstatus: draft\ncuisine: thai\nid: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e33\n---\n");
+		$this->writeTemporaryFile('user/content/_recipe/stew.md', "---\ntitle: Stew\ncuisine: thai\nid: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e34\n---\n");
 		$this->site();
 
 		$referrers = self::json($this->send('GET', "/entries/{$thai}/referrers"));
@@ -238,21 +238,21 @@ final class AdminRelationsTest extends TestCase
 		$deleted = $this->write('DELETE', "/entries/{$thai}?permanently=1&unlink=1");
 
 		$this->assertSame(['deleted' => $thai, 'unlinked' => 3], self::json($deleted));
-		$this->assertStringContainsString("cuisine: [indian]\n", $this->file('user/content/recipes/curry.md'), 'Taken out of what links to it.');
-		$this->assertStringNotContainsString('thai', $this->file('user/content/recipes/curry.md'), 'In both forms.');
-		$this->assertStringNotContainsString('cuisine', $this->file('user/content/recipes/soup.md'), 'A relation left with none goes.');
+		$this->assertStringContainsString("cuisine: [indian]\n", $this->file('user/content/_recipe/curry.md'), 'Taken out of what links to it.');
+		$this->assertStringNotContainsString('thai', $this->file('user/content/_recipe/curry.md'), 'In both forms.');
+		$this->assertStringNotContainsString('cuisine', $this->file('user/content/_recipe/soup.md'), 'A relation left with none goes.');
 	}
 
 	public function testListsTheEntriesLinkingToOne(): void
 	{
 		$thai = '0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1ea0';
 		$this->writeTemporaryFile('user/data/relations/cuisine.json', '{"kind": "classify", "from": ["recipe"], "to": ["cuisine"]}');
-		$this->writeTemporaryFile('user/content/cuisines/thai.md', "---\ntitle: Thai\nid: {$thai}\n---\n");
-		$this->writeTemporaryFile('user/content/cuisines/indian.md', "---\ntitle: Indian\nid: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1ea1\n---\n");
-		$this->writeTemporaryFile('user/content/cuisines/greek.md', "---\ntitle: Greek\nid: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1ea2\n---\n");
-		$this->writeTemporaryFile('user/content/recipes/curry.md', "---\ntitle: Curry\ncuisine: [thai, indian]\nid: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1ea3\n---\n");
-		$this->writeTemporaryFile('user/content/recipes/soup.md', "---\ntitle: Soup\nstatus: draft\ncuisine: [thai, greek]\nid: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1ea4\n---\n");
-		$this->writeTemporaryFile('user/content/recipes/stew.md', "---\ntitle: Stew\nid: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1ea5\n---\n");
+		$this->writeTemporaryFile('user/content/_cuisine/thai.md', "---\ntitle: Thai\nid: {$thai}\n---\n");
+		$this->writeTemporaryFile('user/content/_cuisine/indian.md', "---\ntitle: Indian\nid: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1ea1\n---\n");
+		$this->writeTemporaryFile('user/content/_cuisine/greek.md', "---\ntitle: Greek\nid: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1ea2\n---\n");
+		$this->writeTemporaryFile('user/content/_recipe/curry.md', "---\ntitle: Curry\ncuisine: [thai, indian]\nid: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1ea3\n---\n");
+		$this->writeTemporaryFile('user/content/_recipe/soup.md', "---\ntitle: Soup\nstatus: draft\ncuisine: [thai, greek]\nid: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1ea4\n---\n");
+		$this->writeTemporaryFile('user/content/_recipe/stew.md', "---\ntitle: Stew\nid: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1ea5\n---\n");
 		$this->site();
 
 		$titles = fn (string $query): array => array_column(is_array($entries = self::json($this->send('GET', "/entries?{$query}"))['entries'] ?? null) ? $entries : [], 'title');
@@ -270,9 +270,9 @@ final class AdminRelationsTest extends TestCase
 
 	public function testDescribesTheArchiveAnIndexPageIntroduces(): void
 	{
-		$this->writeTemporaryFile('user/content/recipes/index.md', "---\ntitle: All Recipes\nid: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1eb0\n---\n");
-		$this->writeTemporaryFile('user/content/recipes/curry.md', "---\ntitle: Curry\nid: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1eb1\n---\n");
-		$this->writeTemporaryFile('user/content/recipes/soup.md', "---\ntitle: Soup\nstatus: draft\nid: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1eb2\n---\n");
+		$this->writeTemporaryFile('user/content/_recipe/index.md', "---\ntitle: All Recipes\nid: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1eb0\n---\n");
+		$this->writeTemporaryFile('user/content/_recipe/curry.md', "---\ntitle: Curry\nid: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1eb1\n---\n");
+		$this->writeTemporaryFile('user/content/_recipe/soup.md', "---\ntitle: Soup\nstatus: draft\nid: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1eb2\n---\n");
 		$this->site();
 
 		$index = self::json($this->send('GET', '/entries/0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1eb0'));
@@ -283,9 +283,9 @@ final class AdminRelationsTest extends TestCase
 	public function testSaysWhichOfSeveralEntriesAreLinkedTo(): void
 	{
 		$this->writeTemporaryFile('user/data/relations/cuisine.json', '{"kind": "classify", "from": ["recipe"], "to": ["cuisine"]}');
-		$this->writeTemporaryFile('user/content/cuisines/thai.md', "---\ntitle: Thai\nid: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e80\n---\n");
-		$this->writeTemporaryFile('user/content/cuisines/plain.md', "---\ntitle: Plain\nid: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e81\n---\n");
-		$this->writeTemporaryFile('user/content/recipes/curry.md', "---\ntitle: Curry\ncuisine: thai\nid: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e82\n---\n");
+		$this->writeTemporaryFile('user/content/_cuisine/thai.md', "---\ntitle: Thai\nid: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e80\n---\n");
+		$this->writeTemporaryFile('user/content/_cuisine/plain.md', "---\ntitle: Plain\nid: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e81\n---\n");
+		$this->writeTemporaryFile('user/content/_recipe/curry.md', "---\ntitle: Curry\ncuisine: thai\nid: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e82\n---\n");
 		$this->site();
 
 		$answer = self::json($this->write('POST', '/entries/referrers', ['ids' => ['0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e80', '0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e81']]));
@@ -298,27 +298,27 @@ final class AdminRelationsTest extends TestCase
 	{
 		$thai = '0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e40';
 		$this->writeTemporaryFile('user/data/relations/cuisine.json', '{"kind": "classify", "from": ["recipe"], "to": ["cuisine"]}');
-		$this->writeTemporaryFile('user/content/cuisines/thai.md', "---\ntitle: Thai\nstatus: trash\nid: {$thai}\n---\n");
-		$this->writeTemporaryFile('user/content/recipes/curry.md', "---\ntitle: Curry\ncuisine: thai\nid: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e41\n---\n");
+		$this->writeTemporaryFile('user/content/_cuisine/thai.md', "---\ntitle: Thai\nstatus: trash\nid: {$thai}\n---\n");
+		$this->writeTemporaryFile('user/content/_recipe/curry.md', "---\ntitle: Curry\ncuisine: thai\nid: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e41\n---\n");
 		$this->site();
 
 		$this->assertSame(['deleted' => $thai, 'unlinked' => 0], self::json($this->write('DELETE', "/entries/{$thai}?permanently=1")));
-		$this->assertStringContainsString('cuisine: thai', $this->file('user/content/recipes/curry.md'));
+		$this->assertStringContainsString('cuisine: thai', $this->file('user/content/_recipe/curry.md'));
 	}
 
 	public function testTheTrashDoesntCountTowardAnInverseLimit(): void
 	{
 		$this->writeTemporaryFile('user/data/relations/variant_of.json', '{"kind": "reference", "from": ["recipe"], "to": ["recipe"], "multiple": false, "inverse": {"max": 1}}');
-		$this->writeTemporaryFile('user/content/recipes/soup.md', "---\ntitle: Soup\nid: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e50\n---\n");
-		$this->writeTemporaryFile('user/content/recipes/stew.md', "---\ntitle: Stew\nstatus: trash\nvariant_of: soup\nid: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e51\n---\n");
-		$this->writeTemporaryFile('user/content/recipes/broth.md', "---\ntitle: Broth\nstatus: draft\nvariant_of: soup\nid: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e52\n---\n");
+		$this->writeTemporaryFile('user/content/_recipe/soup.md', "---\ntitle: Soup\nid: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e50\n---\n");
+		$this->writeTemporaryFile('user/content/_recipe/stew.md', "---\ntitle: Stew\nstatus: trash\nvariant_of: soup\nid: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e51\n---\n");
+		$this->writeTemporaryFile('user/content/_recipe/broth.md', "---\ntitle: Broth\nstatus: draft\nvariant_of: soup\nid: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e52\n---\n");
 		$this->site();
 
 		$taken = $this->write('POST', '/entries', ['type' => 'recipe', 'title' => 'Chowder', 'status' => 'published', 'set' => ['variant_of' => 'soup']]);
 
 		$this->assertSame(422, $taken->getStatusCode(), 'A draft counts: publishing it would break the limit (D-598).');
 
-		unlink($this->temporaryDirectory() . '/user/content/recipes/broth.md');
+		unlink($this->temporaryDirectory() . '/user/content/_recipe/broth.md');
 		$this->app->container()->make(Indexer::class)->index();
 
 		$second = $this->write('POST', '/entries', ['type' => 'recipe', 'title' => 'Chowder', 'status' => 'published', 'set' => ['variant_of' => 'soup']]);
@@ -329,9 +329,9 @@ final class AdminRelationsTest extends TestCase
 	{
 		$this->writeTemporaryFile('config/app.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn Blush\\Core\\AppConfig::fromArray(['environment' => 'development', 'languages' => ['fr' => 'fr_FR']]);\n");
 		$this->writeTemporaryFile('user/data/relations/cuisine.json', '{"kind": "classify", "from": ["recipe"], "to": ["cuisine"], "create": true, "ordered": true, "min": 2, "max": 3, "translations": "add"}');
-		$this->writeTemporaryFile('user/content/cuisines/thai.md', "---\ntitle: Thai\nid: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e60\n---\n");
-		$this->writeTemporaryFile('user/content/recipes/curry.md', "---\ntitle: Curry\ncuisine: [thai]\nid: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e61\n---\n");
-		$this->writeTemporaryFile('user/content/recipes/curry.fr.md', "---\ntitle: Curry\ntranslation_of: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e61\nid: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e62\n---\n");
+		$this->writeTemporaryFile('user/content/_cuisine/thai.md', "---\ntitle: Thai\nid: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e60\n---\n");
+		$this->writeTemporaryFile('user/content/_recipe/curry.md', "---\ntitle: Curry\ncuisine: [thai]\nid: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e61\n---\n");
+		$this->writeTemporaryFile('user/content/_recipe/curry.fr.md', "---\ntitle: Curry\ntranslation_of: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e61\nid: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e62\n---\n");
 		$this->site();
 
 		$entry = self::json($this->send('GET', '/entries/0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e61'));
@@ -392,14 +392,14 @@ final class AdminRelationsTest extends TestCase
 	 */
 	private function pairedSite(): void
 	{
-		$this->writeTemporaryFile('user/data/types/drink.json', '{"folder": "drinks"}');
+		$this->writeTemporaryFile('user/data/types/drink.json', '{"urls": {"prefix": "drinks"}}');
 		$this->writeTemporaryFile('user/data/relations/pairs.json', '{"kind": "reference", "from": ["recipe"], "to": ["recipe"]}');
 		$this->writeTemporaryFile('user/data/relations/cuisine.json', '{"kind": "classify", "from": ["recipe", "drink"], "to": ["cuisine"]}');
-		$this->writeTemporaryFile('user/content/cuisines/thai.md', "---\ntitle: Thai\nid: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e70\n---\n");
-		$this->writeTemporaryFile('user/content/recipes/soup.md', "---\ntitle: Soup\nid: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e71\n---\n");
-		$this->writeTemporaryFile('user/content/recipes/bread.md', "---\ntitle: Bread\nid: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e72\n---\n");
-		$this->writeTemporaryFile('user/content/recipes/stew.md', "---\ntitle: Stew\npairs: [soup, bread]\ncuisine: thai\nid: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e73\n---\n");
-		$this->writeTemporaryFile('user/content/drinks/tea.md', "---\ntitle: Tea\ncuisine: thai\nid: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e74\n---\n");
+		$this->writeTemporaryFile('user/content/_cuisine/thai.md', "---\ntitle: Thai\nid: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e70\n---\n");
+		$this->writeTemporaryFile('user/content/_recipe/soup.md', "---\ntitle: Soup\nid: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e71\n---\n");
+		$this->writeTemporaryFile('user/content/_recipe/bread.md', "---\ntitle: Bread\nid: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e72\n---\n");
+		$this->writeTemporaryFile('user/content/_recipe/stew.md', "---\ntitle: Stew\npairs: [soup, bread]\ncuisine: thai\nid: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e73\n---\n");
+		$this->writeTemporaryFile('user/content/_drink/tea.md', "---\ntitle: Tea\ncuisine: thai\nid: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e74\n---\n");
 		$this->site();
 	}
 
@@ -470,13 +470,13 @@ final class AdminRelationsTest extends TestCase
 		$kept = self::json($this->write('PATCH', '/relations/pairs', ['kind' => 'reference', 'from' => ['recipe'], 'to' => ['recipe'], 'field' => 'goes_with']));
 
 		$this->assertSame(['goes_with', ['pairs']], [$kept['field'] ?? null, $kept['aliases'] ?? null], 'The old key is still read (D-600).');
-		$this->assertStringContainsString('pairs: [soup, bread]', $this->file('user/content/recipes/stew.md'), 'No file changes.');
+		$this->assertStringContainsString('pairs: [soup, bread]', $this->file('user/content/_recipe/stew.md'), 'No file changes.');
 
 		$this->reload();
 		$this->write('PATCH', '/relations/pairs', ['kind' => 'reference', 'from' => ['recipe'], 'to' => ['recipe'], 'field' => 'served_with', 'rewrite' => true]);
 
-		$this->assertStringContainsString('served_with: [soup, bread]', $this->file('user/content/recipes/stew.md'), 'Moved to the new key.');
-		$this->assertStringNotContainsString("\npairs:", $this->file('user/content/recipes/stew.md'));
+		$this->assertStringContainsString('served_with: [soup, bread]', $this->file('user/content/_recipe/stew.md'), 'Moved to the new key.');
+		$this->assertStringNotContainsString("\npairs:", $this->file('user/content/_recipe/stew.md'));
 	}
 
 	public function testUnfilingOrRemovingCanStripWhatEntriesHave(): void
@@ -489,13 +489,13 @@ final class AdminRelationsTest extends TestCase
 
 		$this->write('PATCH', '/relations/cuisine', ['kind' => 'classify', 'from' => ['recipe'], 'to' => ['cuisine'], 'strip' => true]);
 
-		$this->assertStringNotContainsString('cuisine', $this->file('user/content/drinks/tea.md'), 'Taken out of the type it no longer files.');
-		$this->assertStringContainsString('cuisine: thai', $this->file('user/content/recipes/stew.md'));
+		$this->assertStringNotContainsString('cuisine', $this->file('user/content/_drink/tea.md'), 'Taken out of the type it no longer files.');
+		$this->assertStringContainsString('cuisine: thai', $this->file('user/content/_recipe/stew.md'));
 		$this->reload();
 
 		$this->assertSame(['entries' => 1], self::json($this->send('GET', '/relations/pairs/uses')));
 		$this->assertSame(['deleted' => 'pairs', 'stripped' => 1], self::json($this->write('DELETE', '/relations/pairs?strip=1')));
-		$this->assertStringNotContainsString('pairs', $this->file('user/content/recipes/stew.md'));
+		$this->assertStringNotContainsString('pairs', $this->file('user/content/_recipe/stew.md'));
 	}
 
 	public function testRefusesWhatDoesNotFitAndWritesNothing(): void
@@ -546,7 +546,7 @@ final class AdminRelationsTest extends TestCase
 
 	public function testMigratesDataTaxonomiesKeepingWhatTheyHad(): void
 	{
-		$this->writeTemporaryFile('user/data/types/genre.json', '{"kind": "taxonomy", "folder": "genres", "types": ["page"], "hierarchical": true, "termListing": {"perPage": 5}}');
+		$this->writeTemporaryFile('user/data/types/genre.json', '{"kind": "taxonomy", "urls": {"prefix": "genres"}, "types": ["page"], "hierarchical": true, "termListing": {"perPage": 5}}');
 		$this->site();
 
 		$types = $this->app->container()->make(ContentTypes::class);
@@ -565,7 +565,7 @@ final class AdminRelationsTest extends TestCase
 		$migrated = self::json($this->write('POST', '/health/taxonomies'));
 
 		$this->assertSame(['genre' => ['user/data/types/genre.json', 'user/data/relations/genre.json']], $migrated['migrated'] ?? null);
-		$this->assertSame(['folder' => 'genres', 'hierarchical' => true, 'order' => 'position', 'llms' => false], $this->data('user/data/types/genre.json'), 'Its other keys stay.');
+		$this->assertSame(['urls' => ['prefix' => 'genres'], 'hierarchical' => true, 'order' => 'position', 'llms' => false], $this->data('user/data/types/genre.json'), 'Its other keys stay.');
 		$this->assertSame(['kind' => 'classify', 'from' => ['page'], 'to' => ['genre'], 'create' => true, 'inverse' => ['listing' => ['perPage' => 5]]], $this->data('user/data/relations/genre.json'));
 		$this->assertSame([], $this->app->container()->make(TaxonomyMigration::class)->report());
 	}

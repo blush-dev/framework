@@ -149,7 +149,7 @@ by copying it beside the original with the code before the extension:
 |---|---|---|
 | `about.md` | `about.fr.md` | `/fr/about` |
 | `about/index.md` | `about/index.fr.md` | `/fr/about` |
-| `_posts/2026-10-04.hello.md` | `_posts/2026-10-04.hello.fr.md` | The post's URL, under `/fr` |
+| `_post/2026-10-04.hello.md` | `_post/2026-10-04.hello.fr.md` | The post's URL, under `/fr` |
 | `topics/music.md` | `topics/music.fr.md` | `/fr/topics/music` |
 
 A translation can be a plain file or a folder, whatever its original
@@ -161,7 +161,7 @@ language's code before the extension:
 
 ```yaml
 ---
-# _posts/printemps.fr.md, a translation of _posts/2026-10-04.hello.md
+# _post/printemps.fr.md, a translation of _post/2026-10-04.hello.md
 title: Bonjour
 translation_of: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e74
 id: 0199b6e3-1a2b-7c41-8d2e-6b9f0c3b1e75

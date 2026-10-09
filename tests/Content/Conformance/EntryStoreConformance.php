@@ -94,8 +94,8 @@ abstract class EntryStoreConformance extends TestCase
 	{
 		$this->standardContent();
 		$this->entry('about/biography.md', "title: Biography");
-		$this->entry('_posts/_authors/justintadlock.md', 'title: Justin, Blogger');
-		$this->writeTemporaryFile('user/content/_posts/2009-01-01.no-id.md', "---\ntitle: No Id\n---\nA file without an id.");
+		$this->entry('_post/_authors/justintadlock.md', 'title: Justin, Blogger');
+		$this->writeTemporaryFile('user/content/_post/2009-01-01.no-id.md', "---\ntitle: No Id\n---\nA file without an id.");
 
 		$this->app     = $this->site();
 		$stores        = $this->stores($this->app);
@@ -232,7 +232,7 @@ abstract class EntryStoreConformance extends TestCase
 		$this->assertSame(['unfinished'], $this->found($post->status(Status::Draft)));
 		$this->assertSame(['rainy'], $this->found($post->visibility(Visibility::Unlisted)));
 		$this->assertSame(['hello', 'spring', 'welcome', 'index'], $this->found($post->withLanding()));
-		$this->assertSame(['future', 'unfinished', 'hello', 'rainy', 'spring', 'welcome', 'justintadlock', 'index'], $this->found($post->any()));
+		$this->assertSame(['future', 'unfinished', 'hello', 'rainy', 'spring', 'welcome', 'index', 'justintadlock'], $this->found($post->any()));
 
 		$this->clock->set('2027-01-01');
 
@@ -252,8 +252,8 @@ abstract class EntryStoreConformance extends TestCase
 	{
 		$this->assertSame(['biography'], $this->found($this->query()->in('about')));
 		$this->assertSame(['about', 'notes'], $this->found($this->query()->in('')));
-		$this->assertSame(['hello', 'spring', 'welcome'], $this->found($this->query()->in('_posts')));
-		$this->assertSame(['justintadlock', 'guest'], $this->found($this->query()->type('profile')->in('profiles')->orderBy('title', Order::Desc)), 'A collection\'s folder, whatever folders its files are kept in (D-629).');
+		$this->assertSame(['hello', 'spring', 'welcome'], $this->found($this->query()->in('_post')));
+		$this->assertSame(['justintadlock', 'guest'], $this->found($this->query()->type('profile')->in('_profile')->orderBy('title', Order::Desc)), 'A collection\'s folder, whatever folders its files are kept in (D-629).');
 		$this->assertSame(['about', 'notes'], $this->found($this->query()->type('page')->exceptIn('about')));
 		$this->assertSame(['biography'], $this->found($this->query()->whereParent('about')));
 		$this->assertSame(['about', 'notes'], $this->found($this->query()->type('page')->whereParent(null)));
@@ -308,7 +308,7 @@ abstract class EntryStoreConformance extends TestCase
 		$this->assertSame(['hello', 'spring', 'welcome'], $this->found($posts->orderBy('title')));
 		$this->assertSame(['welcome', 'spring', 'hello'], $this->found($posts->orderBy('title', Order::Desc)));
 		$this->assertSame(['spring', 'welcome', 'hello'], $this->found($posts->orderBy('author')), 'By the slugs written for the relation (D-648).');
-		$this->assertSame(['spring', 'welcome', 'hello'], $this->found($posts->orderBy('tag')), 'Entries without one last (D-648).');
+		$this->assertSame(['spring', 'hello', 'welcome'], $this->found($posts->orderBy('tag')), 'Entries without one last (D-648).');
 		$this->assertSame(['art', 'book-reviews', 'old-posts'], $this->found($this->query()->type('category')->orderBy('position')), 'Positions, then titles.');
 
 		$page = $posts->limit(1)->offset(1)->get();
@@ -378,7 +378,7 @@ abstract class EntryStoreConformance extends TestCase
 		$this->assertSame('justintadlock', $page->slug);
 		$this->assertSame('_authors/justintadlock', $page->key, 'Its place is its key, in a type that doesn\'t nest (D-657).');
 		$this->assertNull($this->content->named('post', 'justintadlock'));
-		$this->assertSame(['justintadlock'], $this->found($this->query()->in('_posts/_authors')->visibility(Visibility::Hidden)), 'Hidden by its `_` folder, and listed in it.');
+		$this->assertSame(['justintadlock'], $this->found($this->query()->in('_post/_authors')->visibility(Visibility::Hidden)), 'Hidden by its `_` folder, and listed in it.');
 	}
 
 	public function testAFileWithoutAnIdIsntAnEntry(): void

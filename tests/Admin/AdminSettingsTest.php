@@ -63,7 +63,7 @@ final class AdminSettingsTest extends TestCase
 
 	public function testShowsTheSettingsAndWhichAreDefaults(): void
 	{
-		$this->contentConfig(['types' => ['post' => ['path' => 'posts']], 'home' => 'post']);
+		$this->contentConfig(['types' => ['post' => ['urls' => ['prefix' => 'posts']]], 'home' => 'post']);
 		$this->writeTemporaryFile('config/feed.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn new Blush\\Feed\\FeedConfig(content: false);\n");
 		$this->boot(roles: ['administrator'], environment: ['APP_NAME' => 'Notes', 'APP_TIMEZONE' => 'America/Chicago', 'PUBLISH_SECRET' => str_repeat('p', 40)]);
 		$this->login();
@@ -131,9 +131,9 @@ final class AdminSettingsTest extends TestCase
 
 	public function testShowsAndSavesTheAiScreen(): void
 	{
-		$this->contentConfig(['types' => ['post' => ['path' => 'posts', 'llms' => false], 'note' => ['path' => 'notes'], 'tag' => ['path' => 'tags', 'order' => 'position', 'llms' => false]], 'relations' => ['tag' => ['kind' => 'classify', 'to' => ['tag']]]]);
+		$this->contentConfig(['types' => ['post' => ['urls' => ['prefix' => 'posts'], 'llms' => false], 'note' => ['urls' => ['prefix' => 'notes']], 'tag' => ['urls' => ['prefix' => 'tags'], 'order' => 'position', 'llms' => false]], 'relations' => ['tag' => ['kind' => 'classify', 'to' => ['tag']]]]);
 		$this->writeTemporaryFile('user/content/about.md', "---\ntitle: About\n---\n");
-		$this->writeTemporaryFile('user/content/notes/one.md', "---\ntitle: One\n---\n");
+		$this->writeTemporaryFile('user/content/_note/one.md', "---\ntitle: One\n---\n");
 		$this->boot(roles: ['administrator'], environment: ['APP_ENV' => 'production']);
 		$this->login();
 
@@ -181,7 +181,7 @@ final class AdminSettingsTest extends TestCase
 
 	public function testShowsAndSavesTheWritingScreen(): void
 	{
-		$this->writeTemporaryFile('user/content/profiles/sam.md', "---\ntitle: Sam\n---\n");
+		$this->writeTemporaryFile('user/content/_profile/sam.md', "---\ntitle: Sam\n---\n");
 		$this->writeTemporaryFile('user/content/hello.md', "---\ntitle: Hello\n---\nThanks, @sam and @nobody. \"Quoted\"\n\n## Part <b>one</b>\n");
 		$this->boot(roles: ['administrator']);
 		$this->login();
@@ -401,7 +401,7 @@ final class AdminSettingsTest extends TestCase
 
 	public function testSavesSettingsOverTheConfig(): void
 	{
-		$this->writeTemporaryFile('user/data/types/post.json', '{"folder": "posts"}');
+		$this->writeTemporaryFile('user/data/types/post.json', '{"urls": {"prefix": "posts"}}');
 		$this->boot(roles: ['administrator'], environment: ['APP_NAME' => 'Notes']);
 		$this->login();
 
@@ -471,7 +471,7 @@ final class AdminSettingsTest extends TestCase
 
 	public function testRefusesValuesThatDontFit(): void
 	{
-		$this->writeTemporaryFile('user/data/types/topic.json', '{"folder": "topics", "urls": false}');
+		$this->writeTemporaryFile('user/data/types/topic.json', '{"urls": false}');
 		$this->boot(roles: ['administrator']);
 		$this->login();
 
@@ -508,7 +508,7 @@ final class AdminSettingsTest extends TestCase
 
 	public function testCompilingLeavesTheSettingsOut(): void
 	{
-		$this->writeTemporaryFile('user/data/types/post.json', '{"folder": "posts"}');
+		$this->writeTemporaryFile('user/data/types/post.json', '{"urls": {"prefix": "posts"}}');
 		$this->writeSettings('{"app": {"name": "Saved"}}');
 		$bootstrap = new Bootstrap(Paths::fromRoot($this->temporaryDirectory()), ['APP_ENV' => 'production', 'APP_URL' => 'https://example.test', 'APP_NAME' => 'Configured']);
 		$bootstrap->compile();
@@ -519,7 +519,7 @@ final class AdminSettingsTest extends TestCase
 
 	public function testRefreshCompilesWhatASaveCleared(): void
 	{
-		$this->writeTemporaryFile('user/data/types/post.json', '{"folder": "posts"}');
+		$this->writeTemporaryFile('user/data/types/post.json', '{"urls": {"prefix": "posts"}}');
 		$this->boot(roles: ['administrator'], environment: ['APP_ENV' => 'production']);
 		$this->login();
 		$bootstrap = $this->app->container()->make(Bootstrap::class);

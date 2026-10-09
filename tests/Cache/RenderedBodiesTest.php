@@ -56,7 +56,7 @@ final class RenderedBodiesTest extends TestCase
 		$this->assertSame("<p>Spring is here.</p>\n", $entry?->content());
 		$this->assertSame(1, $this->stored('bodies'));
 
-		unlink($this->temporaryDirectory() . '/user/content/_posts/2008-04-05.spring.md');
+		unlink($this->temporaryDirectory() . '/user/content/_post/2008-04-05.spring.md');
 
 		$this->assertSame("<p>Spring is here.</p>\n", $this->repository()->named('post', 'spring')?->content());
 	}

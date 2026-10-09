@@ -110,7 +110,7 @@ final class EntryRecordsTest extends TestCase
 
 	public function testAFileWithoutAnIdHasNoRecord(): void
 	{
-		$this->writeTemporaryFile('user/content/_posts/2009-01-01.no-id.md', "---\ntitle: No id\npublished: 2009-01-01\ncategory: art\n---\n");
+		$this->writeTemporaryFile('user/content/_post/2009-01-01.no-id.md', "---\ntitle: No id\npublished: 2009-01-01\ncategory: art\n---\n");
 
 		$content = $this->repository();
 

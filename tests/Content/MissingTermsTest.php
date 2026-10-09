@@ -28,7 +28,7 @@ final class MissingTermsTest extends TestCase
 	protected function setUp(): void
 	{
 		$this->standardContent();
-		$this->entry('_posts/2009-01-01.dangling.md', "title: Dangling\npublished: 2009-01-01\ncategory: [art, Lost Cause, zebra]\nauthors: [justintadlock, nobody]");
+		$this->entry('_post/2009-01-01.dangling.md', "title: Dangling\npublished: 2009-01-01\ncategory: [art, Lost Cause, zebra]\nauthors: [justintadlock, nobody]");
 	}
 
 	public function testFindsSlugsWithNoFile(): void
@@ -44,9 +44,9 @@ final class MissingTermsTest extends TestCase
 		$app     = $this->site();
 		$created = $app->container()->make(MissingTerms::class)->create();
 
-		$this->assertSame(['category/lost-cause' => 'topics/lost-cause.md', 'category/zebra' => 'topics/zebra.md', 'profile/nobody' => 'profiles/n/nobody.md'], $created->created);
+		$this->assertSame(['category/lost-cause' => '_category/lost-cause.md', 'category/zebra' => '_category/zebra.md', 'profile/nobody' => '_profile/nobody.md'], $created->created);
 		$this->assertSame([], $created->failed);
-		$this->assertMatchesRegularExpression('/\A---\ntitle: "Lost Cause"\npublished: 2026-06-01 12:00:00 -05:00\nid: [0-9a-f-]{36}\n---\n/', (string) file_get_contents($this->temporaryDirectory() . '/user/content/topics/lost-cause.md'));
+		$this->assertMatchesRegularExpression('/\A---\ntitle: "Lost Cause"\npublished: 2026-06-01 12:00:00 -05:00\nid: [0-9a-f-]{36}\n---\n/', (string) file_get_contents($this->temporaryDirectory() . '/user/content/_category/lost-cause.md'));
 
 		$content = $app->container()->make(Entries::class);
 
@@ -59,7 +59,7 @@ final class MissingTermsTest extends TestCase
 	{
 		$created = $this->site()->container()->make(MissingTerms::class)->create(static fn (string $type): bool => $type === 'profile');
 
-		$this->assertSame(['profile/nobody' => 'profiles/n/nobody.md'], $created->created);
-		$this->assertFileDoesNotExist($this->temporaryDirectory() . '/user/content/topics/zebra.md');
+		$this->assertSame(['profile/nobody' => '_profile/nobody.md'], $created->created);
+		$this->assertFileDoesNotExist($this->temporaryDirectory() . '/user/content/_category/zebra.md');
 	}
 }

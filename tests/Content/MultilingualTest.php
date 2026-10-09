@@ -87,13 +87,12 @@ final class MultilingualTest extends TestCase
 		$this->contentConfig([
 			'types' => [
 				'post' => [
-					'path'          => '_posts',
 					'collection'    => ['order' => 'desc', 'orderby' => 'published'],
 					'date_archives' => true,
 					'routing'       => ['prefix' => 'archives']
 				],
 				'category' => [
-					'path'   => 'topics',
+					'urls' => ['prefix' => 'topics'],
 					'order'  => 'position'
 				]
 			],
@@ -109,9 +108,9 @@ final class MultilingualTest extends TestCase
 		$this->entry('about/team/index.md', 'title: Team');
 		$this->entry('about/team/jane.md', 'title: Jane');
 		$this->entry('about/team/jane.fr.md', 'title: Jeanne');
-		$this->entry('_posts/2008-04-05.spring.fr.md', "title: Printemps\npublished: 2008-04-05 09:00:00\nslug: printemps\ncategory: art", 'Le printemps est là.');
-		$this->entry('_posts/index.fr.md', 'title: Journal');
-		$this->entry('topics/art.fr.md', "title: L'art\nslug: lart");
+		$this->entry('_post/2008-04-05.spring.fr.md', "title: Printemps\npublished: 2008-04-05 09:00:00\nslug: printemps\ncategory: art", 'Le printemps est là.');
+		$this->entry('_post/index.fr.md', 'title: Journal');
+		$this->entry('_category/art.fr.md', "title: L'art\nslug: lart");
 
 		$this->app = $this->site();
 	}
@@ -210,20 +209,20 @@ final class MultilingualTest extends TestCase
 	{
 		$snapshot = $this->snapshot();
 		$about    = $snapshot->record('about/index.fr.md');
-		$spring   = $snapshot->record('_posts/2008-04-05.spring.fr.md');
+		$spring   = $snapshot->record('_post/2008-04-05.spring.fr.md');
 
 		$this->assertNotNull($about);
 		$this->assertSame(['fr', 'fr_FR', 'a-propos', 'a-propos', 'about/index.md', false], [$about->language, $about->locale, $about->slug, $about->key, $about->original, $about->landing]);
 		$this->assertNotNull($spring);
-		$this->assertSame(['fr', 'printemps', '_posts/2008-04-05.spring.md'], [$spring->language, $spring->key, $spring->original]);
-		$this->assertTrue($snapshot->record('_posts/index.fr.md')?->landing);
+		$this->assertSame(['fr', 'printemps', '_post/2008-04-05.spring.md'], [$spring->language, $spring->key, $spring->original]);
+		$this->assertTrue($snapshot->record('_post/index.fr.md')?->landing);
 		$this->assertSame(['en', null], [$snapshot->record('about/index.md')?->language, $snapshot->record('about/index.md')?->original]);
 
 		$this->assertSame('about/index.fr.md', $snapshot->find('fr', 'page', 'a-propos'));
 		$this->assertNull($snapshot->find('en', 'page', 'a-propos'));
 		$this->assertEquals(['en' => 'about/index.md', 'fr' => 'about/index.fr.md'], $snapshot->translations('about/index.fr.md'));
 		$this->assertEquals(['en' => 'about/biography.md', 'fr' => 'about/biography.fr.md'], $snapshot->translations('about/biography.md'));
-		$this->assertSame([], $snapshot->translations('_posts/2003-04-15.welcome.md'));
+		$this->assertSame([], $snapshot->translations('_post/2003-04-15.welcome.md'));
 	}
 
 	public function testPlainFilesAndBundlesLinkEitherWay(): void
@@ -252,9 +251,9 @@ final class MultilingualTest extends TestCase
 		$this->assertSame('Équipe', $content->parent($jane)?->title);
 
 		// A landing page isn't its folder's entry.
-		$this->assertSame('_posts/index', IndexRecord::groupOf($snapshot->records['_posts/index.md']));
+		$this->assertSame('_post/index', IndexRecord::groupOf($snapshot->records['_post/index.md']));
 		$this->assertSame('about', IndexRecord::groupOf($snapshot->records['about/index.fr.md']));
-		$this->assertSame('_posts/2008-04-05.spring', IndexRecord::groupOf($snapshot->records['_posts/2008-04-05.spring.fr.md']));
+		$this->assertSame('_post/2008-04-05.spring', IndexRecord::groupOf($snapshot->records['_post/2008-04-05.spring.fr.md']));
 	}
 
 	public function testTheRepositoryKeepsLanguagesApart(): void
@@ -356,7 +355,7 @@ final class MultilingualTest extends TestCase
 	public function testUntranslatedEntriesRedirectToTheirOriginals(): void
 	{
 		$this->entry('about/team/bob.md', 'title: Bob');
-		$this->entry('_posts/2003-04-15.welcome.fr.md', "title: Bienvenue\nslug: bienvenue\nstatus: draft");
+		$this->entry('_post/2003-04-15.welcome.fr.md', "title: Bienvenue\nslug: bienvenue\nstatus: draft");
 
 		$this->app = $this->site();
 
@@ -562,7 +561,7 @@ final class MultilingualTest extends TestCase
 		$this->assertSame('lart', $content->term('category', 'art', 'fr')?->key);
 		$this->assertSame('lart', $content->term('category', 'lart', 'fr')?->key);
 		$this->assertSame('art', $content->term('category', 'art')?->key);
-		$this->assertSame('topics/art.md', $content->term('category', 'art', 'pt-br')?->path, 'Without a translation, the original (D-584).');
+		$this->assertSame('_category/art.md', $content->term('category', 'art', 'pt-br')?->path, 'Without a translation, the original (D-584).');
 
 		$spring = $content->named('post', 'printemps', 'fr');
 		$views  = $this->app->container()->make(ViewFactory::class)->forChain($this->app->container()->make(ThemeResolver::class)->active());
@@ -643,44 +642,44 @@ final class MultilingualTest extends TestCase
 
 	public function testTranslationOfLinksByIdWhateverTheName(): void
 	{
-		$original = self::idFor('_posts/2008-04-05.spring.md');
+		$original = self::idFor('_post/2008-04-05.spring.md');
 
-		$this->entry('_posts/primavera.pt-br.md', "title: Primavera\ntranslation_of: " . strtoupper($original));
+		$this->entry('_post/primavera.pt-br.md', "title: Primavera\ntranslation_of: " . strtoupper($original));
 
 		$snapshot = $this->snapshot($this->site());
 
 		$this->assertEquals(
-			['en' => '_posts/2008-04-05.spring.md', 'fr' => '_posts/2008-04-05.spring.fr.md', 'pt-br' => '_posts/primavera.pt-br.md'],
-			$snapshot->translations('_posts/primavera.pt-br.md'),
+			['en' => '_post/2008-04-05.spring.md', 'fr' => '_post/2008-04-05.spring.fr.md', 'pt-br' => '_post/primavera.pt-br.md'],
+			$snapshot->translations('_post/primavera.pt-br.md'),
 			'An id links a translation whatever its name (D-511), and names still link the rest.'
 		);
-		$this->assertSame('_posts/2008-04-05.spring', $snapshot->record('_posts/primavera.pt-br.md')?->group);
-		$this->assertNull($snapshot->record('_posts/2008-04-05.spring.fr.md')?->group);
+		$this->assertSame('_post/2008-04-05.spring', $snapshot->record('_post/primavera.pt-br.md')?->group);
+		$this->assertNull($snapshot->record('_post/2008-04-05.spring.fr.md')?->group);
 	}
 
 	public function testRenamingATranslationKeepsItsSuffix(): void
 	{
-		$renamed = $this->site('development')->container()->make(FilesystemWriter::class)->rename('_posts/2008-04-05.spring.fr.md', 'avril');
+		$renamed = $this->site('development')->container()->make(FilesystemWriter::class)->rename('_post/2008-04-05.spring.fr.md', 'avril');
 
-		$this->assertSame('_posts/2008-04-05.avril.fr.md', $renamed->path, 'D-511');
+		$this->assertSame('_post/2008-04-05.avril.fr.md', $renamed->path, 'D-511');
 	}
 
 	public function testLintChecksTranslationOf(): void
 	{
-		$this->entry('_posts/a.fr.md', "title: A\ntranslation_of: nope");
-		$this->entry('_posts/b.fr.md', "title: B\ntranslation_of: " . self::idFor('_posts/missing.md'));
-		$this->entry('_posts/c.fr.md', "title: C\ntranslation_of: " . self::idFor('about/index.md'));
-		$this->entry('_posts/d.fr.md', "title: D\ntranslation_of: " . self::idFor('_posts/2008-04-05.spring.fr.md'));
-		$this->entry('_posts/e.md', "title: E\ntranslation_of: " . self::idFor('_posts/2008-04-05.spring.md'));
+		$this->entry('_post/a.fr.md', "title: A\ntranslation_of: nope");
+		$this->entry('_post/b.fr.md', "title: B\ntranslation_of: " . self::idFor('_post/missing.md'));
+		$this->entry('_post/c.fr.md', "title: C\ntranslation_of: " . self::idFor('about/index.md'));
+		$this->entry('_post/d.fr.md', "title: D\ntranslation_of: " . self::idFor('_post/2008-04-05.spring.fr.md'));
+		$this->entry('_post/e.md', "title: E\ntranslation_of: " . self::idFor('_post/2008-04-05.spring.md'));
 
 		$report = $this->site()->container()->make(Linter::class)->lint();
 		$found  = static fn (string $path): array => array_map(static fn ($violation): string => $violation->message, $report->files[$path] ?? []);
 
-		$this->assertSame(['"nope" isn\'t a UUID; it names the id of the entry this translates.'], $found('_posts/a.fr.md'));
-		$this->assertSame(['names no entry\'s id.'], $found('_posts/b.fr.md'));
-		$this->assertSame(['names about/index.md, which is another type\'s.'], $found('_posts/c.fr.md'));
-		$this->assertSame(['names _posts/2008-04-05.spring.fr.md, a translation; name its original instead.'], $found('_posts/d.fr.md'));
-		$this->assertSame(['names an original, but this file isn\'t a translation: a translation has its language\'s code before the extension (hello.fr.md).'], $found('_posts/e.md'));
+		$this->assertSame(['"nope" isn\'t a UUID; it names the id of the entry this translates.'], $found('_post/a.fr.md'));
+		$this->assertSame(['names no entry\'s id.'], $found('_post/b.fr.md'));
+		$this->assertSame(['names about/index.md, which is another type\'s.'], $found('_post/c.fr.md'));
+		$this->assertSame(['names _post/2008-04-05.spring.fr.md, a translation; name its original instead.'], $found('_post/d.fr.md'));
+		$this->assertSame(['names an original, but this file isn\'t a translation: a translation has its language\'s code before the extension (hello.fr.md).'], $found('_post/e.md'));
 	}
 
 	public function testLintFlagsTheDefaultLanguageSuffix(): void
@@ -691,7 +690,7 @@ final class MultilingualTest extends TestCase
 		$found  = array_map(static fn ($violation): string => $violation->message, $report->files['about/index.en.md'] ?? []);
 
 		$this->assertSame(['has the default language\'s suffix beside about/index.md, which wins; the default language needs none, so remove one.'], $found);
-		$this->assertSame([], $report->files['_posts/2008-04-05.spring.fr.md'] ?? []);
+		$this->assertSame([], $report->files['_post/2008-04-05.spring.fr.md'] ?? []);
 	}
 
 	public function testSuffixesMeanNothingOnASiteWithOneLanguage(): void
@@ -747,21 +746,21 @@ final class MultilingualTest extends TestCase
 		unlink($this->temporaryDirectory() . '/user/data/relations/category.json');
 
 		$this->contentConfig([
-			'types'     => ['topic' => ['path' => 'topics', 'order' => 'position', 'hierarchical' => true]],
+			'types'     => ['topic' => ['urls' => ['prefix' => 'topics'], 'order' => 'position', 'hierarchical' => true]],
 			'relations' => ['topic' => ['kind' => 'classify', 'to' => ['topic']]]
 		]);
-		$this->entry('topics/web.md', 'title: Web');
-		$this->entry('topics/web.fr.md', "title: Toile\nslug: toile");
-		$this->entry('topics/css.md', "title: CSS\nparent: web");
-		$this->entry('topics/css.fr.md', "title: CSS\nparent: web");
+		$this->entry('_topic/web.md', 'title: Web');
+		$this->entry('_topic/web.fr.md', "title: Toile\nslug: toile");
+		$this->entry('_topic/css.md', "title: CSS\nparent: web");
+		$this->entry('_topic/css.fr.md', "title: CSS\nparent: web");
 
 		$app      = $this->site();
 		$snapshot = $this->snapshot($app);
 		$content  = $app->container()->make(Entries::class);
 		$css      = $content->named('topic', 'css', 'fr');
 
-		$this->assertSame('toile', $snapshot->record('topics/css.fr.md')?->parent);
-		$this->assertSame('web', $snapshot->record('topics/css.md')?->parent);
+		$this->assertSame('toile', $snapshot->record('_topic/css.fr.md')?->parent);
+		$this->assertSame('web', $snapshot->record('_topic/css.md')?->parent);
 		$this->assertNotNull($css);
 		$this->assertSame('Toile', $content->parent($css)?->title);
 		$this->assertSame('/fr/topics/toile/css', $app->container()->make(ContentUrls::class)->entry($css));

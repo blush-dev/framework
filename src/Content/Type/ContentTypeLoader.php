@@ -48,6 +48,10 @@ use Blush\Storage\Record\RecordException;
  * classify relation that replaced it (`LegacyTaxonomy`) and listed in
  * `ContentTypes::$legacy` until `content:taxonomies --write` (or Site
  * Health) writes them (D-591); a taxonomy anywhere else is an error.
+ * Likewise a data type that still names its folder is read in `_` and
+ * its name (`LegacyFolder`) and listed in `ContentTypes::$namedFolders`
+ * until `content:type-folders --write` (or Site Health) moves it
+ * (D-683); a type from code naming one is an error.
  *
  * A credit relation (D-602) must point at the profiles type, and a
  * type's `byline` must name one of its credit relations.
@@ -80,6 +84,7 @@ final readonly class ContentTypeLoader
 		$overrides = [];
 		$legacy    = [];
 		$converted = [];
+		$named     = [];
 
 		foreach ($this->dataDefinitions() as $name => $definition) {
 			$origin = $origins[$name] ?? null;
@@ -90,6 +95,12 @@ final readonly class ContentTypeLoader
 				[$definition, $relation] = LegacyTaxonomy::convert($name, $definition);
 				$legacy[]                = $name;
 				$converted[$name]        = $relation;
+			}
+
+			if (LegacyFolder::is($definition)) {
+				$kind       = $origin === TypeOrigin::Extension ? $types[$name]->kind() : TypeKind::tryFrom(is_string($definition['kind'] ?? null) ? $definition['kind'] : '') ?? TypeKind::Collection;
+				$definition = LegacyFolder::convert($name, $definition, $kind, $origin !== TypeOrigin::Extension && $this->config->dataTypeUrls);
+				$named[]    = $name;
 			}
 
 			if ($origin === TypeOrigin::Extension) {
@@ -121,7 +132,7 @@ final readonly class ContentTypeLoader
 			throw new InvalidContentType($e->getMessage(), previous: $e);
 		}
 
-		$resolved = new ContentTypes($types, $origins, $this->config->home, $sets, $overrides, $relations, $relationOrigins, $legacy, [...$clashes, ...$relationClashes]);
+		$resolved = new ContentTypes($types, $origins, $this->config->home, $sets, $overrides, $relations, $relationOrigins, $legacy, [...$clashes, ...$relationClashes], $named);
 		$this->check($resolved);
 
 		return $resolved;
@@ -213,7 +224,7 @@ final readonly class ContentTypeLoader
 		$types = [];
 
 		foreach ($definitions as $name => $definition) {
-			$urls = array_find(['urls', 'routing'], static fn (string $key): bool => array_key_exists($key, $definition));
+			$urls = array_find(['urls', 'routing', 'prefix'], static fn (string $key): bool => array_key_exists($key, $definition));
 
 			if (! $this->config->dataTypeUrls && $urls !== null) {
 				throw new InvalidContentType(sprintf(

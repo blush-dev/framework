@@ -27,7 +27,7 @@ final class AdminHtmlTest extends TestCase
 	use BootsAdmin;
 	use WritesContentConfig;
 
-	private const string POST = '_posts/2022-03-29.flame.md';
+	private const string POST = '_post/2022-03-29.flame.md';
 
 	private string $token = '';
 
@@ -38,7 +38,7 @@ final class AdminHtmlTest extends TestCase
 	 */
 	private function site(array $roles): void
 	{
-		$this->contentConfig(['types' => ['post' => ['path' => '_posts', 'date_archives' => true]], 'relations' => ['authors' => ['kind' => 'credit', 'from' => ['post'], 'to' => ['profile']]]]);
+		$this->contentConfig(['types' => ['post' => ['urls' => ['prefix' => 'posts'], 'date_archives' => true]], 'relations' => ['authors' => ['kind' => 'credit', 'from' => ['post'], 'to' => ['profile']]]]);
 		$this->profiles('jane');
 		$this->writeTemporaryFile('user/content/' . self::POST, "---\ntitle: Flame\nauthors: jane\nstatus: draft\n---\n\nSome <iframe src=\"https://example.com\"></iframe> here.\n");
 

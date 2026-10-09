@@ -297,13 +297,13 @@ final class ViewsTest extends TestCase
 	public function testParentsAncestorsAndChildren(): void
 	{
 		$this->contentConfig([
-			'types'     => ['topic' => ['folder' => 'topics', 'hierarchical' => true, 'order' => 'position']],
+			'types'     => ['topic' => ['urls' => ['prefix' => 'topics'], 'hierarchical' => true, 'order' => 'position']],
 			'relations' => ['topic' => ['kind' => 'classify', 'to' => ['topic']]]
 		]);
-		$this->writeTemporaryFile('user/content/topics/web.md', "---\nid: 82f80eb5-25a5-2455-ff91-7c658dd9bc1b\ntitle: Web\n---\n");
-		$this->writeTemporaryFile('user/content/topics/css.md', "---\nid: 67d268c2-8b16-919b-59d8-b4cd6e05714b\ntitle: CSS\nparent: web\n---\n");
-		$this->writeTemporaryFile('user/content/topics/grid.md', "---\nid: aad0501c-6673-960a-3d39-2749cf881311\ntitle: Grid\nparent: css\n---\n");
-		$this->writeTemporaryFile('user/content/topics/flex.md', "---\nid: b82c7795-cafe-88f4-0fc1-8e8ad2da4ee3\ntitle: Flex\nparent: css\nstatus: draft\n---\n");
+		$this->writeTemporaryFile('user/content/_topic/web.md', "---\nid: 82f80eb5-25a5-2455-ff91-7c658dd9bc1b\ntitle: Web\n---\n");
+		$this->writeTemporaryFile('user/content/_topic/css.md', "---\nid: 67d268c2-8b16-919b-59d8-b4cd6e05714b\ntitle: CSS\nparent: web\n---\n");
+		$this->writeTemporaryFile('user/content/_topic/grid.md', "---\nid: aad0501c-6673-960a-3d39-2749cf881311\ntitle: Grid\nparent: css\n---\n");
+		$this->writeTemporaryFile('user/content/_topic/flex.md', "---\nid: b82c7795-cafe-88f4-0fc1-8e8ad2da4ee3\ntitle: Flex\nparent: css\nstatus: draft\n---\n");
 		$this->themeView('tree.php', <<<'PHP'
 			<?= e(implode('/', array_map(fn ($entry) => $entry->title, $template->ancestors($term)))) ?>|<?= e($template->parent($term)?->title ?? '') ?>|<?= e(implode(',', array_map(fn ($entry) => $entry->title, $template->children($template->parent($term))))) ?>
 			PHP);

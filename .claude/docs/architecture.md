@@ -504,9 +504,12 @@ Every content convention 1.x supports keeps working (D-078); the inventory
 is in that decision.
 
 ### Conventions (under `user/content/`)
-- Each folder is a collection of the type mapped to it. `index.md` is the
-  collection's landing page. A file belongs to the type whose path is the
-  nearest folder above it, or else to `page` (D-083).
+- Every type but `page` is kept in `_` and its name (`_post`, D-683),
+  which no definition names. `index.md` there is the type's landing
+  page. A file belongs to the type whose folder is its first, or else to
+  `page` (`ContentTypes::forFile()`). `system`, `error`, and `drafts`
+  can't name a type (`ContentType::RESERVED`): `_system` (D-684),
+  `_error`, and `_drafts` are pages' folders.
 - A tree's pages and a positioned or hierarchical collection's entries
   (terms) have a `position` field (D-412, D-593): siblings sort by it,
   then title, those without one last.
@@ -533,8 +536,11 @@ Implemented in M4a (D-083, D-084); kinds and option names from D-157.
 
 - **`ContentType`** (`Blush\Content\Type`): an abstract base with the
   final kinds `Collection`, `Tree` (D-386), and `Profiles` (`TypeKind` names
-  them in data). Shared: name, `folder` (`_{name}` by default, D-258;
-  the URL prefix drops each folder name's leading `_`), `labels`
+  them in data). Shared: name, `folder` (always `_{name}`, `''` for
+  `page`, D-683; never an option, and `folder` or 1.x's `path` in a
+  definition is refused, `ContentType::namedFolder()`), `folders` (a
+  `FolderPattern` below it, collections and profiles only, D-629), the
+  URL prefix (`prefix()`: `urls.prefix`, else the name), `labels`
   (`TypeLabels`, D-278), `description`, and `icon` (D-256), `public`, `urls` (`TypeUrls`:
   prefix plus per-key paths over 1.x's defaults, with `single` and
   `collection` shortcuts, or `false`), `listing` (`Listing`: typed `type`,
@@ -547,8 +553,8 @@ Implemented in M4a (D-083, D-084); kinds and option names from D-157.
   files entries under (`ContentTypes::classification()`,
   `hasTermPages()`, `termArguments()`, D-593); `Tree` has no URLs, listing, or feed, and its folder
   is the content root for `page` only (`atRoot()`; others are served
-  under `pagePath()`, the folder without its `_`, and have an index
-  page, D-386). `parentKey()`
+  under `pagePath()`, their `prefix` option (`$urlPrefix`) else their
+  name, and have an index page, D-386, D-683). `parentKey()`
   says where an entry nests: a tree's entries by folder, a hierarchical
   collection's by `parent`, nothing else. `fromArray()` dispatches on
   `kind` and accepts the 1.x option names; a taxonomy (`kind: taxonomy`,
@@ -556,7 +562,13 @@ Implemented in M4a (D-083, D-084); kinds and option names from D-157.
   data type, which the loader reads through `LegacyTaxonomy` as a
   collection and its classify relation (listed in `ContentTypes::$legacy`)
   until `TaxonomyMigration` (`content:taxonomies --write`, Site Health)
-  rewrites it.
+  rewrites it. Likewise a data type naming its folder is read through
+  `LegacyFolder` (the folder dropped, its pattern as `folders`, its old
+  path as a prefix where its addresses came from it; not over a code
+  type's `urls`) and listed in `ContentTypes::$namedFolders` until
+  `TypeFolderMigration` (`content:type-folders --write`, Site Health's
+  Type Folders) moves its files (filesystem driver only, leaving other
+  types' old folders inside) and writes it (D-683).
 - **Sources, one model** (D-042, D-083): built-ins, extension
   `ContentTypeSource`s, and data types (`user/data/types/*.json`,
   edited in the admin, D-311); config defines none (D-617).
@@ -580,7 +592,7 @@ Implemented in M4a (D-083, D-084); kinds and option names from D-157.
   `storage/cache/content-types.php` outside development (D-092).
 - **Built-in types:** `page` (a `Tree`, the catch-all, folder `''`) and
   `profile` (D-043, D-351, D-352: `Profiles`, the fourth kind, folder
-  `profiles`, routed only at `single` (`/profiles/{name}`) and its paged
+  `_profile` with no pattern (D-683, D-684), routed only at `single` (`/profiles/{name}`) and its paged
   and feed keys, not served as pages, with an `avatar` media field).
   Both can be redefined, and `profile` can be disabled. A site has at
   most one `Profiles` type (`ContentTypes::profiles()`). Other types

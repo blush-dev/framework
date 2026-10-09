@@ -47,8 +47,8 @@ final class SiteDescriptionTest extends TestCase
 		$this->standardContent();
 		$this->contentConfig([
 			'types' => [
-				'post'     => ['path' => '_posts', 'collection' => ['order' => 'desc'], 'routing' => ['prefix' => 'archives'], 'feed' => true],
-				'category' => ['path' => 'topics', 'order' => 'position']
+				'post'     => ['collection' => ['order' => 'desc'], 'routing' => ['prefix' => 'archives'], 'feed' => true],
+				'category' => ['urls' => ['prefix' => 'topics'], 'order' => 'position']
 			],
 			'relations' => ['category' => ['kind' => 'classify', 'from' => ['post'], 'to' => ['category'], 'create' => true]],
 			'home' => 'post'

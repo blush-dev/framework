@@ -70,13 +70,13 @@ final class SiteRelationsTest extends TestCase
 
 		$this->contentConfig([
 			'types' => [
-				'post'     => ['path' => '_posts', 'routing' => ['prefix' => 'archives']],
-				'category' => ['path' => 'topics', 'order' => 'position', 'hierarchical' => true],
-				'movie'    => ['path' => '_movies', 'fields' => [
+				'post'     => ['routing' => ['prefix' => 'archives']],
+				'category' => ['urls' => ['prefix' => 'topics'], 'order' => 'position', 'hierarchical' => true],
+				'movie'    => ['urls' => ['prefix' => 'movies'], 'fields' => [
 					['name' => 'actors', 'type' => 'reference', 'to' => 'person'],
 					['name' => 'director', 'type' => 'reference', 'to' => 'person', 'multiple' => false, 'required' => true]
 				]],
-				'person'   => ['path' => '_people']
+				'person'   => ['urls' => ['prefix' => 'people']]
 			],
 			'relations' => [
 				'category' => ['kind' => 'classify', 'from' => ['post'], 'to' => ['category'], 'create' => true],
@@ -89,25 +89,25 @@ final class SiteRelationsTest extends TestCase
 		$this->entry('about/team.md', 'title: Team');
 		$this->entry('contact.md', 'title: Contact');
 		$this->entry('about/history.md', "title: History\nrefs:\n  parent:\n    about: " . self::idFor('contact.md'));
-		$this->entry('topics/art.md', "title: Art\ncategory: art");
-		$this->entry('topics/painting.md', "title: Painting\nparent: art");
-		$this->entry('topics/painting.fr.md', "title: Peinture\nslug: peinture\ntranslation_of: " . self::idFor('topics/painting.md'));
-		$this->entry('topics/old.md', 'title: Old');
-		$this->entry('topics/watercolor.md', "title: Watercolor\nparent: arts\nrefs:\n  parent:\n    arts: " . self::idFor('topics/art.md'));
-		$this->entry('profiles/jane.md', 'title: Jane');
-		$this->entry('profiles/sam.md', 'title: Sam');
-		$this->entry('profiles/guest.md', 'title: Guest');
-		$this->entry('_posts/a.md', "title: A\npublished: 2026-01-01\ncategory: [painting, Old]\nauthors: [jane, sam]\nrelated: [b]");
-		$this->entry('_posts/a.fr.md', "title: A en français\npublished: 2026-01-01\nauthors: [guest]");
-		$this->entry('_posts/b.md', "title: B\npublished: 2026-01-02\ncategory: [paint]\nauthor: jane\nrefs:\n  category:\n    paint: " . self::idFor('topics/painting.md'));
-		$this->entry('_posts/b.fr.md', "title: B en français\npublished: 2026-01-02\ncategory: old");
-		$this->entry('_posts/c.md', "title: C\npublished: 2026-01-03\ncategory: [" . strtoupper(self::idFor('topics/art.md')) . ", nowhere]\nrelated: [c]");
-		$this->entry('_posts/d.md', "title: D\npublished: 2026-01-04\nstatus: draft\ncategory: art");
-		$this->entry('_movies/big.md', "title: Big\npublished: 2026-01-01\nactors: [tom, meg, tom]\ndirector: penny");
-		$this->entry('_movies/small.md', "title: Small\npublished: 2026-01-01\nactors: tom\nrefs:\n  actors:\n    tom: " . self::idFor('_people/tom.md') . "\n    gone: " . self::idFor('_people/meg.md'));
-		$this->entry('_people/tom.md', 'title: Tom');
-		$this->entry('_people/meg.md', 'title: Meg');
-		$this->entry('_people/penny.md', 'title: Penny');
+		$this->entry('_category/art.md', "title: Art\ncategory: art");
+		$this->entry('_category/painting.md', "title: Painting\nparent: art");
+		$this->entry('_category/painting.fr.md', "title: Peinture\nslug: peinture\ntranslation_of: " . self::idFor('_category/painting.md'));
+		$this->entry('_category/old.md', 'title: Old');
+		$this->entry('_category/watercolor.md', "title: Watercolor\nparent: arts\nrefs:\n  parent:\n    arts: " . self::idFor('_category/art.md'));
+		$this->entry('_profile/jane.md', 'title: Jane');
+		$this->entry('_profile/sam.md', 'title: Sam');
+		$this->entry('_profile/guest.md', 'title: Guest');
+		$this->entry('_post/a.md', "title: A\npublished: 2026-01-01\ncategory: [painting, Old]\nauthors: [jane, sam]\nrelated: [b]");
+		$this->entry('_post/a.fr.md', "title: A en français\npublished: 2026-01-01\nauthors: [guest]");
+		$this->entry('_post/b.md', "title: B\npublished: 2026-01-02\ncategory: [paint]\nauthor: jane\nrefs:\n  category:\n    paint: " . self::idFor('_category/painting.md'));
+		$this->entry('_post/b.fr.md', "title: B en français\npublished: 2026-01-02\ncategory: old");
+		$this->entry('_post/c.md', "title: C\npublished: 2026-01-03\ncategory: [" . strtoupper(self::idFor('_category/art.md')) . ", nowhere]\nrelated: [c]");
+		$this->entry('_post/d.md', "title: D\npublished: 2026-01-04\nstatus: draft\ncategory: art");
+		$this->entry('_movie/big.md', "title: Big\npublished: 2026-01-01\nactors: [tom, meg, tom]\ndirector: penny");
+		$this->entry('_movie/small.md', "title: Small\npublished: 2026-01-01\nactors: tom\nrefs:\n  actors:\n    tom: " . self::idFor('_person/tom.md') . "\n    gone: " . self::idFor('_person/meg.md'));
+		$this->entry('_person/tom.md', 'title: Tom');
+		$this->entry('_person/meg.md', 'title: Meg');
+		$this->entry('_person/penny.md', 'title: Penny');
 
 		$this->app = $this->site();
 
@@ -153,42 +153,42 @@ final class SiteRelationsTest extends TestCase
 	{
 		$graph = $this->report->graph;
 
-		$this->assertSame([$this->id('topics/painting.md'), $this->id('topics/old.md')], $graph->targets($this->id('_posts/a.md'), 'category'), 'Labels are slugs, in order.');
-		$this->assertSame([$this->id('profiles/jane.md'), $this->id('profiles/sam.md')], $graph->targets($this->id('_posts/a.md'), 'authors'));
-		$this->assertSame([$this->id('profiles/jane.md')], $graph->targets($this->id('_posts/b.md'), 'authors'), 'Read from an alias.');
-		$this->assertSame([$this->id('topics/art.md')], $graph->targets($this->id('topics/painting.md'), 'parent'));
+		$this->assertSame([$this->id('_category/painting.md'), $this->id('_category/old.md')], $graph->targets($this->id('_post/a.md'), 'category'), 'Labels are slugs, in order.');
+		$this->assertSame([$this->id('_profile/jane.md'), $this->id('_profile/sam.md')], $graph->targets($this->id('_post/a.md'), 'authors'));
+		$this->assertSame([$this->id('_profile/jane.md')], $graph->targets($this->id('_post/b.md'), 'authors'), 'Read from an alias.');
+		$this->assertSame([$this->id('_category/art.md')], $graph->targets($this->id('_category/painting.md'), 'parent'));
 		$this->assertSame([$this->id('about/index.md')], $graph->targets($this->id('about/team.md'), 'parent'), 'A tree\'s folder.');
-		$this->assertSame([$this->id('_posts/a.md')], $graph->targets($this->id('_posts/a.fr.md'), 'translation_of'));
-		$this->assertSame([$this->id('topics/painting.md')], $graph->targets($this->id('topics/painting.fr.md'), 'translation_of'));
-		$this->assertSame([], $graph->targets($this->id('_posts/a.md'), 'translation_of'), 'An original has none.');
-		$this->assertSame([$this->id('_people/tom.md'), $this->id('_people/meg.md')], $graph->targets($this->id('_movies/big.md'), 'actors'), 'A target named twice links once.');
-		$this->assertSame([$this->id('_people/penny.md')], $graph->targets($this->id('_movies/big.md'), 'director'));
-		$this->assertSame([$this->id('_posts/b.md')], $graph->targets($this->id('_posts/a.md'), 'related'), 'Read from undeclared front matter.');
+		$this->assertSame([$this->id('_post/a.md')], $graph->targets($this->id('_post/a.fr.md'), 'translation_of'));
+		$this->assertSame([$this->id('_category/painting.md')], $graph->targets($this->id('_category/painting.fr.md'), 'translation_of'));
+		$this->assertSame([], $graph->targets($this->id('_post/a.md'), 'translation_of'), 'An original has none.');
+		$this->assertSame([$this->id('_person/tom.md'), $this->id('_person/meg.md')], $graph->targets($this->id('_movie/big.md'), 'actors'), 'A target named twice links once.');
+		$this->assertSame([$this->id('_person/penny.md')], $graph->targets($this->id('_movie/big.md'), 'director'));
+		$this->assertSame([$this->id('_post/b.md')], $graph->targets($this->id('_post/a.md'), 'related'), 'Read from undeclared front matter.');
 	}
 
 	public function testFollowsRefsAndRewritesBothForms(): void
 	{
-		$b = $this->report->stale['_posts/b.md']['category'];
+		$b = $this->report->stale['_post/b.md']['category'];
 
-		$this->assertSame([$this->id('topics/painting.md')], array_map(static fn ($link): string => $link->target, $b->links), 'The id wins over a renamed slug.');
+		$this->assertSame([$this->id('_category/painting.md')], array_map(static fn ($link): string => $link->target, $b->links), 'The id wins over a renamed slug.');
 		$this->assertSame(['painting'], $b->written);
-		$this->assertSame(['painting' => $this->id('topics/painting.md')], $b->refs);
+		$this->assertSame(['painting' => $this->id('_category/painting.md')], $b->refs);
 
-		$c = $this->report->stale['_posts/c.md']['category'];
+		$c = $this->report->stale['_post/c.md']['category'];
 
 		$this->assertSame(['art', 'nowhere'], $c->written, 'An id in the written form is written as its slug; a value that finds nothing stays.');
-		$this->assertSame(['art' => $this->id('topics/art.md')], $c->refs);
+		$this->assertSame(['art' => $this->id('_category/art.md')], $c->refs);
 
-		$small = $this->report->stale['_movies/small.md']['actors'];
+		$small = $this->report->stale['_movie/small.md']['actors'];
 
-		$this->assertSame(['tom' => $this->id('_people/tom.md')], $small->refs, 'Ids for values no longer written are dropped.');
-		$this->assertSame('penny', $this->report->stale['_movies/big.md']['director']->value($this->relations->get('movie', 'director')));
-		$this->assertArrayHasKey('authors', $this->report->stale['_posts/a.md'], 'A file without refs gets them.');
+		$this->assertSame(['tom' => $this->id('_person/tom.md')], $small->refs, 'Ids for values no longer written are dropped.');
+		$this->assertSame('penny', $this->report->stale['_movie/big.md']['director']->value($this->relations->get('movie', 'director')));
+		$this->assertArrayHasKey('authors', $this->report->stale['_post/a.md'], 'A file without refs gets them.');
 
-		$watercolor = $this->report->stale['topics/watercolor.md']['parent'];
+		$watercolor = $this->report->stale['_category/watercolor.md']['parent'];
 
 		$this->assertSame('art', $watercolor->value($this->relations->get('category', 'parent')), 'A parent is filed like any relation: its id wins over a renamed slug (D-591).');
-		$this->assertSame(['art' => $this->id('topics/art.md')], $watercolor->refs);
+		$this->assertSame(['art' => $this->id('_category/art.md')], $watercolor->refs);
 		$this->assertSame(['about' => $this->id('about/index.md')], $this->report->stale['about/team.md']['parent']->refs, 'A tree\'s folder is its written form; its id is filled in.');
 
 		$history = $this->report->stale['about/history.md']['parent'];
@@ -206,25 +206,25 @@ final class SiteRelationsTest extends TestCase
 	{
 		$read = $this->app->container()->make(EntryRelations::class);
 
-		$this->assertSame(['Painting', 'Old'], $this->titles($read->related($this->at('_posts/a.md'), 'category')));
-		$this->assertSame(['Jane', 'Sam'], $this->titles($read->related($this->at('_posts/a.md'), 'authors')));
-		$this->assertSame(['B'], $this->titles($read->related($this->at('_posts/a.md'), 'related')));
-		$this->assertSame(['A'], $this->titles($read->related($this->at('_posts/b.md'), 'related')), 'Symmetric: B is related to A too.');
-		$this->assertSame([], $read->related($this->at('_posts/a.md'), 'actors'), 'Not a post\'s relation.');
-		$this->assertCount(2, $read->links($this->at('_posts/a.md'), 'category'));
+		$this->assertSame(['Painting', 'Old'], $this->titles($read->related($this->at('_post/a.md'), 'category')));
+		$this->assertSame(['Jane', 'Sam'], $this->titles($read->related($this->at('_post/a.md'), 'authors')));
+		$this->assertSame(['B'], $this->titles($read->related($this->at('_post/a.md'), 'related')));
+		$this->assertSame(['A'], $this->titles($read->related($this->at('_post/b.md'), 'related')), 'Symmetric: B is related to A too.');
+		$this->assertSame([], $read->related($this->at('_post/a.md'), 'actors'), 'Not a post\'s relation.');
+		$this->assertCount(2, $read->links($this->at('_post/a.md'), 'category'));
 
-		$this->assertSame(['Peinture', 'Old'], $this->titles($read->related($this->at('_posts/a.fr.md'), 'category')), 'The original\'s, in its language where a translation is.');
-		$this->assertSame(['Jane', 'Sam', 'Guest'], $this->titles($read->related($this->at('_posts/a.fr.md'), 'authors')), 'Credits add to the original\'s.');
+		$this->assertSame(['Peinture', 'Old'], $this->titles($read->related($this->at('_post/a.fr.md'), 'category')), 'The original\'s, in its language where a translation is.');
+		$this->assertSame(['Jane', 'Sam', 'Guest'], $this->titles($read->related($this->at('_post/a.fr.md'), 'authors')), 'Credits add to the original\'s.');
 
-		$this->assertSame(['C'], $this->titles($read->referencedBy($this->at('topics/art.md'), 'category')), 'Only live entries: D is a draft.');
-		$this->assertSame(['Painting', 'Watercolor'], $this->titles($read->referencedBy($this->at('topics/art.md'), 'parent')));
-		$this->assertSame(['B', 'A'], $this->titles($read->referencedBy($this->at('topics/painting.md'), 'post.category')), 'Newest first.');
-		$this->assertSame(['A en français'], $this->titles($read->referencedBy($this->at('topics/painting.fr.md'), 'category')), 'In French, B en français is under Old only: its own replace its original\'s.');
-		$this->assertSame(['B en français', 'A en français'], $this->titles($read->referencedBy($this->at('topics/old.md'), 'category', 'fr')), 'Old has no translation, so it\'s read in French by asking.');
-		$this->assertSame(['A'], $this->titles($read->referencedBy($this->at('topics/old.md'), 'category')), 'A translation\'s own link shows only in its language.');
-		$this->assertSame(['Old'], $this->titles($read->related($this->at('_posts/b.fr.md'), 'category')));
-		$this->assertSame(['Big', 'Small'], $this->titles($read->referencedBy($this->at('_people/tom.md'), 'movie.actors')));
-		$this->assertSame([], $read->referencedBy($this->at('_people/tom.md'), 'movie.director'));
+		$this->assertSame(['C'], $this->titles($read->referencedBy($this->at('_category/art.md'), 'category')), 'Only live entries: D is a draft.');
+		$this->assertSame(['Painting', 'Watercolor'], $this->titles($read->referencedBy($this->at('_category/art.md'), 'parent')));
+		$this->assertSame(['B', 'A'], $this->titles($read->referencedBy($this->at('_category/painting.md'), 'post.category')), 'Newest first.');
+		$this->assertSame(['A en français'], $this->titles($read->referencedBy($this->at('_category/painting.fr.md'), 'category')), 'In French, B en français is under Old only: its own replace its original\'s.');
+		$this->assertSame(['B en français', 'A en français'], $this->titles($read->referencedBy($this->at('_category/old.md'), 'category', 'fr')), 'Old has no translation, so it\'s read in French by asking.');
+		$this->assertSame(['A'], $this->titles($read->referencedBy($this->at('_category/old.md'), 'category')), 'A translation\'s own link shows only in its language.');
+		$this->assertSame(['Old'], $this->titles($read->related($this->at('_post/b.fr.md'), 'category')));
+		$this->assertSame(['Big', 'Small'], $this->titles($read->referencedBy($this->at('_person/tom.md'), 'movie.actors')));
+		$this->assertSame([], $read->referencedBy($this->at('_person/tom.md'), 'movie.director'));
 	}
 
 	public function testTheIndexKeepsTheGraphAndTermsFollowIds(): void
@@ -232,11 +232,11 @@ final class SiteRelationsTest extends TestCase
 		$content = $this->repository($this->app);
 
 		$this->assertSame($this->report->graph->toArray(), $this->snapshot->graph()->toArray(), 'The index stores the graph.');
-		$this->assertSame(['painting'], $this->at('_posts/b.md')->terms('category'), 'terms() follows the id in refs through a rename.');
-		$this->assertSame(['art'], $this->at('_posts/c.md')->terms('category'), 'An id written as a value reads as its slug; a value that links nothing isn\'t a term (D-662).');
-		$this->assertSame(['jane'], $this->at('_posts/b.md')->terms('profile.authors'));
-		$this->assertSame(['jane'], $this->at('_posts/b.md')->terms('profile'));
-		$this->assertContains('_posts/b.md', $this->snapshot->referencing('category', 'painting'));
+		$this->assertSame(['painting'], $this->at('_post/b.md')->terms('category'), 'terms() follows the id in refs through a rename.');
+		$this->assertSame(['art'], $this->at('_post/c.md')->terms('category'), 'An id written as a value reads as its slug; a value that links nothing isn\'t a term (D-662).');
+		$this->assertSame(['jane'], $this->at('_post/b.md')->terms('profile.authors'));
+		$this->assertSame(['jane'], $this->at('_post/b.md')->terms('profile'));
+		$this->assertContains('_post/b.md', $this->snapshot->referencing('category', 'painting'));
 		$this->assertSame(['B', 'A'], array_map(static fn (Entry $entry): string => $entry->title, $content->query()->type('post')->whereTerm('category', 'painting')->get()->all()), 'whereTerm() too.');
 		$this->assertSame(1, $content->termCounts('category')['art'] ?? null, 'C counts for Art by its id; D is a draft.');
 	}
@@ -246,13 +246,13 @@ final class SiteRelationsTest extends TestCase
 		$report = $this->app->container()->make(Linter::class)->lint();
 		$found  = static fn (string $path): array => array_map(static fn (Violation $violation): string => "{$violation->field}: {$violation->message}", $report->files[$path] ?? []);
 
-		$this->assertContains('related: An entry can\'t link to itself.', $found('_posts/c.md'));
-		$this->assertNotContains('category: "nowhere" names no category.', $found('_posts/c.md'), 'A missing term is reported once, by its own check.');
+		$this->assertContains('related: An entry can\'t link to itself.', $found('_post/c.md'));
+		$this->assertNotContains('category: "nowhere" names no category.', $found('_post/c.md'), 'A missing term is reported once, by its own check.');
 	}
 
 	public function testRefsIsReserved(): void
 	{
-		$this->contentConfig(['types' => ['post' => ['path' => '_posts', 'fields' => [['name' => 'refs', 'type' => 'text']]]]]);
+		$this->contentConfig(['types' => ['post' => ['urls' => ['prefix' => 'posts'], 'fields' => [['name' => 'refs', 'type' => 'text']]]]]);
 
 		$this->expectException(InvalidContentType::class);
 		$this->expectExceptionMessage('reserved for the ids of the entry\'s links');

@@ -51,7 +51,8 @@ use Blush\Routing\RouteCache;
  * `user/data/relations` (D-593), for accounts with `site.settings`:
  *
  * - `POST types`: `{"name", "kind"` (`collection` or `tree`),
- *   `"folder"`, `"set"`, `"index"`, `"listPages"`, `"authors"}`; answers `201` with
+ *   `"set"`, `"index"`, `"listPages"`, `"authors"}`, kept in `_` and its
+ *   name (D-683); answers `201` with
  *   the type as `GET types/{name}` describes it.
  * - `PATCH types/{name}`: `{"set", "index", "listPages"}`; answers
  *   with the type.
@@ -85,8 +86,8 @@ use Blush\Routing\RouteCache;
  * `{folder}/_{word}.md` titled with the relation's label, when it has
  * none. A new type with `authors: true` is added to the `authors` credit
  * relation's `from` (written when there's none, D-602). A change that doesn't
- * fit (an unknown option, a field that isn't one, two types in one
- * folder) is a `422` with the reason, and nothing is written.
+ * fit (an unknown option, a field that isn't one, a reserved name) is a
+ * `422` with the reason, and nothing is written.
  *
  * A change is answered from the types it made, since this request still
  * holds the ones it started with. When the site keeps its types
@@ -127,12 +128,10 @@ final readonly class TypeEditController
 			return self::error('Send a "name", a "kind" (collection or tree), and "set" (options to values).', Status::BadRequest);
 		}
 
-		$folder = is_string($input['folder'] ?? null) ? $input['folder'] : null;
-
 		/** @var array<string, mixed> $set */
 		$authors = ($input['authors'] ?? false) === true;
 
-		return $this->changed(fn (): ContentTypes => $authors ? $this->credit($this->writer->create($name, $kind, $folder, $set), $name) : $this->writer->create($name, $kind, $folder, $set), $name, ($input['index'] ?? false) === true, self::listPages($input), Status::Created);
+		return $this->changed(fn (): ContentTypes => $authors ? $this->credit($this->writer->create($name, $kind, $set), $name) : $this->writer->create($name, $kind, $set), $name, ($input['index'] ?? false) === true, self::listPages($input), Status::Created);
 	}
 
 	public function update(ServerRequestInterface $request, string $name): ResponseInterface

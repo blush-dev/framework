@@ -38,8 +38,8 @@ final class RelationArchivesTest extends TestCase
 	{
 		$this->contentConfig([
 			'types'     => [
-				'movie'  => ['path' => '_movies', 'routing' => ['prefix' => 'movies'], 'feed' => true],
-				'person' => ['path' => '_people', 'routing' => ['prefix' => 'people'], 'feed' => true]
+				'movie'  => ['routing' => ['prefix' => 'movies'], 'feed' => true],
+				'person' => ['routing' => ['prefix' => 'people'], 'feed' => true]
 			],
 			'relations' => [
 				'actors'    => ['kind' => 'reference', 'from' => ['movie'], 'to' => ['person'], 'inverse' => ['page' => true]],
@@ -47,13 +47,13 @@ final class RelationArchivesTest extends TestCase
 			]
 		]);
 
-		$this->entry('_movies/big.md', "title: Big\npublished: 2026-01-01\nactors: [tom]\ndirectors: penny");
-		$this->entry('_movies/splash.md', "title: Splash\npublished: 2026-02-01\nactors: [tom, daryl]\ndirectors: ron");
-		$this->entry('_movies/draft.md', "title: Draft\npublished: 2026-03-01\nstatus: draft\ndirectors: tom");
-		$this->entry('_people/tom.md', 'title: Tom');
-		$this->entry('_people/daryl.md', 'title: Daryl');
-		$this->entry('_people/penny.md', 'title: Penny');
-		$this->entry('_people/ron.md', 'title: Ron');
+		$this->entry('_movie/big.md', "title: Big\npublished: 2026-01-01\nactors: [tom]\ndirectors: penny");
+		$this->entry('_movie/splash.md', "title: Splash\npublished: 2026-02-01\nactors: [tom, daryl]\ndirectors: ron");
+		$this->entry('_movie/draft.md', "title: Draft\npublished: 2026-03-01\nstatus: draft\ndirectors: tom");
+		$this->entry('_person/tom.md', 'title: Tom');
+		$this->entry('_person/daryl.md', 'title: Daryl');
+		$this->entry('_person/penny.md', 'title: Penny');
+		$this->entry('_person/ron.md', 'title: Ron');
 
 		$list = '<?= e(implode(", ", array_map(fn ($item) => $item->title, $entries->all()))) ?>';
 

@@ -16,6 +16,7 @@ namespace Blush\Tests\Fixtures\Content;
 use Override;
 use Blush\Content\Type\Collection;
 use Blush\Content\Type\ContentTypeSource;
+use Blush\Content\Type\TypeUrls;
 use Blush\Content\Type\TypeOrder;
 
 final class RecipeTypes implements ContentTypeSource
@@ -23,7 +24,7 @@ final class RecipeTypes implements ContentTypeSource
 	#[Override]
 	public function types(): iterable
 	{
-		yield new Collection('recipe', folder: 'recipes');
+		yield new Collection('recipe', urls: new TypeUrls(prefix: 'recipes'));
 		yield new Collection('ingredient', llms: false, order: TypeOrder::Position);
 	}
 }

@@ -88,11 +88,11 @@ final class AdminPeopleTest extends TestCase
 	 */
 	private function profiles(): void
 	{
-		$this->writeTemporaryFile('user/data/types/post.json', '{"folder": "_posts"}');
+		$this->writeTemporaryFile('user/data/types/post.json', '{"urls": {"prefix": "posts"}}');
 		$this->writeTemporaryFile('user/data/relations/authors.json', '{"kind": "credit", "from": ["post"], "to": ["profile"], "aliases": ["author"], "label": "Authors"}');
-		$this->writeTemporaryFile('user/content/profiles/jane.md', "---\ntitle: Jane Author\nsubtitle: Food editor\nid: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e71\n---\nWrites.\n");
-		$this->writeTemporaryFile('user/content/profiles/gwen.md', "---\ntitle: Gwen Guest\nstatus: draft\n---\n");
-		$this->writeTemporaryFile('user/content/_posts/one.md', "---\ntitle: One\nauthors: [jane, gwen, ghost]\n---\n");
+		$this->writeTemporaryFile('user/content/_profile/jane.md', "---\ntitle: Jane Author\nsubtitle: Food editor\nid: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e71\n---\nWrites.\n");
+		$this->writeTemporaryFile('user/content/_profile/gwen.md', "---\ntitle: Gwen Guest\nstatus: draft\n---\n");
+		$this->writeTemporaryFile('user/content/_post/one.md', "---\ntitle: One\nauthors: [jane, gwen, ghost]\n---\n");
 	}
 
 	/**
@@ -149,7 +149,7 @@ final class AdminPeopleTest extends TestCase
 		$this->assertIsArray($accounts);
 		[$jane, $sam] = array_map(static fn (mixed $account): array => is_array($account) ? $account : [], $accounts);
 
-		$this->assertSame(['path' => 'profiles/jane.md', 'id' => '0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e71', 'type' => 'profile', 'handle' => 'profile/jane', 'slug' => 'jane', 'title' => 'Jane Author', 'status' => 'published', 'url' => '/profiles/jane', 'uses' => 1], $jane['profile'] ?? null);
+		$this->assertSame(['path' => '_profile/jane.md', 'id' => '0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e71', 'type' => 'profile', 'handle' => 'profile/jane', 'slug' => 'jane', 'title' => 'Jane Author', 'status' => 'published', 'url' => '/profiles/jane', 'uses' => 1], $jane['profile'] ?? null);
 		$this->assertSame('Jane Author', $jane['displayName'] ?? null, 'One name: the profile\'s title.');
 		$this->assertArrayHasKey('profile', $sam);
 		$this->assertNull($sam['profile'], 'Not linked, so no profile (D-353).');
@@ -184,7 +184,7 @@ final class AdminPeopleTest extends TestCase
 
 		$answer = self::json($this->send('GET', '/profiles/jane'));
 
-		$this->assertSame(['slug' => 'jane', 'title' => 'Jane Author', 'subtitle' => 'Food editor', 'avatar' => null, 'status' => 'published', 'path' => 'profiles/jane.md', 'id' => '0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e71', 'type' => 'profile', 'handle' => 'profile/jane', 'url' => '/profiles/jane', 'uses' => 1, 'linkable' => true], $answer['profile'] ?? null);
+		$this->assertSame(['slug' => 'jane', 'title' => 'Jane Author', 'subtitle' => 'Food editor', 'avatar' => null, 'status' => 'published', 'path' => '_profile/jane.md', 'id' => '0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e71', 'type' => 'profile', 'handle' => 'profile/jane', 'url' => '/profiles/jane', 'uses' => 1, 'linkable' => true], $answer['profile'] ?? null);
 		$this->assertSame([['type' => 'post', 'typeLabel' => 'Posts', 'relation' => 'authors', 'label' => 'Authors', 'entries' => 1, 'archive' => '/posts/authors/jane', 'page' => null]], $answer['appears'] ?? null);
 		$this->assertTrue($answer['linked'] ?? null);
 		$this->assertSame('jane', is_array($answer['account'] ?? null) ? $answer['account']['username'] : null);
@@ -214,8 +214,8 @@ final class AdminPeopleTest extends TestCase
 		$written = $this->write('POST', '/profiles/jane/pages', ['type' => 'post', 'relation' => 'authors']);
 
 		$this->assertSame(201, $written->getStatusCode(), (string) $written->getBody());
-		$this->assertSame($this->idOf('_posts/_authors/jane.md'), self::json($written)['id'] ?? null);
-		$this->assertStringContainsString("title: \"Jane Author\"\nstatus: draft\n", (string) file_get_contents($this->temporaryDirectory() . '/user/content/_posts/_authors/jane.md'));
+		$this->assertSame($this->idOf('_post/_authors/jane.md'), self::json($written)['id'] ?? null);
+		$this->assertStringContainsString("title: \"Jane Author\"\nstatus: draft\n", (string) file_get_contents($this->temporaryDirectory() . '/user/content/_post/_authors/jane.md'));
 		$this->assertSame(409, $this->write('POST', '/profiles/jane/pages', ['type' => 'post', 'relation' => 'authors'])->getStatusCode(), 'Once.');
 		$this->assertSame(422, $this->write('POST', '/profiles/jane/pages', ['type' => 'post', 'relation' => 'cooks'])->getStatusCode());
 
@@ -224,11 +224,11 @@ final class AdminPeopleTest extends TestCase
 		$page    = $appears['page'] ?? null;
 
 		$this->assertIsArray($page);
-		$this->assertSame(['path' => '_posts/_authors/jane.md', 'type' => 'post', 'handle' => 'post/_authors/jane', 'title' => 'Jane Author', 'status' => 'draft'], array_diff_key($page, ['id' => true]));
+		$this->assertSame(['path' => '_post/_authors/jane.md', 'type' => 'post', 'handle' => 'post/_authors/jane', 'title' => 'Jane Author', 'status' => 'draft'], array_diff_key($page, ['id' => true]));
 		$this->assertTrue(Uuid::isValid($page['id'] ?? null), 'The page written has an id (D-477).');
 		$this->assertNotContains('Jane Author', array_column(is_array($list = self::json($this->send('GET', '/entries?type=post'))['entries'] ?? null) ? $list : [], 'title'), 'It isn\'t one of the posts.');
 
-		$editor = self::json($this->send('GET', $this->entryPath('_posts/_authors/jane.md')));
+		$editor = self::json($this->send('GET', $this->entryPath('_post/_authors/jane.md')));
 
 		$this->assertSame(['relation' => 'authors', 'label' => 'Authors', 'target' => 'jane', 'targetTitle' => 'Jane Author', 'targetId' => '0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e71', 'targetType' => 'profile'], $editor['archive'] ?? null);
 		$can = $editor['can'] ?? null;
@@ -237,7 +237,7 @@ final class AdminPeopleTest extends TestCase
 		$this->assertSame([false, false, false], [$can['delete'] ?? null, $can['duplicate'] ?? null, $can['rename'] ?? null]);
 
 		$this->assertSame(200, $this->write('DELETE', '/profiles/jane/pages/post/authors')->getStatusCode());
-		$this->assertFileDoesNotExist($this->temporaryDirectory() . '/user/content/_posts/_authors/jane.md');
+		$this->assertFileDoesNotExist($this->temporaryDirectory() . '/user/content/_post/_authors/jane.md');
 		$again = $this->firstAppearance();
 
 		$this->assertArrayHasKey('page', $again);
@@ -250,11 +250,11 @@ final class AdminPeopleTest extends TestCase
 		$this->profiles();
 		$this->site();
 
-		$jane = self::json($this->send('GET', $this->entryPath('profiles/jane.md')));
+		$jane = self::json($this->send('GET', $this->entryPath('_profile/jane.md')));
 
 		$this->assertTrue(is_array($jane['can'] ?? null) ? $jane['can']['rename'] ?? null : null, 'An account is linked by the profile\'s id (D-668), so its slug can change.');
 
-		$renamed = $this->write('PATCH', $this->entryPath('profiles/jane.md'), ['revision' => $jane['revision'] ?? '', 'slug' => 'jane-doe']);
+		$renamed = $this->write('PATCH', $this->entryPath('_profile/jane.md'), ['revision' => $jane['revision'] ?? '', 'slug' => 'jane-doe']);
 
 		$this->assertSame(200, $renamed->getStatusCode(), (string) $renamed->getBody());
 		$account = self::json($this->send('GET', '/session'))['account'] ?? null;
@@ -290,7 +290,7 @@ final class AdminPeopleTest extends TestCase
 
 		$this->assertSame(422, $this->write('PATCH', '/profiles/gwen', ['linkable' => 'no'])->getStatusCode());
 		$this->assertSame(['linkable' => false], self::json($this->write('PATCH', '/profiles/gwen', ['linkable' => false])));
-		$this->assertStringContainsString("linkable: false\n", (string) file_get_contents($this->temporaryDirectory() . '/user/content/profiles/gwen.md'));
+		$this->assertStringContainsString("linkable: false\n", (string) file_get_contents($this->temporaryDirectory() . '/user/content/_profile/gwen.md'));
 
 		$profiles = self::json($this->send('GET', '/profiles'))['profiles'] ?? null;
 		$entries  = self::json($this->send('GET', '/entries?type=profile&sort=title'))['entries'] ?? null;
@@ -308,7 +308,7 @@ final class AdminPeopleTest extends TestCase
 		$this->assertSame(422, $this->write('POST', '/accounts', ['username' => 'lee', 'email' => 'lee@example.test', 'roles' => ['author'], 'author' => 'gwen'])->getStatusCode());
 
 		$this->assertSame(['linkable' => true], self::json($this->write('PATCH', '/profiles/gwen', ['linkable' => true])));
-		$this->assertStringNotContainsString('linkable', (string) file_get_contents($this->temporaryDirectory() . '/user/content/profiles/gwen.md'), 'Unlocking takes the key away.');
+		$this->assertStringNotContainsString('linkable', (string) file_get_contents($this->temporaryDirectory() . '/user/content/_profile/gwen.md'), 'Unlocking takes the key away.');
 		$this->assertSame(200, $this->write('PATCH', '/accounts/sam', ['author' => 'gwen'])->getStatusCode());
 	}
 

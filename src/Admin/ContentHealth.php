@@ -27,6 +27,8 @@ use Blush\Content\MissingTerms;
 use Blush\Content\Source\ContentFiles;
 use Blush\Content\Source\FilesystemSource;
 use Blush\Content\Type\ContentTypes;
+use Blush\Content\Type\InvalidContentType;
+use Blush\Content\Type\TypeFolderMigration;
 use Blush\Core\Paths;
 use Blush\Field\Severity;
 use Blush\Field\Violation;
@@ -65,7 +67,7 @@ final readonly class ContentHealth
 	/**
 	 * The report's shape: a kept report in another is checked again.
 	 */
-	public const int VERSION = 2;
+	public const int VERSION = 3;
 
 	/**
 	 * The kinds of problem another check reports.
@@ -88,7 +90,8 @@ final readonly class ContentHealth
 		private EntryFiles $files,
 		private MediaMetadataStore $metadata,
 		private Paths $paths,
-		private ContentFiles $contentFiles
+		private ContentFiles $contentFiles,
+		private TypeFolderMigration $typeFolders
 	) {}
 
 	/**
@@ -96,7 +99,7 @@ final readonly class ContentHealth
 	 * `strict`. `$lint` is a lint already done, a chunk at a time
 	 * (`HealthCheckJob`, D-625); without it, every file is linted now.
 	 *
-	 * @return array{version: int, checked: int, metadata: int, strict: bool, counts: array{error: int, warning: int, notice: ?int}, files: list<array{path: string, area: string, violations: list<array{field: string, message: string, severity: string, kind: ?string}>}>, entries: array<string, array{title: string, type: string, id: ?string}>, ids: array{missing: list<string>, duplicates: list<array{id: string, paths: list<string>}>}, mediaIds: array{missing: list<string>, duplicates: list<array{id: string, paths: list<string>}>}, fileNames: list<array{type: string, label: string, pattern: string, count: int, items: list<array{path: string, to: string}>, skipped: int}>, folders: array{count: int, items: list<array{path: string, to: string}>}, terms: array{count: int, items: list<array{type: string, label: string, slug: string, title: string, entries: int}>}, parents: array{count: int, items: list<array{type: string, label: string, key: string, title: string, pages: int}>}, refs: array{count: int, items: list<array{path: string, relations: list<string>}>}, taxonomies: list<string>, mediaSizes: array{sizes: int, images: int, stale: int, items: list<array{key: string, unrecorded: int, stale: int}>}}
+	 * @return array{version: int, checked: int, metadata: int, strict: bool, counts: array{error: int, warning: int, notice: ?int}, files: list<array{path: string, area: string, violations: list<array{field: string, message: string, severity: string, kind: ?string}>}>, entries: array<string, array{title: string, type: string, id: ?string}>, ids: array{missing: list<string>, duplicates: list<array{id: string, paths: list<string>}>}, mediaIds: array{missing: list<string>, duplicates: list<array{id: string, paths: list<string>}>}, fileNames: list<array{type: string, label: string, pattern: string, count: int, items: list<array{path: string, to: string}>, skipped: int}>, folders: array{count: int, items: list<array{path: string, to: string}>}, terms: array{count: int, items: list<array{type: string, label: string, slug: string, title: string, entries: int}>}, parents: array{count: int, items: list<array{type: string, label: string, key: string, title: string, pages: int}>}, refs: array{count: int, items: list<array{path: string, relations: list<string>}>}, taxonomies: list<string>, typeFolders: list<array{name: string, from: string, to: string}>, mediaSizes: array{sizes: int, images: int, stale: int, items: list<array{key: string, unrecorded: int, stale: int}>}}
 	 */
 	public function report(bool $strict = false, ?LintReport $lint = null): array
 	{
@@ -163,6 +166,7 @@ final readonly class ContentHealth
 			'parents'    => $onFiles ? $this->parentsReport() : ['count' => 0, 'items' => []],
 			'refs'       => $onFiles ? $this->refsReport() : ['count' => 0, 'items' => []],
 			'taxonomies' => $this->types->legacy,
+			'typeFolders' => $this->typeFoldersReport(),
 			'mediaSizes' => [
 				'sizes'  => $sizes->count(),
 				'images' => count($sizes->unrecorded),
@@ -219,6 +223,27 @@ final readonly class ContentHealth
 	private function isMedia(string $path, array $metadata): bool
 	{
 		return isset($metadata[$path]) || str_starts_with($path, $this->paths->relative($this->paths->media) . '/');
+	}
+
+	/**
+	 * The data types that still name their folder (D-683): each one's
+	 * name, the folder it names, and the one it moves to.
+	 *
+	 * @return list<array{name: string, from: string, to: string}>
+	 */
+	private function typeFoldersReport(): array
+	{
+		if ($this->types->namedFolders === []) {
+			return [];
+		}
+
+		try {
+			$report = $this->typeFolders->report();
+		} catch (InvalidContentType) {
+			return [];
+		}
+
+		return array_map(static fn (string $name, array $folders): array => ['name' => $name, ...$folders], array_keys($report), $report);
 	}
 
 	/**

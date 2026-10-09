@@ -132,7 +132,7 @@ final class PublishTest extends TestCase
 		$this->assertSame('miss', $this->get($app, '/')->getHeaderLine(PageCache::HEADER));
 		$this->assertSame('hit', $this->get($app, '/')->getHeaderLine(PageCache::HEADER));
 
-		$this->entry('_posts/2009-01-01.fresh.md', 'title: Fresh Post');
+		$this->entry('_post/2009-01-01.fresh.md', 'title: Fresh Post');
 
 		$published = [];
 		$events    = [];
@@ -151,7 +151,7 @@ final class PublishTest extends TestCase
 
 		$this->assertTrue($report->isSuccessful());
 		$this->assertNull($report->pull);
-		$this->assertSame(['_posts/2009-01-01.fresh.md'], $report->index?->added);
+		$this->assertSame(['_post/2009-01-01.fresh.md'], $report->index?->added);
 		$this->assertSame(['pages', 'bodies', 'fragments'], $report->cleared);
 		$this->assertNotSame($before, $report->version);
 		$this->assertSame($report->version, $app->container()->make(ContentVersion::class)->current());
@@ -286,7 +286,7 @@ final class PublishTest extends TestCase
 		$this->assertCount(1, $puller->pulled);
 		$this->assertSame(ExitCode::Invalid, $tester->run('publish --pull --no-pull')->exitCode);
 
-		$this->entry('_posts/broken.md', "title: [unclosed");
+		$this->entry('_post/broken.md', "title: [unclosed");
 		$broken = $tester->run('publish');
 
 		$this->assertSame(ExitCode::Failure, $broken->exitCode);

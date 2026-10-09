@@ -37,7 +37,7 @@ final class MarkdownRenderingTest extends TestCase
 		$image = imagecreatetruecolor(4, 3);
 		$this->assertNotFalse($image);
 
-		foreach (['user/media/2019/cat.png', 'user/content/_posts/hello/photo.png'] as $path) {
+		foreach (['user/media/2019/cat.png', 'user/content/_post/hello/photo.png'] as $path) {
 			$this->writeTemporaryFile($path, '');
 			imagepng($image, $this->temporaryDirectory() . '/' . $path);
 		}

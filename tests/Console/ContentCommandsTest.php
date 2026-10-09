@@ -17,6 +17,7 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Blush\Console\Commands\CreateContent;
 use Blush\Console\Commands\FixIds;
+use Blush\Console\Commands\MigrateTypeFolders;
 use Blush\Console\Commands\MoveToFolders;
 use Blush\Console\Commands\IndexContent;
 use Blush\Console\Commands\LintContent;
@@ -36,6 +37,7 @@ use Blush\Tests\Content\BuildsContentSite;
 #[CoversClass(FixIds::class)]
 #[CoversClass(RenameToPattern::class)]
 #[CoversClass(MoveToFolders::class)]
+#[CoversClass(MigrateTypeFolders::class)]
 #[CoversClass(EntryIds::class)]
 #[CoversClass(EntryIdReport::class)]
 final class ContentCommandsTest extends TestCase
@@ -62,9 +64,9 @@ final class ContentCommandsTest extends TestCase
 		$this->assertStringContainsString('(0 added, 0 changed, 0 removed)', $again->output);
 		$this->assertStringContainsString('The index was already up to date.', $again->output);
 
-		$this->entry('_posts/new.md', 'title: New');
+		$this->entry('_post/new.md', 'title: New');
 
-		$this->assertStringContainsString('Added _posts/new.md', $tester->run('content:index -v')->output);
+		$this->assertStringContainsString('Added _post/new.md', $tester->run('content:index -v')->output);
 		$this->assertStringContainsString('(0 added, 0 changed, 0 removed)', $tester->run('content:index --full')->output);
 
 		$this->entry('broken.md', "title: [unclosed\n");
@@ -82,7 +84,7 @@ final class ContentCommandsTest extends TestCase
 
 		// The standard posts' folder entry is an error (D-514); a clean
 		// site has it as a file.
-		rename($this->temporaryDirectory() . '/user/content/_posts/hello/index.md', $this->temporaryDirectory() . '/user/content/_posts/2010-01-01.hello.md');
+		rename($this->temporaryDirectory() . '/user/content/_post/hello/index.md', $this->temporaryDirectory() . '/user/content/_post/2010-01-01.hello.md');
 		$tester = $this->tester();
 
 		$clean = $tester->run('content:lint');
@@ -93,7 +95,7 @@ final class ContentCommandsTest extends TestCase
 		$strict = $tester->run('content:lint --strict');
 
 		$this->assertTrue($strict->isSuccessful());
-		$this->assertStringContainsString("_posts/2008-04-05.spring.md\n  notice  author: is read as \"authors\".\n  notice  tag: is not declared by the schema.\n", $strict->output);
+		$this->assertStringContainsString("_post/2008-04-05.spring.md\n  notice  author: is read as \"authors\".\n  notice  tag: is not declared by the schema.\n", $strict->output);
 		$this->assertMatchesRegularExpression('/Checked 19 files: 0 errors, 0 warnings, \d+ notices\./', $strict->output);
 
 		$this->entry('about.md', "title: Old\npublished: soon");
@@ -169,17 +171,17 @@ final class ContentCommandsTest extends TestCase
 		$check = $tester->run('content:filenames --type=post');
 
 		$this->assertTrue($check->isSuccessful(), 'Older names keep working, so a list doesn\'t fail.');
-		$this->assertStringContainsString('rename   _posts/2008-04-05.spring.md → _posts/spring.md', $check->output);
+		$this->assertStringContainsString('rename   _post/2008-04-05.spring.md → _post/spring.md', $check->output);
 		$this->assertStringContainsString('5 entries are named by another pattern; rename them with --write.', $check->output);
-		$this->assertFileExists("{$content}/_posts/2008-04-05.spring.md", 'Checking changes nothing.');
+		$this->assertFileExists("{$content}/_post/2008-04-05.spring.md", 'Checking changes nothing.');
 		$this->assertSame(ExitCode::Invalid, $tester->run('content:filenames --type=movie')->exitCode);
 
 		$fixed = $tester->run('content:filenames --write');
 
 		$this->assertTrue($fixed->isSuccessful(), $fixed->errors);
-		$this->assertStringContainsString('renamed  _posts/2008-04-05.spring.md → _posts/spring.md', $fixed->output);
+		$this->assertStringContainsString('renamed  _post/2008-04-05.spring.md → _post/spring.md', $fixed->output);
 		$this->assertStringContainsString('No entries need renaming', $fixed->output);
-		$this->assertFileExists("{$content}/_posts/spring.md");
+		$this->assertFileExists("{$content}/_post/spring.md");
 	}
 
 	public function testMovesEntriesToTheirFolders(): void
@@ -190,20 +192,42 @@ final class ContentCommandsTest extends TestCase
 		$check = $tester->run('content:folders');
 
 		$this->assertSame(ExitCode::Failure, $check->exitCode, 'They\'re lint errors (D-514).');
-		$this->assertStringContainsString('move     _posts/hello/index.md → _posts/hello.md', $check->output);
+		$this->assertStringContainsString('move     _post/hello/index.md → _post/hello.md', $check->output);
 		$this->assertStringContainsString('1 entry isn\'t in its type\'s folders; move it with --write.', $check->errors);
 
 		$fixed = $tester->run('content:folders --write');
 
 		$this->assertTrue($fixed->isSuccessful(), $fixed->errors);
-		$this->assertStringContainsString('moved    _posts/hello/index.md → _posts/hello.md', $fixed->output);
-		$this->assertFileExists($this->temporaryDirectory() . '/user/content/_posts/hello.md');
+		$this->assertStringContainsString('moved    _post/hello/index.md → _post/hello.md', $fixed->output);
+		$this->assertFileExists($this->temporaryDirectory() . '/user/content/_post/hello.md');
+	}
+
+	public function testMovesDataTypesThatNameTheirFolder(): void
+	{
+		$this->standardContent();
+		$this->writeTemporaryFile('user/data/types/recipe.json', '{"folder": "recipes"}');
+		$this->entry('recipes/soup.md', 'title: Soup');
+		$tester = $this->tester();
+
+		$check = $tester->run('content:type-folders');
+
+		$this->assertSame(ExitCode::Failure, $check->exitCode);
+		$this->assertStringContainsString('folder  recipe: recipes/ to _recipe/', $check->output);
+		$this->assertStringContainsString('1 data type names its folder; move it with --write.', $check->errors);
+
+		$fixed = $tester->run('content:type-folders --write');
+
+		$this->assertTrue($fixed->isSuccessful(), $fixed->errors);
+		$this->assertStringContainsString('moved   recipe (1 moved)', $fixed->output);
+		$this->assertStringContainsString('No data type names its folder.', $fixed->output);
+		$this->assertFileExists($this->temporaryDirectory() . '/user/content/_recipe/soup.md');
+		$this->assertSame(['urls' => ['prefix' => 'recipes']], array_diff_key((array) json_decode((string) file_get_contents($this->temporaryDirectory() . '/user/data/types/recipe.json'), true), ['id' => true]), 'Its addresses stay (D-683).');
 	}
 
 	public function testWritesMissingTerms(): void
 	{
 		$this->standardContent();
-		$this->entry('_posts/2009-01-01.dangling.md', "title: Dangling\npublished: 2009-01-01\ncategory: Lost Cause");
+		$this->entry('_post/2009-01-01.dangling.md', "title: Dangling\npublished: 2009-01-01\ncategory: Lost Cause");
 		$tester = $this->tester();
 
 		$check = $tester->run('content:terms');
@@ -215,9 +239,9 @@ final class ContentCommandsTest extends TestCase
 		$fixed = $tester->run('content:terms --write');
 
 		$this->assertTrue($fixed->isSuccessful(), $fixed->errors);
-		$this->assertStringContainsString('created  topics/lost-cause.md', $fixed->output);
+		$this->assertStringContainsString('created  _category/lost-cause.md', $fixed->output);
 		$this->assertStringContainsString('Every term and profile entries name has a file.', $fixed->output);
-		$this->assertFileExists($this->temporaryDirectory() . '/user/content/topics/lost-cause.md');
+		$this->assertFileExists($this->temporaryDirectory() . '/user/content/_category/lost-cause.md');
 	}
 
 	public function testCreatesEntries(): void
@@ -229,10 +253,10 @@ final class ContentCommandsTest extends TestCase
 		$post = $tester->run(['content:new', 'post', 'Hello, World: Again!']);
 
 		$this->assertTrue($post->isSuccessful());
-		$this->assertSame("Created user/content/_posts/hello-world-again.md\n", $post->output);
+		$this->assertSame("Created user/content/_post/hello-world-again.md\n", $post->output);
 		$this->assertMatchesRegularExpression(
 			'/\A---\ntitle: "Hello, World: Again!"\npublished: 2026-06-01 12:00:00 -05:00\nid: [0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\n---\n\n\z/',
-			(string) file_get_contents("{$content}/_posts/hello-world-again.md"),
+			(string) file_get_contents("{$content}/_post/hello-world-again.md"),
 			'With an id, last (D-477).'
 		);
 		$this->assertStringContainsString('hello-world-again', $tester->run('content:list --type=post')->output);
@@ -243,12 +267,12 @@ final class ContentCommandsTest extends TestCase
 
 		$tester->run(['content:new', 'category', 'Life']);
 
-		$this->assertFileExists("{$content}/topics/life.md");
+		$this->assertFileExists("{$content}/_category/life.md");
 
 		$again = $tester->run(['content:new', 'category', 'Life']);
 
 		$this->assertSame(ExitCode::Failure, $again->exitCode);
-		$this->assertStringContainsString('user/content/topics/life.md already exists.', $again->errors);
+		$this->assertStringContainsString('user/content/_category/life.md already exists.', $again->errors);
 		$this->assertSame(ExitCode::Invalid, $tester->run(['content:new', 'movie', 'Alien'])->exitCode);
 		$this->assertSame(ExitCode::Invalid, $tester->run(['content:new', 'page', '!!!'])->exitCode);
 		$this->assertStringContainsString('"Not A Slug" is not a slug; try "not-a-slug".', $tester->run(['content:new', 'page', 'X', '--slug=Not A Slug'])->errors);

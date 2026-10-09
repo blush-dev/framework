@@ -71,7 +71,7 @@ final class LlmsTest extends TestCase
 	public function testServesAnEntrysMarkdown(): void
 	{
 		$this->standardContent();
-		$this->entry('_posts/2009-01-01.quoted.md', "title: \"Say \\\"hi\\\"\"\npublished: 2009-01-01 10:00:00\nsummary: |\n  A *short*\n  summary.", "Some text.\n\n:::figure\n![A photo](/media/photo.jpg)\n:::");
+		$this->entry('_post/2009-01-01.quoted.md', "title: \"Say \\\"hi\\\"\"\npublished: 2009-01-01 10:00:00\nsummary: |\n  A *short*\n  summary.", "Some text.\n\n:::figure\n![A photo](/media/photo.jpg)\n:::");
 		$this->boot();
 
 		$response = $this->get('/archives/quoted.md');
@@ -107,7 +107,7 @@ final class LlmsTest extends TestCase
 	public function testServesTheRootIndexWithoutAHomeType(): void
 	{
 		$this->standardContent();
-		$this->contentConfig(['types' => ['post' => ['path' => '_posts', 'routing' => ['prefix' => 'archives']]], 'home' => null]);
+		$this->contentConfig(['types' => ['post' => ['routing' => ['prefix' => 'archives']]], 'home' => null]);
 		$this->boot();
 
 		$this->assertStringContainsString("title: \"Home\"\nurl: \"http://localhost/\"", (string) $this->get('/index.md')->getBody());
@@ -139,7 +139,7 @@ final class LlmsTest extends TestCase
 	public function testListsTheSiteInLlmsTxt(): void
 	{
 		$this->standardContent();
-		$this->entry('_posts/2009-01-01.summed.md', "title: \"Summed [up]\"\npublished: 2009-01-01 10:00:00\nsummary: |\n  Two\n  [lines](/about).");
+		$this->entry('_post/2009-01-01.summed.md', "title: \"Summed [up]\"\npublished: 2009-01-01 10:00:00\nsummary: |\n  Two\n  [lines](/about).");
 		$this->writeSettings('{"app": {"description": "Notes on the web."}}');
 		$this->boot();
 
@@ -161,8 +161,8 @@ final class LlmsTest extends TestCase
 		$this->standardContent();
 		$this->contentConfig([
 			'types' => [
-				'post'     => ['path' => '_posts', 'routing' => ['prefix' => 'archives'], 'llms' => false],
-				'category' => ['path' => 'topics', 'order' => 'position', 'llms' => false]
+				'post'     => ['routing' => ['prefix' => 'archives'], 'llms' => false],
+				'category' => ['urls' => ['prefix' => 'topics'], 'order' => 'position', 'llms' => false]
 			],
 			'relations' => ['category' => ['kind' => 'classify', 'from' => ['post'], 'to' => ['category'], 'create' => true]],
 			'home' => 'post'
@@ -180,12 +180,12 @@ final class LlmsTest extends TestCase
 	public function testTaxonomiesAndProfilesCanBeListed(): void
 	{
 		$this->standardContent();
-		$this->entry('topics/book-reviews.md', 'title: Book Reviews');
+		$this->entry('_category/book-reviews.md', 'title: Book Reviews');
 		$this->contentConfig([
 			'types' => [
-				'post'     => ['path' => '_posts', 'routing' => ['prefix' => 'archives']],
-				'category' => ['path' => 'topics', 'order' => 'position', 'llms' => true],
-				'profile'  => ['kind' => 'profiles', 'path' => 'profiles', 'llms' => true]
+				'post'     => ['routing' => ['prefix' => 'archives']],
+				'category' => ['urls' => ['prefix' => 'topics'], 'order' => 'position', 'llms' => true],
+				'profile'  => ['kind' => 'profiles', 'llms' => true]
 			],
 			'relations' => ['category' => ['kind' => 'classify', 'from' => ['post'], 'to' => ['category'], 'create' => true]]
 		]);

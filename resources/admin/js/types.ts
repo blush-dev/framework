@@ -21,10 +21,13 @@ export const profileType = ref<string | null>(null);
 
 /**
  * Whether types can be created here (types in `user/data/types` are
- * read, D-311), and whether they may set their own URLs.
+ * read, D-311), whether they may set their own URLs, and whether content
+ * is kept in files, which alone have file name and folder patterns
+ * (D-683).
  */
 export const canCreateTypes = ref(false);
 export const typeUrls       = ref(true);
+export const typeFiles      = ref(true);
 
 /**
  * The type of the entries on screen, or `null` for screens that aren't
@@ -42,12 +45,13 @@ let loading: Promise<ContentTypeSummary[]> | null = null;
  * time. Types that name an icon load the site's icons too.
  */
 export function loadTypes(): Promise<ContentTypeSummary[]> {
-	loading ??= request<{ types: ContentTypeSummary[]; authors: string | null; create: boolean; urls: boolean }>('GET', '/types').then(
+	loading ??= request<{ types: ContentTypeSummary[]; authors: string | null; create: boolean; urls: boolean; files: boolean }>('GET', '/types').then(
 		(answer) => {
 			types.value          = answer.types;
 			profileType.value     = answer.authors;
 			canCreateTypes.value = answer.create;
 			typeUrls.value       = answer.urls;
+			typeFiles.value      = answer.files;
 
 			if (answer.types.some((type) => type.icon !== null)) {
 				loadIcons().then((icons) => {

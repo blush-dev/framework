@@ -458,11 +458,11 @@ export interface ContentTypeDetail extends Omit<ContentTypeSummary, 'fields'> {
 	// Its own file name pattern (D-511, D-514), or `null` for the
 	// default, the slug alone (D-515).
 	filename: string | null;
-	// Its folder pattern after its folder (D-629), such as `{year}`, or
-	// `null` for none: its files are directly in its folder.
+	// Its folder pattern (D-629), such as `{year}`, or `null` for none:
+	// its files are directly in its folder, `_` and its name (D-683).
 	folders: string | null;
-	// The URL prefix its folder gives it, without slashes.
-	folderPrefix: string;
+	// The URL prefix it has without one of its own: its name (D-683).
+	defaultPrefix: string;
 	// The data file it's defined or changed in, from the site's root, or `null`.
 	file: string | null;
 	// Its index page (D-255), or `null`.
@@ -1345,6 +1345,9 @@ export interface Health {
 	refs: { count: number; items: { path: string; relations: string[] }[] };
 	// Data types still written as taxonomies (D-591).
 	taxonomies: string[];
+	// Data types that still name their folder (D-683), with the folder
+	// each names and its own (`POST health/type-folders` moves them).
+	typeFolders: { name: string; from: string; to: string }[];
 	// The problems ignored for the site (D-613), by key, with who
 	// ignored each (a username, and the name shown) and when (`POST
 	// health/ignore` and `POST health/unignore`).

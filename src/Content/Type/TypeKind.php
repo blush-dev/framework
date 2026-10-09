@@ -43,9 +43,9 @@ enum TypeKind: string
 	public function options(): array
 	{
 		return match ($this) {
-			self::Collection => ['folder', 'filename', 'urls', 'listing', 'feed', 'dateArchives', 'hierarchical', 'order', 'public', 'sitemap', 'llms', 'byline', 'fields', 'closed', 'labels', 'description', 'icon'],
-			self::Tree       => ['folder', 'filename', 'public', 'sitemap', 'llms', 'byline', 'fields', 'closed', 'labels', 'description', 'icon'],
-			self::Profiles   => ['folder', 'filename', 'urls', 'listing', 'feed', 'public', 'sitemap', 'llms', 'fields', 'closed', 'labels', 'description', 'icon']
+			self::Collection => ['folders', 'filename', 'urls', 'listing', 'feed', 'dateArchives', 'hierarchical', 'order', 'public', 'sitemap', 'llms', 'byline', 'fields', 'closed', 'labels', 'description', 'icon'],
+			self::Tree       => ['prefix', 'filename', 'public', 'sitemap', 'llms', 'byline', 'fields', 'closed', 'labels', 'description', 'icon'],
+			self::Profiles   => ['folders', 'filename', 'urls', 'listing', 'feed', 'public', 'sitemap', 'llms', 'fields', 'closed', 'labels', 'description', 'icon']
 		};
 	}
 }

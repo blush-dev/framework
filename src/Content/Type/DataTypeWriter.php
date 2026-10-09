@@ -32,12 +32,13 @@ use Blush\Storage\Record\RecordException;
  * that file.
  *
  * Changes are given by canonical option name (`labels`, `description`,
- * `icon`, `prefix` for the URL prefix, `paths` for route keys' paths
- * (`null` or `''` for a key's default, D-350), `public`, `sitemap`,
- * `llms` (D-398),
- * `feed`, `byline` (D-602), `dateArchives`, `filename` (D-511), `folders` for the folder pattern
- * after the type's folder (`{year}`, written into `folder`, D-629), `hierarchical`, `order` (D-593), and
- * `fields`); `null` removes one. The folder itself never changes here. They're applied to the file's own
+ * `icon`, `prefix` for the URL prefix (a tree's own `prefix`, D-683),
+ * `paths` for route keys' paths (`null` or `''` for a key's default,
+ * D-350), `public`, `sitemap`, `llms` (D-398), `feed`, `byline` (D-602),
+ * `dateArchives`, `filename` (D-511), `folders` for the folder pattern
+ * (`{year}`, D-629), `hierarchical`, `order` (D-593), and `fields`);
+ * `null` removes one. A type is kept in `_` and its name (D-683), so no
+ * folder is written. They're applied to the file's own
  * data (or, for a code type, to the type as the code and the file make
  * it) and the type is built from that (`ContentType::fromArray()`), so
  * it's checked as the loader checks it; each changed option is then
@@ -51,8 +52,8 @@ use Blush\Storage\Record\RecordException;
  * Types are records in the `types` table (`DefinitionTables`, D-672).
  * Each change is checked against every other type before it's kept: in
  * a transaction, the record is written, all the types are loaded again
- * (`ContentTypeLoader`), and when they don't fit together (two types in
- * one folder, a relation listing a type that's gone), the transaction
+ * (`ContentTypeLoader`), and when they don't fit together (a relation
+ * listing a type that's gone, say), the transaction
  * puts the record back as it was, so two writes can't interleave.
  */
 final readonly class DataTypeWriter
@@ -72,7 +73,8 @@ final readonly class DataTypeWriter
 		'byline'       => [],
 		'dateArchives' => ['date_archives', 'time_archives'],
 		'filename'     => [],
-		'folder'       => ['path'],
+		'folders'      => [],
+		'prefix'       => [],
 		'hierarchical' => [],
 		'order'        => [],
 		'fields'       => []
@@ -129,7 +131,7 @@ final readonly class DataTypeWriter
 	 * @param  array<string, mixed> $changes
 	 * @throws InvalidContentType When it can't be created or doesn't fit.
 	 */
-	public function create(string $name, TypeKind $kind, ?string $folder, array $changes): ContentTypes
+	public function create(string $name, TypeKind $kind, array $changes): ContentTypes
 	{
 		$this->assertEnabled();
 
@@ -145,12 +147,9 @@ final readonly class DataTypeWriter
 			throw new InvalidContentType(sprintf('"%s" is already defined in code.', $name));
 		}
 
-		$base = [
-			...($kind === TypeKind::Collection ? [] : ['kind' => $kind->value]),
-			...($folder === null || trim($folder, '/') === '' ? [] : ['folder' => trim($folder, '/')])
-		];
+		$base = $kind === TypeKind::Collection ? [] : ['kind' => $kind->value];
 
-		return $this->write($name, $base, $changes, ['kind', 'folder']);
+		return $this->write($name, $base, $changes, ['kind']);
 	}
 
 	/**
@@ -174,6 +173,10 @@ final readonly class DataTypeWriter
 
 		if (LegacyTaxonomy::is($data)) {
 			throw new InvalidContentType(sprintf('"%s" is still written as a taxonomy; migrate it first, on Site Health or with content:taxonomies --write.', $name));
+		}
+
+		if (LegacyFolder::is($data)) {
+			throw new InvalidContentType(sprintf('"%s" still names its folder; move it first, on Site Health or with content:type-folders --write.', $name));
 		}
 
 		return $this->write($name, $data, $changes, code: $code);
@@ -294,7 +297,7 @@ final readonly class DataTypeWriter
 	 *
 	 * @param  array<array-key, mixed> $data    The record's data.
 	 * @param  array<string, mixed>    $changes
-	 * @param  list<string>            $also    More keys to write as they are (a new type's `kind` and `folder`).
+	 * @param  list<string>            $also    More keys to write as they are (a new type's `kind`).
 	 * @param  ?ContentType             $code    The type the code defines, when the file changes it.
 	 * @throws InvalidContentType
 	 */
@@ -303,19 +306,19 @@ final readonly class DataTypeWriter
 		$merged  = $code === null ? $data : $code->overriddenBy($data, $this->fields)->toArray();
 		$written = [];
 		$paths   = [];
+		$tree    = ($code?->kind() ?? TypeKind::tryFrom(is_string($merged['kind'] ?? null) ? $merged['kind'] : '')) === TypeKind::Tree;
 
 		if ($code !== null && array_key_exists('fields', $changes) && ! $this->fieldsEditable($code)) {
 			throw new InvalidContentType('Its fields include field classes from code, so they\'re changed in code.');
 		}
 
 		foreach ($changes as $key => $value) {
-			if ($key === 'folder') {
-				throw new InvalidContentType('A type\'s folder doesn\'t change here, since entries are filed by it; its folder pattern does ("folders").');
+			if ($key === 'folders' && $value !== null && ! is_string($value)) {
+				throw new InvalidContentType('"folders" must be a folder pattern, such as {year}, or null.');
 			}
 
-			if ($key === 'folders') {
-				$key   = 'folder';
-				$value = self::folderWith($name, $merged, $value);
+			if ($key === 'prefix' && $tree) {
+				$value = is_string($value) ? trim($value, '/ ') : null;
 			} elseif ($key === 'prefix') {
 				$key   = 'urls';
 				$value = $this->urls($merged, $value);
@@ -403,7 +406,7 @@ final readonly class DataTypeWriter
 
 	/**
 	 * A type's options as the file writes them: no field classes, and no
-	 * prefix the folder already gives.
+	 * prefix that's its name, which it has without one (D-683).
 	 *
 	 * @return array<string, mixed>
 	 */
@@ -412,37 +415,16 @@ final readonly class DataTypeWriter
 		$canonical = self::withoutClasses($type->toArray());
 		$urls      = $canonical['urls'] ?? null;
 
-		if (is_array($urls) && ($urls['prefix'] ?? null) === self::folderPrefix($type->folder)) {
+		if (is_array($urls) && ($urls['prefix'] ?? null) === $type->name) {
 			unset($urls['prefix']);
 			$canonical['urls'] = $urls === [] ? null : $urls;
 		}
 
+		if (($canonical['prefix'] ?? null) === $type->name) {
+			unset($canonical['prefix']);
+		}
+
 		return $canonical;
-	}
-
-	/**
-	 * Returns the `folder` a type's data has with a new folder pattern
-	 * (`{year}`, D-629), or `null` for none: the type's own folder stays.
-	 * `null` back when that's the default folder with no pattern.
-	 *
-	 * @param  array<array-key, mixed> $data
-	 * @throws InvalidContentType
-	 */
-	private static function folderWith(string $name, array $data, mixed $pattern): ?string
-	{
-		if ($pattern !== null && ! is_string($pattern)) {
-			throw new InvalidContentType('"folders" must be a folder pattern, such as {year}, or null.');
-		}
-
-		$folder  = $data['folder'] ?? $data['path'] ?? "_{$name}";
-		$root    = FolderPattern::split(trim(is_string($folder) ? $folder : '', '/'))[0];
-		$pattern = trim($pattern ?? '', '/');
-
-		if ($pattern === '') {
-			return $root === "_{$name}" ? null : $root;
-		}
-
-		return "{$root}/{$pattern}";
 	}
 
 	/**
@@ -462,7 +444,8 @@ final readonly class DataTypeWriter
 			'icon'         => '',
 			'dateArchives' => $type->dateArchives->value,
 			'filename'     => $type->naming()->pattern,
-			'folder'       => $type->folder,
+			'folders'      => '',
+			'prefix'       => $type->name,
 			'hierarchical' => false,
 			'order'        => TypeOrder::Published->value,
 			default        => []
@@ -660,15 +643,6 @@ final readonly class DataTypeWriter
 		}
 
 		return $data;
-	}
-
-	/**
-	 * The prefix a folder gives a type's URLs: the folder without the
-	 * `_` that starts its names.
-	 */
-	public static function folderPrefix(string $folder): string
-	{
-		return implode('/', array_map(static fn (string $segment): string => ltrim($segment, '_'), explode('/', $folder)));
 	}
 
 	/**

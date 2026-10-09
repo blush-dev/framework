@@ -72,7 +72,7 @@ const code   = computed(() => props.type.origin !== 'data');
 const file   = computed(() => props.type.file ?? `user/data/types/${props.type.name}.json`);
 
 // The prefix the addresses sit under, as the form has it.
-const prefix = computed(() => (form.value.prefix || props.type.folderPrefix).replace(/^\/+|\/+$/g, ''));
+const prefix = computed(() => (form.value.prefix || props.type.defaultPrefix).replace(/^\/+|\/+$/g, ''));
 
 // Which credit is the byline, when it has more than one (D-602).
 const bylineOptions = computed(() => [{ value: '', label: 'Choose one' }, ...props.type.credits.map((name) => ({ value: name, label: name }))]);
@@ -153,7 +153,7 @@ guardLeave(() => changed.value);
 					<div><dt>Key</dt><dd class="mono">{{ type.name }}</dd></div>
 					<div><dt>Folder</dt><dd class="mono">user/content/{{ type.folder }}</dd></div>
 				</dl>
-				<p class="field__help">The key and folder are fixed: entries are filed by them.</p>
+				<p class="field__help">The key is fixed: entries are filed by it, in a folder named for it.</p>
 			</div>
 		</section>
 
@@ -162,7 +162,7 @@ guardLeave(() => changed.value);
 				<h2 id="behavior-heading">Behavior</h2>
 			</header>
 			<div class="panel__body">
-				<TypeBehaviorFields v-model="form" v-model:index="index" id-prefix="type-" :kind="kind" :folder-prefix="type.folderPrefix" :urls="typeUrls && type.prefix !== null" :index-page="type.index" :authors-label="null" />
+				<TypeBehaviorFields v-model="form" v-model:index="index" id-prefix="type-" :kind="kind" :default-prefix="type.defaultPrefix" :urls="typeUrls && type.prefix !== null" :index-page="type.index" :authors-label="null" />
 			</div>
 		</section>
 

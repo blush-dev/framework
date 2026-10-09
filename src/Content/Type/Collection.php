@@ -19,12 +19,12 @@ use Blush\Field\Fields\ReferenceField;
 
 /**
  * A type whose entries are listed: posts, literature, projects. Its folder
- * holds the entries, its listing page lists them, and it may have a feed
- * and date archives:
+ * (`_` and its name, D-683) holds the entries, its listing page lists
+ * them, and it may have a feed and date archives:
  *
  *     new Collection(
  *         'post',
- *         folder: '_posts',
+ *         folders: '{year}',
  *         urls: new TypeUrls(prefix: 'archives', single: '{year}/{month}/{day}/{name}'),
  *         listing: new Listing(order: Order::Desc),
  *         feed: new TypeFeed(categories: 'category'),
@@ -35,22 +35,21 @@ use Blush\Field\Fields\ReferenceField;
  * classify relation's target, usually ordered by `position` then title
  * and without dates, and it may nest:
  *
- *     new Collection('category', folder: 'topics', hierarchical: true, order: TypeOrder::Position);
+ *     new Collection('category', urls: new TypeUrls(prefix: 'topics'), hierarchical: true, order: TypeOrder::Position);
  *
  * A collection that's `hierarchical` has a `parent` relation (D-591): an
  * entry names its parent entry by slug in `parent`, so it keeps its file
  * and URL when it moves, and slugs stay unique across the collection.
  *
- * A collection's files are directly in its folder unless the folder
- * ends in a pattern (D-629), such as `_posts/{year}` or
- * `tags/{initial}`; those folders are only where files are kept, never
- * part of a key or address.
+ * A collection's files are directly in its folder unless it has a folder
+ * pattern (D-629), such as `{year}` or `{initial}`; those folders are
+ * only where files are kept, never part of a key or address.
  */
 final readonly class Collection extends ContentType
 {
 	/**
 	 * @param  string          $name         Lowercase letters, digits, and underscores.
-	 * @param  ?string         $folder       The folder under `user/content`; defaults to `_` and the name, and may end in a folder pattern (`_posts/{year}`, D-629).
+	 * @param  ?string         $folders      A folder pattern for the folders below its own (`{year}`, D-629), or `null` for none.
 	 * @param  TypeUrls|false  $urls         URL settings, or `false` for no routes.
 	 * @param  Listing         $listing      How the listing page lists entries.
 	 * @param  TypeFeed|false  $feed         Feed settings, or `false` for no feed.
@@ -71,7 +70,7 @@ final readonly class Collection extends ContentType
 	 */
 	public function __construct(
 		string $name,
-		?string $folder = null,
+		?string $folders = null,
 		TypeUrls|false $urls = new TypeUrls(),
 		Listing $listing = new Listing(),
 		TypeFeed|false $feed = false,
@@ -89,7 +88,7 @@ final readonly class Collection extends ContentType
 		public bool $hierarchical = false,
 		public TypeOrder $order = TypeOrder::Published
 	) {
-		parent::__construct($name, $folder, $public, $urls, $listing, $feed, $sitemap, $dateArchives, $fields, $closed, $labels, $description, $icon, $byline, $llms, $filename);
+		parent::__construct($name, $folders, $public, $urls, $listing, $feed, $sitemap, $dateArchives, $fields, $closed, $labels, $description, $icon, $byline, $llms, $filename);
 	}
 
 	/**

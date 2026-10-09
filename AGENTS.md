@@ -142,6 +142,10 @@ their repositories, links to accounts by id, D-669; types, relations,
 settings groups, media, menus (regions removed, D-676), field sets, and
 redirects as tables, `redirect_from` gone, D-680; `DataStore` retired,
 D-682);
+and every type kept in `_` and its name, never naming its folder, its
+addresses from its prefix, with `content:type-folders` and Site Health
+moving older data types, and profiles without `{initial}` (D-683,
+D-684);
 1.x conventions go when they get in the way
 (D-658); and an id for every media
 original, with image sizes found by rule and given none

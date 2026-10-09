@@ -23,7 +23,9 @@ use Blush\Content\Type\FolderPattern;
 use Blush\Content\Type\BuiltInType;
 use Blush\Content\Type\InvalidContentType;
 use Blush\Content\Type\Profiles;
-use Blush\Content\Type\Tree;
+use Blush\Field\FieldFactory;
+use Blush\Field\FieldRegistrar;
+use Blush\Field\FieldRegistry;
 
 #[CoversClass(FolderPattern::class)]
 #[CoversClass(ContentType::class)]
@@ -75,25 +77,25 @@ final class FolderPatternTest extends TestCase
 		(void) new FolderPattern($pattern);
 	}
 
-	public function testATypesFolderEndsInItsPattern(): void
+	public function testATypeKeepsItsPatternBelowItsFolder(): void
 	{
-		$type = new Collection('post', folder: '_posts/{year}');
+		$type = new Collection('post', folders: '{year}');
 
-		$this->assertSame('_posts', $type->folder);
+		$this->assertSame('_post', $type->folder, 'Every type is kept in _ and its name (D-683).');
 		$this->assertSame('{year}', $type->folders?->pattern);
-		$this->assertSame('_posts/{year}', $type->declaredFolder());
-		$this->assertSame('_posts/{year}', $type->toArray()['folder'] ?? null);
-		$this->assertSame('_posts/2026', $type->directoryFor('hello', new DateTimeImmutable('2026-01-01')));
-		$this->assertSame('_posts/_drafts', $type->directoryFor('hello', new DateTimeImmutable('2026-01-01'), ['_drafts']), 'A hidden file stays outside the pattern.');
-		$this->assertSame(['_drafts'], $type->hiddenFolders('_posts/_drafts/2026/hello/index.md'));
+		$this->assertSame('{year}', $type->toArray()['folders'] ?? null);
+		$this->assertArrayNotHasKey('folder', $type->toArray());
+		$this->assertSame('_post/2026', $type->directoryFor('hello', new DateTimeImmutable('2026-01-01')));
+		$this->assertSame('_post/_drafts', $type->directoryFor('hello', new DateTimeImmutable('2026-01-01'), ['_drafts']), 'A hidden file stays outside the pattern.');
+		$this->assertSame(['_drafts'], $type->hiddenFolders('_post/_drafts/2026/hello/index.md'));
 	}
 
-	public function testProfilesAreByInitialUnlessTheyNameAFolder(): void
+	public function testProfilesHaveNoPatternUnlessTheyGiveOne(): void
 	{
-		$this->assertSame('_profile/{initial}', new Profiles()->declaredFolder(), 'D-630.');
-		$this->assertArrayNotHasKey('folder', new Profiles()->toArray(), 'It\'s the default, so it isn\'t written out.');
-		$this->assertSame('profiles/{initial}', BuiltInType::Profile->type()->declaredFolder());
-		$this->assertNull(new Profiles(folder: 'authors')->folders, 'A folder named is kept as named.');
+		$this->assertNull(new Profiles()->folders, 'D-684.');
+		$this->assertSame('_profile', BuiltInType::Profile->type()->folder);
+		$this->assertNull(BuiltInType::Profile->type()->folders);
+		$this->assertSame('{initial}', new Profiles(folders: '{initial}')->folders?->pattern);
 		$this->assertNull(new Collection('tag')->folders, 'A collection doesn\'t know it\'s terms.');
 	}
 
@@ -102,14 +104,9 @@ final class FolderPatternTest extends TestCase
 		$this->expectException(InvalidContentType::class);
 		$this->expectExceptionMessage('a tree\'s folders are its pages\'');
 
-		(void) new Tree('docs', folder: '_docs/{year}');
-	}
+		$registry = new FieldRegistry();
+		new FieldRegistrar($registry)->register();
 
-	public function testAPatternFollowsAFolder(): void
-	{
-		$this->expectException(InvalidContentType::class);
-		$this->expectExceptionMessage('goes after the type\'s own folder');
-
-		(void) new Collection('post', folder: '{year}');
+		ContentType::fromArray(['name' => 'doc', 'kind' => 'tree', 'folders' => '{year}'], new FieldFactory($registry));
 	}
 }

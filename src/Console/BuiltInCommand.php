@@ -29,6 +29,7 @@ use Blush\Console\Commands\CreateTheme;
 use Blush\Console\Commands\ExplainView;
 use Blush\Console\Commands\Help;
 use Blush\Console\Commands\MigrateTaxonomies;
+use Blush\Console\Commands\MigrateTypeFolders;
 use Blush\Console\Commands\FileMenuRefs;
 use Blush\Console\Commands\FixMediaIds;
 use Blush\Console\Commands\IndexContent;
@@ -90,6 +91,7 @@ enum BuiltInCommand: string
 	case ContentPreview = 'content:preview';
 	case ContentRelation = 'content:relation';
 	case ContentTaxonomies = 'content:taxonomies';
+	case ContentTypeFolders = 'content:type-folders';
 	case MediaIds      = 'media:ids';
 	case MediaIndex    = 'media:index';
 	case MediaPublish  = 'media:publish';
@@ -154,6 +156,7 @@ enum BuiltInCommand: string
 			self::ContentPreview => PreviewContent::class,
 			self::ContentRelation => ChangeRelation::class,
 			self::ContentTaxonomies => MigrateTaxonomies::class,
+			self::ContentTypeFolders => MigrateTypeFolders::class,
 			self::MediaIds      => FixMediaIds::class,
 			self::MediaIndex    => IndexMedia::class,
 			self::MediaPublish  => PublishMedia::class,

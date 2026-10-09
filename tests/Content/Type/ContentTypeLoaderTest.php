@@ -93,22 +93,29 @@ final class ContentTypeLoaderTest extends TestCase
 			'index.md'                                  => 'page',
 			'about/biography.md'                        => 'page',
 			'__drafts/2005-05-04.familial-obligations.md' => 'page',
-			'_posts/2003-04-15.welcome-to-my-site.md'   => 'post',
-			'_posts/hello/index.md'                     => 'post',
-			'topics/art.md'                             => 'category',
-			'eras/01.college.md'                        => 'era',
-			'writing/2005-10-30.house-of-hypocrites.md' => 'literature',
-			'writing/forms/essay.md'                    => 'literary_form',
-			'/writing/techniques/prose.md'              => 'literary_technique',
-			'profiles/justin.md'                        => 'profile'
+			'_error/404.md'                             => 'page',
+			'_post/2003-04-15.welcome-to-my-site.md'    => 'post',
+			'_post/hello/index.md'                      => 'post',
+			'_category/art.md'                          => 'category',
+			'_era/01.college.md'                        => 'era',
+			'_literature/2005-10-30.house-of-hypocrites.md' => 'literature',
+			'_literary_form/essay.md'                   => 'literary_form',
+			'/_literary_technique/prose.md'             => 'literary_technique',
+			'_profile/justin.md'                        => 'profile',
+			'topics/art.md'                             => 'page'
 		];
 
 		foreach ($cases as $file => $type) {
 			$this->assertSame($type, $types->forFile($file)->name, $file);
 		}
 
-		$this->assertSame('category', $types->byFolder('/topics/')?->name);
-		$this->assertNull($types->byFolder('nowhere'));
+		$this->assertSame('category', $types->byFolder('/_category/')?->name);
+		$this->assertNull($types->byFolder('topics'));
+
+		// 1.x's folders are read in _ and the name until they're moved,
+		// keeping their addresses (D-683).
+		$this->assertSame(['category', 'era', 'literary_form', 'literary_genre', 'literary_technique', 'literature', 'post'], $types->namedFolders);
+		$this->assertSame(['archives', 'topics', 'eras', 'writing', 'writing/forms'], [$types->get('post')->prefix(), $types->get('category')->prefix(), $types->get('era')->prefix(), $types->get('literature')->prefix(), $types->get('literary_form')->prefix()]);
 	}
 
 	public function testSchemasIncludeTheBuiltInAndTermFields(): void
@@ -156,7 +163,7 @@ final class ContentTypeLoaderTest extends TestCase
 
 		$types = $this->types($application);
 
-		$this->assertSame('recipes', $types->get('recipe')->folder, 'The first extension\'s type is kept, and the site loads (D-597).');
+		$this->assertSame('recipes', $types->get('recipe')->prefix(), 'The first extension\'s type is kept, and the site loads (D-597).');
 		$this->assertSame(RelationKind::Classify, $types->relations()['ingredient']->kind);
 		$this->assertEquals([
 			new DefinitionClash('type', 'recipe', RecipeTypes::class, MoreRecipeTypes::class),
@@ -182,13 +189,15 @@ final class ContentTypeLoaderTest extends TestCase
 		$this->assertSame(TypeOrigin::Data, $types->origin('movie'));
 		$this->assertTrue(TypeOrigin::Data->isEditable());
 		$this->assertSame('number', $types->get('movie')->schema->fields['rating']->type());
-		$this->assertSame('people', $types->get('profile')->folder);
+		$this->assertSame('_profile', $types->get('profile')->folder, 'Kept in _ and its name until it\'s moved (D-683).');
+		$this->assertSame(['_movie', 'movies'], [$types->get('movie')->folder, $types->get('movie')->prefix()]);
+		$this->assertSame(['movie', 'profile'], $types->namedFolders);
 		$this->assertSame(TypeOrigin::Data, $types->origin('profile'));
 	}
 
 	public function testDataFilesChangeCodeCollections(): void
 	{
-		$this->codeConfig(['types' => ['movie' => ['path' => 'movies', 'routing' => ['prefix' => 'films', 'single' => '{year}/{name}'], 'feed' => ['listing' => ['perPage' => 5]], 'description' => 'Films.'], 'genre' => ['order' => 'position']]]);
+		$this->codeConfig(['types' => ['movie' => ['routing' => ['prefix' => 'films', 'single' => '{year}/{name}'], 'feed' => ['listing' => ['perPage' => 5]], 'description' => 'Films.'], 'genre' => ['order' => 'position']]]);
 		$this->writeTemporaryFile('user/data/types/movie.json', '{"description": "Movies we watched.", "routing": {"prefix": "watched"}}');
 		$this->writeTemporaryFile('user/data/types/genre.json', '{"hierarchical": true}');
 
@@ -199,22 +208,21 @@ final class ContentTypeLoaderTest extends TestCase
 		$this->assertTrue($types->isOverridden('movie'));
 		$this->assertTrue($types->isEditable('movie'));
 		$this->assertFalse($types->isOverridden('page'));
-		$this->assertSame(['movies', 'Movies we watched.', 'watched'], [$movie->folder, $movie->description, $movie->prefix()]);
+		$this->assertSame(['_movie', 'Movies we watched.', 'watched'], [$movie->folder, $movie->description, $movie->prefix()]);
 		$this->assertSame('{name}', $movie->urls === false ? null : $movie->urls->path('single'), 'An option it sets replaces the code\'s whole option (D-349).');
 		$this->assertSame(5, $movie->feed === false ? null : $movie->feed->listing?->perPage, 'Options it doesn\'t set stay the code\'s.');
 		$this->assertTrue($types->nestsByParent('genre'));
 	}
 
-	public function testDataFilesCantChangeACodeTypesKindOrFolder(): void
+	public function testDataFilesCantChangeACodeTypesKind(): void
 	{
 		$cases = [
 			'{"kind": "taxonomy"}' => 'Content type "movie" is a taxonomy, which Blush no longer has',
 			'{"taxonomy": true}'   => 'Content type "movie" is a taxonomy, which Blush no longer has',
-			'{"kind": "tree"}'     => 'user/data/types/movie can\'t change the type\'s kind or folder',
-			'{"path": "films"}'    => 'user/data/types/movie can\'t change the type\'s kind or folder'
+			'{"kind": "tree"}'     => 'user/data/types/movie can\'t change the type\'s kind'
 		];
 
-		$this->codeConfig(['types' => ['movie' => ['path' => 'movies']]]);
+		$this->codeConfig(['types' => ['movie' => ['description' => 'Films.']]]);
 
 		foreach ($cases as $json => $message) {
 			$this->writeTemporaryFile('user/data/types/movie.json', $json);
@@ -227,8 +235,21 @@ final class ContentTypeLoaderTest extends TestCase
 			}
 		}
 
-		$this->writeTemporaryFile('user/data/types/movie.json', '{"folder": "movies/", "kind": "collection"}');
-		$this->assertTrue($this->types()->isOverridden('movie'), 'Its own kind and folder are fine.');
+		$this->writeTemporaryFile('user/data/types/movie.json', '{"kind": "collection", "folders": "{year}"}');
+		$this->assertTrue($this->types()->isOverridden('movie'), 'Its own kind is fine, and a folder pattern.');
+
+		$this->writeTemporaryFile('user/data/types/movie.json', '{"folder": "films/{year}"}');
+		$types = $this->types();
+		$this->assertSame(['_movie', '{year}', 'movie', ['movie']], [$types->get('movie')->folder, $types->get('movie')->folders?->pattern, $types->get('movie')->prefix(), $types->namedFolders], 'A folder it names is read away until it\'s moved, with no prefix over the code\'s (D-683).');
+
+		$this->codeConfig(['types' => ['movie' => ['path' => 'movies']]]);
+
+		try {
+			$this->types();
+			$this->fail('A type from code naming its folder is refused.');
+		} catch (InvalidContentType $e) {
+			$this->assertStringContainsString('every type is kept in _movie now', $e->getMessage());
+		}
 	}
 
 	public function testDataFilesDefineTrees(): void
@@ -291,7 +312,7 @@ final class ContentTypeLoaderTest extends TestCase
 	public function testChecksThatTypesFitTogether(): void
 	{
 		$cases = [
-			[['types' => ['post' => ['path' => 'profiles']]], 'The "profile" and "post" content types share the folder "profiles".'],
+			[['types' => ['system' => []]], '"system" can\'t name a content type: _system is a folder the site\'s pages keep'],
 			[['types' => ['post' => ['collect' => 'nope']]], 'Content type "post" listing type names "nope", which doesn\'t exist.'],
 			[['types' => ['tag' => []], 'relations' => ['tag' => ['kind' => 'classify', 'from' => ['nope'], 'to' => ['tag']]]], 'Relation "tag" names a "nope" content type, which doesn\'t exist.'],
 			[['relations' => ['tag' => ['kind' => 'classify', 'to' => ['tag']]]], 'Relation "tag" names a "tag" content type, which doesn\'t exist.'],

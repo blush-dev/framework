@@ -80,7 +80,6 @@ final class PeopleArchivesTest extends TestCase
 		$this->contentConfig([
 			'types' => [
 				'post' => [
-					'path'          => '_posts',
 					'collection'    => ['order' => 'desc', 'orderby' => 'published', 'number' => 1],
 					'date_archives' => true,
 					'feed'          => true,
@@ -88,10 +87,10 @@ final class PeopleArchivesTest extends TestCase
 					...$post
 				],
 				'category' => [
-					'path'   => 'topics',
+					'urls' => ['prefix' => 'topics'],
 					'order'  => 'position'
 				],
-				...($profile === [] ? [] : ['profile' => ['kind' => 'profiles', 'path' => 'profiles', ...$profile]])
+				...($profile === [] ? [] : ['profile' => ['kind' => 'profiles', ...$profile]])
 			],
 			'relations' => [
 				'category' => ['kind' => 'classify', 'from' => ['post'], 'to' => ['category'], 'create' => true],
@@ -100,7 +99,7 @@ final class PeopleArchivesTest extends TestCase
 			],
 			'home' => 'post'
 		]);
-		$this->entry('profiles/sam.md', 'title: Sam', 'Credited by nothing yet.');
+		$this->entry('_profile/sam.md', 'title: Sam', 'Credited by nothing yet.');
 
 		// A test may boot again with other config; production notices
 		// changes when they're published.
@@ -133,7 +132,7 @@ final class PeopleArchivesTest extends TestCase
 
 	public function testAnArchivesListPageIntroducesTheList(): void
 	{
-		$this->entry('_posts/_authors.md', 'title: Our Writers', 'The people behind the blog.');
+		$this->entry('_post/_authors.md', 'title: Our Writers', 'The people behind the blog.');
 
 		$app  = $this->boot();
 		$body = (string) $this->get($app, '/archives/authors')->getBody();
@@ -168,8 +167,8 @@ final class PeopleArchivesTest extends TestCase
 
 	public function testAPageWrittenForAnArchiveIntroducesItInstead(): void
 	{
-		$this->entry('_posts/_authors/justintadlock.md', 'title: Justin, Blogger', 'Writes the blog.');
-		$this->entry('_posts/_authors/guest.md', "title: Unfinished\nstatus: draft", 'Not yet.');
+		$this->entry('_post/_authors/justintadlock.md', 'title: Justin, Blogger', 'Writes the blog.');
+		$this->entry('_post/_authors/guest.md', "title: Unfinished\nstatus: draft", 'Not yet.');
 
 		$app     = $this->boot();
 		$written = (string) $this->get($app, '/archives/authors/justintadlock')->getBody();
@@ -285,7 +284,7 @@ final class PeopleArchivesTest extends TestCase
 
 	public function testATypeCreditsPeopleInItsOwnWords(): void
 	{
-		$this->entry('_posts/2009-02-02.shots.md', "title: Shots\npublished: 2009-02-02\nauthor: guest\nphotographer: justintadlock");
+		$this->entry('_post/2009-02-02.shots.md', "title: Shots\npublished: 2009-02-02\nauthor: guest\nphotographer: justintadlock");
 
 		$app  = $this->boot(['byline' => 'authors'], authors: ['inverse' => ['archive' => 'writers']], relations: ['photographers' => ['kind' => 'credit', 'from' => ['post'], 'to' => ['profile'], 'multiple' => false, 'aliases' => ['photographer'], 'label' => 'Photographers']]);
 		$body = (string) $this->get($app, '/archives/shots')->getBody();

@@ -30,15 +30,15 @@ final class PositionTest extends TestCase
 
 	private function content(): Entries
 	{
-		$this->contentConfig(['types' => ['topic' => ['folder' => 'topics', 'order' => 'position'], 'note' => ['kind' => 'collection', 'folder' => '_notes']], 'relations' => ['topic' => ['kind' => 'classify', 'to' => ['topic']]]]);
+		$this->contentConfig(['types' => ['topic' => ['urls' => ['prefix' => 'topics'], 'order' => 'position'], 'note' => ['kind' => 'collection', 'urls' => ['prefix' => 'notes']]], 'relations' => ['topic' => ['kind' => 'classify', 'to' => ['topic']]]]);
 		$this->entry('guide/index.md', 'title: Guide');
 		$this->entry('guide/install.md', "title: Install\nposition: 1");
 		$this->entry('guide/upgrade.md', "title: Upgrade\nposition: 2");
 		$this->entry('guide/faq.md', 'title: FAQ');
 		$this->entry('guide/about.md', 'title: About');
-		$this->entry('topics/later.md', "title: Later\nposition: 2");
-		$this->entry('topics/sooner.md', "title: Sooner\nposition: 1");
-		$this->entry('topics/whenever.md', 'title: Whenever');
+		$this->entry('_topic/later.md', "title: Later\nposition: 2");
+		$this->entry('_topic/sooner.md', "title: Sooner\nposition: 1");
+		$this->entry('_topic/whenever.md', 'title: Whenever');
 
 		return $this->site()->container()->make(Entries::class);
 	}

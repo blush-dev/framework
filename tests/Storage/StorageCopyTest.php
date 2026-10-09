@@ -57,7 +57,7 @@ final class StorageCopyTest extends TestCase
 		}
 
 		$this->standardContent();
-		$this->writeTemporaryFile('user/content/_posts/2009-01-01.no-id.md', "---\ntitle: No Id\n---\nA file without an id.");
+		$this->writeTemporaryFile('user/content/_post/2009-01-01.no-id.md', "---\ntitle: No Id\n---\nA file without an id.");
 		$this->writeTemporaryFile('user/data/menus/main.json', '{"label": "Main", "items": [{"url": "/x", "label": "X"}]}');
 		$this->writeTemporaryFile('user/data/redirects.json', '[{"from": "/old-about", "to": "/about"}]');
 		$this->app = $this->site();

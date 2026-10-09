@@ -25,14 +25,15 @@ use Blush\Field\Field;
  * its own words, so one profile is a post's author and a recipe's cook
  * alike:
  *
- *     new Profiles(folder: 'profiles');
+ *     new Profiles();
  *
  * Each profile has one canonical page, `{prefix}/{slug}` (its `single`
  * key, with `.paged` and, when the type has a feed, the feed keys): the
  * bio, then every listed entry of any type that credits them. Nothing
  * answers at the prefix itself. The prefix is `profiles` unless the
- * URLs set one (D-357), whatever folder the profiles are in, so a site
- * keeping them elsewhere (1.x's `authors`) still has `/profiles/jane`. A profile is its file (D-584): one
+ * URLs set one (D-357), though they're kept in `_` and the type's name
+ * (`_profile`, D-683), with no folder pattern unless the type gives one
+ * (D-684). A profile is its file (D-584): one
  * that's credited but missing is left out of the site, and
  * `content:terms` writes it. An admin account may link to one.
  */
@@ -45,7 +46,7 @@ final readonly class Profiles extends ContentType
 
 	/**
 	 * @param  string          $name        Lowercase letters, digits, and underscores.
-	 * @param  ?string         $folder      The folder under `user/content`; defaults to `_` and the name, by initial (`_profile/{initial}`, D-630), and may end in a folder pattern (D-629).
+	 * @param  ?string         $folders     A folder pattern for the folders below its own (D-629), or `null` for none (D-684).
 	 * @param  TypeUrls|false  $urls        URL settings (the prefix is the base word), or `false` for no pages of their own.
 	 * @param  Listing         $listing     How a profile's page lists the entries crediting them.
 	 * @param  TypeFeed|false  $feed        Feed settings for each profile's feed, or `false` for none.
@@ -60,19 +61,9 @@ final readonly class Profiles extends ContentType
 	 * @param  ?FileName       $filename    How new files are named (D-514).
 	 * @throws InvalidContentType
 	 */
-	/**
-	 * Profiles are kept in a folder by initial unless the type names its
-	 * folder (D-630): `_profile/j/jane.md`.
-	 */
-	#[Override]
-	protected static function defaultFolder(string $name): string
-	{
-		return parent::defaultFolder($name) . '/{initial}';
-	}
-
 	public function __construct(
 		string $name = 'profile',
-		?string $folder = null,
+		?string $folders = null,
 		TypeUrls|false $urls = new TypeUrls(),
 		Listing $listing = new Listing(),
 		TypeFeed|false $feed = false,
@@ -86,7 +77,7 @@ final readonly class Profiles extends ContentType
 		bool $llms = false,
 		?FileName $filename = null
 	) {
-		parent::__construct($name, $folder, $public, $urls, $listing, $feed, $sitemap, DateArchives::None, $fields, $closed, $labels, $description, $icon, null, $llms, $filename);
+		parent::__construct($name, $folders, $public, $urls, $listing, $feed, $sitemap, DateArchives::None, $fields, $closed, $labels, $description, $icon, null, $llms, $filename);
 	}
 
 	/**

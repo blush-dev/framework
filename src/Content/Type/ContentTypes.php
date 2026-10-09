@@ -39,11 +39,9 @@ use Blush\Field\Schema;
 /**
  * The site's resolved content types, from every source (`ContentTypeLoader`
  * builds and checks them). Types are found by name, by folder, or for a
- * file under `user/content`: a file belongs to the type whose folder is
- * the nearest one above it, and anything else is a page. So
- * `writing/forms/essay.md` is a `literary_form` even though `writing`
- * belongs to `literature`, and a bundle's `_posts/hello/index.md` is a
- * post.
+ * file under `user/content`: a file in a type's folder, `_` and its name
+ * (D-683), is that type's, and anything else is a page. So
+ * `_post/2026/hello.md` is a post, and `_error/404.md` is a page.
  *
  * The types carry the site's relation definitions (D-593: from
  * extensions, config, and `user/data/relations`), since a classify
@@ -85,6 +83,7 @@ final class ContentTypes implements IteratorAggregate, Countable
 	 * @param array<string, RelationOrigin> $relationOrigins Keyed by name.
 	 * @param list<string>               $legacy    Data types still in the taxonomy form, read as a collection and its relation until they're migrated (D-591).
 	 * @param list<DefinitionClash>      $clashes   Types and relations two extensions define by one name; the first of each is kept (D-597).
+	 * @param list<string>               $namedFolders Data types that still name their folder, read in `_` and their name until they're moved (D-683).
 	 */
 	public function __construct(
 		private readonly array $types,
@@ -95,7 +94,8 @@ final class ContentTypes implements IteratorAggregate, Countable
 		private readonly array $relations = [],
 		private readonly array $relationOrigins = [],
 		public readonly array $legacy = [],
-		public readonly array $clashes = []
+		public readonly array $clashes = [],
+		public readonly array $namedFolders = []
 	) {
 		foreach ($types as $name => $type) {
 			$this->folders[$type->folder] = $name;
@@ -460,8 +460,8 @@ final class ContentTypes implements IteratorAggregate, Countable
 
 	/**
 	 * Returns the folder path under `user/content` that a path the page
-	 * catch-all serves points to (D-386): `_docs/install` for
-	 * `docs/install` when a type served as pages has the folder `_docs`.
+	 * catch-all serves points to (D-386): `_doc/install` for
+	 * `docs/install` when a tree in `_doc` has the prefix `docs` (D-683).
 	 * Other paths are their own.
 	 */
 	public function folderPath(string $path): string
@@ -484,29 +484,17 @@ final class ContentTypes implements IteratorAggregate, Countable
 
 	/**
 	 * Returns the type a file under `user/content` belongs to, from its
-	 * path relative to that folder.
+	 * path relative to that folder: the type whose folder is its first
+	 * (D-683), else the one at the content root.
 	 *
 	 * @throws InvalidContentType When no type claims the content root.
 	 */
 	public function forFile(string $relativePath): ContentType
 	{
-		$directory = dirname(trim($relativePath, '/'));
-		$directory = $directory === '.' ? '' : $directory;
+		$path = trim($relativePath, '/');
+		$type = str_contains($path, '/') ? $this->byFolder(explode('/', $path)[0]) : null;
 
-		while (true) {
-			$type = $this->byFolder($directory);
-
-			if ($type !== null) {
-				return $type;
-			}
-
-			if ($directory === '') {
-				throw new InvalidContentType('No content type claims the content root.');
-			}
-
-			$parent    = dirname($directory);
-			$directory = $parent === '.' ? '' : $parent;
-		}
+		return $type ?? $this->byFolder('') ?? throw new InvalidContentType('No content type claims the content root.');
 	}
 
 	/**
@@ -595,7 +583,7 @@ final class ContentTypes implements IteratorAggregate, Countable
 	/**
 	 * Returns the types as an array for a compiled cache.
 	 *
-	 * @return array{types: list<array<string, mixed>>, origins: array<string, string>, overrides: list<string>, home: ?string, sets: list<array<string, mixed>>, relations: list<array<string, mixed>>, relationOrigins: array<string, string>, legacy: list<string>, clashes: list<array{kind: string, name: string, kept: string, dropped: string}>}
+	 * @return array{types: list<array<string, mixed>>, origins: array<string, string>, overrides: list<string>, home: ?string, sets: list<array<string, mixed>>, relations: list<array<string, mixed>>, relationOrigins: array<string, string>, legacy: list<string>, clashes: list<array{kind: string, name: string, kept: string, dropped: string}>, namedFolders: list<string>}
 	 */
 	public function toArray(): array
 	{
@@ -608,7 +596,8 @@ final class ContentTypes implements IteratorAggregate, Countable
 			'relations'       => array_values(array_map(static fn (Relation $relation): array => $relation->toArray(), $this->relations)),
 			'relationOrigins' => array_map(static fn (RelationOrigin $origin): string => $origin->value, $this->relationOrigins),
 			'legacy'          => $this->legacy,
-			'clashes'         => array_map(static fn (DefinitionClash $clash): array => $clash->toArray(), $this->clashes)
+			'clashes'         => array_map(static fn (DefinitionClash $clash): array => $clash->toArray(), $this->clashes),
+			'namedFolders'    => $this->namedFolders
 		];
 	}
 
@@ -669,7 +658,9 @@ final class ContentTypes implements IteratorAggregate, Countable
 
 		$clashes = array_values(array_filter(array_map(DefinitionClash::fromArray(...), is_array($data['clashes'] ?? null) ? $data['clashes'] : [])));
 
-		return new self($types, $origins, is_string($home) ? $home : null, $sets, $overrides, $relations, $relationOrigins, $legacy, $clashes);
+		$named = array_values(array_filter(is_array($data['namedFolders'] ?? null) ? $data['namedFolders'] : [], is_string(...)));
+
+		return new self($types, $origins, is_string($home) ? $home : null, $sets, $overrides, $relations, $relationOrigins, $legacy, $clashes, $named);
 	}
 
 	/**

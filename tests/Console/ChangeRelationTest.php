@@ -39,10 +39,10 @@ final class ChangeRelationTest extends TestCase
 
 	protected function setUp(): void
 	{
-		$this->contentConfig(['types' => ['recipe' => ['path' => 'recipes']]]);
+		$this->contentConfig(['types' => ['recipe' => ['urls' => ['prefix' => 'recipes']]]]);
 		$this->writeTemporaryFile('user/data/relations/pairs.json', '{"kind": "reference", "from": ["recipe"], "to": ["recipe"]}');
-		$this->entry('recipes/soup.md', 'title: Soup');
-		$this->entry('recipes/stew.md', "title: Stew\npairs: [soup]");
+		$this->entry('_recipe/soup.md', 'title: Soup');
+		$this->entry('_recipe/stew.md', "title: Stew\npairs: [soup]");
 	}
 
 	public function testSaysHowManyEntriesUseIt(): void
@@ -61,10 +61,10 @@ final class ChangeRelationTest extends TestCase
 		$this->assertTrue($kept->isSuccessful(), $kept->errors);
 		$this->assertStringContainsString('`pairs` is still read', $kept->output, 'An alias, no file changed (D-600).');
 		$this->assertStringContainsString('"aliases": [', $this->file('user/data/relations/pairs.json'));
-		$this->assertStringContainsString('pairs: [soup]', $this->file('user/content/recipes/stew.md'));
+		$this->assertStringContainsString('pairs: [soup]', $this->file('user/content/_recipe/stew.md'));
 
 		$this->assertTrue($this->tester()->run('content:relation pairs --key=served_with --rewrite')->isSuccessful());
-		$this->assertStringContainsString('served_with: [soup]', $this->file('user/content/recipes/stew.md'));
+		$this->assertStringContainsString('served_with: [soup]', $this->file('user/content/_recipe/stew.md'));
 	}
 
 	public function testRemovesItAndWhatEntriesHave(): void
@@ -74,6 +74,6 @@ final class ChangeRelationTest extends TestCase
 		$this->assertTrue($removed->isSuccessful(), $removed->errors);
 		$this->assertStringContainsString('Removed its values from 1 entry.', $removed->output);
 		$this->assertFileDoesNotExist($this->temporaryDirectory() . '/user/data/relations/pairs.json');
-		$this->assertStringNotContainsString('pairs', $this->file('user/content/recipes/stew.md'));
+		$this->assertStringNotContainsString('pairs', $this->file('user/content/_recipe/stew.md'));
 	}
 }

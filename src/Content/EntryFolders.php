@@ -26,8 +26,8 @@ use Blush\Content\Writer\RenamedFiles;
 /**
  * Keeps a collection's and the profiles' files where their type keeps
  * them (D-514, D-629): directly in its folder, or in the folders its
- * folder pattern gives (`_posts/{year}` keeps a post published in 2026
- * in `_posts/2026`). A folder entry (`_posts/hello/index.md`), or a file
+ * folder pattern gives (`{year}` keeps a post published in 2026 in
+ * `_post/2026`). A folder entry (`_post/hello/index.md`), or a file
  * in other folders, is a `content:lint` error when its folders don't
  * have the pattern's shape, and `content:folders` and Site Health move
  * each file to its folder, keeping its name (a folder entry's is its
@@ -40,9 +40,8 @@ use Blush\Content\Writer\RenamedFiles;
  * - **Translations linked by name** (`hello.fr.md` beside `hello.md`)
  *   move with their original, so they stay linked; one linked by
  *   `translation_of` is placed by its own date.
- * - **Left alone:** landing pages, trees (whose folders are their
- *   pages'), and other types' folders inside a type's (they hold other
- *   types' files). A hidden file (`_`-named, or in a `_` folder such as
+ * - **Left alone:** landing pages and trees (whose folders are their
+ *   pages'). A hidden file (`_`-named, or in a `_` folder such as
  *   `_drafts` or a relation archive's `_authors`) stays in its folder,
  *   whatever the pattern, as a file name pattern leaves it (D-512); one
  *   kept as a folder still becomes a file there.

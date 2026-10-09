@@ -230,9 +230,9 @@ final class AdminContentTest extends TestCase
 
 	public function testPinsATypesArchivePage(): void
 	{
-		$this->writeTemporaryFile('user/data/types/post.json', '{"folder": "_posts"}');
-		$this->writeTemporaryFile('user/content/_posts/one.md', "---\ntitle: One\n---\n");
-		$this->writeTemporaryFile('user/content/_posts/_authors.md', "---\ntitle: Our Writers\n---\nThe people.\n");
+		$this->writeTemporaryFile('user/data/types/post.json', '{"urls": {"prefix": "posts"}}');
+		$this->writeTemporaryFile('user/content/_post/one.md', "---\ntitle: One\n---\n");
+		$this->writeTemporaryFile('user/content/_post/_authors.md', "---\ntitle: Our Writers\n---\nThe people.\n");
 		$this->site(['editor']);
 
 		$list = $this->list('?type=post');
@@ -246,7 +246,7 @@ final class AdminContentTest extends TestCase
 		$this->assertSame(['Our Writers', true, false], [$page['title'] ?? null, $page['archivePage'] ?? null, $page['can']['duplicate'] ?? null]);
 		$this->assertNull($this->list('?type=post&page=2')['archivePage'] ?? null, 'On the first page only.');
 
-		$entry = self::json($this->send('GET', $this->entryPath('_posts/_authors.md')));
+		$entry = self::json($this->send('GET', $this->entryPath('_post/_authors.md')));
 
 		$this->assertTrue($entry['archivePage'] ?? null, 'A relation archive\'s list page (D-602).');
 		$this->assertIsArray($entry['can'] ?? null);
@@ -375,7 +375,7 @@ final class AdminContentTest extends TestCase
 
 	public function testFiltersByAuthorTermsAndUpdated(): void
 	{
-		$this->writeTemporaryFile('user/data/types/topic.json', '{"taxonomy": true, "folder": "topics"}');
+		$this->writeTemporaryFile('user/data/types/topic.json', '{"taxonomy": true, "urls": {"prefix": "topics"}}');
 		$this->writeTemporaryFile('user/content/old.md', "---\ntitle: Old\nauthors: sam\ntopic: [art, books]\nupdated: 2001-01-01\n---\n");
 		$this->writeTemporaryFile('user/content/art.md', "---\ntitle: Art\nauthors: jane\ntopic: art\n---\n");
 		$this->site(['editor']);
@@ -411,9 +411,9 @@ final class AdminContentTest extends TestCase
 
 	public function testFiltersAndSortsFlattenTrees(): void
 	{
-		$this->writeTemporaryFile('user/data/types/topic.json', '{"taxonomy": true, "folder": "topics", "hierarchical": true}');
-		$this->writeTemporaryFile('user/content/topics/books.md', "---\ntitle: Books\n---\n");
-		$this->writeTemporaryFile('user/content/topics/book-reviews.md', "---\ntitle: Book Reviews\nparent: books\nupdated: 2001-01-01\n---\n");
+		$this->writeTemporaryFile('user/data/types/topic.json', '{"taxonomy": true, "urls": {"prefix": "topics"}, "hierarchical": true}');
+		$this->writeTemporaryFile('user/content/_topic/books.md', "---\ntitle: Books\n---\n");
+		$this->writeTemporaryFile('user/content/_topic/book-reviews.md', "---\ntitle: Book Reviews\nparent: books\nupdated: 2001-01-01\n---\n");
 		$this->site(['editor']);
 
 		$this->assertTrue($this->list('?type=topic')['tree']);
@@ -427,8 +427,8 @@ final class AdminContentTest extends TestCase
 
 	public function testCountsHowManyPublishedEntriesUseATerm(): void
 	{
-		$this->writeTemporaryFile('user/content/profiles/jane.md', "---\ntitle: Jane\n---\n");
-		$this->writeTemporaryFile('user/content/profiles/nobody.md', "---\ntitle: Nobody\n---\n");
+		$this->writeTemporaryFile('user/content/_profile/jane.md', "---\ntitle: Jane\n---\n");
+		$this->writeTemporaryFile('user/content/_profile/nobody.md', "---\ntitle: Nobody\n---\n");
 		$this->site(['editor']);
 
 		$terms = array_column($this->listed('?type=profile'), 'uses', 'title');
@@ -456,12 +456,12 @@ final class AdminContentTest extends TestCase
 
 	public function testListsNestingTypesAsATree(): void
 	{
-		$this->writeTemporaryFile('user/data/types/topic.json', '{"taxonomy": true, "folder": "topics", "hierarchical": true}');
-		$this->writeTemporaryFile('user/content/topics/book-reviews.md', "---\ntitle: Book Reviews\nparent: books\n---\n");
-		$this->writeTemporaryFile('user/content/topics/zoo.md', "---\ntitle: Zoo\nparent: art\n---\n");
-		$this->writeTemporaryFile('user/content/topics/books.md', "---\ntitle: Books\n---\n");
-		$this->writeTemporaryFile('user/content/topics/art.md', "---\ntitle: Art\n---\n");
-		$this->writeTemporaryFile('user/content/topics/orphan.md', "---\ntitle: Orphan\nparent: gone\n---\n");
+		$this->writeTemporaryFile('user/data/types/topic.json', '{"taxonomy": true, "urls": {"prefix": "topics"}, "hierarchical": true}');
+		$this->writeTemporaryFile('user/content/_topic/book-reviews.md', "---\ntitle: Book Reviews\nparent: books\n---\n");
+		$this->writeTemporaryFile('user/content/_topic/zoo.md', "---\ntitle: Zoo\nparent: art\n---\n");
+		$this->writeTemporaryFile('user/content/_topic/books.md', "---\ntitle: Books\n---\n");
+		$this->writeTemporaryFile('user/content/_topic/art.md', "---\ntitle: Art\n---\n");
+		$this->writeTemporaryFile('user/content/_topic/orphan.md', "---\ntitle: Orphan\nparent: gone\n---\n");
 		$this->site(['editor']);
 
 		$this->assertSame(['Art', 'Zoo', 'Books', 'Book Reviews', 'Orphan'], array_column($this->listed('?type=topic'), 'title'));
@@ -488,9 +488,9 @@ final class AdminContentTest extends TestCase
 
 	public function testOrdersATreesPagesByPosition(): void
 	{
-		$this->writeTemporaryFile('user/data/types/topic.json', '{"taxonomy": true, "folder": "topics", "hierarchical": true}');
-		$this->writeTemporaryFile('user/content/topics/zebras.md', "---\ntitle: Zebras\nposition: 1\n---\n");
-		$this->writeTemporaryFile('user/content/topics/apes.md', "---\ntitle: Apes\nposition: 2\n---\n");
+		$this->writeTemporaryFile('user/data/types/topic.json', '{"taxonomy": true, "urls": {"prefix": "topics"}, "hierarchical": true}');
+		$this->writeTemporaryFile('user/content/_topic/zebras.md', "---\ntitle: Zebras\nposition: 1\n---\n");
+		$this->writeTemporaryFile('user/content/_topic/apes.md', "---\ntitle: Apes\nposition: 2\n---\n");
 		$this->writeTemporaryFile('user/content/guide/index.md', "---\ntitle: Guide\n---\n");
 		$this->writeTemporaryFile('user/content/guide/upgrade.md', "---\ntitle: Upgrade\nposition: 2\n---\n");
 		$this->writeTemporaryFile('user/content/guide/install.md', "---\ntitle: Install\nposition: 1\n---\n");
@@ -518,15 +518,15 @@ final class AdminContentTest extends TestCase
 
 	public function testOrdersEachKindsAllTab(): void
 	{
-		$this->writeTemporaryFile('user/data/types/post.json', '{"folder": "_posts"}');
-		$this->writeTemporaryFile('user/data/types/mood.json', '{"taxonomy": true, "folder": "moods"}');
-		$this->writeTemporaryFile('user/content/_posts/old.md', "---\ntitle: Old\npublished: 2001-01-01\n---\n");
-		$this->writeTemporaryFile('user/content/_posts/new.md', "---\ntitle: New\npublished: 2020-01-01\n---\n");
-		$this->writeTemporaryFile('user/content/moods/sad.md', "---\ntitle: Sad\n---\n");
-		$this->writeTemporaryFile('user/content/moods/glad.md', "---\ntitle: Glad\n---\n");
-		$this->writeTemporaryFile('user/content/moods/mad.md', "---\ntitle: Mad\nposition: 1\n---\n");
-		$this->writeTemporaryFile('user/content/profiles/zoe.md', "---\ntitle: Zoe\n---\n");
-		$this->writeTemporaryFile('user/content/profiles/abe.md', "---\ntitle: Abe\n---\n");
+		$this->writeTemporaryFile('user/data/types/post.json', '{"urls": {"prefix": "posts"}}');
+		$this->writeTemporaryFile('user/data/types/mood.json', '{"taxonomy": true, "urls": {"prefix": "moods"}}');
+		$this->writeTemporaryFile('user/content/_post/old.md', "---\ntitle: Old\npublished: 2001-01-01\n---\n");
+		$this->writeTemporaryFile('user/content/_post/new.md', "---\ntitle: New\npublished: 2020-01-01\n---\n");
+		$this->writeTemporaryFile('user/content/_mood/sad.md', "---\ntitle: Sad\n---\n");
+		$this->writeTemporaryFile('user/content/_mood/glad.md', "---\ntitle: Glad\n---\n");
+		$this->writeTemporaryFile('user/content/_mood/mad.md', "---\ntitle: Mad\nposition: 1\n---\n");
+		$this->writeTemporaryFile('user/content/_profile/zoe.md', "---\ntitle: Zoe\n---\n");
+		$this->writeTemporaryFile('user/content/_profile/abe.md', "---\ntitle: Abe\n---\n");
 		$this->site(['editor']);
 
 		$posts = $this->list('?type=post');
@@ -699,8 +699,8 @@ final class AdminContentTest extends TestCase
 	public function testReportsContentHealth(): void
 	{
 		// Credited authors without entries are warnings (D-329).
-		$this->writeTemporaryFile('user/content/profiles/jane.md', "---\ntitle: Jane\nid: 0199b6e2-0000-7000-8000-000000000006\n---\n");
-		$this->writeTemporaryFile('user/content/profiles/sam.md', "---\ntitle: Sam\nid: 0199b6e2-0000-7000-8000-000000000007\n---\n");
+		$this->writeTemporaryFile('user/content/_profile/jane.md', "---\ntitle: Jane\nid: 0199b6e2-0000-7000-8000-000000000006\n---\n");
+		$this->writeTemporaryFile('user/content/_profile/sam.md', "---\ntitle: Sam\nid: 0199b6e2-0000-7000-8000-000000000007\n---\n");
 		$this->site(['owner']);
 
 		$health = self::json($this->send('GET', '/health'));
@@ -853,10 +853,10 @@ final class AdminContentTest extends TestCase
 
 	public function testRenamesFilesToTheirTypesPattern(): void
 	{
-		$this->writeTemporaryFile('user/data/types/post.json', '{"folder": "_posts", "filename": "{date}.{slug}"}');
-		$this->writeTemporaryFile('user/content/_posts/one.md', "---\ntitle: One\npublished: 2026-01-02 10:00:00\nid: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e01\n---\n");
-		$this->writeTemporaryFile('user/content/_posts/two.md', "---\ntitle: Two\nid: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e02\n---\n");
-		touch($this->temporaryDirectory() . '/user/content/_posts/two.md', (int) strtotime('2025-03-04 12:00:00 UTC'));
+		$this->writeTemporaryFile('user/data/types/post.json', '{"urls": {"prefix": "posts"}, "filename": "{date}.{slug}"}');
+		$this->writeTemporaryFile('user/content/_post/one.md', "---\ntitle: One\npublished: 2026-01-02 10:00:00\nid: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e01\n---\n");
+		$this->writeTemporaryFile('user/content/_post/two.md', "---\ntitle: Two\nid: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e02\n---\n");
+		touch($this->temporaryDirectory() . '/user/content/_post/two.md', (int) strtotime('2025-03-04 12:00:00 UTC'));
 		$this->site(['owner']);
 		$token = $this->token();
 
@@ -867,33 +867,33 @@ final class AdminContentTest extends TestCase
 			'label'    => 'Posts',
 			'pattern'  => '{date}.{slug}',
 			'count'    => 2,
-			'items'    => [['path' => '_posts/one.md', 'to' => '_posts/2026-01-02.one.md'], ['path' => '_posts/two.md', 'to' => '_posts/2025-03-04.two.md']],
+			'items'    => [['path' => '_post/one.md', 'to' => '_post/2026-01-02.one.md'], ['path' => '_post/two.md', 'to' => '_post/2025-03-04.two.md']],
 			'skipped'  => 0
 		]], $names, 'Without a publish date, when it was updated (D-514).');
 		$this->assertSame(400, $this->send('POST', '/health/filenames', '{}', ['X-CSRF-Token' => $token])->getStatusCode());
 
-		$one = $this->fix('/health/filenames', '{"type": "post", "paths": ["_posts/one.md"]}', $token);
+		$one = $this->fix('/health/filenames', '{"type": "post", "paths": ["_post/one.md"]}', $token);
 
-		$this->assertSame(['_posts/one.md' => '_posts/2026-01-02.one.md'], $one['renamed'] ?? null, 'Only the row asked for (D-612).');
+		$this->assertSame(['_post/one.md' => '_post/2026-01-02.one.md'], $one['renamed'] ?? null, 'Only the row asked for (D-612).');
 
 		$renamed = $this->fix('/health/filenames', '{"type": "post"}', $token);
 
-		$this->assertSame(['_posts/two.md' => '_posts/2025-03-04.two.md'], $renamed['renamed'] ?? null);
+		$this->assertSame(['_post/two.md' => '_post/2025-03-04.two.md'], $renamed['renamed'] ?? null);
 		$this->assertSame([], $this->checkAgain($token)['fileNames'] ?? null);
 	}
 
 	public function testMovesCollectionEntriesToTheirFolders(): void
 	{
-		$this->writeTemporaryFile('user/data/types/post.json', '{"folder": "_posts"}');
-		$this->writeTemporaryFile('user/content/_posts/2024/old.md', "---\ntitle: Old\nid: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e03\n---\n");
+		$this->writeTemporaryFile('user/data/types/post.json', '{"urls": {"prefix": "posts"}}');
+		$this->writeTemporaryFile('user/content/_post/2024/old.md', "---\ntitle: Old\nid: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e03\n---\n");
 		$this->site(['owner']);
 		$token = $this->token();
 
-		$this->assertSame(['count' => 1, 'items' => [['path' => '_posts/2024/old.md', 'to' => '_posts/old.md']]], $this->checkAgain($token)['folders'] ?? null);
+		$this->assertSame(['count' => 1, 'items' => [['path' => '_post/2024/old.md', 'to' => '_post/old.md']]], $this->checkAgain($token)['folders'] ?? null);
 
 		$moved = $this->fix('/health/folders', '{}', $token);
 
-		$this->assertSame(['_posts/2024/old.md' => '_posts/old.md'], $moved['renamed'] ?? null);
+		$this->assertSame(['_post/2024/old.md' => '_post/old.md'], $moved['renamed'] ?? null);
 		$this->assertSame(['count' => 0, 'items' => []], $this->checkAgain($token)['folders'] ?? null);
 	}
 
@@ -915,11 +915,11 @@ final class AdminContentTest extends TestCase
 
 		$one = $this->fix('/health/terms', '{"terms": ["profile/sam"]}', $token);
 
-		$this->assertSame(['profile/sam' => 'profiles/s/sam.md'], $one['created'] ?? null, 'Only the row asked for (D-612).');
+		$this->assertSame(['profile/sam' => '_profile/sam.md'], $one['created'] ?? null, 'Only the row asked for (D-612).');
 
 		$created = $this->fix('/health/terms', '{}', $token);
 
-		$this->assertSame(['profile/jane' => 'profiles/j/jane.md'], $created['created'] ?? null);
+		$this->assertSame(['profile/jane' => '_profile/jane.md'], $created['created'] ?? null);
 		$this->assertSame(['count' => 0, 'items' => []], $this->checkAgain($token)['terms'] ?? null);
 	}
 

@@ -64,7 +64,7 @@ final class FilesystemEntryStoreTest extends EntryStoreConformance
 
 		$this->assertInstanceOf(IndexLocations::class, $index);
 
-		foreach (['', 'about', '_posts', 'topics', 'profiles', '__drafts'] as $folder) {
+		foreach (['', 'about', '_post', 'topics', 'profiles', '__drafts'] as $folder) {
 			$this->assertEqualsCanonicalizing($records->idsIn([$folder]), $index->idsIn([$folder]), "Listed in \"{$folder}\".");
 		}
 
@@ -74,7 +74,7 @@ final class FilesystemEntryStoreTest extends EntryStoreConformance
 
 		$spring = (string) $this->content->named('post', 'spring')?->id;
 
-		$this->assertSame('_posts/2008-04-05.spring.md', $index->path($spring), 'Where the file is, for showing.');
+		$this->assertSame('_post/2008-04-05.spring.md', $index->path($spring), 'Where the file is, for showing.');
 		$this->assertSame('', $records->path($spring), 'Records keep no files.');
 	}
 }

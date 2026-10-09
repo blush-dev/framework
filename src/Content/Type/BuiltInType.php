@@ -18,9 +18,8 @@ namespace Blush\Content\Type;
  *
  * - `page`: everything in `user/content` no other type claims, routed by
  *   the page catch-all rather than routes of its own.
- * - `profile` (D-043, D-351): entries in `user/content/profiles`, kept
- *   in a folder by initial (`profiles/j/jane.md`, D-630), the
- *   people other types credit through credit relations (D-602), such as
+ * - `profile` (D-043, D-351): entries in `user/content/_profile` (D-683,
+ *   D-684), the people other types credit through credit relations (D-602), such as
  *   `authors` (read from 1.x's `author` too). Each has a page at
  *   `/profiles/{slug}`.
  *
@@ -38,7 +37,7 @@ enum BuiltInType: string
 	{
 		return match ($this) {
 			self::Page    => new Tree(),
-			self::Profile => new Profiles('profile', folder: 'profiles/{initial}')
+			self::Profile => new Profiles()
 		};
 	}
 

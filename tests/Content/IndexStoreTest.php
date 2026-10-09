@@ -87,8 +87,8 @@ final class IndexStoreTest extends TestCase
 		$this->assertSame('spring-again', $saved->fields['slug']);
 		$this->assertNotSame($spring->version, $saved->version, 'A new version.');
 		$this->assertSame($spring->id, $saved->id, 'The same entry.');
-		$this->assertFileExists($this->temporaryDirectory() . '/user/content/_posts/2008-04-05.spring-again.md', 'Renamed as files are, the date kept.');
-		$this->assertStringContainsString("tag: blossoms", (string) file_get_contents($this->temporaryDirectory() . '/user/content/_posts/2008-04-05.spring-again.md'));
+		$this->assertFileExists($this->temporaryDirectory() . '/user/content/_post/2008-04-05.spring-again.md', 'Renamed as files are, the date kept.');
+		$this->assertStringContainsString("tag: blossoms", (string) file_get_contents($this->temporaryDirectory() . '/user/content/_post/2008-04-05.spring-again.md'));
 		$this->assertSame("Spring is back.", trim((string) $saved->content));
 
 		$this->expectException(RecordConflict::class);
@@ -111,7 +111,7 @@ final class IndexStoreTest extends TestCase
 		$this->store->delete(EntryTable::table(), $restored->id, $restored->version);
 
 		$this->assertNull($this->store->find(EntryTable::table(), $restored->id));
-		$this->assertFileDoesNotExist($this->temporaryDirectory() . '/user/content/_posts/2008-04-20.rainy.md');
+		$this->assertFileDoesNotExist($this->temporaryDirectory() . '/user/content/_post/2008-04-20.rainy.md');
 	}
 
 	public function testANewEntryKeepsItsId(): void
@@ -132,7 +132,7 @@ final class IndexStoreTest extends TestCase
 		$this->assertSame('draft', $saved->fields['status']);
 		$this->assertSame('2026-07-01T14:00:00Z', $saved->fields['published']);
 
-		$files = glob($this->temporaryDirectory() . '/user/content/_posts/*summer.md') ?: [];
+		$files = glob($this->temporaryDirectory() . '/user/content/_post/*summer.md') ?: [];
 
 		$this->assertCount(1, $files, 'Where its type keeps new entries.');
 		$this->assertStringContainsString('id: ' . self::NEW, (string) file_get_contents($files[0]));

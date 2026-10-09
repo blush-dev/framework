@@ -33,7 +33,7 @@ final class ContentUrlsTest extends TestCase
 	public function testBuildsUrlsFromTypeRouting(): void
 	{
 		$this->standardContent();
-		$this->entry('_posts/2019/nested.md', "title: Nested\npublished: 2019-01-01");
+		$this->entry('_post/2019/nested.md', "title: Nested\npublished: 2019-01-01");
 
 		$app     = $this->site();
 		$content = $app->container()->make(Entries::class);
@@ -41,16 +41,16 @@ final class ContentUrlsTest extends TestCase
 		$types   = $app->container()->make(ContentTypes::class);
 		$entry   = fn (string $path): Entry => $this->entryAt($path, $app) ?? self::fail("No entry {$path}.");
 
-		$this->assertSame('/archives/welcome', $urls->entry($entry('_posts/2003-04-15.welcome.md')));
-		$this->assertSame('/archives/hello', $urls->entry($entry('_posts/hello/index.md')));
-		$this->assertSame('/', $urls->entry($entry('_posts/index.md')));
+		$this->assertSame('/archives/welcome', $urls->entry($entry('_post/2003-04-15.welcome.md')));
+		$this->assertSame('/archives/hello', $urls->entry($entry('_post/hello/index.md')));
+		$this->assertSame('/', $urls->entry($entry('_post/index.md')));
 		$this->assertSame('/', $urls->entry($entry('index.md')));
 		$this->assertSame('/about', $urls->entry($entry('about/index.md')));
 		$this->assertSame('/about/biography', $urls->entry($entry('about/biography.md')));
-		$this->assertSame('/topics/art', $urls->entry($entry('topics/art.md')));
-		$this->assertSame('/topics', $urls->entry($entry('topics/index.md')));
+		$this->assertSame('/topics/art', $urls->entry($entry('_category/art.md')));
+		$this->assertSame('/topics', $urls->entry($entry('_category/index.md')));
 		$this->assertNull($urls->entry($entry('_private.md')));
-		$this->assertSame('/archives/nested', $urls->entry($entry('_posts/2019/nested.md')), 'A folder below a collection is only where its file is kept (D-629).');
+		$this->assertSame('/archives/nested', $urls->entry($entry('_post/2019/nested.md')), 'A folder below a collection is only where its file is kept (D-629).');
 
 		$post     = $types->get('post');
 		$category = $types->get('category');

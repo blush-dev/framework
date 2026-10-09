@@ -18,8 +18,8 @@ use Stringable;
 
 /**
  * The folders a collection or profiles type keeps its files in below its
- * own (D-629), written after the type's folder in `folder`:
- * `_posts/{year}` keeps a post published in 2026 in `_posts/2026`. Each
+ * own (D-629), its `folders`: `{year}` keeps a post published in 2026 in
+ * `_post/2026`. Each
  * folder is one token: `{year}`, `{month}` (after `{year}`), or
  * `{initial}`, the slug's first letter or digit (`tags/{initial}` keeps
  * `hello` in `tags/h`).
@@ -76,10 +76,10 @@ final readonly class FolderPattern implements Stringable
 	}
 
 	/**
-	 * Splits a type's `folder` into the type's own folder and the pattern
-	 * after it: `_posts/{year}` is `_posts` and `{year}`, and `_posts` is
-	 * `_posts` and `null`. The pattern starts at the first folder with a
-	 * `{` in it.
+	 * Splits a folder a type named before D-683 (`LegacyFolder`) into its
+	 * folder and the pattern after it: `_posts/{year}` is `_posts` and
+	 * `{year}`, and `_posts` is `_posts` and `null`. The pattern starts at
+	 * the first folder with a `{` in it.
 	 *
 	 * @return array{string, ?string}
 	 */

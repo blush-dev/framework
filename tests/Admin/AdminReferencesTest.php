@@ -27,13 +27,13 @@ final class AdminReferencesTest extends TestCase
 	 */
 	private function site(array $roles = ['editor']): void
 	{
-		$this->writeTemporaryFile('user/data/types/topic.json', '{"taxonomy": true, "folder": "topics", "hierarchical": true, "types": ["page"]}');
-		$this->writeTemporaryFile('user/data/types/mood.json', '{"taxonomy": true, "folder": "moods", "types": ["page"]}');
-		$this->writeTemporaryFile('user/content/topics/index.md', "---\ntitle: Topics\n---\n");
-		$this->writeTemporaryFile('user/content/topics/web.md', "---\ntitle: Web\n---\n");
-		$this->writeTemporaryFile('user/content/topics/css.md', "---\ntitle: CSS\nparent: web\n---\n");
-		$this->writeTemporaryFile('user/content/topics/art.md', "---\ntitle: Art\n---\n");
-		$this->writeTemporaryFile('user/content/moods/happy.md', "---\ntitle: Happy\n---\n");
+		$this->writeTemporaryFile('user/data/types/topic.json', '{"taxonomy": true, "urls": {"prefix": "topics"}, "hierarchical": true, "types": ["page"]}');
+		$this->writeTemporaryFile('user/data/types/mood.json', '{"taxonomy": true, "urls": {"prefix": "moods"}, "types": ["page"]}');
+		$this->writeTemporaryFile('user/content/_topic/index.md', "---\ntitle: Topics\n---\n");
+		$this->writeTemporaryFile('user/content/_topic/web.md', "---\ntitle: Web\n---\n");
+		$this->writeTemporaryFile('user/content/_topic/css.md', "---\ntitle: CSS\nparent: web\n---\n");
+		$this->writeTemporaryFile('user/content/_topic/art.md', "---\ntitle: Art\n---\n");
+		$this->writeTemporaryFile('user/content/_mood/happy.md', "---\ntitle: Happy\n---\n");
 		$this->writeTemporaryFile('user/content/one.md', "---\ntitle: One\ntopic: [css]\nmood: [happy, Book Reviews]\n---\n");
 		$this->writeTemporaryFile('user/content/two.md', "---\ntitle: Two\ntopic: css\n---\n");
 
@@ -146,9 +146,9 @@ final class AdminReferencesTest extends TestCase
 
 	public function testASearchRanksTitlesStartingWithItFirst(): void
 	{
-		$this->writeTemporaryFile('user/content/moods/sea-salt.md', "---\ntitle: Sea Salt\n---\n");
-		$this->writeTemporaryFile('user/content/moods/wasabi.md', "---\ntitle: Wasabi\n---\n");
-		$this->writeTemporaryFile('user/content/moods/saffron.md', "---\ntitle: Saffron\n---\n");
+		$this->writeTemporaryFile('user/content/_mood/sea-salt.md', "---\ntitle: Sea Salt\n---\n");
+		$this->writeTemporaryFile('user/content/_mood/wasabi.md', "---\ntitle: Wasabi\n---\n");
+		$this->writeTemporaryFile('user/content/_mood/saffron.md', "---\ntitle: Saffron\n---\n");
 		$this->site();
 
 		$list = $this->references('mood?upto=2&search=sa&limit=2');
@@ -182,7 +182,7 @@ final class AdminReferencesTest extends TestCase
 
 	public function testATrashedOrMistypedSlugSaysSo(): void
 	{
-		$this->writeTemporaryFile('user/content/moods/gloomy.md', "---\ntitle: Gloomy\nstatus: trash\n---\n");
+		$this->writeTemporaryFile('user/content/_mood/gloomy.md', "---\ntitle: Gloomy\nstatus: trash\n---\n");
 		$this->site();
 
 		$items = array_slice((array) ($this->references('mood?upto=1&slugs=gloomy,hapy,zzzzzzzz')['items'] ?? []), 1);

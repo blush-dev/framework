@@ -59,7 +59,7 @@ final class FilesystemWriterTest extends TestCase
 	protected function setUp(): void
 	{
 		$this->standardContent();
-		$this->writeTemporaryFile('user/content/_posts/2022-03-29.rekindling-the-flame.md', self::POST);
+		$this->writeTemporaryFile('user/content/_post/2022-03-29.rekindling-the-flame.md', self::POST);
 		$this->app = $this->site('development');
 	}
 
@@ -78,7 +78,7 @@ final class FilesystemWriterTest extends TestCase
 	 */
 	private function authorRefs(): string
 	{
-		return "refs:\n  authors:\n    justintadlock: " . $this->entryAt('profiles/j/justintadlock.md', $this->app)?->id . "\n";
+		return "refs:\n  authors:\n    justintadlock: " . $this->entryAt('_profile/justintadlock.md', $this->app)?->id . "\n";
 	}
 
 	private function file(string $id): string
@@ -88,18 +88,18 @@ final class FilesystemWriterTest extends TestCase
 
 	public function testLoadsAFileAsWritten(): void
 	{
-		$entry = $this->writer()->load('_posts/2022-03-29.rekindling-the-flame.md');
+		$entry = $this->writer()->load('_post/2022-03-29.rekindling-the-flame.md');
 
 		$this->assertSame('justintadlock', $entry->frontMatter['author'] ?? null);
 		$this->assertArrayHasKey('date', $entry->frontMatter);
 		$this->assertSame("\nThe body.\n", $entry->body);
 		$this->assertSame(RecordBuilder::hash(self::POST), $entry->version);
-		$this->assertSame(filemtime($this->temporaryDirectory() . '/user/content/_posts/2022-03-29.rekindling-the-flame.md'), $entry->modified);
+		$this->assertSame(filemtime($this->temporaryDirectory() . '/user/content/_post/2022-03-29.rekindling-the-flame.md'), $entry->modified);
 	}
 
 	public function testUpdatesOnlyWhatChanged(): void
 	{
-		$id      = '_posts/2022-03-29.rekindling-the-flame.md';
+		$id      = '_post/2022-03-29.rekindling-the-flame.md';
 		$version = $this->app->container()->make(ContentVersion::class)->current();
 
 		$result = $this->writer()->update($id, new EntryChanges(set: ['status' => 'draft', 'published' => '2022-04-01 09:00:00 -05:00']), $this->writer()->load($id)->version);
@@ -117,7 +117,7 @@ final class FilesystemWriterTest extends TestCase
 
 	public function testLeavesTheIdToTheWriter(): void
 	{
-		$id = '_posts/2022-03-29.rekindling-the-flame.md';
+		$id = '_post/2022-03-29.rekindling-the-flame.md';
 
 		$this->writer()->update($id, new EntryChanges(set: ['id' => '9f8b1c2e-4d5a-4b6c-8d7e-0f1a2b3c4d5e', 'mood' => 'hopeful']));
 		$this->writer()->update($id, new EntryChanges(remove: ['id']));
@@ -128,24 +128,24 @@ final class FilesystemWriterTest extends TestCase
 
 	public function testAssignsIds(): void
 	{
-		$this->writeTemporaryFile('user/content/topics/age.md', "---\ntitle: Age\n---\n\nAbout ages.\n");
-		$this->writeTemporaryFile('user/content/topics/odd.md', "---\nid: 42\ntitle: Odd\n---\n");
+		$this->writeTemporaryFile('user/content/_category/age.md', "---\ntitle: Age\n---\n\nAbout ages.\n");
+		$this->writeTemporaryFile('user/content/_category/odd.md', "---\nid: 42\ntitle: Odd\n---\n");
 		$this->app = $this->site('development');
 
-		$assigned = $this->writer()->assignIds(['topics/age.md', 'topics/odd.md', 'topics/gone.md', 'topics/age.md']);
+		$assigned = $this->writer()->assignIds(['_category/age.md', '_category/odd.md', '_category/gone.md', '_category/age.md']);
 
-		$this->assertSame(['topics/age.md', 'topics/odd.md'], array_keys($assigned->ids), 'Each file once.');
-		$this->assertSame(['topics/gone.md'], array_keys($assigned->failed), 'A file that isn\'t there is left out.');
+		$this->assertSame(['_category/age.md', '_category/odd.md'], array_keys($assigned->ids), 'Each file once.');
+		$this->assertSame(['_category/gone.md'], array_keys($assigned->failed), 'A file that isn\'t there is left out.');
 		$this->assertTrue(array_all($assigned->ids, static fn (string $id): bool => Uuid::isValid($id)));
-		$this->assertSame("---\ntitle: Age\nid: {$assigned->ids['topics/age.md']}\n---\n\nAbout ages.\n", $this->file('topics/age.md'), 'Added last.');
-		$this->assertSame("---\nid: {$assigned->ids['topics/odd.md']}\ntitle: Odd\n---\n", $this->file('topics/odd.md'), 'A bad one is replaced in its place.');
-		$this->assertSame('topics/odd.md', $this->content()->find($assigned->ids['topics/odd.md'])?->path, 'The index has them.');
+		$this->assertSame("---\ntitle: Age\nid: {$assigned->ids['_category/age.md']}\n---\n\nAbout ages.\n", $this->file('_category/age.md'), 'Added last.');
+		$this->assertSame("---\nid: {$assigned->ids['_category/odd.md']}\ntitle: Odd\n---\n", $this->file('_category/odd.md'), 'A bad one is replaced in its place.');
+		$this->assertSame('_category/odd.md', $this->content()->find($assigned->ids['_category/odd.md'])?->path, 'The index has them.');
 		$this->assertSame([], $this->writer()->assignIds([])->ids);
 	}
 
 	public function testReplacesTheBodyAndRemovesKeys(): void
 	{
-		$id = '_posts/2022-03-29.rekindling-the-flame.md';
+		$id = '_post/2022-03-29.rekindling-the-flame.md';
 
 		$this->writer()->update($id, new EntryChanges(remove: ['format'], body: "\nNew words.\n"));
 
@@ -154,19 +154,19 @@ final class FilesystemWriterTest extends TestCase
 
 	public function testKeepsAFileThatEndsAtItsFrontMatter(): void
 	{
-		$this->writeTemporaryFile('user/content/topics/age.md', "---\ntitle : Age\nid    : " . self::ID . "\n---");
+		$this->writeTemporaryFile('user/content/_category/age.md', "---\ntitle : Age\nid    : " . self::ID . "\n---");
 		$this->app = $this->site('development');
 
-		$this->writer()->update('topics/age.md', new EntryChanges(set: ['title' => 'Ages']));
-		$this->assertSame("---\ntitle : Ages\nid    : " . self::ID . "\n---", $this->file('topics/age.md'));
+		$this->writer()->update('_category/age.md', new EntryChanges(set: ['title' => 'Ages']));
+		$this->assertSame("---\ntitle : Ages\nid    : " . self::ID . "\n---", $this->file('_category/age.md'));
 
-		$this->writer()->update('topics/age.md', new EntryChanges(body: "About ages.\n"));
-		$this->assertSame("---\ntitle : Ages\nid    : " . self::ID . "\n---\nAbout ages.\n", $this->file('topics/age.md'));
+		$this->writer()->update('_category/age.md', new EntryChanges(body: "About ages.\n"));
+		$this->assertSame("---\ntitle : Ages\nid    : " . self::ID . "\n---\nAbout ages.\n", $this->file('_category/age.md'));
 	}
 
 	public function testKeepsTheBlankLinesBeforeTheBody(): void
 	{
-		$id = '_posts/2022-03-29.rekindling-the-flame.md';
+		$id = '_post/2022-03-29.rekindling-the-flame.md';
 
 		$this->writer()->update($id, new EntryChanges(body: "New words.\n"));
 		$this->assertStringEndsWith("---\n\nNew words.\n", $this->file($id));
@@ -174,16 +174,16 @@ final class FilesystemWriterTest extends TestCase
 		$this->writer()->update($id, new EntryChanges(body: "\n\nSpaced.\n"));
 		$this->assertStringEndsWith("---\n\n\nSpaced.\n", $this->file($id), 'A body that starts with blank lines is written as given.');
 
-		$this->writeTemporaryFile('user/content/topics/age.md', "No front matter.\n");
+		$this->writeTemporaryFile('user/content/_category/age.md', "No front matter.\n");
 		$this->app = $this->site('development');
 
-		$this->writer()->update('topics/age.md', new EntryChanges(set: ['title' => 'Age'], body: "About ages.\n"));
-		$this->assertMatchesRegularExpression('/\A---\ntitle: Age\nid: [0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\n---\n\nAbout ages.\n\z/', $this->file('topics/age.md'), 'A file without an id is given one, last (D-477).');
+		$this->writer()->update('_category/age.md', new EntryChanges(set: ['title' => 'Age'], body: "About ages.\n"));
+		$this->assertMatchesRegularExpression('/\A---\ntitle: Age\nid: [0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\n---\n\nAbout ages.\n\z/', $this->file('_category/age.md'), 'A file without an id is given one, last (D-477).');
 	}
 
 	public function testRefusesToOverwriteAChangeMadeMeanwhile(): void
 	{
-		$id    = '_posts/2022-03-29.rekindling-the-flame.md';
+		$id    = '_post/2022-03-29.rekindling-the-flame.md';
 		$stale = $this->writer()->load($id)->version;
 
 		$this->writer()->update($id, new EntryChanges(set: ['title' => 'Someone else was here']));
@@ -218,7 +218,7 @@ final class FilesystemWriterTest extends TestCase
 			new EntryChanges(set: ['title' => 'A Fresh Start', 'status' => 'draft'], body: "\nHello.\n")
 		);
 
-		$this->assertSame('_posts/fresh-start.md', $post->path, 'The slug alone by default, date archives or not (D-515).');
+		$this->assertSame('_post/fresh-start.md', $post->path, 'The slug alone by default, date archives or not (D-515).');
 		$id = (string) $this->entryAt($post->path, $this->app)?->id;
 
 		$this->assertTrue(Uuid::isValid($id), 'A new entry has an id (D-477).');
@@ -233,32 +233,32 @@ final class FilesystemWriterTest extends TestCase
 
 	public function testNamesNewFilesByTheTypesPattern(): void
 	{
-		$this->contentConfig(['types' => ['note' => ['path' => '_notes', 'filename' => '{date}-{time}.{slug}']]]);
+		$this->contentConfig(['types' => ['note' => ['urls' => ['prefix' => 'notes'], 'filename' => '{date}-{time}.{slug}']]]);
 		$this->app = $this->site('development');
 
 		$type = $this->app->container()->make(ContentTypes::class)->get('note');
 		$note = $this->writer()->create($type, 'jotted', new EntryChanges(set: ['title' => 'Jotted']), new DateTimeImmutable('2026-10-05 09:30:15'));
 
-		$this->assertSame('_notes/2026-10-05-093015.jotted.md', $note->path, 'D-511');
+		$this->assertSame('_note/2026-10-05-093015.jotted.md', $note->path, 'D-511');
 		$this->assertSame('jotted', $this->entryAt($note->path, $this->app)?->slug);
 
 		$renamed = $this->writer()->rename($note->path, 'scribbled');
 
-		$this->assertSame('_notes/2026-10-05-093015.scribbled.md', $renamed->path, 'A rename keeps the prefix, whatever pattern named the file.');
+		$this->assertSame('_note/2026-10-05-093015.scribbled.md', $renamed->path, 'A rename keeps the prefix, whatever pattern named the file.');
 	}
 
 	public function testNamesATreesPagesByItsPatternButNotItsFolders(): void
 	{
-		$this->contentConfig(['types' => ['doc' => ['kind' => 'tree', 'folder' => '_docs', 'filename' => 'doc.{slug}']]]);
-		$this->entry('_docs/install.md', 'title: Install');
+		$this->contentConfig(['types' => ['doc' => ['kind' => 'tree', 'prefix' => 'docs', 'filename' => 'doc.{slug}']]]);
+		$this->entry('_doc/install.md', 'title: Install');
 		$this->app = $this->site('development');
 
 		$type  = $this->app->container()->make(ContentTypes::class)->get('doc');
 		$intro = $this->writer()->create($type, 'intro', new EntryChanges(set: ['title' => 'Intro']));
-		$child = $this->writer()->createUnder('_docs/install.md', 'requirements', new EntryChanges(set: ['title' => 'Requirements']));
+		$child = $this->writer()->createUnder('_doc/install.md', 'requirements', new EntryChanges(set: ['title' => 'Requirements']));
 
-		$this->assertSame('_docs/doc.intro.md', $intro->path, 'Any kind of type (D-514).');
-		$this->assertSame('_docs/install/doc.requirements.md', $child->path, 'Its folder is the parent\'s key (D-513).');
+		$this->assertSame('_doc/doc.intro.md', $intro->path, 'Any kind of type (D-514).');
+		$this->assertSame('_doc/install/doc.requirements.md', $child->path, 'Its folder is the parent\'s key (D-513).');
 		$this->assertSame('install/requirements', $this->entryAt($child->path, $this->app)?->key);
 	}
 
@@ -267,7 +267,7 @@ final class FilesystemWriterTest extends TestCase
 		$post = $this->app->container()->make(ContentTypes::class)->get('post');
 		$page = $this->writer()->createAt($post, '_authors/jane', new EntryChanges(set: ['title' => 'Jane, Blogger']));
 
-		$this->assertSame('_posts/_authors/jane.md', $page->path, 'At its key, with no pattern (D-353).');
+		$this->assertSame('_post/_authors/jane.md', $page->path, 'At its key, with no pattern (D-353).');
 		$this->assertSame("---\ntitle: \"Jane, Blogger\"\npublished: 2026-06-01 12:00:00 -05:00\nid: {$this->entryAt($page->path, $this->app)?->id}\n---\n", $this->file($page->path));
 
 		foreach (['__authors/jane', '_authors/Jane Doe', '../escape', '_authors//jane'] as $key) {
@@ -333,7 +333,7 @@ final class FilesystemWriterTest extends TestCase
 
 	public function testRefusesParentsThatCantHavePages(): void
 	{
-		foreach (['_posts/2022-03-29.rekindling-the-flame.md' => 'isn\'t a page other pages', 'index.md' => 'index page', 'missing.md' => 'isn\'t a page other pages'] as $id => $message) {
+		foreach (['_post/2022-03-29.rekindling-the-flame.md' => 'isn\'t a page other pages', 'index.md' => 'index page', 'missing.md' => 'isn\'t a page other pages'] as $id => $message) {
 			try {
 				$this->writer()->createUnder($id, 'child', new EntryChanges(set: ['title' => 'Child']));
 				$this->fail($id);
@@ -421,9 +421,9 @@ final class FilesystemWriterTest extends TestCase
 			['about/index.md', 'about/biography.md', 'can\'t go under itself or a page under it'],
 			['about/index.md', 'about/index.md', 'can\'t go under itself'],
 			['index.md', 'about/index.md', 'index page'],
-			['_posts/2022-03-29.rekindling-the-flame.md', 'about/index.md', 'isn\'t a page that can move'],
+			['_post/2022-03-29.rekindling-the-flame.md', 'about/index.md', 'isn\'t a page that can move'],
 			['biography.md', 'about/index.md', 'already a page at about/biography'],
-			['biography.md', '_posts/2022-03-29.rekindling-the-flame.md', 'isn\'t one of the pages']
+			['biography.md', '_post/2022-03-29.rekindling-the-flame.md', 'isn\'t one of the pages']
 		];
 
 		foreach ($refused as [$id, $parent, $message]) {
@@ -458,32 +458,32 @@ final class FilesystemWriterTest extends TestCase
 
 	public function testRenamesKeepingTheDateOrTheBundle(): void
 	{
-		$renamed = $this->writer()->rename('_posts/2022-03-29.rekindling-the-flame.md', 'the-flame');
+		$renamed = $this->writer()->rename('_post/2022-03-29.rekindling-the-flame.md', 'the-flame');
 
-		$this->assertSame('_posts/2022-03-29.the-flame.md', $renamed->path);
-		$this->assertFileExists($this->temporaryDirectory() . '/user/content/_posts/2022-03-29.the-flame.md');
-		$this->assertNull($this->entryAt('_posts/2022-03-29.rekindling-the-flame.md', $this->app));
+		$this->assertSame('_post/2022-03-29.the-flame.md', $renamed->path);
+		$this->assertFileExists($this->temporaryDirectory() . '/user/content/_post/2022-03-29.the-flame.md');
+		$this->assertNull($this->entryAt('_post/2022-03-29.rekindling-the-flame.md', $this->app));
 
-		$bundle = $this->writer()->rename('_posts/hello/index.md', 'greetings');
+		$bundle = $this->writer()->rename('_post/hello/index.md', 'greetings');
 
-		$this->assertSame('_posts/greetings/index.md', $bundle->path);
-		$this->assertFileExists($this->temporaryDirectory() . '/user/content/_posts/greetings/photo.jpg', 'A bundle\'s media moves with it.');
+		$this->assertSame('_post/greetings/index.md', $bundle->path);
+		$this->assertFileExists($this->temporaryDirectory() . '/user/content/_post/greetings/photo.jpg', 'A bundle\'s media moves with it.');
 
 		$this->expectException(WriteException::class);
 
-		$this->writer()->rename('_posts/index.md', 'blog');
+		$this->writer()->rename('_post/index.md', 'blog');
 	}
 
 	public function testDuplicatesBesideTheEntryUnderAFreeName(): void
 	{
-		$id      = '_posts/2022-03-29.rekindling-the-flame.md';
+		$id      = '_post/2022-03-29.rekindling-the-flame.md';
 		$changes = new EntryChanges(set: ['title' => 'The Copy', 'status' => 'draft']);
 
 		$first  = $this->writer()->duplicate($id, 'the-copy', $changes);
 		$second = $this->writer()->duplicate($id, 'the-copy', $changes);
 
-		$this->assertSame('_posts/the-copy.md', $first->path, 'Named by the slug alone (D-515).');
-		$this->assertSame('_posts/the-copy-2.md', $second->path, 'A taken name gets a number.');
+		$this->assertSame('_post/the-copy.md', $first->path, 'Named by the slug alone (D-515).');
+		$this->assertSame('_post/the-copy-2.md', $second->path, 'A taken name gets a number.');
 		$copy = (string) $this->entryAt($first->path, $this->app)?->id;
 
 		$this->assertTrue(Uuid::isValid($copy));
@@ -492,10 +492,10 @@ final class FilesystemWriterTest extends TestCase
 		$this->assertSame(self::POST, $this->file($id), 'The original is untouched.');
 		$this->assertSame('The Copy', $this->entryAt($first->path, $this->app)?->title);
 
-		$bundle = $this->writer()->duplicate('_posts/hello/index.md', 'hello-copy', new EntryChanges(set: ['title' => 'Hello (Copy)']));
+		$bundle = $this->writer()->duplicate('_post/hello/index.md', 'hello-copy', new EntryChanges(set: ['title' => 'Hello (Copy)']));
 
-		$this->assertSame('_posts/hello-copy.md', $bundle->path, 'A collection\'s copy is a file (D-514).');
-		$this->assertFileDoesNotExist($this->temporaryDirectory() . '/user/content/_posts/hello-copy/photo.jpg');
+		$this->assertSame('_post/hello-copy.md', $bundle->path, 'A collection\'s copy is a file (D-514).');
+		$this->assertFileDoesNotExist($this->temporaryDirectory() . '/user/content/_post/hello-copy/photo.jpg');
 
 		$page = $this->writer()->duplicate('about/index.md', 'about-copy', new EntryChanges(set: ['title' => 'About (Copy)']));
 
@@ -503,12 +503,12 @@ final class FilesystemWriterTest extends TestCase
 
 		$this->expectException(WriteException::class);
 
-		$this->writer()->duplicate('_posts/index.md', 'blog', $changes);
+		$this->writer()->duplicate('_post/index.md', 'blog', $changes);
 	}
 
 	public function testTrashingKeepsTheFileInPlace(): void
 	{
-		$path = '_posts/2022-03-29.rekindling-the-flame.md';
+		$path = '_post/2022-03-29.rekindling-the-flame.md';
 
 		$this->writer()->trash($path);
 
@@ -525,7 +525,7 @@ final class FilesystemWriterTest extends TestCase
 
 	public function testRestoresAsADraft(): void
 	{
-		$path = '_posts/2022-03-29.rekindling-the-flame.md';
+		$path = '_post/2022-03-29.rekindling-the-flame.md';
 
 		$this->writer()->trash($path);
 		$this->writer()->restore($path);
@@ -539,26 +539,26 @@ final class FilesystemWriterTest extends TestCase
 
 	public function testDeletesForGood(): void
 	{
-		$path = '_posts/2022-03-29.rekindling-the-flame.md';
+		$path = '_post/2022-03-29.rekindling-the-flame.md';
 
 		$this->writer()->delete($path);
 
 		$this->assertFileDoesNotExist($this->temporaryDirectory() . "/user/content/{$path}");
 		$this->assertNull($this->content()->find(self::ID));
 
-		$this->writer()->delete('_posts/hello/index.md');
+		$this->writer()->delete('_post/hello/index.md');
 
-		$this->assertFileDoesNotExist($this->temporaryDirectory() . '/user/content/_posts/hello/index.md');
-		$this->assertFileExists($this->temporaryDirectory() . '/user/content/_posts/hello/photo.jpg', 'A bundle\'s folder stays while something else is in it.');
+		$this->assertFileDoesNotExist($this->temporaryDirectory() . '/user/content/_post/hello/index.md');
+		$this->assertFileExists($this->temporaryDirectory() . '/user/content/_post/hello/photo.jpg', 'A bundle\'s folder stays while something else is in it.');
 
-		$this->writeTemporaryFile('user/content/_posts/alone/index.md', "---\ntitle: Alone\n---\n");
-		$this->writer()->delete('_posts/alone/index.md');
+		$this->writeTemporaryFile('user/content/_post/alone/index.md', "---\ntitle: Alone\n---\n");
+		$this->writer()->delete('_post/alone/index.md');
 
-		$this->assertDirectoryDoesNotExist($this->temporaryDirectory() . '/user/content/_posts/alone', 'An empty one goes with it.');
+		$this->assertDirectoryDoesNotExist($this->temporaryDirectory() . '/user/content/_post/alone', 'An empty one goes with it.');
 
 		$this->expectException(WriteException::class);
 
-		$this->writer()->delete('_posts/missing.md');
+		$this->writer()->delete('_post/missing.md');
 	}
 
 	public function testStaysInsideTheContentFolder(): void

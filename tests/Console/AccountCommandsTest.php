@@ -89,7 +89,7 @@ final class AccountCommandsTest extends TestCase
 	public function testAddsAnAccountWithRolesAndANewProfile(): void
 	{
 		$result = $this->command('account:add sam --email=sam@example.test --role=editor --role=author --author=sam', [self::PASSWORD, self::PASSWORD, 'Sam Smith']);
-		$file   = $this->temporaryDirectory() . '/user/content/profiles/s/sam.md';
+		$file   = $this->temporaryDirectory() . '/user/content/_profile/sam.md';
 
 		$this->assertSame(ExitCode::Success, $result->exitCode, $result->errors);
 		$this->assertStringContainsString('The "sam" profile doesn\'t exist yet, so it\'s made as a draft.', $result->output);

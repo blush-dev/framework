@@ -118,7 +118,7 @@ final class EntriesTest extends TestCase
 
 		$this->assertSame(['biography'], self::slugs($query->in('about')->get()));
 		$this->assertSame(['about', 'notes'], self::slugs($query->in('')->get()), 'Without dates or ids, in the order of the ids their paths give.');
-		$this->assertSame(['hello', 'spring', 'welcome'], self::slugs($query->in('_posts')->get()));
+		$this->assertSame(['hello', 'spring', 'welcome'], self::slugs($query->in('_post')->get()));
 		$this->assertSame(['spring'], self::slugs($query->whereTerm('category', 'art')->get()));
 		$this->assertSame(['spring'], self::slugs($query->whereTerm('category', 'Book Reviews')->get()));
 		$this->assertSame(['spring', 'welcome'], self::slugs($query->whereTerm('category', 'art', 'old-posts')->get()));
@@ -169,7 +169,7 @@ final class EntriesTest extends TestCase
 		$this->assertSame(['hello', 'spring', 'welcome'], self::slugs($posts->orderBy('title')->get()));
 		$this->assertSame(['welcome', 'spring', 'hello'], self::slugs($posts->orderBy('title', Order::Desc)->get()));
 		$this->assertSame(['spring', 'welcome', 'hello'], self::slugs($posts->orderBy('author')->get()), 'By the slugs written for the relation, lists compared as the record layer compares them, then none (D-648).');
-		$this->assertSame(['spring', 'welcome', 'hello'], self::slugs($posts->orderBy('tag')->get()), 'Entries without one last (D-648).');
+		$this->assertSame(['spring', 'hello', 'welcome'], self::slugs($posts->orderBy('tag')->get()), 'Entries without one last (D-648).');
 
 		$page = $posts->limit(1)->offset(1)->get();
 
@@ -205,8 +205,8 @@ final class EntriesTest extends TestCase
 
 	public function testBreaksTiesById(): void
 	{
-		$this->entry('_posts/a.md', "id: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e02\ntitle: Same\npublished: 2011-01-01");
-		$this->entry('_posts/b.md', "id: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e01\ntitle: Same\npublished: 2011-01-01");
+		$this->entry('_post/a.md', "id: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e02\ntitle: Same\npublished: 2011-01-01");
+		$this->entry('_post/b.md', "id: 0199b6e2-7f3a-7c41-9d2e-5a8f0c3b1e01\ntitle: Same\npublished: 2011-01-01");
 
 		$posts = $this->repository($this->site('development'))->query()->type('post')->names('a', 'b');
 
@@ -274,7 +274,7 @@ final class EntriesTest extends TestCase
 		$entry = $this->content->named('post', 'spring');
 
 		$this->assertInstanceOf(Entry::class, $entry);
-		$this->assertSame('_posts/2008-04-05.spring.md', $entry->path);
+		$this->assertSame('_post/2008-04-05.spring.md', $entry->path);
 		$this->assertSame('post', $entry->type->name);
 		$this->assertSame('spring', (string) $entry);
 		$this->assertEquals(new DateTimeImmutable('2008-04-05 09:00:00 America/Chicago'), $entry->published);
@@ -313,8 +313,8 @@ final class EntriesTest extends TestCase
 
 	public function testExcerptsAndPresentationFields(): void
 	{
-		$this->entry('_posts/long.md', "title: Long\nexcerpt: A *short* summary.\nview: [custom.php, other]", 'Unused.');
-		$this->entry('_posts/figure.md', 'title: Figure', "<figure><img src=\"a.jpg\"><figcaption>Caption words</figcaption></figure>\n\nOne two three four five.");
+		$this->entry('_post/long.md', "title: Long\nexcerpt: A *short* summary.\nview: [custom.php, other]", 'Unused.');
+		$this->entry('_post/figure.md', 'title: Figure', "<figure><img src=\"a.jpg\"><figcaption>Caption words</figcaption></figure>\n\nOne two three four five.");
 		$this->content = $this->repository($this->site('development'));
 
 		$long = $this->content->named('post', 'long');
@@ -341,7 +341,7 @@ final class EntriesTest extends TestCase
 	{
 		$art = $this->content->term('category', 'art');
 
-		$this->assertSame('topics/art.md', $art?->path);
+		$this->assertSame('_category/art.md', $art?->path);
 		$this->assertNotNull($this->content->term('category', 'book-reviews'));
 		$this->assertSame('Justin Tadlock', $this->content->term('profile', 'justintadlock')?->title, 'Profiles are terms too (D-351).');
 		$this->assertNull($this->content->term('category', 'unused'));
@@ -353,7 +353,7 @@ final class EntriesTest extends TestCase
 
 	public function testSlugsWithNoFileAreLeftOut(): void
 	{
-		$this->entry('_posts/2009-01-01.dangling.md', "title: Dangling\npublished: 2009-01-01\ncategory: [art, Lost Cause]\nauthors: [justintadlock, nobody]");
+		$this->entry('_post/2009-01-01.dangling.md', "title: Dangling\npublished: 2009-01-01\ncategory: [art, Lost Cause]\nauthors: [justintadlock, nobody]");
 		$this->content = $this->repository($this->site('development'));
 
 		$this->assertNull($this->content->term('category', 'lost-cause'), 'A slug with no file isn\'t a term (D-584).');
@@ -379,12 +379,12 @@ final class EntriesTest extends TestCase
 	public function testPagesNestByFolderAndHierarchicalTermsByParent(): void
 	{
 		$this->removeDataTypes();
-		$this->contentConfig(['types' => ['topic' => ['folder' => 'topics', 'order' => 'position', 'hierarchical' => true]], 'relations' => ['topic' => ['kind' => 'classify', 'to' => ['topic']]]]);
-		$this->entry('topics/web.md', 'title: Web');
-		$this->entry('topics/css.md', "title: CSS\nparent: web");
-		$this->entry('topics/grid.md', "title: Grid\nparent: CSS");
-		$this->entry('topics/html.md', "title: HTML\nparent: web");
-		$this->entry('topics/orphan.md', "title: Orphan\nparent: missing");
+		$this->contentConfig(['types' => ['topic' => ['urls' => ['prefix' => 'topics'], 'order' => 'position', 'hierarchical' => true]], 'relations' => ['topic' => ['kind' => 'classify', 'to' => ['topic']]]]);
+		$this->entry('_topic/web.md', 'title: Web');
+		$this->entry('_topic/css.md', "title: CSS\nparent: web");
+		$this->entry('_topic/grid.md', "title: Grid\nparent: CSS");
+		$this->entry('_topic/html.md', "title: HTML\nparent: web");
+		$this->entry('_topic/orphan.md', "title: Orphan\nparent: missing");
 
 		$content = $this->repository();
 		$grid    = $content->named('topic', 'grid');
@@ -403,7 +403,7 @@ final class EntriesTest extends TestCase
 
 		$topics = $content->query()->type('topic')->orderBy('title');
 
-		$this->assertSame(['art', 'book-reviews', 'old-posts', 'orphan', 'web'], self::slugs($topics->whereParent(null)->get()), 'Top-level terms (D-562); an orphan names a parent that isn\'t an entry, so it has none (D-649).');
+		$this->assertSame(['orphan', 'web'], self::slugs($topics->whereParent(null)->get()), 'Top-level terms (D-562); an orphan names a parent that isn\'t an entry, so it has none (D-649).');
 		$this->assertSame(['css', 'html'], self::slugs($topics->whereParent($web)->get()), 'Under a parent, by entry.');
 		$this->assertSame(['grid'], self::slugs($topics->whereParent('css')->get()), 'Or by key.');
 		$this->assertSame(['about/biography'], array_map(static fn (Entry $entry): string => $entry->key, $content->query()->type('page')->whereParent($about)->get()->all()), 'Pages too.');
@@ -415,7 +415,7 @@ final class EntriesTest extends TestCase
 	{
 		$this->assertSame(['hello', 'spring', 'welcome'], self::slugs($this->content->query()->type('post')->get()));
 
-		$this->entry('_posts/later.md', 'title: Later');
+		$this->entry('_post/later.md', 'title: Later');
 
 		$this->assertSame(['hello', 'spring', 'welcome'], self::slugs($this->repository()->query()->type('post')->get()));
 		$this->assertSame(['hello', 'spring', 'welcome', 'later'], self::slugs($this->repository($this->site('development'))->query()->type('post')->get()));
@@ -439,6 +439,6 @@ final class EntriesTest extends TestCase
 		$this->repository()->query()->get();
 		$this->removeDataTypes();
 
-		$this->assertSame('page', $this->entryAt('_posts/2003-04-15.welcome.md', $this->site())?->type->name);
+		$this->assertSame('page', $this->entryAt('_post/2003-04-15.welcome.md', $this->site())?->type->name);
 	}
 }

@@ -165,7 +165,7 @@ final class PageCacheTest extends TestCase
 		$this->assertSame($before, $version->current());
 		$this->assertFileExists($version->path());
 
-		$this->entry('_posts/2008-05-01.new.md', 'title: New');
+		$this->entry('_post/2008-05-01.new.md', 'title: New');
 		$app->container()->make(Indexer::class)->index();
 
 		$this->assertNotSame($before, $version->current());

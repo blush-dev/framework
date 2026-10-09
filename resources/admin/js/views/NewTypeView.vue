@@ -2,20 +2,20 @@
 /**
  * A new content type (D-311; admin.md §8, List, then detail: the type
  * wizard is its own screen): Basics (a collection, terms, or a tree,
- * D-386; names, key, folder, description, icon), Behavior
+ * D-386; names, key, description, icon), Behavior
  * (`TypeBehaviorFields`, and for terms the types they file), and Fields
  * (`FieldListEditor`), with What Gets Created beside them, updating as
  * the steps are filled in. **Create type** writes
  * `user/data/types/{key}.json` (`POST types`), adds the index page when
  * asked, and opens the type's screen. Terms are a collection ordered by
- * position, kept in folders by initial (D-630), with no authors and out
+ * position, with no authors and out
  * of `llms.txt`, and a classify relation
  * named after it that files the chosen types under them (`POST
  * relations`, D-593).
  *
- * The key follows the plural name made singular, and the folder the
- * plural name, until either is typed. Leaving with anything filled in
- * asks first.
+ * A type is kept in `_` and its key (D-683). The key follows the plural
+ * name made singular, and the URL prefix the plural name, until either
+ * is typed. Leaving with anything filled in asks first.
  */
 
 import { computed, ref, watch } from 'vue';
@@ -30,7 +30,7 @@ import { useAction } from '../action';
 import { label as fieldLabel } from '../fields';
 import { changesOf, DATE_ARCHIVES, emptyForm, FEATURED, folderOf, hasFeatured, singularOf, typeKeyOf, type TypeForm, type TypeKind } from '../type-form';
 import { toast } from '../toast';
-import { profileType, canCreateTypes, loadTypes, refreshTypes, typeUrls, types } from '../types';
+import { profileType, canCreateTypes, loadTypes, refreshTypes, typeFiles, typeUrls, types } from '../types';
 
 const router = useRouter();
 
@@ -47,9 +47,7 @@ const kind          = computed<TypeKind>(() => choice.value === 'terms' ? 'colle
 const files         = ref<string[]>([]);
 const form          = ref<TypeForm>({ ...emptyForm(), fields: [{ ...FEATURED }] });
 const key           = ref('');
-const folder        = ref('');
 const keyTouched    = ref(false);
-const folderTouched = ref(false);
 const index         = ref(true);
 const authorsPage   = ref(false);
 const created       = ref(false);
@@ -57,14 +55,14 @@ const previous      = ref('');
 
 const { busy: creating, error: failure, run } = useAction();
 
-// The key and folder follow the names until they're typed.
+// The key and prefix follow the names until they're typed.
 watch(() => form.value.plural, (plural) => {
 	if (!keyTouched.value) {
 		key.value = typeKeyOf(plural);
 	}
 
-	if (!folderTouched.value) {
-		folder.value = folderOf(plural);
+	if (typeUrls.value && (form.value.prefix === '' || form.value.prefix === folderOf(previous.value))) {
+		form.value.prefix = folderOf(plural);
 	}
 
 	if (form.value.singular === '' || form.value.singular === singularOf(previous.value)) {
@@ -87,10 +85,6 @@ watch(choice, (value) => {
 	// ordered by position (D-412).
 	form.value.llms  = value !== 'terms';
 	form.value.order = value === 'terms' ? 'position' : 'published';
-
-	// Terms can run to thousands, so they're kept in a folder by initial
-	// (D-630).
-	form.value.folders = value === 'terms' ? '{initial}' : '';
 });
 
 // The types new terms can file: any but profiles.
@@ -114,19 +108,8 @@ const keyError = computed(() => {
 	return types.value.some((type) => type.name === key.value) ? `“${key.value}” is already a type. Pick another key.` : '';
 });
 
-const folderClean = computed(() => folder.value.trim().replace(/^\/+|\/+$/g, ''));
-const folderError = computed(() => {
-	if (folderClean.value === '') {
-		return 'Give it a folder.';
-	}
-
-	const used = types.value.find((type) => type.folder === folderClean.value);
-
-	return used ? `${used.labels.plural} already use this folder.` : '';
-});
-
-const basicsDone = computed(() => form.value.plural.trim() !== '' && keyError.value === '' && folderError.value === '');
-const prefix     = computed(() => (form.value.prefix || folderClean.value.split('/').map((part) => part.replace(/^_+/, '')).join('/')).replace(/^\/+|\/+$/g, ''));
+const basicsDone = computed(() => form.value.plural.trim() !== '' && keyError.value === '');
+const prefix     = computed(() => (form.value.prefix || key.value).replace(/^\/+|\/+$/g, ''));
 const dirty      = computed(() => !created.value && (form.value.plural.trim() !== '' || form.value.fields.length > 1));
 
 function next(): void {
@@ -152,7 +135,6 @@ async function create(): Promise<void> {
 		const type = await request<ContentTypeDetail>('POST', '/types', {
 			name: key.value,
 			kind: kind.value,
-			folder: folderClean.value,
 			index: index.value,
 			// It joins the authors credit (D-602), with its list's page.
 			authors: form.value.authors && authorsLabel.value !== null,
@@ -224,19 +206,11 @@ const fileLabels   = computed(() => files.value.map((name) => types.value.find((
 					</label>
 				</fieldset>
 				<TypeBasicsFields v-model="form" id-prefix="new-" :kind="kind" />
-				<div class="field-pair">
-					<div class="field">
-						<label for="new-key">Key</label>
-						<input id="new-key" v-model="key" class="mono" placeholder="recipe" autocomplete="off" spellcheck="false" :aria-invalid="form.plural && keyError ? 'true' : undefined" aria-describedby="new-key-help" @input="keyTouched = true">
-						<p v-if="form.plural && keyError" id="new-key-help" class="field__error">{{ keyError }}</p>
-						<p v-else id="new-key-help" class="field__help">Names the type in files and the API. Fixed once it's created.</p>
-					</div>
-					<div class="field">
-						<label for="new-folder">Folder</label>
-						<input id="new-folder" v-model="folder" class="mono" placeholder="recipes" autocomplete="off" spellcheck="false" :aria-invalid="form.plural && folderError ? 'true' : undefined" aria-describedby="new-folder-help" @input="folderTouched = true">
-						<p v-if="form.plural && folderError" id="new-folder-help" class="field__error">{{ folderError }}</p>
-						<p v-else id="new-folder-help" class="field__help">Where its entries live, in <code>user/content</code>. Fixed once it's created.</p>
-					</div>
+				<div class="field">
+					<label for="new-key">Key</label>
+					<input id="new-key" v-model="key" class="mono" placeholder="recipe" autocomplete="off" spellcheck="false" :aria-invalid="form.plural && keyError ? 'true' : undefined" aria-describedby="new-key-help" @input="keyTouched = true">
+					<p v-if="form.plural && keyError" id="new-key-help" class="field__error">{{ keyError }}</p>
+					<p v-else id="new-key-help" class="field__help">Names the type in files and the API, and the folder its entries are kept in. Fixed once it's created.</p>
 				</div>
 			</div>
 
@@ -246,7 +220,7 @@ const fileLabels   = computed(() => files.value.map((name) => types.value.find((
 					<label v-for="type in fileable" :key="type.name" class="checkbox"><input type="checkbox" :checked="files.includes(type.name)" @change="filed(type.name, ($event.target as HTMLInputElement).checked)"> {{ type.labels.plural }}</label>
 					<p class="field__help">{{ files.length === 0 ? 'None chosen, so its terms file every type.' : 'Entries of these types can be filed under its terms. Change it later under Relationships.' }}</p>
 				</fieldset>
-				<TypeBehaviorFields v-model="form" v-model:index="index" v-model:page-wanted="authorsPage" id-prefix="new-" :kind="kind" :folder-prefix="prefix" :urls="typeUrls" :index-page="null" :authors-label="authorsLabel" />
+				<TypeBehaviorFields v-model="form" v-model:index="index" v-model:page-wanted="authorsPage" id-prefix="new-" :kind="kind" :default-prefix="key" :urls="typeUrls" :index-page="null" :authors-label="authorsLabel" />
 			</div>
 
 			<div v-else>
@@ -275,7 +249,7 @@ const fileLabels   = computed(() => files.value.map((name) => types.value.find((
 				<div><dt>Name</dt><dd>{{ form.plural || 'Not set' }}<template v-if="form.singular"> / {{ form.singular }}</template></dd></div>
 				<div><dt>File</dt><dd class="mono">user/data/types/{{ key || '…' }}.json</dd></div>
 				<div v-if="choice === 'terms'"><dt>Relationship</dt><dd class="mono">user/data/relations/{{ key || '…' }}.json</dd></div>
-				<div><dt>Entries in</dt><dd class="mono">user/content/{{ folderClean || '…' }}</dd></div>
+				<div v-if="typeFiles"><dt>Entries in</dt><dd class="mono">user/content/_{{ key || '…' }}</dd></div>
 				<div><dt>Addresses</dt><dd class="mono">/{{ prefix || '…' }}/{{ kind === 'tree' ? '{path}' : '{slug}' }}</dd></div>
 				<div v-if="choice === 'collection'"><dt>Dated</dt><dd>{{ form.dateArchives === 'none' ? 'No' : `Yes, ${archiveLabel.toLowerCase()}` }}</dd></div>
 				<div v-if="kind === 'tree'"><dt>Nesting</dt><dd>By folder</dd></div>

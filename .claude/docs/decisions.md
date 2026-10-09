@@ -10886,6 +10886,8 @@ decision, add a new entry that supersedes it and mark the old one
 
 ### D-386: The Tree kind replaces Pages
 - **Date:** 2026-10-02
+- **Status:** Built. A tree's URLs come from its `prefix`, not its
+  folder, since D-683 and D-684.
 - **Decision:** Answers D-257's open question (a kind for nesting
   entries, such as a manual with chapters), and supersedes D-157's
   `Pages` kind. The kind whose entries nest by folder is **Tree**
@@ -18869,7 +18871,8 @@ decision, add a new entry that supersedes it and mark the old one
 
 - **Date:** 2026-10-08
 - **Status:** Built. Refined by D-630 (profiles and new terms by
-  initial; hidden files stay outside a pattern). Partially supersedes D-514 (collections are flat)
+  initial; hidden files stay outside a pattern); the pattern is its own
+  `folders` option since D-683. Partially supersedes D-514 (collections are flat)
   and refines D-088 (folders are part of keys) and D-513 (which still
   holds for `filename`).
 - **Decision:** from a discussion with the author: on shared hosting, a
@@ -18930,7 +18933,8 @@ decision, add a new entry that supersedes it and mark the old one
 ### D-630: Profiles and new terms are kept by initial; hidden files stay put
 
 - **Date:** 2026-10-08
-- **Status:** Built. Refines D-629.
+- **Status:** Built. Refines D-629. Its defaults, for profiles and new
+  terms, are superseded by D-684 (no pattern).
 - **Decision:** the author: make `{initial}` the default for profiles
   and terms "where we can."
   - **Profiles:** the kind's default folder is `_{name}/{initial}`
@@ -21107,3 +21111,123 @@ decision, add a new entry that supersedes it and mark the old one
   SQLite 19.6–19.9 ms against 20.2–21.1 ms). The trial site renders
   and lists its menus.
 - **Why:** the author's go ("go, do 6g").
+
+### D-683: Every type is kept in `_{name}`; `folder` goes
+
+- **Date:** 2026-10-09
+- **Status:** Built (D-684, which refines it). Supersedes the `folder` parts of
+  D-386 (a tree's URLs from its folder), D-629 (the pattern written in
+  `folder`), and D-630 (`profiles/{initial}`); a type naming its own
+  folder (from 1.x's `path`) goes, as D-658 allows.
+- **Decision:** from a discussion with the author: a type no longer
+  names its folder. Every type but the root tree keeps its files in `_`
+  and its name (`_post`, `_movie`), the default `ContentType::defaultFolder()`
+  already gives, so storage stops leaking into the type's definition and
+  a site not keeping content in files has one setting less to understand.
+  - **One job for a folder:** today `folder` says where files are, which
+    type a file is (`ContentTypes::folderPath()`, longest match first),
+    a type's default URL prefix (`folderPrefix()`), and a tree's URLs
+    (`pagePath()`). Only the first means anything to a database driver
+    (D-485, D-606). With the folder fixed, a file's type is its first
+    `_` folder, and URLs come only from `prefix` and `paths` (D-350).
+  - **The root tree** (`page`) stays the catch-all at the content root,
+    with no folder of its own: everything outside a type's `_{name}`
+    folder is a page, as now.
+  - **Trees in folders** are kept in `_{name}` like every type, and get
+    a base path for their URLs (`_doc` served at `/docs`), in place of
+    the URL D-386 took from the folder; a tree has no URL prefix today,
+    so this is the one new setting. URLs come from settings, never
+    storage, for every kind.
+  - **Profiles:** the built-in type is kept in `_profile/{initial}`,
+    still served at `/profiles/{slug}` by its prefix.
+  - **The folder pattern is its own setting:** `folders` (`{year}`,
+    `{month}`, `{initial}`, D-629) beside `filename`, no longer written
+    into `folder` (`_posts/{year}` is `folders: '{year}'`). The admin
+    already sends it apart. Both are the files driver's alone, so the
+    admin shows them only when content is kept in files.
+  - **Reserved names:** a type can't be named for a `_` folder the root
+    tree uses (`error`, D-411; `drafts`), refused when a type is created.
+  - **The name is the folder:** never the plural, which is an editable
+    label; `_posts` becomes `_post`.
+  - **What goes:** `folder` in types (code, config, and
+    `user/data/types`), the admin's folder field, the longest-match
+    folder lookup, `EntryFolders`' handling of other types' folders
+    inside a type's (jtcom's `writing/forms` inside `writing`), and
+    `DataTypeWriter`'s refusal to change a folder.
+  - **Moving sites over:** lint reports a type file outside its
+    `_{name}` folder, and a command (with a Site Health fix) moves each
+    type's files there, writing a `prefix` (or a tree's base path) where
+    the URL came from the folder, so no address changes. The jtcom trial
+    (`library/movies`, `writing/forms`, `recipes`, `authors`, `_posts`,
+    `_docs`) is moved by it.
+- **What's given up:** section folders browsable by hand (a
+  collection's files beside its section page), which matter only to
+  editing files directly; the admin is the focus.
+- **Why:** the author: "Just standardize on a format? Would that make
+  things easier? I think it also removes an option that users need to
+  figure out, especially when they're not even running a flat-file
+  system." Recorded at the author's request.
+
+### D-684: D-683 built; profiles without `{initial}`, `_system` reserved
+
+- **Date:** 2026-10-09
+- **Status:** Built. Refines D-683; supersedes D-630's profiles default.
+- **Decision:** the author's go on D-683, with two changes:
+  - **Profiles have no folder pattern** by default: the built-in type is
+    kept in `_profile`, its files directly in it. "Once that becomes big
+    enough to matter, users need to be on a database, not files." A type
+    may still give `folders: '{initial}'`. Nor do new terms: the
+    new-type wizard starts them on no pattern, as any type (the author:
+    "drop the {initial} default for terms too"), superseding the rest of
+    D-630's defaults.
+  - **`_error` becomes `_system`, eventually**, for any system pages,
+    errors being one. Not built: for now `system`, `error`, and `drafts`
+    are reserved type names (`ContentType::RESERVED`), refused when a
+    type is built, so no type can claim those folders.
+  - **The tree's base path is `prefix`**, the name D-683 left open: a top-level
+    option on trees (`Tree::$urlPrefix`, `pagePath()`), as the admin's
+    URL prefix field writes it; the root tree takes none. ContentConfig
+    `dataTypeUrls` covers it as it does `urls`.
+- **As built:**
+  - **The type:** `ContentType::$folder` is always `_{name}`
+    (`folderOf()`; `''` for `page`), and the constructors take `folders`
+    (a pattern) where they took `folder`. A definition with `folder`, or
+    1.x's `path`, is refused (`namedFolder()`), and a tree with `folders`.
+    `prefix()` falls back to the name, as `pagePath()` does for every
+    kind but a tree. `ContentTypes::forFile()` reads a file's first
+    folder; the loader's shared-folder check can no longer fail.
+  - **Old data types** (`LegacyFolder`): one naming its folder is read
+    in `_{name}`, its pattern as `folders` and its old path (less `_`s)
+    as `urls.prefix` (a tree's `prefix`) where its addresses came from
+    the folder; over a code type, only the pattern, since its `urls`
+    would replace the code's whole. Listed in `ContentTypes::$namedFolders`
+    until `TypeFolderMigration` moves the files (on the files driver,
+    child by child, leaving other types' old folders inside for their own
+    move) and writes the record, through `content:type-folders` and Site
+    Health's **Type Folders** (`types` check, `typeFolders` in the
+    report, `ContentHealth::VERSION` 3, `POST health/type-folders`, keys
+    `content:types:{name}`). The admin refuses to edit one until then.
+    A code type naming its folder fails to load, saying what to change.
+  - **The writer:** `DataTypeWriter::create()` takes no folder; `folders`
+    and a tree's `prefix` are written as their own keys; a prefix that's
+    the type's name is left out; `folderPrefix()` is gone.
+  - **The admin:** the wizard has no Folder field and suggests a URL
+    prefix from the plural name (empty means the key); trees have a URL
+    prefix field; File names and Folders show only when content is kept
+    in files (`GET types` `files`); `defaultPrefix` replaces
+    `folderPrefix`; a tree in a folder's `prefix` is its served path.
+  - **Tests** keep files at `_{name}` with prefixes where URLs came from
+    folders; orders broken by path-derived ids changed with the paths.
+  - **The jtcom trial** moved: its code types by hand (`_post` with
+    `folders: '{year}'`, `_profile`, `_category`, `_era`, `_literature`,
+    the `_literary_*` types, and `_doc` with `prefix: docs`, each with
+    its old prefix), its data types (genre, movie, person, recipe) by
+    `content:type-folders --write`.
+- **Proof:** `composer check`. `ContentTypeTest` (names, prefixes,
+  reserved names, refusals, `LegacyFolder`), `FolderPatternTest`,
+  `ContentTypeLoaderTest` (jtcom's 1.x types read in `_{name}` with
+  their addresses), `AdminTypeEditTest` (moving types on Site Health,
+  nested old folders, refusals, a tree's prefix), `ContentCommandsTest`
+  (`content:type-folders`). The trial site's pages, archives, terms,
+  trees, profiles, and library answer at their old addresses.
+- **Why:** the author: "go, build D-683", with the two changes above.

@@ -33,13 +33,13 @@ final class ContentTypeCacheTest extends TestCase
 
 	public function testProductionServesTheCompiledTypes(): void
 	{
-		$this->contentConfig(['types' => ['post' => ['path' => '_posts']]]);
+		$this->contentConfig(['types' => ['post' => ['urls' => ['prefix' => 'posts']]]]);
 
 		new Bootstrap(Paths::fromRoot($this->temporaryDirectory()), ['APP_ENV' => 'production'])->compile();
 
 		$this->assertFileExists($this->temporaryDirectory() . '/storage/cache/content-types.php');
 
-		$this->contentConfig(['types' => ['movie' => ['path' => 'movies']]]);
+		$this->contentConfig(['types' => ['movie' => ['urls' => ['prefix' => 'movies']]]]);
 		unlink($this->temporaryDirectory() . '/storage/cache/config.php');
 
 		$this->assertTrue($this->types('production')->has('post'));

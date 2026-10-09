@@ -60,8 +60,8 @@ final class PermissionsTest extends TestCase
 		$this->writeTemporaryFile('user/content/their-draft.md', "---\nid: 132aafcd-1c14-f988-a19f-1d615683b2ed\ntitle: Their draft\nauthors: sam\nstatus: draft\n---\n");
 		$this->writeTemporaryFile('user/content/my-scheduled.md', "---\nid: c5fede04-af7c-179c-ec65-0471134715f6\ntitle: My scheduled\nauthors: [sam, jane]\npublished: 2099-01-01\n---\n");
 		$this->writeTemporaryFile('user/content/nobodys.md', "---\nid: 2a6fa078-34d3-123d-8700-a30179fd7867\ntitle: Nobody's\n---\n");
-		$this->writeTemporaryFile('user/content/profiles/jane.md', "---\nid: 04e1cf46-8734-1fc4-7399-c1e7571e878e\ntitle: Jane\n---\n");
-		$this->writeTemporaryFile('user/content/profiles/sam.md', "---\nid: dc24b740-5b4f-dcea-63e7-28c113a2936d\ntitle: Sam\n---\n");
+		$this->writeTemporaryFile('user/content/_profile/jane.md', "---\nid: 04e1cf46-8734-1fc4-7399-c1e7571e878e\ntitle: Jane\n---\n");
+		$this->writeTemporaryFile('user/content/_profile/sam.md', "---\nid: dc24b740-5b4f-dcea-63e7-28c113a2936d\ntitle: Sam\n---\n");
 
 		$this->app = $this->scratchApplication(['APP_ENV' => 'development']);
 		$this->app->boot();
@@ -250,7 +250,7 @@ final class PermissionsTest extends TestCase
 
 		$this->assertGreaterThan(0, $checked);
 		$this->assertEqualsCanonicalizing(
-			['mine.md', 'my-draft.md', 'my-scheduled.md', 'profiles/jane.md', 'their-draft.md'],
+			['mine.md', 'my-draft.md', 'my-scheduled.md', '_profile/jane.md', 'their-draft.md'],
 			array_map(static fn (Entry $entry): string => $entry->path, $permissions->restrict($this->account('reviewer'), ContentAction::Edit, $content->query()->any())->get()->all()),
 			'A reviewer edits their own entries (and profile) and others\' drafts, but not others\' live entries.'
 		);

@@ -121,7 +121,6 @@ final class ThemedRenderingTest extends TestCase
 		$this->contentConfig([
 			'types' => [
 				'post' => [
-					'path'          => '_posts',
 					'collection'    => ['order' => 'desc', 'number' => 1],
 					'date_archives' => true,
 					'routing'       => ['prefix' => 'archives']
@@ -129,7 +128,7 @@ final class ThemedRenderingTest extends TestCase
 			],
 			'home' => 'post'
 		]);
-		$this->entry('_posts/2008-04-10.showers.md', "title: Showers\npublished: 2008-04-10 09:00:00");
+		$this->entry('_post/2008-04-10.showers.md', "title: Showers\npublished: 2008-04-10 09:00:00");
 
 		$app  = $this->site();
 		$home = $this->body('/page/2', $app);
@@ -150,7 +149,7 @@ final class ThemedRenderingTest extends TestCase
 	{
 		$this->standardContent();
 		$this->contentConfig([
-			'types' => ['post' => ['path' => '_posts', 'collection' => ['number' => 1], 'routing' => ['prefix' => 'archives']]],
+			'types' => ['post' => ['collection' => ['number' => 1], 'routing' => ['prefix' => 'archives']]],
 			'home'  => 'post'
 		]);
 		$this->childTheme();

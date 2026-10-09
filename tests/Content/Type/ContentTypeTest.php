@@ -28,6 +28,7 @@ use Blush\Content\Type\Listing;
 use Blush\Content\Type\Profiles;
 use Blush\Content\Type\Tree;
 use Blush\Content\Type\TypeOrder;
+use Blush\Content\Type\LegacyFolder;
 use Blush\Content\Type\LegacyTaxonomy;
 use Blush\Content\Type\TypeFeed;
 use Blush\Content\Type\TypeKind;
@@ -53,6 +54,7 @@ use Blush\Tests\Fixtures\Content\JtcomTypes;
 #[CoversClass(DateArchives::class)]
 #[CoversClass(BuiltInType::class)]
 #[CoversClass(InvalidContentType::class)]
+#[CoversClass(LegacyFolder::class)]
 #[CoversClass(TypeLabels::class)]
 final class ContentTypeTest extends TestCase
 {
@@ -83,10 +85,64 @@ final class ContentTypeTest extends TestCase
 		$this->assertSame(TypeOrder::Published, $type->order);
 	}
 
-	public function testPrefixesDropTheUnderscoresOfFolderNames(): void
+	public function testEveryTypeIsKeptInItsNameAndPrefixedByIt(): void
 	{
-		$this->assertSame('writing/forms', new Collection('form', folder: '_writing/_forms')->prefix());
-		$this->assertSame('archives', new Collection('post', folder: '_posts', urls: new TypeUrls(prefix: 'archives'))->prefix());
+		$this->assertSame('_form', new Collection('form')->folder, 'D-683.');
+		$this->assertSame('form', new Collection('form')->prefix());
+		$this->assertSame('archives', new Collection('post', urls: new TypeUrls(prefix: 'archives'))->prefix());
+		$this->assertSame('_doc', new Tree('doc')->folder);
+		$this->assertSame('doc', new Tree('doc')->pagePath());
+		$this->assertSame('docs/guide', new Tree('doc', prefix: '/docs/guide/')->pagePath());
+		$this->assertSame('docs', ContentType::fromArray(['name' => 'doc', 'kind' => 'tree', 'prefix' => 'docs'], $this->fields)->toArray()['prefix'] ?? null);
+		$this->assertSame('', new Tree()->folder);
+		$this->assertSame('', new Tree()->pagePath());
+	}
+
+	public function testATypeNeverNamesItsFolder(): void
+	{
+		foreach (['folder' => 'recipes', 'path' => 'recipes'] as $key => $folder) {
+			try {
+				ContentType::fromArray(['name' => 'recipe', $key => $folder], $this->fields);
+				$this->fail("\"{$key}\" is refused.");
+			} catch (InvalidContentType $e) {
+				$this->assertStringContainsString('every type is kept in _recipe now', $e->getMessage());
+			}
+		}
+	}
+
+	public function testLegacyFoldersAreReadAwayKeepingAddresses(): void
+	{
+		$this->assertTrue(LegacyFolder::is(['path' => '']));
+		$this->assertFalse(LegacyFolder::is(['folders' => '{year}']));
+		$this->assertSame('_posts', LegacyFolder::folderOf(['folder' => '_posts/{year}']));
+
+		$this->assertSame(['folders' => '{year}', 'urls' => ['prefix' => 'posts']], LegacyFolder::convert('post', ['folder' => '_posts/{year}'], TypeKind::Collection));
+		$this->assertSame(['routing' => ['prefix' => 'archives']], LegacyFolder::convert('post', ['path' => '_posts', 'routing' => ['prefix' => 'archives']], TypeKind::Collection), 'A prefix it has stays.');
+		$this->assertSame([], LegacyFolder::convert('recipe', ['folder' => '_recipe'], TypeKind::Collection), 'Its own folder needs nothing.');
+		$this->assertSame(['urls' => false], LegacyFolder::convert('note', ['folder' => 'notes', 'urls' => false], TypeKind::Collection));
+		$this->assertSame(['prefix' => 'docs'], LegacyFolder::convert('doc', ['folder' => '_docs'], TypeKind::Tree));
+		$this->assertSame(['kind' => 'profiles'], LegacyFolder::convert('profile', ['kind' => 'profiles', 'folder' => 'people'], TypeKind::Profiles), 'Profiles are at /profiles whatever their folder.');
+		$this->assertSame(['folders' => '{year}'], LegacyFolder::convert('movie', ['folder' => 'movies/{year}'], TypeKind::Collection, false), 'None over a code type\'s URLs.');
+	}
+
+	public function testReservedNamesAreRefused(): void
+	{
+		foreach (ContentType::RESERVED as $name) {
+			try {
+				new Collection($name);
+				$this->fail("\"{$name}\" is refused.");
+			} catch (InvalidContentType $e) {
+				$this->assertStringContainsString("_{$name} is a folder the site's pages keep", $e->getMessage());
+			}
+		}
+	}
+
+	public function testOnlyATreeInAFolderTakesAPrefix(): void
+	{
+		$this->expectException(InvalidContentType::class);
+		$this->expectExceptionMessage('served from the root');
+
+		(void) new Tree(prefix: 'pages');
 	}
 
 	public function testDescriptionIconAndHierarchyRoundTrip(): void
@@ -107,18 +163,20 @@ final class ContentTypeTest extends TestCase
 		$this->assertNull(new Collection('tag')->parentKey('css', ['parent' => 'web']));
 	}
 
-	public function testAcceptsJtcoms1xDefinitionsUnchanged(): void
+	public function testAcceptsJtcoms1xDefinitionsWithoutTheirFolders(): void
 	{
 		$types = [];
 
+		// A 1.x folder is read away (D-683).
 		foreach (JtcomTypes::definitions() as $name => $definition) {
-			$types[$name] = ContentType::fromArray(['name' => $name, ...$definition], $this->fields);
+			$types[$name] = ContentType::fromArray(['name' => $name, ...LegacyFolder::convert($name, $definition, TypeKind::Collection)], $this->fields);
 		}
 
 		$post = $types['post'];
 
 		$this->assertInstanceOf(Collection::class, $post);
-		$this->assertSame('_posts', $post->folder);
+		$this->assertSame('_post', $post->folder);
+		$this->assertSame('writing/forms', $types['literary_form']->prefix(), 'Its addresses stay.');
 		$this->assertSame('archives', $post->prefix());
 		$this->assertSame('{year}/{month}/{day}/{name}', $post->urls === false ? null : $post->urls->path('single'));
 		$this->assertSame('page/{page}', $post->urls === false ? null : $post->urls->path('collection.paged'));
@@ -130,7 +188,7 @@ final class ContentTypeTest extends TestCase
 		$form = $types['literary_form'];
 
 		$this->assertInstanceOf(Collection::class, $form);
-		$this->assertSame('writing/forms', $form->folder);
+		$this->assertSame(['_literary_form', 'writing/forms'], [$form->folder, $form->prefix()]);
 		$this->assertSame(['position', Order::Asc], $form->order());
 
 		$relation = Relation::fromArray(['name' => 'literary_form', ...JtcomTypes::relations()['literary_form']]);
@@ -143,7 +201,7 @@ final class ContentTypeTest extends TestCase
 	{
 		$type = new Collection(
 			'post',
-			folder: '_posts',
+			folders: '{year}',
 			urls: new TypeUrls('/archives/', single: '/{year}/{name}/'),
 			listing: new Listing(type: 'post', order: Order::Desc, query: ['terms' => ['category' => 'news']]),
 			feed: new TypeFeed('category', new Listing(perPage: 20)),
@@ -158,7 +216,7 @@ final class ContentTypeTest extends TestCase
 		$this->assertSame([
 			'name'         => 'post',
 			'kind'         => 'collection',
-			'folder'       => '_posts',
+			'folders'      => '{year}',
 			'urls'         => ['prefix' => 'archives', 'paths' => ['single' => '{year}/{name}']],
 			'listing'      => ['type' => 'post', 'order' => 'desc', 'query' => ['terms' => ['category' => 'news']]],
 			'feed'         => ['categories' => 'category', 'listing' => ['perPage' => 20]],
@@ -178,7 +236,7 @@ final class ContentTypeTest extends TestCase
 		$this->assertFalse(ContentType::fromArray(['name' => 'profile', 'kind' => 'profiles'], $this->fields)->llms);
 		$this->assertTrue(ContentType::fromArray(['name' => 'doc', 'kind' => 'tree'], $this->fields)->llms);
 
-		$terms = new Collection('topic', folder: 'topics', urls: false, feed: new TypeFeed(), hierarchical: true, order: TypeOrder::Position);
+		$terms = new Collection('topic', urls: false, feed: new TypeFeed(), hierarchical: true, order: TypeOrder::Position);
 
 		$this->assertEquals($terms, ContentType::fromArray($terms->toArray(), $this->fields));
 		$this->assertSame(true, $terms->toArray()['feed']);
@@ -186,12 +244,12 @@ final class ContentTypeTest extends TestCase
 
 		$pages = new Tree(fields: [new TextField('subtitle')]);
 
-		$this->assertSame(['name' => 'page', 'kind' => 'tree', 'folder' => '', 'fields' => [['name' => 'subtitle', 'type' => 'text']]], $pages->toArray());
+		$this->assertSame(['name' => 'page', 'kind' => 'tree', 'fields' => [['name' => 'subtitle', 'type' => 'text']]], $pages->toArray());
 		$this->assertEquals($pages, ContentType::fromArray($pages->toArray(), $this->fields));
 
-		$profiles = new Profiles(folder: 'people', urls: new TypeUrls('team'), feed: new TypeFeed(), public: false);
+		$profiles = new Profiles(folders: '{initial}', urls: new TypeUrls('team'), feed: new TypeFeed(), public: false);
 
-		$this->assertSame(['name' => 'profile', 'kind' => 'profiles', 'folder' => 'people', 'urls' => ['prefix' => 'team'], 'feed' => true, 'public' => false], $profiles->toArray());
+		$this->assertSame(['name' => 'profile', 'kind' => 'profiles', 'folders' => '{initial}', 'urls' => ['prefix' => 'team'], 'feed' => true, 'public' => false], $profiles->toArray());
 		$this->assertEquals($profiles, ContentType::fromArray($profiles->toArray(), $this->fields));
 	}
 
@@ -311,7 +369,7 @@ final class ContentTypeTest extends TestCase
 	{
 		$type = ContentType::fromArray([
 			'name'         => 'event',
-			'folder'       => 'events',
+			'folders'      => '{year}',
 			'urls'         => ['prefix' => 'on', 'single' => '{year}/{name}', 'collection' => 'all'],
 			'listing'      => ['orderBy' => 'published', 'order' => 'desc', 'perPage' => 5, 'query' => ['offset' => 1]],
 			'dateArchives' => 'hour',
@@ -319,7 +377,7 @@ final class ContentTypeTest extends TestCase
 			'feed'         => ['categories' => 'topic', 'listing' => ['perPage' => 50]]
 		], $this->fields);
 
-		$this->assertSame('events', $type->folder);
+		$this->assertSame(['_event', '{year}'], [$type->folder, $type->folders?->pattern]);
 		$this->assertSame('/on/{year}/{name}', $type->routePattern('single'));
 		$this->assertSame('/on/all', $type->routePattern('collection'));
 		$this->assertSame(['offset' => 1, 'orderby' => 'published', 'order' => 'desc', 'number' => 5, 'type' => 'event'], $type->listingArguments());
@@ -341,7 +399,7 @@ final class ContentTypeTest extends TestCase
 		$this->assertEquals(new TypeFeed('topic', new Listing(perPage: 50)), $type->feed);
 		$this->assertSame(DateArchives::Second, ContentType::fromArray(['name' => 'log', 'time_archives' => true], $this->fields)->dateArchives);
 		$this->assertSame(DateArchives::Day, ContentType::fromArray(['name' => 'log', 'date_archives' => true], $this->fields)->dateArchives);
-		$this->assertSame('page', ContentType::fromArray(['name' => 'page', 'path' => '', 'collect' => false], $this->fields)->listedType());
+		$this->assertSame('page', ContentType::fromArray(['name' => 'page', 'collect' => false], $this->fields)->listedType());
 	}
 
 	public function testTaxonomiesAreRefusedSayingWhatReplacedThem(): void
@@ -374,7 +432,7 @@ final class ContentTypeTest extends TestCase
 
 		$this->assertSame(['path' => 'tags', 'hierarchical' => true, 'order' => 'position', 'llms' => false], $type);
 		$this->assertSame(['kind' => 'classify', 'from' => ['post'], 'to' => ['tag'], 'aliases' => ['tags'], 'create' => true, 'inverse' => ['listing' => ['order' => 'desc']]], $relation);
-		$this->assertInstanceOf(Collection::class, ContentType::fromArray(['name' => 'tag', ...$type], $this->fields));
+		$this->assertInstanceOf(Collection::class, ContentType::fromArray(['name' => 'tag', ...LegacyFolder::convert('tag', $type, TypeKind::Collection)], $this->fields));
 
 		[$type, $relation] = LegacyTaxonomy::convert('category', ['kind' => 'taxonomy', 'field' => 'categories', 'urls' => false, 'llms' => true, 'people' => true]);
 
@@ -395,7 +453,9 @@ final class ContentTypeTest extends TestCase
 		$cases = [
 			[['path' => 'x'], 'A content type definition needs a "name".'],
 			[['name' => 'Post'], 'Content type name "Post" must start with a lowercase letter'],
-			[['name' => 'post', 'folder' => 'a/../b'], 'Content type "post" has an invalid folder "a/../b".'],
+			[['name' => 'post', 'folder' => 'posts'], 'Content type "post" names its folder ("posts"), but every type is kept in _post now'],
+			[['name' => 'post', 'folders' => 'a/../b'], 'Content type "post": The folder pattern "a/../b" must be tokens'],
+			[['name' => 'doc', 'kind' => 'tree', 'prefix' => '_docs'], 'Content type "doc" has an invalid prefix "_docs".'],
 			[['name' => 'post', 'routes' => []], 'Content type "post" (collection) has unknown options: routes.'],
 			[['name' => 'post', 'types' => ['x']], 'Content type "post" (collection) has unknown options: types.'],
 			[['name' => 'post', 'order' => 'sideways'], 'Content type "post" "order" must be one of published, position.'],
@@ -497,10 +557,10 @@ final class ContentTypeTest extends TestCase
 
 		$this->assertInstanceOf(Profiles::class, $profile);
 		$this->assertSame('profile', $profile->name);
-		$this->assertSame('profiles', $profile->folder);
+		$this->assertSame('_profile', $profile->folder);
 		$this->assertSame('/profiles/{name}', $profile->routePattern('single'), 'Each profile has a page of its own (D-351).');
-		$this->assertSame('/profiles/{name}', new Profiles(folder: 'authors')->routePattern('single'), 'Whatever its folder (D-357).');
-		$this->assertSame('/team/{name}', new Profiles(folder: 'authors', urls: new TypeUrls('team'))->routePattern('single'));
+		$this->assertSame('/profiles/{name}', new Profiles('person')->routePattern('single'), 'Whatever its name (D-357).');
+		$this->assertSame('/team/{name}', new Profiles(urls: new TypeUrls('team'))->routePattern('single'));
 		$this->assertFalse($profile->servedAsPages());
 		$this->assertFalse($profile->hasFeed());
 		$this->assertTrue(BuiltInType::Profile->canDisable());

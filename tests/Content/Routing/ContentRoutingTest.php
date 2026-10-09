@@ -78,13 +78,12 @@ final class ContentRoutingTest extends TestCase
 		$this->contentConfig([
 			'types' => [
 				'post' => [
-					'path'          => '_posts',
 					'collection'    => ['order' => 'desc', 'orderby' => 'published', 'number' => 2],
 					'date_archives' => true,
 					'routing'       => ['prefix' => 'archives', 'paths' => ['single' => '{year}/{month}/{day}/{name}']]
 				],
 				'category' => [
-					'path'   => 'topics',
+					'urls' => ['prefix' => 'topics'],
 					'order'  => 'position',
 					'llms'   => false
 				]
@@ -202,15 +201,15 @@ final class ContentRoutingTest extends TestCase
 	{
 		$this->contentConfig([
 			'types' => [
-				'post'     => ['path' => '_posts', 'routing' => ['prefix' => 'archives']],
-				'category' => ['path' => 'topics', 'order' => 'position', 'hierarchical' => true, 'feed' => true]
+				'post'     => ['routing' => ['prefix' => 'archives']],
+				'category' => ['urls' => ['prefix' => 'topics'], 'order' => 'position', 'hierarchical' => true, 'feed' => true]
 			],
 			'relations' => ['category' => ['kind' => 'classify', 'from' => ['post'], 'to' => ['category'], 'create' => true]]
 		]);
-		$this->entry('topics/painting.md', "title: Painting\nparent: art");
-		$this->entry('topics/oils.md', "title: Oils\nparent: painting");
-		$this->entry('topics/page.md', "title: Page\nparent: art");
-		$this->entry('_posts/2010-02-02.canvas.md', "title: Canvas\ncategory: oils");
+		$this->entry('_category/painting.md', "title: Painting\nparent: art");
+		$this->entry('_category/oils.md', "title: Oils\nparent: painting");
+		$this->entry('_category/page.md', "title: Page\nparent: art");
+		$this->entry('_post/2010-02-02.canvas.md', "title: Canvas\ncategory: oils");
 
 		$this->app = $this->site();
 		$urls      = $this->app->container()->make(ContentUrls::class);
@@ -272,7 +271,7 @@ final class ContentRoutingTest extends TestCase
 
 	public function testRedirectsFromData(): void
 	{
-		$this->entry('_posts/2008-04-05.spring.md', "title: spring\npublished: 2008-04-05 09:00:00\nredirect_from: [/spring]");
+		$this->entry('_post/2008-04-05.spring.md', "title: spring\npublished: 2008-04-05 09:00:00\nredirect_from: [/spring]");
 		$this->writeTemporaryFile('user/data/redirects.json', '[{"from": "/old-about", "to": "/about"}, {"from": "/promo", "to": "https://example.com/sale", "status": 302}]');
 		$this->app = $this->site('development');
 

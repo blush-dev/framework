@@ -18,11 +18,13 @@ use Blush\Content\Http\RelatedController;
 use Blush\Content\Relation\Relation;
 use Blush\Content\ContentConfig;
 use Blush\Content\Entries;
+use Blush\Content\Source\ContentFiles;
 use Blush\Content\Type\Collection;
 use Blush\Content\Type\ContentType;
 use Blush\Content\Type\ContentTypes;
 use Blush\Content\Type\DataTypeWriter;
 use Blush\Content\Type\InvalidContentType;
+use Blush\Content\Type\Tree;
 use Blush\Content\Type\TypeOrigin;
 use Blush\Content\Type\TypeRouteKeys;
 use Blush\Content\Type\TypeUrls;
@@ -49,8 +51,9 @@ use Blush\Http\Status;
  * the `types` its relation files (empty for every type), which places it
  * in the admin's navigation; the profiles type adds the `types` that
  * credit people. Each also has its `origin` (`built-in`,
- * `extension`, or `data`), its `folder`, its URL `prefix` (or
- * `null` without URLs), and how many `fields` it defines (D-250).
+ * `extension`, or `data`), its `folder` (`_` and its name, D-683), its
+ * URL `prefix` (a tree in a folder's own, `null` for one without URLs),
+ * and how many `fields` it defines (D-250).
  * Term types and the profiles type come last. Beside them, `authors`
  * names the authors type, which accounts' authors belong to and the
  * admin lists with people rather than content, or `null` when the site
@@ -67,7 +70,7 @@ use Blush\Http\Status;
  * through a file there, D-349), whether it's `overridden` (a code type a
  * file changes) and the options that file sets (`overrides`), whether
  * its `fieldsEditable` (none is a field class of the code's own), its
- * `dateArchives`, its own file name pattern (`filename`, D-511, D-514), its folder pattern (`folders`, D-629, `null` for none), the prefix its folder gives (`folderPrefix`), the data
+ * `dateArchives`, its own file name pattern (`filename`, D-511, D-514), its folder pattern (`folders`, D-629, `null` for none), the prefix it has without one of its own, its name (`defaultPrefix`, D-683), the data
  * `file` it's defined or changed in (`null` for the rest), its `routes`
  * (each route key it answers at, with its `path` and `default` relative
  * to the prefix, the placeholders it `requires` and `allows`, and
@@ -79,7 +82,9 @@ use Blush\Http\Status;
  * `word`, and list `page` (`{"id", "type", "path", "title"}`, or
  * `null`).
  * The list adds whether types can be created here (`create`: data types
- * are read) and whether they may set URLs (`urls`).
+ * are read), whether they may set URLs (`urls`), and whether content is
+ * kept in files (`files`), which alone have file name and folder
+ * patterns (D-683).
  *
  * `detail()` describes a type among any set of types, so a change can be
  * answered with the types it made (`TypeEditController`).
@@ -91,7 +96,8 @@ final readonly class TypesController
 		private ContentConfig $config,
 		private DataTypeWriter $writer,
 		private Entries $content,
-		private FeedConfig $feeds
+		private FeedConfig $feeds,
+		private ContentFiles $files
 	) {}
 
 	public function __invoke(): ResponseInterface
@@ -106,7 +112,8 @@ final readonly class TypesController
 			'types'   => $types,
 			'authors' => $this->types->profiles()?->name,
 			'create'  => $this->config->dataTypes,
-			'urls'    => $this->config->dataTypeUrls
+			'urls'    => $this->config->dataTypeUrls,
+			'files'   => $this->files->kept()
 		], headers: ['Cache-Control' => 'no-store']);
 	}
 
@@ -161,7 +168,7 @@ final readonly class TypesController
 			'dateArchives' => $type->dateArchives->value,
 			'filename'     => $type->filename?->pattern,
 			'folders'      => $type->folders?->pattern,
-			'folderPrefix' => DataTypeWriter::folderPrefix($type->folder),
+			'defaultPrefix' => $type->name,
 			'file'         => $file,
 			'index'        => $this->index($type),
 			'byline'       => $type->byline,
@@ -305,7 +312,11 @@ final readonly class TypesController
 			...($type instanceof Profiles ? ['types' => array_keys($types->crediting())] : []),
 			'origin'      => $types->origin($type->name)->value,
 			'folder'      => $type->folder,
-			'prefix'      => $type->hasUrls() ? '/' . $type->prefix() : null,
+			'prefix'      => match (true) {
+				$type->hasUrls()                              => '/' . $type->prefix(),
+				$type instanceof Tree && ! $type->atRoot()    => '/' . $type->pagePath(),
+				default                                       => null
+			},
 			'fields'      => count($type->schema->fields)
 		];
 	}

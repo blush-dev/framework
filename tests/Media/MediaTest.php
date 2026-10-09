@@ -50,14 +50,14 @@ final class MediaTest extends TestCase
 		$image = imagecreatetruecolor(5, 2);
 		$this->assertNotFalse($image);
 
-		foreach (['user/media/2019/cat.png', 'user/content/_posts/hello/photo.png', 'user/media/.hidden/cat.png'] as $path) {
+		foreach (['user/media/2019/cat.png', 'user/content/_post/hello/photo.png', 'user/media/.hidden/cat.png'] as $path) {
 			$this->writeTemporaryFile($path, '');
 			imagepng($image, $this->temporaryDirectory() . '/' . $path);
 		}
 
 		$this->writeTemporaryFile('user/media/icon.svg', '<svg xmlns="http://www.w3.org/2000/svg" width="1" height="1"></svg>');
 		$this->writeTemporaryFile('user/media/script.php', '<?php echo 1;');
-		$this->writeTemporaryFile('user/content/_posts/hello/index.md', "---\ntitle: Hello\n---\n");
+		$this->writeTemporaryFile('user/content/_post/hello/index.md', "---\ntitle: Hello\n---\n");
 	}
 
 	private function resolver(string $url = '/media'): MediaResolver
@@ -103,12 +103,12 @@ final class MediaTest extends TestCase
 			'/media/missing.png',
 			'/media/script.php',
 			'/media/.hidden/cat.png',
-			'/media/../content/_posts/hello/photo.png',
+			'/media/../content/_post/hello/photo.png',
 			'../../../.env',
 			'/other/cat.png',
 			// Media is only ever in `user/media`, never beside entries (D-294).
 			'photo.png',
-			'/media/_content/_posts/hello/photo.png',
+			'/media/_content/_post/hello/photo.png',
 			'/media/_content/../media/2019/cat.png'
 		];
 
@@ -116,7 +116,7 @@ final class MediaTest extends TestCase
 			$this->assertNull($media->resolve($reference), $reference);
 		}
 
-		$this->assertNull($media->fromKey('_content/_posts/hello/photo.png'));
+		$this->assertNull($media->fromKey('_content/_post/hello/photo.png'));
 
 		$this->assertNull($media->fromUrl('/user/media/2019/cat.png'));
 		$this->assertSame('/user/media/2019/cat.png', $this->resolver('/user/media/')->resolve('/user/media/2019/cat.png')?->url);
@@ -157,10 +157,10 @@ final class MediaTest extends TestCase
 		$this->assertSame(206, $part->getStatusCode());
 		$this->assertSame("\x89PNG\r\n\x1a\n", (string) $part->getBody());
 
-		$this->assertSame(404, $kernel->handle(Request::create('/media/_content/_posts/hello/photo.png'))->getStatusCode(), 'Nothing beside an entry is served.');
+		$this->assertSame(404, $kernel->handle(Request::create('/media/_content/_post/hello/photo.png'))->getStatusCode(), 'Nothing beside an entry is served.');
 		$this->assertSame('sandbox', $kernel->handle(Request::create('/media/icon.svg'))->getHeaderLine('Content-Security-Policy'));
 		$this->assertSame(404, $kernel->handle(Request::create('/media/script.php'))->getStatusCode());
-		$this->assertSame(404, $kernel->handle(Request::create('/media/_content/_posts/hello/index.md'))->getStatusCode());
+		$this->assertSame(404, $kernel->handle(Request::create('/media/_content/_post/hello/index.md'))->getStatusCode());
 	}
 
 	public function testPublishesMediaByLinkOrCopy(): void

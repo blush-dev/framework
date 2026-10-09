@@ -23,8 +23,8 @@ namespace Blush\Admin;
  * - `{area}:ids:{path}`: a file with no valid id; `{area}:ids-shared:{id}`,
  *   an id files share.
  * - `content:terms:{type}/{slug}`, `content:refs:{path}`,
- *   `content:folders:{path}`, `content:names:{path}`, and
- *   `content:taxonomies:{name}`.
+ *   `content:folders:{path}`, `content:names:{path}`,
+ *   `content:taxonomies:{name}`, and `content:types:{name}` (D-683).
  * - `media:sizes:{key}`: an image whose sizes aren't listed as they are.
  */
 final class ProblemKeys
@@ -97,6 +97,10 @@ final class ProblemKeys
 
 		foreach (is_array($report['taxonomies'] ?? null) ? $report['taxonomies'] : [] as $name) {
 			$keys[] = self::of('content', 'taxonomies', self::text($name));
+		}
+
+		foreach (self::lists($report, 'typeFolders') as $item) {
+			$keys[] = self::of('content', 'types', self::text($item['name'] ?? ''));
 		}
 
 		foreach (self::items($report, 'mediaSizes') as $item) {

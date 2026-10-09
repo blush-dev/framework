@@ -23,7 +23,7 @@ use Blush\Content\Visibility;
  * hash. Records are stored as arrays (`toArray()`) and stay arrays while
  * queries run; only the entries a query returns become objects.
  *
- * - `path` is the source path, such as `_posts/2003-04-15.welcome.md`.
+ * - `path` is the source path, such as `_post/2003-04-15.welcome.md`.
  * - `id` is the entry's id (D-477): the UUID in its `id` front matter,
  *   lowercased, or `null` when it has none or it isn't a UUID (which
  *   `content:lint` reports).

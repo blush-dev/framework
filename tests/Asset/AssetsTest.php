@@ -79,7 +79,7 @@ final class AssetsTest extends TestCase
 	protected function setUp(): void
 	{
 		$this->standardContent();
-		$this->entry('_posts/2009-01-01.episode.md', "title: Episode\npublished: 2009-01-01 12:00:00", "Listen:\n\n::audio[Episode 1]{src=https://example.com/episode.mp3}\n");
+		$this->entry('_post/2009-01-01.episode.md', "title: Episode\npublished: 2009-01-01 12:00:00", "Listen:\n\n::audio[Episode 1]{src=https://example.com/episode.mp3}\n");
 		$this->writeTemporaryFile('config/cache.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn new Blush\\Cache\\CacheConfig(pages: false);\n");
 		$this->writeTemporaryFile('extensions/acme/stats/plugin.json', '{"name": "acme/stats", "label": "Stats", "namespace": "stats"}');
 		$this->writeTemporaryFile('extensions/acme/stats/js/stats.js', 'console.log("stats");');

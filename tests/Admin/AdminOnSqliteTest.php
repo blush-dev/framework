@@ -45,7 +45,7 @@ final class AdminOnSqliteTest extends TestCase
 		$store     = SqliteRecordStore::forSite(new StorageConfig('sqlite'), $this->temporaryDirectory());
 		$types     = new KeyedTable($store, DefinitionTables::typesTable(), new SystemClock());
 		$relations = new KeyedTable($store, DefinitionTables::relationsTable(), new SystemClock());
-		$types->save('post', ['path' => '_posts', 'date_archives' => true, 'routing' => ['prefix' => 'archives']]);
+		$types->save('post', ['date_archives' => true, 'routing' => ['prefix' => 'archives']]);
 		$types->save('category', ['path' => 'topics']);
 		$relations->save('category', ['kind' => 'classify', 'from' => ['post'], 'to' => ['category']]);
 		$relations->save('authors', ['kind' => 'credit', 'from' => ['post'], 'to' => ['profile']]);

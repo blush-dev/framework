@@ -69,7 +69,7 @@ final class LinterTest extends TestCase
 
 		$errors = self::messages($report, Severity::Warning);
 
-		$this->assertSame(['_posts/hello/index.md', 'about.md', 'bad-date.md', 'broken.md'], array_keys($errors));
+		$this->assertSame(['_post/hello/index.md', 'about.md', 'bad-date.md', 'broken.md'], array_keys($errors));
 		$this->assertSame(['warning file: is the same entry as about/index.md, which wins.'], $errors['about.md']);
 		$this->assertStringStartsWith('error published: must be a date', $errors['bad-date.md'][0]);
 		$this->assertSame('error collection: Query argument "number" must be a whole number.', $errors['bad-date.md'][1]);
@@ -77,8 +77,8 @@ final class LinterTest extends TestCase
 
 		$notices = self::messages($report, Severity::Notice);
 
-		$this->assertContains('notice date: is read as "published".', $notices['_posts/2003-04-15.welcome.md']);
-		$this->assertContains('notice tag: is not declared by the schema.', $notices['_posts/2008-04-05.spring.md']);
+		$this->assertContains('notice date: is read as "published".', $notices['_post/2003-04-15.welcome.md']);
+		$this->assertContains('notice tag: is not declared by the schema.', $notices['_post/2008-04-05.spring.md']);
 	}
 
 	public function testWarnsOfDatesThatArentOnTheCalendar(): void
@@ -101,33 +101,33 @@ final class LinterTest extends TestCase
 
 	public function testChecksTermParents(): void
 	{
-		$this->contentConfig(['types' => ['topic' => ['folder' => 'topics', 'order' => 'position', 'hierarchical' => true]], 'relations' => ['topic' => ['kind' => 'classify', 'to' => ['topic']]]]);
-		$this->entry('topics/web.md', 'title: Web');
-		$this->entry('topics/css.md', "title: CSS\nparent: web");
-		$this->entry('topics/self.md', "title: Self\nparent: self");
-		$this->entry('topics/orphan.md', "title: Orphan\nparent: missing");
-		$this->entry('topics/a.md', "title: A\nparent: b");
-		$this->entry('topics/b.md', "title: B\nparent: a");
+		$this->contentConfig(['types' => ['topic' => ['urls' => ['prefix' => 'topics'], 'order' => 'position', 'hierarchical' => true]], 'relations' => ['topic' => ['kind' => 'classify', 'to' => ['topic']]]]);
+		$this->entry('_topic/web.md', 'title: Web');
+		$this->entry('_topic/css.md', "title: CSS\nparent: web");
+		$this->entry('_topic/self.md', "title: Self\nparent: self");
+		$this->entry('_topic/orphan.md', "title: Orphan\nparent: missing");
+		$this->entry('_topic/a.md', "title: A\nparent: b");
+		$this->entry('_topic/b.md', "title: B\nparent: a");
 
 		$linter   = $this->site()->container()->make(Linter::class);
 		$messages = self::messages($linter->lint(), Severity::Warning);
 
-		$this->assertSame(['topics/a.md', 'topics/b.md', 'topics/orphan.md', 'topics/self.md'], array_keys($messages));
-		$this->assertSame(['error parent: makes a loop: a → b → a.'], $messages['topics/a.md']);
-		$this->assertSame(['error parent: makes a loop: b → a → b.'], $messages['topics/b.md']);
-		$this->assertSame(['warning parent: "missing" has no topic entry; the entry is shown at the top level.'], $messages['topics/orphan.md']);
-		$this->assertSame(['error parent: names the entry itself; an entry can\'t be its own parent.'], $messages['topics/self.md']);
-		$this->assertSame('names the entry itself; an entry can\'t be its own parent.', $linter->lintFile('topics/self.md')[0]->message ?? null);
+		$this->assertSame(['_topic/a.md', '_topic/b.md', '_topic/orphan.md', '_topic/self.md'], array_keys($messages));
+		$this->assertSame(['error parent: makes a loop: a → b → a.'], $messages['_topic/a.md']);
+		$this->assertSame(['error parent: makes a loop: b → a → b.'], $messages['_topic/b.md']);
+		$this->assertSame(['warning parent: "missing" has no topic entry; the entry is shown at the top level.'], $messages['_topic/orphan.md']);
+		$this->assertSame(['error parent: names the entry itself; an entry can\'t be its own parent.'], $messages['_topic/self.md']);
+		$this->assertSame('names the entry itself; an entry can\'t be its own parent.', $linter->lintFile('_topic/self.md')[0]->message ?? null);
 	}
 
 	public function testWarnsOfPlaceholderDatesUnderAlignedKeys(): void
 	{
 		$this->standardContent();
-		$this->writeTemporaryFile('user/content/_posts/2007-03-05.weird.md', "---\ndate     : 2007-00-00 23:22:00 -5\ntitle    : Weird\nid       : " . self::idFor('weird') . "\n---\n");
+		$this->writeTemporaryFile('user/content/_post/2007-03-05.weird.md', "---\ndate     : 2007-00-00 23:22:00 -5\ntitle    : Weird\nid       : " . self::idFor('weird') . "\n---\n");
 
 		$warnings = self::messages($this->site()->container()->make(Linter::class)->lint(), Severity::Warning);
 
-		$this->assertSame(['warning date: "2007-00-00" isn\'t a real date, so it\'s read as 2006-11-30.'], $warnings['_posts/2007-03-05.weird.md'] ?? null, 'jtcom aligns its keys.');
+		$this->assertSame(['warning date: "2007-00-00" isn\'t a real date, so it\'s read as 2006-11-30.'], $warnings['_post/2007-03-05.weird.md'] ?? null, 'jtcom aligns its keys.');
 	}
 
 	public function testWarnsOfFileOrder(): void
@@ -146,8 +146,8 @@ final class LinterTest extends TestCase
 		$this->entry('01.services.md', 'title: Services');
 		$this->entry('02.work/index.md', 'title: Work');
 		$this->entry('02.work/03.design.md', 'title: Design');
-		$this->entry('profiles/01.sam.md', 'title: Sam');
-		$this->entry('topics/04.music.md', 'title: Music');
+		$this->entry('_profile/01.sam.md', 'title: Sam');
+		$this->entry('_topic/04.music.md', 'title: Music');
 		$this->entry('__drafts/2023-08-01.the-last-one.md', 'title: The Last One');
 		$this->entry('_05.secret.md', 'title: Secret');
 
@@ -157,9 +157,9 @@ final class LinterTest extends TestCase
 		$this->assertSame(['error file: has an order prefix, which only collections use; pages don\'t. Rename it services.md.'], $errors['01.services.md'] ?? null);
 		$this->assertStringEndsWith('Rename it work/index.md.', $errors['02.work/index.md'][0] ?? '');
 		$this->assertStringEndsWith('Rename it work/design.md.', $errors['02.work/03.design.md'][0] ?? '', 'Its folder too (D-409).');
-		$this->assertStringContainsString('profiles don\'t. Rename it profiles/sam.md.', $errors['profiles/01.sam.md'][0] ?? '');
-		$this->assertArrayNotHasKey('topics/04.music.md', $errors, 'A taxonomy may order its terms.');
-		$this->assertArrayNotHasKey('_posts/2003-04-15.welcome.md', $errors, 'So may a collection.');
+		$this->assertStringContainsString('profiles don\'t. Rename it _profile/sam.md.', $errors['_profile/01.sam.md'][0] ?? '');
+		$this->assertArrayNotHasKey('_topic/04.music.md', $errors, 'A taxonomy may order its terms.');
+		$this->assertArrayNotHasKey('_post/2003-04-15.welcome.md', $errors, 'So may a collection.');
 		$this->assertArrayNotHasKey('__drafts/2023-08-01.the-last-one.md', $errors, 'A hidden folder isn\'t checked.');
 		$this->assertArrayNotHasKey('_05.secret.md', $errors, 'Nor a hidden file.');
 		$this->assertStringStartsWith('has an order prefix', $linter->lintFile('01.services.md')[0]->message ?? '');
@@ -184,14 +184,14 @@ final class LinterTest extends TestCase
 	public function testReportsTermsAndProfilesWithoutFiles(): void
 	{
 		$this->standardContent();
-		$this->entry('_posts/2009-01-01.credits.md', "title: Credits\npublished: 2009-01-01\nauthors: [justintadlock, Sam Smith]\ncategory: missing");
+		$this->entry('_post/2009-01-01.credits.md', "title: Credits\npublished: 2009-01-01\nauthors: [justintadlock, Sam Smith]\ncategory: missing");
 
 		$messages = self::messages($this->site()->container()->make(Linter::class)->lint(), Severity::Notice);
 
 		$this->assertSame([
 			'error authors: "sam-smith" has no profile entry, so the site leaves it out; add one, or run content:terms.',
 			'error category: "missing" has no category entry, so the site leaves it out; add one, or run content:terms.'
-		], $messages['_posts/2009-01-01.credits.md'] ?? null, 'A term or profile is its file (D-584).');
+		], $messages['_post/2009-01-01.credits.md'] ?? null, 'A term or profile is its file (D-584).');
 	}
 
 	public function testNotesFieldSetTargetsThatAttachToNothing(): void
@@ -205,7 +205,7 @@ final class LinterTest extends TestCase
 
 		$this->assertSame(['notice targets: "shop" names type:product, which the site doesn\'t have, so it isn\'t used there.'], $notices['user/data/fields/shop.json'] ?? null);
 		$this->assertSame(['notice targets: "nav" names menu:primary, but fields can\'t attach to a "menu" yet.'], $notices['user/data/fields/nav.json'] ?? null);
-		$this->assertSame(['_posts/hello/index.md'], array_keys(self::messages($report, Severity::Error)), 'Only the standard posts\' folder entry (D-514).');
+		$this->assertSame(['_post/hello/index.md'], array_keys(self::messages($report, Severity::Error)), 'Only the standard posts\' folder entry (D-514).');
 	}
 
 	public function testReportsASetThatDoesntFitAMediaKind(): void

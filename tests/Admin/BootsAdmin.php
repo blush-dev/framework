@@ -89,7 +89,7 @@ trait BootsAdmin
 	private function profiles(string ...$slugs): void
 	{
 		foreach ($slugs as $slug) {
-			$this->writeTemporaryFile("user/content/profiles/{$slug}.md", "---\ntitle: " . ucfirst($slug) . "\nid: " . self::profileId($slug) . "\n---\n");
+			$this->writeTemporaryFile("user/content/_profile/{$slug}.md", "---\ntitle: " . ucfirst($slug) . "\nid: " . self::profileId($slug) . "\n---\n");
 		}
 	}
 

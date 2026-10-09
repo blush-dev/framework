@@ -999,7 +999,9 @@ definition (see [Changing a type from code](content-types.md#changing-a-type-fro
 The pages and profiles types defined in code stay as they are, so their
 screens only show them. A type still written as a taxonomy can't be
 edited until it's migrated (see [Site Health](#site-health) and
-[Moving from taxonomies](content-types.md#moving-from-taxonomies)).
+[Moving from taxonomies](content-types.md#moving-from-taxonomies)), nor
+can one that still names its own folder until it's moved (see
+[Moving a type into its folder](content-types.md#moving-a-type-into-its-folder)).
 
 ### Creating a type
 
@@ -1009,10 +1011,11 @@ Created** beside them:
 1. **Basics:** a **Collection**, **Terms** (a collection whose entries
    file other entries, such as topics or tags), or a
    [**Tree**](content-types.md#trees), its names, a key
-   (made from the name, such as `recipe`), the folder its entries live in
-   under `user/content` (made from the plural name), a description, and
-   an icon. The key and folder can't change later.
-2. **Behavior:** the URL prefix (the folder's by default), whether it's
+   (made from the name, such as `recipe`), a description, and an icon.
+   Its entries live in `_` and the key under `user/content`
+   (`_recipe`), and the key can't change later.
+2. **Behavior:** the URL prefix (made from the plural name, such as
+   `recipes`; empty for the key), whether it's
    visible on the site, in the sitemap, listed in `llms.txt` (on for
    collections and trees, off for terms, by default), and has a feed;
    for a collection, date archives, a featured image (an `image` media
@@ -1026,8 +1029,9 @@ Created** beside them:
    there's none), and whether its list of authors has a **page
    introducing it** (see [People archives](content-types.md#people-archives)).
    Other credits are relationships, added on the type's screen. A tree
-   has no URL prefix, feed, or author archives: its entries are at their
-   paths in its folder.
+   has no feed or author archives: its entries are at their paths under
+   its prefix. **File names** and **Folders** (for a type with thousands
+   of entries) are offered only when content is kept in files.
 3. **Fields:** the fields its entries carry beside the title, slug,
    status, dates, and body.
 
@@ -1768,8 +1772,8 @@ facts as text, the facts as they're configured (`memory_limit: 256M`,
 
 Each Content and Media issue opens a screen of its own, where it's
 fixed: **Content Files**, **Entry IDs**, **Terms and Profiles**,
-**Parent Pages**, **Links Between Entries**, **Collection Folders**, **File Names**, and
-**Taxonomies**; **Media Details**, **Media IDs**, and **Image Sizes**.
+**Parent Pages**, **Links Between Entries**, **Collection Folders**, **File Names**,
+**Taxonomies**, and **Type Folders**; **Media Details**, **Media IDs**, and **Image Sizes**.
 Each shows the last check, with when it ran, and **Check Again**
 checks every content and media file again, which updates Site Health
 too. It reads the files in the background, a couple of hundred at a
@@ -1852,6 +1856,16 @@ collection and its classify relation in `user/data/relations`, as
 `bin/blush content:taxonomies --write` does (see
 [Moving from taxonomies](content-types.md#moving-from-taxonomies)). It
 migrates them all at once, and needs Site Health and `site.settings`.
+
+**Type Folders** lists the types in `user/data/types` that still name
+their own folder, with where their entries move. Every type is kept in
+`_` and its name, so their entries aren't found until they move.
+**Move Types** moves them, as `bin/blush content:type-folders --write`
+does (see
+[Moving a type into its folder](content-types.md#moving-a-type-into-its-folder)):
+each type's files move, and its file is written without the folder,
+with the prefix its addresses came from. It moves them all at once,
+and needs Site Health and `site.settings`.
 
 **Collection Folders** lists the collection entries not in the folders
 their [collection](content-types.md#collections-are-flat) keeps them in:
@@ -1948,9 +1962,9 @@ The API is JSON under `/admin/api`, and uses the session cookie:
 | `POST themes`, `POST plugins`, `POST icon-packs` | Installs an extension from a `.zip` of its folder, sent as the multipart field `file`, with `replace` set to `1` to replace an installed one with its name. Answers `201` with `{"installed": {"name", "label", "version", "folder", "abandoned", "suggests"}, "replaced", "backup", "refresh"}` (`abandoned` as `GET plugins` has it; `suggests` what it suggests, each `{"name", "reason"}`; `replaced` is the version it replaced, or `null`; `refresh` asks for `POST settings/refresh`). One already installed, without `replace`, is a `409` with `{"clash": {"installed", "incoming"}}`; anything else that stops it is a `422` saying why, with the `kind` an archive of another kind holds. Nothing is written either way. Needs `extensions.{kind}.install`, or `.update` to replace. Each kind's list (`GET themes`, `GET plugins`, `GET icon-packs`) also has `upload`: `{"limit", "problem"}`, the largest archive taken in bytes and why nothing can be installed |
 | `POST {themes,plugins,icon-packs}/{vendor}/{name}/rollback` | Rolls a folder extension back to the version replacing it kept, keeping the version it replaces in its place: `{"rolledBack": {"name", "label", "version", "folder"}, "from", "refresh"}`. No kept version is a `404`; one that wouldn't run (a plugin's requirements, an active theme's missing parent) a `422`. Each extension in its list has `backup`: `{"version"}`, or `null`. Needs `extensions.{kind}.update` |
 | `DELETE {themes,plugins,icon-packs}/{vendor}/{name}/backup` | Discards the kept version: `{"discarded": true}`. Needs `extensions.{kind}.delete` |
-| `GET types` | The site's content types: `{"types": [{"name", "labels", "description", "icon", "kind", "dated", "authors", "origin", "folder", "prefix", "fields"}], "authors"}`, by plural label, types of terms and the profiles type last. `kind` is `collection`, `tree`, or `profiles`, and each type's `authors` is whether its entries credit people. Each also has `terms` (whether a classify relation files entries under it), `hierarchical` (whether its entries nest by a `parent`), and `order` (a collection's, `published` or `position`; `null` for other kinds). A type of terms adds `"types"`, the types its relation files (empty for every type); the profiles type adds `"types"`, the types that credit people. `fields` is how many the type defines, `icon` is `null` for the kind's, and the top-level `authors` names the profiles type (`null` when the site has none). `labels` has every [label](content-types.md#names-descriptions-and-icons-in-the-admin), defaults filled in |
-| `GET types/{name}` | One type, with its own `fields`, the field `sets` added to it (`{"name", "label", "fields"}`), the `taxonomies` (types of terms) whose relations file it, its `relations` (every relation from or to it, each as `GET relations` describes it), `public`, `feed`, `sitemap`, `llms` (whether it's listed in `llms.txt`; off by default for profiles), `editable` (defined in `user/data/types`, or a collection or tree in a folder from code, and not still written as a taxonomy), `overridden` (from code, with a file in `user/data/types` changing it) and `overrides` (the options that file sets), `fieldsEditable`, `routes` (each address: `{"key", "path", "default", "requires", "allows", "root"}`, paths relative to the prefix), `dateArchives`, `folderPrefix` (the URL prefix its folder gives), `file`, its `index` page (`{"id", "path", "title"}` or `null`), its `byline` (the credit relation it names, or `null`), `credits` (the names of the credit relations from it), and `archivePages` (each relation archive under it: `{"relation", "label", "word", "page"}`, `page` its list page, `{"id", "path", "title"}` or `null`). `GET types` adds `create` (whether types can be created here) and `urls` (whether they may set URLs) |
-| `POST types` | Create a type in `user/data/types`: `{"name", "kind"` (`collection` or `tree`), `"folder", "set", "index", "listPages", "authors"}`; answers `201` with the type. `set` maps options to values: `labels`, `description`, `icon`, `prefix`, `paths` (route keys to paths, `null` for a key's default), `public`, `sitemap`, `llms`, `feed`, `byline` (the [credit relation](content-types.md#crediting-people) its byline uses), `dateArchives`, `hierarchical`, `order`, and `fields`; `index: true` adds its index page, `listPages` (relation names) adds each relation archive's list page, `_{word}.md` titled with its label (a `422` for a relation without archives under it), and `authors: true` adds the type to the `authors` credit relation, writing it when there's none. Needs `site.settings` |
+| `GET types` | The site's content types: `{"types": [{"name", "labels", "description", "icon", "kind", "dated", "authors", "origin", "folder", "prefix", "fields"}], "authors"}`, by plural label (`folder` is `_` and its name, `''` for `page`; `prefix` its URL prefix, a tree's own, or `null` for a type without URLs), types of terms and the profiles type last. `kind` is `collection`, `tree`, or `profiles`, and each type's `authors` is whether its entries credit people. Each also has `terms` (whether a classify relation files entries under it), `hierarchical` (whether its entries nest by a `parent`), and `order` (a collection's, `published` or `position`; `null` for other kinds). A type of terms adds `"types"`, the types its relation files (empty for every type); the profiles type adds `"types"`, the types that credit people. `fields` is how many the type defines, `icon` is `null` for the kind's, and the top-level `authors` names the profiles type (`null` when the site has none). `labels` has every [label](content-types.md#names-descriptions-and-icons-in-the-admin), defaults filled in |
+| `GET types/{name}` | One type, with its own `fields`, the field `sets` added to it (`{"name", "label", "fields"}`), the `taxonomies` (types of terms) whose relations file it, its `relations` (every relation from or to it, each as `GET relations` describes it), `public`, `feed`, `sitemap`, `llms` (whether it's listed in `llms.txt`; off by default for profiles), `editable` (defined in `user/data/types`, or a collection or tree in a folder from code, and not still written as a taxonomy), `overridden` (from code, with a file in `user/data/types` changing it) and `overrides` (the options that file sets), `fieldsEditable`, `routes` (each address: `{"key", "path", "default", "requires", "allows", "root"}`, paths relative to the prefix), `dateArchives`, `filename` and `folders` (its file name and folder patterns, or `null`), `defaultPrefix` (the URL prefix it has without one of its own, its name), `file`, its `index` page (`{"id", "path", "title"}` or `null`), its `byline` (the credit relation it names, or `null`), `credits` (the names of the credit relations from it), and `archivePages` (each relation archive under it: `{"relation", "label", "word", "page"}`, `page` its list page, `{"id", "path", "title"}` or `null`). `GET types` adds `create` (whether types can be created here), `urls` (whether they may set URLs), and `files` (whether content is kept in files, which alone have file name and folder patterns) |
+| `POST types` | Create a type in `user/data/types`, kept in `_` and its name: `{"name", "kind"` (`collection` or `tree`), `"set", "index", "listPages", "authors"}`; answers `201` with the type. `set` maps options to values: `labels`, `description`, `icon`, `prefix` (a tree's is the path its pages are served under), `paths` (route keys to paths, `null` for a key's default), `public`, `sitemap`, `llms`, `feed`, `byline` (the [credit relation](content-types.md#crediting-people) its byline uses), `dateArchives`, `filename`, `folders`, `hierarchical`, `order`, and `fields`; `index: true` adds its index page, `listPages` (relation names) adds each relation archive's list page, `_{word}.md` titled with its label (a `422` for a relation without archives under it), and `authors: true` adds the type to the `authors` credit relation, writing it when there's none. Needs `site.settings` |
 | `PATCH types/{name}` | Change a `user/data/types` type, or a collection or tree in a folder from code (saved in `user/data/types` over it): `{"set", "index", "listPages"}`, as above (`null` removes an option); answers with the type. A change that doesn't fit is a `422` with the reason |
 | `DELETE types/{name}` | Delete a `user/data/types` type's file (its entries stay); answers `{"deleted"}`. A type a relation names is a `422` saying which |
 | `GET relations` | The site's [relations](content-types.md#terms-and-relationships): `{"relations": [{"name", "kind", "from", "to", "field", "aliases", "label", "multiple", "ordered", "min", "max", "create", "symmetric", "translations", "control", "inverse", "definition", "origin", "editable", "singular", "entries", "legacy"}], "create"}`. `inverse` is `false` or `{"label", "page", "archive", "types", "max"}` (`archive` a word or `false`); `definition` is the relation as a data file writes it; `origin` is `extension`, `config`, or `data`; `editable` is whether it's in `user/data/relations` (and not a taxonomy waiting to be migrated); `create` is whether relations can be created here; `singular` is what one target is called, `entries` how many entries have a value in it, and `legacy` whether it's still written as a taxonomy |
@@ -1971,6 +1985,7 @@ The API is JSON under `/admin/api`, and uses the session cookie:
 | `GET health/site` | Site Health's last check, checking first when there's none, and `POST health/site` checks again; with `site.health`: `{"checked", "areas", "checks", "requirements", "site", "server"}`. Each check is `{"area", "key", "status", "label", "message", "hint", "link"}` (`status` is `pass`, `warning`, or `failure`; `link` names what the admin opens, or `null`), each requirement `{"group", "name", "why", "needs", "installed", "status"}` (`status` may also be `optional`), and each fact `{"label", "value", "mono"}` |
 | `GET health` | Content and media problems by file, as Site Health last checked them (checking first when it never has), and `POST health` checks again; with `site.health` like every `health` route. It answers `version` (the report's shape), `at` (when), each file with its `area` (`content` or `media`) and its problems, each `{"field", "message", "severity", "kind"}`, notices included, with counts; `entries`, each content file's `{"title", "type", "id"}` by path; and `ids`: `{"missing", "duplicates"}`, the files missing a valid id and each id files share (`{"id", "paths"}`). A problem another check reports (an id, a term with no file, an entry in a folder, an image's sizes) isn't among the files' problems. It also answers `ignored`: the problems ignored for the site, by key, each `{"by", "name", "at"}` (`by` the id of the account that ignored it); `POST health/ignore` and `POST health/unignore` take `{"key"}` and answer `ignored`. Each fix below that takes `paths` (a list) changes only those files; without it, every file the check found |
 | `POST health/terms` | Write a published file for each term and profile entries name with no file, of the types the account may create and publish: `{"created", "failed"}`, the new paths and why any couldn't be written, each by `{type}/{slug}`. Send `{"terms": ["{type}/{slug}", …]}` to write only those. `GET health`'s `terms` (`{"count", "items"}`, each `{"type", "label", "slug", "title", "entries"}`) says what's missing |
+| `POST health/type-folders` | Move each `user/data/types` type that still names its folder into `_` and its name, as `content:type-folders --write` does: `{"migrated", "failed"}`, how many files and folders moved for each type and why any couldn't be. `GET health`'s `typeFolders` lists the types left, each `{"name", "from", "to"}`. Needs `site.health` and `site.settings` |
 | `POST health/taxonomies` | Migrate each `user/data/types` type still written as a taxonomy to a collection and its classify relation, as `content:taxonomies --write` does: `{"migrated", "failed"}`, the files written for each type and why any couldn't be. `GET health`'s `taxonomies` names the types left. Needs `site.health` and `site.settings` |
 | `POST health/ids` | Give each file missing a valid id, that the account may edit, a new one (or only `{"paths"}`): `{"assigned", "failed"}`, the new ids by path and why any file couldn't be changed |
 | `POST health/ids/keep` | Keep a shared id on `{"path"}` and give the other files sharing it (that the account may edit) new ones; answers as above, or a `422` when the file doesn't share its id |
@@ -2211,7 +2226,7 @@ The admin's API names an entry by its `id`, the UUID in its front
 matter (see [Ids](content.md#ids)), never by its file. A file without
 an id can't be edited until it has one (Site Health adds it); lists
 show it with an `id` of `null`. Each answer also has the entry's `path`,
-its file under `user/content`, such as `_posts/2026-09-29.hello.md`,
+its file under `user/content`, such as `_post/2026-09-29.hello.md`,
 for showing. Its `handle` is its type and key, such as `post/hello`
 (a landing page's key is `index`), which says where it lives but isn't
 used to find it. An entry has no handle (`null`) when it isn't in
