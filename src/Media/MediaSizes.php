@@ -57,7 +57,7 @@ final readonly class MediaSizes
 		$stale      = [];
 
 		foreach ($this->current($records) as $key => $sizes) {
-			$listed = isset($records[$key]) ? $records[$key]->metadata()->sizes : [];
+			$listed = isset($records[$key]) ? $records[$key]->metadata()->renditions : [];
 			$add    = array_keys(array_filter($sizes, static fn (array $size, string $name): bool => ($listed[$name] ?? null) !== $size, ARRAY_FILTER_USE_BOTH));
 			$remove = array_keys(array_diff_key($listed, $sizes));
 
@@ -106,7 +106,7 @@ final readonly class MediaSizes
 			$sizes = $current[$key] ?? [];
 
 			try {
-				$this->store->save($file, [MediaMetadata::SIZES => $sizes === [] ? null : $sizes]);
+				$this->store->save($file, [MediaMetadata::RENDITIONS => $sizes === [] ? null : $sizes]);
 			} catch (MediaException $error) {
 				$failed[$key] = $error->getMessage();
 				continue;
@@ -131,7 +131,7 @@ final readonly class MediaSizes
 		$sizes = [];
 
 		foreach ($records as $key => $record) {
-			if ($record->metadata()->sizes !== []) {
+			if ($record->metadata()->renditions !== []) {
 				$sizes[(string) $key] ??= [];
 			}
 

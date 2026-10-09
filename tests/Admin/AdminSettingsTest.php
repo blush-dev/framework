@@ -327,7 +327,7 @@ final class AdminSettingsTest extends TestCase
 		$this->assertSame(['enabled' => true, 'maxSize' => null, 'path' => '{year}/{month}', 'kinds' => []], $item['input'] ?? null);
 		$this->assertSame(['image', 'video', 'audio', 'document', 'file'], array_column($kind, 'key'));
 		$this->assertSame(['pdf'], is_array($kind[3] ?? null) ? $kind[3]['extensions'] ?? null : null, 'Only the documents the site allows.');
-		$this->assertSame(['year', 'month', 'day', 'kind', 'ext'], $data['tokens'] ?? null);
+		$this->assertSame(['year', 'month', 'day', 'kind'], $data['tokens'] ?? null);
 
 		$this->assertSame(422, $this->write('PATCH', '/settings', ['set' => ['media.uploads' => ['path' => '../up']]])->getStatusCode());
 		$this->assertSame(422, $this->write('PATCH', '/settings', ['set' => ['media.uploads' => ['kinds' => ['zip' => []]]]])->getStatusCode());

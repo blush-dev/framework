@@ -115,9 +115,9 @@ final class AdminMediaFieldsTest extends TestCase
 
 		$schemas = $this->app->container()->make(MediaSchemas::class);
 
-		$this->assertSame(['title', 'alt', 'caption', 'credit', 'description'], array_keys($schemas->schema(MediaKind::Image)->fields), 'The title, then its own.');
-		$this->assertSame(['title', 'caption', 'credit', 'description'], array_keys($schemas->schema(MediaKind::Audio)->fields), 'Only images have alt text.');
-		$this->assertSame(['title', 'alt', 'caption', 'credit', 'description'], self::names(self::json($this->send('GET', '/media/photo.png'))['fields'] ?? null));
+		$this->assertSame(['title', 'alt', 'caption', 'credit', 'content'], array_keys($schemas->schema(MediaKind::Image)->fields), 'The title, then its own.');
+		$this->assertSame(['title', 'caption', 'credit', 'content'], array_keys($schemas->schema(MediaKind::Audio)->fields), 'Only images have alt text.');
+		$this->assertSame(['title', 'alt', 'caption', 'credit', 'content'], self::names(self::json($this->send('GET', '/media/photo.png'))['fields'] ?? null));
 	}
 
 	public function testFieldSetsAddFieldsByKind(): void
@@ -126,13 +126,13 @@ final class AdminMediaFieldsTest extends TestCase
 
 		$file = self::json($this->send('GET', '/media/photo.png'));
 
-		$this->assertSame(['title', 'alt', 'caption', 'credit', 'description', 'photographer', 'license'], self::names($file['fields'] ?? null), 'The built-in fields, then each set\'s, by set name.');
+		$this->assertSame(['title', 'alt', 'caption', 'credit', 'content', 'photographer', 'license'], self::names($file['fields'] ?? null), 'The built-in fields, then each set\'s, by set name.');
 		$this->assertSame([
 			['name' => 'photo', 'label' => 'Photo', 'description' => '', 'fields' => ['photographer']],
 			['name' => 'rights', 'label' => 'Rights', 'description' => '', 'fields' => ['license']]
 		], $file['sets'] ?? null);
 		$this->assertContains(['field' => 'license', 'message' => 'is required.', 'severity' => 'error'], (array) ($file['violations'] ?? []));
-		$this->assertSame(['title', 'caption', 'credit', 'description', 'license'], array_keys($this->app->container()->make(MediaSchemas::class)->schema(MediaKind::Audio)->fields), 'Only the sets on a kind.');
+		$this->assertSame(['title', 'caption', 'credit', 'content', 'license'], array_keys($this->app->container()->make(MediaSchemas::class)->schema(MediaKind::Audio)->fields), 'Only the sets on a kind.');
 	}
 
 	public function testASetCantReuseABuiltInField(): void
@@ -157,7 +157,11 @@ final class AdminMediaFieldsTest extends TestCase
 		$file     = self::json($response);
 
 		$this->assertSame(200, $response->getStatusCode(), (string) $response->getBody());
-		$this->assertSame(['shot_by' => 'Sam', 'notes' => 'kept', 'license' => 'cc-by', 'alt' => 'A dog running'], json_decode((string) file_get_contents($this->temporaryDirectory() . "/{$metadata}"), true), 'An alias in use is kept; other keys stay.');
+		$written = json_decode((string) file_get_contents($this->temporaryDirectory() . "/{$metadata}"), true);
+
+		$this->assertIsArray($written);
+		$this->assertSame(['shot_by' => 'Sam', 'notes' => 'kept', 'license' => 'cc-by', 'alt' => 'A dog running'], array_diff_key($written, ['id' => true]), 'An alias in use is kept; other keys stay.');
+		$this->assertSame('id', array_key_last($written), 'Saved, it gets its id, last (D-675).');
 		$this->assertSame(['alt' => 'A dog running', 'photographer' => 'Sam', 'license' => 'cc-by'], $file['values'] ?? null, 'In the fields\' order.');
 		$this->assertSame(['notes' => 'kept'], $file['extra'] ?? null);
 		$this->assertSame('A dog running', $file['alt'] ?? null);

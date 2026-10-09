@@ -30,6 +30,7 @@ use Blush\Core\Paths;
 use Blush\Data\FileDataStore;
 use Blush\Data\RecordDataStore;
 use Blush\Job\FileJobStore;
+use Blush\Media\MediaMetadataStore;
 use Blush\Job\RecordJobStore;
 use Blush\Session\RecordSessionStore;
 use Blush\Settings\SettingGroups;
@@ -208,12 +209,12 @@ final readonly class StorageCopy
 	{
 		$from   = $this->container->make(FileDataStore::class);
 		$to     = new RecordDataStore($target, $this->clock);
-		$tables = [DefinitionTables::TYPES . '/', DefinitionTables::RELATIONS . '/', SettingGroups::TABLE . '/'];
+		$tables = [DefinitionTables::TYPES . '/', DefinitionTables::RELATIONS . '/', SettingGroups::TABLE . '/', MediaMetadataStore::FOLDER . '/'];
 		$count  = 0;
 
 		foreach (array_keys($from->records('')) as $name) {
-			// Types, relations, and settings are tables of their own
-			// (D-672, D-673), copied
+			// Types, relations, settings, and media metadata are tables of
+			// their own (D-672, D-673, D-675), copied
 			// with the other tables.
 			if (array_any($tables, static fn (string $folder): bool => str_starts_with($name, $folder))) {
 				continue;

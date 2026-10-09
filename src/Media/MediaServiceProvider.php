@@ -20,6 +20,7 @@ use Blush\Media\Embedded\EmbeddedReaderRegistrar;
 use Blush\Media\Embedded\EmbeddedReaderRegistry;
 use Blush\Field\FieldTargetSource;
 use Blush\Routing\RouteSource;
+use Blush\Storage\Record\TableRegistry;
 
 /**
  * Binds media resolution and the media route.
@@ -56,7 +57,7 @@ final class MediaServiceProvider extends ServiceProvider
 
 	/**
 	 * The embedded metadata readers' registry, seeded with the built-in
-	 * readers (D-289).
+	 * readers (D-289), and the media table.
 	 */
 	#[Override]
 	public function register(): void
@@ -72,5 +73,12 @@ final class MediaServiceProvider extends ServiceProvider
 				return $registry;
 			}
 		);
+
+		// The media table (D-675), for `storage:sync` and `storage:copy`.
+		$this->container->resolving(TableRegistry::class, static function (object $tables): void {
+			if ($tables instanceof TableRegistry) {
+				$tables->register(MediaMetadataStore::table());
+			}
+		});
 	}
 }

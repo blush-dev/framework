@@ -36,14 +36,14 @@
 			],
 			"description": "Who made it, or where it's from."
 		},
-		"description": {
+		"content": {
 			"type": [
 				"string",
 				"number"
 			],
-			"description": "A longer description, for the library."
+			"description": "Description: A longer description, for the library."
 		},
-		"sizes": {
+		"renditions": {
 			"type": "object",
 			"description": "An image's other sizes: each file's path in user/media, with its width and height. media:sizes records them.",
 			"additionalProperties": {

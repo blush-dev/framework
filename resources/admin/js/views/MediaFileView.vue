@@ -108,7 +108,7 @@ const extra   = computed(() => Object.entries(file.value?.extra ?? {}));
 // can fill, if the file's kind has it.
 const EMBEDDED: Record<string, { label: string; field?: string }> = {
 	title: { label: 'Title', field: 'title' },
-	description: { label: 'Description', field: 'description' },
+	description: { label: 'Description', field: 'content' },
 	creator: { label: 'Creator', field: 'credit' },
 	album: { label: 'Album' },
 	track: { label: 'Track' },

@@ -163,7 +163,7 @@ final class AdminPickersTest extends TestCase
 		$this->png('user/media/2019/photo.png', 60, 40);
 		$this->png('user/media/2019/photo-30x20.png', 30, 20);
 		$this->png('user/media/2019/photo-15x10.png', 15, 10);
-		$this->writeTemporaryFile('user/data/media/2019/photo.png.json', '{"alt": "A photo", "sizes": {"2019/photo-15x10.png": {"width": 15, "height": 10}}}');
+		$this->writeTemporaryFile('user/data/media/2019/photo.png.json', '{"alt": "A photo", "renditions": {"2019/photo-15x10.png": {"width": 15, "height": 10}}, "id": "0199b6e2-0000-7000-8000-0000000000aa"}');
 		$this->writeTemporaryFile('user/content/uses-size.md', "---\ntitle: Uses a Size\nauthors: jane\n---\n![](/media/2019/photo-30x20.png)\n");
 		$this->site();
 
@@ -280,7 +280,7 @@ final class AdminPickersTest extends TestCase
 	{
 		$this->writeSettings((string) json_encode(['media' => ['uploads' => [
 			'path'  => '{kind}/{year}',
-			'kinds' => ['image' => ['path' => 'pics/{ext}', 'maxSize' => 1], 'audio' => ['enabled' => false]]
+			'kinds' => ['image' => ['path' => 'pics/{kind}', 'maxSize' => 1], 'audio' => ['enabled' => false]]
 		]]]));
 		$this->site();
 
@@ -289,7 +289,7 @@ final class AdminPickersTest extends TestCase
 		$list = $this->media();
 
 		$this->assertNotContains('mp3', is_array($list['upload'] ?? null) && is_array($list['upload']['extensions'] ?? null) ? $list['upload']['extensions'] : [], 'A kind turned off isn\'t offered.');
-		$this->assertSame('pics/png', self::json($this->upload('a.png', $png))['folder'] ?? null, 'A kind\'s own path.');
+		$this->assertSame('pics/images', self::json($this->upload('a.png', $png))['folder'] ?? null, 'A kind\'s own path.');
 		$this->assertSame("documents/{$year}", self::json($this->upload('rider.pdf', "%PDF-1.4\n1 0 obj << >> endobj\ntrailer << >>\n%%EOF\n"))['folder'] ?? null, 'Every kind\'s path, with {kind}.');
 		$this->assertSame(413, $this->upload('big.png', $png . str_repeat("\0", 1024 * 1024))->getStatusCode(), 'Larger than the kind\'s largest.');
 		$this->assertSame(422, $this->upload('song.mp3', 'ID3')->getStatusCode(), 'A kind turned off.');
@@ -383,7 +383,7 @@ final class AdminPickersTest extends TestCase
 
 		$this->assertSame(200, $saved->getStatusCode(), (string) $saved->getBody());
 		$this->assertSame(['A red square.', 'The first one'], [self::json($saved)['alt'] ?? null, self::json($saved)['caption'] ?? null], 'On one line, trimmed.');
-		$this->assertSame("{\n    \"alt\": \"A red square.\",\n    \"caption\": \"The first one\"\n}\n", (string) file_get_contents($data), 'A new file is JSON (D-490).');
+		$this->assertMatchesRegularExpression('/\A\{\n    "alt": "A red square\.",\n    "caption": "The first one",\n    "id": "[0-9a-f-]{36}"\n\}\n\z/', (string) file_get_contents($data), 'A new file is JSON (D-490), with an id, last (D-675).');
 		$this->assertFileDoesNotExist($this->temporaryDirectory() . '/user/media/2026/new-photo.png.json', 'Never beside the file.');
 
 		$files = $this->media()['files'] ?? null;
@@ -395,24 +395,26 @@ final class AdminPickersTest extends TestCase
 		file_put_contents($data, '{"credit": "Jane", "alt": "A red square.", "caption": "The first one"}');
 		$this->patch('2026/new-photo.png', ['caption' => '']);
 
-		$this->assertSame(['credit' => 'Jane', 'alt' => 'A red square.'], json_decode((string) file_get_contents($data), true));
+		$kept = json_decode((string) file_get_contents($data), true);
+
+		$this->assertSame(['credit' => 'Jane', 'alt' => 'A red square.'], is_array($kept) ? array_diff_key($kept, ['id' => true]) : null, 'With the id it gets when it\'s saved (D-675).');
 
 		$this->patch('2026/new-photo.png', ['alt' => '']);
-		$this->assertSame(['credit' => 'Jane'], json_decode((string) file_get_contents($data), true));
+		$this->assertSame(['credit' => 'Jane'], array_diff_key((array) json_decode((string) file_get_contents($data), true), ['id' => true]));
 
 		unlink($data);
 		$this->writeTemporaryFile('user/data/media/2020/old.png.json', '{"$schema": "../../../media.schema.json", "credit": "Sam"}');
 		$this->patch('2020/old.png', ['alt' => 'Old']);
 
-		$this->assertSame(['$schema' => '../../../media.schema.json', 'credit' => 'Sam', 'alt' => 'Old'], json_decode((string) file_get_contents($this->temporaryDirectory() . '/user/data/media/2020/old.png.json'), true), 'JSON stays JSON, its schema key kept (D-491).');
+		$this->assertSame(['$schema' => '../../../media.schema.json', 'credit' => 'Sam', 'alt' => 'Old'], array_diff_key((array) json_decode((string) file_get_contents($this->temporaryDirectory() . '/user/data/media/2020/old.png.json'), true), ['id' => true]), 'JSON stays JSON, its schema key kept (D-491).');
 
 		$this->patch('2020/old.png', ['alt' => '']);
 		$this->patch('2026/new-photo.png', ['alt' => 'Back', 'caption' => '']);
-		$this->writeTemporaryFile('user/data/media/2026/new-photo.png.json', '{"$schema": "../../../media.schema.json", "alt": "Back"}');
+		$this->writeTemporaryFile('user/data/media/2026/new-photo.png.json', '{"$schema": "../../../media.schema.json", "alt": "Back", "id": "0199b6e2-0000-7000-8000-0000000000ab"}');
 		$this->assertSame('Back', self::json($this->send('GET', '/media/2026/new-photo.png'))['alt'] ?? null);
 		$this->patch('2026/new-photo.png', ['alt' => '']);
 
-		$this->assertFileDoesNotExist($this->temporaryDirectory() . '/user/data/media/2026/new-photo.png.json', 'A file with nothing to say goes, even with a schema key.');
+		$this->assertSame(['$schema' => '../../../media.schema.json', 'id' => '0199b6e2-0000-7000-8000-0000000000ab'], json_decode((string) file_get_contents($this->temporaryDirectory() . '/user/data/media/2026/new-photo.png.json'), true), 'With nothing else to say, it keeps its id: the file\'s own (D-487, D-675).');
 	}
 
 	public function testChecksChangesToMetadata(): void

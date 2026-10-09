@@ -43,7 +43,8 @@ final class MediaSchemas
 	/**
 	 * Returns a kind's built-in fields: `title` first, so every kind's form
 	 * opens the same way, then its own (an image's alt text), then
-	 * `caption`, `credit`, and `description`, which every kind has.
+	 * `caption`, `credit`, and the description (`content`, a record's
+	 * content, D-674), which every kind has.
 	 */
 	public static function builtIn(MediaKind $kind): Schema
 	{
@@ -93,7 +94,7 @@ final class MediaSchemas
 			throw new InvalidConfig($e->getMessage(), previous: $e);
 		}
 
-		foreach ([MediaMetadata::ID => 'id', MediaMetadata::OWNER => 'uploader', MediaMetadata::SIZES => 'sizes', MediaMetadata::ARTWORK => 'artwork'] as $key => $what) {
+		foreach ([MediaMetadata::ID => 'id', MediaMetadata::OWNER => 'uploader', MediaMetadata::RENDITIONS => 'renditions', MediaMetadata::ARTWORK => 'artwork'] as $key => $what) {
 			if ($schema->field($key) !== null) {
 				throw new InvalidConfig(sprintf('A field set for %s media has a field (or alias) named "%s", which is reserved for the file\'s %s; rename it.', $kind->value, $key, $what));
 			}
@@ -132,7 +133,7 @@ final class MediaSchemas
 		return [
 			new TextField('caption')->described('Shown with the file where it\'s used, such as under an image.'),
 			new TextField('credit')->described('Who made it, or where it\'s from.'),
-			new MarkdownField('description')->described('A longer description, for the library.')
+			new MarkdownField(MediaMetadata::CONTENT)->labeled('Description')->described('A longer description, for the library.')
 		];
 	}
 }

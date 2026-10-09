@@ -180,7 +180,7 @@ final readonly class MediaMetadataCheck
 		foreach ($stale as $key => $listed) {
 			if (isset($files[$key])) {
 				foreach ($listed as $size) {
-					$violations[$files[$key]['location']][] = new Violation(MediaMetadata::SIZES, sprintf('lists %s, which isn\'t one of its sizes (it\'s gone, or another image\'s); record them again with media:sizes --write, or on Site Health in the admin.', $media($size)), Severity::Warning, ViolationKind::Sizes);
+					$violations[$files[$key]['location']][] = new Violation(MediaMetadata::RENDITIONS, sprintf('lists %s, which isn\'t one of its sizes (it\'s gone, or another image\'s); record them again with media:sizes --write, or on Site Health in the admin.', $media($size)), Severity::Warning, ViolationKind::Sizes);
 				}
 			}
 		}
@@ -254,8 +254,8 @@ final readonly class MediaMetadataCheck
 			$violations[] = new Violation(MediaMetadata::ARTWORK, 'isn\'t a library image\'s id; choose the artwork again on the file\'s screen in the admin.', kind: ViolationKind::Artwork);
 		}
 
-		if (array_key_exists(MediaMetadata::SIZES, $data) && ! self::sizesFit($data[MediaMetadata::SIZES])) {
-			$violations[] = new Violation(MediaMetadata::SIZES, 'isn\'t a map of each size\'s file to its width and height; record them again with media:sizes --write.', kind: ViolationKind::Value);
+		if (array_key_exists(MediaMetadata::RENDITIONS, $data) && ! self::sizesFit($data[MediaMetadata::RENDITIONS])) {
+			$violations[] = new Violation(MediaMetadata::RENDITIONS, 'isn\'t a map of each size\'s file to its width and height; record them again with media:sizes --write.', kind: ViolationKind::Value);
 		}
 
 		return $violations;

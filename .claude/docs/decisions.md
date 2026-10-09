@@ -20778,3 +20778,92 @@ decision, add a new entry that supersedes it and mark the old one
   site's `settings.json` was split into `user/data/settings/` and it
   boots with its theme and plugins.
 - **Why:** the author's go ("go, do 6c"), on D-670.
+
+### D-674: The media table's shape, and renditions
+
+- **Date:** 2026-10-09
+- **Status:** Decided; built with 6d (D-675).
+- **Decision:**
+  - **`media`, a record per media original,** keyed by id (the file's own,
+    D-487), in the data area. Declared fields: **`path`** (the original's
+    under `user/media`, unique) and **`owner`** (the uploader's account
+    id, D-668), so a database looks both up by index. Every other field is
+    data: `artwork`, `renditions`, `title`, `alt`, `caption`, `credit`,
+    and what field sets add.
+  - **The description is the record's content** (`content`, as an
+    entry's body is), so a media file's `content()` would mirror an
+    entry's if media get pages of their own. On files the key is
+    `content`, not `description`.
+  - **`sizes` become `renditions`:** the other files of the same image,
+    each by its path to what's known of it (`width`, `height`); a
+    rendition's format is its extension. One record holds the original
+    and its renditions, so its alt text, title, credit, and owner are
+    written once. Sizes are still found by their naming rule (D-487);
+    copies in other formats are recorded by whatever makes them, never
+    found by name. Generating renditions is for later
+    (`open-questions.md`). The name: renditions, the term for an
+    asset's derivative files, over `variants` (used for directive
+    styles, D-266).
+  - **`{ext}` goes from upload folders** (`MediaUploads`): a rendition
+    belongs beside its original. A saved setting naming it is refused.
+  - **Moving a file changes its `path`, never its id;** on files its
+    metadata file moves with it.
+  - **A metadata file without a valid id, or sharing one, isn't a
+    record** until Media IDs gives it its own (as D-656 for content).
+  - **On files,** the table is the metadata files as they are,
+    `user/data/media/{path}.json`, the path from where the file is, never
+    written in it; a damaged file is skipped and reported by the linter,
+    not fatal.
+- **Why:** the author: "Yes" to declaring `owner`; "the description and
+  content are the same thing. We'd use it for $media->content() just
+  like $entry->content()"; on sizes: "Should we, instead, be storing
+  'variations' or 'alternates'? … we might have different extensions
+  for the same image … Does it make sense storing these as a single media
+  entry? … we probably wouldn't want to allow {ext} to be a filepath for
+  media storage folders"; then "renditions", and format copies recorded
+  explicitly "for old ones … In the future, we should have a feature to
+  allow users to auto-generate different renditions."
+
+### D-675: Media metadata as a table (step 6d)
+
+- **Date:** 2026-10-09
+- **Status:** Built. Part 6d of step 6, with D-674's shape.
+- **Decision:**
+  - **`MediaMetadataStore` is the repository over `media`**
+    (`MediaMetadataStore::table()`: no key, `path` and `owner` declared),
+    keeping its methods: `find()` by the file's path, `save()` (keys set
+    and removed under the names the record uses; a record without an id
+    gets one, an id set or kept in the file winning), `forget()`,
+    `files()` (each record's location and a stamp that changes with it,
+    for the media index), `load()` (as kept, for checking), `has()`,
+    `freePath()`, `isWritable()`. Callers are unchanged.
+  - **On files, `MediaFiles`** (`Blush\Media`) keeps the table as the
+    metadata files, `user/data/media/{path}.json`, as `IndexStore` keeps
+    content: `FileRecordStore` hands it the table (`keeper()`, for content
+    and media). A query naming paths (`path =`, `path in`) reads only
+    those files; any other reads them all. A file that isn't a JSON map,
+    lacks a valid id, or shares one isn't a record. `stamps()` gives the
+    media index every file's time without reading it; `raw()` the file as
+    it is, for the linter; `discard()` removes a file that isn't a record.
+    It's bound in the filesystem driver (`MediaFiles`), which is how the
+    repository knows the metadata is kept as files.
+  - **On SQLite** the table is rows, `path` and `owner` indexed;
+    `storage:copy` copies it as a table (and leaves it out of the data
+    records); `storage:sync` makes 12 tables.
+  - **Renditions:** `MediaMetadata::RENDITIONS` (`renditions`) and its
+    `$renditions` in place of `sizes`; the size tools (`media:sizes`,
+    Image Sizes) keep their names and write renditions. The admin's
+    words for an image's sizes are unchanged.
+  - **The description is `content`:** the built-in Markdown field is named
+    `content` (labeled Description), kept as the record's content.
+  - **`{ext}` is gone from upload paths;** one naming it is refused,
+    saying why.
+  - **A file with nothing but its id keeps it:** removing every field
+    leaves `{"id": …}`, the file's identity, rather than deleting it.
+- **Proof:** `composer check` (2,092 tests): `MediaFilesTest` (what is and
+  isn't a record, paths, `$schema`, moving), `SqliteAreasTest` (metadata
+  as records), the media, artwork, ids, sizes, lint, and pickers tests,
+  `MediaUploadsTest` (`{ext}` refused). The trial site's 804 metadata
+  files with `sizes` or `description` were rewritten; every one has an
+  id, and `media:ids` and `media:sizes` report nothing to do.
+- **Why:** the author's go ("go, do 6d"), on D-674.

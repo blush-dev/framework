@@ -34,8 +34,9 @@ use Blush\Config\InvalidConfig;
  * - `path` is the folder under `user/media` a file goes in: a plain folder
  *   (`uploads`), or a pattern of the tokens `{year}`, `{month}`, `{day}`
  *   (by the site's clock and time zone), `{kind}` (`images`, `videos`,
- *   `audio`, `documents`, `files`), and `{ext}`. Empty puts files straight
- *   in `user/media`.
+ *   `audio`, `documents`, `files`). Empty puts files straight in
+ *   `user/media`. Never `{ext}` (D-674): an image's renditions in other
+ *   formats belong beside it.
  * - `kinds` are rules for a kind (`MediaUploadRule`, by `MediaKind`
  *   value): it may be turned off, or have its own largest file or path.
  *
@@ -91,7 +92,7 @@ final readonly class MediaUploads
 	 *
 	 * @var list<string>
 	 */
-	public const array TOKENS = ['year', 'month', 'day', 'kind', 'ext'];
+	public const array TOKENS = ['year', 'month', 'day', 'kind'];
 
 	/**
 	 * The largest size that can be set, in megabytes.
@@ -187,14 +188,13 @@ final readonly class MediaUploads
 	 * The folder under `user/media` a file goes in, its tokens filled in:
 	 * `2026/10`, or empty for `user/media` itself.
 	 */
-	public function folder(MediaKind $kind, DateTimeInterface $now, string $extension): string
+	public function folder(MediaKind $kind, DateTimeInterface $now): string
 	{
 		return strtr($this->pattern($kind), [
 			'{year}'  => $now->format('Y'),
 			'{month}' => $now->format('m'),
 			'{day}'   => $now->format('d'),
-			'{kind}'  => $kind->folder(),
-			'{ext}'   => strtolower($extension) === '' ? 'other' : strtolower($extension)
+			'{kind}'  => $kind->folder()
 		]);
 	}
 
@@ -207,6 +207,10 @@ final readonly class MediaUploads
 	{
 		$path   = trim($path, '/ ');
 		$tokens = implode('|', self::TOKENS);
+
+		if (str_contains($path, '{ext}')) {
+			throw new InvalidConfig(sprintf('An upload path can\'t use {ext}: an image\'s renditions in other formats belong in its folder, beside it; "%s" sorts them by extension.', $path));
+		}
 
 		foreach (explode('/', $path) as $segment) {
 			if (preg_match('/^(?:[A-Za-z0-9_-]|\.(?!\.)|\{(?:' . $tokens . ')\})+$/', $segment) !== 1 || str_starts_with($segment, '.')) {

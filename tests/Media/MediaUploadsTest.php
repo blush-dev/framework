@@ -35,7 +35,7 @@ final class MediaUploadsTest extends TestCase
 
 		$this->assertTrue($uploads->allows(MediaKind::Document));
 		$this->assertNull($uploads->maxBytes(MediaKind::Image), 'PHP\'s limit until one is set.');
-		$this->assertSame('2026/10', $uploads->folder(MediaKind::Image, $now, 'jpg'), 'By year and month, as 1.x filed them.');
+		$this->assertSame('2026/10', $uploads->folder(MediaKind::Image, $now), 'By year and month, as 1.x filed them.');
 		$this->assertSame(['enabled' => true, 'maxSize' => null, 'path' => '{year}/{month}', 'kinds' => []], $uploads->toArray());
 	}
 
@@ -46,7 +46,7 @@ final class MediaUploadsTest extends TestCase
 			'path'    => '/{kind}/{year}/',
 			'kinds'   => [
 				'file'     => ['enabled' => false],
-				'audio'    => ['maxSize' => 40, 'path' => 'sound/{ext}'],
+				'audio'    => ['maxSize' => 40, 'path' => 'sound/{kind}'],
 				'image'    => ['enabled' => true, 'maxSize' => null, 'path' => '  '],
 				'document' => new MediaUploadRule(path: 'docs/{day}')
 			]
@@ -57,12 +57,12 @@ final class MediaUploadsTest extends TestCase
 		$this->assertFalse($uploads->allows(MediaKind::File));
 		$this->assertSame(24 * 1024 * 1024, $uploads->maxBytes(MediaKind::Image), 'A kind without its own takes every kind\'s.');
 		$this->assertSame(40 * 1024 * 1024, $uploads->maxBytes(MediaKind::Audio));
-		$this->assertSame('images/2026', $uploads->folder(MediaKind::Image, $now, 'jpg'));
-		$this->assertSame('sound/mp3', $uploads->folder(MediaKind::Audio, $now, 'MP3'));
-		$this->assertSame('docs/02', $uploads->folder(MediaKind::Document, $now, 'pdf'));
+		$this->assertSame('images/2026', $uploads->folder(MediaKind::Image, $now));
+		$this->assertSame('sound/audio', $uploads->folder(MediaKind::Audio, $now));
+		$this->assertSame('docs/02', $uploads->folder(MediaKind::Document, $now));
 		$this->assertSame($uploads->toArray(), MediaUploads::fromArray($uploads->toArray())->toArray(), 'It reads what it writes.');
 		$this->assertFalse(new MediaUploads(enabled: false)->allows(MediaKind::Image), 'All Files turns every kind off.');
-		$this->assertSame('', new MediaUploads(path: '/')->folder(MediaKind::Image, $now, 'jpg'), 'Straight in user/media.');
+		$this->assertSame('', new MediaUploads(path: '/')->folder(MediaKind::Image, $now), 'Straight in user/media.');
 	}
 
 	public function testRefusesWhatDoesNotFit(): void
@@ -71,6 +71,7 @@ final class MediaUploadsTest extends TestCase
 			['path' => '../up'],
 			['path' => 'a/.hidden'],
 			['path' => '{week}'],
+			['path' => 'by/{ext}'],
 			['path' => 'a b'],
 			['maxSize' => 0],
 			['maxSize' => '24'],
@@ -86,6 +87,12 @@ final class MediaUploadsTest extends TestCase
 			} catch (InvalidConfig) {
 				$this->addToAssertionCount(1);
 			}
+		}
+
+		try {
+			MediaUploads::fromArray(['path' => '{year}/{ext}']);
+		} catch (InvalidConfig $error) {
+			$this->assertStringContainsString('renditions in other formats belong in its folder', $error->getMessage(), 'Not {ext} (D-674).');
 		}
 
 		$this->assertSame(['enabled' => false, 'maxSize' => 8, 'path' => 'uploads', 'kinds' => []], MediaConfig::fromArray(['uploads' => ['enabled' => false, 'maxSize' => 8, 'path' => 'uploads']])->uploads->toArray());

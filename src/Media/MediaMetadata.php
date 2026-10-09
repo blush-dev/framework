@@ -26,8 +26,8 @@ use Blush\Support\Uuid;
  *
  * Four keys aren't fields, and the details form doesn't edit them:
  * `owner`, the id of the account that uploaded the file (D-407, D-668);
- * `sizes`, an image's other sizes (D-488), their keys in `user/media`
- * mapped to their `width` and `height`; `artwork`, the id of the library
+ * `renditions`, an image's other files (D-488, D-674), their keys in
+ * `user/media` mapped to their `width` and `height`; `artwork`, the id of the library
  * image a sound or video shows as its artwork (D-581), which the file's
  * screen sets on its own; and `id`, the file's UUID (D-487), written
  * last, as an entry's is (D-477). `fields()` is the values without them.
@@ -45,9 +45,16 @@ final readonly class MediaMetadata
 	public const string ID = 'id';
 
 	/**
-	 * The key an image's sizes are kept under (D-488).
+	 * The key an image's renditions are kept under (D-488, D-674): its
+	 * other files, sizes found by rule and copies in other formats.
 	 */
-	public const string SIZES = 'sizes';
+	public const string RENDITIONS = 'renditions';
+
+	/**
+	 * The key a file's description, a record's content, is kept under
+	 * (D-674).
+	 */
+	public const string CONTENT = 'content';
 
 	/**
 	 * The key a sound's or video's artwork, a library image's id, is
@@ -74,13 +81,13 @@ final readonly class MediaMetadata
 	public string $id;
 
 	/**
-	 * The image's recorded sizes (D-488), by key: each one's width and
-	 * height, `null` when it doesn't say. Entries that aren't a key and a
-	 * map are left out (`content:lint` reports them).
+	 * The image's recorded renditions (D-488, D-674), by key: each one's
+	 * width and height, `null` when it doesn't say. Entries that aren't a
+	 * key and a map are left out (`content:lint` reports them).
 	 *
 	 * @var array<string, array{width: ?int, height: ?int}>
 	 */
-	public array $sizes;
+	public array $renditions;
 
 	/**
 	 * The id of the library image a sound or video shows as its artwork
@@ -98,17 +105,17 @@ final readonly class MediaMetadata
 		$this->caption = self::line($values['caption'] ?? null);
 		$this->owner   = self::line($values[self::OWNER] ?? null);
 		$this->id      = Uuid::isValid($values[self::ID] ?? null) ? strtolower(self::line($values[self::ID])) : '';
-		$this->sizes   = self::readSizes($values[self::SIZES] ?? null);
+		$this->renditions = self::readRenditions($values[self::RENDITIONS] ?? null);
 		$this->artwork = Uuid::isValid($values[self::ARTWORK] ?? null) ? strtolower(self::line($values[self::ARTWORK])) : '';
 	}
 
 	/**
-	 * Reads recorded sizes: a map of keys to maps with a `width` and a
-	 * `height`.
+	 * Reads recorded renditions: a map of keys to maps with a `width`
+	 * and a `height`.
 	 *
 	 * @return array<string, array{width: ?int, height: ?int}>
 	 */
-	public static function readSizes(mixed $value): array
+	public static function readRenditions(mixed $value): array
 	{
 		if (! is_array($value) || array_is_list($value)) {
 			return [];
@@ -131,14 +138,14 @@ final readonly class MediaMetadata
 	}
 
 	/**
-	 * The field values: every value but the owner, the sizes, the
+	 * The field values: every value but the owner, the renditions, the
 	 * artwork, and the id.
 	 *
 	 * @return array<string, mixed>
 	 */
 	public function fields(): array
 	{
-		return array_diff_key($this->values, [self::OWNER => true, self::SIZES => true, self::ARTWORK => true, self::ID => true]);
+		return array_diff_key($this->values, [self::OWNER => true, self::RENDITIONS => true, self::ARTWORK => true, self::ID => true]);
 	}
 
 	/**

@@ -133,7 +133,7 @@ final readonly class MediaUploadController
 			return self::error(sprintf('%s is larger than %s may be (up to %s).', $name, mb_strtolower($kind->label()), self::size($most)), Status::ContentTooLarge);
 		}
 
-		$folder = rtrim($this->paths->media . '/' . $uploads->folder($kind, $this->clock->now(), $extension), '/');
+		$folder = rtrim($this->paths->media . '/' . $uploads->folder($kind, $this->clock->now()), '/');
 		$hidden = $folder . '/.upload-' . bin2hex(random_bytes(8)) . '.' . $extension;
 
 		try {

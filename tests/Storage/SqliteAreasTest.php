@@ -30,6 +30,8 @@ use Blush\Job\JobRecord;
 use Blush\Job\JobStatus;
 use Blush\Job\JobStore;
 use Blush\Job\RecordJobStore;
+use Blush\Media\MediaMetadataStore;
+use Blush\Media\MediaResolver;
 use Blush\Session\RecordSessionStore;
 use Blush\Session\SessionStore;
 use Blush\Settings\Settings;
@@ -94,6 +96,31 @@ final class SqliteAreasTest extends TestCase
 		$this->assertInstanceOf(RecordSessionStore::class, $this->make(SessionStore::class));
 		$this->assertInstanceOf(RecordJobStore::class, $this->make(JobStore::class));
 		$this->assertDirectoryDoesNotExist($this->temporaryDirectory() . '/user/data', 'Nothing kept as files.');
+	}
+
+	public function testKeepsMediaMetadataAsRecords(): void
+	{
+		$this->writeTemporaryFile('user/media/2026/lake.png', (string) base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', true));
+
+		$file  = $this->make(MediaResolver::class)->fromKey('2026/lake.png');
+		$store = $this->make(MediaMetadataStore::class);
+
+		$this->assertNotNull($file);
+
+		$store->save($file, ['alt' => 'A lake', 'content' => 'Long.']);
+
+		$metadata = $store->find($file);
+
+		$this->assertSame('A lake', $metadata->alt);
+		$this->assertSame('Long.', $metadata->values['content'] ?? null, 'Its description is the record\'s content (D-674).');
+		$this->assertNotSame('', $metadata->id, 'A record has its id.');
+		$this->assertSame(['2026/lake.png'], array_keys($store->files()));
+		$this->assertSame('media/2026/lake.png in the database', $store->location('2026/lake.png'));
+		$this->assertDirectoryDoesNotExist($this->temporaryDirectory() . '/user/data/media', 'Kept in the database (D-675).');
+
+		$store->forget('2026/lake.png');
+
+		$this->assertSame('', $store->find($file)->alt);
 	}
 
 	public function testKeepsDataByName(): void

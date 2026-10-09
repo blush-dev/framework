@@ -489,7 +489,7 @@ final readonly class JsonSchemas
 			'properties'  => [
 				'$schema' => ['type' => 'string', 'description' => 'The JSON Schema editors check this file with.'],
 				...$fields,
-				MediaMetadata::SIZES => [
+				MediaMetadata::RENDITIONS => [
 					'type'                 => 'object',
 					'description'          => 'An image\'s other sizes: each file\'s path in user/media, with its width and height. media:sizes records them.',
 					'additionalProperties' => [

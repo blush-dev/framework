@@ -218,7 +218,7 @@ return new MediaConfig(
 |---|---|---|
 | `enabled` | `true` | Whether anything may be uploaded. Files already in `user/media` are served either way |
 | `maxSize` | `null` | The largest file, in megabytes; `null` for whatever PHP takes (`upload_max_filesize`, `post_max_size`), which is always the most |
-| `path` | `'{year}/{month}'` | The folder under `user/media` a file goes in: a plain folder (`uploads`), or a pattern with `{year}`, `{month}`, `{day}`, `{kind}` (`images`, `videos`, `audio`, `documents`, or `files`), and `{ext}`. Empty puts files straight in `user/media` |
+| `path` | `'{year}/{month}'` | The folder under `user/media` a file goes in: a plain folder (`uploads`), or a pattern with `{year}`, `{month}`, `{day}`, and `{kind}` (`images`, `videos`, `audio`, `documents`, or `files`). Empty puts files straight in `user/media`. Not `{ext}`: an image's renditions in other formats go beside it |
 | `kinds` | `[]` | Rules for one kind (`image`, `video`, `audio`, `document`, `file`), each a `MediaUploadRule` with `enabled`, and its own `maxSize` and `path` (`null` takes the ones above) |
 
 Changing a path doesn't move anything: a file keeps the address it was

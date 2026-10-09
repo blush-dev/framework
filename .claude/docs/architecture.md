@@ -211,6 +211,14 @@ accounts move onto it in later steps; roles are on it now.
   true)`: the name only in the file's name; `$schema` kept first, never
   a field). Read and written through `KeyedTable` (data by key, ids kept);
   stores that can say where a record is kept implement `LocatingStore`.
+- **Media metadata** (`MediaMetadataStore`, D-674, D-675): the `media`
+  table, a record per media original keyed by its id, `path` and `owner`
+  declared, `renditions` (an image's other files), the description as
+  content. On files `MediaFiles` keeps it as `user/data/media/{path}.json`
+  (handed the table by `FileRecordStore`, as content goes to
+  `IndexStore`): files without a valid id, or sharing one, aren't
+  records; paths named in a query are read alone; file times feed the
+  media index.
 
 ## Data files
 

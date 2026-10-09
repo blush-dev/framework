@@ -56,7 +56,7 @@ final class MediaVariants
 		$listed = [];
 
 		foreach ($records as $key => $record) {
-			foreach (array_keys($record->metadata()->sizes) as $size) {
+			foreach (array_keys($record->metadata()->renditions) as $size) {
 				$listed[$size] ??= (string) $key;
 			}
 		}

@@ -550,7 +550,7 @@ narrow stores (D-645).
   request reading only the boot groups; groups' tests on files, SQLite,
   and in memory.
 
-**6d. Media metadata as a table:**
+**6d. Media metadata as a table** (built, D-674, D-675: renditions in place of sizes, the description the record's content, `owner` declared, `{ext}` gone from upload paths; on files `MediaFiles` keeps the table, with file times for the index):
 - `media`, keyed by its id (in every record already, D-487), with
   `path` (the original's under `user/media`) a declared field the store
   keeps unique. On files, the records stay

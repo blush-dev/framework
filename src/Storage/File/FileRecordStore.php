@@ -21,6 +21,7 @@ use Throwable;
 use Blush\Container\Attributes\Defer;
 use Blush\Content\Index\IndexStore;
 use Blush\Core\Paths;
+use Blush\Media\MediaFiles;
 use Blush\Storage\Record\Aggregate;
 use Blush\Storage\Record\ArrayEvaluator;
 use Blush\Storage\Record\InvalidRecord;
@@ -53,7 +54,9 @@ use Blush\Support\Uuid;
  *   It suits data-sized tables.
  * - **Content** (the content area's `entries` and `refs`, D-649) is the
  *   content store's, which keeps it as Markdown files with an index
- *   (`IndexStore`, D-653); this hands those tables to it.
+ *   (`IndexStore`, D-653), and media metadata (`media`) is `MediaFiles`'s,
+ *   which keeps it as the files it always was (D-675); this hands those
+ *   tables to them.
  * - **Writes** are atomic, each in a transaction (`FileTransactions`,
  *   shared with `FileDataStore`), so a write that reads the table first
  *   can't lose another's.
@@ -79,7 +82,8 @@ final readonly class FileRecordStore implements RecordStore, LocatingStore
 	private const string SCHEMA = '$schema';
 
 	/**
-	 * @param Closure(): IndexStore $content
+	 * @param Closure(): IndexStore  $content
+	 * @param ?Closure(): MediaFiles $media
 	 */
 	public function __construct(
 		private Paths $paths,
@@ -87,6 +91,7 @@ final readonly class FileRecordStore implements RecordStore, LocatingStore
 		private FileTransactions $transactions,
 		private Filesystem $filesystem,
 		#[Defer(IndexStore::class)] private Closure $content,
+		#[Defer(MediaFiles::class)] private ?Closure $media = null,
 		private ArrayEvaluator $evaluator = new ArrayEvaluator()
 	) {}
 
@@ -96,8 +101,10 @@ final readonly class FileRecordStore implements RecordStore, LocatingStore
 	#[Override]
 	public function find(Table $table, string $id): ?Record
 	{
-		if (IndexStore::keeps($table)) {
-			return ($this->content)()->find($table, $id);
+		$kept = $this->keeper($table);
+
+		if ($kept !== null) {
+			return $kept->find($table, $id);
 		}
 
 		return $this->records($table)[strtolower($id)] ?? null;
@@ -109,8 +116,10 @@ final readonly class FileRecordStore implements RecordStore, LocatingStore
 	#[Override]
 	public function findByKey(Table $table, string $key): ?Record
 	{
-		if (IndexStore::keeps($table)) {
-			return ($this->content)()->findByKey($table, $key);
+		$kept = $this->keeper($table);
+
+		if ($kept !== null) {
+			return $kept->findByKey($table, $key);
 		}
 
 		if ($table->key === null) {
@@ -141,8 +150,10 @@ final readonly class FileRecordStore implements RecordStore, LocatingStore
 	#[Override]
 	public function findMany(Table $table, array $ids): array
 	{
-		if (IndexStore::keeps($table)) {
-			return ($this->content)()->findMany($table, $ids);
+		$kept = $this->keeper($table);
+
+		if ($kept !== null) {
+			return $kept->findMany($table, $ids);
 		}
 
 		$records = $this->records($table);
@@ -165,8 +176,10 @@ final readonly class FileRecordStore implements RecordStore, LocatingStore
 	#[Override]
 	public function save(Table $table, Record $record, ?string $version = null): Record
 	{
-		if (IndexStore::keeps($table)) {
-			return ($this->content)()->save($table, $record, $version);
+		$kept = $this->keeper($table);
+
+		if ($kept !== null) {
+			return $kept->save($table, $record, $version);
 		}
 
 		return $this->transaction(function () use ($table, $record, $version): Record {
@@ -210,8 +223,10 @@ final readonly class FileRecordStore implements RecordStore, LocatingStore
 	#[Override]
 	public function delete(Table $table, string $id, ?string $version = null): void
 	{
-		if (IndexStore::keeps($table)) {
-			($this->content)()->delete($table, $id, $version);
+		$kept = $this->keeper($table);
+
+		if ($kept !== null) {
+			$kept->delete($table, $id, $version);
 
 			return;
 		}
@@ -246,8 +261,10 @@ final readonly class FileRecordStore implements RecordStore, LocatingStore
 	#[Override]
 	public function select(Table $table, RecordQuery $query): RecordResult
 	{
-		if (IndexStore::keeps($table)) {
-			return ($this->content)()->select($table, $query);
+		$kept = $this->keeper($table);
+
+		if ($kept !== null) {
+			return $kept->select($table, $query);
 		}
 
 		return $this->evaluator->select($table, $query, $this->list(...));
@@ -259,8 +276,10 @@ final readonly class FileRecordStore implements RecordStore, LocatingStore
 	#[Override]
 	public function count(Table $table, RecordQuery $query): int
 	{
-		if (IndexStore::keeps($table)) {
-			return ($this->content)()->count($table, $query);
+		$kept = $this->keeper($table);
+
+		if ($kept !== null) {
+			return $kept->count($table, $query);
 		}
 
 		return $this->evaluator->count($table, $query, $this->list(...));
@@ -272,8 +291,10 @@ final readonly class FileRecordStore implements RecordStore, LocatingStore
 	#[Override]
 	public function countBy(Table $table, RecordQuery $query, string $key): array
 	{
-		if (IndexStore::keeps($table)) {
-			return ($this->content)()->countBy($table, $query, $key);
+		$kept = $this->keeper($table);
+
+		if ($kept !== null) {
+			return $kept->countBy($table, $query, $key);
 		}
 
 		return $this->evaluator->countBy($table, $query, $key, $this->list(...));
@@ -285,8 +306,10 @@ final readonly class FileRecordStore implements RecordStore, LocatingStore
 	#[Override]
 	public function aggregate(Table $table, RecordQuery $query, Aggregate $function, string $key): int|float|string|bool|null
 	{
-		if (IndexStore::keeps($table)) {
-			return ($this->content)()->aggregate($table, $query, $function, $key);
+		$kept = $this->keeper($table);
+
+		if ($kept !== null) {
+			return $kept->aggregate($table, $query, $function, $key);
 		}
 
 		return $this->evaluator->aggregate($table, $query, $function, $key, $this->list(...));
@@ -314,6 +337,20 @@ final readonly class FileRecordStore implements RecordStore, LocatingStore
 		$layout = $this->layouts->for($table);
 
 		return $this->paths->relative($layout->oneFile ? $layout->path : "{$layout->path}/{$key}." . self::EXTENSION);
+	}
+
+	/**
+	 * The store that keeps a table as files of its own, if one does: the
+	 * content store's entries and refs (D-653), and the media metadata
+	 * files (D-675).
+	 */
+	private function keeper(Table $table): ?RecordStore
+	{
+		return match (true) {
+			IndexStore::keeps($table)                       => ($this->content)(),
+			$this->media !== null && MediaFiles::keeps($table) => ($this->media)(),
+			default                                         => null
+		};
 	}
 
 	/**

@@ -78,6 +78,10 @@ Move each item to `decisions.md` once it's answered.
     `regions`) depend on both (its setting values move to settings groups,
     D-670). Until it's settled they keep `DataStore`, which step 6
     retires after them.
+  - **Generating renditions** (the author, 2026-10-09, D-674): a
+    feature for site owners to make an image's other renditions (sizes,
+    WebP or AVIF copies) on demand or on upload, recorded in its
+    `renditions`. Nothing built; to plan with media work.
   - **Composer drivers:** how they're found before plugins load.
     Leaning: a key in the package's `composer.json` `extra`, read with
     the installed packages and cached, and a driver named in

@@ -504,8 +504,8 @@ final readonly class MediaListController
 			$original = $this->originalOf($relative);
 			$image    = $original === null ? null : $this->resolver->fromKey($original);
 
-			if ($image !== null && isset($this->metadata->find($image)->sizes[$relative])) {
-				$this->metadata->save($image, [MediaMetadata::SIZES => array_diff_key($this->metadata->find($image)->sizes, [$relative => true]) ?: null]);
+			if ($image !== null && isset($this->metadata->find($image)->renditions[$relative])) {
+				$this->metadata->save($image, [MediaMetadata::RENDITIONS => array_diff_key($this->metadata->find($image)->renditions, [$relative => true]) ?: null]);
 			}
 
 			$this->library->refresh($original === null ? [] : [$original]);

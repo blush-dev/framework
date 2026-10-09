@@ -102,13 +102,11 @@ export function megabytes(bytes: number): number {
  */
 export function expand(pattern: string, info: UploadsInfo, kind: string, file: string): string {
 	const folder = info.kinds.find((item) => item.key === kind)?.folder ?? kind;
-	const ext    = file.split('.').pop() ?? '';
 	const path   = pattern
 		.replaceAll('{year}', info.now.year)
 		.replaceAll('{month}', info.now.month)
 		.replaceAll('{day}', info.now.day)
 		.replaceAll('{kind}', folder)
-		.replaceAll('{ext}', ext)
 		.replace(/\/{2,}/g, '/')
 		.replace(/^\/|\/$/g, '');
 
