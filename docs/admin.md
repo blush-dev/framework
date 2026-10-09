@@ -688,8 +688,8 @@ if the name is refused, nothing is saved and the field says why.
 
 For a published entry, the field shows the new address, and **Redirect
 the old address here** (on by default) adds a
-[redirect](content.md#redirects) from the old address to the new one, so
-links to it keep working. Landing pages
+[redirect](#redirects) from the old address to the entry, so
+links to it keep working, wherever it moves later. Landing pages
 (the homepage, and a folder's `index.md`) take their folder's name,
 so they have no Slug field.
 
@@ -1081,8 +1081,7 @@ entry's address needs `{name}` and may hold the date's parts
 under; later pages need
 `{page}`. A path that leaves out what it needs, or holds something it
 can't fill, is refused with the reason. Changing an address moves those
-pages, so add [redirects](content.md#redirects) for the old ones in
-`user/data/redirects.json`.
+pages, so add [redirects](#redirects) for the old ones.
 
 In **Fields**, open a field to change its
 label, key, type, help, whether it's required, its default, and its
@@ -1225,7 +1224,7 @@ matter.
 ## Settings
 
 With `site.settings`, the **Settings** group in **Config** has seven
-screens:
+screens (and [Redirects](#redirects), with its own capability):
 
 - **General:** the site's name, a one-line description (for
   `llms.txt`, and the homepage and feeds when nothing more specific
@@ -1333,6 +1332,69 @@ pages on a live site. Secrets are never shown, only whether one is set.
 Those settings live in `config/` and `.env` (see
 [Configuration](configuration.md)); after changing them on a site
 you've compiled, run `bin/blush cache:compile` again.
+
+## Redirects
+
+With `site.redirects` (administrators and editors), **Redirects** in
+**Config**, after **Addresses and Search**, lists the site's
+[redirects](content.md#redirects): old addresses that send visitors
+somewhere new.
+
+The tabs are **All**, **Permanent**, **Temporary**, and **Problems**
+(while there are some), each with its count. Search the old and new
+addresses and the titles of the pages they lead to, filter by where
+they go (this site or another), and switch to compact rows. Each row
+shows **From**, **To**, the **Type** (in words, with its code beside
+it), and when it was **Added**, by which account and how: **Added**, **Renamed**,
+**Moved**, or **Imported by** the account's name (linked to its account). **To** says what kind of place it is: a page by its
+title, with its address under it; a path; or another site, its host in
+bold with an arrow out.
+
+**Search is also a test.** Type or paste an address (a path, or a whole
+link to the site) and the list shows the redirects that handle it, with
+a line at the top that follows it as a visitor would: an arrow and the
+status code for each redirect (hover one to see which redirect it is),
+then where it ends up, a page, another site, or **Not Found**. Not Found
+offers **Add a Redirect From Here**.
+
+**Add Redirect**, or **Edit** in a row's menu, opens a small form:
+
+- **From:** a path on this site. `{name}` matches one part of it and
+  can be used again in To. A whole link to the site is saved as its
+  path.
+- **To:** a path, a whole address on another site, or part of a page's
+  name, which lists matching pages to pick from. A picked page shows
+  in the box, and the redirect follows it if it moves; × (or
+  Backspace) clears it. A typed path that's a page's address becomes
+  that page.
+- **Type:** **Permanent** (301) or **Temporary** (302), or one of the
+  three under **For Programs**: See Other (303), and Temporary and
+  Permanent, Same Method (307 and 308), each with what it does.
+
+As you type, the form says what it will do, and what stops it is a red
+line under its field: a path without its `/`, another redirect from the
+same address, a placeholder in To that From doesn't have, or a redirect
+that would loop. A redirect that only leads to another redirect offers
+**Go Straight There**. Changes save as soon as you press Save.
+
+A row with a problem has a chip beside its old address; press it for
+what's wrong and its fix:
+
+- **Does nothing:** a page answers the old address, so the redirect
+  never runs. **Delete Redirect**.
+- **Leads nowhere:** the page it leads to was deleted, is in the trash,
+  or isn't published. **Choose Another Page**.
+- **Missing page:** nothing answers where it leads. **Change Where It
+  Goes**.
+- **Chained:** where it leads redirects again. **Point Straight There**.
+- **Overruled:** the site's code redirects the same address first.
+  **Show It** lists the code's redirects, which are under the table and
+  can't be changed here.
+
+Rows with problems keep working as far as they can. A row's menu also
+has **Test this address**, **Copy old address**, and **Make temporary**
+(or permanent). Select rows to make them permanent or temporary, or
+delete them, together. Every change has **Undo** in its message.
 
 ## Themes
 
@@ -2219,6 +2281,42 @@ It needs `media.delete`, and `media.delete.others` for a file that
 isn't the account's or has no uploader. Deleting an image takes it off
 the files that show it as their artwork. It doesn't check where the file
 is used; `GET media/{path}`'s `usedIn` is for asking first.
+
+### Redirects
+
+With `site.redirects` (a 403 otherwise), a redirect is named by its old
+path, `from`:
+
+- `GET redirects` lists them, sorted by `from`, a page at a time:
+  `tab` (`all`, `permanent`, `temporary`, or `problems`), `search`,
+  `goes` (`here` or `away`), `page`, and `per` (20 by default; 10, 50,
+  or 100). The answer has `redirects`, `total`, `page`, `pages`, `per`,
+  `counts` (for each tab), `code` (the redirects from code, which come
+  first, as `{from, to, status}`), and `trace`: when the search is an
+  address, its `path` and `hops`, each step a visitor would take
+  (`page`, `redirect`, `away`, `gone`, `missing`, or `loop`), or
+  `other`, the host of an address on another site. Each redirect has
+  `from`, `to` (or `null`), `entry` (`{id, title, url, type, state}`,
+  `state` being `live`, `draft`, `scheduled`, `trash`, `hidden`, or
+  `deleted`), `status`, `added`, `by` (the account that added it: `{name, username, you}`, `name` and `username` `null` for a removed account), `via`,
+  `problem` (`{kind, label, message, final}`, or `null`), and `stored`,
+  the row as the file keeps it.
+- `POST redirects/check` takes `{from, to, entry, status, was}` and
+  answers what the form says about each field (`from`, `to`, and
+  `status`, lists of `{kind, parts, fix}`, `kind` being `bad`, `warn`,
+  or `say`) and the `row` it would save, or `null` when something stops
+  it.
+- `POST redirects` adds one, or changes the one from `was`, with the
+  same values; a 422 has the messages. A path that's a live entry's
+  address is saved as the entry. The answer has the `redirect` and, for
+  a change, `was`, the row as it was kept.
+- `POST redirects/delete` takes `{from: [...]}` and answers `deleted`,
+  the rows as they were kept.
+- `POST redirects/status` takes `{from: [...], status}` and answers
+  `changed`, the rows that changed, as they were kept.
+- `POST redirects/restore` takes `{rows: [...], remove: [...]}`: it
+  removes the redirects from `remove`, then writes `rows` as given.
+  The admin's Undo uses it.
 
 ### Editing entries
 

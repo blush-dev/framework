@@ -22,6 +22,7 @@ use Blush\Admin\IndexPage;
 use Blush\Admin\InvalidEdit;
 use Blush\Content\Index\Indexer;
 use Blush\Content\Lint\Linter;
+use Blush\Content\Routing\DataRedirects;
 use Blush\Tests\WritesContentConfig;
 use Blush\Tests\SavedSettings;
 
@@ -836,6 +837,10 @@ final class AdminEditingTest extends TestCase
 		$this->assertSame('/archives/the-flame', $this->redirects()['/archives/flame'] ?? null, 'The old address redirects (D-680).');
 		$this->assertStringNotContainsString('redirect_from', $this->file('_post/2022-03-29.the-flame.md'), 'Not in the entry.');
 
+		$row = $this->redirectRows()['/archives/flame'] ?? [];
+		$this->assertSame([$redirected['id'] ?? null, null, 'rename', $this->janeId()], [$row['entry'] ?? null, $row['to'] ?? null, $row['via'] ?? null, $row['by'] ?? null], 'The row names the entry by id, so it follows it, and says how and by whom it was added (D-686).');
+		$this->assertIsString($row['added'] ?? null);
+
 		$id    = '_post/2020-02-02.file-name.md';
 		$keyed = self::json($this->call('PATCH', $this->entryPath($id), ['revision' => $this->revision($id), 'slug' => 'keyed-again', 'redirect' => true]));
 		$this->assertSame([$id, 'keyed-again', '/archives/keyed-again'], [$keyed['path'] ?? null, $keyed['slug'] ?? null, $keyed['url'] ?? null], 'A slug key is changed, not the file.');
@@ -843,11 +848,18 @@ final class AdminEditingTest extends TestCase
 		$this->assertSame('/archives/keyed-again', $this->redirects()['/archives/keyed'] ?? null, 'The new old address joins them.');
 		$this->assertSame('/archives/keyed-again', $this->redirects()['/older'] ?? null, 'A redirect to the old address now leads to the new one, so there\'s no chain.');
 		$this->assertArrayNotHasKey('/archives/keyed-again', $this->redirects(), 'One from the new address goes; the entry answers there.');
+		$this->assertSame($keyed['id'] ?? null, $this->redirectRows()['/older']['entry'] ?? null, 'It leads to the entry now, by id.');
+
+		$back = self::json($this->call('PATCH', $this->entryPath($id), ['revision' => $this->revision($id), 'slug' => 'keyed', 'redirect' => true]));
+		$this->assertSame('/archives/keyed', $back['url'] ?? null);
+		$this->assertArrayNotHasKey('/archives/keyed', $this->redirectRows(), 'Renaming back removes the row from the address it answers again.');
+		$this->assertSame('/archives/keyed', $this->redirects()['/older'] ?? null, 'Rows naming the entry follow it.');
+		$this->assertSame('/archives/keyed', $this->redirects()['/archives/keyed-again'] ?? null);
 
 		$copy = self::json($this->call('POST', $this->entryPath($id) . '/duplicate'));
 		$this->assertIsString($copy['path'] ?? null);
-		$this->assertSame('_post/keyed-again-copy.md', $copy['path']);
-		$this->assertSame('keyed-again-copy', $copy['slug'] ?? null);
+		$this->assertSame('_post/keyed-copy.md', $copy['path']);
+		$this->assertSame('keyed-copy', $copy['slug'] ?? null);
 		$this->assertStringNotContainsString('slug:', $this->file($copy['path']), 'A copy is named by its file.');
 	}
 
@@ -857,32 +869,50 @@ final class AdminEditingTest extends TestCase
 
 		$this->call('PATCH', $this->entryPath(self::FLAME), ['revision' => $this->revision(self::FLAME), 'slug' => 'the-flame', 'redirect' => false]);
 
-		$this->assertSame([], $this->redirects());
+		$this->assertSame([], $this->redirectRows());
 	}
 
 	/**
-	 * Returns the site's redirects, as `user/data/redirects.json` keeps
-	 * them: new addresses, by old address.
+	 * Returns the site's redirects as the route table gets them: where
+	 * each leads now, by old address, a row naming an entry by its id
+	 * leading to the entry's address (D-686).
 	 *
-	 * @return array<string, mixed>
+	 * @return array<string, string>
 	 */
 	private function redirects(): array
+	{
+		$redirects = [];
+
+		foreach ($this->app->container()->make(DataRedirects::class)->redirects() as $redirect) {
+			$redirects[$redirect->from] = $redirect->to;
+		}
+
+		return $redirects;
+	}
+
+	/**
+	 * Returns the `redirects` table's rows as `user/data/redirects.json`
+	 * keeps them, by old address.
+	 *
+	 * @return array<string, array<mixed>>
+	 */
+	private function redirectRows(): array
 	{
 		$path = $this->temporaryDirectory() . '/user/data/redirects.json';
 		$rows = is_file($path) ? json_decode((string) file_get_contents($path), true) : [];
 
 		$this->assertIsArray($rows);
 
-		$redirects = [];
+		$keyed = [];
 
 		foreach ($rows as $row) {
 			$this->assertIsArray($row);
 			$this->assertIsString($row['from'] ?? null);
 
-			$redirects[$row['from']] = $row['to'] ?? null;
+			$keyed[$row['from']] = $row;
 		}
 
-		return $redirects;
+		return $keyed;
 	}
 
 	public function testDeletesToTheTrash(): void

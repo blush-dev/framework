@@ -4,8 +4,9 @@
  * late answers are ignored, and a call put off until typing stops.
  */
 
-import { getCurrentScope, onScopeDispose, ref } from 'vue';
+import { getCurrentScope, onScopeDispose, ref, type Ref } from 'vue';
 import { errorMessage } from './api';
+import { toast, type ToastKind } from './toast';
 
 /**
  * An action's state: `busy` while one runs, so its button can say so, and
@@ -72,4 +73,41 @@ export function debounced<A extends unknown[]>(call: (...args: A) => void, wait:
 	}
 
 	return later;
+}
+
+// What a list's action did: words for its toast, with its kind and Undo.
+export type ActionDone = string | { message: string; undo?: () => void; kind?: ToastKind };
+
+/**
+ * A list's actions (D-509; the entries list's and Redirects', D-686):
+ * `act()` runs one, named so its row can say it's busy (`busy`), then
+ * toasts what it did in the past tense, with its Undo, and reloads the
+ * list. What it couldn't do is `error` (the list's own, when it has
+ * one for its loads too), for the notice above the list. `started` runs
+ * before each, to clear what the last one left.
+ */
+export function useListAction(reload: () => Promise<void>, options: { error?: Ref<string>; started?: () => void } = {}) {
+	const busy    = ref<string | null>(null);
+	const error   = options.error ?? ref('');
+	const started = options.started;
+
+	async function act(name: string, task: () => Promise<ActionDone>, kind: ToastKind = 'good'): Promise<void> {
+		busy.value  = name;
+		error.value = '';
+		started?.();
+
+		try {
+			const done = await task();
+			const said = typeof done === 'string' ? { message: done } : done;
+
+			toast(said.message, { kind: said.kind ?? kind, undo: said.undo });
+			await reload();
+		} catch (caught) {
+			error.value = errorMessage(caught, 'That didn\'t work. Reload the page and try again.');
+		} finally {
+			busy.value = null;
+		}
+	}
+
+	return { busy, error, act };
 }

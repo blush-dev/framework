@@ -111,7 +111,8 @@ enum BuiltInRole: string
 				Capability::HtmlAllowed,
 				Capability::MenusEdit,
 				Capability::SitePublish,
-				Capability::CacheClear
+				Capability::CacheClear,
+				Capability::SiteRedirects
 			],
 			self::Author      => [Capability::MediaEdit, Capability::MediaDelete],
 			self::Contributor => [Capability::MediaEdit],

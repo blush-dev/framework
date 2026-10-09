@@ -53,7 +53,7 @@ const panel  = ref<HTMLElement | null>(null);
 const month  = ref(new Date());
 
 const popover                = usePopover(button, panel, { gap: 6 });
-const { open, place, close } = popover;
+const { open, place, layer, close } = popover;
 
 function sameDay(a: Date, b: Date): boolean {
 	return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
@@ -192,7 +192,7 @@ defineExpose({ show });
 		<AdminIcon name="chevron-down" class="date__caret" />
 	</button>
 
-	<Teleport to="body">
+	<Teleport :to="layer">
 		<div v-if="open" ref="panel" class="date-panel" role="dialog" aria-label="Choose a date and time" :style="place ?? { visibility: 'hidden' }" @keydown="keydown">
 			<div class="date-panel__head">
 				<button type="button" class="button button--ghost button--icon" @click="move(-1)">

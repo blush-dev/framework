@@ -425,12 +425,27 @@ Implemented in M3 (D-073 to D-077).
   (`DataRedirects`, a row per redirect keyed by its `from` path, a path
   key; on files the one list `user/data/redirects.json`; D-678, D-679),
   and any tagged
-  `RedirectSource`s, with pattern placeholders. The admin's rename and
-  move redirects are rows written by `RedirectWriter` (D-680), which
-  repoints rows that led to the old address and rewrites a compiled
-  route table. They're checked only before a 404, including when a
-  handler throws `NotFound`. `/public/...` URLs redirect to the canonical
-  path (D-076).
+  `RedirectSource`s, with pattern placeholders. A row (`RedirectRow`,
+  read and written through the `Redirects` repository) leads to `to` (a
+  path or address) or to an `entry` by id, which `DataRedirects`
+  resolves to the entry's address while it's live and leaves out
+  otherwise, so the row follows the entry (D-686); a row also keeps
+  `added`, `by` (an account id), and `via` (`RedirectOrigin`). The
+  admin's rename and move redirects are rows naming the entry, written
+  by `RedirectWriter` (D-680, D-686), which points rows that led to the
+  old address at the entry and removes one from the new address.
+  `Redirects::write()` rewrites a compiled route table after a change
+  outside development. They're checked only before a 404, including when
+  a handler throws `NotFound`. `/public/...` URLs redirect to the
+  canonical path (D-076).
+- **The Redirects screen** (D-686): `Admin\Redirects\RedirectsController`
+  over `RedirectReview`, which matches addresses as the route table does
+  (code first, exact paths before patterns, first per pattern wins) to
+  trace an address, find each row's problem, and check the form;
+  `SiteAddresses` says what answers a path before redirects (a live
+  entry by address, read once a request, or a route that isn't an
+  entry's). Messages are `Message` parts (plain, code, strong) with one
+  fix each. Everything is worked out on the request that asks.
 - **Site URLs** (D-476): `SiteUrls::all()` lists every concrete URL
   from tagged `UrlSource`s (content, feeds, sitemaps, `llms.txt` and
   Markdown pages, literal redirects, and plugins'), each path once, a

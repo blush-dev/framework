@@ -1,0 +1,2129 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Meridian Redirects — sketch</title>
+<style>html,body{margin:0;padding:0}[hidden]{display:none!important}</style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=Fira+Code:wght@400;500&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&family=Karla:wght@400;500;600&display=swap">
+<style>
+/* Meridian: the Redirects screen, a sketch. Shell and controls from the Forms sketch. Tokens are design/tokens.css verbatim.
+   Anything prefixed lab- is the harness, not the admin. */
+:root {
+  --bg:#f5f6f9; --surface:#ffffff; --surface-2:#f0f2f6; --surface-3:#e7eaf0;
+  --border:#e2e5ec; --border-strong:#ccd2dd;
+  --fg:#11141b; --fg-2:#535b6b; --fg-3:#858d9d;
+  --accent:#2f5fe0; --accent-hover:#2650c4; --accent-fg:#ffffff; --accent-soft:#e9effc; --accent-line:#bdcdf7;
+  --good:#136b43; --good-soft:#e2f3e9; --good-dot:#1f9d5f;
+  --warn:#8a5806; --warn-soft:#faf0d9; --warn-dot:#cf8d16;
+  --danger:#a92420; --danger-soft:#fbeae9; --danger-dot:#d6403a;
+  --shadow-1:none;
+  --shadow-2:0 2px 8px rgba(17,20,27,.05), 0 1px 2px rgba(17,20,27,.04);
+  --shadow-3:0 10px 28px rgba(17,20,27,.09), 0 2px 6px rgba(17,20,27,.05);
+  --r-1:6px; --r-2:10px; --r-3:16px;
+  --s-1:4px; --s-2:8px; --s-3:12px; --s-4:18px; --s-5:26px; --s-6:36px; --s-7:52px;
+  --font-ui:"IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-display:"IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-title:"IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-mono:"Fira Code", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --base:13px; --h1:26px; --h1-track:-.024em;
+  --title-size:13.5px; --title-weight:500; --title-track:-.005em;
+  --pad-row:14px; --pad-panel:17px; --pad-x:22px; --ctl:34px; --ctl-sm:30px; --stat-v:30px;
+  --railbar:74px; --rail:262px; --bar:62px; --work-max:1400px; --measure:72ch;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-color-scheme="light"]):not([data-theme="light"]) {
+    --bg:#0b0d12; --surface:#13161d; --surface-2:#1a1e27; --surface-3:#222733;
+    --border:#242936; --border-strong:#353c4c;
+    --fg:#e9ebf0; --fg-2:#a3abba; --fg-3:#747d8e;
+    --accent:#7295f7; --accent-hover:#8aa8f9; --accent-fg:#0b0d12; --accent-soft:#182444; --accent-line:#2c3d68;
+    --good:#5ecb92; --good-soft:#102a1e; --good-dot:#35b877;
+    --warn:#e3b360; --warn-soft:#2b2312; --warn-dot:#d69f3c;
+    --danger:#f28d84; --danger-soft:#301917; --danger-dot:#e0655c;
+    --shadow-1:none; --shadow-2:0 2px 8px rgba(0,0,0,.3);
+    --shadow-3:0 10px 28px rgba(0,0,0,.45), 0 2px 6px rgba(0,0,0,.3);
+    color-scheme: dark;
+  }
+}
+:root[data-color-scheme="dark"], :root[data-theme="dark"]:not([data-color-scheme="light"]) {
+  --bg:#0b0d12; --surface:#13161d; --surface-2:#1a1e27; --surface-3:#222733;
+  --border:#242936; --border-strong:#353c4c;
+  --fg:#e9ebf0; --fg-2:#a3abba; --fg-3:#747d8e;
+  --accent:#7295f7; --accent-hover:#8aa8f9; --accent-fg:#0b0d12; --accent-soft:#182444; --accent-line:#2c3d68;
+  --good:#5ecb92; --good-soft:#102a1e; --good-dot:#35b877;
+  --warn:#e3b360; --warn-soft:#2b2312; --warn-dot:#d69f3c;
+  --danger:#f28d84; --danger-soft:#301917; --danger-dot:#e0655c;
+  --shadow-1:none; --shadow-2:0 2px 8px rgba(0,0,0,.3);
+  --shadow-3:0 10px 28px rgba(0,0,0,.45), 0 2px 6px rgba(0,0,0,.3);
+  color-scheme: dark;
+}
+:root[data-admin-theme="editorial"] {
+  --bg:#f6f2ec; --surface:#fffdfa; --surface-2:#f1ece3; --surface-3:#e7e0d4;
+  --border:#e5ded2; --border-strong:#cdc3b3;
+  --fg:#23201b; --fg-2:#5d564c; --fg-3:#8e867a;
+  --accent:#17595e; --accent-hover:#124a4e; --accent-fg:#fffdfa; --accent-soft:#e2eded; --accent-line:#b6d3d5;
+  --good:#4c6d2c; --good-soft:#edf1e2; --good-dot:#6f9b45;
+  --warn:#8a5a14; --warn-soft:#f8eeda; --warn-dot:#c58a2a;
+  --danger:#9c3327; --danger-soft:#f8e7e2; --danger-dot:#c2503f;
+  --shadow-2:0 2px 8px rgba(60,48,32,.05), 0 1px 2px rgba(60,48,32,.04);
+  --shadow-3:0 10px 28px rgba(60,48,32,.09), 0 2px 6px rgba(60,48,32,.05);
+  --r-1:8px; --r-2:12px; --r-3:20px;
+  --font-ui:"Karla", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display:"Newsreader", ui-serif, Georgia, "Times New Roman", serif;
+  --font-title:"Newsreader", ui-serif, Georgia, "Times New Roman", serif;
+  --base:13.5px; --h1:32px; --h1-track:-.014em;
+  --title-size:15.5px; --title-weight:500; --title-track:0;
+  --pad-row:16px; --pad-panel:19px; --pad-x:26px; --stat-v:34px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-color-scheme="light"]):not([data-theme="light"])[data-admin-theme="editorial"] {
+    --bg:#15120e; --surface:#1d1915; --surface-2:#26211a; --surface-3:#322b22;
+    --border:#302a21; --border-strong:#463e31;
+    --fg:#f0e9dd; --fg-2:#b4a996; --fg-3:#877c6c;
+    --accent:#72bec2; --accent-hover:#8bcccf; --accent-fg:#15120e; --accent-soft:#113032; --accent-line:#1d4a4d;
+    --good:#9cc16b; --good-soft:#1c2413; --good-dot:#84ad55;
+    --warn:#dcae63; --warn-soft:#2c2314; --warn-dot:#c79646;
+    --danger:#e8897b; --danger-soft:#2f1a16; --danger-dot:#cf6a5c;
+    --shadow-2:0 2px 8px rgba(0,0,0,.34);
+    --shadow-3:0 10px 28px rgba(0,0,0,.5), 0 2px 6px rgba(0,0,0,.34);
+    color-scheme: dark;
+  }
+}
+:root[data-color-scheme="dark"][data-admin-theme="editorial"],
+:root[data-theme="dark"]:not([data-color-scheme="light"])[data-admin-theme="editorial"] {
+  --bg:#15120e; --surface:#1d1915; --surface-2:#26211a; --surface-3:#322b22;
+  --border:#302a21; --border-strong:#463e31;
+  --fg:#f0e9dd; --fg-2:#b4a996; --fg-3:#877c6c;
+  --accent:#72bec2; --accent-hover:#8bcccf; --accent-fg:#15120e; --accent-soft:#113032; --accent-line:#1d4a4d;
+  --good:#9cc16b; --good-soft:#1c2413; --good-dot:#84ad55;
+  --warn:#dcae63; --warn-soft:#2c2314; --warn-dot:#c79646;
+  --danger:#e8897b; --danger-soft:#2f1a16; --danger-dot:#cf6a5c;
+  --shadow-2:0 2px 8px rgba(0,0,0,.34);
+  --shadow-3:0 10px 28px rgba(0,0,0,.5), 0 2px 6px rgba(0,0,0,.34);
+  color-scheme: dark;
+}
+
+/* ------------------------------------------------------------------ base -- */
+*,*::before,*::after{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--font-ui);font-size:var(--base);line-height:1.5;-webkit-font-smoothing:antialiased}
+h1,h2,h3,h4,p,ul,ol,figure{margin:0;padding:0}
+ul,ol{list-style:none}
+button,input,select{font:inherit;color:inherit}
+button{background:none;border:0;padding:0;cursor:pointer}
+a{color:inherit;text-decoration:none}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:3px}
+.ic{width:16px;height:16px;flex:none;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.mono{font-family:var(--font-mono);font-variant-numeric:tabular-nums}
+.num,td,th,time{font-variant-numeric:tabular-nums}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+/* ============================================================ primitives == */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;height:var(--ctl);padding:0 14px;border-radius:var(--r-1);border:1px solid var(--border);background:var(--surface);color:var(--fg);font-size:12.5px;font-weight:500;white-space:nowrap}
+.btn:hover{background:var(--surface-2);border-color:var(--border-strong)}
+.btn.sm{height:var(--ctl-sm);padding:0 11px;font-size:12px}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-fg)}
+.btn.primary:hover{background:var(--accent-hover);border-color:var(--accent-hover)}
+.btn.ghost{border-color:transparent;background:transparent;color:var(--fg-2)}
+.btn.ghost:hover{background:var(--surface-2);color:var(--fg)}
+.btn.danger{color:var(--danger)}
+.btn.danger:hover{background:var(--danger-soft);border-color:var(--danger-soft)}
+.btn.danger-fill{background:var(--danger);border-color:var(--danger);color:var(--surface)}
+.btn[disabled]{opacity:.45;pointer-events:none}
+.btn .ic{width:15px;height:15px}
+a.lnk{color:var(--accent)}
+a.lnk:hover{text-decoration:underline}
+
+.avatar{width:26px;height:26px;border-radius:99px;background:var(--surface-3);color:var(--fg-2);display:grid;place-items:center;font-size:10.5px;font-weight:600;letter-spacing:.02em;flex:none}
+.avatar.sm{width:20px;height:20px;font-size:9px}
+.avatar.lg{width:44px;height:44px;font-size:14px}
+.avatar.miss{background:transparent;border:1px dashed var(--danger-dot);color:var(--danger)}
+.avatar.miss .ic{width:13px;height:13px}
+
+.pill{display:inline-flex;align-items:center;gap:6px;height:20px;padding:0 9px 0 8px;border-radius:99px;font-size:11px;font-weight:500;white-space:nowrap;border:1px solid transparent;vertical-align:middle;margin-block:-2px}
+.pill .d{width:5px;height:5px;border-radius:99px;flex:none}
+.pill.published{background:var(--good-soft);color:var(--good)} .pill.published .d{background:var(--good-dot)}
+.pill.draft{background:var(--surface-2);color:var(--fg-2);border-color:var(--border)} .pill.draft .d{background:var(--border-strong)}
+.pill.trash{background:var(--danger-soft);color:var(--danger)} .pill.trash .d{background:var(--danger-dot)}
+.pill.written{background:var(--surface-3);color:var(--fg)} .pill.written .d{background:var(--fg-2)}
+.pill.inherited{background:var(--surface-2);color:var(--fg-2)} .pill.inherited .d{background:transparent;box-shadow:inset 0 0 0 1.5px var(--border-strong)}
+.pill.unreach{background:transparent;color:var(--fg-2);border:1px dashed var(--border-strong)} .pill.unreach .ic{width:12px;height:12px}
+.pill.warn{background:var(--warn-soft);color:var(--warn)} .pill.warn .d{background:var(--warn-dot)}
+.tag{display:inline-flex;align-items:center;height:18px;padding:0 6px;border-radius:4px;background:var(--surface-2);color:var(--fg-2);font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;border:1px solid var(--border);flex:none}
+
+.cbx{position:relative;display:inline-flex;align-items:flex-start;gap:10px;cursor:pointer;font-size:12.5px;color:var(--fg)}
+.cbx input{position:absolute;opacity:0;width:1px;height:1px}
+.cbx .bx{width:15px;height:15px;flex:none;margin-top:2px;border:1px solid var(--border-strong);border-radius:4px;display:grid;place-items:center;color:transparent;background:var(--surface)}
+.cbx .bx .ic{width:11px;height:11px;stroke-width:2.6}
+.cbx input:checked + .bx{background:var(--accent);border-color:var(--accent);color:var(--accent-fg)}
+.cbx input:focus-visible + .bx{outline:2px solid var(--accent);outline-offset:2px}
+.cbx .tx{display:flex;flex-direction:column;gap:1px;min-width:0}
+.cbx .tx small{font-size:11.5px;color:var(--fg-3);line-height:1.5}
+.rdo .bx{border-radius:99px}
+.rdo input:checked + .bx{background:var(--surface);border:5px solid var(--accent)}
+/* ======================================================== lab harness == */
+.lab{display:flex;flex-direction:column;height:100%}
+.lab-bar{flex:none;display:flex;align-items:center;gap:var(--s-4);flex-wrap:wrap;
+  padding:var(--s-2) var(--s-4);background:var(--surface-2);border-bottom:1px solid var(--border)}
+.lab-mark{display:flex;align-items:baseline;gap:var(--s-2);margin-right:auto;min-width:0}
+.lab-mark b{font-family:var(--font-display);font-size:14px;font-weight:600;letter-spacing:-.01em}
+.lab-mark span{color:var(--fg-3);font-size:11.5px}
+.lab-grp{display:flex;align-items:center;gap:var(--s-2)}
+.lab-grp > span{font-size:10.5px;text-transform:uppercase;letter-spacing:.07em;color:var(--fg-3);font-weight:600}
+.lab-seg{display:flex;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-1);padding:2px;gap:2px}
+.lab-seg button{font-size:12px;color:var(--fg-2);padding:0 var(--s-3);height:24px;border-radius:calc(var(--r-1) - 2px);white-space:nowrap}
+.lab-seg button:hover{color:var(--fg)}
+.lab-seg button[aria-pressed="true"]{background:var(--accent-soft);color:var(--accent);font-weight:500}
+.lab-notes-btn{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 10px;border-radius:var(--r-1);border:1px solid var(--border);background:var(--surface);font-size:12px;font-weight:500}
+.lab-notes-btn[aria-pressed="true"]{background:var(--accent-soft);color:var(--accent);border-color:var(--accent-line)}
+.lab-notes-btn .ic{width:14px;height:14px}
+@media (max-width:1640px){.lab-mark span{display:none}}
+@media (max-width:760px){.lab-grp > span{display:none}}
+
+/* The rules, in a sheet over the right edge. Harness, not admin. */
+.lab-notes{position:fixed;top:0;right:0;bottom:0;width:min(440px,100vw);background:var(--surface);border-left:1px solid var(--border-strong);box-shadow:var(--shadow-3);z-index:60;overflow-y:auto;padding:var(--s-5);display:none;flex-direction:column;gap:var(--s-4)}
+.lab-notes.on{display:flex}
+.lab-notes h2{font-family:var(--font-display);font-size:17px;font-weight:600;display:flex;align-items:center}
+.lab-notes h2 button{margin-left:auto}
+.lab-notes h3{font-size:10.5px;text-transform:uppercase;letter-spacing:.07em;color:var(--fg-3);font-weight:600;margin-top:var(--s-2)}
+.lab-notes p{font-size:12.5px;color:var(--fg-2);line-height:1.6}
+.lab-notes ol{display:flex;flex-direction:column;gap:var(--s-3)}
+.lab-notes li{display:flex;gap:var(--s-3);font-size:12.5px;color:var(--fg-2);line-height:1.6}
+.lab-notes li b{color:var(--fg);font-weight:600}
+.lab-notes li > i{font-style:normal;font-family:var(--font-mono);font-size:11px;color:var(--fg-3);flex:none;padding-top:2px;width:22px}
+
+/* ============================================================ the shell == */
+.app{flex:1 1 auto;min-height:0;display:flex;background:var(--bg)}
+.rail{flex:none;width:var(--railbar);background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;align-items:center;gap:6px;padding:var(--s-3) 0}
+.rail .logo{width:40px;height:40px;border-radius:var(--r-2);background:var(--fg);color:var(--surface);display:grid;place-items:center;font-weight:600;font-size:15px;margin-bottom:var(--s-3)}
+.rail a{width:62px;display:flex;flex-direction:column;align-items:center;gap:4px;padding:9px 0 7px;border-radius:var(--r-2);font-size:10.5px;color:var(--fg-2)}
+.rail a .ic{width:19px;height:19px}
+.rail a:hover{background:var(--surface-2);color:var(--fg)}
+.rail a[aria-current="true"]{background:var(--accent-soft);color:var(--accent)}
+.side{flex:none;width:var(--rail);background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column}
+.side-h{height:var(--bar);padding:0 var(--s-5);display:flex;flex-direction:column;justify-content:center;border-bottom:1px solid var(--border);box-sizing:content-box;padding-block:6px}
+.side-h b{font-family:var(--font-display);font-size:15px;font-weight:600}
+.side-h span{font-size:11.5px;color:var(--fg-3)}
+.side nav{display:flex;flex-direction:column;gap:2px;padding:var(--s-4) var(--s-3)}
+.side nav a{display:flex;align-items:center;gap:11px;padding:8px 10px;border-radius:var(--r-1);font-size:13px;color:var(--fg-2);position:relative}
+.side nav a:hover{background:var(--surface-2);color:var(--fg)}
+.side nav a .c{margin-left:auto;font-family:var(--font-mono);font-size:11px;color:var(--fg-3)}
+.side nav a[aria-current="page"]{background:var(--accent-soft);color:var(--accent);font-weight:500}
+.side nav a[aria-current="page"] .c{color:var(--accent)}
+.side nav a[aria-current="page"]::before{content:"";position:absolute;left:-12px;top:7px;bottom:7px;width:2px;border-radius:0 2px 2px 0;background:var(--accent)}
+.side .side-g{display:flex;align-items:center;font-size:10.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--fg-3);padding:var(--s-5) var(--s-5) var(--s-1)}
+.side .side-g button{margin-left:auto;font-size:10.5px;letter-spacing:.07em;color:var(--fg-3);font-weight:600}
+.main{flex:1 1 auto;min-width:0;display:flex;flex-direction:column}
+.topbar{flex:none;height:var(--bar);box-sizing:content-box;padding-block:6px;display:flex;align-items:center;gap:var(--s-3);padding-inline:var(--s-5);background:var(--surface);border-bottom:1px solid var(--border)}
+.crumbs{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--fg-2);min-width:0;margin-right:auto;white-space:nowrap;overflow:hidden}
+.crumbs a:hover{color:var(--accent)}
+.crumbs .sep{color:var(--fg-3)}
+.crumbs [aria-current]{color:var(--fg);font-weight:500;overflow:hidden;text-overflow:ellipsis}
+.jump{display:flex;align-items:center;gap:9px;width:240px;height:var(--ctl);padding:0 10px;border:1px solid var(--border);border-radius:var(--r-1);background:var(--bg);color:var(--fg-3);font-size:12.5px}
+.jump .ic{width:14px;height:14px}
+.jump kbd{margin-left:auto}
+kbd{font-family:var(--font-mono);font-size:10px;border:1px solid var(--border);border-bottom-width:2px;border-radius:4px;padding:0 4px;color:var(--fg-3);background:var(--surface)}
+.work{flex:1 1 auto;min-height:0;overflow-y:auto}
+.page{max-width:var(--work-max);margin:0 auto;padding:var(--s-7) var(--s-7) 96px;display:flex;flex-direction:column;gap:var(--s-5)}
+@media (max-width:1180px){.side{display:none}}
+@media (max-width:760px){
+  .rail{display:none}
+  .jump{display:none}
+  .topbar .vs span{display:none}
+  .page{padding:var(--s-5) var(--s-4) 96px}
+}
+
+/* ---------------------------------------------------------- page head -- */
+.ph{display:flex;flex-direction:column;gap:var(--s-2)}
+.ph-back{display:inline-flex;align-items:center;gap:var(--s-1);font-size:12.5px;color:var(--fg-2);align-self:flex-start}
+.ph-back:hover{color:var(--accent)}
+.ph-back .ic{width:14px;height:14px}
+.ph-row{display:flex;align-items:flex-start;gap:var(--s-4);flex-wrap:wrap}
+.ph-row > div:first-child{flex:1 1 360px;min-width:0}
+.ph h1{font-family:var(--font-display);font-size:var(--h1);letter-spacing:var(--h1-track);font-weight:600;line-height:1.2}
+.ph .sub{color:var(--fg-2);font-size:13.5px;margin-top:6px}
+.ph .about{color:var(--fg-2);font-size:13.5px;line-height:1.6;max-width:var(--measure);margin-top:6px}
+.ph .when{display:flex;align-items:center;gap:6px;color:var(--fg-3);font-size:12px;margin-top:var(--s-2)}
+.ph .when .ic{width:13px;height:13px}
+.ph-acts{display:flex;gap:var(--s-2)}
+.btn .spin{animation:spin .9s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.prog{height:2px;background:var(--surface-3);border-radius:2px;overflow:hidden;margin-top:var(--s-3)}
+.prog i{display:block;height:100%;width:0;background:var(--accent);transition:width 1.1s linear}
+
+/* Underlined tabs with count chips, the admin's list style. */
+.utabs{display:flex;gap:var(--s-1);border-bottom:1px solid var(--border);overflow-x:auto;scrollbar-width:none}
+.utabs button{display:inline-flex;align-items:center;gap:8px;padding:12px 16px;font-size:13.5px;color:var(--fg-2);border-bottom:2px solid transparent;margin-bottom:-1px;white-space:nowrap}
+.utabs button:hover{color:var(--fg)}
+.utabs button[aria-selected="true"]{color:var(--fg);font-weight:500;border-bottom-color:var(--accent)}
+.utabs .c{font-family:var(--font-mono);font-size:11px;color:var(--fg-2);background:var(--surface-3);border-radius:99px;padding:1px 8px}
+.utabs button[aria-selected="true"] .c{color:var(--fg-2)}
+
+.ltop{display:flex;flex-direction:column;gap:var(--s-4)}
+.ftools{display:flex;align-items:center;gap:var(--s-3);flex-wrap:wrap}
+.psearch{display:flex;align-items:center;gap:10px;height:var(--ctl);padding:0 10px 0 12px;border:1px solid var(--border);border-radius:var(--r-1);background:var(--surface);flex:1 1 260px;max-width:380px}
+.psearch:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.psearch .ic{width:14px;height:14px;color:var(--fg-3)}
+.psearch input{flex:1;min-width:0;border:0;background:none;outline:none;font-size:12.5px}
+.psearch input::placeholder{color:var(--fg-3)}
+.seg{display:flex;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r-1);padding:2px;gap:2px}
+.seg button{font-size:12px;color:var(--fg-2);padding:0 11px;height:26px;border-radius:calc(var(--r-1) - 2px)}
+.seg button[aria-pressed="true"]{background:var(--surface);color:var(--fg);font-weight:500;box-shadow:0 0 0 1px var(--border)}
+.psearch kbd{margin-left:auto;font-size:11px;padding:0 6px;line-height:18px}
+.dens{display:flex;margin-left:auto;border:1px solid var(--border);border-radius:var(--r-1);overflow:hidden;background:var(--surface)}
+.dens button{width:38px;height:calc(var(--ctl) - 2px);display:grid;place-items:center;color:var(--fg-3)}
+.dens button + button{border-left:1px solid var(--border)}
+.dens button[aria-pressed="true"]{background:var(--surface-2);color:var(--fg)}
+.dens .ic{width:17px;height:17px}
+.hrows.dense > li{padding-block:9px;align-items:center}
+.hrows.dense .h-what p,.hrows.dense .h-lead .p,.hrows.dense .h-lead .m{display:none}
+.sel{position:relative;display:inline-flex;align-items:center;flex:0 1 170px;min-width:150px}
+.sel select{appearance:none;-webkit-appearance:none;width:100%;height:var(--ctl);padding:0 34px 0 12px;border:1px solid var(--border);border-radius:var(--r-1);background:var(--surface);font-size:12.5px;color:var(--fg);cursor:pointer}
+.sel select:hover{border-color:var(--border-strong)}
+.sel select:focus-visible{outline:0;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.sel .ic{position:absolute;right:11px;width:15px;height:15px;color:var(--fg-2);pointer-events:none}
+.ftools .say{margin-left:auto;font-size:12px;color:var(--fg-3)}
+.ftools .lbl{font-size:12px;color:var(--fg-3)}
+
+/* ------------------------------------------------------------ severity -- */
+/* A chip that is a word and a glyph; color is the third cue, never the only. */
+.sev{display:inline-flex;align-items:center;gap:5px;height:22px;padding:0 9px 0 7px;border-radius:99px;font-size:11.5px;font-weight:500;white-space:nowrap;flex:none}
+.sev .ic{width:13px;height:13px;stroke-width:2}
+.sev.error{background:var(--danger-soft);color:var(--danger)} .sev.error .ic{color:var(--danger-dot)}
+.sev.warning{background:var(--warn-soft);color:var(--warn)} .sev.warning .ic{color:var(--warn-dot)}
+.sev.notice{background:var(--surface-2);color:var(--fg-2);box-shadow:inset 0 0 0 1px var(--border)}
+.sev.fixed{background:var(--good-soft);color:var(--good)} .sev.fixed .ic{color:var(--good-dot)}
+.sev.ignored{background:transparent;color:var(--fg-3);box-shadow:inset 0 0 0 1px var(--border-strong)}
+.pill{display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 10px 0 9px;border-radius:99px;font-size:12px;font-weight:500;white-space:nowrap}
+.pill .d{width:6px;height:6px;border-radius:99px}
+.pill.fail{background:var(--danger-soft);color:var(--danger)} .pill.fail .d{background:var(--danger-dot)}
+.pill.check{background:var(--warn-soft);color:var(--warn)} .pill.check .d{background:var(--warn-dot)}
+.pill.note{background:var(--surface-2);color:var(--fg-2);box-shadow:inset 0 0 0 1px var(--border)} .pill.note .d{background:var(--fg-3)}
+.pill.clear{background:var(--good-soft);color:var(--good)} .pill.clear .d{background:var(--good-dot)}
+
+/* ------------------------------------------------------------ overview -- */
+.stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--s-4)}
+@media (max-width:900px){.stats{grid-template-columns:minmax(0,1fr)}}
+.stat{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-3);padding:var(--s-5)}
+.stat.bad{border-color:var(--danger-dot)}
+.stat.warnb{border-color:var(--warn-dot)}
+.stat .k{display:flex;align-items:center;gap:8px;font-size:11.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--fg-2)}
+.stat.bad .k{color:var(--danger)}
+.stat .k .ic{width:15px;height:15px}
+.stat .v{font-size:var(--stat-v);font-weight:600;margin:var(--s-3) 0 var(--s-2);font-variant-numeric:tabular-nums}
+.stat .s{font-size:12.5px;color:var(--fg-3)}
+.ov{display:grid;grid-template-columns:minmax(0,1.75fr) minmax(0,1fr);gap:var(--s-4);align-items:start}
+@media (max-width:1000px){.ov{grid-template-columns:minmax(0,1fr)}}
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-3);overflow:hidden}
+.panel-head{display:flex;align-items:center;gap:var(--s-3);flex-wrap:wrap;padding:var(--pad-panel) var(--pad-x);border-bottom:1px solid var(--border)}
+.panel-head h2{font-family:var(--font-display);font-size:15.5px;font-weight:600;letter-spacing:-.005em}
+.panel-head .hint{font-size:12px;color:var(--fg-3)}
+.irow{display:flex;align-items:center;gap:var(--s-4);padding:var(--s-4) var(--pad-x);border-bottom:1px solid var(--border)}
+.irow:last-child{border-bottom:0}
+.irow:hover{background:var(--surface-2)}
+.irow .tx{flex:1;min-width:0}
+.irow b{display:block;font-size:13.5px;font-weight:500}
+.irow p{font-size:12.5px;color:var(--fg-2);margin-top:3px}
+.irow small{display:block;font-size:12px;color:var(--fg-3);margin-top:3px}
+.irow > .ic{color:var(--fg-3)}
+.arow{display:flex;align-items:flex-start;gap:var(--s-4);padding:var(--s-4) var(--pad-x);border-bottom:1px solid var(--border)}
+.arow:last-child{border-bottom:0}
+.arow > .ic{margin-top:3px;color:var(--fg-2)}
+.arow .tx{flex:1;min-width:0}
+.arow b{display:block;font-size:13.5px;font-weight:500}
+.arow p{font-size:12.5px;color:var(--fg-3);margin-top:2px}
+
+/* ========================================================= a check page == */
+/* A group: the kind of problem, what the site does about it now, and the
+   one fix every row in it shares, when there is one. */
+.grp{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-3);overflow:hidden}
+.grp-h{display:flex;align-items:flex-start;gap:var(--s-3);padding:var(--pad-panel) var(--pad-x);border-bottom:1px solid var(--border);flex-wrap:wrap}
+.grp-h{align-items:center}
+.grp-h .tx{flex:1 1 320px;min-width:0;display:flex;align-items:baseline;gap:6px 12px;flex-wrap:wrap}
+.grp-h .hint{font-size:12.5px;color:var(--fg-3);line-height:1.5}
+.grp-h .hint.mono{font-family:var(--font-mono);font-size:11.5px}
+.grp-h .t{display:flex;align-items:center;gap:var(--s-3);flex-wrap:wrap}
+.grp-h h2{font-family:var(--font-display);font-size:15.5px;font-weight:600;letter-spacing:-.005em}
+.grp-h .n{font-size:12px;color:var(--fg-3);font-variant-numeric:tabular-nums}
+.grp-h p{font-size:12.5px;color:var(--fg-2);margin-top:5px;line-height:1.55;max-width:var(--measure)}
+.grp-h .path{font-family:var(--font-mono);font-size:11.5px;color:var(--fg-3);margin-top:4px;display:block;overflow-wrap:anywhere}
+.grp-h .end{display:flex;gap:var(--s-2);align-items:center;flex-wrap:wrap}
+
+/* A row: where, what was found, what the site does now, and its fix. */
+.hrows > li{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.5fr) 300px;gap:var(--s-2) var(--s-5);align-items:start;padding:var(--pad-row) var(--pad-x);border-bottom:1px solid var(--border)}
+.hrows > li:last-child{border-bottom:0}
+@media (max-width:860px){.hrows > li{grid-template-columns:minmax(0,1fr)}.h-acts{justify-content:flex-start!important}}
+.h-lead{min-width:0}
+.h-lead a.t,.h-lead .t{font-family:var(--font-title);font-size:var(--title-size);font-weight:var(--title-weight);letter-spacing:var(--title-track);color:var(--fg);display:block}
+.h-lead a.t:hover{color:var(--accent)}
+.h-lead .t.none{color:var(--fg-3);font-style:italic}
+.h-lead .p{display:block;font-family:var(--font-mono);font-size:11px;color:var(--fg-3);margin-top:4px;overflow-wrap:anywhere}
+.h-lead .m{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:11.5px;color:var(--fg-3);margin-top:5px}
+.h-lead .m .ic{width:13px;height:13px}
+.h-lead .pill{margin-bottom:6px}
+.h-what{min-width:0}
+.kv{display:inline-block;font-family:var(--font-mono);font-size:12px;color:var(--fg-2);background:var(--bg);border:1px solid var(--border);border-radius:var(--r-1);padding:2px 8px;overflow-wrap:anywhere;max-width:100%}
+.kv .ln{color:var(--fg-3);margin-right:8px;user-select:none}
+.kv mark{background:transparent;color:var(--fg);text-decoration:underline wavy var(--warn-dot);text-underline-offset:3px;text-decoration-thickness:1px}
+.err .kv mark{text-decoration-color:var(--danger-dot)}
+.kv.new mark{text-decoration:none;color:var(--good);font-weight:500}
+.kv.miss{border-style:dashed;color:var(--fg-3)}
+.h-what p{font-size:12.5px;color:var(--fg-2);line-height:1.55;margin-top:6px}
+.h-what p b{color:var(--fg);font-weight:600}
+.h-acts{display:flex;gap:6px;align-items:center;justify-content:flex-end;flex-wrap:wrap}
+.btn.icon{width:var(--ctl-sm);padding:0}
+.btn.icon .ic{width:15px;height:15px}
+.btn[aria-expanded="true"] .ic{transform:rotate(180deg)}
+.h-more{grid-column:1/-1;display:flex;flex-direction:column;gap:var(--s-3);padding:var(--s-3) 0 var(--s-1)}
+.h-more[hidden]{display:none}
+.h-more .lbl{font-size:10.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--fg-3)}
+.h-more .alts{display:flex;gap:var(--s-2);flex-wrap:wrap;align-items:center}
+.h-more .say{font-size:12.5px;color:var(--fg-2);line-height:1.55;max-width:var(--measure)}
+
+/* A fixed row stays where it was until the next check, quieter. */
+.hrows > li.done{background:var(--surface-2)}
+.hrows > li.done .h-lead a.t,.hrows > li.done .h-lead .t{color:var(--fg-2)}
+.hrows > li.done .h-what p{color:var(--fg-3)}
+
+/* An excerpt of the file around the line, numbered like the editor's source. */
+.xc{border:1px solid var(--border);border-radius:var(--r-2);overflow:hidden;background:var(--bg)}
+.xc-h{display:flex;align-items:center;gap:var(--s-3);padding:7px var(--s-3);border-bottom:1px solid var(--border);background:var(--surface-2);font-size:11.5px;flex-wrap:wrap}
+.xc-h .mono{color:var(--fg-2);font-size:11px;overflow-wrap:anywhere;min-width:0}
+.xc-h a{margin-left:auto;color:var(--accent);font-weight:500;display:inline-flex;align-items:center;gap:4px}
+.xc-h a .ic{width:13px;height:13px}
+.xc ol{padding:6px 0;font-family:var(--font-mono);font-size:12px;line-height:1.75;overflow-x:auto}
+.xc li{display:flex;white-space:pre;padding-right:var(--s-3)}
+.xc li i{font-style:normal;width:40px;flex:none;text-align:right;padding-right:14px;color:var(--fg-3);user-select:none}
+.xc li.hit{background:var(--danger-soft)}
+.xc li.hit i{color:var(--danger)}
+.xc li.hit.w{background:var(--warn-soft)}
+.xc li.hit.w i{color:var(--warn)}
+.xc li.cue{color:var(--danger);font-family:var(--font-ui);font-size:11.5px;white-space:normal}
+
+/* Two files claiming one thing: pick which keeps it. */
+.pick2{display:flex;flex-direction:column;gap:6px;margin-top:2px}
+.pick2 label{display:grid;grid-template-columns:auto minmax(0,1fr);gap:2px 10px;align-items:start;padding:9px 12px;border:1px solid var(--border);border-radius:var(--r-2);background:var(--surface);cursor:pointer}
+.pick2 label:hover{border-color:var(--border-strong)}
+.pick2 label:has(input:checked){border-color:var(--accent-line);background:var(--accent-soft)}
+.pick2 input{margin:3px 0 0;accent-color:var(--accent)}
+.pick2 .t{font-size:12.5px;color:var(--fg);font-weight:500}
+.pick2 .s{grid-column:2;font-size:11.5px;color:var(--fg-3)}
+.pick2 .s .mono{color:var(--fg-2)}
+.pick2 .then{grid-column:2;font-size:11.5px;color:var(--fg-2)}
+
+/* A list of entries inside a row or a confirm, capped, never scrolling. */
+.alist{display:flex;flex-direction:column;border:1px solid var(--border);border-radius:var(--r-2);background:var(--surface)}
+.alist li{display:flex;align-items:center;gap:var(--s-3);padding:8px var(--s-3);border-bottom:1px solid var(--border);font-size:12.5px;min-width:0}
+.alist li:last-child{border-bottom:0}
+.alist .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.alist a.nm:hover{color:var(--accent)}
+.alist .via{font-size:11.5px;color:var(--fg-3);white-space:nowrap}
+.alist .rest{color:var(--fg-3);font-size:11.5px}
+.alist .rest a{color:var(--accent)}
+.alist.chg li{flex-direction:column;align-items:stretch;gap:3px}
+.alist.chg .p{font-family:var(--font-mono);font-size:11px;color:var(--fg-3);overflow-wrap:anywhere}
+.alist.chg .d{font-family:var(--font-mono);font-size:11.5px;display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center}
+.alist.chg .d del{color:var(--fg-3);text-decoration:line-through}
+.alist.chg .d ins{text-decoration:none;color:var(--good)}
+.alist.chg .d .ic{width:12px;height:12px;color:var(--fg-3)}
+
+/* A small inline form inside a row's details. */
+.mini{display:grid;grid-template-columns:110px minmax(0,1fr);gap:10px var(--s-4);align-items:center;max-width:560px}
+.mini .k{font-size:12.5px;color:var(--fg-2)}
+.inp{height:var(--ctl);padding:0 10px;border:1px solid var(--border-strong);border-radius:var(--r-1);background:var(--surface);font-size:12.5px;width:100%;outline:none}
+.inp:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.mini .v{font-family:var(--font-mono);font-size:12px;color:var(--fg-2)}
+@media (max-width:640px){.mini{grid-template-columns:minmax(0,1fr)}}
+
+/* Search for another entry, capped at 6 results. */
+.pk{display:flex;flex-direction:column;gap:6px;max-width:560px}
+.pk .psearch{flex:none;max-width:none}
+.pk .res{display:flex;flex-direction:column;border:1px solid var(--border);border-radius:var(--r-2);background:var(--surface)}
+.pk .res button{display:flex;align-items:center;gap:var(--s-3);padding:8px var(--s-3);border-bottom:1px solid var(--border);font-size:12.5px;text-align:left}
+.pk .res button:last-child{border-bottom:0}
+.pk .res button:hover{background:var(--surface-2)}
+.pk .res button[aria-pressed="true"]{background:var(--accent-soft);color:var(--accent)}
+.pk .res button .via{margin-left:auto;font-size:11.5px;color:var(--fg-3);white-space:nowrap}
+.pk .res .more{padding:8px var(--s-3);font-size:11.5px;color:var(--fg-3)}
+
+.h-cap{display:flex;align-items:center;gap:var(--s-3);padding:var(--s-3) var(--pad-x);border-top:1px solid var(--border);background:var(--surface-2);font-size:12px;color:var(--fg-3);flex-wrap:wrap}
+.h-cap button{color:var(--accent);font-weight:500;font-size:12px}
+
+/* Nothing left. */
+.empty{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-3);padding:var(--s-7) var(--s-5);display:flex;flex-direction:column;align-items:center;gap:var(--s-2);text-align:center}
+.empty .badge{width:40px;height:40px;border-radius:99px;display:grid;place-items:center;background:var(--good-soft);color:var(--good);margin-bottom:var(--s-2)}
+.empty .badge.n{background:var(--surface-2);color:var(--fg-3)}
+.empty b{font-family:var(--font-display);font-size:17px;font-weight:600}
+.empty p{font-size:12.5px;color:var(--fg-2);max-width:52ch;line-height:1.6}
+.empty button{color:var(--accent);font-weight:500}
+
+/* ------------------------------------------------- menus, modals, toast -- */
+.menu{position:fixed;z-index:50;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-2);box-shadow:var(--shadow-2);padding:6px;width:236px}
+.menu button,.menu a{display:flex;align-items:center;gap:10px;width:100%;padding:7px 10px;border-radius:var(--r-1);font-size:12.5px;color:var(--fg-2);text-align:left}
+.menu button:hover,.menu a:hover,.menu button:focus-visible{background:var(--surface-2);color:var(--fg);outline:0}
+.menu .ic{width:15px;height:15px;color:var(--fg-3)}
+.menu hr{border:0;height:1px;background:var(--border);margin:5px -6px}
+.menu .note{padding:6px 10px;font-size:11.5px;color:var(--fg-3);line-height:1.5}
+.scrim{position:fixed;inset:0;z-index:55;background:color-mix(in srgb,var(--fg) 28%,transparent);display:grid;place-items:center;padding:var(--s-4)}
+.mdl{width:100%;max-width:520px;max-height:calc(100vh - 32px);overflow-y:auto;background:var(--surface);border:1px solid var(--border-strong);border-radius:var(--r-3);box-shadow:var(--shadow-3);display:flex;flex-direction:column}
+.mdl-h{padding:var(--s-5) var(--s-5) var(--s-3);display:flex;gap:var(--s-3);align-items:flex-start}
+.mdl-h h3{font-family:var(--font-display);font-size:17px;font-weight:600;letter-spacing:-.01em;line-height:1.3}
+.badge{width:30px;height:30px;border-radius:99px;display:grid;place-items:center;flex:none;background:var(--accent-soft);color:var(--accent)}
+.badge .ic{width:15px;height:15px}
+.mdl-b{padding:0 var(--s-5) var(--s-5);font-size:12.5px;color:var(--fg-2);display:flex;flex-direction:column;gap:var(--s-4);line-height:1.6}
+.mdl-b b{color:var(--fg);font-weight:600}
+.mdl-f{display:flex;gap:var(--s-2);justify-content:flex-end;padding:var(--s-4) var(--s-5);border-top:1px solid var(--border);flex-wrap:wrap}
+.toast{position:fixed;right:24px;bottom:24px;z-index:58;display:inline-flex;align-items:center;gap:var(--s-3);background:var(--surface);border:1.5px solid var(--good-dot);border-radius:var(--r-2);box-shadow:var(--shadow-2);padding:9px 9px 9px 14px;font-size:12.5px;color:var(--fg);max-width:calc(100vw - 32px)}
+.toast > .ic{color:var(--good-dot)}
+.toast .div{width:1px;align-self:stretch;margin-block:3px;background:var(--border)}
+.toast .undo{display:inline-flex;align-items:center;gap:6px;height:var(--ctl-sm);padding:0 11px;border-radius:var(--r-1);font-size:12px;font-weight:500;color:var(--accent)}
+.toast .undo:hover{background:var(--accent-soft)}
+.toast .undo .ic{width:14px;height:14px}
+@media (max-width:640px){.toast{right:16px;left:16px;bottom:16px}}
+/* ===================================================== content types == */
+
+/* ---- notices: neutral explains, warn and bad are states ---- */
+.notice{display:flex;gap:var(--s-3);align-items:flex-start;padding:var(--s-4) var(--s-5);background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r-3);font-size:13px;color:var(--fg-2);line-height:1.6}
+.notice > .ic{color:var(--fg-3);margin-top:3px}
+.notice b{color:var(--fg);font-weight:600}
+.notice .mono,.notice code{font-family:var(--font-mono);font-size:12px;color:var(--fg)}
+.notice a{color:var(--accent);font-weight:500}
+.notice .acts{margin-left:auto;display:flex;gap:var(--s-2);flex:none;align-self:center}
+.notice.warn{background:var(--warn-soft);border-color:transparent;color:var(--warn)}
+.notice.warn > .ic{color:var(--warn-dot)} .notice.warn b,.notice.warn code{color:var(--warn)}
+.notice.bad{background:var(--danger-soft);border-color:transparent;color:var(--danger)}
+.notice.bad > .ic{color:var(--danger-dot)} .notice.bad b{color:var(--danger)}
+.notice.slim{padding:var(--s-3) var(--s-4);border-radius:var(--r-2);font-size:12.5px}
+@media (max-width:640px){.notice{flex-wrap:wrap}.notice .acts{margin-left:0}}
+
+/* ---- the admin table ---- */
+.tcap{display:flex;align-items:baseline;gap:var(--s-3);padding:var(--pad-panel) var(--pad-x);border-bottom:1px solid var(--border)}
+.tcap b{font-family:var(--font-display);font-size:15.5px;font-weight:600}
+.tcap span{font-size:12.5px;color:var(--fg-3)}
+.tcap .clear{margin-left:auto;font-size:12.5px;color:var(--accent);font-weight:500}
+.tbl-shell{overflow-x:auto}
+table.tbl{width:100%;border-collapse:collapse;min-width:720px}
+table.tbl th{text-align:left;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--fg-3);padding:12px var(--pad-x);border-bottom:1px solid var(--border);white-space:nowrap}
+table.tbl th.r,table.tbl td.r{text-align:right}
+table.tbl td{padding:var(--pad-row) var(--pad-x);border-bottom:1px solid var(--border);vertical-align:top;font-size:13px}
+table.tbl tbody tr:last-child td{border-bottom:0}
+table.tbl tbody tr:hover td{background:var(--surface-2)}
+table.tbl td.num{font-family:var(--font-mono);font-size:12px;color:var(--fg-2);padding-top:calc(var(--pad-row) + 2px)}
+table.tbl td.num.zero{color:var(--fg-3)}
+.tname{display:flex;gap:var(--s-3);align-items:flex-start;min-width:0}
+.tname > .ic{margin-top:2px;color:var(--fg-2);width:17px;height:17px}
+.tname a,.tname .t{font-family:var(--font-title);font-size:var(--title-size);font-weight:var(--title-weight);letter-spacing:var(--title-track);color:var(--fg)}
+.tname a:hover{color:var(--accent)}
+.tname .sl{display:block;font-family:var(--font-mono);font-size:11px;color:var(--fg-3);margin-top:4px}
+.tname .flag{display:flex;align-items:center;gap:6px;margin-top:6px;font-size:12px;color:var(--warn)}
+.tname .flag .ic{width:13px;height:13px;color:var(--warn-dot)}
+.tname .flag a{font-family:var(--font-ui);font-size:12px;color:var(--accent);font-weight:500;letter-spacing:0}
+.kindc{display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding-top:2px}
+.tag{text-transform:none;letter-spacing:0;display:inline-flex;align-items:center;gap:4px;height:20px;padding:0 7px;border-radius:5px;background:var(--surface-2);color:var(--fg-2);font-size:11px;font-weight:500;border:1px solid var(--border);white-space:nowrap}
+.tag .ic{width:12px;height:12px}
+.tag.acc{background:var(--accent-soft);color:var(--accent);border-color:var(--accent-line)}
+.tag.warn{background:var(--warn-soft);color:var(--warn);border-color:transparent}
+.src{font-size:12.5px;color:var(--fg);padding-top:2px;display:block}
+.src.mono{font-family:var(--font-mono);font-size:12px}
+.src small{display:block;font-family:var(--font-ui);font-size:11.5px;color:var(--fg-3);margin-top:3px}
+tr.old td{background:color-mix(in srgb,var(--warn-soft) 55%,transparent)}
+.sk{display:inline-block;height:10px;border-radius:4px;background:linear-gradient(90deg,var(--surface-2),var(--surface-3),var(--surface-2));background-size:200% 100%;animation:sk 1.4s linear infinite;vertical-align:middle}
+@keyframes sk{from{background-position:200% 0}to{background-position:-200% 0}}
+.lempty{padding:var(--s-7) var(--s-5);text-align:center;color:var(--fg-2);font-size:13px;display:flex;flex-direction:column;align-items:center;gap:6px}
+.lempty b{font-family:var(--font-display);font-size:16px;color:var(--fg);font-weight:600}
+.lempty button{color:var(--accent);font-weight:500;margin-top:4px}
+.ftools .clear{font-size:12.5px;color:var(--accent);font-weight:500}
+
+/* ---- the detail head ---- */
+.ph-id{display:flex;align-items:center;gap:var(--s-4);min-width:0}
+.ticon{width:44px;height:44px;border-radius:var(--r-2);background:var(--surface);border:1px solid var(--border);display:grid;place-items:center;color:var(--fg-2);flex:none}
+.ticon .ic{width:21px;height:21px}
+.ph .facts{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:6px;font-size:13px;color:var(--fg-2)}
+.ph .facts .sep{color:var(--fg-3)}
+.ph .facts .mono{font-family:var(--font-mono);font-size:12px}
+.ph .desc{color:var(--fg-2);font-size:13.5px;margin-top:var(--s-3);max-width:var(--measure);line-height:1.6}
+.ph .desc.none{color:var(--fg-3);font-style:italic}
+.pill.changed{background:var(--accent-soft);color:var(--accent)} .pill.changed .d{background:var(--accent)}
+
+/* ---- settings panels: label left, control right ---- */
+.spanel{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-3);overflow:hidden}
+.spanel + .spanel{margin-top:0}
+.spanel-h{display:flex;align-items:baseline;gap:var(--s-3);flex-wrap:wrap;padding:var(--pad-panel) var(--pad-x);border-bottom:1px solid var(--border)}
+.spanel-h h2{font-family:var(--font-display);font-size:15.5px;font-weight:600}
+.spanel-h .hint{font-size:12.5px;color:var(--fg-3)}
+.spanel-h .end{margin-left:auto;display:flex;gap:var(--s-2);align-self:center}
+.srow{display:grid;grid-template-columns:minmax(160px,30%) minmax(0,1fr);gap:var(--s-2) var(--s-5);padding:var(--s-5) var(--pad-x);border-bottom:1px solid var(--border);align-items:start}
+.srow:last-child{border-bottom:0}
+.srow > .lbl{font-size:13px;color:var(--fg);font-weight:500;padding-top:8px}
+.srow > .lbl.flat{padding-top:0}
+.srow > .lbl small{display:block;font-weight:400;color:var(--fg-3);font-size:12px;margin-top:3px;line-height:1.5}
+.srow > .ctl{display:flex;flex-direction:column;gap:var(--s-2);min-width:0}
+.srow .hint{font-size:12.5px;color:var(--fg-3);line-height:1.55}
+.srow .hint .mono,.srow .hint code{font-family:var(--font-mono);font-size:11.5px;color:var(--fg-2)}
+.srow .val{font-size:13px;color:var(--fg);padding-top:8px}
+.srow .val.mono{font-family:var(--font-mono);font-size:12.5px}
+.srow .why{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--fg-3)}
+.srow .why .ic{width:13px;height:13px}
+.err-t{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--danger)}
+.err-t .ic{width:14px;height:14px;color:var(--danger-dot)}
+.srow.sub{padding-left:calc(var(--pad-x) + 24px);background:var(--bg)}
+@media (max-width:760px){.srow{grid-template-columns:minmax(0,1fr)}.srow > .lbl{padding-top:0}.srow .val{padding-top:0}}
+.inp{height:var(--ctl);padding:0 10px;border:1px solid var(--border-strong);border-radius:var(--r-1);background:var(--surface);font-size:13px;width:100%;max-width:440px;outline:none}
+.inp:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.inp.mono{font-family:var(--font-mono);font-size:12.5px}
+.inp.bad{border-color:var(--danger-dot)}
+.inp.bad:focus{box-shadow:0 0 0 3px var(--danger-soft)}
+.inp[readonly]{background:var(--surface-2);color:var(--fg-2)}
+.inp.sm{max-width:120px}
+.affix{display:flex;align-items:stretch;max-width:440px;border:1px solid var(--border-strong);border-radius:var(--r-1);background:var(--surface);overflow:hidden}
+.affix:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.affix.bad{border-color:var(--danger-dot)}
+.affix > span{display:flex;align-items:center;padding:0 10px;background:var(--surface-2);color:var(--fg-3);font-family:var(--font-mono);font-size:12px;border-right:1px solid var(--border);white-space:nowrap}
+.affix input{flex:1;min-width:0;height:calc(var(--ctl) - 2px);border:0;outline:0;padding:0 10px;font-family:var(--font-mono);font-size:12.5px;background:transparent}
+.affix input[readonly]{background:var(--surface-2);color:var(--fg-2)}
+.addr{font-family:var(--font-mono);font-size:12px;color:var(--fg-2);overflow-wrap:anywhere}
+.addr b{color:var(--fg);font-weight:500}
+.sel.wide{flex:none;width:100%;max-width:440px}
+
+/* A switch is a setting that takes effect in the form; the label says what it is. */
+.swrow{display:flex;align-items:flex-start;gap:var(--s-3);cursor:pointer}
+.swrow input{position:absolute;opacity:0;width:1px;height:1px}
+.sw{width:32px;height:18px;border-radius:99px;background:var(--border-strong);position:relative;flex:none;margin-top:2px;transition:background .15s}
+.sw::after{content:"";position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:99px;background:var(--surface);box-shadow:0 1px 2px rgba(0,0,0,.2);transition:left .15s}
+.swrow input:checked + .sw{background:var(--accent)}
+.swrow input:checked + .sw::after{left:16px}
+.swrow input:focus-visible + .sw{outline:2px solid var(--accent);outline-offset:2px}
+.swrow .tx{display:flex;flex-direction:column;gap:2px;font-size:13px;color:var(--fg)}
+.swrow .tx small{font-size:12px;color:var(--fg-3);line-height:1.5}
+.swrow .tx small code{font-family:var(--font-mono);font-size:11.5px;color:var(--fg-2)}
+.swrow .state{font-size:12px;color:var(--fg-3);font-weight:400;margin-left:6px}
+.swlist{display:flex;flex-direction:column;gap:var(--s-4)}
+.swlist .nest{padding-left:44px}
+
+/* Choice cards: a kind, with what it's for. */
+.choices{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:var(--s-3);max-width:640px}
+.choice{display:flex;gap:var(--s-3);align-items:flex-start;padding:var(--s-4);border:1px solid var(--border);border-radius:var(--r-2);background:var(--surface);cursor:pointer;position:relative}
+.choice:hover{border-color:var(--border-strong)}
+.choice input{position:absolute;opacity:0;width:1px;height:1px}
+.choice:has(input:checked){border-color:var(--accent);box-shadow:0 0 0 1px var(--accent);background:var(--accent-soft)}
+.choice:has(input:focus-visible){outline:2px solid var(--accent);outline-offset:2px}
+.choice > .ic{width:20px;height:20px;color:var(--fg-2);margin-top:1px}
+.choice:has(input:checked) > .ic{color:var(--accent)}
+.choice b{display:block;font-size:13.5px;font-weight:600}
+.choice span{display:block;font-size:12.5px;color:var(--fg-2);line-height:1.5;margin-top:3px}
+.choice code{font-family:var(--font-mono);font-size:11.5px}
+
+/* A radio list, with an example per option. */
+.rlist{display:flex;flex-direction:column;gap:2px;max-width:560px}
+.rlist label{display:grid;grid-template-columns:auto minmax(0,1fr);gap:2px 10px;align-items:start;padding:7px 10px;border-radius:var(--r-1);cursor:pointer}
+.rlist label:hover{background:var(--surface-2)}
+.rlist input{margin:3px 0 0;accent-color:var(--accent)}
+.rlist .t{font-size:13px}
+.rlist .x{grid-column:2;font-family:var(--font-mono);font-size:11.5px;color:var(--fg-3);overflow-wrap:anywhere}
+.rlist .x.ui{font-family:var(--font-ui);font-size:12px}
+
+/* Token choices for which types a terms type files. */
+.picks{display:flex;flex-wrap:wrap;gap:6px;max-width:560px}
+.picks label{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 11px 0 9px;border:1px solid var(--border);border-radius:99px;background:var(--surface);font-size:12.5px;cursor:pointer;color:var(--fg-2)}
+.picks label:hover{border-color:var(--border-strong)}
+.picks input{position:absolute;opacity:0;width:1px;height:1px}
+.picks label .ic{width:14px;height:14px}
+.picks label:has(input:checked){border-color:var(--accent-line);background:var(--accent-soft);color:var(--accent)}
+.picks label:has(input:focus-visible){outline:2px solid var(--accent);outline-offset:2px}
+
+/* ---- the wizard ---- */
+.steps{display:flex;gap:0;align-items:center;flex-wrap:wrap;counter-reset:st}
+.steps li{display:flex;align-items:center}
+.steps li + li::before{content:"";width:40px;height:1px;background:var(--border-strong);margin:0 var(--s-3)}
+.steps button{display:inline-flex;align-items:center;gap:9px;font-size:13px;color:var(--fg-3);padding:4px 2px}
+.steps button:not([disabled]):hover{color:var(--fg)}
+.steps button[disabled]{cursor:default}
+.steps .n{width:24px;height:24px;border-radius:99px;display:grid;place-items:center;font-size:11.5px;font-weight:600;border:1px solid var(--border-strong);background:var(--surface);color:var(--fg-3);font-family:var(--font-mono)}
+.steps .n .ic{width:13px;height:13px;stroke-width:2.4}
+.steps [aria-current="step"]{color:var(--fg);font-weight:500}
+.steps [aria-current="step"] .n{background:var(--accent);border-color:var(--accent);color:var(--accent-fg)}
+.steps .done{color:var(--fg-2)}
+.steps .done .n{background:var(--good-soft);border-color:transparent;color:var(--good)}
+@media (max-width:640px){.steps li + li::before{width:14px;margin:0 6px}.steps .w{display:none}.steps [aria-current="step"] .w{display:inline}}
+.wiz{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:var(--s-5);align-items:start}
+@media (max-width:1180px){.wiz{grid-template-columns:minmax(0,1fr)}}
+.wiz-main{display:flex;flex-direction:column;gap:var(--s-5);min-width:0}
+.sum{position:sticky;top:var(--s-5);background:var(--surface);border:1px solid var(--border);border-radius:var(--r-3);overflow:hidden}
+.sum h2{font-family:var(--font-display);font-size:15px;font-weight:600;padding:var(--pad-panel) var(--s-5);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:var(--s-2)}
+.sum h2 .ic{color:var(--fg-3)}
+.sum dl{display:flex;flex-direction:column}
+.sum dl > div{padding:10px var(--s-5);border-bottom:1px solid var(--border);display:flex;flex-direction:column;gap:2px}
+.sum dl > div:last-child{border-bottom:0}
+.sum dt{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--fg-3)}
+.sum dd{margin:0;font-size:13px;color:var(--fg);overflow-wrap:anywhere;line-height:1.5}
+.sum dd .mono{font-family:var(--font-mono);font-size:12px;color:var(--fg-2)}
+.sum dd.none{color:var(--fg-3)}
+.sum .lit{animation:lit .9s ease-out}
+@keyframes lit{from{background:var(--accent-soft)}to{background:transparent}}
+.wbar{display:flex;align-items:center;gap:var(--s-2);flex-wrap:wrap;padding-top:var(--s-2)}
+.wbar .grow{flex:1}
+.wbar .say{font-size:12.5px;color:var(--danger);display:flex;align-items:center;gap:6px}
+.wbar .say .ic{width:14px;height:14px}
+
+/* ---- tabs on a type ---- */
+.utabs .dot{width:6px;height:6px;border-radius:99px;background:var(--accent)}
+
+/* ---- the save bar, at the bottom of the work area ---- */
+.savebar{position:sticky;bottom:0;z-index:5;margin:0 calc(var(--s-7) * -1) -96px;padding:var(--s-3) var(--s-7);background:var(--surface);border-top:1px solid var(--border);display:flex;align-items:center;gap:var(--s-3);flex-wrap:wrap;box-shadow:0 -6px 16px rgba(0,0,0,.04)}
+.savebar .n{font-size:13px;color:var(--fg)}
+.savebar .n b{font-weight:600}
+.savebar .grow{flex:1}
+.savebar .fail{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--danger);flex-basis:100%}
+.savebar .fail .ic{width:14px;height:14px;color:var(--danger-dot)}
+@media (max-width:760px){.savebar{margin:0 calc(var(--s-4) * -1) -96px;padding:var(--s-3) var(--s-4)}}
+
+/* ---- rows in a panel: relationships, fields, sets, archives ---- */
+.rrows > li{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr) auto;gap:var(--s-2) var(--s-5);padding:var(--pad-row) var(--pad-x);border-bottom:1px solid var(--border);align-items:center}
+.rrows > li:last-child{border-bottom:0}
+.rrows > li.g{display:block;padding:var(--s-3) var(--pad-x) 6px;background:var(--bg);font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--fg-3)}
+.rrows .say{font-size:13.5px;color:var(--fg)}
+.rrows .say b{font-weight:600}
+.rrows .say a{color:var(--fg)}
+.rrows .say a:hover{color:var(--accent)}
+.rrows .k{display:block;font-family:var(--font-mono);font-size:11px;color:var(--fg-3);margin-top:3px}
+.rrows .m{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:12.5px;color:var(--fg-2)}
+.rrows .note{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--fg-3);margin-top:5px}
+.rrows .note .ic{width:13px;height:13px}
+.rrows .acts{display:flex;gap:4px;justify-content:flex-end}
+@media (max-width:860px){.rrows > li{grid-template-columns:minmax(0,1fr)}.rrows .acts{justify-content:flex-start}}
+.pempty{padding:var(--s-6) var(--pad-x);color:var(--fg-2);font-size:13px}
+.pnote{padding:var(--s-3) var(--pad-x);border-top:1px solid var(--border);background:var(--bg);font-size:12.5px;color:var(--fg-2);display:flex;gap:8px;align-items:flex-start;line-height:1.55}
+.pnote .ic{width:14px;height:14px;color:var(--fg-3);margin-top:2px}
+.pnote a{color:var(--accent);font-weight:500}
+
+/* Fields: a table that reorders, and opens a field in place. */
+.frows > li{display:grid;grid-template-columns:22px minmax(0,1.3fr) minmax(0,1fr) minmax(0,.8fr) 90px;gap:var(--s-2) var(--s-4);padding:12px var(--pad-x);border-bottom:1px solid var(--border);align-items:center}
+.frows > li:last-child{border-bottom:0}
+.frows > li.hd{padding-block:10px;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--fg-3)}
+.frows > li.on{background:var(--accent-soft)}
+.frows .mv{display:flex;flex-direction:column}
+.frows .mv button{width:22px;height:15px;display:grid;place-items:center;color:var(--fg-3);border-radius:4px}
+.frows .mv button:hover{background:var(--surface-3);color:var(--fg)}
+.frows .mv button[disabled]{opacity:.3;pointer-events:none}
+.frows .mv .ic{width:13px;height:13px}
+.frows .lb{font-size:13.5px;font-weight:500}
+.frows .lb small{display:block;font-family:var(--font-mono);font-size:11px;color:var(--fg-3);font-weight:400;margin-top:2px}
+.frows .ty{font-size:12.5px;color:var(--fg-2)}
+.frows .ty small{display:block;font-size:11.5px;color:var(--fg-3)}
+.frows .rq{font-size:12.5px;color:var(--fg-2)}
+.frows .acts{display:flex;gap:4px;justify-content:flex-end}
+.frows.ro > li{grid-template-columns:minmax(0,1.3fr) minmax(0,1fr) minmax(0,.9fr)}
+@media (max-width:760px){.frows > li,.frows.ro > li{grid-template-columns:auto minmax(0,1fr) auto}.frows .ty,.frows .rq{grid-column:2}.frows > li.hd{display:none}}
+.builtins{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+
+/* The field editor, opened in place under its row. */
+.fed{border-top:1px solid var(--accent-line);border-bottom:1px solid var(--border);background:var(--bg)}
+.fed .srow{background:transparent}
+.fed .srow:last-of-type{border-bottom:1px solid var(--border)}
+.fed-f{display:flex;gap:var(--s-2);align-items:center;flex-wrap:wrap;padding:var(--s-4) var(--pad-x)}
+.fed-f .grow{flex:1}
+.optlist{display:flex;flex-direction:column;gap:6px;max-width:440px}
+.optlist > div{display:flex;gap:6px;align-items:center}
+.optlist .inp{flex:1}
+.two{display:flex;gap:var(--s-3);flex-wrap:wrap;align-items:flex-end}
+.two label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--fg-2)}
+.two .inp{width:140px}
+
+/* Addresses: one row per address, its result and what it needs. */
+.arows > li{display:grid;grid-template-columns:minmax(150px,22%) minmax(0,1fr);gap:var(--s-2) var(--s-5);padding:var(--s-4) var(--pad-x);border-bottom:1px solid var(--border);align-items:start}
+.arows > li:last-child{border-bottom:0}
+.arows .lb{font-size:13px;font-weight:500;padding-top:8px}
+.arows .ctl{display:flex;flex-direction:column;gap:6px;min-width:0}
+.arows .ph-r{display:flex;gap:6px;flex-wrap:wrap;align-items:center;font-size:12px;color:var(--fg-3)}
+.ph-chip{font-family:var(--font-mono);font-size:11px;padding:1px 6px;border-radius:4px;background:var(--surface-2);border:1px solid var(--border);color:var(--fg-2)}
+.ph-chip.need{border-color:var(--accent-line);background:var(--accent-soft);color:var(--accent)}
+@media (max-width:760px){.arows > li{grid-template-columns:minmax(0,1fr)}.arows .lb{padding-top:0}}
+
+/* Facts for a type that can only be viewed. */
+.facts-g{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,260px),1fr))}
+.facts-g > div{padding:var(--s-4) var(--pad-x);border-bottom:1px solid var(--border);border-right:1px solid var(--border);display:flex;flex-direction:column;gap:3px;min-width:0}
+.facts-g dt{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--fg-3)}
+.facts-g dd{margin:0;font-size:13px;color:var(--fg);overflow-wrap:anywhere}
+.facts-g dd .mono{font-family:var(--font-mono);font-size:12px}
+.facts-g dd.no{color:var(--fg-3)}
+
+/* The icon picker. */
+.ipick{display:flex;align-items:center;gap:var(--s-3);flex-wrap:wrap}
+.ipick .cur{width:38px;height:38px;border-radius:var(--r-2);border:1px solid var(--border-strong);display:grid;place-items:center;background:var(--surface)}
+.ipick .cur .ic{width:19px;height:19px}
+.igrid{display:grid;grid-template-columns:repeat(auto-fill,38px);gap:4px;max-width:440px;padding:var(--s-2);border:1px solid var(--border);border-radius:var(--r-2);background:var(--surface)}
+.igrid button{width:38px;height:38px;display:grid;place-items:center;border-radius:var(--r-1);color:var(--fg-2)}
+.igrid button:hover{background:var(--surface-2);color:var(--fg)}
+.igrid button[aria-pressed="true"]{background:var(--accent-soft);color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent-line)}
+.igrid .ic{width:18px;height:18px}
+
+.mdl-b .alist .via{margin-left:auto}
+.mdl-b ul.plain{display:flex;flex-direction:column;gap:4px;padding-left:2px}
+.lnk{color:var(--accent);font-weight:500}
+.lnk:hover{text-decoration:underline}
+.side-g2{font-size:10.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--fg-3);padding:var(--s-4) var(--s-5) var(--s-1)}
+.side{overflow-y:auto}
+
+body:has(.savebar) .toast{bottom:84px}
+.srow .val .ic{width:15px;height:15px;vertical-align:-3px;color:var(--fg-2)}
+.srow .val.no{color:var(--fg-3)}
+.lab-grp{min-width:0;max-width:100%}.lab-seg{overflow-x:auto;max-width:100%;scrollbar-width:none}
+.srow.ro{padding-block:12px}.srow.ro .val{padding-top:0}
+
+/* ========================================================= submissions == */
+/* The rail scopes the panel; it never changes the screen. */
+.rail button{width:62px;display:flex;flex-direction:column;align-items:center;gap:4px;padding:9px 0 7px;border-radius:var(--r-2);font-size:10.5px;color:var(--fg-2)}
+.rail button .ic{width:19px;height:19px}
+.rail button:hover{background:var(--surface-2);color:var(--fg)}
+.rail button[aria-pressed="true"]{background:var(--accent-soft);color:var(--accent)}
+.rail .ri{position:relative;display:grid}
+.rail .rdot{position:absolute;top:-2px;right:-4px;width:7px;height:7px;border-radius:99px;background:var(--accent);box-shadow:0 0 0 2px var(--surface)}
+.side nav a .c.cnew{font-family:var(--font-mono);color:var(--accent);background:var(--accent-soft);border-radius:99px;padding:0 7px}
+
+.pill.newp{background:var(--accent-soft);color:var(--accent)} .pill.newp .d{background:var(--accent)}
+.pill.trash{background:var(--danger-soft);color:var(--danger)} .pill.trash .d{background:var(--danger-dot)}
+
+table.tbl.subs td{vertical-align:top}
+table.tbl.subs th:first-child,table.tbl.subs td:first-child{padding-right:0}
+table.tbl.subs .cbx{margin-top:1px}
+table.tbl.subs tr.selr td{background:var(--accent-soft)}
+table.tbl.subs .who{display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-width:0}
+table.tbl.subs .who .t{font-family:var(--font-title);font-size:var(--title-size);font-weight:var(--title-weight);letter-spacing:var(--title-track);color:var(--fg);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
+table.tbl.subs .who .t:hover{color:var(--accent)}
+table.tbl.subs tr.is-new .who .t{font-weight:600}
+table.tbl.subs .sl{display:block;font-family:var(--font-mono);font-size:11px;color:var(--fg-3);margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pv{font-size:12.5px;color:var(--fg-2);line-height:1.55;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+tr.is-new .pv{color:var(--fg)}
+.pv .tag{margin-right:4px;vertical-align:1px}
+.pv .k{color:var(--fg-3)}
+.pv .sep{color:var(--fg-3)}
+.pg{font-size:11.5px;color:var(--fg-2)}
+table.tbl.subs td.num{padding-top:var(--pad-row);font-family:var(--font-ui);font-size:12.5px;color:var(--fg-2)}
+.rowmenu{opacity:0}
+tr:hover .rowmenu,.rowmenu:focus-visible,.rowmenu[aria-expanded="true"]{opacity:1}
+@media (hover:none){.rowmenu{opacity:1}}
+.pager{display:flex;align-items:center;justify-content:flex-end;gap:6px;padding:var(--s-3) var(--pad-x);border-top:1px solid var(--border);font-size:12px;color:var(--fg-3);font-variant-numeric:tabular-nums}
+.pager span{margin-right:var(--s-2)}
+.btn[disabled]{opacity:.4}
+.ftools .say .clear{margin-left:4px}
+
+.bulk{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(24px + env(safe-area-inset-bottom,0px));z-index:40;display:flex;align-items:center;gap:6px;padding:6px 8px 6px 18px;background:var(--surface);border:1px solid var(--border-strong);border-radius:99px;box-shadow:var(--shadow-2);font-size:12.5px;max-width:calc(100vw - 32px);overflow-x:auto;white-space:nowrap}
+.bulk b{font-weight:600;font-variant-numeric:tabular-nums}
+.bulk .div{width:1px;height:20px;background:var(--border);flex:none;margin:0 4px}
+@media (prefers-reduced-motion:no-preference){.bulk.enter{animation:bulkin .16s ease-out}}
+@keyframes bulkin{from{transform:translate(-50%,8px);opacity:0}to{transform:translate(-50%,0);opacity:1}}
+
+/* One submission. */
+.ph-top{display:flex;align-items:center;gap:var(--s-3);flex-wrap:wrap}
+.nav2{margin-left:auto;display:flex;align-items:center;gap:6px;font-size:12px;color:var(--fg-3);font-variant-numeric:tabular-nums}
+.nav2 span:first-child{margin-right:6px}
+.btn[aria-disabled="true"]{opacity:.4;pointer-events:none}
+.ph-acts{flex-wrap:wrap;align-items:center}
+.vdiv{width:1px;height:22px;background:var(--border);margin:0 4px}
+.ans{font-size:13.5px;color:var(--fg);line-height:1.6;padding-top:7px;overflow-wrap:anywhere}
+.ans.long{white-space:pre-wrap;max-width:var(--measure)}
+.ans.mono{font-family:var(--font-mono);font-size:12.5px}
+.ans.none{color:var(--fg-3);font-style:italic}
+.with-btn .ans{padding-top:0;align-self:center;flex:1;min-width:0}
+.filer{display:flex;align-items:center;gap:var(--s-3);max-width:560px;padding:8px var(--s-3);border:1px solid var(--border);border-radius:var(--r-2);font-size:13px}
+.filer > .ic{color:var(--fg-3)}
+.filer > span{flex:1;min-width:0;overflow-wrap:anywhere}
+.filer small{display:block;font-size:11.5px;color:var(--fg-3)}
+.srow .lbl small.mono{font-family:var(--font-mono);font-size:11px}
+.alist.nl{border:0;border-radius:0}
+.alist.nl li{padding:var(--s-3) var(--pad-x);gap:var(--s-3);flex-wrap:wrap}
+.alist.nl .nm{flex:0 1 auto;font-weight:500}
+.alist.nl .via{white-space:normal}
+.alist.nl .via .mono{font-size:11.5px;color:var(--fg-2)}
+@media (max-width:760px){.nav2{margin-left:0}}
+.toast.info{border-color:var(--accent)} .toast.info > .ic{color:var(--accent)}
+table.tbl.subs td.num time{white-space:nowrap}
+.srow.arow2{padding-block:var(--s-4)}
+.fm{display:block;font-size:12.5px;color:var(--fg);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* ========================================================= redirects == */
+/* Everything below is new for the Redirects sketch. Everything above it is the
+   Forms sketch's shell and controls, unchanged. */
+
+.side nav a .c.alert{color:var(--warn);background:var(--warn-soft);border-radius:99px;padding:0 7px}
+
+/* A path is machine data. A placeholder is the one part of it that varies. */
+.rpath{font-family:var(--font-mono);font-size:12.5px;color:var(--fg);overflow-wrap:anywhere;line-height:1.55}
+.phd{color:var(--accent);background:var(--accent-soft);border-radius:3px;padding:0 2px;white-space:nowrap}
+
+/* Where it goes: a path, an entry by name, or another site with its host plain. */
+.rto{display:flex;flex-direction:column;gap:3px;min-width:0}
+.rto .ent{display:inline-flex;align-items:center;gap:6px;font-family:var(--font-title);font-size:var(--title-size);font-weight:var(--title-weight);letter-spacing:var(--title-track);color:var(--fg);align-self:flex-start;text-align:left}
+.rto .ent .ic{width:14px;height:14px;color:var(--fg-3)}
+.rto .ent:hover{color:var(--accent)}
+.rto .at{font-family:var(--font-mono);font-size:11px;color:var(--fg-3);overflow-wrap:anywhere}
+.rto .gone{display:inline-flex;align-items:center;gap:6px;font-family:var(--font-title);font-size:var(--title-size);color:var(--fg-3);text-decoration:line-through;text-decoration-color:var(--border-strong)}
+.rto .gone .ic{width:14px;height:14px}
+.xurl{font-family:var(--font-mono);font-size:12.5px;color:var(--fg-3);overflow-wrap:anywhere;line-height:1.55}
+.xurl b{color:var(--fg);font-weight:500}
+.xurl .ic{width:13px;height:13px;vertical-align:-2px;margin-left:5px;color:var(--fg-3)}
+.rtype{font-size:12.5px;color:var(--fg);display:block;padding-top:1px}
+.rtype .code{font-family:var(--font-mono);font-size:11px;color:var(--fg-3);margin-left:6px;white-space:nowrap}
+.radd{font-size:12.5px;color:var(--fg-2);white-space:nowrap;display:block;padding-top:1px}
+.radd small{display:block;font-size:11.5px;color:var(--fg-3);margin-top:2px;white-space:normal}
+
+/* A problem is a marker and a sentence on the row, never a blocked screen. */
+.rflag{display:flex;align-items:flex-start;gap:6px;margin-top:7px;font-size:12px;color:var(--warn);line-height:1.5;font-family:var(--font-ui)}
+.rflag .ic{width:13px;height:13px;margin-top:2px;color:var(--warn-dot)}
+.rflag .fx{color:var(--accent);font-weight:500;font-size:12px;white-space:nowrap}
+.rflag .fx:hover{text-decoration:underline}
+
+table.tbl.rd{table-layout:fixed;min-width:720px}
+table.tbl.rd td{vertical-align:top}
+table.tbl.rd th:first-child,table.tbl.rd td:first-child{padding-right:0}
+table.tbl.rd .cbx{margin-top:1px}
+table.tbl.rd tr.selr td{background:var(--accent-soft)}
+table.tbl.rd .arrow{color:var(--fg-3)}
+table.tbl.rd tr.flash td{animation:lit 1.6s ease-out}
+.sk-row td{padding-block:calc(var(--pad-row) + 3px)}
+
+/* Add and edit happen in place, in the row. */
+tr.redit > td{background:var(--bg);padding:var(--s-5) var(--pad-x) var(--s-4);border-bottom:1px solid var(--border)}
+table.tbl.rd tbody tr.redit:hover td{background:var(--bg)}
+tr.redit.first > td{border-top:0}
+.rf-h{display:flex;align-items:baseline;gap:var(--s-3);margin-bottom:var(--s-4)}
+.rf-h b{font-family:var(--font-display);font-size:15px;font-weight:600}
+.rf-h span{font-size:12.5px;color:var(--fg-3)}
+.rform{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.25fr) minmax(0,230px);gap:var(--s-4) var(--s-5);align-items:start}
+@media (max-width:1080px){.rform{grid-template-columns:minmax(0,1fr)}}
+.fld2{display:flex;flex-direction:column;gap:6px;min-width:0;position:relative}
+.fld2 > label,.fld2 > .lb{font-size:12.5px;font-weight:500;color:var(--fg)}
+.fld2 .inp,.fld2 .sel.wide,.fld2 .affix{max-width:none}
+.fld2 .hint{font-size:12px;color:var(--fg-3);line-height:1.5}
+.fld2 .hint code{font-family:var(--font-mono);font-size:11.5px;color:var(--fg-2)}
+.with{display:flex;gap:6px;min-width:0}
+.with > .inp,.with > .chosen{flex:1;min-width:0}
+.chosen{display:flex;align-items:center;gap:8px;height:var(--ctl);padding:0 4px 0 10px;border:1px solid var(--accent-line);background:var(--accent-soft);border-radius:var(--r-1);min-width:0}
+.chosen > .ic{width:15px;height:15px;color:var(--accent)}
+.chosen b{font-weight:500;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;flex:0 1 auto}
+.chosen .at{font-family:var(--font-mono);font-size:11px;color:var(--fg-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;flex:1}
+.chosen .btn.icon{flex:none;height:26px;width:26px}
+.msg{display:flex;gap:7px;font-size:12px;line-height:1.5;align-items:flex-start}
+.msg .ic{width:13px;height:13px;margin-top:2px;flex:none}
+.msg.bad{color:var(--danger)} .msg.bad .ic{color:var(--danger-dot)}
+.msg.warn{color:var(--warn)} .msg.warn .ic{color:var(--warn-dot)}
+.msg.say{color:var(--fg-2)} .msg.say .ic{color:var(--fg-3)}
+.msg code{font-family:var(--font-mono);font-size:11.5px}
+.msg .fx{color:var(--accent);font-weight:500;white-space:nowrap}
+.msg .fx:hover{text-decoration:underline}
+.rform-f{display:flex;gap:var(--s-2);align-items:center;margin-top:var(--s-5);flex-wrap:wrap}
+.rform-f .grow{flex:1}
+.rform-f .say{font-size:12px;color:var(--fg-3)}
+
+/* The page picker, the one the editor's link dialog uses. */
+.pickpop{position:absolute;top:calc(100% + 6px);left:0;right:0;z-index:20;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-2);box-shadow:var(--shadow-2);padding:6px;display:flex;flex-direction:column;gap:6px;min-width:280px}
+.pickpop .psearch{max-width:none;flex:none}
+.pickpop .res{display:flex;flex-direction:column}
+.pickpop .res button{display:flex;align-items:center;gap:var(--s-3);padding:7px 9px;border-radius:var(--r-1);font-size:12.5px;text-align:left;min-width:0}
+.pickpop .res button:hover,.pickpop .res button:focus-visible{background:var(--surface-2);outline:0}
+.pickpop .res button .ic{width:14px;height:14px;color:var(--fg-3)}
+.pickpop .res button .t{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pickpop .res button .at{margin-left:auto;font-family:var(--font-mono);font-size:11px;color:var(--fg-3);white-space:nowrap;flex:none;max-width:45%;overflow:hidden;text-overflow:ellipsis}
+.pickpop .more{padding:4px 9px 2px;font-size:11.5px;color:var(--fg-3)}
+
+/* Code redirects, read-only, under the table. */
+.coded{border-top:1px solid var(--border)}
+.coded > button{display:flex;align-items:center;gap:8px;width:100%;padding:var(--s-3) var(--pad-x);font-size:12.5px;color:var(--fg-2);text-align:left;background:var(--bg)}
+.coded > button:hover{color:var(--fg)}
+.coded > button .ic{width:14px;height:14px;color:var(--fg-3)}
+.coded > button .chev{margin-left:auto;transition:transform .15s}
+.coded > button[aria-expanded="true"] .chev{transform:rotate(180deg)}
+.coded ul{border-top:1px solid var(--border)}
+.coded li{display:grid;grid-template-columns:minmax(0,1fr) 18px minmax(0,1fr) 190px;gap:var(--s-3);padding:10px var(--pad-x);border-bottom:1px solid var(--border);align-items:center;font-size:12.5px}
+.coded li:last-child{border-bottom:0}
+.coded li .ic{width:14px;height:14px;color:var(--fg-3)}
+@media (max-width:760px){.coded li{grid-template-columns:minmax(0,1fr)}.coded li > .ic{display:none}}
+
+.menu button.danger{color:var(--danger)}
+.menu button.danger .ic{color:var(--danger-dot)}
+.menu button.danger:hover{background:var(--danger-soft);color:var(--danger)}
+.tbl-shell{position:relative}
+
+/* ---- matched to the running admin's tables ---- */
+/* The tri-state header box: a bar when some of the page is chosen. */
+.cbx input:indeterminate + .bx{background:var(--accent);border-color:var(--accent)}
+.cbx input:indeterminate + .bx .ic{display:none}
+.cbx input:indeterminate + .bx::after{content:"";width:8px;height:2px;border-radius:1px;background:var(--accent-fg)}
+.utabs button .ic{width:14px;height:14px;color:var(--warn-dot)}
+/* Page, rows per page, and the way on. */
+.pager2{display:flex;align-items:center;gap:var(--s-2);padding:var(--s-3) var(--pad-x);border-top:1px solid var(--border);font-size:12.5px;color:var(--fg-2);flex-wrap:wrap}
+.pager2 .grow{flex:1}
+.pager2 .sel{flex:0 0 150px;min-width:0}
+.pager2 .btn .ic{width:14px;height:14px}
+.ftools .sel{flex:0 1 210px}
+.ftools .dens{margin-left:auto}
+/* Compact rows drop the second lines, never a problem. */
+table.tbl.rd.dense td{padding-block:9px}
+table.tbl.rd.dense .rto .at,table.tbl.rd.dense .radd small{display:none}
+.bulk b{font-weight:500}
+.bulk .btn .ic{width:15px;height:15px}
+/* The Content panel nests a type's taxonomies under it. */
+.side nav.side-top{padding-top:var(--s-3)}
+.side-nest{position:relative;padding-left:22px;display:flex;flex-direction:column;gap:2px}
+.side-nest::before{content:"";position:absolute;left:21px;top:2px;bottom:2px;width:1px;background:var(--border)}
+
+/* ---- one notice, the shape the Themes screen uses ---- */
+/* A boxed notice with a glyph: neutral explains, warn is a state. Used once in
+   the form, and per row only on the Problems tab. */
+.tnote{display:flex;gap:10px;align-items:flex-start;padding:10px 14px;border:1px solid var(--border);background:var(--surface-2);border-radius:var(--r-1);font-size:12.5px;color:var(--fg-2);line-height:1.55;max-width:720px}
+.tnote > .ic{width:15px;height:15px;margin-top:2px;color:var(--fg-3)}
+.tnote.warn{background:var(--warn-soft);border-color:var(--warn-dot);color:var(--warn)}
+.tnote.warn > .ic{color:var(--warn-dot)}
+.tnote .lines{display:flex;flex-direction:column;gap:3px;min-width:0}
+.tnote code{font-family:var(--font-mono);font-size:11.5px}
+.tnote .fx{color:var(--accent);font-weight:500;white-space:nowrap}
+.tnote .fx:hover{text-decoration:underline}
+.tnote.in-row{margin-top:8px;font-family:var(--font-ui)}
+.tnote.in-form{margin-top:var(--s-4)}
+/* Elsewhere a problem is only a mark beside the address. */
+.pmark{display:inline-grid;place-items:center;width:22px;height:22px;margin-left:6px;vertical-align:-5px;border-radius:var(--r-1);color:var(--warn-dot)}
+.pmark:hover{background:var(--warn-soft)}
+.pmark .ic{width:14px;height:14px}
+/* Where an address goes, at the top of the table while one is searched. */
+.trace{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding:12px var(--pad-x);border-bottom:1px solid var(--border);background:var(--bg);font-size:12.5px}
+.trace .lbl{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--fg-3)}
+.trace .lbl .ic{width:14px;height:14px}
+.trace .chain{display:inline-flex;align-items:center;flex-wrap:wrap;gap:6px}
+.tk{display:inline-flex;align-items:center;gap:5px;height:24px;padding:0 8px;border:1px solid var(--border);border-radius:var(--r-1);background:var(--surface);color:var(--fg);white-space:nowrap}
+.tk .ic{width:13px;height:13px;color:var(--fg-3)}
+.tk.mono{font-family:var(--font-mono);font-size:12px}
+.tk.pg .ic{color:var(--good-dot)}
+.tk.gone{color:var(--fg-3);text-decoration:line-through;text-decoration-color:var(--border-strong)}
+.tk.nf{color:var(--danger);border-color:transparent;background:var(--danger-soft)}
+.tk.nf .ic{color:var(--danger-dot)}
+.arr{display:inline-flex;align-items:center;gap:2px;color:var(--fg-3)}
+.arr .ic{width:14px;height:14px}
+.arr small{font-family:var(--font-mono);font-size:10.5px}
+.arr.eq{font-size:12px}
+.trace .fx{color:var(--accent);font-weight:500}
+.trace .fx:hover{text-decoration:underline}
+.trace .say{flex-basis:100%;color:var(--fg-3);font-size:12px}
+/* The notice row belongs to the redirect above it. */
+table.tbl.rd tr.has-note > td{border-bottom:0;padding-bottom:10px}
+table.tbl.rd tr.nrow > td{padding-top:0}
+table.tbl.rd tbody tr.nrow:hover td{background:transparent}
+table.tbl.rd tbody tr.nrow.selr td{background:var(--accent-soft)}
+table.tbl.rd tr.has-note:hover + tr.nrow td{background:var(--surface-2)}
+/* Lighter edge on the warning notice: the fill already says warn. */
+.tnote.warn{border-color:color-mix(in srgb,var(--warn-dot) 35%,transparent)}
+/* The problem chip: a pill with a dot and a word, pressed while its notice shows. */
+.pchip{margin-left:8px;vertical-align:1px;cursor:pointer;font-family:var(--font-ui);height:20px;font-size:11px}
+.pchip:hover{box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--warn-dot) 45%,transparent)}
+.pchip[aria-expanded="true"]{box-shadow:inset 0 0 0 1px var(--warn-dot)}
+
+/* ---- the dialog: add and edit ---- */
+dialog.rdlg{padding:0;border:1px solid var(--border-strong);border-radius:var(--r-3);background:var(--surface);color:var(--fg);box-shadow:var(--shadow-3);width:min(560px,calc(100vw - 32px));max-height:calc(100% - 48px);overflow:visible}
+dialog.rdlg::backdrop{background:color-mix(in srgb,var(--fg) 28%,transparent)}
+.rdlg-h{display:flex;align-items:center;padding:var(--s-4) var(--s-5);border-bottom:1px solid var(--border)}
+.rdlg-h > div{flex:1;min-width:0}
+.rdlg-h h2{font-family:var(--font-display);font-size:17px;font-weight:600;letter-spacing:-.01em;line-height:1.3}
+.rdlg-h .sub{font-size:12.5px;color:var(--fg-3);margin-top:3px}
+.rdlg-h .btn{margin:-4px -6px 0 0}
+.rdlg-b{display:flex;flex-direction:column;gap:var(--s-4);padding:var(--s-5)}
+.rdlg-b .lead{font-size:13.5px;color:var(--fg-2);line-height:1.6}
+.rdlg-f{display:flex;align-items:center;gap:var(--s-2);flex-wrap:wrap;padding:var(--s-4) var(--s-5);border-top:1px solid var(--border);background:var(--bg);border-radius:0 0 calc(var(--r-3) - 1px) calc(var(--r-3) - 1px)}
+.rdlg-f .grow{flex:1}
+.rdlg-f .say{font-size:12px;color:var(--fg-3)}
+.rdlg .tnote{max-width:none}
+/* To's page list hangs from the box itself. */
+.pickpop.combo{top:calc(100% + 4px);padding:4px}
+.fld2:has(.combo) > .msg{display:none}
+.pickpop.combo .res button[aria-selected="true"]{background:var(--accent-soft);color:var(--accent)}
+.pickpop.combo .res button[aria-selected="true"] .ic{color:var(--accent)}
+.fld2 > label + .inp + .pickpop.combo{top:calc(100% + 4px)}
+.chosen{outline-offset:2px}
+/* A scrim darkens, so in dark it is made from the ground, not the ink.
+   (The admin has no --scrim token yet; this is the case it asks for.) */
+@media (prefers-color-scheme: dark){:root:not([data-color-scheme="light"]) dialog.rdlg::backdrop{background:color-mix(in srgb,var(--bg) 72%,transparent)}}
+:root[data-color-scheme="dark"] dialog.rdlg::backdrop{background:color-mix(in srgb,var(--bg) 72%,transparent)}
+
+/* The checkbox column is the box and its gutter, no more: the first data
+   column starts about 20px after the box, as in the running admin's lists. */
+table.tbl.rd > thead > tr > th:nth-child(2),table.tbl.rd > tbody > tr > td:nth-child(2){padding-left:var(--s-4)}
+
+/* ---- the toast, as §7 and the running admin have it ---- */
+.toast{border:0;padding:11px 11px 11px 15px;gap:var(--s-3);max-width:min(440px,calc(100vw - 32px));box-shadow:var(--shadow-2)}
+.toast > .ic{flex:none;width:17px;height:17px;color:var(--good-dot)}
+.toast.danger > .ic,.toast.warn > .ic{color:var(--danger-dot)}
+.toast.warn > .ic{color:var(--warn-dot)}
+.toast.info > .ic{color:var(--accent)}
+.toast .msg{min-width:0;flex:1;line-height:1.45}
+.toast .msg code{font-family:var(--font-mono);font-size:12px}
+.toast-ring{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible}
+.toast-ring rect{x:.75px;y:.75px;width:calc(100% - 1.5px);height:calc(100% - 1.5px);rx:calc(var(--r-2) - .75px);fill:none;stroke-width:1.5;stroke-linecap:butt}
+.toast-ring .track{stroke:var(--border)}
+.toast-ring .run{stroke:var(--good-dot);stroke-dasharray:100;stroke-dashoffset:0}
+.toast.danger .toast-ring .run{stroke:var(--danger-dot)}
+.toast.warn .toast-ring .run{stroke:var(--warn-dot)}
+.toast.info .toast-ring .run{stroke:var(--accent)}
+.toast.info{border:0}
+@media (prefers-reduced-motion:no-preference){
+  .toast-ring .run{animation:toast-run var(--life,2600ms) linear forwards}
+  .toast.held .toast-ring .run{animation-play-state:paused}
+}
+@keyframes toast-run{to{stroke-dashoffset:100}}
+.rtype .tw-s{display:none}
+table.tbl.rd.dense .rtype{white-space:nowrap}
+table.tbl.rd.dense .rtype .tw{display:none}
+table.tbl.rd.dense .rtype .tw-s{display:inline}
+</style>
+
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><defs>
+<symbol id="i-sliders" viewBox="0 0 24 24"><path d="M10 5H3M12 19H3M14 3v4M16 17v4M21 12h-9M21 19h-5M21 5h-7M8 10v4M8 12H3"/></symbol>
+<symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20M2 12h20"/></symbol>
+<symbol id="i-bot" viewBox="0 0 24 24"><path d="M12 8V4H8"/><rect x="4" y="8" width="16" height="12" rx="2"/><path d="M2 14h2M20 14h2M15 13v2M9 13v2"/></symbol>
+<symbol id="i-brush" viewBox="0 0 24 24"><path d="m14.6 9.4 5.7-5.7a1.4 1.4 0 0 0-2-2l-5.7 5.7"/><path d="M7.07 14.94c-1.66 0-3 1.35-3 3.02 0 1.33-2.5 1.52-2 2.02 1.08 1.1 2.49 2.02 4 2.02 2.2 0 4-1.8 4-4.04a3.01 3.01 0 0 0-3-3.02z"/><path d="m10.4 12.6 2.9-2.9-2.9-2.9-2.9 2.9z"/></symbol>
+<symbol id="i-shapes" viewBox="0 0 24 24"><path d="M8.3 10a.7.7 0 0 1-.63-1.04L11.4 2.6a.7.7 0 0 1 1.2 0l3.72 6.36A.7.7 0 0 1 15.7 10z"/><rect x="3" y="14" width="7" height="7" rx="1"/><circle cx="17.5" cy="17.5" r="3.5"/></symbol>
+<symbol id="i-bookopen" viewBox="0 0 24 24"><path d="M12 7v14M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/></symbol>
+<symbol id="i-up" viewBox="0 0 24 24"><path d="m18 15-6-6-6 6"/></symbol>
+<symbol id="i-rss" viewBox="0 0 24 24"><path d="M4 11a9 9 0 0 1 9 9M4 4a16 16 0 0 1 16 16"/><circle cx="5" cy="19" r="1"/></symbol>
+<symbol id="i-folder" viewBox="0 0 24 24"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></symbol>
+<symbol id="i-key" viewBox="0 0 24 24"><path d="m15.5 7.5 2.3 2.3a1 1 0 0 0 1.4 0l2.1-2.1a1 1 0 0 0 0-1.4L19 4M21 2l-9.6 9.6"/><circle cx="7.5" cy="15.5" r="5.5"/></symbol>
+<symbol id="i-cal" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></symbol>
+<symbol id="i-utensils" viewBox="0 0 24 24"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2M7 2v20M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"/></symbol>
+<symbol id="i-bookmark" viewBox="0 0 24 24"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/></symbol>
+<symbol id="i-pin" viewBox="0 0 24 24"><path d="M20 10c0 4.99-5.54 10.19-7.4 11.8a1 1 0 0 1-1.2 0C9.54 20.19 4 14.99 4 10a8 8 0 0 1 16 0"/><circle cx="12" cy="10" r="3"/></symbol>
+<symbol id="i-sparkle" viewBox="0 0 24 24"><path d="M9.94 15.5A2 2 0 0 0 8.5 14.06l-6.13-1.58a.5.5 0 0 1 0-.96L8.5 9.94A2 2 0 0 0 9.94 8.5l1.58-6.13a.5.5 0 0 1 .96 0L14.06 8.5A2 2 0 0 0 15.5 9.94l6.13 1.58a.5.5 0 0 1 0 .96L15.5 14.06a2 2 0 0 0-1.44 1.44l-1.58 6.13a.5.5 0 0 1-.96 0z"/></symbol>
+<symbol id="i-palette" viewBox="0 0 24 24"><circle cx="13.5" cy="6.5" r=".5"/><circle cx="17.5" cy="10.5" r=".5"/><circle cx="8.5" cy="7.5" r=".5"/><circle cx="6.5" cy="12.5" r=".5"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.93 0 1.65-.75 1.65-1.69 0-.44-.18-.84-.44-1.13-.29-.29-.44-.65-.44-1.13a1.64 1.64 0 0 1 1.67-1.67h2c3.05 0 5.56-2.5 5.56-5.55C21.97 6.01 17.46 2 12 2z"/></symbol>
+<symbol id="i-music" viewBox="0 0 24 24"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></symbol>
+<symbol id="i-camera" viewBox="0 0 24 24"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></symbol>
+<symbol id="i-box" viewBox="0 0 24 24"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5M12 22V12"/></symbol>
+<symbol id="i-rel" viewBox="0 0 24 24"><rect x="3" y="3" width="8" height="8" rx="2"/><rect x="13" y="13" width="8" height="8" rx="2"/><path d="M7 11v4a2 2 0 0 0 2 2h4"/></symbol>
+<symbol id="i-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+<symbol id="i-plus-sq" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M8 12h8M12 8v8"/></symbol>
+<symbol id="i-rows2" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 12h18"/></symbol>
+<symbol id="i-rows4" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 7.5h18M3 12h18M3 16.5h18"/></symbol>
+<symbol id="i-home" viewBox="0 0 24 24"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/><path d="M3 10a2 2 0 0 1 .7-1.53l7-6a2 2 0 0 1 2.6 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></symbol>
+<symbol id="i-gauge" viewBox="0 0 24 24"><path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/></symbol>
+<symbol id="i-heart" viewBox="0 0 24 24"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/><path d="M3.22 12H9.5l.5-1 2 4.5 2-7 1.5 3.5h5.27"/></symbol>
+<symbol id="i-refresh" viewBox="0 0 24 24"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></symbol>
+<symbol id="i-files" viewBox="0 0 24 24"><path d="M20 7h-3a2 2 0 0 1-2-2V2"/><path d="M9 18a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h7l4 4v10a2 2 0 0 1-2 2Z"/><path d="M3 7.6v12.8A1.6 1.6 0 0 0 4.6 22h9.8"/></symbol>
+<symbol id="i-plug" viewBox="0 0 24 24"><path d="M12 22v-5M9 8V2M15 8V2M18 8v5a4 4 0 0 1-4 4h-4a4 4 0 0 1-4-4V8Z"/></symbol>
+<symbol id="i-ucircle" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="10" r="3"/><path d="M7 20.66V19a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v1.66"/></symbol>
+<symbol id="i-octx" viewBox="0 0 24 24"><path d="M2.59 8.93 8.93 2.59A2 2 0 0 1 10.34 2h3.32a2 2 0 0 1 1.41.59l6.34 6.34a2 2 0 0 1 .59 1.41v3.32a2 2 0 0 1-.59 1.41l-6.34 6.34a2 2 0 0 1-1.41.59h-3.32a2 2 0 0 1-1.41-.59l-6.34-6.34A2 2 0 0 1 2 13.66v-3.32a2 2 0 0 1 .59-1.41Z"/><path d="m15 9-6 6M9 9l6 6"/></symbol>
+<symbol id="i-ccheck" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></symbol>
+<symbol id="i-lchecks" viewBox="0 0 24 24"><path d="m3 17 2 2 4-4M3 7l2 2 4-4M13 6h8M13 12h8M13 18h8"/></symbol>
+<symbol id="i-pen" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.38 3.62a1 1 0 0 1 3 3L7.37 18.64a2 2 0 0 1-.85.5l-2.87.84a.5.5 0 0 1-.62-.62l.84-2.87a2 2 0 0 1 .5-.85Z"/></symbol>
+<symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></symbol>
+<symbol id="i-shield" viewBox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/></symbol>
+<symbol id="i-server" viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><path d="M6 6h.01M6 18h.01"/></symbol>
+<symbol id="i-copy" viewBox="0 0 24 24"><rect x="8" y="8" width="14" height="14" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></symbol>
+<symbol id="i-hash" viewBox="0 0 24 24"><path d="M4 9h16M4 15h16M10 3 8 21M16 3l-2 18"/></symbol>
+<symbol id="i-upload" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></symbol>
+<symbol id="i-film" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M7 3v18M3 7.5h4M3 12h18M3 16.5h4M17 3v18M17 7.5h4M17 16.5h4"/></symbol>
+<symbol id="i-recipe" viewBox="0 0 24 24"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2M7 2v20M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"/></symbol>
+<symbol id="i-undo" viewBox="0 0 24 24"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/></symbol>
+<symbol id="i-layers" viewBox="0 0 24 24"><path d="m12 2 9 5-9 5-9-5 9-5Z"/><path d="m3 12 9 5 9-5"/><path d="m3 17 9 5 9-5"/></symbol>
+<symbol id="i-fields" viewBox="0 0 24 24"><path d="M5 3a2 2 0 0 0-2 2M19 3a2 2 0 0 1 2 2M21 19a2 2 0 0 1-2 2M5 21a2 2 0 0 1-2-2M9 3h1M9 21h1M14 3h1M14 21h1M3 9v1M21 9v1M3 14v1M21 14v1"/><path d="M8 12h8"/></symbol>
+<symbol id="i-config" viewBox="0 0 24 24"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></symbol>
+<symbol id="i-list" viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></symbol>
+<symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol>
+<symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+<symbol id="i-plus" viewBox="0 0 24 24"><path d="M5 12h14M12 5v14"/></symbol>
+<symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></symbol>
+<symbol id="i-chev-d" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+<symbol id="i-chev-l" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></symbol>
+<symbol id="i-chev-r" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></symbol>
+<symbol id="i-updown" viewBox="0 0 24 24"><path d="m7 15 5 5 5-5M7 9l5-5 5 5"/></symbol>
+<symbol id="i-grip" viewBox="0 0 24 24"><circle cx="9" cy="12" r="1"/><circle cx="9" cy="5" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="15" cy="19" r="1"/></symbol>
+<symbol id="i-alert" viewBox="0 0 24 24"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4M12 17h.01"/></symbol>
+<symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></symbol>
+<symbol id="i-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3M12 17h.01"/></symbol>
+<symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></symbol>
+<symbol id="i-dashed" viewBox="0 0 24 24"><path d="M10.1 2.18a10 10 0 0 1 3.8 0M13.9 21.82a10 10 0 0 1-3.8 0M17.61 3.72a10 10 0 0 1 2.69 2.7M2.18 13.9a10 10 0 0 1 0-3.8M20.28 17.61a10 10 0 0 1-2.7 2.69M21.82 10.1a10 10 0 0 1 0 3.8M3.72 6.39a10 10 0 0 1 2.7-2.69M6.39 20.28a10 10 0 0 1-2.69-2.7"/></symbol>
+<symbol id="i-lock" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></symbol>
+<symbol id="i-lang" viewBox="0 0 24 24"><path d="m5 8 6 6M4 14l6-6 2-3M2 5h12M7 2h1M22 22l-5-10-5 10M14 18h6"/></symbol>
+<symbol id="i-tree" viewBox="0 0 24 24"><path d="M21 12h-8M21 6H8M21 18h-8M3 6v4c0 1.1.9 2 2 2h3M3 10v6c0 1.1.9 2 2 2h3"/></symbol>
+<symbol id="i-tag" viewBox="0 0 24 24"><path d="M12.59 2.59A2 2 0 0 0 11.17 2H4a2 2 0 0 0-2 2v7.17a2 2 0 0 0 .59 1.42l8.7 8.7a2.43 2.43 0 0 0 3.42 0l6.58-6.58a2.43 2.43 0 0 0 0-3.42z"/><circle cx="7.5" cy="7.5" r=".5"/></symbol>
+<symbol id="i-users" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></symbol>
+<symbol id="i-user" viewBox="0 0 24 24"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></symbol>
+<symbol id="i-link" viewBox="0 0 24 24"><path d="M10 13.5a4 4 0 0 0 5.7 0l2.8-2.8a4 4 0 0 0-5.7-5.7l-1.6 1.6"/><path d="M14 10.5a4 4 0 0 0-5.7 0l-2.8 2.8a4 4 0 0 0 5.7 5.7l1.6-1.6"/></symbol>
+<symbol id="i-unlink" viewBox="0 0 24 24"><path d="m18.84 12.25 1.72-1.71h-.02a5 5 0 0 0-7.07-7.07l-1.72 1.71M5.17 11.75l-1.71 1.71a5 5 0 0 0 7.07 7.07l1.71-1.71M8 2v3M2 8h3M16 22v-3M22 16h-3"/></symbol>
+<symbol id="i-cards" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></symbol>
+<symbol id="i-select" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m14 11 2 2 2-2"/></symbol>
+<symbol id="i-page" viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4M10 9H8M16 13H8M16 17H8"/></symbol>
+<symbol id="i-book" viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2zM22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></symbol>
+<symbol id="i-sign" viewBox="0 0 24 24"><path d="M12 3v3M18.5 13h-13L2 9.5 5.5 6h13L22 9.5ZM12 13v8"/></symbol>
+<symbol id="i-ext" viewBox="0 0 24 24"><path d="M15 3h6v6M10 14 21 3M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></symbol>
+<symbol id="i-code" viewBox="0 0 24 24"><path d="m16 18 6-6-6-6M8 6l-6 6 6 6"/></symbol>
+<symbol id="i-pencil" viewBox="0 0 24 24"><path d="M21.17 6.81a1 1 0 0 0-3.98-3.98L3.84 16.17a2 2 0 0 0-.5.83l-1.32 4.35a.5.5 0 0 0 .62.62l4.35-1.32a2 2 0 0 0 .83-.5zM15 5l4 4"/></symbol>
+<symbol id="i-eye-off" viewBox="0 0 24 24"><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68M6.61 6.61A13.53 13.53 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61M2 2l20 20M14.12 14.12a3 3 0 1 1-4.24-4.24"/></symbol>
+<symbol id="i-wrench" viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></symbol>
+<symbol id="i-pulse" viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></symbol>
+<symbol id="i-panel" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M15 3v18"/></symbol>
+<symbol id="i-dots" viewBox="0 0 24 24"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></symbol>
+<symbol id="i-image" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.09-3.09a2 2 0 0 0-2.82 0L6 21"/></symbol>
+<symbol id="i-file-plus" viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4M9 15h6M12 18v-6"/></symbol>
+<symbol id="i-arrow-r" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></symbol>
+<symbol id="i-swap" viewBox="0 0 24 24"><path d="m16 3 4 4-4 4M20 7H4M8 21l-4-4 4-4M4 17h16"/></symbol>
+<symbol id="i-form" viewBox="0 0 24 24"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2M12 11h4M12 16h4M8 11h.01M8 16h.01"/></symbol>
+<symbol id="i-type" viewBox="0 0 24 24"><path d="M4 7V4h16v3M9 20h6M12 4v16"/></symbol>
+<symbol id="i-mail" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></symbol>
+<symbol id="i-phone" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></symbol>
+<symbol id="i-circdot" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="1"/></symbol>
+<symbol id="i-sqcheck" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="m9 12 2 2 4-4"/></symbol>
+<symbol id="i-clip" viewBox="0 0 24 24"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/></symbol>
+<symbol id="i-heading" viewBox="0 0 24 24"><path d="M6 12h12M6 20V4M18 20V4"/></symbol>
+<symbol id="i-pilcrow" viewBox="0 0 24 24"><path d="M13 4v16M17 4v16M19 4H9.5a4.5 4.5 0 0 0 0 9H13"/></symbol>
+<symbol id="i-step" viewBox="0 0 24 24"><path d="M3 12h18M8 8l4-4 4 4M16 16l-4 4-4-4"/></symbol>
+<symbol id="i-inbox" viewBox="0 0 24 24"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></symbol>
+<symbol id="i-send" viewBox="0 0 24 24"><path d="M14.54 21.69a.5.5 0 0 0 .94-.03l6.5-19a.5.5 0 0 0-.64-.63l-19 6.5a.5.5 0 0 0-.02.93l7.93 3.18a2 2 0 0 1 1.11 1.11z"/><path d="m21.85 2.15-10.94 10.94"/></symbol>
+<symbol id="i-eye" viewBox="0 0 24 24"><path d="M2.06 12.35a1 1 0 0 1 0-.7 10.75 10.75 0 0 1 19.88 0 1 1 0 0 1 0 .7 10.75 10.75 0 0 1-19.88 0"/><circle cx="12" cy="12" r="3"/></symbol>
+<symbol id="i-split" viewBox="0 0 24 24"><path d="M16 3h5v5M8 3H3v5M12 22v-8.3a4 4 0 0 0-1.17-2.87L3 3M15 9l6-6"/></symbol>
+<symbol id="i-cols" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M12 3v18"/></symbol>
+<symbol id="i-blocks" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="7" rx="1"/><rect x="3" y="14" width="18" height="7" rx="1"/></symbol>
+<symbol id="i-redirect" viewBox="0 0 24 24"><path d="m15 10 5 5-5 5"/><path d="M4 4v7a4 4 0 0 0 4 4h12"/></symbol>
+<symbol id="i-paste" viewBox="0 0 24 24"><rect width="8" height="4" x="8" y="2" rx="1"/><path d="M8 4H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/><path d="M16 4h2a2 2 0 0 1 2 2v4"/><path d="M21 14H11"/><path d="m15 10-4 4 4 4"/></symbol>
+<symbol id="i-test" viewBox="0 0 24 24"><path d="M9 3h6"/><path d="M10 9V3"/><path d="M14 9V3"/><path d="M10 9 4.5 18.5A2 2 0 0 0 6.2 21.5h11.6a2 2 0 0 0 1.7-3L14 9"/><path d="M7 15h10"/></symbol>
+<symbol id="i-ban" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m4.9 4.9 14.2 14.2"/></symbol>
+<symbol id="i-more" viewBox="0 0 24 24"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></symbol>
+</defs></svg>
+<div class="lab">
+  <div class="lab-bar" role="toolbar" aria-label="Sketch settings">
+    <div class="lab-mark"><b>Meridian · Redirects</b><span>A sketch. Saving is pretend; everything else works.</span></div>
+    <div class="lab-grp"><span>State</span>
+      <div class="lab-seg" id="labState"><button data-v="normal" aria-pressed="true">Normal</button><button data-v="large">Thousands</button><button data-v="empty">None Yet</button><button data-v="loading">Loading</button></div></div>
+    <div class="lab-grp"><span>Theme</span>
+      <div class="lab-seg" id="labTheme"><button data-v="neutral" aria-pressed="true">Neutral</button><button data-v="editorial">Editorial</button></div></div>
+    <div class="lab-grp"><span>Scheme</span>
+      <div class="lab-seg" id="labScheme"><button data-v="auto" aria-pressed="true">Auto</button><button data-v="light">Light</button><button data-v="dark">Dark</button></div></div>
+    <button class="lab-notes-btn" id="labNotesBtn" aria-pressed="false"><svg class="ic" aria-hidden="true"><use href="#i-book"/></svg>Notes</button>
+  </div>
+
+  <div class="app">
+    <nav class="rail" id="rail" aria-label="Sections"></nav>
+    <aside class="side" id="side"></aside>
+    <div class="main">
+      <header class="topbar">
+        <nav class="crumbs" id="crumbs" aria-label="Breadcrumb"></nav>
+        <div class="jump"><svg class="ic" aria-hidden="true"><use href="#i-search"/></svg>Search or jump to…<kbd>⌘K</kbd></div>
+        <a class="btn vs" href="#redirects"><svg class="ic" aria-hidden="true"><use href="#i-ext"/></svg><span>View Site</span></a>
+        <span class="avatar" aria-label="Justin Tadlock">JT</span>
+      </header>
+      <div class="work" id="work"><main class="page" id="page"></main></div>
+    </div>
+  </div>
+</div>
+
+<aside class="lab-notes" id="labNotes" aria-label="Notes on this sketch"></aside>
+<div id="layer"></div>
+<script>
+/* ============================================================ helpers == */
+const I = n => '<svg class="ic" aria-hidden="true"><use href="#i-' + n + '"/></svg>';
+const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const fmt = n => Number(n).toLocaleString('en-US');
+const plural = (n, one, many) => fmt(n) + ' ' + (n === 1 ? one : (many || one + 's'));
+const slug = s => String(s).toLowerCase().normalize('NFKD').replace(/[^\w\s-]/g, '').trim().replace(/[\s_]+/g, '-').replace(/-+/g, '-');
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const TODAY = '2026-10-09';
+const MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const fmtDate = s => { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s || ''); if (!m) return s; return MON[+m[2] - 1] + ' ' + (+m[3]) + ', ' + m[1]; };
+const code = s => '<code class="mono">' + esc(s) + '</code>';
+const HOST = 'meridianreview.org';
+
+/* ============================================================ the site == */
+/* What answers an address on its own. A redirect never hides one of these. */
+const ENTRIES = [];
+let eid = 0;
+const ent = (title, path, kind, o) => { const e = Object.assign({id:'e' + (++eid), title, path, kind}, o || {}); ENTRIES.push(e); return e; };
+ent('Home', '/', 'Page');
+const ABOUT = ent('About', '/about', 'Page');
+const CONTACT = ent('Contact', '/contact', 'Page');
+ent('Colophon', '/colophon', 'Page');
+const NEWS = ent('Newsletter', '/newsletter', 'Page');
+const WORKS = ent('Workshops', '/workshops', 'Page');
+const SPRING = ent('Spring 2027 Workshop', '/workshops/spring-2027', 'Page');
+ent('Writing', '/blog', 'Index Page');
+const TYPO = ent('Typography', '/topics/typography', 'Topic');
+ent('Interfaces', '/topics/interfaces', 'Topic');
+ent('Craft', '/topics/craft', 'Topic');
+ent('Every Dash, Ranked', '/blog/every-dash-ranked', 'Post');
+const TABLE = ent('The Long Table', '/blog/the-long-table', 'Post');
+const SMALL = ent('Reading on Small Screens', '/blog/reading-on-small-screens', 'Post');
+const MARG = ent('Margins Are Content', '/blog/margins-are-content', 'Post');
+ent('Notes on Measure', '/blog/notes-on-measure', 'Post');
+const TEN = ent('Ten Ideas for Margins', '/blog/ten-ideas-for-margins', 'Post', {deleted:'2026-09-30'});
+ent('Feed', '/feed.xml', 'System');
+ent('Sitemap', '/sitemap.xml', 'System');
+ent('Change Password', '/account/password', 'System');
+ent('Subscribe Endpoint', '/api/v2/subscribe', 'System');
+const ADJ = ['Quiet','Honest','Narrow','Loose','Second','Plain','Small','Slow'];
+const NOUN = ['Tables','Captions','Footnotes','Grids','Margins','Headings','Buttons','Forms'];
+const GEN = [];
+ADJ.forEach(a => NOUN.forEach(n => GEN.push(ent(a + ' ' + n, '/blog/' + slug(a + ' ' + n), 'Post'))));
+const byId = id => ENTRIES.find(e => e.id === id);
+
+/* The developer's redirects. They come first and are not editable here. */
+const CODE = [
+  {from:'/rss', to:'/feed.xml', code:301},
+  {from:'/sitemap', to:'/sitemap.xml', code:301},
+  {from:'/.well-known/change-password', to:'/account/password', code:302}
+];
+
+const TYPES = {
+  301:{name:'Permanent', say:'The new address replaces the old one for good. Search engines move the old address’s standing to it, and browsers may remember the move.'},
+  302:{name:'Temporary', say:'For a while. Search engines keep the old address, and nothing is remembered.'},
+  303:{name:'See Other', say:'For a form or a program, sending it to another address to read the result.'},
+  307:{name:'Temporary, Same Method', say:'Temporary, and a form sent here is sent on as it was. For programs more than people.'},
+  308:{name:'Permanent, Same Method', say:'Permanent, and a form sent here is sent on as it was. For programs more than people.'}
+};
+const isPerm = c => c === 301 || c === 308;
+
+/* ============================================================== rows == */
+let rid = 0;
+const row = (from, to, code, added, how, o) => Object.assign({id:'r' + (++rid), from, to:typeof to === 'string' ? to : '', entry:to && typeof to === 'object' ? to.id : null, code, added, how}, o || {});
+function seedNormal() {
+  const r = [
+    row('/old-about', ABOUT, 301, '2025-11-04', 'you'),
+    row('/about-us', ABOUT, 301, '2025-11-04', 'you'),
+    row('/team', ABOUT, 301, '2026-02-18', 'other', {who:'zadie'}),
+    row('/contact-us', CONTACT, 301, '2025-11-04', 'you'),
+    row('/subscribe', NEWS, 301, '2026-01-12', 'you'),
+    row('/news/{name}', '/blog/{name}', 301, '2025-11-04', 'you'),
+    row('/blog/category/{topic}', '/topics/{topic}', 301, '2025-11-04', 'you'),
+    row('/tag/{tag}', '/topics/{tag}', 301, '2025-11-04', 'you'),
+    row('/{year}/{month}/{name}.html', '/blog/{name}', 301, '2026-03-03', 'you'),
+    row('/sale', 'https://shop.example.com/autumn', 302, '2026-10-01', 'other', {who:'zadie'}),
+    row('/podcast', 'https://podcasts.example.com/meridian-review', 302, '2026-06-20', 'you'),
+    row('/jobs', 'https://jobs.example.com/meridian', 302, '2026-08-02', 'other', {who:'zadie'}),
+    row('/colophon', ABOUT, 301, '2025-11-04', 'you'),
+    row('/blog/margin-notes', MARG, 301, '2026-07-14', 'rename'),
+    row('/blog/the-long-table-2', TABLE, 301, '2026-09-03', 'rename'),
+    row('/reading-on-phones', SMALL, 301, '2026-05-22', 'move'),
+    row('/topics/type', TYPO, 301, '2026-04-30', 'rename'),
+    row('/workshops/autumn-2026', '/workshops/autumn-2026-recap', 301, '2026-09-28', 'other', {who:'zadie'}),
+    row('/events', '/workshops-old', 301, '2025-12-01', 'you'),
+    row('/workshops-old', WORKS, 301, '2026-02-10', 'move'),
+    row('/rss', '/blog', 301, '2025-11-04', 'you'),
+    row('/blog/draft-ideas', TEN, 301, '2026-08-19', 'rename'),
+    row('/spring', SPRING, 302, '2026-09-15', 'you'),
+    row('/api/v1/subscribe', '/api/v2/subscribe', 308, '2026-04-02', 'other', {who:'zadie'})
+  ];
+  /* After a move: 112 old addresses, imported at once. */
+  for (let i = 0; i < 112; i++) {
+    const e = GEN[i % GEN.length], y = 2016 + (i % 6), m = String(1 + (i * 5) % 12).padStart(2, '0');
+    r.push(row('/journal/' + y + '/' + m + '/' + e.path.split('/').pop() + (i >= GEN.length ? '-' + (i - GEN.length + 2) : '') + '.php', e, 301, '2025-11-04', 'paste', {n:112}));
+  }
+  return r;
+}
+function seedLarge() {
+  const r = seedNormal();
+  const more = 4212 - r.length;
+  for (let i = 0; i < more; i++) {
+    const e = GEN[(i * 7) % GEN.length];
+    r.push(row('/archive/' + (10000 + i), e, 301, '2025-11-04', 'paste', {n:more}));
+  }
+  return r;
+}
+const DATA = {normal:seedNormal(), large:null, empty:[]};
+
+/* ============================================================== state == */
+const S = {open:new Set(), act:-1, from:null, v:'', rail:'config', state:'normal', rows:DATA.normal, q:'', tab:'all', goes:'', page:0, per:20, dense:false, sel:new Set(),
+  edit:null, draft:null, pick:false, pq:'', test:'', codeOpen:false, flash:null};
+
+/* ========================================================== matching == */
+/* Paths compare without case and without a trailing slash. */
+const key = p => { let k = String(p || '').toLowerCase(); if (k.length > 1) k = k.replace(/\/+$/, ''); return k; };
+const hasPh = s => /\{[a-z_][a-z0-9_]*\}/i.test(s);
+const phNames = s => (String(s).match(/\{([a-z_][a-z0-9_]*)\}/gi) || []).map(x => x.slice(1, -1).toLowerCase());
+const isUrl = s => /^https?:\/\//i.test(s || '');
+const compiled = new Map();
+function compile(from) {
+  if (compiled.has(from)) return compiled.get(from);
+  const names = [];
+  const src = key(from).split(/(\{[a-z_][a-z0-9_]*\})/i).map(part => {
+    const m = /^\{([a-z_][a-z0-9_]*)\}$/i.exec(part);
+    if (m) { names.push(m[1].toLowerCase()); return '([^/]+)'; }
+    return part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  }).join('');
+  const c = {re:new RegExp('^' + src + '$'), names, lit:from.replace(/\{[^}]*\}/g, '').length};
+  compiled.set(from, c);
+  return c;
+}
+const fill = (to, params) => to.replace(/\{([a-z_][a-z0-9_]*)\}/gi, (m, n) => params && params[n.toLowerCase()] != null ? params[n.toLowerCase()] : m);
+
+let IDX = null;
+function index() {
+  const lit = new Map(), pat = [];
+  S.rows.forEach(r => { if (hasPh(r.from)) pat.push(r); else lit.set(key(r.from), r); });
+  pat.sort((a, b) => compile(b.from).lit - compile(a.from).lit);
+  IDX = {lit, pat,
+    pages:new Map(ENTRIES.filter(e => !e.deleted).map(e => [key(e.path), e])),
+    code:new Map(CODE.map(c => [key(c.from), c]))};
+}
+/* An exact row first, then the most specific pattern. */
+function matchRow(path, extra, skip) {
+  const k = key(path);
+  if (extra && extra.has(k)) return {r:extra.get(k), params:{}};
+  const l = IDX.lit.get(k);
+  if (l && l !== skip) return {r:l, params:{}};
+  for (const r of IDX.pat) {
+    if (r === skip) continue;
+    const c = compile(r.from), m = c.re.exec(k);
+    if (m) { const params = {}; c.names.forEach((n, i) => { params[n] = m[i + 1]; }); return {r, params}; }
+  }
+  return null;
+}
+function targetOf(r, params) {
+  if (r.entry) { const e = byId(r.entry); return e.deleted ? {kind:'gone', entry:e} : {kind:'entry', entry:e, path:e.path}; }
+  if (isUrl(r.to)) return {kind:'url', url:fill(r.to, params)};
+  return {kind:'path', path:fill(r.to, params)};
+}
+/* Follow an address the way the site would: a page, then the code, then this list. */
+function resolve(path, extra, skip) {
+  const steps = [], seen = new Set();
+  for (let i = 0; i < 8; i++) {
+    const k = key(path);
+    const pg = IDX.pages.get(k);
+    if (pg) { steps.push({t:'page', e:pg, path}); return steps; }
+    if (seen.has(k)) { steps.push({t:'loop', path}); return steps; }
+    seen.add(k);
+    const c = IDX.code.get(k);
+    if (c) { steps.push({t:'code', c, path}); if (isUrl(c.to)) { steps.push({t:'away', url:c.to}); return steps; } path = c.to; continue; }
+    const m = matchRow(path, extra, skip);
+    if (m) {
+      const tg = targetOf(m.r, m.params);
+      steps.push({t:'row', r:m.r, params:m.params, path, tg});
+      if (tg.kind === 'url') { steps.push({t:'away', url:tg.url}); return steps; }
+      if (tg.kind === 'gone') { steps.push({t:'nf', path:tg.entry.path, gone:tg.entry}); return steps; }
+      path = tg.path; continue;
+    }
+    steps.push({t:'nf', path}); return steps;
+  }
+  steps.push({t:'loop', path}); return steps;
+}
+const finalOf = steps => steps[steps.length - 1];
+
+/* What is wrong with a row, if anything. Loops and duplicates never get this far. */
+function problemOf(r) {
+  if (!hasPh(r.from)) {
+    const k = key(r.from);
+    if (IDX.code.has(k)) return {k:'code', say:'Overruled by a redirect in the site’s code.', fix:['Show It', 'showcode']};
+    const pg = IDX.pages.get(k);
+    if (pg) return {k:'live', say:'Does nothing: the ' + kindWord(pg) + ' <b>' + esc(pg.title) + '</b> answers this address.', fix:['Delete Redirect', 'del']};
+  }
+  const tg = targetOf(r, {});
+  if (tg.kind === 'gone') return {k:'gone', say:'Leads nowhere: <b>' + esc(tg.entry.title) + '</b> was deleted on ' + fmtDate(tg.entry.deleted) + '.', fix:['Choose Another Page', 'repick']};
+  if (tg.kind === 'path' && !hasPh(tg.path)) {
+    const k = key(tg.path);
+    if (IDX.pages.has(k) || IDX.code.has(k)) return null;
+    const m = matchRow(tg.path, null, r);
+    if (m) {
+      const fin = finalOf(resolve(tg.path, null, r));
+      if (fin.t === 'page' || fin.t === 'away') return {k:'chain', say:'Leads to another redirect: ' + code(tg.path) + ' goes on to ' + (fin.t === 'page' ? code(fin.e.path) : code(fin.url)) + '.', fix:['Point Straight There', 'straight'], fin};
+      return {k:'chain', say:'Leads to another redirect, ' + code(tg.path) + ', which goes nowhere.', fix:['Change Where It Goes', 'edit']};
+    }
+    return {k:'missing', say:'Leads to a missing page: nothing answers ' + code(tg.path) + '.', fix:['Change Where It Goes', 'edit']};
+  }
+  return null;
+}
+const kindWord = e => e.kind === 'System' ? 'site’s' : e.kind.toLowerCase();
+
+/* ============================================================ reading == */
+/* Anything typed or pasted becomes a path on this site, or says why not. */
+function readAddr(raw, mode) {
+  let s = String(raw || '').trim();
+  if (!s) return {empty:true};
+  if (/\s/.test(s)) return {err:'An address can’t contain spaces.'};
+  let host = null;
+  if (isUrl(s)) {
+    let u; try { u = new URL(s); } catch (e) { return {err:'That isn’t a whole address. It should look like ' + code('https://example.com/page') + '.'}; }
+    host = u.hostname.replace(/^www\./, '');
+    if (host !== HOST) return mode === 'to' ? {url:u.href.replace(/\/$/, u.pathname === '/' ? '/' : '')} : {err:'An old address has to be on this site. This one is on <b>' + esc(host) + '</b>.', other:host};
+    s = decodeURIComponent(u.pathname) + (u.search || '');
+  } else if (s.toLowerCase().startsWith(HOST + '/') || s.toLowerCase() === HOST) {
+    s = s.slice(HOST.length) || '/'; host = HOST;
+  }
+  if (!s.startsWith('/')) return {err:'Start with ' + code('/') + ', as in ' + code('/' + s) + '.', fix:'/' + s};
+  if (/[?#]/.test(s)) {
+    if (mode === 'test') s = s.split(/[?#]/)[0];
+    else return {err:'Leave off the part from ' + code(s.match(/[?#]/)[0]) + ' on. A redirect matches the path only.'};
+  }
+  if (/[{}]/.test(s.replace(/\{[a-z_][a-z0-9_]*\}/gi, ''))) return {err:'A placeholder is a name in braces, like ' + code('{name}') + '.'};
+  if (s.length > 1) s = s.replace(/\/+$/, '');
+  return {path:s, stripped:host === HOST};
+}
+
+/* ========================================================== the draft == */
+function freshDraft(r) {
+  return r ? {from:r.from, to:r.to, entry:r.entry, code:r.code, touched:{}, tried:false}
+           : {from:'', to:'', entry:null, code:301, touched:{}, tried:false};
+}
+/* The row as it would be saved, and every message the form shows. */
+function checkDraft(d) {
+  const out = {from:[], to:[], errs:0, row:null};
+  const bad = (f, html, fix) => { out[f].push({k:'bad', html, fix}); out.errs++; };
+  const warn = (f, html, fix) => out[f].push({k:'warn', html, fix});
+  const say = (f, html, fix) => out[f].push({k:'say', html, fix});
+  const self = S.edit !== 'new' ? S.rows.find(r => r.id === S.edit) : null;
+  let from = null, to = null, entry = null;
+  const fr = readAddr(d.from, 'from');
+  if (fr.empty) { if (d.tried) bad('from', 'Enter the old address, starting with ' + code('/') + '.'); else out.errs++; }
+  else if (fr.err) bad('from', fr.err, fr.fix ? ['Add the Slash', 'slashfrom'] : null);
+  else {
+    from = fr.path;
+    if (fr.stripped) say('from', 'Saved as ' + code(from) + ', without the site’s address.');
+    const k = key(from), dup = IDX.lit.get(k) || (hasPh(from) ? S.rows.find(r => hasPh(r.from) && key(r.from) === k) : null);
+    if (dup && dup !== self) bad('from', 'Another redirect already starts here and goes to ' + toPlain(dup) + '.', ['Edit That One', 'editother:' + dup.id]);
+    else if (!hasPh(from) && IDX.code.has(k)) warn('from', 'The site’s code already redirects this address to ' + code(IDX.code.get(k).to) + ', so this one would be overruled.');
+    else if (!hasPh(from) && IDX.pages.has(k)) { const pg = IDX.pages.get(k); warn('from', 'Does nothing while the ' + kindWord(pg) + ' <b>' + esc(pg.title) + '</b> answers this address.'); }
+  }
+  if (d.entry) {
+    entry = byId(d.entry);
+    say('to', 'Follows <b>' + esc(entry.title) + '</b> if its address changes.');
+  } else {
+    const tr = readAddr(d.to, 'to');
+    if (tr.empty) { if (d.tried) bad('to', 'Choose a page, or enter a path or a whole address.'); else out.errs++; }
+    else if (tr.err) bad('to', tr.fix ? 'Pick a page from the list, or start a path with ' + code('/') + '.' : tr.err.replace('An old address', 'A new address'), tr.fix ? ['Add the Slash', 'slashto'] : null);
+    else if (tr.url) { to = tr.url; say('to', 'Leaves the site for <b>' + esc(new URL(tr.url).hostname) + '</b>.'); }
+    else {
+      to = tr.path;
+      if (tr.stripped) say('to', 'Saved as ' + code(to) + ', without the site’s address.');
+      const pg = !hasPh(to) && IDX.pages.get(key(to));
+      if (pg && pg.kind !== 'System') { entry = pg; to = null; say('to', 'That’s the address of <b>' + esc(pg.title) + '</b>, so this will point at the page itself and follow it if it moves.'); }
+    }
+  }
+  if (to && !isUrl(to) && from) {
+    const missing = phNames(to).filter(n => !phNames(from).includes(n));
+    if (missing.length) bad('to', code('{' + missing[0] + '}') + ' isn’t in the old address, so nothing would fill it.');
+  }
+  if (to && isUrl(to) && phNames(to).length && from) {
+    const missing = phNames(to).filter(n => !phNames(from).includes(n));
+    if (missing.length) bad('to', code('{' + missing[0] + '}') + ' isn’t in the old address, so nothing would fill it.');
+  }
+  if (from && (to || entry) && !out.errs) {
+    const target = entry ? entry.path : to;
+    if (!isUrl(target) && key(target) === key(from)) bad('to', 'This sends the address to itself.');
+    else {
+      const tmp = {id:'tmp', from, to:to || '', entry:entry ? entry.id : null, code:+d.code};
+      if (!hasPh(from)) {
+        const extra = new Map([[key(from), tmp]]);
+        const st = resolve(from, extra, self);
+        if (finalOf(st).t === 'loop') {
+          const hops = st.filter(x => x.t === 'row' || x.t === 'code').map(x => x.path);
+          bad('to', 'This would loop: ' + hops.concat([from]).map(code).join(' → ') + '. Change where one of them goes.');
+        } else if (!entry && !isUrl(to) && !hasPh(to)) {
+          const hop = st[1];
+          if (hop && (hop.t === 'row' || hop.t === 'code')) {
+            const fin = finalOf(st);
+            const there = fin.t === 'page' ? fin.e.path : fin.t === 'away' ? fin.url : null;
+            if (there) warn('to', code(to) + ' redirects again, to ' + code(there) + '.', ['Go Straight There', 'straightdraft']);
+            else warn('to', code(to) + ' redirects again, and that one goes nowhere.');
+          } else if (hop && hop.t === 'nf') warn('to', 'Nothing answers ' + code(to) + ' yet, so visitors would see Not Found.');
+        }
+      } else if (to && !isUrl(to)) {
+        const ex = exampleFor(from);
+        if (ex) say('to', 'Filled from the old address: ' + code(ex) + ' goes to ' + code(fill(to, paramsOf(from, ex))) + '.');
+      }
+    }
+  }
+  if (!out.errs) out.row = {from, to:to || '', entry:entry ? entry.id : null, code:+d.code};
+  return out;
+}
+const paramsOf = (from, path) => { const c = compile(from), m = c.re.exec(key(path)); const p = {}; if (m) c.names.forEach((n, i) => { p[n] = m[i + 1]; }); return p; };
+const EX = {name:'the-long-table', topic:'typography', tag:'grids', year:'2019', month:'04', slug:'spring-sale', id:'214'};
+const exampleFor = from => from.replace(/\{([a-z_][a-z0-9_]*)\}/gi, (m, n) => EX[n.toLowerCase()] || 'example');
+function toPlain(r) {
+  if (r.entry) { const e = byId(r.entry); return '<b>' + esc(e.title) + '</b>'; }
+  return code(r.to);
+}
+
+/* ============================================================ controls == */
+const selBox = (id, attr, val, opts, wide) => '<label class="sel' + (wide ? ' wide' : '') + '"><select id="' + id + '" ' + attr + '>' + opts.map(o => o[0] === '__g' ? '<optgroup label="' + esc(o[1]) + '">' : o[0] === '__/g' ? '</optgroup>' : '<option value="' + esc(o[0]) + '"' + (String(o[0]) === String(val) ? ' selected' : '') + '>' + esc(o[1]) + '</option>').join('') + '</select>' + I('chev-d') + '</label>';
+const panel = (title, hint, body, end, cls) => '<section class="spanel' + (cls ? ' ' + cls : '') + '"><div class="spanel-h"><h2>' + title + '</h2>' + (hint ? '<span class="hint">' + hint + '</span>' : '') + (end ? '<div class="end">' + end + '</div>' : '') + '</div>' + body + '</section>';
+const pathHtml = p => '<span class="rpath">' + esc(p).replace(/\{([a-z_][a-z0-9_]*)\}/gi, '<span class="phd">{$1}</span>') + '</span>';
+/* Words first, code second. Compact keeps the word but drops the qualifier
+   ("Same Method"), so the cell stays on one line; the code tells 301 from 308. */
+const typeHtml = c => '<span class="rtype"><span class="tw">' + esc(TYPES[c].name) + '</span><span class="tw-s">' + esc(TYPES[c].name.split(',')[0]) + '</span><span class="code">' + c + '</span></span>';
+function urlHtml(u) {
+  let x; try { x = new URL(u); } catch (e) { return '<span class="xurl">' + esc(u) + '</span>'; }
+  const rest = (x.pathname === '/' ? '/' : x.pathname) + x.search;
+  return '<span class="xurl">' + esc(x.protocol + '//') + '<b>' + esc(x.host) + '</b>' + pathHtml(rest).replace('class="rpath"', 'class=""') + I('ext') + '</span>';
+}
+function toHtml(r) {
+  if (r.entry) {
+    const e = byId(r.entry);
+    if (e.deleted) return '<div class="rto"><span class="gone">' + I('page') + esc(e.title) + '</span><span class="at">Deleted ' + fmtDate(e.deleted) + '</span></div>';
+    return '<div class="rto"><a class="ent" href="#redirects" data-noop-entry="' + e.id + '">' + I(e.kind === 'Topic' ? 'tag' : 'page') + esc(e.title) + '</a><span class="at">' + esc(e.path) + '</span></div>';
+  }
+  if (isUrl(r.to)) return '<div class="rto">' + urlHtml(r.to) + '</div>';
+  return '<div class="rto">' + pathHtml(r.to) + '</div>';
+}
+const addedHow = r => r.how === 'rename' ? 'when the entry was renamed' : r.how === 'move' ? 'when the entry moved' : r.how === 'paste' ? 'imported with ' + fmt((r.n || 1) - 1) + ' others' : 'by ' + (r.how === 'other' ? r.who : 'justintadlock');
+function addedHtml(r) {
+  const how = r.how === 'rename' ? 'When the entry was renamed' : r.how === 'move' ? 'When the entry moved' : r.how === 'paste' ? 'Imported, ' + fmt(r.n || 1) + ' at once' : r.how === 'other' ? 'by ' + esc(r.who) : 'by justintadlock';
+  return '<span class="radd">' + fmtDate(r.added) + '<small>' + how + '</small></span>';
+}
+
+/* ========================================================= the list == */
+let PROB = new Map();
+function visibleRows() {
+  const q = S.q.trim().toLowerCase();
+  let qp = null;
+  if (q) { const n = readAddr(S.q, 'test'); if (n.path) qp = key(n.path); }
+  const out = [];
+  for (const r of SORTED) {
+    if (S.tab === 'perm' && !isPerm(r.code)) continue;
+    if (S.tab === 'temp' && isPerm(r.code)) continue;
+    if (S.tab === 'prob' && !PROB.get(r.id)) continue;
+    if (S.goes === 'here' && isUrl(r.to)) continue;
+    if (S.goes === 'away' && !isUrl(r.to)) continue;
+    if (q) {
+      const e = r.entry && byId(r.entry);
+      const hay = (r.from + ' ' + r.to + ' ' + (e ? e.title + ' ' + e.path : '')).toLowerCase();
+      if (!hay.includes(q) && !(qp && (key(r.from) === qp || (hasPh(r.from) && compile(r.from).re.test(qp))))) continue;
+    }
+    out.push(r);
+  }
+  return out;
+}
+let SORTED = [];
+function prepare() {
+  index();
+  SORTED = S.rows.slice().sort((a, b) => key(a.from) < key(b.from) ? -1 : key(a.from) > key(b.from) ? 1 : 0);
+  PROB = new Map();
+  S.rows.forEach(r => { const p = problemOf(r); if (p) PROB.set(r.id, p); });
+}
+const filtering = () => !!(S.q.trim() || S.goes);
+const TABS = [['all', 'All'], ['perm', 'Permanent'], ['temp', 'Temporary'], ['prob', 'Problems']];
+const tabCount = k => k === 'all' ? S.rows.length : k === 'prob' ? PROB.size : S.rows.filter(r => k === 'perm' ? isPerm(r.code) : !isPerm(r.code)).length;
+
+function renderList() {
+  const loading = S.state === 'loading';
+  let h = '<header class="ph"><div class="ph-row"><div><h1>Redirects</h1><p class="sub">Old addresses that send visitors somewhere new</p></div>' +
+    '<div class="ph-acts"><button class="btn primary" data-add>' + I('plus') + 'Add Redirect</button></div></div></header>';
+  if (!loading && !S.rows.length) {
+    return h + '<div class="empty"><span class="badge n">' + I('redirect') + '</span><b>No Redirects Yet</b><p>A redirect keeps an old address working by sending visitors to a new one. The admin adds one by itself whenever a published entry’s address changes, so most sites only come here to add a short link or fix an old one.</p>' +
+      '<div class="ph-acts" style="margin-top:var(--s-3)"><button class="btn primary" data-add>' + I('plus') + 'Add Redirect</button></div></div>';
+  }
+  if (S.tab === 'prob' && !PROB.size) S.tab = 'all';
+  const all = loading ? [] : visibleRows(), PER = S.per;
+  const pages = Math.max(1, Math.ceil(all.length / PER));
+  if (S.page >= pages) S.page = pages - 1;
+  const rows = all.slice(S.page * PER, S.page * PER + PER);
+  /* Tabs only for kinds the list has; Problems only while there are some. */
+  const tabs = TABS.filter(t => t[0] === 'all' || loading || tabCount(t[0]) || S.tab === t[0]);
+  h += '<div class="utabs" role="tablist" aria-label="Kinds of redirect">' + tabs.map(t => '<button role="tab" id="tab-' + t[0] + '" data-tab="' + t[0] + '" aria-selected="' + (S.tab === t[0]) + '" tabindex="' + (S.tab === t[0] ? 0 : -1) + '">' + t[1] + (loading ? '' : '<span class="c">' + fmt(tabCount(t[0])) + '</span>') + '</button>').join('') + '</div>';
+  h += '<div class="ftools">' +
+    '<label class="psearch">' + I('search') + '<span class="sr">Search redirects, or test an address</span><input id="rq" type="search" placeholder="Search, or paste an address to test" value="' + esc(S.q) + '" autocomplete="off" spellcheck="false"><kbd>/</kbd></label>' +
+    selBox('fgoes', 'data-f="goes" aria-label="Goes to"', S.goes, [['', 'Goes anywhere'], ['here', 'Goes to this site'], ['away', 'Goes to another site']]) +
+    '<div class="dens" role="group" aria-label="Row density"><button data-dense="0" aria-pressed="' + !S.dense + '" aria-label="Roomy rows">' + I('rows2') + '</button><button data-dense="1" aria-pressed="' + S.dense + '" aria-label="Compact rows">' + I('rows4') + '</button></div>' +
+    '</div>';
+  h += '<section class="panel">';
+  const tabName = (TABS.find(t => t[0] === S.tab) || TABS[0])[1];
+  const cap = loading ? 'Loading…' : (filtering() ? fmt(all.length) + ' of ' : '') + plural(filtering() ? tabCount(S.tab) : all.length, 'redirect') + (filtering() ? ' match' : '');
+  h += '<div class="tcap"><b>' + tabName + '</b><span>' + cap + '</span>' + (filtering() ? '<button class="clear" data-clear>Clear Filters</button>' : '') + '</div>';
+  if (!loading) h += traceHtml();
+  const pageIds = rows.map(r => r.id), selOnPage = pageIds.filter(id => S.sel.has(id)).length;
+  const allSel = pageIds.length && selOnPage === pageIds.length;
+  h += '<div class="tbl-shell"><table class="tbl rd' + (S.dense ? ' dense' : '') + '"><colgroup><col style="width:40px"><col><col><col style="width:150px"><col style="width:150px"><col style="width:56px"></colgroup><thead><tr>' +
+    '<th><label class="cbx"><input type="checkbox" id="selall" data-selall' + (allSel ? ' checked' : '') + (selOnPage && !allSel ? ' data-mixed' : '') + (loading || !rows.length ? ' disabled' : '') + '><span class="bx">' + I('check') + '</span><span class="sr">Select every redirect on this page</span></label></th>' +
+    '<th>From</th><th>To</th><th>Type</th><th>Added</th><th><span class="sr">Actions</span></th></tr></thead><tbody>';
+  if (loading) {
+    for (let i = 0; i < 9; i++) h += '<tr class="sk-row"><td></td><td><span class="sk" style="width:' + (48 + (i * 17) % 40) + '%"></span></td><td><span class="sk" style="width:' + (40 + (i * 23) % 45) + '%"></span></td><td><span class="sk" style="width:64px"></span></td><td><span class="sk" style="width:72px"></span></td><td></td></tr>';
+  } else {
+    rows.forEach(r => { h += rowHtml(r); });
+  }
+  h += '</tbody></table></div>';
+  if (!loading && !rows.length) h += '<div class="lempty"><b>No Redirects Match</b><span>' + (S.q.trim() ? 'Nothing starts at or goes to ' + code(S.q.trim()) + (S.goes || S.tab !== 'all' ? ' here' : '') + '.' : 'No redirect fits these filters.') + '</span><button data-clear>Clear Filters</button></div>';
+  /* The admin's pager: where you are, how many to a page, and the way on. */
+  if (!loading && all.length) h += '<div class="pager2"><span>Page ' + fmt(S.page + 1) + ' of ' + fmt(pages) + '</span><span class="grow"></span>' +
+    selBox('fper', 'data-per aria-label="Rows per page"', S.per, [[20, '20 per page'], [50, '50 per page'], [100, '100 per page']]) +
+    (S.page ? '<button class="btn" data-pg="-1">' + I('chev-l') + 'Previous</button>' : '') +
+    (S.page < pages - 1 ? '<button class="btn" data-pg="1">Next' + I('chev-r') + '</button>' : '') + '</div>';
+  h += '<div class="coded"><button data-codetoggle aria-expanded="' + S.codeOpen + '" aria-controls="codedList">' + I('code') + '<span>The site’s code sets ' + plural(CODE.length, 'more redirect') + '. ' + (CODE.length === 1 ? 'It comes' : 'They come') + ' before this list and can’t be changed here.</span>' + I('chev-d').replace('class="ic"', 'class="ic chev"') + '</button>' +
+    (S.codeOpen ? '<ul id="codedList">' + CODE.map(c => '<li>' + pathHtml(c.from) + I('arrow-r') + pathHtml(c.to) + '<span>' + typeHtml(c.code) + '</span></li>').join('') + '</ul>' : '') + '</div>';
+  h += '</section>';
+  if (S.sel.size) h += '<div class="bulk' + (S.bulkIn ? ' enter' : '') + '" role="region" aria-label="Selected redirects"><b>' + fmt(S.sel.size) + ' selected</b><span class="div"></span>' +
+    '<button class="btn sm ghost" data-bulk="perm">' + I('redirect') + 'Make Permanent</button><button class="btn sm ghost" data-bulk="temp">' + I('clock') + 'Make Temporary</button><span class="div"></span>' +
+    '<button class="btn sm ghost danger" data-bulk="del">' + I('trash') + 'Delete</button><button class="btn sm ghost" data-bulk="clear">Clear</button></div>';
+  S.bulkIn = false;
+  return h;
+}
+/* The chip names the kind of problem in a word or two; the notice it opens
+   says the rest and carries the fix. */
+const PCHIP = {code:'Overruled', live:'Does nothing', gone:'Leads nowhere', chain:'Chained', missing:'Missing page'};
+/* Opened from its chip, the notice drops the words the chip already says. */
+const noLead = h => h.replace(/^(Does nothing|Leads nowhere): (\S)/, (m, a, c) => c.toUpperCase());
+const plainText = h => h.replace(/<[^>]+>/g, '');
+function rowHtml(r) {
+  const p = PROB.get(r.id);
+  const withNote = p && S.open.has(r.id), cls = (S.sel.has(r.id) ? 'selr' : '') + (S.flash === r.id ? ' flash' : '');
+  /* On Problems the notice gets a row of its own under the redirect, across
+     its columns, the way the Themes list hangs one under a theme. */
+  const note = withNote ? '<tr class="nrow ' + cls + '" data-for="' + r.id + '"><td></td><td colspan="4"><div class="tnote warn" id="pn-' + r.id + '">' + I('alert') + '<span>' + noLead(p.say) + ' <button class="fx" data-fix="' + p.fix[1] + '" data-id="' + r.id + '">' + p.fix[0] + '</button></span></div></td><td></td></tr>' : '';
+  return '<tr data-id="' + r.id + '" class="' + cls + (withNote ? ' has-note' : '') + '">' +
+    '<td><label class="cbx"><input type="checkbox" data-pick="' + r.id + '"' + (S.sel.has(r.id) ? ' checked' : '') + '><span class="bx">' + I('check') + '</span><span class="sr">Select ' + esc(r.from) + '</span></label></td>' +
+    '<td>' + pathHtml(r.from) + (p ? '<button class="pill warn pchip" data-pnote="' + r.id + '" aria-expanded="' + S.open.has(r.id) + '" aria-controls="pn-' + r.id + '"><span class="d"></span>' + PCHIP[p.k] + '</button>' : '') + '</td>' +
+    '<td>' + toHtml(r) + '</td><td>' + typeHtml(r.code) + '</td><td>' + addedHtml(r) + '</td>' +
+    '<td class="r"><button class="btn sm ghost icon rowmenu" data-rmenu="' + r.id + '" aria-haspopup="menu" aria-expanded="false" aria-label="Actions for ' + esc(r.from) + '">' + I('more') + '</button></td></tr>' + note;
+}
+
+/* ============================================================ the dialog == */
+/* Adding and editing happen in one small dialog over the list. Three fields
+   stacked at a readable width; the list stays still behind it. */
+function pagesFor(q) {
+  const t = String(q || '').trim().toLowerCase();
+  if (isUrl(t)) return [];
+  const list = ENTRIES.filter(e => !e.deleted && e.kind !== 'System' && (!t || e.title.toLowerCase().includes(t) || e.path.includes(t)));
+  return list;
+}
+function dialogHtml() {
+  const d = S.draft, c = checkDraft(d), isNew = S.edit === 'new';
+  const fx = m => m.fix ? ' <button type="button" class="fx" data-dfix="' + m.fix[1] + '">' + m.fix[0] + '</button>' : '';
+  const msgs = (list, f) => (f === 'to' && S.pick) ? '' : list.filter(m => m.k === 'bad' && (d.tried || d.touched[f] || m.fix)).map(m => '<p class="msg bad">' + I('alert') + '<span>' + m.html + fx(m) + '</span></p>').join('');
+  const rest = c.from.concat(c.to).filter(m => m.k !== 'bad');
+  const warned = rest.some(m => m.k === 'warn');
+  const note = rest.length ? '<div class="tnote' + (warned ? ' warn' : '') + '" aria-live="polite">' + I(warned ? 'alert' : 'info') + '<div class="lines">' + rest.map(m => '<p>' + m.html + fx(m) + '</p>').join('') + '</div></div>' : '';
+  const fromBad = c.from.some(m => m.k === 'bad') && (d.tried || d.touched.from);
+  const toBad = !S.pick && c.to.some(m => m.k === 'bad') && (d.tried || d.touched.to);
+  const e = d.entry && byId(d.entry);
+  /* To is one control: type a path or a whole address, or type a page's name
+     and pick it from the list that opens under the box. A picked page shows
+     as a chip in the box; Backspace or its × puts the typing back. */
+  let toCtl;
+  if (e) {
+    toCtl = '<div class="chosen" id="ed-chosen" tabindex="0" role="group" aria-label="To: ' + esc(e.title) + '">' + I('page') + '<b>' + esc(e.title) + '</b><span class="at">' + esc(e.path) + '</span><button type="button" class="btn sm ghost icon" id="ed-unpick" data-unpick aria-label="Clear ' + esc(e.title) + '">' + I('x') + '</button></div>';
+  } else {
+    const opts = S.pick ? pagesFor(d.to) : [];
+    const top = opts.slice(0, 6), act = Math.min(S.act, top.length - 1);
+    toCtl = '<input class="inp mono' + (toBad ? ' bad' : '') + '" id="ed-to" data-ed="to" value="' + esc(d.to) + '" placeholder="A path, a page’s name, or https://…" autocomplete="off" spellcheck="false" role="combobox" aria-autocomplete="list" aria-controls="ed-to-list" aria-expanded="' + !!top.length + '"' + (top.length && act > -1 ? ' aria-activedescendant="opt-' + top[act].id + '"' : '') + '>';
+    if (top.length) toCtl += '<div class="pickpop combo"><div class="res" role="listbox" id="ed-to-list" aria-label="Pages">' +
+      top.map((x, i) => '<button type="button" role="option" tabindex="-1" id="opt-' + x.id + '" data-pickent="' + x.id + '" aria-selected="' + (i === act) + '">' + I(x.kind === 'Topic' ? 'tag' : 'page') + '<span class="t">' + esc(x.title) + '</span><span class="at">' + esc(x.path) + '</span></button>').join('') + '</div>' +
+      (opts.length > top.length ? '<p class="more">' + fmt(top.length) + ' of ' + fmt(opts.length) + ' pages. Keep typing to narrow.</p>' : '') + '</div>';
+  }
+  const codes = [301, 302, 303, 307, 308].map(n => [n, TYPES[n].name + ' · ' + n]);
+  codes.splice(2, 0, ['__g', 'For Programs']); codes.push(['__/g']);
+  const self = !isNew && S.rows.find(r => r.id === S.edit);
+  return '<form id="rform" novalidate>' +
+    '<header class="rdlg-h"><h2 id="rdlg-t">' + (isNew ? 'New Redirect' : 'Edit Redirect') + '</h2></header>' +
+    '<div class="rdlg-b">' +
+      '<p class="lead">' + (self ? 'Added ' + fmtDate(self.added) + ', ' + addedHow(self) + '. Changes apply as soon as you save.' : 'Visitors to the old address are sent to the new one, unless a page answers the old address first.') + '</p>' +
+      '<div class="fld2"><label for="ed-from">From</label><input class="inp mono' + (fromBad ? ' bad' : '') + '" id="ed-from" data-ed="from" value="' + esc(d.from) + '" placeholder="/old-address" autocomplete="off" spellcheck="false">' + msgs(c.from, 'from') +
+        '<p class="hint">A path on this site. ' + code('{name}') + ' matches one part of it, and can be used again in To.</p></div>' +
+      '<div class="fld2"><label for="ed-to" id="ed-to-l">To</label>' + toCtl + msgs(c.to, 'to') + '</div>' +
+      '<div class="fld2"><label for="ed-code">Type</label>' + selBox('ed-code', 'data-ed="code"', d.code, codes, true) + '<p class="hint">' + TYPES[d.code].say + '</p></div>' +
+      note +
+    '</div>' +
+    '<footer class="rdlg-f">' + (self ? '<button type="button" class="btn ghost danger" data-del-edit>' + I('trash') + 'Delete</button>' : '') + '<span class="grow"></span>' +
+      (d.tried && c.errs ? '<span class="say">' + (c.errs === 1 ? 'One thing to fix' : c.errs + ' things to fix') + ' first.</span>' : '') +
+      '<button type="button" class="btn" data-cancel>Cancel</button><button type="submit" class="btn primary" id="ed-save">' + (isNew ? 'Add Redirect' : 'Save') + '</button></footer>' +
+    '</form>';
+}
+let DLG = null;
+function renderDialog() {
+  if (!S.edit) { if (DLG && DLG.open) DLG.close(); return; }
+  if (!DLG) {
+    DLG = document.createElement('dialog');
+    DLG.className = 'rdlg'; DLG.setAttribute('aria-labelledby', 'rdlg-t');
+    document.body.appendChild(DLG);
+    wire(DLG);
+    /* Escape closes the page list first, then the dialog, as Cancel. */
+    DLG.addEventListener('cancel', ev => { ev.preventDefault(); if (S.pick) { S.pick = false; render(); const n = $('#ed-to'); if (n) n.focus(); } else cancelEdit(); });
+    /* The page list closes when anything else in the dialog takes focus or a
+       blank part of it is pressed. A button pressed closes it in its own click,
+       so the press is never swallowed by a re-render. */
+    DLG.addEventListener('mousedown', ev => { if (S.pick && !ev.target.closest('.combo, button, input, select, a, label')) { S.pick = false; render(); } });
+    DLG.addEventListener('focusin', ev => { if (S.pick && /INPUT|SELECT/.test(ev.target.tagName) && ev.target.id !== 'ed-to') { S.pick = false; render(); } });
+  }
+  DLG.innerHTML = dialogHtml();
+  if (!DLG.open) DLG.showModal();
+}
+
+/* ============================================= where an address goes == */
+/* Search doubles as the test: an address typed or pasted into it gets one
+   line at the top of the table, following it the way a visitor would. */
+const looksLikeAddress = q => /^(\/|https?:\/\/|(www\.)?meridianreview\.org)/i.test(q.trim());
+function traceHtml() {
+  const q = S.q.trim();
+  if (!q || !looksLikeAddress(q)) return '';
+  const a = readAddr(q, 'test');
+  const lead = '<span class="lbl">' + I('test') + 'Where it goes</span>';
+  if (a.err) return '<div class="trace">' + lead + '<span class="tk nf">' + I('ban') + (a.other ? 'Another site, ' + esc(a.other) : 'Not an address') + '</span>' + (a.other ? '<span class="say">Only addresses on ' + HOST + ' can be redirected here.</span>' : '') + '</div>';
+  const steps = resolve(a.path);
+  const tk = (cls, icon, label) => '<span class="tk ' + cls + '">' + (icon ? I(icon) : '') + label + '</span>';
+  const arr = (c, by) => '<span class="arr" title="' + esc(TYPES[c].name + ' ' + c + ', by ' + by) + '">' + I('arrow-r') + '<small>' + c + '</small></span>';
+  let h = tk('mono', '', esc(a.path)), shown = null, say = '', add = '';
+  steps.forEach((st, i) => {
+    if (st.t === 'row' || st.t === 'code') {
+      const c = st.t === 'row' ? st.r.code : st.c.code;
+      h += arr(c, st.t === 'row' ? 'the row ' + st.r.from : 'the site’s code');
+      const tg = st.t === 'row' ? st.tg : (isUrl(st.c.to) ? {kind:'url', url:st.c.to} : {kind:'path', path:st.c.to});
+      if (tg.kind === 'entry') { h += tk('pg', 'page', esc(tg.entry.title)); shown = tg.entry.id; }
+      else if (tg.kind === 'gone') h += tk('gone', 'page', esc(tg.entry.title));
+      else if (tg.kind === 'url') { let host = tg.url; try { host = new URL(tg.url).host; } catch (e) {} h += tk('', 'ext', esc(host)); }
+      else h += tk('mono', '', esc(tg.path));
+      if (st.t === 'code' && i === 0 && IDX.lit.has(key(st.path))) say = 'The site’s code overrules the row for this address.';
+    }
+    if (st.t === 'page' && st.e.id !== shown) {
+      h += '<span class="arr eq">is</span>' + tk('pg', st.e.kind === 'System' ? 'code' : 'page', esc(st.e.title));
+      if (i === 0 && IDX.lit.has(key(st.path))) say = 'A page answers this address, so its redirect does nothing.';
+    }
+    if (st.t === 'nf') {
+      h += tk('nf', 'ban', st.gone ? 'Not Found, deleted ' + fmtDate(st.gone.deleted) : 'Not Found');
+      if (i === 0) add = '<button class="fx" data-addfrom="' + esc(st.path) + '">Add a Redirect From Here</button>';
+    }
+    if (st.t === 'loop') h += tk('nf', 'ban', 'Loops');
+  });
+  return '<div class="trace" aria-live="polite">' + lead + '<span class="chain">' + h + '</span>' + add + (say ? '<span class="say">' + say + '</span>' : '') + '</div>';
+}
+
+/* ============================================================ actions == */
+function openAdd(from) {
+  if (S.state === 'loading') return;
+  S.edit = 'new'; S.draft = freshDraft(); S.pick = false; S.act = -1; S.from = document.activeElement;
+  if (from) { S.draft.from = from; S.draft.touched.from = true; }
+  render();
+  const n = $(from ? '#ed-to' : '#ed-from'); if (n) n.focus();
+}
+function openEdit(id, pick) {
+  const r = S.rows.find(x => x.id === id); if (!r) return;
+  S.edit = id; S.draft = freshDraft(r); S.pick = !!pick; S.act = -1;
+  if (pick) { S.draft.entry = null; S.draft.to = ''; }
+  render();
+  const n = $(pick ? '#ed-to' : '#ed-from'); if (n) n.focus();
+}
+function cancelEdit() {
+  const was = S.edit; S.edit = null; S.draft = null; S.pick = false; render();
+  const n = was === 'new' ? (S.from && document.contains(S.from) ? S.from : $('[data-add]')) : $('[data-rmenu="' + was + '"]'); if (n) n.focus();
+}
+function saveEdit() {
+  const d = S.draft, c = checkDraft(d);
+  if (c.errs || !c.row) {
+    d.tried = true; render();
+    const n = $('.rdlg .inp.bad') || $('#ed-from'); if (n) n.focus();
+    return;
+  }
+  const v = c.row;
+  if (S.edit === 'new') {
+    const r = row(v.from, v.entry ? byId(v.entry) : v.to, v.code, TODAY, 'you');
+    S.rows.push(r);
+    S.edit = null; S.draft = null; S.pick = false;
+    showRow(r.id);
+    toast('Added a redirect from ' + code(r.from), () => { const i = S.rows.indexOf(r); if (i > -1) S.rows.splice(i, 1); });
+  } else {
+    const r = S.rows.find(x => x.id === S.edit), was = {from:r.from, to:r.to, entry:r.entry, code:r.code};
+    Object.assign(r, v);
+    S.edit = null; S.draft = null; S.pick = false;
+    showRow(r.id);
+    toast('Saved the redirect from ' + code(r.from), () => Object.assign(r, was));
+  }
+}
+/* Bring a row into view, whatever the filters and page were. */
+function showRow(id) {
+  prepare();
+  let vis = visibleRows();
+  if (!vis.find(r => r.id === id)) { S.q = ''; S.goes = ''; prepare(); vis = visibleRows(); }
+  if (!vis.find(r => r.id === id)) { S.tab = 'all'; prepare(); vis = visibleRows(); }
+  S.page = Math.floor(vis.findIndex(r => r.id === id) / S.per);
+  S.flash = id; render(); S.flash = null;
+  const tr = $('tr[data-id="' + id + '"]');
+  if (tr) { tr.scrollIntoView({block:'center'}); const b = tr.querySelector('.rowmenu'); if (b) b.focus({preventScroll:true}); }
+}
+function del(ids) {
+  const gone = [];
+  ids.forEach(id => { const i = S.rows.findIndex(r => r.id === id); if (i > -1) gone.push([i, S.rows[i]]); });
+  gone.slice().sort((a, b) => b[0] - a[0]).forEach(([i]) => S.rows.splice(i, 1));
+  const had = new Set(S.sel); ids.forEach(id => S.sel.delete(id));
+  if (S.edit && ids.includes(S.edit)) { S.edit = null; S.draft = null; }
+  render();
+  toast(gone.length === 1 ? 'Deleted the redirect from “' + esc(gone[0][1].from) + '”' : 'Deleted ' + plural(gone.length, 'redirect'), () => {
+    gone.slice().sort((a, b) => a[0] - b[0]).forEach(([i, r]) => S.rows.splice(i, 0, r));
+    S.sel = had;
+  }, 'danger');
+}
+function setCode(ids, c) {
+  const was = ids.map(id => { const r = S.rows.find(x => x.id === id); return [r, r.code]; }).filter(x => x[1] !== c && !(isPerm(c) === isPerm(x[1]) && x[1] !== 301 && x[1] !== 302));
+  was.forEach(([r]) => { r.code = c; });
+  const had = new Set(S.sel);
+  render();
+  const word = isPerm(c) ? 'permanent' : 'temporary';
+  toast(was.length ? (was.length === 1 ? 'Made the redirect from ' + code(was[0][0].from) + ' ' + word : 'Made ' + plural(was.length, 'redirect') + ' ' + word) : 'Every selected redirect was already ' + word,
+    was.length ? () => { was.forEach(([r, c0]) => { r.code = c0; }); S.sel = had; } : null);
+}
+function straight(id) {
+  const r = S.rows.find(x => x.id === id), p = PROB.get(id);
+  if (!r || !p || !p.fin) return;
+  const was = {to:r.to, entry:r.entry};
+  if (p.fin.t === 'page') { if (p.fin.e.kind !== 'System') { r.entry = p.fin.e.id; r.to = ''; } else { r.entry = null; r.to = p.fin.e.path; } }
+  else { r.entry = null; r.to = p.fin.url; }
+  render();
+  toast('Pointed ' + code(r.from) + ' straight at ' + (r.entry ? esc(byId(r.entry).title) : code(r.to)), () => Object.assign(r, was));
+}
+
+/* ======================================================= side panel == */
+const NOOP = '#';
+function sideHtml() {
+  const it = (label, icon, href, count, on) => '<a href="' + href + '"' + (on ? ' aria-current="page"' : '') + (href === NOOP ? ' data-noop' : '') + '>' + I(icon) + label + (count ? '<span class="c">' + count + '</span>' : '') + '</a>';
+  const grp = (t, items) => '<div class="side-g2">' + t + '</div><nav aria-label="' + t + '">' + items.join('') + '</nav>';
+  const R = S.rail;
+  const nest = items => '<div class="side-nest">' + items.join('') + '</div>';
+  if (R === 'content') return '<div class="side-h"><b>Content</b><span>14 content types</span></div><nav aria-label="Content" class="side-top">' +
+    [it('Docs','book',NOOP,'4'), it('Literature','bookopen',NOOP,'46'), nest([it('Forms','cards',NOOP,'8'), it('Genres','files',NOOP,'4'), it('Techniques','tag',NOOP,'3')]),
+     it('Movies','film',NOOP,'7'), nest([it('Genres','tag',NOOP,'6')]), it('Pages','files',NOOP,'42'), it('People','user',NOOP,'16'),
+     it('Posts','pen',NOOP,'949'), nest([it('Eras','clock',NOOP,'7'), it('Topics','folder',NOOP,'125')]), it('Recipes','utensils',NOOP,'1')].join('') + '</nav>' +
+    grp('Library', [it('Media','image',NOOP,'1,903')]);
+  if (R === 'extend') return '<div class="side-h"><b>Extend</b><span>Themes and plugins</span></div>' + grp('Extensions', [it('Themes','brush',NOOP,'5'), it('Plugins','plug',NOOP,'17')]);
+  if (R === 'home') return '<div class="side-h"><b>Home</b><span>Where the site stands</span></div>' + grp('Overview', [it('Dashboard','gauge',NOOP,''), it('Calendar','cal',NOOP,''), it('Site Health','heart',NOOP,'')]);
+  if (R === 'users') return '<div class="side-h"><b>Users</b><span>Who signs in, and who is credited</span></div>' + grp('People', [it('Accounts','user',NOOP,'6'), it('Profiles','users',NOOP,'16'), it('Roles','shield',NOOP,'4')]);
+  return '<div class="side-h"><b>Config</b><span>Types and settings</span></div>' +
+    grp('Structure', [it('Content Types','layers',NOOP,'14'), it('Relationships','rel',NOOP,'10'), it('Fields','fields',NOOP,'2'), it('Forms','form',NOOP,'4')]) +
+    grp('Settings', [it('General','sliders',NOOP,''), it('Reading','bookopen',NOOP,''), it('Writing','pencil',NOOP,''), it('Media','image',NOOP,''), it('Addresses and Search','globe',NOOP,''), it('Redirects','redirect','#redirects', S.state === 'loading' || !S.rows.length ? '' : fmt(S.rows.length), true), it('System','config',NOOP,'')]) ;
+}
+function railHtml() {
+  return '<div class="logo" aria-hidden="true">J</div>' + [['home','home','Home'],['content','page','Content'],['extend','box','Extend'],['users','user','Users'],['config','config','Config']].map(r =>
+    '<button data-rail="' + r[0] + '" aria-pressed="' + (S.rail === r[0]) + '"><span class="ri">' + I(r[1]) + '</span>' + r[2] + '</button>').join('');
+}
+
+/* ============================================================== notes == */
+const NOTES = '<h2>Redirects<button class="btn sm ghost icon" data-close aria-label="Close notes">' + I('x') + '</button></h2>' +
+'<p>The Redirects screen under Config › Settings, drawn from the owner’s brief with entry redirects settled: <b>entries keep none of their own; every redirect is a row here</b> (the brief’s option B). The list, testing an address from the search, adding and editing in a dialog, row problems with their fixes, bulk changes all work. Saving is pretend. The State switch shows a list of thousands, a site with none, and loading.</p>' +
+'<h3>Rules</h3><ol>' +
+'<li><i>R1</i><span><b>Under Settings, after Addresses and Search,</b> because a redirect is about addresses and someone looks for it there. It is the first list in Settings, so it is built like the admin’s lists, and each change saves on its own with Undo. There is no save bar.</span></li>' +
+'<li><i>R2</i><span><b>Every redirect is a row here; entries keep none.</b> When a published entry’s address changes, the admin adds a row whose To is the entry itself, not its path. So the row follows the entry through later moves and never makes a chain, and renaming back removes it. Its Added column says it came from a rename or a move.</span></li>' +
+'<li><i>R3</i><span><b>A deleted entry’s rows stay,</b> flagged as leading nowhere with Choose Another Page, because the old address is still out in the world.</span></li>' +
+'<li><i>R4</i><span><b>To says what kind of place it is.</b> A path in mono. An entry by its title, with its current address under it. Another site with its host in full ink and the external glyph, so it is never mistaken for a page here.</span></li>' +
+'<li><i>R5</i><span><b>Words first, code second.</b> Permanent, Temporary, and three technical types grouped under For Programs, each with the number in quiet mono beside it and a sentence saying what it does.</span></li>' +
+'<li><i>R6</i><span><b>Search is also the test.</b> Typing or pasting an address (a path, or a whole link) puts one line at the top of the table, <i>Where it goes</i>: the address, an arrow with the status code for each hop, and where it lands — a page, another site, or Not Found, which offers to add a redirect from there. Hovering an arrow names the row or the site’s code that made it. There is no separate panel to step over.</span></li>' +
+'<li><i>R7</i><span><b>Search matches as typed and as a visitor would.</b> Pasting ' + code('/news/the-long-table') + ' finds the row ' + code('/news/{name}') + ' that handles it, and the trace above shows where it ends up.</span></li>' +
+'<li><i>R8</i><span><b>Problems are quiet until you look at them.</b> On every tab, Problems included, a problem row carries a warn chip beside its old address that names the kind in a word or two (Does nothing, Leads nowhere, Missing page, Chained, Overruled). Pressing it opens that row’s notice — the Themes screen’s boxed warning, with the one fix that applies — on a row of its own under it, and pressing again closes it. Rows with problems keep working.</span></li>' +
+'<li><i>R9</i><span><b>Adding and editing happen in one small dialog,</b> not in the row: three fields stacked at a readable width, with the list still behind it. What stops Save (a missing slash, a duplicate, a loop, a placeholder with nothing to fill it) is a short red line under its field; Save stays pressable and marks what to fix. Warnings and what will happen are gathered into one notice above the buttons. Escape closes the page list first, then the dialog.</span></li>' +
+'<li><i>R10</i><span><b>To is one box.</b> Type a path, a whole address on another site, or part of a page’s name: matching pages open in a list under the box, arrows move through it and Enter picks one. A picked page sits in the box as a chip and follows the page if it moves; its × or Backspace puts the typing back. A typed path that is a page’s address becomes the page too.</span></li>' +
+'<li><i>R11</i><span><b>The site’s code comes first and is listed, read-only,</b> under the table. A row it overrules says so.</span></li>' +
+'<li><i>R12</i><span><b>Thousands of rows</b> page as the admin’s other lists do: Page 1 of 211, 20 per page by default, Previous and Next. Search, filters and problems would run on the server; nothing loads the whole list.</span></li>' +
+'<li><i>R13</i><span><b>The table is the admin’s table.</b> Tabs with counts (All, Permanent, Temporary, Problems), a caption naming the tab and its count, the search with ' + code('/') + ' and a filter, the density toggle, a horizontal row menu on hover, the tri-state header box, and the bulk bar with its icons.</span></li>' +
+'</ol>' +
+'<h3>Open</h3><ol>' +
+'<li><i>?</i><span><b>Who may use it.</b> A Manage Redirects capability of its own, or the one for changing settings. The sketch shows everything.</span></li>' +
+'<li><i>?</i><span><b>Case and trailing slashes.</b> The sketch treats ' + code('/About/') + ' and ' + code('/about') + ' as one address. The site’s router has to agree.</span></li>' +
+'<li><i>?</i><span><b>Short links that end.</b> ' + code('/sale') + ' is meant for a while. An end date on a row would need the site to check a clock; the sketch leaves it out.</span></li>' +
+'<li><i>?</i><span><b>Keeping a path on purpose.</b> A typed page address always becomes the page. Someone who wants the literal path, so the redirect stays put when the page moves, has no way to say so.</span></li>' +
+'<li><i>?</i><span><b>Whether problems are counted live.</b> Live pages, missing targets and chains each need a lookup per row. On a big site that may belong to Site Health, with this screen reading its results.</span></li>' +
+'</ol>';
+
+/* ============================================================== menus == */
+let menuFrom = null, menuAt = 0, toastT;
+function closeMenu(refocus) { const m = $('.menu'); if (m) m.remove(); $$('[aria-expanded="true"].rowmenu').forEach(x => x.setAttribute('aria-expanded', 'false')); if (refocus && menuFrom) menuFrom.focus(); menuFrom = null; }
+function openMenu(btn, items, pick) {
+  closeMenu();
+  menuFrom = btn; menuAt = Date.now(); btn.setAttribute('aria-expanded', 'true');
+  const m = document.createElement('div');
+  m.className = 'menu'; m.setAttribute('role', 'menu');
+  m.innerHTML = items.map(it => it.hr ? '<hr>' : '<button role="menuitem" data-v="' + esc(it.v) + '"' + (it.danger ? ' class="danger"' : '') + '>' + (it.icon ? I(it.icon) : '') + '<span>' + it.label + '</span></button>').join('');
+  document.body.appendChild(m);
+  const r = btn.getBoundingClientRect(), mh = m.offsetHeight;
+  m.style.left = Math.max(8, Math.min(r.right - m.offsetWidth, innerWidth - m.offsetWidth - 8)) + 'px';
+  m.style.top = (r.bottom + 6 + mh > innerHeight && r.top - 6 - mh > 0 ? r.top - 6 - mh : Math.min(r.bottom + 6, innerHeight - mh - 8)) + 'px';
+  m.addEventListener('click', e => { const b = e.target.closest('[data-v]'); if (b) { closeMenu(); pick(b.dataset.v); } });
+  m.addEventListener('keydown', e => {
+    const bs = $$('[role=menuitem]', m), i = bs.indexOf(document.activeElement);
+    if (e.key === 'ArrowDown') { e.preventDefault(); bs[(i + 1) % bs.length].focus(); }
+    if (e.key === 'ArrowUp') { e.preventDefault(); bs[(i - 1 + bs.length) % bs.length].focus(); }
+    if (e.key === 'Tab') closeMenu();
+  });
+  $('[role=menuitem]', m).focus();
+}
+function rowMenu(btn, id) {
+  const r = S.rows.find(x => x.id === id); if (!r) return;
+  openMenu(btn, [
+    {v:'edit', label:'Edit', icon:'pencil'},
+    {v:'test', label:'Test This Address', icon:'test'},
+    {v:'copy', label:'Copy Old Address', icon:'copy'},
+    {hr:1},
+    isPerm(r.code) ? {v:'temp', label:'Make Temporary', icon:'clock'} : {v:'perm', label:'Make Permanent', icon:'check'},
+    {hr:1},
+    {v:'del', label:'Delete', icon:'trash', danger:1}
+  ], v => {
+    if (v === 'edit') openEdit(id);
+    if (v === 'test') { S.q = r.from.includes('{') ? exampleFor(r.from) : r.from; S.tab = 'all'; S.goes = ''; S.page = 0; render(); const n = $('#rq'); if (n) { n.focus(); n.scrollIntoView({block:'center'}); } }
+    if (v === 'copy') { try { navigator.clipboard.writeText(r.from).catch(() => {}); } catch (e) {} toast('Copied ' + code(r.from)); }
+    if (v === 'temp') setCode([id], 302);
+    if (v === 'perm') setCode([id], 301);
+    if (v === 'del') del([id]);
+  });
+}
+/* The admin's toast (§7 Toasts): a glyph for its kind, one line in the past
+   tense, Undo where the change can be put back, and a border that is the
+   countdown. Pointer or focus inside holds it; both have to let go. */
+function toast(msg, undo, kind) {
+  clearTimeout(toastT);
+  $$('.toast').forEach(t => t.remove());
+  const life = undo ? 7000 : 2600;
+  const el = document.createElement('div');
+  el.className = 'toast' + (kind ? ' ' + kind : '');
+  el.style.setProperty('--life', life + 'ms');
+  el.innerHTML = I(kind === 'danger' || kind === 'warn' ? 'alert' : kind === 'info' ? 'info' : 'ccheck') +
+    '<span class="msg" role="status">' + msg + '</span>' +
+    (undo ? '<span class="div"></span><button class="undo">' + I('undo') + 'Undo</button>' : '') +
+    '<svg class="toast-ring" aria-hidden="true"><rect class="track" pathLength="100"/><rect class="run" pathLength="100"/></svg>';
+  document.body.appendChild(el);
+  let left = life, since = Date.now(), holds = 0;
+  const go = () => { since = Date.now(); toastT = setTimeout(() => el.remove(), left); };
+  const hold = () => { if (holds++ === 0) { clearTimeout(toastT); left -= Date.now() - since; el.classList.add('held'); } };
+  const free = () => { if (holds > 0 && --holds === 0) { el.classList.remove('held'); go(); } };
+  el.addEventListener('pointerenter', hold); el.addEventListener('pointerleave', free);
+  el.addEventListener('focusin', hold); el.addEventListener('focusout', free);
+  el.addEventListener('keydown', e => { if (e.key === 'Escape') { e.stopPropagation(); el.remove(); } });
+  if (undo) el.querySelector('.undo').onclick = () => { clearTimeout(toastT); undo(); el.remove(); render(); };
+  go();
+}
+
+/* ============================================================= render == */
+function render() {
+  const a = document.activeElement, id = a && a.id;
+  let pos = null; try { pos = a && 'selectionStart' in a ? a.selectionStart : null; } catch (e) {}
+  prepare();
+  $('#rail').innerHTML = railHtml();
+  $('#side').innerHTML = sideHtml();
+  const crumbs = '<a href="#redirects" data-scope="config">Config</a><span class="sep">/</span><span aria-current="page">Redirects</span>';
+  $('#crumbs').innerHTML = crumbs;
+  $('#page').innerHTML = renderList();
+  renderDialog();
+  $$('[data-mixed]').forEach(c => { c.indeterminate = true; });
+  document.title = 'Redirects · Meridian';
+  if (id) { const n = document.getElementById(id); if (n && n !== document.activeElement) { n.focus({preventScroll:true}); if (pos != null && n.setSelectionRange && /^(text|search|textarea)$/.test(n.type || '')) try { n.setSelectionRange(pos, pos); } catch (e) {} } }
+}
+function go() {
+  const v = 'list';
+  if (v !== S.v) { S.edit = null; S.draft = null; S.pick = false; S.rail = 'config'; $('#work').scrollTop = 0; }
+  S.v = v;
+  render();
+}
+
+/* ============================================================= events == */
+function onClick(e) {
+  const t = e.target.closest('button, a, input[type=checkbox]'); if (!t) return;
+  const ds = t.dataset;
+  if (S.pick && !t.closest('.combo')) S.pick = false;
+  if ('add' in ds) return openAdd();
+  if (ds.pnote) { S.open.has(ds.pnote) ? S.open.delete(ds.pnote) : S.open.add(ds.pnote); render(); const b = $('[data-pnote="' + ds.pnote + '"]'); if (b) b.focus({preventScroll:true}); return; }
+  if (ds.showrow) { S.edit = null; S.q = ''; showRow(ds.showrow); return; }
+  if (ds.addfrom) return openAdd(ds.addfrom);
+  if (ds.tab) { S.tab = ds.tab; S.page = 0; S.sel.clear(); render(); const n = $('#tab-' + S.tab); if (n) n.focus(); return; }
+  if (ds.dense) { S.dense = ds.dense === '1'; render(); return; }
+  if ('clear' in ds) { S.q = ''; S.goes = ''; S.page = 0; render(); const n = $('#rq'); if (n) n.focus(); return; }
+  if (ds.pg) { S.page += +ds.pg; render(); $('.tcap').scrollIntoView({block:'start'}); const b = $('[data-pg="' + ds.pg + '"]') || $('[data-pg]'); if (b) b.focus({preventScroll:true}); return; }
+  if ('codetoggle' in ds) { S.codeOpen = !S.codeOpen; render(); return; }
+  if (ds.rmenu) { e.stopPropagation(); return rowMenu(t, ds.rmenu); }
+  if (ds.fix) {
+    const id = ds.id;
+    if (ds.fix === 'del') return del([id]);
+    if (ds.fix === 'edit') return openEdit(id);
+    if (ds.fix === 'repick') return openEdit(id, true);
+    if (ds.fix === 'straight') return straight(id);
+    if (ds.fix === 'showcode') { S.codeOpen = true; render(); $('.coded').scrollIntoView({block:'center'}); return; }
+  }
+  if (ds.pick) { ds.pick && (t.checked ? S.sel.add(ds.pick) : S.sel.delete(ds.pick)); S.bulkIn = S.sel.size === 1 && t.checked; render(); return; }
+  if ('selall' in ds) { const ids = $$('[data-pick]').map(x => x.dataset.pick); const on = t.checked; const was = S.sel.size; ids.forEach(i => on ? S.sel.add(i) : S.sel.delete(i)); S.bulkIn = !was && S.sel.size; render(); return; }
+  if (ds.bulk) {
+    const ids = [...S.sel];
+    if (ds.bulk === 'clear') { S.sel.clear(); render(); return; }
+    if (ds.bulk === 'del') return del(ids);
+    if (ds.bulk === 'perm') return setCode(ids, 301);
+    if (ds.bulk === 'temp') return setCode(ids, 302);
+  }
+  if ('cancel' in ds) return cancelEdit();
+  if ('delEdit' in ds) { const id = S.edit; return del([id]); }
+  if (ds.pickent) { pickPage(ds.pickent); return; }
+  if ('unpick' in ds) { S.draft.entry = null; render(); const n = $('#ed-to'); if (n) n.focus(); return; }
+  if (ds.dfix) {
+    const d = S.draft, f = ds.dfix;
+    if (f === 'slashfrom') { d.from = '/' + d.from.trim(); render(); $('#ed-from').focus(); }
+    if (f === 'slashto') { d.to = '/' + d.to.trim(); render(); $('#ed-to').focus(); }
+    if (f.startsWith('editother:')) openEdit(f.split(':')[1]);
+    if (f === 'straightdraft') {
+      const st = resolve(readAddr(d.to, 'to').path), fin = finalOf(st);
+      if (fin.t === 'page') { if (fin.e.kind !== 'System') { d.entry = fin.e.id; d.to = ''; } else d.to = fin.e.path; }
+      else if (fin.t === 'away') d.to = fin.url;
+      render();
+    }
+    return;
+  }
+  if (ds.noopEntry) { e.preventDefault(); toast('In the admin this opens ' + esc(byId(ds.noopEntry).title) + ' in the editor.', null, 'info'); }
+}
+function pickPage(id) {
+  S.draft.entry = id; S.draft.to = ''; S.draft.touched.to = true; S.pick = false; S.act = -1;
+  render(); const n = $('#ed-code'); if (n) n.focus();
+}
+function onInput(e) {
+  const t = e.target;
+  if (t.id === 'rq') { S.q = t.value; S.page = 0; render(); return; }
+  if (t.dataset.ed && t.tagName !== 'SELECT') {
+    S.draft[t.dataset.ed] = t.value; S.draft.touched[t.dataset.ed] = true;
+    if (t.id === 'ed-to') { S.pick = !!t.value.trim() && !isUrl(t.value.trim()); S.act = -1; }
+    render();
+  }
+}
+function onChange(e) {
+  const t = e.target;
+  if (t.dataset.f) { S[t.dataset.f] = t.value; S.page = 0; render(); return; }
+  if ('per' in t.dataset) { S.per = +t.value; S.page = 0; render(); return; }
+  if (t.dataset.ed === 'code') { S.draft.code = +t.value; render(); }
+}
+function onKey(e) {
+  const t = e.target;
+  /* The combobox keeps focus in the box; arrows move the highlighted page. */
+  if (t.id === 'ed-to') {
+    const n = $$('[data-pickent]').length;
+    if (e.key === 'ArrowDown') { e.preventDefault(); if (!S.pick) { S.pick = true; S.act = 0; } else S.act = Math.min(n - 1, S.act + 1); render(); return; }
+    if (e.key === 'ArrowUp' && S.pick) { e.preventDefault(); S.act = Math.max(-1, S.act - 1); render(); return; }
+    if (e.key === 'Enter' && S.pick && S.act > -1) { e.preventDefault(); const b = $$('[data-pickent]')[S.act]; if (b) pickPage(b.dataset.pickent); return; }
+  }
+  if ((t.id === 'ed-chosen' || t.id === 'ed-unpick') && e.key === 'Backspace') { e.preventDefault(); S.draft.entry = null; render(); const i = $('#ed-to'); if (i) i.focus(); }
+}
+function wire(el) {
+  el.addEventListener('click', onClick);
+  el.addEventListener('input', onInput);
+  el.addEventListener('change', onChange);
+  el.addEventListener('submit', e => { e.preventDefault(); saveEdit(); });
+  el.addEventListener('keydown', onKey);
+}
+wire($('#page'));
+$('#rail').addEventListener('click', e => { const b = e.target.closest('[data-rail]'); if (!b) return; S.rail = b.dataset.rail; render(); const n = $('[data-rail="' + S.rail + '"]'); if (n) n.focus(); });
+$('#side').addEventListener('click', e => { if (e.target.closest('[data-noop]')) { e.preventDefault(); toast('That screen isn’t part of this sketch.', null, 'info'); } });
+$('#crumbs').addEventListener('click', e => { const a = e.target.closest('[data-scope]'); if (a) { e.preventDefault(); S.rail = a.dataset.scope; render(); } });
+document.addEventListener('keydown', e => {
+  if (DLG && DLG.open) return;
+  const typing = /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName);
+  if (e.key === '/' && !typing && $('#rq')) { e.preventDefault(); $('#rq').focus(); return; }
+  if (e.key === 'Escape') {
+    if ($('.menu')) { closeMenu(true); return; }
+    if ($('#labNotes').classList.contains('on')) { $('#labNotesBtn').click(); return; }
+    if (S.sel.size && !typing) { S.sel.clear(); render(); return; }
+  }
+});
+document.addEventListener('mousedown', e => { if ($('.menu') && !e.target.closest('.menu') && !e.target.closest('[aria-haspopup="menu"]')) closeMenu(); });
+$('#work').addEventListener('scroll', () => { if (Date.now() - menuAt > 250) closeMenu(); });
+
+/* ============================================================ harness == */
+const labSeg = (id, fn) => $(id).addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; $$(id + ' button').forEach(x => x.setAttribute('aria-pressed', String(x === b))); fn(b.dataset.v); });
+labSeg('#labState', v => {
+  S.state = v;
+  if (v === 'large' && !DATA.large) DATA.large = seedLarge();
+  S.rows = v === 'loading' ? DATA.normal : DATA[v];
+  S.sel.clear(); S.edit = null; S.draft = null; S.pick = false; S.page = 0; S.q = ''; S.goes = ''; S.tab = 'all';
+  render();
+});
+labSeg('#labTheme', v => v === 'neutral' ? document.documentElement.removeAttribute('data-admin-theme') : document.documentElement.setAttribute('data-admin-theme', v));
+labSeg('#labScheme', v => v === 'auto' ? document.documentElement.removeAttribute('data-color-scheme') : document.documentElement.setAttribute('data-color-scheme', v));
+$('#labNotesBtn').addEventListener('click', () => { const on = !$('#labNotes').classList.contains('on'); $('#labNotes').classList.toggle('on', on); $('#labNotesBtn').setAttribute('aria-pressed', String(on)); });
+$('#labNotes').addEventListener('click', e => { if (e.target.closest('[data-close]')) $('#labNotesBtn').click(); });
+$('#labNotes').innerHTML = NOTES;
+window.addEventListener('hashchange', go);
+if (!location.hash) history.replaceState(null, '', '#redirects');
+go();
+</script>
+
+</body>
+</html>

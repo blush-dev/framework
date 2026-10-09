@@ -22,6 +22,7 @@ import NotFoundView from './views/NotFoundView.vue';
 import AccountView from './views/AccountView.vue';
 import PluginView from './views/PluginView.vue';
 import RelationView from './views/RelationView.vue';
+import RedirectsView from './views/RedirectsView.vue';
 import RelationsView from './views/RelationsView.vue';
 import PluginsView from './views/PluginsView.vue';
 import IconPackView from './views/IconPackView.vue';
@@ -93,6 +94,8 @@ export const router = createRouter({
 		{ path: '/themes/:vendor/:name', name: 'theme', component: ThemeView, meta: { title: 'Theme', capability: 'extensions.themes.view', area: 'extend', parent: 'themes' } },
 		// Settings is four screens (D-325); the view titles each.
 		{ path: '/settings', redirect: { name: 'settings', params: { screen: 'general' } } },
+		// The site's redirects (D-686), listed under Settings.
+		{ path: '/redirects', name: 'redirects', component: RedirectsView, meta: { title: 'Redirects', capability: 'site.redirects', area: 'config' } },
 		{ path: '/settings/:screen(general|reading|writing|media|search|ai|system)', name: 'settings', component: SettingsView, props: true, meta: { title: 'Settings', capability: 'site.settings', area: 'config', wide: true } },
 		{ path: '/plugins', name: 'plugins', component: PluginsView, meta: { title: 'Plugins', capability: 'extensions.plugins.view', area: 'extend' } },
 		{ path: '/plugins/:vendor/:name', name: 'plugin', component: PluginView, meta: { title: 'Plugin', capability: 'extensions.plugins.view', area: 'extend', parent: 'plugins' } },

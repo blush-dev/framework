@@ -146,6 +146,12 @@ and every type kept in `_` and its name, never naming its folder, its
 addresses from its prefix, with `content:type-folders` and Site Health
 moving older data types, and profiles without `{initial}` (D-683,
 D-684);
+and, from the redirects sketch
+(`.claude/docs/admin-design/meridian-redirects.html`), the Redirects
+screen under Config › Settings with `site.redirects`: rows that lead to
+an entry by id and say when, by whom, and how they were added, problems
+and an address's trace worked out live, and the form checked by the
+server (D-686);
 1.x conventions go when they get in the way
 (D-658); and an id for every media
 original, with image sizes found by rule and given none

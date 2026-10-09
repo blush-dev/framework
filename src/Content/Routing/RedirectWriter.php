@@ -14,72 +14,70 @@ declare(strict_types=1);
 namespace Blush\Content\Routing;
 
 use Psr\Clock\ClockInterface;
-use Blush\Core\AppConfig;
 use Blush\Routing\InvalidRoute;
-use Blush\Routing\RouteCache;
-use Blush\Storage\Record\KeyedTable;
 use Blush\Storage\Record\RecordException;
-use Blush\Storage\Record\RecordStores;
 
 /**
- * Writes the redirects a move leaves behind (D-680): when a published
- * entry's address changes in the admin, its old address redirects to the
- * new one, as a row in the `redirects` table (`DataRedirects`).
+ * Writes the redirects a move leaves behind (D-680, D-686): when a
+ * published entry's address changes in the admin, its old address
+ * redirects to the entry, as a row in the `redirects` table that names
+ * the entry by its id, so it follows the entry through later moves.
  *
  * For each move, a permanent redirect from the old address replaces any
- * row from it; rows that led to the old address lead to the new one, so
- * no redirect chains; and a row from the new address goes, since the
- * entry answers there now. A compiled route table is written again, so
- * the redirects work in production without a `cache:compile`.
+ * row from it; rows that led to the old address as a path lead to the
+ * entry, so there are no chains; and a row from the new address goes,
+ * since the entry answers there now (so renaming back removes the row).
+ * Each row says when it was added, by whom, and how (`RedirectOrigin`).
+ * An entry without an id gets a row to its new path, as before.
  */
 final readonly class RedirectWriter
 {
 	public function __construct(
-		private RecordStores $stores,
-		private ClockInterface $clock,
-		private RouteCache $routes,
-		private AppConfig $app
+		private Redirects $rows,
+		private ClockInterface $clock
 	) {}
 
 	/**
-	 * Redirects old addresses to new ones. An address that isn't a path,
-	 * or that didn't change, is left out.
+	 * Redirects old addresses to entries' new ones. A move whose
+	 * addresses aren't paths, or didn't change, is left out.
 	 *
-	 * @param  array<string, string> $moves New addresses, by old address.
+	 * @param  list<array{from: string, to: string, entry: ?string, via: RedirectOrigin}> $moves
+	 * @param  ?string $by The id of the account that moved them.
 	 * @throws RecordException When the redirects can't be written.
 	 * @throws InvalidRoute When the compiled route table can't be written.
 	 */
-	public function moved(array $moves): void
+	public function moved(array $moves, ?string $by = null): void
 	{
-		$table = DataRedirects::table();
-		$moves = array_filter(
+		$moves = array_values(array_filter(
 			$moves,
-			static fn (string $to, string $from): bool => $from !== $to && $table->isKey($from) && $table->isKey($to),
-			ARRAY_FILTER_USE_BOTH
-		);
+			fn (array $move): bool => $move['from'] !== $move['to'] && $this->rows->isPath($move['from']) && $this->rows->isPath($move['to'])
+		));
 
 		if ($moves === []) {
 			return;
 		}
 
-		$rows = new KeyedTable($this->stores, $table, $this->clock);
+		$now = $this->clock->now();
 
-		$rows->transaction(static function () use ($rows, $moves): void {
-			foreach ($moves as $from => $to) {
-				$rows->delete($to);
+		$this->rows->write(function () use ($moves, $now, $by): void {
+			foreach ($moves as $move) {
+				$this->rows->delete($move['to']);
 
-				foreach ($rows->all() as $path => $row) {
-					if (($row['to'] ?? null) === $from && $path !== $from) {
-						$rows->save($path, [...$row, 'to' => $to]);
+				foreach ($this->rows->all() as $row) {
+					if ($row->to === $move['from'] && $row->from !== $move['from']) {
+						$this->rows->save($move['entry'] === null ? $row->leadingTo($move['to'], null) : $row->leadingTo(null, $move['entry']));
 					}
 				}
 
-				$rows->save($from, ['to' => $to]);
+				$this->rows->save(new RedirectRow(
+					$move['from'],
+					$move['entry'] === null ? $move['to'] : null,
+					$move['entry'],
+					added: $now,
+					by: $by,
+					via: $move['via']
+				));
 			}
 		});
-
-		if (! $this->app->environment->isDevelopment() && is_file($this->routes->path())) {
-			$this->routes->write();
-		}
 	}
 }

@@ -32,13 +32,16 @@
 import { computed, ref, watch } from 'vue';
 import { confirmAction } from '../confirm';
 import { confirmLeaving, confirmLeavingMany, confirmPurge } from '../referrers';
-import { RouterLink, useRoute, type LocationQueryRaw } from 'vue-router';
+import { RouterLink, useRoute, type LocationQueryRaw, type RouteLocationRaw } from 'vue-router';
 import { entryPath, errorMessage, request, trashEntry, type ContentTypeSummary, type EntryDetail, type EntryList, type EntrySort, type EntryStatus, type EntrySummary } from '../api';
-import { debounced, latest } from '../action';
+import { debounced, latest, useListAction } from '../action';
 import AdminIcon from '../components/AdminIcon.vue';
 import AdminSelect, { type SelectOption } from '../components/AdminSelect.vue';
+import BulkBar from '../components/BulkBar.vue';
+import DensityToggle from '../components/DensityToggle.vue';
 import EmptyState from '../components/EmptyState.vue';
 import EntryTable from '../components/EntryTable.vue';
+import ListPager from '../components/ListPager.vue';
 import { compact } from '../density';
 import { useSearchKey } from '../search-key';
 import { makeHomepage } from '../homepage';
@@ -46,7 +49,6 @@ import SkeletonTable from '../components/SkeletonTable.vue';
 import TrashTable from '../components/TrashTable.vue';
 import { plural } from '../format';
 import { screenTitle } from '../screen';
-import { toast, type ToastKind } from '../toast';
 import { can, canType, session } from '../session';
 import { loadReferences } from '../references';
 import { useQueryState } from '../query';
@@ -96,7 +98,6 @@ const list    = ref<EntryList | null>(null);
 const counts  = ref<Partial<Record<Tab, number>>>({});
 const error   = ref('');
 const loading = ref(false);
-const busy    = ref<string | null>(null);
 const skipped = ref<{ text: string; items: { title: string; reason: string }[] } | null>(null);
 
 // The rows chosen for the bulk bar, by entry ID.
@@ -268,7 +269,10 @@ const dayOptions: SelectOption[] = [
 	...DAYS.map((count) => ({ value: String(count), label: `Updated in the last ${count} days` }))
 ];
 
-const perOptions: SelectOption[] = PER_OPTIONS.map((count) => ({ value: String(count), label: `${count} per page` }));
+// A page of the list, keeping the rest of the address.
+function pageLink(to: number): RouteLocationRaw {
+	return { query: { ...route.query, page: to === 1 ? undefined : to } };
+}
 
 // The date the list shows: the one it's in order of (D-413), else when
 // each was last changed.
@@ -477,26 +481,11 @@ function nameOf(item: { title: string }): string {
 	return item.title === '' ? `the untitled ${labels.value.item}` : `“${item.title}”`;
 }
 
-/**
- * Runs a row's, the trash's, or the bulk bar's action, then reloads the
- * list and toasts what happened, with its Undo when it has one.
- */
-async function act(name: string, action: () => Promise<string | { message: string; undo: () => void }>, kind: ToastKind = 'good'): Promise<void> {
-	busy.value    = name;
+// A row's, the trash's, or the bulk bar's action, toasted, then the
+// list again; a bulk change's skipped rows clear first.
+const { busy, act } = useListAction(load, { error, started: () => {
 	skipped.value = null;
-	error.value   = '';
-
-	try {
-		const done = await action();
-
-		toast(typeof done === 'string' ? done : done.message, { kind, undo: typeof done === 'string' ? undefined : done.undo });
-		await load();
-	} catch (caught) {
-		error.value = errorMessage(caught, 'That didn\'t work. Reload the page and try again.');
-	} finally {
-		busy.value = null;
-	}
-}
+} });
 
 /**
  * Moves an entry to the trash, as the editor does: at the revision it's
@@ -745,14 +734,7 @@ const emptyText = computed(() => {
 				</template>
 				<button v-if="filtered" type="button" class="button button--ghost" @click="clear">Clear Filters</button>
 				<span v-if="profilesList" class="toolbar__count" aria-live="polite">{{ !ready ? 'Loading…' : (list ? plural(list.total, labels.item, labels.items) : '') }}</span>
-				<div v-if="!inTrash && !profilesList" class="segmented segmented--icons toolbar__end" role="group" aria-label="Rows">
-					<button type="button" :aria-pressed="!compact" title="Roomy rows" @click="compact = false">
-						<AdminIcon name="rows-3" /><span class="visually-hidden">Roomy</span>
-					</button>
-					<button type="button" :aria-pressed="compact" title="Compact rows" @click="compact = true">
-						<AdminIcon name="rows-4" /><span class="visually-hidden">Compact</span>
-					</button>
-				</div>
+				<DensityToggle v-if="!inTrash && !profilesList" />
 			</div>
 
 			<p v-if="error" class="notice notice--error" role="alert">{{ error }}</p>
@@ -833,34 +815,19 @@ const emptyText = computed(() => {
 					</EmptyState>
 				</template>
 
-				<nav v-if="ready && list && list.total > PER_OPTIONS[0]!" class="pager" aria-label="Pages">
-					<span class="pager__status">{{ list.pages > 1 ? `Page ${list.page} of ${list.pages}` : `All ${plural(list.total, labels.item, labels.items)}` }}</span>
-					<div class="pager__end">
-						<label class="visually-hidden" for="entries-per">Rows per page</label>
-						<div class="toolbar__filter">
-							<AdminSelect id="entries-per" v-model="perValue" :options="perOptions" />
-						</div>
-						<template v-if="list.pages > 1">
-							<RouterLink v-if="page > 1" class="button button--small" :to="{ query: { ...route.query, page: page - 1 === 1 ? undefined : page - 1 } }"><AdminIcon name="chevron-left" />Previous</RouterLink>
-							<RouterLink v-if="page < list.pages" class="button button--small" :to="{ query: { ...route.query, page: page + 1 } }">Next<AdminIcon name="chevron-right" /></RouterLink>
-						</template>
-					</div>
-				</nav>
+				<ListPager v-if="ready && list" v-model:per="perValue" :page="page" :pages="list.pages" :total="list.total" :noun="[labels.item, labels.items]" :options="PER_OPTIONS" :link="pageLink" />
 
 				<p v-if="profilesList && !inTrash && ready" class="panel__note"><strong>Guest</strong> is a profile with no account: it can be credited and has an archive, but can't sign in. <strong>Bylines</strong> counts every published entry of every type that credits the profile.</p>
 			</section>
 
-			<div v-if="selected.length && !inTrash" class="bulk-bar" role="region" aria-label="Bulk actions">
-				<span class="bulk-bar__count" aria-live="polite">{{ selected.length }} selected</span>
-				<span class="bulk-bar__divider" aria-hidden="true" />
+			<BulkBar v-if="selected.length && !inTrash" :count="selected.length" label="Bulk actions" @clear="selected = []">
 				<button v-if="canPublish" type="button" class="button button--ghost button--small" :disabled="busy !== null" @click="bulk('publish')"><AdminIcon name="circle-check" />Publish</button>
 				<button type="button" class="button button--ghost button--small" :disabled="busy !== null" @click="bulk('draft')"><AdminIcon name="file-text" />Move to Draft</button>
 				<template v-if="canTrash">
 					<span class="bulk-bar__divider" aria-hidden="true" />
 					<button type="button" class="button button--ghost button--small button--danger" :disabled="busy !== null" @click="bulk('trash')"><AdminIcon name="trash-2" />Move to Trash</button>
 				</template>
-				<button type="button" class="button button--ghost button--small" @click="selected = []">Clear</button>
-			</div>
+			</BulkBar>
 		</template>
 	</div>
 </template>
@@ -872,26 +839,5 @@ const emptyText = computed(() => {
 
 .notebar__action {
 	margin: -4px 0 -4px auto;
-}
-
-.pager {
-	display: flex;
-	flex-wrap: wrap;
-	align-items: center;
-	gap: var(--s-3);
-	padding: var(--s-4) var(--pad-x);
-	border-top: 1px solid var(--border);
-}
-
-.pager__status {
-	color: var(--fg-2);
-	font-size: var(--text-sm);
-}
-
-.pager__end {
-	display: flex;
-	align-items: center;
-	gap: var(--s-2);
-	margin-left: auto;
 }
 </style>

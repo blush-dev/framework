@@ -959,7 +959,8 @@
 	text-align: center;
 }
 
-.empty svg {
+/* The glyph alone, not the icons in its buttons. */
+.empty > svg {
 	width: 26px;
 	height: 26px;
 	margin-bottom: calc(var(--s-4) - 7px);

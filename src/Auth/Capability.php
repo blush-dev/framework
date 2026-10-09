@@ -31,6 +31,9 @@ namespace Blush\Auth;
  * requirements, and its fixes for content and media files. Jobs (D-621):
  * every background job and scheduled task on the Tools screen, with
  * Retry, Delete, and Run Now; anyone can follow the jobs they start.
+ * Redirects (D-686): the Redirects screen, adding, changing, and deleting
+ * the `redirects` table's rows. Renaming or moving an entry adds one
+ * without it, since that's the entry's edit.
  *
  * HTML (D-495): adding raw HTML to a body in the admin, from the allowed
  * list (`html.allowed`) or anything but what's always refused
@@ -52,6 +55,7 @@ enum Capability: string
 	case SiteLogs        = 'site.logs';
 	case SiteHealth      = 'site.health';
 	case SiteJobs        = 'site.jobs';
+	case SiteRedirects   = 'site.redirects';
 	case AccountsView    = 'accounts.view';
 	case AccountsCreate  = 'accounts.create';
 	case AccountsEdit    = 'accounts.edit';
@@ -105,7 +109,7 @@ enum Capability: string
 			self::MenusEdit                                         => 'Structure',
 			self::SitePublish, self::CacheClear,
 			self::SiteSettings, self::SiteLogs, self::SiteHealth,
-			self::SiteJobs                                          => 'Site',
+			self::SiteJobs, self::SiteRedirects                     => 'Site',
 			default                                                 => 'Users'
 		};
 	}
@@ -129,6 +133,7 @@ enum Capability: string
 			self::SiteLogs        => 'Read the site\'s log',
 			self::SiteHealth      => 'See site health and fix what it finds',
 			self::SiteJobs        => 'See and manage background jobs',
+			self::SiteRedirects   => 'Manage redirects',
 			self::AccountsView    => 'See accounts and roles',
 			self::AccountsCreate  => 'Create accounts',
 			self::AccountsEdit    => 'Edit accounts',

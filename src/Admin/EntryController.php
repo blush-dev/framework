@@ -45,6 +45,7 @@ use Blush\Content\Relation\Relations;
 use Blush\Content\Relation\TranslationRule;
 use Blush\Content\RelationArchives;
 use Blush\Content\Routing\ContentUrls;
+use Blush\Content\Routing\RedirectOrigin;
 use Blush\Content\Routing\RedirectWriter;
 use Blush\Content\Status as EntryStatus;
 use Blush\Content\Type\ContentType;
@@ -93,8 +94,8 @@ use Blush\Support\Slug;
  *   else the file, first, so a slug that's refused (not a slug, another
  *   entry's, or a landing page's) changes nothing; the refusal is a 422
  *   with `field: "slug"`. With `redirect: true`, a published entry's old
- *   address redirects to its new one, a row in the `redirects` table
- *   (`RedirectWriter`, D-680). A tree's page takes `parent`
+ *   address redirects to it, a row in the `redirects` table naming the
+ *   entry by id (`RedirectWriter`, D-680, D-686). A tree's page takes `parent`
  *   (another of its pages, by key, or `""` for the top) to move under
  *   it (D-410), with the pages under it; a parent that isn't there, or a
  *   page already at the new place, is a 422 with `field: "parent"`. When
@@ -548,7 +549,7 @@ final readonly class EntryController
 			return self::error($e->getMessage(), Status::UnprocessableContent);
 		}
 
-		$this->redirectMoved($from, $entry, $updated, $under);
+		$this->redirectMoved($account, $move !== false ? RedirectOrigin::Move : RedirectOrigin::Rename, $from, $entry, $updated, $under);
 		$this->remember($account, $updated);
 
 		return self::json($this->describe($account, $updated, $file));
@@ -569,19 +570,20 @@ final readonly class EntryController
 	/**
 	 * Redirects the old addresses of a published entry that moved or was
 	 * renamed, and of the published pages under a tree's page that did
-	 * (D-410), to their new ones (D-680). The entry is saved by then, so
-	 * a redirect that can't be written is logged, and the move stands.
+	 * (D-410), to the entries by id (D-680, D-686). The entry is saved by
+	 * then, so a redirect that can't be written is logged, and the move
+	 * stands.
 	 *
 	 * @param ?string     $from  The entry's old address, when it redirects.
 	 * @param list<Entry> $under The pages that were under it, as they were.
 	 */
-	private function redirectMoved(?string $from, Entry $was, Entry $now, array $under): void
+	private function redirectMoved(Account $account, RedirectOrigin $via, ?string $from, Entry $was, Entry $now, array $under): void
 	{
 		$moves = [];
 		$to    = $from === null ? null : $this->urls->entry($now);
 
 		if ($from !== null && $to !== null) {
-			$moves[$from] = $to;
+			$moves[] = ['from' => $from, 'to' => $to, 'entry' => $now->id, 'via' => $via];
 		}
 
 		foreach ($under as $page) {
@@ -589,13 +591,13 @@ final readonly class EntryController
 			$old   = $page->isPublished() ? $this->urls->entry($page) : null;
 			$new   = $found === null ? null : $this->urls->entry($found);
 
-			if ($old !== null && $new !== null) {
-				$moves[$old] = $new;
+			if ($found !== null && $old !== null && $new !== null) {
+				$moves[] = ['from' => $old, 'to' => $new, 'entry' => $found->id, 'via' => RedirectOrigin::Move];
 			}
 		}
 
 		try {
-			$this->redirects->moved($moves);
+			$this->redirects->moved($moves, $account->id === '' ? null : $account->id);
 		} catch (RecordException | InvalidRoute $error) {
 			$this->logger->warning('The redirects for "{title}" couldn\'t be written: {problem}', ['title' => $now->title, 'problem' => $error->getMessage()]);
 		}

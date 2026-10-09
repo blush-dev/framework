@@ -67,17 +67,64 @@ Move each item to `decisions.md` once it's answered.
   JSON `values` column with generated indexed columns, no hand-written
   migrations, `storage:sync` and `storage:copy`), and sessions and jobs
   keeping narrow contracts (D-645). Step 6 planned (D-668). Open:
-  - **Redirects in front matter, and a Redirects screen** (raised by
-    the author, 2026-10-09, D-678; `redirect_from` gone and rename
-    redirects written as rows, D-680, D-681): a screen listing them
-    all. A design brief (Claude Docs, "Redirects screen — design
-    brief") was written before D-680; its option A (entries keep
-    `redirect_from`) is moot, and B (every redirect a row, a row's `to`
-    a path or an entry by id) is the direction.
+  - **The Redirects screen, what's left** (built in D-686, from
+    `meridian-redirects.html`; the sketch's open questions):
+    - **Short links that end:** an end date on a row (`/sale` for a
+      while) would need the site to check a clock, and a compiled route
+      table to be written again when one passes. Left out.
+    - **Keeping a path on purpose:** a typed path that's a live page's
+      address always becomes the page. Someone who wants the literal
+      path (so the redirect stays put when the page moves) has no way
+      to say so. Maybe a choice in the To box's list.
+    - **Problems on a big site:** problems are worked out on each load
+      (the author's choice), reading every live entry's address once a
+      request (about half a second for the trial site's 1,253 entries).
+      On a much larger site they may belong to Site Health, with the
+      screen reading its last report.
+    - **Importing:** rows have `via: import`, but nothing imports yet
+      (CSV, `.htaccess`, another system's export; maybe with
+      `Blush\Transfer`, D-685, or a plugin).
   - **Generating renditions** (the author, 2026-10-09, D-674): a
     feature for site owners to make an image's other renditions (sizes,
     WebP or AVIF copies) on demand or on upload, recorded in its
-    `renditions`. Nothing built; to plan with media work.
+    `renditions`. Nothing built; to plan with media work. Options
+    discussed 2026-10-09 (nothing decided):
+    - **Engines:** GD (WebP almost everywhere, AVIF only when built
+      with libavif; drops ICC profiles; about 100 MB to decode a 24 MP
+      JPEG), Imagick (WebP, usually AVIF, keeps profiles; often missing
+      on cheap hosts, capped by `policy.xml`), libvips through
+      `php-vips` (fast, little memory, rare on shared hosts), command
+      line tools (`cwebp`, `avifenc`, `vips`; needs `proc_open`), or a
+      hosted service (imgproxy, a CDN's) as a plugin. Support varies by
+      host (on the author's machine GD lacks AVIF, Imagick has AVIF,
+      WebP, JXL, and HEIC), so: an engine interface on the Type enum +
+      Registry pattern, GD and Imagick built in, others from plugins,
+      each engine saying which formats it writes, and the admin offering
+      only those.
+    - **When:** during the upload request (simple, but AVIF encodes
+      slowly; several sizes of a big JPEG take seconds); a background
+      job after upload (D-621; the best fit); on first request (lets
+      anyone make the server encode unless limited to named sizes or
+      signed URLs; leaning no); and a command plus a Site Health check,
+      in the style of `media:sizes`, for existing images, whichever is
+      picked.
+    - **What:** format copies of the original only, or every size in
+      every format (5 sizes × 3 formats is 15 files an upload). Either
+      way, a per-kind setting beside the upload rules on the Media
+      settings screen (D-406): formats to also make, and a quality.
+    - **Serving:** `<picture>` with AVIF and WebP `<source>`s built from
+      `renditions`, the original as the fallback (works with the page
+      cache and CDNs; leaning this), or content negotiation on `Accept`
+      with `Vary: Accept` (poor with the page cache and many CDNs).
+    - **Edge cases:** apply EXIF orientation before encoding; strip GPS
+      from copies; keep color profiles; never upscale; don't keep a copy
+      larger than its original (small or simple PNGs); animated GIFs
+      and transparent PNGs; a cap on the image size an engine decodes;
+      and, with Imagick, HEIC uploads (iPhone photos) turned into JPEGs.
+    - **Suggested, not agreed:** the engine interface with GD and
+      Imagick, copies made by a job after upload, formats per kind in
+      Media settings, the command and Site Health check for older
+      images, and `<picture>` on the site.
   - **Composer drivers:** how they're found before plugins load.
     Leaning: a key in the package's `composer.json` `extra`, read with
     the installed packages and cached, and a driver named in
@@ -941,7 +988,7 @@ Move each item to `decisions.md` once it's answered.
     links, D-226); headless preview would reuse them.
   - **An image pipeline:** resized images and modern formats (AVIF,
     WebP) on request; `srcset` helpers exist, but nothing
-    makes the files.
+    makes the files. Options are under "Generating renditions" above.
   - **AI features (D-397):** from plugins, on a core `Blush\Ai`
     provider layer (not built). Ideas discussed: alt text for media
     (the library's Missing alt filter, D-269), summaries and meta
@@ -1006,7 +1053,52 @@ Move each item to `decisions.md` once it's answered.
     Or Tools gets tabs for the site check and Content Health together.
   - **A possible shape:** Tools with tabs for Actions (built-ins and
     plugins' actions, grouped by who registered them), Status (the site
-    check), and Logs; Backups once they exist.
+    check), and Logs; Backups once they exist (see below).
+- **Site backups from the admin, for every driver** (discussed
+  2026-10-09; nothing settled). Backing up a site's stored data, not
+  only `user/` on files, from the admin, on SQLite, MySQL/MariaDB, and
+  PostgreSQL (D-640) alike.
+  - **Two ways:**
+    - **Each database's own dump** (`mysqldump`, `pg_dump`, SQLite's
+      backup): fast and exact, but MySQL's and PostgreSQL's need
+      `exec()` and the tools on the server, which shared hosts rarely
+      allow, and a path per database. SQLite alone can do it from PHP
+      (`VACUUM INTO`).
+    - **Through the record layer (leaning this way):** read every table
+      through `RecordStores` into one portable archive (a manifest with
+      the Blush and schema versions, the source driver, and the tables;
+      a file per table), the way `storage:copy` already moves data
+      between drivers with ids kept (D-644, D-662). Works on every
+      driver, plugins' included, on what the conformance suites already
+      test, and restoring is the copy in reverse, to *any* driver, so a
+      backup is also a migration (SQLite to PostgreSQL). Native dumps
+      could stay a CLI or plugin option for very large sites.
+  - **The archive's format:** its own (JSON lines per table), or the
+    filesystem driver's layout itself, so every site's backup is a
+    readable, diffable `user/` tree and restoring it is also moving a
+    site off its database. Open.
+  - **Needed either way:**
+    - **A consistent snapshot:** one read-only transaction (`BEGIN` on
+      SQLite, `START TRANSACTION WITH CONSISTENT SNAPSHOT` on MySQL,
+      `REPEATABLE READ READ ONLY` on PostgreSQL), so links between
+      entries never point at records left out.
+    - **As a job** (D-621, D-622): queued from the admin and followed
+      chunk by chunk, so large sites don't time out; which also makes
+      scheduled backups possible.
+    - **Media originals** are files in `user/media` on any driver, so a
+      full backup is the data plus those files. Whether extensions and
+      config go in too is open.
+    - **Sensitive:** backups hold password hashes, so they're kept in
+      `storage/backups` (never served), made and downloaded only by an
+      owner (D-500, or a new capability), and streamed.
+    - **Restoring is the dangerous half:** it replaces accounts too, so
+      it can lock you out. Owner only, asks first, and takes a backup
+      just before. Restoring from an older schema needs a migration
+      path; from a newer Blush, refused.
+    - **Sessions aren't kept,** as `storage:copy` leaves them.
+  - **For plugins:** off-site storage (S3 and the like) and keeping
+    backups by age or count, on the scheduler. Whether core keeps the
+    last N is open, with D-393's extension backups (below).
 - **Unpublished changes and "the site is behind"** (from the Home
   sketch, D-537; left out by the author's choice): the sketch's
   dashboard bar ("2 entries have changed since it was published, 2
@@ -1241,6 +1333,85 @@ Move each item to `decisions.md` once it's answered.
     the Fields API, D-348); and the site's player (core's, D-573, or
     the plugin's own over its handle). Leaning: core does enclosures, the
     extension points, and `guid`; the rest is a plugin.
+- **Syntax highlighting, and plugins in content rendering** (discussed
+  2026-10-09; nothing decided or built). The author wants highlighted
+  code blocks rendered in PHP and cached with the body, with no script on
+  the page, and themes deciding whether to style them. Leaning: a
+  plugin on `tempest/highlight` (pure PHP, no dependencies, classes not
+  inline colors; the author is "ok with tempest"), tried first as an
+  extension on the jtcom trial to find what core is missing. Phiki
+  (Shiki's grammars, more exact, but inline colors from a VS Code
+  theme) and `scrivo/highlight.php` (highlight.js's languages and
+  `hljs-*` classes, slower updates) were the alternatives. Output ideas:
+  a small set of Blush token classes (keyword, string, comment, number,
+  function, type, variable, operator, punctuation, tag, attribute,
+  inserted, deleted) the engine's are mapped to, so themes style one
+  set; `data-lang`; marked lines in the fence line (```` ```php {3,5-7} ````);
+  line numbers by CSS counters; a file name through `:::figure`
+  (D-267); a copy button as an optional script; an optional stylesheet
+  by handle (D-569) a theme loads or doesn't.
+  - **Problems a plugin meets today, all solvable:**
+    - **No way into fenced code.** D-492 took plugins off
+      league/commonmark (`MarkdownEnvironmentBuilding` is gone), so a
+      plugin binds its own `MarkdownParser` around core's and
+      re-highlights `<pre><code class="language-…">` in the HTML: two
+      parses, and one plugin at a time. See the options below.
+    - **The body cache doesn't know about plugins.**
+      `RenderedBodies::fingerprint()` hashes the framework version, the
+      URL, and the Markdown, media, and embed config, so turning a
+      plugin on or off, or updating it, keeps serving cached bodies.
+      Extensions need to add to the fingerprint, or it holds the active
+      extensions and their versions. True of any plugin that changes
+      rendered output.
+    - **Assets only where they're used.** Pages, templates, directives,
+      and components ask for assets, kept with cached bodies (D-570);
+      a fenced block is none of those, so a plugin's stylesheet loads on
+      every page unless a render can ask for an asset.
+    - **A plugin's Composer packages.** Whether a local extension's
+      `require` (D-418) is installed for it, or the site's own
+      `composer.json` must name `tempest/highlight`.
+  - **Options for plugins working on content as it renders**, not
+    exclusive:
+    - **A. After rendering:** an event with the body's HTML (as a
+      `Dom\HTMLDocument`) for plugins to change. Works with any parser,
+      and survives a parser of Blush's own. But it parses twice, has
+      lost the Markdown (what isn't kept in attributes, as the fence
+      line), and needs an order between plugins.
+    - **B. Renderers per node kind, Blush-named:** core's renderer for
+      a code block, image, link, heading, and so on, in a registry
+      (the Type enum + Registry pattern), a plugin's replacing or
+      wrapping it by priority. Needs Blush's own read-only node classes,
+      mapped from league's, so plugins never see league (D-492).
+    - **C. Changes to the parsed tree:** an event with Blush's document
+      tree before it renders, for plugins to walk and change (ids,
+      links, collected data). Core already does this inside
+      (`ResolveLinks`, `DescriptionAttributes` on league's
+      `DocumentParsedEvent`). Needs the same node classes as B.
+    - **D. New syntax stays directives** (D-171, D-532): one dialect on
+      every site (D-492), which the editor reads and writes, so no
+      plugin grammar for blocks or inline text.
+    - **E. Before parsing,** changing the Markdown text: fragile, and
+      the editor's copy would differ. Leaning no.
+    - **F. Replacing the parser** (binding `MarkdownParser`): there
+      today, kept as an escape hatch, one winner.
+    - Leaning: B and C on Blush's nodes, A for what they don't cover, F
+      as the escape hatch. Whatever's chosen has to: add to the body
+      cache fingerprint, ask for assets, render the same for every
+      request (no per-request data in a cached body), and say where it
+      applies (bodies, excerpts, feeds; Markdown copies come from the
+      source, D-395).
+  - **A Markdown parser of Blush's own** (the author: "eventually").
+    For: Blush's nodes are the public API with no adapter; source
+    positions for the editor; one dialect owned end to end (the admin's
+    TypeScript editor and PHP read it apart today, so they can drift);
+    speed and memory on large sites. Against: the CommonMark spec's
+    edge cases (emphasis delimiters, lazy continuation, link reference
+    definitions, HTML blocks), raw HTML safety (D-495), and upkeep. A
+    path: build B and C's node API over league first, so plugins target
+    Blush's nodes, then swap the parser under them, checked by the
+    CommonMark and GFM spec examples as a conformance suite (as the
+    storage suites, D-655). Open: whether the PHP and TypeScript sides
+    could share one grammar or test set.
 
 ## Later milestones
 - **Signing up** (D-518 has only the settings): the form and route
@@ -1397,13 +1568,83 @@ Move each item to `decisions.md` once it's answered.
       (D-479); Blush-made sizes cached by id; importers writing ids,
       `sizes`, and source keys; `MediaMetadataStore` behind the `data`
       area's interface (D-486).
-  - **Importers** (and exporters): a public API and registry for any
-    importer (an `Importer` interface; Type enum + Registry + Factory +
-    Registrar), WordPress (WXR) first, in core or as a plugin. Importers
-    write entries with ids, media with ids and `sizes`, terms, and
-    accounts or profiles. Each record keeps its source key (`imported:
-    { from: wordpress, id: 1234 }`), so a second run updates instead of
-    duplicating, and an exporter can map ids back.
+  - **Importers** (and exporters): now their own entry, **Importers and
+    exporters (`Blush\Transfer`)**.
+- **Importers and exporters (`Blush\Transfer`)** (discussed 2026-10-09;
+  the namespace is D-685, the rest are leanings the author hasn't
+  confirmed). The goal: a site's owner can always take their content
+  wherever they want, and bring it in from elsewhere, WordPress (WXR)
+  the largest of both.
+  - **N formats, one read path, one write path.** Importers and
+    exporters never touch storage. Each format converts to and from a
+    small neutral set of **portable items** (entry, term, person as an
+    account or profile, media, menu, redirect), each with a source key,
+    its fields, and its references as source keys. Core alone writes
+    items into Blush (`ImportWriter`: ids, reference resolution, order
+    prefixes and folder patterns, `published` dates, media `sizes`) and
+    reads Blush out into them (`SiteReader`), through `Entries` and the
+    repositories, so every format works on every storage driver (D-485).
+  - **Interfaces**, by Type enum + Registry + Factory + Registrar, so
+    plugins add formats (Ghost, Jekyll, Hugo):
+    ```php
+    interface Importer {
+        public function inspect(ImportSource $source): SourceSummary;          // types, counts, authors, for mapping
+        public function read(ImportSource $source, ImportMap $map): iterable;  // generator of PortableItem
+    }
+
+    interface Exporter {
+        public function write(iterable $items, ExportTarget $target): ExportReport;
+    }
+    ```
+  - **A native Blush archive in core** is the guarantee: a `.zip` of
+    items as JSON plus media originals, ids kept, lossless both ways.
+    Copying files works only on the files driver; a SQLite site needs
+    this, and `storage:copy` only moves a site between its own drivers.
+    Every other exporter can start from what the archive holds.
+  - **Source keys in a mapping table**, not front matter: an `imports`
+    table, `(source, source_id, kind) → id`, so a second run updates
+    instead of duplicating and an exporter can map ids back, without a
+    field on the settled entry shape or in imported files. Replaces the
+    earlier `imported: { from, id }` sketch (see **Media as records**);
+    the author to decide.
+  - **Two passes:** the first creates every item and maps its id; the
+    second resolves references (parents, terms, bylines, featured
+    images, internal links rewritten to ids). WordPress parents often
+    come after their children, so one ordered pass won't do.
+  - **Run as a job** (D-621): WXR files reach hundreds of MB, so stream
+    with `XMLReader`, write in batches, resume, and show progress in
+    Tools → Jobs. CLI first, with `--dry-run` printing the plan; an
+    admin screen later.
+  - **Mapping is explicit:** post types to Blush types, taxonomies to
+    classify relations and term collections (D-591), users to accounts
+    or profiles (bylines, D-351). `inspect()` proposes defaults; the
+    user changes them (CLI options, later a screen).
+  - **Bodies through their own extension point:** a registry of block
+    converters (`core/image` to Markdown images, `core/gallery` to a
+    gallery, embeds to the embed directive), which plugins add to for
+    their blocks. Anything unmapped is kept as raw HTML within D-495's
+    allowed list, and listed in the report. Exporting to WXR goes the
+    other way: rendered HTML with block comments for common elements.
+  - **What Blush doesn't have** (comments, postmeta while the Fields
+    API is paused, D-348, shortcodes) is reported, never dropped
+    silently; optionally kept in the archive.
+  - **Security:** XML parsed without network access or external
+    entities; zip paths checked (no zip slip); SVG refused (D-497);
+    no password hashes in any export; capabilities for importing and
+    exporting (names open).
+  - **Media:** downloading attachments needs the outgoing HTTP client
+    (D-620, planned only). Without it, an import reads a local uploads
+    folder (`--uploads=path`), the better path for large sites anyway.
+    WordPress's variants are D-239's open questions.
+  - **Core or plugin:** leaning toward core holding the interfaces,
+    portable items, writer, reader, and native archive (the guarantee),
+    and WXR import and export as a first-party plugin (it brings an
+    HTML-to-Markdown dependency and WordPress's rules). Public text
+    names the format, WXR, never the product (D-489).
+  - **Still open:** comments (drop, archive, or wait for a comments
+    plugin); the capability names; whether `Blush\Transfer` holds
+    `Import\` and `Export\` subnamespaces or flat classes; what of
+    settings, themes, and extensions an archive carries.
 - **Rich (script) embeds** (D-184): providers such as X, Instagram,
   TikTok, and Mastodon answer oEmbed with HTML that needs their own
   `<script>`. The planned path: a provider opts in with
@@ -1672,14 +1913,16 @@ Move each item to `decisions.md` once it's answered.
     more iframe or oEmbed embed providers; related posts from the
     relations index (D-590 to D-592); Twig or Blade views (D-502);
     a redirects file in `user/data` with a CSV or `.htaccess` import
-    command (no screen to edit them); and more media metadata readers.
+    command (no screen to edit them); more media metadata readers; and
+    syntax highlighting, with workarounds (see **Syntax highlighting,
+    and plugins in content rendering**).
   - **Waiting on APIs:** the Calendar (D-550) needs plugins to add
     admin screens and rail items, the largest gap, which also blocks
     a redirects screen, a forms inbox, and anything a plugin shows in
     the admin; podcasts need feed extension points, enclosures, and an
     id `guid` (see **Podcasts**), with episode fields on the Fields API
     (paused, D-348); a WXR importer needs the `Importer` registry and
-    source keys (see **Media as records**); outgoing webhooks want
+    source keys (see **Importers and exporters**); outgoing webhooks want
     signed delivery, retries, and a log (see **APIs, agents, and
     headless**); AI helpers (alt text, summaries, translation drafts)
     need `Blush\Ai` (D-397), an `ai.use` capability, and extension

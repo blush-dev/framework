@@ -21231,3 +21231,73 @@ decision, add a new entry that supersedes it and mark the old one
   (`content:type-folders`). The trial site's pages, archives, terms,
   trees, profiles, and library answer at their old addresses.
 - **Why:** the author: "go, build D-683", with the two changes above.
+
+### D-685: Importers and exporters live in `Blush\Transfer`
+
+- **Date:** 2026-10-09
+- **Status:** Decided; nothing built.
+- **Decision:** importing and exporting site content (WXR first, a
+  native Blush archive, and formats plugins add) goes in the
+  `Blush\Transfer` namespace. The author chose it over reusing
+  `Blush\Export` (free since D-476) or two namespaces at the top level.
+- **Why:** one name for both directions, which share portable items,
+  the writer and reader, and source keys; and it doesn't bring back the
+  name of the static export D-476 removed.
+- **Open:** the design itself (portable items, one write and one read
+  path, the native archive, source keys in a mapping table, two passes,
+  jobs, block converters, core or plugin) is in `open-questions.md`,
+  **Importers and exporters (`Blush\Transfer`)**.
+
+### D-686: The Redirects screen, and rows that lead to entries
+
+- **Date:** 2026-10-09
+- **Status:** Built. From `admin-design/meridian-redirects.html`;
+  settles the Redirects screen item in `open-questions.md` (option B of
+  the earlier brief: every redirect a row, entries keep none, D-680).
+- **Decision:**
+  - **Rows gain fields** (the author: "I'd just add those"): `entry`, an
+    entry's id in place of `to`, so a row follows the entry wherever it
+    moves; `added` (when), `by` (an account's id), and `via` (how:
+    `rename`, `move`, or `import`; none for by hand). `RedirectRow`
+    reads and writes them, through a `Redirects` repository over the
+    table; `DataRedirects` resolves an entry row to the entry's address
+    while it's live and leaves it out of the route table otherwise (a
+    draft, trashed, hidden, or gone entry's old address is a 404). The
+    table's declared fields are unchanged.
+  - **Rename and move redirects name the entry** (`RedirectWriter`):
+    rows that led to the old address as a path now lead to the entry,
+    and the row from the new address goes, so renaming back removes it.
+    Each says `via: rename` or `move`, and who.
+  - **A capability, `site.redirects`** (the author asked whether it
+    should be `site.redirects.edit` "or just under site in some way";
+    Claude chose `site.redirects`, the `site.*` group's one-verb pattern
+    beside `site.settings`, `site.logs`, `site.health`, and `site.jobs`).
+    Administrators and editors have it; renaming or moving an entry
+    writes its own redirect without it.
+  - **Matching stays the router's** (the author: "allow what actually
+    happens in the code"): old paths are case-sensitive, a trailing
+    slash doesn't count. The sketch's case-insensitive matching isn't
+    built.
+  - **Problems are worked out live, on the server** (the author's
+    choice): overruled by the code, a page answering the old address,
+    an entry that isn't live, a chain, or a missing page, each with its
+    fix. `SiteAddresses` reads every live entry's address once a
+    request. The search's trace and the form's checks are the server's
+    too (`redirects/check`).
+  - **The screen** is under Config › Settings after Addresses and
+    Search, with a count, built from the admin's list pieces (tabs,
+    toolbar, `MenuButton`, bulk bar, `EmptyState`, `SkeletonTable`,
+    `AdminModal`, `AdminSelect`'s floating list for the To box's pages,
+    which popovers now draw inside an open modal). The
+    entries list's pager is now a shared `ListPager`, and, at the
+    author's ask after the screen added about 30 KB, so are the density
+    toggle (`DensityToggle`: entries, Site Health checks, Redirects), the
+    bulk bar (`BulkBar`), choosing rows (`useSelectAll` in `select.ts`:
+    `EntryTable`, Redirects), and a list's toasted, reloading actions
+    (`useListAction` in `action.ts`: entries, Redirects). Most of the 30
+    KB is the screen's own template and words; sharing saved about 1 KB. Departures from
+    the sketch are in `departures.md`.
+- **Open:** in `open-questions.md` (ending short links, keeping a
+  literal path, problems on a big site, importing).
+- **Why:** the author's go ("Let's implement it"), with the answers
+  above.

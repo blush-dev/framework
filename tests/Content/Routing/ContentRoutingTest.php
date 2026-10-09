@@ -30,6 +30,7 @@ use Blush\Content\Http\TermController;
 use Blush\Content\Routing\ContentRoutes;
 use Blush\Content\Routing\ContentUrls;
 use Blush\Content\Routing\DataRedirects;
+use Blush\Content\Routing\RedirectOrigin;
 use Blush\Content\Routing\PageRoutes;
 use Blush\Content\Routing\RedirectWriter;
 use Blush\Content\Routing\RefreshRouteCache;
@@ -295,7 +296,7 @@ final class ContentRoutingTest extends TestCase
 		$this->expectException(InvalidRoute::class);
 		$this->expectExceptionMessage('user/data/redirects.json needs a list of records.');
 
-		new DataRedirects($this->site('development')->container()->make(RecordStores::class))->redirects();
+		$this->site('development')->container()->make(DataRedirects::class)->redirects();
 	}
 
 	public function testDataRedirectsAreKeptByTheirPaths(): void
@@ -356,7 +357,11 @@ final class ContentRoutingTest extends TestCase
 		$app = $this->site();
 		$this->assertSame(404, $this->get('/who', $app)->getStatusCode());
 
-		$app->container()->make(RedirectWriter::class)->moved(['/who' => '/about', 'not a path' => '/about', '/same' => '/same']);
+		$app->container()->make(RedirectWriter::class)->moved([
+			['from' => '/who', 'to' => '/about', 'entry' => null, 'via' => RedirectOrigin::Move],
+			['from' => 'not a path', 'to' => '/about', 'entry' => null, 'via' => RedirectOrigin::Move],
+			['from' => '/same', 'to' => '/same', 'entry' => null, 'via' => RedirectOrigin::Move]
+		]);
 
 		$this->assertSame('/about', $this->get('/who', $this->site())->getHeaderLine('Location'), 'Written again, so it works without a cache:compile.');
 		$this->assertSame(['/who'], array_keys(new KeyedTable($app->container()->make(RecordStores::class), DataRedirects::table(), new SystemClock())->all()), 'What isn\'t a path, or didn\'t change, is left out.');

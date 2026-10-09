@@ -13,19 +13,18 @@ declare(strict_types=1);
 
 namespace Blush\Content\Routing;
 
+use Closure;
 use Override;
+use Blush\Container\Attributes\Defer;
+use Blush\Content\Entries;
 use Blush\Core\Paths;
 use Blush\Routing\InvalidRoute;
 use Blush\Routing\Redirect;
 use Blush\Routing\RedirectSource;
 use Blush\Storage\File\FileLayout;
-use Blush\Storage\Record\LocatingStore;
 use Blush\Storage\Record\RecordException;
-use Blush\Storage\Record\RecordQuery;
-use Blush\Storage\Record\RecordStores;
 use Blush\Storage\Record\Table;
 use Blush\Storage\StorageArea;
-use Blush\Storage\StorageException;
 
 /**
  * The site owner's redirects: the `redirects` table (D-678), a row per
@@ -35,13 +34,18 @@ use Blush\Storage\StorageException;
  *
  * ```json
  * [
- *     {"from": "/old-about", "to": "/about"},
+ *     {"from": "/old-about", "entry": "0199b6e2-…"},
  *     {"from": "/blog/{slug}", "to": "/archives/{slug}"},
  *     {"from": "/promo", "to": "https://example.com/sale", "status": 302}
  * ]
  * ```
  *
- * Paths are route patterns, as in `config/routes.php`.
+ * Paths are route patterns, as in `config/routes.php`. A row may lead to
+ * an entry by its id in place of `to` (D-686), so it follows the entry
+ * wherever it moves: it redirects to the entry's address while the entry
+ * is live, and is left out of the route table while it isn't (in the
+ * trash, a draft, hidden, or gone), so the old address is a 404. The
+ * rows' `added`, `by`, and `via` are the admin's (`RedirectRow`).
  */
 final readonly class DataRedirects implements RedirectSource
 {
@@ -50,8 +54,13 @@ final readonly class DataRedirects implements RedirectSource
 	 */
 	public const string TABLE = 'redirects';
 
+	/**
+	 * @param Closure(): Entries $content Deferred: only rows leading to entries need it.
+	 */
 	public function __construct(
-		private RecordStores $stores
+		private Redirects $rows,
+		private ContentUrls $urls,
+		#[Defer(Entries::class)] private Closure $content
 	) {}
 
 	/**
@@ -78,28 +87,37 @@ final readonly class DataRedirects implements RedirectSource
 	#[Override]
 	public function redirects(): iterable
 	{
-		$table = self::table();
-
 		try {
-			$store   = $this->stores->store($table);
-			$records = $store->select($table, new RecordQuery())->records;
-		} catch (RecordException | StorageException $e) {
+			$rows = $this->rows->all();
+		} catch (RecordException $e) {
 			throw new InvalidRoute(sprintf('The redirects can\'t be read: %s', $e->getMessage()), previous: $e);
 		}
 
 		$redirects = [];
 
-		foreach ($records as $record) {
-			try {
-				$redirects[] = Redirect::fromArray($record->fields);
-			} catch (InvalidRoute $e) {
-				$from  = $record->fields['from'] ?? null;
-				$where = $store instanceof LocatingStore ? $store->location($table, is_string($from) ? $from : $record->id) : self::TABLE;
+		foreach ($rows as $row) {
+			$to = $this->target($row);
 
-				throw new InvalidRoute(sprintf('%s: %s', $where, $e->getMessage()), previous: $e);
+			if ($to !== null) {
+				$redirects[] = new Redirect($row->from, $to, $row->status);
 			}
 		}
 
 		return $redirects;
+	}
+
+	/**
+	 * Where a row leads now: its `to`, or its entry's address while the
+	 * entry is live, else `null`.
+	 */
+	public function target(RedirectRow $row): ?string
+	{
+		if ($row->entry === null) {
+			return $row->to;
+		}
+
+		$entry = ($this->content)()->find($row->entry);
+
+		return $entry !== null && $entry->isPublished() && $entry->isRoutable() ? $this->urls->entry($entry) : null;
 	}
 }

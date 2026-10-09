@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Blush\Admin;
 
 use Override;
+use Blush\Admin\Redirects\RedirectsController;
 use Blush\Auth\Middleware\Authenticate;
 use Blush\Auth\Middleware\VerifyCsrf;
 use Blush\Routing\Route;
@@ -54,6 +55,10 @@ use Blush\Session\StartSession;
  *     types/refresh` edit the ones in `user/data/types`, and change
  *     code collections there; `POST types/{name}/reset`
  *     puts one back as the code has it (`TypeEditController`, D-349).
+ *   - `GET  redirects`: the site's redirects, a page at a time, with
+ *     their problems; `POST redirects` adds or changes one, and `POST
+ *     redirects/check`, `delete`, `status`, and `restore` check, delete,
+ *     retype, and put back rows (`Redirects\RedirectsController`, D-686).
  *   - `GET  relations`: the site's relation definitions
  *     (`RelationsController`, D-593); `POST relations`, and `PATCH` and
  *     `DELETE relations/{name}` edit the ones in `user/data/relations`
@@ -182,6 +187,12 @@ final readonly class AdminRoutes implements RouteSource
 			Route::patch('/types/{name:[a-z0-9_-]+}', [TypeEditController::class, 'update'])->named('type.update')->middleware(Authenticate::class),
 			Route::delete('/types/{name:[a-z0-9_-]+}', [TypeEditController::class, 'delete'])->named('type.delete')->middleware(Authenticate::class),
 			Route::post('/types/{name:[a-z0-9_-]+}/reset', [TypeEditController::class, 'reset'])->named('type.reset')->middleware(Authenticate::class),
+			Route::get('/redirects', [RedirectsController::class, 'index'])->named('redirects')->middleware(Authenticate::class),
+			Route::post('/redirects', [RedirectsController::class, 'save'])->named('redirect.save')->middleware(Authenticate::class),
+			Route::post('/redirects/check', [RedirectsController::class, 'check'])->named('redirects.check')->middleware(Authenticate::class),
+			Route::post('/redirects/delete', [RedirectsController::class, 'delete'])->named('redirects.delete')->middleware(Authenticate::class),
+			Route::post('/redirects/status', [RedirectsController::class, 'status'])->named('redirects.status')->middleware(Authenticate::class),
+			Route::post('/redirects/restore', [RedirectsController::class, 'restore'])->named('redirects.restore')->middleware(Authenticate::class),
 			Route::get('/relations', RelationsController::class)->named('relations')->middleware(Authenticate::class),
 			Route::post('/relations', [TypeEditController::class, 'createRelation'])->named('relation.create')->middleware(Authenticate::class),
 			Route::post('/relations/{name:[a-z0-9_]+}/check', [TypeEditController::class, 'checkRelation'])->named('relation.check')->middleware(Authenticate::class),

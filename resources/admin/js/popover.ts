@@ -56,15 +56,27 @@ export function placeNear(box: DOMRect, panel: HTMLElement, options: PopoverOpti
 }
 
 /**
- * A popover's state: whether it's `open`, and where it's placed (`null`
- * until it's measured, when it's drawn hidden). `show()` opens and places
- * it; `close()` closes it, focusing the button unless told not to.
+ * Where a popover's panel goes (`<Teleport :to>`): into the modal its
+ * button is in, since a modal leaves the page under it out of reach
+ * (D-686), else the page's body.
+ */
+export function layerOf(element: HTMLElement | null): HTMLElement | 'body' {
+	return element?.closest<HTMLElement>('dialog[open]') ?? 'body';
+}
+
+/**
+ * A popover's state: whether it's `open`, where it's placed (`null`
+ * until it's measured, when it's drawn hidden), and the `layer` it's
+ * drawn in (`layerOf()`). `show()` opens and places it; `close()` closes
+ * it, focusing the button unless told not to.
  */
 export function usePopover(button: Ref<HTMLElement | null>, panel: Ref<HTMLElement | null>, options: PopoverOptions) {
 	const open  = ref(false);
 	const place = ref<Record<string, string> | null>(null);
+	const layer = ref<HTMLElement | 'body'>('body');
 
 	async function show(): Promise<void> {
+		layer.value = layerOf(button.value);
 		open.value  = true;
 		place.value = null;
 		await nextTick();
@@ -90,5 +102,5 @@ export function usePopover(button: Ref<HTMLElement | null>, panel: Ref<HTMLEleme
 
 	onPressOutside([button, panel], () => open.value, () => close(false), true);
 
-	return { open, place, show, close };
+	return { open, place, layer, show, close };
 }

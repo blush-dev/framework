@@ -59,6 +59,7 @@ import { formatDate } from '../format';
 import { initials } from '../people';
 import { can } from '../session';
 import { copyText } from '../toast';
+import { useSelectAll } from '../select';
 import AdminIcon from './AdminIcon.vue';
 import MenuButton from './MenuButton.vue';
 import StatusPill from './StatusPill.vue';
@@ -146,8 +147,7 @@ const groups = computed(() => [
 
 // The rows shown that can be selected, and how many of them are.
 const choosable = computed(() => groups.value.flatMap((group) => group.entries).flatMap((entry) => canSelect(entry) && entry.id !== null ? [entry.id] : []));
-const chosen    = computed(() => choosable.value.filter((id) => selected.value.includes(id)).length);
-const allState  = computed<'true' | 'false' | 'mixed'>(() => chosen.value === 0 ? 'false' : (chosen.value === choosable.value.length ? 'true' : 'mixed'));
+const { state: allState, toggle, toggleAll: chooseAll } = useSelectAll(() => choosable.value, selected);
 
 function pinTitle(entry: EntrySummary): string {
 	if (entry.homepage) {
@@ -185,20 +185,11 @@ function isSelected(entry: EntrySummary): boolean {
 
 function choose(entry: EntrySummary): void {
 	if (entry.id !== null) {
-		selected.value = isSelected(entry) ? selected.value.filter((id) => id !== entry.id) : [...selected.value, entry.id];
+		toggle(entry.id);
 	}
 }
 
-// All of the page's rows, or none once all are.
-function chooseAll(): void {
-	const page = new Set(choosable.value);
-
-	selected.value = allState.value === 'true'
-		? selected.value.filter((id) => !page.has(id))
-		: [...new Set([...selected.value, ...choosable.value])];
-}
-
-function toggle(entry: EntrySummary): void {
+function toggleBranch(entry: EntrySummary): void {
 	const next = new Set(collapsed.value);
 
 	if (!next.delete(entry.path)) {
@@ -249,7 +240,7 @@ async function copyLink(entry: EntrySummary): Promise<void> {
 					</td>
 					<th scope="row">
 						<span class="title-cell" :style="entry.depth ? { '--depth': entry.depth } : undefined">
-						<button v-if="entry.children" type="button" class="twist" :aria-expanded="!collapsed.has(entry.path)" :aria-label="`${collapsed.has(entry.path) ? 'Expand' : 'Collapse'} ${entry.title || 'Untitled'}`" @click="toggle(entry)"><AdminIcon name="chevron-right" /></button>
+						<button v-if="entry.children" type="button" class="twist" :aria-expanded="!collapsed.has(entry.path)" :aria-label="`${collapsed.has(entry.path) ? 'Expand' : 'Collapse'} ${entry.title || 'Untitled'}`" @click="toggleBranch(entry)"><AdminIcon name="chevron-right" /></button>
 						<span v-else-if="entry.depth !== null || (tree && group.key === 'pinned')" class="twist twist--leaf" aria-hidden="true" />
 						<span v-if="profiles" class="avatar" :class="{ 'avatar--guest': !entry.linked }" aria-hidden="true">{{ initials(entry.title || '?') }}</span>
 						<span class="entry-title">

@@ -100,7 +100,7 @@ watch(query, (text) => {
 });
 
 const popover                = usePopover(button, list, { gap: 4, matchWidth: true });
-const { open, place, close } = popover;
+const { open, place, layer, close } = popover;
 
 // What's been typed in the open list, and when it's forgotten.
 let typed = '';
@@ -323,7 +323,7 @@ onBeforeUnmount(() => clearTimeout(typedTimer));
 			</span>
 			<AdminIcon name="chevron-down" class="select__caret" />
 		</button>
-		<Teleport to="body">
+		<Teleport :to="layer">
 			<div v-if="open" ref="list" class="select-list" :class="{ 'select-list--search': searchable }" :style="place ?? { visibility: 'hidden' }" @keydown="listKey">
 				<div v-if="searchable" class="select-list__search">
 					<AdminIcon name="search" />
@@ -585,6 +585,11 @@ onBeforeUnmount(() => clearTimeout(typedTimer));
 	outline: none;
 }
 
+.select-list__option.is-active {
+	background: var(--surface-2);
+	color: var(--fg);
+}
+
 .select-list__option[aria-selected="true"] {
 	color: var(--fg);
 	font-weight: 500;
@@ -606,6 +611,13 @@ onBeforeUnmount(() => clearTimeout(typedTimer));
 	color: var(--fg-3);
 	font-size: var(--text-sm);
 	font-weight: 400;
+}
+
+.select-list__icon {
+	flex: none;
+	width: 14px;
+	height: 14px;
+	color: var(--fg-3);
 }
 
 .select-list__tick {

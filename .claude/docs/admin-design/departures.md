@@ -34,6 +34,8 @@ way to go; record the answer here.
 .claude/docs/admin-design/toast-sketch.html     the toast, as every toast in the admin is drawn (D-387)
 .claude/docs/admin-design/meridian-site-health.html
                                                Site Health's check pages (D-612)
+.claude/docs/admin-design/meridian-redirects.html
+                                               the Redirects screen (D-686)
 .claude/docs/admin-design/departures.md        this file
 .claude/docs/admin-design/tokens.css           the prototype's tokens (reference only)
 .claude/docs/admin-design/old/                 the earlier single admin.md and its prototype
@@ -1048,3 +1050,47 @@ D-541). Where the admin differs from the sketch:
   Field Names, and so on).
 - **The overview** stays as it was, as the sketch says.
 
+## The Redirects screen (`meridian-redirects.html`, D-686)
+
+- **Built from the admin's own pieces:** the page header, `.status-tabs`
+  with counts, the `.toolbar` (`.search-field` with `/`, `AdminSelect`,
+  the density `.segmented`), a `.panel` with its `.panel__header` (the
+  tab's name and count, where the sketch has its `tcap` caption),
+  `SkeletonTable`, `EmptyState`, the `.table` with `.check` boxes,
+  `MenuButton` rows, the `.bulk-bar`, and toasts with Undo. The pager is
+  the entries list's, now `ListPager`, with its sizes (10, 20, 50,
+  100). The form is `AdminModal`, with `.field`s, `.field__error`,
+  `AdminSelect` (its headings for For Programs), and `.notice--small`
+  for the notes; the To box is a field input like From's, its pages
+  (from `GET entries`) in `AdminSelect`'s floating `.select-list` under
+  it, and a picked page sits in an `.input` box with its address and ×,
+  as the sketch draws it, in the field's neutral colors rather than the
+  sketch's accent tint. Floating lists (`usePopover`) are drawn inside
+  an open modal now (`layerOf()`), since a modal leaves the page under
+  it out of reach, which also fixes `AdminSelect` and `DatePicker` in
+  modals. A row's problem chip is a
+  `.pill--warn` button, and its notice the Themes list's small boxed
+  warning on a row of its own. The trace is a `.notebar` with its own
+  step tokens; the code's redirects are a `.panel__note` with a `.lnk`
+  disclosure. New: `RedirectPath`, `RedirectMessage`, `RedirectDialog`.
+- **Matching is the router's:** case-sensitive, a trailing slash aside
+  (the author's call), where the sketch ignores case.
+- **The server says everything about the site:** problems, the trace,
+  and every line the form shows come from the API (`redirects/check` as
+  you type), since only it knows what answers an address.
+- **Added names the account** (the author: "if that's storing a user
+  account, it should show that"): "Added by", "Renamed by", "Moved by",
+  or "Imported by" its display name, linked to its account screen for
+  whoever may open it, where the sketch says "by you"; no **You** tag
+  either (the author: "I know who I am"). A row without an account says what added it
+  ("When the entry was renamed"). The sketch's "Imported, 112 at once"
+  count isn't kept; nothing imports yet.
+- **Menus are sentence case** ("Test this address", "Copy old address",
+  "Make temporary"), as the admin's menus are; buttons are Title Case.
+- **Deleting several asks first,** as the admin's bulk deletes do; one
+  row deletes at once, with Undo.
+- **The Type column** shows the word with the code beside it, and
+  compact rows drop "Same Method", as the sketch does; compact rows
+  also drop the Added column's second line.
+- **Not built:** flashing a row after a save and moving the list to
+  it; the sketch's own rail and notes.

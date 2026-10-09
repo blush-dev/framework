@@ -34,6 +34,7 @@ import { finish } from '../jobs';
 import { loadCounts } from '../counts';
 import { compact } from '../density';
 import AdminIcon from '../components/AdminIcon.vue';
+import DensityToggle from '../components/DensityToggle.vue';
 import AdminSelect from '../components/AdminSelect.vue';
 import EmptyState from '../components/EmptyState.vue';
 import HealthRow from '../components/HealthRow.vue';
@@ -423,14 +424,7 @@ onMounted(() => {
 				<label class="visually-hidden" for="health-group">Group by</label>
 				<AdminSelect id="health-group" v-model="modeValue" :options="modeOptions" />
 			</div>
-			<div class="segmented segmented--icons toolbar__end" role="group" aria-label="Rows">
-				<button type="button" :aria-pressed="!compact" title="Roomy rows" @click="compact = false">
-					<AdminIcon name="rows-3" /><span class="visually-hidden">Roomy</span>
-				</button>
-				<button type="button" :aria-pressed="compact" title="Compact rows" @click="compact = true">
-					<AdminIcon name="rows-4" /><span class="visually-hidden">Compact</span>
-				</button>
-			</div>
+			<DensityToggle />
 		</div>
 
 		<div v-if="!visibleCount" class="panel">
