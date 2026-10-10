@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Blush\Settings;
 
 use DateTimeZone;
+use Blush\Auth\Account;
 use Blush\Auth\AuthConfig;
 use Blush\Clock\DateFormat;
 use Blush\Config\Config;
@@ -67,6 +68,7 @@ enum Setting: string
 {
 	case Name             = 'app.name';
 	case Description      = 'app.description';
+	case Email            = 'app.email';
 	case Locale           = 'app.locale';
 	case Untranslated     = 'app.untranslated';
 	case Timezone         = 'app.timezone';
@@ -112,6 +114,11 @@ enum Setting: string
 	public const string DESCRIPTION_HELP = 'One line about the site, for llms.txt, and for the homepage and feeds when nothing more specific describes them. Search results show about 160 characters.';
 
 	/**
+	 * What the site's email address is for (D-723).
+	 */
+	public const string EMAIL_HELP = 'Where the site sends notices for its owner. It isn\'t shown on the site.';
+
+	/**
 	 * What the date and time formats are (D-445).
 	 */
 	public const string FORMAT_HELP = 'How themes show dates and times. One from the language follows the site\'s language; a fixed one keeps its order whatever the language.';
@@ -147,7 +154,7 @@ enum Setting: string
 	{
 		return match ($this) {
 			self::Theme, self::Plugins, self::IconPacks                   => null,
-			self::Name, self::Description, self::Locale, self::Untranslated,
+			self::Name, self::Description, self::Email, self::Locale, self::Untranslated,
 			self::Timezone, self::DateFormat, self::TimeFormat,
 			self::Signups, self::SignupRole                               => SettingsScreen::General,
 			self::Home, self::FeedFormats, self::FeedContent, self::FeedLimit => SettingsScreen::Reading,
@@ -170,6 +177,7 @@ enum Setting: string
 		$field = match ($this) {
 			self::Name            => new TextField('name')->labeled('Site name')->required(),
 			self::Description     => new TextField('description')->labeled('Description')->described(self::DESCRIPTION_HELP),
+			self::Email           => new TextField('email')->labeled('Email address')->described(self::EMAIL_HELP)->required(),
 			self::Locale          => new TextField('locale')->labeled('Language and region')->described('A language code, with a region if you like, such as en_US or fr.')->control(Control::Mono),
 			self::Untranslated    => new EnumField('untranslated', array_column(Untranslated::cases(), 'value'))->labeled('Untranslated pages')->described('What another language\'s address does for an entry not translated into it.')->control(Control::Radios)->required(),
 			self::Timezone        => new EnumField('timezone', DateTimeZone::listIdentifiers())->labeled('Time zone'),
@@ -376,6 +384,7 @@ enum Setting: string
 		return match ($this) {
 			self::Name            => self::name($value),
 			self::Description     => self::description($value),
+			self::Email           => self::email($value),
 			self::Locale          => self::locale($value),
 			self::Untranslated    => self::untranslated($value),
 			self::Html            => self::html($value),
@@ -423,6 +432,22 @@ enum Setting: string
 			mb_strlen($description) > self::DESCRIPTION_MAX                => throw new InvalidSetting(sprintf('The site\'s description can be at most %d characters.', self::DESCRIPTION_MAX)),
 			preg_match('/[\p{Cc}\p{Zl}\p{Zp}]/u', $description) !== 0 => throw new InvalidSetting('The site\'s description is one line, without control characters.'),
 			default                                                       => $description
+		};
+	}
+
+	/**
+	 * Checks the site's email address, which it can't be without (D-723).
+	 *
+	 * @throws InvalidSetting
+	 */
+	private static function email(mixed $value): string
+	{
+		$email = is_string($value) ? trim($value) : throw new InvalidSetting('The site\'s email address must be text.');
+
+		return match (true) {
+			$email === ''                     => throw new InvalidSetting('The site needs an email address.'),
+			! Account::isValidEmail($email) => throw new InvalidSetting(sprintf('"%s" isn\'t an email address.', $email)),
+			default                         => $email
 		};
 	}
 

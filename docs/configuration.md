@@ -57,6 +57,7 @@ kept in the database instead.
 | `APP_URL` | `http://localhost` | The site's full URL, such as `https://example.com` |
 | `APP_TIMEZONE` | `UTC` | The site's timezone, such as `America/Chicago` |
 | `APP_LOCALE` | `en_US` | The site's language and region (see the note below) |
+| `APP_EMAIL` | | The site's email address, where notices for its owner are sent. `bin/blush init` writes the owner account's. One saved in the admin wins. |
 | `APP_SECRET` | | Signs [preview links](admin.md#previewing-drafts); they're off without it. At least 32 characters. `bin/blush init` writes one. |
 | `SECRETS_KEY` | | Encrypts the [secrets](extending.md#secrets) Blush stores, such as a service's API key or token: 32 random bytes in base64. `bin/blush init` writes one. Without it, secrets can be set only in the environment. Keep it out of git, and don't lose it: stored secrets can't be read without it. |
 | `SECRETS_KEY_PREVIOUS` | | The key `SECRETS_KEY` replaced, kept only to read secrets stored under it until `bin/blush secrets:rotate` encrypts them again. |
@@ -69,7 +70,8 @@ Real environment variables (set by your host or server) win over `.env`.
 
 The `APP_*` values (except `APP_SECRET`) reach Blush through
 `config/app.php`, which reads them with `$env`. If your `config/app.php` doesn't pass `locale`, add
-`locale: $env->string('APP_LOCALE', 'en_US')` to it.
+`locale: $env->string('APP_LOCALE', 'en_US')` to it, and for `email`,
+`email: $env->string('APP_EMAIL', '')`.
 
 ### What development changes
 
@@ -129,6 +131,7 @@ site with a message naming the problem.
 | `locale` | `'en_US'` | The site's language and region |
 | `providers` | `[]` | Your own [service providers](extending.md) |
 | `description` | `''` | One line about the site: the summary in `llms.txt`, and the homepage's meta description and feeds' descriptions when nothing more specific describes them |
+| `email` | `''` | The site's email address, where notices for its owner are sent; it isn't shown on the site. From `APP_EMAIL`; the admin requires one |
 | `dateFormat` | `'long'` | How themes show dates: `full`, `long`, `medium`, or `short` follow the site's language (`October 4, 2026` in `en_US`); an [ICU pattern](https://unicode-org.github.io/icu/userguide/format_parse/datetime/#datetime-format-syntax) such as `'d MMMM y'` keeps its order in any language |
 | `timeFormat` | `'short'` | How themes show times, the same way: `short` is `2:30 PM` in `en_US`; `'HH:mm'` is always `14:30` |
 | `languages` | `[]` | Other languages your content is written in, by code: `['fr' => 'fr_FR']`, or `['fr' => ['locale' => 'fr_FR', 'label' => 'Français']]`. See [Translations](content.md#translations) |

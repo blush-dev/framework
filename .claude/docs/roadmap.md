@@ -966,6 +966,10 @@ keeping the first screen's code in one file.
   then feeds and `llms.txt` per language; translations in the admin
   (uploads, a strings editor) once there's a design; a language
   switcher is on hold.
+- **The site's email address (D-723):** `app.email`, on General,
+  required there. Later: changing it asks the new address to confirm
+  before it takes effect, and tells the old one it changed. Both need
+  Blush to send mail, which it doesn't yet.
 - **Front-end search:** a JSON index; see `open-questions.md`.
 - **Extension kinds, what's left (D-378, D-379):** admin themes as a
   fourth kind on the shared pieces (joining `AdminTheme`, D-317);

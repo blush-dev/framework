@@ -22363,7 +22363,7 @@ decision, add a new entry that supersedes it and mark the old one
 ### D-717: A quieter, consistent CLI, built in stages
 
 - **Date:** 2026-10-10
-- **Status:** Stages 1 and 2 built (see below); stage 3's prompts built (D-719).
+- **Status:** Stages 1 and 2 built (see below); stage 3's prompts built (D-719 to D-722). On hold (the author, 2026-10-10) with three loose ends: `init`'s questions (drawn, never reviewed), wide tables wrapping on narrow terminals, and the unused `Output::style()` and `info()`.
   Follows D-710's "a prettier CLI is a later
   design pass".
 - **Decision:** commands say what they show, and `Output` says how it
@@ -22641,3 +22641,40 @@ decision, add a new entry that supersedes it and mark the old one
   on the jtcom trial in a pseudo-terminal, with x3p0's colors and with
   `NO_COLOR`.
 
+
+### D-723: The site's email address
+
+- **Date:** 2026-10-10
+- **Status:** Built.
+- **Decision:**
+  - **`app.email`:** the site's own address, where notices for its
+    owner will be sent. `AppConfig` gains `email` (default `''`, no
+    address), checked as an account's is (`Account::isValidEmail()`);
+    `config/app.php` may set it, and the admin saves it as a setting
+    (`Setting::Email`, in the `app` group).
+  - **On General**, under the site's description: **Email address**,
+    with "Where the site sends notices for its owner. It isn't shown
+    on the site." Trimmed; empty is allowed; anything else that isn't
+    one address is refused.
+  - **Never empty** (the author, on Claude's question whether an
+    empty one should fall back to the owners'): the field is required,
+    and saving an empty one is refused. `AppConfig`'s default stays
+    `''` only so a config can be built before setup.
+  - **`APP_EMAIL`** (the author, from Claude's recommendation):
+    `.env`'s value is where it starts, read by `config/app.php` and
+    `AppConfig::fromEnv()`, as `APP_NAME` and `APP_LOCALE` are; one
+    saved in the admin wins. Not a lock: no setting is locked by `.env`,
+    and the confirmation process below protects the same thing. Locking
+    settings, if ever, is designed once for any setting.
+  - **`init` writes it** (the author: yes): after making the owner
+    account, `init` adds `APP_EMAIL` with the owner's address to `.env`
+    when `.env` doesn't already name one.
+  - **Later (roadmap):** changing it asks the new address to confirm
+    first, or tells the old one it changed. Nothing sends mail yet
+    (Blush sends none; see the one-time password links).
+- **Why:** the author: "We need to set a site email address. This will
+  be used to send various notifications in future ways to the owner."
+  Then: "the site address shouldn't be empty. and we should,
+  eventually, have on the roadmap a confirmation process of changing
+  the site email or tell the previous email owner."
+- **Checked:** `composer check`.

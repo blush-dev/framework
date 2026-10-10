@@ -157,10 +157,10 @@ final class AdminSettingsTest extends TestCase
 		$this->assertSame('Training crawlers', is_array($item['choices'] ?? null) ? $item['choices']['training'] ?? null : null);
 		$this->assertSame(['text' => 'Collect pages to train models.', 'code' => 'GPTBot · ClaudeBot · CCBot · Google-Extended · Applebot-Extended · Bytespider · meta-externalagent'], is_array($field['details'] ?? null) ? $field['details']['training'] ?? null : null);
 
-		$response = $this->write('PATCH', '/settings', ['set' => ['app.description' => ' Notes on the web. ', 'sitemap.blockAi' => ['search', 'training'], 'llms.enabled' => false, 'llms.full' => true]]);
+		$response = $this->write('PATCH', '/settings', ['set' => ['app.description' => ' Notes on the web. ', 'app.email' => ' owner@example.test ', 'sitemap.blockAi' => ['search', 'training'], 'llms.enabled' => false, 'llms.full' => true]]);
 		$this->assertSame(200, $response->getStatusCode(), (string) $response->getBody());
 		$this->assertTrue(self::json($response)['refresh'] ?? null, 'Markdown copies change the routes.');
-		$this->assertSame(['app' => ['description' => 'Notes on the web.'], 'llms' => ['enabled' => false, 'full' => true], 'sitemap' => ['blockAi' => ['training', 'search']]], $this->savedSettings());
+		$this->assertSame(['app' => ['description' => 'Notes on the web.', 'email' => 'owner@example.test'], 'llms' => ['enabled' => false, 'full' => true], 'sitemap' => ['blockAi' => ['training', 'search']]], $this->savedSettings());
 
 		// Settings are read at boot; the account is already there.
 		$this->app = $this->scratchApplication(['APP_ENV' => 'production', 'APP_URL' => 'https://example.test', 'APP_SECRET' => str_repeat('s', 64)]);
@@ -172,9 +172,11 @@ final class AdminSettingsTest extends TestCase
 		$this->assertSame('Off, with the Markdown copies', $this->setting($ai, 'markdown', 'llmsTxt')['value'] ?? null);
 		$this->assertNull($this->setting($ai, 'markdown', 'full')['link'] ?? null, 'Not served without the copies.');
 		$this->assertSame('Notes on the web.', $this->setting($ai, 'markdown', 'description')['value'] ?? null);
-		$this->assertSame('Notes on the web.', $this->setting(self::json($this->send('GET', '/settings/general')), 'site', 'description')['value'] ?? null);
+		$general = self::json($this->send('GET', '/settings/general'));
+		$this->assertSame('Notes on the web.', $this->setting($general, 'site', 'description')['value'] ?? null);
+		$this->assertSame('owner@example.test', $this->setting($general, 'site', 'email')['value'] ?? null);
 
-		foreach ([['app.description' => "Two\nlines"], ['app.description' => str_repeat('x', 301)], ['sitemap.blockAi' => ['robots']], ['sitemap.blockAi' => 'training']] as $set) {
+		foreach ([['app.description' => "Two\nlines"], ['app.description' => str_repeat('x', 301)], ['app.email' => ''], ['app.email' => 'owner'], ['app.email' => 'owner@example.test, me@example.test'], ['sitemap.blockAi' => ['robots']], ['sitemap.blockAi' => 'training']] as $set) {
 			$this->assertSame(422, $this->write('PATCH', '/settings', ['set' => $set])->getStatusCode(), (string) json_encode($set));
 		}
 	}

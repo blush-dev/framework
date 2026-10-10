@@ -1306,7 +1306,8 @@ screens (and [Redirects](#redirects), with its own capability):
 
 - **General:** the site's name, a one-line description (for
   `llms.txt`, and the homepage and feeds when nothing more specific
-  describes them), its language and region (picked from a menu of every
+  describes them), its email address (required; where notices for
+  its owner are sent, never shown on the site), its language and region (picked from a menu of every
   language and region PHP knows, each named in its own language with
   its English name beside it, and each region under its language;
   search by either name or the code, or choose **Other…** to type any

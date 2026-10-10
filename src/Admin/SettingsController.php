@@ -230,7 +230,7 @@ final readonly class SettingsController
 	}
 
 	/**
-	 * General: the site's name, language, and time, who can make an
+	 * General: the site's name, email address, language, and time, who can make an
 	 * account, and where it runs.
 	 *
 	 * @return list<array<string, mixed>>
@@ -242,9 +242,10 @@ final readonly class SettingsController
 		$now         = DateTimeImmutable::createFromInterface($this->clock->now())->setTimezone($this->app->timezone());
 
 		return [
-			self::group('site', 'Site', 'Its name and language', [
+			self::group('site', 'Site', 'Its name, email, and language', [
 				$this->edit(self::item('name', 'Site name', $this->app->name, $this->app->name === $app->name), $saved, Setting::Name, $this->app->name),
 				$this->edit(self::item('description', 'Description', $this->app->description, $this->app->description === '', help: Setting::DESCRIPTION_HELP), $saved, Setting::Description, $this->app->description),
+				$this->edit(self::item('email', 'Email address', $this->app->email, $this->app->email === '', help: Setting::EMAIL_HELP), $saved, Setting::Email, $this->app->email),
 				[...$this->edit(self::item('locale', 'Language and region', $this->app->locale, $this->app->locale === $app->locale, 'mono', 'Choose Other to type a code the menu doesn\'t have.'), $saved, Setting::Locale, $this->app->locale), 'locales' => Locales::options()],
 				...$this->untranslated($saved, $app),
 				self::item('url', 'Site address', $this->app->url, $this->app->url === $app->url, 'mono', 'From APP_URL in .env by default.', 'config/app.php')

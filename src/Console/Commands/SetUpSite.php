@@ -48,7 +48,8 @@ use Blush\Support\FilesystemException;
  *    webhook stays off otherwise, since it runs publishing on request.
  * 3. Creates the storage folders and reports any Blush can't write to.
  * 4. In a terminal, while there are no accounts, offers to create an
- *    owner (D-217, D-500).
+ *    owner (D-217, D-500), and writes its email address to `.env` as
+ *    `APP_EMAIL`, the site's (D-723), when that isn't set.
  *
  * The skeleton runs it after `composer create-project`.
  */
@@ -128,7 +129,11 @@ final readonly class SetUpSite
 		$code = $this->createStorage($output);
 
 		if ($code === ExitCode::Success && $prompt->interactive && $this->accounts->isEmpty()) {
-			$this->offerAccount($output, $prompt);
+			$email = $this->offerAccount($output, $prompt);
+
+			if ($email !== null) {
+				$this->addSiteEmail($output, $email);
+			}
 		}
 
 		if ($code === ExitCode::Success) {
@@ -140,14 +145,15 @@ final readonly class SetUpSite
 	}
 
 	/**
-	 * Offers to create the first account, the owner (D-500).
+	 * Offers to create the first account, the owner (D-500), and returns
+	 * its email address, or `null` when none was made.
 	 *
 	 * @throws InvalidInput
 	 */
-	private function offerAccount(Output $output, Prompt $prompt): void
+	private function offerAccount(Output $output, Prompt $prompt): ?string
 	{
 		if (! $prompt->confirm('Create an owner account for the admin?', true)) {
-			return;
+			return null;
 		}
 
 		$username = $prompt->ask('Username', 'admin', static function (string $username): ?string {
@@ -160,14 +166,36 @@ final readonly class SetUpSite
 
 		try {
 			$password = $prompt->newSecret('Password:', 'Password again:', $this->manager->passwordProblem(...));
-			$this->manager->create($username, $password, [BuiltInRole::Owner->value], email: $email);
+			$account = $this->manager->create($username, $password, [BuiltInRole::Owner->value], email: $email);
 		} catch (AuthException $e) {
 			$output->error($e->getMessage());
 
-			return;
+			return null;
 		}
 
 		$output->success(sprintf('Created the "%s" account.', $username));
+
+		return $account->email;
+	}
+
+	/**
+	 * Makes the owner's email address the site's (D-723), unless `.env`
+	 * already names one.
+	 *
+	 * @throws EnvException
+	 * @throws FilesystemException
+	 */
+	private function addSiteEmail(Output $output, string $email): void
+	{
+		$file = EnvFile::load("{$this->paths->root}/.env");
+
+		if ($file->filled('APP_EMAIL')) {
+			return;
+		}
+
+		$file->with('APP_EMAIL', $email)->save($this->filesystem);
+
+		$output->success(sprintf('Added APP_EMAIL, the site\'s email address: %s.', $email));
 	}
 
 	/**

@@ -16,6 +16,7 @@ namespace Blush\Core;
 use DateTimeZone;
 use Override;
 use Uri\Rfc3986\Uri;
+use Blush\Auth\Account;
 use Blush\Clock\DateFormat;
 use Blush\Config\Config;
 use Blush\Config\ConfigValues;
@@ -29,6 +30,10 @@ use Blush\Env\Env;
  * `description` is a line about the site (D-398), for `llms.txt`, and
  * for the homepage's meta description and feeds when nothing more
  * specific exists; empty, there's none.
+ *
+ * `email` is the site's own address (D-723), where notices for its
+ * owner are sent, from `APP_EMAIL` by default; `init` writes it from
+ * the owner account's. Empty only before setup: the admin requires one.
  *
  * `dateFormat` and `timeFormat` are how themes show dates and times
  * (D-445): a style the language defines (`full`, `long`, `medium`, or
@@ -66,7 +71,8 @@ final readonly class AppConfig implements Config
 		public string $dateFormat = 'long',
 		public string $timeFormat = 'short',
 		array $languages = [],
-		public Untranslated $untranslated = Untranslated::Redirect
+		public Untranslated $untranslated = Untranslated::Redirect,
+		public string $email = ''
 	) {
 		if (Uri::parse($url) === null || ! preg_match('#^https?://#i', $url)) {
 			throw new InvalidConfig(sprintf('AppConfig "url" must be an absolute http(s) URL; "%s" given.', $url));
@@ -84,6 +90,10 @@ final readonly class AppConfig implements Config
 			}
 		}
 
+		if ($email !== '' && ! Account::isValidEmail($email)) {
+			throw new InvalidConfig(sprintf('AppConfig "email" must be an email address; "%s" given.', $email));
+		}
+
 		foreach ($providers as $provider) {
 			if (! is_subclass_of($provider, ServiceProvider::class)) {
 				throw new InvalidConfig(sprintf(
@@ -99,7 +109,7 @@ final readonly class AppConfig implements Config
 
 	/**
 	 * Builds the config from `APP_NAME`, `APP_URL`, `APP_ENV`, `APP_DEBUG`,
-	 * `APP_TIMEZONE`, and `APP_LOCALE`, with the constructor's defaults
+	 * `APP_TIMEZONE`, `APP_LOCALE`, and `APP_EMAIL`, with the constructor's defaults
 	 * for anything unset.
 	 *
 	 * @throws InvalidConfig
@@ -112,7 +122,8 @@ final readonly class AppConfig implements Config
 			environment: Environment::fromString($env->string('APP_ENV', 'production')),
 			debug: $env->bool('APP_DEBUG', false),
 			timezone: $env->string('APP_TIMEZONE', 'UTC'),
-			locale: $env->string('APP_LOCALE', 'en_US')
+			locale: $env->string('APP_LOCALE', 'en_US'),
+			email: $env->string('APP_EMAIL', '')
 		);
 	}
 
@@ -152,7 +163,7 @@ final readonly class AppConfig implements Config
 	public static function fromArray(array $data): static
 	{
 		$values = new ConfigValues($data, self::class);
-		$values->assertKnownKeys(['name', 'url', 'environment', 'debug', 'timezone', 'locale', 'providers', 'description', 'dateFormat', 'timeFormat', 'languages', 'untranslated']);
+		$values->assertKnownKeys(['name', 'url', 'environment', 'debug', 'timezone', 'locale', 'providers', 'description', 'dateFormat', 'timeFormat', 'languages', 'untranslated', 'email']);
 
 		$environment = $data['environment'] ?? null;
 
@@ -173,7 +184,8 @@ final readonly class AppConfig implements Config
 			dateFormat: $values->string('dateFormat', 'long'),
 			timeFormat: $values->string('timeFormat', 'short'),
 			languages: self::languagesOf($data['languages'] ?? []),
-			untranslated: $values->enum('untranslated', Untranslated::class, Untranslated::Redirect)
+			untranslated: $values->enum('untranslated', Untranslated::class, Untranslated::Redirect),
+			email: $values->string('email', '')
 		);
 	}
 
@@ -195,7 +207,8 @@ final readonly class AppConfig implements Config
 			'dateFormat'   => $this->dateFormat,
 			'timeFormat'   => $this->timeFormat,
 			'languages'    => $this->languages->toArray(),
-			'untranslated' => $this->untranslated
+			'untranslated' => $this->untranslated,
+			'email'        => $this->email
 		];
 	}
 

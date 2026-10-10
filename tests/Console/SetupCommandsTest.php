@@ -197,9 +197,21 @@ final class SetupCommandsTest extends TestCase
 		$this->assertStringContainsString('Created the "admin" account.', $result->output);
 		$this->assertFileExists($this->temporaryDirectory() . '/storage/accounts/admin.json');
 		$this->assertStringContainsString('"email": "admin@example.test"', (string) file_get_contents($this->temporaryDirectory() . '/storage/accounts/admin.json'), 'It asks for an email address (D-370).');
+		$this->assertStringContainsString('APP_EMAIL=admin@example.test', (string) file_get_contents($this->temporaryDirectory() . '/.env'), 'The owner\'s address is the site\'s (D-723).');
 
 		$result = $this->command('init', ['no']);
 
 		$this->assertSame(ExitCode::Success, $result->exitCode, 'Once there\'s an account, it doesn\'t ask again.');
+	}
+
+	public function testKeepsTheSiteEmailEnvAlreadyNames(): void
+	{
+		$this->writeTemporaryFile('.env', "APP_NAME=Mine\nAPP_EMAIL=site@example.test\n");
+
+		$result = $this->command('init', ['no', 'yes', '', 'admin@example.test', 'a long enough password', 'a long enough password']);
+
+		$this->assertSame(ExitCode::Success, $result->exitCode, $result->errors);
+		$this->assertStringContainsString('APP_EMAIL=site@example.test', (string) file_get_contents($this->temporaryDirectory() . '/.env'));
+		$this->assertStringNotContainsString('admin@example.test', (string) file_get_contents($this->temporaryDirectory() . '/.env'));
 	}
 }
