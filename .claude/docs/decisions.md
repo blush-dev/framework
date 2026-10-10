@@ -21685,3 +21685,116 @@ decision, add a new entry that supersedes it and mark the old one
   server configuration a host often already does, so it's the site
   owner's to edit. Versioning the URLs inside a theme's stylesheet is
   still to be discussed.
+
+### D-700: The Menus screens, from the menus sketch
+
+- **Date:** 2026-10-09
+- **Status:** Built. From `.claude/docs/admin-design/menus-admin-standalone.html`,
+  drawn from the admin's own pieces where the sketch differs (the
+  author's standing rule); departures in `departures.md`.
+- **Decision:**
+  - **Config › Structure › Menus**, with `menus.edit` (its own
+    capability, as Redirects has), counted in the section panel.
+  - **The list** (`/menus`): a table of menus (label with its name under
+    it, items at every level, the locations showing it, a row menu with
+    Edit, Duplicate, and Delete), and the active theme's **Locations**
+    as settings rows, each a select saved at once with Undo, its help
+    saying its key, its depth, and how many default items it ships.
+  - **A menu** (`/menus/{name}`), in the Roles frame: back link, title,
+    a facts strip (name, items, locations; `.page-facts`, shared with
+    Roles now), and Settings, the save button, and a menu (Duplicate,
+    Delete). **Settings** is a dialog (label, name, the directive to
+    copy, the locations as checkboxes saying what each will show); it
+    saves with the items. The one button is **Publish** for a new menu,
+    **Update** with changes, **Saved** without; leaving with changes
+    asks.
+  - **New Menu and Duplicate** are one dialog (label, a name that
+    follows it until typed), and make a **draft in the tab**: nothing
+    is written until Publish, and leaving discards it, asking first
+    (the author: "Draft until Publish").
+  - **The items** are a tree: rows with the kind, the name, a pill when
+    the link isn't on the site as it is (Draft, Scheduled, Not on the
+    Site) or the item is Empty, and buttons to move (up, down, outdent,
+    indent; ⌥ and the arrows), edit (F2), and more (add above or below,
+    duplicate, remove, with Undo); dragging too. An item's fields open
+    under its row: Label, Link, Description, Badge, Icon, Class, and
+    Link Relationship.
+  - **Link is one box** (`LinkPicker`), Redirects' To lifted into a
+    shared component both use: entries (terms of types with term pages
+    as `term`), collections, and named routes without parameters
+    (`GET menu-links`), or a typed path or address as `url`. Entry and
+    term links keep the id in `ref`.
+  - **The icon field is the sketch's** (`IconField`), for menu items
+    and content types alike: a dashed tile and **Insert an Icon** when
+    unset, the icon's tile (pressed to change it) and **Reset** when
+    set, both opening `IconPicker`. A type's icon is no longer typed by
+    name. A link to a feed route shows the `rss` icon.
+  - **The API** (`MenusController`): `GET menus`, `GET menus/{name}`
+    (nodes: the stored keys, what the link leads to now, children),
+    `POST menus` (`{was, name, label, items, locations}`, renaming when
+    the name changes, its locations following), `DELETE menus/{name}`
+    (answering what Undo posts back), and `PUT menu-locations/{location}`.
+    A menu whose stored shape is wrong is shown but not editable, so
+    saving can't drop what the screen can't show. Keys the screen
+    doesn't show (`image`, a route's `params`, a theme's fields) are
+    kept.
+- **Not built:** finding or rewriting entries that use
+  `::menu{name=…}` (the author: leave it out; renaming and deleting say
+  that entries showing it by name show nothing there); a location's own
+  item fields (`theme.json` `fields`, D-200; the author: leave them
+  out; values in files are kept); the sketch's harness modes (edit every
+  row inline, rename in place) and its three-button leave dialog.
+- **Why:** menus were the last user data edited only in files; the
+  sketch's frame matches the Roles screen, and the pieces it needs
+  (picker, icon field, facts strip) were already in the admin once.
+
+
+### D-701: Panels clip what's in them to their rounded corners
+
+- **Date:** 2026-10-09
+- **Status:** Built.
+- **Decision:** `.panel` has `overflow: clip`, so a row's hover,
+  selection, or focus ground, a table's header, or anything else at a
+  panel's top or foot stays inside its rounded corners, on every screen.
+  Per-screen fixes are gone (the people tables' rounded wrapper, the
+  menu tree's last row). `clip` isn't a scroll container, so sticky parts
+  still stick. Anything that opens over a panel must float above the
+  page (`MenuButton`'s `floating`, `usePopover`'s layer); the
+  dashboard's Browse by Type menu, the one that didn't, now floats.
+- **Why:** the author kept finding grounds spilling past panel corners
+  one screen at a time ("it should be consistently fixed").
+
+### D-702: The link finder's results: ranked, and held to the box
+
+- **Date:** 2026-10-09
+- **Status:** Built. Follows D-700 (the author's review).
+- **Decision:**
+  - **`GET menu-links` ranks**, as the relation pickers do (D-607), with
+    the title itself first: the title is the search, then starts with
+    it, then a word in it, then the rest; among matches as good, a
+    type's listing, a term, a tree's page, another entry, a route, then
+    by title. Terms, a tree's pages, and other entries are asked for
+    apart (up to 100 each), so a site's many posts can't crowd out a
+    term ("Writing" the topic before twenty "Writing…" posts). It
+    answers at most 10, with `total`; the list's foot says "10 of 21
+    matches. Keep typing to narrow." (`moreLine`).
+  - **Results are the box's width** (`usePopover`'s `sameWidth`), each
+    shortened to fit, never scrolled sideways, so the list stays under
+    the box however long a title. A popover shown again while open is
+    placed again where it is, not hidden first.
+- **Why:** the list was measured at its content's width on each key, so
+  long titles pushed it off to the left with a sideways scroll, and the
+  search took the first eight entries in date order.
+
+
+### D-703: A menu item's icon is its row's icon
+
+- **Date:** 2026-10-09
+- **Status:** Built. Follows D-700 (the author's review).
+- **Decision:** a menu item given an `icon` shows it in its row's tile,
+  in place of its link kind's icon (which stays as the tile's tooltip
+  and is read out). Site icons named by a type or a menu item are drawn
+  by one component, `SiteIcon` (a mask in the text color, else a
+  fallback admin icon), from masks loaded once and shared
+  (`iconMasks`, `loadIconMasks()` in `site-icons.ts`); `TypeIcon` is
+  `SiteIcon` with its kind's icon as the fallback.

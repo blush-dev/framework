@@ -262,9 +262,13 @@ accounts move onto it in later steps; roles are on it now.
   `collection`, `route`, `url`) are `Link\MenuLinkType` + registry +
   factory + registrar. `Menu::forPath()` marks the current item from
   `ViewContext::$path`.
+- **Writing:** `MenuLoader::save()` writes a menu whole (`label`,
+  `items`), renaming it from `$was` in one transaction, and `delete()`
+  removes one; the admin's Menus screens use them (`Admin\MenusController`,
+  D-700).
 - **Assignments:** a location shows the site menu assigned to it, kept in
   the active theme's own settings group under `menus` (location → menu
-  name; `Menus::assignments()`/`assign()`, `menu:assign`), else the
+  name; `Menus::assignments()`/`assign()`/`assignAll()`, `menu:assign`), else the
   theme's default `items` from `theme.json`, else nothing. No matching by
   name. Content shows a menu by name (`Menus::named()`, the directive's
   `name`); templates by location (`location`, `$template->menu()`).

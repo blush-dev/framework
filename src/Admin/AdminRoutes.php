@@ -59,6 +59,11 @@ use Blush\Session\StartSession;
  *     their problems; `POST redirects` adds or changes one, and `POST
  *     redirects/check`, `delete`, `status`, and `restore` check, delete,
  *     retype, and put back rows (`Redirects\RedirectsController`, D-686).
+ *   - `GET  menus`: the site's menus and the active theme's locations;
+ *     `GET menus/{name}` one menu's items, `POST menus` writes one (and
+ *     renames it), `DELETE menus/{name}` removes one, `PUT
+ *     menu-locations/{location}` assigns a location, and `GET
+ *     menu-links` searches what an item can link to (`MenusController`).
  *   - `GET  relations`: the site's relation definitions
  *     (`RelationsController`, D-593); `POST relations`, and `PATCH` and
  *     `DELETE relations/{name}` edit the ones in `user/data/relations`
@@ -193,6 +198,12 @@ final readonly class AdminRoutes implements RouteSource
 			Route::post('/redirects/delete', [RedirectsController::class, 'delete'])->named('redirects.delete')->middleware(Authenticate::class),
 			Route::post('/redirects/status', [RedirectsController::class, 'status'])->named('redirects.status')->middleware(Authenticate::class),
 			Route::post('/redirects/restore', [RedirectsController::class, 'restore'])->named('redirects.restore')->middleware(Authenticate::class),
+			Route::get('/menus', [MenusController::class, 'index'])->named('menus')->middleware(Authenticate::class),
+			Route::post('/menus', [MenusController::class, 'save'])->named('menu.save')->middleware(Authenticate::class),
+			Route::get('/menus/{name:[a-z0-9][a-z0-9_-]*}', [MenusController::class, 'show'])->named('menu')->middleware(Authenticate::class),
+			Route::delete('/menus/{name:[a-z0-9][a-z0-9_-]*}', [MenusController::class, 'delete'])->named('menu.delete')->middleware(Authenticate::class),
+			Route::put('/menu-locations/{location:[A-Za-z0-9_-]+}', [MenusController::class, 'assign'])->named('menu.assign')->middleware(Authenticate::class),
+			Route::get('/menu-links', [MenusController::class, 'links'])->named('menu.links')->middleware(Authenticate::class),
 			Route::get('/relations', RelationsController::class)->named('relations')->middleware(Authenticate::class),
 			Route::post('/relations', [TypeEditController::class, 'createRelation'])->named('relation.create')->middleware(Authenticate::class),
 			Route::post('/relations/{name:[a-z0-9_]+}/check', [TypeEditController::class, 'checkRelation'])->named('relation.check')->middleware(Authenticate::class),

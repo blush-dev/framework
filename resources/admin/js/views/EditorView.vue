@@ -3557,7 +3557,7 @@ function fieldKey(field: FieldDescription): string {
 }
 
 .editor__crumb :deep(svg),
-.editor__crumb :deep(.type-icon) {
+.editor__crumb :deep(.site-icon) {
 	flex: none;
 	width: 12px;
 	height: 12px;
@@ -3714,7 +3714,7 @@ function fieldKey(field: FieldDescription): string {
 	text-overflow: ellipsis;
 }
 
-.editor__tablist :deep(.type-icon) {
+.editor__tablist :deep(.site-icon) {
 	flex: none;
 	width: 13px;
 	height: 13px;

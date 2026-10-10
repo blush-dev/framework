@@ -2,14 +2,11 @@
 /**
  * A content type's names, description, and icon (D-311), for the type
  * editor and the new-type wizard. The icon is chosen from the site's
- * icons (`IconPicker`) or typed by name; clearing it uses the kind's.
+ * icons (`IconField`); clearing it uses the kind's.
  */
 
-import { ref } from 'vue';
-import AdminIcon from './AdminIcon.vue';
-import IconPicker from './IconPicker.vue';
+import IconField from './IconField.vue';
 import type { TypeForm, TypeKind } from '../type-form';
-import type { SiteIcon } from '../site-icons';
 
 defineProps<{
 	idPrefix: string;
@@ -17,13 +14,6 @@ defineProps<{
 }>();
 
 const form = defineModel<TypeForm>({ required: true });
-
-const picking = ref(false);
-
-function choose(icon: SiteIcon): void {
-	form.value.icon = icon.name;
-	picking.value   = false;
-}
 </script>
 
 <template>
@@ -45,23 +35,8 @@ function choose(icon: SiteIcon): void {
 		</div>
 		<div class="field">
 			<label :for="`${idPrefix}icon`">Icon</label>
-			<div class="type-fields__icon">
-				<input :id="`${idPrefix}icon`" v-model="form.icon" class="mono" placeholder="Its kind's" autocomplete="off" spellcheck="false">
-				<button type="button" class="button button--small" @click="picking = true"><AdminIcon name="shapes" />Choose</button>
-			</div>
+			<IconField :id="`${idPrefix}icon`" v-model="form.icon" :described-by="`${idPrefix}icon-help`" :preview="(icon) => `icon: ${icon.name}`" />
+			<p :id="`${idPrefix}icon-help`" class="field__help">Without one, its kind's icon.</p>
 		</div>
-		<IconPicker v-if="picking" :preview="(icon) => `icon: ${icon.name}`" @choose="choose" @close="picking = false" />
 	</div>
 </template>
-
-<style scoped>
-.type-fields__icon {
-	display: flex;
-	gap: var(--s-2);
-}
-
-.type-fields__icon input {
-	flex: 1;
-	min-width: 0;
-}
-</style>

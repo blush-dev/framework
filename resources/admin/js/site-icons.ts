@@ -5,6 +5,7 @@
  * nothing in the file runs and every icon takes the picker's colors.
  */
 
+import { ref } from 'vue';
 import { request } from './api';
 import type { IconName } from './icons';
 
@@ -111,6 +112,28 @@ export function loadIcons(): Promise<SiteIcon[]> {
  */
 export function iconMask(icon: SiteIcon): string {
 	return icon.svg === '' ? 'none' : `url("data:image/svg+xml,${encodeURIComponent(icon.svg)}")`;
+}
+
+// The masks of the site's icons, by name, once `loadIconMasks()` has
+// loaded them: for drawing an icon a type or a menu item names.
+export const iconMasks = ref<Record<string, string>>({});
+
+let masking = false;
+
+/**
+ * Loads the site's icons' masks into `iconMasks`, once.
+ */
+export function loadIconMasks(): void {
+	if (masking) {
+		return;
+	}
+
+	masking = true;
+	loadIcons().then((icons) => {
+		iconMasks.value = Object.fromEntries(icons.filter((icon) => icon.svg !== '').map((icon) => [icon.name, iconMask(icon)]));
+	}, () => {
+		masking = false;
+	});
 }
 
 /**

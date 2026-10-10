@@ -30,6 +30,10 @@ export interface PopoverOptions {
 	gap: number;
 	// Whether the panel is at least the button's width.
 	matchWidth?: boolean;
+	// Whether the panel is exactly the button's width, its content
+	// shortened to fit (a search's results under its box), so it stays
+	// lined up with the box however long what it lists.
+	sameWidth?: boolean;
 }
 
 // Space kept between the panel and the window's edges.
@@ -41,14 +45,16 @@ const EDGE = 8;
  */
 export function placeNear(box: DOMRect, panel: HTMLElement, options: PopoverOptions): Record<string, string> {
 	const height = panel.offsetHeight;
-	const width  = options.matchWidth === true ? Math.max(panel.offsetWidth, box.width) : panel.offsetWidth;
+	const width  = options.sameWidth === true ? box.width : options.matchWidth === true ? Math.max(panel.offsetWidth, box.width) : panel.offsetWidth;
 	const below  = box.bottom + options.gap + height + EDGE <= window.innerHeight;
 	const place: Record<string, string> = {
 		left: `${Math.max(EDGE, Math.min(box.left, window.innerWidth - width - EDGE))}px`,
 		top: `${below ? box.bottom + options.gap : Math.max(EDGE, box.top - height - options.gap)}px`
 	};
 
-	if (options.matchWidth === true) {
+	if (options.sameWidth === true) {
+		place.width = `${box.width}px`;
+	} else if (options.matchWidth === true) {
 		place.minWidth = `${box.width}px`;
 	}
 
@@ -67,7 +73,8 @@ export function layerOf(element: HTMLElement | null): HTMLElement | 'body' {
 /**
  * A popover's state: whether it's `open`, where it's placed (`null`
  * until it's measured, when it's drawn hidden), and the `layer` it's
- * drawn in (`layerOf()`). `show()` opens and places it; `close()` closes
+ * drawn in (`layerOf()`). `show()` opens and places it, or places it
+ * again when it's open; `close()` closes
  * it, focusing the button unless told not to.
  */
 export function usePopover(button: Ref<HTMLElement | null>, panel: Ref<HTMLElement | null>, options: PopoverOptions) {
@@ -76,9 +83,17 @@ export function usePopover(button: Ref<HTMLElement | null>, panel: Ref<HTMLEleme
 	const layer = ref<HTMLElement | 'body'>('body');
 
 	async function show(): Promise<void> {
+		const was = open.value;
+
 		layer.value = layerOf(button.value);
 		open.value  = true;
-		place.value = null;
+
+		// Shown again while open (its content changed), it's placed again
+		// where it is, not hidden first, so it doesn't flicker.
+		if (!was) {
+			place.value = null;
+		}
+
 		await nextTick();
 
 		const box = button.value?.getBoundingClientRect();

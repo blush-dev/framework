@@ -32,6 +32,8 @@ const HealthView = () => import('./views/HealthView.vue');
 const IconPackView = () => import('./views/IconPackView.vue');
 const IconPacksView = () => import('./views/IconPacksView.vue');
 const MediaFileView = () => import('./views/MediaFileView.vue');
+const MenusView = () => import('./views/MenusView.vue');
+const MenuView = () => import('./views/MenuView.vue');
 const MediaView = () => import('./views/MediaView.vue');
 const NewAccountView = () => import('./views/NewAccountView.vue');
 const NewFieldSetView = () => import('./views/NewFieldSetView.vue');
@@ -91,6 +93,8 @@ export const router = createRouter({
 		{ path: '/relationships', name: 'relations', component: RelationsView, meta: { title: 'Relationships', capability: 'site.settings', area: 'config' } },
 		{ path: '/relationships/new', name: 'relation-new', component: RelationView, meta: { title: 'New Relationship', capability: 'site.settings', area: 'config', parent: 'relations', wide: true } },
 		{ path: '/relationships/:name([a-z0-9_]+)', name: 'relation', component: RelationView, meta: { title: 'Relationship', capability: 'site.settings', area: 'config', parent: 'relations', wide: true } },
+		{ path: '/menus', name: 'menus', component: MenusView, meta: { title: 'Menus', capability: 'menus.edit', area: 'config' } },
+		{ path: '/menus/:name([a-z0-9][a-z0-9_-]*)', name: 'menu', component: MenuView, meta: { title: 'Menu', capability: 'menus.edit', area: 'config', parent: 'menus' } },
 		{ path: '/fields', name: 'fields', component: FieldSetsView, meta: { title: 'Fields', capability: 'site.settings', area: 'config' } },
 		{ path: '/fields/new', name: 'field-set-new', component: NewFieldSetView, meta: { title: 'New Field Set', capability: 'site.settings', area: 'config', parent: 'fields' } },
 		{ path: '/fields/:name', name: 'field-set', component: FieldSetView, meta: { title: 'Field Set', capability: 'site.settings', area: 'config', parent: 'fields' } },

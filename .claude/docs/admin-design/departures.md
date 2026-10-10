@@ -36,6 +36,8 @@ way to go; record the answer here.
                                                Site Health's check pages (D-612)
 .claude/docs/admin-design/meridian-redirects.html
                                                the Redirects screen (D-686)
+.claude/docs/admin-design/menus-admin-standalone.html
+                                               the Menus screens (D-700)
 .claude/docs/admin-design/departures.md        this file
 .claude/docs/admin-design/tokens.css           the prototype's tokens (reference only)
 .claude/docs/admin-design/old/                 the earlier single admin.md and its prototype
@@ -1102,3 +1104,40 @@ D-541). Where the admin differs from the sketch:
   also drop the Added column's second line.
 - **Not built:** flashing a row after a save and moving the list to
   it; the sketch's own rail and notes.
+
+## The Menus screens (`menus-admin-standalone.html`, D-700)
+
+- **Built from the admin's own pieces:** the page header and
+  `.page-back`, a `.panel` with `.table` rows and `MenuButton` row
+  menus, `EmptyState`, `SkeletonTable`; the Locations panel is Settings'
+  rows (`.setting`: label, control, help) with an `AdminSelect` each,
+  where the sketch has its own rows and drop button; panels stacked in
+  `.setting-panels`. Dialogs are `AdminModal`; deleting asks with
+  `confirmAction` (the locations as its items), not the sketch's own
+  modal. Toasts are the admin's, with Undo.
+- **The facts strip** under a menu's title is Roles' (`.page-facts`,
+  moved to `admin.css` and shared, D-509), where the sketch has its own
+  meta line; a draft adds a **Not Published** pill.
+- **The save button is in the header**, as the sketch has it (Publish,
+  Update, Saved), not the save bar: a tree's changes don't count well,
+  and a new menu needs Publish.
+- **Leaving** asks with the admin's leave confirmation (Leave or Stay,
+  and for a draft Discard Menu or Keep Editing), not the sketch's
+  three-button Save/Discard/Keep dialog.
+- **Link** is `LinkPicker`, Redirects' To box made shared. The icon is
+  the sketch's field (`IconField`: a dashed tile and Insert an Icon, or
+  the icon's tile and Reset), shared with a type's icon, which is no
+  longer typed by name (the author: "consolidate on the icon field in
+  the sketch"); it opens the admin's `IconPicker`, not the sketch's grid.
+- **A link to a feed route** (`home.feed`, `post.feed.atom`) has the
+  `rss` icon, not the route kind's (the author's call).
+- **Row buttons** have `title` tooltips (the admin has no tooltip
+  component); the row's tree look (grip, twist, kind tile, uppercase
+  plain-text rows) follows the sketch with tokens for its literal sizes.
+- **Plain text** is the item without a link; its kind tile is the
+  `text` icon.
+- **Not built:** the entries that use the directive (listed on delete,
+  rewritten on rename), a location's own item fields, the sketch's
+  harness modes (every row editable inline, rename in place), and its
+  lab bar.
+

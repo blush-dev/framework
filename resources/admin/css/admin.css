@@ -82,6 +82,47 @@
 
 /* A detail screen's identity: an avatar beside the title. */
 
+/* A detail screen's facts, in a strip under its title (D-509): a role's
+   key, origin, and holders; a menu's name, items, and locations. */
+.page-facts {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: var(--s-3);
+	margin-top: var(--s-2);
+	color: var(--fg-3);
+	font-size: var(--text-sm);
+}
+
+.page-facts__item {
+	display: inline-flex;
+	align-items: center;
+	gap: 7px;
+	white-space: nowrap;
+}
+
+.page-facts__item svg {
+	width: 13px;
+	height: 13px;
+}
+
+.page-facts__item a {
+	color: var(--accent);
+	font-weight: 500;
+	text-decoration: none;
+}
+
+.page-facts__item a:hover {
+	text-decoration: underline;
+}
+
+.page-facts__divider {
+	flex: none;
+	width: 1px;
+	height: 13px;
+	background: var(--border);
+}
+
 .page-header__id {
 	display: flex;
 	align-items: center;
@@ -186,9 +227,15 @@
 
 /* One column that can shrink, so long content (a snippet that doesn't
    wrap) scrolls in its own box rather than widening the panel. */
+/* A panel keeps what's in it inside its rounded corners: a row's hover,
+   selection, or focus ground at its top or foot, a table's header.
+   `clip`, not `hidden`, so it isn't a scroll container and sticky parts
+   inside still stick. Menus and lists that open over it float above
+   the page (`floating`, `usePopover`), so they aren't clipped. */
 .panel {
 	display: grid;
 	grid-template-columns: minmax(0, 1fr);
+	overflow: clip;
 	background: var(--surface);
 	border: 1px solid var(--border);
 	border-radius: var(--r-3);
@@ -1868,13 +1915,6 @@ button.lnk {
 	margin-left: auto;
 	color: var(--fg-3);
 	font-size: var(--text-xs);
-}
-
-/* A table at the top of its panel keeps the panel's rounded corners:
-   its wrapper clips the header's ground to them (D-373). */
-.people .panel > .table-wrap:first-child,
-.people .panel > .visually-hidden:first-child + .table-wrap {
-	border-radius: calc(var(--r-3) - 1px) calc(var(--r-3) - 1px) 0 0;
 }
 
 /* What the filters in force narrow a list to. */

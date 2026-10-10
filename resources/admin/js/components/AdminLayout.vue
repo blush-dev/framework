@@ -102,7 +102,7 @@ const screen = (name: string, label: string, icon: IconName): NavLink => ({ key:
  * shared by several types (or every type), and Media. **Users** (D-326, D-354):
  * Your Account, Accounts, Profiles, and Roles (D-353, D-358).
  * **Config** (D-325): Structure (content types, relationships (D-610),
- * and fields), Settings (its screens, with Redirects after Addresses
+ * fields, and menus), Settings (its screens, with Redirects after Addresses
  * and Search, D-686), and Extensions (Themes, Plugins, and Icon Packs; D-327, D-378,
  * D-380).
  * Links the account can't use aren't shown.
@@ -164,7 +164,11 @@ const sections = computed<Record<Area, NavGroup[]>>(() => {
 	const content = entryTypes.map((type) => ({ ...link(type), links: termTypes.filter((termType) => owner(termType) === type.name).map((termType) => link(termType)) }));
 	const library = usesMedia() ? [counted(screen('media', 'Media', 'image'), navCounts.value?.media)] : [];
 
-	const structure = can('site.settings') ? [counted(screen('types', 'Content Types', 'layers'), navCounts.value?.contentTypes), counted(screen('relations', 'Relationships', 'workflow'), navCounts.value?.relations), counted(screen('fields', 'Fields', 'group'), navCounts.value?.fieldSets)] : [];
+	const structure = [
+		...(can('site.settings') ? [counted(screen('types', 'Content Types', 'layers'), navCounts.value?.contentTypes), counted(screen('relations', 'Relationships', 'workflow'), navCounts.value?.relations), counted(screen('fields', 'Fields', 'group'), navCounts.value?.fieldSets)] : []),
+		// Menus, with their own capability.
+		...(can('menus.edit') ? [counted(screen('menus', 'Menus', 'menu'), navCounts.value?.menus)] : [])
+	];
 	// Redirects (D-686) after Addresses and Search, with its own capability.
 	const redirects = can('site.redirects') ? [counted(screen('redirects', 'Redirects', 'corner-down-right'), navCounts.value?.redirects)] : [];
 	const settings  = can('site.settings')

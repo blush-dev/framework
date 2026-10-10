@@ -1390,6 +1390,20 @@ Move each item to `decisions.md` once it's answered.
   entry), checks before it's written (its type's schema, a slug in use,
   a missing or duplicate `id` given a new one, D-477), whether it lands
   as a draft, and several files or a `.zip` at once.
+- **Entries kept per request** (raised 2026-10-09): a request loads
+  the content index once (`PhpIndex`), checks its freshness once, and
+  builds a query's entries once (`EntryCollection`), and a body's
+  rendering is cached between requests (`RenderedBodies`). Queries and
+  entries aren't kept, though: each `get()`, `paginate()`, and
+  `count()` filters and sorts the index rows again (or runs its SQL on
+  SQLite), and an entry two queries find (a post on the home page's
+  list and in a sidebar's recent posts) is built twice, its refs and
+  their targets' slugs read twice. Should `StoredEntries` keep the
+  entries it builds by id and version for the request, so every query
+  finding a post hands back the same `Entry`, cleared on writes? Keeping
+  whole query results is the other option, but costs more and helps
+  less, since queries rarely repeat exactly. Measure first with
+  `composer bench` on a page running several overlapping queries.
 - **Hierarchy** (D-257):
   - Should a hierarchical term's page also list its child terms'
     entries, as WordPress's category archives do? An option on the

@@ -198,16 +198,30 @@ final class Menus
 	 */
 	public function assign(ThemeChain $chain, string $location, ?string $menu): void
 	{
+		$this->assignAll($chain, [$location => $menu]);
+	}
+
+	/**
+	 * Assigns menus to several locations of a theme chain at once, a menu
+	 * name or `null` by location, in one write.
+	 *
+	 * @param  array<string, ?string> $menus
+	 * @throws MenuException When the assignments can't be read or saved.
+	 */
+	public function assignAll(ThemeChain $chain, array $menus): void
+	{
 		$this->assignments($chain);
 
 		try {
-			$this->groups->update($chain->active()->name, static function (array $group) use ($location, $menu): array {
+			$this->groups->update($chain->active()->name, static function (array $group) use ($menus): array {
 				$map = is_array($group[ThemeManifest::MENUS] ?? null) ? $group[ThemeManifest::MENUS] : [];
 
-				if ($menu === null) {
-					unset($map[$location]);
-				} else {
-					$map[$location] = $menu;
+				foreach ($menus as $location => $menu) {
+					if ($menu === null) {
+						unset($map[$location]);
+					} else {
+						$map[$location] = $menu;
+					}
 				}
 
 				ksort($map, SORT_STRING);

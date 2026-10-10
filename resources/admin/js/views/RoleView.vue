@@ -214,12 +214,12 @@ guardLeave(() => changed.value);
 			<div class="page-header__text role__head">
 				<h1 tabindex="-1">{{ role.label }}</h1>
 				<p v-if="role.description" class="page-header__hint">{{ role.description }}</p>
-				<div class="role__facts">
-					<span class="role__fact"><AdminIcon name="key-round" /><span class="mono">{{ role.name }}</span></span>
-					<span class="role__divider" aria-hidden="true" />
-					<span class="role__fact">{{ originOf(role) }}</span>
-					<span class="role__divider" aria-hidden="true" />
-					<span class="role__fact">
+				<div class="page-facts">
+					<span class="page-facts__item"><AdminIcon name="key-round" /><span class="mono">{{ role.name }}</span></span>
+					<span class="page-facts__divider" aria-hidden="true" />
+					<span class="page-facts__item">{{ originOf(role) }}</span>
+					<span class="page-facts__divider" aria-hidden="true" />
+					<span class="page-facts__item">
 						<template v-if="holders.length">
 							<span class="role__faces" aria-hidden="true">
 								<span v-for="holder in holders.slice(0, 3)" :key="holder.username" class="role__face">{{ initials(holder.displayName) }}</span>
@@ -332,46 +332,6 @@ guardLeave(() => changed.value);
 
 .role__head {
 	gap: 9px;
-}
-
-/* The facts strip: what a card beside the role used to hold. */
-.role__facts {
-	display: flex;
-	flex-wrap: wrap;
-	align-items: center;
-	gap: var(--s-3);
-	margin-top: var(--s-2);
-	color: var(--fg-3);
-	font-size: var(--text-sm);
-}
-
-.role__fact {
-	display: inline-flex;
-	align-items: center;
-	gap: 7px;
-	white-space: nowrap;
-}
-
-.role__fact svg {
-	width: 13px;
-	height: 13px;
-}
-
-.role__fact a {
-	color: var(--accent);
-	font-weight: 500;
-	text-decoration: none;
-}
-
-.role__fact a:hover {
-	text-decoration: underline;
-}
-
-.role__divider {
-	flex: none;
-	width: 1px;
-	height: 13px;
-	background: var(--border);
 }
 
 .role__faces {

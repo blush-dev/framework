@@ -9,7 +9,7 @@ import { entryRoute, request, type ContentTypeSummary, type TypeLabels } from '.
 import { humanize } from './fields';
 import { titleCase } from './format';
 import type { IconName } from './icons';
-import { iconMask, loadIcons } from './site-icons';
+import { loadIconMasks } from './site-icons';
 
 export const types = ref<ContentTypeSummary[]>([]);
 
@@ -35,9 +35,6 @@ export const typeFiles      = ref(true);
  */
 export const currentType = ref<string | null>(null);
 
-// The masks of the site icons types name, once loaded.
-const masks = ref<Record<string, string>>({});
-
 let loading: Promise<ContentTypeSummary[]> | null = null;
 
 /**
@@ -54,9 +51,7 @@ export function loadTypes(): Promise<ContentTypeSummary[]> {
 			typeFiles.value      = answer.files;
 
 			if (answer.types.some((type) => type.icon !== null)) {
-				loadIcons().then((icons) => {
-					masks.value = Object.fromEntries(icons.filter((icon) => icon.svg !== '').map((icon) => [icon.name, iconMask(icon)]));
-				}, () => undefined);
+				loadIconMasks();
 			}
 
 			return answer.types;
@@ -120,14 +115,6 @@ export function labelsOf(name: string): TypeLabels {
  */
 export function typeIcon(type: Pick<ContentTypeSummary, 'kind'> & { terms?: boolean }): IconName {
 	return type.terms === true ? 'tag' : ({ tree: 'files', profiles: 'user-round', collection: 'file-text' } as const)[type.kind];
-}
-
-/**
- * The CSS mask of the site icon a type names, or `null` while the icons
- * load, or when it names none or one the site doesn't have.
- */
-export function typeMask(type: Pick<ContentTypeSummary, 'icon'>): string | null {
-	return type.icon === null ? null : (masks.value[type.icon] ?? null);
 }
 
 /**

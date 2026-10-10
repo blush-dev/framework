@@ -22,6 +22,7 @@ export interface NavCounts {
 	relations?: number;
 	fieldSets?: number;
 	redirects?: number;
+	menus?: number;
 	themes?: number;
 	plugins?: number;
 	iconPacks?: number;

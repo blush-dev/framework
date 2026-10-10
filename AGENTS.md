@@ -155,6 +155,11 @@ server (D-686);
 and, from the Writing sketch, the Writing screen's A + Chips: sources
 named once per panel, Raw HTML as a segmented choice, and embeds as
 chips with Simple Icons marks (D-695);
+and, from the menus sketch
+(`.claude/docs/admin-design/menus-admin-standalone.html`), the Menus
+screens under Config › Structure: menus and the theme's locations, a
+menu's item tree with its fields, and new menus as drafts until
+Publish (D-700);
 1.x conventions go when they get in the way
 (D-658); and an id for every media
 original, with image sizes found by rule and given none

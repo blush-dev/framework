@@ -1,0 +1,1824 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Menus Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Karla:wght@400;500;600&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&display=swap">
+<style>
+/* Layout: the admin shell (labeled rail, section panel, top bar, one scrolling
+   work area) under a thin lab- harness bar. Tokens are design/tokens.css; the
+   two axes are data-admin-theme and data-theme (the viewer's own scheme
+   attribute, which is the prototype's spelling too). */
+:root{
+  --bg:#f5f6f9; --surface:#ffffff; --surface-2:#f0f2f6; --surface-3:#e7eaf0;
+  --border:#e2e5ec; --border-strong:#ccd2dd;
+  --fg:#11141b; --fg-2:#535b6b; --fg-3:#858d9d;
+  --accent:#2f5fe0; --accent-hover:#2650c4; --accent-fg:#ffffff; --accent-soft:#e9effc; --accent-line:#bdcdf7;
+  --good:#136b43; --good-soft:#e2f3e9; --good-dot:#1f9d5f;
+  --warn:#8a5806; --warn-soft:#faf0d9; --warn-dot:#cf8d16;
+  --danger:#a92420; --danger-soft:#fbeae9; --danger-dot:#d6403a;
+  --shadow-1:none;
+  --shadow-2:0 2px 8px rgba(17,20,27,.05), 0 1px 2px rgba(17,20,27,.04);
+  --shadow-3:0 10px 28px rgba(17,20,27,.09), 0 2px 6px rgba(17,20,27,.05);
+  --r-1:6px; --r-2:10px; --r-3:16px;
+  --s-1:4px; --s-2:8px; --s-3:12px; --s-4:18px; --s-5:26px; --s-6:36px; --s-7:52px;
+  --font-ui:"IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-display:"IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-title:"IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-mono:"Fira Code", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --base:13px; --h1:26px; --h1-track:-.024em; --title-size:13.5px; --title-weight:500; --title-track:-.005em;
+  --pad-row:14px; --pad-panel:17px; --pad-x:22px; --ctl:34px; --ctl-sm:30px; --stat-v:30px;
+  --railbar:74px; --rail:262px; --bar:62px; --work-max:1400px; --measure:72ch;
+  color-scheme:light;
+}
+:root[data-admin-theme="editorial"]{
+  --bg:#f6f2ec; --surface:#fffdfa; --surface-2:#f1ece3; --surface-3:#e7e0d4;
+  --border:#e5ded2; --border-strong:#cdc3b3;
+  --fg:#23201b; --fg-2:#5d564c; --fg-3:#8e867a;
+  --accent:#17595e; --accent-hover:#124a4e; --accent-fg:#fffdfa; --accent-soft:#e2eded; --accent-line:#b6d3d5;
+  --good:#4c6d2c; --good-soft:#edf1e2; --good-dot:#6f9b45;
+  --warn:#8a5a14; --warn-soft:#f8eeda; --warn-dot:#c58a2a;
+  --danger:#9c3327; --danger-soft:#f8e7e2; --danger-dot:#c2503f;
+  --shadow-2:0 2px 8px rgba(60,48,32,.05), 0 1px 2px rgba(60,48,32,.04);
+  --shadow-3:0 10px 28px rgba(60,48,32,.09), 0 2px 6px rgba(60,48,32,.05);
+  --r-1:8px; --r-2:12px; --r-3:20px;
+  --font-ui:"Karla", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display:"Newsreader", ui-serif, Georgia, "Times New Roman", serif;
+  --font-title:"Newsreader", ui-serif, Georgia, "Times New Roman", serif;
+  --base:13.5px; --h1:32px; --h1-track:-.014em; --title-size:15.5px; --title-track:0;
+  --pad-row:16px; --pad-panel:19px; --pad-x:26px; --stat-v:34px;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0b0d12; --surface:#13161d; --surface-2:#1a1e27; --surface-3:#222733;
+    --border:#242936; --border-strong:#353c4c;
+    --fg:#e9ebf0; --fg-2:#a3abba; --fg-3:#747d8e;
+    --accent:#7295f7; --accent-hover:#8aa8f9; --accent-fg:#0b0d12; --accent-soft:#182444; --accent-line:#2c3d68;
+    --good:#5ecb92; --good-soft:#102a1e; --good-dot:#35b877;
+    --warn:#e3b360; --warn-soft:#2b2312; --warn-dot:#d69f3c;
+    --danger:#f28d84; --danger-soft:#301917; --danger-dot:#e0655c;
+    --shadow-2:0 2px 8px rgba(0,0,0,.3);
+    --shadow-3:0 10px 28px rgba(0,0,0,.45), 0 2px 6px rgba(0,0,0,.3);
+    color-scheme:dark;
+  }
+  :root:not([data-theme="light"])[data-admin-theme="editorial"]{
+    --bg:#15120e; --surface:#1d1915; --surface-2:#26211a; --surface-3:#322b22;
+    --border:#302a21; --border-strong:#463e31;
+    --fg:#f0e9dd; --fg-2:#b4a996; --fg-3:#877c6c;
+    --accent:#72bec2; --accent-hover:#8bcccf; --accent-fg:#15120e; --accent-soft:#113032; --accent-line:#1d4a4d;
+    --good:#9cc16b; --good-soft:#1c2413; --good-dot:#84ad55;
+    --warn:#dcae63; --warn-soft:#2c2314; --warn-dot:#c79646;
+    --danger:#e8897b; --danger-soft:#2f1a16; --danger-dot:#cf6a5c;
+    --shadow-2:0 2px 8px rgba(0,0,0,.34);
+    --shadow-3:0 10px 28px rgba(0,0,0,.5), 0 2px 6px rgba(0,0,0,.34);
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0b0d12; --surface:#13161d; --surface-2:#1a1e27; --surface-3:#222733;
+  --border:#242936; --border-strong:#353c4c;
+  --fg:#e9ebf0; --fg-2:#a3abba; --fg-3:#747d8e;
+  --accent:#7295f7; --accent-hover:#8aa8f9; --accent-fg:#0b0d12; --accent-soft:#182444; --accent-line:#2c3d68;
+  --good:#5ecb92; --good-soft:#102a1e; --good-dot:#35b877;
+  --warn:#e3b360; --warn-soft:#2b2312; --warn-dot:#d69f3c;
+  --danger:#f28d84; --danger-soft:#301917; --danger-dot:#e0655c;
+  --shadow-2:0 2px 8px rgba(0,0,0,.3);
+  --shadow-3:0 10px 28px rgba(0,0,0,.45), 0 2px 6px rgba(0,0,0,.3);
+  color-scheme:dark;
+}
+:root[data-theme="dark"][data-admin-theme="editorial"]{
+  --bg:#15120e; --surface:#1d1915; --surface-2:#26211a; --surface-3:#322b22;
+  --border:#302a21; --border-strong:#463e31;
+  --fg:#f0e9dd; --fg-2:#b4a996; --fg-3:#877c6c;
+  --accent:#72bec2; --accent-hover:#8bcccf; --accent-fg:#15120e; --accent-soft:#113032; --accent-line:#1d4a4d;
+  --good:#9cc16b; --good-soft:#1c2413; --good-dot:#84ad55;
+  --warn:#dcae63; --warn-soft:#2c2314; --warn-dot:#c79646;
+  --danger:#e8897b; --danger-soft:#2f1a16; --danger-dot:#cf6a5c;
+  --shadow-2:0 2px 8px rgba(0,0,0,.34);
+  --shadow-3:0 10px 28px rgba(0,0,0,.5), 0 2px 6px rgba(0,0,0,.34);
+  color-scheme:dark;
+}
+
+*,*::before,*::after{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--font-ui);font-size:var(--base);line-height:1.5;-webkit-font-smoothing:antialiased;display:flex;flex-direction:column}
+h1,h2,h3,p,ul,ol{margin:0;padding:0}
+ul,ol{list-style:none}
+button,input,select,textarea{font:inherit;color:inherit}
+button{background:none;border:0;padding:0;cursor:pointer}
+a{color:inherit;text-decoration:none}
+code{font-family:var(--font-mono)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:3px}
+.ic{width:16px;height:16px;flex:none;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.mono{font-family:var(--font-mono);font-variant-numeric:tabular-nums}
+.num{font-variant-numeric:tabular-nums}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+/* ================= lab harness (not part of the design) ================= */
+.lab-bar{flex:none;display:flex;align-items:center;gap:var(--s-3);flex-wrap:wrap;padding:7px var(--s-4);
+  background:var(--surface-3);border-bottom:1px solid var(--border-strong);font-size:11.5px;color:var(--fg-2)}
+.lab-bar b{font-weight:600;color:var(--fg);letter-spacing:.02em}
+.lab-grp{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.lab-grp > span{color:var(--fg-3)}
+.lab-seg{display:flex;flex-wrap:wrap;border:1px solid var(--border-strong);border-radius:var(--r-1);overflow:hidden;background:var(--surface)}
+.lab-seg button{padding:3px 9px;font-size:11.5px;color:var(--fg-2);white-space:nowrap}
+.lab-seg button + button{border-left:1px solid var(--border)}
+.lab-seg button[aria-pressed="true"]{background:var(--fg);color:var(--bg)}
+.lab-note{margin-left:auto;color:var(--fg-3)}
+@media (max-width:900px){.lab-note{display:none}}
+
+/* ================= shell ================= */
+.app{display:flex;flex:1;min-height:0}
+.railbar{width:var(--railbar);flex:none;background:var(--surface);border-right:1px solid var(--border);
+  display:flex;flex-direction:column;align-items:center;padding:var(--s-3) 0;gap:var(--s-1);z-index:2}
+.rb-mark{width:34px;height:34px;border-radius:var(--r-2);background:var(--fg);color:var(--bg);display:grid;place-items:center;font-weight:600;font-size:15px;letter-spacing:-.02em;margin-bottom:var(--s-3);flex:none}
+.rb{width:60px;padding:10px 2px 8px;border-radius:var(--r-2);display:flex;flex-direction:column;align-items:center;gap:6px;
+  color:var(--fg-3);font-size:9.5px;font-weight:500;line-height:1.2;text-align:center}
+.rb .ic{width:19px;height:19px;stroke-width:1.5}
+.rb:hover{background:var(--surface-2);color:var(--fg-2)}
+.rb[aria-current="true"]{background:var(--accent-soft);color:var(--accent)}
+.rail{width:var(--rail);flex:none;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;min-height:0;overflow:hidden}
+.sec-head{display:flex;align-items:center;padding:var(--s-4);border-bottom:1px solid var(--border);min-height:var(--bar);flex:none}
+.sec-head h2{font-family:var(--font-display);font-size:15px;font-weight:600;letter-spacing:-.01em}
+.sec-head .sub{display:block;font-size:11px;color:var(--fg-3);font-weight:400;font-family:var(--font-ui);letter-spacing:0;margin-top:2px}
+.nav{flex:1;overflow-y:auto;padding:var(--s-3);display:flex;flex-direction:column;gap:3px;min-height:0}
+.nav-group-label{font-size:10.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--fg-3);padding:var(--s-5) var(--s-2) var(--s-2)}
+.nav-group-label:first-child{padding-top:var(--s-1)}
+.nav-item{display:flex;align-items:center;gap:11px;padding:9px 10px;border-radius:var(--r-1);color:var(--fg-2);width:100%;text-align:left;font-size:13px;position:relative}
+.nav-item:hover{background:var(--surface-2);color:var(--fg)}
+.nav-item .lbl{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nav-item[aria-current="page"]{background:var(--surface-2);color:var(--fg);font-weight:500}
+.nav-item[aria-current="page"]::before{content:"";position:absolute;left:-12px;top:7px;bottom:7px;width:2px;border-radius:0 2px 2px 0;background:var(--accent)}
+.nav-count{font-family:var(--font-mono);font-size:11px;color:var(--fg-3);font-variant-numeric:tabular-nums}
+.nav-count.alert{color:var(--warn);background:var(--warn-soft);padding:1px 6px;border-radius:99px;font-weight:500}
+
+.main{flex:1;min-width:0;display:flex;flex-direction:column;min-height:0}
+.topbar{height:var(--bar);flex:none;border-bottom:1px solid var(--border);background:var(--surface);display:flex;align-items:center;gap:var(--s-2);padding:0 var(--s-4)}
+.icon-btn{width:32px;height:32px;border-radius:var(--r-1);display:grid;place-items:center;color:var(--fg-2);flex:none}
+.icon-btn:hover{background:var(--surface-2);color:var(--fg)}
+.burger{display:none}
+.crumbs{display:flex;align-items:center;gap:2px;min-width:0;font-size:13px;color:var(--fg-3)}
+.crumbs .sep{color:var(--border-strong);flex:none;padding:0 2px}
+.crumbs .crumb{flex:0 1 auto;min-width:0;padding:4px 7px;border-radius:var(--r-1);color:var(--fg-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.crumbs .crumb:hover{background:var(--surface-2);color:var(--fg)}
+.crumbs .here{flex:none;padding:4px 2px;color:var(--fg);font-weight:500;white-space:nowrap}
+.topbar .spacer{flex:1}
+.kbar{display:flex;align-items:center;gap:8px;height:var(--ctl);padding:0 12px;border:1px solid var(--border);border-radius:var(--r-1);color:var(--fg-3);background:var(--bg);min-width:220px}
+.kbar span{flex:1;text-align:left;font-size:12.5px}
+kbd{font-family:var(--font-mono);font-size:10.5px;border:1px solid var(--border);border-bottom-width:2px;border-radius:4px;padding:1px 4px;color:var(--fg-3);background:var(--surface)}
+.avatar{width:29px;height:29px;border-radius:99px;background:var(--surface-3);color:var(--fg-2);display:grid;place-items:center;font-size:10.5px;font-weight:600;flex:none}
+.work{flex:1;overflow-y:auto;min-height:0}
+.wrap{padding:var(--s-6) var(--s-6) 96px;max-width:var(--work-max);margin:0 auto}
+.scrim-nav{display:none}
+
+/* ================= page parts (as in the prototype) ================= */
+.page-head{display:flex;align-items:flex-start;gap:var(--s-4);flex-wrap:wrap;margin-bottom:var(--s-6)}
+.page-head h1{font-family:var(--font-display);font-size:var(--h1);font-weight:600;letter-spacing:var(--h1-track);text-wrap:balance;line-height:1.2}
+.page-head .sub{color:var(--fg-2);font-size:13px;margin-top:7px;max-width:70ch;line-height:1.6}
+.page-head .sub code{font-size:12px}
+.page-head .sub.facts{display:flex;align-items:center;gap:var(--s-2);flex-wrap:wrap}
+.page-head .acts{margin-left:auto;display:flex;gap:var(--s-2);flex-wrap:wrap;align-items:center;padding-top:3px}
+.unsaved{font-size:11.5px;color:var(--fg-3);display:inline-flex;align-items:center;gap:6px}
+.unsaved .d{width:6px;height:6px;border-radius:99px;background:var(--warn-dot)}
+
+.btn{display:inline-flex;align-items:center;gap:7px;height:var(--ctl);padding:0 14px;border-radius:var(--r-1);border:1px solid var(--border);background:var(--surface);color:var(--fg);font-size:12.5px;font-weight:500;white-space:nowrap}
+.btn:hover{background:var(--surface-2);border-color:var(--border-strong)}
+.btn-primary{background:var(--accent);border-color:var(--accent);color:var(--accent-fg)}
+.btn-primary:hover{background:var(--accent-hover);border-color:var(--accent-hover)}
+.btn-ghost{border-color:transparent;background:transparent;color:var(--fg-2)}
+.btn-ghost:hover{background:var(--surface-2);border-color:transparent;color:var(--fg)}
+.btn-danger{color:var(--danger)}
+.btn-danger:hover{background:var(--danger-soft);border-color:var(--danger-soft)}
+.btn-danger-fill{background:var(--danger);border-color:var(--danger);color:var(--surface)}
+.btn-danger-fill:hover{background:var(--danger);opacity:.9}
+.btn.sm{height:var(--ctl-sm);padding:0 11px;font-size:12px}
+.btn.icon{width:var(--ctl-sm);padding:0;justify-content:center}
+.btn[disabled]{opacity:.45;cursor:default;pointer-events:none}
+
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-3)}
+.panel-head{display:flex;align-items:center;gap:var(--s-3);padding:var(--pad-panel) var(--pad-x);border-bottom:1px solid var(--border);min-height:58px;flex-wrap:wrap}
+.panel-head h2{font-family:var(--font-display);font-size:15px;font-weight:600;letter-spacing:-.005em}
+.panel-head .hint{font-size:11.5px;color:var(--fg-3)}
+.panel-head .end{margin-left:auto;display:flex;align-items:center;gap:8px}
+.panel-body{padding:var(--s-4) var(--pad-x) var(--s-5);display:flex;flex-direction:column;gap:var(--s-4)}
+.stack{display:flex;flex-direction:column;gap:var(--s-4)}
+.link{color:var(--accent);font-weight:500}
+.link:hover{text-decoration:underline}
+
+.pill{display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 9px 0 8px;border-radius:99px;font-size:11px;font-weight:500;white-space:nowrap;border:1px solid transparent;vertical-align:middle}
+.pill .d{width:5px;height:5px;border-radius:99px;flex:none}
+.pill.good{background:var(--good-soft);color:var(--good)} .pill.good .d{background:var(--good-dot)}
+.pill.warn{background:var(--warn-soft);color:var(--warn)} .pill.warn .d{background:var(--warn-dot)}
+.pill.danger{background:var(--danger-soft);color:var(--danger)} .pill.danger .d{background:var(--danger-dot)}
+.pill.neutral{background:var(--surface-2);color:var(--fg-2);border-color:var(--border)} .pill.neutral .d{background:var(--border-strong)}
+/* A location chip is a label, not a status: no dot. */
+.loc{display:inline-flex;align-items:center;gap:5px;height:22px;padding:0 8px;border-radius:var(--r-1);font-size:11px;color:var(--fg-2);background:var(--surface-2);border:1px solid var(--border);white-space:nowrap}
+.loc .ic{width:12px;height:12px;color:var(--fg-3)}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;table-layout:fixed;min-width:640px}
+thead th{text-align:left;font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--fg-3);padding:13px var(--pad-x);border-bottom:1px solid var(--border);white-space:nowrap}
+tbody td{padding:var(--pad-row) var(--pad-x);border-bottom:1px solid var(--border);vertical-align:middle}
+tbody tr:last-child td{border-bottom:0}
+tbody tr:hover{background:var(--surface-2)}
+.t-title{font-family:var(--font-title);font-size:var(--title-size);font-weight:var(--title-weight);letter-spacing:var(--title-track);display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.t-title:hover{color:var(--accent)}
+.t-slug{display:block;font-family:var(--font-mono);font-size:10.5px;color:var(--fg-3);margin-top:4px}
+.quiet{color:var(--fg-3);font-size:12px}
+.row-more{opacity:0;width:30px;height:30px;border-radius:var(--r-1);display:grid;place-items:center;color:var(--fg-3)}
+tr:hover .row-more,.row-more[aria-expanded="true"],.row-more:focus-visible{opacity:1}
+.row-more:hover{background:var(--surface-3);color:var(--fg)}
+@media (hover:none){.row-more{opacity:1}}
+
+/* Location rows: label and depth on the left, the drawn select on the right. */
+.lrows{display:flex;flex-direction:column}
+.lrow{display:grid;grid-template-columns:minmax(0,1fr) minmax(200px,260px);gap:var(--s-2) var(--s-5);align-items:center;padding:var(--pad-row) var(--pad-x);border-bottom:1px solid var(--border)}
+.lrow:last-child{border-bottom:0}
+.lrow .nm{font-family:var(--font-title);font-size:var(--title-size);font-weight:var(--title-weight)}
+.lrow .meta{display:flex;align-items:center;gap:var(--s-2);flex-wrap:wrap;margin-top:4px;font-size:11.5px;color:var(--fg-3)}
+.lrow .meta code{font-size:10.5px}
+.lrow .meta .dot-sep{color:var(--border-strong)}
+@media (max-width:640px){.lrow{grid-template-columns:minmax(0,1fr)}}
+
+/* The drawn select: a button that names the value and opens a .menu. */
+.xs{display:flex;align-items:center;gap:var(--s-2);width:100%;height:var(--ctl);padding:0 10px 0 12px;border:1px solid var(--border);border-radius:var(--r-1);background:var(--surface);font-size:12.5px;color:var(--fg);text-align:left}
+.xs:hover{border-color:var(--border-strong)}
+.xs .v{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.xs .v.def{color:var(--fg-2)}
+.xs .ic{color:var(--fg-3)}
+.xs[aria-expanded="true"]{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+
+/* Menus and popovers */
+.menu{position:fixed;z-index:60;min-width:212px;max-width:320px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-2);box-shadow:var(--shadow-2);padding:7px}
+.menu button{display:flex;align-items:center;gap:11px;width:100%;padding:8px 11px;border-radius:var(--r-1);font-size:12.5px;color:var(--fg-2);text-align:left}
+.menu button:hover,.menu button:focus-visible{background:var(--surface-2);color:var(--fg);outline:0}
+.menu button.danger{color:var(--danger)}
+.menu button.danger:hover{background:var(--danger-soft)}
+.menu button[aria-checked="true"]{background:var(--accent-soft);color:var(--accent)}
+.menu button .l{flex:1;min-width:0}
+.menu button .ds{display:block;font-size:11px;color:var(--fg-3);line-height:1.45;margin-top:1px}
+.menu button[aria-checked="true"] .ds{color:var(--accent)}
+.menu button .tail{font-family:var(--font-mono);font-size:10.5px;color:var(--fg-3);flex:none}
+.menu.wide{min-width:288px}
+.menu.wide button{align-items:flex-start;padding:9px 11px}
+.menu.wide .ic{margin-top:2px}
+.menu .div{height:1px;background:var(--border);margin:7px -7px}
+.menu .sec{font-size:10px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--fg-3);padding:10px 11px 4px}
+.menu .sec:first-child{padding-top:4px}
+
+/* Forms */
+.field{display:flex;flex-direction:column;gap:7px;min-width:0}
+.field > label,.field > .lab{font-size:12px;color:var(--fg-2);font-weight:500;display:flex;align-items:center;gap:var(--s-2)}
+.field .hint{font-size:11.5px;color:var(--fg-3);line-height:1.5}
+.inp{height:var(--ctl);border:1px solid var(--border);border-radius:var(--r-1);background:var(--bg);padding:0 12px;font-size:12.5px;outline:none;width:100%;color:var(--fg)}
+.inp:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft);background:var(--surface)}
+.inp::placeholder{color:var(--fg-3)}
+.inp.mono{font-size:12px}
+textarea.inp{height:auto;padding:9px 12px;resize:vertical;min-height:64px;line-height:1.5}
+.inp[readonly]{background:var(--surface-2);color:var(--fg-2)}
+.inp-row{display:flex;gap:var(--s-2);align-items:center}
+.inp-row .inp{flex:1;min-width:0}
+.lang{display:inline-flex;margin-left:auto;border:1px solid var(--border);border-radius:var(--r-1);overflow:hidden}
+.lang button{font-family:var(--font-mono);font-size:10.5px;padding:1px 7px;color:var(--fg-3)}
+.lang button + button{border-left:1px solid var(--border)}
+.lang button[aria-pressed="true"]{background:var(--surface-2);color:var(--fg)}
+.lang button .fill{display:inline-block;width:4px;height:4px;border-radius:99px;background:var(--accent);margin-left:4px;vertical-align:2px}
+.ref{display:flex;align-items:center;gap:var(--s-3);padding:9px 10px 9px 12px;border:1px solid var(--border);border-radius:var(--r-1);background:var(--bg)}
+.ref .ic{color:var(--fg-3)}
+.ref .rt{flex:1;min-width:0}
+.ref .rt b{display:block;font-weight:500;font-size:12.5px}
+.ref .rt code{display:block;font-size:10.5px;color:var(--fg-3);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.check{display:flex;align-items:flex-start;gap:11px;cursor:pointer;padding:3px 0}
+.check input{position:absolute;opacity:0;width:1px;height:1px}
+.check .box{width:16px;height:16px;border:1px solid var(--border-strong);border-radius:4px;display:grid;place-items:center;background:var(--surface);flex:none;margin-top:1px;color:transparent}
+.check .box .ic{width:11px;height:11px;stroke-width:2.6}
+.check input:checked + .box{background:var(--accent);border-color:var(--accent);color:var(--accent-fg)}
+.check input:focus-visible + .box{outline:2px solid var(--accent);outline-offset:2px}
+.check .tx{display:flex;flex-direction:column;gap:2px;min-width:0}
+.check .tx b{font-weight:500;font-size:12.5px}
+.check .tx span{font-size:11.5px;color:var(--fg-3);line-height:1.45}
+.fold{border-top:1px solid var(--border);padding-top:var(--s-3)}
+.fold > summary{cursor:pointer;font-size:12px;font-weight:500;color:var(--fg-2);display:flex;align-items:center;gap:6px;list-style:none}
+.fold > summary::-webkit-details-marker{display:none}
+.fold > summary .ic{width:12px;height:12px;transition:transform .12s}
+.fold[open] > summary .ic{transform:rotate(90deg)}
+.fold > .fold-body{display:flex;flex-direction:column;gap:var(--s-4);padding-top:var(--s-4)}
+.fgroup{border:1px solid var(--border);border-radius:var(--r-2);padding:var(--s-3) var(--s-4) var(--s-4);display:flex;flex-direction:column;gap:var(--s-3)}
+.fgroup-h{font-size:10.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--fg-3);display:flex;align-items:center;gap:6px}
+.fgroup-h .ic{width:12px;height:12px}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:var(--s-3)}
+@media (max-width:520px){.two-col{grid-template-columns:1fr}}
+.snippet{display:flex;align-items:center;gap:var(--s-2);padding:6px 6px 6px 12px;border:1px solid var(--border);border-radius:var(--r-1);background:var(--surface-2)}
+.snippet code{flex:1;min-width:0;font-size:12px;overflow-x:auto;white-space:nowrap}
+
+/* ================= menu detail ================= */
+.mdetail{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(320px,1fr);gap:var(--s-4);align-items:start}
+@media (max-width:1100px){.mdetail{grid-template-columns:minmax(0,1fr)}}
+.mdetail > .stack:last-child{position:sticky;top:0}
+@media (max-width:1100px){.mdetail > .stack:last-child{position:static}}
+
+/* The depth notice sits between the panel head and the tree. */
+.depth-bar{display:flex;align-items:flex-start;gap:var(--s-2);padding:11px var(--pad-x);border-bottom:1px solid var(--border);background:var(--surface-2);font-size:12px;color:var(--fg-2)}
+.depth-bar .ic{width:14px;height:14px;margin-top:2px;color:var(--fg-3)}
+.depth-bar.over{background:var(--warn-soft);color:var(--warn)}
+.depth-bar.over .ic{color:var(--warn-dot)}
+
+/* --- the item tree: the one new component. Rows are flat; aria-level and the
+   indent carry the nesting, the way the Pages tree does. --- */
+.mtree{position:relative;padding:var(--s-2) 0;--limit:99;--indent:22px;--lead:calc(var(--pad-x) - 8px + 18px + var(--s-2))}
+.mt-item{position:relative;outline:0}
+.mt-row{display:flex;align-items:center;gap:var(--s-2);padding:10px var(--pad-x) 10px calc(var(--pad-x) - 8px);min-height:54px;position:relative;cursor:default;user-select:none}
+.mt-item:hover > .mt-row{background:var(--surface-2)}
+.mt-item[aria-selected="true"] > .mt-row{background:var(--accent-soft)}
+.mt-item:focus-visible > .mt-row{box-shadow:inset 0 0 0 2px var(--accent)}
+.mt-grip{width:18px;height:28px;display:grid;place-items:center;color:var(--fg-3);cursor:grab;flex:none;opacity:.55}
+.mt-item:hover .mt-grip,.mt-item[aria-selected="true"] .mt-grip{opacity:1}
+.mt-ind{flex:none;width:calc(var(--d) * var(--indent))}
+.twist{width:18px;height:18px;flex:none;display:grid;place-items:center;color:var(--fg-3);border-radius:4px}
+.twist:hover{background:var(--surface-3);color:var(--fg)}
+.twist .ic{width:12px;height:12px;transition:transform .12s}
+.twist[aria-expanded="true"] .ic{transform:rotate(90deg)}
+.twist.leaf{visibility:hidden}
+.mt-kind{width:26px;height:26px;border-radius:var(--r-1);display:grid;place-items:center;color:var(--fg-2);background:var(--surface-2);border:1px solid var(--border);flex:none}
+.mt-item[aria-selected="true"] .mt-kind{background:var(--surface);border-color:var(--accent-line);color:var(--accent)}
+.mt-kind .ic{width:14px;height:14px}
+.mt-main{flex:1;min-width:0}
+.mt-t{display:flex;align-items:baseline;gap:var(--s-2);min-width:0}
+.mt-t .tt{font-family:var(--font-title);font-size:var(--title-size);font-weight:var(--title-weight);letter-spacing:var(--title-track);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mt-t .tt.heading{text-transform:uppercase;font-family:var(--font-ui);font-size:11px;letter-spacing:.07em;font-weight:600;color:var(--fg-2)}
+.mt-t .ovr{flex:none;font-size:10.5px;color:var(--fg-3);border:1px dashed var(--border-strong);border-radius:4px;padding:0 5px;white-space:nowrap}
+.mt-s{display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--fg-3);margin-top:2px;min-width:0}
+.mt-s code{font-size:10.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.mt-s s{text-decoration-thickness:1px}
+.mt-chips{display:flex;gap:6px;flex:none;flex-wrap:wrap;justify-content:flex-end}
+/* The cut. A row past the shallowest assigned location's depth carries a
+   dashed mark in its own indent, at the level where that location stops, and
+   a "Past Level N" chip. A full-height rule would cross every shallower label. */
+.mt-ind{position:relative;align-self:stretch}
+.mt-item.past .mt-ind::after{content:"";position:absolute;top:4px;bottom:4px;left:calc(var(--limit) * var(--indent) - 8px);border-left:2px dashed var(--warn-dot)}
+.mt-item.past .mt-main{opacity:.72}
+.foot-note{flex-basis:100%;font-size:11.5px;color:var(--warn);display:flex;align-items:center;gap:6px;padding:2px 2px 0}
+.foot-note .ic{width:13px;height:13px}
+/* Drop indication while dragging. */
+.mt-item.drop-before > .mt-row::before,.mt-item.drop-after > .mt-row::after{content:"";position:absolute;left:calc(var(--lead) + var(--dd,0) * var(--indent));right:var(--pad-x);height:2px;background:var(--accent);border-radius:2px}
+.mt-item.drop-before > .mt-row::before{top:-1px}
+.mt-item.drop-after > .mt-row::after{bottom:-1px}
+.mt-item.drop-in > .mt-row{box-shadow:inset 0 0 0 2px var(--accent);background:var(--accent-soft)}
+.mt-item.dragging{opacity:.4}
+@media (max-width:640px){.mt-chips{display:none}.mtree{--indent:16px}}
+
+.tree-foot{display:flex;align-items:center;gap:var(--s-1);padding:var(--s-3) var(--pad-x);border-top:1px solid var(--border);flex-wrap:wrap}
+.tree-foot .div{width:1px;height:18px;background:var(--border);margin:0 var(--s-2)}
+.tree-foot .end{margin-left:auto;font-size:11px;color:var(--fg-3);display:flex;gap:var(--s-2);align-items:center}
+@media (max-width:640px){.tree-foot .end{display:none}}
+
+/* Problems: Site Health's row-per-problem shape. */
+.prow{display:flex;gap:var(--s-3);padding:var(--s-4) var(--pad-x);border-bottom:1px solid var(--border)}
+.prow:last-child{border-bottom:0}
+.sev{width:3px;align-self:stretch;border-radius:2px;flex:none}
+.sev.warn{background:var(--warn-dot)} .sev.danger{background:var(--danger-dot)} .sev.info{background:var(--border-strong)}
+.prow .pm{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px}
+.prow .pt{display:flex;align-items:center;gap:var(--s-2);flex-wrap:wrap;font-size:12.5px;font-weight:500}
+.prow .pt button{font-weight:500}
+.prow .pt button:hover{color:var(--accent);text-decoration:underline}
+.prow .pd{font-size:12px;color:var(--fg-2);line-height:1.5}
+.prow .pd code{font-size:11px}
+.prow .pf{display:flex;gap:var(--s-2);flex-wrap:wrap;margin-top:2px}
+.p-foot{padding:var(--s-3) var(--pad-x);border-top:1px solid var(--border);font-size:11.5px;color:var(--fg-3);display:flex;gap:var(--s-2);align-items:flex-start}
+.p-foot .ic{width:14px;height:14px;margin-top:1px}
+
+.none-yet{display:flex;align-items:center;gap:var(--s-2);padding:var(--s-4) var(--pad-x);font-size:12.5px;color:var(--fg-2)}
+.none-yet .ic{color:var(--good-dot)}
+
+/* Empty states */
+.empty{padding:72px var(--s-5) 64px;text-align:center;color:var(--fg-2);display:flex;flex-direction:column;align-items:center}
+.empty > .ic{width:26px;height:26px;color:var(--fg-3);margin-bottom:var(--s-4)}
+.empty h3{font-family:var(--font-display);font-size:17px;font-weight:600;color:var(--fg);margin-bottom:7px}
+.empty p{font-size:12.5px;color:var(--fg-3);max-width:48ch;line-height:1.6}
+.empty .acts{display:flex;gap:var(--s-2);flex-wrap:wrap;justify-content:center;margin-top:var(--s-5)}
+.empty .or{margin-top:var(--s-6);padding-top:var(--s-4);border-top:1px solid var(--border);width:min(440px,100%);display:flex;flex-direction:column;gap:var(--s-2);align-items:stretch}
+.empty .or .k{font-size:11.5px;color:var(--fg-3)}
+.seed{display:flex;align-items:center;gap:var(--s-3);padding:10px 12px;border:1px solid var(--border);border-radius:var(--r-2);text-align:left;background:var(--surface)}
+.seed:hover{border-color:var(--border-strong);background:var(--surface-2)}
+.seed .ic{color:var(--fg-3)}
+.seed .l{flex:1;min-width:0}
+.seed .l b{display:block;font-size:12.5px;font-weight:500;color:var(--fg)}
+.seed .l span{font-size:11.5px;color:var(--fg-3)}
+.empty.compact{padding:var(--s-6) var(--s-5)}
+.empty.compact h3{font-size:14.5px}
+
+/* Notice line (theme details on an inactive theme) */
+.notice{display:flex;gap:var(--s-2);align-items:flex-start;padding:12px var(--pad-x);background:var(--surface-2);border-bottom:1px solid var(--border);font-size:12px;color:var(--fg-2)}
+.notice .ic{width:14px;height:14px;margin-top:2px;color:var(--fg-3)}
+
+.theme-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr);gap:var(--s-4);align-items:start}
+@media (max-width:1100px){.theme-grid{grid-template-columns:minmax(0,1fr)}}
+.kv{display:flex;gap:var(--s-3);padding:10px 0;font-size:12.5px;color:var(--fg-2);border-bottom:1px solid var(--border)}
+.kv:last-child{border-bottom:0}
+.kv .k{width:110px;flex:none;color:var(--fg-3)}
+.swatch{height:120px;border-bottom:1px solid var(--border);background:var(--surface-2);display:grid;place-items:center;color:var(--fg-3);font-size:11.5px;border-radius:var(--r-3) var(--r-3) 0 0}
+.arrow{color:var(--fg-3)}
+
+/* Modal */
+dialog.modal{border:0;padding:0;background:var(--surface);color:var(--fg);border-radius:var(--r-3);box-shadow:var(--shadow-3);width:min(480px,calc(100vw - 32px));max-height:calc(100% - 48px)}
+dialog.modal::backdrop{background:rgba(17,20,27,.32)}
+.modal-h{padding:var(--s-5) var(--s-5) var(--s-2)}
+.modal-h h2{font-family:var(--font-display);font-size:18px;font-weight:600;letter-spacing:-.01em;text-wrap:balance}
+.modal-h p{font-size:12.5px;color:var(--fg-2);margin-top:6px;line-height:1.55}
+.modal-b{padding:var(--s-3) var(--s-5) var(--s-5);display:flex;flex-direction:column;gap:var(--s-4)}
+.modal-f{display:flex;gap:var(--s-2);justify-content:flex-end;padding:var(--s-4) var(--s-5);border-top:1px solid var(--border);background:var(--bg);border-radius:0 0 var(--r-3) var(--r-3);flex-wrap:wrap}
+.use-list{border:1px solid var(--border);border-radius:var(--r-2)}
+.use-h{font-size:10.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--fg-3);padding:10px 14px 6px}
+.use-row{display:flex;align-items:center;gap:var(--s-3);padding:9px 14px;border-top:1px solid var(--border);font-size:12.5px}
+.use-h + .use-row{border-top:0}
+.use-row .ic{color:var(--fg-3)}
+.use-row .l{flex:1;min-width:0}
+.use-row code{font-size:10.5px;color:var(--fg-3)}
+.pick-list{display:flex;flex-direction:column;border:1px solid var(--border);border-radius:var(--r-2);max-height:280px;overflow:auto}
+.pick-row{display:flex;align-items:center;gap:var(--s-3);padding:10px 12px;border-top:1px solid var(--border);text-align:left;width:100%}
+.pick-row:first-child{border-top:0}
+.pick-row:hover{background:var(--surface-2)}
+.pick-row[aria-checked="true"]{background:var(--accent-soft)}
+.pick-row .ic{color:var(--fg-3)}
+.pick-row .l{flex:1;min-width:0}
+.pick-row .l b{display:block;font-weight:500;font-size:12.5px}
+.pick-row .l code{font-size:10.5px;color:var(--fg-3)}
+.search{display:flex;align-items:center;gap:9px;height:var(--ctl);padding:0 12px;border:1px solid var(--border);border-radius:var(--r-1);background:var(--surface);color:var(--fg-3)}
+.search:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.search input{border:0;background:none;outline:none;flex:1;min-width:0;font-size:12.5px;color:var(--fg)}
+
+/* Toasts: the border is the countdown. */
+.toasts{position:fixed;right:16px;bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:70;display:flex;flex-direction:column;gap:var(--s-2);align-items:flex-end;pointer-events:none}
+.toast{position:relative;pointer-events:auto;display:flex;align-items:center;gap:var(--s-3);background:var(--surface);border-radius:var(--r-2);box-shadow:var(--shadow-2);padding:11px 11px 11px 15px;font-size:12.5px;max-width:min(420px,calc(100vw - 32px))}
+.toast > .ic{color:var(--good-dot)}
+.toast.info > .ic{color:var(--accent)}
+.toast .msg{min-width:0;flex:1;line-height:1.45}
+.toast .div{flex:none;width:1px;align-self:stretch;margin-block:3px;background:var(--border)}
+.toast .undo{flex:none;display:inline-flex;align-items:center;gap:6px;height:var(--ctl-sm);padding:0 11px;border-radius:var(--r-1);font-size:12px;font-weight:500;color:var(--accent)}
+.toast .undo:hover{background:var(--accent-soft)}
+.toast-ring{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.toast-ring rect{x:.75px;y:.75px;width:calc(100% - 1.5px);height:calc(100% - 1.5px);rx:calc(var(--r-2) - .75px);fill:none;stroke-width:1.5}
+.toast-ring .track{stroke:var(--border)}
+.toast-ring .run{stroke:var(--good-dot);stroke-dasharray:100;stroke-dashoffset:0}
+.toast.info .toast-ring .run{stroke:var(--accent)}
+@media (prefers-reduced-motion:no-preference){
+  .toast{animation:rise .16s ease-out}
+  .toast-ring .run{animation:toast-run var(--life,2600ms) linear forwards}
+  .toast.held .toast-ring .run{animation-play-state:paused}
+}
+@keyframes rise{from{opacity:0;transform:translateY(8px)}}
+@keyframes toast-run{to{stroke-dashoffset:100}}
+
+@media (max-width:860px){
+  .railbar,.rail{position:fixed;top:0;bottom:0;z-index:52;transform:translateX(-100%);transition:transform .18s ease}
+  .railbar{left:0}
+  .rail{left:var(--railbar);box-shadow:var(--shadow-3);transform:translateX(calc(-100% - var(--railbar)))}
+  .app.nav-open .railbar,.app.nav-open .rail{transform:translateX(0)}
+  .app.nav-open .scrim-nav{display:block;position:fixed;inset:0;z-index:51;background:rgba(17,20,27,.28)}
+  .burger{display:grid}
+}
+@media (max-width:640px){
+  .wrap{padding:var(--s-5) var(--s-4) 80px}
+  .kbar{min-width:0;width:var(--ctl);padding:0;justify-content:center}
+  .kbar span,.kbar kbd{display:none}
+  .crumbs .crumb-sec,.crumbs .crumb-sec + .sep{display:none}
+  .page-head h1{font-size:22px}
+  .panel-head .hint{display:none}
+}
+@media (prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+
+/* ================= A, refined: controls and editing in the row ================= */
+.menu{max-height:min(440px,70vh);overflow:auto}
+.lab-reset{margin-left:auto;padding:3px 10px;border:1px solid var(--border-strong);border-radius:var(--r-1);background:var(--surface);font-size:11.5px;color:var(--fg-2)}
+.lab-reset:hover{color:var(--fg)}
+.lab-brief{border:1px dashed var(--border-strong);border-radius:var(--r-2);padding:var(--s-3) var(--s-4);margin-bottom:var(--s-5);display:grid;grid-template-columns:auto minmax(0,1fr);gap:6px var(--s-3);font-size:12.5px;color:var(--fg-2);line-height:1.55}
+.lab-brief b{color:var(--fg);font-weight:600}
+.lab-brief .lab-k{font-size:10.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--fg-3);padding-top:2px}
+
+/* One line per row. No address: the kind tile says what it is, the Item fields say where. */
+.mt-row{min-height:50px;padding-block:8px}
+.mt-pick{flex:1;min-width:0;display:flex;align-items:center;gap:var(--s-2);text-align:left;border-radius:var(--r-1);padding:2px 0;cursor:pointer}
+.mt-pick:focus-visible{outline:none}
+.mt-item:has(> .mt-row .mt-pick:focus-visible) > .mt-row,
+.mt-item:has(> .mt-row .rn-inp:focus) > .mt-row{box-shadow:inset 0 0 0 2px var(--accent)}
+.mt-item.sel > .mt-row{background:var(--accent-soft)}
+.mt-item.sel .mt-kind{background:var(--surface);border-color:var(--accent-line);color:var(--accent)}
+.mt-item:hover > .mt-row{background:var(--surface-2)}
+.mt-item.sel:hover > .mt-row{background:var(--accent-soft)}
+.mt-t{align-items:center;flex-wrap:nowrap}
+.mt-sub{flex:none;font-size:11.5px;color:var(--fg-3);white-space:nowrap}
+.mt-item.editing > .mt-row{background:var(--surface-2);border-bottom:1px dashed var(--border)}
+
+/* Row buttons, with names that show on hover and on keyboard focus. */
+.rowctl{display:flex;gap:2px;flex:none;align-items:center}
+.rowctl .sp{width:1px;height:18px;background:var(--border);margin:0 4px}
+.rb2{position:relative;width:30px;height:30px;border-radius:var(--r-1);display:grid;place-items:center;color:var(--fg-2)}
+.rb2:hover{background:var(--surface-3);color:var(--fg)}
+.rb2[disabled]{opacity:.32;pointer-events:none}
+.rb2[aria-expanded="true"]{background:var(--accent);color:var(--accent-fg)}
+.rb2[data-tip]:hover::after,.rb2[data-tip]:focus-visible::after{content:attr(data-tip);position:absolute;top:calc(100% + 6px);right:0;z-index:20;
+  white-space:nowrap;font-size:11px;font-weight:500;line-height:1.3;padding:5px 8px;border-radius:var(--r-1);background:var(--fg);color:var(--bg);pointer-events:none}
+.tree-hover .mt-item:not(.sel):not(.editing):not(:hover):not(:focus-within) .rowctl > *{visibility:hidden}
+@media (hover:none){.tree-hover .mt-item:not(.sel):not(.editing) .rowctl{display:none}}
+
+/* Rename in the row */
+.rn-inp{flex:1;min-width:0;height:30px;border:1px solid var(--accent);border-radius:var(--r-1);background:var(--surface);padding:0 9px;font-family:var(--font-title);font-size:var(--title-size);font-weight:var(--title-weight);color:var(--fg);outline:none;box-shadow:0 0 0 3px var(--accent-soft)}
+.rn-inp::placeholder{color:var(--fg-3);font-weight:400}
+.rn-hint{flex:none;font-size:11px;color:var(--fg-3)}
+
+/* Every row editable */
+.ev{flex:1;min-width:0;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,.9fr);gap:var(--s-2);align-items:center}
+.ev-inp{height:32px;border:1px solid transparent;border-radius:var(--r-1);background:transparent;padding:0 9px;font-family:var(--font-title);font-size:var(--title-size);font-weight:var(--title-weight);color:var(--fg);min-width:0;width:100%;outline:none}
+.mt-item:hover .ev-inp,.mt-item.sel .ev-inp{border-color:var(--border);background:var(--surface)}
+.ev-inp:focus{border-color:var(--accent);background:var(--surface);box-shadow:0 0 0 3px var(--accent-soft)}
+.ev-inp::placeholder{color:var(--fg-2);font-weight:var(--title-weight)}
+.ev-inp.heading{text-transform:uppercase;font-family:var(--font-ui);font-size:11px;letter-spacing:.07em;font-weight:600;color:var(--fg-2)}
+.ev-link{display:flex;align-items:center;gap:7px;height:32px;padding:0 9px;border:1px solid transparent;border-radius:var(--r-1);font-size:12px;color:var(--fg-2);min-width:0;text-align:left}
+.ev-link span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ev-link .ic{color:var(--fg-3);width:14px;height:14px}
+.mt-item:hover .ev-link,.mt-item.sel .ev-link{border-color:var(--border);background:var(--surface)}
+.ev-link:hover{border-color:var(--border-strong)!important}
+.ev-none{font-size:12px;color:var(--fg-3);padding:0 9px}
+@media (max-width:760px){.ev{grid-template-columns:minmax(0,1fr)}.ev-link{display:none}}
+
+/* The fields under a row, at the row's level. */
+.mt-edit{margin:0 var(--pad-x) var(--s-3) calc(var(--pad-x) - 8px + 18px + var(--s-2) + var(--d) * var(--indent));border:1px solid var(--border);border-top:0;border-radius:0 0 var(--r-2) var(--r-2);background:var(--surface);padding:var(--s-4);display:flex;flex-direction:column;gap:var(--s-4)}
+.mt-item.editing > .mt-row{margin-inline:0}
+.ed-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:var(--s-4)}
+.ed-grid .wide{grid-column:1 / -1}
+@media (max-width:640px){.ed-grid{grid-template-columns:minmax(0,1fr)}.mt-edit{margin-left:var(--s-3);margin-right:var(--s-3)}}
+.ed-foot{display:flex;align-items:center;gap:var(--s-2);flex-wrap:wrap}
+.ed-foot .hint{font-size:11.5px;color:var(--fg-3);margin-right:auto}
+.ins-row{display:flex;gap:var(--s-2);flex-wrap:wrap}
+
+/* Layouts */
+.lay-one{max-width:920px;margin-inline:auto}
+.strip{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr) minmax(0,1.2fr);gap:var(--s-4) var(--s-5);padding:var(--s-4) var(--pad-x)}
+@media (max-width:900px){.strip{grid-template-columns:minmax(0,1fr)}}
+.strip .loc-checks{display:flex;flex-direction:column;gap:2px}
+.prob-line{border-top:1px solid var(--border)}
+.prob-line > summary{display:flex;align-items:center;gap:var(--s-2);padding:12px var(--pad-x);cursor:pointer;list-style:none;font-size:12.5px;color:var(--fg-2)}
+.prob-line > summary::-webkit-details-marker{display:none}
+.prob-line > summary .ic.chev{width:12px;height:12px;transition:transform .12s;margin-left:auto}
+.prob-line[open] > summary .ic.chev{transform:rotate(90deg)}
+.ptabs{margin-bottom:var(--s-4)}
+.tab{display:inline-flex;align-items:center;gap:7px;padding:12px 14px;font-size:13px;color:var(--fg-2);border-bottom:2px solid transparent;margin-bottom:-1px;white-space:nowrap}
+.tab:hover{color:var(--fg)}
+.tab[aria-selected="true"]{color:var(--fg);font-weight:500;border-bottom-color:var(--accent)}
+.tab .c{font-family:var(--font-mono);font-size:10.5px;color:var(--fg-3);background:var(--surface-2);border-radius:99px;padding:1px 6px}
+.tab .c.warn{color:var(--warn);background:var(--warn-soft)}
+.tabs{display:flex;gap:var(--s-1);border-bottom:1px solid var(--border);overflow-x:auto;scrollbar-width:none}
+.set-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:var(--s-4);align-items:start}
+@media (max-width:900px){.set-grid{grid-template-columns:minmax(0,1fr)}}
+.lay-two{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(300px,1fr);gap:var(--s-4);align-items:start}
+.lay-two > .stack:last-child{position:sticky;top:0}
+@media (max-width:1100px){.lay-two{grid-template-columns:minmax(0,1fr)}.lay-two > .stack:last-child{position:static}}
+
+/* Narrow: the label keeps the row; the buttons take a line of their own under it. */
+@media (max-width:640px){
+  .mt-row{flex-wrap:wrap;row-gap:4px}
+  .mt-row > .rowctl{flex-basis:100%;justify-content:flex-end}
+  .tree-hover .mt-item:not(.sel):not(.editing) > .mt-row > .rowctl{display:none}
+  .rn-hint{display:none}
+}
+
+/* Pills sit right after the title. */
+.mt-t{gap:var(--s-2)}
+.mt-t .pill{flex:none}
+.ev-lab{display:flex;align-items:center;gap:var(--s-2);min-width:0}
+.ev-lab .ev-inp{flex:1}
+.ev-lab .pill{flex:none}
+
+/* Menu settings, five ways */
+.ph-main{min-width:0;display:flex;flex-direction:column}
+.h1-row{display:flex;align-items:center;gap:var(--s-2)}
+.h1-edit{display:flex;align-items:center;gap:var(--s-3);flex-wrap:wrap}
+.h1-inp{font-family:var(--font-display);font-size:var(--h1);font-weight:600;letter-spacing:var(--h1-track);line-height:1.2;color:var(--fg);
+  border:1px solid var(--accent);border-radius:var(--r-1);background:var(--surface);padding:0 10px;height:calc(var(--h1) + 16px);min-width:0;width:min(520px,100%);outline:none;box-shadow:0 0 0 3px var(--accent-soft)}
+.head-row{display:flex;align-items:center;gap:var(--s-2) var(--s-3);flex-wrap:wrap;margin-top:var(--s-3)}
+.head-k{font-size:10.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--fg-3)}
+.head-k + .loc-chips,.head-k + .chips,.head-k + .head-snip{margin-right:var(--s-3)}
+.head-snip{display:inline-flex;align-items:center;gap:var(--s-2)}
+.head-snip code{font-size:12px;color:var(--fg-2)}
+.loc-chips{display:flex;gap:6px;flex-wrap:wrap}
+.loc-chip{position:relative;display:inline-flex;align-items:center;gap:6px;height:var(--ctl-sm);padding:0 11px 0 9px;border:1px dashed var(--border-strong);border-radius:99px;font-size:12px;color:var(--fg-2);background:transparent}
+.loc-chip .ic{width:13px;height:13px}
+.loc-chip:hover{border-color:var(--fg-3);color:var(--fg)}
+.loc-chip[aria-pressed="true"]{border-style:solid;border-color:var(--accent-line);background:var(--accent-soft);color:var(--accent);font-weight:500}
+.loc-chip[data-tip]:hover::after,.loc-chip[data-tip]:focus-visible::after{content:attr(data-tip);position:absolute;top:calc(100% + 6px);left:0;z-index:20;white-space:nowrap;font-size:11px;font-weight:500;padding:5px 8px;border-radius:var(--r-1);background:var(--fg);color:var(--bg);pointer-events:none}
+.loc-state{color:var(--fg-2)}
+.loc-checks{display:flex;flex-direction:column;gap:var(--s-2)}
+
+.set-fold > summary{display:flex;align-items:center;gap:var(--s-3);padding:var(--pad-panel) var(--pad-x);cursor:pointer;list-style:none;min-height:58px;flex-wrap:wrap}
+.set-fold > summary::-webkit-details-marker{display:none}
+.sf-t{font-family:var(--font-display);font-size:15px;font-weight:600}
+.sf-sum{font-size:12px;color:var(--fg-3);min-width:0;flex:1}
+.sf-sum code{font-size:11px}
+.sf-sum .dot-sep{color:var(--border-strong)}
+.set-fold .chev{width:14px;height:14px;color:var(--fg-3);transition:transform .12s}
+.set-fold[open] .chev{transform:rotate(90deg)}
+.set-fold[open] > summary{border-bottom:1px solid var(--border)}
+.sf-body{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:var(--s-5);padding:var(--s-4) var(--pad-x) var(--s-5)}
+@media (max-width:760px){.sf-body{grid-template-columns:minmax(0,1fr)}}
+
+.loc-cards{display:flex;flex-direction:column;gap:var(--s-3)}
+.lc-head{display:flex;align-items:baseline;gap:var(--s-3);flex-wrap:wrap}
+.lc-head h2{font-family:var(--font-display);font-size:15px;font-weight:600}
+.lc-head .hint{font-size:11.5px;color:var(--fg-3)}
+.lc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:var(--s-3)}
+.loc-card{position:relative;display:flex;flex-direction:column;gap:4px;padding:var(--s-3) var(--s-4) var(--s-4);border:1px solid var(--border);border-radius:var(--r-2);background:var(--surface);cursor:pointer}
+.loc-card:hover{border-color:var(--border-strong)}
+.loc-card.on{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+.loc-card:has(input:focus-visible){outline:2px solid var(--accent);outline-offset:2px}
+.lc-top{display:flex;align-items:center;justify-content:space-between;gap:var(--s-2)}
+.lc-top b{font-weight:500;font-size:13px}
+.lc-box{width:18px;height:18px;border:1px solid var(--border-strong);border-radius:4px;display:grid;place-items:center;color:transparent;flex:none;background:var(--surface)}
+.lc-box .ic{width:12px;height:12px;stroke-width:2.6}
+.loc-card.on .lc-box{background:var(--accent);border-color:var(--accent);color:var(--accent-fg)}
+.lc-depth{font-size:11.5px;color:var(--fg-3)}
+.lc-state{font-size:12px;color:var(--fg-2);line-height:1.45}
+.lc-act{margin-top:var(--s-2);font-size:12px;font-weight:500;color:var(--accent)}
+
+/* The Roles screen's frame: back link, title, meta line. */
+.back{display:inline-flex;align-items:center;gap:4px;font-size:13px;color:var(--fg-2);margin-bottom:var(--s-3);padding:2px 4px 2px 0;border-radius:var(--r-1)}
+.back:hover{color:var(--fg)}
+.back .ic{width:14px;height:14px}
+.ph-ref{margin-bottom:var(--s-5)}
+.meta-line{display:flex;align-items:center;flex-wrap:wrap;gap:var(--s-2) 0;margin-top:var(--s-3);font-size:12.5px;color:var(--fg-2)}
+.meta-line .mi{display:inline-flex;align-items:center;gap:6px;padding:0 var(--s-3);border-left:1px solid var(--border)}
+.meta-line .mi:first-child{padding-left:0;border-left:0}
+.meta-line .mi .ic{width:14px;height:14px;color:var(--fg-3)}
+.meta-line code{font-size:12px;color:var(--fg-2)}
+.link-btn{color:var(--accent);font-weight:500;font-size:12.5px}
+.link-btn:hover{text-decoration:underline}
+
+/* Settings rows, in the shape of the Roles screen's sections */
+.srow{border-top:1px solid var(--border)}
+.panel-head + .srow{border-top:0}
+.srow-h{display:flex;align-items:flex-start;gap:var(--s-3);width:100%;text-align:left;padding:var(--s-4) var(--pad-x)}
+.srow-h:hover{background:var(--surface-2)}
+.srow-h .chev{width:14px;height:14px;color:var(--fg-3);margin-top:3px;transition:transform .12s}
+.srow-h[aria-expanded="true"] .chev{transform:rotate(90deg)}
+.srow-h .sic{width:18px;height:18px;color:var(--fg-2);margin-top:1px}
+.srow-t{display:flex;flex-direction:column;gap:3px;min-width:0}
+.srow-t b{font-weight:500;font-size:13.5px}
+.srow-s{font-size:12.5px;color:var(--fg-3);line-height:1.5}
+.srow-s code{font-size:11.5px}
+.srow-b{padding:0 var(--pad-x) var(--s-5) calc(var(--pad-x) + 14px + 18px + 2 * var(--s-3))}
+.srow-b .strip{padding:0}
+.strip-2{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+.strip-1{grid-template-columns:minmax(0,1fr)}
+@media (max-width:640px){.srow-b{padding-left:var(--pad-x)}.strip-2{grid-template-columns:minmax(0,1fr)}}
+
+/* Summary strip */
+.sum-strip{align-items:start}
+.sv{display:flex;flex-direction:column;gap:7px;min-width:0}
+.sv .lab{font-size:12px;color:var(--fg-2);font-weight:500}
+.sv-v{font-family:var(--font-title);font-size:var(--title-size);font-weight:var(--title-weight);padding-top:6px}
+.ls{display:flex;flex-direction:column;gap:6px}
+.ls-row{display:flex;flex-direction:column;font-size:12px;color:var(--fg-3);line-height:1.4}
+.ls-row b{font-weight:500;color:var(--fg);font-size:12.5px}
+
+/* Disclosure + strip */
+.set-fold > summary .chev{order:-1;margin-right:var(--s-1)}
+.set-fold[open] > .strip{padding-top:var(--s-4)}
+
+/* Items toolbar above the panel, as the Roles screen has it */
+.items-bar{display:flex;align-items:center;gap:var(--s-3);flex-wrap:wrap;margin-bottom:var(--s-3)}
+.items-bar .hint{font-size:12.5px;color:var(--fg-3)}
+.items-bar .end{margin-left:auto;display:flex;gap:var(--s-2)}
+
+/* One panel, collapsible sections (the Roles screen's shape) */
+.psec{border-top:1px solid var(--border)}
+.onepanel > .panel-head + .psec{border-top:0}
+.psec-h{display:flex;align-items:flex-start;gap:var(--s-2)}
+.psec-h:hover{background:var(--surface-2)}
+.psec.open .psec-h:hover{background:transparent}
+.psec-t{flex:1;min-width:0;display:flex;align-items:flex-start;gap:var(--s-3);text-align:left;padding:var(--s-4) var(--pad-x)}
+.psec-t .chev{width:14px;height:14px;color:var(--fg-3);margin-top:3px;transition:transform .12s}
+.psec-t[aria-expanded="true"] .chev{transform:rotate(90deg)}
+.psec-t .sic{width:18px;height:18px;color:var(--fg-2);margin-top:1px}
+.psec-end{display:flex;gap:var(--s-2);align-items:center;padding:var(--s-4) var(--pad-x) 0 0;flex:none}
+.psec.tint.open > .psec-b{background:var(--surface-2);border-top:1px solid var(--border);padding:var(--s-4) var(--pad-x) var(--s-5) calc(var(--pad-x) + 14px + 18px + 2 * var(--s-3))}
+.psec.tint .strip{padding:0}
+.psec.tint .inp{background:var(--surface)}
+.psec.tint .inp[readonly],.psec.tint .snippet{background:var(--surface-3)}
+.psec:last-child .psec-b{border-radius:0 0 var(--r-3) var(--r-3)}
+.psec[data-k] {}
+.onepanel #tree{border-top:1px solid var(--border)}
+@media (max-width:640px){
+  .psec-h{flex-wrap:wrap}
+  .psec-end{padding:0 var(--pad-x) var(--s-3);width:100%;justify-content:flex-end}
+  .psec.tint.open > .psec-b{padding-left:var(--pad-x)}
+}
+.strip-set{grid-template-columns:minmax(0,1fr) minmax(0,1.3fr) minmax(0,1fr)}
+@media (max-width:900px){.strip-set{grid-template-columns:minmax(0,1fr)}}
+
+/* Actions stay at the top right; the meta line wraps under the title instead. */
+.ph-ref{flex-wrap:nowrap}
+.ph-ref .ph-main{flex:1;min-width:0}
+.ph-ref .acts{flex:none}
+@media (max-width:760px){.ph-ref{flex-wrap:wrap}.ph-ref .acts{margin-left:0}}
+
+/* The open item is one unit: its row and its fields share one tinted ground,
+   and the fields start under the item's title, at its level. */
+.mt-item.editing{background:var(--surface-2);border-block:1px solid var(--border)}
+.mt-item.editing > .mt-row,.mt-item.editing.sel > .mt-row,.mt-item.editing:hover > .mt-row{background:transparent;border-bottom:0}
+.mt-item.editing .mt-kind{background:var(--surface)}
+.mt-edit{margin:0;border:0;border-radius:0;background:transparent;display:block;
+  padding:var(--s-1) var(--pad-x) var(--s-5) calc(var(--pad-x) - 8px + 18px + 18px + 26px + 4 * var(--s-2) + var(--d) * var(--indent))}
+.ed-inner{max-width:680px;display:flex;flex-direction:column;gap:var(--s-4)}
+.ed-row{display:grid;gap:var(--s-4)}
+.ed-2{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+.ed-3{grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,1fr)}
+.mt-edit .field{gap:6px}
+.mt-edit .inp{background:var(--surface)}
+.mt-edit .inp:focus{background:var(--surface)}
+.mt-edit textarea.inp{min-height:0}
+.ed-ref{height:var(--ctl);padding:0 4px 0 10px;gap:var(--s-2);background:var(--surface)}
+.ed-ref .rt{display:flex;align-items:baseline;gap:var(--s-2);min-width:0}
+.ed-ref .rt b{font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:none;max-width:60%}
+.ed-ref .rt code{margin:0;font-size:10.5px}
+.ed-ref .btn.sm{height:calc(var(--ctl) - 8px)}
+.ed-note{font-size:12px;color:var(--fg-3);line-height:1.5;min-height:var(--ctl);display:flex;align-items:center}
+.ed-pick{width:100%;justify-content:flex-start;background:var(--surface)}
+.ed-sub{display:flex;flex-direction:column;gap:var(--s-2);padding-top:var(--s-4);border-top:1px solid var(--border)}
+.ed-sub-h{display:flex;align-items:center;gap:6px;font-size:10.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--fg-3)}
+.ed-sub-h .ic{width:12px;height:12px}
+.ed-fold{border-top:1px solid var(--border);padding-top:var(--s-3)}
+.ed-fold > summary{cursor:pointer;list-style:none;display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:500;color:var(--fg-2);padding:2px 0}
+.ed-fold > summary::-webkit-details-marker{display:none}
+.ed-fold > summary .ic{width:12px;height:12px;transition:transform .12s}
+.ed-fold[open] > summary .ic{transform:rotate(90deg)}
+.ed-fold > .ed-row{margin-top:var(--s-3)}
+.ed-foot{display:flex;align-items:center;gap:var(--s-3);padding-top:var(--s-1)}
+.ed-foot .hint{font-size:11.5px;color:var(--fg-3);margin-right:auto}
+@media (max-width:640px){
+  .mt-edit{padding-left:var(--pad-x)}
+  .ed-2,.ed-3{grid-template-columns:minmax(0,1fr)}
+}
+
+/* The first row sits straight under the panel head's border. */
+.mtree{padding:0}
+/* An open item: a full-width rule under its row and under its form; the form
+   uses the panel's full width. */
+.mt-item.editing{border-top:0;border-bottom:1px solid var(--border)}
+.mt-item.editing > .mt-row,.mt-item.editing.sel > .mt-row,.mt-item.editing:hover > .mt-row{border-bottom:1px solid var(--border);background:var(--accent-soft)}
+.mt-edit{padding:var(--s-4) var(--pad-x) var(--s-5)}
+.ed-inner{max-width:none}
+.mtree > .mt-item:last-child.editing{border-bottom:0}
+
+
+/* ================= the menus admin ================= */
+.lab-note{margin-left:auto}
+.lab-note + .lab-reset{margin-left:0}
+.mtable{min-width:560px}
+.lrow .nm{display:flex;align-items:center;gap:7px}
+.lrow .lic{width:15px;height:15px;color:var(--fg-3)}
+.lrow .meta{padding-left:22px}
+.mf-sp{flex:1}
+.modal-f{align-items:center}
+.ed-half{max-width:calc(50% - var(--s-4) / 2)}
+@media (max-width:640px){.ed-half{max-width:none}}
+.ed-ref.unset .rt b{color:var(--fg-3);font-weight:400}
+.empty.compact .acts{margin-top:var(--s-4)}
+.page-head .sub{margin-top:6px}
+
+/* Modals: a rule under the heading, as under a panel head. A modal with no
+   body keeps one rule, not two. */
+dialog.modal .modal-h{padding:var(--s-5) var(--s-5) var(--s-4);border-bottom:1px solid var(--border)}
+dialog.modal .modal-b{padding-top:var(--s-4)}
+dialog.modal .modal-h + .modal-f{border-top:0}
+
+/* The overflow trigger: vertical ellipsis, after Save, background only on hover and focus. */
+.kebab{width:var(--ctl);height:var(--ctl);display:grid;place-items:center;border-radius:var(--r-1);color:var(--fg-2);background:transparent;border:0}
+.kebab:hover,.kebab:focus-visible,.kebab[aria-expanded="true"]{background:var(--surface-3);color:var(--fg)}
+.save-btn[disabled]{opacity:.5;cursor:default}
+
+/* The last row's ground follows the panel's rounded corners. */
+.mtree > .mt-item:last-child{border-radius:0 0 calc(var(--r-3) - 1px) calc(var(--r-3) - 1px)}
+.mtree > .mt-item:last-child:not(.editing) > .mt-row{border-radius:0 0 calc(var(--r-3) - 1px) calc(var(--r-3) - 1px)}
+.mtree > .mt-item:last-child.editing{border-bottom:0}
+
+/* Icon and Image are buttons, sized to their words. */
+.ed-pick{width:auto;align-self:flex-start}
+/* A rename's consequences, said where the name is changed. */
+.warn-note{display:flex;gap:var(--s-2);align-items:flex-start;margin-top:var(--s-2);padding:var(--s-3);border-radius:var(--r-1);background:var(--warn-soft);color:var(--warn);font-size:12px;line-height:1.5}
+.warn-note > .ic{width:14px;height:14px;margin-top:2px;flex:none;color:var(--warn-dot)}
+.warn-note > div{display:flex;flex-direction:column;gap:var(--s-2)}
+.warn-note b{font-weight:600}
+.warn-note code{font-size:11px}
+.warn-note .check .tx b{color:var(--fg);font-weight:500}
+.warn-note .check .tx span{color:var(--fg-2)}
+.inp.bad{border-color:var(--danger-dot)}
+.err{display:flex;align-items:center;gap:5px;font-size:11.5px;color:var(--danger)}
+.err .ic{width:12px;height:12px}
+
+/* Link: the admin's existing picker, as on Redirects' To. */
+.cbx{position:relative}
+.cb-list{position:absolute;left:0;right:0;top:calc(100% + 6px);z-index:30;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-2);box-shadow:var(--shadow-2);padding:6px;max-height:300px;overflow:auto}
+.cb-list li{display:flex;align-items:center;gap:var(--s-3);padding:9px 10px;border-radius:var(--r-1);font-size:13px;color:var(--fg);cursor:pointer}
+.cb-list li .ic{color:var(--fg-3)}
+.cb-list li .op-t{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cb-list li code{font-size:11px;color:var(--fg-3);flex:none;max-width:50%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cb-list li[aria-selected="true"],.cb-list li:hover{background:var(--surface-2)}
+.cb-list .op-none{cursor:default;color:var(--fg-3);font-size:12px;line-height:1.5}
+.cb-list .op-none:hover{background:transparent}
+.lnk-set{display:flex;align-items:center;gap:var(--s-2);height:var(--ctl);padding:0 4px 0 12px;border:1px solid var(--border);border-radius:var(--r-1);background:var(--surface);min-width:0}
+.lnk-set .ic{color:var(--fg-3)}
+.lnk-set b{font-weight:500;font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:none;max-width:55%}
+.lnk-set code{font-size:11px;color:var(--fg-3);flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lnk-x{width:28px;height:28px;border-radius:var(--r-1);display:grid;place-items:center;color:var(--fg-3);flex:none}
+.lnk-x:hover{background:var(--surface-3);color:var(--fg)}
+.lnk-note{display:flex;align-items:center;gap:var(--s-2);padding:9px 12px;border-radius:var(--r-1);background:var(--surface-3);font-size:12px;color:var(--fg-2)}
+.lnk-note .ic{width:14px;height:14px;color:var(--fg-3)}
+.lnk-note b{color:var(--fg);font-weight:600}
+/* Icon, once one is chosen */
+.ico-set{display:flex;align-items:center;gap:var(--s-2);height:var(--ctl);padding:0 4px 0 6px;border:1px solid var(--border);border-radius:var(--r-1);background:var(--surface);align-self:stretch}
+.ico-prev{width:24px;height:24px;border-radius:var(--r-1);display:grid;place-items:center;background:var(--surface-2);color:var(--fg)}
+.ico-set code{flex:1;font-size:12px;color:var(--fg-2)}
+.ico-set .btn.sm{height:calc(var(--ctl) - 8px)}
+.ico-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:var(--s-2);max-height:320px;overflow:auto}
+.ico-opt{display:flex;flex-direction:column;align-items:center;gap:6px;padding:12px 6px 9px;border:1px solid var(--border);border-radius:var(--r-1);font-size:11px;color:var(--fg-2)}
+.ico-opt .ic{width:20px;height:20px;color:var(--fg)}
+.ico-opt:hover{border-color:var(--border-strong);background:var(--surface-2)}
+.ico-opt[aria-checked="true"]{border-color:var(--accent);background:var(--accent-soft);color:var(--accent)}
+
+/* Icon: a preview tile you press to change, its name, and quiet actions. */
+.ico-pick{display:flex;align-items:center;gap:var(--s-2);min-height:var(--ctl)}
+.ico-tile{width:var(--ctl);height:var(--ctl);flex:none;border-radius:var(--r-1);display:grid;place-items:center;border:1px dashed var(--border-strong);color:var(--fg-3);background:transparent;position:relative}
+.ico-tile:hover{border-color:var(--fg-3);color:var(--fg)}
+.ico-tile.set{border-style:solid;border-color:var(--border);background:var(--surface);color:var(--fg)}
+.ico-tile.set .ic{width:18px;height:18px}
+.ico-tile.set:hover{border-color:var(--accent);color:var(--accent)}
+.ico-name{font-family:var(--font-mono);font-size:12px;color:var(--fg);margin:0 var(--s-1) 0 2px}
+.ico-pick .btn-ghost.sm{padding:0 8px}
+
+/* Rows: grip, disclosure and kind sit close; the disclosure column stays so
+   titles at one level still line up. */
+.mt-row{gap:var(--s-2)}
+.mt-grip{width:16px}
+.mt-ind{margin-left:calc(var(--s-2) * -1)}
+.twist{width:16px;margin-right:calc(var(--s-1) - var(--s-2))}
+.mtree{--lead:calc(var(--pad-x) - 8px + 16px + var(--s-2))}
+
+/* Row buttons take their ground from the row: a translucent fill reads on
+   white, on the gray hover and on the selected blue alike. Pressed (Edit open,
+   menu open) is a stronger fill in the same ink, not the accent. */
+.rb2:hover,.rb2:focus-visible{background:color-mix(in srgb, var(--fg) 8%, transparent);color:var(--fg)}
+.rb2[aria-expanded="true"]{background:color-mix(in srgb, var(--fg) 12%, transparent);color:var(--fg)}
+.mt-item.sel .rb2{color:var(--accent)}
+.mt-item.sel .rb2[disabled]{color:var(--accent)}
+.mt-item.sel .rb2:hover,.mt-item.sel .rb2:focus-visible{background:color-mix(in srgb, var(--accent) 14%, transparent);color:var(--accent)}
+.mt-item.sel .rb2[aria-expanded="true"]{background:color-mix(in srgb, var(--accent) 22%, transparent);color:var(--accent)}
+.kebab[aria-expanded="true"]{background:color-mix(in srgb, var(--fg) 10%, transparent)}
+.kebab:hover,.kebab:focus-visible{background:color-mix(in srgb, var(--fg) 8%, transparent)}
+.loc-text{font-size:12.5px;color:var(--fg-2)}
+
+/* One line per row, always. The row's buttons never wrap; the title area
+   measures itself and gives way: first the sub-items count, then the pills,
+   then the title truncates with an ellipsis. */
+@media (max-width:640px){
+  .mt-row{flex-wrap:nowrap}
+  .mt-row > .rowctl{flex-basis:auto;justify-content:flex-start;margin-left:0}
+  .rowctl .rb2{width:28px;height:28px}
+  .rowctl .sp{margin:0 2px}
+}
+.mt-pick{container-type:inline-size;container-name:rowtitle}
+.mt-main,.mt-t{min-width:0}
+.mt-t .tt{min-width:0;flex:0 1 auto}
+@container rowtitle (max-width: 240px){ .mt-sub{display:none} }
+@container rowtitle (max-width: 170px){ .mt-t .pill{display:none} }
+
+/* Narrow screens: the grip goes (dragging is a pointer gesture; the arrows do
+   the same job by touch), buttons tighten, and the title keeps a floor. */
+@media (max-width:640px){
+  .mt-row{padding-right:10px;gap:6px}
+  .mt-grip{display:none}
+  .mt-ind{margin-left:-6px}
+  .mtree{--indent:14px}
+  .rowctl{gap:0}
+  .rowctl .rb2{width:27px;height:30px}
+  .rowctl .sp{margin:0 1px}
+  .mt-pick{min-width:64px}
+  .ph-ref .ph-main{flex-basis:100%}
+  .ph-ref .acts{width:100%;justify-content:flex-end}
+}
+@container rowtitle (max-width: 120px){ .mt-kind{display:none} }
+@media (max-width:640px){ .mtree{--indent:12px} .mt-pick{min-width:44px} }
+
+/* Plain-text items show their label as written, like any other item. */
+.mt-t .tt.heading{text-transform:none;letter-spacing:var(--title-track);font-family:var(--font-title);font-size:var(--title-size);font-weight:var(--title-weight);color:var(--fg)}
+</style>
+</head>
+<body>
+
+<svg style="display:none" aria-hidden="true">
+<!-- Lucide (lucide.dev), ISC. 24x24 grid, stroke only; .ic sets width/color.
+     Lucide sizes each glyph by eye, so ink heights across the set run 11 to 20.
+     That is fine in a list, where icons are read one at a time, and wrong in a
+     toolbar, where ten of them sit in a row and the tallest looks like a
+     mistake. Every glyph in the editor toolbar measures 14 to 18 units tall on
+     this grid, most of them 16: `i-link` is Lucide's own scaled from 19.9,
+     `i-shapes` from 18.4, and `i-bold` and `i-italic` are Lucide's unchanged.
+     Scaled about (12,12) with the path data rewritten rather than a transform,
+     so the stroke still comes from whichever rule is setting it. -->
+<symbol id="i-grid" viewBox="0 0 24 24"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></symbol>
+<symbol id="i-doc" viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></symbol>
+<symbol id="i-page" viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/></symbol>
+<symbol id="i-image" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.1-3.1a2 2 0 0 0-2.8 0L6 21"/></symbol>
+<symbol id="i-box" viewBox="0 0 24 24"><path d="M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73z"/><path d="M12 22V12"/><path d="m3.3 7 7.7 4.5 7.7-4.5"/></symbol>
+<symbol id="i-tag" viewBox="0 0 24 24"><path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z"/><circle cx="7.5" cy="7.5" r=".5" fill="currentColor"/></symbol>
+<symbol id="i-folder" viewBox="0 0 24 24"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></symbol>
+<symbol id="i-schema" viewBox="0 0 24 24"><rect x="16" y="16" width="6" height="6" rx="1"/><rect x="2" y="16" width="6" height="6" rx="1"/><rect x="9" y="2" width="6" height="6" rx="1"/><path d="M5 16v-3a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v3"/><path d="M12 12V8"/></symbol>
+<symbol id="i-brush" viewBox="0 0 24 24"><path d="m14.622 17.897-10.68-2.913"/><path d="M18.376 2.622a1 1 0 1 1 3.002 3.002L17.36 9.643a.5.5 0 0 0 0 .707l.944.944a2.41 2.41 0 0 1 0 3.408l-.944.944a.5.5 0 0 1-.707 0L8.354 7.348a.5.5 0 0 1 0-.707l.944-.944a2.41 2.41 0 0 1 3.408 0l.944.944a.5.5 0 0 0 .707 0z"/><path d="M9 8c-1.804 2.71-3.97 3.46-6.583 3.948a.507.507 0 0 0-.302.819l7.32 8.883a1 1 0 0 0 1.185.204C12.735 20.905 16 16.729 16 15"/></symbol>
+<symbol id="i-plug" viewBox="0 0 24 24"><path d="M12 22v-5"/><path d="M9 8V2"/><path d="M15 8V2"/><path d="M18 8v5a4 4 0 0 1-4 4h-4a4 4 0 0 1-4-4V8Z"/></symbol>
+<symbol id="i-users" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></symbol>
+<symbol id="i-shield" viewBox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></symbol>
+<symbol id="i-gear" viewBox="0 0 24 24"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></symbol>
+<symbol id="i-search" viewBox="0 0 24 24"><path d="m21 21-4.34-4.34"/><circle cx="11" cy="11" r="8"/></symbol>
+<symbol id="i-plus" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></symbol>
+<symbol id="i-chev-r" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></symbol>
+<symbol id="i-chev-l" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></symbol>
+<symbol id="i-chev-ud" viewBox="0 0 24 24"><path d="m7 15 5 5 5-5"/><path d="m7 9 5-5 5 5"/></symbol>
+<symbol id="i-arr-up" viewBox="0 0 24 24"><path d="m5 12 7-7 7 7"/><path d="M12 19V5"/></symbol>
+<symbol id="i-arr-dn" viewBox="0 0 24 24"><path d="M12 5v14"/><path d="m19 12-7 7-7-7"/></symbol>
+<symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+<symbol id="i-check-circle" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></symbol>
+<symbol id="i-trash" viewBox="0 0 24 24"><path d="M10 11v6"/><path d="M14 11v6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></symbol>
+<symbol id="i-dots" viewBox="0 0 24 24"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></symbol>
+<symbol id="i-dots-v" viewBox="0 0 24 24"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></symbol>
+<symbol id="i-corner" viewBox="0 0 24 24"><polyline points="15 10 20 15 15 20"/><path d="M4 4v7a4 4 0 0 0 4 4h12"/></symbol>
+<symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></symbol>
+<symbol id="i-moon" viewBox="0 0 24 24"><path d="M20.985 12.486a9 9 0 1 1-9.473-9.472c.405-.022.617.46.402.803a6 6 0 0 0 8.268 8.268c.344-.215.825-.004.803.401"/></symbol>
+<symbol id="i-bell" viewBox="0 0 24 24"><path d="M10.268 21a2 2 0 0 0 3.464 0"/><path d="M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326"/></symbol>
+<symbol id="i-clock" viewBox="0 0 24 24"><path d="M12 6v6l4 2"/><circle cx="12" cy="12" r="10"/></symbol>
+<symbol id="i-calendar" viewBox="0 0 24 24"><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/></symbol>
+<symbol id="i-eye" viewBox="0 0 24 24"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"/><circle cx="12" cy="12" r="3"/></symbol>
+<symbol id="i-pencil" viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></symbol>
+<symbol id="i-copy" viewBox="0 0 24 24"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></symbol>
+<symbol id="i-caret-up" viewBox="0 0 24 24"><path d="m6 15 6-6 6 6"/></symbol>
+<symbol id="i-bold" viewBox="0 0 24 24"><path d="M6 12h9a4 4 0 0 1 0 8H7a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h7a4 4 0 0 1 0 8"/></symbol>
+<symbol id="i-italic" viewBox="0 0 24 24"><path d="M19 4h-9"/><path d="M14 20H5"/><path d="m15 4-6 16"/></symbol>
+<symbol id="i-link" viewBox="0 0 24 24"><path d="M10.392 12.804a4.02 4.02 0 0 0 6.062.434l2.412-2.412a4.02 4.02 0 0 0-5.684-5.684l-1.383 1.375"/><path d="M13.608 11.196a4.02 4.02 0 0 0-6.062-.434l-2.412 2.412a4.02 4.02 0 0 0 5.684 5.684l1.375-1.375"/></symbol>
+<symbol id="i-panel" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></symbol>
+<symbol id="i-rows" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M21 9H3"/><path d="M21 15H3"/></symbol>
+<symbol id="i-rows-dense" viewBox="0 0 24 24"><path d="M3 5h18"/><path d="M3 9h18"/><path d="M3 13h18"/><path d="M3 17h18"/><path d="M3 21h18"/></symbol>
+<symbol id="i-tree" viewBox="0 0 24 24"><path d="M21 12h-8"/><path d="M21 6H8"/><path d="M21 18h-8"/><path d="M3 6v4c0 1.1.9 2 2 2h3"/><path d="M3 10v6c0 1.1.9 2 2 2h3"/></symbol>
+<symbol id="i-list" viewBox="0 0 24 24"><path d="M3 5h.01"/><path d="M3 12h.01"/><path d="M3 19h.01"/><path d="M8 5h13"/><path d="M8 12h13"/><path d="M8 19h13"/></symbol>
+<symbol id="i-alert" viewBox="0 0 24 24"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></symbol>
+<symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></symbol>
+<symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 3v12"/><path d="m17 8-5-5-5 5"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/></symbol>
+<symbol id="i-undo" viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5a5.5 5.5 0 0 1-5.5 5.5H11"/></symbol>
+<symbol id="i-rocket" viewBox="0 0 24 24"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91 0"/><path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/></symbol>
+<symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></symbol>
+<symbol id="i-arr-left" viewBox="0 0 24 24"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></symbol>
+<symbol id="i-grip" viewBox="0 0 24 24"><circle cx="9" cy="12" r="1"/><circle cx="9" cy="5" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="15" cy="19" r="1"/></symbol>
+<symbol id="i-braces" viewBox="0 0 24 24"><path d="M8 3H7a2 2 0 0 0-2 2v5a2 2 0 0 1-2 2 2 2 0 0 1 2 2v5a2 2 0 0 0 2 2h1"/><path d="M16 21h1a2 2 0 0 0 2-2v-5a2 2 0 0 1 2-2 2 2 0 0 1-2-2V5a2 2 0 0 0-2-2h-1"/></symbol>
+<symbol id="i-video" viewBox="0 0 24 24"><path d="m16 13 5.223 3.482a.5.5 0 0 0 .777-.416V7.87a.5.5 0 0 0-.752-.432L16 10.5"/><rect x="2" y="6" width="14" height="12" rx="2"/></symbol>
+<symbol id="i-file" viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/></symbol>
+<symbol id="i-key" viewBox="0 0 24 24"><path d="M2.586 17.414A2 2 0 0 0 2 18.828V21a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h1a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h.172a2 2 0 0 0 1.414-.586l.814-.814a6.5 6.5 0 1 0-4-4z"/><circle cx="16.5" cy="7.5" r=".5" fill="currentColor"/></symbol>
+<symbol id="i-circle" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/></symbol>
+<symbol id="i-text" viewBox="0 0 24 24"><path d="M12 4v16"/><path d="M4 7V5a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1v2"/><path d="M9 20h6"/></symbol>
+<symbol id="i-sidebar" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M15 3v18"/></symbol>
+<symbol id="i-quote" viewBox="0 0 24 24"><path d="M16 3a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h1a1 1 0 0 1 1 1v1a2 2 0 0 1-2 2 1 1 0 0 0-1 1v2a1 1 0 0 0 1 1 6 6 0 0 0 6-6V5a2 2 0 0 0-2-2z"/><path d="M5 3a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h1a1 1 0 0 1 1 1v1a2 2 0 0 1-2 2 1 1 0 0 0-1 1v2a1 1 0 0 0 1 1 6 6 0 0 0 6-6V5a2 2 0 0 0-2-2z"/></symbol>
+<symbol id="i-columns" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M12 3v18"/></symbol>
+<symbol id="i-minus" viewBox="0 0 24 24"><path d="M5 12h14"/></symbol>
+<symbol id="i-spacer" viewBox="0 0 24 24"><path d="M12 8V2"/><path d="m8 5 4-3 4 3"/><path d="M12 16v6"/><path d="m8 19 4 3 4-3"/><path d="M3 12h18"/></symbol>
+<symbol id="i-blockquote" viewBox="0 0 24 24"><path d="M17 6H3"/><path d="M21 12H8"/><path d="M21 18H8"/><path d="M3 12v6"/></symbol>
+<symbol id="i-file-code" viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 12.5 8 15l2 2.5"/><path d="m14 12.5 2 2.5-2 2.5"/></symbol>
+<!-- Three widths, three glyphs: the two rules are the text column, the bar is
+     the element. Base matches the column, Wide overruns it, Full loses its
+     ends because it does not stop. -->
+<symbol id="i-bleed-base" viewBox="0 0 24 24"><path d="M6 4h12"/><rect x="6" y="8" width="12" height="8" rx="1"/><path d="M6 20h12"/></symbol>
+<symbol id="i-bleed-wide" viewBox="0 0 24 24"><path d="M6 4h12"/><rect x="3" y="8" width="18" height="8" rx="1"/><path d="M6 20h12"/></symbol>
+<symbol id="i-bleed-full" viewBox="0 0 24 24"><path d="M6 4h12"/><path d="M1 8h22"/><path d="M1 16h22"/><path d="M6 20h12"/></symbol>
+<symbol id="i-cards" viewBox="0 0 24 24"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></symbol>
+<symbol id="i-frame" viewBox="0 0 24 24"><path d="M22 6H2"/><path d="M22 18H2"/><path d="M6 2v20"/><path d="M18 2v20"/></symbol>
+<symbol id="i-gallery" viewBox="0 0 24 24"><path d="M18 22H4a2 2 0 0 1-2-2V6"/><path d="m22 13-1.296-1.296a2.41 2.41 0 0 0-3.408 0L11 18"/><circle cx="12" cy="8" r="2"/><rect width="16" height="16" x="6" y="2" rx="2"/></symbol>
+<symbol id="i-audio" viewBox="0 0 24 24"><path d="M2 10v4"/><path d="M6 6v12"/><path d="M10 3v18"/><path d="M14 8v8"/><path d="M18 5v14"/><path d="M22 10v4"/></symbol>
+<symbol id="i-download" viewBox="0 0 24 24"><path d="M12 15V3"/><path d="m7 10 5 5 5-5"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/></symbol>
+<symbol id="i-table" viewBox="0 0 24 24"><path d="M12 3v18"/><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M3 9h18"/><path d="M3 15h18"/></symbol>
+<symbol id="i-chart" viewBox="0 0 24 24"><path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></symbol>
+<symbol id="i-map" viewBox="0 0 24 24"><path d="M14.106 5.553a2 2 0 0 0 1.788 0l3.659-1.83A1 1 0 0 1 21 4.619v12.764a1 1 0 0 1-.553.894l-4.553 2.277a2 2 0 0 1-1.788 0l-4.212-2.106a2 2 0 0 0-1.788 0l-3.659 1.83A1 1 0 0 1 3 19.381V6.618a1 1 0 0 1 .553-.894l4.553-2.277a2 2 0 0 1 1.788 0z"/><path d="M15 5.764v15"/><path d="M9 3.236v15"/></symbol>
+<symbol id="i-form" viewBox="0 0 24 24"><rect width="8" height="4" x="8" y="2" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4"/><path d="M12 16h4"/><path d="M8 11h.01"/><path d="M8 16h.01"/></symbol>
+<symbol id="i-caret-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+<symbol id="i-hash" viewBox="0 0 24 24"><path d="M4 9h16"/><path d="M4 15h16"/><path d="M10 3 8 21"/><path d="M16 3l-2 18"/></symbol>
+<symbol id="i-book" viewBox="0 0 24 24"><path d="M12 7v14"/><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/></symbol>
+<symbol id="i-pin" viewBox="0 0 24 24"><path d="M12 17v5"/><path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"/></symbol>
+<symbol id="i-shapes" viewBox="0 0 24 24"><path d="M8.38 10.043a.685.685 0 0 1-.612-1.056l3.645-5.791a.685.685 0 0 1 1.172-.042l3.622 5.813a.685.685 0 0 1-.56 1.076Z"/><rect x="3.196" y="13.957" width="6.848" height="6.848" rx="1"/><circle cx="17.38" cy="17.38" r="3.424"/></symbol>
+<symbol id="i-sparkle" viewBox="0 0 24 24"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/></symbol>
+<symbol id="i-cart" viewBox="0 0 24 24"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></symbol>
+<symbol id="i-price" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><path d="M12 18V6"/></symbol>
+<symbol id="i-inline" viewBox="0 0 24 24"><path d="M4 20h16"/><path d="m6 16 6-12 6 12"/><path d="M8 12h8"/></symbol>
+<symbol id="i-kbd" viewBox="0 0 24 24"><path d="M10 8h.01"/><path d="M12 12h.01"/><path d="M14 8h.01"/><path d="M16 12h.01"/><path d="M18 8h.01"/><path d="M6 8h.01"/><path d="M7 16h10"/><path d="M8 12h.01"/><rect width="20" height="16" x="2" y="4" rx="2"/></symbol>
+<symbol id="i-layers" viewBox="0 0 24 24"><path d="M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83z"/><path d="M2 12a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 12"/><path d="M2 17a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 17"/></symbol>
+<symbol id="i-filter" viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M7 12h10"/><path d="M10 18h4"/></symbol>
+
+<symbol id="i-navmenu" viewBox="0 0 24 24"><path d="M4 6h16"/><path d="M4 12h16"/><path d="M4 18h10"/></symbol>
+<symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></symbol>
+<symbol id="i-route" viewBox="0 0 24 24"><path d="M12 13v8"/><path d="M12 3v3"/><path d="M18 6a2 2 0 0 1 1.387.56l2.307 2.22a1 1 0 0 1 0 1.44l-2.307 2.22A2 2 0 0 1 18 13H6a2 2 0 0 1-1.387-.56l-2.306-2.22a1 1 0 0 1 0-1.44l2.306-2.22A2 2 0 0 1 6 6z"/></symbol>
+<symbol id="i-heading" viewBox="0 0 24 24"><path d="M6 12h12"/><path d="M6 20V4"/><path d="M18 20V4"/></symbol>
+<symbol id="i-indent" viewBox="0 0 24 24"><path d="M21 12H11"/><path d="M21 18H11"/><path d="M21 6H11"/><path d="m3 8 4 4-4 4"/></symbol>
+<symbol id="i-outdent" viewBox="0 0 24 24"><path d="M21 12H11"/><path d="M21 18H11"/><path d="M21 6H11"/><path d="m7 8-4 4 4 4"/></symbol>
+<symbol id="i-location" viewBox="0 0 24 24"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"/><circle cx="12" cy="10" r="3"/></symbol><symbol id="i-plaintext" viewBox="0 0 24 24"><path d="M15 18H3"/><path d="M17 6H3"/><path d="M21 12H3"/></symbol></svg>
+<div class="lab-bar" role="region" aria-label="Sketch controls">
+  <b>Menus Admin · Sketch</b>
+  <div class="lab-grp"><span>Admin theme</span>
+    <div class="lab-seg" id="labTheme">
+      <button type="button" data-v="neutral" aria-pressed="true">Neutral</button>
+      <button type="button" data-v="editorial" aria-pressed="false">Editorial</button>
+    </div>
+  </div>
+  <div class="lab-grp"><span>Scheme</span>
+    <div class="lab-seg" id="labScheme">
+      <button type="button" data-v="" aria-pressed="true">System</button>
+      <button type="button" data-v="light" aria-pressed="false">Light</button>
+      <button type="button" data-v="dark" aria-pressed="false">Dark</button>
+    </div>
+  </div>
+  <span class="lab-note">Invented data. Nothing is saved anywhere but this page.</span>
+  <button type="button" class="lab-reset" id="labReset">Reset</button>
+</div>
+
+<div class="app" id="app">
+  <nav class="railbar" aria-label="Sections">
+    <span class="rb-mark" aria-hidden="true">M</span>
+    <button class="rb" type="button" aria-current="false"><svg class="ic"><use href="#i-grid"/></svg><span>Home</span></button>
+    <button class="rb" type="button" aria-current="false"><svg class="ic"><use href="#i-doc"/></svg><span>Content</span></button>
+    <button class="rb" type="button" aria-current="false"><svg class="ic"><use href="#i-plug"/></svg><span>Extend</span></button>
+    <button class="rb" type="button" aria-current="false"><svg class="ic"><use href="#i-users"/></svg><span>Users</span></button>
+    <button class="rb" type="button" aria-current="true"><svg class="ic"><use href="#i-gear"/></svg><span>Config</span></button>
+  </nav>
+  <aside class="rail" id="rail" aria-label="Config">
+    <div class="sec-head"><h2>Config<span class="sub">Structure and settings</span></h2></div>
+    <div class="nav">
+      <div class="nav-group-label">Structure</div>
+      <button class="nav-item" type="button"><svg class="ic"><use href="#i-schema"/></svg><span class="lbl">Content Types</span><span class="nav-count">7</span></button>
+      <button class="nav-item" type="button"><svg class="ic"><use href="#i-link"/></svg><span class="lbl">Relationships</span><span class="nav-count">4</span></button>
+      <button class="nav-item" type="button"><svg class="ic"><use href="#i-braces"/></svg><span class="lbl">Fields</span><span class="nav-count">23</span></button>
+      <button class="nav-item" type="button" id="navMenus" aria-current="page"><svg class="ic"><use href="#i-navmenu"/></svg><span class="lbl">Menus</span><span class="nav-count" id="navMenusCount">4</span></button>
+      <div class="nav-group-label">Settings</div>
+      <button class="nav-item" type="button"><svg class="ic"><use href="#i-gear"/></svg><span class="lbl">General</span></button>
+      <button class="nav-item" type="button"><svg class="ic"><use href="#i-link"/></svg><span class="lbl">Addresses</span></button>
+    </div>
+  </aside>
+  <div class="scrim-nav" id="scrimNav"></div>
+  <div class="main">
+    <header class="topbar">
+      <button class="icon-btn burger" type="button" id="burger" aria-label="Open navigation"><svg class="ic"><use href="#i-navmenu"/></svg></button>
+      <nav class="crumbs" id="crumbs" aria-label="Breadcrumb"></nav>
+      <div class="spacer"></div>
+      <button class="kbar" type="button"><svg class="ic"><use href="#i-search"/></svg><span>Search or jump to…</span><kbd>⌘K</kbd></button>
+      <span class="avatar" aria-label="Dana Reyes">DR</span>
+    </header>
+    <main class="work" id="work"><div class="wrap" id="view"></div></main>
+  </div>
+</div>
+
+<dialog class="modal" id="dlg" aria-labelledby="dlgTitle"></dialog>
+<div class="toasts" id="toasts" aria-hidden="true"></div>
+<div class="sr" role="status" aria-live="polite" id="live"></div>
+
+<script>
+/* Menus admin. The list of menus with the active theme's locations, and each
+   menu's screen in the settled design: the Roles frame, a meta line, Settings
+   in a dialog, and an item tree whose rows carry their own moves and open their
+   fields underneath. Invented data; nothing leaves the page. */
+const $ = (s, r=document) => r.querySelector(s);
+const $$ = (s, r=document) => Array.from(r.querySelectorAll(s));
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const icon = (n, cls="") => '<svg class="ic '+cls+'" aria-hidden="true"><use href="#'+n+'"/></svg>';
+const plural = (n, one, many) => n + " " + (n === 1 ? one : (many || one + "s"));
+
+/* Link kinds are a registry (D-019): each kind names itself and draws its own
+   Link control. A plugin adds a kind by adding an entry. */
+const KINDS = {
+  entry:      { label:"Entry",      icon:"i-page",    desc:"A page or any other entry" },
+  term:       { label:"Term",       icon:"i-tag",     desc:"A topic or a tag" },
+  collection: { label:"Collection", icon:"i-folder",  desc:"Everything of one type, at its index page" },
+  route:      { label:"Route",      icon:"i-route",   desc:"A named address, such as the archive" },
+  url:        { label:"URL",        icon:"i-globe",   desc:"Any address, here or on another site" },
+  none:       { label:"Plain Text", icon:"i-plaintext", desc:"No link. Shown as text, often over its sub-items" },
+  link:       { label:"Link",       icon:"i-link",    desc:"Not chosen yet" }
+};
+const ENTRIES = [
+  { t:"About", path:"page/about" }, { t:"Masthead", path:"page/about/masthead" }, { t:"Contact", path:"page/contact" },
+  { t:"Colophon", path:"page/colophon" }, { t:"Privacy", path:"page/privacy" }, { t:"Press Kit", path:"page/press-kit" },
+  { t:"Site Map", path:"page/site-map" }, { t:"What I'm Doing Now", path:"page/now" }, { t:"Style Guide", path:"page/style-guide", off:"Draft" }
+];
+const TERMS = [
+  { t:"Tables", path:"topic/tables" }, { t:"Typography", path:"topic/typography" }, { t:"Layout", path:"topic/layout" },
+  { t:"Accessibility", path:"topic/accessibility", off:"Draft" }, { t:"Color", path:"topic/color" }
+];
+const COLLECTIONS = [ { t:"Posts", path:"type:post" }, { t:"Topics", path:"type:topic" }, { t:"Releases", path:"type:release" } ];
+const ROUTES = [ { t:"Archive", path:"route:archive" }, { t:"Feed", path:"route:feed" }, { t:"Search", path:"route:search" } ];
+
+/* ---------------------------------------------------------------- data */
+let uid = 1;
+const it = (o, kids) => Object.assign({ id:"n"+(uid++), label:"", open:true, children:kids||[], f:{} }, o);
+const E = (t, path, kids, extra) => it(Object.assign({ kind:"entry", derived:t, path }, extra||{}), kids);
+const H = (t, kids) => it({ kind:"none", label:t, path:"" }, kids);
+const U = (label, url, extra) => it(Object.assign({ kind:"url", derived:url.replace(/^https?:\/\//,"").split("/")[0], label, path:url }, extra||{}));
+function seed(){
+  const P = (t, slug, kids, x) => E(t, "page/handbook/"+slug, kids, x);
+  return [
+    { name:"footer", label:"Footer", entries:[], tree:[ E("About","page/about"), E("Colophon","page/colophon"), E("Contact","page/contact"),
+        E("Privacy","page/privacy"), it({ kind:"route", derived:"Feed", path:"route:feed" }), U("GitHub","https://github.com/meridian-review") ] },
+    { name:"handbook", label:"Handbook Sidebar", entries:[], tree:[
+      H("Getting Started", [ P("Installation","installation"), P("Requirements","requirements"),
+        P("Configuration","configuration",[ P("Environment Files","environment"), P("Databases","databases"), P("Caching","caching") ]), P("Your First Site","first-site") ]),
+      H("Content", [ P("Entries","entries"), P("Content Types","content-types"), P("Fields","fields"), P("Relationships","relationships"),
+        P("Media","media",[ P("Uploads","uploads"), P("Image Sizes","image-sizes") ]), P("Menus","menus"), P("Redirects","redirects") ]),
+      H("Templates", [ P("How Templates Work","templates"), P("Template Tags","template-tags"), P("Partials","partials"), P("Pagination","pagination") ]),
+      H("Themes", [ P("Theme Structure","theme-structure"), P("theme.json","theme-json"), P("Menu Locations","menu-locations"), P("Admin Themes","admin-themes") ]),
+      H("Plugins", [ P("Writing a Plugin","writing-a-plugin"), P("Hooks","hooks"), P("Link Kinds","link-kinds", null, { off:"Draft" }),
+        P("Settings Screens","settings-screens"), P("Capabilities","plugin-capabilities") ]),
+      H("Reference", [ P("CLI","cli",[ P("content:terms","cli-content-terms"), P("menu:refs","cli-menu-refs"), P("site:health","cli-site-health") ]),
+        P("Config Keys","config-keys"), P("Capabilities","capabilities"), P("Directives","directives"), P("Glossary","glossary") ]),
+      it({ kind:"collection", derived:"Releases", label:"Changelog", path:"type:release" }) ] },
+    { name:"main", label:"Main Navigation", entries:[{ t:"Site Map", a:"/site-map" }], tree:[
+      it({ kind:"collection", derived:"Posts", label:"Writing", path:"type:post" }),
+      it({ kind:"route", derived:"Archive", path:"route:archive" }),
+      it({ kind:"collection", derived:"Topics", path:"type:topic" }, [
+        it({ kind:"term", derived:"Tables", path:"topic/tables" }), it({ kind:"term", derived:"Typography", path:"topic/typography" }),
+        it({ kind:"term", derived:"Accessibility", path:"topic/accessibility", off:"Draft" }) ]),
+      E("About", "page/about", [ E("Masthead", "page/about/masthead"), E("Contact", "page/contact"), E("Press", "page/press", null, { off:"Trash" }) ]),
+      E("What I'm Doing Now", "page/now", null, { label:"Now" }),
+      it({ kind:"route", derived:"Feed", path:"route:feed", f:{ button:true } }) ] },
+    { name:"social", label:"Social", entries:[{ t:"Contact", a:"/contact" }], tree:[
+      U("Mastodon","https://mastodon.social/@meridian", { rel:"me", f:{ network:"Mastodon" } }),
+      U("Bluesky","https://bsky.app/profile/meridianreview.org", { f:{ network:"Bluesky" } }),
+      U("GitHub","https://github.com/meridian-review", { rel:"me", f:{ network:"GitHub" } }) ] }
+  ];
+}
+/* The active theme declares its locations. Assignments live with the theme. */
+const THEME = { name:"Madder", locations:[
+  { key:"primary", name:"Header Navigation", depth:"Up to 2 levels", defaults:5,
+    fields:[{ key:"button", type:"check", label:"Show as a Button", hint:"Madder draws this item as a button at the end of the bar." }] },
+  { key:"footer", name:"Footer Links", depth:"One level", defaults:4, fields:[] },
+  { key:"social", name:"Social Links", depth:"One level", defaults:0,
+    fields:[{ key:"network", type:"select", label:"Network", options:["Mastodon","Bluesky","GitHub","Other"] }] }
+]};
+const seedAssign = () => ({ primary:"main", footer:"footer", social:"social" });
+
+const S = { view:"list", list:null, menus:seed(), assign:seedAssign(), sel:{}, open:null, ed:"expand", btn:"hover", renaming:null,
+  dirty:false, snap:null, draftLabel:"", draftLocs:{} };
+const menuOf = name => S.menus.find(m => m.name === name);
+const cur = () => menuOf(S.list);
+const T = () => cur().tree;
+
+/* ---------------------------------------------------------------- tree ops */
+function flat(list=T(), d=0, parent=null, out=[]){ list.forEach((n,i) => { out.push({ n, d, parent, list, i }); flat(n.children, d+1, n, out); }); return out; }
+function visible(){ const out = []; (function w(list, d, parent){ list.forEach((n,i) => { out.push({ n, d, parent, list, i }); if (n.open) w(n.children, d+1, n); }); })(T(), 0, null); return out; }
+const find = id => flat().find(x => x.n.id === id);
+const shown = n => n.label || n.derived || "Untitled";
+const selId = () => S.sel[S.list];
+const inside = (id, other) => flat([find(id).n]).some(y => y.n.id === other);
+function ensureSel(){ if (!T().length){ S.sel[S.list] = null; return; } if (!selId() || !find(selId())) S.sel[S.list] = (flat().find(x => x.n.kind !== "none") || flat()[0]).n.id; }
+function can(id, a){ const x = find(id); if (!x) return false; return a === "up" || a === "in" ? x.i > 0 : a === "down" ? x.i < x.list.length-1 : a === "out" ? !!x.parent : false; }
+function move(id, a){
+  if (!can(id, a)) return false;
+  const { n, list, i, parent } = find(id);
+  if (a === "up"){ list.splice(i,1); list.splice(i-1,0,n); }
+  else if (a === "down"){ list.splice(i,1); list.splice(i+1,0,n); }
+  else if (a === "in"){ const p = list[i-1]; list.splice(i,1); p.children.push(n); p.open = true; }
+  else { const pp = find(parent.id); list.splice(i,1); pp.list.splice(pp.i+1,0,n); }
+  markDirty(); return true;
+}
+function moveTo(id, targetId, pos){
+  const x = find(id); x.list.splice(x.i, 1);
+  const t = find(targetId);
+  if (pos === "first"){ t.n.children.unshift(x.n); t.n.open = true; } else t.list.splice(t.i + (pos === "after" ? 1 : 0), 0, x.n);
+  markDirty();
+}
+const where = id => { const x = find(id); return "level " + (x.d+1) + ", " + (x.i+1) + " of " + x.list.length + (x.parent ? " inside " + shown(x.parent) : " at the top"); };
+function announce(m){ $("#live").textContent = ""; requestAnimationFrame(() => $("#live").textContent = m); }
+function markDirty(){ const was = S.dirty; S.dirty = true; if (!was && typeof updateSave === "function") updateSave(); }
+const LBL = { up:n => "Move " + n + " up", down:n => "Move " + n + " down", out:n => "Outdent " + n, in:n => "Indent " + n };
+const TIP = { up:"Move Up ⌥↑", down:"Move Down ⌥↓", out:"Outdent ⌥←", in:"Indent ⌥→" };
+const ICO = { up:"i-arr-up", down:"i-arr-dn", out:"i-outdent", in:"i-indent" };
+const SAID = { up:"Moved up", down:"Moved down", in:"Indented", out:"Outdented" };
+const snapTree = t => JSON.stringify(t);
+
+let openMenuEl = null, openTrigger = null;
+function openMenu(trigger, entries, opts={}){
+  if (openMenuEl && openTrigger === trigger){ closeMenu(true); return; }
+  closeMenu();
+  const m = document.createElement("div"); m.className = "menu" + (opts.wide ? " wide" : ""); m.setAttribute("role", "menu");
+  m.innerHTML = entries.map((e,i) => e.div ? '<div class="div" role="separator"></div>' : e.sec ? '<div class="sec">'+esc(e.sec)+'</div>' :
+    '<button type="button" role="'+(e.checked!==undefined?"menuitemradio":"menuitem")+'" data-i="'+i+'"'+(e.checked!==undefined?' aria-checked="'+e.checked+'"':'')+(e.danger?' class="danger"':'')+'>'+
+    (e.icon?icon(e.icon):'')+'<span class="l">'+esc(e.label)+(e.desc?'<span class="ds">'+esc(e.desc)+'</span>':'')+'</span>'+(e.tail?'<span class="tail">'+esc(e.tail)+'</span>':'')+'</button>').join("");
+  document.body.appendChild(m);
+  const r = trigger.getBoundingClientRect();
+  m.style.minWidth = Math.max(212, Math.min(r.width, 320)) + "px";
+  const mh = m.offsetHeight, mw = m.offsetWidth;
+  let top = r.bottom + 6; if (top + mh > innerHeight - 8 && r.top - mh - 6 > 8) top = r.top - mh - 6;
+  m.style.top = Math.max(8, Math.min(top, innerHeight - mh - 8)) + "px";
+  m.style.left = Math.max(8, Math.min(opts.alignLeft ? r.left : r.right - mw, innerWidth - mw - 8)) + "px";
+  m.addEventListener("click", ev => { const b = ev.target.closest("button[data-i]"); if (!b) return; const e = entries[+b.dataset.i]; closeMenu(true); e.run && e.run(); });
+  m.addEventListener("keydown", ev => { const items = $$("button", m), i = items.indexOf(document.activeElement);
+    if (ev.key === "ArrowDown"){ ev.preventDefault(); items[(i+1) % items.length].focus(); }
+    if (ev.key === "ArrowUp"){ ev.preventDefault(); items[(i-1+items.length) % items.length].focus(); }
+    if (ev.key === "Tab") closeMenu(true); });
+  openMenuEl = m; openTrigger = trigger; trigger.setAttribute("aria-expanded", "true");
+  (m.querySelector('[aria-checked="true"]') || m.querySelector("button")).focus();
+}
+document.addEventListener("keydown", e => { if (e.key === "Escape" && openMenuEl){ e.stopPropagation(); e.preventDefault(); closeMenu(true); } }, true);
+function closeMenu(refocus){
+  if (!openMenuEl) return; openMenuEl.remove(); openMenuEl = null;
+  if (openTrigger){ openTrigger.setAttribute("aria-expanded", "false"); if (refocus && document.contains(openTrigger)) openTrigger.focus(); }
+  openTrigger = null;
+}
+document.addEventListener("pointerdown", e => { if (openMenuEl && !openMenuEl.contains(e.target) && !openTrigger?.contains(e.target)) closeMenu(); });
+function toast(msg, o={}){
+  const host = $("#toasts"), life = o.undo ? 7000 : 2600;
+  if (!o.undo) $$(".toast:not(.has-undo)", host).forEach(t => t.remove());
+  while (host.children.length >= 3) host.firstElementChild.remove();
+  const t = document.createElement("div"); t.className = "toast " + (o.kind || "good") + (o.undo ? " has-undo" : ""); t.style.setProperty("--life", life + "ms");
+  t.innerHTML = '<svg class="toast-ring" aria-hidden="true"><rect class="track" pathLength="100"/><rect class="run" pathLength="100"/></svg>' +
+    icon(o.kind === "info" ? "i-info" : "i-check-circle") + '<span class="msg">'+esc(msg)+'</span>' + (o.undo ? '<span class="div"></span><button class="undo" type="button">'+icon("i-undo")+'Undo</button>' : '');
+  host.appendChild(t); announce(msg);
+  let left = life, start = Date.now(), timer = null, holds = 0;
+  const run = () => { start = Date.now(); timer = setTimeout(() => t.remove(), left); };
+  const hold = () => { if (holds++ === 0){ clearTimeout(timer); left -= Date.now() - start; t.classList.add("held"); } };
+  const free = () => { if (--holds === 0){ t.classList.remove("held"); run(); } };
+  t.addEventListener("pointerenter", hold); t.addEventListener("pointerleave", free); t.addEventListener("focusin", hold); t.addEventListener("focusout", free);
+  if (o.undo) $(".undo", t).addEventListener("click", () => { o.undo(); t.remove(); });
+  run();
+}
+
+/* ---------------------------------------------------------------- page */
+/* The page frame follows the running admin's detail screens (Roles): a back
+   link above the title, a meta line under it, actions at the right. What
+   varies is how the menu's own settings (label, name, directive, locations)
+   are shown and edited. Everything is saved by Save Menu. */
+
+function chips(n){ if (n.kind === "none" && !n.label) return '<span class="pill neutral"><span class="d"></span>Empty</span>'; return n.off ? '<span class="pill '+(n.off==="Draft"?"warn":"danger")+'"><span class="d"></span>'+(n.off==="Draft"?"Draft":"Not on the Site")+'</span>' : ''; }
+function kindTile(n){ const k = KINDS[n.kind]; return '<span class="mt-kind" title="'+k.label+'">'+icon(k.icon)+'<span class="sr">'+k.label+'</span></span>'; }
+function subs(n){ return n.children.length && !n.open ? '<span class="mt-sub">'+plural(flat(n.children).length, "sub-item")+'</span>' : ''; }
+function titleBits(n){
+  return '<span class="mt-t"><span class="tt'+(n.kind==="none"?" heading":"")+'">'+esc(shown(n))+'</span>' + chips(n) + '</span>';
+}
+function rb(attr, ic, tip, label, dis, extra, tab){ return '<button class="rb2" type="button" '+(tab?'':'tabindex="-1" ')+attr+' data-tip="'+esc(tip)+'" aria-label="'+esc(label)+'"'+(dis?' disabled':'')+(extra||'')+'>'+icon(ic)+'</button>'; }
+function controls(n){
+  const name = shown(n), open = S.open === n.id, tab = selId() === n.id || open;
+  return '<span class="rowctl">' + ["up","down","out","in"].map(a => rb('data-act="'+a+'"', ICO[a], TIP[a], LBL[a](name), !can(n.id,a), '', tab)).join("") +
+    '<span class="sp" aria-hidden="true"></span>' +
+    (S.ed === "every" ? rb('data-edit', "i-chev-ud", open ? "Fewer Fields" : "More Fields", (open ? "Hide" : "Show") + " more fields for " + name, false, ' aria-expanded="'+open+'" aria-controls="ed-'+n.id+'"', tab)
+                      : rb('data-edit', "i-pencil", open ? "Close" : "Edit F2", "Edit " + name, false, ' aria-expanded="'+open+'" aria-controls="ed-'+n.id+'"', tab)) +
+    rb('data-more aria-haspopup="menu" aria-expanded="false"', "i-dots-v", "More Actions", "More actions for " + name, false, '', tab) + '</span>';
+}
+function twist(n){
+  return n.children.length ? '<button class="twist" type="button" data-twist tabindex="-1" aria-expanded="'+n.open+'" aria-label="'+(n.open?"Hide":"Show")+' sub-items of '+esc(shown(n))+'">'+icon("i-chev-r")+'</button>' : '<span class="twist leaf"></span>';
+}
+function row(x){
+  const { n, d } = x, sel = selId() === n.id, open = S.open === n.id, name = esc(shown(n));
+  let middle;
+  if (S.ed === "every"){
+    const linkBtn = n.kind === "none" ? '<span class="ev-none">Heading, no link</span>'
+      : '<button class="ev-link" type="button" data-pickref aria-label="Link: '+esc(n.derived)+'. Change">'+icon(KINDS[n.kind].icon)+'<span>'+esc(n.derived)+'</span></button>';
+    middle = kindTile(n) + '<span class="ev"><span class="ev-lab"><input class="ev-inp'+(n.kind==="none"?" heading":"")+'" data-lab value="'+esc(n.label)+'" placeholder="'+esc(n.kind==="none" ? "Heading label" : n.derived)+'" aria-label="Label for '+name+', '+esc(where(n.id))+'">'+chips(n)+'</span>'+linkBtn+'</span>' + subs(n);
+  } else if (S.ed === "rename" && S.renaming === n.id){
+    middle = kindTile(n) + '<input class="rn-inp" data-rn value="'+esc(n.label)+'" placeholder="'+esc(n.derived || "Heading label")+'" aria-label="Label for '+name+'">'+chips(n)+'<span class="rn-hint">Enter saves · Esc cancels</span>';
+  } else {
+    middle = '<button class="mt-pick" type="button" data-pick aria-current="'+sel+'"'+(sel?'':' tabindex="-1"')+'>'+kindTile(n)+'<span class="mt-main">'+titleBits(n)+'</span>'+subs(n)+
+      '<span class="sr">, '+esc(where(n.id))+(S.ed==="rename"?". Press Enter to rename.":"")+'</span></button>';
+  }
+  return '<li class="mt-item'+(sel?" sel":"")+(open?" editing":"")+'" data-id="'+n.id+'"><div class="mt-row" draggable="'+(S.renaming!==n.id)+'" style="--d:'+d+'">' +
+    '<span class="mt-grip" aria-hidden="true">'+icon("i-grip")+'</span><span class="mt-ind"></span>' + twist(n) + middle +
+    controls(n) + '</div>' + (open ? editPanel(x) : '') + '</li>';
+}
+function select(id, focus){
+  if (S.open && S.open !== id && S.ed !== "every") S.open = null;
+  S.sel[S.list] = id; renderTree(); if (focus) focusRow(id, focus);
+}
+function focusRow(id, what){
+  const li = $('#tree [data-id="'+id+'"]'); if (!li) return;
+  let el = what && what !== true ? (li.querySelector(":scope > .mt-row " + what + ":not([disabled])") ||
+    (what.startsWith("[data-act") ? li.querySelector(":scope > .mt-row [data-act]:not([disabled])") : null)) : null;
+  el = el || li.querySelector(":scope > .mt-row [data-pick], :scope > .mt-row [data-lab], :scope > .mt-row [data-rn]");
+  el && el.focus({ preventScroll:true }); li.scrollIntoView({ block:"nearest" });
+}
+function act(id, a, refocus){
+  if (!move(id, a)){ announce("Can't do that from here"); return; }
+  announce(SAID[a] + ". " + shown(find(id).n) + " is " + where(id) + "."); renderTree(); if (refocus) focusRow(id, refocus);
+}
+function removeItem(id){
+  const x = find(id), total = flat([x.n]).length;
+  x.list.splice(x.i, 1); markDirty(); if (S.open === id) S.open = null;
+  const next = x.list[x.i] || x.list[x.i-1] || x.parent; S.sel[S.list] = next ? next.id : null; ensureSel();
+  render(); focusRow(selId(), true);
+  toast("Removed " + shown(x.n) + (total > 1 ? " and its " + plural(total-1, "sub-item") : ""), { undo:() => { x.list.splice(x.i, 0, x.n); render(); select(x.n.id, true); } });
+}
+function duplicate(id){
+  const x = find(id), copy = JSON.parse(JSON.stringify(x.n));
+  (function re(n){ n.id = "n" + (uid++); n.children.forEach(re); })(copy);
+  copy.label = shown(x.n) + " (Copy)"; x.list.splice(x.i+1, 0, copy); markDirty(); render(); select(copy.id, true);
+  toast("Duplicated " + shown(x.n), { undo:() => { const y = find(copy.id); y.list.splice(y.i, 1); render(); select(id, true); } });
+}
+function openFields(id){
+  S.open = id; S.sel[S.list] = id; renderTree();
+  const f = $("#el-" + id); if (f){ f.focus(); f.select(); } $('#tree [data-id="'+id+'"]').scrollIntoView({ block:"nearest" });
+  announce("Editing " + shown(find(id).n));
+}
+function setLabel(n, v){
+  n.label = v; markDirty();
+  const row = $('#tree [data-id="'+n.id+'"] > .mt-row'); if (!row) return;
+  const t = $(".tt", row); if (t) t.textContent = shown(n);
+  const p = $(".mt-t .pill", row), want = chips(n);
+  if (p && !want) p.remove(); else if (!p && want) $(".mt-t", row).insertAdjacentHTML("beforeend", want);
+}
+function startRename(id){ S.renaming = id; S.renameWas = find(id).n.label; renderTree(); const i = $('#tree [data-rn]'); i.focus(); i.select(); }
+function endRename(keep){
+  const id = S.renaming; if (!id) return; const n = find(id).n;
+  if (!keep) n.label = S.renameWas; else markDirty();
+  S.renaming = null; renderTree(); focusRow(id, true);
+  announce(keep ? "Renamed to " + shown(n) : "Kept " + shown(n));
+}
+
+function bindTree(){
+  const tree = $("#tree");
+  tree.onclick = e => {
+    const li = e.target.closest(".mt-item"); if (!li) return;
+    const id = li.dataset.id, n = find(id).n;
+    const hit = s => e.target.closest(s);
+    if (hit("[data-twist]")){
+      n.open = !n.open;
+      if (!n.open && selId() !== id && inside(id, selId())){ S.sel[S.list] = id; if (S.open && inside(id, S.open)) S.open = null; }
+      renderTree(); focusRow(selId(), true); return;
+    }
+    if (hit("[data-act]")) return act(id, hit("[data-act]").dataset.act, '[data-act="'+hit("[data-act]").dataset.act+'"]');
+    if (hit("[data-edit]")){
+      S.open = S.open === id ? null : id; S.sel[S.list] = id; renderTree();
+      if (S.open){ const f = $('#el-'+id) || $('#ed-'+id+' input, #ed-'+id+' textarea'); f && f.focus(); li.scrollIntoView({ block:"nearest" }); announce((S.ed==="every"?"More fields for ":"Editing ") + shown(n)); }
+      else focusRow(id, "[data-edit]");
+      return;
+    }
+    if (hit("[data-done]")){ S.open = null; renderTree(); focusRow(id, "[data-edit]"); return; }
+    if (hit("[data-more]")){ if (selId() !== id) select(id);
+      return openMenu($('#tree [data-id="'+id+'"] > .mt-row [data-more]'), [
+        ...(S.ed === "rename" ? [{ label:"Rename", icon:"i-pencil", tail:"Enter", run:()=>startRename(id) }] : []),
+        { label:"Add Item Above", icon:"i-arr-up", run:()=>addItem("above", id) }, { label:"Add Item Below", icon:"i-arr-dn", run:()=>addItem("below", id) }, { div:true },
+        { label:"Duplicate", icon:"i-copy", run:()=>duplicate(id) }, { div:true }, { label:"Remove", icon:"i-trash", danger:true, run:()=>removeItem(id) } ]); }
+    if (hit("[data-pickref]")) return pickLink(id);
+    if (hit("[data-lfsel]")){ const b = hit("[data-lfsel]"); return pickFieldOption(id, b.dataset.lfsel, b); }
+    if (hit(".mt-edit") || hit("[data-lab]") || hit("[data-rn]")) { if (selId() !== id && hit("[data-lab]")){ S.sel[S.list] = id; $$(".mt-item.sel", tree).forEach(x => x.classList.remove("sel")); li.classList.add("sel"); } return; }
+    if (selId() !== id) select(id, true); else focusRow(id, true);
+  };
+  tree.ondblclick = e => { const li = e.target.closest(".mt-item"); if (li && e.target.closest("[data-pick]")) openFields(li.dataset.id); };
+  tree.oninput = e => {
+    const li = e.target.closest(".mt-item"); if (!li) return; const n = find(li.dataset.id).n;
+    if (e.target.matches("[data-lab],[data-elab]")) setLabel(n, e.target.value);
+    if (e.target.matches("[data-rn]")) n.label = e.target.value;
+  };
+  tree.onfocusin = e => {
+    const li = e.target.closest(".mt-item"); if (!li || S.ed !== "every" || !e.target.matches("[data-lab]")) return;
+    if (selId() !== li.dataset.id){ S.sel[S.list] = li.dataset.id; $$(".mt-item.sel", tree).forEach(x => x.classList.remove("sel")); li.classList.add("sel");
+      $$(".rb2", tree).forEach(b => b.setAttribute("tabindex", b.closest(".mt-item") === li ? "0" : "-1")); }
+  };
+  tree.onkeydown = e => {
+    const li = e.target.closest(".mt-item"); if (!li) return;
+    const id = li.dataset.id, vis = visible(), idx = vis.findIndex(v => v.n.id === id), cur = vis[idx];
+    if (e.target.matches("[data-rn]")){
+      if (e.key === "Enter"){ e.preventDefault(); endRename(true); }
+      if (e.key === "Escape"){ e.preventDefault(); endRename(false); }
+      return;
+    }
+    if (e.key === "Escape" && S.open === id && e.target.closest(".mt-edit")){ e.preventDefault(); S.open = null; renderTree(); focusRow(id, "[data-edit]"); return; }
+    if (e.target.closest(".mt-edit")) return;
+    const moveKeys = { ArrowUp:"up", ArrowDown:"down", ArrowRight:"in", ArrowLeft:"out" };
+    if (e.altKey && moveKeys[e.key]){ e.preventDefault(); act(id, moveKeys[e.key], e.target.matches("[data-act]") ? '[data-act="'+e.target.dataset.act+'"]' : true); return; }
+    const isRow = e.target.matches("[data-pick]"), isLab = e.target.matches("[data-lab]");
+    if (!isRow && !isLab) return;
+    const to = j => { e.preventDefault(); select(vis[j].n.id, true); };
+    if (e.key === "ArrowDown" && idx < vis.length-1) to(idx+1);
+    else if (e.key === "ArrowUp" && idx > 0) to(idx-1);
+    else if (isRow && e.key === "Home") to(0);
+    else if (isRow && e.key === "End") to(vis.length-1);
+    else if (isRow && e.key === "ArrowRight" && cur.n.children.length){ e.preventDefault(); if (!cur.n.open){ cur.n.open = true; renderTree(); focusRow(id, true); } else to(idx+1); }
+    else if (isRow && e.key === "ArrowLeft"){ e.preventDefault(); if (cur.n.children.length && cur.n.open){ cur.n.open = false; renderTree(); focusRow(id, true); } else if (cur.parent) select(cur.parent.id, true); }
+    else if (isRow && e.key === "F2"){ e.preventDefault(); openFields(id); }
+  };
+  let dragId = null;
+  $$(".mt-item", tree).forEach(li => {
+    const r = $(":scope > .mt-row", li);
+    r.addEventListener("dragstart", e => { if (e.target.closest("input,textarea")) { e.preventDefault(); return; } dragId = li.dataset.id; li.classList.add("dragging"); e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData("text/plain", dragId); });
+    r.addEventListener("dragend", () => { $$(".mt-item", tree).forEach(x => x.classList.remove("dragging","drop-before","drop-after","drop-in")); dragId = null; });
+    r.addEventListener("dragover", e => {
+      if (!dragId || dragId === li.dataset.id || inside(dragId, li.dataset.id)) return; e.preventDefault();
+      const b = r.getBoundingClientRect(), y = (e.clientY - b.top) / b.height, pos = y < .3 ? "before" : y > .7 ? "after" : "in";
+      $$(".mt-item", tree).forEach(x => x.classList.remove("drop-before","drop-after","drop-in"));
+      li.classList.add("drop-" + pos); li.style.setProperty("--dd", find(li.dataset.id).d + (pos === "in" ? 1 : 0)); li.dataset.pos = pos;
+    });
+    r.addEventListener("drop", e => { e.preventDefault(); const pos = li.dataset.pos; if (!dragId || !pos) return; const id = dragId; dragId = null;
+      moveTo(id, li.dataset.id, pos === "in" ? "first" : pos); select(id, true); announce("Moved " + shown(find(id).n) + ", " + where(id)); });
+  });
+}
+
+
+
+function modal(html, bind, cls=""){
+  const d = $("#dlg"); d.className = "modal " + cls; d.innerHTML = html; d.showModal();
+  bind && bind(d); $$("[data-close]", d).forEach(b => b.addEventListener("click", () => d.close()));
+  return d;
+}
+const locByKey = k => THEME.locations.find(l => l.key === k);
+const locsOf = name => THEME.locations.filter(l => S.assign[l.key] === name);
+const menuItems = m => flat(m.tree).length;
+
+/* ---------------------------------------------------------------- shell */
+function crumbs(parts){
+  $("#crumbs").innerHTML = parts.map((p,i) => i === parts.length-1 ? '<span class="here">'+esc(p.l)+'</span>'
+    : '<button class="crumb'+(i===0?" crumb-sec":"")+'" type="button" data-go="'+(p.go||"")+'">'+esc(p.l)+'</button><span class="sep">/</span>').join("");
+  $$("#crumbs [data-go]").forEach(b => b.addEventListener("click", () => b.dataset.go && go(b.dataset.go)));
+}
+function navCount(){ const c = $("#navMenusCount"); if (c) c.textContent = S.menus.filter(m => !m.draft).length; }
+function go(view, name){
+  if (S.view === "menu" && (S.dirty || cur()?.draft) && !(view === "menu" && name === S.list)) return leaveGuard(() => go(view, name));
+  closeMenu();
+  S.view = view; S.open = null; S.renaming = null;
+  if (view === "menu"){ S.list = name; enterMenu(); }
+  render(); $("#work").scrollTop = 0; navCount();
+}
+function render(){ return S.view === "list" ? renderList() : renderMenu(); }
+
+/* Leaving a menu with unsaved changes asks once, and says what it will lose. */
+function leaveGuard(then){
+  const m = cur(), fresh = !!m.draft;
+  if (fresh) return modal('<div class="modal-h"><h2 id="dlgTitle">Publish '+esc(S.draftLabel)+'?</h2><p>It hasn\'t been published yet. Leaving without publishing discards it.</p></div>' +
+    '<div class="modal-f"><button class="btn" type="button" data-close>Keep Editing</button><span class="mf-sp"></span>' +
+    '<button class="btn btn-danger" type="button" id="lgDiscard">Discard Menu</button><button class="btn btn-primary" type="button" id="lgSave">Publish</button></div>', d => {
+      $("#lgSave", d).addEventListener("click", () => { d.close(); saveMenu(true); then(); });
+      $("#lgDiscard", d).addEventListener("click", () => { d.close(); S.menus = S.menus.filter(x => x !== m); S.dirty = false; S.view = "list"; then(); });
+      $("#lgSave", d).focus();
+    });
+  modal('<div class="modal-h"><h2 id="dlgTitle">Save Changes to '+esc(S.draftLabel)+'?</h2><p>The items, settings and locations you changed haven\'t been saved.</p></div>' +
+    '<div class="modal-f"><button class="btn" type="button" data-close>Keep Editing</button><span class="mf-sp"></span>' +
+    '<button class="btn btn-danger" type="button" id="lgDiscard">Discard Changes</button><button class="btn btn-primary" type="button" id="lgSave">Update</button></div>', d => {
+      $("#lgSave", d).addEventListener("click", () => { d.close(); saveMenu(true); then(); });
+      $("#lgDiscard", d).addEventListener("click", () => { d.close(); discard(); then(); });
+      $("#lgSave", d).focus();
+    });
+}
+
+/* ---------------------------------------------------------------- 1. the list */
+function renderList(){
+  crumbs([{ l:"Config" }, { l:"Menus" }]);
+  const sorted = S.menus.filter(m => !m.draft).sort((a,b) => a.label.localeCompare(b.label));
+  const table = sorted.length ? '<div class="table-wrap"><table class="mtable"><colgroup><col style="width:38%"><col style="width:12%"><col><col style="width:56px"></colgroup>' +
+    '<thead><tr><th scope="col">Menu</th><th scope="col">Items</th><th scope="col">Locations</th><th scope="col"><span class="sr">Actions</span></th></tr></thead><tbody>' +
+    sorted.map(m => { const l = locsOf(m.name);
+      return '<tr><td><a href="#" class="t-title" data-open="'+m.name+'">'+esc(m.label)+'</a><span class="t-slug">'+esc(m.name)+'</span></td><td class="num">'+menuItems(m)+'</td>' +
+        '<td>'+(l.length ? '<span class="loc-text">'+esc(l.map(x => x.name).join(", "))+'</span>' : '<span class="quiet">No locations</span>')+'</td>' +
+        '<td><button class="row-more" type="button" data-rowmenu="'+m.name+'" aria-haspopup="menu" aria-expanded="false" aria-label="Actions for '+esc(m.label)+'">'+icon("i-dots")+'</button></td></tr>'; }).join("") +
+    '</tbody></table></div>'
+    : '<div class="empty">'+icon("i-navmenu")+'<h3>No Menus Yet</h3><p>A menu is a list of links you build once, then place in the theme\'s locations or inside an entry.</p>' +
+      '<div class="acts"><button class="btn btn-primary" type="button" data-new>'+icon("i-plus")+'New Menu</button></div></div>';
+  $("#view").innerHTML = '<div class="lay-one">' +
+    '<div class="page-head ph-ref"><div class="ph-main"><h1>Menus</h1><p class="sub">Lists of links for the site. The theme decides where they can go, and any entry can hold one too.</p></div>' +
+    '<div class="acts"><button class="btn btn-primary" type="button" data-new>'+icon("i-plus")+'New Menu</button></div></div>' +
+    '<div class="stack"><section class="panel" aria-labelledby="hMenus"><div class="panel-head"><h2 id="hMenus">Menus</h2><span class="hint">'+plural(sorted.length,"menu")+'</span></div>'+table+'</section>' +
+    '<section class="panel" aria-labelledby="hLocs"><div class="panel-head"><h2 id="hLocs">Locations</h2><span class="hint">Each shows one menu. Changes save right away.</span></div><div class="lrows">' +
+    THEME.locations.map(l => { const v = S.assign[l.key], m = v && menuOf(v);
+      return '<div class="lrow"><div><div class="nm" id="ln-'+l.key+'">'+icon("i-location","lic")+esc(l.name)+'</div><div class="meta"><span>'+esc(l.depth)+'</span>' +
+        (l.defaults ? '<span class="dot-sep">·</span><span>Ships '+plural(l.defaults,"default item")+'</span>' : '') + '</div></div>' +
+        '<button class="xs" type="button" data-assign="'+l.key+'" aria-haspopup="menu" aria-expanded="false" aria-labelledby="ln-'+l.key+' lv-'+l.key+'">' +
+        '<span class="v'+(m?"":" def")+'" id="lv-'+l.key+'">'+esc(m ? m.label : (l.defaults ? "Theme Default" : "Nothing"))+'</span>'+icon("i-chev-ud")+'</button></div>'; }).join("") +
+    '</div></section></div></div>';
+  $$("[data-new]").forEach(b => b.addEventListener("click", newMenu));
+  $$("[data-open]").forEach(a => a.addEventListener("click", e => { e.preventDefault(); go("menu", a.dataset.open); }));
+  $$("[data-rowmenu]").forEach(b => b.addEventListener("click", () => { const m = menuOf(b.dataset.rowmenu);
+    openMenu(b, [ { label:"Edit", icon:"i-pencil", run:()=>go("menu", m.name) }, { label:"Duplicate", icon:"i-copy", run:()=>duplicateMenu(m) },
+      { div:true }, { label:"Delete", icon:"i-trash", danger:true, run:()=>confirmDelete(m) } ]); }));
+  $$("[data-assign]").forEach(b => b.addEventListener("click", () => {
+    const l = locByKey(b.dataset.assign), now = S.assign[l.key];
+    const set = v => { if (v === now) return; S.assign[l.key] = v; renderList();
+      const said = v ? menuOf(v).label : (l.defaults ? "the theme's default" : "nothing");
+      toast(l.name + " now shows " + said, { undo:() => { S.assign[l.key] = now; if (S.view === "list") renderList(); } }); };
+    openMenu(b, [ ...S.menus.filter(m => !m.draft).sort((a,c) => a.label.localeCompare(c.label)).map(m => ({ label:m.label, checked:now === m.name,
+        desc: locsOf(m.name).filter(x => x.key !== l.key).map(x => "Also in " + x.name).join(", "), run:()=>set(m.name) })),
+      { div:true }, { label: l.defaults ? "Theme Default" : "Nothing", checked:!now, desc: l.defaults ? "The " + plural(l.defaults,"item") + " the theme ships" : "The location stays empty", run:()=>set(null) } ], { wide:true });
+  }));
+}
+
+/* ---------------------------------------------------------------- 2. a menu */
+function enterMenu(){
+  const m = cur();
+  S.snap = snapTree(m.tree); S.dirty = false; S.draftLabel = m.label; S.draftName = m.name; S.updateEntries = true;
+  S.draftLocs = {}; THEME.locations.forEach(l => S.draftLocs[l.key] = S.assign[l.key] === m.name);
+  ensureSel();
+}
+function discard(){ const m = cur(); m.tree = JSON.parse(S.snap); S.dirty = false; }
+function draftFilled(){ return THEME.locations.filter(l => S.draftLocs[l.key]); }
+function locState(l){
+  const on = S.draftLocs[l.key], now = S.assign[l.key], mine = now === S.list;
+  if (on) return mine ? "Shows this menu." : now ? "Replaces " + menuOf(now).label + " when saved." : "Shows this menu once saved.";
+  if (mine) return "Goes back to " + (l.defaults ? "the theme's default" : "nothing") + " when saved.";
+  return now ? "Shows " + menuOf(now).label + "." : l.defaults ? "Shows the theme's default." : "Shows nothing.";
+}
+function renderMenu(){
+  const m = cur(); closeMenu(); ensureSel();
+  crumbs([{ l:"Config" }, { l:"Menus", go:"list" }, { l:S.draftLabel }]);
+  const f = draftFilled(), anyClosed = flat().some(x => x.n.children.length && !x.n.open), empty = !m.tree.length;
+  $("#view").innerHTML = '<div class="lay-one">' +
+    '<button class="back" type="button" data-go-list>'+icon("i-chev-l")+'All menus</button>' +
+    '<div class="page-head ph-ref"><div class="ph-main"><h1>'+esc(S.draftLabel)+'</h1><p class="meta-line">' +
+      '<span class="mi">'+icon("i-navmenu")+'<code>'+esc(S.draftName)+'</code></span><span class="mi" id="count">'+plural(flat().length,"item")+'</span>' +
+      '<span class="mi">'+icon("i-location")+'<span>'+esc(f.length ? f.map(l => l.name).join(", ") : "No locations")+'</span></span></p></div>' +
+    '<div class="acts">' +
+      '<button class="btn" type="button" id="openSettings" aria-haspopup="dialog">'+icon("i-gear")+'Settings</button>' +
+      saveBtn() +
+      '<button class="kebab" type="button" id="pageMore" aria-label="More actions" aria-haspopup="menu" aria-expanded="false">'+icon("i-dots-v")+'</button></div></div>' +
+    '<section class="panel" aria-labelledby="hItems"><div class="panel-head"><h2 id="hItems">Items</h2><span class="hint">'+plural(flat().length,"item")+'</span>' +
+      '<div class="end">'+(!flat().some(x => x.n.children.length) ? '' : '<button class="btn sm" type="button" id="allBtn">'+icon(anyClosed ? "i-caret-down" : "i-caret-up")+(anyClosed ? "Expand All" : "Collapse All")+'</button>') +
+      '<button class="btn sm" type="button" data-additem>'+icon("i-plus")+'Add Item</button></div></div>' +
+      (empty ? '<div class="empty compact">'+icon("i-navmenu")+'<h3>No Items Yet</h3><p>Add the first link. Items can be entries, terms, a type\'s index, a named route, any address, or a heading that groups others.</p>' +
+        '<div class="acts"><button class="btn btn-primary" type="button" data-additem>'+icon("i-plus")+'Add Item</button></div></div>'
+        : '<ul class="mtree tree-hover" id="tree" aria-labelledby="hItems"></ul>') + '</section></div>';
+  $("[data-go-list]").addEventListener("click", () => go("list"));
+  $("#save").addEventListener("click", () => saveMenu());
+  $("#openSettings").addEventListener("click", settingsDialog);
+  $("#pageMore").addEventListener("click", e => openMenu(e.currentTarget, [ { label:"Duplicate", icon:"i-copy", run:()=>duplicateMenu(m) },
+    { div:true }, { label:"Delete", icon:"i-trash", danger:true, run:()=>confirmDelete(m) } ]));
+  $$("[data-additem]").forEach(b => b.addEventListener("click", () => addItem()));
+  $("#allBtn")?.addEventListener("click", () => { const closed = flat().some(x => x.n.children.length && !x.n.open);
+    flat().forEach(x => { if (x.n.children.length) x.n.open = closed; });
+    if (!closed){ let a = find(selId()); while (a && a.parent) a = find(a.parent.id); if (a) S.sel[S.list] = a.n.id; }
+    renderMenu(); $("#allBtn").focus(); });
+  if (!empty) renderTree();
+}
+function renderTree(){
+  const tree = $("#tree"); if (!tree) return;
+  tree.innerHTML = visible().map(row).join("");
+  bindTree();
+  tree.onchange = e => { const c = e.target.closest("[data-lf]"); if (!c) return; const n = find(c.closest(".mt-item").dataset.id).n; n.f = Object.assign({}, n.f, { [c.dataset.lf]: c.checked }); markDirty(); };
+  const c = $("#count"); if (c) c.textContent = plural(flat().length, "item");
+}
+function saveState(){ const m = cur(); return m.draft ? "publish" : S.dirty ? "update" : "saved"; }
+function saveBtn(){
+  const st = saveState();
+  return '<button class="btn btn-primary save-btn" type="button" id="save"'+(st === "saved" ? ' disabled aria-disabled="true"' : '')+'>'+({ publish:"Publish", update:"Update", saved:"Saved" })[st]+'</button>';
+}
+function updateSave(){ const b = $("#save"); if (b) b.outerHTML = saveBtn(), $("#save").addEventListener("click", () => saveMenu()); }
+function saveMenu(quiet){
+  const m = cur(), was = saveState();
+  if (was === "saved") return;
+  m.label = S.draftLabel.trim() || m.label;
+  const before = Object.assign({}, S.assign), oldName = m.name, newName = S.draftName || m.name;
+  let renamed = "", fixed = 0;
+  if (newName !== oldName){
+    Object.keys(S.assign).forEach(k => { if (S.assign[k] === oldName){ S.assign[k] = newName; before[k] = newName; } });
+    m.name = newName; S.sel[newName] = S.sel[oldName]; delete S.sel[oldName]; S.list = newName;
+    if (!m.draft){ renamed = "Renamed " + oldName + " to " + newName; fixed = S.updateEntries ? m.entries.length : 0; if (!S.updateEntries) m.entries = []; }
+  }
+  THEME.locations.forEach(l => { if (S.draftLocs[l.key]) S.assign[l.key] = m.name; else if (S.assign[l.key] === m.name) S.assign[l.key] = null; });
+  delete m.draft;
+  S.snap = snapTree(m.tree); S.dirty = false;
+  const moved = THEME.locations.filter(l => before[l.key] !== S.assign[l.key]).map(l => l.name);
+  if (!quiet) renderMenu();
+  navCount();
+  const extra = [renamed && renamed + (fixed ? " and updated the directive in " + plural(fixed, "entry", "entries") : ""), moved.length && moved.join(" and ") + " changed"].filter(Boolean);
+  toast((was === "publish" ? "Published " : "Updated ") + m.label + (extra.length ? ". " + extra.join(". ") + "." : ""));
+}
+
+/* ---- the item's fields, under its row ----
+   Link is the admin's existing picker (the one Redirects' To uses): one box
+   that takes a path, a page's name or a full address, and suggests as you
+   type. A link to something on the site follows it when its address changes. */
+const LINKABLE = [
+  ...ENTRIES.map(e => Object.assign({ kind:"entry" }, e)), ...TERMS.map(e => Object.assign({ kind:"term" }, e)),
+  ...COLLECTIONS.map(e => Object.assign({ kind:"collection" }, e)), ...ROUTES.map(e => Object.assign({ kind:"route" }, e))
+];
+function addrOf(path){
+  const known = { "type:post":"/writing", "type:topic":"/topics", "type:release":"/releases", "route:archive":"/archive", "route:feed":"/feed.xml", "route:search":"/search" };
+  if (known[path]) return known[path];
+  if (/^https?:/.test(path) || path.startsWith("/")) return path;
+  return "/" + path.replace(/^page\//, "").replace(/^page\/handbook\//, "handbook/").replace(/^topic\//, "topics/");
+}
+const ICONS = ["book","calendar","bell","users","image","video","audio","download","map","cart","hash","pin","rocket","sun","moon","link","layers","chart","globe","tag","folder","page","clock","eye"];
+function linkControl(n){
+  if (n.path){
+    const k = KINDS[n.kind], ext = n.kind === "url";
+    return '<div class="lnk-set">'+icon(k.icon)+'<b>'+esc(n.derived)+'</b><code>'+esc(ext ? n.path : addrOf(n.path))+'</code>' +
+      '<button class="lnk-x" type="button" data-lnkclear aria-label="Remove the link">'+icon("i-x")+'</button></div>';
+  }
+  return '<div class="cbx"><input class="inp mono" id="lk-'+n.id+'" data-lnk role="combobox" aria-expanded="false" aria-autocomplete="list" aria-controls="lb-'+n.id+'" autocomplete="off" spellcheck="false" placeholder="A path, a page\'s name, or https://…" aria-label="Link" aria-describedby="ln-'+n.id+'">' +
+    '<ul class="cb-list" role="listbox" id="lb-'+n.id+'" aria-label="Suggestions" hidden></ul></div>';
+}
+function linkNote(n){
+  if (!n.path) return '<div class="lnk-note" id="ln-'+n.id+'">'+icon("i-plaintext")+'<span>Without a link, this item is <b>plain text</b>, shown but not clickable. Themes often use it as a heading over its sub-items.</span></div>';
+  if (n.kind === "url") return "";
+  return '<div class="lnk-note">'+icon("i-info")+'<span>Follows <b>'+esc(n.derived)+'</b> if its address changes.</span></div>';
+}
+/* A chosen icon is a preview tile you press to change it, its name, and a quiet Remove. */
+/* Icon: a dashed tile and Insert an Icon when unset; the icon's tile, Change and × when set. */
+function iconControl(n){
+  if (n.icon) return '<div class="ico-pick"><button class="ico-tile set" type="button" data-icon aria-haspopup="dialog" aria-label="Change the icon">'+icon("i-" + n.icon)+'</button>' +
+    '<button class="btn btn-ghost sm" type="button" data-iconclear>Reset</button></div>';
+  return '<div class="ico-pick"><button class="ico-tile" type="button" data-icon aria-label="Insert an icon" tabindex="-1">'+icon("i-plus")+'</button>' +
+    '<button class="btn btn-ghost sm" type="button" data-icon aria-haspopup="dialog">Insert an Icon</button></div>';
+}
+function editPanel(x){
+  const n = x.n, groups = THEME.locations.filter(l => S.draftLocs[l.key] && l.fields.length);
+  const label = '<div class="field"><label for="el-'+n.id+'">Label</label><input class="inp" id="el-'+n.id+'" data-elab value="'+esc(n.label)+'" placeholder="'+esc(n.derived || "The text to show")+'">' +
+    '<span class="hint">'+(n.path ? "Leave empty to use the link's own title." : "Plain text needs a label.")+'</span></div>';
+  return '<div class="mt-edit" id="ed-'+n.id+'" role="group" aria-label="Edit '+esc(shown(n))+'" style="--d:'+x.d+'"><div class="ed-inner">' +
+    '<div class="ed-row ed-2">' + label + '<div class="field"><span class="lab"'+(n.kind==="none"?'':' id="lkl-'+n.id+'"')+'>Link</span>'+linkControl(n)+linkNote(n)+'</div></div>' +
+    '<div class="field"><label for="ed-desc-'+n.id+'">Description</label><textarea class="inp" id="ed-desc-'+n.id+'" rows="2" placeholder="Shown under the label where the theme has room"></textarea></div>' +
+    '<div class="ed-row ed-2"><div class="field"><label for="ed-badge-'+n.id+'">Badge</label><input class="inp" id="ed-badge-'+n.id+'" placeholder="New"></div>' +
+      '<div class="field"><span class="lab">Icon</span>'+iconControl(n)+'</div></div>' +
+    '<div class="ed-row ed-2"><div class="field"><label for="ec-'+n.id+'">Class</label><input class="inp mono" id="ec-'+n.id+'" spellcheck="false"><span class="hint">Added to the item in the theme\'s markup.</span></div>' +
+      (n.path ? '<div class="field"><label for="er-'+n.id+'">Link Relationship</label><input class="inp mono" id="er-'+n.id+'" value="'+esc(n.rel||"")+'" placeholder="me, nofollow" spellcheck="false"><span class="hint">How the linked page relates to this site. Written to the link\'s rel attribute.</span></div>' : '') + '</div>' +
+    groups.map(l => '<div class="ed-sub"><span class="ed-sub-h">'+icon("i-location")+esc(l.name)+'</span>' + l.fields.map(fd => fd.type === "check"
+        ? '<label class="check"><input type="checkbox" data-lf="'+fd.key+'"'+(n.f && n.f[fd.key]?" checked":"")+'><span class="box">'+icon("i-check")+'</span><span class="tx"><b>'+esc(fd.label)+'</b><span>'+esc(fd.hint||"")+'</span></span></label>'
+        : '<div class="field ed-half"><span class="lab" id="lf-'+n.id+fd.key+'">'+esc(fd.label)+'</span><button class="xs" type="button" data-lfsel="'+fd.key+'" aria-haspopup="menu" aria-expanded="false" aria-labelledby="lf-'+n.id+fd.key+' lfv-'+n.id+fd.key+'"><span class="v'+(n.f && n.f[fd.key]?"":" def")+'" id="lfv-'+n.id+fd.key+'">'+esc((n.f && n.f[fd.key]) || "Choose")+'</span>'+icon("i-chev-ud")+'</button></div>').join("") + '</div>').join("") +
+    '<div class="ed-foot"><span class="hint">Changes save with the menu.</span><button class="btn sm" type="button" data-done>Done</button></div></div></div>';
+}
+function setLink(n, v){
+  Object.assign(n, v); n.kind = v.kind; markDirty();
+  renderTree();
+  const f = $("#el-" + n.id); if (f) f.placeholder = n.derived || "The text to show";
+  focusRow(n.id, "[data-lnkclear]");
+  announce("Linked to " + n.derived);
+}
+/* the combobox */
+let cbActive = -1, cbItems = [];
+function cbOpen(input){
+  const li = input.closest(".mt-item"), n = find(li.dataset.id).n, list = $("#lb-" + n.id), q = input.value.trim().toLowerCase();
+  const looksUrl = /^https?:\/\/\S+/.test(input.value.trim()) || input.value.trim().startsWith("/");
+  cbItems = LINKABLE.filter(x => !q || x.t.toLowerCase().includes(q) || addrOf(x.path).includes(q)).slice(0, 6);
+  if (looksUrl) cbItems.unshift({ kind:"url", t:input.value.trim(), path:input.value.trim(), typed:true });
+  cbActive = cbItems.length ? 0 : -1;
+  list.innerHTML = cbItems.length ? cbItems.map((x,i) => '<li role="option" id="op-'+n.id+'-'+i+'" data-op="'+i+'" aria-selected="'+(i===cbActive)+'">'+icon(KINDS[x.kind].icon) +
+      '<span class="op-t">'+(x.typed ? 'Link to <b>'+esc(x.t)+'</b>' : esc(x.t))+(x.off ? ' <span class="pill warn"><span class="d"></span>Draft</span>' : '')+'</span><code>'+esc(x.typed ? "" : addrOf(x.path))+'</code></li>').join("")
+    : '<li class="op-none" role="presentation">Nothing on the site matches. Type an address that starts with / or https://.</li>';
+  list.hidden = false; input.setAttribute("aria-expanded", "true");
+  input.setAttribute("aria-activedescendant", cbActive >= 0 ? "op-" + n.id + "-" + cbActive : "");
+}
+function cbClose(input){ const list = $("#" + input.getAttribute("aria-controls")); if (list) list.hidden = true; input.setAttribute("aria-expanded", "false"); input.removeAttribute("aria-activedescendant"); }
+function cbPick(input, i){
+  const x = cbItems[i]; if (!x) return;
+  const n = find(input.closest(".mt-item").dataset.id).n;
+  const derived = x.kind === "url" ? x.path.replace(/^https?:\/\//,"").split("/")[0] || x.path : x.t;
+  setLink(n, { kind:x.kind, path:x.path, derived, off:x.off });
+}
+document.addEventListener("focusin", e => { if (e.target.matches("[data-lnk]")) cbOpen(e.target); });
+document.addEventListener("input", e => { if (e.target.matches("[data-lnk]")) cbOpen(e.target); });
+document.addEventListener("focusout", e => { if (e.target.matches("[data-lnk]")) setTimeout(() => document.contains(e.target) && cbClose(e.target), 120); });
+document.addEventListener("keydown", e => {
+  const input = e.target; if (!input.matches || !input.matches("[data-lnk]")) return;
+  const list = $("#" + input.getAttribute("aria-controls")), n = input.closest(".mt-item").dataset.id;
+  const mark = () => { $$("[data-op]", list).forEach((o,i) => o.setAttribute("aria-selected", String(i === cbActive))); input.setAttribute("aria-activedescendant", "op-" + n + "-" + cbActive); $("#op-" + n + "-" + cbActive)?.scrollIntoView({ block:"nearest" }); };
+  if (e.key === "ArrowDown"){ e.preventDefault(); if (list.hidden) cbOpen(input); else if (cbItems.length){ cbActive = (cbActive + 1) % cbItems.length; mark(); } }
+  else if (e.key === "ArrowUp"){ e.preventDefault(); if (cbItems.length){ cbActive = (cbActive - 1 + cbItems.length) % cbItems.length; mark(); } }
+  else if (e.key === "Enter"){ e.preventDefault(); if (!list.hidden && cbActive >= 0) cbPick(input, cbActive); }
+  else if (e.key === "Escape" && !list.hidden){ e.preventDefault(); e.stopPropagation(); cbClose(input); }
+}, true);
+document.addEventListener("mousedown", e => { const o = e.target.closest("[data-op]"); if (!o) return; e.preventDefault(); cbPick($("[data-lnk]", o.closest(".cbx")), +o.dataset.op); });
+document.addEventListener("click", e => {
+  const c = e.target.closest("[data-lnkclear]");
+  if (c){ const n = find(c.closest(".mt-item").dataset.id).n; Object.assign(n, { path:"", derived:"", off:undefined, kind:"none" }); markDirty(); renderTree(); $("#lk-" + n.id)?.focus(); announce("Link removed"); return; }
+  const ic = e.target.closest("[data-icon]"); if (ic) return pickIcon(find(ic.closest(".mt-item").dataset.id).n, ic);
+  const icx = e.target.closest("[data-iconclear]"); if (icx){ const n = find(icx.closest(".mt-item").dataset.id).n; n.icon = ""; markDirty(); renderTree(); $("#ed-" + n.id + " .btn[data-icon]")?.focus(); announce("Icon reset"); }
+});
+/* The icon inserter, as the editor has it: a searchable grid. */
+function pickIcon(n, btn){
+  let q = "";
+  const d = modal('<div class="modal-h"><h2 id="dlgTitle">Insert an Icon</h2></div><div class="modal-b"><label class="search">'+icon("i-search")+'<input id="iq" placeholder="Search icons" aria-label="Search icons"></label>' +
+    '<div class="ico-grid" role="radiogroup" aria-label="Icons" id="ig"></div></div>' +
+    '<div class="modal-f"><button class="btn" type="button" data-close>Cancel</button></div>', d => {
+      const draw = () => { $("#ig", d).innerHTML = ICONS.filter(x => x.includes(q)).map(x => '<button type="button" class="ico-opt" role="radio" aria-checked="'+(n.icon === x)+'" data-ic="'+x+'">'+icon("i-" + x)+'<span>'+x+'</span></button>').join("") || '<p class="quiet">No icon matches.</p>';
+        $$("[data-ic]", d).forEach(b => b.addEventListener("click", () => { n.icon = b.dataset.ic; markDirty(); d.close(); renderTree(); $("#ed-" + n.id + " [data-icon]")?.focus(); announce("Icon set to " + n.icon); })); };
+      $("#iq", d).addEventListener("input", e => { q = e.target.value.toLowerCase(); draw(); });
+      draw(); $("#iq", d).focus();
+    }, "tall");
+}
+function pickFieldOption(id, key, btn){
+  const n = find(id).n, fd = THEME.locations.flatMap(l => l.fields).find(f => f.key === key);
+  openMenu(btn, fd.options.map(o => ({ label:o, checked:(n.f||{})[key] === o, run:()=>{ n.f = Object.assign({}, n.f, { [key]:o }); markDirty(); renderTree(); focusRow(id, '[data-lfsel="'+key+'"]'); } })));
+}
+function pickLink(id){ const f = $("#lk-" + id); if (f) f.focus(); }
+/* Add Item from the panel head goes after the selected item; a row's menu can
+   put one directly above or below that row, at the same level. */
+function addItem(where, refId){
+  const n = it({ kind:"none", derived:"", path:"", label:"" });
+  const x = (refId && find(refId)) || (selId() && find(selId()));
+  if (x) x.list.splice(x.i + (where === "above" ? 0 : 1), 0, n); else T().push(n);
+  S.sel[S.list] = n.id; S.open = n.id; markDirty();
+  if (!$("#tree")) renderMenu(); else renderTree();
+  announce("Added an item " + (x ? (where === "above" ? "above " : "after ") + shown(x.n) : "") + ". Give it a label, then a link, or leave the link empty for plain text.");
+  const f = $("#el-" + n.id); f && f.focus();
+  $('#tree [data-id="'+n.id+'"]').scrollIntoView({ block:"nearest" });
+}
+
+/* ---- settings dialog ---- */
+function renameNote(m){
+  if (m.draft || S.draftName === m.name) return "";
+  const n = m.entries.length;
+  return '<div class="warn-note" role="status">'+icon("i-alert")+'<div><p><b>Renaming changes how themes and entries find this menu.</b> Its locations follow the new name on their own.' +
+    (n ? ' ' + plural(n, "entry", "entries") + ' ' + (n === 1 ? "uses" : "use") + ' <code>::menu{name='+esc(m.name)+'}</code>: ' + m.entries.map(e => esc(e.t)).join(", ") + '.' : ' No entry uses the directive, so nothing else changes.') + '</p>' +
+    (n ? '<label class="check"><input type="checkbox" id="dFix"'+(S.updateEntries?" checked":"")+'><span class="box">'+icon("i-check")+'</span><span class="tx"><b>Update the Directive in '+(n === 1 ? "That Entry" : "Those Entries")+'</b><span>Otherwise '+(n === 1 ? "it shows" : "they show")+' nothing where the menu was.</span></span></label>' : '') + '</div></div>';
+}
+function settingsDialog(){
+  const m = cur();
+  const was = { label:S.draftLabel, name:S.draftName, fix:S.updateEntries, locs:Object.assign({}, S.draftLocs) };
+  modal('<div class="modal-h"><h2 id="dlgTitle">Menu Settings</h2><p>Saved with the items when you press '+(m.draft ? "Publish" : "Update")+'.</p></div><div class="modal-b">' +
+    '<div class="field"><label for="dLabel">Label</label><input class="inp" id="dLabel" value="'+esc(S.draftLabel)+'"><span class="hint">Names the navigation for screen readers.</span></div>' +
+    '<div class="field"><label for="dName">Name</label><input class="inp mono" id="dName" value="'+esc(S.draftName)+'" spellcheck="false" autocomplete="off" aria-describedby="dNameHint dNameErr"><span class="hint" id="dNameHint">Themes and the directive find the menu by its name.</span><span class="err" id="dNameErr" hidden></span><div id="dRename">'+renameNote(m)+'</div></div>' +
+    '<div class="field"><span class="lab">In an Entry</span><div class="snippet"><code id="dSnip">::menu{name='+esc(S.draftName)+'}</code><button class="btn sm" type="button" id="dCopy">'+icon("i-copy")+'Copy</button></div></div>' +
+    '<div class="field"><span class="lab">Locations</span><div class="loc-checks">' + THEME.locations.map(l =>
+      '<label class="check"><input type="checkbox" data-dloc="'+l.key+'"'+(S.draftLocs[l.key]?" checked":"")+'><span class="box">'+icon("i-check")+'</span><span class="tx"><b>'+esc(l.name)+'</b><span>'+esc(l.depth)+'. <span class="loc-state" data-st="'+l.key+'">'+esc(locState(l))+'</span></span></span></label>').join("") + '</div></div></div>' +
+    '<div class="modal-f"><button class="btn" type="button" id="dCancel">Cancel</button><button class="btn btn-primary" type="button" id="dDone">Done</button></div>', d => {
+      const bindFix = () => { const f = $("#dFix", d); f && f.addEventListener("change", () => S.updateEntries = f.checked); };
+      $("#dLabel", d).addEventListener("input", e => { S.draftLabel = e.target.value; });
+      $("#dName", d).addEventListener("input", e => {
+        const v = slugify(e.target.value); if (v !== e.target.value) e.target.value = v;
+        S.draftName = v;
+        const taken = v !== m.name && !!menuOf(v), bad = !v || taken;
+        const err = $("#dNameErr", d); err.hidden = !bad; err.innerHTML = bad ? icon("i-alert") + (v ? "A menu named " + esc(v) + " already exists. Pick another name." : "A menu needs a name.") : "";
+        e.target.classList.toggle("bad", bad); $("#dDone", d).disabled = bad;
+        $("#dSnip", d).textContent = "::menu{name=" + (v || "…") + "}";
+        $("#dRename", d).innerHTML = renameNote(m); bindFix();
+      });
+      bindFix();
+      $$("[data-dloc]", d).forEach(c => c.addEventListener("change", () => { S.draftLocs[c.dataset.dloc] = c.checked; const l = locByKey(c.dataset.dloc); $('[data-st="'+l.key+'"]', d).textContent = locState(l); }));
+      $("#dCopy", d).addEventListener("click", e => { navigator.clipboard?.writeText($("#dSnip", d).textContent).catch(()=>{}); e.currentTarget.innerHTML = icon("i-check")+"Copied"; });
+      let ok = false;
+      $("#dDone", d).addEventListener("click", () => { ok = true; d.close(); });
+      $("#dCancel", d).addEventListener("click", () => d.close());
+      d.addEventListener("close", () => {
+        if (!ok){ S.draftLabel = was.label; S.draftName = was.name; S.updateEntries = was.fix; S.draftLocs = was.locs; }
+        else if (S.draftLabel !== was.label || S.draftName !== was.name || S.updateEntries !== was.fix || JSON.stringify(S.draftLocs) !== JSON.stringify(was.locs)) S.dirty = true;
+        renderMenu(); $("#openSettings").focus();
+      }, { once:true });
+      $("#dLabel", d).focus();
+    });
+}
+
+/* ---------------------------------------------------------------- menu lifecycle */
+const slugify = s => s.toLowerCase().normalize("NFKD").replace(/[^\w\s-]/g,"").trim().replace(/[\s_]+/g,"-").replace(/-+/g,"-");
+function newMenu(){ menuDialog(); }
+function duplicateMenu(m){
+  if (S.view === "menu" && (S.dirty || cur()?.draft)) return leaveGuard(() => duplicateMenu(m));
+  menuDialog(m);
+}
+/* New Menu and Duplicate are one dialog. The name follows the label until it is
+   typed in, and can be changed later in Settings. Either way the result is a
+   new, unpublished menu that opens straight away. */
+function menuDialog(from){
+  const label0 = from ? from.label + " (Copy)" : "";
+  modal('<form id="nmForm"><div class="modal-h"><h2 id="dlgTitle">'+(from ? "Duplicate " + esc(from.label) : "New Menu")+'</h2>' +
+    (from ? '<p>The copy has the same '+plural(menuItems(from),"item")+' and isn\'t in any location until you choose one.</p>' : '') + '</div><div class="modal-b">' +
+    '<div class="field"><label for="nmLabel">Label</label><input class="inp" id="nmLabel" autocomplete="off" value="'+esc(label0)+'"><span class="hint">Shown here, and read out by screen readers as the name of the navigation.</span></div>' +
+    '<div class="field"><label for="nmName">Name</label><input class="inp mono" id="nmName" autocomplete="off" spellcheck="false"><span class="hint">Themes and <code>::menu{name=…}</code> find the menu by it. You can change it later in Settings.</span><span class="err" id="nmErr" hidden></span></div></div>' +
+    '<div class="modal-f"><button class="btn" type="button" data-close>Cancel</button><button class="btn btn-primary" type="submit" id="nmGo" disabled>'+(from ? "Create Copy" : "Create Menu")+'</button></div></form>', d => {
+      const L = $("#nmLabel", d), N = $("#nmName", d), err = $("#nmErr", d); let touched = false;
+      const suggest = () => { let v = slugify(L.value), base = v, i = 2; while (v && menuOf(v)) v = base + "-" + i++; return v; };
+      const check = () => { const taken = !!menuOf(N.value); err.hidden = !taken; err.innerHTML = taken ? icon("i-alert") + "A menu named " + esc(N.value) + " already exists. Pick another name." : ""; N.classList.toggle("bad", taken); $("#nmGo", d).disabled = !N.value || !L.value.trim() || taken; };
+      L.addEventListener("input", () => { if (!touched) N.value = suggest(); check(); });
+      N.addEventListener("input", () => { touched = true; N.value = slugify(N.value); check(); });
+      if (from){ N.value = suggest(); check(); }
+      $("#nmForm", d).addEventListener("submit", e => { e.preventDefault();
+        let tree = [];
+        if (from){ tree = JSON.parse(snapTree(from.tree)); (function re(list){ list.forEach(x => { x.id = "n" + (uid++); re(x.children); }); })(tree); }
+        const m = { name:N.value, label:L.value.trim(), entries:[], tree, draft:true };
+        S.menus.push(m); d.close(); go("menu", m.name); });
+      L.focus(); if (from) L.select();
+    });
+}
+function confirmDelete(m){
+  const at = locsOf(m.name), n = at.length + m.entries.length;
+  modal('<div class="modal-h"><h2 id="dlgTitle">Delete '+esc(m.label)+'?</h2><p>'+(n ? "It's used in " + plural(n, "place") + ". Locations go back to the theme's default or show nothing, and entries show nothing where the directive was." : "It isn't in any location or entry.")+'</p></div>' +
+    (n ? '<div class="modal-b">' : '') + (at.length ? '<div class="use-list"><div class="use-h">Locations</div>' + at.map(l => '<div class="use-row">'+icon("i-location")+'<span class="l">'+esc(l.name)+'</span></div>').join("") + '</div>' : '') +
+    (m.entries.length ? '<div class="use-list"><div class="use-h">Entries With the Directive</div>' + m.entries.map(e => '<div class="use-row">'+icon("i-page")+'<span class="l">'+esc(e.t)+'</span><code>'+esc(e.a)+'</code></div>').join("") + '</div>' : '') + (n ? '</div>' : '') +
+    '<div class="modal-f"><button class="btn" type="button" data-close>Cancel</button><button class="btn btn-danger-fill" type="button" id="delGo">'+icon("i-trash")+'Delete '+esc(m.label)+'</button></div>', d => {
+      $("[data-close]", d).focus();
+      $("#delGo", d).addEventListener("click", () => {
+        const idx = S.menus.indexOf(m), before = Object.assign({}, S.assign);
+        S.menus.splice(idx, 1); THEME.locations.forEach(l => { if (S.assign[l.key] === m.name) S.assign[l.key] = null; });
+        d.close(); S.dirty = false; go("list");
+        toast("Deleted " + m.label, { undo:() => { S.menus.splice(idx, 0, m); S.assign = before; if (S.view === "list") renderList(); navCount(); } });
+      });
+    });
+}
+
+/* ---------------------------------------------------------------- harness */
+function seg(id, fn){ if (!$("#"+id)) return; $$("#"+id+" button").forEach(b => b.addEventListener("click", () => { $$("#"+id+" button").forEach(x => x.setAttribute("aria-pressed", String(x === b))); fn(b.dataset.v); })); }
+seg("labTheme", v => v === "neutral" ? document.documentElement.removeAttribute("data-admin-theme") : document.documentElement.setAttribute("data-admin-theme", v));
+seg("labScheme", v => v ? document.documentElement.setAttribute("data-theme", v) : document.documentElement.removeAttribute("data-theme"));
+$("#labReset").addEventListener("click", () => { uid = 1; S.menus = seed(); S.assign = seedAssign(); S.sel = {}; S.dirty = false; go("list"); toast("Everything is back to the start", { kind:"info" }); });
+$("#burger").addEventListener("click", () => $("#app").classList.add("nav-open"));
+$("#scrimNav").addEventListener("click", () => $("#app").classList.remove("nav-open"));
+$("#navMenus").addEventListener("click", () => { $("#app").classList.remove("nav-open"); go("list"); });
+document.addEventListener("click", e => { if (e.target.closest("[data-todo]")) toast("Not part of this sketch", { kind:"info" }); });
+go("list");
+</script>
+
+</body>
+</html>

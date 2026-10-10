@@ -10,24 +10,24 @@
  * pressed; warnings and what will happen are gathered in one notice
  * above the buttons. Save stays pressable and marks what to fix.
  *
- * **To** is one box: a path, a whole address on another site, or part of
- * a page's name, whose matching pages open in a list under it (arrows
- * move, Enter picks). A picked page sits in the box as a token and is
- * kept by id, so the redirect follows it; its × or Backspace puts the
- * typing back. Escape closes the list first, then the modal.
+ * **To** is one box (`LinkPicker`, which menu items share): a path, a
+ * whole address on another site, or part of a page's name, whose
+ * matching pages open in a list under it (arrows move, Enter picks). A
+ * picked page sits in the box as a token and is kept by id, so the
+ * redirect follows it; its × or Backspace puts the typing back. Escape
+ * closes the list first, then the modal.
  */
 
 import { computed, nextTick, ref, watch } from 'vue';
 import { ApiError, errorMessage, request, type EntryList } from '../api';
 import { debounced, latest } from '../action';
 import { siteDateTime } from '../dates';
-import { listMove } from '../grid';
-import { usePopover } from '../popover';
 import { checkRedirect, saveRedirect, TYPES, type RedirectCheck, type RedirectMessage as Message, type RedirectRow, type RedirectStatus } from '../redirects';
 import { toast } from '../toast';
 import AdminIcon from './AdminIcon.vue';
 import AdminModal from './AdminModal.vue';
 import AdminSelect, { type SelectOption } from './AdminSelect.vue';
+import LinkPicker, { type LinkOption } from './LinkPicker.vue';
 import RedirectAdded from './RedirectAdded.vue';
 import RedirectMessage from './RedirectMessage.vue';
 
@@ -60,7 +60,6 @@ const saving  = ref(false);
 const failed  = ref('');
 
 const fromField = ref<HTMLInputElement | null>(null);
-const toField   = ref<HTMLInputElement | null>(null);
 
 const STATUS_OPTIONS: SelectOption[] = ([301, 302, 303, 307, 308] as RedirectStatus[]).map((code) => ({
 	value: String(code),
@@ -110,114 +109,34 @@ const lead = computed(() => props.row === null
 
 /*
  * The pages To offers: published entries matching what's typed, unless
- * it's a whole address, in the admin's floating list (`.select-list`,
- * AdminSelect's) under the box, drawn in the modal (`usePopover`).
+ * it's a whole address (`LinkPicker`).
  */
-interface PageOption {
-	id: string;
-	title: string;
-	url: string;
+async function findPages(text: string): Promise<LinkOption[]> {
+	if (/^https?:\/\//i.test(text)) {
+		return [];
+	}
+
+	const params = new URLSearchParams({ status: 'published', per: '6' });
+
+	if (text !== '') {
+		params.set('search', text);
+	}
+
+	const answer = await request<EntryList>('GET', `/entries?${params.toString()}`);
+
+	return answer.entries.flatMap((item) => item.id !== null && item.url !== null ? [{ key: item.id, icon: 'file-text' as const, title: item.title || 'Untitled', hint: item.url }] : []);
 }
 
-const pages   = ref<PageOption[]>([]);
-const active  = ref(-1);
-const askList = latest();
-const list    = ref<HTMLElement | null>(null);
-const popover = usePopover(toField, list, { gap: 4, matchWidth: true });
-const { open, place, layer } = popover;
+const chosen = computed<LinkOption | null>(() => entry.value === null ? null : { key: entry.value.id, icon: 'file-text', title: entry.value.title, hint: entry.value.url ?? '' });
 
-const search = debounced(async () => {
-	const current = askList();
-	const text    = to.value.trim();
-
-	if (/^https?:\/\//i.test(text)) {
-		pages.value = [];
-		popover.close(false);
-
-		return;
-	}
-
-	try {
-		const params = new URLSearchParams({ status: 'published', per: '6' });
-
-		if (text !== '') {
-			params.set('search', text);
-		}
-
-		const answer = await request<EntryList>('GET', `/entries?${params.toString()}`);
-
-		if (!current()) {
-			return;
-		}
-
-		pages.value  = answer.entries.flatMap((item) => item.id !== null && item.url !== null ? [{ id: item.id, title: item.title || 'Untitled', url: item.url }] : []);
-		active.value = -1;
-
-		if (pages.value.length && document.activeElement === toField.value) {
-			await popover.show();
-		} else {
-			popover.close(false);
-		}
-	} catch {
-		if (current()) {
-			pages.value = [];
-			popover.close(false);
-		}
-	}
-}, 200);
-
-watch(to, () => {
-	if (entry.value === null) {
-		search();
-	}
-});
-
-function choose(item: PageOption | undefined): void {
-	if (item === undefined) {
-		return;
-	}
-
-	entry.value = { id: item.id, title: item.title, url: item.url };
-	popover.close(false);
+function choose(option: LinkOption): void {
+	entry.value      = { id: option.key, title: option.title, url: option.hint };
 	touched.value.to = true;
 }
 
-async function unpick(): Promise<void> {
+function unpick(): void {
 	to.value    = entry.value?.url ?? '';
 	entry.value = null;
-	await nextTick();
-	toField.value?.focus();
-}
-
-function toKey(event: KeyboardEvent): void {
-	if (event.key === 'Escape' && open.value) {
-		event.preventDefault();
-		event.stopPropagation();
-		popover.close(false);
-
-		return;
-	}
-
-	if (!open.value || !pages.value.length) {
-		return;
-	}
-
-	const next = listMove(event.key, active.value, pages.value.length);
-
-	if (next !== null) {
-		event.preventDefault();
-		active.value = next;
-	} else if (event.key === 'Enter' && active.value >= 0) {
-		event.preventDefault();
-		choose(pages.value[active.value]);
-	}
-}
-
-function tokenKey(event: KeyboardEvent): void {
-	if (event.key === 'Backspace' || event.key === 'Delete') {
-		event.preventDefault();
-		void unpick();
-	}
 }
 
 // A fix the form offers, from a message.
@@ -290,57 +209,18 @@ async function save(): Promise<void> {
 
 			<div class="field">
 				<label for="redirect-to">To</label>
-				<div v-if="entry" class="input redirect-form__chosen" :class="{ 'is-invalid': bad('to').length > 0 }" tabindex="0" role="group" :aria-label="`To: ${entry.title}`" @keydown="tokenKey">
-					<AdminIcon name="file-text" />
-					<strong>{{ entry.title }}</strong>
-					<span v-if="entry.url" class="redirect-form__at mono">{{ entry.url }}</span>
-					<button type="button" class="button button--ghost button--icon button--small" @click="unpick"><AdminIcon name="x" /><span class="visually-hidden">Clear {{ entry.title }}</span></button>
-				</div>
-				<input
-					v-else
+				<LinkPicker
 					id="redirect-to"
-					ref="toField"
 					v-model="to"
-					class="mono"
-					type="text"
-					placeholder="A path, a page's name, or https://…"
-					autocomplete="off"
-					autocapitalize="none"
-					spellcheck="false"
-					role="combobox"
-					aria-autocomplete="list"
+					:chosen="chosen"
+					:search="findPages"
+					label="To"
 					:autofocus="props.from !== undefined || repick"
-					:aria-expanded="open"
-					aria-controls="redirect-to-pages"
-					:aria-activedescendant="open && active >= 0 ? `redirect-page-${active}` : undefined"
-					:aria-invalid="bad('to').length > 0"
-					@keydown="toKey"
-					@focus="search()"
-					@blur="touched.to = true; popover.close(false)"
-				>
-				<Teleport :to="layer">
-					<div v-if="open" ref="list" class="select-list" :style="place ? { ...place, width: place.minWidth } : { visibility: 'hidden' }">
-						<div id="redirect-to-pages" class="select-list__options" role="listbox" aria-label="Pages">
-							<button
-								v-for="(item, index) in pages"
-								:id="`redirect-page-${index}`"
-								:key="item.id"
-								type="button"
-								role="option"
-								tabindex="-1"
-								class="select-list__option"
-								:class="{ 'is-active': index === active }"
-								:aria-selected="index === active"
-								@mousedown.prevent
-								@click="choose(item)"
-							>
-								<AdminIcon name="file-text" class="select-list__icon" />
-								<span class="select-list__label redirect-form__page">{{ item.title }}</span>
-								<span class="select-list__hint mono redirect-form__page-at">{{ item.url }}</span>
-							</button>
-						</div>
-					</div>
-				</Teleport>
+					:invalid="bad('to').length > 0"
+					@choose="choose"
+					@clear="unpick"
+					@blur="touched.to = true"
+				/>
 				<p v-for="(message, index) in bad('to')" :key="index" class="field__error"><RedirectMessage :message="message" @fix="fix" /></p>
 			</div>
 
@@ -374,70 +254,9 @@ async function save(): Promise<void> {
 	gap: var(--s-4);
 }
 
-/* A picked page, in the box To's input was: kept by id, so it follows
-   the page. */
-.redirect-form__chosen {
-	display: flex;
-	align-items: center;
-	gap: var(--s-2);
-	width: 100%;
-	min-width: 0;
-	padding-right: 4px;
-}
-
-.redirect-form__chosen.is-invalid {
-	border-color: var(--danger-dot);
-}
-
-.redirect-form__chosen > .icon {
-	flex: none;
-	width: 15px;
-	height: 15px;
-	color: var(--fg-3);
-}
-
-.redirect-form__chosen strong {
-	overflow: hidden;
-	font-weight: 500;
-	text-overflow: ellipsis;
-	white-space: nowrap;
-}
-
-.redirect-form__chosen .redirect-form__at {
-	flex: 1;
-	min-width: 0;
-	overflow: hidden;
-	text-overflow: ellipsis;
-	white-space: nowrap;
-}
-
-.redirect-form__page {
-	overflow: hidden;
-	text-overflow: ellipsis;
-	white-space: nowrap;
-}
-
-.redirect-form__page-at {
-	max-width: 45%;
-	overflow: hidden;
-	font-size: var(--text-xs);
-	text-overflow: ellipsis;
-	white-space: nowrap;
-}
-
-.redirect-form__chosen .button {
-	flex: none;
-	margin-left: auto;
-}
-
 .redirect-form__lead {
 	margin: 0;
 	font-size: var(--text-sm);
-}
-
-.redirect-form__at {
-	color: var(--fg-3);
-	font-size: var(--text-xs);
 }
 
 .redirect-form__notes {

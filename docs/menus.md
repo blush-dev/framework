@@ -8,7 +8,9 @@ filled. One menu can fill several locations.
 
 ## Making a menu
 
-Each menu is a file in `user/data/menus/`, named for the menu:
+Make and edit menus in the admin, under **Config → Menus** (see
+[the admin](admin.md#menus)), or as files. Each menu is a file in
+`user/data/menus/`, named for the menu:
 
 `user/data/menus/main.json`:
 
@@ -24,14 +26,17 @@ Each menu is a file in `user/data/menus/`, named for the menu:
 }
 ```
 
-A menu's name is its file name. It never changes, since locations and
-content use it to find the menu. Use lowercase letters, digits, hyphens,
-and underscores. A site [kept in a database](going-live.md#large-sites-sqlite)
+A menu's name is its file name. Locations and content use it to find the
+menu: renaming one in the admin moves its locations along, but an entry
+that shows it with `::menu{name=…}` needs the new name. Use lowercase
+letters, digits, hyphens, and underscores. A site [kept in a database](going-live.md#large-sites-sqlite)
 keeps its menus there instead of in files.
 
 ## Showing a menu
 
-Assign a menu to one of your theme's locations:
+Assign a menu to one of your theme's locations, in the admin (the
+**Locations** under **Config → Menus**, or a menu's **Settings**) or with
+the CLI:
 
 ```sh
 bin/blush menu:assign primary main      # the primary location shows the main menu

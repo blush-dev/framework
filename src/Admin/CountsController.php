@@ -36,6 +36,8 @@ use Blush\Http\Status;
 use Blush\Icon\IconPacks;
 use Blush\Media\Index\MediaLibrary;
 use Blush\Media\Index\MediaQuery;
+use Blush\Menu\MenuException;
+use Blush\Menu\MenuLoader;
 use Blush\Plugin\PluginDiscovery;
 use Blush\Routing\InvalidRoute;
 use Blush\Storage\Record\RecordException;
@@ -61,6 +63,7 @@ use Blush\Theme\Themes;
  *   `site.settings`.
  * - `redirects`, the `redirects` table's rows, with `site.redirects`
  *   (D-686).
+ * - `menus`, the site's menus, with `menus.edit`.
  * - `themes`, `plugins`, and `iconPacks` (installed), each with seeing
  *   its kind (`extensions.themes.view`, and so on, D-389; `themes` since
  *   D-372, counting broken ones since D-381, as the Themes screen lists
@@ -84,7 +87,8 @@ final readonly class CountsController
 		private AdminActions $actions,
 		private SiteHealth $health,
 		private ArchivePages $archivePages,
-		private Redirects $redirects
+		private Redirects $redirects,
+		private MenuLoader $menus
 	) {}
 
 	public function __invoke(ServerRequestInterface $request): ResponseInterface
@@ -141,6 +145,14 @@ final readonly class CountsController
 				$counts['redirects'] = count($this->redirects->all());
 			} catch (RecordException | InvalidRoute) {
 				// Left out, as the Redirects screen reports the problem.
+			}
+		}
+
+		if ($this->permissions->can($account, Capability::MenusEdit)) {
+			try {
+				$counts['menus'] = count($this->menus->all());
+			} catch (MenuException) {
+				// Left out, as the Menus screen reports the problem.
 			}
 		}
 

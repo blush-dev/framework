@@ -260,7 +260,7 @@ onMounted(() => {
 					<template #actions>
 						<div v-if="firstNew || browsable.length" class="dashboard__clear-actions">
 							<RouterLink v-if="firstNew" class="button button--primary" :to="{ name: 'entry-new', query: { type: firstNew.name } }"><AdminIcon name="plus" />{{ firstNew.labels.newItem }}</RouterLink>
-							<MenuButton v-if="browsable.length" button-class="button" align="start">
+							<MenuButton v-if="browsable.length" button-class="button" align="start" floating>
 								<template #button>Browse by Type<AdminIcon name="chevron-down" /></template>
 								<RouterLink v-for="type in browsable" :key="type.name" class="menu-item" :to="{ name: 'type', params: { type: type.name } }"><AdminIcon :name="typeIcon(type)" />{{ type.labels.menu }}</RouterLink>
 							</MenuButton>

@@ -136,6 +136,64 @@ final class MenuLoader
 	}
 
 	/**
+	 * Writes a menu whole: its `label` (left out when empty) and `items`.
+	 * With `$was`, the menu by that name is replaced, and renamed when
+	 * `$name` differs, in one transaction.
+	 *
+	 * @param  list<mixed> $items
+	 * @throws MenuException When the name isn't valid or is taken, there's no menu `$was`, or it can't be saved.
+	 */
+	public function save(string $name, mixed $label, array $items, ?string $was = null): void
+	{
+		if (preg_match(self::NAME, $name) !== 1) {
+			throw new MenuException(sprintf('"%s" isn\'t a valid menu name: use lowercase letters, digits, hyphens, and underscores.', $name));
+		}
+
+		$records = $this->records();
+		$data    = $label === null || $label === '' ? ['items' => $items] : ['label' => $label, 'items' => $items];
+
+		try {
+			$records->transaction(static function () use ($records, $name, $was, $data): void {
+				if ($was !== null && ! $records->has($was)) {
+					throw new MenuException(sprintf('The site has no menu "%s".', $was));
+				}
+
+				if ($was !== $name && $records->has($name)) {
+					throw new MenuException(sprintf('The site already has a menu named "%s".', $name));
+				}
+
+				if ($was !== null && $was !== $name) {
+					$records->delete($was);
+				}
+
+				$records->save($name, $data);
+			});
+		} catch (RecordException $error) {
+			throw new MenuException(sprintf('The menu "%s" couldn\'t be saved in %s: %s', $name, $records->location($name), $error->getMessage()), 0, $error);
+		} finally {
+			$this->menus = null;
+		}
+	}
+
+	/**
+	 * Removes a menu. A missing one is nothing to remove.
+	 *
+	 * @throws MenuException When it can't be removed.
+	 */
+	public function delete(string $name): void
+	{
+		$records = $this->records();
+
+		try {
+			$records->delete($name);
+		} catch (RecordException $error) {
+			throw new MenuException(sprintf('The menu "%s" couldn\'t be removed from %s: %s', $name, $records->location($name), $error->getMessage()), 0, $error);
+		} finally {
+			$this->menus = null;
+		}
+	}
+
+	/**
 	 * Where a menu is kept, for people: `user/data/menus/primary.json`
 	 * for a file.
 	 */

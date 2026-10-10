@@ -106,6 +106,21 @@
       "css/FieldSetEditor.css"
     ]
   },
+  "_IconField.css": {
+    "file": "css/IconField.css",
+    "src": "_IconField.css"
+  },
+  "_IconField.js": {
+    "file": "js/IconField.js",
+    "name": "IconField",
+    "imports": [
+      "js/admin.ts",
+      "_IconPicker.js"
+    ],
+    "css": [
+      "css/IconField.css"
+    ]
+  },
   "_IconPicker.css": {
     "file": "css/IconPicker.css",
     "src": "_IconPicker.css"
@@ -118,6 +133,20 @@
     ],
     "css": [
       "css/IconPicker.css"
+    ]
+  },
+  "_LinkPicker.css": {
+    "file": "css/LinkPicker.css",
+    "src": "_LinkPicker.css"
+  },
+  "_LinkPicker.js": {
+    "file": "js/LinkPicker.js",
+    "name": "LinkPicker",
+    "imports": [
+      "js/admin.ts"
+    ],
+    "css": [
+      "css/LinkPicker.css"
     ]
   },
   "_ListPager.css": {
@@ -165,6 +194,20 @@
     ],
     "css": [
       "css/MediaPicker.css"
+    ]
+  },
+  "_MenuDialog.css": {
+    "file": "css/MenuDialog.css",
+    "src": "_MenuDialog.css"
+  },
+  "_MenuDialog.js": {
+    "file": "js/MenuDialog.js",
+    "name": "MenuDialog",
+    "imports": [
+      "js/admin.ts"
+    ],
+    "css": [
+      "css/MenuDialog.css"
     ]
   },
   "_PickModal.js": {
@@ -255,8 +298,8 @@
     "imports": [
       "js/admin.ts",
       "_AdminSelect.js",
-      "_IconPicker.js",
-      "_type-form.js"
+      "_type-form.js",
+      "_IconField.js"
     ],
     "css": [
       "css/TypeBehaviorFields.css"
@@ -442,6 +485,8 @@
       "js/views/IconPackView.vue",
       "js/views/IconPacksView.vue",
       "js/views/MediaFileView.vue",
+      "js/views/MenusView.vue",
+      "js/views/MenuView.vue",
       "js/views/MediaView.vue",
       "js/views/NewAccountView.vue",
       "js/views/NewFieldSetView.vue",
@@ -657,6 +702,37 @@
       "css/MediaView.css"
     ]
   },
+  "js/views/MenuView.vue": {
+    "file": "js/MenuView.js",
+    "name": "MenuView",
+    "src": "js/views/MenuView.vue",
+    "isDynamicEntry": true,
+    "imports": [
+      "js/admin.ts",
+      "_references.js",
+      "_MenuDialog.js",
+      "_IconField.js",
+      "_LinkPicker.js"
+    ],
+    "css": [
+      "css/MenuView.css"
+    ]
+  },
+  "js/views/MenusView.vue": {
+    "file": "js/MenusView.js",
+    "name": "MenusView",
+    "src": "js/views/MenusView.vue",
+    "isDynamicEntry": true,
+    "imports": [
+      "js/admin.ts",
+      "_AdminSelect.js",
+      "_SkeletonTable.js",
+      "_MenuDialog.js"
+    ],
+    "css": [
+      "css/MenusView.css"
+    ]
+  },
   "js/views/NewAccountView.vue": {
     "file": "js/NewAccountView.js",
     "name": "NewAccountView",
@@ -769,7 +845,8 @@
       "_ListPager.js",
       "_density.js",
       "_search-key.js",
-      "_query.js"
+      "_query.js",
+      "_LinkPicker.js"
     ],
     "css": [
       "css/RedirectsView.css"
