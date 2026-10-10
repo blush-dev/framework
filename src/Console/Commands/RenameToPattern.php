@@ -47,9 +47,12 @@ final readonly class RenameToPattern
 		}
 
 		$failed = false;
+		$steps  = $output->steps();
 
 		if ($write) {
-			$renamed = $this->names->rename($type);
+			$renamed = $this->names->rename($type, progress: $steps(...));
+
+			$steps->finish();
 
 			foreach ($renamed->renamed as $from => $to) {
 				$output->line(sprintf('%s  %s → %s', $output->style('renamed', Style::Green), $from, $to));
@@ -62,7 +65,10 @@ final readonly class RenameToPattern
 			$failed = $renamed->failed !== [];
 		}
 
-		$report  = $this->names->report();
+		$report = $this->names->report($steps(...));
+
+		$steps->finish();
+
 		$renames = $report->renames($type);
 
 		foreach ($renames as $rename) {

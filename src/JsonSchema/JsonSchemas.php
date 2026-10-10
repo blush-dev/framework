@@ -496,6 +496,11 @@ final readonly class JsonSchemas
 						'additionalProperties' => false
 					]
 				],
+				MediaMetadata::UPLOADED => [
+					'type'        => 'string',
+					'pattern'     => '^\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2} [+-]\\d{2}:\\d{2}$',
+					'description' => 'When the file was added to the library, in UTC, such as 2026-10-10 19:03:00 +00:00, which orders it. Blush writes it; media:dates adds a missing one.'
+				],
 				MediaMetadata::ID => [
 					'type'        => 'string',
 					'pattern'     => '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$',

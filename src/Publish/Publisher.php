@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Blush\Publish;
 
+use Closure;
 use Blush\Cache\CacheException;
 use Blush\Cache\Caches;
 use Blush\Cache\ContentVersion;
@@ -31,6 +32,7 @@ use Blush\Event\Dispatcher;
 use Blush\Publish\Events\ContentPublished;
 use Blush\Routing\InvalidRoute;
 use Blush\Routing\RouteCache;
+use Blush\Support\Progress;
 
 /**
  * Puts the site's current files live (D-013): the one thing `publish`,
@@ -73,6 +75,7 @@ final readonly class Publisher
 	 * Publishes. `$pull` overrides `PublishConfig::$git`, and
 	 * `$mediaLimit` caps the media files read.
 	 *
+	 * @param  ?Closure(string, int, int): void $progress How it's going (`Progress`).
 	 * @throws PublishInProgress When another publish is running.
 	 * @throws IndexException
 	 * @throws UnreadableSource
@@ -80,12 +83,17 @@ final readonly class Publisher
 	 * @throws InvalidRoute
 	 * @throws CacheException
 	 */
-	public function publish(?bool $pull = null, ?int $mediaLimit = null): PublishReport
+	public function publish(?bool $pull = null, ?int $mediaLimit = null, ?Closure $progress = null): PublishReport
 	{
 		$start = hrtime(true);
 		$lock  = $this->lock();
+		$steps = new Progress($progress);
 
 		try {
+			if ($pull ?? $this->config->git) {
+				$steps->step('Pulling content');
+			}
+
 			$pulled = ($pull ?? $this->config->git) ? $this->puller->pull($this->paths->user) : null;
 
 			if ($pulled !== null && ! $pulled->successful) {
@@ -96,17 +104,20 @@ final readonly class Publisher
 			$types    = $compiled && is_file($this->types->path());
 
 			if ($types) {
+				$steps->step('Compiling content types');
 				$this->types->write();
 			}
 
-			$index  = $this->indexer->index();
-			$media  = $this->media->index(limit: $mediaLimit);
+			$index  = $this->indexer->index(progress: $steps->of('Updating the content index'));
+			$media  = $this->media->index(progress: $steps->of('Updating the media index'), limit: $mediaLimit);
 			$routes = $compiled && is_file($this->routes->path());
 
 			if ($routes) {
+				$steps->step('Compiling routes');
 				$this->routes->write();
 			}
 
+			$steps->step('Clearing the cache');
 			$cleared = $this->caches->clear();
 			$this->caches->prune();
 

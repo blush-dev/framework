@@ -37,7 +37,13 @@ final readonly class MigrateTypeFolders
 		#[Option('Move each type\'s files into its folder and write it without the folder.')] bool $write = false
 	): ExitCode {
 		if ($write) {
-			$done = $this->migration->migrate();
+			$steps = $output->steps();
+
+			try {
+				$done = $this->migration->migrate($steps(...));
+			} finally {
+				$steps->finish();
+			}
 
 			foreach ($done['migrated'] as $name => $moved) {
 				$output->line(sprintf('%s  %s (%d moved)', $output->style('moved ', Style::Green), $name, $moved));

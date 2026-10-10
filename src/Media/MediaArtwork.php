@@ -288,10 +288,13 @@ final readonly class MediaArtwork
 			throw new MediaException('The artwork couldn\'t be added to the library.');
 		}
 
+		$now = $this->clock->now();
+
 		$this->metadata->save($image, array_filter([
-			'title'               => sprintf('Artwork for %s', $this->title($record)),
-			MediaMetadata::OWNER  => $owner,
-			MediaMetadata::ID     => Uuid::v7($this->clock->now())
+			'title'                 => sprintf('Artwork for %s', $this->title($record)),
+			MediaMetadata::OWNER    => $owner,
+			MediaMetadata::UPLOADED => MediaMetadata::utc($now),
+			MediaMetadata::ID       => Uuid::v7($now)
 		], static fn (string $value): bool => $value !== ''));
 
 		$this->library->refresh([$key]);

@@ -174,11 +174,14 @@ final readonly class MediaUploadController
 			return self::error(sprintf('%s couldn\'t be added to the library.', $name), Status::UnprocessableContent);
 		}
 
-		// Who uploaded it decides who may change it (D-407), and every
-		// file has an id (D-487). A file whose metadata can't be written
-		// stays, with neither; `media:ids` can add the id.
+		// Who uploaded it decides who may change it (D-407), when orders
+		// the library (D-709), and every file has an id (D-487). A file
+		// whose metadata can't be written stays, with none of them;
+		// `media:ids` and `media:dates` can add the id and the date.
 		try {
-			$this->metadata->save($file, [MediaMetadata::OWNER => $account->id, MediaMetadata::ID => Uuid::v7($this->clock->now())]);
+			$now = $this->clock->now();
+
+			$this->metadata->save($file, [MediaMetadata::OWNER => $account->id, MediaMetadata::UPLOADED => MediaMetadata::utc($now), MediaMetadata::ID => Uuid::v7($now)]);
 		} catch (MediaException) {
 		}
 

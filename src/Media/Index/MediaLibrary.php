@@ -20,6 +20,7 @@ use Blush\Job\JobRecord;
 use Blush\Job\Jobs\MediaIndexJob;
 use Blush\Job\JobType;
 use Blush\Media\MediaConfig;
+use Blush\Media\MediaDates;
 use Blush\Media\MediaException;
 use Blush\Media\MediaKind;
 use Blush\Media\MediaMetadata;
@@ -221,7 +222,8 @@ final class MediaLibrary
 	}
 
 	/**
-	 * Finds files, newest first (then by path), a page at a time.
+	 * Finds files, newest upload first (D-709; then by path), a page at a
+	 * time.
 	 *
 	 * @throws MediaException
 	 */
@@ -248,7 +250,14 @@ final class MediaLibrary
 			return $search === '' || str_contains(mb_strtolower($record->key . "\n" . self::text($record->metadata)), $search);
 		});
 
-		usort($found, static fn (MediaRecord $a, MediaRecord $b): int => [$b->modified, $a->key] <=> [$a->modified, $b->key]);
+		$timezone = $this->app->timezone();
+		$uploaded = [];
+
+		foreach ($found as $record) {
+			$uploaded[$record->key] = MediaDates::of($record, $timezone)->getTimestamp();
+		}
+
+		usort($found, static fn (MediaRecord $a, MediaRecord $b): int => [$uploaded[$b->key], $a->key] <=> [$uploaded[$a->key], $b->key]);
 
 		return new MediaResults(array_slice($found, max(0, $query->page - 1) * $query->per, $query->per), count($found));
 	}

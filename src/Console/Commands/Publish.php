@@ -46,12 +46,16 @@ final readonly class Publish
 			return ExitCode::Invalid;
 		}
 
+		$steps = $output->steps();
+
 		try {
-			$report = $this->publisher->publish($pull ? true : ($noPull ? false : null));
+			$report = $this->publisher->publish($pull ? true : ($noPull ? false : null), progress: $steps(...));
 		} catch (PublishInProgress $e) {
 			$output->error($e->getMessage());
 
 			return ExitCode::Failure;
+		} finally {
+			$steps->finish();
 		}
 
 		if ($report->pull !== null) {

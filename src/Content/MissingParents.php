@@ -21,6 +21,7 @@ use Blush\Content\Writer\EntryChanges;
 use Blush\Content\Writer\FilesystemWriter;
 use Blush\Content\Writer\WriteException;
 use Blush\Core\AppConfig;
+use Blush\Support\Progress;
 
 /**
  * A tree's page is under its parent page by what its record says
@@ -50,11 +51,12 @@ final readonly class MissingParents
 	 * how many pages are kept under its folder, by type name, then by
 	 * key, each in order.
 	 *
+	 * @param  ?Closure(string, int, int): void $progress How it's going (`Progress`).
 	 * @return array<string, array<string, array{title: string, pages: int}>>
 	 */
-	public function report(): array
+	public function report(?Closure $progress = null): array
 	{
-		$this->indexer->index();
+		$this->indexer->index(progress: new Progress($progress)->of('Checking the content index'));
 
 		$snapshot = $this->index->snapshot();
 		$language = $this->app->languages->default->code;
@@ -97,15 +99,18 @@ final readonly class MissingParents
 	 * (one row on Site Health, D-612). A parent's own missing parents are
 	 * written with it.
 	 *
-	 * @param ?Closure(string): bool $allowed
-	 * @param ?list<string>          $only
+	 * @param ?Closure(string): bool           $allowed
+	 * @param ?list<string>                    $only
+	 * @param ?Closure(string, int, int): void $progress How it's going (`Progress`).
 	 */
-	public function create(?Closure $allowed = null, ?array $only = null): CreatedEntries
+	public function create(?Closure $allowed = null, ?array $only = null, ?Closure $progress = null): CreatedEntries
 	{
 		$created = [];
 		$failed  = [];
+		$steps   = new Progress($progress);
+		$pages   = [];
 
-		foreach ($this->report() as $name => $keys) {
+		foreach ($this->report($progress) as $name => $keys) {
 			$type = $this->types->find($name);
 
 			if ($type === null || ($allowed !== null && ! $allowed($name))) {
@@ -113,22 +118,31 @@ final readonly class MissingParents
 			}
 
 			foreach ($keys as $key => $parent) {
-				$key = (string) $key;
-
-				if (($only !== null && ! in_array("{$name}/{$key}", $only, true)) || $this->content->named($name, $key) !== null) {
-					continue;
-				}
-
-				try {
-					$created["{$name}/{$key}"] = $this->content->createAt($type, $key, new EntryChanges(set: [
-						'title'  => $parent['title'],
-						'status' => Status::Draft->value
-					]))->path;
-				} catch (WriteException $e) {
-					$failed["{$name}/{$key}"] = $e->getMessage();
+				if ($only === null || in_array("{$name}/{$key}", $only, true)) {
+					$pages[] = [$type, (string) $key, $parent['title']];
 				}
 			}
 		}
+
+		foreach ($pages as $done => [$type, $key, $title]) {
+			$steps->step('Writing parent pages', $done, count($pages));
+
+			// A parent's own missing parents are written with it.
+			if ($this->content->named($type->name, $key) !== null) {
+				continue;
+			}
+
+			try {
+				$created["{$type->name}/{$key}"] = $this->content->createAt($type, $key, new EntryChanges(set: [
+					'title'  => $title,
+					'status' => Status::Draft->value
+				]))->path;
+			} catch (WriteException $e) {
+				$failed["{$type->name}/{$key}"] = $e->getMessage();
+			}
+		}
+
+		$steps->step('Writing parent pages', count($pages), count($pages));
 
 		return new CreatedEntries($created, $failed);
 	}

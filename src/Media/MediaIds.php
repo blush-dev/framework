@@ -17,6 +17,7 @@ use Closure;
 use Psr\Clock\ClockInterface;
 use Blush\Media\Index\MediaIndex;
 use Blush\Media\Index\MediaIndexer;
+use Blush\Support\Progress;
 use Blush\Support\Uuid;
 
 /**
@@ -48,11 +49,12 @@ final readonly class MediaIds
 	/**
 	 * Returns the files missing a valid id, and the ids files share.
 	 *
+	 * @param  ?Closure(string, int, int): void $progress How it's going (`Progress`).
 	 * @throws MediaException When the index can't be written.
 	 */
-	public function report(): MediaIdReport
+	public function report(?Closure $progress = null): MediaIdReport
 	{
-		$this->indexer->index();
+		$this->indexer->index(progress: new Progress($progress)->of('Checking the media index'));
 
 		$missing = [];
 		$ids     = [];
@@ -78,27 +80,29 @@ final readonly class MediaIds
 	 * Gives every file missing a valid id a new one, or only those
 	 * `$allowed` passes (by key), such as the ones an account may edit.
 	 *
-	 * @param  ?Closure(string): bool $allowed
+	 * @param  ?Closure(string): bool                $allowed
+	 * @param  ?Closure(string, int, int): void $progress How it's going (`Progress`).
 	 * @throws MediaException When the index can't be written.
 	 */
-	public function assignMissing(?Closure $allowed = null): AssignedMediaIds
+	public function assignMissing(?Closure $allowed = null, ?Closure $progress = null): AssignedMediaIds
 	{
-		$missing = $this->report()->missing;
+		$missing = $this->report($progress)->missing;
 
-		return $this->assign($allowed === null ? $missing : array_values(array_filter($missing, $allowed)));
+		return $this->assign($allowed === null ? $missing : array_values(array_filter($missing, $allowed)), new Progress($progress));
 	}
 
 	/**
 	 * Keeps a file's id on it and gives the other files sharing the id
 	 * new ones, or only those `$allowed` passes (by key).
 	 *
-	 * @param  ?Closure(string): bool $allowed
+	 * @param  ?Closure(string): bool                $allowed
+	 * @param  ?Closure(string, int, int): void $progress How it's going (`Progress`).
 	 * @throws MediaException When the file doesn't share its id, or the index can't be written.
 	 */
-	public function keep(string $key, ?Closure $allowed = null): AssignedMediaIds
+	public function keep(string $key, ?Closure $allowed = null, ?Closure $progress = null): AssignedMediaIds
 	{
 		$key    = trim($key, '/');
-		$shared = array_find($this->report()->duplicates, static fn (array $keys): bool => in_array($key, $keys, true));
+		$shared = array_find($this->report($progress)->duplicates, static fn (array $keys): bool => in_array($key, $keys, true));
 
 		if ($shared === null) {
 			throw new MediaException(sprintf('%s doesn\'t share its id with another media file.', $key));
@@ -106,7 +110,7 @@ final readonly class MediaIds
 
 		$others = array_values(array_diff($shared, [$key]));
 
-		return $this->assign($allowed === null ? $others : array_values(array_filter($others, $allowed)));
+		return $this->assign($allowed === null ? $others : array_values(array_filter($others, $allowed)), new Progress($progress));
 	}
 
 	/**
@@ -115,12 +119,15 @@ final readonly class MediaIds
 	 * @param  list<string> $keys
 	 * @throws MediaException When the index can't be written.
 	 */
-	private function assign(array $keys): AssignedMediaIds
+	private function assign(array $keys, Progress $steps): AssignedMediaIds
 	{
 		$ids    = [];
 		$failed = [];
+		$done   = 0;
 
 		foreach ($keys as $key) {
+			$steps->step('Writing ids', $done++, count($keys));
+
 			$file = $this->resolver->fromKey($key);
 
 			if ($file === null) {
@@ -146,6 +153,8 @@ final readonly class MediaIds
 			$ids[$key] = $id;
 		}
 
-		return new AssignedMediaIds($ids, $failed, $this->indexer->index(written: array_map(strval(...), array_keys($ids))));
+		$steps->step('Writing ids', $done, count($keys));
+
+		return new AssignedMediaIds($ids, $failed, $this->indexer->index(progress: $steps->of('Updating the media index'), written: array_map(strval(...), array_keys($ids))));
 	}
 }

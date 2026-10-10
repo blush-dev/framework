@@ -1437,6 +1437,9 @@ export interface MediaItem {
 	// How long a sound or video lasts, in seconds, when known (D-291).
 	duration: number | null;
 	modified: string;
+	// When it was added to the library (ISO 8601; D-709), `null` when it
+	// doesn't say.
+	uploaded: string | null;
 	// What the library calls it (D-290), and its alt text and caption for
 	// it (D-269), `''` for none.
 	title: string;

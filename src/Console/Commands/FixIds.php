@@ -44,22 +44,34 @@ final readonly class FixIds
 		#[Option('A file (its path in the content folder) that keeps the id it shares; the others get new ones. Repeat for more.')] array $keep = []
 	): ExitCode {
 		$failed = false;
+		$steps  = $output->steps();
 
 		try {
 			foreach ($keep as $path) {
-				$failed = $this->done($output, $this->ids->keep($path)) || $failed;
+				$kept = $this->ids->keep($path, progress: $steps(...));
+
+				$steps->finish();
+
+				$failed = $this->done($output, $kept) || $failed;
 			}
 		} catch (WriteException $e) {
+			$steps->finish();
 			$output->error($e->getMessage());
 
 			return ExitCode::Failure;
 		}
 
 		if ($write) {
-			$failed = $this->done($output, $this->ids->assignMissing()) || $failed;
+			$assigned = $this->ids->assignMissing(progress: $steps(...));
+
+			$steps->finish();
+
+			$failed = $this->done($output, $assigned) || $failed;
 		}
 
-		$report = $this->ids->report();
+		$report = $this->ids->report($steps(...));
+
+		$steps->finish();
 
 		foreach ($report->missing as $path) {
 			$output->line(sprintf('%s  %s', $output->style('missing', Style::Red), $path));

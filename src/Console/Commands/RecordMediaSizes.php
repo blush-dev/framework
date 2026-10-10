@@ -40,10 +40,13 @@ final readonly class RecordMediaSizes
 		#[Option('Record each image\'s sizes in its metadata file.')] bool $write = false
 	): ExitCode {
 		$failed = false;
+		$steps  = $output->steps();
 
 		try {
 			if ($write) {
-				$recorded = $this->sizes->record();
+				$recorded = $this->sizes->record(progress: $steps(...));
+
+				$steps->finish();
 
 				foreach ($recorded->images as $key => $sizes) {
 					$output->line(sprintf('%s  %s (%s)', $output->style('recorded', Style::Green), $key, self::plural(count($sizes), 'size', 'sizes')), Verbosity::Verbose);
@@ -60,8 +63,11 @@ final readonly class RecordMediaSizes
 				$failed = $recorded->failed !== [];
 			}
 
-			$report = $this->sizes->report();
+			$report = $this->sizes->report($steps(...));
+
+			$steps->finish();
 		} catch (MediaException $e) {
+			$steps->finish();
 			$output->error($e->getMessage());
 
 			return ExitCode::Failure;

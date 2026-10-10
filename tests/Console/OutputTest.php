@@ -18,6 +18,7 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Blush\Console\Output;
 use Blush\Console\ProgressBar;
+use Blush\Console\ProgressSteps;
 use Blush\Console\Style;
 use Blush\Console\Verbosity;
 
@@ -25,6 +26,7 @@ use Blush\Console\Verbosity;
 #[CoversClass(Style::class)]
 #[CoversClass(Verbosity::class)]
 #[CoversClass(ProgressBar::class)]
+#[CoversClass(ProgressSteps::class)]
 final class OutputTest extends TestCase
 {
 	/** @var resource */
@@ -144,5 +146,47 @@ final class OutputTest extends TestCase
 
 		$this->assertSame('', $this->read($this->stdout));
 		$this->assertSame('[===============>              ] 1/2  50%', $bar->render());
+	}
+
+	public function testNamesABarAndSpinsUntilItsTotalIsKnown(): void
+	{
+		$bar = new Output($this->stdout, $this->stderr)->withAnsi(true)->progress(label: 'Reading files');
+		$bar->update(0);
+		$bar->update(3);
+
+		$this->assertSame("\r\033[2K⠋ Reading files", $this->read($this->stdout), 'A spinner redraws at most ten times a second.');
+		$this->assertSame('⠋ Reading files  3', $bar->render());
+
+		$bar->update(3, 4);
+
+		$this->assertSame('Reading files  [======================>       ] 3/4  75%', $bar->render());
+	}
+
+	public function testStepsLeaveALineForEachStepDone(): void
+	{
+		$steps = new Output($this->stdout, $this->stderr)->withAnsi(true)->steps();
+		$steps('Checking the index', 0, 0);
+		$steps('Writing dates', 0, 2);
+		$steps('Writing dates', 2, 2);
+		$steps->finish();
+
+		$this->assertSame(
+			"\r\033[2K⠋ Checking the index"
+			. "\r\033[2K"
+			. "\r\033[2KWriting dates  [>                             ] 0/2   0%"
+			. "\r\033[2KWriting dates  [==============================] 2/2 100%"
+			. "\r\033[2K\033[32m✓\033[0m Writing dates  \033[2m2\033[0m" . PHP_EOL,
+			$this->read($this->stdout),
+			'A step that counted nothing is cleared.'
+		);
+	}
+
+	public function testStepsDrawNothingWithoutATerminal(): void
+	{
+		$steps = new Output($this->stdout, $this->stderr)->steps();
+		$steps('Writing dates', 1, 2);
+		$steps->finish();
+
+		$this->assertSame('', $this->read($this->stdout));
 	}
 }

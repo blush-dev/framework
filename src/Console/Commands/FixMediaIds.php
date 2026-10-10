@@ -49,18 +49,30 @@ final readonly class FixMediaIds
 		#[Option('A media file (its path in the media folder) that keeps the id it shares; the others get new ones. Repeat for more.')] array $keep = []
 	): ExitCode {
 		$failed = false;
+		$steps  = $output->steps();
 
 		try {
 			foreach ($keep as $key) {
-				$failed = $this->done($output, $this->ids->keep($key)) || $failed;
+				$kept = $this->ids->keep($key, progress: $steps(...));
+
+				$steps->finish();
+
+				$failed = $this->done($output, $kept) || $failed;
 			}
 
 			if ($write) {
-				$failed = $this->done($output, $this->ids->assignMissing()) || $failed;
+				$assigned = $this->ids->assignMissing(progress: $steps(...));
+
+				$steps->finish();
+
+				$failed = $this->done($output, $assigned) || $failed;
 			}
 
-			$report = $this->ids->report();
+			$report = $this->ids->report($steps(...));
+
+			$steps->finish();
 		} catch (MediaException $e) {
+			$steps->finish();
 			$output->error($e->getMessage());
 
 			return ExitCode::Failure;

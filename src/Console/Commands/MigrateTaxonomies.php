@@ -37,7 +37,13 @@ final readonly class MigrateTaxonomies
 		#[Option('Rewrite each as a collection and its classify relation.')] bool $write = false
 	): ExitCode {
 		if ($write) {
-			$done = $this->migration->migrate();
+			$steps = $output->steps();
+
+			try {
+				$done = $this->migration->migrate($steps(...));
+			} finally {
+				$steps->finish();
+			}
 
 			foreach ($done['migrated'] as $name => $files) {
 				$output->line(sprintf('%s  %s (%s)', $output->style('migrated', Style::Green), $name, implode(', ', $files)));

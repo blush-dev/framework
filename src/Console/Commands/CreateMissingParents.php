@@ -36,8 +36,12 @@ final readonly class CreateMissingParents
 		Output $output,
 		#[Option('Write a draft page for each parent listed.')] bool $write = false
 	): ExitCode {
+		$steps = $output->steps();
+
 		if ($write) {
-			$done = $this->parents->create();
+			$done = $this->parents->create(progress: $steps(...));
+
+			$steps->finish();
 
 			foreach ($done->created as $path) {
 				$output->line(sprintf('%s  %s', $output->style('created', Style::Green), $path));
@@ -52,9 +56,12 @@ final readonly class CreateMissingParents
 			}
 		}
 
-		$count = 0;
+		$missing = $this->parents->report($steps(...));
+		$count   = 0;
 
-		foreach ($this->parents->report() as $type => $keys) {
+		$steps->finish();
+
+		foreach ($missing as $type => $keys) {
 			foreach ($keys as $key => $parent) {
 				$output->line(sprintf('%s  %s/%s (%s under it)', $output->style('missing', Style::Red), $type, $key, $parent['pages'] === 1 ? '1 page' : "{$parent['pages']} pages"));
 				$count++;

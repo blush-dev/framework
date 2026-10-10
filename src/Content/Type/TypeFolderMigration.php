@@ -23,6 +23,7 @@ use Blush\Content\Writer\FilesystemWriter;
 use Blush\Core\Paths;
 use Blush\Storage\StorageArea;
 use Blush\Storage\StorageConfig;
+use Blush\Support\Progress;
 
 /**
  * Moves the data types that still name their folder into `_` and their
@@ -77,16 +78,21 @@ final readonly class TypeFolderMigration
 	 * Moves them, and returns what was done: how many files and folders
 	 * moved for each type, by name, and why any failed.
 	 *
+	 * @param  ?Closure(string, int, int): void $progress How it's going (`Progress`).
 	 * @return array{migrated: array<string, int>, failed: array<string, string>}
 	 * @throws InvalidContentType When the types can't be read at all.
 	 */
-	public function migrate(): array
+	public function migrate(?Closure $progress = null): array
 	{
 		$report   = $this->report();
 		$migrated = [];
 		$failed   = [];
+		$steps    = new Progress($progress);
+		$done     = 0;
 
 		foreach ($report as $name => $folders) {
+			$steps->step('Moving type folders', $done++, count($report));
+
 			$others = array_column(array_diff_key($report, [$name => true]), 'from');
 
 			try {
@@ -95,6 +101,8 @@ final readonly class TypeFolderMigration
 				$failed[$name] = $error->getMessage();
 			}
 		}
+
+		$steps->step('Moving type folders', $done, count($report));
 
 		return ['migrated' => $migrated, 'failed' => $failed];
 	}

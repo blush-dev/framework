@@ -1377,6 +1377,75 @@ Move each item to `decisions.md` once it's answered.
     storage suites, D-655). Open: whether the PHP and TypeScript sides
     could share one grammar or test set.
 
+- **Analytics** (raised 2026-10-10). A built-in analytics feature
+  behind an interface, so a site can use another service (Google
+  Analytics, Plausible) instead of its own server.
+  - **Two jobs, not one interface:** collecting (per page view: the
+    built-in recorder on the server; a hosted service only asks for its
+    script through the assets system, D-569) and reporting (reading
+    back for the admin: page views, top paths, referrers over a range,
+    in a result shape core owns, so a Home panel and an Analytics
+    screen draw any provider). A provider may do one or both. Each half
+    gets the usual enum, registry, factory, and registrar, as
+    `Blush\Ai` (D-397).
+  - **Storage:** analytics as its own storage area (D-485) rather than
+    "database sites only". Writing on every visit doesn't suit files,
+    so the built-in recorder needs a records driver for its area, and
+    a site keeping content in files keeps analytics in SQLite (a
+    separate area, not an index beside files, so D-661 holds).
+  - **Cached pages:** a page served from the cache may never reach
+    PHP, so counting likely needs a small beacon (which also filters
+    most bots) rather than counting in the front controller.
+  - **Privacy by default:** no cookies, no stored IP addresses, unique
+    visitors by a hash with a salt that changes daily, so the built-in
+    recorder needs no consent banner. Open: honoring Do Not Track and
+    Global Privacy Control.
+  - **Rollups and retention:** a scheduled job (D-621) rolls raw hits
+    into daily totals and prunes them after a set number of days.
+  - **Core or plugin:** the leaning is interfaces, the `analytics.view`
+    capability, and the admin's place for reports in core, with the
+    built-in recorder a first-party plugin (as static export and the
+    calendar went, D-476, D-550).
+  - A hosted provider's reporting needs credentials (the secrets store
+    below) and the HTTP client (D-620).
+
+- **A secrets store** (raised 2026-10-10, with analytics). `.env` stays
+  right for what the operator sets, but two cases don't fit it:
+  credentials the admin gets at runtime (an OAuth refresh token from
+  connecting Google, an uploaded service account file), since the admin
+  never writes `.env`; and hosts with no shell, where an owner can't
+  add an AI key (D-397) to `.env`.
+  - **Shape:** a narrow `SecretStore` interface, read through: the
+    environment first (so the operator can always override or lock a
+    secret), then a stored value.
+  - **At rest:** encrypted (XChaCha20-Poly1305, the secret's name as
+    associated data, so ciphertext can't be moved to another name) in
+    its own storage area, on files in `storage/` beside accounts, out
+    of git and `user/` (the author, 2026-10-10; D-217's reason), never
+    in `settings.json` or anything that's exported.
+  - **In the admin:** write-only. A secret shows as set, with Replace
+    and Remove, never its value. The UI waits until something needs it;
+    when it comes, both a list under Settings and an extension's own on
+    its details screen (the author, 2026-10-10).
+  - **Names** prefixed by their owner's `vendor/name`
+    (`vendor/plugin.ga_refresh_token`) wherever possible (the author,
+    2026-10-10).
+  - **Managing them is owner only** (the author, 2026-10-10): a
+    `site.secrets` capability left out of the administrator's list
+    (D-500), as `site.redirects` and `site.jobs` are named.
+  - **The AI layer moves onto it** (the author, 2026-10-10): D-397's
+    keys become declared secrets, with `.env` still overriding.
+  - **The priority is security and the API**, usable alike by core and
+    plugins (the author, 2026-10-10).
+  - **Its own key** (`SECRETS_KEY`), not `APP_SECRET`, so rotating
+    the preview signing secret doesn't lose every stored credential;
+    Site Health reports a missing key or values that won't decrypt.
+  - **Credentials, not trust:** the HTTP client's allowed origins stay
+    in `.env` and `config/` only (D-620).
+  - **Users:** the AI providers, analytics reporting, CDN purges, rich
+    embed tokens, webhooks. The leaning is to build it before the
+    analytics interfaces, since it unblocks both.
+
 ## Later milestones
 - **Signing up** (D-518 has only the settings): the form and route
   (on the site, the admin's sign-in screen, or both, and themable?),
@@ -1452,7 +1521,8 @@ Move each item to `decisions.md` once it's answered.
   itself is.
 - **File names** (D-511):
   - The admin's Translate action, when it's built, writes
-    `translation_of` on the translation it creates.
+    `translation_of` on the translation it creates (a relation once
+    D-712 is built).
 - **Relationships** (D-242, D-585; discussed 2026-10-07):
   - **A relationship object** (raised 2026-10-05, on hold by the
     author): tying several entries together as a record of its own,

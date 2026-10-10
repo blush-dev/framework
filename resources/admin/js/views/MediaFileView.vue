@@ -609,6 +609,7 @@ const snippet = computed(() => {
 					<div v-if="file.width !== null && file.height !== null"><dt>Dimensions</dt><dd class="mono">{{ file.width }} × {{ file.height }}</dd></div>
 					<div v-if="file.duration !== null"><dt>Length</dt><dd class="mono">{{ formatDuration(file.duration) }}</dd></div>
 					<div v-if="pages !== null"><dt>Pages</dt><dd class="mono">{{ pages }}</dd></div>
+					<div><dt>Uploaded</dt><dd :class="{ 'facts__none': file.uploaded === null }">{{ file.uploaded === null ? 'Not recorded' : siteDateTime(file.uploaded) }}</dd></div>
 					<div><dt>Changed</dt><dd>{{ siteDateTime(file.modified) }}</dd></div>
 					<div><dt>Uploaded by</dt><dd :class="{ 'facts__none': file.uploader === null }">{{ file.uploader?.name ?? 'Not recorded' }}</dd></div>
 				</dl>

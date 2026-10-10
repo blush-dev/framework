@@ -13,8 +13,10 @@ declare(strict_types=1);
 
 namespace Blush\Menu;
 
+use Closure;
 use Blush\Menu\Link\LinksEntry;
 use Blush\Menu\Link\MenuLinkFactory;
+use Blush\Support\Progress;
 
 /**
  * Finds the menu items that link an entry without both forms filed
@@ -57,15 +59,21 @@ final readonly class MenuRefs
 	 * Files every item `report()` lists. Returns the menus filed, and
 	 * those that couldn't be, with why.
 	 *
+	 * @param  ?Closure(string, int, int): void $progress How it's going (`Progress`).
 	 * @return array{filed: list<string>, failed: array<string, string>}
 	 * @throws MenuException When the menus can't be read.
 	 */
-	public function file(): array
+	public function file(?Closure $progress = null): array
 	{
 		$filed  = [];
 		$failed = [];
+		$names  = array_keys($this->report());
+		$steps  = new Progress($progress);
+		$done   = 0;
 
-		foreach (array_keys($this->report()) as $name) {
+		foreach ($names as $name) {
+			$steps->step('Filing menu links', $done++, count($names));
+
 			try {
 				$this->menus->change($name, function (array $data): array {
 					if (is_array($data['items'] ?? null) && array_is_list($data['items'])) {
@@ -81,6 +89,8 @@ final readonly class MenuRefs
 				$failed[$name] = $error->getMessage();
 			}
 		}
+
+		$steps->step('Filing menu links', $done, count($names));
 
 		return ['filed' => $filed, 'failed' => $failed];
 	}

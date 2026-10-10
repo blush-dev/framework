@@ -14,6 +14,12 @@ Options that work with every command: `-v` for more detail (`-vv`, `-vvv`
 for even more), `-q` for errors only, `-n` to never ask questions, and
 `--no-ansi` to turn off colors.
 
+Commands that take a while (indexing, checking, and fixing many files,
+copying storage, publishing) show what they're doing as they go: a bar
+for each step, or a spinner until its size is known, and a checked line
+for each step done. These are drawn only in a terminal, so piped output
+and logs show just the result.
+
 ## Setting up
 
 | Command | What it does |
@@ -68,6 +74,7 @@ while your content is kept as files, as it is by default.
 | `cache:compile` | Precompile config, routes, content types, themes, plugins, and icon packs for speed |
 | `cache:clear` | Clear every compiled file and cache. Flags clear just one: `--config`, `--plugins`, `--container`, `--routes`, `--types`, `--themes`, `--icon-packs`, `--store`. `--embeds` also clears the saved oEmbed answers (which nothing else clears) and the cache store, so providers are asked again. |
 | `content:index` | Update the content index. `--full` rebuilds it from scratch. (`publish` does this for you.) |
+| `media:dates` | Say how many media files have no [upload date](media.md#upload-dates), which orders the library, or one not in UTC (`-v` lists each, with the date it would be given). `--write` gives each its likely date, from its dated folder and its file, and writes the others in UTC. |
 | `media:ids` | Say how many media files are missing an [id](media.md#ids-and-image-sizes), and which ids files share (`-v` lists each file). `--write` gives each file missing one a new id; `--keep=<path>` (in the media folder) keeps a shared id on that file and gives the others new ones. An image's other sizes don't need one. |
 | `media:sizes` | Say how many [image sizes](media.md#ids-and-image-sizes) aren't listed in their images' details yet (`-v` lists them). `--write` lists them, and takes out listed files that are gone. |
 | `media:index` | Update the media index, which the admin's library lists and searches. `--full` rebuilds it; it also warns of metadata files whose media file is gone. (`publish` does this for you.) |

@@ -21,7 +21,8 @@ use NoDiscard;
  * ANSI escape codes only when enabled, and each write can name the
  * verbosity it needs, so `-q` and `-v` work without commands checking.
  * Errors and warnings go to the error stream and ignore verbosity.
- * `progress()` starts a progress bar, which draws only on a terminal.
+ * `progress()` starts a progress bar, which draws only on a terminal, and
+ * `steps()` a bar for each step of a longer task.
  */
 final readonly class Output
 {
@@ -164,11 +165,20 @@ final readonly class Output
 
 	/**
 	 * Starts a progress bar over `$total` steps (which `update()` can
-	 * change once it's known).
+	 * change once it's known), after what it's doing when it's named.
 	 */
-	public function progress(int $total = 0): ProgressBar
+	public function progress(int $total = 0, string $label = ''): ProgressBar
 	{
-		return new ProgressBar($this, $total);
+		return new ProgressBar($this, $total, label: $label);
+	}
+
+	/**
+	 * Starts showing the steps of a longer task, a bar for each, to pass
+	 * to a service as its progress (`$steps(...)`).
+	 */
+	public function steps(): ProgressSteps
+	{
+		return new ProgressSteps($this);
 	}
 
 	/**

@@ -20,6 +20,7 @@ use Blush\Content\Index\Indexer;
 use Blush\Content\Type\ContentTypes;
 use Blush\Content\Writer\FilesystemWriter;
 use Blush\Content\Writer\RenamedFiles;
+use Blush\Support\Progress;
 
 /**
  * Finds the entries of each type named by another pattern than its
@@ -65,16 +66,23 @@ final readonly class FileNames
 	/**
 	 * Returns the entries to rename, and the ones left as they are with
 	 * why, by type.
+	 *
+	 * @param ?Closure(string, int, int): void $progress How it's going (`Progress`).
 	 */
-	public function report(): FileNameReport
+	public function report(?Closure $progress = null): FileNameReport
 	{
-		$this->indexer->index();
+		$steps = new Progress($progress);
+
+		$this->indexer->index(progress: $steps->of('Checking the content index'));
 
 		$snapshot = $this->index->snapshot();
 		$renames  = [];
 		$skipped  = [];
+		$done     = 0;
 
 		foreach ($snapshot->records as $path => $record) {
+			$steps->step('Checking file names', $done++, count($snapshot->records));
+
 			$path = (string) $path;
 			$type = $this->types->find($record['type']);
 			$plan = $this->plan($snapshot, $path);
@@ -89,6 +97,8 @@ final readonly class FileNames
 				$renames[$type->name][] = $plan;
 			}
 		}
+
+		$steps->step('Checking file names', $done, count($snapshot->records));
 
 		return new FileNameReport($renames, $skipped);
 	}
@@ -177,19 +187,20 @@ final readonly class FileNames
 	 * one, or only those `$allowed` passes (by path), such as the ones an
 	 * account may edit.
 	 *
-	 * @param ?Closure(string): bool $allowed
+	 * @param ?Closure(string): bool           $allowed
+	 * @param ?Closure(string, int, int): void $progress How it's going (`Progress`).
 	 */
-	public function rename(?string $type = null, ?Closure $allowed = null): RenamedFiles
+	public function rename(?string $type = null, ?Closure $allowed = null, ?Closure $progress = null): RenamedFiles
 	{
 		$moves = [];
 
-		foreach ($this->report()->renames($type) as $rename) {
+		foreach ($this->report($progress)->renames($type) as $rename) {
 			if ($allowed === null || $allowed($rename->path)) {
 				$moves[$rename->path] = $rename->moves;
 			}
 		}
 
-		return $this->writer->renameFiles($moves);
+		return $this->writer->renameFiles($moves, $progress);
 	}
 
 	/**

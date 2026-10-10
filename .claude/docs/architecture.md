@@ -1014,6 +1014,18 @@ Implemented in M4c (D-099), apart from image derivatives.
   `MediaMetadataCheck` reports missing, malformed, and shared ids, by
   the media file's path when it has no metadata file. `MediaRecord::id()`.
   The indexer takes `written:` keys to reread after a same-second write.
+- **Upload dates (D-709, D-711):** `uploaded` in the metadata
+  (`MediaMetadata::UPLOADED`, `Y-m-d H:i:s P` always in UTC via
+  `MediaMetadata::utc()`, not a field; a declared field of the `media`
+  table, so a column in SQL), written by uploads and adopted artwork,
+  and converted to UTC by `MediaMetadataStore::save()`. `MediaLibrary::query()` sorts by
+  `MediaDates::of()`: the stored date, else `guess()` (a dated folder
+  in the key, with the modified time or embedded `created` when inside
+  it, else the folder's start; otherwise the modified time). Never the
+  modified time alone, which copies reset. `media:dates [--write]`
+  (`MediaDates::missing()`, `fill()`) writes the guesses, and rewrites
+  dates with another offset in UTC; lint reports
+  a malformed one. Not in Site Health yet.
 - **Sizes (D-239, D-488):** resized copies imported from WordPress
   (`photo-300x200.jpg`) are sizes of their original. An image's
   metadata file lists them (`sizes:`, key → `{width, height}`,

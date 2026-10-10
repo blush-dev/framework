@@ -37,9 +37,12 @@ final readonly class MoveToFolders
 		#[Option('Move the files listed.')] bool $write = false
 	): ExitCode {
 		$failed = false;
+		$steps  = $output->steps();
 
 		if ($write) {
-			$moved = $this->folders->move();
+			$moved = $this->folders->move(progress: $steps(...));
+
+			$steps->finish();
 
 			foreach ($moved->renamed as $from => $to) {
 				$output->line(sprintf('%s  %s → %s', $output->style('moved  ', Style::Green), $from, $to));
@@ -52,7 +55,9 @@ final readonly class MoveToFolders
 			$failed = $moved->failed !== [];
 		}
 
-		$left = $this->folders->report();
+		$left = $this->folders->report($steps(...));
+
+		$steps->finish();
 
 		foreach ($left as $path => $to) {
 			$output->line(sprintf('%s  %s → %s', $output->style('move   ', Style::Yellow), $path, $to));

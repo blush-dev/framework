@@ -36,8 +36,12 @@ final readonly class CreateMissingTerms
 		Output $output,
 		#[Option('Write a file for each term and profile listed.')] bool $write = false
 	): ExitCode {
+		$steps = $output->steps();
+
 		if ($write) {
-			$done = $this->terms->create();
+			$done = $this->terms->create(progress: $steps(...));
+
+			$steps->finish();
 
 			foreach ($done->created as $path) {
 				$output->line(sprintf('%s  %s', $output->style('created', Style::Green), $path));
@@ -52,8 +56,11 @@ final readonly class CreateMissingTerms
 			}
 		}
 
-		$missing = $this->terms->report();
-		$count   = 0;
+		$missing = $this->terms->report($steps(...));
+
+		$steps->finish();
+
+		$count = 0;
 
 		foreach ($missing as $type => $slugs) {
 			foreach ($slugs as $slug => $title) {

@@ -30,6 +30,7 @@ use Blush\Job\JobRecord;
 use Blush\Job\JobStatus;
 use Blush\Job\JobStore;
 use Blush\Job\RecordJobStore;
+use Blush\Media\MediaMetadata;
 use Blush\Media\MediaMetadataStore;
 use Blush\Media\MediaResolver;
 use Blush\Menu\MenuLoader;
@@ -40,6 +41,8 @@ use Blush\Session\SessionStore;
 use Blush\Settings\Settings;
 use Blush\Settings\SettingsStore;
 use Blush\Storage\Record\KeyedTable;
+use Blush\Storage\Record\Order;
+use Blush\Storage\Record\RecordQuery;
 use Blush\Storage\Record\RecordStores;
 use Blush\Storage\SqliteStorage;
 use Blush\Storage\Sql\SqliteConnection;
@@ -126,6 +129,30 @@ final class SqliteAreasTest extends TestCase
 		$store->forget('2026/lake.png');
 
 		$this->assertSame('', $store->find($file)->alt);
+	}
+
+	public function testSortsMediaByUploadDate(): void
+	{
+		$png   = (string) base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', true);
+		$store = $this->make(MediaMetadataStore::class);
+		$dates = ['2026/east.png' => '2026-10-10 14:30:00 -05:00', '2026/west.png' => '2026-10-10 19:00:00 +00:00', '2025/old.png' => '2025-01-01 00:00:00 +00:00'];
+
+		foreach ($dates as $key => $date) {
+			$this->writeTemporaryFile("user/media/{$key}", $png);
+
+			$file = $this->make(MediaResolver::class)->fromKey($key);
+
+			$this->assertNotNull($file);
+
+			$store->save($file, [MediaMetadata::UPLOADED => $date]);
+		}
+
+		$records = $this->make(RecordStores::class)->store(MediaMetadataStore::table())->select(MediaMetadataStore::table(), new RecordQuery()->orderBy(MediaMetadata::UPLOADED, Order::Desc))->records;
+
+		$this->assertSame(['2026/east.png', '2026/west.png', '2025/old.png'], array_map(static fn ($record): mixed => $record->fields['path'] ?? null, $records), 'Written in UTC, so they sort as text (D-711).');
+		$this->assertSame('2026-10-10 19:30:00 +00:00', $records[0]->fields[MediaMetadata::UPLOADED] ?? null);
+
+		$this->assertContains(MediaMetadata::UPLOADED, MediaMetadataStore::table()->fields, 'A column of its own.');
 	}
 
 	public function testKeepsMenusAndTheirAssignmentsAsRecords(): void

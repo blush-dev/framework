@@ -35,6 +35,7 @@ use Blush\Storage\Record\Ref;
 use Blush\Storage\Record\SchemaStore;
 use Blush\Storage\Record\Table;
 use Blush\Storage\Record\TableRegistry;
+use Blush\Support\Progress;
 
 /**
  * Copies a site's stored data from one driver to another (D-644, D-662),
@@ -79,11 +80,11 @@ final readonly class StorageCopy
 	}
 
 	/**
-	 * Copies everything, reporting each part as it's done. Returns how
-	 * many of each were copied, by part, and how many files without ids
-	 * were left.
+	 * Copies everything, saying how each part is going. Returns how many
+	 * of each were copied, by part, and how many files without ids were
+	 * left.
 	 *
-	 * @param  Closure(string, int): void $progress Each part's name and count, when it's done.
+	 * @param  ?Closure(string, int, int): void $progress How it's going (`Progress`).
 	 * @return array{copied: array<string, int>, unidentified: int}
 	 * @throws StorageException When the copy isn't supported, or the database already holds records and `$replace` is off.
 	 */
@@ -98,12 +99,9 @@ final readonly class StorageCopy
 		$tables  = $this->tables->all();
 		$store   = $target->store(EntryTable::table());
 		$copied  = [];
-		$done    = static function (string $part, int $count) use (&$copied, $progress): void {
+		$steps   = new Progress($progress);
+		$done    = static function (string $part, int $count) use (&$copied): void {
 			$copied[$part] = $count;
-
-			if ($progress !== null) {
-				$progress($part, $count);
-			}
 		};
 
 		$filled = array_values(array_filter($tables, static fn (Table $table): bool => $table->area !== StorageArea::Sessions && $target->store($table)->count($table, new RecordQuery()) > 0));
@@ -112,9 +110,9 @@ final readonly class StorageCopy
 			throw new StorageException(sprintf('The database already holds records (in %s). Copy with --replace to replace them.', implode(', ', array_map(static fn (Table $table): string => $table->name, $filled))));
 		}
 
-		$this->container->make(Indexer::class)->index();
+		$this->container->make(Indexer::class)->index(progress: $steps->of('Checking the content index'));
 
-		$store->transaction(function () use ($tables, $filled, $source, $target, $done): void {
+		$store->transaction(function () use ($tables, $filled, $source, $target, $done, $steps): void {
 			foreach ($filled as $table) {
 				foreach ($target->query($table)->get() as $record) {
 					$target->store($table)->delete($table, $record->id);
@@ -129,20 +127,20 @@ final readonly class StorageCopy
 				}
 			}
 
-			$done('entries', $this->entries($source, $target));
-			$done('links', $this->table(Ref::table(StorageArea::Content), $source, $target));
-			$done('accounts', $this->table(Accounts::table(), $source, $target));
+			$done('entries', $this->entries($source, $target, $steps));
+			$done('links', $this->table(Ref::table(StorageArea::Content), $source, $target, $steps, 'Copying links'));
+			$done('accounts', $this->table(Accounts::table(), $source, $target, $steps, 'Copying accounts'));
 
 			$others = 0;
 
 			foreach ($tables as $table) {
 				if (! in_array($table->name, [EntryTable::TABLE, Ref::TABLE, Accounts::TABLE, RecordSessionStore::TABLE, RecordJobStore::TABLE, RecordJobStore::STATE], true)) {
-					$others += $this->table($table, $source, $target);
+					$others += $this->table($table, $source, $target, $steps, 'Copying other records', $others);
 				}
 			}
 
 			$done('other records', $others);
-			$done('jobs', $this->jobs($target));
+			$done('jobs', $this->jobs($target, $steps));
 		});
 
 		if ($store instanceof SchemaStore) {
@@ -155,14 +153,17 @@ final readonly class StorageCopy
 	/**
 	 * Copies the entries, each with its front matter as written.
 	 */
-	private function entries(RecordStores $source, RecordStores $target): int
+	private function entries(RecordStores $source, RecordStores $target, Progress $steps): int
 	{
 		$table  = EntryTable::table();
 		$from   = $source->store($table);
 		$to     = $target->store($table);
 		$files  = $this->container->make(FilesystemContentWriter::class);
+		$total  = $from->count($table, new RecordQuery());
 		$count  = 0;
 		$offset = 0;
+
+		$steps->step('Copying entries', 0, $total);
 
 		do {
 			$records = $from->select($table, new RecordQuery()->orderBy('id')->limit(self::PAGE)->offset($offset))->records;
@@ -173,6 +174,7 @@ final readonly class StorageCopy
 
 				$to->save($table, $record->withVersion(null)->withFields([...$record->fields, RecordContentWriter::WRITTEN => $written]));
 				$count++;
+				$steps->step('Copying entries', $count, max($total, $count));
 			}
 
 			$offset += self::PAGE;
@@ -182,16 +184,22 @@ final readonly class StorageCopy
 	}
 
 	/**
-	 * Copies a table's records as they are.
+	 * Copies a table's records as they are, saying how it's going under
+	 * `$step`, with `$before` copied under it already (a total isn't
+	 * known for a step of several tables).
 	 */
-	private function table(Table $table, RecordStores $source, RecordStores $target): int
+	private function table(Table $table, RecordStores $source, RecordStores $target, Progress $steps, string $step, ?int $before = null): int
 	{
-		$to    = $target->store($table);
-		$count = 0;
+		$to      = $target->store($table);
+		$records = $source->store($table)->select($table, new RecordQuery())->records;
+		$count   = 0;
 
-		foreach ($source->store($table)->select($table, new RecordQuery())->records as $record) {
+		$steps->step($step, $before ?? 0, $before === null ? count($records) : 0);
+
+		foreach ($records as $record) {
 			$to->save($table, $record->withVersion(null));
 			$count++;
+			$steps->step($step, ($before ?? 0) + $count, $before === null ? count($records) : 0);
 		}
 
 		return $count;
@@ -200,13 +208,17 @@ final readonly class StorageCopy
 	/**
 	 * Copies the jobs, whatever their status.
 	 */
-	private function jobs(RecordStores $target): int
+	private function jobs(RecordStores $target, Progress $steps): int
 	{
 		$to   = new RecordJobStore($target, $this->clock, $this->paths);
 		$jobs = $this->container->make(FileJobStore::class)->all();
+		$done = 0;
+
+		$steps->step('Copying jobs', 0, count($jobs));
 
 		foreach ($jobs as $job) {
 			$to->save($job);
+			$steps->step('Copying jobs', ++$done, count($jobs));
 		}
 
 		return count($jobs);

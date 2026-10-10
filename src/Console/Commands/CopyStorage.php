@@ -38,14 +38,21 @@ final readonly class CopyStorage
 		#[Option('The driver to copy to.')] string $to = StorageConfig::SQLITE,
 		#[Option('Replace what the database already holds.')] bool $replace = false
 	): ExitCode {
+		$steps = $output->steps();
+
 		try {
-			$result = $this->copy->copy($from, $to, $replace, static function (string $part, int $count) use ($output): void {
-				$output->line(sprintf('Copied %d %s.', $count, $part));
-			});
+			$result = $this->copy->copy($from, $to, $replace, $steps(...));
+
+			$steps->finish();
 		} catch (StorageException $e) {
+			$steps->finish();
 			$output->error($e->getMessage());
 
 			return ExitCode::Failure;
+		}
+
+		foreach ($result['copied'] as $part => $count) {
+			$output->line(sprintf('Copied %d %s.', $count, $part));
 		}
 
 		if ($result['unidentified'] > 0) {

@@ -21,6 +21,7 @@ use Blush\Content\Relation\Relations;
 use Blush\Content\Type\ContentTypes;
 use Blush\Content\Writer\FilesystemWriter;
 use Blush\Content\Writer\FiledRefs;
+use Blush\Support\Progress;
 
 /**
  * Finds and files the content files whose relations aren't filed in
@@ -46,11 +47,12 @@ final readonly class EntryRefs
 	 * Returns the files to file again, each with the names of the
 	 * relations that differ, by path, in order.
 	 *
+	 * @param  ?Closure(string, int, int): void $progress How it's going (`Progress`).
 	 * @return array<string, list<string>>
 	 */
-	public function report(): array
+	public function report(?Closure $progress = null): array
 	{
-		$this->indexer->index();
+		$this->indexer->index(progress: new Progress($progress)->of('Checking the content index'));
 
 		$stale = [];
 
@@ -67,12 +69,13 @@ final readonly class EntryRefs
 	 * Files every file's relations, or only those `$allowed` passes (by
 	 * path), such as the ones an account may edit.
 	 *
-	 * @param ?Closure(string): bool $allowed
+	 * @param ?Closure(string): bool           $allowed
+	 * @param ?Closure(string, int, int): void $progress How it's going (`Progress`).
 	 */
-	public function file(?Closure $allowed = null): FiledRefs
+	public function file(?Closure $allowed = null, ?Closure $progress = null): FiledRefs
 	{
-		$paths = array_keys($this->report());
+		$paths = array_keys($this->report($progress));
 
-		return $this->writer->fileRefs($allowed === null ? $paths : array_values(array_filter($paths, $allowed)));
+		return $this->writer->fileRefs($allowed === null ? $paths : array_values(array_filter($paths, $allowed)), $progress);
 	}
 }

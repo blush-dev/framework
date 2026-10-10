@@ -17,6 +17,7 @@ use Closure;
 use Blush\Media\Index\MediaIndex;
 use Blush\Media\Index\MediaIndexer;
 use Blush\Media\Index\MediaRecord;
+use Blush\Support\Progress;
 
 /**
  * Records each image's sizes in its metadata file (D-488), for
@@ -46,11 +47,12 @@ final readonly class MediaSizes
 	/**
 	 * Returns the images whose lists aren't their sizes.
 	 *
+	 * @param  ?Closure(string, int, int): void $progress How it's going (`Progress`).
 	 * @throws MediaException When the index can't be written.
 	 */
-	public function report(): MediaSizeReport
+	public function report(?Closure $progress = null): MediaSizeReport
 	{
-		$this->indexer->index();
+		$this->indexer->index(progress: new Progress($progress)->of('Checking the media index'));
 
 		$records    = $this->index->snapshot()->records;
 		$unrecorded = [];
@@ -80,17 +82,23 @@ final readonly class MediaSizes
 	 * Writes the sizes of every image whose list isn't them, or only those
 	 * `$allowed` passes (by key), such as the ones an account may edit.
 	 *
-	 * @param  ?Closure(string): bool $allowed
+	 * @param  ?Closure(string): bool                $allowed
+	 * @param  ?Closure(string, int, int): void $progress How it's going (`Progress`).
 	 * @throws MediaException When the index can't be written.
 	 */
-	public function record(?Closure $allowed = null): RecordedMediaSizes
+	public function record(?Closure $allowed = null, ?Closure $progress = null): RecordedMediaSizes
 	{
-		$images  = $this->report()->images();
+		$images  = $this->report($progress)->images();
+		$images  = $allowed === null ? $images : array_values(array_filter($images, $allowed));
 		$current = $this->current($this->index->snapshot()->records);
+		$steps   = new Progress($progress);
 		$written = [];
 		$failed  = [];
+		$done    = 0;
 
-		foreach ($allowed === null ? $images : array_filter($images, $allowed) as $key) {
+		foreach ($images as $key) {
+			$steps->step('Recording image sizes', $done++, count($images));
+
 			$file = $this->resolver->fromKey($key);
 
 			if ($file === null) {
@@ -115,7 +123,9 @@ final readonly class MediaSizes
 			$written[$key] = array_map(strval(...), array_keys($sizes));
 		}
 
-		return new RecordedMediaSizes($written, $failed, $this->indexer->index(written: array_map(strval(...), array_keys($written))));
+		$steps->step('Recording image sizes', $done, count($images));
+
+		return new RecordedMediaSizes($written, $failed, $this->indexer->index(progress: $steps->of('Updating the media index'), written: array_map(strval(...), array_keys($written))));
 	}
 
 	/**

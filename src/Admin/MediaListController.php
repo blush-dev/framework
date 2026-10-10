@@ -110,7 +110,8 @@ use Blush\Support\UrlPath;
  * Each file has its `reference` (what to write: the library's URL path),
  * `name`, `folder`, `url`, `mime`, `kind`,
  * `size`, `width` and `height` (images and videos), `duration` (sound
- * and video, in seconds, when known, D-291), `modified`, and its metadata,
+ * and video, in seconds, when known, D-291), `modified`, when it was
+ * uploaded (`uploaded`, D-709, `null` when it doesn't say), and its metadata,
  * `title` (D-290), `alt`, and `caption` (`''` for none; `MediaMetadataStore`),
  * its uploader's username (`owner`, `''` for none), its `id` (D-487,
  * `''` for a file with none), and how many sizes an image has
@@ -754,6 +755,7 @@ final readonly class MediaListController
 			'height'    => $file->height,
 			'duration'  => $duration,
 			'modified'  => date(DATE_ATOM, (int) filemtime($file->path)),
+			'uploaded'  => $metadata->uploaded?->format(DATE_ATOM),
 			'title'     => $metadata->title,
 			'alt'       => $metadata->alt,
 			'caption'   => $metadata->caption,

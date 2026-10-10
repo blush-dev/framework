@@ -19,6 +19,7 @@ use Blush\Content\Index\Indexer;
 use Blush\Content\Writer\AssignedIds;
 use Blush\Content\Writer\FilesystemWriter;
 use Blush\Content\Writer\WriteException;
+use Blush\Support\Progress;
 
 /**
  * Finds and fixes the content files whose ids (D-477) are missing or
@@ -43,10 +44,12 @@ final readonly class EntryIds
 
 	/**
 	 * Returns the files missing a valid id, and the ids files share.
+	 *
+	 * @param ?Closure(string, int, int): void $progress How it's going (`Progress`).
 	 */
-	public function report(): EntryIdReport
+	public function report(?Closure $progress = null): EntryIdReport
 	{
-		$this->indexer->index();
+		$this->indexer->index(progress: new Progress($progress)->of('Checking the content index'));
 
 		$snapshot = $this->index->snapshot();
 		$missing  = [];
@@ -64,25 +67,27 @@ final readonly class EntryIds
 	 * Gives every file missing a valid id a new one, or only those
 	 * `$allowed` passes (by path), such as the ones an account may edit.
 	 *
-	 * @param ?Closure(string): bool $allowed
+	 * @param ?Closure(string): bool           $allowed
+	 * @param ?Closure(string, int, int): void $progress How it's going (`Progress`).
 	 */
-	public function assignMissing(?Closure $allowed = null): AssignedIds
+	public function assignMissing(?Closure $allowed = null, ?Closure $progress = null): AssignedIds
 	{
-		$missing = $this->report()->missing;
+		$missing = $this->report($progress)->missing;
 
-		return $this->writer->assignIds($allowed === null ? $missing : array_values(array_filter($missing, $allowed)));
+		return $this->writer->assignIds($allowed === null ? $missing : array_values(array_filter($missing, $allowed)), $progress);
 	}
 
 	/**
 	 * Keeps a file's id on it and gives the other files sharing the id
 	 * new ones, or only those `$allowed` passes (by path).
 	 *
-	 * @param  ?Closure(string): bool $allowed
+	 * @param  ?Closure(string): bool           $allowed
+	 * @param  ?Closure(string, int, int): void $progress How it's going (`Progress`).
 	 * @throws WriteException When the file doesn't share its id.
 	 */
-	public function keep(string $path, ?Closure $allowed = null): AssignedIds
+	public function keep(string $path, ?Closure $allowed = null, ?Closure $progress = null): AssignedIds
 	{
-		$report = $this->report();
+		$report = $this->report($progress);
 		$shared = array_find($report->duplicates, static fn (array $paths): bool => in_array($path, $paths, true));
 
 		if ($shared === null) {
@@ -91,6 +96,6 @@ final readonly class EntryIds
 
 		$others = array_values(array_diff($shared, [$path]));
 
-		return $this->writer->assignIds($allowed === null ? $others : array_values(array_filter($others, $allowed)));
+		return $this->writer->assignIds($allowed === null ? $others : array_values(array_filter($others, $allowed)), $progress);
 	}
 }

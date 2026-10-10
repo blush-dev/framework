@@ -22,6 +22,7 @@ use Blush\Content\Type\ContentType;
 use Blush\Content\Type\ContentTypes;
 use Blush\Content\Writer\FilesystemWriter;
 use Blush\Content\Writer\RenamedFiles;
+use Blush\Support\Progress;
 
 /**
  * Keeps a collection's and the profiles' files where their type keeps
@@ -97,24 +98,26 @@ final readonly class EntryFolders
 	/**
 	 * Returns the files not in their folder: where each belongs, by path.
 	 *
+	 * @param  ?Closure(string, int, int): void $progress How it's going (`Progress`).
 	 * @return array<string, string>
 	 */
-	public function report(): array
+	public function report(?Closure $progress = null): array
 	{
-		return array_map(static fn (array $moves): string => (string) array_first($moves), $this->plans());
+		return array_map(static fn (array $moves): string => (string) array_first($moves), $this->plans(new Progress($progress)));
 	}
 
 	/**
 	 * Moves every file not in its folder there, or only those `$allowed`
 	 * passes (by path).
 	 *
-	 * @param ?Closure(string): bool $allowed
+	 * @param ?Closure(string): bool           $allowed
+	 * @param ?Closure(string, int, int): void $progress How it's going (`Progress`).
 	 */
-	public function move(?Closure $allowed = null): RenamedFiles
+	public function move(?Closure $allowed = null, ?Closure $progress = null): RenamedFiles
 	{
-		$moves = array_filter($this->plans(), static fn (string $path): bool => $allowed === null || $allowed($path), ARRAY_FILTER_USE_KEY);
+		$moves = array_filter($this->plans(new Progress($progress)), static fn (string $path): bool => $allowed === null || $allowed($path), ARRAY_FILTER_USE_KEY);
 
-		return $this->writer->renameFiles($moves);
+		return $this->writer->renameFiles($moves, $progress);
 	}
 
 	/**
@@ -143,9 +146,9 @@ final readonly class EntryFolders
 	 *
 	 * @return array<string, array<string, string>>
 	 */
-	private function plans(): array
+	private function plans(Progress $progress = new Progress()): array
 	{
-		$this->indexer->index();
+		$this->indexer->index(progress: $progress->of('Checking the content index'));
 
 		$snapshot = $this->index->snapshot();
 		$plans    = [];

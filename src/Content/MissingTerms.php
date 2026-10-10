@@ -21,6 +21,7 @@ use Blush\Content\Type\ContentTypes;
 use Blush\Content\Writer\EntryChanges;
 use Blush\Content\Writer\WriteException;
 use Blush\Core\AppConfig;
+use Blush\Support\Progress;
 
 /**
  * Every term and profile is a file (D-584): a slug entries name in a
@@ -47,11 +48,12 @@ final readonly class MissingTerms
 	 * Returns the slugs named with no file, with the title each would
 	 * get, by type name, then by slug, each in order.
 	 *
+	 * @param  ?Closure(string, int, int): void $progress How it's going (`Progress`).
 	 * @return array<string, array<string, string>>
 	 */
-	public function report(): array
+	public function report(?Closure $progress = null): array
 	{
-		$this->indexer->index();
+		$this->indexer->index(progress: new Progress($progress)->of('Checking the content index'));
 
 		$snapshot = $this->index->snapshot();
 		$missing  = [];
@@ -96,16 +98,19 @@ final readonly class MissingTerms
 	 * create and publish entries of, and only the `{type}/{slug}`s in
 	 * `$only` when it's given (one row on Site Health, D-612).
 	 *
-	 * @param ?Closure(string): bool $allowed
-	 * @param ?list<string>          $only
+	 * @param ?Closure(string): bool           $allowed
+	 * @param ?list<string>                    $only
+	 * @param ?Closure(string, int, int): void $progress How it's going (`Progress`).
 	 */
-	public function create(?Closure $allowed = null, ?array $only = null): CreatedEntries
+	public function create(?Closure $allowed = null, ?array $only = null, ?Closure $progress = null): CreatedEntries
 	{
 		$created = [];
 		$failed  = [];
 		$now     = $this->clock->now()->setTimezone($this->app->timezone());
+		$steps   = new Progress($progress);
+		$terms   = [];
 
-		foreach ($this->report() as $name => $slugs) {
+		foreach ($this->report($progress) as $name => $slugs) {
 			$type = $this->types->find($name);
 
 			if ($type === null || ($allowed !== null && ! $allowed($name))) {
@@ -113,20 +118,26 @@ final readonly class MissingTerms
 			}
 
 			foreach ($slugs as $slug => $title) {
-				if ($only !== null && ! in_array("{$name}/{$slug}", $only, true)) {
-					continue;
-				}
-
-				try {
-					$created["{$name}/{$slug}"] = $this->content->create($type, $slug, new EntryChanges(set: [
-						'title'     => $title,
-						'published' => $now->format('Y-m-d H:i:s P')
-					]), null, $now)->path;
-				} catch (WriteException $e) {
-					$failed["{$name}/{$slug}"] = $e->getMessage();
+				if ($only === null || in_array("{$name}/{$slug}", $only, true)) {
+					$terms[] = [$type, (string) $slug, $title];
 				}
 			}
 		}
+
+		foreach ($terms as $done => [$type, $slug, $title]) {
+			$steps->step('Writing terms', $done, count($terms));
+
+			try {
+				$created["{$type->name}/{$slug}"] = $this->content->create($type, $slug, new EntryChanges(set: [
+					'title'     => $title,
+					'published' => $now->format('Y-m-d H:i:s P')
+				]), null, $now)->path;
+			} catch (WriteException $e) {
+				$failed["{$type->name}/{$slug}"] = $e->getMessage();
+			}
+		}
+
+		$steps->step('Writing terms', count($terms), count($terms));
 
 		return new CreatedEntries($created, $failed);
 	}

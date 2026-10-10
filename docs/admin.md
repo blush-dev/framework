@@ -912,7 +912,8 @@ so a full one is seen before it's picked.
 
 ## Media
 
-**Content → Media** shows the files in `user/media`, newest first, each
+**Content → Media** shows the files in `user/media`, newest
+[upload](media.md#upload-dates) first, each
 by its title (or its file name, until it has one), laid out like the
 entries lists: **All** and **Mine** tabs with their counts (**Mine** is
 what you uploaded), then a search by name or details and a filter for
@@ -2282,7 +2283,7 @@ holds together. The entry list's filters use it.
 
 ### Listing media
 
-`GET media` lists the library (`user/media`), newest first, a page at a
+`GET media` lists the library (`user/media`), newest upload first, a page at a
 time, for accounts that can edit content. Narrow it with `search` (text
 the path must contain), `kind` (`image`, `video`, `audio`, `document`,
 `file` for anything else, or `any`),
@@ -2290,7 +2291,7 @@ the path must contain), `kind` (`image`, `video`, `audio`, `document`,
 `page`, `pages`, `per`, and `files`; each file has its `reference`
 (what to write in content: the library's URL path), `name`,
 `folder`, `url`, `mime`, `kind`, `size`, `width` and `height` (images),
-`modified`, and the library's `alt` and `caption` for it (`""` for
+`modified`, `uploaded` (when it was added to the library, ISO 8601, or `null`), and the library's `alt` and `caption` for it (`""` for
 none). Only the file types your site allows are listed. When
 the account may upload some kind (`media.{kind}.upload`), `upload` has the largest file
 it may upload (`limit`, in bytes, or `null` for none: the upload rules'

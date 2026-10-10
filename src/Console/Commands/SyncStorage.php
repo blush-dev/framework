@@ -38,24 +38,38 @@ final readonly class SyncStorage
 
 	public function __invoke(Output $output): ExitCode
 	{
-		$synced = 0;
+		$synced = [];
 		$stores = [];
+		$tables = $this->tables->all();
+		$steps  = $output->steps();
 
-		foreach ($this->tables->all() as $table) {
+		foreach (array_values($tables) as $done => $table) {
+			$steps('Syncing tables', $done, count($tables));
 			$store = $this->stores->store($table);
 
 			if ($store instanceof SchemaStore) {
 				$store->prepare($table);
-				$output->line(sprintf('%s: %s', $table->area->value, $table->name), Verbosity::Verbose);
 				$stores[spl_object_id($store)] = $store;
-				$synced++;
+				$synced[] = sprintf('%s: %s', $table->area->value, $table->name);
 			}
 		}
 
+		$steps('Syncing tables', count($tables), count($tables));
+
 		// Statistics, so queries pick the right index.
-		foreach ($stores as $store) {
+		foreach (array_values($stores) as $done => $store) {
+			$steps('Gathering statistics', $done, count($stores));
 			$store->analyze();
+			$steps('Gathering statistics', $done + 1, count($stores));
 		}
+
+		$steps->finish();
+
+		foreach ($synced as $line) {
+			$output->line($line, Verbosity::Verbose);
+		}
+
+		$synced = count($synced);
 
 		if ($synced === 0) {
 			$output->success('Nothing to do: the site keeps its data as files, which need no tables.');

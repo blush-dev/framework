@@ -36,7 +36,8 @@ use Blush\Support\Uuid;
  *   path, since it may have no metadata file), one that isn't a UUID,
  *   and one another file has too (`MediaIds`); and `sizes` (D-488) that
  *   isn't a map of files to their width and height; and an `artwork`
- *   (D-581) that isn't a UUID;
+ *   (D-581) that isn't a UUID, and an `uploaded` (D-709) that isn't a
+ *   date and time;
  * - warnings: a file whose media file is gone (renamed or deleted
  *   without it), or isn't a type the site allows, and one
  *   describing a size of another image (D-239), whose details are that
@@ -252,6 +253,10 @@ final readonly class MediaMetadataCheck
 
 		if (array_key_exists(MediaMetadata::ARTWORK, $data) && ! Uuid::isValid($data[MediaMetadata::ARTWORK])) {
 			$violations[] = new Violation(MediaMetadata::ARTWORK, 'isn\'t a library image\'s id; choose the artwork again on the file\'s screen in the admin.', kind: ViolationKind::Artwork);
+		}
+
+		if (array_key_exists(MediaMetadata::UPLOADED, $data) && MediaMetadata::readDate($data[MediaMetadata::UPLOADED]) === null) {
+			$violations[] = new Violation(MediaMetadata::UPLOADED, 'isn\'t a date and time with its offset, such as 2026-10-10 19:03:00 +00:00; the library orders the file by a likely one until it\'s fixed.', kind: ViolationKind::Value);
 		}
 
 		if (array_key_exists(MediaMetadata::RENDITIONS, $data) && ! self::sizesFit($data[MediaMetadata::RENDITIONS])) {

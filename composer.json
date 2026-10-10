@@ -49,6 +49,7 @@
 		"ext-apcu": "To keep the cache in memory instead of files (the apcu cache driver)",
 		"ext-exif": "To read photos' embedded details",
 		"ext-fileinfo": "To tell uploaded and served files' types apart (recommended)",
+		"ext-pdo_sqlite": "To keep a site's data in an SQLite database instead of files (the sqlite storage driver)",
 		"ext-zip": "To install plugins and themes from a .zip",
 		"ext-zlib": "To read compressed PDFs' details"
 	},

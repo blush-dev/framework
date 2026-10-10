@@ -13,6 +13,9 @@ declare(strict_types=1);
 
 namespace Blush\Media;
 
+use DateTimeImmutable;
+use DateTimeInterface;
+use DateTimeZone;
 use Blush\Support\Uuid;
 
 /**
@@ -24,8 +27,11 @@ use Blush\Support\Uuid;
  * written into Markdown, where a line break would end them. Where a file
  * is used, what's written there wins; the library's fill the gaps.
  *
- * Four keys aren't fields, and the details form doesn't edit them:
+ * Five keys aren't fields, and the details form doesn't edit them:
  * `owner`, the id of the account that uploaded the file (D-407, D-668);
+ * `uploaded`, when it was added to the library (D-709), a date and time
+ * in UTC (`2026-10-10 19:03:00 +00:00`, D-711), so it sorts as text in
+ * the media table, which the library is ordered by;
  * `renditions`, an image's other files (D-488, D-674), their keys in
  * `user/media` mapped to their `width` and `height`; `artwork`, the id of the library
  * image a sound or video shows as its artwork (D-581), which the file's
@@ -62,6 +68,18 @@ final readonly class MediaMetadata
 	 */
 	public const string ARTWORK = 'artwork';
 
+	/**
+	 * The key when the file was added to the library is kept under
+	 * (D-709).
+	 */
+	public const string UPLOADED = 'uploaded';
+
+	/**
+	 * The form the date is written in, as an entry's `published` is,
+	 * always in UTC (`utc()`, D-711).
+	 */
+	public const string DATE_FORMAT = 'Y-m-d H:i:s P';
+
 	public string $title;
 
 	public string $alt;
@@ -96,6 +114,12 @@ final readonly class MediaMetadata
 	public string $artwork;
 
 	/**
+	 * When the file was added to the library (D-709), or `null` when it
+	 * doesn't say, or says something that isn't a date.
+	 */
+	public ?DateTimeImmutable $uploaded;
+
+	/**
 	 * @param array<string, mixed> $values
 	 */
 	public function __construct(public array $values = [])
@@ -107,6 +131,33 @@ final readonly class MediaMetadata
 		$this->id      = Uuid::isValid($values[self::ID] ?? null) ? strtolower(self::line($values[self::ID])) : '';
 		$this->renditions = self::readRenditions($values[self::RENDITIONS] ?? null);
 		$this->artwork = Uuid::isValid($values[self::ARTWORK] ?? null) ? strtolower(self::line($values[self::ARTWORK])) : '';
+		$this->uploaded = self::readDate($values[self::UPLOADED] ?? null);
+	}
+
+	/**
+	 * A date as an upload date is written: in UTC, as `DATE_FORMAT`
+	 * writes it. Text that isn't a date is returned as it is.
+	 */
+	public static function utc(DateTimeInterface|string $date): string
+	{
+		$read = is_string($date) ? self::readDate($date) : DateTimeImmutable::createFromInterface($date);
+
+		return $read === null ? (string) $date : $read->setTimezone(new DateTimeZone('UTC'))->format(self::DATE_FORMAT);
+	}
+
+	/**
+	 * Reads a date written as `DATE_FORMAT` writes it; `null` for
+	 * anything else.
+	 */
+	public static function readDate(mixed $value): ?DateTimeImmutable
+	{
+		if (! is_string($value)) {
+			return null;
+		}
+
+		$date = DateTimeImmutable::createFromFormat('!' . self::DATE_FORMAT, trim($value));
+
+		return $date === false || DateTimeImmutable::getLastErrors() !== false ? null : $date;
 	}
 
 	/**
@@ -138,14 +189,14 @@ final readonly class MediaMetadata
 	}
 
 	/**
-	 * The field values: every value but the owner, the renditions, the
-	 * artwork, and the id.
+	 * The field values: every value but the owner, the upload date, the
+	 * renditions, the artwork, and the id.
 	 *
 	 * @return array<string, mixed>
 	 */
 	public function fields(): array
 	{
-		return array_diff_key($this->values, [self::OWNER => true, self::RENDITIONS => true, self::ARTWORK => true, self::ID => true]);
+		return array_diff_key($this->values, [self::OWNER => true, self::UPLOADED => true, self::RENDITIONS => true, self::ARTWORK => true, self::ID => true]);
 	}
 
 	/**

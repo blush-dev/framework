@@ -21980,3 +21980,159 @@ decision, add a new entry that supersedes it and mark the old one
   block/directive that works with audio files." From Claude's
   proposal, the author chose a container of `::audio`, the next track
   playing on its own, artwork only at the top, and core over a plugin.
+
+### D-709: The media library is ordered by upload date, stored in each file's metadata
+
+- **Date:** 2026-10-10
+- **Status:** Built.
+- **Decision:** the library (`MediaLibrary::query()`, so `GET media`,
+  Content → Media, and the media picker) lists files newest upload
+  first, by a date kept with the file, never by the file's modified
+  time alone.
+  - **`uploaded`** in a file's metadata (`MediaMetadata::UPLOADED`,
+    `$uploaded`), written as an entry's `published` is
+    (`Y-m-d H:i:s P`). Not a field, like `owner` and `id`: left out of
+    `fields()`, and a field set can't claim it. Uploads and adopted
+    artwork write it with the owner and id. It's a key in the media
+    table's records, with no column of its own.
+  - **A file without one is ordered by its likely date**
+    (`MediaDates::guess()`): a dated folder in its path (`2006/04/`,
+    `2006/04/15/`, `2006/`) gives the time; the file's modified time,
+    then the date it says it was made (embedded `created`, D-289), wins
+    when it falls inside that time, else the time's start. Without a
+    dated folder, its modified time. `MediaDates::of()` is the stored
+    date, else the guess.
+  - **`media:dates [--write]`** counts files without one (`-v` lists
+    each with its guess) and writes the guesses (`MediaDates::fill()`,
+    `FilledMediaDates`), skipping unreadable metadata files, as
+    `media:ids` does. Site Health has no check for it yet.
+  - **Lint** reports an `uploaded` that isn't a date and time with its
+    offset. `media.schema.json` describes it.
+  - **Admin:** `GET media` and `GET media/{path}` answer `uploaded`
+    (ISO 8601, `null` when the file doesn't say); a file's screen shows
+    Uploaded under Storage, above Changed.
+- **On the jtcom trial:** 3,978 of its files share a modified time of
+  2022-10-30, when they were copied, so the library put files from 2006
+  near the top. `media:dates` finds 1,903 originals without a date; it
+  wasn't run with `--write` (the author's call).
+- **Checked:** `composer check` (`MediaDatesTest`: guesses from
+  folders, modified times, and embedded dates; a stored date winning
+  and not being a field; the library's order; filling with a filter,
+  the date before the id; lint; the command); `npm run admin:build`.
+- **Why:** the author: "the media library is loading default files in
+  the wrong order ... my files are in date-based folders but i have
+  files listed that are much older first." Of Claude's two fixes (a
+  stored upload date, or ties broken by path in reverse), the author
+  chose the stored date, which keeps D-516 (order by stored data, never
+  file names).
+
+### D-710: Long-running commands show their steps as they go
+
+- **Date:** 2026-10-10
+- **Status:** Built.
+- **Decision:** a command that takes a while shows what it's doing,
+  a step at a time, so it never sits silent.
+  - **`ProgressBar`** takes a label (`Output::progress($total, $label)`),
+    drawn before the bar, and a named bar with no total yet is a
+    spinner with the count so far (redrawn at most ten times a
+    second). `done()` leaves `✓ {label}  {count}`, or clears a step
+    that counted nothing.
+  - **`ProgressSteps`** (`Output::steps()`): invoked with
+    `(string $step, int $done, int $total)`, a new step leaving the last
+    one done; `finish()` before the command's own output. Like a bar,
+    it draws only on an ANSI terminal at normal verbosity.
+  - **Services stay out of the console:** a long-running one takes an
+    optional, trailing `?Closure(string $step, int $done, int $total)`
+    and wraps it in `Blush\Support\Progress` (`step()`, and `of()` for
+    an indexer's `(done, total)` callback), so the admin's jobs can use
+    it later. Steps are named as what's happening ("Checking the media
+    index", "Writing ids", "Updating the content index").
+  - **Commands with steps:** `media:dates`, `media:ids`, `media:sizes`,
+    `content:ids`, `content:filenames`, `content:folders`,
+    `content:terms`, `content:parents`, `content:refs`, `menu:refs`,
+    `content:taxonomies`, `content:type-folders`, `storage:copy`
+    (whose `StorageCopy::copy()` callback is now the step callback),
+    `storage:sync`, `publish`, and `media:publish --copy`. `doctor`
+    is quick and has none. `content:index`, `media:index`, and
+    `content:lint` keep their single bar. `MissingTerms::create()` and
+    `MissingParents::create()` gather what to write first, so the
+    total is known.
+  - **A prettier CLI** (layout, colors, headings) is a later design
+    pass; it builds on these pieces in `Output`.
+- **Checked:** `composer check` (`OutputTest`: named bars, the
+  spinner, steps and their done lines, nothing drawn off a terminal;
+  `ProgressTest`); `media:ids` and `content:ids` on the jtcom trial in
+  a pseudo-terminal.
+- **Why:** the author, after `media:dates --write` on the trial: "the
+  command line just seemed to sit idle for a while ... Should we have
+  some sort of meter in the cli for things that are taking time?" From
+  Claude's proposal, the author's go ("Yes, add the progress now").
+
+### D-711: `uploaded` is a column of the media table, written in UTC
+
+- **Date:** 2026-10-10
+- **Status:** Built. Amends D-709 (the date's offset) and D-675 (the
+  table's declared fields).
+- **Decision:**
+  - **A declared field:** `MediaMetadataStore::table()` declares
+    `path`, `owner`, and `uploaded`, so a database driver gives it a
+    column with an index; an existing SQLite table gains it on first
+    use (`ALTER TABLE … ADD COLUMN`). The library still sorts in PHP
+    over the media index; sorting by query is for later.
+  - **Always UTC:** the record is the metadata itself, with no table
+    layer to normalize it (as `EntryTable` does `published`), and
+    text with mixed offsets doesn't sort in time order. So `uploaded`
+    is written as `Y-m-d H:i:s +00:00` (`MediaMetadata::utc()`):
+    uploads, adopted artwork, `media:dates`, and `MediaMetadataStore::save()`,
+    which converts any date it's given. A date with another offset
+    still reads and lists in the right place;
+    `media:dates` counts it and `--write` rewrites it in UTC. The
+    admin shows it in the site's timezone.
+- **On the jtcom trial:** the 1,903 dates written in D-709 with the
+  site's offset were rewritten by `media:dates --write`.
+- **Checked:** `composer check` (`SqliteAreasTest`: media sorted by
+  `uploaded` in SQL, one written with another offset stored in UTC;
+  `MediaDatesTest`: dates with another offset found and rewritten,
+  text that isn't a date left alone).
+- **Why:** the author: "Yes, add the uploaded column. We'll want to
+  sort by date later." Claude chose UTC so the column sorts, which
+  the author's goal needs.
+
+### D-712: `translation_of` becomes a relation; `entries.original_id` goes, `language` stays
+
+- **Date:** 2026-10-10
+- **Status:** Planned; nothing built. Amends D-511 (`translation_of`
+  as a built-in text field) and D-649 (the `entries` table's fields).
+- **Decision:**
+  - **A `translation_of` relation:** a translation's link to its
+    original is a relation like any other link between entries
+    (D-585): a ref with `source_id` the translation, `relation`
+    `translation_of`, and `target_id` the original, in the content
+    area's `refs` table. It's core's, always there, and not edited on
+    a type's Relationships panel.
+  - **`entries.original_id` goes.** Whatever reads it today (the
+    language fallback in `QueryCompiler`, `RecordLocations`,
+    `EntryPlaces`, `EntryLinks`, `EntryTargets`, the index's
+    translation groups) reads the ref instead.
+  - **What D-511 checks, the relation checks:** the target is the same
+    type, in another language, and an original (not a translation);
+    no entry is its own translation (D-587). An original leaving the
+    site warns that its translations link to it (D-608), and the
+    reverse side lists an original's translations.
+  - **It resolves as itself:** D-587 resolves a relation to the
+    target's translation in the entry's language; `translation_of`
+    opts out, or it would point at the entry itself.
+  - **`entries.language` stays a column.** A language is a value of
+    the entry from config, not a link to another entry, every entry
+    has exactly one, and nearly every query filters on it (lists,
+    slugs unique per type, language, and parent, routing, missing
+    parents), so it keeps its column and index.
+- **Open when it's built:** whether the front matter key stays
+  `translation_of` with an id (as other relations file ids under
+  `refs`, D-589), and what the language fallback's subqueries over
+  `refs` cost, measured with `composer bench`.
+- **Why:** the author, after listing the tables: "we can get rid of
+  entries.language and entries.original_id if we make languages an
+  entry relationship." Claude suggested the relation for
+  `original_id` but a column for `language`; the author: "Yes, I
+  think we'll want the translation_of relation. So record this."

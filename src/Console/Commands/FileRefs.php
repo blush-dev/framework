@@ -37,8 +37,12 @@ final readonly class FileRefs
 		Output $output,
 		#[Option('File the links of each file listed.')] bool $write = false
 	): ExitCode {
+		$steps = $output->steps();
+
 		if ($write) {
-			$done = $this->refs->file();
+			$done = $this->refs->file(progress: $steps(...));
+
+			$steps->finish();
 
 			foreach ($done->paths as $path) {
 				$output->line(sprintf('%s  %s', $output->style('filed  ', Style::Green), $path));
@@ -53,7 +57,9 @@ final readonly class FileRefs
 			}
 		}
 
-		$stale = $this->refs->report();
+		$stale = $this->refs->report($steps(...));
+
+		$steps->finish();
 
 		foreach ($stale as $path => $relations) {
 			$output->line(sprintf('%s  %s (%s)', $output->style('unfiled', Style::Red), $path, implode(', ', $relations)));

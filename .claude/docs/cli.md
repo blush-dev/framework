@@ -40,7 +40,12 @@ Implemented in M2 (D-065, D-069).
   variadic arguments, `--` terminator).
 - **Output:** styled writer (ANSI with automatic detection, `NO_COLOR`),
   verbosity levels, tables, and progress bars (`Output::progress()`,
-  drawn only on an ANSI terminal, D-091). Prompts (confirm, ask, choice,
+  drawn only on an ANSI terminal, D-091), named and with a spinner
+  until the total is known, and steps (`Output::steps()`,
+  `ProgressSteps`): a long-running service takes
+  `?Closure(string $step, int $done, int $total)`, wrapped in
+  `Support\Progress`, and the command passes `$steps(...)`; each step
+  done leaves a `✓` line (D-710). Prompts (confirm, ask, choice,
   secret) have a non-interactive fallback.
 - **Exit codes:** an enum (`Success`, `Failure`, `Invalid`, …).
 - **Boots the same `Application`** as the web, so commands get the container,
@@ -70,6 +75,7 @@ Implemented in M2 (D-065, D-069).
 | `content:list [--type] [--status]` | List every indexed entry (M4b) |
 | `content:preview <type> <name> [--hours]` | Print a signed preview link to an entry, whatever its status (D-226) |
 | `routes:list` | Show the routes, redirects, and shadowed routes (M3, D-077) |
+| `media:dates [--write]` | Originals without an `uploaded` date, or with one not in UTC (counted; `-v` lists them with the likely date); `--write` writes the likely date (`MediaDates::guess()`: dated folder, then modified time or embedded `created` inside it, else the folder's start; no folder, modified time) into `user/data/media`, and rewrites dates with another offset in UTC (D-709, D-711) |
 | `media:ids [--write] [--keep=<path>…]` | `content:ids` for media files: originals missing a valid id (counted; `-v` lists them) and shared ids; `--write` writes new ids into `user/data/media`, `--keep` renews the others; sizes of another image need none (D-487) |
 | `media:sizes [--write]` | Images whose metadata files don't list their sizes as the index has them (counts; `-v` lists), and lists naming files that aren't their sizes; `--write` writes each image's `sizes` whole (D-488) |
 | `media:index [--full]` | Build or refresh the media index, with a progress bar; `-v` lists changes, and metadata files with no media file are warnings (D-288) |

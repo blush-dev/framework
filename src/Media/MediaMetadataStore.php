@@ -36,8 +36,9 @@ use Blush\Support\Uuid;
  * Reads and writes media files' metadata (D-238, D-269), never beside
  * the files (`media:publish` would serve it): the `media` table (D-674,
  * D-675), a record for each media original that has something to say,
- * keyed by the file's id, with its `path` under `user/media` and its
- * `owner` declared, its description its content. On files, the records
+ * keyed by the file's id, with its `path` under `user/media`, its
+ * `owner`, and its `uploaded` date (D-711) declared, its description its
+ * content. On files, the records
  * are `user/data/media/{path}.json` (`MediaFiles`): `user/media/2024/sunset.jpg`
  * has `user/data/media/2024/sunset.jpg.json` (D-631).
  *
@@ -81,7 +82,7 @@ final readonly class MediaMetadataStore
 	 */
 	public static function table(): Table
 	{
-		return new Table(self::TABLE, StorageArea::Data, fields: ['path', 'owner']);
+		return new Table(self::TABLE, StorageArea::Data, fields: ['path', 'owner', MediaMetadata::UPLOADED]);
 	}
 
 	/**
@@ -243,7 +244,7 @@ final readonly class MediaMetadataStore
 	 * one removes its key) and keys to remove, each under the name or
 	 * alias the record already uses in `schema`. The description is the
 	 * record's content (`content`, D-674). A record without an id gets
-	 * one.
+	 * one. An upload date is written in UTC (D-711), so it sorts as text.
 	 *
 	 * @param  array<string, mixed> $set
 	 * @param  list<string>         $remove
@@ -268,6 +269,10 @@ final readonly class MediaMetadataStore
 		foreach ([...$set, ...array_fill_keys($remove, null)] as $key => $value) {
 			$field = $schema?->field((string) $key);
 			$keys  = $field === null ? [(string) $key] : [$field->name, ...$field->aliases];
+
+			if ($key === MediaMetadata::UPLOADED && is_string($value)) {
+				$value = MediaMetadata::utc($value);
+			}
 
 			if ($value === '' || $value === [] || $value === null) {
 				$data = array_diff_key($data, array_flip($keys));

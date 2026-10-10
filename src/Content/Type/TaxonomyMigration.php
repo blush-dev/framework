@@ -17,6 +17,7 @@ use Closure;
 use Throwable;
 use Blush\Container\Attributes\Defer;
 use Blush\Data\DataKeys;
+use Blush\Support\Progress;
 
 /**
  * Migrates the data types still written as taxonomies (D-591, D-593),
@@ -54,21 +55,29 @@ final readonly class TaxonomyMigration
 	 * Migrates them, and returns what was written: where each type's
 	 * records are kept, by name, and why any failed.
 	 *
+	 * @param  ?Closure(string, int, int): void $progress How it's going (`Progress`).
 	 * @return array{migrated: array<string, list<string>>, failed: array<string, string>}
 	 * @throws InvalidContentType When the types can't be read at all.
 	 */
-	public function migrate(): array
+	public function migrate(?Closure $progress = null): array
 	{
 		$migrated = [];
 		$failed   = [];
+		$names    = $this->report();
+		$steps    = new Progress($progress);
+		$done     = 0;
 
-		foreach ($this->report() as $name) {
+		foreach ($names as $name) {
+			$steps->step('Migrating taxonomies', $done++, count($names));
+
 			try {
 				$migrated[$name] = $this->tables->types()->transaction(fn (): array => $this->migrateOne($name));
 			} catch (Throwable $error) {
 				$failed[$name] = $error->getMessage();
 			}
 		}
+
+		$steps->step('Migrating taxonomies', $done, count($names));
 
 		return ['migrated' => $migrated, 'failed' => $failed];
 	}

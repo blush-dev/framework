@@ -31,6 +31,7 @@ use Blush\Console\Commands\Help;
 use Blush\Console\Commands\MigrateTaxonomies;
 use Blush\Console\Commands\MigrateTypeFolders;
 use Blush\Console\Commands\FileMenuRefs;
+use Blush\Console\Commands\FixMediaDates;
 use Blush\Console\Commands\FixMediaIds;
 use Blush\Console\Commands\IndexContent;
 use Blush\Console\Commands\IndexMedia;
@@ -92,6 +93,7 @@ enum BuiltInCommand: string
 	case ContentRelation = 'content:relation';
 	case ContentTaxonomies = 'content:taxonomies';
 	case ContentTypeFolders = 'content:type-folders';
+	case MediaDates    = 'media:dates';
 	case MediaIds      = 'media:ids';
 	case MediaIndex    = 'media:index';
 	case MediaPublish  = 'media:publish';
@@ -157,6 +159,7 @@ enum BuiltInCommand: string
 			self::ContentRelation => ChangeRelation::class,
 			self::ContentTaxonomies => MigrateTaxonomies::class,
 			self::ContentTypeFolders => MigrateTypeFolders::class,
+			self::MediaDates    => FixMediaDates::class,
 			self::MediaIds      => FixMediaIds::class,
 			self::MediaIndex    => IndexMedia::class,
 			self::MediaPublish  => PublishMedia::class,

@@ -42,6 +42,7 @@ use Blush\Content\Type\Tree;
 use Blush\Core\AppConfig;
 use Blush\Core\Paths;
 use Blush\Support\Filesystem;
+use Blush\Support\Progress;
 use Blush\Support\FilesystemException;
 use Blush\Support\Slug;
 use Blush\Support\Uuid;
@@ -821,15 +822,21 @@ final readonly class FilesystemWriter
 	 * none), all in one reindex. A file that can't be read or changed is
 	 * left as it is and named in the result.
 	 *
-	 * @param list<string> $paths
+	 * @param list<string>                     $paths
+	 * @param ?Closure(string, int, int): void $progress How it's going (`Progress`).
 	 */
-	public function assignIds(array $paths): AssignedIds
+	public function assignIds(array $paths, ?Closure $progress = null): AssignedIds
 	{
-		return $this->locked(function () use ($paths): AssignedIds {
+		return $this->locked(function () use ($paths, $progress): AssignedIds {
 			$ids    = [];
 			$failed = [];
+			$steps  = new Progress($progress);
+			$paths  = array_unique($paths);
+			$done   = 0;
 
-			foreach (array_unique($paths) as $path) {
+			foreach ($paths as $path) {
+				$steps->step('Writing ids', $done++, count($paths));
+
 				try {
 					$file     = $this->file($path);
 					$contents = $this->read($file);
@@ -844,7 +851,9 @@ final readonly class FilesystemWriter
 				}
 			}
 
-			return new AssignedIds($ids, $failed, $ids === [] ? new IndexReport() : $this->refresh(array_keys($ids)));
+			$steps->step('Writing ids', $done, count($paths));
+
+			return new AssignedIds($ids, $failed, $ids === [] ? new IndexReport() : $this->refresh(array_keys($ids), progress: $steps));
 		});
 	}
 
@@ -857,15 +866,20 @@ final readonly class FilesystemWriter
 	 * is gone), the entry's earlier moves are undone, and it's named in
 	 * the result. A folder a move leaves empty is removed (D-514).
 	 *
-	 * @param array<string, array<string, string>> $moves Old paths to new, by entry path; the entry's own file comes first.
+	 * @param array<string, array<string, string>> $moves    Old paths to new, by entry path; the entry's own file comes first.
+	 * @param ?Closure(string, int, int): void     $progress How it's going (`Progress`).
 	 */
-	public function renameFiles(array $moves): RenamedFiles
+	public function renameFiles(array $moves, ?Closure $progress = null): RenamedFiles
 	{
-		return $this->locked(function () use ($moves): RenamedFiles {
+		return $this->locked(function () use ($moves, $progress): RenamedFiles {
 			$renamed = [];
 			$failed  = [];
+			$steps   = new Progress($progress);
+			$count   = 0;
 
 			foreach ($moves as $path => $entryMoves) {
+				$steps->step('Renaming files', $count++, count($moves));
+
 				$done = [];
 
 				try {
@@ -889,7 +903,9 @@ final readonly class FilesystemWriter
 				}
 			}
 
-			return new RenamedFiles($renamed, $failed, $renamed === [] ? new IndexReport() : $this->refresh());
+			$steps->step('Renaming files', $count, count($moves));
+
+			return new RenamedFiles($renamed, $failed, $renamed === [] ? new IndexReport() : $this->refresh(progress: $steps));
 		});
 	}
 
@@ -1061,19 +1077,22 @@ final readonly class FilesystemWriter
 	 * reindex. A file that can't be read or changed is left as it is and
 	 * named in the result.
 	 *
-	 * @param list<string> $paths
+	 * @param list<string>                     $paths
+	 * @param ?Closure(string, int, int): void $progress How it's going (`Progress`).
 	 */
-	public function fileRefs(array $paths): FiledRefs
+	public function fileRefs(array $paths, ?Closure $progress = null): FiledRefs
 	{
-		return $this->locked(function () use ($paths): FiledRefs {
-			$this->indexer->index();
+		return $this->locked(function () use ($paths, $progress): FiledRefs {
+			$steps = new Progress($progress);
+
+			$this->indexer->index(progress: $steps->of('Checking the content index'));
 
 			$snapshot = $this->index->snapshot();
 			$stale    = array_intersect_key(new LinkBuilder()->build($snapshot, $this->relations, $this->types)->stale, array_flip($paths));
 
-			[$filed, $failed] = $this->fileForms($stale, $snapshot);
+			[$filed, $failed] = $this->fileForms($stale, $snapshot, $steps);
 
-			return new FiledRefs($filed, $failed, $filed === [] ? new IndexReport() : $this->refresh($filed));
+			return new FiledRefs($filed, $failed, $filed === [] ? new IndexReport() : $this->refresh($filed, progress: $steps));
 		});
 	}
 
@@ -1086,9 +1105,9 @@ final readonly class FilesystemWriter
 	 * @param list<string> $written
 	 * @param list<string> $referrers
 	 */
-	private function refresh(array $written = [], array $referrers = []): IndexReport
+	private function refresh(array $written = [], array $referrers = [], Progress $progress = new Progress()): IndexReport
 	{
-		$report   = $this->indexer->index(written: $written);
+		$report   = $this->indexer->index(progress: $progress->of('Updating the content index'), written: $written);
 		$snapshot = $this->index->snapshot();
 		$paths    = [...$written, ...array_filter(array_map($snapshot->path(...), $referrers))];
 		$stale    = array_intersect_key($report->stale, array_flip($paths));
@@ -1164,12 +1183,15 @@ final readonly class FilesystemWriter
 	 * @param  array<string, array<string, Resolution>> $stale Resolutions by path and relation name.
 	 * @return array{list<string>, array<string, string>} The paths written, and messages for those that failed.
 	 */
-	private function fileForms(array $stale, IndexSnapshot $snapshot): array
+	private function fileForms(array $stale, IndexSnapshot $snapshot, Progress $progress = new Progress()): array
 	{
 		$filed  = [];
 		$failed = [];
+		$done   = 0;
 
 		foreach ($stale as $path => $resolutions) {
+			$progress->step('Filing relations', $done++, count($stale));
+
 			$path = (string) $path;
 			$type = $snapshot->record($path)?->type;
 
@@ -1193,6 +1215,8 @@ final readonly class FilesystemWriter
 				$failed[$path] = $e->getMessage();
 			}
 		}
+
+		$progress->step('Filing relations', $done, count($stale));
 
 		return [$filed, $failed];
 	}

@@ -40,9 +40,13 @@ final readonly class FileMenuRefs
 		Output $output,
 		#[Option('File the links of each menu listed.')] bool $write = false
 	): ExitCode {
+		$steps = $output->steps();
+
 		try {
 			if ($write) {
-				$done = $this->refs->file();
+				$done = $this->refs->file($steps(...));
+
+				$steps->finish();
 
 				foreach ($done['filed'] as $name) {
 					$output->line(sprintf('%s  %s', $output->style('filed  ', Style::Green), $name));
@@ -59,6 +63,8 @@ final readonly class FileMenuRefs
 
 			$stale = $this->refs->report();
 		} catch (MenuException $error) {
+			$steps->finish();
+
 			throw new InvalidInput($error->getMessage(), 0, $error);
 		}
 

@@ -133,10 +133,15 @@ final readonly class PublishMedia
 	 */
 	private function copy(Output $output, string $source, string $target): ExitCode
 	{
-		$copied  = 0;
+		$copied  = [];
 		$current = 0;
+		$checked = 0;
+		$steps   = $output->steps();
 
+		// How many there are isn't known until they're all found.
 		foreach ($this->filesystem->files($source) as $relative => $file) {
+			$steps('Copying media files', ++$checked, 0);
+
 			if (! $this->config->allows(mime_content_type($file->getPathname()) ?: '')) {
 				continue;
 			}
@@ -155,12 +160,17 @@ final readonly class PublishMedia
 			copy($file->getPathname(), $destination);
 			touch($destination, (int) $file->getMTime());
 
+			$copied[] = (string) $relative;
+		}
+
+		$steps->finish();
+
+		foreach ($copied as $relative) {
 			$output->line("Copied {$relative}", Verbosity::Verbose);
-			$copied++;
 		}
 
 		$this->protect($output, $target);
-		$output->success(sprintf('Copied %d file(s) to %s; %d already current.', $copied, $this->paths->relative($target), $current));
+		$output->success(sprintf('Copied %d file(s) to %s; %d already current.', count($copied), $this->paths->relative($target), $current));
 
 		return ExitCode::Success;
 	}
