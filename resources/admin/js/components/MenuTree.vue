@@ -136,7 +136,7 @@ async function edit(id: string): Promise<void> {
 	}
 
 	await nextTick();
-	document.getElementById(`menu-item-${id}-label`)?.focus();
+	document.getElementById(`menu-item-${id}-link`)?.focus();
 	say(`Editing ${name(find(props.nodes, id)!.node)}`);
 }
 
@@ -162,10 +162,10 @@ async function add(place: 'above' | 'below' = 'below', id: string | null = curre
 	selected.value = node.id;
 	editing.value  = node.id;
 	emit('change');
-	say(`Added an item${placed ? ` ${place === 'above' ? 'above' : 'after'} ${name(placed.node)}` : ''}. Give it a label, then a link, or leave the link empty for plain text.`);
+	say(`Added an item${placed ? ` ${place === 'above' ? 'above' : 'after'} ${name(placed.node)}` : ''}. Give it a link, or leave the link empty for plain text and give it a label.`);
 
 	await nextTick();
-	document.getElementById(`menu-item-${node.id}-label`)?.focus();
+	document.getElementById(`menu-item-${node.id}-link`)?.focus();
 	root.value?.querySelector(`[data-id="${node.id}"]`)?.scrollIntoView({ block: 'nearest' });
 }
 

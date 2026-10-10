@@ -149,7 +149,7 @@ defineExpose({ focus: () => field.value?.focus() });
 </script>
 
 <template>
-	<div v-if="chosen" class="input link-picker__chosen" :class="{ 'is-invalid': invalid }" tabindex="0" role="group" :aria-label="`${label ?? 'Link'}: ${chosen.title}`" :aria-describedby="describedBy" @keydown="tokenKey">
+	<div v-if="chosen" :id="id" class="input link-picker__chosen" :class="{ 'is-invalid': invalid }" tabindex="0" role="group" :aria-label="`${label ?? 'Link'}: ${chosen.title}`" :aria-describedby="describedBy" @keydown="tokenKey">
 		<AdminIcon :name="chosen.icon" />
 		<strong>{{ chosen.title }}</strong>
 		<span v-if="chosen.pill" class="pill" :class="`pill--${chosen.pill.kind}`">{{ chosen.pill.label }}</span>

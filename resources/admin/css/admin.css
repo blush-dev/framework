@@ -1077,7 +1077,7 @@
 
 /* A field with something to fix that isn't an error, such as an image
    without alt text, and the line under it that says so. */
-.field--warn :is(input, textarea):not([aria-invalid="true"]) {
+.field--warn :is(input, textarea):not([aria-invalid="true"]):where(:not(.field dialog *)) {
 	border-color: var(--warn-dot);
 }
 
@@ -1111,11 +1111,13 @@
 	white-space: pre-wrap;
 }
 
-/* Text inputs, selects, and text areas. */
+/* Text inputs, selects, and text areas. A dialog opened from a field
+   (an icon field's picker) draws its own controls, so the field's
+   don't reach into it. */
 .input,
-.field input:not([type="checkbox"], [type="radio"]),
-.field select,
-.field textarea {
+.field input:not([type="checkbox"], [type="radio"]):where(:not(.field dialog *)),
+.field select:where(:not(.field dialog *)),
+.field textarea:where(:not(.field dialog *)) {
 	width: 100%;
 	min-height: var(--ctl);
 	padding: 0 12px;
@@ -1129,23 +1131,23 @@
 	width: auto;
 }
 
-.field textarea {
+.field textarea:where(:not(.field dialog *)) {
 	padding: 10px 12px;
 	line-height: 1.55;
 	resize: vertical;
 }
 
 .input:hover,
-.field input:not([type="checkbox"], [type="radio"]):hover,
-.field select:hover,
-.field textarea:hover {
+.field input:not([type="checkbox"], [type="radio"]):hover:where(:not(.field dialog *)),
+.field select:hover:where(:not(.field dialog *)),
+.field textarea:hover:where(:not(.field dialog *)) {
 	border-color: var(--fg-3);
 }
 
 .input:focus-visible,
-.field input:focus-visible,
-.field select:focus-visible,
-.field textarea:focus-visible {
+.field input:focus-visible:where(:not(.field dialog *)),
+.field select:focus-visible:where(:not(.field dialog *)),
+.field textarea:focus-visible:where(:not(.field dialog *)) {
 	border-color: var(--accent);
 	outline-offset: 0;
 }
@@ -1157,9 +1159,9 @@
 /* A field shown but not changeable, such as a role's key: sunk, so it
    doesn't read as one to type in. */
 .input:disabled,
-.field input:disabled:not([type="checkbox"], [type="radio"]),
-.field select:disabled,
-.field textarea:disabled {
+.field input:disabled:not([type="checkbox"], [type="radio"]):where(:not(.field dialog *)),
+.field select:disabled:where(:not(.field dialog *)),
+.field textarea:disabled:where(:not(.field dialog *)) {
 	border-color: var(--border);
 	background: var(--surface-2);
 	color: var(--fg-2);

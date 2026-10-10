@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /**
  * A menu item's fields, opened under its row (from the menus sketch):
- * Label and Link side by side, then Description, Badge and Icon, and
+ * Link and Label side by side, then Description, Badge and Icon, and
  * Class and Link Relationship. Changes go into the item at once and are
  * saved with the menu.
  *
@@ -137,11 +137,6 @@ function key(event: KeyboardEvent): void {
 	<div :id="id" class="menu-fields" role="group" :aria-label="`Edit ${label || node.link?.title || 'item'}`" @keydown="key">
 		<div class="field-pair">
 			<div class="field">
-				<label :for="`${id}-label`">Label</label>
-				<input :id="`${id}-label`" v-model="label" autocomplete="off" :placeholder="node.link?.title || 'The text to show'" :aria-describedby="`${id}-label-help`">
-				<p :id="`${id}-label-help`" class="field__help">{{ node.link ? 'Leave it empty to use the link\'s own title.' : 'Plain text needs a label.' }}</p>
-			</div>
-			<div class="field">
 				<label :for="`${id}-link`">Link</label>
 				<LinkPicker
 					:id="`${id}-link`"
@@ -157,6 +152,11 @@ function key(event: KeyboardEvent): void {
 				/>
 				<p v-if="!node.link" :id="`${id}-link-help`" class="field__help menu-fields__note"><AdminIcon :name="kindIcon(null)" /><span>Without a link, this item is <strong>plain text</strong>, shown but not clickable. Themes often use it as a heading over its sub-items.</span></p>
 				<p v-else-if="note" :id="`${id}-link-help`" class="field__help menu-fields__note" :class="{ 'is-warn': note.warn }"><AdminIcon :name="note.icon" /><span>{{ note.text }}</span></p>
+			</div>
+			<div class="field">
+				<label :for="`${id}-label`">Label</label>
+				<input :id="`${id}-label`" v-model="label" autocomplete="off" :placeholder="node.link?.title || 'The text to show'" :aria-describedby="`${id}-label-help`">
+				<p :id="`${id}-label-help`" class="field__help">{{ node.link ? 'Leave it empty to use the link\'s own title.' : 'Plain text needs a label.' }}</p>
 			</div>
 		</div>
 
