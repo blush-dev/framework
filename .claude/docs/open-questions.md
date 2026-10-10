@@ -618,45 +618,6 @@ Move each item to `decisions.md` once it's answered.
   Either way it touches the default theme, the test views, `docs/`,
   `theming.md`, and the `jtcom-trial` theme, and supersedes D-158.
 
-- **Loading the admin's screens on demand** (D-510, discussed
-  2026-10-05). The size budget means what's loaded at a given moment,
-  such as the first run, as much as the total. Today `router.ts` imports
-  all 31 screens, so `admin.js` (743 KB) holds the editor, Settings,
-  roles, and the rest before anything is opened. The options:
-  - **Split by screen.** Each route's component becomes
-    `() => import('./views/EditorView.vue')`; Vite builds each screen to
-    its own file (`js/EditorView.js`), code several screens share to
-    shared files, and each screen's scoped CSS to its own stylesheet,
-    linked when it loads (the CSP allows it). `admin.js` keeps Vue and
-    the router, the shell (rail, bar, palette, toasts, confirmations),
-    the session, API, and types modules, and the icons. Rough sizes from
-    a source map: the core 180 to 220 KB (Vue and the router about
-    100 KB), the editor about 150 KB more when an entry opens, most
-    screens 5 to 30 KB. PHP is unchanged: it still prints `admin.js` and
-    `admin.css`.
-  - **Versions on the split files.** The files `admin.js` imports have
-    no `?v=`, so `AssetController` sends them `no-cache` and browsers
-    check back on every use. The build's `blush-admin-resources` plugin,
-    which already versions the URLs in the CSS, would add `?v={crc32}`
-    to the paths between chunks (leaves first, since a chunk's version
-    covers its imports'), and to Vite's preload list. Names stay plain.
-  - **A build that changes mid-session.** An open admin's old
-    `admin.js` may ask for a screen that no longer matches; a router
-    `onError` that reloads the page when a screen fails to load picks
-    up the new build.
-  - **Prefetching, or not.** The first visit to a screen waits on one
-    small request. The rest could be fetched once the page is idle, or a
-    screen on hovering its link, so moving around is instant, at the cost
-    of more loaded in all; or not at all, the leanest. The leaning was to
-    start without it.
-  - **Grouping instead of one file a screen**, by the rail's areas (Home,
-    Content, Users, Config), with fewer, larger files; or splitting only
-    the heaviest (the editor, Settings, the role screen) and keeping the
-    rest in `admin.js`.
-  - **Other levers on what's loaded:** the editor's pickers (media,
-    icons, references, components) only when one opens, and the icon
-    set (16 KB of SVG) split by what the shell needs and what the
-    inserters do.
 - **Global helper functions** (D-106, D-504): `e()`, `attr()`, `url()`,
   `js()`, `css()`, and `raw()` are global and unguarded, so Blush can't
   share a site with a library that defines its own, such as
@@ -1893,6 +1854,35 @@ Move each item to `decisions.md` once it's answered.
   released.
 
 ## Later
+- **How the admin's scripts load, once every screen is in** (D-687 to
+  D-690, discussed 2026-10-09; revisit when the admin's screens are
+  built). Today every screen but the dashboard, sign-in, and not-found
+  loads on demand and the rest are prefetched in the background. The
+  call was a small win now that grows as screens are added, bought with
+  build complexity, so the author wants it looked at again with the full
+  set of screens. Claude's assessment then:
+  - **For:** the first load stays flat as screens are added (one file
+    grows with every screen: 2.6 s against 1.3 s on the slow profile
+    already); once prefetching is done, moving between screens and
+    reloading match the one-file build.
+  - **Against:** on a fast connection the gain is small today (70 to 90
+    ms opening the admin) and opening an entry from a link is about 100
+    ms slower; a screen clicked before prefetching reaches it waits on
+    its files (the editor, about 0.9 s slow); the build carries moving
+    parts one file doesn't (`versionChunks()`, the patch to Vite's
+    preloader's `.css` check, which fails the build if Vite changes it,
+    the reload on a newer build, and 116 committed files).
+  - **Not measured:** hosts serving HTTP/1.1, where about six
+    connections a site make many small files queue; the dev site is
+    HTTP/2, and the editor's 13 files would feel it most. Measure this
+    first when revisiting.
+  - **Paths to compare then:** keep it as it is; group screens by the
+    rail's areas (Home, Content, Users, Config, Extend) into a handful of
+    files, most of the scaling with far fewer files and less exposure to
+    HTTP/1.1; or go back to one file if the screens stay few and small.
+    Rerun the timing in D-690 (the harness drove Chrome with Playwright
+    over the dev site, cold and warm, fast and throttled) on each, with
+    the totals from D-689.
 - **Core directive templates under `resources/views`** (D-632, noted
   2026-10-08). The core directives' templates are in
   `resources/directives`, and each directive's `render()` names its own

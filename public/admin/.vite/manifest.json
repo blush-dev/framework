@@ -1,4 +1,391 @@
 {
+  "_AdminSelect.css": {
+    "file": "css/AdminSelect.css",
+    "src": "_AdminSelect.css"
+  },
+  "_AdminSelect.js": {
+    "file": "js/AdminSelect.js",
+    "name": "AdminSelect",
+    "imports": [
+      "js/admin.ts"
+    ],
+    "css": [
+      "css/AdminSelect.css"
+    ]
+  },
+  "_CapabilitySections.css": {
+    "file": "css/CapabilitySections.css",
+    "src": "_CapabilitySections.css"
+  },
+  "_CapabilitySections.js": {
+    "file": "js/CapabilitySections.js",
+    "name": "CapabilitySections",
+    "imports": [
+      "js/admin.ts"
+    ],
+    "css": [
+      "css/CapabilitySections.css"
+    ]
+  },
+  "_DangerZone.css": {
+    "file": "css/DangerZone.css",
+    "src": "_DangerZone.css"
+  },
+  "_DangerZone.js": {
+    "file": "js/DangerZone.js",
+    "name": "DangerZone",
+    "imports": [
+      "js/admin.ts"
+    ],
+    "css": [
+      "css/DangerZone.css"
+    ]
+  },
+  "_ExtensionCard.js": {
+    "file": "js/ExtensionCard.js",
+    "name": "ExtensionCard",
+    "imports": [
+      "js/admin.ts"
+    ]
+  },
+  "_FieldControl.js": {
+    "file": "js/FieldControl.js",
+    "name": "FieldControl",
+    "imports": [
+      "js/admin.ts",
+      "_FieldInput.js"
+    ]
+  },
+  "_FieldInput.css": {
+    "file": "css/FieldInput.css",
+    "src": "_FieldInput.css"
+  },
+  "_FieldInput.js": {
+    "file": "js/FieldInput.js",
+    "name": "FieldInput",
+    "imports": [
+      "js/admin.ts",
+      "_references.js",
+      "_AdminSelect.js"
+    ],
+    "css": [
+      "css/FieldInput.css"
+    ]
+  },
+  "_FieldListEditor.css": {
+    "file": "css/FieldListEditor.css",
+    "src": "_FieldListEditor.css"
+  },
+  "_FieldListEditor.js": {
+    "file": "js/FieldListEditor.js",
+    "name": "FieldListEditor",
+    "imports": [
+      "js/admin.ts",
+      "_AdminSelect.js",
+      "_type-form.js"
+    ],
+    "css": [
+      "css/FieldListEditor.css"
+    ]
+  },
+  "_FieldSetEditor.css": {
+    "file": "css/FieldSetEditor.css",
+    "src": "_FieldSetEditor.css"
+  },
+  "_FieldSetEditor.js": {
+    "file": "js/FieldSetEditor.js",
+    "name": "FieldSetEditor",
+    "imports": [
+      "js/admin.ts",
+      "_DangerZone.js",
+      "_FieldListEditor.js",
+      "_type-form.js",
+      "_SaveBar.js"
+    ],
+    "css": [
+      "css/FieldSetEditor.css"
+    ]
+  },
+  "_IconPicker.css": {
+    "file": "css/IconPicker.css",
+    "src": "_IconPicker.css"
+  },
+  "_IconPicker.js": {
+    "file": "js/IconPicker.js",
+    "name": "IconPicker",
+    "imports": [
+      "js/admin.ts"
+    ],
+    "css": [
+      "css/IconPicker.css"
+    ]
+  },
+  "_ListPager.css": {
+    "file": "css/ListPager.css",
+    "src": "_ListPager.css"
+  },
+  "_ListPager.js": {
+    "file": "js/ListPager.js",
+    "name": "ListPager",
+    "imports": [
+      "js/admin.ts",
+      "_AdminSelect.js"
+    ],
+    "css": [
+      "css/ListPager.css"
+    ]
+  },
+  "_MarkdownEditor.css": {
+    "file": "css/MarkdownEditor.css",
+    "src": "_MarkdownEditor.css"
+  },
+  "_MarkdownEditor.js": {
+    "file": "js/MarkdownEditor.js",
+    "name": "MarkdownEditor",
+    "imports": [
+      "js/admin.ts",
+      "_RawValues.js",
+      "_drop.js"
+    ],
+    "css": [
+      "css/MarkdownEditor.css"
+    ]
+  },
+  "_MediaPicker.css": {
+    "file": "css/MediaPicker.css",
+    "src": "_MediaPicker.css"
+  },
+  "_MediaPicker.js": {
+    "file": "js/MediaPicker.js",
+    "name": "MediaPicker",
+    "imports": [
+      "js/admin.ts",
+      "_jobs.js",
+      "_drop.js"
+    ],
+    "css": [
+      "css/MediaPicker.css"
+    ]
+  },
+  "_PickModal.js": {
+    "file": "js/PickModal.js",
+    "name": "PickModal",
+    "imports": [
+      "js/admin.ts"
+    ]
+  },
+  "_PreviousVersion.css": {
+    "file": "css/PreviousVersion.css",
+    "src": "_PreviousVersion.css"
+  },
+  "_PreviousVersion.js": {
+    "file": "js/PreviousVersion.js",
+    "name": "PreviousVersion",
+    "imports": [
+      "js/admin.ts",
+      "_extensions.js"
+    ],
+    "css": [
+      "css/PreviousVersion.css"
+    ]
+  },
+  "_RawValues.js": {
+    "file": "js/RawValues.js",
+    "name": "RawValues",
+    "imports": [
+      "js/admin.ts"
+    ]
+  },
+  "_RoleChecks.css": {
+    "file": "css/RoleChecks.css",
+    "src": "_RoleChecks.css"
+  },
+  "_RoleChecks.js": {
+    "file": "js/RoleChecks.js",
+    "name": "RoleChecks",
+    "imports": [
+      "js/admin.ts"
+    ],
+    "css": [
+      "css/RoleChecks.css"
+    ]
+  },
+  "_SaveBar.js": {
+    "file": "js/SaveBar.js",
+    "name": "SaveBar",
+    "imports": [
+      "js/admin.ts"
+    ]
+  },
+  "_SkeletonTable.css": {
+    "file": "css/SkeletonTable.css",
+    "src": "_SkeletonTable.css"
+  },
+  "_SkeletonTable.js": {
+    "file": "js/SkeletonTable.js",
+    "name": "SkeletonTable",
+    "imports": [
+      "js/admin.ts"
+    ],
+    "css": [
+      "css/SkeletonTable.css"
+    ]
+  },
+  "_ToggleSwitch.css": {
+    "file": "css/ToggleSwitch.css",
+    "src": "_ToggleSwitch.css"
+  },
+  "_ToggleSwitch.js": {
+    "file": "js/ToggleSwitch.js",
+    "name": "ToggleSwitch",
+    "imports": [
+      "js/admin.ts"
+    ],
+    "css": [
+      "css/ToggleSwitch.css"
+    ]
+  },
+  "_TypeBehaviorFields.css": {
+    "file": "css/TypeBehaviorFields.css",
+    "src": "_TypeBehaviorFields.css"
+  },
+  "_TypeBehaviorFields.js": {
+    "file": "js/TypeBehaviorFields.js",
+    "name": "TypeBehaviorFields",
+    "imports": [
+      "js/admin.ts",
+      "_AdminSelect.js",
+      "_IconPicker.js",
+      "_type-form.js"
+    ],
+    "css": [
+      "css/TypeBehaviorFields.css"
+    ]
+  },
+  "_density.js": {
+    "file": "js/density.js",
+    "name": "density",
+    "imports": [
+      "js/admin.ts"
+    ]
+  },
+  "_drop.js": {
+    "file": "js/drop.js",
+    "name": "drop",
+    "imports": [
+      "js/admin.ts"
+    ]
+  },
+  "_extensions.js": {
+    "file": "js/extensions.js",
+    "name": "extensions",
+    "imports": [
+      "js/admin.ts",
+      "_query.js"
+    ]
+  },
+  "_homepage.js": {
+    "file": "js/homepage.js",
+    "name": "homepage",
+    "imports": [
+      "js/admin.ts"
+    ]
+  },
+  "_icon-packs.js": {
+    "file": "js/icon-packs.js",
+    "name": "icon-packs",
+    "imports": [
+      "_extensions.js"
+    ]
+  },
+  "_install.css": {
+    "file": "css/install.css",
+    "src": "_install.css"
+  },
+  "_install.js": {
+    "file": "js/install.js",
+    "name": "install",
+    "imports": [
+      "js/admin.ts",
+      "_AdminSelect.js",
+      "_drop.js",
+      "_density.js",
+      "_extensions.js"
+    ],
+    "css": [
+      "css/install.css"
+    ]
+  },
+  "_jobs.js": {
+    "file": "js/jobs.js",
+    "name": "jobs",
+    "imports": [
+      "js/admin.ts"
+    ]
+  },
+  "_plugins.js": {
+    "file": "js/plugins.js",
+    "name": "plugins",
+    "imports": [
+      "js/admin.ts",
+      "_extensions.js"
+    ]
+  },
+  "_query.js": {
+    "file": "js/query.js",
+    "name": "query",
+    "imports": [
+      "js/admin.ts"
+    ]
+  },
+  "_references.js": {
+    "file": "js/references.js",
+    "name": "references",
+    "imports": [
+      "js/admin.ts"
+    ]
+  },
+  "_referrers.js": {
+    "file": "js/referrers.js",
+    "name": "referrers",
+    "imports": [
+      "js/admin.ts"
+    ]
+  },
+  "_relations.js": {
+    "file": "js/relations.js",
+    "name": "relations",
+    "imports": [
+      "js/admin.ts"
+    ]
+  },
+  "_search-key.js": {
+    "file": "js/search-key.js",
+    "name": "search-key",
+    "imports": [
+      "js/admin.ts",
+      "_density.js"
+    ]
+  },
+  "_themes.css": {
+    "file": "css/themes.css",
+    "src": "_themes.css"
+  },
+  "_themes.js": {
+    "file": "js/themes.js",
+    "name": "themes",
+    "imports": [
+      "js/admin.ts",
+      "_extensions.js"
+    ],
+    "css": [
+      "css/themes.css"
+    ]
+  },
+  "_type-form.js": {
+    "file": "js/type-form.js",
+    "name": "type-form"
+  },
   "fonts/fira-code-latin-400-normal.woff2": {
     "file": "fonts/fira-code-latin-400-normal.woff2",
     "src": "fonts/fira-code-latin-400-normal.woff2"
@@ -44,6 +431,40 @@
     "name": "admin",
     "src": "js/admin.ts",
     "isEntry": true,
+    "dynamicImports": [
+      "js/views/AccountView.vue",
+      "js/views/AccountsView.vue",
+      "js/views/EditorView.vue",
+      "js/views/EntriesView.vue",
+      "js/views/FieldSetView.vue",
+      "js/views/FieldSetsView.vue",
+      "js/views/HealthView.vue",
+      "js/views/IconPackView.vue",
+      "js/views/IconPacksView.vue",
+      "js/views/MediaFileView.vue",
+      "js/views/MediaView.vue",
+      "js/views/NewAccountView.vue",
+      "js/views/NewFieldSetView.vue",
+      "js/views/NewRoleView.vue",
+      "js/views/NewTypeView.vue",
+      "js/views/PluginView.vue",
+      "js/views/PluginsView.vue",
+      "js/views/ProfileDetailView.vue",
+      "js/views/RedirectsView.vue",
+      "js/views/RelationView.vue",
+      "js/views/RelationsView.vue",
+      "js/views/RoleView.vue",
+      "js/views/RolesView.vue",
+      "js/views/SetPasswordView.vue",
+      "js/views/SettingsView.vue",
+      "js/views/SiteHealthView.vue",
+      "js/views/ThemeView.vue",
+      "js/views/ThemesView.vue",
+      "js/views/ToolsView.vue",
+      "js/views/TrashedView.vue",
+      "js/views/TypeView.vue",
+      "js/views/TypesView.vue"
+    ],
     "css": [
       "css/admin.css"
     ],
@@ -58,6 +479,494 @@
       "fonts/karla-latin-ext-wght-normal.woff2",
       "fonts/newsreader-latin-opsz-normal.woff2",
       "fonts/newsreader-latin-ext-opsz-normal.woff2"
+    ]
+  },
+  "js/views/AccountView.vue": {
+    "file": "js/AccountView.js",
+    "name": "AccountView",
+    "src": "js/views/AccountView.vue",
+    "isDynamicEntry": true,
+    "imports": [
+      "js/admin.ts",
+      "_PickModal.js",
+      "_RoleChecks.js",
+      "_references.js"
+    ],
+    "css": [
+      "css/AccountView.css"
+    ]
+  },
+  "js/views/AccountsView.vue": {
+    "file": "js/AccountsView.js",
+    "name": "AccountsView",
+    "src": "js/views/AccountsView.vue",
+    "isDynamicEntry": true,
+    "imports": [
+      "js/admin.ts",
+      "_AdminSelect.js",
+      "_SkeletonTable.js"
+    ],
+    "css": [
+      "css/AccountsView.css"
+    ]
+  },
+  "js/views/EditorView.vue": {
+    "file": "js/EditorView.js",
+    "name": "EditorView",
+    "src": "js/views/EditorView.vue",
+    "isDynamicEntry": true,
+    "imports": [
+      "js/admin.ts",
+      "_references.js",
+      "_AdminSelect.js",
+      "_referrers.js",
+      "_homepage.js",
+      "_RawValues.js",
+      "_MarkdownEditor.js",
+      "_FieldInput.js",
+      "_FieldControl.js",
+      "_MediaPicker.js",
+      "_IconPicker.js"
+    ],
+    "css": [
+      "css/EditorView.css"
+    ]
+  },
+  "js/views/EntriesView.vue": {
+    "file": "js/EntriesView.js",
+    "name": "EntriesView",
+    "src": "js/views/EntriesView.vue",
+    "isDynamicEntry": true,
+    "imports": [
+      "js/admin.ts",
+      "_references.js",
+      "_AdminSelect.js",
+      "_SkeletonTable.js",
+      "_referrers.js",
+      "_homepage.js",
+      "_ListPager.js",
+      "_density.js",
+      "_search-key.js",
+      "_query.js"
+    ],
+    "css": [
+      "css/EntriesView.css"
+    ]
+  },
+  "js/views/FieldSetView.vue": {
+    "file": "js/FieldSetView.js",
+    "name": "FieldSetView",
+    "src": "js/views/FieldSetView.vue",
+    "isDynamicEntry": true,
+    "imports": [
+      "js/admin.ts",
+      "_FieldListEditor.js",
+      "_FieldSetEditor.js"
+    ],
+    "css": [
+      "css/FieldSetView.css"
+    ]
+  },
+  "js/views/FieldSetsView.vue": {
+    "file": "js/FieldSetsView.js",
+    "name": "FieldSetsView",
+    "src": "js/views/FieldSetsView.vue",
+    "isDynamicEntry": true,
+    "imports": [
+      "js/admin.ts",
+      "_SkeletonTable.js"
+    ],
+    "css": [
+      "css/FieldSetsView.css"
+    ]
+  },
+  "js/views/HealthView.vue": {
+    "file": "js/HealthView.js",
+    "name": "HealthView",
+    "src": "js/views/HealthView.vue",
+    "isDynamicEntry": true,
+    "imports": [
+      "js/admin.ts",
+      "_AdminSelect.js",
+      "_jobs.js",
+      "_density.js",
+      "_search-key.js"
+    ]
+  },
+  "js/views/IconPackView.vue": {
+    "file": "js/IconPackView.js",
+    "name": "IconPackView",
+    "src": "js/views/IconPackView.vue",
+    "isDynamicEntry": true,
+    "imports": [
+      "js/admin.ts",
+      "_DangerZone.js",
+      "_PreviousVersion.js",
+      "_ToggleSwitch.js",
+      "_icon-packs.js"
+    ],
+    "css": [
+      "css/IconPackView.css"
+    ]
+  },
+  "js/views/IconPacksView.vue": {
+    "file": "js/IconPacksView.js",
+    "name": "IconPacksView",
+    "src": "js/views/IconPacksView.vue",
+    "isDynamicEntry": true,
+    "imports": [
+      "js/admin.ts",
+      "_density.js",
+      "_extensions.js",
+      "_ToggleSwitch.js",
+      "_icon-packs.js",
+      "_ExtensionCard.js",
+      "_install.js"
+    ],
+    "css": [
+      "css/IconPacksView.css"
+    ]
+  },
+  "js/views/MediaFileView.vue": {
+    "file": "js/MediaFileView.js",
+    "name": "MediaFileView",
+    "src": "js/views/MediaFileView.vue",
+    "isDynamicEntry": true,
+    "imports": [
+      "js/admin.ts",
+      "_RawValues.js",
+      "_FieldControl.js",
+      "_MediaPicker.js",
+      "_SaveBar.js"
+    ],
+    "css": [
+      "css/MediaFileView.css"
+    ]
+  },
+  "js/views/MediaView.vue": {
+    "file": "js/MediaView.js",
+    "name": "MediaView",
+    "src": "js/views/MediaView.vue",
+    "isDynamicEntry": true,
+    "imports": [
+      "js/admin.ts",
+      "_AdminSelect.js",
+      "_MediaPicker.js"
+    ],
+    "css": [
+      "css/MediaView.css"
+    ]
+  },
+  "js/views/NewAccountView.vue": {
+    "file": "js/NewAccountView.js",
+    "name": "NewAccountView",
+    "src": "js/views/NewAccountView.vue",
+    "isDynamicEntry": true,
+    "imports": [
+      "js/admin.ts",
+      "_RoleChecks.js",
+      "_references.js",
+      "_AdminSelect.js"
+    ],
+    "css": [
+      "css/NewAccountView.css"
+    ]
+  },
+  "js/views/NewFieldSetView.vue": {
+    "file": "js/NewFieldSetView.js",
+    "name": "NewFieldSetView",
+    "src": "js/views/NewFieldSetView.vue",
+    "isDynamicEntry": true,
+    "imports": [
+      "js/admin.ts",
+      "_FieldSetEditor.js"
+    ]
+  },
+  "js/views/NewRoleView.vue": {
+    "file": "js/NewRoleView.js",
+    "name": "NewRoleView",
+    "src": "js/views/NewRoleView.vue",
+    "isDynamicEntry": true,
+    "imports": [
+      "js/admin.ts",
+      "_CapabilitySections.js"
+    ],
+    "css": [
+      "css/NewRoleView.css"
+    ]
+  },
+  "js/views/NewTypeView.vue": {
+    "file": "js/NewTypeView.js",
+    "name": "NewTypeView",
+    "src": "js/views/NewTypeView.vue",
+    "isDynamicEntry": true,
+    "imports": [
+      "js/admin.ts",
+      "_FieldListEditor.js",
+      "_type-form.js",
+      "_TypeBehaviorFields.js"
+    ],
+    "css": [
+      "css/NewTypeView.css"
+    ]
+  },
+  "js/views/PluginView.vue": {
+    "file": "js/PluginView.js",
+    "name": "PluginView",
+    "src": "js/views/PluginView.vue",
+    "isDynamicEntry": true,
+    "imports": [
+      "js/admin.ts",
+      "_DangerZone.js",
+      "_PreviousVersion.js",
+      "_ToggleSwitch.js",
+      "_plugins.js"
+    ],
+    "css": [
+      "css/PluginView.css"
+    ]
+  },
+  "js/views/PluginsView.vue": {
+    "file": "js/PluginsView.js",
+    "name": "PluginsView",
+    "src": "js/views/PluginsView.vue",
+    "isDynamicEntry": true,
+    "imports": [
+      "js/admin.ts",
+      "_extensions.js",
+      "_ToggleSwitch.js",
+      "_install.js",
+      "_plugins.js"
+    ],
+    "css": [
+      "css/PluginsView.css"
+    ]
+  },
+  "js/views/ProfileDetailView.vue": {
+    "file": "js/ProfileDetailView.js",
+    "name": "ProfileDetailView",
+    "src": "js/views/ProfileDetailView.vue",
+    "isDynamicEntry": true,
+    "imports": [
+      "js/admin.ts",
+      "_PickModal.js",
+      "_referrers.js",
+      "_ToggleSwitch.js"
+    ],
+    "css": [
+      "css/ProfileDetailView.css"
+    ]
+  },
+  "js/views/RedirectsView.vue": {
+    "file": "js/RedirectsView.js",
+    "name": "RedirectsView",
+    "src": "js/views/RedirectsView.vue",
+    "isDynamicEntry": true,
+    "imports": [
+      "js/admin.ts",
+      "_AdminSelect.js",
+      "_SkeletonTable.js",
+      "_ListPager.js",
+      "_density.js",
+      "_search-key.js",
+      "_query.js"
+    ],
+    "css": [
+      "css/RedirectsView.css"
+    ]
+  },
+  "js/views/RelationView.vue": {
+    "file": "js/RelationView.js",
+    "name": "RelationView",
+    "src": "js/views/RelationView.vue",
+    "isDynamicEntry": true,
+    "imports": [
+      "js/admin.ts",
+      "_AdminSelect.js",
+      "_FieldInput.js",
+      "_DangerZone.js",
+      "_type-form.js",
+      "_ToggleSwitch.js",
+      "_relations.js"
+    ],
+    "css": [
+      "css/RelationView.css"
+    ]
+  },
+  "js/views/RelationsView.vue": {
+    "file": "js/RelationsView.js",
+    "name": "RelationsView",
+    "src": "js/views/RelationsView.vue",
+    "isDynamicEntry": true,
+    "imports": [
+      "js/admin.ts",
+      "_AdminSelect.js",
+      "_SkeletonTable.js",
+      "_relations.js"
+    ],
+    "css": [
+      "css/RelationsView.css"
+    ]
+  },
+  "js/views/RoleView.vue": {
+    "file": "js/RoleView.js",
+    "name": "RoleView",
+    "src": "js/views/RoleView.vue",
+    "isDynamicEntry": true,
+    "imports": [
+      "js/admin.ts",
+      "_SaveBar.js",
+      "_CapabilitySections.js"
+    ],
+    "css": [
+      "css/RoleView.css"
+    ]
+  },
+  "js/views/RolesView.vue": {
+    "file": "js/RolesView.js",
+    "name": "RolesView",
+    "src": "js/views/RolesView.vue",
+    "isDynamicEntry": true,
+    "imports": [
+      "js/admin.ts",
+      "_SkeletonTable.js"
+    ],
+    "css": [
+      "css/RolesView.css"
+    ]
+  },
+  "js/views/SetPasswordView.vue": {
+    "file": "js/SetPasswordView.js",
+    "name": "SetPasswordView",
+    "src": "js/views/SetPasswordView.vue",
+    "isDynamicEntry": true,
+    "imports": [
+      "js/admin.ts"
+    ],
+    "css": [
+      "css/SetPasswordView.css"
+    ]
+  },
+  "js/views/SettingsView.vue": {
+    "file": "js/SettingsView.js",
+    "name": "SettingsView",
+    "src": "js/views/SettingsView.vue",
+    "isDynamicEntry": true,
+    "imports": [
+      "js/admin.ts",
+      "_AdminSelect.js",
+      "_FieldInput.js",
+      "_SaveBar.js",
+      "_ToggleSwitch.js"
+    ],
+    "css": [
+      "css/SettingsView.css"
+    ]
+  },
+  "js/views/SiteHealthView.vue": {
+    "file": "js/SiteHealthView.js",
+    "name": "SiteHealthView",
+    "src": "js/views/SiteHealthView.vue",
+    "isDynamicEntry": true,
+    "imports": [
+      "js/admin.ts",
+      "_jobs.js"
+    ],
+    "css": [
+      "css/SiteHealthView.css"
+    ]
+  },
+  "js/views/ThemeView.vue": {
+    "file": "js/ThemeView.js",
+    "name": "ThemeView",
+    "src": "js/views/ThemeView.vue",
+    "isDynamicEntry": true,
+    "imports": [
+      "js/admin.ts",
+      "_DangerZone.js",
+      "_extensions.js",
+      "_PreviousVersion.js",
+      "_themes.js"
+    ],
+    "css": [
+      "css/ThemeView.css"
+    ]
+  },
+  "js/views/ThemesView.vue": {
+    "file": "js/ThemesView.js",
+    "name": "ThemesView",
+    "src": "js/views/ThemesView.vue",
+    "isDynamicEntry": true,
+    "imports": [
+      "js/admin.ts",
+      "_density.js",
+      "_extensions.js",
+      "_ExtensionCard.js",
+      "_install.js",
+      "_themes.js"
+    ],
+    "css": [
+      "css/ThemesView.css"
+    ]
+  },
+  "js/views/ToolsView.vue": {
+    "file": "js/ToolsView.js",
+    "name": "ToolsView",
+    "src": "js/views/ToolsView.vue",
+    "isDynamicEntry": true,
+    "imports": [
+      "js/admin.ts",
+      "_jobs.js"
+    ],
+    "css": [
+      "css/ToolsView.css"
+    ]
+  },
+  "js/views/TrashedView.vue": {
+    "file": "js/TrashedView.js",
+    "name": "TrashedView",
+    "src": "js/views/TrashedView.vue",
+    "isDynamicEntry": true,
+    "imports": [
+      "js/admin.ts",
+      "_referrers.js",
+      "_RawValues.js",
+      "_MarkdownEditor.js"
+    ],
+    "css": [
+      "css/TrashedView.css"
+    ]
+  },
+  "js/views/TypeView.vue": {
+    "file": "js/TypeView.js",
+    "name": "TypeView",
+    "src": "js/views/TypeView.vue",
+    "isDynamicEntry": true,
+    "imports": [
+      "js/admin.ts",
+      "_AdminSelect.js",
+      "_DangerZone.js",
+      "_FieldListEditor.js",
+      "_type-form.js",
+      "_SaveBar.js",
+      "_TypeBehaviorFields.js",
+      "_relations.js"
+    ],
+    "css": [
+      "css/TypeView.css"
+    ]
+  },
+  "js/views/TypesView.vue": {
+    "file": "js/TypesView.js",
+    "name": "TypesView",
+    "src": "js/views/TypesView.vue",
+    "isDynamicEntry": true,
+    "imports": [
+      "js/admin.ts",
+      "_SkeletonTable.js"
+    ],
+    "css": [
+      "css/TypesView.css"
     ]
   }
 }

@@ -15179,6 +15179,8 @@ decision, add a new entry that supersedes it and mark the old one
 
 ### D-510: A size budget for the built admin
 - **Date:** 2026-10-05
+- **Status:** Restated by D-687: the goal counts what the first screen
+  loads, with the total of every file beside it.
 - **Decision:** the author's call: a running goal to bring the built
   admin under 500 KB of JavaScript (`public/admin/js/admin.js`) and
   100 KB of CSS (`public/admin/css/admin.css`), unzipped, over time; the
@@ -21301,3 +21303,137 @@ decision, add a new entry that supersedes it and mark the old one
   literal path, problems on a big site, importing).
 - **Why:** the author's go ("Let's implement it"), with the answers
   above.
+
+### D-687: The editor's screens load on demand; the size goal counts what loads first
+
+- **Date:** 2026-10-09
+- **Status:** Built. Settles the "Loading the admin's screens on demand"
+  item in `open-questions.md` (option: split only the heaviest), and
+  restates D-510's goal.
+- **Decision:**
+  - **Only the heavy screens are split** (the author's go: "split the
+    editor"). The entry editor and the Trash screen (`EditorView`,
+    `TrashedView`) are `() => import(…)` routes in `router.ts`, and so is
+    a media file's screen (`MediaFileView`), which imports helpers from
+    `markdown.ts`: Rolldown files whole modules, so while one eager screen
+    imports `markdown.ts`, all of it stays in `admin.js`. Each builds to
+    its own plain-named script and stylesheet, with the code they share
+    in shared files Rolldown names (`MarkdownEditor.js`, `RawValues.js`,
+    `FieldControl.js`). Every other screen stays in `admin.js`. No
+    prefetching, to begin with.
+  - **Versions between files** (`vite.config.ts`, `versionChunks()`):
+    a screen's files import `./admin.js?v={crc32}`, the same version
+    `AdminApp::url()` prints, since a module loaded under two URLs runs
+    twice (two apps). `admin.js` names the screens and they import it,
+    so neither can carry a hash of the other: every file but the entry
+    is versioned with one CRC32 of the whole build, taken after every
+    change but the versions themselves, so it changes whenever any of
+    them does. Names stay plain (D-224); PHP is unchanged. Vite's
+    preloader tells a stylesheet by a path ending in `.css`, so the
+    build has it look before the `?`, and fails if Vite's helper ever
+    changes shape.
+  - **A build that changes while the admin is open:** an old `admin.js`
+    asking for a screen gets the new one (the server doesn't check
+    `?v=`), which imports the new `admin.js`; that `admin.js` finds an
+    admin already mounted and reloads the page instead of mounting a
+    second. A screen that fails to load on an in-app move loads its
+    address as a fresh page (`router.onError`); a page's first screen
+    never does, so it can't loop.
+  - **The size goal (D-510) counts what loads first and the total.**
+    Splitting moves bytes; it doesn't remove them. The goal is now what
+    the first screen loads, `admin.js` and `admin.css`, under 500 KB and
+    100 KB, with the total of every script and stylesheet reported
+    beside it and kept no larger without a reason. After this change:
+    `admin.js` 743 KB (225 KB gzipped; was 939 KB, 282 KB), all
+    scripts 945 KB; `admin.css` 150 KB (was 191 KB), all stylesheets
+    191 KB.
+- **Why:** the editor is the admin's largest screen and is often not
+  the first one opened. Splitting only the heaviest screens gets most
+  of the gain without many small files and the first-visit wait each
+  one brings (the author asked whether it's common practice: it is, for
+  single-page admins).
+
+### D-688: Settings and the role screens load on demand too
+
+- **Date:** 2026-10-09
+- **Status:** Built. Extends D-687.
+- **Decision:**
+  - **More screens split** (the author: "Split Settings and the role
+    screen too"): the Settings screens (`SettingsView`), a role's
+    (`RoleView`), and New Role (`NewRoleView`), which shares the role
+    screen's `CapabilitySections`, so it's split with it or that stays in
+    `admin.js`.
+  - **The first screen's code stays in one file.** With these split,
+    Rolldown moved what the lazy screens share with the entry (Vue, the
+    router, `api.ts`, `session.ts`, the icons) into a 135 KB file of its
+    own that `admin.js` imports, a second request the first screen waits
+    on. A code-splitting group in `vite.config.ts`
+    (`{ name: 'admin', tags: ['$initial'] }`) keeps every module the
+    entry loads at once in `admin.js`.
+  - **Sizes after:** `admin.js` 687 KB (209 KB gzipped; 743 KB after
+    D-687), all scripts 947 KB; `admin.css` 137 KB (150 KB after D-687),
+    all stylesheets 191 KB.
+- **Why:** the next largest screens after the editor; the group keeps
+  the split from costing the first screen a round trip.
+
+### D-689: Every screen loads on demand
+
+- **Date:** 2026-10-09
+- **Status:** Built. Extends D-687 and D-688, and meets D-510's goal for
+  what the first screen loads.
+- **Decision:**
+  - **Every route's screen is a lazy import** (the author: "split every
+    screen"), but the dashboard, sign-in, and not-found screens, which a
+    page most often opens on and which are small; they stay in
+    `admin.js`. A new screen is added the same way, as
+    `const XView = () => import('./views/XView.vue')` in `router.ts`, so
+    it costs the first screen nothing.
+  - **Rolldown's own split, with no folding.** Grouping the small
+    modules several screens share into one file (a `shared` group,
+    tried at 2 KB and 4 KB a module, with and without their
+    dependencies) made every screen load that file and what it imports:
+    19 to 28 files and about 250 KB a screen, against 5.7 files and
+    44 KB on average without it. The many small files (68 scripts and
+    48 stylesheets, some under 1 KB) are the cost; they're cached, and
+    each screen loads at most 13 (the editor).
+  - **No prefetching** to begin with; fetching screens when the browser
+    is idle, or one on hovering its link, is the fix if the first visit
+    to a screen ever shows a wait.
+  - **Sizes after:** `admin.js` 202 KB (70 KB gzipped; 687 KB after
+    D-688), all scripts 972 KB; `admin.css` 88 KB (16 KB gzipped),
+    all stylesheets 191 KB. Both are under D-510's 500 KB and 100 KB.
+- **Why:** splitting only the heavy screens would let each new screen
+  grow the first load unless someone judged it heavy enough; splitting
+  all of them keeps the first load flat as screens are added, for about
+  3% more in all (27 KB of imports between files).
+
+### D-690: Screens are fetched in the background once the first one is open
+
+- **Date:** 2026-10-09
+- **Status:** Built. Follows D-689.
+- **Decision:**
+  - **Prefetching** (the author's go, after timing D-689's split): once
+    the first screen someone's signed in to is open, `router.ts` loads
+    every lazy screen in the background, one at a time when the browser
+    is idle, in the order the routes are listed (`router.options.routes`;
+    `getRoutes()` sorts them by path), so the entries list and the editor
+    come first. It pauses while a screen opens, and fetches nothing when
+    the connection asks to save data. Nothing is fetched on the sign-in
+    and set-password screens.
+  - **Timing** (Chrome on the dev site, medians of 5 to 7; "slow" is
+    throttled fast 4G with a 4x slower CPU), one file (before D-687) →
+    split (D-689) → split and prefetched:
+    - Opening the admin, nothing cached: fast 388 → 300 → 316 ms; slow
+      2,649 → 1,247 → 1,265 ms.
+    - Opening an entry directly, nothing cached: fast 379 → 488 → 485
+      ms; slow 2,646 → 2,236 → 2,235 ms.
+    - Reloading, cached: the same throughout (about 75 and 425 ms).
+    - Dashboard → editor once the background loading is done: fast
+      91 → 244 → 123 ms; slow 167 → 930 → 168 ms. Editor → entries
+      list: fast 36 → 191 → 32 ms; slow 86 → 349 → 80 ms.
+    - The background loading takes about 1.2 s fast and 7 s slow. A move
+      before it reaches that screen costs what the split alone does
+      (dashboard → editor 300 ms after opening, slow: 894 ms).
+- **Why:** D-689's split made opening the admin faster but the first
+  visit to each screen slower; prefetching keeps the faster start and
+  brings moving between screens back to the one-file build's speed.

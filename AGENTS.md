@@ -338,6 +338,10 @@ Single test: `vendor/bin/phpunit --filter FrameworkTest`.
   make it shared, or ask the author when it's a judgment call. Sketches
   and mockups are read the same way: build them from existing pieces,
   and ask the author when a design disagrees with the admin.
+- **Admin screens load on demand** (D-689). A new route's screen is a
+  lazy import in `router.ts` (`const XView = () => import('./views/XView.vue')`),
+  never a static one; only the dashboard, sign-in, and not-found screens
+  are in `admin.js`.
 
 ## Coding conventions
 

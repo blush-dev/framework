@@ -112,7 +112,8 @@ blush-framework/
                         players' site defaults), vite.config.ts, tsconfig.json, tsconfig.node.json.
                         Built with `npm run site:build`
   public/admin/         The built admin app (committed; plain names, D-224): .vite/manifest.json,
-                        js/admin.js, css/admin.css, fonts/
+                        js/admin.js, css/admin.css, fonts/, and every other screen, loaded on
+                        demand, with their shared files (js/EditorView.js, …; D-687, D-689)
   public/site/          Core's built site assets (committed; plain names): js/player.js,
                         css/player.css, served at /blush/{path} (D-573)
   package.json          npm scripts for the admin build (admin:build, admin:watch, admin:check)

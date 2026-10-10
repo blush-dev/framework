@@ -887,19 +887,34 @@ sessions, and anything it created afterwards. ddev syncs files with
 Mutagen, so an edit made on the host can reach the container late: test
 write conflicts through the API, not by editing files on disk.
 
-### Running goal: a smaller admin (D-505 to D-510)
+### Running goal: a smaller admin (D-505 to D-510, D-687)
 
-The built admin under **500 KB of JavaScript** (`public/admin/js/admin.js`)
-and **100 KB of CSS** (`public/admin/css/admin.css`), unzipped, as a
-standing goal met over time, and maybe lowered later (D-510). On
-2026-10-05 they were 748 KB and 165 KB. Every change to the admin
+What the first screen loads under **500 KB of JavaScript**
+(`public/admin/js/admin.js`) and **100 KB of CSS**
+(`public/admin/css/admin.css`), unzipped, as a standing goal met over
+time, and maybe lowered later (D-510). Since D-687 some screens load on
+demand, so report the total of every script and stylesheet beside them
+too: splitting moves bytes; it doesn't remove them. On 2026-10-05 they
+were 748 KB and 165 KB (one file each). On 2026-10-09, after the editor's
+screens were split: `admin.js` 743 KB of 945 KB in all, `admin.css`
+150 KB of 191 KB; after Settings and the role screens too (D-688):
+`admin.js` 687 KB of 947 KB, `admin.css` 137 KB of 191 KB; with every
+screen split (D-689): `admin.js` 202 KB of 972 KB, `admin.css` 88 KB of
+191 KB, both under the goal. What's left is keeping them there, and the
+totals, which splitting doesn't shrink. Every change to the admin
 should leave them no larger without a reason, and work in an area is a
 chance to share what repeats there (D-509) and drop what's unused.
 Measured then: Vue and the router are about 100 KB of the JavaScript,
 and about 226 KB is prose (help, notes, messages), for a review pass
 once the editor screens land; 116 KB of the CSS is components' scoped
-styles (about 20 KB of it the `[data-v-…]` attributes). Loading screens
-on demand, for what's loaded at once, is in `open-questions.md`.
+styles (about 20 KB of it the `[data-v-…]` attributes). Every screen
+but the dashboard, sign-in, and not-found loads on demand, and new ones
+are added the same way (D-689), and the rest are fetched in the
+background once the first screen is open (D-690), to be revisited
+against grouping by area or one file once every screen is in
+(`open-questions.md`); the editor's pickers could load only when one
+opens. See D-687 for how the files are versioned and D-688 for
+keeping the first screen's code in one file.
 
 ### Still to scope
 

@@ -9,46 +9,51 @@
  * work area's widest measure (`meta.wide`, D-404).
  */
 
-import { createRouter, createWebHistory, type RouteLocationNormalized } from 'vue-router';
+import { createRouter, createWebHistory, START_LOCATION, type RouteLocationNormalized } from 'vue-router';
 import { watch } from 'vue';
 import { config } from './config';
 import { lastVisits, screenCrumb, screenTitle, screenTrail } from './screen';
 import { can, canAnyType, canType, loadSession, MEDIA_CAPABILITIES, session, type ContentAction } from './session';
 import DashboardView from './views/DashboardView.vue';
-import EditorView from './views/EditorView.vue';
-import EntriesView from './views/EntriesView.vue';
-import HealthView from './views/HealthView.vue';
 import NotFoundView from './views/NotFoundView.vue';
-import AccountView from './views/AccountView.vue';
-import PluginView from './views/PluginView.vue';
-import RelationView from './views/RelationView.vue';
-import RedirectsView from './views/RedirectsView.vue';
-import RelationsView from './views/RelationsView.vue';
-import PluginsView from './views/PluginsView.vue';
-import IconPackView from './views/IconPackView.vue';
-import IconPacksView from './views/IconPacksView.vue';
-import SettingsView from './views/SettingsView.vue';
-import AccountsView from './views/AccountsView.vue';
-import ProfileDetailView from './views/ProfileDetailView.vue';
-import NewAccountView from './views/NewAccountView.vue';
-import NewRoleView from './views/NewRoleView.vue';
-import RoleView from './views/RoleView.vue';
-import RolesView from './views/RolesView.vue';
-import SetPasswordView from './views/SetPasswordView.vue';
-import TypeView from './views/TypeView.vue';
-import MediaFileView from './views/MediaFileView.vue';
-import MediaView from './views/MediaView.vue';
-import ToolsView from './views/ToolsView.vue';
-import TrashedView from './views/TrashedView.vue';
-import ThemeView from './views/ThemeView.vue';
-import ThemesView from './views/ThemesView.vue';
-import TypesView from './views/TypesView.vue';
-import NewTypeView from './views/NewTypeView.vue';
-import FieldSetsView from './views/FieldSetsView.vue';
-import FieldSetView from './views/FieldSetView.vue';
-import NewFieldSetView from './views/NewFieldSetView.vue';
-import SiteHealthView from './views/SiteHealthView.vue';
 import SignInView from './views/SignInView.vue';
+
+// Every other screen loads when it's opened (D-687, D-689): a new screen
+// costs the first one nothing. The dashboard, sign-in, and not-found
+// screens are what a page most often opens on, and small, so they're
+// in `admin.js`.
+const AccountView = () => import('./views/AccountView.vue');
+const AccountsView = () => import('./views/AccountsView.vue');
+const EditorView = () => import('./views/EditorView.vue');
+const EntriesView = () => import('./views/EntriesView.vue');
+const FieldSetView = () => import('./views/FieldSetView.vue');
+const FieldSetsView = () => import('./views/FieldSetsView.vue');
+const HealthView = () => import('./views/HealthView.vue');
+const IconPackView = () => import('./views/IconPackView.vue');
+const IconPacksView = () => import('./views/IconPacksView.vue');
+const MediaFileView = () => import('./views/MediaFileView.vue');
+const MediaView = () => import('./views/MediaView.vue');
+const NewAccountView = () => import('./views/NewAccountView.vue');
+const NewFieldSetView = () => import('./views/NewFieldSetView.vue');
+const NewRoleView = () => import('./views/NewRoleView.vue');
+const NewTypeView = () => import('./views/NewTypeView.vue');
+const PluginView = () => import('./views/PluginView.vue');
+const PluginsView = () => import('./views/PluginsView.vue');
+const ProfileDetailView = () => import('./views/ProfileDetailView.vue');
+const RedirectsView = () => import('./views/RedirectsView.vue');
+const RelationView = () => import('./views/RelationView.vue');
+const RelationsView = () => import('./views/RelationsView.vue');
+const RoleView = () => import('./views/RoleView.vue');
+const RolesView = () => import('./views/RolesView.vue');
+const SetPasswordView = () => import('./views/SetPasswordView.vue');
+const SettingsView = () => import('./views/SettingsView.vue');
+const SiteHealthView = () => import('./views/SiteHealthView.vue');
+const ThemeView = () => import('./views/ThemeView.vue');
+const ThemesView = () => import('./views/ThemesView.vue');
+const ToolsView = () => import('./views/ToolsView.vue');
+const TrashedView = () => import('./views/TrashedView.vue');
+const TypeView = () => import('./views/TypeView.vue');
+const TypesView = () => import('./views/TypesView.vue');
 
 export const router = createRouter({
 	history: createWebHistory(config.base),
@@ -172,9 +177,9 @@ router.beforeEach(async (to) => {
  * one is written (D-336).
  */
 export function sameScreen(to: RouteLocationNormalized, from: RouteLocationNormalized): boolean {
-	const view = (route: RouteLocationNormalized): unknown => route.matched.at(-1)?.components?.default;
+	const editor = (route: RouteLocationNormalized): boolean => route.name === 'entry' || route.name === 'entry-new';
 
-	return view(to) === EditorView && view(from) === EditorView && to.name !== from.name;
+	return editor(to) && editor(from) && to.name !== from.name;
 }
 
 function setTitle(): void {
@@ -194,5 +199,83 @@ router.afterEach((to, from) => {
 	lastVisits.set(to.path, to.fullPath);
 	setTitle();
 });
+
+// A screen that won't load, as when the admin was rebuilt and its file
+// is gone, loads the page at the screen's address instead (D-687); the
+// first screen a page opens never does, so it can't go round.
+router.onError((error: unknown, to, from) => {
+	if (from !== START_LOCATION && error instanceof Error && /dynamically imported module|module script failed|preload CSS/i.test(error.message)) {
+		window.location.assign(router.resolve(to).href);
+	}
+});
+
+/**
+ * Loads every other screen in the background once the first screen
+ * someone signed in to is open and the browser is idle, one at a time
+ * and in the order the routes are listed, so moving to a screen doesn't
+ * wait on its files (D-690). It pauses while a screen opens, so the one
+ * asked for isn't held up. Nothing is fetched on a connection that asks
+ * to save data, and a screen that fails here loads as usual when it's
+ * opened.
+ */
+let prefetched = false;
+let navigating: Promise<void> | null = null;
+let navigated: () => void = () => undefined;
+
+router.beforeEach(() => {
+	navigating ??= new Promise((resolve) => {
+		navigated = resolve;
+	});
+});
+
+const settled = (): void => {
+	navigated();
+	navigating = null;
+};
+
+function prefetchScreens(): void {
+	const connection = (navigator as Navigator & { connection?: { saveData?: boolean } }).connection;
+
+	if (prefetched || connection?.saveData === true) {
+		return;
+	}
+
+	prefetched = true;
+
+	const idle = (): Promise<void> => new Promise((resolve) => {
+		if ('requestIdleCallback' in window) {
+			window.requestIdleCallback(() => resolve(), { timeout: 2000 });
+		} else {
+			setTimeout(resolve, 200);
+		}
+	});
+
+	const screens = router.options.routes
+		.map((route) => route.component)
+		.filter((screen, index, all): screen is () => Promise<unknown> => typeof screen === 'function' && all.indexOf(screen) === index);
+
+	void (async () => {
+		for (const screen of screens) {
+			await idle();
+
+			while (navigating !== null) {
+				await navigating;
+				await idle();
+			}
+
+			await screen().catch(() => undefined);
+		}
+	})();
+}
+
+router.afterEach((to) => {
+	settled();
+
+	if (to.meta.public !== true) {
+		prefetchScreens();
+	}
+});
+
+router.onError(settled);
 
 watch(screenTitle, setTitle);

@@ -8,4 +8,11 @@ import './color-scheme';
 import { router } from './router';
 import '../css/admin.css';
 
-createApp(App).use(router).mount('#app');
+// A screen loaded on demand from a newer build than the open admin's
+// imports that build's admin, which loads the page again rather than
+// mounting a second one (D-687).
+if (document.querySelector('#app[data-v-app]') !== null) {
+	window.location.reload();
+} else {
+	createApp(App).use(router).mount('#app');
+}

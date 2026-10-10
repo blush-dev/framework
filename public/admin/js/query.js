@@ -1,0 +1,1 @@
+import{dn as e,fn as t}from"./admin.js?v=23871ffd";function n(){let n=e(),r=t();function i(e){let t=n.query[e];return typeof t==`string`?t:``}function a(e){let t={...n.query,...e};for(let[e,n]of Object.entries(t))(n==null||n===``||e===`status`&&n===`any`)&&delete t[e];r.replace({query:t})}return{text:i,set:a}}export{n as t};
