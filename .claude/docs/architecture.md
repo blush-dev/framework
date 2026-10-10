@@ -1742,6 +1742,50 @@ and **icon packs**; **admin themes** are planned on the same pieces.
   generated jtcom-sized site. Baselines are recorded in `roadmap.md` (M4c,
   D-101); gating CI on regressions is an open question.
 
+## Secrets (D-715)
+
+`Blush\Secret`: credentials Blush and plugins use to reach other
+services, set by the operator in the environment or stored, encrypted,
+at runtime.
+
+- **`Secrets`** holds the declared `SecretDefinition`s (owner `core` or
+  an extension's `vendor/name`, a key of `[a-z0-9_]`, label, description,
+  environment variable derived from the name unless given, required)
+  and gives a `SecretScope` per owner (`for()`): `get`, `require`,
+  `has`, `status`, `set`, `update` (a locked read, change, write, for
+  rotating tokens), `remove`. An undeclared secret throws
+  `InvalidSecret`. Variables that open the store or that it isn't for
+  (`SECRETS_KEY`, `SECRETS_KEY_PREVIOUS`, `APP_SECRET`,
+  `PUBLISH_SECRET`) can't name one.
+- **`SecretStore`** reads the environment first (`Env`, when asked; an
+  empty variable is unset), then the `secrets` table in the `Secrets`
+  storage area (`StorageArea::Secrets`): on files the one-file layout
+  `storage/secrets.json` (0660), on SQLite a table in
+  `storage/database/site.sqlite`. Records are keyed by
+  `SecretDefinition::recordKey()` (the full name with `/` as `__`) and
+  hold `owner`, `key`, `value` (ciphertext), `updated` (UTC), and `by`
+  (an account id, or null for code). `all()` lists stored ones without
+  values (`StoredSecret`); `rotate()` re-encrypts under the current key.
+- **`SecretCipher`** is the only crypto: XChaCha20-Poly1305 with a
+  random nonce, `v1:{key id}:{base64url nonce+ciphertext}`, with
+  `v1:{key id}:{full name}` as associated data.
+- **`SecretKeys`** reads `SECRETS_KEY` (encrypts) and
+  `SECRETS_KEY_PREVIOUS` (decrypts only), 32 bytes in base64, each known
+  by an id (8 hex of a keyed BLAKE2b hash); `problems()` for a value
+  that isn't a key.
+- **`Secret`** holds its value in a closure: `reveal()`, `equals()`,
+  `[secret]` when printed, no value in dumps or `var_export()`,
+  serializing throws.
+- **Exceptions** extend the abstract `SecretException`: `InvalidSecret`,
+  `SecretMissing`, `SecretUnreadable` (never treated as missing),
+  `SecretLocked` (the environment sets it), `SecretStoreFailure`.
+- **Checks** (`SiteChecks::secrets()`, in `doctor` and Site Health's
+  system area): the key, required secrets unset, stored ones that won't
+  decrypt, stored ones nothing declares.
+- **Capability** `site.secrets`, owner only by default; nothing uses it
+  until the admin screens are built.
+- `storage:copy` copies the table as other records, ciphertext as is.
+
 ## Security baseline
 
 - The web root is `public/` only (configurable name, D-040).
@@ -1749,7 +1793,10 @@ and **icon packs**; **admin themes** are planned on the same pieces.
   uploads (D-039).
 - Every user, view, and media path is resolved and checked to stay inside its
   root.
-- YAML is parsed without objects, and secrets live only in env.
+- YAML is parsed without objects. Secrets Blush itself needs to start
+  (`APP_SECRET`, `PUBLISH_SECRET`, `SECRETS_KEY`) live only in env;
+  credentials for other services are secrets (D-715), from env or
+  stored encrypted.
 - The webhook uses HMAC with a time window, replay protection, and a
   lockout after failed signatures, and exists only when a secret is
   configured.

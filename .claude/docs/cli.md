@@ -106,7 +106,11 @@ Implemented in M2 (D-065, D-069).
 | `jobs:retry [id] [--all]` | Queue a failed job, or every failed job, again (D-622) |
 | `jobs:prune` | Remove finished jobs past `keepDone` and `keepFailed` (D-622) |
 | `bench` | Run the performance suite (dev only, D-044). For now it's `composer bench` in the framework (D-101) |
-| `init [--webhook]` | Create `.env` from `.env.example` (asking for name, URL, timezone, and environment in a terminal), optionally add a `PUBLISH_SECRET`, create the storage folders, and report unwritable ones; idempotent (D-218) |
+| `init [--webhook]` | Create `.env` from `.env.example` (asking for name, URL, timezone, and environment in a terminal), add an `APP_SECRET` and a `SECRETS_KEY` (D-715) when missing, optionally add a `PUBLISH_SECRET`, create the storage folders, and report unwritable ones; idempotent (D-218) |
+| `secrets:list` | Declared secrets (and stored ones nothing declares): status, environment variable, when stored; never a value (D-715) |
+| `secrets:set <name>` | Store a declared secret's value, asked for hidden (needs a terminal); refused when the environment sets it (D-715) |
+| `secrets:remove <name>` | Remove a stored value, declared or left behind (D-715) |
+| `secrets:rotate` | Encrypt every stored secret again under `SECRETS_KEY`, reading old ones with `SECRETS_KEY_PREVIOUS`; fails when one won't decrypt (D-715) |
 | `account:add <username> [--email] [--role]... [--author] [--name]` | Create an account, asking for the email when `--email` is left out and twice for the password (needs a terminal); owner while the site has none, else administrator (D-219, D-322, D-370, D-500) |
 | `account:list` | Accounts with name, email, roles (unknown ones flagged), author, status, and last sign-in (D-219, D-312, D-322, D-370) |
 | `account:password <username>` | Set a password, which signs the account's sessions out (D-219) |
@@ -117,6 +121,6 @@ Implemented in M2 (D-065, D-069).
 | `account:suspend <username>` | Suspend an account: signed out, and no sign-in or password link until reinstated (D-312) |
 | `account:reinstate <username>` | Reinstate a suspended account (D-312) |
 | `account:remove <username> [--yes]` | Delete an account after confirming (D-219) |
-| `doctor` | Run every `SetupChecks` check (PHP, extensions, `.env`, production risks, `public/`, storage) with hints; fails on any failure. Also warns of extensions that are on but can't run (an active theme falling back, plugins, icon packs; D-431), and of a site with accounts but no owner (D-500). No opcache check, since the CLI's PHP isn't the web server's (D-218) |
+| `doctor` | Run every `SetupChecks` check (PHP, extensions, `.env`, production risks, `public/`, storage) with hints; fails on any failure. Also warns of extensions that are on but can't run (an active theme falling back, plugins, icon packs; D-431), and of a site with accounts but no owner (D-500), and checks the secrets: the key, required ones unset, stored ones that won't decrypt or nothing declares (D-715). No opcache check, since the CLI's PHP isn't the web server's (D-218) |
 | `generate:{provider,component,controller,command,type}` | Scaffolding (not `make:`, D-008) |
 | `new <dir>` | Create a new site from the skeleton (may live in a global installer) |

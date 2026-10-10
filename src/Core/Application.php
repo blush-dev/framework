@@ -44,6 +44,7 @@ use Blush\Markdown\MarkdownServiceProvider;
 use Blush\Media\MediaServiceProvider;
 use Blush\Preview\PreviewServiceProvider;
 use Blush\Publish\PublishServiceProvider;
+use Blush\Secret\SecretServiceProvider;
 use Blush\Session\SessionServiceProvider;
 use Blush\Settings\SettingsServiceProvider;
 use Blush\Routing\RoutingServiceProvider;
@@ -100,6 +101,7 @@ class Application implements Bootable
 		MenuServiceProvider::class,
 		SessionServiceProvider::class,
 		JobServiceProvider::class,
+		SecretServiceProvider::class,
 		AuthServiceProvider::class,
 		AdminServiceProvider::class,
 		PreviewServiceProvider::class,

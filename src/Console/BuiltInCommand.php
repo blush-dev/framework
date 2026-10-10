@@ -44,6 +44,7 @@ use Blush\Console\Commands\ListJobs;
 use Blush\Console\Commands\ListIcons;
 use Blush\Console\Commands\ListMenus;
 use Blush\Console\Commands\ListPlugins;
+use Blush\Console\Commands\ListSecrets;
 use Blush\Console\Commands\ListSchedule;
 use Blush\Console\Commands\ListContent;
 use Blush\Console\Commands\ListThemes;
@@ -57,7 +58,9 @@ use Blush\Console\Commands\RecordMediaSizes;
 use Blush\Console\Commands\PublishThemes;
 use Blush\Console\Commands\ReinstateAccount;
 use Blush\Console\Commands\RemoveAccount;
+use Blush\Console\Commands\RemoveSecret;
 use Blush\Console\Commands\RetryJobs;
+use Blush\Console\Commands\RotateSecrets;
 use Blush\Console\Commands\RoutesList;
 use Blush\Console\Commands\RunSchedule;
 use Blush\Console\Commands\Serve;
@@ -66,6 +69,7 @@ use Blush\Console\Commands\SetAccountEmail;
 use Blush\Console\Commands\SetAccountName;
 use Blush\Console\Commands\SetAccountPassword;
 use Blush\Console\Commands\SetAccountRoles;
+use Blush\Console\Commands\SetSecret;
 use Blush\Console\Commands\SetUpSite;
 use Blush\Console\Commands\ShowMenu;
 use Blush\Console\Commands\SuspendAccount;
@@ -124,6 +128,10 @@ enum BuiltInCommand: string
 	case JobsPrune     = 'jobs:prune';
 	case StorageSync   = 'storage:sync';
 	case StorageCopy   = 'storage:copy';
+	case SecretsList   = 'secrets:list';
+	case SecretsSet    = 'secrets:set';
+	case SecretsRemove = 'secrets:remove';
+	case SecretsRotate = 'secrets:rotate';
 	case AccountAdd       = 'account:add';
 	case AccountList      = 'account:list';
 	case AccountPassword  = 'account:password';
@@ -190,6 +198,10 @@ enum BuiltInCommand: string
 			self::JobsPrune     => PruneJobs::class,
 			self::StorageSync   => SyncStorage::class,
 			self::StorageCopy   => CopyStorage::class,
+			self::SecretsList   => ListSecrets::class,
+			self::SecretsSet    => SetSecret::class,
+			self::SecretsRemove => RemoveSecret::class,
+			self::SecretsRotate => RotateSecrets::class,
 			self::AccountAdd       => AddAccount::class,
 			self::AccountList      => ListAccounts::class,
 			self::AccountPassword  => SetAccountPassword::class,

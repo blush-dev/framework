@@ -22,6 +22,7 @@ use Blush\Console\Console;
 use Blush\Console\Testing\CommandResult;
 use Blush\Console\Testing\CommandTester;
 use Blush\Env\EnvFile;
+use Blush\Secret\SecretKeys;
 use Blush\Setup\SetupChecks;
 use Blush\Tests\BootsScratchSite;
 
@@ -60,6 +61,7 @@ final class SetupCommandsTest extends TestCase
 		$this->assertStringContainsString('Created .env.', $result->output);
 		$this->assertStringStartsWith("# Name.\nAPP_NAME=\"Example\"\n", $this->env()->contents);
 		$this->assertMatchesRegularExpression('/^[0-9a-f]{64}$/', $this->env()->get('APP_SECRET') ?? '', 'Every site gets a secret for signed links.');
+		$this->assertSame(32, strlen((string) base64_decode($this->env()->get('SECRETS_KEY') ?? '', true)), 'And a key for stored secrets (D-715).');
 
 		foreach (SetupChecks::STORAGE as $name) {
 			$this->assertDirectoryExists($this->temporaryDirectory() . '/' . ($name === 'storage' ? 'storage' : "storage/{$name}"));
@@ -111,7 +113,7 @@ final class SetupCommandsTest extends TestCase
 
 	public function testLeavesAnExistingEnvAlone(): void
 	{
-		$env = "APP_NAME=Mine\nAPP_SECRET=" . str_repeat('a', 64) . "\n";
+		$env = "APP_NAME=Mine\nAPP_SECRET=" . str_repeat('a', 64) . "\nSECRETS_KEY=" . SecretKeys::generate() . "\n";
 		$this->writeTemporaryFile('.env', $env);
 
 		$result = $this->command('init', ['no', 'no']);
@@ -144,7 +146,8 @@ final class SetupCommandsTest extends TestCase
 		$this->assertStringContainsString('storage/: Created when it\'s needed.', $result->output);
 		$this->assertStringContainsString('ok      Extensions: Everything that\'s on runs.', $result->output);
 		$this->assertStringContainsString('warning Background jobs: Cron isn\'t set up', $result->output, 'A new site has no cron yet.');
-		$this->assertStringContainsString('0 failure(s), 1 warning(s).', $result->output);
+		$this->assertStringContainsString('warning SECRETS_KEY: Not set', $result->output, 'Without one, secrets can\'t be stored.');
+		$this->assertStringContainsString('0 failure(s), 2 warning(s).', $result->output);
 	}
 
 	public function testDoctorFailsWithHints(): void

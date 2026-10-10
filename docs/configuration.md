@@ -58,6 +58,8 @@ kept in the database instead.
 | `APP_TIMEZONE` | `UTC` | The site's timezone, such as `America/Chicago` |
 | `APP_LOCALE` | `en_US` | The site's language and region (see the note below) |
 | `APP_SECRET` | | Signs [preview links](admin.md#previewing-drafts); they're off without it. At least 32 characters. `bin/blush init` writes one. |
+| `SECRETS_KEY` | | Encrypts the [secrets](extending.md#secrets) Blush stores, such as a service's API key or token: 32 random bytes in base64. `bin/blush init` writes one. Without it, secrets can be set only in the environment. Keep it out of git, and don't lose it: stored secrets can't be read without it. |
+| `SECRETS_KEY_PREVIOUS` | | The key `SECRETS_KEY` replaced, kept only to read secrets stored under it until `bin/blush secrets:rotate` encrypts them again. |
 | `PUBLISH_SECRET` | | Turns on the [publish webhook](going-live.md#publishing-without-a-shell). At least 32 characters. |
 | `PUBLISH_GIT` | `false` | Run `git pull` in `user/` when publishing |
 | `PUBLISH_REMOTE`, `PUBLISH_BRANCH` | | The git remote and branch to pull |
@@ -153,7 +155,7 @@ Without `config/app.php`, these come from the `APP_*` variables.
 | Option | Default | What it does |
 |---|---|---|
 | `driver` | `'filesystem'` | Where the site's data is kept: `filesystem` (files, as a flat-file site keeps them) or `sqlite` (one SQLite database; see [Large sites](going-live.md#large-sites-sqlite)) |
-| `areas` | `[]` | A different driver for an area: `content`, `data`, `accounts`, `sessions`, or `jobs`, such as `['sessions' => 'filesystem']` |
+| `areas` | `[]` | A different driver for an area: `content`, `data`, `accounts`, `sessions`, `jobs`, or `secrets`, such as `['sessions' => 'filesystem']` |
 | `sqlite` | `'storage/database/site.sqlite'` | The SQLite database's file, from the site's folder (or a full path) |
 
 Without this file, `STORAGE_DRIVER` is used. Media files are always

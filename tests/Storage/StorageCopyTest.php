@@ -154,6 +154,6 @@ final class StorageCopyTest extends TestCase
 		$synced = self::command($this->onSqlite(), 'storage:sync');
 
 		$this->assertTrue($synced->isSuccessful());
-		$this->assertStringContainsString('Made or updated 14 tables.', $synced->output, 'Types, relations, settings, media, menus, field sets, and redirects are tables of their own (D-672, D-673, D-675, D-676, D-678), and the generic data table is gone (D-682).');
+		$this->assertStringContainsString('Made or updated 15 tables.', $synced->output, 'Types, relations, settings, media, menus, field sets, redirects, and secrets are tables of their own (D-672, D-673, D-675, D-676, D-678, D-715), and the generic data table is gone (D-682).');
 	}
 }

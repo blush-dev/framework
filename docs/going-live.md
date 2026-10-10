@@ -13,6 +13,12 @@ APP_DEBUG=false
 APP_URL="https://example.com"
 ```
 
+The live site needs its own `SECRETS_KEY` (`bin/blush init` adds one).
+If you upload `storage/secrets.json` from another copy of the site, its
+`SECRETS_KEY` has to come too, or the [secrets](extending.md#secrets)
+stored there can't be read; it's simpler to set them again on the live
+site.
+
 Then check your content:
 
 ```sh

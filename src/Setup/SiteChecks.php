@@ -26,14 +26,21 @@ use Blush\Job\JobConfig;
 use Blush\Job\JobRunner;
 use Blush\Job\RunnerMode;
 use Blush\Job\WebRunner;
+use Blush\Secret\SecretException;
+use Blush\Secret\SecretKeys;
+use Blush\Secret\Secrets;
+use Blush\Secret\SecretStatus;
+use Blush\Secret\SecretStore;
 
 /**
  * The checks `doctor` runs and Site Health shows (D-543), by area:
  *
  * - `system`: the setup checks (`SetupChecks`): PHP and its extensions,
  *   `.env`, risky production settings, the public folder, and writable
- *   storage; and whether cron or a worker runs background jobs (`jobs`,
- *   D-621).
+ *   storage; whether cron or a worker runs background jobs (`jobs`,
+ *   D-621); and the secrets (D-715): the key that encrypts them, required
+ *   ones that aren't set, stored ones that won't decrypt, and stored ones
+ *   nothing declares any more.
  * - `extensions`: extensions that are on but can't run (D-431): an active
  *   theme whose chain falls back to the default theme (`theme`), and
  *   plugins (`plugins`) and icon packs (`icon-packs`) that are on but
@@ -60,7 +67,10 @@ final readonly class SiteChecks
 		private ContentTypes $types,
 		private JobRunner $jobs,
 		private JobConfig $jobConfig,
-		private ClockInterface $clock
+		private ClockInterface $clock,
+		private Secrets $secrets,
+		private SecretStore $secretStore,
+		private SecretKeys $secretKeys
 	) {}
 
 	/**
@@ -71,7 +81,7 @@ final readonly class SiteChecks
 	public function byArea(): array
 	{
 		return [
-			'system'     => [...$this->setup->all($this->app), ...$this->jobs()],
+			'system'     => [...$this->setup->all($this->app), ...$this->jobs(), ...$this->secrets()],
 			'extensions' => $this->extensions(),
 			'accounts'   => $this->owner()
 		];
@@ -115,6 +125,49 @@ final readonly class SiteChecks
 		};
 
 		return ['jobs' => CheckResult::warning('Background jobs', $message, $hint)];
+	}
+
+	/**
+	 * Checks the secrets (D-715): fails for a key that isn't one and for
+	 * stored secrets that won't decrypt; warns without a key, for
+	 * required secrets set nowhere, and for stored secrets nothing
+	 * declares any more. Never reads out a value.
+	 *
+	 * @return list<CheckResult>
+	 */
+	public function secrets(): array
+	{
+		$results = array_map(static fn (string $problem): CheckResult => CheckResult::failure(SecretKeys::CURRENT, $problem, sprintf('Set it to 32 random bytes in base64, or remove it and run "%s init" to add one.', Framework::BINARY)), $this->secretKeys->problems());
+
+		if ($results === []) {
+			$results[] = $this->secretKeys->canEncrypt()
+				? CheckResult::pass(SecretKeys::CURRENT, 'Set, so secrets can be stored.')
+				: CheckResult::warning(SecretKeys::CURRENT, 'Not set, so secrets can be set only in the environment, not stored.', sprintf('Run "%s init" to add one.', Framework::BINARY));
+		}
+
+		try {
+			$stored = $this->secretStore->all();
+
+			foreach ($this->secrets->definitions() as $name => $definition) {
+				$status = $this->secretStore->status($definition);
+
+				if ($status === SecretStatus::Unreadable) {
+					$results[] = CheckResult::failure("Secret {$name}", 'Stored, but it won\'t decrypt: it was stored under a key this site doesn\'t have, or changed.', sprintf('Store it again with "%s secrets:set %s", or put the key it was stored under in %s.', Framework::BINARY, $name, SecretKeys::PREVIOUS));
+				} elseif ($definition->required && $status === SecretStatus::Missing) {
+					$results[] = CheckResult::warning("Secret {$name}", $definition->owner === $definition::CORE ? 'Core needs it, but it isn\'t set.' : sprintf('%s needs it, but it isn\'t set.', $definition->owner), sprintf('Set %s in the environment, or run "%s secrets:set %s".', $definition->env, Framework::BINARY, $name));
+				}
+
+				unset($stored[$name]);
+			}
+
+			foreach (array_keys($stored) as $name) {
+				$results[] = CheckResult::warning("Secret {$name}", 'Stored, but nothing declares it any more (an extension may have been removed).', sprintf('Run "%s secrets:remove %s" if it\'s no longer needed.', Framework::BINARY, $name));
+			}
+		} catch (SecretException $e) {
+			$results[] = CheckResult::failure('Secrets', $e->getMessage());
+		}
+
+		return $results;
 	}
 
 	/**

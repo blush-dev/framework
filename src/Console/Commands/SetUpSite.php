@@ -30,6 +30,7 @@ use Blush\Core\Framework;
 use Blush\Core\Paths;
 use Blush\Env\EnvException;
 use Blush\Env\EnvFile;
+use Blush\Secret\SecretKeys;
 use Blush\Setup\SetupChecks;
 use Blush\Support\Filesystem;
 use Blush\Support\FilesystemException;
@@ -41,7 +42,8 @@ use Blush\Support\FilesystemException;
  *    it asks for the site's name, URL, timezone, and environment first.
  *    An existing `.env` is never changed, except to add secrets it lacks.
  * 2. Adds a random `APP_SECRET` when there's none, which signs preview
- *    links (D-226). With `--webhook` (or a yes when asked), also adds a
+ *    links (D-226), and a `SECRETS_KEY`, which encrypts stored secrets
+ *    (D-715). With `--webhook` (or a yes when asked), also adds a
  *    random `PUBLISH_SECRET`, which turns on the publish webhook. The
  *    webhook stays off otherwise, since it runs publishing on request.
  * 3. Creates the storage folders and reports any Blush can't write to.
@@ -93,6 +95,13 @@ final readonly class SetUpSite
 			$changed = true;
 
 			$output->info('Added an APP_SECRET, which signs preview links.');
+		}
+
+		if (! $file->filled(SecretKeys::CURRENT)) {
+			$file    = $file->with(SecretKeys::CURRENT, SecretKeys::generate());
+			$changed = true;
+
+			$output->info(sprintf('Added a %s, which encrypts stored secrets.', SecretKeys::CURRENT));
 		}
 
 		if (! $file->filled('PUBLISH_SECRET')) {

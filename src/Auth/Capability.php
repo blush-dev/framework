@@ -35,6 +35,10 @@ namespace Blush\Auth;
  * the `redirects` table's rows. Renaming or moving an entry adds one
  * without it, since that's the entry's edit.
  *
+ * Secrets (D-715): storing, replacing, and removing the credentials Blush
+ * uses to reach other services. Only the owner has it by default; the
+ * administrator's list leaves it out (D-500).
+ *
  * HTML (D-495): adding raw HTML to a body in the admin, from the allowed
  * list (`html.allowed`) or anything but what's always refused
  * (`html.unfiltered`; `Markdown\Html\HtmlRules`). Without either, a save
@@ -56,6 +60,7 @@ enum Capability: string
 	case SiteHealth      = 'site.health';
 	case SiteJobs        = 'site.jobs';
 	case SiteRedirects   = 'site.redirects';
+	case SiteSecrets     = 'site.secrets';
 	case AccountsView    = 'accounts.view';
 	case AccountsCreate  = 'accounts.create';
 	case AccountsEdit    = 'accounts.edit';
@@ -109,7 +114,7 @@ enum Capability: string
 			self::MenusEdit                                         => 'Structure',
 			self::SitePublish, self::CacheClear,
 			self::SiteSettings, self::SiteLogs, self::SiteHealth,
-			self::SiteJobs, self::SiteRedirects                     => 'Site',
+			self::SiteJobs, self::SiteRedirects, self::SiteSecrets  => 'Site',
 			default                                                 => 'Users'
 		};
 	}
@@ -134,6 +139,7 @@ enum Capability: string
 			self::SiteHealth      => 'See site health and fix what it finds',
 			self::SiteJobs        => 'See and manage background jobs',
 			self::SiteRedirects   => 'Manage redirects',
+			self::SiteSecrets     => 'Manage secrets',
 			self::AccountsView    => 'See accounts and roles',
 			self::AccountsCreate  => 'Create accounts',
 			self::AccountsEdit    => 'Edit accounts',

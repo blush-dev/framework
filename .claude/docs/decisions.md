@@ -22209,8 +22209,9 @@ decision, add a new entry that supersedes it and mark the old one
 ### D-715: A secrets store (`Blush\Secret`)
 
 - **Date:** 2026-10-10
-- **Status:** Planned; nothing built. Amends D-397 (AI keys in `.env`
-  become declared secrets).
+- **Status:** Built, but for the admin screens (2026-10-10; see "As
+  built" below). Amends D-397 (AI keys in `.env` become declared
+  secrets).
 - **Decision:**
   - **What it's for:** credentials Blush uses to reach other services
     (API keys, OAuth refresh tokens, service account files), set by the
@@ -22280,6 +22281,36 @@ decision, add a new entry that supersedes it and mark the old one
   - **Secrets are never read through `config/*.php`**, since config is
     compiled to `storage/cache/config.php` in plain text; the store
     reads the environment when asked.
+- **As built:**
+  - **Names:** a key is `[a-z0-9_]` (no `.`), so the last `.` always
+    splits a full name, even for an owner like `acme/photo.gallery`.
+    A table key can't hold `/`, so records are keyed by the full name
+    with `/` as `__` (`acme__analytics.ga_refresh_token`), as settings
+    groups are (D-673); no Composer name holds `__`.
+  - **`SecretDefinition::RESERVED_ENV`:** `SECRETS_KEY`,
+    `SECRETS_KEY_PREVIOUS`, `APP_SECRET`, and `PUBLISH_SECRET` can't
+    be a secret's variable, so no definition reads the store's key
+    back out. An empty variable counts as unset.
+  - **`Secret` keeps its value in a closure**, so `var_export()` and an
+    array cast show nothing either, beside `__debugInfo()` and the
+    refused serializing.
+  - **A `Secrets` storage area** (`StorageArea::Secrets`), on files a
+    one-file table, `storage/secrets.json` (0660), beside
+    `roles.json`.
+  - **Commands, the only way to manage stored secrets until the
+    admin screens:** `secrets:list`, `secrets:set` (asked for hidden),
+    `secrets:remove` (also for one nothing declares), and
+    `secrets:rotate`. Claude's addition to the plan, which named only
+    `secrets:rotate`.
+  - **Checks in `SiteChecks::secrets()`**, so `doctor` and Site
+    Health's system area show them. Not built: the check that the
+    store's file is served over HTTP, which waits for the exposure
+    check planned in `open-questions.md` (as D-713's does).
+  - **`site.secrets`** is in `Capability` (the Site group, "Manage
+    secrets"), out of the administrator's list; nothing checks it
+    until the admin screens.
+  - Nothing in core declares a secret yet; the AI layer (D-397) will
+    be the first.
 - **Why:** from a discussion of analytics (`open-questions.md`): a
   hosted analytics provider needs credentials the admin gets at
   runtime (OAuth), which `.env` can't hold since the admin never writes

@@ -61,7 +61,7 @@ final class StorageConfigTest extends TestCase
 		$this->assertFalse(new StorageConfig()->uses('sqlite'));
 		$this->assertTrue(new StorageConfig(areas: ['content' => 'sqlite'])->uses('sqlite'));
 		$this->assertTrue(new StorageConfig('sqlite')->uses('sqlite'));
-		$this->assertFalse(new StorageConfig('sqlite', array_fill_keys(['content', 'data', 'accounts', 'sessions', 'jobs'], 'filesystem'))->uses('sqlite'));
+		$this->assertFalse(new StorageConfig('sqlite', array_fill_keys(['content', 'data', 'accounts', 'sessions', 'jobs', 'secrets'], 'filesystem'))->uses('sqlite'));
 	}
 
 	public function testRejectsAnEmptyDatabaseFile(): void
@@ -79,7 +79,7 @@ final class StorageConfigTest extends TestCase
 	public function testRejectsAnUnknownArea(): void
 	{
 		$this->expectException(InvalidConfig::class);
-		$this->expectExceptionMessage('StorageConfig "areas" keys must be content, data, accounts, sessions, jobs; "media" given.');
+		$this->expectExceptionMessage('StorageConfig "areas" keys must be content, data, accounts, sessions, jobs, secrets; "media" given.');
 		new StorageConfig(areas: ['media' => 'filesystem']);
 	}
 }

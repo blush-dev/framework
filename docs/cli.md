@@ -24,7 +24,7 @@ and logs show just the result.
 
 | Command | What it does |
 |---|---|
-| `init` | Set up a new site: create `.env` (asking for the basics) with an `APP_SECRET`, create the `storage/` folders, report any Blush can't write to, and offer to create the first admin account. `--webhook` adds a `PUBLISH_SECRET`, which turns on the publish webhook. Safe to run again; it never changes an existing `.env` except to add missing secrets. |
+| `init` | Set up a new site: create `.env` (asking for the basics) with an `APP_SECRET` and a `SECRETS_KEY`, create the `storage/` folders, report any Blush can't write to, and offer to create the first admin account. `--webhook` adds a `PUBLISH_SECRET`, which turns on the publish webhook. Safe to run again; it never changes an existing `.env` except to add missing secrets. |
 | `doctor` | Check that the site is set up to run: PHP and its extensions, `.env`, risky production settings, `public/`, and writable storage. Fails when something needs fixing. It also warns when cron hasn't run [background jobs](going-live.md#background-jobs-and-cron) in the last ten minutes. It also warns of extensions that are on but can't run: an active theme whose [requirements](extending.md#requirements) aren't met (so the default theme shows), and plugins and icon packs that are on but don't run, and a site with accounts but no [owner](accounts.md#owners). |
 
 ## Accounts
@@ -100,8 +100,20 @@ SQLite database (`storage/database/site.sqlite`); see [Large sites](going-live.m
 
 | Command | What it does |
 |---|---|
-| `storage:copy` | Copy the site's content (with the links between entries), data, accounts, roles, and jobs from files into SQLite, ids kept, each entry's front matter as written. Sessions aren't copied, so everyone signs in again. Content files without an id aren't copied (run `content:ids --write` first). It refuses a database that already holds records; `--replace` replaces them. `--from=` and `--to=` name the drivers (`filesystem` and `sqlite`, the only way for now). The site keeps using files until `STORAGE_DRIVER=sqlite` is set. A large site may need more memory: `php -d memory_limit=1G bin/blush storage:copy`. |
+| `storage:copy` | Copy the site's content (with the links between entries), data, accounts, roles, secrets (still encrypted), and jobs from files into SQLite, ids kept, each entry's front matter as written. Sessions aren't copied, so everyone signs in again. Content files without an id aren't copied (run `content:ids --write` first). It refuses a database that already holds records; `--replace` replaces them. `--from=` and `--to=` name the drivers (`filesystem` and `sqlite`, the only way for now). The site keeps using files until `STORAGE_DRIVER=sqlite` is set. A large site may need more memory: `php -d memory_limit=1G bin/blush storage:copy`. |
 | `storage:sync` | Make or update the tables the database keeps, with their columns and indexes, and refresh what queries plan by. Tables are made when first used, so this is for deploys. On files it does nothing. |
+
+## Secrets
+
+[Secrets](extending.md#secrets) are credentials Blush and plugins use to
+reach other services. None of these commands shows a value.
+
+| Command | What it does |
+|---|---|
+| `secrets:list` | List the secrets core and plugins declare: where each is set (`environment`, `stored`, `missing`, or `unreadable`), the environment variable that sets it, and when it was stored. Stored secrets nothing declares any more are listed too. |
+| `secrets:set <name>` | Store a secret's value, encrypted with `SECRETS_KEY`, asked for without showing it: `secrets:set acme/analytics.ga_refresh_token`. A secret set in the environment can't be stored over. |
+| `secrets:remove <name>` | Remove a secret's stored value, declared or left behind by a removed plugin. One set in the environment stays set. |
+| `secrets:rotate` | Encrypt every stored secret again under the current `SECRETS_KEY`. To change the key: put the old one in `SECRETS_KEY_PREVIOUS`, a new one in `SECRETS_KEY` (`php -r "echo base64_encode(random_bytes(32)), PHP_EOL;"`), run this, then remove `SECRETS_KEY_PREVIOUS`. |
 
 ## Plugins
 

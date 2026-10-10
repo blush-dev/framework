@@ -45,4 +45,9 @@ enum StorageArea: string
 	 * Background jobs and the scheduler's state (`storage/jobs`, D-621).
 	 */
 	case Jobs = 'jobs';
+
+	/**
+	 * Stored secrets, encrypted (`storage/secrets.json`, D-715).
+	 */
+	case Secrets = 'secrets';
 }
