@@ -1886,7 +1886,7 @@ each is clear:
 | Content | Entries' files: problems in their front matter, ids, terms and profiles with no file, collection folders, and file names; and types still written as taxonomies |
 | Media | Library files' ids, their details files, and image sizes |
 | Extensions | A theme, plugins, or icon packs that are on but can't run |
-| System | PHP and its extensions, `.env`, debugging and `APP_URL` in production, the public folder, and writable storage |
+| System | PHP and its extensions, `.env`, debugging and `APP_URL` in production, whether the site's address serves private files (in production), the public folder, writable storage, background jobs, and secrets |
 | Accounts | Whether the site has an owner |
 
 Extensions, System, and Accounts are the checks

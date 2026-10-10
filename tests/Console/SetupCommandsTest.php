@@ -23,7 +23,9 @@ use Blush\Console\Testing\CommandResult;
 use Blush\Console\Testing\CommandTester;
 use Blush\Env\EnvFile;
 use Blush\Secret\SecretKeys;
+use Blush\Setup\ProbeResponse;
 use Blush\Setup\SetupChecks;
+use Blush\Setup\UrlProbe;
 use Blush\Tests\BootsScratchSite;
 
 #[CoversClass(SetUpSite::class)]
@@ -41,6 +43,12 @@ final class SetupCommandsTest extends TestCase
 	private function command(string $command, array $answers = [], array $environment = []): CommandResult
 	{
 		$app = $this->scratchApplication($environment);
+		$app->container()->instance(UrlProbe::class, new class implements UrlProbe {
+			public function get(string $url, int $limit): ProbeResponse
+			{
+				return new ProbeResponse(404, 'Not found');
+			}
+		});
 		$app->boot();
 
 		return new CommandTester($app->container()->make(Console::class))->run($command, $answers);
@@ -147,6 +155,7 @@ final class SetupCommandsTest extends TestCase
 		$this->assertStringContainsString('ok      Extensions: Everything that\'s on runs.', $result->output);
 		$this->assertStringContainsString('warning Background jobs: Cron isn\'t set up', $result->output, 'A new site has no cron yet.');
 		$this->assertStringContainsString('warning SECRETS_KEY: Not set', $result->output, 'Without one, secrets can\'t be stored.');
+		$this->assertStringContainsString('ok      Private files: Not served at https://example.com: storage/.', $result->output, 'Checked in production (D-716).');
 		$this->assertStringContainsString('0 failure(s), 2 warning(s).', $result->output);
 	}
 

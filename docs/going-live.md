@@ -19,6 +19,20 @@ If you upload `storage/secrets.json` from another copy of the site, its
 stored there can't be read; it's simpler to set them again on the live
 site.
 
+Then check the site:
+
+```sh
+bin/blush doctor
+```
+
+On a live site, `doctor` also asks the site's own address (`APP_URL`)
+for `.env`, `config/app.php`, and a file in `storage/`. If any of them
+downloads, your web server is pointed at the site's folder instead of
+`public/`, and anyone can read your secrets and accounts; `doctor` fails
+until that's fixed. If it can't reach the address (a firewall, or a
+certificate it can't check), it only warns. Site Health runs the same
+check when you choose Check Again.
+
 Then check your content:
 
 ```sh

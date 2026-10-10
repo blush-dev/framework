@@ -990,8 +990,9 @@ Move each item to `decisions.md` once it's answered.
     status).
   - **Possible contents**, each something the CLI can already do or
     data that already exists without an admin screen:
-    - A site check: `doctor`'s `SetupChecks` as passes and failures,
-      plus an HTTP exposure test (fetching `/.env`, `config/`, and a
+    - A site check: `doctor`'s `SetupChecks` as passes and failures
+      (built as Site Health, D-543), plus an HTTP exposure test (built,
+      D-716) (fetching `/.env`, `config/`, and a
       `storage/` sentinel from `APP_URL`; a 200 fails), which catches
       what `.htaccess` can't (`AllowOverride None`, dotfiles not
       uploaded, a replaced root `.htaccess`). That test was raised in

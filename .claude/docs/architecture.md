@@ -1297,6 +1297,14 @@ Implemented in M6a (D-127 to D-130), apart from publishing (M6b).
   which rewrites single lines and keeps the rest), optionally adds a
   `PUBLISH_SECRET`, and creates the storage folders. `doctor` prints
   every check.
+- `ExposureCheck` (D-716, in `SiteChecks`' system area as `exposure`):
+  in production at an address that isn't local (`applies()`), asks
+  `APP_URL` through `UrlProbe` (bound in `SetupServiceProvider` to
+  `StreamUrlProbe`: streams, 3 s, no redirects, TLS verified) for
+  `.env`, `config/app.php`, and `storage/exposure-check.txt` (written
+  with random contents, removed after). A 200 whose body starts as the
+  file does is served (failure); no answer is a warning; skipped under
+  `cli-server`.
 - `HttpRunner::handle()` runs the storage checks before loading the
   application; a failure answers every request with `SetupPage` (a
   plain, self-contained 503) instead of a stack trace.

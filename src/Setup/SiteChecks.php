@@ -37,7 +37,9 @@ use Blush\Secret\SecretStore;
  *
  * - `system`: the setup checks (`SetupChecks`): PHP and its extensions,
  *   `.env`, risky production settings, the public folder, and writable
- *   storage; whether cron or a worker runs background jobs (`jobs`,
+ *   storage; in production, whether the site's address serves `.env`,
+ *   `config/`, or `storage/` (`exposure`, D-716); whether cron or a worker
+ *   runs background jobs (`jobs`,
  *   D-621); and the secrets (D-715): the key that encrypts them, required
  *   ones that aren't set, stored ones that won't decrypt, and stored ones
  *   nothing declares any more.
@@ -70,7 +72,8 @@ final readonly class SiteChecks
 		private ClockInterface $clock,
 		private Secrets $secrets,
 		private SecretStore $secretStore,
-		private SecretKeys $secretKeys
+		private SecretKeys $secretKeys,
+		private ExposureCheck $exposure
 	) {}
 
 	/**
@@ -81,7 +84,7 @@ final readonly class SiteChecks
 	public function byArea(): array
 	{
 		return [
-			'system'     => [...$this->setup->all($this->app), ...$this->jobs(), ...$this->secrets()],
+			'system'     => [...$this->setup->all($this->app), ...$this->exposure(), ...$this->jobs(), ...$this->secrets()],
 			'extensions' => $this->extensions(),
 			'accounts'   => $this->owner()
 		];
@@ -125,6 +128,17 @@ final readonly class SiteChecks
 		};
 
 		return ['jobs' => CheckResult::warning('Background jobs', $message, $hint)];
+	}
+
+	/**
+	 * Asks the site's address for files it must never serve (D-716), in
+	 * production at an address others can reach; nothing otherwise.
+	 *
+	 * @return array<string, CheckResult>
+	 */
+	public function exposure(): array
+	{
+		return $this->exposure->applies() ? ['exposure' => $this->exposure->run()] : [];
 	}
 
 	/**

@@ -22159,8 +22159,7 @@ decision, add a new entry that supersedes it and mark the old one
   - **Docs:** `going-live.md`, `configuration.md`, and `cli.md` name
     the new path, and a site on SQLite backs up the database with
     `user/` and its media; `cache:clear` never touches it. The HTTP
-    exposure check planned in `open-questions.md` covers it when it's
-    built.
+    exposure check (D-716) covers it through its `storage/` probe.
   - **No move for older files:** no 2.x site keeps one (the jtcom
     trial's was moved by hand).
 - **Why:** the author: "Things under user/ will often be on Git."
@@ -22303,9 +22302,8 @@ decision, add a new entry that supersedes it and mark the old one
     `secrets:rotate`. Claude's addition to the plan, which named only
     `secrets:rotate`.
   - **Checks in `SiteChecks::secrets()`**, so `doctor` and Site
-    Health's system area show them. Not built: the check that the
-    store's file is served over HTTP, which waits for the exposure
-    check planned in `open-questions.md` (as D-713's does).
+    Health's system area show them. Whether the store's file is served
+    over HTTP is D-716's exposure check, through its `storage/` probe.
   - **`site.secrets`** is in `Capability` (the Site group, "Manage
     secrets"), out of the administrator's list; nothing checks it
     until the admin screens.
@@ -22319,3 +22317,45 @@ decision, add a new entry that supersedes it and mark the old one
   core and plugins can use it"; managing them owner only; vendor
   prefixes "as much as possible"; kept in `storage/`, out of git; the
   UI only when something needs it; `storage:copy` left to Claude.
+
+### D-716: The exposure check: does the site's address serve private files?
+
+- **Date:** 2026-10-10
+- **Status:** Built. Settles the "HTTP exposure test" in
+  `open-questions.md` (the Tools discussion's site check).
+- **Decision:**
+  - **What it asks for:** `ExposureCheck` asks `APP_URL` for `.env`,
+    `config/app.php`, and a file it writes in `storage/`
+    (`exposure-check.txt`, random contents, removed after), which stands
+    for everything there: accounts, sessions, secrets (D-715), and the
+    SQLite database (D-713). Not a dotfile, so a rule that only hides
+    dotfiles can't make an exposed `storage/` pass. Files outside the
+    site's folder, and empty ones, are left out.
+  - **Served means the file came back:** a 200 whose body starts with
+    the file's first 512 bytes. A page the site answers every address
+    with isn't the file, and a server that runs `config/app.php`
+    instead of sending it isn't exposing it. Redirects aren't followed.
+  - **Results:** a file served is a failure, so `doctor` fails a deploy
+    script; an address that can't be reached (a refused connection, a
+    timeout, a certificate PHP won't verify) is a warning; otherwise a
+    pass naming what was checked.
+  - **Only where it means something:** in production, at an address
+    that isn't local (`localhost`, `127.0.0.1`, `[::1]`, `*.localhost`);
+    elsewhere it's left out of the results. Under PHP's built-in server
+    it warns instead of checking, since a request to itself would wait
+    on itself.
+  - **Where it runs:** in `SiteChecks`' system area (`exposure`), so
+    `doctor` and Site Health show it. Site Health keeps its report and
+    checks again only on Check Again, so a page load never waits on it.
+  - **The probe** is `UrlProbe`, an interface bound in a new
+    `SetupServiceProvider` to `StreamUrlProbe` (PHP's streams, 3 s, no
+    redirects, TLS verified), so tests and unusual hosts can swap it.
+    It gives way to the HTTP client when D-620 is built.
+- **Why:** the author asked for it after D-713 and D-715 put the
+  database and stored secrets in `storage/`, so a web server pointed at
+  the site's folder would serve them. Claude made the calls above.
+  Checked against the jtcom trial: over ddev's HTTP, a pass; PHP won't
+  verify ddev's local certificate, so over HTTPS a warning; with the
+  site's folder served by PHP's built-in server, `.env` and `storage/`
+  fail.
+

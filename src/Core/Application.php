@@ -46,6 +46,7 @@ use Blush\Preview\PreviewServiceProvider;
 use Blush\Publish\PublishServiceProvider;
 use Blush\Secret\SecretServiceProvider;
 use Blush\Session\SessionServiceProvider;
+use Blush\Setup\SetupServiceProvider;
 use Blush\Settings\SettingsServiceProvider;
 use Blush\Routing\RoutingServiceProvider;
 use Blush\Sitemap\SitemapServiceProvider;
@@ -102,6 +103,7 @@ class Application implements Bootable
 		SessionServiceProvider::class,
 		JobServiceProvider::class,
 		SecretServiceProvider::class,
+		SetupServiceProvider::class,
 		AuthServiceProvider::class,
 		AdminServiceProvider::class,
 		PreviewServiceProvider::class,
