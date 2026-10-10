@@ -220,7 +220,7 @@ final readonly class DirectiveNodeRenderer implements NodeRendererInterface
 	private static function outline(Node $node): array
 	{
 		/** @var list<array{level: int, text: string, id: string}> Set by `CollectOutline`. */
-		return $node->data->get('blush/outline', []);
+		return $node->data->get('core/outline', []);
 	}
 
 	/**

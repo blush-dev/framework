@@ -125,7 +125,7 @@ final class VariantsTest extends TestCase
 			}
 		});
 
-		$name = new DirectiveName('blush', 'callout');
+		$name = new DirectiveName('core', 'callout');
 
 		$this->assertSame(['info', 'warning', 'danger', 'bordered', 'boxed', 'themed'], self::names($views->variants($name)), 'A theme that isn\'t installed isn\'t outside the chain.');
 		$this->assertStringContainsString('directive-callout--box', self::render($views, 'callout', ['variant' => 'boxed']));
@@ -145,7 +145,7 @@ final class VariantsTest extends TestCase
 			$event->add('from-alt', 'alt');
 		});
 
-		$name     = new DirectiveName('blush', 'callout');
+		$name     = new DirectiveName('core', 'callout');
 		$variants = $views->variants($name);
 
 		$this->assertSame(['info', 'tip', 'warning', 'danger', 'from-alt', 'bordered', 'compact'], self::names($variants), 'An invalid name is skipped.');
@@ -211,11 +211,11 @@ final class VariantsTest extends TestCase
 
 	public function testManifestsListVariantsByDirective(): void
 	{
-		$manifest = ThemeManifest::fromArray('/tmp/alt', ['name' => 'acme/alt', 'label' => 'Alt', 'namespace' => 'alt', 'variants' => ['blush/callout' => ['bordered']]]);
-		$name     = new DirectiveName('blush', 'callout');
+		$manifest = ThemeManifest::fromArray('/tmp/alt', ['name' => 'acme/alt', 'label' => 'Alt', 'namespace' => 'alt', 'variants' => ['core/callout' => ['bordered']]]);
+		$name     = new DirectiveName('core', 'callout');
 
 		$this->assertSame(['bordered'], self::names(DirectiveVariants::fromManifest($manifest->variants(), $name, 'alt')));
-		$this->assertSame([], DirectiveVariants::fromManifest($manifest->variants(), new DirectiveName('blush', 'button'), 'alt'));
+		$this->assertSame([], DirectiveVariants::fromManifest($manifest->variants(), new DirectiveName('core', 'button'), 'alt'));
 
 		$this->expectException(ThemeException::class);
 		ThemeManifest::fromArray('/tmp/alt', ['name' => 'acme/alt', 'label' => 'Alt', 'namespace' => 'alt', 'variants' => ['bordered']]);

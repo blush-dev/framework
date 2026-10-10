@@ -30,8 +30,8 @@ final readonly class LogConfig implements Config
 	public function __construct(
 		public LogDriver $driver = LogDriver::File,
 		public Level $level = Level::Warning,
-		public string $file = 'blush.log',
-		public string $channel = 'blush'
+		public string $file = 'site.log',
+		public string $channel = 'core'
 	) {
 		if ($file === '' || str_contains($file, "\0")) {
 			throw new InvalidConfig('LogConfig "file" must be a file name or path.');
@@ -63,8 +63,8 @@ final readonly class LogConfig implements Config
 		return new static(
 			driver: $values->enum('driver', LogDriver::class, LogDriver::File),
 			level: $values->enum('level', Level::class, Level::Warning),
-			file: $values->string('file', 'blush.log'),
-			channel: $values->string('channel', 'blush')
+			file: $values->string('file', 'site.log'),
+			channel: $values->string('channel', 'core')
 		);
 	}
 

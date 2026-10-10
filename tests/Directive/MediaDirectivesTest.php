@@ -108,7 +108,7 @@ final class MediaDirectivesTest extends TestCase
 		$this->assertSame('1,5 KB', new File($this->media(), new AppConfig(locale: 'de_DE'), '/media/notes.vtt')->size);
 
 		// A translation's page: its locale, not the site's (D-466).
-		$file->attach(new DirectiveName('blush', 'file'), [], context: new ViewContext(locale: 'de_DE'));
+		$file->attach(new DirectiveName('core', 'file'), [], context: new ViewContext(locale: 'de_DE'));
 
 		$this->assertSame('1,5 KB', $file->size);
 
@@ -136,7 +136,7 @@ final class MediaDirectivesTest extends TestCase
 
 	public function testMediaPropsAreMediaFields(): void
 	{
-		$props = new DirectiveDefinition(new DirectiveName('blush', 'video'), Video::class)->props();
+		$props = new DirectiveDefinition(new DirectiveName('core', 'video'), Video::class)->props();
 		$types = array_combine(
 			array_map(static fn (Field $field): string => $field->name, $props),
 			array_map(static fn (Field $field): string => $field->type(), $props)
@@ -152,7 +152,7 @@ final class MediaDirectivesTest extends TestCase
 		$kinds = array_map(static fn (Field $field): ?string => $field instanceof MediaField ? $field->kind?->value : null, array_slice($props, 0, 3));
 
 		$this->assertSame(['video', 'image', null], $kinds, 'A video plays videos, its poster is an image, and its track is any file.');
-		$audio = new DirectiveDefinition(new DirectiveName('blush', 'audio'), Audio::class)->props();
+		$audio = new DirectiveDefinition(new DirectiveName('core', 'audio'), Audio::class)->props();
 
 		$this->assertSame('audio', ($audio[0] ?? null)?->toArray()['kind'] ?? null);
 	}

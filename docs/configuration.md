@@ -533,8 +533,8 @@ either way.
 |---|---|---|
 | `driver` | `LogDriver::File` | `File`, `Stderr`, or `Null` |
 | `level` | `Level::Warning` | The least serious level logged (`Debug` … `Emergency`) |
-| `file` | `'blush.log'` | The log file, in `storage/logs/` |
-| `channel` | `'blush'` | The name on each line |
+| `file` | `'site.log'` | The log file, in `storage/logs/` |
+| `channel` | `'core'` | The name on each line |
 
 ### Plugins and middleware
 

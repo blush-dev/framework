@@ -344,7 +344,7 @@ final class AssetsTest extends TestCase
 					'requires' => ['acme/base']
 				],
 				'acme/base'     => ['styles' => [['path' => 'css/base.css', 'attributes' => ['media' => 'screen']]]],
-				'blush/player'  => []
+				'core/player'   => []
 			]
 		];
 
@@ -377,7 +377,7 @@ final class AssetsTest extends TestCase
 		$this->assertMatchesRegularExpression('#href="http://localhost/themes/acme/nova/css/base\.css\?v=[0-9a-f]{8}" media="screen">\n\t<link rel="stylesheet" href="http://localhost/themes/acme/nova/css/lightbox\.css\?v=[0-9a-f]{8}">#', $html, 'What it requires loads first.');
 		$this->assertStringContainsString('<script src="https://cdn.example.com/zoom.js" defer></script>', $html, 'A full URL is used as given.');
 		$this->assertMatchesRegularExpression('#<script src="http://localhost/themes/acme/nova/js/lightbox\.js\?v=[0-9a-f]{8}" type="module"></script>\n</body>#', $html);
-		$this->assertStringNotContainsString('player.js', $html, 'Its blank blush/player replaces core\'s.');
+		$this->assertStringNotContainsString('player.js', $html, 'Its blank core/player replaces core\'s.');
 	}
 
 	public function testAThemesProviderWinsOverItsManifest(): void

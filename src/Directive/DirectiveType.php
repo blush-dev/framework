@@ -37,7 +37,7 @@ use Blush\Directive\Media\Video;
 /**
  * The core content directives (the "Type enum" of D-019): the ones
  * content can use in any theme (D-033), since the default theme, at the
- * end of every chain, has their templates. They're in the `blush`
+ * end of every chain, has their templates. They're in the `core`
  * namespace, and the only directives with short names (D-171). Each has a
  * class (D-195) and is seeded into the `DirectiveRegistry`.
  */

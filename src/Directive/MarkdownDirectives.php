@@ -26,7 +26,7 @@ use Blush\View\ViewFactory;
 /**
  * Renders Markdown directives as the registered directives of the same
  * name (D-026, D-532), with the theme chain of the request being
- * rendered: `:::callout{variant=info}` is the `blush/callout` directive
+ * rendered: `:::callout{variant=info}` is the `core/callout` directive
  * with `variant` and the block's HTML as its content, and `::acme/tabs`
  * is `acme/tabs`. Only core directives have
  * short names (D-171). A directive's `[label]` is also given as the

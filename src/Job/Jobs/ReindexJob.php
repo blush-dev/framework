@@ -27,7 +27,7 @@ use Blush\Media\Index\MediaIndexer;
  * Brings the content index up to date with the files, as `content:index`
  * does, then the media index, as `media:index` does (D-288), for the
  * admin's Reindex (D-621). The media index reads a batch of files at
- * most, and queues the rest as `blush/media-index` (D-626). When anything changed, the content version
+ * most, and queues the rest as `core/media-index` (D-626). When anything changed, the content version
  * moves on, so cached pages that showed the old content aren't served
  * again.
  */

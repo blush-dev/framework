@@ -32,7 +32,7 @@ use League\Config\ConfigurationInterface;
  * permalink's (when that extension is on), or a new `id` from the
  * environment's slug normalizer, so it never clashes with a permalink's.
  * The outline (each heading's level, plain text, and target) is set on
- * the directive's node as `blush/outline`.
+ * the directive's node as `core/outline`.
  *
  * It runs after the permalink (-100) and CommonMark table of contents
  * (-150) listeners, and before the slug history resets (-1000). Only
@@ -44,7 +44,7 @@ final class CollectOutline implements EnvironmentAwareInterface
 	/**
 	 * The directive names that get the outline.
 	 */
-	public const array NAMES = ['toc', 'blush/toc'];
+	public const array NAMES = ['toc', 'core/toc'];
 
 	private TextNormalizerInterface $slugs;
 
@@ -92,7 +92,7 @@ final class CollectOutline implements EnvironmentAwareInterface
 		}
 
 		foreach ($tocs as $toc) {
-			$toc->data->set('blush/outline', $outline);
+			$toc->data->set('core/outline', $outline);
 		}
 	}
 

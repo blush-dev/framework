@@ -580,19 +580,19 @@ final class AdminContentTest extends TestCase
 
 		$this->assertIsArray($directives);
 
-		$callout = $this->directive($directives, 'blush/callout');
+		$callout = $this->directive($directives, 'core/callout');
 
 		$this->assertSame(
 			['label' => 'Callout', 'content' => 'blocks', 'kind' => 'container', 'category' => 'text', 'source' => null],
 			array_intersect_key($callout, array_flip(['label', 'content', 'kind', 'category', 'source'])),
 			'The inserter writes full names.'
 		);
-		$this->assertSame('inline', $this->directive($directives, 'blush/kbd')['kind'] ?? null);
-		$this->assertSame('container', $this->directive($directives, 'blush/figure')['kind'] ?? null);
-		$this->assertSame('layout', $this->directive($directives, 'blush/figure')['category'] ?? null, 'A figure wraps anything, so it\'s layout, not media.');
-		$this->assertSame('leaf', $this->directive($directives, 'blush/embed')['kind'] ?? null);
-		$this->assertSame(['image'], $this->directive($directives, 'blush/gallery')['only'] ?? null, 'A gallery holds images.');
-		$this->assertNull($this->directive($directives, 'blush/callout')['only'] ?? null);
+		$this->assertSame('inline', $this->directive($directives, 'core/kbd')['kind'] ?? null);
+		$this->assertSame('container', $this->directive($directives, 'core/figure')['kind'] ?? null);
+		$this->assertSame('layout', $this->directive($directives, 'core/figure')['category'] ?? null, 'A figure wraps anything, so it\'s layout, not media.');
+		$this->assertSame('leaf', $this->directive($directives, 'core/embed')['kind'] ?? null);
+		$this->assertSame(['image'], $this->directive($directives, 'core/gallery')['only'] ?? null, 'A gallery holds images.');
+		$this->assertNull($this->directive($directives, 'core/callout')['only'] ?? null);
 
 		$this->assertSame(
 			[
@@ -605,7 +605,7 @@ final class AdminContentTest extends TestCase
 			'Variants come with their text; Default isn\'t one.'
 		);
 
-		$props = $this->directive($directives, 'blush/button')['props'] ?? null;
+		$props = $this->directive($directives, 'core/button')['props'] ?? null;
 		$this->assertIsArray($props);
 
 		$position = array_find($props, static fn (mixed $prop): bool => is_array($prop) && ($prop['name'] ?? null) === 'iconPosition');

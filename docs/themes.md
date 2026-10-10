@@ -267,7 +267,7 @@ Only `name` is required.
   for the `/` (and any `.`), so `acme/notebook` goes by `acme-notebook`.
   `theme:new` writes that form. Give one only when you want something
   shorter.
-  `blush`, `theme`, and `default` are reserved, and no two
+  `core`, `theme`, and `default` are reserved, and no two
   installed extensions (plugins, themes, icon packs) may share one: two
   themes that do are both broken, and a theme whose namespace a plugin
   has is broken too.
@@ -589,11 +589,11 @@ and the like a full URL.
 
 Besides your theme's own `styles` and `scripts`, Blush, plugins, and
 themes register scripts and styles by name, a handle such as
-`blush/player`, and pages load them only when they need them. Ask for
+`core/player`, and pages load them only when they need them. Ask for
 one in a template with `$template->enqueue('acme/gallery')`; it prints
 in the `<head>` once, after anything it needs, however many times it's
 asked for. Directives and components ask for their own, so the audio
-and video player (`blush/player`) loads only on pages that play
+and video player (`core/player`) loads only on pages that play
 something.
 
 The head is printed once the whole page has rendered, so a template
@@ -625,7 +625,7 @@ list them under `assets` in `theme.json` instead, each handle with its
 			{ "path": "js/lightbox.js", "footer": true, "attributes": { "type": "module" } },
 			"https://cdn.example.com/zoom.js"
 		],
-		"requires": ["blush/player"]
+		"requires": ["core/player"]
 	}
 }
 ```
@@ -666,9 +666,9 @@ too, and for cards, `--player-fg`, `--player-font`,
 `--player-art-size`, `--player-art-radius`, `--player-art-shadow`
 (none unless you set one), and `--player-pop-shadow` (what lifts the
 volume slider off the page). A card's text and fonts
-are its surroundings' unless you set them. To draw the player yourself, register your own `blush/player`,
-or an empty one to load nothing: `new Asset('blush/player')` in your
-provider, or `"blush/player": {}` under `assets`.
+are its surroundings' unless you set them. To draw the player yourself, register your own `core/player`,
+or an empty one to load nothing: `new Asset('core/player')` in your
+provider, or `"core/player": {}` under `assets`.
 
 ### Translations
 
@@ -721,7 +721,7 @@ language:
 ```
 user/lang/
   en/
-    blush.json                          Blush's own text
+    core.json                           Blush's own text
     extensions/acme/notebook.json       a theme's, by its name
     extensions/acme/hello.json          a plugin's or icon pack's
   fr/
@@ -913,7 +913,7 @@ ones `abbr`, `badge`, `button`, `cite`, `dfn`, `icon`, `ins`, `kbd`,
 `samp`, `small`, `time`, and `var`; `toc`, a table of contents; `menu`;
 and `progress` and `meter`. To change how one looks, style its classes
 (`.directive-callout`, `.directive-callout__title`), or add your own
-`views/directives/callout.php` (or `blush-callout.php`, and so on);
+`views/directives/callout.php` (or `core-callout.php`, and so on);
 yours wins. A plugin's directive is drawn the same way:
 `views/directives/{namespace}-{name}.php`.
 

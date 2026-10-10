@@ -111,7 +111,7 @@ final class IconPacksTest extends TestCase
 			['label' => 'X', 'namespace' => 'x'],
 			['name' => 'x', 'label' => 'X', 'namespace' => 'x'],
 			['name' => 'acme/x', 'label' => 5, 'namespace' => 'x'],
-			['name' => 'acme/x', 'label' => 'X', 'namespace' => 'blush'],
+			['name' => 'acme/x', 'label' => 'X', 'namespace' => 'core'],
 			['name' => 'acme/x', 'label' => 'X', 'namespace' => 'x', 'folder' => '../out'],
 			['name' => 'acme/x', 'label' => 'X', 'namespace' => 'x', 'version' => 2]
 		];

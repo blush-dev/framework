@@ -22,9 +22,9 @@ use Blush\Theme\ThemeChain;
  *
  * 1. Each theme in the chain, the active one first: `icons/{name}.svg`
  *    for its own namespace, or `icons/{ns}/{name}.svg` to restyle another
- *    one's icon (such as `icons/blush/house.svg`).
+ *    one's icon (such as `icons/core/house.svg`).
  * 2. The folders an extension added for the namespace (`IconRegistry`).
- * 3. For `blush`, the core icons in the framework's `resources/icons`.
+ * 3. For `core`, the core icons in the framework's `resources/icons`.
  */
 final class Icons
 {
@@ -117,7 +117,7 @@ final class Icons
 		}
 
 		if ($name->isCore()) {
-			$files[] = Framework::path("resources/icons/blush/{$name->name}.svg");
+			$files[] = Framework::path("resources/icons/" . IconName::CORE . "/{$name->name}.svg");
 		}
 
 		return $files;
@@ -130,7 +130,7 @@ final class Icons
 	 */
 	private function folders(ThemeChain $chain): array
 	{
-		$folders = [IconName::CORE => [Framework::path('resources/icons/blush')]];
+		$folders = [IconName::CORE => [Framework::path('resources/icons/' . IconName::CORE)]];
 
 		foreach ($chain as $theme) {
 			$folders[$theme->namespace][] = "{$theme->path}/icons";

@@ -75,7 +75,7 @@ final class Playlist extends Directive
 	/**
 	 * @inheritDoc
 	 */
-	public const array HOLDS = ['blush/audio'];
+	public const array HOLDS = ['core/audio'];
 
 	/**
 	 * The first track, once read (`false` for none).

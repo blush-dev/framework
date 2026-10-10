@@ -35,9 +35,9 @@ use Blush\Support\RegistrationException;
  * Every directive is registered (D-532): one that isn't is unknown, and
  * renders as plain content. Registering makes it known to the admin's
  * inserter and to `directive:list` with its text. Third-party names need
- * their namespace, and the `blush` namespace holds only the core
+ * their namespace, and the `core` namespace holds only the core
  * directives, which a provider may replace (`register('callout', …)` is
- * `blush/callout`). `register()` overwrites; the core directives are
+ * `core/callout`). `register()` overwrites; the core directives are
  * seeded with `registerIf()`.
  *
  * Unlike the other registries (D-019), this one holds definitions (a

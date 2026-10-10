@@ -1,6 +1,6 @@
 /**
  * The admin's icons: the inner markup of Lucide 1.48.0 icons (ISC
- * license, as in `resources/icons/blush/LICENSE`), drawn on a 24×24 grid
+ * license, as in `resources/icons/core/LICENSE`), drawn on a 24×24 grid
  * with a 2px `currentColor` stroke by `AdminIcon`. The three bleed
  * glyphs are the admin's own (D-313): two rules for the text column with
  * a bar between them that matches it, overruns it, or doesn't stop.

@@ -72,7 +72,7 @@ final readonly class Views
 		public ThemeSettings $settings = new ThemeSettings()
 	) {
 		$this->chain    = $assets->chain;
-		$this->messages = new DomainTranslator($translator, [...$this->chain->names(), 'blush']);
+		$this->messages = new DomainTranslator($translator, [...$this->chain->names(), Translator::CORE]);
 	}
 
 	/**
@@ -275,7 +275,7 @@ final readonly class Views
 	/**
 	 * Returns a directive's translated text, such as its `label` or
 	 * `description`, or `null` when no catalog has it (D-172). Text is
-	 * keyed `directives.{name}.{key}` in the namespace's domain: `blush`
+	 * keyed `directives.{name}.{key}` in the namespace's domain: `core`
 	 * for core directives, and otherwise the namespace itself (a vendor
 	 * for an extension). Prop text is
 	 * `props.{prop}.label` and `props.{prop}.choices.{value}`.
@@ -481,7 +481,7 @@ final readonly class Views
 
 	/**
 	 * Returns a message from a namespace's catalog domain (D-451):
-	 * `blush` for core, the chain's themes for any of theirs (so a child
+	 * `core` for core, the chain's themes for any of theirs (so a child
 	 * theme can reword its parent's), and otherwise the namespace's
 	 * extension's `vendor/name`.
 	 *
@@ -490,7 +490,7 @@ final readonly class Views
 	private function namespaceText(string $namespace, string $message, array $params): ?string
 	{
 		$domain = match (true) {
-			$namespace === DirectiveName::CORE                     => 'blush',
+			$namespace === DirectiveName::CORE                     => Translator::CORE,
 			in_array($namespace, $this->chain->namespaces(), true) => $this->chain->names(),
 			default                                                => $this->translator->domainOf($namespace)
 		};
@@ -500,12 +500,12 @@ final readonly class Views
 
 	/**
 	 * Returns the domain of a directive's or component's namespace's own
-	 * text: `blush` for core, or its extension's `vendor/name` (a theme's
+	 * text: `core` for core, or its extension's `vendor/name` (a theme's
 	 * is in the chain).
 	 */
 	private function ownDomain(string $namespace): string
 	{
-		return $namespace === DirectiveName::CORE ? 'blush' : $this->translator->domainOf($namespace);
+		return $namespace === DirectiveName::CORE ? Translator::CORE : $this->translator->domainOf($namespace);
 	}
 
 	/**

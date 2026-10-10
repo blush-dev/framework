@@ -37,7 +37,7 @@ use Blush\Media\MediaSizes;
 use Blush\Media\RecordedMediaSizes;
 
 /**
- * Runs a Site Health fix over many files as a job (`blush/health-fix`,
+ * Runs a Site Health fix over many files as a job (`core/health-fix`,
  * D-624), so fixing a whole site's files never outlasts a request. Its
  * data:
  *

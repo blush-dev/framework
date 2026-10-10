@@ -95,23 +95,23 @@ final class DirectivesTest extends TestCase
 
 	public function testNamesAreNamespacedAndOnlyCoreOnesAreShort(): void
 	{
-		$this->assertSame('blush/callout', (string) DirectiveName::parse('callout'));
-		$this->assertSame('blush/callout', (string) DirectiveName::parse('blush/callout'));
+		$this->assertSame('core/callout', (string) DirectiveName::parse('callout'));
+		$this->assertSame('core/callout', (string) DirectiveName::parse('core/callout'));
 		$this->assertSame('acme/tabs', (string) DirectiveName::parse('acme/tabs'));
 		$this->assertNull(DirectiveName::parse('tabs'));
 		$this->assertNull(DirectiveName::parse('acme/tabs/more'));
 		$this->assertNull(DirectiveName::parse('../x'));
 		$this->assertNull(DirectiveName::parse('acme/'));
 
-		$this->assertSame(['directives/callout', 'directives/blush-callout'], new DirectiveName('blush', 'callout')->views());
+		$this->assertSame(['directives/callout', 'directives/core-callout'], new DirectiveName('core', 'callout')->views());
 		$this->assertSame(['directives/acme-tabs'], new DirectiveName('acme', 'tabs')->views());
 		$this->assertSame('Pricing table', new DirectiveName('acme', 'pricing-table')->label());
 
 		// A file name takes the longest namespace that fits.
 		$this->assertSame('my-plugin/tabs', (string) DirectiveName::fromFileName('my-plugin-tabs', ['my', 'my-plugin']));
 		$this->assertSame('my/tabs', (string) DirectiveName::fromFileName('my-tabs', ['my', 'my-plugin']));
-		$this->assertSame('blush/gallery', (string) DirectiveName::fromFileName('gallery', []));
-		$this->assertSame('blush/gallery', (string) DirectiveName::fromFileName('blush-gallery', ['blush']));
+		$this->assertSame('core/gallery', (string) DirectiveName::fromFileName('gallery', []));
+		$this->assertSame('core/gallery', (string) DirectiveName::fromFileName('core-gallery', ['core']));
 		$this->assertNull(DirectiveName::fromFileName('tabs', ['my']));
 	}
 
@@ -124,7 +124,7 @@ final class DirectivesTest extends TestCase
 
 		$this->assertFalse($views->hasDirective('acme/box'), 'A template alone isn\'t a directive (D-532).');
 		$this->assertTrue($views->hasDirective('callout'));
-		$this->assertTrue($views->hasDirective('blush/callout'));
+		$this->assertTrue($views->hasDirective('core/callout'));
 
 		$this->app->container()->make(DirectiveRegistry::class)->register('acme/box', Box::class);
 
@@ -139,12 +139,12 @@ final class DirectivesTest extends TestCase
 	{
 		// A child theme's blush-callout.php beats the framework's
 		// callout.php, whichever name it uses.
-		$this->view('directives/blush-callout', 'child: <?= $directive->content() ?>');
+		$this->view('directives/core-callout', 'child: <?= $directive->content() ?>');
 
 		$views = $this->boot();
 
 		$this->assertSame('child: hi', $views->directive('callout', [], 'hi', new ViewContext()));
-		$this->assertSame('child: hi', $views->directive('blush/callout', [], 'hi', new ViewContext()));
+		$this->assertSame('child: hi', $views->directive('core/callout', [], 'hi', new ViewContext()));
 	}
 
 	public function testBackedEnumPropsAreCastAndFallBackToTheirDefault(): void
@@ -191,7 +191,7 @@ final class DirectivesTest extends TestCase
 		$this->view('directives/acme-box', 'not registered');
 		$this->view('directives/cards/post', 'a subfolder is not a directive');
 		$this->view('directives/callout', 'child callout');
-		$this->view('directives/blush-gallery', 'child gallery');
+		$this->view('directives/core-gallery', 'child gallery');
 		$this->view('directives/loose', 'not named for a directive');
 		$this->view('directives/callout-warning', 'a variant\'s template');
 		$this->writeTemporaryFile('user/lang/en/acme.json', '{"directives": {"note": {"label": "Note to self", "description": "Holds a note."}}}');
@@ -207,28 +207,28 @@ final class DirectivesTest extends TestCase
 			$directives[(string) $directive->name] = $directive;
 		}
 
-		$this->assertSame(['acme/note', 'acme/orphan', 'blush/abbr', 'blush/audio', 'blush/badge', 'blush/button', 'blush/callout', 'blush/cite', 'blush/dfn', 'blush/embed', 'blush/figure', 'blush/file', 'blush/gallery', 'blush/grid', 'blush/group', 'blush/icon', 'blush/ins', 'blush/kbd', 'blush/menu', 'blush/meter', 'blush/playlist', 'blush/progress', 'blush/row', 'blush/samp', 'blush/small', 'blush/stack', 'blush/time', 'blush/toc', 'blush/var', 'blush/video'], array_keys($directives));
-		$this->assertTrue($directives['blush/callout']->isCore());
+		$this->assertSame(['acme/note', 'acme/orphan', 'core/abbr', 'core/audio', 'core/badge', 'core/button', 'core/callout', 'core/cite', 'core/dfn', 'core/embed', 'core/figure', 'core/file', 'core/gallery', 'core/grid', 'core/group', 'core/icon', 'core/ins', 'core/kbd', 'core/menu', 'core/meter', 'core/playlist', 'core/progress', 'core/row', 'core/samp', 'core/small', 'core/stack', 'core/time', 'core/toc', 'core/var', 'core/video'], array_keys($directives));
+		$this->assertTrue($directives['core/callout']->isCore());
 		$this->assertFalse($directives['acme/note']->isCore());
-		$this->assertSame(Embed::class, $directives['blush/embed']->className());
-		$this->assertSame(Callout::class, $directives['blush/callout']->className());
+		$this->assertSame(Embed::class, $directives['core/embed']->className());
+		$this->assertSame(Callout::class, $directives['core/callout']->className());
 		$this->assertSame(Box::class, $directives['acme/note']->className());
-		$this->assertCount(1, $directives['blush/callout']->files, 'Only the site\'s: core directives render themselves (D-382).');
-		$this->assertStringEndsWith('extensions/test/site/views/directives/callout.php', (string) $directives['blush/callout']->file());
-		$this->assertStringEndsWith('extensions/test/site/views/directives/blush-gallery.php', (string) $directives['blush/gallery']->file());
-		$this->assertSame([], $directives['blush/meter']->files);
-		$this->assertTrue($directives['blush/meter']->rendersItself());
-		$this->assertFalse($directives['blush/meter']->isMissingTemplate());
+		$this->assertCount(1, $directives['core/callout']->files, 'Only the site\'s: core directives render themselves (D-382).');
+		$this->assertStringEndsWith('extensions/test/site/views/directives/callout.php', (string) $directives['core/callout']->file());
+		$this->assertStringEndsWith('extensions/test/site/views/directives/core-gallery.php', (string) $directives['core/gallery']->file());
+		$this->assertSame([], $directives['core/meter']->files);
+		$this->assertTrue($directives['core/meter']->rendersItself());
+		$this->assertFalse($directives['core/meter']->isMissingTemplate());
 		$this->assertFalse($directives['acme/orphan']->rendersItself(), 'Its render() can return null.');
 
 		// Text comes from the namespace's catalog, or is made from the name.
-		$this->assertSame('Callout', $directives['blush/callout']->label);
+		$this->assertSame('Callout', $directives['core/callout']->label);
 		$this->assertSame('Note to self', $directives['acme/note']->label);
 		$this->assertSame('Holds a note.', $directives['acme/note']->description);
 		$this->assertNull($directives['acme/orphan']->label);
 		$this->assertSame('Orphan', $directives['acme/orphan']->displayLabel());
-		$this->assertSame(['info', 'tip', 'warning', 'danger'], array_map(static fn ($variant): string => $variant->name, $directives['blush/callout']->variants));
-		$this->assertSame('Warning', $views->variantText(new DirectiveName('blush', 'callout'), $directives['blush/callout']->variants[2], 'label'));
+		$this->assertSame(['info', 'tip', 'warning', 'danger'], array_map(static fn ($variant): string => $variant->name, $directives['core/callout']->variants));
+		$this->assertSame('Warning', $views->variantText(new DirectiveName('core', 'callout'), $directives['core/callout']->variants[2], 'label'));
 
 		$this->assertTrue($directives['acme/orphan']->isMissingTemplate());
 		$this->assertFalse($directives['acme/note']->isMissingTemplate());
@@ -273,7 +273,7 @@ final class DirectivesTest extends TestCase
 
 		$registry = $this->app->container()->make(DirectiveRegistry::class);
 
-		$this->assertSame(['blush/abbr', 'blush/audio', 'blush/badge', 'blush/button', 'blush/callout', 'blush/cite', 'blush/dfn', 'blush/embed', 'blush/figure', 'blush/file', 'blush/gallery', 'blush/grid', 'blush/group', 'blush/icon', 'blush/ins', 'blush/kbd', 'blush/menu', 'blush/meter', 'blush/playlist', 'blush/progress', 'blush/row', 'blush/samp', 'blush/small', 'blush/stack', 'blush/time', 'blush/toc', 'blush/var', 'blush/video'], array_keys($registry->all()));
+		$this->assertSame(['core/abbr', 'core/audio', 'core/badge', 'core/button', 'core/callout', 'core/cite', 'core/dfn', 'core/embed', 'core/figure', 'core/file', 'core/gallery', 'core/grid', 'core/group', 'core/icon', 'core/ins', 'core/kbd', 'core/menu', 'core/meter', 'core/playlist', 'core/progress', 'core/row', 'core/samp', 'core/small', 'core/stack', 'core/time', 'core/toc', 'core/var', 'core/video'], array_keys($registry->all()));
 		$embed   = $registry->get('embed');
 		$callout = $registry->get('callout');
 
@@ -284,7 +284,7 @@ final class DirectivesTest extends TestCase
 		$this->assertSame(['url', 'title', 'alt', 'label'], array_map(static fn ($field): string => $field->name, $embed->props()));
 		$this->assertSame(DirectiveContent::Blocks, $callout->content());
 		$this->assertSame(['info', 'tip', 'warning', 'danger'], array_map(static fn ($variant): string => $variant->name, $callout->variants()));
-		$this->assertSame('blush', $callout->variants()[0]->registrant);
+		$this->assertSame('core', $callout->variants()[0]->registrant);
 		$this->assertSame(Callout::class, DirectiveType::Callout->className());
 	}
 
@@ -389,10 +389,10 @@ final class DirectivesTest extends TestCase
 
 		// A provider may replace a core directive, by either name.
 		$registry->register('callout', Stamp::class);
-		$this->assertSame(Stamp::class, $registry->get('blush/callout')?->class);
+		$this->assertSame(Stamp::class, $registry->get('core/callout')?->class);
 		$registry->register('acme/note', Box::class);
 		$this->assertSame(Box::class, $registry->get('acme/note')?->class);
-		$this->assertSame(['blush', 'acme'], $registry->namespaces());
+		$this->assertSame(['core', 'acme'], $registry->namespaces());
 
 		$registry->registerIf('acme/note', Stamp::class);
 		$this->assertSame(Box::class, $registry->get('acme/note')?->class);
@@ -402,7 +402,7 @@ final class DirectivesTest extends TestCase
 
 		$cases = [
 			'tabs'           => '"tabs" needs its namespace, such as "vendor/tabs"; only core directives have short names.',
-			'blush/tabs'     => '"blush/tabs" is in the "blush" namespace, which only core directives use.',
+			'core/tabs'      => '"core/tabs" is in the "core" namespace, which only core directives use.',
 			'acme/tabs/more' => '"acme/tabs/more" is not a valid directive name.',
 			'nova/badge'     => '"nova/badge" is in a theme\'s namespace, and themes can\'t register directives (D-532): register it from a plugin, or make it a component the theme\'s templates use.'
 		];

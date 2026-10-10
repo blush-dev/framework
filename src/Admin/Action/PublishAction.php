@@ -19,7 +19,7 @@ use Blush\Job\JobType;
 
 /**
  * Puts content changes live, as `publish` and the webhook do (D-131), as
- * a job (`blush/publish`, D-621), so it can take longer than a request.
+ * a job (`core/publish`, D-621), so it can take longer than a request.
  */
 final class PublishAction extends AdminAction
 {

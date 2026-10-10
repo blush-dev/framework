@@ -293,23 +293,23 @@ final class AdminAppTest extends TestCase
 
 	public function testReadsTheLogWithTheCapability(): void
 	{
-		$this->writeTemporaryFile('storage/logs/blush.log', "Cut off\n[2026-10-06T09:00:00+00:00] blush.WARNING: First\n[2026-10-06T09:01:00+00:00] blush.ERROR: Second\nTrace line one\nTrace line two\n");
+		$this->writeTemporaryFile('storage/logs/site.log', "Cut off\n[2026-10-06T09:00:00+00:00] core.WARNING: First\n[2026-10-06T09:01:00+00:00] core.ERROR: Second\nTrace line one\nTrace line two\n");
 		$this->boot(roles: ['administrator']);
 		$this->login();
 
 		$log = self::json($this->send('GET', '/logs'));
 
 		$this->assertSame('file', $log['driver'] ?? null);
-		$this->assertSame('storage/logs/blush.log', $log['file'] ?? null);
+		$this->assertSame('storage/logs/site.log', $log['file'] ?? null);
 		$this->assertSame([
-			['time' => '2026-10-06T09:01:00+00:00', 'channel' => 'blush', 'level' => 'error', 'message' => 'Second', 'details' => "Trace line one\nTrace line two"],
-			['time' => '2026-10-06T09:00:00+00:00', 'channel' => 'blush', 'level' => 'warning', 'message' => 'First', 'details' => '']
+			['time' => '2026-10-06T09:01:00+00:00', 'channel' => 'core', 'level' => 'error', 'message' => 'Second', 'details' => "Trace line one\nTrace line two"],
+			['time' => '2026-10-06T09:00:00+00:00', 'channel' => 'core', 'level' => 'warning', 'message' => 'First', 'details' => '']
 		], $log['entries'] ?? null);
 
 		$download = $this->send('GET', '/logs/download');
 
 		$this->assertSame(200, $download->getStatusCode());
-		$this->assertStringContainsString('attachment; filename="blush.log"', $download->getHeaderLine('Content-Disposition'));
+		$this->assertStringContainsString('attachment; filename="site.log"', $download->getHeaderLine('Content-Disposition'));
 	}
 
 	public function testRefusesTheLogWithoutTheCapability(): void

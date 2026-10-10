@@ -163,7 +163,7 @@ final readonly class FigureRenderer implements NodeRendererInterface
 	{
 		$parent = $node->parent();
 
-		return $parent instanceof ContainerDirective && in_array($parent->name, ['figure', 'blush/figure'], true);
+		return $parent instanceof ContainerDirective && in_array($parent->name, ['figure', 'core/figure'], true);
 	}
 
 	/**

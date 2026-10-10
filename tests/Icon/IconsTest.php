@@ -63,10 +63,10 @@ final class IconsTest extends TestCase
 
 	public function testNamesAreNamespacedAndShortNamesAreCore(): void
 	{
-		$this->assertSame('blush/house', (string) IconName::parse('house'));
+		$this->assertSame('core/house', (string) IconName::parse('house'));
 		$this->assertSame('jtcom/github', (string) IconName::parse('jtcom/github'));
 		$this->assertTrue(IconName::parse('arrow-left')?->isCore());
-		$this->assertSame('Map pin', new IconName('blush', 'map-pin')->label());
+		$this->assertSame('Map pin', new IconName('core', 'map-pin')->label());
 
 		foreach (['', 'House', 'a/b/c', '../etc', 'blush/../x', 'has space', '-lead'] as $bad) {
 			$this->assertNull(IconName::parse($bad), $bad);
@@ -76,18 +76,18 @@ final class IconsTest extends TestCase
 	public function testIconsResolveThroughThemesExtensionsAndCore(): void
 	{
 		$this->writeTemporaryFile('extensions/acme/alt/icons/badge.svg', self::SVG);
-		$this->writeTemporaryFile('extensions/acme/alt/icons/blush/star.svg', self::SVG);
-		$this->writeTemporaryFile('extensions/acme/alt/icons/blush/heart.svg', self::SVG);
+		$this->writeTemporaryFile('extensions/acme/alt/icons/core/star.svg', self::SVG);
+		$this->writeTemporaryFile('extensions/acme/alt/icons/core/heart.svg', self::SVG);
 		$this->writeTemporaryFile('extension-icons/tabs.svg', self::SVG);
 
 		$app = $this->app();
 		$app->container()->make(IconRegistry::class)->add('acme', $this->temporaryDirectory() . '/extension-icons/');
 
-		$this->assertStringEndsWith('resources/icons/blush/house.svg', $this->svg($app, 'house'));
+		$this->assertStringEndsWith('resources/icons/core/house.svg', $this->svg($app, 'house'));
 		$this->assertStringNotContainsString($this->temporaryDirectory(), $this->svg($app, 'house'));
 		$this->assertStringEndsWith('extensions/acme/alt/icons/badge.svg', $this->svg($app, 'alt/badge'));
-		$this->assertStringEndsWith('extensions/acme/alt/icons/blush/star.svg', $this->svg($app, 'star'));
-		$this->assertStringEndsWith($this->temporaryDirectory() . '/extensions/acme/alt/icons/blush/heart.svg', $this->svg($app, 'heart'));
+		$this->assertStringEndsWith('extensions/acme/alt/icons/core/star.svg', $this->svg($app, 'star'));
+		$this->assertStringEndsWith($this->temporaryDirectory() . '/extensions/acme/alt/icons/core/heart.svg', $this->svg($app, 'heart'));
 		$this->assertStringEndsWith('extension-icons/tabs.svg', $this->svg($app, 'acme/tabs'));
 		$this->assertSame('(none)', $this->svg($app, 'badge'));
 		$this->assertSame('(none)', $this->svg($app, 'nope/badge'));
@@ -96,7 +96,7 @@ final class IconsTest extends TestCase
 
 		$this->assertArrayHasKey('alt/badge', $all);
 		$this->assertArrayHasKey('acme/tabs', $all);
-		$this->assertArrayHasKey('blush/house', $all);
+		$this->assertArrayHasKey('core/house', $all);
 		$this->assertCount(131 + 2, $all);
 	}
 
@@ -108,7 +108,7 @@ final class IconsTest extends TestCase
 		$icon  = static fn (string $name, string $label = ''): Icon => $app->container()->build(Icon::class, ['name' => $name, 'label' => $label]);
 		$house = $icon('house');
 
-		$house->attach(new DirectiveName('blush', 'icon'), ['class' => 'extra', 'id' => 'home-icon']);
+		$house->attach(new DirectiveName('core', 'icon'), ['class' => 'extra', 'id' => 'home-icon']);
 
 		$plain = $house->markup();
 
@@ -147,13 +147,13 @@ final class IconsTest extends TestCase
 		$app   = $this->app();
 		$views = $app->container()->make(ViewFactory::class)->forChain($app->container()->make(ThemeResolver::class)->active());
 
-		$this->assertSame('Home', $views->iconText(new IconName('blush', 'house'), 'label'));
-		$this->assertSame('Warning', $views->iconText(new IconName('blush', 'triangle-alert'), 'label'));
+		$this->assertSame('Home', $views->iconText(new IconName('core', 'house'), 'label'));
+		$this->assertSame('Warning', $views->iconText(new IconName('core', 'triangle-alert'), 'label'));
 		$this->assertSame('Member badge', $views->iconText(new IconName('alt', 'badge'), 'label'));
 
 		$result = new CommandTester($app->container()->make(Console::class))->run('icon:list');
 
 		$this->assertMatchesRegularExpression('#\| alt/badge\s*\| Member badge\s*\| extensions/acme/alt/icons/badge\.svg#', $result->output);
-		$this->assertMatchesRegularExpression('#\| blush/house\s*\| Home\s*\| \(core\) house\.svg#', $result->output);
+		$this->assertMatchesRegularExpression('#\| core/house\s*\| Home\s*\| \(core\) house\.svg#', $result->output);
 	}
 }

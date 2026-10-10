@@ -35,7 +35,7 @@ final class DirectiveTest extends TestCase
 	public function testAttributesPrintTheBlockModifiersAndProps(): void
 	{
 		$callout = new Callout('Heads up');
-		$callout->attach(new DirectiveName('blush', 'callout'), ['class' => ' wide ', 'id' => 'note-1', 'variant' => 'warning'], variant: new Variant('warning', 'blush'));
+		$callout->attach(new DirectiveName('core', 'callout'), ['class' => ' wide ', 'id' => 'note-1', 'variant' => 'warning'], variant: new Variant('warning', 'core'));
 
 		$this->assertSame('directive-callout directive-callout--warning wide', $callout->classes());
 		$this->assertSame('class="directive-callout directive-callout--warning wide" id="note-1" role="note"', $callout->attributes());
@@ -97,7 +97,7 @@ final class DirectiveTest extends TestCase
 		$this->assertSame('Tom &amp; Jerry', $figure->caption());
 		$this->assertFalse($figure->shouldRender());
 
-		$figure->attach(new DirectiveName('blush', 'figure'), [], '<table></table>');
+		$figure->attach(new DirectiveName('core', 'figure'), [], '<table></table>');
 		$this->assertSame('Tom &amp; Jerry', $figure->caption());
 		$this->assertTrue($figure->shouldRender());
 

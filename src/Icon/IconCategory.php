@@ -15,7 +15,7 @@ namespace Blush\Icon;
 
 /**
  * The groups the admin's icon picker shows the core icons in (D-265),
- * each core icon in one, as `resources/icons/blush/categories.json` has
+ * each core icon in one, as `resources/icons/core/categories.json` has
  * it. A theme's, the site's, or an extension's icons are grouped by where
  * they come from instead.
  */

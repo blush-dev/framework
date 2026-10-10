@@ -6,7 +6,7 @@
 
 import { request, type FieldDescription } from './api';
 import { BLOCK_KINDS } from './blocks';
-import { attributeText, registerDirectiveKinds } from './markdown';
+import { attributeText, registerDirectiveKinds, shortName } from './markdown';
 import type { IconName } from './icons';
 
 export interface DirectiveProp extends FieldDescription {
@@ -15,7 +15,7 @@ export interface DirectiveProp extends FieldDescription {
 }
 
 export interface DirectiveDescription {
-	// The full name, which is what's written (D-171): `blush/callout`.
+	// The full name, which is what's written (D-171): `core/callout`.
 	name: string;
 	label: string;
 	description: string;
@@ -254,7 +254,7 @@ export function groupsOf(directives: DirectiveDescription[]): DirectiveGroup[] {
  * The icon a directive is drawn with.
  */
 export function directiveIcon(directive: DirectiveDescription): IconName {
-	return directive.icon ?? (directive.category !== null ? ICONS[directive.name.replace(/^blush\//, '')] : undefined) ?? groupOf(directive).icon;
+	return directive.icon ?? (directive.category !== null ? ICONS[shortName(directive.name)] : undefined) ?? groupOf(directive).icon;
 }
 
 /**

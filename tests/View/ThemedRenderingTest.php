@@ -338,7 +338,7 @@ final class ThemedRenderingTest extends TestCase
 
 		$this->assertSame(404, $response->getStatusCode());
 		$this->assertStringContainsString('<h1>404 Not Found</h1>', (string) $response->getBody());
-		$this->assertStringContainsString('Broken error view', (string) file_get_contents($this->temporaryDirectory() . '/storage/logs/blush.log'));
+		$this->assertStringContainsString('Broken error view', (string) file_get_contents($this->temporaryDirectory() . '/storage/logs/site.log'));
 	}
 
 	public function testThemesSwitchByQueryInDevelopment(): void

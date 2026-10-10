@@ -92,7 +92,7 @@ final readonly class IconsController
 	 */
 	private static function keywords(): array
 	{
-		$file = Framework::path('resources/icons/blush/tags.json');
+		$file = Framework::path('resources/icons/core/tags.json');
 
 		try {
 			$tags = json_decode((string) @file_get_contents($file), true, 4, JSON_THROW_ON_ERROR);
@@ -119,7 +119,7 @@ final readonly class IconsController
 	 */
 	private static function categories(): array
 	{
-		$file = Framework::path('resources/icons/blush/categories.json');
+		$file = Framework::path('resources/icons/core/categories.json');
 
 		try {
 			$data = json_decode((string) @file_get_contents($file), true, 2, JSON_THROW_ON_ERROR);

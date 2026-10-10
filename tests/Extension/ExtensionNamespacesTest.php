@@ -76,7 +76,7 @@ final class ExtensionNamespacesTest extends TestCase
 		$this->assertSame('a-b-c-d', ExtensionNamespace::fromName('a.b/c-d'));
 		$this->assertTrue(ExtensionNamespace::isValid(ExtensionNamespace::fromName('a.b/c_d--e')));
 
-		foreach (['blush', 'theme', 'default'] as $reserved) {
+		foreach (['core', 'theme', 'default'] as $reserved) {
 			$this->assertTrue(ExtensionNamespace::isReserved($reserved), $reserved);
 		}
 

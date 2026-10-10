@@ -210,7 +210,7 @@ final class PluginTest extends TestCase
 			'{"name": "ok/name", "label": "OK", "namespace": "ok", "provider": "A\\\\B", "autoload": {"psr-4": {"NoSlash": "src"}}}',
 			'{"name": "ok/name", "label": 5, "namespace": "ok", "provider": "A\\\\B"}',
 			'{"name": "ok/name", "label": "OK", "namespace": 5, "provider": "A\\\\B"}',
-			'{"name": "ok/name", "label": "OK", "namespace": "blush", "provider": "A\\\\B"}',
+			'{"name": "ok/name", "label": "OK", "namespace": "core", "provider": "A\\\\B"}',
 			'{"name": "ok/name", "label": "OK", "namespace": "Not Valid", "provider": "A\\\\B"}',
 			'{"name": "ok/name", "label": "OK", "namespace": "ok", "provider": 5}',
 			'{"name": "ok/name", "label": "OK", "namespace": "ok", "provider": "A\\\\B", "authors": [{"email": "a@example.test"}]}',

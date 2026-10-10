@@ -32,7 +32,7 @@ use Blush\Config\InvalidConfig;
  * - `timeout`: the seconds after which a job still running is taken for
  *   dead (its runner stopped) and queued again.
  * - `keepDone` and `keepFailed`: the seconds finished jobs are kept, for
- *   their results, before `blush/prune-jobs` removes them. Done jobs the
+ *   their results, before `core/prune-jobs` removes them. Done jobs the
  *   scheduler queued aren't kept at all.
  */
 final readonly class JobConfig implements Config

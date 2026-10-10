@@ -320,9 +320,9 @@ final class LinterTest extends TestCase
 		$messages   = array_map(static fn (Violation $violation): string => "{$violation->severity->value} {$violation}", $violations);
 
 		$this->assertSame([
-			'warning body: line 5: blush/callout has no "shiny" variant under the active theme, so it renders as Default (it has info, tip, warning, danger).',
-			'warning body: line 9: blush/button has no "primary" variant under the active theme, so it renders as Default (it has secondary).',
-			'warning body: line 11: blush/kbd has no "big" variant under the active theme, so it renders as Default (it has no variants).'
+			'warning body: line 5: core/callout has no "shiny" variant under the active theme, so it renders as Default (it has info, tip, warning, danger).',
+			'warning body: line 9: core/button has no "primary" variant under the active theme, so it renders as Default (it has secondary).',
+			'warning body: line 11: core/kbd has no "big" variant under the active theme, so it renders as Default (it has no variants).'
 		], $messages);
 	}
 }

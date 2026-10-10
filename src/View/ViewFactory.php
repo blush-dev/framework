@@ -32,7 +32,7 @@ use Blush\Translation\Translator;
  * the base layout's skeleton, feeds, sitemaps, the welcome page, and
  * plain fallbacks for what a theme leaves out. The site has no views of
  * its own (D-617). The translator reads the chain's `lang` folders, each
- * theme's domain, then the framework's `blush`.
+ * theme's domain, then the framework's `core`.
  */
 final class ViewFactory
 {

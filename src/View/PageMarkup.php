@@ -29,7 +29,7 @@ use Blush\Theme\ThemeException;
  * value) in the place it was first added, whichever placement adds it;
  * asked for in both, it prints in the head, since earlier is always
  * safe. `has()` and `remove()` work across both. Registered assets are
- * asked for by handle (`enqueue('blush/player')`, D-570), and their
+ * asked for by handle (`enqueue('core/player')`, D-570), and their
  * files are added, each in its placement, when the page prints.
  *
  * Inline scripts and data can be tied to a registered asset (D-580):
@@ -179,7 +179,7 @@ final class PageMarkup
 
 	/**
 	 * Asks for registered assets by handle (D-570), such as
-	 * `blush/player`. Their files are added when the page prints, after
+	 * `core/player`. Their files are added when the page prints, after
 	 * the assets they require, each once.
 	 */
 	public function enqueue(string ...$handles): self

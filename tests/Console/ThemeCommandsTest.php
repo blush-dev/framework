@@ -296,8 +296,8 @@ final class ThemeCommandsTest extends TestCase
 		$result = $this->command('directive:list');
 
 		$this->assertSame(ExitCode::Success, $result->exitCode, $result->errors);
-		$this->assertMatchesRegularExpression('#\| blush/callout\s*\| Callout\s*\| Blush\\\\Directive\\\\Callout\s*\| [^|]*\| \(its own\)#', $result->output);
-		$this->assertMatchesRegularExpression('#\| blush/embed\s*\| Embed\s*\| Blush\\\\Directive\\\\Embed#', $result->output);
+		$this->assertMatchesRegularExpression('#\| core/callout\s*\| Callout\s*\| Blush\\\\Directive\\\\Callout\s*\| [^|]*\| \(its own\)#', $result->output);
+		$this->assertMatchesRegularExpression('#\| core/embed\s*\| Embed\s*\| Blush\\\\Directive\\\\Embed#', $result->output);
 		$this->assertStringNotContainsString('can\'t render', $result->output . $result->errors);
 		$this->assertStringContainsString('extensions/test/site/views/directives/loose.php isn\'t for a registered directive, so nothing renders it.', $result->output . $result->errors);
 	}
@@ -311,7 +311,7 @@ final class ThemeCommandsTest extends TestCase
 
 		$this->assertSame(ExitCode::Success, $result->exitCode, $result->errors);
 		$this->assertMatchesRegularExpression('#\| site/badge\s*\|\s*\| extensions/test/site/views/components/site-badge\.php#', $result->output);
-		$this->assertStringNotContainsString('blush/callout', $result->output, 'Directives aren\'t components (D-532).');
+		$this->assertStringNotContainsString('core/callout', $result->output, 'Directives aren\'t components (D-532).');
 		$this->assertStringNotContainsString('can\'t render', $result->output . $result->errors);
 		$this->assertStringContainsString('extensions/test/site/views/components/loose.php isn\'t named for a component, so nothing renders it. Name it {namespace}-loose.php.', $result->output . $result->errors);
 	}
@@ -341,7 +341,7 @@ final class ThemeCommandsTest extends TestCase
 		$this->writeTemporaryFile('extensions/acme/nova/theme.json', '{"name": "acme/nova", "label": "Nova", "namespace": "nova"}');
 		$this->writeTemporaryFile('extensions/acme/nova/views/components/card.php', 'card');
 		$this->writeTemporaryFile('extensions/acme/nova/views/components/nova-badge.php', 'badge');
-		$this->writeTemporaryFile('extensions/acme/nova/views/directives/blush-callout.php', 'callout');
+		$this->writeTemporaryFile('extensions/acme/nova/views/directives/core-callout.php', 'callout');
 		$this->writeTemporaryFile('extensions/acme/nova/views/directives/callout-warning.php', 'a variant');
 		$this->writeTemporaryFile('extensions/acme/nova/views/directives/tabs.php', 'tabs');
 		$this->writeTemporaryFile('extensions/acme/other/theme.json', '{"name": "acme/other", "label": "Other", "namespace": "other"}');
@@ -352,7 +352,7 @@ final class ThemeCommandsTest extends TestCase
 		$this->assertStringContainsString('warning component card.php: components/card.php isn\'t named for a component, so it never renders; name it components/nova-card.php.', $check->output);
 		$this->assertStringContainsString('warning directive tabs.php: directives/tabs.php isn\'t for a registered directive, so it never renders. Themes can\'t add directives (D-532): make it a component (components/nova-tabs.php) for the theme\'s templates.', $check->output);
 		$this->assertStringNotContainsString('nova-badge', $check->output);
-		$this->assertStringNotContainsString('blush-callout', $check->output);
+		$this->assertStringNotContainsString('core-callout', $check->output);
 		$this->assertStringNotContainsString('callout-warning', $check->output);
 		$this->assertStringNotContainsString('loose', $check->output);
 	}
@@ -378,14 +378,14 @@ final class ThemeCommandsTest extends TestCase
 		$check = $this->command(['theme:check', 'acme/nova', '--strict'])->output;
 
 		$this->assertStringContainsString('warning variants nova/nothing: theme.json lists variants for "nova/nothing", which isn\'t a directive.', $check);
-		$this->assertStringContainsString('warning variants blush/callout: theme.json lists a variant of "blush/callout" that isn\'t valid', $check);
-		$this->assertStringContainsString('notice  variants blush/button: The "pill" variant of "blush/button" has no label; add "directives.button.variants.pill.label" to the theme\'s lang/ catalog.', $check);
+		$this->assertStringContainsString('warning variants core/callout: theme.json lists a variant of "core/callout" that isn\'t valid', $check);
+		$this->assertStringContainsString('notice  variants core/button: The "pill" variant of "core/button" has no label; add "directives.button.variants.pill.label" to the theme\'s lang/ catalog.', $check);
 		$this->assertStringNotContainsString('"bordered" variant', $check);
 		$this->assertStringContainsString('warning variants image: theme.json lists an image variant that isn\'t valid', $check);
 		$this->assertStringContainsString('notice  variants image: The "polaroid" image variant has no label; add "images.variants.polaroid.label" to the theme\'s lang/ catalog.', $check);
 		$this->assertStringContainsString('notice  variants image: The "inline-left" image variant has no label', $check, 'The default theme isn\'t in the chain to label it (D-632).');
 		$this->assertStringNotContainsString('"image", which isn\'t a directive', $check);
-		$this->assertMatchesRegularExpression('#\| blush/callout\s*\| Callout\s*\| Blush\\\\Directive\\\\Callout\s*\| info, tip, warning, danger, bordered\s*\|#', $this->command(['directive:list', '--theme=acme/nova'])->output);
+		$this->assertMatchesRegularExpression('#\| core/callout\s*\| Callout\s*\| Blush\\\\Directive\\\\Callout\s*\| info, tip, warning, danger, bordered\s*\|#', $this->command(['directive:list', '--theme=acme/nova'])->output);
 	}
 
 	public function testExplainsWhichViewWins(): void

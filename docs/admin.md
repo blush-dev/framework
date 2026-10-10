@@ -175,7 +175,7 @@ failed job and **Delete**. Above them, a notice says whether cron is
 running jobs, and if it isn't, the line to add to your server's crontab.
 
 With `site.logs` (administrators), the **Logs** tab shows the last 50
-entries in the site's log (`storage/logs/blush.log` unless
+entries in the site's log (`storage/logs/site.log` unless
 [`config/log.php`](configuration.md#logging) says otherwise), newest
 first, one line each, with errors and warnings marked. An entry with an
 exception opens to show its trace. **Refresh** reads it again and **Download** saves the
@@ -397,7 +397,7 @@ heading, are a gray chip with their class and id names in full
 strength. A block's name is colored, and a block or image the
 settings are showing is boxed (a container on its first and last lines).
 A container's closing line is followed by the full name of the block
-it closes, such as `blush/callout`, faintly; it's only shown, never
+it closes, such as `core/callout`, faintly; it's only shown, never
 part of the text. With the cursor on a container's first or last
 line, the colons on both lines are colored, so you can find its other
 end. Pressing Enter at the end of a container's first line, when
@@ -727,12 +727,12 @@ typing to narrow it (`/call` for a callout), then press Enter or Tab.
 Press Escape to keep the `/` as text.
 
 The block is written into the Markdown by its full name, such as
-`:::blush/callout` … `:::`, with the cursor where your text goes. An
+`:::core/callout` … `:::`, with the cursor where your text goes. An
 inline block (a keyboard key, an abbreviation, an icon) goes at the
 cursor, inside the sentence; the rest go on lines of their own. Select
 some text first to make it the block's text. Options the block
 needs are written empty for you to fill in, such as
-`::blush/video{src=""}`. Undo takes an insertion back.
+`::core/video{src=""}`. Undo takes an insertion back.
 
 The list has every registered directive with a class: the built-in
 ones and your plugins' (grouped by where they come from).
@@ -791,7 +791,7 @@ so on), then your theme's, your icon packs', and your plugins'. Pick a
 group on the left, or search by name or what it shows (`home` finds the
 house), then choose one and **Insert** (or double-click it; after a
 search, Enter inserts the first match). It goes in at the cursor as
-`:blush/icon[]{name=house}`; select some text first to give it a label
+`:core/icon[]{name=house}`; select some text first to give it a label
 for screen readers.
 
 ### The outline and the breadcrumb
@@ -2225,7 +2225,7 @@ blocks: registered directives with a class. Each has:
 
 | Key | What it is |
 |---|---|
-| `name` | Its full name, as written in Markdown: `blush/callout`, `acme/tabs` |
+| `name` | Its full name, as written in Markdown: `core/callout`, `acme/tabs` |
 | `label`, `description` | From the translation catalogs, or a label made from the name |
 | `content` | What it wraps: `none`, `text` (its `[label]`), or `blocks` |
 | `kind` | How it's written: `container` (`:::`), `leaf` (`::`), or `inline` (`:`) |

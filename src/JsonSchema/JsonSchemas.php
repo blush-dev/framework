@@ -151,7 +151,7 @@ final readonly class JsonSchemas
 
 		return [
 			'type'                 => 'object',
-			'description'          => 'Styles and scripts the theme registers by handle (vendor/name), which pages load only when they ask for them. A theme with a provider registers them there instead. A handle another extension registered is replaced, such as "blush/player".',
+			'description'          => 'Styles and scripts the theme registers by handle (vendor/name), which pages load only when they ask for them. A theme with a provider registers them there instead. A handle another extension registered is replaced, such as "core/player".',
 			'propertyNames'        => ['pattern' => '^' . Asset::HANDLE . '$'],
 			'additionalProperties' => [
 				'type'                 => 'object',

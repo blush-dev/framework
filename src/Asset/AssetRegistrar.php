@@ -17,29 +17,29 @@ namespace Blush\Asset;
  * Registers core's assets (D-569), without replacing any a plugin,
  * theme, or the site registered first:
  *
- * - `blush/player`: the audio and video players (D-553, D-554), which
+ * - `core/player`: the audio and video players (D-553, D-554), which
  *   `::audio` and `::video` ask for (D-573).
- * - `blush/embed-x`: X's script, which draws the posts `::embed` shows
+ * - `core/embed-x`: X's script, which draws the posts `::embed` shows
  *   as quotes (D-691), in the foot. A site that would rather show the
  *   quotes alone registers an empty one.
- * - `blush/embed-reddit`: Reddit's script, the same way (D-692).
+ * - `core/embed-reddit`: Reddit's script, the same way (D-692).
  */
 final readonly class AssetRegistrar
 {
 	/**
 	 * The audio and video players' handle.
 	 */
-	public const string PLAYER = 'blush/player';
+	public const string PLAYER = 'core/player';
 
 	/**
 	 * X's script's handle.
 	 */
-	public const string EMBED_X = 'blush/embed-x';
+	public const string EMBED_X = 'core/embed-x';
 
 	/**
 	 * Reddit's script's handle.
 	 */
-	public const string EMBED_REDDIT = 'blush/embed-reddit';
+	public const string EMBED_REDDIT = 'core/embed-reddit';
 
 	public function __construct(private AssetRegistry $registry)
 	{}

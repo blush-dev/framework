@@ -17,7 +17,7 @@ use Blush\Theme\ThemeChain;
 
 /**
  * A named set of stylesheets and scripts that load together (D-569),
- * such as `blush/player`, the site's audio and video players. Core,
+ * such as `core/player`, the site's audio and video players. Core,
  * plugins, and themes register assets by handle, a `vendor/name`;
  * pages, templates, directives, and components then ask for them by
  * handle, and the head prints each one once, after what it `requires`.
@@ -25,7 +25,7 @@ use Blush\Theme\ThemeChain;
  *     new Asset('acme/gallery',
  *         styles: [new Style('css/gallery.css', from: 'acme/gallery')],
  *         scripts: [new Script('js/gallery.js', from: 'acme/gallery', attributes: ['type' => 'module'])],
- *         requires: ['blush/player']
+ *         requires: ['core/player']
  *     );
  *
  * An asset with no files is a blank: registering one over another's
@@ -66,7 +66,7 @@ final readonly class Asset
 	 *     "acme/nova-lightbox": {
 	 *         "styles": ["css/lightbox.css"],
 	 *         "scripts": [{"path": "js/lightbox.js", "footer": true, "attributes": {"type": "module"}}],
-	 *         "requires": ["blush/player"]
+	 *         "requires": ["core/player"]
 	 *     }
 	 *
 	 * @param  array<array-key, mixed> $data

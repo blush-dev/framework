@@ -22168,23 +22168,43 @@ decision, add a new entry that supersedes it and mark the old one
 ### D-714: Core's prefix is `core`, never `blush`
 
 - **Date:** 2026-10-10
-- **Status:** Planned; nothing built for the existing names.
+- **Status:** Built.
 - **Decision:**
   - **Where core names something that extensions name with their
-    `vendor/name`** (secrets, D-715; job types; asset handles;
-    directives; settings groups and the like), core's prefix is
-    `core`, never the product name, so a rename stays mechanical.
-  - **To change, from an inventory taken 2026-10-10:** job types
-    (`blush/publish`, `blush/reindex`, and the rest in `JobType`),
-    asset handles (`blush/player`), directive names (`blush/figure`,
-    `blush/outline`, `blush/toc`), and the `blush.log` file name. Each
-    gets checked when it's changed: the `/blush` asset URL prefix,
-    SQLite's `blush_*` functions, and the default theme's `blush/default`
-    (an extension's own `vendor/name`, a package rather than core) are
-    decided then.
+    namespace or `vendor/name`, core's is `core`**, never the product
+    name, so a rename stays mechanical: directives (`core/callout`,
+    `DirectiveName::CORE`, with theme views `directives/core-callout.php`),
+    icons (`core/house`, `IconName::CORE`, in `resources/icons/core/`,
+    and a theme's own in `icons/core/`), asset handles and core's `from`
+    (`core/player`, `core/embed-x`, `core/embed-reddit`,
+    `AssetUrls::CORE`), job types (`core/publish`, `core/reindex`, and
+    the rest of `JobType`), Markdown node data (`core/outline`), the
+    secrets store (D-715), and the translation domain (`core`,
+    `Translator::CORE`: `resources/lang` and a site's
+    `user/lang/{locale}/core.json`). The admin writes `core/` from one
+    constant (`CORE` in `markdown.ts`, with `fullName()` and
+    `shortName()`). `core` is a reserved namespace in `blush`'s place.
+  - **The log is `storage/logs/site.log` on the `core` channel**
+    (`LogConfig`): the file holds everything the site logs, extensions'
+    too, so it's named for the site.
+  - **Kept, the author's calls:** the default theme stays
+    `blush/default` (a package with its own vendor, as any theme), and
+    the URLs `/blush/...` (core's assets, `AssetRoutes::CORE_URL`) and
+    `/_blush/preview` stay until a rename.
+  - **Kept, as names of the product to the outside or never seen:**
+    `bin/blush`, Composer's `extra.blush`, the `blush-plugin`,
+    `blush-theme`, and `blush-icons` package types, `blush` as a
+    requirement in manifests (beside `php`), the `blush.commands`
+    container tag, SQLite's `blush_*` functions, the players' custom
+    elements (`<blush-audio-player>`), and the admin's storage keys and
+    element ids (`blush-admin-*`).
+  - **No shims:** no 2.x site has the old names (D-658's spirit); the
+    jtcom trial's content, saved jobs and schedule, Spanish overrides,
+    and log were rewritten by hand.
 - **Why:** the author: "Core should always prefix with 'core' (note
   that we need to address this in some other areas where it is
-  'blush')."
+  'blush')", and on the questions asked: keep `blush/default` and the
+  URLs, `site.log` on the `core` channel, the `core` domain.
 
 ### D-715: A secrets store (`Blush\Secret`)
 

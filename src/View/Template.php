@@ -445,7 +445,7 @@ final class Template
 
 	/**
 	 * Asks for registered assets by handle (D-570), such as
-	 * `blush/player`, for the page this template is part of. They print
+	 * `core/player`, for the page this template is part of. They print
 	 * in its head (or a script's footer), after what they require, each
 	 * once. Asked for in a directive's template, they're kept with the
 	 * body it's in, as the directive's own are (D-572).

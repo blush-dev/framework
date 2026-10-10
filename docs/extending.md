@@ -257,7 +257,7 @@ plain provider needs no code: list it in
 A provider whose oEmbed answer is a quote its own script draws as a post
 (as X's is) overrides `frame()` to return `null` and `asset()` to name a
 [registered asset](#scripts-and-styles) holding that script, such as
-core's `blush/embed-x`. The `embed` directive then shows the answer's
+core's `core/embed-x`. The `embed` directive then shows the answer's
 `<blockquote>`, cleaned down to its text and links, and asks for the
 asset, so the script loads once on the page. The script is always the
 asset's, never the one in the answer.
@@ -668,8 +668,8 @@ Sunday), and `cron('0 9 1 * *')` for any cron expression, in the site's
 time zone. A run missed while nothing came by (no cron, a quiet site)
 happens once, when a runner next comes by. `add()` again replaces a
 job's place on the schedule, and `remove()` takes it off, Blush's own
-tasks included (`blush/go-live`, `blush/prune-cache`,
-`blush/prune-sessions`, `blush/prune-jobs`).
+tasks included (`core/go-live`, `core/prune-cache`,
+`core/prune-sessions`, `core/prune-jobs`).
 
 ### Testing code that queues jobs
 
@@ -768,7 +768,7 @@ Every extension's manifest has the same three keys:
   the extension is shown by its `name`.
 - **`namespace`:** what its directives, components, icons, and translations go by
   (`hello`, for `hello/tabs`). Lowercase letters, digits, `-`, and `_`.
-  `blush`, `theme`, and `default` are reserved. Optional, and
+  `core`, `theme`, and `default` are reserved. Optional, and
   best left out: without one, it's the name with a hyphen for the `/`
   (and for any `.`), so `acme/hello` goes by `acme-hello`
   (`acme-hello/tabs`). Since names are unique, so is that namespace.
@@ -1689,7 +1689,7 @@ public function boot(): void
 		'acme/gallery',
 		styles: [new Style('css/gallery.css', from: 'acme/gallery')],
 		scripts: [new Script('js/gallery.js', from: 'acme/gallery', attributes: ['type' => 'module'], footer: true)],
-		requires: ['blush/player']
+		requires: ['core/player']
 	));
 }
 ```
@@ -1713,8 +1713,8 @@ where the theme's layout prints `$template->foot()`, instead of in the
 Registering a handle that's already taken replaces it. Core's are
 registered first, then plugins', then themes' (those in `theme.json`'s
 `assets`, then their providers'), then your site's own providers' (in `src/`), so a theme can
-replace core's `blush/player` with its own, or with an empty
-`new Asset('blush/player')` to load nothing. A theme without a
+replace core's `core/player` with its own, or with an empty
+`new Asset('core/player')` to load nothing. A theme without a
 provider lists its assets in `theme.json` instead
 ([Scripts and styles](themes.md#scripts-and-styles)).
 

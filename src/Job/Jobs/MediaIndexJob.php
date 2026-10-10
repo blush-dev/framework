@@ -20,7 +20,7 @@ use Blush\Job\JobResult;
 use Blush\Media\Index\MediaIndexer;
 
 /**
- * Brings the media index up to date a batch at a time (`blush/media-index`,
+ * Brings the media index up to date a batch at a time (`core/media-index`,
  * D-626), for a rebuild (a new media URL or allowed types, or a first
  * index) or many new files, which reading at once could outlast a
  * request. Each run reads up to `BATCH` files; the index keeps what's

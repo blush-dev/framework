@@ -30,7 +30,7 @@ use Blush\Media\MediaMetadataCheck;
 
 /**
  * Checks content and media files again for Site Health (Check Again,
- * `blush/health-check`, D-625, D-626), a batch at a time, so reading
+ * `core/health-check`, D-625, D-626), a batch at a time, so reading
  * every file never outlasts a request. It goes in three stages, one or
  * more runs each, keeping what it found in its data:
  *

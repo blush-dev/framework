@@ -371,7 +371,7 @@ final class PublishTest extends TestCase
 		$report = $app->container()->make(Publisher::class)->publish(mediaLimit: 1);
 
 		$this->assertSame(1, $report->media?->pending);
-		$this->assertNotNull($app->container()->make(JobQueue::class)->waiting('blush/media-index'), 'The rest is a job.');
+		$this->assertNotNull($app->container()->make(JobQueue::class)->waiting('core/media-index'), 'The rest is a job.');
 		$this->assertSame(0, $app->container()->make(Publisher::class)->publish()->media?->pending, 'Without a limit, as on the command line, it reads everything.');
 	}
 

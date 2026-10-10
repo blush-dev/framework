@@ -36,7 +36,7 @@ use Blush\Media\MediaMetadata;
  *
  * Catching up reads a batch of files at most (D-626), so a rebuild of a
  * large library never outlasts the request that finds it behind; the
- * rest is a job (`blush/media-index`), and until it's done, files not
+ * rest is a job (`core/media-index`), and until it's done, files not
  * read yet keep their last records (a new one isn't listed yet).
  * `indexing()` is that job, for the admin to follow.
  *

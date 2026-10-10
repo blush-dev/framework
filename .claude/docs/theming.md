@@ -121,7 +121,7 @@ only (D-631).
 - `name` is required (D-378); `label` is the name without one (D-423),
   and `namespace` the name, hyphenated (D-424). `parent`, the
   config's `active`, `?theme=`, and asset URLs all use the name. The namespace is unique across installed extensions; the
-  reserved ones are `blush`, `theme`, and `default` (the default
+  reserved ones are `core`, `theme`, and `default` (the default
   theme's own; `app` was the site's until D-617).
 - `provider` registers after plugins' and before the site's, ancestors
   first; `autoload.psr-4` is registered for local themes (D-116). Themes
@@ -150,7 +150,7 @@ active theme (config and user/data settings over its defaults)
   link, `<main id="main">`, foot; no header or footer), feeds and
   sitemaps, `welcome` and `partials/welcome`, and plain `single`,
   `collection`, `error`, `partials/entries`, `entry-summary`,
-  `entry-meta`, and `pagination`. Their text is in the `blush` domain,
+  `entry-meta`, and `pagination`. Their text is in the `core` domain,
   which `$template->t()` searches after the chain's.
 - Views resolve through each theme's `views/`, the active theme first
   (D-103). The site has no views of its own (D-617): a site changes a
@@ -286,11 +286,11 @@ either from a class.
 
 ### Directives
 
-What content says: content vocabulary (D-026), core's (`blush`) and
+What content says: content vocabulary (D-026), core's (`core`) and
 plugins', never a theme's (D-532) or the site's (D-617).
 
 - **Names (D-171):** `{namespace}/{name}` (`DirectiveName`). Only core
-  directives have short names (`callout` is `blush/callout`). The
+  directives have short names (`callout` is `core/callout`). The
   template is `directives/{namespace}-{name}.php`; a core directive's
   may also be `directives/{name}.php`, and the highest-precedence
   directory wins whichever name it uses (`ViewFinder::nearest()`).
@@ -341,7 +341,7 @@ plugins', never a theme's (D-532) or the site's (D-617).
   ancestor rather than the active theme (D-632). The default theme offers and styles `stretch-wide`,
   `stretch-full`, `inline-left`, and `inline-right`.
 - **Text (D-172):** `Views::directiveText($name, 'label')` reads
-  `directives.{name}.{key}` from the namespace's catalog domain (`blush`
+  `directives.{name}.{key}` from the namespace's catalog domain (`core`
   or a plugin's), falling back to `DirectiveName::label()`.
 - **Discovery:** `DirectiveType` declares the core directives (the
   registrar seeds them). `Views::directives()` lists every registered one
@@ -469,7 +469,7 @@ to `<body>` (D-109), and `stylesheet` is a URL or a theme asset path (D-119).
 - **Registered assets** (D-569 to D-573, `Blush\Asset`): core, plugins,
   themes, and the site register named sets of styles and scripts by
   handle (`AssetRegistry`, a `vendor/name`; later wins, so a theme can
-  replace or blank core's `blush/player`). Files are `from` core
+  replace or blank core's `core/player`). Files are `from` core
   (`/blush/{path}`, the framework's `public/site`), a plugin that runs
   (`/extensions/{vendor}/{name}/{path}`), a theme (`theme.asset`, with
   its manifest), or a URL; versioned with `?v={crc32}`. Pages ask by

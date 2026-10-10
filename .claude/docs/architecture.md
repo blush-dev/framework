@@ -289,19 +289,19 @@ overrides in D-451, catalog metadata in D-452, `en` last in D-453.
 
 - **`Translator`:** CMS-wide, in-house, using ICU MessageFormat via `ext-intl`
   (`MessageFormatter`) for plurals, select, and number/date arguments.
-- **Catalogs:** per domain (`blush` and each extension's
+- **Catalogs:** per domain (`core` and each extension's
   `vendor/name`), per locale, stored as data files (`lang/{locale}.json`),
   starting with `@@locale` and `@@domain` (D-452). `Translator::domainOf()`
   maps an extension namespace to its domain, for directive and icon
   labels.
-- **Overrides:** `user/lang/{locale}/blush.json`, `app.json`, and
+- **Overrides:** `user/lang/{locale}/core.json`, `app.json`, and
   `extensions/{vendor}/{name}.json`: each domain's first layer, winning
   key by key within a locale; a group in one replaces the package's
   group (`group()`), while across a list of domains groups add up.
 - **Lists of domains:** `translate()`, `has()`, and `group()` take one
   domain or a list, searched in order within each locale.
   `DomainTranslator` binds a list: `Views::$messages` is the theme
-  chain's, child first, then `blush` for the framework's own views
+  chain's, child first, then `core` for the framework's own views
   (`$template->t()`, `tGroup()`; D-632); a directive or
   component gets the chain's and then its own extension's (`Renderable::t()`).
 - **Locale fallback:** `en_US` → `en` → the default locale and its
@@ -1091,7 +1091,7 @@ view layer was implemented in M5 (D-103 to D-125).
   (D-570), the foot where the layout printed it (D-577), with a
   development log warning when a page's footer scripts didn't print.
 - **Assets** (`Blush\Asset`, D-569 to D-573): `AssetRegistry` (handles,
-  seeded by `AssetRegistrar` with `blush/player`), `AssetUrls` (core,
+  seeded by `AssetRegistrar` with `core/player`), `AssetUrls` (core,
   plugin, theme, or URL; `?v={crc32}`), `Assets` (prints handles into a
   head, requirements first), `AssetCollector` (render scopes, so a
   directive's or component's `assets()` reach the page, kept with cached
@@ -1274,7 +1274,7 @@ Implemented in M6a (D-127 to D-130), apart from publishing (M6b).
   markup. A rich embed (X's posts, D-691) is the answer's blockquote,
   cleaned by `RichQuote`, with the `rich` modifier; the directive asks
   for the provider's registered asset (`asset()`, core's
-  `blush/embed-x` and `blush/embed-reddit`), whose script draws the post. Other rich answers
+  `core/embed-x` and `core/embed-reddit`), whose script draws the post. Other rich answers
   render as links.
 
 ## Icons (D-187)
@@ -1282,7 +1282,7 @@ Implemented in M6a (D-127 to D-130), apart from publishing (M6b).
 - `IconName` (`{namespace}/{name}`, short names are core), `Icons` (finds
   a name's SVG for a theme chain: site, themes, `IconRegistry` folders
   (installed icon packs', D-378, and plugins'), then the framework's
-  Lucide subset in `resources/icons/blush`), and
+  Lucide subset in `resources/icons/core`), and
   the `icon` directive (inline SVG, `1em`, `currentColor`, decorative
   or labeled). Labels are catalog text (`icons.{name}.label`).
 
@@ -1529,7 +1529,7 @@ and **icon packs**; **admin themes** are planned on the same pieces.
 - **Namespace:** every manifest declares one (`ExtensionNamespace`):
   what its directives, components, and icons go by (its translation domain is its
   `vendor/name`, mapped from the namespace, D-451). Reserved:
-  `blush`, `theme`, and `default` (the default theme's). No two
+  `core`, `theme`, and `default` (the default theme's). No two
   installed extensions share one: two plugins doing so fail discovery;
   two themes, or two icon packs, are both broken; across kinds,
   `Bootstrap` lets installed plugins (even ones turned off) claim first,
@@ -1699,10 +1699,10 @@ and **icon packs**; **admin themes** are planned on the same pieces.
     named shapes) and `Scheduler::tick()`: under a lock, queue each task
     whose frequency's next time after its last run has come (a missed
     run happens once), under the unique key `schedule:{job}`. Core's:
-    `blush/go-live` every minute (which also dispatches
+    `core/go-live` every minute (which also dispatches
     `EntriesWentLive` for entries it saw scheduled that are published
-    now, D-623), `blush/prune-cache` and
-    `blush/prune-sessions` hourly, `blush/prune-jobs` daily at 03:00.
+    now, D-623), `core/prune-cache` and
+    `core/prune-sessions` hourly, `core/prune-jobs` daily at 03:00.
   - Runners: cron (`schedule:run`), a worker (`jobs:work`), the admin
     (`POST jobs/{id}/run`, for the jobs a person starts and follows),
     and `WebRunner` after the response (`HttpRunner`, PHP-FPM's
@@ -1712,17 +1712,17 @@ and **icon packs**; **admin themes** are planned on the same pieces.
   - Admin actions name a job with `AdminAction::job()` (Publish and
     Reindex do); the admin queues it once (`action:{job}`) and follows
     it with progress.
-  - Site Health's many-file fixes are `blush/health-fix`
+  - Site Health's many-file fixes are `core/health-fix`
     (`HealthFixJob`, D-624): 100 paths a run, permissions from the
     queuing account on every run (`FixAccess`), and the endpoint's old
     answer as the job's `result` (`JobRecord::$result`). Check Again is
-    `blush/health-check` (`HealthCheckJob`, D-625): 200 files a run
+    `core/health-check` (`HealthCheckJob`, D-625): 200 files a run
     through `Linter::lintFile()`, then media details files 200 a run
     (`MediaMetadataCheck::checkSome()`), then `lintSite()` from the
     index's snapshot, `checkLibrary()`, formats, and field sets (D-626).
   - The media index reads a bounded batch when the library catches up
     (`MediaIndexer::index(limit:)`, the snapshot's `pending` and
-    `rejected`), the rest as `blush/media-index` (`MediaIndexJob`,
+    `rejected`), the rest as `core/media-index` (`MediaIndexJob`,
     D-626).
 - **Publishing without shell access:** upload by SFTP, then use the signed
   webhook or the admin to reindex and bust caches. `git pull` is an optional

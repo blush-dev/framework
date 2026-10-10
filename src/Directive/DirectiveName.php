@@ -17,11 +17,11 @@ use Override;
 use Stringable;
 
 /**
- * A directive's name, `{namespace}/{name}` (D-171): `blush` for the core
+ * A directive's name, `{namespace}/{name}` (D-171): `core` for the core
  * directives or a plugin's namespace (D-378); themes can't register
  * directives (D-532), and the site has none of its own (D-617). Only core
  * directives may be written without their namespace
- * (`callout` is `blush/callout`); any other short name isn't a directive.
+ * (`callout` is `core/callout`); any other short name isn't a directive.
  *
  * A directive's template is `directives/{namespace}-{name}.php`. A core
  * directive's may also be `directives/{name}.php`.
@@ -31,7 +31,7 @@ final readonly class DirectiveName implements Stringable
 	/**
 	 * The core directives' namespace.
 	 */
-	public const string CORE = 'blush';
+	public const string CORE = 'core';
 
 	/**
 	 * The syntax of a written name, short or full, as a regex fragment

@@ -135,7 +135,7 @@ export default defineConfig({
 		vue({ template: { compilerOptions: { isCustomElement: (tag) => tag.startsWith('blush-') } } }),
 		resourceFiles(),
 		licenses([
-			{ name: 'Lucide icons, in the admin\'s and the players\' icons', file: resolve(resources, '../icons/blush/LICENSE') },
+			{ name: 'Lucide icons, in the admin\'s and the players\' icons', file: resolve(resources, '../icons/core/LICENSE') },
 			{ name: 'Fira Code, Karla, and Newsreader fonts, in fonts/', file: resolve(resources, 'fonts/LICENSE') },
 			{ name: 'Simple Icons 13.21.0 brand marks, in the Writing screen\'s embeds', file: resolve(resources, 'brands/LICENSE.md') }
 		])

@@ -19,14 +19,14 @@ from different places never clash:
 
 | Namespace              | Whose directives  | Example         |
 |------------------------|-------------------|-----------------|
-| `blush`                | The built-in ones | `blush/callout` |
+| `core`                 | The built-in ones | `core/callout`  |
 | The plugin's namespace | A plugin's own    | `tabs/tabs`     |
 
 A [plugin](extending.md#plugins) declares its namespace in its manifest
 (`"namespace": "tabs"`), and no two installed extensions can share one.
 
 **Only the built-in directives have short names:** `callout` is
-`blush/callout`. Everything else is always written with its namespace.
+`core/callout`. Everything else is always written with its namespace.
 
 ## Using directives in content
 
@@ -332,7 +332,7 @@ files in a folder:
 
 To give another namespace's icon your own look, add a file named after
 it in a subfolder named for its namespace: a theme's
-`icons/blush/house.svg` or `icons/brands/github.svg` (a
+`icons/core/house.svg` or `icons/brands/github.svg` (a
 [child theme](themes.md#overriding-templates) can do this for the theme
 it builds on). The active theme's file wins, then its parents', then
 icon packs' and plugins'. Draw
@@ -757,7 +757,7 @@ built-in ones do (`directive-callout__title`). That keeps them apart from
 the rest of a theme's classes.
 
 To change how a built-in directive looks, add your own template with its
-name, `views/directives/callout.php` or `views/directives/blush-callout.php`.
+name, `views/directives/callout.php` or `views/directives/core-callout.php`.
 Yours wins. The built-in directives draw themselves with Blush's own
 templates, in `resources/directives/` (the class's `render()`), and
 your template gets the same `$directive` (their classes are in
@@ -783,7 +783,7 @@ constructor, `CONTENT`, `KIND`, and `VARIANTS`, so registering takes
 only its name and class.
 
 A provider can also replace a built-in directive with its own class:
-`register('callout', MyCallout::class)`. The `blush` namespace is only for
+`register('callout', MyCallout::class)`. The `core` namespace is only for
 the built-in ones, and every other name needs its namespace. A name in a
 theme's namespace is refused: themes can't register directives.
 

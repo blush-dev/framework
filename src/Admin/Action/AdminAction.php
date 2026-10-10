@@ -53,7 +53,7 @@ abstract class AdminAction
 	}
 
 	/**
-	 * Returns the key of the job the action queues (`blush/publish`), or
+	 * Returns the key of the job the action queues (`core/publish`), or
 	 * `null` for one that runs in the request.
 	 */
 	public function job(): ?string

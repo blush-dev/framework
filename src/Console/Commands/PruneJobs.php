@@ -20,7 +20,7 @@ use Blush\Job\JobQueue;
 
 /**
  * Removes finished jobs kept past `JobConfig::$keepDone` and
- * `$keepFailed` (D-621), as the scheduled `blush/prune-jobs` does daily.
+ * `$keepFailed` (D-621), as the scheduled `core/prune-jobs` does daily.
  */
 #[Command('jobs:prune', 'Remove old finished jobs.')]
 final readonly class PruneJobs

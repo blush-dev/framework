@@ -19,7 +19,7 @@ use Blush\Job\JobType;
 
 /**
  * Brings the content and media indexes up to date with the files, as a
- * job (`blush/reindex`, D-621), so it can take longer than a request.
+ * job (`core/reindex`, D-621), so it can take longer than a request.
  */
 final class ReindexAction extends AdminAction
 {

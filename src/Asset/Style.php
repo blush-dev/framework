@@ -17,7 +17,7 @@ namespace Blush\Asset;
  * One of an asset's stylesheets (D-569): a file and where it's from,
  * which `AssetUrls` turns into a versioned URL.
  *
- * `$from` is `blush` for core's own files, a plugin's or theme's
+ * `$from` is `core` for core's own files, a plugin's or theme's
  * `vendor/name` for a file in its folder, or `''` for a URL as given
  * (`/css/print.css`, `https://cdn.example.com/a.css`).
  */

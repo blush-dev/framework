@@ -22,7 +22,7 @@ use Blush\Data\InvalidData;
 /**
  * The CMS-wide translator (D-028). Messages are ICU MessageFormat
  * patterns (plurals, select, and number and date arguments), looked up
- * by key in catalogs grouped by domain (D-451): `blush` for the
+ * by key in catalogs grouped by domain (D-451): `core` for the
  * framework, and each extension's `vendor/name` (`acme/hello`,
  * `blush/default`). An extension's namespace maps to its
  * domain (`domainOf()`), for directive and icon labels.
@@ -30,7 +30,7 @@ use Blush\Data\InvalidData;
  * A domain's catalogs are data files named by locale
  * (`lang/en_US.json`, `lang/en.json`) in an ordered list of directories.
  * Ahead of them, the site's own catalogs in `user/lang` win (D-451),
- * arranged by language: `user/lang/fr/blush.json`, `user/lang/fr/app.json`,
+ * arranged by language: `user/lang/fr/core.json`, `user/lang/fr/app.json`,
  * and `user/lang/fr/extensions/acme/hello.json`. A lookup can take a list
  * of domains, such as a theme chain's, child first; for each key the
  * first that has it wins, so a child theme overrides its parent message
@@ -53,12 +53,17 @@ final class Translator
 	public const string LAST = 'en';
 
 	/**
+	 * Core's own domain, the framework's text (D-714).
+	 */
+	public const string CORE = 'core';
+
+	/**
 	 * The domains whose overrides sit directly in a language's folder;
 	 * every other domain's are under `extensions/`.
 	 *
 	 * @var list<string>
 	 */
-	public const array OWN = ['blush'];
+	public const array OWN = [self::CORE];
 
 	/**
 	 * Loaded layers, keyed by `{domain}|{locale}`: the site's override,
@@ -104,7 +109,7 @@ final class Translator
 
 	/**
 	 * Returns the domain an extension namespace's text is in: its
-	 * extension's `vendor/name`, or the namespace itself (`blush`).
+	 * extension's `vendor/name`, or the namespace itself (`core`).
 	 */
 	public function domainOf(string $namespace): string
 	{
@@ -135,7 +140,7 @@ final class Translator
 	 * @param  string|list<string>   $domain
 	 * @throws InvalidData When a catalog can't be parsed.
 	 */
-	public function translate(string $key, array $params = [], string|array $domain = 'blush', ?string $locale = null): string
+	public function translate(string $key, array $params = [], string|array $domain = self::CORE, ?string $locale = null): string
 	{
 		$locale ??= $this->locale;
 
@@ -164,7 +169,7 @@ final class Translator
 	 * @return array<string, string>
 	 * @throws InvalidData When a catalog can't be parsed.
 	 */
-	public function group(string $key, array $params = [], string|array $domain = 'blush', ?string $locale = null): array
+	public function group(string $key, array $params = [], string|array $domain = self::CORE, ?string $locale = null): array
 	{
 		$prefix = "{$key}.";
 
@@ -203,7 +208,7 @@ final class Translator
 	 * @param  string|list<string> $domain
 	 * @throws InvalidData When a catalog can't be parsed.
 	 */
-	public function has(string $key, string|array $domain = 'blush', ?string $locale = null): bool
+	public function has(string $key, string|array $domain = self::CORE, ?string $locale = null): bool
 	{
 		return array_any(
 			self::fallbacks($locale ?? $this->locale, $this->locale),

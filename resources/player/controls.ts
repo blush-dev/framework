@@ -5,7 +5,7 @@
  * media), and the volume, shared by every player on the page and
  * remembered (D-576). Playing one player pauses any other.
  *
- * Glyphs are Lucide's (ISC license, as in `resources/icons/blush/LICENSE`),
+ * Glyphs are Lucide's (ISC license, as in `resources/icons/core/LICENSE`),
  * play and pause filled, the rest stroked.
  */
 

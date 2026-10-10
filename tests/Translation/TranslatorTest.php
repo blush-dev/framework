@@ -160,18 +160,18 @@ final class TranslatorTest extends TestCase
 	{
 		$this->writeTemporaryFile('parent/en.json', '{"hello": "Hello", "bye": "Bye", "lines": {"one": "One", "two": "Two"}}');
 		$this->writeTemporaryFile('parent/fr.json', '{"hello": "Bonjour"}');
-		$this->writeTemporaryFile('blush/en.json', '{"hello": "Framework"}');
+		$this->writeTemporaryFile('core/en.json', '{"hello": "Framework"}');
 		$this->writeTemporaryFile('user/lang/en/extensions/acme/hello.json', '{"@@locale": "en", "@@domain": "acme/hello", "hello": "Hi there", "lines": {"mine": "Mine"}}');
-		$this->writeTemporaryFile('user/lang/en/blush.json', '{"hello": "Site framework"}');
+		$this->writeTemporaryFile('user/lang/en/core.json', '{"hello": "Site framework"}');
 
 		$root       = $this->temporaryDirectory();
-		$translator = new Translator($this->loader(), 'en_US', ['acme/hello' => ["{$root}/parent"], 'blush' => ["{$root}/blush"]], "{$root}/user/lang");
+		$translator = new Translator($this->loader(), 'en_US', ['acme/hello' => ["{$root}/parent"], 'core' => ["{$root}/core"]], "{$root}/user/lang");
 
 		$this->assertSame('Hi there', $translator->translate('hello', [], 'acme/hello'));
 		$this->assertSame('Bye', $translator->translate('bye', [], 'acme/hello'), 'Keys the override doesn\'t have come from the package.');
 		$this->assertSame('Bonjour', $translator->translate('hello', [], 'acme/hello', 'fr'), 'The package\'s French beats the override\'s English.');
 		$this->assertSame(['mine' => 'Mine'], $translator->group('lines', [], 'acme/hello'), 'An override\'s group replaces the package\'s.');
-		$this->assertSame('Site framework', $translator->translate('hello', [], 'blush'));
+		$this->assertSame('Site framework', $translator->translate('hello', [], 'core'));
 		$this->assertSame("{$root}/user/lang/fr/extensions/acme/hello", $translator->overridePath('acme/hello', 'fr'));
 		$this->assertSame("{$root}/user/lang/fr/app", $translator->overridePath('app', 'fr'));
 	}

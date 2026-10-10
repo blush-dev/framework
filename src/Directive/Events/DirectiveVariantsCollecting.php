@@ -23,7 +23,7 @@ use Blush\Directive\Variant;
  *
  * ```php
  * $listeners->listen(DirectiveVariantsCollecting::class, function (DirectiveVariantsCollecting $event): void {
- *     if ($event->is('blush/callout')) {
+ *     if ($event->is('core/callout')) {
  *         $event->add('bordered', 'nova');
  *     }
  * });

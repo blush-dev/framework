@@ -33,7 +33,7 @@ use Blush\View\Views;
  * admin's inserter offers: every registered one, each with a class
  * (D-214, D-534). The admin calls them blocks. Each has:
  *
- * - its full `name` (`blush/callout`, `acme/tabs`), which the inserter
+ * - its full `name` (`core/callout`, `acme/tabs`), which the inserter
  *   writes (D-171), and its translated `label` and `description`;
  * - `content` (`none`, `text`, or `blocks`) and `kind`, how it's written:
  *   `container` (`:::name`), `leaf` (`::name`), or `inline` (`:name[…]`),

@@ -87,7 +87,7 @@ blush-framework/
     Storage/            StorageConfig, StorageArea: where site data is kept (D-486)
     Support/            Registry base, Filesystem, PhpArrayFile, Str, Arr, etc.
     Support/Attributes/ Cached attribute reader (from x3p0-attributes)
-  resources/            server.php (`serve` router); lang/ (the `blush` catalog domain); icons/blush/ (the core
+  resources/            server.php (`serve` router); lang/ (the `core` catalog domain); icons/core/ (the core
                         Lucide subset, D-187)
     directives/         The core directives' own templates, which their render() returns (D-382, D-532)
     player/             The shared audio and video players, `<blush-audio-player>` and

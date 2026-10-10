@@ -63,7 +63,7 @@ import { ApiError, entryRoute, errorMessage, request, type FieldDescription, typ
 import { useAction } from '../action';
 import { config } from '../config';
 import { fromForm, toForm, type FormValue } from '../fields';
-import { attributeText, imageText, linkText } from '../markdown';
+import { attributeText, CORE, imageText, linkText } from '../markdown';
 import { siteDateTime } from '../dates';
 import { formatSize, plural } from '../format';
 import { embeddedText, forgetFile, formatDuration, mediaFacts, mediaIcon, mediaName } from '../media';
@@ -474,7 +474,7 @@ const snippet = computed(() => {
 	}
 
 	if (item.kind === 'video' || item.kind === 'audio') {
-		return { text: `::blush/${item.kind}{${attributeText('src', item.reference)}}`, label: 'In the editor', note: 'inserted by the media button', what: 'the block' };
+		return { text: `::${CORE}/${item.kind}{${attributeText('src', item.reference)}}`, label: 'In the editor', note: 'inserted by the media button', what: 'the block' };
 	}
 
 	return { text: linkText(mediaName(item), item.reference), label: 'In Markdown', note: 'the link text is the title', what: 'the Markdown' };

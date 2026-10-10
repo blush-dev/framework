@@ -37,7 +37,7 @@ abstract class Renderable
 
 	/**
 	 * The registered assets it needs on the page, by handle (D-572),
-	 * such as `blush/player`.
+	 * such as `core/player`.
 	 *
 	 * @var list<string>
 	 */

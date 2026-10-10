@@ -24,7 +24,7 @@ use Blush\Theme\Themes;
  * Turns an asset file and where it's from into a URL (D-569), versioned
  * with `?v=`, a CRC32 of its contents (D-194), as theme assets are:
  *
- * - `blush`: core's own built files, in the framework's `public/site`,
+ * - `core`: core's own built files, in the framework's `public/site`,
  *   at `/blush/{path}` (`AssetRoutes::CORE_URL`).
  * - A plugin that runs: a file in its folder, at
  *   `/extensions/{vendor}/{name}/{path}` (`AssetRoutes::PLUGIN_URL`).
@@ -41,7 +41,7 @@ final class AssetUrls
 	/**
 	 * The `from` of core's own files.
 	 */
-	public const string CORE = 'blush';
+	public const string CORE = 'core';
 
 	/**
 	 * Core's built site files, relative to the framework.

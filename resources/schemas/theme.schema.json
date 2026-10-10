@@ -24,7 +24,7 @@
 			"pattern": "^[a-z0-9][a-z0-9_-]*$",
 			"not": {
 				"enum": [
-					"blush",
+					"core",
 					"theme",
 					"default"
 				]
@@ -243,7 +243,7 @@
 		},
 		"assets": {
 			"type": "object",
-			"description": "Styles and scripts the theme registers by handle (vendor/name), which pages load only when they ask for them. A theme with a provider registers them there instead. A handle another extension registered is replaced, such as \"blush/player\".",
+			"description": "Styles and scripts the theme registers by handle (vendor/name), which pages load only when they ask for them. A theme with a provider registers them there instead. A handle another extension registered is replaced, such as \"core/player\".",
 			"propertyNames": {
 				"pattern": "^[a-z0-9][a-z0-9_.-]*/[a-z0-9][a-z0-9_.-]*$"
 			},

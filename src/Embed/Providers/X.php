@@ -22,7 +22,7 @@ use Blush\Embed\EmbedProvider;
  * X (D-691): posts on `x.com` and `twitter.com`, a rich embed. Its
  * oEmbed answer is the post as a quote, asked for without its script
  * and with `dnt` (so X doesn't tailor what it shows to the reader); the
- * script that draws the post is core's `blush/embed-x` asset. Nothing
+ * script that draws the post is core's `core/embed-x` asset. Nothing
  * is framed, and links to anything but a post are links.
  */
 final class X extends EmbedProvider

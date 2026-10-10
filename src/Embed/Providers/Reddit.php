@@ -22,7 +22,7 @@ use Blush\Embed\EmbedProvider;
  * Reddit (D-692): posts on `reddit.com` (with `www.`, `old.`, and
  * `new.`), a rich embed (D-691). Its oEmbed answer is a quote of the
  * post's title, author, and community; the script that draws the post is
- * core's `blush/embed-reddit` asset. Nothing is framed. Share links
+ * core's `core/embed-reddit` asset. Nothing is framed. Share links
  * (`/r/{name}/s/{id}`) only redirect, so they're links.
  */
 final class Reddit extends EmbedProvider

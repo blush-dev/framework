@@ -60,11 +60,23 @@ export function registeredKind(name: string): DirectiveKind | undefined {
 }
 
 /**
- * A directive's full name: a core directive's short name with `blush/`,
+ * Core's namespace (D-714), which core's directives and icons go by.
+ */
+export const CORE = 'core';
+
+/**
+ * A directive's full name: a core directive's short name with `core/`,
  * once it's registered; anything else as written.
  */
 export function fullName(name: string): string {
-	return name.includes('/') || !registered.value.has(`blush/${name}`) ? name : `blush/${name}`;
+	return name.includes('/') || !registered.value.has(`${CORE}/${name}`) ? name : `${CORE}/${name}`;
+}
+
+/**
+ * A core directive's name without `core/`; anything else as written.
+ */
+export function shortName(name: string): string {
+	return name.startsWith(`${CORE}/`) ? name.slice(CORE.length + 1) : name;
 }
 
 export interface Directive {

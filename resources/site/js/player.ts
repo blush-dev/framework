@@ -4,7 +4,7 @@
  * (`resources/player`) for the `::audio`, `::video`, and `:::playlist`
  * directives (D-708), with their styles and the
  * site's defaults for their colors. Core registers it as the
- * `blush/player` asset, which the directives ask for.
+ * `core/player` asset, which the directives ask for.
  */
 
 import '../css/player.css';

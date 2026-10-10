@@ -18,9 +18,9 @@ use Stringable;
 
 /**
  * An icon's name, `{namespace}/{name}`, named like components (D-171,
- * D-187): `blush` for the core icons, a theme's, icon pack's, or
+ * D-187): `core` for the core icons, a theme's, icon pack's, or
  * plugin's namespace (D-378). A name without a namespace is a core
- * icon (`house` is `blush/house`). The name part is lowercase
+ * icon (`house` is `core/house`). The name part is lowercase
  * letters, digits, and hyphens, as icon file names are.
  */
 final readonly class IconName implements Stringable
@@ -28,7 +28,7 @@ final readonly class IconName implements Stringable
 	/**
 	 * The core icons' namespace.
 	 */
-	public const string CORE = 'blush';
+	public const string CORE = 'core';
 
 	public function __construct(
 		public string $namespace,

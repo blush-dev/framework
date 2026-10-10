@@ -93,7 +93,7 @@ final class AdminJobsTest extends TestCase
 	{
 		$this->boot();
 
-		$job = $this->app->container()->make(JobQueue::class)->push('blush/reindex', account: 'someone');
+		$job = $this->app->container()->make(JobQueue::class)->push('core/reindex', account: 'someone');
 
 		$this->token();
 
@@ -108,13 +108,13 @@ final class AdminJobsTest extends TestCase
 
 		$queue  = $this->app->container()->make(JobQueue::class);
 		$failed = $this->app->container()->make(JobRunner::class)->finish($queue->push('test/refuse'));
-		$queued = $queue->push('blush/reindex');
+		$queued = $queue->push('core/reindex');
 		$token  = $this->token();
 
 		$list = self::json($this->send('GET', '/jobs'));
 
 		$this->assertSame([$queued->id, $failed->id], array_column(is_array($list['jobs'] ?? null) ? $list['jobs'] : [], 'id'), 'Newest first.');
-		$this->assertSame(['blush/go-live', 'blush/prune-cache', 'blush/prune-sessions', 'blush/prune-jobs'], array_column(is_array($list['tasks'] ?? null) ? $list['tasks'] : [], 'job'));
+		$this->assertSame(['core/go-live', 'core/prune-cache', 'core/prune-sessions', 'core/prune-jobs'], array_column(is_array($list['tasks'] ?? null) ? $list['tasks'] : [], 'job'));
 		$this->assertSame('auto', $list['mode'] ?? null);
 		$this->assertIsString($list['cron'] ?? null);
 		$this->assertStringContainsString('schedule:run', $list['cron']);
@@ -128,10 +128,10 @@ final class AdminJobsTest extends TestCase
 
 		$this->assertSame(['deleted' => $queued->id], self::json($this->send('DELETE', "/jobs/{$queued->id}", headers: ['X-CSRF-Token' => $token])));
 
-		$now = self::json($this->send('POST', '/jobs/schedule/blush/prune-jobs', headers: ['X-CSRF-Token' => $token]))['job'] ?? null;
+		$now = self::json($this->send('POST', '/jobs/schedule/core/prune-jobs', headers: ['X-CSRF-Token' => $token]))['job'] ?? null;
 
 		$this->assertIsArray($now);
-		$this->assertSame('blush/prune-jobs', $now['job'] ?? null);
+		$this->assertSame('core/prune-jobs', $now['job'] ?? null);
 		$this->assertSame($this->janeId(), $now['account'] ?? null);
 		$this->assertSame(404, $this->send('POST', '/jobs/schedule/test/refuse', headers: ['X-CSRF-Token' => $token])->getStatusCode(), 'It isn\'t on the schedule.');
 	}
@@ -223,7 +223,7 @@ final class AdminJobsTest extends TestCase
 		$this->writeTemporaryFile('user/content/note.md', "---\ntitle: Note\n---\n");
 		$this->boot(roles: ['owner'], ids: false);
 
-		$job = $this->app->container()->make(JobQueue::class)->push('blush/health-fix', ['fix' => 'ids', 'remaining' => null], 'nobody');
+		$job = $this->app->container()->make(JobQueue::class)->push('core/health-fix', ['fix' => 'ids', 'remaining' => null], 'nobody');
 		$run = $this->app->container()->make(JobRunner::class)->finish($job);
 
 		$this->assertSame('failed', $run->status->value);

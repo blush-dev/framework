@@ -25,7 +25,7 @@ use Blush\Theme\ThemeResolver;
 /**
  * An icon, as inline SVG (D-187): `:icon[Home]{name=house}`, or
  * `:icon[]{name=heart}` for one that's only decoration. `name` is an
- * icon name (`house` is the core `blush/house`; `jtcom/github` a theme's),
+ * icon name (`house` is the core `core/house`; `jtcom/github` a theme's),
  * found for the request's theme chain by `Icons`.
  *
  * It's `1em` square and drawn in the text color. Without a label it's

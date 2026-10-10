@@ -2,8 +2,8 @@
 
 `blush/` holds Blush's core icons (D-187): a front-end subset of
 [Lucide](https://lucide.dev) 1.48.0 (ISC license, in `blush/LICENSE`),
-named as in Lucide. `blush/tags.json` has Lucide's search tags for each,
-and `blush/categories.json` the one category the admin's icon picker
+named as in Lucide. `core/tags.json` has Lucide's search tags for each,
+and `core/categories.json` the one category the admin's icon picker
 shows it in (`IconCategory`, D-265).
 
 To update them or add icons, download the `lucide-static` package

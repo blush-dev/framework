@@ -132,7 +132,7 @@ abstract class EmbedProvider
 
 	/**
 	 * Returns the handle of the registered asset whose script draws the
-	 * provider's quotes as posts (D-691), such as `blush/embed-x`, or
+	 * provider's quotes as posts (D-691), such as `core/embed-x`, or
 	 * `null` for a provider without rich embeds.
 	 */
 	public function asset(): ?string

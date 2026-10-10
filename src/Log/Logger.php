@@ -40,7 +40,7 @@ final class Logger implements LoggerInterface
 		private readonly LogWriter $writer,
 		private readonly ClockInterface $clock,
 		private readonly Level $threshold = Level::Debug,
-		private readonly string $channel = 'blush'
+		private readonly string $channel = 'core'
 	) {
 	}
 

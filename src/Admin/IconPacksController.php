@@ -28,6 +28,7 @@ use Blush\Extension\LocalExtensions;
 use Blush\Extension\Install\ExtensionInstaller;
 use Blush\Http\Response;
 use Blush\Http\Status;
+use Blush\Icon\IconName;
 use Blush\Icon\IconPack;
 use Blush\Icon\IconPacks;
 use Blush\Icon\IconPackSource;
@@ -179,7 +180,7 @@ final readonly class IconPacksController
 	 */
 	private static function coreSet(?int $limit = null): array
 	{
-		$files = self::files(Framework::path('resources/icons/blush'));
+		$files = self::files(Framework::path('resources/icons/' . IconName::CORE));
 
 		return [
 			'label'   => 'Core',

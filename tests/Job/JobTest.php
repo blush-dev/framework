@@ -341,7 +341,7 @@ final class JobTest extends TestCase
 		$schedule  = $this->app->container()->make(Schedule::class);
 		$scheduler = $this->app->container()->make(Scheduler::class);
 
-		$this->assertSame(['blush/go-live', 'blush/prune-cache', 'blush/prune-sessions', 'blush/prune-jobs'], array_keys($schedule->all()));
+		$this->assertSame(['core/go-live', 'core/prune-cache', 'core/prune-sessions', 'core/prune-jobs'], array_keys($schedule->all()));
 
 		$schedule->add('test/count', Frequency::daily('03:00'));
 
@@ -355,7 +355,7 @@ final class JobTest extends TestCase
 
 		$this->clock->advance('PT1M');
 
-		$this->assertSame(['blush/go-live'], array_map(static fn (JobRecord $job): string => $job->job, $scheduler->tick()));
+		$this->assertSame(['core/go-live'], array_map(static fn (JobRecord $job): string => $job->job, $scheduler->tick()));
 
 		$task = $schedule->get('test/count');
 
@@ -373,7 +373,7 @@ final class JobTest extends TestCase
 		$this->boot();
 
 		$scheduler = $this->app->container()->make(Scheduler::class);
-		$job       = $scheduler->runNow('blush/prune-jobs', 'jane');
+		$job       = $scheduler->runNow('core/prune-jobs', 'jane');
 
 		$this->assertNotNull($job);
 		$this->assertSame('jane', $job->account);
@@ -411,13 +411,13 @@ final class JobTest extends TestCase
 
 		$container->instance(JobQueue::class, $queue);
 
-		$first = $container->make(Scheduler::class)->runNow('blush/prune-jobs', 'jane');
-		$again = $queue->push('blush/prune-jobs', unique: Scheduler::UNIQUE . 'blush/prune-jobs');
+		$first = $container->make(Scheduler::class)->runNow('core/prune-jobs', 'jane');
+		$again = $queue->push('core/prune-jobs', unique: Scheduler::UNIQUE . 'core/prune-jobs');
 
 		$queue->push('test/count', ['total' => 2]);
 
 		$this->assertSame($first?->id, $again->id, 'A unique key turns a second copy away.');
-		$this->assertCount(1, $queue->pushed('blush/prune-jobs'));
+		$this->assertCount(1, $queue->pushed('core/prune-jobs'));
 		$this->assertCount(2, $queue->pushed());
 		$this->assertSame(JobStatus::Queued, $queue->find($again->id)?->status, 'Nothing ran.');
 		$this->assertSame([], $container->make(JobStore::class)->all(), 'Nothing was stored.');
@@ -468,7 +468,7 @@ final class JobTest extends TestCase
 
 		$schedule = $this->command('schedule:list');
 
-		$this->assertStringContainsString('blush/prune-jobs', $schedule->output);
+		$this->assertStringContainsString('core/prune-jobs', $schedule->output);
 		$this->assertStringContainsString('Daily at 03:00', $schedule->output);
 		$this->assertStringContainsString('Worker (jobs:work):', $schedule->output);
 

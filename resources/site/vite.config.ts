@@ -23,7 +23,7 @@ export default defineConfig({
 	publicDir: false,
 	plugins: [
 		licenses([
-			{ name: 'Lucide icons, in the players\' icons', file: resolve(resources, '../icons/blush/LICENSE') }
+			{ name: 'Lucide icons, in the players\' icons', file: resolve(resources, '../icons/core/LICENSE') }
 		])
 	],
 	build: {

@@ -49,7 +49,7 @@ final class LoggerTest extends TestCase
 	{
 		$this->logger()->error('Page {slug} failed', ['slug' => 'about', 'id' => 7]);
 
-		$this->assertSame(['[2026-09-25T10:00:00+00:00] blush.ERROR: Page about failed {"id":7}'], $this->writer->lines);
+		$this->assertSame(['[2026-09-25T10:00:00+00:00] core.ERROR: Page about failed {"id":7}'], $this->writer->lines);
 	}
 
 	public function testDropsMessagesBelowTheThreshold(): void
@@ -107,7 +107,7 @@ final class LoggerTest extends TestCase
 
 	public function testFileWriterAppendsAndCreatesDirectories(): void
 	{
-		$path   = $this->temporaryDirectory() . '/logs/blush.log';
+		$path   = $this->temporaryDirectory() . '/logs/site.log';
 		$writer = new FileWriter($path);
 
 		$writer->write(Level::Error, 'one');

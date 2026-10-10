@@ -196,7 +196,7 @@ final readonly class ThemedPageRenderer implements PageRenderer
 	 * Returns the page's title for the head: none on the front page, and
 	 * the page number on later pages of a listing ("Blog: Page 2", or
 	 * "Page 2" on the front page), so each page's `<title>` is its own.
-	 * The wording is the `blush` catalog's `document_title.paged` and
+	 * The wording is the `core` catalog's `document_title.paged` and
 	 * `document_title.page`, which a theme's catalog can override.
 	 *
 	 * @throws InvalidData When a catalog can't be parsed.

@@ -29,15 +29,15 @@ use Blush\Job\Jobs\ReindexJob;
  */
 enum JobType: string
 {
-	case Publish       = 'blush/publish';
-	case Reindex       = 'blush/reindex';
-	case GoLive        = 'blush/go-live';
-	case PruneCache    = 'blush/prune-cache';
-	case PruneSessions = 'blush/prune-sessions';
-	case PruneJobs     = 'blush/prune-jobs';
-	case HealthFix     = 'blush/health-fix';
-	case HealthCheck   = 'blush/health-check';
-	case MediaIndex    = 'blush/media-index';
+	case Publish       = 'core/publish';
+	case Reindex       = 'core/reindex';
+	case GoLive        = 'core/go-live';
+	case PruneCache    = 'core/prune-cache';
+	case PruneSessions = 'core/prune-sessions';
+	case PruneJobs     = 'core/prune-jobs';
+	case HealthFix     = 'core/health-fix';
+	case HealthCheck   = 'core/health-check';
+	case MediaIndex    = 'core/media-index';
 
 	/**
 	 * Returns the job's class.

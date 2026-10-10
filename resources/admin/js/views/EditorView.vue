@@ -131,7 +131,7 @@ import { siteDateTime } from '../dates';
 import { formatDay, plural, series, titleCase } from '../format';
 import { forget, keep, kept, type EditorState, type KeptChanges } from '../kept';
 import { childrenOf, elementAt, elementName, excerpt, holdsContent, imageLine, movedElement, outlineItems, pathTo, runIndex, sameElement, siblingRuns, type ElementRef, type OutlineItem } from '../elements';
-import { attributeParts, attributeText, blocks, directiveHead, emphasisAt, imageText, renumberedAt, inProse, linkAt, linkLabel, outline, withAttribute, withBlockParts, withDirectiveParts, withImage, withLink, withoutDirective, withoutImage, withoutLink, withParts, wordAt, wordCount, type Directive, type Edit, type Emphasis, type MarkdownLink } from '../markdown';
+import { attributeParts, attributeText, blocks, CORE, directiveHead, emphasisAt, imageText, renumberedAt, inProse, linkAt, linkLabel, outline, withAttribute, withBlockParts, withDirectiveParts, withImage, withLink, withoutDirective, withoutImage, withoutLink, withParts, shortName, wordAt, wordCount, type Directive, type Edit, type Emphasis, type MarkdownLink } from '../markdown';
 import { mediaName } from '../media';
 import { onPressOutside } from '../popover';
 import { loadReferences, referenceValues, slugOf, type ReferenceItem } from '../references';
@@ -1369,7 +1369,7 @@ function openIcons(): void {
 const iconDirective = computed(() => directiveFor('icon'));
 
 function iconPreview(icon: SiteIcon): string {
-	return `:${iconDirective.value?.name ?? 'blush/icon'}[]{${attributeText('name', icon.name)}}`;
+	return `:${iconDirective.value?.name ?? `${CORE}/icon`}[]{${attributeText('name', icon.name)}}`;
 }
 
 function chooseIcon(icon: SiteIcon): void {
@@ -1418,7 +1418,7 @@ function pickMedia(start: 'library' | 'upload' = 'library', kind?: 'image'): voi
 function heldKind(): 'image' | 'audio' | undefined {
 	const only = holder.value?.only;
 
-	return only?.includes('image') === true ? 'image' : (only?.includes('blush/audio') === true ? 'audio' : undefined);
+	return only?.includes('image') === true ? 'image' : (only?.includes(`${CORE}/audio`) === true ? 'audio' : undefined);
 }
 
 /**
@@ -1441,7 +1441,7 @@ function insertFile(file: MediaItem): void {
 	const described = directiveFor(name);
 
 	if (described === undefined) {
-		bodyEditor.value?.insertText(`::blush/${name}{${attributeText('src', file.reference)}}`);
+		bodyEditor.value?.insertText(`::${CORE}/${name}{${attributeText('src', file.reference)}}`);
 	} else {
 		bodyEditor.value?.insert(described, { src: file.reference });
 	}
@@ -1484,7 +1484,7 @@ function insertFiles(files: MediaItem[]): void {
 			const name      = fileDirective(file);
 			const described = directiveFor(name);
 
-			return described === undefined ? `::blush/${name}{${attributeText('src', file.reference)}}` : directiveText(described, false, '', { src: file.reference }).text;
+			return described === undefined ? `::${CORE}/${name}{${attributeText('src', file.reference)}}` : directiveText(described, false, '', { src: file.reference }).text;
 		}).join(gap);
 
 		return { text, caret: text.length };
@@ -1686,7 +1686,7 @@ const block     = computed(() => selection.value?.kind === 'block' ? allBlocks.v
  * core short name.
  */
 function directiveFor(name: string): DirectiveDescription | undefined {
-	return available.value.find((described) => described.name === name || described.name === `blush/${name}`);
+	return available.value.find((described) => described.name === name || described.name === `${CORE}/${name}`);
 }
 
 function directiveName(name: string): string {
@@ -1822,7 +1822,7 @@ const strayItems = computed(() => {
 
 // What's said of a directive written as another kind than it is.
 function misplacedNote(described: DirectiveDescription): string {
-	const name = described.name.replace(/^blush\//, '');
+	const name = shortName(described.name);
 	const how  = {
 		container: `wraps other content, written “:::${name}” … “:::”`,
 		leaf: `goes on a line of its own, written “::${name}”`,
@@ -1845,7 +1845,7 @@ const held = computed(() => {
 
 	return selected.value?.only?.includes('image') === true
 		? markdown.value.images.filter((image) => image.start > item.start && image.end < item.end).length
-		: markdown.value.directives.filter((found) => found.start > item.start && found.end < item.end && directiveFor(found.name)?.name === 'blush/audio').length;
+		: markdown.value.directives.filter((found) => found.start > item.start && found.end < item.end && directiveFor(found.name)?.name === `${CORE}/audio`).length;
 });
 
 // The rows pinned to the end of the Document tab (D-608) each open a
@@ -3197,7 +3197,7 @@ function fieldKey(field: FieldDescription): string {
 							>
 								<OptionsGroup v-if="content" heading="Content">
 									<template v-if="selected?.only?.includes('image')" #hint>{{ plural(held, 'image') }}</template>
-									<template v-else-if="selected?.only?.includes('blush/audio')" #hint>{{ plural(held, 'track') }}</template>
+									<template v-else-if="selected?.only?.includes(`${CORE}/audio`)" #hint>{{ plural(held, 'track') }}</template>
 									<OutlineList :items="content" :describe="rowOf" empty="Nothing inside it yet." @select="select" />
 									<p v-if="strays.length" class="field__error">{{ titleCase(selected?.label ?? '') }} holds only {{ panelNoteNames }}, so the site won't show {{ strays.length === 1 ? 'this line' : 'these lines' }}: {{ strays.map((text) => `“${text.length > 40 ? `${text.slice(0, 40)}…` : text}”`).join(', ') }}.</p>
 								</OptionsGroup>

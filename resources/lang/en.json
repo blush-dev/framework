@@ -1,6 +1,6 @@
 {
 	"@@locale": "en",
-	"@@domain": "blush",
+	"@@domain": "core",
 	"document_title": {
 		"paged": "{title}: Page {page}",
 		"page": "Page {page}"

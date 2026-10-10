@@ -47,7 +47,7 @@ use Blush\Support\Progress;
  * 3. Reindex content incrementally, then media (D-288): all of it, or,
  *    given a `$mediaLimit` (the webhook and the admin, which run in a
  *    request), that many files at most, with the rest queued as
- *    `blush/media-index` (D-627), as when a rebuild reads the whole
+ *    `core/media-index` (D-627), as when a rebuild reads the whole
  *    library.
  * 4. Clear the cache store and move the content version on.
  * 5. Dispatch `ContentPublished`.

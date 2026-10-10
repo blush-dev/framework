@@ -21,7 +21,7 @@ use Blush\Support\Uuid;
  * stored thing is (D-606), so a database can keep it as well as a file.
  *
  * - `id` is a UUIDv7, so jobs sort by when they were queued.
- * - `job` is the registered key of the work (`blush/reindex`), never a
+ * - `job` is the registered key of the work (`core/reindex`), never a
  *   class name, and `data` is what it works on: ids and scalars only.
  * - `attempts` counts the runs that threw; `available` is the time it may
  *   run (later after a failure); `queued`, `started`, and `finished` are
