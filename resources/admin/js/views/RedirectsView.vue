@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * Redirects (D-686; from the redirects sketch), under Config › Settings
+ * Redirects (D-686; from the redirects sketch), under Settings
  * after Addresses and Search: the `redirects` table's rows, built like
  * the admin's other lists. Tabs with counts (All, Permanent, Temporary,
  * and Problems while there are some), a search (`/`) and a filter for

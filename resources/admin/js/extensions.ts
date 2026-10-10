@@ -25,7 +25,7 @@ export const KIND_PATHS: Record<ExtensionKind, string> = {
 	'icon-pack': 'icon-packs'
 };
 
-// Each kind's glyph, as the Config panel draws it, for a row naming an
+// Each kind's glyph, as the Extend panel draws it, for a row naming an
 // extension of that kind (D-565).
 export const KIND_ICONS: Record<ExtensionKind, IconName> = {
 	'theme': 'paintbrush',

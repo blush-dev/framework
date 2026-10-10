@@ -148,7 +148,7 @@ moving older data types, and profiles without `{initial}` (D-683,
 D-684);
 and, from the redirects sketch
 (`.claude/docs/admin-design/meridian-redirects.html`), the Redirects
-screen under Config › Settings with `site.redirects`: rows that lead to
+screen under Settings with `site.redirects`: rows that lead to
 an entry by id and say when, by whom, and how they were added, problems
 and an address's trace worked out live, and the form checked by the
 server (D-686);
@@ -157,9 +157,10 @@ named once per panel, Raw HTML as a segmented choice, and embeds as
 chips with Simple Icons marks (D-695);
 and, from the menus sketch
 (`.claude/docs/admin-design/menus-admin-standalone.html`), the Menus
-screens under Config › Structure: menus and the theme's locations, a
+screens under Structure: menus and the theme's locations, a
 menu's item tree with its fields, and new menus as drafts until
-Publish (D-700);
+Publish (D-700); and Structure and Settings as rail sections of their
+own, in place of Config (D-704);
 1.x conventions go when they get in the way
 (D-658); and an id for every media
 original, with image sizes found by rule and given none

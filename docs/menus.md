@@ -8,7 +8,7 @@ filled. One menu can fill several locations.
 
 ## Making a menu
 
-Make and edit menus in the admin, under **Config → Menus** (see
+Make and edit menus in the admin, under **Structure → Menus** (see
 [the admin](admin.md#menus)), or as files. Each menu is a file in
 `user/data/menus/`, named for the menu:
 
@@ -35,7 +35,7 @@ keeps its menus there instead of in files.
 ## Showing a menu
 
 Assign a menu to one of your theme's locations, in the admin (the
-**Locations** under **Config → Menus**, or a menu's **Settings**) or with
+**Locations** under **Structure → Menus**, or a menu's **Settings**) or with
 the CLI:
 
 ```sh

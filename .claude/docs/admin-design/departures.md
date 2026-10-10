@@ -499,10 +499,11 @@ Each is recorded in `.claude/docs/decisions.md`.
   - No author on the cards (it's on the details, D-384). The palette role
     `bg` is `background`. No theme settings yet (D-307).
 - **Settings** (D-309, D-324, D-325, D-398): only the settings Blush has, as
-  six screens in a **Settings** group of the Config panel (General,
+  six screens in the Settings section (General,
   Reading, Media, Addresses and Search, AI, System), not the prototype's one page.
-  The Config panel's groups are Structure, Settings, and Extensions (D-380)
-  (Themes, Plugins, and Icon Packs; D-379); People is its own section (D-326). The
+  Structure, Settings, and Extend (Themes, Plugins, and Icon Packs; D-379,
+  D-380) are rail sections of their own, in place of one Config section
+  (D-704); People is its own section (D-326). The
   prototype's panels become General's Site, Dates and Time, and
   Environment; Reading's Homepage and Feeds; Addresses and Search's
   Addresses and Search Engines; and System's Content Types, Caching,
@@ -671,7 +672,7 @@ Each is recorded in `.claude/docs/decisions.md`.
     Provides names packages without linking them. Under **What others
     say about it**, Conflicts with it, Replaced by, and Also provided by
     (D-440) join the sketch's lists, each with its kind's glyph (plug,
-    paintbrush, or shapes, as the Config panel has them) rather than an
+    paintbrush, or shapes, as the Extend panel has them) rather than an
     on/off verdict; Provides keeps the neutral package glyph, since what
     it names has no kind. A theme's **Falls back to** is a section of
     it, as the sketch has, shown only for a theme with a `parent`; no

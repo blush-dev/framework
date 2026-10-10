@@ -21798,3 +21798,22 @@ decision, add a new entry that supersedes it and mark the old one
   fallback admin icon), from masks loaded once and shared
   (`iconMasks`, `loadIconMasks()` in `site-icons.ts`); `TypeIcon` is
   `SiteIcon` with its kind's icon as the fallback.
+
+### D-704: Structure and Settings are rail sections, in place of Config
+
+- **Date:** 2026-10-09
+- **Status:** Built. Supersedes the Config section of D-325 and D-380.
+- **Decision:** the rail is Home, Content, Structure, Extend, Users, and
+  Settings. **Structure** (`blocks` icon) has Content Types,
+  Relationships, Fields, and Menus; **Settings** (`settings` icon) has
+  the Settings screens with Redirects after Addresses and Search. Each
+  panel is one group with no heading. Routes say `meta.area`
+  `structure` or `settings`; `config` is gone. Structure sits next to
+  Content, since the two are used together.
+- **Why:** with Structure out, Config held only settings, so it's named
+  for them. "Build" was weighed for Structure and passed over: Blush
+  already uses "build" for compiling (`admin:build`, `site:build`, a
+  static export), so it reads as an action that compiles or publishes,
+  or as a page builder; Menus sit oddly under it; and Structure was
+  already the group's name, beside Content as what you write and how
+  it's shaped.

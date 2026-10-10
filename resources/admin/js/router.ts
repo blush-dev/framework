@@ -4,7 +4,7 @@
  * content action on a type, `meta.contentAction`); the server answers the same page for
  * all of them (`ShellController`) and checks every API request itself.
  * Each belongs to one of the section rail's areas
- * (`meta.area`: `home`, `content`, `people`, `config`, or `extend`); the editor fills the
+ * (`meta.area`: `home`, `content`, `structure`, `extend`, `people`, or `settings`; D-704); the editor fills the
  * work area edge to edge (`meta.bleed`), and the Settings screens drop the
  * work area's widest measure (`meta.wide`, D-404).
  */
@@ -87,25 +87,25 @@ export const router = createRouter({
 		// A library file's screen is at its path under `user/media` (D-251).
 		{ path: '/media', name: 'media', component: MediaView, meta: { title: 'Media', anyCapability: MEDIA_CAPABILITIES, area: 'content' } },
 		{ path: '/media/:path+', name: 'media-file', component: MediaFileView, meta: { title: 'Media', anyCapability: MEDIA_CAPABILITIES, area: 'content', parent: 'media' } },
-		{ path: '/types', name: 'types', component: TypesView, meta: { title: 'Content Types', capability: 'site.settings', area: 'config' } },
-		{ path: '/types/new', name: 'type-new', component: NewTypeView, meta: { title: 'New Content Type', capability: 'site.settings', area: 'config', parent: 'types' } },
-		{ path: '/types/:name', name: 'content-type', component: TypeView, meta: { title: 'Content Type', capability: 'site.settings', area: 'config', parent: 'types' } },
-		{ path: '/relationships', name: 'relations', component: RelationsView, meta: { title: 'Relationships', capability: 'site.settings', area: 'config' } },
-		{ path: '/relationships/new', name: 'relation-new', component: RelationView, meta: { title: 'New Relationship', capability: 'site.settings', area: 'config', parent: 'relations', wide: true } },
-		{ path: '/relationships/:name([a-z0-9_]+)', name: 'relation', component: RelationView, meta: { title: 'Relationship', capability: 'site.settings', area: 'config', parent: 'relations', wide: true } },
-		{ path: '/menus', name: 'menus', component: MenusView, meta: { title: 'Menus', capability: 'menus.edit', area: 'config' } },
-		{ path: '/menus/:name([a-z0-9][a-z0-9_-]*)', name: 'menu', component: MenuView, meta: { title: 'Menu', capability: 'menus.edit', area: 'config', parent: 'menus' } },
-		{ path: '/fields', name: 'fields', component: FieldSetsView, meta: { title: 'Fields', capability: 'site.settings', area: 'config' } },
-		{ path: '/fields/new', name: 'field-set-new', component: NewFieldSetView, meta: { title: 'New Field Set', capability: 'site.settings', area: 'config', parent: 'fields' } },
-		{ path: '/fields/:name', name: 'field-set', component: FieldSetView, meta: { title: 'Field Set', capability: 'site.settings', area: 'config', parent: 'fields' } },
+		{ path: '/types', name: 'types', component: TypesView, meta: { title: 'Content Types', capability: 'site.settings', area: 'structure' } },
+		{ path: '/types/new', name: 'type-new', component: NewTypeView, meta: { title: 'New Content Type', capability: 'site.settings', area: 'structure', parent: 'types' } },
+		{ path: '/types/:name', name: 'content-type', component: TypeView, meta: { title: 'Content Type', capability: 'site.settings', area: 'structure', parent: 'types' } },
+		{ path: '/relationships', name: 'relations', component: RelationsView, meta: { title: 'Relationships', capability: 'site.settings', area: 'structure' } },
+		{ path: '/relationships/new', name: 'relation-new', component: RelationView, meta: { title: 'New Relationship', capability: 'site.settings', area: 'structure', parent: 'relations', wide: true } },
+		{ path: '/relationships/:name([a-z0-9_]+)', name: 'relation', component: RelationView, meta: { title: 'Relationship', capability: 'site.settings', area: 'structure', parent: 'relations', wide: true } },
+		{ path: '/menus', name: 'menus', component: MenusView, meta: { title: 'Menus', capability: 'menus.edit', area: 'structure' } },
+		{ path: '/menus/:name([a-z0-9][a-z0-9_-]*)', name: 'menu', component: MenuView, meta: { title: 'Menu', capability: 'menus.edit', area: 'structure', parent: 'menus' } },
+		{ path: '/fields', name: 'fields', component: FieldSetsView, meta: { title: 'Fields', capability: 'site.settings', area: 'structure' } },
+		{ path: '/fields/new', name: 'field-set-new', component: NewFieldSetView, meta: { title: 'New Field Set', capability: 'site.settings', area: 'structure', parent: 'fields' } },
+		{ path: '/fields/:name', name: 'field-set', component: FieldSetView, meta: { title: 'Field Set', capability: 'site.settings', area: 'structure', parent: 'fields' } },
 		// The direction's Appearance, named Themes (D-327).
 		{ path: '/themes', name: 'themes', component: ThemesView, meta: { title: 'Themes', capability: 'extensions.themes.view', area: 'extend' } },
 		{ path: '/themes/:vendor/:name', name: 'theme', component: ThemeView, meta: { title: 'Theme', capability: 'extensions.themes.view', area: 'extend', parent: 'themes' } },
 		// Settings is four screens (D-325); the view titles each.
 		{ path: '/settings', redirect: { name: 'settings', params: { screen: 'general' } } },
 		// The site's redirects (D-686), listed under Settings.
-		{ path: '/redirects', name: 'redirects', component: RedirectsView, meta: { title: 'Redirects', capability: 'site.redirects', area: 'config' } },
-		{ path: '/settings/:screen(general|reading|writing|media|search|ai|system)', name: 'settings', component: SettingsView, props: true, meta: { title: 'Settings', capability: 'site.settings', area: 'config', wide: true } },
+		{ path: '/redirects', name: 'redirects', component: RedirectsView, meta: { title: 'Redirects', capability: 'site.redirects', area: 'settings' } },
+		{ path: '/settings/:screen(general|reading|writing|media|search|ai|system)', name: 'settings', component: SettingsView, props: true, meta: { title: 'Settings', capability: 'site.settings', area: 'settings', wide: true } },
 		{ path: '/plugins', name: 'plugins', component: PluginsView, meta: { title: 'Plugins', capability: 'extensions.plugins.view', area: 'extend' } },
 		{ path: '/plugins/:vendor/:name', name: 'plugin', component: PluginView, meta: { title: 'Plugin', capability: 'extensions.plugins.view', area: 'extend', parent: 'plugins' } },
 		{ path: '/extensions', redirect: { name: 'plugins' } },

@@ -41,13 +41,13 @@ its URLs exist.
 
 ## Getting around
 
-The rail at the far left has five sections: **Home** (the dashboard,
+The rail at the far left has six sections: **Home** (the dashboard,
 Site Health, and tools), **Content** (each content type's entries, with
 the types of terms that file only it under it, the terms several types
-share, and media),
-**Extend** (themes, plugins, and icon packs), **Users** (your profile,
-accounts, profiles, and roles), and **Config** (content types,
-relationships, fields, and settings). The panel
+share, and media), **Structure** (content types, relationships, fields,
+and menus), **Extend** (themes, plugins, and icon packs), **Users**
+(your profile, accounts, profiles, and roles), and **Settings** (the
+settings screens and redirects). The panel
 beside it lists the section you're in. Choosing a section changes the
 panel and nothing else, so you never leave the screen you're on (an
 entry you're writing stays open); choose a link in the panel to go
@@ -194,7 +194,7 @@ collections (such as Posts) and Pages, each with the
 only that type under it (one whose relation's `from` names one type,
 such as Categories under Posts), then **Shared Terms**, the types of
 terms that file several types or every type, each saying which, then
-**Media**. In **Config**, **Structure** has **Content Types**,
+**Media**. **Structure** has **Content Types**,
 **Relationships**, **Fields**, and **Menus**. Profiles are in
 **Users**, with accounts, since they're the public side of accounts.
 Each type opens a list of its entries you can edit, newest changes
@@ -202,9 +202,10 @@ first. Types are named from their `labels` setting, and
 shown with their `icon` (see
 [Content types](content-types.md#names-descriptions-and-icons-in-the-admin)).
 
-**Users** has Your Account, Accounts, Profiles, and Roles. In
-**Config**, **Settings** has General, Reading, Addresses and Search, AI,
-and System, and **Extensions** has Themes, Plugins, and Icon Packs. You only see the
+**Users** has Your Account, Accounts, Profiles, and Roles.
+**Settings** has General, Reading, Writing, Media, Addresses and Search,
+Redirects, AI, and System, and **Extend** has Themes, Plugins, and Icon
+Packs. You only see the
 screens your roles allow: Media needs one of the media capabilities
 (see [Accounts](accounts.md#capabilities)), Accounts and
 Roles `accounts.view` (and New Account `accounts.create`, New Role
@@ -984,7 +985,7 @@ file you uploaded. You can also put files in
 
 ## Content types
 
-With `site.settings`, **Config → Content types** lists every type, with
+With `site.settings`, **Structure → Content types** lists every type, with
 its kind (**Terms** for a [type of terms](content-types.md#terms-and-relationships)),
 where it's defined (built in, a plugin, or `user/data/types`), how
 many fields it has, and how many entries. Tabs
@@ -1120,7 +1121,7 @@ classes from code, its fields are shown but changed in code.
 
 ## Relationships
 
-With `site.settings`, **Config → Relationships** lists every
+With `site.settings`, **Structure → Relationships** lists every
 [relation](content-types.md#terms-and-relationships) on the site: the
 place they're made and edited, since a type's screen shows only its
 side. Tabs narrow it by purpose (**Credits**, **Files Under Terms**,
@@ -1191,7 +1192,7 @@ does it, with the default the choice that changes no files:
 
 ## Fields
 
-With `site.settings`, **Config → Fields** lists every
+With `site.settings`, **Structure → Fields** lists every
 [field set](content-types.md#field-sets): groups of fields added to
 content types, to [media files' details](media.md#details-about-a-file),
 or to the [Settings](#settings) screens, beside their own. The list shows where each set is added (a place the
@@ -1223,7 +1224,7 @@ matter.
 
 ## Menus
 
-With `menus.edit` (administrators and editors), **Config → Menus** lists
+With `menus.edit` (administrators and editors), **Structure → Menus** lists
 the site's [menus](menus.md): each one's label (with its name under it),
 how many items it has at every level, and the locations showing it. A
 row's menu has **Edit**, **Duplicate**, and **Delete**. Deleting asks
@@ -1299,7 +1300,7 @@ the file.
 
 ## Settings
 
-With `site.settings`, the **Settings** group in **Config** has seven
+With `site.settings`, the **Settings** section has seven
 screens (and [Redirects](#redirects), with its own capability):
 
 - **General:** the site's name, a one-line description (for
@@ -1417,7 +1418,7 @@ you've compiled, run `bin/blush cache:compile` again.
 ## Redirects
 
 With `site.redirects` (administrators and editors), **Redirects** in
-**Config**, after **Addresses and Search**, lists the site's
+**Settings**, after **Addresses and Search**, lists the site's
 [redirects](content.md#redirects): old addresses that send visitors
 somewhere new.
 

@@ -728,7 +728,7 @@ settings to the admin's Settings screens: target `settings:general`,
 `settings:reading`, or `settings:search` (see
 [Your own settings](themes.md#your-own-settings)).
 
-The admin's **Config → Fields** creates and edits the sets in
+The admin's **Structure → Fields** creates and edits the sets in
 `user/data/fields/` ([Fields](admin.md#fields)). Sets can also be
 defined in `config/fields.php`, where the admin only shows them:
 

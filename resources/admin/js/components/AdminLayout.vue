@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /**
  * The signed-in layout (D-231, D-244): a labeled section rail (Home,
- * Content, Users, Config; D-326), the panel beside it with only the active section's
+ * Content, Structure, Extend, Users, Settings; D-326, D-704), the panel beside it with only the active section's
  * links, a top bar, and the work area, the only part that scrolls.
  *
  * Choosing a section changes what the panel offers and nothing else: the
@@ -15,7 +15,7 @@
  * a drawer, and the shown section's button closes it.
  *
  * The top bar's trail is the section, the screens above this one, and
- * this one (`Content / Posts / Editing`, `Config / Content Types /
+ * this one (`Content / Posts / Editing`, `Structure / Content Types /
  * Pages`; D-317): the section crumb shows its panel, and is a rail
  * toggle when the panel already shows it (D-367); the others are ways
  * back. The account's menu is in the top bar,
@@ -43,7 +43,7 @@ import ConfirmHost from './ConfirmHost.vue';
 import ToastHost from './ToastHost.vue';
 import TypeIcon from './TypeIcon.vue';
 
-type Area = 'home' | 'content' | 'people' | 'config' | 'extend';
+type Area = 'home' | 'content' | 'structure' | 'extend' | 'people' | 'settings';
 
 interface NavLink {
 	key: string;
@@ -101,10 +101,10 @@ const screen = (name: string, label: string, icon: IconName): NavLink => ({ key:
  * term types that file only it nested under it (D-593), the term types
  * shared by several types (or every type), and Media. **Users** (D-326, D-354):
  * Your Account, Accounts, Profiles, and Roles (D-353, D-358).
- * **Config** (D-325): Structure (content types, relationships (D-610),
- * fields, and menus), Settings (its screens, with Redirects after Addresses
- * and Search, D-686), and Extensions (Themes, Plugins, and Icon Packs; D-327, D-378,
- * D-380).
+ * **Structure** (D-704): content types, relationships (D-610), fields,
+ * and menus. **Extend**: Themes, Plugins, and Icon Packs (D-327, D-378,
+ * D-380). **Settings** (D-325, D-704): its screens, with Redirects after
+ * Addresses and Search (D-686).
  * Links the account can't use aren't shown.
  */
 const sections = computed<Record<Area, NavGroup[]>>(() => {
@@ -206,8 +206,9 @@ const sections = computed<Record<Area, NavGroup[]>>(() => {
 		home: groups([{ key: 'home', links: home }]),
 		content: groups([{ key: 'types', links: content }, { key: 'shared', heading: 'Shared Terms', links: shared }, { key: 'library', heading: 'Library', links: library }]),
 		people: groups([{ key: 'people', links: people }]),
-		config: groups([{ key: 'structure', heading: 'Structure', links: structure }, { key: 'settings', heading: 'Settings', links: settings }]),
-		extend: groups([{ key: 'extensions', links: extensions }])
+		structure: groups([{ key: 'structure', links: structure }]),
+		extend: groups([{ key: 'extensions', links: extensions }]),
+		settings: groups([{ key: 'settings', links: settings }])
 	};
 });
 
@@ -239,7 +240,7 @@ const pinnable = computed<NavLink[]>(() => {
 		visit(item.links ?? []);
 	});
 
-	(['home', 'content', 'extend', 'people', 'config'] as Area[]).forEach((key) => sections.value[key].forEach((group) => visit(group.links)));
+	(['home', 'content', 'structure', 'extend', 'people', 'settings'] as Area[]).forEach((key) => sections.value[key].forEach((group) => visit(group.links)));
 
 	return [...found.values()];
 });
@@ -308,9 +309,10 @@ function moveShortcut(index: number, by: -1 | 1): void {
 const areas = computed(() => ([
 	{ key: 'home', label: 'Home', icon: 'house' },
 	{ key: 'content', label: 'Content', icon: 'file-text' },
+	{ key: 'structure', label: 'Structure', icon: 'blocks' },
 	{ key: 'extend', label: 'Extend', icon: 'package' },
 	{ key: 'people', label: 'Users', icon: 'user' },
-	{ key: 'config', label: 'Config', icon: 'settings' }
+	{ key: 'settings', label: 'Settings', icon: 'settings' }
 ] as const).filter((area) => sections.value[area.key].length > 0));
 
 const routeArea = computed<Area>(() => {
@@ -321,7 +323,7 @@ const routeArea = computed<Area>(() => {
 		return 'people';
 	}
 
-	return area === 'content' || area === 'people' || area === 'config' || area === 'extend' ? area : 'home';
+	return area === 'content' || area === 'structure' || area === 'extend' || area === 'people' || area === 'settings' ? area : 'home';
 });
 
 // The section the panel shows: the screen's, until another is chosen.
@@ -343,11 +345,15 @@ const panelSub = computed(() => {
 		return 'Accounts, profiles, and roles';
 	}
 
+	if (area.value === 'structure') {
+		return 'Types, relationships, fields, and menus';
+	}
+
 	if (area.value === 'extend') {
 		return 'Themes, plugins, and icon packs';
 	}
 
-	return area.value === 'config' ? 'Types and settings' : config.site.name;
+	return area.value === 'settings' ? 'How the site reads and runs' : config.site.name;
 });
 
 /**
@@ -422,7 +428,7 @@ function returnTo(to: RouteLocationRaw): RouteLocationRaw {
 	return lastVisits.get(router.resolve(to).path) ?? to;
 }
 
-const sectionLabel = computed(() => ({ home: 'Home', content: 'Content', people: 'Users', config: 'Config', extend: 'Extend' })[routeArea.value]);
+const sectionLabel = computed(() => ({ home: 'Home', content: 'Content', structure: 'Structure', extend: 'Extend', people: 'Users', settings: 'Settings' })[routeArea.value]);
 const bleed = computed(() => route.meta.bleed === true);
 const wide  = computed(() => route.meta.wide === true);
 // A screen read top to bottom, like the dashboard, keeps a narrower

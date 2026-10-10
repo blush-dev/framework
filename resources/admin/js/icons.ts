@@ -19,6 +19,7 @@ export const icons = {
 	'arrow-up-right': '<path d="M7 7h10v10"/><path d="M7 17 17 7"/>',
 	'at-sign': '<circle cx="12" cy="12" r="4"/><path d="M16 8v5a3 3 0 0 0 6 0v-1a10 10 0 1 0-4 8"/>',
 	'baseline': '<path d="M4 20h16"/><path d="m6 16 6-12 6 12"/><path d="M8 12h8"/>',
+	'blocks': '<path d="M10 22V7a1 1 0 0 0-1-1H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-5a1 1 0 0 0-1-1H2"/><rect x="14" y="2" width="8" height="8" rx="1"/>',
 	'bleed-base': '<path d="M6 4h12"/><rect x="6" y="8" width="12" height="8" rx="1"/><path d="M6 20h12"/>',
 	'bleed-full': '<path d="M6 4h12"/><path d="M1 8h22"/><path d="M1 16h22"/><path d="M6 20h12"/>',
 	'bleed-wide': '<path d="M6 4h12"/><rect x="3" y="8" width="18" height="8" rx="1"/><path d="M6 20h12"/>',

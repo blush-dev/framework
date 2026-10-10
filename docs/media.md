@@ -67,7 +67,7 @@ at the kinds of file it's for: `media:image`, `media:video`,
 
 List all four kinds for fields every file should have. A set's fields
 come after the built-in ones, under the set's label in the admin, and
-can't reuse a built-in field's name. **Config → Fields** in the admin
+can't reuse a built-in field's name. **Structure → Fields** in the admin
 creates and edits sets ([Fields](admin.md#fields)).
 
 A metadata file can point your editor at the built-in fields'
