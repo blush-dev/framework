@@ -87,7 +87,7 @@ final class RecordContentWriterTest extends TestCase
 	{
 		$this->assertInstanceOf(RecordContentWriter::class, $this->app->container()->make(ContentWriter::class));
 		$this->assertSame('Art', $this->category('art')->title);
-		$this->assertFileExists($this->temporaryDirectory() . '/user/site.sqlite');
+		$this->assertFileExists($this->temporaryDirectory() . '/storage/database/site.sqlite');
 	}
 
 	public function testKeepsFrontMatterAsWrittenBesideItsValues(): void

@@ -27,7 +27,7 @@ use Blush\Storage\Sql\SqliteRecordStore;
 
 /**
  * The SQLite driver (D-640, D-662): a site's records in one database
- * file, `user/site.sqlite` unless `StorageConfig::$sqlite` names another.
+ * file, `storage/database/site.sqlite` (D-713) unless `StorageConfig::$sqlite` names another.
  * Every area shares one `SqliteRecordStore`: content, worked out and
  * written as records (`RecordLocations`, `RecordContentWriter`); data,
  * accounts, and roles as their repositories' tables (settings, types,

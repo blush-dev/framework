@@ -96,7 +96,7 @@ See [Going live](going-live.md#background-jobs-and-cron) for setting up cron.
 ## Storage
 
 A site keeps its data as files by default. These commands move it into a
-SQLite database (`user/site.sqlite`); see [Large sites](going-live.md#large-sites-sqlite).
+SQLite database (`storage/database/site.sqlite`); see [Large sites](going-live.md#large-sites-sqlite).
 
 | Command | What it does |
 |---|---|

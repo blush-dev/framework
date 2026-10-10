@@ -31,7 +31,8 @@ use Blush\Env\Env;
  * - `areas` picks another driver per `StorageArea` (`content`, `data`,
  *   `accounts`, `sessions`, `jobs`).
  * - `sqlite` is the SQLite driver's database file, from the site's root
- *   (or absolute): `user/site.sqlite` by default.
+ *   (or absolute): `storage/database/site.sqlite` by default, out of
+ *   `user/`, which is often kept in git (D-713).
  *
  * Media files aren't an area: they stay files whatever the driver.
  */
@@ -50,7 +51,7 @@ final readonly class StorageConfig implements Config
 	/**
 	 * The SQLite database's default file, from the site's root.
 	 */
-	public const string SQLITE_FILE = 'user/site.sqlite';
+	public const string SQLITE_FILE = 'storage/database/site.sqlite';
 
 	/**
 	 * @param  array<string, string> $areas  Drivers by area.

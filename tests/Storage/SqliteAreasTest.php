@@ -53,7 +53,7 @@ use Psr\Clock\ClockInterface;
 
 /**
  * A site with every area on the SQLite driver (D-662): data, accounts,
- * roles, sessions, and jobs kept in `user/site.sqlite`, each answering
+ * roles, sessions, and jobs kept in `storage/database/site.sqlite`, each answering
  * its contract as the filesystem's stores do.
  */
 #[CoversClass(SqliteStorage::class)]

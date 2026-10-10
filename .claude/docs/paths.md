@@ -176,6 +176,8 @@ site/
     logs/
     sessions/           One JSON file per session, named by the id's SHA-256 (D-219)
     jobs/               Background jobs (D-621, D-622): queued/, running/, done/, failed/ with one {id}.json each; schedule.json, runners.json; *.lock
+    database/           site.sqlite, the SQLite driver's database (StorageConfig::$sqlite;
+                        D-662, D-713); out of user/, which is often in git; never cleared
     accounts/           {username}.json admin accounts (D-217, D-219), with any non-default
                         preferences (D-235), suspension, and password link hash (D-312);
                         never cleared

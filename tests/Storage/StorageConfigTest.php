@@ -53,7 +53,7 @@ final class StorageConfigTest extends TestCase
 		$data = ['driver' => 'sqlite', 'areas' => ['accounts' => 'filesystem'], 'sqlite' => '/var/data/site.sqlite'];
 
 		$this->assertSame($data, StorageConfig::fromArray($data)->toArray());
-		$this->assertSame(['driver' => 'filesystem', 'areas' => [], 'sqlite' => 'user/site.sqlite'], StorageConfig::fromArray([])->toArray());
+		$this->assertSame(['driver' => 'filesystem', 'areas' => [], 'sqlite' => 'storage/database/site.sqlite'], StorageConfig::fromArray([])->toArray());
 	}
 
 	public function testSaysWhetherAnyAreaUsesADriver(): void

@@ -171,6 +171,6 @@ final class AdminOnSqliteTest extends TestCase
 		$facts = array_column(is_array($site['site'] ?? null) ? $site['site'] : [], 'value', 'key');
 
 		$this->assertSame('SQLite', $facts['storage'] ?? null);
-		$this->assertSame('In the database (user/site.sqlite)', $facts['content'] ?? null);
+		$this->assertSame('In the database (storage/database/site.sqlite)', $facts['content'] ?? null);
 	}
 }

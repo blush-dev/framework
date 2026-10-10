@@ -11362,6 +11362,7 @@ decision, add a new entry that supersedes it and mark the old one
 
 ### D-397: An AI settings screen, and where AI code lives
 - **Date:** 2026-10-03
+- **Status:** Amended by D-715: `AiConfig`'s keys in `.env` become declared secrets.
 - **Decision:** The author's calls, ahead of building:
   - **An AI Settings screen** (`SettingsScreen::Ai`, a fifth screen in
     the Config panel's Settings group, a departure from the direction
@@ -19276,7 +19277,7 @@ decision, add a new entry that supersedes it and mark the old one
 ### D-640: Which databases Blush supports
 
 - **Date:** 2026-10-08
-- **Status:** Planned; nothing built. Extends D-606's "drivers ship
+- **Status:** Planned; nothing built. The SQLite file's place in `user/` superseded by D-713. Extends D-606's "drivers ship
   with core and come from Composer" with the list.
 - **Decision:** from the author's starting list (MySQL, SQLite,
   MariaDB, PostgreSQL, MongoDB, Redis):
@@ -20240,7 +20241,8 @@ decision, add a new entry that supersedes it and mark the old one
 ### D-662: The SQLite driver's plan (step 5)
 
 - **Date:** 2026-10-09
-- **Status:** Plan decided; nothing built. Plan in `roadmap.md`
+- **Status:** Plan decided; nothing built. The database's place
+  (`user/site.sqlite`) superseded by D-713. Plan in `roadmap.md`
   ("Step 5"). Builds D-640's SQLite driver on D-659's
   `Blush\Storage\Sql`, as D-661 settled.
 - **Decision:**
@@ -22136,3 +22138,133 @@ decision, add a new entry that supersedes it and mark the old one
   entry relationship." Claude suggested the relation for
   `original_id` but a column for `language`; the author: "Yes, I
   think we'll want the translation_of relation. So record this."
+
+### D-713: The SQLite database moves to `storage/database/site.sqlite`
+
+- **Date:** 2026-10-10
+- **Status:** Built. Supersedes D-640's and D-662's "one file in
+  `user/`" (`user/site.sqlite`).
+- **Decision:**
+  - **The default database is `storage/database/site.sqlite`**
+    (`StorageConfig::SQLITE_FILE`), with `sqlite` in
+    `config/storage.php` over it as before. No `database` path in
+    `Paths`: the file is `StorageConfig`'s already, and a second place
+    to override it would be two answers to one question.
+    `SqliteRecordStore::forSite()` makes the folder on first use, so
+    `init` doesn't.
+  - **Out of `user/` for D-217's reason:** `user/` is often kept in git
+    and published with it, and the database holds accounts, sessions,
+    jobs, and (D-715) secrets. On files those are already in
+    `storage/`; the database put them in `user/`.
+  - **Docs:** `going-live.md`, `configuration.md`, and `cli.md` name
+    the new path, and a site on SQLite backs up the database with
+    `user/` and its media; `cache:clear` never touches it. The HTTP
+    exposure check planned in `open-questions.md` covers it when it's
+    built.
+  - **No move for older files:** no 2.x site keeps one (the jtcom
+    trial's was moved by hand).
+- **Why:** the author: "Things under user/ will often be on Git."
+
+### D-714: Core's prefix is `core`, never `blush`
+
+- **Date:** 2026-10-10
+- **Status:** Planned; nothing built for the existing names.
+- **Decision:**
+  - **Where core names something that extensions name with their
+    `vendor/name`** (secrets, D-715; job types; asset handles;
+    directives; settings groups and the like), core's prefix is
+    `core`, never the product name, so a rename stays mechanical.
+  - **To change, from an inventory taken 2026-10-10:** job types
+    (`blush/publish`, `blush/reindex`, and the rest in `JobType`),
+    asset handles (`blush/player`), directive names (`blush/figure`,
+    `blush/outline`, `blush/toc`), and the `blush.log` file name. Each
+    gets checked when it's changed: the `/blush` asset URL prefix,
+    SQLite's `blush_*` functions, and the default theme's `blush/default`
+    (an extension's own `vendor/name`, a package rather than core) are
+    decided then.
+- **Why:** the author: "Core should always prefix with 'core' (note
+  that we need to address this in some other areas where it is
+  'blush')."
+
+### D-715: A secrets store (`Blush\Secret`)
+
+- **Date:** 2026-10-10
+- **Status:** Planned; nothing built. Amends D-397 (AI keys in `.env`
+  become declared secrets).
+- **Decision:**
+  - **What it's for:** credentials Blush uses to reach other services
+    (API keys, OAuth refresh tokens, service account files), set by the
+    operator in the environment or stored at runtime by the admin or
+    code. **Not** for what's needed before it opens or opens endpoints
+    (`APP_SECRET`, `PUBLISH_SECRET`, its own key; `.env` only),
+    passwords (hashed), or short-lived access tokens (the cache).
+  - **The API, alike for core and plugins:**
+    - `Secrets` (bound in the container): `for(string $owner):
+      SecretScope`, where the owner is `core` (D-714) or an extension's
+      `vendor/name`; and `define(SecretDefinition)`.
+    - `SecretScope`: `get()` (`null` when missing, `SecretUnreadable`
+      when it won't decrypt), `require()` (`SecretMissing`),
+      `status()` (`SecretStatus`: `Environment`, `Stored`, `Missing`,
+      `Unreadable`), `set()` (`SecretLocked` when the environment sets
+      it), `update(key, callable)` (a locked read, change, and write,
+      for tokens a provider replaces on refresh), and `remove()`.
+    - `Secret`, a value object: `reveal()` and `equals()`
+      (`hash_equals`); `__toString()` and `__debugInfo()` hide the
+      value and `__serialize()` throws, so a dump, error page, log,
+      or cache can't leak it. Every parameter taking a value has
+      `#[\SensitiveParameter]`.
+    - **Declared before use:** `SecretDefinition` (owner, key, label,
+      help, environment variable, required). Reading a name nobody
+      declared throws. The variable defaults to one derived from the
+      name (`acme/analytics` and `ga_refresh_token` give
+      `ACME_ANALYTICS_GA_REFRESH_TOKEN`).
+  - **Names** are `{owner}.{key}`, an extension's always under its
+    own `vendor/name`. A scope reads and writes only its owner's.
+  - **Layers:** `SecretCipher`, the only code that touches crypto;
+    a repository over a `secrets` table on the area's driver, which
+    only ever holds ciphertext (with `updated` and `by`), covered by
+    the conformance suites (D-655); and `SecretStore`, which reads the
+    environment first, then the stored value, and refuses to store over
+    a name the environment sets.
+  - **Encryption:** XChaCha20-Poly1305 (libsodium) with a random nonce
+    and the full name as associated data, so ciphertext moved to
+    another name fails. A stored value is
+    `v1:{key id}:{base64 nonce and ciphertext}`, the key id a short
+    hash of the key.
+  - **The key:** `SECRETS_KEY` (32 random bytes, base64), written by
+    `init` as `APP_SECRET` is. `SECRETS_KEY_PREVIOUS` is accepted for
+    reading, and `secrets:rotate` encrypts every value again under the
+    current key. Without a key, secrets from the environment still
+    work and storing one is refused with a clear error.
+  - **Where:** its own storage area, `secrets`; on files in
+    `storage/` beside accounts, never in `user/` (D-217, D-713) or
+    anything exported. Settings never hold secrets.
+  - **`storage:copy` and `storage:sync` copy ciphertext unchanged**:
+    both run within one site, under one key, so nothing is decrypted.
+  - **Managing them is owner only:** a `site.secrets` capability, left
+    out of the administrator's list (D-500).
+  - **The admin is write-only** when it comes: a secret shows its
+    status, with Replace and Remove, never its value. A list under
+    Settings and an extension's own on its details screen, built once
+    something needs them. Asking for the password again waits for a
+    general "sudo mode" (`open-questions.md`).
+  - **Site Health** reports required secrets that are missing, values
+    that won't decrypt (a wrong or missing key), stored values whose
+    owner is gone, and the store's file or table served over HTTP.
+  - **What it can't defend:** plugins run in the same PHP process and
+    can read the key from the environment, so scopes guard against
+    mistakes, not a hostile plugin. Installing a plugin trusts it
+    (installing is owner only, D-500); the docs say so plainly.
+  - **The AI layer moves onto it:** D-397's provider keys are declared
+    secrets under `core`, which the environment still overrides.
+  - **Secrets are never read through `config/*.php`**, since config is
+    compiled to `storage/cache/config.php` in plain text; the store
+    reads the environment when asked.
+- **Why:** from a discussion of analytics (`open-questions.md`): a
+  hosted analytics provider needs credentials the admin gets at
+  runtime (OAuth), which `.env` can't hold since the admin never writes
+  it, and hosts without a shell can't easily add an AI key. The author:
+  "The biggest thing is getting the security and api right so both
+  core and plugins can use it"; managing them owner only; vendor
+  prefixes "as much as possible"; kept in `storage/`, out of git; the
+  UI only when something needs it; `storage:copy` left to Claude.

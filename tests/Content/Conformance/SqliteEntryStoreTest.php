@@ -43,9 +43,9 @@ use Blush\Storage\StorageResolver;
 
 /**
  * The SQLite driver (D-662): the site's records copied, in the order
- * they were made in, into the site's database, `user/site.sqlite`, which
- * the `sqlite` driver gives for the content area, with `Entries` built
- * over it and locations read from records. Reads only, until the driver
+ * they were made in, into the site's database,
+ * `storage/database/site.sqlite`, which the `sqlite` driver gives for the
+ * content area, with `Entries` built over it and locations read from records. Reads only, until the driver
  * writes content (step 5b).
  */
 #[CoversClass(SqliteStorage::class)]

@@ -125,8 +125,9 @@ A site keeps everything in files by default, which suits most sites. A
 site with many thousands of entries outgrows that: Blush keeps an index
 of every file, and at about 10,000 entries reading it needs more memory
 than PHP allows by default (128 MB). Such a site keeps its data in a
-SQLite database instead, one file, `user/site.sqlite`. PHP needs its
-`pdo_sqlite` extension (`bin/blush doctor` says whether it has it).
+SQLite database instead, one file, `storage/database/site.sqlite`. PHP
+needs its `pdo_sqlite` extension (`bin/blush doctor` says whether it has
+it).
 
 To move a site:
 
@@ -144,8 +145,10 @@ On SQLite:
 
 - **Edit in the admin** (or create with `content:new`). There are no
   content files to edit, and `content:index` has nothing to do.
-- **Back up `user/site.sqlite`**, with your media. Publishing with git
-  carries code and media, not content.
+- **Back up `storage/database/site.sqlite`**, with `user/` and your
+  media. It's kept in `storage/`, out of git, since it holds accounts and
+  sessions beside content: publishing with git carries code and media,
+  not content. `cache:clear` never touches it.
 - **Run `bin/blush storage:sync` after each deploy**, beside
   `cache:compile`.
 - Tools for files (`content:ids`, `content:filenames`, `content:folders`,

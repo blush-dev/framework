@@ -127,7 +127,7 @@ final class StorageTest extends TestCase
 
 		$store->find(EntryTable::table(), '0198c0de-0000-7000-8000-000000000000');
 
-		$this->assertFileExists($this->temporaryDirectory() . '/user/site.sqlite', 'In user/ by default (D-662).');
+		$this->assertFileExists($this->temporaryDirectory() . '/storage/database/site.sqlite', 'In storage/ by default (D-713).');
 	}
 
 	public function testADriverWithoutAContractFails(): void

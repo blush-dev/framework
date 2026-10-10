@@ -787,7 +787,7 @@ Implemented in M4b (D-087, D-090).
     answers a `RecordQuery` over them (`ArrayEvaluator`), and
     `locations()` answers folders and parent keys.
   - No SQLite copy (D-661): large sites use the SQLite storage driver
-    (`SqliteStorage`, `user/site.sqlite`; content reads and writes
+    (`SqliteStorage`, `storage/database/site.sqlite`, D-713; content reads and writes
     built, D-663, D-664). Content kept as records is written by
     `RecordContentWriter`: front matter as written (`written`) beside
     its normalized values, relations as `refs` rows only. Data,

@@ -154,7 +154,7 @@ Without `config/app.php`, these come from the `APP_*` variables.
 |---|---|---|
 | `driver` | `'filesystem'` | Where the site's data is kept: `filesystem` (files, as a flat-file site keeps them) or `sqlite` (one SQLite database; see [Large sites](going-live.md#large-sites-sqlite)) |
 | `areas` | `[]` | A different driver for an area: `content`, `data`, `accounts`, `sessions`, or `jobs`, such as `['sessions' => 'filesystem']` |
-| `sqlite` | `'user/site.sqlite'` | The SQLite database's file, from the site's folder (or a full path) |
+| `sqlite` | `'storage/database/site.sqlite'` | The SQLite database's file, from the site's folder (or a full path) |
 
 Without this file, `STORAGE_DRIVER` is used. Media files are always
 files, whatever the driver.

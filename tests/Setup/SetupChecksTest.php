@@ -107,7 +107,7 @@ final class SetupChecksTest extends TestCase
 
 		$sqlite = new SetupChecks(Paths::fromRoot($this->temporaryDirectory()), new \Blush\Storage\StorageConfig('sqlite'))->driver();
 
-		$this->assertSame('SQLite, in user/site.sqlite.', $sqlite[0]->message);
+		$this->assertSame('SQLite, in storage/database/site.sqlite.', $sqlite[0]->message);
 		$this->assertFalse($sqlite[1]->isFailure(), 'Its folder can be written to.');
 	}
 

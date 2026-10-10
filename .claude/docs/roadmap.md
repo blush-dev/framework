@@ -400,7 +400,8 @@ conformance suite and `SqlParityTest`.
 
 **Goal:** `STORAGE_DRIVER=sqlite` (or `driver: 'sqlite'` in
 `config/storage.php`) keeps every area's records in one database,
-`user/site.sqlite` by default (`path` overrides it). Media files,
+`user/site.sqlite` by default (`path` overrides it; since
+`storage/database/site.sqlite`, D-713). Media files,
 config, caches, and logs stay files (D-486). The driver for large
 sites (D-661).
 
