@@ -15,10 +15,12 @@ namespace Blush\Directive\Media;
 
 /**
  * How a `gallery` lays out its images: in rows that grow to fill the
- * width (`flex`), or in even columns (`grid`).
+ * width (`flex`), in even columns (`grid`), or in columns that pack
+ * images of any height (`masonry`, CSS grid lanes, D-725).
  */
 enum GalleryLayout: string
 {
-	case Flex = 'flex';
-	case Grid = 'grid';
+	case Flex    = 'flex';
+	case Grid    = 'grid';
+	case Masonry = 'masonry';
 }

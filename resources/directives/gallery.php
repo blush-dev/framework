@@ -2,7 +2,8 @@
 
 /**
  * Gallery directive (`Directive\Media\Gallery`): its content (usually
- * images) in rows that fill the width (`flex`) or an even grid (`grid`).
+ * images) in rows that fill the width (`flex`), an even grid (`grid`),
+ * or masonry (`masonry`).
  *
  *     :::gallery{columns=3 layout=grid}
  *     ![](a.jpg)

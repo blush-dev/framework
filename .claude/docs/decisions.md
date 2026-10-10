@@ -22678,3 +22678,60 @@ decision, add a new entry that supersedes it and mark the old one
   eventually, have on the roadmap a confirmation process of changing
   the site email or tell the previous email owner."
 - **Checked:** `composer check`.
+
+### D-724: Which PSRs Blush takes, and which it leaves
+
+- **Date:** 2026-10-10
+- **Decision:** A review of the accepted PSRs against core (the author
+  asked whether the ones unused were worth adding as interfaces for
+  extensions):
+  - **In use, each with core's own implementation (D-006):** PSR-3
+    (`Blush\Log`), PSR-4 (core's and extensions' autoloading), PSR-7,
+    PSR-15, and PSR-17 (`Blush\Http`), PSR-11 (`Blush\Container`),
+    PSR-14 (`Blush\Event`), PSR-16 (`Blush\Cache\Store`), and PSR-20
+    (`Blush\Clock`).
+  - **PSR-18 (HTTP client): taken, when D-620 is built.**
+    `psr/http-client` joins D-006's allowed packages then, as the
+    transport a site or plugin binds. It's the one PSR where core
+    shipping only the interface helps, because the implementation is
+    meant to come from elsewhere.
+  - **PSR-6 (cache pools): left out.** PSR-16 covers core's caching,
+    and a second cache contract is a second thing to keep conformant.
+    A plugin whose library needs PSR-6 brings an adapter over PSR-16.
+  - **PSR-13 (links): deferred** to `open-questions.md`. It fits the
+    asset head's preload `Link` headers, `rel=alternate` for Markdown
+    copies (D-395), feeds, and pagination, but few libraries use it.
+    Revisit if head and `Link` header management becomes an API.
+  - **PSR-1 and PSR-12 (style): not followed,** by design (the
+    `blush-code-style-php` skill; tabs).
+  - **Drafts** (PSR-5, PSR-19, PSR-21, PSR-22) wait until accepted.
+    PSR-22 (tracing) is worth a look for jobs and the HTTP client then.
+  - **No interface package without a binding.** Core requires a PSR
+    package only when something in the container fills it, or (as
+    with PSR-18) when filling it is the extension's job by design.
+    An interface nothing implements promises extensions more than
+    Blush gives.
+- **Why:** the author: "I'm wondering if there are some we don't use
+  and whether they make sense to bundle as just interfaces for our
+  extension ecosystem." Then, on Claude's assessment: "yes, record it."
+
+### D-725: A masonry layout for the gallery, in CSS grid lanes
+
+- **Date:** 2026-10-10
+- **Decision:** The gallery's `layout` gains `masonry`
+  (`GalleryLayout::Masonry`, the `directive-gallery--masonry`
+  modifier): columns that pack images of any height, without cropping.
+  - **A layout, not a variant.** The author asked for "a Masonry
+    variant"; it's a `layout` value beside `flex` and `grid`, since
+    those are the gallery's mutually exclusive arrangements, and
+    variants (D-266) are named looks a theme can add.
+  - **CSS grid lanes, with an even grid as the fallback.** Themes
+    declare `display: grid` then `display: grid-lanes`, so a browser
+    without grid lanes keeps the first and shows an even grid (rows
+    aligned to the top, images uncropped); the same
+    `grid-template-columns` from `--gallery-per-row` defines the
+    columns in both. The default theme styles it; the editor offers it
+    as **Masonry** with the other layouts, from the enum.
+- **Why:** the author: "We should add a Masonry variant that uses CSS
+  grid-lanes to the Gallery block … we can fall back to regular grid if
+  grid-lanes is not support."

@@ -477,6 +477,10 @@ final class DirectivesTest extends TestCase
 			![](/c.jpg)
 			:::
 
+			:::gallery{layout=masonry}
+			![](/d.jpg)
+			:::
+
 			:::figure[A photo]{.wide}
 			![A lake](/media/p.jpg)
 			:::
@@ -522,6 +526,7 @@ final class DirectivesTest extends TestCase
 		$this->assertStringContainsString("<aside class=\"directive-callout directive-callout--warning\" role=\"note\">\n\t\t\t<p class=\"directive-callout__title\">Heads up</p>\n\t\t<p>Back up <em>first</em>.</p></aside>", $html);
 		$this->assertStringContainsString('<div class="directive-gallery directive-gallery--flex wide" style="--gallery-columns: 6">', $html);
 		$this->assertStringContainsString('<div class="directive-gallery directive-gallery--grid" style="--gallery-columns: 2">', $html);
+		$this->assertStringContainsString('<div class="directive-gallery directive-gallery--masonry" style="--gallery-columns: 3">', $html);
 		$this->assertMatchesRegularExpression('#<figure class="directive-figure wide">\s*<img src="http://localhost/media/p.jpg" alt="A lake" />\s*<figcaption>A photo</figcaption>#', $html, 'The figure is the container; its image stands alone.');
 		$this->assertMatchesRegularExpression('#<figure class="directive-figure">\s*<table>.*?</table>\s*<figcaption>Visitors</figcaption>#s', $html, 'A figure wraps anything, such as a table.');
 		$this->assertStringContainsString('<iframe class="directive-embed__frame" src="https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ" title="Rick"', $html);

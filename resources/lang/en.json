@@ -176,7 +176,7 @@
 		},
 		"gallery": {
 			"label": "Gallery",
-			"description": "Images in rows or a grid.",
+			"description": "Images in rows, a grid, or masonry.",
 			"props": {
 				"columns": {
 					"label": "Columns"
@@ -185,7 +185,8 @@
 					"label": "Layout",
 					"choices": {
 						"flex": "Rows that fill the width",
-						"grid": "Even grid"
+						"grid": "Even grid",
+						"masonry": "Masonry"
 					}
 				}
 			}

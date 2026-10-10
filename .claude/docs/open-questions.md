@@ -845,7 +845,7 @@ Move each item to `decisions.md` once it's answered.
       backed by entries, and draw through a built-in component, so a
       theme overrides their markup as it does any component's (D-382),
       and a theme's own component (a footer) can hold an area.
-- **An outgoing HTTP client** (D-620; discussed 2026-10-08, leanings
+- **An outgoing HTTP client** (D-620, D-724; discussed 2026-10-08, leanings
   the author hasn't confirmed):
   - **The transport:** curl only, and optional. Without `ext-curl`
     (and no PSR-18 transport bound by the site) the client says it's
@@ -2032,6 +2032,14 @@ Move each item to `decisions.md` once it's answered.
   released.
 
 ## Later
+- **PSR-13 links** (D-724, deferred 2026-10-10). Whether core implements
+  `psr/link` (`LinkInterface`, `EvolvableLinkProviderInterface`) for the
+  links a page carries: preload `Link` headers from the asset head
+  (D-569 to D-573), `rel=alternate` for Markdown copies (D-395) and
+  feeds, and prev/next pagination. For: one shape plugins could add
+  links through, sent both as `<link>` tags and `Link` headers.
+  Against: few libraries use it, so extensions gain little over a Blush
+  API. Revisit if head and `Link` header management becomes an API.
 - **How the admin's scripts load, once every screen is in** (D-687 to
   D-690, discussed 2026-10-09; revisit when the admin's screens are
   built). Today every screen but the dashboard, sign-in, and not-found

@@ -501,7 +501,9 @@ hr {
 
 /*
  * Galleries show up to `--gallery-columns` (set on the element) per row:
- * `--flex` rows grow to fill the width, and `--grid` keeps even columns.
+ * `--flex` rows grow to fill the width, `--grid` keeps even columns, and
+ * `--masonry` packs images of any height into its columns with grid
+ * lanes, or is an even grid where a browser has no grid lanes.
  */
 .directive-gallery {
 	--gallery-gap: var(--space-s);
@@ -523,6 +525,13 @@ hr {
 .directive-gallery--grid {
 	display: grid;
 	grid-template-columns: repeat(var(--gallery-per-row), minmax(0, 1fr));
+}
+
+.directive-gallery--masonry {
+	display: grid;
+	display: grid-lanes;
+	grid-template-columns: repeat(var(--gallery-per-row), minmax(0, 1fr));
+	align-items: start;
 }
 
 .directive-gallery > p {

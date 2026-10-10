@@ -22,8 +22,8 @@ use Blush\Directive\DirectiveKind;
 
 /**
  * Its content (usually images) in up to 1 to 6 columns (D-113, D-195,
- * D-198), laid out as rows that grow to fill the width (`flex`, the
- * default) or as an even grid (`grid`):
+ * D-198, D-725), laid out as rows that grow to fill the width (`flex`,
+ * the default), as an even grid (`grid`), or as masonry (`masonry`):
  *
  * ```md
  * :::gallery{columns=3 layout=grid}
