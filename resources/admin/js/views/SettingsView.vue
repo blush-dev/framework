@@ -93,8 +93,7 @@ const uploadsInfo = ref<UploadsInfo | null>(null);
 
 const { busy: saving, error: failure, run } = useAction();
 
-const about    = computed(() => screens[props.screen] ?? { title: 'Settings', hint: '' });
-const editable = computed(() => Object.keys(initial.value).length > 0);
+const about = computed(() => screens[props.screen] ?? { title: 'Settings', hint: '' });
 
 // The settings whose values changed, then the ones going back to config.
 const changed = computed(() => Object.keys(form.value).filter((key) => !same(form.value[key], initial.value[key]) && !unset.value.includes(key)));
@@ -392,7 +391,6 @@ onBeforeRouteUpdate(() => count.value === 0 || confirmLeave());
 	</header>
 
 	<p v-if="screen === 'system'" class="notice"><AdminIcon name="info" /><span>These live in <code>config/</code> and <code>.env</code>; each names its file. After changing them on a site you've compiled, run <code>bin/blush cache:compile</code> again.</span></p>
-	<p v-else-if="editable" class="notice"><AdminIcon name="info" /><span>What you save here is kept in <code>user/data/settings.json</code> and wins over <code>config/</code>. The rest are set in code and only shown.</span></p>
 	<p v-if="error" class="notice notice--error" role="alert">{{ error }}</p>
 
 	<form v-if="groups" class="setting-panels" @submit.prevent="save">

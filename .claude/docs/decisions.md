@@ -21638,3 +21638,15 @@ decision, add a new entry that supersedes it and mark the old one
 - **Open:** whether a plain source ("From `config/markdown.php`, the
   defaults.") is worth showing at all, or only where it comes with
   going back to config's value (the author's question).
+
+### D-697: No storage notice on the editable Settings screens
+
+- **Date:** 2026-10-09
+- **Status:** Built.
+- **Decision:** The editable Settings screens drop the notice above
+  their panels ("What you save here is kept in
+  `user/data/settings.json` and wins over `config/`…"). Someone
+  configuring a site in the admin doesn't need where saves are kept,
+  each panel or row already names its source (D-696), and the text
+  costs bytes in the admin's JavaScript. The System screen keeps its
+  notice, which says when to run `cache:compile` again.
