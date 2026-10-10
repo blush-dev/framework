@@ -217,7 +217,7 @@ final class EmbedsTest extends TestCase
 
 		$providers = $this->app([], $config)->container()->make(EmbedProviders::class);
 
-		$this->assertSame(['youtube', 'example', 'vimeo', 'ted', 'codepen', 'spotify', 'soundcloud', 'flickr', 'twitch', 'tiktok', 'x', 'reddit'], array_map(static fn (EmbedProvider $provider): string => $provider->name, $providers->all()));
+		$this->assertSame(['youtube', 'example', 'codepen', 'flickr', 'reddit', 'soundcloud', 'spotify', 'ted', 'tiktok', 'twitch', 'vimeo', 'x'], array_map(static fn (EmbedProvider $provider): string => $provider->name, $providers->all()));
 		$this->assertSame('Tube', $providers->forUrl('https://youtu.be/dQw4w9WgXcQ')?->label);
 		$this->assertSame('Example', $providers->forUrl('https://video.example.com/1')?->label);
 		$this->assertNull($providers->forUrl('https://unknown.test/1'));

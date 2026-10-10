@@ -21576,3 +21576,65 @@ decision, add a new entry that supersedes it and mark the old one
 - **Checked:** `npm run admin:build`, `npm run site:build`.
 - **Why:** MIT and ISC ask for their notice in every copy, and the
   built files are minified without it.
+
+### D-695: The Writing screen as the Writing sketch's "A + Chips"
+
+- **Date:** 2026-10-09
+- **Status:** Built. From `.claude/docs/admin-design/writing-settings-sketch.html`
+  (the author asked for its A + Chips option, to shorten the page), drawn
+  from the admin's own pieces where the sketch differs (the author's
+  standing rule).
+- **Decision:**
+  - **Markdown** keeps the settings rows (label, switch, help; D-404),
+    but says where its settings are from once, in the panel's foot
+    ("From `config/markdown.php`, the defaults."), not on every row. A
+    group that does this names its file as `source`; a row in it says
+    where it's from only when it's saved here (with its link back to
+    config's value) or going back to config, and the foot then says
+    "The rest are from…", or nothing when every row is saved.
+  - **Raw HTML** is a setting of kind `segmented`: its options side by
+    side in the admin's `.segmented` buttons (`aria-pressed`, not the
+    sketch's accent fill), with the chosen option's details under them
+    (`.setting__detail`) and the help beside, and its source in the foot
+    as Markdown's. Its third option's label is **Shown as Text**, a
+    button's label (D-521).
+  - **Embeds** are chips (`EmbedChips`), one toggle button per provider
+    with its mark, its name, and a check or a dash, the hosts its links
+    are on as its tooltip and read with it; the panel's header says how
+    many are on, with **Turn All On** and **Turn All Off**. The foot is
+    as before (what turning a site off does, and where it's set).
+  - **The marks are Simple Icons'** (simpleicons.org, 13.21.0, CC0),
+    the SVG files as published in `resources/admin/brands/`, named by
+    the provider's `name`, with the license beside them (D-694, named in
+    `licenses.txt`) and a README on adding one; `brands.ts` bundles
+    them into the Settings screen's chunk. A provider without a mark
+    (a site's or plugin's own) has the globe.
+- **Not done:** other Settings screens keep a source line on every row;
+  `source` is set only on Writing's panels for now.
+- **Why:** fourteen full-height rows became three short panels; the
+  admin's segmented control and settings rows are kept over the
+  sketch's own versions, so the screen still reads as the others do.
+
+### D-696: Sources once per panel everywhere, switch rows, and providers A to Z
+
+- **Date:** 2026-10-09
+- **Status:** Built. Follows D-695 (the author's review of it).
+- **Decision:**
+  - **Every Settings screen names a panel's source once** (`source`):
+    the server sets it on any group whose edited settings are all from
+    one file (not upload rules or embeds, which say it in their own
+    foot, and not a field set's `site.…` settings, which have none).
+    A panel of settings from several files keeps a line on each row.
+  - **A panel of only switches** has each row's label with its help
+    under it and its switch at the row's end, at every width
+    (`.setting--switch`), as the Writing sketch's Markdown rows are.
+  - **Embed chips have a hover:** off, the surface steps up and the
+    mark and name darken; on, the border takes the accent.
+  - **Embed providers are A to Z by label:** the built-ins are
+    registered that way (`ProviderType`'s order), and the Writing
+    screen sorts them all by label, so a site's or plugin's own fall in
+    among them. Matching keeps `EmbedProviders::all()`'s order (config's
+    first).
+- **Open:** whether a plain source ("From `config/markdown.php`, the
+  defaults.") is worth showing at all, or only where it comes with
+  going back to config's value (the author's question).

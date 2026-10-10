@@ -195,9 +195,11 @@ final class AdminSettingsTest extends TestCase
 		$mentions = $this->setting($writing, 'markdown', 'mentions');
 		$this->assertSame(['markdown.mentions', true, true, 'config/markdown.php'], [$mentions['setting'] ?? null, $mentions['value'] ?? null, $mentions['default'] ?? null, $mentions['file'] ?? null]);
 		$html = $this->setting($writing, 'html', 'html');
-		$this->assertSame(['markdown.html', 'Allowed', 'allow'], [$html['setting'] ?? null, $html['value'] ?? null, $html['input'] ?? null]);
+		$this->assertSame(['markdown.html', 'Allowed', 'allow', 'segmented'], [$html['setting'] ?? null, $html['value'] ?? null, $html['input'] ?? null, $html['kind'] ?? null]);
+		$groups = is_array($writing['groups'] ?? null) ? $writing['groups'] : [];
+		$this->assertSame(['config/markdown.php', 'config/markdown.php', null], array_map(static fn (mixed $group): mixed => is_array($group) ? $group['source'] ?? null : null, $groups), 'Markdown and HTML name their file once.');
 		$field = is_array($html['field'] ?? null) ? $html['field'] : [];
-		$this->assertSame(['allow' => 'Allowed', 'filter' => 'Filtered', 'escape' => 'Shown as text'], $field['choices'] ?? null);
+		$this->assertSame(['allow' => 'Allowed', 'filter' => 'Filtered', 'escape' => 'Shown as Text'], $field['choices'] ?? null);
 
 		$response = $this->write('PATCH', '/settings', ['set' => ['markdown.mentions' => false, 'markdown.smartPunctuation' => false, 'markdown.headingAnchors' => false, 'markdown.html' => 'escape']]);
 		$this->assertSame(200, $response->getStatusCode(), (string) $response->getBody());

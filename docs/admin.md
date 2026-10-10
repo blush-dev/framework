@@ -1269,13 +1269,15 @@ screens (and [Redirects](#redirects), with its own capability):
   in content does on the page, whoever wrote it: **Allowed** (the
   default), **Filtered** (script, frames, forms, and styles show as
   text, and `javascript:` links lose their address), or **Shown as
-  text**. Who may add HTML in the editor is up to their role (see
-  [Capabilities](accounts.md#capabilities)). Under **Embeds**, a switch for each
-  site whose links play on the page (YouTube, Vimeo, TED, CodePen,
-  Spotify, SoundCloud, Flickr, Twitch, TikTok, and any your site
-  adds); a site
-  turned off keeps its links as links. They're saved together as
-  `embed.off`, over `config/embed.php`'s `off`.
+  Text**. Who may add HTML in the editor is up to their role (see
+  [Capabilities](accounts.md#capabilities)). Under **Embeds**, a button
+  for each site whose links play on the page, A to Z (CodePen, Flickr,
+  Reddit, SoundCloud, Spotify, TED, TikTok, Twitch, Vimeo, X, YouTube,
+  and any your site adds), with its logo; press one to turn it on or off,
+  or use **Turn All On** and **Turn All Off**. Hover a site to see the
+  addresses it embeds. A site turned off keeps its links as links.
+  They're saved together as `embed.off`, over `config/embed.php`'s
+  `off`.
 - **Media:** what may be uploaded, as a grid: **All Files**, then
   Images, Videos, Audio, Documents, and Other Files, each with an
   **Uploads** switch, its **Largest file** in megabytes, and its

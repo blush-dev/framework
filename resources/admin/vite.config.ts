@@ -27,7 +27,7 @@ const outDir = resolve(resources, '../../public/admin');
 
 // Folders Vite builds from, and files that aren't assets; everything
 // else in `resources/admin` is copied.
-const sources = ['js', 'css', 'tsconfig.json', 'tsconfig.app.json', 'tsconfig.node.json', 'vite.config.ts'];
+const sources = ['js', 'css', 'brands', 'tsconfig.json', 'tsconfig.app.json', 'tsconfig.node.json', 'vite.config.ts'];
 
 // The CRC32 Blush versions URLs with (`hash_file('crc32b')`).
 const version = (source: string | Uint8Array): string => crc32(source).toString(16).padStart(8, '0');
@@ -136,7 +136,8 @@ export default defineConfig({
 		resourceFiles(),
 		licenses([
 			{ name: 'Lucide icons, in the admin\'s and the players\' icons', file: resolve(resources, '../icons/blush/LICENSE') },
-			{ name: 'Fira Code, Karla, and Newsreader fonts, in fonts/', file: resolve(resources, 'fonts/LICENSE') }
+			{ name: 'Fira Code, Karla, and Newsreader fonts, in fonts/', file: resolve(resources, 'fonts/LICENSE') },
+			{ name: 'Simple Icons 13.21.0 brand marks, in the Writing screen\'s embeds', file: resolve(resources, 'brands/LICENSE.md') }
 		])
 	],
 	build: {

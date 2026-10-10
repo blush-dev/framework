@@ -23,7 +23,7 @@ import type { FieldDescription } from '../api';
 import AdminSelect from './AdminSelect.vue';
 import DatePicker from './DatePicker.vue';
 import ReferencePicker from './ReferencePicker.vue';
-import { control, label, type FormValue } from '../fields';
+import { choiceLabel, control, label, type FormValue } from '../fields';
 
 const props = defineProps<{
 	field: FieldDescription;
@@ -48,9 +48,7 @@ const kind    = computed(() => control(props.field));
 const invalid = computed(() => props.invalid === true ? 'true' : undefined);
 
 function choice(option: string): string {
-	const choices = props.field.choices ?? props.field.item?.choices;
-
-	return typeof choices === 'object' && choices !== null && option in choices ? String((choices as Record<string, unknown>)[option]) : option;
+	return choiceLabel(props.field, option);
 }
 
 // Text-typed state for the controls that hold text.

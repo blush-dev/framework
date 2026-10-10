@@ -26,21 +26,22 @@ use Blush\Embed\Providers\X;
 use Blush\Embed\Providers\YouTube;
 
 /**
- * The built-in embed providers (the "Type enum" of D-019).
+ * The built-in embed providers (the "Type enum" of D-019), by label
+ * (D-695), as they're registered.
  */
 enum ProviderType: string
 {
-	case YouTube     = 'youtube';
-	case Vimeo       = 'vimeo';
-	case Ted         = 'ted';
 	case CodePen     = 'codepen';
-	case Spotify     = 'spotify';
-	case SoundCloud  = 'soundcloud';
 	case Flickr      = 'flickr';
-	case Twitch      = 'twitch';
-	case TikTok      = 'tiktok';
-	case X           = 'x';
 	case Reddit      = 'reddit';
+	case SoundCloud  = 'soundcloud';
+	case Spotify     = 'spotify';
+	case Ted         = 'ted';
+	case TikTok      = 'tiktok';
+	case Twitch      = 'twitch';
+	case Vimeo       = 'vimeo';
+	case X           = 'x';
+	case YouTube     = 'youtube';
 
 	/**
 	 * Returns the provider's class.
@@ -50,17 +51,17 @@ enum ProviderType: string
 	public function className(): string
 	{
 		return match ($this) {
-			self::YouTube     => YouTube::class,
-			self::Vimeo       => Vimeo::class,
-			self::Ted         => Ted::class,
 			self::CodePen     => CodePen::class,
-			self::Spotify     => Spotify::class,
-			self::SoundCloud  => SoundCloud::class,
 			self::Flickr      => Flickr::class,
-			self::Twitch      => Twitch::class,
+			self::Reddit      => Reddit::class,
+			self::SoundCloud  => SoundCloud::class,
+			self::Spotify     => Spotify::class,
+			self::Ted         => Ted::class,
 			self::TikTok      => TikTok::class,
+			self::Twitch      => Twitch::class,
+			self::Vimeo       => Vimeo::class,
 			self::X           => X::class,
-			self::Reddit      => Reddit::class
+			self::YouTube     => YouTube::class
 		};
 	}
 }

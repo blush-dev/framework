@@ -1,0 +1,514 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>[hidden]{display:none!important}img{max-width:100%}</style>
+<title>Writing Settings Options</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Karla:wght@400;500;600&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&display=swap">
+<style>
+/* Sketch harness around the Meridian admin's Writing screen.
+   Tokens are copied from the prototype's six theme blocks, unchanged. */
+:root{
+  --bg:#f5f6f9; --surface:#ffffff; --surface-2:#f0f2f6; --surface-3:#e7eaf0;
+  --border:#e2e5ec; --border-strong:#ccd2dd;
+  --fg:#11141b; --fg-2:#535b6b; --fg-3:#858d9d;
+  --accent:#2f5fe0; --accent-hover:#2650c4; --accent-fg:#ffffff; --accent-soft:#e9effc; --accent-line:#bdcdf7;
+  --good:#136b43; --good-soft:#e2f3e9; --good-dot:#1f9d5f;
+  --warn:#8a5806; --warn-soft:#faf0d9; --warn-dot:#cf8d16;
+  --danger:#a92420; --danger-soft:#fbeae9; --danger-dot:#d6403a;
+  --shadow-1:none;
+  --shadow-2:0 2px 8px rgba(17,20,27,.05), 0 1px 2px rgba(17,20,27,.04);
+  --shadow-3:0 10px 28px rgba(17,20,27,.09), 0 2px 6px rgba(17,20,27,.05);
+  --r-1:6px; --r-2:10px; --r-3:16px;
+  --s-1:4px; --s-2:8px; --s-3:12px; --s-4:18px; --s-5:26px; --s-6:36px; --s-7:52px;
+  --ctl:34px; --ctl-sm:30px;
+  --font-mono:"Fira Code", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --font-ui:"IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-display:"IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --base:13px; --h1:26px; --h1-track:-.024em;
+  --pad-row:14px; --pad-panel:17px; --pad-x:22px;
+  color-scheme: light;
+}
+:root[data-dir="editorial"]{
+  --bg:#f6f2ec; --surface:#fffdfa; --surface-2:#f1ece3; --surface-3:#e7e0d4;
+  --border:#e5ded2; --border-strong:#cdc3b3;
+  --fg:#23201b; --fg-2:#5d564c; --fg-3:#8e867a;
+  --accent:#17595e; --accent-hover:#124a4e; --accent-fg:#fffdfa; --accent-soft:#e2eded; --accent-line:#b6d3d5;
+  --good:#4c6d2c; --good-soft:#edf1e2; --good-dot:#6f9b45;
+  --warn:#8a5a14; --warn-soft:#f8eeda; --warn-dot:#c58a2a;
+  --danger:#9c3327; --danger-soft:#f8e7e2; --danger-dot:#c2503f;
+  --shadow-3:0 10px 28px rgba(60,48,32,.09), 0 2px 6px rgba(60,48,32,.05);
+  --r-1:8px; --r-2:12px; --r-3:20px;
+  --font-ui:"Karla", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display:"Newsreader", ui-serif, Georgia, "Times New Roman", serif;
+  --base:13.5px; --h1:32px; --h1-track:-.014em;
+  --pad-row:16px; --pad-panel:19px; --pad-x:26px;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0b0d12; --surface:#13161d; --surface-2:#1a1e27; --surface-3:#222733;
+    --border:#242936; --border-strong:#353c4c;
+    --fg:#e9ebf0; --fg-2:#a3abba; --fg-3:#747d8e;
+    --accent:#7295f7; --accent-hover:#8aa8f9; --accent-fg:#0b0d12; --accent-soft:#182444; --accent-line:#2c3d68;
+    --good:#5ecb92; --good-soft:#102a1e; --good-dot:#35b877;
+    --warn:#e3b360; --warn-soft:#2b2312; --warn-dot:#d69f3c;
+    --danger:#f28d84; --danger-soft:#301917; --danger-dot:#e0655c;
+    --shadow-3:0 10px 28px rgba(0,0,0,.45), 0 2px 6px rgba(0,0,0,.3);
+    color-scheme:dark;
+  }
+  :root:not([data-theme="light"])[data-dir="editorial"]{
+    --bg:#15120e; --surface:#1d1915; --surface-2:#26211a; --surface-3:#322b22;
+    --border:#302a21; --border-strong:#463e31;
+    --fg:#f0e9dd; --fg-2:#b4a996; --fg-3:#877c6c;
+    --accent:#72bec2; --accent-hover:#8bcccf; --accent-fg:#15120e; --accent-soft:#113032; --accent-line:#1d4a4d;
+    --good:#9cc16b; --good-soft:#1c2413; --good-dot:#84ad55;
+    --warn:#dcae63; --warn-soft:#2c2314; --warn-dot:#c79646;
+    --danger:#e8897b; --danger-soft:#2f1a16; --danger-dot:#cf6a5c;
+    --shadow-3:0 10px 28px rgba(0,0,0,.5), 0 2px 6px rgba(0,0,0,.34);
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0b0d12; --surface:#13161d; --surface-2:#1a1e27; --surface-3:#222733;
+  --border:#242936; --border-strong:#353c4c;
+  --fg:#e9ebf0; --fg-2:#a3abba; --fg-3:#747d8e;
+  --accent:#7295f7; --accent-hover:#8aa8f9; --accent-fg:#0b0d12; --accent-soft:#182444; --accent-line:#2c3d68;
+  --good:#5ecb92; --good-soft:#102a1e; --good-dot:#35b877;
+  --warn:#e3b360; --warn-soft:#2b2312; --warn-dot:#d69f3c;
+  --danger:#f28d84; --danger-soft:#301917; --danger-dot:#e0655c;
+  --shadow-3:0 10px 28px rgba(0,0,0,.45), 0 2px 6px rgba(0,0,0,.3);
+  color-scheme:dark;
+}
+:root[data-theme="dark"][data-dir="editorial"]{
+  --bg:#15120e; --surface:#1d1915; --surface-2:#26211a; --surface-3:#322b22;
+  --border:#302a21; --border-strong:#463e31;
+  --fg:#f0e9dd; --fg-2:#b4a996; --fg-3:#877c6c;
+  --accent:#72bec2; --accent-hover:#8bcccf; --accent-fg:#15120e; --accent-soft:#113032; --accent-line:#1d4a4d;
+  --good:#9cc16b; --good-soft:#1c2413; --good-dot:#84ad55;
+  --warn:#dcae63; --warn-soft:#2c2314; --warn-dot:#c79646;
+  --danger:#e8897b; --danger-soft:#2f1a16; --danger-dot:#cf6a5c;
+  --shadow-3:0 10px 28px rgba(0,0,0,.5), 0 2px 6px rgba(0,0,0,.34);
+  color-scheme:dark;
+}
+
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--font-ui);font-size:var(--base);line-height:1.5;-webkit-font-smoothing:antialiased}
+h1,h2,p{margin:0}
+button,input{font:inherit;color:inherit}
+button{background:none;border:0;padding:0;cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:3px}
+code,.mono{font-family:var(--font-mono);font-size:.92em}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.ic{width:16px;height:16px;flex:none;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+
+/* ---------- harness (lab-) ---------- */
+.lab-bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:30;background:var(--surface);border-bottom:1px solid var(--border)}
+.lab-in{max-width:1180px;margin:0 auto;padding-inline:var(--s-5);padding-block:var(--s-3);display:flex;flex-wrap:wrap;align-items:center;gap:var(--s-3) var(--s-4)}
+.lab-name{font-family:var(--font-display);font-weight:600;font-size:14.5px;letter-spacing:-.01em;margin-right:var(--s-2)}
+.lab-tabs{display:flex;gap:2px;overflow-x:auto;scrollbar-width:none;min-width:0;max-width:100%}
+.lab-tab{display:flex;flex-direction:column;align-items:flex-start;gap:1px;padding:6px 12px;border-radius:var(--r-1);color:var(--fg-2);font-size:12.5px;white-space:nowrap}
+.lab-tab:hover{background:var(--surface-2);color:var(--fg)}
+.lab-tab[aria-selected="true"]{background:var(--accent-soft);color:var(--accent);font-weight:500}
+.lab-tab .h{font-family:var(--font-mono);font-size:10.5px;color:var(--fg-3);font-weight:400;font-variant-numeric:tabular-nums}
+.lab-tab[aria-selected="true"] .h{color:var(--accent)}
+.lab-end{margin-left:auto;display:flex;gap:var(--s-2);flex-wrap:wrap}
+.lab-seg{display:flex;border:1px solid var(--border);border-radius:var(--r-1);overflow:hidden;background:var(--surface)}
+.lab-seg button{height:var(--ctl-sm);padding:0 11px;font-size:12px;color:var(--fg-2)}
+.lab-seg button+button{border-left:1px solid var(--border)}
+.lab-seg button[aria-pressed="true"]{background:var(--surface-2);color:var(--fg);font-weight:500}
+.lab-note{max-width:1180px;margin:0 auto;padding-inline:var(--s-5);padding-block:var(--s-4) 0;display:flex;gap:var(--s-4);flex-wrap:wrap;align-items:baseline}
+.lab-note p{font-size:12.5px;color:var(--fg-2);max-width:78ch;line-height:1.6;flex:1;min-width:0}
+.lab-note b{color:var(--fg);font-weight:600}
+.lab-meter{font-family:var(--font-mono);font-size:11px;color:var(--fg-3);white-space:nowrap;font-variant-numeric:tabular-nums}
+.lab-meter b{color:var(--fg)}
+
+/* ---------- the screen ---------- */
+.wrap{max-width:1180px;margin:0 auto;padding-inline:var(--s-5);padding-block:var(--s-5) 120px}
+.page-head{margin-bottom:var(--s-5)}
+.page-head h1{font-family:var(--font-display);font-size:var(--h1);font-weight:600;letter-spacing:var(--h1-track);line-height:1.2;text-wrap:balance}
+.page-head .sub{color:var(--fg-2);font-size:13px;margin-top:7px}
+.stack{display:flex;flex-direction:column;gap:var(--s-4)}
+.notebar{display:flex;align-items:flex-start;gap:var(--s-2);padding:11px var(--pad-x);border:1px solid var(--border);border-radius:var(--r-2);background:var(--surface-2);font-size:12px;color:var(--fg-2)}
+.notebar .ic{width:14px;height:14px;color:var(--fg-3);margin-top:2px}
+
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-3);min-width:0}
+.panel-head{display:flex;align-items:center;gap:var(--s-3);flex-wrap:wrap;padding:var(--pad-panel) var(--pad-x);border-bottom:1px solid var(--border)}
+.panel-head h2{font-family:var(--font-display);font-size:15px;font-weight:600;letter-spacing:-.005em}
+.panel-head .hint{font-size:11.5px;color:var(--fg-3)}
+.panel-head .end{margin-left:auto;display:flex;align-items:center;gap:6px}
+.panel-foot{padding:12px var(--pad-x);border-top:1px solid var(--border);font-size:11.5px;color:var(--fg-3);line-height:1.55}
+
+.btn{display:inline-flex;align-items:center;gap:7px;height:var(--ctl);padding:0 14px;border-radius:var(--r-1);border:1px solid var(--border);background:var(--surface);color:var(--fg);font-size:12.5px;font-weight:500;white-space:nowrap}
+.btn:hover{background:var(--surface-2);border-color:var(--border-strong)}
+.btn.sm{height:var(--ctl-sm);padding:0 11px;font-size:12px}
+.btn-ghost{border-color:transparent;background:transparent;color:var(--fg-2)}
+.btn-ghost:hover{background:var(--surface-2);border-color:transparent;color:var(--fg)}
+.btn-primary{background:var(--accent);border-color:var(--accent);color:var(--accent-fg)}
+.btn-primary:hover{background:var(--accent-hover);border-color:var(--accent-hover)}
+.btn[disabled]{opacity:.45;pointer-events:none}
+
+.switch{display:inline-flex;align-items:center;gap:9px;cursor:pointer;padding:3px 0;position:relative}
+.switch input{position:absolute;opacity:0;width:1px;height:1px}
+.switch .track{width:30px;height:18px;border-radius:99px;background:var(--surface-3);border:1px solid var(--border-strong);position:relative;flex:none;transition:background .12s,border-color .12s}
+.switch .track::after{content:"";position:absolute;top:2px;left:2px;width:12px;height:12px;border-radius:99px;background:var(--surface);transition:transform .12s}
+.switch input:checked + .track{background:var(--accent);border-color:var(--accent)}
+.switch input:checked + .track::after{transform:translateX(12px)}
+.switch input:focus-visible + .track{outline:2px solid var(--accent);outline-offset:2px}
+.switch .st{font-size:12px;color:var(--fg-2);min-width:2.4em}
+
+
+/* ---- Today ---- */
+.t-row{display:grid;grid-template-columns:260px minmax(0,1fr);gap:var(--s-4);padding:var(--s-5) var(--pad-x);border-bottom:1px solid var(--border)}
+.t-row:last-child,.t-row:has(+ .panel-foot){border-bottom:0}
+.t-row .k{font-size:13px;font-weight:500;padding-top:4px}
+.t-row .v{display:flex;flex-direction:column;gap:var(--s-2);min-width:0}
+.t-row .hint{font-size:12px;color:var(--fg-3);max-width:70ch;line-height:1.55}
+.radio-list{display:flex;flex-direction:column;gap:var(--s-3)}
+.h-row{display:grid;grid-template-columns:200px minmax(0,1fr);gap:var(--s-2) var(--s-4);padding:var(--s-4) var(--pad-x)}
+.h-row .k{font-size:13px;font-weight:500;padding-top:6px}
+.h-row .seg{align-self:flex-start}
+.h-row .v{display:flex;flex-direction:column;gap:var(--s-3);min-width:0}
+.h-row .hint{font-size:11.5px;color:var(--fg-3);line-height:1.55;max-width:82ch}
+@media (max-width:640px){.h-row{grid-template-columns:minmax(0,1fr)}}
+.radio{display:grid;grid-template-columns:auto minmax(0,1fr);gap:2px 10px;align-items:start;cursor:pointer}
+.radio input{margin:3px 0 0;accent-color:var(--accent)}
+.radio .nm{font-size:13px}
+.radio .ds{grid-column:2;font-size:12px;color:var(--fg-2)}
+@media (max-width:760px){.t-row{grid-template-columns:minmax(0,1fr);gap:var(--s-2)}}
+
+/* ---- compact rows (A, C) ---- */
+.c-row{display:flex;align-items:center;gap:var(--s-4);padding:12px var(--pad-x);border-bottom:1px solid var(--border)}
+.c-row:last-child,.c-row:has(+ .panel-foot){border-bottom:0}
+.c-row .txt{flex:1;min-width:0}
+.c-row .nm{font-size:13px;font-weight:500;display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.c-row .ds{font-size:11.5px;color:var(--fg-3);line-height:1.5;margin-top:1px;max-width:82ch}
+.c-row .ctl{flex:none}
+.c-block{padding:var(--s-4) var(--pad-x);display:flex;flex-direction:column;gap:var(--s-3)}
+.c-block .top{display:flex;align-items:center;gap:var(--s-3);flex-wrap:wrap}
+.c-block .nm{font-size:13px;font-weight:500;display:flex;align-items:center;gap:7px}
+.c-block .ds{font-size:11.5px;color:var(--fg-3);line-height:1.55;max-width:82ch}
+
+.seg{display:inline-flex;flex-wrap:wrap;border:1px solid var(--border);border-radius:var(--r-1);background:var(--surface);overflow:hidden}
+.seg label{position:relative;display:inline-flex;align-items:center;height:var(--ctl-sm);padding:0 13px;font-size:12px;font-weight:500;color:var(--fg-2);cursor:pointer}
+.seg label+label{border-left:1px solid var(--border)}
+.seg input{position:absolute;opacity:0;width:1px;height:1px}
+.seg label:has(input:checked){background:var(--accent-soft);color:var(--accent)}
+.seg label:has(input:focus-visible){outline:2px solid var(--accent);outline-offset:-2px}
+.mode-ds{font-size:12px;color:var(--fg-2);line-height:1.55;max-width:82ch;padding:10px 12px;border-radius:var(--r-1);background:var(--surface-2)}
+
+.checks{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:2px var(--s-3);padding:var(--s-3) calc(var(--pad-x) - 10px)}
+.ck{display:grid;grid-template-columns:auto minmax(0,1fr);gap:0 10px;align-items:start;padding:8px 10px;border-radius:var(--r-1);cursor:pointer;min-width:0}
+.ck:hover{background:var(--surface-2)}
+.ck input{margin:2px 0 0;width:15px;height:15px;accent-color:var(--accent)}
+.ck .nm{font-size:13px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.ck .dm{grid-column:2;font-family:var(--font-mono);font-size:10.5px;color:var(--fg-3);line-height:1.55;overflow-wrap:anywhere}
+.ck:has(input:not(:checked)) .nm{color:var(--fg-2)}
+
+/* ---- Raw HTML option list and Embeds chips ---- */
+.opt-list{display:flex;flex-direction:column;gap:2px;padding:var(--s-2)}
+.opt{display:grid;grid-template-columns:auto minmax(0,1fr);gap:1px 10px;padding:10px 12px;border-radius:var(--r-1);cursor:pointer}
+.opt:hover{background:var(--surface-2)}
+.opt input{margin:3px 0 0;accent-color:var(--accent)}
+.opt .nm{font-size:13px;font-weight:500}
+.opt .ds{grid-column:2;font-size:11.5px;color:var(--fg-3);line-height:1.5}
+.opt:has(input:checked){background:var(--accent-soft)}
+.opt:has(input:checked) .nm{color:var(--accent)}
+.opt:has(input:checked) .ds{color:var(--fg-2)}
+.chips{display:flex;flex-wrap:wrap;gap:var(--s-2);padding:var(--s-4) var(--pad-x) var(--s-3)}
+.chip{display:inline-flex;align-items:center;gap:9px;height:var(--ctl);padding:0 12px 0 11px;border-radius:99px;border:1px solid var(--border);background:var(--surface);font-size:12.5px;color:var(--fg-2)}
+.chip:hover{border-color:var(--border-strong);color:var(--fg)}
+.chip .ic{width:14px;height:14px}
+.chip[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent-line);color:var(--accent);font-weight:500}
+.chip .ic.off{color:var(--fg-3)}
+/* The provider's mark, from Simple Icons, in one color: ink when the site
+   embeds, stepped back when it does not. The check or dash after the name
+   still carries the state, so the mark is never the only signal. */
+/* The mark is the pill's left cap: no tile of its own, and a short rule
+   between it and the name in the pill's own line color. */
+.chip .mk{display:flex;align-items:center;height:16px;padding-right:9px;border-right:1px solid var(--border);color:var(--fg-3);flex:none}
+.chip .mk .logo{width:15px;height:15px;fill:currentColor;stroke:none}
+.chip[aria-pressed="true"] .mk{border-right-color:var(--accent-line);color:var(--accent)}
+.chip .stt{width:13px;height:13px;margin-left:1px}
+.chip-info{padding:0 var(--pad-x) var(--s-4);font-size:11.5px;color:var(--fg-3);min-height:2.6em}
+.chip-info b{color:var(--fg-2);font-weight:500}
+
+/* ---------- save bar ---------- */
+.savebar{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:40;
+  display:flex;align-items:center;gap:var(--s-3);padding:8px 9px 8px 18px;border-radius:99px;background:var(--surface);
+  border:1px solid var(--border-strong);box-shadow:var(--shadow-3);max-width:calc(100vw - 32px)}
+.savebar .n{font-size:12.5px;white-space:nowrap;color:var(--fg-2)}
+.toast{position:fixed;right:16px;bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:50;display:flex;align-items:center;gap:10px;
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--r-2);box-shadow:var(--shadow-3);padding:11px 15px;font-size:12.5px}
+.toast .ic{color:var(--good-dot)}
+
+#measure{position:absolute;left:-10000px;top:0;visibility:hidden;pointer-events:none}
+@media (max-width:640px){
+  .lab-in,.lab-note,.wrap{padding-inline:var(--s-4)}
+  .lab-end{margin-left:0}
+  .page-head h1{font-size:22px}
+  .c-row{align-items:flex-start}
+}
+@media (prefers-reduced-motion:reduce){*{transition-duration:.01ms!important}}
+</style>
+</head>
+<body>
+
+
+<svg style="display:none" aria-hidden="true">
+  <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+  <symbol id="i-minus" viewBox="0 0 24 24"><path d="M5 12h14"/></symbol>
+  <!-- Provider marks from Simple Icons 13.21.0 (simpleicons.org), single color. -->
+  <symbol id="b-youtube" viewBox="0 0 24 24"><title>YouTube</title><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></symbol>
+  <symbol id="b-vimeo" viewBox="0 0 24 24"><title>Vimeo</title><path d="M23.9765 6.4168c-.105 2.338-1.739 5.5429-4.894 9.6088-3.2679 4.247-6.0258 6.3699-8.2898 6.3699-1.409 0-2.578-1.294-3.553-3.881l-1.9179-7.1138c-.719-2.584-1.488-3.878-2.312-3.878-.179 0-.806.378-1.8809 1.132l-1.129-1.457a315.06 315.06 0 003.501-3.1279c1.579-1.368 2.765-2.085 3.5539-2.159 1.867-.18 3.016 1.1 3.447 3.838.465 2.953.789 4.789.971 5.5069.5389 2.45 1.1309 3.674 1.7759 3.674.502 0 1.256-.796 2.265-2.385 1.004-1.589 1.54-2.797 1.612-3.628.144-1.371-.395-2.061-1.614-2.061-.574 0-1.167.121-1.777.391 1.186-3.8679 3.434-5.7568 6.7619-5.6368 2.4729.06 3.6279 1.664 3.4929 4.7969z"/></symbol>
+  <symbol id="b-ted" viewBox="0 0 24 24"><title>TED</title><path d="M0 7.664v2.223h2.43v6.449H5.1v-6.45h2.43V7.665zm7.945 0v8.672h7.31v-2.223h-4.638v-1.08h4.637v-2.066h-4.637v-1.08h4.637V7.664zm7.759 0v8.672h3.863c3.024 0 4.433-1.688 4.433-4.349 0-2.185-1.021-4.323-3.912-4.323zm2.672 2.223h.85c1.931 0 2.102 1.518 2.102 2.063 0 .815-.243 2.163-1.907 2.163h-1.045z"/></symbol>
+  <symbol id="b-codepen" viewBox="0 0 24 24"><title>CodePen</title><path d="M18.144 13.067v-2.134L16.55 12zm1.276 1.194a.628.628 0 01-.006.083l-.005.028-.011.053-.01.031c-.005.016-.01.031-.017.047l-.014.03a.78.78 0 01-.021.043l-.019.03a.57.57 0 01-.08.1l-.026.025a.602.602 0 01-.036.03l-.029.022-.01.008-6.782 4.522a.637.637 0 01-.708 0L4.864 14.79l-.01-.008a.599.599 0 01-.065-.052l-.026-.025-.032-.034-.021-.028a.588.588 0 01-.067-.11l-.014-.031a.644.644 0 01-.017-.047l-.01-.03c-.004-.018-.008-.036-.01-.054l-.006-.028a.628.628 0 01-.006-.083V9.739c0-.028.002-.055.006-.083l.005-.027.011-.054.01-.03a.574.574 0 01.12-.217l.031-.034.026-.025a.62.62 0 01.065-.052l.01-.008 6.782-4.521a.638.638 0 01.708 0l6.782 4.521.01.008.03.022.035.03c.01.008.017.016.026.025a.545.545 0 01.08.1l.019.03a.633.633 0 01.021.043l.014.03c.007.016.012.032.017.047l.01.031c.004.018.008.036.01.054l.006.027a.619.619 0 01.006.083zM12 0C5.373 0 0 5.372 0 12 0 18.627 5.373 24 12 24c6.628 0 12-5.372 12-12 0-6.627-5.372-12-12-12m0 10.492L9.745 12 12 13.51 14.255 12zm.638 4.124v2.975l4.996-3.33-2.232-1.493zm-6.272-.356l4.996 3.33v-2.974l-2.764-1.849zm11.268-4.52l-4.996-3.33v2.974l2.764 1.85zm-6.272-.356V6.41L6.366 9.74l2.232 1.493zm-5.506 1.549v2.134L7.45 12Z"/></symbol>
+  <symbol id="b-spotify" viewBox="0 0 24 24"><title>Spotify</title><path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/></symbol>
+  <symbol id="b-soundcloud" viewBox="0 0 24 24"><title>SoundCloud</title><path d="M23.999 14.165c-.052 1.796-1.612 3.169-3.4 3.169h-8.18a.68.68 0 0 1-.675-.683V7.862a.747.747 0 0 1 .452-.724s.75-.513 2.333-.513a5.364 5.364 0 0 1 2.763.755 5.433 5.433 0 0 1 2.57 3.54c.282-.08.574-.121.868-.12.884 0 1.73.358 2.347.992s.948 1.49.922 2.373ZM10.721 8.421c.247 2.98.427 5.697 0 8.672a.264.264 0 0 1-.53 0c-.395-2.946-.22-5.718 0-8.672a.264.264 0 0 1 .53 0ZM9.072 9.448c.285 2.659.37 4.986-.006 7.655a.277.277 0 0 1-.55 0c-.331-2.63-.256-5.02 0-7.655a.277.277 0 0 1 .556 0Zm-1.663-.257c.27 2.726.39 5.171 0 7.904a.266.266 0 0 1-.532 0c-.38-2.69-.257-5.21 0-7.904a.266.266 0 0 1 .532 0Zm-1.647.77a26.108 26.108 0 0 1-.008 7.147.272.272 0 0 1-.542 0 27.955 27.955 0 0 1 0-7.147.275.275 0 0 1 .55 0Zm-1.67 1.769c.421 1.865.228 3.5-.029 5.388a.257.257 0 0 1-.514 0c-.21-1.858-.398-3.549 0-5.389a.272.272 0 0 1 .543 0Zm-1.655-.273c.388 1.897.26 3.508-.01 5.412-.026.28-.514.283-.54 0-.244-1.878-.347-3.54-.01-5.412a.283.283 0 0 1 .56 0Zm-1.668.911c.4 1.268.257 2.292-.026 3.572a.257.257 0 0 1-.514 0c-.241-1.262-.354-2.312-.023-3.572a.283.283 0 0 1 .563 0Z"/></symbol>
+  <symbol id="b-flickr" viewBox="0 0 24 24"><title>Flickr</title><path d="M5.334 6.666C2.3884 6.666 0 9.055 0 12c0 2.9456 2.3884 5.334 5.334 5.334 2.9456 0 5.332-2.3884 5.332-5.334 0-2.945-2.3864-5.334-5.332-5.334zm13.332 0c-2.9456 0-5.332 2.389-5.332 5.334 0 2.9456 2.3864 5.334 5.332 5.334C21.6116 17.334 24 14.9456 24 12c0-2.945-2.3884-5.334-5.334-5.334Z"/></symbol>
+  <symbol id="b-twitch" viewBox="0 0 24 24"><title>Twitch</title><path d="M11.571 4.714h1.715v5.143H11.57zm4.715 0H18v5.143h-1.714zM6 0L1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0zm14.571 11.143l-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714Z"/></symbol>
+  <symbol id="b-tiktok" viewBox="0 0 24 24"><title>TikTok</title><path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z"/></symbol>
+</svg>
+
+<header class="lab-bar">
+  <div class="lab-in">
+    <span class="lab-name">Writing</span>
+    <div class="lab-tabs" role="tablist" aria-label="Layout" id="labTabs"></div>
+    <div class="lab-end">
+      <div class="lab-seg" aria-label="Admin theme">
+        <button type="button" id="th-neutral" data-dir="" aria-pressed="true">Neutral</button>
+        <button type="button" id="th-editorial" data-dir="editorial" aria-pressed="false">Editorial</button>
+      </div>
+      <div class="lab-seg" aria-label="Color scheme">
+        <button type="button" id="cs-system" data-cs="" aria-pressed="true">System</button>
+        <button type="button" id="cs-light" data-cs="light" aria-pressed="false">Light</button>
+        <button type="button" id="cs-dark" data-cs="dark" aria-pressed="false">Dark</button>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div class="lab-note"><p id="labNote"></p><span class="lab-meter" id="labMeter"></span></div>
+
+<main class="wrap" id="screen"></main>
+<div id="measure" aria-hidden="true"></div>
+
+<script>
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const ic = (id, cls) => '<svg class="ic'+(cls?' '+cls:'')+'"><use href="#'+id+'"/></svg>';
+
+/* ---------- the settings, as the screenshot has them ---------- */
+const MD = [
+  {k:"mentions", l:"Mentions", d:"@name links to the profile with that slug, once it's published. A name that isn't anyone's stays text."},
+  {k:"smart",    l:"Smart Punctuation", d:"Straight quotes become curly ones, -- and --- dashes, and ... an ellipsis. Code is left as written."},
+  {k:"anchors",  l:"Heading Anchors", d:"Each heading gets a link to itself, so a section can be shared."},
+  {k:"figures",  l:"Images as Figures", d:"An image on a line of its own becomes a figure, with its title as the caption."}
+];
+const MODES = [
+  {v:"allowed",  l:"Allowed",       d:"HTML is part of the page, as written."},
+  {v:"filtered", l:"Filtered",      d:"HTML is part of the page, but script, frames, forms, and styles show as text, and javascript: links lose their address."},
+  {v:"text",     l:"Shown as Text", d:"HTML shows as text, as it was typed."}
+];
+const HTML_HINT = "What HTML written in content does on the page, whoever wrote it. Who may add HTML in the admin is up to their role.";
+const EMBEDS = [
+  {k:"youtube",kind:"video",l:"YouTube",dm:["youtube.com","m.youtube.com","youtube-nocookie.com","youtu.be"]},
+  {k:"vimeo",kind:"video",l:"Vimeo",dm:["vimeo.com","player.vimeo.com"]},
+  {k:"ted",kind:"talk",l:"TED",dm:["ted.com","embed.ted.com"]},
+  {k:"codepen",kind:"code",l:"CodePen",dm:["codepen.io"]},
+  {k:"spotify",kind:"audio",l:"Spotify",dm:["open.spotify.com"]},
+  {k:"soundcloud",kind:"audio",l:"SoundCloud",dm:["soundcloud.com","m.soundcloud.com"]},
+  {k:"flickr",kind:"photo",l:"Flickr",dm:["flickr.com","flic.kr"]},
+  {k:"twitch",kind:"live",l:"Twitch",dm:["twitch.tv","m.twitch.tv","clips.twitch.tv"]},
+  {k:"tiktok",kind:"short",l:"TikTok",dm:["tiktok.com","m.tiktok.com"]}
+];
+const listDomains = a => a.length < 3 ? a.join(" and ") : a.slice(0,-1).join(", ")+", and "+a[a.length-1];
+
+/* Config values come from code; overrides live in settings.json. */
+const CFG = {html:"filtered"};
+MD.forEach(m => CFG[m.k] = true);
+EMBEDS.forEach(e => CFG["em_"+e.k] = true);
+const saved = {};           // what settings.json holds
+let draft = {};             // what this screen holds
+const val = k => k in draft ? draft[k] : CFG[k];
+const isDirty = k => (k in saved) !== (k in draft) || saved[k] !== draft[k];
+const dirtyKeys = () => Object.keys(CFG).filter(isDirty);
+function setVal(k, v){ if (v === CFG[k] && !(k in saved)) delete draft[k]; else draft[k] = v; refresh(); }
+function resetKey(k){ delete draft[k]; refresh(); }
+
+/* No per-control change markers: a control shows only on or off, and the save
+   bar is the one place that says something has changed. */
+function tag(){ return ""; }
+function sw(k, id){
+  const on = val(k);
+  return '<label class="switch"><input type="checkbox" id="'+id+'" data-k="'+k+'"'+(on?" checked":"")+'>'+
+    '<span class="track"></span><span class="st">'+(on?"On":"Off")+'</span></label>';
+}
+const notebar = '<div class="notebar">'+ic("i-info")+'<span>What you save here is kept in <code>user/data/settings.json</code> and wins over <code>config/</code>. The rest are set in code and only shown.</span></div>';
+const head = '<div class="page-head"><h1>Writing</h1><p class="sub">How what\'s written renders, and what raw HTML in it does.</p></div>';
+const panelHead = (t, h, end) => '<div class="panel-head"><h2>'+t+'</h2><span class="hint">'+h+'</span>'+(end?'<div class="end">'+end+'</div>':'')+'</div>';
+const embedsOn = () => EMBEDS.filter(e => val("em_"+e.k)).length;
+const allBtns = p => '<button class="btn btn-ghost sm" type="button" id="'+p+'-all-on" data-all="1"'+(embedsOn()===EMBEDS.length?" disabled":"")+'>Turn All On</button>'+
+                     '<button class="btn btn-ghost sm" type="button" id="'+p+'-all-off" data-all="0"'+(embedsOn()===0?" disabled":"")+'>Turn All Off</button>';
+const EMBED_FOOT = 'A site turned off keeps its links as links, rather than playing them on the page. From <code>config/embed.php</code>, the defaults.';
+
+/* ---------- Today: the screen as it is ---------- */
+function today(p){
+  const src = (k, file, dflt) => '<span class="hint">From <code>'+file+'</code>'+(dflt?', the default':'')+'.</span>';
+  return head + '<div class="stack">' + notebar +
+    '<section class="panel">'+panelHead("Markdown","How what's written renders")+
+      MD.map(m => '<div class="t-row"><span class="k">'+m.l+'</span><div class="v">'+sw(m.k,p+"-"+m.k)+
+        '<span class="hint">'+esc(m.d)+'</span>'+src(m.k,"config/markdown.php",true)+'</div></div>').join("")+
+    '</section>'+
+    '<section class="panel">'+panelHead("HTML","Raw HTML in content")+
+      '<div class="t-row"><span class="k">Raw HTML</span><div class="v"><div class="radio-list">'+
+        MODES.map(o => '<label class="radio"><input type="radio" name="'+p+'-html" id="'+p+'-html-'+o.v+'" data-k="html" value="'+o.v+'"'+(val("html")===o.v?" checked":"")+'>'+
+          '<span class="nm">'+o.l+'</span><span class="ds">'+esc(o.d)+'</span></label>').join("")+
+        '</div><span class="hint">'+HTML_HINT+'</span>'+src("html","config/markdown.php",false)+'</div></div>'+
+    '</section>'+
+    '<section class="panel">'+panelHead("Embeds","Sites whose links play on the page")+
+      EMBEDS.map(e => '<div class="t-row"><span class="k">'+e.l+'</span><div class="v">'+sw("em_"+e.k,p+"-em-"+e.k)+
+        '<span class="hint">Embeds links to '+listDomains(e.dm)+'.</span>'+'</div></div>').join("")+
+      '<div class="panel-foot">'+EMBED_FOOT+'</div>'+
+    '</section></div>';
+}
+
+/* ---------- shared compact pieces ---------- */
+const mdRows = p => MD.map(m => '<div class="c-row"><div class="txt"><div class="nm">'+m.l+tag(m.k)+'</div><p class="ds">'+esc(m.d)+'</p></div>'+
+  '<div class="ctl">'+sw(m.k,p+"-"+m.k)+'</div></div>').join("");
+/* Raw HTML as a form row: the label in a left column, and the segmented
+   control with the chosen option's description in the right. */
+function modeBlock(p){
+  const cur = MODES.find(o => o.v === val("html"));
+  return '<div class="h-row"><span class="k" id="'+p+'-html-l">Raw HTML</span>'+
+    '<div class="v"><div class="seg" role="radiogroup" aria-labelledby="'+p+'-html-l">'+
+      MODES.map(o => '<label><input type="radio" name="'+p+'-html" id="'+p+'-html-'+o.v+'" data-k="html" value="'+o.v+'"'+(val("html")===o.v?" checked":"")+'>'+o.l+'</label>').join("")+
+    '</div><p class="mode-ds">'+esc(cur.d)+'</p><p class="hint">'+HTML_HINT+'</p></div></div>';
+}
+const checks = p => '<div class="checks">'+EMBEDS.map(e =>
+  '<label class="ck" title="'+esc(e.dm.join(", "))+'"><input type="checkbox" id="'+p+'-em-'+e.k+'" data-k="em_'+e.k+'"'+(val("em_"+e.k)?" checked":"")+'>'+
+  '<span class="nm">'+e.l+tag("em_"+e.k)+'</span><span class="dm">'+esc(e.dm.join(" · "))+'</span></label>').join("")+'</div>';
+
+/* ---------- A: Compact Rows ---------- */
+function optA(p){
+  return head + '<div class="stack">' + notebar +
+    '<section class="panel">'+panelHead("Markdown","How what's written renders")+mdRows(p)+
+      '<div class="panel-foot">From <code>config/markdown.php</code>, the defaults.</div></section>'+
+    '<section class="panel">'+panelHead("HTML","Raw HTML in content")+modeBlock(p)+
+      '<div class="panel-foot">From <code>config/markdown.php</code>.</div></section>'+
+    '<section class="panel">'+panelHead("Embeds","Sites whose links play on the page", '<span class="hint">'+embedsOn()+' of '+EMBEDS.length+' on</span>'+allBtns(p))+checks(p)+
+      '<div class="panel-foot">'+EMBED_FOOT+'</div></section>'+
+  '</div>';
+}
+
+/* ---------- B's pieces, reused by the combined option ---------- */
+const optList = p => '<div class="opt-list" role="radiogroup" aria-label="Raw HTML">'+MODES.map(o =>
+  '<label class="opt"><input type="radio" name="'+p+'-html" id="'+p+'-html-'+o.v+'" data-k="html" value="'+o.v+'"'+(val("html")===o.v?" checked":"")+'>'+
+  '<span class="nm">'+o.l+'</span><span class="ds">'+esc(o.d)+'</span></label>').join("")+'</div>';
+const chips = p => '<div class="chips">'+EMBEDS.map(e => { const on = val("em_"+e.k);
+  return '<button type="button" class="chip" title="'+esc(listDomains(e.dm))+'" id="'+p+'-em-'+e.k+'" data-chip="em_'+e.k+'" data-e="'+e.k+'" aria-pressed="'+on+'">'+
+    '<span class="mk" aria-hidden="true"><svg class="logo"><use href="#b-'+e.k+'"/></svg></span>'+e.l+(on?ic("i-check","stt"):ic("i-minus","off stt"))+'</button>'; }).join("")+'</div>'+
+  '<p class="chip-info">'+EMBED_FOOT+'</p>';
+
+/* ---------- A + Chips: A's Markdown and Raw HTML, Combined's Embeds ---------- */
+function optE(p){
+  return head + '<div class="stack">' + notebar +
+    '<section class="panel">'+panelHead("Markdown","How what's written renders")+mdRows(p)+
+      '<div class="panel-foot">From <code>config/markdown.php</code>, the defaults.</div></section>'+
+    '<section class="panel">'+panelHead("HTML","Raw HTML in content")+modeBlock(p)+
+      '<div class="panel-foot">From <code>config/markdown.php</code>.</div></section>'+
+    '<section class="panel">'+panelHead("Embeds","Sites whose links play on the page", '<span class="hint">'+embedsOn()+' of '+EMBEDS.length+' on</span>'+allBtns(p))+chips(p)+'</section>'+
+  '</div>';
+}
+
+/* ---------- Combined: A's column, B's Raw HTML and Embeds ---------- */
+function optD(p){
+  return head + '<div class="stack">' + notebar +
+    '<section class="panel">'+panelHead("Markdown","How what's written renders")+mdRows(p)+
+      '<div class="panel-foot">From <code>config/markdown.php</code>, the defaults.</div></section>'+
+    '<section class="panel">'+panelHead("HTML","What raw HTML in content does", tag("html"))+optList(p)+
+      '<div class="panel-foot">Applies whoever wrote it; who may add HTML in the admin is up to their role. From <code>config/markdown.php</code>.</div></section>'+
+    '<section class="panel">'+panelHead("Embeds","Sites whose links play on the page", '<span class="hint">'+embedsOn()+' of '+EMBEDS.length+' on</span>'+allBtns(p))+chips(p)+'</section>'+
+  '</div>';
+}
+
+const OPTIONS = [
+  {k:"today", l:"Today", fn:today, note:"<b>The screen as it is.</b> Every setting is its own full-height row with a label column, the control, its hint, and its own source line. Fourteen rows across three panels."},
+  {k:"e", l:"A + Chips", fn:optE, note:"<b>A, with Combined's embeds.</b> Markdown keeps the compact rows and Raw HTML sits in a form row: the label on the left, the segmented control and the chosen option\'s description on the right. Embeds are chips carrying each provider\'s mark, with its domains in the tooltip."},
+];
+let current = "e";
+
+/* ---------- render ---------- */
+function render(){
+  const o = OPTIONS.find(x => x.k === current);
+  const focusId = document.activeElement && document.activeElement.id;
+  $("#screen").innerHTML = o.fn(current);
+  $("#labNote").innerHTML = o.note;
+  if (focusId){ const el = document.getElementById(focusId); if (el) el.focus({preventScroll:true}); }
+  renderSaveBar();
+  measure();
+}
+function renderTabs(){
+  $("#labTabs").innerHTML = OPTIONS.map(o => '<button class="lab-tab" type="button" role="tab" id="lt-'+o.k+'" data-opt="'+o.k+'" aria-selected="'+(o.k===current)+'">'+
+    o.l+'<span class="h" id="h-'+o.k+'">—</span></button>').join("");
+}
+const heights = {};
+function measure(){
+  const m = $("#measure");
+  m.style.width = $("#screen").getBoundingClientRect().width + "px";
+  OPTIONS.forEach(o => {
+    m.innerHTML = '<div class="wrap" style="max-width:none;padding-inline:0">'+o.fn("m")+'</div>';
+    heights[o.k] = m.firstChild.offsetHeight;
+  });
+  m.innerHTML = "";
+  OPTIONS.forEach(o => { const el = $("#h-"+o.k); if (el) el.textContent = heights[o.k].toLocaleString("en-US")+"px"; });
+  const cur = heights[current], base = heights.today;
+  $("#labMeter").innerHTML = current === "today" ? "<b>"+base.toLocaleString("en-US")+"px</b> tall"
+    : "<b>"+cur.toLocaleString("en-US")+"px</b> tall · "+Math.round((1 - cur/base)*100)+"% shorter than today";
+}
+function refresh(){ render(); }
+
+function renderSaveBar(){
+  let bar = $("#savebar");
+  const n = dirtyKeys().length;
+  if (!n){ if (bar) bar.remove(); return; }
+  if (!bar){
+    bar = document.createElement("div"); bar.className = "savebar"; bar.id = "savebar";
+    bar.innerHTML = '<span class="n" id="savebarN"></span><button class="btn btn-ghost sm" type="button" id="setRevert">Revert</button><button class="btn btn-primary sm" type="button" id="setSave">Save Changes</button>';
+    document.body.appendChild(bar);
+  }
+  $("#savebarN").textContent = n + (n === 1 ? " unsaved change" : " unsaved changes");
+}
+function toast(msg){
+  const t = document.createElement("div"); t.className = "toast"; t.innerHTML = ic("i-check")+'<span>'+msg+'</span>';
+  document.body.appendChild(t); setTimeout(() => t.remove(), 2400);
+}
+
+/* ---------- events ---------- */
+document.addEventListener("change", e => {
+  const k = e.target.dataset && e.target.dataset.k; if (!k) return;
+  setVal(k, e.target.type === "checkbox" ? e.target.checked : e.target.value);
+});
+document.addEventListener("click", e => {
+  const t = e.target.closest("button"); if (!t) return;
+  if (t.dataset.opt){ current = t.dataset.opt; renderTabs(); render(); document.getElementById("lt-"+current).focus(); return; }
+  if (t.dataset.reset){ resetKey(t.dataset.reset); return; }
+  if (t.dataset.chip){ setVal(t.dataset.chip, !val(t.dataset.chip)); return; }
+  if (t.dataset.all){ const on = t.dataset.all === "1"; EMBEDS.forEach(x => { const k = "em_"+x.k; if (on === CFG[k] && !(k in saved)) delete draft[k]; else draft[k] = on; }); refresh(); return; }
+  if (t.id === "setSave"){ Object.keys(saved).forEach(k => delete saved[k]); Object.assign(saved, draft); toast("Saved to settings.json"); refresh(); return; }
+  if (t.id === "setRevert"){ draft = Object.assign({}, saved); toast("Reverted the unsaved changes"); refresh(); return; }
+  if ("dir" in t.dataset){ document.querySelectorAll("[data-dir]").forEach(b => b.setAttribute("aria-pressed", b === t));
+    if (t.dataset.dir) document.documentElement.setAttribute("data-dir", t.dataset.dir); else document.documentElement.removeAttribute("data-dir"); measure(); return; }
+  if ("cs" in t.dataset){ document.querySelectorAll("[data-cs]").forEach(b => b.setAttribute("aria-pressed", b === t));
+    if (t.dataset.cs) document.documentElement.setAttribute("data-theme", t.dataset.cs); else document.documentElement.removeAttribute("data-theme"); return; }
+});
+let rz; window.addEventListener("resize", () => { clearTimeout(rz); rz = setTimeout(measure, 150); });
+renderTabs(); render();
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(measure);
+</script>
+
+</body>
+</html>

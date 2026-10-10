@@ -41,6 +41,15 @@ function holdsSlugs(field: FieldDescription, kind: Control): boolean {
 }
 
 /**
+ * An option's words: its `choices` label, a list's item's, or the option.
+ */
+export function choiceLabel(field: FieldDescription, option: string): string {
+	const choices = field.choices ?? field.item?.choices;
+
+	return typeof choices === 'object' && choices !== null && option in choices ? String((choices as Record<string, unknown>)[option]) : option;
+}
+
+/**
  * A field's label: its own, or its name made readable (`literary_form`
  * → "Literary form").
  */

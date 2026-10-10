@@ -4323,6 +4323,31 @@ a.problem__title:hover {
 	min-height: var(--ctl);
 }
 
+/* In a panel of only switches (D-695), a row's label with its help
+   under it, and its switch at the end, at every width. */
+.setting.setting--switch {
+	grid-template-columns: minmax(0, 1fr) auto;
+	grid-template-areas: "label control" "help control";
+	gap: 2px var(--s-5);
+	align-items: center;
+	padding-block: var(--s-3);
+}
+
+.setting--switch .setting__label {
+	grid-area: label;
+	padding-top: 0;
+}
+
+.setting--switch .setting__control {
+	grid-area: control;
+}
+
+.setting--switch .setting__help {
+	grid-area: help;
+	max-width: 82ch;
+	padding-top: 0;
+}
+
 /* A row turned off by another keeps its control, dimmed, with the reason
    in its help. */
 .setting.is-off .setting__control {
@@ -4345,6 +4370,14 @@ a.problem__title:hover {
 
 .setting__help p {
 	margin: 0;
+}
+
+/* What the chosen option of a segmented choice does, under it (D-695). */
+.setting__detail {
+	max-width: 64ch;
+	color: var(--fg-2);
+	font-size: var(--text-sm);
+	line-height: 1.5;
 }
 
 /* A value set in code, read where the controls start. */

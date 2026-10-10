@@ -920,9 +920,11 @@ export interface SettingItem {
 	label: string;
 	value: string | boolean | string[];
 	// `uploads` is Media's upload rules, drawn as a grid (D-406);
-	// `embeds` is the embed providers turned off, drawn as a switch for
-	// each of `providers` (D-633).
-	kind: 'text' | 'mono' | 'bool' | 'list' | 'uploads' | 'embeds';
+	// `embeds` is the embed providers turned off, drawn as a chip for
+	// each of `providers` (D-633, D-695); `segmented` is a choice drawn
+	// as its options side by side, with the chosen one's details under
+	// them (D-695).
+	kind: 'text' | 'mono' | 'bool' | 'list' | 'uploads' | 'embeds' | 'segmented';
 	// Whether it's still the default; `null` when it follows from others.
 	default: boolean | null;
 	help: string | null;
@@ -984,6 +986,9 @@ export interface SettingGroup {
 	title: string;
 	hint: string;
 	note: string | null;
+	// The file every setting in it is from, named once in its foot
+	// (D-695), so a row says where it's from only when it's saved here.
+	source?: string;
 	items: SettingItem[];
 }
 

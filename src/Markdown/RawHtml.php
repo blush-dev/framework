@@ -57,7 +57,7 @@ enum RawHtml: string
 		return match ($this) {
 			self::Allow  => 'Allowed',
 			self::Filter => 'Filtered',
-			self::Escape => 'Shown as text'
+			self::Escape => 'Shown as Text'
 		};
 	}
 }

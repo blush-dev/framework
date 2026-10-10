@@ -19,8 +19,16 @@
  * (`UploadRules`), the whole of its panel, with where they're set under
  * it; the form holds the grid as text, so it's compared as the others
  * are. Writing's embeds (D-633) are one setting, the providers turned
- * off, drawn as a row with a switch for each provider, with where it's
- * set under them.
+ * off, drawn as a chip for each provider (`EmbedChips`, the Writing
+ * sketch's, D-695), with how many are on and buttons to turn them all
+ * on or off in the panel's header, and where it's set under them.
+ *
+ * A choice of a few short options (`segmented`, Writing's Raw HTML) is
+ * drawn as them side by side, with the chosen one's details under them.
+ * A panel whose settings are all from one file (`source`, D-695) says
+ * it once in its foot, so each row says where it's from only when it's
+ * saved here. A panel of only switches has each row's words first and
+ * its switch at the end, as the Writing sketch does.
  *
  * Each setting is edited as a field (D-343), with the control the server
  * names (`FieldInput`, as every form draws them), but a yes or no is a
@@ -48,16 +56,16 @@ import AdminIcon from '../components/AdminIcon.vue';
 import AdminSelect from '../components/AdminSelect.vue';
 import FieldInput from '../components/FieldInput.vue';
 import DateFormatPicker from '../components/DateFormatPicker.vue';
+import EmbedChips from '../components/EmbedChips.vue';
 import LocalePicker from '../components/LocalePicker.vue';
 import SaveBar from '../components/SaveBar.vue';
 import ToggleSwitch from '../components/ToggleSwitch.vue';
 import UploadRules from '../components/UploadRules.vue';
 import { useAction } from '../action';
 import { errorMessage, request, saveSettings, type FieldDescription, type SettingGroup, type SettingItem, type UploadsInfo } from '../api';
-import { control, fromForm, toForm, type FormValue } from '../fields';
+import { choiceLabel, control, fromForm, toForm, type FormValue } from '../fields';
 import { screenTitle, screenTrail } from '../screen';
 import { toast } from '../toast';
-import { series } from '../format';
 import { fromGrid, summary, toGrid, type UploadGrid } from '../uploads';
 
 const props = defineProps<{ screen: string }>();
@@ -213,6 +221,54 @@ function setProvider(setting: string, name: string, on: boolean): void {
 	form.value[setting] = (on ? off : [...off, name]).sort().join('\n');
 }
 
+// Turns every provider on or off.
+function setProviders(item: SettingItem, on: boolean): void {
+	if (item.setting !== undefined) {
+		form.value[item.setting] = on ? '' : (item.providers ?? []).map((provider) => provider.name).sort().join('\n');
+	}
+}
+
+// The embeds setting in a group, if it has one.
+function embedsOf(group: SettingGroup): SettingItem | null {
+	return group.items.find((item) => item.kind === 'embeds' && item.setting !== undefined && item.providers !== undefined) ?? null;
+}
+
+// How many of an embeds setting's providers are on.
+function providersOn(item: SettingItem): number {
+	const off = offList(item.setting ?? '');
+
+	return (item.providers ?? []).filter((provider) => !off.includes(provider.name)).length;
+}
+
+// What a panel that names its file says in its foot: nothing where every
+// row is saved here and says so, and "the defaults" where the rest are.
+function sourceNote(group: SettingGroup): string | null {
+	const edited = group.items.filter((item) => item.setting !== undefined);
+	const rest   = edited.filter((item) => item.saved !== true && !unset.value.includes(item.setting!));
+
+	if (group.source === undefined || rest.length === 0) {
+		return null;
+	}
+
+	const lead = rest.length < edited.length ? 'The rest are from' : 'From';
+	const tail = rest.every((item) => item.default === true) ? (rest.length === 1 ? ', the default' : ', the defaults') : '';
+
+	return `${lead} \`${group.source}\`${tail}.`;
+}
+
+// Whether a group is only switches, each drawn with its words first and
+// its switch at the row's end (the Writing sketch's, D-695).
+function onlySwitches(group: SettingGroup): boolean {
+	return group.items.every((item) => item.setting !== undefined && item.field !== undefined && kindOf(item) === 'checkbox');
+}
+
+// The chosen option's details, for a segmented choice.
+function chosenDetail(item: SettingItem): string | null {
+	const value = item.setting === undefined ? '' : form.value[item.setting];
+
+	return typeof value === 'string' ? item.field?.details?.[value]?.text ?? null : null;
+}
+
 // A group's hint: the upload grid's says what it does.
 function groupHint(group: SettingGroup): string {
 	const item = group.items.find((entry) => entry.kind === 'uploads');
@@ -344,6 +400,11 @@ onBeforeRouteUpdate(() => count.value === 0 || confirmLeave());
 			<header class="panel__header setting-panels__header">
 				<h2 :id="`settings-${group.key}`">{{ group.title }}</h2>
 				<p class="panel__hint">{{ groupHint(group) }}</p>
+				<div v-if="embedsOf(group)" class="panel__actions">
+					<span class="panel__hint">{{ providersOn(embedsOf(group)!) }} of {{ embedsOf(group)!.providers?.length }} on</span>
+					<button type="button" class="button button--ghost button--small" :disabled="unset.includes(embedsOf(group)!.setting!) || providersOn(embedsOf(group)!) === embedsOf(group)!.providers?.length" @click="setProviders(embedsOf(group)!, true)">Turn All On</button>
+					<button type="button" class="button button--ghost button--small" :disabled="unset.includes(embedsOf(group)!.setting!) || providersOn(embedsOf(group)!) === 0" @click="setProviders(embedsOf(group)!, false)">Turn All Off</button>
+				</div>
 			</header>
 			<template v-for="item in group.items" :key="item.key">
 				<template v-if="item.kind === 'uploads' && item.setting !== undefined && item.uploads !== undefined">
@@ -363,27 +424,14 @@ onBeforeRouteUpdate(() => count.value === 0 || confirmLeave());
 			</template>
 			<div v-if="group.items.some((item) => item.kind !== 'uploads')" class="setting-panels__rows">
 				<template v-for="item in group.items" :key="item.key">
-					<template v-if="item.kind === 'embeds' && item.setting !== undefined && item.providers !== undefined">
-						<div v-for="provider in item.providers" :key="provider.name" class="setting">
-							<div class="setting__label"><span :id="`setting-embed-${provider.name}-label`">{{ provider.label }}</span></div>
-							<div class="field setting__control" :class="{ 'is-unset': unset.includes(item.setting) }">
-								<div class="setting__switch">
-									<ToggleSwitch
-										form
-										:checked="!offList(item.setting).includes(provider.name)"
-										:label="provider.label"
-										:described-by="`setting-embed-${provider.name}-help`"
-										:locked="unset.includes(item.setting)"
-										@change="setProvider(item.setting!, provider.name, $event)"
-									/>
-								</div>
-							</div>
-							<div :id="`setting-embed-${provider.name}-help`" class="setting__help">
-								<p>Embeds links to {{ series(provider.hosts) }}.</p>
-							</div>
-						</div>
-					</template>
-					<div v-else-if="item.kind !== 'uploads'" class="setting" :class="{ 'setting--wide': isWide(item), 'is-off': locked(item) }">
+					<EmbedChips
+						v-if="item.kind === 'embeds' && item.setting !== undefined && item.providers !== undefined"
+						:providers="item.providers"
+						:off="offList(item.setting)"
+						:locked="unset.includes(item.setting)"
+						@change="(name, on) => setProvider(item.setting!, name, on)"
+					/>
+					<div v-else-if="item.kind !== 'uploads'" class="setting" :class="{ 'setting--wide': isWide(item), 'setting--switch': onlySwitches(group), 'is-off': locked(item) }">
 						<template v-if="item.setting !== undefined && item.field !== undefined">
 							<div class="setting__label">
 								<label v-if="!isGroup(item) && kindOf(item) !== 'checkbox'" :for="`setting-${item.key}`">{{ item.label }}</label>
@@ -401,6 +449,19 @@ onBeforeRouteUpdate(() => count.value === 0 || confirmLeave());
 										@change="form[item.setting!] = $event"
 									/>
 								</div>
+								<template v-else-if="item.kind === 'segmented'">
+									<div class="segmented" role="group" :aria-labelledby="`setting-${item.key}-label`" :aria-describedby="`setting-${item.key}-help`">
+										<button
+											v-for="option in item.field.options ?? []"
+											:key="option"
+											type="button"
+											:aria-pressed="form[item.setting] === option"
+											:disabled="unset.includes(item.setting) || locked(item)"
+											@click="form[item.setting!] = option"
+										>{{ choiceLabel(item.field, option) }}</button>
+									</div>
+									<p v-if="chosenDetail(item)" class="setting__detail">{{ chosenDetail(item) }}</p>
+								</template>
 								<LocalePicker
 									v-else-if="item.locales"
 									:id="`setting-${item.key}`"
@@ -454,7 +515,7 @@ onBeforeRouteUpdate(() => count.value === 0 || confirmLeave());
 									<template v-else-if="item.saved">Saved here. <button type="button" class="link-button" @click="useConfig(item.setting!, true)">Clear it</button></template>
 									<template v-else>Not saved yet.</template>
 								</p>
-								<p v-else class="setting__source">
+								<p v-else-if="!group.source || item.saved || unset.includes(item.setting)" class="setting__source">
 									<template v-if="unset.includes(item.setting)">Uses <code>{{ item.file }}</code>'s value once saved. <button type="button" class="link-button" @click="useConfig(item.setting!, false)">Keep the saved one</button></template>
 									<template v-else-if="item.saved">Saved here. <button type="button" class="link-button" @click="useConfig(item.setting!, true)">Use <code>{{ item.file }}</code>'s value</button></template>
 									<template v-else>From <code>{{ item.file }}</code><template v-if="item.default === true">, the default</template>.</template>
@@ -492,6 +553,9 @@ onBeforeRouteUpdate(() => count.value === 0 || confirmLeave());
 					<template v-else>From <code>{{ item.file }}</code><template v-if="item.default === true">, the default</template>.</template>
 				</p>
 			</template>
+			<p v-if="sourceNote(group)" class="setting-panels__foot">
+				<template v-for="(part, index) in parts(sourceNote(group)!)" :key="index"><code v-if="part.code">{{ part.text }}</code><template v-else>{{ part.text }}</template></template>
+			</p>
 			<p v-if="group.note" class="setting-panels__foot">
 				<template v-for="(part, index) in parts(group.note)" :key="index"><code v-if="part.code">{{ part.text }}</code><template v-else>{{ part.text }}</template></template>
 			</p>

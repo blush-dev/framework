@@ -791,6 +791,14 @@ Each is recorded in `.claude/docs/decisions.md`.
   Images as figures, as switches) and HTML (Raw HTML, as radios), drawn
   as every settings screen is. The HTML capabilities (D-495) are a
   site group on a role's screen, **HTML**.
+- **The Writing sketch's A + Chips** (D-695): Markdown keeps the
+  settings rows (label, switch, help beside) rather than the sketch's
+  name-over-description rows, with the source once in the foot as the
+  sketch has it; Raw HTML's options use the admin's `.segmented`
+  (pressed is `--surface-2`, not the sketch's accent), with the chosen
+  option's description as a plain line under it, not a filled box, and
+  the help in the row's help column; the embeds' chips and marks are
+  the sketch's.
 - **Raw HTML in the editor** (D-495) is a dim token, and what the
   account couldn't add, and `javascript:` link addresses, are drawn in
   `--danger` with a wavy underline: color and decoration only, so no

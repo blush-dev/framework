@@ -151,6 +151,8 @@ final readonly class SettingsController
 			default   => null
 		};
 
+		$groups = $groups === null ? null : array_map(self::sourced(...), $groups);
+
 		$target = SettingsScreen::tryFrom($screen);
 
 		if ($groups !== null && $target !== null) {
@@ -408,10 +410,11 @@ final readonly class SettingsController
 
 	/**
 	 * Writing (D-494): how what's written in Markdown renders, what raw
-	 * HTML in it does, and the sites links embed from (D-633): a switch
-	 * for each provider, built in or not, saved together as the list of
-	 * those turned off (`embed.off`, kind `embeds`), with each provider's
-	 * `name`, `label`, and the `hosts` its links are on.
+	 * HTML in it does (kind `segmented`, its options side by side), and
+	 * the sites links embed from (D-633): a chip for each provider, built
+	 * in or not, saved together as the list of those turned off
+	 * (`embed.off`, kind `embeds`), with each provider's `name`, `label`,
+	 * and the `hosts` its links are on, by label (D-695).
 	 *
 	 * @return list<array<string, mixed>>
 	 */
@@ -435,7 +438,7 @@ final readonly class SettingsController
 			]),
 			self::group('html', 'HTML', 'Raw HTML in content', [
 				$this->edit(
-					self::item('html', 'Raw HTML', $markdown->html->label(), $markdown->html === $defaults->html, help: Setting::Html->field($this->types)->description),
+					self::item('html', 'Raw HTML', $markdown->html->label(), $markdown->html === $defaults->html, 'segmented', Setting::Html->field($this->types)->description),
 					$saved,
 					Setting::Html,
 					$markdown->html->value
@@ -449,11 +452,11 @@ final readonly class SettingsController
 						Setting::EmbedsOff,
 						$this->embed->off
 					),
-					'providers' => array_map(static fn (EmbedProvider $provider): array => [
+					'providers' => self::byLabel(array_map(static fn (EmbedProvider $provider): array => [
 						'name'  => $provider->name,
 						'label' => $provider->label,
 						'hosts' => self::hosts($provider)
-					], $this->embeds->all())
+					], $this->embeds->all()))
 				]
 			])
 		];
@@ -621,6 +624,48 @@ final readonly class SettingsController
 		$home = $this->content->home === null ? null : $this->types->find($this->content->home);
 
 		return $home === null ? 'The page at user/content/index.md' : sprintf('The latest %s', mb_strtolower($home->labels->plural));
+	}
+
+	/**
+	 * Names the file a group's settings are from once (`source`, D-695),
+	 * when every setting it edits is from the same one, so its rows say
+	 * where they're from only when they're saved here. Upload rules and
+	 * embeds say it in their own foot, and a field set's settings
+	 * (`site.…`) have no file.
+	 *
+	 * @param  array<string, mixed> $group
+	 * @return array<string, mixed>
+	 */
+	private static function sourced(array $group): array
+	{
+		$files = [];
+
+		foreach (is_array($group['items'] ?? null) ? $group['items'] : [] as $item) {
+			if (! is_array($item) || ! isset($item['setting'])) {
+				continue;
+			}
+
+			if (in_array($item['kind'] ?? null, ['uploads', 'embeds'], true) || ! is_string($item['file'] ?? null)) {
+				return $group;
+			}
+
+			$files[$item['file']] = true;
+		}
+
+		return count($files) === 1 ? [...$group, 'source' => array_key_first($files)] : $group;
+	}
+
+	/**
+	 * Sorts the embed providers by label, built in or not.
+	 *
+	 * @param  list<array{name: string, label: string, hosts: list<string>}> $providers
+	 * @return list<array{name: string, label: string, hosts: list<string>}>
+	 */
+	private static function byLabel(array $providers): array
+	{
+		usort($providers, static fn (array $a, array $b): int => strnatcasecmp($a['label'], $b['label']));
+
+		return $providers;
 	}
 
 	/**

@@ -152,6 +152,9 @@ screen under Config › Settings with `site.redirects`: rows that lead to
 an entry by id and say when, by whom, and how they were added, problems
 and an address's trace worked out live, and the form checked by the
 server (D-686);
+and, from the Writing sketch, the Writing screen's A + Chips: sources
+named once per panel, Raw HTML as a segmented choice, and embeds as
+chips with Simple Icons marks (D-695);
 1.x conventions go when they get in the way
 (D-658); and an id for every media
 original, with image sizes found by rule and given none
