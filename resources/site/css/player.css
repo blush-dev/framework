@@ -32,6 +32,6 @@
 	--player-art-shadow: none;
 }
 
-:where(blush-audio-player, blush-video-player) {
+:where(blush-audio-player, blush-video-player, blush-playlist) {
 	display: block;
 }

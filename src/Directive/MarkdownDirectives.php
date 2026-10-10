@@ -35,7 +35,8 @@ use Blush\View\ViewFactory;
  * Those and its link props
  * (`#[LinkProp]`) become full URLs when they start with `/`, as
  * Markdown's links do (D-190). A table of contents gets the
- * document's outline as `headings` (D-183). An inline directive's HTML is
+ * document's outline as `headings` (D-183). One directly in a
+ * registered container directive is told which (D-708). An inline directive's HTML is
  * trimmed, so a template's line breaks don't add spaces to the sentence.
  * A name no one registered returns `null`, so the directive renders as
  * plain content.
@@ -108,7 +109,8 @@ final readonly class MarkdownDirectives implements DirectiveRenderer, DirectiveR
 			}
 		}
 
-		$html = $views->directive($directive->name, $props, $directive->content, $factory->fragment($directive->language));
+		$container = $directive->container === '' ? null : $views->services->directives->get($directive->container)?->name;
+		$html      = $views->directive($directive->name, $props, $directive->content, $factory->fragment($directive->language), $container);
 
 		// Inside a sentence, a template's surrounding line breaks would
 		// show as spaces.

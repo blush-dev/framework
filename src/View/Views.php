@@ -309,18 +309,20 @@ final readonly class Views
 	 * (`directives/callout-bordered`) is used when the chain has one.
 	 * Without a template in the chain, the directive renders itself
 	 * (`render()`, D-382): its HTML, or the template file it ships with.
+	 * `$container` is the container directive it's directly in, from
+	 * Markdown (D-708), such as a playlist for its tracks.
 	 *
 	 * @param  array<string, mixed> $props
 	 * @throws ViewException
 	 */
-	public function directive(string $name, array $props, string $content, ViewContext $context): string
+	public function directive(string $name, array $props, string $content, ViewContext $context, ?DirectiveName $container = null): string
 	{
 		$definition = $this->services->directives->get($name) ?? throw $this->unknownDirective($name);
 		$parsed     = $definition->name;
 		$directive  = $this->services->factory->make($definition->class, $props, $context->language);
 		$variant    = $this->services->variants->resolve($parsed, $this->chain, $props['variant'] ?? null);
 
-		$directive->attach($parsed, $props, $content, $this->messages->with($this->ownDomain($parsed->namespace)), $context, $variant);
+		$directive->attach($parsed, $props, $content, $this->messages->with($this->ownDomain($parsed->namespace)), $context, $variant, $container);
 
 		if (! $directive->shouldRender()) {
 			return '';

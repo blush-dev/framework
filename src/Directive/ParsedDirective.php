@@ -18,14 +18,18 @@ namespace Blush\Directive;
  * `DirectiveRenderer`: its name, kind, attributes, label (plain text),
  * content (HTML: a container's rendered blocks, or the escaped label of a
  * leaf or inline directive). A table of contents directive also gets the document's outline (D-183): each
- * heading's level, plain text, and link target, in order.
+ * heading's level, plain text, and link target, in order. A leaf or a
+ * container directly inside a container directive is given that
+ * container's name, as written (D-708), so a playlist's tracks can
+ * render as its rows.
  */
 final readonly class ParsedDirective
 {
 	/**
 	 * @param array<string, string>                              $attributes
 	 * @param list<array{level: int, text: string, id: string}> $outline
-	 * @param string                                             $language The code of the language the Markdown is in, when it isn't the default (D-459), or `''`.
+	 * @param string                                             $language  The code of the language the Markdown is in, when it isn't the default (D-459), or `''`.
+	 * @param string                                             $container The name of the container directive it's directly in, as written, or `''`.
 	 */
 	public function __construct(
 		public string $name,
@@ -34,6 +38,7 @@ final readonly class ParsedDirective
 		public string $label = '',
 		public string $content = '',
 		public array $outline = [],
-		public string $language = ''
+		public string $language = '',
+		public string $container = ''
 	) {}
 }

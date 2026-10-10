@@ -293,6 +293,24 @@
 				}
 			}
 		},
+		"playlist": {
+			"label": "Playlist",
+			"description": "Audio files played one after another, over a list of them.",
+			"props": {
+				"loop": {
+					"label": "Start over after the last"
+				},
+				"numbers": {
+					"label": "Track numbers"
+				}
+			},
+			"variants": {
+				"card": {
+					"label": "Card",
+					"description": "The playing track's artwork beside its title and artist, over the player."
+				}
+			}
+		},
 		"progress": {
 			"label": "Progress Bar",
 			"description": "How far along something is, such as a goal or a task.",

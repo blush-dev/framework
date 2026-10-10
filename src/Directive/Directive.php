@@ -108,14 +108,21 @@ abstract class Directive extends Renderable
 	public private(set) string $variant = Variant::DEFAULT;
 
 	/**
+	 * The container directive it's directly in, in Markdown (D-708), or
+	 * `null`: a playlist, for its tracks.
+	 */
+	public private(set) ?DirectiveName $container = null;
+
+	/**
 	 * The variant it renders, or `null` for Default.
 	 */
 	private ?Variant $variantInfo = null;
 
 	/**
 	 * Gives the directive its name, its props, its content, the theme's
-	 * translator, the render it's part of, and the variant it renders
-	 * (`null` for Default). Called by `Views` when it renders one.
+	 * translator, the render it's part of, the variant it renders
+	 * (`null` for Default), and the container directive it's in.
+	 * Called by `Views` when it renders one.
 	 *
 	 * @internal
 	 * @param array<string, mixed> $props
@@ -126,12 +133,14 @@ abstract class Directive extends Renderable
 		string $content = '',
 		?DomainTranslator $translator = null,
 		?ViewContext $context = null,
-		?Variant $variant = null
+		?Variant $variant = null,
+		?DirectiveName $container = null
 	): void {
 		$this->attachRenderable($name->name, $props, $content, $translator, $context);
 
 		$this->variantInfo = $variant;
 		$this->variant     = $variant->name ?? Variant::DEFAULT;
+		$this->container   = $container;
 	}
 
 	/**
@@ -140,6 +149,15 @@ abstract class Directive extends Renderable
 	public function isVariant(string $name): bool
 	{
 		return $this->variant === $name;
+	}
+
+	/**
+	 * Returns whether it's directly in a container directive (D-708),
+	 * named in full or, for a core one, by its short name: `isIn('playlist')`.
+	 */
+	public function isIn(string $name): bool
+	{
+		return $this->container !== null && (string) $this->container === (string) DirectiveName::parse($name);
 	}
 
 	/**

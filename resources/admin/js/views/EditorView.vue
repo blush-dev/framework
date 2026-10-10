@@ -1397,12 +1397,12 @@ const picking = ref<{ title: string; action: string; tab?: 'library' | 'upload';
 const uploads = computed(() => canUpload());
 
 function pickMedia(start: 'library' | 'upload' = 'library', kind?: 'image'): void {
-	// Inside a gallery, only images go in.
-	const only = kind ?? (holder.value?.only?.includes('image') === true ? 'image' : undefined);
+	// Inside a gallery, only images go in; inside a playlist, only sounds.
+	const only = kind ?? heldKind();
 
 	closeOverlays();
 	picking.value = {
-		title: only === 'image' ? 'Insert Images' : 'Insert Media',
+		title: only === 'image' ? 'Insert Images' : (only === 'audio' ? 'Insert Audio' : 'Insert Media'),
 		action: 'Insert',
 		tab: start,
 		kind: only,
@@ -1411,6 +1411,14 @@ function pickMedia(start: 'library' | 'upload' = 'library', kind?: 'image'): voi
 		use: insertFile,
 		useAll: insertFiles
 	};
+}
+
+// The kind of file the container the caret is in holds, if it holds
+// only one: images for a gallery, sounds for a playlist (D-708).
+function heldKind(): 'image' | 'audio' | undefined {
+	const only = holder.value?.only;
+
+	return only?.includes('image') === true ? 'image' : (only?.includes('blush/audio') === true ? 'audio' : undefined);
 }
 
 /**
@@ -1826,11 +1834,18 @@ function misplacedNote(described: DirectiveDescription): string {
 
 const strayNote = computed(() => selection.value === null ? undefined : strayItems.value.get(`${selection.value.kind}-${selection.value.index}`));
 
-// How many of what it holds are in it: images, for a gallery.
+// How many of what it holds are in it: images, for a gallery, and
+// tracks, for a playlist (D-708).
 const held = computed(() => {
 	const item = directive.value;
 
-	return item === undefined ? 0 : markdown.value.images.filter((image) => image.start > item.start && image.end < item.end).length;
+	if (item === undefined) {
+		return 0;
+	}
+
+	return selected.value?.only?.includes('image') === true
+		? markdown.value.images.filter((image) => image.start > item.start && image.end < item.end).length
+		: markdown.value.directives.filter((found) => found.start > item.start && found.end < item.end && directiveFor(found.name)?.name === 'blush/audio').length;
 });
 
 // The rows pinned to the end of the Document tab (D-608) each open a
@@ -3182,6 +3197,7 @@ function fieldKey(field: FieldDescription): string {
 							>
 								<OptionsGroup v-if="content" heading="Content">
 									<template v-if="selected?.only?.includes('image')" #hint>{{ plural(held, 'image') }}</template>
+									<template v-else-if="selected?.only?.includes('blush/audio')" #hint>{{ plural(held, 'track') }}</template>
 									<OutlineList :items="content" :describe="rowOf" empty="Nothing inside it yet." @select="select" />
 									<p v-if="strays.length" class="field__error">{{ titleCase(selected?.label ?? '') }} holds only {{ panelNoteNames }}, so the site won't show {{ strays.length === 1 ? 'this line' : 'these lines' }}: {{ strays.map((text) => `“${text.length > 40 ? `${text.slice(0, 40)}…` : text}”`).join(', ') }}.</p>
 								</OptionsGroup>

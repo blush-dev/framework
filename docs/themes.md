@@ -640,7 +640,8 @@ and `scripts` stay as they are: files every page loads.
 
 The player draws its colors from `--player-*` properties, set to your
 page's own text and background colors. Set any of them on `:root` or
-`.player` (and `.audio-card`, for audio drawn as a card) in your
+`.player` (and `.audio-card`, for audio drawn as a card, or
+`.playlist`, for a playlist) in your
 stylesheet to make it yours:
 
 ```css
@@ -652,7 +653,7 @@ stylesheet to make it yours:
 	--player-font-mono: var(--font-mono);   /* the time */
 	--player-radius: 8px;                   /* a video's corners */
 	--player-surface: #fff;                 /* a card's background, and the volume slider's */
-	--player-line: #e5e5e5;                 /* a card's border, and the volume slider's */
+	--player-line: #e5e5e5;                 /* a card's border, the volume slider's, a playlist's rules */
 	--player-card-radius: 12px;             /* a card's corners, and the volume slider's */
 	--player-title-font: var(--font-heading); /* a card's title */
 }
@@ -906,7 +907,8 @@ Your theme draws two kinds of pieces:
 **Giving directives a look.** The built-in directives work in every
 theme, drawing themselves with Blush's templates: `callout`, `embed`,
 `figure`, and `gallery`; the layouts `group`, `grid`, `row`, and
-`stack`; the media directives `audio`, `video`, and `file`; the inline
+`stack`; the media directives `audio`, `video`, `file`, and
+`playlist`; the inline
 ones `abbr`, `badge`, `button`, `cite`, `dfn`, `icon`, `ins`, `kbd`,
 `samp`, `small`, `time`, and `var`; `toc`, a table of contents; `menu`;
 and `progress` and `meter`. To change how one looks, style its classes

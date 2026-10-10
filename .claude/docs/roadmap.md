@@ -1005,7 +1005,7 @@ keeping the first screen's code in one file.
   accounts keep a display name and need an email address. Later:
   profile capabilities, the revised sketch's open list
   (`open-questions.md`), and schema.org `Person` with structured data
-  in general.
+  in general (planned, D-707).
 - **Role capabilities (done, D-359 to D-364):** per-type capabilities
   (`content.{type}.{action}`, `content.*.…` for every type, additive)
   and a role's screen as capability sections, from the author's sketch;

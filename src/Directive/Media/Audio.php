@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Blush\Directive\Media;
 
 use Override;
+use Uri\Rfc3986\Uri;
 use Blush\Asset\AssetRegistrar;
 use Blush\Core\AppConfig;
 use Blush\Directive\Directive;
@@ -45,6 +46,10 @@ use Blush\View\Escaper;
  * `MediaConfig::artworkUrl()`; `MediaArtwork`).
  *
  *     ::audio[Episode 12]{src=episode.mp3 variant=card}
+ *
+ * In a playlist (D-708), it's one of the playlist's rows instead: its
+ * title (`trackName()`), who made it, and its length (`trackLength()`),
+ * linked to the file, with its artwork's URL in `data-art`.
  */
 final class Audio extends Directive
 {
@@ -135,6 +140,44 @@ final class Audio extends Directive
 		}
 
 		return Escaper::html($title);
+	}
+
+	/**
+	 * Returns a playlist row's title, as HTML: the card's title
+	 * (`trackTitle()`), else the file's name, escaped.
+	 */
+	public function trackName(): string
+	{
+		$title = $this->trackTitle();
+
+		if ($title !== '') {
+			return $title;
+		}
+
+		$path = Uri::parse($this->src)?->getPath() ?? $this->src;
+
+		return Escaper::html(rawurldecode(basename($path)));
+	}
+
+	/**
+	 * Returns how long it plays, as a player shows it (`3:25`, or
+	 * `1:02:03`), from the media library, or `''` when that isn't known
+	 * (or it's shorter than a second).
+	 */
+	public function trackLength(): string
+	{
+		$whole = (int) floor($this->record()?->duration() ?? 0.0);
+
+		if ($whole < 1) {
+			return '';
+		}
+
+		$hours   = intdiv($whole, 3600);
+		$minutes = intdiv($whole, 60) % 60;
+
+		return $hours > 0
+			? sprintf('%d:%02d:%02d', $hours, $minutes, $whole % 60)
+			: sprintf('%d:%02d', $minutes, $whole % 60);
 	}
 
 	/**

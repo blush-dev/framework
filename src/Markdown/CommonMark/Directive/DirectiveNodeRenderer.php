@@ -39,7 +39,8 @@ use Blush\Directive\DirectiveRules;
  * directives it holds, one to a line, so each image is a figure; other
  * directives it doesn't hold, and every other block, are left out. One
  * never closed (D-530) renders everything, so a missing `:::` doesn't
- * take the rest of the document with it.
+ * take the rest of the document with it. A leaf or container directly
+ * in a container directive is told that container's name (D-708).
  */
 final readonly class DirectiveNodeRenderer implements NodeRendererInterface
 {
@@ -70,10 +71,11 @@ final readonly class DirectiveNodeRenderer implements NodeRendererInterface
 			return $fallback;
 		}
 
-		$language = self::language($node);
+		$language  = self::language($node);
+		$container = $node->parent() instanceof ContainerDirective && ! $node instanceof InlineDirective ? $node->parent()->name : '';
 
-		if ($language !== '') {
-			$directive = new ParsedDirective($directive->name, $directive->kind, $directive->attributes, $directive->label, $directive->content, $directive->outline, $language);
+		if ($language !== '' || $container !== '') {
+			$directive = new ParsedDirective($directive->name, $directive->kind, $directive->attributes, $directive->label, $directive->content, $directive->outline, $language, $container);
 		}
 
 		return $this->renderer?->render($directive) ?? $fallback;

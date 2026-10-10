@@ -86,6 +86,7 @@ const ICONS: Record<string, IconName> = {
 	kbd: 'terminal',
 	menu: 'menu',
 	meter: 'sliders-horizontal',
+	playlist: 'list-music',
 	progress: 'chevrons-right',
 	row: 'columns-3',
 	samp: 'monitor',

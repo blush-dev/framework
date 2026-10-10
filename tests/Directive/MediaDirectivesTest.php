@@ -34,6 +34,8 @@ use Blush\Markdown\MarkdownConfig;
 use Blush\Media\MediaArtwork;
 use Blush\Directive\Media\File;
 use Blush\Directive\Media\MediaPreload;
+use Blush\Directive\Media\Playlist;
+use Blush\Directive\Media\PlaylistTrack;
 use Blush\Directive\Media\Video;
 use Blush\Directive\MediaProp;
 use Blush\Directive\MarkdownDirectives;
@@ -42,6 +44,8 @@ use Blush\Directive\MarkdownDirectives;
 #[CoversClass(MediaArtworkController::class)]
 #[CoversClass(File::class)]
 #[CoversClass(MediaPreload::class)]
+#[CoversClass(Playlist::class)]
+#[CoversClass(PlaylistTrack::class)]
 #[CoversClass(Video::class)]
 #[CoversClass(MediaProp::class)]
 #[CoversClass(MarkdownDirectives::class)]
@@ -441,5 +445,57 @@ final class MediaDirectivesTest extends TestCase
 		$this->assertStringContainsString('<img class="audio-card__art" src="http://localhost/media/cover.png"', $html, 'Any case of the id.');
 		$this->assertMatchesRegularExpression('#src="http://localhost/media/clip\.mp4"[^>]* poster="http://localhost/media-artwork/clip\.mp4\?v=[0-9a-f]{8}" width="1280" height="720"#', $html);
 		$this->assertMatchesRegularExpression('#src="http://localhost/media/linked\.mp4"[^>]* poster="http://localhost/media/cover\.png" width="1280" height="720"#', $html);
+	}
+	/**
+	 * A playlist (D-708): its tracks are rows of a numbered list, each
+	 * with its title, who made it, and its length, linked to its file;
+	 * the player starts with the first, and a card shows its title and
+	 * artwork. It holds only audio.
+	 */
+	public function testAPlaylistPlaysItsTracksInOnePlayer(): void
+	{
+		$this->writeTemporaryFile('user/content/songs/index.md', <<<'MD'
+			---
+			id: 053b70d3-822e-4793-54ba-e2fdec6b5927
+			title: Songs
+			---
+			:::playlist[Live at the Basement]{variant=card loop}
+			::audio{src=/media/song.mp3}
+			::audio[Second Take]{src=/media/bare%20take.mp3 artist=Someone}
+			::video{src=/media/clip.mp4}
+			::audio{src=/media/bare%20take.mp3}
+			:::
+
+			:::playlist{numbers=false}
+			::audio{src=/media/bare%20take.mp3}
+			:::
+
+			:::playlist
+			Nothing to play.
+			:::
+			MD);
+		$this->writeTemporaryFile('user/media/song.mp3', TaggedAudioVideo::mp3());
+		$this->writeTemporaryFile('user/media/bare take.mp3', self::mp3());
+
+		$app = $this->scratchApplication(['APP_ENV' => 'development']);
+		$app->boot();
+
+		$html = (string) $app->container()->make(Kernel::class)->handle(Request::create('/songs'))->getBody();
+
+		$this->assertStringContainsString('<figure class="directive-playlist directive-playlist--card playlist">', $html);
+		$this->assertStringContainsString('<figcaption class="playlist__caption">Live at the Basement</figcaption>', $html);
+		$this->assertStringContainsString('<blush-playlist loop>', $html);
+		$this->assertMatchesRegularExpression('#<span class="audio-card__title">Morning Song</span>\s*<span class="audio-card__by">The Harbors · Tides</span>#', $html);
+		$this->assertMatchesRegularExpression('#<img class="audio-card__art" src="http://localhost/media-artwork/song\.mp3\?v=[0-9a-f]{8}"#', $html);
+		$this->assertStringContainsString('<audio class="directive-playlist__player" src="http://localhost/media/song.mp3" controls preload="metadata">', $html);
+		$this->assertMatchesRegularExpression('#<li class="directive-audio playlist__track" data-art="http://localhost/media-artwork/song\.mp3\?v=[0-9a-f]{8}">\s*<a class="playlist__link" href="http://localhost/media/song\.mp3">\s*<span class="playlist__title">Morning Song</span>\s*<span class="playlist__by">The Harbors · Tides</span>\s*<span class="playlist__time">0:26</span>#', $html);
+		$this->assertMatchesRegularExpression('#<li class="directive-audio playlist__track">\s*<a class="playlist__link" href="http://localhost/media/bare%20take\.mp3">\s*<span class="playlist__title">Second Take</span>\s*<span class="playlist__by">Someone</span>\s*</a>#', $html, 'The label is the title; a prop is who made it.');
+		$this->assertStringContainsString('<span class="playlist__title">bare take.mp3</span>', $html, 'Without a title, the file\'s name.');
+		$this->assertSame(4, substr_count($html, 'class="directive-audio playlist__track"'));
+		$this->assertStringNotContainsString('clip.mp4', $html, 'It holds only audio.');
+		$this->assertStringContainsString('<ol class="playlist__tracks playlist__tracks--plain">', $html);
+		$this->assertMatchesRegularExpression('#<figure class="directive-playlist playlist">\s*<blush-playlist>\s*<blush-audio-player#', $html);
+		$this->assertStringNotContainsString('Nothing to play.', $html);
+		$this->assertSame(2, substr_count($html, '<figure class="directive-playlist'));
 	}
 }

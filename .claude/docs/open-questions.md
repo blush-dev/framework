@@ -1910,9 +1910,9 @@ Move each item to `decisions.md` once it's answered.
     bring others, and how the admin asks first.
 - **Array and map props in directives** (D-112, D-205): the
   `key=value` attribute syntax stays, not JSON. Today every attribute is
-  a string, cast to the prop's scalar or enum type. When a component needs an `array` prop (a
-  breadcrumbs component with `icons` and `taxonomies` maps, for
-  example), two additive changes are the likely path:
+  a string, cast to the prop's scalar or enum type. When a component needs an `array` prop (the
+  breadcrumbs example that raised this is settled without one, D-707),
+  two additive changes are the likely path:
   - **Dotted keys** nest: `icons.home=house icons.date=calendar` becomes
     `icons: {home, date}`, and perhaps `items[]=a items[]=b` for lists.
     Keys already allow `.`, so this is a parser change only. Leaf and

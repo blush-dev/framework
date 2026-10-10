@@ -207,7 +207,7 @@ final class DirectivesTest extends TestCase
 			$directives[(string) $directive->name] = $directive;
 		}
 
-		$this->assertSame(['acme/note', 'acme/orphan', 'blush/abbr', 'blush/audio', 'blush/badge', 'blush/button', 'blush/callout', 'blush/cite', 'blush/dfn', 'blush/embed', 'blush/figure', 'blush/file', 'blush/gallery', 'blush/grid', 'blush/group', 'blush/icon', 'blush/ins', 'blush/kbd', 'blush/menu', 'blush/meter', 'blush/progress', 'blush/row', 'blush/samp', 'blush/small', 'blush/stack', 'blush/time', 'blush/toc', 'blush/var', 'blush/video'], array_keys($directives));
+		$this->assertSame(['acme/note', 'acme/orphan', 'blush/abbr', 'blush/audio', 'blush/badge', 'blush/button', 'blush/callout', 'blush/cite', 'blush/dfn', 'blush/embed', 'blush/figure', 'blush/file', 'blush/gallery', 'blush/grid', 'blush/group', 'blush/icon', 'blush/ins', 'blush/kbd', 'blush/menu', 'blush/meter', 'blush/playlist', 'blush/progress', 'blush/row', 'blush/samp', 'blush/small', 'blush/stack', 'blush/time', 'blush/toc', 'blush/var', 'blush/video'], array_keys($directives));
 		$this->assertTrue($directives['blush/callout']->isCore());
 		$this->assertFalse($directives['acme/note']->isCore());
 		$this->assertSame(Embed::class, $directives['blush/embed']->className());
@@ -273,7 +273,7 @@ final class DirectivesTest extends TestCase
 
 		$registry = $this->app->container()->make(DirectiveRegistry::class);
 
-		$this->assertSame(['blush/abbr', 'blush/audio', 'blush/badge', 'blush/button', 'blush/callout', 'blush/cite', 'blush/dfn', 'blush/embed', 'blush/figure', 'blush/file', 'blush/gallery', 'blush/grid', 'blush/group', 'blush/icon', 'blush/ins', 'blush/kbd', 'blush/menu', 'blush/meter', 'blush/progress', 'blush/row', 'blush/samp', 'blush/small', 'blush/stack', 'blush/time', 'blush/toc', 'blush/var', 'blush/video'], array_keys($registry->all()));
+		$this->assertSame(['blush/abbr', 'blush/audio', 'blush/badge', 'blush/button', 'blush/callout', 'blush/cite', 'blush/dfn', 'blush/embed', 'blush/figure', 'blush/file', 'blush/gallery', 'blush/grid', 'blush/group', 'blush/icon', 'blush/ins', 'blush/kbd', 'blush/menu', 'blush/meter', 'blush/playlist', 'blush/progress', 'blush/row', 'blush/samp', 'blush/small', 'blush/stack', 'blush/time', 'blush/toc', 'blush/var', 'blush/video'], array_keys($registry->all()));
 		$embed   = $registry->get('embed');
 		$callout = $registry->get('callout');
 

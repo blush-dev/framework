@@ -21863,3 +21863,120 @@ decision, add a new entry that supersedes it and mark the old one
   choosing new artwork, it should automatically appear in the preview.
   Additionally, the current player volume slider gets cut off from the
   panel it sits in."
+
+### D-707: A breadcrumbs component, and JSON-LD by default
+
+- **Date:** 2026-10-10
+- **Status:** Planned. Settles the breadcrumbs part of the array-props
+  question (D-205, `open-questions.md`) and the structured data that
+  D-353's schema.org `Person` waited for.
+- **Decision:**
+  - **Breadcrumbs are a core component, not a directive.** They're a
+    template's piece (D-533), placed by a theme in its layouts;
+    content doesn't ask for them, so there's no `::breadcrumbs`.
+    The component renders `<nav aria-label="Breadcrumb"><ol>…</ol></nav>`,
+    the last item `aria-current="page"`, separators left to CSS. Its
+    props stay scalar (such as `home`, the first crumb's label, and
+    `current`, whether the page itself is shown), so it doesn't need
+    array props.
+  - **One trail for every page,** built by core (a `Breadcrumbs`
+    service the component, templates, and the structured data all
+    read): Home, then what's between, then the page. Listings, term
+    and profile archives, date archives, paged listings ("Page 2"),
+    and error pages each have one. `ancestors()` stays for themes that
+    build their own.
+  - **What's between, for an entry, is the type's call,** a
+    `breadcrumbs` option on the type (in its file in `user/data/types`,
+    and on the code type):
+    - `address` (the default) follows the entry's address: the type's
+      archive, then each part of the path that's a page of its own
+      (a date archive the type has, from `dateArchives`, such as
+      `/blog/2026` and `/blog/2026/10` under a `{year}/{month}/{name}`
+      path), then its parents in a tree or nesting collection.
+    - A classify relation's key (such as `"breadcrumbs": "category"`)
+      puts that relation's term in place of the address's parts: the
+      archive, the term with its own parents, then the entry. The term
+      is the first the entry lists; an entry with none falls back to
+      `address`.
+  - **JSON-LD is in every page's head by default.** `Head` collects
+    nodes keyed by `@id` (`{site}#website`, `{url}#webpage`,
+    `{url}#breadcrumb`, a profile's `{url}#person`) and prints them
+    once, as one `<script type="application/ld+json">` with an
+    `@graph`, encoded so nothing in content can close the tag. A later
+    node with the same `@id` replaces the earlier one, as `Head`'s
+    other items do (D-148), so themes and plugins add, change, or
+    remove nodes (through `Head` or `PageRendering`), and an SEO
+    plugin can take it over.
+  - **The default graph:** `WebSite` (name, URL, description,
+    language, publisher); a `WebPage` for every page (`CollectionPage`
+    for listings, `ProfilePage` for profiles); `Article` for a
+    collection's entries (headline, `datePublished`, `dateModified`,
+    description, image, and authors as `Person` nodes from the byline
+    relation, D-602), `WebPage` for a tree's; `Person` on a profile.
+    The schema.org type follows the kind; a `schema` option on the
+    type names another (`BlogPosting`, `NewsArticle`, `AboutPage`).
+  - **`BreadcrumbList` only where breadcrumbs show:** the component
+    adds the node when it renders (the head is filled after the page,
+    D-570), so the structured data matches what readers see, as search
+    engines ask, and a theme without breadcrumbs claims none.
+  - **A Structured Data group on Settings → Addresses and Search**
+    (beside Search Engines; `site.settings`): **Structured data** (a
+    switch, on), **Site is a** (Person or Organization), and its
+    publisher: a profile for a Person, a name and a logo from the
+    library for an Organization. Saved in `user/data/settings.json`
+    like the screen's other settings (D-324).
+  - **No per-entry SEO fields** while the Fields API is paused (D-348).
+- **Why:** the author: "We need to consider the option of a built-in
+  breadcrumbs block/directive. We should also include json-ld by
+  default (maybe also a seo setting for it)." On breadcrumbs: "I'd
+  lean toward the component only since this is something that lives in
+  the theme," and "we'd need a mechanism to figure out how whether to
+  include terms or base it off the url structure (e.g. date
+  permalinks)." Structured data on by default, with the setting, was
+  agreed. Showing `BreadcrumbList` only with visible breadcrumbs was
+  left to Claude: structured data should describe what's on the page.
+
+### D-708: A playlist directive of `::audio` tracks
+
+- **Date:** 2026-10-10
+- **Status:** Built.
+- **Decision:** a core `:::playlist` directive (`Directive\Media\Playlist`,
+  Media category) plays audio one track after another in one player,
+  over a numbered list of the tracks.
+  - **A container of `::audio`:** `HOLDS = ['blush/audio']`, so each
+    track keeps every `::audio` prop and its media library fallbacks
+    (title, artist, album, art; D-575, D-581), and anything else in
+    it is left out (D-529).
+  - **A directive knows its container:** `ParsedDirective::$container`
+    is the name of the container directive a leaf or container is
+    directly in, `Views::directive()` takes it, and `Directive` has
+    `$container` and `isIn('playlist')`. Children render before their
+    container, so `::audio` in a playlist draws itself as a row
+    (`li.playlist__track`): its title (else the file's name), who made
+    it, and its length from the media index (`Audio::trackLength()`,
+    left out under a second), linked to the file, with its artwork's
+    URL in `data-art`.
+  - **The player starts with the first track**, read from the first
+    row (`Playlist::firstTrack()`, a `PlaylistTrack`, through
+    `Dom\HTMLDocument`), so the page works without the script: one
+    player on the first track, and rows that link to their files. A
+    theme's audio template that draws no rows leaves the playlist as
+    its content.
+  - **`<blush-playlist>`** (`resources/player/playlist.ts`, in the
+    `blush/player` asset): choosing a row plays it (or plays and
+    pauses the one in the player); when one ends, the next plays,
+    always, with no prop to stop it; after the last, the first again
+    with `loop`. The playing row is `aria-current`.
+  - **Artwork only at the top:** the `card` variant draws the player
+    as the audio card, whose title, who made it, and artwork follow
+    the playing track. Rows have no artwork.
+  - **Props:** `loop`, and `numbers` (on; `numbers=false` drops them).
+    Shuffle, previous and next buttons, Media Session controls, and
+    tracks found by a library query are left for later.
+  - **Admin:** the inserter tile (`list-music`), the media picker
+    inserting only sounds inside a playlist, and its Content group
+    counting tracks.
+- **Why:** the author: "We should consider a small playlist
+  block/directive that works with audio files." From Claude's
+  proposal, the author chose a container of `::audio`, the next track
+  playing on its own, artwork only at the top, and core over a plugin.

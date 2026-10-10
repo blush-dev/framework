@@ -31,6 +31,7 @@ use Blush\Directive\Layout\Stack;
 use Blush\Directive\Media\Audio;
 use Blush\Directive\Media\File;
 use Blush\Directive\Media\Gallery;
+use Blush\Directive\Media\Playlist;
 use Blush\Directive\Media\Video;
 
 /**
@@ -60,6 +61,7 @@ enum DirectiveType: string
 	case Kbd      = 'kbd';
 	case Menu     = 'menu';
 	case Meter    = 'meter';
+	case Playlist = 'playlist';
 	case Progress = 'progress';
 	case Row      = 'row';
 	case Samp     = 'samp';
@@ -96,6 +98,7 @@ enum DirectiveType: string
 			self::Kbd      => Kbd::class,
 			self::Menu     => Menu::class,
 			self::Meter    => Meter::class,
+			self::Playlist => Playlist::class,
 			self::Progress => Progress::class,
 			self::Row      => Row::class,
 			self::Samp     => Samp::class,
@@ -116,7 +119,7 @@ enum DirectiveType: string
 		return match ($this) {
 			self::Abbr, self::Badge, self::Callout, self::Cite, self::Dfn, self::Icon,
 			self::Ins, self::Kbd, self::Samp, self::Small, self::Time, self::Var         => DirectiveCategory::Text,
-			self::Audio, self::Embed, self::File, self::Gallery, self::Video            => DirectiveCategory::Media,
+			self::Audio, self::Embed, self::File, self::Gallery, self::Playlist, self::Video => DirectiveCategory::Media,
 			self::Figure, self::Grid, self::Group, self::Row, self::Stack              => DirectiveCategory::Layout,
 			self::Button, self::Menu, self::Toc                                         => DirectiveCategory::Navigation,
 			self::Meter, self::Progress                                                 => DirectiveCategory::Data

@@ -362,7 +362,8 @@ plugins', never a theme's (D-532) or the site's (D-617).
   plain content. Core ships (D-033, D-113): `callout`, `gallery`,
   `figure` (D-267), and `embed`; the layouts `group`, `grid`, `row`, and
   `stack` (D-177, D-318; each renders as its `tag`, D-298); the media
-  directives `audio`, `video`, and `file` (D-179); the inline `abbr`,
+  directives `audio`, `video`, and `file` (D-179), and `playlist` (D-708;
+  `::audio` in it draws a row, `Directive::isIn()`); the inline `abbr`,
   `kbd`, `time` (D-180), `badge`, `cite`, `dfn`, `ins`, `samp`, `small`,
   and `var` (D-305); `toc` (D-183), `icon` (D-187), `menu`, `progress` and
   `meter` (D-188), and `button` (D-189), so they work under any theme. A

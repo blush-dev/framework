@@ -49,8 +49,8 @@ Read the :acme/badge[new]{tone=tip} release notes.
 | `:name[text]`     | A directive inside a sentence                                |
 
 Each directive has one form, the one it's registered with. Of the
-built-in ones, those that wrap content (callout, gallery, figure, and
-the [layouts](#layout)) are `:::`; audio, video, file, embed, menu,
+built-in ones, those that wrap content (callout, gallery, playlist,
+figure, and the [layouts](#layout)) are `:::`; audio, video, file, embed, menu,
 meter, progress, and the table of contents are `::`; and those that go
 in a sentence (abbr, badge, button, cite, dfn, icon, ins, kbd, samp,
 small, time, and var) are `:`. Written another way, such as
@@ -137,7 +137,7 @@ default.
 
 ### Media
 
-Three built-in directives play or offer files. Their files are found the
+Four built-in directives play or offer files. Their files are found the
 same way as an image's: `/media/…` is in your media folder (the first
 `/` is optional, so `media/song.mp3` works too). Like
 Markdown's own links, they become full URLs (`https://example.com/media/song.mp3`),
@@ -148,6 +148,7 @@ so they still work in feeds.
 | `audio`   | `::audio[Episode 12]{src=/media/episode.mp3}`                               | `src`. `preload`: `metadata` (default), `none`, or `auto`. `loop`. The label is the caption. It plays in Blush's player (see below). The `card` variant draws a card (see below), with `title`, `artist`, `album`, and `art`. |
 | `video`   | `::video[Launch day]{src=/media/launch.mp4 poster=/media/launch.jpg}`       | `src`, `poster` (an image shown before it plays), `track` (a WebVTT captions file, in the page's language). `width` and `height`, which default to the poster's. `preload`, `loop`, `muted`. The label is the caption. |
 | `file`    | `::file[The annual report]{src=/media/report.pdf}`                          | `src`. The label is the link text (the file's name without one). It shows the file's type, and its size when it's in your media folder.                                                                           |
+| `playlist` | `:::playlist[Live]{variant=card}` … `:::` | `loop`, `numbers` (default on). The label is the caption. Holds `::audio` lines, one to a line (see below). |
 
 Audio and video play in Blush's own player: a round play button, a bar
 to move through it, the time, and the volume (a mute button with a
@@ -182,6 +183,30 @@ Each part comes from a prop first, then from the file:
 
 A video without a `poster` uses its artwork the same way, and then,
 without `width` and `height`, the video's own size.
+
+#### Playlists
+
+A playlist plays its audio one after another in one player, over a
+numbered list of the tracks. Put `::audio` lines in it, one to a line;
+anything else in it is left out.
+
+```markdown
+:::playlist[Live at the Basement]{variant=card}
+::audio{src=/media/intro.mp3}
+::audio{src=/media/river-song.mp3 title="River Song (acoustic)"}
+::audio{src=/media/closing.mp3}
+:::
+```
+
+The label is the playlist's caption. Each row shows the track's title,
+who made it, and its length when the media library knows it, found the
+same way as a card's (the title falls back to the file's name).
+Choosing a row plays it, and when a track ends, the next one plays.
+`loop` starts over after the last track, and `numbers=false` leaves out
+the track numbers. With `variant=card`, the player is an audio card
+showing the playing track's artwork, title, and who made it. Without
+the player's script, the player plays the first track and each row
+links to its file.
 
 Only the [file types your site allows](media.md#allowed-file-types) are
 served, so check the list before offering other kinds of files for
@@ -591,6 +616,10 @@ final class RecentPosts extends Directive
   images). The site renders only those inside it, leaving out the
   rest: text, other blocks, and directives it doesn't list. The images
   in a paragraph with text are kept, each a figure.
+- **`$this->container`** is the `:::` directive it's directly inside,
+  or `null`, and `$this->isIn('playlist')` asks by name (a full name, or
+  a built-in's short name). A directive can draw itself differently
+  there: `audio` in a playlist is one of its rows.
 - **`modifiers()`** returns BEM modifiers for the root element, such as
   `['warning']` for `directive-callout--warning`.
 - **`rootAttributes()`** returns other attributes for the root element,
