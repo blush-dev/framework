@@ -15,8 +15,8 @@ import { series } from '../format';
 
 defineProps<{
 	providers: { name: string; label: string; hosts: string[] }[];
-	// The names of the providers turned off.
-	off: string[];
+	// The names of the providers turned on.
+	on: string[];
 	locked?: boolean;
 }>();
 
@@ -34,18 +34,18 @@ const id = useId();
 			:key="provider.name"
 			type="button"
 			class="embed-chip"
-			:aria-pressed="!off.includes(provider.name)"
+			:aria-pressed="on.includes(provider.name)"
 			:aria-describedby="`${id}-${provider.name}`"
 			:title="series(provider.hosts)"
 			:disabled="locked"
-			@click="emit('change', provider.name, off.includes(provider.name))"
+			@click="emit('change', provider.name, !on.includes(provider.name))"
 		>
 			<span class="embed-chip__mark" aria-hidden="true">
 				<svg v-if="brandMark(provider.name)" class="embed-chip__logo" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" focusable="false" v-html="brandMark(provider.name)" />
 				<AdminIcon v-else name="globe" />
 			</span>
 			{{ provider.label }}
-			<AdminIcon :name="off.includes(provider.name) ? 'minus' : 'check'" />
+			<AdminIcon :name="on.includes(provider.name) ? 'check' : 'minus'" />
 			<span :id="`${id}-${provider.name}`" class="visually-hidden">Embeds links to {{ series(provider.hosts) }}.</span>
 		</button>
 	</div>

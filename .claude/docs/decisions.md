@@ -21817,3 +21817,21 @@ decision, add a new entry that supersedes it and mark the old one
   or as a page builder; Menus sit oddly under it; and Structure was
   already the group's name, beside Content as what you write and how
   it's shaped.
+
+### D-705: Embed providers are off until they're turned on
+
+- **Date:** 2026-10-10
+- **Status:** Built. Supersedes D-633's turning off.
+- **Decision:** no embed provider, built in or added, is on by
+  default. `EmbedConfig::$off` is replaced by `EmbedConfig::$enabled`,
+  the names of the providers turned on (`[]` by default), and the
+  `embed.off` setting by `embed.enabled` (`Setting::Embeds`), which
+  Settings → Writing's chips save over `config/embed.php`. A provider
+  not named keeps its links as links, and `EmbedProviders::all()` still
+  lists every provider. The admin's chips, count, and Turn All buttons
+  read the list of those on. No shim reads `off` (no 2.x sites exist).
+- **Why:** the author's call. An embed frames another site and, for
+  most, has the visitor's browser ask it for the player or a script, so
+  a site should say which sites it trusts with that rather than get
+  all of them by default. It's the same as plugins and icon packs:
+  nothing is on until it's named (D-390).

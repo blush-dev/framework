@@ -76,6 +76,9 @@ final class EmbedsTest extends TestCase
 {
 	use BootsScratchSite;
 
+	// Every built-in provider and the configured "example", as none is on by default (D-705).
+	private const string ON = "['codepen', 'example', 'flickr', 'reddit', 'soundcloud', 'spotify', 'ted', 'tiktok', 'twitch', 'vimeo', 'x', 'youtube']";
+
 	private const string YOUTUBE = '{"type": "video", "title": "Never Gonna Give You Up", "provider_name": "YouTube", "width": 200, "height": 113, "thumbnail_url": "https://i.ytimg.com/vi/dQw4w9WgXcQ/hqdefault.jpg", "html": "<iframe width=\\"200\\" height=\\"113\\" src=\\"https://www.youtube.com/embed/dQw4w9WgXcQ?feature=oembed\\"></iframe>"}';
 
 	private FixtureFetcher $fetcher;
@@ -83,7 +86,7 @@ final class EmbedsTest extends TestCase
 	/**
 	 * @param array<string, string> $responses
 	 */
-	private function app(array $responses = [], string $config = ''): Application
+	private function app(array $responses = [], string $config = 'new EmbedConfig(enabled: ' . self::ON . ')'): Application
 	{
 		if ($config !== '') {
 			$this->writeTemporaryFile('config/embed.php', "<?php\n\ndeclare(strict_types=1);\n\nuse Blush\\Embed\\EmbedConfig;\nuse Blush\\Embed\\OEmbedProvider;\n\nreturn {$config};\n");
@@ -199,7 +202,7 @@ final class EmbedsTest extends TestCase
 
 	public function testFetchingCanBeTurnedOff(): void
 	{
-		$embeds = $this->app([], 'new EmbedConfig(fetch: false)')->container()->make(Embeds::class);
+		$embeds = $this->app([], 'new EmbedConfig(enabled: ' . self::ON . ', fetch: false)')->container()->make(Embeds::class);
 		$youtube = new YouTube();
 
 		$this->assertNull($embeds->lookup($youtube, 'https://youtu.be/dQw4w9WgXcQ'));
@@ -209,7 +212,7 @@ final class EmbedsTest extends TestCase
 	public function testConfiguredProvidersComeFirst(): void
 	{
 		$config = <<<'PHP'
-			new EmbedConfig(providers: [
+			new EmbedConfig(enabled: ['example', 'youtube'], providers: [
 				new OEmbedProvider('youtube', 'Tube', ['https://youtu.be/*'], 'https://tube.test/oembed'),
 				['name' => 'example', 'schemes' => ['https://video.example.com/*'], 'endpoint' => 'https://video.example.com/oembed']
 			])
@@ -263,18 +266,23 @@ final class EmbedsTest extends TestCase
 		$this->assertSame([], $this->fetcher->requests);
 	}
 
-	public function testProvidersCanBeTurnedOff(): void
+	public function testProvidersAreOffUntilNamed(): void
 	{
-		$providers = $this->app([], "new EmbedConfig(off: ['ted', 'youtube'])")->container()->make(EmbedProviders::class);
+		$none = $this->app([], 'new EmbedConfig()')->container()->make(EmbedProviders::class);
+
+		$this->assertNull($none->forUrl('https://youtu.be/dQw4w9WgXcQ'), 'No provider is on by default (D-705).');
+		$this->assertContains('youtube', array_map(static fn (EmbedProvider $provider): string => $provider->name, $none->all()));
+
+		$providers = $this->app([], "new EmbedConfig(enabled: ['vimeo'])")->container()->make(EmbedProviders::class);
 
 		$this->assertNull($providers->forUrl('https://www.ted.com/talks/sir_ken_robinson_do_schools_kill_creativity'));
 		$this->assertNull($providers->forUrl('https://youtu.be/dQw4w9WgXcQ'));
 		$this->assertSame('vimeo', $providers->forUrl('https://vimeo.com/76979871')?->name);
 		$this->assertContains('ted', array_map(static fn (EmbedProvider $provider): string => $provider->name, $providers->all()));
-		$this->assertSame(['ted'], EmbedConfig::fromArray(['off' => ['ted']])->toArray()['off']);
+		$this->assertSame(['ted'], EmbedConfig::fromArray(['enabled' => ['ted']])->toArray()['enabled']);
 
 		$this->expectException(InvalidConfig::class);
-		new EmbedConfig(off: ['Not a name']);
+		new EmbedConfig(enabled: ['Not a name']);
 	}
 
 	public function testAudioPlayersHaveAFixedHeight(): void
@@ -387,7 +395,7 @@ final class EmbedsTest extends TestCase
 	public function testTheDirectiveUsesTheAnswer(): void
 	{
 		$config = <<<'PHP'
-			new EmbedConfig(providers: [
+			new EmbedConfig(enabled: ['example', 'social', 'youtube'], providers: [
 				new OEmbedProvider('example', 'Example', ['https://video.example.com/*'], 'https://video.example.com/oembed'),
 				new OEmbedProvider('social', 'Social', ['https://social.example.com/*'], 'https://social.example.com/oembed')
 			])

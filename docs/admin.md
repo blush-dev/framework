@@ -1352,9 +1352,9 @@ screens (and [Redirects](#redirects), with its own capability):
   Reddit, SoundCloud, Spotify, TED, TikTok, Twitch, Vimeo, X, YouTube,
   and any your site adds), with its logo; press one to turn it on or off,
   or use **Turn All On** and **Turn All Off**. Hover a site to see the
-  addresses it embeds. A site turned off keeps its links as links.
-  They're saved together as `embed.off`, over `config/embed.php`'s
-  `off`.
+  addresses it embeds. Every site is off until you turn it on, and a
+  site turned off keeps its links as links. They're saved together as
+  `embed.enabled`, over `config/embed.php`'s `enabled`.
 - **Media:** what may be uploaded, as a grid: **All Files**, then
   Images, Videos, Audio, Documents, and Other Files, each with an
   **Uploads** switch, its **Largest file** in megabytes, and its

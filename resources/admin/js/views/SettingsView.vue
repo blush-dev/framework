@@ -19,7 +19,7 @@
  * (`UploadRules`), the whole of its panel, with where they're set under
  * it; the form holds the grid as text, so it's compared as the others
  * are. Writing's embeds (D-633) are one setting, the providers turned
- * off, drawn as a chip for each provider (`EmbedChips`, the Writing
+ * on (none by default, D-705), drawn as a chip for each provider (`EmbedChips`, the Writing
  * sketch's, D-695), with how many are on and buttons to turn them all
  * on or off in the panel's header, and where it's set under them.
  *
@@ -207,23 +207,23 @@ function setGrid(setting: string, grid: UploadGrid): void {
 	form.value[setting] = JSON.stringify(grid);
 }
 
-// The embed providers turned off, in and out of the form's lines.
-function offList(setting: string): string[] {
+// The embed providers turned on, in and out of the form's lines.
+function onList(setting: string): string[] {
 	const value = form.value[setting];
 
 	return typeof value === 'string' ? value.split('\n').map((line) => line.trim()).filter((line) => line !== '') : [];
 }
 
 function setProvider(setting: string, name: string, on: boolean): void {
-	const off = offList(setting).filter((entry) => entry !== name);
+	const names = onList(setting).filter((entry) => entry !== name);
 
-	form.value[setting] = (on ? off : [...off, name]).sort().join('\n');
+	form.value[setting] = (on ? [...names, name] : names).sort().join('\n');
 }
 
 // Turns every provider on or off.
 function setProviders(item: SettingItem, on: boolean): void {
 	if (item.setting !== undefined) {
-		form.value[item.setting] = on ? '' : (item.providers ?? []).map((provider) => provider.name).sort().join('\n');
+		form.value[item.setting] = on ? (item.providers ?? []).map((provider) => provider.name).sort().join('\n') : '';
 	}
 }
 
@@ -234,9 +234,9 @@ function embedsOf(group: SettingGroup): SettingItem | null {
 
 // How many of an embeds setting's providers are on.
 function providersOn(item: SettingItem): number {
-	const off = offList(item.setting ?? '');
+	const names = onList(item.setting ?? '');
 
-	return (item.providers ?? []).filter((provider) => !off.includes(provider.name)).length;
+	return (item.providers ?? []).filter((provider) => names.includes(provider.name)).length;
 }
 
 // What a panel that names its file says in its foot: nothing where every
@@ -425,7 +425,7 @@ onBeforeRouteUpdate(() => count.value === 0 || confirmLeave());
 					<EmbedChips
 						v-if="item.kind === 'embeds' && item.setting !== undefined && item.providers !== undefined"
 						:providers="item.providers"
-						:off="offList(item.setting)"
+						:on="onList(item.setting)"
 						:locked="unset.includes(item.setting)"
 						@change="(name, on) => setProvider(item.setting!, name, on)"
 					/>

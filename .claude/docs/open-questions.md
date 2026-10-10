@@ -1770,6 +1770,113 @@ Move each item to `decisions.md` once it's answered.
   open from D-394: whether two plugins sharing a name or
   a namespace should be broken too, as themes and packs are, instead of
   failing discovery.
+- **Fonts and font packs** (discussed 2026-10-10; the author: "a good
+  idea", then "keep it all open with these ideas"; nothing decided).
+  Self-hosted fonts a site installs once and any theme uses, in place
+  of every theme bundling its own and preloading by hand (Second Proof
+  ships Literata and Schibsted Grotesk with a `preload` list in
+  `theme.json`; jtcom loops over preloads in `head-meta.php`). Ideas:
+  - **One registry for every font** (`FontRegistry`), as icons have
+    (D-187): core, themes, plugins, and packs add families to it. A
+    theme declares its own in `theme.json` in a pack's shape, so its
+    hand-written `@font-face` rules and preloads go. A **font pack** is
+    an extension kind that adds families and nothing else: no code, many
+    on at once, like icon packs.
+  - **Manifest** `font.json` (Composer type `blush-fonts`): the shared
+    base (`name`, `label`, `namespace`, `version`, `license`,
+    `authors`) and `families`, each a key with a label, a `category`
+    (serif, sans, mono, display), a `fallback` stack, and `faces`
+    (`file`, `weight` or a range for variable fonts, `style`, and a
+    named `subset`: `latin`, `latin-ext`, `cyrillic`, and so on, whose
+    `unicode-range` Blush keeps, so manifests never hold raw ranges):
+    ```json
+    "families": {
+    	"literata": {
+    		"label": "Literata",
+    		"category": "serif",
+    		"fallback": "Georgia, serif",
+    		"faces": [
+    			{ "file": "files/literata-latin.woff2", "weight": "200 900", "subset": "latin" }
+    		]
+    	}
+    }
+    ```
+  - **Themes name roles, not families:** `"fonts": { "body":
+    "literata", "heading": "schibsted-grotesk", "mono": "system-mono" }`
+    in `theme.json`; Blush writes `--font-body` and the rest, and a
+    theme's CSS uses only those. Roles make a site's own choice cheap:
+    a Fonts panel on the theme's details screen, a select per role drawn
+    in each family's face, saved in the theme's settings, falling back
+    to the theme's default (and a Site Health problem) when a chosen
+    family is gone. Roles from the start would spare retrofitting
+    themes that name families directly.
+  - **Output:** the `@font-face` rules for the families in use as an
+    inline `<style>` in the head (a few hundred bytes, no request), and
+    preloads for each role's regular face in the site language's
+    subset; other subsets load by `unicode-range` when a page needs
+    them. `preload` in `theme.json` stays for anything else. Would
+    answer "Head setup in the layout" (Template API gaps, item 8).
+  - **System stacks built in:** a few families with no files (system
+    sans, serif, and mono, a humanist stack), so every role has a
+    choice that downloads nothing and a site needs no pack.
+  - **Safe from a browser:** a pack's `.zip` holds only `font.json`,
+    `.woff2` files (checked by their `wOF2` header), and license text;
+    WOFF2 only. Packs don't run, so the asset route
+    (`/extensions/{vendor}/{name}`, plugins that run today) would need
+    to serve them.
+  - **Admin:** a Font Packs screen beside Icon Packs, cards as
+    specimens with family and face counts and the license (D-427); a
+    details screen with every face and a weight slider for variable
+    fonts. Admin themes, once built, could take families from packs.
+  - **Open:** roles from the start or later; one family per pack or
+    many; whether the framework ships packs (see "Extensions the
+    framework ships"); whether `font:new` builds a pack from
+    Fontsource's files; the kind's name ("font packs" or "fonts").
+- **Starter kits** (discussed 2026-10-10; the author: "a good idea",
+  then "keep it all open with these ideas"; nothing decided; on hold in
+  D-378). A site's starting shape (a blog, a portfolio, docs). Unlike
+  every other kind it's **applied**, not turned on: what it makes is
+  the site's own afterward, and there's nothing to turn off. Ideas:
+  - **Holds:** types, relations, menus and their locations, chosen
+    settings (the active theme, font roles, Writing settings), sample
+    entries, terms, and profiles, media originals, and a `require` of a
+    theme, plugins, and packs. **Never holds:** accounts, passwords,
+    sessions, jobs, the site's name, URL, or secrets, image sizes (made
+    by rule on apply, D-487), or extension code.
+  - **Format:** a kit is a native Blush archive (see "Importers and
+    exporters") plus a manifest (`kit.json`, Composer type
+    `blush-kit`), applied through `ImportWriter`, so it works on every
+    storage driver (D-485) and shares one format with export.
+    `storage:copy` doesn't fit: it keeps ids and refuses a store that
+    holds records (D-666).
+  - **Ids remapped:** every entry gets a new UUIDv7 on apply and the
+    kit's references are rewritten, since kept ids would be shared by
+    every site using the kit. Transfer's `imports` table gives the
+    mapping, `(kit, kit_id) → id`, which allows **Remove Sample
+    Content** (delete what the kit made and nobody has edited since)
+    and recognizes a second apply instead of duplicating.
+  - **Apply is a plan, then a job:** grouped as Site Health's check
+    pages are (D-612): types added, items skipped because one of that
+    name exists (skipped, never merged, at first), settings with their
+    old and new values as choices, extensions missing. Then a job
+    (D-621), since media can be large, with a backup first.
+  - **Dependencies through Composer:** a Composer kit's `require`
+    installs its theme and plugins (`composer require acme/blog-kit`,
+    then `kit:apply`); a `.zip` kit lists what's missing and waits for
+    the ordinary extension installs, which keeps kits out of D-388's
+    code questions.
+  - **Bylines:** credits to the kit's sample profiles go to the
+    applying account's profile by default.
+  - **When:** any time, the plan making it safe on a site with content;
+    `init` asks for a kit, with Blank a choice; `kit:new` writes a kit
+    from the current site. **The skeleton's content model** (above)
+    becomes the default blog kit.
+  - **Order:** kits need Transfer's writer (`ImportWriter`, two passes,
+    the `imports` table), so they could drive its first slice, with WXR
+    later; fonts need nothing first.
+  - **Open:** remapping ids or keeping them; installing dependencies
+    on apply or only naming them; whether sample content is optional;
+    clashes beyond skipping (renaming, merging).
 - **Installing and updating extensions** (D-388 decides the admin
   installs them, into `extensions/` since D-418; installing and
   replacing from a zip are built, D-392):

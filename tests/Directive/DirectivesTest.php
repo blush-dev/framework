@@ -459,6 +459,7 @@ final class DirectivesTest extends TestCase
 
 	public function testDirectivesRenderInEntries(): void
 	{
+		$this->writeTemporaryFile('config/embed.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn new Blush\\Embed\\EmbedConfig(enabled: ['vimeo', 'youtube']);\n");
 		$this->writeTemporaryFile('user/content/index.md', <<<'MD'
 			---
 			id: d680e8a8-54a7-cbad-6d49-0c445cba2eba

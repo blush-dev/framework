@@ -244,15 +244,22 @@ declare(strict_types=1);
 use Blush\Embed\EmbedConfig;
 use Blush\Embed\OEmbedProvider;
 
-return new EmbedConfig(providers: [
-	new OEmbedProvider(
-		'streamable',
-		'Streamable',
-		['https://streamable.com/*'],
-		'https://api.streamable.com/oembed.json'
-	)
-]);
+return new EmbedConfig(
+	providers: [
+		new OEmbedProvider(
+			'streamable',
+			'Streamable',
+			['https://streamable.com/*'],
+			'https://api.streamable.com/oembed.json'
+		)
+	],
+	enabled: ['streamable', 'youtube']
+);
 ```
+
+Every provider, built in or added, is off until it's named in
+`enabled` (or turned on under Settings → Writing), so a new site embeds
+nothing and asks no other site anything.
 
 A provider has a name, a label, the URLs it embeds (`*` matches
 anything), and its oEmbed address, which must be `https://`. Find these
@@ -264,7 +271,7 @@ Instagram) show as links for now.
 | Option | Default | What it does |
 |---|---|---|
 | `providers` | `[]` | oEmbed providers to add; one named like a built-in (`youtube`, `vimeo`, `ted`, `codepen`, `spotify`, `soundcloud`, `flickr`, `twitch`, `tiktok`, `x`, `reddit`) replaces it |
-| `off` | `[]` | Names of providers turned off, built in or added, whose links stay links. Settings → Writing's switches save over it |
+| `enabled` | `[]` | Names of providers turned on, built in or added; every other provider's links stay links. Settings → Writing's switches save over it |
 | `fetch` | `true` | Ask providers for sizes and titles; `false` never does (the built-ins still embed, at 16:9) |
 | `timeout` | `3` | Seconds to wait for a provider |
 | `ttl` | `2592000` | Seconds to keep an answer (30 days) |

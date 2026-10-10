@@ -412,8 +412,8 @@ final readonly class SettingsController
 	 * Writing (D-494): how what's written in Markdown renders, what raw
 	 * HTML in it does (kind `segmented`, its options side by side), and
 	 * the sites links embed from (D-633): a chip for each provider, built
-	 * in or not, saved together as the list of those turned off
-	 * (`embed.off`, kind `embeds`), with each provider's `name`, `label`,
+	 * in or not, saved together as the list of those turned on
+	 * (`embed.enabled`, kind `embeds`; none by default, D-705), with each provider's `name`, `label`,
 	 * and the `hosts` its links are on, by label (D-695).
 	 *
 	 * @return list<array<string, mixed>>
@@ -447,10 +447,10 @@ final readonly class SettingsController
 			self::group('embeds', 'Embeds', 'Sites whose links play on the page', [
 				[
 					...$this->edit(
-						self::item('off', Setting::EmbedsOff->field($this->types)->label, $this->embed->off, $this->embed->off === [], 'embeds', Setting::EmbedsOff->field($this->types)->description),
+						self::item('enabled', Setting::Embeds->field($this->types)->label, $this->embed->enabled, $this->embed->enabled === [], 'embeds', Setting::Embeds->field($this->types)->description),
 						$saved,
-						Setting::EmbedsOff,
-						$this->embed->off
+						Setting::Embeds,
+						$this->embed->enabled
 					),
 					'providers' => self::byLabel(array_map(static fn (EmbedProvider $provider): array => [
 						'name'  => $provider->name,

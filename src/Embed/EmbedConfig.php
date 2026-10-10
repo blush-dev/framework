@@ -31,8 +31,9 @@ use Blush\Config\InvalidConfig;
  * - `providers` adds oEmbed providers (YouTube, Vimeo, TED, and
  *   CodePen are built in, D-633); one
  *   named like a built-in replaces it.
- * - `off` names the providers turned off, built in or not, whose links
- *   are links (D-633); Settings → Writing saves its own over it.
+ * - `enabled` names the providers turned on, built in or not; every
+ *   other provider's links are links, so none embeds until it's named
+ *   (D-633, D-705). Settings → Writing saves its own over it.
  * - `fetch: false` never asks providers anything; built-in providers
  *   still embed from the URL alone, at 16:9.
  * - `timeout` is how many seconds a request may take; `ttl` how long an
@@ -51,12 +52,12 @@ final readonly class EmbedConfig implements Config
 	/**
 	 * @param  array<array-key, mixed> $providers `OEmbedProvider` objects, or arrays with
 	 *         `name`, `label`, `schemes`, and `endpoint`.
-	 * @param  list<string>            $off       Names of providers turned off.
+	 * @param  list<string>            $enabled   Names of providers turned on.
 	 * @throws InvalidConfig
 	 */
 	public function __construct(
 		array $providers = [],
-		public array $off = [],
+		public array $enabled = [],
 		public bool $fetch = true,
 		public int $timeout = 3,
 		public int $ttl = 2_592_000,
@@ -66,9 +67,9 @@ final readonly class EmbedConfig implements Config
 			throw new InvalidConfig('EmbedConfig "timeout", "ttl", and "failureTtl" must be at least 1 second.');
 		}
 
-		foreach ($off as $name) {
+		foreach ($enabled as $name) {
 			if (! self::isName($name)) {
-				throw new InvalidConfig(sprintf('EmbedConfig "off" names providers, such as "codepen"; "%s" isn\'t a provider\'s name.', $name));
+				throw new InvalidConfig(sprintf('EmbedConfig "enabled" names providers, such as "codepen"; "%s" isn\'t a provider\'s name.', $name));
 			}
 		}
 
@@ -82,11 +83,11 @@ final readonly class EmbedConfig implements Config
 	public static function fromArray(array $data): static
 	{
 		$values = new ConfigValues($data, self::class);
-		$values->assertKnownKeys(['providers', 'off', 'fetch', 'timeout', 'ttl', 'failureTtl']);
+		$values->assertKnownKeys(['providers', 'enabled', 'fetch', 'timeout', 'ttl', 'failureTtl']);
 
 		return new static(
 			providers: is_array($data['providers'] ?? null) ? $data['providers'] : [],
-			off: $values->stringList('off'),
+			enabled: $values->stringList('enabled'),
 			fetch: $values->bool('fetch', true),
 			timeout: $values->int('timeout', 3),
 			ttl: $values->int('ttl', 2_592_000),
@@ -102,7 +103,7 @@ final readonly class EmbedConfig implements Config
 	{
 		return [
 			'providers'  => array_map(static fn (OEmbedProvider $provider): array => $provider->toArray(), $this->providers),
-			'off'        => $this->off,
+			'enabled'    => $this->enabled,
 			'fetch'      => $this->fetch,
 			'timeout'    => $this->timeout,
 			'ttl'        => $this->ttl,
@@ -111,16 +112,11 @@ final readonly class EmbedConfig implements Config
 	}
 
 	/**
-	 * Builds a provider from its config data.
-	 *
-	 * @throws InvalidConfig
-	 */
-	/**
-	 * Returns whether a provider is on (not named in `off`).
+	 * Returns whether a provider is on (named in `enabled`).
 	 */
 	public function isOn(string $name): bool
 	{
-		return ! in_array($name, $this->off, true);
+		return in_array($name, $this->enabled, true);
 	}
 
 	/**
@@ -132,6 +128,11 @@ final readonly class EmbedConfig implements Config
 		return preg_match('/^[a-z0-9][a-z0-9_-]*$/', $name) === 1;
 	}
 
+	/**
+	 * Builds a provider from its config data.
+	 *
+	 * @throws InvalidConfig
+	 */
 	private static function provider(mixed $provider): OEmbedProvider
 	{
 		if ($provider instanceof OEmbedProvider) {

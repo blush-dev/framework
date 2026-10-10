@@ -86,7 +86,7 @@ enum Setting: string
 	case HeadingAnchors   = 'markdown.headingAnchors';
 	case Figures          = 'markdown.figures';
 	case Html             = 'markdown.html';
-	case EmbedsOff        = 'embed.off';
+	case Embeds           = 'embed.enabled';
 	case Sitemap          = 'sitemap.enabled';
 	case SitemapDisallow  = 'sitemap.disallow';
 	case Llms             = 'llms.enabled';
@@ -153,7 +153,7 @@ enum Setting: string
 			self::Home, self::FeedFormats, self::FeedContent, self::FeedLimit => SettingsScreen::Reading,
 			self::MediaUploads, self::AddArtwork                          => SettingsScreen::Media,
 			self::Mentions, self::SmartPunctuation, self::HeadingAnchors,
-			self::Figures, self::Html, self::EmbedsOff                    => SettingsScreen::Writing,
+			self::Figures, self::Html, self::Embeds                       => SettingsScreen::Writing,
 			self::TrailingSlash, self::Sitemap, self::SitemapDisallow     => SettingsScreen::Search,
 			self::Llms, self::LlmsFull, self::BlockAi                     => SettingsScreen::Ai
 		};
@@ -189,7 +189,7 @@ enum Setting: string
 			self::HeadingAnchors  => new BoolField('headingAnchors')->labeled('Heading anchors')->described('Each heading gets a link to itself, so a section can be shared.'),
 			self::Figures         => new BoolField('figures')->labeled('Images as figures')->described('An image on a line of its own becomes a figure, with its title as the caption.'),
 			self::Html            => new EnumField('html', array_column(RawHtml::cases(), 'value'))->labeled('Raw HTML')->described('What HTML written in content does on the page, whoever wrote it. Who may add HTML in the admin is up to their role.')->control(Control::Radios)->required(),
-			self::EmbedsOff       => new ListField('off')->labeled('Embeds turned off')->described('A site turned off keeps its links as links, rather than playing them on the page.'),
+			self::Embeds          => new ListField('enabled')->labeled('Embeds turned on')->described('A site turned on plays its links on the page; the others keep their links as links.'),
 			self::FeedLimit       => new NumberField('limit', integer: true, min: 1, max: self::FEED_LIMIT_MAX)->labeled('Entries per feed')->described(sprintf('From 1 to %d.', self::FEED_LIMIT_MAX)),
 			self::TrailingSlash   => new BoolField('trailingSlash')->labeled('Trailing slash')->described('The other form redirects, so links to either still work.'),
 			self::Sitemap         => new BoolField('enabled')->labeled('Sitemap and robots.txt')->described('Off, the site has neither, and search engines find pages by their links.'),
@@ -392,7 +392,7 @@ enum Setting: string
 			self::Theme           => self::theme($value),
 			self::Plugins         => self::names($value, 'plugins'),
 			self::IconPacks       => self::names($value, 'icon packs'),
-			self::EmbedsOff       => self::providers($value),
+			self::Embeds          => self::providers($value),
 			default               => is_bool($value) ? $value : throw new InvalidSetting(sprintf('"%s" must be true or false.', $this->value))
 		};
 	}
@@ -573,7 +573,7 @@ enum Setting: string
 	}
 
 	/**
-	 * The embed providers turned off (D-633): names, sorted, once each.
+	 * The embed providers turned on (D-633, D-705): names, sorted, once each.
 	 * Any name is kept, as a plugin's provider may not be loaded.
 	 *
 	 * @return list<string>
@@ -582,7 +582,7 @@ enum Setting: string
 	private static function providers(mixed $value): array
 	{
 		if (! is_array($value) || ! array_is_list($value)) {
-			throw new InvalidSetting('The embeds turned off must be a list of providers\' names.');
+			throw new InvalidSetting('The embeds turned on must be a list of providers\' names.');
 		}
 
 		foreach ($value as $name) {

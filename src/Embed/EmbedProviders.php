@@ -17,7 +17,7 @@ namespace Blush\Embed;
  * Every embed provider the site has: those in `config/embed.php` first,
  * then the registered ones (a configured provider replaces a registered
  * one of the same name). A URL is embedded by the first that matches it
- * among those turned on (`EmbedConfig::$off`, D-633).
+ * among those turned on (`EmbedConfig::$enabled`, D-633, D-705).
  */
 final class EmbedProviders
 {
