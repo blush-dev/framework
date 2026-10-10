@@ -65,21 +65,23 @@ final class ThemeAssets
 	{}
 
 	/**
-	 * Returns an asset's URL, or `null` when no theme has it.
+	 * Returns an asset's URL, or `null` when no theme has it. Without
+	 * `$version`, the URL has no `?v=`, as a file's stylesheet asks for
+	 * it (D-698).
 	 *
 	 * @throws ThemeException When a manifest is invalid.
 	 */
-	public function url(string $path): ?string
+	public function url(string $path, bool $version = true): ?string
 	{
 		foreach ($this->chain as $theme) {
 			[$entry, $base] = $this->entry($theme, $path);
 
 			if (is_string($entry['file'] ?? null) && ThemeChain::isServable("{$base}/{$entry['file']}")) {
-				return $this->versioned($theme, "{$base}/{$entry['file']}");
+				return $this->versioned($theme, "{$base}/{$entry['file']}", $version);
 			}
 
 			if (ThemeChain::isServable($path) && is_file("{$theme->path}/{$path}")) {
-				return $this->versioned($theme, $path);
+				return $this->versioned($theme, $path, $version);
 			}
 		}
 
@@ -133,14 +135,15 @@ final class ThemeAssets
 
 	/**
 	 * Returns a theme file's URL with its version, a CRC32 of its
-	 * contents (eight hex characters). A missing file has no version.
+	 * contents (eight hex characters). A missing file, or one asked for
+	 * without a version, has none.
 	 */
-	private function versioned(ThemeManifest $theme, string $path): string
+	private function versioned(ThemeManifest $theme, string $path, bool $version = true): string
 	{
 		$url  = sprintf('%s/%s/%s', ThemeChain::ASSET_URL, $theme->name, $path);
 		$file = "{$theme->path}/{$path}";
 
-		if (! is_file($file)) {
+		if (! $version || ! is_file($file)) {
 			return $url;
 		}
 

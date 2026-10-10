@@ -40,7 +40,7 @@ final readonly class AssetController
 		$type = AdminApp::TYPES[strtolower(pathinfo($path, PATHINFO_EXTENSION))];
 
 		$headers = [
-			'Cache-Control'          => isset($request->getQueryParams()['v']) ? 'public, max-age=31536000, immutable' : 'no-cache',
+			'Cache-Control'          => Response::fileCaching($request),
 			'X-Content-Type-Options' => 'nosniff'
 		];
 

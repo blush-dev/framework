@@ -68,7 +68,7 @@ final readonly class AssetController
 	{
 		$type    = ThemeChain::ASSET_TYPES[strtolower(pathinfo($file, PATHINFO_EXTENSION))] ?? 'application/octet-stream';
 		$headers = [
-			'Cache-Control'          => isset($request->getQueryParams()['v']) ? 'public, max-age=31536000, immutable' : 'no-cache',
+			'Cache-Control'          => Response::fileCaching($request),
 			'X-Content-Type-Options' => 'nosniff'
 		];
 

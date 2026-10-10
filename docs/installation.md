@@ -154,6 +154,35 @@ On a Mac, DDEV usually syncs your files into its container with Mutagen,
 which can take a moment. If a page you just created shows "not found",
 reload after a second.
 
+### Caching and compression
+
+Blush sets caching headers itself, the same on any server. A file whose
+URL ends in `?v=…` (the stylesheets and scripts Blush prints) is cached
+for a year, since a changed file gets a new `?v=`. Any other file is
+checked with the server on each use, which costs a short "not modified"
+answer when it hasn't changed. Don't add rules that cache files for a
+fixed time by type (Apache's `ExpiresByType`): a file without a version
+could stay stale in visitors' browsers for that long.
+
+Compressing responses is up to your server, and many hosts already do
+it. On Apache, you can add this to the `.htaccess` your server reads:
+
+```apache
+<IfModule mod_brotli.c>
+	AddOutputFilterByType BROTLI_COMPRESS text/html text/plain text/css text/javascript text/markdown text/xml image/svg+xml application/javascript application/json application/manifest+json application/xml application/atom+xml application/rss+xml
+</IfModule>
+
+<IfModule !mod_brotli.c>
+	<IfModule mod_deflate.c>
+		AddOutputFilterByType DEFLATE text/html text/plain text/css text/javascript text/markdown text/xml image/svg+xml application/javascript application/json application/manifest+json application/xml application/atom+xml application/rss+xml
+	</IfModule>
+</IfModule>
+```
+
+On nginx, turn on `gzip` and list the same types in `gzip_types`. Fonts
+(`woff2`) and images other than SVG are already compressed, so leave
+them out.
+
 ## Subdirectories aren't supported yet
 
 Blush expects to be at the root of its domain (`https://example.com/`), not

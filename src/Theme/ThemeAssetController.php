@@ -25,6 +25,8 @@ use Blush\Http\StreamException;
  * published to the public folder. Only
  * files with an allowed extension, outside the theme's private folders,
  * are served (`ThemeChain::isServable()`), and SVGs are sandboxed.
+ * A URL with a `?v=` version is cached for a year; without one,
+ * browsers check back every time (D-699).
  */
 final readonly class ThemeAssetController
 {
@@ -45,7 +47,7 @@ final readonly class ThemeAssetController
 			throw new NotFound(sprintf('There is no "%s" asset in the "%s" theme.', $path, $theme));
 		}
 
-		$headers = ['X-Content-Type-Options' => 'nosniff'];
+		$headers = ['Cache-Control' => Response::fileCaching($request), 'X-Content-Type-Options' => 'nosniff'];
 		$mime    = ThemeChain::ASSET_TYPES[strtolower(pathinfo($path, PATHINFO_EXTENSION))];
 
 		if ($mime === 'image/svg+xml') {

@@ -311,6 +311,8 @@ final class ThemesTest extends TestCase
 		$this->assertSame('nosniff', $css->getHeaderLine('X-Content-Type-Options'));
 		$this->assertSame('body { color: red; }', (string) $css->getBody());
 		$this->assertSame('sandbox', $svg->getHeaderLine('Content-Security-Policy'));
+		$this->assertSame('no-cache', $css->getHeaderLine('Cache-Control'), 'Unversioned URLs are checked every time (D-699).');
+		$this->assertSame('public, max-age=31536000, immutable', $this->get($app, '/themes/acme/parent/css/parent.css?v=1')->getHeaderLine('Cache-Control'));
 		$this->assertSame(200, $this->get($app, '/themes/blush/default/style.css')->getStatusCode());
 
 		foreach (['/themes/acme/child/views/single.php', '/themes/acme/child/theme.json', '/themes/acme/child/missing.css', '/themes/acme/nope/style.css', '/themes/nope/style.css', '/themes/acme/child/css/parent.css'] as $uri) {

@@ -90,7 +90,8 @@ final class ViewFactory
 	 * tags (D-472), and the active
 	 * theme's stylesheets and scripts (with any stylesheets a
 	 * build manifest pairs with them; built scripts load as modules) and
-	 * the files it preloads (D-558),
+	 * the files it preloads (D-558, by the URL the page asks for them
+	 * at, D-698),
 	 * `$site`, the entry's presentation front matter (`layout`,
 	 * `class`, and `stylesheet`, D-027), and the page's URL path and
 	 * locale (a list's language's, D-455, else the entry's, else the
@@ -134,8 +135,11 @@ final class ViewFactory
 			}
 		}
 
+		// A preload is used only when its URL is the one the page asks
+		// for, so a file the head loads keeps its version and any other
+		// (a font a stylesheet asks for) has none (D-698).
 		foreach ($theme->preload as $file) {
-			$url = $views->assets->url($file);
+			$url = $views->assets->url($file, in_array($file, [...$theme->styles, ...$theme->scripts], true));
 
 			if ($url !== null) {
 				$head->preload($url);

@@ -328,8 +328,11 @@ Only `name` is required.
   theme, such as the fonts your stylesheet uses, so text doesn't wait
   on them. What each file is comes from its extension: a font is
   preloaded as a font (and fetched `crossorigin`, as browsers require),
-  `.css` as a style, `.js` as a script, and images as images. For a file
-  only some pages need, use `$template->head()->preload()` instead.
+  `.css` as a style, `.js` as a script, and images as images. A file
+  also in `styles` or `scripts` is preloaded with its `?v=` version, as
+  the page loads it; any other file, like a font, is preloaded without
+  one, matching how your stylesheet asks for it. For a file only some
+  pages need, use `$template->head()->preload()` instead.
 - **`assets`:** styles and scripts your theme registers by name, which
   pages load only when they ask for them. A theme with a `provider`
   registers them there instead. See [Scripts and styles](#scripts-and-styles).

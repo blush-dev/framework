@@ -24,7 +24,9 @@ use Blush\Http\StreamException;
  * `user/media` before `media:publish` has run (or on hosts that can't
  * link it). Byte ranges
  * work, so audio and video can seek. Only allowed types resolve; SVGs are
- * sandboxed so scripts in them can't run on the site's origin.
+ * sandboxed so scripts in them can't run on the site's origin. Media
+ * URLs have no version, so browsers check back every time, and a file
+ * that hasn't changed costs them a 304 (D-699).
  */
 final readonly class MediaController
 {
@@ -42,7 +44,7 @@ final readonly class MediaController
 		$file = $this->media->fromUrl("{$this->config->url}/{$path}")
 			?? throw new NotFound(sprintf('There is no media file "%s".', $path));
 
-		$headers = ['X-Content-Type-Options' => 'nosniff'];
+		$headers = ['Cache-Control' => Response::fileCaching($request), 'X-Content-Type-Options' => 'nosniff'];
 
 		if ($file->mime === 'image/svg+xml') {
 			$headers['Content-Security-Policy'] = 'sandbox';

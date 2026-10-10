@@ -16,6 +16,7 @@ namespace Blush\Http;
 use JsonException;
 use Override;
 use Psr\Http\Message\ResponseInterface;
+use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Message\StreamInterface;
 use Psr\Http\Message\UriInterface;
 
@@ -217,6 +218,17 @@ final readonly class Response extends Message implements ResponseInterface
 	public static function notModified(array $headers = []): self
 	{
 		return new self(Status::NotModified, $headers);
+	}
+
+	/**
+	 * Returns the `Cache-Control` for a static file: a year when its URL
+	 * has a `?v=` version, since a changed file changes its version, and
+	 * otherwise a check back every time, which `ConditionalGet` answers
+	 * with a 304 when the file hasn't changed (D-699).
+	 */
+	public static function fileCaching(ServerRequestInterface $request): string
+	{
+		return isset($request->getQueryParams()['v']) ? 'public, max-age=31536000, immutable' : 'no-cache';
 	}
 
 	/**

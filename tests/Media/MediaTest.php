@@ -151,6 +151,8 @@ final class MediaTest extends TestCase
 		$this->assertSame('image/png', $full->getHeaderLine('Content-Type'));
 		$this->assertSame('nosniff', $full->getHeaderLine('X-Content-Type-Options'));
 		$this->assertSame((string) filesize($this->temporaryDirectory() . '/user/media/2019/cat.png'), $full->getHeaderLine('Content-Length'));
+		$this->assertSame('no-cache', $full->getHeaderLine('Cache-Control'), 'Media is checked every time (D-699).');
+		$this->assertSame(304, $kernel->handle(Request::create('/media/2019/cat.png')->withHeader('If-Modified-Since', $full->getHeaderLine('Last-Modified')))->getStatusCode());
 
 		$part = $kernel->handle(Request::create('/media/2019/cat.png')->withHeader('Range', 'bytes=0-7'));
 

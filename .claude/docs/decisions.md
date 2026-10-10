@@ -21650,3 +21650,38 @@ decision, add a new entry that supersedes it and mark the old one
   each panel or row already names its source (D-696), and the text
   costs bytes in the admin's JavaScript. The System screen keeps its
   notice, which says when to run `cache:compile` again.
+
+### D-698: Preloaded theme files at the URL the page asks for
+
+- **Date:** 2026-10-09
+- **Status:** Built.
+- **Decision:** A file in a theme's `preload` list (D-558) is preloaded
+  by its URL without `?v=`, unless the theme also lists it in `styles`
+  or `scripts`, which the head loads with their version (D-194).
+  `ThemeAssets::url()` takes `$version` (default `true`) for this.
+- **Why:** a browser uses a preload only when its URL is the one the
+  page then asks for. Second Proof's fonts were preloaded with `?v=`
+  while `style.css` asks for `fonts/literata-latin.woff2`, so each font
+  was fetched twice and the console warned that the preload went
+  unused.
+
+### D-699: Caching headers on theme files and media; compression left to the server
+
+- **Date:** 2026-10-09
+- **Status:** Built.
+- **Decision:** Theme files (`/themes`) and media streamed by PHP
+  (`/media`) get the same `Cache-Control` as core, plugin, and admin
+  assets: `public, max-age=31536000, immutable` when the URL has a
+  `?v=` version, `no-cache` otherwise, with `ConditionalGet` answering
+  a repeat with a 304. The rule is `Response::fileCaching()`, used by
+  all four controllers. Compression stays the server's job: the
+  skeleton's `.htaccess` doesn't set it, and `docs/installation.md`
+  shows Apache (Brotli, else deflate) and nginx settings. Fixed-time
+  caching by type (`mod_expires`) is advised against.
+- **Why:** caching is the CMS's to decide, since only it knows which
+  URLs carry a version, and doing it in PHP works on every server.
+  Caching by type for months would keep unversioned files (media, the
+  fonts a theme's stylesheet asks for, D-698) stale. Compression is
+  server configuration a host often already does, so it's the site
+  owner's to edit. Versioning the URLs inside a theme's stylesheet is
+  still to be discussed.
