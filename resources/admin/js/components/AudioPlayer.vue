@@ -5,9 +5,9 @@
  * too, around a native `<audio>`. Given a title, it's a card (D-575),
  * as the site's `::audio{variant=card}` draws one: the artwork (or a
  * music glyph, when it's `null` or can't be shown) beside the title and
- * who made it, over the player. Without `artwork` at all, the card has
- * no picture: the words over the player, as a media file's preview has
- * it, since its Artwork panel shows the picture (D-582).
+ * who made it, over the player, as a media file's preview draws it
+ * (the media detail sketch; D-706). Without `artwork` at all, the card
+ * has no picture: the words over the player.
  */
 
 import { ref, watch } from 'vue';
@@ -44,6 +44,11 @@ watch(() => props.artwork, () => {
 </template>
 
 <style scoped>
+/* A figure's own margins are the site's to set, not the admin's. */
+.audio-card {
+	margin: 0;
+}
+
 .audio-card__art--none {
 	display: grid;
 	place-items: center;

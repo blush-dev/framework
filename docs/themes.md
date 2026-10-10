@@ -662,8 +662,9 @@ stylesheet to make it yours:
 `--player-overlay-fg` (a video's controls over the picture) are there
 too, and for cards, `--player-fg`, `--player-font`,
 `--player-title-size`, `--player-by-size`, `--player-card-pad`,
-`--player-art-size`, `--player-art-radius`, and `--player-pop-shadow`
-(what lifts the volume slider off the page). A card's text and fonts
+`--player-art-size`, `--player-art-radius`, `--player-art-shadow`
+(none unless you set one), and `--player-pop-shadow` (what lifts the
+volume slider off the page). A card's text and fonts
 are its surroundings' unless you set them. To draw the player yourself, register your own `blush/player`,
 or an empty one to load nothing: `new Asset('blush/player')` in your
 provider, or `"blush/player": {}` under `assets`.

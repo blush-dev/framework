@@ -16835,7 +16835,7 @@ decision, add a new entry that supersedes it and mark the old one
 
 ### D-576: The players' volume, a popover shared by every player
 - **Date:** 2026-10-07
-- **Status:** Built.
+- **Status:** Built. Amended by D-706 (the slider in the top layer).
 - **Decision:** the audio player gets a volume control, and the video
   player's (D-555) becomes the same one, as the audio player sketch
   draws it: a mute button whose glyph follows the level (loud, quiet
@@ -17006,7 +17006,7 @@ decision, add a new entry that supersedes it and mark the old one
 
 ### D-582: A media file's audio preview has no artwork
 - **Date:** 2026-10-07
-- **Status:** Built.
+- **Status:** Superseded by D-706 (the preview shows its artwork again).
 - **Decision:** the admin's media file screen draws a sound's preview
   as the card without its picture (the title and who made it, over the
   player), since the Artwork panel under it (D-581) shows the artwork.
@@ -21835,3 +21835,31 @@ decision, add a new entry that supersedes it and mark the old one
   a site should say which sites it trusts with that rather than get
   all of them by default. It's the same as plugins and icon packs:
   nothing is on until it's named (D-390).
+
+### D-706: A sound's preview is the sketch's card, with its artwork; the volume floats
+
+- **Date:** 2026-10-10
+- **Status:** Built. Supersedes D-582; amends D-576.
+- **Decision:**
+  - **The preview is the media detail sketch's audio card**
+    (`media-detail-sketch.html`): the artwork beside the title and
+    "Artist · Album · Track N", over the player. It shows the artwork
+    as it will be once saved (D-583): a library image just chosen, the
+    carried picture waiting to be added, or, with the link waiting to
+    be removed, what the file carries; with none, the music glyph. The
+    artwork has a shadow, as the sketch's does: a new
+    `--player-art-shadow` (the admin's `--shadow-2`; `none` on the
+    site, so a theme opts in).
+  - **The volume's slider is a popover in the top layer** where the
+    browser has them (`popover="manual"`, opened by `volume()` on
+    hover and keyboard focus, as before, and placed over the mute
+    button, following it while the page scrolls), so nothing that
+    clips a player (a panel, D-701; a card; the video) cuts it off,
+    on the site as in the admin. Without popovers, CSS opens it in
+    place, as D-576 did. It still inherits the player's `--player-*`
+    properties, being inside it.
+- **Why:** the author: "The audio preview on audio media in the admin
+  should use the card design from media-detail-sketch.html. And when
+  choosing new artwork, it should automatically appear in the preview.
+  Additionally, the current player volume slider gets cut off from the
+  panel it sits in."

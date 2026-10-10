@@ -25,6 +25,7 @@
  *   --player-card-pad    the space inside a card
  *   --player-art-size    a card's artwork, at its largest
  *   --player-art-radius  the artwork's corners
+ *   --player-art-shadow  what lifts the artwork off the card
  */
 
 .player {
@@ -142,7 +143,10 @@
 /* The volume (D-576): the mute button, with the slider over it on
    hover and keyboard focus. The slider's layer starts at the button's
    edge and its gap is its own padding, so a pointer crossing it stays
-   on the control; the card is drawn inside. */
+   on the control; the card is drawn inside. Where the browser has
+   popovers, the layer is one, in the top layer, placed over the button
+   by `volume()`, so nothing that clips the player (a panel, a card,
+   the video) cuts it off; without them, it opens by CSS alone. */
 .player__volume {
 	position: relative;
 	display: flex;
@@ -165,6 +169,20 @@
 .player__volume:focus-within > .player__volume-pop {
 	visibility: visible;
 	opacity: 1;
+}
+
+.player__volume-pop[popover] {
+	position: fixed;
+	inset: auto;
+	overflow: visible;
+	margin: 0;
+	padding: 0 0 8px;
+	border: 0;
+	background: none;
+	color: inherit;
+	visibility: visible;
+	opacity: 1;
+	transition: none;
 }
 
 .player__volume-card {
@@ -240,6 +258,7 @@
 	aspect-ratio: 1;
 	margin: 0;
 	border-radius: var(--player-art-radius);
+	box-shadow: var(--player-art-shadow, none);
 	object-fit: cover;
 }
 

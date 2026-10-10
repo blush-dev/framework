@@ -503,7 +503,7 @@ const snippet = computed(() => {
 			<section class="panel preview" aria-label="Preview">
 				<img v-if="file.kind === 'image'" class="preview__image" :src="file.url" :alt="`Preview of ${mediaName(file)}`">
 				<VideoPlayer v-else-if="file.kind === 'video'" class="preview__video" :src="file.url" :poster="artwork" />
-				<AudioPlayer v-else-if="file.kind === 'audio'" class="preview__audio" :src="file.url" :title="track.title" :by="track.by" />
+				<AudioPlayer v-else-if="file.kind === 'audio'" class="preview__audio" :src="file.url" :title="track.title" :by="track.by" :artwork="artwork" />
 				<div v-else-if="pages !== null" class="preview__page">
 					<div class="preview__sheet" :style="{ aspectRatio: pageShape }" aria-hidden="true">
 						<i class="preview__line preview__line--head" /><i class="preview__line" /><i class="preview__line preview__line--short" /><i class="preview__line" />

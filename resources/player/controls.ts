@@ -231,6 +231,7 @@ export function volume(host: HTMLElement, media: HTMLMediaElement): { control: H
 
 	if (settable(media)) {
 		control.append(pop);
+		float(control, pop);
 	}
 
 	const draw = (): void => {
@@ -256,6 +257,75 @@ export function volume(host: HTMLElement, media: HTMLMediaElement): { control: H
 	draw();
 
 	return { control, draw };
+}
+
+/**
+ * Lifts the volume's slider into the top layer, where the browser has
+ * popovers, so nothing that clips the player cuts it off: it opens
+ * while the pointer is over the control (the slider is inside it, so
+ * crossing to it stays over it) or the keyboard's focus is in it, and
+ * sits over the mute button, moving with it while the page scrolls.
+ * Without popovers, CSS opens it in place.
+ */
+function float(control: HTMLElement, pop: HTMLElement): void {
+	if (!('popover' in HTMLElement.prototype)) {
+		return;
+	}
+
+	const anchor = control.firstElementChild ?? control;
+	let hovered  = false;
+
+	pop.popover = 'manual';
+
+	const place = (): void => {
+		if (!pop.isConnected) {
+			detach();
+
+			return;
+		}
+
+		const box = anchor.getBoundingClientRect();
+
+		pop.style.left   = `${box.left + box.width / 2}px`;
+		pop.style.bottom = `${document.documentElement.clientHeight - box.top}px`;
+	};
+
+	const detach = (): void => {
+		window.removeEventListener('scroll', place, { capture: true });
+		window.removeEventListener('resize', place);
+	};
+
+	const sync = (): void => {
+		const open = hovered || control.querySelector(':focus-visible') !== null;
+
+		if (open === pop.matches(':popover-open')) {
+			return;
+		}
+
+		if (open) {
+			place();
+			pop.showPopover();
+			window.addEventListener('scroll', place, { capture: true, passive: true });
+			window.addEventListener('resize', place, { passive: true });
+		} else {
+			pop.hidePopover();
+			detach();
+		}
+	};
+
+	control.addEventListener('pointerenter', () => {
+		hovered = true;
+		sync();
+	});
+
+	control.addEventListener('pointerleave', () => {
+		hovered = false;
+		sync();
+	});
+
+	// Once the focus has moved, so it's known where it went.
+	control.addEventListener('focusin', () => setTimeout(sync));
+	control.addEventListener('focusout', () => setTimeout(sync));
 }
 
 /**

@@ -3423,6 +3423,7 @@ a.problem__title:hover {
 	--player-card-pad: var(--s-4);
 	--player-art-size: 124px;
 	--player-art-radius: var(--r-2);
+	--player-art-shadow: var(--shadow-2);
 }
 
 /*

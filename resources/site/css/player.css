@@ -29,6 +29,7 @@
 	--player-card-pad: 1.5rem;
 	--player-art-size: 8.25rem;
 	--player-art-radius: 0.5rem;
+	--player-art-shadow: none;
 }
 
 :where(blush-audio-player, blush-video-player) {
