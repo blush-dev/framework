@@ -107,8 +107,8 @@ final class BuiltInCommandsTest extends TestCase
 		$compiled = $tester->run('cache:compile');
 
 		$this->assertTrue($compiled->isSuccessful());
-		$this->assertStringContainsString('Wrote storage/cache/config.php', $compiled->output);
-		$this->assertMatchesRegularExpression('/Compiled \d+ container plan\(s\), and cleared the cache store\./', $compiled->output);
+		$this->assertStringContainsString('wrote  storage/cache/config.php', $compiled->output);
+		$this->assertMatchesRegularExpression('/Compiled \d+ container plans, and cleared the cache store\./', $compiled->output);
 		$this->assertFileExists("{$root}/storage/cache/content-version.json");
 		$this->assertFileExists("{$root}/storage/cache/container.php");
 		$this->assertFileExists("{$root}/storage/cache/routes.php");
@@ -122,14 +122,14 @@ final class BuiltInCommandsTest extends TestCase
 		$partial = $tester->run('cache:clear --config -v');
 
 		$this->assertTrue($partial->isSuccessful());
-		$this->assertStringContainsString('Cleared storage/cache/config.php', $partial->output);
+		$this->assertStringContainsString('cleared  storage/cache/config.php', $partial->output);
 		$this->assertStringNotContainsString('cache store', $partial->output);
 		$this->assertFileDoesNotExist("{$root}/storage/cache/config.php");
 		$this->assertFileExists("{$root}/storage/cache/plugins.php");
 
 		$all = $tester->run('cache:clear');
 
-		$this->assertStringContainsString('Cleared 7 compiled cache(s).', $all->output);
+		$this->assertStringContainsString('Cleared 7 compiled caches.', $all->output);
 		$this->assertStringContainsString('Cleared the cache store (pages, bodies, fragments); the content version is now', $all->output);
 		$this->assertFileDoesNotExist("{$root}/storage/cache/plugins.php");
 		$this->assertFileDoesNotExist("{$root}/storage/cache/container.php");

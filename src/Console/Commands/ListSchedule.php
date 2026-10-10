@@ -60,11 +60,14 @@ final readonly class ListSchedule
 			$output->table(['Job', 'Label', 'Runs', 'Last run', 'Next run'], $rows);
 		}
 
-		$output->newLine();
+		$runs = [];
 
 		foreach ($this->runner->lastRuns() as $kind => $time) {
-			$output->line(sprintf('%s: %s', RunnerKind::from($kind)->label(), $time === null ? 'never' : DateTimeImmutable::createFromTimestamp($time)->setTimezone($this->app->timezone())->format('Y-m-d H:i')));
+			$runs[RunnerKind::from($kind)->label()] = $time === null ? 'never' : DateTimeImmutable::createFromTimestamp($time)->setTimezone($this->app->timezone())->format('Y-m-d H:i');
 		}
+
+		$output->section('Last runs');
+		$output->definitions($runs);
 
 		return ExitCode::Success;
 	}

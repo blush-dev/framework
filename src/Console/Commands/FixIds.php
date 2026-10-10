@@ -16,11 +16,13 @@ namespace Blush\Console\Commands;
 use Blush\Console\Attributes\Command;
 use Blush\Console\Attributes\Option;
 use Blush\Console\ExitCode;
+use Blush\Console\Outcome;
 use Blush\Console\Output;
-use Blush\Console\Style;
+use Blush\Console\StatusLine;
 use Blush\Content\EntryIds;
 use Blush\Content\Writer\AssignedIds;
 use Blush\Content\Writer\WriteException;
+use Blush\Core\Framework;
 
 /**
  * Checks that every content file has an id of its own (D-477), and fixes
@@ -73,17 +75,14 @@ final readonly class FixIds
 
 		$steps->finish();
 
-		foreach ($report->missing as $path) {
-			$output->line(sprintf('%s  %s', $output->style('missing', Style::Red), $path));
-		}
-
-		foreach ($report->duplicates as $id => $paths) {
-			$output->line(sprintf('%s  %s', $output->style('shared ', Style::Red), $id));
-
-			foreach ($paths as $path) {
-				$output->line("         {$path}");
-			}
-		}
+		$output->status([
+			...array_map(static fn (string $path): StatusLine => new StatusLine(Outcome::Failure, 'missing', $path), $report->missing),
+			...array_map(
+				static fn (string $id, array $paths): StatusLine => new StatusLine(Outcome::Failure, 'shared', $id, implode("\n", $paths)),
+				array_keys($report->duplicates),
+				array_values($report->duplicates)
+			)
+		]);
 
 		if ($report->isClean()) {
 			$output->success('Every content file has an id of its own.');
@@ -91,36 +90,41 @@ final readonly class FixIds
 			return $failed ? ExitCode::Failure : ExitCode::Success;
 		}
 
-		$output->error(implode(' ', array_filter([
-			$report->missing === [] ? null : sprintf('%s missing a valid id; add them with --write.', self::plural(count($report->missing), 'file is', 'files are')),
-			$report->duplicates === [] ? null : sprintf('%s shared; keep each on one file with --keep={path}.', self::plural(count($report->duplicates), 'id is', 'ids are'))
-		])));
+		$output->error(
+			implode(' ', array_filter([
+				$report->missing === [] ? null : Output::count(count($report->missing), 'file is', 'files are') . ' missing a valid id.',
+				$report->duplicates === [] ? null : Output::count(count($report->duplicates), 'id is', 'ids are') . ' shared.'
+			])),
+			implode(' ', array_filter([
+				$report->missing === [] ? null : 'Add the missing ones with `' . Framework::BINARY . ' content:ids --write`.',
+				$report->duplicates === [] ? null : 'Keep each shared id on one file with `' . Framework::BINARY . ' content:ids --keep={path}`.'
+			]))
+		);
 
 		return ExitCode::Failure;
 	}
 
 	/**
-	 * Says what a fix did, and returns whether any file couldn't be
-	 * changed.
+	 * Says what a fix did, and returns whether any
+	 * file couldn't be changed.
 	 */
 	private function done(Output $output, AssignedIds $assigned): bool
 	{
-		foreach ($assigned->ids as $path => $id) {
-			$output->line(sprintf('%s  %s  %s', $output->style('added  ', Style::Green), $id, $path));
-		}
+		$output->status(array_map(
+			static fn (string $path, string $id): StatusLine => new StatusLine(Outcome::Pass, 'added', "{$path} ({$id})"),
+			array_keys($assigned->ids),
+			array_values($assigned->ids)
+		));
+		$output->status(array_map(
+			static fn (string $path, string $message): StatusLine => new StatusLine(Outcome::Failure, 'failed', "{$path}: {$message}"),
+			array_keys($assigned->failed),
+			array_values($assigned->failed)
+		));
 
-		foreach ($assigned->failed as $path => $message) {
-			$output->line(sprintf('%s  %s: %s', $output->style('failed ', Style::Red), $path, $message));
+		if ($assigned->ids !== []) {
+			$output->success(sprintf('Gave %s a new id.', Output::count(count($assigned->ids), 'file', 'files')));
 		}
 
 		return $assigned->failed !== [];
-	}
-
-	/**
-	 * Returns a count with its noun and verb, singular or plural.
-	 */
-	private static function plural(int $count, string $one, string $many): string
-	{
-		return sprintf('%d %s', $count, $count === 1 ? $one : $many);
 	}
 }

@@ -17,7 +17,9 @@ use Blush\Console\Attributes\Command;
 use Blush\Console\Attributes\Option;
 use Blush\Console\ExitCode;
 use Blush\Console\InvalidInput;
+use Blush\Console\Outcome;
 use Blush\Console\Output;
+use Blush\Console\StatusLine;
 use Blush\Console\Verbosity;
 use Blush\Core\Paths;
 use Blush\Support\Filesystem;
@@ -62,13 +64,16 @@ final readonly class PublishThemes
 			throw new InvalidInput($error->getMessage(), 0, $error);
 		}
 
+		$lines = [];
+
 		foreach ($themes as $theme) {
 			[$copied, $current, $removed] = $this->publish($output, $theme);
 
-			$output->line(sprintf('%s: copied %d, %d already current, removed %d.', $theme->name, $copied, $current, $removed));
+			$lines[] = new StatusLine(Outcome::Pass, $theme->name, $output->join("{$copied} copied", "{$current} already current", "{$removed} removed"));
 		}
 
-		$output->success(sprintf('Published %d theme(s) to %s.', count($themes), $this->paths->relative($this->paths->public . ThemeChain::ASSET_URL)));
+		$output->status($lines);
+		$output->success(sprintf('Published %s to %s.', Output::count(count($themes), 'theme', 'themes'), $this->paths->relative($this->paths->public . ThemeChain::ASSET_URL)));
 
 		return ExitCode::Success;
 	}

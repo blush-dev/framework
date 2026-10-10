@@ -193,7 +193,7 @@ final class MediaIdsTest extends TestCase
 		$checked = new CommandTester($console)->run('media:ids');
 
 		$this->assertFalse($checked->isSuccessful());
-		$this->assertStringContainsString('5 files are missing a valid id; add them with --write. 1 id is shared; keep each on one file with --keep={path}.', $checked->output . $checked->errors);
+		$this->assertStringContainsString("5 files are missing a valid id. 1 id is shared.\n  Add the missing ones with blush media:ids --write. Keep each shared id on one file with blush media:ids --keep={path}.", $checked->output . $checked->errors);
 		$this->assertStringNotContainsString('2019/kept.png', $checked->output, 'Each file only with -v.');
 
 		$fixed = new CommandTester($console)->run('media:ids --write --keep=2026/lake.png');

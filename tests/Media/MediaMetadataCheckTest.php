@@ -143,6 +143,6 @@ final class MediaMetadataCheckTest extends TestCase
 
 		$this->assertFalse($result->isSuccessful());
 		$this->assertStringContainsString('user/data/media/2019/gone.png.json', $result->output);
-		$this->assertStringContainsString('and 9 media metadata files: 3 errors, 3 warnings.', $result->output . $result->errors);
+		$this->assertStringContainsString('and 9 media metadata files, 3 errors, 3 warnings', $result->output . $result->errors);
 	}
 }

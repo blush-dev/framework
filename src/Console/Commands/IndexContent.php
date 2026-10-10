@@ -16,7 +16,9 @@ namespace Blush\Console\Commands;
 use Blush\Console\Attributes\Command;
 use Blush\Console\Attributes\Option;
 use Blush\Console\ExitCode;
+use Blush\Console\Outcome;
 use Blush\Console\Output;
+use Blush\Console\StatusLine;
 use Blush\Console\Verbosity;
 use Blush\Content\Index\Indexer;
 use Blush\Content\Source\ContentFiles;
@@ -46,7 +48,7 @@ final readonly class IndexContent
 		}
 
 		$start  = hrtime(true);
-		$bar    = $output->progress();
+		$bar    = $output->progress(label: 'Indexing content');
 		$report = $this->indexer->index($full, static function (int $done, int $total) use ($bar): void {
 			$bar->update($done, $total);
 		});
@@ -57,29 +59,27 @@ final readonly class IndexContent
 			$output->error(sprintf('%s: %s', $path, $message));
 		}
 
-		foreach (['Added' => $report->added, 'Changed' => $report->changed, 'Removed' => $report->removed] as $label => $paths) {
-			foreach ($paths as $path) {
-				$output->line(sprintf('%s %s', $label, $path), Verbosity::Verbose);
-			}
-		}
+		$output->status([
+			...array_map(static fn (string $item): StatusLine => new StatusLine(Outcome::Pass, 'added', $item), $report->added),
+			...array_map(static fn (string $item): StatusLine => new StatusLine(Outcome::Pass, 'changed', $item), $report->changed),
+			...array_map(static fn (string $item): StatusLine => new StatusLine(Outcome::Notice, 'removed', $item), $report->removed)
+		], level: Verbosity::Verbose);
 
-		$summary = sprintf(
-			'Indexed %d %s (%d added, %d changed, %d removed) in %d ms.',
-			$report->total,
-			$report->total === 1 ? 'entry' : 'entries',
-			count($report->added),
-			count($report->changed),
-			count($report->removed),
-			intdiv(hrtime(true) - $start, 1_000_000)
+		$output->summary(
+			$report->failures === [] ? Outcome::Pass : Outcome::Failure,
+			'Indexed ' . Output::count($report->total, 'entry', 'entries'),
+			Output::count(count($report->added), 'added', 'added'),
+			Output::count(count($report->changed), 'changed', 'changed'),
+			Output::count(count($report->removed), 'removed', 'removed'),
+			...[
+				...($report->failures === [] ? [] : [Output::count(count($report->failures), 'file', 'files') . ' not indexed']),
+				sprintf('%d ms', intdiv(hrtime(true) - $start, 1_000_000))
+			]
 		);
 
 		if ($report->failures !== []) {
-			$output->error(sprintf('%s %d file(s) could not be indexed.', $summary, count($report->failures)));
-
 			return ExitCode::Failure;
 		}
-
-		$output->success($summary);
 
 		if (! $report->written) {
 			$output->comment('The index was already up to date.', Verbosity::Verbose);

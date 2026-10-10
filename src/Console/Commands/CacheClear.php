@@ -19,7 +19,9 @@ use Blush\Cache\ContentVersion;
 use Blush\Console\Attributes\Command;
 use Blush\Console\Attributes\Option;
 use Blush\Console\ExitCode;
+use Blush\Console\Outcome;
 use Blush\Console\Output;
+use Blush\Console\StatusLine;
 use Blush\Console\Verbosity;
 use Blush\Core\Bootstrap;
 use Blush\Core\CompiledCache;
@@ -72,11 +74,11 @@ final readonly class CacheClear
 
 			$this->bootstrap->clearCompiled(...$caches);
 
-			foreach ($caches as $cache) {
-				$output->line(sprintf('Cleared %s', $this->paths->relative($this->bootstrap->compiledPath($cache))), Verbosity::Verbose);
-			}
-
-			$output->success(sprintf('Cleared %d compiled cache(s).', count($caches)));
+			$output->status(array_map(
+				fn (CompiledCache $cache): StatusLine => new StatusLine(Outcome::Pass, 'cleared', $this->paths->relative($this->bootstrap->compiledPath($cache))),
+				$caches
+			), level: Verbosity::Verbose);
+			$output->success(sprintf('Cleared %s.', Output::count(count($caches), 'compiled cache', 'compiled caches')));
 		}
 
 		if ($embeds) {

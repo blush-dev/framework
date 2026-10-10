@@ -16,7 +16,9 @@ namespace Blush\Console\Commands;
 use Blush\Console\Attributes\Command;
 use Blush\Console\Attributes\Option;
 use Blush\Console\ExitCode;
+use Blush\Console\Outcome;
 use Blush\Console\Output;
+use Blush\Console\StatusLine;
 use Blush\Console\Verbosity;
 use Blush\Job\JobConfig;
 use Blush\Job\JobFactory;
@@ -54,15 +56,16 @@ final readonly class RunSchedule
 		$report = $this->runner->work(RunnerKind::Cron, $budget > 0 ? $budget : $this->config->budget);
 
 		foreach ($report->runs as $run) {
-			$output->line(sprintf('%s: %s. %s', $this->jobs->label($run->job), $run->status->label(), $run->error ?? $run->message), $run->status === JobStatus::Failed ? Verbosity::Normal : Verbosity::Verbose);
+			$output->status(
+				[new StatusLine($run->status === JobStatus::Failed ? Outcome::Failure : Outcome::Pass, $this->jobs->label($run->job), sprintf('%s. %s', $run->status->label(), $run->error ?? $run->message))],
+				level: $run->status === JobStatus::Failed ? Verbosity::Normal : Verbosity::Verbose
+			);
 		}
 
 		$output->success(sprintf(
-			'Queued %d scheduled task%s; ran %d job%s: %d done, %d failed, %d to go on.',
-			count($queued),
-			count($queued) === 1 ? '' : 's',
-			$report->count(),
-			$report->count() === 1 ? '' : 's',
+			'Queued %s; ran %s: %d done, %d failed, %d to go on.',
+			Output::count(count($queued), 'scheduled task', 'scheduled tasks'),
+			Output::count($report->count(), 'job', 'jobs'),
 			$report->count(JobStatus::Done),
 			$report->count(JobStatus::Failed),
 			$report->count(JobStatus::Queued)

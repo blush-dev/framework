@@ -16,9 +16,11 @@ namespace Blush\Console\Commands;
 use Blush\Console\Attributes\Command;
 use Blush\Console\Attributes\Option;
 use Blush\Console\ExitCode;
+use Blush\Console\Outcome;
 use Blush\Console\Output;
-use Blush\Console\Style;
+use Blush\Console\StatusLine;
 use Blush\Content\MissingParents;
+use Blush\Core\Framework;
 
 /**
  * Lists the parent pages a tree's pages are kept under with no page of
@@ -43,13 +45,10 @@ final readonly class CreateMissingParents
 
 			$steps->finish();
 
-			foreach ($done->created as $path) {
-				$output->line(sprintf('%s  %s', $output->style('created', Style::Green), $path));
-			}
-
-			foreach ($done->failed as $parent => $message) {
-				$output->line(sprintf('%s  %s: %s', $output->style('failed ', Style::Red), $parent, $message));
-			}
+			$output->status([
+				...array_map(static fn (string $path): StatusLine => new StatusLine(Outcome::Pass, 'created', $path), array_values($done->created)),
+				...array_map(static fn (string $parent, string $message): StatusLine => new StatusLine(Outcome::Failure, 'failed', "{$parent}: {$message}"), array_keys($done->failed), array_values($done->failed))
+			]);
 
 			if ($done->failed !== []) {
 				return ExitCode::Failure;
@@ -57,16 +56,19 @@ final readonly class CreateMissingParents
 		}
 
 		$missing = $this->parents->report($steps(...));
-		$count   = 0;
+		$lines   = [];
 
 		$steps->finish();
 
 		foreach ($missing as $type => $keys) {
 			foreach ($keys as $key => $parent) {
-				$output->line(sprintf('%s  %s/%s (%s under it)', $output->style('missing', Style::Red), $type, $key, $parent['pages'] === 1 ? '1 page' : "{$parent['pages']} pages"));
-				$count++;
+				$lines[] = new StatusLine(Outcome::Failure, 'missing', sprintf('%s/%s (%s under it)', $type, $key, Output::count($parent['pages'], 'page', 'pages')));
 			}
 		}
+
+		$output->status($lines);
+
+		$count = count($lines);
 
 		if ($count === 0) {
 			$output->success('Every page is under a parent page that exists.');
@@ -74,7 +76,10 @@ final readonly class CreateMissingParents
 			return ExitCode::Success;
 		}
 
-		$output->error(sprintf('%d parent %s no page, so the pages under %s are at the top of their tree; write %s with --write.', $count, $count === 1 ? 'folder has' : 'folders have', $count === 1 ? 'it' : 'them', $count === 1 ? 'it' : 'them'));
+		$output->error(
+			sprintf('%s no page, so the pages under %s are at the top of their tree.', Output::count($count, 'parent folder has', 'parent folders have'), $count === 1 ? 'it' : 'them'),
+			'Write ' . ($count === 1 ? 'it' : 'them') . ' with `' . Framework::BINARY . ' content:parents --write`.'
+		);
 
 		return ExitCode::Failure;
 	}

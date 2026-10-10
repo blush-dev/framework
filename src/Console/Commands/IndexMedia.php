@@ -16,7 +16,9 @@ namespace Blush\Console\Commands;
 use Blush\Console\Attributes\Command;
 use Blush\Console\Attributes\Option;
 use Blush\Console\ExitCode;
+use Blush\Console\Outcome;
 use Blush\Console\Output;
+use Blush\Console\StatusLine;
 use Blush\Console\Verbosity;
 use Blush\Media\Index\MediaIndexer;
 
@@ -37,32 +39,31 @@ final readonly class IndexMedia
 		#[Option('Read every file again.')] bool $full = false
 	): ExitCode {
 		$start  = hrtime(true);
-		$bar    = $output->progress();
+		$bar    = $output->progress(label: 'Indexing media');
 		$report = $this->indexer->index($full, static function (int $done, int $total) use ($bar): void {
 			$bar->update($done, $total);
 		});
 
 		$bar->finish();
 
-		foreach (['Added' => $report->added, 'Changed' => $report->changed, 'Removed' => $report->removed] as $label => $keys) {
-			foreach ($keys as $key) {
-				$output->line(sprintf('%s %s', $label, $key), Verbosity::Verbose);
-			}
-		}
+		$output->status([
+			...array_map(static fn (string $item): StatusLine => new StatusLine(Outcome::Pass, 'added', $item), $report->added),
+			...array_map(static fn (string $item): StatusLine => new StatusLine(Outcome::Pass, 'changed', $item), $report->changed),
+			...array_map(static fn (string $item): StatusLine => new StatusLine(Outcome::Notice, 'removed', $item), $report->removed)
+		], level: Verbosity::Verbose);
 
 		foreach ($report->orphans as $key) {
-			$output->warning(sprintf('user/data/media/%s describes a media file that isn\'t there; move it with its file, or delete it.', $key));
+			$output->warning(sprintf('user/data/media/%s describes a media file that isn\'t there.', $key), 'Move it with its file, or delete it.');
 		}
 
-		$output->success(sprintf(
-			'Indexed %d media %s (%d added, %d changed, %d removed) in %d ms.',
-			$report->total,
-			$report->total === 1 ? 'file' : 'files',
-			count($report->added),
-			count($report->changed),
-			count($report->removed),
-			intdiv(hrtime(true) - $start, 1_000_000)
-		));
+		$output->summary(
+			Outcome::Pass,
+			'Indexed ' . Output::count($report->total, 'media file', 'media files'),
+			Output::count(count($report->added), 'added', 'added'),
+			Output::count(count($report->changed), 'changed', 'changed'),
+			Output::count(count($report->removed), 'removed', 'removed'),
+			sprintf('%d ms', intdiv(hrtime(true) - $start, 1_000_000))
+		);
 
 		if (! $report->written) {
 			$output->comment('The index was already up to date.', Verbosity::Verbose);

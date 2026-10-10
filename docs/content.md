@@ -489,6 +489,7 @@ bin/blush content:ids --write    # give files without an id one
 bin/blush content:parents --write  # write the pages folders of pages need
 bin/blush content:list           # everything Blush has found
 bin/blush content:new page "Contact me"   # create a new entry
+bin/blush content:new                     # asks for its type, title, and more
 ```
 
 `content:lint` is worth running before you publish: it catches bad dates

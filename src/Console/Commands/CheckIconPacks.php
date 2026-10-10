@@ -16,8 +16,9 @@ namespace Blush\Console\Commands;
 use Blush\Console\Attributes\Argument;
 use Blush\Console\Attributes\Command;
 use Blush\Console\ExitCode;
+use Blush\Console\Outcome;
 use Blush\Console\Output;
-use Blush\Console\Style;
+use Blush\Console\StatusLine;
 use Blush\Extension\ExtensionAbandoned;
 use Blush\Extension\ExtensionState;
 use Blush\Extension\Requirements;
@@ -60,8 +61,7 @@ final readonly class CheckIconPacks
 			return ExitCode::Failure;
 		}
 
-		$errors   = 0;
-		$warnings = 0;
+		$lines = [];
 
 		foreach ($packs as $pack) {
 			$checked = $this->extensions->check($pack);
@@ -71,74 +71,52 @@ final readonly class CheckIconPacks
 			$catalogs = array_filter($this->catalogs->check("{$pack->path}/lang", $pack->name), static fn (Violation $violation): bool => $violation->severity !== Severity::Notice);
 
 			foreach ($catalogs as $violation) {
-				$failed    = $violation->severity === Severity::Error;
-				$errors   += $failed ? 1 : 0;
-				$warnings += $failed ? 0 : 1;
-
-				$output->line(sprintf('%s %s: %s %s', $output->style($failed ? 'error  ' : 'warning', $failed ? Style::Red : Style::Yellow), $pack->name, $violation->field, $violation->message));
+				$lines[] = new StatusLine(Outcome::of($violation->severity), $pack->name, "{$violation->field} {$violation->message}");
 			}
 
 			$abandoned = ExtensionAbandoned::warning($pack->abandoned);
 
 			// An abandoned pack still loads, as in Composer (D-433).
 			if ($abandoned !== null) {
-				$warnings++;
-
-				$output->line(sprintf('%s %s: %s', $output->style('warning', Style::Yellow), $pack->name, $abandoned));
+				$lines[] = new StatusLine(Outcome::Warning, $pack->name, $abandoned);
 			}
 
 			// A version Composer can't read meets only `*` (D-429, D-430).
 			if ($pack->version !== '' && VersionConstraint::normalize($pack->version) === null) {
-				$warnings++;
-
-				$output->line(sprintf(
-					'%s %s: Its version, "%s", isn\'t one Composer can read, so a requirement of it is met only by "*".',
-					$output->style('warning', Style::Yellow),
-					$pack->name,
-					$pack->version
-				));
+				$lines[] = new StatusLine(Outcome::Warning, $pack->name, sprintf('Its version, "%s", isn\'t one Composer can read, so a requirement of it is met only by "*".', $pack->version));
 			} elseif ($abandoned === null && $catalogs === [] && Requirements::met($checked)) {
-				$output->line(sprintf('%s %s %s', $output->style('ok     ', Style::Green), $pack->name, $output->style($pack->version, Style::Dim)));
+				$lines[] = new StatusLine(Outcome::Pass, $pack->name, $pack->version);
 			}
 
 			if (Requirements::met($checked)) {
 				continue;
 			}
 
-			$on        = $this->packs->isEnabled($pack->name);
-			$errors   += $on ? 1 : 0;
-			$warnings += $on ? 0 : 1;
-
-			$output->line(sprintf(
-				'%s %s: %s%s',
-				$output->style($on ? 'error  ' : 'warning', $on ? Style::Red : Style::Yellow),
-				$pack->name,
-				Requirements::reason($checked),
-				$on ? ' It\'s turned on, but its icons don\'t load.' : ''
-			));
+			$on      = $this->packs->isEnabled($pack->name);
+			$lines[] = new StatusLine($on ? Outcome::Failure : Outcome::Warning, $pack->name, Requirements::reason($checked) . ($on ? ' It\'s turned on, but its icons don\'t load.' : ''));
 		}
 
 		foreach ($broken as $where => $reason) {
-			$warnings++;
-
-			$output->line(sprintf('%s %s: %s', $output->style('warning', Style::Yellow), $where, $reason));
+			$lines[] = new StatusLine(Outcome::Warning, $where, $reason);
 		}
 
-		$summary = sprintf(
-			'Checked %d icon pack(s): %d error(s), %d warning(s).',
-			count($packs) + count($broken),
-			$errors,
-			$warnings
+		$output->status($lines);
+		$output->summary(
+			Outcome::worst(...array_map(static fn (StatusLine $line): Outcome => $line->outcome, $lines)),
+			Output::count(count($packs) + count($broken), 'icon pack', 'icon packs'),
+			...Output::problems(self::count($lines, Outcome::Failure), self::count($lines, Outcome::Warning))
 		);
 
-		if ($errors > 0) {
-			$output->error($summary);
+		return array_any($lines, static fn (StatusLine $line): bool => $line->outcome === Outcome::Failure) ? ExitCode::Failure : ExitCode::Success;
+	}
 
-			return ExitCode::Failure;
-		}
-
-		$output->success($summary);
-
-		return ExitCode::Success;
+	/**
+	 * Counts the rows with an outcome.
+	 *
+	 * @param list<StatusLine> $lines
+	 */
+	private static function count(array $lines, Outcome $outcome): int
+	{
+		return count(array_filter($lines, static fn (StatusLine $line): bool => $line->outcome === $outcome));
 	}
 }

@@ -94,14 +94,14 @@ final readonly class SetUpSite
 			$file    = $file->with('APP_SECRET', bin2hex(random_bytes(32)));
 			$changed = true;
 
-			$output->info('Added an APP_SECRET, which signs preview links.');
+			$output->success('Added an APP_SECRET, which signs preview links.');
 		}
 
 		if (! $file->filled(SecretKeys::CURRENT)) {
 			$file    = $file->with(SecretKeys::CURRENT, SecretKeys::generate());
 			$changed = true;
 
-			$output->info(sprintf('Added a %s, which encrypts stored secrets.', SecretKeys::CURRENT));
+			$output->success(sprintf('Added a %s, which encrypts stored secrets.', SecretKeys::CURRENT));
 		}
 
 		if (! $file->filled('PUBLISH_SECRET')) {
@@ -109,7 +109,7 @@ final readonly class SetUpSite
 				$file    = $file->with('PUBLISH_SECRET', bin2hex(random_bytes(32)));
 				$changed = true;
 
-				$output->info('Added a PUBLISH_SECRET; the publish webhook is on.');
+				$output->success('Added a PUBLISH_SECRET; the publish webhook is on.');
 			}
 		} elseif ($webhook) {
 			$output->comment('PUBLISH_SECRET is already set; left as it is.');
@@ -119,7 +119,11 @@ final readonly class SetUpSite
 			$file->save($this->filesystem);
 		}
 
-		$output->info($created ? 'Created .env.' : ($changed ? 'Updated .env.' : '.env already exists; left as it is.'));
+		if ($created || $changed) {
+			$output->success($created ? 'Created .env.' : 'Updated .env.');
+		} else {
+			$output->comment('.env already exists; left as it is.');
+		}
 
 		$code = $this->createStorage($output);
 
@@ -128,10 +132,8 @@ final readonly class SetUpSite
 		}
 
 		if ($code === ExitCode::Success) {
-			$output->success(sprintf(
-				'The site is set up. Next: "%1$s doctor" checks it, and "%1$s serve" shows it in a browser.',
-				Framework::BINARY
-			));
+			$output->success('The site is set up.');
+			$output->next(sprintf('Next: `%1$s doctor` checks it, and `%1$s serve` shows it in a browser.', Framework::BINARY));
 		}
 
 		return $code;
@@ -165,7 +167,7 @@ final readonly class SetUpSite
 			return;
 		}
 
-		$output->info(sprintf('Created the "%s" account.', $username));
+		$output->success(sprintf('Created the "%s" account.', $username));
 	}
 
 	/**
@@ -232,13 +234,11 @@ final readonly class SetUpSite
 
 		$failures = SetupChecks::failures(new SetupChecks($this->paths)->storage());
 
-		foreach ($failures as $failure) {
-			$output->error(sprintf('%s %s', $failure->label, $failure->message));
+		foreach ($failures as $index => $failure) {
+			$output->error(sprintf('%s %s', $failure->label, $failure->message), $index === array_key_last($failures) ? 'The web server\'s user needs to be able to write to `storage/`.' : '');
 		}
 
 		if ($failures !== []) {
-			$output->line('The web server\'s user needs to be able to write to storage/.');
-
 			return ExitCode::Failure;
 		}
 

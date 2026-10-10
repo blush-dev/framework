@@ -183,11 +183,11 @@ final class MediaTest extends TestCase
 
 		$this->assertTrue($copied->isSuccessful());
 		$this->assertFalse(is_link($public));
-		$this->assertStringContainsString('Copied 2019/cat.png', $copied->output);
-		$this->assertStringContainsString('Copied 2 file(s) to public/media; 0 already current.', $copied->output);
+		$this->assertStringContainsString('copied  2019/cat.png', $copied->output);
+		$this->assertStringContainsString('Copied 2 files to public/media; 0 already current.', $copied->output);
 		$this->assertFileDoesNotExist("{$public}/script.php");
 		$this->assertFileDoesNotExist("{$public}/.hidden/cat.png");
-		$this->assertStringContainsString('Copied 0 file(s) to public/media; 2 already current.', $tester->run('media:publish --copy')->output);
+		$this->assertStringContainsString('Copied 0 files to public/media; 2 already current.', $tester->run('media:publish --copy')->output);
 		$this->assertSame(PublishMedia::HTACCESS, file_get_contents("{$public}/.htaccess"));
 
 		file_put_contents("{$public}/.htaccess", "Options -Indexes\n");

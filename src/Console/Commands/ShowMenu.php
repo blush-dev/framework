@@ -19,6 +19,7 @@ use Blush\Console\Attributes\Option;
 use Blush\Console\ExitCode;
 use Blush\Console\InvalidInput;
 use Blush\Console\Output;
+use Blush\Core\Framework;
 use Blush\Field\Violation;
 use Blush\Menu\MenuException;
 use Blush\Menu\MenuItem;
@@ -67,12 +68,13 @@ final readonly class ShowMenu
 
 		if ($menu === null) {
 			$output->warning(match (true) {
-				$menuName === null => sprintf('The "%s" location shows no menu: the site hasn\'t assigned it one (bin/blush menu:assign), and the theme has no default for it.', $location),
+				$menuName === null => sprintf('The "%s" location shows no menu: the site hasn\'t assigned it one, and the theme has no default for it.', $location),
 				$record === null   => sprintf('The "%s" location shows no menu: it\'s assigned the menu "%s", which the site doesn\'t have.', $location, $menuName),
 				default            => sprintf('The "%s" location shows no menu: none of the "%s" menu\'s items resolve.', $location, $menuName)
-			});
+			}, $menuName === null ? sprintf('Assign it one with `%s menu:assign %s <menu>`.', Framework::BINARY, $location) : '');
 		} else {
-			$output->line(sprintf('%s (%s: %s)', $menu->label !== '' ? $menu->label : $location, $location, $record === null ? 'the theme\'s default' : "{$menuName}, {$record->location}"));
+			$output->section($menu->label !== '' ? $menu->label : $location);
+			$output->comment(sprintf('%s: %s', $location, $record === null ? 'the theme\'s default' : "{$menuName}, {$record->location}"));
 			$this->tree($output, $menu->items, 1);
 		}
 

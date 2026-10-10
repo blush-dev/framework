@@ -16,6 +16,7 @@ namespace Blush\Console\Commands;
 use Blush\Console\Attributes\Command;
 use Blush\Console\ExitCode;
 use Blush\Console\Output;
+use Blush\Core\Framework;
 use Blush\Plugin\PluginConfig;
 use Blush\Plugin\Plugins;
 
@@ -69,7 +70,7 @@ final readonly class ListPlugins
 		}
 
 		if ($this->plugins->unmet() !== []) {
-			$output->comment('Run plugin:check to see why a plugin can\'t run.');
+			$output->next('Run `' . Framework::BINARY . ' plugin:check` to see why a plugin can\'t run.');
 		}
 
 		return ExitCode::Success;

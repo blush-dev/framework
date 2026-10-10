@@ -16,9 +16,11 @@ namespace Blush\Console\Commands;
 use Blush\Console\Attributes\Command;
 use Blush\Console\Attributes\Option;
 use Blush\Console\ExitCode;
+use Blush\Console\Outcome;
 use Blush\Console\Output;
-use Blush\Console\Style;
+use Blush\Console\StatusLine;
 use Blush\Console\Verbosity;
+use Blush\Core\Framework;
 use Blush\Media\AssignedMediaIds;
 use Blush\Media\MediaException;
 use Blush\Media\MediaIds;
@@ -79,17 +81,12 @@ final readonly class FixMediaIds
 		}
 
 		// A site can have thousands: the count says it, and -v lists them.
-		foreach ($report->missing as $key) {
-			$output->line(sprintf('%s  %s', $output->style('missing', Style::Red), $key), Verbosity::Verbose);
-		}
-
-		foreach ($report->duplicates as $id => $keys) {
-			$output->line(sprintf('%s  %s', $output->style('shared ', Style::Red), $id));
-
-			foreach ($keys as $key) {
-				$output->line("         {$key}");
-			}
-		}
+		$output->status(array_map(static fn (string $path): StatusLine => new StatusLine(Outcome::Failure, 'missing', $path), $report->missing), level: Verbosity::Verbose);
+		$output->status(array_map(
+			static fn (string $id, array $paths): StatusLine => new StatusLine(Outcome::Failure, 'shared', $id, implode("\n", $paths)),
+			array_keys($report->duplicates),
+			array_values($report->duplicates)
+		));
 
 		if ($report->isClean()) {
 			$output->success('Every media file has an id of its own.');
@@ -97,10 +94,16 @@ final readonly class FixMediaIds
 			return $failed ? ExitCode::Failure : ExitCode::Success;
 		}
 
-		$output->error(implode(' ', array_filter([
-			$report->missing === [] ? null : sprintf('%s missing a valid id; add them with --write.', self::plural(count($report->missing), 'file is', 'files are')),
-			$report->duplicates === [] ? null : sprintf('%s shared; keep each on one file with --keep={path}.', self::plural(count($report->duplicates), 'id is', 'ids are'))
-		])));
+		$output->error(
+			implode(' ', array_filter([
+				$report->missing === [] ? null : Output::count(count($report->missing), 'file is', 'files are') . ' missing a valid id.',
+				$report->duplicates === [] ? null : Output::count(count($report->duplicates), 'id is', 'ids are') . ' shared.'
+			])),
+			implode(' ', array_filter([
+				$report->missing === [] ? null : 'Add the missing ones with `' . Framework::BINARY . ' media:ids --write`.',
+				$report->duplicates === [] ? null : 'Keep each shared id on one file with `' . Framework::BINARY . ' media:ids --keep={path}`.'
+			]))
+		);
 
 		return ExitCode::Failure;
 	}
@@ -111,26 +114,21 @@ final readonly class FixMediaIds
 	 */
 	private function done(Output $output, AssignedMediaIds $assigned): bool
 	{
-		foreach ($assigned->ids as $key => $id) {
-			$output->line(sprintf('%s  %s  %s', $output->style('added  ', Style::Green), $id, $key), Verbosity::Verbose);
-		}
+		$output->status(array_map(
+			static fn (string $path, string $id): StatusLine => new StatusLine(Outcome::Pass, 'added', "{$path} ({$id})"),
+			array_keys($assigned->ids),
+			array_values($assigned->ids)
+		), level: Verbosity::Verbose);
+		$output->status(array_map(
+			static fn (string $path, string $message): StatusLine => new StatusLine(Outcome::Failure, 'failed', "{$path}: {$message}"),
+			array_keys($assigned->failed),
+			array_values($assigned->failed)
+		));
 
 		if ($assigned->ids !== []) {
-			$output->line(sprintf('Gave %s a new id.', self::plural(count($assigned->ids), 'media file', 'media files')));
-		}
-
-		foreach ($assigned->failed as $key => $message) {
-			$output->line(sprintf('%s  %s: %s', $output->style('failed ', Style::Red), $key, $message));
+			$output->success(sprintf('Gave %s a new id.', Output::count(count($assigned->ids), 'media file', 'media files')));
 		}
 
 		return $assigned->failed !== [];
-	}
-
-	/**
-	 * Returns a count with its noun and verb, singular or plural.
-	 */
-	private static function plural(int $count, string $one, string $many): string
-	{
-		return sprintf('%d %s', $count, $count === 1 ? $one : $many);
 	}
 }

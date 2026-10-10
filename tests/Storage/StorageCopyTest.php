@@ -92,7 +92,7 @@ final class StorageCopyTest extends TestCase
 		$copied = self::command($this->app, 'storage:copy --from=filesystem --to=sqlite');
 
 		$this->assertTrue($copied->isSuccessful(), $copied->output . $copied->errors);
-		$this->assertStringContainsString('Copied 1 accounts.', $copied->output);
+		$this->assertStringContainsString('accounts       1', $copied->output);
 		$this->assertStringContainsString('1 content file without an id weren\'t copied', $copied->output . $copied->errors);
 
 		$jane   = $this->app->container()->make(Accounts::class)->find('jane')?->id;

@@ -14,19 +14,26 @@ a **profile**: its public side on the site.
 commands:
 
 ```sh
+bin/blush account:add                                    # asks for everything
 bin/blush account:add jane --email=jane@example.com     # the owner, on a site without one
 bin/blush account:add sam --email=sam@example.com --role=author --author=sam --name="Sam Smith"
+bin/blush account:add lee --email=lee@example.com --link  # a link for Lee to choose a password
 bin/blush account:list
 ```
 
-`account:add` asks for the email address when `--email` is left out,
-and for the password twice without showing it, so it never ends up in
-your shell history. That means it needs a terminal.
+In a terminal, `account:add` asks for whatever you leave out: the
+username, a name (optional), the email address, its roles, the profile
+it writes as (none, one no account has yet, or a new one at its
+username), and whether to set its password now or make a one-time link.
+A password is asked for twice without showing it, so it never ends up
+in your shell history. A link (`--link`) is printed for you to send, and
+works once, for the same time as the admin's links; it needs no
+terminal, so a script can make accounts with it.
 Passwords must be at least 12 characters.
 
 | Command | What it does |
 |---|---|
-| `account:add <username>` | Create an account. `--email=` (asked for when left out), `--role=` (repeat for more; owner while the site has none, else administrator), `--author=` (its profile; see [Profiles](#profiles)), and `--name=` (see [Names](#names)) |
+| `account:add [<username>]` | Create an account, asking for what you leave out. `--email=`, `--role=` (repeat for more; owner while the site has none, else administrator), `--author=` (its profile; see [Profiles](#profiles)), `--name=` (see [Names](#names)), and `--link` (a one-time link for choosing the password, instead of one) |
 | `account:list` | List the accounts, their names, emails, roles, and profiles, and when each last signed in |
 | `account:password <username>` | Set a new password, which signs the account out everywhere |
 | `account:roles <username> --role=…` | Replace an account's roles |

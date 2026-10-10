@@ -47,7 +47,8 @@ final readonly class ListAccounts
 		$accounts = $this->store->all();
 
 		if ($accounts === []) {
-			$output->line(sprintf('No accounts yet. Create one with: %s account:add <username>', Framework::BINARY));
+			$output->line('No accounts yet.');
+			$output->next(sprintf('Create one with `%s account:add <username>`.', Framework::BINARY));
 
 			return ExitCode::Success;
 		}

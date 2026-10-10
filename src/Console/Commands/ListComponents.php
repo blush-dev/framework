@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Blush\Console\Commands;
 
+use Blush\Component\ComponentListing;
 use Blush\Console\Attributes\Command;
 use Blush\Console\Attributes\Option;
 use Blush\Console\ExitCode;
@@ -22,7 +23,6 @@ use Blush\Core\Paths;
 use Blush\Theme\ThemeConfig;
 use Blush\Theme\ThemeException;
 use Blush\Theme\Themes;
-use Blush\Component\ComponentListing;
 use Blush\View\ViewFactory;
 
 /**
@@ -86,7 +86,7 @@ final readonly class ListComponents
 		}
 
 		foreach ($views->strayComponentFiles() as $file) {
-			$output->warning(sprintf('%s isn\'t named for a component, so nothing renders it. Name it {namespace}-%s.', $this->paths->relative($file), basename($file)));
+			$output->warning(sprintf('%s isn\'t named for a component, so nothing renders it.', $this->paths->relative($file)), sprintf('Name it `{namespace}-%s`.', basename($file)));
 		}
 
 		return ExitCode::Success;

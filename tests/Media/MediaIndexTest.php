@@ -188,7 +188,7 @@ final class MediaIndexTest extends TestCase
 		$result = new CommandTester($this->site()->container()->make(Console::class))->run('media:index');
 
 		$this->assertTrue($result->isSuccessful());
-		$this->assertStringContainsString('Indexed 2 media files (2 added, 0 changed, 0 removed)', $result->output);
+		$this->assertStringContainsString('Indexed 2 media files, 2 added, 0 changed, 0 removed', $result->output);
 		$this->assertStringContainsString('user/data/media/2019/gone.png describes a media file that isn\'t there', $result->output . $result->errors);
 	}
 }

@@ -92,11 +92,11 @@ final class PluginCommandsTest extends TestCase
 		$result = $this->command('plugin:list');
 
 		$this->assertSame(ExitCode::Success, $result->exitCode, $result->errors);
-		$this->assertMatchesRegularExpression('#acme/on\s*\|\s*On\s*\|\s*on\s*\|\s*1\.0\.0\s*\|\s*local\s*\|\s*on#', $result->output);
-		$this->assertMatchesRegularExpression('#acme/off\s*\|\s*Off\s*\|\s*off\s*\|\s*1\.0\.0\s*\|\s*local\s*\|\s*off#', $result->output);
-		$this->assertMatchesRegularExpression('#acme/future\s*\|.*\|\s*can\'t run#', $result->output);
+		$this->assertMatchesRegularExpression('#acme/on\s+On\s+on\s+1\.0\.0\s+local\s+on#', $result->output);
+		$this->assertMatchesRegularExpression('#acme/off\s+Off\s+off\s+1\.0\.0\s+local\s+off#', $result->output);
+		$this->assertMatchesRegularExpression('#acme/future\s+.*\s+can\'t run#', $result->output);
 		$this->assertStringContainsString('extensions/acme/broken: The manifest extensions/acme/broken/plugin.json is invalid', $result->errors);
-		$this->assertStringContainsString('Run plugin:check', $result->output);
+		$this->assertStringContainsString('Run blush plugin:check', $result->output);
 	}
 
 	public function testListsNoPlugins(): void
@@ -116,10 +116,10 @@ final class PluginCommandsTest extends TestCase
 
 		$this->assertSame(ExitCode::Failure, $result->exitCode, 'A plugin turned on can\'t run.');
 		$this->assertMatchesRegularExpression('#ok\s+acme/on#', $all);
-		$this->assertMatchesRegularExpression('#error\s+acme/future: Needs Blush \^9\.0 \(this site runs [^)]+\)\. It\'s turned on, but doesn\'t run\.#', $all);
-		$this->assertMatchesRegularExpression('#warning\s+acme/needy: Needs acme/missing \^1\.0 \(isn\'t installed\)\.#', $all);
-		$this->assertMatchesRegularExpression('#warning\s+extensions/acme/broken: #', $all);
-		$this->assertStringContainsString('Checked 5 plugin(s): 1 error(s), 2 warning(s).', $all);
+		$this->assertMatchesRegularExpression('#error\s+acme/future\s+Needs Blush \^9\.0 \(this site runs [^)]+\)\. It\'s turned on, but doesn\'t run\.#', $all);
+		$this->assertMatchesRegularExpression('#warning\s+acme/needy\s+Needs acme/missing \^1\.0 \(isn\'t installed\)\.#', $all);
+		$this->assertMatchesRegularExpression('#warning\s+extensions/acme/broken\s+#', $all);
+		$this->assertStringContainsString('5 plugins, 1 error, 2 warnings', $all);
 	}
 
 	public function testPassesWithOnlyWarnings(): void
@@ -129,7 +129,7 @@ final class PluginCommandsTest extends TestCase
 		$result = $this->command('plugin:check');
 
 		$this->assertSame(ExitCode::Success, $result->exitCode, $result->errors);
-		$this->assertStringContainsString('Checked 5 plugin(s): 0 error(s), 3 warning(s).', $result->output);
+		$this->assertStringContainsString('5 plugins, 3 warnings', $result->output);
 	}
 
 	public function testWarnsOfAVersionComposerCantRead(): void
@@ -142,9 +142,9 @@ final class PluginCommandsTest extends TestCase
 		$all    = $result->output . $result->errors;
 
 		$this->assertSame(ExitCode::Success, $result->exitCode, $result->errors);
-		$this->assertMatchesRegularExpression('#warning\s+acme/odd: Its version, "1\.0-final", isn\'t one Composer can read#', $all);
+		$this->assertMatchesRegularExpression('#warning\s+acme/odd\s+Its version, "1\.0-final", isn\'t one Composer can read#', $all);
 		$this->assertDoesNotMatchRegularExpression('#ok\s+acme/odd#', $all);
-		$this->assertStringContainsString('Checked 2 plugin(s): 0 error(s), 1 warning(s).', $all);
+		$this->assertStringContainsString('2 plugins, 1 warning', $all);
 	}
 
 	public function testWarnsOfAnAbandonedPlugin(): void
@@ -157,10 +157,10 @@ final class PluginCommandsTest extends TestCase
 		$all    = $result->output . $result->errors;
 
 		$this->assertSame(ExitCode::Success, $result->exitCode, 'It still runs (D-433).');
-		$this->assertMatchesRegularExpression('#warning\s+acme/old: It\'s abandoned; use "acme/new" instead\.#', $all);
-		$this->assertMatchesRegularExpression('#warning\s+acme/gone: It\'s abandoned, and no longer maintained\.#', $all, 'From its composer.json.');
+		$this->assertMatchesRegularExpression('#warning\s+acme/old\s+It\'s abandoned; use "acme/new" instead\.#', $all);
+		$this->assertMatchesRegularExpression('#warning\s+acme/gone\s+It\'s abandoned, and no longer maintained\.#', $all, 'From its composer.json.');
 		$this->assertDoesNotMatchRegularExpression('#ok\s+acme/(old|gone)#', $all);
-		$this->assertStringContainsString('Checked 2 plugin(s): 0 error(s), 2 warning(s).', $all);
+		$this->assertStringContainsString('2 plugins, 2 warnings', $all);
 	}
 
 	public function testChecksOnePlugin(): void
@@ -170,7 +170,7 @@ final class PluginCommandsTest extends TestCase
 		$one = $this->command(['plugin:check', 'acme/on']);
 
 		$this->assertSame(ExitCode::Success, $one->exitCode, $one->errors);
-		$this->assertStringContainsString('Checked 1 plugin(s): 0 error(s), 0 warning(s).', $one->output);
+		$this->assertStringContainsString('1 plugin, no problems', $one->output);
 		$this->assertStringNotContainsString('acme/future', $one->output);
 
 		$missing = $this->command(['plugin:check', 'acme/missing']);
@@ -187,7 +187,7 @@ final class PluginCommandsTest extends TestCase
 		$result = $this->command(['plugin:check', 'acme/named']);
 
 		$this->assertSame(ExitCode::Failure, $result->exitCode);
-		$this->assertMatchesRegularExpression('#error\s+extensions/acme/named: .*It\'s turned on, but doesn\'t run\.#', $result->output . $result->errors);
+		$this->assertMatchesRegularExpression('#error\s+extensions/acme/named\s+.*It\'s turned on, but doesn\'t run\.#', $result->output . $result->errors);
 	}
 
 	public function testCreatesPlugins(): void
@@ -213,7 +213,7 @@ final class PluginCommandsTest extends TestCase
 		$this->assertStringContainsString('config/plugins.php', $result->output);
 
 		// It's off until named; named, it loads and runs.
-		$this->assertMatchesRegularExpression('#acme/scaffold-test\s*\|\s*Scaffold\s*\|.*\|\s*off#', $this->command('plugin:list')->output);
+		$this->assertMatchesRegularExpression('#acme/scaffold-test\s+Scaffold\s+.*\s+off#', $this->command('plugin:list')->output);
 
 		$this->writeTemporaryFile('config/plugins.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn new Blush\\Plugin\\PluginConfig(enabled: ['acme/scaffold-test']);\n");
 

@@ -16,9 +16,11 @@ namespace Blush\Console\Commands;
 use Blush\Console\Attributes\Command;
 use Blush\Console\Attributes\Option;
 use Blush\Console\ExitCode;
+use Blush\Console\Outcome;
 use Blush\Console\Output;
-use Blush\Console\Style;
+use Blush\Console\StatusLine;
 use Blush\Content\Type\TaxonomyMigration;
+use Blush\Core\Framework;
 
 /**
  * Lists the data types in `user/data/types` still written as taxonomies
@@ -45,13 +47,10 @@ final readonly class MigrateTaxonomies
 				$steps->finish();
 			}
 
-			foreach ($done['migrated'] as $name => $files) {
-				$output->line(sprintf('%s  %s (%s)', $output->style('migrated', Style::Green), $name, implode(', ', $files)));
-			}
-
-			foreach ($done['failed'] as $name => $message) {
-				$output->line(sprintf('%s  %s: %s', $output->style('failed  ', Style::Red), $name, $message));
-			}
+			$output->status([
+				...array_map(static fn (string $name, array $files): StatusLine => new StatusLine(Outcome::Pass, 'migrated', sprintf('%s (%s)', $name, implode(', ', $files))), array_keys($done['migrated']), array_values($done['migrated'])),
+				...array_map(static fn (string $name, string $message): StatusLine => new StatusLine(Outcome::Failure, 'failed', "{$name}: {$message}"), array_keys($done['failed']), array_values($done['failed']))
+			]);
 
 			if ($done['failed'] !== []) {
 				return ExitCode::Failure;
@@ -66,11 +65,11 @@ final readonly class MigrateTaxonomies
 			return ExitCode::Success;
 		}
 
-		foreach ($left as $name) {
-			$output->line(sprintf('%s  %s', $output->style('taxonomy', Style::Red), $name));
-		}
-
-		$output->error(sprintf('%d %s still written as %s; migrate %s with --write.', count($left), count($left) === 1 ? 'data type is' : 'data types are', count($left) === 1 ? 'a taxonomy' : 'taxonomies', count($left) === 1 ? 'it' : 'them'));
+		$output->status(array_map(static fn (string $name): StatusLine => new StatusLine(Outcome::Failure, 'taxonomy', $name), $left));
+		$output->error(
+			sprintf('%s still written as %s.', Output::count(count($left), 'data type is', 'data types are'), count($left) === 1 ? 'a taxonomy' : 'taxonomies'),
+			'Migrate ' . (count($left) === 1 ? 'it' : 'them') . ' with `' . Framework::BINARY . ' content:taxonomies --write`.'
+		);
 
 		return ExitCode::Failure;
 	}

@@ -112,11 +112,8 @@ final readonly class CreatePlugin
 		$this->filesystem->writeAtomic("{$folder}/src/{$class}.php", self::provider($phpNamespace, $class, $label));
 		$this->filesystem->writeAtomic("{$folder}/lang/en.json", Catalog::starter($name));
 
-		$output->success(sprintf(
-			'Created %s. It\'s off: turn it on in the admin (Extend → Plugins) or add "%s" to config/plugins.php\'s enabled list.',
-			$this->paths->relative($folder),
-			$name
-		));
+		$output->success(sprintf('Created %s. It\'s off.', $this->paths->relative($folder)));
+		$output->next(sprintf('Turn it on in the admin (Extend → Plugins), or add `%s` to the enabled list in `config/plugins.php`.', $name));
 
 		return ExitCode::Success;
 	}

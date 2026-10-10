@@ -80,9 +80,9 @@ final class RouteCacheTest extends TestCase
 		$result = new CommandTester($app->container()->make(Console::class))->run('routes:list');
 
 		$this->assertTrue($result->isSuccessful());
-		$this->assertMatchesRegularExpression('#\| GET +\| /archives/\{year\} +\| archive\.year +\|#', $result->output);
-		$this->assertStringContainsString('| system ', $result->output);
-		$this->assertMatchesRegularExpression('#\| /blog/\{slug\} +\| /pages/\{slug\} +\| 302 +\|#', $result->output);
+		$this->assertMatchesRegularExpression('#GET\s+/archives/\{year\}\s+archive\.year\s+#', $result->output);
+		$this->assertMatchesRegularExpression('/  system\b/', $result->output);
+		$this->assertMatchesRegularExpression('#/blog/\{slug\}\s+/pages/\{slug\}\s+302\s+#', $result->output);
 		$this->assertStringContainsString('GET /feed', $result->output . $result->errors);
 		$this->assertStringContainsString('is shadowed by', $result->output . $result->errors);
 	}

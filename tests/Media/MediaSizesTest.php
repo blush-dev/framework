@@ -170,7 +170,7 @@ final class MediaSizesTest extends TestCase
 		$checked = new CommandTester($console)->run('media:sizes');
 
 		$this->assertFalse($checked->isSuccessful());
-		$this->assertStringContainsString('2 sizes of 1 image aren\'t recorded. 1 image lists files that aren\'t its sizes. Record them with --write.', $checked->output . $checked->errors);
+		$this->assertStringContainsString("2 sizes of 1 image aren't recorded. 1 image lists files that aren't its sizes.\n  Record them with blush media:sizes --write.", $checked->output . $checked->errors);
 
 		$recorded = new CommandTester($console)->run('media:sizes --write');
 

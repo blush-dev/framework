@@ -22359,3 +22359,285 @@ decision, add a new entry that supersedes it and mark the old one
   site's folder served by PHP's built-in server, `.env` and `storage/`
   fail.
 
+
+### D-717: A quieter, consistent CLI, built in stages
+
+- **Date:** 2026-10-10
+- **Status:** Stages 1 and 2 built (see below); stage 3's prompts built (D-719).
+  Follows D-710's "a prettier CLI is a later
+  design pass".
+- **Decision:** commands say what they show, and `Output` says how it
+  looks, as the admin shares its pieces (D-509).
+  - **Quiet:** no banner or mark. `list` opens with the name, version,
+    and the site's name and environment on one line.
+  - **Shared pieces in `Output`:** `section()` (a bold heading, no
+    colon or color); `status()` (a check row: `✓`, `!`, or `✗`, a
+    label, a detail, and an optional hint); `definitions()` (aligned
+    key and value, keys dim); `table()` without outer borders (a dim
+    rule under the header); `summary()` (the closing line, with real
+    plurals, colored by its worst result); `next()` (a dim "Run …"
+    hint); and errors as what went wrong, then what to do.
+  - **Color means something:** green, yellow, and red only for results;
+    one accent for what can be typed (commands, options, paths); dim
+    for what's secondary; bold for headings; the rest in the
+    terminal's own color.
+  - **Width:** text wraps to the terminal (`COLUMNS`, else 80), with
+    continuation lines indented under their start.
+  - **Symbols** (`✓ ! ✗ ·`) stay with `NO_COLOR`; with ANSI off,
+    they're plain words.
+  - **Help:** a command's help leaves out the global options, which
+    `blush help --global` shows.
+  - **Interactive prompts:** arrow-key choices, multi-select, and
+    searchable lists, with inline validation, falling back to today's
+    line prompts off a terminal or with `-n`. Commands ask for what
+    wasn't given (`theme:new` first, then `init`, `account:add`,
+    `content:new`).
+- **Stages:** (1) the shared pieces, with `list`, `help`, and
+  `doctor`; (2) every other command, a group at a time; (3) the
+  interactive prompts and the commands that ask.
+- **Why:** the author asked to talk through D-710's prettier CLI.
+  Claude found the look borrowed (yellow headings with colons, green
+  names, `+--+` tables), each command styling its own lines (104
+  `line()` and 63 `style()` calls across 67 commands), and rough spots
+  (`19 check(s)` in green with a warning, no wrapping, global options
+  on every help page). From Claude's proposal, the author chose quiet
+  for now, interactive prompts ("e.g., creating a new theme"), stages,
+  and the symbols.
+- **Stage 1, as built:**
+  - `Output` gains `section()`, `status()` (rows of `StatusLine`, with
+    `Outcome` marks), `definitions()`, `summary()`, `next()`, `code()`,
+    `join()`, `Output::count()`, and `error()`'s `$fix`; `Tone` names
+    the colors, so a palette is one enum. Backticks mark `code` in
+    hints and fixes.
+  - **A terminal is a known width.** `Output::$width` is set only on a
+    terminal; symbols, `·`, and `─` show when it's set or ANSI is on,
+    so `NO_COLOR` keeps them; piped output neither wraps nor uses
+    them.
+  - **Tables aren't cut to fit.** Cutting the widest columns hid
+    usernames and emails in `account:list`, so a table too wide wraps
+    as the terminal wraps it; each list command's table is looked at
+    in stage 2.
+  - **`doctor`** is sections by area (System, Extensions, Accounts),
+    labels aligned across them, and `19 checks · 1 warning`; a failing
+    summary still goes to the error stream.
+  - **`list`** opens with `Blush 2.0.0-dev · {site} ({environment})`,
+    the site's name left out while it's the default; groups are
+    sections, ungrouped commands under General. A command's help
+    leaves out the global options; `help --global` shows them.
+  - **Tests** that read tables match columns by whitespace, not `|`.
+
+- **Stage 2, as built:** every command on the shared pieces, with no
+  `Style` left in a command.
+  - **Messages:** `success()`, `warning()`, and `error()` lines start
+    with `✓`, `!`, or `✗` on a terminal (the symbol in color, the text
+    not); piped, they're unchanged. `warning()` takes a `$fix` too.
+    `info()` is no longer used by commands (`init`'s "Added …" lines are
+    successes).
+  - **Checks** (`plugin:check`, `icon-pack:check`, `theme:check`,
+    `content:lint`) are status rows and a summary
+    (`18 plugins · 6 warnings`, or `no problems`), with
+    `Outcome::of(Severity)` and `Output::problems()`; lint is a section
+    per file. `Outcome` gains `Notice` (`i`, dim, `notice`), and a
+    failure's word is `error`, the word checks and summaries use.
+  - **Fixers** (`content:ids`, `media:ids`, `media:dates`,
+    `media:sizes`, `content:filenames`, `content:folders`,
+    `content:type-folders`, `content:taxonomies`, `content:refs`,
+    `menu:refs`, `content:terms`, `content:parents`) list rows labeled
+    by what happened (`added`, `missing`, `moved`, `failed`), the
+    detail inline (`a.md → b.md`, `copy.md (id)`); what's left is an
+    error with its fix (``Add them with `blush media:ids --write`.``),
+    the command named in full.
+  - **Indexing and publishing:** `content:index` and `media:index` end
+    in a summary (`Indexed 1,254 entries · 0 added · 0 changed ·
+    0 removed · 58 ms`); `publish` lists what it did as definitions
+    with `-v`, then a summary; `storage:copy` lists what it copied as
+    rows, then how to use it as a hint.
+  - **Lists and shows:** tables as stage 1 drew them; `schedule:list`'s
+    last runs and `routes:list`'s redirects are sections; `menu:show`
+    heads its tree with the menu's label; `theme:why` is `uses` and
+    `shadows` rows; advice in text (`plugin:list`, `account:list`,
+    `content:preview`, `theme:new`, `plugin:new`, `init`,
+    `secrets:rotate`, `theme:activate`, `menu:show`) moved to hints and
+    fixes.
+  - **Counts** are `Output::count()`, with thousands separated; the
+    commands' own `plural()` helpers are gone, and no `(s)` is left.
+  - **Progress bars** are unchanged; a different bar is open.
+
+### D-718: The CLI in the project's colors where the terminal can show them
+
+- **Date:** 2026-10-10
+- **Status:** Built. Amends D-717's colors.
+- **Decision:** `Palette` says which colors draw each `Tone`.
+  - **`Basic`** is the terminal's own 16 colors (D-717's), which follow
+    its theme, so they're readable on any background. It's used unless
+    both of the next two are known.
+  - **`Dark` and `Light`** are x3p0.com's colors (the project's
+    eventual home), each tuned for its background: code in cyan
+    (`#4fd8ff` / `#0369a1`), passes in teal (`#34d399` / `#0f766e`),
+    warnings in amber (`#ffb454` / `#a35a00`), secondary text in its
+    muted gray (`#7d89ab` / `#5f6c88`), and failures in a rose picked
+    to sit with them (`#ff6b81` / `#be123c`), since x3p0 has no red.
+    Headings stay bold, with no color (D-717's quiet).
+  - **Exact color:** `COLORTERM` is `truecolor` or `24bit`.
+  - **The background:** `COLORFGBG` when it's set (so it also overrides),
+    else asking the terminal (OSC 11) followed by DA1, which every
+    terminal answers, so one that doesn't know OSC 11 is found out
+    without its reply landing at the shell's prompt. At most 200 ms,
+    only with ANSI on and both input and output a terminal, with the
+    terminal's settings put back. Dark when the luminance is under half.
+  - Progress bars' done lines and prompts' questions draw from tones
+    too, as do `info()`, `success()`, `comment()`, and `warning()`;
+    `style()` with a raw `Style` is left for stage 2 to replace.
+- **Why:** the author asked whether the CLI could use x3p0.com's colors.
+  Of Claude's three options (the terminal's colors, the project's
+  assuming a dark background, or the project's when the background is
+  known), the author chose the last ("add the x3p0 colors first
+  according to your recs").
+
+### D-719: Prompts drawn in place, and `theme:new` asks for what isn't given
+
+- **Date:** 2026-10-10
+- **Status:** Built (stage 3 of D-717: the prompts and `theme:new`).
+- **Decision:**
+  - **Prompts on a terminal are drawn in place** when input and output
+    are both terminals (not on Windows), and each leaves one line,
+    `✓ Question  answer`:
+    - **text** (`ask()`): the answer as it's typed, editable (arrows,
+      Home, End, Backspace, Delete), its default or a placeholder dim
+      while it's empty; what's wrong shows under it after Enter and is
+      checked again as it changes. A default of `''` makes the answer
+      optional, in both modes.
+    - **a toggle** (`confirm()`): `● Yes / ○ No`; the arrows, Tab, and
+      Space switch it, `y` and `n` answer it.
+    - **a list** (`select()`, values mapped to labels; `choice()` is
+      `select()` over a list): the arrows move, typing filters, seven
+      shown at once with how many more.
+    - **a list to pick several from** (`multiselect()`): Space picks,
+      Enter is done.
+    - **secrets** show bullets.
+  - **Ctrl+C** crosses the question out (`✗ Question`), puts the
+    terminal back, and stops the command with exit code 130
+    (`ExitCode::Interrupted`, `PromptCancelled`).
+  - **Elsewhere,** prompts are asked a line at a time as before
+    (`select()` by number, value, or label; `multiselect()` by numbers
+    or values separated by commas), and `-n` takes every default.
+  - **`theme:new` asks for what isn't passed:** its name (with an
+    `acme/nova` placeholder, checked for its form, the default theme's
+    name, a taken folder, and a taken name), its label (its name made
+    readable), its parent (none, then the default theme, then the rest
+    by label), a description (optional), and whether to activate it
+    (default No). The namespace is asked for only when the one made
+    from the name can't be used. Every answer has a flag: the new
+    `--description` and `--activate`. With `-n`, only the name can't be
+    defaulted. It lists the files it wrote. A child theme still gets
+    no `style.css` (D-618). A taken folder is now invalid input (exit
+    2), as a taken name is.
+  - **`ThemeActivator`** (`Blush\Theme`) writes the active theme to
+    `config/theme.php` and clears the admin's choice, for
+    `theme:activate` and `theme:new --activate`, since the themes found
+    at boot don't have one made in the same run.
+- **Why:** the author asked for interactive prompts ("e.g., creating a
+  new theme") in D-717. Of Claude's proposal for `theme:new`, the author
+  kept the description and activating, and left out authors and
+  license.
+- **Next:** what `init`, `account:add` (D-720), and `content:new` ask
+  (`init`'s questions are already drawn).
+
+### D-720: `account:add` asks for what isn't given, and can make a link
+
+- **Date:** 2026-10-10
+- **Status:** Built.
+- **Decision:** `account:add`'s username is optional, and on a terminal
+  it asks, in order, for what isn't passed:
+  - **Username** (`jane` as the placeholder), checked by
+    `Accounts::usernameProblem()`, which `create()` uses too.
+  - **Name**, optional.
+  - **Email address**, as before.
+  - **Roles**, a list to pick several from, by label, with the usual
+    one picked (owner while the site has none, else administrator);
+    picking none keeps it.
+  - **Writes as**: None (the default), the profiles no account has and
+    that aren't locked, by title (`AccountProfiles::available()`), or a
+    new profile at the username when there's none there, made as a
+    draft with its public name asked for. Not asked when there's only
+    None.
+  - **Password**: set it now (twice, as before), or make a one-time
+    link (D-312), the new `--link` flag. A link needs no terminal, so
+    `account:add jane --email=… --link -n` works from a script; the
+    link is printed alone (shown with `-q`), with when it stops
+    working.
+  - It ends with `Created "jane" (Editor, Author), writing as Jane
+    Doe.`, roles by label.
+  - **`Admin\AdminLinks`** (`setPassword()`) builds the set-password address for both
+    the admin and the command.
+  - **Ctrl+D** at a drawn prompt ends input, as it does for a line
+    typed, so the command stops instead of waiting.
+- **Why:** from Claude's proposal; the author: "all three in" (asking
+  for the profile, the one-time link, and the name).
+
+### D-721: `content:new` asks for what isn't given
+
+- **Date:** 2026-10-10
+- **Status:** Built.
+- **Decision:** `content:new`'s type and title are optional, and on a
+  terminal it asks, in order, for what isn't passed, as `theme:new` and
+  `account:add` do (D-719, D-720):
+  - **Type**: a list by singular label and name (`Page (page)`), by
+    label (the author: singular, not plural). Like `theme:new`'s name, it can't be defaulted: `-n`
+    without one is invalid input.
+  - **Title**, required.
+  - **Slug**, made from the title as its default, checked.
+  - **Parent page**, for a tree only: None (the default), then the
+    tree's pages by title with their paths, filterable. The new
+    `--parent=` flag names one by its path; it's invalid input for a
+    type that isn't a tree, or a path with no page.
+  - **Status**: Published (the default, as before) or Draft
+    (`--draft`).
+  - Not asked: a type's fields (the Fields API is paused, D-348) and
+    the publish date (now, D-514).
+  - It ends with the admin's address for editing it
+    (``Edit it in the admin: `…/admin/content/page/{id}` ``), from
+    `AdminLinks::entry()`; `AdminLinks` (`setPassword()`, `entry()`)
+    replaces D-720's `PasswordLinks`.
+- **Why:** the author: "go ahead with what you think best based on my
+  previous choices and decisions." Claude followed them: ask only for
+  what isn't passed, a flag for every answer, the one answer that can't
+  be defaulted required with `-n`, and no design work in prompts (as
+  `theme:new` left out the preview and settings).
+- **Checked:** `composer check`; on the jtcom trial in a pseudo-terminal
+  (type list filtered to pages, the parent list over its 41 pages,
+  Ctrl+C before writing, so nothing was made).
+
+### D-722: Progress bars as a thin line, with times, drawn under `NO_COLOR`
+
+- **Date:** 2026-10-10
+- **Status:** Built. Amends D-091 and D-710's look.
+- **Decision:**
+  - **A thin line:** `⠹ Checking the media index  ━━━━━━━━━╸──────────  1,203 / 4,009  30%`.
+    What's done is `━` in the accent (`Tone::Code`), the rest `─`
+    dim, so the two read apart without color too. The spinner turns in
+    front of a named bar while it fills, at most ten times a second, so
+    a slow step looks alive between percentages.
+  - **Width:** what the terminal leaves after the label and counts,
+    at least 20 and at most 40; 30 when the width isn't known.
+  - **Counts** are written with thousands separators.
+  - **Every bar is named:** `content:index` ("Indexing content"),
+    `media:index` ("Indexing media"), and `content:lint` ("Checking
+    content") had none.
+  - **A step's done line has its time:** `✓ Checking the media index
+    4,009 · 2.6s` (`340 ms`, `2.4s`, `1m 05s`).
+  - **Drawn on any terminal:** under `NO_COLOR` too, without colors,
+    as the `✓ ! ✗` symbols are (D-717); still never off a terminal or
+    with `-q`.
+  - Not shown: time left, since indexing's pace varies too much for an
+    estimate to hold.
+  - **No blank line after a cleared bar** that nothing came before:
+    `OutputState` remembers where the current line started, so a line
+    cleared in place (`\r\033[2K`) takes it back there, and escape
+    codes take no room.
+- **Why:** from Claude's proposal (thin line, solid blocks, or no bar);
+  the author: "Thin line, time and NO_COLOR in."
+- **Checked:** `composer check`; `media:ids` and `content:index --full`
+  on the jtcom trial in a pseudo-terminal, with x3p0's colors and with
+  `NO_COLOR`.
+

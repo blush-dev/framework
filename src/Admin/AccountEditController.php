@@ -26,7 +26,6 @@ use Blush\Auth\ContentAction;
 use Blush\Auth\Permissions;
 use Blush\Auth\Roles;
 use Blush\Content\Type\ContentTypes;
-use Blush\Core\AppConfig;
 use Blush\Http\Response;
 use Blush\Http\Status;
 
@@ -84,8 +83,7 @@ final readonly class AccountEditController
 		private Permissions $permissions,
 		private PeopleRules $rules,
 		private PeopleJson $json,
-		private AdminConfig $admin,
-		private AppConfig $app
+		private AdminLinks $links
 	) {}
 
 	public function create(ServerRequestInterface $request): ResponseInterface
@@ -400,10 +398,8 @@ final readonly class AccountEditController
 	 */
 	private function sendable(Account $account, string $token): array
 	{
-		$fragment = http_build_query(['account' => $account->username, 'token' => $token]);
-
 		return [
-			'url'     => $this->app->absoluteUrl("{$this->admin->path}/set-password#{$fragment}"),
+			'url'     => $this->links->setPassword($account, $token),
 			'expires' => $account->passwordLink?->expires
 		];
 	}

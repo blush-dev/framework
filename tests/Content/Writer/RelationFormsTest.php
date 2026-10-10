@@ -130,12 +130,12 @@ final class RelationFormsTest extends TestCase
 
 		$this->assertFalse($check->isSuccessful());
 		$this->assertStringContainsString('unfiled  _post/b.md (category, see_also)', $check->output);
-		$this->assertStringContainsString('5 files have links not filed with their ids; file them with --write.', $check->errors);
+		$this->assertStringContainsString("5 files have links not filed with their ids.\n  File them with blush content:refs --write.", $check->errors);
 
 		$fixed = $tester->run('content:refs --write');
 
 		$this->assertTrue($fixed->isSuccessful(), $fixed->errors);
-		$this->assertStringContainsString('filed    _post/c.md', $fixed->output);
+		$this->assertStringContainsString('filed  _post/c.md', $fixed->output);
 		$this->assertStringContainsString('Every link between entries is filed with its id.', $fixed->output);
 		$this->assertSame([], $refs->report());
 		$this->assertStringContainsString("category: [art]\n", $this->file('_post/c.md'));

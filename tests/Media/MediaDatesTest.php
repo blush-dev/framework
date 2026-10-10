@@ -166,7 +166,7 @@ final class MediaDatesTest extends TestCase
 		$checked = new CommandTester($console)->run('media:dates');
 
 		$this->assertFalse($checked->isSuccessful());
-		$this->assertStringContainsString('4 files have no upload date, or one not in UTC; write them with --write.', $checked->output . $checked->errors);
+		$this->assertStringContainsString("4 files have no upload date, or one not in UTC.\n  Write them with blush media:dates --write.", $checked->output . $checked->errors);
 		$this->assertStringNotContainsString('2006/04/old.png', $checked->output, 'Each file only with -v.');
 
 		$fixed = new CommandTester($console)->run('media:dates --write');

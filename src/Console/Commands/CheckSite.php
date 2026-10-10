@@ -15,11 +15,11 @@ namespace Blush\Console\Commands;
 
 use Blush\Console\Attributes\Command;
 use Blush\Console\ExitCode;
+use Blush\Console\Outcome;
 use Blush\Console\Output;
-use Blush\Console\Style;
+use Blush\Console\StatusLine;
 use Blush\Setup\CheckResult;
 use Blush\Setup\CheckStatus;
-use Blush\Setup\SetupChecks;
 use Blush\Setup\SiteChecks;
 
 /**
@@ -42,39 +42,50 @@ final readonly class CheckSite
 		private SiteChecks $checks
 	) {}
 
+	/**
+	 * Each area's heading.
+	 */
+	private const array AREAS = [
+		'system'     => 'System',
+		'extensions' => 'Extensions',
+		'accounts'   => 'Accounts'
+	];
+
 	public function __invoke(Output $output): ExitCode
 	{
-		$results = $this->checks->all();
+		$areas = array_map(
+			static fn (array $results): array => array_map(
+				static fn (CheckResult $result): StatusLine => new StatusLine(self::outcome($result->status), $result->label, $result->message, $result->hint),
+				array_values($results)
+			),
+			$this->checks->byArea()
+		);
+		$lines = array_merge(...array_values($areas));
+		$align = max(0, ...array_map(static fn (StatusLine $line): int => mb_strwidth($line->label), $lines));
 
-		foreach ($results as $result) {
-			$output->line(sprintf(
-				'%s %s: %s',
-				$output->style(str_pad($result->status->value, 7), match ($result->status) {
-					CheckStatus::Pass    => Style::Green,
-					CheckStatus::Warning => Style::Yellow,
-					CheckStatus::Failure => Style::Red
-				}),
-				$result->label,
-				$result->message
-			));
-
-			if ($result->hint !== '') {
-				$output->line('        ' . $output->style($result->hint, Style::Dim));
-			}
+		foreach (array_filter($areas) as $area => $results) {
+			$output->section(self::AREAS[$area]);
+			$output->status($results, $align);
 		}
 
-		$failures = count(SetupChecks::failures($results));
-		$warnings = count(array_filter($results, static fn (CheckResult $result): bool => $result->status === CheckStatus::Warning));
-		$summary  = sprintf('%d check(s): %d failure(s), %d warning(s).', count($results), $failures, $warnings);
+		$outcomes = array_map(static fn (StatusLine $line): Outcome => $line->outcome, $lines);
+		$failures = count(array_filter($outcomes, static fn (Outcome $outcome): bool => $outcome === Outcome::Failure));
+		$warnings = count(array_filter($outcomes, static fn (Outcome $outcome): bool => $outcome === Outcome::Warning));
 
-		if ($failures > 0) {
-			$output->error($summary);
+		$output->summary(Outcome::worst(...$outcomes), Output::count(count($outcomes), 'check', 'checks'), ...Output::problems($failures, $warnings));
 
-			return ExitCode::Failure;
-		}
+		return $failures > 0 ? ExitCode::Failure : ExitCode::Success;
+	}
 
-		$output->success($summary);
-
-		return ExitCode::Success;
+	/**
+	 * Returns the outcome of a check's status.
+	 */
+	private static function outcome(CheckStatus $status): Outcome
+	{
+		return match ($status) {
+			CheckStatus::Pass    => Outcome::Pass,
+			CheckStatus::Warning => Outcome::Warning,
+			CheckStatus::Failure => Outcome::Failure
+		};
 	}
 }

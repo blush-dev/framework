@@ -40,13 +40,41 @@ Implemented in M2 (D-065, D-069).
   variadic arguments, `--` terminator).
 - **Output:** styled writer (ANSI with automatic detection, `NO_COLOR`),
   verbosity levels, tables, and progress bars (`Output::progress()`,
-  drawn only on an ANSI terminal, D-091), named and with a spinner
+  drawn on a terminal, in color only with ANSI, D-091, D-722: a spinner,
+  the label, a thin `━╸─` line 20 to 40 wide, and counts with
+  separators; a step's done line has its count and time), named and with a spinner
   until the total is known, and steps (`Output::steps()`,
   `ProgressSteps`): a long-running service takes
   `?Closure(string $step, int $done, int $total)`, wrapped in
   `Support\Progress`, and the command passes `$steps(...)`; each step
-  done leaves a `✓` line (D-710). Prompts (confirm, ask, choice,
-  secret) have a non-interactive fallback.
+  done leaves a `✓` line (D-710). Prompts (confirm, ask, select,
+  multiselect, secret) have a non-interactive fallback; on a terminal
+  they're drawn in place (D-719): `KeyReader` reads keys in raw mode
+  (tests feed it a stream), `Frame` redraws, `PromptState` holds where
+  a prompt is, each leaves one `✓ Question  answer` line, and Ctrl+C
+  throws `PromptCancelled` (exit 130). Off a terminal, a line at a time.
+- **Shared pieces (D-717):** commands say what they show, and `Output`
+  says how it looks: `section()` (bold, a blank line before),
+  `status()` (`StatusLine` rows: an `Outcome` mark, aligned labels,
+  details, dim hints), `definitions()` (aligned key and value),
+  `table()` (bold header, dim rule, no borders), `summary()` (by
+  `Outcome`, parts joined with `·`; a failure on the error stream),
+  `next()` and `error($text, $fix)` (with `` `code` `` spans in the
+  accent), `code()`, `join()`, and `Output::count()`. Colors come from
+  `Tone` (code, heading, muted, pass, warning, failure), drawn from a
+  `Palette`: the terminal's own 16 colors, or x3p0.com's for a dark or
+  light background when `COLORTERM` says it shows exact colors and
+  `COLORFGBG` or an OSC 11 query says what its background is (D-718). With a known
+  `$width` (a terminal: `COLUMNS`, else `stty size`, else 80), text
+  wraps and outcomes are symbols; piped, nothing wraps and outcomes are
+  words. `OutputState` tracks the last lines written, so blank lines
+  never double. Built for `list`, `help` (`help --global` shows the
+  global options, left out of each command's help), and `doctor`,
+  then every command (stage 2): `success()`, `warning()`, and `error()`
+  marked `✓ ! ✗` on a terminal, `warning()` and `error()` with a fix
+  line, checks and fixers as status rows (`Outcome::of(Severity)`,
+  `Output::problems()`), and no `Style` in a command. Arrow-key prompts
+  are stage 3.
 - **Exit codes:** an enum (`Success`, `Failure`, `Invalid`, …).
 - **Boots the same `Application`** as the web, so commands get the container,
   config, content, and `Kernel::handle()`.
@@ -71,7 +99,7 @@ Implemented in M2 (D-065, D-069).
 | `content:refs [--write]` | List content files whose relations aren't filed in both forms (no `refs`, an id written as a value, a slug a target no longer has); `--write` files them through `ContentWriter::fileRefs()`; fails while any are left (D-596); the filesystem driver's own, registered while content is kept as files (`Storage::commands()`, D-654) |
 | `content:ids [--write] [--keep=<path>…]` | List content files missing a valid id and ids files share; `--write` gives missing ones new ids, `--keep` keeps a shared id on a file and renews the others (D-477, D-480); the filesystem driver's own, registered while content is kept as files (`Storage::commands()`, D-654) |
 | `content:lint [--strict]` | Validate content against schemas: errors, and warnings for two files claiming one entry and dates not on the calendar (D-449); terms and profiles entries name with no file are errors (D-584); `--strict` adds notices for undeclared keys and 1.x aliases (D-081, D-084, D-091). Also reports files in `user/content` in the formats Blush no longer reads (`.markdown`, `.html`, `.json`, `.yaml`, `.yml`; `FormatCheck`, D-501). Also checks media metadata files in `user/data/media`: unreadable, values that don't fit, hidden by another format, or describing a file that's gone (D-293) |
-| `content:new <type> "<title>" [--slug] [--draft]` | Scaffold a Markdown entry (`Y-m-d.slug.md` for dated types) and refresh the index (D-091) |
+| `content:new [<type>] ["<title>"] [--slug] [--draft] [--parent]` | Asks for what isn't given (type, title, slug, a tree's parent, status; D-721), and ends with the admin's edit address (`AdminLinks::entry()`). Scaffold a Markdown entry (`Y-m-d.slug.md` for dated types) and refresh the index (D-091) |
 | `content:list [--type] [--status]` | List every indexed entry (M4b) |
 | `content:preview <type> <name> [--hours]` | Print a signed preview link to an entry, whatever its status (D-226) |
 | `routes:list` | Show the routes, redirects, and shadowed routes (M3, D-077) |
@@ -82,7 +110,7 @@ Implemented in M2 (D-065, D-069).
 | `media:publish [--copy]` | Link `user/media` into `public/` at the media URL, or copy the allowed files (M4c, D-099); writes the served folder's `.htaccess` (D-499) |
 | `theme:list` | List installed themes (framework, Composer, local), the active one, and broken manifests (M5b, D-120) |
 | `theme:activate <name>` | Set the active theme (by its `vendor/name`, D-378) in `config/theme.php` (created, or its plain `active` value edited) and clear the config and theme caches (D-120), and a theme the admin saved in the `theme` settings group (D-381, D-673); refuses a theme whose chain's `require` isn't met (D-431) |
-| `theme:new <vendor/name> [--parent] [--label] [--namespace]` | Create a minimal theme (manifest, stylesheet unless it has a parent (D-618), and a starter `lang/en.json` with `@@locale` and `@@domain`, D-452) in `extensions/{vendor}/{name}` (D-418, D-120, D-378); the namespace defaults to the name, hyphenated (`acme-nova`, D-424), the name and namespace must be free across every installed extension (D-417), and the manifest has a `$schema` key (D-206) |
+| `theme:new [<vendor/name>] [--parent] [--label] [--namespace] [--description] [--activate]` | Asks for what isn't given (name, label, parent, description, activate; the namespace only when the derived one can't be used; D-719). Create a minimal theme (manifest, stylesheet unless it has a parent (D-618), and a starter `lang/en.json` with `@@locale` and `@@domain`, D-452) in `extensions/{vendor}/{name}` (D-418, D-120, D-378); the namespace defaults to the name, hyphenated (`acme-nova`, D-424), the name and namespace must be free across every installed extension (D-417), and the manifest has a `$schema` key (D-206) |
 | `theme:publish [--all]` | Copy servable theme assets to `public/themes/{vendor}/{name}`, removing stale ones; the active chain, or every theme (D-119) |
 | `theme:check [name] [--strict]` | Check the chain, manifests, `require`, `conflict` (D-435), and `replace` (D-436) as if active (an error for the active theme, which falls back; a warning for another, D-431), a `version` Composer can't read and an `abandoned` theme (warnings, D-433), provider, settings, components without a template (D-164), component files not named for a component, registered components without a label (notice; D-173), the base layout's landmarks and skip link (D-030, D-121, D-160), or a notice in place of the header and footer warnings when the theme has no base layout of its own (D-632), and each chain theme's `lang/` catalogs against their `@@locale` and `@@domain` (`Translation\CatalogCheck`: unreadable an error, a mismatch a warning, none a notice; D-454) |
 | `theme:why <view> [--theme]` | Show which file in the view chain wins for a view, and what it shadows (D-120) |
@@ -111,7 +139,7 @@ Implemented in M2 (D-065, D-069).
 | `secrets:set <name>` | Store a declared secret's value, asked for hidden (needs a terminal); refused when the environment sets it (D-715) |
 | `secrets:remove <name>` | Remove a stored value, declared or left behind (D-715) |
 | `secrets:rotate` | Encrypt every stored secret again under `SECRETS_KEY`, reading old ones with `SECRETS_KEY_PREVIOUS`; fails when one won't decrypt (D-715) |
-| `account:add <username> [--email] [--role]... [--author] [--name]` | Create an account, asking for the email when `--email` is left out and twice for the password (needs a terminal); owner while the site has none, else administrator (D-219, D-322, D-370, D-500) |
+| `account:add [<username>] [--email] [--role]... [--author] [--name] [--link]` | Create an account, asking for what isn't given (D-720: username, name, email, roles, profile, password or link) and twice for the password (needs a terminal), or with `--link` a one-time link printed instead (no terminal needed); owner while the site has none, else administrator (D-219, D-322, D-370, D-500) |
 | `account:list` | Accounts with name, email, roles (unknown ones flagged), author, status, and last sign-in (D-219, D-312, D-322, D-370) |
 | `account:password <username>` | Set a password, which signs the account's sessions out (D-219) |
 | `account:roles <username> --role...` | Replace an account's roles (D-219) |

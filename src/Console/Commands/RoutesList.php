@@ -54,7 +54,7 @@ final readonly class RoutesList
 		$redirects = $this->routes->redirects();
 
 		if ($redirects !== []) {
-			$output->newLine();
+			$output->section('Redirects');
 			$output->table(
 				['From', 'To', 'Status'],
 				array_map(static fn (Redirect $redirect): array => [

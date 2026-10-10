@@ -121,6 +121,8 @@ final readonly class Console
 			$result = $this->container->call([$this->container->make($signature->class), '__invoke'], $parameters);
 
 			return $result instanceof ExitCode ? $result : ExitCode::Failure;
+		} catch (PromptCancelled) {
+			return ExitCode::Interrupted;
 		} catch (InvalidInput $e) {
 			$output->error($e->getMessage());
 			$output->writeError(PHP_EOL . 'Usage: ' . Framework::BINARY . ' ' . $signature->usage() . PHP_EOL);

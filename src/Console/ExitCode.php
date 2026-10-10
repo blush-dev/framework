@@ -21,4 +21,9 @@ enum ExitCode: int
 	case Success = 0;
 	case Failure = 1;
 	case Invalid = 2;
+
+	/**
+	 * Stopped with Ctrl+C at a prompt (128 + SIGINT, as shells report it).
+	 */
+	case Interrupted = 130;
 }

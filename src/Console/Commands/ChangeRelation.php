@@ -64,7 +64,7 @@ final readonly class ChangeRelation
 			$uses = count($this->changes->uses($relation));
 
 			if ($key === null && ! $remove && ! $strip) {
-				$output->line(sprintf('"%s" is written under `%s`; %d %s values in it.', $name, $relation->field, $uses, $uses === 1 ? 'entry has' : 'entries have'));
+				$output->line(sprintf('"%s" is written under `%s`; %s values in it.', $name, $relation->field, Output::count($uses, 'entry has', 'entries have')));
 
 				return ExitCode::Success;
 			}
@@ -78,7 +78,7 @@ final readonly class ChangeRelation
 			if ($strip) {
 				$stripped = count($this->changes->strip($relation));
 
-				$output->success(sprintf('Removed its values from %d %s.', $stripped, $stripped === 1 ? 'entry' : 'entries'));
+				$output->success(sprintf('Removed its values from %s.', Output::count($stripped, 'entry', 'entries')));
 			}
 
 			if ($remove) {
@@ -93,7 +93,7 @@ final readonly class ChangeRelation
 
 				$this->relations->update($changed);
 				$output->success($rewrite
-					? sprintf('"%s" is written under `%s`, moved in %d %s.', $name, $key, $uses, $uses === 1 ? 'entry' : 'entries')
+					? sprintf('"%s" is written under `%s`, moved in %s.', $name, $key, Output::count($uses, 'entry', 'entries'))
 					: sprintf('"%s" is written under `%s`; `%s` is still read.', $name, $key, implode('`, `', array_diff($changed->aliases, $relation->aliases))));
 			}
 		} catch (InvalidRelation | InvalidContentType | WriteException $e) {

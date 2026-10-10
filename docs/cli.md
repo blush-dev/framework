@@ -5,6 +5,7 @@ Blush comes with a command-line tool. Run it from your site's folder:
 ```sh
 bin/blush                   # list every command
 bin/blush help content:new  # how to use one command
+bin/blush help --global     # the options every command takes
 ```
 
 To type just `blush` from anywhere inside your site, see
@@ -12,13 +13,30 @@ To type just `blush` from anywhere inside your site, see
 
 Options that work with every command: `-v` for more detail (`-vv`, `-vvv`
 for even more), `-q` for errors only, `-n` to never ask questions, and
-`--no-ansi` to turn off colors.
+`--no-ansi` to turn off colors. In a terminal, long lines wrap to its
+width and results are marked `✓`, `!`, or `✗`; piped output doesn't
+wrap, and says `ok`, `warning`, or `error` instead. Colors follow
+[NO_COLOR](https://no-color.org). In a terminal that shows exact colors
+(`COLORTERM=truecolor`) and says whether its background is dark or
+light, Blush uses its own colors, tuned for that background; otherwise
+it uses your terminal's colors. If yours guesses wrong, set
+`COLORFGBG=15;0` for a dark background or `COLORFGBG=0;15` for a light
+one.
+
+When a command asks you something in a terminal, answer in place: type
+text (a dim answer is the default, and Enter takes it), pick from a list
+with the arrow keys (type to narrow it), pick several with Space, and
+press Enter when you're done. Ctrl+C stops the command. When input isn't
+a terminal, questions are asked a line at a time; with `-n`, every
+question takes its default, and one without a default stops the command.
 
 Commands that take a while (indexing, checking, and fixing many files,
 copying storage, publishing) show what they're doing as they go: a bar
-for each step, or a spinner until its size is known, and a checked line
-for each step done. These are drawn only in a terminal, so piped output
-and logs show just the result.
+for each step, with how far along it is (`1,203 / 4,009  30%`), or a
+spinner until its size is known, and a checked line for each step done
+with its count and how long it took (`4,009 · 2.6s`). These are drawn
+only in a terminal (with `NO_COLOR` too, just without colors), so piped
+output and logs show just the result.
 
 ## Setting up
 
@@ -33,7 +51,7 @@ See [Accounts and roles](accounts.md) and [The admin](admin.md).
 
 | Command | What it does |
 |---|---|
-| `account:add <username>` | Create an admin account, asking for its email address (unless `--email=` gives it) and password. `--role=` (repeat for more; owner while the site has none, else administrator) `--author=` (its profile, which no other account may have; a slug with no profile makes one, a draft, asking for its public name), and `--name=` |
+| `account:add [<username>]` | Create an admin account. In a terminal it asks for what you leave out: the username, a name, the email address, roles, the profile it writes as, and its password, or a one-time link to send instead (`--link`, which needs no terminal). `--role=` (repeat for more; owner while the site has none, else administrator) `--author=` (its profile, which no other account may have; a slug with no profile makes one, a draft, asking for its public name), `--name=`, and `--link` |
 | `account:list` | List the accounts with their names, emails, roles, profiles, and last sign-in |
 | `account:password <username>` | Set an account's password, signing it out everywhere |
 | `account:roles <username> --role=…` | Replace an account's roles |
@@ -47,7 +65,7 @@ See [Accounts and roles](accounts.md) and [The admin](admin.md).
 | Command | What it does |
 |---|---|
 | `serve` | Run the site at http://127.0.0.1:8000. `--port=8080` and `--host=0.0.0.0` change where. |
-| `content:new <type> "<title>"` | Create an entry. `--slug=` sets its URL name; `--draft` makes it a draft. It gets today's publish date, and a file name by its type's [pattern](content-types.md#naming-new-files). |
+| `content:new [<type>] ["<title>"]` | Create an entry. In a terminal it asks for what you leave out: the type, the title, the slug, the parent page (for pages), and whether it's published or a draft. `--slug=` sets its URL name; `--draft` makes it a draft; `--parent=` puts a page under another, by its path (`--parent=about`). It gets today's publish date, and a file name by its type's [pattern](content-types.md#naming-new-files), and ends with where to edit it in the admin. |
 | `content:list` | List every entry. `--type=post` and `--status=draft` (or `published`, `scheduled`) narrow it down. |
 | `content:preview <type> <name>` | Print a [preview link](admin.md#previewing-drafts) to an entry, even a draft. `--hours=` sets how long it works. |
 | `content:lint` | Check front matter, and media details in `user/data/media/`, for problems, and list files in `user/content/` that aren't `.md`, so aren't read. It reports terms and profiles entries name with no file as errors (`content:terms` writes them). `--strict` also reports unknown keys and 1.x names. |
@@ -129,7 +147,7 @@ reach other services. None of these commands shows a value.
 |---|---|
 | `theme:list` | List installed themes (name, label, namespace, version, parent, source), which is active, and any that are broken |
 | `theme:activate <name>` | Switch themes, by name (`theme:activate acme/notebook`), in `config/theme.php`; clears a theme activated in the admin. Refuses a theme whose [requirements](extending.md#requirements) (or those of a theme it falls back to) aren't met. |
-| `theme:new <name>` | Create a theme named `vendor/name` in `extensions/{vendor}/{name}`, with a `theme.json`, a `style.css` (not for a child theme, which uses its parent's), and a starter `lang/en.json`. `--label=` titles it (default: made from the part after `/`), `--namespace=` sets its namespace (default: the name, hyphenated, so `acme/nova` is `acme-nova`), and `--parent=` builds it on another theme, by name. Its name and namespace can't be any installed plugin's, theme's, or icon pack's. Its `theme.json` points editors at the [schema](themes.md#autocomplete-in-your-editor). |
+| `theme:new [<name>]` | Create a theme named `vendor/name` in `extensions/{vendor}/{name}`, with a `theme.json`, a `style.css` (not for a child theme, which uses its parent's), and a starter `lang/en.json`. In a terminal it asks for what you don't pass: its name, label, parent, description, and whether to activate it. `--label=` titles it (default: made from the part after `/`), `--namespace=` sets its namespace (default: the name, hyphenated, so `acme/nova` is `acme-nova`; asked for when that one is taken), `--parent=` builds it on another theme, by name, `--description=` says what it's for, and `--activate` makes it the active theme. Its name and namespace can't be any installed plugin's, theme's, or icon pack's. Its `theme.json` points editors at the [schema](themes.md#autocomplete-in-your-editor). |
 | `theme:check [name]` | Check a theme's manifest, [requirements](extending.md#requirements), [conflicts](extending.md#conflicts), and [replaces](extending.md#replacing-another-extension), settings, directives and components, menus, and accessibility basics. The active theme's requirements not being met is an error (the default theme shows in its place); another theme's is a warning. So are a `version` Composer can't read, a base layout that prints a tag `head()` prints (the charset, `viewport`, `generator`, or `<title>`), an abandoned theme, and a `lang/` catalog whose `@@locale` or `@@domain` doesn't match. `--strict` shows notices too, such as a catalog without them. |
 | `theme:why <view>` | Show which file a template name uses, such as `theme:why single-post` |
 | `menu:list` | List your theme's menu locations, the [menu](menus.md) assigned to each (or the theme's default), where each menu is kept, and any problems: items that can't be shown, or a location assigned a menu you don't have. `--theme=` lists another theme's, by name. |

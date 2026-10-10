@@ -16,8 +16,11 @@ namespace Blush\Console\Commands;
 use Blush\Console\Attributes\Command;
 use Blush\Console\Attributes\Option;
 use Blush\Console\ExitCode;
+use Blush\Console\Outcome;
 use Blush\Console\Output;
+use Blush\Console\StatusLine;
 use Blush\Console\Verbosity;
+use Blush\Core\Framework;
 use Blush\Core\Paths;
 use Blush\Media\MediaConfig;
 use Blush\Support\Filesystem;
@@ -107,7 +110,7 @@ final readonly class PublishMedia
 		}
 
 		if (file_exists($target)) {
-			$output->error(sprintf('%s already exists and isn\'t a link; remove it, or run media:publish --copy.', $this->paths->relative($target)));
+			$output->error(sprintf('%s already exists and isn\'t a link.', $this->paths->relative($target)), 'Remove it, or run `' . Framework::BINARY . ' media:publish --copy`.');
 
 			return ExitCode::Failure;
 		}
@@ -117,7 +120,7 @@ final readonly class PublishMedia
 		}
 
 		if (! @symlink($this->filesystem->relative(dirname($target), $source), $target)) {
-			$output->error(sprintf('Unable to link %s; this host may not allow symlinks. Run media:publish --copy instead.', $this->paths->relative($target)));
+			$output->error(sprintf('Unable to link %s; this host may not allow symlinks.', $this->paths->relative($target)), 'Run `' . Framework::BINARY . ' media:publish --copy` instead.');
 
 			return ExitCode::Failure;
 		}
@@ -165,12 +168,10 @@ final readonly class PublishMedia
 
 		$steps->finish();
 
-		foreach ($copied as $relative) {
-			$output->line("Copied {$relative}", Verbosity::Verbose);
-		}
+		$output->status(array_map(static fn (string $relative): StatusLine => new StatusLine(Outcome::Pass, 'copied', $relative), $copied), level: Verbosity::Verbose);
 
 		$this->protect($output, $target);
-		$output->success(sprintf('Copied %d file(s) to %s; %d already current.', count($copied), $this->paths->relative($target), $current));
+		$output->success(sprintf('Copied %s to %s; %s already current.', Output::count(count($copied), 'file', 'files'), $this->paths->relative($target), number_format($current)));
 
 		return ExitCode::Success;
 	}
@@ -199,6 +200,6 @@ final readonly class PublishMedia
 		}
 
 		$this->filesystem->writeAtomic($file, self::HTACCESS);
-		$output->line(sprintf('Wrote %s', $this->paths->relative($file)), Verbosity::Verbose);
+		$output->status([new StatusLine(Outcome::Pass, 'wrote', $this->paths->relative($file))], level: Verbosity::Verbose);
 	}
 }

@@ -60,12 +60,16 @@ final class ThemeCommandsTest extends TestCase
 	 *
 	 * @param string|list<string> $command
 	 */
-	private function command(string|array $command): CommandResult
+	/**
+	 * @param string|list<string> $command
+	 * @param list<string>        $answers
+	 */
+	private function command(string|array $command, array $answers = []): CommandResult
 	{
 		$app = $this->scratchApplication(['APP_ENV' => 'production']);
 		$app->boot();
 
-		return new CommandTester($app->container()->make(Console::class))->run($command);
+		return new CommandTester($app->container()->make(Console::class))->run($command, $answers);
 	}
 
 	private function root(): string
@@ -81,8 +85,8 @@ final class ThemeCommandsTest extends TestCase
 		$result = $this->command('theme:list');
 
 		$this->assertSame(ExitCode::Success, $result->exitCode);
-		$this->assertMatchesRegularExpression('#\* blush/default\s*\|\s*Default\s*\|\s*default\s*\|\s*1\.0\.0\s*\|\s*\|\s*framework#', $result->output);
-		$this->assertMatchesRegularExpression('#  acme/nova\s*\|\s*Nova\s*\|\s*nova\s*\|\s*2\.1\.0\s*\|\s*blush/default\s*\|\s*local#', $result->output);
+		$this->assertMatchesRegularExpression('#\* blush/default\s+Default\s+default\s+1\.0\.0\s+framework#', $result->output);
+		$this->assertMatchesRegularExpression('#  acme/nova\s+Nova\s+nova\s+2\.1\.0\s+blush/default\s+local#', $result->output);
 		$this->assertStringContainsString('extensions/acme/broken:', $result->output . $result->errors);
 
 		$this->writeTemporaryFile('config/theme.php', "<?php\n\ndeclare(strict_types=1);\n\nreturn new Blush\\Theme\\ThemeConfig(active: 'acme/gone');\n");
@@ -117,7 +121,7 @@ final class ThemeCommandsTest extends TestCase
 
 		$this->writeTemporaryFile('extensions/other/stray/readme.md', 'Not an extension.');
 
-		$this->assertSame(ExitCode::Failure, $this->command(['theme:new', 'other/stray'])->exitCode, 'The folder is taken.');
+		$this->assertSame(ExitCode::Invalid, $this->command(['theme:new', 'other/stray'])->exitCode, 'The folder is taken.');
 		$this->assertSame(ExitCode::Success, $this->command(['theme:new', 'other/nova', '--namespace=other-nova'])->exitCode, 'Another vendor\'s nova has its own folder.');
 		$this->assertSame(ExitCode::Invalid, $this->command(['theme:new', 'acme/nova'])->exitCode);
 		$this->assertSame(ExitCode::Invalid, $this->command(['theme:new', 'acme/nova2', '--namespace=acme-nova'])->exitCode, 'The namespace is taken.');
@@ -137,6 +141,33 @@ final class ThemeCommandsTest extends TestCase
 		$this->assertStringContainsString('The "acme/shop" plugin already has the namespace "shop"', $plugin->errors);
 		$this->assertSame(ExitCode::Invalid, $this->command(['theme:new', 'acme/shop', '--namespace=free'])->exitCode, 'A plugin has the name.');
 		$this->assertSame(ExitCode::Invalid, $this->command(['theme:new', 'other/x', '--namespace=brands'])->exitCode, 'An icon pack has the namespace.');
+	}
+
+	public function testAsksForWhatsNotGiven(): void
+	{
+		$result = $this->command(['theme:new'], ['Bad Name', 'acme/dawn', '', '2', 'A bright theme.', 'y']);
+		$file   = $this->root() . '/extensions/acme/dawn/theme.json';
+
+		$this->assertSame(ExitCode::Success, $result->exitCode, $result->errors);
+		$this->assertStringContainsString('can\'t be a theme\'s name', $result->errors, 'Asked again until it can be one.');
+		$this->assertSame(
+			['name' => 'acme/dawn', 'label' => 'Dawn', 'description' => 'A bright theme.', 'namespace' => 'acme-dawn', 'parent' => 'blush/default'],
+			array_intersect_key((array) json_decode((string) file_get_contents($file), true), array_flip(['name', 'label', 'description', 'namespace', 'parent'])),
+			'The label made from its name, the default theme listed first after none (D-719).'
+		);
+		$this->assertSame('acme/dawn', $this->config()->active, 'Activated.');
+		$this->assertStringContainsString('wrote  extensions/acme/dawn/theme.json', $result->output);
+
+		$this->assertSame(ExitCode::Invalid, $this->command(['theme:new', '-n'])->exitCode, 'The name can\'t be defaulted.');
+		$this->assertSame(ExitCode::Success, $this->command(['theme:new', 'acme/noon', '-n'])->exitCode, 'Everything else can.');
+		$this->assertStringNotContainsString('description', (string) file_get_contents($this->root() . '/extensions/acme/noon/theme.json'));
+		$this->assertSame('acme/dawn', $this->config()->active, 'Not activated without --activate.');
+
+		$flags = $this->command(['theme:new', 'acme/dusk', '--description=Evening.', '--activate', '-n']);
+
+		$this->assertSame(ExitCode::Success, $flags->exitCode, $flags->errors);
+		$this->assertStringContainsString('"description": "Evening."', (string) file_get_contents($this->root() . '/extensions/acme/dusk/theme.json'));
+		$this->assertSame('acme/dusk', $this->config()->active);
 	}
 
 	public function testActivatesThemes(): void
@@ -202,7 +233,7 @@ final class ThemeCommandsTest extends TestCase
 		$result = $this->command(['theme:check', '--strict']);
 
 		$this->assertSame(ExitCode::Success, $result->exitCode, $result->output);
-		$this->assertStringContainsString('Checked the "blush/default" theme: 0 error(s), 0 warning(s), 0 notice(s).', $result->output);
+		$this->assertStringContainsString('Checked the "blush/default" theme, no problems', $result->output);
 	}
 
 	public function testChecksAnInactiveThemesProvider(): void
@@ -240,7 +271,7 @@ final class ThemeCommandsTest extends TestCase
 
 		$this->assertSame(ExitCode::Success, $result->exitCode, $result->output);
 		$this->assertStringNotContainsString('doesn\'t render', $result->output);
-		$this->assertStringContainsString('notice  layout: The theme has no layouts/base view, so pages render in the framework\'s skeleton', $this->command(['theme:check', 'acme/classy', '--strict'])->output, 'D-632.');
+		$this->assertMatchesRegularExpression('#notice\s+layout\s+The theme has no layouts\/base view, so pages render in the framework\'s skeleton#', $this->command(['theme:check', 'acme/classy', '--strict'])->output, 'D-632.');
 	}
 
 	public function testChecksReportProblems(): void
@@ -265,28 +296,28 @@ final class ThemeCommandsTest extends TestCase
 		$this->assertSame(ExitCode::Failure, $result->exitCode);
 
 		$expected = [
-			'warning theme extensions/acme/other:',
-			'error   provider: The "acme/rough" theme\'s provider Nope\\Provider isn\'t a service provider class',
-			'warning abandoned: The "acme/rough" theme: It\'s abandoned; use "acme/smooth" instead.',
-			'warning version: The "acme/rough" theme\'s version, "1.0-final", isn\'t one Composer can read',
-			'warning require: Needs acme/absent ^1.0 (isn\'t installed). It can\'t be activated until that\'s fixed.',
-			'warning setting size:',
-			'error   layout: The base layout\'s <html> has no lang attribute.',
-			'layout: The base layout\'s <html> has no dir attribute',
-			'error   layout: The base layout needs one <main> landmark; it has 0.',
-			'error   layout: The base layout needs a skip link',
-			'error   layout: The base layout doesn\'t print the footer; add <?= $template->foot() ?> just before </body>',
-			'warning layout: The base layout has no <header> landmark.',
-			'warning layout: The base layout has no <footer> landmark.',
-			'warning layout: The base layout prints <meta charset> more than once'
+			'#warning\s+theme extensions\/acme\/other\s#',
+			'#error\s+provider\s+The "acme\/rough" theme\'s provider Nope\\\\Provider isn\'t a service provider class#',
+			'#warning\s+abandoned\s+The "acme\/rough" theme\: It\'s abandoned; use "acme\/smooth" instead\.#',
+			'#warning\s+version\s+The "acme\/rough" theme\'s version, "1\.0\-final", isn\'t one Composer can read#',
+			'#warning\s+require\s+Needs acme\/absent \^1\.0 \(isn\'t installed\)\. It can\'t be activated until that\'s fixed\.#',
+			'#warning\s+setting size\s#',
+			'#error\s+layout\s+The base layout\'s \<html\> has no lang attribute\.#',
+			'#layout\s+The base layout\'s \<html\> has no dir attribute#',
+			'#error\s+layout\s+The base layout needs one \<main\> landmark; it has 0\.#',
+			'#error\s+layout\s+The base layout needs a skip link#',
+			'#error\s+layout\s+The base layout doesn\'t print the footer; add \<\?\= \$template\-\>foot\(\) \?\> just before \<\/body\>#',
+			'#warning\s+layout\s+The base layout has no \<header\> landmark\.#',
+			'#warning\s+layout\s+The base layout has no \<footer\> landmark\.#',
+			'#warning\s+layout\s+The base layout prints \<meta charset\> more than once#'
 		];
 
-		foreach ($expected as $line) {
-			$this->assertStringContainsString($line, $output);
+		foreach ($expected as $pattern) {
+			$this->assertMatchesRegularExpression($pattern, $output);
 		}
 
 		$this->assertStringNotContainsString('notice', $this->command(['theme:check', 'acme/rough'])->output);
-		$this->assertStringContainsString('error   manifest: The "acme/missing" theme is not installed.', $this->command(['theme:check', 'acme/missing'])->output);
+		$this->assertMatchesRegularExpression('#error\s+manifest\s+The "acme\/missing" theme is not installed\.#', $this->command(['theme:check', 'acme/missing'])->output);
 	}
 
 	public function testListsDirectives(): void
@@ -296,8 +327,8 @@ final class ThemeCommandsTest extends TestCase
 		$result = $this->command('directive:list');
 
 		$this->assertSame(ExitCode::Success, $result->exitCode, $result->errors);
-		$this->assertMatchesRegularExpression('#\| core/callout\s*\| Callout\s*\| Blush\\\\Directive\\\\Callout\s*\| [^|]*\| \(its own\)#', $result->output);
-		$this->assertMatchesRegularExpression('#\| core/embed\s*\| Embed\s*\| Blush\\\\Directive\\\\Embed#', $result->output);
+		$this->assertMatchesRegularExpression('#core/callout\s+Callout\s+Blush\\\\Directive\\\\Callout\s+[^|]*\s+\(its own\)#', $result->output);
+		$this->assertMatchesRegularExpression('#core/embed\s+Embed\s+Blush\\\\Directive\\\\Embed#', $result->output);
 		$this->assertStringNotContainsString('can\'t render', $result->output . $result->errors);
 		$this->assertStringContainsString('extensions/test/site/views/directives/loose.php isn\'t for a registered directive, so nothing renders it.', $result->output . $result->errors);
 	}
@@ -310,10 +341,10 @@ final class ThemeCommandsTest extends TestCase
 		$result = $this->command('component:list');
 
 		$this->assertSame(ExitCode::Success, $result->exitCode, $result->errors);
-		$this->assertMatchesRegularExpression('#\| site/badge\s*\|\s*\| extensions/test/site/views/components/site-badge\.php#', $result->output);
+		$this->assertMatchesRegularExpression('#site/badge\s+extensions/test/site/views/components/site-badge\.php#', $result->output);
 		$this->assertStringNotContainsString('core/callout', $result->output, 'Directives aren\'t components (D-532).');
 		$this->assertStringNotContainsString('can\'t render', $result->output . $result->errors);
-		$this->assertStringContainsString('extensions/test/site/views/components/loose.php isn\'t named for a component, so nothing renders it. Name it {namespace}-loose.php.', $result->output . $result->errors);
+		$this->assertStringContainsString("extensions/test/site/views/components/loose.php isn't named for a component, so nothing renders it.\n  Name it {namespace}-loose.php.", $result->output . $result->errors);
 	}
 
 	public function testDirectivesAndComponentsWithoutTemplatesAreFlagged(): void
@@ -322,18 +353,18 @@ final class ThemeCommandsTest extends TestCase
 
 		$components = $this->command('component:list');
 
-		$this->assertMatchesRegularExpression('#\| acme/orphan\s*\| .*Component\\\\Orphan\s*\| \(none\)#', $components->output);
+		$this->assertMatchesRegularExpression('#acme/orphan\s+.*Component\\\\Orphan\s+\(none\)#', $components->output);
 		$this->assertStringContainsString('"acme/orphan" has no components/acme-orphan template, so it can\'t render.', $components->output . $components->errors);
 
 		$directives = $this->command('directive:list');
 
-		$this->assertMatchesRegularExpression('#\| acme/orphan\s*\| Orphan\s*\| .*Directive\\\\Orphan\s*\|\s*\| \(none\)#', $directives->output);
+		$this->assertMatchesRegularExpression('#acme/orphan\s+Orphan\s+.*Directive\\\\Orphan\s+\(none\)#', $directives->output);
 		$this->assertStringContainsString('"acme/orphan" has no directives/acme-orphan template, so it can\'t render.', $directives->output . $directives->errors);
 
 		$check = $this->command('theme:check');
 
-		$this->assertStringContainsString('warning component acme/orphan: The "acme/orphan" component (Blush\\Tests\\Fixtures\\Component\\Orphan) has no components/acme-orphan template in the chain.', $check->output);
-		$this->assertStringContainsString('warning directive acme/orphan: The "acme/orphan" directive (Blush\\Tests\\Fixtures\\Directive\\Orphan) has no directives/acme-orphan template in the chain.', $check->output);
+		$this->assertMatchesRegularExpression('#warning\s+component acme\/orphan\s+The "acme\/orphan" component \(Blush\\\\Tests\\\\Fixtures\\\\Component\\\\Orphan\) has no components\/acme\-orphan template in the chain\.#', $check->output);
+		$this->assertMatchesRegularExpression('#warning\s+directive acme\/orphan\s+The "acme\/orphan" directive \(Blush\\\\Tests\\\\Fixtures\\\\Directive\\\\Orphan\) has no directives\/acme\-orphan template in the chain\.#', $check->output);
 	}
 
 	public function testThemeCheckFlagsTemplatesNotForADirectiveOrComponent(): void
@@ -349,8 +380,8 @@ final class ThemeCommandsTest extends TestCase
 
 		$check = $this->command(['theme:check', 'acme/nova']);
 
-		$this->assertStringContainsString('warning component card.php: components/card.php isn\'t named for a component, so it never renders; name it components/nova-card.php.', $check->output);
-		$this->assertStringContainsString('warning directive tabs.php: directives/tabs.php isn\'t for a registered directive, so it never renders. Themes can\'t add directives (D-532): make it a component (components/nova-tabs.php) for the theme\'s templates.', $check->output);
+		$this->assertMatchesRegularExpression('#warning\s+component card\.php\s+components\/card\.php isn\'t named for a component, so it never renders; name it components\/nova\-card\.php\.#', $check->output);
+		$this->assertMatchesRegularExpression('#warning\s+directive tabs\.php\s+directives\/tabs\.php isn\'t for a registered directive, so it never renders\. Themes can\'t add directives \(D\-532\)\: make it a component \(components\/nova\-tabs\.php\) for the theme\'s templates\.#', $check->output);
 		$this->assertStringNotContainsString('nova-badge', $check->output);
 		$this->assertStringNotContainsString('core-callout', $check->output);
 		$this->assertStringNotContainsString('callout-warning', $check->output);
@@ -377,15 +408,15 @@ final class ThemeCommandsTest extends TestCase
 
 		$check = $this->command(['theme:check', 'acme/nova', '--strict'])->output;
 
-		$this->assertStringContainsString('warning variants nova/nothing: theme.json lists variants for "nova/nothing", which isn\'t a directive.', $check);
-		$this->assertStringContainsString('warning variants core/callout: theme.json lists a variant of "core/callout" that isn\'t valid', $check);
-		$this->assertStringContainsString('notice  variants core/button: The "pill" variant of "core/button" has no label; add "directives.button.variants.pill.label" to the theme\'s lang/ catalog.', $check);
+		$this->assertMatchesRegularExpression('#warning\s+variants nova\/nothing\s+theme\.json lists variants for "nova\/nothing", which isn\'t a directive\.#', $check);
+		$this->assertMatchesRegularExpression('#warning\s+variants core\/callout\s+theme\.json lists a variant of "core\/callout" that isn\'t valid#', $check);
+		$this->assertMatchesRegularExpression('#notice\s+variants core\/button\s+The "pill" variant of "core\/button" has no label; add "directives\.button\.variants\.pill\.label" to the theme\'s lang\/ catalog\.#', $check);
 		$this->assertStringNotContainsString('"bordered" variant', $check);
-		$this->assertStringContainsString('warning variants image: theme.json lists an image variant that isn\'t valid', $check);
-		$this->assertStringContainsString('notice  variants image: The "polaroid" image variant has no label; add "images.variants.polaroid.label" to the theme\'s lang/ catalog.', $check);
-		$this->assertStringContainsString('notice  variants image: The "inline-left" image variant has no label', $check, 'The default theme isn\'t in the chain to label it (D-632).');
+		$this->assertMatchesRegularExpression('#warning\s+variants image\s+theme\.json lists an image variant that isn\'t valid#', $check);
+		$this->assertMatchesRegularExpression('#notice\s+variants image\s+The "polaroid" image variant has no label; add "images\.variants\.polaroid\.label" to the theme\'s lang\/ catalog\.#', $check);
+		$this->assertMatchesRegularExpression('#notice\s+variants image\s+The "inline\-left" image variant has no label#', $check, 'The default theme isn\'t in the chain to label it (D-632).');
 		$this->assertStringNotContainsString('"image", which isn\'t a directive', $check);
-		$this->assertMatchesRegularExpression('#\| core/callout\s*\| Callout\s*\| Blush\\\\Directive\\\\Callout\s*\| info, tip, warning, danger, bordered\s*\|#', $this->command(['directive:list', '--theme=acme/nova'])->output);
+		$this->assertMatchesRegularExpression('#core/callout\s+Callout\s+Blush\\\\Directive\\\\Callout\s+info, tip, warning, danger, bordered\s+#', $this->command(['directive:list', '--theme=acme/nova'])->output);
 	}
 
 	public function testExplainsWhichViewWins(): void
@@ -398,7 +429,7 @@ final class ThemeCommandsTest extends TestCase
 		$result = $this->command(['theme:why', 'single', '--theme=acme/kid']);
 
 		$this->assertSame(ExitCode::Success, $result->exitCode);
-		$this->assertMatchesRegularExpression('#uses    extensions/acme/kid/views/single.php\nshadows extensions/acme/nova/views/single.php\nshadows .+resources/views/single.php#', $result->output);
+		$this->assertMatchesRegularExpression('#uses     extensions/acme/kid/views/single\.php\n  notice  shadows  extensions/acme/nova/views/single\.php\n  notice  shadows  .+resources/views/single\.php#', $result->output);
 
 		$missing = $this->command(['theme:why', 'nope']);
 
@@ -423,7 +454,7 @@ final class ThemeCommandsTest extends TestCase
 		$public = $this->root() . '/public/themes';
 
 		$this->assertSame(ExitCode::Success, $result->exitCode, $result->errors);
-		$this->assertStringContainsString('acme/nova: copied 2, 0 already current, removed 0.', $result->output);
+		$this->assertStringContainsString('acme/nova  2 copied, 0 already current, 0 removed', $result->output);
 		$this->assertSame('nova', file_get_contents("{$public}/acme/nova/style.css"));
 		$this->assertFileExists("{$public}/acme/nova/fonts/a.woff2");
 		$this->assertFileDoesNotExist("{$public}/blush/default/style.css", 'The default theme isn\'t in the chain (D-632).');
@@ -435,7 +466,7 @@ final class ThemeCommandsTest extends TestCase
 
 		unlink($this->root() . '/extensions/acme/nova/fonts/a.woff2');
 
-		$this->assertStringContainsString('acme/nova: copied 0, 1 already current, removed 1.', $this->command('theme:publish')->output);
+		$this->assertStringContainsString('acme/nova  0 copied, 1 already current, 1 removed', $this->command('theme:publish')->output);
 		$this->assertFileDoesNotExist("{$public}/acme/nova/fonts/a.woff2");
 
 		$this->command(['theme:publish', '--all']);

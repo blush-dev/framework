@@ -17,7 +17,9 @@ use Blush\Cache\Caches;
 use Blush\Cache\ContentVersion;
 use Blush\Console\Attributes\Command;
 use Blush\Console\ExitCode;
+use Blush\Console\Outcome;
 use Blush\Console\Output;
+use Blush\Console\StatusLine;
 use Blush\Core\Bootstrap;
 use Blush\Core\CompiledCache;
 use Blush\Core\Paths;
@@ -43,14 +45,15 @@ final readonly class CacheCompile
 	{
 		$plans = $this->bootstrap->compile();
 
-		foreach (CompiledCache::cases() as $cache) {
-			$output->line(sprintf('Wrote %s', $this->paths->relative($this->bootstrap->compiledPath($cache))));
-		}
+		$output->status(array_map(
+			fn (CompiledCache $cache): StatusLine => new StatusLine(Outcome::Pass, 'wrote', $this->paths->relative($this->bootstrap->compiledPath($cache))),
+			CompiledCache::cases()
+		));
 
 		$this->caches->clear();
 		$this->version->bump();
 
-		$output->success(sprintf('Compiled %d container plan(s), and cleared the cache store.', $plans));
+		$output->success(sprintf('Compiled %s, and cleared the cache store.', Output::count($plans, 'container plan', 'container plans')));
 
 		return ExitCode::Success;
 	}

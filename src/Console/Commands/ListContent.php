@@ -77,7 +77,7 @@ final readonly class ListContent
 			], $entries->all())
 		);
 
-		$output->comment(sprintf('%d %s.', count($entries), count($entries) === 1 ? 'entry' : 'entries'));
+		$output->comment(Output::count(count($entries), 'entry', 'entries') . '.');
 
 		return ExitCode::Success;
 	}

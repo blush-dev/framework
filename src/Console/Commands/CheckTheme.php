@@ -17,8 +17,9 @@ use Blush\Console\Attributes\Argument;
 use Blush\Console\Attributes\Command;
 use Blush\Console\Attributes\Option;
 use Blush\Console\ExitCode;
+use Blush\Console\Outcome;
 use Blush\Console\Output;
-use Blush\Console\Style;
+use Blush\Console\StatusLine;
 use Blush\Field\Severity;
 use Blush\Theme\ThemeChecker;
 use Blush\Theme\ThemeConfig;
@@ -42,39 +43,21 @@ final readonly class CheckTheme
 	): ExitCode {
 		$report = $this->checker->check($name ?? $this->config->active);
 
-		foreach ($report->violations as $violation) {
-			if ($violation->severity === Severity::Notice && ! $strict) {
-				continue;
-			}
+		$lines = [];
 
-			$output->line(sprintf(
-				'%s %s: %s',
-				$output->style(str_pad($violation->severity->value, 7), match ($violation->severity) {
-					Severity::Error   => Style::Red,
-					Severity::Warning => Style::Yellow,
-					Severity::Notice  => Style::Dim
-				}),
-				$violation->field,
-				$violation->message
-			));
+		foreach ($report->violations as $violation) {
+			if ($violation->severity !== Severity::Notice || $strict) {
+				$lines[] = new StatusLine(Outcome::of($violation->severity), $violation->field, $violation->message);
+			}
 		}
 
-		$summary = sprintf(
-			'Checked the "%s" theme: %d error(s), %d warning(s)%s.',
-			$report->theme,
-			count($report->with(Severity::Error)),
-			count($report->with(Severity::Warning)),
-			$strict ? sprintf(', %d notice(s)', count($report->with(Severity::Notice))) : ''
+		$output->status($lines);
+		$output->summary(
+			$report->hasErrors() ? Outcome::Failure : Outcome::worst(...array_map(static fn (StatusLine $line): Outcome => $line->outcome, $lines)),
+			sprintf('Checked the "%s" theme', $report->theme),
+			...Output::problems(count($report->with(Severity::Error)), count($report->with(Severity::Warning)), $strict ? count($report->with(Severity::Notice)) : null)
 		);
 
-		if ($report->hasErrors()) {
-			$output->error($summary);
-
-			return ExitCode::Failure;
-		}
-
-		$output->success($summary);
-
-		return ExitCode::Success;
+		return $report->hasErrors() ? ExitCode::Failure : ExitCode::Success;
 	}
 }

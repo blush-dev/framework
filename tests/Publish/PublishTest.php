@@ -278,8 +278,8 @@ final class PublishTest extends TestCase
 		$result = $tester->run('publish -v');
 
 		$this->assertTrue($result->isSuccessful(), $result->errors);
-		$this->assertStringContainsString('Indexed 19 entries', $result->output);
-		$this->assertMatchesRegularExpression('/Published in \d+ ms; the content version is now [0-9a-f]{16}\./', $result->output);
+		$this->assertStringContainsString('Entries  19 entries, 19 added', $result->output);
+		$this->assertMatchesRegularExpression('/Published in \d+ ms, content version [0-9a-f]{16}$/m', $result->output);
 		$this->assertSame([], $puller->pulled);
 
 		$this->assertTrue($tester->run('publish --pull -v')->isSuccessful());
@@ -290,7 +290,7 @@ final class PublishTest extends TestCase
 		$broken = $tester->run('publish');
 
 		$this->assertSame(ExitCode::Failure, $broken->exitCode);
-		$this->assertStringContainsString('1 file(s) could not be indexed', $broken->errors . $broken->output);
+		$this->assertStringContainsString('1 file not indexed', $broken->errors . $broken->output);
 
 		$app->container()->instance(Puller::class, new RecordingPuller(new PullResult(false, 'fatal: offline')));
 		$app->container()->forgetInstance(Publisher::class);

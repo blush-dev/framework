@@ -16,6 +16,7 @@ namespace Blush\Console\Commands;
 use Blush\Console\Attributes\Command;
 use Blush\Console\Attributes\Option;
 use Blush\Console\ExitCode;
+use Blush\Console\Outcome;
 use Blush\Console\Output;
 use Blush\Console\Verbosity;
 use Blush\Publish\Publisher;
@@ -67,7 +68,7 @@ final readonly class Publish
 		}
 
 		if (! $report->isPublished()) {
-			$output->error('git pull failed; nothing was published.');
+			$output->error('git pull failed, so nothing was published.');
 
 			return ExitCode::Failure;
 		}
@@ -78,33 +79,23 @@ final readonly class Publish
 			$output->error(sprintf('%s: %s', $path, $message));
 		}
 
-		$output->line(sprintf(
-			'Indexed %d entries (%d added, %d changed, %d removed).',
-			$index->total ?? 0,
-			count($index->added ?? []),
-			count($index->changed ?? []),
-			count($index->removed ?? [])
-		), Verbosity::Verbose);
+		$output->definitions(array_filter([
+			'Entries' => $output->join(Output::count($index->total ?? 0, 'entry', 'entries'), count($index->added ?? []) . ' added', count($index->changed ?? []) . ' changed', count($index->removed ?? []) . ' removed'),
+			'Media'   => $report->media === null ? '' : $output->join(Output::count($report->media->total, 'file', 'files'), count($report->media->added) . ' added', count($report->media->changed) . ' changed', count($report->media->removed) . ' removed'),
+			'Routes'  => $report->routes ? 'recompiled' : '',
+			'Types'   => $report->types ? 'recompiled' : ''
+		], static fn (string $value): bool => $value !== ''), level: Verbosity::Verbose);
 
-		if ($report->media !== null) {
-			$output->line(sprintf('Indexed %d media files (%d added, %d changed, %d removed).', $report->media->total, count($report->media->added), count($report->media->changed), count($report->media->removed)), Verbosity::Verbose);
-		}
-
-		foreach (['routes' => $report->routes, 'content types' => $report->types] as $label => $rewritten) {
-			if ($rewritten) {
-				$output->line(sprintf('Recompiled the %s.', $label), Verbosity::Verbose);
-			}
-		}
-
-		$summary = sprintf('Published in %d ms; the content version is now %s.', $report->milliseconds, $report->version);
+		$output->summary(
+			$report->isSuccessful() ? Outcome::Pass : Outcome::Failure,
+			sprintf('Published in %d ms', $report->milliseconds),
+			"content version {$report->version}",
+			...($report->isSuccessful() ? [] : [Output::count(count($index->failures ?? []), 'file', 'files') . ' not indexed'])
+		);
 
 		if (! $report->isSuccessful()) {
-			$output->error(sprintf('%s %d file(s) could not be indexed.', $summary, count($index->failures ?? [])));
-
 			return ExitCode::Failure;
 		}
-
-		$output->success($summary);
 
 		return ExitCode::Success;
 	}

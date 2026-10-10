@@ -18,16 +18,11 @@ use Blush\Console\Attributes\Command;
 use Blush\Console\ExitCode;
 use Blush\Console\InvalidInput;
 use Blush\Console\Output;
-use Blush\Core\Bootstrap;
-use Blush\Core\CompiledCache;
 use Blush\Core\Paths;
 use Blush\Extension\ExtensionState;
 use Blush\Extension\Requirements;
 use Blush\Settings\InvalidSetting;
-use Blush\Settings\Setting;
-use Blush\Settings\Settings;
-use Blush\Settings\SettingsStore;
-use Blush\Support\Filesystem;
+use Blush\Theme\ThemeActivator;
 use Blush\Theme\ThemeException;
 use Blush\Theme\Themes;
 
@@ -49,9 +44,7 @@ final readonly class ActivateTheme
 		private Themes $themes,
 		private ExtensionState $extensions,
 		private Paths $paths,
-		private Bootstrap $bootstrap,
-		private Filesystem $filesystem,
-		private SettingsStore $settings
+		private ThemeActivator $activator
 	) {}
 
 	/**
@@ -74,38 +67,19 @@ final readonly class ActivateTheme
 			throw new InvalidInput(sprintf('The "%s" theme can\'t be activated. %s', $name, Requirements::reason(array_merge(...array_values($unmet)))));
 		}
 
-		$file = "{$this->paths->config}/theme.php";
+		try {
+			$file = $this->activator->activate($name);
+		} catch (ThemeException $error) {
+			$output->error($error->getMessage(), sprintf('Set `active: \'%s\'` there yourself.', $name));
 
-		if (! is_file($file)) {
-			$this->filesystem->writeAtomic($file, <<<PHP
-				<?php
-
-				declare(strict_types=1);
-
-				use Blush\\Theme\\ThemeConfig;
-
-				return new ThemeConfig(active: '{$name}');
-
-				PHP);
-		} else {
-			$source  = (string) file_get_contents($file);
-			$pattern = '#(\bactive\s*:\s*|[\'"]active[\'"]\s*=>\s*)([\'"])[a-z0-9_./-]*\2#';
-
-			if (preg_match_all($pattern, $source) !== 1) {
-				$output->error(sprintf('Couldn\'t find one plain "active" value in %s; set active: \'%s\' there yourself.', $this->paths->relative($file), $name));
-
-				return ExitCode::Failure;
-			}
-
-			$this->filesystem->writeAtomic($file, (string) preg_replace($pattern, "\${1}'{$name}'", $source));
+			return ExitCode::Failure;
 		}
 
-		$this->bootstrap->clearCompiled(CompiledCache::Config, CompiledCache::Themes);
-
 		try {
-			if ($this->settings->read()->has(Setting::Theme)) {
-				$this->settings->update(static fn (Settings $settings): Settings => $settings->without(Setting::Theme));
-				$output->comment(sprintf('Cleared the theme activated in the admin (%s).', $this->settings->location(Setting::Theme->section())));
+			$cleared = $this->activator->clearAdminChoice();
+
+			if ($cleared !== null) {
+				$output->comment(sprintf('Cleared the theme activated in the admin (%s).', $cleared));
 			}
 		} catch (InvalidSetting $error) {
 			$output->warning(sprintf('The theme activated in the admin may still win over config/theme.php: %s', $error->getMessage()));

@@ -32,7 +32,7 @@ final readonly class PruneJobs
 	{
 		$pruned = $this->queue->prune();
 
-		$output->success(sprintf('Removed %d finished job%s.', $pruned, $pruned === 1 ? '' : 's'));
+		$output->success(sprintf('Removed %s.', Output::count($pruned, 'finished job', 'finished jobs')));
 
 		return ExitCode::Success;
 	}

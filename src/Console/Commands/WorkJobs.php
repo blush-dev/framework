@@ -16,11 +16,15 @@ namespace Blush\Console\Commands;
 use Blush\Console\Attributes\Command;
 use Blush\Console\Attributes\Option;
 use Blush\Console\ExitCode;
+use Blush\Console\Outcome;
 use Blush\Console\Output;
+use Blush\Console\StatusLine;
 use Blush\Console\Verbosity;
 use Blush\Job\JobConfig;
 use Blush\Job\JobFactory;
+use Blush\Job\JobRecord;
 use Blush\Job\JobRunner;
+use Blush\Job\JobStatus;
 use Blush\Job\RunnerKind;
 use Blush\Job\Scheduler;
 
@@ -57,9 +61,10 @@ final readonly class WorkJobs
 
 			$report = $this->runner->work(RunnerKind::Worker, $this->config->budget);
 
-			foreach ($report->runs as $run) {
-				$output->line(sprintf('%s %s: %s. %s', date('H:i:s'), $this->jobs->label($run->job), $run->status->label(), $run->error ?? $run->message), Verbosity::Verbose);
-			}
+			$output->status(array_map(
+				fn (JobRecord $run): StatusLine => new StatusLine($run->status === JobStatus::Failed ? Outcome::Failure : Outcome::Pass, date('H:i:s'), sprintf('%s: %s. %s', $this->jobs->label($run->job), $run->status->label(), $run->error ?? $run->message)),
+				$report->runs
+			), level: Verbosity::Verbose);
 
 			$ran += $report->count();
 
@@ -72,7 +77,7 @@ final readonly class WorkJobs
 			}
 		}
 
-		$output->success(sprintf('Ran %d job%s.', $ran, $ran === 1 ? '' : 's'));
+		$output->success(sprintf('Ran %s.', Output::count($ran, 'job', 'jobs')));
 
 		return ExitCode::Success;
 	}

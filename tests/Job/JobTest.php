@@ -470,7 +470,7 @@ final class JobTest extends TestCase
 
 		$this->assertStringContainsString('core/prune-jobs', $schedule->output);
 		$this->assertStringContainsString('Daily at 03:00', $schedule->output);
-		$this->assertStringContainsString('Worker (jobs:work):', $schedule->output);
+		$this->assertStringContainsString('Worker (jobs:work)   2026-06-01 12:00', $schedule->output);
 
 		$this->clock->advance('P8D');
 

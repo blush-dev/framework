@@ -16,6 +16,7 @@ namespace Blush\Auth;
 use Psr\Clock\ClockInterface;
 use Blush\Content\Entries;
 use Blush\Content\Entry\Entry;
+use Blush\Content\Status;
 use Blush\Content\Type\ContentTypes;
 use Blush\Content\Writer\EntryChanges;
 use Blush\Content\Writer\WriteException;
@@ -157,6 +158,28 @@ final readonly class AccountProfiles
 	public function link(Account $account, ?string $slug, ?string $title = null): Account
 	{
 		return $this->accounts->setProfile($account, $this->prepare($slug, $title, $account->username));
+	}
+
+	/**
+	 * Returns the profiles an account can be linked to, by title: not
+	 * trashed, not locked, and not another account's (D-719).
+	 *
+	 * @return list<Entry>
+	 */
+	public function available(): array
+	{
+		$type = $this->types->profiles()?->name;
+
+		if ($type === null) {
+			return [];
+		}
+
+		$profiles = $this->content->query()->type($type)->status(Status::Published, Status::Draft, Status::Scheduled)->limit(null)->orderBy('title')->get()->all();
+
+		return array_values(array_filter(
+			$profiles,
+			fn (Entry $profile): bool => $profile->id !== null && $profile->field('linkable') !== false && $this->accounts->linkedTo($profile->id) === null
+		));
 	}
 
 	/**

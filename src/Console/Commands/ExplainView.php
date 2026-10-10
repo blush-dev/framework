@@ -18,7 +18,9 @@ use Blush\Console\Attributes\Command;
 use Blush\Console\Attributes\Option;
 use Blush\Console\ExitCode;
 use Blush\Console\InvalidInput;
+use Blush\Console\Outcome;
 use Blush\Console\Output;
+use Blush\Console\StatusLine;
 use Blush\Core\Paths;
 use Blush\Theme\ThemeConfig;
 use Blush\Theme\ThemeException;
@@ -57,7 +59,8 @@ final readonly class ExplainView
 		}
 
 		if ($files === []) {
-			$output->warning(sprintf('No file provides "%s". Searched:', $view));
+			$output->warning(sprintf('No file provides "%s".', $view));
+			$output->section('Searched');
 
 			foreach ($this->views->directories($chain) as $directory) {
 				$output->line('  ' . $this->paths->relative("{$directory}/{$view}.php"));
@@ -66,9 +69,11 @@ final readonly class ExplainView
 			return ExitCode::Failure;
 		}
 
-		foreach ($files as $index => $file) {
-			$output->line(sprintf('%s %s', $index === 0 ? 'uses   ' : 'shadows', $this->paths->relative($file)));
-		}
+		$output->status(array_map(
+			fn (int $index, string $file): StatusLine => new StatusLine($index === 0 ? Outcome::Pass : Outcome::Notice, $index === 0 ? 'uses' : 'shadows', $this->paths->relative($file)),
+			array_keys($files),
+			$files
+		));
 
 		return ExitCode::Success;
 	}

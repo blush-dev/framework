@@ -16,9 +16,11 @@ namespace Blush\Console\Commands;
 use Blush\Console\Attributes\Command;
 use Blush\Console\Attributes\Option;
 use Blush\Console\ExitCode;
+use Blush\Console\Outcome;
 use Blush\Console\Output;
-use Blush\Console\Style;
+use Blush\Console\StatusLine;
 use Blush\Content\EntryFolders;
+use Blush\Core\Framework;
 
 /**
  * Lists collections' and profiles' files that aren't in the folders
@@ -44,13 +46,10 @@ final readonly class MoveToFolders
 
 			$steps->finish();
 
-			foreach ($moved->renamed as $from => $to) {
-				$output->line(sprintf('%s  %s → %s', $output->style('moved  ', Style::Green), $from, $to));
-			}
-
-			foreach ($moved->failed as $path => $message) {
-				$output->line(sprintf('%s  %s: %s', $output->style('failed ', Style::Red), $path, $message));
-			}
+			$output->status([
+				...array_map(static fn (string $from, string $to): StatusLine => new StatusLine(Outcome::Pass, 'moved', "{$from} → {$to}"), array_keys($moved->renamed), array_values($moved->renamed)),
+				...array_map(static fn (string $path, string $message): StatusLine => new StatusLine(Outcome::Failure, 'failed', "{$path}: {$message}"), array_keys($moved->failed), array_values($moved->failed))
+			]);
 
 			$failed = $moved->failed !== [];
 		}
@@ -59,9 +58,7 @@ final readonly class MoveToFolders
 
 		$steps->finish();
 
-		foreach ($left as $path => $to) {
-			$output->line(sprintf('%s  %s → %s', $output->style('move   ', Style::Yellow), $path, $to));
-		}
+		$output->status(array_map(static fn (string $path, string $to): StatusLine => new StatusLine(Outcome::Warning, 'move', "{$path} → {$to}"), array_keys($left), array_values($left)));
 
 		if ($left === []) {
 			$output->success('Every collection\'s entries are in the folders it keeps them in.');
@@ -69,9 +66,10 @@ final readonly class MoveToFolders
 			return $failed ? ExitCode::Failure : ExitCode::Success;
 		}
 
-		$output->error(count($left) === 1
-			? '1 entry isn\'t in its type\'s folders; move it with --write.'
-			: sprintf('%d entries aren\'t in their types\' folders; move them with --write.', count($left)));
+		$output->error(
+			count($left) === 1 ? '1 entry isn\'t in its type\'s folders.' : sprintf('%s entries aren\'t in their types\' folders.', number_format(count($left))),
+			'Move ' . (count($left) === 1 ? 'it' : 'them') . ' with `' . Framework::BINARY . ' content:folders --write`.'
+		);
 
 		return ExitCode::Failure;
 	}

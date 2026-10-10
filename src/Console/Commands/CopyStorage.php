@@ -16,7 +16,10 @@ namespace Blush\Console\Commands;
 use Blush\Console\Attributes\Command;
 use Blush\Console\Attributes\Option;
 use Blush\Console\ExitCode;
+use Blush\Console\Outcome;
 use Blush\Console\Output;
+use Blush\Console\StatusLine;
+use Blush\Core\Framework;
 use Blush\Storage\StorageConfig;
 use Blush\Storage\StorageCopy;
 use Blush\Storage\StorageException;
@@ -51,16 +54,21 @@ final readonly class CopyStorage
 			return ExitCode::Failure;
 		}
 
-		foreach ($result['copied'] as $part => $count) {
-			$output->line(sprintf('Copied %d %s.', $count, $part));
-		}
+		$output->status(array_map(
+			static fn (string $part, int $count): StatusLine => new StatusLine(Outcome::Pass, $part, number_format($count)),
+			array_keys($result['copied']),
+			array_values($result['copied'])
+		));
 
 		if ($result['unidentified'] > 0) {
-			$output->warning(sprintf('%d content %s without an id weren\'t copied; give them ids with content:ids --write, then copy again with --replace.', $result['unidentified'], $result['unidentified'] === 1 ? 'file' : 'files'));
+			$output->warning(
+				Output::count($result['unidentified'], 'content file', 'content files') . ' without an id weren\'t copied.',
+				'Give them ids with `' . Framework::BINARY . ' content:ids --write`, then copy again with `--replace`.'
+			);
 		}
 
-		$output->comment('Sessions aren\'t copied, so everyone signs in again.');
-		$output->success(sprintf('Copied from "%s" to "%s". To use it, set STORAGE_DRIVER=%s in .env (or the driver in config/storage.php).', $from, $to, $to));
+		$output->success(sprintf('Copied from "%s" to "%s". Sessions aren\'t copied, so everyone signs in again.', $from, $to));
+		$output->next("To use it, set `STORAGE_DRIVER={$to}` in `.env`, or the driver in `config/storage.php`.");
 
 		return ExitCode::Success;
 	}

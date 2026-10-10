@@ -15,6 +15,7 @@ namespace Blush\Console\Commands;
 
 use Blush\Console\Attributes\Argument;
 use Blush\Console\Attributes\Command;
+use Blush\Console\Attributes\Option;
 use Blush\Console\CommandRegistry;
 use Blush\Console\ExitCode;
 use Blush\Console\HelpFormatter;
@@ -22,7 +23,8 @@ use Blush\Console\Output;
 
 /**
  * Shows help for a command: `help cache:clear` does the same as
- * `cache:clear --help`. Without a command, it lists them all.
+ * `cache:clear --help`. Without a command, it lists them all; with
+ * `--global`, it shows the options every command takes (D-717).
  */
 #[Command('help', 'Show help for a command.')]
 final readonly class Help
@@ -34,8 +36,15 @@ final readonly class Help
 
 	public function __invoke(
 		Output $output,
-		#[Argument('The command to show help for.')] ?string $command = null
+		#[Argument('The command to show help for.')] ?string $command = null,
+		#[Option('Show the options every command takes.')] bool $global = false
 	): ExitCode {
+		if ($global) {
+			$this->help->globals($output);
+
+			return ExitCode::Success;
+		}
+
 		if ($command === null) {
 			$this->help->commands($this->commands, $output);
 

@@ -16,9 +16,11 @@ namespace Blush\Console\Commands;
 use Blush\Console\Attributes\Command;
 use Blush\Console\Attributes\Option;
 use Blush\Console\ExitCode;
+use Blush\Console\Outcome;
 use Blush\Console\Output;
-use Blush\Console\Style;
+use Blush\Console\StatusLine;
 use Blush\Content\EntryRefs;
+use Blush\Core\Framework;
 
 /**
  * Lists the content files whose links between entries aren't filed in
@@ -44,13 +46,10 @@ final readonly class FileRefs
 
 			$steps->finish();
 
-			foreach ($done->paths as $path) {
-				$output->line(sprintf('%s  %s', $output->style('filed  ', Style::Green), $path));
-			}
-
-			foreach ($done->failed as $path => $message) {
-				$output->line(sprintf('%s  %s: %s', $output->style('failed ', Style::Red), $path, $message));
-			}
+			$output->status([
+				...array_map(static fn (string $path): StatusLine => new StatusLine(Outcome::Pass, 'filed', $path), $done->paths),
+				...array_map(static fn (string $path, string $message): StatusLine => new StatusLine(Outcome::Failure, 'failed', "{$path}: {$message}"), array_keys($done->failed), array_values($done->failed))
+			]);
 
 			if ($done->failed !== []) {
 				return ExitCode::Failure;
@@ -61,9 +60,7 @@ final readonly class FileRefs
 
 		$steps->finish();
 
-		foreach ($stale as $path => $relations) {
-			$output->line(sprintf('%s  %s (%s)', $output->style('unfiled', Style::Red), $path, implode(', ', $relations)));
-		}
+		$output->status(array_map(static fn (string $path, array $relations): StatusLine => new StatusLine(Outcome::Failure, 'unfiled', sprintf('%s (%s)', $path, implode(', ', $relations))), array_keys($stale), array_values($stale)));
 
 		$count = count($stale);
 
@@ -73,7 +70,7 @@ final readonly class FileRefs
 			return ExitCode::Success;
 		}
 
-		$output->error(sprintf('%d %s links not filed with their ids; file them with --write.', $count, $count === 1 ? 'file has' : 'files have'));
+		$output->error(Output::count($count, 'file has', 'files have') . ' links not filed with their ids.', 'File them with `' . Framework::BINARY . ' content:refs --write`.');
 
 		return ExitCode::Failure;
 	}

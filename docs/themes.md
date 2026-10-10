@@ -160,6 +160,10 @@ bin/blush theme:new acme/notebook
 bin/blush theme:activate acme/notebook
 ```
 
+In a terminal, `bin/blush theme:new` on its own asks for the name, a
+label, a parent theme to build on (or none), a description, and whether
+to activate it now.
+
 That makes the smallest valid theme, in a folder at its name:
 
 ```

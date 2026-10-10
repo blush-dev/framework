@@ -16,9 +16,11 @@ namespace Blush\Console\Commands;
 use Blush\Console\Attributes\Command;
 use Blush\Console\Attributes\Option;
 use Blush\Console\ExitCode;
+use Blush\Console\Outcome;
 use Blush\Console\Output;
-use Blush\Console\Style;
+use Blush\Console\StatusLine;
 use Blush\Content\MissingTerms;
+use Blush\Core\Framework;
 
 /**
  * Lists the terms and profiles entries name that have no file, which
@@ -43,13 +45,10 @@ final readonly class CreateMissingTerms
 
 			$steps->finish();
 
-			foreach ($done->created as $path) {
-				$output->line(sprintf('%s  %s', $output->style('created', Style::Green), $path));
-			}
-
-			foreach ($done->failed as $term => $message) {
-				$output->line(sprintf('%s  %s: %s', $output->style('failed ', Style::Red), $term, $message));
-			}
+			$output->status([
+				...array_map(static fn (string $path): StatusLine => new StatusLine(Outcome::Pass, 'created', $path), array_values($done->created)),
+				...array_map(static fn (string $term, string $message): StatusLine => new StatusLine(Outcome::Failure, 'failed', "{$term}: {$message}"), array_keys($done->failed), array_values($done->failed))
+			]);
 
 			if ($done->failed !== []) {
 				return ExitCode::Failure;
@@ -60,14 +59,17 @@ final readonly class CreateMissingTerms
 
 		$steps->finish();
 
-		$count = 0;
+		$lines = [];
 
 		foreach ($missing as $type => $slugs) {
 			foreach ($slugs as $slug => $title) {
-				$output->line(sprintf('%s  %s/%s%s', $output->style('missing', Style::Red), $type, $slug, $title === $slug ? '' : " ({$title})"));
-				$count++;
+				$lines[] = new StatusLine(Outcome::Failure, 'missing', "{$type}/{$slug}" . ($title === (string) $slug ? '' : " ({$title})"));
 			}
 		}
+
+		$output->status($lines);
+
+		$count = count($lines);
 
 		if ($count === 0) {
 			$output->success('Every term and profile entries name has a file.');
@@ -75,7 +77,10 @@ final readonly class CreateMissingTerms
 			return ExitCode::Success;
 		}
 
-		$output->error(sprintf('%d %s no file, so the site leaves %s out; write %s with --write.', $count, $count === 1 ? 'term or profile has' : 'terms and profiles have', $count === 1 ? 'it' : 'them', $count === 1 ? 'it' : 'them'));
+		$output->error(
+			sprintf('%s no file, so the site leaves %s out.', Output::count($count, 'term or profile has', 'terms and profiles have'), $count === 1 ? 'it' : 'them'),
+			'Write ' . ($count === 1 ? 'it' : 'them') . ' with `' . Framework::BINARY . ' content:terms --write`.'
+		);
 
 		return ExitCode::Failure;
 	}

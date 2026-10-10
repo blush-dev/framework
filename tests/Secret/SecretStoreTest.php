@@ -220,8 +220,8 @@ final class SecretStoreTest extends TestCase
 
 		$list = $this->command($app, 'secrets:list');
 
-		$this->assertMatchesRegularExpression('#acme/analytics\.ga_refresh_token\s*\|\s*stored\s*\|\s*ACME_ANALYTICS_GA_REFRESH_TOKEN#', $list->output);
-		$this->assertMatchesRegularExpression('#acme/analytics\.property\s*\|\s*environment\s*\|\s*GA_PROPERTY#', $list->output);
+		$this->assertMatchesRegularExpression('#acme/analytics\.ga_refresh_token\s+stored\s+ACME_ANALYTICS_GA_REFRESH_TOKEN#', $list->output);
+		$this->assertMatchesRegularExpression('#acme/analytics\.property\s+environment\s+GA_PROPERTY#', $list->output);
 		$this->assertStringNotContainsString(self::TOKEN, $list->output);
 		$this->assertStringNotContainsString('properties/123', $list->output);
 

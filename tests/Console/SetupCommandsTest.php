@@ -150,13 +150,13 @@ final class SetupCommandsTest extends TestCase
 		$result = $this->command('doctor', environment: ['APP_URL' => 'https://example.com']);
 
 		$this->assertSame(ExitCode::Success, $result->exitCode, $result->output . $result->errors);
-		$this->assertMatchesRegularExpression('/ok\s+PHP: 8\.5/', $result->output);
-		$this->assertStringContainsString('storage/: Created when it\'s needed.', $result->output);
-		$this->assertStringContainsString('ok      Extensions: Everything that\'s on runs.', $result->output);
-		$this->assertStringContainsString('warning Background jobs: Cron isn\'t set up', $result->output, 'A new site has no cron yet.');
-		$this->assertStringContainsString('warning SECRETS_KEY: Not set', $result->output, 'Without one, secrets can\'t be stored.');
-		$this->assertStringContainsString('ok      Private files: Not served at https://example.com: storage/.', $result->output, 'Checked in production (D-716).');
-		$this->assertStringContainsString('0 failure(s), 2 warning(s).', $result->output);
+		$this->assertMatchesRegularExpression('/ok\s+PHP\s+8\.5/', $result->output);
+		$this->assertMatchesRegularExpression('/storage\/\s+Created when it\'s needed\./', $result->output);
+		$this->assertMatchesRegularExpression('/ok\s+Extensions\s+Everything that\'s on runs\./', $result->output);
+		$this->assertMatchesRegularExpression('/warning Background jobs\s+Cron isn\'t set up/', $result->output, 'A new site has no cron yet.');
+		$this->assertMatchesRegularExpression('/warning SECRETS_KEY\s+Not set/', $result->output, 'Without one, secrets can\'t be stored.');
+		$this->assertMatchesRegularExpression('/ok\s+Private files\s+Not served at https:\/\/example\.com: storage\/\./', $result->output, 'Checked in production (D-716).');
+		$this->assertMatchesRegularExpression('/^\d+ checks, 2 warnings$/m', $result->output);
 	}
 
 	public function testDoctorFailsWithHints(): void
@@ -164,9 +164,9 @@ final class SetupCommandsTest extends TestCase
 		$result = $this->command('doctor', environment: ['APP_DEBUG' => 'true']);
 
 		$this->assertSame(ExitCode::Failure, $result->exitCode);
-		$this->assertMatchesRegularExpression('/failure APP_DEBUG: Debugging is on in production/', $result->output);
-		$this->assertStringContainsString('        Set APP_DEBUG=false.', $result->output);
-		$this->assertStringContainsString('2 failure(s)', $result->errors);
+		$this->assertMatchesRegularExpression('/error\s+APP_DEBUG\s+Debugging is on in production/', $result->output);
+		$this->assertMatchesRegularExpression('/^ +Set APP_DEBUG=false\.$/m', $result->output);
+		$this->assertMatchesRegularExpression('/^\d+ checks, 2 errors/m', $result->errors);
 	}
 
 	public function testDoctorWarnsOfExtensionsThatCantRun(): void
@@ -180,11 +180,11 @@ final class SetupCommandsTest extends TestCase
 
 		$result = $this->command('doctor', environment: ['APP_URL' => 'https://example.com']);
 
-		$this->assertMatchesRegularExpression('/warning Theme: The "acme\/future" theme can\'t run, so the default theme runs in its place\. Needs Blush \^9\.0/', $result->output);
-		$this->assertStringContainsString('warning Plugins: 1 plugin is turned on but can\'t run: acme/later.', $result->output);
-		$this->assertStringContainsString('warning Icon packs: 1 icon pack is turned on but can\'t run: acme/glyphs.', $result->output);
+		$this->assertMatchesRegularExpression('/warning Theme\s+The "acme\/future" theme can\'t run, so the default theme runs in its place\. Needs Blush \^9\.0/', $result->output);
+		$this->assertMatchesRegularExpression('/warning Plugins\s+1 plugin is turned on but can\'t run: acme\/later\./', $result->output);
+		$this->assertMatchesRegularExpression('/warning Icon packs\s+1 icon pack is turned on but can\'t run: acme\/glyphs\./', $result->output);
 		$this->assertStringContainsString('Run "blush icon-pack:check" to see why.', $result->output);
-		$this->assertStringNotContainsString('ok      Extensions', $result->output);
+		$this->assertDoesNotMatchRegularExpression('/ok\s+Extensions/', $result->output);
 	}
 
 	public function testOffersTheFirstAccount(): void

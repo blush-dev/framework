@@ -75,7 +75,8 @@ final class ConsoleTest extends TestCase
 		$this->assertStringContainsString('blush greet [options] [--] <name> [<times>]', $viaOption->output);
 		$this->assertStringContainsString('-l, --level=LEVEL', $viaOption->output);
 		$this->assertStringContainsString("[one of: low, high] [default: 'low']", $viaOption->output);
-		$this->assertStringContainsString('--no-interaction', $viaOption->output);
+		$this->assertStringNotContainsString('--no-interaction', $viaOption->output, 'The global options are under help --global (D-717).');
+		$this->assertStringContainsString('-n, --no-interaction', $tester->run('help --global')->output);
 		$this->assertSame(ExitCode::Invalid, $tester->run('help nope')->exitCode);
 	}
 

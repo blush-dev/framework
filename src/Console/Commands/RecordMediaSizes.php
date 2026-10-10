@@ -16,9 +16,11 @@ namespace Blush\Console\Commands;
 use Blush\Console\Attributes\Command;
 use Blush\Console\Attributes\Option;
 use Blush\Console\ExitCode;
+use Blush\Console\Outcome;
 use Blush\Console\Output;
-use Blush\Console\Style;
+use Blush\Console\StatusLine;
 use Blush\Console\Verbosity;
+use Blush\Core\Framework;
 use Blush\Media\MediaException;
 use Blush\Media\MediaSizes;
 
@@ -48,16 +50,19 @@ final readonly class RecordMediaSizes
 
 				$steps->finish();
 
-				foreach ($recorded->images as $key => $sizes) {
-					$output->line(sprintf('%s  %s (%s)', $output->style('recorded', Style::Green), $key, self::plural(count($sizes), 'size', 'sizes')), Verbosity::Verbose);
-				}
-
-				foreach ($recorded->failed as $key => $message) {
-					$output->line(sprintf('%s  %s: %s', $output->style('failed  ', Style::Red), $key, $message));
-				}
+				$output->status(array_map(
+					static fn (string $key, array $sizes): StatusLine => new StatusLine(Outcome::Pass, 'recorded', sprintf('%s (%s)', $key, Output::count(count($sizes), 'size', 'sizes'))),
+					array_keys($recorded->images),
+					array_values($recorded->images)
+				), level: Verbosity::Verbose);
+				$output->status(array_map(
+					static fn (string $key, string $message): StatusLine => new StatusLine(Outcome::Failure, 'failed', "{$key}: {$message}"),
+					array_keys($recorded->failed),
+					array_values($recorded->failed)
+				));
 
 				if ($recorded->images !== []) {
-					$output->line(sprintf('Recorded the sizes of %s.', self::plural(count($recorded->images), 'image', 'images')));
+					$output->success(sprintf('Recorded the sizes of %s.', Output::count(count($recorded->images), 'image', 'images')));
 				}
 
 				$failed = $recorded->failed !== [];
@@ -73,17 +78,21 @@ final readonly class RecordMediaSizes
 			return ExitCode::Failure;
 		}
 
+		$lines = [];
+
 		foreach ($report->unrecorded as $key => $sizes) {
 			foreach ($sizes as $size) {
-				$output->line(sprintf('%s  %s  of %s', $output->style('unrecorded', Style::Yellow), $size, $key), Verbosity::Verbose);
+				$lines[] = new StatusLine(Outcome::Warning, 'unrecorded', "{$size} of {$key}");
 			}
 		}
 
 		foreach ($report->stale as $key => $listed) {
 			foreach ($listed as $size) {
-				$output->line(sprintf('%s  %s  in %s', $output->style('stale     ', Style::Yellow), $size, $key), Verbosity::Verbose);
+				$lines[] = new StatusLine(Outcome::Warning, 'stale', "{$size} in {$key}");
 			}
 		}
+
+		$output->status($lines, level: Verbosity::Verbose);
 
 		if ($report->isClean()) {
 			$output->success('Every image lists its sizes.');
@@ -91,20 +100,14 @@ final readonly class RecordMediaSizes
 			return $failed ? ExitCode::Failure : ExitCode::Success;
 		}
 
-		$output->error(implode(' ', array_filter([
-			$report->unrecorded === [] ? null : sprintf('%s of %s %s recorded.', self::plural($report->count(), 'size', 'sizes'), self::plural(count($report->unrecorded), 'image', 'images'), $report->count() === 1 ? 'isn\'t' : 'aren\'t'),
-			$report->stale === [] ? null : sprintf('%s files that aren\'t %s sizes.', self::plural(count($report->stale), 'image lists', 'images list'), count($report->stale) === 1 ? 'its' : 'their'),
-			'Record them with --write.'
-		])));
+		$output->error(
+			implode(' ', array_filter([
+				$report->unrecorded === [] ? null : sprintf('%s of %s %s recorded.', Output::count($report->count(), 'size', 'sizes'), Output::count(count($report->unrecorded), 'image', 'images'), $report->count() === 1 ? 'isn\'t' : 'aren\'t'),
+				$report->stale === [] ? null : sprintf('%s files that aren\'t %s sizes.', Output::count(count($report->stale), 'image lists', 'images list'), count($report->stale) === 1 ? 'its' : 'their')
+			])),
+			'Record them with `' . Framework::BINARY . ' media:sizes --write`.'
+		);
 
 		return ExitCode::Failure;
-	}
-
-	/**
-	 * Returns a count with its noun, singular or plural.
-	 */
-	private static function plural(int $count, string $one, string $many): string
-	{
-		return sprintf('%s %s', number_format($count), $count === 1 ? $one : $many);
 	}
 }

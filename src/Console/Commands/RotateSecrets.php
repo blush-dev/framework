@@ -16,6 +16,7 @@ namespace Blush\Console\Commands;
 use Blush\Console\Attributes\Command;
 use Blush\Console\ExitCode;
 use Blush\Console\Output;
+use Blush\Core\Framework;
 use Blush\Secret\SecretDefinition;
 use Blush\Secret\SecretException;
 use Blush\Secret\SecretKeys;
@@ -49,7 +50,7 @@ final readonly class RotateSecrets
 		}
 
 		foreach ($result['unreadable'] as $name) {
-			$output->warning(sprintf('"%s" won\'t decrypt with %s or %s; set it again.', $name, SecretKeys::CURRENT, SecretKeys::PREVIOUS));
+			$output->warning(sprintf('"%s" won\'t decrypt with %s or %s.', $name, SecretKeys::CURRENT, SecretKeys::PREVIOUS), sprintf('Set it again with `%s secrets:set %s`.', Framework::BINARY, $name));
 		}
 
 		$count = count($result['rotated']);
@@ -57,7 +58,7 @@ final readonly class RotateSecrets
 		$output->success($count === 0 ? 'Every stored secret is already under the current key.' : sprintf('Encrypted %d stored %s again under the current key.', $count, $count === 1 ? 'secret' : 'secrets'));
 
 		if ($count > 0 && $result['unreadable'] === []) {
-			$output->comment(sprintf('%s can be removed now.', SecretKeys::PREVIOUS));
+			$output->next(sprintf('`%s` can be removed now.', SecretKeys::PREVIOUS));
 		}
 
 		return $result['unreadable'] === [] ? ExitCode::Success : ExitCode::Failure;

@@ -51,7 +51,7 @@ final readonly class PreviewContent
 		#[Option('How many hours the link works; defaults to the configured lifetime.')] ?int $hours = null
 	): ExitCode {
 		if (! $this->config->isEnabled()) {
-			$output->error(sprintf('Preview links are off: the site has no APP_SECRET. Run "%s init" to add one.', Framework::BINARY));
+			$output->error('Preview links are off: the site has no APP_SECRET.', sprintf('Run `%s init` to add one.', Framework::BINARY));
 
 			return ExitCode::Failure;
 		}
@@ -69,7 +69,7 @@ final readonly class PreviewContent
 		}
 
 		if ($entry->id === null) {
-			$output->error(sprintf('%s has no id, so it can\'t have a preview link; give it one with content:ids --write.', $entry->path));
+			$output->error(sprintf('%s has no id, so it can\'t have a preview link.', $entry->path), sprintf('Give it one with `%s content:ids --write`.', Framework::BINARY));
 
 			return ExitCode::Failure;
 		}

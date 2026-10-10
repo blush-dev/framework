@@ -17,10 +17,13 @@ use Blush\Console\Attributes\Command;
 use Blush\Console\Attributes\Option;
 use Blush\Console\ExitCode;
 use Blush\Console\InvalidInput;
+use Blush\Console\Outcome;
 use Blush\Console\Output;
-use Blush\Console\Style;
+use Blush\Console\StatusLine;
+use Blush\Content\FileNameRename;
 use Blush\Content\FileNames;
 use Blush\Content\Type\ContentTypes;
+use Blush\Core\Framework;
 
 /**
  * Lists the entries of each type named by another pattern than its
@@ -54,13 +57,10 @@ final readonly class RenameToPattern
 
 			$steps->finish();
 
-			foreach ($renamed->renamed as $from => $to) {
-				$output->line(sprintf('%s  %s → %s', $output->style('renamed', Style::Green), $from, $to));
-			}
-
-			foreach ($renamed->failed as $path => $message) {
-				$output->line(sprintf('%s  %s: %s', $output->style('failed ', Style::Red), $path, $message));
-			}
+			$output->status([
+				...array_map(static fn (string $from, string $to): StatusLine => new StatusLine(Outcome::Pass, 'renamed', "{$from} → {$to}"), array_keys($renamed->renamed), array_values($renamed->renamed)),
+				...array_map(static fn (string $path, string $message): StatusLine => new StatusLine(Outcome::Failure, 'failed', "{$path}: {$message}"), array_keys($renamed->failed), array_values($renamed->failed))
+			]);
 
 			$failed = $renamed->failed !== [];
 		}
@@ -71,18 +71,18 @@ final readonly class RenameToPattern
 
 		$renames = $report->renames($type);
 
-		foreach ($renames as $rename) {
-			$output->line(sprintf('%s  %s → %s', $output->style('rename ', Style::Yellow), $rename->path, $rename->to));
-		}
+		$skipped = $type === null ? array_merge([], ...array_values($report->skipped)) : $report->skipped[$type] ?? [];
 
-		foreach ($type === null ? array_merge([], ...array_values($report->skipped)) : $report->skipped[$type] ?? [] as $path => $why) {
-			$output->line(sprintf('%s  %s keeps its name: %s.', $output->style('skipped', Style::Dim), $path, $why));
-		}
+		$output->status([
+			...array_map(static fn (FileNameRename $rename): StatusLine => new StatusLine(Outcome::Warning, 'rename', "{$rename->path} → {$rename->to}"), $renames),
+			...array_map(static fn (string $path, string $why): StatusLine => new StatusLine(Outcome::Notice, 'skipped', "{$path} keeps its name: {$why}."), array_keys($skipped), array_values($skipped))
+		]);
 
 		if ($renames === []) {
 			$output->success('No entries need renaming: each type with a file name pattern names its entries by it.');
 		} else {
-			$output->info(sprintf('%d %s named by another pattern; rename %s with --write.', count($renames), count($renames) === 1 ? 'entry is' : 'entries are', count($renames) === 1 ? 'it' : 'them'));
+			$output->summary(Outcome::Warning, Output::count(count($renames), 'entry is', 'entries are') . ' named by another pattern');
+			$output->next('Rename ' . (count($renames) === 1 ? 'it' : 'them') . ' with `' . Framework::BINARY . ' content:filenames --write`.');
 		}
 
 		return $failed ? ExitCode::Failure : ExitCode::Success;

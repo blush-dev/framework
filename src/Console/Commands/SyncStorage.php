@@ -15,7 +15,9 @@ namespace Blush\Console\Commands;
 
 use Blush\Console\Attributes\Command;
 use Blush\Console\ExitCode;
+use Blush\Console\Outcome;
 use Blush\Console\Output;
+use Blush\Console\StatusLine;
 use Blush\Console\Verbosity;
 use Blush\Storage\Record\RecordStores;
 use Blush\Storage\Record\SchemaStore;
@@ -65,9 +67,7 @@ final readonly class SyncStorage
 
 		$steps->finish();
 
-		foreach ($synced as $line) {
-			$output->line($line, Verbosity::Verbose);
-		}
+		$output->status(array_map(static fn (string $table): StatusLine => new StatusLine(Outcome::Pass, 'synced', $table), $synced), level: Verbosity::Verbose);
 
 		$synced = count($synced);
 
@@ -77,7 +77,7 @@ final readonly class SyncStorage
 			return ExitCode::Success;
 		}
 
-		$output->success(sprintf('Made or updated %d %s.', $synced, $synced === 1 ? 'table' : 'tables'));
+		$output->success(sprintf('Made or updated %s.', Output::count($synced, 'table', 'tables')));
 
 		return ExitCode::Success;
 	}

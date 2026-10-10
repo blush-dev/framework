@@ -70,8 +70,8 @@ final class MenuCommandsTest extends TestCase
 		$result = $this->command('menu:list');
 
 		$this->assertSame(ExitCode::Success, $result->exitCode);
-		$this->assertMatchesRegularExpression('#primary\s*\|\s*Primary\s*\|\s*primary\s*\|\s*1\s*\|\s*user/data/menus/primary\.json#', $result->output);
-		$this->assertMatchesRegularExpression('#\(none\)\s*\|\s*\|\s*footer\s*\|\s*1\s*\|\s*user/data/menus/footer\.json#', $result->output);
+		$this->assertMatchesRegularExpression('#primary\s+Primary\s+primary\s+1\s+user/data/menus/primary\.json#', $result->output);
+		$this->assertMatchesRegularExpression('#\(none\)\s+footer\s+1\s+user/data/menus/footer\.json#', $result->output);
 		$this->assertStringContainsString('menu primary: item 2: No entry "page/gone".', $result->output . $result->errors);
 		$this->assertStringContainsString('menu footer: No location of the "blush/default" theme shows it.', $result->output . $result->errors);
 	}
@@ -80,7 +80,7 @@ final class MenuCommandsTest extends TestCase
 	{
 		$result = $this->command('menu:list');
 
-		$this->assertMatchesRegularExpression('#primary\s*\|\s*Primary\s*\|\s*\(none\)#', $result->output);
+		$this->assertMatchesRegularExpression('#primary\s+Primary\s+\(none\)#', $result->output);
 	}
 
 	public function testShowsAResolvedMenu(): void
@@ -91,9 +91,9 @@ final class MenuCommandsTest extends TestCase
 		$result = $this->command('menu:show primary');
 
 		$this->assertSame(ExitCode::Success, $result->exitCode);
-		$this->assertStringContainsString("Main (primary: main, user/data/menus/main.json)\n  About  /about\n    Team  /team\n", $result->output);
+		$this->assertStringContainsString("Main\nprimary: main, user/data/menus/main.json\n  About  /about\n    Team  /team\n", $result->output);
 		$this->assertStringContainsString('item 2: No entry "page/gone".', $result->output . $result->errors);
-		$this->assertStringContainsString('Principal (primary', $this->command(['menu:show', 'primary', '--locale=fr'])->output);
+		$this->assertStringContainsString("Principal\nprimary", $this->command(['menu:show', 'primary', '--locale=fr'])->output);
 	}
 
 	public function testFailsForALocationWithNoMenu(): void
@@ -109,10 +109,10 @@ final class MenuCommandsTest extends TestCase
 		$this->writeTemporaryFile('user/data/menus/main.json', '{"items":[{"entry":"page/about"}]}');
 
 		$this->assertSame(ExitCode::Success, $this->command('menu:assign primary main')->exitCode);
-		$this->assertMatchesRegularExpression('#primary\s*\|\s*Primary\s*\|\s*main\s*\|\s*1#', $this->command('menu:list')->output);
+		$this->assertMatchesRegularExpression('#primary\s+Primary\s+main\s+1#', $this->command('menu:list')->output);
 
 		$this->assertSame(ExitCode::Success, $this->command(['menu:assign', 'primary', '--clear'])->exitCode);
-		$this->assertMatchesRegularExpression('#primary\s*\|\s*Primary\s*\|\s*\(none\)#', $this->command('menu:list')->output);
+		$this->assertMatchesRegularExpression('#primary\s+Primary\s+\(none\)#', $this->command('menu:list')->output);
 
 		$this->assertStringContainsString('has no menu location "aside"', $this->failure('menu:assign aside main'));
 		$this->assertStringContainsString('The site has no menu "gone"', $this->failure('menu:assign primary gone'));

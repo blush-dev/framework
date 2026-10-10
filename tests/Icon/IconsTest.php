@@ -153,7 +153,7 @@ final class IconsTest extends TestCase
 
 		$result = new CommandTester($app->container()->make(Console::class))->run('icon:list');
 
-		$this->assertMatchesRegularExpression('#\| alt/badge\s*\| Member badge\s*\| extensions/acme/alt/icons/badge\.svg#', $result->output);
-		$this->assertMatchesRegularExpression('#\| core/house\s*\| Home\s*\| \(core\) house\.svg#', $result->output);
+		$this->assertMatchesRegularExpression('#alt/badge\s+Member badge\s+extensions/acme/alt/icons/badge\.svg#', $result->output);
+		$this->assertMatchesRegularExpression('#core/house\s+Home\s+\(core\) house\.svg#', $result->output);
 	}
 }

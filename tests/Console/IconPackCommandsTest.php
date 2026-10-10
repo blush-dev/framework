@@ -71,8 +71,8 @@ final class IconPackCommandsTest extends TestCase
 		$all    = $result->output . $result->errors;
 
 		$this->assertSame(ExitCode::Success, $result->exitCode, 'It still loads (D-433).');
-		$this->assertMatchesRegularExpression('#warning\s+acme/old: It\'s abandoned, and no longer maintained\.#', $all);
-		$this->assertStringContainsString('Checked 1 icon pack(s): 0 error(s), 1 warning(s).', $all);
+		$this->assertMatchesRegularExpression('#warning\s+acme/old\s+It\'s abandoned, and no longer maintained\.#', $all);
+		$this->assertStringContainsString('1 icon pack, 1 warning', $all);
 	}
 
 	public function testChecksIconPacks(): void
@@ -83,12 +83,12 @@ final class IconPackCommandsTest extends TestCase
 		$all    = $result->output . $result->errors;
 
 		$this->assertSame(ExitCode::Failure, $result->exitCode, 'A pack turned on can\'t load.');
-		$this->assertMatchesRegularExpression('#ok\s+acme/brands 1\.0\.0#', $all);
-		$this->assertMatchesRegularExpression('#error\s+acme/future: Needs Blush \^9\.0 \(this site runs [^)]+\)\. It\'s turned on, but its icons don\'t load\.#', $all);
-		$this->assertMatchesRegularExpression('#warning\s+acme/needy: Needs acme/missing \^1\.0 \(isn\'t installed\)\.#', $all);
-		$this->assertMatchesRegularExpression('#warning\s+acme/odd: Its version, "1\.0-final", isn\'t one Composer can read#', $all);
-		$this->assertMatchesRegularExpression('#warning\s+extensions/acme/broken: #', $all);
-		$this->assertStringContainsString('Checked 5 icon pack(s): 1 error(s), 3 warning(s).', $all);
+		$this->assertMatchesRegularExpression('#ok\s+acme/brands\s+1\.0\.0#', $all);
+		$this->assertMatchesRegularExpression('#error\s+acme/future\s+Needs Blush \^9\.0 \(this site runs [^)]+\)\. It\'s turned on, but its icons don\'t load\.#', $all);
+		$this->assertMatchesRegularExpression('#warning\s+acme/needy\s+Needs acme/missing \^1\.0 \(isn\'t installed\)\.#', $all);
+		$this->assertMatchesRegularExpression('#warning\s+acme/odd\s+Its version, "1\.0-final", isn\'t one Composer can read#', $all);
+		$this->assertMatchesRegularExpression('#warning\s+extensions/acme/broken\s+#', $all);
+		$this->assertStringContainsString('5 icon packs, 1 error, 3 warnings', $all);
 	}
 
 	public function testPassesWithOnlyWarnings(): void
@@ -98,7 +98,7 @@ final class IconPackCommandsTest extends TestCase
 		$result = $this->command('icon-pack:check');
 
 		$this->assertSame(ExitCode::Success, $result->exitCode, $result->errors);
-		$this->assertStringContainsString('Checked 5 icon pack(s): 0 error(s), 4 warning(s).', $result->output);
+		$this->assertStringContainsString('5 icon packs, 4 warnings', $result->output);
 	}
 
 	public function testChecksOnePack(): void
@@ -108,7 +108,7 @@ final class IconPackCommandsTest extends TestCase
 		$one = $this->command(['icon-pack:check', 'acme/brands']);
 
 		$this->assertSame(ExitCode::Success, $one->exitCode, $one->errors);
-		$this->assertStringContainsString('Checked 1 icon pack(s): 0 error(s), 0 warning(s).', $one->output);
+		$this->assertStringContainsString('1 icon pack, no problems', $one->output);
 
 		$missing = $this->command(['icon-pack:check', 'acme/missing']);
 

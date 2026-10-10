@@ -17,8 +17,10 @@ use Blush\Console\Attributes\Command;
 use Blush\Console\Attributes\Option;
 use Blush\Console\ExitCode;
 use Blush\Console\InvalidInput;
+use Blush\Console\Outcome;
 use Blush\Console\Output;
-use Blush\Console\Style;
+use Blush\Console\StatusLine;
+use Blush\Core\Framework;
 use Blush\Menu\MenuException;
 use Blush\Menu\MenuRefs;
 
@@ -48,13 +50,10 @@ final readonly class FileMenuRefs
 
 				$steps->finish();
 
-				foreach ($done['filed'] as $name) {
-					$output->line(sprintf('%s  %s', $output->style('filed  ', Style::Green), $name));
-				}
-
-				foreach ($done['failed'] as $name => $message) {
-					$output->line(sprintf('%s  %s: %s', $output->style('failed ', Style::Red), $name, $message));
-				}
+				$output->status([
+					...array_map(static fn (string $name): StatusLine => new StatusLine(Outcome::Pass, 'filed', $name), $done['filed']),
+					...array_map(static fn (string $name, string $message): StatusLine => new StatusLine(Outcome::Failure, 'failed', "{$name}: {$message}"), array_keys($done['failed']), array_values($done['failed']))
+				]);
 
 				if ($done['failed'] !== []) {
 					return ExitCode::Failure;
@@ -68,9 +67,11 @@ final readonly class FileMenuRefs
 			throw new InvalidInput($error->getMessage(), 0, $error);
 		}
 
-		foreach ($stale as $name => $positions) {
-			$output->line(sprintf('%s  %s (%s %s)', $output->style('unfiled', Style::Red), $name, count($positions) === 1 ? 'item' : 'items', implode(', ', $positions)));
-		}
+		$output->status(array_map(
+			static fn (string $name, array $positions): StatusLine => new StatusLine(Outcome::Failure, 'unfiled', sprintf('%s (%s %s)', $name, count($positions) === 1 ? 'item' : 'items', implode(', ', $positions))),
+			array_keys($stale),
+			array_values($stale)
+		));
 
 		$count = count($stale);
 
@@ -80,7 +81,7 @@ final readonly class FileMenuRefs
 			return ExitCode::Success;
 		}
 
-		$output->error(sprintf('%d %s links not filed with their ids; file them with --write.', $count, $count === 1 ? 'menu has' : 'menus have'));
+		$output->error(Output::count($count, 'menu has', 'menus have') . ' links not filed with their ids.', 'File them with `' . Framework::BINARY . ' menu:refs --write`.');
 
 		return ExitCode::Failure;
 	}

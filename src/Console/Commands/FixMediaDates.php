@@ -16,9 +16,11 @@ namespace Blush\Console\Commands;
 use Blush\Console\Attributes\Command;
 use Blush\Console\Attributes\Option;
 use Blush\Console\ExitCode;
+use Blush\Console\Outcome;
 use Blush\Console\Output;
-use Blush\Console\Style;
+use Blush\Console\StatusLine;
 use Blush\Console\Verbosity;
+use Blush\Core\Framework;
 use Blush\Media\MediaDates;
 use Blush\Media\MediaException;
 use Blush\Media\MediaMetadata;
@@ -51,20 +53,23 @@ final readonly class FixMediaDates
 
 				$steps->finish();
 
-				foreach ($filled->dates as $key => $date) {
-					$output->line(sprintf('%s  %s  %s', $output->style('added  ', Style::Green), $date, $key), Verbosity::Verbose);
-				}
+				$output->status(array_map(
+					static fn (string $key, string $date): StatusLine => new StatusLine(Outcome::Pass, 'added', "{$key} ({$date})"),
+					array_keys($filled->dates),
+					array_values($filled->dates)
+				), level: Verbosity::Verbose);
+				$output->status(array_map(
+					static fn (string $key, string $message): StatusLine => new StatusLine(Outcome::Failure, 'failed', "{$key}: {$message}"),
+					array_keys($filled->failed),
+					array_values($filled->failed)
+				));
 
 				if ($filled->dates !== []) {
-					$output->line(sprintf('Gave %s an upload date.', self::plural(count($filled->dates), 'media file', 'media files')));
-				}
-
-				foreach ($filled->failed as $key => $message) {
-					$output->line(sprintf('%s  %s: %s', $output->style('failed ', Style::Red), $key, $message));
+					$output->success(sprintf('Gave %s an upload date.', Output::count(count($filled->dates), 'media file', 'media files')));
 				}
 
 				if ($filled->failed !== []) {
-					$output->error(sprintf('%s couldn\'t be given an upload date.', self::plural(count($filled->failed), 'file', 'files')));
+					$output->error(sprintf('%s couldn\'t be given an upload date.', Output::count(count($filled->failed), 'file', 'files')));
 
 					return ExitCode::Failure;
 				}
@@ -81,9 +86,11 @@ final readonly class FixMediaDates
 		}
 
 		// A site can have thousands: the count says it, and -v lists them.
-		foreach ($missing as $key => $date) {
-			$output->line(sprintf('%s  %s  %s', $output->style('missing', Style::Red), MediaMetadata::utc($date), $key), Verbosity::Verbose);
-		}
+		$output->status(array_map(
+			static fn (string $key, mixed $date): StatusLine => new StatusLine(Outcome::Failure, 'missing', sprintf('%s (%s)', $key, MediaMetadata::utc($date))),
+			array_keys($missing),
+			array_values($missing)
+		), level: Verbosity::Verbose);
 
 		if ($missing === []) {
 			$output->success('Every media file has an upload date in UTC.');
@@ -91,16 +98,11 @@ final readonly class FixMediaDates
 			return ExitCode::Success;
 		}
 
-		$output->error(sprintf('%s no upload date, or one not in UTC; write them with --write.', self::plural(count($missing), 'file has', 'files have')));
+		$output->error(
+			sprintf('%s no upload date, or one not in UTC.', Output::count(count($missing), 'file has', 'files have')),
+			'Write them with `' . Framework::BINARY . ' media:dates --write`.'
+		);
 
 		return ExitCode::Failure;
-	}
-
-	/**
-	 * Returns a count with its noun and verb, singular or plural.
-	 */
-	private static function plural(int $count, string $one, string $many): string
-	{
-		return sprintf('%d %s', $count, $count === 1 ? $one : $many);
 	}
 }

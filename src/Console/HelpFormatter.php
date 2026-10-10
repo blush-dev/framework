@@ -18,76 +18,81 @@ use Blush\Console\Input\InputDefinition;
 use Blush\Console\Input\OptionDefinition;
 use Blush\Console\Input\Signature;
 use Blush\Console\Input\ValueType;
+use Blush\Core\AppConfig;
 use Blush\Core\Framework;
 
 /**
  * Writes the command list and per-command help, all generated from command
- * signatures.
+ * signatures, from `Output`'s shared pieces (D-717). A command's help
+ * leaves out the global options, which `help --global` shows.
  */
 final readonly class HelpFormatter
 {
+	public function __construct(
+		private AppConfig $app
+	) {}
+
 	/**
 	 * Writes help for one command.
 	 */
 	public function command(Signature $signature, Output $output): void
 	{
 		if ($signature->description !== '') {
-			$this->heading('Description:', $output);
-			$output->line("  {$signature->description}");
-			$output->newLine();
+			$output->line($signature->description);
 		}
 
-		$this->heading('Usage:', $output);
-		$output->line('  ' . Framework::BINARY . ' ' . $signature->usage());
+		$output->section('Usage');
+		$output->line('  ' . $output->code(Framework::BINARY . ' ' . $signature->usage()));
 
 		foreach ($signature->aliases as $alias) {
-			$output->line('  ' . Framework::BINARY . " {$alias}");
+			$output->line('  ' . $output->code(Framework::BINARY . " {$alias}"));
 		}
 
 		$arguments = $signature->definition->arguments;
 
 		if ($arguments !== []) {
-			$output->newLine();
-			$this->heading('Arguments:', $output);
-
 			$rows = [];
 
 			foreach ($arguments as $argument) {
 				$rows[$argument->name] = $argument->description . $this->defaultHint($argument->required || $argument->variadic ? null : $argument->default, $argument->enum);
 			}
 
-			$this->rows($rows, $output);
+			$output->section('Arguments');
+			$output->definitions($rows, code: true);
 		}
 
 		if ($signature->definition->options() !== []) {
-			$output->newLine();
-			$this->heading('Options:', $output);
-			$this->options($signature->definition, $output);
+			$output->section('Options');
+			$output->definitions($this->options($signature->definition), code: true);
 		}
 
-		$output->newLine();
-		$this->heading('Global options:', $output);
-		$this->options(GlobalOptions::definition(), $output);
+		$output->next('Run `' . Framework::BINARY . ' help --global` for the options every command takes.');
+	}
+
+	/**
+	 * Writes the options every command takes.
+	 */
+	public function globals(Output $output): void
+	{
+		$output->line('Every command takes these options.');
+		$output->section('Global options');
+		$output->definitions($this->options(GlobalOptions::definition()), code: true);
 	}
 
 	/**
 	 * Writes the list of visible commands, grouped by namespace (the part
-	 * of the name before `:`).
+	 * of the name before `:`), after the framework's version and the
+	 * site's name and environment.
 	 */
 	public function commands(CommandRegistry $commands, Output $output): void
 	{
-		$output->line(Framework::NAME . ' ' . $output->style(Framework::VERSION, Style::Green));
-		$output->newLine();
+		$site = $this->app->environment->value;
+		$site = $this->app->name === '' || $this->app->name === Framework::NAME ? $site : "{$this->app->name} ({$site})";
 
-		$this->heading('Usage:', $output);
-		$output->line('  ' . Framework::BINARY . ' <command> [options] [arguments]');
-		$output->newLine();
+		$output->line($output->join($output->tone(Framework::NAME . ' ' . Framework::VERSION, Tone::Heading), $site));
 
-		$this->heading('Options:', $output);
-		$this->options(GlobalOptions::definition(), $output);
-		$output->newLine();
-
-		$this->heading('Available commands:', $output);
+		$output->section('Usage');
+		$output->line('  ' . $output->code(Framework::BINARY . ' <command> [options] [arguments]'));
 
 		$groups = [];
 
@@ -106,26 +111,19 @@ final readonly class HelpFormatter
 			|> (static fn (array $widths): int => max(0, ...$widths));
 
 		foreach ($groups as $group => $rows) {
-			if ($group !== '') {
-				$output->line(' ' . $output->style((string) $group, Style::Yellow));
-			}
-
-			$this->rows($rows, $output, $width);
+			$output->section($group === '' ? 'General' : ucfirst((string) $group));
+			$output->definitions($rows, code: true, align: $width);
 		}
+
+		$output->next('Run `' . Framework::BINARY . ' help <command>` for a command\'s options, or `' . Framework::BINARY . ' help --global` for the ones every command takes.');
 	}
 
 	/**
-	 * Writes a section heading.
+	 * Returns the rows for a set of options.
+	 *
+	 * @return array<string, string>
 	 */
-	private function heading(string $text, Output $output): void
-	{
-		$output->line($output->style($text, Style::Yellow));
-	}
-
-	/**
-	 * Writes the rows for a set of options.
-	 */
-	private function options(InputDefinition $definition, Output $output): void
+	private function options(InputDefinition $definition): array
 	{
 		$rows = [];
 
@@ -133,9 +131,8 @@ final readonly class HelpFormatter
 			$rows[$option->usage()] = $option->description . $this->optionHint($option);
 		}
 
-		$this->rows($rows, $output);
+		return $rows;
 	}
-
 	/**
 	 * Returns the default-value hint for an option.
 	 */
@@ -158,22 +155,5 @@ final readonly class HelpFormatter
 		}
 
 		return is_scalar($default) ? $hint . sprintf(' [default: %s]', var_export($default, true)) : $hint;
-	}
-
-	/**
-	 * Writes aligned `label  description` rows.
-	 *
-	 * @param array<string, string> $rows
-	 */
-	private function rows(array $rows, Output $output, ?int $width = null): void
-	{
-		$width ??= max(0, ...array_map(mb_strwidth(...), array_map(strval(...), array_keys($rows))));
-
-		foreach ($rows as $label => $description) {
-			$label = (string) $label;
-			$pad   = str_repeat(' ', $width - mb_strwidth($label) + 2);
-
-			$output->line('  ' . $output->style($label, Style::Green) . $pad . trim($description));
-		}
 	}
 }

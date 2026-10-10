@@ -191,12 +191,10 @@ final readonly class Accounts
 	 */
 	public function create(string $username, string $password, array $roles, ?string $profile = null, ?string $name = null, string $email = ''): Account
 	{
-		if (! Account::isValidUsername($username)) {
-			throw new AuthException(sprintf('"%s" can\'t be a username; use lowercase letters, digits, ".", "_", and "-" (up to 64).', $username));
-		}
+		$problem = $this->usernameProblem($username);
 
-		if ($this->find($username) !== null) {
-			throw new AuthException(sprintf('There\'s already an account named "%s".', $username));
+		if ($problem !== null) {
+			throw new AuthException($problem);
 		}
 
 		$email = $this->checkEmail($email, $username);
@@ -216,6 +214,19 @@ final readonly class Accounts
 		);
 
 		return $this->save($account);
+	}
+
+	/**
+	 * Returns why a new account can't have a username: it isn't one, or
+	 * it's taken; else `null`.
+	 */
+	public function usernameProblem(string $username): ?string
+	{
+		return match (true) {
+			! Account::isValidUsername($username) => sprintf('"%s" can\'t be a username; use lowercase letters, digits, ".", "_", and "-" (up to 64).', $username),
+			$this->find($username) !== null      => sprintf('There\'s already an account named "%s".', $username),
+			default                              => null
+		};
 	}
 
 	/**

@@ -64,7 +64,7 @@ final readonly class RetryJobs
 			}
 		}
 
-		$output->success(sprintf('Queued %d job%s again.', $retried, $retried === 1 ? '' : 's'));
+		$output->success(sprintf('Queued %s again.', Output::count($retried, 'job', 'jobs')));
 
 		return ExitCode::Success;
 	}
