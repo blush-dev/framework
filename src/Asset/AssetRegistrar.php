@@ -19,6 +19,10 @@ namespace Blush\Asset;
  *
  * - `blush/player`: the audio and video players (D-553, D-554), which
  *   `::audio` and `::video` ask for (D-573).
+ * - `blush/embed-x`: X's script, which draws the posts `::embed` shows
+ *   as quotes (D-691), in the foot. A site that would rather show the
+ *   quotes alone registers an empty one.
+ * - `blush/embed-reddit`: Reddit's script, the same way (D-692).
  */
 final readonly class AssetRegistrar
 {
@@ -26,6 +30,16 @@ final readonly class AssetRegistrar
 	 * The audio and video players' handle.
 	 */
 	public const string PLAYER = 'blush/player';
+
+	/**
+	 * X's script's handle.
+	 */
+	public const string EMBED_X = 'blush/embed-x';
+
+	/**
+	 * Reddit's script's handle.
+	 */
+	public const string EMBED_REDDIT = 'blush/embed-reddit';
 
 	public function __construct(private AssetRegistry $registry)
 	{}
@@ -39,6 +53,16 @@ final readonly class AssetRegistrar
 			self::PLAYER,
 			styles: [new Style('css/player.css', AssetUrls::CORE)],
 			scripts: [new Script('js/player.js', AssetUrls::CORE, ['type' => 'module'])]
+		));
+
+		$this->registry->registerIf(new Asset(
+			self::EMBED_X,
+			scripts: [new Script('https://platform.twitter.com/widgets.js', attributes: ['defer' => false, 'async' => true, 'charset' => 'utf-8'], footer: true)]
+		));
+
+		$this->registry->registerIf(new Asset(
+			self::EMBED_REDDIT,
+			scripts: [new Script('https://embed.reddit.com/widgets.js', attributes: ['defer' => false, 'async' => true, 'charset' => 'utf-8'], footer: true)]
 		));
 	}
 }

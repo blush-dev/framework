@@ -15,12 +15,14 @@ namespace Blush\Embed;
 
 use Blush\Embed\Providers\CodePen;
 use Blush\Embed\Providers\Flickr;
+use Blush\Embed\Providers\Reddit;
 use Blush\Embed\Providers\SoundCloud;
 use Blush\Embed\Providers\Spotify;
 use Blush\Embed\Providers\Ted;
 use Blush\Embed\Providers\TikTok;
 use Blush\Embed\Providers\Twitch;
 use Blush\Embed\Providers\Vimeo;
+use Blush\Embed\Providers\X;
 use Blush\Embed\Providers\YouTube;
 
 /**
@@ -37,6 +39,8 @@ enum ProviderType: string
 	case Flickr      = 'flickr';
 	case Twitch      = 'twitch';
 	case TikTok      = 'tiktok';
+	case X           = 'x';
+	case Reddit      = 'reddit';
 
 	/**
 	 * Returns the provider's class.
@@ -54,7 +58,9 @@ enum ProviderType: string
 			self::SoundCloud  => SoundCloud::class,
 			self::Flickr      => Flickr::class,
 			self::Twitch      => Twitch::class,
-			self::TikTok      => TikTok::class
+			self::TikTok      => TikTok::class,
+			self::X           => X::class,
+			self::Reddit      => Reddit::class
 		};
 	}
 }

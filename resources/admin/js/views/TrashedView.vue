@@ -15,7 +15,7 @@ import { useAction } from '../action';
 import AdminIcon from '../components/AdminIcon.vue';
 import MarkdownEditor from '../components/MarkdownEditor.vue';
 import RawValues from '../components/RawValues.vue';
-import { formatDate } from '../format';
+import { siteDateTime } from '../dates';
 import { screenTitle } from '../screen';
 import { toast } from '../toast';
 import { currentType, labelsOf, loadTypes } from '../types';
@@ -110,7 +110,7 @@ async function purge(): Promise<void> {
 				<template v-else>In the Trash</template>
 			</h1>
 			<p v-if="item" class="page-header__hint">
-				{{ labels.singular }}<template v-if="item.trashed"> · Moved to the trash <time :datetime="item.trashed">{{ formatDate(item.trashed) }}</time></template>
+				{{ labels.singular }}<template v-if="item.trashed"> · Moved to the trash <time :datetime="item.trashed">{{ siteDateTime(item.trashed) }}</time></template>
 			</p>
 		</div>
 		<div class="page-header__actions">

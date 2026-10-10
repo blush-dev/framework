@@ -145,6 +145,15 @@ final class AdminAppTest extends TestCase
 		$this->assertStringContainsString('"adminTheme":"editorial"', $body);
 	}
 
+	public function testTheShellCarriesTheSitesDateFormats(): void
+	{
+		$this->boot(environment: ['APP_LOCALE' => 'fr_FR']);
+
+		$body = (string) $this->visit('GET', '/admin')->getBody();
+
+		$this->assertStringContainsString('"dates":{"locale":"fr-FR","date":"long","time":"short"}', $body, 'The locale is a language tag the browser reads.');
+	}
+
 	public function testServesACustomApp(): void
 	{
 		$this->boot(config: ", app: '{$this->customApp()}'");

@@ -1187,7 +1187,10 @@ Move each item to `decisions.md` once it's answered.
   The proposal was the page-level opt-out first, then browser-loaded
   fragments for real holes. What's wanted depends on the use: content
   that changes over time (a year, a random quote) or per visitor.
-- **Skeleton license** (D-070): confirm MIT for `blush-dev/blush` `2.x`.
+- **The admin's own language and time zone** (D-693): the admin's
+  dates read as dates are in the site's formats and language, in the
+  reader's time zone (the browser's). If accounts get a language or a
+  time zone of their own, those dates should follow them.
 - **The skeleton's content model** (noted 2026-10-07, after D-602; not
   needed until the skeleton is worked on): its `2.x` branch has no
   content types or relations, so `user/content/blog/` and `blog/tags/`
@@ -1606,17 +1609,30 @@ Move each item to `decisions.md` once it's answered.
     plugin); the capability names; whether `Blush\Transfer` holds
     `Import\` and `Export\` subnamespaces or flat classes; what of
     settings, themes, and extensions an archive carries.
-- **Rich (script) embeds** (D-184): providers such as X, Instagram,
-  TikTok, and Mastodon answer oEmbed with HTML that needs their own
-  `<script>`. The planned path: a provider opts in with
-  `allowsScripts()`; its `EmbedData::$html` is output as given only for
-  such providers (after checking that any script comes from the
-  provider's own hosts); the script tag is deduplicated per page, which
-  directives can now do: an embed's `assets()` can ask for a
-  provider's registered asset, kept with the body (D-572). Also: a site's Content Security
-  Policy, privacy (these scripts track visitors; a click-to-load
-  placeholder with the thumbnail may be the default). Until then they render as links named by
-  their title.
+- **Rich (script) embeds** (D-184): settled in D-691, built for X and
+  Reddit (D-692). Next: Bluesky, Tumblr, then Mastodon; Meta's providers wait
+  for a place to keep a provider's token.
+- **Rich embed script addresses, to revisit** (discussed 2026-10-09,
+  after D-692; the author kept D-691's design for now): core names each
+  provider's script by a fixed address in a registered asset
+  (`blush/embed-x`, `blush/embed-reddit`), so a provider moving its
+  script means a core update. So far providers keep old addresses
+  working (Reddit's `embed.redditmedia.com/widgets/platform.js` 301s to
+  `embed.reddit.com/widgets.js`; X's answers name `platform.x.com`,
+  which 302s to `platform.twitter.com`), since pasted embeds hard-code
+  them, and a broken script leaves the quote, not a broken page.
+  Options:
+  - **Keep it** (now), and perhaps a notice: stop sending X
+    `omit_script`, still drop the answer's script, and log when its
+    address differs from the asset's, as warning before an old address
+    goes away.
+  - **The answer's address for built-in providers:** use the script
+    the answer names (HTTPS), falling back to the asset's when there's
+    none. Another well-known CMS outputs trusted providers' HTML as
+    given, script and all, so it never needs the address; checking the
+    answer's host against a list would break when a provider moves
+    host, as both of these did. Needs cached bodies to keep script
+    addresses beside asset handles (D-572).
 - **More embed providers** (discussed 2026-10-07, after D-584). Step 1
   is built (D-633): TED and CodePen built in; Dailymotion, Loom,
   Wistia, Speaker Deck, and Kickstarter dropped; and a switch per provider on
@@ -1649,7 +1665,7 @@ Move each item to `decisions.md` once it's answered.
     (`tiktok.com/player/v1/{id}`) could be framed instead, the way
     YouTube always frames `youtube-nocookie.com`; it's portrait, so
     D-186's cap applies.
-  - **Waiting on rich embeds (above):** X, Instagram, Facebook, Threads,
+  - **Rich embeds (D-691, X built):** X, Instagram, Facebook, Threads,
     Bluesky, Reddit, Tumblr, Imgur, and newer Mastodon answer with a
     blockquote and a script. Instagram, Facebook, and Threads also
     need a Meta app access token on every request (a setting for a

@@ -31,14 +31,17 @@ use Blush\Embed\ProviderFactory;
 use Blush\Embed\ProviderRegistrar;
 use Blush\Embed\ProviderRegistry;
 use Blush\Embed\ProviderType;
+use Blush\Embed\RichQuote;
 use Blush\Embed\Providers\CodePen;
 use Blush\Embed\Providers\Flickr;
+use Blush\Embed\Providers\Reddit;
 use Blush\Embed\Providers\SoundCloud;
 use Blush\Embed\Providers\Spotify;
 use Blush\Embed\Providers\Ted;
 use Blush\Embed\Providers\TikTok;
 use Blush\Embed\Providers\Twitch;
 use Blush\Embed\Providers\Vimeo;
+use Blush\Embed\Providers\X;
 use Blush\Embed\Providers\YouTube;
 use Blush\Embed\StreamFetcher;
 use Blush\Http\Kernel;
@@ -56,8 +59,10 @@ use Blush\Tests\Fixtures\Embed\FixtureFetcher;
 #[CoversClass(ProviderRegistrar::class)]
 #[CoversClass(ProviderRegistry::class)]
 #[CoversClass(ProviderType::class)]
+#[CoversClass(RichQuote::class)]
 #[CoversClass(CodePen::class)]
 #[CoversClass(Flickr::class)]
+#[CoversClass(Reddit::class)]
 #[CoversClass(SoundCloud::class)]
 #[CoversClass(Spotify::class)]
 #[CoversClass(StreamFetcher::class)]
@@ -65,6 +70,7 @@ use Blush\Tests\Fixtures\Embed\FixtureFetcher;
 #[CoversClass(TikTok::class)]
 #[CoversClass(Twitch::class)]
 #[CoversClass(Vimeo::class)]
+#[CoversClass(X::class)]
 #[CoversClass(YouTube::class)]
 final class EmbedsTest extends TestCase
 {
@@ -211,7 +217,7 @@ final class EmbedsTest extends TestCase
 
 		$providers = $this->app([], $config)->container()->make(EmbedProviders::class);
 
-		$this->assertSame(['youtube', 'example', 'vimeo', 'ted', 'codepen', 'spotify', 'soundcloud', 'flickr', 'twitch', 'tiktok'], array_map(static fn (EmbedProvider $provider): string => $provider->name, $providers->all()));
+		$this->assertSame(['youtube', 'example', 'vimeo', 'ted', 'codepen', 'spotify', 'soundcloud', 'flickr', 'twitch', 'tiktok', 'x', 'reddit'], array_map(static fn (EmbedProvider $provider): string => $provider->name, $providers->all()));
 		$this->assertSame('Tube', $providers->forUrl('https://youtu.be/dQw4w9WgXcQ')?->label);
 		$this->assertSame('Example', $providers->forUrl('https://video.example.com/1')?->label);
 		$this->assertNull($providers->forUrl('https://unknown.test/1'));
@@ -414,6 +420,91 @@ final class EmbedsTest extends TestCase
 		// A script-based rich embed isn't run; it's a link, named by its title.
 		$this->assertStringContainsString('<p class="directive-embed directive-embed--link"><a href="https://social.example.com/post/1">A post</a></p>', $html);
 		$this->assertStringNotContainsString('w.js', $html);
+	}
+
+	public function testRichQuotesAreCleaned(): void
+	{
+		$html = '<p>Before</p><blockquote class="twitter-tweet" data-dnt="true" style="color: red" onclick="alert(1)" cite="javascript:alert(1)">'
+			. '<p lang="en" dir="ltr" id="x">Hello <span>there</span> <a href="https://x.com/jack/status/20?ref_src=twsrc%5Etfw" onmouseover="alert(1)">link</a> <a href="javascript:alert(1)">bad</a><br></p>'
+			. '<script>alert(1)</script><iframe src="https://evil.test"></iframe><!-- note --><style>p {}</style>'
+			. '&mdash; jack (@jack)</blockquote><script async src="https://evil.test/w.js"></script>';
+
+		$this->assertSame(
+			'<blockquote class="twitter-tweet" data-dnt="true"><p lang="en" dir="ltr">Hello there <a href="https://x.com/jack/status/20?ref_src=twsrc%5Etfw">link</a> <a>bad</a><br></p>— jack (@jack)</blockquote>',
+			RichQuote::clean($html)
+		);
+		$this->assertNull(RichQuote::clean('<p>No quote</p>'));
+		$this->assertNull(RichQuote::clean('<blockquote><script>alert(1)</script></blockquote>'));
+	}
+
+	public function testXPostsShowAsQuotes(): void
+	{
+		$x = new X();
+
+		$this->assertTrue($x->matches('https://x.com/jack/status/20'));
+		$this->assertTrue($x->matches('https://twitter.com/jack/status/20'));
+		$this->assertTrue($x->matches('http://mobile.twitter.com/jack/status/20'));
+		$this->assertFalse($x->matches('https://x.com/jack'));
+		$this->assertSame('https://publish.x.com/oembed?url=https%3A%2F%2Fx.com%2Fjack%2Fstatus%2F20&format=json&omit_script=1&dnt=true', $x->request('https://x.com/jack/status/20'));
+		$this->assertNull($x->frame('https://x.com/jack/status/20', null));
+		$this->assertNull($x->quote('https://x.com/jack/status/20', null));
+
+		// A provider without an asset shows no quote.
+		$this->assertNull(new OEmbedProvider('social', 'Social', ['https://social.example.com/*'], 'https://social.example.com/oembed')->quote('https://social.example.com/1', new EmbedData(EmbedType::Rich, html: '<blockquote>Hi</blockquote>')));
+
+		$this->writeTemporaryFile('user/content/index.md', <<<'MD'
+			---
+			id: d680e8a8-54a7-cbad-6d49-0c445cba2eba
+			title: Home
+			---
+			::embed[The first post]{url="https://x.com/jack/status/20"}
+
+			::embed{url="https://twitter.com/jack/status/20"}
+
+			::embed{url="https://x.com/jack/status/21"}
+			MD);
+
+		$app  = $this->app(['https://publish.x.com/oembed?url=https%3A%2F%2Fx.com%2Fjack%2Fstatus%2F20&' => '{"type": "rich", "author_name": "jack", "provider_name": "X", "width": 550, "html": "<blockquote class=\"twitter-tweet\" data-dnt=\"true\"><p lang=\"en\" dir=\"ltr\">just setting up my twttr</p>&mdash; jack (@jack) <a href=\"https://x.com/jack/status/20?ref_src=twsrc%5Etfw\">March 21, 2006</a></blockquote><script async src=\"https://evil.test/w.js\"></script>"}']);
+		$html = (string) $app->container()->make(Kernel::class)->handle(Request::create('/'))->getBody();
+
+		$this->assertStringContainsString('<figure class="directive-embed directive-embed--x directive-embed--rich">', $html);
+		$this->assertStringContainsString('<blockquote class="twitter-tweet" data-dnt="true"><p lang="en" dir="ltr">just setting up my twttr</p>— jack (@jack) <a href="https://x.com/jack/status/20?ref_src=twsrc%5Etfw">March 21, 2006</a></blockquote>', $html);
+		$this->assertStringContainsString('<figcaption>The first post</figcaption>', $html);
+		$this->assertSame(1, substr_count($html, 'https://platform.twitter.com/widgets.js'), 'X\'s script, once.');
+		$this->assertStringContainsString('<script src="https://platform.twitter.com/widgets.js" async charset="utf-8"></script>', $html);
+		$this->assertStringNotContainsString('evil.test', $html);
+
+		// Without an answer, a post is a link.
+		$this->assertStringContainsString('<p class="directive-embed directive-embed--link"><a href="https://x.com/jack/status/21">https://x.com/jack/status/21</a></p>', $html);
+	}
+
+	public function testRedditPostsShowAsQuotes(): void
+	{
+		$reddit = new Reddit();
+
+		$this->assertTrue($reddit->matches('https://www.reddit.com/r/PHP/comments/1wy0ysh/weekly_help_thread/'));
+		$this->assertTrue($reddit->matches('https://old.reddit.com/r/PHP/comments/1wy0ysh/'));
+		$this->assertTrue($reddit->matches('http://reddit.com/r/PHP/comments/1wy0ysh/weekly_help_thread/abc123/'));
+		$this->assertFalse($reddit->matches('https://www.reddit.com/r/PHP/'));
+		$this->assertFalse($reddit->matches('https://www.reddit.com/r/PHP/s/AbCdEf'));
+		$this->assertNull($reddit->frame('https://www.reddit.com/r/PHP/comments/1wy0ysh/', null));
+
+		$this->writeTemporaryFile('user/content/index.md', <<<'MD'
+			---
+			id: d680e8a8-54a7-cbad-6d49-0c445cba2eba
+			title: Home
+			---
+			::embed{url="https://www.reddit.com/r/PHP/comments/1wy0ysh/weekly_help_thread/"}
+
+			::embed{url="https://old.reddit.com/r/PHP/comments/1wy0ysh/"}
+			MD);
+
+		$app  = $this->app(['https://www.reddit.com/oembed' => '{"type": "rich", "author_name": "brendt_gd", "provider_name": "reddit", "title": "Weekly help thread", "height": 316, "html": "<blockquote class=\"reddit-embed-bq\" style=\"height:316px\" >\n<a href=\"https://www.reddit.com/r/PHP/comments/1wy0ysh/weekly_help_thread/\">Weekly help thread</a><br> by\n<a href=\"https://www.reddit.com/user/brendt_gd/\">u/brendt_gd</a> in\n<a href=\"https://www.reddit.com/r/PHP/\">PHP</a>\n</blockquote>\n<script async src=\"https://embed.reddit.com/widgets.js\" charset=\"UTF-8\"></script>"}']);
+		$html = (string) $app->container()->make(Kernel::class)->handle(Request::create('/'))->getBody();
+
+		$this->assertSame(2, substr_count($html, '<figure class="directive-embed directive-embed--reddit directive-embed--rich">'));
+		$this->assertStringContainsString("<blockquote class=\"reddit-embed-bq\">\n<a href=\"https://www.reddit.com/r/PHP/comments/1wy0ysh/weekly_help_thread/\">Weekly help thread</a><br> by\n<a href=\"https://www.reddit.com/user/brendt_gd/\">u/brendt_gd</a> in\n<a href=\"https://www.reddit.com/r/PHP/\">PHP</a>\n</blockquote>", $html);
+		$this->assertSame(1, substr_count($html, '<script src="https://embed.reddit.com/widgets.js" async charset="utf-8"></script>'));
 	}
 
 	public function testTheStreamFetcherOnlyFetchesHttps(): void

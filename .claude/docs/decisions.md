@@ -21437,3 +21437,142 @@ decision, add a new entry that supersedes it and mark the old one
 - **Why:** D-689's split made opening the admin faster but the first
   visit to each screen slower; prefetching keeps the faster start and
   brings moving between screens back to the one-file build's speed.
+
+### D-691: Rich embeds, starting with X
+
+- **Date:** 2026-10-09
+- **Status:** Built for X; the rest planned. Refines D-184 (rich
+  embeds, from `open-questions.md`); click-to-load (step 4 of the embed
+  providers discussion) is skipped for now.
+- **Decision:** the author took every leaning offered and asked for X
+  first.
+  - **The quote, cleaned:** a rich answer is a `<blockquote>` the
+    provider's script draws the post from, and it reads as the post
+    without the script. `RichQuote::clean()` keeps the answer's first
+    blockquote with only `blockquote`, `p`, `a`, and `br`; other tags
+    give way to their content, and `HtmlRules::REFUSED` tags (scripts,
+    frames, styles) go with theirs, as do comments. Elements keep only
+    `class`, `lang`, `dir`, and `data-*` (what the script reads), with
+    `href` on links and `cite` on the quote when they're HTTPS. A quote
+    without text is none. Blush still builds the markup around it.
+  - **The script is a registered asset, never the answer's:**
+    `EmbedProvider::asset()` names a handle (replacing
+    `allowsScripts()`), and `quote($url, $data)` gives the cleaned quote
+    of a rich answer when there's one. The `embed` directive asks for
+    the asset (D-572), so the script prints once per page however many
+    posts are on it, and is kept with cached bodies. Core registers
+    `blush/embed-x`: `https://platform.twitter.com/widgets.js`, `async`,
+    in the foot. A site that wants the quotes alone registers an empty
+    one.
+  - **Loads right away:** as frames do now. Click-to-load comes with
+    step 4; the quote is already its placeholder.
+  - **Where the script never goes:** feeds and anything without the
+    page's foot get the quote alone. The admin doesn't preview embeds.
+  - **Markup:** `<figure>` with the `rich` modifier and the provider's
+    (`directive-embed--x directive-embed--rich`), the quote, and the
+    caption. The default theme keeps the quote, and the post the script
+    draws, at 550px, centered.
+  - **X:** posts (`/{user}/status/{id}`) on `x.com` and `twitter.com`
+    (with `www.` and `mobile.`), asked at `https://publish.x.com/oembed`
+    (`publish.twitter.com` redirects there) with `omit_script=1` and
+    `dnt=true` (the quote gets `data-dnt="true"`, so X doesn't tailor
+    the post to the reader). Checked live 2026-10-09. Nothing is
+    framed; without an answer, a post is a link, as before.
+  - **Next, in order:** Bluesky, Reddit (built, D-692), Tumblr, then Mastodon (servers
+    listed in `config/embed.php` and on the Embeds panel), each checked
+    live first. Meta's (Instagram, Facebook, Threads) wait for a place
+    to keep a provider's token. Not now: a theme's dark or light
+    setting for posts, and a Content Security Policy (none exists; if
+    one comes, it takes each provider's script and frame hosts).
+- **Why:** the quote keeps the post's words on the page (in feeds,
+  without JavaScript, and for readers) and is what the script needs;
+  cleaning it and naming the script ourselves means nothing the
+  provider sends runs unchecked.
+
+### D-692: Reddit posts as rich embeds
+
+- **Date:** 2026-10-09
+- **Status:** Built. Follows D-691 (the author asked for Reddit next).
+- **Decision:**
+  - **Reddit:** posts (`/r/{name}/comments/…`, comment links included)
+    on `reddit.com` with `www.`, `old.`, and `new.`, asked at
+    `https://www.reddit.com/oembed`. Checked live 2026-10-09: any of
+    those links is answered with the post (a comment link too), as a
+    `reddit-embed-bq` quote of its title, author, and community, with a
+    `style` height that the quote's cleaning drops. Share links
+    (`/r/{name}/s/{id}`) only redirect, so they stay links; so does
+    `redd.it`, which Reddit's oEmbed refuses.
+  - **Script:** core's `blush/embed-reddit`,
+    `https://embed.reddit.com/widgets.js`, `async`, in the foot.
+  - **Checked in headless Chrome:** Reddit's script replaced the
+    cleaned quote with its frame, so the dropped height isn't needed
+    (Reddit's frame then refused the headless browser). A real browser
+    check is still to do, for X's posts too.
+- **Why:** Reddit's answer needs no token and fits D-691's design as it
+  is: a provider class with an asset, and the quote cleaned.
+
+### D-693: The admin's dates read as dates are in the site's formats
+
+- **Date:** 2026-10-09
+- **Status:** Builds D-446's admin part (the author said yes to it).
+  The choices below were left to the build by D-446.
+- **Decision:**
+  - **The admin reads the formats, not dates the server formatted:**
+    the shell's start-up config carries `dates` (the site's locale as
+    a BCP 47 tag, `en-US`, and its `dateFormat` and `timeFormat`, with
+    `user/data/settings.json` over `config/`), and `dates.ts` formats in
+    the browser: styles through `Intl.DateTimeFormat`, ICU patterns
+    letter by letter (fields `Intl` can't give, such as week numbers,
+    are left out), a style and a pattern joined as the language joins
+    them, as `DateFormat` does. The server formatting every date would
+    mean a second field on every answer, and the editor's dates change
+    in the browser. Checked against `DateFormat::format` for styles,
+    patterns, and mixes in `en_US`, `en_GB`, and `fr_FR`: the same text.
+  - **In the site's language, in the reader's time zone:** the
+    language makes the dates read as the Settings menus show them; the
+    time zone stays the browser's, the one every other time in the
+    admin (columns, pickers, the calendar) is in, so one moment never
+    reads as two clock times on one screen. Revisit both if the admin
+    gets a language or time zone of its own.
+  - **Where:** `siteDateTime()` and `siteDate()` for a date read as a
+    date: an account's created and last sign-in dates and password link
+    expiry (`when()`, except the Accounts list's column), a media file's
+    Changed, the trashed entry's screen, a preview link's expiry, a
+    redirect's Added in its dialog, the conflict bar, and the editor's
+    kept-changes offer. List columns, pickers, and relative times
+    ("3 hours ago") keep `format.ts`. A date-only value in a reference
+    card or picker row (`formatDay()`) no longer shows a made-up
+    12:00 PM. A media file's embedded Made stays as the file writes it.
+  - A format changed on Settings shows in these dates on the admin's
+    next load.
+- **Checked:** `composer check`, `npm run admin:build`. `admin.js` is
+  206 KB (was 202 KB; `dates.ts` is on the first screen through
+  `people.ts`), 977 KB in all; `admin.css` unchanged, 88 KB of 191 KB.
+- **Why:** the admin is where people read their own dates most
+  (D-446); formatting in the browser keeps answers as they are and
+  works for dates the editor changes before they're saved.
+
+### D-694: Licenses for third-party work in builds; the skeleton is MIT
+
+- **Date:** 2026-10-09
+- **Status:** Confirms D-070 (the skeleton's license).
+- **Decision:**
+  - **The skeleton is MIT**, as D-070 has it; its `2.x` branch gets a
+    `LICENSE.md`.
+  - **Every third-party resource we ship carries its license.** The
+    admin and site builds write `licenses.txt` beside what they build
+    (`public/admin/licenses.txt`, `public/site/licenses.txt`) with
+    `resources/licenses.ts`, a Vite plugin: the license of every
+    package the build bundles, found from the build's modules under
+    `node_modules` (Vue's packages and Vue Router today), so the list
+    can't fall behind, and a package without a license file fails the
+    build; then the licenses of work copied in by hand, which each
+    build names (Lucide's icons, from `resources/icons/blush/LICENSE`;
+    the admin's fonts, from `fonts/LICENSE`). Core's icons keep
+    Lucide's license beside them as before; Composer packages keep
+    their own in `vendor/`.
+  - Anything copied in by hand from now on (icons, fonts, code) brings
+    its license file, named in the build that uses it.
+- **Checked:** `npm run admin:build`, `npm run site:build`.
+- **Why:** MIT and ISC ask for their notice in every copy, and the
+  built files are minified without it.

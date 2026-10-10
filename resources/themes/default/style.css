@@ -725,6 +725,15 @@ hr {
 	aspect-ratio: auto;
 }
 
+/*
+ * A post (from X) is a quote until its provider's script draws it, and
+ * keeps to a post's width, centered, either way.
+ */
+.directive-embed--rich > :not(figcaption) {
+	max-width: 550px;
+	margin-inline: auto;
+}
+
 /* A photo (from Flickr) fills the column at most, keeping its shape. */
 .directive-embed__photo {
 	display: block;

@@ -14,7 +14,8 @@ import { computed, ref } from 'vue';
 import AdminIcon from './AdminIcon.vue';
 import type { EntryDetail } from '../api';
 import type { Differences } from '../diff';
-import { formatDate, plural } from '../format';
+import { siteDateTime } from '../dates';
+import { plural } from '../format';
 
 const props = defineProps<{
 	noun: string;
@@ -42,7 +43,7 @@ const differences = computed(() => comparing.value ? props.compare() : null);
 			<div class="conflict__text">
 				<h2 id="conflict-heading">This {{ noun }} changed while you were editing</h2>
 				<p>
-					<template v-if="theirs?.modified">Its file was saved at {{ formatDate(theirs.modified) }}, </template>
+					<template v-if="theirs?.modified">Its file was saved at {{ siteDateTime(theirs.modified) }}, </template>
 					<template v-else>Its file was saved again, </template>
 					from the admin or by editing the file itself. {{ safe }}; nothing has been saved over. Keep theirs throws away your changes here; Keep mine saves your version of every field shown here over theirs.
 				</p>

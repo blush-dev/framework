@@ -64,7 +64,8 @@ import { useAction } from '../action';
 import { config } from '../config';
 import { fromForm, toForm, type FormValue } from '../fields';
 import { attributeText, imageText, linkText } from '../markdown';
-import { formatDate, formatSize, plural } from '../format';
+import { siteDateTime } from '../dates';
+import { formatSize, plural } from '../format';
 import { embeddedText, forgetFile, formatDuration, mediaFacts, mediaIcon, mediaName } from '../media';
 import { screenCrumb, screenTitle } from '../screen';
 import { copyText, toast } from '../toast';
@@ -608,7 +609,7 @@ const snippet = computed(() => {
 					<div v-if="file.width !== null && file.height !== null"><dt>Dimensions</dt><dd class="mono">{{ file.width }} × {{ file.height }}</dd></div>
 					<div v-if="file.duration !== null"><dt>Length</dt><dd class="mono">{{ formatDuration(file.duration) }}</dd></div>
 					<div v-if="pages !== null"><dt>Pages</dt><dd class="mono">{{ pages }}</dd></div>
-					<div><dt>Changed</dt><dd>{{ formatDate(file.modified) }}</dd></div>
+					<div><dt>Changed</dt><dd>{{ siteDateTime(file.modified) }}</dd></div>
 					<div><dt>Uploaded by</dt><dd :class="{ 'facts__none': file.uploader === null }">{{ file.uploader?.name ?? 'Not recorded' }}</dd></div>
 				</dl>
 			</section>

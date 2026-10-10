@@ -6,10 +6,11 @@
 		"lib": ["ES2023"],
 		"strict": true,
 		"noEmit": true,
+		"allowImportingTsExtensions": true,
 		"isolatedModules": true,
 		"verbatimModuleSyntax": true,
 		"skipLibCheck": true,
 		"types": ["node"]
 	},
-	"include": ["vite.config.ts"]
+	"include": ["vite.config.ts", "../licenses.ts"]
 }

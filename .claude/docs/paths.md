@@ -106,6 +106,7 @@ blush-framework/
                         session.ts, router.ts, icons.ts, color-scheme.ts, fields.ts, types.ts, screen.ts, views/, components/), css/ (admin.css,
                         the entry, importing tokens.css, fonts.css, base.css; D-231), fonts/
                         (Fira Code, Karla, Newsreader; OFL). Built with `npm run admin:build`
+    licenses.ts         The Vite plugin both builds use to write licenses.txt (D-694)
     player/             The audio and video players (plain DOM custom elements, D-553, D-554),
                         shared by the admin and the site
     site/               Core's site assets' sources (D-573): js/player.ts, css/player.css (the
@@ -116,6 +117,8 @@ blush-framework/
                         demand, with their shared files (js/EditorView.js, …; D-687, D-689)
   public/site/          Core's built site assets (committed; plain names): js/player.js,
                         css/player.css, served at /blush/{path} (D-573)
+                        Both builds write licenses.txt: the licenses of the npm packages they
+                        bundle and of the work copied in by hand (D-694, resources/licenses.ts)
   package.json          npm scripts for the admin build (admin:build, admin:watch, admin:check)
                         and core's site assets (site:build, site:check)
   docs/                 User documentation: installing, content, themes, config, CLI (D-141)

@@ -876,9 +876,9 @@ Undo on moving to the trash is built (D-525). Smaller admin items
 waiting: the admin theme choice (a second
 account preference, D-235), objects in forms, autosave, and Pages
 and hierarchical terms as a tree (see D-233 to D-237's and D-257's open
-items). Later: the admin's dates in the site's date and time
-formats where they read as dates, not in compact columns or
-pickers (D-446).
+items). The admin's dates are in the site's date and time formats
+where they read as dates, not in compact columns or pickers (D-446,
+built in D-693).
 
 Testing the admin on the jtcom trial: create a throwaway administrator
 account file in `../blush/storage/accounts/` (an Argon2id hash), drive

@@ -8,7 +8,8 @@
  * same for the files the CSS points to, and for the screens loaded on
  * demand (D-687): their files and the files they import, `admin.js`
  * among them, with the version Blush gives it, or the browser would run
- * the admin twice.
+ * the admin twice. `licenses.txt` beside them names the licenses of the
+ * third-party work in the build (D-694).
  *
  *     npm run admin:build   # type-check, then build
  *     npm run admin:watch   # rebuild on change
@@ -19,6 +20,7 @@ import { posix, relative, resolve } from 'node:path';
 import { crc32 } from 'node:zlib';
 import { defineConfig, type Plugin } from 'vite';
 import vue from '@vitejs/plugin-vue';
+import { licenses } from '../licenses.ts';
 
 const resources = import.meta.dirname;
 const outDir = resolve(resources, '../../public/admin');
@@ -129,7 +131,14 @@ export default defineConfig({
 	publicDir: false,
 	// Elements named `blush-…` are custom elements, not Vue components:
 	// the audio player (`resources/player`, D-553).
-	plugins: [vue({ template: { compilerOptions: { isCustomElement: (tag) => tag.startsWith('blush-') } } }), resourceFiles()],
+	plugins: [
+		vue({ template: { compilerOptions: { isCustomElement: (tag) => tag.startsWith('blush-') } } }),
+		resourceFiles(),
+		licenses([
+			{ name: 'Lucide icons, in the admin\'s and the players\' icons', file: resolve(resources, '../icons/blush/LICENSE') },
+			{ name: 'Fira Code, Karla, and Newsreader fonts, in fonts/', file: resolve(resources, 'fonts/LICENSE') }
+		])
+	],
 	build: {
 		outDir,
 		emptyOutDir: true,

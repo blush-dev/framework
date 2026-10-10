@@ -16,7 +16,7 @@
 
 import { computed, ref } from 'vue';
 import { CARD_CAP, marked, type ReferenceItem } from '../references';
-import { capitalized, formatDate, plural, withArticle } from '../format';
+import { capitalized, formatDay, plural, withArticle } from '../format';
 import { usePicker, type PickerProps } from '../picker';
 import AdminIcon from './AdminIcon.vue';
 import ReferenceInherited from './ReferenceInherited.vue';
@@ -39,7 +39,7 @@ const offered = computed(() => typing.value ? results.value : before.value);
 const hidden = computed(() => rows.value.filter(({ item }) => item.status === 'draft' || item.status === 'trash').length);
 
 function meta(item: ReferenceItem): string {
-	return [names.value.singular, item.date ? formatDate(`${item.date}T12:00:00`) : null].filter((part) => part !== null).join(' · ');
+	return [names.value.singular, item.date ? formatDay(item.date) : null].filter((part) => part !== null).join(' · ');
 }
 </script>
 

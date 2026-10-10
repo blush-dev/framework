@@ -127,7 +127,8 @@ import { online } from '../connection';
 import { diffLines, hunks, type Differences } from '../diff';
 import { drawerOpen, keepDrawer } from '../drawer';
 import { fromForm, humanize, inSentence, label, splitDate, toForm, type FormValue } from '../fields';
-import { formatDate, plural, series, titleCase } from '../format';
+import { siteDateTime } from '../dates';
+import { formatDay, plural, series, titleCase } from '../format';
 import { forget, keep, kept, type EditorState, type KeptChanges } from '../kept';
 import { childrenOf, elementAt, elementName, excerpt, holdsContent, imageLine, movedElement, outlineItems, pathTo, runIndex, sameElement, siblingRuns, type ElementRef, type OutlineItem } from '../elements';
 import { attributeParts, attributeText, blocks, directiveHead, emphasisAt, imageText, renumberedAt, inProse, linkAt, linkLabel, outline, withAttribute, withBlockParts, withDirectiveParts, withImage, withLink, withoutDirective, withoutImage, withoutLink, withParts, wordAt, wordCount, type Directive, type Edit, type Emphasis, type MarkdownLink } from '../markdown';
@@ -2763,7 +2764,7 @@ function fieldKey(field: FieldDescription): string {
 
 		<div v-if="offer" class="editor__notice" role="status">
 			<AdminIcon name="triangle-alert" />
-			<p>Your unsaved changes to this {{ noun }} from {{ formatDate(offer.kept) }} were kept in this browser when you left. Restore them to carry on where you were.</p>
+			<p>Your unsaved changes to this {{ noun }} from {{ siteDateTime(offer.kept) }} were kept in this browser when you left. Restore them to carry on where you were.</p>
 			<p class="editor__notice-buttons">
 				<button type="button" class="button button--small" @click="discard">Throw Them Away</button>
 				<button type="button" class="button button--small button--primary" @click="restore">Restore Them</button>
@@ -3110,7 +3111,7 @@ function fieldKey(field: FieldDescription): string {
 											</span>
 											<span class="reference__who">
 												<span class="reference__name"><span>{{ item.title || 'Untitled' }}</span><StatusPill v-if="item.status !== 'published'" :status="item.status" /></span>
-												<span class="reference__meta">{{ [item.type, item.date ? formatDate(`${item.date}T12:00:00`) : null].filter(Boolean).join(' · ') }}</span>
+												<span class="reference__meta">{{ [item.type, item.date ? formatDay(item.date) : null].filter(Boolean).join(' · ') }}</span>
 											</span>
 											<AdminIcon v-if="item.id" name="arrow-right" class="reference__go" />
 										</component>

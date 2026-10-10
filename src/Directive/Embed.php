@@ -35,6 +35,11 @@ use Blush\View\Escaper;
  * image linked to its page, with `alt` as its alt text (else the
  * title) and a credit after the caption, with the `photo` modifier.
  *
+ * A rich embed (X's posts, D-691) shows the provider's quote, cleaned,
+ * with the `rich` modifier, and asks for the provider's script, which
+ * draws the post from it. Without the script (in feeds, or with
+ * JavaScript off) the quote reads as the post.
+ *
  * Its template prints the frame's wrapper with `wrapperAttributes()` (the
  * aspect ratio, or the height of a player that fills its column at a
  * set height, such as Spotify's, with the `fixed` modifier; D-634) and
@@ -112,6 +117,16 @@ final class Embed extends Directive
 	public readonly ?string $photo;
 
 	/**
+	 * A rich embed's quote, as cleaned HTML (D-691), or `null`.
+	 */
+	public readonly ?string $quote;
+
+	/**
+	 * The asset that draws a rich embed's quote, or `null`.
+	 */
+	public readonly ?string $asset;
+
+	/**
 	 * Who made the embed, from its provider, or `''`.
 	 */
 	public readonly string $author;
@@ -135,6 +150,8 @@ final class Embed extends Directive
 		$this->providerLabel = $provider === null ? '' : $provider->label;
 		$this->src           = $src;
 		$this->photo         = $src === null ? $provider?->photo($url, $data) : null;
+		$this->quote         = $src === null && $this->photo === null ? $provider?->quote($url, $data) : null;
+		$this->asset         = $this->quote === null ? null : $provider?->asset();
 		$this->fixed         = $fixed !== null;
 		$this->width         = $width;
 		$this->height        = $height ?? $fixed;
@@ -168,6 +185,27 @@ final class Embed extends Directive
 	public function isPhoto(): bool
 	{
 		return $this->photo !== null;
+	}
+
+	/**
+	 * Returns whether the URL is shown as its provider's quote, drawn by
+	 * its script (D-691).
+	 */
+	public function isRich(): bool
+	{
+		return $this->quote !== null;
+	}
+
+	/**
+	 * Returns the registered asset a rich embed's script is in, so it
+	 * loads once on the page.
+	 *
+	 * @inheritDoc
+	 */
+	#[Override]
+	public function assets(): array
+	{
+		return $this->asset === null ? [] : [$this->asset];
 	}
 
 	/**
@@ -300,6 +338,10 @@ final class Embed extends Directive
 	{
 		if ($this->isPhoto()) {
 			return [$this->provider, 'photo'];
+		}
+
+		if ($this->isRich()) {
+			return [$this->provider, 'rich'];
 		}
 
 		if (! $this->isFramed()) {

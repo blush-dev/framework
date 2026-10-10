@@ -1241,7 +1241,10 @@ screens (and [Redirects](#redirects), with its own capability):
   by city, name, abbreviation (`CST`, `CDT`), offset (`-05:00`), or an
   old name such as `US/Central`. The zone is still saved by its full
   name, such as `America/Chicago`. Then the date and time formats
-  themes show dates with: each menu shows how today reads in the formats
+  themes show dates with, which the admin uses too wherever a date
+  reads as a date (when a file changed, when an account last signed
+  in, when something went to the trash), though lists keep their
+  short dates and times stay in your own time zone: each menu shows how today reads in the formats
   the site's language defines (Full, Long, Medium, Short) and in a few
   fixed ones (`2026-10-04`, `14:30`), or choose **Custom…** to type an
   [ICU pattern](https://unicode-org.github.io/icu/userguide/format_parse/datetime/#datetime-format-syntax),

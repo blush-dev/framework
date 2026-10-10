@@ -5,10 +5,20 @@
 const dates = new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' });
 
 /**
- * Formats an ISO 8601 date and time for reading.
+ * Formats an ISO 8601 date and time compactly, for a list's column. A
+ * date read as a date is in the site's formats (`dates.ts`, D-693).
  */
 export function formatDate(iso: string): string {
 	return dates.format(new Date(iso));
+}
+
+/**
+ * Formats a calendar day (`2026-10-05`) compactly, for a row's details.
+ */
+export function formatDay(day: string): string {
+	const [year, month, date] = day.split('-').map(Number);
+
+	return fullDays.format(new Date(year ?? 0, (month ?? 1) - 1, date ?? 1));
 }
 
 /**

@@ -254,6 +254,14 @@ to the parent's; override `frame()` to change the URL that's framed. A
 plain provider needs no code: list it in
 [`config/embed.php`](configuration.md#embeds).
 
+A provider whose oEmbed answer is a quote its own script draws as a post
+(as X's is) overrides `frame()` to return `null` and `asset()` to name a
+[registered asset](#scripts-and-styles) holding that script, such as
+core's `blush/embed-x`. The `embed` directive then shows the answer's
+`<blockquote>`, cleaned down to its text and links, and asks for the
+asset, so the script loads once on the page. The script is always the
+asset's, never the one in the answer.
+
 ## Menu links
 
 A new kind of [menu](menus.md) link is a class that extends

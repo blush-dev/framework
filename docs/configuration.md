@@ -263,7 +263,7 @@ Instagram) show as links for now.
 
 | Option | Default | What it does |
 |---|---|---|
-| `providers` | `[]` | oEmbed providers to add; one named like a built-in (`youtube`, `vimeo`, `ted`, `codepen`, `spotify`, `soundcloud`, `flickr`, `twitch`, `tiktok`) replaces it |
+| `providers` | `[]` | oEmbed providers to add; one named like a built-in (`youtube`, `vimeo`, `ted`, `codepen`, `spotify`, `soundcloud`, `flickr`, `twitch`, `tiktok`, `x`, `reddit`) replaces it |
 | `off` | `[]` | Names of providers turned off, built in or added, whose links stay links. Settings → Writing's switches save over it |
 | `fetch` | `true` | Ask providers for sizes and titles; `false` never does (the built-ins still embed, at 16:9) |
 | `timeout` | `3` | Seconds to wait for a provider |

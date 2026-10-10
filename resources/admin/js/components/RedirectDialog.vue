@@ -20,7 +20,7 @@
 import { computed, nextTick, ref, watch } from 'vue';
 import { ApiError, errorMessage, request, type EntryList } from '../api';
 import { debounced, latest } from '../action';
-import { formatDate } from '../format';
+import { siteDateTime } from '../dates';
 import { listMove } from '../grid';
 import { usePopover } from '../popover';
 import { checkRedirect, saveRedirect, TYPES, type RedirectCheck, type RedirectMessage as Message, type RedirectRow, type RedirectStatus } from '../redirects';
@@ -279,7 +279,7 @@ async function save(): Promise<void> {
 <template>
 	<AdminModal open :title="row ? 'Edit Redirect' : 'New Redirect'" @close="emit('close')">
 		<form id="redirect-form" class="redirect-form" novalidate @submit.prevent="save">
-			<p class="redirect-form__lead"><template v-if="row?.added">Added {{ formatDate(row.added) }}<template v-if="row.by || row.via"> · <RedirectAdded :row="row" /></template>. </template>{{ lead }}</p>
+			<p class="redirect-form__lead"><template v-if="row?.added">Added {{ siteDateTime(row.added) }}<template v-if="row.by || row.via"> · <RedirectAdded :row="row" /></template>. </template>{{ lead }}</p>
 
 			<div class="field">
 				<label for="redirect-from">From</label>

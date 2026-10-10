@@ -1234,10 +1234,10 @@ Implemented in M6a (D-127 to D-130), apart from publishing (M6b).
 
 - **Providers:** `EmbedProvider` (name, label, oembed.com-style schemes,
   HTTPS endpoint or `null` for one never asked; `request()`, `frame()`,
-  `fixedHeight()`, `allowsScripts()`; `link()` reads a link's ID on a
+  `fixedHeight()`, `asset()`, `quote()`; `link()` reads a link's ID on a
   known host). Built in: `YouTube`, `Vimeo`, `Ted`, `CodePen` (D-633),
   `Spotify`, and `SoundCloud` (D-634), `Flickr`, `Twitch`, and
-  `TikTok` (D-635; `photo()` and `size()`), each framing from the link (enum
+  `TikTok` (D-635; `photo()` and `size()`), and `X` and `Reddit` (D-691, D-692; rich), each framing from the link (enum
   + registry + factory + registrar); sites
   add `OEmbedProvider`s in `config/embed.php` or classes in
   `ProviderRegistry`. `EmbedProviders` matches a URL to the first
@@ -1255,7 +1255,11 @@ Implemented in M6a (D-127 to D-130), apart from publishing (M6b).
   answer with a percentage width), `--embed-height` and the `fixed`
   modifier; a photo answer (`photo()`) is an `<img>` linked to the
   page, with `alt` and a credit (`photo` modifier); the theme owns the
-  markup. Script-based rich embeds render as links for now.
+  markup. A rich embed (X's posts, D-691) is the answer's blockquote,
+  cleaned by `RichQuote`, with the `rich` modifier; the directive asks
+  for the provider's registered asset (`asset()`, core's
+  `blush/embed-x` and `blush/embed-reddit`), whose script draws the post. Other rich answers
+  render as links.
 
 ## Icons (D-187)
 

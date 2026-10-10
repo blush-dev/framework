@@ -7,6 +7,8 @@
 import { ref } from 'vue';
 import { request, type ContentTypeSummary, type EntryStatus } from './api';
 import type { ContentAction } from './session';
+import { siteDateTime } from './dates';
+import { formatDate } from './format';
 
 export interface CapabilityInfo {
 	name: string;
@@ -313,10 +315,13 @@ export function statusPill(status: AccountStatus): { label: string; kind: string
 
 
 /**
- * When something happened, from a Unix time, for reading.
+ * When something happened, from a Unix time: in the site's formats
+ * (D-693), or compactly for a list's column.
  */
-export function when(time: number | null): string {
-	return time === null || time === 0
-		? 'Never'
-		: new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(time * 1000));
+export function when(time: number | null, compact = false): string {
+	if (time === null || time === 0) {
+		return 'Never';
+	}
+
+	return compact ? formatDate(new Date(time * 1000).toISOString()) : siteDateTime(time);
 }

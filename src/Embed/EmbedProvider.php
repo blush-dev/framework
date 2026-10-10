@@ -28,8 +28,11 @@ use Uri\Rfc3986\Uri;
  * no-cookie host. The base embeds the iframe in the provider's HTML.
  * Built-in providers build their frame from the link (`link()` reads
  * it), so a frame is only ever on the provider's own host.
- * `allowsScripts()` is for rich embeds that need the provider's script
- * (X, Instagram); none do yet, so their URLs render as links.
+ *
+ * A rich embed (D-691), a post that the provider's script draws from a
+ * quote, such as X's, names its script's registered asset (`asset()`)
+ * and shows the quote from its answer (`quote()`), cleaned. The script
+ * is never taken from the answer.
  */
 abstract class EmbedProvider
 {
@@ -128,12 +131,23 @@ abstract class EmbedProvider
 	}
 
 	/**
-	 * Returns whether the provider's own HTML, script and all, may be
-	 * output for rich embeds. Not supported yet (D-184).
+	 * Returns the handle of the registered asset whose script draws the
+	 * provider's quotes as posts (D-691), such as `blush/embed-x`, or
+	 * `null` for a provider without rich embeds.
 	 */
-	public function allowsScripts(): bool
+	public function asset(): ?string
 	{
-		return false;
+		return null;
+	}
+
+	/**
+	 * Returns the quote to show for a URL, as HTML, for a provider with
+	 * rich embeds (D-691), or `null`. By default it's a rich answer's
+	 * blockquote, cleaned (`RichQuote`), when the provider has an asset.
+	 */
+	public function quote(string $url, ?EmbedData $data): ?string
+	{
+		return $this->asset() !== null && $data?->type === EmbedType::Rich ? RichQuote::clean($data->html) : null;
 	}
 
 	/**

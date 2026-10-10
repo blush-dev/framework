@@ -226,7 +226,7 @@ async function makeLink(account: AccountInfo): Promise<void> {
 									</template>
 									<span v-else class="muted">None</span>
 								</td>
-								<td class="muted">{{ when(account.lastLogin) }}</td>
+								<td class="muted">{{ when(account.lastLogin, true) }}</td>
 								<td class="table__actions">
 									<MenuButton button-class="row-more" :label="`Actions for ${account.displayName}`" floating>
 										<template #button>

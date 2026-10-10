@@ -34,8 +34,10 @@ use Blush\Session\SessionReader;
  * script and styles and a JSON block with what the app needs to start:
  * its base path, the API's, the site's name, and the signed-in account's
  * color scheme (D-235), which is also set on `<html>` so the first frame
- * is right, whether mentions are on (D-493), and the HTML rules
- * (D-495), so the editor can mark what its account couldn't add. Everything else comes from the API. The session is only
+ * is right, whether mentions are on (D-493), the HTML rules (D-495),
+ * so the editor can mark what its account couldn't add, and the site's
+ * date and time formats and language, which the admin shows dates read
+ * as dates in (D-693). Everything else comes from the API. The session is only
  * read, never started or kept alive, so the page sets no cookies.
  *
  * The page is never cached or framed, and a strict Content Security
@@ -92,6 +94,11 @@ final readonly class ShellController
 			'colorScheme' => $scheme?->value,
 			'adminTheme'  => $theme?->value,
 			'mentions'    => $this->markdown->mentions,
+			'dates'       => [
+				'locale' => str_replace('_', '-', $this->site->locale),
+				'date'   => $this->site->dateFormat,
+				'time'   => $this->site->timeFormat
+			],
 			'html'        => [
 				'allowed'           => HtmlRules::ALLOWED,
 				'global'            => HtmlRules::GLOBAL,

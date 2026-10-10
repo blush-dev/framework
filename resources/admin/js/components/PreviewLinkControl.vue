@@ -7,7 +7,7 @@
 
 import { ref } from 'vue';
 import { errorMessage, request, type EntryDetail, type PreviewLink } from '../api';
-import { formatDate } from '../format';
+import { siteDateTime } from '../dates';
 import AdminIcon from './AdminIcon.vue';
 
 const props = defineProps<{ entry: Pick<EntryDetail, 'id' | 'title'> }>();
@@ -62,7 +62,7 @@ async function copy(): Promise<void> {
 				<AdminIcon name="copy" />
 				Copy<span class="visually-hidden"> the preview link for {{ name }}</span>
 			</button>
-			<span class="preview-link__note">Until <time :datetime="link.expires">{{ formatDate(link.expires) }}</time></span>
+			<span class="preview-link__note">Until <time :datetime="link.expires">{{ siteDateTime(link.expires) }}</time></span>
 		</template>
 		<span class="visually-hidden" aria-live="polite">{{ message }}</span>
 		<span v-if="message && !link" class="preview-link__note preview-link__note--error">{{ message }}</span>
