@@ -40,6 +40,7 @@ use Blush\Field\Fields\ObjectField;
 use Blush\Field\Fields\TextField;
 use Blush\Icon\IconConfig;
 use Blush\Llms\LlmsConfig;
+use Blush\Mcp\McpConfig;
 use Blush\Markdown\MarkdownConfig;
 use Blush\Markdown\RawHtml;
 use Blush\Media\MediaConfig;
@@ -98,6 +99,7 @@ enum Setting: string
 	case Llms             = 'llms.enabled';
 	case LlmsFull         = 'llms.full';
 	case BlockAi          = 'sitemap.blockAi';
+	case Mcp              = 'mcp.enabled';
 	case Theme            = 'theme.active';
 	case Plugins          = 'plugins.enabled';
 	case IconPacks        = 'icons.enabled';
@@ -167,7 +169,7 @@ enum Setting: string
 			self::Mentions, self::SmartPunctuation, self::HeadingAnchors,
 			self::Figures, self::Html, self::Embeds                       => SettingsScreen::Writing,
 			self::TrailingSlash, self::Sitemap, self::SitemapDisallow     => SettingsScreen::Search,
-			self::Llms, self::LlmsFull, self::BlockAi                     => SettingsScreen::Ai
+			self::Llms, self::LlmsFull, self::BlockAi, self::Mcp          => SettingsScreen::Ai
 		};
 	}
 
@@ -210,6 +212,7 @@ enum Setting: string
 			self::Sitemap         => new BoolField('enabled')->labeled('Sitemap and robots.txt')->described('Off, the site has neither, and search engines find pages by their links.'),
 			self::SitemapDisallow => new ListField('disallow')->labeled('Paths robots.txt asks to skip')->described('One path a line, each starting with /, such as /drafts/.'),
 			self::Llms            => new BoolField('enabled')->labeled('Markdown copies')->described('A page\'s copy is at its address with .md, such as /about.md, and llms.txt lists them, for AI tools to read.'),
+			self::Mcp             => new BoolField('enabled')->labeled('MCP server')->described('Lets AI apps, such as Claude and ChatGPT, read and write entries and media as the people who connect them, with what those people may do. Each person approves an app when they connect it.'),
 			self::LlmsFull        => new BoolField('full')->labeled('llms-full.txt')->described('Every page llms.txt lists, in full, in one file, so a tool can read the whole site at once. It can be several megabytes on a large site.'),
 			self::BlockAi         => new ListField('blockAi', new EnumField('', array_column(AiCrawlerGroup::cases(), 'value')))->labeled('Ask to stay away')->described('robots.txt is a request: well-behaved crawlers follow it, others may not.')->control(Control::Checks),
 			self::Theme           => new TextField('active')->labeled('Theme')->control(Control::Mono),
@@ -217,7 +220,11 @@ enum Setting: string
 			self::IconPacks       => new ListField('enabled')->labeled('Icon packs turned on')
 		};
 
-		return $field->named($this->key());
+		// A screen's fields are one schema, so a key an earlier setting on
+		// it has (`llms.enabled`, then `mcp.enabled`) takes its section.
+		$first = array_find($this->screen()?->settings() ?? [], fn (self $other): bool => $other->key() === $this->key());
+
+		return $field->named($first === null || $first === $this ? $this->key() : $this->section() . ucfirst($this->key()));
 	}
 
 	/**
@@ -274,6 +281,7 @@ enum Setting: string
 			self::Llms          => 'Every page has a Markdown copy, and the site has llms.txt',
 			self::Api           => 'The site has a read-only API',
 			self::LlmsFull      => 'The site has llms-full.txt',
+			self::Mcp           => 'Apps can connect',
 			self::Home          => 'The page at user/content/index.md',
 			self::Mentions      => '@name links to a profile',
 			self::AddArtwork    => 'Uploads add their artwork to the library',
@@ -353,6 +361,7 @@ enum Setting: string
 			'icons'   => IconConfig::class,
 			'llms'    => LlmsConfig::class,
 			'api'     => ApiConfig::class,
+			'mcp'     => McpConfig::class,
 			'media'   => MediaConfig::class,
 			'markdown' => MarkdownConfig::class,
 			'embed'   => EmbedConfig::class,
@@ -378,7 +387,7 @@ enum Setting: string
 	public function needsRefresh(): bool
 	{
 		return match ($this) {
-			self::Home, self::Timezone, self::TrailingSlash, self::FeedFormats, self::Sitemap, self::Llms, self::LlmsFull, self::Api, self::ApiAccess, self::Theme, self::Plugins => true,
+			self::Home, self::Timezone, self::TrailingSlash, self::FeedFormats, self::Sitemap, self::Llms, self::LlmsFull, self::Api, self::ApiAccess, self::Mcp, self::Theme, self::Plugins => true,
 			default => false
 		};
 	}

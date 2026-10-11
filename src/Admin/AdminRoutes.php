@@ -121,6 +121,12 @@ use Blush\Session\StartSession;
  *     `GET`, `POST`, and `DELETE accounts/{username}/tokens`, and
  *     `DELETE accounts/{username}/tokens/{id}`, list, make, and revoke
  *     an account's API tokens (`TokensController`, D-749).
+ *   - `DELETE accounts/{username}/apps/{id}` disconnects an app
+ *     (`TokensController`, D-752).
+ *   - `GET activity` and `POST activity/{id}/undo`, the activity log and
+ *     Undo (`ActivityController`, D-758).
+ *   - `GET` and `POST oauth/authorize`, the Connect an App screen's
+ *     (`AuthorizeController`, D-752).
  *   - `GET  themes`: the installed themes (`ThemesController`);
  *     `DELETE themes/{vendor}/{name}` deletes one from `extensions/`
  *     (`ThemeEditController`, D-381). `PATCH settings` activates one
@@ -278,6 +284,11 @@ final readonly class AdminRoutes implements RouteSource
 			Route::post('/accounts/{username:[a-z0-9][a-z0-9._-]*}/tokens', [TokensController::class, 'create'])->named('account.token.create')->middleware(Authenticate::class),
 			Route::delete('/accounts/{username:[a-z0-9][a-z0-9._-]*}/tokens', [TokensController::class, 'deleteAll'])->named('account.tokens.delete')->middleware(Authenticate::class),
 			Route::delete('/accounts/{username:[a-z0-9][a-z0-9._-]*}/tokens/{id:[0-9a-f-]+}', [TokensController::class, 'delete'])->named('account.token.delete')->middleware(Authenticate::class),
+			Route::delete('/accounts/{username:[a-z0-9][a-z0-9._-]*}/apps/{id:[0-9a-f-]+}', [TokensController::class, 'disconnect'])->named('account.app.delete')->middleware(Authenticate::class),
+			Route::get('/activity', [ActivityController::class, 'index'])->named('activity')->middleware(Authenticate::class),
+			Route::post('/activity/{id:[0-9a-f-]+}/undo', [ActivityController::class, 'undo'])->named('activity.undo')->middleware(Authenticate::class),
+			Route::get('/oauth/authorize', [AuthorizeController::class, 'show'])->named('oauth.authorize')->middleware(Authenticate::class),
+			Route::post('/oauth/authorize', [AuthorizeController::class, 'decide'])->named('oauth.decide')->middleware(Authenticate::class),
 			Route::get('/themes', ThemesController::class)->named('themes')->middleware(Authenticate::class),
 			Route::post('/themes', [ExtensionInstallController::class, 'theme'])->named('theme.install')->middleware(Authenticate::class),
 			Route::post('/themes/{vendor:[a-z0-9][a-z0-9._-]*}/{name:[a-z0-9][a-z0-9._-]*}/rollback', [ExtensionBackupController::class, 'rollbackTheme'])->named('theme.rollback')->middleware(Authenticate::class),

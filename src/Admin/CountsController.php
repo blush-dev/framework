@@ -28,6 +28,7 @@ use Blush\Content\Entries;
 use Blush\Content\Routing\Redirects;
 use Blush\Content\Type\ContentTypes;
 use Blush\Content\Type\Tree;
+use Blush\Content\Editing\ArchivePages;
 use Blush\Core\Paths;
 use Blush\Extension\ExtensionException;
 use Blush\Extension\ExtensionKind;

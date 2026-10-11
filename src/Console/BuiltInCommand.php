@@ -65,6 +65,7 @@ use Blush\Console\Commands\RotateSecrets;
 use Blush\Console\Commands\RoutesList;
 use Blush\Console\Commands\RunSchedule;
 use Blush\Console\Commands\Serve;
+use Blush\Console\Commands\ServeMcp;
 use Blush\Console\Commands\SetAccountAuthor;
 use Blush\Console\Commands\SetAccountEmail;
 use Blush\Console\Commands\SetAccountName;
@@ -144,6 +145,7 @@ enum BuiltInCommand: string
 	case AccountReinstate = 'account:reinstate';
 	case AccountRemove    = 'account:remove';
 	case TokenAdd         = 'token:add';
+	case Mcp              = 'mcp';
 
 	/**
 	 * Returns the command's class.
@@ -214,7 +216,8 @@ enum BuiltInCommand: string
 			self::AccountSuspend   => SuspendAccount::class,
 			self::AccountReinstate => ReinstateAccount::class,
 			self::AccountRemove    => RemoveAccount::class,
-			self::TokenAdd         => AddToken::class
+			self::TokenAdd         => AddToken::class,
+			self::Mcp              => ServeMcp::class
 		};
 	}
 }

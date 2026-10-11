@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Blush\Auth;
 
+use Closure;
 use Blush\Container\Attributes\NoAutowire;
 use Blush\Content\Entry\Entry;
 use Blush\Content\Query\Query;
@@ -117,7 +118,22 @@ final readonly class Permissions
 	 */
 	public function restrict(Account $account, ContentAction $action, Query $query): Query
 	{
-		$types        = $query->types === [] ? array_keys($this->types->all()) : $query->types;
+		$alternatives = $this->alternatives($account, $action, $query->types === [] ? array_keys($this->types->all()) : $query->types);
+
+		return $alternatives === null ? $query : $query->either(...$alternatives);
+	}
+
+	/**
+	 * Returns the conditions `restrict()` adds, one of which an entry the
+	 * account may use a content action on matches, in some types, or
+	 * `null` when it may act on every entry of them; for a query that
+	 * also finds what anyone may read (the MCP server's, D-755).
+	 *
+	 * @param  list<string>               $types
+	 * @return ?list<Closure(Query): Query>
+	 */
+	public function alternatives(Account $account, ContentAction $action, array $types): ?array
+	{
 		$authors      = $this->types->profiles()?->name;
 		$author       = $this->profiles->slug($account);
 		$alternatives = [];
@@ -142,7 +158,7 @@ final readonly class Permissions
 			}
 		}
 
-		return $everything ? $query : $query->either(...$alternatives);
+		return $everything ? null : $alternatives;
 	}
 
 	/**

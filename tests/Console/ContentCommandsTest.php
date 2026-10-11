@@ -15,6 +15,10 @@ namespace Blush\Tests\Console;
 
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
+use Blush\Activity\ActivityFilter;
+use Blush\Activity\ActivityLog;
+use Blush\Activity\Via;
+use Blush\Auth\Accounts;
 use Blush\Console\Commands\CreateContent;
 use Blush\Console\Commands\FixIds;
 use Blush\Console\Commands\MigrateTypeFolders;
@@ -302,5 +306,38 @@ final class ContentCommandsTest extends TestCase
 		$this->assertSame(ExitCode::Invalid, $tester->run(['content:new', 'movie', 'Alien'])->exitCode);
 		$this->assertSame(ExitCode::Invalid, $tester->run(['content:new', 'page', '!!!'])->exitCode);
 		$this->assertStringContainsString('"Not A Slug" is not a slug; try "not-a-slug".', $tester->run(['content:new', 'page', 'X', '--slug=Not A Slug'])->errors);
+	}
+
+	public function testLogsWhatItCreatesAsTheCommandLineOrAnAccount(): void
+	{
+		$this->standardContent();
+		$app    = $this->site();
+		$tester = new CommandTester($app->container()->make(Console::class));
+		$log    = $app->container()->make(ActivityLog::class);
+
+		$accounts = $app->container()->make(Accounts::class);
+		$accounts->setProfile($accounts->create('jane', 'a long enough password', ['author'], email: 'jane@example.test'), self::idFor('_profile/justintadlock.md'));
+		$accounts->create('sam', 'a long enough password', ['contributor'], email: 'sam@example.test');
+
+		$this->assertTrue($tester->run(['content:new', 'post', 'From the Shell', '-n'])->isSuccessful());
+
+		[$changes] = $log->list(new ActivityFilter(via: Via::Cli));
+
+		$this->assertSame(['Created “From the Shell”', ''], [$changes[0]->summary ?? null, $changes[0]->account ?? null], 'Logged as the command line, with no account (D-758).');
+
+		$this->clock->advance('PT1M');
+
+		$janes = $tester->run(['content:new', 'post', 'From Jane', '--account=jane', '-n']);
+
+		$this->assertTrue($janes->isSuccessful(), $janes->errors);
+		$this->assertSame('From Jane', $log->list(new ActivityFilter(via: Via::Cli))[0][0]->title ?? null);
+		$this->assertStringContainsString('authors: [justintadlock]', (string) file_get_contents($this->temporaryDirectory() . '/user/content/_post/from-jane.md'), 'With the account\'s byline.');
+
+		$sams = $tester->run(['content:new', 'post', 'From Sam', '--account=sam', '-n']);
+
+		$this->assertSame(ExitCode::Failure, $sams->exitCode, 'With the account\'s permissions: a contributor can\'t publish.');
+		$this->assertStringContainsString('must be drafts', $sams->errors);
+		$this->assertTrue($tester->run(['content:new', 'post', 'From Sam', '--account=sam', '--draft', '-n'])->isSuccessful());
+		$this->assertSame(ExitCode::Invalid, $tester->run(['content:new', 'post', 'X', '--account=nobody', '-n'])->exitCode);
 	}
 }

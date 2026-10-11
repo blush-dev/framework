@@ -15,6 +15,7 @@ namespace Blush\Core;
 
 use Override;
 use Psr\Container\ContainerInterface;
+use Blush\Activity\ActivityServiceProvider;
 use Blush\Admin\AdminServiceProvider;
 use Blush\Api\ApiServiceProvider;
 use Blush\Asset\AssetServiceProvider;
@@ -40,6 +41,7 @@ use Blush\Menu\MenuServiceProvider;
 use Blush\Feed\FeedServiceProvider;
 use Blush\Http\HttpServiceProvider;
 use Blush\Llms\LlmsServiceProvider;
+use Blush\Mcp\McpServiceProvider;
 use Blush\Log\LogServiceProvider;
 use Blush\Markdown\MarkdownServiceProvider;
 use Blush\Media\MediaServiceProvider;
@@ -106,9 +108,11 @@ class Application implements Bootable
 		SecretServiceProvider::class,
 		SetupServiceProvider::class,
 		AuthServiceProvider::class,
+		ActivityServiceProvider::class,
 		AdminServiceProvider::class,
 		PreviewServiceProvider::class,
 		ApiServiceProvider::class,
+		McpServiceProvider::class,
 		LlmsServiceProvider::class,
 		RoutingServiceProvider::class,
 		ConsoleServiceProvider::class

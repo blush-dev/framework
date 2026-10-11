@@ -341,16 +341,16 @@ final class JobTest extends TestCase
 		$schedule  = $this->app->container()->make(Schedule::class);
 		$scheduler = $this->app->container()->make(Scheduler::class);
 
-		$this->assertSame(['core/go-live', 'core/prune-cache', 'core/prune-sessions', 'core/prune-jobs', 'core/prune-tokens'], array_keys($schedule->all()));
+		$this->assertSame(['core/go-live', 'core/prune-cache', 'core/prune-sessions', 'core/prune-jobs', 'core/prune-tokens', 'core/prune-activity'], array_keys($schedule->all()));
 
 		$schedule->add('test/count', Frequency::daily('03:00'));
 
-		$this->assertCount(6, $scheduler->tick(), 'Every task that never ran is due.');
+		$this->assertCount(7, $scheduler->tick(), 'Every task that never ran is due.');
 		$this->assertSame([], $scheduler->tick(), 'Nothing is due again within the minute.');
 
-		$report = $this->runner()->work(RunnerKind::Cron, 6);
+		$report = $this->runner()->work(RunnerKind::Cron, 7);
 
-		$this->assertSame(6, $report->count(JobStatus::Done));
+		$this->assertSame(7, $report->count(JobStatus::Done));
 		$this->assertSame([], $this->queue()->all(), 'Scheduled jobs aren\'t kept once they\'re done.');
 
 		$this->clock->advance('PT1M');

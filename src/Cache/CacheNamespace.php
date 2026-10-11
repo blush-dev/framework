@@ -58,11 +58,18 @@ enum CacheNamespace: string
 	case Logins = 'logins';
 
 	/**
+	 * Request counters for rate limits (`RateLimiter`, D-758), which
+	 * expire on their own. Never cleared with the others, so clearing
+	 * caches doesn't reset a limit.
+	 */
+	case Limits = 'limits';
+
+	/**
 	 * Returns whether the namespace holds derived values that clearing
 	 * the caches removes.
 	 */
 	public function isDerived(): bool
 	{
-		return ! in_array($this, [self::Webhooks, self::Embeds, self::Logins], true);
+		return ! in_array($this, [self::Webhooks, self::Embeds, self::Logins, self::Limits], true);
 	}
 }

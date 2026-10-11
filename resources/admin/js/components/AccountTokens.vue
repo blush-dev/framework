@@ -14,9 +14,15 @@
  *   screen's `CapabilitySections`.
  * - A token just made is shown once, above the list, with a copy button
  *   (`ShownOnce`); only a hash of it is kept.
+ * - **Connected Apps** (D-752): one row an app connected through OAuth,
+ *   with what it was given, when it was approved and last connected, a
+ *   link to its changes under Tools → Activity, and Disconnect, which
+ *   takes its approval and every token it holds. Revoke All takes them
+ *   too.
  */
 
 import { computed, ref, watch } from 'vue';
+import { RouterLink } from 'vue-router';
 import AdminIcon from './AdminIcon.vue';
 import AdminModal from './AdminModal.vue';
 import CapabilitySections from './CapabilitySections.vue';
@@ -26,7 +32,8 @@ import { useAction } from '../action';
 import { ApiError, errorMessage } from '../api';
 import { confirmAction } from '../confirm';
 import { plural } from '../format';
-import { freshToken, loadTokens, makeToken, revokeAllTokens, revokeToken, presetCapabilities, tokenScope, when, type AccountInfo, type NewToken, type TokenInfo, type TokenList, type TokenPreset } from '../people';
+import { disconnectApp, freshToken, loadTokens, makeToken, revokeAllTokens, revokeToken, presetCapabilities, tokenScope, when, type AccountInfo, type ConnectedApp, type NewToken, type TokenInfo, type TokenList, type TokenPreset } from '../people';
+import { can } from '../session';
 import { toast } from '../toast';
 
 const props = defineProps<{
@@ -60,7 +67,9 @@ watch(() => props.account.username, (username) => {
 const whose = computed(() => props.mine ? 'you' : props.account.displayName);
 
 // Your own panel is left out when you have none and can't make one.
-const shown = computed(() => !(props.mine && list.value !== null && !list.value.make && list.value.tokens.length === 0 && fresh.value === null));
+const shown = computed(() => !(props.mine && list.value !== null && !list.value.make && list.value.tokens.length === 0 && list.value.apps.length === 0 && fresh.value === null));
+
+const APP_SCOPES: Record<ConnectedApp['scope'], string> = { read: 'Read', drafts: 'Write drafts', account: 'Same as the account', custom: 'Chosen' };
 
 // A new token: its name, lifetime, and what it can do.
 const making = ref(false);
@@ -125,8 +134,26 @@ async function revoke(token: TokenInfo): Promise<void> {
 	});
 }
 
+async function disconnect(app: ConnectedApp): Promise<void> {
+	if (!await confirmAction({
+		title: `Disconnect ${app.name}?`,
+		body: 'It stops working at once, and connecting it again asks for approval again.',
+		confirm: 'Disconnect',
+		danger: true
+	})) {
+		return;
+	}
+
+	await runRevoke('The app couldn\'t be disconnected.', async () => {
+		await disconnectApp(props.account.username, app.id);
+
+		list.value = list.value ? { ...list.value, apps: list.value.apps.filter((item) => item.id !== app.id) } : list.value;
+		toast(`Disconnected ${app.name}`, { kind: 'danger' });
+	});
+}
+
 async function revokeAll(): Promise<void> {
-	const count = list.value?.tokens.length ?? 0;
+	const count = (list.value?.tokens.length ?? 0) + (list.value?.apps.length ?? 0);
 
 	if (!await confirmAction({
 		title: `Revoke ${plural(count, 'Token', 'Tokens')}?`,
@@ -140,7 +167,7 @@ async function revokeAll(): Promise<void> {
 	await runRevoke('The tokens couldn\'t be revoked.', async () => {
 		const revoked = await revokeAllTokens(props.account.username);
 
-		list.value  = list.value ? { ...list.value, tokens: [] } : list.value;
+		list.value  = list.value ? { ...list.value, tokens: [], apps: [] } : list.value;
 		fresh.value = null;
 		toast(`Revoked ${plural(revoked, 'token')}`, { kind: 'danger' });
 	});
@@ -152,8 +179,8 @@ async function revokeAll(): Promise<void> {
 		<header class="panel__header">
 			<h2 id="tokens-heading">API Tokens</h2>
 			<p class="panel__hint">For apps, scripts, and agents that use the API</p>
-			<div v-if="list && (list.make || list.tokens.length)" class="panel__actions">
-				<button v-if="list.tokens.length" type="button" class="button button--small" :disabled="revoking" @click="revokeAll">Revoke All</button>
+			<div v-if="list && (list.make || list.tokens.length || list.apps.length)" class="panel__actions">
+				<button v-if="list.tokens.length || list.apps.length" type="button" class="button button--small" :disabled="revoking" @click="revokeAll">Revoke All</button>
 				<button v-if="list.make" type="button" class="button button--primary button--small" @click="startNew"><AdminIcon name="plus" />New Token</button>
 			</div>
 		</header>
@@ -197,7 +224,27 @@ async function revokeAll(): Promise<void> {
 				</tbody>
 			</table>
 		</div>
-		<p v-else-if="list" class="panel__body muted">No tokens yet.</p>
+		<p v-else-if="list && !list.apps.length" class="panel__body muted">No tokens yet.</p>
+
+		<template v-if="list && list.apps.length">
+			<div class="panel__section panel__section--turn">
+				<div class="panel__section-head"><h3 id="apps-heading" class="eyebrow">Connected Apps</h3><span>Apps approved to act as {{ whose }} through the MCP server</span></div>
+			</div>
+			<ul class="rows" aria-labelledby="apps-heading">
+				<li v-for="app in list.apps" :key="app.id" class="rows__item">
+					<div class="rows__main">
+						<span class="rows__title">{{ app.name }}<span v-if="app.host" class="rows__sub"> · {{ app.host }}</span></span>
+						<span class="rows__sub">
+							{{ APP_SCOPES[app.scope] }} · approved {{ when(app.approved, true) }} · {{ app.connected ? `last connected ${when(app.connected, true)}` : 'not connected yet' }}
+						</span>
+					</div>
+					<div class="rows__side">
+						<RouterLink v-if="can('site.activity')" class="button button--ghost button--small" :to="{ name: 'tools', query: { tab: 'activity', client: app.name, account: account.username } }">Activity</RouterLink>
+						<button type="button" class="button button--ghost button--small" :disabled="revoking" @click="disconnect(app)">Disconnect<span class="visually-hidden"> {{ app.name }}</span></button>
+					</div>
+				</li>
+			</ul>
+		</template>
 
 		<p class="panel__note">
 			A token acts as {{ whose }}, with {{ mine ? 'your' : 'its' }} roles as they are on each request<template v-if="account.status === 'suspended'">, so this account's don't work while it's suspended</template>. Revoking stops one at once; a new password doesn't.

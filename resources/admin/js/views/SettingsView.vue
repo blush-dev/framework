@@ -65,7 +65,7 @@ import { useAction } from '../action';
 import { errorMessage, request, saveSettings, type FieldDescription, type SettingGroup, type SettingItem, type UploadsInfo } from '../api';
 import { choiceLabel, control, fromForm, toForm, type FormValue } from '../fields';
 import { screenTitle, screenTrail } from '../screen';
-import { toast } from '../toast';
+import { copyText, toast } from '../toast';
 import { fromGrid, summary, toGrid, type UploadGrid } from '../uploads';
 
 const props = defineProps<{ screen: string }>();
@@ -528,6 +528,7 @@ onBeforeRouteUpdate(() => count.value === 0 || confirmLeave());
 									<span v-if="item.kind === 'bool'" class="pill" :class="item.warning ? 'pill--warn' : { 'setting__pill--on': item.value === true }">{{ shown(item) }}</span>
 									<span v-else :class="{ mono: item.kind === 'mono', 'setting__none': shown(item) === 'None' }">{{ shown(item) }}</span>
 									<span v-if="item.default === true" class="tag">Default</span>
+									<button v-if="item.copy" type="button" class="button button--small" @click="copyText(String(item.value), 'the address', 'the address')"><AdminIcon name="copy" />Copy</button>
 								</p>
 								<p v-if="item.warning" class="setting__warning"><AdminIcon name="triangle-alert" />{{ item.warning }}</p>
 								<p v-if="item.link || item.links?.length" class="setting__links">

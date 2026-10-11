@@ -50,6 +50,9 @@ use Blush\Llms\LlmsTxt;
 use Blush\Markdown\MarkdownConfig;
 use Blush\Media\Index\MediaLibrary;
 use Blush\Media\Index\MediaQuery;
+use Blush\Mcp\McpConfig;
+use Blush\Mcp\McpTools;
+use Blush\Mcp\OAuth\OAuthServer;
 use Blush\Media\MediaConfig;
 use Blush\Media\MediaException;
 use Blush\Media\MediaKind;
@@ -130,7 +133,10 @@ final readonly class SettingsController
 		private Roles $roles,
 		private EmbedConfig $embed,
 		private EmbedProviders $embeds,
-		private ApiConfig $api
+		private ApiConfig $api,
+		private McpConfig $mcp,
+		private McpTools $tools,
+		private OAuthServer $oauth
 	) {}
 
 	public function __invoke(ServerRequestInterface $request, string $screen): ResponseInterface
@@ -553,6 +559,8 @@ final readonly class SettingsController
 					'links' => [['label' => 'Change it on General', 'to' => '/settings/general']]
 				]
 			]),
+			$this->mcpGroup($saved),
+			...$this->toolGroups(),
 			self::group('crawlers', 'AI Crawlers', 'What robots.txt asks of them', [
 				[
 					...$this->edit(self::item('blockAi', 'Ask to stay away', $blocked, $blocked === [], 'list', Setting::BlockAi->field($this->types)->description), $saved, Setting::BlockAi, array_map(static fn (AiCrawlerGroup $group): string => $group->value, $this->sitemap->blockAi)),
@@ -564,6 +572,62 @@ final readonly class SettingsController
 				]
 			])
 		];
+	}
+
+	/**
+	 * The MCP server (D-754): its switch, the address an app connects to,
+	 * with Copy, and who may connect apps (`api.connect`, D-752).
+	 *
+	 * @return array<string, mixed>
+	 */
+	private function mcpGroup(Settings $saved): array
+	{
+		$connect = array_values(array_map(
+			static fn (Role $role): string => $role->label,
+			array_filter($this->roles->all(), static fn (Role $role): bool => $role->allows(Capability::ApiConnect->value))
+		));
+
+		return self::group('mcp', 'MCP Server', 'How AI apps work with the site', [
+			$this->edit(self::item('mcp', 'MCP server', $this->mcp->enabled, ! $this->mcp->enabled, 'bool', Setting::Mcp->field($this->types)->description), $saved, Setting::Mcp, $this->mcp->enabled),
+			[
+				...self::item('mcpAddress', 'Server address', $this->mcp->enabled ? $this->oauth->resource() : 'Off, with the MCP server', null, $this->mcp->enabled ? 'mono' : 'text', 'Paste it into an app\'s connector settings, such as Claude\'s. Each person signs in and approves the app, and it acts as them. Every change it makes is listed under Tools → Activity.'),
+				'copy' => $this->mcp->enabled
+			],
+			[
+				...self::item('mcpConnect', 'Who can connect apps', $connect, null, 'list', 'Roles with Connect apps. Long-lived API tokens are made on Your Account, with Make API tokens.'),
+				'links' => [['label' => 'Roles', 'to' => '/roles']]
+			]
+		]);
+	}
+
+	/**
+	 * What a connected app can be asked to do (D-757): each tool, grouped
+	 * by who added it, with what it needs.
+	 *
+	 * @return list<array<string, mixed>>
+	 */
+	private function toolGroups(): array
+	{
+		$groups = [];
+
+		foreach ($this->tools->all() as $name => $tool) {
+			$source     = $this->tools->isBuiltIn($name) ? 'blush' : 'plugins';
+			$capability = McpTools::capabilityName($tool);
+
+			$groups[$source][] = self::item(
+				"tool-{$name}",
+				$tool->title(),
+				$name,
+				null,
+				'mono',
+				$tool->description() . ($capability === null ? ' Anyone who connects an app may use it, for what they may see.' : " Needs {$capability}.")
+			);
+		}
+
+		return array_values(array_filter([
+			isset($groups['blush']) ? self::group('tools', 'Tools Offered', 'What a connected app can be asked to do', $groups['blush']) : null,
+			isset($groups['plugins']) ? self::group('plugin-tools', 'Tools From Plugins', 'What plugins add for connected apps', $groups['plugins']) : null
+		]));
 	}
 
 	/**

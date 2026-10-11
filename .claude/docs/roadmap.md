@@ -960,8 +960,19 @@ keeping the first screen's code in one file.
   read-only, opt-in API at `/api/v1` beside the admin's (D-479), broadened
   to the site in `Blush\Api` (D-736: site, types, entries, relations,
   media, menus); its shape settled (D-737 to D-741) and its first,
-  read-only version built (D-742, `docs/api.md`). Next: API tokens, then
-  MCP.
+  read-only version built (D-742, `docs/api.md`). API tokens built
+  (D-744 to D-750): tokens of an account, narrowed if asked, token-only
+  accounts for agents, `?status=` for what a token may edit, a private
+  API (`api.access`), Your Account's API Tokens panel, and `token:add`.
+  MCP built (D-751 to D-759, `docs/mcp.md`): `Blush\Mcp` at
+  `{path}/mcp` and `blush mcp`, OAuth 2.1 with `api.connect` and the
+  Connect an App screen, its own protocol code with tools only, on
+  Settings → AI, read and write tools over one write path
+  (`EntryEditor`, `MediaEditor`), plugins' tools, and the activity log
+  (Tools → Activity, Undo) with call limits.
+  To discuss: widening MCP's tools into one registry of actions shared
+  by the CLI, Tools' actions (`AdminAction`), jobs, and API writes
+  (D-753), so an extension registers an action once.
 - **Translations and multilingual sites (D-451):** translation domains
   by `vendor/name` and overrides in `user/lang/{locale}/` that win (done,
   D-454), catalog metadata (D-452) checked by `theme:check`,

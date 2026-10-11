@@ -129,7 +129,9 @@ import { diffLines, hunks, type Differences } from '../diff';
 import { drawerOpen, keepDrawer } from '../drawer';
 import { fromForm, humanize, inSentence, label, splitDate, toForm, type FormValue } from '../fields';
 import { siteDateTime } from '../dates';
-import { formatDay, plural, series, titleCase } from '../format';
+import { formatDay, formatWhen, formatWhenInline, plural, series, titleCase } from '../format';
+import { loadActivity, type ActivityChange } from '../activity';
+import ActivityRows from '../components/ActivityRows.vue';
 import { forget, keep, kept, type EditorState, type KeptChanges } from '../kept';
 import { childrenOf, elementAt, elementName, excerpt, holdsContent, imageLine, movedElement, outlineItems, pathTo, runIndex, sameElement, siblingRuns, type ElementRef, type OutlineItem } from '../elements';
 import { attributeParts, attributeText, blocks, CORE, directiveHead, emphasisAt, imageText, renumberedAt, inProse, linkAt, linkLabel, outline, withAttribute, withBlockParts, withDirectiveParts, withImage, withLink, withoutDirective, withoutImage, withoutLink, withParts, shortName, wordAt, wordCount, type Directive, type Edit, type Emphasis, type MarkdownLink } from '../markdown';
@@ -1894,9 +1896,10 @@ const held = computed(() => {
 
 // The rows pinned to the end of the Document tab (D-608) each open a
 // level down in its place, with a path back: the Outline, what links
-// here, and the archive the page introduces. Picking from the Outline,
-// moving the caret, changing tabs, or Escape puts the fields back.
-type Drill = 'outline' | 'linked' | 'archive';
+// here, the archive the page introduces, and its last changes, with Undo
+// (D-758). Picking from the Outline, moving the caret, changing tabs, or
+// Escape puts the fields back.
+type Drill = 'outline' | 'linked' | 'archive' | 'activity';
 
 const drill = ref<Drill | null>(null);
 
@@ -1904,7 +1907,43 @@ watch([caret, tab], () => {
 	drill.value = null;
 });
 
+// The entry's last changes, loaded when its Activity row opens.
+const changes      = ref<ActivityChange[] | null>(null);
+const changesError = ref('');
+
+async function loadChanges(): Promise<void> {
+	changesError.value = '';
+
+	try {
+		changes.value = entry.value?.id ? (await loadActivity({ subject: entry.value.id })).changes : [];
+	} catch (caught) {
+		changesError.value = errorMessage(caught, 'Its changes couldn\'t be loaded.');
+	}
+}
+
+// After an Undo there, the entry is read again, as it is now.
+async function changedHere(): Promise<void> {
+	await loadChanges();
+
+	if (entry.value?.id) {
+		entry.value = await request<EntryDetail>('GET', entryPath(entry.value.id));
+	}
+}
+
+// What the Activity row says: who made the latest change, when an app
+// did, so it's known an app was there.
+const activityLine = computed(() => {
+	const by = entry.value?.changedBy;
+
+	return by ? `Changed by ${by.client} (${by.account}) ${formatWhenInline(by.time)}` : 'Who changed it, and Undo';
+});
+
 async function openDrill(which: Drill): Promise<void> {
+	if (which === 'activity') {
+		changes.value = null;
+		void loadChanges();
+	}
+
 	sideOpen.value = true;
 	tab.value      = 'document';
 	await nextTick();
@@ -3144,19 +3183,37 @@ function fieldKey(field: FieldDescription): string {
 								<span class="editor__list-count mono">{{ items.length }}</span>
 								<AdminIcon name="chevron-right" class="editor__list-go" />
 							</button>
+							<button v-if="entry.id !== null" id="editor-row-activity" type="button" class="editor__list-link" :class="{ 'is-quiet': !entry.changedBy }" @click="openDrill('activity')">
+								<AdminIcon :name="entry.changedBy ? 'bot' : 'clock'" />
+								<span class="editor__list-text"><strong>Activity</strong><span :title="entry.changedBy ? formatWhen(entry.changedBy.time) : undefined">{{ activityLine }}</span></span>
+								<AdminIcon name="chevron-right" class="editor__list-go" />
+							</button>
 						</div>
 					</template>
 
 					<template v-else>
 						<button id="editor-drill-back" type="button" class="editor__list-link editor__list-link--back" @click="closeDrill">
 							<AdminIcon name="arrow-left" />
-							<span class="editor__back-path">{{ typeName }} <span aria-hidden="true">/</span><span class="visually-hidden">:</span> <strong>{{ { outline: 'Outline', linked: 'Linked From', archive: 'Archive Page' }[drill] }}</strong></span>
-							<span v-if="drill !== 'archive'" class="editor__list-count mono">{{ drill === 'outline' ? items.length : linkedTotal }}</span>
+							<span class="editor__back-path">{{ typeName }} <span aria-hidden="true">/</span><span class="visually-hidden">:</span> <strong>{{ { outline: 'Outline', linked: 'Linked From', archive: 'Archive Page', activity: 'Activity' }[drill] }}</strong></span>
+							<span v-if="drill === 'outline' || drill === 'linked'" class="editor__list-count mono">{{ drill === 'outline' ? items.length : linkedTotal }}</span>
 						</button>
 
 						<OptionsGroup v-if="drill === 'outline'">
 							<OutlineList :items="items" :describe="rowOf" :current="selection" indent empty="Nothing yet. Start writing, or use the insert buttons in the header." @select="select" />
 						</OptionsGroup>
+
+						<template v-else-if="drill === 'activity'">
+							<p class="editor__drill-note">
+								<AdminIcon name="info" />
+								<span>Every change to {{ quotedTitle }}, here and by connected apps, newest first. What a change replaced is kept for 30 days, for Undo.</span>
+							</p>
+							<p v-if="changesError" class="notice notice--error" role="alert">{{ changesError }}</p>
+							<p v-else-if="changes === null" class="loading">Loading its changes…</p>
+							<p v-else-if="!changes.length" class="editor__drill-note"><span>No changes are listed yet.</span></p>
+							<OptionsGroup v-else>
+								<ActivityRows :changes="changes" @changed="changedHere" />
+							</OptionsGroup>
+						</template>
 
 						<template v-else-if="drill === 'linked'">
 							<p class="editor__drill-note">

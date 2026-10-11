@@ -41,6 +41,7 @@ final class AuthServiceProvider extends ServiceProvider
 	 */
 	protected const array SINGLETONS = [
 		AccountProfiles::class,
+		BearerTokens::class,
 		Accounts::class,
 		Authenticator::class,
 		LoginThrottle::class,

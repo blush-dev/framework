@@ -112,10 +112,13 @@ enum BuiltInRole: string
 				Capability::MenusEdit,
 				Capability::SitePublish,
 				Capability::CacheClear,
-				Capability::SiteRedirects
+				Capability::SiteRedirects,
+				Capability::SiteActivity,
+				Capability::ApiConnect
 			],
-			self::Author      => [Capability::MediaEdit, Capability::MediaDelete],
-			self::Contributor => [Capability::MediaEdit],
+			// Writers may connect apps to the MCP server (D-752).
+			self::Author      => [Capability::MediaEdit, Capability::MediaDelete, Capability::ApiConnect],
+			self::Contributor => [Capability::MediaEdit, Capability::ApiConnect],
 			default           => []
 		};
 

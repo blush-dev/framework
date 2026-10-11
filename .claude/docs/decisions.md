@@ -23555,3 +23555,429 @@ decision, add a new entry that supersedes it and mark the old one
     tokens are the admin's for now.
 - **Why:** the author asked to build tokens as discussed; these keep to
   the shapes D-744 to D-749 settled and reuse what the admin shares.
+
+### D-751: The MCP server: what it is, where it lives, and OAuth in its first version
+
+- **Date:** 2026-10-11
+- **Status:** Built (D-759). The first of the MCP questions
+  (open-questions.md → An MCP server). Amends that entry's "local
+  agents can edit the files" and D-750's "OAuth 2.1 waits for MCP"
+  (it comes with MCP's first version, not after it).
+- **Decision:** The author agreed to these leanings:
+  - **`Blush\Mcp`, beside `Blush\Api`,** over the same domain layer
+    and resource shapes (`EntryResource`, `MediaResource`,
+    `ApiIncludes`), never calling `/api/v1` over HTTP, so an entry
+    reads the same through either.
+  - **One endpoint, `/api/mcp`,** unversioned (MCP negotiates its own
+    protocol version when a client connects).
+  - **Streamable HTTP, stateless:** each `POST` answered with plain
+    JSON, no SSE streams and no `Mcp-Session-Id`, as a PHP request on
+    shared hosting can't hold a stream open.
+  - **Also stdio through the CLI** (`blush mcp --account=…`) for local
+    agents, running the same tools as one account with no token (the
+    shell is already trusted). Local agents shouldn't edit files
+    directly: a site may keep its data in SQLite (D-661), and editing
+    files skips ids, validation, relations, and the index.
+  - **Task-shaped tools over the domain layer,** not one tool per API
+    endpoint, each checked against capabilities as the API checks
+    them.
+  - **OAuth 2.1 is part of the first version,** since the chat apps'
+    remote connectors (Claude, ChatGPT) sign in with OAuth and have no
+    place for a pasted token; bearer tokens (D-744) work too. The
+    OAuth shape is its own topic.
+- **Why:** the author agreed; one contract for the API and MCP, a
+  transport that runs anywhere PHP does, and a server writers can
+  connect from the apps they already use.
+
+### D-752: OAuth 2.1 for the MCP server
+
+- **Date:** 2026-10-11
+- **Status:** Built (D-759). The second of the MCP questions,
+  after D-751.
+- **Decision:** The author agreed to these leanings. What the MCP spec
+  settles: **Blush is its own authorization server** (its accounts,
+  no outside provider); **discovery** through
+  `/.well-known/oauth-protected-resource` and
+  `/.well-known/oauth-authorization-server`, with a `401` from
+  `/api/mcp` pointing there; **the authorization code flow with PKCE
+  (S256 only)**; and **tokens bound to the resource** (`resource=…/api/mcp`),
+  working nowhere else. Blush's calls:
+  - **Registering a client:** both a client ID that's a URL to the
+    client's own metadata document and dynamic registration, with no
+    admin screen; a client can do nothing until a person approves it,
+    clients never approved are removed after a day by a job, and only
+    HTTPS or localhost redirect addresses are accepted.
+  - **The approval screen is an admin screen** (`/admin/authorize`,
+    where sign-in already is): the client's name and address, what it
+    asks for as the token presets (Read, Write drafts, Same as my
+    account) or a custom choice, and Allow or Deny. A person may
+    narrow the request, never widen it.
+  - **Tokens are D-747's,** with `client` set: the same table, format,
+    narrowing, and suspension. Access tokens last an hour; each comes
+    with a refresh token of 90 days, replaced whenever it's used, and
+    a refresh token used twice revokes every token of that client.
+  - **Connected apps on the API Tokens panel,** one row per client
+    (approved when, last connected), whose Revoke removes all its
+    tokens; Revoke All covers them.
+  - **Three scopes,** matching the presets: `read`, `drafts`, and
+    `account`; finer narrowing is the person's, on the approval screen.
+  - **OAuth only when MCP is on** (its addresses `404` otherwise), and
+    OAuth tokens work only on `/api/mcp`, not `/api/v1`, until a client
+    needs both.
+  - **Approving a client takes `api.connect`,** a capability of its
+    own, beside `api.tokens`: in the Owner, Administrator, Editor,
+    Author, and Contributor roles by default, not Member. Long-lived
+    secrets (`api.tokens`) stay with owners and administrators
+    (D-749); a connected app holds short-lived tokens the person never
+    sees, works only on MCP, and can do no more than its account, so
+    writers, whom MCP is for, may connect one, and a site can allow
+    either without the other.
+- **Why:** the author agreed; what the spec fixes is what the chat
+  apps need to connect, and the rest reuses tokens as they're built.
+
+### D-753: The MCP server's protocol
+
+- **Date:** 2026-10-11
+- **Status:** Built (D-759). The third of the MCP questions,
+  after D-752.
+- **Decision:** The author agreed to these leanings:
+  - **Blush's own code, not the official PHP SDK:** the stateless
+    subset is small (`initialize`, `notifications/initialized`,
+    `ping`, `tools/list`, `tools/call`, and the error shapes), the SDK
+    is young and built around sessions, transports, and discovery of
+    its own, and one handler serves HTTP and stdio (fed from STDIN),
+    so it renders anywhere. The SDK's dependencies are to be checked
+    before building, in case that changes the call.
+  - **Tools only in the first version:** no resources (clients treat
+    them unevenly, and tools cover reading) and no prompts (later, if
+    they earn their place). **`instructions`** on `initialize` is in:
+    a few lines on the site (title, description, types) and how to
+    work with it (Markdown bodies, new entries as drafts).
+  - **Results as data and text:** each tool declares an output schema
+    and returns `structuredContent` in the API's shapes (D-751), with a
+    text copy for clients that read only text; bodies as Markdown, as
+    the `.md` copies are (D-395).
+  - **Honest annotations** (read-only, destructive, idempotent), as
+    hints for clients to ask before a write; capabilities stay the
+    check.
+  - **Two kinds of error:** a tool's own failure (bad input, a missing
+    entry, no permission) is a result with `isError` and a plain
+    message the AI can correct; a malformed request is a JSON-RPC
+    error.
+  - **Tools as the registry pattern:** an abstract `Blush\Mcp\Tool`
+    (name, description, input and output schemas, the capability it
+    needs, annotations, `handle()`), with built-ins from a backed enum
+    through a registry, a factory, and a registrar, so plugins add
+    their own the usual way. `tools/list` shows only the tools the
+    account may use.
+  - **MCP-only tools for now,** kept free of MCP specifics (a schema, a
+    capability, `handle()` with typed input) so lifting them into a
+    shared registry of actions is a rename, not a redesign. Whether the
+    CLI, Tools' actions (`AdminAction`), jobs, and API writes should
+    share one registry is on the roadmap to discuss.
+- **Why:** the author agreed, asking that widening the registry be
+  discussed further; the CLI's and Tools' shapes (prompts, progress,
+  toasts) aren't settled for a shared one yet.
+
+### D-754: The MCP server's switch, and no anonymous access
+
+- **Date:** 2026-10-11
+- **Status:** Built (D-759). The fourth of the MCP questions,
+  after D-753.
+- **Decision:** The author agreed to these leanings:
+  - **The switch is on Settings → AI** (D-397): an MCP server switch,
+    `mcp.enabled` in an `McpConfig`, off by default, with a read-only
+    row giving the server's address and a Copy button (what a person
+    pastes into a chat app's connector settings), and a line on who may
+    connect (`api.connect`, D-752) linking to Roles.
+  - **Apart from the API's switch:** MCP works over the domain layer,
+    so it can be on with `/api/v1` off. It shares the API's `path`, at
+    `{path}/mcp`, so both move together.
+  - **No anonymous access in the first version:** every call is an
+    account's, through OAuth or a token. Anonymous reading already has
+    the `.md` copies, `llms.txt`, and the API, and an open endpoint
+    would be an unlimited search for any bot. "Anyone (read-only)" may
+    come later as a choice beside the switch.
+  - **`blush mcp` ignores the switch,** which decides whether the site
+    answers MCP over the web; the shell is already trusted. It still
+    takes `--account`, refuses a suspended one, and acts with that
+    account's capabilities.
+  - **Off:** `{path}/mcp` and every OAuth address are `404`; connected
+    apps' tokens are kept and work again when it's back on.
+- **Why:** the author agreed.
+
+### D-755: The MCP server's read tools
+
+- **Date:** 2026-10-11
+- **Status:** Built (D-759). The fifth of the MCP questions,
+  after D-754.
+- **Decision:** The author agreed to these leanings:
+  - **`list_types`:** each type's name, label, kind (collection or
+    tree), a line of description, and its entry count; short, for an
+    early call.
+  - **`get_type(name)`:** one type in full: its front matter's JSON
+    Schema (D-206), statuses and workflow, relationships, and its file
+    name and URL patterns as patterns, never file paths (D-481); called
+    before writing.
+  - **`search_entries`:** the API's filters as typed inputs (`search`,
+    `type`, relations by name, `parent`, dates, `sort`, `limit`) with a
+    `cursor`, answering stubs (id, type, title, status, URL, published,
+    updated, excerpt) and no bodies; 20 by default, at most 50.
+  - **`get_entry`:** by `id` or `url` (people paste addresses), the
+    whole entry with its fields, Markdown body, and relations as
+    stubs; `include: ["linked_from"]` adds what links to it (D-608);
+    an address that redirects says where, as `?url=` does.
+  - **`search_media`** (by kind, words in title, alt text, or caption,
+    and missing alt text) and **`get_media(id)`** (alt text, caption,
+    sizes, metadata, D-287 to D-291, and where it's used).
+  - **Left out at first:** menus, settings, and accounts;
+    `instructions` (D-753) gives the site's title and description.
+  - **Every status the account may see by default, but trash,** unlike
+    the API's public default: MCP is never anonymous or cached, and a
+    writer's first questions are about drafts and what's scheduled.
+    Each result carries its `status`, a `status` input narrows it, and
+    trash only when named. The account's capabilities limit it, and
+    types that aren't public show only to an account that may edit
+    them (D-745).
+  - **Names are `snake_case` verbs without a `blush_` prefix** (clients
+    group tools by server); descriptions are written for the AI: when
+    to use the tool and what it answers.
+- **Why:** the author agreed, choosing MCP's own default over the
+  API's.
+
+### D-756: The MCP server's write tools, and one write path
+
+- **Date:** 2026-10-11
+- **Status:** Built (D-759). The sixth of the MCP questions,
+  after D-755.
+- **Decision:** The author agreed to these leanings, with `edit_body`
+  and `set_status` in the first version:
+  - **One write path:** the admin's save rules (refusals, slug and
+    language checks, relation limits, statuses, redirects on moves,
+    raw HTML, revisions) move out of `EntryController` into a content
+    service (`Blush\Content\EntryEditor` or the like) that the admin,
+    MCP, and later API writes share, so an agent can't save what the
+    admin would refuse.
+  - **Writes in the API come later,** on that service, shaped when
+    something needs them; MCP gets writes first.
+  - **`create_entry(type, fields, body)`:** always a draft; answers the
+    stub, its `revision`, the admin's edit link, and a signed preview
+    link (D-226).
+  - **`update_entry(id, revision, fields?, body?)`:** changes only what
+    it's given (`null` removes a field; a slug or parent moves the
+    entry, with redirects as the admin leaves them); the `revision`
+    from `get_entry` is required, and a stale one is an error to read
+    it again, never an overwrite.
+  - **`edit_body(id, revision, find, replace)`:** replaces one exact
+    passage found exactly once, for small edits without sending the
+    whole body back. Named for the entry's `body`, as the API
+    (D-739), the admin's API, and `EntryChanges` name it, not for
+    `Entry::content()`, which is the rendered HTML.
+  - **`set_status(id, revision, status)`:** publishing, unpublishing,
+    and scheduling (with a date) in a tool of its own so clients ask
+    first; needs `publish` now and follows workflow transitions once
+    D-732 is built; never offered to the `drafts` scope.
+  - **`trash_entry(id)` and `restore_entry(id)`:** trash as a status
+    (D-484), warning what links to it (D-608); no emptying the trash or
+    deleting for good.
+  - **`update_media(id, alt?, caption?, title?)`,** by media
+    capabilities (D-407); **`upload_media`** from base64 data with a
+    name, alt text, and caption, under upload rules by kind (D-406, no
+    SVG, D-497); uploading from a URL waits for the HTTP client
+    (D-620); no deleting media.
+  - **Every write is checked as the admin's are** (capabilities, the
+    token's narrowing or scope, raw HTML, D-495, required fields), with
+    refusals as plain `isError` messages; **no bulk tools.**
+- **Why:** the author agreed, asking whether `edit_body` should be
+  `edit_content` for consistency; `body` is the name everywhere the
+  Markdown source is written or served.
+
+### D-757: Plugins' MCP tools
+
+- **Date:** 2026-10-11
+- **Status:** Built (D-759). The seventh of the MCP questions,
+  after D-756. Answers open-questions.md's "whether an extension's
+  resources become MCP tools on their own" (Extension endpoints in the
+  API): they don't.
+- **Decision:** The author agreed to these leanings:
+  - **Registered the usual way:** a plugin's service provider adds its
+    `Tool` classes to the tool registry (D-753), as it does commands
+    or components; a plugin that's off isn't booted, so its tools are
+    gone. No manifest key.
+  - **Names carry the plugin's:** core keeps bare names (`get_entry`);
+    a plugin's are `{vendor}_{name}_{tool}` (`acme_gallery_list_albums`),
+    as its endpoints sit under `/api/v1/{vendor}/{name}`. Lowercase
+    letters, digits, and `_` only, at most 64 characters (some clients
+    hand tool names to models that take less than MCP allows); checked
+    on registering, a clash refused.
+  - **Every tool names a capability,** core's or one the plugin
+    declares (shown on the role screen, D-359); none is open to any
+    connected account.
+  - **Scopes follow the annotations:** a read-only tool is in every
+    scope; a tool that writes is in `account` only, unless the plugin
+    marks it drafts-safe, which adds `drafts`. The capability, and a
+    token's narrowing, are the check beneath.
+  - **The same rails as core's:** input checked against the tool's
+    schema before `handle()`, a thrown `ToolError` as the `isError`
+    result, and content written through the shared write path (D-756).
+    `docs/extending.md` documents it, with guidance to keep tools few
+    and shaped by task.
+  - **The AI screen lists the tools offered,** read-only, grouped by
+    who registered them (Blush, then each plugin), as Tools groups its
+    actions (D-540): name, description, and capability. No switch per
+    tool at first; turning the plugin off or the capability away
+    covers it.
+  - **Extension endpoints don't become tools on their own:** endpoints
+    are for programs and tools for AI, with different shapes and
+    descriptions; a plugin wanting both writes both over shared code.
+- **Why:** the author agreed, choosing the annotation for scopes over
+  requiring `account` for every plugin tool.
+
+### D-758: Accountability before agents write: activity, undo, and limits
+
+- **Date:** 2026-10-11
+- **Status:** Built (D-759), with MCP. The last of the MCP
+  questions (D-751 to D-758). Starts the activity log and the
+  `RateLimit` that D-750 and `architecture.md` left for later.
+- **Decision:** The author agreed to these leanings, keeping the
+  before-state for undo:
+  - **An activity log:** an `activity` table on the record layer
+    (D-606), written by the shared write path (D-756) for every write,
+    not only MCP's: when, the account, how it came (`admin`, `mcp`
+    with the client's name, `cli`, `api`, and the token's id), the
+    action (`entry.create`, `entry.update`, `entry.status`,
+    `entry.trash`, `entry.restore`, `media.upload`, `media.update`),
+    its subject by id, and a line of summary. A job prunes rows after
+    90 days.
+  - **Undo from the state before a change:** entry updates,
+    `edit_body`, status changes, and media edits keep what they
+    replaced (front matter and body, or the media's fields), pruned
+    after 30 days. One step back, not revision history (no browsing
+    or diffs); Undo restores it only if nothing changed since, else
+    says so, as the revision check does.
+  - **Where it shows:** an **Activity** tab under Tools beside the log,
+    filtered by account, app, and action, with Undo on each row for
+    whoever may edit its entry; a link to each connected app's
+    activity on its API Tokens row; and an **Activity** row pinned to
+    an entry's Document tab (D-608) with its last changes.
+  - **Limits on MCP calls,** counted in the cache, never records, so
+    counting writes no file: 600 calls an hour per token, 60 of them
+    writes, set in `McpConfig`; past that, an `isError` result saying
+    when to try again. The start of the general `RateLimit`, for API
+    tokens later (D-750).
+  - **An app's changes are marked in the admin:** the editor notes the
+    latest activity when it was an app's ("Changed by Claude (Jane's
+    account) 3 minutes ago").
+
+  Claude's call, left open in the proposal: **a `site.activity`
+  capability** for the Activity tab, apart from `site.logs` (a log can
+  hold paths and error details, D-541; activity doesn't), in the
+  Owner, Administrator, and Editor roles by default. An entry's own
+  Activity row shows to whoever may edit it.
+- **Why:** the author agreed: undoing what an agent just did is what
+  makes letting it write feel safe, and full revisions are a long way
+  off.
+
+### D-759: The MCP server, OAuth, and the activity log, as built
+
+- **Date:** 2026-10-11
+- **Status:** Built. Builds D-751 to D-758, after the author's "move
+  onto building mcp", with a design brief for the new screens first
+  (`.claude/docs/admin-design/mcp-screens-brief.md`).
+- **Decision:** Claude's calls building them:
+  - **The write paths:** `Blush\Content\Editing\EntryEditor` (create,
+    update, `replaceInBody`, `setStatus`, trash, restore, duplicate,
+    undo) with `EntryEdit`, `NewEntry`, `EditRefused`, and `Refusal`
+    (its HTTP status included); `IndexPage`, `ErrorPage`,
+    `ArchivePages`, and `HtmlGuard` moved there from `Blush\Admin`.
+    `Blush\Media\MediaEditor` (upload, `uploadBytes`, update, undo,
+    `safeName`) with `UploadedMedia`. `EntryController`,
+    `MediaUploadController`, and `MediaListController::update()` are
+    thin over them; bulk changes go through `setStatus()` and
+    `trash()`. Both editors' `limitedTo()` narrow to a token's
+    capabilities (`HtmlGuard::withPermissions()` too).
+  - **The activity log:** `Blush\Activity` (`Activity`, `ActivityLog`,
+    `ActivityAction`, `ActivityFilter`, `Actor`, `Via`), the `activity`
+    table in the accounts area (`storage/activity`). Duplicating is
+    logged as a create; deleting for good and emptying the trash
+    aren't logged (D-758 has no action for them). A move, rename, or
+    language change keeps no before-state, so it can't be undone; an
+    undo is refused when the entry's revision or key changed since. An
+    undo is recorded by an `Actor::undoing()` actor, and recording it
+    marks the original undone (not "the latest change", which two
+    writes in one second could confuse). `core/prune-activity`, daily
+    at 03:00.
+  - **Capabilities:** `site.activity` (Site group; Owner,
+    Administrator, Editor) and `api.connect` (Users group; every role
+    but Member), as D-752 and D-758 set.
+  - **MCP:** `Blush\Mcp` as `architecture.md` describes. Tools are
+    offered in registration order (Blush's first). Input is checked by
+    `InputCheck`, a subset of JSON Schema. Limits use a new
+    `Http\RateLimiter` over the cache's new `limits` namespace (never
+    cleared with the others). Answers carry CORS `*` (a bearer token,
+    never a cookie, proves who's asking); protocol versions
+    `2025-11-25`, `2025-06-18`, and `2025-03-26`; an unsupported
+    `MCP-Protocol-Version` header is a 400. `update_entry` redirects a
+    moved published entry by default (`redirect: true`), and
+    `trash_entry` names live entries linking to it and waits for
+    `confirm: true`. `upload_media` takes at most 20 MB of base64.
+    `Auth\BearerTokens` is the token check the API and MCP share;
+    `Auth\TokenScope` holds the presets in PHP (the admin keeps its own
+    copy). `Permissions::alternatives()` is `restrict()`'s conditions,
+    for MCP's "what anyone may read, or what the account may edit".
+  - **OAuth:** `Blush\Mcp\OAuth` with `oauth_clients`, `oauth_grants`,
+    and `oauth_secrets` tables (accounts area, `storage/oauth`). A
+    client ID metadata document is read with the embed `Fetcher`
+    (HTTPS only, 1 MB), refused for a private or reserved address, and
+    read again after a day. Dynamic registration is limited to 20 an
+    hour per address. Codes last ten minutes and are used once (a
+    wrong verifier spends one). A request with no scope asks for
+    `account`; several, the widest. An app approved before with the
+    same or a wider preset gets a code at once, with no screen (a
+    custom grant always asks again). `/oauth/revoke` (RFC 7009) is
+    there too. Expired access tokens are pruned at once, with codes,
+    refresh tokens, and clients nobody approved, by
+    `core/prune-tokens`. The authorization endpoint is
+    `/admin/authorize`; its API is `GET` and `POST
+    {admin}/api/oauth/authorize`.
+  - **Settings:** `mcp.enabled` on Settings → AI (`McpConfig`, read
+    lazily, as the API's is). A screen's fields are one schema, so a
+    setting whose key an earlier one on the screen has takes its
+    section (`mcpEnabled`, beside `llms.enabled`'s `enabled`). The AI
+    screen has an MCP Server group (switch, address with Copy, roles
+    that may connect) and Tools Offered (and Tools From Plugins), as
+    rows.
+  - **Admin:** the Connect an App screen (`AuthorizeView`, a route with
+    `meta.bare`, drawn outside the shell even when signed in), the
+    Activity tab on Tools (`ActivityRows`, shared with the editor),
+    Connected Apps on the API Tokens panel (Disconnect, `DELETE
+    accounts/{username}/apps/{id}`), an Activity row pinned to the
+    Document tab after Outline, and the editor's note of an app's
+    latest change as that row's line (`changedBy`), all from the
+    shared pieces (D-505).
+- **Why:** the author: "move onto building mcp".
+
+### D-760: `content:new` writes through the editor, and the command line in the log
+
+- **Date:** 2026-10-11
+- **Status:** Built. Closes a gap in D-759: D-758 logs every write,
+  with the command line as one way in, but `content:new` wrote through
+  `Entries` directly, so it wasn't logged.
+- **Decision:** The author agreed to these leanings:
+  - **`content:new` writes through `EntryEditor`,** so it's checked and
+    logged as the admin's and MCP's writes are.
+  - **Without an account, it's the command line:** `Actor::commandLine()`
+    stands in, an unsaved account with the owner's role (the shell is
+    trusted, D-754), logged with no account (`Via::Cli`); Tools →
+    Activity names it "Someone on the command line". No byline.
+  - **`--account=` makes it as an account,** with its permissions and
+    its byline (a contributor's must be `--draft`); an unknown or
+    suspended account is refused.
+  - **Housekeeping commands aren't logged:** `content:filenames`, the
+    folder moves, and the other fixes tidy files rather than change
+    content, and would fill the log after an upgrade.
+- **Why:** the author asked whether `content:new` was meant to appear
+  in the activity log, then "go ahead with the content:new fix". The
+  shared registry of actions (D-753) would make a command a tool's
+  other face, but it isn't needed for this: every way in already
+  shares the write path.

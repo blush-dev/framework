@@ -1,4 +1,11 @@
 {
+  "_ActivityRows.js": {
+    "file": "js/ActivityRows.js",
+    "name": "ActivityRows",
+    "imports": [
+      "js/admin.ts"
+    ]
+  },
   "_AdminSelect.css": {
     "file": "css/AdminSelect.css",
     "src": "_AdminSelect.css"
@@ -477,6 +484,7 @@
     "dynamicImports": [
       "js/views/AccountView.vue",
       "js/views/AccountsView.vue",
+      "js/views/AuthorizeView.vue",
       "js/views/EditorView.vue",
       "js/views/EntriesView.vue",
       "js/views/FieldSetView.vue",
@@ -556,6 +564,19 @@
       "css/AccountsView.css"
     ]
   },
+  "js/views/AuthorizeView.vue": {
+    "file": "js/AuthorizeView.js",
+    "name": "AuthorizeView",
+    "src": "js/views/AuthorizeView.vue",
+    "isDynamicEntry": true,
+    "imports": [
+      "js/admin.ts",
+      "_CapabilitySections.js"
+    ],
+    "css": [
+      "css/AuthorizeView.css"
+    ]
+  },
   "js/views/EditorView.vue": {
     "file": "js/EditorView.js",
     "name": "EditorView",
@@ -572,7 +593,8 @@
       "_FieldInput.js",
       "_FieldControl.js",
       "_MediaPicker.js",
-      "_IconPicker.js"
+      "_IconPicker.js",
+      "_ActivityRows.js"
     ],
     "css": [
       "css/EditorView.css"
@@ -994,7 +1016,9 @@
     "isDynamicEntry": true,
     "imports": [
       "js/admin.ts",
-      "_jobs.js"
+      "_AdminSelect.js",
+      "_jobs.js",
+      "_ActivityRows.js"
     ],
     "css": [
       "css/ToolsView.css"

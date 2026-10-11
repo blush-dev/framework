@@ -13,8 +13,9 @@ declare(strict_types=1);
 
 namespace Blush\Console\Commands;
 
-use Psr\Clock\ClockInterface;
+use Blush\Activity\Actor;
 use Blush\Admin\AdminLinks;
+use Blush\Auth\Accounts;
 use Blush\Console\Attributes\Argument;
 use Blush\Console\Attributes\Command;
 use Blush\Console\Attributes\Option;
@@ -22,6 +23,9 @@ use Blush\Console\ExitCode;
 use Blush\Console\InvalidInput;
 use Blush\Console\Output;
 use Blush\Console\Prompt;
+use Blush\Content\Editing\EditRefused;
+use Blush\Content\Editing\EntryEditor;
+use Blush\Content\Editing\NewEntry;
 use Blush\Content\Entries;
 use Blush\Content\Entry\Entry;
 use Blush\Content\Source\ContentFiles;
@@ -29,12 +33,13 @@ use Blush\Content\Status;
 use Blush\Content\Type\ContentType;
 use Blush\Content\Type\ContentTypes;
 use Blush\Content\Type\TypeKind;
-use Blush\Content\Writer\EntryChanges;
-use Blush\Content\Writer\WriteException;
 use Blush\Support\Slug;
 
 /**
- * Creates a Markdown entry in a type's folder, then refreshes the index.
+ * Creates an entry through the one write path (`EntryEditor`, D-756), so
+ * the activity log lists it (D-758): as the account `--account` names,
+ * with its permissions and its byline, else as the command line, which
+ * may do anything.
  * The file is named by the type's pattern from the slug (from the title
  * unless `--slug` is given; D-511), and every entry gets a `published`
  * date (D-514); `--draft` marks the entry as a draft, and `--parent`
@@ -50,9 +55,10 @@ final readonly class CreateContent
 	public function __construct(
 		private ContentTypes $types,
 		private ContentFiles $contentFiles,
-		private ClockInterface $clock,
 		private Entries $content,
-		private AdminLinks $links
+		private AdminLinks $links,
+		private EntryEditor $editor,
+		private Accounts $accounts
 	) {}
 
 	/**
@@ -65,8 +71,11 @@ final readonly class CreateContent
 		#[Argument('The entry title; asked for when it isn\'t given.')] ?string $title = null,
 		#[Option('The slug; defaults to one made from the title.')] ?string $slug = null,
 		#[Option('Create the entry as a draft.')] bool $draft = false,
-		#[Option('The page to put it under, by its path (a tree\'s pages only).')] ?string $parent = null
+		#[Option('The page to put it under, by its path (a tree\'s pages only).')] ?string $parent = null,
+		#[Option('The account it\'s made as, by username, with its permissions and byline; the command line when left out.')] ?string $account = null
 	): ExitCode {
+		$actor = $this->actor($account);
+
 		$type      ??= $prompt->select('Type', $this->typeOptions());
 		$contentType = $this->types->find($type)
 			?? throw new InvalidInput(sprintf('There is no "%s" content type; the types are %s.', $type, implode(', ', array_keys($this->types->all()))));
@@ -83,17 +92,16 @@ final readonly class CreateContent
 
 		$under = $this->parent($prompt, $contentType, $parent);
 		$draft = $draft || $prompt->select('Status', ['published' => 'Published', 'draft' => 'Draft'], 'published') === 'draft';
-		$now   = $this->clock->now();
-
-		$changes = new EntryChanges(set: [
-			'title'     => $title,
-			'published' => $now->format('Y-m-d H:i:s P'),
-			...($draft ? ['status' => 'draft'] : [])
-		], body: "\n");
 
 		try {
-			$entry = $this->content->create($contentType, $slug, $changes, $under, $now);
-		} catch (WriteException $e) {
+			$entry = $this->editor->create($actor, new NewEntry(
+				type: $contentType->name,
+				title: $title,
+				slug: $slug,
+				status: $draft ? 'draft' : 'published',
+				parent: $under?->key
+			));
+		} catch (EditRefused $e) {
 			$output->error($e->getMessage());
 
 			return ExitCode::Failure;
@@ -110,6 +118,25 @@ final readonly class CreateContent
 		}
 
 		return ExitCode::Success;
+	}
+
+	/**
+	 * Returns who the entry is made as: an account that may still act, by
+	 * username, or the command line.
+	 *
+	 * @throws InvalidInput When there's no such account, or it's suspended.
+	 */
+	private function actor(?string $username): Actor
+	{
+		if ($username === null) {
+			return Actor::commandLine();
+		}
+
+		$account = $this->accounts->find($username) ?? throw new InvalidInput(sprintf('There\'s no "%s" account.', $username));
+
+		return $account->suspended
+			? throw new InvalidInput(sprintf('%s is suspended, so it can\'t make entries.', $account->username))
+			: Actor::cli($account);
 	}
 
 	/**

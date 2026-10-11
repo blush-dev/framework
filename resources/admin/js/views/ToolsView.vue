@@ -11,21 +11,27 @@
  * here, with its progress. **Jobs**, with `site.jobs`, lists the
  * scheduled tasks (with Run Now) and the background jobs (with Retry and
  * Delete), and says whether cron runs them. **Logs** shows the end of
- * the site's log, read only, with `site.logs` (D-541).
+ * the site's log, read only, with `site.logs` (D-541). **Activity**, with
+ * `site.activity`, lists every change to entries and media, by whom and
+ * how (the admin, an app, the command line, the API), filtered in the
+ * address (`?tab=activity&client=Claude`), with Undo (D-758).
  */
 
 import { computed, onMounted, ref, watch } from 'vue';
-import { RouterLink, useRoute } from 'vue-router';
+import { RouterLink, useRoute, useRouter } from 'vue-router';
+import ActivityRows from '../components/ActivityRows.vue';
 import AdminIcon from '../components/AdminIcon.vue';
+import AdminSelect, { type SelectOption } from '../components/AdminSelect.vue';
 import EmptyState from '../components/EmptyState.vue';
 import { config } from '../config';
 import { confirmAction } from '../confirm';
 import { formatSize, formatWhenInline, plural, titleCase } from '../format';
 import { follow, jobResult, JOB_PILLS } from '../jobs';
+import { loadActivity, type ActivityPage } from '../activity';
 import { can } from '../session';
 import { errorMessage, request, type ActionAnswer, type ActionDescription, type ActionGroup, type ActionResult, type Job, type JobsOverview, type LogEntry, type LogTail, type ScheduledTask } from '../api';
 
-type Tab = 'actions' | 'jobs' | 'logs';
+type Tab = 'actions' | 'jobs' | 'logs' | 'activity';
 
 const groups  = ref<ActionGroup[] | null>(null);
 const error   = ref('');
@@ -43,16 +49,26 @@ const log        = ref<LogTail | null>(null);
 const logError   = ref('');
 const logLoading = ref(false);
 
+const activity        = ref<ActivityPage | null>(null);
+const activityError   = ref('');
+const activityLoading = ref(false);
+
 const tabs = computed(() => [
 	{ key: 'actions' as const, label: 'Actions' },
 	...(can('site.jobs') ? [{ key: 'jobs' as const, label: 'Jobs' }] : []),
-	...(can('site.logs') ? [{ key: 'logs' as const, label: 'Logs' }] : [])
+	...(can('site.logs') ? [{ key: 'logs' as const, label: 'Logs' }] : []),
+	...(can('site.activity') ? [{ key: 'activity' as const, label: 'Activity' }] : [])
 ]);
 // The tab is in the address (`?tab=logs`), as the entries list's are.
-const route = useRoute();
-const tab   = computed<Tab>(() => {
+const route  = useRoute();
+const router = useRouter();
+const tab    = computed<Tab>(() => {
 	if (route.query.tab === 'jobs' && can('site.jobs')) {
 		return 'jobs';
+	}
+
+	if (route.query.tab === 'activity' && can('site.activity')) {
+		return 'activity';
 	}
 
 	return route.query.tab === 'logs' && can('site.logs') ? 'logs' : 'actions';
@@ -61,8 +77,68 @@ const tab   = computed<Tab>(() => {
 const NOTES: Record<Tab, string> = {
 	actions: 'An action turns a command-line task into a button, for anyone without shell access. Blush registers some, and a plugin can register its own. An action you don\'t have the capability for isn\'t listed.',
 	jobs: 'Work done in the background: tasks on a schedule, and long work someone started, such as a publish. A job that fails is tried again a few times before it\'s marked failed.',
-	logs: 'Read only. This is for the moment something says it failed on a host with no way in over SSH.'
+	logs: 'Read only. This is for the moment something says it failed on a host with no way in over SSH.',
+	activity: 'Every change to entries and media, made here, by a connected app, on the command line, or through the API. What a change replaced is kept for 30 days, for Undo; the change is listed for 90.'
 };
+
+// The Activity tab's filters, from the address.
+const query = (key: string): string => typeof route.query[key] === 'string' ? route.query[key] : '';
+
+const activityQuery = computed(() => ({
+	account: query('account'),
+	via: query('via'),
+	client: query('client'),
+	action: query('action'),
+	page: Number(query('page')) || 1
+}));
+
+// How a change came: a way, or an app by its name.
+const howValue = computed(() => query('client') !== '' ? `client:${query('client')}` : query('via'));
+
+const accountOptions = computed<SelectOption[]>(() => [
+	{ value: '', label: 'Anyone' },
+	...(activity.value?.accounts ?? []).map((account) => ({ value: account.username, label: account.name }))
+]);
+
+const howOptions = computed<SelectOption[]>(() => [
+	{ value: '', label: 'Any way' },
+	...(activity.value?.via ?? []).map((via) => ({ value: via.value, label: via.label })),
+	...(activity.value?.clients ?? []).map((client) => ({ value: `client:${client}`, label: client }))
+]);
+
+const actionOptions = computed<SelectOption[]>(() => [
+	{ value: '', label: 'Any change' },
+	...(activity.value?.actions ?? [])
+]);
+
+function filterActivity(changes: Record<string, string>): void {
+	const next: Record<string, string> = { tab: 'activity' };
+
+	for (const [key, value] of Object.entries({ account: query('account'), via: query('via'), client: query('client'), action: query('action'), ...changes })) {
+		if (value !== '') {
+			next[key] = value;
+		}
+	}
+
+	void router.replace({ query: next });
+}
+
+function chooseHow(value: string): void {
+	filterActivity(value.startsWith('client:') ? { via: '', client: value.slice(7) } : { via: value, client: '' });
+}
+
+async function loadChanges(): Promise<void> {
+	activityLoading.value = true;
+	activityError.value   = '';
+
+	try {
+		activity.value = await loadActivity(activityQuery.value);
+	} catch (caught) {
+		activityError.value = errorMessage(caught, 'The activity couldn\'t be loaded.');
+	} finally {
+		activityLoading.value = false;
+	}
+}
 
 // Whether cron (or a worker) ran in the last ten minutes, and what to
 // say about it.
@@ -230,6 +306,12 @@ watch(tab, (value) => {
 	}
 }, { immediate: true });
 
+watch([tab, activityQuery], ([value]) => {
+	if (value === 'activity') {
+		void loadChanges();
+	}
+}, { immediate: true });
+
 onMounted(() => {
 	void load();
 });
@@ -239,7 +321,7 @@ onMounted(() => {
 	<header class="page-header">
 		<div class="page-header__text">
 			<h1 tabindex="-1">Tools</h1>
-			<p class="page-header__hint">Tasks you run by hand{{ can('site.jobs') ? ', work done in the background' : '' }}{{ can('site.logs') ? ', and the log they write to' : '' }}</p>
+			<p class="page-header__hint">Tasks you run by hand{{ can('site.jobs') ? ', work done in the background' : '' }}{{ can('site.logs') ? ', the log they write to' : '' }}{{ can('site.activity') ? ', and what changed' : '' }}</p>
 		</div>
 	</header>
 
@@ -353,6 +435,44 @@ onMounted(() => {
 		</template>
 	</template>
 
+	<template v-else-if="tab === 'activity'">
+		<div class="toolbar">
+			<div class="toolbar__filter">
+				<label class="visually-hidden" for="activity-account">Who</label>
+				<AdminSelect id="activity-account" :model-value="query('account')" :options="accountOptions" @update:model-value="filterActivity({ account: $event, page: '' })" />
+			</div>
+			<div class="toolbar__filter">
+				<label class="visually-hidden" for="activity-how">How</label>
+				<AdminSelect id="activity-how" :model-value="howValue" :options="howOptions" @update:model-value="chooseHow($event)" />
+			</div>
+			<div class="toolbar__filter">
+				<label class="visually-hidden" for="activity-action">Change</label>
+				<AdminSelect id="activity-action" :model-value="query('action')" :options="actionOptions" @update:model-value="filterActivity({ action: $event, page: '' })" />
+			</div>
+			<span class="toolbar__count" aria-live="polite">{{ activity ? plural(activity.total, 'change', 'changes') : 'Loading…' }}</span>
+		</div>
+
+		<p v-if="activityError" class="notice notice--error" role="alert">{{ activityError }}</p>
+
+		<section class="panel" aria-labelledby="activity-heading" :aria-busy="activityLoading">
+			<header class="panel__header">
+				<h2 id="activity-heading">Activity</h2>
+				<p class="panel__hint">Newest first</p>
+				<div class="panel__actions">
+					<button type="button" class="button button--small" :disabled="activityLoading" @click="loadChanges"><AdminIcon name="refresh-cw" />Refresh</button>
+				</div>
+			</header>
+			<p v-if="!activity" class="panel__body loading">Loading the activity…</p>
+			<EmptyState v-else-if="!activity.changes.length" icon="clock" heading="Nothing Changed" :text="activityQuery.account || activityQuery.via || activityQuery.client || activityQuery.action ? 'No change fits the filters.' : 'Changes to entries and media are listed here as they\'re made.'" />
+			<ActivityRows v-else :changes="activity.changes" @changed="loadChanges" />
+			<p v-if="activity && activity.pages > 1" class="panel__foot tools__pages">
+				<RouterLink v-if="activity.page > 1" class="lnk" :to="{ query: { ...route.query, page: String(activity.page - 1) } }">Newer</RouterLink>
+				<span class="muted">Page {{ activity.page }} of {{ activity.pages }}</span>
+				<RouterLink v-if="activity.page < activity.pages" class="lnk" :to="{ query: { ...route.query, page: String(activity.page + 1) } }">Older</RouterLink>
+			</p>
+		</section>
+	</template>
+
 	<section v-else class="panel" aria-labelledby="log-heading">
 			<header class="panel__header">
 				<h2 id="log-heading">Log</h2>
@@ -434,6 +554,13 @@ onMounted(() => {
 .action__progress {
 	display: grid;
 	gap: 6px;
+}
+
+/* Newer and older pages of the activity. */
+.tools__pages {
+	display: flex;
+	gap: var(--s-3);
+	align-items: center;
 }
 
 /* The cron line, on its own line, to copy. */

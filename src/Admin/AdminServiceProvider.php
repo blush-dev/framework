@@ -41,6 +41,8 @@ final class AdminServiceProvider extends ServiceProvider
 	protected const array TRANSIENTS = [
 		AdminRoutes::class,
 		ActionController::class,
+		ActivityController::class,
+		AuthorizeController::class,
 		AssetController::class,
 		DashboardController::class,
 		EntriesController::class,

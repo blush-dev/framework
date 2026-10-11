@@ -17,7 +17,7 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\ResponseInterface;
 use Blush\Admin\EntryController;
-use Blush\Admin\HtmlGuard;
+use Blush\Content\Editing\HtmlGuard;
 use Blush\Tests\WritesContentConfig;
 
 #[CoversClass(EntryController::class)]

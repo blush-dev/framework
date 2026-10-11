@@ -67,6 +67,7 @@ enum Capability: string
 	case SiteJobs        = 'site.jobs';
 	case SiteRedirects   = 'site.redirects';
 	case SiteSecrets     = 'site.secrets';
+	case SiteActivity    = 'site.activity';
 	case AccountsView    = 'accounts.view';
 	case AccountsCreate  = 'accounts.create';
 	case AccountsEdit    = 'accounts.edit';
@@ -75,6 +76,7 @@ enum Capability: string
 	case AccountsDelete  = 'accounts.delete';
 	case RolesManage     = 'roles.manage';
 	case ApiTokens       = 'api.tokens';
+	case ApiConnect      = 'api.connect';
 
 	/**
 	 * Capabilities that are gone (D-407): a saved role that names one has
@@ -121,7 +123,8 @@ enum Capability: string
 			self::MenusEdit                                         => 'Structure',
 			self::SitePublish, self::CacheClear,
 			self::SiteSettings, self::SiteLogs, self::SiteHealth,
-			self::SiteJobs, self::SiteRedirects, self::SiteSecrets  => 'Site',
+			self::SiteJobs, self::SiteRedirects, self::SiteSecrets,
+			self::SiteActivity                                      => 'Site',
 			default                                                 => 'Users'
 		};
 	}
@@ -147,6 +150,7 @@ enum Capability: string
 			self::SiteJobs        => 'See and manage background jobs',
 			self::SiteRedirects   => 'Manage redirects',
 			self::SiteSecrets     => 'Manage secrets',
+			self::SiteActivity    => 'See activity and undo changes',
 			self::AccountsView    => 'See accounts and roles',
 			self::AccountsCreate  => 'Create accounts',
 			self::AccountsEdit    => 'Edit accounts',
@@ -154,7 +158,8 @@ enum Capability: string
 			self::AccountsSuspend => 'Suspend and reinstate accounts',
 			self::AccountsDelete  => 'Remove accounts',
 			self::RolesManage     => 'Manage roles',
-			self::ApiTokens       => 'Make API tokens for their own account'
+			self::ApiTokens       => 'Make API tokens for their own account',
+			self::ApiConnect      => 'Connect apps, such as Claude, to act as them'
 		};
 	}
 }

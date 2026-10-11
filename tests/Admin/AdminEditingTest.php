@@ -18,7 +18,7 @@ use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\ResponseInterface;
 use Blush\Admin\EntryController;
 use Blush\Admin\EntryHandles;
-use Blush\Admin\IndexPage;
+use Blush\Content\Editing\IndexPage;
 use Blush\Admin\InvalidEdit;
 use Blush\Content\Index\Indexer;
 use Blush\Content\Lint\Linter;

@@ -29,6 +29,7 @@ use Blush\Content\Entry\Position;
 use Blush\Storage\Record\Order;
 use Blush\Content\Type\ContentTypes;
 use Blush\Content\Type\Tree;
+use Blush\Content\Editing\ErrorPage;
 use Blush\Http\Response;
 use Blush\Http\Status as HttpStatus;
 use Blush\Support\Slug;

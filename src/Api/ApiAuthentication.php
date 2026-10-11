@@ -14,16 +14,14 @@ declare(strict_types=1);
 namespace Blush\Api;
 
 use Override;
-use Psr\Clock\ClockInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\MiddlewareInterface;
 use Psr\Http\Server\RequestHandlerInterface;
 use Blush\Auth\Account;
-use Blush\Auth\Accounts;
 use Blush\Auth\AuthException;
+use Blush\Auth\BearerTokens;
 use Blush\Auth\Token;
-use Blush\Auth\Tokens;
 use Blush\Auth\TokenThrottle;
 use Blush\Cache\CacheException;
 use Blush\Http\ClientIp;
@@ -54,22 +52,11 @@ use Blush\Http\ClientIp;
  */
 final readonly class ApiAuthentication implements MiddlewareInterface
 {
-	/**
-	 * Addresses a token may be sent to over plain HTTP: the site's own
-	 * computer, and none, for a request made inside Blush (the CLI, a
-	 * test).
-	 *
-	 * @var list<string>
-	 */
-	private const array LOCAL = ['', 'localhost', '127.0.0.1', '[::1]', '::1'];
-
 	public function __construct(
 		private ApiConfig $config,
 		private ApiResponses $responses,
-		private Tokens $tokens,
-		private Accounts $accounts,
-		private TokenThrottle $throttle,
-		private ClockInterface $clock
+		private BearerTokens $bearer,
+		private TokenThrottle $throttle
 	) {}
 
 	/**
@@ -98,7 +85,7 @@ final readonly class ApiAuthentication implements MiddlewareInterface
 				: $handler->handle($request);
 		}
 
-		if (! self::isSecure($request)) {
+		if (! BearerTokens::isSecure($request)) {
 			return $this->responses->error(ApiError::httpsRequired());
 		}
 
@@ -108,9 +95,10 @@ final readonly class ApiAuthentication implements MiddlewareInterface
 			return $this->responses->error(ApiError::tooManyAttempts());
 		}
 
-		$found = $this->find($header);
+		// An app's token, from OAuth, works only on the MCP server (D-752).
+		$found = $this->bearer->find($header);
 
-		if ($found === null) {
+		if ($found === null || $found[0]->client !== null) {
 			$this->throttle->fail($ip);
 
 			return $this->responses->error(ApiError::unauthorized('invalid_token', 'The token is wrong, revoked, or expired, or its account is suspended.'));
@@ -118,41 +106,6 @@ final readonly class ApiAuthentication implements MiddlewareInterface
 
 		[$token, $account] = $found;
 
-		try {
-			$token = $this->tokens->used($token);
-		} catch (AuthException) {
-			// Not writing when it was used doesn't stop it being used.
-		}
-
-		return $handler->handle($request->withAttribute(Token::class, $token)->withAttribute(Account::class, $account));
-	}
-
-	/**
-	 * Returns the token an `Authorization` header sends, with its
-	 * account, when both may be used, or `null`.
-	 *
-	 * @return ?array{Token, Account}
-	 * @throws AuthException When a record is damaged.
-	 */
-	private function find(string $header): ?array
-	{
-		if (preg_match('/\ABearer\s+(\S+)\z/i', $header, $matches) !== 1) {
-			return null;
-		}
-
-		$token   = $this->tokens->verify($matches[1]);
-		$account = $token === null || $token->isExpired($this->clock->now()->getTimestamp()) ? null : $this->accounts->findById($token->account);
-
-		return $token === null || $account === null || $account->suspended ? null : [$token, $account];
-	}
-
-	/**
-	 * Whether a request came over HTTPS, or to the site's own computer.
-	 */
-	private static function isSecure(ServerRequestInterface $request): bool
-	{
-		$uri = $request->getUri();
-
-		return $uri->getScheme() === 'https' || in_array(strtolower($uri->getHost()), self::LOCAL, true);
+		return $handler->handle($request->withAttribute(Token::class, $this->bearer->used($token))->withAttribute(Account::class, $account));
 	}
 }

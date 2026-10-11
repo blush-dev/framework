@@ -286,6 +286,7 @@ The rest are for the whole site:
 | `cache.clear` | Clearing caches |
 | `site.settings` | Changing site settings |
 | `site.logs` | Reading the site's log on the Tools screen |
+| `site.activity` | Seeing every change to entries and media on Tools → Activity, with Undo (owners, administrators, and editors, by default). Anyone sees and undoes the changes to an entry they may edit. |
 | `site.redirects` | Adding, changing, and deleting redirects on the Redirects screen. Renaming or moving an entry adds its own redirect without it. |
 | `site.jobs` | Seeing every background job and scheduled task on the Tools screen, with Retry, Delete, and Run Now. Anyone can follow the jobs they start. |
 | `site.health` | Seeing Site Health, and its fixes for content and media files (owners only, by default) |
@@ -296,6 +297,8 @@ The rest are for the whole site:
 | `accounts.suspend` | Suspending and reinstating accounts |
 | `accounts.delete` | Removing accounts |
 | `roles.manage` | Making, changing, resetting, and deleting roles |
+| `api.tokens` | Making [API tokens](api.md#tokens) for your own account (owners and administrators, by default) |
+| `api.connect` | Connecting [AI apps](mcp.md#connecting-an-app) to act as you (every role but Member, by default) |
 
 Each kind of extension has its own, with the kind in the middle:
 `themes`, `plugins`, or `icon-packs` (`extensions.plugins.delete` is

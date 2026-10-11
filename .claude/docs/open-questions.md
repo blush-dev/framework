@@ -983,8 +983,8 @@ Move each item to `decisions.md` once it's answered.
     - **The catch-all stays last**, after extensions' routes.
     - Open: caching for data that isn't content (live stats), which
       may need to opt out or key on something of its own; whether
-      plugins are `GET` only until tokens; whether an extension's
-      resources become MCP tools on their own once MCP exists.
+      plugins are `GET` only until tokens. An extension's resources
+      don't become MCP tools on their own (D-757).
   - **API tokens:** settled and built (D-744 to D-750): tokens of an
     account, narrowed if asked, token-only accounts, `?status=`, a
     private API, `storage/tokens`, Your Account's panel, `token:add`.
@@ -998,11 +998,16 @@ Move each item to `decisions.md` once it's answered.
     and directives rendered to plain Markdown rather than left as
     written (their URL props get full URLs, D-396), which needs each
     component's plain form, with today's as the fallback.
-  - **An MCP server:** tools (search content, read an entry, list types
-    and their JSON Schemas (D-206), create a draft, update an entry,
-    upload media) over the API (D-736), checked against the token's
-    capabilities. For sites on a server; local agents can edit the
-    files.
+  - **An MCP server:** settled 2026-10-11 in D-751 to D-758, built in
+    D-759 (`docs/mcp.md`): `Blush\Mcp` at `{path}/mcp` and `blush mcp` (D-751),
+    OAuth 2.1 with `api.connect` (D-752), its own protocol code with
+    tools only (D-753), on Settings → AI with no anonymous access
+    (D-754), read tools (D-755), write tools over one write path shared
+    with the admin (D-756), plugins' tools (D-757), and an activity log
+    with undo and call limits (D-758). Open around it: a shared
+    registry of actions (roadmap), writes in the API, uploading from a
+    URL (the HTTP client, D-620), anonymous read-only access, and
+    prompts.
   - **A headless mode:** a setting where Blush serves the admin and the
     API (and perhaps feeds and the sitemap) but no themed pages, and a
     separate front end (Astro, Next.js, SvelteKit, an app) owns the

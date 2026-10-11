@@ -336,6 +336,14 @@ $post = $this->content->change($post, new EntryChanges(
   `bin/blush content:ids --write`, or use Site Health.
 - Every change refreshes cached pages.
 
+To change content as a person would, with their permissions checked
+and the change listed in the [activity log](mcp.md#activity-and-undo),
+use `Blush\Content\Editing\EntryEditor`, the admin's and the MCP
+server's write path: `create()`, `update()`, `replaceInBody()`,
+`setStatus()`, `trash()`, and `restore()` each take a
+`Blush\Activity\Actor` (who, and how) and throw `EditRefused`, saying
+why, when the change isn't allowed.
+
 Content is kept as files for now, so changes are written only as
 content files inside `user/content`, and any edit that can't be made
 without changing something else is refused (`WriteException`), leaving
@@ -647,6 +655,106 @@ public function job(): ?string
 	return 'acme/sync-orders';
 }
 ```
+
+## MCP tools
+
+A tool is something an [AI app connected to your site](mcp.md) can be
+asked to do. Extend `Blush\Mcp\Tool`:
+
+```php
+namespace Acme\Gallery\Mcp;
+
+use Acme\Gallery\Albums;
+use Blush\Mcp\McpContext;
+use Blush\Mcp\Tool;
+use Blush\Mcp\ToolError;
+use Blush\Mcp\ToolResult;
+
+final class ListAlbums extends Tool
+{
+	public function __construct(private readonly Albums $albums)
+	{}
+
+	public function title(): string
+	{
+		return 'List Albums';
+	}
+
+	public function description(): string
+	{
+		return 'Lists the photo albums, each with its id, title, and how many photos it has. Use it before adding photos to an album.';
+	}
+
+	public function input(): array
+	{
+		return [
+			'type'                 => 'object',
+			'properties'           => ['search' => ['type' => 'string', 'maxLength' => 100]],
+			'additionalProperties' => false
+		];
+	}
+
+	public function capability(): string
+	{
+		return 'gallery.view';
+	}
+
+	public function handle(array $input, McpContext $context): ToolResult
+	{
+		$albums = $this->albums->search($input['search'] ?? '');
+
+		if ($albums === []) {
+			throw new ToolError('No album has those words; leave "search" out to list them all.');
+		}
+
+		return new ToolResult(['albums' => $albums]);
+	}
+}
+```
+
+Register it from a provider's `boot()`, under a name that starts with
+your vendor and plugin name, in lowercase letters, digits, and `_`, up
+to 64 characters. A name that's taken is refused:
+
+```php
+use Blush\Mcp\McpToolRegistry;
+
+$this->container->make(McpToolRegistry::class)->register('acme_gallery_list_albums', ListAlbums::class);
+```
+
+- **`description()`** is written for the AI, not for people: say when
+  to use the tool and what it answers. Keep tools few and shaped around
+  tasks; an app works better with a handful of clear tools than with
+  many small ones.
+- **`input()`** is the JSON Schema of what it takes, an object. Input
+  is checked against it before `handle()` runs (`type`, `properties`,
+  `required`, `additionalProperties`, `enum`, `items`, and lengths and
+  ranges), so `handle()` reads what it declared.
+- **`output()`** is the JSON Schema of what it answers, optional.
+- **`capability()`** is required: a tool without one is never offered.
+  Use one of Blush's (`ContentAction::Edit` is editing entries of any
+  type) or your own, which roles grant on their screen.
+- **`annotations()`** says what it does: `ToolAnnotations::reads()`
+  (the default), or `ToolAnnotations::writes()`, with whether it can
+  destroy something, whether repeating it changes nothing more, and
+  whether it only ever writes drafts (`draftsSafe`). Apps use them to
+  ask the person before a change. A token or app limited to **Read**
+  is offered only tools that read; one limited to **Write drafts** only
+  those that read or are `draftsSafe`.
+- **Failing:** throw `ToolError` with words the AI can act on. It goes
+  back to the app as the tool's answer, marked as an error, so it can
+  correct itself and try again.
+- **Changing content** goes through `$context->entries`
+  (`Blush\Content\Editing\EntryEditor`) and media through
+  `$context->media` (`Blush\Media\MediaEditor`): the same checks the
+  admin makes, narrowed to what the app may do, and listed in the
+  [activity log](mcp.md#activity-and-undo) with Undo.
+- **`$context->account()`** is the account it acts as, and
+  `$context->can()` checks its capabilities, narrowed as the token or
+  app is.
+
+**Settings → AI** lists your plugin's tools under **Tools From
+Plugins**. When your plugin is off, its tools are gone.
 
 ## Background jobs
 

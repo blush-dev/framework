@@ -13,27 +13,23 @@ declare(strict_types=1);
 
 namespace Blush\Admin;
 
-use Throwable;
-use Psr\Clock\ClockInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Message\UploadedFileInterface;
+use Blush\Activity\Actor;
 use Blush\Auth\Account;
 use Blush\Auth\Permissions;
-use Blush\Core\Paths;
+use Blush\Content\Editing\EditRefused;
 use Blush\Http\Response;
 use Blush\Http\Status;
 use Blush\Media\MediaArtwork;
 use Blush\Media\MediaConfig;
+use Blush\Media\MediaEditor;
 use Blush\Media\Index\MediaLibrary;
 use Blush\Media\MediaException;
 use Blush\Media\MediaKind;
-use Blush\Media\MediaMetadata;
 use Blush\Media\MediaMetadataStore;
-use Blush\Media\MediaResolver;
 use Blush\Media\MediaUploads;
-use Blush\Support\UrlPath;
-use Blush\Support\Uuid;
 
 /**
  * Answers `POST {path}/api/media` (D-268): one file, as the multipart
@@ -67,11 +63,9 @@ use Blush\Support\Uuid;
 final readonly class MediaUploadController
 {
 	public function __construct(
-		private Paths $paths,
+		private MediaEditor $editor,
 		private MediaConfig $config,
-		private MediaResolver $resolver,
 		private Permissions $permissions,
-		private ClockInterface $clock,
 		private MediaMetadataStore $metadata,
 		private MediaLibrary $library,
 		private MediaArtwork $artwork
@@ -96,123 +90,19 @@ final readonly class MediaUploadController
 			return self::uploadError($upload->getError());
 		}
 
-		$uploads = $this->config->uploads;
-
-		if (! $uploads->enabled) {
-			return self::error('Uploads are turned off on the Media settings screen.', Status::Forbidden);
-		}
-
-		$name      = self::safeName((string) $upload->getClientFilename());
-		$extension = strtolower(pathinfo($name, PATHINFO_EXTENSION));
-		$mime      = MediaListController::EXTENSIONS[$extension] ?? null;
-
-		if ($mime !== null && MediaUploads::refuses($mime)) {
-			return self::error(match ($mime) {
-				'image/svg+xml' => sprintf('%s can\'t be uploaded: SVG files can carry script. For icons, add an icon pack.', $name),
-				default         => sprintf('%s can\'t be uploaded: files of this type can carry script.', $name)
-			}, Status::UnprocessableContent);
-		}
-
-		if ($mime === null || ! $this->config->allows($mime)) {
-			return self::error(sprintf('%s isn\'t a type the library takes: %s.', $name, implode(', ', $this->extensions())), Status::UnprocessableContent);
-		}
-
-		$kind = MediaKind::fromMime($mime);
-
-		if (! $this->permissions->mayUpload($account, $kind)) {
-			return self::error(sprintf('%s can\'t be uploaded: you aren\'t allowed to upload %s.', $name, mb_strtolower($kind->label())), Status::Forbidden);
-		}
-
-		if (! $uploads->allows($kind)) {
-			return self::error(sprintf('%s can\'t be uploaded: uploads of %s are turned off on the Media settings screen.', $name, mb_strtolower($kind->label())), Status::UnprocessableContent);
-		}
-
-		$most = $uploads->maxBytes($kind);
-
-		if ($most !== null && ($upload->getSize() ?? 0) > $most) {
-			return self::error(sprintf('%s is larger than %s may be (up to %s).', $name, mb_strtolower($kind->label()), self::size($most)), Status::ContentTooLarge);
-		}
-
-		$folder = rtrim($this->paths->media . '/' . $uploads->folder($kind, $this->clock->now()), '/');
-		$hidden = $folder . '/.upload-' . bin2hex(random_bytes(8)) . '.' . $extension;
-
 		try {
-			if (! is_dir($folder) && ! @mkdir($folder, 0775, true) && ! is_dir($folder)) {
-				return self::error('The media folder can\'t be written to.', Status::InternalServerError);
-			}
-
-			$upload->moveTo($hidden);
-		} catch (Throwable) {
-			@unlink($hidden);
-
-			return self::error('The file couldn\'t be saved to the media folder.', Status::InternalServerError);
-		}
-
-		$actual = MediaResolver::mimeOf($hidden);
-
-		if (MediaUploads::refuses($actual) || ! $this->config->allows($actual) || ! $uploads->allows(MediaKind::fromMime($actual)) || ! $this->permissions->mayUpload($account, MediaKind::fromMime($actual))) {
-			@unlink($hidden);
-
-			return self::error(sprintf('%s isn\'t what its name says it is, or isn\'t a type the library takes.', $name), Status::UnprocessableContent);
-		}
-
-		$target = $this->metadata->freePath($folder, $name);
-
-		if (! @rename($hidden, $target)) {
-			@unlink($hidden);
-
-			return self::error('The file couldn\'t be saved to the media folder.', Status::InternalServerError);
-		}
-
-		$relative  = substr($target, strlen($this->paths->media) + 1);
-		$reference = $this->config->url . '/' . UrlPath::encode($relative);
-		$file      = $this->resolver->resolve($reference);
-
-		if ($file === null) {
-			@unlink($target);
-
-			return self::error(sprintf('%s couldn\'t be added to the library.', $name), Status::UnprocessableContent);
-		}
-
-		// Who uploaded it decides who may change it (D-407), when orders
-		// the library (D-709), and every file has an id (D-487). A file
-		// whose metadata can't be written stays, with none of them;
-		// `media:ids` and `media:dates` can add the id and the date.
-		try {
-			$now = $this->clock->now();
-
-			$this->metadata->save($file, [MediaMetadata::OWNER => $account->id, MediaMetadata::UPLOADED => MediaMetadata::utc($now), MediaMetadata::ID => Uuid::v7($now)]);
-		} catch (MediaException) {
-		}
-
-		// The library lists it at once. An index that can't be written is
-		// refreshed next time; the upload itself worked.
-		try {
-			$this->library->refresh();
-		} catch (MediaException) {
-		}
-
-		// The picture a sound or video carries goes into the library as
-		// its artwork, when the site asks and the account may upload
-		// images (D-581). The upload worked either way.
-		if ($this->config->addArtwork && MediaArtwork::has($kind) && $uploads->allows(MediaKind::Image) && $this->permissions->mayUpload($account, MediaKind::Image)) {
-			try {
-				$record = $this->library->find($relative);
-
-				if ($record !== null && MediaArtwork::carries($record)) {
-					$this->artwork->adopt($record, $account->id);
-				}
-			} catch (MediaException) {
-			}
+			$uploaded = $this->editor->upload(Actor::admin($account), (string) $upload->getClientFilename(), $upload->getSize(), $upload->moveTo(...));
+		} catch (EditRefused $e) {
+			return self::error($e->getMessage(), $e->refusal->status());
 		}
 
 		try {
-			$record = $this->library->find($relative);
+			$record = $this->library->find($uploaded->relative);
 		} catch (MediaException) {
 			$record = null;
 		}
 
-		return Response::json(MediaListController::describe($file, $reference, $relative, $this->metadata->find($file), artwork: $record === null ? '' : $this->artwork->url($record)), Status::Created, ['Cache-Control' => 'no-store']);
+		return Response::json(MediaListController::describe($uploaded->file, $uploaded->reference, $uploaded->relative, $this->metadata->find($uploaded->file), artwork: $record === null ? '' : $this->artwork->url($record)), Status::Created, ['Cache-Control' => 'no-store']);
 	}
 
 	/**
@@ -225,16 +115,7 @@ final readonly class MediaUploadController
 	 */
 	public function extensions(?Account $account = null): array
 	{
-		return array_keys(array_filter(MediaListController::EXTENSIONS, fn (string $mime): bool => ! MediaUploads::refuses($mime) && $this->config->allows($mime) && $this->uploadable(MediaKind::fromMime($mime), $account)));
-	}
-
-	/**
-	 * Whether files of a kind can be uploaded: the upload rules allow it,
-	 * and the account, given one, may.
-	 */
-	private function uploadable(MediaKind $kind, ?Account $account): bool
-	{
-		return $this->config->uploads->allows($kind) && ($account === null || $this->permissions->mayUpload($account, $kind));
+		return $this->editor->extensions($account);
 	}
 
 	/**
@@ -248,7 +129,7 @@ final readonly class MediaUploadController
 		$rules   = null;
 
 		foreach (MediaKind::cases() as $kind) {
-			if (! $this->uploadable($kind, $account)) {
+			if (! $this->editor->uploadable($kind, $account)) {
 				continue;
 			}
 
@@ -317,7 +198,7 @@ final readonly class MediaUploadController
 
 	private static function size(int $bytes): string
 	{
-		return $bytes >= 1024 ** 2 ? round($bytes / 1024 ** 2, 1) . ' MB' : max(1, (int) round($bytes / 1024)) . ' KB';
+		return MediaEditor::size($bytes);
 	}
 
 	/**
@@ -328,19 +209,7 @@ final readonly class MediaUploadController
 	 */
 	public static function safeName(string $name): string
 	{
-		$name      = basename(str_replace('\\', '/', $name));
-		$extension = strtolower(pathinfo($name, PATHINFO_EXTENSION));
-		$base      = pathinfo($name, PATHINFO_FILENAME);
-
-		$base = (string) preg_replace('/[\s.]+/u', '-', trim($base));
-		$base = (string) preg_replace('/[^A-Za-z0-9_-]+/', '', $base);
-		$base = trim((string) preg_replace('/-{2,}/', '-', $base), '-_');
-
-		if ($base === '') {
-			$base = 'file';
-		}
-
-		return $extension === '' ? $base : "{$base}.{$extension}";
+		return MediaEditor::safeName($name);
 	}
 
 	private static function uploadError(int $error): ResponseInterface

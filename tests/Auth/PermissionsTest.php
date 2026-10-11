@@ -163,7 +163,7 @@ final class PermissionsTest extends TestCase
 		$this->assertContains('shop.orders', $this->permissions()->capabilities($this->account('owner')));
 		$this->assertNotContains('shop.orders', $this->permissions()->capabilities($this->account('administrator')));
 		$this->assertSame(
-			['media.image.upload', 'media.edit', 'content.*.create', 'content.*.edit', 'content.*.delete', 'content.page.create', 'content.page.edit', 'content.page.delete'],
+			['media.image.upload', 'media.edit', 'api.connect', 'content.*.create', 'content.*.edit', 'content.*.delete', 'content.page.create', 'content.page.edit', 'content.page.delete'],
 			array_values(array_filter($this->permissions()->capabilities($this->account('contributor')), static fn (string $name): bool => ! str_starts_with($name, 'content.') || preg_match('/^content\.(\*|page)\./', $name) === 1))
 		);
 		$this->assertContains('content.profile.edit', $this->permissions()->capabilities($this->account('contributor')));

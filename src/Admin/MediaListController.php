@@ -17,23 +17,25 @@ use JsonException;
 use SplFileInfo;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
+use Blush\Activity\Actor;
 use Blush\Auth\Account;
 use Blush\Auth\AccountProfiles;
 use Blush\Auth\Accounts;
 use Blush\Auth\Capability;
 use Blush\Auth\ContentAction;
 use Blush\Auth\Permissions;
+use Blush\Content\Editing\EditRefused;
 use Blush\Core\Paths;
 use Blush\Field\Field;
 use Blush\Field\FieldSet;
 use Blush\Field\FieldContext;
-use Blush\Field\InvalidField;
 use Blush\Field\Violation;
 use Blush\Http\Response;
 use Blush\Http\Status;
 use Blush\Media\Embedded\EmbeddedMetadataReader;
 use Blush\Media\MediaArtwork;
 use Blush\Media\MediaConfig;
+use Blush\Media\MediaEditor;
 use Blush\Media\MediaException;
 use Blush\Media\MediaFile;
 use Blush\Core\AppConfig;
@@ -158,7 +160,8 @@ final readonly class MediaListController
 		private Accounts $accounts,
 		private AccountProfiles $profiles,
 		private EmbeddedMetadataReader $embedded,
-		private MediaArtwork $artworks
+		private MediaArtwork $artworks,
+		private MediaEditor $editor
 	) {}
 
 	public function __invoke(ServerRequestInterface $request): ResponseInterface
@@ -415,36 +418,16 @@ final readonly class MediaListController
 			}
 		}
 
-		$schema  = $this->schemas->forFile($file);
-		$context = new FieldContext($this->app->timezone());
-		$values  = [];
-		$names   = array_values(array_filter($remove, is_string(...)));
-
-		foreach ([...array_map(strval(...), array_keys($set)), ...$names] as $key) {
-			if ($schema->field($key) === null) {
-				return self::json422(sprintf('"%s" isn\'t a field of %s files.', $key, MediaKind::fromMime($file->mime)->value), $key);
-			}
-		}
+		$values = [];
 
 		foreach ($set as $key => $value) {
-			$field = $schema->field((string) $key);
-
-			if ($field === null) {
-				continue;
-			}
-
-			try {
-				$values[$field->name] = self::stored($field, $value, $context);
-			} catch (InvalidField $error) {
-				return self::json422(sprintf('%s %s', $field->label !== '' ? $field->label : ucfirst($field->name), $error->getMessage()), $field->name);
-			}
+			$values[(string) $key] = $value;
 		}
 
 		try {
-			$this->metadata->save($file, $values, $names, $schema);
-			$this->library->refresh([trim($path, '/')]);
-		} catch (MediaException $error) {
-			return self::error($error->getMessage(), Status::InternalServerError);
+			$this->editor->update(Actor::admin($account), $path, $values, array_values(array_filter($remove, is_string(...))));
+		} catch (EditRefused $e) {
+			return $e->field === null ? self::error($e->getMessage(), $e->refusal->status()) : self::json422($e->getMessage(), $e->field);
 		}
 
 		return Response::json($this->details($file, $reference, trim($path, '/'), $this->metadata->find($file), $account), headers: ['Cache-Control' => 'no-store']);
@@ -523,10 +506,7 @@ final readonly class MediaListController
 	 */
 	private function describedBy(MediaFile $file, string $relative): MediaMetadata
 	{
-		$original = $this->originalOf($relative);
-		$image    = $original === null ? null : $this->resolver->fromKey($original);
-
-		return $this->metadata->find($image ?? $file);
+		return $this->editor->describedBy($file, $relative);
 	}
 
 	/**
@@ -534,11 +514,7 @@ final readonly class MediaListController
 	 */
 	private function originalOf(string $relative): ?string
 	{
-		try {
-			return $this->library->find($relative)?->original;
-		} catch (MediaException) {
-			return null;
-		}
+		return $this->editor->originalOf($relative);
 	}
 
 	/**
@@ -562,30 +538,6 @@ final readonly class MediaListController
 	private function usesLibrary(Account $account): bool
 	{
 		return $this->permissions->can($account, ContentAction::Edit) || $this->permissions->usesMedia($account);
-	}
-
-	/**
-	 * What a field's value is written as: `null` (removed) when it's
-	 * empty, else the value the field makes of it when that's plain data,
-	 * or as given (a date field's is an object). Alt text and a caption
-	 * are one line (`MediaMetadata::line()`).
-	 *
-	 * @throws InvalidField When the field refuses it.
-	 */
-	private static function stored(Field $field, mixed $value, FieldContext $context): mixed
-	{
-		if ($value === null || $value === '' || $value === []) {
-			return null;
-		}
-
-		$normalized = $field->normalize($value, $context);
-		$value      = is_scalar($normalized) || is_array($normalized) ? $normalized : $value;
-
-		if (in_array($field->name, ['title', 'alt', 'caption'], true)) {
-			$value = MediaMetadata::line($value);
-		}
-
-		return $value === '' ? null : $value;
 	}
 
 	/**

@@ -44,6 +44,7 @@ use Blush\Icon\IconPackDiscovery;
 use Blush\Icon\IconPacks;
 use Blush\Job\JobConfig;
 use Blush\Llms\LlmsConfig;
+use Blush\Mcp\McpConfig;
 use Blush\Log\LogConfig;
 use Blush\Markdown\MarkdownConfig;
 use Blush\Media\MediaConfig;
@@ -352,6 +353,7 @@ final readonly class Bootstrap
 			new SitemapConfig(),
 			new LlmsConfig(),
 			new ApiConfig(),
+			new McpConfig(),
 			new CacheConfig(),
 			PublishConfig::fromEnv($env),
 			new EmbedConfig(),

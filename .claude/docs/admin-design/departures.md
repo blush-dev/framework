@@ -1168,3 +1168,22 @@ over.
   standing, on the list and the screen, and a notice on their screen.
 - **The dashboard** warns of your tokens expiring within a week with a
   `.notice--warn` above everything, linking to Your Account.
+
+## The MCP screens (D-759)
+
+From the project's own brief (`mcp-screens-brief.md`), not the uploaded
+direction, built from the shared pieces until there's a design:
+
+- **Connect an App** is the sign-in card (`AuthCard`) at
+  `/admin/authorize`, drawn outside the shell even when signed in
+  (`meta.bare`), with the site's initial as its mark (the brief's open
+  question: no theme logo), the token presets as `.choices`, and the
+  role screen's `CapabilitySections` for Choose.
+- **Tools → Activity** is `.rows` (`ActivityRows`) under the
+  toolbar's filters (Who, How, Change), with Newer and Older in the
+  panel's foot. Apps are told apart by name alone, in a `.tag`.
+- **The editor's note** of an app's latest change is the Document
+  tab's Activity row's line (the brief left header or tab open), with
+  a bot icon while an app made the latest change.
+- **Connected Apps** is a `.panel__section--turn` heading and `.rows`
+  in the API Tokens panel, below the tokens' table.

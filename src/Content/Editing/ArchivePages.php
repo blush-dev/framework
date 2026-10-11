@@ -11,7 +11,7 @@
 
 declare(strict_types=1);
 
-namespace Blush\Admin;
+namespace Blush\Content\Editing;
 
 use Blush\Content\Entry\Entry;
 use Blush\Content\Http\RelatedController;

@@ -109,8 +109,20 @@ export interface TokenInfo {
 
 // An account's tokens (`GET accounts/{username}/tokens`), whether you
 // may make one, and what a new one may be narrowed to.
+// An app connected through OAuth (D-752), one row an app.
+export interface ConnectedApp {
+	id: string;
+	name: string;
+	host: string | null;
+	scope: 'read' | 'drafts' | 'account' | 'custom';
+	capabilities: string[] | null;
+	approved: number;
+	connected: number | null;
+}
+
 export interface TokenList {
 	tokens: TokenInfo[];
+	apps: ConnectedApp[];
 	make: boolean;
 	capabilities: CapabilityInfo[];
 	types: RoleType[];
@@ -166,6 +178,10 @@ export function loadTokens(username: string): Promise<TokenList> {
 
 export function makeToken(username: string, token: TokenRequest): Promise<NewToken> {
 	return request<NewToken>('POST', `/accounts/${encodeURIComponent(username)}/tokens`, token);
+}
+
+export function disconnectApp(username: string, id: string): Promise<void> {
+	return request('DELETE', `/accounts/${encodeURIComponent(username)}/apps/${encodeURIComponent(id)}`);
 }
 
 export function revokeToken(username: string, id: string): Promise<void> {

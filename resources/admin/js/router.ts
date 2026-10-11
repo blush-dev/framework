@@ -6,7 +6,8 @@
  * Each belongs to one of the section rail's areas
  * (`meta.area`: `home`, `content`, `structure`, `extend`, `people`, or `settings`; D-704); the editor fills the
  * work area edge to edge (`meta.bleed`), and the Settings screens drop the
- * work area's widest measure (`meta.wide`, D-404).
+ * work area's widest measure (`meta.wide`, D-404). A screen drawn outside
+ * the shell even when someone's signed in is `meta.bare`.
  */
 
 import { createRouter, createWebHistory, START_LOCATION, type RouteLocationNormalized } from 'vue-router';
@@ -24,6 +25,7 @@ import SignInView from './views/SignInView.vue';
 // in `admin.js`.
 const AccountView = () => import('./views/AccountView.vue');
 const AccountsView = () => import('./views/AccountsView.vue');
+const AuthorizeView = () => import('./views/AuthorizeView.vue');
 const EditorView = () => import('./views/EditorView.vue');
 const EntriesView = () => import('./views/EntriesView.vue');
 const FieldSetView = () => import('./views/FieldSetView.vue');
@@ -134,6 +136,9 @@ export const router = createRouter({
 		// and the `profile` name lead there.
 		{ path: '/profile', name: 'profile', component: AccountView, meta: { title: 'Your Account', area: 'people' }, beforeEnter: () => ({ name: 'account', params: { username: session.account?.username ?? '' } }) },
 		{ path: '/sign-in', name: 'sign-in', component: SignInView, meta: { title: 'Sign In', public: true } },
+		// Where an AI app sends someone to approve it (D-752): signed in,
+		// but outside the shell, as Sign In is (`bare`).
+		{ path: '/authorize', name: 'authorize', component: AuthorizeView, meta: { title: 'Connect an App', bare: true } },
 		// A password link (D-312): anyone with one may open it.
 		{ path: '/set-password', name: 'set-password', component: SetPasswordView, meta: { title: 'Choose a Password', public: true } },
 		{ path: '/:screen(.*)*', name: 'not-found', component: NotFoundView, meta: { title: 'Not Found' } }

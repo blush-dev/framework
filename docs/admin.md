@@ -186,8 +186,15 @@ whole file. It's read only, for when something fails on a host you
 can't reach over SSH. A site that logs to the server's error output, or
 not at all, has no file to show.
 
+With `site.activity` (owners, administrators, and editors), the
+**Activity** tab lists every change to entries and media, newest first:
+what happened, linking to what changed, who did it, how (in the admin,
+by a connected app, named, on the command line, or through the API),
+and when, with **Undo** where it can be undone, or why it can't. Filter
+by who, how, and what changed. See [Activity and Undo](mcp.md#activity-and-undo).
+
 Tools is in the panel when your account can run an action, see the
-jobs, or read the log.
+jobs, read the log, or see the activity.
 
 ## Entries
 
@@ -663,7 +670,8 @@ The relation's settings shape the picker too:
 
 The Document tab ends in rows for what you can't change there, always
 last, after every field, in this order: **Archive Page** (only on a page
-that introduces an archive), **Linked From**, and **Outline**. On a
+that introduces an archive), **Linked From**, **Outline**, and
+**Activity**. On a
 short tab they sit at the drawer's bottom edge; on a long one they
 follow the last field. Each answers the quick question in one line, and
 opens a level down, in place of the fields, for the rest. The path at
@@ -684,6 +692,10 @@ the top goes back, and so does Escape.
   it leaves out), and what the archive shows without the page.
 - **Outline** lists every element in the text; see [the
   outline](#the-outline-and-the-breadcrumb).
+- **Activity** says when a connected app made the latest change
+  ("Changed by Claude (Jane) 3 minutes ago"). Opened, it lists the
+  entry's changes, newest first, with **Undo**; see
+  [Activity and Undo](mcp.md#activity-and-undo).
 
 ### Changing the slug
 
@@ -1415,7 +1427,11 @@ screens (and [Redirects](#redirects), with its own capability):
   person, each saying what its crawlers do and naming its bots (see
   [Configuration](configuration.md#sitemap-and-robotstxt)). It warns
   when the choices aren't used: outside production, or with your own
-  `robots.txt`.
+  `robots.txt`. Under **MCP Server**: whether AI apps can connect
+  (off by default), the server's address with **Copy**, and which
+  roles may connect apps; and **Tools Offered**, what a connected app
+  can be asked to do, with what each needs, a plugin's under **Tools
+  From Plugins**. See [AI apps and MCP](mcp.md).
 - **System:** shown only: where content types come from, caching, and
   publishing and previews.
 
@@ -1774,7 +1790,11 @@ and how many site capabilities it has, and how many accounts hold it.
   Token**. **Revoke** stops one; **Revoke All** stops every one. On
   Your Account you make your own (the owner and administrators can, by
   default); on another's, whoever can edit accounts sees and revokes
-  them, and makes them only for a token-only account.
+  them, and makes them only for a token-only account. **Connected
+  Apps** lists the [AI apps](mcp.md#your-connected-apps) connected
+  as the account, each with what it may do, when it was approved and
+  last connected, **Activity**, and **Disconnect**; **Revoke All**
+  disconnects them too.
 
 ### Roles
 

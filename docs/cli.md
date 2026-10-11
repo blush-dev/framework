@@ -61,12 +61,18 @@ See [Accounts and roles](accounts.md) and [The admin](admin.md).
 | `account:remove <username>` | Delete an account. `--yes` skips the question. |
 | `token:add <username>` | Make an [API token](api.md#tokens) for an account and print it once (with `--quiet`, alone on its line). `--name=` says what it's for (asked for when left out), `--expires=` is `30`, `90` (the default), `365`, or `never` days, and `--capabilities=` narrows it, separated by commas (`--capabilities=content.*.edit,content.*.create`). |
 
+## AI apps
+
+| Command | What it does |
+|---|---|
+| `mcp --account=<username>` | Serve the [MCP server](mcp.md#on-your-own-computer) over standard input and output, as an account, for an AI agent on the same computer. It works whether or not the MCP server is on for the web, needs no token, and refuses a suspended account. |
+
 ## Everyday
 
 | Command | What it does |
 |---|---|
 | `serve` | Run the site at http://127.0.0.1:8000. `--port=8080` and `--host=0.0.0.0` change where. |
-| `content:new [<type>] ["<title>"]` | Create an entry. In a terminal it asks for what you leave out: the type, the title, the slug, the parent page (for pages), and whether it's published or a draft. `--slug=` sets its URL name; `--draft` makes it a draft; `--parent=` puts a page under another, by its path (`--parent=about`). It gets today's publish date, and a file name by its type's [pattern](content-types.md#naming-new-files), and ends with where to edit it in the admin. |
+| `content:new [<type>] ["<title>"]` | Create an entry. In a terminal it asks for what you leave out: the type, the title, the slug, the parent page (for pages), and whether it's published or a draft. `--slug=` sets its URL name; `--draft` makes it a draft; `--parent=` puts a page under another, by its path (`--parent=about`). It gets today's publish date, and a file name by its type's [pattern](content-types.md#naming-new-files), and ends with where to edit it in the admin. It's listed under [Tools → Activity](mcp.md#activity-and-undo) as made on the command line; `--account=` makes it as an account instead, with its permissions and its byline (`--account=jane`). |
 | `content:list` | List every entry. `--type=post` and `--status=draft` (or `published`, `scheduled`) narrow it down. |
 | `content:preview <type> <name>` | Print a [preview link](admin.md#previewing-drafts) to an entry, even a draft. `--hours=` sets how long it works. |
 | `content:lint` | Check front matter, and media details in `user/data/media/`, for problems, and list files in `user/content/` that aren't `.md`, so aren't read. It reports terms and profiles entries name with no file as errors (`content:terms` writes them). `--strict` also reports unknown keys and 1.x names. |

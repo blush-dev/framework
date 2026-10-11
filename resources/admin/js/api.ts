@@ -953,6 +953,8 @@ export interface SettingItem {
 	// `llms.txt`, or admin screens it's set on.
 	link?: { label: string; href: string } | null;
 	links?: { label: string; to: string }[];
+	// A value to copy, such as the MCP server's address (D-754).
+	copy?: boolean;
 	// A setting this one needs on (D-402): while that's off in the form,
 	// this one is locked, with the note saying why.
 	requires?: { setting: string; note: string };
@@ -1239,6 +1241,8 @@ export interface EntryDetail {
 	inherited?: Record<string, InheritedValues>;
 	// What links to it, by relation (D-599).
 	linkedFrom?: LinkedGroup[];
+	// Who made its latest change, when an app or a script made it (D-758).
+	changedBy?: { client: string; account: string; time: string } | null;
 	// Its id, which names it to the API (D-481), and its file's path.
 	id: string;
 	path: string;

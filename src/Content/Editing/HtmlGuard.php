@@ -11,7 +11,7 @@
 
 declare(strict_types=1);
 
-namespace Blush\Admin;
+namespace Blush\Content\Editing;
 
 use Blush\Auth\Account;
 use Blush\Auth\Capability;
@@ -34,6 +34,15 @@ final readonly class HtmlGuard
 		private Permissions $permissions,
 		private MarkupFinder $finder
 	) {}
+
+	/**
+	 * Returns a copy that checks with other permissions, such as a
+	 * token's narrowed ones (D-744).
+	 */
+	public function withPermissions(Permissions $permissions): self
+	{
+		return new self($permissions, $this->finder);
+	}
 
 	/**
 	 * Returns how much HTML an account may add.

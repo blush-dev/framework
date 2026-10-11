@@ -26,8 +26,12 @@ use Blush\Auth\Capability;
 use Blush\Auth\Permissions;
 use Blush\Auth\Token;
 use Blush\Auth\Tokens;
+use Blush\Auth\TokenScope;
 use Blush\Http\Response;
 use Blush\Http\Status;
+use Blush\Mcp\OAuth\OAuthClients;
+use Blush\Mcp\OAuth\OAuthGrants;
+use Blush\Mcp\OAuth\OAuthServer;
 
 /**
  * An account's API tokens in the admin (D-749), on its screen:
@@ -45,7 +49,11 @@ use Blush\Http\Status;
  *   text, shown this once.
  * - `DELETE accounts/{username}/tokens/{id}`: revokes one (`204`).
  * - `DELETE accounts/{username}/tokens`: revokes all of them, and
- *   answers with how many (`revoked`).
+ *   disconnects its apps, and answers with how many (`revoked`).
+ * - `DELETE accounts/{username}/apps/{id}`: disconnects an app (D-752):
+ *   its approval and every token it holds (`204`). The list answers
+ *   `apps`, one row an app, and leaves apps' own tokens out of
+ *   `tokens`.
  *
  * Who may do what:
  *
@@ -70,7 +78,10 @@ final readonly class TokensController
 		private Permissions $permissions,
 		private PeopleJson $json,
 		private PeopleRules $rules,
-		private ClockInterface $clock
+		private ClockInterface $clock,
+		private OAuthGrants $grants,
+		private OAuthClients $clients,
+		private OAuthServer $oauth
 	) {}
 
 	public function index(ServerRequestInterface $request, string $username): ResponseInterface
@@ -84,7 +95,8 @@ final readonly class TokensController
 		$offered = $this->offered($actor, $account);
 
 		return self::json([
-			'tokens'       => array_map($this->token(...), $this->tokens->forAccount($account)),
+			'tokens'       => array_values(array_map($this->token(...), array_filter($this->tokens->forAccount($account), static fn (Token $token): bool => $token->client === null))),
+			'apps'         => $this->apps($account),
 			'make'         => $this->mayMake($actor, $account),
 			'capabilities' => $this->json->capabilities($offered),
 			'types'        => $this->json->types()
@@ -127,7 +139,7 @@ final readonly class TokensController
 
 		$token = $this->tokens->find($id);
 
-		if ($token === null || $token->account !== $account->id) {
+		if ($token === null || $token->account !== $account->id || $token->client !== null) {
 			return self::error('There\'s no such token.', Status::NotFound);
 		}
 
@@ -144,7 +156,65 @@ final readonly class TokensController
 			return $account;
 		}
 
-		return self::json(['revoked' => $this->tokens->revokeAll($account)]);
+		$apps = $this->grants->forAccount($account->id);
+
+		foreach ($apps as $grant) {
+			$this->oauth->disconnect($grant);
+		}
+
+		return self::json(['revoked' => $this->tokens->revokeAll($account) + count($apps)]);
+	}
+
+	/**
+	 * Disconnects an app (D-752): its approval and every token it holds.
+	 */
+	public function disconnect(ServerRequestInterface $request, string $username, string $id): ResponseInterface
+	{
+		[, $account] = $this->target($request, $username);
+
+		if ($account instanceof ResponseInterface) {
+			return $account;
+		}
+
+		$grant = $this->grants->byId($id);
+
+		if ($grant === null || $grant->account !== $account->id) {
+			return self::error('There\'s no such connected app.', Status::NotFound);
+		}
+
+		$this->oauth->disconnect($grant);
+
+		return new Response(Status::NoContent, ['Cache-Control' => 'no-store']);
+	}
+
+	/**
+	 * Describes an account's connected apps (D-752), one row an app: its
+	 * grant's `id`, the app's `name` and `host`, the `scope` it was given
+	 * (`read`, `drafts`, `account`, or `custom`), its `capabilities`, when
+	 * it was `approved`, and when it last `connected`.
+	 *
+	 * @return list<array<string, mixed>>
+	 */
+	private function apps(Account $account): array
+	{
+		$apps = [];
+
+		foreach ($this->grants->forAccount($account->id) as $grant) {
+			$client = $this->clients->byId($grant->client);
+			$scope  = $grant->scope();
+
+			$apps[] = [
+				'id'           => $grant->id,
+				'name'         => $client->name ?? 'An app',
+				'host'         => $client?->host(),
+				'scope'        => $scope === TokenScope::Account && $grant->capabilities !== null ? 'custom' : $scope->value,
+				'capabilities' => $grant->capabilities,
+				'approved'     => $grant->approved,
+				'connected'    => $grant->connected
+			];
+		}
+
+		return $apps;
 	}
 
 	/**

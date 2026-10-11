@@ -242,7 +242,11 @@ YAML for front matter alone (D-631); and a read-only API of what the
 site shows, `Blush\Api` at `/api/v1`, off until turned on in Reading
 (D-736 to D-742; `docs/api.md`), with API tokens of an account,
 token-only accounts for agents, and `?status=` for what a token may
-edit (D-744 to D-750).
+edit (D-744 to D-750); and an MCP server for AI apps (`Blush\Mcp`,
+`{path}/mcp` and `blush mcp`), with OAuth 2.1 and a Connect an App
+screen, tools over one write path for entries and media
+(`EntryEditor`, `MediaEditor`), and an activity log with Undo on Tools
+(D-751 to D-759; `docs/mcp.md`).
 The Fields
 API (D-337 to D-348: field types and controls, field sets on content
 types, media, and the Settings screens, slots, and Structure → Fields)

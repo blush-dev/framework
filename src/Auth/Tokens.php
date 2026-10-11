@@ -153,6 +153,60 @@ final readonly class Tokens
 	}
 
 	/**
+	 * Hands an OAuth client a token for an account (D-752): narrowed to
+	 * capabilities, lasting some seconds, named for the client, and
+	 * returns it with its text, which the client keeps. Its `client` is
+	 * the client's record's id, so it works only on the MCP server.
+	 *
+	 * @param  ?list<string> $capabilities
+	 * @return array{Token, string}
+	 * @throws AuthException
+	 */
+	public function issue(Account $account, string $client, string $name, ?array $capabilities, int $lifetime): array
+	{
+		$now    = $this->clock->now();
+		$secret = bin2hex(random_bytes(32));
+		$record = Record::create($now);
+		$token  = new Token(
+			account: $account->id,
+			name: Account::tidyName($name) ?? 'An app',
+			hash: hash('sha256', $secret),
+			capabilities: $capabilities,
+			created: $now->getTimestamp(),
+			createdBy: $account->id,
+			expires: $now->getTimestamp() + $lifetime,
+			client: $client,
+			id: $record->id
+		);
+
+		$this->save($token);
+
+		return [$token, self::prefix() . "{$token->id}_{$secret}"];
+	}
+
+	/**
+	 * Revokes an account's tokens for an OAuth client, and returns how
+	 * many there were.
+	 *
+	 * @throws AuthException
+	 */
+	public function revokeClient(Account|string $account, string $client): int
+	{
+		$id     = $account instanceof Account ? $account->id : $account;
+		$query  = new RecordQuery()->where('account', '=', $id);
+		$tokens = array_filter(
+			array_map(self::token(...), $this->read(fn (RecordStore $store): array => $store->select(self::table(), $query)->records)),
+			static fn (Token $token): bool => $token->client === $client
+		);
+
+		foreach ($tokens as $token) {
+			$this->revoke($token);
+		}
+
+		return count($tokens);
+	}
+
+	/**
 	 * Returns the token a text names, when its secret is right, or
 	 * `null`. Whether it has expired, and whether its account may still
 	 * use it, are for the caller.
@@ -268,8 +322,12 @@ final readonly class Tokens
 	 */
 	public function prune(): int
 	{
-		$before  = $this->clock->now()->getTimestamp() - self::KEEP_EXPIRED;
-		$expired = array_filter($this->all(), static fn (Token $token): bool => $token->isExpired($before));
+		$now     = $this->clock->now()->getTimestamp();
+		$before  = $now - self::KEEP_EXPIRED;
+
+		// An app's token lasts an hour and is never listed, so it goes as
+		// soon as it expires (D-752).
+		$expired = array_filter($this->all(), static fn (Token $token): bool => $token->isExpired($token->client === null ? $before : $now));
 
 		foreach ($expired as $token) {
 			$this->revoke($token);

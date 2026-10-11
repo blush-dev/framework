@@ -15,15 +15,11 @@ namespace Blush\Admin;
 
 use DateTimeImmutable;
 use DateTimeInterface;
-use Exception;
 use JsonException;
 use LogicException;
-use Psr\Clock\ClockInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
-use Psr\Log\LoggerInterface;
 use Blush\Auth\Account;
-use Blush\Auth\AccountProfiles;
 use Blush\Auth\Accounts;
 use Blush\Auth\Capability;
 use Blush\Auth\ContentAction;
@@ -32,32 +28,35 @@ use Blush\Content\Entries;
 use Blush\Content\Entry\Entry;
 use Blush\Content\Entry\Position;
 use Blush\Content\EntryFields;
-use Blush\Storage\Record\Order;
-use Blush\Storage\Record\RecordException;
 use Blush\Content\Lint\Linter;
 use Blush\Content\Relation\LinkResolver;
-use Blush\Content\Relation\ProblemKind;
 use Blush\Content\Relation\Referrers;
 use Blush\Content\Relation\Relation;
-use Blush\Content\Relation\RelationLimits;
-use Blush\Content\Relation\RelationProblem;
 use Blush\Content\Relation\Relations;
 use Blush\Content\Relation\TranslationRule;
 use Blush\Content\RelationArchives;
 use Blush\Content\Routing\ContentUrls;
-use Blush\Content\Routing\RedirectOrigin;
 use Blush\Content\Routing\RedirectWriter;
 use Blush\Content\Status as EntryStatus;
 use Blush\Content\Type\ContentType;
 use Blush\Content\Type\ContentTypes;
 use Blush\Content\Type\DateArchives;
 use Blush\Content\Type\Tree;
-use Blush\Content\TypedTargets;
 use Blush\Content\Writer\DocumentEditor;
 use Blush\Content\Writer\EditableEntry;
-use Blush\Content\Writer\EntryChanges;
 use Blush\Content\Writer\WriteConflict;
 use Blush\Content\Writer\WriteException;
+use Blush\Content\Editing\IndexPage;
+use Blush\Content\Editing\ErrorPage;
+use Blush\Activity\ActivityException;
+use Blush\Activity\ActivityLog;
+use Blush\Activity\Actor;
+use Blush\Activity\Via;
+use Blush\Content\Editing\ArchivePages;
+use Blush\Content\Editing\EditRefused;
+use Blush\Content\Editing\EntryEdit;
+use Blush\Content\Editing\EntryEditor;
+use Blush\Content\Editing\NewEntry;
 use Blush\Core\AppConfig;
 use Blush\Field\Field;
 use Blush\Field\FieldSet;
@@ -65,8 +64,6 @@ use Blush\Field\FieldTargets;
 use Blush\Field\Violation;
 use Blush\Http\Response;
 use Blush\Http\Status;
-use Blush\Routing\InvalidRoute;
-use Blush\Support\Slug;
 
 /**
  * The admin's editing API (D-229), over `Entries`' writes by id (D-654):
@@ -181,11 +178,6 @@ use Blush\Support\Slug;
 final readonly class EntryController
 {
 	/**
-	 * The statuses the shortcut takes.
-	 */
-	private const array STATUSES = ['draft', 'published', 'scheduled'];
-
-	/**
 	 * What a bulk change can do, and the most entries it takes.
 	 */
 	private const array BULK_ACTIONS = ['publish', 'draft', 'trash'];
@@ -209,20 +201,15 @@ final readonly class EntryController
 		private EntryHandles $handles,
 		private Permissions $permissions,
 		private AppConfig $app,
-		private ClockInterface $clock,
 		private FieldTargets $targets,
 		private Accounts $accounts,
-		private AccountProfiles $profiles,
 		private Homepage $homepage,
-		private HtmlGuard $html,
 		private Relations $relations,
-		private RelationLimits $limits,
 		private RelationArchives $relationArchives,
-		private TypedTargets $typed,
 		private Referrers $referrers,
 		private ArchivePages $archivePages,
-		private RedirectWriter $redirects,
-		private LoggerInterface $logger
+		private EntryEditor $editor,
+		private ActivityLog $activity
 	) {}
 
 	/**
@@ -284,7 +271,7 @@ final readonly class EntryController
 			'homepage'    => false,
 			'rootPage'    => false,
 			'homeInstead' => null,
-			'values'      => $this->authorDefault($account, $type->name),
+			'values'      => $this->editor->authorDefault($account, $type->name),
 			'extra'       => [],
 			'body'        => '',
 			'can'         => [
@@ -328,90 +315,26 @@ final readonly class EntryController
 		$account = self::account($request);
 		$input   = self::input($request);
 
-		$type  = is_string($input['type'] ?? null) ? $this->types->find($input['type']) : null;
-		$title = $input['title'] ?? null;
-
-		if (! $this->permissions->can($account, ContentAction::Create, $type?->name)) {
-			return self::error($type === null ? 'You aren\'t allowed to create entries.' : sprintf('You aren\'t allowed to create %s.', $type->labels->items), Status::Forbidden);
-		}
-
-		if ($type === null || ! is_string($title) || trim($title) === '') {
-			return self::error('Send a known "type" and a "title".', Status::BadRequest);
-		}
-
-		$slug = is_string($input['slug'] ?? null) && $input['slug'] !== '' ? $input['slug'] : Slug::from($title);
-		$now  = $this->clock->now()->setTimezone($this->app->timezone());
-
 		try {
-			$status = self::stringOr($input, 'status', 'draft');
-			$set    = [
-				'title' => $title,
-				'published' => self::dateString($now),
-				...$this->authorDefault($account, $type->name),
-				...self::map($input, 'set')
-			];
+			$entry = $this->editor->create(Actor::admin($account), new NewEntry(
+				type: is_string($input['type'] ?? null) ? $input['type'] : '',
+				title: is_string($input['title'] ?? null) ? $input['title'] : '',
+				slug: is_string($input['slug'] ?? null) ? $input['slug'] : null,
+				set: self::map($input, 'set'),
+				body: self::stringOr($input, 'body', ''),
+				status: self::stringOr($input, 'status', 'draft'),
+				published: is_string($input['published'] ?? null) ? $input['published'] : null,
+				parent: self::parentOf($input),
+				language: is_string($input['language'] ?? null) ? $input['language'] : null
+			));
 
-			$body    = self::stringOr($input, 'body', '');
-
-			// The editor's body starts at its first line (D-334); the
-			// file has a blank line before it.
-			$changes = $this->withStatus(new EntryChanges(set: $set, body: DocumentEditor::gap($body) === '' ? "\n{$body}" : $body), $status, $input, null);
+			$file = $this->content->editable($entry);
 		} catch (InvalidEdit $e) {
 			return self::error($e->getMessage(), Status::BadRequest);
+		} catch (EditRefused $e) {
+			return self::refused($e);
 		} catch (WriteException $e) {
 			return self::error($e->getMessage(), Status::UnprocessableContent);
-		}
-
-		if (! self::isDraft($changes, null) && ! $this->permissions->can($account, ContentAction::Publish, $type->name)) {
-			return self::error('You aren\'t allowed to publish, so new entries must be drafts.', Status::Forbidden);
-		}
-
-		$html = $this->html->refusal($account, '', $changes->body ?? '');
-
-		if ($html !== null) {
-			return self::error($html, Status::Forbidden, 'body');
-		}
-
-		$parentKey = $input['parent'] ?? null;
-		$parent    = null;
-
-		if ($parentKey !== null && $parentKey !== '') {
-			if (! is_string($parentKey) || ! $type instanceof Tree) {
-				return self::error(sprintf('Only pages of a tree go under another; %s don\'t.', $type->labels->items), Status::BadRequest);
-			}
-
-			$parent = $this->content->named($type->name, $parentKey);
-
-			if ($parent === null || $parent->landing) {
-				return self::error(sprintf('There\'s no "%s" in %s to put it under.', $parentKey, $type->labels->items), Status::UnprocessableContent, 'parent');
-			}
-		}
-
-		// Written in the site's language, then moved to another (D-728).
-		$language = self::stringOr($input, 'language', $this->app->languages->default->code);
-		$problem  = $this->app->languages->isDefault($language) ? null : $this->languageProblem($type, $parent === null ? $slug : "{$parent->key}/{$slug}", $language);
-
-		if ($problem !== null) {
-			return self::error($problem, Status::UnprocessableContent, 'language');
-		}
-
-		$related = $this->related($account, $type, null, [], $changes);
-
-		if ($related !== null) {
-			return $related;
-		}
-
-		try {
-			$entry = $this->content->create($type, $slug, $changes, $parent, $now);
-			$entry = $this->app->languages->isDefault($language) ? $entry : $this->content->changeLanguage($entry, $language);
-			$file  = $this->content->editable($entry);
-		} catch (WriteException $e) {
-			// A trashed entry keeps its address until it's deleted (D-484).
-			$holder = $this->content->named($type->name, $parent === null ? $slug : "{$parent->key}/{$slug}");
-
-			return self::error($holder?->status === EntryStatus::Trash
-				? sprintf('“%s” in the trash has this address; restore it, or delete it permanently, first.', trim($holder->title) === '' ? 'Untitled' : $holder->title)
-				: $e->getMessage(), Status::UnprocessableContent);
 		}
 
 		$this->remember($account, $entry);
@@ -432,152 +355,38 @@ final readonly class EntryController
 			return self::error(sprintf('There\'s no entry with the id "%s".', $id), Status::NotFound);
 		}
 
-		if (! $this->permissions->can($account, ContentAction::Edit, $entry)) {
-			return self::error('You aren\'t allowed to edit that entry.', Status::Forbidden);
-		}
-
-		if ($entry->status === EntryStatus::Trash) {
-			return self::error(self::inTrash($entry), Status::UnprocessableContent);
-		}
-
-		$revision = $input['revision'] ?? null;
-
-		if (! is_string($revision)) {
-			return self::error('Send the "revision" you loaded, so no one else\'s change is lost.', Status::PreconditionRequired);
-		}
-
 		try {
-			$body    = $input['body'] ?? null;
-			$changes = $this->stamped(new EntryChanges(set: self::map($input, 'set'), remove: self::list($input, 'remove'), body: is_string($body) ? $body : null));
-			$status  = $input['status'] ?? null;
-			$changes = $status === null ? $changes : $this->withStatus($changes, is_string($status) ? $status : '', $input, $entry);
-			$slug    = $input['slug'] ?? null;
-		} catch (InvalidEdit $e) {
-			return self::error($e->getMessage(), Status::BadRequest);
-		} catch (WriteException $e) {
-			return self::error($e->getMessage(), Status::UnprocessableContent);
-		}
+			$body   = $input['body'] ?? null;
+			$status = $input['status'] ?? null;
+			$parent = array_key_exists('parent', $input) ? $input['parent'] : null;
 
-		$refusal = $this->refusal($account, $entry, $changes);
-
-		if ($refusal !== null) {
-			return self::error($refusal, Status::Forbidden);
-		}
-
-		try {
-			$file = $this->content->editable($entry);
-		} catch (WriteException $e) {
-			return self::error($e->getMessage(), Status::UnprocessableContent);
-		}
-
-		// Only the HTML the body didn't have counts (D-495).
-		if ($changes->body !== null) {
-			$html = $this->html->refusal($account, $file->body, $changes->body);
-
-			if ($html !== null) {
-				return self::error($html, Status::Forbidden, 'body');
-			}
-		}
-
-		// A move (D-410): where to, by the new parent's key (`''` for the
-		// top), or `false` for staying put.
-		$move = false;
-
-		if (array_key_exists('parent', $input)) {
-			$asked = $input['parent'];
-
-			if (! is_string($asked) || ! $entry->type instanceof Tree || $entry->landing || ErrorPage::status($entry) !== null) {
+			if ($parent !== null && ! is_string($parent)) {
 				return self::error(sprintf('Only a tree\'s pages move under another; "%s" doesn\'t.', $entry->title), Status::BadRequest);
 			}
 
-			$target = $asked === '' ? null : $this->content->named($entry->type->name, $asked);
+			$edit = new EntryEdit(
+				set: self::map($input, 'set'),
+				remove: self::list($input, 'remove'),
+				body: is_string($body) ? $body : null,
+				status: $status === null ? null : (is_string($status) ? $status : ''),
+				published: is_string($input['published'] ?? null) ? $input['published'] : null,
+				slug: is_string($input['slug'] ?? null) ? $input['slug'] : null,
+				parent: $parent,
+				language: is_string($input['language'] ?? null) ? $input['language'] : null,
+				redirect: ($input['redirect'] ?? false) === true
+			);
 
-			if ($asked !== '' && ($target === null || $target->landing)) {
-				return self::error(sprintf('There\'s no "%s" in %s to move it under.', $asked, $entry->type->labels->items), Status::UnprocessableContent, 'parent');
-			}
-
-			if ($entry->type->parentKey($entry->key, []) !== $target?->key) {
-				$move = $target;
-			}
-		}
-
-		$rename  = is_string($slug) && $slug !== '' && $slug !== $entry->slug ? $slug : null;
-		$folder  = $move === false ? dirname($entry->key) : ($move === null ? '.' : $move->key);
-		$problem = $rename === null ? null : $this->slugProblem($entry, $rename, $folder);
-
-		if ($problem !== null) {
-			return self::error($problem, Status::UnprocessableContent, 'slug');
-		}
-
-		if ($move !== false && $rename === null) {
-			$problem = $this->slugProblem($entry, $entry->slug, $folder);
-
-			if ($problem !== null) {
-				return self::error(sprintf('There\'s already a page at %s.', ($folder === '.' ? '' : "{$folder}/") . $entry->slug), Status::UnprocessableContent, 'parent');
-			}
-		}
-
-		// Another language (D-728), checked before anything is written.
-		$language = is_string($input['language'] ?? null) && $input['language'] !== $entry->language ? $input['language'] : null;
-
-		if ($language !== null) {
-			$problem = $entry->landing || $this->archivePages->isList($entry) || $this->archivePages->isTarget($entry) || ErrorPage::status($entry) !== null
-				? sprintf('"%s" keeps the language of the pages it goes with.', $entry->title)
-				: $this->languageProblem($entry->type, ($folder === '.' ? '' : "{$folder}/") . ($rename ?? $entry->slug), $language, $entry);
-
-			if ($problem !== null) {
-				return self::error($problem, Status::UnprocessableContent, 'language');
-			}
-		}
-
-		$redirect = ($input['redirect'] ?? false) === true;
-
-		// The pages under a tree's page, whose addresses change with its.
-		$under = $redirect && ($move !== false || $rename !== null) && $entry->type instanceof Tree
-			? array_values(array_filter(
-				$this->content->query()->any()->type($entry->type->name)->limit(null)->get()->all(),
-				static fn (Entry $item): bool => str_starts_with($item->key, "{$entry->key}/")
-			))
-			: [];
-
-		// The old address can redirect to the new one, once it's saved.
-		$from = $redirect && ($move !== false || $rename !== null) && $entry->isPublished() ? $this->urls->entry($entry) : null;
-
-		try {
-			$related = $this->related($account, $entry->type, $entry, $file->frontMatter, $changes);
+			$revision = $input['revision'] ?? null;
+			$updated  = $this->editor->update(Actor::admin($account), $entry, $edit, is_string($revision) ? $revision : null);
+			$file     = $this->content->editable($updated);
+		} catch (InvalidEdit $e) {
+			return self::error($e->getMessage(), Status::BadRequest);
+		} catch (EditRefused $e) {
+			return self::refused($e);
 		} catch (WriteException $e) {
 			return self::error($e->getMessage(), Status::UnprocessableContent);
 		}
 
-		if ($related !== null) {
-			return $related;
-		}
-
-		try {
-			// Moving and renaming first, so a refused place or name leaves
-			// it as it was. Where that puts a file, and whether a new slug
-			// or date renames it, is the storage driver's (D-654).
-			if ($move !== false) {
-				$revision = $this->content->move($entry, $move, $revision)->version ?? $revision;
-			}
-
-			if ($rename !== null) {
-				$revision = $this->content->rename($entry, $rename, $revision)->version ?? $revision;
-			}
-
-			if ($language !== null) {
-				$revision = $this->content->changeLanguage($entry, $language, $revision)->version ?? $revision;
-			}
-
-			$updated = $this->content->change($entry, $changes, $revision);
-			$file    = $this->content->editable($updated);
-		} catch (WriteConflict $e) {
-			return self::error($e->getMessage(), Status::Conflict);
-		} catch (WriteException $e) {
-			return self::error($e->getMessage(), Status::UnprocessableContent);
-		}
-
-		$this->redirectMoved($account, $move !== false ? RedirectOrigin::Move : RedirectOrigin::Rename, $from, $entry, $updated, $under);
 		$this->remember($account, $updated);
 
 		return self::json($this->describe($account, $updated, $file));
@@ -596,42 +405,6 @@ final readonly class EntryController
 	}
 
 	/**
-	 * Redirects the old addresses of a published entry that moved or was
-	 * renamed, and of the published pages under a tree's page that did
-	 * (D-410), to the entries by id (D-680, D-686). The entry is saved by
-	 * then, so a redirect that can't be written is logged, and the move
-	 * stands.
-	 *
-	 * @param ?string     $from  The entry's old address, when it redirects.
-	 * @param list<Entry> $under The pages that were under it, as they were.
-	 */
-	private function redirectMoved(Account $account, RedirectOrigin $via, ?string $from, Entry $was, Entry $now, array $under): void
-	{
-		$moves = [];
-		$to    = $from === null ? null : $this->urls->entry($now);
-
-		if ($from !== null && $to !== null) {
-			$moves[] = ['from' => $from, 'to' => $to, 'entry' => $now->id, 'via' => $via];
-		}
-
-		foreach ($under as $page) {
-			$found = $this->content->named($now->type->name, $now->key . substr($page->key, strlen($was->key)));
-			$old   = $page->isPublished() ? $this->urls->entry($page) : null;
-			$new   = $found === null ? null : $this->urls->entry($found);
-
-			if ($found !== null && $old !== null && $new !== null) {
-				$moves[] = ['from' => $old, 'to' => $new, 'entry' => $found->id, 'via' => RedirectOrigin::Move];
-			}
-		}
-
-		try {
-			$this->redirects->moved($moves, $account->id === '' ? null : $account->id);
-		} catch (RecordException | InvalidRoute $error) {
-			$this->logger->warning('The redirects for "{title}" couldn\'t be written: {problem}', ['title' => $now->title, 'problem' => $error->getMessage()]);
-		}
-	}
-
-	/**
 	 * Copies an entry as a draft (D-275).
 	 */
 	public function duplicate(ServerRequestInterface $request, string $id): ResponseInterface
@@ -643,35 +416,11 @@ final readonly class EntryController
 			return self::error(sprintf('There\'s no entry with the id "%s".', $id), Status::NotFound);
 		}
 
-		if (! $this->permissions->can($account, ContentAction::Create, $entry->type->name) || ! $this->permissions->can($account, ContentAction::Edit, $entry)) {
-			return self::error('You aren\'t allowed to duplicate that entry.', Status::Forbidden);
-		}
-
-		if ($entry->status === EntryStatus::Trash) {
-			return self::error(self::inTrash($entry), Status::UnprocessableContent);
-		}
-
-		if (IndexPage::is($entry)) {
-			return self::error(sprintf('"%s" is the index page for %s, and there\'s only one.', $entry->title, $entry->type->labels->items), Status::UnprocessableContent);
-		}
-
-		if (Homepage::isRootPage($entry)) {
-			return self::error(sprintf('"%s" is the site\'s root page, and there\'s only one.', $entry->title), Status::UnprocessableContent);
-		}
-
-		$now   = $this->clock->now()->setTimezone($this->app->timezone());
-		$title = sprintf('%s (Copy)', trim($entry->title) === '' ? 'Untitled' : $entry->title);
-		$set   = [
-			'title'     => $title,
-			'status'    => 'draft',
-			'published' => self::dateString($now)
-		];
-
 		try {
-			// The copy's name is its file's, and the original's old
-			// addresses stay the original's.
-			$copy = $this->content->duplicate($entry, Slug::from(($entry->slug === '' ? $title : $entry->slug) . '-copy'), new EntryChanges(set: $set, remove: ['slug']), $now);
+			$copy = $this->editor->duplicate(Actor::admin($account), $entry);
 			$file = $this->content->editable($copy);
+		} catch (EditRefused $e) {
+			return self::refused($e);
 		} catch (WriteException $e) {
 			return self::error($e->getMessage(), Status::UnprocessableContent);
 		}
@@ -698,48 +447,39 @@ final readonly class EntryController
 			return self::error('You aren\'t allowed to delete that entry.', Status::Forbidden);
 		}
 
-		$trashed = $entry->status === EntryStatus::Trash;
+		if (! $permanently) {
+			try {
+				[$trashed, $declared] = $this->editor->trash(Actor::admin($account), $entry, is_string($revision) ? $revision : null);
+			} catch (EditRefused $e) {
+				return self::refused($e);
+			}
 
-		if ($trashed !== $permanently) {
-			return self::error($trashed
-				? sprintf('"%s" is already in the trash; delete it permanently, or restore it.', $entry->title)
-				: sprintf('"%s" isn\'t in the trash; move it there first.', $entry->title), Status::UnprocessableContent);
+			// What an Undo sends to put it back as it was (D-525).
+			return self::json(['trashed' => $id, 'restore' => [
+				'status'   => $declared,
+				'revision' => $trashed->version
+			]]);
 		}
 
-		if (IndexPage::is($entry)) {
-			return self::error(sprintf('"%s" is the index page for %s, so it can\'t be moved to the trash.', $entry->title, $entry->type->labels->items), Status::UnprocessableContent);
-		}
-
-		if (! $trashed && ! is_string($revision)) {
-			return self::error('Send the "revision" you loaded, so no one else\'s change is lost.', Status::PreconditionRequired);
+		if ($entry->status !== EntryStatus::Trash) {
+			return self::error(sprintf('"%s" isn\'t in the trash; move it there first.', $entry->title), Status::UnprocessableContent);
 		}
 
 		try {
-			if ($trashed) {
-				// Taken out of what links to it first (D-598), where the
-				// account may edit, so nothing names it after.
-				[$unlinked] = in_array($params['unlink'] ?? null, ['1', 'true'], true)
-					? $this->referrers->unlink($entry, fn (Entry $referrer): bool => $this->permissions->can($account, ContentAction::Edit, $referrer))
-					: [[]];
+			// Taken out of what links to it first (D-598), where the
+			// account may edit, so nothing names it after.
+			[$unlinked] = in_array($params['unlink'] ?? null, ['1', 'true'], true)
+				? $this->referrers->unlink($entry, fn (Entry $referrer): bool => $this->permissions->can($account, ContentAction::Edit, $referrer))
+				: [[]];
 
-				$this->content->delete($entry);
-
-				return self::json(['deleted' => $id, 'unlinked' => count($unlinked)]);
-			}
-
-			$declared = $this->content->editable($entry)->frontMatter['status'] ?? null;
-			$trashed  = $this->content->trash($entry, $revision);
+			$this->content->delete($entry);
 		} catch (WriteConflict $e) {
 			return self::error($e->getMessage(), Status::Conflict);
 		} catch (WriteException $e) {
 			return self::error($e->getMessage(), Status::UnprocessableContent);
 		}
 
-		// What an Undo sends to put it back as it was (D-525).
-		return self::json(['trashed' => $id, 'restore' => [
-			'status'   => is_string($declared) ? $declared : null,
-			'revision' => $trashed->version
-		]]);
+		return self::json(['deleted' => $id, 'unlinked' => count($unlinked)]);
 	}
 
 	/**
@@ -837,32 +577,18 @@ final readonly class EntryController
 			default                              => false
 		};
 
-		if ($entry === null || $entry->status !== EntryStatus::Trash) {
+		if ($entry === null) {
 			return self::error('That isn\'t in the trash.', Status::NotFound);
 		}
 
-		if (! $this->permissions->can($account, ContentAction::Delete, $entry)) {
-			return self::error('You aren\'t allowed to restore that entry.', Status::Forbidden);
-		}
-
-		if ($status === false || $status === EntryStatus::Trash || $status === EntryStatus::Scheduled) {
+		if ($status === false) {
 			return self::error('An entry is restored as "draft", "published", or `null` (no status, so published).', Status::UnprocessableContent);
 		}
 
-		if ($status !== EntryStatus::Draft && ! is_string($revision)) {
-			return self::error('Send the "revision" moving it to the trash answered, so it\'s put back only as it was.', Status::PreconditionRequired);
-		}
-
-		if ($status !== EntryStatus::Draft && ! $this->permissions->can($account, ContentAction::Publish, $entry)) {
-			return self::error('You aren\'t allowed to publish that entry, so it can\'t be put back as it was; restore it as a draft.', Status::Forbidden);
-		}
-
 		try {
-			$this->content->restore($entry, is_string($revision) ? $revision : null, $status);
-		} catch (WriteConflict) {
-			return self::error(sprintf('"%s" changed in the trash since it was moved there, so it can\'t be put back as it was; restore it from the Trash.', $entry->title), Status::Conflict);
-		} catch (WriteException $e) {
-			return self::error($e->getMessage(), Status::UnprocessableContent);
+			$this->editor->restore(Actor::admin($account), $entry, $status, is_string($revision) ? $revision : null);
+		} catch (EditRefused $e) {
+			return self::refused($e);
 		}
 
 		return self::json(['id' => $id]);
@@ -904,14 +630,6 @@ final readonly class EntryController
 		$trashed = $entry->field(EntryFields::TRASHED);
 
 		return $entry->status === EntryStatus::Trash && $trashed instanceof DateTimeInterface ? $trashed->format(DateTimeInterface::ATOM) : null;
-	}
-
-	/**
-	 * Says that an entry is in the trash, so it can't be changed.
-	 */
-	private static function inTrash(Entry $entry): string
-	{
-		return sprintf('"%s" is in the trash; restore it to change it.', trim($entry->title) === '' ? 'Untitled' : $entry->title);
 	}
 
 	/**
@@ -977,332 +695,17 @@ final readonly class EntryController
 			$revision = $this->content->editable($entry)->version;
 
 			if ($action === 'trash') {
-				$this->content->trash($entry, $revision);
-
-				return null;
+				$this->editor->trash(Actor::admin($account), $entry, $revision);
+			} else {
+				// Publishing an undated entry dates it, which may rename
+				// its file (D-519), the storage driver's to do.
+				$this->editor->setStatus(Actor::admin($account), $entry, $action === 'publish' ? 'published' : 'draft', $revision);
 			}
-
-			$changes = $this->withStatus($this->stamped(new EntryChanges()), $action === 'publish' ? 'published' : 'draft', [], $entry);
-			$refusal = $this->refusal($account, $entry, $changes) ?? ($action === 'publish' ? $this->missing($entry) ?? $this->outOfLimits($entry) : null);
-
-			if ($refusal !== null) {
-				return $refusal;
-			}
-
-			// Publishing an undated entry dates it, which may rename its
-			// file (D-519), the storage driver's to do.
-			$this->content->change($entry, $changes, $revision);
-		} catch (InvalidEdit | WriteException $e) {
+		} catch (EditRefused | WriteException $e) {
 			return $e->getMessage();
 		}
 
 		return null;
-	}
-
-	/**
-	 * Says which required fields an entry leaves empty, which keeps it
-	 * from being published (the editor's rule, admin.md §8 Validation),
-	 * or `null` when none are. An index page is edited without the type's
-	 * fields, so it has none; the publish date isn't checked, since
-	 * publishing sets it.
-	 */
-	private function missing(Entry $entry): ?string
-	{
-		$empty = IndexPage::is($entry) ? [] : array_filter($entry->type->schema->fields, static function (Field $field) use ($entry): bool {
-			$value = $field->name === 'title' ? $entry->title : $entry->field($field->name);
-
-			return $field->required
-				&& $field->name !== 'published'
-				&& ($value === null || $value === [] || (is_string($value) && trim($value) === ''));
-		});
-
-		$names = array_values(array_map(static fn (Field $field): string => $field->label === '' ? ucfirst($field->name) : $field->label, $empty));
-
-		return match (count($names)) {
-			0       => null,
-			1       => sprintf('%s is required to publish.', $names[0]),
-			default => sprintf('%s are required to publish.', implode(', ', $names))
-		};
-	}
-
-	/**
-	 * Checks a save's relations (D-596), and writes the targets it creates
-	 * as they're typed, before the entry is written. Refused, as an error
-	 * to answer, when the account may not create and publish entries of
-	 * a target's type, or when a save that leaves the entry live leaves a
-	 * relation out of its limits; `null` once it may go ahead.
-	 *
-	 * @param array<array-key, mixed> $before The entry's front matter, none for a new one.
-	 */
-	private function related(Account $account, ContentType $type, ?Entry $entry, array $before, EntryChanges $changes): ?ResponseInterface
-	{
-		$after    = array_diff_key([...$before, ...$changes->set], array_flip($changes->remove));
-		$language = $entry->language ?? $this->app->languages->default->code;
-		$found    = $this->typed->find($type->name, $language, $before, $after);
-
-		foreach ($found as $name => $byType) {
-			foreach ($byType as $target => $titles) {
-				if (! $this->permissions->can($account, ContentAction::Create, $target) || ! $this->permissions->can($account, ContentAction::Publish, $target)) {
-					return self::error(
-						sprintf('You aren\'t allowed to add new %s: %s.', $this->types->find($target)->labels->items ?? $target, implode(', ', $titles)),
-						Status::Forbidden,
-						$this->relations->find($type->name, $name)->field ?? $name
-					);
-				}
-			}
-		}
-
-		if (! self::isDraft($changes, $entry)) {
-			$problems = $this->limits->check($type->name, $entry?->id, $language, $after);
-
-			if ($problems !== []) {
-				$relation = $this->relations->byKey($problems[0]->key);
-				$full     = $relation !== null && $problems[0]->kind === ProblemKind::InverseLimit ? $this->full($relation, $problems[0]->value, $entry->id ?? '') : null;
-
-				return self::json([
-					'error' => implode(' ', array_map(static fn (RelationProblem $problem): string => $problem->message, $problems)),
-					...($relation === null ? [] : ['field' => $relation->field]),
-					...($full === null ? [] : ['full' => $full])
-				], Status::UnprocessableContent);
-			}
-		}
-
-		$created = $found === [] ? null : $this->typed->create($found);
-
-		return $created === null || $created->failed === [] ? null : self::error(
-			sprintf('%s couldn\'t be written: %s', implode(', ', array_keys($created->failed)), implode(' ', $created->failed)),
-			Status::UnprocessableContent
-		);
-	}
-
-	/**
-	 * Describes a target a save named that its inverse's `max` already
-	 * has enough entries naming (D-608), for the editor to name it and
-	 * offer a way out: its `id`, `title`, and `type`, the `max`, and the
-	 * first other published target by title with room (`room`: `title`,
-	 * `slug`, and how many more it takes, `left`), or `null` for none.
-	 *
-	 * @return ?array{id: ?string, title: string, type: string, max: int, room: ?array{title: string, slug: string, left: int}}
-	 */
-	private function full(Relation $relation, string $slug, string $source): ?array
-	{
-		$max    = $relation->inverse === false ? null : $relation->inverse->max;
-		$type   = $relation->to[0] ?? null;
-		$target = $type === null ? null : $this->content->named($type, $slug);
-
-		if ($max === null || $type === null || $target === null) {
-			return null;
-		}
-
-		$others = array_values(array_filter(
-			$this->content->query()->type($type)->withLanding(false)->orderBy('title', Order::Asc)->limit(null)->get()->all(),
-			static fn (Entry $other): bool => $other->id !== null && $other->id !== $target->id
-		));
-		$taken  = $this->limits->taken($relation, array_map(static fn (Entry $other): string => (string) $other->id, $others), $source);
-		$room   = array_find($others, static fn (Entry $other): bool => ($taken[(string) $other->id] ?? 0) < $max);
-
-		return [
-			'id'    => $target->id,
-			'title' => $target->title,
-			'type'  => $type,
-			'max'   => $max,
-			'room'  => $room === null ? null : ['title' => $room->title, 'slug' => $room->key, 'left' => $max - ($taken[(string) $room->id] ?? 0)]
-		];
-	}
-
-	/**
-	 * Says which of an entry's relations are out of their limits, which
-	 * keeps it from being published (D-596), or `null` when none are.
-	 */
-	private function outOfLimits(Entry $entry): ?string
-	{
-		$problems = $this->limits->check($entry->type->name, $entry->id, $entry->language, $this->content->editable($entry)->frontMatter);
-
-		return $problems === [] ? null : implode(' ', array_map(static fn (RelationProblem $problem): string => $problem->message, $problems));
-	}
-
-	/**
-	 * Returns what's wrong with renaming an entry to a slug, or `null`,
-	 * in the folder of keys it's in, or moving to (`.` for the top).
-	 */
-	private function slugProblem(Entry $entry, string $slug, ?string $folder = null): ?string
-	{
-		if ($entry->landing) {
-			return sprintf('"%s" is its folder\'s landing page, so its slug is the folder\'s.', $entry->title);
-		}
-
-		if (ErrorPage::status($entry) !== null && $slug !== $entry->slug) {
-			return sprintf('"%s" is the page for error %s, so its slug is the status.', $entry->title, $entry->slug);
-		}
-
-		if (! Slug::isSlug($slug)) {
-			return sprintf('Slugs are lowercase letters, numbers, and hyphens; try "%s".', Slug::from($slug) ?: 'untitled');
-		}
-
-		$folder ??= dirname($entry->key);
-		$key      = ($folder === '.' ? '' : "{$folder}/") . $slug;
-
-		return match ($this->content->named($entry->type->name, $key)?->status) {
-			null              => null,
-			EntryStatus::Trash => sprintf('A %s in the trash has the slug "%s"; restore it, or delete it permanently, to use it.', $entry->type->labels->item, $slug),
-			default           => sprintf('Another %s already has the slug "%s".', $entry->type->labels->item, $slug)
-		};
-	}
-
-	/**
-	 * Returns what's wrong with an entry of a type at a key being in a
-	 * language (D-728), or `null`: a language the site doesn't have, one
-	 * its translations already have, or a key that's taken there.
-	 */
-	private function languageProblem(ContentType $type, string $key, string $code, ?Entry $entry = null): ?string
-	{
-		$language = $this->app->languages->find($code);
-
-		if ($language === null) {
-			return sprintf('The site has no language "%s".', $code);
-		}
-
-		$translation = $entry === null ? null : $this->content->translations($entry)[$code] ?? null;
-
-		if ($translation !== null && $translation->id !== $entry->id) {
-			return sprintf('Its %s translation is “%s”.', $language->name(), trim($translation->title) === '' ? 'Untitled' : $translation->title);
-		}
-
-		$found = $this->content->named($type->name, $key, $code);
-
-		return $found === null || $found->id === $entry?->id ? null : sprintf('There\'s already a %s at %s in %s.', $type->labels->item, $key, $language->name());
-	}
-
-	/**
-	 * Returns why the account may not make a change, or `null`.
-	 */
-	private function refusal(Account $account, Entry $entry, EntryChanges $changes): ?string
-	{
-		if (! self::isDraft($changes, $entry) && ! $this->permissions->can($account, ContentAction::Publish, $entry)) {
-			return 'You aren\'t allowed to publish that entry; keep it a draft.';
-		}
-
-		// The byline (its type's byline relation, D-602) is what makes an
-		// entry yours.
-		$field = $this->types->byline($entry->type->name)?->field;
-
-		if ($field === null || $this->permissions->can($account, ContentAction::EditOthers, $entry)) {
-			return null;
-		}
-
-		$keys    = $this->keys($entry->type->name, $field);
-		$touched = array_any($keys, static fn (string $key): bool => array_key_exists($key, $changes->set) || in_array($key, $changes->remove, true));
-
-		if (! $touched) {
-			return null;
-		}
-
-		$value   = array_find_key($changes->set, static fn (mixed $value, string|int $key): bool => in_array($key, $keys, true));
-		$authors = $value === null ? [] : (array) $changes->set[$value];
-
-		$own = $this->profiles->slug($account);
-
-		return $own !== null && in_array($own, $authors, true)
-			? null
-			: 'You can add authors, but not take yourself off an entry.';
-	}
-
-	/**
-	 * Applies the status shortcut.
-	 *
-	 * @param  array<mixed> $input
-	 * @throws InvalidEdit
-	 */
-	private function withStatus(EntryChanges $changes, string $status, array $input, ?Entry $entry): EntryChanges
-	{
-		if (! in_array($status, self::STATUSES, true)) {
-			throw new InvalidEdit(sprintf('"status" must be one of %s.', implode(', ', self::STATUSES)));
-		}
-
-		$set    = $changes->set;
-		$remove = array_values(array_diff($changes->remove, ['status']));
-		$now    = $this->clock->now();
-		$index  = $entry !== null && IndexPage::is($entry);
-
-		if ($status === 'scheduled' && $index) {
-			throw new InvalidEdit('An index page can\'t be scheduled; publish it or keep it a draft.');
-		}
-
-		unset($set['status']);
-
-		if ($status === 'draft') {
-			$set['status'] = 'draft';
-		} else {
-			$remove[] = 'status';
-		}
-
-		if ($status === 'scheduled') {
-			$when = self::date($input['published'] ?? null, $this->app);
-
-			if ($when === null || $when <= $now) {
-				throw new InvalidEdit('Scheduling needs a future "published" date.');
-			}
-
-			$set['published'] = self::dateString($when);
-		}
-
-		if ($status === 'published' && ! $index && ! isset($set['published']) && ($entry?->published === null || $entry->published > $now)) {
-			$set['published'] = self::dateString($now->setTimezone($this->app->timezone()));
-		}
-
-		// A new entry has no file yet, so there's no status key to clear.
-		if ($entry === null) {
-			$remove = [];
-		}
-
-		return new EntryChanges($set, array_values(array_unique($remove)), $changes->body);
-	}
-
-	/**
-	 * Whether an entry stays (or starts as) a draft after the changes.
-	 */
-	private static function isDraft(EntryChanges $changes, ?Entry $entry): bool
-	{
-		if (array_key_exists('status', $changes->set)) {
-			return $changes->set['status'] === 'draft';
-		}
-
-		if (in_array('status', $changes->remove, true) || $entry === null) {
-			return false;
-		}
-
-		return $entry->status === EntryStatus::Draft;
-	}
-
-	/**
-	 * Returns the account's profile for a new entry's byline: the type's
-	 * byline relation (D-602), when it has one and the profile is an
-	 * entry, since a credit links only entries (D-584, D-663).
-	 *
-	 * @return array<string, list<string>|string>
-	 */
-	private function authorDefault(Account $account, string $type): array
-	{
-		$byline = $this->types->byline($type);
-		$own    = $byline === null ? null : $this->profiles->slug($account);
-
-		if ($byline === null || $own === null) {
-			return [];
-		}
-
-		return [$byline->field => $byline->multiple ? [$own] : $own];
-	}
-
-	/**
-	 * Returns a field's keys under a type's schema: its name and aliases.
-	 *
-	 * @return list<string>
-	 */
-	private function keys(string $type, string $name): array
-	{
-		$field = $this->types->schema($type)->field($name);
-
-		return $field === null ? [$name] : [$field->name, ...$field->aliases];
 	}
 
 	/**
@@ -1395,6 +798,7 @@ final readonly class EntryController
 			'type'        => $this->typeOf($entry->type, $fields),
 			'inherited'   => (object) $this->inherited($entry, $file),
 			'linkedFrom'  => $this->linkedFrom($entry),
+			'changedBy'   => $this->changedBy($entry),
 			'index'       => $index,
 			'archivePage' => $people,
 			'archive'     => $this->archiveOf($entry),
@@ -1560,6 +964,34 @@ final readonly class EntryController
 		usort($groups, static fn (array $a, array $b): int => [$b['count'], $a['key']] <=> [$a['count'], $b['key']]);
 
 		return $groups;
+	}
+
+	/**
+	 * Returns who made an entry's latest change when an app or a script
+	 * made it (D-758), for the editor's note, or `null`: the app's name
+	 * (`client`), the account's (`account`), and when (`time`).
+	 *
+	 * @return ?array{client: string, account: string, time: string}
+	 */
+	private function changedBy(Entry $entry): ?array
+	{
+		try {
+			$latest = $entry->id === null ? null : $this->activity->latest($entry->id);
+		} catch (ActivityException) {
+			return null;
+		}
+
+		if ($latest === null || ! in_array($latest->via, [Via::Mcp, Via::Api], true)) {
+			return null;
+		}
+
+		$by = $this->accounts->findById($latest->account);
+
+		return [
+			'client'  => $latest->client ?? $latest->via->label(),
+			'account' => $by === null ? 'a removed account' : ($by->name ?? $by->username),
+			'time'    => new DateTimeImmutable('@' . $latest->time)->format(DateTimeInterface::ATOM)
+		];
 	}
 
 	/**
@@ -1789,44 +1221,29 @@ final readonly class EntryController
 	}
 
 	/**
-	 * Reads a date from input, in the site's timezone unless it says
-	 * otherwise, or returns `null`.
-	 */
-	private static function date(mixed $value, AppConfig $app): ?DateTimeImmutable
-	{
-		if (! is_string($value) || trim($value) === '') {
-			return null;
-		}
-
-		try {
-			return new DateTimeImmutable($value, $app->timezone());
-		} catch (Exception) {
-			return null;
-		}
-	}
-
-	/**
-	 * Returns changes that also set `updated` to now (D-728, D-729): every
-	 * change someone makes to an entry, in the editor or in bulk, says
-	 * when it was made.
+	 * Returns the page a new tree's page goes under, by key, or `null`.
 	 *
-	 * @throws WriteException
+	 * @param  array<mixed> $input
+	 * @throws InvalidEdit
 	 */
-	private function stamped(EntryChanges $changes): EntryChanges
+	private static function parentOf(array $input): ?string
 	{
-		return new EntryChanges(
-			set: [...$changes->set, 'updated' => self::dateString($this->clock->now()->setTimezone($this->app->timezone()))],
-			remove: array_values(array_diff($changes->remove, ['updated'])),
-			body: $changes->body
-		);
+		$parent = $input['parent'] ?? null;
+
+		return $parent === null || is_string($parent) ? $parent : throw new InvalidEdit('"parent" must be the key of a page.');
 	}
 
 	/**
-	 * Writes a date the way people do in front matter.
+	 * Answers an edit the editor refused, with its field, and a full
+	 * relation's target (D-608).
 	 */
-	private static function dateString(DateTimeImmutable $date): string
+	private static function refused(EditRefused $refused): ResponseInterface
 	{
-		return $date->format('Y-m-d H:i:s P');
+		return self::json([
+			'error' => $refused->getMessage(),
+			...($refused->field === null ? [] : ['field' => $refused->field]),
+			...$refused->details
+		], $refused->refusal->status());
 	}
 
 	/**

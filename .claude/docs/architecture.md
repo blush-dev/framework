@@ -359,7 +359,8 @@ Implemented in M2 (D-067).
   - `HandleErrors`, `TrustProxies`, `CanonicalUrl` (scheme, host, trailing slash)
   - `ConditionalGet` (ETag, Last-Modified → 304), `PageCache`, `SecurityHeaders`
   - `StartSession`, `VerifyCsrf`, `Authenticate`, `RateLimit` (admin and
-    webhooks only)
+    webhooks only); `RateLimiter` (D-758), a service counting hits per
+    key in the cache, is built and used by the MCP server
   `HandleErrors`, `ConditionalGet`, and `PageCache` exist so far, plus
   `StartSession`, `VerifyCsrf`, and `Authenticate` (D-219); login
   throttling is `LoginThrottle`, not a middleware. The
@@ -711,7 +712,7 @@ Implemented in M4a (D-080, D-085, D-086).
   no renderer bound, directives are plain text. See `theming.md`.
 - Raw HTML in Markdown: on a page, `MarkdownConfig::$html` (allowed by
   default, D-494); in the admin, the `html.allowed` and `html.unfiltered`
-  capabilities, checked on save by `Admin\HtmlGuard` against
+  capabilities, checked on save by `Content\Editing\HtmlGuard` against
   `Markdown\Html\HtmlRules` for what the save adds (D-495). Files on
   disk are trusted.
 
@@ -1252,8 +1253,73 @@ reusable pieces, from themes, the site, and plugins.
   sorted query, `Cache-Control` from `maxAge` (a request with a token:
   built for it alone, `private, no-store`), CORS `*`, and
   `ApiError`s as `{ error: { code, message } }`; `ConditionalGet`
-  adds the `ETag`. Controllers are in `Blush\Api\Http`.
+  adds the `ETag`. Controllers are in `Blush\Api\Http`. The token
+  check is `Auth\BearerTokens`, shared with the MCP server; a token with
+  a `client` (an app's, from OAuth) is refused here (D-752).
+- **The MCP server** (`Blush\Mcp`, D-751 to D-759): off by default
+  (`McpConfig`), at `{ApiConfig::$path}/mcp`, with OAuth's well-known
+  and `/oauth` routes (`McpRoutes`, system routes, none while off).
+  `McpServer` answers JSON-RPC 2.0 one message at a time with no
+  sessions (`initialize` with `McpInstructions`, `ping`, `tools/list`,
+  `tools/call`), for `Http\McpController` (each `POST` answered as
+  JSON; `GET` is a 405, no streams) and `McpStdio` (`blush mcp
+  --account=`, one message a line). `Http\McpAuthentication` takes a
+  bearer token (an API token or an app's) or answers `401` with
+  `WWW-Authenticate: Bearer resource_metadata=…`. `McpContexts` makes
+  the `McpContext` a call runs in: the `Actor`, `Permissions`, and both
+  write paths narrowed to the token's capabilities, its `TokenScope`,
+  and whether it's counted against the limits. **Tools** are the
+  registry pattern: abstract `Tool` (title, description for the AI,
+  input and output JSON Schema, capability, `ToolAnnotations`,
+  `handle()`), `ToolType` (the built-ins), `McpToolRegistry` (names
+  `[a-z][a-z0-9_]{0,63}`, a clash refused), `McpToolRegistrar`.
+  `McpTools` offers a context the tools its capability allows (a
+  plugin's must name one, and one that writes is offered by
+  `TokenScope` and `draftsSafe`), checks input (`InputCheck`), counts
+  calls (`Http\RateLimiter`, the cache's `limits` namespace), and
+  turns `ToolError` into an `isError` result. Read tools use
+  `McpEntries` (every status the account may see but trash, through
+  `Permissions::alternatives()`) and the API's `EntryResource` and
+  `MediaResource`; write tools use `EntryEditor` and `MediaEditor`.
+  **OAuth** (`Blush\Mcp\OAuth`): `OAuthServer` (metadata, the
+  authorization code flow with PKCE S256, resource-bound tokens, refresh
+  rotation with reuse revoking), `OAuthClients` (`oauth_clients`:
+  dynamic registration, or a client ID metadata document read through
+  the embed `Fetcher`, refused for a private address), `OAuthGrants`
+  (`oauth_grants`, one per account and app, and `oauth_secrets`, codes
+  and refresh tokens as hashes), all in the accounts area under
+  `storage/oauth`; access tokens are `Tokens::issue()`d API tokens with
+  a `client`. The approval screen is the admin's
+  (`Admin\AuthorizeController`, `/admin/authorize`).
 - **Search:** optional; FTS5 with the SQLite driver, or a JSON index (under discussion; see `open-questions.md`).
+
+## Writing content and media (D-756, D-758)
+
+`Blush\Content\Editing\EntryEditor` is the one write path for entries:
+the admin's editing API (`Admin\EntryController`), the MCP server's
+tools, and later the API's writes go through it. It holds every rule a
+save follows (permissions from the change, raw HTML by capability
+through `HtmlGuard`, relation checks and created targets, slug and
+language checks, the status shortcut, redirects on moves, revisions),
+takes an `EntryEdit` or `NewEntry` and an `Actor`, and throws
+`EditRefused` (with a `Refusal`, which maps to an HTTP status, a
+`field`, and `details`). `limitedTo()` narrows it to a token's
+capabilities. `IndexPage`, `ErrorPage`, and `ArchivePages` live beside
+it. `Blush\Media\MediaEditor` is the same for uploads (`upload()`,
+`uploadBytes()`) and a file's details (`update()`), used by
+`Admin\MediaUploadController` and `MediaListController`.
+
+**The activity log** (`Blush\Activity`): each editor records every write
+in `ActivityLog` (the `activity` table, accounts area,
+`storage/activity`): when, the account, `Via` (admin, MCP, CLI, API),
+an app's or token's name and token id, the `ActivityAction`, the
+subject by id, a summary, and, for an undoable change, what it replaced
+and the revision it wrote. `undo()` on either editor puts that back only
+while the revision still matches, as the `Actor`'s `undoing()`, so the
+log marks the original undone. `core/prune-activity` (daily) removes
+rows after 90 days and before-states after 30.
+`Admin\ActivityController` serves Tools → Activity and an entry's
+Activity row.
 
 ## Caching
 

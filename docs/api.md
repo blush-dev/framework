@@ -71,7 +71,9 @@ Authorization: Bearer blush_0199a1b4-…_9f3c…
   stops every one of an account's. Changing a password doesn't revoke
   tokens.
 
-A token is only accepted in the `Authorization` header, never in the
+A token also works on the [MCP server](mcp.md), for AI apps. A token
+an app gets by connecting through MCP works only there, never on the
+API. A token is only accepted in the `Authorization` header, never in the
 address, and only over HTTPS (plain HTTP works on `localhost`). After
 many requests with a token that isn't one, the address sending them is
 refused for a while.
