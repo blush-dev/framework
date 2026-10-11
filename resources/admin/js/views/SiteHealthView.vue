@@ -157,7 +157,7 @@ function copyReport(): void {
 	void copyText(lines.join('\n'), 'the report');
 }
 
-const toolsShown = computed(() => (navCounts.value?.actions ?? 0) > 0 || can('site.logs'));
+const toolsShown = computed(() => (navCounts.value?.tools ?? 0) > 0 || can('site.logs'));
 
 onMounted(() => {
 	void check();

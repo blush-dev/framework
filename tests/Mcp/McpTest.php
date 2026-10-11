@@ -17,6 +17,7 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\ResponseInterface;
 use Blush\Activity\ActivityFilter;
+use Blush\Activity\Actor;
 use Blush\Activity\ActivityLog;
 use Blush\Activity\Via;
 use Blush\Auth\Accounts;
@@ -28,22 +29,26 @@ use Blush\Http\Kernel;
 use Blush\Http\Request;
 use Blush\Mcp\Http\McpAuthentication;
 use Blush\Mcp\Http\McpController;
-use Blush\Mcp\InputCheck;
-use Blush\Mcp\McpContexts;
-use Blush\Mcp\McpEntries;
 use Blush\Mcp\McpServer;
 use Blush\Mcp\McpStdio;
-use Blush\Mcp\McpToolRegistry;
 use Blush\Mcp\McpTools;
+use Blush\Tool\InputCheck;
+use Blush\Tool\ToolContexts;
+use Blush\Tool\ToolEntries;
+use Blush\Tool\ToolRegistry;
+use Blush\Tool\Tools;
 use Blush\Tests\Content\BuildsContentSite;
 use Blush\Tests\Fixtures\Mcp\DraftsTool;
 use Blush\Tests\Fixtures\Mcp\OpenTool;
 use Blush\Tests\Fixtures\Mcp\WritingTool;
+use Blush\Tests\Fixtures\Tool\GreetTool;
 
 #[CoversClass(McpServer::class)]
 #[CoversClass(McpTools::class)]
-#[CoversClass(McpEntries::class)]
-#[CoversClass(McpContexts::class)]
+#[CoversClass(Tools::class)]
+#[CoversClass(ToolRegistry::class)]
+#[CoversClass(ToolEntries::class)]
+#[CoversClass(ToolContexts::class)]
 #[CoversClass(McpController::class)]
 #[CoversClass(McpAuthentication::class)]
 #[CoversClass(McpStdio::class)]
@@ -246,10 +251,10 @@ final class McpTest extends TestCase
 	{
 		$this->boot();
 
-		$registry = $this->app->container()->make(McpToolRegistry::class);
-		$registry->register('acme_test_open', OpenTool::class);
-		$registry->register('acme_test_writing', WritingTool::class);
-		$registry->register('acme_test_drafts', DraftsTool::class);
+		$registry = $this->app->container()->make(ToolRegistry::class);
+		$registry->register('acme/test-open', OpenTool::class);
+		$registry->register('acme/test-writing', WritingTool::class);
+		$registry->register('acme/test-drafts', DraftsTool::class);
 
 		$editor = $this->token('editor', ['editor']);
 		$drafts = $this->token('drafter', ['editor'], capabilities: TokenScope::Drafts->capabilities());
@@ -260,8 +265,10 @@ final class McpTest extends TestCase
 		$this->assertStringContainsString('has no "else"', $this->refusal('acme_test_writing', ['else' => 1], $editor));
 		$this->assertSame(['wrote' => 2], $this->data('acme_test_writing', ['times' => 2], $editor));
 
-		$this->expectExceptionMessage('already an MCP tool named');
-		$registry->register('acme_test_open', WritingTool::class);
+		$this->assertNotContains('publish', $this->tools($editor), 'Tools for looking after the site aren\'t offered to apps (D-761).');
+
+		$this->expectExceptionMessage('already a tool "acme/test-open"');
+		$registry->register('acme-test/open', WritingTool::class);
 	}
 
 	public function testReadsWhatTheAccountMaySee(): void
@@ -367,6 +374,22 @@ final class McpTest extends TestCase
 		$this->assertSame('list_types', $this->tools($text)[0] ?? null);
 	}
 
+	public function testATextOnlyResultIsItsText(): void
+	{
+		$this->boot();
+
+		$container = $this->app->container();
+		$container->make(ToolRegistry::class)->register('shop/greet', GreetTool::class);
+
+		$result = $container->make(McpTools::class)->call('shop_greet', null, $container->make(ToolContexts::class)->forActor(Actor::commandLine()));
+
+		$this->assertSame(
+			['content' => [['type' => 'text', 'text' => "Hello.\nfrom PHP"]], 'isError' => false],
+			$result,
+			'No empty structuredContent for a client to show in place of the message.'
+		);
+	}
+
 	public function testServesOverStdio(): void
 	{
 		$this->boot('new Blush\\Mcp\\McpConfig()');
@@ -383,7 +406,7 @@ final class McpTest extends TestCase
 		fwrite($input, "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"ping\"}\n{\"jsonrpc\":\"2.0\",\"method\":\"notifications/initialized\"}\nnot json\n");
 		rewind($input);
 
-		$context = $this->app->container()->make(McpContexts::class)->forAccount($account);
+		$context = $this->app->container()->make(ToolContexts::class)->forAccount($account);
 		$this->app->container()->make(McpStdio::class)->serve($input, new Output($out, $err), $context);
 
 		rewind($out);

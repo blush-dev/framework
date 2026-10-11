@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Blush\Mcp;
 
 use Blush\Core\Framework;
+use Blush\Tool\ToolContext;
 
 /**
  * Answers MCP's messages (D-751, D-753): JSON-RPC 2.0, one message at a
@@ -56,7 +57,7 @@ final readonly class McpServer
 	 *
 	 * @return ?array<string, mixed>
 	 */
-	public function handle(mixed $message, McpContext $context): ?array
+	public function handle(mixed $message, ToolContext $context): ?array
 	{
 		if (! is_array($message) || array_is_list($message)) {
 			return self::error(null, self::INVALID_REQUEST, 'Send one JSON-RPC 2.0 message, as an object.');
@@ -124,7 +125,7 @@ final readonly class McpServer
 	 * @param  array<mixed>         $params
 	 * @return array<string, mixed>
 	 */
-	private function call(string|int $id, array $params, McpContext $context): array
+	private function call(string|int $id, array $params, ToolContext $context): array
 	{
 		$name = $params['name'] ?? null;
 

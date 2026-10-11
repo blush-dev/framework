@@ -13,28 +13,32 @@ declare(strict_types=1);
 
 namespace Blush\Mcp;
 
+use JsonException;
 use Throwable;
 use Psr\Log\LoggerInterface;
-use Blush\Auth\Capability;
-use Blush\Auth\ContentAction;
 use Blush\Auth\TokenScope;
 use Blush\Cache\CacheException;
-use Blush\Container\Container;
 use Blush\Http\RateLimiter;
+use Blush\Tool\Tool;
+use Blush\Tool\ToolContext;
+use Blush\Tool\ToolError;
+use Blush\Tool\ToolRegistry;
+use Blush\Tool\ToolResult;
+use Blush\Tool\Tools;
 
 /**
  * The tools the MCP server offers a context, and calling them (D-753,
- * D-755 to D-758).
+ * D-755 to D-758, D-761), by their flat names (`get_entry`,
+ * `acme_rebuild_thumbnails`).
  *
- * A tool is offered when its capability allows it; a plugin's tool must
- * name a capability (only Blush's own read tools may name none), and one
- * that writes is offered to a token's scope only by its annotations:
- * `account`, or `drafts` when it writes only drafts (D-757).
+ * A tool is offered when the context may use it (`Tools::allows()`) and
+ * it's for apps (`Tool::mcp()`); a plugin's tool that writes is offered
+ * to a token's scope only by its annotations: `account`, or `drafts` when
+ * it writes only drafts (D-757).
  *
- * A call's input is checked against the tool's schema first, and a token's
- * calls are counted against `McpConfig`'s limits per hour, writes on
- * their own too (D-758); a refusal, like a tool's own error, goes back
- * as the tool's result, in words, marked as an error.
+ * A token's calls are counted against `McpConfig`'s limits per hour,
+ * writes on their own too (D-758); a refusal, like a tool's own error,
+ * goes back as the tool's result, in words, marked as an error.
  */
 final readonly class McpTools
 {
@@ -44,25 +48,25 @@ final readonly class McpTools
 	private const int WINDOW = 3600;
 
 	public function __construct(
-		private McpToolRegistry $registry,
-		private Container $container,
+		private Tools $tools,
+		private ToolRegistry $registry,
 		private RateLimiter $limiter,
 		private McpConfig $config,
 		private LoggerInterface $logger
 	) {}
 
 	/**
-	 * Returns the tools a context is offered, by name.
+	 * Returns the tools a context is offered, by flat name.
 	 *
 	 * @return array<string, Tool>
 	 */
-	public function offered(McpContext $context): array
+	public function offered(ToolContext $context): array
 	{
 		$offered = [];
 
-		foreach ($this->all() as $name => $tool) {
-			if ($this->offers($name, $tool, $context)) {
-				$offered[$name] = $tool;
+		foreach ($this->tools->allowed($context) as $key => $tool) {
+			if ($this->offers($key, $tool, $context)) {
+				$offered[ToolRegistry::flatName($key)] = $tool;
 			}
 		}
 
@@ -70,24 +74,14 @@ final readonly class McpTools
 	}
 
 	/**
-	 * Returns every tool that can be built, by name, in the order they
-	 * were registered: Blush's own first.
+	 * Returns every tool for apps, by key, whoever may use it: what the AI
+	 * settings screen lists.
 	 *
 	 * @return array<string, Tool>
 	 */
 	public function all(): array
 	{
-		$tools = [];
-
-		foreach ($this->registry->all() as $name => $class) {
-			try {
-				$tools[$name] = $this->container->make($class);
-			} catch (Throwable $error) {
-				$this->logger->warning('The MCP tool "{name}" couldn\'t be built: {problem}', ['name' => $name, 'problem' => $error->getMessage()]);
-			}
-		}
-
-		return $tools;
+		return array_filter($this->tools->all(), static fn (Tool $tool): bool => $tool->mcp());
 	}
 
 	/**
@@ -95,7 +89,7 @@ final readonly class McpTools
 	 *
 	 * @return list<array<string, mixed>>
 	 */
-	public function describe(McpContext $context): array
+	public function describe(ToolContext $context): array
 	{
 		$described = [];
 
@@ -116,94 +110,65 @@ final readonly class McpTools
 	}
 
 	/**
-	 * Calls a tool, and returns its result as MCP sends it, or `null`
-	 * when the context isn't offered a tool by that name.
+	 * Calls a tool by its flat name, and returns its result as MCP sends
+	 * it, or `null` when the context isn't offered a tool by that name.
 	 *
 	 * @return ?array<string, mixed>
 	 */
-	public function call(string $name, mixed $arguments, McpContext $context): ?array
+	public function call(string $name, mixed $arguments, ToolContext $context): ?array
 	{
-		$tool = $this->offered($context)[$name] ?? null;
+		$key  = $this->registry->keyOf($name);
+		$tool = $key === null ? null : ($this->offered($context)[$name] ?? null);
 
-		if ($tool === null) {
+		if ($key === null || $tool === null) {
 			return null;
 		}
 
-		$input   = is_array($arguments) ? $arguments : [];
-		$problem = $arguments !== null && (! is_array($arguments) || ($arguments !== [] && array_is_list($arguments)))
-			? 'The arguments must be an object.'
-			: InputCheck::problem($input, $tool->input());
-
-		if ($problem !== null) {
-			return ToolResult::error($problem);
+		if ($arguments !== null && (! is_array($arguments) || ($arguments !== [] && array_is_list($arguments)))) {
+			return self::error('The arguments must be an object.');
 		}
 
 		$wait = $this->count($tool, $context);
 
 		if ($wait !== null) {
-			return ToolResult::error($wait);
+			return self::error($wait);
 		}
 
 		try {
 			/** @var array<string, mixed> $input */
-			return $tool->handle($input, $context)->toArray();
-		} catch (ToolError $error) {
-			return ToolResult::error($error->getMessage());
-		} catch (Throwable $error) {
-			$this->logger->error('The MCP tool "{name}" failed: {problem}', ['name' => $name, 'problem' => $error->getMessage(), 'exception' => $error]);
+			$input = $arguments ?? [];
 
-			return ToolResult::error('Something went wrong on the site; the change may not have been made. Read it again before trying anything else.');
+			return self::result($this->tools->run($key, $input, $context));
+		} catch (ToolError $error) {
+			return self::error(implode("\n", [$error->getMessage(), ...$error->details]));
+		} catch (Throwable $error) {
+			$this->logger->error('The tool "{key}" failed: {problem}', ['key' => $key, 'problem' => $error->getMessage(), 'exception' => $error]);
+
+			return self::error('Something went wrong on the site; the change may not have been made. Read it again before trying anything else.');
 		}
 	}
 
 	/**
-	 * The name a tool's capability goes by, for the AI screen.
+	 * Whether a context is offered a tool it may use.
 	 */
-	public static function capabilityName(Tool $tool): ?string
+	private function offers(string $key, Tool $tool, ToolContext $context): bool
 	{
-		$capability = $tool->capability();
-
-		return match (true) {
-			$capability instanceof Capability    => $capability->value,
-			$capability instanceof ContentAction => $capability->on(ContentAction::EVERY),
-			default                              => $capability
-		};
-	}
-
-	/**
-	 * Whether a tool registered under a name is Blush's own.
-	 */
-	public function isBuiltIn(string $name): bool
-	{
-		$class = $this->registry->get($name);
-
-		return $class !== null && ToolType::isBuiltIn($name, $class);
-	}
-
-	/**
-	 * Whether a context is offered a tool.
-	 */
-	private function offers(string $name, Tool $tool, McpContext $context): bool
-	{
-		$builtIn = $this->isBuiltIn($name);
-
-		if (! $builtIn && $tool->capability() === null) {
+		if (! $tool->mcp()) {
 			return false;
 		}
 
 		$annotations = $tool->annotations();
 
-		if (! $builtIn && ! $annotations->readOnly && ! ($context->scope === TokenScope::Account || ($context->scope === TokenScope::Drafts && $annotations->draftsSafe))) {
-			return false;
-		}
-
-		return $tool->allows($context);
+		return $this->tools->isBuiltIn($key)
+			|| $annotations->readOnly
+			|| $context->scope === TokenScope::Account
+			|| ($context->scope === TokenScope::Drafts && $annotations->draftsSafe);
 	}
 
 	/**
 	 * Counts a token's call, and returns why it must wait, or `null`.
 	 */
-	private function count(Tool $tool, McpContext $context): ?string
+	private function count(Tool $tool, ToolContext $context): ?string
 	{
 		$token = $context->actor->token;
 
@@ -225,5 +190,46 @@ final readonly class McpTools
 		}
 
 		return $wait === null ? null : sprintf('This connection has made %s this hour, the most the site allows. Try again in %d minute%s.', $what, (int) ceil($wait / 60), (int) ceil($wait / 60) === 1 ? '' : 's');
+	}
+
+	/**
+	 * A tool's result as MCP sends it (D-753): its line of text and
+	 * details, then its data as `structuredContent` and, for clients that
+	 * read only text, as JSON after the text. A result with no data
+	 * (`ToolResult::done()`) is its text alone, since a client that reads
+	 * `structuredContent` first would show an empty object and lose the
+	 * message.
+	 *
+	 * @return array<string, mixed>
+	 */
+	private static function result(ToolResult $result): array
+	{
+		$text = implode("\n", array_filter([$result->text, ...$result->details], static fn (?string $line): bool => $line !== null && $line !== ''));
+
+		if ($result->data === []) {
+			return ['content' => [['type' => 'text', 'text' => $text === '' ? 'Done.' : $text]], 'isError' => false];
+		}
+
+		try {
+			$copy = json_encode($result->data, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
+		} catch (JsonException) {
+			$copy = '{}';
+		}
+
+		return [
+			'content'           => [['type' => 'text', 'text' => $text === '' ? $copy : "{$text}\n\n{$copy}"]],
+			'structuredContent' => (object) $result->data,
+			'isError'           => false
+		];
+	}
+
+	/**
+	 * An error as MCP sends it: text the AI can act on.
+	 *
+	 * @return array<string, mixed>
+	 */
+	private static function error(string $message): array
+	{
+		return ['content' => [['type' => 'text', 'text' => $message]], 'isError' => true];
 	}
 }

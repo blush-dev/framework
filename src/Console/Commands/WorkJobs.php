@@ -62,7 +62,7 @@ final readonly class WorkJobs
 			$report = $this->runner->work(RunnerKind::Worker, $this->config->budget);
 
 			$output->status(array_map(
-				fn (JobRecord $run): StatusLine => new StatusLine($run->status === JobStatus::Failed ? Outcome::Failure : Outcome::Pass, date('H:i:s'), sprintf('%s: %s. %s', $this->jobs->label($run->job), $run->status->label(), $run->error ?? $run->message)),
+				fn (JobRecord $run): StatusLine => new StatusLine($run->status === JobStatus::Failed ? Outcome::Failure : Outcome::Pass, date('H:i:s'), sprintf('%s: %s. %s', $this->jobs->label($run), $run->status->label(), $run->error ?? $run->message)),
 				$report->runs
 			), level: Verbosity::Verbose);
 

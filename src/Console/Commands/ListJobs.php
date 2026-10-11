@@ -62,7 +62,7 @@ final readonly class ListJobs
 		foreach ($jobs as $job) {
 			$rows[] = [
 				$job->id,
-				$this->jobs->label($job->job),
+				$this->jobs->label($job),
 				$job->status->label() . ($job->progress !== null && $job->status === JobStatus::Queued ? " ({$job->progress}%)" : ''),
 				DateTimeImmutable::createFromTimestamp($job->queued)->setTimezone($this->app->timezone())->format('Y-m-d H:i'),
 				$job->account ?? 'system',

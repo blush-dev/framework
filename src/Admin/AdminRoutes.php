@@ -42,8 +42,8 @@ use Blush\Session\StartSession;
  *     signs in (D-312; no account needed).
  *   - `GET  dashboard`: the site, and the entries waiting on the account
  *     (D-538).
- *   - `GET  actions`: the actions the account may run, by source, and
- *     `POST actions/{action}` runs one (D-540).
+ *   - `GET  tools`: the tools the account may run as buttons, by
+ *     source, and `POST tools/{vendor}/{name}` runs one (D-540, D-761).
  *   - `GET  jobs`: background jobs, the schedule, and the runners,
  *     `GET jobs/{id}` one job, `POST jobs/{id}/run` its next chunk,
  *     `POST jobs/{id}/retry`, `DELETE jobs/{id}`, and `POST
@@ -184,8 +184,8 @@ final readonly class AdminRoutes implements RouteSource
 			Route::post('/set-password', SetPasswordController::class)->named('set-password'),
 			Route::get('/dashboard', DashboardController::class)->named('dashboard')->middleware(Authenticate::class),
 			Route::get('/counts', CountsController::class)->named('counts')->middleware(Authenticate::class),
-			Route::get('/actions', [ActionController::class, 'index'])->named('actions')->middleware(Authenticate::class),
-			Route::post('/actions/{action:[a-z0-9][a-z0-9-]*}', ActionController::class)->named('action')->middleware(Authenticate::class),
+			Route::get('/tools', [ToolController::class, 'index'])->named('tools')->middleware(Authenticate::class),
+			Route::post('/tools/{tool:[a-z][a-z0-9-]*/[a-z][a-z0-9-]*}', ToolController::class)->named('tool')->middleware(Authenticate::class),
 			Route::get('/jobs', [JobController::class, 'index'])->named('jobs')->middleware(Authenticate::class),
 			Route::post('/jobs/schedule/{job:[a-z0-9][a-z0-9-]*/[a-z0-9][a-z0-9-]*}', [JobController::class, 'schedule'])->named('jobs.schedule')->middleware(Authenticate::class),
 			Route::get('/jobs/{id:[0-9a-f-]+}', [JobController::class, 'show'])->named('job')->middleware(Authenticate::class),

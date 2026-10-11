@@ -48,28 +48,30 @@ export interface SessionState {
 	csrfToken?: string | null;
 }
 
-export interface ActionDescription {
-	name: string;
-	label: string;
+// A tool shown as a button on the Tools screen (D-761): one that needs
+// no input and is a button (by default, one that writes).
+export interface ToolButton {
+	key: string;
+	title: string;
 	description: string;
 	confirm: string | null;
 }
 
-export interface ActionResult {
+export interface ToolResult {
 	successful: boolean;
 	message: string;
 	details: string[];
 }
 
-// The Tools screen's actions, grouped by where they come from (D-540).
-export interface ActionGroup {
+// The Tools screen's buttons, grouped by where they come from (D-540).
+export interface ToolGroup {
 	source: { kind: 'core' | 'site' | 'plugin' | 'other'; label: string };
-	actions: ActionDescription[];
+	tools: ToolButton[];
 }
 
-// What running an action answers: its result, or, for an action that
-// queues a job (D-621), the job's id, which the admin follows.
-export type ActionAnswer = ActionResult | { job: string };
+// What running a tool answers: its result, or, for a tool that runs in
+// the background (D-621), the job's id, which the admin follows.
+export type ToolAnswer = ToolResult | { job: string };
 
 // A background job (D-621): times are ISO 8601, `account` the username
 // of whoever queued it (null for the scheduler), and `due` whether a

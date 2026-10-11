@@ -1004,8 +1004,8 @@ Move each item to `decisions.md` once it's answered.
     tools only (D-753), on Settings → AI with no anonymous access
     (D-754), read tools (D-755), write tools over one write path shared
     with the admin (D-756), plugins' tools (D-757), and an activity log
-    with undo and call limits (D-758). Open around it: a shared
-    registry of actions (roadmap), writes in the API, uploading from a
+    with undo and call limits (D-758); tools shared beyond MCP built
+    in D-761. Open around it: writes in the API, uploading from a
     URL (the HTTP client, D-620), anonymous read-only access, and
     prompts.
   - **A headless mode:** a setting where Blush serves the admin and the

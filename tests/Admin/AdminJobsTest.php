@@ -15,11 +15,11 @@ namespace Blush\Tests\Admin;
 
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
-use Blush\Admin\ActionController;
 use Blush\Admin\FixAccess;
 use Blush\Admin\HealthCheckJob;
 use Blush\Admin\SiteHealth;
 use Blush\Admin\SiteHealthController;
+use Blush\Admin\ToolController;
 use Blush\Content\Lint\Linter;
 use Blush\Admin\HealthFix;
 use Blush\Admin\HealthFixJob;
@@ -33,7 +33,7 @@ use Blush\Setup\SiteChecks;
 use Blush\Tests\Fixtures\Job\RefusingJob;
 
 #[CoversClass(JobController::class)]
-#[CoversClass(ActionController::class)]
+#[CoversClass(ToolController::class)]
 #[CoversClass(SiteChecks::class)]
 #[CoversClass(HealthFixJob::class)]
 #[CoversClass(HealthFix::class)]
@@ -62,7 +62,7 @@ final class AdminJobsTest extends TestCase
 		$this->boot();
 		$token = $this->token();
 
-		$queued = self::json($this->send('POST', '/actions/publish', headers: ['X-CSRF-Token' => $token]));
+		$queued = self::json($this->send('POST', '/tools/core/publish', headers: ['X-CSRF-Token' => $token]));
 		$id     = $queued['job'] ?? null;
 
 		$this->assertIsString($id);
@@ -93,7 +93,7 @@ final class AdminJobsTest extends TestCase
 	{
 		$this->boot();
 
-		$job = $this->app->container()->make(JobQueue::class)->push('core/reindex', account: 'someone');
+		$job = $this->app->container()->make(JobQueue::class)->push('core/tool', ['tool' => 'core/reindex'], account: 'someone');
 
 		$this->token();
 
@@ -108,7 +108,7 @@ final class AdminJobsTest extends TestCase
 
 		$queue  = $this->app->container()->make(JobQueue::class);
 		$failed = $this->app->container()->make(JobRunner::class)->finish($queue->push('test/refuse'));
-		$queued = $queue->push('core/reindex');
+		$queued = $queue->push('core/tool', ['tool' => 'core/reindex']);
 		$token  = $this->token();
 
 		$list = self::json($this->send('GET', '/jobs'));

@@ -45,12 +45,17 @@ final readonly class JobFactory
 	}
 
 	/**
-	 * Returns a job's label, or its key when it can't be built.
+	 * Returns a job's label, or its key when it can't be built: a queued
+	 * or past run's own (`Job::describe()`) when given the run.
 	 */
-	public function label(string $key): string
+	public function label(string|JobRecord $job): string
 	{
+		$key = $job instanceof JobRecord ? $job->job : $job;
+
 		try {
-			return $this->make($key)->label();
+			$made = $this->make($key);
+
+			return $job instanceof JobRecord ? $made->describe($job) : $made->label();
 		} catch (JobException) {
 			return $key;
 		}

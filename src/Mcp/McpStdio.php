@@ -16,6 +16,7 @@ namespace Blush\Mcp;
 use JsonException;
 use Blush\Console\Output;
 use Blush\Console\Verbosity;
+use Blush\Tool\ToolContext;
 
 /**
  * Answers MCP over stdio (D-751): one JSON-RPC message a line on
@@ -33,7 +34,7 @@ final readonly class McpStdio
 	 *
 	 * @param resource $input
 	 */
-	public function serve($input, Output $output, McpContext $context): void
+	public function serve($input, Output $output, ToolContext $context): void
 	{
 		while (($line = fgets($input)) !== false) {
 			$line = trim($line);

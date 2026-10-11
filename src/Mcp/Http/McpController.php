@@ -21,8 +21,8 @@ use Blush\Auth\Account;
 use Blush\Auth\AuthException;
 use Blush\Auth\Token;
 use Blush\Http\Status;
-use Blush\Mcp\McpContexts;
 use Blush\Mcp\McpServer;
+use Blush\Tool\ToolContexts;
 
 /**
  * Answers MCP over the web (D-751): Streamable HTTP without sessions or
@@ -35,7 +35,7 @@ final readonly class McpController
 {
 	public function __construct(
 		private McpServer $server,
-		private McpContexts $contexts
+		private ToolContexts $contexts
 	) {}
 
 	/**

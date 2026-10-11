@@ -23981,3 +23981,89 @@ decision, add a new entry that supersedes it and mark the old one
   shared registry of actions (D-753) would make a command a tool's
   other face, but it isn't needed for this: every way in already
   shares the write path.
+
+### D-761: Tools, written once and offered everywhere they fit
+
+- **Date:** 2026-10-11
+- **Status:** Built (see "As built" below). Settles the shared registry
+  D-753 left to discuss.
+- **Decision:** A plugin (or core) writes something the site can do
+  once, as a **tool**, and Blush offers it everywhere it fits:
+  - **The name is Tool:** `Blush\Tool\Tool`, today's `Blush\Mcp\Tool`
+    moved up a level (title, description, input and output schemas,
+    capability, annotations, `handle()`), with `ToolContext` and
+    `ToolResult`, and a registry, factory, and registrar as usual. The
+    word then means one thing everywhere: AI apps already call them
+    tools, and the Tools screen lists them. Action (taken by
+    `ContentAction`'s verbs), Task (cron's feel, `ScheduledTask`),
+    Command, Job, Operation (too long), Skill, and Ability were
+    weighed and passed over.
+  - **Keys are `vendor/name`** (`core/publish`,
+    `acme/rebuild-thumbnails`), as jobs' are. MCP derives its tool
+    name: core's bare (`get_entry`), a plugin's `{vendor}_{name}` with
+    `-` as `_`, still lowercase and at most 64 characters.
+  - **Where a tool shows, by what it is:**
+    - **AI apps (MCP):** every tool the account may use, unless the
+      tool hides itself from MCP (some admin tools aren't for an AI).
+    - **The Tools screen:** a button for each tool that writes
+      (not `reads()`) and needs no input, for accounts with its
+      capability; the `destructive` annotation asks first, with an
+      optional question of its own. (Amended as built: a tool may say
+      it's a button, below.)
+    - **The CLI:** `blush tool {key}` runs any tool, with its input as
+      flags made from its schema; `blush tool` alone lists them.
+      (Amended as built: input as `name=value`, below.)
+    - **Tools → Activity:** a tool's writes are logged as every other
+      way in is (D-758).
+  - **Long tools run in the background:** a tool can say it's queued,
+    and one core job, `core/tool`, runs it with its input and the
+    account that asked.
+  - **`AdminAction` goes:** Publish, Reindex, and Clear Caches become
+    tools, and MCP's built-in tools are registered as tools.
+  - **What stays separate:** hand-written CLI commands (prompts,
+    progress, dev tools such as `serve`) call the same tool or service;
+    jobs stay infrastructure (retries, chunks, schedules); the API
+    keeps REST for its resources, with entry writes through
+    `EntryEditor`. Site Health fixes fit the shape and may follow
+    later; a plugin's tools in the API (`POST /api/v1/tools/{key}`)
+    may too.
+- **Why:** the author liked "write it once, show it everywhere it
+  fits", asked for a short name that feels like "tool", and agreed:
+  "go with Tool and record it". The fine points (keys, where each
+  shows, the background job) were left to Claude to decide.
+- **As built:**
+  - `Blush\Tool`: `Tool`, `ToolRegistry`, `ToolRegistrar`, `ToolType`
+    (17 built-ins: MCP's 14 as `core/…` keys plus `core/publish`,
+    `core/reindex`, `core/clear-caches`), `Tools` (build, `allowed()`,
+    `run()`), `ToolContext` and `ToolContexts` (from MCP's, with
+    `forActor()`), `ToolEntries` (MCP's entries), `ToolResult` (data,
+    text, details, and a queued `job`), `ToolError` (with details),
+    `InputCheck`, and `ToolJob` (`core/tool`), bound by
+    `ToolServiceProvider`. MCP keeps only its protocol: `McpTools` maps
+    flat names, applies `mcp()` and token scopes, counts calls, and
+    writes MCP's result shape.
+  - **A tool may say it's a button** (`Tool::button()`, by default when
+    it writes): the jtcom trial's example plugins (word count, reading
+    time) only report, and are buttons by saying so. Buttons still need
+    no input.
+  - **Where it shows:** `mcp()` (Publish, Reindex, and Clear Caches say
+    no), `queued()`, `confirm()`, and `input()` defaulting to an empty
+    object, so a button-only tool needs none.
+  - **Queued runs:** `core/tool` keeps the tool's key, input, and the
+    way in (`via`, `client`) with the account's id; it isn't retried.
+    A token's calls and the command line's never queue (a job can't
+    carry a token's narrowing; the command line has no saved account),
+    so they run straight away. Job lists name a run by the tool's title
+    through `Job::describe()`, which `JobFactory::label()` takes a run
+    for. `PublishJob` and `ReindexJob` are gone, with their keys.
+  - **The CLI's input is `name=value`,** not flags: a tool's fields
+    aren't known until its key is read, and the console parses options
+    before that. Values are read by the schema (integers, numbers,
+    booleans, a list by naming it again or as JSON, an object as JSON);
+    `--json` writes only the data, `--account=` runs as an account.
+  - **Admin:** `GET tools` and `POST tools/{vendor}/{name}` in place of
+    `actions` (`ToolController`, `ToolButtons`), the count as `tools`,
+    and the Tools screen's first tab named Tools.
+  - `AdminAction`, `ActionResult`, the action registry, and
+    `ActionController` are removed; docs: `extending.md#tools`,
+    `cli.md#tools`, `admin.md#tools`.

@@ -36,6 +36,15 @@ abstract class Job
 	abstract public function label(): string;
 
 	/**
+	 * Returns what one run of the job does, for lists of runs: by
+	 * default, its label.
+	 */
+	public function describe(JobRecord $job): string
+	{
+		return $this->label();
+	}
+
+	/**
 	 * Does the work, or the next chunk of it, from `$job->data`.
 	 *
 	 * @throws Throwable When it fails in a way that trying again may fix.

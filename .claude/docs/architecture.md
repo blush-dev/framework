@@ -1265,22 +1265,18 @@ reusable pieces, from themes, the site, and plugins.
   JSON; `GET` is a 405, no streams) and `McpStdio` (`blush mcp
   --account=`, one message a line). `Http\McpAuthentication` takes a
   bearer token (an API token or an app's) or answers `401` with
-  `WWW-Authenticate: Bearer resource_metadata=…`. `McpContexts` makes
-  the `McpContext` a call runs in: the `Actor`, `Permissions`, and both
-  write paths narrowed to the token's capabilities, its `TokenScope`,
-  and whether it's counted against the limits. **Tools** are the
-  registry pattern: abstract `Tool` (title, description for the AI,
-  input and output JSON Schema, capability, `ToolAnnotations`,
-  `handle()`), `ToolType` (the built-ins), `McpToolRegistry` (names
-  `[a-z][a-z0-9_]{0,63}`, a clash refused), `McpToolRegistrar`.
-  `McpTools` offers a context the tools its capability allows (a
-  plugin's must name one, and one that writes is offered by
-  `TokenScope` and `draftsSafe`), checks input (`InputCheck`), counts
-  calls (`Http\RateLimiter`, the cache's `limits` namespace), and
-  turns `ToolError` into an `isError` result. Read tools use
-  `McpEntries` (every status the account may see but trash, through
-  `Permissions::alternatives()`) and the API's `EntryResource` and
-  `MediaResource`; write tools use `EntryEditor` and `MediaEditor`.
+  `WWW-Authenticate: Bearer resource_metadata=…`. `Tool\ToolContexts`
+  makes the `ToolContext` a call runs in: the `Actor`, `Permissions`,
+  and both write paths narrowed to the token's capabilities, its
+  `TokenScope`, and whether it's counted against the limits. The tools
+  are `Blush\Tool`'s (see **Tools** below, D-761): `McpTools` offers a
+  context the tools `Tools::allows()` and `Tool::mcp()` let it have (a
+  plugin's that writes is offered by `TokenScope` and `draftsSafe`), by
+  their flat names (`ToolRegistry::flatName()`: `get_entry`,
+  `acme_rebuild_thumbnails`), counts calls (`Http\RateLimiter`, the
+  cache's `limits` namespace), and turns a `ToolResult` into MCP's
+  `structuredContent` and text, and a `ToolError` into an `isError`
+  result.
   **OAuth** (`Blush\Mcp\OAuth`): `OAuthServer` (metadata, the
   authorization code flow with PKCE S256, resource-bound tokens, refresh
   rotation with reuse revoking), `OAuthClients` (`oauth_clients`:
@@ -1291,6 +1287,26 @@ reusable pieces, from themes, the site, and plugins.
   `storage/oauth`; access tokens are `Tokens::issue()`d API tokens with
   a `client`. The approval screen is the admin's
   (`Admin\AuthorizeController`, `/admin/authorize`).
+- **Tools** (`Blush\Tool`, D-761): something the site can do, written
+  once and offered to MCP apps, as Tools-screen buttons, and by `blush
+  tool`. The registry pattern: abstract `Tool` (title, description,
+  input and output JSON Schema, capability, `ToolAnnotations`,
+  `handle(array, ToolContext): ToolResult`, and where it shows:
+  `mcp()`, `button()` (default: it writes), `queued()`, `confirm()`),
+  `ToolType` (the built-ins, `core/…`), `ToolRegistry` (keys
+  `vendor/name`, each part starting with a letter; a flat name over 64
+  characters or taken is refused), `ToolRegistrar`, and `Tools` (builds
+  them, `allowed()`/`allows()`: a tool that isn't Blush's own must name a
+  capability, D-757; `run()` checks input with `InputCheck`, then
+  handles it, or pushes a `queued()` tool as `core/tool`, `ToolJob`,
+  unless the caller waits or the actor is a token or the command line).
+  `ToolEntries` is what read tools see of entries (every status the
+  account may see but trash, through `Permissions::alternatives()`),
+  with the API's `EntryResource` and `MediaResource`; write tools use
+  `EntryEditor` and `MediaEditor`. The admin's buttons are
+  `Admin\ToolButtons` (needs no input and `button()`) through
+  `Admin\ToolController`; the CLI is `Console\Commands\RunTool`
+  (`name=value` input read by the schema, `--json`, `--account=`).
 - **Search:** optional; FTS5 with the SQLite driver, or a JSON index (under discussion; see `open-questions.md`).
 
 ## Writing content and media (D-756, D-758)
@@ -1611,10 +1627,10 @@ by source, keeps recents, and writes the directive text). The
   saves as the one setting `media.uploads` (`UploadRules.vue`). The look follows `.claude/docs/admin-design/` (D-231):
   design tokens in `css/tokens.css` are the only literal values, and
   the shell is a rail, a top bar, and a scrolling work area. Extension pieces are described in PHP and drawn
-  generically (D-222): `AdminAction`s (label, description, capability,
-  optional confirmation, `run()` → `ActionResult`) in
-  `AdminActionRegistry`, with `publish`, `reindex`, and `clear-caches`
-  built in.
+  generically (D-222): the Tools screen's buttons are tools
+  (`Blush\Tool`, D-761) that need no input and say they're buttons,
+  with `core/publish`, `core/reindex`, and `core/clear-caches` built
+  in.
 
 ## Extensions (D-041, D-378)
 
@@ -1834,9 +1850,11 @@ and **icon packs**; **admin themes** are planned on the same pieces.
     `fastcgi_finish_request()`), in `auto` mode only, at most once a
     minute, and only while cron and a worker have been quiet two
     minutes. Site Health (`SiteChecks::jobs()`) warns after ten.
-  - Admin actions name a job with `AdminAction::job()` (Publish and
-    Reindex do); the admin queues it once (`action:{job}`) and follows
-    it with progress.
+  - A `queued()` tool (Publish and Reindex are) runs as `core/tool`
+    (`ToolJob`, D-761), with its input, account, and way in; the admin
+    queues an input-less one once (`tool:{key}`) and follows it with
+    progress, and job lists name it by the tool's title
+    (`Job::describe()`).
   - Site Health's many-file fixes are `core/health-fix`
     (`HealthFixJob`, D-624): 100 paths a run, permissions from the
     queuing account on every run (`FixAccess`), and the endpoint's old

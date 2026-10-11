@@ -242,7 +242,7 @@ final readonly class JobController
 		return [
 			'id'        => $job->id,
 			'job'       => $job->job,
-			'label'     => $this->jobs->label($job->job),
+			'label'     => $this->jobs->label($job),
 			'status'    => $job->status->value,
 			'attempts'  => $job->attempts,
 			'queued'    => $time($job->queued),

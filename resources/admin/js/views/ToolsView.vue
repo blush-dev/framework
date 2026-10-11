@@ -1,14 +1,14 @@
 <script setup lang="ts">
 /**
  * Tools (D-540, from the Home sketch): tasks run by hand, and the log
- * they write to. **Actions** turn command-line tasks into buttons for
- * anyone without shell access; they're described by the server
- * (`AdminAction` classes, D-222), so a plugin's show up here with no
- * JavaScript, grouped by where they come from. An action the account
- * may not run isn't listed. A result stays in its row, since on a host
- * with no shell it's all there is, and is announced in a polite live
- * region. An action that queues a job (D-621) is followed to its end
- * here, with its progress. **Jobs**, with `site.jobs`, lists the
+ * they write to. The **Tools** tab has a button for each tool that
+ * needs no input and is a button (D-761), for anyone without shell access;
+ * they're described by the server (`Blush\Tool\Tool` classes), so a
+ * plugin's show up here with no JavaScript, grouped by where they come
+ * from. A tool the account may not use isn't listed. A result stays in
+ * its row, since on a host with no shell it's all there is, and is
+ * announced in a polite live region. A tool that runs in the background
+ * (D-621) is followed to its end here, with its progress. **Jobs**, with `site.jobs`, lists the
  * scheduled tasks (with Run Now) and the background jobs (with Retry and
  * Delete), and says whether cron runs them. **Logs** shows the end of
  * the site's log, read only, with `site.logs` (D-541). **Activity**, with
@@ -29,15 +29,15 @@ import { formatSize, formatWhenInline, plural, titleCase } from '../format';
 import { follow, jobResult, JOB_PILLS } from '../jobs';
 import { loadActivity, type ActivityPage } from '../activity';
 import { can } from '../session';
-import { errorMessage, request, type ActionAnswer, type ActionDescription, type ActionGroup, type ActionResult, type Job, type JobsOverview, type LogEntry, type LogTail, type ScheduledTask } from '../api';
+import { errorMessage, request, type ToolAnswer, type ToolButton, type ToolGroup, type ToolResult, type Job, type JobsOverview, type LogEntry, type LogTail, type ScheduledTask } from '../api';
 
-type Tab = 'actions' | 'jobs' | 'logs' | 'activity';
+type Tab = 'tools' | 'jobs' | 'logs' | 'activity';
 
-const groups  = ref<ActionGroup[] | null>(null);
+const groups  = ref<ToolGroup[] | null>(null);
 const error   = ref('');
 const running = ref<string | null>(null);
-const results = ref<Record<string, ActionResult>>({});
-// The job each running action queued, as it goes.
+const results = ref<Record<string, ToolResult>>({});
+// The job each running tool queued, as it goes.
 const following = ref<Record<string, Job>>({});
 
 const overview    = ref<JobsOverview | null>(null);
@@ -54,7 +54,7 @@ const activityError   = ref('');
 const activityLoading = ref(false);
 
 const tabs = computed(() => [
-	{ key: 'actions' as const, label: 'Actions' },
+	{ key: 'tools' as const, label: 'Tools' },
 	...(can('site.jobs') ? [{ key: 'jobs' as const, label: 'Jobs' }] : []),
 	...(can('site.logs') ? [{ key: 'logs' as const, label: 'Logs' }] : []),
 	...(can('site.activity') ? [{ key: 'activity' as const, label: 'Activity' }] : [])
@@ -71,11 +71,11 @@ const tab    = computed<Tab>(() => {
 		return 'activity';
 	}
 
-	return route.query.tab === 'logs' && can('site.logs') ? 'logs' : 'actions';
+	return route.query.tab === 'logs' && can('site.logs') ? 'logs' : 'tools';
 });
 
 const NOTES: Record<Tab, string> = {
-	actions: 'An action turns a command-line task into a button, for anyone without shell access. Blush registers some, and a plugin can register its own. An action you don\'t have the capability for isn\'t listed.',
+	tools: 'A tool is something the site can do: here, as a button, for anyone without shell access, and for connected apps and the command line too. Blush registers some, and a plugin can register its own. A tool you don\'t have the capability for isn\'t listed.',
 	jobs: 'Work done in the background: tasks on a schedule, and long work someone started, such as a publish. A job that fails is tried again a few times before it\'s marked failed.',
 	logs: 'Read only. This is for the moment something says it failed on a host with no way in over SSH.',
 	activity: 'Every change to entries and media, made here, by a connected app, on the command line, or through the API. What a change replaced is kept for 30 days, for Undo; the change is listed for 90.'
@@ -172,7 +172,7 @@ const runner = computed(() => {
 	};
 });
 
-const SOURCES: Record<ActionGroup['source']['kind'], string> = {
+const SOURCES: Record<ToolGroup['source']['kind'], string> = {
 	core: 'Registered by Blush',
 	site: 'Registered by this site',
 	plugin: 'Registered by a plugin',
@@ -181,9 +181,9 @@ const SOURCES: Record<ActionGroup['source']['kind'], string> = {
 
 async function load(): Promise<void> {
 	try {
-		groups.value = (await request<{ groups: ActionGroup[] }>('GET', '/actions')).groups;
+		groups.value = (await request<{ groups: ToolGroup[] }>('GET', '/tools')).groups;
 	} catch (caught) {
-		error.value = errorMessage(caught, 'The actions couldn\'t be loaded.');
+		error.value = errorMessage(caught, 'The tools couldn\'t be loaded.');
 	}
 }
 
@@ -200,30 +200,30 @@ async function loadLog(): Promise<void> {
 	}
 }
 
-async function run(action: ActionDescription): Promise<void> {
-	if (action.confirm !== null && !await confirmAction({ title: `${action.label}?`, body: action.confirm, confirm: action.label })) {
+async function run(tool: ToolButton): Promise<void> {
+	if (tool.confirm !== null && !await confirmAction({ title: `${tool.title}?`, body: tool.confirm, confirm: tool.title })) {
 		return;
 	}
 
-	running.value = action.name;
+	running.value = tool.key;
 
 	try {
-		const answer = await request<ActionAnswer>('POST', `/actions/${encodeURIComponent(action.name)}`);
+		const answer = await request<ToolAnswer>('POST', `/tools/${tool.key.split('/').map(encodeURIComponent).join('/')}`);
 
-		results.value[action.name] = 'job' in answer
+		results.value[tool.key] = 'job' in answer
 			? jobResult(await follow(answer.job, (job) => {
-				following.value[action.name] = job;
+				following.value[tool.key] = job;
 			}))
 			: answer;
 	} catch (caught) {
-		results.value[action.name] = {
+		results.value[tool.key] = {
 			successful: false,
-			message: errorMessage(caught, `${action.label} failed.`),
+			message: errorMessage(caught, `${tool.title} failed.`),
 			details: []
 		};
 	} finally {
 		running.value = null;
-		delete following.value[action.name];
+		delete following.value[tool.key];
 	}
 }
 
@@ -326,40 +326,40 @@ onMounted(() => {
 	</header>
 
 	<nav v-if="tabs.length > 1" class="status-tabs" aria-label="Tools">
-		<RouterLink v-for="item in tabs" :key="item.key" class="status-tabs__tab" :to="{ query: item.key === 'actions' ? {} : { tab: item.key } }" :aria-current="tab === item.key ? 'page' : undefined">{{ item.label }}</RouterLink>
+		<RouterLink v-for="item in tabs" :key="item.key" class="status-tabs__tab" :to="{ query: item.key === 'tools' ? {} : { tab: item.key } }" :aria-current="tab === item.key ? 'page' : undefined">{{ item.label }}</RouterLink>
 	</nav>
 
 	<p class="notice"><AdminIcon name="info" /><span class="notice__text">{{ NOTES[tab] }}</span></p>
 
-	<template v-if="tab === 'actions'">
+	<template v-if="tab === 'tools'">
 		<p v-if="error" class="notice notice--error" role="alert">{{ error }}</p>
-		<p v-else-if="!groups" class="loading">Loading the actions…</p>
+		<p v-else-if="!groups" class="loading">Loading the tools…</p>
 		<div v-else-if="!groups.length" class="panel">
-			<EmptyState icon="wrench" heading="No Actions for You" text="Your role can't run any of the actions on this site." />
+			<EmptyState icon="wrench" heading="No Tools for You" text="Your role can't use any of the tools on this site." />
 		</div>
-		<section v-for="(group, index) in groups ?? []" :key="`${group.source.kind}:${group.source.label}`" class="panel" :aria-labelledby="`actions-${index}`">
+		<section v-for="(group, index) in groups ?? []" :key="`${group.source.kind}:${group.source.label}`" class="panel" :aria-labelledby="`tools-${index}`">
 			<header class="panel__header">
-				<h2 :id="`actions-${index}`">{{ group.source.kind === 'core' ? 'Core' : group.source.label }}</h2>
+				<h2 :id="`tools-${index}`">{{ group.source.kind === 'core' ? 'Core' : group.source.label }}</h2>
 				<p class="panel__hint">{{ SOURCES[group.source.kind] }}</p>
 			</header>
-			<ul class="actions">
-				<li v-for="action in group.actions" :key="action.name" class="action">
-					<p class="action__text">
-						<span class="action__name">{{ titleCase(action.label) }}<span v-if="action.confirm" class="action__asks"> · asks first</span></span>
-						<span :id="`action-${action.name}`" class="action__description">{{ action.description }}</span>
+			<ul class="tools-list">
+				<li v-for="tool in group.tools" :key="tool.key" class="tool">
+					<p class="tool__text">
+						<span class="tool__name">{{ titleCase(tool.title) }}<span v-if="tool.confirm" class="tool__asks"> · asks first</span></span>
+						<span :id="`tool-${tool.key}`" class="tool__description">{{ tool.description }}</span>
 					</p>
-					<button type="button" class="button" :disabled="running !== null" :aria-describedby="`action-${action.name}`" @click="run(action)">
-						<span v-if="running === action.name" class="spin" aria-hidden="true" />{{ running === action.name ? 'Working…' : titleCase(action.label) }}
+					<button type="button" class="button" :disabled="running !== null" :aria-describedby="`tool-${tool.key}`" @click="run(tool)">
+						<span v-if="running === tool.key" class="spin" aria-hidden="true" />{{ running === tool.key ? 'Working…' : titleCase(tool.title) }}
 					</button>
-					<div class="action__result" aria-live="polite">
-						<div v-if="following[action.name]" class="action__progress">
-							<progress class="progress" max="100" :value="following[action.name]?.progress ?? undefined" :aria-label="`${action.label}: how far along`" />
-							<span class="action__description">{{ following[action.name]?.message || (following[action.name]?.status === 'queued' ? 'Waiting its turn…' : 'Working…') }}</span>
+					<div class="tool__result" aria-live="polite">
+						<div v-if="following[tool.key]" class="tool__progress">
+							<progress class="progress" max="100" :value="following[tool.key]?.progress ?? undefined" :aria-label="`${tool.title}: how far along`" />
+							<span class="tool__description">{{ following[tool.key]?.message || (following[tool.key]?.status === 'queued' ? 'Waiting its turn…' : 'Working…') }}</span>
 						</div>
-						<div v-else-if="results[action.name]" class="notice notice--small" :class="results[action.name]?.successful ? 'notice--success' : 'notice--error'">
-							<p>{{ results[action.name]?.message }}</p>
-							<ul v-if="results[action.name]?.details.length">
-								<li v-for="detail in results[action.name]?.details" :key="detail">{{ detail }}</li>
+						<div v-else-if="results[tool.key]" class="notice notice--small" :class="results[tool.key]?.successful ? 'notice--success' : 'notice--error'">
+							<p>{{ results[tool.key]?.message }}</p>
+							<ul v-if="results[tool.key]?.details.length">
+								<li v-for="detail in results[tool.key]?.details" :key="detail">{{ detail }}</li>
 							</ul>
 						</div>
 					</div>
@@ -499,13 +499,13 @@ onMounted(() => {
 </template>
 
 <style scoped>
-.actions {
+.tools-list {
 	margin: 0;
 	padding: 0;
 	list-style: none;
 }
 
-.action {
+.tool {
 	display: grid;
 	grid-template-columns: minmax(0, 1fr) auto;
 	align-items: start;
@@ -513,45 +513,45 @@ onMounted(() => {
 	padding: var(--pad-row) var(--pad-x);
 }
 
-.action + .action {
+.tool + .tool {
 	border-top: 1px solid var(--border);
 }
 
-.action__text {
+.tool__text {
 	display: grid;
 	gap: 2px;
 	margin: 0;
 }
 
-.action__name {
+.tool__name {
 	font-weight: 500;
 }
 
-.action__asks {
+.tool__asks {
 	color: var(--fg-3);
 	font-size: var(--text-sm);
 	font-weight: 400;
 }
 
-.action__description {
+.tool__description {
 	color: var(--fg-2);
 	font-size: var(--text-sm);
 }
 
-.action__result {
+.tool__result {
 	grid-column: 1 / -1;
 }
 
-.action__result:not(:empty) {
+.tool__result:not(:empty) {
 	margin-top: 10px;
 }
 
-.action .spin,
+.tool .spin,
 .rows__side .spin {
 	margin-right: 6px;
 }
 
-.action__progress {
+.tool__progress {
 	display: grid;
 	gap: 6px;
 }

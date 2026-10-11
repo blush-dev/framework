@@ -15,35 +15,35 @@ namespace Blush\Tests\Admin;
 
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
-use Blush\Admin\Action\ActionResult;
-use Blush\Admin\Action\AdminActionRegistry;
-use Blush\Admin\Action\AdminActions;
-use Blush\Admin\Action\ClearCachesAction;
-use Blush\Admin\Action\PublishAction;
-use Blush\Admin\Action\ReindexAction;
-use Blush\Admin\ActionController;
 use Blush\Admin\AdminApp;
 use Blush\Admin\AssetController;
 use Blush\Admin\DashboardController;
 use Blush\Admin\LogController;
 use Blush\Admin\ShellController;
+use Blush\Admin\ToolButtons;
+use Blush\Admin\ToolController;
 use Blush\Auth\Accounts;
 use Blush\Auth\Capabilities;
 use Blush\Content\Entries;
 use Blush\Content\Index\EntryFiles;
-use Blush\Tests\Fixtures\Admin\GreetAction;
+use Blush\Tests\Fixtures\Tool\GreetTool;
+use Blush\Tool\ToolJob;
+use Blush\Tool\ToolRegistry;
+use Blush\Tool\ToolResult;
+use Blush\Tool\Tools\ClearCaches;
+use Blush\Tool\Tools\Reindex;
 
 #[CoversClass(AdminApp::class)]
 #[CoversClass(ShellController::class)]
 #[CoversClass(AssetController::class)]
 #[CoversClass(DashboardController::class)]
-#[CoversClass(ActionController::class)]
+#[CoversClass(ToolController::class)]
+#[CoversClass(ToolButtons::class)]
 #[CoversClass(LogController::class)]
-#[CoversClass(AdminActions::class)]
-#[CoversClass(ActionResult::class)]
-#[CoversClass(PublishAction::class)]
-#[CoversClass(ReindexAction::class)]
-#[CoversClass(ClearCachesAction::class)]
+#[CoversClass(ToolResult::class)]
+#[CoversClass(ClearCaches::class)]
+#[CoversClass(Reindex::class)]
+#[CoversClass(ToolJob::class)]
 final class AdminAppTest extends TestCase
 {
 	use BootsAdmin;
@@ -197,7 +197,7 @@ final class AdminAppTest extends TestCase
 		$this->assertSame(3, $dashboard['published'] ?? null, 'About, and Jane\'s and Sam\'s profiles.');
 		$this->assertArrayHasKey('resume', $dashboard);
 		$this->assertNull($dashboard['resume']);
-		$this->assertArrayNotHasKey('actions', $dashboard, 'Actions are on the Tools screen.');
+		$this->assertArrayNotHasKey('tools', $dashboard, 'Tools are on the Tools screen.');
 
 		$yours    = $dashboard['yours'] ?? null;
 		$everyone = $dashboard['everyone'] ?? null;
@@ -276,19 +276,19 @@ final class AdminAppTest extends TestCase
 		$this->assertNull($reset['preferences']['shortcuts'], 'Back to the default.');
 	}
 
-	public function testListsTheAccountsActionsBySource(): void
+	public function testListsTheAccountsToolsBySource(): void
 	{
 		$this->boot();
 		$this->login();
 
-		$groups = self::json($this->send('GET', '/actions'))['groups'] ?? null;
+		$groups = self::json($this->send('GET', '/tools'))['groups'] ?? null;
 
 		$this->assertIsArray($groups);
 		$this->assertSame([['kind' => 'core', 'label' => 'Blush']], array_column($groups, 'source'));
 		$this->assertIsArray($groups[0] ?? null);
-		$this->assertIsArray($groups[0]['actions'] ?? null);
-		$this->assertSame(['publish', 'reindex', 'clear-caches'], array_column($groups[0]['actions'], 'name'));
-		$this->assertSame(3, self::json($this->send('GET', '/counts'))['actions'] ?? null);
+		$this->assertIsArray($groups[0]['tools'] ?? null);
+		$this->assertSame(['core/publish', 'core/reindex', 'core/clear-caches'], array_column($groups[0]['tools'], 'key'), 'Only tools that need no input and are buttons (those that write, by default).');
+		$this->assertSame(3, self::json($this->send('GET', '/counts'))['tools'] ?? null);
 	}
 
 	public function testReadsTheLogWithTheCapability(): void
@@ -321,60 +321,61 @@ final class AdminAppTest extends TestCase
 		$this->assertSame(403, $this->send('GET', '/logs/download')->getStatusCode());
 	}
 
-	public function testRunsActionsTheAccountMay(): void
+	public function testRunsToolsTheAccountMay(): void
 	{
 		$this->boot();
 		$token = $this->token();
 
-		$this->assertSame(403, $this->send('POST', '/actions/clear-caches')->getStatusCode(), 'Actions need the CSRF token.');
+		$this->assertSame(403, $this->send('POST', '/tools/core/clear-caches')->getStatusCode(), 'Tools need the CSRF token.');
 
-		$result = self::json($this->send('POST', '/actions/clear-caches', headers: ['X-CSRF-Token' => $token]));
+		$result = self::json($this->send('POST', '/tools/core/clear-caches', headers: ['X-CSRF-Token' => $token]));
 
 		$this->assertTrue($result['successful'] ?? null);
 		$this->assertIsString($result['message'] ?? null);
 		$this->assertStringStartsWith('Cleared the caches', $result['message']);
 
-		$queued = self::json($this->send('POST', '/actions/reindex', headers: ['X-CSRF-Token' => $token]));
+		$queued = self::json($this->send('POST', '/tools/core/reindex', headers: ['X-CSRF-Token' => $token]));
 
-		$this->assertIsString($queued['job'] ?? null, 'Reindex is a job.');
-		$this->assertSame($queued, self::json($this->send('POST', '/actions/reindex', headers: ['X-CSRF-Token' => $token])), 'Asking again while it waits queues it once.');
+		$this->assertIsString($queued['job'] ?? null, 'Reindex runs in the background.');
+		$this->assertSame($queued, self::json($this->send('POST', '/tools/core/reindex', headers: ['X-CSRF-Token' => $token])), 'Asking again while it waits queues it once.');
 
 		$job = self::json($this->send('POST', "/jobs/{$queued['job']}/run", headers: ['X-CSRF-Token' => $token]))['job'] ?? null;
 
 		$this->assertIsArray($job);
 		$this->assertSame('done', $job['status'] ?? null);
-		$this->assertSame('Reindex content', $job['label'] ?? null);
+		$this->assertSame('Reindex Content', $job['label'] ?? null, 'A queued tool is listed by its title.');
 		$this->assertIsString($job['message'] ?? null);
 		$this->assertStringStartsWith('Indexed', $job['message']);
-		$this->assertSame(404, $this->send('POST', '/actions/nothing', headers: ['X-CSRF-Token' => $token])->getStatusCode());
+		$this->assertSame(404, $this->send('POST', '/tools/core/nothing', headers: ['X-CSRF-Token' => $token])->getStatusCode());
+		$this->assertSame(404, $this->send('POST', '/tools/core/create-entry', headers: ['X-CSRF-Token' => $token])->getStatusCode(), 'A tool that needs input isn\'t a button.');
 	}
 
-	public function testRefusesActionsTheAccountMayNot(): void
+	public function testRefusesToolsTheAccountMayNot(): void
 	{
 		$this->boot(roles: ['author']);
 		$token = $this->token();
 
-		$this->assertSame([], self::json($this->send('GET', '/actions'))['groups'] ?? null);
-		$this->assertSame(403, $this->send('POST', '/actions/publish', headers: ['X-CSRF-Token' => $token])->getStatusCode());
+		$this->assertSame([], self::json($this->send('GET', '/tools'))['groups'] ?? null);
+		$this->assertSame(403, $this->send('POST', '/tools/core/publish', headers: ['X-CSRF-Token' => $token])->getStatusCode());
 	}
 
-	public function testExtensionsAddActionsInPhp(): void
+	public function testExtensionsAddToolsInPhp(): void
 	{
 		$this->boot(roles: ['owner']);
 
 		$container = $this->app->container();
 		$container->make(Capabilities::class)->register('shop.greet', 'Greet people');
-		$container->make(AdminActionRegistry::class)->register('greet', GreetAction::class);
+		$container->make(ToolRegistry::class)->register('shop/greet', GreetTool::class);
 
-		$token   = $this->token();
-		$groups  = self::json($this->send('GET', '/actions'))['groups'] ?? [];
+		$token  = $this->token();
+		$groups = self::json($this->send('GET', '/tools'))['groups'] ?? [];
 		$this->assertIsArray($groups);
-		$actions = array_merge(...array_filter(array_column($groups, 'actions'), is_array(...)));
+		$tools  = array_merge(...array_filter(array_column($groups, 'tools'), is_array(...)));
 
-		$this->assertContains(['name' => 'greet', 'label' => 'Greet', 'description' => 'Says hello.', 'confirm' => 'Say hello?'], $actions);
+		$this->assertContains(['key' => 'shop/greet', 'title' => 'Greet', 'description' => 'Says hello.', 'confirm' => 'Say hello?'], $tools);
 		$this->assertSame(
 			['successful' => true, 'message' => 'Hello.', 'details' => ['from PHP']],
-			self::json($this->send('POST', '/actions/greet', headers: ['X-CSRF-Token' => $token]))
+			self::json($this->send('POST', '/tools/shop/greet', headers: ['X-CSRF-Token' => $token]))
 		);
 	}
 }

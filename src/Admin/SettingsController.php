@@ -68,6 +68,8 @@ use Blush\Settings\SettingsScreen;
 use Blush\Settings\SettingsTarget;
 use Blush\Sitemap\AiCrawlerGroup;
 use Blush\Sitemap\SitemapConfig;
+use Blush\Tool\ToolRegistry;
+use Blush\Tool\Tools;
 use Blush\Translation\Locales;
 
 /**
@@ -135,7 +137,8 @@ final readonly class SettingsController
 		private EmbedProviders $embeds,
 		private ApiConfig $api,
 		private McpConfig $mcp,
-		private McpTools $tools,
+		private McpTools $mcpTools,
+		private Tools $tools,
 		private OAuthServer $oauth
 	) {}
 
@@ -610,9 +613,10 @@ final readonly class SettingsController
 	{
 		$groups = [];
 
-		foreach ($this->tools->all() as $name => $tool) {
-			$source     = $this->tools->isBuiltIn($name) ? 'blush' : 'plugins';
-			$capability = McpTools::capabilityName($tool);
+		foreach ($this->mcpTools->all() as $key => $tool) {
+			$name       = ToolRegistry::flatName($key);
+			$source     = $this->tools->isBuiltIn($key) ? 'blush' : 'plugins';
+			$capability = Tools::capabilityName($tool);
 
 			$groups[$source][] = self::item(
 				"tool-{$name}",

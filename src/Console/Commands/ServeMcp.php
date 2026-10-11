@@ -18,8 +18,8 @@ use Blush\Console\Attributes\Command;
 use Blush\Console\Attributes\Option;
 use Blush\Console\ExitCode;
 use Blush\Console\Output;
-use Blush\Mcp\McpContexts;
 use Blush\Mcp\McpStdio;
+use Blush\Tool\ToolContexts;
 
 /**
  * Serves the MCP server over stdio for a local agent (D-751, D-754), as
@@ -35,7 +35,7 @@ final readonly class ServeMcp
 {
 	public function __construct(
 		private Accounts $accounts,
-		private McpContexts $contexts,
+		private ToolContexts $contexts,
 		private McpStdio $stdio
 	) {}
 

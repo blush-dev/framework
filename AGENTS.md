@@ -246,7 +246,9 @@ edit (D-744 to D-750); and an MCP server for AI apps (`Blush\Mcp`,
 `{path}/mcp` and `blush mcp`), with OAuth 2.1 and a Connect an App
 screen, tools over one write path for entries and media
 (`EntryEditor`, `MediaEditor`), and an activity log with Undo on Tools
-(D-751 to D-759; `docs/mcp.md`).
+(D-751 to D-759; `docs/mcp.md`); and tools, written once and
+offered to AI apps, as Tools-screen buttons, and by `blush tool`
+(`Blush\Tool`, D-761).
 The Fields
 API (D-337 to D-348: field types and controls, field sets on content
 types, media, and the Settings screens, slots, and Structure → Fields)

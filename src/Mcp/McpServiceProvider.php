@@ -29,13 +29,10 @@ use Blush\Storage\File\FileLayouts;
 use Blush\Storage\Record\TableRegistry;
 
 /**
- * Binds the MCP server (D-751 to D-758): its tools, seeded with Blush's
- * own, its protocol and contexts, OAuth, and its routes, and registers
- * OAuth's tables, kept with accounts (on files, under `storage/oauth`).
- *
- * A plugin adds a tool in its own provider's `boot()`:
- *
- *     $this->container->make(McpToolRegistry::class)->register('acme_gallery_list_albums', ListAlbums::class);
+ * Binds the MCP server (D-751 to D-758): the tools it offers (from
+ * `Blush\Tool`, D-761), its protocol, OAuth, and its routes, and
+ * registers OAuth's tables, kept with accounts (on files, under
+ * `storage/oauth`).
  */
 final class McpServiceProvider extends ServiceProvider
 {
@@ -46,8 +43,6 @@ final class McpServiceProvider extends ServiceProvider
 		McpTools::class,
 		McpServer::class,
 		McpStdio::class,
-		McpContexts::class,
-		McpEntries::class,
 		McpInstructions::class,
 		OAuthClients::class,
 		OAuthGrants::class,
@@ -74,13 +69,6 @@ final class McpServiceProvider extends ServiceProvider
 	#[Override]
 	public function register(): void
 	{
-		$this->container->singleton(McpToolRegistry::class, static function (): McpToolRegistry {
-			$registry = new McpToolRegistry();
-			new McpToolRegistrar($registry)->register();
-
-			return $registry;
-		});
-
 		$this->container->resolving(TableRegistry::class, static function (object $tables): void {
 			if ($tables instanceof TableRegistry) {
 				$tables->register(OAuthClients::table());

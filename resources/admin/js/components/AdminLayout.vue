@@ -115,7 +115,7 @@ const sections = computed<Record<Area, NavGroup[]>>(() => {
 
 	// Tools, with an action the account may run, the jobs, or the log
 	// (D-540, D-621).
-	if ((navCounts.value?.actions ?? 0) > 0 || can('site.logs') || can('site.jobs')) {
+	if ((navCounts.value?.tools ?? 0) > 0 || can('site.logs') || can('site.jobs')) {
 		home.push(screen('tools', 'Tools', 'wrench'));
 	}
 

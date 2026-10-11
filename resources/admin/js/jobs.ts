@@ -7,7 +7,7 @@
  */
 
 import { formatWhenInline } from './format';
-import { request, type ActionResult, type Job } from './api';
+import { request, type ToolResult, type Job } from './api';
 
 const wait = (milliseconds: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, milliseconds));
 
@@ -44,7 +44,7 @@ export async function finish(id: string, update: (job: Job) => void = () => {}):
  * A job's end as an action's result: done is success; a job waiting to
  * try again says when.
  */
-export function jobResult(job: Job): ActionResult {
+export function jobResult(job: Job): ToolResult {
 	if (job.status === 'queued') {
 		return {
 			successful: false,

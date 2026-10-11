@@ -57,7 +57,7 @@ final readonly class RunSchedule
 
 		foreach ($report->runs as $run) {
 			$output->status(
-				[new StatusLine($run->status === JobStatus::Failed ? Outcome::Failure : Outcome::Pass, $this->jobs->label($run->job), sprintf('%s. %s', $run->status->label(), $run->error ?? $run->message))],
+				[new StatusLine($run->status === JobStatus::Failed ? Outcome::Failure : Outcome::Pass, $this->jobs->label($run), sprintf('%s. %s', $run->status->label(), $run->error ?? $run->message))],
 				level: $run->status === JobStatus::Failed ? Verbosity::Normal : Verbosity::Verbose
 			);
 		}

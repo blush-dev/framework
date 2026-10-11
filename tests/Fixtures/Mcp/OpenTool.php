@@ -14,9 +14,9 @@ declare(strict_types=1);
 namespace Blush\Tests\Fixtures\Mcp;
 
 use Override;
-use Blush\Mcp\McpContext;
-use Blush\Mcp\Tool;
-use Blush\Mcp\ToolResult;
+use Blush\Tool\ToolContext;
+use Blush\Tool\Tool;
+use Blush\Tool\ToolResult;
 
 final class OpenTool extends Tool
 {
@@ -39,7 +39,7 @@ final class OpenTool extends Tool
 	}
 
 	#[Override]
-	public function handle(array $input, McpContext $context): ToolResult
+	public function handle(array $input, ToolContext $context): ToolResult
 	{
 		return new ToolResult(['ok' => true]);
 	}

@@ -22,8 +22,7 @@ use Blush\Job\Jobs\PruneJobsJob;
 use Blush\Job\Jobs\PruneSessionsJob;
 use Blush\Job\Jobs\PruneActivityJob;
 use Blush\Job\Jobs\PruneTokensJob;
-use Blush\Job\Jobs\PublishJob;
-use Blush\Job\Jobs\ReindexJob;
+use Blush\Tool\ToolJob;
 
 /**
  * The framework's jobs, keyed by `blush/{name}` (D-019, D-621), and the
@@ -31,8 +30,7 @@ use Blush\Job\Jobs\ReindexJob;
  */
 enum JobType: string
 {
-	case Publish       = 'core/publish';
-	case Reindex       = 'core/reindex';
+	case Tool          = 'core/tool';
 	case GoLive        = 'core/go-live';
 	case PruneCache    = 'core/prune-cache';
 	case PruneSessions = 'core/prune-sessions';
@@ -51,8 +49,7 @@ enum JobType: string
 	public function className(): string
 	{
 		return match ($this) {
-			self::Publish       => PublishJob::class,
-			self::Reindex       => ReindexJob::class,
+			self::Tool          => ToolJob::class,
 			self::GoLive        => GoLiveJob::class,
 			self::PruneCache    => PruneCacheJob::class,
 			self::PruneSessions => PruneSessionsJob::class,

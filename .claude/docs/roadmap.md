@@ -970,9 +970,10 @@ keeping the first screen's code in one file.
   Settings → AI, read and write tools over one write path
   (`EntryEditor`, `MediaEditor`), plugins' tools, and the activity log
   (Tools → Activity, Undo) with call limits.
-  To discuss: widening MCP's tools into one registry of actions shared
-  by the CLI, Tools' actions (`AdminAction`), jobs, and API writes
-  (D-753), so an extension registers an action once.
+  Tools written once and offered everywhere they fit built (D-761):
+  `Blush\Tool\Tool` in place of `Blush\Mcp\Tool` and `AdminAction`,
+  shown to AI apps, as Tools-screen buttons, and by `blush tool`, with
+  `core/tool` for queued runs.
 - **Translations and multilingual sites (D-451):** translation domains
   by `vendor/name` and overrides in `user/lang/{locale}/` that win (done,
   D-454), catalog metadata (D-452) checked by `theme:check`,

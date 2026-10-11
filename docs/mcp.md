@@ -210,4 +210,4 @@ Apps sign in with OAuth 2.1, with Blush as the authorization server:
   on `/api/v1`. **Refresh tokens** last 90 days and are replaced each
   time they're used.
 
-To add tools from a plugin, see [Extending](extending.md#mcp-tools).
+To add tools from a plugin, see [Extending](extending.md#tools).

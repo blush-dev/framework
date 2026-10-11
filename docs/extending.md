@@ -587,149 +587,86 @@ On a flat-file site, stored secrets are in `storage/secrets.json`,
 encrypted with the site's `SECRETS_KEY`; see
 [the commands](cli.md#secrets).
 
-## Admin actions
+## Tools
 
-An action is a button on [the admin's](admin.md#tools) Tools screen,
-written in PHP, grouped there under your plugin (by its autoload prefix
-or its provider's namespace) or under the site for classes in `App\`; the admin draws it, so you don't write any JavaScript. Extend
-`Blush\Admin\Action\AdminAction`:
+A tool is something your site can do, written once in PHP and offered
+everywhere it fits:
+
+- to [AI apps connected to your site](mcp.md), which can be asked to
+  use it;
+- as a button on [the admin's](admin.md#tools) Tools screen, when it
+  needs no input, grouped under your plugin (by its autoload prefix or
+  its provider's namespace); the admin draws it, so you don't write any
+  JavaScript;
+- on [the command line](cli.md#tools): `bin/blush tool acme/rebuild-thumbnails`.
+
+Extend `Blush\Tool\Tool`:
 
 ```php
-namespace App\Admin;
+namespace Acme\Gallery\Tools;
 
-use App\Shop\Orders;
-use Blush\Admin\Action\ActionResult;
-use Blush\Admin\Action\AdminAction;
+use Acme\Gallery\Thumbnails;
+use Blush\Tool\Tool;
+use Blush\Tool\ToolAnnotations;
+use Blush\Tool\ToolContext;
+use Blush\Tool\ToolResult;
 
-final class SyncOrders extends AdminAction
+final class RebuildThumbnails extends Tool
 {
-	public function __construct(private readonly Orders $orders)
-	{}
-
-	public function label(): string
-	{
-		return 'Sync orders';
-	}
-
-	public function description(): string
-	{
-		return 'Fetch new orders from the shop.';
-	}
-
-	public function capability(): string
-	{
-		return 'shop.orders';
-	}
-
-	public function confirm(): ?string
-	{
-		return 'Fetch orders now?';
-	}
-
-	public function run(): ActionResult
-	{
-		return ActionResult::success(sprintf('Fetched %d orders.', $this->orders->sync()));
-	}
-}
-```
-
-Register it by name from a provider's `boot()`. The name is its URL, so
-use lowercase letters, digits, and hyphens:
-
-```php
-use Blush\Admin\Action\AdminActionRegistry;
-
-$this->container->get(AdminActionRegistry::class)->register('sync-orders', App\Admin\SyncOrders::class);
-```
-
-Only accounts with the action's capability see it. `confirm()` is
-optional; without it, the action runs straight away. Keep `run()` short
-enough to finish within a request. For work that may take longer, have
-the action queue a [job](#background-jobs) instead: return the job's key
-from `job()` and leave out `run()`. The admin queues it, runs it while
-the person watches, with its progress, and shows how it ended:
-
-```php
-public function job(): ?string
-{
-	return 'acme/sync-orders';
-}
-```
-
-## MCP tools
-
-A tool is something an [AI app connected to your site](mcp.md) can be
-asked to do. Extend `Blush\Mcp\Tool`:
-
-```php
-namespace Acme\Gallery\Mcp;
-
-use Acme\Gallery\Albums;
-use Blush\Mcp\McpContext;
-use Blush\Mcp\Tool;
-use Blush\Mcp\ToolError;
-use Blush\Mcp\ToolResult;
-
-final class ListAlbums extends Tool
-{
-	public function __construct(private readonly Albums $albums)
+	public function __construct(private readonly Thumbnails $thumbnails)
 	{}
 
 	public function title(): string
 	{
-		return 'List Albums';
+		return 'Rebuild Thumbnails';
 	}
 
 	public function description(): string
 	{
-		return 'Lists the photo albums, each with its id, title, and how many photos it has. Use it before adding photos to an album.';
-	}
-
-	public function input(): array
-	{
-		return [
-			'type'                 => 'object',
-			'properties'           => ['search' => ['type' => 'string', 'maxLength' => 100]],
-			'additionalProperties' => false
-		];
+		return 'Makes every album\'s thumbnails again from the original photos.';
 	}
 
 	public function capability(): string
 	{
-		return 'gallery.view';
+		return 'gallery.manage';
 	}
 
-	public function handle(array $input, McpContext $context): ToolResult
+	public function annotations(): ToolAnnotations
 	{
-		$albums = $this->albums->search($input['search'] ?? '');
+		return ToolAnnotations::writes(idempotent: true);
+	}
 
-		if ($albums === []) {
-			throw new ToolError('No album has those words; leave "search" out to list them all.');
-		}
-
-		return new ToolResult(['albums' => $albums]);
+	public function handle(array $input, ToolContext $context): ToolResult
+	{
+		return ToolResult::done(sprintf('Rebuilt %d thumbnails.', $this->thumbnails->rebuild()));
 	}
 }
 ```
 
-Register it from a provider's `boot()`, under a name that starts with
-your vendor and plugin name, in lowercase letters, digits, and `_`, up
-to 64 characters. A name that's taken is refused:
+Register it from a provider's `boot()` under a key, `vendor/name` in
+lowercase letters, digits, and hyphens, each part starting with a
+letter. A key that's taken is refused:
 
 ```php
-use Blush\Mcp\McpToolRegistry;
+use Blush\Tool\ToolRegistry;
 
-$this->container->make(McpToolRegistry::class)->register('acme_gallery_list_albums', ListAlbums::class);
+$this->container->make(ToolRegistry::class)->register('acme/rebuild-thumbnails', RebuildThumbnails::class);
 ```
 
-- **`description()`** is written for the AI, not for people: say when
-  to use the tool and what it answers. Keep tools few and shaped around
-  tasks; an app works better with a handful of clear tools than with
-  many small ones.
-- **`input()`** is the JSON Schema of what it takes, an object. Input
-  is checked against it before `handle()` runs (`type`, `properties`,
-  `required`, `additionalProperties`, `enum`, `items`, and lengths and
-  ranges), so `handle()` reads what it declared.
+An AI app knows it by the key as one word, `acme_rebuild_thumbnails`;
+that's at most 64 characters, so keep keys short.
+
+- **`title()`** is a short name in Title Case, the button's label.
+- **`description()`** is read by people on the Tools screen and by AIs
+  deciding whether to use it: say what it does and, for one that
+  answers something, when to use it and what it answers. Keep tools few
+  and shaped around tasks; an app works better with a handful of clear
+  tools than with many small ones.
+- **`input()`** is the JSON Schema of what it takes, an object; leave it
+  out for a tool that takes nothing. Input is checked against it before
+  `handle()` runs (`type`, `properties`, `required`,
+  `additionalProperties`, `enum`, `items`, and lengths and ranges), so
+  `handle()` reads what it declared.
 - **`output()`** is the JSON Schema of what it answers, optional.
 - **`capability()`** is required: a tool without one is never offered.
   Use one of Blush's (`ContentAction::Edit` is editing entries of any
@@ -741,19 +678,39 @@ $this->container->make(McpToolRegistry::class)->register('acme_gallery_list_albu
   ask the person before a change. A token or app limited to **Read**
   is offered only tools that read; one limited to **Write drafts** only
   those that read or are `draftsSafe`.
-- **Failing:** throw `ToolError` with words the AI can act on. It goes
-  back to the app as the tool's answer, marked as an error, so it can
-  correct itself and try again.
+- **Answering:** return a `ToolResult` with data (what an app or
+  `--json` reads), a line of text for people, and optional details, a
+  line each. `ToolResult::done('Rebuilt 12 thumbnails.')` is a line
+  of text alone.
+- **Failing:** throw `ToolError` with words a person or an AI can act
+  on, and optional details. It goes back as the tool's answer, marked as
+  an error, so they can correct it and try again.
 - **Changing content** goes through `$context->entries`
   (`Blush\Content\Editing\EntryEditor`) and media through
   `$context->media` (`Blush\Media\MediaEditor`): the same checks the
-  admin makes, narrowed to what the app may do, and listed in the
+  admin makes, narrowed to what an app may do, and listed in the
   [activity log](mcp.md#activity-and-undo) with Undo.
 - **`$context->account()`** is the account it acts as, and
-  `$context->can()` checks its capabilities, narrowed as the token or
-  app is.
+  `$context->can()` checks its capabilities, narrowed as a token or app
+  is.
 
-**Settings → AI** lists your plugin's tools under **Tools From
+Where it shows can be changed:
+
+- **The Tools screen** shows a tool that needs no input (nothing in its
+  schema is `required`) and writes. One that only reports something,
+  such as counting words, returns `true` from `button()`; one that
+  shouldn't be a button returns `false`. `confirm()` returns a question
+  to ask before it runs; a tool that may destroy something is asked
+  about anyway.
+- **AI apps** are offered every tool unless `mcp()` returns `false`, as
+  Blush's own Publish and Clear Caches do: they're for looking after the
+  site.
+- **Work that may outlast a request:** return `true` from `queued()`.
+  The Tools screen (and an app) then runs it in the background as a
+  [job](#background-jobs), and the admin follows it with its progress
+  to how it ended. The command line runs it straight away.
+
+**Settings → AI** lists your plugin's tools for apps under **Tools From
 Plugins**. When your plugin is off, its tools are gone.
 
 ## Background jobs

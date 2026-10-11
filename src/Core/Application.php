@@ -42,6 +42,7 @@ use Blush\Feed\FeedServiceProvider;
 use Blush\Http\HttpServiceProvider;
 use Blush\Llms\LlmsServiceProvider;
 use Blush\Mcp\McpServiceProvider;
+use Blush\Tool\ToolServiceProvider;
 use Blush\Log\LogServiceProvider;
 use Blush\Markdown\MarkdownServiceProvider;
 use Blush\Media\MediaServiceProvider;
@@ -112,6 +113,7 @@ class Application implements Bootable
 		AdminServiceProvider::class,
 		PreviewServiceProvider::class,
 		ApiServiceProvider::class,
+		ToolServiceProvider::class,
 		McpServiceProvider::class,
 		LlmsServiceProvider::class,
 		RoutingServiceProvider::class,
