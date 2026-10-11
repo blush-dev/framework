@@ -17,6 +17,7 @@ use DateTimeImmutable;
 use Psr\Clock\ClockInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
+use Blush\Api\ApiConfig;
 use Blush\Auth\Account;
 use Blush\Auth\AuthConfig;
 use Blush\Auth\Capability;
@@ -127,7 +128,8 @@ final readonly class SettingsController
 		private AuthConfig $auth,
 		private Roles $roles,
 		private EmbedConfig $embed,
-		private EmbedProviders $embeds
+		private EmbedProviders $embeds,
+		private ApiConfig $api
 	) {}
 
 	public function __invoke(ServerRequestInterface $request, string $screen): ResponseInterface
@@ -319,7 +321,8 @@ final readonly class SettingsController
 	}
 
 	/**
-	 * Reading: what the homepage shows, and the feeds.
+	 * Reading: what the homepage shows, the feeds, and the API (D-741):
+	 * its switch, and where it's served, set in `config/api.php`.
 	 *
 	 * @return list<array<string, mixed>>
 	 */
@@ -337,6 +340,13 @@ final readonly class SettingsController
 				$this->edit(self::item('formats', 'Formats', array_map(static fn (FeedFormat $format): string => $format->label(), $this->feeds->formats), $this->feeds->formats === $feeds->formats, 'list', 'None turns every feed off.'), $saved, Setting::FeedFormats, array_map(static fn (FeedFormat $format): string => $format->value, $this->feeds->formats)),
 				$this->edit(self::item('content', 'Full content', $this->feeds->content, $this->feeds->content, 'bool', 'Off, a feed carries each entry\'s summary only.'), $saved, Setting::FeedContent, $this->feeds->content),
 				$this->edit(self::item('limit', 'Entries per feed', (string) $this->feeds->limit, $this->feeds->limit === $feeds->limit, help: sprintf('From 1 to %d.', Setting::FEED_LIMIT_MAX)), $saved, Setting::FeedLimit, $this->feeds->limit)
+			]),
+			self::group('api', 'API', 'For other sites, apps, and AI tools', [
+				$this->edit(self::item('api', 'API', $this->api->enabled, ! $this->api->enabled, 'bool', Setting::Api->field($this->types)->description), $saved, Setting::Api, $this->api->enabled),
+				[
+					...self::item('path', 'Address', $this->api->base(), $this->api->path === new ApiConfig()->path, 'mono', 'Where the API is served, with its version.', 'config/api.php'),
+					'link' => $this->api->enabled ? ['label' => 'View the API', 'href' => $this->app->absoluteUrl($this->api->base())] : null
+				]
 			])
 		];
 	}

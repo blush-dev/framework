@@ -16,6 +16,7 @@ namespace Blush\Core;
 use Override;
 use Psr\Container\ContainerInterface;
 use Blush\Admin\AdminServiceProvider;
+use Blush\Api\ApiServiceProvider;
 use Blush\Asset\AssetServiceProvider;
 use Blush\Auth\AuthServiceProvider;
 use Blush\Cache\CacheServiceProvider;
@@ -107,6 +108,7 @@ class Application implements Bootable
 		AuthServiceProvider::class,
 		AdminServiceProvider::class,
 		PreviewServiceProvider::class,
+		ApiServiceProvider::class,
 		LlmsServiceProvider::class,
 		RoutingServiceProvider::class,
 		ConsoleServiceProvider::class

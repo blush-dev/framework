@@ -946,7 +946,7 @@ keeping the first screen's code in one file.
   request finds it stale (see `open-questions.md`). The first of the layers AI plugins need
   (D-397), with the HTTP client (D-620).
 - **APIs, agents, and headless (discussed 2026-10-03):** a versioned
-  content API, API tokens, an MCP server, a headless mode, revisions
+  API (`Blush\Api`, D-736), API tokens, an MCP server, a headless mode, revisions
   and an activity log, outgoing webhooks, and an image pipeline; see
   `open-questions.md`. Markdown pages and `llms.txt` are done (D-395,
   D-396), and the AI Settings screen with AI crawler rules and a site
@@ -957,8 +957,11 @@ keeping the first screen's code in one file.
   every boundary: the admin API, previews, and the trash (D-481, D-482).
   Trash is a status, its files left where they are (D-484).
   Decided, next: a
-  read-only, opt-in content API at `/api/v1` beside the admin's
-  (D-479); its answer shape, bodies, path, and caching are still open.
+  read-only, opt-in API at `/api/v1` beside the admin's (D-479), broadened
+  to the site in `Blush\Api` (D-736: site, types, entries, relations,
+  media, menus); its shape settled (D-737 to D-741) and its first,
+  read-only version built (D-742, `docs/api.md`). Next: API tokens, then
+  MCP.
 - **Translations and multilingual sites (D-451):** translation domains
   by `vendor/name` and overrides in `user/lang/{locale}/` that win (done,
   D-454), catalog metadata (D-452) checked by `theme:check`,
@@ -1006,7 +1009,9 @@ keeping the first screen's code in one file.
   groups, JSON Schema, `docs/`); (3, done) Structure → Fields screens
   and writer; (4) media (done, D-341), theme settings (on hold, D-342), site
   settings (done, D-343), and accounts (on hold with the authors work,
-  D-344) as later consumers.
+  D-344) as later consumers. When it's picked up: a proper way to register front matter from
+  core and through the Fields API, so the API sends declared fields
+  only (D-743).
 - **Profiles (D-351; replaces D-329 to D-333):** accounts,
   profiles, and bylines as three nouns, from the author's profiles
   sketch. (1, done, D-352) Content and routing: the `profiles` kind with a canonical

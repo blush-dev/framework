@@ -84,7 +84,7 @@ const everywhere = computed<Command[]>(() => {
 	// The Settings screens (D-325).
 	const settings: [string, string, string][] = [
 		['general', 'Go to General Settings', 'site name description tagline language locale time zone timezone sign-ups signups register accounts environment'],
-		['reading', 'Go to Reading Settings', 'homepage front page feeds rss atom json'],
+		['reading', 'Go to Reading Settings', 'homepage front page feeds rss atom json api'],
 		['writing', 'Go to Writing Settings', 'markdown mentions smart quotes punctuation heading anchors figures raw html'],
 		['media', 'Go to Media Settings', 'uploads upload size path folders files documents images'],
 		['search', 'Go to Addresses and Search Settings', 'trailing slash urls sitemap robots seo'],

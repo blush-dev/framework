@@ -1355,7 +1355,10 @@ screens (and [Redirects](#redirects), with its own capability):
 - **Reading:** the homepage (the page at `user/content/index.md`, or the
   latest entries of a collection) and feeds: the formats (RSS, Atom,
   JSON Feed; none turns feeds off), whether they carry each entry's full
-  content, and how many entries each holds (1 to 100).
+  content, and how many entries each holds (1 to 100). Under them,
+  **API** turns on the read-only [API](api.md) (off by default; saved
+  as `api.enabled`, over `config/api.php`), with its address shown and
+  a link to it once it's on.
 - **Writing:** how Markdown renders: **Mentions** (`@name` links to
   the profile with that slug once it's published; anyone else's stays
   text), **Smart punctuation** (curly quotes, dashes, and ellipses),

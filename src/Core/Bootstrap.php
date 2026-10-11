@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Blush\Core;
 
 use Blush\Admin\AdminConfig;
+use Blush\Api\ApiConfig;
 use Blush\Auth\AuthConfig;
 use Blush\Cache\CacheConfig;
 use Blush\Config\Config;
@@ -350,6 +351,7 @@ final readonly class Bootstrap
 			new FeedConfig(),
 			new SitemapConfig(),
 			new LlmsConfig(),
+			new ApiConfig(),
 			new CacheConfig(),
 			PublishConfig::fromEnv($env),
 			new EmbedConfig(),

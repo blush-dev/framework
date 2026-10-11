@@ -14105,7 +14105,8 @@ decision, add a new entry that supersedes it and mark the old one
 
 - **Date:** 2026-10-05
 - **Status:** Decided, not built. Answers part of "APIs, agents, and
-  headless" in `open-questions.md`.
+  headless" in `open-questions.md`. Amended by D-736: one API,
+  `Blush\Api`, over the site rather than content alone.
 - **Decision:**
   - **Two surfaces over one domain layer, for now:** a versioned public
     content API (`/api/v1/…`) as the contract, and the admin's API
@@ -23032,3 +23033,305 @@ decision, add a new entry that supersedes it and mark the old one
     lint, and mapped by a Site Health check.
 - **Why:** the author: "I think this looks good for now. Record, and
   we'll pick it up again later."
+
+### D-736: The API is broader than content: `Blush\Api`
+
+- **Date:** 2026-10-10
+- **Status:** Built in D-742. Amends D-479 (its scope and name)
+  and D-397 (the MCP server's namespace "beside the content API" is
+  now beside `Blush\Api`). The answer's shape comes first, before
+  anything is built.
+- **Decision:** The author's calls:
+  - **One API, not a content API:** `/api/v1` covers the site, not
+    only entries, in **`Blush\Api`**. Docs say "the API" in place of
+    "the content API". D-479's other parts stand: versioned, beside
+    the admin's unversioned API, over one domain layer, read-only
+    first, opt-in, anonymous reads answering what the public site
+    shows, and no file paths (D-481).
+  - **The first read-only resources:** `site` (title, description,
+    URL, language), `types`, `entries` (every type, terms and profiles
+    included, since both are entries, D-584, D-591), `relations` (the
+    definitions), `media`, and `menus` (by location, as item trees
+    with entries resolved to URLs).
+  - **Media is a resource of its own, not an entry** (D-238 stands):
+    it shares the API's outer conventions (`id`, paging, references
+    by id that a request can include) with a shape of its own inside.
+  - **Media is public:** anonymous reads list and fetch all of it, as
+    its files are served to anyone with the URL. Statuses or a
+    visibility setting for media can come later if they earn their
+    place.
+  - **Curated resources, not tables:** the API names resources by
+    what they mean over the record layer (D-606), never a generic
+    record or table endpoint, so storage can change without breaking
+    the contract.
+  - **Left out:** accounts, roles, settings, sessions, jobs, and
+    redirects.
+  - **Next: the API's shape** (the open points D-479 listed: the
+    answer's shape, bodies, the path setting, caching, a lookup by
+    site URL, and how references are included), then tokens, then
+    MCP.
+- **Why:** the author: media is content too, and a headless front end
+  needs media, menus, and the site's details as well as entries; with
+  every area on records keyed by id, one API fits the data. "I think
+  media is just inherently public. We can later add statuses for it if
+  it makes sense or possibly a visibility setting."
+
+### D-737: The API's lists, items, and errors
+
+- **Date:** 2026-10-10
+- **Status:** Built in D-742. Shapes D-736's API; settles part of
+  D-479's "the answer's shape".
+- **Decision:** As proposed, the author agreeing to all of it:
+  - **A list:** `{ items, total, page, pages, per_page, next, prev }`,
+    with `next` and `prev` full URLs (as D-396) or `null` at the ends.
+    Paged by `page` and `per_page` (20 by default, 100 at most), as the
+    site's archives are and as the index counts cheaply. Cursors
+    aren't in v1; `after` is kept free for them, so they can be added
+    without a break.
+  - **A single item** is the object itself, no envelope:
+    `/api/v1/entries/{id}`, `/media/{id}`, and so on; `site` is one
+    object at `/api/v1/site`, and a menu one tree at
+    `/api/v1/menus/{location}`.
+  - **Entries** take the shape in `open-questions.md` (**One entry
+    shape across the API**): `{ id, type, title, slug, status,
+    published, updated, url?, fields, body? }`, a site's fields under
+    `fields`.
+  - **Errors:** `{ "error": { "code", "message" } }` with the matching
+    HTTP status (400 for a bad query, 404, and 401 or 403 once tokens
+    exist), the code stable and the message free to change. The
+    admin's `{ "error": message }` stays as it is.
+  - **When the API is off,** every `/api/v1` address answers 404, so
+    a site doesn't show it has one.
+  - **Keys in `snake_case`**; dates ISO 8601 in UTC (`Z`), the site's
+    time zone in `site`; a key every item of a resource has is `null`
+    when empty, and one that depends on the type (`url`, `body`) is
+    left out.
+- **Why:** the author: "That all sounds good."
+
+### D-738: References in the API: stubs, and `include` in place
+
+- **Date:** 2026-10-10
+- **Status:** Built in D-742. Shapes D-736's API, after D-737.
+- **Decision:** The author's calls:
+  - **Every reference is a stub**, with what's needed to link without
+    a second request: an entry `{ id, type, title, url }`, a media
+    file `{ id, url, alt, width, height }` (`width` and `height`
+    `null` for files without them, by D-737's rule for empty keys).
+  - **Relations have their own key,** `relations`, a list of stubs per
+    relation by its name, in its order. Neither the written slugs nor
+    `refs` (D-589) appear.
+  - **A media field is a media stub,** its stored path turned into the
+    file's id through the media index (no paths, D-481); a file the
+    library doesn't have is `null`.
+  - **The body** is rendered HTML with full URLs, as the site's; media
+    in it isn't listed as references in v1.
+  - **`?include=` expands stubs in place** into the full records
+    (`media`, `relations`, or one relation as `relations.authors`),
+    not into a separate map, so a template reads
+    `post.fields.image.alt` where the stub was. One level deep: an
+    included entry's own references stay stubs.
+  - **Only what the caller may see:** a reference to an entry the
+    caller can't see (a draft, anonymously) is left out, with no stub,
+    so its existence doesn't show.
+- **Why:** the author: "Yes, B, and add alt/width/height to media
+  stubs." In place is what front ends reach for, and stubs carry what
+  most templates need, so repeats are rare.
+
+### D-739: Bodies, excerpts, and assets in the API
+
+- **Date:** 2026-10-10
+- **Status:** Built in D-742. Shapes D-736's API, after D-738;
+  settles D-479's open "bodies".
+- **Decision:** As proposed, the author agreeing to all of it:
+  - **`?body=html|markdown|none`.** `html` is rendered as on the site,
+    by the active theme's templates (D-382), with full URLs;
+    `markdown` is what a Markdown copy serves (D-395, D-396): as
+    written, links, media, and directive props given real URLs,
+    directives left as `:::name`; `none` leaves `body` out.
+  - **Defaults:** `html` for a single item, `none` for a list, which
+    can ask for one.
+  - **`excerpt` in every entry:** plain text, from the summary or the
+    body's prose (D-727), never HTML, so a front end wraps it in its
+    own markup.
+  - **`assets` beside a `body=html`:** `{ styles, scripts }`, full
+    URLs (with their `?v=`) of what the body's directives and
+    components ask for by handle (D-569), so a front end can load
+    them; the theme's own assets aren't listed.
+  - **Later, not ruled out:** a structured body (a JSON tree of nodes
+    for a front end's own components), plain Markdown with directives
+    rendered down (open since D-395) as another `body` value, and which
+    templates render `html` in a headless mode with no theme (likely
+    core's component templates, settled with headless mode).
+- **Why:** the author: "Yes to all three." A list doesn't render
+  twenty bodies; HTML without its players' scripts and styles is
+  markup that does nothing.
+
+### D-740: Filtering, sorting, and finding by address in the API
+
+- **Date:** 2026-10-10
+- **Status:** Built in D-742. Shapes D-736's API, after D-739;
+  settles D-481's proposed lookup by site URL. The author chose the
+  prefix; the rest is Claude's call at the author's word ("Your
+  call").
+- **Decision:**
+  - **Filters on `entries` are plain parameters,** one per thing the
+    query already answers, never a query language: `type` (commas for
+    several), `rel:{relation}` (ids or slugs, commas meaning any of;
+    the `rel:` prefix keeps a site's relation names out of the
+    contract, a colon because PHP turns dots in parameter names into
+    underscores), `parent` (an id), `published_after` and
+    `published_before`, `updated_after` (for clients syncing a site,
+    over `Query::updatedSince()`), `search` (what `Query::search()`
+    does), and `ids` (commas).
+  - **Status:** anonymous answers are always live and public (D-479,
+    D-733's `live`), so `status` isn't a filter for them; with tokens,
+    `?status=` follows the account's capabilities.
+  - **Later:** "all of" for relations, and `language` (until
+    multilingual output is settled, D-036).
+  - **Sorting:** `?sort=` with one key, `-` for descending:
+    `published`, `title`, `position`, `updated` (stored orders, never
+    file names, D-516). The default is the type's own order (newest
+    published first for collections, `position` for trees, D-413).
+  - **By address:** `?url=` (site-relative, or a full URL on the
+    site's origin) is a filter, answering a list of none or one. An
+    address that redirects (D-686) answers an empty list with
+    `redirect: { to, status }`, `to` a full URL, so a headless front
+    end can redirect too. Archives and other addresses that aren't an
+    entry answer an empty list; saying what any address is (a routes
+    resource) is headless mode's.
+- **Why:** the author: "prefix. can it be rel:tags? otherwise, the dot
+  is fine." Redirects shown so headless sites don't lose the ones the
+  admin keeps; `updated_after` because syncing needs it and the query
+  has it.
+
+### D-741: The API's path, switch, caching, and CORS
+
+- **Date:** 2026-10-10
+- **Status:** Built in D-742, which records where the build departs
+  (`maxAge`, not `max_age`). Shapes D-736's API, after D-740;
+  settles D-479's open path setting and caching.
+- **Decision:** As proposed, with the author's calls on the screen and
+  the default:
+  - **The switch and path on Settings → Reading,** beside feeds and the
+    sitemap (the other ways the site is read), in an `ApiConfig`
+    (`enabled`, off by default; `path`, `/api` by default, the version
+    added after it as `/api/v1`; `max_age`). The AI screen links to
+    it, as MCP and agents build on it; tokens, later, belong to
+    accounts, not here.
+  - **The version is in the path,** never a header.
+  - **Caching:** every anonymous answer has an `ETag` from the content
+    version (D-588) and the request's query, and answers 304 to a
+    matching `If-None-Match`; `Cache-Control: public, max-age=60` by
+    default (`max_age`); answers with a token, later, are `private,
+    no-store`. Built answers are cached under the page cache's
+    namespace, by version and query, so `cache:clear` and publishing
+    empty them.
+  - **CORS:** anonymous reads send `Access-Control-Allow-Origin: *`;
+    with tokens, an allowed list of origins in config, never `*` with
+    credentials.
+  - **No rate limits in v1** (anonymous reads cost what cached page
+    views do); limits per token come with tokens.
+- **Why:** the author: "reading" and "y".
+
+### D-742: The read-only API, as built
+
+- **Date:** 2026-10-10
+- **Status:** Built. Its `fields` part is superseded by D-743. Builds D-736 to D-741. The author: "Just go ahead
+  and build the initial version with site and menus like we talked
+  about," so the resource shapes left open in D-741 are Claude's calls,
+  recorded here.
+- **Decision:**
+  - **Where:** `Blush\Api` (`ApiConfig`, `ApiRoutes`, `ApiResponses`,
+    `ApiQuery`, `ApiEntries`, `EntryResource`, `MediaResource`,
+    `ApiIncludes`, `ApiValues`, `ApiError`) and `Blush\Api\Http`
+    (one controller per resource). `ApiServiceProvider` registers
+    before `LlmsServiceProvider`, so `/{path}.md` never takes an API
+    address. The routes are `exact`, named `api.*`, with a JSON 404
+    for any other address under the base and an `OPTIONS` preflight
+    (`GET, HEAD, OPTIONS`; `Accept`, `If-None-Match`,
+    `If-Modified-Since`; a day's `Max-Age`). `ETag` is exposed to
+    scripts.
+  - **Config:** `ApiConfig(enabled: false, path: '/api', maxAge: 60)`,
+    `maxAge` camelCase as config keys are (`CacheConfig::$maxAge`),
+    not D-741's `max_age`. A path is lowercase segments without a
+    trailing slash. `api.enabled` is a `Setting` on Reading (a group
+    of its own, **API**, with the address shown and a link once on);
+    the path and `maxAge` stay in `config/api.php`. Changing it
+    rewrites the compiled routes.
+  - **Every answer is anonymous** until tokens: `ApiEntries` shows an
+    entry by id or address when it's published, of a public type, and
+    not hidden (so unlisted entries can be asked for); lists show
+    published, public entries of public types without landing pages.
+  - **Unknown parameters are a 400** (`invalid_query`), naming the ones
+    the address takes, so a typo is never a filter silently dropped.
+    Every list is paged, types, relations, and menus too.
+  - **Entries:** D-737's shape plus `subtitle`, `excerpt`, `image` (the
+    built-in featured image, a media stub or `null`), and `parent` on
+    types that nest (trees and hierarchical collections). `fields` is
+    the front matter that isn't Blush's own (`EntryFields`), `id`,
+    `refs`, or a relation's key, undeclared keys included, as
+    templates can print them (superseded by D-743: declared fields
+    only). `relations` leaves out a parent and a
+    translation (`RelationKind::isWithinType()`), which aren't lists.
+  - **`?url=`** takes only `body` and `include` beside it. A listing's
+    landing page is the entry at its address (`/topics` answers the
+    Topics page), as its Markdown copy is; a date or term archive
+    answers an empty list. With a home type, `/` is its landing page.
+  - **`/site`:** `name`, `description`, `url` (the origin), `language`
+    (BCP 47, `en-US`), `locale`, `timezone`, and `home` (the
+    homepage's address). Not the site's email address (D-723).
+  - **`/types`:** each public type's `name`, `kind`, `label`,
+    `plural`, `description`, `url` (its collection's, or `null`),
+    `urls` (whether its entries have addresses), its own `fields`
+    (`name`, `type`, `label`, `description`, `required`, and a list's
+    `item` type), and the `relations` its entries list.
+  - **`/relations`:** each relation entries list, on and to public
+    types: `name`, `kind`, `label`, `singular`, `from` (a relation from
+    every type lists every public type), `to`, `multiple`, `ordered`,
+    and `inverse` (its label, or `null`).
+  - **`/media`:** files with an id only; a list newest upload first,
+    filtered by `kind` and `search`. A record is `id`, `kind`, `mime`,
+    `url`, `size`, `width`, `height`, `duration`, `title`, `alt`,
+    `caption`, `description` (the record's content, D-674),
+    `uploaded`, `sizes` (`url`, `width`, `height`), `artwork` (a stub),
+    and the library's other `fields`. A reference to one of an image's
+    sizes is a stub with the size's URL and dimensions and its
+    original's id and alt text. Media URLs on another host are kept
+    as they are.
+  - **`/menus`:** the active theme's locations (`location`, `label`,
+    and the site `menu` filling it, or `null`); a location's menu is
+    `location`, `name` (`null` for the theme's defaults), `label`, and
+    `items` (`label`, `url` as a full URL, `description`, `icon`,
+    `image` as a media stub, `badge`, `class`, `rel`, `fields`,
+    `children`), resolved as the site resolves it. An unknown location
+    is a 404; one with nothing to show has no items.
+  - **Caching:** the `ETag` is `ConditionalGet`'s hash of the body,
+    which changes exactly when D-741's version and query would. Errors
+    are `no-store`. A theme or menu that can't be read is a 500,
+    `server_error`.
+  - **Docs:** `docs/api.md`, with the API in `configuration.md` and
+    Reading in `admin.md`; the command palette finds Reading by "api".
+- **Why:** the author asked for the first version as discussed; these
+  are the smallest shapes that serve a headless front end, kept in
+  line with the entry shape already settled.
+
+### D-743: The API sends declared fields only; front matter registration waits for the Fields API
+
+- **Date:** 2026-10-11
+- **Status:** Built (the API's part). Supersedes D-742's `fields`
+  (undeclared keys included). Registering front matter waits for the
+  Fields API (paused, D-348).
+- **Decision:** The author's call:
+  - **An entry's `fields` in the API are the fields its type
+    declares** (`ContentType::$schema`), but Blush's own
+    (`EntryFields`), `id`, `refs`, and relations' keys: each one, `null`
+    when the entry has no value. Undeclared front matter
+    (`Entry::$extra`) isn't sent.
+  - **Core needs a proper way to register front matter,** from core
+    and through the Fields API, so what's public is declared rather
+    than whatever a file holds. Nothing more is built for it until the
+    Fields API work is picked up again.
+- **Why:** the author: "We need a proper way to register front matter
+  from within core and the fields api. Otherwise, we shouldn't show it
+  undeclared. Hold off until fields api work is done."
+

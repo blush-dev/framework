@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Blush\Settings;
 
 use DateTimeZone;
+use Blush\Api\ApiConfig;
 use Blush\Auth\Account;
 use Blush\Auth\AuthConfig;
 use Blush\Clock\DateFormat;
@@ -81,6 +82,7 @@ enum Setting: string
 	case FeedFormats      = 'feed.formats';
 	case FeedContent      = 'feed.fullContent';
 	case FeedLimit        = 'feed.limit';
+	case Api              = 'api.enabled';
 	case MediaUploads     = 'media.uploads';
 	case AddArtwork       = 'media.addArtwork';
 	case Mentions         = 'markdown.mentions';
@@ -157,7 +159,8 @@ enum Setting: string
 			self::Name, self::Description, self::Email, self::Locale, self::Untranslated,
 			self::Timezone, self::DateFormat, self::TimeFormat,
 			self::Signups, self::SignupRole                               => SettingsScreen::General,
-			self::Home, self::FeedFormats, self::FeedContent, self::FeedLimit => SettingsScreen::Reading,
+			self::Home, self::FeedFormats, self::FeedContent, self::FeedLimit,
+			self::Api                                                     => SettingsScreen::Reading,
 			self::MediaUploads, self::AddArtwork                          => SettingsScreen::Media,
 			self::Mentions, self::SmartPunctuation, self::HeadingAnchors,
 			self::Figures, self::Html, self::Embeds                       => SettingsScreen::Writing,
@@ -198,6 +201,7 @@ enum Setting: string
 			self::Figures         => new BoolField('figures')->labeled('Images as figures')->described('An image on a line of its own becomes a figure, with its title as the caption.'),
 			self::Html            => new EnumField('html', array_column(RawHtml::cases(), 'value'))->labeled('Raw HTML')->described('What HTML written in content does on the page, whoever wrote it. Who may add HTML in the admin is up to their role.')->control(Control::Radios)->required(),
 			self::Embeds          => new ListField('enabled')->labeled('Embeds turned on')->described('A site turned on plays its links on the page; the others keep their links as links.'),
+			self::Api             => new BoolField('enabled')->labeled('API')->described('A read-only API of what the site shows, as JSON, for other sites, apps, and AI tools: its pages, types, media, and menus. Drafts and hidden pages are never in it.'),
 			self::FeedLimit       => new NumberField('limit', integer: true, min: 1, max: self::FEED_LIMIT_MAX)->labeled('Entries per feed')->described(sprintf('From 1 to %d.', self::FEED_LIMIT_MAX)),
 			self::TrailingSlash   => new BoolField('trailingSlash')->labeled('Trailing slash')->described('The other form redirects, so links to either still work.'),
 			self::Sitemap         => new BoolField('enabled')->labeled('Sitemap and robots.txt')->described('Off, the site has neither, and search engines find pages by their links.'),
@@ -263,6 +267,7 @@ enum Setting: string
 			self::Signups       => 'Anyone can sign up',
 			self::Sitemap       => 'The site has a sitemap and robots.txt',
 			self::Llms          => 'Every page has a Markdown copy, and the site has llms.txt',
+			self::Api           => 'The site has a read-only API',
 			self::LlmsFull      => 'The site has llms-full.txt',
 			self::Home          => 'The page at user/content/index.md',
 			self::Mentions      => '@name links to a profile',
@@ -342,6 +347,7 @@ enum Setting: string
 			'plugins' => PluginConfig::class,
 			'icons'   => IconConfig::class,
 			'llms'    => LlmsConfig::class,
+			'api'     => ApiConfig::class,
 			'media'   => MediaConfig::class,
 			'markdown' => MarkdownConfig::class,
 			'embed'   => EmbedConfig::class,
@@ -367,7 +373,7 @@ enum Setting: string
 	public function needsRefresh(): bool
 	{
 		return match ($this) {
-			self::Home, self::Timezone, self::TrailingSlash, self::FeedFormats, self::Sitemap, self::Llms, self::LlmsFull, self::Theme, self::Plugins => true,
+			self::Home, self::Timezone, self::TrailingSlash, self::FeedFormats, self::Sitemap, self::Llms, self::LlmsFull, self::Api, self::Theme, self::Plugins => true,
 			default => false
 		};
 	}

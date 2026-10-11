@@ -425,6 +425,19 @@ site in one request. It's off by default because it's large: about
 
 All of these can also be changed in the admin, on **Settings → AI**.
 
+### The API
+
+`config/api.php` · `Blush\Api\ApiConfig`
+
+| Option | Default | What it does |
+|---|---|---|
+| `enabled` | `false` | Serve the read-only [API](api.md) |
+| `path` | `'/api'` | Where it's served, its version added after it: `/api` serves `/api/v1` |
+| `maxAge` | `60` | How many seconds browsers and caches may keep an answer |
+
+Off, every address under the API is the site's own "not found" page.
+`enabled` can also be changed in the admin, on **Settings → Reading**.
+
 ### Routes and redirects
 
 `config/routes.php` · `Blush\Routing\RouteConfig`

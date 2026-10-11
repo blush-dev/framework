@@ -795,7 +795,7 @@ Move each item to `decisions.md` once it's answered.
     future-dated ones (`Query`'s visibility filters).
   - Whether FTS5 search is planned for sites on the SQLite driver
     (D-661: no SQLite index beside files).
-  - Its records could be the content API's (below).
+  - Its records could be the API's (below).
 - **Data types: types without a body** (discussed 2026-10-06; leaning,
   not decided): types that are data more than prose (testimonials,
   price rows, events, links) don't need the writing surface. Today
@@ -821,10 +821,10 @@ Move each item to `decisions.md` once it's answered.
       no text). A type's list could show chosen fields as columns.
     - **Elsewhere:** excerpts, word counts, Markdown copies (D-395),
       and search over body text skip these types.
-    - **The content API:** the type's description says `body: false`,
+    - **The API:** the type's description says `body: false`,
       and its entries have no `body` key at all (not `null`), so
       clients know from the type, not from each entry.
-  - **One entry shape across the content API:** `{ id, type, title,
+  - **One entry shape across the API:** `{ id, type, title,
     slug, status, published, updated, url?, fields: {…}, body? }`, with
     a site's fields under `fields`, not flattened beside the built-ins,
     so a site's `status` or `title` field never collides with Blush's;
@@ -945,16 +945,46 @@ Move each item to `decisions.md` once it's answered.
     namespace.
 - **APIs, agents, and headless** (discussed 2026-10-03; the author wants
   to explore or build most of these; nothing decided):
-  - **The content API** (decided in D-479: two surfaces over one
-    domain layer, read-only first, opt-in with anonymous reads; single
-    entries by id, D-477). Still open: the answer's shape (leaning plain
-    `{ items, total, page, pages }` with `next` and `prev` links over a
-    `{ data, meta, links }` envelope), bodies (`?body=html` by default,
-    `markdown`, `none`; types without a body and the entry shape are
-    under "Data types" above), the path setting, and caching (an `ETag`,
-    anonymous answers only), and a lookup by site URL (`?url=`) for
-    headless routing. No file paths, ever (D-481). Settle before tokens and MCP, which build
+  - **The API** (`Blush\Api`; decided in D-479 and broadened by
+    D-736: two surfaces over one domain layer, read-only first, opt-in
+    with anonymous reads; single entries by id, D-477; first resources
+    `site`, `types`, `entries`, `relations`, `media` (public, all of
+    it), and `menus`; curated resources, never tables). Shape it before
+    building. Lists, items, errors, and key style are D-737;
+    references and `include` are D-738; bodies, excerpts, and assets
+    are D-739 (types without a body are under "Data types" above);
+    filters, sorting, and `?url=` are D-740; the path, switch,
+    caching, and CORS are D-741; built in D-742, with the other
+    resources' shapes; `fields` are declared fields only (D-743).
+    Still open: tokens, writes, `language`, "all of" for relations,
+    bodies for included entries, and registering front matter from
+    core and the Fields API (D-743, waiting on the Fields API). No file paths, ever (D-481). Settle before tokens and MCP, which build
     on it.
+  - **Extension endpoints in the API** (discussed 2026-10-11; leanings
+    the author hasn't confirmed): v1 (D-742) has no way for a plugin to
+    add one. A plugin's own `RouteSource` under the base works for a
+    static path (static paths match before patterns), but a pattern
+    (`/api/v1/acme/stats/{id}`) loses to the API's System-priority
+    catch-all, and nothing gives it the API's conventions (shape,
+    errors, caching, CORS, the configured `path`, off with the API).
+    - **Under their own prefix:** `/api/v1/{vendor}/{name}/…`
+      (`/api/v1/acme/gallery/albums`), so names never meet core's or
+      another plugin's; core keeps the bare names.
+    - **One way to register them:** a tagged `ApiSource` returning
+      routes relative to its prefix, mounted by `ApiRoutes` under the
+      base before the catch-all, so they move with `path`, go when the
+      API is off, and answer `exact`.
+    - **Shared conventions, public:** `ApiResponses`, `ApiQuery`, and
+      `ApiError` documented for plugins, so every endpoint has one
+      shape, one 400 for a mistyped parameter, and one cache, set of
+      headers, and CORS.
+    - **Listed in the index:** `/api/v1` lists each extension's
+      resources beside core's.
+    - **The catch-all stays last**, after extensions' routes.
+    - Open: caching for data that isn't content (live stats), which
+      may need to opt out or key on something of its own; whether
+      plugins are `GET` only until tokens; whether an extension's
+      resources become MCP tools on their own once MCP exists.
   - **API tokens:** the admin API is session and `X-CSRF-Token` only
     (D-220). Tokens tied to an account act with its roles and
     capabilities, can be revoked, and stop with a suspended account
@@ -971,14 +1001,14 @@ Move each item to `decisions.md` once it's answered.
     component's plain form, with today's as the fallback.
   - **An MCP server:** tools (search content, read an entry, list types
     and their JSON Schemas (D-206), create a draft, update an entry,
-    upload media) over the content API, checked against the token's
+    upload media) over the API (D-736), checked against the token's
     capabilities. For sites on a server; local agents can edit the
     files.
   - **A headless mode:** a setting where Blush serves the admin and the
     API (and perhaps feeds and the sitemap) but no themed pages, and a
     separate front end (Astro, Next.js, SvelteKit, an app) owns the
     pages. Content reaches it over HTTP at runtime, at build time (a
-    rebuild on an outgoing webhook), or as the content API exported to
+    rebuild on an outgoing webhook), or as the API exported to
     a folder of JSON by a static export plugin (D-476), so a front end
     builds with no PHP running. Open within it:
     - Bodies: directives and components render through theme templates
@@ -1021,7 +1051,7 @@ Move each item to `decisions.md` once it's answered.
     `ai.use`, and how plugins declare what they send.
   - Leaning no: GraphQL and real-time collaborative editing (costly,
     and a poor fit for flat files; plain JSON and MCP cover the needs).
-  - A suggested order, not agreed: the content API's shape, then
+  - The order (D-736): the API's shape, then
     tokens, then MCP (Markdown pages and `llms.txt` came first, as the
     easiest, D-395).
 - **A Tools screen for actions** (discussed 2026-10-03, for a redesign;
@@ -1578,7 +1608,7 @@ Move each item to `decisions.md` once it's answered.
     - **Filtered targets** (only a product in Shoes, only a term under
       a parent): later (D-587).
     - **Output** (later, D-601): structured data (`author`, `about`, `isPartOf`),
-      feeds, `llms.txt`, and the read-only content API (D-479)
+      feeds, `llms.txt`, and the read-only API (D-479, D-736)
       including related entries (`?include=actors`).
     - **Bulk and maintenance** (later, D-601): adding a term to many entries from a
       list, merging two terms (rewriting referrers), and the reverse
@@ -1611,7 +1641,7 @@ Move each item to `decisions.md` once it's answered.
   - **Media isn't a content type** (D-238 stands, narrowed). A content
     type adds a body, routes (attachment pages), status, and taxonomies;
     everything else (an id, fields, an owner, dates, the index and its
-    queries, the content API) media can have as its own kind of record,
+    queries, the API) media can have as its own kind of record,
     stored as `data` (D-486). What would flip it: wanting attachment
     pages, or public term archives of media.
   - **Grouping media** (the author may want it): it depends on who it's
@@ -1640,8 +1670,8 @@ Move each item to `decisions.md` once it's answered.
       file is orphaned and the moved file has none (lint reports both).
       A move or rename action in the admin would carry the id and the
       `sizes` list with the file.
-    - **When related work comes:** media by id in the content API
-      (D-479); Blush-made sizes cached by id; importers writing ids,
+    - **When related work comes:** media by id in the API
+      (D-479, D-736); Blush-made sizes cached by id; importers writing ids,
       `sizes`, and source keys; `MediaMetadataStore` behind the `data`
       area's interface (D-486).
   - **Importers** (and exporters): now their own entry, **Importers and

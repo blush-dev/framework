@@ -69,6 +69,9 @@ blush-framework/
     Sitemap/            Sitemap config, builder, controller, robots.txt, routes (D-123)
     Llms/               LlmsConfig, MarkdownPages, MarkdownLinks, LlmsTxt, controllers, routes,
                         site URLs (Markdown pages and llms.txt, D-395, D-396, D-476)
+    Api/                ApiConfig, ApiRoutes, ApiResponses, ApiQuery, ApiEntries, EntryResource,
+                        MediaResource, ApiIncludes, ApiValues, ApiError; Http/ controllers
+                        (the read-only API, D-736 to D-742)
     Publish/            Publisher, PublishConfig, Puller + GitPuller, webhook (D-131, D-132)
     Setup/              SetupChecks, CheckResult, CheckStatus, SetupPage (init, doctor, D-218)
     Session/            Session, SessionStore + FileSessionStore, SessionConfig, StartSession (D-219)

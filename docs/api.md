@@ -1,0 +1,222 @@
+# The API
+
+Blush can serve a read-only API of your site as JSON, for a front end
+built with another tool, an app, another site, or an AI tool. It
+answers with what your site shows anyone: published pages and posts,
+your content types and relationships, your media, your menus, and your
+site's details. Drafts, scheduled entries, and hidden pages are never
+in it.
+
+## Turning it on
+
+The API is off until you turn it on, in the admin on **Settings →
+Reading**, or in `config/api.php`:
+
+```php
+<?php
+
+declare(strict_types=1);
+
+use Blush\Api\ApiConfig;
+
+return new ApiConfig(enabled: true);
+```
+
+It's served at `/api/v1`. To serve it somewhere else, set `path`
+(`path: '/data'` serves `/data/v1`). While it's off, every address
+under it is your site's ordinary "not found" page. See
+[Configuration](configuration.md#the-api) for every option.
+
+## What it serves
+
+| Address | What it answers |
+|---|---|
+| `/api/v1` | Where each resource is |
+| `/api/v1/site` | Your site's name, description, address, language, time zone, and homepage |
+| `/api/v1/types` | Your public content types; `/api/v1/types/{name}` for one |
+| `/api/v1/entries` | Published entries of every public type; `/api/v1/entries/{id}` for one |
+| `/api/v1/relations` | The relationships between types, such as a post's tags or authors |
+| `/api/v1/media` | Every file in your media library; `/api/v1/media/{id}` for one |
+| `/api/v1/menus` | Your theme's menu locations; `/api/v1/menus/{location}` for one's menu |
+
+Entries and media are found by their id, the `id` in each file's front
+matter or metadata, so an address stays the same when a file is renamed
+or moved.
+
+## Lists
+
+Every list has the same shape:
+
+```json
+{
+	"items": [ … ],
+	"total": 214,
+	"page": 2,
+	"pages": 11,
+	"per_page": 20,
+	"next": "https://example.com/api/v1/entries?page=3",
+	"prev": "https://example.com/api/v1/entries"
+}
+```
+
+`page` and `per_page` (20 by default, 100 at most) choose the page.
+`next` and `prev` are full addresses, or `null` at either end.
+
+## Entries
+
+```json
+{
+	"id": "0199a1b4-…",
+	"type": "post",
+	"title": "Hello",
+	"subtitle": "",
+	"slug": "hello",
+	"status": "published",
+	"published": "2026-10-01T14:00:00Z",
+	"updated": "2026-10-02T09:12:00Z",
+	"url": "https://example.com/archives/hello",
+	"excerpt": "The first words of the post…",
+	"image": { "id": "0198…", "url": "https://example.com/media/2026/10/hello.jpg", "alt": "A lake", "width": 1200, "height": 800 },
+	"fields": { "mood": "happy" },
+	"relations": {
+		"tags": [ { "id": "0199…", "type": "tag", "title": "Cooking", "url": "https://example.com/tags/cooking" } ]
+	},
+	"body": "<p>…</p>",
+	"assets": { "styles": [], "scripts": [] }
+}
+```
+
+- **Dates** are in UTC. Your site's time zone is in `/api/v1/site`.
+- **`url`** is there for types whose entries have pages. **`parent`**
+  is there for pages and other types that nest: the page above it, or
+  `null`.
+- **`excerpt`** is plain text: the summary, or the start of the body.
+- **`fields`** holds the fields the entry's [type declares](content-types.md),
+  each one, `null` when it's empty. Front matter the type doesn't
+  declare isn't sent. A media field is the file, as `image` is.
+- **`relations`** lists what the entry links to, by the relationship's
+  name, in order. A link to something the site doesn't show (a draft
+  tag) is left out.
+- **`body`** is the entry rendered as on your site. `assets` lists the
+  scripts and stylesheets it needs, such as the audio player's, so a
+  front end can load them.
+
+### The body
+
+A single entry has its body as HTML. A list leaves bodies out, unless
+you ask with `body`:
+
+- `?body=html`: rendered as on your site, with full addresses.
+- `?body=markdown`: as you wrote it, with full addresses for links and
+  media (as the [Markdown copies](configuration.md#markdown-pages-and-llmstxt)
+  are). Directives stay as written.
+- `?body=none`: no body.
+
+### Including what an entry links to
+
+Links to other entries are small: their id, type, title, and address.
+Media is its id, address, alt text, and size. Ask for the whole thing
+with `include`, and it takes the link's place:
+
+- `?include=media`: every media file in full (caption, sizes, and the
+  rest).
+- `?include=relations`: every linked entry in full.
+- `?include=relations.authors`: one relationship's entries in full.
+
+What's included has links of its own, but no body.
+
+### Finding entries
+
+| Parameter | Example | Finds |
+|---|---|---|
+| `type` | `?type=post,note` | Entries of those types |
+| `rel:{relationship}` | `?rel:tags=cooking,baking` | Entries linked to any of those, by slug or id |
+| `parent` | `?parent=0199…` | The pages under a page |
+| `published_after`, `published_before` | `?published_after=2026-01-01` | Entries published from, or before, a date |
+| `updated_after` | `?updated_after=2026-10-01T00:00:00Z` | Entries changed since then |
+| `search` | `?search=sourdough` | Entries with those words |
+| `ids` | `?ids=0199…,0198…` | Those entries |
+| `sort` | `?sort=-published` | Sorted by `published`, `updated`, `title`, or `position`; `-` for newest or last first |
+
+A list of one type follows that type's own order; a list of several is
+newest first. A list leaves out unlisted entries and the pages
+introducing a listing, as your site's listings do.
+
+### Finding the entry at an address
+
+A front end that owns its own pages can ask what's at an address of
+your site:
+
+```
+/api/v1/entries?url=/about/biography
+```
+
+The answer is a list of that entry, or an empty one. The address can be
+a path or a full address on your site. When the address
+[redirects](content.md#redirects), the empty list says where:
+
+```json
+{ "items": [], …, "redirect": { "to": "https://example.com/about", "status": 301 } }
+```
+
+`url` takes only `body` and `include` beside it. An archive (a tag's
+page, a year) isn't an entry, so it answers an empty list.
+
+## Media
+
+Every file in your media library with an id is public, as its file is:
+
+```json
+{
+	"id": "0198…",
+	"kind": "image",
+	"mime": "image/jpeg",
+	"url": "https://example.com/media/2026/10/lake.jpg",
+	"size": 482113,
+	"width": 2400,
+	"height": 1600,
+	"duration": null,
+	"title": "Lake",
+	"alt": "A lake at dawn",
+	"caption": "",
+	"description": "",
+	"uploaded": "2026-10-01T14:00:00Z",
+	"sizes": [ { "url": "https://example.com/media/2026/10/lake-600x400.jpg", "width": 600, "height": 400 } ],
+	"artwork": null,
+	"fields": {}
+}
+```
+
+Find files with `kind` (`image`, `video`, `audio`, `document`, or
+`file`) and `search`. They're newest first.
+
+## Menus
+
+`/api/v1/menus` lists your theme's menu locations and the menu each one
+shows. `/api/v1/menus/primary` is that location's menu as your site
+shows it, in your site's language, with each item's `label`, `url`,
+`description`, `icon`, `image`, `badge`, `class`, `rel`, the theme's own
+`fields`, and its `children`.
+
+## Errors
+
+A request the API can't answer gets an error with a status:
+
+```json
+{ "error": { "code": "not_found", "message": "No entry has the id \"…\"." } }
+```
+
+| Code | Status | When |
+|---|---|---|
+| `invalid_query` | 400 | A parameter isn't one the address takes, or has a value it can't |
+| `not_found` | 404 | Nothing has that id, or nothing is at that address |
+
+The `code` stays the same; the message may change.
+
+## Caching and other sites
+
+Answers are kept until your content changes, like your pages, and
+browsers and caches may keep them for a minute (`maxAge`). Each has an
+`ETag`, so a client that asks again with `If-None-Match` gets a quick
+`304` when nothing changed. Any site may call the API from a browser
+(`Access-Control-Allow-Origin: *`), since everything in it is public.

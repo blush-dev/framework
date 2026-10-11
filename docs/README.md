@@ -27,6 +27,7 @@ page, post, and setting is a file you can edit, copy, and keep in git.
 | [Components](components.md) | Reusable pieces of a theme's templates |
 | [Themes](themes.md) | Choosing, customizing, and building themes |
 | [Menus](menus.md) | Navigation menus, and assigning them to your theme's locations |
+| [The API](api.md) | Your site as JSON, for other front ends, apps, and AI tools |
 | [The admin](admin.md) | Turning on the admin, its dashboard, and building your own |
 | [Accounts and roles](accounts.md) | Who can sign in to the admin, and what they can do |
 | [Configuration](configuration.md) | `.env` and every `config/` option |

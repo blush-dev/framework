@@ -75,7 +75,8 @@ final class AdminSettingsTest extends TestCase
 		$system  = self::json($this->send('GET', '/settings/system'));
 
 		$this->assertSame(['site', 'dates', 'accounts', 'environment'], array_column(is_array($general['groups'] ?? null) ? $general['groups'] : [], 'key'));
-		$this->assertSame(['home', 'feeds'], array_column(is_array($reading['groups'] ?? null) ? $reading['groups'] : [], 'key'));
+		$this->assertSame(['home', 'feeds', 'api'], array_column(is_array($reading['groups'] ?? null) ? $reading['groups'] : [], 'key'));
+		$this->assertSame(['api.enabled', false, '/api/v1'], [$this->setting($reading, 'api', 'api')['setting'] ?? null, $this->setting($reading, 'api', 'api')['value'] ?? null, $this->setting($reading, 'api', 'path')['value'] ?? null], 'The API is off until it\'s turned on (D-741).');
 		$this->assertSame(['addresses', 'search'], array_column(is_array($search['groups'] ?? null) ? $search['groups'] : [], 'key'));
 		$this->assertSame(['markdown', 'crawlers'], array_column(is_array($ai['groups'] ?? null) ? $ai['groups'] : [], 'key'));
 		$this->assertSame(['types', 'caching', 'publishing'], array_column(is_array($system['groups'] ?? null) ? $system['groups'] : [], 'key'));

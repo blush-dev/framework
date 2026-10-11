@@ -1221,6 +1221,25 @@ reusable pieces, from themes, the site, and plugins.
   (so the admin's and media's own `.md` paths win, and content routes'
   `{name}` never takes `hello.md`); themed pages link the version with
   `<link rel="alternate" type="text/markdown">`. Both are site URLs.
+- **The API** (`Blush\Api`, D-736 to D-742): read-only, off by
+  default (`ApiConfig`), under `ApiConfig::base()` (`/api/v1`).
+  `ApiRoutes` are system routes, `exact`, registered before
+  `LlmsRoutes` (whose `/{path}.md` would take an API address), with a
+  JSON 404 for anything else under the base and an `OPTIONS`
+  preflight. Every answer is anonymous, so `ApiEntries` holds what the
+  public site shows (published, public types; lists public and not
+  landing pages, single entries public or unlisted), and finds an
+  entry by address from a path-to-id map kept for the content version.
+  `EntryResource` and `MediaResource` shape records and stubs (an
+  entry's `fields` only those its type declares, D-743), with
+  `include` expanding in place one level deep; an HTML body's assets
+  come from rendering it in an isolated `AssetCollector` scope.
+  `ApiQuery` allows only the parameters an endpoint names (and
+  `rel:{relation}`), so a typo is a 400. `ApiResponses` sends every
+  answer: JSON kept by `ContentCache` under `pages`, keyed by path and
+  sorted query, `Cache-Control` from `maxAge`, CORS `*`, and
+  `ApiError`s as `{ error: { code, message } }`; `ConditionalGet`
+  adds the `ETag`. Controllers are in `Blush\Api\Http`.
 - **Search:** optional; FTS5 with the SQLite driver, or a JSON index (under discussion; see `open-questions.md`).
 
 ## Caching
