@@ -22800,3 +22800,37 @@ decision, add a new entry that supersedes it and mark the old one
   change"; no hint or check for clashing labels. On the dialog: "This
   was supposed to be just a setting on the content types screen for
   setting the position and parent."
+
+### D-727: Excerpts are the body's prose
+
+- **Date:** 2026-10-10
+- **Status:** Built.
+- **Decision:** An excerpt without a summary is read from the body's
+  prose only, an allow list in place of a list of things to skip
+  (which let audio card titles, players' fallback text, embed links,
+  file links, callouts, and buttons into excerpts and descriptions):
+  - **Prose** is the text of `p`, `li`, `dt`, and `dd`, in order; a
+    list item's own paragraphs and nested lists are read as their own
+    blocks. **Headings are left out.**
+  - **Never prose**, wherever it is: anything set apart (`figure`, so
+    images, audio, video, embeds, playlists, and their captions;
+    `aside`, so callouts; `details`, `table`, `pre`), forms, labels and
+    gauges (progress, meter), footnotes and their marks, navigation
+    (menus, a table of contents), frames and players, SVG, buttons,
+    what's hidden or `aria-hidden`, and the paragraphs and links
+    directives draw (`p.directive-*`, such as a file's link or an
+    embed's plain link, and `a.directive-button`).
+  - A plugin's block directive that draws a `div` or `figure` is left
+    out on its own; only paragraphs and lists inside it count, as with
+    groups, rows, and stacks.
+  - **Word counts** (and reading time) still read all of the text, but
+    now leave out players, frames, buttons, and footnote marks as well
+    as captions, navigation, and hidden text (D-183, D-494).
+  - Built in `Content\Entry\Body` (`PROSE`, `NOT_PROSE`, `UNREAD`).
+    Cached excerpts keep their old text until the cache is cleared.
+- **Why:** the author: "fix excerpts so that they skip past things that
+  aren't a part of the post text … there's no reason for audio/image
+  figcaptions to appear," then "Not just those things. Look at the
+  bigger picture." Headings left out because an excerpt runs its
+  blocks together as one paragraph, where a heading reads as a stray
+  phrase.

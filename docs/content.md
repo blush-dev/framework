@@ -82,7 +82,7 @@ needed in practice. The built-in keys:
 | `status` | `published` (the default), `draft`, or `trash`. The admin's **Move to trash** sets `trash`, which takes the entry off your site |
 | `trashed` | When the entry was moved to the trash; set with `status: trash`, and removed when it's restored |
 | `visibility` | `public` (the default), `unlisted`, or `hidden` |
-| `summary` | A short Markdown summary for listings and feeds. Without one, the first 50 words are used. (`excerpt` works too.) |
+| `summary` | A short Markdown summary for listings and feeds. Without one, the first 50 words of the content's paragraphs and lists are used. (`excerpt` works too.) |
 | `image` | A featured image |
 | `authors` | One author or a list, by profile slug (`author` works too), in types the `authors` relation credits. A type can credit people under other names too, such as `cooks` (see [Crediting people](content-types.md#crediting-people)) |
 | `position` | A page's or term's place among its siblings, a whole number, lowest first. Those without one follow, by title. Only pages (and other [trees](content-types.md#trees)) and collections that [nest or are ordered by position](content-types.md#nesting-and-order), such as categories and tags, have it |

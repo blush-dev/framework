@@ -661,6 +661,9 @@ Implemented in M4b (D-088).
 - The `Body`'s source is a **lazy ghost** (`EntryHydrator`): the file is
   read, parsed, and rendered only when `body()` is called, and not at all
   when the `BodyCache` has the rendering (D-130).
+- An **excerpt** without a summary is the body's prose: the words of its
+  paragraphs and list items, leaving out headings and anything set apart,
+  hidden, or drawn by a directive that isn't text (D-727).
 - **Scheduling:** a future `published` date means `Scheduled`, decided
   against the clock at read time. The index records the next go-live time,
   and the content version moves on by itself when it passes (D-128).

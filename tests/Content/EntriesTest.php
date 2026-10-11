@@ -337,6 +337,26 @@ final class EntriesTest extends TestCase
 		$this->assertSame('', $this->content->named('page', '')?->excerpt());
 	}
 
+	public function testExcerptsAreTheProse(): void
+	{
+		$this->entry('_post/prose.md', 'title: Prose', implode("\n\n", [
+			'# A heading',
+			'<figure><audio src="a.mp3"><a href="a.mp3">Download it</a></audio><figcaption>Song title</figcaption></figure>',
+			'<aside class="directive-callout"><p>A callout.</p></aside>',
+			'<p class="directive-file"><a href="a.pdf">A file</a></p>',
+			'One <a class="directive-button" href="/go">Go</a> two[^1] three.',
+			"```\ncode words\n```",
+			"| A | B |\n|---|---|\n| cell | cell |",
+			"- Four\n- Five\n  - six",
+			'[^1]: A footnote.'
+		]));
+		$this->entry('_post/media.md', 'title: Media', '<figure><video src="a.mp4"></video><figcaption>A caption</figcaption></figure>');
+		$this->content = $this->repository($this->site('development'));
+
+		$this->assertSame('<p>One two three. Four Five six</p>', $this->content->named('post', 'prose')?->excerpt());
+		$this->assertSame('', $this->content->named('post', 'media')?->excerpt());
+	}
+
 	public function testTermsAreTheirFiles(): void
 	{
 		$art = $this->content->term('category', 'art');

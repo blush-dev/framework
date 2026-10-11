@@ -527,7 +527,10 @@ An entry offers `title`, `slug`, `published`, `updated`, `content()`
 `summary()`, `excerpt()`, `subtitle()`, `wordCount()`, `readingTime()`
 (in minutes), and `field('name')` for anything in its front matter.
 `excerpt(50, $more)` takes the number of words and HTML to end with when
-the content is cut short, such as a "Continue reading" link:
+the content is cut short, such as a "Continue reading" link. Without a
+summary, the excerpt is the content's prose: the words of its paragraphs
+and list items. Headings, images, audio, video, embeds, captions,
+callouts, tables, code, footnotes, buttons, and menus are left out.
 
 ```php
 <?= raw($entry->excerpt(40, ' <a href="' . url($template->permalink($entry)) . '">Continue reading</a>')) ?>

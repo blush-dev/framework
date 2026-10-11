@@ -157,6 +157,7 @@ final class TocTest extends TestCase
 		$guide = $app->container()->make(Entries::class)->named('page', 'guide');
 
 		$this->assertNotNull($guide);
-		$this->assertStringStartsWith('<p>Intro words here. Install it', $guide->excerpt());
+		$this->assertStringStartsWith('<p>Intro words here.', $guide->excerpt());
+		$this->assertStringNotContainsString('Install it', $guide->excerpt());
 	}
 }
