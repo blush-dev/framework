@@ -22932,3 +22932,103 @@ decision, add a new entry that supersedes it and mark the old one
   dashed frame.
 - **Why:** the author: "Make the image square," and "when there is no
   image, place the content type icon inside of the square box."
+
+### D-732: A status API with workflows, per type, expiry, and room for pending changes (planned)
+
+- **Date:** 2026-10-10
+- **Status:** Planned; nothing built. The status API D-586 and D-588
+  wait for. Open points in `open-questions.md` → Status API.
+- **Decision:** From a review of other CMSs' status models (registered
+  statuses with overlapping flags; Drupal's workflows of states and
+  transitions; statuses worked out from dates; drafts as a second
+  version of a published document), the author's answers:
+  - **Expired:** an entry can have an expiry date, and a live entry
+    whose date has passed is expired, worked out as `scheduled` is.
+  - **Transitions:** explore Drupal's model: workflows of states and
+    transitions, each state saying what it does (live or not), with a
+    permission per transition.
+  - **Per type:** which statuses a type uses can differ by type.
+  - **Pending changes** (a published entry with unpublished edits) are
+    not built now, but the API leaves ample room for them, to be added
+    later without breaking anything else.
+  - **Responses** (comments, reviews, webmentions) have statuses too;
+    whether they're built on the same system is open.
+- **Why:** the author's answers, 2026-10-10.
+
+### D-733: Statuses are one global list; expiry per type; a Workflows screen for 2.x (planned)
+
+- **Date:** 2026-10-10
+- **Status:** Planned; nothing built. Refines D-732.
+- **Decision:**
+  - **Statuses are one global list**, registered by name with a label
+    and what they do (`live`, `active`). A workflow picks from them, so
+    `status: draft` means one thing in every file and a query for a
+    status works across types (not Drupal's states per workflow).
+  - **Expiry is per type:** a type setting offers the `expires` date;
+    a type without it has no expired entries.
+  - **Transition capabilities get names that can't clash** with the
+    content actions (`create`, `edit`, `publish`, `delete`, and their
+    `.others`); the names are open.
+  - **A Workflows screen under Structure**, for the 2.x launch.
+- **Why:** the author's answers, 2026-10-10.
+
+### D-734: Who may make a transition (planned)
+
+- **Date:** 2026-10-10
+- **Status:** Planned; nothing built. Refines D-732 and D-733.
+- **Decision:**
+  - **No `.others` for transitions.** Making one needs its capability
+    and edit access to the entry; the edit rules decide whose entries.
+  - **Changing what's live needs `publish`** (or `publish.others`) as
+    well, for now: a transition into or out of a live status needs it
+    beside its own capability.
+  - **The standard workflow's Publish and Unpublish** need `publish`
+    alone, no capability of their own.
+  - **Capability names are settled when it's built.** Existing roles
+    needn't be kept working through the 2.x cycle.
+- **Why:** the author's answers, 2026-10-10.
+
+### D-735: The status API's registration shape (planned)
+
+- **Date:** 2026-10-10
+- **Status:** Planned; nothing built. The direction for D-732 to D-734,
+  to pick up later. Open points in `open-questions.md` → Status API.
+- **Decision:** As sketched (and kept in `open-questions.md`):
+  - **`StatusSource` and `WorkflowSource`**, tagged in a provider's
+    `TAGS` as `ContentTypeSource` and `RelationSource` are.
+  - **`Status`:** name, label, plural (list tabs), `live`, `active`, and
+    a subject (`Subject::Entries` by default, or `Responses`).
+    `selectable` goes: a workflow's transitions decide what's offered.
+    Core registers `draft` and `published` for entries, and `pending`,
+    `approved`, and `spam` for responses.
+  - **`Workflow`:** name, label, subject, statuses, `initial`, and
+    `Transition`s (name, label in Title Case, `from` list, `to`). Saving
+    without changing status isn't a transition. Core's `standard`
+    (draft, published; Publish and Unpublish) is every type's unless
+    it names another; core's `moderation` is responses'.
+  - **Types** name theirs with `workflow:` and turn expiry on with
+    `expires:` (in a data type, `"workflow"` and `"expires"`).
+  - **The site's own** are records, `user/data/statuses/{name}.json`
+    and `user/data/workflows/{name}.json` (tables under the data
+    layer), written by the Workflows screen, each replacing an
+    extension's by name.
+  - **Core only:** `trash` (from any status in any workflow, Restore
+    to `initial`), and `scheduled` and `expired`, worked out from
+    `published` and `expires` on any live status. Listed so tabs and
+    labels work; never registered, a workflow's status, or a `to`.
+    `Blush\Content\Status` shrinks to core's names.
+  - **Reading and changing:** `Statuses` (`get()`, `live()`),
+    `Workflows::for($type)`, `Query::status()`, `live()`, and `any()`,
+    and one `Transitions` service (`allowed()`, `apply()`) that every
+    status change goes through, dispatching `StatusChanging` (can
+    refuse, with a reason) and `StatusChanged`. It's where pending
+    changes hook in later: a `Status` gains Drupal's "replaces the
+    current version" flag, and `apply()` writes a version store.
+  - **When definitions don't fit:** the first extension's name wins
+    (as D-597); a workflow naming a missing status, or with a bad
+    `initial` or transition, is left out softly and reported, its types
+    falling back to `standard`; an entry whose status isn't in its
+    type's workflow isn't live, is kept as written, warned about by
+    lint, and mapped by a Site Health check.
+- **Why:** the author: "I think this looks good for now. Record, and
+  we'll pick it up again later."

@@ -4,6 +4,63 @@ Move each item to `decisions.md` once it's answered.
 
 ## Needs the author's call
 
+- **Status API** (D-732; discussed 2026-10-10). Leaning, from Drupal's
+  workflows mapped onto Blush:
+  - **Statuses are registered once, by name** (label, `live`, `active`),
+    not per workflow as Drupal has them, so `status: draft` means one
+    thing in every file and "every draft" works across types.
+  - **Workflows** pick statuses and add an initial status and
+    transitions (`name`, `label`, `from` list, `to`), from core,
+    plugins, and `user/data` (as relations are). A type names its
+    workflow, which is how statuses differ by type. Core's
+    `standard`: draft and published, with Publish and Unpublish.
+  - **Outside every workflow, in core:** `trash` (Move to Trash from
+    any status, Restore to the workflow's initial status), and
+    `scheduled` and `expired`, worked out from dates on any live status.
+    `expires` is a built-in date like `trashed`, with a job that moves
+    the content version when an entry expires, as `GoLiveJob` does.
+  - **Permissions:** a capability per transition per type. Standard's
+    transitions use today's `publish`, so roles don't change. Own and
+    others' entries stay with the edit rules.
+  - **Room for pending changes:** the content file (or record) is
+    always the version the site shows. A pending version, later, goes
+    in a storage area of its own keyed by the entry id. A status gains
+    Drupal's second flag (whether entering it replaces the current
+    version) then. Until then every transition writes the entry. Every
+    status change goes through one transitions service, so that's the
+    one place a version store hooks in.
+  - **Unknown statuses** (a plugin turned off): not live, kept as
+    written, warned about by lint. A type moved to another workflow
+    gets a Site Health check that maps statuses the new one lacks.
+  - **Responses:** the same machinery (definitions, workflows,
+    transitions, capabilities, events) with statuses registered per
+    subject (entries, responses), so `approved` and `spam` never show
+    for entries. `spam` isn't active, like `trash`.
+  - Settled in D-733: one global list of statuses; expiry per type; a
+    Workflows screen under Structure for the 2.x launch. D-734: no
+    `.others` for transitions, `publish` too for changing what's live,
+    and capability names settled when it's built.
+  - **Registration (sketched 2026-10-10):** `StatusSource` and
+    `WorkflowSource`, tagged in a provider's `TAGS` as types and
+    relations are, yielding `Status` (name, label, plural, `live`,
+    `active`, subject) and `Workflow` (name, label, subject, statuses,
+    initial, `Transition`s of name, label, `from`, `to`). A type names
+    its workflow (`workflow:`) and turns expiry on (`expires:`). The
+    site's are records (`user/data/statuses`, `user/data/workflows`),
+    replacing an extension's by name. `trash`, `scheduled`, and
+    `expired` are core's and can't be registered or put in a workflow.
+    Reading: `Statuses`, `Workflows::for($type)`, and one
+    `Transitions` service (`allowed()`, `apply()`) that every status
+    change goes through, with `StatusChanging` (can refuse) and
+    `StatusChanged`. Recorded as the direction in D-735, to pick up
+    later.
+  - Open: the namespace (`Blush\Workflow`, as responses share it, or
+    under `Blush\Content`); whether a site record may change an
+    extension's status entirely, `live` included, or only its labels
+    (flipping `live` on someone else's status seems risky); whether
+    statuses carry a tone for the admin's chips or custom ones share a
+    neutral one.
+
 - **"Views" or "templates" for a theme's folder** (discussed
   2026-10-08; kept open by the author). The folder is `views/` and the
   runtime `Blush\View`, but writers and theme authors meet "template":

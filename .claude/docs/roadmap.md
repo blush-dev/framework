@@ -919,6 +919,13 @@ keeping the first screen's code in one file.
 
 ### Still to scope
 
+- **The status API and workflows (D-732, D-733; for the 2.x launch):**
+  statuses registered once by name, workflows of statuses and
+  transitions named by each type, `expired` from a per-type `expires`
+  date, a capability per transition, room for pending changes, the
+  same machinery for responses, and a Workflows screen under
+  Structure. See `open-questions.md` → Status API.
+
 - **The editor's Template (D-728):** a select under the Publish
   group's rows, of the templates the active theme has for the entry's
   type, writing `template`. Taken out of the panel (with `collection`)
