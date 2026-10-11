@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Blush\Auth;
 
+use Blush\Container\Attributes\NoAutowire;
 use Blush\Content\Entry\Entry;
 use Blush\Content\Query\Query;
 use Blush\Content\Status;
@@ -42,6 +43,11 @@ use Blush\Media\MediaKind;
  * for its own entries and for others' (`statuses()`). `can()` checks one
  * entry against them, and `restrict()` turns them into query conditions,
  * so a list of entries is filtered and paged in the index (D-230).
+ *
+ * An API token narrowed to some capabilities (D-744) answers through a
+ * copy limited to them (`limitedTo()`): a capability is granted only
+ * when a role grants it and the limit allows it, so a token never does
+ * more than its account can now.
  */
 final readonly class Permissions
 {
@@ -49,8 +55,22 @@ final readonly class Permissions
 		private Roles $roles,
 		private Capabilities $capabilities,
 		private ContentTypes $types,
-		private AccountProfiles $profiles
+		private AccountProfiles $profiles,
+		#[NoAutowire] private ?Role $limit = null
 	) {}
+
+	/**
+	 * Returns a copy that grants only what's among some capabilities as
+	 * well (`*` words match as a role's do), or, for `null`, a copy
+	 * without a limit.
+	 *
+	 * @param  ?list<string> $capabilities
+	 * @throws AuthException For a name that isn't a capability's.
+	 */
+	public function limitedTo(?array $capabilities): self
+	{
+		return clone($this, ['limit' => $capabilities === null ? null : new Role('limit', 'Limit', $capabilities)]);
+	}
 
 	/**
 	 * Whether the account may use a capability. A content action is
@@ -221,10 +241,15 @@ final readonly class Permissions
 	}
 
 	/**
-	 * Whether any of the account's roles grants a capability.
+	 * Whether any of the account's roles grants a capability, and the
+	 * limit, if there is one, allows it.
 	 */
 	private function grants(Account $account, string $capability): bool
 	{
+		if ($this->limit !== null && ! $this->limit->allows($capability)) {
+			return false;
+		}
+
 		return array_any($account->roles, fn (string $name): bool => $this->roles->get($name)?->allows($capability) ?? false);
 	}
 }

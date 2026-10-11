@@ -22,10 +22,13 @@ use Blush\Api\ApiIncludes;
 use Blush\Api\ApiQuery;
 use Blush\Api\ApiResponses;
 use Blush\Api\EntryResource;
+use Blush\Auth\Account;
+use Blush\Auth\Token;
 use Blush\Content\Entry\Entry;
 use Blush\Content\Query\Query;
 use Blush\Content\Relation\Relation;
 use Blush\Content\Relation\Relations;
+use Blush\Content\Status;
 use Blush\Core\AppConfig;
 use Blush\Routing\RouteTable;
 use Blush\Storage\Record\Order;
@@ -44,6 +47,11 @@ use Blush\Support\Uuid;
  * only `body` and `include` beside it: a list of it alone, or empty,
  * with `redirect` when the address redirects. Lists leave the body out
  * unless `body` asks for it; a single entry has its HTML.
+ *
+ * `status` (D-745), with an API token: entries of those statuses its
+ * token may edit, whatever their visibility, in place of what the site
+ * shows; on a list and on a single entry. Without a token, it's a
+ * `401`.
  */
 final readonly class EntriesController
 {
@@ -59,7 +67,7 @@ final readonly class EntriesController
 	 *
 	 * @var list<string>
 	 */
-	private const array LIST = ['type', 'parent', 'published_after', 'published_before', 'updated_after', 'search', 'ids', 'url', 'sort', 'page', 'per_page', 'body', 'include'];
+	private const array LIST = ['type', 'parent', 'published_after', 'published_before', 'updated_after', 'search', 'ids', 'url', 'sort', 'page', 'per_page', 'body', 'include', 'status'];
 
 	public function __construct(
 		private ApiResponses $responses,
@@ -81,10 +89,12 @@ final readonly class EntriesController
 				return $this->at($request, $query, $body, $include);
 			}
 
-			$page    = $query->page();
-			$perPage = $query->perPage();
+			$page     = $query->page();
+			$perPage  = $query->perPage();
+			$statuses = $this->statuses($request, $query);
+			$base     = $statuses === null ? $this->entries->query() : $this->entries->editable(...$statuses);
 
-			[$entries, $total] = $this->find($query, $page, $perPage);
+			[$entries, $total] = $this->find($base, $query, $page, $perPage);
 
 			return $this->responses->page(
 				$request,
@@ -99,8 +109,13 @@ final readonly class EntriesController
 	public function show(ServerRequestInterface $request, string $id): ResponseInterface
 	{
 		return $this->responses->answer($request, function () use ($request, $id): array {
-			$query = ApiQuery::from($request, ['body', 'include']);
-			$entry = Uuid::isValid($id) ? $this->entries->find($id) : null;
+			$query    = ApiQuery::from($request, ['body', 'include', 'status']);
+			$statuses = $this->statuses($request, $query);
+			$entry    = match (true) {
+				! Uuid::isValid($id) => null,
+				$statuses === null   => $this->entries->find($id),
+				default              => $this->entries->findEditable($id, ...$statuses)
+			};
 
 			if ($entry === null) {
 				throw ApiError::notFound(sprintf('No entry has the id "%s".', $id));
@@ -108,6 +123,36 @@ final readonly class EntriesController
 
 			return $this->resource->item($entry, $query->choice('body', EntryResource::BODIES, 'html'), ApiIncludes::from($query->list('include')));
 		});
+	}
+
+	/**
+	 * Returns what `status` asks for, with the request's token and its
+	 * account, or `null` when it isn't asked (D-745). Asking needs a
+	 * token.
+	 *
+	 * @return ?array{Token, Account, list<Status>}
+	 * @throws ApiError For a request without a token, or a status that isn't one.
+	 */
+	private function statuses(ServerRequestInterface $request, ApiQuery $query): ?array
+	{
+		if (! $query->has('status')) {
+			return null;
+		}
+
+		$token   = $request->getAttribute(Token::class);
+		$account = $request->getAttribute(Account::class);
+
+		if (! $token instanceof Token || ! $account instanceof Account) {
+			throw ApiError::unauthorized('token_required', '"status" finds entries a token may edit, so it needs one, sent in the Authorization header as "Bearer {token}".');
+		}
+
+		$statuses = [];
+
+		foreach ($query->list('status') as $value) {
+			$statuses[] = Status::tryFrom($value) ?? throw ApiError::invalidQuery(sprintf('"status" is one or more of: %s.', implode(', ', array_column(Status::cases(), 'value'))));
+		}
+
+		return $statuses === [] ? throw ApiError::invalidQuery('"status" needs a status.') : [$token, $account, array_values(array_unique($statuses, SORT_REGULAR))];
 	}
 
 	/**
@@ -138,16 +183,15 @@ final readonly class EntriesController
 	}
 
 	/**
-	 * Returns a page of the entries a list's filters find, and how many
-	 * they find in all.
+	 * Returns a page of the entries a list's filters find among a query's,
+	 * and how many they find in all.
 	 *
 	 * @return array{list<Entry>, int}
 	 * @throws ApiError
 	 */
-	private function find(ApiQuery $query, int $page, int $perPage): array
+	private function find(Query $search, ApiQuery $query, int $page, int $perPage): array
 	{
 		$zone   = $this->app->timezone();
-		$search = $this->entries->query();
 		$types  = $query->list('type');
 
 		foreach ($types as $type) {

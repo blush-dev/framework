@@ -533,8 +533,9 @@
     "isDynamicEntry": true,
     "imports": [
       "js/admin.ts",
-      "_PickModal.js",
+      "_CapabilitySections.js",
       "_RoleChecks.js",
+      "_PickModal.js",
       "_references.js"
     ],
     "css": [
@@ -892,8 +893,8 @@
     "isDynamicEntry": true,
     "imports": [
       "js/admin.ts",
-      "_SaveBar.js",
-      "_CapabilitySections.js"
+      "_CapabilitySections.js",
+      "_SaveBar.js"
     ],
     "css": [
       "css/RoleView.css"

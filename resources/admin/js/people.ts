@@ -86,8 +86,94 @@ export interface AccountInfo {
 	status: AccountStatus;
 	// The password link it has, if any (never its token).
 	link: { expires: number; expired: boolean } | null;
+	// Whether it never signs in and is used through its API tokens alone
+	// (D-744).
+	tokenOnly: boolean;
 	// Whether you may change it (not your own, and it can't do more).
 	manages: boolean;
+}
+
+// An API token (D-749), never its secret or hash.
+export interface TokenInfo {
+	id: string;
+	name: string;
+	// What it's narrowed to, or `null` for all its account's capabilities.
+	capabilities: string[] | null;
+	created: number;
+	// Who made it, or `null` for the command line.
+	createdBy: { username: string; displayName: string } | null;
+	expires: number | null;
+	expired: boolean;
+	lastUsed: number | null;
+}
+
+// An account's tokens (`GET accounts/{username}/tokens`), whether you
+// may make one, and what a new one may be narrowed to.
+export interface TokenList {
+	tokens: TokenInfo[];
+	make: boolean;
+	capabilities: CapabilityInfo[];
+	types: RoleType[];
+}
+
+// A token just made, with its text, shown once.
+export interface NewToken {
+	token: TokenInfo;
+	secret: string;
+}
+
+// What a new token asks for.
+export interface TokenRequest {
+	name: string;
+	// Days, or `null` for never.
+	expires: number | null;
+	capabilities: string[] | null;
+}
+
+// What a token may do, as the admin offers it (D-744): what anyone may
+// read; writing drafts, which reading drafts comes with (D-745); or all
+// its account may, now and later.
+export type TokenPreset = 'read' | 'drafts' | 'all';
+
+export const TOKEN_PRESETS: { key: TokenPreset; label: string; text: string; capabilities: string[] | null }[] = [
+	{ key: 'read', label: 'Read', text: 'What anyone can read. For an API only tokens may read.', capabilities: [] },
+	{ key: 'drafts', label: 'Write drafts', text: 'Read and write drafts of any type, and upload media, but never publish.', capabilities: ['content.*.create', 'content.*.edit', 'content.*.edit.others', 'media.*.upload', 'media.edit'] },
+	{ key: 'all', label: 'Same as the account', text: 'Whatever the account may do, now and as its roles change.', capabilities: null }
+];
+
+/**
+ * A preset's capabilities, or `null` for all its account's.
+ */
+export function presetCapabilities(preset: TokenPreset): string[] | null {
+	return TOKEN_PRESETS.find((item) => item.key === preset)?.capabilities ?? null;
+}
+
+/**
+ * What a token may do, in words: a preset's name, or how many
+ * capabilities it's narrowed to.
+ */
+export function tokenScope(capabilities: string[] | null): string {
+	const preset = TOKEN_PRESETS.find((item) => item.capabilities === null
+		? capabilities === null
+		: capabilities !== null && [...item.capabilities].sort().join() === [...capabilities].sort().join());
+
+	return preset?.label ?? `Chosen (${capabilities?.length ?? 0})`;
+}
+
+export function loadTokens(username: string): Promise<TokenList> {
+	return request<TokenList>('GET', `/accounts/${encodeURIComponent(username)}/tokens`);
+}
+
+export function makeToken(username: string, token: TokenRequest): Promise<NewToken> {
+	return request<NewToken>('POST', `/accounts/${encodeURIComponent(username)}/tokens`, token);
+}
+
+export function revokeToken(username: string, id: string): Promise<void> {
+	return request('DELETE', `/accounts/${encodeURIComponent(username)}/tokens/${encodeURIComponent(id)}`);
+}
+
+export async function revokeAllTokens(username: string): Promise<number> {
+	return (await request<{ revoked: number }>('DELETE', `/accounts/${encodeURIComponent(username)}/tokens`)).revoked;
 }
 
 export interface RoleList {
@@ -212,8 +298,23 @@ export async function loadAccounts(): Promise<AccountInfo[]> {
  */
 export const freshLink = ref<{ username: string; link: PasswordLink } | null>(null);
 
+/**
+ * The token just made with a token-only account, kept in memory only so
+ * the account's screen can show it once; it's never stored.
+ */
+export const freshToken = ref<{ username: string; token: NewToken } | null>(null);
+
 export function createAccount(account: { username: string; email: string; name: string | null; roles: string[]; author: string | null; profileTitle?: string }): Promise<{ account: AccountInfo; link: PasswordLink }> {
 	return request('POST', '/accounts', account);
+}
+
+/**
+ * Creates a token-only account (D-744), and its first token when one is
+ * asked for. `tokenError` says why the token wasn't made, when the
+ * account was.
+ */
+export function createTokenOnlyAccount(account: { username: string; email: string; name: string | null; roles: string[]; token: TokenRequest | null }): Promise<{ account: AccountInfo; token?: TokenInfo; secret?: string; tokenError?: string }> {
+	return request('POST', '/accounts', { ...account, tokenOnly: true, author: null });
 }
 
 export async function updateAccount(username: string, changes: { roles?: string[]; author?: string | null; name?: string | null; email?: string; suspended?: boolean }): Promise<AccountInfo> {

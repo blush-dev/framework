@@ -24,7 +24,8 @@ use Blush\Core\ServiceProvider;
 use Blush\Routing\RouteSource;
 
 /**
- * Binds the read-only API (D-736 to D-741).
+ * Binds the read-only API (D-736 to D-741) and its API tokens (D-744 to
+ * D-750).
  */
 final class ApiServiceProvider extends ServiceProvider
 {
@@ -42,6 +43,7 @@ final class ApiServiceProvider extends ServiceProvider
 	 * @inheritDoc
 	 */
 	protected const array TRANSIENTS = [
+		ApiAuthentication::class,
 		ApiRoutes::class,
 		IndexController::class,
 		SiteController::class,

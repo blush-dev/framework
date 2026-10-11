@@ -38,8 +38,12 @@ use Blush\Support\Uuid;
  *   the profile's title, then the username.
  * - `email` is the person's email address (D-370). Every account needs
  *   one; it's `null` only for an account saved before emails, which the
- *   admin asks to be given one. It's for the people who manage accounts:
+ *   admin asks to be given one, and for a token-only account, which
+ *   needn't have one (D-750). It's for the people who manage accounts:
  *   Blush sends no email.
+ * - `tokenOnly` accounts (D-744) never sign in: they have no password
+ *   anyone knows and no password link, and are used through their API
+ *   tokens alone, such as an agent's.
  */
 final readonly class Account
 {
@@ -74,7 +78,8 @@ final readonly class Account
 		public ?PasswordLink $passwordLink = null,
 		public ?string $name = null,
 		public ?string $email = null,
-		public string $id = ''
+		public string $id = '',
+		public bool $tokenOnly = false
 	) {
 		if (! self::isValidUsername($username)) {
 			throw new AuthException(sprintf('"%s" can\'t be a username; use lowercase letters, digits, ".", "_", and "-" (up to 64).', $username));
@@ -166,7 +171,7 @@ final readonly class Account
 	#[NoDiscard]
 	public function withId(string $id): self
 	{
-		return new self($this->username, $this->passwordHash, $this->roles, $this->profile, $this->created, $this->lastLogin, $this->preferences, $this->suspended, $this->passwordLink, $this->name, $this->email, $id);
+		return new self($this->username, $this->passwordHash, $this->roles, $this->profile, $this->created, $this->lastLogin, $this->preferences, $this->suspended, $this->passwordLink, $this->name, $this->email, $id, $this->tokenOnly);
 	}
 
 	/**
@@ -177,7 +182,7 @@ final readonly class Account
 	#[NoDiscard]
 	public function withProfile(?string $profile): self
 	{
-		return new self($this->username, $this->passwordHash, $this->roles, $profile, $this->created, $this->lastLogin, $this->preferences, $this->suspended, $this->passwordLink, $this->name, $this->email, $this->id);
+		return new self($this->username, $this->passwordHash, $this->roles, $profile, $this->created, $this->lastLogin, $this->preferences, $this->suspended, $this->passwordLink, $this->name, $this->email, $this->id, $this->tokenOnly);
 	}
 
 	/**
@@ -188,18 +193,18 @@ final readonly class Account
 	#[NoDiscard]
 	public function withName(?string $name): self
 	{
-		return new self($this->username, $this->passwordHash, $this->roles, $this->profile, $this->created, $this->lastLogin, $this->preferences, $this->suspended, $this->passwordLink, $name, $this->email, $this->id);
+		return new self($this->username, $this->passwordHash, $this->roles, $this->profile, $this->created, $this->lastLogin, $this->preferences, $this->suspended, $this->passwordLink, $name, $this->email, $this->id, $this->tokenOnly);
 	}
 
 	/**
-	 * Returns a copy with another email address.
+	 * Returns a copy with another email address, or none.
 	 *
 	 * @throws AuthException For an invalid one.
 	 */
 	#[NoDiscard]
-	public function withEmail(string $email): self
+	public function withEmail(?string $email): self
 	{
-		return new self($this->username, $this->passwordHash, $this->roles, $this->profile, $this->created, $this->lastLogin, $this->preferences, $this->suspended, $this->passwordLink, $this->name, $email, $this->id);
+		return new self($this->username, $this->passwordHash, $this->roles, $this->profile, $this->created, $this->lastLogin, $this->preferences, $this->suspended, $this->passwordLink, $this->name, $email, $this->id, $this->tokenOnly);
 	}
 
 	/**
@@ -285,7 +290,8 @@ final readonly class Account
 			passwordLink: is_array($data['passwordLink'] ?? null) ? PasswordLink::fromArray($data['passwordLink']) : null,
 			name: is_string($data['name'] ?? null) ? self::tidyName($data['name']) : null,
 			email: is_string($data['email'] ?? null) && $data['email'] !== '' ? $data['email'] : null,
-			id: $id
+			id: $id,
+			tokenOnly: ($data['tokenOnly'] ?? false) === true
 		);
 	}
 
@@ -293,10 +299,10 @@ final readonly class Account
 	 * Returns the account as its stored array, without its id, which is
 	 * the record's. Preferences at their
 	 * defaults are left out, and so is `preferences` when all are;
-	 * `name`, `email`, `suspended`, and `passwordLink` are written only
-	 * when set.
+	 * `name`, `email`, `suspended`, `passwordLink`, and `tokenOnly` are
+	 * written only when set.
 	 *
-	 * @return array{username: string, email?: string, name?: string, passwordHash: string, roles: list<string>, profile: ?string, created: int, lastLogin: ?int, preferences?: array<string, string|bool|list<string>>, suspended?: true, passwordLink?: array{hash: string, expires: int}}
+	 * @return array{username: string, email?: string, name?: string, passwordHash: string, roles: list<string>, profile: ?string, created: int, lastLogin: ?int, preferences?: array<string, string|bool|list<string>>, suspended?: true, passwordLink?: array{hash: string, expires: int}, tokenOnly?: true}
 	 */
 	public function toArray(): array
 	{
@@ -313,7 +319,8 @@ final readonly class Account
 			'lastLogin'    => $this->lastLogin,
 			...($preferences === [] ? [] : ['preferences' => $preferences]),
 			...($this->suspended ? ['suspended' => true] : []),
-			...($this->passwordLink === null ? [] : ['passwordLink' => $this->passwordLink->toArray()])
+			...($this->passwordLink === null ? [] : ['passwordLink' => $this->passwordLink->toArray()]),
+			...($this->tokenOnly ? ['tokenOnly' => true] : [])
 		];
 	}
 }

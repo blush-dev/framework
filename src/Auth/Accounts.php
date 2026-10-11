@@ -41,6 +41,11 @@ use Blush\Storage\StorageException;
  * it gets a one-time link instead, for its person to choose one with
  * (`usePasswordLink()`). Until then its password hash is of random
  * bytes nobody knows.
+ *
+ * A token-only account (`createTokenOnly()`, D-744) never signs in: its
+ * password hash is of random bytes nobody knows, for good, it never
+ * gets a password or a password link, and an email address is its
+ * choice (D-750). It's used through its API tokens (`Tokens`).
  */
 final readonly class Accounts
 {
@@ -217,6 +222,39 @@ final readonly class Accounts
 	}
 
 	/**
+	 * Creates and saves a token-only account (D-744), which never signs in
+	 * and is used through its API tokens, such as an agent's. An email
+	 * address is optional (D-750).
+	 *
+	 * @param  list<string> $roles
+	 * @throws AuthException When the username is taken or invalid, a role
+	 *                       doesn't exist, the name is too long, or an
+	 *                       email address given won't do.
+	 */
+	public function createTokenOnly(string $username, array $roles, ?string $name = null, ?string $email = null): Account
+	{
+		$problem = $this->usernameProblem($username);
+
+		if ($problem !== null) {
+			throw new AuthException($problem);
+		}
+
+		$email = $email === null || trim($email) === '' ? null : $this->checkEmail($email, $username);
+
+		$this->checkRoles($roles);
+
+		return $this->save(new Account(
+			username: $username,
+			passwordHash: $this->passwords->hash(bin2hex(random_bytes(32))),
+			roles: self::settle($roles),
+			created: $this->clock->now()->getTimestamp(),
+			name: $name === null ? null : Account::tidyName($name),
+			email: $email,
+			tokenOnly: true
+		));
+	}
+
+	/**
 	 * Returns why a new account can't have a username: it isn't one, or
 	 * it's taken; else `null`.
 	 */
@@ -251,9 +289,13 @@ final readonly class Accounts
 	 * working until the link is used.
 	 *
 	 * @return array{Account, string}
+	 * @throws AuthException For a token-only account, which never has a
+	 *                       password.
 	 */
 	public function issuePasswordLink(Account $account): array
 	{
+		self::refuseTokenOnly($account);
+
 		[$link, $token] = PasswordLink::make($this->clock->now()->getTimestamp(), $this->config->passwordLinkLifetime);
 
 		return [$this->save($account->withPasswordLink($link)), $token];
@@ -266,7 +308,8 @@ final readonly class Accounts
 	 *
 	 * @throws AuthException When there's no such account or link, the link
 	 *                       expired or was replaced, the account is
-	 *                       suspended, or the password is too short.
+	 *                       suspended or token-only, or the password is
+	 *                       too short.
 	 */
 	public function usePasswordLink(string $username, string $token, string $password): Account
 	{
@@ -280,6 +323,7 @@ final readonly class Accounts
 			throw new AuthException('This account is suspended. Ask an administrator to reinstate it.');
 		}
 
+		self::refuseTokenOnly($account);
 		$this->checkPassword($password);
 
 		return $this->save($account->withPasswordHash($this->passwords->hash($password))->withPasswordLink(null));
@@ -298,10 +342,12 @@ final readonly class Accounts
 	 * Sets an account's password, which signs out its sessions and ends
 	 * any password link it has.
 	 *
-	 * @throws AuthException When the password is too short.
+	 * @throws AuthException When the account is token-only, or the
+	 *                       password is too short.
 	 */
 	public function setPassword(Account $account, string $password): Account
 	{
+		self::refuseTokenOnly($account);
 		$this->checkPassword($password);
 
 		return $this->save($account->withPasswordHash($this->passwords->hash($password))->withPasswordLink(null));
@@ -347,14 +393,15 @@ final readonly class Accounts
 	}
 
 	/**
-	 * Gives an account another email address (D-370).
+	 * Gives an account another email address (D-370), or takes a
+	 * token-only account's away (D-750).
 	 *
 	 * @throws AuthException When it's missing, invalid, or another
 	 *                       account's.
 	 */
 	public function setEmail(Account $account, string $email): Account
 	{
-		return $this->save($account->withEmail($this->checkEmail($email, $account->username)));
+		return $this->save($account->withEmail($account->tokenOnly && trim($email) === '' ? null : $this->checkEmail($email, $account->username)));
 	}
 
 	/**
@@ -465,6 +512,18 @@ final readonly class Accounts
 			if (! $this->roles->has($role)) {
 				throw new AuthException(sprintf('There\'s no "%s" role; the roles are: %s.', $role, implode(', ', array_keys($this->roles->all()))));
 			}
+		}
+	}
+
+	/**
+	 * Refuses a password for a token-only account, which never signs in.
+	 *
+	 * @throws AuthException
+	 */
+	private static function refuseTokenOnly(Account $account): void
+	{
+		if ($account->tokenOnly) {
+			throw new AuthException(sprintf('%s is token-only: it never signs in, so it has no password.', $account->username));
 		}
 	}
 

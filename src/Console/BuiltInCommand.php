@@ -15,6 +15,7 @@ namespace Blush\Console;
 
 use Blush\Console\Commands\ActivateTheme;
 use Blush\Console\Commands\AddAccount;
+use Blush\Console\Commands\AddToken;
 use Blush\Console\Commands\AssignMenu;
 use Blush\Console\Commands\CacheClear;
 use Blush\Console\Commands\CacheCompile;
@@ -142,6 +143,7 @@ enum BuiltInCommand: string
 	case AccountSuspend   = 'account:suspend';
 	case AccountReinstate = 'account:reinstate';
 	case AccountRemove    = 'account:remove';
+	case TokenAdd         = 'token:add';
 
 	/**
 	 * Returns the command's class.
@@ -211,7 +213,8 @@ enum BuiltInCommand: string
 			self::AccountEmail     => SetAccountEmail::class,
 			self::AccountSuspend   => SuspendAccount::class,
 			self::AccountReinstate => ReinstateAccount::class,
-			self::AccountRemove    => RemoveAccount::class
+			self::AccountRemove    => RemoveAccount::class,
+			self::TokenAdd         => AddToken::class
 		};
 	}
 }

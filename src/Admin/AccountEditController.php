@@ -43,6 +43,11 @@ use Blush\Http\Status;
  *   (`201`) is the `account` and its `link`: the `url` to send and when
  *   it `expires`. The link's token is in the URL's fragment, so it never
  *   reaches a server log, and it's shown this once.
+ *   With `"tokenOnly": true` (D-744), it's a token-only account instead,
+ *   which never signs in and needn't have an email (D-750), without a
+ *   profile or a link; `token` (`{"name", "expires", "capabilities"}`,
+ *   as `TokensController` takes them) makes its first API token, and the
+ *   answer has it as `token` and its text as `secret`, shown this once.
  * - `PATCH accounts/{username}` (your own only for `author`, D-373, and
  *   for making yourself the owner of a site that has none, D-500):
  *   any of `roles` (`accounts.roles`),
@@ -83,7 +88,8 @@ final readonly class AccountEditController
 		private Permissions $permissions,
 		private PeopleRules $rules,
 		private PeopleJson $json,
-		private AdminLinks $links
+		private AdminLinks $links,
+		private TokensController $tokens
 	) {}
 
 	public function create(ServerRequestInterface $request): ResponseInterface
@@ -101,6 +107,8 @@ final readonly class AccountEditController
 		$title    = is_string($input['profileTitle'] ?? null) ? $input['profileTitle'] : null;
 		$name     = is_string($input['name'] ?? null) ? Account::tidyName($input['name']) : null;
 		$email    = is_string($input['email'] ?? null) ? trim($input['email']) : '';
+		$only     = ($input['tokenOnly'] ?? false) === true;
+		$first    = is_array($input['token'] ?? null) ? $input['token'] : null;
 
 		if (! Account::isValidUsername($username)) {
 			return self::error('Use lowercase letters, digits, ".", "_", and "-" for the username (up to 64), starting with a letter or digit.', field: 'username');
@@ -120,7 +128,7 @@ final readonly class AccountEditController
 		}
 
 		try {
-			$email = $this->accounts->checkEmail($email);
+			$email = $only && $email === '' ? '' : $this->accounts->checkEmail($email);
 		} catch (AuthException $e) {
 			return self::error($e->getMessage(), field: 'email');
 		}
@@ -136,6 +144,10 @@ final readonly class AccountEditController
 
 		if ($refusal !== null) {
 			return $refusal;
+		}
+
+		if ($only) {
+			return $this->createTokenOnly($actor, $username, $roles, $name, $email, $first);
 		}
 
 		$refusal = $this->checkCreating($actor, $author);
@@ -186,7 +198,7 @@ final readonly class AccountEditController
 		$needs   = array_filter([
 			Capability::AccountsRoles->value   => $roles !== $account->roles,
 			Capability::AccountsSuspend->value => $suspended !== $account->suspended,
-			Capability::AccountsEdit->value    => $relinks || $name !== $account->name || ($email !== null && trim($email) !== $account->email)
+			Capability::AccountsEdit->value    => $relinks || $name !== $account->name || ($email !== null && trim($email) !== ($account->email ?? ''))
 		]);
 
 		foreach (array_keys($needs) as $capability) {
@@ -199,7 +211,7 @@ final readonly class AccountEditController
 			return self::error(sprintf('A name is up to %d characters on one line.', Account::NAME_LENGTH), field: 'name');
 		}
 
-		if ($email !== null && trim($email) !== $account->email) {
+		if ($email !== null && trim($email) !== ($account->email ?? '') && ! ($account->tokenOnly && trim($email) === '')) {
 			try {
 				$email = $this->accounts->checkEmail($email, $account->username);
 			} catch (AuthException $e) {
@@ -225,7 +237,7 @@ final readonly class AccountEditController
 			$account = $suspended === $account->suspended ? $account : $this->accounts->setSuspended($account, $suspended);
 			$account = $relinks ? $this->profiles->link($account, $author) : $account;
 			$account = $name === $account->name ? $account : $this->accounts->setName($account, $name);
-			$account = $email === null || $email === $account->email ? $account : $this->accounts->setEmail($account, $email);
+			$account = $email === null || trim($email) === ($account->email ?? '') ? $account : $this->accounts->setEmail($account, $email);
 		} catch (AuthException $e) {
 			return self::error($e->getMessage(), field: 'author');
 		}
@@ -249,6 +261,10 @@ final readonly class AccountEditController
 
 		if ($account->suspended) {
 			return self::error(sprintf('%s is suspended. Reinstate it first.', $account->username));
+		}
+
+		if ($account->tokenOnly) {
+			return self::error(sprintf('%s is token-only: it never signs in, so it has no password.', $account->username));
 		}
 
 		[$account, $token] = $this->accounts->issuePasswordLink($account);
@@ -277,6 +293,43 @@ final readonly class AccountEditController
 		$this->accounts->delete($account->username);
 
 		return new Response(Status::NoContent, ['Cache-Control' => 'no-store']);
+	}
+
+	/**
+	 * Creates a token-only account (D-744), and its first token when one
+	 * is asked for, checked as `TokensController` checks any other.
+	 *
+	 * @param list<string>  $roles
+	 * @param ?array<mixed> $first
+	 */
+	private function createTokenOnly(Account $actor, string $username, array $roles, ?string $name, string $email, ?array $first): ResponseInterface
+	{
+		try {
+			$account = $this->accounts->createTokenOnly($username, $roles, $name, $email === '' ? null : $email);
+		} catch (AuthException $e) {
+			return self::error($e->getMessage(), field: 'username');
+		}
+
+		$problem = match (true) {
+			$first === null                              => null,
+			! $this->tokens->mayMake($actor, $account) => ['You aren\'t allowed to make tokens for other accounts, so it has none yet.', 'token'],
+			default                                      => $this->tokens->problem($actor, $account, $first)
+		};
+
+		if ($first === null || $problem !== null) {
+			return self::json([
+				'account' => $this->json->account($account, $actor),
+				...($problem === null ? [] : ['tokenError' => $problem[0]])
+			], Status::Created);
+		}
+
+		try {
+			[$token, $secret] = $this->tokens->make($actor, $account, $first);
+		} catch (AuthException $e) {
+			return self::json(['account' => $this->json->account($account, $actor), 'tokenError' => $e->getMessage()], Status::Created);
+		}
+
+		return self::json(['account' => $this->json->account($account, $actor), 'token' => $this->tokens->token($token), 'secret' => $secret], Status::Created);
 	}
 
 	/**

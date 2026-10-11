@@ -139,7 +139,7 @@ Implemented in M2 (D-065, D-069).
 | `secrets:set <name>` | Store a declared secret's value, asked for hidden (needs a terminal); refused when the environment sets it (D-715) |
 | `secrets:remove <name>` | Remove a stored value, declared or left behind (D-715) |
 | `secrets:rotate` | Encrypt every stored secret again under `SECRETS_KEY`, reading old ones with `SECRETS_KEY_PREVIOUS`; fails when one won't decrypt (D-715) |
-| `account:add [<username>] [--email] [--role]... [--author] [--name] [--link]` | Create an account, asking for what isn't given (D-720: username, name, email, roles, profile, password or link) and twice for the password (needs a terminal), or with `--link` a one-time link printed instead (no terminal needed); owner while the site has none, else administrator (D-219, D-322, D-370, D-500) |
+| `account:add [<username>] [--email] [--role]... [--author] [--name] [--link] [--token-only]` | Create an account, asking for what isn't given (D-720: username, name, email, roles, profile, password or link) and twice for the password (needs a terminal), or with `--link` a one-time link printed instead (no terminal needed); owner while the site has none, else administrator (D-219, D-322, D-370, D-500). `--token-only` makes a token-only account: no password, link, or profile, an optional email (D-744, D-750) |
 | `account:list` | Accounts with name, email, roles (unknown ones flagged), author, status, and last sign-in (D-219, D-312, D-322, D-370) |
 | `account:password <username>` | Set a password, which signs the account's sessions out (D-219) |
 | `account:roles <username> --role...` | Replace an account's roles (D-219) |
@@ -149,6 +149,7 @@ Implemented in M2 (D-065, D-069).
 | `account:suspend <username>` | Suspend an account: signed out, and no sign-in or password link until reinstated (D-312) |
 | `account:reinstate <username>` | Reinstate a suspended account (D-312) |
 | `account:remove <username> [--yes]` | Delete an account after confirming (D-219) |
+| `token:add <username> [--name] [--expires] [--capabilities]` | Make an API token for an account and print it once, alone on its line with `--quiet`; asks for a name on a terminal; `--expires` is 30, 90 (default), 365, or `never`; `--capabilities` narrows it, comma-separated (D-749, D-750) |
 | `doctor` | Run every `SetupChecks` check (PHP, extensions, `.env`, production risks, `public/`, storage) with hints; fails on any failure. Also warns of extensions that are on but can't run (an active theme falling back, plugins, icon packs; D-431), and of a site with accounts but no owner (D-500), and checks the secrets: the key, required ones unset, stored ones that won't decrypt or nothing declares (D-715). No opcache check, since the CLI's PHP isn't the web server's (D-218) |
 | `generate:{provider,component,controller,command,type}` | Scaffolding (not `make:`, D-008) |
 | `new <dir>` | Create a new site from the skeleton (may live in a global installer) |

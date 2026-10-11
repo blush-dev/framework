@@ -185,6 +185,8 @@ site/
                         preferences (D-235), suspension, and password link hash (D-312);
                         never cleared
     roles.json          Roles made or changed in the admin (D-312); never cleared
+    tokens/             {id}.json API tokens (D-747): a hash of each secret, never the secret,
+                        the accounts area's `tokens` table (0660); never cleared
     secrets.json        Stored secrets, encrypted with SECRETS_KEY (D-715), the secrets area's
                         `secrets` table as one file (0660); never cleared
     trash/              One folder per deleted entry, {Ymd-His}-{6 hex}/: trash.json (entry,

@@ -23335,3 +23335,223 @@ decision, add a new entry that supersedes it and mark the old one
   from within core and the fields api. Otherwise, we shouldn't show it
   undeclared. Hold off until fields api work is done."
 
+
+### D-744: API tokens belong to an account and act with its capabilities, narrowed if asked; token-only accounts
+
+- **Date:** 2026-10-11
+- **Status:** Built (D-750). The first of the API
+  token questions (open-questions.md → APIs, agents, and headless);
+  the rest are still open.
+- **Decision:** The author agreed to these leanings:
+  - **Every token belongs to an account.** No site tokens or tokens
+    without an account, so everything a token does is someone's.
+  - **An agent gets an account of its own,** with a role that fits
+    (`content.edit` without `content.publish` writes drafts only).
+  - **Token-only accounts:** an account can be made that never signs
+    in (no password) and is used through its tokens alone. How it's
+    marked (a status, or an account without a password) is settled
+    when it's built.
+  - **A token acts with its account's capabilities, optionally
+    narrowed to a subset** of them, offered in the admin as presets
+    (Read, Write drafts, Same as the account) and a custom list.
+  - **Checked live on every request:** the account's roles and status
+    as they are now, so a role change or a suspension (D-312) applies
+    at once, and the token works again if the account is reinstated.
+- **Why:** every outside caller (a headless front end, a script, an
+  agent, the MCP server) needs a way in that is accountable, and roles
+  and capabilities already say what an account may do; narrowing lets
+  one account hand out tokens that do less than it can.
+
+### D-745: What a token changes in `/api/v1`
+
+- **Date:** 2026-10-11
+- **Status:** Built (D-750). The second of the API
+  token questions, after D-744.
+- **Decision:** The author agreed to these leanings:
+  - **Entries that aren't public only when asked for:** a request with
+    a token gets drafts, scheduled entries, and hidden pages only when
+    it asks with `?status=`, and only those its token may edit:
+    `content.{type}.edit` for the account's own entries and
+    `content.{type}.edit.others` for everyone else's, as the admin
+    decides. Without `status`, a token gets exactly what an anonymous
+    caller gets, so a token in a front end never shows a draft by
+    accident.
+  - **No caching:** requests with a token skip the API's cache and are
+    sent `Cache-Control: private, no-store`.
+  - **A Reading setting for who reads the API:** anyone (the default),
+    or only with a token, in which case a request without one is a
+    401.
+- **Why:** the edit capability is already what lets an account see an
+  entry that isn't public in the admin, so a token sees what its
+  account would; asking with `status` keeps the default answer the
+  public one.
+
+### D-746: Where API tokens work
+
+- **Date:** 2026-10-11
+- **Status:** Built (D-750). The third of the API
+  token questions, after D-745.
+- **Decision:** The author agreed to these leanings:
+  - **Tokens work on `/api/v1`,** on the MCP server once there is one,
+    and on extensions' endpoints under the API once those are settled
+    (open-questions.md → Extension endpoints in the API), which is
+    what would let a plugin's endpoints write.
+  - **Never on the admin's own API,** which changes with the admin
+    and stays a signed-in session with `X-CSRF-Token` only (D-220).
+  - **No CSRF check for a request with a token,** since a bearer token
+    is never sent by a browser on its own.
+  - **A token wins over a session:** a request with both is the
+    token's alone, and the session is ignored, so a script in a
+    signed-in browser can't do more than its token allows.
+- **Why:** the admin's API is private to the admin and free to change;
+  outside callers get the public, versioned surfaces only.
+
+### D-747: An API token's format and storage
+
+- **Date:** 2026-10-11
+- **Status:** Built (D-750). The fourth of the API
+  token questions, after D-746.
+- **Decision:** The author agreed to these leanings, keeping `client`:
+  - **Format:** `blush_{id}_{secret}`: the prefix so secret scanners
+    can know a leaked token, the id to find its record without a scan,
+    and a secret of 32 random bytes, shown once when it's made and
+    never kept.
+  - **Sent as `Authorization: Bearer`** only; a token in a query
+    string is refused (addresses end up in logs), as is one over plain
+    HTTP but on localhost.
+  - **Only a SHA-256 of the secret is kept,** as `PasswordLink` keeps
+    its token; a password hash is needless for 32 random bytes and
+    slow on every request.
+  - **A `tokens` table in the accounts area,** beside accounts and
+    roles (on files, `storage/tokens/{id}.json`; on SQLite, a table):
+    `id` (UUIDv7), `account` (its id), `name` (what it's for), `hash`,
+    `capabilities` (a list, or `null` for the account's own),
+    `created` and `created_by` (an account id), `expires` (or `null`
+    for never), `last_used` (written at most once an hour), and
+    `client` (nullable, for OAuth later, so that needs no migration).
+- **Why:** the shape common bearer tokens have; the accounts area is
+  where who-can-do-what is already kept, and the hourly `last_used`
+  keeps flat files from a write on every request.
+
+### D-748: How long an API token lasts, and revoking it
+
+- **Date:** 2026-10-11
+- **Status:** Built (D-750). The fifth of the API
+  token questions, after D-747.
+- **Decision:** The author agreed to these leanings:
+  - **Lifetimes:** 30 days, 90 days (the default), a year, or never,
+    chosen when the token is made. Never is offered (a front end that
+    shouldn't break on a timer) but isn't the default.
+  - **Revoking deletes the record,** and the token stops at once. No
+    list of revoked tokens is kept until an activity log needs one.
+  - **Expired tokens stay listed,** marked Expired, until deleted; a
+    scheduled job (D-621) removes them 30 days after they expire.
+  - **A password change doesn't revoke tokens.** Your Account has a
+    Revoke All for a change made because of a leak.
+  - **A suspended account's tokens stop but aren't deleted,** and work
+    again when it's reinstated (D-744).
+  - **A token expiring within 7 days** shows on the dashboard's list of
+    what needs you (D-538) for the account it belongs to.
+  - **No renewing:** a new token is a new secret.
+- **Why:** short default lifetimes limit a leak; keeping expired
+  tokens a while says why something stopped working; a password change
+  shouldn't break a front end.
+
+### D-749: Who manages API tokens, and where
+
+- **Date:** 2026-10-11
+- **Status:** Built (D-750). The sixth of the API
+  token questions, after D-748.
+- **Decision:** The author agreed to these leanings, with `api.tokens`
+  given to owners and administrators only by default:
+  - **Your own tokens:** a Tokens panel on Your Account, with a new
+    `api.tokens` capability, in the Owner and Administrator roles by
+    default and given to any other role on its screen.
+  - **Tokens for another account:** only for token-only accounts
+    (D-744), with `accounts.edit`, never for a person's own sign-in
+    account (they make their own), and never with a capability the
+    maker doesn't have. This is how an agent's account gets its
+    token, and why an administrator can't act as an owner through one.
+  - **Seeing and revoking:** whoever has `accounts.edit` sees an
+    account's tokens on its screen (name, capabilities, made, last
+    used, expires; never the secret) and revokes them; an owner's
+    tokens only by owners (D-500).
+  - **A token-only account** is made in the new account form with
+    `accounts.create`, and its first token is made there and shown
+    once.
+  - **`token:add {username}`** on the CLI (`--name`, `--expires`,
+    `--capabilities`) prints a token once, for scripts and local
+    agents; like `account:add`, the CLI is trusted.
+- **Why:** tokens act as their account, so making one for someone else
+  is acting as them; limiting that to token-only accounts and to the
+  maker's own capabilities keeps a token from raising anyone's reach.
+  Tokens are a door into the site, so only those who run it get one
+  by default.
+
+### D-750: Throttling bad tokens, what's later, and building API tokens
+
+- **Date:** 2026-10-11
+- **Status:** Built. The last of the API token questions (D-744 to
+  D-749), and the calls made building them, after the author's "go
+  ahead and build tokens".
+- **Decision:** The author agreed to the last leanings:
+  - **Bad tokens are throttled per address now** (`TokenThrottle`):
+    past `AuthConfig::$maxAttempts` × 4 within `lockout` (as for
+    sign-ins from one address), a `429` (`too_many_attempts`) until it
+    passes. A good token doesn't clear the count.
+  - **Per-token request limits wait** for a general rate limiter
+    (`RateLimit` is in `architecture.md` but not built; counting each
+    request would write on each request).
+  - **OAuth 2.1 waits for MCP**, through the token's `client`; **the
+    activity log stays its own later piece**, `lastUsed` until then.
+
+  Claude's calls building them:
+  - **Classes:** `Blush\Auth\Token`, `Tokens` (the `tokens` table, no
+    key, `account` and `expires` declared), `TokenThrottle`;
+    `Blush\Api\ApiAuthentication` (middleware on every API route),
+    `ApiAccess`; `Blush\Admin\TokensController`; the
+    `core/prune-tokens` job, daily at 03:00; `token:add`.
+  - **Stored keys are camelCase**, as an account's are (`createdBy`,
+    `lastUsed`), not D-747's snake case; the text is
+    `Framework::BINARY` + `_`, so the prefix follows a rename.
+  - **Token-only accounts** are `tokenOnly: true` on the account, not a
+    status (one can still be suspended). Their password hash is of
+    random bytes; a password, a link, and a sign-in are refused. **An
+    email address is optional for them**, the one exception to D-370.
+    `account:add --token-only` makes one; the admin's New Account has a
+    Kind choice (Someone who signs in, Token-only) and makes its first
+    token with it (with `accounts.edit`).
+  - **Presets:** Read is no capabilities (what anyone may read; for an
+    API only tokens may read), Write drafts is `content.*.create`,
+    `content.*.edit`, `content.*.edit.others`, `media.*.upload`, and
+    `media.edit`, and Same as the account is `null`. Choose draws the
+    account's capabilities (those the maker has too) with the role
+    screen's `CapabilitySections`.
+  - **Narrowing** is `Permissions::limitedTo()`: a copy whose
+    capabilities are granted only when a role grants them and the limit
+    allows them (`*` words match as a role's).
+  - **`status`** takes statuses separated by commas, on a list and a
+    single entry; it finds entries of public types the token may edit
+    (`Permissions::restrict()`/`can()` with `edit`), whatever their
+    visibility, routable or not. Asking without a token is a `401`
+    (`token_required`).
+  - **Errors:** `token_required` and `invalid_token` (`401`, with
+    `WWW-Authenticate: Bearer`), `https_required` (`403`),
+    `too_many_attempts` (`429`); a token in the address
+    (`access_token`, `token`) is `invalid_query`. A request with no
+    host (the CLI, tests) counts as local for HTTPS.
+  - **CORS** allows `Authorization` in preflights and exposes
+    `WWW-Authenticate`; `Access-Control-Allow-Origin` stays `*`.
+  - **Admin:** an **API Tokens** panel on an account's screen
+    (`AccountTokens`), hidden on your own when you have none and can't
+    make one; `TokenFields` for a new token's fields and `ShownOnce` for
+    a secret shown once (the password link uses it too); the setting
+    radios' styles became the shared `.choices` classes. A Reading
+    setting, **Who can read it** (`api.access`, segmented). The
+    dashboard's `tokens` and a notice for yours expiring within a week.
+    Token-only accounts are marked on the list and screen, with no
+    password link.
+  - **The command line** gets `token:add` only; listing and revoking
+    tokens are the admin's for now.
+- **Why:** the author asked to build tokens as discussed; these keep to
+  the shapes D-744 to D-749 settled and reuse what the admin shares.

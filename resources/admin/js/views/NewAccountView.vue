@@ -11,6 +11,12 @@
  * Blush sends no email, so **Create account** makes the account with a
  * link for choosing a password, and opens the account's screen with the
  * link to copy and send. The link is shown that once.
+ *
+ * A **token-only** account (D-744), for an app or agent, never signs in:
+ * it has no profile or password, an email is optional (D-750), and its
+ * first API token can be made with it (with `accounts.edit`): a name,
+ * how long it lasts, and what it can do. The account's screen shows the
+ * token once.
  */
 
 import { computed, nextTick, ref } from 'vue';
@@ -18,9 +24,10 @@ import { RouterLink, useRouter } from 'vue-router';
 import AdminIcon from '../components/AdminIcon.vue';
 import ProfilePicker from '../components/ProfilePicker.vue';
 import RoleChecks from '../components/RoleChecks.vue';
+import TokenFields from '../components/TokenFields.vue';
 import { useAction } from '../action';
 import { ApiError, errorMessage } from '../api';
-import { createAccount, freshLink, loadRoles, MEMBER, NEW_PROFILE, type LinkableProfile, type RoleInfo } from '../people';
+import { createAccount, createTokenOnlyAccount, freshLink, freshToken, loadRoles, MEMBER, NEW_PROFILE, presetCapabilities, type LinkableProfile, type RoleInfo, type TokenPreset } from '../people';
 import { slugOf } from '../references';
 import { can, canType } from '../session';
 import { toast } from '../toast';
@@ -36,7 +43,15 @@ const author   = ref('');
 const newName  = ref('');
 const newSlug  = ref('');
 const profiles = ref<LinkableProfile[]>([]);
-const field    = ref<'username' | 'email' | 'accountName' | 'roles' | 'author' | 'name' | 'slug' | null>(null);
+const field    = ref<'username' | 'email' | 'accountName' | 'roles' | 'author' | 'name' | 'slug' | 'token' | null>(null);
+// Someone who signs in, or a token-only account for an app or agent.
+const kind     = ref<'person' | 'token'>('person');
+const tokenOnly = computed(() => kind.value === 'token');
+// Its first token, made with it.
+const makeFirst  = ref(true);
+const tokenName  = ref('');
+const tokenDays  = ref<number | null>(90);
+const tokenScope = ref<TokenPreset | 'chosen'>('drafts');
 const loadFail = ref('');
 
 const { busy, error, run } = useAction();
@@ -75,9 +90,42 @@ const willBe = computed(() => {
 	return author.value === '' ? null : (profiles.value.find((item) => item.slug === author.value)?.title ?? null);
 });
 
+async function submitTokenOnly(): Promise<void> {
+	await run('The account couldn\'t be created.', async () => {
+		const first  = makeFirst.value && can('accounts.edit') && tokenName.value.trim() !== '';
+		const answer = await createTokenOnlyAccount({
+			username: username.value.trim().toLowerCase(),
+			email: email.value.trim(),
+			name: name.value.trim() === '' ? null : name.value,
+			roles: chosen.value,
+			token: first ? { name: tokenName.value.trim(), expires: tokenDays.value, capabilities: tokenScope.value === 'chosen' ? [] : presetCapabilities(tokenScope.value) } : null
+		});
+
+		if (answer.token && answer.secret) {
+			freshToken.value = { username: answer.account.username, token: { token: answer.token, secret: answer.secret } };
+		}
+
+		toast(`Created ${answer.account.displayName}`);
+
+		if (answer.tokenError) {
+			toast(`Its token wasn't made: ${answer.tokenError}`, { kind: 'warn' });
+		}
+
+		await router.push({ name: 'account', params: { username: answer.account.username } });
+	}, (caught) => {
+		field.value = caught instanceof ApiError && (caught.field === 'username' || caught.field === 'email' || caught.field === 'roles') ? caught.field : null;
+	});
+}
+
 async function submit(): Promise<void> {
 	error.value = '';
 	field.value = null;
+
+	if (tokenOnly.value) {
+		await submitTokenOnly();
+
+		return;
+	}
 
 	if (creating.value && newName.value.trim() === '') {
 		error.value = 'A profile needs a display name.';
@@ -127,7 +175,7 @@ async function submit(): Promise<void> {
 			<RouterLink class="page-back" :to="{ name: 'accounts' }"><AdminIcon name="chevron-left" />All accounts</RouterLink>
 			<div class="page-header__text">
 				<h1 tabindex="-1">New Account</h1>
-				<p class="page-header__hint">Someone who can sign in. They choose their own password from a link you send them.</p>
+				<p class="page-header__hint">{{ tokenOnly ? 'An account for an app, script, or agent. It never signs in, and is used through its API tokens.' : 'Someone who can sign in. They choose their own password from a link you send them.' }}</p>
 			</div>
 		</header>
 
@@ -142,18 +190,37 @@ async function submit(): Promise<void> {
 						<h2 id="account-heading">Account</h2>
 					</header>
 					<div class="panel__body form-stack new-account__form">
+						<fieldset class="fieldset">
+							<legend>Kind</legend>
+							<div class="choices choices--detailed">
+								<label class="checkbox">
+									<input v-model="kind" type="radio" name="account-kind" value="person">
+									<span class="choice">
+										<span class="choice__name">Someone who signs in</span>
+										<span class="choice__text">A person, with a password they choose from a link you send them.</span>
+									</span>
+								</label>
+								<label class="checkbox">
+									<input v-model="kind" type="radio" name="account-kind" value="token">
+									<span class="choice">
+										<span class="choice__name">Token-only</span>
+										<span class="choice__text">An app, script, or agent. It never signs in, and does what its roles allow through its API tokens.</span>
+									</span>
+								</label>
+							</div>
+						</fieldset>
 						<div class="field">
 							<label for="account-username">Username</label>
 							<input id="account-username" ref="usernameInput" v-model="username" class="mono" autocomplete="off" autocapitalize="none" spellcheck="false" required :aria-invalid="usernameProblem || field === 'username' ? 'true' : undefined" aria-describedby="account-username-help">
 							<p v-if="usernameProblem" id="account-username-help" class="field__error">{{ usernameProblem }}</p>
 							<p v-else-if="field === 'username'" id="account-username-help" class="field__error">{{ error }}</p>
-							<p v-else id="account-username-help" class="field__help">What they sign in with. Fixed once it's made.</p>
+							<p v-else id="account-username-help" class="field__help">{{ tokenOnly ? 'How the admin names it. Fixed once it\'s made.' : 'What they sign in with. Fixed once it\'s made.' }}</p>
 						</div>
 						<div class="field">
-							<label for="account-email">Email</label>
-							<input id="account-email" ref="emailInput" v-model="email" type="email" autocomplete="off" required :aria-invalid="field === 'email' ? 'true' : undefined" aria-describedby="account-email-help">
+							<label for="account-email">Email <span v-if="tokenOnly" class="field__optional">Optional</span></label>
+							<input id="account-email" ref="emailInput" v-model="email" type="email" autocomplete="off" :required="!tokenOnly" :aria-invalid="field === 'email' ? 'true' : undefined" aria-describedby="account-email-help">
 							<p v-if="field === 'email'" id="account-email-help" class="field__error">{{ error }}</p>
-							<p v-else id="account-email-help" class="field__help">Every account needs one. Blush sends no email, so the password link is still yours to send.</p>
+							<p v-else id="account-email-help" class="field__help">{{ tokenOnly ? 'Whose it is, for the people who manage accounts, if you like.' : 'Every account needs one. Blush sends no email, so the password link is still yours to send.' }}</p>
 						</div>
 						<div class="field">
 							<label for="account-name">Display name <span class="field__optional">Optional</span></label>
@@ -161,7 +228,7 @@ async function submit(): Promise<void> {
 							<p v-if="field === 'accountName'" id="account-name-help" class="field__error">{{ error }}</p>
 							<p v-else id="account-name-help" class="field__help">What the admin calls them. Left empty, it's their profile's title, else the username.</p>
 						</div>
-						<div v-if="profileType" class="field">
+						<div v-if="profileType && !tokenOnly" class="field">
 							<label for="account-author">Profile</label>
 							<ProfilePicker id="account-author" v-model="author" :create="canType(profileType, 'create')" described-by="account-author-help" :invalid="field === 'author'" @loaded="profiles = $event" />
 							<p v-if="field === 'author'" id="account-author-help" class="field__error">{{ error }}</p>
@@ -204,9 +271,23 @@ async function submit(): Promise<void> {
 				</section>
 			</div>
 
+			<section v-if="tokenOnly && can('accounts.edit')" class="panel" aria-labelledby="token-heading">
+				<header class="panel__header">
+					<h2 id="token-heading">Its First Token</h2>
+					<p class="panel__hint">Shown once, on its screen</p>
+				</header>
+				<div class="panel__body form-stack new-account__form">
+					<label class="checkbox"><input v-model="makeFirst" type="checkbox"> Make a token with the account</label>
+					<template v-if="makeFirst">
+						<TokenFields v-model:name="tokenName" v-model:days="tokenDays" v-model:scope="tokenScope" />
+					</template>
+				</div>
+				<p class="panel__note">Its roles decide what a token can do at most; more tokens, and ones narrowed capability by capability, are made on its screen.</p>
+			</section>
+
 			<div class="submit-row">
-				<button type="submit" class="button button--primary" :disabled="busy || username === '' || email.trim() === '' || usernameProblem !== '' || chosen.length === 0">{{ busy ? 'Creating…' : 'Create Account' }}</button>
-				<p class="submit-row__why">Next, you'll get a one-time link to send them. It works for a week.</p>
+				<button type="submit" class="button button--primary" :disabled="busy || username === '' || (!tokenOnly && email.trim() === '') || usernameProblem !== '' || chosen.length === 0 || (tokenOnly && makeFirst && can('accounts.edit') && tokenName.trim() === '')">{{ busy ? 'Creating…' : 'Create Account' }}</button>
+				<p class="submit-row__why">{{ tokenOnly ? 'Next, its screen shows its token once, to copy.' : 'Next, you\'ll get a one-time link to send them. It works for a week.' }}</p>
 				<p v-if="error && field === null" class="field__error" role="alert">{{ error }}</p>
 				<p v-else class="visually-hidden" role="alert">{{ error }}</p>
 			</div>

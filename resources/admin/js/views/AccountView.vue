@@ -33,11 +33,13 @@
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue';
 import { RouterLink, useRoute, useRouter } from 'vue-router';
 import AccountPreferences from '../components/AccountPreferences.vue';
+import AccountTokens from '../components/AccountTokens.vue';
 import AdminIcon from '../components/AdminIcon.vue';
 import MenuButton from '../components/MenuButton.vue';
 import AdminModal from '../components/AdminModal.vue';
 import PickModal, { type PickItem } from '../components/PickModal.vue';
 import RoleChecks from '../components/RoleChecks.vue';
+import ShownOnce from '../components/ShownOnce.vue';
 import StatusPill from '../components/StatusPill.vue';
 import { useAction } from '../action';
 import { ApiError, errorMessage, patchEntry, request, type EntryDetail } from '../api';
@@ -77,6 +79,7 @@ const own = computed<AccountInfo | undefined>(() => {
 		lastLogin: account.lastLogin,
 		status: 'active',
 		link: null,
+		tokenOnly: false,
 		manages: false
 	};
 });
@@ -350,8 +353,7 @@ const profileUrl = computed(() => {
 const canOpenProfile = computed(() => profileType.value !== null && canType(profileType.value, 'edit'));
 
 // The password link: the one just made, shown once.
-const link   = ref<PasswordLink | null>(null);
-const copied = ref('');
+const link = ref<PasswordLink | null>(null);
 
 const { busy: linkBusy, error: linkError, run: runLink } = useAction();
 
@@ -373,26 +375,12 @@ async function makeLink(): Promise<void> {
 		return;
 	}
 
-	copied.value = '';
-
 	await runLink('The link couldn\'t be made.', async () => {
 		const answer = await makePasswordLink(current.username);
 
 		replace(answer.account);
 		link.value = answer.link;
 	});
-}
-
-async function copyLink(): Promise<void> {
-	if (link.value === null) {
-		return;
-	}
-
-	copied.value = await copyText(link.value.url, 'the link') ? 'Copied the link.' : 'Copying failed; select the link and copy it instead.';
-}
-
-function selectAll(event: Event): void {
-	(event.target as HTMLInputElement).select();
 }
 
 // The Actions menu: what someone who manages accounts does to the account
@@ -547,10 +535,11 @@ async function changePassword(): Promise<void> {
 						<span class="mono">{{ account.username }}</span>
 						<span class="page-header__sep" aria-hidden="true">·</span>
 						<span class="pill" :class="statusPill(account.status).kind">{{ statusPill(account.status).label }}</span>
+						<template v-if="account.tokenOnly"><span class="page-header__sep" aria-hidden="true">·</span><span class="pill">Token-only</span></template>
 						<span class="page-header__sep" aria-hidden="true">·</span>
 						<span>{{ account.roles.map(label).join(', ') }}</span>
 						<span class="page-header__sep" aria-hidden="true">·</span>
-						<span>last signed in {{ account.lastLogin ? when(account.lastLogin) : 'never' }}</span>
+						<span>{{ account.tokenOnly ? 'never signs in' : `last signed in ${account.lastLogin ? when(account.lastLogin) : 'never'}` }}</span>
 					</p>
 				</div>
 			</div>
@@ -559,7 +548,7 @@ async function changePassword(): Promise<void> {
 					<template #button><AdminIcon name="ellipsis" />Actions</template>
 					<RouterLink v-if="account.profile && canOpenProfile" class="menu-item" :to="{ name: 'profile-detail', params: { slug: account.profile.slug } }"><AdminIcon name="user-round" />Open profile</RouterLink>
 					<button v-if="account.email" type="button" class="menu-item" @click="copyEmail(account.email)"><AdminIcon name="copy" />Copy email address</button>
-					<button v-if="can('accounts.edit') && account.status !== 'suspended'" type="button" class="menu-item" :disabled="linkBusy" @click="makeLink"><AdminIcon name="key-round" />{{ account.link ? 'Make a new password link' : 'Make a password link' }}</button>
+					<button v-if="can('accounts.edit') && account.status !== 'suspended' && !account.tokenOnly" type="button" class="menu-item" :disabled="linkBusy" @click="makeLink"><AdminIcon name="key-round" />{{ account.link ? 'Make a new password link' : 'Make a password link' }}</button>
 					<template v-if="can('accounts.suspend') || can('accounts.delete')">
 						<div class="menu-divider" />
 						<template v-if="can('accounts.suspend')">
@@ -586,23 +575,17 @@ async function changePassword(): Promise<void> {
 		<p v-else-if="account && !mine && !account.manages && account.roles.includes(OWNER)" class="notice"><AdminIcon name="info" /><span class="notice__text"><strong>{{ account.displayName }} is an owner,</strong> and only an owner can change an owner's details, roles, standing, and profile.</span></p>
 		<p v-else-if="account && !mine && !account.manages" class="notice"><AdminIcon name="info" /><span class="notice__text"><strong>{{ account.displayName }} can do things you can't,</strong> so its details, roles, standing, and profile aren't yours to change.</span></p>
 
-		<div v-if="account && !account.email" class="notice notice--warn">
+		<p v-if="account && account.tokenOnly" class="notice"><AdminIcon name="info" /><span class="notice__text"><strong>{{ mine ? 'Your account' : 'This account' }} is token-only.</strong> It never signs in, so it has no password: apps, scripts, and agents use it through its API tokens, below, with its roles.</span></p>
+
+		<div v-if="account && !account.email && !account.tokenOnly" class="notice notice--warn">
 			<AdminIcon name="triangle-alert" />
 			<span class="notice__text"><strong>{{ mine ? 'Your account has' : 'This account has' }} no email address.</strong> Every account needs one; {{ mine ? 'yours' : 'this one' }} was made before they were asked for.</span>
 			<span v-if="canEditDetails" class="notice__buttons"><button type="button" class="button button--small" @click="startDetails('email')">Add an Email Address</button></span>
 		</div>
 
-		<div v-if="account && link" class="notice">
-			<AdminIcon name="key-round" />
-			<span class="notice__text account-link">
-				<span><strong>Send this link to {{ account.displayName }}</strong> however you like, so they can choose a password. It's shown once, works once, and lasts until {{ when(link.expires) }}.</span>
-				<span class="account-link__row">
-					<input class="input mono account-link__url" :value="link.url" readonly aria-label="Password link" @focus="selectAll">
-					<button type="button" class="button button--small" @click="copyLink"><AdminIcon name="copy" />Copy Link</button>
-				</span>
-				<span class="visually-hidden" aria-live="polite">{{ copied }}</span>
-			</span>
-		</div>
+		<ShownOnce v-if="account && link" :value="link.url" label="Password link" noun="the link" copy="Copy Link">
+			<strong>Send this link to {{ account.displayName }}</strong> however you like, so they can choose a password. It's shown once, works once, and lasts until {{ when(link.expires) }}.
+		</ShownOnce>
 		<div v-else-if="account && account.status === 'invited' && account.link" class="notice">
 			<AdminIcon name="mail" />
 			<span class="notice__text"><strong>This account is waiting on its invitation.</strong> {{ account.link.expired ? `Its password link expired ${when(account.link.expires)}; make a new one to send.` : `Its password link works until ${when(account.link.expires)}.` }}</span>
@@ -621,7 +604,7 @@ async function changePassword(): Promise<void> {
 						<div><dt>Email</dt><dd :class="{ muted: !account.email }">{{ account.email ?? 'None yet' }}</dd></div>
 						<div><dt>Display name</dt><dd :class="{ muted: !account.name }">{{ account.name ?? (account.profile ? `${account.displayName}, from the profile` : 'Not set') }}</dd></div>
 						<div><dt>Created</dt><dd>{{ when(account.created) }}</dd></div>
-						<div><dt>Last signed in</dt><dd>{{ when(account.lastLogin) }}</dd></div>
+						<div><dt>Last signed in</dt><dd>{{ account.tokenOnly ? 'Never: it\'s token-only' : when(account.lastLogin) }}</dd></div>
 					</dl>
 					<form v-else class="form-stack details-form" :aria-busy="detailsBusy" @submit.prevent="saveDetails" @keydown.esc="editingDetails = false">
 						<p class="field">
@@ -631,8 +614,8 @@ async function changePassword(): Promise<void> {
 						</p>
 						<p class="field">
 							<label for="account-email">Email</label>
-							<input id="account-email" ref="emailInput" v-model="detailEmail" type="email" autocomplete="email" required :aria-invalid="detailsField === 'email' || undefined" :aria-describedby="detailsField === 'email' ? 'details-error' : 'account-email-help'">
-							<span id="account-email-help" class="field__help">Every account needs one. Blush sends no email; it's for the people who manage accounts.</span>
+							<input id="account-email" ref="emailInput" v-model="detailEmail" type="email" autocomplete="email" :required="!account.tokenOnly" :aria-invalid="detailsField === 'email' || undefined" :aria-describedby="detailsField === 'email' ? 'details-error' : 'account-email-help'">
+							<span id="account-email-help" class="field__help">{{ account.tokenOnly ? 'Optional for a token-only account.' : 'Every account needs one.' }} Blush sends no email; it's for the people who manage accounts.</span>
 						</p>
 						<p v-if="detailsError" id="details-error" class="field__error" role="alert">{{ detailsError }}</p>
 						<p class="submit-row submit-row--tight">
@@ -729,6 +712,8 @@ async function changePassword(): Promise<void> {
 			<p v-else-if="!account.profile && linking" class="panel__note"><strong>Create one</strong> makes a draft profile with the name you give, linked to this account, and opens it: the common case, and why an account and a profile being separate costs almost nothing.</p>
 		</section>
 
+		<AccountTokens v-if="account && (mine || can('accounts.edit'))" :account="account" :mine="mine" />
+
 		<AccountPreferences v-if="account && mine" />
 
 		<PickModal v-if="account" v-model:pick="pick" :open="profileMode === 'link'" noun="Profile" :items="linkItems" none="Every profile already belongs to an account. Create a new one instead, and it's linked as it's made." :busy="profileBusy" :error="profileError" @close="profileMode = ''" @confirm="linkProfile">
@@ -764,23 +749,6 @@ async function changePassword(): Promise<void> {
 <style scoped>
 .create-profile {
 	margin-top: var(--s-4);
-}
-
-.account-link {
-	display: grid;
-	gap: var(--s-2);
-}
-
-.account-link__row {
-	display: flex;
-	align-items: center;
-	gap: var(--s-2);
-}
-
-.account-link__url {
-	flex: 1;
-	min-width: 0;
-	font-size: var(--text-xs);
 }
 
 .details-form {

@@ -17,6 +17,7 @@ use DateTimeImmutable;
 use Psr\Clock\ClockInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
+use Blush\Api\ApiAccess;
 use Blush\Api\ApiConfig;
 use Blush\Auth\Account;
 use Blush\Auth\AuthConfig;
@@ -322,7 +323,8 @@ final readonly class SettingsController
 
 	/**
 	 * Reading: what the homepage shows, the feeds, and the API (D-741):
-	 * its switch, and where it's served, set in `config/api.php`.
+	 * its switch, who may read it (D-745), and where it's served, set in
+	 * `config/api.php`.
 	 *
 	 * @return list<array<string, mixed>>
 	 */
@@ -343,6 +345,7 @@ final readonly class SettingsController
 			]),
 			self::group('api', 'API', 'For other sites, apps, and AI tools', [
 				$this->edit(self::item('api', 'API', $this->api->enabled, ! $this->api->enabled, 'bool', Setting::Api->field($this->types)->description), $saved, Setting::Api, $this->api->enabled),
+				$this->edit(self::item('access', 'Who can read it', $this->api->access->label(), $this->api->access === ApiAccess::Anyone, 'segmented', Setting::ApiAccess->field($this->types)->description), $saved, Setting::ApiAccess, $this->api->access->value),
 				[
 					...self::item('path', 'Address', $this->api->base(), $this->api->path === new ApiConfig()->path, 'mono', 'Where the API is served, with its version.', 'config/api.php'),
 					'link' => $this->api->enabled ? ['label' => 'View the API', 'href' => $this->app->absoluteUrl($this->api->base())] : null

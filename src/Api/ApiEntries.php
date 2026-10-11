@@ -14,6 +14,11 @@ declare(strict_types=1);
 namespace Blush\Api;
 
 use Uri\Rfc3986\Uri;
+use Blush\Auth\Account;
+use Blush\Auth\AuthException;
+use Blush\Auth\ContentAction;
+use Blush\Auth\Permissions;
+use Blush\Auth\Token;
 use Blush\Cache\CacheNamespace;
 use Blush\Cache\ContentCache;
 use Blush\Content\Entries;
@@ -27,8 +32,7 @@ use Blush\Content\Visibility;
 use Blush\Core\AppConfig;
 
 /**
- * The entries the API answers with: what the public site shows (D-479),
- * since every answer is anonymous until there are tokens.
+ * The entries the API answers with: what the public site shows (D-479).
  *
  * - **One by id or address:** published, of a public type, and public
  *   or unlisted (an unlisted entry has a page, so it can be asked for).
@@ -37,7 +41,12 @@ use Blush\Core\AppConfig;
  *
  * A hidden entry, a draft, a scheduled entry, and anything of a type
  * that isn't public are never in an answer, not even as a stub
- * (D-738).
+ * (D-738), but one to a request with an API token that asks for them
+ * by status (D-745): those of the public types, whatever their
+ * visibility, that the token may edit (`content.{type}.edit` for its
+ * account's own, `.edit.others` for anyone else's, as the admin
+ * decides). Links from them to entries the site doesn't show are still
+ * left out.
  */
 final readonly class ApiEntries
 {
@@ -46,7 +55,8 @@ final readonly class ApiEntries
 		private ContentTypes $types,
 		private ContentUrls $urls,
 		private ContentCache $cache,
-		private AppConfig $app
+		private AppConfig $app,
+		private Permissions $permissions
 	) {}
 
 	/**
@@ -65,6 +75,44 @@ final readonly class ApiEntries
 		$entry = $this->content->find($id);
 
 		return $entry !== null && $this->shows($entry) ? $entry : null;
+	}
+
+	/**
+	 * Returns an entry by id when a token asking for some statuses may
+	 * see it: of a public type, with one of them, and its to edit.
+	 *
+	 * @param  list<Status> $statuses
+	 * @throws AuthException For a token whose capabilities aren't names.
+	 */
+	public function findEditable(string $id, Token $token, Account $account, array $statuses): ?Entry
+	{
+		$entry = $this->content->find($id);
+
+		return $entry !== null
+			&& in_array($entry->status, $statuses, true)
+			&& isset($this->types()[$entry->type->name])
+			&& $this->permissions->limitedTo($token->capabilities)->can($account, ContentAction::Edit, $entry)
+			? $entry
+			: null;
+	}
+
+	/**
+	 * Returns a query for the entries of some statuses a token may edit,
+	 * of the public types, whatever their visibility, without listings'
+	 * landing pages.
+	 *
+	 * @param  list<Status> $statuses
+	 * @throws AuthException For a token whose capabilities aren't names.
+	 */
+	public function editable(Token $token, Account $account, array $statuses): Query
+	{
+		$query = $this->content->query()
+			->status(...$statuses)
+			->visibility(...Visibility::cases())
+			->withLanding(false)
+			->type(...array_keys($this->types()));
+
+		return $this->permissions->limitedTo($token->capabilities)->restrict($account, ContentAction::Edit, $query);
 	}
 
 	/**

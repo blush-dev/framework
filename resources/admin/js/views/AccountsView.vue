@@ -207,6 +207,7 @@ async function makeLink(account: AccountInfo): Promise<void> {
 												<RouterLink class="account-cell__link" :to="{ name: 'account', params: { username: account.username } }">{{ account.displayName }}</RouterLink>
 												<span v-if="mine(account)" class="tag--you">You</span>
 												<span v-if="account.status !== 'active'" class="pill" :class="statusPill(account.status).kind">{{ statusPill(account.status).label }}</span>
+												<span v-if="account.tokenOnly" class="pill">Token-only</span>
 											</span>
 											<span v-if="hasName(account)" class="who__meta">{{ account.username }}</span>
 											<span v-else class="account-cell__none">No display name or profile</span>
@@ -236,7 +237,7 @@ async function makeLink(account: AccountInfo): Promise<void> {
 										<RouterLink v-if="account.profile && profileType && canType(profileType, 'edit')" class="menu-item" :to="{ name: 'profile-detail', params: { slug: account.profile.slug } }"><AdminIcon name="user-round" />Open profile</RouterLink>
 										<RouterLink v-else-if="!account.author && account.manages && can('accounts.edit')" class="menu-item" :to="{ name: 'account', params: { username: account.username } }"><AdminIcon name="plus" />Create a profile</RouterLink>
 										<button v-if="account.email" type="button" class="menu-item" @click="copyEmail(account.email)"><AdminIcon name="copy" />Copy email address</button>
-										<button v-if="account.manages && can('accounts.edit') && account.status !== 'suspended'" type="button" class="menu-item" @click="makeLink(account)"><AdminIcon name="key-round" />{{ account.link ? 'Make a new password link' : 'Make a password link' }}</button>
+										<button v-if="account.manages && can('accounts.edit') && account.status !== 'suspended' && !account.tokenOnly" type="button" class="menu-item" @click="makeLink(account)"><AdminIcon name="key-round" />{{ account.link ? 'Make a new password link' : 'Make a password link' }}</button>
 									</MenuButton>
 								</td>
 							</tr>

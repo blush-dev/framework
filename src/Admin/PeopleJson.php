@@ -17,13 +17,17 @@ use Psr\Clock\ClockInterface;
 use Blush\Auth\Account;
 use Blush\Auth\AccountProfiles;
 use Blush\Auth\BuiltInRole;
+use Blush\Auth\Capabilities;
 use Blush\Auth\Capability;
+use Blush\Auth\ContentAction;
 use Blush\Auth\Permissions;
 use Blush\Auth\Role;
 use Blush\Auth\RoleOrigin;
 use Blush\Auth\Roles;
 use Blush\Content\Entries;
 use Blush\Content\Routing\ContentUrls;
+use Blush\Content\Type\ContentType;
+use Blush\Content\Type\ContentTypes;
 
 /**
  * Describes accounts and roles for the admin's people screens (D-249,
@@ -39,8 +43,57 @@ final readonly class PeopleJson
 		private ClockInterface $clock,
 		private Entries $content,
 		private EntryHandles $handles,
-		private ContentUrls $urls
+		private ContentUrls $urls,
+		private Capabilities $capabilities,
+		private ContentTypes $types
 	) {}
+
+	/**
+	 * Describes the site's capabilities, or some of them, as a role's
+	 * screen and an API token's draw them: each its `name`, `label`, and
+	 * `group`, and a content capability's `type` and `action` (D-359).
+	 *
+	 * @param  ?list<string> $only Only these names, or `null` for all.
+	 * @return list<array<string, ?string>>
+	 */
+	public function capabilities(?array $only = null): array
+	{
+		$capabilities = [];
+
+		foreach ($this->capabilities->all() as $name => $label) {
+			if ($only !== null && ! in_array($name, $only, true)) {
+				continue;
+			}
+
+			[$type, $action] = ContentAction::parse($name) ?? [null, null];
+
+			$capabilities[] = [
+				'name'  => $name,
+				'label' => $label,
+				'group' => $this->capabilities->group($name),
+				...($action === null ? [] : ['type' => $type, 'action' => $action->value])
+			];
+		}
+
+		return $capabilities;
+	}
+
+	/**
+	 * Describes the content types as a role's screen draws them: each its
+	 * `name`, plural `label`, `kind`, whether it has `terms`, and `icon`.
+	 *
+	 * @return list<array<string, mixed>>
+	 */
+	public function types(): array
+	{
+		return array_values(array_map(fn (ContentType $type): array => [
+			'name'  => $type->name,
+			'label' => $type->labels->plural,
+			'kind'  => $type->kind()->value,
+			'terms' => $this->types->classification($type->name) !== null,
+			'icon'  => $type->icon
+		], $this->types->all()));
+	}
 
 	/**
 	 * Describes an account: its `username`, its `email` (D-370), its own
@@ -50,8 +103,8 @@ final readonly class PeopleJson
 	 * `profile` (D-353: `{"id", "handle", "slug", "title", "status",
 	 * "url", "uses"}`, or `null`), `created` and `lastLogin`
 	 * (Unix times), `status`, its password `link` (`expires`, and whether
-	 * it has `expired`; `null` for none), and whether the viewer
-	 * `manages` it.
+	 * it has `expired`; `null` for none), whether it's `tokenOnly`
+	 * (D-744), and whether the viewer `manages` it.
 	 *
 	 * @return array<string, mixed>
 	 */
@@ -71,6 +124,7 @@ final readonly class PeopleJson
 			'lastLogin'   => $account->lastLogin,
 			'status'      => $account->status()->value,
 			'link'        => $link === null ? null : ['expires' => $link->expires, 'expired' => $link->expires <= $this->clock->now()->getTimestamp()],
+			'tokenOnly'   => $account->tokenOnly,
 			'manages'     => $this->rules->manages($viewer, $account)
 		];
 	}

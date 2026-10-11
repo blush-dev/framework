@@ -26,10 +26,12 @@ use Blush\Storage\File\FileLayouts;
 use Blush\Storage\Record\TableRegistry;
 
 /**
- * Binds accounts, roles, capabilities, and permissions (D-219). Accounts
- * and stored roles are records in the accounts area's `accounts` and
- * `roles` tables (D-646, D-669), kept by its storage driver (D-642): on
- * files, `storage/accounts/{username}.json` and `storage/roles.json`.
+ * Binds accounts, roles, capabilities, permissions, and API tokens
+ * (D-219, D-747). Accounts, stored roles, and tokens are records in the
+ * accounts area's `accounts`, `roles`, and `tokens` tables (D-646,
+ * D-669), kept by its storage driver (D-642): on files,
+ * `storage/accounts/{username}.json`, `storage/roles.json`, and
+ * `storage/tokens/{id}.json`.
  * Extensions add capabilities to `Capabilities` from their own `boot()`.
  */
 final class AuthServiceProvider extends ServiceProvider
@@ -45,7 +47,9 @@ final class AuthServiceProvider extends ServiceProvider
 		Passwords::class,
 		Permissions::class,
 		RoleEditor::class,
-		Roles::class
+		Roles::class,
+		Tokens::class,
+		TokenThrottle::class
 	];
 
 	/**
@@ -70,6 +74,7 @@ final class AuthServiceProvider extends ServiceProvider
 			if ($tables instanceof TableRegistry) {
 				$tables->register(Accounts::table());
 				$tables->register(Roles::table());
+				$tables->register(Tokens::table());
 			}
 		});
 
@@ -79,6 +84,7 @@ final class AuthServiceProvider extends ServiceProvider
 
 				$layouts->register(Accounts::TABLE, FileLayout::folder($paths->accounts, 0660));
 				$layouts->register(Roles::TABLE, FileLayout::oneFile("{$paths->storage}/roles.json", 'roles', 0660));
+				$layouts->register(Tokens::TABLE, FileLayout::folder("{$paths->storage}/tokens", 0660));
 			}
 		});
 	}

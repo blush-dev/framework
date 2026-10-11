@@ -14,12 +14,14 @@ declare(strict_types=1);
 namespace Blush\Admin;
 
 use DateTimeInterface;
+use Psr\Clock\ClockInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Blush\Auth\Account;
 use Blush\Auth\AccountProfiles;
 use Blush\Auth\ContentAction;
 use Blush\Auth\Permissions;
+use Blush\Auth\Tokens;
 use Blush\Cache\ContentVersion;
 use Blush\Content\Entries;
 use Blush\Content\Entry\Entry;
@@ -51,6 +53,9 @@ use Blush\Http\Status as HttpStatus;
  *   archive.
  * - `setup`: what the setup path needs to know: the pages type, the
  *   site's newest page, and whether it has a type of its own.
+ * - `tokens`: the account's API tokens that expire within
+ *   `TOKEN_WARNING` (D-748), soonest first, each its `id`, `name`, and
+ *   `expires`.
  *
  * Actions moved to the Tools screen (`GET actions`, D-540).
  */
@@ -61,6 +66,11 @@ final readonly class DashboardController
 	 */
 	public const int PER_GROUP = 5;
 
+	/**
+	 * How long, in seconds, before a token expires it's shown.
+	 */
+	public const int TOKEN_WARNING = 7 * 86400;
+
 	public function __construct(
 		private AppConfig $site,
 		private Entries $content,
@@ -69,7 +79,9 @@ final readonly class DashboardController
 		private ContentVersion $version,
 		private EntryHandles $handles,
 		private Permissions $permissions,
-		private AccountProfiles $profiles
+		private AccountProfiles $profiles,
+		private Tokens $tokens,
+		private ClockInterface $clock
 	) {}
 
 	public function __invoke(ServerRequestInterface $request): ResponseInterface
@@ -97,8 +109,30 @@ final readonly class DashboardController
 			'resume'    => $resume === null ? null : $this->describe($resume, $account),
 			'yours'     => $profiles === null || $own === null ? null : $this->groups($base->whereTerm($profiles, $own), $account, $except),
 			'everyone'  => $this->groups($base, $account, $except),
-			'setup'     => $this->setup($account)
+			'setup'     => $this->setup($account),
+			'tokens'    => $this->expiring($account)
 		], headers: ['Cache-Control' => 'no-store']);
+	}
+
+	/**
+	 * Returns the account's tokens that expire soon, soonest first.
+	 *
+	 * @return list<array{id: string, name: string, expires: int}>
+	 */
+	private function expiring(Account $account): array
+	{
+		$now  = $this->clock->now()->getTimestamp();
+		$soon = [];
+
+		foreach ($this->tokens->forAccount($account) as $token) {
+			if ($token->expires !== null && $token->expires > $now && $token->expires <= $now + self::TOKEN_WARNING) {
+				$soon[] = ['id' => $token->id, 'name' => $token->name, 'expires' => $token->expires];
+			}
+		}
+
+		usort($soon, static fn (array $a, array $b): int => $a['expires'] <=> $b['expires']);
+
+		return $soon;
 	}
 
 	/**

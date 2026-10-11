@@ -114,7 +114,7 @@ final class AdminJobsTest extends TestCase
 		$list = self::json($this->send('GET', '/jobs'));
 
 		$this->assertSame([$queued->id, $failed->id], array_column(is_array($list['jobs'] ?? null) ? $list['jobs'] : [], 'id'), 'Newest first.');
-		$this->assertSame(['core/go-live', 'core/prune-cache', 'core/prune-sessions', 'core/prune-jobs'], array_column(is_array($list['tasks'] ?? null) ? $list['tasks'] : [], 'job'));
+		$this->assertSame(['core/go-live', 'core/prune-cache', 'core/prune-sessions', 'core/prune-jobs', 'core/prune-tokens'], array_column(is_array($list['tasks'] ?? null) ? $list['tasks'] : [], 'job'));
 		$this->assertSame('auto', $list['mode'] ?? null);
 		$this->assertIsString($list['cron'] ?? null);
 		$this->assertStringContainsString('schedule:run', $list['cron']);

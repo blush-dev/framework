@@ -118,6 +118,9 @@ use Blush\Session\StartSession;
  *     accounts/{username}`, and `POST accounts/{username}/link` change
  *     accounts (`AccountEditController`), and `POST roles`, and `PATCH`
  *     and `DELETE roles/{name}` change roles (`RoleEditController`).
+ *     `GET`, `POST`, and `DELETE accounts/{username}/tokens`, and
+ *     `DELETE accounts/{username}/tokens/{id}`, list, make, and revoke
+ *     an account's API tokens (`TokensController`, D-749).
  *   - `GET  themes`: the installed themes (`ThemesController`);
  *     `DELETE themes/{vendor}/{name}` deletes one from `extensions/`
  *     (`ThemeEditController`, D-381). `PATCH settings` activates one
@@ -179,10 +182,10 @@ final readonly class AdminRoutes implements RouteSource
 			Route::post('/actions/{action:[a-z0-9][a-z0-9-]*}', ActionController::class)->named('action')->middleware(Authenticate::class),
 			Route::get('/jobs', [JobController::class, 'index'])->named('jobs')->middleware(Authenticate::class),
 			Route::post('/jobs/schedule/{job:[a-z0-9][a-z0-9-]*/[a-z0-9][a-z0-9-]*}', [JobController::class, 'schedule'])->named('jobs.schedule')->middleware(Authenticate::class),
-			Route::get('/jobs/{id:[0-9a-f-]{36}}', [JobController::class, 'show'])->named('job')->middleware(Authenticate::class),
-			Route::post('/jobs/{id:[0-9a-f-]{36}}/run', [JobController::class, 'run'])->named('job.run')->middleware(Authenticate::class),
-			Route::post('/jobs/{id:[0-9a-f-]{36}}/retry', [JobController::class, 'retry'])->named('job.retry')->middleware(Authenticate::class),
-			Route::delete('/jobs/{id:[0-9a-f-]{36}}', [JobController::class, 'delete'])->named('job.delete')->middleware(Authenticate::class),
+			Route::get('/jobs/{id:[0-9a-f-]+}', [JobController::class, 'show'])->named('job')->middleware(Authenticate::class),
+			Route::post('/jobs/{id:[0-9a-f-]+}/run', [JobController::class, 'run'])->named('job.run')->middleware(Authenticate::class),
+			Route::post('/jobs/{id:[0-9a-f-]+}/retry', [JobController::class, 'retry'])->named('job.retry')->middleware(Authenticate::class),
+			Route::delete('/jobs/{id:[0-9a-f-]+}', [JobController::class, 'delete'])->named('job.delete')->middleware(Authenticate::class),
 			Route::get('/logs', [LogController::class, 'show'])->named('logs')->middleware(Authenticate::class),
 			Route::get('/logs/download', [LogController::class, 'download'])->named('logs.download')->middleware(Authenticate::class),
 			Route::get('/types', TypesController::class)->named('types')->middleware(Authenticate::class),
@@ -271,6 +274,10 @@ final readonly class AdminRoutes implements RouteSource
 			Route::post('/accounts/{username:[a-z0-9][a-z0-9._-]*}/link', [AccountEditController::class, 'link'])->named('account.link')->middleware(Authenticate::class),
 			Route::patch('/accounts/{username:[a-z0-9][a-z0-9._-]*}', [AccountEditController::class, 'update'])->named('account.update')->middleware(Authenticate::class),
 			Route::delete('/accounts/{username:[a-z0-9][a-z0-9._-]*}', [AccountEditController::class, 'delete'])->named('account.delete')->middleware(Authenticate::class),
+			Route::get('/accounts/{username:[a-z0-9][a-z0-9._-]*}/tokens', [TokensController::class, 'index'])->named('account.tokens')->middleware(Authenticate::class),
+			Route::post('/accounts/{username:[a-z0-9][a-z0-9._-]*}/tokens', [TokensController::class, 'create'])->named('account.token.create')->middleware(Authenticate::class),
+			Route::delete('/accounts/{username:[a-z0-9][a-z0-9._-]*}/tokens', [TokensController::class, 'deleteAll'])->named('account.tokens.delete')->middleware(Authenticate::class),
+			Route::delete('/accounts/{username:[a-z0-9][a-z0-9._-]*}/tokens/{id:[0-9a-f-]+}', [TokensController::class, 'delete'])->named('account.token.delete')->middleware(Authenticate::class),
 			Route::get('/themes', ThemesController::class)->named('themes')->middleware(Authenticate::class),
 			Route::post('/themes', [ExtensionInstallController::class, 'theme'])->named('theme.install')->middleware(Authenticate::class),
 			Route::post('/themes/{vendor:[a-z0-9][a-z0-9._-]*}/{name:[a-z0-9][a-z0-9._-]*}/rollback', [ExtensionBackupController::class, 'rollbackTheme'])->named('theme.rollback')->middleware(Authenticate::class),

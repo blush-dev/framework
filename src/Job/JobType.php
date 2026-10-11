@@ -20,6 +20,7 @@ use Blush\Job\Jobs\MediaIndexJob;
 use Blush\Job\Jobs\PruneCacheJob;
 use Blush\Job\Jobs\PruneJobsJob;
 use Blush\Job\Jobs\PruneSessionsJob;
+use Blush\Job\Jobs\PruneTokensJob;
 use Blush\Job\Jobs\PublishJob;
 use Blush\Job\Jobs\ReindexJob;
 
@@ -35,6 +36,7 @@ enum JobType: string
 	case PruneCache    = 'core/prune-cache';
 	case PruneSessions = 'core/prune-sessions';
 	case PruneJobs     = 'core/prune-jobs';
+	case PruneTokens   = 'core/prune-tokens';
 	case HealthFix     = 'core/health-fix';
 	case HealthCheck   = 'core/health-check';
 	case MediaIndex    = 'core/media-index';
@@ -53,6 +55,7 @@ enum JobType: string
 			self::PruneCache    => PruneCacheJob::class,
 			self::PruneSessions => PruneSessionsJob::class,
 			self::PruneJobs     => PruneJobsJob::class,
+			self::PruneTokens   => PruneTokensJob::class,
 			self::HealthFix     => HealthFixJob::class,
 			self::HealthCheck   => HealthCheckJob::class,
 			self::MediaIndex    => MediaIndexJob::class
@@ -69,7 +72,8 @@ enum JobType: string
 			self::GoLive        => Frequency::everyMinute(),
 			self::PruneCache,
 			self::PruneSessions => Frequency::hourly(),
-			self::PruneJobs     => Frequency::daily('03:00'),
+			self::PruneJobs,
+			self::PruneTokens   => Frequency::daily('03:00'),
 			default             => null
 		};
 	}

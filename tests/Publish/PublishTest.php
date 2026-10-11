@@ -314,7 +314,7 @@ final class PublishTest extends TestCase
 		$result = $tester->run('schedule:run -v');
 
 		$this->assertTrue($result->isSuccessful(), $result->output . $result->errors);
-		$this->assertStringContainsString('Queued 4 scheduled tasks; ran 4 jobs: 4 done, 0 failed, 0 to go on.', $result->output);
+		$this->assertStringContainsString('Queued 5 scheduled tasks; ran 5 jobs: 5 done, 0 failed, 0 to go on.', $result->output);
 		$this->assertNotNull($version->scheduled());
 
 		$went = [];

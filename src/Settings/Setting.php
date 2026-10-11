@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Blush\Settings;
 
 use DateTimeZone;
+use Blush\Api\ApiAccess;
 use Blush\Api\ApiConfig;
 use Blush\Auth\Account;
 use Blush\Auth\AuthConfig;
@@ -83,6 +84,7 @@ enum Setting: string
 	case FeedContent      = 'feed.fullContent';
 	case FeedLimit        = 'feed.limit';
 	case Api              = 'api.enabled';
+	case ApiAccess        = 'api.access';
 	case MediaUploads     = 'media.uploads';
 	case AddArtwork       = 'media.addArtwork';
 	case Mentions         = 'markdown.mentions';
@@ -160,7 +162,7 @@ enum Setting: string
 			self::Timezone, self::DateFormat, self::TimeFormat,
 			self::Signups, self::SignupRole                               => SettingsScreen::General,
 			self::Home, self::FeedFormats, self::FeedContent, self::FeedLimit,
-			self::Api                                                     => SettingsScreen::Reading,
+			self::Api, self::ApiAccess                                    => SettingsScreen::Reading,
 			self::MediaUploads, self::AddArtwork                          => SettingsScreen::Media,
 			self::Mentions, self::SmartPunctuation, self::HeadingAnchors,
 			self::Figures, self::Html, self::Embeds                       => SettingsScreen::Writing,
@@ -202,6 +204,7 @@ enum Setting: string
 			self::Html            => new EnumField('html', array_column(RawHtml::cases(), 'value'))->labeled('Raw HTML')->described('What HTML written in content does on the page, whoever wrote it. Who may add HTML in the admin is up to their role.')->control(Control::Radios)->required(),
 			self::Embeds          => new ListField('enabled')->labeled('Embeds turned on')->described('A site turned on plays its links on the page; the others keep their links as links.'),
 			self::Api             => new BoolField('enabled')->labeled('API')->described('A read-only API of what the site shows, as JSON, for other sites, apps, and AI tools: its pages, types, media, and menus. Drafts and hidden pages are never in it.'),
+			self::ApiAccess       => new EnumField('access', array_column(ApiAccess::cases(), 'value'))->labeled('Who can read it')->described('A token is made on Your Account, and acts as the account it belongs to.')->control(Control::Radios)->required(),
 			self::FeedLimit       => new NumberField('limit', integer: true, min: 1, max: self::FEED_LIMIT_MAX)->labeled('Entries per feed')->described(sprintf('From 1 to %d.', self::FEED_LIMIT_MAX)),
 			self::TrailingSlash   => new BoolField('trailingSlash')->labeled('Trailing slash')->described('The other form redirects, so links to either still work.'),
 			self::Sitemap         => new BoolField('enabled')->labeled('Sitemap and robots.txt')->described('Off, the site has neither, and search engines find pages by their links.'),
@@ -233,6 +236,7 @@ enum Setting: string
 			self::FeedFormats  => array_combine(array_column(FeedFormat::cases(), 'value'), array_map(static fn (FeedFormat $format): string => $format->label(), FeedFormat::cases())),
 			self::BlockAi      => array_combine(array_column(AiCrawlerGroup::cases(), 'value'), array_map(static fn (AiCrawlerGroup $group): string => $group->label(), AiCrawlerGroup::cases())),
 			self::Html         => array_combine(array_column(RawHtml::cases(), 'value'), array_map(static fn (RawHtml $case): string => $case->label(), RawHtml::cases())),
+			self::ApiAccess    => array_combine(array_column(ApiAccess::cases(), 'value'), array_map(static fn (ApiAccess $case): string => $case->label(), ApiAccess::cases())),
 			default            => []
 		};
 	}
@@ -251,6 +255,7 @@ enum Setting: string
 			self::BlockAi      => array_combine(array_column(AiCrawlerGroup::cases(), 'value'), array_map(static fn (AiCrawlerGroup $group): array => ['text' => $group->description(), 'code' => implode(' · ', $group->agents())], AiCrawlerGroup::cases())),
 			self::Untranslated => array_combine(array_column(Untranslated::cases(), 'value'), array_map(static fn (Untranslated $case): array => ['text' => $case->description(), 'code' => ''], Untranslated::cases())),
 			self::Html         => array_combine(array_column(RawHtml::cases(), 'value'), array_map(static fn (RawHtml $case): array => ['text' => $case->description(), 'code' => ''], RawHtml::cases())),
+			self::ApiAccess    => array_combine(array_column(ApiAccess::cases(), 'value'), array_map(static fn (ApiAccess $case): array => ['text' => $case->description(), 'code' => ''], ApiAccess::cases())),
 			default            => []
 		};
 	}
@@ -373,7 +378,7 @@ enum Setting: string
 	public function needsRefresh(): bool
 	{
 		return match ($this) {
-			self::Home, self::Timezone, self::TrailingSlash, self::FeedFormats, self::Sitemap, self::Llms, self::LlmsFull, self::Api, self::Theme, self::Plugins => true,
+			self::Home, self::Timezone, self::TrailingSlash, self::FeedFormats, self::Sitemap, self::Llms, self::LlmsFull, self::Api, self::ApiAccess, self::Theme, self::Plugins => true,
 			default => false
 		};
 	}
@@ -394,6 +399,7 @@ enum Setting: string
 			self::Locale          => self::locale($value),
 			self::Untranslated    => self::untranslated($value),
 			self::Html            => self::html($value),
+			self::ApiAccess       => self::apiAccess($value),
 			self::SignupRole      => self::signupRole($value),
 			self::Timezone        => self::timezone($value),
 			self::DateFormat,
@@ -476,6 +482,15 @@ enum Setting: string
 	{
 		return (is_string($value) ? Untranslated::tryFrom($value) : null)->value
 			?? throw new InvalidSetting(sprintf('Untranslated pages are one of: %s.', implode(', ', array_column(Untranslated::cases(), 'value'))));
+	}
+
+	/**
+	 * @throws InvalidSetting
+	 */
+	private static function apiAccess(mixed $value): string
+	{
+		return (is_string($value) ? ApiAccess::tryFrom($value) : null)->value
+			?? throw new InvalidSetting(sprintf('Who can read the API is one of: %s.', implode(', ', array_column(ApiAccess::cases(), 'value'))));
 	}
 
 	/**

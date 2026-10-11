@@ -956,7 +956,7 @@ Move each item to `decisions.md` once it's answered.
     filters, sorting, and `?url=` are D-740; the path, switch,
     caching, and CORS are D-741; built in D-742, with the other
     resources' shapes; `fields` are declared fields only (D-743).
-    Still open: tokens, writes, `language`, "all of" for relations,
+    Tokens are built (D-744 to D-750). Still open: writes, `language`, "all of" for relations,
     bodies for included entries, and registering front matter from
     core and the Fields API (D-743, waiting on the Fields API). No file paths, ever (D-481). Settle before tokens and MCP, which build
     on it.
@@ -985,12 +985,11 @@ Move each item to `decisions.md` once it's answered.
       may need to opt out or key on something of its own; whether
       plugins are `GET` only until tokens; whether an extension's
       resources become MCP tools on their own once MCP exists.
-  - **API tokens:** the admin API is session and `X-CSRF-Token` only
-    (D-220). Tokens tied to an account act with its roles and
-    capabilities, can be revoked, and stop with a suspended account
-    (D-312). An agent's account with `content.edit` and no
-    `content.publish` writes drafts only. Every outside caller needs
-    this first.
+  - **API tokens:** settled and built (D-744 to D-750): tokens of an
+    account, narrowed if asked, token-only accounts, `?status=`, a
+    private API, `storage/tokens`, Your Account's panel, `token:add`.
+    Later: OAuth 2.1 for MCP (through `client`), per-token request
+    limits (with a general rate limiter), and the activity log.
   - **An agent-readable site:** built (D-395): Markdown pages at `.md`,
     `llms.txt`, the AI screen (D-398, which settled listing only some
     types with each type's `llms` option), and `llms-full.txt` (D-402).

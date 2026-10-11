@@ -49,6 +49,33 @@ final class ApiError extends RuntimeException implements BlushException
 	}
 
 	/**
+	 * A request without a token where one is needed (`token_required`),
+	 * or with one that isn't (`invalid_token`): wrong, revoked, expired,
+	 * or its account's suspended (D-745, D-750).
+	 */
+	public static function unauthorized(string $error, string $message): self
+	{
+		return new self($error, $message, Status::Unauthorized);
+	}
+
+	/**
+	 * A token sent over plain HTTP, but on the site's own computer
+	 * (D-747).
+	 */
+	public static function httpsRequired(): self
+	{
+		return new self('https_required', 'Tokens are only accepted over HTTPS.', Status::Forbidden);
+	}
+
+	/**
+	 * Too many tokens that weren't one from an address (D-750).
+	 */
+	public static function tooManyAttempts(): self
+	{
+		return new self('too_many_attempts', 'Too many requests with a token that isn\'t one. Try again later.', Status::TooManyRequests);
+	}
+
+	/**
 	 * Returns the error as it's sent.
 	 *
 	 * @return array{error: array{code: string, message: string}}

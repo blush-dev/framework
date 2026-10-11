@@ -348,7 +348,7 @@ final class AdminPeopleTest extends TestCase
 		$this->assertSame(['author', 'reviewer'], $sam['roles'] ?? null);
 		$this->assertSame('Sam Smith', $sam['name'] ?? null);
 		$this->assertSame('Sam Smith', $sam['displayName'] ?? null);
-		$this->assertSame(['username', 'email', 'name', 'displayName', 'roles', 'author', 'profile', 'created', 'lastLogin', 'status', 'link', 'manages'], array_keys($sam), 'No password hash or preferences.');
+		$this->assertSame(['username', 'email', 'name', 'displayName', 'roles', 'author', 'profile', 'created', 'lastLogin', 'status', 'link', 'tokenOnly', 'manages'], array_keys($sam), 'No password hash or preferences.');
 		$this->assertSame('active', $sam['status'] ?? null);
 		$this->assertTrue($sam['manages'] ?? null);
 		$this->assertFalse(is_array($accounts[0] ?? null) ? $accounts[0]['manages'] ?? null : null, 'Not your own account.');

@@ -18,14 +18,10 @@ use Psr\Http\Message\ServerRequestInterface;
 use Blush\Auth\Account;
 use Blush\Auth\Accounts;
 use Blush\Auth\AuthException;
-use Blush\Auth\Capabilities;
 use Blush\Auth\Capability;
-use Blush\Auth\ContentAction;
 use Blush\Auth\Permissions;
 use Blush\Auth\Role;
 use Blush\Auth\Roles;
-use Blush\Content\Type\ContentType;
-use Blush\Content\Type\ContentTypes;
 use Blush\Http\Response;
 use Blush\Http\Status;
 
@@ -48,8 +44,6 @@ final readonly class PeopleController
 {
 	public function __construct(
 		private Roles $roles,
-		private Capabilities $capabilities,
-		private ContentTypes $types,
 		private Accounts $accounts,
 		private Permissions $permissions,
 		private PeopleJson $json,
@@ -70,28 +64,9 @@ final readonly class PeopleController
 			return self::damaged($error);
 		}
 
-		$capabilities = [];
-
-		foreach ($this->capabilities->all() as $name => $label) {
-			[$type, $action] = ContentAction::parse($name) ?? [null, null];
-
-			$capabilities[] = [
-				'name'  => $name,
-				'label' => $label,
-				'group' => $this->capabilities->group($name),
-				...($action === null ? [] : ['type' => $type, 'action' => $action->value])
-			];
-		}
-
 		return Response::json([
-			'capabilities' => $capabilities,
-			'types'        => array_values(array_map(fn (ContentType $type): array => [
-				'name'  => $type->name,
-				'label' => $type->labels->plural,
-				'kind'  => $type->kind()->value,
-				'terms' => $this->types->classification($type->name) !== null,
-				'icon'  => $type->icon
-			], $this->types->all())),
+			'capabilities' => $this->json->capabilities(),
+			'types'        => $this->json->types(),
 			'roles'        => array_values(array_map(fn (Role $role): array => $this->json->role($role, $this->roles, $accounts, $viewer), $this->roles->all())),
 			'all'          => Role::ALL
 		], headers: ['Cache-Control' => 'no-store']);

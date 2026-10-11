@@ -17,6 +17,7 @@ use Closure;
 use JsonException;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
+use Blush\Auth\Token;
 use Blush\Cache\CacheNamespace;
 use Blush\Cache\ContentCache;
 use Blush\Core\AppConfig;
@@ -33,9 +34,14 @@ use Blush\Http\Status;
  *   `ETag` and `304` come from `ConditionalGet`, a hash of the body.
  * - **Headers:** `Cache-Control: public, max-age` from
  *   `ApiConfig::$maxAge`, and CORS open to any origin
- *   (`Access-Control-Allow-Origin: *`), since every answer is public.
+ *   (`Access-Control-Allow-Origin: *`): an anonymous answer is public,
+ *   and a token is a header a browser never sends on its own, so a page
+ *   on another site gets nothing a token didn't ask for.
+ * - **With a token** (D-745), an answer is built for the request alone,
+ *   never kept, and sent `Cache-Control: private, no-store`.
  * - **Errors** (`ApiError`) are `{ "error": { "code", "message" } }`
- *   with their status, never cached.
+ *   with their status, never cached; a `401` says `WWW-Authenticate:
+ *   Bearer`.
  * - **Lists** are `{ items, total, page, pages, per_page, next, prev }`,
  *   `next` and `prev` full URLs or `null`.
  */
@@ -55,11 +61,12 @@ final readonly class ApiResponses
 	 */
 	public function answer(ServerRequestInterface $request, Closure $build): ResponseInterface
 	{
-		$params = $request->getQueryParams();
+		$params  = $request->getQueryParams();
+		$private = $request->getAttribute(Token::class) instanceof Token;
 		ksort($params, SORT_STRING);
 
 		try {
-			$json = $this->cache->remember(
+			$json = $private ? self::encode($build()) : $this->cache->remember(
 				CacheNamespace::Pages,
 				'api ' . $request->getUri()->getPath() . '?' . http_build_query($params),
 				static fn (): string => self::encode($build())
@@ -70,7 +77,7 @@ final readonly class ApiResponses
 
 		return new Response(Status::Ok, [
 			'Content-Type'  => 'application/json; charset=UTF-8',
-			'Cache-Control' => "public, max-age={$this->config->maxAge}",
+			'Cache-Control' => $private ? 'private, no-store' : "public, max-age={$this->config->maxAge}",
 			...self::cors()
 		], $json);
 	}
@@ -83,20 +90,21 @@ final readonly class ApiResponses
 		return new Response($error->status, [
 			'Content-Type'  => 'application/json; charset=UTF-8',
 			'Cache-Control' => 'no-store',
+			...($error->status === Status::Unauthorized ? ['WWW-Authenticate' => $error->error === 'invalid_token' ? 'Bearer error="invalid_token"' : 'Bearer'] : []),
 			...self::cors()
 		], self::encode($error->toArray()));
 	}
 
 	/**
 	 * Answers a browser's CORS preflight: `GET` and `HEAD`, with the
-	 * headers a conditional request sends.
+	 * headers a conditional request sends, and a token's.
 	 */
 	public function preflight(): ResponseInterface
 	{
 		return new Response(Status::NoContent, [
 			...self::cors(),
 			'Access-Control-Allow-Methods' => 'GET, HEAD, OPTIONS',
-			'Access-Control-Allow-Headers' => 'Accept, If-None-Match, If-Modified-Since',
+			'Access-Control-Allow-Headers' => 'Accept, Authorization, If-None-Match, If-Modified-Since',
 			'Access-Control-Max-Age'       => '86400'
 		]);
 	}
@@ -155,7 +163,7 @@ final readonly class ApiResponses
 	 */
 	private static function cors(): array
 	{
-		return ['Access-Control-Allow-Origin' => '*', 'Access-Control-Expose-Headers' => 'ETag'];
+		return ['Access-Control-Allow-Origin' => '*', 'Access-Control-Expose-Headers' => 'ETag, WWW-Authenticate'];
 	}
 
 	/**

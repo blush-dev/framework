@@ -1226,10 +1226,22 @@ reusable pieces, from themes, the site, and plugins.
   `ApiRoutes` are system routes, `exact`, registered before
   `LlmsRoutes` (whose `/{path}.md` would take an API address), with a
   JSON 404 for anything else under the base and an `OPTIONS`
-  preflight. Every answer is anonymous, so `ApiEntries` holds what the
-  public site shows (published, public types; lists public and not
-  landing pages, single entries public or unlisted), and finds an
+  preflight. `ApiEntries` holds what the public site shows (published,
+  public types; lists public and not landing pages, single entries
+  public or unlisted), and finds an
   entry by address from a path-to-id map kept for the content version.
+  **API tokens** (D-744 to D-750): `ApiAuthentication`, middleware on
+  every API route, reads `Authorization: Bearer` (never the address,
+  only over HTTPS or to a local host), finds the `Token` through
+  `Tokens`, checks its expiry and its account (present, not
+  suspended), throttles bad ones per address (`TokenThrottle`), writes
+  `lastUsed` hourly, and passes the `Token` and `Account` on as
+  attributes; with `ApiAccess::Token`, a request without one is a
+  `401`. A token sees the anonymous answer unless it asks with
+  `status`, when `ApiEntries::editable()`/`findEditable()` give entries
+  of public types its account may edit, through
+  `Permissions::limitedTo()` its capabilities. Sessions mean nothing
+  here, and tokens nothing in the admin's API.
   `EntryResource` and `MediaResource` shape records and stubs (an
   entry's `fields` only those its type declares, D-743), with
   `include` expanding in place one level deep; an HTML body's assets
@@ -1237,7 +1249,8 @@ reusable pieces, from themes, the site, and plugins.
   `ApiQuery` allows only the parameters an endpoint names (and
   `rel:{relation}`), so a typo is a 400. `ApiResponses` sends every
   answer: JSON kept by `ContentCache` under `pages`, keyed by path and
-  sorted query, `Cache-Control` from `maxAge`, CORS `*`, and
+  sorted query, `Cache-Control` from `maxAge` (a request with a token:
+  built for it alone, `private, no-store`), CORS `*`, and
   `ApiError`s as `{ error: { code, message } }`; `ConditionalGet`
   adds the `ETag`. Controllers are in `Blush\Api\Http`.
 - **Search:** optional; FTS5 with the SQLite driver, or a JSON index (under discussion; see `open-questions.md`).
@@ -1395,8 +1408,21 @@ Implemented in M6a (D-127 to D-130), apart from publishing (M6b).
     the `VerifyCsrf` and `Authenticate` middleware.
   - `Blush\Admin`: `AdminConfig` and the JSON API under
     `{path}/api`: `GET session`, `POST login`, `POST logout`.
-  - CLI: `account:add|list|password|roles|name|email|author|suspend|reinstate|remove`;
-    `init` offers the first account, the owner (D-500).
+  - CLI: `account:add|list|password|roles|name|email|author|suspend|reinstate|remove`
+    and `token:add`; `init` offers the first account, the owner
+    (D-500).
+  - API tokens (D-744 to D-750): `Token` records in the accounts
+    area's `tokens` table (`Tokens`; `storage/tokens/{id}.json`), each
+    an account's, its text `blush_{id}_{secret}` with only a SHA-256 of
+    the secret kept, an optional capability list (`null` for the
+    account's), an expiry (30, 90, or 365 days, or never), `lastUsed`,
+    and `client` for OAuth later. The `core/prune-tokens` job removes
+    them 30 days after they expire. `api.tokens` (owner and
+    administrator by default) makes your own; `TokensController`
+    (`{path}/api/accounts/{username}/tokens`) lists, makes, and revokes
+    them, another's only with `accounts.edit` and made only for a
+    token-only account (`Account::$tokenOnly`, which never signs in and
+    needn't have an email) within `PeopleRules`.
   - The admin edits accounts and roles (D-312): `AccountEditController`
     (new accounts with a one-time `PasswordLink`, roles, author,
     suspension, removal), `RoleEditController`, and the public

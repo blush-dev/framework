@@ -40,6 +40,11 @@ use Blush\Core\AppConfig;
  * or make a one-time link to send instead (`--link`, D-312), which needs
  * no terminal, so a script can make accounts. Without a role, it's the
  * owner while the site has none, else an administrator (D-500).
+ *
+ * `--token-only` makes a token-only account instead (D-744), such as an
+ * agent's: it never signs in, so it gets no password, link, or profile,
+ * and an email address is optional (D-750). `token:add` makes its
+ * tokens.
  */
 #[Command('account:add', 'Create an admin account.')]
 final readonly class AddAccount
@@ -64,8 +69,13 @@ final readonly class AddAccount
 		#[Option('The slug of the profile the account writes as.')] ?string $author = null,
 		#[Option('What the admin calls the person, quoted when it has spaces.')] ?string $name = null,
 		#[Option('Their email address, which every account needs; asked for when left out.')] ?string $email = null,
-		#[Option('Make a one-time link for choosing the password, to send them, instead of asking for one.')] bool $link = false
+		#[Option('Make a one-time link for choosing the password, to send them, instead of asking for one.')] bool $link = false,
+		#[Option('Make an account that never signs in and is used through its API tokens alone, such as an agent\'s.', name: 'token-only')] bool $tokenOnly = false
 	): ExitCode {
+		if ($tokenOnly) {
+			return $this->tokenOnly($output, $prompt, $username, $role, $name, $email);
+		}
+
 		try {
 			$username ??= $prompt->ask('Username', null, $this->accounts->usernameProblem(...), 'jane');
 			$name     ??= trim($prompt->ask('Name', '', placeholder: 'What the admin calls them (optional)'));
@@ -106,6 +116,38 @@ final readonly class AddAccount
 				DateTimeImmutable::createFromTimestamp($account->passwordLink->expires ?? time())->setTimezone($this->app->timezone())->format('Y-m-d H:i T')
 			));
 		}
+
+		return ExitCode::Success;
+	}
+
+	/**
+	 * Makes a token-only account, asking for what isn't passed but a
+	 * profile and a password, which it never has.
+	 *
+	 * @param  list<string> $roles
+	 * @throws InvalidInput
+	 */
+	private function tokenOnly(Output $output, Prompt $prompt, ?string $username, array $roles, ?string $name, ?string $email): ExitCode
+	{
+		try {
+			$username ??= $prompt->ask('Username', null, $this->accounts->usernameProblem(...), 'agent');
+			$name     ??= trim($prompt->ask('Name', '', placeholder: 'What the admin calls it (optional)'));
+			$email    ??= trim($prompt->ask('Email address', '', placeholder: 'Optional for a token-only account'));
+			$roles      = $roles !== [] ? $roles : $this->askRoles($prompt);
+
+			$account = $this->accounts->createTokenOnly($username, $roles, $name === '' ? null : $name, $email === '' ? null : $email);
+		} catch (AuthException $e) {
+			$output->error($e->getMessage());
+
+			return ExitCode::Failure;
+		}
+
+		$output->success(sprintf(
+			'Created the token-only account "%s" (%s).',
+			$account->username,
+			implode(', ', array_map(fn (string $role): string => $this->roles->get($role)->label ?? $role, $account->roles))
+		));
+		$output->comment(sprintf('Make its tokens with "token:add %s".', $account->username));
 
 		return ExitCode::Success;
 	}

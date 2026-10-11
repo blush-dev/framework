@@ -62,7 +62,7 @@ final readonly class ListAccounts
 				$account->email ?? '(none)',
 				implode(', ', array_map(fn (string $role): string => $this->roles->has($role) ? $role : "{$role} (unknown)", $account->roles)),
 				$this->profiles->slug($account) ?? '',
-				$account->status()->value,
+				$account->status()->value . ($account->tokenOnly ? ' (token-only)' : ''),
 				$account->lastLogin === null
 					? 'never'
 					: DateTimeImmutable::createFromTimestamp($account->lastLogin)->setTimezone($this->app->timezone())->format('Y-m-d H:i')

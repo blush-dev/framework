@@ -1143,3 +1143,28 @@ D-541). Where the admin differs from the sketch:
   harness modes (every row editable inline, rename in place), and its
   lab bar.
 
+
+## API tokens (D-749, D-750)
+
+No sketch: built from the admin's own pieces, for the author to look
+over.
+
+- **An API Tokens panel** on an account's screen, below Public Profile
+  (above Theme and Color Scheme on Your Account): a `.table` of tokens
+  with a ghost **Revoke** per row, **Revoke All** and **New Token** in
+  the panel's actions, and a `.panel__note`. Your own panel is left out
+  when you have no tokens and can't make one.
+- **New Token** is an `AdminModal` (wide when Choose shows the role
+  screen's `CapabilitySections`); its fields (`TokenFields`, shared with
+  New Account) are a name, a `.segmented` lifetime, and the presets as
+  detailed radios. Those radios' look, the Settings choices', is now
+  the shared `.choices` classes in `admin.css`.
+- **A token just made** is shown once with `ShownOnce`, the password
+  link's notice made a component, so both look alike.
+- **New Account** gains a Kind (Someone who signs in, Token-only) at
+  the top of its Account panel; token-only hides the profile, makes the
+  email optional, and adds an **Its First Token** panel.
+- **Token-only accounts** show a plain **Token-only** pill beside their
+  standing, on the list and the screen, and a notice on their screen.
+- **The dashboard** warns of your tokens expiring within a week with a
+  `.notice--warn` above everything, linking to Your Account.

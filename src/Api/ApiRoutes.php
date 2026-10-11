@@ -32,6 +32,8 @@ use Blush\Routing\RouteSource;
  * items, a CORS preflight for any of them, and a JSON 404 for any other
  * address under the API, so a client never gets the site's HTML error
  * page. Off, there are none, and the site answers 404 itself (D-737).
+ * Each runs `ApiAuthentication` first, which finds the request's API
+ * token, if it sends one (D-746).
  *
  * They come before the Markdown pages' route (`/{path}.md`), which
  * would take an address under the API ending in `.md`: the provider
@@ -77,6 +79,6 @@ final readonly class ApiRoutes implements RouteSource
 			Route::match(['OPTIONS'], '/', [IndexController::class, 'preflight'])->named('preflight'),
 			Route::match(['OPTIONS'], '/{path:.+}', [IndexController::class, 'preflight'])->named('preflight.any'),
 			Route::get('/{path:.+}', [IndexController::class, 'missing'])->named('missing')
-		], name: 'api.', exact: true);
+		], name: 'api.', middleware: [ApiAuthentication::class], exact: true);
 	}
 }

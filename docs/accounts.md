@@ -43,6 +43,7 @@ Passwords must be at least 12 characters.
 | `account:suspend <username>` | Sign an account out and stop it signing in, keeping it |
 | `account:reinstate <username>` | Let a suspended account sign in again |
 | `account:remove <username>` | Delete an account (`--yes` skips the question) |
+| `token:add <username>` | Make an [API token](#api-tokens) for an account |
 
 Usernames are lowercase letters, digits, `.`, `_`, and `-`.
 
@@ -84,6 +85,56 @@ A **suspended** account is signed out at once and can't sign in or use
 a password link until it's reinstated; nothing else about it changes.
 **Removing** an account deletes its file. Either way, its profile and
 the entries crediting it stay.
+
+### Token-only accounts
+
+An app, a script, or an AI agent that uses the [API](api.md) gets an
+account of its own: a **token-only** account. It never signs in: it has
+no password and no password link, and an email address is optional. It
+does what its roles allow through its [API tokens](#api-tokens), so an
+account with a role that can edit but not publish only ever writes
+drafts.
+
+Make one in the admin (**New Account**, then **Token-only**), where its
+first token can be made with it, or with `account:add --token-only`,
+then `token:add`:
+
+```sh
+bin/blush account:add claude --token-only --role=editor --name=Claude
+bin/blush token:add claude --name="Claude Desktop"
+```
+
+Suspending a token-only account stops its tokens until it's
+reinstated.
+
+## API tokens
+
+An API token lets something use the [API](api.md#tokens) as an
+account. Each account's tokens are listed on its screen, under **API
+Tokens**: its name, what it can do, who made it, when it was last used,
+and when it expires.
+
+- **Your own:** on **Your Account**, with **New Token**. The owner and
+  administrators can make them by default; give another role **Make API
+  tokens for their own account** to let its accounts make them. Anyone
+  can see and revoke their own.
+- **Someone else's:** whoever can **Edit accounts** sees and revokes an
+  account's tokens, and makes them only for a token-only account, never
+  with a capability they don't have themselves. A person who signs in
+  makes their own. Only an owner sees or changes an owner's.
+- **What it can do:** **Read** (what anyone can read), **Write drafts**,
+  **Same as the account**, or capabilities you choose. Whatever it's
+  given, a token never does more than its account can now.
+- **How long:** 30 days, 90 days (the default), a year, or never. A
+  token shows on its account's dashboard a week before it expires, and
+  stays listed, marked Expired, for 30 days after.
+- **Revoking:** **Revoke** stops one at once; **Revoke All** stops every
+  one, for a token that may have leaked. A new password doesn't revoke
+  them.
+
+A token is shown once, when it's made. Only a hash of it is kept, in
+`storage/tokens/`, beside the accounts (or in the database on the
+SQLite driver).
 
 ## Email addresses
 

@@ -126,6 +126,9 @@ The dashboard greets you by your [name](accounts.md#names) ("Good
 afternoon, Sam Smith") with today's date. **New** starts an entry of any
 type you can write, or uploads to the media library.
 
+- When one of your [API tokens](accounts.md#api-tokens) expires within
+  a week, a notice above everything says so, with a way to **Your
+  Account** to make a new one.
 - **You Were Editing** is the entry you last saved in the admin, unless
   it's in the trash. **Continue Editing** opens it.
 - **Entries** lists what needs you first, then the rest: drafts (last
@@ -1358,7 +1361,9 @@ screens (and [Redirects](#redirects), with its own capability):
   content, and how many entries each holds (1 to 100). Under them,
   **API** turns on the read-only [API](api.md) (off by default; saved
   as `api.enabled`, over `config/api.php`), with its address shown and
-  a link to it once it's on.
+  a link to it once it's on, and **Who can read it**: **Anyone**, or
+  **Only with a Token** for a private API (`api.access`; see
+  [Tokens](api.md#a-private-api)).
 - **Writing:** how Markdown renders: **Mentions** (`@name` links to
   the profile with that slug once it's published; anyone else's stays
   text), **Smart punctuation** (curly quotes, dashes, and ellipses),
@@ -1733,6 +1738,12 @@ and how many site capabilities it has, and how many accounts hold it.
   account gets a **password link**: copy it from the account's screen
   and send it however you like. It's shown only that once, and it
   works once, for a week. Until it's used, the account is **Invited**.
+  Choose **Token-only** instead for an app, script, or agent: a
+  [token-only account](accounts.md#token-only-accounts) never signs in,
+  has no profile or password link, and needs no email address; if you
+  can edit accounts, its first API token is made with it (a name, how
+  long it lasts, and what it can do) and shown once on its screen.
+  Token-only accounts are marked **Token-only** in the list.
 - An account's screen has **All accounts** above its name, then its
   username, standing, roles, and last sign-in. **Edit Details** changes
   its display name and email address. Tick or untick its **roles**,
@@ -1752,6 +1763,18 @@ and how many site capabilities it has, and how many accounts hold it.
   It also suspends an account (it's signed out and can't sign in until
   you **Reinstate** it) or deletes it. Deleting an account leaves its
   profile (as a guest profile) and the entries crediting it alone.
+- **API Tokens** on an account's screen lists its
+  [API tokens](accounts.md#api-tokens): each one's name, who made it
+  and when, what it **Can** do, when it was last used, and when it
+  **Expires** (**Expired** for one that has). **New Token** asks for a
+  name, how long it lasts (**30 Days**, **90 Days**, **A Year**, or
+  **Never**), and what it can do: **Read**, **Write drafts**, **Same as
+  the account**, or **Choose**, which opens the account's capabilities
+  as a role's screen draws them. The token is shown once, with **Copy
+  Token**. **Revoke** stops one; **Revoke All** stops every one. On
+  Your Account you make your own (the owner and administrators can, by
+  default); on another's, whoever can edit accounts sees and revokes
+  them, and makes them only for a token-only account.
 
 ### Roles
 

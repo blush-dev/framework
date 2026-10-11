@@ -29,6 +29,8 @@ use Blush\Config\InvalidConfig;
  *   (`/api` serves `/api/v1`).
  * - `maxAge` is how long, in seconds, browsers and shared caches may
  *   keep an answer.
+ * - `access` is who may read it (D-745): `ApiAccess::Anyone`, or
+ *   `ApiAccess::Token` for requests with an API token only.
  */
 final readonly class ApiConfig implements Config
 {
@@ -43,7 +45,8 @@ final readonly class ApiConfig implements Config
 	public function __construct(
 		public bool $enabled = false,
 		public string $path = '/api',
-		public int $maxAge = 60
+		public int $maxAge = 60,
+		public ApiAccess $access = ApiAccess::Anyone
 	) {
 		if (preg_match('#^(?:/[a-z0-9][a-z0-9._-]*)+$#', $path) !== 1) {
 			throw new InvalidConfig(sprintf('ApiConfig "path" must be a path of lowercase letters, digits, dots, dashes, and underscores, such as "/api", without a trailing slash; "%s" given.', $path));
@@ -69,12 +72,13 @@ final readonly class ApiConfig implements Config
 	public static function fromArray(array $data): static
 	{
 		$values = new ConfigValues($data, self::class);
-		$values->assertKnownKeys(['enabled', 'path', 'maxAge']);
+		$values->assertKnownKeys(['enabled', 'path', 'maxAge', 'access']);
 
 		return new static(
 			enabled: $values->bool('enabled', false),
 			path: $values->string('path', '/api'),
-			maxAge: $values->int('maxAge', 60)
+			maxAge: $values->int('maxAge', 60),
+			access: $values->enum('access', ApiAccess::class, ApiAccess::Anyone)
 		);
 	}
 
@@ -84,6 +88,6 @@ final readonly class ApiConfig implements Config
 	#[Override]
 	public function toArray(): array
 	{
-		return ['enabled' => $this->enabled, 'path' => $this->path, 'maxAge' => $this->maxAge];
+		return ['enabled' => $this->enabled, 'path' => $this->path, 'maxAge' => $this->maxAge, 'access' => $this->access->value];
 	}
 }

@@ -39,6 +39,12 @@ namespace Blush\Auth;
  * uses to reach other services. Only the owner has it by default; the
  * administrator's list leaves it out (D-500).
  *
+ * API tokens (D-749): making tokens for your own account, on Your
+ * Account. The owner and the administrator have it by default. Seeing
+ * and revoking another account's tokens, and making them for a
+ * token-only account, are `accounts.edit`'s. Anyone may see and revoke
+ * their own.
+ *
  * HTML (D-495): adding raw HTML to a body in the admin, from the allowed
  * list (`html.allowed`) or anything but what's always refused
  * (`html.unfiltered`; `Markdown\Html\HtmlRules`). Without either, a save
@@ -68,6 +74,7 @@ enum Capability: string
 	case AccountsSuspend = 'accounts.suspend';
 	case AccountsDelete  = 'accounts.delete';
 	case RolesManage     = 'roles.manage';
+	case ApiTokens       = 'api.tokens';
 
 	/**
 	 * Capabilities that are gone (D-407): a saved role that names one has
@@ -146,7 +153,8 @@ enum Capability: string
 			self::AccountsRoles   => 'Give and take roles',
 			self::AccountsSuspend => 'Suspend and reinstate accounts',
 			self::AccountsDelete  => 'Remove accounts',
-			self::RolesManage     => 'Manage roles'
+			self::RolesManage     => 'Manage roles',
+			self::ApiTokens       => 'Make API tokens for their own account'
 		};
 	}
 }

@@ -7,6 +7,9 @@
  * everyone's. When nothing is waiting on the account, it says so and
  * lists what it published last. Actions are on the Tools screen (D-540).
  *
+ * Your API tokens that expire within a week are a notice above it all
+ * (D-748), with a way to Your Account to make new ones.
+ *
  * Until the site publishes something, a numbered setup path takes the
  * dashboard's place (40-screens §8): each step does the thing, and shows
  * when it's done. Skipping it is the account's preference.
@@ -20,6 +23,7 @@ import EntryRows from '../components/EntryRows.vue';
 import MenuButton from '../components/MenuButton.vue';
 import StatusPill from '../components/StatusPill.vue';
 import { navCounts } from '../counts';
+import { when } from '../people';
 import { formatWhen } from '../format';
 import { can, canAnyType, canType, canUpload, savePreferences, session } from '../session';
 import { errorMessage, request, type ContentTypeSummary, type Dashboard, type DashboardEntry } from '../api';
@@ -238,6 +242,12 @@ onMounted(() => {
 	</section>
 
 	<template v-else>
+		<div v-if="dashboard.tokens.length && session.account" class="notice notice--warn">
+			<AdminIcon name="key-round" />
+			<span class="notice__text"><strong>{{ dashboard.tokens.length === 1 ? `Your API token ${dashboard.tokens[0]?.name} expires ${when(dashboard.tokens[0]?.expires ?? null)}.` : `${dashboard.tokens.length} of your API tokens expire within a week.` }}</strong> Whatever uses {{ dashboard.tokens.length === 1 ? 'it' : 'them' }} stops working then; make a new one and swap it in.</span>
+			<span class="notice__buttons"><RouterLink class="button button--small" :to="{ name: 'account', params: { username: session.account.username } }">Your Account</RouterLink></span>
+		</div>
+
 		<section v-if="dashboard.resume" class="resume" aria-labelledby="resume-heading">
 			<span class="resume__mark" aria-hidden="true"><AdminIcon name="square-pen" /></span>
 			<div class="resume__body">

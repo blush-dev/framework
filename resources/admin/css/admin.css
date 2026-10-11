@@ -1182,6 +1182,51 @@
 	accent-color: var(--accent);
 }
 
+/* A list of radios or checkboxes, each a `.checkbox`; detailed, each
+   a `.choice` of its name and a sentence (and machine names) under it,
+   quieter, so a list of them stays readable: a setting's choices, and
+   what an API token may do. */
+.choices {
+	display: grid;
+	gap: 7px;
+}
+
+.choices--detailed {
+	gap: var(--s-4);
+}
+
+.choices--detailed .checkbox {
+	align-items: flex-start;
+	line-height: 1.45;
+}
+
+.choices--detailed input {
+	margin-top: 2px;
+}
+
+.choice {
+	display: grid;
+	gap: 1px;
+	min-width: 0;
+}
+
+.choice__name {
+	color: var(--fg);
+	font-weight: 500;
+}
+
+.choice__text {
+	color: var(--fg-2);
+}
+
+.choice__code {
+	margin-top: 3px;
+	color: var(--fg-3);
+	font-family: var(--font-mono);
+	font-size: var(--text-xs);
+	overflow-wrap: anywhere;
+}
+
 /* Status tabs under a list's page header, each named for its status
    (§7), with filters in one row below them: every list's, the Users
    screens' too (D-507). */
@@ -4405,14 +4450,14 @@ a.problem__title:hover {
 }
 
 /* A setting's options sit in a row, unless they're described. */
-.setting__control .field-input__choices:not(.field-input__choices--detailed) {
+.setting__control .choices:not(.choices--detailed) {
 	display: flex;
 	flex-wrap: wrap;
 	gap: var(--s-2) var(--s-5);
 	min-height: var(--ctl);
 }
 
-.setting__control .field-input__choices--detailed {
+.setting__control .choices--detailed {
 	padding-top: 7px;
 }
 

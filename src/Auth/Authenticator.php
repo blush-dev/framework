@@ -79,7 +79,9 @@ final readonly class Authenticator
 
 		$account = $this->accounts->find($username);
 
-		if (! $this->passwords->verify($password, $account?->passwordHash) || $account === null) {
+		// A token-only account never signs in (D-744), as if its password
+		// were wrong.
+		if (! $this->passwords->verify($password, $account?->passwordHash) || $account === null || $account->tokenOnly) {
 			$this->throttle->fail($ip, $username);
 
 			return null;

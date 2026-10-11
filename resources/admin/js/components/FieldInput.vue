@@ -87,25 +87,25 @@ const checked = computed({
 		<input :id="id" v-model="checked" type="checkbox" :disabled="disabled" :aria-describedby="describedBy" :aria-invalid="invalid">
 		{{ field.caption ?? label(field) }}
 	</label>
-	<div v-else-if="kind === 'radios'" class="field-input__choices" :class="{ 'field-input__choices--detailed': field.details }" role="radiogroup" :aria-labelledby="labelledBy" :aria-describedby="describedBy" :aria-invalid="invalid">
+	<div v-else-if="kind === 'radios'" class="choices" :class="{ 'choices--detailed': field.details }" role="radiogroup" :aria-labelledby="labelledBy" :aria-describedby="describedBy" :aria-invalid="invalid">
 		<label v-if="!field.required" class="checkbox"><input :id="id" v-model="text" type="radio" :name="id" value="" :disabled="disabled"> {{ field.caption ?? 'None' }}</label>
 		<label v-for="(option, index) in choicesOf" :key="option" class="checkbox">
 			<input :id="index === 0 && field.required ? id : undefined" v-model="text" type="radio" :name="id" :value="option" :disabled="disabled">
-			<span v-if="detail(option)" class="field-input__choice">
-				<span class="field-input__name">{{ choice(option) }}</span>
-				<span class="field-input__text">{{ detail(option)?.text }}</span>
-				<span v-if="detail(option)?.code" class="field-input__code">{{ detail(option)?.code }}</span>
+			<span v-if="detail(option)" class="choice">
+				<span class="choice__name">{{ choice(option) }}</span>
+				<span class="choice__text">{{ detail(option)?.text }}</span>
+				<span v-if="detail(option)?.code" class="choice__code">{{ detail(option)?.code }}</span>
 			</span>
 			<template v-else>{{ choice(option) }}</template>
 		</label>
 	</div>
-	<div v-else-if="kind === 'checks'" class="field-input__choices" :class="{ 'field-input__choices--detailed': field.details }" role="group" :aria-labelledby="labelledBy" :aria-describedby="describedBy" :aria-invalid="invalid">
+	<div v-else-if="kind === 'checks'" class="choices" :class="{ 'choices--detailed': field.details }" role="group" :aria-labelledby="labelledBy" :aria-describedby="describedBy" :aria-invalid="invalid">
 		<label v-for="(option, index) in choicesOf" :key="option" class="checkbox">
 			<input :id="index === 0 ? id : undefined" type="checkbox" :checked="ticked.includes(option)" :disabled="disabled" @change="tick(option, ($event.target as HTMLInputElement).checked)">
-			<span v-if="detail(option)" class="field-input__choice">
-				<span class="field-input__name">{{ choice(option) }}</span>
-				<span class="field-input__text">{{ detail(option)?.text }}</span>
-				<span v-if="detail(option)?.code" class="field-input__code">{{ detail(option)?.code }}</span>
+			<span v-if="detail(option)" class="choice">
+				<span class="choice__name">{{ choice(option) }}</span>
+				<span class="choice__text">{{ detail(option)?.text }}</span>
+				<span v-if="detail(option)?.code" class="choice__code">{{ detail(option)?.code }}</span>
 			</span>
 			<template v-else>{{ choice(option) }}</template>
 		</label>
@@ -128,49 +128,6 @@ const checked = computed({
 </template>
 
 <style scoped>
-.field-input__choices {
-	display: grid;
-	gap: 7px;
-}
-
-/* Only the name is a name: the sentence and the machine names under it
-   are quieter, so a list of them stays readable. */
-.field-input__choices--detailed {
-	gap: var(--s-4);
-}
-
-.field-input__choices--detailed .checkbox {
-	align-items: flex-start;
-	line-height: 1.45;
-}
-
-.field-input__choices--detailed input {
-	margin-top: 2px;
-}
-
-.field-input__choice {
-	display: grid;
-	gap: 1px;
-	min-width: 0;
-}
-
-.field-input__name {
-	color: var(--fg);
-	font-weight: 500;
-}
-
-.field-input__text {
-	color: var(--fg-2);
-}
-
-.field-input__code {
-	margin-top: 3px;
-	color: var(--fg-3);
-	font-family: var(--font-mono);
-	font-size: var(--text-xs);
-	overflow-wrap: anywhere;
-}
-
 .field-input__date {
 	display: flex;
 	align-items: center;

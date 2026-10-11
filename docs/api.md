@@ -4,8 +4,8 @@ Blush can serve a read-only API of your site as JSON, for a front end
 built with another tool, an app, another site, or an AI tool. It
 answers with what your site shows anyone: published pages and posts,
 your content types and relationships, your media, your menus, and your
-site's details. Drafts, scheduled entries, and hidden pages are never
-in it.
+site's details. Drafts, scheduled entries, and hidden pages are left
+out, unless a request with an [API token](#tokens) asks for them.
 
 ## Turning it on
 
@@ -42,6 +42,66 @@ under it is your site's ordinary "not found" page. See
 Entries and media are found by their id, the `id` in each file's front
 matter or metadata, so an address stays the same when a file is renamed
 or moved.
+
+## Tokens
+
+An API token lets an app, a script, or an AI agent use the API as one
+of your site's accounts. It's sent in a header on each request:
+
+```
+Authorization: Bearer blush_0199a1b4-…_9f3c…
+```
+
+- **Making one:** on **Your Account** in the admin, under API Tokens,
+  with **New Token**, or with [`token:add`](cli.md#accounts). The token
+  is shown once; copy it then. Only the owner and administrators can
+  make tokens until a role is given **Make API tokens for their own
+  account**.
+- **What it can do:** what its account may, checked on every request,
+  so a role change or a suspension counts at once. A token can be
+  narrowed: **Read** (what anyone can read), **Write drafts**, **Same
+  as the account**, or capabilities you choose.
+- **For an agent:** make it an account of its own, a
+  [token-only account](accounts.md#token-only-accounts), with a role
+  that fits. One that can edit but not publish only ever writes drafts.
+- **How long it lasts:** 30 days, 90 days (the default), a year, or
+  never. The dashboard says when one of yours expires within a week.
+  Expired tokens stay listed for 30 days, so you can see what stopped.
+- **Revoking:** **Revoke** stops a token at once, and **Revoke All**
+  stops every one of an account's. Changing a password doesn't revoke
+  tokens.
+
+A token is only accepted in the `Authorization` header, never in the
+address, and only over HTTPS (plain HTTP works on `localhost`). After
+many requests with a token that isn't one, the address sending them is
+refused for a while.
+
+### What a token sees
+
+Without asking, a token gets exactly what anyone gets. With `status`,
+it gets entries of those statuses that its account may edit, whatever
+their visibility, hidden pages included:
+
+```
+/api/v1/entries?type=post&status=draft
+/api/v1/entries/0199…?status=draft,scheduled
+```
+
+What it may edit follows its roles, as in the admin: an editor sees
+everyone's drafts, an author their own. Answers to a request with a
+token are never cached or shared (`Cache-Control: private, no-store`).
+
+### A private API
+
+To keep the API to your own front end, apps, and agents, set **Who can
+read it** to **Only with a Token** on **Settings → Reading**, or
+`access` in `config/api.php`:
+
+```php
+return new ApiConfig(enabled: true, access: ApiAccess::Token);
+```
+
+Then a request without a token gets a `401`.
 
 ## Lists
 
@@ -208,8 +268,12 @@ A request the API can't answer gets an error with a status:
 
 | Code | Status | When |
 |---|---|---|
-| `invalid_query` | 400 | A parameter isn't one the address takes, or has a value it can't |
+| `invalid_query` | 400 | A parameter isn't one the address takes, or has a value it can't, or a token is in the address |
+| `token_required` | 401 | The API, or `status`, needs a token, and there's none |
+| `invalid_token` | 401 | The token is wrong, revoked, or expired, or its account is suspended |
+| `https_required` | 403 | A token was sent over plain HTTP |
 | `not_found` | 404 | Nothing has that id, or nothing is at that address |
+| `too_many_attempts` | 429 | Too many tokens that weren't one came from your address; try later |
 
 The `code` stays the same; the message may change.
 
@@ -219,4 +283,7 @@ Answers are kept until your content changes, like your pages, and
 browsers and caches may keep them for a minute (`maxAge`). Each has an
 `ETag`, so a client that asks again with `If-None-Match` gets a quick
 `304` when nothing changed. Any site may call the API from a browser
-(`Access-Control-Allow-Origin: *`), since everything in it is public.
+(`Access-Control-Allow-Origin: *`): an answer without a token is
+public, and a browser never sends a token on its own, only a script
+you give one to. Keep a token out of pages anyone can read; a front
+end should use it on its server.
