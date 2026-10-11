@@ -313,6 +313,11 @@ export interface ContentTypeSummary {
 	// A term type's: the types its relation files, empty for every type.
 	// The profiles type's: the types that credit people.
 	types?: string[];
+	// Its place in the admin's content menu (D-726): its order (`null`
+	// for none, after those with one, by name) and the type it sits under
+	// (`null` for the top level).
+	position: number | null;
+	under: string | null;
 	// Where it was defined, its folder, its URL prefix (`null` without
 	// URLs), and how many fields it defines (D-250).
 	origin: 'built-in' | 'extension' | 'data';
@@ -439,6 +444,9 @@ export interface ContentTypeDetail extends Omit<ContentTypeSummary, 'fields'> {
 	// Whether the admin changes it: a type in `user/data/types` (D-311),
 	// or a collection from code, through a file there (D-349).
 	editable: boolean;
+	// Whether its place in the content menu can be changed (D-726): any
+	// type but the profiles type, editable or not.
+	placeable: boolean;
 	// Whether it's from code with a file in `user/data/types` changing
 	// it, and the options that file sets.
 	overridden: boolean;

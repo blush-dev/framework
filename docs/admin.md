@@ -188,13 +188,11 @@ jobs, or read the log.
 
 ## Entries
 
-The sidebar lists your content types by name. **Content** has your
-collections (such as Posts) and Pages, each with the
-[types of terms](content-types.md#terms-and-relationships) that file
-only that type under it (one whose relation's `from` names one type,
-such as Categories under Posts), then **Shared Terms**, the types of
-terms that file several types or every type, each saying which, then
-**Media**. **Structure** has **Content Types**,
+The sidebar lists your content types. **Content** has every type,
+terms too, alphabetically by name until you
+[place them](content-types.md#where-a-type-sits-in-the-admins-menu)
+(**In the Menu** on each type's screen), with any types you've
+put under another type nested under it, then **Media**. **Structure** has **Content Types**,
 **Relationships**, **Fields**, and **Menus**. Profiles are in
 **Users**, with accounts, since they're the public side of accounts.
 Each type opens a list of its entries you can edit, newest changes

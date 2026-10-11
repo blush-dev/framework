@@ -137,6 +137,39 @@ final class ContentTypeTest extends TestCase
 		}
 	}
 
+	public function testATypeIsPlacedInTheMenu(): void
+	{
+		$cast = ContentType::fromArray(['name' => 'cast', 'position' => 2, 'under' => 'movie'], $this->fields);
+		$this->assertSame([2, 'movie'], [$cast->position, $cast->under]);
+		$this->assertSame(['position' => 2, 'under' => 'movie'], array_intersect_key($cast->toArray(), array_flip(ContentType::PLACEMENT)));
+
+		$page = BuiltInType::Page->type()->placedBy(['position' => 0], $this->fields);
+		$this->assertInstanceOf(Tree::class, $page);
+		$this->assertSame([0, true], [$page->position, $page->atRoot()], 'Placing the site\'s pages keeps them as they are (D-726).');
+
+		$this->assertTrue(ContentType::onlyPlaces(['under' => 'movie']));
+		$this->assertFalse(ContentType::onlyPlaces(['under' => 'movie', 'icon' => 'film']));
+		$this->assertFalse(ContentType::onlyPlaces([]));
+
+		$refused = [
+			[fn (): ContentType => ContentType::fromArray(['name' => 'cast', 'position' => -1], $this->fields), '0 or more'],
+			[fn (): ContentType => ContentType::fromArray(['name' => 'cast', 'position' => 1.5], $this->fields), 'whole number'],
+			[fn (): ContentType => ContentType::fromArray(['name' => 'cast', 'under' => 'cast'], $this->fields), 'under itself'],
+			[fn (): ContentType => ContentType::fromArray(['name' => 'profile', 'kind' => 'profiles', 'under' => 'movie'], $this->fields), 'unknown options: under'],
+			[fn (): ContentType => BuiltInType::Profile->type()->placedBy(['position' => 1], $this->fields), 'listed with people'],
+			[fn (): ContentType => BuiltInType::Page->type()->placedBy(['icon' => 'file'], $this->fields), 'only be placed']
+		];
+
+		foreach ($refused as [$build, $message]) {
+			try {
+				$build();
+				$this->fail("Refused: {$message}.");
+			} catch (InvalidContentType $e) {
+				$this->assertStringContainsString($message, $e->getMessage());
+			}
+		}
+	}
+
 	public function testOnlyATreeInAFolderTakesAPrefix(): void
 	{
 		$this->expectException(InvalidContentType::class);

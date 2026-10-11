@@ -35,7 +35,7 @@ import { initials } from '../people';
 import { loadCounts, navCounts } from '../counts';
 import { can, canAnyType, canType, savePreferences, session, signOut, usesMedia } from '../session';
 import { toast } from '../toast';
-import { profileType, currentType, loadTypes, typeIcon, types } from '../types';
+import { contentMenu, profileType, currentType, loadTypes, typeIcon, types } from '../types';
 import AdminIcon from './AdminIcon.vue';
 import CommandPalette from './CommandPalette.vue';
 import MenuButton from './MenuButton.vue';
@@ -53,9 +53,7 @@ interface NavLink {
 	// A content type's link, shown with the type's own icon.
 	type?: ContentTypeSummary;
 	current?: boolean;
-	// A second line, such as the types a term type files.
-	detail?: string;
-	// Links nested under this one, such as its type's own terms.
+	// Links nested under this one, such as the types under a type.
 	links?: NavLink[];
 	// How many things its list holds (D-371), when known.
 	count?: number;
@@ -97,9 +95,9 @@ const screen = (name: string, label: string, icon: IconName): NavLink => ({ key:
 /**
  * Each section's links, in groups (D-241, D-244). **Home**: the admin's
  * own screens (the Dashboard, Site Health, and Tools); its
- * shortcuts are drawn after them (`shortcuts`). **Content**: each content type with the
- * term types that file only it nested under it (D-593), the term types
- * shared by several types (or every type), and Media. **Users** (D-326, D-354):
+ * shortcuts are drawn after them (`shortcuts`). **Content**: the content
+ * types in the site's order, each with the types that sit under it
+ * (`contentMenu()`, D-726), and Media. **Users** (D-326, D-354):
  * Your Account, Accounts, Profiles, and Roles (D-353, D-358).
  * **Structure** (D-704): content types, relationships (D-610), fields,
  * and menus. **Extend**: Themes, Plugins, and Icon Packs (D-327, D-378,
@@ -134,7 +132,7 @@ const sections = computed<Record<Area, NavGroup[]>>(() => {
 	const counted = (link: NavLink, count: number | undefined): NavLink => ({ ...link, count });
 
 	const inEntries = route.meta.section === 'entries';
-	const link = (type: ContentTypeSummary, detail?: string): NavLink => ({
+	const link = (type: ContentTypeSummary): NavLink => ({
 		key: type.name,
 		label: type.labels.menu,
 		icon: typeIcon(type),
@@ -142,26 +140,12 @@ const sections = computed<Record<Area, NavGroup[]>>(() => {
 		to: { name: 'type', params: { type: type.name } },
 		current: inEntries && currentType.value === type.name,
 		pin: `type:${type.name}`,
-		detail,
 		count: navCounts.value?.types[type.name]
 	});
 
-	// By the names the menu shows, which a site may shorten (D-278); only
-	// the types the account edits entries of (D-359).
-	const sorted     = [...types.value].filter((type) => canType(type.name, 'edit')).sort((a, b) => a.labels.menu.localeCompare(b.labels.menu));
-	const entryTypes = sorted.filter((type) => !type.terms && type.kind !== 'profiles');
-	const termTypes = sorted.filter((type) => type.terms);
-	const labelOf    = (name: string): string => types.value.find((type) => type.name === name)?.labels.menu ?? name;
-
-	// Terms filing one listed type sit under it; the rest are shared.
-	const owner  = (termType: ContentTypeSummary): string | undefined => termType.types?.length === 1 && entryTypes.some((type) => type.name === termType.types?.[0]) ? termType.types[0] : undefined;
-	const shared = termTypes.filter((termType) => owner(termType) === undefined).map((termType) => {
-		const grouped = (termType.types ?? []).map(labelOf);
-
-		return link(termType, grouped.length === 0 ? 'Every type' : (grouped.length <= 2 ? grouped.join(', ') : `${grouped.length} types`));
-	});
-
-	const content = entryTypes.map((type) => ({ ...link(type), links: termTypes.filter((termType) => owner(termType) === type.name).map((termType) => link(termType)) }));
+	// In the site's order (D-726); only the types the account edits
+	// entries of (D-359).
+	const content = contentMenu(types.value.filter((type) => canType(type.name, 'edit'))).map(({ type, under }) => ({ ...link(type), links: under.map(link) }));
 	const library = usesMedia() ? [counted(screen('media', 'Media', 'image'), navCounts.value?.media)] : [];
 
 	const structure = [
@@ -204,7 +188,7 @@ const sections = computed<Record<Area, NavGroup[]>>(() => {
 
 	return {
 		home: groups([{ key: 'home', links: home }]),
-		content: groups([{ key: 'types', links: content }, { key: 'shared', heading: 'Shared Terms', links: shared }, { key: 'library', heading: 'Library', links: library }]),
+		content: groups([{ key: 'types', links: content }, { key: 'library', heading: 'Library', links: library }]),
 		people: groups([{ key: 'people', links: people }]),
 		structure: groups([{ key: 'structure', links: structure }]),
 		extend: groups([{ key: 'extensions', links: extensions }]),
@@ -251,7 +235,7 @@ const pinnedIds = computed(() => draft.value ?? session.account?.preferences.sho
 const shortcuts = computed<NavLink[]>(() => pinnedIds.value
 	.map((id) => pinnable.value.find((item) => item.pin === id))
 	.filter((item): item is NavLink => item !== undefined)
-	.map((item) => ({ ...item, key: `shortcut-${item.pin ?? ''}`, label: item.pinLabel ?? item.label, current: false, links: undefined, detail: undefined, count: undefined })));
+	.map((item) => ({ ...item, key: `shortcut-${item.pin ?? ''}`, label: item.pinLabel ?? item.label, current: false, links: undefined, count: undefined })));
 
 const unpinned = computed(() => pinnable.value.filter((item) => !pinnedIds.value.includes(item.pin ?? '')));
 
@@ -583,10 +567,10 @@ async function leave(): Promise<void> {
 						<p v-if="group.heading" :id="`nav-${group.key}`" class="eyebrow panel-nav__heading">{{ group.heading }}</p>
 						<ul :aria-labelledby="group.heading ? `nav-${group.key}` : undefined">
 							<li v-for="link in group.links" :key="link.key">
-								<RouterLink class="panel-nav__link" :class="{ 'is-current': link.current, 'panel-nav__link--two': link.detail }" :to="link.to">
+								<RouterLink class="panel-nav__link" :class="{ 'is-current': link.current }" :to="link.to">
 									<TypeIcon v-if="link.type" :type="link.type" />
 									<AdminIcon v-else :name="link.icon" />
-									<span class="panel-nav__label">{{ link.label }}<span v-if="link.detail" class="panel-nav__detail">{{ link.detail }}</span></span>
+									<span class="panel-nav__label">{{ link.label }}</span>
 									<span v-if="link.count !== undefined" class="panel-nav__count"><span class="visually-hidden">, </span>{{ link.count.toLocaleString() }}</span>
 								</RouterLink>
 								<ul v-if="link.links?.length" class="panel-nav__nest">
@@ -1036,22 +1020,7 @@ async function leave(): Promise<void> {
 	width: 100%;
 }
 
-/* Shared terms name what they file on a second line. */
-
-.panel-nav__link--two {
-	padding-block: 7px;
-}
-
-.panel-nav__detail {
-	display: block;
-	overflow: hidden;
-	color: var(--fg-3);
-	font-size: var(--text-xs);
-	font-weight: 400;
-	text-overflow: ellipsis;
-}
-
-/* A type's own terms sit under it, one level only. */
+/* The types under a type sit under it, one level only. */
 
 .panel-nav__nav .panel-nav__nest {
 	position: relative;

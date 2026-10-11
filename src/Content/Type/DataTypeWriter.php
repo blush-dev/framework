@@ -49,6 +49,11 @@ use Blush\Storage\Record\RecordException;
  * Everything else in the file is left as the author wrote it: the
  * file keeps its other keys. Types are JSON files (D-490, D-631).
  *
+ * A type's place in the admin's menu (D-726), `position` and `under`, is
+ * changed like any option, and on any type but the profiles type: on one
+ * the admin can't otherwise change (the built-in pages, say), a file of
+ * its name holds only those two, and changes nothing else about it.
+ *
  * Types are records in the `types` table (`DefinitionTables`, D-672).
  * Each change is checked against every other type before it's kept: in
  * a transaction, the record is written, all the types are loaded again
@@ -77,6 +82,8 @@ final readonly class DataTypeWriter
 		'prefix'       => [],
 		'hierarchical' => [],
 		'order'        => [],
+		'position'     => [],
+		'under'        => [],
 		'fields'       => []
 	];
 
@@ -163,6 +170,18 @@ final readonly class DataTypeWriter
 	{
 		$this->assertEnabled();
 
+		$types = ($this->loader)()->load();
+		$type  = $types->find($name);
+
+		if ($type !== null && array_intersect_key($changes, array_flip(ContentType::PLACEMENT)) !== []) {
+			$this->checkPlacement($types, $type, array_key_exists('under', $changes) ? $changes['under'] : $type->under);
+
+			// A type the admin can't otherwise change is only placed.
+			if (! $types->isEditable($name) && ContentType::onlyPlaces($changes)) {
+				return $this->placeOnly($types, $type, $changes);
+			}
+		}
+
 		$code = $this->codeType($name);
 
 		if ($this->location($name) === null && $code === null) {
@@ -200,9 +219,115 @@ final readonly class DataTypeWriter
 			throw new InvalidContentType(sprintf('Nothing in user/data/types changes "%s".', $name));
 		}
 
-		return $this->checked(function () use ($name): void {
-			$this->table()->delete($name);
+		// Its place in the menu isn't one of the code's options, so it stays.
+		$placement = array_intersect_key($this->data($name), array_flip(ContentType::PLACEMENT));
+
+		return $this->checked(function () use ($name, $placement): void {
+			if ($placement === []) {
+				$this->table()->delete($name);
+			} else {
+				$this->table()->save($name, $placement);
+			}
 		});
+	}
+
+	/**
+	 * Checks where a type would sit in the admin's menu (D-726): under a
+	 * type in the content menu that's at the top level itself, and only
+	 * when no type sits under it, since the menu nests one level.
+	 *
+	 * @throws InvalidContentType
+	 */
+	private function checkPlacement(ContentTypes $types, ContentType $type, mixed $under): void
+	{
+		if ($under !== null && ! is_string($under)) {
+			throw new InvalidContentType('"under" must be a type\'s name, or null for the top level.');
+		}
+
+		$under = trim($under ?? '');
+
+		if ($under === '') {
+			return;
+		}
+
+		$parent = $types->find($under);
+
+		if ($type instanceof Profiles) {
+			throw new InvalidContentType(sprintf('%s are listed with people, so they aren\'t placed in the content menu.', $type->labels->plural));
+		}
+
+		if ($parent === null || $parent instanceof Profiles || $parent->name === $type->name) {
+			throw new InvalidContentType(sprintf('%s can\'t sit under "%s": it isn\'t a type in the content menu.', $type->labels->plural, $under));
+		}
+
+		if ($parent->under !== null) {
+			throw new InvalidContentType(sprintf('%s can\'t sit under %s, which sits under another type; the menu nests one level.', $type->labels->plural, $parent->labels->plural));
+		}
+
+		$children = array_filter($types->all(), static fn (ContentType $child): bool => $child->under === $type->name);
+
+		if ($children !== []) {
+			throw new InvalidContentType(sprintf('%s can\'t sit under another type while %s sit under it; the menu nests one level.', $type->labels->plural, implode(' and ', array_map(static fn (ContentType $child): string => $child->labels->plural, $children))));
+		}
+	}
+
+	/**
+	 * Places a type the admin can't otherwise change (D-726): the built-in
+	 * pages, or a type from code a file can't override.
+	 *
+	 * @param  array<string, mixed> $changes Only `position` and `under`.
+	 * @throws InvalidContentType
+	 */
+	private function placeOnly(ContentTypes $types, ContentType $type, array $changes): ContentTypes
+	{
+		if ($type instanceof Profiles) {
+			throw new InvalidContentType(sprintf('%s are listed with people, so they aren\'t placed in the content menu.', $type->labels->plural));
+		}
+
+		$position = array_key_exists('position', $changes) ? $changes['position'] : $type->position;
+		$under    = array_key_exists('under', $changes) ? $changes['under'] : $type->under;
+
+		if ($position !== null && (! is_int($position) || $position < 0)) {
+			throw new InvalidContentType('"position" must be a whole number, 0 or more, or null.');
+		}
+
+		$under  = is_string($under) && trim($under) !== '' ? trim($under) : null;
+		[$code] = ($this->loader)()->codeTypes();
+
+		return $this->checked(function () use ($type, $position, $under, $code): void {
+			$this->place($type->name, ['position' => $position, 'under' => $under], $code[$type->name] ?? null);
+		});
+	}
+
+	/**
+	 * Writes a type's place in the menu: into a data type's record, or,
+	 * over a type from code, only what differs from the code's.
+	 *
+	 * @param array{position: ?int, under: ?string} $values
+	 */
+	private function place(string $name, array $values, ?ContentType $code): void
+	{
+		$table  = $this->table();
+		$record = $table->find($name) ?? [];
+
+		if ($code !== null) {
+			$values = [
+				'position' => $values['position'] === $code->position ? null : $values['position'],
+				'under'    => $values['under'] === $code->under ? null : ($values['under'] ?? ($code->under === null ? null : ''))
+			];
+		}
+
+		$record = DataKeys::apply($record, $values);
+
+		if ($code !== null && $record === []) {
+			if ($table->has($name)) {
+				$table->delete($name);
+			}
+
+			return;
+		}
+
+		$table->save($name, $record);
 	}
 
 	/**
@@ -448,6 +573,8 @@ final readonly class DataTypeWriter
 			'prefix'       => $type->name,
 			'hierarchical' => false,
 			'order'        => TypeOrder::Published->value,
+			'position'     => null,
+			'under'        => '',
 			default        => []
 		};
 	}

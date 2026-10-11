@@ -2032,6 +2032,21 @@ Move each item to `decisions.md` once it's answered.
   released.
 
 ## Later
+
+- **A sorter for the content menu** (D-726, the author, 2026-10-10).
+  Maybe later: a button in the Content section panel's header that
+  arranges every type's `position` and `under` at once, built on the
+  Menus screen's tree (`MenuTree`), not a new list. Until then, each
+  type is placed on its own screen (In the Menu).
+
+- **Rail sections from plugins** (raised with D-726, 2026-10-10). A
+  large plugin, such as a store, may want its own rail section
+  (Products, Orders, Customers). Likely shape: a section registered by
+  the plugin (key, label, icon, capability, its own screens), and a
+  type's `section` (default `content`) beside `position` and `under`,
+  which then order and nest within that section. Open: whether a
+  plugin's section can hold a site's types, whether `under` may cross
+  sections (proposed: no), and where sections sit among core's.
 - **PSR-13 links** (D-724, deferred 2026-10-10). Whether core implements
   `psr/link` (`LinkInterface`, `EvolvableLinkProviderInterface`) for the
   links a page carries: preload `Link` headers from the asset head

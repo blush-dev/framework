@@ -6,7 +6,9 @@
  * (D-337), with a way to its entries. A type from `user/data/types` is
  * edited here (`TypeEditor`, D-311), and so is a collection from code,
  * through a file there (D-349); the pages and authors types from code are
- * shown read-only (D-042), but their relationships are edited here too.
+ * shown read-only (D-042), but their relationships are edited here too,
+ * and so is where they sit in the Content menu (`TypeMenuFields`, D-726),
+ * saved from the save bar.
  */
 
 import { computed, ref, watch } from 'vue';
@@ -14,17 +16,27 @@ import { RouterLink, useRoute } from 'vue-router';
 import AdminIcon from '../components/AdminIcon.vue';
 import TypeEditor from '../components/TypeEditor.vue';
 import TypeFieldSets from '../components/TypeFieldSets.vue';
+import SaveBar from '../components/SaveBar.vue';
 import TypeIcon from '../components/TypeIcon.vue';
+import TypeMenuFields from '../components/TypeMenuFields.vue';
 import TypeRelations from '../components/TypeRelations.vue';
 import { errorMessage, request, type ContentTypeDetail } from '../api';
+import { useAction } from '../action';
+import { guardLeave } from '../confirm';
 import { humanize, label } from '../fields';
 import { plural } from '../format';
 import { screenTitle } from '../screen';
-import { findType, loadTypes } from '../types';
+import { toast } from '../toast';
+import { changesOf, formOf, type TypeForm } from '../type-form';
+import { findType, loadTypes, refreshTypes } from '../types';
 
 const route = useRoute();
 const type  = ref<ContentTypeDetail | null>(null);
 const error = ref('');
+
+// A type that isn't otherwise edited here is still placed in the menu
+// (D-726): only its place changes.
+const menu = ref<TypeForm | null>(null);
 
 loadTypes().catch(() => undefined);
 
@@ -45,7 +57,35 @@ watch(() => route.params.name, (name) => {
 
 watch(type, (value) => {
 	screenTitle.value = value?.labels.plural ?? null;
+	menu.value        = value ? formOf(value) : null;
 });
+
+
+const { busy: placing, error: placeFailure, run: runPlace } = useAction();
+
+const placeChanges = computed(() => type.value && menu.value ? changesOf(menu.value, formOf(type.value), type.value.kind === 'tree' ? 'tree' : 'collection') : {});
+const placeCount   = computed(() => Object.keys(placeChanges.value).length);
+
+async function place(): Promise<void> {
+	const current = type.value;
+
+	if (current === null || placeCount.value === 0 || placing.value) {
+		return;
+	}
+
+	await runPlace('Its place in the menu couldn\'t be saved.', async () => {
+		type.value = await request<ContentTypeDetail>('PATCH', `/types/${encodeURIComponent(current.name)}`, { set: placeChanges.value });
+		refreshTypes();
+		toast(`Saved ${current.labels.plural}`);
+	});
+}
+
+function revertPlace(): void {
+	menu.value         = type.value ? formOf(type.value) : null;
+	placeFailure.value = '';
+}
+
+guardLeave(() => !type.value?.editable && placeCount.value > 0);
 
 const people   = computed(() => type.value?.kind === 'profiles');
 
@@ -106,6 +146,17 @@ const related = computed(() => (people.value ? (type.value?.types ?? []) : []).m
 					<div><dt>In <code>llms.txt</code></dt><dd>{{ type.llms ? 'Yes' : 'No' }}</dd></div>
 				</dl>
 			</section>
+
+			<form v-if="type.placeable && menu" class="panel" aria-labelledby="menu-heading" @submit.prevent="place">
+				<header class="panel__header">
+					<h2 id="menu-heading">In the Menu</h2>
+					<p class="panel__hint">Where it sits in the Content menu, for everyone</p>
+				</header>
+				<div class="panel__body">
+					<TypeMenuFields v-model="menu" id-prefix="type-" :name="type.name" />
+				</div>
+				<SaveBar :count="placeCount" :failure="placeFailure" :saving="placing" @revert="revertPlace" />
+			</form>
 
 			<section v-if="people" class="panel" aria-labelledby="related-heading">
 				<header class="panel__header">

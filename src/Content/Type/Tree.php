@@ -55,6 +55,8 @@ final readonly class Tree extends ContentType
 	 * @param  bool            $llms        Whether its entries are listed in `llms.txt` (D-398).
 	 * @param  ?FileName       $filename    How new files are named (D-514).
 	 * @param  ?string         $prefix      The path a tree in a folder is served under (D-683); its name by default.
+	 * @param  ?int            $position    Its order in the admin's menu (D-726).
+	 * @param  ?string         $under       The type it sits under in the admin's menu (D-726).
 	 * @throws InvalidContentType
 	 */
 	public function __construct(
@@ -69,9 +71,11 @@ final readonly class Tree extends ContentType
 		?string $byline = null,
 		bool $llms = true,
 		?FileName $filename = null,
-		?string $prefix = null
+		?string $prefix = null,
+		?int $position = null,
+		?string $under = null
 	) {
-		parent::__construct($name, null, $public, false, new Listing(), false, $sitemap, DateArchives::None, $fields, $closed, $labels, $description, $icon, $byline, $llms, $filename);
+		parent::__construct($name, null, $public, false, new Listing(), false, $sitemap, DateArchives::None, $fields, $closed, $labels, $description, $icon, $byline, $llms, $filename, $position, $under);
 
 		$prefix = trim($prefix ?? '', '/ ');
 

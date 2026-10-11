@@ -2,7 +2,8 @@
 /**
  * A content type from `user/data/types`, edited (D-311), or a collection
  * from code, changed through a file there (D-349): General (names,
- * description, icon, with its key and folder fixed), Behavior
+ * description, icon, with its key and folder fixed), In the Menu (its
+ * place in the Content menu, `TypeMenuFields`, D-726), Behavior
  * (`TypeBehaviorFields`), Archives (its relation archives' list pages,
  * and which credit is its byline, D-602), Relationships (`TypeRelations`,
  * saved on their own, D-593), Addresses
@@ -30,6 +31,7 @@ import SaveBar from './SaveBar.vue';
 import TypeBasicsFields from './TypeBasicsFields.vue';
 import TypeBehaviorFields from './TypeBehaviorFields.vue';
 import TypeFieldSets from './TypeFieldSets.vue';
+import TypeMenuFields from './TypeMenuFields.vue';
 import AdminSelect from './AdminSelect.vue';
 import TypeRelations from './TypeRelations.vue';
 import TypeRoutesFields from './TypeRoutesFields.vue';
@@ -154,6 +156,16 @@ guardLeave(() => changed.value);
 					<div><dt>Folder</dt><dd class="mono">user/content/{{ type.folder }}</dd></div>
 				</dl>
 				<p class="field__help">The key is fixed: entries are filed by it, in a folder named for it.</p>
+			</div>
+		</section>
+
+		<section v-if="type.placeable" class="panel" aria-labelledby="menu-heading">
+			<header class="panel__header">
+				<h2 id="menu-heading">In the Menu</h2>
+				<p class="panel__hint">Where it sits in the Content menu, for everyone</p>
+			</header>
+			<div class="panel__body">
+				<TypeMenuFields v-model="form" id-prefix="type-" :name="type.name" />
 			</div>
 		</section>
 

@@ -66,6 +66,8 @@ final readonly class Collection extends ContentType
 	 * @param  ?FileName       $filename     How new files are named; defaults to the date and slug with date archives, else the slug.
 	 * @param  bool            $hierarchical Whether an entry may name a `parent` entry.
 	 * @param  TypeOrder       $order        How entries are ordered when nothing says otherwise.
+	 * @param  ?int            $position     Its order in the admin's menu (D-726).
+	 * @param  ?string         $under        The type it sits under in the admin's menu (D-726).
 	 * @throws InvalidContentType
 	 */
 	public function __construct(
@@ -86,9 +88,11 @@ final readonly class Collection extends ContentType
 		bool $llms = true,
 		?FileName $filename = null,
 		public bool $hierarchical = false,
-		public TypeOrder $order = TypeOrder::Published
+		public TypeOrder $order = TypeOrder::Published,
+		?int $position = null,
+		?string $under = null
 	) {
-		parent::__construct($name, $folders, $public, $urls, $listing, $feed, $sitemap, $dateArchives, $fields, $closed, $labels, $description, $icon, $byline, $llms, $filename);
+		parent::__construct($name, $folders, $public, $urls, $listing, $feed, $sitemap, $dateArchives, $fields, $closed, $labels, $description, $icon, $byline, $llms, $filename, $position, $under);
 	}
 
 	/**

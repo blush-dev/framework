@@ -41,7 +41,9 @@ use Blush\Storage\Record\RecordException;
  *    collection changes it instead (D-349): each
  *    option it sets replaces the code's (`ContentType::overriddenBy()`),
  *    and the type keeps its origin. One named for a code pages or profiles
- *    type is an error.
+ *    type is an error. One that sets only `position` and `under` places
+ *    a type from code in the admin's menu, built-in types too, and
+ *    changes nothing else (D-726).
  *
  * The relation definitions load with them (`RelationLoader`, D-593). A
  * data type still in the taxonomy form is read as the collection and
@@ -101,6 +103,14 @@ final readonly class ContentTypeLoader
 				$kind       = $origin === TypeOrigin::Extension ? $types[$name]->kind() : TypeKind::tryFrom(is_string($definition['kind'] ?? null) ? $definition['kind'] : '') ?? TypeKind::Collection;
 				$definition = LegacyFolder::convert($name, $definition, $kind, $origin !== TypeOrigin::Extension && $this->config->dataTypeUrls);
 				$named[]    = $name;
+			}
+
+			// A file that only places a type in the admin's menu lays over
+			// any type from code, built-in ones too, without changing it
+			// otherwise (D-726).
+			if ($origin !== null && ContentType::onlyPlaces($definition)) {
+				$types[$name] = $types[$name]->placedBy($definition, $this->fields);
+				continue;
 			}
 
 			if ($origin === TypeOrigin::Extension) {

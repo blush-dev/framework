@@ -207,6 +207,38 @@ directive offers (`bin/blush icon:list`), such as `film` or
 }
 ```
 
+### Where a type sits in the admin's menu
+
+The admin's **Content** menu lists your types alphabetically by their
+menu names. `position` puts a type in an order of your own: types with
+one come first, lowest first, then the rest alphabetically. `under`
+names the type it sits under in the menu, such as a Cast type under
+Movies:
+
+`user/data/types/cast.json`:
+
+```json
+{
+	"labels": { "plural": "Cast" },
+	"position": 2,
+	"under": "movie"
+}
+```
+
+The menu goes one level deep: a type can't sit under one that's under
+another. Types under a type are ordered among themselves the same way.
+These settings change only the menu: not addresses, folders, or who can
+edit what. A type someone can't edit isn't in their menu, so the types
+under it are at the top level for them. Profiles are listed with
+accounts, so they take neither setting.
+
+You don't have to write these by hand: each type's screen under
+**Structure → Content Types** has an **In the Menu** panel with **Sits
+under** and **Position**. It's there for every type, including Pages
+and types from plugins, even ones whose other settings can't be changed
+in the admin. For a type defined in code, the file in `user/data/types/`
+holds only what you've changed, and resetting the type keeps its place.
+
 ## Example: a blog
 
 Posts live in `user/content/_post/` and are listed at `/blog`, newest
@@ -829,11 +861,13 @@ Every kind takes these:
 | `fields` / `closed` |                                                                | [Custom fields](#custom-fields)                                  |
 | `filename`          | `{slug}`                                                       | How new entries' files are named ([below](#naming-new-files))    |
 
-Collections and trees also take this:
+Collections and trees also take these:
 
-| Option   | Default                    | What it does                                                                            |
-|----------|----------------------------|-----------------------------------------------------------------------------------------|
-| `byline` | Its only credit relation   | The [credit relation](#crediting-people) its byline uses, by name, when it has several |
+| Option     | Default                    | What it does                                                                            |
+|------------|----------------------------|-----------------------------------------------------------------------------------------|
+| `byline`   | Its only credit relation   | The [credit relation](#crediting-people) its byline uses, by name, when it has several |
+| `position` | None (alphabetical)        | [Its order in the admin's menu](#where-a-type-sits-in-the-admins-menu), lowest first    |
+| `under`    | None (the top level)       | [The type it sits under in the admin's menu](#where-a-type-sits-in-the-admins-menu)     |
 
 Trees also take this:
 

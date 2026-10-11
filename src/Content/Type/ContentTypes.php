@@ -365,6 +365,21 @@ final class ContentTypes implements IteratorAggregate, Countable
 	}
 
 	/**
+	 * Returns the type a type sits under in the admin's menu (D-726), or
+	 * `null` for the top level. Its `under` counts only when it names
+	 * another type, not the profiles type, that's at the top level
+	 * itself, since the menu nests one level; otherwise it's at the top,
+	 * so a parent that's gone (a plugin turned off, say) hides nothing.
+	 */
+	public function menuParent(string $name): ?string
+	{
+		$under  = $this->find($name)?->under;
+		$parent = $under === null ? null : $this->find($under);
+
+		return $parent === null || $parent instanceof Profiles || $parent->under !== null ? null : $parent->name;
+	}
+
+	/**
 	 * Returns whether a type's entries name a parent entry of the type
 	 * (a hierarchical collection's terms), rather than nesting by folder.
 	 */

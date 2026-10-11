@@ -94,6 +94,20 @@ abstract readonly class ContentType
 	public ?string $byline;
 
 	/**
+	 * The name of the type this one sits under in the admin's menu
+	 * (D-726), or `null` for the top level. It's only where the admin
+	 * shows it: no address, folder, or capability follows it.
+	 */
+	public ?string $under;
+
+	/**
+	 * The options that place a type in the admin's menu (D-726), which a
+	 * data file may set over any type, even one it can't otherwise
+	 * change: the built-in pages, say.
+	 */
+	public const array PLACEMENT = ['position', 'under'];
+
+	/**
 	 * @param  string            $name         Lowercase letters, digits, and underscores; not one of `RESERVED`.
 	 * @param  ?string           $folders      A folder pattern for the folders below the type's (`{year}`, D-629), or `null` for none.
 	 * @param  bool              $public       Whether the type is public at all.
@@ -110,6 +124,8 @@ abstract readonly class ContentType
 	 * @param  ?string           $byline       The credit relation that's its byline, or `null` for its only one.
 	 * @param  bool              $llms         Whether entries are listed in `llms.txt` (D-398; each kind's default, `TypeKind::inLlmsByDefault()`).
 	 * @param  ?FileName         $filename     How new files are named (D-511, D-514); the slug alone by default.
+	 * @param  ?int              $position     Its order in the admin's menu (D-726), lowest first; `null` after those with one, by name.
+	 * @param  ?string           $under        The type it sits under in the admin's menu (D-726), or `null` for the top level.
 	 * @throws InvalidContentType
 	 */
 	protected function __construct(
@@ -128,7 +144,9 @@ abstract readonly class ContentType
 		?string $icon = null,
 		?string $byline = null,
 		public bool $llms = true,
-		public ?FileName $filename = null
+		public ?FileName $filename = null,
+		public ?int $position = null,
+		?string $under = null
 	) {
 		if (preg_match('/^[a-z][a-z0-9_]*$/', $name) !== 1) {
 			throw new InvalidContentType(sprintf(
@@ -158,6 +176,15 @@ abstract readonly class ContentType
 		$this->description = trim($description);
 		$this->icon        = $icon === null || trim($icon) === '' ? null : trim($icon);
 		$this->byline      = $byline === null || trim($byline) === '' ? null : trim($byline);
+		$this->under       = $under === null || trim($under) === '' ? null : trim($under);
+
+		if ($position !== null && $position < 0) {
+			throw new InvalidContentType(sprintf('Content type "%s" "position" must be 0 or more.', $name));
+		}
+
+		if ($this->under === $name) {
+			throw new InvalidContentType(sprintf('Content type "%s" can\'t sit under itself.', $name));
+		}
 	}
 
 	/**
@@ -383,6 +410,7 @@ abstract readonly class ContentType
 				'filename'    => self::filename($definition, $name)
 			];
 
+
 			if ($kind === TypeKind::Profiles) {
 				return new Profiles(...[
 					...$common,
@@ -394,6 +422,11 @@ abstract readonly class ContentType
 			}
 
 			$common['byline'] = is_string($data['byline'] ?? null) ? $data['byline'] : null;
+
+			// A place in the admin's menu (D-726); profiles, listed with
+			// people, have none.
+			$common['position'] = self::position($definition, $name);
+			$common['under']    = $definition->nullableString('under');
 
 			if ($kind === TypeKind::Tree) {
 				unset($common['folders']);
@@ -477,6 +510,38 @@ abstract readonly class ContentType
 	}
 
 	/**
+	 * Returns the type placed in the admin's menu by a data file that sets
+	 * only `position` and `under` (D-726), which may lay over any type but
+	 * the profiles type, even one it can't otherwise change.
+	 *
+	 * @param  array<array-key, mixed> $data
+	 * @throws InvalidContentType
+	 */
+	public function placedBy(array $data, FieldFactory $fields): self
+	{
+		if (! self::onlyPlaces($data)) {
+			throw new InvalidContentType(sprintf('"%s" can only be placed in the menu here, with "position" and "under".', $this->name));
+		}
+
+		if ($this->kind() === TypeKind::Profiles) {
+			throw new InvalidContentType(sprintf('The "%s" type is listed with people, so it isn\'t placed in the content menu.', $this->name));
+		}
+
+		return self::fromArray([...$this->toArray(), ...$data], $fields);
+	}
+
+	/**
+	 * Returns whether a data file sets only the options that place a type
+	 * in the admin's menu (D-726).
+	 *
+	 * @param array<array-key, mixed> $data
+	 */
+	public static function onlyPlaces(array $data): bool
+	{
+		return $data !== [] && array_diff(array_map(strval(...), array_keys($data)), self::PLACEMENT) === [];
+	}
+
+	/**
 	 * Returns the type as a definition array that `fromArray()` accepts,
 	 * leaving out settings at their defaults.
 	 *
@@ -498,6 +563,8 @@ abstract readonly class ContentType
 			'description' => $this->description === '' ? null : $this->description,
 			'icon'        => $this->icon,
 			'filename'    => $this->filename?->pattern,
+			'position'    => $this->position,
+			'under'       => $this->under,
 			...$this->options(),
 			...$this->schema->toArray()
 		];
@@ -684,6 +751,23 @@ abstract readonly class ContentType
 				$name,
 				implode(', ', array_column(DateArchives::cases(), 'value'))
 			));
+	}
+
+	/**
+	 * Reads the `position` option (D-726): a whole number, 0 or more.
+	 *
+	 * @throws InvalidSchema
+	 * @throws InvalidContentType
+	 */
+	private static function position(Definition $definition, string $name): ?int
+	{
+		$position = $definition->number('position');
+
+		if ($position !== null && ! is_int($position)) {
+			throw new InvalidContentType(sprintf('Content type "%s" "position" must be a whole number.', $name));
+		}
+
+		return $position;
 	}
 
 	/**

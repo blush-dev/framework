@@ -22735,3 +22735,68 @@ decision, add a new entry that supersedes it and mark the old one
 - **Why:** the author: "We should add a Masonry variant that uses CSS
   grid-lanes to the Gallery block … we can fall back to regular grid if
   grid-lanes is not support."
+
+### D-726: A type's place in the admin: `position` and `under`
+
+- **Date:** 2026-10-10
+- **Status:** Built.
+- **Decision:** Two new fields on a type, for the admin only (no
+  addresses, folders, or capabilities change):
+  - **`position`** orders types in the rail, once per site, not per
+    account: Shortcuts (D-547) are the personal layer. Types with a
+    position come first, the rest by menu label, as today; the same
+    order applies among a parent's sub-items. Set on each type's screen
+    (an arrange-the-whole-menu tool was built and removed; see below).
+  - **`under`** names the type this one sits under (Cast under
+    Movies). One level only: a type can't sit under a nested type. A
+    parent the account can't see puts the child at the top level, not
+    out of sight.
+  - **Nesting is explicit only.** Term types no longer sit under the
+    one type their classify relation files (supersedes D-594's rail
+    rule), so the rail's **Shared Terms** group goes too: a term type is
+    placed like any other type, by `position` and `under`.
+  - **Rail sections from plugins** are later (open-questions.md); the
+    two fields are kept to "where in a section", so a section field
+    can be added beside them.
+  - No check for type labels that clash with rail section names (such
+    as People).
+  - **Built:** `ContentType::$position` (a whole number, 0 or more) and
+    `$under` (not itself), options of collections and trees, not
+    profiles (`TypeKind::options()`). **Any type can be placed**, the
+    built-in pages and plugins' types too: a `user/data/types` record
+    that sets only `position` and `under` (`ContentType::PLACEMENT`,
+    `onlyPlaces()`) lays over a type from code (`placedBy()`) without
+    replacing or overriding it (it stays built-in or the plugin's, not
+    `overridden`); over code, the record holds only what differs, with
+    `"under": ""` for the top level when the code names a parent.
+    Resetting a code type keeps its place. **The loader is lenient**:
+    `ContentTypes::menuParent()` answers the type a type sits under only
+    when it exists, isn't the profiles type, and is at the top level
+    itself, so a parent that's gone (a plugin turned off) leaves the
+    child at the top rather than breaking the site; the writer is
+    strict (`DataTypeWriter::checkPlacement()`: a parent in the content
+    menu, at the top level, and no types under the one being nested).
+    Both are options `PATCH types/{name}` changes; on a type the admin
+    can't otherwise edit (the built-in pages), a change of only those
+    two is written as a placement record (`placeOnly()`). `GET types`
+    gives each type's `position` and its `menuParent()` as `under`, and
+    `GET types/{name}` whether it's `placeable` (any type but profiles,
+    when data types are read). **The admin:** `contentMenu()` and
+    `byMenuPlace()` in `types.ts`; the rail nests from them (a parent
+    the account can't edit leaves the child at the top); an **In the
+    Menu** panel on each type's screen (`TypeMenuFields`: Sits under,
+    from the top-level types, disabled while types sit under it, and
+    Position), in the editor's save, and on a read-only type's screen
+    with its own save bar.
+  - **An Arrange Menu dialog** (a list of the whole menu with move
+    buttons and dragging, on the Content Types screen, `PUT types/menu`)
+    was built and removed the same day: the author asked for settings on
+    the type's screen, and found the dialog clunky. A whole-menu sorter,
+    if wanted, would be a button in the Content section panel's header,
+    built on the Menus screen's tree (`MenuTree`); not built.
+- **Why:** the author: content types "need some options for how they
+  appear in the admin": an order, and one type as a sub-item of
+  another; "Yes, position and under. No to the term default with this
+  change"; no hint or check for clashing labels. On the dialog: "This
+  was supposed to be just a setting on the content types screen for
+  setting the position and parent."

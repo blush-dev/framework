@@ -47,7 +47,10 @@ use Blush\Http\Status;
  * new entries get a publish date and a dated file name), whether its
  * entries credit `authors` (D-329), whether they're `terms` (a classify
  * relation files entries under them, D-593), whether they nest by a
- * `parent` (`hierarchical`), and their default `order`. A term type adds
+ * `parent` (`hierarchical`), their default `order`, and their place in
+ * the admin's menu (D-726): `position` (`null` for none) and the type
+ * it sits `under` (`null` for the top level, or for an `under` the menu
+ * can't follow, `ContentTypes::menuParent()`). A term type adds
  * the `types` its relation files (empty for every type), which places it
  * in the admin's navigation; the profiles type adds the `types` that
  * credit people. Each also has its `origin` (`built-in`,
@@ -65,7 +68,9 @@ use Blush\Http\Status;
  * that file it, its `relations` (every relation definition from or to
  * it, as `RelationsController` describes them, D-593), whether it's
  * `public`, has a `feed`, is in the `sitemap` and `llms.txt` (`llms`,
- * D-398), and is `editable` (types
+ * D-398), whether it's `placeable` (its place in the admin's menu can be
+ * changed, D-726: any type but the profiles type, even one that isn't
+ * otherwise editable, when data types are read), and is `editable` (types
  * in `user/data/types`, D-311, and collections from code,
  * through a file there, D-349), whether it's `overridden` (a code type a
  * file changes) and the options that file sets (`overrides`), whether
@@ -158,6 +163,7 @@ final readonly class TypesController
 			'sitemap'      => $type->sitemap,
 			'llms'         => $type->llms,
 			'editable'     => $editable && ($file !== null || ! $data),
+			'placeable'    => ! $type instanceof Profiles && $this->config->dataTypes,
 			'overridden'   => $types->isOverridden($name),
 			'overrides'    => $types->isOverridden($name) ? $this->overrides($name) : [],
 			'fieldsEditable' => $data || $this->writer->fieldsEditable($type),
@@ -308,6 +314,8 @@ final readonly class TypesController
 			'terms'       => $types->classification($type->name) !== null,
 			'hierarchical' => $types->nestsByParent($type->name),
 			'order'       => $type instanceof Collection ? $type->order->value : null,
+			'position'    => $type->position,
+			'under'       => $types->menuParent($type->name),
 			...($types->classification($type->name) !== null ? ['types' => $types->classification($type->name)->from] : []),
 			...($type instanceof Profiles ? ['types' => array_keys($types->crediting())] : []),
 			'origin'      => $types->origin($type->name)->value,

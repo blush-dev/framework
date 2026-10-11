@@ -118,6 +118,38 @@ export function typeIcon(type: Pick<ContentTypeSummary, 'kind'> & { terms?: bool
 }
 
 /**
+ * A content type in the admin's content menu (D-726), with the types
+ * that sit under it.
+ */
+export interface MenuType {
+	type: ContentTypeSummary;
+	under: ContentTypeSummary[];
+}
+
+/**
+ * Orders types as the content menu does (D-726): by `position`, then
+ * those without one by the names the menu shows (D-278).
+ */
+export function byMenuPlace(a: ContentTypeSummary, b: ContentTypeSummary): number {
+	return (a.position ?? Infinity) - (b.position ?? Infinity) || a.labels.menu.localeCompare(b.labels.menu);
+}
+
+/**
+ * The content menu from a list of types (D-726): every type but the
+ * profiles type, listed with people, in menu order, each with the types
+ * that sit `under` it. One whose parent isn't in the list is at the top
+ * level, so a type the account can't see hides nothing.
+ */
+export function contentMenu(list: ContentTypeSummary[]): MenuType[] {
+	const sorted = list.filter((type) => type.kind !== 'profiles').sort(byMenuPlace);
+	const names  = new Set(sorted.map((type) => type.name));
+
+	return sorted
+		.filter((type) => type.under === null || !names.has(type.under))
+		.map((type) => ({ type, under: sorted.filter((child) => child.under === type.name) }));
+}
+
+/**
  * Where an entry in a list opens: a profile's own screen (D-353), which
  * says where it appears and links to its editor, or else the editor.
  */

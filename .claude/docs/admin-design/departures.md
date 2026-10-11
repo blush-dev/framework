@@ -921,11 +921,11 @@ D-541). Where the admin differs from the sketch:
   a classify relation files entries under. The list screen's tabs are
   Collections, Terms, Trees, and Profiles, with "Terms" in the Kind
   column; the wizard's choices are Collection, Terms, and Tree. The
-  rail's rule is §8's with "files" for "attached to": terms filing
-  exactly one type nest under it, and the rest sit under **Shared
-  Terms** (§8's "Structure" placement and "Shared taxonomies" name are
-  the admin's older ones). Terms are still entries, edited like any
-  (§8, Taxonomy terms are entries).
+  rail no longer follows §8's grouping: since D-726 every type, terms
+  too, is placed by its `position` and `under` (In the Menu on its type's
+  screen), nested one level, with no **Shared Terms** group (D-594's
+  rule, terms filing one type nested under it, is gone). Terms are
+  still entries, edited like any (§8, Taxonomy terms are entries).
 - **A Relationships panel** on every type's screen, which the direction
   doesn't have: each relation from or to the type as a sentence from
   its side ("Filed under Topics", "Files Posts", "Links to Docs") over

@@ -510,6 +510,77 @@ final class AdminTypeEditTest extends TestCase
 		$this->assertTrue(($routes['collection.feed'] ?? [])['root'] ?? null);
 	}
 
+	public function testPlacesTypesInTheMenu(): void
+	{
+		$this->codeConfig(['types' => ['movie' => ['description' => 'Films.', 'under' => 'page']]]);
+		$this->writeTemporaryFile('user/data/types/cast.json', '{"labels": {"plural": "Cast"}}');
+		$this->writeTemporaryFile('user/data/types/genre.json', '{}');
+		$this->writeTemporaryFile('user/data/types/note.json', '{"under": "gone"}');
+		$this->site();
+
+		$listed = self::placement(self::json($this->send('GET', '/types')));
+		$this->assertSame([null, 'page'], $listed['movie'], 'A code type may name its place (D-726).');
+		$this->assertSame([null, null], $listed['note'], 'An under the menu can\'t follow is the top level, not an error.');
+
+		$page = self::json($this->send('GET', '/types/page'));
+		$this->assertSame([false, true], [$page['editable'] ?? null, $page['placeable'] ?? null], 'The built-in pages can be placed, though not edited.');
+		$this->assertFalse(self::json($this->send('GET', '/types/profile'))['placeable'] ?? null, 'Profiles are listed with people.');
+
+		$this->assertSame(200, $this->write('PATCH', '/types/movie', ['set' => ['position' => 1, 'under' => null]])->getStatusCode());
+		$this->assertSame(['position' => 1, 'under' => ''], $this->data('user/data/types/movie.json'), 'Over code, only what differs, with the top level written out.');
+
+		$answer = $this->write('PATCH', '/types/cast', ['set' => ['position' => 2, 'under' => 'movie']]);
+		$this->assertSame(200, $answer->getStatusCode(), (string) $answer->getBody());
+		$this->assertSame([2, 'movie'], [self::json($answer)['position'] ?? null, self::json($answer)['under'] ?? null]);
+		$this->assertSame(['labels' => ['plural' => 'Cast'], 'position' => 2, 'under' => 'movie'], $this->data('user/data/types/cast.json'), 'A data type keeps its place in its own file.');
+
+		$answer = $this->write('PATCH', '/types/page', ['set' => ['position' => 4]]);
+		$this->assertSame(200, $answer->getStatusCode(), (string) $answer->getBody());
+		$this->assertSame(['position' => 4], $this->data('user/data/types/page.json'), 'The built-in pages are placed too, and nothing else.');
+		$this->assertSame(['built-in', false, false, 4], [self::json($answer)['origin'] ?? null, self::json($answer)['editable'] ?? null, self::json($answer)['overridden'] ?? null, self::json($answer)['position'] ?? null], 'Placing a type doesn\'t change it.');
+		$this->assertSame(422, $this->write('PATCH', '/types/page', ['set' => ['position' => 4, 'icon' => 'file']])->getStatusCode(), 'Nothing else about the pages changes here.');
+
+		$refused = [
+			['genre', ['under' => 'cast']],
+			['movie', ['under' => 'page']],
+			['cast', ['under' => 'cast']],
+			['cast', ['under' => 'nope']],
+			['cast', ['under' => 'profile']],
+			['cast', ['position' => -1]],
+			['page', ['position' => 'first']],
+			['profile', ['position' => 1]]
+		];
+
+		foreach ($refused as [$name, $set]) {
+			$this->assertSame(422, $this->write('PATCH', "/types/{$name}", ['set' => $set])->getStatusCode(), (string) json_encode([$name, $set]));
+		}
+
+		$this->assertSame(['labels' => ['plural' => 'Cast'], 'position' => 2, 'under' => 'movie'], $this->data('user/data/types/cast.json'), 'A refused change writes nothing.');
+
+		$this->assertSame(200, $this->write('PATCH', '/types/movie', ['set' => ['description' => 'Movies.']])->getStatusCode());
+		$this->assertSame(200, $this->write('POST', '/types/movie/reset')->getStatusCode());
+		$this->assertSame(['position' => 1, 'under' => ''], $this->data('user/data/types/movie.json'), 'Resetting a code type keeps its place.');
+	}
+
+	/**
+	 * Each listed type's position and the type it sits under.
+	 *
+	 * @param  array<array-key, mixed>          $list
+	 * @return array<string, array{mixed, mixed}>
+	 */
+	private static function placement(array $list): array
+	{
+		$placed = [];
+
+		foreach (is_array($list['types'] ?? null) ? $list['types'] : [] as $type) {
+			if (is_array($type) && is_string($type['name'] ?? null)) {
+				$placed[$type['name']] = [$type['position'] ?? null, $type['under'] ?? null];
+			}
+		}
+
+		return $placed;
+	}
+
 	public function testNeedsSiteSettings(): void
 	{
 		$this->writeTemporaryFile('user/data/types/recipe.json', '{"urls": {"prefix": "recipes"}}');
