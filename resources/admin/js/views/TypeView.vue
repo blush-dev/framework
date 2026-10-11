@@ -209,12 +209,12 @@ const related = computed(() => (people.value ? (type.value?.types ?? []) : []).m
 		</section>
 	</div>
 
-	<TypeRelations v-if="type && !type.editable && !people" class="type-relations-panel" :type="type" @changed="load(type.name)" />
-
 	<div v-else-if="!error" class="detail" aria-hidden="true">
 		<div class="panel"><div class="panel__body"><span class="skeleton skeleton--heading" /><span class="skeleton" /><span class="skeleton" /></div></div>
 		<div class="panel"><div class="panel__body"><span class="skeleton skeleton--label" /><span class="skeleton" /></div></div>
 	</div>
+
+	<TypeRelations v-if="type && !type.editable && !people" class="type-relations-panel" :type="type" @changed="load(type.name)" />
 </template>
 
 <style scoped>
